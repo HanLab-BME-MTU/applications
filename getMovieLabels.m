@@ -33,10 +33,9 @@ movieData.labels.nBands = nBands;
 movieData.labels.nFrames = nFrames;
 movieData.labels.method = method;
 
-% Eventually, we need to update labels structure since we've changed
-% nWindows field to nSectors
-if isfield(movieData.labels, 'nWindows')
-    movieData.labels = rmfield(movieData.labels, method);
+% BACKWARD COMPATIBILITY
+if isfield(movieData.labels,'nWindows')
+    movieData.labels = rmfield(movieData.labels,'nWindows');
 end
 
 %Make the string for formatting

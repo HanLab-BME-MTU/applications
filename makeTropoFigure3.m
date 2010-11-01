@@ -328,8 +328,8 @@ for iTM = 1:numel(names)
         tmp = zeros(numel(dist)-1,1);
         
         for i = 1:numel(dist)-1
-            tmp(i) = ...
-                mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 2));
+            tmp(i) = mean(averageDensity(distFromEdge > dist(i) & ...
+                distFromEdge <= dist(i+1) & protrusionState == 2));
         end
         
         dataE1{iTM}{iMovie} = tmp;
@@ -341,8 +341,8 @@ for iTM = 1:numel(names)
         tmp = zeros(numel(dist)-1,1);
         
         for i = 1:numel(dist)-1
-            tmp(i) = ...
-                mean(averageDensity(distFromEdge > dist(i) & distFromEdge <= dist(i+1) & protrusionState == 3));
+            tmp(i) = mean(averageDensity(distFromEdge > dist(i) & ...
+                distFromEdge <= dist(i+1) & protrusionState == 3));
         end
         
         dataE2{iTM}{iMovie} = tmp;
