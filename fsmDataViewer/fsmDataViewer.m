@@ -55,66 +55,95 @@ set(hFig, 'HandleVisibility', 'callback');
 
 function saveMovie(varargin)
 
-% Get figure handler
-h = findall(0, '-regexp', 'Name', 'fsmDataViewer');
-settings = get(h, 'UserData');
-nFrames = settings.nFrames;
-fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
 
-filterSpec = {...
-    '*.eps', 'EPS file (*.eps)'; ...
-    '*.tif','TIFF image (*.tif)'; ...
-    '*.mov','QuickTime movie (*.mov)'};
+filterSpec = {'*.tif','TIFF image (*.tif)'};
 
-[fileName,pathName,filterIndex] = uiputfile(filterSpec, 'Save As', 'Untitled.eps');
+[fileName,pathName] = uiputfile(filterSpec, 'Save As', 'Untitled.tif');
 
 if ischar(fileName) && ischar(pathName)
-    isQuickTime = strcmp(filterSpec{filterIndex,1}, '*.mov');
+    % Get figure handler
+    h = findall(0, '-regexp', 'Name', 'fsmDataViewer');
+    settings = get(h, 'UserData');
+    nFrames = settings.nFrames;
 
-    if ~isQuickTime
-        [path,body] = getFilenameBody(fullfile(pathName,fileName));
-        fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
-        ext = filterSpec{filterIndex,1}(2:end);
-        switch filterIndex
-            case 1
-                driver = '-depsc2';
-            case 2
-                driver = '-dtiffn';            
+    % Get the crop area if any
+    aspectRatio = [1 1];
+    hCrop = findobj(get(h, 'CurrentAxes'), 'Tag', 'imrect');
+    if ~ishandle(hCrop)
+        crop = false;
+    else
+        crop = true;
+        hC = get(hCrop, 'Children');
+        
+        x = arrayfun(@(h) get(h, 'XData'), hC(1:8));
+        y = arrayfun(@(h) get(h, 'YData'), hC(1:8));
+        coords = [x, y];
+        cropCenter = mean(coords, 1);
+        cropSize = max(coords) - min(coords);
+        if max(coords) == coords(1)
+            aspectRatio = [max(cropSize) / min(cropSize) 1];
+        else
+            aspectRatio = [1 max(cropSize) / min(cropSize)];
         end
     end
     
+    % Create the figure where stack will be painted onto.
+    hFig = figure(...
+        'Visible', 'off',...
+        'Renderer', 'painters',...
+        'Position', [100 100 ceil(aspectRatio * 400)],...
+        'PaperPositionMode', 'auto',...
+        'UserData', settings);
+    hAxes = axes;
+    set(hAxes, 'Position', [0 0 1 1]);
+    set(hFig,'CurrentAxes',hAxes);
+    
+    [path,body] = getFilenameBody(fullfile(pathName,fileName));
+    fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
+    tmpOutputFile = fullfile(path, 'tmp.eps');
+    
     [iFirst,iLast]=fsmTrackSelectFramesGUI(1,nFrames,0,'Select frames to be processed:');
-    
-    scrsz = get(0,'ScreenSize');
-    hFig = figure('Position',scrsz);
-    set(hFig,'UserData',settings);
-    
-    if isQuickTime
-        evalString = ['MakeQTMovie start ''' fullfile(pathName,fileName) ''''];
-        eval(evalString);
-    end
     
     if numel(settings.channels) == 1
         colormap 'gray';
     end
+    
+    for iFrame = iFirst:iLast
+        cla(hAxes);
         
-    for iFrame = iFirst:iLast  
         % Display channels
         I = loadChannels(settings, iFrame);
+        imagesc(I,'Parent', hAxes);
+        axis(hAxes,'off','image');
         
-        imagesc(I,'Parent', gca),axis image,axis off;
         % Display layers
         displayLayers(hFig, iFrame);
-        
-        if isQuickTime
-            MakeQTMovie addaxes
-        else
-            print(hFig, driver, [path filesep body num2str(iFrame,fString) ext]);
+
+        if crop
+            % Change the view point of the camera
+            set(hAxes, 'CameraPositionMode', 'manual');
+            set(hAxes, 'CameraTargetMode', 'manual');
+            set(hAxes, 'CameraUpVectorMode', 'manual');
+            set(hAxes, 'CameraViewAngleMode', 'manual');
+
+            pos = get(hAxes, 'CameraPosition');
+            theta = get(hAxes, 'CameraViewAngle') * pi / 180;
+            pos(3) = max(cropSize) / (2 * tan(theta/2));
+            pos(1:2) = cropCenter;
+
+            set(hAxes, 'CameraPosition', pos);
+            set(hAxes, 'CameraTarget', [pos(1:2), 0]);
         end
+        
+        % Write an .eps file
+        print(hFig, '-depsc2', '-r300', '-noui', tmpOutputFile);
+        % Convert the .eps into .tiff using imageMagick
+        eval(['!convert -colorspace rgb ' tmpOutputFile ' tiff:' fullfile(path, [body, num2str(iFrame,fString), '.tif'])]);
     end
     
-    if isQuickTime
-         MakeQTMovie finish
+    % Remove the tmp.eps
+    if exist(tmpOutputFile, 'file');
+        delete(tmpOutputFile);
     end
     
     close(hFig);
