@@ -11,7 +11,7 @@ params.procNames = {...
     'particleDetection',...
     'particleTracking',...
     'pairTracks'};
-params.runSteps = [1 -1 -1];
+params.runSteps = [1 1 1];
 params.batchMode = 1;
 
 % Physical parameters
@@ -30,7 +30,7 @@ params.particleDetection.sigmaPSF = sigmaPSF;
 params.particleDetection.kSigma = 2;
 
 % PROC 2: particle tracking
-params.particleTracking = struct([]); % no parameter
+params.particleTracking = struct(); % no parameter
 
 % PROC 3: vimentin track pairing
 params.pairTracks.iChannel = 1;
@@ -39,4 +39,4 @@ params.pairTracks.thetaTh = pi/16;
 params.pairTracks.alpha = 0.05;
 
 % Run all processes
-batchProcessMyMovies(rootDirectory,params);
+batchProcessMyMovies(params);
