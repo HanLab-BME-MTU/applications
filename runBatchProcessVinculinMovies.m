@@ -25,7 +25,7 @@ params.setupMovieDataFunc = @setupViculinMovieData;
 
 % PROC 1: particle detection
 params.particleDetection.iChannel = 1;
-params.particleDetection.detectFunc = @detectPaxilinParticles;
+params.particleDetection.detectFunc = @detectFocalAdhesionParticles;
 params.particleDetection.sigmaPSF = sigmaPSF;
 params.particleDetection.kSigma = 2;
 
