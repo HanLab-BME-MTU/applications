@@ -1,4 +1,4 @@
-function [] = runLifetimeAnalysis(restrict,shape,expData)
+function [] = runLifetimeAnalysis(restrict, shape, expData, directory, filename)
 
 % runLifetimeAnalysis takes all data folders under a given condition and fills in
 % missing tracking and lifetime data
@@ -47,15 +47,18 @@ condDir = experiment(1).source(1:condDir(end-2));
 dirName = findstr(condDir,filesep);
 dirName = condDir(dirName(end-1)+1:dirName(end)-1);
 
-directory = uigetdir(condDir,['Specify folder to store lifetime analysis result.\n If empty default (' condDir ') will be used']);
-if (directory==0)
-    directory = condDir;
+if nargin<4 || isempty(directory)
+    directory = uigetdir(condDir,['Specify folder to store lifetime analysis result.\n If empty default (' condDir ') will be used']);
+    if (directory==0)
+        directory = condDir;
+    end
 end
-
-%Ask user to name file
-fileName = input('Specify name for lifetime analysis result files (date will be included automatically).','s');
-if isempty(fileName)
-    fileName = [dirName 'LifetimeAnalysisResults'];
+if nargin<5 || isempty(filename)
+    %Ask user to name file
+    fileName = input('Specify name for lifetime analysis result files (date will be included automatically).','s');
+    if isempty(fileName)
+        fileName = [dirName 'LifetimeAnalysisResults'];
+    end
 end
 
 
