@@ -1,4 +1,4 @@
-function [] = runLifetimeAnalysis(restrict, shape, expData, directory, filename)
+function [] = runLifetimeAnalysis(restrict, shape, expData, directory, fileName)
 
 % runLifetimeAnalysis takes all data folders under a given condition and fills in
 % missing tracking and lifetime data
@@ -47,13 +47,16 @@ condDir = experiment(1).source(1:condDir(end-2));
 dirName = findstr(condDir,filesep);
 dirName = condDir(dirName(end-1)+1:dirName(end)-1);
 
-if nargin<4 || isempty(directory)
+
+if nargin<4
     directory = uigetdir(condDir,['Specify folder to store lifetime analysis result.\n If empty default (' condDir ') will be used']);
     if (directory==0)
         directory = condDir;
     end
+elseif isempty(directory)
+    directory = getParentDir(data(1).source);
 end
-if nargin<5 || isempty(filename)
+if nargin<5 || isempty(fileName)
     %Ask user to name file
     fileName = input('Specify name for lifetime analysis result files (date will be included automatically).','s');
     if isempty(fileName)
@@ -66,6 +69,7 @@ end
 [experiment] = determinePitDensities(experiment);
 %Create lftInfo file if not already there
 [experiment] = determineLifetimeInfo(experiment);
+
 %load lftInfo into experiment structures
 for k = 1:length(experiment)
     load([experiment(k).source 'LifetimeInfo' filesep 'lftInfo.mat']);
