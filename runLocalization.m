@@ -7,13 +7,13 @@
 
 % Francois Aguet, October 2010
 
-function runLocalization(data, sigma, overwrite)
+function runLocalization(data, overwrite)
 
-if nargin<3
+if nargin<2
     overwrite = 0;
 end
 
 nExp = length(data);
 parfor i = 1:nExp   
-    psfLocalization(data(i), sigma, overwrite);
+    psfLocalization(data(i), overwrite);
 end
