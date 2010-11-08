@@ -8,11 +8,15 @@
 
 % Francois Aguet, September 2010
 
-function psfLocalization(data, sigma, overwrite)
+function psfLocalization(data, overwrite)
 
-if nargin<3
+if nargin<2
     overwrite = 0;
 end
+
+sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.channel1marker);
+
+
 load([data.source 'Detection' filesep 'detectionResults.mat']);
 
 if ~isfield(frameInfo, 'xloc') || overwrite
