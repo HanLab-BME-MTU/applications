@@ -8,33 +8,20 @@ bandPassIso = filterLoG(ima,sigmaPSF);
 bandPassIso(~mask) = 0;
 
 % Filter image with ridge detector
-[~, ~, nms] = steerableFiltering(ima,2,sigmaPSF);
-nms(~mask) = 0;
+bandPassAni = steerableFiltering(ima,2,sigmaPSF);
+bandPassAni(~mask) = 0;
 
-% Filter image with a Gaussian filter with support to compute bkg
-% values.
-lowPass = Gauss2D(ima, sigmaPSF);
-
+% Compute the local maxima of the bandpass filtered images
 locMaxIso = locmax2d(bandPassIso, [5 5]);
-locMaxAni = locmax2d(nms, [5 5]);
+locMaxAni = locmax2d(bandPassAni, [5 5]);
 
-% Sample the image boundary
+% Filter image with a Gaussian filter
+lowPass = Gauss2D(ima, sigmaPSF);
+lowPass = padarray(lowPass,[1 1],'replicate');
 
-% Be careful on the border condition !!! Eventhough sampled point are on
-% the image boundary, they needs to be locmin !!!!!!
-
-ptsBoundary = [...
-    (1:nrows)', repmat(1,nrows,1); ...
-    repmat(nrows,ncols-2,1), (2:ncols-1)'; ...
-    (nrows:-1:1)', repmat(ncols,nrows,1); ...
-    repmat(1,ncols-2,1), (ncols-1:-1:2)'];
-
-ind = sub2ind(size(ima),ptsBoundary(1:10:end,1),ptsBoundary(1:10:end,2));
-[y x] = ind2sub(size(ima),ind(mask(ind) == true));
-ptsBoundary = [x y];
-
-% Sample the cell outline
-bwDist = bwdist(1 - mask);
+% Reconstruct the cell boundary.
+maskExt = padarray(imdilate(mask, strel('square',3)),[1 1],0);
+bwDist = bwdist(~maskExt);
 outline = contourc(double(bwDist), [0, 0]);
 nChunks = 0;
 pos = 1;
@@ -47,81 +34,59 @@ ptsCellEdge = cell(nChunks,1);
 pos = 1;
 for iChunk = 1:nChunks
     n = outline(2,pos);
-    pts = outline(:,pos+1:pos+n);
-    l = sum(sqrt(sum(diff(pts,1,2).^2,1)));
-    s = spline(linspace(0,l,n), pts);
-    ptsCellEdge{iChunk} = fnval(s,0:10:l)';
+    ptsCellEdge{iChunk} = ceil(outline(:,pos+1:pos+n)');
     pos = pos + n + 1;
 end
 ptsCellEdge = vertcat(ptsCellEdge{:});
-    
-% Get local minima from the low pass filtering image and the edge outline
-% The definition of local minima is not good since a local maxima could
-% happen right in the middle of a bundle of adhesion and therefore have a
-% very high intensity value. We therefore need to select points that look
-% uniform in a small patch area.
+tmp = lowPass;
+tmp(1:2,1:2) = -Inf;
+tmp(end-1:end,1:2) = -Inf;
+tmp(1:2,end-1:end) = -Inf;
+tmp(end-1:end,end-1:end) = -Inf;
+% Keep boundary pixels that are local minima along the boundary (1d)
+ind = sub2ind(size(tmp),ptsCellEdge(:,2),ptsCellEdge(:,1));
+ptsCellEdge = ptsCellEdge(locmin1d(tmp(ind),5),:);
 
-locMin = locmin2d(lowPass, [3 3]);
-indMin = find(locMin & mask);
-[yMin xMin] = ind2sub(size(locMin), indMin);
-ptsMin = [xMin yMin];
-ptsMin = vertcat(ptsBoundary, ptsCellEdge, ptsMin);
+% Get local minima from the low pass filtering image and the cell boundary
+lowPassSS = imresize(lowPass .* maskExt,.125);
+locMinSS = locmin2d(lowPassSS,[3 3]);
+indMinSS = find(locMinSS);
+[yMin xMin] = ind2sub(size(locMinSS), indMinSS);
+ptsMin = [xMin yMin] * 8;
+% ptsMin = ptsMin(mask(indMin) == true, :);
+ptsMin = vertcat(ptsCellEdge, ptsMin);
+indMin = sub2ind(size(lowPass),ptsMin(:,2),ptsMin(:,1));
 
 % Get local maxima
 indMax = find(locMaxIso ~= 0 | locMaxAni ~= 0);
-[qy qx] = ind2sub(size(ima), indMax);
+[yMax xMax] = ind2sub(size(ima), indMax);
+ptsMax = [xMax yMax];
 
-% Compute expected background value at locMax position based on loc min
-% values.
-x = ptsMin(:,1);
-y = ptsMin(:,2);
-z = interp2(lowPass,ptsMin(:,1),ptsMin(:,2));
-
-F = TriScatteredInterp(x,y,z);
-
-[X Y] = meshgrid(floor(min(x)):ceil(max(x)), floor(min(y)):ceil(max(y)));
-Z = F(X,Y);
-mesh(X,Y,Z);
-qz = F(qx,qy);
-hold on;
-plot3(qx,qy,qz,'o');
-
-% Compute triangulation
+% Compute the Delaunay triangulation
 dt = DelaunayTri(ptsMin(:,1),ptsMin(:,2));
-iTri = pointLocation(dt,[qx, qy]);
+
+% Compute which triangle enclosed local maxima
+iTri = pointLocation(dt,ptsMax);
 assert(all(~isnan(iTri)));
+
 tri = dt(iTri,:);
 
-% For each point, compute the intensity on the triangle by bilinear
-% interpolation
+% Compute the average value 
+avgBkg = mean(reshape(lowPass(indMin(tri(:))), size(tri)),2);
 
-figure, imshow(ima,[]);
-hold on;
-plot(qx, qy, 'r.');
-triplot(dt);
+% Compute the adaptive standard deviation (over 27 points)
+ind3x3 = bsxfun(@plus,[-nrows 0 nrows],(-1:1)');
+ind3x3b1 = bsxfun(@plus,indMin(tri(:,1)),ind3x3(:)');
+ind3x3b2 = bsxfun(@plus,indMin(tri(:,2)),ind3x3(:)');
+ind3x3b3 = bsxfun(@plus,indMin(tri(:,3)),ind3x3(:)');
 
-Delaunay
+bkg1 = bsxfun(@minus,ima(ind3x3b1), mean(ima(ind3x3b1), 2));
+bkg2 = bsxfun(@minus,ima(ind3x3b2), mean(ima(ind3x3b2), 2));
+bkg3 = bsxfun(@minus,ima(ind3x3b3), mean(ima(ind3x3b3), 2));
+bkg = [bkg1, bkg2, bkg3];
 
-% 
-% % Compute the adaptative mean
-avgBkg = inf(size(indMax));
-% avgBkg(nnzIdx) = mean(reshape(lowPass(indMin(tri(:))), size(tri)),2);
-% 
-% % Compute the adaptive standard deviation (over 27 points)
-% stdBkg = inf(size(indMax));
-% 
-% ind3x3 = bsxfun(@plus,[-nrows 0 nrows],(-1:1)');
-% ind3x3b1 = bsxfun(@plus,indMin(tri(:,1)),ind3x3(:)');
-% ind3x3b2 = bsxfun(@plus,indMin(tri(:,2)),ind3x3(:)');
-% ind3x3b3 = bsxfun(@plus,indMin(tri(:,3)),ind3x3(:)');
-% ind3x3b = [ind3x3b1, ind3x3b2, ind3x3b3];
-% 
-% stdBkg(nnzIdx) = std(ima(ind3x3b),[],2);
-% 
-% finalIndMax = indMax(ima(indMax) > avgBkg + kSigma * stdBkg);
-% 
-% [y x] = ind2sub(size(ima), finalIndMax);
-% 
-% amp = ima(finalIndMax);
-% 
-% % Detection of particles on ridges
+stdBkg = std(bkg, [], 2);
+
+finalIndMax = indMax(ima(indMax) > avgBkg + kSigma * stdBkg);
+[y x] = ind2sub(size(ima), finalIndMax);
+amp = ima(finalIndMax);
