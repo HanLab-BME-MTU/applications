@@ -120,5 +120,5 @@ for k = 1:nCells
     data(k).M = 100;
     data(k).pixelSize = 6.7e-6;
     
-    fprintf('Loaded: %s\n', data(k).source);
+    fprintf('Loaded: %s\n', cellPath{k});
 end
