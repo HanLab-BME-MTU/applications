@@ -56,7 +56,7 @@ if nargin<2
     chPath = [uigetdir(cellPath{1}, 'Select first (master) channel:') filesep];
     chNames{1} = chPath(length(cellPath{1})+1:end-1);
     for c = 2:nCh
-        chPath = getDirFromPath(uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']));
+        chPath = [uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']) filesep];
         chNames{c} = chPath(length(cellPath{1})+1:end-1);
     end
 else
