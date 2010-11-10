@@ -29,11 +29,14 @@ fprintf('Root directory: %s\n', condDir);
 % list of experiments for this condition, each containing one or more 'cell' directories
 expDir = dirList(condDir);
 
-% cellDir = arrayfun(@(x) dirList([condDir x.name]), expDir, 'UniformOutput', false);
-% cellDir = vertcat(cellDir{:});
-
-cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
-cellPath = vertcat(cellPath{:});
+% if expDir are 'cell' directories
+valid = cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), 'cell', 'once'));
+if ~isempty(valid)
+    cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
+else
+    cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
+    cellPath = vertcat(cellPath{:});
+end
 
 % check whether directory names contain 'cell'
 valid = cellfun(@(x) regexpi(getDirFromPath(x), 'cell'), cellPath);
@@ -67,11 +70,6 @@ for c = 1:nCh
 end
 
 
-% determine whether 'condDir' contains the channel directories, or a set of experiments
-% single experiment
-% if ~isempty(regexpi(expDir(1).name, 'cell'))
-%     expDir(1).name = condDir;
-% end
 channels = cell(1,nCh);
 for k = 1:nCells
         
