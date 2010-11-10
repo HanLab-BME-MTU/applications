@@ -74,9 +74,7 @@ end
 % end
 channels = cell(1,nCh);
 for k = 1:nCells
-    
-    data(k).source = cellPath{k};
-    
+        
     % detect date
     data(k).date = cell2mat(regexp(cellPath{k}, '\d{6}+', 'match'));
     if isempty(date)
@@ -106,6 +104,8 @@ for k = 1:nCells
         end
     end
     data(k).channels = channels;
+    data(k).source = channels{1}; % master channel
+
 
     % load master channel frames
     tifFiles = dir([data(k).channels{1} '*.tif']);
