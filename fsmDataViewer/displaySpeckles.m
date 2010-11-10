@@ -38,7 +38,7 @@ if ~isempty(hSpeckles)
     if any(interInd)
         [Y,X] = ind2sub(imSize, interInd);
         line(X,Y, 'LineStyle', 'none', 'Marker', 'x',...
-            'Color',[1,1,0],'MarkerSize',8, 'Tag', tag, 'Parent', hAxes);
+            'Color',[1,1,0],'MarkerSize',12, 'Tag', tag, 'Parent', hAxes);
         
         % remove intersecting speckles from the list of cands
         Z(interInd) = false;
@@ -50,5 +50,5 @@ end
 % plot the rest of the candidates
 if ~isempty(cands)
     line(cands(:,2),cands(:,1),'LineStyle', 'none', 'Marker', '.',...
-        'Color',layerColor,'MarkerSize',6, 'Tag', tag, 'Parent', hAxes);
+        'Color',layerColor,'MarkerSize',12, 'Tag', tag, 'Parent', hAxes);
 end
