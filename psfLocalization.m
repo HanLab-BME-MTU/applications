@@ -14,7 +14,7 @@ if nargin<2
     overwrite = 0;
 end
 
-sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.channel1marker);
+sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{1});
 
 
 load([data.source 'Detection' filesep 'detectionResults.mat']);
