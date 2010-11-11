@@ -3,12 +3,12 @@
 
 % Francois Aguet, June 2010 (revised from 'determineLifetimeStatus.m')
 
-function [tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
+function [tracks nMergeSplit] = trackAnalysis(data, buffer, filename, frames)
 
-if nargin<2
+if nargin<2 || isempty(buffer)
     buffer = 5;
 end
-if nargin<3
+if nargin<3 || isempty(filename)
     filename = 'trackedFeatures.mat';
 end
 
@@ -19,6 +19,10 @@ frameList = dir([data.source '*.tif*']);
 maskList = dir([data.source 'Detection' filesep 'Masks' filesep '*.tif']);
 
 load([data.source 'Detection' filesep 'detectionResults.mat']);
+if nargin>3 && ~isempty(frames)
+    frameInfo = frameInfo(frames);
+end
+
 
 %=================================
 % Determine master/slave channels
@@ -62,7 +66,7 @@ tracks(1:nTracks) = struct('t', [], 'x', [], 'y', [], 'A', [], 'maskI', [], 'c',
     'seqOfEvents', [], 'tracksFeatIndxCG', []);
 
 
-fprintf('Progress:     ');
+fprintf('TrackAnalysis progress:     ');
 for k = 1:nTracks
     if ~isstruct(trackinfo)
         x = trackinfo(k,1:8:end);
