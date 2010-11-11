@@ -20,12 +20,12 @@ nExp = length(data);
 parfor i = 1:nExp
     tifFiles = dir([data(i).source '*.tif*']);
     if isempty(tifFiles)
-        error(['No TIF frames found in ' data(i).source]);
+        error(['No *.TIF frames found in ' data(i).source]);
     else
         if ~(exist([data(i).source 'Detection'], 'dir') == 7)
             spotDetection(data(i).source, 1);
         elseif (overwrite)
-            fprintf('Overwriting detecting results for movie %d.\n', i);
+            fprintf('Overwriting detection results for movie %d.\n', i);
             spotDetection(data(i).source, 1);
         end
     end
