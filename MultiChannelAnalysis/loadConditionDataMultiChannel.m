@@ -39,7 +39,7 @@ else
 end
 
 % check whether directory names contain 'cell'
-valid = cellfun(@(x) regexpi(getDirFromPath(x), 'cell'), cellPath);
+valid = cellfun(@(x) ~isempty(regexpi(getDirFromPath(x), 'cell', 'once')), cellPath);
 cellPath = cellPath(valid==1);
 nCells = length(cellPath);
 
