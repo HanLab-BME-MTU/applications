@@ -60,10 +60,9 @@ handles.data = data;
 
 
 % detect number of channels (up to 4)
-fieldNames = fieldnames(data);
-nChannels = (arrayfun(@(x) regexp(x, 'channel[1-9]$'), fieldNames));
-nChannels = sum([nChannels{:}]);
-masterChannel = regexp(data.source, arrayfun(@(x) data.(['channel' num2str(x)]), 1:nChannels, 'UniformOutput', false));
+nChannels = length(data.channels);
+% exclude master from list of channels
+masterChannel = regexp(data.source, data.channels);
 handles.masterChannel = find([masterChannel{:}]);
 handles.slaveChannels = setdiff(1:nChannels, handles.masterChannel);
 
@@ -83,14 +82,13 @@ end
 frameList = cell(1,nChannels);
 maskList = cell(1,nChannels);
 for c = 1:nChannels
-    channel = ['channel' num2str(c)];
-    frames = dir([data.(channel) '*.tif']);
-    frameList{c} = cellfun(@(x) [data.(channel) x], {frames.name}, 'UniformOutput', false);
-    maskPath = [data.(channel) 'Detection' filesep 'Masks' filesep];
+    frames = dir([data.channels{c} '*.tif']);
+    frameList{c} = cellfun(@(x) [data.channels{c} x], {frames.name}, 'UniformOutput', false);
+    maskPath = [data.channels{c} 'Detection' filesep 'Masks' filesep];
     masks = dir([maskPath '*.tif']);
     maskList{c} = cellfun(@(x) [maskPath x], {masks.name}, 'UniformOutput', false);
     
-    detectionFile = [data.(channel) 'Detection' filesep 'detectionResults.mat'];
+    detectionFile = [data.channels{c} 'Detection' filesep 'detectionResults.mat'];
     if exist(detectionFile, 'file')==2
         load(detectionFile);
         handles.detection{c} = frameInfo;
@@ -143,9 +141,14 @@ switch nChannels
             handles.axes{2} = axes('Parent', gcf, 'Position', [dx 2*dy 13*dx 4*dy]);
         end
     case 3
-        
+        handles.axes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
+        handles.axes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+        handles.axes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
     case 4
-        
+        handles.axes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
+        handles.axes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+        handles.axes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
+        handles.axes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
 
 % Update handles structure
@@ -257,12 +260,18 @@ for c = 1:handles.nCh
     end
     
     % plot selected track marker
-    if length(handles.selectedTrack)==2
-        t = handles.tracks{c}(handles.selectedTrack(1));
+    if ~isempty(handles.selectedTrack)
+        if ~isempty(handles.tracks{c})
+            chIdx = c;
+        else
+            chIdx = handles.masterChannel;
+        end
+        
+        t = handles.tracks{chIdx}(handles.selectedTrack(c));
         ci = f-t.start+1;
         if 1 <= ci && ci <= t.lifetime
             plot(handles.axes{c}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
-            text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(1)), 'Color', [1 0 0], 'Parent', handles.axes{c});
+            text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(c)), 'Color', [1 0 0], 'Parent', handles.axes{c});
         end
     end
     
@@ -287,31 +296,28 @@ if ~isempty(handles.selectedTrack)
     h = handles.axes3;
     XLim = get(h, 'XLim');
     hold(h, 'off');
-    
+        
     for ci = 1:handles.nCh
         if ~isempty(handles.tracks{ci})
             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
         else
-            sTrack = handles.tracks{1}(handles.selectedTrack(1));
+            sTrack = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
         end
-        %sTrack = handles.tracks1(handles.selectedTrack(1));
+        
         bStart = length(sTrack.startBuffer);
         bEnd = length(sTrack.endBuffer);
         t = sTrack.start-bStart:sTrack.end+bEnd;
-        
-        % if tracks -> A, otehrwise tracks{1}.A_cX
-        
-        if ~isempty(handles.tracks{ci})
+
+        %if ~isempty(handles.tracks{ci})
+        if size(sTrack.A, 1)==1
             A = [sTrack.startBuffer sTrack.A sTrack.endBuffer];
             c = [sTrack.c(1)*ones(1,bStart) sTrack.c sTrack.c(end)*ones(1,bEnd)];
         else
-          
-            A = [sTrack.startBuffer sTrack.(['A_c' num2str(ci)]) sTrack.endBuffer];
-            c = [sTrack.(['c_c' num2str(ci)])(1)*ones(1,bStart) sTrack.(['c_c' num2str(ci)]) sTrack.(['c_c' num2str(ci)])(end)*ones(1,bEnd)];
+            A = [sTrack.startBuffer sTrack.A(ci,:) sTrack.endBuffer];
+            c = [sTrack.c(ci,1)*ones(1,bStart) sTrack.c(ci,:) sTrack.c(ci,end)*ones(1,bEnd)];
         end
-        % [300:-1:0 1:60]
         
-        colorA = wavelength2rgb(name2wavelength(handles.data.(['channel' num2str(ci) 'marker'])));
+        colorA = wavelength2rgb(name2wavelength(handles.data.markers{ci}));
         plot(h, t, A+c, '-', 'Color', colorA);
         hold(h, 'on');
         plot(h, t, c, '--', 'Color', colorA, 'HandleVisibility', 'off');
@@ -322,7 +328,7 @@ if ~isempty(handles.selectedTrack)
     ybounds = get(h, 'YLim');
     plot(h, [handles.f handles.f], ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
     
-    chList = arrayfun(@(x) ['Ch. ' num2str(x) ': ' handles.data.(['channel' num2str(x) 'marker'])], 1:handles.nCh, 'UniformOutput', false);
+    chList = arrayfun(@(x) ['Ch. ' num2str(x) ': ' handles.data.markers{x}], 1:handles.nCh, 'UniformOutput', false);
     legend(h, chList, 'Location', 'SouthEast');
     %legend(h, 'Amplitude ch. 1', 'Background ch. 1', 'Amplitude ch. 2', 'Background ch. 2');
 
@@ -381,7 +387,7 @@ for c = 1:handles.nCh
     if ~isempty(handles.tracks{c})
         chIdx = c;
     else
-        chIdx = 1;
+        chIdx = handles.masterChannel;
     end
     idx = handles.visibleIdx{chIdx};
     np = length(idx);
@@ -395,7 +401,7 @@ for c = 1:handles.nCh
     % nearest point
     d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
     selectedIdx = idx(d==min(d));
-    handles.selectedTrack(chIdx) = selectedIdx;
+    handles.selectedTrack(c) = selectedIdx;
 end
     
 % % mean position of visible tracks
