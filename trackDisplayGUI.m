@@ -92,14 +92,14 @@ for c = 1:nChannels
     if exist(detectionFile, 'file')==2
         load(detectionFile);
         handles.detection{c} = frameInfo;
-        handles.dRange{c} = [min([frameInfo.minI]) max([frameInfo.maxI])];
+        %handles.dRange{c} = [min([frameInfo.minI]) max([frameInfo.maxI])];
     else
         handles.detection{c} = [];
-        % determine dynamic range
-        firstFrame = imread(frameList{c}{1});
-        lastFrame = imread(frameList{c}{data.movieLength});
-        handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
     end
+    % determine dynamic range
+    firstFrame = double(imread(frameList{c}{1}));
+    lastFrame = double(imread(frameList{c}{data.movieLength}));
+    handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
 end
 handles.frameList = frameList;
 handles.maskList = maskList;
