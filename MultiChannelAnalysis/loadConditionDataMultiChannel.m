@@ -1,4 +1,4 @@
-function [data] = loadConditionDataMultiChannel(condDir, chNames, markers)
+function [data] = loadConditionDataMultiChannel(condDir, chNames, markers, parameters)
 % loadConditionData loads the relevant information for all the data
 % available for a specific data condition; this requires a specific
 % dircetory structure and nomenclature (see below)
@@ -21,6 +21,10 @@ if nargin<1
 end
 if ~strcmp(condDir(end), filesep)
     condDir = [condDir filesep];
+end
+
+if nargin<4
+    parameters = [1.49 100 6.7e-6];
 end
 
 fprintf('Root directory: %s\n', condDir);
@@ -114,9 +118,9 @@ for k = 1:nCells
         data(k).markers = markers;
     end
     
-    data(k).NA = 1.49;
-    data(k).M = 100;
-    data(k).pixelSize = 6.7e-6;
+    data(k).NA = parameters(1);
+    data(k).M = parameters(2);
+    data(k).pixelSize = parameters(3);
     
     fprintf('Loaded: %s\n', cellPath{k});
 end
