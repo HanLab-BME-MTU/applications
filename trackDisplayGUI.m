@@ -62,8 +62,7 @@ handles.data = data;
 % detect number of channels (up to 4)
 nChannels = length(data.channels);
 % exclude master from list of channels
-masterChannel = regexp(data.source, data.channels);
-handles.masterChannel = find([masterChannel{:}]);
+handles.masterChannel = find(strcmp(data.source, data.channels));
 handles.slaveChannels = setdiff(1:nChannels, handles.masterChannel);
 
 
@@ -120,11 +119,14 @@ set(h, 'Max', data.movieLength);
 set(h, 'SliderStep', [1/(data.movieLength-1) 0.05]);
 
 h = handles.trackSlider;
-set(h, 'Min', 1);
-nTracks = length(handles.tracks{handles.masterChannel});
-set(h, 'Max', nTracks);
-set(h, 'SliderStep', [1/(nTracks-1) 0.05]);
-
+if ~isempty([handles.tracks{:}])
+    set(h, 'Min', 1);
+    nTracks = length(handles.tracks{handles.masterChannel});
+    set(h, 'Max', nTracks);
+    set(h, 'SliderStep', [1/(nTracks-1) 0.05]);
+else
+    set(h, 'Visible', 'off');
+end
 % Choose default command line output for trackDisplayGUI
 handles.output = hObject;
 
