@@ -23,6 +23,9 @@ if ~strcmp(condDir(end), filesep)
     condDir = [condDir filesep];
 end
 
+if nargin<3
+    markers = [];
+end
 if nargin<4
     parameters = [1.49 100 6.7e-6];
 end
@@ -114,9 +117,7 @@ for k = 1:nCells
     data(k).imagesize = size(imread([data(k).channels{1} tifFiles(1).name]));
     data(k).movieLength = length(tifFiles);
     
-    if nargin==3
-        data(k).markers = markers;
-    end
+    data(k).markers = markers;
     
     data(k).NA = parameters(1);
     data(k).M = parameters(2);
