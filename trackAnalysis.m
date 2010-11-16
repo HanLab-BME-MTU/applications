@@ -50,11 +50,13 @@ if exist(tPath, 'file')==2
 
     nTracks = length(trackinfo);
      
-elseif exist([data.source 'TrackInfoMatrices' filesep 'trackInfo.mat'], 'file')==2
+elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
     % (for old tracker. oldest version: trackInfo.mat)
     trackinfo = load([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat']);
+    trackedFeatureNum = trackinfo.trackedFeatureNum;
     trackinfo = trackinfo.trackedFeatureInfo;
     nTracks = size(trackinfo, 1);
+    nMergeSplit = NaN;
 else
     error('No valid tracker output found.');
 end
@@ -70,7 +72,8 @@ fprintf('TrackAnalysis progress:     ');
 for k = 1:nTracks
     if ~isstruct(trackinfo)
         x = trackinfo(k,1:8:end);
-        y = trackinfo(k,2:8:end);
+        y = trackinfo(k,2:8:end);      
+        maskI = trackinfo(k,4:8:end);
         
         % index of detected track points
         trackIdx = find(~isnan(x));
@@ -79,6 +82,17 @@ for k = 1:nTracks
         lastIdx = trackIdx(end);
         trackLength = lastIdx-firstIdx+1;
         trackPoints = length(trackIdx);
+        
+        
+        x = x(firstIdx:lastIdx);
+        y = y(firstIdx:lastIdx);
+         
+        tracks(k).x = x;
+        tracks(k).y = y;
+        tracks(k).maskI = maskI(firstIdx:lastIdx);
+        
+        tracks(k).t = firstIdx:lastIdx;
+        tracks(k).lifetime = trackLength;
         
         tracks(k).start = firstIdx;
         tracks(k).end = lastIdx;
@@ -177,17 +191,9 @@ for k = 1:nTracks
         tracks(k).valid = tracks(k).status == 1;
     end
     
-    
     tracks(k).t = firstIdx:lastIdx;
-    if ~isstruct(trackinfo)
-        tracks(k).x = x(tracks(k).t);
-        tracks(k).y = y(tracks(k).t);
-        tracks(k).xv = x;
-        tracks(k).yv = y;
-    else
-        tracks(k).x = x;
-        tracks(k).y = y;
-    end
+    tracks(k).x = x;
+    tracks(k).y = y;
     
     %==============================================================================
     % Read amplitude & background from detectionResults.mat (localization results)
@@ -208,8 +214,15 @@ for k = 1:nTracks
             end
         end
     else
-        % trackedFeatureNum
-        %%%%%%%%%%%%%%%%%%%%%
+        for i = 1:length(frameRange)
+            idx = trackedFeatureNum(k, frameRange(i));
+            if idx ~= 0
+                tracks(k).A(i) = frameInfo(frameRange(i)).A(idx);
+                tracks(k).maskI(i) = frameInfo(frameRange(i)).amp(idx);
+                tracks(k).c(i) = frameInfo(frameRange(i)).c(idx);
+                tracks(k).cStd(i) = frameInfo(frameRange(i)).cStd(idx);
+            end
+        end
     end
     
     % invalidate if track is within frame border
@@ -264,6 +277,7 @@ for k = 1:nTracks
         
         % linear interpolation of background values
         trackIdx = find(~isnan(tracks(k).c));
+         
         tracks(k).c(gapIdx) = interp1(trackIdx, tracks(k).c(trackIdx), gapIdx);
         tracks(k).cStd(gapIdx) = interp1(trackIdx, tracks(k).cStd(trackIdx), gapIdx);
         
