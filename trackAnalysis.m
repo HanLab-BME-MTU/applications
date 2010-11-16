@@ -381,6 +381,9 @@ end
 %==========================================
 % Save results
 %==========================================
+if ~(exist([data.source 'Tracking'], 'dir')==7)
+    mkdir([data.source 'Tracking']);
+end
 save([data.source 'Tracking' filesep 'trackAnalysis.mat'], 'tracks', 'nMergeSplit');
 
 
