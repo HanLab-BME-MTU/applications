@@ -8,10 +8,16 @@ function [data] = loadConditionDataMultiChannel(condDir, chNames, markers, param
 % INPUT
 %
 % OUTPUT   data: structure with the fields
-%                   .source = pathname of the data/movie
-%                   .date = date when movie was taken
-%                   .framerate = framerate of the movie (2s or 0.4s)
-%
+%                   .source      : path of the data/movie, location of master channel frames
+%                   .channels    : cell array of paths for all channels
+%                   .date        : date of the acquisition
+%                   .framerate   : frame rate of the movie, in seconds
+%                   .imagesize   : dimensions of the movie
+%                   .movieLength : length of the movie, in frames
+%                   .markers     : cell array of fluorescent marker names
+%                   .NA          : numerical aperture of the objective
+%                   .M           : magnification of the objective
+%                   .pixelSize   : pixel size of the CCD, in meters
 %
 %
 % Francois Aguet, October 2010
