@@ -8,7 +8,7 @@ nLayers = numel(settings.layers);
 hAxes = get(hFig, 'CurrentAxes');
 
 % Get the channel plugins list
-[~, layerPlugins] = getPlugins();
+[dummy, layerPlugins] = getPlugins(); %#ok<ASGLU>
 
 % Clear all layers
 for iLayer = 1:nLayers

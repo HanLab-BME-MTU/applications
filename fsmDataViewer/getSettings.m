@@ -160,7 +160,7 @@ for iChannel = 1:nChannels
 end
 
 % Dispatch data layers
-[~, layerPlugins] = getPlugins();
+[dummy, layerPlugins] = getPlugins(); %#ok<ASGLU>
 
 for iLayer = 1:nLayers
     layerTypeID = settings.layers{iLayer}.type;
