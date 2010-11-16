@@ -69,6 +69,9 @@ if nargin<2
         chPath = [uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']) filesep];
         chNames{c} = chPath(length(cellPath{1})+1:end-1);
     end
+    for c = 1:nCh
+        markers{c} = input(['Enter the fluorescent marker for channel ' num2str(c) ' (' chNames{c} '): '], 's');
+    end
 else
     nCh = length(chNames);
 end
