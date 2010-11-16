@@ -334,41 +334,79 @@ if ~isempty(handles.selectedTrack)
         
         bStart = length(sTrack.startBuffer);
         bEnd = length(sTrack.endBuffer);
-        t = sTrack.start-bStart:sTrack.end+bEnd;
 
-        %if ~isempty(handles.tracks{ci})
         if size(sTrack.A, 1)==1
-            A = [sTrack.startBuffer sTrack.A sTrack.endBuffer];
-            c = [sTrack.c(1)*ones(1,bStart) sTrack.c sTrack.c(end)*ones(1,bEnd)];
-            cStd = [sTrack.cStd(1)*ones(1,bStart) sTrack.cStd sTrack.cStd(end)*ones(1,bEnd)];
+            cx = 1;
         else
-            A = [sTrack.startBuffer sTrack.A(ci,:) sTrack.endBuffer];
-            c = [sTrack.c(ci,1)*ones(1,bStart) sTrack.c(ci,:) sTrack.c(ci,end)*ones(1,bEnd)];
-            cStd = [sTrack.cStd(ci,1)*ones(1,bStart) sTrack.cStd(ci,:) sTrack.cStd(ci,end)*ones(1,bEnd)];
+            cx = ci;
         end
         
-        colorA = wavelength2rgb(name2wavelength(handles.data.markers{ci}));
-        hsvColor = rgb2hsv(colorA);
-        hsvColor(2) = hsvColor(2)/4;
+        % colors
+        trackColor = wavelength2rgb(name2wavelength(handles.data.markers{ci}));
+        alpha5c = rgb2hsv(trackColor);
+        alpha5c(2) = alpha5c(2)/4;
+        alpha1c = alpha5c;
+        alpha1c(2) = alpha1c(2)/4;
         
-
-        plot(h, t, c, '--', 'Color', colorA, 'HandleVisibility', 'off');
-        lh(3) = patch([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], hsv2rgb(hsvColor), 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'on');
+        alpha5cB = alpha5c;
+        alpha5cB(3) = 0.9;
+        alpha1cB = alpha1c;
+        alpha1cB(3) = 0.9;%alpha1cB(
+        
+        alpha5c = hsv2rgb(alpha5c);
+        alpha1c = hsv2rgb(alpha1c);
+        alpha5cB = hsv2rgb(alpha5cB);
+        alpha1cB = hsv2rgb(alpha1cB);
+        
+        
+        % Plot track
+        A = sTrack.A(cx,:);
+        c = sTrack.c(cx,:);
+        cStd = sTrack.cStd(cx,:);
+        t = sTrack.start:sTrack.end;
+        
+        % alpha = 0.05 level
+        lh(3) = fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'on');
         hold(h, 'on');
-        hsvColor(2) = hsvColor(2)/4;
-        patch([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], hsv2rgb(hsvColor), 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+        
+        % alpha = 0.01 level
+        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
 
-        lh(1) = plot(h, t, A+c, '.-', 'Color', colorA, 'LineWidth', 1);
-        lh(2) = plot(h, t, c, '-', 'Color', colorA, 'HandleVisibility', 'on');
+        lh(1) = plot(h, t, A+c, '.-', 'Color', trackColor, 'LineWidth', 1);
+        lh(2) = plot(h, t, c, '-', 'Color', trackColor, 'HandleVisibility', 'on');
+
+        % Plot left buffer
+        A = [sTrack.startBuffer sTrack.A(cx,1)];
+        c = [sTrack.c(cx,1)*ones(1,bStart) sTrack.c(cx,1)];
+        cStd = [sTrack.cStd(cx,1)*ones(1,bStart) sTrack.cStd(cx,1)];
+        t = sTrack.start-bStart:sTrack.start;
+        
+        fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+        plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
+        plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
+        
+        
+        % Plot right buffer
+        A = [sTrack.A(cx,end) sTrack.endBuffer];
+        c = [sTrack.c(cx,end) sTrack.c(cx,end)*ones(1,bEnd)];
+        cStd = [sTrack.cStd(cx,end) sTrack.cStd(cx,end)*ones(1,bEnd)];
+        t = sTrack.end:sTrack.end+bEnd;
+        
+        fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+        plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
+        plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
+
         
         ybounds = get(h, 'YLim');
+
         % plot current frame position
         plot(h, [handles.f handles.f], ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
 
         axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
-        
-
-        legend(lh, ['Amplitude ch. ' num2str(ci)], ['Background ch. ' num2str(ci)], '\alpha = 0.95 level');
+        l = legend(lh, ['Amplitude ch. ' num2str(ci)], ['Background ch. ' num2str(ci)], '\alpha = 0.95 level');
+        set(l, 'FontSize', 7);
     end
   
     % display result of classification, if available
@@ -382,6 +420,7 @@ if ~isempty(handles.selectedTrack)
     end
     % retain zoom level
     %set(h, 'XLim', XLim);
+    set(h, 'XLim', [sTrack.start-bStart-10 sTrack.end+bEnd+10]);
 end
 
 
