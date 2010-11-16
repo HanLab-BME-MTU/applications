@@ -214,75 +214,94 @@ f = handles.f;
 XLim = get(handles.fAxes{1}, 'XLim');
 YLim = get(handles.fAxes{1}, 'YLim');
 
-for c = 1:handles.nCh
-    if ~isempty(handles.detection{c})
-        switch handles.displayType
-            case 'raw'
-                imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
-            case 'WT'
-                imagesc(imread(handles.maskList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
-            case 'merge'
-                overlayColor = [1 0 0];
-                mask = double(imread(handles.maskList{c}{f}));
-                frame = double(imread(handles.frameList{c}{f}));
-                
-                maskIdx = mask~=0;
-                chR = frame;
-                chR(maskIdx) = chR(maskIdx)*overlayColor(1);
-                chG = frame;
-                chG(maskIdx) = chG(maskIdx)*overlayColor(2);
-                chB = frame;
-                chB(maskIdx) = chB(maskIdx)*overlayColor(3);
-                imRGB = uint8(cat(3, scaleContrast(chR, handles.dRange{c}), scaleContrast(chG, handles.dRange{c}), scaleContrast(chB, handles.dRange{c})));
-                imagesc(imRGB, 'Parent', handles.fAxes{c});
-        end
-    else
-        imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
+if strcmp(handles.displayType, 'RGB')
+    [~, idx] = sort(handles.data.markers);
+    switch length(idx)
+        case 1
+            G = double(imread(handles.frameList{1}{f}));
+            imagesc(ch2RGB([], G, []), 'Parent', handles.fAxes{1});
+        case 2
+            G = double(imread(handles.frameList{idx(1)}{f}));
+            R = double(imread(handles.frameList{idx(2)}{f}));
+            imagesc(ch2RGB(R, G, []), 'Parent', handles.fAxes{1});
+        case 3
+            B = double(imread(handles.frameList{idx(1)}{f}));
+            G = double(imread(handles.frameList{idx(2)}{f}));
+            R = double(imread(handles.frameList{idx(3)}{f}));
+            imagesc(ch2RGB(R, G, B), 'Parent', handles.fAxes{1});
     end
-    axis(handles.fAxes{c}, 'image');
-
-    hold(handles.fAxes{c}, 'on');
-    if ~isempty(handles.tracks{c})
-        idx = find([handles.tracks{c}.start] <= f & f <= [handles.tracks{c}.end]);
-        handles.visibleIdx{c} = idx;
-        for k = idx
-            fi = 1:f-handles.tracks{c}(k).start+1;
-            %if f == handles.tracks1(k).start
-            plot(handles.fAxes{c}, handles.tracks{c}(k).x(1), handles.tracks{c}(k).y(1), '*', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
-            %end
-            plot(handles.fAxes{c}, handles.tracks{c}(k).x(fi), handles.tracks{c}(k).y(fi), '-', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
-            %if f == handles.tracks1(k).end
-            %plot(handles.axes1, handles.tracks1(k).x(end), handles.tracks1(k).y(end), '+', 'Color', cmap(handles.tracks1(k).lifetime,:), 'MarkerSize', 8);
-            %end
-        end
-    end
-    
-    % plot selected track marker
-    if ~isempty(handles.selectedTrack)
-        if ~isempty(handles.tracks{c})
-            chIdx = c;
+    axis(handles.fAxes{1}, 'image');
+else
+    for c = 1:handles.nCh
+        if ~isempty(handles.detection{c})
+            switch handles.displayType
+                case 'raw'
+                    imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
+                case 'WT'
+                    imagesc(imread(handles.maskList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
+                case 'overlayWT'
+                    overlayColor = [1 0 0];
+                    mask = double(imread(handles.maskList{c}{f}));
+                    frame = double(imread(handles.frameList{c}{f}));
+                    
+                    maskIdx = mask~=0;
+                    chR = frame;
+                    chR(maskIdx) = chR(maskIdx)*overlayColor(1);
+                    chG = frame;
+                    chG(maskIdx) = chG(maskIdx)*overlayColor(2);
+                    chB = frame;
+                    chB(maskIdx) = chB(maskIdx)*overlayColor(3);
+                    imRGB = uint8(cat(3, scaleContrast(chR, handles.dRange{c}), scaleContrast(chG, handles.dRange{c}), scaleContrast(chB, handles.dRange{c})));
+                    imagesc(imRGB, 'Parent', handles.fAxes{c});
+            end
         else
-            chIdx = handles.masterChannel;
+            imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
+        end
+        axis(handles.fAxes{c}, 'image');
+        
+        hold(handles.fAxes{c}, 'on');
+        if ~isempty(handles.tracks{c})
+            idx = find([handles.tracks{c}.start] <= f & f <= [handles.tracks{c}.end]);
+            handles.visibleIdx{c} = idx;
+            for k = idx
+                fi = 1:f-handles.tracks{c}(k).start+1;
+                %if f == handles.tracks1(k).start
+                plot(handles.fAxes{c}, handles.tracks{c}(k).x(1), handles.tracks{c}(k).y(1), '*', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
+                %end
+                plot(handles.fAxes{c}, handles.tracks{c}(k).x(fi), handles.tracks{c}(k).y(fi), '-', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
+                %if f == handles.tracks1(k).end
+                %plot(handles.axes1, handles.tracks1(k).x(end), handles.tracks1(k).y(end), '+', 'Color', cmap(handles.tracks1(k).lifetime,:), 'MarkerSize', 8);
+                %end
+            end
         end
         
-        t = handles.tracks{chIdx}(handles.selectedTrack(c));
-        ci = f-t.start+1;
-        if 1 <= ci && ci <= t.lifetime
-            plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
-            text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(c)), 'Color', [1 0 0], 'Parent', handles.fAxes{c});
+        % plot selected track marker
+        if ~isempty(handles.selectedTrack)
+            if ~isempty(handles.tracks{c})
+                chIdx = c;
+            else
+                chIdx = handles.masterChannel;
+            end
+            
+            t = handles.tracks{chIdx}(handles.selectedTrack(c));
+            ci = f-t.start+1;
+            if 1 <= ci && ci <= t.lifetime
+                plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
+                text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(c)), 'Color', [1 0 0], 'Parent', handles.fAxes{c});
+            end
         end
+        
+        % show detection COM values
+        if get(handles.('checkbox1'), 'Value')
+            plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
+        end
+        hold(handles.fAxes{c}, 'off');
     end
-    
-    % show detection COM values
-    if get(handles.('checkbox1'), 'Value')
-        plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
-    end
-    hold(handles.fAxes{c}, 'off');
 end
 
 % write zoom level
-set(handles.fAxes{c}, 'XLim', XLim);
-set(handles.fAxes{c}, 'YLim', YLim);
+set(handles.fAxes{1}, 'XLim', XLim);
+set(handles.fAxes{1}, 'YLim', YLim);
 guidata(hObject,handles);
 
 
@@ -351,14 +370,16 @@ if ~isempty(handles.selectedTrack)
 
         legend(lh, ['Amplitude ch. ' num2str(ci)], ['Background ch. ' num2str(ci)], '\alpha = 0.95 level');
     end
-    
-    
-    
-    
-    chList = arrayfun(@(x) ['Ch. ' num2str(x) ': ' handles.data.markers{x}], 1:handles.nCh, 'UniformOutput', false);
-    %legend(h, chList, 'Location', 'SouthEast');
-    
-
+  
+    % display result of classification, if available
+    if isfield(handles.tracks{1}, 'cStatus')
+        cStatus = handles.tracks{1}(handles.selectedTrack(1)).cStatus(2);
+        if cStatus == 1
+            set(handles.statusLabel, 'String', 'Ch. 2: EAF+');
+        else
+            set(handles.statusLabel, 'String', 'Ch. 2: EAF-');
+        end
+    end
     % retain zoom level
     %set(h, 'XLim', XLim);
 end
@@ -453,15 +474,6 @@ end
 set(handles.trackSlider, 'Value', handles.selectedTrack(1));
 set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
 
-if isfield(handles.tracks{1}, 'valid')
-    valid = handles.tracks{1}(handles.selectedTrack(1)).valid;
-    if valid == 1
-        set(handles.statusLabel, 'String', 'Ch. 2 status: valid');
-    else
-        set(handles.statusLabel, 'String', 'Ch. 2 status: invalid');
-    end
-end
-
 
 % % mean position of visible tracks
 % idx = handles.visibleIdx{2};
@@ -539,10 +551,12 @@ contents = cellstr(get(hObject,'String'));
 switch contents{get(hObject,'Value')}
     case 'Raw frames'
         handles.displayType = 'raw';
+    case 'RGB merge'
+        handles.displayType = 'RGB';
     case 'Detection'
         handles.displayType = 'WT';
-    case 'Overlay'
-        handles.displayType = 'merge';
+    case 'Detection overlay'
+        handles.displayType = 'overlayWT';
 end
 guidata(hObject,handles);
 refreshFrameDisplay(hObject, handles);
