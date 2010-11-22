@@ -40,9 +40,15 @@ elseif ischar(tracksettings)
     load(tracksettings);
 end
 
+nd = length(data);
 parfor k = 1:length(data)
-    fprintf('Tracking movie no. %d\n', k);
     idata = data(k);
     idata.tracksettings = tracksettings;
+    
+    cellPath = cell2mat(regexp(getParentDir(idata.channels{1}), getParentDir(idata.channels{2}), 'match'));
+    cellDir = getDirFromPath(cellPath);
+    expDir = getDirFromPath(getParentDir(cellPath));
+    fprintf('Tracking movie #%d/%d: %s\n', k, nd, [expDir filesep cellDir]);
+    
     trackMissingFields(idata, overwrite);
 end
