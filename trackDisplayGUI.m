@@ -332,8 +332,8 @@ if ~isempty(handles.selectedTrack)
             sTrack = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
         end
         
-        bStart = length(sTrack.startBuffer);
-        bEnd = length(sTrack.endBuffer);
+        bStart = size(sTrack.startBuffer.A,2);
+        bEnd = size(sTrack.endBuffer.A,2);
 
         if size(sTrack.A, 1)==1
             cx = 1;
@@ -376,28 +376,30 @@ if ~isempty(handles.selectedTrack)
         lh(2) = plot(h, t, c, '-', 'Color', trackColor, 'HandleVisibility', 'on');
 
         % Plot left buffer
-        A = [sTrack.startBuffer sTrack.A(cx,1)];
-        c = [sTrack.c(cx,1)*ones(1,bStart) sTrack.c(cx,1)];
-        cStd = [sTrack.cStd(cx,1)*ones(1,bStart) sTrack.cStd(cx,1)];
-        t = sTrack.start-bStart:sTrack.start;
-        
-        fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-        plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
-        plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
-        
+        if isfield(sTrack, 'startBuffer')
+            A = [sTrack.startBuffer.A(cx,:) sTrack.A(cx,1)];
+            c = [sTrack.startBuffer.c(cx,:) sTrack.c(cx,1)];
+            cStd = [sTrack.startBuffer.cStd(cx,:) sTrack.cStd(cx,1)];
+            t = sTrack.start-bStart:sTrack.start;
+            
+            fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+            fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+            plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
+            plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
+        end
         
         % Plot right buffer
-        A = [sTrack.A(cx,end) sTrack.endBuffer];
-        c = [sTrack.c(cx,end) sTrack.c(cx,end)*ones(1,bEnd)];
-        cStd = [sTrack.cStd(cx,end) sTrack.cStd(cx,end)*ones(1,bEnd)];
-        t = sTrack.end:sTrack.end+bEnd;
-        
-        fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-        plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
-        plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
-
+        if isfield(sTrack, 'endBuffer')
+            A = [sTrack.A(cx,end) sTrack.endBuffer.A(cx,:)];
+            c = [sTrack.c(cx,end) sTrack.endBuffer.c(cx,:)];
+            cStd = [sTrack.cStd(cx,end) sTrack.endBuffer.cStd(cx,:)];
+            t = sTrack.end:sTrack.end+bEnd;
+            
+            fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+            fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
+            plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
+            plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
+        end
         
         ybounds = get(h, 'YLim');
 

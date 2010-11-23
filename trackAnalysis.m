@@ -1,9 +1,14 @@
-
+%[tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
+%
+% INPUTS:     data       : experiment structure from 'loadConditionDataMultiChannel()'
+%             {buffer}   : 
+%             {filename} : name of the tracker file to load
+%
 % The only tracks of interest are those with status 1 or 4.
 
 % Francois Aguet, June 2010 (revised from 'determineLifetimeStatus.m')
 
-function [tracks nMergeSplit] = trackAnalysis(data, buffer, filename, frames)
+function [tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
 
 if nargin<2 || isempty(buffer)
     buffer = 5;
@@ -19,9 +24,6 @@ frameList = dir([data.source '*.tif*']);
 maskList = dir([data.source 'Detection' filesep 'Masks' filesep '*.tif']);
 
 load([data.source 'Detection' filesep 'detectionResults.mat']);
-if nargin>3 && ~isempty(frames)
-    frameInfo = frameInfo(frames);
-end
 
 
 %=================================
@@ -241,32 +243,48 @@ for k = 1:nTracks
         % buffer
         %===============
         % number of buffer frames after beginning/end cutoffs
-        bStart = tracks(k).start - max(1, tracks(k).start-buffer);
-        bEnd = min(data.movieLength, tracks(k).end+buffer) - tracks(k).end;
-        
-        % start buffer
-        c = tracks(k).c(1);
-        frameIdx = tracks(k).start+(-bStart:-1);
-        for g = 1:length(frameIdx)
-            frame = double(imread([data.source frameList(frameIdx(g)).name]));
-            xi = round(tracks(k).x(1));
-            yi = round(tracks(k).y(1));
-            window = frame(yi-w:yi+w, xi-w:xi+w);
-            [p] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-c sigma c], 'A');
-            tracks(k).startBuffer(g) = p(3);
-        end
-        
-        % end buffer
-        c = tracks(k).c(end);
-        frameIdx = tracks(k).end+(1:bEnd);
-        for g = 1:length(frameIdx)
-            frame = double(imread([data.source frameList(frameIdx(g)).name]));
-            xi = round(tracks(k).x(end));
-            yi = round(tracks(k).y(end));
-            window = frame(yi-w:yi+w, xi-w:xi+w);
-            [p] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-c sigma c], 'A');
-            tracks(k).endBuffer(g) = p(3);
-        end
+%         bStart = tracks(k).start - max(1, tracks(k).start-buffer);
+%         bEnd = min(data.movieLength, tracks(k).end+buffer) - tracks(k).end;
+%         
+%         % start buffer
+%         mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(tracks(k).start)]));
+%         frameIdx = tracks(k).start+(-bStart:-1);
+%         for g = 1:length(frameIdx)
+%             xi = round(tracks(k).x(1));
+%             yi = round(tracks(k).y(1));
+%             
+%             maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
+%             c = mean(window(maskWindow));
+%             
+% %             for ci = 1:nChannels
+%             frame = double(imread([data.source frameList(frameIdx(g)).name]));
+%             
+%             window = frame(yi-w:yi+w, xi-w:xi+w);
+%             [p] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-c sigma c], 'A');
+%             %tracks(k).startBuffer(g) = p(3);
+%             tracks(k).startBuffer.A(1,g) = p(3);
+%             tracks(k).startBuffer.c(1,g) = c;
+%             tracks(k).startBuffer.cStd(1,g) = std(window(maskWindow));
+%         end
+%         
+%         % end buffer
+%         mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(tracks(k).end)]));
+%         frameIdx = tracks(k).end+(1:bEnd);
+%         for g = 1:length(frameIdx)
+%             frame = double(imread([data.source frameList(frameIdx(g)).name]));
+%             
+%             xi = round(tracks(k).x(end));
+%             yi = round(tracks(k).y(end));
+%             
+%             maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
+%             c = mean(window(maskWindow));
+%             
+%             window = frame(yi-w:yi+w, xi-w:xi+w);
+%             [p] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-c sigma c], 'A');
+%             tracks(k).endBuffer.A(1,g) = p(3);
+%             tracks(k).endBuffer.c(1,g) = c;
+%             tracks(k).endBuffer.cStd(1,g) = std(window(maskWindow));
+%         end
         
         
         %===============
@@ -293,8 +311,6 @@ for k = 1:nTracks
     end
     
 
-    
-    
 % % % % % %     k = 500;
 % % % % % %     idx = tf(k).tracksFeatIndxCG;
 % % % % % %     
@@ -345,37 +361,76 @@ fprintf('\n');
 %==========================================
 % Read out intensity in slave channels
 %==========================================
-for ch = slaveChannels
-    cPath = data.channels{ch};
-    tifFiles = dir([cPath '*.tif*']);
+% number of buffer frames after beginning/end cutoffs
+bStart = [tracks.start] - max(1, [tracks.start]-buffer);
+bEnd = min(data.movieLength, [tracks.end]+buffer) - [tracks.end];
+
+for ch = 1:nChannels
+    tifFiles = dir([data.channels{ch} '*.tif*']);
 
     sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{ch});
-    %w = ceil(3*sigma); -> move to start, max w for all sigma
 
     for f = 1:data.movieLength
-        frame = double(imread([cPath tifFiles(f).name]));
+        frame = double(imread([data.channels{ch} tifFiles(f).name]));
         mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(f).name]));
         
-        % tracks visible in this frame
-        trackIdx = find([tracks.start]<=f & f<=[tracks.end] & [tracks.valid]);
+        if ch ~= masterChannel % read out intensity
+            % tracks visible in this frame
+            trackIdx = find([tracks.start]<=f & f<=[tracks.end] & [tracks.valid]);
+            for k = trackIdx
+                fi = f-tracks(k).start+1;
+                xi = round(tracks(k).x(fi));
+                yi = round(tracks(k).y(fi));
+                window = frame(yi-w:yi+w, xi-w:xi+w);
+                
+                maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
+                c = mean(window(maskWindow));
+                [p] = fitGaussian2D(window, [tracks(k).x(fi)-xi tracks(k).y(fi)-yi max(window(:))-c sigma c], 'A');
+                
+                tracks(k).A(ch,fi) = p(3);
+                tracks(k).c(ch,fi) = c;
+                tracks(k).cStd(ch,fi) = std(window(maskWindow));
+            end
+        end
+        
+        % start buffers visible in this frame
+        trackIdx = find([tracks.start]-bStart<=f & f<[tracks.start] & [tracks.valid]);
         for k = trackIdx
-            fi = f-tracks(k).start+1;
-            xi = round(tracks(k).x(fi));
-            yi = round(tracks(k).y(fi));
+            bi = f-tracks(k).start + bStart(k) + 1;
+            xi = round(tracks(k).x(1));
+            yi = round(tracks(k).y(1));
             window = frame(yi-w:yi+w, xi-w:xi+w);
             
             maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
-            maskWindow(maskWindow~=0) = 1;
-            % background estimate
             c = mean(window(maskWindow));
-            [p] = fitGaussian2D(window, [tracks(k).x(fi)-xi tracks(k).y(fi)-yi max(window(:))-c sigma c], 'A');
-
-            tracks(k).A(ch,fi) = p(3);
-            tracks(k).c(ch,fi) = c;
-            tracks(k).cStd(ch,fi) = std(window(maskWindow));
+            [p] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-c sigma c], 'A');
+            
+            tracks(k).startBuffer.A(ch,bi) = p(3);
+            tracks(k).startBuffer.c(ch,bi) = c;
+            tracks(k).startBuffer.cStd(ch,bi) = std(window(maskWindow));
+        end
+        
+        % end buffers visible in this frame
+        trackIdx = find([tracks.end]<f & f<=([tracks.end]+bEnd) & [tracks.valid]);
+        for k = trackIdx
+            bi = f-tracks(k).end;
+            xi = round(tracks(k).x(end));
+            yi = round(tracks(k).y(end));
+            window = frame(yi-w:yi+w, xi-w:xi+w);
+            
+            maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
+            c = mean(window(maskWindow));
+            [p] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-c sigma c], 'A');
+            
+            tracks(k).endBuffer.A(ch,bi) = p(3);
+            tracks(k).endBuffer.c(ch,bi) = c;
+            tracks(k).endBuffer.cStd(ch,bi) = std(window(maskWindow));            
         end
     end
 end
+
+
+
 
 
 %==========================================
