@@ -23,7 +23,7 @@ function [] = runTracking(data, tracksettings, overwrite)
 %               trackMissingFields
 %
 % Daniel Nunez, March 5, 2008
-% Francois Aguet, April 2010
+% Francois Aguet, April 2010, updated November 2010
 
 if nargin < 3 || isempty(overwrite)
     overwrite = 0;
@@ -41,12 +41,23 @@ elseif ischar(tracksettings)
 end
 
 nd = length(data);
+
 parfor k = 1:length(data)
     idata = data(k);
+    masterChannel = regexp(idata.source, idata.channels);
+    masterChannel = find([masterChannel{:}]);
+    slaveChannels = setdiff(1:length(idata.channels), masterChannel);   
     idata.tracksettings = tracksettings;
     
-    cellPath = cell2mat(regexp(getParentDir(idata.channels{1}), getParentDir(idata.channels{2}), 'match'));
-    cellDir = getDirFromPath(cellPath);
+    cellPath = regexp(idata.channels{slaveChannels(1)}, idata.source, 'match');
+    if ~isempty(cellPath) % master/slave hierarchy
+        cellPath = cell2mat(cellPath);
+        cellDir = getDirFromPath(cellPath);
+    else % parallel hierarchy
+        cellPath = getParentDir(idata.source);
+        cellDir = getDirFromPath(getParentDir(idata.source));
+    end
+       
     expDir = getDirFromPath(getParentDir(cellPath));
     fprintf('Tracking movie #%d/%d: %s\n', k, nd, [expDir filesep cellDir]);
     
