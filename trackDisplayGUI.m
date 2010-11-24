@@ -197,16 +197,17 @@ set(gcf, 'UserData', handles.fAxes);
 
 
 function zoompostcallback(~,evd)
-XLim = get(evd.Axes, 'XLim');
-YLim = get(evd.Axes, 'YLim');
-dx = min(0.02*diff(XLim), 0.02*diff(YLim));
-
 h = get(get(evd.Axes, 'Parent'), 'UserData');
-for k = 1:length(h)
-    c = get(h{k}, 'Children');
-    set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
+na = length(h);
+if na>2
+    XLim = get(evd.Axes, 'XLim');
+    YLim = get(evd.Axes, 'YLim');
+    dx = min(0.02*diff(XLim), 0.02*diff(YLim)); 
+    for k = 1:na
+        c = get(h{k}, 'Children');
+        set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
+    end
 end
-
 
 
 
