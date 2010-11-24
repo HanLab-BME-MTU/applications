@@ -167,10 +167,10 @@ switch nChannels
         handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
         handles.fAxes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
         
-        %handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 7*dy 7*dx 4*dy]);
-        %handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 7*dy 7*dx 4*dy]);
-        %handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 7*dy 7*dx 4*dy]);
-        %handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 7*dy 7*dx 4*dy]);
+        handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 9*dy 7*dx 2*dy]);
+        handles.tAxes{2} = axes('Parent', gcf, 'Position', [15*dx 6.5*dy 7*dx 2*dy]);
+        handles.tAxes{3} = axes('Parent', gcf, 'Position', [15*dx 4*dy 7*dx 2*dy]);
+        handles.tAxes{4} = axes('Parent', gcf, 'Position', [15*dx 1.5*dy 7*dx 2*dy]);
 end
 
 % Update handles structure
@@ -179,15 +179,35 @@ guidata(hObject, handles);
 
 % initialize figures/plots
 for c = 1:nChannels
-    imagesc(imread(frameList{c}{1}), 'Parent', handles.fAxes{c});%, handles.dRange{c});
+    set(handles.fAxes{c}, 'XLim', [1 data.imagesize(2)], 'YLim', [1 data.imagesize(1)]);
 end
 colormap(gray(256));
 linkaxes([handles.fAxes{:}]);
 linkaxes([handles.tAxes{:}], 'x');
 axis([handles.fAxes{:}], 'image');
 
+refreshFrameDisplay(hObject, handles);
+set(zoom, 'ActionPostCallback', @zoompostcallback);
+set(gcf, 'UserData', handles.fAxes);
+
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+
+
+
+
+function zoompostcallback(~,evd)
+XLim = get(evd.Axes, 'XLim');
+YLim = get(evd.Axes, 'YLim');
+dx = min(0.02*diff(XLim), 0.02*diff(YLim));
+
+h = get(get(evd.Axes, 'Parent'), 'UserData');
+for k = 1:length(h)
+    c = get(h{k}, 'Children');
+    set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
+end
+
+
 
 
 
@@ -200,8 +220,6 @@ function varargout = trackDisplayGUI_OutputFcn(~, ~, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
-
 
 
 
@@ -296,6 +314,14 @@ else
             plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
         end
         hold(handles.fAxes{c}, 'off');
+        
+        if handles.nCh>2
+        % plot channel name
+        dx = min(0.02*diff(XLim), 0.02*diff(YLim));
+        text(XLim(2)-dx, YLim(2)-dx, getDirFromPath(handles.data.channels{c}),...
+            'Color', wavelength2rgb(name2wavelength(handles.data.markers{c})),...
+            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
+        end
     end
 end
 
@@ -618,7 +644,7 @@ end
 
 
 % --- Executes on slider movement.
-function trackSlider_Callback(hObject, eventdata, handles)
+function trackSlider_Callback(hObject, ~, handles)
 % hObject    handle to trackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -640,7 +666,7 @@ refreshTrackDisplay(handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function trackSlider_CreateFcn(hObject, eventdata, handles)
+function trackSlider_CreateFcn(hObject, ~, ~)
 % hObject    handle to trackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
