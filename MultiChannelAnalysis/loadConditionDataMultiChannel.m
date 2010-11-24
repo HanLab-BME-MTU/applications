@@ -42,9 +42,11 @@ fprintf('Root directory: %s\n', condDir);
 % list of experiments for this condition, each containing one or more 'cell' directories
 expDir = dirList(condDir);
 
-% if expDir are 'cell' directories
-valid = cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), 'cell', 'once'));
-if ~isempty(valid)
+% if condDir is a 'cell' directory
+if ~isempty(regexpi(getDirFromPath(condDir), 'cell', 'once'))
+    cellPath{1} = condDir;
+% if expDir are 'cell' directories    
+elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), 'cell', 'once')))
     cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
 else
     cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
