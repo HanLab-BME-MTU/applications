@@ -1,9 +1,11 @@
-function [globCompare, globStats]=testTrajectories(trajectoryData)
+function [globCompare, globStats]=testTrajectories(trajectoryData,dispRes)
 %TESTTRAJECTORIES produces discrimination matrices for the comparison of trajectoryData
 %
-% SYNOPSIS [globCompare, globStats]=testTrajectories(trajectoryData)
+% SYNOPSIS [globCompare, globStats]=testTrajectories(trajectoryData,dispRes)
 %
 % INPUT trajectoryData: Structure with multiple runs from trajectoryAnalysis
+%       dispRes       : 1 to display results graphically, 0 otherwise.
+%                       Optional. Default: 1.
 %
 % OUTPUT globCompare: discrimination matrices with p-values
 %        globStats : distributions of the compared values
@@ -11,6 +13,11 @@ function [globCompare, globStats]=testTrajectories(trajectoryData)
 % help created 3/05
 % c: jonas
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%KJ: Make graphical display of results optional
+if nargin < 2 || isempty(dispRes)
+    dispRes = 1;
+end
 
 %============
 % TEST INPUT
@@ -85,71 +92,75 @@ end
 [cmap,cLimits]=logColormap;
 
 % display
-uH = uiViewPanel;
-set(uH,'Name','Growth Speeds')
-imshow(-log10(globCompare.growthSpeeds));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:nGroups
-        text(j,i,sprintf('%3.3f',globCompare.growthSpeeds(i,j)),...
-            'HorizontalAlignment','center')
+if dispRes == 1 %(KJ: make it optional)
+    
+    uH = uiViewPanel;
+    set(uH,'Name','Growth Speeds')
+    imshow(-log10(globCompare.growthSpeeds));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:nGroups
+            text(j,i,sprintf('%3.3f',globCompare.growthSpeeds(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
-end
-uH = uiViewPanel;
-set(uH,'Name','Shrinkage Speeds')
-imshow(-log10(globCompare.shrinkageSpeeds));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:nGroups
-        text(j,i,sprintf('%3.3f',globCompare.shrinkageSpeeds(i,j)),...
-            'HorizontalAlignment','center')
+    uH = uiViewPanel;
+    set(uH,'Name','Shrinkage Speeds')
+    imshow(-log10(globCompare.shrinkageSpeeds));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:nGroups
+            text(j,i,sprintf('%3.3f',globCompare.shrinkageSpeeds(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
-end
-uH = uiViewPanel;
-set(uH,'Name','Speeds')
-imshow(-log10(globCompare.speeds));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:2
-        text(j,i,sprintf('%3.3f',globCompare.speeds(i,j)),...
-            'HorizontalAlignment','center')
+    uH = uiViewPanel;
+    set(uH,'Name','Speeds')
+    imshow(-log10(globCompare.speeds));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:2
+            text(j,i,sprintf('%3.3f',globCompare.speeds(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
-end
-uH = uiViewPanel;
-set(uH,'Name','Growth Times')
-imshow(-log10(globCompare.growthTimes));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:nGroups
-        text(j,i,sprintf('%3.3f',globCompare.growthTimes(i,j)),...
-            'HorizontalAlignment','center')
+    uH = uiViewPanel;
+    set(uH,'Name','Growth Times')
+    imshow(-log10(globCompare.growthTimes));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:nGroups
+            text(j,i,sprintf('%3.3f',globCompare.growthTimes(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
-end
-uH = uiViewPanel;
-set(uH,'Name','Shrinkage Times')
-imshow(-log10(globCompare.shrinkageTimes));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:nGroups
-        text(j,i,sprintf('%3.3f',globCompare.shrinkageTimes(i,j)),...
-            'HorizontalAlignment','center')
+    uH = uiViewPanel;
+    set(uH,'Name','Shrinkage Times')
+    imshow(-log10(globCompare.shrinkageTimes));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:nGroups
+            text(j,i,sprintf('%3.3f',globCompare.shrinkageTimes(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
-end
-uH = uiViewPanel;
-set(uH,'Name','GlobalDistance')
-imshow(-log10(globCompare.distance));
-set(uH,'Colormap',cmap);
-set(gca,'CLim',cLimits)
-for i=1:nGroups
-    for j=1:nGroups
-        text(j,i,sprintf('%3.3f',globCompare.distance(i,j)),...
-            'HorizontalAlignment','center')
+    uH = uiViewPanel;
+    set(uH,'Name','GlobalDistance')
+    imshow(-log10(globCompare.distance));
+    set(uH,'Colormap',cmap);
+    set(gca,'CLim',cLimits)
+    for i=1:nGroups
+        for j=1:nGroups
+            text(j,i,sprintf('%3.3f',globCompare.distance(i,j)),...
+                'HorizontalAlignment','center')
+        end
     end
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
