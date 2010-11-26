@@ -359,9 +359,17 @@ if ~isempty(handles.selectedTrack)
             sTrack = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
         end
         
-        bStart = size(sTrack.startBuffer.A,2);
-        bEnd = size(sTrack.endBuffer.A,2);
-
+        if isfield(sTrack, 'startBuffer')
+            bStart = size(sTrack.startBuffer.A,2);
+        else
+            bStart = 0;
+        end
+        if isfield(sTrack, 'endBuffer');
+            bEnd = size(sTrack.endBuffer.A,2);
+        else
+            bEnd = 0;
+        end
+        
         if size(sTrack.A, 1)==1
             cx = 1;
         else
