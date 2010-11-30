@@ -256,7 +256,6 @@ for k = 1:nTracks
 %             maskWindow = ~mask(yi-w:yi+w, xi-w:xi+w);
 %             c = mean(window(maskWindow));
 %             
-% %             for ci = 1:nChannels
 %             frame = double(imread([data.source frameList(frameIdx(g)).name]));
 %             
 %             window = frame(yi-w:yi+w, xi-w:xi+w);
