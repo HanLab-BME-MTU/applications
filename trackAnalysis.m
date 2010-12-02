@@ -290,22 +290,23 @@ for k = 1:nTracks
         % gaps
         %===============
         gapIdx = find(isnan(tracks(k).A));
-        frameIdx = gapIdx + tracks(k).start - 1;
-        
-        % linear interpolation of background values
-        trackIdx = find(~isnan(tracks(k).c));
-         
-        tracks(k).c(gapIdx) = interp1(trackIdx, tracks(k).c(trackIdx), gapIdx);
-        tracks(k).cStd(gapIdx) = interp1(trackIdx, tracks(k).cStd(trackIdx), gapIdx);
-        
-        for g = 1:length(gapIdx)
-            frame = double(imread([data.source frameList(frameIdx(g)).name]));
+        if ~isempty(gapIdx)
+            frameIdx = gapIdx + tracks(k).start - 1;
             
-            xi = round(tracks(k).x(gapIdx(g)));
-            yi = round(tracks(k).y(gapIdx(g)));
-            window = frame(yi-w:yi+w, xi-w:xi+w);
-            [p] = fitGaussian2D(window, [tracks(k).x(gapIdx(g))-xi tracks(k).y(gapIdx(g))-yi max(window(:))-tracks(k).c(gapIdx(g)) sigma tracks(k).c(gapIdx(g))], 'A');
-            tracks(k).A(gapIdx(g)) = p(3);
+            % linear interpolation of background values
+            trackIdx = find(~isnan(tracks(k).c));
+            tracks(k).c(gapIdx) = interp1(trackIdx, tracks(k).c(trackIdx), gapIdx);
+            tracks(k).cStd(gapIdx) = interp1(trackIdx, tracks(k).cStd(trackIdx), gapIdx);
+            
+            for g = 1:length(gapIdx)
+                frame = double(imread([data.source frameList(frameIdx(g)).name]));
+                
+                xi = round(tracks(k).x(gapIdx(g)));
+                yi = round(tracks(k).y(gapIdx(g)));
+                window = frame(yi-w:yi+w, xi-w:xi+w);
+                [p] = fitGaussian2D(window, [tracks(k).x(gapIdx(g))-xi tracks(k).y(gapIdx(g))-yi max(window(:))-tracks(k).c(gapIdx(g)) sigma tracks(k).c(gapIdx(g))], 'A');
+                tracks(k).A(gapIdx(g)) = p(3);
+            end
         end
     end
     
