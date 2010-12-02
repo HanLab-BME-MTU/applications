@@ -16,7 +16,7 @@ end
 
 
 nExp = length(data);
-for i = 1:nExp
+parfor i = 1:nExp
     
     if exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file') ~= 2 || overwrite
         trackAnalysis(data(i), buffer, []);
