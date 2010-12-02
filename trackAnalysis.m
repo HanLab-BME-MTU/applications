@@ -70,7 +70,7 @@ tracks(1:nTracks) = struct('t', [], 'x', [], 'y', [], 'A', [], 'maskI', [], 'c',
     'seqOfEvents', [], 'tracksFeatIndxCG', []);
 
 
-fprintf('TrackAnalysis progress:     ');
+fprintf('TrackAnalysis - classification and gap interpolation:    ');
 for k = 1:nTracks
     if ~isstruct(trackinfo)
         x = trackinfo(k,1:8:end);
@@ -364,6 +364,7 @@ fprintf('\n');
 bStart = [tracks.start] - max(1, [tracks.start]-buffer);
 bEnd = min(data.movieLength, [tracks.end]+buffer) - [tracks.end];
 
+fprintf('TrackAnalysis - slave channel intensities:    ');
 for ch = 1:nChannels
     tifFiles = dir([data.channels{ch} '*.tif*']);
 
@@ -425,8 +426,10 @@ for ch = 1:nChannels
             tracks(k).endBuffer.c(ch,bi) = c;
             tracks(k).endBuffer.cStd(ch,bi) = std(window(maskWindow));            
         end
+        fprintf('\b\b\b\b%3d%%', round(100*((ch-1)*data.movieLength + f)/(nChannels*data.movieLength)));
     end
 end
+fprintf('\n');
 
 
 
