@@ -5,13 +5,22 @@
 
 % Francois Aguet, November 2010
 
-function runTrackAnalysis(data, overwrite)
+function runTrackAnalysis(data, overwrite, buffer)
 
-if nargin<2
+if nargin<2 || isempty(overwrite)
     overwrite = 0;
 end
+if nargin < 3
+    buffer = [];
+end
+
 
 nExp = length(data);
-parfor i = 1:nExp   
-    trackAnalysis(data(i), overwrite);
+for i = 1:nExp
+    
+    if exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file') ~= 2 || overwrite
+        trackAnalysis(data(i), buffer, []);
+    else 
+        display(['skipping movie ' num2str(i)])
+    end
 end
