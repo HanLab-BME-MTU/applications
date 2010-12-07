@@ -31,6 +31,7 @@ classdef BranchDetectionProcess < ImageAnalysisProcess
                     funParams.IsoValue = [];
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'branch_detection'];
+                    funParams.RunParallel = 0;
                     funParams.BatchMode = false;                                                      
                                     
                 end

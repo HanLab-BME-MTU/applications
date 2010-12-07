@@ -23,11 +23,15 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %       ('ChannelIndex' -> positive integer) Integer indices of the
 %       channel(s) to segment. Default is to segment all image channels.
 %
+%       ('ThresholdValue'->Positive scalar) If specified, all masks will be
+%       created by thresholding at this value. If not specified, one of the
+%       automatic methods will be used. See 'Method' option below.
+%
 %       ('Method' - Character array) The name of the method to use for
 %       segmentation. 
 %
 %           Available methods are:
-% 
+%
 %               'Otsu' - Global Otsu thresholding. This is the default.
 %
 %               'HuntThresh' - Global threshold based on my histogram
@@ -152,79 +156,85 @@ for iChan = 1:nChanSeg
         currIm = stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);
                
         % ---- Perform initial segmentation ---- %
+        if isempty(p.ThresholdValue)
+            switch p.Method
+
+                case 'Otsu'
+
+                    %Perform otsu thresholding to get the mask
+                    currThresh = graythresh(currIm);
+                    range = getrangefromclass(currIm);
+                    currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
+
+                case 'HuntThresh'
+
+                    try                
+                        currThresh = thresholdFluorescenceImage(currIm);
+
+                     catch errMess %If the auto-thresholding fails, 
+                        if p.FixJumps
+                            % just force use of last good threshold, if Fix
+                            % Jumps enabled
+                            currThresh = Inf;                        
+                        else
+                            %Otherwise, throw an error.
+                            error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
+                        end                    
+                    end
+
+                case 'Gradient'
+
+                    %Get the gradient of the image
+    %                 [gX,gY,gZ] = gradient(double(currIm));
+    %                 currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
+    %                 
+                    currIm = matitk('FGMS',gSig,double(currIm));
+
+                    %Threshold this gradient based on intensity histogram
+                    try
+                        currThresh = thresholdFluorescenceImage(currIm);                
+                    catch errMess %If the auto-thresholding fails, 
+                        if p.FixJumps
+                            % just force use of last good threshold, if Fix
+                            % Jumps enabled
+                            currThresh = Inf;                        
+                        else
+                            %Otherwise, throw an error.
+                            error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
+                        end                    
+                    end
+
+                otherwise
+
+                    error(['The segmentation method ' p.Method ' is not recognized! Please check Method option!'])
+
+            end                         
         
-        switch p.Method
-                    
-            case 'Otsu'
-                
-                %Perform otsu thresholding to get the mask
-                currThresh = graythresh(currIm);
-                range = getrangefromclass(currIm);
-                currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
-                
-            case 'HuntThresh'
-                
-                try                
-                    currThresh = thresholdFluorescenceImage(currIm);
-                    
-                 catch errMess %If the auto-thresholding fails, 
-                    if p.FixJumps
-                        % just force use of last good threshold, if Fix
-                        % Jumps enabled
-                        currThresh = Inf;                        
-                    else
-                        %Otherwise, throw an error.
-                        error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
-                    end                    
-                end
-                
-            case 'Gradient'
-                
-                %Get the gradient of the image
-%                 [gX,gY,gZ] = gradient(double(currIm));
-%                 currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
-%                 
-                currIm = matitk('FGMS',gSig,double(currIm));
-                
-                %Threshold this gradient based on intensity histogram
-                try
-                    currThresh = thresholdFluorescenceImage(currIm);                
-                catch errMess %If the auto-thresholding fails, 
-                    if p.FixJumps
-                        % just force use of last good threshold, if Fix
-                        % Jumps enabled
-                        currThresh = Inf;                        
-                    else
-                        %Otherwise, throw an error.
-                        error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
-                    end                    
-                end
-                
-            otherwise
-                
-                error(['The segmentation method ' p.Method ' is not recognized! Please check Method option!'])
-                                                
-        end     
-                
-        
-        
-        % --- Check the new thresholdValue if requested ---- % 
-        if p.FixJumps
-            
-            if iImage == 1
-                threshVals(iImage) = currThresh; %Nothing to compare 1st frame to
-            else
-                if abs(currThresh / threshVals(find(~isnan(threshVals),1,'last'))-1) > maxJump
-                    %If the change was too large, don't store this threshold
-                    %and use the most recent good value
-                    threshVals(iImage) = NaN;
-                    currThresh = threshVals(find(~isnan(threshVals),1,'last'));
+
+            % --- Check the new thresholdValue if requested ---- % 
+            if p.FixJumps
+
+                if iImage == 1
+                    if currThresh == Inf
+                        error('Failed on first frame: couldn'' automatically determine a threshold!');
+                    else                    
+                        threshVals(iImage) = currThresh; %Nothing to compare 1st frame to
+                    end
                 else
-                    threshVals(iImage) = currThresh;
-                end 
-            end
+                    if abs(currThresh / threshVals(find(~isnan(threshVals),1,'last'))-1) > maxJump
+                        %If the change was too large, don't store this threshold
+                        %and use the most recent good value
+                        threshVals(iImage) = NaN;
+                        currThresh = threshVals(find(~isnan(threshVals),1,'last'));
+                    else
+                        threshVals(iImage) = currThresh;
+                    end 
+                end
+            end                
+                
+        elseif iImage == 1
+            currThresh = p.ThresholdValue;
         end
-        
         
         %Threshold the damn thing!
         currMask = currIm > currThresh;

@@ -38,6 +38,12 @@ function  movieData = detectMovieBranches(movieData,paramsIn)
 % 
 %               ('IsoVal'->Positive Integer) 
 %
+%       ('RunParallel'->Integer Scalar) This specifies the number of CPUs
+%       to run the branch detection on. If set to 1, no parallelization
+%       will be used. This requires the matlab parallel computing toolbox
+%       and a multi-CPU computer. Optional. Default is 1 (no
+%       parallelization).
+%
 %       ('BatchMode' -> True/False)
 %       If true, graphical output and user interaction is
 %       supressed (i.e. progress bars, dialog and question boxes etc.)
@@ -57,7 +63,7 @@ function  movieData = detectMovieBranches(movieData,paramsIn)
 %
 %% ----- Parameters ----- %%
 
-fName = 'branches_frame_'; %String for naming branch files for each frame
+fName = 'detected_branches'; %String for naming branch file
 
 
 %% ---- Input ---- %%
@@ -93,12 +99,17 @@ if ~movieData.processes_{iSegProc}.checkChannelOutput(p.ChannelIndex)
     error('The seclected channel does not have valid masks! Please check segmentation!');
 end
 
+if p.RunParallel > 1
+    %Force batch mode if parallelization is enabled - the workers have to
+    %graphical output ability
+    p.BatchMode = true;
+end
 
 %% ------ Init ------ %%
 
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
-maskNames = maskNames{1}; %For parallelization - "slices" maskNames
 maskDir = movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex};
+maskNames = maskNames{1}; %"Slices" the mask name variable in case parallelization is enabled
 nFrames = movieData.nFrames_;
 
 disp('Starting branch detection...')
@@ -108,23 +119,69 @@ end
 
 branches = cell(1,nFrames);
 
-
-parfor j = 1:nFrames
+%Set up matlab workers if run in parallel
+if p.RunParallel > 1
     
-    mask = tif3Dread([maskDir filesep maskNames{j}]);
+    %Check if a worker pool is already open
+    poolSize = matlabpool('size');
     
-    branches{j} = getBranchesFromMask(mask,p.MaxRadius,p.SmoothSigma,p.IsoValue);             %#ok<PFOUS>
-   
-%     if ~p.BatchMode
-%        
-%         waitbar(j/nFrames,wtBar)
-%         
-%     end
-    
-    disp(['Finished frame ' num2str(j)]);
+    %Check if it's the right size
+    if poolSize ~= p.RunParallel
+        %Close existing pool if any
+        if poolSize > 0
+            matlabpool('close');
+        end
+        matlabpool('open',p.RunParallel);        
+    end            
     
 end
 
+
+
+%% ------ Branch detection ------ %%
+
+tic;
+
+if p.RunParallel > 1
+    
+    %Split these up so parfor doesn't complain
+    maxRad = p.MaxRadius;
+    smoothSig = p.SmoothSigma;
+    isoVal = p.IsoValue;
+
+    parfor j = 1:nFrames
+
+        mask = tif3Dread([maskDir filesep maskNames{j}]);
+
+        branches{j} = getBranchesFromMask(mask,maxRad,smoothSig,isoVal); %#ok<PFOUS>
+       
+        disp(['Finished frame ' num2str(j)]);
+
+    end
+
+    
+    
+else
+    
+    for j = 1:nFrames
+
+        mask = tif3Dread([maskDir filesep maskNames{j}]);
+
+        branches{j} = getBranchesFromMask(mask,p.MaxRadius,p.SmoothSigma,p.IsoValue);
+
+        if ~p.BatchMode
+
+            waitbar(j/nFrames,wtBar)
+
+        end
+
+        disp(['Finished frame ' num2str(j)]);
+
+    end
+
+end
+
+toc;
 
 %% ----- Finish ----- %%
 
@@ -133,7 +190,7 @@ if ~p.BatchMode && ishandle(wtBar)
 end
 
 
-save([movieData.outputDirectory_ filesep 'detected_branches.mat'],'branches');
+save([movieData.outputDirectory_ filesep fName '.mat'],'branches');
 
 
 movieData.processes_{iProc}.setDateTime;
