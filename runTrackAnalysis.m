@@ -12,7 +12,7 @@ function runTrackAnalysis(data, varargin)
 
 % defaults:
 buffer = [];
-overwrite = 0;
+overwrite = false;
 
 nv = length(varargin);
 if mod(nv,2)~=0
@@ -23,7 +23,7 @@ for k = 1:nv/2
         case 'buffer'
             buffer = varargin{2*k};
         case 'overwrite'
-            overwrite = 1;
+            overwrite = logical(varargin{2*k});
         otherwise
             error('Unrecognized option');
     end
