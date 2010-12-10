@@ -4,7 +4,7 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 % movieData = calculateMovieBleedthrough(movieData)
 % 
 % movieData =
-% calculateMovieBleedthrough(movieData,'OptionName',optionValue,...
+% calculateMovieBleedthrough(movieData,'OptionName',optionValue,...)
 % 
 % This function calculates average bleedthgough coefficients based on the
 % input movie. This movie should have one channel (A) with a fluorophore
@@ -13,15 +13,23 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 % fluorophore. The bleedthrough of the fluorophore in channel A to the
 % image in channel B will then be calculated. This allows, in a later
 % experiment, the image in channel B to be corrected for this bleedthrough.
+% This calculation requires that the movie have been segmented already, as
+% only areas within the cell(s) will be used for coefficient calculation.
 % 
-% !!NOTE!!: It is strongly recommended that you use dark-current corrected,
+% Since time information is not needed in bleedthrough calculations, this
+% function assumes that each image in the movie is of different cell(s),
+% and therefore calculates a separate coefficient for each frame. The
+% average of all the coefficients should then be used in later corrections.
+%
+% **NOTE** It is strongly recommended that you use dark-current corrected,
 % background-subtracted, shade-corrected images for both channels used in
-% this calculation!!
+% this calculation!! Also, be sure that none of your images have saturated
+% areas, as this will cause error in the calculated coefficient.
 %
 % Input:
 % 
-%   movieData - the structure describing the movie, as created with
-%   setupMovieData.m
+%   movieData - The MovieData object describing the movie, as created with
+%   setupMovieDataGUI.m
 % 
 %   'OptionName',optionValue - A string with an option name followed by the
 %   value for that option.
@@ -42,11 +50,20 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 %       movieData.channelDirectory
 %       If not input, the user is asked.
 %
+%       ('ProcessIndex' -> Integer Scalar) The index of the imageProcessing
+%       process to use the output images from for bleedthrough coefficient
+%       calculation. Optional. If not specified, and there are valid
+%       ImageProcessingProcesss in the MovieData object, the user will be
+%       asked to select one. Otherwise, the raw images will be used, but
+%       this is not recommended.
+%
 %       ('FluorophoreMaskChannel'->Integer scalar) Thin index of the
-%       channel the use masks from for the fluorophore channel.
+%       channel the use masks from for the fluorophore channel. Default is
+%       to use masks from the fluorophore channel itself.
 %
 %       ('BleedthroughMaskChannel'->Integer scalar) Thin index of the
-%       channel the use masks from for the bleedthrough channel.
+%       channel the use masks from for the bleedthrough channel. Default is
+%       to use masks from the bleed channel itself.
 % 
 %       ('BatchMode' -> True/False) If this option value is set to true,
 %       all graphical output and user interaction is suppressed. (No
@@ -56,23 +73,29 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 % 
 % Output:
 % 
-%   movieData - the modified structure with the bleedthrough calculation
-%   logged in it. 
+%   movieData - the modified MovieData object with the bleedthrough
+%   calculation and coefficients logged in it. 
 % 
+%   Additionally, the BT coefficients will be written to file in the
+%   movie's outputDirectory.
+%
 % Hunter Elliott 
 % 2/2010
 %
 
 %% -------- Parameters ------- %%
 
+dName = 'Bleedthrough_Coefficients'; %Directory to save results to(As sub-directory of movie's output directory)
 fName = 'bleedthrough_calc';  %File name to save results as
-pName = 'bleedthroughCorrection'; %Process name for logging in movieData
+
 
 %% ---------- Input ---------- %%
 
-movieData = setupMovieData(movieData,pName);
+if nargin < 1 || ~isa(movieData,'MovieData')
+    error('The first input must be a valid MovieData object!')
+end
 
-[fChan,bChan,fMaskChan,bMaskChan,batchMode] = parseInput(varargin);
+[fChan,bChan,iInProc,fMaskChan,bMaskChan,batchMode] = parseInput(varargin);
 
 % --- Defaults ---- %
 
@@ -82,32 +105,54 @@ end
 if isempty(bChan)
     bChan = selectMovieChannels(movieData,0,'Please select the channel WITHOUT a fluorophore:');
 end
+
+if isempty(iInProc)    
+    %Select an image processing process, if any are present.
+    iInProc = movieData.getProcessIndex('ImageProcessingProcess',1,~batchMode);
+elseif ~isa(movieData.processes_{iInProc},'ImageProcessingProcess')
+    error('The selected input process is not a valid Image Processing Process object!')
+end
+
 if isempty(fMaskChan)
-    fMaskChan = selectMovieChannels(movieData,0,'Select the channel to use masks for fluorohpore channel:');
+    fMaskChan = fChan;
 end
 if isempty(bMaskChan)
-    bMaskChan = selectMovieChannels(movieData,0,'Select the channel to use masks for bleedthrough channel:');
+    bMaskChan = bChan;
 end
 if isempty(batchMode)
-    batchMode = [];
+    batchMode = false;
 end
 
 %% ----- Init ----- %%
 
+%Make sure the movie has been segmented
+iSegProc = movieData.getProcessIndex('SegmentationProcess',1,~batchMode);
+if isempty(iSegProc)
+    error('The movie must be segmented and a segmentation process selected before bleedthrough calculations can be performed!')
+end
+
 %Check the specified mask channels
-if ~checkMovieMasks(movieData,[fMaskChan bMaskChan]);
+if ~all(movieData.processes_{iSegProc}.checkChannelOutput([fMaskChan bMaskChan]));
     error('Specified mask channels do not have valid masks! Check channels & masks!')
 end
 
-nImages = movieData.nImages(fChan);
-if nImages ~= movieData.nImages(bChan) %Make sure the image numbers agree
-    error('Fluorophore and bleedthrough channels do not have the same number of images! Check channels/images!');
+nImages = movieData.nFrames_;
+
+%Get the image directories and file names
+if isempty(iInProc)
+    imNames = movieData.getImageFileNames([fChan bChan]);
+    imDirs = movieData.getChannelPaths([fChan bChan]);
+else
+    imNames = movieData.processes_{iInProc}.getOutImageFileNames([fChan bChan]);
+    imDirs = movieData.processes_{iInProc}.outImagePaths_([fChan bChan]);
 end
 
-imNames = getMovieImageFileNames(movieData,[fChan bChan]);
+%Get mask directories and file names
+mNames = movieData.processes_{iSegProc}.getOutMaskFileNames([fMaskChan bMaskChan]);
+mDirs = movieData.processes_{iSegProc}.outMaskPaths_([fMaskChan bMaskChan]);
 
-mNames = getMovieMaskFileNames(movieData,[fMaskChan bMaskChan]);
-
+%Get camera bit depth, to check for saturation
+%TEMP - OR ADD SAT AREA MASKING ??? OR JUST REQ. GOOD DATA QUALITY???
 
 
 %% ----- Bleedthrough Coeficient Calculation ----- %%
@@ -128,20 +173,24 @@ end
 nByn = ceil(sqrt(nImages));%Determine size of sub-plot array
 
 
-disp(['Calculating bleedthrough of channel "' movieData.channelDirectory{fChan} ...
-      '" into channel "' movieData.channelDirectory{bChan} '"..']);
+disp(['Calculating bleedthrough of channel "' imDirs{1}  ...
+      '" into channel "' imDirs{2} '"..']);
 
 for iImage = 1:nImages
     
     %Load the images and masks
-    fImage = double(imread(imNames{1}{iImage}));
-    fMask = imread(mNames{1}{iImage});    
-    bImage = double(imread(imNames{2}{iImage}));
-    bMask = imread(mNames{2}{iImage});    
+    fImage = double(imread([imDirs{1} filesep imNames{1}{iImage}]));
+    fMask = imread([mDirs{1} filesep mNames{1}{iImage}]);    
+    bImage = double(imread([imDirs{2} filesep imNames{2}{iImage}]));
+    bMask = imread([mDirs{2} filesep mNames{2}{iImage}]);    
+    
+    %Combine the masks
+    combMask = bMask & fMask;
+    
     
     %Fit a line to the current images
-    [fitCoef(iImage,:),tmp] = polyfit(fImage(bMask(:)),...
-                                                   bImage(fMask(:)),1);
+    [fitCoef(iImage,:),tmp] = polyfit(fImage(combMask(:)),...
+                                                   bImage(combMask(:)),1);
                                                    
     %Calculate R^2 for this fit
     lFun = @(x)(x * fitCoef(iImage,1) + fitCoef(iImage,2));
@@ -156,24 +205,25 @@ for iImage = 1:nImages
     subplot(nByn,nByn,iImage)
                                                
     %Plot the values from this image in their own color
-    plot(fImage(fMask(:)),bImage(bMask(:)),'.');
+    plot(fImage(combMask(:)),bImage(combMask(:)),'.');
     hold on
     title({['Image #' num2str(iImage) ' Y = ' num2str(fitCoef(iImage,1))...
         'x + ' num2str(fitCoef(iImage,2))], ['R Squared = ' num2str(fitStats(iImage).Rsquared)]})        
-    xlabel([movieData.channelDirectory{fChan} ' intensity'],'Interpreter','none')
-    ylabel([movieData.channelDirectory{bChan} ' intensity'],'Interpreter','none')
+    xlabel('Fluorphore Channel Intensity')
+    ylabel('Bleedthrough Channel Intensity')
    
     %Overlay the line fit
     plot(xlim,xlim .* fitCoef(iImage,1) + fitCoef(iImage,2),'--r')
     
+    legend('Intensity Values','Linear Fit');
     
                                                
 end
 
 
 %Get the average slope and intercept
-avgCoef = mean(fitCoef(:,1)); %#ok<NASGU>
-stdCoef = std(fitCoef(:,1)); %#ok<NASGU>
+avgCoef = mean(fitCoef(:,1)); 
+stdCoef = std(fitCoef(:,1));
 
 
 
@@ -182,35 +232,31 @@ stdCoef = std(fitCoef(:,1)); %#ok<NASGU>
 
 %Finish and save the figure
 figure(allFig)
-hgsave(allFig,[movieData.(pName).directory filesep 'bleedthrough plot.fig'])
-if batchMode
+outDir = [movieData.outputDirectory_ filesep dName];
+if ~exist(outDir,'dir')
+    mkdir(outDir);
+end
+hgsave(allFig,[outDir filesep 'bleedthrough plot.fig'])
+
+if batchMode && ishandle(allFig)
     close(allFig);
 end
 
 %Save the results
 
 %Modify the filename to reflect the channels used.
-fName = [fName '_' movieData.channelDirectory{fChan} '_to_' ...
-    movieData.channelDirectory{bChan} '.mat'];
-save([movieData.(pName).directory filesep fName],'avgCoef','stdCoef','fitCoef','fitStats')
+fileName = [fName '_channel_' num2str(fChan) '_to_channel_' ...
+            num2str(bChan) '.mat'];
+save([movieData.outputDirectory_ filesep fileName],'avgCoef','stdCoef','fitCoef','fitStats')
 
-
-%Update the moviedata
-movieData.(pName).status = 1;
-movieData.(pName).fileName = fName;
-movieData.(pName).dateTime = datestr(now);
-movieData.(pName).fluorohporeChannel = fChan;
-movieData.(pName).bleedthroughChannel = bChan;
-movieData.(pName).fluorMaskChannel = fMaskChan;
-movieData.(pName).bleedMaskChannel = bMaskChan;
-updateMovieData(movieData);
+disp(['Calculated bleedthrough coefficient: ' num2str(avgCoef) ' +/- ' num2str(stdCoef)])
 
 
 disp('Finished with bleedthrough calculation!')
 
 
 
-function [fChan,bChan,fMaskChan,bMaskChan,batchMode] = parseInput(argArray)
+function [fChan,bChan,iInProc,fMaskChan,bMaskChan,batchMode] = parseInput(argArray)
 
 
 
@@ -218,8 +264,10 @@ function [fChan,bChan,fMaskChan,bMaskChan,batchMode] = parseInput(argArray)
 batchMode = [];
 fChan = [];
 bChan = [];
+iInProc = [];
 fMaskChan = [];
 bMaskChan = [];
+
 
 if isempty(argArray)
     return
@@ -237,15 +285,19 @@ for i = 1:2:nArg
 
     switch argArray{i}                     
 
-       case 'BatchMode'
+        case 'BatchMode'
            batchMode = argArray{i+1};
 
-       case 'FluorophoreChannel'
+        case 'FluorophoreChannel'
            fChan = argArray{i+1};
 
-       case 'BleedthroughChannel'
+        case 'BleedthroughChannel'
 
            bChan = argArray{i+1};
+
+        case 'ProcessIndex'
+            
+           iInProc = argArray{i+1};
            
         case 'FluorophoreMaskChannel'
             

@@ -71,9 +71,9 @@ imageIn = double(imageIn);
 %% ------ Parameters ----- %%
 
 tooSmall = 1; %If a detected edge fragment is below this size in pixels it is thrown out.
-threshScale = [.95 .5]; %Fraction by which to adjust edge threshold on second round.
-nSig = 3; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
-sigFilter = 3; %Sigma of filter used in canny edge detection.
+threshScale = [.75 .5]; %Fraction by which to adjust edge threshold on second round.
+nSig = 2; %Number of standard deviations above background intensity to keep edges.(darker edges are removed)
+sigFilter = 1.5; %Sigma of filter used in canny edge detection.
 showPlots = false; %For debugging/parameter testing. Shows plots of intermediate steps, overlay of final mask.
 
 %% ----- Edge Detection ------ %%
@@ -133,15 +133,20 @@ if preGrow > 0
     maskIn = imdilate(maskIn,seGrow);
 end
 
-%Get rid of edges which are outside of the mask.
+%Get rid of edges which are outside of the (possibly grown) mask.
 edges = edges & maskIn;
 
 %Add an inner border at maxAdjust pixels inwards from the mask
 edges = edges | distX >= maxAdjust;
 
 %Close these edges
-seClose = strel('disk',maxGap);
+seClose = strel('disk',maxGap,0); %Don't use approximations for the closure, as this can cause gaps in the resulting edge.
 refinedMask = imclose(edges,seClose);
+
+%Fill in 1-pixel gaps from straight segments. At some point, some more
+%comprehensive gap-closing should be done, as longer straight segments may
+%still have holes.
+refinedMask = bwmorph(refinedMask,'bridge');
 
 %Fill the insides
 refinedMask = imfill(refinedMask,4,'holes');
@@ -155,6 +160,4 @@ if showPlots
    spy(refinedMask)
    caxis(caxis/2);           
 end 
-
-
 

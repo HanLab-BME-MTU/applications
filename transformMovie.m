@@ -1,58 +1,64 @@
-function movieData = transformMovie(movieData,varargin)
+function movieData = transformMovie(movieData,paramsIn)
 
 % movieData = transformMovie(movieData)
 % 
-% movieData = transformMovie(movieData,'OptionName',optionValue)
+% movieData = transformMovie(movieData,paramsIn)
 % 
 % This function performs a spatial transformation on the selected channels
 % of the input movie and writes the transformed images to a new channel in
-% the movie. 
-% This can be done using a pre-created transform that has been saved to
-% file, or a new one can be calculated from alignment images (e.g. of a
-% grid micrometer or multi-spectral beads)
+% the movie. The transformation should be saved as a .mat file.
 % 
 % 
 % Input:
 % 
-%   movieData - movie information structure, as created by setupMovieData.m
-% 
-%   'OptionName',optionValue - A string with an option name followed by the
-%   value for that option.
-% 
-%   Possible Option Names:
-%       ('OptionName' -> possible values)
-% 
+%   movieData - The MovieData object describing the movie, as created using
+%   setupMovieDataGUI.m
 %
-%       ('ChannelIndex'-> Positive integer scalar or vector)
-%       The integer indices of the channel(s) to perform transformation
-%       on. This index corresponds to the channel directories location in
-%       the cell array movieData.channelDirectory. If not input, the user
-%       will be asked to select from the available channels. (Unless in
-%       batch mode, in which case this MUST be input)
-%       If multiple channels are specified, the same transformation will be
-%       applied to all channels.
+%   paramsIn - Structure with inputs for optional parameters. The
+%   parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below:
+% 
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
+%
+%       ('OutputDirectory' -> character string) Optional. A character
+%       string specifying the directory to save the corrected images to.
+%       Corrected images for different channels will be saved as
+%       sub-directories of this directory. If not input, the corrected
+%       images will be saved to the same directory as the movieData, in a
+%       sub-directory called "bleedthrough_corrected_images"
+%
+%       ('ChannelIndex'-> Positive integer scalar) The integer index of the
+%       channel to perform spatial transformation on. This index
+%       corresponds to the channel's location in the array
+%       movieData.channels_. If not input, all channels will be
+%       transformed.
 %       
-%
-%       ('TransformFileName' -> Character string)
-%       The FULL filename of the .mat file containing the transform to
-%       apply to the images. The transform should be of the format used by
-%       imtransform.m 
-%       If not input, the user will be asked to locate a file containing a
-%       transform, UNLESS batchmode is enabled, in which case an error will
-%       be generated.
-% 
+%       ('TransformFilePaths' -> Cell array of Character strings) A cell
+%       array specifying The FULL path and filename of the .mat file
+%       containing the transform to apply to the images in each channel.
+%       Should contain one element for each channel to be transformed. The
+%       transform should be of the format used by imtransform.m. If not
+%       input, the user will be asked to locate a file containing a
+%       transform for each channel, UNLESS batchmode is enabled, in which
+%       case an error will be generated.
 %
 %       ('TransformMasks' -> True/False)
 %       If true, the masks for a given channel will also be transformed,
 %       and saved to a mask directory for the output channel(s). If true,
 %       the specified channels MUST have masks. Default is true.
-%
-%
-%       ('MaskChannels' -> Positive integer scalar or vector)
-%       The indices of the channel(s) to transform masks from if
-%       TransformMasks is true. If not input, the masks will be used from
-%       the channels which are transformed.
-%
+%   
+%       If masks are transformed, these additional options apply:
+%       
+%               ('SegProcessIndex' -> Positive integer scalar or vector)
+%               Optional. This specifies SegmentationProcess(s) to use
+%               masks from by its index in the array movieData.processes_;
+%               If input as a vector, masks will be used from the process
+%               specified by the first element, and if not available for a
+%               specific channel, then from the next process etc. If not
+%               input, and multiple SegmentationProcesses are present, the
+%               user will be asked to select one, unless batch mode is
+%               enabled in which case there will be an error.  
 %
 %       ('BatchMode' -> True/False)
 %       If this option value is set to true, all graphical output is
@@ -61,172 +67,202 @@ function movieData = transformMovie(movieData,varargin)
 % 
 % Output:
 %   
-%   The transformed images are written to a new channel in the movie's
-%   image directory.
+%   movieData - The updated MovieData object, with the parameters and
+%   directories for the transformation stored in it as a process object.
 %
-%   The location of these images and all parameters used in the
-%   transformation are stored in the movieData structure and it is saved.
+%   The transformed images will be written to the folder specified by
+%   OutputDirectory.
 %
 % Hunter Elliott
 % 11/2009
+% Revamped 5/2010
+%
 
 %% ------ Parameters ----%%
 
-pString = 'x_'; %The string to prepend before the transformed image directory & channel name
+pString = 'xf_'; %The string to prepend before the transformed image directory & channel name
+dName = 'transformed_images_for_channel_';%String for naming the directories for each corrected channel
 
 %% ------- Input ------- %%
 
-
-movieData = setupMovieData(movieData,'transformation');
-
-[batchMode,iChannels,xFormFile,doMasks,iMaskChan] = parseInput(varargin);
-
-%----Defaults----%
-
-if isempty(batchMode)    
-    batchMode = false;
+%Check that input object is a valid moviedata
+if ~isa(movieData,'MovieData')
+    error('The first input argument must be a valid MovieData object!')
 end
-if isempty(doMasks)
-    doMasks = true;
+
+if nargin < 2
+    paramsIn = [];
 end
-if isempty(iChannels)   
-    if ~batchMode
-        iChannels = selectMovieChannels(movieData,1,'Select the channel(s) to spatially transform:');
+
+%Get the indices of any previous bleedthrough correction processes from this
+%function
+iProc = find(cellfun(@(x)(isa(x,'TransformationProcess')),movieData.processes_),1);                          
+
+%If the process doesn't exist, create it with default settings.
+if isempty(iProc)
+    iProc = numel(movieData.processes_)+1;
+    movieData.addProcess(TransformationProcess(movieData,movieData.outputDirectory_));                                                                                                 
+end
+
+p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+
+%Make sure the movie has been background-subtracted
+iBSProc = find(cellfun(@(x)(isa(x,'BackgroundSubtractionProcess')),movieData.processes_),1);                          
+if isempty(iBSProc)
+    error('The input movie has not been background subtracted! Please perform background subtraction prior to spatial transformation!')    
+end
+
+%Check that all channels have been background subtracted
+hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outImagePaths_);   
+if ~all(hasBS(p.ChannelIndex))
+    error('Every channel selected for transformation must have been background subtracted! Please perform background subtraction first, or check the ChannelIndex parameter!')
+end
+
+%Check if bleedthrough correction has been performed on any channels.
+iBTCProc = find(cellfun(@(x)(isa(x,'BleedthroughCorrectionProcess')),movieData.processes_),1);                          
+%If so, check which channel(s).
+if ~isempty(iBTCProc)
+   hasBTC = movieData.processes_{iBTCProc}.checkChannelOutput;   
+   if any(hasBTC)
+      disp('Using bleed-through corrected images for channels:')
+      arrayfun(@(x)(disp(num2str(x))),find(hasBTC));
+   end
+else
+    hasBTC = false(1,numel(movieData.channels_));
+end
+
+nChanCorr = length(p.ChannelIndex);
+
+%Set up the input /output directories for each channel
+for j = 1:nChanCorr
+    
+    if hasBTC(p.ChannelIndex(j))
+        %If available, use the bleed-through corrected images
+        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+            movieData.processes_{iBTCProc}.outImagePaths_{p.ChannelIndex(j)});
     else
-        error('In batch mode, you must specify the channels to transform!')
+        %Otherwise, use background subtracted
+        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+            movieData.processes_{iBSProc}.outImagePaths_{p.ChannelIndex(j)});
     end
-end
-if isempty(iMaskChan)
-    iMaskChan = iChannels;
-end
-if doMasks && ~checkMovieMasks(movieData,iMaskChan)
-    warning('Cannot transform masks because the specified channels do not have valid masks! Disable the "TransformMasks" option, or create masks!!!') %#ok<WNTAG>
-    doMasks = false;
-end
-if isempty(xFormFile)
-    if ~batchMode
-        [xFormFile xDir] = uigetfile('*.mat','Select a file containing the transformation:');
-        if xFormFile == 0
-            error('Must specify a transformation file to continue!')
-        end
-        xFormFile = [xDir xFormFile];
-    else
-       error('In batch mode, the transformation file name must be specified!') 
-    end
+    
+    %The output is a sub-dir of the directory specified by OutputDirectory
+    currDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
+    
+    %Check/set up directory
+    mkClrDir(currDir);
+    
+    movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(j),currDir);                    
 end
 
+%Check if transform files have been specified, and if not, get them
+if ~iscell(p.TransformFilePaths)
+    %If only a single path was entered, it doesn't have to be a cella rray
+    p.TransformFilePaths = {p.TransformFilePaths};
+end
+
+for j = 1:nChanCorr
+    
+    if isempty(p.TransformFilePaths{p.ChannelIndex(j)})
+        [currFile,currPath] = uigetfile('*.mat',...
+            ['Please select the transformation file for channel ' ...
+            num2str(p.ChannelIndex(j)) ':']);
+        
+        if currFile == 0
+            error('You must specify a transformation file to continue!')
+        end        
+        p.TransformFilePaths{p.ChannelIndex(j)} = [currPath currFile];                    
+    end
+    %This method will check validity of file....
+    movieData.processes_{iProc}.setTransformFilePath(p.ChannelIndex(j),...
+                                                p.TransformFilePaths{p.ChannelIndex(j)});        
+end
 
 
 %% ------- Init ------ %%
 
-nChan = length(iChannels);
 
 
 disp('Loading transformation...')
     
 
-%Load the transform and check it
 
-xForm = load(xFormFile);
-tstField = fieldnames(xForm);
+%Get the actual transformations for each channel
+xForms = movieData.processes_{iProc}.getTransformation(p.ChannelIndex);
+inNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex);
 
-if length(tstField) > 1
-    error('The specified .mat file should only contain one variable, which is the transform structure!')
-else
-   xForm = xForm.(tstField{1});     
-end
+%Get original image size. Image pixels that are transformed out of this
+%area will be omitted to preserve this size
+m = movieData.imSize_(1);
+n = movieData.imSize_(2);        
 
-if ~istransform(xForm)
-    error('The specified .mat file does not contain a valid transformation! The transformation should use the same format used by imtransform.m!!!')
-end
-
-
-%Check / create the channel for the transformed images
-iTransformed = zeros(1,nChan);
-xDir = cell(1,nChan); %The directory names for the transformed images
-for i = 1:nChan
-    %Check if this channel already exists
-    tmp = find(strcmp([pString movieData.channelDirectory{iChannels(i)}],movieData.channelDirectory),1);                    
-    if ~isempty(tmp)
-        iTransformed(i) = tmp;
-    %If not, create a channel for it
-    else
-        iTransformed(i) = length(movieData.channelDirectory)+1;
-        movieData.channelDirectory{iTransformed(i)} = [pString movieData.channelDirectory{iChannels(i)}]; %Name the correct channel after the old one
-        movieData.nImages(iTransformed(i)) = movieData.nImages(iChannels(i)); %The corrected images should have the same number
-        movieData.imSize(:,iTransformed(i)) = movieData.imSize(:,iChannels(i)); %... and size
-    end
-        
-    xDir{i} = [movieData.imageDirectory filesep movieData.channelDirectory{iTransformed(i)}];
-    
-    if ~exist(xDir{i},'dir')
-       mkdir(xDir{i});
-    end
-end
-
-
-imNames = getMovieImageFileNames(movieData,iChannels);
-if doMasks
-    
-    %Get the original mask file names    
-    maskNames = getMovieMaskFileNames(movieData,iMaskChan);
-    
-    %Check/create the directories for the transformed masks
-    xMaskDir = cell(1,nChan);
-    for i = 1:nChan
-        
-        xMaskDir{i} = [movieData.masks.directory filesep movieData.channelDirectory{iTransformed(i)}];
-    
-        movieData.masks.channelDirectory{iTransformed} = [movieData.channelDirectory{iTransformed(i)}];
-        
-        if ~exist(xMaskDir{i},'dir')
-            mkdir(xMaskDir{i})
-        end                
-    end    
-end
 
 %% ------- Spatial Transformation ------ %%
 %Transform all images in requested channels and write them to a new
-%channel.
+%directory.
 
 
-disp('Transforming all images....')
+disp('Transforming images....')
+
+if ~p.BatchMode
+    wtBar = waitbar(0,['Please wait, transforming correcting channel ' num2str(p.ChannelIndex(1)) ' ...']);        
+end        
+
+nImages = movieData.nFrames_;
+nImTot = nImages * nChanCorr;
+
+for iChan = 1:nChanCorr
+    
+    %Get directories for readability
+    inDir  = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(iChan)};    
+    outDir = movieData.processes_{iProc}.outImagePaths_{p.ChannelIndex(iChan)};    
+    
+    disp(['Transforming images for channel ' num2str(p.ChannelIndex(iChan))])
+    disp(['Transforming images from ' inDir ', results will be stored in ' outDir]);     
+    disp(['Using transform file : ' p.TransformFilePaths{p.ChannelIndex(iChan)}]);
+    
+    if ~p.BatchMode        
+        waitbar((iChan-1)*nImages / nImTot,wtBar,['Please wait, transforming channel ' num2str(p.ChannelIndex(iChan)) ' ...']);        
+    end        
 
 
-for iChan = 1:nChan            
-    
-    nImages = movieData.nImages(iChannels(iChan));
-    
-    m = movieData.imSize(1,iChannels(iChan)); %Get the image size
-    n = movieData.imSize(2,iChannels(iChan));
-    
-    disp(['Transforming channel ' movieData.channelDirectory{iChannels(iChan)}])
-    disp(['Writing transformed images to channel ' movieData.channelDirectory{iTransformed}])
-    
-    if doMasks        
-        disp(['Also transforming masks from ' movieData.channelDirectory{iMaskChan}])
-    end
-    
-    for iImage = 1:nImages
+
+    for iImage = 1:nImages        
         
-        currIm = imread(imNames{iChan}{iImage});                                
-        currIm = imtransform(currIm,xForm,'XData',[1 n],'YData',[1 m],'FillValues',1);
-        iLastSep = max(regexp(imNames{iChan}{iImage},filesep));
-        imwrite(currIm,[xDir{iChan} filesep pString ... 
-            imNames{iChan}{iImage}(iLastSep+1:end)]);
+        currIm = imread([inDir filesep inNames{iChan}{iImage}]);                                
         
-        if doMasks            
-            currMask = imread(maskNames{iChan}{iImage});            
-            currMask = imtransform(currMask,xForm,'XData',[1 n],'YData',[1 m],'FillValues',0);                    
-            
-            iLastSep = max(regexp(maskNames{iChan}{iImage},filesep));
-            imwrite(currMask,[xMaskDir{iChan} filesep pString ... 
-            maskNames{iChan}{iImage}(iLastSep+1:end)]);
+        currIm = imtransform(currIm,xForms{iChan},'XData',[1 m],'YData',[1 n],'FillValues',0);
         
-            
-        end
-    
+        imwrite(currIm,[outDir filesep pString inNames{iChan}{iImage}]);               
+        
+        if ~p.BatchMode && mod(iImage,5)
+            %Update the waitbar occasionally to minimize slowdown
+            waitbar((iImage + (iChan-1)*nImages) / nImTot,wtBar)
+        end                        
+        
     end    
+end
+
+if ~p.BatchMode && ishandle(wtBar)
+    close(wtBar)
+end
+
+
+
+%% ------- Mask Transformation ----- %%
+
+if p.TransformMasks    
+
+    %Set up the parameters for mask transformation
+    mXp.ChannelIndex = p.ChannelIndex;
+    mXp.TransformFilePaths = p.TransformFilePaths;    
+    mXp.SegProcessIndex = p.SegProcessIndex;
+    mXp.OutputDirectory = p.OutputDirectory;
+    mXp.BatchMode = p.BatchMode;
+    
+    %Transform the masks
+    movieData = transformMovieMasks(movieData,mXp);
+
 end
 
 
@@ -236,65 +272,10 @@ end
 %% ------ Output and Finalization ----- %%
 
 
-movieData.transformation.dateTime = datestr(now);
-movieData.transformation.status = 1;
-movieData.transformation.iFrom(iTransformed) = iChannels;
-movieData.transformation.fileName = xFormFile;
-movieData.transformation.transformedMasks(iTransformed) = doMasks;
-if doMasks
-    movieData.transformation.iTransformedMasksFrom(iTransformed) = iMaskChan;
-end
+%Store parameters/settings in movieData structure
 
-updateMovieData(movieData);
-
+movieData.processes_{iProc}.setDateTime;
+movieData.saveMovieData; %Save the new movieData to disk
 
 disp('Finished!')
 
-
-function [batchMode,iChannels,xFormFile,doMasks,iMaskChan] = parseInput(argArray)
-
-
-%Init output
-batchMode = [];
-iChannels = [];
-xFormFile = [];
-doMasks = [];
-iMaskChan = [];
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName / value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-              
-       case 'BatchMode'
-           batchMode = argArray{i+1};
-           
-       case 'ChannelIndex'
-           iChannels = argArray{i+1};
-           
-       case 'TransformFileName'
-           xFormFile = argArray{i+1};
-           
-       case 'TransformMasks'
-           doMasks = argArray{i+1};           
-           
-       case 'MaskChannels'
-           iMaskChan = argArray{i+1};
-           
-       otherwise
-       
-           error(['"' argArray{i} '" is not a valid option name! Please check input!'])
-   end
-   
-end

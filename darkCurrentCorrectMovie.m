@@ -1,8 +1,8 @@
-function movieData = darkCurrentCorrectMovie(movieData,varargin)
+function movieData = darkCurrentCorrectMovie(movieData,paramsIn)
 
 % movieData = darkCurrentCorrectMovie(movieData)
 % 
-% movieData = darkCurrentCorrectMovie(movieData,'OptionName',optionValue,...)
+% movieData = darkCurrentCorrectMovie(movieData,paramsIn)
 % 
 % This function performs dark-current correction on the input movie. This
 % is accomplished by subtracting a "dark-current image" from each image in
@@ -13,27 +13,34 @@ function movieData = darkCurrentCorrectMovie(movieData,varargin)
 % 
 % Input:
 % 
-%   movieData - movie information structure, as created by setupMovieData.m
-% 
-%   'OptionName',optionValue - A string with an option name followed by the
-%   value for that option.
-% 
-%   Possible Option Names:
-%       ('OptionName' -> possible values)
-% 
+%   movieData - The movieData object describing the movie, as created using
+%   setupMovieDataGUI.m
 %
-%       ('ChannelIndex'-> Positive integer scalar or vector)
-%       The integer indices of the channel(s) to perform dark-current
-%       correction on. This index corresponds to the channel directories
-%       location in the cell array movieData.channelDirectory. If not
-%       input, the user will be asked to select from the available
-%       channels. (Unless in batch mode, in which case this MUST be input)
+%   paramsIn - Structure with inputs for optional parameters. The
+%   parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below:
+% 
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
 %
-%       ('DarkImageChannels'-> Positive integer scalar or vector)
-%       The integer indices of the channels which contain the dark-current
-%       images. This must be the same size as ChannelIndex!
-%       If not input, user will be asked to select, unless batch mode is
-%       enabled, in which case an error will be generated.
+%       ('OutputDirectory' -> character string) Optional. A character
+%       string specifying the directory to save the corrected images to.
+%       Corrected images for different channels will be saved as
+%       sub-directories of this directory. If not input, the corrected
+%       images will be saved to the same directory as the movieData, in a
+%       sub-directory called "dark_current_corrected"
+%
+%       ('ChannelIndex'-> Positive integer scalar or vector) The integer
+%       indices of the channel(s) to perform dark-current correction on.
+%       This index corresponds to the channel's location in the array
+%       movieData.channels_. If not input, all channels will be corrected.
+%   
+%       ('DarkImageDirectories' -> Cell array of character strings)
+%       This cell array contains directories for dark-current images which
+%       should be used to correct the raw images. Must contain one valid
+%       directory for each channel specified by ChannelIndex.
+%       Optional. If not input, the user will be asked to select a folder
+%       for each channel.
 %
 %       ('MedianFilter' - True/False)
 %       If true, the final (averaged) dark correction image will be median
@@ -53,119 +60,136 @@ function movieData = darkCurrentCorrectMovie(movieData,varargin)
 %   
 % Output:
 %
-%   The dark-corrected images are saved as a new channel in the movie -
-%   They are written as .tif files to the image directory of the input
-%   movie.
-% 
-%   The location of the output images, and all parameters, are stored in
-%   the movieData structure.
+%   movieData - the updated movieData object with the correction
+%   parameters, paths etc. stored in it, in the field movieData.processes_.
+%
+%   The corrected images are written to the directory specified by the
+%   parameter OuptuDirectory, with each channel in a separate
+%   sub-directory. They will be stored as bit-packed .tif files. 
+%
 %
 % Hunter Elliott
 % 11/2009
-
-
+% Revamped 5/2010
+%
 
 %% ------ Parameters ------- %%
 
+
 pString = 'dcc_'; %The string to prepend before the dark-corrected image directory & channel name
-saveName = 'dark_current_correction'; %File name for saving processed/avged dark current images. Actual file name will have channel name appended.
+saveName = 'dark_current_correction_image_for_channel_'; %File name for saving processed/avged dark current images. Actual file name will have channel number appended.
+dName = 'dark_current_corrected_images_for_channel_';%String for naming the directories for each corrected channel
+
 
 %% ----------- Input ------------ %%
 
-%Validate the input movieData
-movieData = setupMovieData(movieData,'darkCurrentCorrection');
 
-[batchMode,iChannels,iDarkIm,medFilt,sigGFilt] = parseInput(varargin);
-
-
-
-% --- Defaults ---- %
-
-if isempty(batchMode)
-    batchMode = false;
-end
-if isempty(medFilt)
-    medFilt = true;
-end
-if isempty(sigGFilt)
-    sigGFilt = 0;
+%Check that input object is a valid moviedata
+if ~isa(movieData,'MovieData')
+    error('The first input argument must be a valid MovieData object!')
 end
 
-%Ask the user for the image channels to correct if not input
-if isempty(iChannels)  
-    if batchMode
-        error('In batch mode, you must specify the channels to perform dark current correction on!')
-    else
-        %As the user to select a channel.
-        iChannels = selectMovieChannels(movieData,1,'Select the channels to dark current correct:');        
-    end    
+if nargin < 2
+    paramsIn = [];
 end
 
-nChan = length(iChannels); % Number of channels to dark current correct
 
-%Ask the user for the channels with the dark current correction images, if not input
-if isempty(iDarkIm)
-    if batchMode
-        error('In batch mode, you must specify the channels containing the dark current correction images!')
-    else
-        %As the user to select channel(s)
-        for i = 1:nChan
-            iDarkIm(i) = selectMovieChannels(movieData,0,...
-                ['Select the dark current correction channel for image channel ' movieData.channelDirectory{iChannels(i)} ':']);
+%Get the indices of any previous dark current correction processes from this function                                                                              
+iProc = find(cellfun(@(x)(isa(x,'DarkCurrentCorrectionProcess')),movieData.processes_),1);                          
+
+%If the process doesn't exist, create it with default settings.
+if isempty(iProc)
+    iProc = numel(movieData.processes_)+1;
+    movieData.addProcess(DarkCurrentCorrectionProcess(movieData,movieData.outputDirectory_));                                                                                                 
+end
+
+nChan = numel(movieData.channels_);
+
+
+%Parse input, store in parameter structure
+p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+
+if max(p.ChannelIndex) > nChan || min(p.ChannelIndex)<1 || ~isequal(round(p.ChannelIndex),p.ChannelIndex)
+    error('Invalid channel numbers specified! Check ChannelIndex input!!')
+end
+
+nChanCorr = length(p.ChannelIndex);
+
+%If not specified, get the directories for each set of dark-current images.
+if isempty(p.DarkImageDirectories)
+    
+    %Check if the paths have been specified before
+    if isempty(movieData.processes_{iProc}.correctionImagePaths_)
+        
+        if ~p.BatchMode
+            %If not, ask the user.
+            stPath = pwd;
+            p.DarkImageDirectories = cell(1,nChanCorr);
+
+            for j = 1:nChanCorr
+
+                p.DarkImageDirectories{j} = uigetdir(stPath,['Select the directory with dark-current images for channel ' num2str(p.ChannelIndex(j))]);
+
+                if p.DarkImageDirectories{j} ~= 0
+                    stPath = p.DarkImageDirectories{j};
+                    movieData.processes_{iProc}.setCorrectionImagePath(p.ChannelIndex(j),p.DarkImageDirectories{j});            
+                else
+                    p.DarkImageDirectories{j} = [];            
+                end
+            end    
+        else
+            error('In batch mode, the correction image directories must be specified!')
         end
+    else
+        %Use the existing paths
+        disp('Using previously specified correction image directories...')
+        p.DarkImageDirectories = movieData.processes_{iProc}.correctionImagePaths_(p.ChannelIndex);        
     end
 end
 
-if length(iDarkIm) ~= nChan
-    error('You must specify a dark current correction image channel for each channel you are correcting!')
+%Check how many directories were specified
+iDarkDir = find(cellfun(@(x)(~isempty(x)),p.DarkImageDirectories));
+
+if length(iDarkDir) < nChanCorr
+    error('You must specify a dark current correction image directory for each channel you are correcting!')    
 end
 
-%Check that the dark current-correction images are the same size as the images to
-%correct
-if ~all(all(movieData.imSize(:,iDarkIm) == movieData.imSize(:,iChannels)))
-    error('Dark current correction images must be the same size as the images to be corrected!')
+%Get the dark current image file names.
+darkImNames = movieData.processes_{iProc}.getCorrectionImageFileNames(p.ChannelIndex);
+
+
+%Set up the directories for corrected images as sub-directories of the
+%output directory, and specify the directories for the images to be
+%corrected in the movieData.
+for j = 1:nChanCorr;
+    
+    %Create string for current directory
+    currDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];    
+    
+    %Check/create directory 
+    mkClrDir(currDir);    
+    
+    %Save this in the process object
+    movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(j),currDir);       
+
 end
+
+
 
 
 %% ------------ Init ---------- %%
 
 
 %Create gaussian filter, if needed
-if sigGFilt >= 1
-    gFilt = fspecial('gaussian',roundOddOrEven(sigGFilt*6,'odd',Inf),sigGFilt);        
-end
-
-
 disp('Starting dark current correction...')
 
-%Get image file names for needed channels
-darkImNames = getMovieImageFileNames(movieData,iDarkIm);
-imNames = getMovieImageFileNames(movieData,iChannels);
+%Get image file names for needed channels - this correction is always applied
+%to raw data.
+imNames = movieData.getImageFileNames(p.ChannelIndex);
+imDir  = movieData.getChannelPaths(p.ChannelIndex);
 
-%Go through the channels and check output directories/channels
-iCorrected = zeros(1,nChan); %The index for the output channels
-corrDir = cell(1,nChan); %The directory names for the dark current-corrected images
-for i = 1:nChan
-    %Check if this channel has been dark current-corrected before
-    tmp = find(strcmp([pString movieData.channelDirectory{iChannels(i)}],movieData.channelDirectory),1);                    
-    if ~isempty(tmp)
-        iCorrected(i) = tmp;
-    %If not, create a channel for it
-    else
-        iCorrected(i) = length(movieData.channelDirectory)+1;
-        movieData.channelDirectory{iCorrected(i)} = [pString movieData.channelDirectory{iChannels(i)}]; %Name the correct channel after the old one
-        movieData.nImages(iCorrected(i)) = movieData.nImages(iChannels(i)); %The corrected images should have the same number
-        movieData.imSize(:,iCorrected(i)) = movieData.imSize(:,iChannels(i)); %... and size
-    end
-        
-    corrDir{i} = [movieData.imageDirectory filesep movieData.channelDirectory{iCorrected(i)}];
-    
-    if ~exist(corrDir{i},'dir')
-       mkdir(corrDir{i});
-    end
-end
-
-
+nImages = movieData.nFrames_;
+nImTot = nImages * nChanCorr;
 
 %% ----------- Get and Process Dark Current Correction Images ------------- %%
 %Loads, averages, and filters the dark current correction images
@@ -173,14 +197,17 @@ end
 disp('Loading and processing correction image(s)...')
 
 %Go through each requested channel and process the dark current correction
-darkIm = cell(1,nChan);
-for iChan = 1:nChan
+darkIm = cell(1,nChanCorr);
+for iChan = 1:nChanCorr
     
-    % ---- Average the dark images --- %
-    nImages = movieData.nImages(iDarkIm(iChan));
-    for iImage = 1:nImages    
+    % ---- Average the dark images --- %        
+    
+    nDarkIm = length(darkImNames{iChan});
+    
+    for iImage = 1:nDarkIm
         
-        currIm = imread(darkImNames{iChan}{iImage});
+        currIm = imread([p.DarkImageDirectories{iDarkDir(iChan)} ...
+            filesep darkImNames{iDarkDir(iChan)}{iImage}]);
         
         if iImage == 1
            darkIm{iChan} = zeros(size(currIm));
@@ -195,14 +222,14 @@ for iChan = 1:nChan
     %---Filter the averaged dark image---%
     
     %Median filter
-    if medFilt
+    if p.MedianFilter
         %Add a border to prevent distortion        
         darkIm{iChan} = medfilt2(darkIm{iChan},'symmetric'); %Uses default 3x3 neighborhood        
     end
     
     %Gaussian filter
-    if sigGFilt >= 1
-        darkIm{iChan} = imfilter(darkIm{iChan},gFilt,'replicate');                    
+    if p.GaussFilterSigma >= 1
+        darkIm{iChan} = Gauss2D(darkIm{iChan},p.GaussFilterSigma);        
     end
         
     
@@ -215,33 +242,63 @@ end
 
 disp('Applying dark current correction to images...')
 
+
+if ~p.BatchMode
+    wtBar = waitbar(0,['Please wait, correcting channel ' num2str(p.ChannelIndex(1)) ' ...']);        
+end        
+
+
+
 %Go through each image and apply the appropriate dark current correction
-for iChan = 1:nChan
+for iChan = 1:nChanCorr
     
-    disp(['Correcting channel "' movieData.channelDirectory{iChannels(iChan)} ...
-        '" using images from "' movieData.channelDirectory{iDarkIm(iChan)} '"']);     
-    disp(['Resulting images will be stored in channel ' movieData.channelDirectory{iCorrected(iChan)}])
     
-    for iImage = 1:movieData.nImages(iChannels(iChan))
+    outDir = movieData.processes_{iProc}.outImagePaths_{p.ChannelIndex(iChan)};    
+    corrDir = movieData.processes_{iProc}.correctionImagePaths_{p.ChannelIndex(iChan)};
+
+    if ~p.BatchMode        
+        waitbar((iChan-1)*nImages / nImTot,wtBar,['Please wait, correcting channel ' num2str(p.ChannelIndex(iChan)) ' ...']);        
+    end        
+
+    
+    disp(['Dark-current correcting channel ' num2str(p.ChannelIndex(iChan)) '...'])
+    disp(['Using correction images in ' corrDir])
+    disp(['Correcting images from ' imDir{iChan} ', resulting images will be stored in ' outDir])    
+    
+    
+    for iImage = 1:nImages
     
         %Load the image to be corrected
-        currIm = imread(imNames{iChan}{iImage});
-        
+        currIm = imread([imDir{iChan} filesep imNames{iChan}{iImage}]);
+        %Check it's class
         ogClass = class(currIm);
     
         %Correct it
         currIm = double(currIm) - darkIm{iChan};
+        
+        if min(currIm(:)) < 1
+            %Make sure that the correction makes sense...
+            warning('Dark current correction resulted in non-positive image values! Check correction images...')            
+        end
+        
         %Cast to original class
         currIm = cast(currIm,ogClass);
+                        
+        %Write it to disk        
+        imwrite(currIm,[outDir filesep pString imNames{iChan}{iImage}]);                
         
-        %Write it to disk
-        iLastSep = max(regexp(imNames{iChan}{iImage},filesep));%find the last file seperator
-        imwrite(currIm,[corrDir{iChan} filesep pString ... 
-            imNames{iChan}{iImage}(iLastSep+1:end)]);
-        
+        if ~p.BatchMode && mod(iImage,5)
+            %Update the waitbar occasionally to minimize slowdown
+            waitbar((iImage + (iChan-1)*nImages) / nImTot,wtBar)
+        end                        
          
     end
 end
+
+if ~p.BatchMode && ishandle(wtBar)
+    close(wtBar)
+end
+
 
 
 %% ------------- Output ------- %%
@@ -250,77 +307,18 @@ disp('Saving results...')
 
 
 %Save the averaged/filtered dark current images
-for i = 1:nChan
+for i = 1:nChanCorr
     processedDarkImage = darkIm{i}; %#ok<NASGU> %Get this element of save array because the save function sucks.
-    save([movieData.darkCurrentCorrection.directory filesep saveName '_' movieData.channelDirectory{iDarkIm(i)} '.mat'],'processedDarkImage');
+    save([p.OutputDirectory filesep saveName num2str(p.ChannelIndex(i)) '.mat'],'processedDarkImage');
 end
 
-%Log the dark current correction in the movieData structure and save it
-movieData.darkCurrentCorrection.parameters.medianFilter = medFilt;
-movieData.darkCurrentCorrection.parameters.sigmaGaussFilter = sigGFilt;
-movieData.darkCurrentCorrection.status = 1;
-movieData.darkCurrentCorrection.dateTime = datestr(now);
-movieData.darkCurrentCorrection.iDarkImages(iCorrected) = iDarkIm; %Indexes of the dark current images used to correct
-movieData.darkCurrentCorrection.iFrom(iCorrected) = iChannels; %Indexes of the channels that were used to create the dark current corrected images
-movieData.darkCurrentCorrection.fileNamePrefix = saveName;
-movieData.darkCurrentCorrection.channelNamePrefix = pString;
+%Log the correction in the movieData object and save it
 
-updateMovieData(movieData);
+movieData.processes_{iProc}.setDateTime;
+movieData.saveMovieData;
 
-disp('Finished!')
+disp('Finished Correcting!')
 
-
-end
-
-function [batchMode,iChannels,iDarkIm,medFilt,sigGFilt] = parseInput(argArray)
-
-
-%Init output
-batchMode = [];
-iChannels = [];
-iDarkIm = [];
-medFilt = [];
-sigGFilt = [];
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName / value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-              
-       case 'BatchMode'
-           batchMode = argArray{i+1};
-           
-       case 'ChannelIndex'
-           iChannels = argArray{i+1};
-           
-       case 'DarkImageChannels'
-           iDarkIm = argArray{i+1};
-
-       case 'MedianFilter'
-           medFilt = argArray{i+1};
-           
-       case 'GaussFilterSigma'
-           sigGFilt = argArray{i+1};
-                      
-       otherwise
-       
-           error(['"' argArray{i} '" is not a valid option name! Please check input!'])
-   end
-   
-end
-
-end
 
 
 

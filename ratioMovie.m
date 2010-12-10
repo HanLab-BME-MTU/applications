@@ -1,43 +1,66 @@
-function movieData = ratioMovie(movieData,varargin)
+function movieData = ratioMovie(movieData,paramsIn)
 %RATIOMOVIE creates a new ratio channel by dividing one movie channel by another
 % 
 % movieData = ratioMovie(movieData)
 % 
 % movieData = ratioMovie(movieData,'OptionName',optionValue)
 %
+%
 % This function divides the images in one channel by those in another and
-% stores the resulting image in a new channel. Rounding error is minimized
-% by having the resulting ratios fill the entire range of the input image
-% bit-depth.
+% stores the resulting images in a new directory.
 % 
 % 
 % Input:
 % 
-%   movieData - The structure describing the movie, as created using
-%   setupMovieData.m
-% 
-% 
-%   'OptionName',optionValue - A string with an option name followed by the
-%   value for that option.
-% 
-%   Possible Option Names:
-%       ('OptionName' -> possible values)
-% 
+%   movieData - The MovieData object describing the movie, as created using
+%   setupMovieDataGUI.m
 %
-%       ('ChannelIndex'-> Positive integer vector, 1x2)
-%       The index of the channels to use as the numerator (1st element) and
-%       denominator (2nd element). If not input, the user will be asked. 
+%   paramsIn - Structure with inputs for optional parameters. The
+%   parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below:
+% 
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
 %
-%       ('ApplyMasks' -> True/False)
-%       If true, pixels which are not masked in EITHER channel will be set
-%       to zero in the ratio image. Requires that both channels have masks.
-%       Default is true.
+%       ('OutputDirectory' -> character string) Optional. A character
+%       string specifying the directory to save the corrected images to.
+%       Corrected images for different channels will be saved as
+%       sub-directories of this directory. If not input, the corrected
+%       images will be saved to the same directory as the movieData, in a
+%       sub-directory called "bleedthrough_corrected_images"
+%
+%       ('ChannelIndex'-> Positive integer vector, 1x2) The integer index
+%       of the channels to  ratio. This index corresponds to the channel's
+%       location in the array movieData.channels_. The first channel
+%       specified will be the numerator, and the second will be the
+%       denominator.
+%       Optional. If not input, the user will be asked to select the
+%       channels, unless BatchMode is enabled, in which case an error will
+%       be generated.
+%       
+%       ('ApplyMasks' -> True/False) If true, pixels which are not masked
+%       in EITHER channel will be set to zero in the ratio image (i.e. the
+%       intersection of the two masks will be used.) Requires that both
+%       channels have masks. Default is true.
 %
 %       ('CreateMasks' -> True/False)
 %       If true, the intersection of the masks from both channels will be
-%       used to create a new mask for the ratio channel and these masks
-%       will be written to a mask directory for this channel.
-%       Default is true.
+%       used to create a new mask for the numerator channel and these masks
+%       will over-write the existing numerator masks.
+%       Default is false.
+%
+%       If either CreateMasks or ApplyMasks are true, the following options
+%       can also be set:
+%
+%               ('SegProcessIndex' -> Positive integer scalar or vector)
+%               Optional. This specifies SegmentationProcess(s) to use
+%               masks from by its index in the array movieData.processes_;
+%               If input as a vector, masks will be used from the process
+%               specified by the first element, and if not available for a
+%               specific channel, then from the next process etc. If not
+%               input, and multiple SegmentationProcesses are present, the
+%               user will be asked to select one, unless batch mode is
+%               enabled in which case there will be an error.  
 %
 %       ('MaskChannelIndex' -> Positive integer vector, 1x2) The index of
 %       the channel of the masks to use for the numerator (1st element) and
@@ -50,56 +73,171 @@ function movieData = ratioMovie(movieData,varargin)
 %
 %
 % Output:
+%   
+%   movieData - The updated MovieData object, with the parameters and
+%   directories for the transformation stored in it as a process object.
 %
-%   The ratio images will be written to a  new channel, named after the
-%   channels used to make the ratios. All parameters will be stored in the
-%   movieData structure.
+%   The ratio images will be written to the folder specified by
+%   OutputDirectory. They are saved as floating-point, double precision
+%   .mat files.
 %
 % Hunter Elliott, 11/2009
+% Revamped 6/2010
 %
+
 
 %%  --------- Parameters ------- %%
 
 pString = 'ratio_'; %The string to prepend before the ratio image directory & channel name
+dName = 'ratio_of_'; %String for naming the directories for each ratio channel.
+
 
 %% ---------- Input -------------%%
 
-movieData = setupMovieData(movieData,'ratioing');
+%Check that input object is a valid moviedata
+if ~isa(movieData,'MovieData')
+    error('The first input argument must be a valid MovieData object!')
+end
 
-[batchMode,iNum,iDenom,applyMasks,makeMasks,iNumMask,iDenomMask] = parseInput(varargin);
+if nargin < 2
+    paramsIn = [];
+end
+
+%Get the indices of any previous ratio processes from this
+%function
+iProc = movieData.getProcessIndex('RatioProcess',1,0);
+
+%If the process doesn't exist, create it with default settings.
+if isempty(iProc)
+    iProc = numel(movieData.processes_)+1;
+    movieData.addProcess(RatioProcess(movieData,movieData.outputDirectory_));                                                                                                 
+end
+
+p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 %----Defaults----%
 
-if isempty(batchMode)
-    batchMode = false;
-end
-if isempty(applyMasks)
-    applyMasks = true;
-end
-if isempty(makeMasks)
-    makeMasks = true;
-end
-if isempty(iNum)
-    if ~batchMode
-        iNum = selectMovieChannels(movieData,0,'Please select the numerator channel:');
+if isempty(p.ChannelIndex)
+    if ~p.BatchMode
+        p.ChannelIndex(1) = selectMovieChannels(movieData,0,'Please select the numerator channel:');
+        p.ChannelIndex(2) = selectMovieChannels(movieData,0,'Please select the denominator channel:');
     else
-        error('In batch mode, the numerator channel must be specified!')
-    end
+        error('In batch mode, the numerator and denominator channels must be specified!')
+    end    
 end
-if isempty(iDenom)
-    if ~batchMode
-        iDenom = selectMovieChannels(movieData,0,'Please select the denominator channel:');
+
+
+if length(p.ChannelIndex) ~=2 
+    error('You must specify exactly 2 channels for ratioing: a numerator and a denominator!')
+end
+
+%Make sure the background subtraction has been performed
+iBSProc = find(cellfun(@(x)(isa(x,'BackgroundSubtractionProcess')),movieData.processes_),1);                          
+if ~isempty(iBSProc)
+    hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outImagePaths_);
+else
+   error('Background subtraction has not been run! Please run background subtraction prior to ratioing!')   
+end
+
+if ~all(hasBS(p.ChannelIndex))
+    error('Both channels to be ratioed must be background subtracted prior to ratioing!')
+end
+
+nChan = numel(movieData.channels_);
+
+%Check if bleedthrough correction has been run
+iBTCProc = find(cellfun(@(x)(isa(x,'BleedthroughCorrectionProcess')),movieData.processes_),1);                          
+if ~isempty(iBTCProc)
+    %Check which channels have been transformed
+    hasBTC = cellfun(@(x)(~isempty(x)),movieData.processes_{iBTCProc}.outImagePaths_);        
+else
+    hasBTC = false(1,nChan);
+end
+
+%Check if transformation has been run
+iXFProc = find(cellfun(@(x)(isa(x,'TransformationProcess')),movieData.processes_),1);                          
+if ~isempty(iXFProc)
+    %Check which channels have been transformed
+    hasXF = cellfun(@(x)(~isempty(x)),movieData.processes_{iXFProc}.outImagePaths_);
+else
+    hasXF = false(1,nChan);
+end
+
+
+if p.ApplyMasks || p.CreateMasks
+        
+    %Make sure the move has been segmented
+
+    if isempty(p.SegProcessIndex)    
+        if p.BatchMode
+            %If batch mode, just get all the seg processes
+            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',Inf,0);            
+        else
+            %Otherwise, ask the user 
+            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',1,1);
+        end
+    end
+
+    if isempty(p.SegProcessIndex) 
+        error('This function requires that the input movie has already been segmented - no valid SegmentationProcesses were found!')
+    end
+
+    nProc = numel(p.SegProcessIndex);
+    hasMasks = false(2,nProc);
+    
+    %Check every specified process for masks
+    for j = 1:nProc
+
+        %Make sure the specified process is a SegmentationProcess
+        if ~isa(movieData.processes_{p.SegProcessIndex(j)},'SegmentationProcess')
+            error(['The process specified by SegProcessIndex(' num2str(j) ') is not a SegmentationProcess!'])
+        end
+
+        %Check which channels have masks from this process
+        hasMasks(:,j) = movieData.processes_{p.SegProcessIndex(j)}.checkChannelOutput(p.MaskChannelIndex);        
+
+    end
+
+    %Make sure all the selected channels have foreground masks.
+    if any(~sum(hasMasks,2))
+        warning('biosensors:backgroundMasks:noFGmasks',...
+            'Cannot create / apply masks because some channels do not have masks! Please segment these channels before creating / applying ratio masks!')
+    end           
+        
+    %Get the first seg process with masks for this channel
+      %Get the first seg process with masks for this channel
+    iP = p.SegProcessIndex(find(hasMasks(1,:),1));
+    
+    numMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(1)};
+    numMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(1));        
+    
+    iP = p.SegProcessIndex(find(hasMasks(2,:),1));
+    
+    denomMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(2)};        
+    denomMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(2));
+                          
+end
+
+%Save these selected channels / parameters in the movieData
+movieData.processes_{iProc}.setPara(p)    
+
+
+%Set up input/output directories
+for j = 1:2
+    if hasXF(p.ChannelIndex(j))
+        %If available, use transformed images
+        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+            movieData.processes_{iXFProc}.outImagePaths_{p.ChannelIndex(j)});
+    elseif hasBTC(p.ChannelIndex(j))
+        %... or bleedthrough corrected images
+        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+            movieData.processes_{iBTCProc}.outImagePaths_{p.ChannelIndex(j)});
     else
-        error('In batch mode, the denominator channel must be specified!')
-    end
-end
-if makeMasks || applyMasks
-    if isempty(iNumMask)
-        iNumMask = iNum;
-    end
-    if isempty(iDenomMask)
-        iDenomMask = iDenom;
-    end
+        %Otherwise, use background subtracted.
+        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+            movieData.processes_{iBSProc}.outImagePaths_{p.ChannelIndex(j)});
+    end                    
+
 end
 
 
@@ -107,241 +245,116 @@ end
 
 disp('Initializing ratioing...')
 
-if movieData.nImages(iNum) ~= movieData.nImages(iDenom)
-    error('Numerator and denominator channels must have the same number of images!')
-end
-if movieData.imSize(:,iNum) ~= movieData.imSize(:,iDenom)
-    error('Numerator and denominator channel images must be the same size!')
-end
-if (applyMasks || makeMasks) && ~checkMovieMasks(movieData,[iNumMask iDenomMask]);
-    error('If masks are to be applied or created, both channels must have valid masks! Check masks or disable the CreateMasks and ApplyMasks options!')
-end
+%Ratios are stored in numerator channel
+outDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(1)) '_to_' ...
+    num2str(p.ChannelIndex(2))];
 
-nImages = movieData.nImages(iNum);
+%Check/set up output directory
+mkClrDir(outDir);
 
-numImNames = getMovieImageFileNames(movieData,iNum);
-denomImNames = getMovieImageFileNames(movieData,iDenom);
+movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(1),outDir);    
 
-if applyMasks || makeMasks
-    numMaskNames = getMovieMaskFileNames(movieData,iNumMask);
-    denomMaskNames = getMovieMaskFileNames(movieData,iDenomMask);
-end
+nImages = movieData.nFrames_;
 
-%Check/Create the new channel
+numDir = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(1)};
+numImNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex(1));
+denomDir = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(2)};
+denomImNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex(2));
 
-ratioChanName = [pString movieData.channelDirectory{iNum} '_to_' ...
-                         movieData.channelDirectory{iDenom}];
-                                          
-iRatio = find(strcmp(ratioChanName,movieData.channelDirectory),1);
-
-if isempty(iRatio)
-    iRatio = length(movieData.channelDirectory) + 1;    
-    movieData.channelDirectory{iRatio} = ratioChanName;
-    movieData.nImages(iRatio) = nImages;
-    movieData.imSize(:,iRatio) = movieData.imSize(:,iNum);
-end
-
-ratioDir = [movieData.imageDirectory filesep movieData.channelDirectory{iRatio}];
-
-if ~exist(ratioDir,'dir')
-    mkdir(ratioDir)
-end
+%Format string for zero-padding file names
+fString = ['%0' num2str(floor(log10(nImages))+1) '.f'];
 
 
-%Check/create channel for masks if requested
-if makeMasks
-    
-    movieData.masks.channelDirectory{iRatio} = ratioChanName;
-    maskDir = [movieData.masks.directory filesep movieData.masks.channelDirectory{iRatio}];
-    
-    if ~exist(maskDir,'dir')
-        mkdir(maskDir)
-    end    
-end
-
-%% ------ Pre-Ratio -----%
-%Goes through all ratios and determines max&min values for writing to file
-%by checking the maximum and minimum ratio values and the image bit-depth
-
-%TEMP - This is unnecessary if there is enough memory to hold all images...
-%Check total memory first???
-
-disp('Pre-ratioing (calculating scale factor)...')
-
-maxRatios = zeros(1,nImages);
-minRatios = zeros(1,nImages);
-
-for iImage = 1:nImages
-    
-    currNum = imread(numImNames{1}{iImage});    
-   
-    currDenom = imread(denomImNames{1}{iImage});
-    
-    if iImage == 1 %Get and check the image bit-depths
-        ogClass = class(currNum);
-        if ~strcmp(ogClass,class(currDenom))
-            error('Numerator and denominator images must have the same bit-depth!')
-        end        
-    end
-    
-    currRatio = double(currNum) ./ double(currDenom);
-    
-    if applyMasks || makeMasks  %If masks are to be applied, don't include the masked values      
-        currNumMask = imread(numMaskNames{1}{iImage});
-        currDenomMask = imread(denomMaskNames{1}{iImage});
-                
-        if applyMasks
-            currRatio(~currNumMask(:) | ~currDenomMask(:)) = 0;        
-        end
-         
-    end    
-    
-    %Remove any infinities from division-by-zero
-    currRatio(~isfinite(currRatio(:))) = 0;
-    
-    %Get max and min values for scalefactor calculation
-    maxRatios(iImage) = max(currRatio(currRatio(:) ~= 0)); %Ignore zeros, in case masks have been applied/infs removed
-    minRatios(iImage) = min(currRatio(currRatio(:) ~= 0));
-    
-    
-end
-
-%Calculate scale factor to minimize rounding error
-scaleFactor = double(intmax(ogClass)) / (max(maxRatios)-min(minRatios));
-minRatio = min(minRatios);
-
+ratMaskDir = [p.OutputDirectory filesep 'ratio_masks'];
+mkClrDir(ratMaskDir);
 
 %% ------ Ratio -----%%
-% Ratios the channels and writes the resulting ratio image to a new channel
+% Ratios the channels and writes the resulting ratio images to file
 
-disp(['Creating ratio images by dividing channel ' movieData.channelDirectory{iNum} ...
-      ' by channel ' movieData.channelDirectory{iDenom}])
+
+disp('Starting ratioing...')
+disp(['Creating ratio images by dividing channel ' numDir ' by channel ' denomDir])
+disp(['Resulting images will be written to channel ' outDir])
   
-disp(['Resulting images will be written to channel ' movieData.channelDirectory{iRatio}])
-  
-nDig = floor(log10(nImages))+1;
-fString = ['%0' num2str(nDig) '.0f']; %Get formatting string for image names
-  
+if ~p.BatchMode
+    wtBar = waitbar(0,['Please wait, ratioing channel ' ...
+        num2str(p.ChannelIndex(1)) ' to channel ' num2str(p.ChannelIndex(2)) '...']);        
+end        
+
 for iImage = 1:nImages
     
      
-    currNum = imread(numImNames{1}{iImage});
-   
-    currDenom = imread(denomImNames{1}{iImage});
+    currNum = imread([numDir filesep numImNames{1}{iImage}]);   
+    currDenom = imread([denomDir filesep denomImNames{1}{iImage}]);
     
+    %No big deal....
     currRatio = double(currNum) ./ double(currDenom);
     
-    if applyMasks  %If masks are to be applied, don't include the masked values      
-        currNumMask = imread(numMaskNames{1}{iImage});
-        currDenomMask = imread(denomMaskNames{1}{iImage});
+    %We create our own zero-padded numbering to cover any file-naming
+    %problems (e.g. non zero-padded metamorph images!)
+    numStr = num2str(iImage,fString);
+    
+    
+   if p.ApplyMasks || p.CreateMasks  %If masks are to be applied, don't include the masked values      
         
-        combMask = currNumMask & currDenomMask; %Get the intersection of the masks
-        
-        currRatio(~combMask) = 0; %Remove un-masked pixels        
-        
-        if makeMasks            
-            imwrite(combMask,[maskDir filesep 'mask_' pString num2str(iImage,fString) '.tif'])
+        if hasMasks(1)
+            currNumMask = imread([numMaskDir filesep numMaskNames{1}{iImage}]);
+            if p.ApplyMasks 
+                currRatio(~currNumMask(:)) = 0;        
+            end
+        elseif p.CreateMasks
+            currNumMask = true(size(currRatio));
         end
+        
+        if hasMasks(2)
+            currDenomMask = imread([denomMaskDir filesep denomMaskNames{1}{iImage}]);
+            if p.ApplyMasks 
+                currRatio(~currDenomMask(:)) = 0;        
+            end
+        elseif p.CreateMasks
+            currDenomMask = true(size(currRatio));
+        end
+        if p.CreateMasks              
+            imwrite(currDenomMask & currNumMask,[ratMaskDir filesep 'ratio_mask_' numStr '.tif'])
+        end
+        
     end    
     
     %Remove any infinities from division-by-zero (this shouldn't happen if
-    %the masks are perfect, but let's be realistic here .... )
-    currRatio(~isfinite(currRatio(:))) = 0;
+    %the masks are applied and images are good, but let's be realistic here .... )
+    currRatio(~isfinite(currRatio(:))) = 0; %#ok<NASGU>
   
-    currRatio = currRatio - minRatio;
-    currRatio = cast(currRatio .* scaleFactor,ogClass);
+    %Save the ratio in double-precision floating point to avoid rounding
+    %error
     
-    imwrite(currRatio,[ratioDir filesep pString num2str(iImage,fString) '.tif'])
-
+  
+    save([outDir filesep pString numImNames{1}{iImage}(1:end-4) ...
+        '_to_' denomImNames{1}{iImage}(1:end-4) '_' numStr ...
+        '.mat'],'currRatio')
+    
+    if ~p.BatchMode && mod(iImage,5)
+        %Update the waitbar occasionally to minimize slowdown
+        waitbar(iImage/nImages,wtBar)
+    end                            
     
 end
-   
+
+
+if ~p.BatchMode && ishandle(wtBar)
+    close(wtBar)
+end
+
+
 
 %% ------ Output / Finalization ---- %%
 
+disp('Saving results...')
 
-movieData.ratioing.status = 1;
-movieData.ratioing.dateTime = datestr(now);
-movieData.ratioing.iFrom(1,iRatio) = iNum;
-movieData.ratioing.iFrom(2,iRatio) = iDenom;
-movieData.ratioing.scaleFactor(iRatio) = scaleFactor;
-movieData.ratioing.applyMasks(iRatio) = applyMasks;
-movieData.ratioing.createMasks(iRatio) = makeMasks; 
-if makeMasks || applyMasks
-    movieData.ratioing.iDenomMasksFrom(iRatio) = iDenomMask;
-    movieData.ratioing.iNumMasksFrom(iRatio) = iNumMask;
-end
+%Log the correction in the movieData object and save it
 
-updateMovieData(movieData);
+movieData.processes_{iProc}.setDateTime;
+movieData.saveMovieData;
 
-disp('Finished!')
+disp('Finished Ratioing!')
 
 
-
-
-
-
-
-
-
-
-
-
-
-function [batchMode,iNum,iDenom,applyMasks,makeMasks,iNumMask,iDenomMask] = parseInput(argArray)
-
-
-%Init output
-batchMode = [];
-iNum = [];
-iDenom = [];
-applyMasks = [];
-makeMasks = [];
-iNumMask = [];
-iDenomMask = [];
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName / value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-              
-       case 'BatchMode'
-           batchMode = argArray{i+1};
-           
-       case 'Numerator'
-           iNum = argArray{i+1};
-           
-       case 'Denominator'
-           iDenom = argArray{i+1};
-           
-       case 'ApplyMasks'
-           applyMasks = argArray{i+1};
-           
-       case 'CreateMasks'
-           makeMasks = argArray{i+1};
-           
-       case 'ChannelIndex'
-           iNum = argArray{i+1}(1);
-           iDenom = argArray{i+1}(2);
-           
-       case 'MaskChannelIndex'
-           iNumMask = argArray{i+1}(1);
-           iDenomMask = argArray{i+1}(2);
-           
-       otherwise
-       
-           error(['"' argArray{i} '" is not a valid option name! Please check input!'])
-   end
-   
-end

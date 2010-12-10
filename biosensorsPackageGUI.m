@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 19-May-2010 10:33:03
+% Last Modified by GUIDE v2.5 17-Nov-2010 14:23:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -50,198 +50,55 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % biosensorsPackageGUI(MD)   MD: MovieData object
 %
 % Useful tools
+%
 % User Data:
-%       userData.MD - the MovieData object
+%
+%       userData.MD - array of MovieData object
+%       userData.package - array of package (same length with userData.MD)
+%       userData.crtPackage - the package of current MD
+%       userData.id - the id of current MD on board
+%
 %       userData.dependM - dependency matrix
-%       userData.crtPackage - current package
+%       userdata.statusM - GUI status matrix
+%       userData.optProcID - optional process id
 %
 %       userData.passIconData - pass icon image data
 %       userData.errorIconData - error icon image data
 %       userData.warnIconData - warning icon image data
-%       userData.setFig - array of handles of sub-windows (may not exist)
-%       userData.setupMovieDataFig - handle of setupMovieData figure (may not exist)
-%       userData.overviewFig - handles of overviewMovieDataGUI figure (may not exist)
-%       
-% App Data:
-%       'setFlag' in figure1 - set flag of open sub window, open or close
-%       'setupMovieDataFlag' in figure1 - flag of setupMovieData figure
-%       'overviewFlag' in figure1 - flag of view status figure
+%       userData.questIconData - help icon image data
+%       userData.colormap - color map
 %
+%       userData.setFig - array of handles of (multiple) setting figures (may not exist)
+%       userData.resultFig - array of handles of (multiple) result figures (may not exist)
+%       userData.setupMovieDataFig - handle of (single) setupMovieData figure (may not exist)
+%       userData.overviewFig - handles of (single) overviewMovieDataGUI figure (may not exist)
+%       userData.packageHelpFig - handle of (single) help figure (may not exist)
+%       userData.iconHelpFig - handle of (single) help figures (may not exist)
+%       userData.processHelpFig - handle of (multiple) help figures (may not exist) 
+%       userData.msgboxGUI - handle of message box
+%       
+%
+% NOTE:
+%   
+%   userData.statusM - 1 x m stucture array, m is the number of Movie Data 
+%                      this user data is used to save the status of movies
+%                      when GUI is switching between different movie(s)
+%                   
+%   	fields: IconType - the type of status icons, 'pass', 'warn', 'error'
+%               Msg - the message displayed when clicking status icons
+%               Checked - 1 x n logical array, n is the number of processes
+%                         used to save value of check box of each process
+%               Visited - logical true or false, if the movie has been
+%                         loaded to GUI before 
+%
+packageName = 'BioSensorsPackage';
 
-handles.output = hObject;
-userData = get(handles.figure1,'UserData');
-
-% Call package GUI error
-
-if nargin == 3
-    error('User-defined: Please call biosensors control panel with a MovieData object. E.g. biosensorsPackageGUI(movieDataObject)');
-%     userData.setupMovieDataFig = setupMovieDataGUI;
-    
-%     set(handles.figure1,'UserData',userData);
-end
-
-% ----------------------------- Load MovieData ----------------------------
-
-MD = varargin{1};
-
-% I. Before loading MovieData, firstly check if the current package exists
-    packageExist = false;
-
-    for i = 1: length(MD.packages_)
-        if strcmp(class(MD.packages_{i}), 'BioSensorsPackage')
-            % TODO: dlg box: previous package exists; Save package and
-            % proceeds  
-            userData.crtPackage = MD.packages_{i};
-            packageExist = true;
-            break;
-        end
-    end
-    
-    if ~packageExist
-        % No same package is found.. create a new package object
-        MD.addPackage( BioSensorsPackage(MD, MD.outputDirectory_) )
-        userData.crtPackage = MD.packages_{end};
-    end
+% Load movie data and recycle processes
+userfcn_iniPackage_commonCode;
 
 
-% II. Check if existing processes can be recycled. (No use in first release of software)
 
-if ~packageExist && ~isempty(MD.processes_)
-    for i = 1: length(userData.crtPackage.processClassNames_)
-        % ith process in package's process list
-        % 'sameProcID' save the ID of existing processes in MovieData that 
-        % could be recycled by current package. 
 
-        sameProcID = [];
-        sameProcName = {};
-        
-        for j = 1: length(MD.processes_)
-            % jth available process in MovieData's process pool
-           if strcmp(class(MD.processes_{j}), ...
-                        userData.crtPackage.processClassNames_{i}) 
-                sameProcID = horzcat (sameProcID, j);
-                sameProcName = horzcat(sameProcName, ...
-                                            {MD.processes_{j}.name_});
-           end
-        end
-        
-        if ~isempty(sameProcID)
-            [select, ok] = listdlg('ListString', sameProcName, ...
-                 'SelectionMode','single','ListSize',[420 200], ...
-                 'Name','Select an existing process','PromptString', ...
-                 {['There are existing ',sameProcName{1},' processes saved during previous sessions. You can choose to:'],...
-                 '',...
-                 '1. Use one of the following existing processes by click ''Select''',...
-                 '2. click ''New'' to start over this process'} , ...
-                 'OKString','Select','CancelString','New'); 
-             if ok 
-                 % Add process to current package
-                 userData.crtPackage.setProcess(i,MD.processes_{sameProcID(select)});
-             end
-        end
-    end
-end
-save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
-
-    userData.MD = MD;
-
-    % Dependency matrix is defined in BioSensorsPackage class
-    userData.dependM = userData.crtPackage.depMatrix_;
-
-% -----------------------Load and set up icons----------------------------
-
-% Load icon images from dialogicons.mat
-load lccbGuiIcons.mat
-
-% Save Icon data to GUI data
-userData.passIconData = passIconData;
-userData.errorIconData = errorIconData;
-userData.warnIconData = warnIconData;
-
-% Set figure colormap
-supermap(1,:) = get(hObject,'color');
-set(hObject,'colormap',supermap);
-
-% Set up package help. Package icon is tagged as '0'
-axes(handles.axes_help);
-Img = image(questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
-set(Img,'tag','0');
-
-% Set up process help. Process icons are tagged as '1','2' ... 'n'
-for i = 1:size(userData.dependM, 1)
-    eval (['axes(handles.axes_help' num2str(i) ')']);
-    Img = image(questIconData);
-    set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-        'visible','off','YDir','reverse');  
-    set(Img,'ButtonDownFcn',@help_ButtonDownFcn);
-    eval([ 'set(Img,''tag'',''',num2str(i),''');' ])
-end
-
-% --------------------------Other GUI settings-----------------------------
-
-% set text body
-set(handles.text_body1, 'string',[userData.crtPackage.name_ ' Package']);
-
-% Set flag of sub window. Sub window open flag = 1, close flag = 0
-setappdata(hObject, 'setFlag', zeros(1,size(userData.dependM,1)));
-setappdata(hObject, 'setupMovieDataFlag', 0);
-setappdata(hObject,'overviewFlag',0);
-
-% Update handles structure
-set(handles.figure1,'UserData',userData);
-guidata(hObject, handles);
-
-% --------------------------Package Sanity Check---------------------------
-
-procEx = userData.crtPackage.sanityCheck(true, 'all');
-k = zeros(1,size(userData.dependM, 1));
-for i = 1: size(userData.dependM, 1)
-   if ~isempty(procEx{i})
-
-       if strcmp(procEx{i}(1).identifier, 'lccb:set:fatal')
-           userfcn_drawIcon(handles,'error',i,procEx{i}(1).message);
-       else
-           userfcn_drawIcon(handles,'warn',i,procEx{i}(1).message);
-       end
-           
-   else
-       if ~isempty(userData.crtPackage.processes_{i}) && ...
-          userData.crtPackage.processes_{i}.success_ && ...
-           ~userData.crtPackage.processes_{i}.procChanged_ && ...
-           userData.crtPackage.processes_{i}.updated_
-      
-           userfcn_drawIcon(handles,'pass',i,'Current step was processed successfully') ;
-           
-       end
-   end
-   
-% -------------------Bold Existing Process Name--------------------
-
-   if ~isempty(userData.crtPackage.processes_{i})
-       eval([ 'set(handles.checkbox_',num2str(i),', ''FontWeight'',''bold'')' ]);
-   end
-    
-    
-% -------------------Set Up Uicontrols Enable/Disable--------------------
-
-   % If process's sucess = 1, release the process from GUI enable/disable
-   % control
-   if ~isempty(userData.crtPackage.processes_{i}) && ...
-      userData.crtPackage.processes_{i}.success_ 
-       k(i) = 1;
-       eval([ 'set(handles.pushbutton_show',num2str(i),', ''enable'', ''on'');']);
-   end
-   
-end
-
-tempDependM = userData.dependM;
-tempDependM(:,logical(k)) = zeros(size(userData.dependM,1), nnz(k));
-
-% Checkbox enable/disable set up
-userfcn_enable(find (any(tempDependM,2)), 'off',handles);
 
 
 % UIWAIT makes biosensorsPackageGUI wait for user response (see UIRESUME)
@@ -268,11 +125,12 @@ function checkbox_1_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox_1
 
 % Switch lamps
+userfcn_checkAllMovies(1, get(hObject,'value'), handles);
 userfcn_lampSwitch(1, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set1.
-function pushbutton_set1_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_1.
+function pushbutton_set_1_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -282,11 +140,21 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show1.
-function pushbutton_show1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_1.
+function pushbutton_show_1_Callback(hObject, eventdata, handles)
+
+procID = 1;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_2.
@@ -296,11 +164,12 @@ function checkbox_2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_2
+userfcn_checkAllMovies(2, get(hObject,'value'), handles);
 userfcn_lampSwitch(2, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set2.
-function pushbutton_set2_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_2.
+function pushbutton_set_2_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -309,11 +178,19 @@ userData.setFig(procID) = backgroundMasksProcessGUI('mainFig',handles.figure1,pr
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
-% --- Executes on button press in pushbutton_show2.
-function pushbutton_show2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_2.
+function pushbutton_show_2_Callback(hObject, eventdata, handles)
+procID = 2;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_3.
@@ -323,11 +200,12 @@ function checkbox_3_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_3
+userfcn_checkAllMovies(3, get(hObject,'value'), handles);
 userfcn_lampSwitch(3, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set3.
-function pushbutton_set3_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_3.
+function pushbutton_set_3_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -337,11 +215,19 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show3.
-function pushbutton_show3_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_3.
+function pushbutton_show_3_Callback(hObject, eventdata, handles)
+procID = 3;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_all.
@@ -350,32 +236,47 @@ function checkbox_all_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-userData = get(handles.figure1, 'UserData');
-switch get(hObject,'value')
-    case 1
-        userfcn_enable(1:length(userData.dependM(:,1)),'on',handles,true);
-    case 0
-        k = [];
-        for i = 1: size(userData.dependM, 1)
-            if ~isempty(userData.crtPackage.processes_{i}) && ...
-                userData.crtPackage.processes_{i}.success_ 
-                k = [k, i];
-            end
-            eval( ['set(handles.checkbox_',num2str(i),',''value'',0)']  );
-        end
-        tempDependM = userData.dependM;
-        tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
-        userfcn_enable(find(any(tempDependM,2)),'off',handles,true);
-        
-end
+% userData = get(handles.figure1, 'UserData');
+% l = size(userData.dependM, 1);
 
+% switch get(hObject,'value')
+%     case 1
+%         userfcn_enable(1:length(userData.dependM(:,1)),'on',handles,true);
+        
+        % track checked status
+%         for x = 1: length(userData.MD)
+%             userData.statusM(x).Checked = ones(1, l);
+%         end
+        
+%     case 0
+%         k = [];
+%         for i = 1: size(userData.dependM, 1)
+%             if ~isempty(userData.crtPackage.processes_{i}) && ...
+%                 userData.crtPackage.processes_{i}.success_ 
+%                 k = [k, i];
+%             end
+%             eval( ['set(handles.checkbox_',num2str(i),',''value'',0)']  );
+%         end
+%         tempDependM = userData.dependM;
+%         tempDependM(:,k) = zeros(size(userData.dependM,1),length(k));
+%         userfcn_enable(find(any(tempDependM,2)),'off',handles,true);
+        
+        % track checked status
+%         for x = 1: length(userData.MD)
+%             userData.statusM(x).Checked = zeros(1, l);
+%         end        
+        
+% end
+
+% set(handles.figure1, 'UserData', userData)
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
-MD = userData.MD;
-save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
+for i = 1: length(userData.MD)
+    userData.MD(i).saveMovieData
+end
 delete(handles.figure1);
 
 
@@ -384,111 +285,21 @@ function pushbutton_status_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
 
-userData.overviewFig = overviewMovieDataGUI('mainFig',handles.figure1);
+% if newMovieDataGUI exist
+if isfield(userData, 'overviewFig') && ishandle(userData.overviewFig)
+    delete(userData.overviewFig)
+end
+
+userData.overviewFig = newMovieDataGUI('mainFig',handles.figure1, 'overview', userData.MD(userData.id));
 set(handles.figure1, 'UserData', userData);
-guidata(hObject,handles);
+
 
 
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
 
-userData = get(handles.figure1,'UserData');
+userfcn_pushbutton_run_common
 
-procCheck = [ ]; % save id of checked processes 
-procRun = [ ]; % save id of processes to run
-nProcesses = size(userData.dependM,1);
-MD = userData.MD;
-
-for i = 1: nProcesses
-    % collect the processes that are checked
-    eval([ 'checked = get(handles.checkbox_',num2str(i),', ''value'');' ])
-    if checked
-        procCheck = horzcat(procCheck, i);
-    end
-end
-if isempty(procCheck)
-    errordlg('Please select a step to run','No Step Selected','modal');
-    return
-end
-
-% Check if process exist
-for i = procCheck
-    if isempty (userData.crtPackage.processes_{i})
-        errordlg(['The ',num2str(i),' th step is not set up yet. Tip: when step is set up successfully, the font of step''s name is bold.'], ...
-            'Step Not Set Up','modal');
-        return;
-    end    
-end
-
-% Check if selected processes have alrady be successfully run
-% If force run, re-run every process that is checked
-if ~get(handles.checkbox_forcerun, 'Value')
-
-    k = true;
-    for i = procCheck
-
-        if ~( userData.crtPackage.processes_{i}.success_ ...
-                && ~userData.crtPackage.processes_{i}.procChanged_ ) ...
-                || ~userData.crtPackage.processes_{i}.updated_
-            k = false;
-            procRun = horzcat(procRun, i);
-        end
-    end
-    if k
-        warndlg('All selected steps have been processed successfully. Please check ''Force Run'' to re-run the steps.', ...
-        'Step Processed')
-        return;
-    end
-else
-    procRun = procCheck;
-end
-
-
-% Package full sanity check. Sanitycheck every checked process
-procEx = userData.crtPackage.sanityCheck(true, procCheck);
-k = [];
-
-for i = procCheck
-   if ~isempty(procEx{i})
-       
-       % Check if there is fatal error in exception array
-           if strcmp(procEx{i}(1).identifier, 'lccb:set:fatal') || ...
-                   strcmp(procEx{i}(1).identifier, 'lccb:input:fatal')
-               
-               k = horzcat(k,i);
-               userfcn_drawIcon(handles,'error',i,procEx{i}(1).message)
-           end
-
-   end
-end
-
-% If setting error, stop and pop up notice
-if ~isempty(k)
-    errordlg(['Settings are incorrect in ' num2str(k) 'th step.' ...
-        'Please click the error icons for further information.'],...
-             'Setting Error','modal');
-    return
-end
-
-% Clear icons of selected processes
-userfcn_drawIcon(handles,'clear',procRun,'');
-
-% Set all running processes' sucess = false; 
-for i = procRun
-    userData.crtPackage.processes_{i}.setSuccess(false);
-end
-
-% Run the algorithms!
-try
-    for i = procRun
-        userfcn_runProc_dfs(i,procRun,MD,handles);
-    end
-    
-catch ME
-%     errordlg(ME.message,'Run Time Error');
-    
-    rethrow(ME) %%
-end
 
 
 % --- Executes on button press in checkbox_4.
@@ -498,11 +309,12 @@ function checkbox_4_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_4
+userfcn_checkAllMovies(4, get(hObject,'value'), handles);
 userfcn_lampSwitch(4, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set4.
-function pushbutton_set4_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_4.
+function pushbutton_set_4_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -512,116 +324,73 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show4.
-function pushbutton_show4_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-function userfcn_enable (index, onoff, handles, check)
-% This is a user-defined function used to change the 'visible' property of
-% uicontrols on control panel. The name of the uicontrols are pre-defined
-% in the following way: 
-%       checkbox: 
-%               checkbox_1  checkbox_2 ...
-%       pushbutton:
-%               pushbutton_set1  pushbutton_set2 ...
-%               pushbutton_show1  pushbutton_show2 ...
-% Input: 
-%       index - vector of check box index
-%       onoff - enable or disable, 'on' or 'off'
-%       handles - handles of control panel
-%       check - (Optional) true or false. It provides a option to select/unselect 
-%       the checkboxs that have been enabled/disabled.
-% 
-if nargin < 4
-    check = false;
-end
-
-for i = 1: length(index)
-    eval (['set(handles.checkbox_', num2str(index(i)),...
-                                        ',''enable'',''',onoff,''')']);
-    eval (['set(handles.pushbutton_set', num2str(index(i)),...
-                                        ',''enable'',''',onoff,''')']);
-%     eval (['set(handles.pushbutton_show', num2str(index(i)),...
-%                                         ',''enable'',''',onoff,''')']);
-end
-if check
-    switch onoff
-        case 'on'
-            for i = 1: length(index)
-                eval( ['set(handles.checkbox_',...
-                    num2str(index(i)),',''value'',1);'] );
-            end
-        case 'off'
-            for i = 1: length(index)
-                 eval( ['set(handles.checkbox_',...
-                    num2str(index(i)),',''value'',0);'] );           
-            end
-    end
-
-end
-
-function userfcn_lampSwitch(index, value, handles)
-% index - the index of current checkbox
-% value - checked or unchecked
+% --- Executes on button press in pushbutton_show_4.
+function pushbutton_show_4_Callback(hObject, eventdata, handles)
+procID = 4;
 userData = get(handles.figure1, 'UserData');
-M = userData.dependM;
 
-if ~any(M(:,index))
-   % if no follower exists, return.
-        return;
-else
-    subindex = find(M(:,index));
-    switch value
-        % Checkbox is selected
-        case 1
-            for i = 1: length(subindex)
-               parentI = find(M(subindex(i),:));
-               for j = 1: length(parentI)
-                   if ~eval(['get(handles.checkbox_',...
-                                       num2str(parentI(j)),',''value'')'])
-                       k = 1;
-                       break;
-                   else
-                       k = 0;
-                   end
-               end
-               if k == 1
-                   continue;
-               end
-               % The following code will probably not be executed
-               % Leave it here just in case design is changed
-               % ------------------------------------------ %
-               if eval(['get(handles.checkbox_', ...
-                                      num2str(subindex(i)),',''value'')'])
-                    userfcn_lampSwitch(subindex(i),1,handles)
-               % ------------------------------------------ %
-               else
-                    % Turn on the subindex checkbox
-                    userfcn_enable (subindex(i),'on',handles);
-               end
-            end
-        % Checkbox is unselected
-        case 0
-            % If success = 1, release checkbox dependency enable/disable control
-            if ~isempty(userData.crtPackage.processes_{index}) ...
-                   && userData.crtPackage.processes_{index}.success_
-                return;
-            else
-                for i =1:length(subindex)
-                    % Turn off and uncheck the follower checkboxes
-                    userfcn_enable(subindex(i),'off',handles,true);
-                
-                    userfcn_lampSwitch(subindex(i),0,handles);
-                end
-            end
-        otherwise
-            error(['User-defined error: unexpected value of ''value'' property',...
-                            'in checkbox object']);
-     end
-            
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
 end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
+
+
+
+
+% function userfcn_refreshGUI(handles)
+% 
+% userData = get(handles.figure1, 'UserData');
+% l = size(userData.dependM,1);
+% k = zeros(1,l);
+% 
+% % reset GUI
+% userfcn_resetGUI(handles)
+% 
+% % Set movie data path
+% set(handles.text_path, 'String', ...
+%     [userData.MD(userData.id).movieDataPath_ userData.MD(userData.id).movieDataFileName_ ])
+% 
+% for i = 1: l
+%    % Draw icons
+%    if ~isempty(userData.statusM(userData.id).IconType{i})
+%         userfcn_drawIcon(handles, userData.statusM(userData.id).IconType{i}, i, userData.statusM(userData.id).Msg{i}, false);
+%    end
+%    
+%    % Bold the Name of Existing Processes
+%    if ~isempty(userData.crtPackage.processes_{i})
+%        eval([ 'set(handles.checkbox_',num2str(i),', ''FontWeight'',''bold'')' ])
+%    end   
+%    
+%    % If process sucess = 1 or is checked, release the process from GUI
+%    % enable/disable control
+%    if ~isempty(userData.crtPackage.processes_{i}) && ...
+%       userData.crtPackage.processes_{i}.success_ 
+%       
+%        k(i) = 1;
+%        eval([ 'set(handles.pushbutton_show',num2str(i),', ''enable'', ''on'');'])
+%    end
+%    
+%    % If process is checked, check and enable the process and enable decendent
+%    % processes
+%    if userData.statusM(userData.id).Checked(i)
+%        k(i) = 1;
+%        eval([ 'set(handles.checkbox_',num2str(i),', ''Value'',1, ''Enable'', ''on'')' ])
+%        userfcn_lampSwitch(i, 1, handles)
+%    end   
+%    
+% end
+% 
+% tempDependM = userData.dependM;
+% tempDependM(:, logical(k)) = zeros(l, nnz(k));
+% 
+% % Checkbox enable/disable set-up
+% userfcn_enable(find(any(tempDependM, 2)), 'off', handles);
+
+
 
 
 
@@ -646,40 +415,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function help_ButtonDownFcn(hObject, eventdata)
-% Call back function when help icon is clicked
-
-tag = get(hObject,'tag');
-handles = guidata(hObject);
-userData = get(handles.figure1, 'UserData');
-% get identity of help event creater
-id = str2double(tag);
-% For test purpose. No MovieData saved in handles
-if ~isfield(userData,'MD')
-    if id
-        helpdlg(['This is help of process ',tag],'Help');
-    else
-        helpdlg(['This is a general help text for the current package'],...
-                        'Help');
-    end
-    return;
-end
-
-% if id ==0 package help; id ~= 0 process help
-if id
-    % process help
-    processName = userData.crtPackage.processClassNames_{id};
-    % how do ppl handle similar situation in C or Java?
-    eval(['helpdlg(',processName,'.getHelp)']);
-%     helpdlg(text,'Help');
-else
-    % package help
-    helpdlg(userData.crtPackage.getHelp, 'Help');
-end
-
-function icon_ButtonDownFcn(hObject, eventdata)
-
-helpdlg( get(hObject,'UserData') ,'Warning');
 
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
@@ -687,24 +422,54 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 userData = get(handles.figure1, 'UserData');
-setFlag = getappdata(hObject, 'setFlag');
+% setFlag = getappdata(hObject, 'setFlag');
 
-% Delete setting figures
-if any(setFlag)
-    index = find(setFlag);
-    for i = index
-        delete(userData.setFig(i));
+% Delete setting figures (multiple)
+if isfield(userData, 'setFig')
+    for i = 1: length(userData.setFig)
+        if userData.setFig(i)~=0 && ishandle(userData.setFig(i))
+            delete(userData.setFig(i))
+        end
     end
 end
 
-% If open, delete setupMovieData GUI figure
-if getappdata(hObject,'setupMovieDataFlag');
-    delete(userData.setupMovieDataFig);
+% Close result figure
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+   delete(userData.resultFig) 
 end
 
-% If open, delete setupMovieData GUI figure
-if getappdata(hObject,'overviewFlag');
-    delete(userData.overviewFig);
+% If open, delete MovieData Overview GUI figure (single)
+if isfield(userData, 'setupMovieDataFig') && ishandle(userData.setupMovieDataFig)
+   delete(userData.setupMovieDataFig) 
+end
+
+% If open, delete MovieData Overview GUI figure (single)
+if isfield(userData, 'overviewFig') && ishandle(userData.overviewFig)
+   delete(userData.overviewFig) 
+end
+
+% Delete pre-defined package help dialog (single)
+if isfield(userData, 'packageHelpFig') && ishandle(userData.packageHelpFig)
+   delete(userData.packageHelpFig) 
+end
+
+% Delete pre-defined icon help dialog (single)
+if isfield(userData, 'iconHelpFig') && ishandle(userData.iconHelpFig)
+   delete(userData.iconHelpFig) 
+end
+
+% Delete pre-defined process help dialogssetting figures (multiple)
+if isfield(userData, 'processHelpFig')
+    for i = 1: length(userData.processHelpFig)
+        if userData.processHelpFig(i)~=0 && ishandle(userData.processHelpFig(i))
+            delete(userData.processHelpFig(i))
+        end
+    end
+end
+
+% msgboxGUI used for error reports
+if isfield(userData, 'msgboxGUI') && ishandle(userData.msgboxGUI)
+   delete(userData.msgboxGUI) 
 end
 
 
@@ -715,11 +480,12 @@ function checkbox_5_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_5
+userfcn_checkAllMovies(5, get(hObject,'value'), handles);
 userfcn_lampSwitch(5, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set5.
-function pushbutton_set5_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_5.
+function pushbutton_set_5_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -729,12 +495,19 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show5.
-function pushbutton_show5_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_5.
+function pushbutton_show_5_Callback(hObject, eventdata, handles)
+procID = 5;
+userData = get(handles.figure1, 'UserData');
 
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 % --- Executes on button press in checkbox_6.
 function checkbox_6_Callback(hObject, eventdata, handles)
@@ -743,11 +516,12 @@ function checkbox_6_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_6
+userfcn_checkAllMovies(6, get(hObject,'value'), handles);
 userfcn_lampSwitch(6, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set6.
-function pushbutton_set6_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_6.
+function pushbutton_set_6_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -757,11 +531,19 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show6.
-function pushbutton_show6_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_6.
+function pushbutton_show_6_Callback(hObject, eventdata, handles)
+procID = 6;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_7.
@@ -771,25 +553,34 @@ function checkbox_7_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_7
+userfcn_checkAllMovies(7, get(hObject,'value'), handles);
 userfcn_lampSwitch(7, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set7.
-function pushbutton_set7_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_7.
+function pushbutton_set_7_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
-% who is the index of corresponding process in current package's process list
+% who is the index of corresponding process in current package's process
+% list
 userData = get(handles.figure1, 'UserData');
 procID = 7;
-userData.setFig(procID) = bleedthroughCorrectionProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = transformationProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
+% --- Executes on button press in pushbutton_show_7.
+function pushbutton_show_7_Callback(hObject, eventdata, handles)
+procID = 7;
+userData = get(handles.figure1, 'UserData');
 
-% --- Executes on button press in pushbutton_show7.
-function pushbutton_show7_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_8.
@@ -799,19 +590,34 @@ function checkbox_8_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_8
+userfcn_checkAllMovies(8, get(hObject,'value'), handles);
 userfcn_lampSwitch(8, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set8.
-function pushbutton_set8_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_8.
+function pushbutton_set_8_Callback(hObject, eventdata, handles)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 8;
+userData.setFig(procID) = bleedthroughCorrectionProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
 
 
+% --- Executes on button press in pushbutton_show_8.
+function pushbutton_show_8_Callback(hObject, eventdata, handles)
+procID = 8;
+userData = get(handles.figure1, 'UserData');
 
-% --- Executes on button press in pushbutton_show8.
-function pushbutton_show8_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_9.
@@ -821,11 +627,12 @@ function checkbox_9_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_9
+userfcn_checkAllMovies(9, get(hObject,'value'), handles);
 userfcn_lampSwitch(9, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set9.
-function pushbutton_set9_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_9.
+function pushbutton_set_9_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -835,9 +642,20 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show9.
-function pushbutton_show9_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_show_9.
+function pushbutton_show_9_Callback(hObject, eventdata, handles)
+procID = 9;
+userData = get(handles.figure1, 'UserData');
 
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+
+% userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --- Executes on button press in checkbox_10.
@@ -847,11 +665,12 @@ function checkbox_10_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_10
+userfcn_checkAllMovies(10, get(hObject,'value'), handles);
 userfcn_lampSwitch(10, get(hObject,'value'), handles);
 
 
-% --- Executes on button press in pushbutton_set10.
-function pushbutton_set10_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_set_10.
+function pushbutton_set_10_Callback(hObject, eventdata, handles)
 % The process setting panel this button triggers is defined by 'procID', 
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
@@ -861,11 +680,19 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in pushbutton_show10.
-function pushbutton_show10_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_show10 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in pushbutton_show_10.
+function pushbutton_show_10_Callback(hObject, eventdata, handles)
+procID = 10;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
 
 
 % --------------------------------------------------------------------
@@ -887,18 +714,30 @@ function menu_about_lccb_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_about_lccb (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+status = web('http://lccb.hms.harvard.edu/', '-browser');
+if status
+    switch status
+        case 1
+            msg = 'System default web browser is not found.';
+        case 2
+            msg = 'System default web browser is found but could not be launched.';
+        otherwise
+            msg = 'Fail to open browser for unknown reason.';
+    end
+    warndlg(msg,'Fail to open browser','modal');
+end
 
 % --------------------------------------------------------------------
 function menu_file_open_Callback(hObject, eventdata, handles)
 % Call back function of 'New' in menu bar
-userData = get(handles.figure1, 'UserData');
+userData = get(handles.figure1,'Userdata');
 
-% Open setupMovieData, notify new MovieData object is needed.
-userData.setupMovieDataFig = ...
-    setupMovieDataGUI('mainFig',handles.figure1);
-set(handles.figure1, 'UserData', userData);
+        for i = 1: length(userData.MD)
+            userData.MD(i).saveMovieData
+        end
 
+movieSelectorGUI
+delete(handles.figure1)
 
 
 % --------------------------------------------------------------------
@@ -924,15 +763,238 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 userData = get(handles.figure1,'Userdata');
-MD = userData.MD;
+if isfield(userData, 'MD')
+    MD = userData.MD;
+else
+    delete(handles.figure1);
+    return;
+end
 
-user_response = questdlg(['Do you want to save the current progress to ',MD.movieDataFileName_,'?'], ...
+user_response = questdlg('Do you want to save the current progress?', ...
     'BioSensors Package Control Panel');
 switch lower(user_response)
     case 'yes'
-        save([MD.movieDataPath_ MD.movieDataFileName_], 'MD');
+        for i = 1: length(userData.MD)
+            userData.MD(i).saveMovieData
+        end
         delete(handles.figure1);
     case 'no'
         delete(handles.figure1);
     case 'cancel'
+end
+
+
+% --- Executes on button press in checkbox_11.
+function checkbox_11_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_11
+userfcn_checkAllMovies(11, get(hObject,'value'), handles);
+userfcn_lampSwitch(11, get(hObject,'value'), handles);
+
+% --- Executes on button press in pushbutton_set_11.
+function pushbutton_set_11_Callback(hObject, eventdata, handles)
+% The process setting panel this button triggers is defined by 'procID', 
+% who is the index of corresponding process in current package's process list
+userData = get(handles.figure1, 'UserData');
+procID = 11;
+userData.setFig(procID) = outputRatioProcessGUI('mainFig',handles.figure1,procID);
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
+
+
+% --- Executes on button press in pushbutton_show_11.
+function pushbutton_show_11_Callback(hObject, eventdata, handles)
+
+procID = 11;
+userData = get(handles.figure1, 'UserData');
+
+if isfield(userData, 'resultFig') && ishandle(userData.resultFig)
+    delete(userData.resultFig)
+end
+%     userData.resultFig = userData.crtPackage.processes_{procID}.showResult;
+    userData.resultFig = userData.crtPackage.processes_{procID}.resultDisplay;
+
+
+set(handles.figure1, 'UserData', userData);
+
+
+% --- Executes on button press in pushbutton_save.
+function pushbutton_save_Callback(hObject, eventdata, handles)
+
+userData = get(handles.figure1, 'UserData');
+
+for i = 1: length(userData.MD)
+    userData.MD(i).saveMovieData
+end
+
+set(handles.text_body3, 'Visible', 'on')
+pause(1)
+set(handles.text_body3, 'Visible', 'off')
+
+
+% --------------------------------------------------------------------
+function menu_file_save_Callback(hObject, eventdata, handles)
+userData = get(handles.figure1, 'UserData');
+userData.MD(userData.id).saveMovieData
+
+set(handles.text_body3, 'Visible', 'on')
+pause(1)
+set(handles.text_body3, 'Visible', 'off')
+
+
+% --------------------------------------------------------------------
+function menu_about_update_Callback(hObject, eventdata, handles)
+status = web('http://lccb.hms.harvard.edu/software.html', '-browser');
+if status
+    switch status
+        case 1
+            msg = 'System default web browser is not found.';
+        case 2
+            msg = 'System default web browser is found but could not be launched.';
+        otherwise
+            msg = 'Fail to open browser for unknown reason.';
+    end
+    warndlg(msg,'Fail to open browser','modal');
+end
+
+
+% --- Executes on button press in pushbutton_left.
+function pushbutton_left_Callback(hObject, eventdata, handles)
+% userData.id
+% userData.crtPackage
+%
+userData = get(handles.figure1, 'UserData');
+l = length(userData.MD);
+
+userData.statusM(userData.id).Checked = userfcn_saveCheckbox(handles);
+
+userData.id = userData.id - 1;
+
+if userData.id < 1
+   userData.id = l;
+end
+
+userData.crtPackage = userData.package(userData.id);
+set(handles.figure1, 'UserData', userData)
+
+% Set up movie explorer
+set(handles.popupmenu_movie, 'Value', userData.id)
+
+% Set up GUI
+if userData.statusM(userData.id).Visited
+   userfcn_updateGUI(handles, 'refresh') 
+else
+   userfcn_updateGUI(handles, 'initialize') 
+end
+    
+
+% --- Executes on button press in pushbutton_right.
+function pushbutton_right_Callback(hObject, eventdata, handles)
+userData = get(handles.figure1, 'UserData');
+l = length(userData.MD);
+
+userData.statusM(userData.id).Checked = userfcn_saveCheckbox(handles);
+
+userData.id = userData.id + 1;
+
+if userData.id > l
+   userData.id = mod(userData.id, l);
+end
+
+userData.crtPackage = userData.package(userData.id);
+set(handles.figure1, 'UserData', userData)
+
+% Set up movie explorer
+set(handles.popupmenu_movie, 'Value', userData.id)
+
+% Set up GUI
+if userData.statusM(userData.id).Visited
+   userfcn_updateGUI(handles, 'refresh') 
+else
+   userfcn_updateGUI(handles, 'initialize') 
+end
+
+
+% --- Executes on selection change in popupmenu_movie.
+function popupmenu_movie_Callback(hObject, eventdata, handles)
+
+userData = get(handles.figure1, 'UserData');
+
+if get(hObject, 'Value') == userData.id
+   return 
+end
+
+l = length(userData.MD);
+userData.statusM(userData.id).Checked = userfcn_saveCheckbox(handles);
+
+userData.id = get(hObject, 'Value');
+userData.crtPackage = userData.package(userData.id);
+set(handles.figure1, 'UserData', userData)
+
+% Set up GUI
+if userData.statusM(userData.id).Visited
+   userfcn_updateGUI(handles, 'refresh') 
+else
+   userfcn_updateGUI(handles, 'initialize') 
+end
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_movie_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_movie (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on key press with focus on figure1 and none of its controls.
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+if strcmp(eventdata.Key, 'return')
+    pushbutton_done_Callback(handles.pushbutton_done, [], handles);
+end
+if strcmp(eventdata.Key, 'leftarrow')
+    pushbutton_left_Callback(handles.pushbutton_left, [], handles);
+end
+if strcmp(eventdata.Key, 'rightarrow')
+    pushbutton_right_Callback(handles.pushbutton_right, [], handles);
+end
+
+
+
+function checkbox_runall_Callback(hObject, eventdata, handles)
+
+
+
+function edit_path_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_path as text
+%        str2double(get(hObject,'String')) returns contents of edit_path as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_path_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

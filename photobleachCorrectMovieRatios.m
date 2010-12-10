@@ -1,9 +1,9 @@
-function movieData = photobleachCorrectMovieRatios(movieData,varargin)
-%PHOTOBLEACHCORRECTMOVIERATIOS applies a photobleach correction to the input movie
+function movieData = photobleachCorrectMovieRatios(movieData,paramsIn)
+%PHOTOBLEACHCORRECTMOVIERATIOS applies a photobleach correction to ratio images for the input movie
 % 
 % movieData = photobleachCorrectMovieRatios(movieData)
 % 
-% movieData = photobleachCorrectMovieRatios(movieData,'OptionName',optionValue)
+% movieData = photobleachCorrectMovieRatios(movieData,paramsIn)
 %
 % This function applies a photo-bleach correction to the ratio images in
 % the input movie. Both the type of correction and the channel(s) to
@@ -11,24 +11,28 @@ function movieData = photobleachCorrectMovieRatios(movieData,varargin)
 %
 % Input:
 % 
-%   movieData - The structure describing the movie, as created using
-%   setupMovieData.m
-%  
+%   movieData - The MovieData object describing the movie, as created using
+%   setupMovieDataGUI.m
+%
+%   paramsIn - Structure with inputs for optional parameters. The
+%   parameters should be stored as fields in the structure, with the field
+%   names and possible values as described below:
 % 
-%   'OptionName',optionValue - A string with an option name followed by the
-%   value for that option.
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
 %
+%       ('OutputDirectory' -> character string) Optional. A character
+%       string specifying the directory to save the corrected images to.
+%       Corrected images for different channels will be saved as
+%       sub-directories of this directory. If not input, the corrected
+%       images will be saved to the same directory as the movieData, in a
+%       sub-directory called "bleedthrough_corrected_images"
 %
-%   Possible Option Names:
-%       ('OptionName' -> possible values)
-% 
-%
-%       ('ChannelIndex'-> Positive integer scalar or vector) The
-%       integer indices of the RATIO channel(s) to perform photobleach
-%       correction on. This index corresponds to the channel directories
-%       location in the cell array movieData.channelDirectory. If not
-%       input, the user will be asked to select from the available
-%       channels. (Unless in batch mode, in which case this MUST be input)
+%       ('ChannelIndex'-> Positive integer scalar) The integer index of the
+%       NUMERATOR of the ratio channel to perform photbleach correction on.
+%       This index corresponds to the channel's location in the array
+%       movieData.channels_. If not input, the user will be asked to select
+%       from the movie's channels.
 %
 %       ('CorrectionType' -> character string) Character string describing
 %       the photo-bleach correction method to use. The options are:
@@ -50,115 +54,157 @@ function movieData = photobleachCorrectMovieRatios(movieData,varargin)
 %       ('BatchMode' -> True/False) If true, all graphical outputs and user
 %       interaction is suppressed. 
 % 
+%
+%
+% Output:
+%
+%   movieData - the updated movieData object with the correction
+%   parameters, paths etc. stored in it, in the field movieData.processes_.
+%
+%   The corrected images are written to the directory specified by the
+%   parameter OuptuDirectory, with each channel in a separate
+%   sub-directory. They will be stored as double-precision .mat files.
+%
 % 
-% Output:       
-% 
-%   The corrected images will be written to a new image channel in the
-%   movie, and all parameters will be stored in the movieData structure.
-% 
-% Hunter Elliott, 11/2009
-% 
+% Hunter Elliott
+% 11/2009
+% Revamped 6/2010
+%
+
 %%  --------- Parameters ------- %%
 
 pString = 'pbc_'; %The string to prepend before the corrected image directory & channel name
+dName = 'photobleach_corrected_images_for_channel_'; %String for naming the directories for each corrected channel
 fitFileName = 'photobleach_correction.mat'; %File name for saving fit results to
+figName = 'photobleach correction fit.fig'; %Name for saving figure to file
 
 %% ------ Input ------ %%
 
-movieData = setupMovieData(movieData,'photobleachCorrection');
 
-[batchMode,pbCorrectType,iChannel] = parseInput(varargin);
-
-%---Defaults--%
-
-if isempty(batchMode)
-    batchMode = false;
+%Check that input object is a valid moviedata
+if ~isa(movieData,'MovieData')
+    error('The first input argument must be a valid MovieData object!')
 end
-if isempty(pbCorrectType)
-    pbCorrectType = 'RatioOfAverages';
+
+nImages = movieData.nFrames_;
+
+%Make sure there are enough frames
+if nImages <= 4
+    error('Input movie must have AT LEAST 5 timepoints for photobleach correction!!!')    
 end
-if isempty(iChannel)
-    if ~batchMode
-        iChannel = selectMovieChannels(movieData,1,'Select the ratio channel to photobleach correct:');
+
+if nargin < 2
+    paramsIn = [];
+end
+
+%Make sure the movie has been ratioed
+iRProc = find(cellfun(@(x)(isa(x,'RatioProcess')),movieData.processes_),1);                          
+
+if isempty(iRProc)
+    error('The input movie has not been ratioed! Please perform ratioing prior to photobleach correction!')
+end
+
+%Get the indices of any previous photbleach correction processes from this
+%function
+iProc = find(cellfun(@(x)(isa(x,'PhotobleachCorrectionProcess')),movieData.processes_),1);                          
+
+%If the process doesn't exist, create it with default settings.
+if isempty(iProc)
+    iProc = numel(movieData.processes_)+1;
+    movieData.addProcess(PhotobleachCorrectionProcess(movieData,movieData.outputDirectory_));                                                                                                 
+end
+
+
+%Parse input, store in parameter structure
+p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+
+nChan = numel(movieData.channels_);
+
+if isempty(p.ChannelIndex)
+    if ~p.BatchMode
+        p.ChannelIndex = selectMovieChannels(movieData,1,'Select the ratio channel to photobleach correct:');
     else
         error('In batch mode, you must specify the channel to photobleach correct!')
     end
 end
 
+if length(p.ChannelIndex) ~=1
+    error('You can only photobleach-correct one ratio channel at a time!')
+end
+
+if p.ChannelIndex > nChan || p.ChannelIndex < 1 || ~isequal(round(p.ChannelIndex),p.ChannelIndex)
+    error('Invalid channel number specified! Check ChannelIndex input!!')
+end
 
 
 %% -------- Init -------- %%
 
 disp('Starting photobleach correction...')
 
-%Make sure this is a ratio channel 
-if ~checkMovieProcedure(movieData,'ratioing')
-    error('This function only photobleach corrects ratio images! Create a ratio channel using ratioMovie.m before running!')
-end
-%Get the num/denom index
-iNum = movieData.ratioing.iFrom(1,iChannel);
-iDenom = movieData.ratioing.iFrom(2,iChannel);
-if iNum < 1 || iDenom < 1
-    error('Invalid ratio channel! The specified channel must have been created using ratioMovie.m!')
-end
+%Get input directories/image names
 
-%Calculate the movie intensity vs. time. This is re-run every in case
-%changes have been made (its fast anyways).
-chanUsed = [iChannel iNum iDenom]; %List of all channels used in this function
-nChanUsed = length(chanUsed);
-movieData = calculateMovieIntensityVsTime(movieData,'ChannelIndex',chanUsed,'BatchMode',1);
+iNum = movieData.processes_{iRProc}.funParams_.ChannelIndex(1);
+iDenom = movieData.processes_{iRProc}.funParams_.ChannelIndex(2);
 
-%Make sure there are enough frames
-if movieData.nImages(iChannel) <= 4
-    error('Specified channel must have AT LEAST 5 timepoints for photobleach correction!!!')    
-end
-nImages = movieData.nImages(iChannel);
+numDir = movieData.processes_{iRProc}.inImagePaths_{iNum};
+numFileNames = movieData.processes_{iRProc}.getInImageFileNames(iNum);
 
-%Load the intensity statistics for each of the required channels
-allMeanI = cell(1,nChanUsed);
-allTotalI = cell(1,nChanUsed);
-for i = 1:nChanUsed
+denomDir = movieData.processes_{iRProc}. ...
+    inImagePaths_{movieData.processes_{iRProc}.funParams_.ChannelIndex(2)};
+denomFileNames = movieData.processes_{iRProc}.getInImageFileNames(iDenom);
+
+ratDir = movieData.processes_{iRProc}. ...
+    outImagePaths_{movieData.processes_{iRProc}.funParams_.ChannelIndex(1)};
+ratioFileNames = movieData.processes_{iRProc}.getOutImageFileNames(iNum);
+
+%Set-up output directory
+outDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex)];
+
+%Set up output directory
+mkClrDir(outDir);
+movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex,outDir);
+
+
+nImTot = nImages*2;
+
+%% ------- Calculate Intensity Vs. Time ----- %%
+%Calculate the movie intensity vs. time in the needed channels
+
+meanNum = zeros(1,nImages);
+meanDenom = zeros(1,nImages);
+meanRat = zeros(1,nImages);
+totalNum = zeros(1,nImages);
+totalDenom = zeros(1,nImages);
+
+disp('Calculating average intensities...')
+
+if ~p.BatchMode
+    wtBar = waitbar(0,'Please wait, calculating intensity statistics...... ');        
+end        
+
+
+
+for iImage = 1:nImages
     
-    clear('totalIntensity','meanIntensity') %Erase the variables from the previous channel
+    currNum = double(imread([numDir filesep numFileNames{1}{iImage}]));
+    meanNum(iImage) = mean(currNum(:));
+    totalNum(iImage) = sum(currNum(:));
+    currDenom = double(imread([denomDir filesep denomFileNames{1}{iImage}]));
+    meanDenom(iImage) = mean(currDenom(:));
+    totalDenom(iImage) = sum(currDenom(:));
+    currRat = load([ratDir filesep ratioFileNames{1}{iImage}]);
+    currRat = currRat.currRatio;
+    meanRat(iImage) = mean(currRat(currRat(:) > 0));        
+
+    if ~p.BatchMode && mod(iImage,5)
+        %Update the waitbar occasionally to minimize slowdown
+        waitbar(iImage / nImTot,wtBar)
+    end                        
     
-    load([movieData.intensityVsTime.directory filesep  ...
-        movieData.intensityVsTime.fileNamePrefix movieData.channelDirectory{chanUsed(i)}])
-    
-    if ~(exist('totalIntensity','var') && exist('meanIntensity','var'))
-        error(['Problem with intensity vs time file for channel ' ... 
-            movieData.channelDirectory{chanUsed(i)} ... 
-            '! should contain variables named totalIntensity and meanIntensity!'])
-    end
-        
-    
-    allMeanI{i} = meanIntensity;
-    allTotalI{i} = totalIntensity;           
     
 end
 
 
-
-%Check/create channel for resulting images
-chanName = [pString movieData.channelDirectory{iChannel}];
-
-iCorrected = find(strcmp(chanName,movieData.channelDirectory),1);
-
-if isempty(iCorrected)
-    iCorrected = length(movieData.channelDirectory)+1;
-    movieData.channelDirectory{iCorrected} = chanName;
-    movieData.nImages(iCorrected) = movieData.nImages(iChannel);
-    movieData.imSize(:,iCorrected) = movieData.imSize(iChannel);
-end
-
-corrDir = [movieData.imageDirectory filesep movieData.channelDirectory{iCorrected}];
-
-if ~exist(corrDir,'dir')
-    mkdir(corrDir)
-end
-
-
-%Get ratio image file names
-imageFileNames = getMovieImageFileNames(movieData,iChannel);
 
 
 %% ----- Calculate Photobleach correction ----- %%
@@ -167,69 +213,87 @@ disp('Calculating fit...')
 
 
 fitFun = @(b,x)(b(1) .* exp(b(2) .* x))+(b(3) .* exp(b(4) .* x));     %Double-exponential function for fitting
-timePoints = (0:1:nImages-1) * movieData.timeInterval_s;     %time data
+%Check if time was defined in moviedata
+if ~isempty(movieData.timeInterval_)
+    timePoints = (0:1:nImages-1) * movieData.timeInterval_;     %time data
+else
+    timePoints = (0:1:nImages-1);
+end
 bInit = [1 0 1 0]; %Initial guess for fit parameters.
 
  
-switch pbCorrectType
+switch p.CorrectionType
 
 
     case 'RatioOfAverages'
 
-        fitData = allMeanI{chanUsed == iNum} ./ allMeanI{chanUsed == iDenom};
+        fitData = meanNum ./ meanDenom;
 
-    case 'AverageRatios' 
+    case 'AverageOfRatios' 
 
-         fitData = allMeanI{chanUsed == iChannel};
+         fitData = meanRat;
          
     case 'RatioOfTotals'
         
-        fitData = allTotalI{chanUsed == iNum} ./ allTotalI{chanUsed == iDenom};
+        fitData = totalNum ./ totalDenom;
 
     otherwise
 
-        error(['Invalid photobleach correction method!! "' pbCorrectType '" is not a recognized method!'])
+        error(['Invalid photobleach correction method!! "' p.CorrectionType '" is not a recognized method!'])
 end
 
-%If there was a stimulation event, remove the points after it.
-if isMovieStimulated(movieData)
-    storeFitData = fitData; %save the removed points for later plotting
-    fitData(movieData.stimulation.iFrame:end) = NaN;
-end
 
 %Fit function to ratio timeseries
-fitOptions = statset('Robust','off','MaxIter',500,'Display','off');
-[bFit,resFit,jacFit,covFit,mseFit] = nlinfit(timePoints(:),fitData(:),fitFun,bInit,fitOptions); %#ok<NASGU>
+fitOptions = statset('Robust','on','MaxIter',500,'Display','off');
+[bFit,resFit,jacFit,covFit,mseFit] = nlinfit(timePoints(:),fitData(:),fitFun,bInit,fitOptions);
+%Get confidence intervals of fit and fit values
+[fitValues,deltaFit] = nlpredci(fitFun,timePoints(:),bFit,resFit,'covar',covFit,'mse',mseFit);
 
-%Evaluate the fitted function at each timepoint
-fitValues = fitFun(bFit,timePoints);
+%Check the fit jacobian
+[dummy,R] = qr(jacFit,0); %#ok<ASGLU>
+if ~p.BatchMode && condest(R) > 1/(eps(class(bFit)))^(1/2)        
+    warndlg('WARNING: The photobleach correction fit is not very good. Please use extreme caution in interpreting ratio changes over time in the photobleach corrected ratios!')
+end
 
 
 %% ----- Apply photobleach correction to ratio images ----- %%
 
 
-disp(['Applying photobleach correction method ' pbCorrectType ' to ratio channel ' movieData.channelDirectory{iChannel}])
-disp(['Writing corrected images to channel ' movieData.channelDirectory{iCorrected}])
+disp(['Applying photobleach correction method ' p.CorrectionType ' to ratio channel ' ratDir ])
+disp(['Writing corrected images to channel ' outDir])
 
 %Disable convert-to-integer warning
 warning('off','MATLAB:intConvertNonIntVal');
+
+if ~p.BatchMode        
+    waitbar(nImages / nImTot,wtBar,'Please wait, applying photobleach correction ...');
+end        
+
 
 %Go through all the images and correct them
 for iImage = 1:nImages
    
     %Load the image
-    currIm = imread(imageFileNames{1}{iImage});
+    currRat = load([ratDir filesep ratioFileNames{1}{iImage}]);
+    currRat = currRat.currRatio;
     
-    %Correct the image
-    currIm = currIm ./ fitValues(iImage);
+    %Correct the image. We multiply by the average of the first ratio to
+    %prevent normalization.
+    currRat = currRat ./ fitValues(iImage) .* meanRat(1); %#ok<NASGU>
     
-    %Write it back to file.
-    iLastSep = max(regexp(imageFileNames{1}{iImage},filesep));
-    imwrite(currIm,[corrDir filesep pString ...
-        imageFileNames{1}{iImage}(iLastSep+1:end)]);    
+    %Write it back to file.    
+    save([outDir filesep pString ratioFileNames{1}{iImage}],'currRat');
     
+    if ~p.BatchMode && mod(iImage,5)
+        %Update the waitbar occasionally to minimize slowdown
+        waitbar((iImage +nImages)/ nImTot,wtBar)
+    end                        
+
 end
 
+if ~p.BatchMode && ishandle(wtBar)
+    close(wtBar)
+end
 
 
 %% ------- Make and Save Figure ------- %%
@@ -237,7 +301,7 @@ end
 
 disp('Making figures...')
 
-if batchMode
+if p.BatchMode
     fitFig = figure('Visible','off');
 else
     fitFig = figure;
@@ -245,78 +309,39 @@ end
 
 hold on
 title('Photobleach Correction Fit')
-xlabel('Time, seconds')
-ylabel(pbCorrectType)
-plot(timePoints,fitData)
-plot(timePoints,fitValues,'k')
-legend(pbCorrectType,'Fit')
-
-if isMovieStimulated(movieData)
-    plot(timePoints,storeFitData,':')
+if ~isempty(movieData.timeInterval_)
+    xlabel('Time, seconds')
+else
+    xlabel('Frame Number')
 end
+ylabel(p.CorrectionType)
+plot(timePoints,fitData)
+plot(timePoints,fitValues,'r')
+plot(timePoints,fitValues+deltaFit,'--r')
+legend(p.CorrectionType,'Fit','Fit 95% C.I.')
+plot(timePoints,fitValues-deltaFit,'--r')
 
-hgsave(fitFig,[movieData.photobleachCorrection.directory filesep 'photobleach correction fit.fig']);
+hgsave(fitFig,[p.OutputDirectory filesep figName]);
+%Log this file name in the parameter structure
+p.figName = figName;
+movieData.processes_{iProc}.setPara(p);
 
-if batchMode
+
+if ishandle(fitFig) %make sure user hasn't closed it.
     close(fitFig)
 end
 
 
 %% ----- Output/Finalization ---- %%
 
-save([movieData.photobleachCorrection.directory filesep fitFileName],'fitData','fitValues',...
+save([p.OutputDirectory filesep fitFileName],'fitData','fitValues',...
     'timePoints','covFit','mseFit','resFit','jacFit',...
     'fitFun','bFit');
 
+%Log the correction in the movieData object and save it
 
-movieData.photobleachCorrection.status = 1;
-movieData.photobleachCorrection.iFrom(iCorrected) = iChannel;
-movieData.photobleachCorrection.dateTime = datestr(now);
-movieData.photobleachCorrection.method = pbCorrectType;
-movieData.photobleachCorrection.fileName = fitFileName; 
-
-updateMovieData(movieData);
+movieData.processes_{iProc}.setDateTime;
+movieData.saveMovieData;
 
 
 disp('Finished!')
-
-function [batchMode,pbCorrectType,iChannel] = parseInput(argArray)
-
-
-%Init output
-batchMode = [];
-pbCorrectType = [];
-iChannel = [];
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName / value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-              
-       case 'BatchMode'
-           batchMode = argArray{i+1};
-           
-       case 'CorrectionType'
-           pbCorrectType = argArray{i+1};
-           
-       case 'ChannelIndex'
-           iChannel = argArray{i+1};
- 
-           
-       otherwise
-       
-           error(['"' argArray{i} '" is not a valid option name! Please check input!'])
-   end
-   
-end
