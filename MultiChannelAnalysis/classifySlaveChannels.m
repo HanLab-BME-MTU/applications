@@ -58,7 +58,7 @@ bgMask(r<=2*sigma) = 0;
 %-----------------------------------------------
 maskList = dir([data.source 'Detection' filesep 'Masks' filesep '*.tif']);
 
-for k = 1:30:data.movieLength
+for k = 1:10:data.movieLength
 
     % load mask, dilate, -mask
     mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(k).name]));
@@ -161,9 +161,9 @@ for k = 1:30:data.movieLength
     %falsePos(falsePos<0) = 0;
     
     %p = sum(sum(dmask & testMap)) / sum(dmask(:))
-    p = sum(testMap(:)) / sum(dmask(:))
+    p(k) = sum(testMap(:)) / sum(dmask(:));
 end
-
+p = mean(p);
 
 % for p = 1:npRef
 %     window = frame(yi(p)-w:yi(p)+w, xi(p)-w:xi(p)+w);
