@@ -6,8 +6,9 @@ function movieData = segment3DMovie(movieData,paramsIn)
 % movieData = segment3DMovie(movieData,paramsIn)
 % 
 % This function creates 3D masks for the input movie. The masks can be
-% initially created using a few methods (see below). Post-processing is also
-% performed if requested.
+% initially created using a few methods (see below). Post-processing is
+% also performed if requested. This function is designed to segment
+% fluorescence images, using either a volumetric or membrane-bound label.
 % 
 % Input:
 % 
