@@ -60,7 +60,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %           ('MinVolume' -> Positive integer) The minimum volume (in
 %           voxels) of objects to keep. Objects smaller than this will be
 %           removed from masks. If zero, no objects are removed. Default is
-%           100 pixels.
+%           100 voxels.
 % 
 %           ('NumObjects' -> positive integer) Keep only the largest p.NumObjects
 %           objects in the masks. If set to zero, all objects are kept.
@@ -187,7 +187,7 @@ for iChan = 1:nChanSeg
                     %Get the gradient of the image
     %                 [gX,gY,gZ] = gradient(double(currIm));
     %                 currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
-    %                 
+    %               %Use MATITK for smoothed gradient calculation  
                     currIm = matitk('FGMS',gSig,double(currIm));
 
                     %Threshold this gradient based on intensity histogram
