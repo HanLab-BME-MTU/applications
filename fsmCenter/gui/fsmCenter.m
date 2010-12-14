@@ -30,7 +30,7 @@ function varargout = fsmCenter(varargin)
 % Check Matlab version: we restrict FSMCenter to Matlab 2006a or newer
 
 matlabVersion=ver('MATLAB');
-if str2double(matlabVersion.Version) < 7.2
+if str2double(matlabVersion.Version) <= 7.1  %(<7.2 fails due to version 7.11 and later)
     errordlg('FSM Center requires Matlab 2006a or newer.', 'FSM Center');
     return;
 end
