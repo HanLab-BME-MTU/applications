@@ -94,7 +94,7 @@ for k = 1:nTracks
         tracks(k).maskI = maskI(firstIdx:lastIdx);
         
         tracks(k).t = firstIdx:lastIdx;
-        tracks(k).lifetime = trackLength;
+        tracks(k).lifetime = trackLength*data.framerate;
         
         tracks(k).start = firstIdx;
         tracks(k).end = lastIdx;
