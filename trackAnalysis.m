@@ -30,10 +30,9 @@ load([data.source 'Detection' filesep 'detectionResults.mat']);
 % Determine master/slave channels
 %=================================
 nChannels = length(data.channels);
-% exclude master from list of channels
+% identify master channel index
 masterChannel = regexp(data.source, data.channels);
 masterChannel = find([masterChannel{:}]);
-slaveChannels = setdiff(1:nChannels, masterChannel);
 sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{1});
 w = ceil(3*sigma);
 
@@ -93,7 +92,7 @@ for k = 1:nTracks
         tracks(k).y = y;
         tracks(k).maskI = maskI(firstIdx:lastIdx);
         
-        tracks(k).t = firstIdx:lastIdx;
+        tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
         tracks(k).lifetime = trackLength*data.framerate;
         
         tracks(k).start = firstIdx;
@@ -107,7 +106,7 @@ for k = 1:nTracks
         tracks(k).tracksFeatIndxCG = trackinfo(k).tracksFeatIndxCG;
         
         tracks(k).lifetime = length(tracks(k).x)*data.framerate;
-        tracks(k).t = trackinfo(k).seqOfEvents(1,1):trackinfo(k).seqOfEvents(2,1);
+        tracks(k).t = (trackinfo(k).seqOfEvents(1,1)-1:trackinfo(k).seqOfEvents(2,1)-1)*data.framerate;
         
         x = tracks(k).x;
         y = tracks(k).y;
@@ -193,7 +192,7 @@ for k = 1:nTracks
         tracks(k).valid = tracks(k).status == 1;
     end
     
-    tracks(k).t = firstIdx:lastIdx;
+    tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
     tracks(k).x = x;
     tracks(k).y = y;
     
@@ -309,23 +308,6 @@ for k = 1:nTracks
             end
         end
     end
-    
-
-% % % % % %     k = 500;
-% % % % % %     idx = tf(k).tracksFeatIndxCG;
-% % % % % %     
-% % % % % %     frameRange = tf(k).start:tf(k).end;
-% % % % % %     
-% % % % % %     for i = 1:length(frameRange)
-% % % % % %         tmp(i) = frameInfo(frameRange(i)).xcom(idx(i));
-% % % % % %     end
-% % % % % %     
-% % % % % %     figure; plot(tf(k).x)
-% % % % % %     hold on;
-% % % % % %     plot(tmp, 'r--');
-    
-    
-    
     
     %     %  for valid tracks, compute MSD and total displacement
     %     if tracks(k).valid
@@ -480,40 +462,40 @@ save([data.source 'Tracking' filesep 'trackAnalysis.mat'], 'tracks', 'nMergeSpli
 
 
 
-function D = mdist(x, y, xDelta, yDelta)
-D = mean(sqrt((xDelta-x).^2 + (yDelta-y).^2));
+% function D = mdist(x, y, xDelta, yDelta)
+% D = mean(sqrt((xDelta-x).^2 + (yDelta-y).^2));
+% 
+% 
+% function [D c alpha] = fitMSD(MSD, prmVect, prmSel)
+% 
+% opts = optimset('Jacobian', 'off', ...
+%     'MaxFunEvals', 1e4, ...
+%     'MaxIter', 1e4, ...
+%     'Display', 'off', ...
+%     'TolX', 1e-6, ...
+%     'Tolfun', 1e-6);
+% 
+% 
+% estIdx = false(1,3); % [D c alpha]
+% estIdx(regexp('Dca', ['[' prmSel ']'])) = true;
+% 
+% x = lsqnonlin(@costMSD, prmVect(estIdx), [], [], opts, MSD, prmVect, estIdx);
+% prmVect(estIdx) = deal(abs(x));
+% 
+% D = prmVect(1);
+% c = prmVect(2); % constant offset
+% alpha = prmVect(3);
 
 
-function [D c alpha] = fitMSD(MSD, prmVect, prmSel)
 
-opts = optimset('Jacobian', 'off', ...
-    'MaxFunEvals', 1e4, ...
-    'MaxIter', 1e4, ...
-    'Display', 'off', ...
-    'TolX', 1e-6, ...
-    'Tolfun', 1e-6);
-
-
-estIdx = false(1,3); % [D c alpha]
-estIdx(regexp('Dca', ['[' prmSel ']'])) = true;
-
-x = lsqnonlin(@costMSD, prmVect(estIdx), [], [], opts, MSD, prmVect, estIdx);
-prmVect(estIdx) = deal(abs(x));
-
-D = prmVect(1);
-c = prmVect(2); % constant offset
-alpha = prmVect(3);
-
-
-
-function [v] = costMSD(p, MSD, prmVect, estIdx)
-prmVect(estIdx) = deal(abs(p));
-
-D = prmVect(1);
-c = prmVect(2); % constant offset
-alpha = prmVect(3);
-%d % dimensionality
-
-t = 1:length(MSD);
-
-v = MSD - 4*D*t.^alpha - c;
+% function [v] = costMSD(p, MSD, prmVect, estIdx)
+% prmVect(estIdx) = deal(abs(p));
+% 
+% D = prmVect(1);
+% c = prmVect(2); % constant offset
+% alpha = prmVect(3);
+% %d % dimensionality
+% 
+% t = 1:length(MSD);
+% 
+% v = MSD - 4*D*t.^alpha - c;
