@@ -106,7 +106,7 @@ for k = 1:nTracks
         tracks(k).seqOfEvents = trackinfo(k).seqOfEvents;
         tracks(k).tracksFeatIndxCG = trackinfo(k).tracksFeatIndxCG;
         
-        tracks(k).lifetime = length(tracks(k).x);
+        tracks(k).lifetime = length(tracks(k).x)*data.framerate;
         tracks(k).t = trackinfo(k).seqOfEvents(1,1):trackinfo(k).seqOfEvents(2,1);
         
         x = tracks(k).x;
@@ -127,14 +127,14 @@ for k = 1:nTracks
     % determine tracks characteristics
     if (trackLength == nFrames)
         tracks(k).status = 3;
-        tracks(k).lifetime = nFrames;
+        tracks(k).lifetime = nFrames*data.framerate;
     else
         if (firstIdx>1) && (lastIdx<nFrames) % complete tracks
             tracks(k).status = 1;
         else
             tracks(k).status = 2; % incomplete tracks
         end
-        tracks(k).lifetime = trackLength;
+        tracks(k).lifetime = trackLength*data.framerate;
     end
     
     if trackPoints < trackLength % tracks has gaps
