@@ -97,7 +97,10 @@ for i = 1:nMovies
     else
         ipath = data(i).source;
     end
-    [imageName, imagePath] = uigetfile({'*.tif';'*.mat'},['Select first intensity image or parameter mat in movie #' num2str(i)], ipath); 
+    %[imageName, imagePath] = uigetfile({'*.tif';'*.mat'},['Select first intensity image or parameter mat in movie #' num2str(i)], ipath); 
+    imageName = dir([ipath filesep '*.tif']);
+    imageName = imageName(1).name;
+    imagePath = ipath;
     ImageStackList(i).list = getFileStackNames([imagePath imageName]);
 end
 
