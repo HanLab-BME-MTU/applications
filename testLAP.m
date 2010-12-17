@@ -1,4 +1,38 @@
 function testLAP(movieData,thE,thA,thP)
+% 1) Find the set of track pair candidates that significantly overlap in
+% time.
+%
+% Q: What is the time margin?
+%
+% 2) Trim the set of pair candidates by assessing how far they are from
+% each other (euclidian distance)
+%
+% Q: What is the threshold values?
+%
+% 3) Trim the set of pair candidates by assessing how far they are from
+% each other (radon distance)
+%
+% Q: What the threshold values (t and alpha)
+%
+% 4) Compute the max-weight matching problem on radon distance-based
+% similarity function
+%
+% Q: what is the track-track similarity function?
+% Q: is the double -> int quantification works?
+%
+% 5) Post-processing: remove pairs that are unsignificant
+%
+% Q: What is unsignificant?
+%
+% 6) Compute the similarity function for track-segment pair candidate and
+% segment-segment pair candidate?
+%
+% Q: What is the track-segment similarity function?
+%
+% 7) Redo steps 4-6 until convergence
+%
+% Q: What is the stop criteria?
+
 
 % thE: [0, +inf)
 % thA: [0, pi]
