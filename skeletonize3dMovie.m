@@ -15,7 +15,10 @@ function movieData = skeletonize3dMovie(movieData,paramsIn)
 % Additionally, the skeletons for each frame may be converted to a graph
 % structure, using skel2graph.m, and these outputs saved. This will
 % significantly increase processing time.
-%
+% 
+%   ***WARNING*** Be careful when specifying the output directory, as any
+%   existing files in this directory will be deleted to make room for the
+%   skeletons.
 %
 % NOTE: This function uses the thinning-based algorith implemented in
 % skeleton3d.m
@@ -118,17 +121,13 @@ maskDir = movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex};
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
 
 %Set up output directories
-if ~exist(p.OutputDirectory,'dir')
-    mkdir(p.OutputDirectory);
-end
+mkClrDir(p.OutputDirectory);
 skelDir = p.OutputDirectory;
 
 %And separate directories for graphs and skeletons if requested
 if p.GetGraph
     graphDir = [p.OutputDirectory filesep 'skeleton_graphs'];
-    if ~exist(graphDir,'dir')
-        mkdir(graphDir);
-    end        
+    mkClrDir(p.OutputDirectory);
 end
 
 nFrames = movieData.nFrames_;
