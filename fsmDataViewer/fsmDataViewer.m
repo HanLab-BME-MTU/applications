@@ -69,7 +69,7 @@ if ischar(fileName) && ischar(pathName)
     % Get the crop area if any
     aspectRatio = [1 1];
     hCrop = findobj(get(h, 'CurrentAxes'), 'Tag', 'imrect');
-    if ~ishandle(hCrop)
+    if isempty(hCrop) || ~ishandle(hCrop)
         crop = false;
     else
         crop = true;
@@ -91,7 +91,7 @@ if ischar(fileName) && ischar(pathName)
     hFig = figure(...
         'Visible', 'off',...
         'Renderer', 'painters',...
-        'Position', [100 100 ceil(aspectRatio * 400)],...
+        'Position', [100 100 ceil(aspectRatio * 1000)],...
         'PaperPositionMode', 'auto',...
         'UserData', settings);
     hAxes = axes;
@@ -114,10 +114,11 @@ if ischar(fileName) && ischar(pathName)
         % Display channels
         I = loadChannels(settings, iFrame);
         imagesc(I,'Parent', hAxes);
-        axis(hAxes,'off','image');
         
         % Display layers
         displayLayers(hFig, iFrame);
+
+        axis(hAxes,'off','image');
 
         if crop
             % Change the view point of the camera
