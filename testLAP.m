@@ -1,9 +1,22 @@
-function testLAP(movieData,thE,thA,thP)
+function testLAP(movieData,timeMargin)
+% 1) Preprocess tracks
+% 
+% Q: What to remove?
+
+load(fullfile(movieData.particleTracking.directory, ...
+    movieData.particleTracking.fileName));
+
+SEL = getTrackSEL(tracksFinal);
+
 % 1) Find the set of track pair candidates that significantly overlap in
 % time.
 %
 % Q: What is the time margin?
-%
+% A: We can set timeMargin to +/-1 (frame)
+
+
+tracksFinal
+
 % 2) Trim the set of pair candidates by assessing how far they are from
 % each other (euclidian distance)
 %
