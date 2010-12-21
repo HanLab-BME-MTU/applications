@@ -1,27 +1,102 @@
-function testLAP(movieData,timeMargin)
+function testLAP(movieData,minOverlap,maxEuclidianDist)
 % 1) Preprocess tracks
-% 
-% Q: What to remove?
 
 load(fullfile(movieData.particleTracking.directory, ...
-    movieData.particleTracking.fileName));
+    movieData.particleTracking.filename));
+
+nTracks = size(tracksFinal,1); %#ok<NODEF>
+
+% Check there is no split and merge
+% if split and merge was enabled, it would create complexify the
+% interpolation in gaps (see step 3)
+seqOfEvents = vertcat(tracksFinal(:).seqOfEvents);
+assert(nnz(isnan(seqOfEvents(:,4))) == size(seqOfEvents,1));
+
+% 2) Find the set of track pair candidates that significantly overlap in
+% time.
 
 SEL = getTrackSEL(tracksFinal);
+iFirst = SEL(:,1)';
+iLast = SEL(:,2)';
+lifetime = SEL(:,3)';
+pairIdx = pcombs(1:nTracks);
 
-% 1) Find the set of track pair candidates that significantly overlap in
-% time.
-%
-% Q: What is the time margin?
-% A: We can set timeMargin to +/-1 (frame)
+overlapFirst = max(iFirst(pairIdx(:,1)), iFirst(pairIdx(:,2)));
+overlapLast = min(iLast(pairIdx(:,1)), iLast(pairIdx(:,2)));
+overlap = overlapLast - overlapFirst + 1;
 
+hasOverlap = overlap >= minOverlap;
 
-tracksFinal
+fprintf('Overlapping track pairs = %f %%\n',...
+    nnz(hasOverlap) * 100 / numel(hasOverlap));
 
-% 2) Trim the set of pair candidates by assessing how far they are from
-% each other (euclidian distance)
-%
-% Q: What is the threshold values?
-%
+% trim arrays
+pairIdx = pairIdx(hasOverlap,:);
+overlapFirst = overlapFirst(hasOverlap);
+overlapLast = overlapLast(hasOverlap); %#ok<NASGU>
+overlap = overlap(hasOverlap);
+
+% 3) Interpolate position in gaps
+
+X = arrayfun(@(t) t.tracksCoordAmpCG(1:8:end)', tracksFinal, 'UniformOutput', false);
+X = vertcat(X{:});
+Y = arrayfun(@(t) t.tracksCoordAmpCG(2:8:end)', tracksFinal, 'UniformOutput', false);
+Y = vertcat(Y{:});
+
+gacombIdx = diff(isnan(X));
+gapStarts = find(gacombIdx==1)+1;
+gapEnds = find(gacombIdx==-1);
+gapLengths = gapEnds-gapStarts+1;
+nGaps = length(gapLengths);
+        
+for g = 1:nGaps
+    borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
+    gacombIdx = gapStarts(g):gapEnds(g);
+    X(gacombIdx) = interp1(borderIdx, X(borderIdx), gacombIdx);
+    Y(gacombIdx) = interp1(borderIdx, Y(borderIdx), gacombIdx);
+end
+
+% 4) Compute the euclidian distance between pair of tracks
+
+% First, end indexes for X and Y
+last = cumsum(lifetime);
+first = last-lifetime+1;
+
+% translate overlap first/last values to 1-D indexes
+first1 = first(pairIdx(:,1)) + overlapFirst - iFirst(pairIdx(:,1));
+first2 = first(pairIdx(:,2)) + overlapFirst - iFirst(pairIdx(:,2));
+
+% sort overlap values
+[overlap idx] = sort(overlap);
+pairIdx = pairIdx(idx,:);
+
+first1 = first1(idx);
+first2 = first2(idx);
+
+firstIdx = find([1 diff(overlap)]);
+lastIdx = find([-diff(-overlap) 1]);
+
+overlapValues = unique(overlap);
+
+euclidianDist = zeros(size(overlap));
+
+for k = 1:length(firstIdx)
+    % indexes corresponding to overlap value
+    range = firstIdx(k):lastIdx(k);
+    
+    M = repmat((0:overlapValues(k)-1), [length(range) 1]);
+    idx1 = repmat(first1(range)', [1 overlapValues(k)]) + M;
+    idx2 = repmat(first2(range)', [1 overlapValues(k)]) + M;
+    
+    x1 = X(idx1);
+    y1 = Y(idx1);
+    x2 = X(idx2);
+    y2 = Y(idx2);
+
+    % average distance   
+    euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), [length(range) overlapValues(k)]), 2);
+end
+
 % 3) Trim the set of pair candidates by assessing how far they are from
 % each other (radon distance)
 %
