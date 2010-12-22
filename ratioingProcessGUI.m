@@ -59,7 +59,8 @@ function ratioingProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %       userData.colormap - color map information
 %
 
-set(handles.text_copyright, 'String', userfcn_copyright)
+[copyright openHelpFile] = userfcn_softwareConfig(handles);
+set(handles.text_copyright, 'String', copyright)
 
 userData = get(handles.figure1, 'UserData');
 % Choose default command line output for segmentationProcessGUI
@@ -149,7 +150,11 @@ Img = image(userData.questIconData);
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
 set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-set(Img, 'UserData', userData.crtProc.getHelp(true))
+if openHelpFile
+    set(Img, 'UserData', struct('class', 'RatioProcess'))
+else
+    set(Img, 'UserData', userData.crtProc.getHelp(true))
+end
 
 % ----------------------------------------------------------------
 
