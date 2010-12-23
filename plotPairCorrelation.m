@@ -125,6 +125,12 @@ for iexp = 1:length(experiment)
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
+    %use status to select for a population of pits
+    if isfield(experiment,'status')
+        status = experiment(iexp).status;
+    else
+        status = ones(1,size(daMat,1));
+    end
     
     %make a matrix for max status...in order to tell if trajectory holds
     %bad gaps
@@ -135,7 +141,7 @@ for iexp = 1:length(experiment)
     %vector
     findPos =((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
         (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) & ...
-        repmat(experiment(iexp).status',1,size(statMat,2)) == 1);
+        repmat(status',1,size(statMat,2)) == 1);
     
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
@@ -169,6 +175,7 @@ for iexp = 1:length(experiment)
     
     %store pair in each experiment structure
     experiment(iexp).pairCorrelation = pair;
+    experiment(iexp).clustering = sum(pair(1:2));
     
     
         %SCRAMBLE MPM
