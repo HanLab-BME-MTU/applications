@@ -255,7 +255,7 @@ if ~isempty(pos_restrict)
                     'xpos',num2cell(mpm_restrict(:,1:2:end),2),...
                     'ypos',num2cell(mpm_restrict(:,2:2:end),2));
                 
-            
+                
             otherwise
                 error('unknown process identification number');
         end % of case/switch
@@ -274,7 +274,7 @@ for t=1:numf
         %diffuse all parents for this frame
         % fill subsequent time positions
         %designate space
-%        mpmMothers = nan(length(parents),2);
+        %        mpmMothers = nan(length(parents),2);
         %get parent positions from last frame
         %NOTE: these are indexed in the following way for speed
         %get all parent xpositions
@@ -283,19 +283,19 @@ for t=1:numf
         mpmy = [parents.ypos];
         %pick out x and y positions for all parents for the last frame
         %(hence the t-1) and put into one mpm
-%         mpm_mother_first = [mpmx(1:length(mpmx)/length(parents):end)' mpmy(1:length(mpmx)/length(parents):end)'];
-         mpm_mother_prev = [mpmx(t-1:length(mpmx)/length(parents):end)' mpmy(t-1:length(mpmx)/length(parents):end)'];
-%         %find parents that are dead and take them out
-%         mpm_mother_prev = mpm_mother_prev([parents.currentParentLifetime] <= [parents.lifetime],:);
-%         mpm_mother_first = mpm_mother_first([parents.currentParentLifetime] <= [parents.lifetime],:);
-%         %diffuse parents
-%         mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,...
-%             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusion]',...
-%             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusionRadius]',...
-%             mpm_mother_first);
-%         %add these new positions back into mpm, which makes the
-%         %positions for dead parents NaNs
-%         mpmMothers([parents.currentParentLifetime] <= [parents.lifetime],:) = mpm_generatedMothers;
+        %         mpm_mother_first = [mpmx(1:length(mpmx)/length(parents):end)' mpmy(1:length(mpmx)/length(parents):end)'];
+        mpm_mother_prev = [mpmx(t-1:length(mpmx)/length(parents):end)' mpmy(t-1:length(mpmx)/length(parents):end)'];
+        %         %find parents that are dead and take them out
+        %         mpm_mother_prev = mpm_mother_prev([parents.currentParentLifetime] <= [parents.lifetime],:);
+        %         mpm_mother_first = mpm_mother_first([parents.currentParentLifetime] <= [parents.lifetime],:);
+        %         %diffuse parents
+        %         mpm_generatedMothers = diffuseParentMPM(mpm_mother_prev,...
+        %             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusion]',...
+        %             [parents([parents.currentParentLifetime] <= [parents.lifetime]).diffusionRadius]',...
+        %             mpm_mother_first);
+        %         %add these new positions back into mpm, which makes the
+        %         %positions for dead parents NaNs
+        %         mpmMothers([parents.currentParentLifetime] <= [parents.lifetime],:) = mpm_generatedMothers;
         %add these back unto parents structure array for
         %long-term storage
         for ipar = 1:length(parents)
@@ -308,7 +308,7 @@ for t=1:numf
         clear mpmMothers
         % redraw dead parents
         if any([parents.lifetime] ~= Inf)
-        parents = redrawParentMPM(parents,[sxLarge syLarge],buffer,t);
+            parents = redrawParentMPM(parents,[sxLarge syLarge],buffer,t);
         end
     end
     
@@ -353,8 +353,8 @@ for t=1:numf
                         struct('numChild',num2cell(repmat(genProc(i).numChild,size(mpm_generatedMothers,1),1)),...
                         'timeLag',num2cell(repmat(genProc(i).timeLag,size(mpm_generatedMothers,1),1)),...
                         'radius',num2cell(repmat(genProc(i).radius,size(mpm_generatedMothers,1),1)),...
-                    'percentRestrict',num2cell(repmat(genProc(i).percentRestrict,size(mpm_generatedMothers,1),1)),...    
-                    'type',num2cell(repmat(genProc(i).type,size(mpm_generatedMothers,1),1)),...
+                        'percentRestrict',num2cell(repmat(genProc(i).percentRestrict,size(mpm_generatedMothers,1),1)),...
+                        'type',num2cell(repmat(genProc(i).type,size(mpm_generatedMothers,1),1)),...
                         'diffusion',num2cell(repmat(genProc(i).diffusion,size(mpm_generatedMothers,1),1)),...
                         'minDistance',num2cell(repmat(genProc(i).minDistance,size(mpm_generatedMothers,1),1)),...
                         'lifetime',num2cell(repmat(genProc(i).lifetime,size(mpm_generatedMothers,1),1)),...
@@ -420,17 +420,17 @@ for t=1:numf
                         pxi = (cmpm(:,1)<sx);
                         pyi = (cmpm(:,2)<sy);
                         cmpm = cmpm(px0 & py0 & pxi & pyi,:);
-                    currChildren((ichild-1)*size(cmpm,1)+1:ichild*size(cmpm,1)) = ...
-                        struct('reshuffle',num2cell(repmat(genProc(i).reshuffle,size(cmpm,1),1)),...
-                        'timeLag',num2cell(repmat(genProc(i).timeLag,size(cmpm,1),1)),...
-                        'parentID',num2cell(repmat(0,size(cmpm,1),1)),...
-                        'type',num2cell(repmat(genProc(i).type,size(cmpm,1),1)),...
-                        'radius',num2cell((repmat(genProc(i).radius,size(cmpm,1),1))),...
-                        'nucleationFrame',num2cell(t+(ichild-1)*genProc(i).timeLag,2),...
-                        'percentRestrict',num2cell((repmat(genProc(i).percentRestrict,size(cmpm,1),1))),...
-                        'groupNumber',num2cell(repmat(i,size(cmpm,1),1)),...
-                        'xpos',num2cell(cmpm(:,1),2),...
-                        'ypos',num2cell(cmpm(:,2),2));
+                        currChildren((ichild-1)*size(cmpm,1)+1:ichild*size(cmpm,1)) = ...
+                            struct('reshuffle',num2cell(repmat(genProc(i).reshuffle,size(cmpm,1),1)),...
+                            'timeLag',num2cell(repmat(genProc(i).timeLag,size(cmpm,1),1)),...
+                            'parentID',num2cell(repmat(0,size(cmpm,1),1)),...
+                            'type',num2cell(repmat(genProc(i).type,size(cmpm,1),1)),...
+                            'radius',num2cell((repmat(genProc(i).radius,size(cmpm,1),1))),...
+                            'nucleationFrame',num2cell(t+(ichild-1)*genProc(i).timeLag,2),...
+                            'percentRestrict',num2cell((repmat(genProc(i).percentRestrict,size(cmpm,1),1))),...
+                            'groupNumber',num2cell(repmat(i,size(cmpm,1),1)),...
+                            'xpos',num2cell(cmpm(:,1),2),...
+                            'ypos',num2cell(cmpm(:,2),2));
                     end
                     % distribution is cluster (of raft or Cox type)
                 case { 2, 3}
@@ -442,42 +442,41 @@ for t=1:numf
                     end
                     
                     if ~isempty(cmpm)
-                    %add values for each parent created
-                    currChildren(1:size(cmpm,1)) = ...
-                        struct('reshuffle',num2cell(repmat(genProc(i).reshuffle,size(cmpm,1),1)),...
-                        'timeLag',num2cell(repmat(genProc(i).timeLag,size(cmpm,1),1)),...
-                        'parentID',num2cell(cmpm(:,3),2),...
-                        'type',num2cell(repmat(genProc(i).type,size(cmpm,1),1)),...
-                        'radius',num2cell((repmat(genProc(i).radius,size(cmpm,1),1))),...
-                        'nucleationFrame',num2cell((repmat(t,size(cmpm,1),1))),...
-                        'percentRestrict',num2cell((repmat(genProc(i).percentRestrict,size(cmpm,1),1))),...
-                        'groupNumber',num2cell(repmat(i,size(cmpm,1),1)),...
-                        'xpos',num2cell(cmpm(:,1),2),...
-                        'ypos',num2cell(cmpm(:,2),2));
+                        %add values for each parent created
+                        currChildren(1:size(cmpm,1)) = ...
+                            struct('reshuffle',num2cell(repmat(genProc(i).reshuffle,size(cmpm,1),1)),...
+                            'timeLag',num2cell(repmat(genProc(i).timeLag,size(cmpm,1),1)),...
+                            'parentID',num2cell(cmpm(:,3),2),...
+                            'type',num2cell(repmat(genProc(i).type,size(cmpm,1),1)),...
+                            'radius',num2cell((repmat(genProc(i).radius,size(cmpm,1),1))),...
+                            'nucleationFrame',num2cell((repmat(t,size(cmpm,1),1))),...
+                            'percentRestrict',num2cell((repmat(genProc(i).percentRestrict,size(cmpm,1),1))),...
+                            'groupNumber',num2cell(repmat(i,size(cmpm,1),1)),...
+                            'xpos',num2cell(cmpm(:,1),2),...
+                            'ypos',num2cell(cmpm(:,2),2));
                     else
                         currChildren = [];
                     end
             end % of switch/case
             
             if ~isempty(currChildren)
-            %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
-            if exist('restrictions','var') && ~isempty(restrictions)
-                [currChildren] = makeExcludedOrIncludedMPM(currChildren,restrictions,t);
-            end
-            if t~=1 && exist('currChildren','var') && ~isempty(currChildren) && ~isempty(children) && ...
-                    any([children.type] == 1 & [children.radius] ~= 0)
-                [currChildren] = restrictMPMBasedOnResources(currChildren,children([children.radius] ~= 0 & [children.type] == 1),t);
-            end
-             if exist('parents','var') && ~isempty(parents) && any([parents.radius] ~= 0)
-                [currChildren] = makeExcludedOrIncludedMPM(currChildren,parents([parents.radius]~=0),t);
-             end
+                %RESTRICT POINTS IF RESTRICTIONS ARE PRESENT
+                if exist('restrictions','var') && ~isempty(restrictions)
+                    [currChildren] = makeExcludedOrIncludedMPM(currChildren,restrictions,t);
+                end
+                if t~=1 && ~isempty(children) && any([children.type] == 1 & [children.radius] ~= 0)
+                    [currChildren] = restrictMPMBasedOnResources(currChildren,children([children.radius] ~= 0 & [children.type] == 1),t);
+                end
+                if exist('parents','var') && ~isempty(parents) && any([parents.radius] ~= 0)
+                    [currChildren] = makeExcludedOrIncludedMPM(currChildren,parents([parents.radius]~=0),t);
+                end
             end
             
             %STORE GENERATED POINTS
             children = [children currChildren];
-%             if length(children) == 0
-%                keyboard 
-%             end
+            %             if length(children) == 0
+            %                keyboard
+            %             end
             % CALCULATE HOW MANY POINTS ARE MISSING
             switch genProc(i).type
                 %
@@ -505,22 +504,22 @@ end % of for t
 
 %% plot results
 if plotOn
-%     figure, hold on
-%     
-%     for t=1:numf
-%         plot([children([children.nucleationFrame] == t).xpos],...
-%             [children([children.nucleationFrame] == t).ypos],'b.')
-%         hold on
-%         parentx = [parents.xpos];
-%         parenty = [parents.ypos];
-%         plot(parentx(t:length(parentx)/length(parents):end),...
-%             parenty(t:length(parenty)/length(parents):end),'rx')
-%         
-%         hold off;
-%         axis([1 sx 1 sy]);
-%         pause(0.1);
-%         
-%     end
+    %     figure, hold on
+    %
+    %     for t=1:numf
+    %         plot([children([children.nucleationFrame] == t).xpos],...
+    %             [children([children.nucleationFrame] == t).ypos],'b.')
+    %         hold on
+    %         parentx = [parents.xpos];
+    %         parenty = [parents.ypos];
+    %         plot(parentx(t:length(parentx)/length(parents):end),...
+    %             parenty(t:length(parenty)/length(parents):end),'rx')
+    %
+    %         hold off;
+    %         axis([1 sx 1 sy]);
+    %         pause(0.1);
+    %
+    %     end
     figure, hold on
     plot([children.xpos],[children.ypos],'b.')
     
@@ -544,7 +543,7 @@ sy = imagesize(2);
 
 vec_nump = poissrnd([parents.numChild]);
 if ~strcmp(processType,'saffarian')
-vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]) = 0; %2*vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]);
+    vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]) = 0; %2*vec_nump([parents.currentTimeSinceLastChild] < [parents.timeLag]);
 end
 % initialize daughter points
 cmpm_daughters = [];
@@ -583,11 +582,11 @@ for ipar=1:length(parents)
 end
 
 if ~isempty(cmpm_daughters)
-px0 = (cmpm_daughters(:,1)>1);
-py0 = (cmpm_daughters(:,2)>1);
-pxi = (cmpm_daughters(:,1)<sx);
-pyi = (cmpm_daughters(:,2)<sy);
-mpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
+    px0 = (cmpm_daughters(:,1)>1);
+    py0 = (cmpm_daughters(:,2)>1);
+    pxi = (cmpm_daughters(:,1)<sx);
+    pyi = (cmpm_daughters(:,2)<sy);
+    mpm_daughters = cmpm_daughters(px0 & py0 & pxi & pyi,:);
 else
     mpm_daughters = [];
 end
@@ -664,10 +663,10 @@ function [mpm_mother_curr] = diffuseParentMPM( mpm_mother_prev,sigma_diff, confR
 %was originally changed to, not those of the first frame.
 findBoundaries = 1:length(mpm_mother_prev);
 while ~isempty(findBoundaries)
-mpm_mother_curr(findBoundaries,:) = mpm_mother_prev(findBoundaries,:) + ...
-    repmat(sigma_diff(findBoundaries),1,2).*rand(length(findBoundaries),2);
-distances = distMat2(mpm_mother_curr,mpm_mother_first);
-findBoundaries = find(diag(distances,0) > confRad);
+    mpm_mother_curr(findBoundaries,:) = mpm_mother_prev(findBoundaries,:) + ...
+        repmat(sigma_diff(findBoundaries),1,2).*rand(length(findBoundaries),2);
+    distances = distMat2(mpm_mother_curr,mpm_mother_first);
+    findBoundaries = find(diag(distances,0) > confRad);
 end
 end % of function diffuse parents
 
@@ -714,41 +713,43 @@ dm = distMat2([[children.xpos]' [children.ypos]'],...
 
 %for each type
 for iclus = clusterUnique
-for itype = typeUnique
-    %for each unique radius
-    for irad = radUnique
-        %for each unique percent bein restricted
-        for iper = perResUnique
-            %find closest restriction
-            dm_min = min(dm(:,[restrictions.radius] == irad & [restrictions.percentRestrict] == iper & [restrictions.type] == itype),[],2);
-            %if any restrictions apply
-            if ~isempty(dm_min)
-                % inclusive: exclude points that are outside radius from any
-                % restrictions
-                if itype == 4
-                    error('not implemented yet')
-                    fpos_stat = find(dm_min > irad);
-                    % exclusive: exclude points that are within radius from
-                    % rafts
-                elseif itype == 5
-                    fpos_stat = find(dm_min <= irad);
-                elseif itype == 2 || itype == 3
-                    fpos_stat = find([children.type]' == 1 & dm_min <= irad);
-                else
-                    error('restriction not recognized')
-                end
-                
-                %number of points to exclude is the total number of points that are
-                %found within/outside exclusion multiplied by the percent to be
-                %excluded
-                fpos_stat = randsample(fpos_stat,round(length(fpos_stat)*iper));
-                children(fpos_stat) = [];
-            end %of is any restrictions apply
-        end %of for each percentRestrict
-    end %of for each radius
-end %of for each type
-end %of for each cluster
+    for itype = typeUnique
+        %for each unique radius
+        for irad = radUnique
+            %for each unique percent bein restricted
+            for iper = perResUnique
+                %find closest restriction
+                dm_min = min(dm(:,[restrictions.radius] == irad & [restrictions.percentRestrict] == iper & [restrictions.type] == itype),[],2);
+                %if any restrictions apply
+                if ~isempty(dm_min)
+                    % inclusive: exclude points that are outside radius from any
+                    % restrictions
+                    if itype == 4
+                        error('not implemented yet')
+                        fpos_stat = find(dm_min > irad);
+                        % exclusive: exclude points that are within radius from
+                        % rafts
+                    elseif itype == 5
+                        fpos_stat = find(dm_min <= irad);
+                    elseif itype == 2 || itype == 3
+                        fpos_stat = find([children.type]' == 1 & dm_min <= irad);
+                    else
+                        error('restriction not recognized')
+                    end
+                    
+                    %number of points to exclude is the total number of points that are
+                    %found within/outside exclusion multiplied by the percent to be
+                    %excluded
+                    if ~isempty(fpos_stat)
+                        fpos_stat = randsample(fpos_stat,round(length(fpos_stat)*iper));
+                        children(fpos_stat) = [];
+                    end %of is any restrictions apply
+                end %of for each percentRestrict
+            end %of for each radius
+        end %of for each type
+    end %of for each cluster
 end %of function
+end
 
 %% ========================================================================
 function [currPoints] = restrictMPMBasedOnResources(currPoints,children,t)
