@@ -1,6 +1,6 @@
 %[tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
 %
-% INPUTS:     data       : experiment structure from 'loadConditionDataMultiChannel()'
+% INPUTS:     data       : experiment structure from 'loadConditionData()'
 %             {buffer}   : 
 %             {filename} : name of the tracker file to load
 %
