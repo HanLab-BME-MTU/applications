@@ -1,93 +1,138 @@
-function [experiment] = loadConditionData(condDir, marker)
+function [data] = loadConditionData(condDir, chNames, markers, parameters)
 % loadConditionData loads the relevant information for all the data
-% available for a specific experiment condition; this requires a specific
+% available for a specific data condition; this requires a specific
 % dircetory structure and nomenclature (see below)
 %
-% SYNOPSIS [experiment] = loadConditionData()
+% SYNOPSIS [data] = loadConditionData()
 %
 % INPUT
 %
-% OUTPUT   experiment: structure with the fields
-%                       .source = pathname of the data/movie
-%                       .date = date when movie was taken
-%                       .framerate = framerate of the movie (2s or 0.4s)
+% OUTPUT   data: structure with the fields
+%                   .source      : path of the data/movie, location of master channel frames
+%                   .channels    : cell array of paths for all channels
+%                   .date        : date of the acquisition
+%                   .framerate   : frame rate of the movie, in seconds
+%                   .imagesize   : dimensions of the movie
+%                   .movieLength : length of the movie, in frames
+%                   .markers     : cell array of fluorescent marker names
+%                   .NA          : numerical aperture of the objective
+%                   .M           : magnification of the objective
+%                   .pixelSize   : pixel size of the CCD, in meters
 %
 %
-%
-% Dinah Loerke, January 24th, 2008
-% Francois Aguet, 11/02/2009
-
+% Francois Aguet, October 2010
 
 if nargin<1
-    % select directory where all data for this condition are located
-    condDir = [uigetdir(pwd, 'Please select the folder for this condition') filesep];
+    condDir = [uigetdir(pwd, 'Select the ''condition'' folder:') filesep];
+end
+if ~strcmp(condDir(end), filesep)
+    condDir = [condDir filesep];
 end
 
-% get directories for experiments under this condition
+if nargin<3
+    markers = [];
+end
+if nargin<4
+    parameters = [1.49 100 6.7e-6];
+end
+
+fprintf('Root directory: %s\n', condDir);
+
+
+% list of experiments for this condition, each containing one or more 'cell' directories
 expDir = dirList(condDir);
 
-experiment = struct('source', [], 'channel1', [], 'date', [], 'framerate', [],...
-    'imagesize', [], 'movieLength', [], 'channel1marker', []);
+% if condDir is a 'cell' directory
+if ~isempty(regexpi(getDirFromPath(condDir), 'cell', 'once'))
+    cellPath{1} = condDir;
+% if expDir are 'cell' directories    
+elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), 'cell', 'once')))
+    cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
+else
+    cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
+    cellPath = vertcat(cellPath{:});
+end
 
-ct = 1;
-if ~isempty(expDir)
-    for i = 1:length(expDir)
-        
-        % extract date from file name
-        currDate = regexp(expDir(i).name, '\d+', 'match');
-        if isempty(currDate)
-            currDate = {'010101'}; % arbitrary default
-        elseif (length(currDate) > 1)
-            lengths = cellfun(@length, currDate);
-            currDate = currDate(lengths == max(lengths(:)));
-        end;
-        currDate = currDate{1};
-        expPath = [condDir expDir(i).name];
-        
-        % look for the individual cell data in this folder
-        cellDir = dirList(expPath);
-        
-        % loop over all cells
-        if ~isempty(cellDir)
-            for k = 1:length(cellDir)
-                
-                % extract framerate from the name of the cell folder
-                % NOTE: if there's no specific identification for fast, default to slow
-                if ~isempty(regexp(cellDir(k).name, '\d+s', 'match'))
-                    fr = regexp(cellDir(k).name, '\d+s', 'match');
-                    framerate = str2double(fr{1}(1:end-1));
-                elseif ~isempty(regexp(cellDir(k).name, '\d+ms', 'match'))
-                    fr = regexp(cellDir(k).name, '\d+ms', 'match');
-                    framerate = str2double(fr{1}(1:end-2))/1000;
-                elseif ~isempty(findstr(cellDir(k).name, 'fast'))
-                    framerate = 0.4;
-                else
-                    framerate = 2;
-                end
-                
-                % enter data
-                experiment(ct).source = [expPath filesep cellDir(k).name filesep];
-                experiment(ct).channel1 = experiment(ct).source;
-                experiment(ct).date = currDate;
-                experiment(ct).framerate = framerate;
-                if nargin>1
-                    experiment(ct).channel1marker = marker;
-                end
-                if nargin<3
-                    experiment(ct).NA = 1.49;
-                    experiment(ct).M = 100;
-                    experiment(ct).pixelSize = 6.7e-6;
-                end
-                
-                tifFiles = dir([experiment(ct).source '*.tif*']);
-                if ~isempty(tifFiles)
-                    experiment(ct).imagesize = size(imread([experiment(ct).source tifFiles(1).name]));
-                    experiment(ct).movieLength = length(tifFiles);
-                    ct = ct+1;
-                end
-            end
-        end
+% check whether directory names contain 'cell'
+valid = cellfun(@(x) ~isempty(regexpi(getDirFromPath(x), 'cell', 'once')), cellPath);
+cellPath = cellPath(valid==1);
+nCells = length(cellPath);
+
+% no 'cell' folders are found
+if nCells == 0
+    error('No data found in directory.');
+end
+
+data(1:nCells) = struct('source', [], 'channels', [], 'date', [], 'framerate', [],...
+    'imagesize', [], 'movieLength', [], 'markers', []);
+
+
+% Load/determine channel names
+if nargin<2
+    nCh = input('Enter the number of channels: ');
+    chNames = cell(1,nCh);
+    chPath = [uigetdir(cellPath{1}, 'Select first (master) channel:') filesep];
+    chNames{1} = chPath(length(cellPath{1})+1:end-1);
+    for c = 2:nCh
+        chPath = [uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']) filesep];
+        chNames{c} = chPath(length(cellPath{1})+1:end-1);
+    end
+    for c = 1:nCh
+        markers{c} = input(['Enter the fluorescent marker for channel ' num2str(c) ': '], 's');
     end
 else
-    error('no usable data in directory');
+    nCh = length(chNames);
+end
+for c = 1:nCh
+    fprintf('Channel %d name: "%s"\n', c, chNames{c});
+end
+
+
+channels = cell(1,nCh);
+for k = 1:nCells
+        
+    % detect date
+    data(k).date = cell2mat(regexp(cellPath{k}, '\d{6}+', 'match'));
+    if isempty(date)
+        data(k).date = '000000';
+    end
+    
+    % detect frame rate
+    fr = regexp(cellPath{k}, '_(\d+)?(.)?\d+s', 'match');
+    if ~isempty(fr)
+        data(k).framerate = str2double(fr{1}(2:end-1));
+    else
+        fr = regexp(cellPath{k}, '_\d+ms', 'match');
+        if ~isempty(fr)
+            data(k).framerate = str2double(fr{1}(2:end-2))/1000;
+        end
+    end
+    
+    % assign full channel paths
+    for c = 1:nCh
+        if ~isempty(chNames{c})
+            channels{c} = [cellPath{k} chNames{c} filesep];
+        else
+            channels{c} = cellPath{k};
+        end
+        if ~(exist(channels{c}, 'dir')==7)
+            channels{c} = [uigetdir(cellPath{k}, ['Select channel #' num2str(c) ':']) filesep];
+        end
+    end
+    data(k).channels = channels;
+    data(k).source = channels{1}; % master channel
+
+
+    % load master channel frames
+    tifFiles = dir([data(k).channels{1} '*.tif']);
+    data(k).imagesize = size(imread([data(k).channels{1} tifFiles(1).name]));
+    data(k).movieLength = length(tifFiles);
+    
+    data(k).markers = markers;
+    
+    data(k).NA = parameters(1);
+    data(k).M = parameters(2);
+    data(k).pixelSize = parameters(3);
+    
+    fprintf('Loaded: %s\n', cellPath{k});
 end
