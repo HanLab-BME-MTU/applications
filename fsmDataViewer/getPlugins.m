@@ -113,4 +113,10 @@ layerPlugins(6).filterSpec = {'*.mat'};
 layerPlugins(6).displayFunc = @displayKhuloudTracks;
 layerPlugins(6).dispatchFunc = @dispatchKhuloudTracks;
 
+% [Graph] Grouping
+layerPlugins(7).desc = '[Graph] Grouping';
+layerPlugins(7).filterSpec = {'*.mat'};
+layerPlugins(7).displayFunc = @displayGrouping;
+layerPlugins(7).dispatchFunc = @dispatchStructToFrames;
+
 end

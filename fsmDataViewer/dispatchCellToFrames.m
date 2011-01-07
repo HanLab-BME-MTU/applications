@@ -18,8 +18,4 @@ if numel(C) ~= nFrames
     error('The cell size does not match the number of frames.');
 end
 
-dataLayer = cell(nFrames,1);
-
-for iFrame = 1:nFrames
-    dataLayer{iFrame} = C{iFrame};
-end
+dataLayer = C;
