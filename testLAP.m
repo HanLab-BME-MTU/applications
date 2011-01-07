@@ -7,8 +7,8 @@ load(fullfile(movieData.particleTracking.directory, ...
 nTracks = size(tracksFinal,1); %#ok<NODEF>
 
 % Check there is no split and merge
-% if split and merge was enabled, it would create complexify the
-% interpolation in gaps (see step 3)
+% if split and merge was enabled, it would complexify the interpolation in
+% gaps (see step 3)
 seqOfEvents = vertcat(tracksFinal(:).seqOfEvents);
 assert(nnz(isnan(seqOfEvents(:,4))) == size(seqOfEvents,1));
 
@@ -94,8 +94,91 @@ for k = 1:length(firstIdx)
     y2 = Y(idx2);
 
     % average distance   
-    euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), [length(range) overlapValues(k)]), 2);
+    euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
+        [length(range) overlapValues(k)]), 2);
 end
+
+% 5) Trim the pair of tracks that are too far apart from each other
+pairIdx = pairIdx(euclidianDist <= maxEuclidianDist,:);
+
+fprintf('Neighboring track pairs = %f %%\n',...
+    size(pairIdx,1) * 100 / numel(hasOverlap));
+
+
+
+% DEBUG: save pair tracks per frame
+
+
+% Calculate the connected component and store the CC and the tracks
+% (instead of storing the edges only).
+
+G = sparse(pairIdx(:,1),pairIdx(:,2),true(size(pairIdx,1),1), ...
+    nTracks, nTracks,size(pairIdx,1));
+
+ccTracks = cell(nTracks,1);
+
+marked = false(nTracks);
+
+for iTrack = 1:nTracks
+    if ~marked(iTrack)
+        ccTracks{iTrack} = rec(iTrack,pairIdx,marked);
+    end
+end
+
+    function trackInCC = rec(iTrack)
+        marked(iTrack) = true;
+        
+        jdx = find(G(i,:));
+        
+        for jj = 1:numel(jdx)
+            j = jdx(jj);
+            
+            if (~marked(j))
+                
+            end
+        end
+    end
+
+grouping(1:nFrames) = struct('edges',[],'vertices',[]);
+
+for iFrame = 1:nFrames
+    % Find which tracks live in iFrame
+    inFrameTrackIdx = find(iFirst <= iFrame & iLast >= iFrame);
+    
+    % Find the pair whose tracks are both in iFrame
+    isInFramePair = ismember(pairIdx(:,1), inFrameIdx) & ...
+        ismember(pairIdx(:,2), inFrameTrackIdx);
+    
+    inFramePairIdx = pairIdx(isInFramePair,:);
+       
+    % Indices of tracks that live in iFrame AND are referred by pairIdx
+    trackIdx = sort(unique(inFramePairIdx(:)));
+    
+    % We need to transform
+    %
+    % inFramePairIdx = [12 36
+    %                   21 44
+    %                   26 36]
+    %
+    % into
+    %
+    % inFramePairIdx = [1 4
+    %                   2 5
+    %                   3 4]
+    ctr = 1;
+    for iTrack = trackIdx
+        inFramePairIdx(inFramePairIdx == iTrack) = ctr;
+        ctr = ctr + 1;
+    end
+    
+    % the edge of the graph (inFramePairIdx) is ok.
+    edges = inFramePairIdx;
+    vertices = trackInfos(trackIdx);
+    
+    % Calculate the connected component and store the CC and the tracks
+    % (instead of storing the edges only).
+end
+
 
 % 3) Trim the set of pair candidates by assessing how far they are from
 % each other (radon distance)
