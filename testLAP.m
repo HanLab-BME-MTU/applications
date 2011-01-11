@@ -48,7 +48,7 @@ gapStarts = find(gacombIdx==1)+1;
 gapEnds = find(gacombIdx==-1);
 gapLengths = gapEnds-gapStarts+1;
 nGaps = length(gapLengths);
-        
+
 for g = 1:nGaps
     borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
     gacombIdx = gapStarts(g):gapEnds(g);
@@ -92,8 +92,8 @@ for k = 1:length(firstIdx)
     y1 = Y(idx1);
     x2 = X(idx2);
     y2 = Y(idx2);
-
-    % average distance   
+    
+    % average distance
     euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
         [length(range) overlapValues(k)]), 2);
 end
@@ -104,10 +104,7 @@ pairIdx = pairIdx(euclidianDist <= maxEuclidianDist,:);
 fprintf('Neighboring track pairs = %f %%\n',...
     size(pairIdx,1) * 100 / numel(hasOverlap));
 
-
-
 % DEBUG: save pair tracks per frame
-
 
 % Calculate the connected component and store the CC and the tracks
 % (instead of storing the edges only).
@@ -121,64 +118,15 @@ marked = false(nTracks);
 
 for iTrack = 1:nTracks
     if ~marked(iTrack)
-        ccTracks{iTrack} = rec(iTrack,pairIdx,marked);
+        [ccTracks{iTrack} marked] = rec(G, iTrack, marked);
     end
 end
 
-    function trackInCC = rec(iTrack)
-        marked(iTrack) = true;
-        
-        jdx = find(G(i,:));
-        
-        for jj = 1:numel(jdx)
-            j = jdx(jj);
-            
-            if (~marked(j))
-                
-            end
-        end
-    end
+ind = cellfun(@isempty, ccTracks);
+ccTracks = ccTracks(~ind); %#ok<NASGU>
 
-grouping(1:nFrames) = struct('edges',[],'vertices',[]);
-
-for iFrame = 1:nFrames
-    % Find which tracks live in iFrame
-    inFrameTrackIdx = find(iFirst <= iFrame & iLast >= iFrame);
-    
-    % Find the pair whose tracks are both in iFrame
-    isInFramePair = ismember(pairIdx(:,1), inFrameIdx) & ...
-        ismember(pairIdx(:,2), inFrameTrackIdx);
-    
-    inFramePairIdx = pairIdx(isInFramePair,:);
-       
-    % Indices of tracks that live in iFrame AND are referred by pairIdx
-    trackIdx = sort(unique(inFramePairIdx(:)));
-    
-    % We need to transform
-    %
-    % inFramePairIdx = [12 36
-    %                   21 44
-    %                   26 36]
-    %
-    % into
-    %
-    % inFramePairIdx = [1 4
-    %                   2 5
-    %                   3 4]
-    ctr = 1;
-    for iTrack = trackIdx
-        inFramePairIdx(inFramePairIdx == iTrack) = ctr;
-        ctr = ctr + 1;
-    end
-    
-    % the edge of the graph (inFramePairIdx) is ok.
-    edges = inFramePairIdx;
-    vertices = trackInfos(trackIdx);
-    
-    % Calculate the connected component and store the CC and the tracks
-    % (instead of storing the edges only).
-end
-
+save(fullfile(movieData.particleTracking.directory, 'ccTracks.mat'),...
+    'tracksFinal', 'ccTracks');
 
 % 3) Trim the set of pair candidates by assessing how far they are from
 % each other (radon distance)
@@ -209,73 +157,90 @@ end
 % thA: [0, pi]
 % thP: [0, 1]
 
-imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
-imageFiles = dir([imagePath filesep '*.tif']);
-ima = imread(fullfile(imagePath, imageFiles(1).name));
-
-load(fullfile(movieData.particleDetection.directory, ...
-    movieData.particleDetection.filename));
-
-X = [featuresInfo(1).xCoord, featuresInfo(1).yCoord];
-ind = sub2ind(size(ima),X(:,2),X(:,1));
-N = size(ind,1);
-
-[~, T] = steerableFiltering(double(ima),2,2);
-
-Y = [cos(T(ind)), sin(T(ind))];
-
-pair = pcombs(1:N,false);
-
-u0 = X(pair(:,1),:);
-u1 = u0 + Y(pair(:,1),:);
-v0 = X(pair(:,2),:);
-v1 = v0 + Y(pair(:,2),:);
-
-isValid = true(size(pair,1),1);
-
-% euclidian distance [0...+inf]
-dE = sqrt(sum((u0 - v0).^2,2));
-isValid = isValid & dE <= thE;
-
-% angle between u and v
-% dot = abs(sum((u1 - u0) .* (v1 - v0),2));
-% dot(dot > 1) = 1;
-% dot(dot < -1) = -1;
-% dA = acos(dot);
-% isValid = isValid & dA <= thA;
+% imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
+% imageFiles = dir([imagePath filesep '*.tif']);
+% ima = imread(fullfile(imagePath, imageFiles(1).name));
 % 
-% mean distance of u1 and v1 projected on the line (u0,v0)
-dP1 = sqrt(1 - (sum((u1-u0) .* (v0-u0),2) ./ dE).^2);
-dP2 = sqrt(1 - (sum((v1-v0) .* (v0-u0),2) ./ dE).^2);
-dP = dP1 .* dP2;
-isValid = isValid & dP <= thP;
+% load(fullfile(movieData.particleDetection.directory, ...
+%     movieData.particleDetection.filename));
 % 
-% cost = exp(- (dE .* (1/pi) .* dA .* dP));
+% X = [featuresInfo(1).xCoord, featuresInfo(1).yCoord];
+% ind = sub2ind(size(ima),X(:,2),X(:,1));
+% N = size(ind,1);
+% 
+% [~, T] = steerableFiltering(double(ima),2,2);
+% 
+% Y = [cos(T(ind)), sin(T(ind))];
+% 
+% pair = pcombs(1:N,false);
+% 
+% u0 = X(pair(:,1),:);
+% u1 = u0 + Y(pair(:,1),:);
+% v0 = X(pair(:,2),:);
+% v1 = v0 + Y(pair(:,2),:);
+% 
+% isValid = true(size(pair,1),1);
+% 
+% % euclidian distance [0...+inf]
+% dE = sqrt(sum((u0 - v0).^2,2));
+% isValid = isValid & dE <= thE;
+% 
+% % angle between u and v
+% % dot = abs(sum((u1 - u0) .* (v1 - v0),2));
+% % dot(dot > 1) = 1;
+% % dot(dot < -1) = -1;
+% % dA = acos(dot);
+% % isValid = isValid & dA <= thA;
+% %
+% % mean distance of u1 and v1 projected on the line (u0,v0)
+% dP1 = sqrt(1 - (sum((u1-u0) .* (v0-u0),2) ./ dE).^2);
+% dP2 = sqrt(1 - (sum((v1-v0) .* (v0-u0),2) ./ dE).^2);
+% dP = dP1 .* dP2;
+% isValid = isValid & dP <= thP;
+% %
+% % cost = exp(- (dE .* (1/pi) .* dA .* dP));
+% 
+% cost = 1./ dE;
+% 
+% % Build cost matrix
+% i = pair(isValid,1);
+% j = pair(isValid,2);
+% c = cost(isValid);
+% 
+% % Populate the lower triangular part only
+% D = sparse(j, i, c, N, N, numel(c));
+% 
+% % Compute Maximum Weight Matching
+% M = maxWeightMatching(D);
+% 
+% % Display result
+% imshow(ima,[]);
+% hold on;
+% 
+% B = zeros(N);
+% ind = sub2ind([N N],M(:,1),M(:,2));
+% B(ind) = 1;
+% 
+% line(X(:,1),X(:,2),'LineStyle','none', 'Marker', '.', 'Color', 'g');
+% gplot(B,X,'r');
+% quiver(X(:,1),X(:,2),Y(:,1),Y(:,2),0,'b');
 
-cost = 1./ dE;
+function [tracksInCC marked] = rec(G, i, marked)
+marked(i) = true;
 
-% Build cost matrix
-i = pair(isValid,1);
-j = pair(isValid,2);
-c = cost(isValid);
+jdx = find(G(i,:));
 
-% Populate the lower triangular part only
-D = sparse(j, i, c, N, N, numel(c));
+nTracksInCC = numel(jdx);
+tracksInCC= cell(1,nTracksInCC+1);
+tracksInCC{1} = i;
 
-% Compute Maximum Weight Matching
-M = maxWeightMatching(D);
-
-
-% Display result
-imshow(ima,[]);
-hold on;
-
-B = zeros(N);
-ind = sub2ind([N N],M(:,1),M(:,2));
-B(ind) = 1;
-
-line(X(:,1),X(:,2),'LineStyle','none', 'Marker', '.', 'Color', 'g');
-gplot(B,X,'r');
-quiver(X(:,1),X(:,2),Y(:,1),Y(:,2),0,'b');
-
+for jj = 1:numel(jdx)
+    j = jdx(jj);
+    
+    if (~marked(j))
+        [tracksInCC{jj+1} marked] = rec(G, j, marked);
+    end
 end
+
+ind = cellfun(@isempty, tracksInCC);
+tracksInCC = horzcat(tracksInCC{~ind});
