@@ -93,15 +93,12 @@ for i = 1:nMovies
     
     % select first image for the intensity channel
     if nargin>3 && ~isempty(channel)
-        ipath = data(i).(channel);
+        ipath = data(i).channels{channel};
     else
         ipath = data(i).source;
     end
-    %[imageName, imagePath] = uigetfile({'*.tif';'*.mat'},['Select first intensity image or parameter mat in movie #' num2str(i)], ipath); 
     imageName = dir([ipath filesep '*.tif']);
-    imageName = imageName(1).name;
-    imagePath = ipath;
-    ImageStackList(i).list = getFileStackNames([imagePath imageName]);
+    ImageStackList(i).list = getFileStackNames([ipath imageName(1).name]);
 end
 
 % read intensities at designated positions (the positions of detected and
