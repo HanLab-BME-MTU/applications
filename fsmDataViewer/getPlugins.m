@@ -113,10 +113,10 @@ layerPlugins(6).filterSpec = {'*.mat'};
 layerPlugins(6).displayFunc = @displayKhuloudTracks;
 layerPlugins(6).dispatchFunc = @dispatchKhuloudTracks;
 
-% [Graph] Grouping
-layerPlugins(7).desc = '[Graph] Grouping';
+% [Graph] Classified Tracks
+layerPlugins(7).desc = '[Graph] Classified Tracks';
 layerPlugins(7).filterSpec = {'*.mat'};
-layerPlugins(7).displayFunc = @displayGrouping;
-layerPlugins(7).dispatchFunc = @dispatchStructToFrames;
+layerPlugins(7).displayFunc = @displayClassifiedTracks;
+layerPlugins(7).dispatchFunc = @dispatchClassifiedTracks;
 
 end
