@@ -38,8 +38,20 @@ if nargin < 8 || isempty(alphaT)
     alphaT = 0.05;
 end
 
+assert(checkMovieParticleTracking(movieData));
+
+movieData.pairTracks.status = 0;
+
+movieData.pairTracks.directory = fullfile(movieData.analysisDirectory, 'pairTracks');
+
+% Create output directory
+if ~exist(movieData.pairTracks.directory, 'dir')
+    mkdir(movieData.pairTracks.directory);
+end
+
+nFrames = movieData.nImages(iChannel);
+
 % Load images
-nFrames = movieData.nImages;
 imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{iChannel});
 imageFiles = dir([imagePath filesep '*.tif']);
 
@@ -145,13 +157,13 @@ for iTrack = 1:nTracks
     isFeatureAligned(iTrack) = k > cutoffs(numel(theta));
 end
 
-% DEBUG: save tracks classification
+% Save tracks classification
+percent = nnz(~isFeatureAligned) * 100 / numel(isFeatureAligned);
 fprintf('Feature-based track classification: static = %f %%, linear = %f %%\n',...
-    nnz(~isFeatureAligned) * 100 / numel(isFeatureAligned), ...
-    nnz(isFeatureAligned) * 100 / numel(isFeatureAligned));
+    percent, 100 - percent);
 
 trackLabels = isFeatureAligned + 1; %#ok<NASGU> % (1 == static, 2 == aligned)
-save(fullfile(movieData.particleTracking.directory, ...
+save(fullfile(movieData.pairTracks.directory, ...
     'classifiedTracksPerFeatureAlignement.mat'),'tracksFinal', 'trackLabels');
 
 % 4) Classify each track whether its dynamics linear or not
@@ -159,11 +171,24 @@ save(fullfile(movieData.particleTracking.directory, ...
 % thetaTracks is a cell array of size nTracks, where each cell contains an
 % array of size = lifetime of the track -1 and contains the direction from
 % one track point to the next
-thetaTracks = arrayfun(@(track) zeros(1, size(track.tracksFeatIndxCG,2) - 1), ...
-    tracksFinal, 'UniformOutput', false);
+thetaTracks = cell(nTracks,1);
 
-for iFrame = 1:nFrames
-    % TODO
+for iTrack = 1:nTracks
+    dU = X(first(iTrack)+1:last(iTrack)) - X(first(iTrack):last(iTrack)-1);
+    dV = Y(first(iTrack)+1:last(iTrack)) - Y(first(iTrack):last(iTrack)-1);
+    
+    % Normalize vector
+    norm = sqrt(dU.^2 + dV.^2);     % norm can be 0 !!!
+    
+    theta = zeros(size(norm));
+    isNull = abs(norm) < eps;
+    theta(isNull) = NaN;
+    
+    dU = bsxfun(@rdivide,dU(~isNull),norm(~isNull));
+    dV = bsxfun(@rdivide,dV(~isNull),norm(~isNull));
+    theta(~isNull) = atan2(dU,dV);
+    
+    thetaTracks{iTrack} = theta;
 end
 
 isDynamicsAligned = false(nTracks,1);
@@ -172,21 +197,23 @@ for iTrack = 1:nTracks
     theta = thetaTracks{iTrack};
     
     nonNaNTheta = theta(~isnan(theta));
-    
-    isInWedge = bsxfun(@(t,w) t >= w & t < w + pi * accT, nonNaNTheta', wedges);
-    
-    k = max(sum(isInWedge,1));
 
-    isDynamicsAligned(iTrack) = k > cutoffs(numel(theta));
+    if ~isempty(nonNaNTheta)
+        isInWedge = bsxfun(@(t,w) t >= w & t < w + pi * accT, nonNaNTheta, wedges);
+    
+        k = max(sum(isInWedge,1));
+
+        isDynamicsAligned(iTrack) = k > cutoffs(numel(theta));
+    end
 end
 
-% DEBUG: save tracks classification
+% Save tracks classification
+percent = nnz(~isDynamicsAligned) * 100 / numel(isDynamicsAligned);
 fprintf('Dynamics-based track classification: static = %f %%, linear = %f %%\n',...
-    nnz(~isDynamicsAligned) * 100 / numel(isDynamicsAligned), ...
-    nnz(isDynamicsAligned) * 100 / numel(isDynamicsAligned));
+    percent, 100 - percent);
 
 trackLabels = isDynamicsAligned + 1; %#ok<NASGU> % (1 == static, 2 == aligned)
-save(fullfile(movieData.particleTracking.directory, ...
+save(fullfile(movieData.pairTracks.directory, ...
     'classifiedTracksPerDynamicsAlignement.mat'),'tracksFinal', 'trackLabels');
 
 % 5) Find the set of track pair candidates that significantly overlap in
@@ -250,15 +277,15 @@ end
 % 7) Trim the pair of tracks that are too far apart from each other
 pairIdx = pairIdx(euclidianDist <= maxEuclidianDist,:);
 
-% DEBUG: save pair tracks per frame
+% Save pair tracks per frame
 trackLabels = computeLabel(pairIdx, nTracks); %#ok<NASGU>
-save(fullfile(movieData.particleTracking.directory, ...
+save(fullfile(movieData.pairTracks.directory, ...
     'classifiedTracksPerDistance.mat'),'tracksFinal', 'trackLabels');
 
 % 8) For every possible combination of pair type, compute the probability
 % of association:
 %
-% STATIC / STATIC
+% STATIC / STATIC => NO LINK !!!
 % LINEAR / STATIC
 % LINEAR / LINEAR
 
@@ -266,102 +293,5 @@ save(fullfile(movieData.particleTracking.directory, ...
 
 % 10) Display
 
-
-% 3) Trim the set of pair candidates by assessing how far they are from
-% each other (radon distance)
-%
-% Q: What the threshold values (t and alpha)
-%
-% 4) Compute the max-weight matching problem on radon distance-based
-% similarity function
-%
-% Q: what is the track-track similarity function?
-% Q: is the double -> int quantification works?
-%
-% 5) Post-processing: remove pairs that are unsignificant
-%
-% Q: What is unsignificant?
-%
-% 6) Compute the similarity function for track-segment pair candidate and
-% segment-segment pair candidate?
-%
-% Q: What is the track-segment similarity function?
-%
-% 7) Redo steps 4-6 until convergence
-%
-% Q: What is the stop criteria?
-
-
-% thE: [0, +inf)
-% thA: [0, pi]
-% thP: [0, 1]
-
-% imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
-% imageFiles = dir([imagePath filesep '*.tif']);
-% ima = imread(fullfile(imagePath, imageFiles(1).name));
-% 
-% load(fullfile(movieData.particleDetection.directory, ...
-%     movieData.particleDetection.filename));
-% 
-% X = [featuresInfo(1).xCoord, featuresInfo(1).yCoord];
-% ind = sub2ind(size(ima),X(:,2),X(:,1));
-% N = size(ind,1);
-% 
-% [~, T] = steerableFiltering(double(ima),2,2);
-% 
-% Y = [cos(T(ind)), sin(T(ind))];
-% 
-% pair = pcombs(1:N,false);
-% 
-% u0 = X(pair(:,1),:);
-% u1 = u0 + Y(pair(:,1),:);
-% v0 = X(pair(:,2),:);
-% v1 = v0 + Y(pair(:,2),:);
-% 
-% isValid = true(size(pair,1),1);
-% 
-% % euclidian distance [0...+inf]
-% dE = sqrt(sum((u0 - v0).^2,2));
-% isValid = isValid & dE <= thE;
-% 
-% % angle between u and v
-% % dot = abs(sum((u1 - u0) .* (v1 - v0),2));
-% % dot(dot > 1) = 1;
-% % dot(dot < -1) = -1;
-% % dA = acos(dot);
-% % isValid = isValid & dA <= thA;
-% %
-% % mean distance of u1 and v1 projected on the line (u0,v0)
-% dP1 = sqrt(1 - (sum((u1-u0) .* (v0-u0),2) ./ dE).^2);
-% dP2 = sqrt(1 - (sum((v1-v0) .* (v0-u0),2) ./ dE).^2);
-% dP = dP1 .* dP2;
-% isValid = isValid & dP <= thP;
-% %
-% % cost = exp(- (dE .* (1/pi) .* dA .* dP));
-% 
-% cost = 1./ dE;
-% 
-% % Build cost matrix
-% i = pair(isValid,1);
-% j = pair(isValid,2);
-% c = cost(isValid);
-% 
-% % Populate the lower triangular part only
-% D = sparse(j, i, c, N, N, numel(c));
-% 
-% % Compute Maximum Weight Matching
-% M = maxWeightMatching(D);
-% 
-% % Display result
-% imshow(ima,[]);
-% hold on;
-% 
-% B = zeros(N);
-% ind = sub2ind([N N],M(:,1),M(:,2));
-% B(ind) = 1;
-% 
-% line(X(:,1),X(:,2),'LineStyle','none', 'Marker', '.', 'Color', 'g');
-% gplot(B,X,'r');
-% quiver(X(:,1),X(:,2),Y(:,1),Y(:,2),0,'b');
-
+movieData.pairTracks.status = 1;
 
