@@ -188,10 +188,15 @@ while finished==false
             end
             % devide the force field into two parts:
             [cell1_mask, cell2_mask, cell1_bdr_Pix, cell2_bdr_Pix, interface_Pix, cell1_extMask, ~, ~, ~]=intersecMaskPolygon(curveCellCluster,curveInterface);
+            % cell1/2_mask include respective portions of holes, since when
+            % summing up the forces, the forces in the holes should be
+            % associated with one of the cells, as it is the case for
+            % forces in the halo around cells.
             curveCellCluster=cell2_bdr_Pix; %perimCell2_Pix;
             
             % The following lines are needed to find the inner masks:
             [rowsROI,colsROI]=size(constrForceField{i}.segmRes.mask);
+            % Extend cell1/2_mask_large to the full size of the image;
             cell1_mask_large=cell1_mask;
             cell1_mask_large(rowsROI,colsROI)=0;
             cell2_mask_large=cell2_mask;
@@ -200,7 +205,7 @@ while finished==false
             % store these values:
             constrForceField{i}.cell{j}.mask      = cell1_mask;
             constrForceField{i}.cell{j}.extMask   = cell1_extMask;
-            constrForceField{i}.cell{j}.innerMask = constrForceField{i}.segmRes.mask &  cell1_mask_large;
+            constrForceField{i}.cell{j}.innerMask = constrForceField{i}.segmRes.mask &  cell1_mask_large; % Since segmRes.mask exclude holes, the innerMask also exclude any holes!
             constrForceField{i}.cell{j}.center    = centerOfMass(cell1_mask);
             constrForceField{i}.cell{j}.boundary  = cell1_bdr_Pix;
             constrForceField{i}.cell{j}.interface = interface_Pix;

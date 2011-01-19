@@ -23,11 +23,52 @@ end
 for j=1:length(edge)
     intf=edge{j}.intf;
     % we check which part of it is within the detected cell
-    % perimeter:
-    curve=constrForceField{frame}.segmRes.curve;
-    checkVec=inpolygon(intf(:,1),intf(:,2),curve(:,1),curve(:,2));
+    % perimeter:    
+    % \\Begin new code
+    mask     = constrForceField{frame}.segmRes.mask; % this is the inner mask that has 0 at holes!
+    indIntf  = sub2ind(size(mask),intf(:,2), intf(:,1));
+    checkVec = mask(indIntf);
+    cc       = bwconncomp(checkVec); 
+    % There should be only one connected component!!! If there are more
+    % than one, there might be issues at the intersection. Then choose the
+    % longest piece:
+    if length(cc.PixelIdxList)==1
+        idxList=cc.PixelIdxList{1};
+        if issorted(idxList)
+            intf_internal=intf(idxList,:);
+        else
+            error('Pts along the interface are not sorted correctly');
+        end
+    elseif length(cc.PixelIdxList)>1
+        % find the largest piece:
+        pMax=1;
+        lMax=length(cc.PixelIdxList{1});
+        for p=2:length(cc.PixelIdxList)
+            currl=length(cc.PixelIdxList{p});
+            if currl>lMax
+                pMax=p;
+                lMax=currl;
+            end
+        end
+        idxList=cc.PixelIdxList{pMax};
+        if issorted(idxList)
+            intf_internal=intf(idxList,:);
+        else
+            error('Pts along the interface are not sorted correctly');
+        end        
+    elseif length(cc.PixelIdxList)==0
+        error('No internal interfaces!');
+    end    
+    % End new code\\
+    
+    % \\Begin old code
+    %curve=constrForceField{frame}.segmRes.curve;
+    %checkVec=inpolygon(intf(:,1),intf(:,2),curve(:,1),curve(:,2));
     % this interface has the same direction as edge{j}.intf: 
-    intf_internal=intf(checkVec,:);
+    %intf_internal=intf(checkVec,:);
+    % \\End old code
+    
+    
     % the direct connection between start and end point:
     directConnect=intf_internal(end,:)-intf_internal(1,:);
     % the normal on the direct connection is also equivalent to the average
