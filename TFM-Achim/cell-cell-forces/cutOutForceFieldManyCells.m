@@ -209,7 +209,7 @@ while finished==false
             constrForceField{i}.cell{j}.center    = centerOfMass(cell1_mask);
             constrForceField{i}.cell{j}.boundary  = cell1_bdr_Pix;
             constrForceField{i}.cell{j}.interface = interface_Pix;
-            constrForceField{i}.cell{j}.cellArea  = constrForceField{i}.par.pixSize_mu^2*calcCellArea(constrForceField{i}.cell{j}.innerMask,constrForceField{i}.segmRes.hole);
+            constrForceField{i}.cell{j}.cellArea  = constrForceField{i}.par.pixSize_mu^2*calcCellArea(constrForceField{i}.cell{j}.innerMask);%,constrForceField{i}.segmRes.hole);
             % [cellArea]=um^2.
 
             % This will be overwritten in the next run:

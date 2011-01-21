@@ -51,7 +51,7 @@ for k=1:length(node)
             sizeCirc=50*node{k}.mag/maxMag;
         end
         plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','w','MarkerSize',sizeCirc,'LineWidth',2)
-        if isfield(node{k},'spec') && node{k}.spec==1
+        if isfield(node{k},'spec') && ~isempty(node{k}.spec) && node{k}.spec==1
             %text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
             text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
         else

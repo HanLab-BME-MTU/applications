@@ -1,4 +1,4 @@
-function cellArea=calcCellArea(cellMask,hole)
+function cellArea=calcCellArea(cellMask)%,hole)
 % subtract only holes that are at the interface, holes in the center of
 % the cell will be counted!
 
