@@ -74,7 +74,6 @@ for j=1:length(constrForceField{i}.interface)
     end
 end
 
-nargin=3;doPlot=1;
 if nargin>2 && doPlot==1
     marker=['r','b','m','c','g','y','k'];
     figure(111)
@@ -168,12 +167,10 @@ for numItf=1:length(twoCellIntf)
     end
 end
 
-twoCellIntf=twoCellIntfCond;
-
 marker=['r','b','m','c','g','y','k'];
 figure(112)
-for p=1:length(twoCellIntf)
-    plot(twoCellIntf{p}.pos(:,1),twoCellIntf{p}.pos(:,2),marker(mod(p,7)+1))
+for p=1:length(twoCellIntfCond)
+    plot(twoCellIntfCond{p}.pos(:,1),twoCellIntfCond{p}.pos(:,2),marker(mod(p,7)+1))
     hold on
 end
 plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.curve(:,2),'k')

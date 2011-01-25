@@ -55,20 +55,28 @@ else
     BWmask(indMask)=1;    
     [rowsMask,colsMask]=size(mask);
 end
-    
-pixelPath=[];
-for i = 1:size(polygon,1)-1
-    p1 = polygon(i  ,:);
-    p2 = polygon(i+1,:);
-    piece(i).pix = bresenham(p1,p2,4); % pList is a Mx2 matrix
-    if i==1
-        pixelPath=vertcat(pixelPath,piece(i).pix(1:end,:)); 
-    else
-        % To avoid double points:
-        pixelPath=vertcat(pixelPath,piece(i).pix(2:end,:));
-    end
-end
-pixelPath=removeDoublePoints(pixelPath);
+
+%----------------
+% begin old code
+% pixelPath=[];
+% for i = 1:size(polygon,1)-1
+%     p1 = polygon(i  ,:);
+%     p2 = polygon(i+1,:);
+%     piece(i).pix = bresenham(p1,p2,4); % pList is a Mx2 matrix
+%     if i==1
+%         pixelPath=vertcat(pixelPath,piece(i).pix(1:end,:)); 
+%     else
+%         % To avoid double points:
+%         pixelPath=vertcat(pixelPath,piece(i).pix(2:end,:));
+%     end
+% end
+% pixelPath=removeDoublePoints(pixelPath);
+% end old code
+%----------------
+% begin new code
+[pixelPath,piece]=createPixelPath(polygon);
+% begin new code
+%----------------
 
 indPixelPath = sub2ind(size(BWmask), pixelPath(:,2), pixelPath(:,1));    
 indHits = find(BWmask(indPixelPath));

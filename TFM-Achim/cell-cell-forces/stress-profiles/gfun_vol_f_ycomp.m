@@ -11,3 +11,11 @@ global globForce
 
 globForce_ycomp=TriScatteredInterp(globForce.pos(:,1),globForce.pos(:,2),globForce.vec(:,2));
 fy=globForce_ycomp(x,y);
+
+% This important check takes less than 0.01sec:
+badVal=isnan(fy);
+if any(badVal)
+    % set those values to 0:
+    % display(['!!!',num2str(sum(badVal)),' NaN values set to 0!!!'])
+    fy(badVal)=0;
+end

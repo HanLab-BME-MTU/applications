@@ -40,6 +40,17 @@ lengthScale=10;
 distMat = bwdist(currMask);
 globYoung.val=((0*currMask)+10^7).*exp(-double(distMat)/lengthScale);
 
+% Check if the force field covers the whole cell cluster:
+idxConvH=convhull(forceField(frame).pos);
+convH=forceField(frame).pos(idxConvH,:);
+[pixConvH]=createPixelPath(convH);
+% If the conv. hull cuts through the dilated cluster mask we run into
+% problems:
+maskDilated=constrForceField{frame}.segmRes.maskDilated;
+linIdx = sub2ind(size(maskDilated), pixConvH(:,2), pixConvH(:,1));
+errsum=sum(maskDilated(linIdx));
+
+
 % Now calculate the solution;
 u=assempde(b,p,e,t,c,a,f);
 
@@ -61,8 +72,9 @@ for j=1:length(constrForceField{frame}.network.edge)
     % Don't save all values in constrForceField. That would become too
     % confusing! We only store what is necessary to easily use the functions
     % postProcSol and calcIntfacialStress.
-    constrForceField{frame}.network.edge{j}.fc=ftot_sum;
+    constrForceField{frame}.network.edge{j}.fc    = ftot_sum;
     constrForceField{frame}.network.edge{j}.n_Vec = nVec_mean;
+    constrForceField{frame}.network.edge{j}.errs  = errsum;
     
     constrForceField{frame}.clusterAnalysis.intf{j}.intfCurve=intfCurve; % the full length interface is found in .network.edge{j}.intf
     constrForceField{frame}.clusterAnalysis.intf{j}.pos=center;
@@ -81,6 +93,7 @@ constrForceField{frame}.clusterAnalysis.coef.a=a;
 constrForceField{frame}.clusterAnalysis.coef.b=b;   
 constrForceField{frame}.clusterAnalysis.coef.c=c;
 constrForceField{frame}.clusterAnalysis.coef.f=f;
+constrForceField{frame}.clusterAnalysis.errs  =errsum; % this checks if the force field covered the wohle cluster.
 constrForceField{frame}.clusterAnalysis.par.dPix=dPix; 
 %constrForceField{frame}.clusterAnalysis.par.globForce.pos=globForce.pos;
 %constrForceField{frame}.clusterAnalysis.par.globForce.vec=globForce.vec;
