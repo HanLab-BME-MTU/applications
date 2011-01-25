@@ -48,11 +48,24 @@ if isempty(toDoList)
     toDoList=1:sizeA;
 end
 
+% test if the groupData is already in WS
 try
-    load('xGroupedData.mat');
-catch exception
-    display('Couldnt find grouped data assume that it is the first data set');
-    groupData=[];
+    isInWS=length(groupData);
+    isInWS=input('Fill groupData file currently in WS yes=1 / no=0, [1]:');
+    if isempty(isInWS)
+        isInWS=1;
+    end
+catch
+    isInWS=0;
+end
+
+if isInWS==0
+    try
+        load('xGroupedData.mat');
+    catch exception
+        display('Couldnt find grouped data assume that it is the first data set');
+        groupData=[];
+    end
 end
 
 if toDoList==-1
