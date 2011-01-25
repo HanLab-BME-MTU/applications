@@ -4,6 +4,10 @@ if nargin < 3 || isempty(toDoList);
 end
 badFlag=0;
 
+% Take into account only those dPix that are within the toDoList, other
+% potentially bad frames are skipped anyways:
+dPix=dPix(toDoList);
+
 dPixMax=max(dPix);
 % First check if there is a really bad data set.
 if dPixMax>100
