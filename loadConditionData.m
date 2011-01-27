@@ -97,7 +97,7 @@ for k = 1:nCells
         data(k).date = '000000';
     end
     
-    % detect frame rate
+    % detect frame
     fr = regexp(cellPath{k}, '_(\d+)?(.)?\d+s', 'match');
     if ~isempty(fr)
         data(k).framerate = str2double(fr{1}(2:end-1));
@@ -105,6 +105,8 @@ for k = 1:nCells
         fr = regexp(cellPath{k}, '_\d+ms', 'match');
         if ~isempty(fr)
             data(k).framerate = str2double(fr{1}(2:end-2))/1000;
+        else
+            data(k).framerate = 2; % default: 2s
         end
     end
     
