@@ -14,6 +14,7 @@ maxNodeId=length(constrForceField{toDoList(1)}.network.node);
 maxEdgeId=length(constrForceField{toDoList(1)}.network.edge);
     
 %track the nodes first:
+checkSumSpec=0;
 for k=2:length(toDoList)
     prevFrame=toDoList(k-1);
     currFrame=toDoList(k);
@@ -71,6 +72,26 @@ for k=2:length(toDoList)
     % Now fill in the tracked values:
     for nodeId=1:currNumNodes
         constrForceField{currFrame}.network_tracked.node{reMapNode(nodeId,1)}=constrForceField{currFrame}.network.node{nodeId};
+    end
+    
+    % Make sure that all myosin cells have been tracked correctly:
+    for nodeId=1:currNumNodes
+        if ~isempty(constrForceField{currFrame}.network_tracked.node{nodeId})
+            curr_spec=constrForceField{currFrame}.network_tracked.node{nodeId}.spec;
+            % Only if the node has existed previously:
+            if nodeId<=length(constrForceField{prevFrame}.network_tracked.node)
+                prev_spec=constrForceField{prevFrame}.network_tracked.node{nodeId}.spec;
+                currCheckSumSpec=abs(curr_spec-prev_spec);
+                checkSumSpec=checkSumSpec+abs(currCheckSumSpec);
+                if currCheckSumSpec>0
+                    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+                    display(['In frame: ',num2str(prevFrame),'->',num2str(currFrame),' node: ',num2str(nodeId),' has been mistracked!']);
+                    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+                    display('!You have to set the specification by hand!');
+                    
+                end
+            end
+        end
     end
        
     
@@ -134,22 +155,28 @@ for k=2:length(toDoList)
     
     % run through all the edges and adapt the direction of the normal
     % vector to each interface since the direction might have changed from
-    % frame to frame:   
+    % frame to frame (Do we need this information at all?):   
     for edgeID=1:maxEdgeId
         if ~isempty(constrForceField{currFrame}.network_tracked.edge{edgeID})
             curr_nVec=constrForceField{currFrame}.network_tracked.edge{edgeID}.nVec_internal;
             % Only if the edge has existed previously:
             if edgeID<=length(constrForceField{prevFrame}.network_tracked.edge)
                 prev_nVec=constrForceField{prevFrame}.network_tracked.edge{edgeID}.nVec_internal;
-                if dot(curr_nVec,prev_nVec)<0
-                    display('Change the direction of the interface normal vector, this part of the code needs to be debugged:')
+                skProdNVec=dot(curr_nVec,prev_nVec);
+                if skProdNVec<0
+                    display(['Changed direction of interface normal vector, frame: ',num2str(currFrame),', edge: ',num2str(edgeID),', nv1.nv2= ',num2str(skProdNVec),' (needs to be debugged?):'])
                     % Then the product is most likely close to -1, that is, the
                     % dircetion has been flipped from frame to frame. In this
                     % case we have to invert the direction of the normal vector
-                    % as well as the order of the interface positions:
+                    % as well as the order of the interface positions.
+                    % Furhtermore, fc has changed direction (fc1, fc2 are
+                    % unaffected since they are automatically associated
+                    % with the correct node): 
                     constrForceField{currFrame}.network_tracked.edge{edgeID}.intf=flipud(constrForceField{currFrame}.network_tracked.edge{edgeID}.intf);
                     constrForceField{currFrame}.network_tracked.edge{edgeID}.intf_internal=flipud(constrForceField{currFrame}.network_tracked.edge{edgeID}.intf_internal);
                     constrForceField{currFrame}.network_tracked.edge{edgeID}.nVec_internal=-constrForceField{currFrame}.network_tracked.edge{edgeID}.nVec_internal;
+                    constrForceField{currFrame}.network_tracked.edge{edgeID}.n_Vec        =-constrForceField{currFrame}.network_tracked.edge{edgeID}.n_Vec;
+                    constrForceField{currFrame}.network_tracked.edge{edgeID}.fc           =-constrForceField{currFrame}.network_tracked.edge{edgeID}.fc;
                 end
             end
         end
@@ -170,6 +197,14 @@ for k=2:length(toDoList)
     
     clear reMapNode
     clear reMapEdge
+    
+end
+
+if checkSumSpec>0
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    display('!Errors should have been issued, some cells were not tracked correctly!');
+    display('!         You have to set the specification by hand                   !');
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
     
 end
 

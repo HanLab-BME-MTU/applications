@@ -36,7 +36,7 @@ for frame=toDoList
     %need to be updated later on using the appropriate functions.
     
     % Fill in the unchanged fields:
-    constrForceFieldUpdated{frame}.segmRes=constrForceField{frame}.segmRes;
+    constrForceFieldUpdated{frame}.segmRes  =constrForceField{frame}.segmRes;
     constrForceFieldUpdated{frame}.interface=constrForceField{frame}.interface;
     if isfield(constrForceFieldUpdated{frame},'twoCellIntf');
         constrForceFieldUpdated{frame}.twoCellIntf=constrForceField{frame}.twoCellIntf;
@@ -135,6 +135,43 @@ for frame=toDoList
         display(['new force: ',num2str(constrForceFieldUpdated{frame}.cell{cellID}.stats.resForce.vec)]);
         display('----------------------------');
     end
+    % Sum up the force over the whole cell cluster to get an error for each
+    % force measurement:
+    pixSize_mu = constrForceFieldUpdated{frame}.par.pixSize_mu;
+    bwMask = constrForceFieldUpdated{frame}.segmRes.maskDilated;
+    if strcmp(method,'noIntp')
+        gridSpacing= constrForceFieldUpdated{frame}.par.gridSpacing;
+        [errorSumForce,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu,gridSpacing);
+    else
+        [errorSumForce,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu);
+    end
+    
+    constrForceFieldUpdated{frame}.errorSumForce.vec    = errorSumForce;
+    constrForceFieldUpdated{frame}.errorSumForce.mag    = sqrt(sum((errorSumForce).^2));
+    constrForceFieldUpdated{frame}.errorSumForce.method = method;
+    
+    display(['frame ',num2str(frame),', cell ',num2str(cellID),':']);
+    display(['old error vector:        ',num2str(constrForceField{frame}.errorSumForce.vec)]);
+    display(['new error vector:        ',num2str(constrForceFieldUpdated{frame}.errorSumForce.vec)]);
+    display('----------------------------');
+    
+    % To check this (It works perfect!):
+    showCheckPlot=0;
+    if showCheckPlot==1
+        figure(frame)
+        marker=['r','b','m','c','g','y'];
+        startPos=[0,0];
+        for cellIndex=1:length(constrForceField{frame}.cell)
+            currForce=constrForceFieldUpdated{frame}.cell{cellIndex}.stats.resForce.vec;
+            plot([startPos(1) startPos(1)+currForce(1)],[startPos(2) startPos(2)+currForce(2)],marker(mod(cellIndex,6)+1));
+            hold on;
+            startPos=startPos+currForce;
+        end
+        plot([startPos(1) startPos(1)+errorSumForce(1)],[startPos(2) startPos(2)+errorSumForce(2)],'k','LineWidth',3);
+        hold off
+    end
+    
+    
 end
 display('All done!')
 display('You will have to redo all steps after TFM_part_4_cutOutForceField!')

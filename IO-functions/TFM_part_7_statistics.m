@@ -1,10 +1,6 @@
 function stats=TFM_part_7_statistics(constrForceField)
-% we only need the field .network for this function and .segmRes.hole for
-% calculating the intf_internal_L!
-display('The interfacial length inlcudes only the part of the interface that is within the segmented cell perimeter!')
-% In order to calculate the interfacial length, we take only every 10th
-% point:
-dPts=10;
+% we only need the field .network for this function
+%display('The interfacial length inlcudes only the part of the interface that is within the segmented cell perimeter!')
 
 load('fileAndFolderNames.mat')
 
@@ -185,16 +181,9 @@ for frame=toDoList %10:31% toDoList
             sumIntForce =sumIntForce + norm(constrForceField{frame}.network.edge{edgeNum}.fc);
                        
             % use only the internal part of the interface to calculate the length:            
-            pixSize_mu=constrForceField{frame}.par.pixSize_mu;
-            if ~isfield(constrForceField{frame}.segmRes,'hole')
-                % display('This is an old data set!')
-                constrForceField{frame}.segmRes.hole=[];
-            end
-            currentLength=pixSize_mu*calcCurveLength(constrForceField{frame}.network.edge{edgeNum}.intf_internal,dPts,constrForceField{frame}.segmRes.hole);                        
-            sumIntLength=sumIntLength+currentLength;
-            % store these value only temporally in the constrForceField
-            % structure:
-            constrForceField{frame}.network.edge{edgeNum}.intf_internal_L=currentLength;            
+            sumIntLength=sumIntLength+constrForceField{frame}.network.edge{edgeNum}.intf_internal_L;
+
+                        
         end
         if isempty(sumIntForcePerDeg{deg}) % if it is the first value to be sorted in:
             % first do the sum of forces:

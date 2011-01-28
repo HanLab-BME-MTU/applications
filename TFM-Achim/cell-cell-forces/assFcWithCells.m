@@ -5,7 +5,7 @@ pt2=round(edge.intf_internal(floor(end/2),:)-10*edge.nVec_internal);
 
 nodes=edge.nodes;
 for cellId=nodes
-    figure()
+    figure(cellId)
     imagesc(constrForceField{frame}.cell{cellId}.mask)
     hold on
     plot(pt1(1),pt1(2),'or')
@@ -18,11 +18,11 @@ for cellId=nodes
     currMask=constrForceField{frame}.cell{cellId}.mask;
     [xMax,yMax]=size(currMask);
     if pt1(1)<=yMax && pt1(2)<=xMax && currMask(pt1(2),pt1(1))
-        cellInNv=cellId
+        cellInNv=cellId;
     end
     
     if pt2(1)<=yMax && pt2(2)<=xMax && currMask(pt2(2),pt2(1))
-        cellAwNv=cellId
+        cellAwNv=cellId;
     end
 end
 
@@ -37,9 +37,15 @@ if cellInNv==nodes(1) && cellAwNv==nodes(2)
         fc1= fc;
         fc2=-fc;
     elseif char.status==0
-        % give any permutation:
-        fc1= fc;
-        fc2=-fc;
+        % char.val =[ort_wghtd_mean ort_raw_mean];
+        % the default is to take the weighted orientation:
+        if ort_wghtd_mean<=0
+            fc1=-fc;
+            fc2= fc;
+        else
+            fc1= fc;
+            fc2=-fc;
+        end
     end
 elseif cellInNv==nodes(2) && cellAwNv==nodes(1)
     if char.status==-1
@@ -49,12 +55,21 @@ elseif cellInNv==nodes(2) && cellAwNv==nodes(1)
         fc1=-fc;
         fc2= fc;
     elseif char.status==0
-        % give any permutation:
-        fc1= fc;
-        fc2=-fc;
+        % char.val =[ort_wghtd_mean ort_raw_mean];
+        % the default is to take the weighted orientation:
+        if ort_wghtd_mean<=0
+            fc1= fc;
+            fc2=-fc;
+        else
+            fc1=-fc;
+            fc2= fc;
+        end
     end    
 else
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     display('Couldnt associate cluster forces with cells')
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    input('Report to Achim and hit [enter] to continue:...')
     cellInNv=NaN;
     cellAwNv=NaN;
     

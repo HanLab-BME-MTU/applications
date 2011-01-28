@@ -85,8 +85,7 @@ while finished==false
     
     numFrames=length(toDoList);
     saveInterval=min(5,ceil(0.1*numFrames));
-
-    %toDoList=30;
+    
     for i=toDoList
         display('Plotting constraint forceField might take some time...')
         currentImage = double(imread(imageFileList{i}));
@@ -96,7 +95,7 @@ while finished==false
             segmRes{i}=cellEdgeResults{1};
             
             % store the segmentation results:
-            constrForceField{i}.segmRes=segmRes{i};            
+            constrForceField{i}.segmRes=segmRes{i};
             constrForceField{i}.par=forceField(i).par;
             ImgSize=size(constrForceField{i}.segmRes.maskDilated);
             
@@ -114,6 +113,20 @@ while finished==false
                 constrForceField{i}.roi.pos=fpos(checkVector,:);
                 constrForceField{i}.roi.vec=fvec(checkVector,:);
             end
+            
+            % Calculate the error for this cluster.
+            % Here we don't interpolate to be fast when cutting out the
+            % force field. If interpolation is wanted we do this at the
+            % very end! This takes less than 20ms:
+            
+            pixSize_mu = constrForceField{i}.par.pixSize_mu;
+            gridSpacing= constrForceField{i}.par.gridSpacing;
+            bwMask=constrForceField{i}.segmRes.maskDilated;
+            [errorSumForce,method,~,~]=integrateForceField(forceField(i).pos,forceField(i).vec,bwMask,pixSize_mu,gridSpacing);
+            constrForceField{i}.errorSumForce.vec    = errorSumForce;
+            constrForceField{i}.errorSumForce.mag    = sqrt(sum((errorSumForce).^2));
+            constrForceField{i}.errorSumForce.method = method;
+            display(['The error in the force measurement for this cluster is ~',num2str(round(constrForceField{i}.errorSumForce.mag)),'nN']);
 
             dPix=50;
             min_x=min(constrForceField{i}.roi.pos(:,1))-dPix;
@@ -123,6 +136,10 @@ while finished==false
             maxForcePlot=1/forceField(i).par.gridSpacing*max(sqrt(forceField(i).vec(:,1).^2+forceField(i).vec(:,2).^2));
             [rows,cols]=size(currentImage);
 
+            % needed to convert the error force vector backk to the units
+            % of the stress
+            factor_Pa2nN=constrForceField{i}.par.gridSpacing^2*constrForceField{i}.par.pixSize_mu^2*10^(-3);
+            
             figure(1)
             subplot(1,2,1)
             imagesc(currentImage)
@@ -130,6 +147,10 @@ while finished==false
             hold on
             quiver(forceField(i).pos(:,1),forceField(i).pos(:,2),forceField(i).vec(:,1)/maxForcePlot,forceField(i).vec(:,2)/maxForcePlot,0,'g');
             quiver(constrForceField{i}.roi.pos(:,1),constrForceField{i}.roi.pos(:,2),constrForceField{i}.roi.vec(:,1)/maxForcePlot,constrForceField{i}.roi.vec(:,2)/maxForcePlot,0,'r');
+            % plot the error for this cluster.
+%!!!        % convert the force back to a stress to plot it with the
+            % traction stress. That is a bit dirty!
+            quiver(min_x+2*dPix,min_y+2*dPix,constrForceField{i}.errorSumForce.vec(1)/(maxForcePlot*factor_Pa2nN),constrForceField{i}.errorSumForce.vec(2)/(maxForcePlot*factor_Pa2nN),0,'w');
             plot(constrForceField{i}.segmRes.curve(:,1),constrForceField{i}.segmRes.curve(:,2),'k')
             plot(constrForceField{i}.segmRes.curveDilated(:,1),constrForceField{i}.segmRes.curveDilated(:,2),'r')
             % plot the holes:
@@ -307,16 +328,16 @@ while finished==false
                 %plot cell{j}:
                 quiver(constrForceField{i}.cell{k}.pos(:,1),constrForceField{i}.cell{k}.pos(:,2),constrForceField{i}.cell{k}.vec(:,1)/maxForcePlot,constrForceField{i}.cell{k}.vec(:,2)/maxForcePlot,0,marker(mod(k,7)+1));
                 if j==1 % if there are only two cells plot the residual forces at the interface:
-                    resForcePos=constrForceField{i}.cell{k}.interface.center;                    
+                    resForcePos=constrForceField{i}.cell{k}.interface.center;
                 else % if there are more than two cells plot the residual forces at center of mass of each cell:
                     resForcePos=constrForceField{i}.cell{k}.stats.resForce.pos;
                 end
-%!!!            % convert the force back to a stress to plot it with the
+                %!!!            % convert the force back to a stress to plot it with the
                 % traction stress. That is a bit dirty!
                 quiver(resForcePos(1),resForcePos(2),constrForceField{i}.cell{k}.stats.resForce.vec(:,1)/(maxForcePlot*factor_Pa2nN),constrForceField{i}.cell{k}.stats.resForce.vec(:,2)/(maxForcePlot*factor_Pa2nN),0,marker(mod(k,7)+1));
                 plot(resForcePos(1),resForcePos(2),['o',marker(mod(k,7)+1)])
                 %plot boundaries:
-                plot(constrForceField{i}.cell{k}.boundary(:,1),constrForceField{i}.cell{k}.boundary(:,2),marker(mod(k,7)+1))    
+                plot(constrForceField{i}.cell{k}.boundary(:,1),constrForceField{i}.cell{k}.boundary(:,2),marker(mod(k,7)+1))
             end
             for k=1:j % there are only 'j' interfaces:
                 plot(constrForceField{i}.interface{k}.pos(:,1),constrForceField{i}.interface{k}.pos(:,2),'--w')
@@ -327,11 +348,14 @@ while finished==false
                     plot(constrForceField{i}.segmRes.hole{holeId}.curve(:,1),constrForceField{i}.segmRes.hole{holeId}.curve(:,2),'k')
                 end
             end
+            % plot the error for this cluster. Use the same conversion
+            % factor factor_Pa2nN as for interfacial stresses:
+            quiver(min_x+2*dPix,min_y+2*dPix,constrForceField{i}.errorSumForce.vec(1)/(maxForcePlot*factor_Pa2nN),constrForceField{i}.errorSumForce.vec(2)/(maxForcePlot*factor_Pa2nN),0,'w');
             hold off
             title(['Constrained force field no: ',num2str(i)])
             axis equal
             xlim([max([1 min_x]) min([cols,max_x])])
-            ylim([max([1 min_y]) min([rows,max_y])])        
+            ylim([max([1 min_y]) min([rows,max_y])])
             set(gca,'YDir','reverse')
             % save intermediate results:
             % save(path_cellCellForces, 'constrForceField','-v7.3');
@@ -344,13 +368,16 @@ while finished==false
                     xlimVal=[max([1 min_x]) min([cols,max_x])];
                     ylimVal=[max([1 min_y]) min([rows,max_y])];
                 end
-            
+                
                 subplot(1,2,1)
                 imagesc(currentImage)
                 colormap('gray')
                 hold on
                 quiver(forceField(i).pos(:,1),forceField(i).pos(:,2),forceField(i).vec(:,1)/maxForcePlot,forceField(i).vec(:,2)/maxForcePlot,0,'g');
                 quiver(constrForceField{i}.cell{j+1}.pos(:,1),constrForceField{i}.cell{j+1}.pos(:,2),constrForceField{i}.cell{j+1}.vec(:,1)/maxForcePlot,constrForceField{i}.cell{j+1}.vec(:,2)/maxForcePlot,0,'r');
+                % plot the error for this cluster. Use the same conversion
+                % factor factor_Pa2nN as for interfacial stresses:
+                quiver(min_x+2*dPix,min_y+2*dPix,constrForceField{i}.errorSumForce.vec(1)/(maxForcePlot*factor_Pa2nN),constrForceField{i}.errorSumForce.vec(2)/(maxForcePlot*factor_Pa2nN),0,'w');
                 plot(constrForceField{i}.segmRes.curve(:,1),constrForceField{i}.segmRes.curve(:,2),'k')
                 %plot(segmRes{i}.curveDilated(:,1),segmRes{i}.curveDilated(:,2),'g')
                 plot(curveCellCluster(:,1),curveCellCluster(:,2),'r')
@@ -370,9 +397,25 @@ while finished==false
                 title(['Constrained force field no: ',num2str(i)])
                 axis equal
                 xlim(xlimVal)
-                ylim(ylimVal)        
+                ylim(ylimVal)
                 set(gca,'YDir','reverse')
             end
+        end
+        
+        % To check the error measurement (This has to work perfectly!):
+        showCheckPlot=0;
+        if showCheckPlot==1
+            figure(1000+i)
+            marker=['r','b','m','c','g','y'];
+            startPos=[0,0];
+            for cellIndex=1:length(constrForceField{i}.cell)
+                currForce=constrForceField{i}.cell{cellIndex}.stats.resForce.vec;
+                plot([startPos(1) startPos(1)+currForce(1)],[startPos(2) startPos(2)+currForce(2)],marker(mod(cellIndex,6)+1));
+                hold on;
+                startPos=startPos+currForce;
+            end
+            plot([startPos(1) startPos(1)+constrForceField{i}.errorSumForce.vec(1)],[startPos(2) startPos(2)+constrForceField{i}.errorSumForce.vec(2)],'k','LineWidth',3);
+            hold off
         end
         
         if mod(find(i==toDoList),saveInterval)==0

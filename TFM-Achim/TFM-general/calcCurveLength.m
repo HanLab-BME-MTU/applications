@@ -6,6 +6,13 @@ function curveLength=calcCurveLength(curve,dPts,hole)
 % hole:     sometimes there are holes in the cluster that might want to be
 %           substracted from the total length.
 
+% In order to calculate the interfacial length, we take only every 10th
+% point:
+if isempty(dPts)
+    dPts=10;
+end
+
+
 curve_sparse=curve(1:dPts:end,:);
 
 % if the last point is skipped, enter it:

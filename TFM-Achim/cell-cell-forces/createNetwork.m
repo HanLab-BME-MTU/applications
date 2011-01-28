@@ -13,7 +13,7 @@ for j=1:length(constrForceField{i}.twoCellIntf);
     edge{j}.strPt=constrForceField{i}.cell{edge{j}.nodes(1)}.center;
     edge{j}.endPt=constrForceField{i}.cell{edge{j}.nodes(2)}.center;
     edge{j}.pos=0.5*(edge{j}.strPt + edge{j}.endPt);
-    edge{j}.intf_internal_L=[]; % will be filled up by perfClusterAnalysis
+    edge{j}.intf_internal_L=[]; % this length is in um
     edge{j}.f1=[];
     edge{j}.f2=[];
     edge{j}.fc1=[];   % will be filled up by perfClusterAnalysis
@@ -82,6 +82,19 @@ for j=1:length(edge)
 
     edge{j}.intf_internal=intf_internal;
     edge{j}.nVec_internal=nVec_internal;
+    
+    
+    % determine the length of the internal interface, substracting the
+    % length of holes:
+    pixSize_mu=constrForceField{frame}.par.pixSize_mu;
+    if ~isfield(constrForceField{frame}.segmRes,'hole')
+        % display('This is an old data set!')
+        constrForceField{frame}.segmRes.hole=[];
+    end
+    currentLength=pixSize_mu*calcCurveLength(intf_internal,[],constrForceField{frame}.segmRes.hole);
+    % store these value only temporally in the constrForceField
+    % structure:
+    edge{j}.intf_internal_L=currentLength; % this length is in um
 end
     
 % Each cell represents one node. Find the edges to each node:
