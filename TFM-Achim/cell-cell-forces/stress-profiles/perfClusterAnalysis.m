@@ -67,21 +67,26 @@ for j=1:length(constrForceField{frame}.network.edge)
     % composed of line segments:
     curve_interface=constrForceField{frame}.network.edge{j}.intf;
     intfCurve=curve_interface(1:dPix:end,:);
-    [center,fx_sum,fy_sum,ftot_sum,sx_sum,sy_sum,nVec_mean]=calcIntfacialStress(intfCurve,sxx,syy,sxy,p,pixSize_mu,'linear');
+    [center,fx_sum,fy_sum,fc,sx_sum,sy_sum,nVec_mean,char]=calcIntfacialStress(intfCurve,sxx,syy,sxy,p,pixSize_mu,'linear');
+    
+    [fc1,fc2]=assFcWithCells(constrForceField,frame,j,fc,char);
 
     % Don't save all values in constrForceField. That would become too
     % confusing! We only store what is necessary to easily use the functions
     % postProcSol and calcIntfacialStress.
-    constrForceField{frame}.network.edge{j}.fc    = ftot_sum;
+    constrForceField{frame}.network.edge{j}.fc1   = fc1; % belongs to nodes(1)
+    constrForceField{frame}.network.edge{j}.fc2   = fc2; % belongs to nodes(2)
+    constrForceField{frame}.network.edge{j}.fc    = fc; % this value is obsolate!
     constrForceField{frame}.network.edge{j}.n_Vec = nVec_mean;
+    constrForceField{frame}.network.edge{j}.char  = char;
     constrForceField{frame}.network.edge{j}.errs  = errsum;
     
     constrForceField{frame}.clusterAnalysis.intf{j}.intfCurve=intfCurve; % the full length interface is found in .network.edge{j}.intf
-    constrForceField{frame}.clusterAnalysis.intf{j}.pos=center;
-    constrForceField{frame}.clusterAnalysis.intf{j}.f_vec = horzcat(fx_sum,fy_sum);
-    constrForceField{frame}.clusterAnalysis.intf{j}.s_vec = horzcat(sx_sum,sy_sum);
-    constrForceField{frame}.clusterAnalysis.intf{j}.f_tot = ftot_sum; % same as: network.edge{j}.fc
-    constrForceField{frame}.clusterAnalysis.intf{j}.n_Vec = nVec_mean; % this is the mean of all normal vectors on the interface
+    constrForceField{frame}.clusterAnalysis.intf{j}.pos    = center;
+    constrForceField{frame}.clusterAnalysis.intf{j}.f_vec  = horzcat(fx_sum,fy_sum);
+    constrForceField{frame}.clusterAnalysis.intf{j}.s_vec  = horzcat(sx_sum,sy_sum);
+    constrForceField{frame}.clusterAnalysis.intf{j}.f_tot  = fc; % same as: network.edge{j}.fc
+    constrForceField{frame}.clusterAnalysis.intf{j}.n_Vec  = nVec_mean; % this is the mean of all normal vectors on the interface
     constrForceField{frame}.clusterAnalysis.intf{j}.edgeNum=j;
 end
 
@@ -106,7 +111,7 @@ constrForceField{frame}.clusterAnalysis.bnd.bndCurve=bndCurve; % used to generat
 constrForceField{frame}.clusterAnalysis.bnd.pos=center_bd;
 constrForceField{frame}.clusterAnalysis.bnd.f_vec = horzcat(fx_sum_bd,fy_sum_bd);
 constrForceField{frame}.clusterAnalysis.bnd.s_vec = horzcat(sx_sum_bd,sy_sum_bd);
-constrForceField{frame}.clusterAnalysis.bnd.f_tot = ftot_sum_bd; % same as: network.edge{j}.fc
+constrForceField{frame}.clusterAnalysis.bnd.f_tot = ftot_sum_bd;
 
 % Remove the global variables:
 clear globForce

@@ -1,4 +1,4 @@
-function [center,fx_sum,fy_sum,ftot_sum,sx_sum,sy_sum,nVec_mean,fx_int,fy_int,ftot_int,nVec]=calcIntfacialStress(curve,sxx,syy,sxy,p,pixSize_mu,method)
+function [center,fx_sum,fy_sum,ftot_sum,sx_sum,sy_sum,nVec_mean,char,fx_int,fy_int,ftot_int,nVec]=calcIntfacialStress(curve,sxx,syy,sxy,p,pixSize_mu,method)
 % input:    curve has to be a nx2 matrix, first column beeing the x-component,
 %           second column being the y-component.
 % center:   center of each line segment, where the interfacial force is
@@ -55,6 +55,33 @@ ftot_sum=[sum(fx_sum) sum(fy_sum)];
 % the stress (force normalized by the segment length) is:
 sx_sum=fx_sum./dl;
 sy_sum=fy_sum./dl;
+
+% Check if the stress at the interface is tensile or compressive.
+% Calculate the orientation, weighted with the magnitude of the forces at
+% each piece of the interface:
+ort_wghtd=sum(nVec.*[fx_sum fy_sum],2);
+ort_wghtd_mean=mean(ort_wghtd);
+ort_raw=sign(ort_wghtd);
+ort_raw_mean=mean(ort_raw);
+
+if nargout>7
+    if ort_raw_mean<0 && ort_wghtd_mean<0
+        % the stress is tensile (normal and force point in opposite direction):
+        char.status=-1;
+        char.val =[ort_wghtd_mean ort_raw_mean];
+    elseif ort_raw_mean>0 && ort_wghtd_mean>0
+        % the stress is tensile:
+        display('Found interface with a compressive stress!')
+        char.status=1;
+        char.val =[ort_wghtd_mean ort_raw_mean];
+    else
+        % the stress is tensile:
+        display('Found interface with undetermined stress characteristics!')
+        char.status=0;
+        char.val =[ort_wghtd_mean ort_raw_mean];
+    end
+end
+
 
 % !!! The following has to be calculated after calculating sx_sum and sy_sum
 % in the line above!: 

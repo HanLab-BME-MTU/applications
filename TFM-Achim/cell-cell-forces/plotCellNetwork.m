@@ -26,8 +26,10 @@ for j=1:length(edge)
         % Use the results from the cluster Analysis if they exist
         if ~isempty(edge{j}.fc) % &&  isempty(edge{j}.f1) && isempty(edge{j}.f2)
             % plot the force obtained by the cluster analysis:
-            quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc(:,1),scale*edge{j}.fc(:,2),0,marker(mod(edge{j}.nodes(1),7)+1),'LineWidth',2);
+            quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc1(:,1),scale*edge{j}.fc1(:,2),0,marker(mod(edge{j}.nodes(1),7)+1),'LineWidth',2);
+            % quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc(:,1) ,scale*edge{j}.fc(:,2) ,0,marker(mod(edge{j}.nodes(1),7)+1),'LineWidth',2);
             % plot the normal vector:
+            quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc2(:,1),scale*edge{j}.fc2(:,2),0,marker(mod(edge{j}.nodes(2),7)+1),'LineWidth',2);
             quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),edge{j}.n_Vec(:,1),edge{j}.n_Vec(:,2),0,'k');
             plot(edge{j}.pos(:,1),edge{j}.pos(:,2),'.k','MarkerSize',10)
         end

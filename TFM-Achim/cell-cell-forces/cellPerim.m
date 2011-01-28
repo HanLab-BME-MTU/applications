@@ -119,7 +119,9 @@ for frameIndex=1:length(imageFileList)
             cellEdge{frameIndex}.hole{holeId-1}.curve(:,1)=Bsig{holeId}(:,2);
             cellEdge{frameIndex}.hole{holeId-1}.curve(:,2)=Bsig{holeId}(:,1);
         end
-    end    
+    else
+        cellEdge{frameIndex}.hole=[];
+    end
    
     % Define the structural element, (the higher dilationR, the smoother 
     % the boundary):

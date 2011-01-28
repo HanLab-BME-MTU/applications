@@ -13,10 +13,15 @@ for j=1:length(constrForceField{i}.twoCellIntf);
     edge{j}.strPt=constrForceField{i}.cell{edge{j}.nodes(1)}.center;
     edge{j}.endPt=constrForceField{i}.cell{edge{j}.nodes(2)}.center;
     edge{j}.pos=0.5*(edge{j}.strPt + edge{j}.endPt);
+    edge{j}.intf_internal_L=[]; % will be filled up by perfClusterAnalysis
     edge{j}.f1=[];
     edge{j}.f2=[];
-    edge{j}.fc=[]; % will be filled up by perfClusterAnalysis
+    edge{j}.fc1=[];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc2=[];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc=[];    % will be filled up by perfClusterAnalysis
     edge{j}.n_Vec=[]; % will be filled up by perfClusterAnalysis
+    edge{j}.char=[];
+    edge{j}.errs=[];
 end
 
 % Determine the normal to the internal part of the interface:
