@@ -4,7 +4,7 @@ try
     load('xDetectEdge.mat');
     load('xDetectNuclei.mat');  % for dPix
     load('xParameters.mat')
-    % This ocerloads the old toDolist
+    % This overloads the old toDolist
     load('xResults.mat')
 catch exception
     display('Couldnt find all essential files, please browse to folder')
