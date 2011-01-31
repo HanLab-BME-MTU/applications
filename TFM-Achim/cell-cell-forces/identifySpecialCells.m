@@ -21,7 +21,6 @@ else
     end
 end
 
-
 toDoList=[];
 for frame=1:length(constrForceField)
     if isfield(constrForceField{frame},'cell') && ~isempty(constrForceField{frame}.cell)
@@ -92,14 +91,18 @@ hist(iVal_sorted,linspace(0,1,101));
 xlim([-0.05 1.05])
 
 % ask the user to put in an appropriate threshold:
-threshold=input(['Set the threshold value (',num2str(length(toDoList)),'frames): ']);
+threshold  = input(['Set the threshold value (',num2str(length(toDoList)),'frames): ']);
+markerChar = input('Is this nuclei marker for control (put 0) or myosin cells (put [1])?: ');
+if isempty(markerChar) || markerChar~=0
+    markerChar=1;
+end
 
 % store the values in the cell structure:
 numSpec=0;
 numNorm=0;
 for frame=toDoList
     for cellID=1:length(constrForceField{frame}.cell)
-        if iVal(frame,cellID)>threshold
+        if (iVal(frame,cellID)>threshold && markerChar==1) || (iVal(frame,cellID)<threshold && markerChar==0)            
             constrForceField{frame}.cell{cellID}.stats.spec=1;
             numSpec=numSpec+1;
         else

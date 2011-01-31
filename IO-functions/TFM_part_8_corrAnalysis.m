@@ -18,7 +18,7 @@ end
 %**************************************************************************
 % 1) Track cells and interfaces in the network and create network_tracked *
 %**************************************************************************
-[constrForceField]=trackNetwork(constrForceField);
+% [constrForceField]=trackNetwork(constrForceField);
 
 
 %**************************************************************************

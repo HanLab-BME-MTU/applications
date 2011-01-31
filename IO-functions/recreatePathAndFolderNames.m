@@ -96,6 +96,7 @@ file_name_ResidualT      = 'ResdualT.mat';
 file_name_displField     = 'displField.mat';
 file_name_forceField     = 'forceField.mat';
 file_name_cellCellForces = 'cellCellForces.mat';
+file_name_trackedNet     = 'trackedNet.mat';
 
 % These is the path to the pre-registration folder:
 path_PreRegT = [path_DataFolder,filesep,file_name_PreRegT];
@@ -108,6 +109,7 @@ path_ResidualT  =[path_mechSDC,filesep,file_name_ResidualT];
 path_displField    =[path_mechTFM,filesep,file_name_displField];
 path_forceField    =[path_mechTFM,filesep,file_name_forceField];
 path_cellCellForces=[path_mechTFM,filesep,file_name_cellCellForces];
+path_trackedNet    =[path_mechTFM,filesep,file_name_trackedNet];
 
 cd ..
 
