@@ -134,7 +134,8 @@ display('done!')
 % Plot the sheet edge:
 if showEdgeMovie==1
     display('Plot the sheet edge:...')
-    plotSheetEdge([],[],[],[],[],batchJob)
+    plotSheetEdge([],sheetBnD,sheetEdge,toDoList,[],batchJob)
+    % plotSheetEdge([],[],[],[],[],batchJob)
     display('done!')
 end
 
