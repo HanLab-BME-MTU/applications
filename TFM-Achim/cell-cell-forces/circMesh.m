@@ -30,10 +30,10 @@ dl=decsg(gd);
 %pdegplot(dl), axis equal
 
 if nargin<3 || isempty(hmaxVal)
-    [p,e,t]=initmesh(dl,'Hgrad',1.01);%,1.0001);
-    display('Hgrad might be set to lower values ~1.0001?!');
+    [p,e,t]=initmesh(dl,'Hgrad',1.0001);%,1.0001);
+    % display('Hgrad might be set to lower values ~1.0001?!');
 else
-    [p,e,t]=initmesh(dl,'Hmax',hmaxVal);
+    [p,e,t]=initmesh(dl,'Jiggle','minimum','Hmax',hmaxVal);
 end
 
 % if nargin<3
@@ -44,7 +44,7 @@ end
 
 % jiggle some for improving the mesh quality (usually the mesh doesn't
 % change at all):
-% p = jigglemesh(p,e,t,'Opt','minimum','Iter',numRef*20);
+p = jigglemesh(p,e,t,'Opt','minimum','Iter',numRef*20);
 
 % All edges defined by initmesh get their own boundary ID number which is
 % given in the 5th row of the edge array 'e'. Here we set this to '1' by

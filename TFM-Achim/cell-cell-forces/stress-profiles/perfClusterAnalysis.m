@@ -5,7 +5,13 @@ pixSize_mu=constrForceField{frame}.par.pixSize_mu;
 
 % This ensures that there the pde mesh is at least twice as dense as the
 % force mesh:
-Hmax      =round(constrForceField{frame}.par.gridSpacing/2);
+
+% The pde grid should be at least 4 times denser than the force mesh (=2
+% refinements);
+expt   = 0;
+frac  = 2^(-expt);
+Hmax  = max(1,constrForceField{frame}.par.gridSpacing*frac);
+numRef= max(0,round(2-expt));  
 
 % Define the coefficient of the PDE model:
 [b,c,a,f]=definePDEmodelAllNeumann;
@@ -23,8 +29,8 @@ bndCurve=curve_long(1:dPix:end,:);
 if compPts(bndCurve(1,:),bndCurve(end,:))
     bndCurve(end,:)=[];
 end
-[p,e,t,dl]=circMesh(bndCurve,1,Hmax);%,1); % for a denser mesh: circMesh(bndCurve,2);
-display('More than 1 refinements might be needed?!');
+[p,e,t,dl]=circMesh(bndCurve,numRef,Hmax); % for a denser mesh: circMesh(bndCurve,2);
+% display('More than 1 refinements might be needed?!');
 
 % Now define the Youngs modulus and the forces acting on the body:
 global globForce
@@ -60,9 +66,9 @@ tic;
 u=assempde(b,p,e,t,c,a,f);
 toc;
 
-%Do a few rounds of adaptive refinement
-tic;
-[u,p,e,t] = adaptmesh(dl,b,c,a,f,'Mesh',p,e,t,'Ngen',6);
+% Do a few rounds of adaptive refinement. This improves the solution for
+% the cell-cell forces by less than 1% and is super slow! Is not worth it!
+[u,p,e,t] = adaptmesh(dl,b,c,a,f,'Mesh',p,e,t,'Ngen',5);
 toc;
 
 % [u,p,e,t] = adaptmesh(dl,'boundaryCondition',pdePar{1},pdePar{2},pdePar{3},'Ngen',meshQuality,'Mesh',p,e,t,'Nonlin',nonLin,'Init',Ui);
