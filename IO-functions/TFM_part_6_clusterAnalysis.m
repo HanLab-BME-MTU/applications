@@ -93,7 +93,8 @@ for frame=toDoList
     trackedNet{frame}.node =constrForceField{frame}.network_tracked.node;
     trackedNet{frame}.edge =constrForceField{frame}.network_tracked.edge;
     trackedNet{frame}.stats=constrForceField{frame}.network_tracked.stats;
-    save(path_trackedNet, 'trackedNet','-v7.3');
+    trackedNet{frame}.par  =constrForceField{frame}.par;
 end
+save(path_trackedNet, 'trackedNet','-v7.3');
 
 

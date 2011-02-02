@@ -112,8 +112,8 @@ plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.
 plot(constrForceField{frame}.segmRes.curveDilated(:,1),constrForceField{frame}.segmRes.curveDilated(:,2),'-b');
 for j=1:length(constrForceField{frame}.network.edge)
     plot(constrForceField{frame}.network.edge{j}.intf(:,1),constrForceField{frame}.network.edge{j}.intf(:,2),'-k');
-    plot(constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,2),'-r');
-    quiver(constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,2),constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,2)/maxForcePlot,0)
+    plot(constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,2),'-r');
+    quiver(constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,2),constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,2)/maxForcePlot,0)
     quiver(constrForceField{frame}.clusterAnalysis.bnd.pos(:,1),constrForceField{frame}.clusterAnalysis.bnd.pos(:,2),constrForceField{frame}.clusterAnalysis.bnd.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.bnd.s_vec(:,2)/maxForcePlot,0)
 end
 hold off
@@ -133,8 +133,8 @@ plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.
 plot(constrForceField{frame}.segmRes.curveDilated(:,1),constrForceField{frame}.segmRes.curveDilated(:,2),'-b');
 for j=1:length(constrForceField{frame}.network.edge)
     plot(constrForceField{frame}.network.edge{j}.intf(:,1),constrForceField{frame}.network.edge{j}.intf(:,2),'-k');
-    plot(constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,2),'-r');
-    quiver(constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.pos(:,2),constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,2)/maxForcePlot,0)
+    plot(constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,2),'-r');
+    quiver(constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,1),constrForceField{frame}.clusterAnalysis.intf{j}.cntrs(:,2),constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.intf{j}.s_vec(:,2)/maxForcePlot,0)
     quiver(constrForceField{frame}.clusterAnalysis.bnd.pos(:,1),constrForceField{frame}.clusterAnalysis.bnd.pos(:,2),constrForceField{frame}.clusterAnalysis.bnd.s_vec(:,1)/maxForcePlot,constrForceField{frame}.clusterAnalysis.bnd.s_vec(:,2)/maxForcePlot,0)
 end
 hold off

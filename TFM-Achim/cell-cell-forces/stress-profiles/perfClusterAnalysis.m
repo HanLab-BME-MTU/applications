@@ -3,6 +3,10 @@ constrForceField{frame}.clusterAnalysis=[];
 % The pixelsize in mu for this frame is: 
 pixSize_mu=constrForceField{frame}.par.pixSize_mu;
 
+% This ensures that there the pde mesh is at least twice as dense as the
+% force mesh:
+Hmax      =round(constrForceField{frame}.par.gridSpacing/2);
+
 % Define the coefficient of the PDE model:
 [b,c,a,f]=definePDEmodelAllNeumann;
 
@@ -19,7 +23,7 @@ bndCurve=curve_long(1:dPix:end,:);
 if compPts(bndCurve(1,:),bndCurve(end,:))
     bndCurve(end,:)=[];
 end
-[p,e,t]=circMesh(bndCurve,1); % for a denser mesh: circMesh(bndCurve,2);
+[p,e,t,dl]=circMesh(bndCurve,1,Hmax);%,1); % for a denser mesh: circMesh(bndCurve,2);
 display('More than 1 refinements might be needed?!');
 
 % Now define the Youngs modulus and the forces acting on the body:
@@ -52,7 +56,16 @@ errsum=sum(maskDilated(linIdx));
 
 
 % Now calculate the solution;
+tic;
 u=assempde(b,p,e,t,c,a,f);
+toc;
+
+%Do a few rounds of adaptive refinement
+tic;
+[u,p,e,t] = adaptmesh(dl,b,c,a,f,'Mesh',p,e,t,'Ngen',6);
+toc;
+
+% [u,p,e,t] = adaptmesh(dl,'boundaryCondition',pdePar{1},pdePar{2},pdePar{3},'Ngen',meshQuality,'Mesh',p,e,t,'Nonlin',nonLin,'Init',Ui);
 
 % output is interpolated to the node points p:
 [u1,u2,exx,eyy,exy,sxx,syy,sxy,u1x,u2x,u1y,u2y]=postProcSol(u,p,t);
@@ -66,14 +79,18 @@ for j=1:length(constrForceField{frame}.network.edge)
     % calculate the stress/forces exerted on the interface given as a curve 
     % composed of line segments:
     curve_interface=constrForceField{frame}.network.edge{j}.intf;
-    intfCurve=curve_interface(1:dPix:end,:);
-    [center,fx_sum,fy_sum,fc,sx_sum,sy_sum,nVec_mean,char]=calcIntfacialStress(intfCurve,sxx,syy,sxy,p,pixSize_mu,'linear');
+    dPixIntf=curve_interface(1:dPix:end,:);
+    [center,fx_sum,fy_sum,fc,sx_sum,sy_sum,nVec_mean,char]=calcIntfacialStress(dPixIntf,sxx,syy,sxy,p,pixSize_mu,'linear');
     
     [fc1,fc2]=assFcWithCells(constrForceField,frame,j,fc,char);
 
     % Don't save all values in constrForceField. That would become too
     % confusing! We only store what is necessary to easily use the functions
     % postProcSol and calcIntfacialStress.
+    constrForceField{frame}.network.edge{j}.dPixIntf=dPixIntf; % the full length interface is found in .network.edge{j}.intf
+    constrForceField{frame}.network.edge{j}.cntrs = center;   % Aufpunkte der Kraefte.
+    constrForceField{frame}.network.edge{j}.f_vec = horzcat(fx_sum,fy_sum);
+    constrForceField{frame}.network.edge{j}.s_vec = horzcat(sx_sum,sy_sum);
     constrForceField{frame}.network.edge{j}.fc1   = fc1; % belongs to nodes(1)
     constrForceField{frame}.network.edge{j}.fc2   = fc2; % belongs to nodes(2)
     constrForceField{frame}.network.edge{j}.fc    = fc; % this value is obsolate!
@@ -81,11 +98,13 @@ for j=1:length(constrForceField{frame}.network.edge)
     constrForceField{frame}.network.edge{j}.char  = char;
     constrForceField{frame}.network.edge{j}.errs  = errsum;
     
-    constrForceField{frame}.clusterAnalysis.intf{j}.intfCurve=intfCurve; % the full length interface is found in .network.edge{j}.intf
-    constrForceField{frame}.clusterAnalysis.intf{j}.pos    = center;
+    
+    % Do we need to store these values in here at all?
+    constrForceField{frame}.clusterAnalysis.intf{j}.dPixIntf=dPixIntf; % the full length interface is found in .network.edge{j}.intf
+    constrForceField{frame}.clusterAnalysis.intf{j}.cntrs  = center;   % Aufpunkte der Kraefte.
     constrForceField{frame}.clusterAnalysis.intf{j}.f_vec  = horzcat(fx_sum,fy_sum);
     constrForceField{frame}.clusterAnalysis.intf{j}.s_vec  = horzcat(sx_sum,sy_sum);
-    constrForceField{frame}.clusterAnalysis.intf{j}.f_tot  = fc; % same as: network.edge{j}.fc
+    constrForceField{frame}.clusterAnalysis.intf{j}.fc     = fc; % same as: network.edge{j}.fc
     constrForceField{frame}.clusterAnalysis.intf{j}.n_Vec  = nVec_mean; % this is the mean of all normal vectors on the interface
     constrForceField{frame}.clusterAnalysis.intf{j}.edgeNum=j;
 end

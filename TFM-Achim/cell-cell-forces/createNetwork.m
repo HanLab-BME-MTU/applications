@@ -6,23 +6,28 @@ constrForceField{i}.network=[];
 % There are as many edges as two cell interfaces. Find the nodes to each
 % edge:
 for j=1:length(constrForceField{i}.twoCellIntf);
-    edge{j}.intf=constrForceField{i}.twoCellIntf{j}.pos;
-    edge{j}.intf_internal=[];
-    edge{j}.nVec_internal=[];
-    edge{j}.nodes=constrForceField{i}.twoCellIntf{j}.link;
-    edge{j}.strPt=constrForceField{i}.cell{edge{j}.nodes(1)}.center;
-    edge{j}.endPt=constrForceField{i}.cell{edge{j}.nodes(2)}.center;
-    edge{j}.pos=0.5*(edge{j}.strPt + edge{j}.endPt);
-    edge{j}.intf_internal_L=[]; % this length is in um
-    edge{j}.int=[];   % will be filled in by perfIntMeasures
-    edge{j}.f1=[];
-    edge{j}.f2=[];
-    edge{j}.fc1=[];   % will be filled up by perfClusterAnalysis
-    edge{j}.fc2=[];   % will be filled up by perfClusterAnalysis
-    edge{j}.fc=[];    % will be filled up by perfClusterAnalysis
-    edge{j}.n_Vec=[]; % will be filled up by perfClusterAnalysis
-    edge{j}.char=[];
-    edge{j}.errs=[];
+    edge{j}.intf         = constrForceField{i}.twoCellIntf{j}.pos;
+    edge{j}.intf_internal= [];
+    edge{j}.nVec_internal= [];
+    edge{j}.nodes        = constrForceField{i}.twoCellIntf{j}.link;
+    edge{j}.strPt        = constrForceField{i}.cell{edge{j}.nodes(1)}.center;
+    edge{j}.endPt        = constrForceField{i}.cell{edge{j}.nodes(2)}.center;
+    edge{j}.pos          = 0.5*(edge{j}.strPt + edge{j}.endPt);
+    edge{j}.intf_internal_L=[]; % this length is in um    
+    edge{j}.int   = [];   % will be filled in by perfIntMeasures
+    
+    edge{j}.dPixIntf= []; % Coarse-grained interface. Will be filled up by perfClusterAnalysis
+    edge{j}.cntrs = [];   % Centers of Coarse-grained interface. Points for force/stress vectors. Will be filled up by perfClusterAnalysis
+    edge{j}.f_vec = [];   % will be filled up by perfClusterAnalysis
+    edge{j}.s_vec = [];   % will be filled up by perfClusterAnalysis    
+    edge{j}.f1    = [];
+    edge{j}.f2    = [];
+    edge{j}.fc1   = [];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc2   = [];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc    = [];    % will be filled up by perfClusterAnalysis
+    edge{j}.n_Vec = []; % will be filled up by perfClusterAnalysis
+    edge{j}.char  = [];
+    edge{j}.errs  = [];
 end
 
 % Determine the normal to the internal part of the interface:

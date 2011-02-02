@@ -4,13 +4,13 @@ pt1=round(edge.intf_internal(floor(end/2),:)+10*edge.nVec_internal);
 pt2=round(edge.intf_internal(floor(end/2),:)-10*edge.nVec_internal);
 
 nodes=edge.nodes;
-for cellId=nodes
-    figure(cellId)
-    imagesc(constrForceField{frame}.cell{cellId}.mask)
-    hold on
-    plot(pt1(1),pt1(2),'or')
-    plot(pt2(1),pt2(2),'xb')
-end
+% for cellId=nodes
+%     figure(cellId)
+%     imagesc(constrForceField{frame}.cell{cellId}.mask)
+%     hold on
+%     plot(pt1(1),pt1(2),'or')
+%     plot(pt2(1),pt2(2),'xb')
+% end
 
 
 % find the cells to which these points belong:
@@ -39,7 +39,7 @@ if cellInNv==nodes(1) && cellAwNv==nodes(2)
     elseif char.status==0
         % char.val =[ort_wghtd_mean ort_raw_mean];
         % the default is to take the weighted orientation:
-        if ort_wghtd_mean<=0
+        if char.val(1)<=0
             fc1=-fc;
             fc2= fc;
         else

@@ -1,4 +1,4 @@
-function [p,e,t]=circMesh(curve,numRef,hmaxVal)
+function [p,e,t,dl]=circMesh(curve,numRef,hmaxVal)
 % curve Nx2 Matrix: first column has to be x-coordinate, second column has
 %                   to be the y-coordinate.
 
@@ -23,6 +23,7 @@ gd(2)=numPts; % That is the number of segments along the boundary.
 gd(3:numPts+2)=curve(:,1); % These are the x-coordinates
 gd(numPts+3:2*numPts+2)=curve(:,2); % These are the y-coordinates
 
+% compute the decomposed geometry matrix dl:
 dl=decsg(gd);
 
 %figure(1)
@@ -35,13 +36,17 @@ else
     [p,e,t]=initmesh(dl,'Hmax',hmaxVal);
 end
 
-if nargin<3
-    for i=1:numRef
-        [p,e,t]=refinemesh(dl,p,e,t);
-    end
+% if nargin<3
+for i=1:numRef
+    [p,e,t]=refinemesh(dl,p,e,t);
 end
+% end
 
-% All edges defined by initmesh get there on boundary ID number which is
+% jiggle some for improving the mesh quality (usually the mesh doesn't
+% change at all):
+% p = jigglemesh(p,e,t,'Opt','minimum','Iter',numRef*20);
+
+% All edges defined by initmesh get their own boundary ID number which is
 % given in the 5th row of the edge array 'e'. Here we set this to '1' by
 % hand! This means that the boundary conditions are the same for all edges!
 % (Otherwise boundary conditions had to be given for each edge in e):
