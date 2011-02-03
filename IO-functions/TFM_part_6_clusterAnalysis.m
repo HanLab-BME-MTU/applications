@@ -95,6 +95,8 @@ for frame=toDoList
     trackedNet{frame}.stats=constrForceField{frame}.network_tracked.stats;
     trackedNet{frame}.par  =constrForceField{frame}.par;
 end
-save(path_trackedNet, 'trackedNet','-v7.3');
+
+[~,fnameFirstBeadImg]=getFileListFromFolder(path_BeadsFolder);
+save(path_trackedNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
 
 

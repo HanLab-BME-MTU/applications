@@ -1,9 +1,25 @@
-if isempty(groupedClusters)
+function groupedClusters=groupNetworks(groupedClusters,filename)
+
+if nargin<1 || isempty(groupedClusters)
     groupedClusters.numClusters= 0;
     groupedClusters.clusterList=[];
 end
 
-fileList=searchFiles('trackedNet.mat',[],pwd,1,[],1);
+if nargin<2 || isempty(filename)
+    filename='trackedNet.mat';
+end
+
+% This is another option to search for the files:
+% tic;
+% fileList=searchFiles(filename,[],pwd,1,[],1);
+% toc;
+
+tic;
+[~, unixList]=system(['find . -name ''',filename,'''']);
+cellList = textscan(unixList,'%s');
+fileList = cellList{1};
+toc;
+
 for entryId=1:numel(fileList)
     % load the file
     filestruc=load(fileList{entryId});

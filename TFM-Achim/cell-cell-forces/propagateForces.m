@@ -69,9 +69,9 @@ for k=1:numEdges
         end
         edge{k}.f2=f2;
     elseif length(nVisited(1).set)==numNodes && length(nVisited(1).set)==numNodes
-        display(['Edge: ',num2str(k),' is in a loop']);
+        % display(['Edge: ',num2str(k),' is in a loop']);
     else
-        display('Something went wrong')
+        error('Something went wrong')
     end
 end
 

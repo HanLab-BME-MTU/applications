@@ -3,9 +3,6 @@ constrForceField{frame}.clusterAnalysis=[];
 % The pixelsize in mu for this frame is: 
 pixSize_mu=constrForceField{frame}.par.pixSize_mu;
 
-% This ensures that there the pde mesh is at least twice as dense as the
-% force mesh:
-
 % The pde grid should be at least 4 times denser than the force mesh (=2
 % refinements);
 expt   = 0;
@@ -64,12 +61,19 @@ errsum=sum(maskDilated(linIdx));
 % Now calculate the solution;
 tic;
 u=assempde(b,p,e,t,c,a,f);
+display('!Comparison with the network forces are still not satisfying!')
+% To Do: play a little bit with the parameters and myabe the integration
+% along the interface to improve the cluster results!
 toc;
 
 % Do a few rounds of adaptive refinement. This improves the solution for
 % the cell-cell forces by less than 1% and is super slow! Is not worth it!
-[u,p,e,t] = adaptmesh(dl,b,c,a,f,'Mesh',p,e,t,'Ngen',5);
-toc;
+% In particular, because most of the time, the mesh refinement is screwed
+% up which might be the reason why forces then disagree between straigh
+% forward solutions and adaptive solutions?!
+% tic;
+% [u,p,e,t] = adaptmesh(dl,b,c,a,f,'Mesh',p,e,t,'Ngen',3);
+% toc;
 
 % [u,p,e,t] = adaptmesh(dl,'boundaryCondition',pdePar{1},pdePar{2},pdePar{3},'Ngen',meshQuality,'Mesh',p,e,t,'Nonlin',nonLin,'Init',Ui);
 
@@ -119,6 +123,8 @@ constrForceField{frame}.clusterAnalysis.sol.u=u;    %These take too much space!
 constrForceField{frame}.clusterAnalysis.mesh.p=p;   %These take too much space!
 constrForceField{frame}.clusterAnalysis.mesh.e=e;   %These take too much space!
 constrForceField{frame}.clusterAnalysis.mesh.t=t;   %These take too much space!
+constrForceField{frame}.clusterAnalysis.mesh.par.hmax=Hmax;
+constrForceField{frame}.clusterAnalysis.mesh.par.ref =numRef;
 constrForceField{frame}.clusterAnalysis.coef.a=a;   
 constrForceField{frame}.clusterAnalysis.coef.b=b;   
 constrForceField{frame}.clusterAnalysis.coef.c=c;

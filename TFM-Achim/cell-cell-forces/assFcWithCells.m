@@ -57,7 +57,7 @@ elseif cellInNv==nodes(2) && cellAwNv==nodes(1)
     elseif char.status==0
         % char.val =[ort_wghtd_mean ort_raw_mean];
         % the default is to take the weighted orientation:
-        if ort_wghtd_mean<=0
+        if char.val(1)<=0
             fc1= fc;
             fc2=-fc;
         else

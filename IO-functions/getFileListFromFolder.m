@@ -1,5 +1,5 @@
-function [sortedFileList]=getFileListFromFolder(path_folder,pattern)
-% get the first bead image:
+function [sortedFileList,firstFileName]=getFileListFromFolder(path_folder,pattern)
+
 posExt={'.mat','.tif','.jpg','.TIF'};
 entriesDir = dir(path_folder);
 
@@ -31,4 +31,12 @@ if ~isempty(frameNoList)
 else
     sortedFileList=[];
 end
+
+% get the first bead image:
+if nargout>1 && ~isempty(sortedFileList)
+    [~,body,fno,ext]=getFilenameBody(sortedFileList{1});
+    firstFileName=[body,fno,ext];
+end
+
+
 
