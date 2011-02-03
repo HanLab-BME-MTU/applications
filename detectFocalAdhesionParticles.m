@@ -21,11 +21,13 @@ locMaxIso(~bw) = 0;
 indMax = find(locMaxIso);
 [y x] = ind2sub(size(ima), indMax);
 
-P = zeros(size(y, 1), 4);
+P = zeros(size(y, 1), 6);
 P(:,1) = x;
 P(:,2) = y;
 P(:,3) = ima(indMax);
-P(:,4) = T(indMax);
+P(:,4) = sigmaPSF;
+P(:,5) = 10;% * sigmaPSF;
+P(:,6) = T(indMax);
 
 % Subresolution detection
 radius = kSigma * sigmaPSF;
@@ -44,35 +46,36 @@ ymax = ymax(isValid);
 P = P(isValid,:);
 
 stdP = zeros(size(P));
-stdP(:,1:2) = .5;
-stdP(:,3) = 0; % ??????
-stdP(:,4) = 0; % ?????
 
 [X,Y] = meshgrid(-hside:hside);
-disk = X.^2 + Y.^2 - (kSigma * sigmaPSF)^2 <= 0;
+disk = X.^2 + Y.^2 - hside^2 <= 0;
 
 for iFeature = 1:numel(xmin)
         
     crop = ima(ymin(iFeature):ymax(iFeature), xmin(iFeature):xmax(iFeature));
+    C = min(crop(:));
+    A = P(iFeature,3) - C;
     crop(~disk) = NaN;
     
-    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, P(iFeature,3), sigmaPSF, sigmaPSF, P(iFeature,4), min(crop(:))], 'xyAstC');
+    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, A, P(iFeature,4), P(iFeature,5), P(iFeature,6), C], 'xyAtC');
     
-    if max(params(1:2)) < radius
-        P(iFeature,1) = x(iFeature) + params(1);
-        P(iFeature,2) = y(iFeature) + params(2);
-        P(iFeature,3) = params(3);
-        P(iFeature,4) = params(6);
+     if max(abs(params(1:2))) < radius   
+         P(iFeature,1) = P(iFeature,1) + params(1);
+         P(iFeature,2) = P(iFeature,2) + params(2);
+         P(iFeature,3) = params(3);
+         P(iFeature,4) = params(4);
+         P(iFeature,5) = params(5);
+         P(iFeature,6) = params(6);
         
-        stdP(iFeature,1) = stdParams(1);
-        stdP(iFeature,2) = stdParams(2);
-        stdP(iFeature,3) = stdParams(3);
-        stdP(iFeature,4) = stdParams(6);
-    end
+         stdP(iFeature,1) = stdParams(1);
+         stdP(iFeature,2) = stdParams(2);
+         stdP(iFeature,3) = stdParams(3);
+         stdP(iFeature,6) = stdParams(4);
+     end
 end
 
 featuresInfo.xCoord = [P(:,1), stdP(:,1)];
 featuresInfo.yCoord = [P(:,2), stdP(:,2)];
 featuresInfo.amp = [P(:,3), stdP(:,3)];
-featuresInfo.theta = [P(:,4), stdP(:,4)];
+featuresInfo.theta = [P(:,6), stdP(:,6)];
 
