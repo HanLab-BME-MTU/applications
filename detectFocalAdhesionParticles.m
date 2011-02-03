@@ -1,4 +1,4 @@
-function [x y amp] = detectFocalAdhesionParticles(ima, mask, sigmaPSF, kSigma)
+function featuresInfo = detectFocalAdhesionParticles(ima, mask, sigmaPSF, kSigma)
 
 ima = double(ima);
 [nrows ncols] = size(ima);
@@ -7,6 +7,9 @@ ima = double(ima);
 bandPassIso = filterLoG(ima,sigmaPSF);
 bandPassIso(bandPassIso < 0) = 0;
 bandPassIso(~mask) = 0;
+
+% Filter image with steerable filter
+[~,T] = steerableFiltering(ima,2,sigmaPSF);
 
 % Compute the local maxima of the bandpass filtered images
 locMaxIso = locmax2d(bandPassIso, [5 5]);
@@ -17,7 +20,12 @@ locMaxIso(~bw) = 0;
 
 indMax = find(locMaxIso);
 [y x] = ind2sub(size(ima), indMax);
-amp = ima(indMax);
+
+P = zeros(size(y, 1), 4);
+P(:,1) = x;
+P(:,2) = y;
+P(:,3) = ima(indMax);
+P(:,4) = T(indMax);
 
 % Subresolution detection
 radius = kSigma * sigmaPSF;
@@ -27,25 +35,44 @@ xmax = x + hside;
 ymin = y - hside;
 ymax = y + hside;
 
-validFeaturesIdx = find(xmin >= 1 & xmax <= ncols & ymin >= 1 & ymax <= nrows);
+isValid = find(xmin >= 1 & xmax <= ncols & ymin >= 1 & ymax <= nrows);
+
+xmin = xmin(isValid);
+xmax = xmax(isValid);
+ymin = ymin(isValid);
+ymax = ymax(isValid);
+P = P(isValid,:);
+
+stdP = zeros(size(P));
+stdP(:,1:2) = .5;
+stdP(:,3) = 0; % ??????
+stdP(:,4) = 0; % ?????
 
 [X,Y] = meshgrid(-hside:hside);
 disk = X.^2 + Y.^2 - (kSigma * sigmaPSF)^2 <= 0;
 
-
-
-for iiFeature = 1:numel(validFeaturesIdx)
-    
-    iFeature = validFeaturesIdx(iiFeature);
-    
+for iFeature = 1:numel(validFeaturesIdx)
+        
     crop = ima(ymin(iFeature):ymax(iFeature), xmin(iFeature):xmax(iFeature));
     crop(~disk) = NaN;
     
-    [params stdParams] = fitGaussian2D(crop, [0, 0, amp(iFeature), sigmaPSF, min(crop(:))], 'xyAC');
+    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, amp(iFeature), sigmaPSF, sigmaPSF, theta(iFeature), min(crop(:))], 'xyAstC');
     
-    if stdParams(1) >= radius || stdParams(2) 
-    
-    x(iFeature) = x(iFeature) + params(1);
-    y(iFeature) = y(iFeature) + params(2);
-    amp(iFeature) = params(3);
+    if max(params(1:2)) < radius
+        P(iFeature,1) = x(iFeature) + params(1);
+        P(iFeature,2) = y(iFeature) + params(2);
+        P(iFeature,3) = params(3);
+        P(iFeature,4) = params(6)
+        
+        stdP(iFeature,1) = stdParams(1);
+        stdP(iFeature,2) = stdParams(2);
+        stdP(iFeature,3) = stdParams(3);
+        stdP(iFeature,4) = stdParams(6);
+    end
 end
+
+featuresInfo.xCoord = [P(:,1), stdP(:,1)];
+featuresInfo.yCoord = [P(:,2), stdP(:,2)];
+featuresInfo.amp = [P(:,3), stdP(:,3)];
+featuresInfo.theta = [P(:,4), stdP(:,4)];
+

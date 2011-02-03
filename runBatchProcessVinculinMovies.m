@@ -1,8 +1,8 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 
 % name of the channel directory subfolders
 params.channelDirectory = {'ch488', 'ch560'};
