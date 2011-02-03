@@ -102,16 +102,16 @@ layerPlugins(4).displayFunc = @plotWindowsFSM;
 layerPlugins(4).dispatchFunc = @dispatchMatrix3ToFrames;
 
 % [Khuloud tracker] Tracks
-layerPlugins(5).desc = '[Khuloud Tracker] Feature Info';
+layerPlugins(5).desc = '[Khuloud Tracker] Features Info';
 layerPlugins(5).filterSpec = {'*.mat'};
 layerPlugins(5).displayFunc = @displayPoints;
-layerPlugins(5).dispatchFunc = @dispatchKhuloudFeatures;
+layerPlugins(5).dispatchFunc = @dispatchFeaturesInfo;
 
 % [Khuloud tracker] Tracks
-layerPlugins(6).desc = '[Khuloud Tracker] Tracks';
+layerPlugins(6).desc = '[Khuloud Tracker] Tracks Final';
 layerPlugins(6).filterSpec = {'*.mat'};
-layerPlugins(6).displayFunc = @displayKhuloudTracks;
-layerPlugins(6).dispatchFunc = @dispatchKhuloudTracks;
+layerPlugins(6).displayFunc = @displayTracksFinal;
+layerPlugins(6).dispatchFunc = @dispatchTracksFinal;
 
 % [Graph] Classified Tracks
 layerPlugins(7).desc = '[Graph] Classified Tracks';

@@ -1,4 +1,4 @@
-function dataLayer = dispatchKhuloudFeatures(fileList, nFrames)
+function dataLayer = dispatchFeaturesInfo(fileList, nFrames)
 
 if numel(fileList) ~= 1
     error('Only 1 file is expected');

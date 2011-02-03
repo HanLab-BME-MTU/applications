@@ -1,4 +1,4 @@
-function displayKhuloudTracks(hAxes, tag, tracks, layerColor)
+function displayTracksFinal(hAxes, tag, tracks, layerColor)
 
 nTracks = numel(tracks);
 

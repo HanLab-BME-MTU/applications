@@ -1,4 +1,4 @@
-function dataLayer = dispatchKhuloudTracks(fileList, nFrames)
+function dataLayer = dispatchTracksFinal(fileList, nFrames)
 
 if numel(fileList) ~= 1
     error('Only 1 file is expected');
