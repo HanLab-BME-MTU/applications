@@ -51,18 +51,18 @@ stdP(:,4) = 0; % ?????
 [X,Y] = meshgrid(-hside:hside);
 disk = X.^2 + Y.^2 - (kSigma * sigmaPSF)^2 <= 0;
 
-for iFeature = 1:numel(validFeaturesIdx)
+for iFeature = 1:numel(xmin)
         
     crop = ima(ymin(iFeature):ymax(iFeature), xmin(iFeature):xmax(iFeature));
     crop(~disk) = NaN;
     
-    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, amp(iFeature), sigmaPSF, sigmaPSF, theta(iFeature), min(crop(:))], 'xyAstC');
+    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, P(iFeature,3), sigmaPSF, sigmaPSF, P(iFeature,4), min(crop(:))], 'xyAstC');
     
     if max(params(1:2)) < radius
         P(iFeature,1) = x(iFeature) + params(1);
         P(iFeature,2) = y(iFeature) + params(2);
         P(iFeature,3) = params(3);
-        P(iFeature,4) = params(6)
+        P(iFeature,4) = params(6);
         
         stdP(iFeature,1) = stdParams(1);
         stdP(iFeature,2) = stdParams(2);
