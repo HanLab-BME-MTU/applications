@@ -7,6 +7,7 @@
 %           {overwrite} : 
 
 % Francois Aguet, September 2010
+% Last modified: February 5, 2011
 
 function psfLocalization(data, overwrite)
 
@@ -61,7 +62,6 @@ if ~isfield(frameInfo, 'xloc') || overwrite
         yStd = NaN(1,np);
         aStd = NaN(nCh,np);
         
-        hval = NaN(1,np);
         pval = NaN(1,np);
         
         mask = double(imread([maskPath maskList(k).name]));
