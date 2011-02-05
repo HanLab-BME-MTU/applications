@@ -28,6 +28,20 @@ xlabel('Deg of connectivity')
 ylabel('Residual force [nN]')
 
 %**************************************************************************
+% Compare network and cluster analysis:
+%**************************************************************************
+goodEdgeSet=findEdges(groupedClusters,'errF',50,'errs',0);
+[f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1');
+fnet_mag = sqrt(sum((0.5*(f1_vals-f2_vals)).^2,2));
+fc_mag   = sqrt(sum(fc1_vals.^2,2));
+figure()
+plot(fc_mag,fnet_mag,'*');
+xlim([min([fc_mag;fnet_mag])  max([fc_mag;fnet_mag])])
+ylim([min([fc_mag;fnet_mag])  max([fc_mag;fnet_mag])])
+xlabel('fc [nN]')
+ylabel('fnet [nN]')
+
+%**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
 goodEdgeSet=findEdges(groupedClusters,'deg',[1 2 3 4 5],'myo',[0 1 -1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',50,'errs',0);
