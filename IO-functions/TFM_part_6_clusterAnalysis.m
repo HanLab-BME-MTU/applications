@@ -1,5 +1,6 @@
 function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField)
 load('fileAndFolderNames.mat')
+doPlot=0;
 
 if ~strcmp(pwd,path_ProjFolder)
     display('Before running this script browse to the FSM project folder')
@@ -38,7 +39,8 @@ end
 %**************************************************************************
 % Identify cells that are special: Radius [100] about the center of mass of
 % the cells. Channel and threshold has to be defined by the user:
-constrForceField=identifySpecialCells(constrForceField);
+imageFileList=getFileListFromFolder(path_Xtra2ndFinal);
+constrForceField=identifySpecialCells(constrForceField,imageFileList);
     
 
 %**************************************************************************
@@ -47,9 +49,11 @@ constrForceField=identifySpecialCells(constrForceField);
 % perform the analysis on all these frames:
 for frame=toDoList    
     constrForceField=perfNetworkAnalysis(constrForceField,frame);
-    figure(6)
-    plotCellNetwork(constrForceField{frame}.network);
-    title(['Network for frame: ',num2str(frame)])
+    if doPlot
+        figure(6)
+        plotCellNetwork(constrForceField{frame}.network);
+        title(['Network for frame: ',num2str(frame)])
+    end
 end
 
 
@@ -68,11 +72,13 @@ for frame=toDoList
     tic;
     constrForceField=perfClusterAnalysis(constrForceField,forceField,frame);
     toc;
-    plotClusterAnalysis(constrForceField,forceField,sortedXtraFinalFileList,frame,0);
-    
-    % Replot the Network results:
-    figure(7)
-    plotCellNetwork(constrForceField{frame}.network);        
+    if doPlot
+        plotClusterAnalysis(constrForceField,forceField,sortedXtraFinalFileList,frame,0);
+
+        % Replot the Network results:
+        figure(7)
+        plotCellNetwork(constrForceField{frame}.network);
+    end
 end
 
 %**************************************************************************

@@ -1,10 +1,11 @@
 function varargout=collectCellValues(groupedClusters,goodSet,varargin)
 % [deg_vals,elE_vals,area_vals,resF_vals]=collectCellValues(groupedClusters,goodSet,'deg','elE','area','resF')
-% Runs through all cells and collects the data from fields:
-% 'deg'
-% 'elE'
-% 'area'
-% 'resF'
+% Runs through the groupedClusters and collects all the data from fields
+% specified in the input arguments. Potential fields are:
+% 'deg'  : The degree of connectivity of a cell.
+% 'elE'  : The contraction/elastic energy of the cell.
+% 'area' : The area of the cell.
+% 'resF' : The residual force of the cell.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)

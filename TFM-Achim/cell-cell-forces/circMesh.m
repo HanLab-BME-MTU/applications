@@ -5,6 +5,8 @@ function [p,e,t,dl]=circMesh(curve,numRef,hmaxVal)
 % Run along the whole curve, and determine the curve length up to each
 % point and calculate the arc length for each point, normalized to 2*pi:
 
+doPlot=0;
+
 numPts=length(curve);
 cumLength=zeros(numPts,1);
 for i=1:length(curve)
@@ -52,8 +54,10 @@ p = jigglemesh(p,e,t,'Opt','minimum','Iter',numRef*20);
 % (Otherwise boundary conditions had to be given for each edge in e):
 e(5,:)=1;
 
-figure(2)
-pdemesh(p,e,t), axis equal
+if doPlot==1
+    figure(2)
+    pdemesh(p,e,t), axis equal
+end
 
 
 %pdegplot(defineGeom), axis equal 

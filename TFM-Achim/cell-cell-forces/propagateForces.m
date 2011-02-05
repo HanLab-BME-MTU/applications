@@ -9,9 +9,9 @@ numEdges=length(edge);
 
 % Run through all edges:
 for k=1:numEdges
-    % first, set all forces along the edges to []:
-    edge{k}.f1 =[];
-    edge{k}.f2 =[];
+    % first, set all forces along the edges to [NaN NaN]:
+    edge{k}.f1 =[NaN NaN];
+    edge{k}.f2 =[NaN NaN];
     
     % initialize the search:
     % the node sets are:
@@ -57,13 +57,13 @@ for k=1:numEdges
     % compare the two node lists:
     if isempty(intersect(nVisited(1).set,nVisited(2).set)) && length(union(nVisited(1).set,nVisited(2).set))==numNodes
         % Then forces can be calculated:
-        f1=0;
+        f1=[0 0];
         for nodeId=nVisited(1).set
             f1=f1+node{nodeId}.vec;
         end
         edge{k}.f1=f1;
         
-        f2=0;
+        f2=[0 0];
         for nodeId=nVisited(2).set
             f2=f2+node{nodeId}.vec;
         end

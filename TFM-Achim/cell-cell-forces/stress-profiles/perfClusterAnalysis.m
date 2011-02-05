@@ -106,7 +106,7 @@ for j=1:length(constrForceField{frame}.network.edge)
     constrForceField{frame}.network.edge{j}.fc    = fc; % this value is obsolate!
     constrForceField{frame}.network.edge{j}.n_Vec = nVec_mean;
     constrForceField{frame}.network.edge{j}.char  = char;
-    constrForceField{frame}.network.edge{j}.errs  = errsum;
+    constrForceField{frame}.network.stats.errs    = errsum;
     
     
     % Do we need to store these values in here at all?

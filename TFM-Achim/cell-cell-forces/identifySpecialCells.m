@@ -92,9 +92,14 @@ xlim([-0.05 1.05])
 
 % ask the user to put in an appropriate threshold:
 threshold  = input(['Set the threshold value (',num2str(length(toDoList)),'frames): ']);
-markerChar = input('Is this nuclei marker for control (put 0) or myosin cells (put [1])?: ');
+markerChar = input('Is this nuclei marker for control (put 0) or myosin cells (put [1])');
 if isempty(markerChar) || markerChar~=0
     markerChar=1;
+end
+
+myoType    = input('Which myosin type is it? type e.g. [myoIIA_hp93], myoIIA_hp94, myoIIB_hp103: ','s');
+if isempty(myoType)
+    myoType='myoIIA_hp93';
 end
 
 % store the values in the cell structure:
@@ -104,9 +109,11 @@ for frame=toDoList
     for cellID=1:length(constrForceField{frame}.cell)
         if (iVal(frame,cellID)>threshold && markerChar==1) || (iVal(frame,cellID)<threshold && markerChar==0)            
             constrForceField{frame}.cell{cellID}.stats.spec=1;
+            constrForceField{frame}.cell{cellID}.stats.type=myoType;            
             numSpec=numSpec+1;
         else
             constrForceField{frame}.cell{cellID}.stats.spec=0;
+            constrForceField{frame}.cell{cellID}.stats.type='ctrl';     
             numNorm=numNorm+1;
         end
     end    

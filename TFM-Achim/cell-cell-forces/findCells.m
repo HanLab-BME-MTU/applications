@@ -1,11 +1,25 @@
-function goodSet=findCells(groupedClusters,varargin)
-% goodSet=findCells(groupedClusters,'deg',2,'kPa',10,'myo',[0 1])
-% constraints that can be included in the search through the cluster list:
-% 'deg'
-% 'kPa'
-% 'myo'
-
-% strcmp(fnameFirstBeadImg,groupedClusters.clusterList)
+function goodCellSet=findCells(groupedClusters,varargin)
+% goodCellSet=findCells(groupedClusters,'deg',2,'kPa',10,'myo',[0 1],'errs',0)
+% Optional constraints that can be included in the search through the
+% cluster list. Only cells that match ALL search patterns will be regarded
+% as a good data and given in the output.
+% 'deg'   : List of deg-values. Cells with a degree that is not in the
+%           given list will be dismissed in the search.
+% 'kPa'   : List of stiffness values in [kPa]. Experiments on substrates of
+%           different stiffness will be dismissed.
+% 'myo'   : 0/1: 0 = control cell; 1 = myosin cell. Cells that don't match
+%           the search pattern will be dismissed.
+% 'type'  : Select for specifc myosinII hairpins (e.g. myoIIA_hp93,
+%           myoIIA_hp94, myoIIB_hp103). 'type' can be a list of patterns,
+%           e.g. all myoIIA hair pins.
+% 'myoGlb': 0/1/-1: 0 = cluster with only control cells; 1 = cluster with only
+%           myosin cells. -1 = mixed clusters. Clusters that don't match
+%           the search pattern will be dismissed.
+% 'errF'  : x: Only clusters with an error in the force measurement of <x
+%           will be considered (the magnitude of the error in [nN]).
+% 'errs'  : 0/x: If 0, only clusters with no missing forces will be 
+%           considered. If x>0 is given then, clusters with an errors<x will 
+%           be considered.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
@@ -14,8 +28,7 @@ if ~isempty(degPos)
     degVal   = varargin{degPos+1};
 else
     degCheck = 0;
-end
-    
+end    
 
 kPaPos=find(strcmp('kPa',varargin));
 if ~isempty(kPaPos)
@@ -35,11 +48,47 @@ else
     myoCheck = 0;
 end
 
+myoGlbPos=find(strcmp('myoGlb',varargin));
+if ~isempty(myoGlbPos)
+    myoGlbCheck = 1;
+    % it is the next entry which contains the numeric value:
+    myoGlbVal   = varargin{myoGlbPos+1};
+else
+    myoGlbCheck = 0;
+end
+
+typePos=find(strcmp('type',varargin));
+if ~isempty(typePos)
+    typeCheck = 1;
+    % it is the next entry which contains the numeric value:
+    typeVal   = varargin{typePos+1};
+else
+    typeCheck = 0;
+end
+
+errsPos=find(strcmp('errs',varargin));
+if ~isempty(errsPos)
+    errsCheck = 1;
+    % it is the next entry which contains the numeric value:
+    errsVal   = varargin{errsPos+1};
+else
+    errsCheck = 0;
+end
+
+errFPos=find(strcmp('errF',varargin));
+if ~isempty(errFPos)
+    errFCheck = 1;
+    % it is the next entry which contains the numeric value:
+    errFVal   = varargin{errFPos+1};
+else
+    errFCheck = 0;
+end
+
 
 idx=1;
-goodSet(idx).clusterId=[];
-goodSet(idx).cellId   =[];
-goodSet(idx).frames   =[];
+goodCellSet(idx).clusterId=[];
+goodCellSet(idx).cellId   =[];
+goodCellSet(idx).frames   =[];
 for clusterId=1:groupedClusters.numClusters
     toDoList=[];
     trackedNet=groupedClusters.cluster{clusterId}.trackedNet;
@@ -54,19 +103,32 @@ for clusterId=1:groupedClusters.numClusters
     
     for cellId=1:maxCell
         for frame=toDoList
+            % check the composition of the network:
+            if trackedNet{frame}.stats.numMyo==0;
+                currMyoGlb=0;
+            elseif trackedNet{frame}.stats.numMyo==trackedNet{frame}.stats.numCells
+                currMyoGlb=1;
+            else
+                currMyoGlb=-1;
+            end
             % Now go through all checks:
             if     (cellId<=length(trackedNet{frame}.node))...
                     && (~isempty(trackedNet{frame}.node{cellId}))...
-                    && (~kPaCheck || ismember(trackedNet{frame}.par.yModu_Pa/1000,kPaVal))...
-                    && (~degCheck || ismember(trackedNet{frame}.node{cellId}.deg ,degVal))...
-                    && (~myoCheck || ismember(trackedNet{frame}.node{cellId}.spec,myoVal))
+                    && (~kPaCheck    || ismember(trackedNet{frame}.par.yModu_Pa/1000,kPaVal))...
+                    && (~degCheck    || ismember(trackedNet{frame}.node{cellId}.deg ,degVal))...
+                    && (~myoCheck    || ismember(trackedNet{frame}.node{cellId}.spec,myoVal))...
+                    && (~myoGlbCheck || ismember(currMyoGlb,myoGlbVal))...
+                    && (~typeCheck   || sum(strcmp(trackedNet{frame}.node{cellId}.type,typeVal)>0))...
+                    && (~errsCheck   || trackedNet{frame}.stats.errs<=errsVal)...
+                    && (~errFCheck   || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)
+                
                 
                 % If all of this is true we have found a good entry
-                display(['cluster: ',num2str(clusterId),' cell: ',num2str(cellId),' frame: ',num2str(frame)]);
+                % display(['cluster: ',num2str(clusterId),' cell: ',num2str(cellId),' frame: ',num2str(frame)]);
                 
-                goodSet(idx).clusterId=clusterId;
-                goodSet(idx).cellId   =cellId;
-                goodSet(idx).frames   =[goodSet(idx).frames,frame];
+                goodCellSet(idx).clusterId=clusterId;
+                goodCellSet(idx).cellId   =cellId;
+                goodCellSet(idx).frames   =[goodCellSet(idx).frames,frame];
             end
             
         end
@@ -76,9 +138,9 @@ end
 
 % sort out the empty ones:
 setId=1;
-while setId<length(goodSet)
-    if isempty(goodSet(setId).frames)
-        goodSet(setId)    =[];
+while setId<length(goodCellSet)
+    if isempty(goodCellSet(setId).frames)
+        goodCellSet(setId)    =[];
     else
         setId=setId+1;
     end

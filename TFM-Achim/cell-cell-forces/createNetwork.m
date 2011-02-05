@@ -20,14 +20,13 @@ for j=1:length(constrForceField{i}.twoCellIntf);
     edge{j}.cntrs = [];   % Centers of Coarse-grained interface. Points for force/stress vectors. Will be filled up by perfClusterAnalysis
     edge{j}.f_vec = [];   % will be filled up by perfClusterAnalysis
     edge{j}.s_vec = [];   % will be filled up by perfClusterAnalysis    
-    edge{j}.f1    = [];
-    edge{j}.f2    = [];
-    edge{j}.fc1   = [];   % will be filled up by perfClusterAnalysis
-    edge{j}.fc2   = [];   % will be filled up by perfClusterAnalysis
-    edge{j}.fc    = [];    % will be filled up by perfClusterAnalysis
+    edge{j}.f1    = [NaN NaN];
+    edge{j}.f2    = [NaN NaN];
+    edge{j}.fc1   = [NaN NaN];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc2   = [NaN NaN];   % will be filled up by perfClusterAnalysis
+    edge{j}.fc    = [NaN NaN];   % will be filled up by perfClusterAnalysis
     edge{j}.n_Vec = []; % will be filled up by perfClusterAnalysis
     edge{j}.char  = [];
-    edge{j}.errs  = [];
 end
 
 % Determine the normal to the internal part of the interface:
@@ -132,8 +131,10 @@ for k=1:length(constrForceField{i}.cell)
     % the specification of the cells/nodes, e.g. myosin marker:
     if isfield(constrForceField{i}.cell{k}.stats,'spec')
         node{k}.spec =constrForceField{i}.cell{k}.stats.spec;
+	node{k}.type =constrForceField{i}.cell{k}.stats.type;
     else
         node{k}.spec =[];
+	node{k}.type =[];
     end
     
     % find the edges and neighbors to each node:
@@ -157,16 +158,36 @@ for k=1:length(constrForceField{i}.cell)
     end
 end
 
-% Do some statistics on the network:
+% Do some simple statistics on the network:
 maxMag=0;
+numMyo=0;
 for k=1:length(node)
     %find the largest force magnitude
     currMag=node{k}.mag;
     if currMag>maxMag
         maxMag=currMag;
-    end
+    end    
+    numMyo=numMyo+node{k}.spec;
 end
 
-constrForceField{i}.network.edge        =edge;
-constrForceField{i}.network.node        =node;
-constrForceField{i}.network.stats.maxMag=maxMag;
+constrForceField{i}.network.edge                 = edge;
+constrForceField{i}.network.node                 = node;
+constrForceField{i}.network.stats.maxMag         = maxMag;
+constrForceField{i}.network.stats.numMyo         = numMyo;
+constrForceField{i}.network.stats.numCells       = length(node); % This works because there are no empty nodes (as in the tracked network!)
+constrForceField{i}.network.stats.errs           = []; % will be filled in by cluster analysis.
+
+if isfield(constrForceField{i},'errorSumForce')
+    % This should be the case for all newer datasets!
+    constrForceField{i}.network.stats.errorSumForce  = constrForceField{i}.errorSumForce;
+else
+    errorSumForce.vec=zeros(1,2);
+    for nodeId=1:length(node)
+        errorSumForce.vec=errorSumForce.vec+node{nodeId}.vec;
+    end
+    errorSumForce.mag=sqrt(sum((errorSumForce.vec).^2));
+    errorSumForce.method='indirect';
+    
+    constrForceField{i}.network.stats.errorSumForce  = errorSumForce;
+end
+
