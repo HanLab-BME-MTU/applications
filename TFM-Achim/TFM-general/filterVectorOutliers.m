@@ -12,7 +12,6 @@ if nargin < 5 || isempty(boxSizeGlbFac)
     boxSizeGlbFac=2;
 end
 if nargin < 6 || isempty(doPlot)
-    % Set the box size for the averaging (factor times the gridSize):
     doPlot=0;
 end
 
