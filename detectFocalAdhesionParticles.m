@@ -25,8 +25,8 @@ P = zeros(size(y, 1), 6);
 P(:,1) = x;
 P(:,2) = y;
 P(:,3) = ima(indMax);
-P(:,4) = sigmaPSF;
-P(:,5) = 10;% * sigmaPSF;
+P(:,4) = 4 * sigmaPSF; % sigmaX
+P(:,5) = sigmaPSF; % sigmaY
 P(:,6) = T(indMax);
 
 % Subresolution detection
@@ -50,6 +50,8 @@ stdP = zeros(size(P));
 [X,Y] = meshgrid(-hside:hside);
 disk = X.^2 + Y.^2 - hside^2 <= 0;
 
+isIn = false(numel(xmin),1);
+
 for iFeature = 1:numel(xmin)
         
     crop = ima(ymin(iFeature):ymax(iFeature), xmin(iFeature):xmax(iFeature));
@@ -57,21 +59,23 @@ for iFeature = 1:numel(xmin)
     A = P(iFeature,3) - C;
     crop(~disk) = NaN;
     
-    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, A, P(iFeature,4), P(iFeature,5), P(iFeature,6), C], 'xyAtC');
+    [params stdParams] = fitAnisoGaussian2D(crop, [0, 0, A, P(iFeature,4), P(iFeature,5), P(iFeature,6), C], 'xyArtC');
     
-     if max(abs(params(1:2))) < radius   
-         P(iFeature,1) = P(iFeature,1) + params(1);
-         P(iFeature,2) = P(iFeature,2) + params(2);
-         P(iFeature,3) = params(3);
-         P(iFeature,4) = params(4);
-         P(iFeature,5) = params(5);
-         P(iFeature,6) = params(6);
+    if max(abs(params(1:2))) < radius
+        isIn(iFeature) = true;
+         
+        P(iFeature,1) = P(iFeature,1) + params(1);
+        P(iFeature,2) = P(iFeature,2) + params(2);
+        P(iFeature,3) = params(3);
+        P(iFeature,4) = params(4);
+        P(iFeature,5) = params(5);
+        P(iFeature,6) = params(6);
         
-         stdP(iFeature,1) = stdParams(1);
-         stdP(iFeature,2) = stdParams(2);
-         stdP(iFeature,3) = stdParams(3);
-         stdP(iFeature,6) = stdParams(4);
-     end
+        stdP(iFeature,1) = stdParams(1);
+        stdP(iFeature,2) = stdParams(2);
+        stdP(iFeature,3) = stdParams(3);
+        stdP(iFeature,6) = stdParams(4);
+    end
 end
 
 featuresInfo.xCoord = [P(:,1), stdP(:,1)];
