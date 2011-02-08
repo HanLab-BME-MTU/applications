@@ -94,7 +94,7 @@ for idx=1:length(goodCellSet)
             area_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.area;
         end
         
-        if  resFCheck
+        if  resFCheck || corrCheck
             resF_vals(frame,:)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.vec;
         end
         

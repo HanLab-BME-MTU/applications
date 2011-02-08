@@ -62,3 +62,17 @@ plot(fc1_mag,Itot_vals,'*')
 figure()
 plot(fc1_mag,Iavg_vals,'o')
 
+%**************************************************************************
+% correlate forces for control cells:
+%**************************************************************************
+goodCellSet=findCells(groupedClusters,'deg',[2 3 4 5 6],'myo',0,'errs',0);
+[corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
+[corrResults]=calCorrResults(corrSets);
+
+
+%**************************************************************************
+% correlate forces for myosin cells:
+%**************************************************************************
+goodCellSet=findCells(groupedClusters,'deg',[2 3 4 5 6],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+[corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
+[corrResults]=calCorrResults(corrSets);
