@@ -1348,7 +1348,7 @@ inputParam = struct('samplingPeriod',samplingPeriod,'correctStd',...
 sisterMotionCoupling = struct('Inlier',Inlier,'Unaligned',Unaligned,...
     'Lagging',Lagging,'inputParam',inputParam);
 
-%check whether current analysisStruct already has the sisterConnection field
+%check whether current analysisStruct already has the sisterMotionCoupling field
 fieldExists = isfield(analysisStruct,'sisterMotionCoupling');
 
 %store results in analysisStruct

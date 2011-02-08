@@ -266,9 +266,9 @@ for t=goodTimes(:)'
     
     %remove any spots with negative amplitude, because those are false
     %positives for sure - KJ
-    if any(movieType == [2 3])
-        initCoordTmp = initCoordTmp(initCoordTmp(:,4)>0,:);
-    end
+    %     if any(movieType == [2 3])
+    initCoordTmp = initCoordTmp(initCoordTmp(:,4)>0,:);
+    %     end
     
     % loop through all to get sub-pixel positions.
     raw = raw - background; %overwrite raw to save memory
@@ -315,7 +315,7 @@ for t=goodTimes(:)'
     
     %append an additional column which stores (A-mean)/sigma instead of
     %only A/sigma
-    meanAmpAll = robustMean(initCoordTmp(:,4)); %use robst mean in order to use mostly noise maxima
+    meanAmpAll = robustMean(initCoordTmp(:,4)); %use robust mean in order to use mostly noise maxima
     initCoordTmp = [initCoordTmp (initCoordTmp(:,4)-meanAmpAll)./sqrt(initCoordTmp(:,5))]; %#ok<AGROW>
     
     initCoordRaw{t} = initCoordTmp;
@@ -411,7 +411,7 @@ if verbose > 1
     end
 end
 
-nn = nan(3,1);
+nn = nan(4,1);
 % check for predetermined cutoff
 if ~isempty(cutoffFix)
     
@@ -428,6 +428,9 @@ if ~isempty(cutoffFix)
         cutoffCol = mapIdx2col(cutoffIdx);
         % update cutoff
         cutoff(cutoffIdx) = cutoffFix(2);
+    end
+    if verbose > 1
+        plot(ah(cutoffFix(1)),[1,nTimepoints],[cutoffFix(2) cutoffFix(2)],'r');
     end
     
 else
