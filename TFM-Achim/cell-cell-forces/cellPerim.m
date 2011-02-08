@@ -29,7 +29,9 @@ if nargin < 2 || isempty(dilationR)
 end
 
 if nargin < 3 || isempty(sigmaGauss)
-    sigmaGauss=5; % 3 is the default
+    sigmaGauss=5; % 5 is the default (Increase this value to make it more 
+                  % sensitive to cells with low expression level but might
+                  % lead to oversegmentation!)
 end
 
 if nargin < 4 || isempty(closureRadius)
@@ -78,6 +80,13 @@ for frameIndex=1:length(imageFileList)
 
     % The clean image to be analyzed:
     currentImageNonZero=currentImage(first_row:last_row,first_col:last_col);
+    
+    % background subtraction with imopen makes things worse!!! Don't use
+    % it!!!
+    % background = imopen(currentImageNonZero,strel('disk',100));
+    % currentImageNonZero = imsubtract(currentImageNonZero,background);
+    % figure()
+    % imshow(currentImageNonZero,[])
     
     % Perform the edge detection based on finding a good threshold:
     cellEdge{frameIndex}.mask =zeros(size(currentImage));
