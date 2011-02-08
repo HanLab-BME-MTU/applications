@@ -9,16 +9,22 @@ if nargin<2 || isempty(filename)
     filename='trackedNet.mat';
 end
 
-% This is another option to search for the files:
-% tic;
-% fileList=searchFiles(filename,[],pwd,1,[],1);
-% toc;
+if isunix
+    tic;
+    display('Used Unix command find!')
+    [~, unixList]=system(['find . -name ''',filename,'''']);
+    cellList = textscan(unixList,'%s');
+    fileList = cellList{1};
+    toc;
+else
+    % This is another option to search for the files:
+    tic;
+    display('Couldn''t use unix command find!')
+    fileList=searchFiles(filename,[],pwd,1,[],1);
+    toc;
+end
 
-tic;
-[~, unixList]=system(['find . -name ''',filename,'''']);
-cellList = textscan(unixList,'%s');
-fileList = cellList{1};
-toc;
+
 
 for entryId=1:numel(fileList)
     % load the file

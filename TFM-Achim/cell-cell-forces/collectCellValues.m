@@ -1,66 +1,67 @@
 function varargout=collectCellValues(groupedClusters,goodCellSet,varargin)
-% [deg_vals,elE_vals,area_vals,resF_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','area','resF')
+% [deg_out,elE_out,area_out,resF_out,intF_out]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','area','resF','corr')
+% [corr_vals]=collectCellValues(groupedClusters,goodCellSet,'corr')
 % Runs through the groupedClusters and collects all the data from fields
 % specified in the input arguments. Potential fields are:
 % 'deg'  : The degree of connectivity of a cell.
 % 'elE'  : The contraction/elastic energy of the cell.
 % 'area' : The area of the cell.
 % 'resF' : The residual force of the cell.
-% 'intF' : The interfacial forces exerted on this cell.
+% 'corr' : The interfacial forces exerted on this cell.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
     degCheck = 1;
-    % initialize:
-    deg_vals = [];
 else
     degCheck = 0;
 end
+% initialize:
+deg_out = [];
     
 
 elEPos=find(strcmp('elE',varargin));
 if ~isempty(elEPos)
     elECheck = 1;
-    % initialize:
-    elE_vals   = [];
 else
     elECheck = 0;
 end
+% initialize:
+elE_out  = [];
 
 areaPos=find(strcmp('area',varargin));
 if ~isempty(areaPos)
     areaCheck = 1;
-    % initialize:
-    area_vals   = [];
 else
     areaCheck = 0;
 end
+% initialize:
+area_out   = [];
 
 resFPos=find(strcmp('resF',varargin));
 if ~isempty(resFPos)
     resFCheck = 1;
-    % initialize:
-    resF_vals   = [];
 else
     resFCheck = 0;
 end
+% initialize:
+resF_out   = [];
 
-intFPos=find(strcmp('intF',varargin));
-if ~isempty(intFPos)
-    intFCheck = 1;
+corrPos=find(strcmp('corr',varargin));
+if ~isempty(corrPos)
+    corrCheck = 1;
     % initialize:
     maxIdx =length(goodCellSet);
-    intF_vals(maxIdx).edge = [];
+    corr_out(maxIdx).edge = [];
     
 %     maxEdgeNum=100;  % This can be read out of the data set!
 %     % maxFrame  =200;  % This can be read out of the data set!
-%     intF_vals(maxIdx).edge(maxEdgeNum).f1    = []; % Make sure to take the right direction!!!
-%     intF_vals(maxIdx).edge(maxEdgeNum).f2    = []; % Make sure to take the right direction!!!
-%     intF_vals(maxIdx).edge(maxEdgeNum).fn    = []; % Is the mean of f1 and f2. Make sure to take the right direction!!!
-%     intF_vals(maxIdx).edge(maxEdgeNum).fc    = []; % Make sure to take the right direction!!!
-%     intF_vals(maxIdx).edge(maxEdgeNum).frame = [];
+%     corr_out(maxIdx).edge(maxEdgeNum).f1    = []; % Make sure to take the right direction!!!
+%     corr_out(maxIdx).edge(maxEdgeNum).f2    = []; % Make sure to take the right direction!!!
+%     corr_out(maxIdx).edge(maxEdgeNum).fn    = []; % Is the mean of f1 and f2. Make sure to take the right direction!!!
+%     corr_out(maxIdx).edge(maxEdgeNum).fc    = []; % Make sure to take the right direction!!!
+%     corr_out(maxIdx).edge(maxEdgeNum).frame = [];
 else
-    intFCheck = 0;
+    corrCheck = 0;
 end
 
 
@@ -69,54 +70,92 @@ for idx=1:length(goodCellSet)
     cellId   =goodCellSet(idx).cellId;
     toDoList =goodCellSet(idx).frames;
     
+    % initialize all values:
+    deg_vals =NaN+zeros(toDoList(end),1);
+    elE_vals =NaN+zeros(toDoList(end),1);
+    area_vals=NaN+zeros(toDoList(end),1);
+    resF_vals=NaN+zeros(toDoList(end),2);
+    
     for frame=toDoList
         % Now go through all checks:
         if  degCheck
-            deg_vals=vertcat(deg_vals,groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.deg);
+            deg_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.deg;
         end
         
         if  elECheck
             if isempty(groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.elE)
-                elE_vals=vertcat(elE_vals ,NaN);
+                elE_vals(frame)=NaN;
             else
-                elE_vals=vertcat(elE_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.elE);
+                elE_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.elE;
             end
         end
         
         if  areaCheck
-            area_vals=vertcat(area_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.area);
+            area_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.area;
         end
         
         if  resFCheck
-            resF_vals=vertcat(resF_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.vec);
+            resF_vals(frame,:)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.vec;
         end
         
-        tic;
-        if  intFCheck
+        if  corrCheck
             edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
             for edgeId=edges
-                if edgeId>length(intF_vals(idx).edge)
-                   intF_vals(idx).edge(edgeId).f1=[]; 
-                   intF_vals(idx).edge(edgeId).f2=[];
-                   intF_vals(idx).edge(edgeId).fn=[];
-                   intF_vals(idx).edge(edgeId).fc=[];
-                   intF_vals(idx).edge(edgeId).frames=[];
+                if edgeId>length(corr_out(idx).edge)
+                   % set all initial force values to NaNs:
+                   corr_out(idx).edge(edgeId).f1=NaN+zeros(toDoList(end),2); 
+                   corr_out(idx).edge(edgeId).f2=NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).fn=NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).fc=NaN+zeros(toDoList(end),2);
+                   % The frame list runs from 1 to the maximum of the
+                   % toDoList:
+                   corr_out(idx).edge(edgeId).frames=1:toDoList(end);
+                   % just to keep track, input the original edgeId:
+                   corr_out(idx).edge(edgeId).edgeId=edgeId;
                 end
-                % pick the right direction:
-                display('To do: pick the right direction!')
-                f1=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f1;
-                f2=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f2;
-                fc=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.fc;
-
-                intF_vals(idx).edge(edgeId).f1=vertcat(intF_vals(idx).edge(edgeId).f1,f1);
-                intF_vals(idx).edge(edgeId).f2=vertcat(intF_vals(idx).edge(edgeId).f2,f2);
-                intF_vals(idx).edge(edgeId).fn=vertcat(intF_vals(idx).edge(edgeId).fn,0.5*(f1-f2));
-                intF_vals(idx).edge(edgeId).fc=vertcat(intF_vals(idx).edge(edgeId).fc,fc);
-                intF_vals(idx).edge(edgeId).frames=vertcat(intF_vals(idx).edge(edgeId).frames,frame);
+                % display('To do: pick the right direction!')
+                f1 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f1;
+                f2 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f2;
+                fc1=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.fc1;
+                
+                % find the position of the current cell/node and pick the
+                % right direction! fn and fc are the force exerted by the
+                % neighboring cells on to the current cell:
+                if find(groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.nodes==cellId)==1
+                    fh = f1;
+                    f1 = f2;
+                    f2 = fh;
+                    fc1=-fc1;
+                elseif isempty(find(groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.nodes==cellId, 1))
+                    error('Something went wrong')
+                end
+                corr_out(idx).edge(edgeId).f1(frame,:)=f1;
+                corr_out(idx).edge(edgeId).f2(frame,:)=f2;
+                corr_out(idx).edge(edgeId).fn(frame,:)=0.5*(f1-f2);
+                corr_out(idx).edge(edgeId).fc(frame,:)=fc1;
+                % corr_out(idx).edge(edgeId).frames=vertcat(corr_out(idx).edge(edgeId).frames,frame);
             end
             
         end
-        toc;
+    end
+    % append the found values:
+    deg_out = vertcat( deg_out, deg_vals);
+    elE_out = vertcat( elE_out, elE_vals);
+    area_out= vertcat(area_out,area_vals);
+    resF_out= vertcat(resF_out,resF_vals);
+    
+    %remove empty edges
+    if  corrCheck
+        corr_out(idx).resF=resF_vals;
+        edgeId=1;
+        while edgeId<=length(corr_out(idx).edge)
+            checkVal=(isempty(corr_out(idx).edge(edgeId)) || isempty(corr_out(idx).edge(edgeId).edgeId));
+            if checkVal
+                corr_out(idx).edge(edgeId)=[];
+            else
+                edgeId=edgeId+1;
+            end
+        end
     end
 end
 
@@ -125,23 +164,23 @@ optargin = size(varargin,2);
 
 
 if degCheck
-    varargout(degPos)  = {deg_vals};
+    varargout(degPos)  = {deg_out};
 end
 
 if elECheck
-    varargout(elEPos)  = {elE_vals};
+    varargout(elEPos)  = {elE_out};
 end
 
 if areaCheck
-    varargout(areaPos) = {area_vals};
+    varargout(areaPos) = {area_out};
 end
 
 if  resFCheck
-    varargout(resFPos) = {resF_vals};
+    varargout(resFPos) = {resF_out};
 end
 
-if  intFCheck
-    varargout(intFPos) = {intF_vals};
+if  corrCheck
+    varargout(corrPos) = {corr_out};
 end
 
 % Do some simple output checks:
@@ -151,6 +190,6 @@ end
 
 for k=2:optargin
     if size(varargout{1},1)~=size(varargout{k},1)
-        error('Something went wrong');
+        display('Something might have went wrong');
     end
 end
