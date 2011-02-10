@@ -83,35 +83,35 @@ layerPlugins(1).filterSpec = {'*.mat'};
 layerPlugins(1).displayFunc = @displayVectorField;
 layerPlugins(1).dispatchFunc = @dispatchCellToFrames;
 
-% Points
-layerPlugins(2).desc = 'Points';
+% Iso Features
+layerPlugins(2).desc = 'Iso Features';
 layerPlugins(2).filterSpec = {'*.mat'};
-layerPlugins(2).displayFunc = @displayPoints;
+layerPlugins(2).displayFunc = @displayIsoFeatures;
 layerPlugins(2).dispatchFunc = @dispatchCellToFrames;
 
+% Aniso Features
+layerPlugins(3).desc = 'Aniso Features';
+layerPlugins(3).filterSpec = {'*.mat'};
+layerPlugins(3).displayFunc = @displayAnisoFeatures;
+layerPlugins(3).dispatchFunc = @dispatchAnisoFeatures;
+
 % [qFSM] Speckles
-layerPlugins(3).desc = '[qFSM] Speckles';
-layerPlugins(3).filterSpec = {'*.mat'}; 
-layerPlugins(3).displayFunc = @displaySpeckles;
-layerPlugins(3).dispatchFunc = @dispatchFilesToFrames;
+layerPlugins(4).desc = '[qFSM] Speckles';
+layerPlugins(4).filterSpec = {'*.mat'}; 
+layerPlugins(4).displayFunc = @displaySpeckles;
+layerPlugins(4).dispatchFunc = @dispatchFilesToFrames;
 
 % [panda] Window
-layerPlugins(4).desc = '[panda] Windows';
-layerPlugins(4).filterSpec = {'*.mat'}; 
-layerPlugins(4).displayFunc = @plotWindowsFSM;
-layerPlugins(4).dispatchFunc = @dispatchMatrix3ToFrames;
+layerPlugins(5).desc = '[panda] Windows';
+layerPlugins(5).filterSpec = {'*.mat'}; 
+layerPlugins(5).displayFunc = @plotWindowsFSM;
+layerPlugins(5).dispatchFunc = @dispatchMatrix3ToFrames;
 
 % [Khuloud tracker] Features
-layerPlugins(5).desc = '[Khuloud Tracker] Features Info';
-layerPlugins(5).filterSpec = {'*.mat'};
-layerPlugins(5).displayFunc = @displayPoints;
-layerPlugins(5).dispatchFunc = @dispatchFeaturesInfo;
-
-% [Khuloud tracker] Aniso Features
-layerPlugins(6).desc = '[Khuloud Tracker] Aniso Features Info';
+layerPlugins(6).desc = '[Khuloud Tracker] Features Info';
 layerPlugins(6).filterSpec = {'*.mat'};
-layerPlugins(6).displayFunc = @displayVectorField;
-layerPlugins(6).dispatchFunc = @dispatchAnisoFeaturesInfo;
+layerPlugins(6).displayFunc = @displayIsoFeatures;
+layerPlugins(6).dispatchFunc = @dispatchFeaturesInfo;
 
 % [Khuloud tracker] Tracks
 layerPlugins(7).desc = '[Khuloud Tracker] Tracks Final';
