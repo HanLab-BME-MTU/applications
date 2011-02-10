@@ -1,5 +1,3 @@
-function displayAnisoFeatures(hAxes, tag, pts, layerColor)
+function displayAnisoFeatures(hAxes, tag, X, layerColor)
 
-line(pts(:,1), pts(:,2),'LineStyle', 'none',...
-    'Marker', '.','Color',layerColor,'MarkerSize',12,...
-    'Tag', tag, 'Parent', hAxes);
+line(X(:,[1 3])', X(:,[2 4])','Color',layerColor,'Tag',tag,'Parent',hAxes);
