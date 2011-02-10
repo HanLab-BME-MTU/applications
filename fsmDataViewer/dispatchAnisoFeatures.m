@@ -1,4 +1,4 @@
-function dataLayer = dispatchAnisoFeaturesInfo(fileList, nFrames)
+function dataLayer = dispatchAnisoFeatures(fileList, nFrames)
 
 if numel(fileList) ~= 1
     error('Only 1 file is expected');
