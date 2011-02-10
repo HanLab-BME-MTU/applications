@@ -1,4 +1,9 @@
-function [corrResults]=calCorrResults(corrSets)
+function [corrResults]=calCorrResults(corrSets,maxLag,opt)
+% INPUT 
+% opt:  'usefn': take only network forces into account.
+%       'usefc': take only cluster forces into account.
+%       'usefm': take network forces when possible, cluster forces
+%                otherwise.
 
 %**************************************************************************
 % 1) Find all frames for this cell where the network has not changed      *
@@ -14,10 +19,40 @@ function [corrResults]=calCorrResults(corrSets)
 % 1)-4) can be accounted for findCells. 
 % 5) could be checked in here if needed, but not sure if necessary at all.
 
-%**************************************************************************
-% 3) Extract the time course of the forces                                *
-%**************************************************************************
+% For 'usefn', 'deg'=2, 'myo'=1, 'errs'=0 this function will yield the same
+% results as the old TFM_part_8_corrAnalysis for cell 4 at frame 20 of:
+% /orchestra/groups/lccb-mechanics/analysis/Rosa/TFM/clusters/2010_08_12_TFM_8kPa_5p_05p_10AshMYOIIA_hp94/wellA4_32
 
+% calculate the correlation coefficients:
+if nargin<2 || isempty(maxLag)
+    maxLag=5;
+end
+
+if nargin<3 || isempty(opt)
+    opt='usefm';
+end
+
+% now pull the right data in a new field of the data structure. Once when
+% this is done, we can simmply rely on this field to calculate the
+% correlations:
+for idx=1:length(corrSets)
+    for edgeId=1:length(corrSets(idx).edge)
+        if strcmp(opt,'usefm')
+            corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fm;
+        elseif strcmp(opt,'usefn')
+            corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fn;
+        elseif strcmp(opt,'usefc')
+            corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fc;
+        else
+            error('The given option is not supported');
+        end
+    end
+end
+        
+
+%**************************************************************************
+% 2) Extract the time course of the forces                                *
+%**************************************************************************
 % run through all clusters and collect the data.
 currEdge=1;
 setId=1;
@@ -31,10 +66,9 @@ for idx=1:length(corrSets)
     end
     
     for currEdge=edgePerm
-        % the x-component:
-        fi(setId,1).observations = corrSets(idx).edge(currEdge).fc(:,1); % In future, take only fc if necessary. 
-        % the y-component:
-        fi(setId,2).observations = corrSets(idx).edge(currEdge).fc(:,2); % In future, take only fc if necessary.
+        % 1/2=the x/y-component:
+        fi(setId,1).observations = corrSets(idx).edge(currEdge).fcorr(:,1); 
+        fi(setId,2).observations = corrSets(idx).edge(currEdge).fcorr(:,2);
 
         % the x/y-components:
         fi_tot(setId,1).observations = [];
@@ -44,12 +78,12 @@ for idx=1:length(corrSets)
         for edgeId=setxor(currEdge,1:length(corrSets(idx).edge))
             % the x/y-components:
             if isempty(fi_tot(setId,1).observations)
-                fi_tot(setId,1).observations=corrSets(idx).edge(edgeId).fc(:,1);
-                fi_tot(setId,2).observations=corrSets(idx).edge(edgeId).fc(:,2);
+                fi_tot(setId,1).observations=corrSets(idx).edge(edgeId).fcorr(:,1);
+                fi_tot(setId,2).observations=corrSets(idx).edge(edgeId).fcorr(:,2);
             else
                 % Check for NaNs before adding the values:            
-                fi_tot(setId,1).observations=nanSum(fi_tot(setId,1).observations,corrSets(idx).edge(edgeId).fc(:,1));
-                fi_tot(setId,2).observations=nanSum(fi_tot(setId,2).observations,corrSets(idx).edge(edgeId).fc(:,2));
+                fi_tot(setId,1).observations=nanSum(fi_tot(setId,1).observations,corrSets(idx).edge(edgeId).fcorr(:,1));
+                fi_tot(setId,2).observations=nanSum(fi_tot(setId,2).observations,corrSets(idx).edge(edgeId).fcorr(:,2));
             end
         end
         % the x/y-components:
@@ -60,25 +94,40 @@ for idx=1:length(corrSets)
     end
 end
 
-% determine maximal possible lag:
-% numPts=sum(~isnan(X(:,1)));
-% maxLag=floor(numPts/4);
-
-% calculate the correlation coefficients:
-maxLag=5;
-
-% Correlation between forces at the interface:
-intx=crossCorr(fi(:,1),fi_tot(:,1),maxLag);
-inty=crossCorr(fi(:,2),fi_tot(:,2),maxLag);
-
-% Correlation between forces at the interface:
-resx=crossCorr(fi(:,1),f_res(:,1),maxLag);
-resy=crossCorr(fi(:,2),f_res(:,2),maxLag);
-
 cols=2;
+% Calculate the autocorrelation:
+cF1F1=NaN*zeros(cols,cols,2*maxLag+1);
+for i=1:cols
+    for j=1:cols %min(i+2,cols):cols
+        out1=crossCorr(fi(:,i),fi(:,j),maxLag); % in the ideal case these entries are all -1!
+        cF1F1(i,j,:)=out1(:,1);
+        cF1F1_std(i,j,:)=out1(:,2);
+    end
+end
+
+cFtFt=NaN*zeros(cols,cols,2*maxLag+1);
+for i=1:cols
+    for j=1:cols %min(i+2,cols):cols
+        out1=crossCorr(fi_tot(:,i),fi_tot(:,j),maxLag); % in the ideal case these entries are all -1!
+        cFtFt(i,j,:)=out1(:,1);
+        cFtFt_std(i,j,:)=out1(:,2);
+    end
+end
+
+cFrFr=NaN*zeros(cols,cols,2*maxLag+1);
+for i=1:cols
+    for j=1:cols %min(i+2,cols):cols
+        out1=crossCorr(f_res(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
+        cFrFr(i,j,:)=out1(:,1);
+        cFrFr_std(i,j,:)=out1(:,2);
+    end
+end
+
+
+% Calculate the cross correlation:
 cF1Ft=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
-    for j=i:cols %min(i+2,cols):cols
+    for j=1:cols %min(i+2,cols):cols
         out1=crossCorr(fi(:,i),fi_tot(:,j),maxLag); % in the ideal case these entries are all -1!
         cF1Ft(i,j,:)=out1(:,1);
         cF1Ft_std(i,j,:)=out1(:,2);
@@ -87,7 +136,7 @@ end
 
 cF1Fr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
-    for j=i:cols %min(i+2,cols):cols
+    for j=1:cols %min(i+2,cols):cols
         out1=crossCorr(fi(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
         cF1Fr(i,j,:)=out1(:,1);
         cF1Fr_std(i,j,:)=out1(:,2);
@@ -96,34 +145,40 @@ end
 
 cFtFr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
-    for j=i:cols %min(i+2,cols):cols
+    for j=1:cols %min(i+2,cols):cols
         out1=crossCorr(fi_tot(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
         cFtFr(i,j,:)=out1(:,1);
         cFtFr_std(i,j,:)=out1(:,2);
     end
 end
 
-figure(1)
-
 cF1Ft;
 cF1Fr;
 cFtFr;
 
-display(['Avg. correlation cF1Ft:',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1))))]);
-display(['Avg. correlation cF1Fr:',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1))))]);
-display(['Avg. correlation cFtFr:',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1))))]);
+display(['Avg. XXXX correlation cF1Ft:',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1))))]);
+display(['Avg. XXXX correlation cF1Fr:',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1))))]);
+display(['Avg. XXXX correlation cFtFr:',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1))))]);
+
+display(['Avg. Auto correlation cF1F1:',num2str(nanmean(mat2vec(cF1F1(:,:,maxLag+1))))]);
+display(['Avg. Auto correlation cFtFt:',num2str(nanmean(mat2vec(cFtFt(:,:,maxLag+1))))]);
+display(['Avg. Auto correlation cFrFr:',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag+1))))]);
 
 
-figure(1)
+
+figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations)])
 
-figure(2)
+figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
 
-figure(3)
+figure()
+plotmatrix([vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
+
+figure()
 title('The cross correlation for cF1Ft')
 for i=1:cols
-    for j=i:cols
+    for j=1:cols
         subplot(cols,cols,(i-1)*cols+j)
         plot(-maxLag:1:maxLag,reshape(cF1Ft(i,j,:),[],1))
         ylim([-1 1])
@@ -131,10 +186,10 @@ for i=1:cols
     end
 end
 
-figure(4)
+figure()
 title('The cross correlation for cF1Fr')
 for i=1:cols
-    for j=i:cols
+    for j=1:cols
         subplot(cols,cols,(i-1)*cols+j)
         plot(-maxLag:1:maxLag,reshape(cF1Fr(i,j,:),[],1))
         ylim([-1 1])
@@ -142,10 +197,10 @@ for i=1:cols
     end
 end
 
-figure(5)
+figure()
 title('The cross correlation for cFtFr')
 for i=1:cols
-    for j=i:cols
+    for j=1:cols
         subplot(cols,cols,(i-1)*cols+j)
         plot(-maxLag:1:maxLag,reshape(cFtFr(i,j,:),[],1))
         ylim([-1 1])
@@ -156,7 +211,11 @@ end
 corrResults.cF1Ft = cF1Ft;
 corrResults.cF1Fr = cF1Fr;
 corrResults.cFtFr = cFtFr;
-corrResults.maxLag= maxLag;
+corrResults.cF1F1 = cF1F1;
+corrResults.cFtFt = cFtFt;
+corrResults.cFrFr = cFrFr;
+corrResults.par.maxLag = maxLag;
+corrResults.par.opt    = opt;
 
 
 

@@ -7,6 +7,8 @@ function varargout=collectCellValues(groupedClusters,goodCellSet,varargin)
 % 'elE'  : The contraction/elastic energy of the cell.
 % 'area' : The area of the cell.
 % 'resF' : The residual force of the cell.
+% 'sumFi': The sum of interfacial forces (magnitude) exerted on the cell.
+% 'sumLi': The total length of the cell's interfaces.
 % 'corr' : The interfacial forces exerted on this cell.
 
 degPos=find(strcmp('deg',varargin));
@@ -46,6 +48,24 @@ end
 % initialize:
 resF_out   = [];
 
+sumFiPos=find(strcmp('sumFi',varargin));
+if ~isempty(sumFiPos)
+    sumFiCheck = 1;
+else
+    sumFiCheck = 0;
+end
+% initialize:
+sumFi_out   = [];
+
+sumLiPos=find(strcmp('sumLi',varargin));
+if ~isempty(sumLiPos)
+    sumLiCheck = 1;
+else
+    sumLiCheck = 0;
+end
+% initialize:
+sumLi_out   = [];
+
 corrPos=find(strcmp('corr',varargin));
 if ~isempty(corrPos)
     corrCheck = 1;
@@ -71,10 +91,12 @@ for idx=1:length(goodCellSet)
     toDoList =goodCellSet(idx).frames;
     
     % initialize all values:
-    deg_vals =NaN+zeros(toDoList(end),1);
-    elE_vals =NaN+zeros(toDoList(end),1);
-    area_vals=NaN+zeros(toDoList(end),1);
-    resF_vals=NaN+zeros(toDoList(end),2);
+    deg_vals   = NaN+zeros(toDoList(end),1);
+    elE_vals   = NaN+zeros(toDoList(end),1);
+    area_vals  = NaN+zeros(toDoList(end),1);
+    resF_vals  = NaN+zeros(toDoList(end),2);
+    sumFi_vals = NaN+zeros(toDoList(end),1);
+    sumLi_vals = NaN+zeros(toDoList(end),1);
     
     for frame=toDoList
         % Now go through all checks:
@@ -98,6 +120,52 @@ for idx=1:length(goodCellSet)
             resF_vals(frame,:)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.vec;
         end
         
+        if  sumFiCheck
+            edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
+            % Since we are only interested in the magnitude here, it
+            % doesn't matter which direction we pick:
+            sumFi=0;
+            for edgeId=edges
+                f1 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f1;
+                f2 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f2;
+                fc1=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.fc1;
+                fn_mag=sqrt(sum((0.5*(f1-f2)).^2,2));
+                fc_mag=sqrt(sum(fc1.^2,2));
+                
+                % Take the cluster force only if networkforce doesn't
+                % exist?!
+                if ~isnan(fn_mag)
+                    sumFi=sumFi+fn_mag;
+                elseif ~isnan(fc_mag)
+                    sumFi=sumFi+fc_mag;
+                else
+                    error(['Couldn''t find a force value for: cluster: ',num2str(clusterId),' edge: ',num2str(edgeId),' frame: ',num2str(frame)])
+                    % This might happen if the edge is empty! The program
+                    % should treat this case correctly. The error message
+                    % can be removed when checked that everything is done
+                    % correctly!
+                end
+            end
+            sumFi_vals(frame,:)=sumFi;
+        end
+        
+        if  sumLiCheck || corrCheck
+            edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
+            sumLi=0;
+            for edgeId=edges
+                if ~isempty(groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.intf_internal_L)
+                    sumLi = sumLi+groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.intf_internal_L;
+                else
+                    error(['Couldn''t find a length value for: cluster: ',num2str(clusterId),' edge: ',num2str(edgeId),' frame: ',num2str(frame)])
+                    % This might happen if the edge is empty! The program
+                    % should treat this case correctly. The error message
+                    % can be removed when checked that everything is done
+                    % correctly!
+                end
+            end
+            sumLi_vals(frame,:)=sumLi;
+        end
+        
         if  corrCheck
             edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
             for edgeId=edges
@@ -107,6 +175,7 @@ for idx=1:length(goodCellSet)
                    corr_out(idx).edge(edgeId).f2=NaN+zeros(toDoList(end),2);
                    corr_out(idx).edge(edgeId).fn=NaN+zeros(toDoList(end),2);
                    corr_out(idx).edge(edgeId).fc=NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).fm=NaN+zeros(toDoList(end),2);
                    % The frame list runs from 1 to the maximum of the
                    % toDoList:
                    corr_out(idx).edge(edgeId).frames=1:toDoList(end);
@@ -133,16 +202,23 @@ for idx=1:length(goodCellSet)
                 corr_out(idx).edge(edgeId).f2(frame,:)=f2;
                 corr_out(idx).edge(edgeId).fn(frame,:)=0.5*(f1-f2);
                 corr_out(idx).edge(edgeId).fc(frame,:)=fc1;
-                % corr_out(idx).edge(edgeId).frames=vertcat(corr_out(idx).edge(edgeId).frames,frame);
+                % create the mixed force vector which takes the network
+                % force whenever possible.
+                if ~isnan(corr_out(idx).edge(edgeId).fn(frame,:))
+                    corr_out(idx).edge(edgeId).fm(frame,:)=corr_out(idx).edge(edgeId).fn(frame,:);
+                else
+                    corr_out(idx).edge(edgeId).fm(frame,:)=corr_out(idx).edge(edgeId).fc(frame,:);
+                end
             end
-            
         end
     end
     % append the found values:
-    deg_out = vertcat( deg_out, deg_vals);
-    elE_out = vertcat( elE_out, elE_vals);
-    area_out= vertcat(area_out,area_vals);
-    resF_out= vertcat(resF_out,resF_vals);
+    deg_out   = vertcat( deg_out, deg_vals);
+    elE_out   = vertcat( elE_out, elE_vals);
+    area_out  = vertcat(area_out,area_vals);
+    resF_out  = vertcat(resF_out,resF_vals);
+    sumFi_out = vertcat(sumFi_out,sumFi_vals);
+    sumLi_out = vertcat(sumLi_out,sumLi_vals);
     
     %remove empty edges
     if  corrCheck
@@ -177,6 +253,14 @@ end
 
 if  resFCheck
     varargout(resFPos) = {resF_out};
+end
+
+if  sumFiCheck
+    varargout(sumFiPos) = {sumFi_out};
+end
+
+if  sumLiCheck
+    varargout(sumLiPos) = {sumLi_out};
 end
 
 if  corrCheck
