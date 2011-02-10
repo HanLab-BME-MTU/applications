@@ -1,15 +1,16 @@
 function varargout=collectCellValues(groupedClusters,goodCellSet,varargin)
-% [deg_out,elE_out,area_out,resF_out,intF_out]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','area','resF','corr')
+% [deg_out,elE_out,area_out,sumFmag_out,resF_out,intF_out]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','area','sumFmag','resF','corr')
 % [corr_vals]=collectCellValues(groupedClusters,goodCellSet,'corr')
 % Runs through the groupedClusters and collects all the data from fields
 % specified in the input arguments. Potential fields are:
-% 'deg'  : The degree of connectivity of a cell.
-% 'elE'  : The contraction/elastic energy of the cell.
-% 'area' : The area of the cell.
-% 'resF' : The residual force of the cell.
-% 'sumFi': The sum of interfacial forces (magnitude) exerted on the cell.
-% 'sumLi': The total length of the cell's interfaces.
-% 'corr' : The interfacial forces exerted on this cell.
+% 'deg'    : The degree of connectivity of a cell.
+% 'elE'    : The contraction/elastic energy of the cell.
+% 'area'   : The area of the cell.
+% 'sumFmag': The sum of the force magnitudes over the footprint of a cell.
+% 'resF'   : The residual force of the cell.
+% 'sumFi'  : The sum of interfacial forces (magnitude) exerted on the cell.
+% 'sumLi'  : The total length of the cell's interfaces.
+% 'corr'   : The interfacial forces exerted on this cell.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
@@ -38,6 +39,15 @@ else
 end
 % initialize:
 area_out   = [];
+
+sumFmagPos=find(strcmp('sumFmag',varargin));
+if ~isempty(sumFmagPos)
+    sumFmagCheck = 1;
+else
+    sumFmagCheck = 0;
+end
+% initialize:
+sumFmag_out  = [];
 
 resFPos=find(strcmp('resF',varargin));
 if ~isempty(resFPos)
@@ -91,12 +101,13 @@ for idx=1:length(goodCellSet)
     toDoList =goodCellSet(idx).frames;
     
     % initialize all values:
-    deg_vals   = NaN+zeros(toDoList(end),1);
-    elE_vals   = NaN+zeros(toDoList(end),1);
-    area_vals  = NaN+zeros(toDoList(end),1);
-    resF_vals  = NaN+zeros(toDoList(end),2);
-    sumFi_vals = NaN+zeros(toDoList(end),1);
-    sumLi_vals = NaN+zeros(toDoList(end),1);
+    deg_vals     = NaN+zeros(toDoList(end),1);
+    elE_vals     = NaN+zeros(toDoList(end),1);
+    area_vals    = NaN+zeros(toDoList(end),1);
+    sumFmag_vals = NaN+zeros(toDoList(end),1);
+    resF_vals    = NaN+zeros(toDoList(end),2);
+    sumFi_vals   = NaN+zeros(toDoList(end),1);
+    sumLi_vals   = NaN+zeros(toDoList(end),1);
     
     for frame=toDoList
         % Now go through all checks:
@@ -114,6 +125,10 @@ for idx=1:length(goodCellSet)
         
         if  areaCheck
             area_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.area;
+        end
+        
+        if  sumFmagCheck
+            sumFmag_vals(frame)=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.sumFmag;
         end
         
         if  resFCheck || corrCheck
@@ -171,11 +186,24 @@ for idx=1:length(goodCellSet)
             for edgeId=edges
                 if edgeId>length(corr_out(idx).edge)
                    % set all initial force values to NaNs:
-                   corr_out(idx).edge(edgeId).f1=NaN+zeros(toDoList(end),2); 
-                   corr_out(idx).edge(edgeId).f2=NaN+zeros(toDoList(end),2);
-                   corr_out(idx).edge(edgeId).fn=NaN+zeros(toDoList(end),2);
-                   corr_out(idx).edge(edgeId).fc=NaN+zeros(toDoList(end),2);
-                   corr_out(idx).edge(edgeId).fm=NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).fc   = NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).fm   = NaN+zeros(toDoList(end),2);
+                   corr_out(idx).edge(edgeId).flag = ones(toDoList(end),1);
+                   % corr_out(idx).edge(edgeId).fn=NaN+zeros(toDoList(end),2);
+                   % As I have set it up right now, fn cannot be used for
+                   % the correlation, since an empty edge (created by
+                   % trackNetwork) can not be distinguished from an edge
+                   % with undetermined value of the network force. Since fc
+                   % is determined for every edge, .fc=[NaN NaN]; means
+                   % that this edge is actually empty. Since fi_tot is
+                   % calculated as nansum, this value won't contribute as
+                   % intended. This doesn't work with .fn=[NaN NaN]; which
+                   % is ambiguous.
+                   % To prevent misuse don't store these values in the
+                   % corr_out structure!:
+                   % corr_out(idx).edge(edgeId).f1=NaN+zeros(toDoList(end),2); 
+                   % corr_out(idx).edge(edgeId).f2=NaN+zeros(toDoList(end),2);
+                   
                    % The frame list runs from 1 to the maximum of the
                    % toDoList:
                    corr_out(idx).edge(edgeId).frames=1:toDoList(end);
@@ -198,27 +226,42 @@ for idx=1:length(goodCellSet)
                 elseif isempty(find(groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.nodes==cellId, 1))
                     error('Something went wrong')
                 end
-                corr_out(idx).edge(edgeId).f1(frame,:)=f1;
-                corr_out(idx).edge(edgeId).f2(frame,:)=f2;
-                corr_out(idx).edge(edgeId).fn(frame,:)=0.5*(f1-f2);
+                % It is not save to use these values for reasons described
+                % above:
+                % corr_out(idx).edge(edgeId).f1(frame,:)=f1;
+                % corr_out(idx).edge(edgeId).f2(frame,:)=f2;
+                % corr_out(idx).edge(edgeId).fn(frame,:)=0.5*(f1-f2);
+                fn = 0.5*(f1-f2);
+                
                 corr_out(idx).edge(edgeId).fc(frame,:)=fc1;
                 % create the mixed force vector which takes the network
                 % force whenever possible.
-                if ~isnan(corr_out(idx).edge(edgeId).fn(frame,:))
-                    corr_out(idx).edge(edgeId).fm(frame,:)=corr_out(idx).edge(edgeId).fn(frame,:);
+                if ~isnan(sum(fn))
+                    corr_out(idx).edge(edgeId).fm(frame,:)=fn;
+                    % to keep track which value we have chosen:
+                    corr_out(idx).edge(edgeId).flag(frame,:)=1;
                 else
                     corr_out(idx).edge(edgeId).fm(frame,:)=corr_out(idx).edge(edgeId).fc(frame,:);
+                    % to keep track which value we have chosen:
+                    if ~isnan(sum(corr_out(idx).edge(edgeId).fc(frame,:)))
+                        corr_out(idx).edge(edgeId).flag(frame,:)=0;
+                    else
+                        % then, the edge was empty and it is OK to use the
+                        % network result
+                        corr_out(idx).edge(edgeId).flag(frame,:)=1;
+                    end
                 end
             end
         end
     end
     % append the found values:
-    deg_out   = vertcat( deg_out, deg_vals);
-    elE_out   = vertcat( elE_out, elE_vals);
-    area_out  = vertcat(area_out,area_vals);
-    resF_out  = vertcat(resF_out,resF_vals);
-    sumFi_out = vertcat(sumFi_out,sumFi_vals);
-    sumLi_out = vertcat(sumLi_out,sumLi_vals);
+    deg_out     = vertcat( deg_out, deg_vals);
+    elE_out     = vertcat( elE_out, elE_vals);
+    area_out    = vertcat(area_out,area_vals);
+    sumFmag_out = vertcat(sumFmag_out,sumFmag_vals);
+    resF_out    = vertcat(resF_out,resF_vals);
+    sumFi_out   = vertcat(sumFi_out,sumFi_vals);
+    sumLi_out   = vertcat(sumLi_out,sumLi_vals);
     
     %remove empty edges
     if  corrCheck
@@ -249,6 +292,10 @@ end
 
 if areaCheck
     varargout(areaPos) = {area_out};
+end
+
+if sumFmagCheck
+    varargout(sumFmagPos) = {sumFmag_out};
 end
 
 if  resFCheck

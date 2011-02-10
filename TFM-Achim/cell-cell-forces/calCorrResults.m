@@ -1,6 +1,10 @@
-function [corrResults]=calCorrResults(corrSets,maxLag,opt)
+function [corrResults]=calCorrResults(corrSets,maxLag,opt,normVar)
 % INPUT 
-% opt:  'usefn': take only network forces into account.
+% opt:  'usefn': take only network forces into account. At the moment, flag
+%                is only used to select the correct fm values, one could also use it to
+%                select the correct resF values. At the moment, all resF
+%                values are taken to get a more reliable value for the resF
+%                variance.
 %       'usefc': take only cluster forces into account.
 %       'usefm': take network forces when possible, cluster forces
 %                otherwise.
@@ -31,16 +35,24 @@ end
 if nargin<3 || isempty(opt)
     opt='usefm';
 end
+    
+
+if nargin<4 || isempty(normVar)
+    normVar=0;
+end
 
 % now pull the right data in a new field of the data structure. Once when
 % this is done, we can simmply rely on this field to calculate the
 % correlations:
 for idx=1:length(corrSets)
+    flags=horzcat(corrSets(idx).edge.flag);
+    checkVec=(sum(flags,2)==length(corrSets(idx).edge));
     for edgeId=1:length(corrSets(idx).edge)
         if strcmp(opt,'usefm')
             corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fm;
         elseif strcmp(opt,'usefn')
-            corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fn;
+            corrSets(idx).edge(edgeId).fcorr=NaN+zeros(length(checkVec),2);
+            corrSets(idx).edge(edgeId).fcorr(checkVec,:)=corrSets(idx).edge(edgeId).fm(checkVec,:);
         elseif strcmp(opt,'usefc')
             corrSets(idx).edge(edgeId).fcorr=corrSets(idx).edge(edgeId).fc;
         else
@@ -64,6 +76,8 @@ for idx=1:length(corrSets)
     else
         edgePerm=1;
     end
+    edgePerm=1;
+    % edgePerm=[3];
     
     for currEdge=edgePerm
         % 1/2=the x/y-component:
@@ -99,7 +113,7 @@ cols=2;
 cF1F1=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(fi(:,i),fi(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(fi(:,i),fi(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cF1F1(i,j,:)=out1(:,1);
         cF1F1_std(i,j,:)=out1(:,2);
     end
@@ -108,7 +122,7 @@ end
 cFtFt=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(fi_tot(:,i),fi_tot(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(fi_tot(:,i),fi_tot(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cFtFt(i,j,:)=out1(:,1);
         cFtFt_std(i,j,:)=out1(:,2);
     end
@@ -117,18 +131,17 @@ end
 cFrFr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(f_res(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(f_res(:,i),f_res(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cFrFr(i,j,:)=out1(:,1);
         cFrFr_std(i,j,:)=out1(:,2);
     end
 end
 
-
 % Calculate the cross correlation:
 cF1Ft=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(fi(:,i),fi_tot(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(fi(:,i),fi_tot(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cF1Ft(i,j,:)=out1(:,1);
         cF1Ft_std(i,j,:)=out1(:,2);
     end
@@ -137,7 +150,7 @@ end
 cF1Fr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(fi(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(fi(:,i),f_res(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cF1Fr(i,j,:)=out1(:,1);
         cF1Fr_std(i,j,:)=out1(:,2);
     end
@@ -146,7 +159,7 @@ end
 cFtFr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
-        out1=crossCorr(fi_tot(:,i),f_res(:,j),maxLag); % in the ideal case these entries are all -1!
+        out1=crossCorr(fi_tot(:,i),f_res(:,j),maxLag,normVar); % in the ideal case these entries are all -1!
         cFtFr(i,j,:)=out1(:,1);
         cFtFr_std(i,j,:)=out1(:,2);
     end
@@ -218,6 +231,17 @@ corrResults.par.maxLag = maxLag;
 corrResults.par.opt    = opt;
 
 
+
+% function[tc1,tc2]=slimTC(tc1,tc2)
+% for i=1:length(tc1)
+%     for t=1:length(tc1(i).observations)
+%         % If either one isnan, set both to NaN:
+%         if isnan(tc1(i).observations(t)) || isnan(tc2(i).observations(t))
+%             tc1(i).observations(t)=NaN;
+%             tc2(i).observations(t)=NaN;            
+%         end
+%     end
+% end
 
 
 function vecSum=nanSum(vec1,vec2)

@@ -121,13 +121,14 @@ for frame=toDoList
         bwMask = constrForceFieldUpdated{frame}.cell{cellID}.mask;
         if strcmp(method,'noIntp')
             gridSpacing= constrForceFieldUpdated{frame}.par.gridSpacing;
-            [sumForceVec,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu,gridSpacing);
+            [sumForceVec,sumForceMag,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu,gridSpacing);
         else
-            [sumForceVec,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu);
+            [sumForceVec,sumForceMag,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu);
         end
         
         constrForceFieldUpdated{frame}.cell{cellID}.stats.resForce.vec = - sumForceVec;
         constrForceFieldUpdated{frame}.cell{cellID}.stats.resForce.mag =   sqrt(sum((constrForceFieldUpdated{frame}.cell{cellID}.stats.resForce.vec).^2));
+        constrForceFieldUpdated{frame}.cell{cellID}.stats.sumForceMag  = sumForceMag;
         constrForceFieldUpdated{frame}.cell{cellID}.stats.method = method;
         
         display(['frame ',num2str(frame),', cell ',num2str(cellID),':']);
@@ -141,17 +142,20 @@ for frame=toDoList
     bwMask = constrForceFieldUpdated{frame}.segmRes.maskDilated;
     if strcmp(method,'noIntp')
         gridSpacing= constrForceFieldUpdated{frame}.par.gridSpacing;
-        [errorSumForce,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu,gridSpacing);
+        [errorSumForce,sumForceMagCl,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu,gridSpacing);
     else
-        [errorSumForce,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu);
+        [errorSumForce,sumForceMagCl,method,~,~]=integrateForceField(forceField(frame).pos,forceField(frame).vec,bwMask,pixSize_mu);
     end
     
     constrForceFieldUpdated{frame}.errorSumForce.vec    = errorSumForce;
     constrForceFieldUpdated{frame}.errorSumForce.mag    = sqrt(sum((errorSumForce).^2));
     constrForceFieldUpdated{frame}.errorSumForce.method = method;
+    constrForceFieldUpdated{frame}.sumForceMagCl        = sumForceMagCl;   % This uses the same method as above
     
-    display(['frame ',num2str(frame),', cell ',num2str(cellID),':']);
-    display(['old error vector:        ',num2str(constrForceField{frame}.errorSumForce.vec)]);
+    display(['frame ',num2str(frame),', errorSumForce ',num2str(cellID),':']);
+    if isfield(constrForceField{frame},'errorSumForce')
+        display(['old error vector:        ',num2str(constrForceField{frame}.errorSumForce.vec)]);
+    end
     display(['new error vector:        ',num2str(constrForceFieldUpdated{frame}.errorSumForce.vec)]);
     display('----------------------------');
     

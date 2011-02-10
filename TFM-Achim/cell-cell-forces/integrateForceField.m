@@ -1,4 +1,4 @@
-function [sumVec,method,inpos,invec]=integrateForceField(fpos,fvec,bwMask,pixSize_mu,gridSpacing)
+function [sumVec,sumMag,method,inpos,invec]=integrateForceField(fpos,fvec,bwMask,pixSize_mu,gridSpacing)
 % forceField (fpos,fvec) and bwMask have to be in the same coordinate
 % system!
 if nargin > 4 && ~isempty(gridSpacing)
@@ -48,3 +48,5 @@ factor_Pa2nN=gridSpacing^2*pixSize_mu^2*10^(-3);
 % constrForceField.cell.stats.resForce.vec we store however the reaction
 % force which '-' this value:
 sumVec = sum(invec,1)*factor_Pa2nN;
+
+sumMag = sum(sqrt(sum(invec.^2,2)))*factor_Pa2nN;

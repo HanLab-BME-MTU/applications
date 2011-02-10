@@ -122,10 +122,11 @@ while finished==false
             pixSize_mu = constrForceField{i}.par.pixSize_mu;
             gridSpacing= constrForceField{i}.par.gridSpacing;
             bwMask=constrForceField{i}.segmRes.maskDilated;
-            [errorSumForce,method,~,~]=integrateForceField(forceField(i).pos,forceField(i).vec,bwMask,pixSize_mu,gridSpacing);
+            [errorSumForce,sumForceMagCl,method,~,~]=integrateForceField(forceField(i).pos,forceField(i).vec,bwMask,pixSize_mu,gridSpacing);
             constrForceField{i}.errorSumForce.vec    = errorSumForce;
             constrForceField{i}.errorSumForce.mag    = sqrt(sum((errorSumForce).^2));
             constrForceField{i}.errorSumForce.method = method;
+            constrForceField{i}.sumForceMagCl        = sumForceMagCl; % This uses the same method as above
             display(['The error in the force measurement for this cluster is ~',num2str(round(constrForceField{i}.errorSumForce.mag)),'nN']);
 
             dPix=50;
@@ -279,8 +280,8 @@ while finished==false
             % force field. If interpolation is wanted we do this at the
             % very end!
             tic;
-            [sumForceVec1,method,~,~]=integrateForceField(forceField(i).pos,forceField(i).vec,bwMask1,pixSize_mu,gridSpacing);
-            [sumForceVec2,~,~,~]     =integrateForceField(forceField(i).pos,forceField(i).vec,bwMask2,pixSize_mu,gridSpacing);
+            [sumForceVec1,sumForceMag1,method,~,~]=integrateForceField(forceField(i).pos,forceField(i).vec,bwMask1,pixSize_mu,gridSpacing);
+            [sumForceVec2,sumForceMag2,~,~,~]     =integrateForceField(forceField(i).pos,forceField(i).vec,bwMask2,pixSize_mu,gridSpacing);
             toc;
         
             % do statistics on the force Fields.
@@ -295,11 +296,13 @@ while finished==false
             constrForceField{i}.cell{j}.stats.resForce.vec    = - sumForceVec1;        
             constrForceField{i}.cell{j}.stats.resForce.mag    =   sqrt(sum((constrForceField{i}.cell{j}.stats.resForce.vec).^2));
             constrForceField{i}.cell{j}.stats.method          =   method;
+            constrForceField{i}.cell{j}.stats.sumForceMag     =   sumForceMag1;
 
             constrForceField{i}.cell{j+1}.stats.resForce.pos    =   constrForceField{i}.cell{j+1}.center;
             constrForceField{i}.cell{j+1}.stats.resForce.vec    = - sumForceVec2;
             constrForceField{i}.cell{j+1}.stats.resForce.mag    =   sqrt(sum((constrForceField{i}.cell{j+1}.stats.resForce.vec).^2));
             constrForceField{i}.cell{j+1}.stats.method          =   method;
+            constrForceField{i}.cell{j+1}.stats.sumForceMag     =   sumForceMag2;
 
             % So far these interface can belong to more than one cell pair!
             constrForceField{i}.interface{j}.pos=interface_Pix.coord;

@@ -113,6 +113,9 @@ for k=1:length(constrForceField{i}.cell)
     % the force magnitude of each node is the magnitude of the residual force of that cell:
     node{k}.mag  =constrForceField{i}.cell{k}.stats.resForce.mag;
     
+    % the sum of force magnitudes over the footprint of a cell:
+    node{k}.sumFmag  =constrForceField{i}.cell{k}.stats.sumForceMag;
+    
     % the elastic energy of each node is the energy invested by each cell
     % to deform the substrate:
     if isfield(constrForceField{i}.cell{k}.stats,'elEnergy')
@@ -180,6 +183,7 @@ constrForceField{i}.network.stats.errs           = []; % will be filled in by cl
 if isfield(constrForceField{i},'errorSumForce')
     % This should be the case for all newer datasets!
     constrForceField{i}.network.stats.errorSumForce  = constrForceField{i}.errorSumForce;
+    constrForceField{i}.network.stats.sumForceMagCl  = constrForceField{i}.sumForceMagCl;
 else
     errorSumForce.vec=zeros(1,2);
     for nodeId=1:length(node)

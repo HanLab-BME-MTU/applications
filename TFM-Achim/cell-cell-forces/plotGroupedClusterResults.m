@@ -32,7 +32,14 @@ ylabel('fnet [nN]')
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
 goodCellSet=findCells(groupedClusters,'kPa',10,'myo',[0 1],'myoGlb',[-1 0 1]);
-[deg_vals,elE_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','resF','sumFi','sumLi');
+[deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
+
+figure()
+% checked with part7
+boxplot(sumFmag_vals,deg_vals,'notch','on')
+title(['Sum of traction force magnitude of cells with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('Sum of traction force magnitude [nN]')
 
 figure()
 % checked with part7
