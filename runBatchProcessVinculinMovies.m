@@ -1,9 +1,11 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
 %params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
 
 % name of the channel directory subfolders
 params.channelDirectory = {'ch488', 'ch560'};
@@ -30,15 +32,15 @@ params.particleDetection.iChannel = 1;
 params.particleDetection.detectFunc = @detectFocalAdhesionParticles;
 params.particleDetection.sigmaPSF = sigmaPSF;
 params.particleDetection.kSigma = 2;
+params.particleDetection.alpha = .05;
 
 % PROC 2: particle tracking
 params.particleTracking.searchRadius = 5;
 
 % PROC 3: track pairing
-params.pairTracks.iChannel = 1;
 params.pairTracks.minOverlap = 1;
 params.pairTracks.timeGap = 0;
-params.pairTracks.maxEuclidianDist = 20;
+params.pairTracks.maxEuclidianDist = +inf;
 params.pairTracks.sigmaPSF = sigmaPSF;
 params.pairTracks.accT = pi/64;
 params.pairTracks.alpha = 0.05;
