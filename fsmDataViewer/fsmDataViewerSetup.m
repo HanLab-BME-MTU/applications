@@ -23,7 +23,7 @@ function varargout = fsmDataViewerSetup(varargin)
 
 % Edit the above text to modify the response to help fsmDataViewerSetup
 
-% Last Modified by GUIDE v2.5 14-Apr-2009 15:47:34
+% Last Modified by GUIDE v2.5 10-Feb-2011 11:32:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -437,4 +437,3 @@ hFig = get(hObject, 'Parent');
 set(hFig, 'UserData', []);
 
 uiresume(hFig);
-
