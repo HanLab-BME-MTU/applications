@@ -1,4 +1,4 @@
-function [constrForceField]=TFM_part_5_calcElEnergies(constrForceField,forceField,displField,meshPtsFwdSol)
+function [constrForceField]=TFM_part_5_calcElEnergies(constrForceField,forceField,displField,meshPtsFwdSol,toDoList)
 load('fileAndFolderNames.mat')
 
 if ~strcmp(pwd,path_ProjFolder)
@@ -31,10 +31,15 @@ if nargin < 4
     end
 end
 
+if nargin<5 || isempty(toDoList)
+    toDoList=1:length(constrForceField);
+end
+
+
 % first determine which fields are not empty, then calculate the elastic
 % energy for each cell!
 
-for frame=1:length(constrForceField)
+for frame=toDoList
     display(['Next frame is: ',num2str(frame)]);
     [constrForceField]=calcElEnergies(constrForceField,forceField,frame,displField,meshPtsFwdSol);
     % here, saving should be still very fast:

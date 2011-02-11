@@ -1,4 +1,5 @@
 function [pos_fltr,vec_fltr,pos_out,vec_out,id_in,id_out]=filterVectorOutliers(pos,vec,numStd,boxSizeLocFac,boxSizeGlbFac,doPlot)
+% for i=1:5:75; figure(i); filterVectorOutliers(displField(i).pos,displField(i).vec,14,8,2,1); end
 if nargin < 3 || isempty(numStd)
     % Set a threshold based on the global std:
     numStd=10;

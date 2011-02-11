@@ -50,6 +50,8 @@ if nargin < 4 || isempty(frame)
     if isempty(toDoList)
         toDoList=1:length(imageFileList);
     end
+else
+    toDoList=frame;
 end
 
 % first test if the cluster analysis has been performed on this frame. For
