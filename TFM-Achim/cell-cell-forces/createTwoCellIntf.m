@@ -1,4 +1,14 @@
 function constrForceField=createTwoCellIntf(constrForceField,frame,doPlot)
+% This function breaks drawn interfaces apart such that each interface is
+% only connecting one cell pair: a two cell interface. Note that drawn
+% interfaces might go along the interfaces of different cell pairs. The code
+% is so bulky since we test for several special cases which arise from the
+% fact that all interfaces are pixel-paths. The code makes sure that
+% two-cell-interfaces never intersect, there are no stupid dump pieces
+% originating at the intersection of pixel paths, interfaces never end in
+% the limbo but reach out till either a vertex in the cluster or till the
+% dilated curve surrounding the cluster is reached.
+
 i=frame;
 % first delete all existing twoCellIntf:
 constrForceField{i}.twoCellIntf=[];
@@ -367,6 +377,127 @@ end
 if checkSum~=0
     error('One singular interface could not be resolved!?')
 end
+
+twoCellIntf=twoCellIntfCond;
+
+% now find interfaces that are only of length 3 and have a partner to match
+% up with. This happens in the following situation:
+%
+%      s   s/* + + +
+%+ + + s/*   *
+%      o
+%      o
+% the 3 pixel long curves that are indivated by s and * pose the problem.
+% They are created by dissecting the + and the o curves:
+candidates=[];
+for itfId=1:length(twoCellIntf)
+    currL=size(twoCellIntf{itfId}.pos,1);
+    if currL==3
+        display(['Frame: ',num2str(frame),' itfId: ',num2str(itfId), ' might be bad edge, since length is only: ',num2str(currL)]);
+        candidates=union(candidates,itfId);
+    end
+end
+
+allItfIds=1:length(twoCellIntf);
+allCandidates=candidates;
+if length(candidates)>1
+    % Then there might be a pair that we can resolve:
+    % check if the start or endpoints match:
+    while ~isempty(candidates)
+        itfId1=candidates(1);
+        candidates(1)=[];
+        strPt1=twoCellIntf{itfId1}.pos(1,:);
+        endPt1=twoCellIntf{itfId1}.pos(end,:);
+        for itfId2=candidates
+            strPt2=twoCellIntf{itfId2}.pos(1,:);
+            endPt2=twoCellIntf{itfId2}.pos(end,:);
+            if         (compPts(strPt1,strPt2) && compPts(endPt1,endPt2))...
+                    || (compPts(strPt1,endPt2) && compPts(endPt1,strPt2))
+                % Then the two small interfaces are essentially the
+                % same (except the center point).
+                % find the three fold vertex and the interface that
+                % belongs to it. Then add one fragment from above to
+                % this longer interface and kill the short
+                % fragments.
+                listStr=[];
+                listEnd=[];
+                for goodItfId=setdiff(allItfIds,allCandidates)
+                    goodStrPt=twoCellIntf{goodItfId}.pos(1,:);
+                    goodEndPt=twoCellIntf{goodItfId}.pos(end,:);
+                    if compPts(strPt1,goodStrPt) || compPts(strPt1,goodEndPt)
+                        listStr=horzcat(listStr,goodItfId);
+                    elseif compPts(endPt1,goodStrPt) || compPts(endPt1,goodEndPt)
+                        listEnd=horzcat(listEnd,goodItfId);
+                    end
+                end
+                
+                if length(listStr)==1 && length(listEnd)==2
+                    % then it is a three fold vertx (since itfId1/2 also
+                    % end there together with a good/long interface). The
+                    % other vertex should be deg=4;
+                    goodItfId=listStr;
+                    goodStrPt=twoCellIntf{goodItfId}.pos(1,:);
+                    goodEndPt=twoCellIntf{goodItfId}.pos(end,:);
+                    if compPts(strPt1,goodStrPt)
+                        input('Check this case!') % if the interfaces match and that no points are doubled!
+                        twoCellIntf{goodItfId}.pos=vertcat(flipud(twoCellIntf{itfId1}.pos),twoCellIntf{goodItfId}.pos(2:end,:));
+                        candidates=setdiff(candidates,[itfId1 itfId2]);
+                        twoCellIntf{itfId1}=[];
+                        twoCellIntf{itfId2}=[];
+                        display(['Resolved 3-pix interfaces: ',num2str([itfId1 itfId2])]);
+                    elseif compPts(strPt1,goodEndPt)
+                        % ok!
+                        twoCellIntf{goodItfId}.pos=vertcat(twoCellIntf{goodItfId}.pos(1:(end-1),:),twoCellIntf{itfId1}.pos);
+                        candidates=setdiff(candidates,[itfId1 itfId2]);
+                        twoCellIntf{itfId1}=[];
+                        twoCellIntf{itfId2}=[];
+                        display(['Resolved 3-pix interfaces: ',num2str([itfId1 itfId2])]);
+                    else
+                        input('This case should never happen, problems might occure later on.')
+                    end
+                    
+                elseif length(listEnd)==1 && length(listStr)==2
+                    goodItfId=listEnd;
+                    goodStrPt=twoCellIntf{goodItfId}.pos(1,:);
+                    goodEndPt=twoCellIntf{goodItfId}.pos(end,:);
+                    if compPts(endPt1,goodStrPt)
+                        % ok!
+                        twoCellIntf{goodItfId}.pos=vertcat(twoCellIntf{itfId1}.pos,twoCellIntf{goodItfId}.pos(2:end,:));
+                        candidates=setdiff(candidates,[itfId1 itfId2]);
+                        twoCellIntf{itfId1}=[];
+                        twoCellIntf{itfId2}=[];
+                        display(['Resolved 3-pix interfaces: ',num2str([itfId1 itfId2])]);
+                    elseif compPts(endPt1,goodEndPt)
+                        input('Check this case!') % if the interfaces match and that no points are doubled!
+                        twoCellIntf{goodItfId}.pos=vertcat(twoCellIntf{goodItfId}.pos(1:(end-1),:),flipud(twoCellIntf{itfId1}.pos));
+                        candidates=setdiff(candidates,[itfId1 itfId2]);
+                        twoCellIntf{itfId1}=[];
+                        twoCellIntf{itfId2}=[];
+                        display(['Resolved 3-pix interfaces: ',num2str([itfId1 itfId2])]);
+                    end
+                    
+                else
+                    input('This case should never happen, problems might occure later on.')
+                end
+            end
+            
+        end
+    end
+end
+if ~isempty(candidates)
+    input('There are still edges of length 3!')
+end
+
+% Now condense the field to avoid empty interfaces:
+indx=1;
+clear twoCellIntfCond;
+for numItf=1:length(twoCellIntf)
+    if ~isempty(twoCellIntf{numItf})        
+        twoCellIntfCond{indx}=twoCellIntf{numItf};
+        indx=indx+1;
+    end    
+end
+
 
 marker=['r','b','m','c','g','y','k'];
 figure(112)

@@ -24,7 +24,7 @@ for j=1:length(edge)
             text(edge{j}.pos(:,1),edge{j}.pos(:,2),'???','VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
         end
         % Use the results from the cluster Analysis if they exist
-        if ~isempty(edge{j}.fc) % &&  isempty(edge{j}.f1) && isempty(edge{j}.f2)
+        if ~isnan(sum(edge{j}.fc)) % &&  isempty(edge{j}.f1) && isempty(edge{j}.f2)
             % plot the force obtained by the cluster analysis:
             quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc1(:,1),scale*edge{j}.fc1(:,2),0,marker(mod(edge{j}.nodes(1),7)+1),'LineWidth',2);
             % quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.fc(:,1) ,scale*edge{j}.fc(:,2) ,0,marker(mod(edge{j}.nodes(1),7)+1),'LineWidth',2);

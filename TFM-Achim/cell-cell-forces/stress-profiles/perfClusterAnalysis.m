@@ -90,6 +90,10 @@ for j=1:length(constrForceField{frame}.network.edge)
     % composed of line segments:
     curve_interface=constrForceField{frame}.network.edge{j}.intf;
     dPixIntf=curve_interface(1:dPix:end,:);
+    % add the end point:
+    if ~compPts(dPixIntf(end,:),curve_interface(end,:))
+        dPixIntf=vertcat(dPixIntf,curve_interface(end,:));
+    end
     [center,fx_sum,fy_sum,fc,sx_sum,sy_sum,nVec_mean,char]=calcIntfacialStress(dPixIntf,sxx,syy,sxy,p,pixSize_mu,'linear');
     
     [fc1,fc2]=assFcWithCells(constrForceField,frame,j,fc,char);
