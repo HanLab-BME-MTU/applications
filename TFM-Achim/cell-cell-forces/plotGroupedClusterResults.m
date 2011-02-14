@@ -31,7 +31,7 @@ ylabel('fnet [nN]')
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',10,'myo',[0 1],'myoGlb',[-1 0 1]);
+goodCellSet=findCells(groupedClusters,'kPa',65,'myo',[0 1],'myoGlb',[-1 0 1]);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 figure()
@@ -117,7 +117,7 @@ ylabel('Residual force [nN]')
 %**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'deg',[1 2 3 4 5],'myo',[0 1 -1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',50,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',65,'deg',[1 2 3 4 5],'myo',[0 1 -1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',50,'errs',0);
 [deg_vals,lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','f1','f2','fc1','fc2');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
@@ -146,7 +146,7 @@ ylabel('Interface length [um]')
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'errF',50,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',65,'errF',50,'errs',0);
 [fc1_vals,Itot_vals,Iavg_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg');
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 figure()
@@ -157,7 +157,7 @@ plot(fc1_mag,Iavg_vals,'o')
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'deg',[2 3 4 5 6],'myo',0,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',65,'deg',[2 3 4 5 6],'myo',0,'errs',0);
 [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
 [corrResults]=calCorrResults(corrSets);
 
@@ -165,7 +165,11 @@ goodCellSet=findCells(groupedClusters,'deg',[2 3 4 5 6],'myo',0,'errs',0);
 %**************************************************************************
 % correlate forces for myosin cells:
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'deg',[2 3 4 5 6],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
-[corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
-maxLag=1;
-[corrResults]=calCorrResults(corrSets,maxLag,'usefm');
+goodCellSet=findCells(groupedClusters,'kPa',65,'deg',[2 3 4 5 6],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+if ~isempty(goodCellSet.cellId)
+    [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
+    maxLag=1;
+    [corrResults]=calCorrResults(corrSets,maxLag,'usefm');
+else
+    display('No myosin cells of this type found!')
+end

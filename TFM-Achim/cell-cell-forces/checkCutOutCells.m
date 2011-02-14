@@ -45,14 +45,21 @@ else
     end
 end
 
+
+toDoList=[];
 if nargin < 4 || isempty(frame)
     toDoList=input('Which frame should be analyzed [all]: ');
     if isempty(toDoList)
-        toDoList=1:length(imageFileList);
+        for frame=1:length(constrForceField)
+            if ~isempty(constrForceField{frame})
+                toDoList=horzcat(toDoList,frame);
+            end
+        end
     end
 else
     toDoList=frame;
 end
+display(['Do frames: ',num2str(toDoList)]);
 
 % first test if the cluster analysis has been performed on this frame. For
 % example, there is only a single cell:
