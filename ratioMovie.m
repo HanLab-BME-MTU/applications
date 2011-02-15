@@ -204,14 +204,13 @@ if p.ApplyMasks || p.CreateMasks
             'Cannot create / apply masks because some channels do not have masks! Please segment these channels before creating / applying ratio masks!')
     end           
         
-    %Get the first seg process with masks for this channel
-      %Get the first seg process with masks for this channel
-    iP = p.SegProcessIndex(find(hasMasks(1,:),1));
+    %Get the most recent seg process with masks for this channel      
+    iP = p.SegProcessIndex(find(hasMasks(1,:),1,'last'));
     
     numMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(1)};
     numMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(1));        
     
-    iP = p.SegProcessIndex(find(hasMasks(2,:),1));
+    iP = p.SegProcessIndex(find(hasMasks(2,:),1,'last'));
     
     denomMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(2)};        
     denomMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(2));

@@ -21,10 +21,12 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 % and therefore calculates a separate coefficient for each frame. The
 % average of all the coefficients should then be used in later corrections.
 %
-% **NOTE** It is strongly recommended that you use dark-current corrected,
-% background-subtracted, shade-corrected images for both channels used in
-% this calculation!! Also, be sure that none of your images have saturated
-% areas, as this will cause error in the calculated coefficient.
+% **NOTE** It is required that you use fully-corrected, images for both
+% channels used in this calculation!! This means that all channels used
+% must AT LEAST have been background subtracted. It is strongly recommended
+% that a transformation also be applied if dual-camera acquisition is used.
+% Also, be sure that none of your images have saturated areas, as this will
+% cause error in the calculated coefficient.
 %
 % Input:
 % 
@@ -50,13 +52,6 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 %       movieData.channelDirectory
 %       If not input, the user is asked.
 %
-%       ('ProcessIndex' -> Integer Scalar) The index of the imageProcessing
-%       process to use the output images from for bleedthrough coefficient
-%       calculation. Optional. If not specified, and there are valid
-%       ImageProcessingProcesss in the MovieData object, the user will be
-%       asked to select one. Otherwise, the raw images will be used, but
-%       this is not recommended.
-%
 %       ('FluorophoreMaskChannel'->Integer scalar) Thin index of the
 %       channel the use masks from for the fluorophore channel. Default is
 %       to use masks from the fluorophore channel itself.
@@ -65,11 +60,6 @@ function movieData = calculateMovieBleedthrough(movieData,varargin)
 %       channel the use masks from for the bleedthrough channel. Default is
 %       to use masks from the bleed channel itself.
 % 
-%       ('BatchMode' -> True/False) If this option value is set to true,
-%       all graphical output and user interaction is suppressed. (No
-%       progress bars, no dialogue boxes)
-%       Optional. Default is False.
-%   
 % 
 % Output:
 % 
@@ -95,7 +85,7 @@ if nargin < 1 || ~isa(movieData,'MovieData')
     error('The first input must be a valid MovieData object!')
 end
 
-[fChan,bChan,iInProc,fMaskChan,bMaskChan,batchMode] = parseInput(varargin);
+[fChan,bChan,fMaskChan,bMaskChan] = parseInput(varargin);
 
 % --- Defaults ---- %
 
@@ -106,50 +96,82 @@ if isempty(bChan)
     bChan = selectMovieChannels(movieData,0,'Please select the channel WITHOUT a fluorophore:');
 end
 
-if isempty(iInProc)    
-    %Select an image processing process, if any are present.
-    iInProc = movieData.getProcessIndex('ImageProcessingProcess',1,~batchMode);
-elseif ~isa(movieData.processes_{iInProc},'ImageProcessingProcess')
-    error('The selected input process is not a valid Image Processing Process object!')
-end
-
 if isempty(fMaskChan)
-    fMaskChan = fChan;
+    fMaskChan = selectMovieChannels(movieData,0,'Select a channel to use masks from for the channel WITH a fluorophore:');
 end
 if isempty(bMaskChan)
-    bMaskChan = bChan;
+    bMaskChan = selectMovieChannels(movieData,0,'Select a channel to use masks from for the channel WITHOUT a fluorophore:');
 end
-if isempty(batchMode)
-    batchMode = false;
-end
+
 
 %% ----- Init ----- %%
 
-%Make sure the movie has been segmented
-iSegProc = movieData.getProcessIndex('SegmentationProcess',1,~batchMode);
-if isempty(iSegProc)
-    error('The movie must be segmented and a segmentation process selected before bleedthrough calculations can be performed!')
+
+nImages = movieData.nFrames_;
+iChans = [fChan bChan];
+iMaskChans = [fMaskChan bMaskChan];
+
+%First, make sure that at least the background subtraction has been done.
+iBSProc = movieData.getProcessIndex('BackgroundSubtractionProcess',1,1);
+if isempty(iBSProc)
+    error('The input movie has not been background subtracted! Please perform background subtraction prior to bleedthrough calculation!')    
+end
+%Check that all channels have been background subtracted
+if ~all(movieData.processes_{iBSProc}.checkChannelOutput(iChans));
+    error('Specified channels have not been background subtracted! Please perform background subtraction first!');
+end
+%Check if either of the channels have been transformed.
+iXFProc = movieData.getProcessIndex('TransformationProcess',1,1);
+if ~isempty(iXFProc)
+    %Check which channels have been transformed
+    hasXF = movieData.processes_{iBSProc}.checkChannelOutput(iChans);       
+else
+    hasXF = false(1,2);
+end
+%Assign the processes to use as input for the channels
+iInProc = zeros(2,1);
+iInProc(hasXF) = iXFProc;
+iInProc(~hasXF) = iBSProc;
+
+%Get the image directories and file names
+imNames = cell(1,2);
+imDirs = cell(1,2);
+for j = 1:2
+    imNames{j} = movieData.processes_{iInProc(j)}.getOutImageFileNames(iChans(j));
+    imNames{j} = imNames{j}{1};
+    imDirs{j} = movieData.processes_{iInProc(j)}.outImagePaths_{iChans(j)};        
 end
 
+%Check segmentation processes
+if isempty(movieData.getProcessIndex('SegmentationProcess',Inf,0))
+    error('The movie must have been segmented! Please segment movie first!')
+end
+
+h = msgbox('After you click OK, when the next window pops up, select the segmentation process to use masks from for the channel WITH a fluorophore','modal');
+uiwait(h);
+iSegProc(1) = movieData.getProcessIndex('SegmentationProcess',1,1);
 %Check the specified mask channels
-if ~all(movieData.processes_{iSegProc}.checkChannelOutput([fMaskChan bMaskChan]));
+if ~movieData.processes_{iSegProc(1)}.checkChannelOutput(iMaskChans(1))
     error('Specified mask channels do not have valid masks! Check channels & masks!')
 end
 
-nImages = movieData.nFrames_;
-
-%Get the image directories and file names
-if isempty(iInProc)
-    imNames = movieData.getImageFileNames([fChan bChan]);
-    imDirs = movieData.getChannelPaths([fChan bChan]);
-else
-    imNames = movieData.processes_{iInProc}.getOutImageFileNames([fChan bChan]);
-    imDirs = movieData.processes_{iInProc}.outImagePaths_([fChan bChan]);
+h = msgbox('After you click OK, when the next window pops up, select the segmentation process to use masks from for the channel WITHOUT a fluorophore','modal');
+uiwait(h);
+iSegProc(2) = movieData.getProcessIndex('SegmentationProcess',1,1);
+%Check the specified mask channels
+if ~movieData.processes_{iSegProc(2)}.checkChannelOutput(iMaskChans(2))
+    error('Specified mask channels do not have valid masks! Check channels & masks!')
 end
 
+
 %Get mask directories and file names
-mNames = movieData.processes_{iSegProc}.getOutMaskFileNames([fMaskChan bMaskChan]);
-mDirs = movieData.processes_{iSegProc}.outMaskPaths_([fMaskChan bMaskChan]);
+mNames = cell(1,2);
+mDirs = cell(1,2);
+for j = 1:2
+    mNames{j} = movieData.processes_{iSegProc(j)}.getOutMaskFileNames(iMaskChans(j));
+    mNames{j} = mNames{j}{1};
+    mDirs{j} = movieData.processes_{iSegProc(j)}.outMaskPaths_{iMaskChans(j)};            
+end
 
 %Get camera bit depth, to check for saturation
 %TEMP - OR ADD SAT AREA MASKING ??? OR JUST REQ. GOOD DATA QUALITY???
@@ -165,11 +187,8 @@ fitStats = struct('R',cell(nImages,1),...
                'Rsquared',cell(nImages,1));
 
 %Make figure for showing all lines           
-if batchMode
-    allFig = figure('visible','off');
-else
-    allFig = figure;
-end
+allFig = figure;
+
 nByn = ceil(sqrt(nImages));%Determine size of sub-plot array
 
 
@@ -186,20 +205,16 @@ for iImage = 1:nImages
     
     %Combine the masks
     combMask = bMask & fMask;
-    
-    
+        
     %Fit a line to the current images
     [fitCoef(iImage,:),tmp] = polyfit(fImage(combMask(:)),...
-                                                   bImage(combMask(:)),1);
-                                                   
+                                                   bImage(combMask(:)),1);                                                   
     %Calculate R^2 for this fit
     lFun = @(x)(x * fitCoef(iImage,1) + fitCoef(iImage,2));
     tmp.Rsquared = 1 - sum((bImage(:) - lFun(fImage(:))) .^2) / ...
                        sum((bImage(:) - mean(bImage(:))) .^2);
     
-    fitStats(iImage) = tmp; %Allow extra field for Rsquared
-    
-                                               
+    fitStats(iImage) = tmp; %Allow extra field for Rsquared                                                   
                                                
     %switch to the current sub-plot
     subplot(nByn,nByn,iImage)
@@ -215,8 +230,7 @@ for iImage = 1:nImages
     %Overlay the line fit
     plot(xlim,xlim .* fitCoef(iImage,1) + fitCoef(iImage,2),'--r')
     
-    legend('Intensity Values','Linear Fit');
-    
+    legend('Intensity Values','Linear Fit');    
                                                
 end
 
@@ -238,10 +252,6 @@ if ~exist(outDir,'dir')
 end
 hgsave(allFig,[outDir filesep 'bleedthrough plot.fig'])
 
-if batchMode && ishandle(allFig)
-    close(allFig);
-end
-
 %Save the results
 
 %Modify the filename to reflect the channels used.
@@ -256,15 +266,13 @@ disp('Finished with bleedthrough calculation!')
 
 
 
-function [fChan,bChan,iInProc,fMaskChan,bMaskChan,batchMode] = parseInput(argArray)
+function [fChan,bChan,fMaskChan,bMaskChan] = parseInput(argArray)
 
 
 
 %Init output
-batchMode = [];
 fChan = [];
 bChan = [];
-iInProc = [];
 fMaskChan = [];
 bMaskChan = [];
 
@@ -285,19 +293,12 @@ for i = 1:2:nArg
 
     switch argArray{i}                     
 
-        case 'BatchMode'
-           batchMode = argArray{i+1};
-
         case 'FluorophoreChannel'
            fChan = argArray{i+1};
 
         case 'BleedthroughChannel'
 
            bChan = argArray{i+1};
-
-        case 'ProcessIndex'
-            
-           iInProc = argArray{i+1};
            
         case 'FluorophoreMaskChannel'
             
