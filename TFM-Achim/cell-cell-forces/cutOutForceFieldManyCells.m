@@ -167,9 +167,19 @@ while finished==false
             xlim([max([1 min_x]) min([cols,max_x])])
             ylim([max([1 min_y]) min([rows,max_y])])        
             set(gca,'YDir','reverse')
-
+            
             if strcmp(roiOK,'n') || strcmp(roiOK,'no')
-                replyR=input(['Is the region of interest OK? If yes: press ENTER, else type new dilation Radius [',num2str(dilationR),']:']);
+                inputOk=0;
+                while ~inputOk
+                    try
+                        replyR=input(['Is the region of interest OK? If yes: press ENTER, else type new dilation Radius [',num2str(dilationR),']:']);
+                        inputOk=1;
+                    catch
+                        inputOk=0;
+                        display('Wrong input, try again!')
+                    end
+                end
+                
                 if length(replyR)==1
                     dilationR=replyR;
                 else

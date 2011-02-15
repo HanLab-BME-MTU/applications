@@ -133,5 +133,5 @@ for frame =toDoList
     set(gca,'YDir','reverse')
     
     
-    input(['Hit enter to continue [errF= ',num2str(round(constrForceField{frame}.errorSumForce.mag)),'nN]:'])
+    input(['Hit enter to continue [Frame= ',num2str(frame),';  Rd= ',num2str(constrForceField{frame}.segmRes.params.dilationR),';  errF= ',num2str(round(constrForceField{frame}.errorSumForce.mag)),'nN]:'])
 end

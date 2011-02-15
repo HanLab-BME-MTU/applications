@@ -1,4 +1,4 @@
-function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField)
+function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField,opt)
 load('fileAndFolderNames.mat')
 doPlot=0;
 
@@ -18,6 +18,10 @@ end
 if nargin < 2 || isempty(forceField)
     filestruct=load(path_forceField);
     forceField=filestruct.forceField;
+end
+
+if nargin<3 || isempty(opt)
+    opt='all';
 end
 
 % load the image file list for Ecad or Cytoplasmic marker:
@@ -40,7 +44,7 @@ end
 % Identify cells that are special: Radius [100] about the center of mass of
 % the cells. Channel and threshold has to be defined by the user:
 imageFileList=getFileListFromFolder(path_Xtra2ndFinal);
-constrForceField=identifySpecialCells(constrForceField,imageFileList);
+constrForceField=identifySpecialCells(constrForceField,imageFileList,opt);
     
 
 %**************************************************************************
