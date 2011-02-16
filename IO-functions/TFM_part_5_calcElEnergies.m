@@ -24,7 +24,7 @@ if nargin < 3 || isempty(displField)
     displField=filestruct.displField;
 end
 
-if nargin < 4
+if nargin < 4 || isempty(meshPtsFwdSol)
     meshPtsFwdSol=input('Enter the number of mesh pts of fwdSolution [2^11]: ');
     if isempty(meshPtsFwdSol)
         meshPtsFwdSol=2^11;
