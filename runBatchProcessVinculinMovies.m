@@ -40,9 +40,9 @@ params.particleTracking.searchRadius = 5;
 % PROC 3: track pairing
 params.pairTracks.minOverlap = 1;
 params.pairTracks.timeGap = 0;
-params.pairTracks.maxEuclidianDist = +inf;
+params.pairTracks.maxEuclidianDist = 20;
 params.pairTracks.sigmaPSF = sigmaPSF;
-params.pairTracks.accT = pi/64;
+params.pairTracks.nLevels = 5;
 params.pairTracks.alpha = 0.05;
 params.pairTracks.probBinSize = 1e-4;
 
