@@ -1,4 +1,5 @@
-function [cellEdge]=cellPerim(imageFileList,dilationR,sigmaGauss,closureRadius,holes,thrHoleLen,doPlot,pauseSec)
+function [cellEdge]=cellPerim(imageFileList,dilationR,sigmaGauss,closureRadius,holes,thrHoleLen,ROI,doPlot,pauseSec)
+% ROI=[col_min col_max row_min row_max];
 
 if nargin <1 || isempty(imageFileList)
    [filename, pathname] = uigetfile({'*.TIF;*.tif;*.jpg;*.png;*.*'}, ...
@@ -48,11 +49,18 @@ elseif holes==0
     thrHoleLen=-1;
 end
 
-if nargin < 7 || isempty(doPlot)
+if nargin < 7 || isempty(ROI)
+	doROI=0;
+else
+    doROI=1;
+end
+
+
+if nargin < 8 || isempty(doPlot)
 	doPlot = 0;
 end
 
-if nargin < 8 || isempty(pauseSec)
+if nargin < 9 || isempty(pauseSec)
 	pauseSec = 0;
 end
 
@@ -77,6 +85,13 @@ for frameIndex=1:length(imageFileList)
     
     first_col = find(currentImage(midRow,:),1, 'first')+shift;
     last_col  = find(currentImage(midRow,:),1, 'last')-shift;
+    
+    if doROI
+        first_col=max(first_col,ROI(1));
+        last_col =min(last_col ,ROI(2));
+        first_row=max(first_row,ROI(3));
+        last_row =min(last_row ,ROI(4));
+    end 
 
     % The clean image to be analyzed:
     currentImageNonZero=currentImage(first_row:last_row,first_col:last_col);

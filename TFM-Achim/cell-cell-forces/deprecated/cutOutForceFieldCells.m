@@ -71,7 +71,6 @@ while finished==false
     dilationR=35;
     sigmaGauss=[];
     closureRadius=[];
-    pauseSec=0;
 
     %toDoList=1:51;
     for i=toDoList
@@ -79,7 +78,7 @@ while finished==false
         currentImage = double(imread(imageFileList{i}));
         roiOK='n';
         while strcmp(roiOK,'n') || strcmp(roiOK,'no')
-            cellEdgeResults=cellPerim(imageFileList{i},dilationR,sigmaGauss,closureRadius,pauseSec);
+            cellEdgeResults=cellPerim(imageFileList{i},dilationR,sigmaGauss,closureRadius);
             segmRes{i}=cellEdgeResults{1};
 
             checkVector = inpolygon(forceField(i).pos(:,1),forceField(i).pos(:,2),segmRes{i}.curveDilated(:,1),segmRes{i}.curveDilated(:,2));

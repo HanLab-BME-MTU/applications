@@ -1,4 +1,4 @@
-function [constrForceField]=cutOutForceFieldManyCells(forceField,imageFileList,path_cellCellForces,doIntp)
+function [constrForceField]=cutOutForceFieldManyCells(forceField,imageFileList,path_cellCellForces,doIntp,ROI)
 
 if nargin < 1 || isempty(forceField) 
    [filename_forceField, pathname_forceField] = uigetfile({'*.mat';'*.*'}, ...
@@ -32,13 +32,17 @@ else
     end
 end
 
-
 if nargin < 4 || isempty(doIntp)
     doIntp=1;
     display('The interpolation will be performed at the very end of the script!')
     display('If the program crashes you simply have to execute: updateConstrForceField which performs the interpolation!')
 end
 %method='noIntp';
+
+if nargin < 5
+    ROI=[];
+end
+
 
 finished=false;
 constrForceField=[];
@@ -92,7 +96,7 @@ while finished==false
         currentImage = double(imread(imageFileList{i}));
         roiOK='n';
         while strcmp(roiOK,'n') || strcmp(roiOK,'no')
-            cellEdgeResults=cellPerim(imageFileList{i},dilationR,sigmaGauss,closureRadius,holes,thrHoleLen);
+            cellEdgeResults=cellPerim(imageFileList{i},dilationR,sigmaGauss,closureRadius,holes,thrHoleLen,ROI);
             segmRes{i}=cellEdgeResults{1};
             
             % store the segmentation results:

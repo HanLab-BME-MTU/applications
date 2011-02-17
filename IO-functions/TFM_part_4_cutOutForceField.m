@@ -1,7 +1,11 @@
-function [constrForceField]=TFM_part_4_cutOutForceField()
+function [constrForceField]=TFM_part_4_cutOutForceField(ROI)
 load('fileAndFolderNames.mat');
 fileStruct=load(path_forceField);
 forceField=fileStruct.forceField;
+
+if nargin<1
+    ROI=[];
+end
 
 %**************************************************************************
 % Cut out the force field:
@@ -10,7 +14,7 @@ forceField=fileStruct.forceField;
 test_Xtra=~isempty(sortedXtraCollapsedFileList);
 
 if test_Xtra
-    [constrForceField]=cutOutForceFieldManyCells(forceField,path_XtraFinal,path_cellCellForces);
+    [constrForceField]=cutOutForceFieldManyCells(forceField,path_XtraFinal,path_cellCellForces,[],ROI);
 %     % and save to the result dir:    
 %     if ~isdir(path_result_dir)
 %         mkdir(path_result_dir)
