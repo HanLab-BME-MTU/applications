@@ -56,7 +56,7 @@ if ~exist(movieData.pairTracks.directory, 'dir')
     mkdir(movieData.pairTracks.directory);
 end
 
-imagePath = fullfile(movieData.directory, movieData.channelDirectory{1});
+imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
 imageFiles = dir([imagePath filesep '*.tif']);
 
 nFrames = movieData.nImages(1);
@@ -85,13 +85,13 @@ frameTracks = arrayfun(@(a,b) a:b, iFirst, iLast, 'UniformOutput', false);
 frameTracks = horzcat(frameTracks{:});
 tracksFeatIndx = [tracksFinal(:).tracksFeatIndxCG];
 % params = parameter values of all tracks:
-% x11 dx11 y11 dy11 A11 dA11 Sx11 dSx11 Sy11 dSy11 T11 dT11
+% x11 dx11 y11 dy11 A11 dA11 Sx11 dSx11 Sy11 dSy11 T11 dT11 C11 dC11
 % x12 dx12 ... (2nd point of the 1st track)
 % ...
 % x1n dx1n ... (nth point of the 1st track)
 % x21 dx21 ... (1st point of the 2nd track)
 % ...
-params = nan(numel(tracksFeatIndx),12);
+params = nan(numel(tracksFeatIndx),14);
 
 for iFrame = 1:nFrames
     ind = frameTracks == iFrame & tracksFeatIndx ~= 0;
@@ -101,6 +101,7 @@ for iFrame = 1:nFrames
     sX = [featuresInfo(iFrame).stdAlong];
     sY = [featuresInfo(iFrame).stdAside];
     theta = [featuresInfo(iFrame).theta];
+    bkg = [featuresInfo(iFrame).bkg];
     
     params(ind,1:2) = xCoord(tracksFeatIndx(ind),:);
     params(ind,3:4) = yCoord(tracksFeatIndx(ind),:);
@@ -108,6 +109,7 @@ for iFrame = 1:nFrames
     params(ind,7:8) = sX(tracksFeatIndx(ind),:);
     params(ind,9:10) = sY(tracksFeatIndx(ind),:);
     params(ind,11:12) = theta(tracksFeatIndx(ind),:);
+    params(ind,13:14) = bkg(tracksFeatIndx(ind),:);
 end
 
 gacombIdx = diff(isnan(params(:,1)));
@@ -125,6 +127,7 @@ for g = 1:nGaps
     params(gacombIdx,7:8) = interp1(borderIdx, params(borderIdx,7:8), gacombIdx);
     params(gacombIdx,9:10) = interp1(borderIdx, params(borderIdx,9:10), gacombIdx);
     params(gacombIdx,11:12) = interp1(borderIdx, params(borderIdx,11:12), gacombIdx);
+    params(gacombIdx,13:14) = interp1(borderIdx, params(borderIdx,13:14), gacombIdx);
 end
 
 % 3) Compute the set of valid pairs of tracks that significantly overlap in
@@ -190,10 +193,10 @@ end
 isCloseEnough = euclidianDist <= maxEuclidianDist;
 validTrackPairIdx = validTrackPairIdx(isCloseEnough,:);
 
-% Save pair tracks per frame
-trackLabels = computeLabel(validTrackPairIdx, nTracks); %#ok<NASGU>
-save(fullfile(movieData.pairTracks.directory, ...
-    'classifiedTracksPerDistance.mat'),'tracksFinal', 'trackLabels');
+% % (DEBUG) Save pair tracks per frame
+% trackLabels = computeLabel(validTrackPairIdx, nTracks); %#ok<NASGU>
+% save(fullfile(movieData.pairTracks.directory, ...
+%     'classifiedTracksPerDistance.mat'),'tracksFinal', 'trackLabels');
 
 % CC: a cell array of connected components. Each connected component
 % contains a list of track indices
@@ -210,16 +213,20 @@ CCparams(1:nCC) = struct('iFirst',[],'iLast',[],'modelType',[],'params',[]);
 %   .modelType:  0 = anisotropic gaussian model, 1 = segment model
 %   .params:     model parameter organized as follows:
 %      if modelType == 0:
-%            x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1  (model
+%            x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1 (model
 %            parameters at frame iFirst)
-%            x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2  (model
+%            x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2 (model
 %            parameters at frame iFirst+1)
 %            ...
 %            xN dxN yN ... (model parameters at frame iLast
 %
 %      if modelType == 1:
-%            TBD
-%   .bounds:     xmin,ymin,xmax,ymax
+%            x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1 (model
+%            parameters at frame iFirst)
+%            x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2 (model
+%            parameters at frame iFirst+1)
+%            ...
+%            xN dxN yN ... (model parameters at frame iLat
 for iCC = 1:nCC
     iTrack = CC{iCC};
     CCparams(iCC).iFirst = iFirst(iTrack);
@@ -235,65 +242,68 @@ tmp(uniqueTrackIdx) = 1:numel(uniqueTrackIdx);
 CCpairIdx = reshape(tmp(validTrackPairIdx(:)), size(validTrackPairIdx));
 nCCPairs = size(CCpairIdx,1);
 
+initFunc = {...
+    @initPairParams00,...
+    @initPairParams01,...
+    @(params1,params2) initPairParams01(params2,params1),...
+    @initPairParams11};
+    
 for iLevel = 1:nLevels
 
     % Initialized model of each pair of CC    
-    modelType1 = [CCparams(CCpairIdx(:,1)).modelType];
-    modelType2 = [CCparams(CCpairIdx(:,2)).modelType];
+    iFirst = max([CCparams(CCpairIdx(:,1)).iFirst], [CCparams(CCpairIdx(:,2)).iFirst]);
+    iLast = min([CCparams(CCpairIdx(:,1)).iLast], [CCparams(CCpairIdx(:,2)).iLast]);
     
-    isCCpair00 = ~(modelType1 | modelType2);
-    isCCpair01 = ~modelType1 & modelType2;
-    isCCpair10 = modelType1 & ~modelType2;
-    isCCpair11 = modelType1 & modelType2;
+    CCpairParams = cell(nCCPairs,1);
+    
+    for iPair = 1:nCCPairs
+        CCparams1 = CCparams(CCpairIdx(iPair,1));
+        CCparams2 = CCparams(CCpairIdx(iPair,2));
+        
+        overlap = iLast(iPair) - iFirst(iPair) + 1;
+        offset1 = iFirst(iPair) - CCparams1.iFirst + 1;
+        offset2 = iFirst(iPair) - CCparams2.iFirst + 1;
 
-    CCpairParams(1:nCCPairs) = struct(...
-        'iFirst',[],...
-        'iLast',[],...
-        'modelType',[],...
-        'params',[],...
-        'bounds',[]);
+        params1 = CCparams1.params(offset1:offset1+overlap-1,:);
+        params2 = CCparams2.params(offset2:offset2+overlap-1,:);
+        
+        iFunc = CCparams1.modelType + 2 * CCparams2.modelType + 1;
+        
+        CCpairParams{iPair} = initFunc{iFunc}(params1,params2);
+    end
     
-    CCpairParams(isCCpair00) = arrayfun(@(X,Y) initPairParams00(X,Y),...
-        CCparams(CCpairIdx(isCCpair00,1)),...
-        CCparams(CCpairIdx(isCCpair00,2)));
-    
-    CCpairParams(isCCpair01) = arrayfun(@(X,Y) initPairParams01(X,Y),...
-        CCparams(CCpairIdx(isCCpair01,1)),...
-        CCparams(CCpairIdx(isCCpair01,2)));
-    
-    CCpairParams(isCCpair10) = arrayfun(@(X,Y) initPairParams01(X,Y),...
-        CCparams(CCpairIdx(isCCpair10,2)),...
-        CCparams(CCpairIdx(isCCpair10,1)));
-
-    CCpairParams(isCCpair11) = arrayfun(@(X,Y) initPairParams11(X,Y),...
-        CCparams(CCpairIdx(isCCpair11,1)),...
-        CCparams(CCpairIdx(isCCpair11,2)));
+%     % DEBUG: save CCpairParams as featureInfo
+%     segments = cell(nFrames,1);
     
     % Fit model for each pair of CC
-    iFirst = [CCpairParams(:).iFirst];
-    iLast = [CCpairParams(:).iLast];
-
     for iFrame = 1:nFrames
         % Read image
         ima = imread(fullfile(imagePath, imageFiles(iFrame).name));
         
         % Get which pair of CC is living at frame iFrame
         indInFrame = find(iFirst <= iFrame & iLast >= iFrame);
+
+%         offset = iFrame - iFirst(indInFrame) + 1;
+%         segments{iFrame} = cell2mat(arrayfun(@(i) ...
+%             CCpairParams{indInFrame(i)}(offset(i),:), ...
+%             (1:numel(indInFrame))',...
+%             'UniformOutput',false));
         
         for iPair = indInFrame
         
             offset = iFrame - iFirst(iPair) + 1;
         
-            initParams = CCpairParams(iPair).params(offset,:);
+            initParams = CCpairParams{iPair}(offset,:);
         
-            bounds = CCpairParams(iPair).bounds;
-            
+            % TODO: compute bounds and nan values
             crop = ima(bounds(2):bounds(4), bounds(1):bounds(3));
             
-            CCpairParams(iPair).params(offset,:) = ...
-                fitSegment2D(crop, initParams, 'xyAsltC');
+            CCpairParams{iPair}(offset,:) = ...
+                fitSegment2D(crop, initParams, 'xyAlstC');
         end
     end
+    
+%     save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
     
     % Test CC pairs candidate (over the overlapping period):
     % - extreme deviations from CCParams
@@ -328,45 +338,30 @@ end
 movieData.pairTracks.status = 1;
 
 function pairParams = initPairParams00(params1,params2)
+params1 = num2cell(params1,1);
+params2 = num2cell(params2,1);
+[x1,y1,A1,sx1,sy1,~,C1] = params1{1:2:end};
+[x2,y2,A2,sx2,sy2,~,C2] = params2{1:2:end};
 
-pairParams = struct(...
-    'iFirst',[],...
-    'iLast',[],...
-    'modelType',[],...
-    'params',[],...
-    'bounds',[]);
-
-pairParams.iFirst = max(params1.iFirst, params2.iFirst);
-pairParams.iLast = min(params1.iLast, params1.iLast);
-pairParams.modelType = 1;
-% TODO !!!
+t0 = atan2(y2-y1,x2-x1);
+ct = cos(t0);
+st = sin(t0);
+ex1 = x1 - sx1 .* ct;
+ey1 = y1 - sx1 .* st;
+ex2 = x2 + sx2 .* ct;
+ey2 = y2 + sx2 .* st;
+x0 = .5 * (ex1+ex2);
+y0 = .5 * (ey1+ey2);
+A0 = .5 * (A1+A2);
+l0 = sqrt((ex2-ex1).^2 + (ey2-ey1).^2);
+s0 = .5 * (sy1+sy2);
+C0 = .5 * (C1+C2);
+pairParams = [x0 y0 A0 l0 s0 t0 C0];
 
 function pairParams = initPairParams01(params1,params2)
-
-pairParams = struct(...
-    'iFirst',[],...
-    'iLast',[],...
-    'modelType',[],...
-    'params',[],...
-    'bounds',[]);
-
-pairParams.iFirst = max(params1.iFirst, params2.iFirst);
-pairParams.iLast = min(params1.iLast, params1.iLast);
-pairParams.modelType = 1;
 % TODO !!!
 
 function pairParams = initPairParams11(params1,params2)
-
-pairParams = struct(...
-    'iFirst',[],...
-    'iLast',[],...
-    'modelType',[],...
-    'params',[],...
-    'bounds',[]);
-
-pairParams.iFirst = max(params1.iFirst, params2.iFirst);
-pairParams.iLast = min(params1.iLast, params1.iLast);
-pairParams.modelType = 1;
 % TODO !!!
 
 % 
