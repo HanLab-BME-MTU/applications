@@ -291,7 +291,7 @@ for iLevel = 1:nLevels
             crop = ima(bounds(2):bounds(4), bounds(1):bounds(3));
             
             CCpairParams(iPair).params(offset,:) = ...
-                fitSegment2D(crop, initParams, 'xyArltC'); % TODO
+                fitSegment2D(crop, initParams, 'xyAsltC');
         end
     end
     
