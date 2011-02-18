@@ -60,7 +60,17 @@ for idx=1:length(corrSets)
         end
     end
 end
-        
+
+% this shouldn't happen:
+idx=1;
+while idx<=length(corrSets)
+    if length(corrSets(idx).edge)<2
+        corrSets(idx)=[];
+        display('This shouldn''t happen!')
+    else
+        idx=idx+1;
+    end
+end
 
 %**************************************************************************
 % 2) Extract the time course of the forces                                *
@@ -181,12 +191,15 @@ display(['Avg. Auto correlation cFrFr:',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag
 
 figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations)])
+title('fi / fi{_tot}')
 
 figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
+title('fi / f_res')
 
 figure()
 plotmatrix([vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
+title('fi{_tot} / f{{_res}}')
 
 figure()
 title('The cross correlation for cF1Ft')
@@ -198,6 +211,11 @@ for i=1:cols
         xlim([-maxLag maxLag])
     end
 end
+title('fi / fi{_tot}')
+xlabel('dframes')
+ylabel('corr')
+
+
 
 figure()
 title('The cross correlation for cF1Fr')
@@ -209,6 +227,10 @@ for i=1:cols
         xlim([-maxLag maxLag])
     end
 end
+title('fi / f{_res}')
+xlabel('dframes')
+ylabel('corr')
+
 
 figure()
 title('The cross correlation for cFtFr')
@@ -220,6 +242,10 @@ for i=1:cols
         xlim([-maxLag maxLag])
     end
 end
+title('fi{_tot} / f{_res}')
+xlabel('dframes')
+ylabel('corr')
+
 
 corrResults.cF1Ft = cF1Ft;
 corrResults.cF1Fr = cF1Fr;
