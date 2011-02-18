@@ -50,7 +50,7 @@ constrForceField=identifySpecialCells(constrForceField,imageFileList,opt);
 %**************************************************************************
 % 1) Perform the Network Analysis:                                        *
 %**************************************************************************
-
+% toDoList=setdiff(toDoList,[28 29 30]);
 % perform the analysis on all these frames:
 for frame=toDoList    
     constrForceField=perfNetworkAnalysis(constrForceField,frame);

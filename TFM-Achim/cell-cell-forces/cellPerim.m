@@ -30,7 +30,7 @@ if nargin < 2 || isempty(dilationR)
 end
 
 if nargin < 3 || isempty(sigmaGauss)
-    sigmaGauss=6; % 5 is the default (Increase this value to make it more 
+    sigmaGauss=5; % 5 is the default (Increase this value to make it more 
                   % sensitive to cells with low expression level but might
                   % lead to oversegmentation!)
 end
