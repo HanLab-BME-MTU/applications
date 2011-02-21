@@ -148,7 +148,6 @@ hasOverlap = overlap >= minOverlap;
 % trim arrays
 validTrackPairIdx = validTrackPairIdx(hasOverlap,:);
 overlapFirst = overlapFirst(hasOverlap);
-overlapLast = overlapLast(hasOverlap);
 overlap = overlap(hasOverlap);
 
 % 4) Compute the euclidian distance between pair of tracks
@@ -198,48 +197,48 @@ validTrackPairIdx = validTrackPairIdx(isCloseEnough,:);
 % save(fullfile(movieData.pairTracks.directory, ...
 %     'classifiedTracksPerDistance.mat'),'tracksFinal', 'trackLabels');
 
+% 6) Hierarchical Track Clustering
+
 % CC: a cell array of connected components. Each connected component
-% contains a list of track indices
-uniqueTrackIdx = unique(validTrackPairIdx(:));
-CC = arrayfun(@(x) {x}, uniqueTrackIdx);
+% contains a list of track indices. At the beginning, Each connected
+% component contains one track only.
+CC = arrayfun(@(x) {x}, 1:nTracks);
 nCC = numel(CC);
 
-% CCparams: a struct array of size = numel(CC). Each element is the
-% model parameters representing a particular CC.
-CCparams(1:nCC) = struct('iFirst',[],'iLast',[],'modelType',[],'params',[]);
-% CCparams
-%   .iFirst:     birth frame of the CC
-%   .iLast:      death frame of the CC
-%   .modelType:  0 = anisotropic gaussian model, 1 = segment model
-%   .params:     model parameter organized as follows:
-%      if modelType == 0:
-%            x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1 (model
-%            parameters at frame iFirst)
-%            x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2 (model
-%            parameters at frame iFirst+1)
-%            ...
-%            xN dxN yN ... (model parameters at frame iLast
+% CCmodels: is a struct array containing the following fields:
+% .iFirst:     array of nCCx1 corresponding to the birth frame of each CC
+% .iLast:      array of nCCx1 corresponding to the death frame of each CC
+% .type:       array of nCCx1 taking the following values:
+%                 1 == anisotropic model
+%                 2 == segment model
+% .paramsInd:  array of nCCx1 containing indices is .modelParams{*}
+%              array. The index in the cell array .modelParams is
+%              given by .modelType.
+% .params:     cell array of size 2 containing model parameter of
+%              anisotropic model (index 1) and segment models (index 2)
+%                if modelType == 1:
+%                        x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1
+%                        x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2
+%                        ...
+%                        xN dxN yN ...
 %
-%      if modelType == 1:
-%            x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1 (model
-%            parameters at frame iFirst)
-%            x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2 (model
-%            parameters at frame iFirst+1)
-%            ...
-%            xN dxN yN ... (model parameters at frame iLat
-for iCC = 1:nCC
-    iTrack = CC{iCC};
-    CCparams(iCC).iFirst = iFirst(iTrack);
-    CCparams(iCC).iLast = iLast(iTrack);
-    CCparams(iCC).modelType = 0;
-    CCparams(iCC).params = params(first(iTrack):last(iTrack),:);
-end
+%                if modelType == 2:
+%                        x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1
+%                        x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2
+%                        ...
+%                        xN dxN yN ...
+% .residual:        array of nCCx1 corresponding to ||ima - model||^2
+CCmodels.iFirst = iFirst;
+CCmodels.iLast = iLast;
+CCmodels.type = ones(1, nCC);
+CCmodels.paramsFirst = first;
+CCmodels.paramsLast = last;
+CCmodels.params = cell(2,1);
+CCmodels.params{1} = params;
 
 % CCpairIdx: pair of CC indices for which we need a weight. We initialize
 % CCpairIdx with validTrackPairIdx
-tmp = zeros(max(uniqueTrackIdx),1);
-tmp(uniqueTrackIdx) = 1:numel(uniqueTrackIdx);
-CCpairIdx = reshape(tmp(validTrackPairIdx(:)), size(validTrackPairIdx));
+CCpairIdx = validTrackPairIdx;
 nCCPairs = size(CCpairIdx,1);
 
 initFunc = {...
@@ -250,71 +249,88 @@ initFunc = {...
     
 for iLevel = 1:nLevels
 
-    % Initialized model of each pair of CC    
-    iFirst = max([CCparams(CCpairIdx(:,1)).iFirst], [CCparams(CCpairIdx(:,2)).iFirst]);
-    iLast = min([CCparams(CCpairIdx(:,1)).iLast], [CCparams(CCpairIdx(:,2)).iLast]);
+    % Compute model parameters of each pair of CC
+    iFirst1 = CCmodels.iFirst(CCpairIdx(:,1));
+    iFirst2 = CCmodels.iFirst(CCpairIdx(:,2));
+    iLast1 = CCmodels.iLast(CCpairIdx(:,1));
+    iLast2 = CCmodels.iLast(CCpairIdx(:,2));
     
-    CCpairParams = cell(nCCPairs,1);
+    iFirstPair = max(iFirst1,iFirst2);
+    iLastPair = min(iLast1,iLast2);
+    overlap = iLastPair - iFirstPair + 1;
+    offset1 = iFirstPair - iFirst1;
+    offset2 = iFirstPair - iFirst2;
+        
+    outputFirst = cumsum([1 overlap(1:end-1)]);
     
-    for iPair = 1:nCCPairs
-        CCparams1 = CCparams(CCpairIdx(iPair,1));
-        CCparams2 = CCparams(CCpairIdx(iPair,2));
+    % Compute model parameters of all pairs.
+    CCpairParams = zeros(sum(overlap), 7);
+    
+    % iFunc == 1: modelType1 == 1, modelType2 == 1
+    % iFunc == 2: modelType1 == 1, modelType2 == 2
+    % iFunc == 3: modelType1 == 2, modelType2 == 1
+    % iFunc == 4: modelType1 == 2, modelType2 == 2
+    for iFunc = 1:4
+        modelType1 = ceil(iFunc/2);
+        modelType2 = mod(iFunc-1,2)+1;
         
-        overlap = iLast(iPair) - iFirst(iPair) + 1;
-        offset1 = iFirst(iPair) - CCparams1.iFirst + 1;
-        offset2 = iFirst(iPair) - CCparams2.iFirst + 1;
-
-        params1 = CCparams1.params(offset1:offset1+overlap-1,:);
-        params2 = CCparams2.params(offset2:offset2+overlap-1,:);
+        isFunc = ...
+            CCmodels.type(CCpairIdx(:,1)) == modelType1 & ...
+            CCmodels.type(CCpairIdx(:,2)) == modelType2;
         
-        iFunc = CCparams1.modelType + 2 * CCparams2.modelType + 1;
+        inputInd1 = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
+            CCmodels.paramsFirst(CCpairIdx(isFunc,1)) + offset1(isFunc), ...
+            overlap(isFunc), 'UniformOutput',false));
         
-        CCpairParams{iPair} = initFunc{iFunc}(params1,params2);
+        inputInd2 = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
+            CCmodels.paramsFirst(CCpairIdx(isFunc,2)) + offset2(isFunc), ...
+            overlap(isFunc), 'UniformOutput', false));
+        
+        outputInd = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
+            outputFirst(isFunc), overlap(isFunc), ...
+            'UniformOutput', false));
+        
+        CCpairParams(outputInd,:) = initFunc{iFunc}(...
+            CCmodels.params{modelType1}(inputInd1,:), ...
+            CCmodels.params{modelType2}(inputInd2,:));
     end
     
-%     % DEBUG: save CCpairParams as featureInfo
-%     segments = cell(nFrames,1);
+    % DEBUG: save CCpairParams as featureInfo
+    segments = cell(nFrames,1);
     
-    % Fit model for each pair of CC
+    % Compute residuals
     for iFrame = 1:nFrames
-        % Read image
-        ima = imread(fullfile(imagePath, imageFiles(iFrame).name));
+%         % Read image
+%         ima = imread(fullfile(imagePath, imageFiles(iFrame).name));
         
-        % Get which pair of CC is living at frame iFrame
-        indInFrame = find(iFirst <= iFrame & iLast >= iFrame);
+        % Find which pair of CC is living at frame iFrame
+        isInFrame = iFirstPair <= iFrame & iLastPair >= iFrame;
 
+        segments{iFrame} = CCpairParams(...
+            outputFirst(isInFrame) + iFrame - iFirstPair(isInFrame), :);
+        
 %         offset = iFrame - iFirst(indInFrame) + 1;
 %         segments{iFrame} = cell2mat(arrayfun(@(i) ...
 %             CCpairParams{indInFrame(i)}(offset(i),:), ...
 %             (1:numel(indInFrame))',...
 %             'UniformOutput',false));
         
-        for iPair = indInFrame
-        
-            offset = iFrame - iFirst(iPair) + 1;
-        
-            initParams = CCpairParams{iPair}(offset,:);
-        
-            % TODO: compute bounds and nan values
-            crop = ima(bounds(2):bounds(4), bounds(1):bounds(3));
-            
-            CCpairParams{iPair}(offset,:) = ...
-                fitSegment2D(crop, initParams, 'xyAlstC');
-        end
+%         for iPair = indInFrame
+%         
+%             offset = iFrame - iFirst(iPair) + 1;
+%         
+%             initParams = CCpairParams{iPair}(offset,:);
+%         
+%             % TODO: compute bounds and nan values
+%             crop = ima(bounds(2):bounds(4), bounds(1):bounds(3));
+%             
+%             CCpairParams{iPair}(offset,:) = ...
+%                 fitSegment2D(crop, initParams, 'xyAlstC');
+%         end
     end
     
-%     save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
-    
-    % Test CC pairs candidate (over the overlapping period):
-    % - extreme deviations from CCParams
-    % - goodness-of-fit
-    % - model parameters
-    % TODO
+    save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
 
-    % TODO: remove any pair of CC from CCpairIdx for which the tests have
-    % failed.
-    % DO NOT FORGET TO UPDATE ANY ARRAY RELATED TO CCPAIRIDX !!!
-    
     % Compute weights for each pair of CC
     
     W = zeros(nCCPairs,1);
@@ -360,9 +376,11 @@ pairParams = [x0 y0 A0 l0 s0 t0 C0];
 
 function pairParams = initPairParams01(params1,params2)
 % TODO !!!
+pairParams = zeros(size(params1,1),7);
 
 function pairParams = initPairParams11(params1,params2)
 % TODO !!!
+pairParams = zeros(size(params1,1),7);
 
 % 
 % % thetaTracks is a cell array of size nTracks, where each cell contains an
