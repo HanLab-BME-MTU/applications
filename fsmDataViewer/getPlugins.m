@@ -95,34 +95,40 @@ layerPlugins(3).filterSpec = {'*.mat'};
 layerPlugins(3).displayFunc = @displayAnisoFeatures;
 layerPlugins(3).dispatchFunc = @dispatchAnisoFeatures;
 
+% Segment2D
+layerPlugins(4).desc = 'Segment2D';
+layerPlugins(4).filterSpec = {'*.mat'};
+layerPlugins(4).displayFunc = @displayAnisoFeatures;
+layerPlugins(4).dispatchFunc = @dispatchSegment2D;
+
 % [qFSM] Speckles
-layerPlugins(4).desc = '[qFSM] Speckles';
-layerPlugins(4).filterSpec = {'*.mat'}; 
-layerPlugins(4).displayFunc = @displaySpeckles;
-layerPlugins(4).dispatchFunc = @dispatchFilesToFrames;
+layerPlugins(5).desc = '[qFSM] Speckles';
+layerPlugins(5).filterSpec = {'*.mat'}; 
+layerPlugins(5).displayFunc = @displaySpeckles;
+layerPlugins(5).dispatchFunc = @dispatchFilesToFrames;
 
 % [panda] Window
-layerPlugins(5).desc = '[panda] Windows';
-layerPlugins(5).filterSpec = {'*.mat'}; 
-layerPlugins(5).displayFunc = @plotWindowsFSM;
-layerPlugins(5).dispatchFunc = @dispatchMatrix3ToFrames;
+layerPlugins(6).desc = '[panda] Windows';
+layerPlugins(6).filterSpec = {'*.mat'}; 
+layerPlugins(6).displayFunc = @plotWindowsFSM;
+layerPlugins(6).dispatchFunc = @dispatchMatrix3ToFrames;
 
 % [Khuloud tracker] Features
-layerPlugins(6).desc = '[Khuloud Tracker] Features Info';
-layerPlugins(6).filterSpec = {'*.mat'};
-layerPlugins(6).displayFunc = @displayIsoFeatures;
-layerPlugins(6).dispatchFunc = @dispatchFeaturesInfo;
+layerPlugins(7).desc = '[Khuloud Tracker] Features Info';
+layerPlugins(7).filterSpec = {'*.mat'};
+layerPlugins(7).displayFunc = @displayIsoFeatures;
+layerPlugins(7).dispatchFunc = @dispatchFeaturesInfo;
 
 % [Khuloud tracker] Tracks
-layerPlugins(7).desc = '[Khuloud Tracker] Tracks Final';
-layerPlugins(7).filterSpec = {'*.mat'};
-layerPlugins(7).displayFunc = @displayTracksFinal;
-layerPlugins(7).dispatchFunc = @dispatchTracksFinal;
+layerPlugins(8).desc = '[Khuloud Tracker] Tracks Final';
+layerPlugins(8).filterSpec = {'*.mat'};
+layerPlugins(8).displayFunc = @displayTracksFinal;
+layerPlugins(8).dispatchFunc = @dispatchTracksFinal;
 
 % [Graph] Classified Tracks
-layerPlugins(8).desc = '[Graph] Classified Tracks';
-layerPlugins(8).filterSpec = {'*.mat'};
-layerPlugins(8).displayFunc = @displayClassifiedTracks;
-layerPlugins(8).dispatchFunc = @dispatchClassifiedTracks;
+layerPlugins(9).desc = '[Graph] Classified Tracks';
+layerPlugins(9).filterSpec = {'*.mat'};
+layerPlugins(9).displayFunc = @displayClassifiedTracks;
+layerPlugins(9).dispatchFunc = @dispatchClassifiedTracks;
 
 end
