@@ -87,7 +87,7 @@ layerPlugins(1).dispatchFunc = @dispatchCellToFrames;
 layerPlugins(2).desc = 'Iso Features';
 layerPlugins(2).filterSpec = {'*.mat'};
 layerPlugins(2).displayFunc = @displayIsoFeatures;
-layerPlugins(2).dispatchFunc = @dispatchCellToFrames;
+layerPlugins(2).dispatchFunc = @dispatchIsoFeatures;
 
 % Aniso Features
 layerPlugins(3).desc = 'Aniso Features';
