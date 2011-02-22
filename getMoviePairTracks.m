@@ -60,7 +60,7 @@ imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
 imageFiles = dir([imagePath filesep '*.tif']);
 
 nFrames = movieData.nImages(1);
-
+imSize = movieData;
 % 1) Preprocess tracks
 
 load(fullfile(movieData.particleDetection.directory, movieData.particleDetection.filename));
@@ -235,6 +235,9 @@ CCmodels.paramsFirst = first;
 CCmodels.paramsLast = last;
 CCmodels.params = cell(2,1);
 CCmodels.params{1} = params;
+
+% Compute residuals
+%CCsuports = arrayfun(@(p) anisoGaussian2DSupport(x0,y0,sigmaX,sigmaY,theta,imSize)
 
 % CCpairIdx: pair of CC indices for which we need a weight. We initialize
 % CCpairIdx with validTrackPairIdx
