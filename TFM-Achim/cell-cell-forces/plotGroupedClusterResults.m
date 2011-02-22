@@ -195,6 +195,32 @@ title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals))
 xlabel('Deg of connectivity')
 ylabel('Interface length [um]')
 
+% Plot for degree 1-1 interfaces: myo: 0-0; 1-1; 0-1
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+%deg_vals_sorted=sort(deg_vals,2);
+fc1_mag_ctr = sqrt(sum(fc1_vals.^2,2));
+
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',-1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+%deg_vals_sorted=sort(deg_vals,2);
+fc1_mag_mix = sqrt(sum(fc1_vals.^2,2));
+
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+%deg_vals_sorted=sort(deg_vals,2);
+fc1_mag_myo = sqrt(sum(fc1_vals.^2,2));
+
+figure()
+maxLp1=max([length(fc1_mag_ctr),length(fc1_mag_mix),length(fc1_mag_myo)])+1;
+fc1_mag_ctr(end+1:maxLp1,1)=NaN;
+fc1_mag_mix(end+1:maxLp1,1)=NaN;
+fc1_mag_myo(end+1:maxLp1,1)=NaN;
+boxplot([fc1_mag_ctr fc1_mag_mix fc1_mag_myo],{'ctr-ctr'; 'ctr-myo'; 'myo-myo'},'notch','on')
+title('Interface force for edges with connectivity 1-1')
+xlabel('Pair composition')
+ylabel('Interface force [nN]')
+
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************

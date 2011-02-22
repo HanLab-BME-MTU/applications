@@ -1,4 +1,4 @@
-A = dir('well503_*');
+A = dir('wellshIIA_03*');
 sizeA = size(A,1);
 
 % these are the Folder Names (FN):
