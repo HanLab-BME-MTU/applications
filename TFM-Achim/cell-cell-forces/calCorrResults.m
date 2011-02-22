@@ -81,13 +81,14 @@ setId=1;
 for idx=1:length(corrSets)
     % Does this make sense for cells with only two edges? Shouldn't these
     % values be then more or less the same?
-    if length(corrSets(idx).edge)>2
-        edgePerm=1:length(corrSets(idx).edge);
-    else
-        edgePerm=1;
-    end
-    edgePerm=1;
-    % edgePerm=[3];
+%     if length(corrSets(idx).edge)>2
+%         edgePerm=1:length(corrSets(idx).edge);
+%     else
+%          edgePerm=1;
+%     end
+    
+    edgePerm=1:length(corrSets(idx).edge);
+    edgePerm(end)=[]; % skip the last value since it is dependent on the previous results?! At least this is obviously true for numEdge=2;
     
     for currEdge=edgePerm
         % 1/2=the x/y-component:
@@ -179,13 +180,13 @@ cF1Ft;
 cF1Fr;
 cFtFr;
 
-display(['Avg. XXXX correlation cF1Ft:',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1))))]);
-display(['Avg. XXXX correlation cF1Fr:',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1))))]);
-display(['Avg. XXXX correlation cFtFr:',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1))))]);
+display(['Avg. XXXX correlation cF1Ft, mean all: ',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Ft(:,:,maxLag+1))/2)]);
+display(['Avg. XXXX correlation cF1Fr, mean all: ',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Fr(:,:,maxLag+1))/2)]);
+display(['Avg. XXXX correlation cFtFr, mean all: ',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFr(:,:,maxLag+1))/2)]);
 
-display(['Avg. Auto correlation cF1F1:',num2str(nanmean(mat2vec(cF1F1(:,:,maxLag+1))))]);
-display(['Avg. Auto correlation cFtFt:',num2str(nanmean(mat2vec(cFtFt(:,:,maxLag+1))))]);
-display(['Avg. Auto correlation cFrFr:',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag+1))))]);
+display(['Avg. Auto correlation cF1F1, mean all: ',num2str(nanmean(mat2vec(cF1F1(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1F1(:,:,maxLag+1))/2)]);
+display(['Avg. Auto correlation cFtFt, mean all: ',num2str(nanmean(mat2vec(cFtFt(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFt(:,:,maxLag+1))/2)]);
+display(['Avg. Auto correlation cFrFr, mean all: ',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFrFr(:,:,maxLag+1))/2)]);
 
 
 

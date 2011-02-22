@@ -164,7 +164,7 @@ for idx=1:length(goodCellSet)
             sumFi_vals(frame,:)=sumFi;
         end
         
-        if  sumLiCheck || corrCheck
+        if  sumLiCheck
             edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
             sumLi=0;
             for edgeId=edges
@@ -182,7 +182,7 @@ for idx=1:length(goodCellSet)
         end
         
         if  corrCheck
-            edges=groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges;
+            edges=sort(groupedClusters.cluster{clusterId}.trackedNet{frame}.node{cellId}.edges);
             for edgeId=edges
                 if edgeId>length(corr_out(idx).edge)
                    % set all initial force values to NaNs:

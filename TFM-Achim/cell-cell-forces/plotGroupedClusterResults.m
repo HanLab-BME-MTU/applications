@@ -8,9 +8,9 @@ if nargin<1 || isempty(groupedClusters)
     end    
 end
 
-close all;
+%close all;
 
-onlyCorr=1;
+onlyCorr=0;
 if ~onlyCorr
 %**************************************************************************
 % Compare network and cluster analysis:
@@ -33,8 +33,28 @@ ylabel('fnet [nN]')
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',35,'myo',0,'myoGlb',[-1 0 1],'errF',500,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',35,'myo',1,'myoGlb',[-1 0 1],'errF',500,'errs',0);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
+
+
+figure()
+% for myosin cells (at least on 8kPa) this ration decreases more quickly
+% with the node deg. of connectivity.
+boxplot(sqrt(sum(resF_vals.^2,2))./sumFi_vals,deg_vals,'notch','on')
+title(['magnitude of residual force / Sum of interfacial forces: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('|residual force| / Sum |interfacial forces|[1]')
+
+
+figure()
+% for myosin cells (at least on 8kPa) this ratio increases more quickly
+% with the node deg. of connectivity, this indicates that forces are
+% communicted through the cell.
+boxplot(sumFi_vals./sumFmag_vals,deg_vals,'notch','on')
+title(['Sum of interfacial forces / sum magnitude of traction forces: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel(' Sum |interfacial forces| /  sum |traction forces| [1]')
+
 
 figure()
 % checked with part7
@@ -92,6 +112,7 @@ title(['Sum of interfacial forces / el. energy for cells with connectivity: ',nu
 xlabel('Deg of connectivity')
 ylabel('Sum of interfacial forces / el. energy [nN/pJ]')
 
+
 figure()
 % checked with part7: same but could be colored according to the deg. of
 % connectivity as in part7.
@@ -119,17 +140,46 @@ ylabel('sum interf. forces [nN]')
 %**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
 [deg_vals,lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','f1','f2','fc1','fc2');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 
 figure()
 % checked with part7
-boxplot(fc1_mag,num2str(deg_vals_sorted))
+degij_fcmag=[deg_vals_sorted fc1_mag];
+% first sort according to the first column (the small degree value, since
+% presorted above), and then sort once more according to the second degree
+% value to obtain a nice ordering of the degree pairs:
+degij_fcmag_dbl_sorted=sortrows(degij_fcmag,[1 2]);
+fc_mag_dbl_sorted = degij_fcmag_dbl_sorted(:,3);
+deg_dbl_sorted    = degij_fcmag_dbl_sorted(:,1:2);
+boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted),'notch','on')
 title(['Interface force for edges with connectivity: ',num2str(1:max(deg_vals))])
 xlabel('Deg of connectivity')
 ylabel('Interface force [nN]')
+
+figure()
+% replot grouped values:
+% make the legend:
+deg_dbl_sorted_groups=deg_dbl_sorted(:,1);
+label=1;
+while ~isempty(deg_dbl_sorted_groups)
+    degGroup=deg_dbl_sorted_groups(1);
+    checkVec=deg_dbl_sorted_groups==degGroup;
+    degCount=sum(checkVec);
+    deg_dbl_sorted_groups(checkVec)=[];
+    M{label}=['deg: ',num2str(degGroup),'-x; [n= ',num2str(degCount),']'];
+    label=label+1;
+end
+boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted(:,1)),'labels',M,'notch','on')
+% this should be compared with the following to make sure that the counting is correct:
+% h=boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted(:,1)));
+title(['Interface force for edges with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Minimal deg. of connectivity')
+ylabel('Interface force [nN]')
+clear M
+
 
 figure()
 % checked with part7, but the deg values should be sorted in a nicer way!
@@ -148,7 +198,7 @@ ylabel('Interface length [um]')
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'errF',500,'errs',0);
 [fc1_vals,Itot_vals,Iavg_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg');
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 figure()
@@ -163,24 +213,24 @@ xlabel('Cell-cell force magnitude [nN]')
 ylabel('Average Ecad intensity [a.u.]')
 
 end
-
+normVar=0;
+maxLag =5;
+errF_val_corr=Inf;
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3],'myo',0,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'errF',errF_val_corr,'errs',0);
 [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
-maxLag=1;
-[corrResults]=calCorrResults(corrSets,maxLag,'usefm');
+[corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar);
 
 
 %**************************************************************************
 % correlate forces for myosin cells:
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
     [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
-    maxLag=1;
-    [corrResults]=calCorrResults(corrSets,maxLag,'usefm');
+    [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar);
 else
     display('No myosin cells of this type found!')
 end
