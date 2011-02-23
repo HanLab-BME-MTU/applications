@@ -60,9 +60,6 @@ imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
 imageFiles = dir([imagePath filesep '*.tif']);
 
 nFrames = movieData.nImages(1);
-ima = imread(fullfile(imagePath, imageFiles(1).name));
-[ny, nx] = size(ima);
-clear ima;
 
 % 1) Preprocess tracks
 
@@ -270,6 +267,7 @@ for iLevel = 1:nLevels
     outputFirst = cumsum([1 overlap(1:end-1)]);
     
     % Compute model parameters of all pairs.
+    % 8 = 7 parameters (x,y,A,l,sigma,theta,C) + varError
     CCpairParams = zeros(sum(overlap), 8);
     
     % iFunc == 1: modelType1 == 1, modelType2 == 1
@@ -304,7 +302,12 @@ for iLevel = 1:nLevels
     % DEBUG: save CCpairParams as featureInfo
     %segments = cell(nFrames,1);
     
-    % Compute error variance
+    if ~batchMode
+        h = waitbar(0,['Please wait, computing pair models at level' ...
+            num2str(iLevel) '...']);
+    end
+
+    % Compute pair model
     for iFrame = 1:nFrames
         % Read image
         ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
@@ -316,25 +319,43 @@ for iLevel = 1:nLevels
         
         %segments{iFrame} = CCpairParams(ind, :);
         
-        paramsInFrame = CCpairParams(ind,1:end-1);
-        nParamsInFrame = size(paramsInFrame);
+        initParams = CCpairParams(ind,1:end-1);
+        nInitParams = size(initParams);
         
-        for iParam = 1:nParamsInFrame
+        for iParam = 1:nInitParams
             
-            cellParams = num2cell(paramsInFrame(iParam,:),1);
+            cellParams = num2cell(initParams(iParam,:),1);
             [x0 y0 A l sigma theta C] = cellParams{:};
             [xRange,yRange,nzIdx] = ...
                 segment2DSupport(x0,y0,l,sigma,theta,[ny nx],kSigma);
+
+            crop = ima(yRange,xRange);
+            mask = false(size(crop));
+            mask(nzIdx) = true;
+            crop(~mask) = NaN;            
             
-            model = segment2D(x0,y0,A,l,sigma,theta,xRange,yRange,nzIdx);
-            
-            res = ima(yRange,xRange) - model - C;
+%             [cy, cx] = size(crop);
+%             
+%             if rem(cy,2) ~= 0;
+%                 crop = padarray(crop,
+%             
+%             assert(ceil(cy) ~= floor(cy) && ceil(cx) ~= floor(cx));
+
+%             [prm, ~, ~, R] = fitSegment2D(crop, [0, 0, A, l, sigma, theta, C], 'AlC');
+%             
+%             CCpairParams(ind(iParam),1:end-1) = prm;
+%             CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * sum(R(nzIdx).^2);
+        end
         
-            CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * ...
-                sum(res(nzIdx).^2);
+        if ~batchMode && ishandle(h)
+            waitbar(iFrame/nFrames, h)
         end
     end
     
+    if ~batchMode && ishandle(h)
+        close(h);
+    end
+
     %save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
 
     % Compute weights for each pair of CC

@@ -52,7 +52,7 @@ for iMovie = 1:2
             l = segments(iSegment,5);
             theta = segments(iSegment,6);
         
-            [xRange,yRange,nzIdx] = subResSegment2DSupport(xC,yC,sigmaPSF,l,theta,imSize);
+            [xRange,yRange,nzIdx] = subResSegment2DSupport(xC,yC,sigmaPSF,l,theta,3);
         
             S = zeros(numel(yRange),numel(xRange));
             S(nzIdx) = l;
