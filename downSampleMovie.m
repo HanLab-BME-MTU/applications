@@ -26,6 +26,9 @@ end
 %for each movie
 for iexp = 1:length(experiment)
     
+    %find tif files
+    tifFiles = dir([experiment(iexp).source filesep '*.tif']);
+    
     %load Detection results
     load([experiment(iexp).source 'Detection' filesep 'detectionResults.mat']);
     
@@ -43,6 +46,8 @@ for iexp = 1:length(experiment)
     %save sub sampled detection results
     save([experiment(iexp).source(1:end-1) '_subSampled_' num2str(subSample) 's' ...
         filesep 'Detection' filesep 'detectionResults.mat'],'frameInfo');
+    %move one tif file
+    movefile([experiment(iexp).source filesep tifFiles(1).name],[experiment(iexp).source(1:end-1) '_subSampled_' num2str(subSample) 's' ]);
     
 end %of for each movie
 
