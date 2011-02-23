@@ -311,6 +311,7 @@ for iLevel = 1:nLevels
     for iFrame = 1:nFrames
         % Read image
         ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
+        [ny nx] = size(ima);
         
         % Find which pair of CC is living at frame iFrame
         isInFrame = iFirstPair <= iFrame & iLastPair >= iFrame;
@@ -334,17 +335,13 @@ for iLevel = 1:nLevels
             mask(nzIdx) = true;
             crop(~mask) = NaN;            
             
-%             [cy, cx] = size(crop);
-%             
-%             if rem(cy,2) ~= 0;
-%                 crop = padarray(crop,
-%             
-%             assert(ceil(cy) ~= floor(cy) && ceil(cx) ~= floor(cx));
-
-%             [prm, ~, ~, R] = fitSegment2D(crop, [0, 0, A, l, sigma, theta, C], 'AlC');
-%             
-%             CCpairParams(ind(iParam),1:end-1) = prm;
-%             CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * sum(R(nzIdx).^2);
+            dx = x0 - xRange(floor((numel(xRange)+1)/2));
+            dy = y0 - yRange(floor((numel(yRange)+1)/2));
+            
+            [prm, ~, ~, R] = fitSegment2D(crop, [dx, dy, A, l, sigma, theta, C], 'AlC');
+            
+            CCpairParams(ind(iParam),1:end-1) = prm;
+            CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * sum(R(nzIdx).^2);
         end
         
         if ~batchMode && ishandle(h)
