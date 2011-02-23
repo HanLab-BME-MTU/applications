@@ -1,4 +1,4 @@
-function [displField, forceField, out]=createDisplField(sdT,inputFileList,target_dir,filter,yModu_Pa,pRatio,pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange)
+function [displField, forceField, out]=createDisplField(sdT,inputFileList,target_dir,filter,yModu_Pa,pRatio,pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg)
 %nargin=0;
 
 if nargin < 1 || isempty(sdT)
@@ -77,6 +77,10 @@ end
 
 if nargin < 10 || isempty(meshPtsFwdSol)
     meshPtsFwdSol=2^11;
+end
+
+if nargin < 13  || isempty(doRotReg)
+    doRotReg=0;
 end
 
 
@@ -171,6 +175,10 @@ for i=1:n
 end
 display('Number of points filtered out: '); 
 display([num2str((1:n)'),repmat(': ',n,1),num2str([out(:).num]')]);
+
+if doRotReg
+   displField=perfRotReg(displField,1);
+end
 
 save([targetDir,filesep,'displField.mat'], 'displField');
 save([targetDir,filesep,'out.mat'], 'out');

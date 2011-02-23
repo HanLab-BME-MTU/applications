@@ -1,4 +1,4 @@
-function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift)
+function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift,doRotReg)
 % INPUT      method: 'FastBEM' or 'FTTC'
 %            area [yTL xTL yBR xBR]
 %                           yTL  : y coordinate of the top-left corner
@@ -16,8 +16,12 @@ if nargin <2 || isempty(xrange) || isempty(yrange)
     yrange=[];
 end
 
-if nargin <3 || isempty(doShift)
+if nargin <4 || isempty(doShift)
     doShift=true;
+end
+
+if nargin <5 || isempty(doRotReg)
+    doRotReg=0;
 end
 
 load('fileAndFolderNames.mat')
@@ -53,7 +57,7 @@ while strcmp(fieldsOK,'n') || strcmp(fieldsOK,'no') || strcmp(fieldsOK,'N')
     filter      = input('Filter spec: [numStd boxSizeLocFac boxSizeGlbFac]=[10 6 2] (default: no filter): ');
     regParam    = input('Regularization parameter          (default:  10^(-7)): ');    
 
-    [displField, forceField, ~]=createDisplField(path_ResidualT,flowTFM_FileList,path_mechTFM,filter,yModu_Pa,[],pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange);
+    [displField, forceField, ~]=createDisplField(path_ResidualT,flowTFM_FileList,path_mechTFM,filter,yModu_Pa,[],pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg);
     
     fieldsOK=input('Are you satisfied with the results?: Y/N [Y]: ','s');
 end

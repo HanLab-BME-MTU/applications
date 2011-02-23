@@ -1,10 +1,10 @@
-function [displField_reg] = testRotReg(displField,checkTransform)
+function [displField_reg] = perfRotReg(displField,checkTransform)
 if nargin<2 || isempty(checkTransform)
     checkTransform=0;
 end
 
 for frame=1:length(displField)
-    checkVec=(displField(frame).pos(:,1)>50 & displField(frame).pos(:,1)<200 & displField(frame).pos(:,2)>25 & displField(frame).pos(:,2)<1200) | (displField(frame).pos(:,1)>1100 & displField(frame).pos(:,2)>25);
+    checkVec=(displField(frame).pos(:,1)>50 & displField(frame).pos(:,1)<200 & displField(frame).pos(:,2)>25 & displField(frame).pos(:,2)<700) | (displField(frame).pos(:,1)>1100 & displField(frame).pos(:,2)>25);
     
     X1=displField(frame).pos(checkVec,:);
     X2=X1+displField(frame).vec(checkVec,:);
@@ -26,7 +26,7 @@ for frame=1:length(displField)
     displField_reg(frame).pos = Xref(:,1:2); % This is of course unchanged!
     displField_reg(frame).vec = Xdef_reg(:,1:2)-Xref(:,1:2);
     displField_reg(frame).R   = R;
-    displField_reg(frame).R   = T;
+    displField_reg(frame).T   = T;
     
     if checkTransform
         figure()
