@@ -1,4 +1,4 @@
-function movieData = getMoviePairTracks(movieData,minOverlap,timeGap,maxEuclidianDist,sigmaPSF,nLevels,alpha,probBinSize,batchMode)
+function movieData = getMoviePairTracks(movieData,minOverlap,timeGap,maxEuclidianDist,kSigma,nLevels,alpha,probBinSize,batchMode)
 
 % minOverlap:           is the minimal number of frame 2 tracks need to
 %                       live together to be considered as potential pair of
@@ -12,7 +12,7 @@ function movieData = getMoviePairTracks(movieData,minOverlap,timeGap,maxEuclidia
 %                       position of 2 tracks to be considered as potential
 %                       pair of tracks.
 %
-% sigmaPSF:             the standard deviation of a Gaussian model of PSF
+% kSigma:               cutoff in number of standard deviations
 %
 % nLevels:              maximum number of pair level.
 %
@@ -60,7 +60,10 @@ imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
 imageFiles = dir([imagePath filesep '*.tif']);
 
 nFrames = movieData.nImages(1);
-imSize = movieData;
+ima = imread(fullfile(imagePath, imageFiles(1).name));
+[ny, nx] = size(ima);
+clear ima;
+
 % 1) Preprocess tracks
 
 load(fullfile(movieData.particleDetection.directory, movieData.particleDetection.filename));
@@ -85,13 +88,13 @@ frameTracks = arrayfun(@(a,b) a:b, iFirst, iLast, 'UniformOutput', false);
 frameTracks = horzcat(frameTracks{:});
 tracksFeatIndx = [tracksFinal(:).tracksFeatIndxCG];
 % params = parameter values of all tracks:
-% x11 dx11 y11 dy11 A11 dA11 Sx11 dSx11 Sy11 dSy11 T11 dT11 C11 dC11
+% x11 dx11 y11 dy11 A11 dA11 Sx11 dSx11 Sy11 dSy11 T11 dT11 C11 dC11 varE11
 % x12 dx12 ... (2nd point of the 1st track)
 % ...
 % x1n dx1n ... (nth point of the 1st track)
 % x21 dx21 ... (1st point of the 2nd track)
 % ...
-params = nan(numel(tracksFeatIndx),14);
+params = nan(numel(tracksFeatIndx),15);
 
 for iFrame = 1:nFrames
     ind = frameTracks == iFrame & tracksFeatIndx ~= 0;
@@ -102,6 +105,7 @@ for iFrame = 1:nFrames
     sY = [featuresInfo(iFrame).stdAside];
     theta = [featuresInfo(iFrame).theta];
     bkg = [featuresInfo(iFrame).bkg];
+    varError = [featuresInfo(iFrame).varError];
     
     params(ind,1:2) = xCoord(tracksFeatIndx(ind),:);
     params(ind,3:4) = yCoord(tracksFeatIndx(ind),:);
@@ -110,6 +114,7 @@ for iFrame = 1:nFrames
     params(ind,9:10) = sY(tracksFeatIndx(ind),:);
     params(ind,11:12) = theta(tracksFeatIndx(ind),:);
     params(ind,13:14) = bkg(tracksFeatIndx(ind),:);
+    params(ind,15) = varError(tracksFeatIndx(ind));
 end
 
 gacombIdx = diff(isnan(params(:,1)));
@@ -128,6 +133,7 @@ for g = 1:nGaps
     params(gacombIdx,9:10) = interp1(borderIdx, params(borderIdx,9:10), gacombIdx);
     params(gacombIdx,11:12) = interp1(borderIdx, params(borderIdx,11:12), gacombIdx);
     params(gacombIdx,13:14) = interp1(borderIdx, params(borderIdx,13:14), gacombIdx);
+    params(gacombIdx,15) = interp1(borderIdx, params(borderIdx,15), gacombIdx);
 end
 
 % 3) Compute the set of valid pairs of tracks that significantly overlap in
@@ -217,17 +223,17 @@ nCC = numel(CC);
 % .params:     cell array of size 2 containing model parameter of
 %              anisotropic model (index 1) and segment models (index 2)
 %                if modelType == 1:
-%                        x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1
-%                        x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2
-%                        ...
-%                        xN dxN yN ...
+%                 x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1 var1
+%                 x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2 var2
+%                 ...
+%                 xN dxN yN ... varN
 %
 %                if modelType == 2:
-%                        x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1
-%                        x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2
-%                        ...
-%                        xN dxN yN ...
-% .residual:        array of nCCx1 corresponding to ||ima - model||^2
+%                 x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1 var1
+%                 x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2 var2
+%                 ...
+%                 xN dxN yN ... varN
+
 CCmodels.iFirst = iFirst;
 CCmodels.iLast = iLast;
 CCmodels.type = ones(1, nCC);
@@ -235,9 +241,6 @@ CCmodels.paramsFirst = first;
 CCmodels.paramsLast = last;
 CCmodels.params = cell(2,1);
 CCmodels.params{1} = params;
-
-% Compute residuals
-%CCsuports = arrayfun(@(p) anisoGaussian2DSupport(x0,y0,sigmaX,sigmaY,theta,imSize)
 
 % CCpairIdx: pair of CC indices for which we need a weight. We initialize
 % CCpairIdx with validTrackPairIdx
@@ -267,7 +270,7 @@ for iLevel = 1:nLevels
     outputFirst = cumsum([1 overlap(1:end-1)]);
     
     % Compute model parameters of all pairs.
-    CCpairParams = zeros(sum(overlap), 7);
+    CCpairParams = zeros(sum(overlap), 8);
     
     % iFunc == 1: modelType1 == 1, modelType2 == 1
     % iFunc == 2: modelType1 == 1, modelType2 == 2
@@ -293,46 +296,46 @@ for iLevel = 1:nLevels
             outputFirst(isFunc), overlap(isFunc), ...
             'UniformOutput', false));
         
-        CCpairParams(outputInd,:) = initFunc{iFunc}(...
+        CCpairParams(outputInd,1:end-1) = initFunc{iFunc}(...
             CCmodels.params{modelType1}(inputInd1,:), ...
             CCmodels.params{modelType2}(inputInd2,:));
     end
     
     % DEBUG: save CCpairParams as featureInfo
-    segments = cell(nFrames,1);
+    %segments = cell(nFrames,1);
     
-    % Compute residuals
+    % Compute error variance
     for iFrame = 1:nFrames
-%         % Read image
-%         ima = imread(fullfile(imagePath, imageFiles(iFrame).name));
+        % Read image
+        ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
         
         % Find which pair of CC is living at frame iFrame
         isInFrame = iFirstPair <= iFrame & iLastPair >= iFrame;
 
-        segments{iFrame} = CCpairParams(...
-            outputFirst(isInFrame) + iFrame - iFirstPair(isInFrame), :);
+        ind = outputFirst(isInFrame) + iFrame - iFirstPair(isInFrame);
         
-%         offset = iFrame - iFirst(indInFrame) + 1;
-%         segments{iFrame} = cell2mat(arrayfun(@(i) ...
-%             CCpairParams{indInFrame(i)}(offset(i),:), ...
-%             (1:numel(indInFrame))',...
-%             'UniformOutput',false));
+        %segments{iFrame} = CCpairParams(ind, :);
         
-%         for iPair = indInFrame
-%         
-%             offset = iFrame - iFirst(iPair) + 1;
-%         
-%             initParams = CCpairParams{iPair}(offset,:);
-%         
-%             % TODO: compute bounds and nan values
-%             crop = ima(bounds(2):bounds(4), bounds(1):bounds(3));
-%             
-%             CCpairParams{iPair}(offset,:) = ...
-%                 fitSegment2D(crop, initParams, 'xyAlstC');
-%         end
+        paramsInFrame = CCpairParams(ind,1:end-1);
+        nParamsInFrame = size(paramsInFrame);
+        
+        for iParam = 1:nParamsInFrame
+            
+            cellParams = num2cell(paramsInFrame(iParam,:),1);
+            [x0 y0 A l sigma theta C] = cellParams{:};
+            [xRange,yRange,nzIdx] = ...
+                segment2DSupport(x0,y0,l,sigma,theta,[ny nx],kSigma);
+            
+            model = segment2D(x0,y0,A,l,sigma,theta,xRange,yRange,nzIdx);
+            
+            res = ima(yRange,xRange) - model - C;
+        
+            CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * ...
+                sum(res(nzIdx).^2);
+        end
     end
     
-    save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
+    %save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
 
     % Compute weights for each pair of CC
     
@@ -359,8 +362,8 @@ movieData.pairTracks.status = 1;
 function pairParams = initPairParams00(params1,params2)
 params1 = num2cell(params1,1);
 params2 = num2cell(params2,1);
-[x1,y1,A1,sx1,sy1,~,C1] = params1{1:2:end};
-[x2,y2,A2,sx2,sy2,~,C2] = params2{1:2:end};
+[x1,y1,A1,sx1,sy1,~,C1,~] = params1{1:2:end};
+[x2,y2,A2,sx2,sy2,~,C2,~] = params2{1:2:end};
 
 t0 = atan2(y2-y1,x2-x1);
 ct = cos(t0);
