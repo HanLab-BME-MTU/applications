@@ -13,5 +13,5 @@ for frame=1:length(constrForceField)
     end
 end
 if doSave
-    save('cellCellForcesStripped.mat',constrForceField,'-v7.3')
+    save('cellCellForcesStripped.mat','constrForceField','-v7.3')
 end
