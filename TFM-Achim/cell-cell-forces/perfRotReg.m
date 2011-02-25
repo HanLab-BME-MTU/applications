@@ -4,6 +4,7 @@ if nargin<2 || isempty(checkTransform)
 end
 
 for frame=1:length(displField)
+    displField_reg(frame).par   = displField(frame).par;
     checkVec=(displField(frame).pos(:,1)>50 & displField(frame).pos(:,1)<200 & displField(frame).pos(:,2)>25 & displField(frame).pos(:,2)<700) | (displField(frame).pos(:,1)>1100 & displField(frame).pos(:,2)>25);
     
     X1=displField(frame).pos(checkVec,:);
@@ -23,10 +24,10 @@ for frame=1:length(displField)
     Xdef_reg = (R*Xdef'+ repmat(T,1,size(Xdef,1)))';
     
     % store the values:
-    displField_reg(frame).pos = Xref(:,1:2); % This is of course unchanged!
-    displField_reg(frame).vec = Xdef_reg(:,1:2)-Xref(:,1:2);
-    displField_reg(frame).R   = R;
-    displField_reg(frame).T   = T;
+    displField_reg(frame).pos     = Xref(:,1:2); % This is of course unchanged!
+    displField_reg(frame).vec     = Xdef_reg(:,1:2)-Xref(:,1:2);
+    displField_reg(frame).par.R   = R;
+    displField_reg(frame).par.T   = T;
     
     if checkTransform
         figure()

@@ -39,6 +39,10 @@ if nargin < 4 || isempty(frame)
     end
 end
 
+if nargin<5 || isempty(plotAll)
+    plotAll=0;
+end
+
 % first test if the cluster analysis has been performed on this frame. For
 % example, there is only a single cell:
 if ~isfield(constrForceField{frame},'clusterAnalysis')
@@ -58,7 +62,7 @@ t=constrForceField{frame}.clusterAnalysis.mesh.t;
 % output is interpolated to the node points p:
 [u1,u2,exx,eyy,exy,sxx,syy,sxy,u1x,u2x,u1y,u2y]=postProcSol(u,p,t);
 
-if nargin>4 && plotAll==1
+if plotAll==1
     figure(3)
     pdesurf(p,t,u1)
 

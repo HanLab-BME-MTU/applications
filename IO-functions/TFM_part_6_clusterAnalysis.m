@@ -1,4 +1,4 @@
-function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField,opt)
+function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField,opt,saveAll)
 load('fileAndFolderNames.mat')
 doPlot=0;
 
@@ -22,6 +22,10 @@ end
 
 if nargin<3 || isempty(opt)
     opt='all';
+end
+
+if nargin<4 || isempty(saveAll)
+    saveAll=1;
 end
 
 % load the image file list for Ecad or Cytoplasmic marker:
@@ -74,9 +78,10 @@ for frame=toDoList
     display(['Working on frame: ',num2str(frame)])
     % Now perform the Cluster Analysis:
     tic;
-    constrForceField=perfClusterAnalysis(constrForceField,forceField,frame);
+    constrForceField=perfClusterAnalysis(constrForceField,forceField,frame,saveAll);
     toc;
-    if doPlot
+    % this plot only works if everything is saved!
+    if doPlot && saveAll
         plotClusterAnalysis(constrForceField,forceField,sortedXtraFinalFileList,frame,0);
 
         % Replot the Network results:

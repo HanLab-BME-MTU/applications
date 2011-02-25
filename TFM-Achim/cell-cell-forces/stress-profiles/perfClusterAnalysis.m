@@ -1,4 +1,7 @@
-function constrForceField=perfClusterAnalysis(constrForceField,forceField,frame)
+function constrForceField=perfClusterAnalysis(constrForceField,forceField,frame,saveAll)
+if nargin<4 || isempty(saveAll)
+    saveAll=1;
+end
 constrForceField{frame}.clusterAnalysis=[];
 % The pixelsize in mu for this frame is: 
 pixSize_mu=constrForceField{frame}.par.pixSize_mu;
@@ -45,7 +48,7 @@ currMask=constrForceField{frame}.segmRes.mask;
 % % Exponential or linear decay:
 lengthScale=10;
 distMat = bwdist(currMask);
-globYoung.val=((0*currMask)+10^7).*exp(-double(distMat)/lengthScale);
+globYoung.val=((0*currMask)+10^7).*exp(-double(distMat)/lengthScale); %This should not be changed, otherwise information is lost, it is not stored
 
 % Check if the force field covers the whole cell cluster:
 idxConvH=convhull(forceField(frame).pos);
@@ -123,10 +126,7 @@ for j=1:length(constrForceField{frame}.network.edge)
     constrForceField{frame}.clusterAnalysis.intf{j}.edgeNum=j;
 end
 
-constrForceField{frame}.clusterAnalysis.sol.u=u;    %These take too much space!
-constrForceField{frame}.clusterAnalysis.mesh.p=p;   %These take too much space!
-constrForceField{frame}.clusterAnalysis.mesh.e=e;   %These take too much space!
-constrForceField{frame}.clusterAnalysis.mesh.t=t;   %These take too much space!
+
 constrForceField{frame}.clusterAnalysis.mesh.par.hmax=Hmax;
 constrForceField{frame}.clusterAnalysis.mesh.par.ref =numRef;
 constrForceField{frame}.clusterAnalysis.coef.a=a;   
@@ -134,19 +134,25 @@ constrForceField{frame}.clusterAnalysis.coef.b=b;
 constrForceField{frame}.clusterAnalysis.coef.c=c;
 constrForceField{frame}.clusterAnalysis.coef.f=f;
 constrForceField{frame}.clusterAnalysis.errs  =errsum; % this checks if the force field covered the wohle cluster.
-constrForceField{frame}.clusterAnalysis.par.dPix=dPix; 
-%constrForceField{frame}.clusterAnalysis.par.globForce.pos=globForce.pos;
-%constrForceField{frame}.clusterAnalysis.par.globForce.vec=globForce.vec;
-constrForceField{frame}.clusterAnalysis.par.globYoung=globYoung;
-%constrForceField{frame}.clusterAnalysis.par.globYoung.xmat=globYoung.xmat;  %These take too much space!
-%constrForceField{frame}.clusterAnalysis.par.globYoung.ymat=globYoung.ymat;  %These take too much space!
-%constrForceField{frame}.clusterAnalysis.par.globYoung.val=globYoung.val;
+constrForceField{frame}.clusterAnalysis.par.dPix=dPix;
 constrForceField{frame}.clusterAnalysis.bnd.bndCurve=bndCurve; % used to generate the mesh!
-
 constrForceField{frame}.clusterAnalysis.bnd.pos=center_bd;
 constrForceField{frame}.clusterAnalysis.bnd.f_vec = horzcat(fx_sum_bd,fy_sum_bd);
 constrForceField{frame}.clusterAnalysis.bnd.s_vec = horzcat(sx_sum_bd,sy_sum_bd);
 constrForceField{frame}.clusterAnalysis.bnd.f_tot = ftot_sum_bd;
+
+
+% recalculate those fields if needed!
+
+if saveAll
+    constrForceField{frame}.clusterAnalysis.sol.u=u;    %These take too much space!
+    constrForceField{frame}.clusterAnalysis.mesh.p=p;   %These take too much space!
+    constrForceField{frame}.clusterAnalysis.mesh.e=e;   %These take too much space!
+    constrForceField{frame}.clusterAnalysis.mesh.t=t;   %These take too much space!
+    %constrForceField{frame}.clusterAnalysis.par.globForce.pos=globForce.pos;
+    %constrForceField{frame}.clusterAnalysis.par.globForce.vec=globForce.vec;
+    constrForceField{frame}.clusterAnalysis.par.globYoung=globYoung; %These take too much space!
+end
 
 % Remove the global variables:
 clear globForce

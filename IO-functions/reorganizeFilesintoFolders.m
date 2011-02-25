@@ -1,4 +1,4 @@
-A = dir('wellshIIA_03*');
+A = dir('wellsiTLN2_01*');
 sizeA = size(A,1);
 
 % these are the Folder Names (FN):
@@ -6,7 +6,7 @@ FN_data    = 'data';
 FN_Phase   = 'Cells';  % w1
 FN_Beads   = 'Beads';  % w2
 FN_Xtra1st = 'Ecad';  % w3 This is actin or myosin or Ecad?!
-FN_Xtra2nd = 'Myos';  % w4 This is actin or myosin or Ecad?!
+FN_Xtra2nd = 'Tln2';  % w4 This is actin or myosin or Ecad?!
 FN_RefFrame= 'Reference Frame';
 
 for i=1:sizeA

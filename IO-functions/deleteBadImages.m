@@ -1,10 +1,10 @@
 function []=deleteBadImages(inputFileList)
 %remove bad pictures
-percentile=0.50;
+percentile=0.20;
 
 
 if nargin < 1 || isempty(inputFileList)
-   [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
+   [filename, pathname] = uigetfile({'*.TIF';'*.tif';'*.jpg';'*.png';'*.*'}, ...
        'Select First Image of the Stack to be cleaned');
    
    if ~ischar(filename) || ~ischar(pathname)

@@ -1,8 +1,8 @@
-function groupedClusters=groupNetworks(groupedClusters,filename)
+function groupedNetworks=groupNetworks(groupedNetworks,filename,doSave)
 
-if nargin<1 || isempty(groupedClusters)
-    groupedClusters.numClusters= 0;
-    groupedClusters.clusterList=[];
+if nargin<1 || isempty(groupedNetworks)
+    groupedNetworks.numClusters= 0;
+    groupedNetworks.clusterList=[];
 end
 
 if nargin<2 || isempty(filename)
@@ -24,6 +24,10 @@ else
     toc;
 end
 
+if nargin<3 || isempty(doSave)
+    doSave=1;
+end
+
 
 
 for entryId=1:numel(fileList)
@@ -35,15 +39,21 @@ for entryId=1:numel(fileList)
     %save([pwd,filesep,'test.mat'], 'currNet','fnameFirstBeadImg','-v7.3');
     
     % sort it in, if it doesn't exist yet
-    if groupedClusters.numClusters>0 && sum(strcmp(fnameFirstBeadImg,groupedClusters.clusterList))>0
-        display('Cluster is already in the group list, nothing to do: ')
+    if groupedNetworks.numClusters>0 && sum(strcmp(fnameFirstBeadImg,groupedNetworks.clusterList))>0
+        display('!!! Cluster is already in the group list, nothing to do: ')
         display(fileList{entryId});
         return;
     else
         
-        clusterId = groupedClusters.numClusters+1;
-        groupedClusters.clusterList{clusterId}        = fnameFirstBeadImg;
-        groupedClusters.cluster{clusterId}.trackedNet = currNet;
-        groupedClusters.numClusters                   = groupedClusters.numClusters+1;
+        clusterId = groupedNetworks.numClusters+1;
+        groupedNetworks.clusterList{clusterId}        = fnameFirstBeadImg;
+        groupedNetworks.cluster{clusterId}.trackedNet = currNet;
+        groupedNetworks.numClusters                   = groupedNetworks.numClusters+1;
+        
+        display(['Added: ',fnameFirstBeadImg])
     end
+end
+
+if doSave
+    save('groupedNetwork.mat','groupedNetworks')
 end
