@@ -1,4 +1,4 @@
-function plotCellCellForces(constrForceField,forceField,toDoList,imageFileList,target_dir,doSave)
+function plotCellCellForces(constrForceField,forceField,toDoList,imageFileList,target_dir,doSave,movieFormat,fps)
 % This function plots the residual forces in the cell cluster!
 
 
@@ -39,11 +39,9 @@ if nargin < 4 || isempty(imageFileList)
    end
    
    imageFileList = getFileStackNames([pathname filesep filename]);
-elseif isdir(imageFileList)
-    imageFileList=getFileListFromFolder(imageFileList);
 else
     isValid = 1;
-    for i = 1:numel(imageFileList)
+    for frame = 1:numel(imageFileList)
         isValid = isValid && exist(imageFileList{frame}, 'file');
     end
     if ~isValid
@@ -60,9 +58,28 @@ if nargin < 6 || isempty(doSave)
     doSave = 0;
 end
 
+if nargin < 8 || isempty(fps)
+    fps = 8;
+end
+
+movieFileName='mov_CellCellForces';
+if nargin == 7 && (isempty(movieFormat) || strcmp(movieFormat,'mov') == 1 || strcmp(movieFormat,'MOV'))
+    movieFileName = [movieFileName,'.mov'];
+    MakeQTMovie('start',movieFileName);
+    MakeQTMovie('framerate',fps);
+    MakeQTMovie('quality',1);
+    movieFormat ='mov';
+    doMovie=1;
+elseif nargin == 7 && (strcmp(movieFormat,'avi') == 1 || strcmp(movieFormat,'AVI'))
+    movieFileName = [movieFileName,'.avi'];
+    movieFormat ='avi';
+    doMovie=1;
+else
+    doMovie=0;
+end
 
 %% Determine the plot boundaries and pos of scale bars.
-dPix=125;
+dPix=50;
 dPixX=100;
 dPixY=50;
 textSpace=30;
@@ -99,6 +116,9 @@ for frame=toDoList
         forceScale=currForceScale;
     end
 end
+% arbitrary factor:
+forceScale=2/3*forceScale;
+
 xLimVal=[max([1 xmin]) min([cols,xmax])];
 yLimVal=[max([1 ymin]) min([rows,ymax])];
 
@@ -106,6 +126,8 @@ yLimVal=[max([1 ymin]) min([rows,ymax])];
 lengthScaleBar_mu=5;
 fxScaleBar_Pa=15000;
 fyScaleBar_Pa=0;
+
+
 
 
 %% plot:
@@ -131,11 +153,12 @@ for frame=toDoList
     imagesc(currentImage)
     colormap('gray')
     hold on
+    text((xLimVal(2)-xLimVal(1))*0.05,(yLimVal(2)-yLimVal(1))*0.05,num2str(frame),'Color','white','FontSize',18);
     %plot innter boundary:
     plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.curve(:,2),'k')
     %plot complete forceField:
-    quiver(forceField(frame).pos(:,1),forceField(frame).pos(:,2),forceField(frame).vec(:,1)/forceScale,forceField(frame).vec(:,2)/forceScale,0,'g');
-    marker=['r','b','m','c','g','y','k'];
+    %quiver(forceField(frame).pos(:,1),forceField(frame).pos(:,2),forceField(frame).vec(:,1)/forceScale,forceField(frame).vec(:,2)/forceScale,0,'g');
+    marker=['r','b','m','c','g','y','w'];
     for k=1:numCells
         %plot cell{j}:
         quiver(constrForceField{frame}.cell{k}.pos(:,1),constrForceField{frame}.cell{k}.pos(:,2),constrForceField{frame}.cell{k}.vec(:,1)/forceScale,constrForceField{frame}.cell{k}.vec(:,2)/forceScale,0,marker(mod(k,7)+1));
@@ -166,7 +189,7 @@ for frame=toDoList
     axis equal
     xlim(xLimVal)
     ylim(yLimVal)
-    set(gca,'YDir','reverse')
+    set(gca,'YDir','reverse','XTick',[],'YTick',[])
     title(['Constrained force field no: ',num2str(frame)])
 
     if doSave==1
@@ -175,13 +198,59 @@ for frame=toDoList
             mkdir(target_dir)
         end
         filename = [target_dir,filesep,'cellCellForces_',num2str(frame,['%0.',int2str(padZeros),'d'])];
-        saveas(gcf,[filename,'.tiff'],'tiffn');
-        %saveas(gcf,[filename, '.eps'], 'psc2');
-        display(['Figure saved to: ',filename,'.tiffn+.eps'])
+        % saveas(gcf,[filename,'.tiff'],'tiffn');
+        
+        print('-depsc2','-loose', 'frame.eps');    
+        str = ['!convert -density 300 -quiet -colorspace rgb -alpha off -depth 8 frame.eps ',filename,'.tif'];
+        %str = ['!convert -colorspace rgb -alpha off -depth 8 frame.eps ',filename,'.tif'];
+        eval(str);
+
+        % saveas(gcf,[filename, '.eps'], 'psc2');
+        % display(['Figure saved to: ',filename,'.tiffn+.eps'])
         %pause(2);        
     end
     pause(1)
+    
+    if doMovie==1 && (strcmp(movieFormat,'mov') == 1 || strcmp(movieFormat,'MOV'))
+        MakeQTMovie('addfigure');
+    elseif doMovie==1
+        M(k) = getframe;
+    end
+
     if frame~=toDoList(end)
         close(h);
     end
 end
+!rm frame.eps
+
+
+if doMovie==1 && (strcmp(movieFormat,'mov') == 1 || strcmp(movieFormat,'MOV'))
+    MakeQTMovie('finish');
+elseif doMovie==1 && (strcmp(movieFormat,'avi') == 1 || strcmp(movieFormat,'AVI'))
+    movie2avi(M,movieFileName,'fps',fps);
+end
+
+
+% Set the position of the current figure to screen size:
+% scrsz = get(0,'ScreenSize');
+% h     = figure();
+% set(h,'Position',scrsz);
+% pos   = get(h,'Position');
+
+% figure(h)
+% k=1;
+% for frame=toDoList
+%     axes('Position',[0 0 1 1]);
+%     imagesc(I{frame}), title(['Sheet edge of frame: ',num2str(frame)]);
+%     hold on
+%     plot(sheetBnD(frame).pos(:,2) ,sheetBnD(frame).pos(:,1) ,'k-');
+%     plot(sheetEdge(frame).pos(:,2),sheetEdge(frame).pos(:,1),'r.');
+%     if frame==toDoList(end)
+%         plot(sheetBnD(1).pos(:,2) ,sheetBnD(1).pos(:,1) ,'k-');
+%         plot(sheetEdge(1).pos(:,2),sheetEdge(1).pos(:,1),'b.');
+%     end
+%     colormap gray;
+%     set(h,'Position',pos);
+%     hold off
+%     
+% end
