@@ -33,7 +33,7 @@ ylabel('fnet [nN]')
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',35,'myo',1,'myoGlb',[-1 0 1],'errF',500,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',35,'myo',0,'myoGlb',[-1 0 1],'errF',500,'errs',0);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 
@@ -140,7 +140,8 @@ ylabel('sum interf. forces [nN]')
 %**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','f1','f2','fc1','fc2');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
