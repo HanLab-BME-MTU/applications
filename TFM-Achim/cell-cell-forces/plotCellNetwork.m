@@ -52,8 +52,13 @@ for j=1:length(edge)
             quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),edge{j}.n_Vec(:,1),edge{j}.n_Vec(:,2),0,'k');
             plot(edge{j}.pos(:,1),edge{j}.pos(:,2),'.k','MarkerSize',10)
         end
-        % plot the edge number
-        text(edge{j}.pos(:,1),edge{j}.pos(:,2),[num2str(j),'^{',num2str(edge{j}.nodes),'}'],'VerticalAlignment','middle','HorizontalAlignment','center','color','r');% marker(mod(k,7)+1))
+        % find the pair degree:
+        conNodes=edge{j}.nodes;
+        pairDeg=sort([node{conNodes(1)}.deg,node{conNodes(2)}.deg]);        
+        % plot the edge number with id of connected cells:
+        % text(edge{j}.pos(:,1),edge{j}.pos(:,2),[num2str(j),'^{',num2str(edge{j}.nodes),'}'],'VerticalAlignment','middle','HorizontalAlignment','center','color','r');% marker(mod(k,7)+1))
+        % plot the edge number with the pair-degree:
+        text(edge{j}.pos(:,1),edge{j}.pos(:,2),[num2str(j),'^{',num2str(pairDeg),'}'],'VerticalAlignment','middle','HorizontalAlignment','center','color','r');% marker(mod(k,7)+1))
     end
 end
 % plot the residual forces of each cell:
@@ -66,18 +71,27 @@ end
 % plot the number of each cell and its connectivity:
 for k=1:length(node)
     if ~isempty(node{k})
-        if isnan(node{k}.mag)
+        % circle size equals the magnitude of the residual force:
+        % if isnan(node{k}.mag)
+        %    sizeCirc=10^(-5);
+        % else
+        %    sizeCirc=50*node{k}.mag/maxMag;
+        % end
+        
+        % circle size equals the sum of all interface forces (magnitude):
+        sumIntF=sumIntForces(k,node,edge);
+        if isnan(sumIntF)
             sizeCirc=10^(-5);
         else
-            sizeCirc=50*node{k}.mag/maxMag;
-        end
+            sizeCirc=20*sumIntF/maxMag;
+        end        
         plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','w','MarkerSize',sizeCirc,'LineWidth',2)
         if isfield(node{k},'spec') && ~isempty(node{k}.spec) && node{k}.spec==1
-            %text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
-            text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
+            text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','middle','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
+            %text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
         else
-            %text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
-            text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
+            text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','middle','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
+            %text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
         end
         hold on
     end
@@ -123,5 +137,21 @@ for frame=1:31
 %     saveas(gcf,[filename, '.eps'], 'psc2');
 %     display(['Figure saved to: ',filename,'.tiffn+.eps'])
     end
+end
+
+function sumF=sumIntForces(nodeIdFunc,nodeFunc,edgeFunc)
+%find all edges connected to that node:
+edgesFunc=nodeFunc{nodeIdFunc}.edges;
+
+%get the interface forces that belong to that node:
+sumF=0;
+for edgeIdFunc=edgesFunc
+    if ~isempty(edgeFunc{edgeIdFunc}.f1) && ~isempty(edgeFunc{edgeIdFunc}.f2) && ~isnan(edgeFunc{edgeIdFunc}.f1(1)) && ~isnan(edgeFunc{edgeIdFunc}.f2(1))
+        % then take the network force:
+        fEdge=1/2*(edgeFunc{edgeIdFunc}.f1-edgeFunc{edgeIdFunc}.f2);
+    else
+        fEdge=edgeFunc{edgeIdFunc}.fc;
+    end
+    sumF=sumF+sqrt(sum(fEdge.^2));
 end
     
