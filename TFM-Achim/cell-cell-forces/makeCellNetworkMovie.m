@@ -1,4 +1,4 @@
-function []=makeCellNetworkMovie(network,target_dir,xLimVal,yLimVal,scale,fps,movieFormat,noErrs,noTicks)
+function []=makeCellNetworkMovie(network,target_dir,xLimVal,yLimVal,scale,fps,movieFormat,noErrs,noTicks,noFn)
 % makeCellNetworkMovie(trackedNet,'cellNetwork',[550 1250],[300 900],1,8,'mov',1,0)
 %get the target directory:
 if nargin < 2 || isempty(target_dir)
@@ -37,19 +37,24 @@ if nargin < 9 || isempty(noTicks)
     noTicks = 0;
 end
 
+if nargin < 10 || isempty(noFn)
+    noFn = 0;
+end
+
+
 padZeros=3;
 k=1;
 for frame=1:length(network)
     % Here starts the image:
     % scrsz = get(0,'ScreenSize');
     % h=figure('Position',[1 scrsz(4) scrsz(3) scrsz(4)]);
-    if ~noErrs || network{frame}.stats.errs==0        
+    if ~isempty(network{frame}) && (~noErrs || network{frame}.stats.errs==0)
         h=figure();
         if ~isempty(network{frame})
             display(['Plot frame: ',num2str(frame)]);
             
             % plot the cell network:
-            plotCellNetwork(network{frame},xLimVal,yLimVal,scale,noErrs,noTicks);
+            plotCellNetwork(network{frame},xLimVal,yLimVal,scale,noErrs,noTicks,noFn);
             
             filename = [target_dir,filesep,'cellNetwork_',num2str(frame,['%0.',int2str(padZeros),'d'])];
             % saveas(gcf,[filename,'.tiff'],'tiffn');

@@ -1,4 +1,4 @@
-function plotCellNetwork(network,xLimVal,yLimVal,scale,noErrs,noTicks)
+function plotCellNetwork(network,xLimVal,yLimVal,scale,noErrs,noTicks,noFn)
 % for frame=1:length(network)
 %     if ~isempty(network{frame})
 %         display(['Plot frame: ',num2str(frame)]);
@@ -26,6 +26,10 @@ if nargin < 6 || isempty(noTicks)
     noTicks = 0;
 end
 
+if nargin < 7 || isempty(noFn)
+    noFn = 0;
+end
+
 
 marker=['r','b','m','c','g','y','k'];
 % plot the edges:
@@ -33,13 +37,13 @@ for j=1:length(edge)
     if ~isempty(edge{j})
         plot([edge{j}.strPt(1) edge{j}.endPt(1)],[edge{j}.strPt(2) edge{j}.endPt(2)],'-k')
         hold on
-        if ~isempty(edge{j}.f1) && ~isempty(edge{j}.f2)
+        if ~noFn && ~isempty(edge{j}.f1) && ~isempty(edge{j}.f2)
             % plot the first force, f1:
             quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.f1(:,1),scale*edge{j}.f1(:,2),0,marker(mod(edge{j}.nodes(1),7)+1));
             % plot the second force, f2:
             quiver(edge{j}.pos(:,1),edge{j}.pos(:,2),scale*edge{j}.f2(:,1),scale*edge{j}.f2(:,2),0,marker(mod(edge{j}.nodes(2),7)+1));
             plot(edge{j}.pos(:,1),edge{j}.pos(:,2),'.k','MarkerSize',10)
-        else
+        elseif ~noFn
             text(edge{j}.pos(:,1),edge{j}.pos(:,2),'???','VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
         end
         % Use the results from the cluster Analysis if they exist
@@ -83,13 +87,14 @@ for k=1:length(node)
         if isnan(sumIntF)
             sizeCirc=10^(-5);
         else
-            sizeCirc=20*sumIntF/maxMag;
-        end        
-        plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','w','MarkerSize',sizeCirc,'LineWidth',2)
+            sizeCirc=13*sumIntF/maxMag;
+        end
         if isfield(node{k},'spec') && ~isempty(node{k}.spec) && node{k}.spec==1
+            plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','r','MarkerSize',sizeCirc,'LineWidth',2)
             text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','middle','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
             %text(node{k}.pos(:,1),node{k}.pos(:,2),['*',num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
         else
+            plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','w','MarkerSize',sizeCirc,'LineWidth',2)
             text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','middle','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
             %text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg),'_{',num2str(node{k}.edges),'}'],'VerticalAlignment','top','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))   
         end
@@ -98,13 +103,17 @@ for k=1:length(node)
 end
 % The scale bar for the stresses:
 if nargin > 1 && ~isempty(xLimVal) && ~isempty(yLimVal)
-    fxScaleBar_nN=100;
+    fxScaleBar_nN=300;
     fyScaleBar_nN=0;
     dPixX=130;
     dPixY=20;
     textSpace=20;
-    quiver(xLimVal(2)-dPixX, yLimVal(2)-dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
-    text(  xLimVal(2)-dPixX, yLimVal(2)-dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    % lower right corner:
+    % quiver(xLimVal(2)-dPixX, yLimVal(2)-dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
+    % text(  xLimVal(2)-dPixX, yLimVal(2)-dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    % upper right corner:
+    quiver(xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
+    text(  xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
 end
 if noTicks
     set(gca,'YDir','reverse','XTick',[],'YTick',[]);
