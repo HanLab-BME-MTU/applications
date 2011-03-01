@@ -79,8 +79,8 @@ else
 end
 
 %% Determine the plot boundaries and pos of scale bars.
-dPix=50;
-dPixX=100;
+dPix=100;
+dPixX=150;
 dPixY=50;
 textSpace=30;
     
@@ -117,14 +117,14 @@ for frame=toDoList
     end
 end
 % arbitrary factor:
-forceScale=2/3*forceScale;
+forceScale=0.33*forceScale;
 
 xLimVal=[max([1 xmin]) min([cols,xmax])];
 yLimVal=[max([1 ymin]) min([rows,ymax])];
 
 % set the values for the scale bars:
 lengthScaleBar_mu=5;
-fxScaleBar_Pa=15000;
+fxScaleBar_Pa=20000;
 fyScaleBar_Pa=0;
 
 

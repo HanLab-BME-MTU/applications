@@ -1,4 +1,4 @@
-function []=makeCellNetworkMovie(network,target_dir,xLimVal,yLimVal,scale,fps,movieFormat,noErrs,noTicks,noFn)
+function []=makeCellNetworkMovie(network,target_dir,xLimVal,yLimVal,scale,fps,movieFormat,noErrs,noTicks,noFn,noFc)
 % makeCellNetworkMovie(trackedNet,'cellNetwork',[550 1250],[300 900],1,8,'mov',1,0)
 %get the target directory:
 if nargin < 2 || isempty(target_dir)
@@ -41,6 +41,11 @@ if nargin < 10 || isempty(noFn)
     noFn = 0;
 end
 
+if nargin < 11 || isempty(noFc)
+    noFc = 0;
+end
+
+
 
 padZeros=3;
 k=1;
@@ -54,7 +59,7 @@ for frame=1:length(network)
             display(['Plot frame: ',num2str(frame)]);
             
             % plot the cell network:
-            plotCellNetwork(network{frame},xLimVal,yLimVal,scale,noErrs,noTicks,noFn);
+            plotCellNetwork(network{frame},xLimVal,yLimVal,scale,noErrs,noTicks,noFn,noFc);
             
             filename = [target_dir,filesep,'cellNetwork_',num2str(frame,['%0.',int2str(padZeros),'d'])];
             % saveas(gcf,[filename,'.tiff'],'tiffn');
@@ -65,8 +70,6 @@ for frame=1:length(network)
             
             % saveas(gcf,[filename, '.eps'], 'psc2');
             % display(['Figure saved to: ',filename,'.tiffn+.eps'])
-            
-            pause(0.5)
             
             if doMovie==1 && (strcmp(movieFormat,'mov') == 1 || strcmp(movieFormat,'MOV'))
                 MakeQTMovie('addfigure');
