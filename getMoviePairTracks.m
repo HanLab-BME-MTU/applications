@@ -22,6 +22,24 @@ function movieData = getMoviePairTracks(movieData,minOverlap,timeGap,maxEuclidia
 %                       the number of bins a PDF is cut into. Default is
 %                       1e-4.
 
+initFunc = {...
+    @initPairParams00,...
+    @initPairParams01,...
+    @(params1,params2) initPairParams01(params2,params1),...
+    @initPairParams11};
+    
+modelSupportFunc = {...
+    @anisoGaussian2DSupport,...
+    @segment2DSupport};
+
+modelFunc = {...
+    @anisoGaussian2D,...
+    @segment2D};
+
+fitModelFunc = {...
+    @fitAnisoGaussian2D,...
+    @fitSegment2D};
+
 % 0) parse input parameters
 
 if nargin < 2 || isempty(minOverlap)
@@ -60,6 +78,9 @@ imagePath = fullfile(movieData.imageDirectory, movieData.channelDirectory{1});
 imageFiles = dir([imagePath filesep '*.tif']);
 
 nFrames = movieData.nImages(1);
+ima = imread(fullfile(imagePath,imageFiles(1).name));
+[ny nx] = size(ima);
+clear ima;
 
 % 1) Preprocess tracks
 
@@ -85,33 +106,31 @@ frameTracks = arrayfun(@(a,b) a:b, iFirst, iLast, 'UniformOutput', false);
 frameTracks = horzcat(frameTracks{:});
 tracksFeatIndx = [tracksFinal(:).tracksFeatIndxCG];
 % params = parameter values of all tracks:
-% x11 dx11 y11 dy11 A11 dA11 Sx11 dSx11 Sy11 dSy11 T11 dT11 C11 dC11 varE11
-% x12 dx12 ... (2nd point of the 1st track)
+% x11 y11 A11 Sx11 Sy11 T11 C11
+% x12 ... (2nd point of the 1st track)
 % ...
-% x1n dx1n ... (nth point of the 1st track)
-% x21 dx21 ... (1st point of the 2nd track)
+% x1n ... (nth point of the 1st track)
+% x21 ... (1st point of the 2nd track)
 % ...
-params = nan(numel(tracksFeatIndx),15);
+params = nan(numel(tracksFeatIndx),7);
 
 for iFrame = 1:nFrames
     ind = frameTracks == iFrame & tracksFeatIndx ~= 0;
-    xCoord = [featuresInfo(iFrame).xCoord];
-    yCoord = [featuresInfo(iFrame).yCoord];
-    amp = [featuresInfo(iFrame).amp];
-    sX = [featuresInfo(iFrame).stdAlong];
-    sY = [featuresInfo(iFrame).stdAside];
-    theta = [featuresInfo(iFrame).theta];
-    bkg = [featuresInfo(iFrame).bkg];
-    varError = [featuresInfo(iFrame).varError];
+    xCoord = featuresInfo(iFrame).xCoord(:,1);
+    yCoord = featuresInfo(iFrame).yCoord(:,1);
+    amp = featuresInfo(iFrame).amp(:,1);
+    sX = featuresInfo(iFrame).stdAlong(:,1);
+    sY = featuresInfo(iFrame).stdAside(:,1);
+    theta = featuresInfo(iFrame).theta(:,1);
+    bkg = featuresInfo(iFrame).bkg(:,1);
     
-    params(ind,1:2) = xCoord(tracksFeatIndx(ind),:);
-    params(ind,3:4) = yCoord(tracksFeatIndx(ind),:);
-    params(ind,5:6) = amp(tracksFeatIndx(ind),:);
-    params(ind,7:8) = sX(tracksFeatIndx(ind),:);
-    params(ind,9:10) = sY(tracksFeatIndx(ind),:);
-    params(ind,11:12) = theta(tracksFeatIndx(ind),:);
-    params(ind,13:14) = bkg(tracksFeatIndx(ind),:);
-    params(ind,15) = varError(tracksFeatIndx(ind));
+    params(ind,1) = xCoord(tracksFeatIndx(ind));
+    params(ind,2) = yCoord(tracksFeatIndx(ind));
+    params(ind,3) = amp(tracksFeatIndx(ind));
+    params(ind,4) = sX(tracksFeatIndx(ind));
+    params(ind,5) = sY(tracksFeatIndx(ind));
+    params(ind,6) = theta(tracksFeatIndx(ind));
+    params(ind,7) = bkg(tracksFeatIndx(ind));
 end
 
 gacombIdx = diff(isnan(params(:,1)));
@@ -123,14 +142,13 @@ nGaps = length(gapLengths);
 for g = 1:nGaps
     borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
     gacombIdx = gapStarts(g):gapEnds(g);
-    params(gacombIdx,1:2) = interp1(borderIdx, params(borderIdx,1:2), gacombIdx);
-    params(gacombIdx,3:4) = interp1(borderIdx, params(borderIdx,3:4), gacombIdx);
-    params(gacombIdx,5:6) = interp1(borderIdx, params(borderIdx,5:6), gacombIdx);
-    params(gacombIdx,7:8) = interp1(borderIdx, params(borderIdx,7:8), gacombIdx);
-    params(gacombIdx,9:10) = interp1(borderIdx, params(borderIdx,9:10), gacombIdx);
-    params(gacombIdx,11:12) = interp1(borderIdx, params(borderIdx,11:12), gacombIdx);
-    params(gacombIdx,13:14) = interp1(borderIdx, params(borderIdx,13:14), gacombIdx);
-    params(gacombIdx,15) = interp1(borderIdx, params(borderIdx,15), gacombIdx);
+    params(gacombIdx,1) = interp1(borderIdx, params(borderIdx,1), gacombIdx);
+    params(gacombIdx,2) = interp1(borderIdx, params(borderIdx,2), gacombIdx);
+    params(gacombIdx,3) = interp1(borderIdx, params(borderIdx,3), gacombIdx);
+    params(gacombIdx,4) = interp1(borderIdx, params(borderIdx,4), gacombIdx);
+    params(gacombIdx,5) = interp1(borderIdx, params(borderIdx,5), gacombIdx);
+    params(gacombIdx,6) = interp1(borderIdx, params(borderIdx,6), gacombIdx);
+    params(gacombIdx,7) = interp1(borderIdx, params(borderIdx,7), gacombIdx);
 end
 
 % 3) Compute the set of valid pairs of tracks that significantly overlap in
@@ -182,9 +200,9 @@ for k = 1:length(firstIdx)
     idx2 = repmat(first2(range)', [1 overlapValues(k)]) + M;
     
     x1 = params(idx1,1);
-    y1 = params(idx1,3);
+    y1 = params(idx1,2);
     x2 = params(idx2,1);
-    y2 = params(idx2,3);
+    y2 = params(idx2,2);
     
     % average distance
     euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
@@ -209,66 +227,85 @@ CC = arrayfun(@(x) {x}, 1:nTracks);
 nCC = numel(CC);
 
 % CCmodels: is a struct array containing the following fields:
-% .iFirst:     array of nCCx1 corresponding to the birth frame of each CC
-% .iLast:      array of nCCx1 corresponding to the death frame of each CC
-% .type:       array of nCCx1 taking the following values:
-%                 1 == anisotropic model
-%                 2 == segment model
-% .paramsInd:  array of nCCx1 containing indices is .modelParams{*}
-%              array. The index in the cell array .modelParams is
-%              given by .modelType.
-% .params:     cell array of size 2 containing model parameter of
-%              anisotropic model (index 1) and segment models (index 2)
-%                if modelType == 1:
-%                 x1 dx1 y1 dy1 A1 dA1 Sx1 dSx1 Sy1 dSy1 T1 dT1 C1 dC1 var1
-%                 x2 dx2 y2 dy2 A2 dA2 Sx2 dSx2 Sy2 dSy2 T2 dT2 C2 dC2 var2
-%                 ...
-%                 xN dxN yN ... varN
 %
-%                if modelType == 2:
-%                 x1 dx1 y1 dy1 A1 dA1 l1 dl1 s1 ds1 T1 dT1 C1 dC1 var1
-%                 x2 dx2 y2 dy2 A2 dA2 l2 dl2 s2 ds2 T2 dT2 C2 dC2 var2
-%                 ...
-%                 xN dxN yN ... varN
-
+% .iFirst:      array of nCCx1 corresponding to the birth frame of each CC
+%
+% .iLast:       array of nCCx1 corresponding to the death frame of each CC
+%
+% .type:        array of nCCx1 taking the following values:
+%                  1 == anisotropic model
+%                  2 == segment model
+%
+% .pFirst:      array of nCCx1 containing the first index in .params{*}
+%               array. The index in the cell array .params{*} is given by
+%               .modelType.
+%
+% .params:      cell array of size 2 containing model parameter of
+%               anisotropic models (index 1) and segment models (index 2)
+%                 if modelType == 1:
+%                    x1 y1 A1 Sx1 Sy1 T1 C1
+%                    x2 y2 A2 Sx2 Sy2 T2 C2
+%                    ...
+%                    xN yN
+%
+%                 if modelType == 2:
+%                    x1 y1 A1 l1 s1 T1 C1
+%                    x2 y2 A2 l2 s2 T2 C2
+%                    ...
+%                    xN yN
+%
+% .xRange:      cell array of size 2 containing model support (xRange) of
+%               anisotropic models (index 1) and segment models (index 2)
+%
+% .yRange:      cell array of size 2 containing model support (yRange) of
+%               anisotropic models (index 1) and segment models (index 2)
+%
+% .nzIdx:       cell array of size 2 containing model support (nzIdx) of
+%               anisotropic models (index 1) and segment models (index 2)
 CCmodels.iFirst = iFirst;
 CCmodels.iLast = iLast;
 CCmodels.type = ones(1, nCC);
-CCmodels.paramsFirst = first;
-CCmodels.paramsLast = last;
+CCmodels.pFirst = first;
 CCmodels.params = cell(2,1);
 CCmodels.params{1} = params;
 
-% CCpairIdx: pair of CC indices for which we need a weight. We initialize
-% CCpairIdx with validTrackPairIdx
-CCpairIdx = validTrackPairIdx;
-nCCPairs = size(CCpairIdx,1);
+% Compute the model support of each CC (level 0)
+CCmodels.xRange = cell(2,1);
+CCmodels.yRange = cell(2,1);
+CCmodels.nzIdx = cell(2,1);
 
-initFunc = {...
-    @initPairParams00,...
-    @initPairParams01,...
-    @(params1,params2) initPairParams01(params2,params1),...
-    @initPairParams11};
-    
+cellParams = num2cell(params(:,[1 2 4 5 6]),1);
+[xRange, yRange, nzIdx] = arrayfun(@(x0,y0,sX,sY,theta) ...
+    modelSupportFunc{1}(x0,y0,sX,sY,theta,kSigma,[nx ny]),...
+    cellParams{:},'UniformOutput', false);
+CCmodels.xRange{1} = xRange;
+CCmodels.yRange{1} = yRange;
+CCmodels.nzIdx{1} = nzIdx;
+
+% pairCCIdx: pair of CC candidates. We initialize pairCCIdx withkSigma
+% validTrackPairIdx
+pairCCIdx = validTrackPairIdx;
+nPairCC = size(pairCCIdx,1);
+
 for iLevel = 1:nLevels
 
     % Compute model parameters of each pair of CC
-    iFirst1 = CCmodels.iFirst(CCpairIdx(:,1));
-    iFirst2 = CCmodels.iFirst(CCpairIdx(:,2));
-    iLast1 = CCmodels.iLast(CCpairIdx(:,1));
-    iLast2 = CCmodels.iLast(CCpairIdx(:,2));
+    iFirst1 = CCmodels.iFirst(pairCCIdx(:,1));
+    iFirst2 = CCmodels.iFirst(pairCCIdx(:,2));
+    iLast1 = CCmodels.iLast(pairCCIdx(:,1));
+    iLast2 = CCmodels.iLast(pairCCIdx(:,2));
     
-    iFirstPair = max(iFirst1,iFirst2);
-    iLastPair = min(iLast1,iLast2);
-    overlap = iLastPair - iFirstPair + 1;
-    offset1 = iFirstPair - iFirst1;
-    offset2 = iFirstPair - iFirst2;
-        
-    outputFirst = cumsum([1 overlap(1:end-1)]);
-    
-    % Compute model parameters of all pairs.
-    % 8 = 7 parameters (x,y,A,l,sigma,theta,C) + varError
-    CCpairParams = zeros(sum(overlap), 8);
+    % pairCCmodels has EXACTLY the same structure as CCmodels but instead
+    % of representing models of CC, it represents models of pairs of CC.
+    pairCCmodels.iFirst = max(iFirst1,iFirst2);
+    pairCCmodels.iLast = min(iLast1,iLast2);
+    pairCCmodels.type = repmat(2,1,nPairCC);    
+    overlap = pairCCmodels.iLast - pairCCmodels.iFirst + 1;
+    offset1 = pairCCmodels.iFirst - iFirst1;
+    offset2 = pairCCmodels.iFirst - iFirst2;        
+    pairCCmodels.pFirst = cumsum([1 overlap(1:end-1)]);
+    pairCCmodels.params = cell(2,1);
+    pairCCmodels.params{2} = zeros(sum(overlap),7);
     
     % iFunc == 1: modelType1 == 1, modelType2 == 1
     % iFunc == 2: modelType1 == 1, modelType2 == 2
@@ -279,69 +316,137 @@ for iLevel = 1:nLevels
         modelType2 = mod(iFunc-1,2)+1;
         
         isFunc = ...
-            CCmodels.type(CCpairIdx(:,1)) == modelType1 & ...
-            CCmodels.type(CCpairIdx(:,2)) == modelType2;
+            CCmodels.type(pairCCIdx(:,1)) == modelType1 & ...
+            CCmodels.type(pairCCIdx(:,2)) == modelType2;
         
         inputInd1 = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
-            CCmodels.paramsFirst(CCpairIdx(isFunc,1)) + offset1(isFunc), ...
+            CCmodels.pFirst(pairCCIdx(isFunc,1)) + offset1(isFunc), ...
             overlap(isFunc), 'UniformOutput',false));
         
         inputInd2 = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
-            CCmodels.paramsFirst(CCpairIdx(isFunc,2)) + offset2(isFunc), ...
+            CCmodels.pFirst(pairCCIdx(isFunc,2)) + offset2(isFunc), ...
             overlap(isFunc), 'UniformOutput', false));
         
         outputInd = cell2mat(arrayfun(@(x,y) x:(x+y-1), ...
-            outputFirst(isFunc), overlap(isFunc), ...
+            pairCCmodels.pFirst(isFunc), overlap(isFunc), ...
             'UniformOutput', false));
         
-        CCpairParams(outputInd,1:end-1) = initFunc{iFunc}(...
+        pairCCmodels.params{2}(outputInd,:) = initFunc{iFunc}(...
             CCmodels.params{modelType1}(inputInd1,:), ...
             CCmodels.params{modelType2}(inputInd2,:));
     end
-    
-    % DEBUG: save CCpairParams as featureInfo
-    %segments = cell(nFrames,1);
     
     if ~batchMode
         h = waitbar(0,['Please wait, computing pair models at level' ...
             num2str(iLevel) '...']);
     end
 
+    W = zeros(1,nPairCC);
+    
     % Compute pair model
     for iFrame = 1:nFrames
         % Read image
         ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
-        [ny nx] = size(ima);
         
         % Find which pair of CC is living at frame iFrame
-        isInFrame = iFirstPair <= iFrame & iLastPair >= iFrame;
+        pairInFrame = find(pairCCmodels.iFirst <= iFrame & pairCCmodels.iLast >= iFrame);
 
-        ind = outputFirst(isInFrame) + iFrame - iFirstPair(isInFrame);
+        % some variables on individual CCs associated by the pair candidate
+        cc1 = pairCCIdx(pairInFrame,1);
+        cc2 = pairCCIdx(pairInFrame,2);
+        p1Idx = CCmodels.pFirst(cc1) + iFrame - CCmodels.iFirst(cc1);
+        p2Idx = CCmodels.pFirst(cc2) + iFrame - CCmodels.iFirst(cc2);
+        modelType1 = CCmodels.type(cc1);
+        modelType2 = CCmodels.type(cc2);
         
-        %segments{iFrame} = CCpairParams(ind, :);
+        pIdx = pairCCmodels.pFirst(pairInFrame) + iFrame - pairCCmodels.iFirst(pairInFrame);
         
-        initParams = CCpairParams(ind,1:end-1);
+        initParams = pairCCmodels.params{2}(pIdx,:);
         nInitParams = size(initParams);
         
-        for iParam = 1:nInitParams
+        for iP = 1:nInitParams
             
-            cellParams = num2cell(initParams(iParam,:),1);
+            % Fit model
+            cellParams = num2cell(initParams(iP,:),1);
             [x0 y0 A l sigma theta C] = cellParams{:};
-            [xRange,yRange,nzIdx] = ...
-                segment2DSupport(x0,y0,l,sigma,theta,[ny nx],kSigma);
+            [xRange,yRange,nzIdx] = modelSupportFunc{2}(x0,y0,l,sigma,theta,kSigma,[nx ny]);
 
             crop = ima(yRange,xRange);
             mask = false(size(crop));
             mask(nzIdx) = true;
             crop(~mask) = NaN;            
             
-            dx = x0 - xRange(floor((numel(xRange)+1)/2));
-            dy = y0 - yRange(floor((numel(yRange)+1)/2));
+            xi = xRange(floor(numel(xRange)/2));
+            yi = yRange(floor(numel(yRange)/2));            
+            prm = fitModelFunc{2}(crop, [x0-xi,y0-yi,A,l,sigma,theta,C], 'AlC');
             
-            [prm, ~, ~, R] = fitSegment2D(crop, [dx, dy, A, l, sigma, theta, C], 'AlC');
+            % Assign new fitted parameters
+            prm(1:2) = [xi, yi] + prm(1:2);            
+            cellParams = num2cell(prm,1);
+            pairCCmodels.params{2}(pIdx(iP),:) = prm;
             
-            CCpairParams(ind(iParam),1:end-1) = prm;
-            CCpairParams(ind(iParam),8) = (1/(numel(nzIdx)-1)) * sum(R(nzIdx).^2);
+            % Get the support of CC 1
+            xRange1 = CCmodels.xRange{modelType1(iP)}{p1Idx(iP)};
+            yRange1 = CCmodels.yRange{modelType1(iP)}{p1Idx(iP)};
+            nzIdx1 = CCmodels.nzIdx{modelType1(iP)}{p1Idx(iP)};
+            mask1 = false(numel(yRange1),numel(xRange1));
+            mask1(nzIdx1) = true;
+            
+            % Get the support of CC 2
+            xRange2 = CCmodels.xRange{modelType2(iP)}{p2Idx(iP)};
+            yRange2 = CCmodels.yRange{modelType2(iP)}{p2Idx(iP)};
+            nzIdx2 = CCmodels.nzIdx{modelType2(iP)}{p2Idx(iP)};
+            mask2 = false(numel(yRange2),numel(xRange2));
+            mask2(nzIdx2) = true;
+            
+            % Get the union of CC1 and CC2 support and the support of the
+            % pair between CC1 and CC2.
+            xRangeFull = min([xRange(1),xRange1(1),xRange2(1)]):...
+                max([xRange(end),xRange1(end),xRange2(end)]);
+            yRangeFull = min([yRange(1),yRange1(1),yRange2(1)]):...
+                max([yRange(end),yRange1(end),yRange2(end)]);
+        
+            maskFull = false(numel(yRangeFull),numel(xRangeFull));
+            tmp1 = yRange1 - yRangeFull(1) + 1;
+            tmp2 = xRange1 - xRangeFull(1) + 1;
+            maskFull(tmp1,tmp2) = maskFull(tmp1,tmp2) | mask1;
+            
+            tmp1 = yRange2 - yRangeFull(1) + 1;
+            tmp2 = xRange2 - xRangeFull(1) + 1;
+            maskFull(tmp1,tmp2) = maskFull(tmp1,tmp2) | mask2;
+            
+            tmp1 = yRange - yRangeFull(1) + 1;
+            tmp2 = xRange - xRangeFull(1) + 1;
+            maskFull(tmp1,tmp2) = maskFull(tmp1,tmp2) | mask;
+            
+            nzIdxFull = find(maskFull);
+            nPixels = numel(nzIdxFull);
+            
+            % Evaluate models of CC1, CC2 and pair between CC1 and CC2
+            cellParamsCC1 = num2cell(CCmodels.params{modelType1(iP)}(p1Idx(iP),:),1);
+            cellParamsCC2 = num2cell(CCmodels.params{modelType2(iP)}(p2Idx(iP),:),1);
+            modelCC1 = modelFunc{modelType1(iP)}(cellParamsCC1{1:end-1},xRangeFull,yRangeFull,nzIdxFull);
+            modelCC2 = modelFunc{modelType2(iP)}(cellParamsCC2{1:end-1},xRangeFull,yRangeFull,nzIdxFull);
+            modelPair = modelFunc{2}(cellParams{1:end-1},xRangeFull,yRangeFull,nzIdxFull);
+            
+            % Add the background values
+            modelCC1CC2 = modelCC1 + modelCC2 + ...
+                .5 * (cellParamsCC1{end} + cellParamsCC2{end});
+            
+            modelPair = modelPair + cellParams{end};
+            
+            cropFull = ima(yRangeFull,xRangeFull);
+            
+            % Evaluate error variance
+            varPair = (1/(nPixels-1)) * ...
+                sum((cropFull(nzIdxFull) - modelPair(nzIdxFull)).^2);
+
+            varCC1CC2 = (1/(nPixels-1)) * ...
+                sum((cropFull(nzIdxFull) - modelCC1CC2(nzIdxFull)).^2);
+            
+            % Compute the weight
+            W(pairInFrame(iP)) = W(pairInFrame(iP)) + ...
+                nPixels * log(varCC1CC2 / varPair);% + 6 * log(nPixels);
         end
         
         if ~batchMode && ishandle(h)
@@ -349,22 +454,36 @@ for iLevel = 1:nLevels
         end
     end
     
+    % Average the weight over the overlap frames
+    W = bsxfun(@rdivide,W,overlap);
+    
+    % Remove pairs with a negative weights
+    validWeights = W > 0;
+    
     if ~batchMode && ishandle(h)
         close(h);
     end
 
-    %save(fullfile(movieData.pairTracks.directory, 'CCpairParams.mat'), 'segments');
-
-    % Compute weights for each pair of CC
+    % DEBUG: save pairCCmodels as segment2D
+    segments = cell(nFrames,1);
     
-    W = zeros(nCCPairs,1);
-    % TODO
+    for iFrame = 1:nFrames
+        pairInFrame = find(pairCCmodels.iFirst <= iFrame & ...
+            pairCCmodels.iLast >= iFrame & validWeights);
+        
+        pIdx = pairCCmodels.pFirst(pairInFrame) + iFrame - ...
+            pairCCmodels.iFirst(pairInFrame);
+        
+        segments{iFrame} = pairCCmodels.params{2}(pIdx,:);
+    end
+    
+    save(fullfile(movieData.pairTracks.directory, 'CCpairCands.mat'), 'segments');
     
     % Compute Maximum Matching
-    D = sparse(CCpairIdx(:,1),CCpairIdx(:,2),W,nCC,nCC,numel(W));
+    D = sparse(pairCCIdx(:,1),pairCCIdx(:,2),W,nCC,nCC,numel(W));
     M = maxWeightMatching(D,eps);
     
-    % Accept CCpairParams(M) and merge CCpairIdx(M,1) with CCpairIdx(M,2)
+    % Accept CCpairParams(M) and merge pairCCIdx(M,1) with pairCCIdx(M,2)
     % TODO
     
     % merge CCparams likewise and replace the merged CC params with
@@ -380,8 +499,8 @@ movieData.pairTracks.status = 1;
 function pairParams = initPairParams00(params1,params2)
 params1 = num2cell(params1,1);
 params2 = num2cell(params2,1);
-[x1,y1,A1,sx1,sy1,~,C1,~] = params1{1:2:end};
-[x2,y2,A2,sx2,sy2,~,C2,~] = params2{1:2:end};
+[x1,y1,A1,sx1,sy1,~,C1] = params1{:};
+[x2,y2,A2,sx2,sy2,~,C2] = params2{:};
 
 t0 = atan2(y2-y1,x2-x1);
 ct = cos(t0);

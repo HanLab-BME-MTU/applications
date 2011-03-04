@@ -46,8 +46,6 @@ P = P(isValid,:);
 
 stdP = zeros(size(P));
 
-varError = zeros(size(P,1),1);
-
 [X,Y] = meshgrid(-hside:hside);
 disk = X.^2 + Y.^2 - hside^2 <= 0;
 numDegFreedom = nnz(disk) - 6;
@@ -61,7 +59,7 @@ for iFeature = 1:numel(xmin)
     P(iFeature,3) = P(iFeature,3) - P(iFeature,7); % amplitude above background
     crop(~disk) = NaN;
     
-    [params stdParams C R] = fitAnisoGaussian2D(crop, ...
+    [params, stdParams, ~, R] = fitAnisoGaussian2D(crop, ...
         [0, 0, P(iFeature,3), 3 * P(iFeature,4), P(iFeature,5), P(iFeature,6), P(iFeature,7)], 'xyArtC');
     
     % TEST 1: on parameter values:
@@ -100,18 +98,10 @@ for iFeature = 1:numel(xmin)
     stdP(iFeature,4) = stdParams(4);
     stdP(iFeature,6) = stdParams(5);
     stdP(iFeature,7) = stdParams(6);
-    
-    varError(iFeature) = (1/(nnz(disk(:))-1)) * sum(R(disk).^2);
 end
-
-% % features for which the optimization fails, assign them a big error
-% avgStdP = mean(stdP(success,:),1);
-% stdStdP = std(stdP(success,:),1);
-% stdP(~success,:) = repmat(avgStdP + 6 * stdStdP, nnz(~success), 1);
 
 P = P(success,:);
 stdP = stdP(success,:);
-varError = varError(success);
 
 featuresInfo.xCoord = [P(:,1), stdP(:,1)];
 featuresInfo.yCoord = [P(:,2), stdP(:,2)];
@@ -120,4 +110,3 @@ featuresInfo.stdAlong = [P(:,4), stdP(:,4)];
 featuresInfo.stdAside = [P(:,5), stdP(:,5)];
 featuresInfo.theta = [P(:,6), stdP(:,6)];
 featuresInfo.bkg = [P(:,7), stdP(:,7)];
-featuresInfo.varError = varError;
