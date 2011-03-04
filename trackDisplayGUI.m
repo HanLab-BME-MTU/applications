@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 12-Nov-2010 11:08:33
+% Last Modified by GUIDE v2.5 26-Jan-2011 10:45:01
 
 % Francois Aguet, September 2010
 
@@ -172,7 +172,7 @@ switch nChannels
         handles.tAxes{3} = axes('Parent', gcf, 'Position', [15*dx 4*dy 7*dx 2*dy]);
         handles.tAxes{4} = axes('Parent', gcf, 'Position', [15*dx 1.5*dy 7*dx 2*dy]);
 end
-
+xlabel('Time (s)');
 % Update handles structure
 guidata(hObject, handles);
 
@@ -285,9 +285,12 @@ else
             for k = idx
                 fi = 1:f-handles.tracks{c}(k).start+1;
                 %if f == handles.tracks1(k).start
-                plot(handles.fAxes{c}, handles.tracks{c}(k).x(1), handles.tracks{c}(k).y(1), '*', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
+                
+                nf = length(handles.tracks{c}(k).x);
+                
+                plot(handles.fAxes{c}, handles.tracks{c}(k).x(1), handles.tracks{c}(k).y(1), '*', 'Color', cmap(nf,:));
                 %end
-                plot(handles.fAxes{c}, handles.tracks{c}(k).x(fi), handles.tracks{c}(k).y(fi), '-', 'Color', cmap(handles.tracks{c}(k).lifetime,:));
+                plot(handles.fAxes{c}, handles.tracks{c}(k).x(fi), handles.tracks{c}(k).y(fi), '-', 'Color', cmap(nf,:));
                 %if f == handles.tracks1(k).end
                 %plot(handles.axes1, handles.tracks1(k).x(end), handles.tracks1(k).y(end), '+', 'Color', cmap(handles.tracks1(k).lifetime,:), 'MarkerSize', 8);
                 %end
@@ -304,7 +307,7 @@ else
             
             t = handles.tracks{chIdx}(handles.selectedTrack(c));
             ci = f-t.start+1;
-            if 1 <= ci && ci <= t.lifetime
+            if 1 <= ci && ci <= length(t.x)
                 plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
                 text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(c)), 'Color', [1 0 0], 'Parent', handles.fAxes{c});
             end
@@ -359,12 +362,12 @@ if ~isempty(handles.selectedTrack)
             sTrack = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
         end
         
-        if isfield(sTrack, 'startBuffer')
+        if isfield(sTrack, 'startBuffer') && ~isempty(sTrack.startBuffer)
             bStart = size(sTrack.startBuffer.A,2);
         else
             bStart = 0;
         end
-        if isfield(sTrack, 'endBuffer');
+        if isfield(sTrack, 'endBuffer') && ~isempty(sTrack.endBuffer)
             bEnd = size(sTrack.endBuffer.A,2);
         else
             bEnd = 0;
@@ -397,8 +400,8 @@ if ~isempty(handles.selectedTrack)
         % Plot track
         A = sTrack.A(cx,:);
         c = sTrack.c(cx,:);
-        cStd = sTrack.cStd(cx,:);
-        t = sTrack.start:sTrack.end;
+        cStd = sTrack.cStd_mask(cx,:);
+        t = (sTrack.start-1:sTrack.end-1)*handles.data.framerate;
         
         % alpha = 0.05 level
         lh(3) = fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'on');
@@ -407,15 +410,26 @@ if ~isempty(handles.selectedTrack)
         % alpha = 0.01 level
         fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
 
-        lh(1) = plot(h, t, A+c, '.-', 'Color', trackColor, 'LineWidth', 1);
+        gapIdx = arrayfun(@(x,y) x:y, sTrack.gapStarts, sTrack.gapEnds, 'UniformOutput', false);
+        gapIdx = [gapIdx{:}];% - sTrack.start+1
+        trackIdx = setdiff(1:length(sTrack.t), gapIdx);
+
+        % plot track
+        lh(1) = plot(h, t, A+c, '-', 'Color', trackColor, 'LineWidth', 1);
+                
+        lh(1) = plot(h, t(trackIdx), A(trackIdx)+c(trackIdx), '.', 'Color', trackColor, 'LineWidth', 1);
+        % plot gaps separately
+        if ~isempty(gapIdx)
+            plot(h, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'LineWidth', 1);
+        end
         lh(2) = plot(h, t, c, '-', 'Color', trackColor, 'HandleVisibility', 'on');
 
         % Plot left buffer
-        if isfield(sTrack, 'startBuffer')
+        if isfield(sTrack, 'startBuffer') && ~isempty(sTrack.startBuffer)
             A = [sTrack.startBuffer.A(cx,:) sTrack.A(cx,1)];
             c = [sTrack.startBuffer.c(cx,:) sTrack.c(cx,1)];
-            cStd = [sTrack.startBuffer.cStd(cx,:) sTrack.cStd(cx,1)];
-            t = sTrack.start-bStart:sTrack.start;
+            cStd = [sTrack.startBuffer.cStd_mask(cx,:) sTrack.cStd_mask(cx,1)];
+            t = (sTrack.start-bStart-1:sTrack.start-1)*handles.data.framerate;
             
             fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
             fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
@@ -424,11 +438,11 @@ if ~isempty(handles.selectedTrack)
         end
         
         % Plot right buffer
-        if isfield(sTrack, 'endBuffer')
+        if isfield(sTrack, 'endBuffer') && ~isempty(sTrack.endBuffer)
             A = [sTrack.A(cx,end) sTrack.endBuffer.A(cx,:)];
             c = [sTrack.c(cx,end) sTrack.endBuffer.c(cx,:)];
-            cStd = [sTrack.cStd(cx,end) sTrack.endBuffer.cStd(cx,:)];
-            t = sTrack.end:sTrack.end+bEnd;
+            cStd = [sTrack.cStd_mask(cx,end) sTrack.endBuffer.cStd_mask(cx,:)];
+            t = (sTrack.end-1:sTrack.end+bEnd-1)*handles.data.framerate;
             
             fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
             fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
@@ -439,7 +453,7 @@ if ~isempty(handles.selectedTrack)
         ybounds = get(h, 'YLim');
 
         % plot current frame position
-        plot(h, [handles.f handles.f], ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
+        plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
 
         axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
         l = legend(lh, ['Amplitude ch. ' num2str(ci)], ['Background ch. ' num2str(ci)], '\alpha = 0.95 level');
@@ -456,8 +470,8 @@ if ~isempty(handles.selectedTrack)
         end
     end
     % retain zoom level
-    %set(h, 'XLim', XLim);
-    set(h, 'XLim', [sTrack.start-bStart-10 sTrack.end+bEnd+10]);
+    set(h, 'XLim', [max(sTrack.start-bStart-11,0) min(sTrack.end+bEnd+9,handles.data.movieLength-1)]*handles.data.framerate);
+    xlabel('Time (s)');
 end
 
 
@@ -581,33 +595,8 @@ function montageButton_Callback(~, ~, handles)
 
 % Creates a montage based on the master track
 if ~isempty(handles.selectedTrack)
-    
-    sigma = getGaussianPSFsigma(handles.data.NA, handles.data.M, handles.data.pixelSize, name2wavelength(handles.data.markers{handles.masterChannel}));
-    w = ceil(4*sigma);
-    
-    t = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
-    % buffer with 5 frames before and after
-    buffer = 5;
-    bStart = t.start - max(1, t.start-buffer);
-    bEnd = min(handles.data.movieLength, t.end+buffer) - t.end;
-    idx = t.start-bStart:t.end+bEnd;
-    nf = length(idx);
-    window = cell(length(handles.selectedTrack),nf);
-    
-    xi = round(t.x);
-    yi = round(t.y);
-    xi = [xi(1)*ones(1,bStart) xi xi(end)*ones(1,bEnd)];
-    yi = [yi(1)*ones(1,bStart) yi yi(end)*ones(1,bEnd)];
-    % load all visible frames of this track and store
-    for c = [handles.masterChannel handles.slaveChannels]
-        tifFiles = dir([handles.data.channels{c} '*.tif*']);
-        tifFiles = tifFiles(idx);
-        for k = 1:nf
-            frame = imread([handles.data.channels{c} tifFiles(k).name]);
-            window{c,k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
-        end
-    end
-    montagePlot(window);
+    stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
+    montagePlot(stack);
 else
     fprintf('Cannot create montage: no track selected.');
 end
@@ -684,3 +673,25 @@ function trackSlider_CreateFcn(hObject, ~, ~)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in printButton.
+function printButton_Callback(hObject, eventdata, handles)
+% hObject    handle to printButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+%disp('print all')
+
+
+% axes(handles.fAxes{1});
+% get(gcf)
+% set(gcf, 'PaperPositionMode', 'auto');
+
+% for 
+
+% axes(handles.fAxes{1});
+
+set(handles.figure1, 'PaperPositionMode', 'auto');
+print(handles.figure1, '-depsc2', '-r300', 'test.eps');
+
