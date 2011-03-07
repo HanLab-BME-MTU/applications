@@ -142,9 +142,7 @@ set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
 set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
 if openHelpFile
-    set(Img, 'UserData', struct('class', 'BleedthroughCorrectionProcess'))
-else
-    set(Img, 'UserData', userData.crtProc.getHelp(true))
+    set(Img, 'UserData', struct('class',class(userData.crtProc)))
 end
 
 % ----------------------------------------------------------------

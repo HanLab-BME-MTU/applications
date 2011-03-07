@@ -324,11 +324,6 @@ methods (Access = public)
 end
 methods (Static)
     
-        function text = getHelp()
-            % Function return a string of help text
-            text = 'This software is for processing raw data from fluorescent biosensors into "ratio maps" or "ratio images", which are images that show where and when the protein of interest is active. \n\nThese ratio images rely on the comparison of two images - an activity image, whose intensity is proportional to the activation of the protein of interest, and a localization channel, whose intensity is independent of activity but which gives the location of the protein. This allows variation in the concentration of the protein and the thickness of the cell to be separated from the proteins activation. This is accomplished by dividing the activation image by the localization image. \n\nBefore the images can be divided, we need to be sure that the only difference between the two images is the activation of the protein. This requires that both images undergo several corrections prior to the ratioing, and a photobleach correction after the ratioing. For more information on these steps, click the help icon next to each step.\n\n IMPORTANT NOTE: If multiple movies are processed, it is important that their channels be in THE SAME ORDER. That is, if movie one has Channel 1= CFP, channel 2= FRET, then movie two must also have Channel 1 = CFP, channel 2 = FRET, NOT the other way around.';
-        end
-        
         function m = getDependencyMatrix()
             % Get dependency matrix
             
