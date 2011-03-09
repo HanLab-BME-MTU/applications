@@ -283,7 +283,7 @@ if isempty( userData.crtPackage.processes_{userData.procID} )
     userData_main.MD(userData_main.id).addProcess( userData.crtProc );
     userData.crtPackage.setProcess(userData.procID, userData.crtProc);
     
-    % Customized to BioSensors Package (hard coded)
+    % Customized to Biosensors Package (hard coded)
     userData.crtPackage.setDepMatrix(9, userData.procID, 1);
     userData.crtPackage.setDepMatrix(8, userData.procID, 1);
     

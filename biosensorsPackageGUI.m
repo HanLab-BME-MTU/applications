@@ -91,7 +91,7 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %               Visited - logical true or false, if the movie has been
 %                         loaded to GUI before 
 %
-packageName = 'BioSensorsPackage';
+packageName = 'BiosensorsPackage';
 
 % Load movie data and recycle processes
 userfcn_iniPackage_commonCode;
@@ -771,7 +771,7 @@ else
 end
 
 user_response = questdlg('Do you want to save the current progress?', ...
-    'BioSensors Package Control Panel');
+    'Biosensors Package Control Panel');
 switch lower(user_response)
     case 'yes'
         for i = 1: length(userData.MD)

@@ -1,8 +1,8 @@
-classdef BioSensorsPackage < Package
-% A concrete process for BioSensor Package
+classdef BiosensorsPackage < Package
+% A concrete process for Biosensor Package
     
 methods (Access = public)
-    function obj = BioSensorsPackage (owner,outputDir)
+    function obj = BiosensorsPackage (owner,outputDir)
            % Construntor of class MaskProcess
            if nargin == 0
               super_args = {};
@@ -12,7 +12,7 @@ methods (Access = public)
                super_args{2} = 'Biosensors'; 
                % Dependency Matrix (same length as process class name
                % string)
-               super_args{3} = BioSensorsPackage.getDependencyMatrix;
+               super_args{3} = BiosensorsPackage.getDependencyMatrix;
                                 
                % Process CLASS NAME string (same length as dependency matrix)
                % Must be accurate process class name
@@ -29,7 +29,7 @@ methods (Access = public)
                                 'OutputRatioProcess'...
                                 };
                             
-               super_args{5} = [outputDir  filesep 'BioSensorsPackage']; 
+               super_args{5} = [outputDir  filesep 'BiosensorsPackage']; 
                 
            end
            % Call the superclass constructor 
