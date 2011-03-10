@@ -294,8 +294,8 @@ if roi(1)==1 && roi(2)==0
     end
     
     % Set coordinates outside of the image to the image borders + (or -) 1
-    x(find(x<1))=0; x(find(x>imgSize(2)))=imgSize(2)+1;
-    y(find(y<1))=0; y(find(y>imgSize(1)))=imgSize(1)+1;
+    x(x<1)=0; x(x>imgSize(2))=imgSize(2)+1;
+    y(y<1)=0; y(y>imgSize(1))=imgSize(1)+1;
     
     % Close figure
     close(h);
@@ -364,7 +364,7 @@ if ~isempty(y) && ~isempty(x)
         Mm=M(:,:,c1);
         
         % Extract vectors
-        Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
+        Mv=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,:);
         
         % Cut vectors not belonging to the roi
         index=inpolygon(Mv(:,1),Mv(:,2),y,x);
@@ -415,7 +415,7 @@ if INTERP_CALC==1
             Mm=M(:,:,c2);
         
             % Extract vectors
-            Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
+            Mv=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,:);
 
             %Append
             currentM=cat(1,currentM,Mv);    
@@ -424,7 +424,7 @@ if INTERP_CALC==1
         
         % The interpolation points are the coordinates of the central frame
         Mm=M(:,:,c1+intFrame-1);
-        Iyx=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),1:2);
+        Iyx=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,1:2);
             
         % Interpolate - get the deterministic part of the signal
         try
@@ -466,7 +466,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
     % CURRENT RAW VECTORS
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    Mv=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:); 
+    Mv=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,:); 
     
     % Set figure handle to zero
     h=0;
@@ -510,7 +510,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
         % CURRENT INTERPOLATED VECTORS
         %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        Md=Mm(find(Mm(:,1)~=0 & Mm(:,3)~=0),:);
+        Md=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,:);
         
         % Plot averaged field
         h=vectorFieldPlot(Md,h,[],scale);
@@ -641,7 +641,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
         % Angles - vectorize
         dy=d(:,1); dx=d(:,2); vy=v(:,1); vx=v(:,2);
         num=sqrt(vy.^2+vx.^2).*sqrt(dy.^2+dx.^2);
-        num(find(num==0))=eps;
+        num(num==0)=eps;
         eA=acos((vy.*dy+vx.*dx)./num)/pi;
         
         % Total error
