@@ -131,4 +131,10 @@ layerPlugins(9).filterSpec = {'*.mat'};
 layerPlugins(9).displayFunc = @displayClassifiedTracks;
 layerPlugins(9).dispatchFunc = @dispatchClassifiedTracks;
 
+% Theta map
+layerPlugins(10).desc = 'Theta Map';
+layerPlugins(10).filterSpec = {'*.mat'};
+layerPlugins(10).displayFunc = @displayVectorField;
+layerPlugins(10).dispatchFunc = @dispatchThetaMap;
+
 end
