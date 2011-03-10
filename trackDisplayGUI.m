@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 26-Jan-2011 10:45:01
+% Last Modified by GUIDE v2.5 09-Mar-2011 18:05:18
 
 % Francois Aguet, September 2010
 
@@ -106,16 +106,18 @@ handles.nCh = nChannels;
 
 
 % initialize handles
-handles.f = 1;
+handles.f = 2; % valid tracks start in frame 2 at the earliest
+set(handles.frameLabel, 'String', 'Frame 2');
 handles.displayType = 'raw';
 handles.visibleIdx = [];
-handles.selectedTrack = [];
+handles.selectedTrack = ones(1,handles.nCh);
 
 
 % Set slider values
 h = handles.frameSlider;
 set(h, 'Min', 1);
 set(h, 'Max', data.movieLength);
+set(h, 'Value', 2);
 set(h, 'SliderStep', [1/(data.movieLength-1) 0.05]);
 
 h = handles.trackSlider;
@@ -173,11 +175,12 @@ switch nChannels
         handles.tAxes{4} = axes('Parent', gcf, 'Position', [15*dx 1.5*dy 7*dx 2*dy]);
 end
 xlabel('Time (s)');
-% Update handles structure
+% Update handles structure, i.e., save handles
 guidata(hObject, handles);
 
-
+%===========================
 % initialize figures/plots
+%===========================
 for c = 1:nChannels
     set(handles.fAxes{c}, 'XLim', [1 data.imagesize(2)], 'YLim', [1 data.imagesize(1)]);
 end
@@ -189,6 +192,11 @@ axis([handles.fAxes{:}], 'image');
 refreshFrameDisplay(hObject, handles);
 set(zoom, 'ActionPostCallback', @zoompostcallback);
 set(gcf, 'UserData', handles.fAxes);
+
+
+% init. track display
+set(handles.trackLabel, 'String', 'Track 1');
+refreshTrackDisplay(handles);
 
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -224,6 +232,9 @@ varargout{1} = handles.output;
 
 
 
+%===================================
+% Plot frames with overlaid tracks
+%===================================
 function refreshFrameDisplay(hObject, handles)
 
 cmap = jet(handles.data.movieLength);
@@ -238,16 +249,16 @@ if strcmp(handles.displayType, 'RGB')
     switch length(idx)
         case 1
             G = double(imread(handles.frameList{1}{f}));
-            imagesc(ch2RGB([], G, []), 'Parent', handles.fAxes{1});
+            imagesc(ch2rgb([], G, []), 'Parent', handles.fAxes{1});
         case 2
             G = double(imread(handles.frameList{idx(1)}{f}));
             R = double(imread(handles.frameList{idx(2)}{f}));
-            imagesc(ch2RGB(R, G, []), 'Parent', handles.fAxes{1});
+            imagesc(ch2rgb(R, G, []), 'Parent', handles.fAxes{1});
         case 3
             B = double(imread(handles.frameList{idx(1)}{f}));
             G = double(imread(handles.frameList{idx(2)}{f}));
             R = double(imread(handles.frameList{idx(3)}{f}));
-            imagesc(ch2RGB(R, G, B), 'Parent', handles.fAxes{1});
+            imagesc(ch2rgb(R, G, B), 'Parent', handles.fAxes{1});
     end
     axis(handles.fAxes{1}, 'image');
 else
@@ -335,27 +346,18 @@ set(handles.fAxes{1}, 'YLim', YLim);
 guidata(hObject,handles);
 
 
-
+%=========================
+% Plot tracks
+%=========================
 function refreshTrackDisplay(handles)
 
 if ~isempty(handles.selectedTrack)
 
-    % Significance thresholds
-    % sigmaT = icdf('normal', 1-alpha/2, 0, 1);
-    sigmaL = icdf('normal', 0.95, 0, 1); % weaker, single-tailed
-    sigmaH = icdf('normal', 0.99, 0, 1);
-    
-    lh = zeros(1,3);
-%     h = handles.axes3;
-%     XLim = get(h, 'XLim');
-%     hold(h, 'off');
-        
     for ci = 1:handles.nCh
         
         h = handles.tAxes{ci};
-        %XLim = get(h, 'XLim');
         hold(h, 'off');
-        
+
         if ~isempty(handles.tracks{ci})
             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
         else
@@ -379,85 +381,14 @@ if ~isempty(handles.selectedTrack)
             cx = ci;
         end
         
-        % colors
-        trackColor = wavelength2rgb(name2wavelength(handles.data.markers{ci}));
-        alpha5c = rgb2hsv(trackColor);
-        alpha5c(2) = alpha5c(2)/4;
-        alpha1c = alpha5c;
-        alpha1c(2) = alpha1c(2)/4;
-        
-        alpha5cB = alpha5c;
-        alpha5cB(3) = 0.9;
-        alpha1cB = alpha1c;
-        alpha1cB(3) = 0.9;%alpha1cB(
-        
-        alpha5c = hsv2rgb(alpha5c);
-        alpha1c = hsv2rgb(alpha1c);
-        alpha5cB = hsv2rgb(alpha5cB);
-        alpha1cB = hsv2rgb(alpha1cB);
-        
-        
-        % Plot track
-        A = sTrack.A(cx,:);
-        c = sTrack.c(cx,:);
-        cStd = sTrack.cStd_mask(cx,:);
-        t = (sTrack.start-1:sTrack.end-1)*handles.data.framerate;
-        
-        % alpha = 0.05 level
-        lh(3) = fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'on');
-        hold(h, 'on');
-        
-        % alpha = 0.01 level
-        fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1c, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-
-        gapIdx = arrayfun(@(x,y) x:y, sTrack.gapStarts, sTrack.gapEnds, 'UniformOutput', false);
-        gapIdx = [gapIdx{:}];% - sTrack.start+1
-        trackIdx = setdiff(1:length(sTrack.t), gapIdx);
-
-        % plot track
-        lh(1) = plot(h, t, A+c, '-', 'Color', trackColor, 'LineWidth', 1);
-                
-        lh(1) = plot(h, t(trackIdx), A(trackIdx)+c(trackIdx), '.', 'Color', trackColor, 'LineWidth', 1);
-        % plot gaps separately
-        if ~isempty(gapIdx)
-            plot(h, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'LineWidth', 1);
-        end
-        lh(2) = plot(h, t, c, '-', 'Color', trackColor, 'HandleVisibility', 'on');
-
-        % Plot left buffer
-        if isfield(sTrack, 'startBuffer') && ~isempty(sTrack.startBuffer)
-            A = [sTrack.startBuffer.A(cx,:) sTrack.A(cx,1)];
-            c = [sTrack.startBuffer.c(cx,:) sTrack.c(cx,1)];
-            cStd = [sTrack.startBuffer.cStd_mask(cx,:) sTrack.cStd_mask(cx,1)];
-            t = (sTrack.start-bStart-1:sTrack.start-1)*handles.data.framerate;
-            
-            fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-            fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-            plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
-            plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
-        end
-        
-        % Plot right buffer
-        if isfield(sTrack, 'endBuffer') && ~isempty(sTrack.endBuffer)
-            A = [sTrack.A(cx,end) sTrack.endBuffer.A(cx,:)];
-            c = [sTrack.c(cx,end) sTrack.endBuffer.c(cx,:)];
-            cStd = [sTrack.cStd_mask(cx,end) sTrack.endBuffer.cStd_mask(cx,:)];
-            t = (sTrack.end-1:sTrack.end+bEnd-1)*handles.data.framerate;
-            
-            fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], alpha5cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-            fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], alpha1cB, 'EdgeColor', 'none', 'Parent', h, 'HandleVisibility', 'off');
-            plot(h, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1, 'HandleVisibility', 'off');
-            plot(h, t, c, '--', 'Color', trackColor, 'HandleVisibility', 'off');
-        end
-        
-        ybounds = get(h, 'YLim');
-
-        % plot current frame position
-        plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
-
-        axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
-        l = legend(lh, ['Amplitude ch. ' num2str(ci)], ['Background ch. ' num2str(ci)], '\alpha = 0.95 level');
+        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, h);
+        l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         set(l, 'FontSize', 7);
+                        
+        % plot current frame position
+        ybounds = get(h, 'YLim');
+        plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
+        axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
     end
   
     % display result of classification, if available
@@ -478,7 +409,7 @@ end
 
 
 % --- Executes during object creation, after setting all properties.
-function frameSlider_CreateFcn(hObject, eventdata, handles)
+function frameSlider_CreateFcn(hObject, ~, ~)
 % hObject    handle to frameSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -510,7 +441,7 @@ refreshTrackDisplay(handles);
 
 
 % --- Executes when figure1 is resized.
-function figure1_ResizeFcn(hObject, eventdata, handles)
+function figure1_ResizeFcn(~, ~, ~)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -657,8 +588,15 @@ set(handles.trackLabel, 'String', ['Track ' num2str(t)]);
 handles.selectedTrack = t * ones(1,handles.nCh);
 
 guidata(hObject,handles);
+
+% if track not visible, jump to first frame
+t = handles.tracks{1}(t);
+if handles.f < t.start || handles.f > t.end
+    handles.f = t.start;
+end
+
 refreshFrameDisplay(hObject, handles);
-refreshTrackDisplay(handles)
+refreshTrackDisplay(handles);
 
 
 
@@ -676,22 +614,20 @@ end
 
 
 % --- Executes on button press in printButton.
-function printButton_Callback(hObject, eventdata, handles)
+function printButton_Callback(~, ~, handles)
 % hObject    handle to printButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%disp('print all')
 
+for ch = 1:handles.nCh
+    if ~isempty(handles.tracks{ch})
+        tracks = handles.tracks{ch};
+    else
+        tracks = handles.tracks{handles.masterChannel};
+    end
+    plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch, [], 1, 'off');
+end
 
-% axes(handles.fAxes{1});
-% get(gcf)
-% set(gcf, 'PaperPositionMode', 'auto');
-
-% for 
-
-% axes(handles.fAxes{1});
-
-set(handles.figure1, 'PaperPositionMode', 'auto');
-print(handles.figure1, '-depsc2', '-r300', 'test.eps');
+fprintf('Printing done.\n');
 
