@@ -12,10 +12,13 @@ params.channelDirectory = {'ch488', 'ch560'};
 
 % name of the processes to be run
 params.procNames = {...
+    'distanceTransform',...
+    'actinFlowField',...
     'particleDetection',...
     'particleTracking',...
     'pairTracks'};
-params.runSteps = [-1 -1 1];
+
+params.runSteps = [-1 -1 -1 -1 1];
 params.batchMode = 0;
 
 % Physical parameters
@@ -27,21 +30,29 @@ sigmaPSF = getGaussianPSFsigma(1.45,100, 6.7 * 1e-6, 509 * 1e-9);
 % INIT
 params.setupMovieDataFunc = @setupViculinMovieData;
 
-% PROC 1: particle detection
+% PROC 1: distance transform
+params.distanceTransform = struct();
+
+% PROC 2: actin flow field
+params.actinFlowField.iChannel = 2;
+
+% PROC 3: particle detection
 params.particleDetection.iChannel = 1;
 params.particleDetection.detectFunc = @detectFocalAdhesionParticles;
 params.particleDetection.sigmaPSF = sigmaPSF;
-params.particleDetection.kSigma = 2;
+params.particleDetection.kSigma = 3;
 params.particleDetection.alpha = .05;
 
-% PROC 2: particle tracking
+% PROC 4: particle tracking
 params.particleTracking.searchRadius = 5;
 
-% PROC 3: track pairing
+% PROC 5: track pairing
+params.pairTracks.iChannel = 1;
+params.pairTracks.bandWidth = 2000; % nm
 params.pairTracks.minOverlap = 1;
 params.pairTracks.timeGap = 0;
 params.pairTracks.maxEuclidianDist = 20;
-params.pairTracks.kSigma = 2;
+params.pairTracks.kSigma = 3;
 params.pairTracks.nLevels = 5;
 params.pairTracks.alpha = 0.05;
 params.pairTracks.probBinSize = 1e-4;
