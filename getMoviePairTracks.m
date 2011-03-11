@@ -76,7 +76,6 @@ if nargin < 10 || isempty(probBinSize)
 end
 
 assert(checkMovieDistanceTransform(movieData));
-assert(checkMovieActinFlowField(movieData));
 assert(checkMovieParticleDetection(movieData));
 assert(checkMovieParticleTracking(movieData));
 
@@ -209,8 +208,6 @@ overlap = overlap(hasOverlap);
 % 5) Remove pair that are within the first bandWidth nanometers of the cell
 % edge and are not along the Actin flow
 
-thetaMapPath = movieData.actinFlowField.directory;
-thetaMapFiles = dir([thetaMapPath filesep '*.mat']);
 isTrackPairInBand = isTrackInBand(validTrackPairIdx(:,1)) & ...
     isTrackInBand(validTrackPairIdx(:,2));
 
@@ -218,7 +215,7 @@ nPixels = zeros(size(overlap));
 nPixelsAlongFlow = zeros(size(overlap));
 
 % angular accuracy
-p = 1;
+p = .5;
 dt = p * pi / 2;
 
 % translate overlap first/last values to 1-D indexes
@@ -226,8 +223,10 @@ first1 = first(validTrackPairIdx(:,1)) + overlapFirst - iFirst(validTrackPairIdx
 first2 = first(validTrackPairIdx(:,2)) + overlapFirst - iFirst(validTrackPairIdx(:,2));
 
 for iFrame = 1:nFrames
+    % Load distance transform
+    load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
+
     isPairInFrame = iFrame >= overlapFirst & iFrame <= overlapFirst + overlap - 1;
-    
     isValidPair = isTrackPairInBand & isPairInFrame;
 
     % Get the coordinates of the extremities of the valid pair
@@ -235,48 +234,61 @@ for iFrame = 1:nFrames
     ind1 = first1(isValidPair) + offset;
     ind2 = first2(isValidPair) + offset;
     
-    x1i = round(params(ind1,1));
-    x2i = round(params(ind2,1));
-    y1i = round(params(ind1,2));
-    y2i = round(params(ind2,2));
+    x1 = params(ind1,1);
+    x2 = params(ind2,1);
+    y1 = params(ind1,2);
+    y2 = params(ind2,2);
     
-    theta0 = atan2(y2i - y1i, x2i - x1i);
-    theta1 = theta0 + pi;
-    ind = theta1 > pi;
-    theta1(ind) = theta1(ind) - 2 * pi;
+    % Compute the unit vector along the pair
+    dx = x2 - x1;
+    dy = y2 - y1;
+    norm = sqrt(dx.^2 + dy.^2);
+    dx = dx ./ norm;
+    dy = dy ./ norm;
     
-    % Compute bresenham line between the 2 features
-    ptsLines = arrayfun(@(x1,y1,x2,y2) bresenhamMEX([x1,y1], [x2, y2]), ...
+    % Integer-valued extremity points
+    x1i = round(x1);
+    y1i = round(y1);
+    x2i = round(x2);
+    y2i = round(y2);
+    
+    % Compute bresenham line between the 2 extremity points
+    ptsLines = arrayfun(@(xx1,yy1,xx2,yy2) bresenhamMEX([xx1,yy1], [xx2,yy2]), ...
         x1i, y1i, x2i, y2i, 'UniformOutput', false);
 
-    nPts = cellfun(@(p) size(p,1), ptsLines);
+    nPts = cellfun(@(p) size(p,1), ptsLines)';
     ptsLast = cumsum(nPts);
     ptsFirst = ptsLast - nPts + 1;
-    
     ptsLines = vertcat(ptsLines{:});
-    
-    % Get actin flow orientation along the bresenham lines
-    %load(fullfile(thetaMapPath, thetaMapFiles(iFrame).name));
-    load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
-    [dx dy] = gradient(distToEdge);
-    thetaMap = atan2(dy,dx);
-    
-    indLines = sub2ind(imSize, ptsLines(:,2), ptsLines(:,1));
-    thetaLines = thetaMap(indLines);
 
-    % expand theta0 and theta1 (t1 t2 t3) -> (t1 t1 t1 t1 t2 t2 t3 t3 ...)
-    ind = cell2mat(arrayfun(@(a,b) ones(1,a) * b, nPts', 1:numel(theta0),...
+    indLines = sub2ind(imSize, ptsLines(:,2), ptsLines(:,1));
+
+    % Get actin flow orientation along the bresenham lines
+    [dU dV] = gradient(distToEdge);
+    dU = dU(indLines);
+    dV = dV(indLines);
+    norm = sqrt(dU.^2 + dV.^2);
+    isnnz = norm ~= 0;
+    dU = dU(isnnz) ./ norm(isnnz);
+    dV = dV(isnnz) ./ norm(isnnz);
+    
+    nValidPts = arrayfun(@(a,b) nnz(isnnz(a:a+b-1)), ptsFirst, nPts);
+    ptsLast = cumsum(nValidPts);
+    ptsFirst = ptsLast - nValidPts + 1;
+    
+    % Expand dx and dy
+    ind = cell2mat(arrayfun(@(a,b) ones(1,a) * b, nValidPts, 1:numel(dx),...
         'UniformOutput', false));
-    theta0 = theta0(ind);
-    theta1 = theta1(ind);
+    dx = dx(ind);
+    dy = dy(ind);
+        
+    thetaLines = acos(abs(dx .* dU + dy .* dV));
     
-    nPtsAlongFlow = (...
-        (thetaLines >= theta0 - dt) & (thetaLines <= theta0 + dt)) | (...
-        (thetaLines >= theta1 - dt) & (thetaLines <= theta1 + dt));
+    isAlongFlow = thetaLines <= dt;
     
-    nPixels(isValidPair) = nPixels(isValidPair) + nPts';
+    nPixels(isValidPair) = nPixels(isValidPair) + nValidPts;
     nPixelsAlongFlow(isValidPair) = nPixelsAlongFlow(isValidPair) + ...
-        arrayfun(@(a,b) sum(nPtsAlongFlow(a:a+b-1)), ptsFirst, nPts)';
+        arrayfun(@(a,b) nnz(isAlongFlow(a:a+b-1)), ptsFirst, nValidPts);
 end
 
 maxNPixels = max(nPixels);
@@ -284,7 +296,7 @@ maxNPixels = max(nPixels);
 cutoffs = icdf('bino', 1-alpha, 1:maxNPixels, p);
 
 isValidPair = true(size(overlap));
-isValidPair(isTrackPairInBand) = nPixelsAlongFlow(isTrackPairInBand) > ...
+isValidPair(isTrackPairInBand) = nPixelsAlongFlow(isTrackPairInBand) >= ...
     cutoffs(nPixels(isTrackPairInBand));
 
 % trim arrays
