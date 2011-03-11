@@ -27,6 +27,8 @@ function [corrResults]=calCorrResults(corrSets,maxLag,opt,normVar)
 % results as the old TFM_part_8_corrAnalysis for cell 4 at frame 20 of:
 % /orchestra/groups/lccb-mechanics/analysis/Rosa/TFM/clusters/2010_08_12_TFM_8kPa_5p_05p_10AshMYOIIA_hp94/wellA4_32
 
+doPlotTraces=0;
+
 % calculate the correlation coefficients:
 if nargin<2 || isempty(maxLag)
     maxLag=5;
@@ -158,6 +160,17 @@ for i=1:cols
     end
 end
 
+if doPlotTraces
+    for k=1:length(fi(:,1))
+        figure()
+        plot(1:length(fi(k,1).observations),fi(k,1).observations,'b');
+        hold on;
+        plot(1:length(fi_tot(k,1).observations),-fi_tot(k,1).observations,'r');
+        hold off;
+        set(gca,'fontsize',16)
+    end
+end
+
 cF1Fr=NaN*zeros(cols,cols,2*maxLag+1);
 for i=1:cols
     for j=1:cols %min(i+2,cols):cols
@@ -180,13 +193,13 @@ cF1Ft;
 cF1Fr;
 cFtFr;
 
-display(['Avg. XXXX correlation cF1Ft, mean all: ',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Ft(:,:,maxLag+1))/2)]);
-display(['Avg. XXXX correlation cF1Fr, mean all: ',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Fr(:,:,maxLag+1))/2)]);
-display(['Avg. XXXX correlation cFtFr, mean all: ',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFr(:,:,maxLag+1))/2)]);
+display(['Avg. XXXX correlation cF1Ft, mean all: ',num2str(nanmean(mat2vec(cF1Ft(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Ft(:,:,maxLag+1))/2),' (+-',num2str(trace(cF1Ft_std(:,:,maxLag+1))/2),')']);
+display(['Avg. XXXX correlation cF1Fr, mean all: ',num2str(nanmean(mat2vec(cF1Fr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1Fr(:,:,maxLag+1))/2),' (+-',num2str(trace(cF1Fr_std(:,:,maxLag+1))/2),')']);
+display(['Avg. XXXX correlation cFtFr, mean all: ',num2str(nanmean(mat2vec(cFtFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFr(:,:,maxLag+1))/2),' (+-',num2str(trace(cFtFr_std(:,:,maxLag+1))/2),')']);
 
-display(['Avg. Auto correlation cF1F1, mean all: ',num2str(nanmean(mat2vec(cF1F1(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1F1(:,:,maxLag+1))/2)]);
-display(['Avg. Auto correlation cFtFt, mean all: ',num2str(nanmean(mat2vec(cFtFt(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFt(:,:,maxLag+1))/2)]);
-display(['Avg. Auto correlation cFrFr, mean all: ',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFrFr(:,:,maxLag+1))/2)]);
+display(['Avg. Auto correlation cF1F1, mean all: ',num2str(nanmean(mat2vec(cF1F1(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cF1F1(:,:,maxLag+1))/2),' (+-',num2str(trace(cF1F1_std(:,:,maxLag+1))/2),')']);
+display(['Avg. Auto correlation cFtFt, mean all: ',num2str(nanmean(mat2vec(cFtFt(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFtFt(:,:,maxLag+1))/2),' (+-',num2str(trace(cFtFt_std(:,:,maxLag+1))/2),')']);
+display(['Avg. Auto correlation cFrFr, mean all: ',num2str(nanmean(mat2vec(cFrFr(:,:,maxLag+1)))),'; mean trace: ',num2str(trace(cFrFr(:,:,maxLag+1))/2),' (+-',num2str(trace(cFrFr_std(:,:,maxLag+1))/2),')']);
 
 
 
@@ -215,6 +228,14 @@ end
 title('fi / fi{_tot}')
 xlabel('dframes')
 ylabel('corr')
+
+
+if doPlotTraces
+    figure()
+    plot(-maxLag:1:maxLag,reshape(cF1Ft(1,1,:),[],1))
+    xlim([-maxLag maxLag])
+    set(gca,'fontsize',16)
+end
 
 
 
@@ -248,12 +269,18 @@ xlabel('dframes')
 ylabel('corr')
 
 
-corrResults.cF1Ft = cF1Ft;
-corrResults.cF1Fr = cF1Fr;
-corrResults.cFtFr = cFtFr;
-corrResults.cF1F1 = cF1F1;
-corrResults.cFtFt = cFtFt;
-corrResults.cFrFr = cFrFr;
+corrResults.cF1Ft     = cF1Ft;
+corrResults.cF1Ft_std = cF1Ft_std;
+corrResults.cF1Fr     = cF1Fr;
+corrResults.cF1Fr_std = cF1Fr_std;
+corrResults.cFtFr     = cFtFr;
+corrResults.cFtFr_std = cFtFr_std;
+corrResults.cF1F1     = cF1F1;
+corrResults.cF1F1_std = cF1F1_std;
+corrResults.cFtFt     = cFtFt;
+corrResults.cFtFt_std = cFtFt_std;
+corrResults.cFrFr     = cFrFr;
+corrResults.cFrFr_std = cFrFr_std;
 corrResults.par.maxLag = maxLag;
 corrResults.par.opt    = opt;
 
