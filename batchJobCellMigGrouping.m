@@ -1,5 +1,9 @@
 % browse into the folder that contains all the subfolders and execute this
 % script.
+
+% if groupSimilarCond==1 then, all myoIIA/B hair pins are grouped together!
+groupSimilarCond=1;
+
 clear persistent checkVec;
 
 fid = fopen('fn_E_c.txt');
@@ -87,6 +91,19 @@ for i=toDoList
         cc        = mydata{3}(checkVec);
         cond      = mydata{4}(checkVec);
         
+        if groupSimilarCond
+            % here set all different hairpins to default:
+            shMyoIIA_pattern='shMyoIIA';
+            shMyoIIB_pattern='shMyoIIB';
+            if strncmpi(cond, shMyoIIA_pattern, 8)
+                display(['I have set cond: ',cond,' to: ',shMyoIIA_pattern])
+                cond='shMyoIIA';
+            end
+            if strncmpi(cond, shMyoIIB_pattern , 8)
+                display(['I have set cond: ',cond,' to: ',shMyoIIB_pattern])
+                cond='shMyoIIB';
+            end
+        end
         groupData = cellMig_part_3_groupData(groupData,folderName,yModu_kPa,cc,cond);
     end
     if i~=toDoList(end)

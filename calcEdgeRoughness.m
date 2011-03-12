@@ -1,6 +1,21 @@
 function [roughness,freqSpec]=calcEdgeRoughness(sheetEdge,r,toDoList)
 % first order the curve such that it starts at the bounderies:
-
+for frame=toDoList
+    if length(sheetEdge(frame).pos(:,1))==1
+        % This happens only if we have single cell data:
+        roughness=NaN*zeros(size(sheetEdge));
+        
+        freqSpec.ssA(1,frame)=NaN;
+        freqSpec.f=NaN;
+        
+        goOn=0;
+        
+    end
+end
+if ~goOn
+    display('This is single cell data, don''t calculate roguhness and freqSpec!')
+    return;
+end
 for frame=toDoList
     % find jumps larger than one pixel:
     rawCurve=sheetEdge(frame).pos;

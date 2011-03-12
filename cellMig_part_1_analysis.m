@@ -1,4 +1,4 @@
-function []=cellMig_part_1_analysis(r,rMin,rMax,smoothFac,imageFileListNuclei,imageFileListPhase,showMovie)
+function []=cellMig_part_1_analysis(r,rMin,rMax,smoothFac,imageFileListNuclei,imageFileListPhase,showMovie,sglCell)
 
 if nargin<1
     r   =input('Specify the minimal nuclei radius    r=[ 5pix]: ');
@@ -90,6 +90,10 @@ if str2double(fno)~=1
     imageFileListPhase=collapseFileStack(imageFileListPhase, -1);
 end
 
+if nargin<8 || isempty(sglCell)
+    sglCell=0;
+end
+
 
 % find nuclei:
 display('Detect nuclei edge:...')
@@ -98,13 +102,18 @@ display('Done! Save results:...')
 save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase');
 close all;
 
+
 % find the wound edge
 %!!! To be done: There might be holes at the boundary that have to be
 %filled!
 display('Detect wound edge:...')
-[sheetMask,sheetBnD,sheetEdge,~,~,toDoList]=woundEdgeDetect(imageFileListPhase,r,smoothFac,'canny',2,dPix,'noholes');
+if sglCell
+    [sheetMask,sheetBnD,sheetEdge,~,~,toDoList]=createSglCellMask(imageFileListPhase,r,dPix);    
+else
+    [sheetMask,sheetBnD,sheetEdge,~,~,toDoList]=woundEdgeDetect(imageFileListPhase,r,smoothFac,'canny',2,dPix,'noholes');
+end
 display('Done! Save results:...')
-save('xDetectEdge.mat','sheetMask','sheetBnD','sheetEdge','toDoList','-v7.3');
+save('xDetectEdge.mat','sheetMask','sheetBnD','sheetEdge','toDoList','sglCell','-v7.3');
 % The fields: ,'cellDistFromEdge','distGrad' are not saved!
 close all;
 

@@ -6,6 +6,9 @@ end
 for frame=toDoList
     k=1;
     maxC2ED=max(cellDistFromEdge(frame).mat(:));
+    if maxC2ED==Inf
+        maxC2ED=max(tracksMatxCord(:));
+    end
     while (k-1)*binPix<maxC2ED
         binMask=(cellDistFromEdge(frame).mat>(k-1)*binPix & cellDistFromEdge(frame).mat<=k*binPix);
         binArea=sum(binMask(:));
