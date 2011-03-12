@@ -65,7 +65,7 @@ for frame=1:length(network)
             % saveas(gcf,[filename,'.tiff'],'tiffn');
             
             print('-depsc2','-loose', 'frame.eps');
-            str = ['!convert -density 300 -quiet -colorspace rgb -alpha off -depth 8 frame.eps ',filename,'.tif'];
+            str = ['!convert -density 300 -quiet -colorspace rgb -alpha on -depth 8 frame.eps ',filename,'.tif'];
             eval(str);
             
             % saveas(gcf,[filename, '.eps'], 'psc2');
