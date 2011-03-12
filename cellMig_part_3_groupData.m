@@ -62,6 +62,10 @@ timeWindowCorr=6    % Time window for averaging velocities for correlation analy
 bandWidth=250;      % Band width of strips with iso-distance to the wound edge for correlation analysis. binPix=100 used for the density seems to be too small!
 maxDist=max(cell2edgeDist(:,end)); % Bands with a larger distance are to the wound edge are disregarded in the correlation analysis.
 %maxDist=1000;
+% if maxDist==Inf
+%     maxDist=max(tracksMatxCord(:));
+%     bandWidth=maxDist;
+% end
 
 binPix =densityMeasurement.binPix; % Band width of strips with iso-distance to the wound edge for density analysis.
 numFrames  = toDoList(end);  % Number for good frames in the movie.
@@ -122,7 +126,7 @@ if ~justPlot
         
         % This is to find the pairs of cell indices which correspond to
         % each row of pdist:
-        % p is simpy the ind in the vector:
+        % p is simply the ind in the vector:
         p=(1:(numCells-1)*numCells/2)';
         % vi is the index of "Spaltenumbruch" in the matrix:
         vi=1:(numCells-1);
@@ -191,8 +195,12 @@ if ~justPlot
         trvDisMeanOI = trvDisMean(cvtot,:);
         
         % bin those according to the distance to the wound edge at the very
-        % beginning: 
-        [~,bin]=histc(c2edCOMOI(:,1),0:bandWidth:maxDist+binPix);
+        % beginning:
+        if maxDist==Inf
+           bin=ones(size(c2edCOMOI(:,1)));
+        else
+           [~,bin]=histc(c2edCOMOI(:,1),0:bandWidth:maxDist+binPix);
+        end
         
         for binID=1:max(bin)
             % find all cells that are in bin:
