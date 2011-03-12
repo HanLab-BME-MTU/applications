@@ -83,7 +83,7 @@ for i=toDoList
        
     checkVec=strcmp(folderName, mydata{1});
     if sum(checkVec)~=1
-        display(['Somthing wrong with folder: ',folderName],'! skiped it!');
+        display(['Somthing wrong with folder: ',folderName,'! skiped it!']);
     else        
         display(['Working on folder: ',folderName]);        
         % execute the migration script

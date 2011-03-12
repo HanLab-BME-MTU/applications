@@ -153,7 +153,7 @@ display('done!')
 
 display('Calculating the distance transform:...')
 %[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList);
-[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList);
+[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList,sglCell);
 display('done!')
 
 % Calculate the cell area at front and back. This has to be done before
