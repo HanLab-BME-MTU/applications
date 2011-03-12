@@ -1,4 +1,5 @@
 function [sheetMask,sheetBnD,sheetEdge,cellDistFromEdge,distGrad,toDoList]=createSglCellMask(imageFileList,r,Pix)
+sglCell=1;
 %read in Stack of images:
 if nargin < 1 || isempty(imageFileList)
    [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
@@ -84,7 +85,7 @@ for frame=toDoList
 end
 
 if nargout>3
-    [cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,Pix,toDoList);
+    [cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,Pix,toDoList,sglCell);
     if doPlot==1
         figure;
         frame=toDoList(end);

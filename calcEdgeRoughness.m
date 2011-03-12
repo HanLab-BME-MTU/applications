@@ -8,8 +8,7 @@ for frame=toDoList
         freqSpec.ssA(1,frame)=NaN;
         freqSpec.f=NaN;
         
-        goOn=0;
-        
+        goOn=0;        
     end
 end
 if ~goOn

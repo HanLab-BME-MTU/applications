@@ -196,7 +196,7 @@ if ~justPlot
         
         % bin those according to the distance to the wound edge at the very
         % beginning:
-        if maxDist==Inf
+        if maxDist==0
            bin=ones(size(c2edCOMOI(:,1)));
         else
            [~,bin]=histc(c2edCOMOI(:,1),0:bandWidth:maxDist+binPix);
@@ -243,7 +243,11 @@ if ~justPlot
         cellDistClean = cell2edgeDist(checkVec,frame);
         
         % Bin the data according to the cell to edge distance:
-        [~,bin]=histc(cellDistClean,0:bandWidth:maxDist+binPix);
+        if maxDist==0
+            bin=ones(size(c2edCOMOI(:,1)));
+        else
+            [~,bin]=histc(cellDistClean,0:bandWidth:maxDist+binPix);
+        end
         
         for binID=1:max(bin)
             % find all cells that are in bin:
