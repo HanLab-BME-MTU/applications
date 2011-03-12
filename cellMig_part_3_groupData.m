@@ -57,7 +57,7 @@ end
 
 dFramesCorr=24;      % The correlation analysis is done only every dFramesCorr-frames
 dR=100;             % The disc width for calculating I(r+dr);
-minlength=12;       % The minimal movie length in hours, shorter movies are disregarded!           
+minlength=1; %12;       % The minimal movie length in hours, shorter movies are disregarded!           
 timeWindowCorr=6    % Time window for averaging velocities for correlation analysis.
 bandWidth=250;      % Band width of strips with iso-distance to the wound edge for correlation analysis. binPix=100 used for the density seems to be too small!
 maxDist=max(cell2edgeDist(:,end)); % Bands with a larger distance are to the wound edge are disregarded in the correlation analysis.
@@ -244,7 +244,7 @@ if ~justPlot
         
         % Bin the data according to the cell to edge distance:
         if maxDist==0
-            bin=ones(size(c2edCOMOI(:,1)));
+            bin=ones(size(cellDistClean(:,1)));
         else
             [~,bin]=histc(cellDistClean,0:bandWidth:maxDist+binPix);
         end
