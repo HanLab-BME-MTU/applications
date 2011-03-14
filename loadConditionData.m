@@ -1,11 +1,15 @@
-function [data] = loadConditionData(condDir, chNames, markers, parameters)
+function [data] = loadConditionData(condDir, chNames, markers, parameters, movieSelector)
 % loadConditionData loads the relevant information for all the data
 % available for a specific data condition; this requires a specific
 % dircetory structure and nomenclature (see below)
 %
 % SYNOPSIS [data] = loadConditionData()
 %
-% INPUT
+% INPUT          condDir : root directory where movies are located
+%                chNames : cell array of channel names
+%                markers : cell array of fluorescent markers
+%           {parameters} : optional, vector of microscope parameters: [NA M pixelSize]
+%        {movieSelector} : optional, selector string for movie folders
 %
 % OUTPUT   data: structure with the fields
 %                   .source      : path of the data/movie, location of master channel frames
@@ -35,6 +39,9 @@ end
 if nargin<4
     parameters = [1.49 100 6.7e-6];
 end
+if nargin<5
+    movieSelector = 'cell';
+end
 
 fprintf('Root directory: %s\n', condDir);
 
@@ -43,10 +50,10 @@ fprintf('Root directory: %s\n', condDir);
 expDir = dirList(condDir);
 
 % if condDir is a 'cell' directory
-if ~isempty(regexpi(getDirFromPath(condDir), 'cell', 'once'))
+if ~isempty(regexpi(getDirFromPath(condDir), movieSelector, 'once'))
     cellPath{1} = condDir;
 % if expDir are 'cell' directories    
-elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), 'cell', 'once')))
+elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), movieSelector, 'once')))
     cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
 else
     cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
@@ -54,7 +61,7 @@ else
 end
 
 % check whether directory names contain 'cell'
-valid = cellfun(@(x) ~isempty(regexpi(getDirFromPath(x), 'cell', 'once')), cellPath);
+valid = cellfun(@(x) ~isempty(regexpi(getDirFromPath(x), movieSelector, 'once')), cellPath);
 cellPath = cellPath(valid==1);
 nCells = length(cellPath);
 
