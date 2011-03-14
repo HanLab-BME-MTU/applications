@@ -1,7 +1,7 @@
 function [data] = loadConditionData(condDir, chNames, markers, parameters, movieSelector)
 % loadConditionData loads the relevant information for all the data
 % available for a specific data condition; this requires a specific
-% dircetory structure and nomenclature (see below)
+% directory structure and nomenclature (see below)
 %
 % SYNOPSIS [data] = loadConditionData()
 %
