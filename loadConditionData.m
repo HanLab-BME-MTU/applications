@@ -36,10 +36,10 @@ end
 if nargin<3
     markers = [];
 end
-if nargin<4
+if nargin<4 || isempty(parameters)
     parameters = [1.49 100 6.7e-6];
 end
-if nargin<5
+if nargin<5 || isempty(movieSelector)
     movieSelector = 'cell';
 end
 
