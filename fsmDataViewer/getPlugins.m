@@ -131,10 +131,16 @@ layerPlugins(9).filterSpec = {'*.mat'};
 layerPlugins(9).displayFunc = @displayClassifiedTracks;
 layerPlugins(9).dispatchFunc = @dispatchClassifiedTracks;
 
-% Theta map
-layerPlugins(10).desc = 'Theta Map';
+% [Graph] Pair Tracks
+layerPlugins(10).desc = '[Graph] Pair Tracks';
 layerPlugins(10).filterSpec = {'*.mat'};
-layerPlugins(10).displayFunc = @displayVectorField;
-layerPlugins(10).dispatchFunc = @dispatchThetaMap;
+layerPlugins(10).displayFunc = @displayAnisoFeatures;
+layerPlugins(10).dispatchFunc = @dispatchCellToFrames;
+
+% Theta map
+layerPlugins(11).desc = 'Theta Map';
+layerPlugins(11).filterSpec = {'*.mat'};
+layerPlugins(11).displayFunc = @displayVectorField;
+layerPlugins(11).dispatchFunc = @dispatchThetaMap;
 
 end
