@@ -2,9 +2,9 @@ function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
-params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
+%params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
 
 % name of the channel directory subfolders
@@ -32,27 +32,23 @@ params.setupMovieDataFunc = @setupViculinMovieData;
 % PROC 1: distance transform
 params.distanceTransform = struct();
 
-% PROC 2: actin flow field
-params.actinFlowField.iChannel = 2;
-
-% PROC 3: particle detection
+% PROC 2: particle detection
 params.particleDetection.iChannel = 1;
 params.particleDetection.detectFunc = @detectFocalAdhesionParticles;
 params.particleDetection.sigmaPSF = sigmaPSF;
 params.particleDetection.kSigma = 3;
 params.particleDetection.alpha = .05;
 
-% PROC 4: particle tracking
+% PROC 3: particle tracking
 params.particleTracking.searchRadius = 5;
 
-% PROC 5: track pairing
+% PROC 4: track pairing
 params.pairTracks.iChannel = 1;
 params.pairTracks.bandWidth = 2000; % nm
 params.pairTracks.minOverlap = 1;
 params.pairTracks.timeGap = 0;
 params.pairTracks.maxEuclidianDist = 20;
 params.pairTracks.kSigma = 3;
-params.pairTracks.nLevels = 5;
 params.pairTracks.alpha = 0.05;
 params.pairTracks.probBinSize = 1e-4;
 
