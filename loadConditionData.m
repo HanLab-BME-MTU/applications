@@ -135,7 +135,12 @@ for k = 1:nCells
     data(k).source = channels{1}; % master channel default
     data(k).framePaths = framePaths;
 
-    
+    % if detection results exist
+    maskPath = [data.source 'Detection' filesep 'Masks' filesep];
+    if (exist(maskPath, 'dir')==7)
+        data(k).maskPaths = arrayfun(@(x) [maskPath x.name], dir([maskPath '*.tif']), 'UniformOutput', false);
+    end
+        
     % load master channel frames
     data(k).imagesize = size(imread(framePaths{1}{1}));
     data(k).movieLength = length(framePaths{1});
