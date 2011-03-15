@@ -71,7 +71,8 @@ if nCells == 0
 end
 
 data(1:nCells) = struct('source', [], 'channels', [], 'date', [], 'framerate', [],...
-    'imagesize', [], 'movieLength', [], 'markers', []);
+    'imagesize', [], 'movieLength', [], 'markers', [],...
+    'framePaths', [], 'maskPaths', []);
 
 
 % Load/determine channel names
@@ -118,6 +119,7 @@ for k = 1:nCells
     end
     
     % assign full channel paths
+    framePaths = cell(1,nCh);
     for c = 1:nCh
         if ~isempty(chNames{c})
             channels{c} = [cellPath{k} chNames{c} filesep];
@@ -127,18 +129,17 @@ for k = 1:nCells
         if ~(exist(channels{c}, 'dir')==7)
             channels{c} = [uigetdir(cellPath{k}, ['Select channel #' num2str(c) ':']) filesep];
         end
+        framePaths{c} = arrayfun(@(x) [channels{c} x.name], dir([channels{c} '*.tif*']), 'UniformOutput', false);
     end
     data(k).channels = channels;
-    data(k).source = channels{1}; % master channel
+    data(k).source = channels{1}; % master channel default
+    data(k).framePaths = framePaths;
 
-
+    
     % load master channel frames
-    tifFiles = dir([data(k).channels{1} '*.tif']);
-    data(k).imagesize = size(imread([data(k).channels{1} tifFiles(1).name]));
-    data(k).movieLength = length(tifFiles);
-    
-    data(k).markers = markers;
-    
+    data(k).imagesize = size(imread(framePaths{1}{1}));
+    data(k).movieLength = length(framePaths{1});
+    data(k).markers = markers;    
     data(k).NA = parameters(1);
     data(k).M = parameters(2);
     data(k).pixelSize = parameters(3);
