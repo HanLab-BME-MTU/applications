@@ -19,7 +19,7 @@ idx = find(strcmpi(varargin, 'Channel'));
 if ~isempty(idx)
     ch = varargin{idx+1};
 else
-    ch = find(strcmp(data.channels, data.source));
+    ch = find(strcmp(data(1).channels, data(1).source));
 end
 
 idx = find(strcmpi(varargin, 'Scale'));
@@ -93,14 +93,14 @@ for k = 1:N
         sx = size(frame,2);
     end
     
-    dx = sx*psize/40;
+    d = sx*psize/40;
     
     imagesc(xa,ya,frame);
     colormap(gray(256));
     axis image off;
     plotScaleBar(scale, h, 'Label', [num2str(scale) ' ' units], 'FontName', fontName, 'FontSize', fontSize);
     
-    text(xa(end)-dx, dx, getCellDirectory(data(k)), 'Color', 'w',...
+    text(xa(end)-d, d, getCellDirectory(data(k)), 'Color', 'w',...
                 'VerticalAlignment', 'Top',...
                 'HorizontalAlignment', 'Right',...
                 'FontName', fontName, 'FontSize', fontSize, 'interpreter', 'none');
