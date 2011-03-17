@@ -190,7 +190,9 @@ if printEPS
     print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) '_ch' num2str(ch) '.eps']);   
 end
 
-
+if strcmp(visible, 'off')
+    close(h);
+end
 
 
 function idxRGB = assignColorsHSV(markers)

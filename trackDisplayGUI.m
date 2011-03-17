@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 16-Mar-2011 15:40:27
+% Last Modified by GUIDE v2.5 17-Mar-2011 10:29:06
 
 % Francois Aguet, September 2010
 
@@ -60,16 +60,16 @@ handles.data = data;
 
 
 % detect number of channels (up to 4)
-nChannels = length(data.channels);
+nCh = length(data.channels);
 % exclude master from list of channels
 handles.masterChannel = find(strcmp(data.source, data.channels));
-handles.slaveChannels = setdiff(1:nChannels, handles.masterChannel);
+handles.slaveChannels = setdiff(1:nCh, handles.masterChannel);
 
 
 for k = 1:length(varargin)-1
     handles.tracks{k} = varargin{k+1};
 end
-for k = length(varargin):nChannels
+for k = length(varargin):nCh
     handles.tracks{k} = [];
 end
 % if numel(varargin)>3
@@ -78,9 +78,9 @@ end
 
 
 
-frameList = cell(1,nChannels);
-maskList = cell(1,nChannels);
-for c = 1:nChannels
+frameList = cell(1,nCh);
+maskList = cell(1,nCh);
+for c = 1:nCh
     frames = dir([data.channels{c} '*.tif']);
     frameList{c} = cellfun(@(x) [data.channels{c} x], {frames.name}, 'UniformOutput', false);
     maskPath = [data.channels{c} 'Detection' filesep 'Masks' filesep];
@@ -102,17 +102,26 @@ for c = 1:nChannels
 end
 handles.frameList = frameList;
 handles.maskList = maskList;
-handles.nCh = nChannels;
+handles.nCh = nCh;
 
 
 % initialize handles
 handles.f = 2; % valid tracks start in frame 2 at the earliest
 set(handles.frameLabel, 'String', 'Frame 2');
 handles.displayType = 'raw';
-handles.selectedTrack = ones(1,handles.nCh);
+if ~all(cellfun(@(x) isempty(x), handles.tracks))
+    handles.selectedTrack = ones(1,handles.nCh);
+else
+    handles.selectedTrack = [];
+end
+
+handles.hues = getHuesFromMarkers(data.markers);
+handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
 
-% Set slider values
+%=================================================
+% Set initial values for sliders and checkboxes
+%=================================================
 h = handles.frameSlider;
 set(h, 'Min', 1);
 set(h, 'Max', data.movieLength);
@@ -132,17 +141,23 @@ end
 handles.output = hObject;
 
 
-%=====================
+if nCh > 2
+    set(handles.('labelCheckbox'), 'Value', 1);
+end
+
+
+
+
+%=================================================
 % Generate axes
-%=====================
+%=================================================
 % hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
 % uicontrol(hFig(1), 'Style', 'slider');
 
 handles = setupFrameAxes(handles);
-
 dx = 1/23; % unit
 dy = 1/12;
-switch nChannels
+switch nCh
     case 1
         handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 6*dy 7*dx 5*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
     case 2
@@ -159,13 +174,12 @@ switch nChannels
         handles.tAxes{4} = axes('Parent', gcf, 'Position', [15*dx 1.5*dy 7*dx 2*dy]);
 end
 xlabel('Time (s)');
-% Update handles structure, i.e., save handles
 
-% handles
+
 %===========================
 % initialize figures/plots
 %===========================
-for c = 1:nChannels
+for c = 1:nCh
     set(handles.fAxes{c}, 'XLim', [1 data.imagesize(2)], 'YLim', [1 data.imagesize(1)]);
 end
 colormap(gray(256));
@@ -173,34 +187,54 @@ linkaxes([handles.fAxes{:}]);
 linkaxes([handles.tAxes{:}], 'x');
 axis([handles.fAxes{:}], 'image');
 
-refreshFrameDisplay(hObject, handles);
-set(zoom, 'ActionPostCallback', @zoompostcallback);
-set(gcf, 'UserData', handles.fAxes);
+% save XLim diff. for zoom reference
+handles.refXLimDiff = data.imagesize(2)-1;
+
+handles = refreshFrameDisplay(hObject, handles);
+
 
 % init. track display
 set(handles.trackLabel, 'String', 'Track 1');
 refreshTrackDisplay(handles);
 
 guidata(hObject, handles);
-
+% set(zoom, 'ActionPostCallback', {@zoompostcallback, handles, hObject});
+set(zoom, 'ActionPostCallback', {@zoompostcallback, handles});
+guidata(hObject, handles);
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 
 
-function zoompostcallback(~,evd)
-h = get(get(evd.Axes, 'Parent'), 'UserData');
-na = length(h);
-if na>2
-    XLim = get(evd.Axes, 'XLim');
-    YLim = get(evd.Axes, 'YLim');
-    dx = min(0.02*diff(XLim), 0.02*diff(YLim)); 
-    for k = 1:na
-        c = get(h{k}, 'Children');
-        set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
-    end
+function zoompostcallback(~, eventdata, handles)
+
+XLim = get(eventdata.Axes, 'XLim');
+
+settings = getappdata(handles.figure1, 'mydata');
+settings.zoom = handles.refXLimDiff / diff(XLim);
+
+
+for c = 1:handles.nCh
+    set(settings.selectedTrackMarkerID(c), 'MarkerSize', 10*settings.zoom);
 end
+
+setappdata(handles.figure1, 'mydata', settings);
+
+
+% h = get(get(evd.Axes, 'Parent'), 'UserData');
+% 
+% na = length(h);
+% if na>2
+%     XLim = get(evd.Axes, 'XLim');
+%     YLim = get(evd.Axes, 'YLim');
+%     % keep label in lower right corner
+% %     dx = min(0.02*diff(XLim), 0.02*diff(YLim)); 
+% %     for k = 1:na
+% %         c = get(h{k}, 'Children');
+% %         set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
+% %     end
+% end
 
 
 
@@ -239,7 +273,10 @@ switch N
         handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
         handles.fAxes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
-
+% for k = 1:N
+%     h = handles.fAxes{k};
+%     set(h, 'OuterPosition', get(h, 'Position'));
+% end
 
 
 
@@ -258,11 +295,13 @@ varargout{1} = handles.output;
 %===================================
 % Plot frames with overlaid tracks
 %===================================
-function refreshFrameDisplay(hObject, handles)
+function handles = refreshFrameDisplay(hObject, handles)
 
 % save zoom settings
 XLim = get(handles.fAxes{1}, 'XLim');
 YLim = get(handles.fAxes{1}, 'YLim');
+
+% zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
 
@@ -272,26 +311,35 @@ if strcmp(handles.displayType, 'RGB')
     end
 
     mc = handles.masterChannel;
-    plotFrame(handles.data, handles.tracks{mc}, f, 1:min(handles.nCh,3),...
-        'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
-        'Mode', handles.displayType);
+    if get(handles.('trackCheckbox'), 'Value')
+        plotFrame(handles.data, handles.tracks{mc}, f, 1:min(handles.nCh,3),...
+            'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
+            'Mode', handles.displayType);
+    else
+        plotFrame(handles.data, [], f, 1:min(handles.nCh,3),...
+            'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
+            'Mode', handles.displayType);
+    end
     
-    hold(handles.fAxes{1}, 'on');
     % plot selected track marker
-    if ~isempty(handles.selectedTrack)
+    if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
+        hold(handles.fAxes{1}, 'on');
         t = handles.tracks{mc}(handles.selectedTrack(mc));
         ci = f-t.start+1;
         if 1 <= ci && ci <= length(t.x)
-            plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
-            text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(mc)), 'Color', [1 0 0], 'Parent', handles.fAxes{mc});
+            markerHandles = plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10);
+            textHandles = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(mc)), 'Color', 'w', 'Parent', handles.fAxes{mc});
         end
+        hold(handles.fAxes{1}, 'off');
     end
-    hold(handles.fAxes{1}, 'off');
     
 else
     if length(handles.fAxes)~=handles.nCh
         handles = setupFrameAxes(handles);
     end
+
+    markerHandles = zeros(1, handles.nCh);
+    textHandles = zeros(1, handles.nCh);
     for c = 1:handles.nCh
         if ~isempty(handles.tracks{c})
             chIdx = c;
@@ -299,46 +347,59 @@ else
             chIdx = handles.masterChannel;
         end
         
-        plotFrame(handles.data, handles.tracks{c}, f, c,...
-            'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
-            'Mode', handles.displayType);
-
+        if get(handles.('trackCheckbox'), 'Value')
+            plotFrame(handles.data, handles.tracks{c}, f, c,...
+                'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
+                'Mode', handles.displayType);
+        else
+            plotFrame(handles.data, [], f, c,...
+                'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
+                'Mode', handles.displayType);
+        end
         
         hold(handles.fAxes{c}, 'on');
               
         % plot selected track marker
-        if ~isempty(handles.selectedTrack)
+        if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
             t = handles.tracks{chIdx}(handles.selectedTrack(c));
             ci = f-t.start+1;
             if 1 <= ci && ci <= length(t.x)
-                plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
-                text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(c)), 'Color', [1 0 0], 'Parent', handles.fAxes{c});
+                markerHandles(c) = plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10);
+                textHandles(c) = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(c)), 'Color', 'w', 'Parent', handles.fAxes{c});
             end
         end
         
         % show detection COM values
-        if get(handles.('checkbox1'), 'Value') && ~isempty(handles.detection{c})
+        if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
             plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
         end
         hold(handles.fAxes{c}, 'off');
         
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % ADD TOGGLE
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         if handles.nCh>2
-%         % plot channel name
-%         dx = min(0.02*diff(XLim), 0.02*diff(YLim));
-%         text(XLim(2)-dx, YLim(2)-dx, getDirFromPath(handles.data.channels{c}),...
-%             'Color', wavelength2rgb(name2wavelength(handles.data.markers{c})),...
-%             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
-%         end
+        if get(handles.('labelCheckbox'), 'Value')
+            % plot channel name
+            %[getDirFromPath(handles.data.channels{c}) '-' handles.data.markers{c}],...
+            dx = min(0.02*diff(XLim), 0.02*diff(YLim));
+            text(XLim(2)-dx, YLim(2)-dx,...
+                handles.data.markers{c},...
+                'Color', handles.rgbColors{c},...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
+        end
     end
 end
+
+settings.selectedTrackMarkerID = markerHandles;
+settings.selectedTrackLabelID = textHandles;
+setappdata(handles.figure1, 'mydata', settings);
 
 % write zoom level
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
 guidata(hObject, handles);
+
+
+
+
+
 
 
 %=========================
@@ -440,19 +501,6 @@ function figure1_ResizeFcn(~, ~, ~)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-
-% --- Executes on button press in checkbox1.
-function checkbox1_Callback(hObject, ~, handles)
-% hObject    handle to checkbox1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox1
-
-refreshFrameDisplay(hObject, handles);
-
 
 
 % --- Executes on button press in pushbutton1.
@@ -638,3 +686,27 @@ else
     end
 end
 fprintf('Printing done.\n');
+
+
+% --- Executes on button press in detectionCheckbox.
+function detectionCheckbox_Callback(hObject, ~, handles)
+% hObject    handle to detectionCheckbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+refreshFrameDisplay(hObject, handles);
+
+
+% --- Executes on button press in labelCheckbox.
+function labelCheckbox_Callback(hObject, ~, handles)
+% hObject    handle to labelCheckbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+refreshFrameDisplay(hObject, handles);
+
+
+% --- Executes on button press in trackCheckbox.
+function trackCheckbox_Callback(hObject, ~, handles)
+% hObject    handle to trackCheckbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+refreshFrameDisplay(hObject, handles);
