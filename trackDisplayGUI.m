@@ -56,7 +56,7 @@ function trackDisplayGUI_OpeningFcn(hObject, ~, handles, varargin)
 
 data = varargin{1};
 handles.data = data;
-
+handles.fAspectRatio = handles.data.imagesize(1) / handles.data.imagesize(2);
 
 
 % detect number of channels (up to 4)
@@ -214,7 +214,6 @@ XLim = get(eventdata.Axes, 'XLim');
 settings = getappdata(handles.figure1, 'mydata');
 settings.zoom = handles.refXLimDiff / diff(XLim);
 
-
 for c = 1:handles.nCh
     id = settings.selectedTrackMarkerID(c);
     if ~isnan(id)
@@ -223,21 +222,6 @@ for c = 1:handles.nCh
 end
 
 setappdata(handles.figure1, 'mydata', settings);
-
-
-% h = get(get(evd.Axes, 'Parent'), 'UserData');
-% 
-% na = length(h);
-% if na>2
-%     XLim = get(evd.Axes, 'XLim');
-%     YLim = get(evd.Axes, 'YLim');
-%     % keep label in lower right corner
-% %     dx = min(0.02*diff(XLim), 0.02*diff(YLim)); 
-% %     for k = 1:na
-% %         c = get(h{k}, 'Children');
-% %         set(c(1), 'Position', [XLim(2)-dx, YLim(2)-dx 0]);
-% %     end
-% end
 
 
 
@@ -382,11 +366,12 @@ else
         if get(handles.('labelCheckbox'), 'Value')
             % plot channel name
             %[getDirFromPath(handles.data.channels{c}) '-' handles.data.markers{c}],...
-            dx = min(0.02*diff(XLim), 0.02*diff(YLim));
-            text(XLim(2)-dx, YLim(2)-dx,...
+            dx = 0.03;
+            text(1-dx*handles.fAspectRatio, dx,...
                 handles.data.markers{c},...
-                'Color', handles.rgbColors{c},...
-                'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
+                'Color', handles.rgbColors{c}, 'Units', 'normalized',...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
+                'Parent', handles.fAxes{c});
         end
     end
 end
