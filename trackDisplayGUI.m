@@ -216,7 +216,10 @@ settings.zoom = handles.refXLimDiff / diff(XLim);
 
 
 for c = 1:handles.nCh
-    set(settings.selectedTrackMarkerID(c), 'MarkerSize', 10*settings.zoom);
+    id = settings.selectedTrackMarkerID(c);
+    if ~isnan(id)
+        set(id, 'MarkerSize', 10*settings.zoom);
+    end
 end
 
 setappdata(handles.figure1, 'mydata', settings);
@@ -320,7 +323,8 @@ if strcmp(handles.displayType, 'RGB')
             'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
             'Mode', handles.displayType);
     end
-    
+    markerHandles = NaN;
+    textHandles = NaN;
     % plot selected track marker
     if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
         hold(handles.fAxes{1}, 'on');
@@ -338,8 +342,8 @@ else
         handles = setupFrameAxes(handles);
     end
 
-    markerHandles = zeros(1, handles.nCh);
-    textHandles = zeros(1, handles.nCh);
+    markerHandles = NaN(1, handles.nCh);
+    textHandles = NaN(1, handles.nCh);
     for c = 1:handles.nCh
         if ~isempty(handles.tracks{c})
             chIdx = c;
