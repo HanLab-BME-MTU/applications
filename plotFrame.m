@@ -71,8 +71,8 @@ end
 idx = find(strcmpi(varargin, 'Units'));
 if ~isempty(idx)
     unit = varargin{idx+1};
-    xa = (0:nx-1)*psize*unit;
-    ya = (0:ny-1)*psize*unit;
+    xa = (0:nx-1)*psize/unit;
+    ya = (0:ny-1)*psize/unit;
 else
     xa = 1:nx;
     ya = 1:ny;
@@ -138,6 +138,11 @@ switch mode
         end
         frame = double(imread(data.framePaths{ch}{frameIdx}));
 end
+
+%     [sy sx] = size(frame);
+%     if sy>sx
+%         frame = imrotate(frame, 90);
+%     end
 
 imagesc(xa, ya, frame, 'Parent', ha);
 colormap(gray(256));

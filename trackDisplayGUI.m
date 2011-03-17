@@ -187,13 +187,11 @@ for c = 1:nCh
     set(handles.fAxes{c}, 'XLim', [1 data.imagesize(2)], 'YLim', [1 data.imagesize(1)]);
 end
 colormap(gray(256));
-linkaxes([handles.fAxes{:}]);
 linkaxes([handles.tAxes{:}], 'x');
 axis([handles.fAxes{:}], 'image');
 
 % save XLim diff. for zoom reference
 handles.refXLimDiff = data.imagesize(2)-1;
-
 handles = refreshFrameDisplay(hObject, handles);
 
 
@@ -210,9 +208,9 @@ guidata(hObject, handles);
 
 
 
-
-
-
+%===================================
+% Automatic actions after zoom
+%===================================
 function zoompostcallback(~, eventdata, handles)
 
 XLim = get(eventdata.Axes, 'XLim');
@@ -220,7 +218,7 @@ XLim = get(eventdata.Axes, 'XLim');
 settings = getappdata(handles.figure1, 'mydata');
 settings.zoom = handles.refXLimDiff / diff(XLim);
 
-for c = 1:handles.nCh
+for c = 1:length(settings.selectedTrackMarkerID)
     id = settings.selectedTrackMarkerID(c);
     if ~isnan(id)
         set(id, 'MarkerSize', 10*settings.zoom);
@@ -266,10 +264,7 @@ switch N
         handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
         handles.fAxes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
-% for k = 1:N
-%     h = handles.fAxes{k};
-%     set(h, 'OuterPosition', get(h, 'Position'));
-% end
+linkaxes([handles.fAxes{:}]);
 
 
 

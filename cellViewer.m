@@ -51,6 +51,13 @@ else
     fontSize = 10;
 end
 
+idx = find(strcmpi(varargin, 'Mode'));
+if ~isempty(idx)
+    mode = varargin{idx+1};
+else
+    mode = 'raw';
+end
+
 
 if nargin<2 || isempty(frameIdx)
     frameIdx = 1;
@@ -82,25 +89,15 @@ for k = 1:N
     y = ceil(k/nx);
     x = k-(y-1)*nx;
     h = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
-    frame = imread(data(k).framePaths{ch}{frameIdx});
     
-    [sy sx] = size(frame);
-    psize = data(k).pixelSize/data(k).M*1e6; % in µm
-    xa = (0:sx-1)*psize;
-    ya = (0:sy-1)*psize;
-    if sy>sx
-        frame = imrotate(frame, 90);
-        sx = size(frame,2);
-    end
-    
-    d = sx*psize/40;
-    
-    imagesc(xa,ya,frame);
-    colormap(gray(256));
+    plotFrame(data(k), [], frameIdx, ch, 'Handle', h, 'Units', 1e-6, 'Mode', mode);
+
     axis image off;
-    plotScaleBar(scale, h, 'Label', [num2str(scale) ' ' units], 'FontName', fontName, 'FontSize', fontSize);
-    
-    text(xa(end)-d, d, getCellDirectory(data(k)), 'Color', 'w',...
+    plotScaleBar(scale, 'Handle', h, 'Label', [num2str(scale) ' ' units], 'FontName', fontName, 'FontSize', fontSize);
+    r = data(k).imagesize(2)/data(k).imagesize(1);
+    d = 0.02;
+    text(1-d, 1-d*r, getCellDirectory(data(k)), 'Color', 'w',...
+                'Units', 'normalized',...
                 'VerticalAlignment', 'Top',...
                 'HorizontalAlignment', 'Right',...
                 'FontName', fontName, 'FontSize', fontSize, 'interpreter', 'none');
