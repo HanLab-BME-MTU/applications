@@ -119,6 +119,10 @@ handles.hues = getHuesFromMarkers(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
 
+settings.zoom = 1;
+setappdata(handles.figure1, 'mydata', settings);
+
+
 %=================================================
 % Set initial values for sliders and checkboxes
 %=================================================
@@ -207,6 +211,8 @@ guidata(hObject, handles);
 
 
 
+
+
 function zoompostcallback(~, eventdata, handles)
 
 XLim = get(eventdata.Axes, 'XLim');
@@ -291,6 +297,8 @@ YLim = get(handles.fAxes{1}, 'YLim');
 % zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
+settings = getappdata(handles.figure1, 'mydata');
+
 
 if strcmp(handles.displayType, 'RGB')
     if length(handles.fAxes)>1
@@ -315,7 +323,7 @@ if strcmp(handles.displayType, 'RGB')
         t = handles.tracks{mc}(handles.selectedTrack(mc));
         ci = f-t.start+1;
         if 1 <= ci && ci <= length(t.x)
-            markerHandles = plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10);
+            markerHandles = plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
             textHandles = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(mc)), 'Color', 'w', 'Parent', handles.fAxes{mc});
         end
         hold(handles.fAxes{1}, 'off');
@@ -352,7 +360,7 @@ else
             t = handles.tracks{chIdx}(handles.selectedTrack(c));
             ci = f-t.start+1;
             if 1 <= ci && ci <= length(t.x)
-                markerHandles(c) = plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10);
+                markerHandles(c) = plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
                 textHandles(c) = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(c)), 'Color', 'w', 'Parent', handles.fAxes{c});
             end
         end
