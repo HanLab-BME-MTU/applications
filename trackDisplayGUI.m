@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 09-Mar-2011 18:05:18
+% Last Modified by GUIDE v2.5 16-Mar-2011 15:40:27
 
 % Francois Aguet, September 2010
 
@@ -109,7 +109,6 @@ handles.nCh = nChannels;
 handles.f = 2; % valid tracks start in frame 2 at the earliest
 set(handles.frameLabel, 'String', 'Frame 2');
 handles.displayType = 'raw';
-handles.visibleIdx = [];
 handles.selectedTrack = ones(1,handles.nCh);
 
 
@@ -139,36 +138,21 @@ handles.output = hObject;
 % hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
 % uicontrol(hFig(1), 'Style', 'slider');
 
+handles = setupFrameAxes(handles);
+
 dx = 1/23; % unit
 dy = 1/12;
 switch nChannels
     case 1
-        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 2*dy 13*dx 9*dy]);
         handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 6*dy 7*dx 5*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
     case 2
-        if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
-            handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 9*dy]);
-            handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 9*dy]);
-        else
-            handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 13*dx 4*dy]);
-            handles.fAxes{2} = axes('Parent', gcf, 'Position', [dx 2*dy 13*dx 4*dy]);
-        end
         handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 7*dy 7*dx 4*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
         handles.tAxes{2} = axes('Parent', gcf, 'Position', [15*dx 2*dy 7*dx 4*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
     case 3
-        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
-        
         handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 8.5*dy 7*dx 2.5*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
         handles.tAxes{2} = axes('Parent', gcf, 'Position', [15*dx 5.25*dy 7*dx 2.5*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
         handles.tAxes{3} = axes('Parent', gcf, 'Position', [15*dx 2*dy 7*dx 2.5*dy], 'Box', 'on', 'XLim', [0 handles.data.movieLength]);
-    case 4
-        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
-        handles.fAxes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
-        
+    case 4        
         handles.tAxes{1} = axes('Parent', gcf, 'Position', [15*dx 9*dy 7*dx 2*dy]);
         handles.tAxes{2} = axes('Parent', gcf, 'Position', [15*dx 6.5*dy 7*dx 2*dy]);
         handles.tAxes{3} = axes('Parent', gcf, 'Position', [15*dx 4*dy 7*dx 2*dy]);
@@ -176,8 +160,8 @@ switch nChannels
 end
 xlabel('Time (s)');
 % Update handles structure, i.e., save handles
-guidata(hObject, handles);
 
+% handles
 %===========================
 % initialize figures/plots
 %===========================
@@ -193,10 +177,11 @@ refreshFrameDisplay(hObject, handles);
 set(zoom, 'ActionPostCallback', @zoompostcallback);
 set(gcf, 'UserData', handles.fAxes);
 
-
 % init. track display
 set(handles.trackLabel, 'String', 'Track 1');
 refreshTrackDisplay(handles);
+
+guidata(hObject, handles);
 
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -220,6 +205,44 @@ end
 
 
 
+function handles = setupFrameAxes(handles, N)
+
+if nargin<2
+    N = handles.nCh;
+end
+
+dx = 1/23; % unit
+dy = 1/12;
+
+if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
+    cellfun(@(x) delete(x), handles.fAxes);
+end
+handles.fAxes = cell(1,N);
+switch N
+    case 1
+        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 2*dy 13*dx 9*dy]);
+    case 2
+        if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
+            handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 9*dy]);
+            handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 9*dy]);
+        else
+            handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 13*dx 4*dy]);
+            handles.fAxes{2} = axes('Parent', gcf, 'Position', [dx 2*dy 13*dx 4*dy]);
+        end
+    case 3
+        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
+        handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+        handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
+    case 4
+        handles.fAxes{1} = axes('Parent', gcf, 'Position', [dx 7*dy 6*dx 4*dy]);
+        handles.fAxes{2} = axes('Parent', gcf, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+        handles.fAxes{3} = axes('Parent', gcf, 'Position', [dx 2*dy 6*dx 4*dy]);
+        handles.fAxes{4} = axes('Parent', gcf, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+end
+
+
+
+
 % --- Outputs from this function are returned to the command line.
 function varargout = trackDisplayGUI_OutputFcn(~, ~, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -237,85 +260,54 @@ varargout{1} = handles.output;
 %===================================
 function refreshFrameDisplay(hObject, handles)
 
-cmap = jet(handles.data.movieLength);
-f = handles.f;
-
 % save zoom settings
 XLim = get(handles.fAxes{1}, 'XLim');
 YLim = get(handles.fAxes{1}, 'YLim');
 
+f = handles.f;
+
 if strcmp(handles.displayType, 'RGB')
-    [~, idx] = sort(handles.data.markers);
-    switch length(idx)
-        case 1
-            G = double(imread(handles.frameList{1}{f}));
-            imagesc(ch2rgb([], G, []), 'Parent', handles.fAxes{1});
-        case 2
-            G = double(imread(handles.frameList{idx(1)}{f}));
-            R = double(imread(handles.frameList{idx(2)}{f}));
-            imagesc(ch2rgb(R, G, []), 'Parent', handles.fAxes{1});
-        case 3
-            B = double(imread(handles.frameList{idx(1)}{f}));
-            G = double(imread(handles.frameList{idx(2)}{f}));
-            R = double(imread(handles.frameList{idx(3)}{f}));
-            imagesc(ch2rgb(R, G, B), 'Parent', handles.fAxes{1});
+    if length(handles.fAxes)>1
+        handles = setupFrameAxes(handles, 1);
     end
-    axis(handles.fAxes{1}, 'image');
-else
-    for c = 1:handles.nCh
-        if ~isempty(handles.detection{c})
-            switch handles.displayType
-                case 'raw'
-                    imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
-                case 'WT'
-                    imagesc(imread(handles.maskList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
-                case 'overlayWT'
-                    overlayColor = [1 0 0];
-                    mask = double(imread(handles.maskList{c}{f}));
-                    frame = double(imread(handles.frameList{c}{f}));
-                    
-                    maskIdx = mask~=0;
-                    chR = frame;
-                    chR(maskIdx) = chR(maskIdx)*overlayColor(1);
-                    chG = frame;
-                    chG(maskIdx) = chG(maskIdx)*overlayColor(2);
-                    chB = frame;
-                    chB(maskIdx) = chB(maskIdx)*overlayColor(3);
-                    imRGB = uint8(cat(3, scaleContrast(chR, handles.dRange{c}), scaleContrast(chG, handles.dRange{c}), scaleContrast(chB, handles.dRange{c})));
-                    imagesc(imRGB, 'Parent', handles.fAxes{c});
-            end
-        else
-            imagesc(imread(handles.frameList{c}{f}), 'Parent', handles.fAxes{c});%, handles.dRange1);
+
+    mc = handles.masterChannel;
+    plotFrame(handles.data, handles.tracks{mc}, f, 1:min(handles.nCh,3),...
+        'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
+        'Mode', handles.displayType);
+    
+    hold(handles.fAxes{1}, 'on');
+    % plot selected track marker
+    if ~isempty(handles.selectedTrack)
+        t = handles.tracks{mc}(handles.selectedTrack(mc));
+        ci = f-t.start+1;
+        if 1 <= ci && ci <= length(t.x)
+            plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ro', 'MarkerSize', 15);
+            text(t.x(ci), t.y(ci), num2str(handles.selectedTrack(mc)), 'Color', [1 0 0], 'Parent', handles.fAxes{mc});
         end
-        axis(handles.fAxes{c}, 'image');
+    end
+    hold(handles.fAxes{1}, 'off');
+    
+else
+    if length(handles.fAxes)~=handles.nCh
+        handles = setupFrameAxes(handles);
+    end
+    for c = 1:handles.nCh
+        if ~isempty(handles.tracks{c})
+            chIdx = c;
+        else
+            chIdx = handles.masterChannel;
+        end
+        
+        plotFrame(handles.data, handles.tracks{c}, f, c,...
+            'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
+            'Mode', handles.displayType);
+
         
         hold(handles.fAxes{c}, 'on');
-        if ~isempty(handles.tracks{c})
-            idx = find([handles.tracks{c}.start] <= f & f <= [handles.tracks{c}.end]);
-            handles.visibleIdx{c} = idx;
-            for k = idx
-                fi = 1:f-handles.tracks{c}(k).start+1;
-                %if f == handles.tracks1(k).start
-                
-                nf = length(handles.tracks{c}(k).x);
-                
-                plot(handles.fAxes{c}, handles.tracks{c}(k).x(1), handles.tracks{c}(k).y(1), '*', 'Color', cmap(nf,:));
-                %end
-                plot(handles.fAxes{c}, handles.tracks{c}(k).x(fi), handles.tracks{c}(k).y(fi), '-', 'Color', cmap(nf,:));
-                %if f == handles.tracks1(k).end
-                %plot(handles.axes1, handles.tracks1(k).x(end), handles.tracks1(k).y(end), '+', 'Color', cmap(handles.tracks1(k).lifetime,:), 'MarkerSize', 8);
-                %end
-            end
-        end
-        
+              
         % plot selected track marker
         if ~isempty(handles.selectedTrack)
-            if ~isempty(handles.tracks{c})
-                chIdx = c;
-            else
-                chIdx = handles.masterChannel;
-            end
-            
             t = handles.tracks{chIdx}(handles.selectedTrack(c));
             ci = f-t.start+1;
             if 1 <= ci && ci <= length(t.x)
@@ -325,25 +317,28 @@ else
         end
         
         % show detection COM values
-        if get(handles.('checkbox1'), 'Value')
+        if get(handles.('checkbox1'), 'Value') && ~isempty(handles.detection{c})
             plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
         end
         hold(handles.fAxes{c}, 'off');
         
-        if handles.nCh>2
-        % plot channel name
-        dx = min(0.02*diff(XLim), 0.02*diff(YLim));
-        text(XLim(2)-dx, YLim(2)-dx, getDirFromPath(handles.data.channels{c}),...
-            'Color', wavelength2rgb(name2wavelength(handles.data.markers{c})),...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
-        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % ADD TOGGLE
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         if handles.nCh>2
+%         % plot channel name
+%         dx = min(0.02*diff(XLim), 0.02*diff(YLim));
+%         text(XLim(2)-dx, YLim(2)-dx, getDirFromPath(handles.data.channels{c}),...
+%             'Color', wavelength2rgb(name2wavelength(handles.data.markers{c})),...
+%             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', handles.fAxes{c})
+%         end
     end
 end
 
 % write zoom level
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
-guidata(hObject,handles);
+guidata(hObject, handles);
 
 
 %=========================
@@ -381,7 +376,7 @@ if ~isempty(handles.selectedTrack)
             cx = ci;
         end
         
-        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, h);
+        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h);
         l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         set(l, 'FontSize', 7);
                         
@@ -402,7 +397,7 @@ if ~isempty(handles.selectedTrack)
     end
     % retain zoom level
     set(h, 'XLim', [max(sTrack.start-bStart-11,0) min(sTrack.end+bEnd+9,handles.data.movieLength-1)]*handles.data.framerate);
-    xlabel('Time (s)');
+    xlabel(h, 'Time (s)');
 end
 
 
@@ -476,8 +471,9 @@ for c = 1:handles.nCh
         chIdx = c;
     else
         chIdx = handles.masterChannel;
-    end
-    idx = handles.visibleIdx{chIdx};
+    end   
+    idx = find([handles.tracks{chIdx}.start] <= handles.f & handles.f <= [handles.tracks{chIdx}.end]);
+
     np = length(idx);
     mu_x = zeros(1,length(np));
     mu_y = zeros(1,length(np));
@@ -547,12 +543,10 @@ contents = cellstr(get(hObject,'String'));
 switch contents{get(hObject,'Value')}
     case 'Raw frames'
         handles.displayType = 'raw';
-    case 'RGB merge'
+    case 'RGB'
         handles.displayType = 'RGB';
     case 'Detection'
-        handles.displayType = 'WT';
-    case 'Detection overlay'
-        handles.displayType = 'overlayWT';
+        handles.displayType = 'mask';
 end
 guidata(hObject,handles);
 refreshFrameDisplay(hObject, handles);
@@ -626,8 +620,21 @@ for ch = 1:handles.nCh
     else
         tracks = handles.tracks{handles.masterChannel};
     end
-    plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch, [], 1, 'off');
+    plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch,...
+        'Print', 'on', 'Visible', 'off');
 end
 
-fprintf('Printing done.\n');
 
+if strcmp(handles.displayType, 'RGB')
+    mc = handles.masterChannel;
+    plotFrame(handles.data, handles.tracks{mc}, handles.f, 1:min(handles.nCh,3),...
+        'iRange', handles.dRange, 'Mode', handles.displayType,...
+            'Print', 'on', 'Visible', 'off');
+else
+    for c = 1:handles.nCh
+        plotFrame(handles.data, handles.tracks{c}, handles.f, c,...
+            'iRange', handles.dRange, 'Mode', handles.displayType,...
+            'Print', 'on', 'Visible', 'off');
+    end
+end
+fprintf('Printing done.\n');

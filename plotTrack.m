@@ -1,34 +1,56 @@
-% plotTrack(data, track, trackID, ch, ha, printEPS)
+% plotTrack(data, tracks, trackIdx, ch, varargin)
 %
 % INPUTS:   data : data structure
 %          track : track structure
-%        trackID : index of the track
+%        trackIdx : index of the track
 %             ch : channel #
-%           {ha} : axis handle (optional, for plotting from within GUI)
-%       printeps : save the figure as .eps in 'data.source/Figures/'
+%     {varargin} : optional inputs:
+%                      'Visible' : {'on'} | 'off' toggles figure visibility
+%                      'Handle' : h, axis handle (for plotting from within GUI)
+%                      'Print' : 'on' | {'off'} generates an EPS in 'data.source/Figures/'
 
 % Francois Aguet, March 9 2011 (split from trackDisplayGUI)
 
-function plotTrack(data, tracks, trackID, ch, ha, printeps, visible)
+function plotTrack(data, tracks, trackIdx, ch, varargin)
 
-if nargin<7
+%======================================
+% Check inputs
+%======================================
+if mod(length(varargin),2)~=0
+    error('Optional arguments need to be entered as pairs.');
+end
+
+%======================================
+% Parse inputs, set defaults
+%======================================
+idx = find(strcmpi(varargin, 'Visible'));
+if ~isempty(idx)
+    visible = varargin{idx+1};
+else
     visible = 'on';
 end
 
-if nargin<4 || isempty(ha)
-    hfig = figure('visible', visible);
+idx = find(strcmpi(varargin, 'Handle'));
+if ~isempty(idx)
+    ha = varargin{idx+1};
+    standalone = false;
+else
+    hfig = figure('Visible', visible);
     ha = axes('Position', [0.15 0.15 0.8 0.8]);
     standalone = true;
-else
-    standalone = false;
 end
 
-if nargin<6
-    printeps = false;
+idx = find(strcmpi(varargin, 'Print'));
+if ~isempty(idx) && strcmpi(varargin{idx+1}, 'on')
+    printEPS = true;
+else
+    printEPS = false;
 end
+
+
 
 if length(tracks)>1
-    track = tracks(trackID);
+    track = tracks(trackIdx);
 else
     track = tracks;
 end
@@ -164,12 +186,12 @@ if standalone
     end
 end
 
-if printeps
+if printEPS
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
     end
-    print(hfig, '-depsc2', '-r300', [fpath 'track_' num2str(trackID) '_ch' num2str(ch) '.eps']);
+    print(hfig, '-depsc2', '-r300', [fpath 'track_' num2str(trackIdx) '_ch' num2str(ch) '.eps']);
 end
 
 if strcmp(visible, 'off')
