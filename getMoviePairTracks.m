@@ -499,7 +499,7 @@ W = 1 ./ W;
 
 % Compute Maximum Weighted Matching
 D = sparse(E(:,1),E(:,2),W,nTracks,nTracks,numel(W));
-M = maxWeightMatching2(D,eps);
+M = maxWeightedMatching2(D,eps);
 
 %% END
 movieData.pairTracks.status = 1;
