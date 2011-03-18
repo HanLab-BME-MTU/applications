@@ -91,6 +91,11 @@ if nargin <11 || isempty(xrange) || isempty(yrange)
     yrange=[];
 end
 
+if isempty(filter)
+    doPlot=0;
+else
+    doPlot=1;
+end
 
 display('Used parameters are:');
 display(['filter: ',num2str(filter)]);
@@ -197,27 +202,29 @@ if ~isdir(targetDirDispl)
     mkdir(targetDirDispl)
 end
 
-for i=1:n
-    figure(1)
-    gridSize=ceil(sqrt((theXlim)*(theYlim)/length(displField(i).vec)));
-    maxForcePlot=0.3/gridSize*max(sqrt(displField(i).vec(:,1).^2+displField(i).vec(:,2).^2));
-    
-    quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)/maxForcePlot,displField(i).vec(:,2)/maxForcePlot,0,'k')
-    if ~isempty(filter)
-        hold on
-        quiver(out(i).pos(:,1),out(i).pos(:,2),out(i).vec(:,1)/maxForcePlot,out(i).vec(:,2)/maxForcePlot,0,'r')
-        hold off
-    end
-    xlim([1 theXlim])
-    ylim([1 theYlim])
-    set(gca,'DataAspectRatio', [1,1,50],'YDir','reverse')%,'XTick',[],'YTick',[])
-    title(['Displacement field frame no: ',num2str(i),'. Outliers are red!'])
-    if ~isempty(filter)
-        if out(i).num==0
-            text(theXlim/2,theYlim/2,'No Outliers');
+if doPlot
+    for i=1:n
+        figure(1)
+        gridSize=ceil(sqrt((theXlim)*(theYlim)/length(displField(i).vec)));
+        maxForcePlot=0.3/gridSize*max(sqrt(displField(i).vec(:,1).^2+displField(i).vec(:,2).^2));
+
+        quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)/maxForcePlot,displField(i).vec(:,2)/maxForcePlot,0,'k')
+        if ~isempty(filter)
+            hold on
+            quiver(out(i).pos(:,1),out(i).pos(:,2),out(i).vec(:,1)/maxForcePlot,out(i).vec(:,2)/maxForcePlot,0,'r')
+            hold off
         end
-    end       
-    saveas(gcf,[targetDirDispl, 'displField',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
+        xlim([1 theXlim])
+        ylim([1 theYlim])
+        set(gca,'DataAspectRatio', [1,1,50],'YDir','reverse')%,'XTick',[],'YTick',[])
+        title(['Displacement field frame no: ',num2str(i),'. Outliers are red!'])
+        if ~isempty(filter)
+            if out(i).num==0
+                text(theXlim/2,theYlim/2,'No Outliers');
+            end
+        end       
+        saveas(gcf,[targetDirDispl, 'displField',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
+    end
 end
 
 %*****************************************
@@ -266,14 +273,16 @@ for i=1:length(displField)
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, yModu_Pa, pRatio, pixSize_mu, gridSpacing, i_max, j_max, regParam);
     end   
     
-    figure(100)
-    quiver(pos_f(:,1),pos_f(:,2),force(:,1),force(:,2))
-    xlim([1 theXlim])
-    ylim([1 theYlim])
-%    set(gca,'YDir','reverse')%,'XTick',[],'YTick',[])
-    title(['Force field frame no: ',num2str(i)])
-    saveas(gcf,[targetDirForce,'forceField',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
-    set(gca, 'DataAspectRatio', [1,1,50],'YDir','reverse')%,'XTick',[],'YTick',[])
+    if doPlot
+        figure(100)
+        quiver(pos_f(:,1),pos_f(:,2),force(:,1),force(:,2))
+        xlim([1 theXlim])
+        ylim([1 theYlim])
+    %    set(gca,'YDir','reverse')%,'XTick',[],'YTick',[])
+        title(['Force field frame no: ',num2str(i)])
+        saveas(gcf,[targetDirForce,'forceField',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
+        set(gca, 'DataAspectRatio', [1,1,50],'YDir','reverse')%,'XTick',[],'YTick',[])
+    end
     
     
     % Fill in the values to be stored:
