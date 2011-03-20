@@ -370,13 +370,9 @@ end
 
 save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments');
 
-%% Compute the residue of model 1 and 2 for each pair of tracks
+%% Compute the edge weight
 
-% Compute the support of each track feature
-cellParams = num2cell(allTrackParams(:,[1 2 4 5 6]),1);
-[xRange, yRange, nzIdx] = arrayfun(@(x0,y0,sX,sY,theta) ...
-    modelSupportFunc{1}(x0,y0,sX,sY,theta,kSigma,[nx ny]),...
-    cellParams{:},'UniformOutput', false);
+W = zeros(size(overlap));
 
 % Compute the segment parameters for each pair of tracks
 allSegmentParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
@@ -391,12 +387,30 @@ allSegmentParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
 allSegmentParams2 = vertcat(allSegmentParams2{:});
 allSegmentParams2 = num2cell(allSegmentParams2,1);
 
-[x1,y1,amp1,sx1,sy1,t1,bkg1] = allSegmentParams1{:};
-[x2,y2,amp2,sx2,sy2,t2,bkg2] = allSegmentParams2{:};
+[x1,y1,amp1,sx1,sy1,~,c1] = allSegmentParams1{:};
+[x2,y2,amp2,sx2,sy2,~,c2] = allSegmentParams2{:};
 
+% Compute the support of each track pair
 tC = atan2(y2-y1,x2-x1);
+ct = cos(tC);
+st = sin(tC);
+ex1 = x1 - sx1 .* ct;
+ey1 = y1 - sx1 .* st;
+ex2 = x2 + sx2 .* ct;
+ey2 = y2 + sx2 .* st;
+xC = .5 * (ex1+ex2);
+yC = .5 * (ey1+ey2);
+lC = sqrt((ex2-ex1).^2 + (ey2-ey1).^2);
+sC = .5 * (sy1+sy2);
+cC = .5 * (c1 + c2);
+amp1 = amp1 + (c1 - cC);
+amp2 = amp2 + (c2 - cC);
 
-% Compute the residue of each pair against model 1 & 2
+[xRangeAll, yRangeAll, nzIdxAll] = arrayfun(@(x0,y0,l0,s0,t0) ...
+    segment2DSupport(x0,y0,l0,s0,t0,kSigma,[nx ny]),...
+    xC,yC,lC,sC,tC,'UniformOutput', false);
+
+% Compute the error variance of each pair model
 imagePath = fullfile(movieData.imageDirectory, ...
     movieData.channelDirectory{iChannel});
 imageFiles = dir([imagePath filesep '*.tif']);
@@ -406,12 +420,6 @@ imageFiles = dir([imagePath filesep '*.tif']);
 ppLast = cumsum(overlap);
 ppFirst = ppLast-overlap+1;
 
-% residue for model 1 and 2 for each pair
-R1 = zeros(size(overlap));
-R2 = zeros(size(overlap));
-% number of pixels per pair (segment support over the overlap)
-N = zeros(size(overlap));
-
 for iFrame = 1:nFrames
     % Read image
     ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
@@ -419,85 +427,40 @@ for iFrame = 1:nFrames
     % Find which pair of CC is living at frame iFrame
     isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
     
-    % Compute the indices of arrays xRange, yRange, nzIdx
-    pIdx1 = pFirst1(isPairInFrame) + iFrame - tOverlapFirst(isPairInFrame);
-    pIdx2 = pFirst2(isPairInFrame) + iFrame - tOverlapFirst(isPairInFrame);
-
-    % Compute the indices of arrays allSegmentParams*
+    % Compute the indices of arrays allSegmentParams*, xRange, yRange, nzIdx
     ppIdx = ppFirst(isPairInFrame) + iFrame - tOverlapFirst(isPairInFrame);
     
     % Crop the image for the first feature of each pair
-    xRange1 = xRange(pIdx1);
-    yRange1 = yRange(pIdx1);
-    nzIdx1 = nzIdx(pIdx1);
+    xRange = xRangeAll(ppIdx);
+    yRange = yRangeAll(ppIdx);
+    nzIdx = nzIdxAll(ppIdx);
+    
+    imaCrops = cellfun(@(xR,yR) ima(yR,xR), xRange, yRange,...
+        'UniformOutput', false);
+    allPixels = cellfun(@(I,p) I(p), imaCrops, nzIdx,...
+        'UniformOutput', false);
 
-    imaCrops = cellfun(@(xR,yR) ima(yR,xR), xRange1, yRange1,...
-        'UniformOutput', false);
-    allPixels1 = cellfun(@(I,p) I(p), imaCrops, nzIdx1,...
-        'UniformOutput', false);
-
-    % Crop the image for the 2nd featue of each pair
-    xRange2 = xRange(pIdx2);
-    yRange2 = yRange(pIdx2);
-    nzIdx2 = nzIdx(pIdx2);
-    
-    imaCrops = cellfun(@(xR,yR) ima(yR,xR), xRange2, yRange2,...
-        'UniformOutput', false);
-    allPixels2 = cellfun(@(I,p) I(p), imaCrops, nzIdx2,...
-        'UniformOutput', false);
-    
-    % Compute model 1 (individual tracks model)
-    allModel11 = arrayfun(@(x,y,amp,sx,sy,t,bkg,xR,yR,nzIdx)...
-        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}) + bkg,...
-        x1(ppIdx), y1(ppIdx), amp1(ppIdx), sx1(ppIdx), sy1(ppIdx),...
-        t1(ppIdx), bkg1(ppIdx), xRange1, yRange1, nzIdx1,...
-        'UniformOutput', false);
-    
-    allModel12 = arrayfun(@(x,y,amp,sx,sy,t,bkg,xR,yR,nzIdx)...
-        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
-        x2(ppIdx), y2(ppIdx), amp2(ppIdx), sx2(ppIdx), sy2(ppIdx),...
-        t2(ppIdx), bkg2(ppIdx), xRange2, yRange2, nzIdx2,...
-        'UniformOutput', false);
-    
     % Concatenate every model 2 values (pair model)
-    allModel21 = arrayfun(@(x,y,amp,sx,sy,t,bkg,xR,yR,nzIdx)...
-        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}) + bkg,...
+    allModel1 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
+        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
         x1(ppIdx), y1(ppIdx), amp1(ppIdx), sx1(ppIdx), sy1(ppIdx),...
-        tC(ppIdx), bkg1(ppIdx), xRange1, yRange1, nzIdx1,...
-        'UniformOutput', false);
+        tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
     
-    allModel22 = arrayfun(@(x,y,amp,sx,sy,t,bkg,xR,yR,nzIdx)...
+    allModel2 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
         anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
         x2(ppIdx), y2(ppIdx), amp2(ppIdx), sx2(ppIdx), sy2(ppIdx),...
-        tC(ppIdx), bkg2(ppIdx), xRange2, yRange2, nzIdx2,...
-        'UniformOutput', false);
+        tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
     
-    % Compute the residue of model 1 and model 2
-    R1(isPairInFrame) = R1(isPairInFrame) + cellfun(@(I1,I2,m11,m12) ...
-        sum((I1 - m11).^2) + sum((I2 - m12).^2), ...
-        allPixels1, allPixels2, allModel11, allModel12);
+    vInv = arrayfun(@(I,m1,m2,bkg) ...
+        (numel(I{1}) - 1) / (sum((I{1} - m1{1} - m2{1} - bkg).^2)),...
+        allPixels, allModel1, allModel2, cC(ppIdx));
     
-    R2(isPairInFrame) = R2(isPairInFrame) + cellfun(@(I1,I2,m21,m22) ...
-        sum((I1 - m21).^2) + sum((I2 - m22).^2), ...
-        allPixels1, allPixels2, allModel21, allModel22);
+    M = maxWeightedMatching(nTracks,E(isPairInFrame,:), vInv);
     
-    N(isPairInFrame) = N(isPairInFrame) + cellfun(@numel, nzIdx1) + ...
-        cellfun(@numel, nzIdx2);
+    W(isPairInFrame) = W(isPairInFrame) + vInv .* M;
 end
 
-R1 = R1 ./ (N - 1);
-R2 = R2 ./ (N - 1);
-
-% Remove pair where model 2 is significantly better than model 1
-% Trim every array (TODO)
-
 %% Pairing
-
-% Define the edge weight as the negative log likelihood of the track
-% against model 2
-%W = (R2 - min(R2)) ./ (max(R2) - min(R2));
-%W = 1 ./ (W+1);
-W = ones(size(R2));
 
 % Compute Maximum Weighted Matching
 M = maxWeightedMatching(nTracks,E,W);
