@@ -43,7 +43,33 @@ classdef OutputRatioProcess < DoubleProcessingProcess
         
         function sanityCheck(obj)
         end
-        
+        function OK = checkChannelOutput(obj,iChan)
+            
+           %Checks if the selected channels have valid output images          
+           nChanTot = numel(obj.owner_.channels_);
+           if nargin < 2 || isempty(iChan)
+               iChan = 1:nChanTot;
+           end
+           
+           OK =  arrayfun(@(x)(x <= nChanTot && ...
+                             x > 0 && isequal(round(x),x) && ...
+                             (length(dir([obj.outImagePaths_{x} filesep '*.tif']))...
+                             == obj.owner_.nFrames_)),iChan);
+        end   
+        function fileNames = getOutImageFileNames(obj,iChan)
+            if obj.checkChannelOutput(iChan)
+                fileNames = cellfun(@(x)(imDir(x)),obj.outImagePaths_(iChan),'UniformOutput',false);
+                fileNames = cellfun(@(x)(arrayfun(@(x)(x.name),x,'UniformOutput',false)),fileNames,'UniformOutput',false);
+                nIm = cellfun(@(x)(length(x)),fileNames);
+                if ~all(nIm == obj.owner_.nFrames_)                    
+                    error('Incorrect number of images found in one or more channels!')
+                end                
+            else
+                error('Invalid channel numbers! Must be positive integers less than the number of image channels!')
+            end    
+            
+            
+        end
         function figHan = resultDisplay(obj)
                         
             figHan = msgbox(['The ratio images have been multiplied by a scale factor and saved as .tif images to the folder "' ...
