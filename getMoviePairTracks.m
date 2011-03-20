@@ -350,25 +350,25 @@ overlap = overlap(isValidPair);
 pFirst1 = pFirst1(isValidPair);
 pFirst2 = pFirst2(isValidPair);
 
-% %% DEBUG
-% segments = cell(nFrames,1);
-% for iFrame = 1:nFrames
-%     isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-%     
-%     % Get the coordinates of the extremities of the valid pair
-%     offset = iFrame - tOverlapFirst(isPairInFrame);
-%     ind1 = pFirst1(isPairInFrame) + offset;
-%     ind2 = pFirst2(isPairInFrame) + offset;
-%     
-%     x1 = allTrackParams(ind1,1);
-%     x2 = allTrackParams(ind2,1);
-%     y1 = allTrackParams(ind1,2);
-%     y2 = allTrackParams(ind2,2);
-%     
-%     segments{iFrame} = [x1 y1 x2 y2];
-% end
-% 
-% save(fullfile(movieData.pairTracks.directory, 'CCpairCands.mat'), 'segments');
+%% DEBUG
+segments = cell(nFrames,1);
+for iFrame = 1:nFrames
+    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+    
+    % Get the coordinates of the extremities of the valid pair
+    offset = iFrame - tOverlapFirst(isPairInFrame);
+    ind1 = pFirst1(isPairInFrame) + offset;
+    ind2 = pFirst2(isPairInFrame) + offset;
+    
+    x1 = allTrackParams(ind1,1);
+    x2 = allTrackParams(ind2,1);
+    y1 = allTrackParams(ind1,2);
+    y2 = allTrackParams(ind2,2);
+    
+    segments{iFrame} = [x1 y1 x2 y2];
+end
+
+save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments');
 
 %% Compute the residue of model 1 and 2 for each pair of tracks
 
@@ -493,13 +493,43 @@ R2 = R2 ./ (N - 1);
 
 %% Pairing
 
-% Define the weights as inversely proportional to the residue of model 2
-W = R2 - min(R2) + 1;
-W = 1 ./ W;
+% Define the edge weight as the negative log likelihood of the track
+% against model 2
+%W = (R2 - min(R2)) ./ (max(R2) - min(R2));
+%W = 1 ./ (W+1);
+W = ones(size(R2));
 
 % Compute Maximum Weighted Matching
-D = sparse(E(:,1),E(:,2),W,nTracks,nTracks,numel(W));
-M = maxWeightedMatching2(D,eps);
+M = maxWeightedMatching(nTracks,E,W);
+
+% Trim
+E = E(M,:);
+tOverlapFirst = tOverlapFirst(M);
+tOverlapLast = tOverlapLast(M);
+overlap = overlap(M);
+pFirst1 = pFirst1(M);
+pFirst2 = pFirst2(M);
+
+%% DEBUG
+segments = cell(nFrames,1);
+for iFrame = 1:nFrames
+    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+    
+    % Get the coordinates of the extremities of the valid pair
+    offset = iFrame - tOverlapFirst(isPairInFrame);
+    ind1 = pFirst1(isPairInFrame) + offset;
+    ind2 = pFirst2(isPairInFrame) + offset;
+    
+    x1 = allTrackParams(ind1,1);
+    x2 = allTrackParams(ind2,1);
+    y1 = allTrackParams(ind1,2);
+    y2 = allTrackParams(ind2,2);
+    
+    segments{iFrame} = [x1 y1 x2 y2];
+end
+
+save(fullfile(movieData.pairTracks.directory, 'pairTracks.mat'), 'segments');
+
 
 %% END
 movieData.pairTracks.status = 1;
