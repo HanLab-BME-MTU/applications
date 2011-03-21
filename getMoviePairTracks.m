@@ -177,13 +177,36 @@ overlap = overlap(hasOverlap);
 
 %% Compute the euclidian distance between pair of tracks
 
-% pFirst and pLast are indexing every variable named 'all*')
+% pFirst and pLast are indexing every variable named 'allTrack*'
 pLast = cumsum(lifetime);
 pFirst = pLast-lifetime+1;
 
 % Point the location of each track parameters for every pair
 pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
 pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
+
+% allPairParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,1:2),...
+%     pFirst1 + tOverlapFirst - tFirst(E(:,1)), overlap,...
+%     'UniformOutput', false);
+% allPairParams1 = vertcat(allPairParams1{:});
+% allPairParams1 = num2cell(allPairParams1,1);
+% 
+% allPairParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,1:2),...
+%     pFirst2 + tOverlapFirst - tFirst(E(:,2)), overlap,...
+%     'UniformOutput', false);
+% allPairParams2 = vertcat(allPairParams2{:});
+% allPairParams2 = num2cell(allPairParams2,1);
+% 
+% % ppFirst and ppLast are indexing every variable named 'allPair*'
+% ppLast = cumsum(overlap);
+% ppFirst = ppLast-overlap+1;
+% 
+% [x1,y1] = allPairParams1{:};
+% [x2,y2] = allPairParams2{:};
+% 
+% allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
+% 
+% PWD = arrayfun(@(a,b) mean(allPWD(a:a+b-1)), ppFirst, overlap);
 
 % sort overlap values
 [overlap idx] = sort(overlap);
@@ -200,7 +223,7 @@ lastIdx = find([-diff(-overlap); 1]);
 
 overlapValues = unique(overlap);
 
-euclidianDist = zeros(size(overlap));
+PWD = zeros(size(overlap));
 
 for k = 1:length(firstIdx)
     % indexes corresponding to overlap value
@@ -216,12 +239,12 @@ for k = 1:length(firstIdx)
     y2 = allTrackParams(idx2,2);
     
     % average distance
-    euclidianDist(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
+    PWD(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
         [length(range) overlapValues(k)]), 2);
 end
 
 % Trim arrays
-isCloseEnough = euclidianDist <= maxEuclidianDist;
+isCloseEnough = PWD <= maxEuclidianDist;
 E = E(isCloseEnough,:);
 overlap = overlap(isCloseEnough);
 tOverlapFirst = tOverlapFirst(isCloseEnough);
@@ -374,91 +397,131 @@ save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments')
 
 W = zeros(size(overlap));
 
-% Compute the segment parameters for each pair of tracks
-allSegmentParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
+allPairParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
     pFirst1 + tOverlapFirst - tFirst(E(:,1)), overlap,...
     'UniformOutput', false);
-allSegmentParams1 = vertcat(allSegmentParams1{:});
-allSegmentParams1 = num2cell(allSegmentParams1,1);
+allPairParams1 = vertcat(allPairParams1{:});
+allPairParams1 = num2cell(allPairParams1,1);
 
-allSegmentParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
+allPairParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
     pFirst2 + tOverlapFirst - tFirst(E(:,2)), overlap,...
     'UniformOutput', false);
-allSegmentParams2 = vertcat(allSegmentParams2{:});
-allSegmentParams2 = num2cell(allSegmentParams2,1);
+allPairParams2 = vertcat(allPairParams2{:});
+allPairParams2 = num2cell(allPairParams2,1);
+[x1,y1,~,sx1,~,t1,~] = allPairParams1{:};
+[x2,y2,~,sx2,~,t2,~] = allPairParams2{:};
 
-[x1,y1,amp1,sx1,sy1,~,c1] = allSegmentParams1{:};
-[x2,y2,amp2,sx2,sy2,~,c2] = allSegmentParams2{:};
+% WD is the weight associated with pairwise distance between pair of tracks
+allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
+WD = exp(-allPWD);
 
-% Compute the support of each track pair
-tC = atan2(y2-y1,x2-x1);
-ct = cos(tC);
-st = sin(tC);
-ex1 = x1 - sx1 .* ct;
-ey1 = y1 - sx1 .* st;
-ex2 = x2 + sx2 .* ct;
-ey2 = y2 + sx2 .* st;
-xC = .5 * (ex1+ex2);
-yC = .5 * (ey1+ey2);
-lC = sqrt((ex2-ex1).^2 + (ey2-ey1).^2);
-sC = .5 * (sy1+sy2);
-cC = .5 * (c1 + c2);
-amp1 = amp1 + (c1 - cC);
-amp2 = amp2 + (c2 - cC);
+% WA is the weight associated with the deviation of each feature from
+% the pair axis
+ct = cos(t1);
+st = sin(t1);
+x0 = x1 - sx1 .* ct;
+y0 = y1 - sx1 .* st;
+pD = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
+cos1 = sqrt(1 - (pD ./ sx1).^2);
 
-[xRangeAll, yRangeAll, nzIdxAll] = arrayfun(@(x0,y0,l0,s0,t0) ...
-    segment2DSupport(x0,y0,l0,s0,t0,kSigma,[nx ny]),...
-    xC,yC,lC,sC,tC,'UniformOutput', false);
+ct = cos(t2);
+st = sin(t2);
+x0 = x2 - sx2 .* ct;
+y0 = y2 - sx2 .* st;
+pD = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
+cos2 = sqrt(1 - (pD ./ sx2).^2);
 
-% Compute the error variance of each pair model
-imagePath = fullfile(movieData.imageDirectory, ...
-    movieData.channelDirectory{iChannel});
-imageFiles = dir([imagePath filesep '*.tif']);
+WA = .5 * (cos1 + cos2);
 
-% ppFirst is an array nPairs X 1 pointing to the first element of each pair
-% in allSegmentParams*
 ppLast = cumsum(overlap);
 ppFirst = ppLast-overlap+1;
 
-for iFrame = 1:nFrames
-    % Read image
-    ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
-        
-    % Find which pair of CC is living at frame iFrame
-    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-    
-    % Compute the indices of arrays allSegmentParams*, xRange, yRange, nzIdx
-    ppIdx = ppFirst(isPairInFrame) + iFrame - tOverlapFirst(isPairInFrame);
-    
-    % Crop the image for the first feature of each pair
-    xRange = xRangeAll(ppIdx);
-    yRange = yRangeAll(ppIdx);
-    nzIdx = nzIdxAll(ppIdx);
-    
-    imaCrops = cellfun(@(xR,yR) ima(yR,xR), xRange, yRange,...
-        'UniformOutput', false);
-    allPixels = cellfun(@(I,p) I(p), imaCrops, nzIdx,...
-        'UniformOutput', false);
+W = arrayfun(@(a,b) sum(WD(a:a+b-1) .* WA(a:a+b-1)), ppFirst, overlap);
 
-    % Concatenate every model 2 values (pair model)
-    allModel1 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
-        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
-        x1(ppIdx), y1(ppIdx), amp1(ppIdx), sx1(ppIdx), sy1(ppIdx),...
-        tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
-    
-    allModel2 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
-        anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
-        x2(ppIdx), y2(ppIdx), amp2(ppIdx), sx2(ppIdx), sy2(ppIdx),...
-        tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
-    
-    vInv = arrayfun(@(I,m1,m2,bkg) ...
-        (numel(I{1}) - 1) / (sum((I{1} - m1{1} - m2{1} - bkg).^2)),...
-        allPixels, allModel1, allModel2, cC(ppIdx));
-    
-    M = maxWeightedMatching(nTracks,E(isPairInFrame,:), vInv);
-    
-    W(isPairInFrame) = W(isPairInFrame) + vInv .* M;
-end
+%% Compute the edge weight
+% 
+% W = zeros(size(overlap));
+% 
+% % Compute the segment parameters for each pair of tracks
+% allPairParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
+%     pFirst1 + tOverlapFirst - tFirst(E(:,1)), overlap,...
+%     'UniformOutput', false);
+% allPairParams1 = vertcat(allPairParams1{:});
+% allPairParams1 = num2cell(allPairParams1,1);
+% 
+% allPairParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,:),...
+%     pFirst2 + tOverlapFirst - tFirst(E(:,2)), overlap,...
+%     'UniformOutput', false);
+% allPairParams2 = vertcat(allPairParams2{:});
+% allPairParams2 = num2cell(allPairParams2,1);
+% 
+% [x1,y1,amp1,sx1,sy1,~,c1] = allPairParams1{:};
+% [x2,y2,amp2,sx2,sy2,~,c2] = allPairParams2{:};
+% 
+% % Compute the support of each track pair
+% tC = atan2(y2-y1,x2-x1);
+% ct = cos(tC);
+% st = sin(tC);
+% ex1 = x1 - sx1 .* ct;
+% ey1 = y1 - sx1 .* st;
+% ex2 = x2 + sx2 .* ct;
+% ey2 = y2 + sx2 .* st;
+% xC = .5 * (ex1+ex2);
+% yC = .5 * (ey1+ey2);
+% lC = sqrt((ex2-ex1).^2 + (ey2-ey1).^2);
+% sC = .5 * (sy1+sy2);
+% cC = .5 * (c1 + c2);
+% amp1 = amp1 + (c1 - cC);
+% amp2 = amp2 + (c2 - cC);
+% 
+% [xRangeAll, yRangeAll, nzIdxAll] = arrayfun(@(x0,y0,l0,s0,t0) ...
+%     segment2DSupport(x0,y0,l0,s0,t0,kSigma,[nx ny]),...
+%     xC,yC,lC,sC,tC,'UniformOutput', false);
+% 
+% % Compute the error variance of each pair model
+% imagePath = fullfile(movieData.imageDirectory, ...
+%     movieData.channelDirectory{iChannel});
+% imageFiles = dir([imagePath filesep '*.tif']);
+% 
+% for iFrame = 1:nFrames
+%     % Read image
+%     ima = double(imread(fullfile(imagePath, imageFiles(iFrame).name)));
+%         
+%     % Find which pair of CC is living at frame iFrame
+%     isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+%     
+%     % Compute the indices of arrays allPairParams*, xRange, yRange, nzIdx
+%     ppIdx = ppFirst(isPairInFrame) + iFrame - tOverlapFirst(isPairInFrame);
+%     
+%     % Crop the image for the first feature of each pair
+%     xRange = xRangeAll(ppIdx);
+%     yRange = yRangeAll(ppIdx);
+%     nzIdx = nzIdxAll(ppIdx);
+%     
+%     imaCrops = cellfun(@(xR,yR) ima(yR,xR), xRange, yRange,...
+%         'UniformOutput', false);
+%     allPixels = cellfun(@(I,p) I(p), imaCrops, nzIdx,...
+%         'UniformOutput', false);
+% 
+%     % Concatenate every model 2 values (pair model)
+%     allModel1 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
+%         anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
+%         x1(ppIdx), y1(ppIdx), amp1(ppIdx), sx1(ppIdx), sy1(ppIdx),...
+%         tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
+%     
+%     allModel2 = arrayfun(@(x,y,amp,sx,sy,t,xR,yR,nzIdx)...
+%         anisoGaussian2D(x,y,amp,sx,sy,t,xR{1},yR{1},nzIdx{1}),...
+%         x2(ppIdx), y2(ppIdx), amp2(ppIdx), sx2(ppIdx), sy2(ppIdx),...
+%         tC(ppIdx), xRange, yRange, nzIdx,'UniformOutput', false);
+%     
+%     vInv = arrayfun(@(I,m1,m2,bkg) ...
+%         (numel(I{1}) - 1) / (sum((I{1} - m1{1} - m2{1} - bkg).^2)),...
+%         allPixels, allModel1, allModel2, cC(ppIdx));
+%     
+%     M = maxWeightedMatching(nTracks,E(isPairInFrame,:), vInv);
+%     
+%     W(isPairInFrame) = W(isPairInFrame) + vInv .* M;
+% end
 
 %% Pairing
 
@@ -492,7 +555,6 @@ for iFrame = 1:nFrames
 end
 
 save(fullfile(movieData.pairTracks.directory, 'pairTracks.mat'), 'segments');
-
 
 %% END
 movieData.pairTracks.status = 1;
