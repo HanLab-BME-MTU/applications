@@ -152,36 +152,41 @@ if ~justPlot
         % travDisMean is the mean of the distances traveled by the pair of
         % cells.            
             
-        %parfor subframe=frame:numFrames
-        for subframe=frame:numFrames
-            % Calculate the cell to cell distance, the distance of the
-            % center of mass to the wound edge and the direct distance and the traveled distance:
-            c2cDvec(:,subframe-frame+1)= pdist([xPos(:,subframe-frame+1) yPos(:,subframe-frame+1)]);
-            % c2edCOM(:,subframe-frame+1)= pdist( c2eD(:,subframe-frame+1),myMean);
-            
-            dirDist = sqrt((xPos(:,subframe-frame+1)-xPos(:,1)).^2+(yPos(:,subframe-frame+1)-yPos(:,1)).^2);
-            
-            trvDist = sum(sqrt((xPos(:,2:(subframe-frame+1))-xPos(:,1:(subframe-frame))).^2+(yPos(:,2:(subframe-frame+1))-yPos(:,1:(subframe-frame))).^2),2);
-            
-            %idVec=(1:numCells)';
-            %c2 = pdist(idVec,retX)';
-            %c1 = pdist(idVec,retY)';
-            
-            % [c1 c2]
-            dirDisC1=dirDist(c1);
-            dirDisC2=dirDist(c2);
-            dirDisMean(:,subframe-frame+1)=mean([dirDisC1 dirDisC2],2);
-            
-            trvDisC1=trvDist(c1);
-            trvDisC2=trvDist(c2);
-            trvDisMean(:,subframe-frame+1)=mean([trvDisC1 trvDisC2],2);
-            
-            
-            c2edC1=c2eD(c1,subframe-frame+1);
-            c2edC2=c2eD(c2,subframe-frame+1);            
-            c2edCOM(:,subframe-frame+1)=mean([c2edC1 c2edC2],2);
-        end       
-        
+        if numCells>1 % in case that there is at least 1 pair:
+            for subframe=frame:numFrames
+                % Calculate the cell to cell distance, the distance of the
+                % center of mass to the wound edge and the direct distance and the traveled distance:
+                c2cDvec(:,subframe-frame+1)= pdist([xPos(:,subframe-frame+1) yPos(:,subframe-frame+1)]);
+                % c2edCOM(:,subframe-frame+1)= pdist( c2eD(:,subframe-frame+1),myMean);
+
+                dirDist = sqrt((xPos(:,subframe-frame+1)-xPos(:,1)).^2+(yPos(:,subframe-frame+1)-yPos(:,1)).^2);
+
+                trvDist = sum(sqrt((xPos(:,2:(subframe-frame+1))-xPos(:,1:(subframe-frame))).^2+(yPos(:,2:(subframe-frame+1))-yPos(:,1:(subframe-frame))).^2),2);
+
+                %idVec=(1:numCells)';
+                %c2 = pdist(idVec,retX)';
+                %c1 = pdist(idVec,retY)';
+
+                % [c1 c2]
+                dirDisC1=dirDist(c1);
+                dirDisC2=dirDist(c2);
+                dirDisMean(:,subframe-frame+1)=mean([dirDisC1 dirDisC2],2);
+
+                trvDisC1=trvDist(c1);
+                trvDisC2=trvDist(c2);
+                trvDisMean(:,subframe-frame+1)=mean([trvDisC1 trvDisC2],2);
+
+
+                c2edC1=c2eD(c1,subframe-frame+1);
+                c2edC2=c2eD(c2,subframe-frame+1);            
+                c2edCOM(:,subframe-frame+1)=mean([c2edC1 c2edC2],2);
+            end       
+        else % there is not a single cell pair, might happen in single cell data:
+            c2cDvec=NaN;
+            c2edCOM=NaN;
+            dirDisMean=NaN;
+            trvDisMean=NaN;
+        end
         % Take only the pairs which are there at the beginning and which
         % are close together:
         maxPairDist=50;
@@ -202,20 +207,30 @@ if ~justPlot
            [~,bin]=histc(c2edCOMOI(:,1),0:bandWidth:maxDist+binPix);
         end
         
-        for binID=1:max(bin)
-            % find all cells that are in bin:
-            ptsId=(bin==binID);
-            % store the d(t) for each pair:
-            neigh(binID,frame).c2cDis  =    c2cDvecOI(ptsId,:);
-            neigh(binID,frame).c2cDD   =    c2cDvecOI(ptsId,:)-repmat(c2cDvecOI(ptsId,1),1,size(c2cDvecOI,2)); % change in relative distance over time        
-            neigh(binID,frame).dirDis  = dirDisMeanOI(ptsId,:);  % This is the mean value of the cell pair
-            neigh(binID,frame).trvDis  = trvDisMeanOI(ptsId,:);  % This is the mean value of the cell pair
+        if ~isempty(bin)
+            for binID=1:max(bin)
+                % find all cells that are in bin:
+                ptsId=(bin==binID);
+                % store the d(t) for each pair:
+                neigh(binID,frame).c2cDis  =    c2cDvecOI(ptsId,:);
+                neigh(binID,frame).c2cDD   =    c2cDvecOI(ptsId,:)-repmat(c2cDvecOI(ptsId,1),1,size(c2cDvecOI,2)); % change in relative distance over time        
+                neigh(binID,frame).dirDis  = dirDisMeanOI(ptsId,:);  % This is the mean value of the cell pair
+                neigh(binID,frame).trvDis  = trvDisMeanOI(ptsId,:);  % This is the mean value of the cell pair
+                
+                % Also store the average distance to the wound edge:
+                neigh(binID,frame).c2edMean = mean(c2edCOMOI(ptsId));
+                neigh(binID,frame).c2edSTD  =  std(c2edCOMOI(ptsId));
+            end
+        else  % this happens for single cell migration if there is not a single pair
+            neigh(1,frame).c2cDis  = [];
+            neigh(1,frame).c2cDD   = [];
+            neigh(1,frame).dirDis  = [];  % This is the mean value of the cell pair
+            neigh(1,frame).trvDis  = [];  % This is the mean value of the cell pair
             
             % Also store the average distance to the wound edge:
-            neigh(binID,frame).c2edMean = mean(c2edCOMOI(ptsId));
-            neigh(binID,frame).c2edSTD  =  std(c2edCOMOI(ptsId));
+            neigh(1,frame).c2edMean = [];
+            neigh(1,frame).c2edSTD  = [];
         end
-        
         clear c2cDvec c2edCOM dirDisMean c2edMean;
     end
     display('done');
@@ -299,6 +314,12 @@ if ~justPlot
         kPaClass(classID).velMatyCord               = velMatyCord;
         kPaClass(classID).velMatMag                 = velMatMag;
         kPaClass(classID).coveredDist               = coveredDist;
+
+        % Quick fix for single cell data. Should be removed later on:
+        [~,numFramesNew  ]=size(cell2edgeDist);
+        if sum(isnan(roughness))==length(roughness) && numFramesNew<length(roughness)
+            roughness(numFramesNew+1:end)=[];
+        end
         kPaClass(classID).roughness                 = roughness;
         
         kPaClass(classID).binData(numSetsInCl).cells       = densityMeasurement.cells;
@@ -360,7 +381,7 @@ if ~justPlot
             
             % Quick fix for single cell data. Should be removed later on:
             if sum(isnan(roughness))==length(roughness) && numFramesNew<length(roughness)
-                roughness(numFramesNew:end)=[];
+                roughness(numFramesNew+1:end)=[];
             end
             groupData.kPaClass(classID).roughness               = vertcat(padarray(groupData.kPaClass(classID).roughness       , [0,maxFrames-numFramesGroup], NaN,'post'),padarray(roughness          , [0,maxFrames-numFramesNew], NaN,'post'));
             
@@ -417,6 +438,14 @@ if ~justPlot
             kPaClass(classID).velMatyCord               = velMatyCord;
             kPaClass(classID).velMatMag                 = velMatMag;
             kPaClass(classID).coveredDist               = coveredDist;
+            
+            % Quick fix for single cell data. Should be removed later on:
+            [~,numFramesNew  ]=size(cell2edgeDist);
+            if sum(isnan(roughness))==length(roughness) && numFramesNew<length(roughness)
+                roughness(numFramesNew+1:end)=[];
+            end
+            kPaClass(classID).roughness                 = roughness;
+        
             kPaClass(classID).roughness                 = roughness;
             
             kPaClass(classID).binData(numSetsInCl).cells       = densityMeasurement.cells;
