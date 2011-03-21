@@ -91,14 +91,8 @@ function biosensorsPackageGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 %               Visited - logical true or false, if the movie has been
 %                         loaded to GUI before 
 %
-packageName = 'BiosensorsPackage';
-
 % Load movie data and recycle processes
 userfcn_iniPackage_commonCode;
-
-
-
-
 
 
 % UIWAIT makes biosensorsPackageGUI wait for user response (see UIRESUME)
@@ -114,6 +108,11 @@ function varargout = biosensorsPackageGUI_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+
+% In case the GUI has been called without argument
+if (isfield(handles,'startMovieSelectorGUI') && handles.startMovieSelectorGUI)
+    menu_file_open_Callback(hObject, eventdata, handles)
+end
 
 
 % --- Executes on button press in checkbox_1.
@@ -731,12 +730,12 @@ end
 function menu_file_open_Callback(hObject, eventdata, handles)
 % Call back function of 'New' in menu bar
 userData = get(handles.figure1,'Userdata');
-
-        for i = 1: length(userData.MD)
-            userData.MD(i).saveMovieData
-        end
-
-movieSelectorGUI
+if isfield(userData,'MD')
+    for i = 1: length(userData.MD)
+        userData.MD(i).saveMovieData
+    end
+end
+movieSelectorGUI(handles.packageName);
 delete(handles.figure1)
 
 
