@@ -357,6 +357,11 @@ if ~justPlot
             groupData.kPaClass(classID).velMatyCord             = vertcat(padarray(groupData.kPaClass(classID).velMatyCord     , [0,maxFrames-numFramesGroup], NaN,'post'),padarray(        velMatyCord, [0,maxFrames-numFramesNew], NaN,'post'));
             groupData.kPaClass(classID).velMatMag               = vertcat(padarray(groupData.kPaClass(classID).velMatMag       , [0,maxFrames-numFramesGroup], NaN,'post'),padarray(          velMatMag, [0,maxFrames-numFramesNew], NaN,'post'));
             groupData.kPaClass(classID).coveredDist             = vertcat(padarray(groupData.kPaClass(classID).coveredDist     , [0,maxFrames-numFramesGroup], NaN,'post'),padarray(coveredDist        , [0,maxFrames-numFramesNew], NaN,'post'));
+            
+            % Quick fix for single cell data. Should be removed later on:
+            if sum(isnan(roughness))==length(roughness) && numFramesNew<length(roughness)
+                roughness(numFramesNew:end)=[];
+            end
             groupData.kPaClass(classID).roughness               = vertcat(padarray(groupData.kPaClass(classID).roughness       , [0,maxFrames-numFramesGroup], NaN,'post'),padarray(roughness          , [0,maxFrames-numFramesNew], NaN,'post'));
             
             groupData.kPaClass(classID).binData(numSetsInCl).cells        = densityMeasurement.cells;

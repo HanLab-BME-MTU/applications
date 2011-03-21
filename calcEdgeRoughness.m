@@ -3,7 +3,7 @@ function [roughness,freqSpec]=calcEdgeRoughness(sheetEdge,r,toDoList)
 for frame=toDoList
     if length(sheetEdge(frame).pos(:,1))==1
         % This happens only if we have single cell data:
-        roughness=NaN*zeros(size(sheetEdge));
+        roughness=NaN*zeros(1,toDoList(end));
         
         freqSpec.ssA(1,frame)=NaN;
         freqSpec.f=NaN;
