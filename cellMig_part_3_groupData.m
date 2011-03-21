@@ -226,8 +226,6 @@ if ~justPlot
             neigh(1,frame).c2cDD   = [];
             neigh(1,frame).dirDis  = [];  % This is the mean value of the cell pair
             neigh(1,frame).trvDis  = [];  % This is the mean value of the cell pair
-            
-            % Also store the average distance to the wound edge:
             neigh(1,frame).c2edMean = [];
             neigh(1,frame).c2edSTD  = [];
         end
