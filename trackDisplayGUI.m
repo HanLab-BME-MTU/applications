@@ -362,7 +362,11 @@ else
         
         % show detection COM values
         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
-            plot(handles.fAxes{c}, handles.detection{c}(f).xcom, handles.detection{c}(f).ycom, 'x', 'Color', hsv2rgb([0/360 0.5 0.5]));
+            d = handles.detection{c}(f);
+            plot(handles.fAxes{c}, d.xcom, d.ycom, 'ro', 'MarkerSize', 8);
+            if isfield(d, 'xloc') && ~isempty(d.xloc)
+                plot(handles.fAxes{c}, d.xloc, d.yloc, 'gx', 'MarkerSize', 8);
+            end
         end
         hold(handles.fAxes{c}, 'off');
         
@@ -432,7 +436,7 @@ if ~isempty(handles.selectedTrack)
         plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h);
         l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         set(l, 'FontSize', 7);
-                        
+                     
         % plot current frame position
         ybounds = get(h, 'YLim');
         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');

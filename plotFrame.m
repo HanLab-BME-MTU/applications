@@ -110,6 +110,7 @@ switch mode
         end
         frame = zeros(ny,nx,3);
         idxRGB = assignColorsHSV(data.markers);
+        idxRGB = idxRGB(end:-1:1);
         for c = 1:nCh
             frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), iRange{c});
         end
