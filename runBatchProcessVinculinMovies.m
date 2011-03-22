@@ -2,9 +2,9 @@ function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/060910_cre_CSUX_1';
-params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
+%params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
 
 % name of the channel directory subfolders
@@ -50,7 +50,6 @@ params.pairTracks.timeGap = 0;
 params.pairTracks.maxEuclidianDist = 20;
 params.pairTracks.kSigma = 3;
 params.pairTracks.alpha = 0.05;
-params.pairTracks.probBinSize = 1e-4;
 
 % Run all processes
 batchProcessMyMovies(params);
