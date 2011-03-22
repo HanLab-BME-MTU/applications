@@ -97,11 +97,11 @@ for i=toDoList
             shMyoIIB_pattern='shMyoIIB';
             if strncmpi(cond, shMyoIIA_pattern, 8)
                 display(['I have set cond: ',cond,' to: ',shMyoIIA_pattern])
-                cond='shMyoIIA';
+                cond={'shMyoIIA'};
             end
             if strncmpi(cond, shMyoIIB_pattern , 8)
                 display(['I have set cond: ',cond,' to: ',shMyoIIB_pattern])
-                cond='shMyoIIB';
+                cond={'shMyoIIB'};
             end
         end
         groupData = cellMig_part_3_groupData(groupData,folderName,yModu_kPa,cc,cond);
