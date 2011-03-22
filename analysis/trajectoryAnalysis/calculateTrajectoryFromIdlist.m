@@ -182,7 +182,10 @@ end
 
 if checkIdlist(idlist,1)
     % calculate data from new idlist
-    [distance, distanceVectors, dummy, dummy, dummy, idxLists] = ...
+    %     [distance, distanceVectors, dummy, dummy, dummy, idxLists] = ...
+    %         idlist2distMat(idlist,dataProperties);
+    % extend output to get positions - KJ
+    [distance, distanceVectors, dummy, dummy, dummy, idxLists, dummy, positions] = ...
         idlist2distMat(idlist,dataProperties);
     
     % remove any fusions to each other, and estimated tags from the
@@ -220,7 +223,9 @@ if checkIdlist(idlist,1)
     % snrMax is not returned by idlist2distMat yet. I'll add that should I
     % ever need it.
     snrMax = [];
-    positions = []; % you can get all the relevant info from idlist2distMat
+    % comment out this line, since positions are now obtained from
+    % idlist2distMat
+    %     positions = []; % you can get all the relevant info from idlist2distMat
     sigmaZero = [];
     
     % isTracked will be 1 if any of the two tags has been found by the

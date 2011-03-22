@@ -1,11 +1,13 @@
-function [distance, distanceUnitVectors, displacement, displacementUnitVectors, idlist, idxLists, intensity] = idlist2distMat(idlist, dataProperties, correctDisplacement, allowEstimatedTags, tagOrder)
+function [distance, distanceUnitVectors, displacement, ...
+    displacementUnitVectors, idlist, idxLists, intensity, pointPositions] = ...
+    idlist2distMat(idlist, dataProperties, correctDisplacement, ...
+    allowEstimatedTags, tagOrder)
 %IDLIST2DISTMAT calculates distance matrices for idlists.
 %
-% SYNOPSIS: [distance, sigmaDistance, unitVectors,...
-%               displacement, displacementSigma, displacementUnitVectors...
-%               idlist, idxLists, intensity] ...
-%               = idlist2distMat(idlist, dataProperties, ...
-%                   correctDisplacement, allowEstimatedTags)
+% SYNOPSIS: [distance, distanceUnitVectors, displacement, ...
+%    displacementUnitVectors, idlist, idxLists, intensity, positions] = ...
+%    idlist2distMat(idlist, dataProperties, correctDisplacement, ...
+%    allowEstimatedTags, tagOrder)
 %
 % INPUT idlist: idlist2
 %       dataProperties: dataProperties-structure (see defaultDataProperties
@@ -49,6 +51,7 @@ function [distance, distanceUnitVectors, displacement, displacementUnitVectors, 
 %                   - goodTagIdx : index into the tags that have been used
 %                      to calculate distances
 %        intensity: list of tag intensities
+%        pointPositions: Tag coordinates and covariances.
 %
 % REMARKS Estimated spots, deleted frames are all converted into NaNs!
 %           (I know that displacements could be packed in the diagonal of
@@ -170,6 +173,7 @@ displacementUnitVectors = repmat(NaN,[nTimepoints-1, nTags, 3]);
 
 coco = repmat(NaN, [nTimepoints, 3]);
 points([1,2]) = struct('coordinates',coco,'covariances',coco);
+pointPositions = repmat(struct('coordinates',coco,'covariances',coco),nTags,1);
 
 % preassign idxLists
 idxLists = struct('estimatedTag',false(nTimepoints, nTags),...
@@ -247,7 +251,9 @@ for tag1 = 1:nTags
             error('sorry, correction %i has not been implemented yet',...
                 correctDisplacement);
     end
-
+    
+    %store positions for output - KJ
+    pointPositions(tag1) = points(1);
 
     % calculate displacement
     [d, sigmaD, unitVector] =  deltaCoordinates(points(1));
