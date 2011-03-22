@@ -1,5 +1,6 @@
 function [roughness,freqSpec]=calcEdgeRoughness(sheetEdge,r,toDoList)
 % first order the curve such that it starts at the bounderies:
+goOn=1;
 for frame=toDoList
     if length(sheetEdge(frame).pos(:,1))==1
         % This happens only if we have single cell data:
