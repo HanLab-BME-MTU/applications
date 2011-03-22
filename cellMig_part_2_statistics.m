@@ -41,6 +41,12 @@ if nargin<8 || isempty(batchJob)
 end
 
 try
+    sglCell;
+catch
+    sglCell=0;
+end
+
+try
     load('xDetectEdge.mat')
     load('xDetectNuclei.mat')
     load('xParameters.mat')
