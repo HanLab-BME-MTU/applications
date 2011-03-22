@@ -568,7 +568,7 @@ function montageButton_Callback(~, ~, handles)
 % Creates a montage based on the master track
 if ~isempty(handles.selectedTrack)
     stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
-    montagePlot(stack, 'Labels', handles.data.markers, 'Mode', 'RGB+gray');
+    montagePlot(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
 else
     fprintf('Cannot create montage: no track selected.');
 end
@@ -689,7 +689,7 @@ end
 
 stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
 fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.f) '_montage.eps'];
-montagePlot(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'Print', fpath, 'Mode', 'RGB+gray');
+montagePlot(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'Print', fpath, 'Mode', 'gray');
 
 fprintf('Printing done.\n');
 
