@@ -8,7 +8,7 @@ function stack = getTrackStack(data, track)
 
 nChannels = length(data.channels);
 
-masterChannel = find(strcmp(data.source, data.channels));
+masterChannel = find(strcmp(data(1).source, data(1).channels));
 slaveChannels = setdiff(1:nChannels, masterChannel);
 
 

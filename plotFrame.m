@@ -109,8 +109,7 @@ switch mode
             error('Max. 3 channels in RGB mode.');
         end
         frame = zeros(ny,nx,3);
-        idxRGB = assignColorsHSV(data.markers);
-        idxRGB = idxRGB(end:-1:1);
+        idxRGB = getRGBindex(data.markers);
         for c = 1:nCh
             frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), iRange{c});
         end
@@ -198,25 +197,4 @@ end
 
 if strcmp(visible, 'off')
     close(h);
-end
-
-
-function idxRGB = assignColorsHSV(markers)
-
-hue = cellfun(@(x) rgb2hsv(wavelength2rgb(name2wavelength(x))), markers, 'UniformOutput', false);
-hue = vertcat(hue{:});
-hue = hue(:,1); % retain only 'h' from hsv
-
-[hue, sortIdx] = sort(hue, 'descend');
-
-hueRef = [0 1/3 2/3]; % RGB
-N = length(markers);
-switch N
-    case 1
-        J = (hue-hueRef).^2;
-        idxRGB = find(J==min(J));
-    case {2,3}
-        idxRGB = sortIdx;
-    otherwise
-        error('Max. 3 channels for RGB display.');
 end
