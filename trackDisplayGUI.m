@@ -133,7 +133,7 @@ set(h, 'Value', 2);
 set(h, 'SliderStep', [1/(data.movieLength-1) 0.05]);
 
 h = handles.trackSlider;
-if ~isempty([handles.tracks{:}])
+if ~isempty([handles.tracks{:}]) && length(handles.tracks{handles.masterChannel}) > 1
     set(h, 'Min', 1);
     nTracks = length(handles.tracks{handles.masterChannel});
     set(h, 'Max', nTracks);
@@ -434,6 +434,7 @@ if ~isempty(handles.selectedTrack)
         end
         
         plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h);
+        box on;
         l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         set(l, 'FontSize', 7);
                      
@@ -631,6 +632,10 @@ guidata(hObject,handles);
 t = handles.tracks{1}(t);
 if handles.f < t.start || handles.f > t.end
     handles.f = t.start;
+    % set frame number
+    set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
+    % set frame slider
+    set(handles.frameSlider, 'Value', handles.f);
 end
 
 refreshFrameDisplay(hObject, handles);
@@ -681,6 +686,11 @@ else
             'Print', 'on', 'Visible', 'off');
     end
 end
+
+stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
+fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.f) '_montage.eps'];
+montagePlot(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'Print', fpath);
+
 fprintf('Printing done.\n');
 
 
