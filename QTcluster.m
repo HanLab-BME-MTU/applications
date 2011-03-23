@@ -1,4 +1,4 @@
-function [clusterResults] = QTcluster(experiment,rest,force);
+function [experiment] = QTcluster(experiment,rest,force);
 
 % QTcluster clusters initiations as defined by the rest vector in each
 % movie in experiment and saves results under each movie directory.
