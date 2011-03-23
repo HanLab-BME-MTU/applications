@@ -14,8 +14,8 @@ for bin=1:maxBin
             groupCorr=initCorr(groupCorr,bin,frame);
         end        
         
-        grpNumDr=length(groupCorr(bin,frame).RMean);
-        newNumDr=length(     corr(bin,frame).RMean);
+        grpNumDr=size(groupCorr(bin,frame).RMean,2);
+        newNumDr=size(     corr(bin,frame).RMean,2);
         
         groupCorr(bin,frame).RMean          = vertcat(padarray(groupCorr(bin,frame).RMean   , [0,max(grpNumDr,newNumDr)-grpNumDr], NaN  ,'post'), padarray(     corr(bin,frame).RMean    , [0,max(grpNumDr,newNumDr)-newNumDr], NaN  ,'post'));
         groupCorr(bin,frame).RSTD           = vertcat(padarray(groupCorr(bin,frame).RSTD    , [0,max(grpNumDr,newNumDr)-grpNumDr], NaN  ,'post'), padarray(     corr(bin,frame).RSTD     , [0,max(grpNumDr,newNumDr)-newNumDr], NaN  ,'post'));
