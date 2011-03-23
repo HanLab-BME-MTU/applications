@@ -688,7 +688,7 @@ else
 end
 
 stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
-fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.f) '_montage.eps'];
+fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
 montagePlot(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'Print', fpath, 'Mode', 'gray');
 
 fprintf('Printing done.\n');
