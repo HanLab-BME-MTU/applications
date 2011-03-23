@@ -39,12 +39,14 @@ function [clusterResults] = QTcluster(experiment,rest,force);
 %
 % Daniel Nunez, updated March 11, 2009
 
-%save old directory
-oldDir = cd;
+if nargin < 2 || isempty(rest)
+    rest = [1 1 4 1 300];
+end
 %set force variable
-if exist('force','var') == 0 || isempty(force)
+if nargin < 3 || isempty(force)
     force = 0;
 end
+
 
 %GET HOT SPOT RADIUS FROM DENSITY PLOTS
 [hotSpotRadius] = determineHotSpotRadius(experiment,rest);
@@ -54,13 +56,12 @@ end
 %FOR EACH MOVIE
 for iexp = 1:length(experiment)
 
-    waitHandle = waitbar(iexp/length(experiment),['clustering in progress ' num2str(iexp) ' out of ' num2str(length(experiment))]);
+    %waitHandle = waitbar(iexp/length(experiment),['clustering in progress ' num2str(iexp) ' out of ' num2str(length(experiment))]);
     
     if exist([experiment(iexp).source filesep 'ClusterData'],'dir') == 0 || force == 1 
     
     %Load Lifetime Information
-    cd([experiment(iexp).source filesep 'LifetimeInfo'])
-    load('lftInfo')
+    load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo.mat'])
     % status matrix
     statMat = full(lftInfo.Mat_status);
     % lifetime matrix
@@ -120,17 +121,17 @@ for iexp = 1:length(experiment)
     %already exists, do not overwrite but rather add a number by which to
     %identiofy this particular clusterResults; functions that use
     %clusterResults will have to take the latest result, or have the user
-    %specify a number to identy the result
+ %specify a number to identy the result
     filePath = [PATHNAME filesep 'ClusterData' filesep 'clusterResults_rad' num2str(round(hotSpotRadius)) '_' num2str(round(rest(4)))...
-        'to' num2str(round(rest(5))) 'lft'];
+        'to' num2str(round(rest(5))) 'lft_' datestr(now, 'yyyymmdd')];
     securesave(filePath,'clusterResults');
+    
+    experiment(iexp).clusterResults = clusterResults;
     
     end %of if needs to cluster
     
-    close(waitHandle)
+    %close(waitHandle)
     
 end %of for each movie
 
-%return to old directory
-cd(oldDir)
 end %of function
