@@ -22,7 +22,7 @@ function [experiment] = determineHotSpotFraction(experiment);
 %
 %
 % OUTPUT
-%           .hotSpotFraction =  pits found in hotspots divided by all pits 
+%           .hotSpotFraction =  pits found in hotspots divided by all pits
 %               analyzed by QTcluster function
 % Uses:
 %       addFieldClusterResults
@@ -32,13 +32,23 @@ function [experiment] = determineHotSpotFraction(experiment);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %add clustering results
-experiment = addFieldClusterResults(experiment);
+if ~isfield(experiment,'clusterResults')
+    experiment = addFieldClusterResults(experiment);
+end
 
 
 for iexp = 1:length(experiment)
-    %store pair in each experiment structure
-    experiment(iexp).hotSpotFraction = size(clusterResults.clusterResults(),1)...
-        /size(clusterResults.clusterResults,1);    
+    
+    if ~isempty(experiment(iexp).clusterResults)
+        clusterResults =  experiment(iexp).clusterResults.clusterResults;
+        
+        %store pair in each experiment structure
+        experiment(iexp).hotSpotFraction = size(clusterResults(clusterResults(:,3)~=0,:),1)...
+            /size(clusterResults,1);
+    else
+        experiment(iexp).hotSpotFraction = [];
+        display(['Movie number ' num2str(iexp) ' does not have clustering results'])
+    end
 end
 
 end %of function
