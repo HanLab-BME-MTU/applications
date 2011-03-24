@@ -44,7 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 global REFRACTIVE_INDEX
 
-REFRACTIVE_INDEX = 1.33;
+REFRACTIVE_INDEX = 1.33; %Added on 3/24/11 by Eugenio
 
 
 %---------------------------------------------------------------------------------------------------
