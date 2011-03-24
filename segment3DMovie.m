@@ -267,7 +267,8 @@ for iChan = 1:nChanSeg
            
         %We want to compress the masks, so don't use stackWrite.m
         for i = 1:size(currIm,3)
-            %Append each z-slice to the tiff
+            %Append each z-slice to the tiff. This uses matlab default
+            %compression for binary files - bitpacking.
             imwrite(currMask(:,:,i),[maskDir{iChan} filesep ...
             'mask_' imNames{iChan}{iImage}(1:end-3) 'tif'],'tif','WriteMode','append')
         end

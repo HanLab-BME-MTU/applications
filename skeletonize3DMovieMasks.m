@@ -1,8 +1,8 @@
-function movieData = skeletonize3dMovie(movieData,paramsIn)
-%SKELETONIZEMOVIE creates and saves skeletons for the masks in every frame of the input movie
+function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
+%SKELETONIZE3DMOVIEMASKS creates and saves skeletons for the masks in every frame of the input movie
 % 
-% movieData3D = skeletonize3dMovie(movieData3D)
-% movieData3D = skeletonize3dMovie(movieData3D,paramsIn)
+% movieData3D = skeletonize3DMovieMasks(movieData3D)
+% movieData3D = skeletonize3DMovieMasks(movieData3D,paramsIn)
 % 
 % This function skeletonizes the masks for every frame of the 3D movie
 % described by the input MovieData3D object. The skeleton is created by
@@ -127,7 +127,7 @@ skelDir = p.OutputDirectory;
 %And separate directories for graphs and skeletons if requested
 if p.GetGraph
     graphDir = [p.OutputDirectory filesep 'skeleton_graphs'];
-    mkClrDir(p.OutputDirectory);
+    mkClrDir(graphDir);
 end
 
 nFrames = movieData.nFrames_;
@@ -174,12 +174,12 @@ for iFrame = 1:nFrames
     if p.GetGraph
         %This skeletonization method produces 26-connected skeletons so we
         %need to use this connectivity for graph-ifying the skeleton.
-        [vertices,edges,edgePaths] = skel2graph(currSkel,26);      %#ok<NASGU,ASGLU>   
+        [vertices,edges,edgePaths] = skel2graph(currSkel,26);%#ok<NASGU,ASGLU>   
           
-        %Save graph structure to file    
+        %Save graph structure to file
         numStr = num2str(iFrame,fString); %zero-pad the frame number
         save([graphDir filesep 'skeleton_graph_frame_' numStr '.mat'],...
-                'vertices','edges','edgePaths');
+                'vertices','edges','edgePaths');            
     end
   
     if ~p.BatchMode && mod(iFrame,5)
@@ -191,6 +191,9 @@ end
 
 %% ---------- Finalization ---------- %%
 
+%Store the input/output directories in the movieData
+movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex,skelDir);
+movieData.processes_{iProc}.setInImagePath(p.ChannelIndex,maskDir);
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
