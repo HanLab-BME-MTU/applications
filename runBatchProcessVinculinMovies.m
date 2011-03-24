@@ -46,7 +46,6 @@ params.particleTracking.searchRadius = 5;
 params.pairTracks.iChannel = 1;
 params.pairTracks.bandWidth = 2000; % nm
 params.pairTracks.minOverlap = 1;
-params.pairTracks.timeGap = 0;
 params.pairTracks.maxEuclidianDist = 20;
 params.pairTracks.kSigma = 3;
 params.pairTracks.alpha = 0.05;
