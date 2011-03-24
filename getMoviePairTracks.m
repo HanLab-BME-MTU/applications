@@ -20,12 +20,6 @@ function movieData = getMoviePairTracks(movieData,iChannel,bandWidth,...
 %
 % alpha:                quantile of PDF tail. Default is 0.05.
 
-computePairWeightFunc = {...
-    @computePairWeight11,...
-    @computePairWeight12,...
-    @(params1,params2) computePairWeight12(params2,params1),...
-    @computePairWeight22};
-
 %% Parse input parameters
 
 if nargin < 3 || isempty(bandWidth)
@@ -480,7 +474,24 @@ for iLevel = 1:10
             avgAlignedParams(i,4) = atan2(p(1),1);
         end
         
+        X = avgAlignedParams(:,1);
+        Y = avgAlignedParams(:,2);
+        T = avgAlignedParams(:,4);
+        CT = cos(T);
+        ST = sin(T);
+        
         % sigma_x
+        X1 = X - .5 * ST;
+        X2 = X + .5 * ST;
+        Y1 = Y + .5 * CT;
+        Y2 = Y - .5 * CT;
+        
+        Dp = bsxfun(@times, X2 - X1, bsxfun(@minus,Y1,Yp)) - ...
+            bsxfun(@times, bsxfun(@minus,X1, Xp), Y2 - Y1);
+        avgAlignedParams(:,3) = .5 * (max(Dp,[],2) - min(Dp,[],2));
+        
+        % Dispatch avgAlignedParams into allCCPairParams1
+        % TODO
     end
     
     W = zeros(size(E,1),1);
