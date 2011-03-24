@@ -42,6 +42,9 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+global REFRACTIVE_INDEX
+
+REFRACTIVE_INDEX = 1.33;
 
 
 %---------------------------------------------------------------------------------------------------
@@ -227,6 +230,8 @@ end
 function edit_NA_txt_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+global REFRACTIVE_INDEX
+
 inp = get(hObject,'String');
 try %tries to convert input into double. If it fails or if input<0, input is deleted
     num = str2double(inp);
@@ -236,7 +241,7 @@ try %tries to convert input into double. If it fails or if input<0, input is del
         wvl = str2double(get(handles.edit_wavelength_txt,'String'));
         NA = num;
         [FT_XY, FT_Z] = calcFilterParms(...
-            wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+            wvl,NA,REFRACTIVE_INDEX,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
         patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
         handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
         set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
@@ -488,6 +493,7 @@ end
 % --- Executes on button press in edit_check_filter.
 function edit_check_filter_Callback(hObject, eventdata, handles)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+global REFRACTIVE_INDEX
 
 %if unselected, unselect everything else
 if get(hObject,'Value')
@@ -513,7 +519,7 @@ if get(hObject,'Value')
         NA = str2double(get(handles.edit_NA_txt,'String'));
         if ~isempty(NA)
             [FT_XY, FT_Z] = calcFilterParms(...
-                wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+                wvl(1),NA,REFRACTIVE_INDEX,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
 
             patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
             handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
@@ -1512,6 +1518,8 @@ function edit_sigmaCorrX_txt_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_sigmaCorrX_txt as text
 %        str2double(get(hObject,'String')) returns contents of edit_sigmaCorrX_txt as a double
+global REFRACTIVE_INDEX
+
 scx = str2double(get(hObject,'String'));
 if ~isfinite(scx)
     set(hObject,'String','1');
@@ -1522,7 +1530,7 @@ else
     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
     NA = str2double(get(handles.edit_NA_txt,'String'));
     [FT_XY, FT_Z] = calcFilterParms(...
-        wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+        wvl,NA,REFRACTIVE_INDEX,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
     patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
     handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
     set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
@@ -1551,7 +1559,7 @@ else
     wvl = str2double(get(handles.edit_wavelength_txt,'String'));
     NA = str2double(get(handles.edit_NA_txt,'String'));
     [FT_XY, FT_Z] = calcFilterParms(...
-        wvl,NA,1.51,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
+        wvl,NA,REFRACTIVE_INDEX,'gauss',handles.sigmaCorrection, handles.pixelsizeXYZ);
     patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
     handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
     set(handles.edit_filterX_txt,'String',sprintf('%0.3f',FT_XY));
