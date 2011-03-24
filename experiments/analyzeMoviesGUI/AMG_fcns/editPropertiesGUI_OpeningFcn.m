@@ -7,6 +7,8 @@ function editPropertiesGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to editPropertiesGUI (see VARARGIN)
 
+global REFRACTIVE_INDEX
+
 % Choose default command line output for editPropertiesGUI
 handles.output = hObject;
 
@@ -506,8 +508,8 @@ handles.previewData.movieLength = header.numTimepoints;
 % updated!!)
 
 if get(handles.checkH(1),'Value') == 1
-handles.sigmaCorrection(1) = 1.6;% changed 11/07 after finally measuring
-handles.sigmaCorrection(2) = 1.4;% changed 11/07 after finally measuring
+handles.sigmaCorrection(1) = 1.3;% changed 3/24/11 by Eugenio after finally measuring
+handles.sigmaCorrection(2) = 1.3;% changed 3/24/11 by Eugenio after finally measuring
 else
     handles.sigmaCorrection = myJob.dataProperties.sigmaCorrection;
 end
@@ -519,7 +521,7 @@ set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));
 
 if ~isempty(NA)
     [FT_XY, FT_Z] = calcFilterParms(...
-        header.wvl(1),NA,1.51,'gauss',handles.sigmaCorrection, [header.pixelX, header.pixelZ]);
+        header.wvl(1),NA,REFRACTIVE_INDEX,'gauss',handles.sigmaCorrection, [header.pixelX, header.pixelZ]);
 
     patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
     handles.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
