@@ -41,13 +41,17 @@ end
 
 %% -------- Init ------ %%
 
+nChan = 1;
+
 %Get the image file names etc
 imageNames = movieData3D.getImageFileNames(iChannel);
-imagePath = movieData3D.channels_(iChannel).channelPath_;
+imagePaths{1} = movieData3D.channels_(iChannel).channelPath_;
 nImages = movieData3D.nFrames_;
+chanCols = [1 0 0];
+chanRange = [0 2e16-2];
 
 %Start imaris and get app handle
-imarisApp = imarisStartNew(true);
+imarisApp = imarisStartNew(nargout==0);
 
 %Create a blank scene
 imarisScene = imarisApp.mFactory.CreateDataContainer;
@@ -56,13 +60,41 @@ imarisScene = imarisApp.mFactory.CreateDataContainer;
 imarisScene.AddChild(imarisApp.mFactory.CreateLightSource); %add the light to the scene
 imarisScene.AddChild(imarisApp.mFactory.CreateFrame); %add the frame to the scene
 
+%Check if we have masks or skeletons as these will be additional channels
+chanNames = {'Fluorescence','Masks','Skeleton'};
+               
+%Check for masks 
+iSegProc = movieData3D.getProcessIndex('SegmentationProcess3D',1,1);
+if ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iChannel)
+    disp('Masks found - displaying as additional channel.')
+    nChan = nChan + 1;
+    imagePaths{nChan} = movieData3D.processes_{iSegProc}.outMaskPaths_{iChannel};
+    imageNames{nChan} = movieData3D.processes_{iSegProc}.getOutMaskFileNames(iChannel);
+    imageNames{nChan} = imageNames{nChan}{1};%De-cell this element
+    chanCols = vertcat(chanCols,[1 1 1]);
+    chanRange = vertcat(chanRange,[0 2]);%We make the range go to slightly above 1 so the masks are transparent
+end
+
+%Check for skeletons
+iSkelProc = movieData3D.getProcessIndex('SkeletonizationProcess',1,1);
+if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel)
+    disp('Masks found - displaying as additional channel.')
+    nChan = nChan + 1;
+    imagePaths{nChan} = movieData3D.processes_{iSkelProc}.outImagePaths_{iChannel};
+    imageNames{nChan} = movieData3D.processes_{iSegProc}.getOutImageFileNames(iChannel);
+    imageNames{nChan} = imageNames{nChan}{1};%De-cell this element
+    chanCols = vertcat(chanCols,[0 0 1]);
+    chanRange = vertcat(chanRange,[0 1]);
+end
+
+
 %Initialize the volume data
 volData = imarisApp.mFactory.CreateDataSet;
 volData.Create('eTypeUint16',...
                 movieData3D.imSize_(1),... %Image sizes
                 movieData3D.imSize_(2),...
                 movieData3D.nSlices_,...
-                1,... %Number of Channels
+                nChan,... %Number of Channels
                 nImages); %Number of timepoints 
             
             
@@ -77,10 +109,6 @@ imarisApp.mDataSet.mExtendMaxY = imarisApp.mDataSet.mSizeY * movieData3D.pixelSi
 imarisApp.mDataSet.mExtendMaxZ = imarisApp.mDataSet.mSizeZ * movieData3D.zSpacing_;
 volData.mUnit = 'nm'; %Set units to nanometers
 
-%Set fluorescence channel to red, set display range to max
-imarisApp.mDataSet.SetChannelColor(0,1,0,0,1); 
-volData.SetChannelRange(0,0,2^16-1);
-
 %String for setting frame times. 
 oneFrame= movieData3D.timeInterval_/(24*60*60); %Fraction of day corresponding to one frame sec, for datestr.m use
 yearString = '2000-01-01 ';%The year/date doesn't seem to matter, so I just use this generic one
@@ -92,11 +120,36 @@ wtBar = waitbar(0,'Please wait, loading all images...');
 
 for iImage = 1:nImages
 
-    %Load the image
-    currIm = stackRead([imagePath filesep imageNames{1}{iImage}]);
+    for iChan = 1:nChan
     
-    %Add it to the imaris scene
-    volData.SetDataVolume(currIm,0,iImage-1); %Imaris indexes start at 0
+        if iImage == 1
+            %Set channel color and range
+            imarisApp.mDataSet.SetChannelColor(iChan-1,...
+                                        chanCols(iChan,1),...
+                                        chanCols(iChan,2),...
+                                        chanCols(iChan,3),0);                                 
+            imarisApp.mDataSet.SetChannelRange(iChan-1,...
+                                            chanRange(iChan,1),...
+                                            chanRange(iChan,2));
+                                        
+            imarisApp.mDataSet.SetChannelName(iChan-1,chanNames{iChan});
+            
+        end
+        
+        %Load the image
+        if iChan == 1
+            currIm = stackRead([imagePaths{iChan} filesep imageNames{iChan}{iImage}]);
+        else
+            %Stackread doesn't support the bitpacking compression of
+            %binary tifs
+            currIm = uint16(tif3Dread([imagePaths{iChan} filesep imageNames{iChan}{iImage}]));
+        end
+    
+        %Add it to the imaris scene
+        imarisApp.mDataSet.SetDataVolume(currIm,iChan-1,iImage-1); %Imaris indexes start at 0
+        
+    end
+        
     %Get the time string for this frame
     if iImage == 1
         %Datestr.m doesn't return the last portion if its all zeros...
@@ -107,14 +160,11 @@ for iImage = 1:nImages
         secString = secString(13:end);
     end
     tString = [yearString secString msString];
-    volData.SetTimePoint(iImage-1,tString);
-    
+    imarisApp.mDataSet.SetTimePoint(iImage-1,tString);
+
     waitbar(iImage/nImages,wtBar);
     
 end
-
-
-%% ----- Finalization ----- %%
 
 %Adjust the camera so all the data is in view
 imarisApp.mSurpassCamera.Fit;
@@ -122,6 +172,10 @@ imarisApp.mSurpassCamera.Fit;
 if ishandle(wtBar)
     close(wtBar);
 end
+
+
+
+
 
 
     
