@@ -98,15 +98,13 @@ volData.Create('eTypeUint16',...
                 nImages); %Number of timepoints 
             
             
-%Add this volume data to the scene
-imarisApp.mDataSet = volData;            
 %Set the pixel sizes
-imarisApp.mDataSet.mExtendMinX = 0;
-imarisApp.mDataSet.mExtendMinY = 0;
-imarisApp.mDataSet.mExtendMinZ = 0;
-imarisApp.mDataSet.mExtendMaxX = imarisApp.mDataSet.mSizeX * movieData3D.pixelSize_;
-imarisApp.mDataSet.mExtendMaxY = imarisApp.mDataSet.mSizeY * movieData3D.pixelSize_;
-imarisApp.mDataSet.mExtendMaxZ = imarisApp.mDataSet.mSizeZ * movieData3D.zSpacing_;
+volData.mExtendMinX = 0;
+volData.mExtendMinY = 0;
+volData.mExtendMinZ = 0;
+volData.mExtendMaxX = volData.mSizeX * movieData3D.pixelSize_;
+volData.mExtendMaxY = volData.mSizeY * movieData3D.pixelSize_;
+volData.mExtendMaxZ = volData.mSizeZ * movieData3D.zSpacing_;
 volData.mUnit = 'nm'; %Set units to nanometers
 
 %String for setting frame times. 
@@ -124,15 +122,15 @@ for iImage = 1:nImages
     
         if iImage == 1
             %Set channel color and range
-            imarisApp.mDataSet.SetChannelColor(iChan-1,...
+            volData.SetChannelColor(iChan-1,...
                                         chanCols(iChan,1),...
                                         chanCols(iChan,2),...
                                         chanCols(iChan,3),0);                                 
-            imarisApp.mDataSet.SetChannelRange(iChan-1,...
+            volData.SetChannelRange(iChan-1,...
                                             chanRange(iChan,1),...
                                             chanRange(iChan,2));
                                         
-            imarisApp.mDataSet.SetChannelName(iChan-1,chanNames{iChan});
+            volData.SetChannelName(iChan-1,chanNames{iChan});
             
         end
         
@@ -146,7 +144,7 @@ for iImage = 1:nImages
         end
     
         %Add it to the imaris scene
-        imarisApp.mDataSet.SetDataVolume(currIm,iChan-1,iImage-1); %Imaris indexes start at 0
+        volData.SetDataVolume(currIm,iChan-1,iImage-1); %Imaris indexes start at 0
         
     end
         
@@ -160,11 +158,14 @@ for iImage = 1:nImages
         secString = secString(13:end);
     end
     tString = [yearString secString msString];
-    imarisApp.mDataSet.SetTimePoint(iImage-1,tString);
+    volData.SetTimePoint(iImage-1,tString);
 
     waitbar(iImage/nImages,wtBar);
     
 end
+
+%Add this volume data to the scene
+imarisApp.mDataSet = volData;
 
 %Adjust the camera so all the data is in view
 imarisApp.mSurpassCamera.Fit;
