@@ -34,8 +34,9 @@ function maskProp = analyze3DMaskGeometry(maskIn,varargin)
 %
 % Output:
 %
-%   maskProp - A structure with fields containing the calculated surface
-%   properties. The fields include:
+%   maskProp - A 1xM structure, where M is the number of objects in the
+%   input mask, with fields containing the calculated properties. The
+%   fields include:
 %
 %       maskProp.Volume - The number of voxels each object occupies.
 %       maskProp.Centroid = The centroid of each object.
@@ -86,54 +87,76 @@ elseif isoVal >= 1 || isoVal <= 0
 end
 
 
-%% -------------- Property Calculation ------------------------- %%
-
-
-if smoothSig > 0    
-    %Smooth the shit out of the mask
-    smMask = fastGauss3D(double(maskIn),smoothSig);
-else
-    smMask = double(maskIn);
-end
-
-%Extract isosurface
-maskProp.SmoothedSurface = isosurface(smMask,isoVal);
-maskProp.SurfaceNorms = isonormals(smMask,maskProp.SmoothedSurface.vertices);
-
-%Calculate local gaussian and mean curvature of surface
-[maskProp.GaussianCurvature,maskProp.MeanCurvature] = surfaceCurvature(maskProp.SmoothedSurface,maskProp.SurfaceNorms);
-
-%Calculate principal curvatures at each face:
-maskProp.curvaturePC1 = maskProp.MeanCurvature + sqrt(maskProp.MeanCurvature .^2 - maskProp.GaussianCurvature);
-maskProp.curvaturePC2 = maskProp.MeanCurvature - sqrt(maskProp.MeanCurvature .^2 - maskProp.GaussianCurvature);
-
-%Get distance transform of mask interior
-distX = bwdist(~maskIn);
+%% --------------------------- Init ---------------------------- &&
 
 %Label the mask so we can calculate object-specific properties
 maskCC = bwconncomp(maskIn);
+labelMask = labelmatrix(maskCC);
 nObj = maskCC.NumObjects;
+
+
+%Initialize mask property structure
+maskProp(1:nObj) = struct('SmoothedSurface',[],...
+                          'SurfaceNorms',[],...
+                          'GaussianCurvature',[],...
+                          'CurvaturePC1',[],...
+                          'CurvaturePC2',[],...
+                          'PixelList',[],...
+                          'Centroid',[],...
+                          'Volume',[],...
+                          'CenterMostDist',[],...
+                          'CenterMost',[]);
+
+
+%% -------------- Property Calculation ------------------------- %%
+
 
 %Loop through the objects and get their properties
 for iObj = 1:nObj
+    
+    %Smooth each object independently to avoid object merging via
+    %smoothing.    
+    if smoothSig > 0    
+        %Smooth the shit out of the mask
+        smMask = fastGauss3D(double(labelMask==iObj),smoothSig);
+    else
+        smMask = double(labelMask==iObj);
+    end    
+
+    %Extract isosurface of this object
+    maskProp(iObj).SmoothedSurface = isosurface(smMask,isoVal);
+    maskProp(iObj).SurfaceNorms = isonormals(smMask,maskProp(iObj).SmoothedSurface.vertices);
+
+    %Calculate local gaussian and mean curvature of surface
+    [maskProp(iObj).GaussianCurvature,maskProp(iObj).MeanCurvature] =...
+        surfaceCurvature(maskProp(iObj).SmoothedSurface,maskProp(iObj).SurfaceNorms);
+
+    %Calculate principal curvatures at each face:
+    maskProp(iObj).CurvaturePC1 = maskProp(iObj).MeanCurvature + ...
+        sqrt(maskProp(iObj).MeanCurvature .^2 - maskProp(iObj).GaussianCurvature);
+    maskProp(iObj).CurvaturePC2 = maskProp(iObj).MeanCurvature - ...
+        sqrt(maskProp(iObj).MeanCurvature .^2 - maskProp(iObj).GaussianCurvature);
+
+    %Get distance transform of interior of this object
+    distX = bwdist(~(labelMask==iObj));
 
     %Get x-y-z coordinates of each point in this object.
     objCoord = [];
     [objCoord(:,2),objCoord(:,1),objCoord(:,3)] = ...
         ind2sub(size(maskIn),maskCC.PixelIdxList{iObj});
     
-    maskProp.PixelList{iObj} = maskCC.PixelIdxList{iObj};
-    maskProp.Centroid(iObj,:) = mean(objCoord,1);
-    maskProp.Volume(iObj) = numel(maskCC.PixelIdxList{iObj});
+    maskProp(iObj).PixelList{iObj} = maskCC.PixelIdxList{iObj};
+    maskProp(iObj).Centroid(iObj,:) = mean(objCoord,1);
+    maskProp(iObj).Volume(iObj) = numel(maskCC.PixelIdxList{iObj});
     
     %Find centermost point of this object
     currDistX = zeros(size(maskIn));
     currDistX(maskCC.PixelIdxList{iObj}) = distX(maskCC.PixelIdxList{iObj});    
-    maskProp.CenterMostDist(iObj) = max(currDistX(:));
+    maskProp(iObj).CenterMostDist(iObj) = max(currDistX(:));
     %Get x-y-z coordinates of this point
-    [maskProp.CenterMost{iObj}(:,2),maskProp.CenterMost{iObj}(:,1),...
-        maskProp.CenterMost{iObj}(:,3)] = ind2sub(size(maskIn),...
-        find(currDistX == maskProp.CenterMostDist(iObj))); %In case this is a non-unique point, get all of them
+    [maskProp(iObj).CenterMost{iObj}(:,2),maskProp(iObj).CenterMost{iObj}(:,1),...
+        maskProp(iObj).CenterMost{iObj}(:,3)] = ind2sub(size(maskIn),...
+        find(currDistX == maskProp(iObj).CenterMostDist(iObj))); %In case this is a non-unique point, get all of them
                  
     
 end
