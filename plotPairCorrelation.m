@@ -103,13 +103,6 @@ if nargin < 5 || isempty(statusValue)
 end
 
 
-
-%initialize
-for iexp = 1:length(experiment)
-experiment(iexp).pairCorrelation = [];
-experiment(iexp).pairCorrelationRandom = [];
-end
-
 for iexp = 1:length(experiment)
     
     %Load Lifetime Information
@@ -129,7 +122,7 @@ for iexp = 1:length(experiment)
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
-<<<<<<< .mine
+
     %pit status
     if isfield(experiment,'status')
         if isrow(experiment(iexp).status)
@@ -140,29 +133,14 @@ for iexp = 1:length(experiment)
     else
         status = ones(1,size(daMat,1));
     end
-=======
-    %use status to select for a population of pits
-    if isfield(experiment,'status')
-        status = experiment(iexp).status;
-    else
-        status = ones(1,size(daMat,1));
-    end
->>>>>>> .r6021
-    
+
     
     %find all pits in movie that meet requirements specified by restriction
     %vector
-<<<<<<< .mine
     findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
         (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
         repmat(status,1,size(statMat,2)) == statusValue);
 
-=======
-    findPos =((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) & ...
-        repmat(status',1,size(statMat,2)) == 1);
->>>>>>> .r6021
-    
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
     [areamask] = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],...
