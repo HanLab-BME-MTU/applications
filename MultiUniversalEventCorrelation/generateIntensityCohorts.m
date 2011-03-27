@@ -166,7 +166,7 @@ for i = 1:nMovies
     end
     
     % extract the positions with the desired parameters (e.g. lifetime range) from lftInfo data
-    [posvec nTracksRestricted] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
+    [posvec nTracksRestricted] = getCohortIndexes([data(i).source filesep 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
     
     for c = 1:nCohorts
         

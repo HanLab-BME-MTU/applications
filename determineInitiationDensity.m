@@ -1,4 +1,4 @@
-function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inputMask)
+function [experiment] = determineInitiationDensity(experiment,rest,plotMask,inputMask, fixDrift)
 
 % determineInitiationDensity calculates the density of pits defined by rest
 % and that fall within an inputMask
@@ -83,9 +83,9 @@ end
 if nargin < 4 || isempty(inputMask)
     inputMask = [];
 end
-
-%convert movie paths to correct OS
-    %[experiment]=changePathUsingEndocytosis(experiment);
+if nargin < 5 || isempty(fixDrift)
+    fixDrift = 0;
+end
 
 
 %make image binary
@@ -93,8 +93,16 @@ inputMask = im2bw(inputMask);
 
 for iexp = 1:length(experiment)
 
+<<<<<<< .mine
+   
+=======
+>>>>>>> .r6021
     %Load Lifetime Information
+<<<<<<< .mine
+    load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo.mat'])
+=======
     load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
+>>>>>>> .r6021
     % status matrix
     statMat = lftInfo.Mat_status;
     % lifetime matrix
@@ -110,6 +118,20 @@ for iexp = 1:length(experiment)
     %movie length
     movieLength = experiment(iexp).movieLength;
     imSize = experiment(iexp).imagesize;
+<<<<<<< .mine
+    %pit status
+    if isfield(experiment,'status')
+        status = experiment(iexp).status;
+    else
+        status = ones(1,size(daMat,1));
+    end
+    
+    %Not really ready for prime time yet
+    if fixDrift
+    [diffX, diffY] = determineFrame2FrameDrift(matX,matY, 1);
+    end
+    
+=======
     %use status to select for a population of pits
     if isfield(experiment,'status')
         status = experiment(iexp).status;
@@ -117,12 +139,18 @@ for iexp = 1:length(experiment)
         status = ones(1,size(daMat,1));
     end
     
+>>>>>>> .r6021
     %find all pits in movie that meet requirements specified by restriction
     %vector
-    findPos = find((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
+    findPos = find((statMat==rest(1,1))& (daMat==rest(1,2)) &...
         (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
+<<<<<<< .mine
+        repmat(status',1,size(statMat,2)) == 1);
+=======
         repmat(status',1,size(statMat,2)) == 1);
     
+>>>>>>> .r6021
+
 
     %get pits inside mask
     if exist('inputMask','var') && ~isempty(inputMask)
@@ -134,7 +162,11 @@ for iexp = 1:length(experiment)
     
     experiment(iexp).initiationDen = length(findPos)/normArea/movieLength;
     experiment(iexp).initiationDenUnits = length(findPos)/(normArea*0.067^2)/(movieLength*framerate)*60;
+<<<<<<< .mine
+    experiment(iexp).area2 = normArea;
+=======
 
+>>>>>>> .r6021
 end %for each experiment
 
 end %of function

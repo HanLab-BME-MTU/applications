@@ -138,10 +138,24 @@ for i = 1:nMovies
      
     end %of for each track
     
+    %changed track selection from being done with the lftStatus.mat to being
+    %done with the trackAnalysis.mat
     % extract the positions with the desired parameters (e.g. lifetime range) from lftInfo data
-    [posvec nTracksRestricted] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
+    [posvecOld nTracksRestrictedOld] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
+    
+    
+    posvec = cell(1,nCohorts);
     
     for c = 1:nCohorts
+        
+        posvec{c} = find([tracks.lifetime_s] >= cohortBounds(c) & [tracks.lifetime_s] < cohortBounds(c+1) ...
+            & [tracks.status] == restvector(1) & [[tracks.end] - [tracks.start]] > restvector(3)-1);
+        nTracksRestricted = find([tracks.status] == restvector(1) & [[tracks.end] - [tracks.start]] > restvector(3)-1);
+        
+        %temporarily here to ensure I didn't fuck up the code
+        if posvecOld{c} ~= posvec{c} || nTracksRestricted ~= nTracksRestrictedOld
+           error('tell danny if you see this error') 
+        end
         
         if ~isempty(status)
             posvec{c} = posvec{c}(data(i).statusVector(posvec{c}) == status); % select status
@@ -183,7 +197,7 @@ for c = 1:nCohorts
     end
 end
 
-plotIntensityCohorts(data, intRes, condition);
+%plotIntensityCohorts(data, intRes, condition);
 
 
 function [int_weighted, error_weighted] = alignCohort(data, restvector, reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, tvec_standard)
