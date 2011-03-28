@@ -7,7 +7,10 @@ function out = bilobePlot(inputData, dataName)
 %                   bilobesGfpKinetochore.
 %
 %
-
+%NOTES - KJ, 3.28.2011: 
+%Code still uses refractive index of oil, although
+%for analysis of movies we changed to refractive index of water
+%Code also still uses old sigmaCorrection values
 
 
 

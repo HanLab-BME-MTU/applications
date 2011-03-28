@@ -44,6 +44,11 @@ def_sampling = 0.001;
 
 %-------------------test input and assign defaults-------------------
 
+%KJ, 3.28.2011: since we changed analysis refractive index to that of water
+%(1.33) instead of oil (1.51), I am changing it here too.
+%I did not check whether that generates any inconsistencies in this code
+refractive_index = 1.33; 
+
 if nargin < 1 || isempty(slist)
     calcSlist = 1;
 elseif isstruct(slist)
@@ -110,7 +115,7 @@ if ~isfield(dataProperties,'CH_MAXSLOPE')
     dataProperties.cellCycle=0;
     dataProperties.strains=0;
     dataProperties.drugs=0;
-    dataProperties.temperature={'30°C'};
+    dataProperties.temperature={'30ï¿½C'};
     dataProperties.crop=[];
     dataProperties.CH_MAXSLOPE=0.0010;
     dataProperties.F_TEST_PROB=0.9000;
@@ -178,7 +183,7 @@ end
 
 % now that we know NA and wvl, we can calculate filterparms
 [FT_XY, FT_Z] = calcFilterParms(...
-    wvl,NA,1.51,'gauss',[], pixelSize(2:3));
+    wvl,NA,refractive_index,'gauss',[], pixelSize(2:3));
 patchXYZ=roundOddOrEven(4*[FT_XY FT_XY FT_Z],'odd','inf');
 dataProperties.FILTERPRM = [FT_XY,FT_XY,FT_Z,patchXYZ];
 
@@ -379,7 +384,7 @@ switch resample
 
         % calculate new psf
         [sxy,sz] = calcFilterParms(...
-            wvl,NA,1.51,'gauss',[], [sampling, sampling]);
+            wvl,NA,refractive_index,'gauss',[], [sampling, sampling]);
         psfSze=roundOddOrEven(2*sqrt(-2*[sxy,sxy,sz].^2*log(0.05)),'odd','inf');
         hPsf=floor(psfSze/2);
         

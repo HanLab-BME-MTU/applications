@@ -18,6 +18,10 @@ function intensities = cdCheckStretching_readIntensities(fitStruct,storeRatio)
 %       - same for s2c2, c1c2
 %
 %
+%
+%NOTE - KJ, 3.28.2011: Code still uses refractive index of oil, although
+%for analysis of movies we changed to refractive index of water
+%
 % if there is any cen1*, don't read out at all
 
 idlist = fitStruct.idlist;
@@ -236,7 +240,7 @@ for t=goodTimes'
         vectorList = vectorList./repmat(pix2mu,size(vectorList,1),1);
 
 
-        % figure out the good direction: xy-vector within 0...45, 135...180°
+        % figure out the good direction: xy-vector within 0...45, 135...180ï¿½
         % means we're going along x-axis
         if abs(angXY)<45 || abs(angXY)>135
             direction = 1;

@@ -17,6 +17,9 @@ function cdCheckStretching(type,storeRatio)
 % created by: jdorn
 % DATE: 26-Feb-2007
 %
+%NOTE - KJ, 3.28.2011: Code still uses refractive index of oil, although
+%for analysis of movies we changed to refractive index of water
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 warningState = warning;

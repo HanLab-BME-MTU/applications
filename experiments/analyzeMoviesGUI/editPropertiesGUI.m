@@ -510,8 +510,10 @@ if get(hObject,'Value')
     % reset sigmaCorrection
     ans = questdlg('Do you also want to update sigmaCorrection?','','yes','no','yes');
     if strcmp(ans,'yes')
-        handles.sigmaCorrection(1) = 1.6;% changed 11/07 after finally measuring
-        handles.sigmaCorrection(2) = 1.4;% changed 11/07 after finally measuring
+        %         handles.sigmaCorrection(1) = 1.6;% changed 11/07 after finally measuring
+        %         handles.sigmaCorrection(2) = 1.4;% changed 11/07 after finally measuring
+        handles.sigmaCorrection(1) = 1.3;% changed 03/11 given Eugenio's new measurements - KJ
+        handles.sigmaCorrection(2) = 1.3;% changed 03/11 given Eugenio's new measurements - KJ
         set(handles.edit_sigmaCorrX_txt,'String',handles.sigmaCorrection(1));
         set(handles.edit_sigmaCorrY_txt,'String',handles.sigmaCorrection(1));
         set(handles.edit_sigmaCorrZ_txt,'String',handles.sigmaCorrection(2));

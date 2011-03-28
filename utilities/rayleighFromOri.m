@@ -33,7 +33,8 @@ function [rayleighLimit, angle] = rayleighFromOri(normedVectors, wavelength, NA,
 % defaults
 def_wvl = 0.525;
 def_NA  = 1.4;
-def_n   = 1.518;
+% def_n   = 1.518;
+def_n   = 1.33; %KJ: changed to that of water, given kinetochore meeting discussion on 3.24.2011
 def_gob = 'bessel';
 def_sc  = [1 1];
 

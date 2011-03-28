@@ -14,6 +14,9 @@ function [spbCorrection,alignmentVectors] = bilobesGfpKinetochoresAlignment
 % created by: Jonas Dorn
 % DATE: 27-Oct-2006
 %
+%NOTE - KJ, 3.28.2011: Code still uses refractive index of oil, although
+%for analysis of movies we changed to refractive index of water
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % search files

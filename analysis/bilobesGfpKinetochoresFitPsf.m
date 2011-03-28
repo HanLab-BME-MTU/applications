@@ -1,5 +1,8 @@
 function sigmaCorrections = bilobesGfpKinetochoresFitPsf
 % fit of Gauss to PSF of raw/decon image pairs of SPBs
+%
+%NOTE - KJ, 3.28.2011: Code still uses refractive index of oil, although
+%for analysis of movies we changed to refractive index of water
 
 
 
