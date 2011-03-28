@@ -349,6 +349,10 @@ save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments')
 
 clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
 
+% IMPORTANT: from here on, we can clear tOverlapFirst, overlap, pFirst1 and
+% pFirst2 since they will be recomputed during each next iteration.
+clear tOverlapFirst overlap pFirst1 pFirst2;
+
 %% Iterative track clustering
 
 % CC: a cell array of connected components. Each connected component
@@ -359,21 +363,8 @@ nCC = numel(CC);
 
 % IMPORTANT: from here on, E points to CC index
 
-for iLevel = 1:10
+for iLevel = 1:1
     
-    % Compute the number of tracks in each pair of CC
-    nTracksCC1 = cellfun(@numel,CC(E(:,1)));
-    nTracksCC2 = cellfun(@numel,CC(E(:,2)));
-
-    % Compute the time span of each CC    
-    tOverlapFirst = cellfun(@(cc1,cc2) max(min(tFirst(cc1)), ...
-        min(tFirst(cc2))), CC(E(:,1)), CC(E(:,2)));
-    
-    tOverlapLast = cellfun(@(cc1,cc2) min(max(tLast(cc1)), ...
-        max(tLast(cc2))), CC(E(:,1)), CC(E(:,2)));
-    
-    overlap = tOverlapLast - tOverlapFirst + 1;
-        
     % The time span of the pair does not cover each track in each CC
     % evenly. Example:
     %
@@ -396,198 +387,99 @@ for iLevel = 1:10
     % track 4: partially included in the time span of the CC pair (6-14)
     % track 5: fully excluded from the time span of the CC pair
     
-    % To benefit from array linearization, we treat CC pairs independly
-    % according to the number of tracks they contain
+    % Compute the time span of each CC
+    tOverlapFirst = cellfun(@(cc1,cc2) max(min(tFirst(cc1)), ...
+        min(tFirst(cc2))), CC(E(:,1)), CC(E(:,2)));
     
-    allCCPairParams1 = zeros(sum(overlap),4);
+    tOverlapLast = cellfun(@(cc1,cc2) min(max(tLast(cc1)), ...
+        max(tLast(cc2))), CC(E(:,1)), CC(E(:,2)));
     
-    numTracksInCC = unique(nTracksCC1);
+    overlap = tOverlapLast - tOverlapFirst + 1;
+        
+    % Compute model parameters of each CC
+    allCCPairParams1 = computeCCPairParams(allTrackParams,tFirst,tLast,...
+        pFirst,CC(E(:,1)),tOverlapFirst,tOverlapLast,overlap);
     
-    % TODO: for each pair where iNumTracks == 1, simply dispatch 
+    allCCPairParams2 = computeCCPairParams(allTrackParams,tFirst,tLast,...
+        pFirst,CC(E(:,2)),tOverlapFirst,tOverlapLast,overlap);
     
-    for iNumTracks = numTracksInCC
-        % Find which CC contains iNumTracks tracks
-        isPair = nTracksCC1 == iNumTracks;
-        
-        % Concatenate the CC indices. CC1 is an array of size nnz(isPair) x
-        % iNumTracks.
-        CC1 = CC(E(isPair,1));
-        CC1 = vertcat(CC1{:});
-        
-        % Compute the overlap between each track in CC1 and the overlap
-        % region between the 2 CCs
-        tOverlapPerTrackFirst = max(tFirst(CC1), ...
-            repmat(tOverlapFirst(isPair), 1, iNumTracks));
-        
-        tOverlapPerTrackLast = min(tLast(CC1), ...
-            repmat(tOverlapLast(isPair), 1, iNumTracks));
-        
-        overlapPerTrack = tOverlapPerTrackLast - tOverlapPerTrackFirst + 1;
-        
-        pRhs = pFirst(CC1) + tOverlapPerTrackFirst - tFirst(CC1);
+    % Compute the edge weight
+    allCCPairParams1 = num2cell(allCCPairParams1,1);
+    [x1,y1,sx1,t1] = allCCPairParams1{:};
+    
+    allCCPairParams2 = num2cell(allCCPairParams2,1);
+    [x2,y2,sx2,t2] = allCCPairParams2{:};
 
-        % params in a cell array of nnz(isPair) x iNumTracks where each
-        % cell contains the track parameters. 
-        params = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]), ...
-            pRhs, overlapPerTrack, 'UniformOutput', false);
-        
-        % Define the array that is going to contain all aligned track
-        % params.
-        alignedParams = NaN(sum(overlap(isPair)), 4 * iNumTracks);
-        
-        % Compute the indices in alignedParams where params elements need to
-        % be placed.
-        pLhs = cumsum(overlap(isPair),1);
-        pLhs = repmat(pLhs - overlap(isPair) + 1 - tOverlapFirst(isPair), ...
-            1, iNumTracks) + tOverlapPerTrackFirst;
-        
-        for iTrack = 1:iNumTracks   
-            iRow = arrayfun(@(a,b) (a:a+b-1)', pLhs(:,iTrack), ...
-                overlapPerTrack(:,iTrack), 'UniformOutput', false);
-            iRow = vertcat(iRow{:});
-            iCol = 4 * (iTrack-1) + 1;
-            
-            alignedParams(iRow,iCol:iCol+3) = vertcat(params{:,iTrack});
-        end
-        
-        % Compute the average of each parameter over each track in CC
-        avgAlignedParams = zeros(sum(overlap(isPair)), 4);
-
-        % x,y
-        X = alignedParams(:,1:4:end);
-        Y = alignedParams(:,2:4:end);
-        
-        avgAlignedParams(:,1) = nanmean(X,2);
-        avgAlignedParams(:,2) = nanmean(Y,2);
-        
-        % theta
-        SX = alignedParams(:,3:4:end);
-        T = alignedParams(:,4:4:end);
-        CT = cos(T);
-        ST = sin(T);
-        
-        Xp = [X + SX .* CT, X - SX .* CT];
-        Yp = [Y + SX .* ST, Y - SX .* ST];
-
-        for i = 1:size(Xp,1)
-            x = Xp(i,:);
-            y = Yp(i,:);
-            p = polyfit(x(~isnan(x)), y(~isnan(y)),1);
-            avgAlignedParams(i,4) = atan2(p(1),1);
-        end
-        
-        X = avgAlignedParams(:,1);
-        Y = avgAlignedParams(:,2);
-        T = avgAlignedParams(:,4);
-        CT = cos(T);
-        ST = sin(T);
-        
-        % sigma_x
-        X1 = X - .5 * ST;
-        X2 = X + .5 * ST;
-        Y1 = Y + .5 * CT;
-        Y2 = Y - .5 * CT;
-        
-        Dp = bsxfun(@times, X2 - X1, bsxfun(@minus,Y1,Yp)) - ...
-            bsxfun(@times, bsxfun(@minus,X1, Xp), Y2 - Y1);
-        avgAlignedParams(:,3) = .5 * (max(Dp,[],2) - min(Dp,[],2));
-        
-        % Dispatch avgAlignedParams into allCCPairParams1
-        pLhs = cumsum(overlap);
-        pLhs = pLhs - overlap + 1;
-        pLhs = arrayfun(@(a,b) (a:a+b-1)', pLhs(isPair), overlap(isPair), ...
-            'UniformOutput', false);
-        allCCPairParams1(vertcat(pLhs{:}), :) = avgAlignedParams;
-    end
+    % WD is the weight associated with pairwise distance between pair of CC
+    allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
+    WD = (allPWD + 1).^(-1/2);
     
-    W = zeros(size(E,1),1);
+    % WA is the weight associated with the deviation of each feature from
+    % the pair axis
+    ct = cos(t1);
+    st = sin(t1);
+    x0 = x1 - sx1 .* ct;
+    y0 = y1 - sx1 .* st;
+    pD1 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
     
+    ct = cos(t2);
+    st = sin(t2);
+    x0 = x2 - sx2 .* ct;
+    y0 = y2 - sx2 .* st;
+    pD2 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
     
+    WA = exp(-.5 * (pD1.^2 + pD2.^2));
+    
+    ppLast = cumsum(overlap);
+    ppFirst = ppLast-overlap+1;
+    
+    W = arrayfun(@(a,b) mean(WA(a:a+b-1) .* WD(a:a+b-1)), ppFirst, overlap);
+    
+    % Compute the pairwise matching
     M = maxWeightedMatching(nCC,E,W);
+
+    % Threshold
+    % TODO
+    
+    % Update CC and other related variables
+    % TODO
+    
+    % Save CC
+    
+    
+    
+    % There are 3 categories of CC pairs:
+    % - unmatching pairs: keep them in E and create
+    % - significant matched pairs: remove them from E and create new
+    % - unsignificant matched pairs: remove them once and for all
+    
+%     % Trim arrays
+%     E = E(M,:);
+%     tOverlapFirst = tOverlapFirst(M);
+%     overlap = overlap(M);
+%     pFirst1 = pFirst1(M);
+%     pFirst2 = pFirst2(M);
+%     
+%     % DEBUG
+%     segments = cell(nFrames,1);
+%     for iFrame = 1:nFrames
+%         isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+%         
+%         % Get the coordinates of the extremities of the valid pair
+%         offset = iFrame - tOverlapFirst(isPairInFrame);
+%         ind1 = pFirst1(isPairInFrame) + offset;
+%         ind2 = pFirst2(isPairInFrame) + offset;
+%         
+%         x1 = allTrackParams(ind1,1);
+%         x2 = allTrackParams(ind2,1);
+%         y1 = allTrackParams(ind1,2);
+%         y2 = allTrackParams(ind2,2);
+%         
+%         segments{iFrame} = [x1 y1 x2 y2];
+%     end
+%     
+%     save(fullfile(movieData.pairTracks.directory, 'pairTracks.mat'), 'segments');
 end
-
-
-%% Compute the edge weight
-
-allPairParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
-    pFirst1, overlap,'UniformOutput', false);
-allPairParams1 = vertcat(allPairParams1{:});
-allPairParams1 = num2cell(allPairParams1,1);
-[x1,y1,sx1,t1] = allPairParams1{:};
-
-allPairParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
-    pFirst2, overlap,'UniformOutput', false);
-allPairParams2 = vertcat(allPairParams2{:});
-allPairParams2 = num2cell(allPairParams2,1);
-[x2,y2,sx2,t2] = allPairParams2{:};
-
-% WD is the weight associated with pairwise distance between pair of tracks
-allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
-WD = (allPWD + 1).^(-1/2);
-
-% WA is the weight associated with the deviation of each feature from
-% the pair axis
-ct = cos(t1);
-st = sin(t1);
-x0 = x1 - sx1 .* ct;
-y0 = y1 - sx1 .* st;
-pD1 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
-
-ct = cos(t2);
-st = sin(t2);
-x0 = x2 - sx2 .* ct;
-y0 = y2 - sx2 .* st;
-pD2 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
-
-WA = exp(-.5 * (pD1.^2 + pD2.^2));
-
-ppLast = cumsum(overlap);
-ppFirst = ppLast-overlap+1;
-
-W = arrayfun(@(a,b) mean(WA(a:a+b-1) .* WD(a:a+b-1)), ppFirst, overlap);
-
-%% Compute First Pairing
-
-% Compute Maximum Weighted Matching
-M = maxWeightedMatching(nTracks,E,W);
-
-% There are 3 categories of track pairs:
-% - unmatching pairs: keep them in E and create 
-%
-% - significant matched pairs: remove them from E and create new
-% - unsignificant matched pairs: remove them once and for all
-
-% Trim arrays
-E = E(M,:);
-tOverlapFirst = tOverlapFirst(M);
-overlap = overlap(M);
-pFirst1 = pFirst1(M);
-pFirst2 = pFirst2(M);
-
-%% DEBUG
-segments = cell(nFrames,1);
-for iFrame = 1:nFrames
-    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-    
-    % Get the coordinates of the extremities of the valid pair
-    offset = iFrame - tOverlapFirst(isPairInFrame);
-    ind1 = pFirst1(isPairInFrame) + offset;
-    ind2 = pFirst2(isPairInFrame) + offset;
-    
-    x1 = allTrackParams(ind1,1);
-    x2 = allTrackParams(ind2,1);
-    y1 = allTrackParams(ind1,2);
-    y2 = allTrackParams(ind2,2);
-    
-    segments{iFrame} = [x1 y1 x2 y2];
-end
-
-save(fullfile(movieData.pairTracks.directory, 'pairTracksBeforeTheshold.mat'), 'segments');
-
-% Clean
 
 %% END
 movieData.pairTracks.status = 1;
-
-%%
-function W = computePairWeight00(allCCparams1,params2)
