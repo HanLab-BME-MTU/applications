@@ -403,6 +403,8 @@ for iLevel = 1:10
     
     numTracksInCC = unique(nTracksCC1);
     
+    % TODO: for each pair where iNumTracks == 1, simply dispatch 
+    
     for iNumTracks = numTracksInCC
         % Find which CC contains iNumTracks tracks
         isPair = nTracksCC1 == iNumTracks;
@@ -491,7 +493,11 @@ for iLevel = 1:10
         avgAlignedParams(:,3) = .5 * (max(Dp,[],2) - min(Dp,[],2));
         
         % Dispatch avgAlignedParams into allCCPairParams1
-        % TODO
+        pLhs = cumsum(overlap);
+        pLhs = pLhs - overlap + 1;
+        pLhs = arrayfun(@(a,b) (a:a+b-1)', pLhs(isPair), overlap(isPair), ...
+            'UniformOutput', false);
+        allCCPairParams1(vertcat(pLhs{:}), :) = avgAlignedParams;
     end
     
     W = zeros(size(E,1),1);
