@@ -438,47 +438,20 @@ for iLevel = 1:1
     % Compute the pairwise matching
     M = maxWeightedMatching(nCC,E,W);
 
+    % There are 3 categories of CC pairs:
+    % - unmatching pairs: keep them in E and create
+    % - significant matched pairs: remove them from E and create new
+    % - unsignificant matched pairs: remove them once and for all
+
     % Threshold
     % TODO
     
     % Update CC and other related variables
     % TODO
     
-    % Save CC
-    
-    
-    
-    % There are 3 categories of CC pairs:
-    % - unmatching pairs: keep them in E and create
-    % - significant matched pairs: remove them from E and create new
-    % - unsignificant matched pairs: remove them once and for all
-    
-%     % Trim arrays
-%     E = E(M,:);
-%     tOverlapFirst = tOverlapFirst(M);
-%     overlap = overlap(M);
-%     pFirst1 = pFirst1(M);
-%     pFirst2 = pFirst2(M);
-%     
-%     % DEBUG
-%     segments = cell(nFrames,1);
-%     for iFrame = 1:nFrames
-%         isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-%         
-%         % Get the coordinates of the extremities of the valid pair
-%         offset = iFrame - tOverlapFirst(isPairInFrame);
-%         ind1 = pFirst1(isPairInFrame) + offset;
-%         ind2 = pFirst2(isPairInFrame) + offset;
-%         
-%         x1 = allTrackParams(ind1,1);
-%         x2 = allTrackParams(ind2,1);
-%         y1 = allTrackParams(ind1,2);
-%         y2 = allTrackParams(ind2,2);
-%         
-%         segments{iFrame} = [x1 y1 x2 y2];
-%     end
-%     
-%     save(fullfile(movieData.pairTracks.directory, 'pairTracks.mat'), 'segments');
+    % Save CC into a file
+    % Save labeled tracks into a file
+    % TODO
 end
 
 %% END
