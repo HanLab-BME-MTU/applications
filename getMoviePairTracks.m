@@ -106,8 +106,8 @@ for iFrame = 1:nFrames
     allTrackParams(ind,7) = bkg(tracksFeatIndx(ind));
 end
 
-clear featuresInfo tracksFinal tracksFeatIndx ind xCoord yCoord amp sX ...
-    sY theta bkg iFrame;
+clear featuresInfo tracksFeatIndx ind xCoord yCoord amp sX sY theta bkg ...
+    iFrame;
 
 %% Interpolate feature parameters in gaps
 gacombIdx = diff(isnan(allTrackParams(:,1)));
@@ -365,9 +365,9 @@ nCC = numel(CC);
 
 % IMPORTANT: from here on, E points to CC index
 
-for iLevel = 1:1
+for iter = 1:1
     
-    fprintf(1, 'Iterative Track Clustering level %d\n', iLevel);
+    fprintf(1, 'Iterative Track Clustering level %d\n', iter);
     fprintf(1, '\tNumber of connected components:\t%d\n', nCC);
     fprintf(1, '\tNumber of pair candidates:\t%d\n', size(E,1));
     
@@ -388,7 +388,7 @@ for iLevel = 1:1
     % x21 y21 l21 t21 (1st segment model at t = tFirstCC(2)
     % ...
     
-    allCCParams = nan(sum(overlapCC), 4);
+    allCCParams = nan(sum(lifetimeCC), 4);
 
     nTracksCC = cellfun(@numel,CC);
     
@@ -407,26 +407,29 @@ for iLevel = 1:1
         % the tFirstCC and tFirst
         tOffsetPerTrack = bsxfun(@minus, tFirst(cc) ,tFirstCC);
 
-        allAlignedTrackParams = NaN(sum(overlapCC(isPair)) * iNumTracks, 4);
+        allAlignedTrackParams = NaN(sum(lifetimeCC(isPair)) * iNumTracks, 4);
         
         rhs = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
             pFirst(cc(:)), lifetime(cc(:)), 'UniformOutput', false);
         rhs = vertcat(rhs{:});
 
-        pLhs = cumsum(lifetime(cc(:)));
-        pLhs = pLhs - lifetime(cc(:)) + 1;
-        pLhs = pLhs + tOffsetPerTrack(:);        
+        indRow = cumsum(lifetime(cc(:)));
+        indRow = indRow - lifetime(cc(:)) + 1;
+        indRow = indRow + tOffsetPerTrack(:);        
+        indRow = arrayfun(@(a,b) (a:a+b-1)', indRow, lifetime(cc(:)), ...
+            'UniformOutput', false);
+        indRow = vertcat(indRow{:});
         
-        allAlignedTrackParams(pLhs,:) = rhs;
+        allAlignedTrackParams(indRow,:) = rhs;
         
         allAlignedTrackParams = reshape(allAlignedTrackParams, ...
-            sum(overlapCC(isPair)), 4 * iNumTracks);
+            sum(lifetimeCC(isPair)), 4 * iNumTracks);
         
         % Compute model parameters
         if iNumTracks == 1
             allCCParamsIter = allAlignedTrackParams;
         else
-            allCCParamsIter = zeros(sum(overlap(isPair)), 4);
+            allCCParamsIter = zeros(sum(lifetimeCC(isPair)), 4);
             
             % x,y
             X = allAlignedTrackParams(:,1:4:end);
@@ -476,31 +479,57 @@ for iLevel = 1:1
         allCCParams(indRow,:) = allCCParamsIter;
     end
 
-    % Save labeled tracks into a file
     % Save allCCParams into a file (use the same color as for the tracks)
-    % TODO
+    segments = cell(nFrames,1);
+    for iFrame = 1:nFrames
+        isCCInFrame = iFrame >= tFirstCC & iFrame <= tLastCC;
+    
+        indRow = pFirst(isCCInFrame) + iFrame - tFirstCC(isCCInFrame);
+        
+        x = allCCParams(indRow,1);
+        y = allCCParams(indRow,2);
+        l = allCCParams(indRow,3);
+        t = allCCParams(indRow,4);
+        ct = cos(t);
+        st = sin(t);
+        
+        x1 = x + l .* ct;
+        y1 = y + l .* st;
+        x2 = x - l .* ct;
+        y2 = y - l .* st;
+        
+        segments{iFrame} = [x1 y1 x2 y2];
+    end
+    save(fullfile(movieData.pairTracks.directory, ...
+        ['CCParams_iter=' num2str(iter-1) '_.mat']), 'segments');
+
+    % Save labeled tracks into a file
+    trackLabels = zeros(nTracks,1);
+    for iCC = 1:nCC
+        trackLabels(CC{iCC}) = iCC;
+    end
+    assert(nnz(trackLabels) == numel(trackLabels));
+    save(fullfile(movieData.pairTracks.directory, ...
+        ['ClassifiedTracks_iter=' num2str(iter-1) '_.mat']), ...
+        'tracksFinal', 'trackLabels');
     
     % Compute the overlap between CC
-    tOverlapFirst = cellfun(@(cc1,cc2) max(min(tFirst(cc1)), ...
-        min(tFirst(cc2))), CC(E(:,1)), CC(E(:,2)));
-    
-    tOverlapLast = cellfun(@(cc1,cc2) min(max(tLast(cc1)), ...
-        max(tLast(cc2))), CC(E(:,1)), CC(E(:,2)));
-    
+    tOverlapFirst = max(tFirstCC(E(:,1)), tFirstCC(E(:,2)));
+    tOverlapLast = min(tLastCC(E(:,1)), tLastCC(E(:,2)));    
     overlap = tOverlapLast - tOverlapFirst + 1;    
     
     ppLast = cumsum(overlap);
     ppFirst = ppLast-overlap+1;
     
     indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,1)) + ...
-        tFirstCC(E(:,1)) - tOverlapFirst, overlap(E(:,1)), ...
+        tOverlapFirst - tFirstCC(E(:,1)), overlap, ...
         'UniformOutput', false);
     indRow = vertcat(indRow{:});
     
     allCCParams1 = allCCParams(indRow,:);
     
     indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,2)) + ...
-        tFirstCC(E(:,2)) - tOverlapFirst, overlap(E(:,2)), ...
+        tOverlapFirst - tFirstCC(E(:,2)), overlap, ...
         'UniformOutput', false);
     indRow = vertcat(indRow{:});
     
