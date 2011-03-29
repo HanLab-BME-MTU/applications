@@ -10,13 +10,13 @@ if ~exist('tracksFinal', 'var')
     error('Unable to find track feature info.');
 end
 
-if ~exist('trackColors', 'var')
-    error('Unable to find track colors.');
+if ~exist('trackLabels', 'var')
+    error('Unable to find track labels.');
 end
 
-if numel(tracksFinal) ~= size(trackColors,1) %#ok<NODEF>
-    error('number of tracks and track colors differ.');
-end
+nLabels = max(trackLabels);
+
+colors = hsv(nLabels);
 
 trackSEL = getTrackSEL(tracksFinal);
 
@@ -41,7 +41,7 @@ for iFrame = 1:nFrames
         isValid = ~isnan(x);
         
         tracks(iiTrack).trackCoords = [x(isValid)', y(isValid)'];
-        tracks(iiTrack).color = trackColors(iTrack,:);
+        tracks(iiTrack).color = colors(trackLabels(iTrack),:);
     end
     
     dataLayer{iFrame} = tracks;
