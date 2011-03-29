@@ -10,23 +10,17 @@ if ~exist('tracksFinal', 'var')
     error('Unable to find track feature info.');
 end
 
-if ~exist('trackLabels', 'var')
-    error('Unable to find track labels.');
+if ~exist('trackColors', 'var')
+    error('Unable to find track colors.');
 end
 
-nLabels = max(trackLabels);
+if numel(tracksFinal) ~= size(trackColors,1) %#ok<NODEF>
+    error('number of tracks and track colors differ.');
+end
 
-colors = hsv(nLabels);
-
-trackSEL = getTrackSEL(tracksFinal); %#ok<NODEF>
+trackSEL = getTrackSEL(tracksFinal);
 
 dataLayer = cell(nFrames,1);
-
-% Find the non-compound tracks
-isCompoundTrack = cellfun(@(x) size(x,1) ~= 1, {tracksFinal(:).tracksCoordAmpCG})';
-
-tracksFinal = tracksFinal(~isCompoundTrack);
-trackSEL = trackSEL(~isCompoundTrack,:);
 
 for iFrame = 1:nFrames
     % Find which tracks live in iFrame
@@ -47,7 +41,7 @@ for iFrame = 1:nFrames
         isValid = ~isnan(x);
         
         tracks(iiTrack).trackCoords = [x(isValid)', y(isValid)'];
-        tracks(iiTrack).color = colors(trackLabels(iTrack),:);
+        tracks(iiTrack).color = trackColors(iTrack,:);
     end
     
     dataLayer{iFrame} = tracks;

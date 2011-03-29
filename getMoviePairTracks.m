@@ -128,6 +128,8 @@ for iGap = 1:nGaps
     allTrackParams(gacombIdx,7) = interp1(borderIdx, allTrackParams(borderIdx,7), gacombIdx);
 end
 
+assert(all(~isnan(allTrackParams(:))));
+
 clear gacombIdx gapStarts gapEnds gapLengths nGaps borderIdx gacombIdx iGap;
 
 %% Find the set of track pairs that overlap in time
@@ -350,7 +352,7 @@ save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments')
 clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
 
 % IMPORTANT: from here on, we can clear tOverlapFirst, overlap, pFirst1 and
-% pFirst2 since they will be recomputed during each next iteration.
+% pFirst2 since they will be recomputed at next step.
 clear tOverlapFirst overlap pFirst1 pFirst2;
 
 %% Iterative track clustering
@@ -365,50 +367,151 @@ nCC = numel(CC);
 
 for iLevel = 1:1
     
-    % The time span of the pair does not cover each track in each CC
-    % evenly. Example:
-    %
-    % CC1 contains tracks 1, 2, 3
-    % CC2 contains tracks 4, 5
-    %
-    % track 1: tFirst = 1, tLast = 5
-    % track 2: tFirst = 3, tLast = 9
-    % track 3: tFirst = 7, tLast = 14
-    % track 4: tFirst = 6, tLast = 20
-    % track 5: tFirst = 17, tLast = 30
-    %
-    % tOverlapFirst = max(min(1,3,7), min(6,17)) = 6
-    % tOverlapLast = min(max(5,9,14), max(20,30)) = 14
-    % overlap = 9
-    %
-    % track 1: is not included in the time span of the CC pair
-    % track 2: partially included in the time span of the CC pair (6-9)
-    % track 3: fully included in the time span of the CC pair
-    % track 4: partially included in the time span of the CC pair (6-14)
-    % track 5: fully excluded from the time span of the CC pair
+    fprintf(1, 'Iterative Track Clustering level %d\n', iLevel);
+    fprintf(1, '\tNumber of connected components:\t%d\n', nCC);
+    fprintf(1, '\tNumber of pair candidates:\t%d\n', size(E,1));
     
-    % Compute the time span of each CC
+    tFirstCC = cellfun(@(cc) min(tFirst(cc)), CC); % first frame of CC
+    tLastCC = cellfun(@(cc) max(tLast(cc)), CC);   % last frame of CC
+    lifetimeCC = tLastCC - tFirstCC + 1;           % lifetime of CC
+    
+    % pFirst and pLast are indexing every variable named 'allTrack*'
+    pLast = cumsum(lifetimeCC);
+    pFirst = pLast-lifetimeCC+1;
+    
+    % Compute model parameters of each CC
+    %
+    % x11 y11 l11 t11 (1st segment model at t = tFirstCC(1)
+    % x12 y12 l12 t12 (2nd segment model at t = tFirstCC(1) + 1
+    % ...
+    % x1n y1n l1n t1n (nth segment model at t = tLastCC(1)
+    % x21 y21 l21 t21 (1st segment model at t = tFirstCC(2)
+    % ...
+    
+    allCCParams = nan(sum(overlapCC), 4);
+
+    nTracksCC = cellfun(@numel,CC);
+    
+    numTracksInCC = unique(nTracksCC);
+
+    for iNumTracks = numTracksInCC
+        % Find which CC contains iNumTracks tracks
+        isPair = nTracksCC == iNumTracks;
+    
+        % Concatenate the CC indices. cc is an array of size nnz(isPair) x
+        % iNumTracks.
+        cc = CC(isPair);
+        cc = vertcat(cc{:});
+        
+        % For each track within each CC, compute the time offset between
+        % the tFirstCC and tFirst
+        tOffsetPerTrack = bsxfun(@minus, tFirst(cc) ,tFirstCC);
+
+        allAlignedTrackParams = NaN(sum(overlapCC(isPair)) * iNumTracks, 4);
+        
+        rhs = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
+            pFirst(cc(:)), lifetime(cc(:)), 'UniformOutput', false);
+        rhs = vertcat(rhs{:});
+
+        pLhs = cumsum(lifetime(cc(:)));
+        pLhs = pLhs - lifetime(cc(:)) + 1;
+        pLhs = pLhs + tOffsetPerTrack(:);        
+        
+        allAlignedTrackParams(pLhs,:) = rhs;
+        
+        allAlignedTrackParams = reshape(allAlignedTrackParams, ...
+            sum(overlapCC(isPair)), 4 * iNumTracks);
+        
+        % Compute model parameters
+        if iNumTracks == 1
+            allCCParamsIter = allAlignedTrackParams;
+        else
+            allCCParamsIter = zeros(sum(overlap(isPair)), 4);
+            
+            % x,y
+            X = allAlignedTrackParams(:,1:4:end);
+            Y = allAlignedTrackParams(:,2:4:end);
+            
+            allCCParamsIter(:,1) = nanmean(X,2);
+            allCCParamsIter(:,2) = nanmean(Y,2);
+            
+            % theta
+            SX = allAlignedTrackParams(:,3:4:end);
+            T = allAlignedTrackParams(:,4:4:end);
+            CT = cos(T);
+            ST = sin(T);
+            
+            Xp = [X + SX .* CT, X - SX .* CT];
+            Yp = [Y + SX .* ST, Y - SX .* ST];
+            
+            for i = 1:size(Xp,1)
+                x = Xp(i,:);
+                y = Yp(i,:);
+                p = polyfit(x(~isnan(x)), y(~isnan(y)),1);
+                allCCParamsIter(i,4) = atan2(p(1),1);
+            end
+            
+            X = allCCParamsIter(:,1);
+            Y = allCCParamsIter(:,2);
+            T = allCCParamsIter(:,4);
+            CT = cos(T);
+            ST = sin(T);
+            
+            % sigma_x
+            X1 = X - .5 * ST;
+            X2 = X + .5 * ST;
+            Y1 = Y + .5 * CT;
+            Y2 = Y - .5 * CT;
+            
+            Dp = bsxfun(@times, X2 - X1, bsxfun(@minus,Y1,Yp)) - ...
+                bsxfun(@times, bsxfun(@minus,X1, Xp), Y2 - Y1);
+            allCCParamsIter(:,3) = .5 * (max(Dp,[],2) - min(Dp,[],2));
+        end
+        
+        % Dispatch model parameters into allCCParams
+        indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(isPair), ...
+            lifetimeCC(isPair), 'UniformOutput', false);
+        indRow = vertcat(indRow{:});
+        
+        allCCParams(indRow,:) = allCCParamsIter;
+    end
+
+    % Save labeled tracks into a file
+    % Save allCCParams into a file (use the same color as for the tracks)
+    % TODO
+    
+    % Compute the overlap between CC
     tOverlapFirst = cellfun(@(cc1,cc2) max(min(tFirst(cc1)), ...
         min(tFirst(cc2))), CC(E(:,1)), CC(E(:,2)));
     
     tOverlapLast = cellfun(@(cc1,cc2) min(max(tLast(cc1)), ...
         max(tLast(cc2))), CC(E(:,1)), CC(E(:,2)));
     
-    overlap = tOverlapLast - tOverlapFirst + 1;
-        
-    % Compute model parameters of each CC
-    allCCPairParams1 = computeCCPairParams(allTrackParams,tFirst,tLast,...
-        pFirst,CC(E(:,1)),tOverlapFirst,tOverlapLast,overlap);
+    overlap = tOverlapLast - tOverlapFirst + 1;    
     
-    allCCPairParams2 = computeCCPairParams(allTrackParams,tFirst,tLast,...
-        pFirst,CC(E(:,2)),tOverlapFirst,tOverlapLast,overlap);
+    ppLast = cumsum(overlap);
+    ppFirst = ppLast-overlap+1;
     
+    indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,1)) + ...
+        tFirstCC(E(:,1)) - tOverlapFirst, overlap(E(:,1)), ...
+        'UniformOutput', false);
+    indRow = vertcat(indRow{:});
+    
+    allCCParams1 = allCCParams(indRow,:);
+    
+    indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,2)) + ...
+        tFirstCC(E(:,2)) - tOverlapFirst, overlap(E(:,2)), ...
+        'UniformOutput', false);
+    indRow = vertcat(indRow{:});
+    
+    allCCParams2 = allCCParams(indRow,:);
+
     % Compute the edge weight
-    allCCPairParams1 = num2cell(allCCPairParams1,1);
-    [x1,y1,sx1,t1] = allCCPairParams1{:};
+    allCCParams1 = num2cell(allCCParams1,1);
+    [x1,y1,l1,t1] = allCCParams1{:};
     
-    allCCPairParams2 = num2cell(allCCPairParams2,1);
-    [x2,y2,sx2,t2] = allCCPairParams2{:};
+    allCCParams2 = num2cell(allCCParams2,1);
+    [x2,y2,l2,t2] = allCCParams2{:};
 
     % WD is the weight associated with pairwise distance between pair of CC
     allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
@@ -418,25 +521,24 @@ for iLevel = 1:1
     % the pair axis
     ct = cos(t1);
     st = sin(t1);
-    x0 = x1 - sx1 .* ct;
-    y0 = y1 - sx1 .* st;
+    x0 = x1 - l1 .* ct;
+    y0 = y1 - l1 .* st;
     pD1 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
     
     ct = cos(t2);
     st = sin(t2);
-    x0 = x2 - sx2 .* ct;
-    y0 = y2 - sx2 .* st;
+    x0 = x2 - l2 .* ct;
+    y0 = y2 - l2 .* st;
     pD2 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
     
     WA = exp(-.5 * (pD1.^2 + pD2.^2));
-    
-    ppLast = cumsum(overlap);
-    ppFirst = ppLast-overlap+1;
     
     W = arrayfun(@(a,b) mean(WA(a:a+b-1) .* WD(a:a+b-1)), ppFirst, overlap);
     
     % Compute the pairwise matching
     M = maxWeightedMatching(nCC,E,W);
+
+    fprintf(1, '\tNumber of matched pairs:\t%d\n', nnz(M));
 
     % There are 3 categories of CC pairs:
     % - unmatching pairs: keep them in E and create
@@ -446,12 +548,9 @@ for iLevel = 1:1
     % Threshold
     % TODO
     
-    % Update CC and other related variables
+    % Update CC, E, and nCC
     % TODO
-    
-    % Save CC into a file
-    % Save labeled tracks into a file
-    % TODO
+    nCC = numel(CC);
 end
 
 %% END
