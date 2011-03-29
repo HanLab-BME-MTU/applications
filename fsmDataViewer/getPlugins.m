@@ -125,8 +125,8 @@ layerPlugins(8).filterSpec = {'*.mat'};
 layerPlugins(8).displayFunc = @displayTracksFinal;
 layerPlugins(8).dispatchFunc = @dispatchTracksFinal;
 
-% [Graph] Classified Tracks
-layerPlugins(9).desc = '[Graph] Classified Tracks';
+% [Khuloud tracker] Colored Tracks
+layerPlugins(9).desc = '[Khuloud Tracker] Classified Tracks';
 layerPlugins(9).filterSpec = {'*.mat'};
 layerPlugins(9).displayFunc = @displayClassifiedTracks;
 layerPlugins(9).dispatchFunc = @dispatchClassifiedTracks;
@@ -137,10 +137,16 @@ layerPlugins(10).filterSpec = {'*.mat'};
 layerPlugins(10).displayFunc = @displayAnisoFeatures;
 layerPlugins(10).dispatchFunc = @dispatchCellToFrames;
 
-% Theta map
-layerPlugins(11).desc = 'Theta Map';
+% [Graph] Connected Component Models
+layerPlugins(11).desc = '[Graph] Connected Component Models';
 layerPlugins(11).filterSpec = {'*.mat'};
-layerPlugins(11).displayFunc = @displayVectorField;
-layerPlugins(11).dispatchFunc = @dispatchThetaMap;
+layerPlugins(11).displayFunc = @displayAnisoFeatures;
+layerPlugins(11).dispatchFunc = @dispatchCellToFrames;
+
+% Theta map
+layerPlugins(12).desc = 'Theta Map';
+layerPlugins(12).filterSpec = {'*.mat'};
+layerPlugins(12).displayFunc = @displayVectorField;
+layerPlugins(12).dispatchFunc = @dispatchThetaMap;
 
 end
