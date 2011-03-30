@@ -365,7 +365,7 @@ nCC = numel(CC);
 
 % IMPORTANT: from here on, E points to CC index
 
-for iter = 1:1
+for iter = 1:5
     
     fprintf(1, 'Iterative Track Clustering level %d\n', iter);
     fprintf(1, '\tNumber of connected components:\t%d\n', nCC);
@@ -375,9 +375,9 @@ for iter = 1:1
     tLastCC = cellfun(@(cc) max(tLast(cc)), CC);   % last frame of CC
     lifetimeCC = tLastCC - tFirstCC + 1;           % lifetime of CC
     
-    % pFirst and pLast are indexing every variable named 'allTrack*'
-    pLast = cumsum(lifetimeCC);
-    pFirst = pLast-lifetimeCC+1;
+    % ppFirst and ppLast are indexing every variable named 'allCC*'
+    ppLast = cumsum(lifetimeCC);
+    ppFirst = ppLast-lifetimeCC+1;
     
     % Compute model parameters of each CC
     %
@@ -394,7 +394,9 @@ for iter = 1:1
     
     numTracksInCC = unique(nTracksCC);
 
-    for iNumTracks = numTracksInCC
+    for iiNumTracks = 1:numel(numTracksInCC)
+        iNumTracks = numTracksInCC(iiNumTracks);
+        
         % Find which CC contains iNumTracks tracks
         isPair = nTracksCC == iNumTracks;
     
@@ -405,25 +407,30 @@ for iter = 1:1
         
         % For each track within each CC, compute the time offset between
         % the tFirstCC and tFirst
-        tOffsetPerTrack = bsxfun(@minus, tFirst(cc) ,tFirstCC);
+        tOffsetPerTrack = bsxfun(@minus, tFirst(cc) ,tFirstCC(isPair));
 
-        allAlignedTrackParams = NaN(sum(lifetimeCC(isPair)) * iNumTracks, 4);
+        cumLifetimeCC = sum(lifetimeCC(isPair));
+        allAlignedTrackParams = NaN(cumLifetimeCC * iNumTracks, 4);
         
         rhs = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
             pFirst(cc(:)), lifetime(cc(:)), 'UniformOutput', false);
         rhs = vertcat(rhs{:});
 
-        indRow = cumsum(lifetime(cc(:)));
-        indRow = indRow - lifetime(cc(:)) + 1;
-        indRow = indRow + tOffsetPerTrack(:);        
-        indRow = arrayfun(@(a,b) (a:a+b-1)', indRow, lifetime(cc(:)), ...
+        indRow = cumsum(lifetimeCC(isPair));
+        indRow = indRow - lifetimeCC(isPair) + 1;
+        indRow = bsxfun(@plus,indRow,0:cumLifetimeCC:cumLifetimeCC*(iNumTracks-1)) + ...
+            tOffsetPerTrack;
+        indRow = arrayfun(@(a,b) (a:a+b-1)', indRow(:), lifetime(cc(:)), ...
             'UniformOutput', false);
         indRow = vertcat(indRow{:});
         
         allAlignedTrackParams(indRow,:) = rhs;
         
-        allAlignedTrackParams = reshape(allAlignedTrackParams, ...
-            sum(lifetimeCC(isPair)), 4 * iNumTracks);
+        % reshape
+        allAlignedTrackParams = arrayfun(@(i) allAlignedTrackParams(((i - 1) * ...
+            cumLifetimeCC + 1):(i * cumLifetimeCC),:), ...
+            1:iNumTracks, 'UniformOutput', false);
+        allAlignedTrackParams = horzcat(allAlignedTrackParams{:});
         
         % Compute model parameters
         if iNumTracks == 1
@@ -472,7 +479,7 @@ for iter = 1:1
         end
         
         % Dispatch model parameters into allCCParams
-        indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(isPair), ...
+        indRow = arrayfun(@(a,b) (a:a+b-1)', ppFirst(isPair), ...
             lifetimeCC(isPair), 'UniformOutput', false);
         indRow = vertcat(indRow{:});
         
@@ -484,7 +491,7 @@ for iter = 1:1
     for iFrame = 1:nFrames
         isCCInFrame = iFrame >= tFirstCC & iFrame <= tLastCC;
     
-        indRow = pFirst(isCCInFrame) + iFrame - tFirstCC(isCCInFrame);
+        indRow = ppFirst(isCCInFrame) + iFrame - tFirstCC(isCCInFrame);
         
         x = allCCParams(indRow,1);
         y = allCCParams(indRow,2);
@@ -518,17 +525,14 @@ for iter = 1:1
     tOverlapLast = min(tLastCC(E(:,1)), tLastCC(E(:,2)));    
     overlap = tOverlapLast - tOverlapFirst + 1;    
     
-    ppLast = cumsum(overlap);
-    ppFirst = ppLast-overlap+1;
-    
-    indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,1)) + ...
+    indRow = arrayfun(@(a,b) (a:a+b-1)', ppFirst(E(:,1)) + ...
         tOverlapFirst - tFirstCC(E(:,1)), overlap, ...
         'UniformOutput', false);
     indRow = vertcat(indRow{:});
     
     allCCParams1 = allCCParams(indRow,:);
     
-    indRow = arrayfun(@(a,b) (a:a+b-1)', pFirst(E(:,2)) + ...
+    indRow = arrayfun(@(a,b) (a:a+b-1)', ppFirst(E(:,2)) + ...
         tOverlapFirst - tFirstCC(E(:,2)), overlap, ...
         'UniformOutput', false);
     indRow = vertcat(indRow{:});
@@ -562,22 +566,44 @@ for iter = 1:1
     
     WA = exp(-.5 * (pD1.^2 + pD2.^2));
     
+    ppLast = cumsum(overlap);
+    ppFirst = ppLast-overlap+1;
+    
     W = arrayfun(@(a,b) mean(WA(a:a+b-1) .* WD(a:a+b-1)), ppFirst, overlap);
+    
+    % Threshold WA and update WD,WA,W and E
+    % TODO
     
     % Compute the pairwise matching
     M = maxWeightedMatching(nCC,E,W);
 
     fprintf(1, '\tNumber of matched pairs:\t%d\n', nnz(M));
 
-    % There are 3 categories of CC pairs:
-    % - unmatching pairs: keep them in E and create
-    % - significant matched pairs: remove them from E and create new
-    % - unsignificant matched pairs: remove them once and for all
+    % There are 2 categories of CC pairs:
+    % - matched pairs: remove them from E and create new
+    % - unmatched pairs: keep them in E and create
 
-    % Threshold
-    % TODO
+    % Update E, CC and nCC
+    EM = E(M,:);
+    ccInd = 1:nCC;
+    ccInd(EM(:,2)) = EM(:,1);
+    ccIndUnique = unique(ccInd);
+    values = 1:max(ccIndUnique);
+    values(ccIndUnique) = 1:numel(ccIndUnique);
+    ccInd = values(ccInd);
     
-    % Update CC, E, and nCC
+    E = ccInd(E);
+    E = unique(E,'rows');
+    E = E(E(:,1) ~= E(:,2),:);
+    
+    for iE = 1:size(EM,1)
+        CC{EM(iE,1)} = horzcat(CC{EM(iE,1)}, CC{EM(iE,2)});
+        CC{EM(iE,2)} = [];
+    end
+    
+    isEmpty = cellfun(@isempty,CC);
+    CC = CC(~isEmpty);
+    
     % TODO
     nCC = numel(CC);
 end
