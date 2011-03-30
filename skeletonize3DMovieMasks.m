@@ -22,7 +22,13 @@ function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
 %
 % NOTE: This function uses the thinning-based algorith implemented in
 % skeleton3d.m
-% 
+%
+% *NOTE:* The skeleton graph structures which are written to disk do not
+% take into account the voxel size or aspect ratio. That is, the x-y-z
+% coordinates will be stored as if the xy and z pixel sizes were all equal
+% to 1.
+%
+%
 % Input:
 % 
 %   movieData3D - A MovieData3D object describing the movie to skeletonize.

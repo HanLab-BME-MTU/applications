@@ -7,7 +7,8 @@ function [vertices,edges,edgePaths] = pruneSkeletonGraph(vertices,edges,edgePath
 %   This function removes branches from the input skeleton based on
 %   tests of several geometric criteria. These criteria may be altered or
 %   removed by the user. For details of the criteria, see the option
-%   descriptions below.
+%   descriptions below. There must be only one objec in the skeleton, the
+%   mask and the maskProps structure.
 %
 % Input:
 %
@@ -77,6 +78,10 @@ if isempty(maxRad)
     maxRad = min([M N P])/10;
 end
 
+if isempty(curvSampD)
+    curvSampD = 2;
+end
+
 
 %% -------------------------- Init ------------------------------%%
 
@@ -91,9 +96,29 @@ mcThresh = -1/maxRad; %Maximum mean curvature value. This corresponds to
 
 nObj = numel(maskProps);%Number of objects in mask                      
                       
-                      
+if nObj > 1
+    error('The mask must have only one object in it!')
+end
 
-%% ------------------------ Pruning ----------------------------- %%
+%Extract maskprop fields for readability
+maskSurf = maskProps.SmoothedSurface;
+H = maskProps.MeanCurvature;
+K = maskProps.GaussianCurvature;
+k1 = maskProps.CurvaturePC1;
+k2 = maskProps.CurvaturePC2;
+
+
+%Number of skeleton vertices and edges.
+nEdges = size(edges,1);
+nVert = size(vertices,1);
+
+%Number of smoothed surface faces
+nFaces = size(maskSurf.faces,1);
+
+
+
+%% ------------------------ Pre-Processing ----------------------------- %%
+
 
 
 %Determine which vertices are end-points (branch tips). These are vertices
@@ -111,10 +136,10 @@ nEndPts = numel(iEndPt);
 iStartPt = zeros(nEndPts,1);
 iEdge = zeros(nEndPts,1);
 for j = 1:nEndPts
-   
+
     %Get the index of the edge for this point.
     tmp = find(arrayfun(@(x)(any(edges(x,:) == iEndPt(j))),1:nEdges) );
-        
+
     if ~isempty(tmp)
         iEdge(j) = tmp;
         if edges(iEdge(j),1) == iEndPt(j)
@@ -137,7 +162,6 @@ if showPlots
 end
 
 
-
 %We have curvature data for the faces, so we want their positions also.
 %Average of the vertex locations gives us the barycenter of each face. 
 facePos = zeros(nFaces,3);
@@ -146,7 +170,128 @@ facePos(:,2) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),2),1)),1
 facePos(:,3) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),3),1)),1:nFaces);
 
 
+%Find "depth" at each point within mask via distance transform
+distX = bwdist(~maskIn);
 
+
+%% --
+
+
+%Get depth at beginning and end of branches.
+endDepth = arrayfun(@(x)(distX(round(vertices(x,1)),round(vertices(x,2)),round(vertices(x,3)) )),iEndPt);
+startDepth = arrayfun(@(x)(distX(round(vertices(x,1)),round(vertices(x,2)),round(vertices(x,3)) )),iStartPt);
+
+%Calculate local surface curvature near every endpoint
+meanTipCurvature = zeros(nEndPts,1);
+gaussTipCurvature = zeros(nEndPts,1);
+k1TipCurvature = zeros(nEndPts,1);
+k2TipCurvature = zeros(nEndPts,1);
+isGoodEP = true(nEndPts,1);
+branchRadius = cell(nEndPts,1);
+
+fitCoef = zeros(2,nEndPts);
+% fitStats = struct('R',cell(nEndPts,1),...
+%                   'df',cell(nEndPts,1),...
+%                'normr',cell(nEndPts,1),...
+%                'Rsquared',cell(nEndPts,1));
+
+for j = 1:nEndPts
+
+    %Calc the distance from this endpoint to every face of the surface
+    %polygon
+    dToSurf = arrayfun(@(x)(sqrt(sum((facePos(x,[2 1 3]) - ...
+        vertices(iEndPt(j),:)).^2))),1:nFaces);%Vertices are in matrix coord, so we need to rearrange
+
+    %Find points near this tip on the surface
+    isCloseEnough = dToSurf < (curvSampD+endDepth(j));
+
+    %Get average mean and gaussian curvature   
+    if nnz(isCloseEnough) > 0
+        meanTipCurvature(j) = mean(H(isCloseEnough));
+        gaussTipCurvature(j) = mean(K(isCloseEnough));
+        k1TipCurvature(j) = mean(k1(isCloseEnough));
+        k2TipCurvature(j) = mean(k2(isCloseEnough));
+
+         if showPlots            
+             plot3(facePos(isCloseEnough,1),facePos(isCloseEnough,2),facePos(isCloseEnough,3),'b.')
+         end
+    else
+       %If we couldn't find any surface points within the search radius, we
+       %give the branch -Inf curvature so it will pass maximum curvature
+       %criteria. (This is most likely because the branch was small enough
+       %to be removed by the smoothing). 
+       meanTipCurvature(j) = -Inf;
+       gaussTipCurvature(j) = -Inf;
+       k1TipCurvature(j) = -Inf;
+       k2TipCurvature(j) = -Inf;
+    end
+
+    %Sample the distance transform along the branch corresponding to this
+    %endpoint
+    if iEdge(j) ~= 0 %First make sure it's not a spur 
+        nEdgePts = size(edgePaths{iEdge(j)},1);
+        branchRadius{j} = arrayfun(@(x)(distX(edgePaths{iEdge(j)}(x,1),...
+                                              edgePaths{iEdge(j)}(x,2),...
+                                              edgePaths{iEdge(j)}(x,3))),...
+                                              1:nEdgePts);
+
+        if nEdgePts >= 3
+%             %Fit a line to the branch series
+%             [fitCoef(j,:),tmp] = polyfit(1:nEdgePts,branchRadius{j},1);                                                       
+%             
+
+            [fitCoef(:,j),tmp] = robustfit(1:nEdgePts,branchRadius{j});
+
+            %Calculate R^2 for this fit
+            lFun = @(x)(x * fitCoef(2,j) + fitCoef(1,j));
+            tmp.Rsquared = 1 - sum((branchRadius{j} - lFun(1:nEdgePts)) .^2) / ...
+                               sum((branchRadius{j} - mean(branchRadius{j})) .^2);
+
+            fitStats(j) = tmp; %Allow extra field for Rsquared                                    
+
+            if fitStats(j).p(2) < .1 && fitStats(j).Rsquared > .7 && abs(fitCoef(2,j) > .25)
+                isGoodEP(j) = false;
+
+            end
+        end
+    end
+end
+
+%Find endpoints for which the surface mean curvature is convex
+isGoodEP(meanTipCurvature > (mcThresh/4)) = false;
+
+
+%Check the depth of the start-point for the branches with endpoints. If
+%these are too deep, this is not a "real" branch
+%TEMP - NOT DOING THIS CHECK YET - HLE
+
+
+
+%Remove branches whose start point is too deep.
+isGoodEP(startDepth > maxRad) = false;
+
+
+%% ---------- Output ---------- %%
+
+
+%Return the pruned skeleton graph
+vertices = vertices(iEndPt(isGoodEP),:);
+edgePaths = edgePaths(iEdge(isGoodEP)>0);
+edges = edges(iEdge(isGoodEP)>0);
+
+if showPlots
+    fsFigure(.75);    
+    hold on
+    patch(maskSurf,'FaceColor','flat','EdgeColor','none','FaceVertexCData',K,'AmbientStrength',.75,'FaceAlpha',.3)
+    caxis([mean(K)-2*std(K) mean(K)+2*std(K)])
+    hold on                 
+    plot3(vertices(:,2),vertices(:,1),vertices(:,3),'or','MarkerSize',10);
+    %arrayfun(@(x)(spy3d(vertices == x,'or','MarkerSize',15)),1:nVerts)    
+    light
+    axis image,axis vis3d    
+    view(3)
+    title('Final, Pruned Skeleton Graph with Mask Surface')           
+end
 
 
 function [maxRad,curvSampD,showPlots] = parseInput(argArray)

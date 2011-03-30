@@ -8,6 +8,11 @@ function movieData = analyze3DMovieMaskGeometry(movieData,paramsIn)
 % movie and writes the output to files. See analyze3DMaskGeometry.m for
 % details.
 % 
+% *NOTE:* The mask property structures which are written to disk do not
+% take into account the voxel size or aspect ratio. That is, any x-y-z
+% coordinates will be stored as if the xy and z pixel sizes were all equal
+% to 1.
+%
 % Input:
 %   
 %   movieData3D - A MovieData3D objec describing the movie to analyze the
