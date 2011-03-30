@@ -200,7 +200,7 @@ if strcmp(bfFwdOpComputed,'none') == 1
 
       %The Degree of Freedom vector for the basis or shape function in the finite
       % element space.
-      %Dimention of the function space where the basis can be nonzero on the 
+      %Dimension of the function space where the basis can be nonzero on the 
       % boundary.
       dimFS  = flngdof(fs.fem);
 

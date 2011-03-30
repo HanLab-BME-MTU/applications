@@ -2,7 +2,7 @@
 % operator for the body force. It can only run after running 'setupModel' and 
 % loading data.
 % For the function space of the boundary traction force, we use B-spline since
-% it it one dimention.
+% it is one dimension.
 
 %edgBrksTF : The breaks on each edge for the construction of B-spline.
 %edgKnotsT : FThe knot sequence on each edge built from the breaks.
