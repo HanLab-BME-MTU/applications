@@ -84,7 +84,7 @@ iSegProc = movieData3D.getProcessIndex('SegmentationProcess3D',1,1);
 if ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iChannel)
     disp('Masks found - displaying as additional channel.')
     nChan = nChan + 1;
-    imagePaths{nChan} = movieData3D.processes_{iSegProc}.outMaskPaths_{iChannel};
+    imagePaths{nChan} = movieData3D.processes_{iSegProc}.outFilePaths_{iChannel};
     imageNames{nChan} = movieData3D.processes_{iSegProc}.getOutMaskFileNames(iChannel);
     imageNames{nChan} = imageNames{nChan}{1};%De-cell this element
     chanCols = vertcat(chanCols,[1 1 1]);
@@ -198,7 +198,7 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
     disp('Skeleton Graphs found, displaying.')
     
     %TEMP!!! Waiting to write method for new relocation-capable class format
-    skDir = [movieData3D.processes_{iSkelProc}.outImagePaths_{iChannel} filesep 'skeleton_graphs']; 
+    skDir = [movieData3D.processes_{iSkelProc}.outFilePaths_{iChannel} filesep 'skeleton_graphs']; 
     skFiles = dir([skDir filesep '*.mat']);
     if numel(skFiles) ~= nImages
         error('Wrong number of skeleton files found!')
