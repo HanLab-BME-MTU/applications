@@ -114,11 +114,13 @@ end
 nChanSeg = length(p.ChannelIndex);
 
 %Set up mask output paths
+maskDir = cell(1,nChanSeg);
 for j = 1:nChanSeg
-    movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(j),...
-            [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))]);
-        
-    mkClrDir(movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex(j)});
+    
+    maskDir{j} = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
+    movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(j),maskDir{j});        
+    mkClrDir(maskDir{j});
+    
 end
 
 %Create structuring element for post-processing
@@ -139,7 +141,6 @@ nImages = movieData.nFrames_;
 nImTot = nImages * nChanSeg;
 
 imNames = movieData.getImageFileNames(p.ChannelIndex);
-maskDir = movieData.processes_{iSegProc}.outMaskPaths_(p.ChannelIndex);
 imDir = movieData.getChannelPaths(p.ChannelIndex);
     
 

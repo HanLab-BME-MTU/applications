@@ -19,7 +19,7 @@ classdef SkeletonizationProcess < ImageProcessingProcess
                 
                 super_args{1} = owner;
                 super_args{2} = 'Skeletonization';
-                super_args{3} = @skeletonizeMovie;                               
+                super_args{3} = @skeletonize3DMovieMasks;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
                     

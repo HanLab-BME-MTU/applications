@@ -123,7 +123,7 @@ if isempty(iSegProc) || ~movieData.processes_{iSegProc}.checkChannelOutput(p.Cha
 end
 
 %Get mask file names and directory
-maskDir = movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex};
+maskDir = movieData.processes_{iSegProc}.outFilePaths_{p.ChannelIndex};
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
 
 %Set up output directories
