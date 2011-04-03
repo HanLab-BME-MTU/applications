@@ -5,7 +5,7 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel)
 % viewMovieImaris(movieData3D,iChannel)
 % imarisApp = viewMovieImaris(...);
 %
-% This function opens Imaris and loads a channel of the input movieData for
+% This function opens Imaris and loads a channel of the input MovieData3D for
 % 3D viewing within imaris. Requires that imaris is installed locally.
 % 
 % Input:
@@ -14,7 +14,7 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel)
 % 
 %   iChannel - The index of the channel to view in imaris. This
 %   corresponds to the channel object's location within the channel array
-%   in the MovieData.
+%   in the MovieData3D.
 % 
 % Output:
 %   
@@ -32,9 +32,11 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel)
 vertSize = 2;%Radius of skeleton vertex spots in voxels
 edgeSize = 1;%Radius of SPOTS for skeleton edges
 %All appearance parameters have this format:  [R,G,B,1-alpha]
-vertApp = [1 1 .1 0];%Skel vertex appearance
-edgeApp = [.1 1 .1 0];%Skel edge appaerance
-msApp = [.2 .2 1 .25];%Mask surface appearance
+vertApp = [1 1 .1 0];%Raw skel vertex appearance
+edgeApp = [1 1 .1 0];%Raw skel edge appaerance
+vertAppP = [1 .1 .1 0];%Pruned skel vertex appearance
+edgeAppP = [1 .1 .1 0];%Pruned skel edge appaerance
+msApp = [.2 .2 1 .6];%Mask surface appearance
 
 %% -------- Input -------- %%
 
@@ -50,13 +52,13 @@ end
 
 %% -------- Init ------ %%
 
-if ~isempty(movieData.pixelSize_) && ~isempty(movieData.zSpacing_)
-    pixXY = movieData.pixelSize_;
-    pixZ = movieData.zSpacing_;      
+if ~isempty(movieData3D.pixelSize_) && ~isempty(movieData3D.zSpacing_)
+    pixXY = movieData3D.pixelSize_;
+    pixZ = movieData3D.zSpacing_;      
 else
     %warn the user, and assume unit pixel sizes.
     warning('Migration3D:MissingVoxelDimensions',...
-        'Pixel XY size and Z spacing not specified in input movieData! Display will assume symmetric voxels of size 1nm!');
+        'Pixel XY size and Z spacing not specified in input movieData3D! Display will assume symmetric voxels of size 1nm!');
     pixXY = 1;
     pixZ = 1;    
 end
@@ -75,12 +77,10 @@ imarisApp = imarisStartNew(nargout==0);
 
 %Create a blank scene
 imarisScene = imarisApp.mFactory.CreateDataContainer;
+imarisApp.mSurpassScene = imarisScene;
 
 %Add lighting and frame objects to scene
-
-%HLE - removed the directional light, because things are actually easier to
-%see without it.
-%imarisScene.AddChild(imarisApp.mFactory.CreateLightSource); %add the light to the scene
+imarisScene.AddChild(imarisApp.mFactory.CreateLightSource); %add the light to the scene
 imarisScene.AddChild(imarisApp.mFactory.CreateFrame); %add the frame to the scene
 
 %Check if we have masks or skeletons as these will be additional channels
@@ -98,18 +98,6 @@ if ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iCh
     chanRange = vertcat(chanRange,[0 2]);%We make the range go to slightly above 1 so the masks are transparent
 end
 
-% %Check for skeletons
-% iSkelProc = movieData3D.getProcessIndex('SkeletonizationProcess',1,1);
-% if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel)
-%     disp('Skeletons found - displaying as additional channel.')
-%     nChan = nChan + 1;
-%     imagePaths{nChan} = movieData3D.processes_{iSkelProc}.outImagePaths_{iChannel};
-%     imageNames{nChan} = movieData3D.processes_{iSkelProc}.getOutImageFileNames(iChannel);
-%     imageNames{nChan} = imageNames{nChan}{1};%De-cell this element
-%     chanCols = vertcat(chanCols,[0 0 1]);
-%     chanRange = vertcat(chanRange,[0 1]);
-% end
-% 
 
 %Initialize the volume data
 volData = imarisApp.mFactory.CreateDataSet;
@@ -192,7 +180,7 @@ imarisApp.mDataSet = volData;
 
 %Adjust the camera so all the data is in view
 imarisApp.mSurpassCamera.Fit;
-
+imarisScene.AddChild(imarisApp.mFactory.CreateVolume);%Strangely enough, this is both necessary and sufficient to display the mDataSet in the newly created scene.
 if ishandle(wtBar)
     close(wtBar);
 end
@@ -325,8 +313,13 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
             norms(:,3) = mg(iImage).SurfaceNorms(:,3) .* pixXY;
             
         else
-            
-            
+            vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
+            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2);%The surface norms are returned in cartesian rather than matrix coord
+            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3);%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+            faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
+            norms = zeros(size(mg(iImage).SurfaceNorms));
+            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2);
+            norms(:,3) = mg(iImage).SurfaceNorms(:,3);                        
         end
         imarisSurf.AddSurface(vert,faces,norms,iImage-1);                
        
@@ -335,6 +328,99 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
     %Add the surfaces to the surpass scene
     imarisApp.mSurpassScene.AddChild(imarisSurf);
         
+end
+
+%TEMP - There is massive code duplication between displaying the raw skeletons and
+%displaying the pruned ones here...Probably should fix at some point...HLE
+iPruneProc = movieData3D.getProcessIndex('SkeletonPruningProcess',1,1);
+if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput(iChannel)        
+    
+    disp('Pruned skeleton graphs found, displaying.')        
+    
+    nVert = zeros(nImages,1);
+    nEdge = zeros(nImages,1);
+    nPtsPerEdge = cell(nImages,1);
+    nEdgePts = zeros(nImages,1);
+    skgrPruned(1:nImages) = struct('vertices',[],'edges',[],'edgePaths',[]);
+    
+    %Load the skeletons for each frame and count the verts and edges
+    for iImage = 1:nImages
+        skgrPruned(iImage) = movieData3D.processes_{iPruneProc}.loadChannelOutput(iChannel,iImage);
+        nVert(iImage) = size(skgrPruned(iImage).vertices,1);
+        nEdge(iImage) = numel(skgrPruned(iImage).edgePaths);            
+        nPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgrPruned(iImage).edgePaths);
+        nEdgePts(iImage) = sum(nPtsPerEdge{iImage});        
+    end
+    
+    nEdgeTot = sum(nEdge);
+    nEdgePtsTot = sum(nEdgePts);
+    nVertTot = sum(nVert);
+    nEdgeEdgesTot = nEdgePtsTot-nEdgeTot;
+    
+    vertXYZ = zeros(nVertTot,3);
+    vertRad = ones(nVertTot,1) .* vertSize .* pixXY;
+    vertTimes = zeros(nVertTot,1);
+    
+    edgeXYZ = zeros(nEdgePtsTot,3);
+    edgeTimes = zeros(nEdgePtsTot,1);
+    edgeEdges = zeros(nEdgeEdgesTot,2);
+    edgeRad = ones(nEdgePtsTot,1) .* edgeSize .* pixXY;
+    
+    %Go through each frame and set up the spot matrices for passing to
+    %imaris
+    ciV = 1;
+    ciE = 1;
+    cieE = 1;
+    for iImage = 1:nImages
+                        
+        currIndV = ciV:ciV+nVert(iImage)-1;%Indices for the vertices on this frame
+        currIndE = ciE:ciE+nEdgePts(iImage)-1;%Indices for the edge paths on this frame
+        
+        vertTimes(currIndV) = iImage-1; %Time indices for vertices        
+        vertXYZ(currIndV,:) = skgrPruned(iImage).vertices .* pixXY;%Scale the coordinates by the xy pixel size only, because they have been converted to symmetric-voxel coordinates        
+        
+        edgeTimes(currIndE) = iImage-1;
+        ciEP = ciE;
+        ciEE = cieE;
+        
+        for iEdg = 1:nEdge(iImage)
+            %Indices for the pts on the current edge
+            currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
+            currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
+            
+            edgeXYZ(currIndEP,:) = skgrPruned(iImage).edgePaths{iEdg} .* pixXY;            
+            
+            %These edge path points are stored consecutively, so just
+            %connect each subsequent point with an edge.
+            edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
+            
+            
+            ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
+            ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
+        end
+                               
+        ciV = ciV + nVert(iImage);
+        ciE = ciE + nEdgePts(iImage);
+        cieE = cieE + nEdgePts(iImage) - nEdge(iImage); %There is one less edge than point for each skeleton branch
+    end    
+            
+    %Create spots object for skeleton vertices
+    imarisPruneVertSpots = imarisApp.mFactory.CreateSpots;
+    imarisPruneVertSpots.mName = 'Pruned Skeleton Vertices';
+    imarisPruneVertSpots.SetColor(vertAppP(1),vertAppP(2),vertAppP(3),vertAppP(4));
+    %Add the vertices to the scene as spots
+    imarisPruneVertSpots.Set(vertXYZ,vertTimes,vertRad);
+    imarisApp.mSurpassScene.AddChild(imarisPruneVertSpots);
+    
+    %Create spots object for skeleton edges
+    imarisPruneEdgeSpots = imarisApp.mFactory.CreateSpots;
+    imarisPruneEdgeSpots.mName = 'Pruned Skeleton Branches';
+    imarisPruneEdgeSpots.SetColor(edgeAppP(1),edgeAppP(2),edgeAppP(3),edgeAppP(4));
+    %Add the vertices to the scene as spots
+    imarisPruneEdgeSpots.Set(edgeXYZ,edgeTimes,edgeRad);
+    imarisPruneEdgeSpots.SetTrackEdges(edgeEdges);
+    imarisApp.mSurpassScene.AddChild(imarisPruneEdgeSpots);        
+    
 end
 
 
