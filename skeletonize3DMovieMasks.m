@@ -81,6 +81,9 @@ function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
 % Hunter Elliott
 % 12/2010
 %
+%% ------------------------- Parameters ------------------------%%
+
+skName = 'skeleton_graph_frame_'%String for naming skeleton files
 
 %%  ------------------ Input ------------------ %%
 
@@ -184,7 +187,7 @@ for iFrame = 1:nFrames
           
         %Save graph structure to file
         numStr = num2str(iFrame,fString); %zero-pad the frame number
-        save([graphDir filesep 'skeleton_graph_frame_' numStr '.mat'],...
+        save([graphDir filesep skName numStr '.mat'],...
                 'vertices','edges','edgePaths');            
     end
   

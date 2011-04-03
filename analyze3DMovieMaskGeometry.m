@@ -8,10 +8,10 @@ function movieData = analyze3DMovieMaskGeometry(movieData,paramsIn)
 % movie and writes the output to files. See analyze3DMaskGeometry.m for
 % details.
 % 
-% *NOTE:* The mask property structures which are written to disk do not
-% take into account the voxel size or aspect ratio. That is, any x-y-z
-% coordinates will be stored as if the xy and z pixel sizes were all equal
-% to 1.
+% *NOTE:* If the MovieData has specified xy and z pixel sizes, the mask
+% properties will take into account the voxel aspect ratio. If not
+% available, the pixel sizes and z spacing will be assumed to be 1. This
+% may cause innacurate geometric properties.
 %
 % Input:
 %   
@@ -27,6 +27,15 @@ function movieData = analyze3DMovieMaskGeometry(movieData,paramsIn)
 %       ('ChannelIndex' -> positive integer) Integer index of the
 %       channel to analyze masks from.
 %       Optional. Default is channel 1.
+%
+%       ('PhysicalUnits'->true/false) If true, and the movie has pixel
+%       sizes and z-spacing specified, then the geometric properties will
+%       be specified in real-word physical units (nm, nm^3, 1/nm etc.) Note
+%       that even if this is  set to false, if the movie has pixel size and
+%       z-spacing specified, the properties will still take into account
+%       the voxel asymmetry. This means that the coordinates will not be in
+%       matrix coordinates.
+%       Optional. Default is false.
 %
 %       ('OutputDirectory' -> character string) Optional. A character
 %       string specifying the directory to save the analysis to.
@@ -51,6 +60,10 @@ function movieData = analyze3DMovieMaskGeometry(movieData,paramsIn)
 % Hunter Elliott
 % 3/2011
 % 
+
+%% ------------------------- Parameters -------------------------%%
+
+fName = 'mask_geometry_frame_';%String for naming geometry files.
 
 
 
@@ -105,15 +118,26 @@ end
 %Format string for zero-padding file names
 fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
 
+%Get the xy and z pixel sizes for scaling
+if ~isempty(movieData.pixelSize_) && ~isempty(movieData.zSpacing_)
+    pixXY = movieData.pixelSize_;
+    pixZ = movieData.zSpacing_;
+    hasSizes = true;    
+else
+    %warn the user, and assume unit pixel sizes.
+    warning('Migration3D:MissingVoxelDimensions',...
+        'Pixel XY size and Z spacing not specified in input movieData! Geometry analysis will assume symmetric voxels of size 1nm!');
+    pixXY = 1;
+    pixZ = 1;
+    hasSizes = false;
+end
+
+
 outDir = p.OutputDirectory;
 mkClrDir(outDir);
 
 disp('Starting mask geometry analysis...')
 disp(['Using masks from ' maskDir ', results will be saved to ' outDir ])
-
-%%------------------------- Parameters -------------------------%%
-
-fName = 'mask_geometry_frame_';%String for naming geometry files.
 
 
 %% ---------------------- Analysis --------------------------%%
@@ -124,15 +148,41 @@ for iFrame = 1:nFrames
     %Load the current mask
     currMask = tif3Dread([maskDir filesep maskNames{1}{iFrame}]);
                 
+    
+    if pixXY ~= pixZ
+        %Scale the mask so that the voxel aspect ratio is taken into account
+        currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);
+    end
     %Get the geometry properties
     maskProp = analyze3DMaskGeometry(currMask,'SmoothSigma',p.SmoothSigma,...
                         'IsoValue',p.IsoValue); %#ok<*NASGU>
+    
+    if hasSizes && p.PhysicalUnits
+        %Scale these properties so that they are in nm. We have scaled the
+        %matrix in the z direction to get symmetric voxels now so we scale
+        %all dimensions by the xy pixel size.
+        nObj = numel(maskProp);
+        for i = 1:nObj
+            maskProp(i).SmoothedSurface.vertices = maskProp(i).SmoothedSurface.vertices .* pixXY;
+            maskProp(i).SurfaceNorms = maskProp(i).SurfaceNorms .* pixXY;
+            maskProp(i).GaussianCurvature = maskProp(i).GaussianCurvature ./ (pixXY^2);
+            maskProp(i).CurvaturePC1 = maskProp(i).CurvaturePC1 ./ pixXY;
+            maskProp(i).CurvaturePC2 = maskProp(i).CurvaturePC2 ./ pixXY;
+            maskProp(i).Centroid = maskProp(i).Centroid .* pixXY;
+            maskProp(i).Volume = maskProp(i).Volume * pixXY^3;
+            maskProp(i).CenterMostDist = maskProp(i).CenterMostDist * pixXY;
+            maskProp(i).CenterMost = maskProp(i).CenterMost .* pixXY;
+            maskProp(i).MeanCurvature = maskProp(i).MeanCurvature ./ pixXY;
+        end
+    end
+    
+    
     
     %Save them to file
     numStr = num2str(iFrame,fString);
     save([outDir filesep fName numStr '.mat'],'maskProp');    
   
-    if ~p.BatchMode && mod(iFrame,5)
+    if ~p.BatchMode
         %Update the waitbar occasionally to minimize slowdown
         waitbar(iFrame/nFrames,wtBar)
     end

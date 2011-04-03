@@ -1,6 +1,10 @@
 classdef SkeletonizationProcess < ImageProcessingProcess
 % A process class for performing skeletonization on a movie
 %     
+% This clas inherits ImageProcessingProcess, but is actually a hybrid image
+% processing/analysis function, because the output skeletons are images,
+% but the skeleton graphs are not.
+%
 % Hunter Elliott
 % 12/2010    
 %
@@ -11,6 +15,8 @@ classdef SkeletonizationProcess < ImageProcessingProcess
     
     methods (Access = public)
         
+        
+        % ------ Constructor -----%
         function obj = SkeletonizationProcess(owner,funParams)
                                               
             if nargin == 0
@@ -41,6 +47,24 @@ classdef SkeletonizationProcess < ImageProcessingProcess
             obj = obj@ImageProcessingProcess(super_args{:});
         end
         
+        % ------ Set / Get Methods ----- %
+        
+        function setOutGraphPath(obj,iChan,graphDir)
+            
+            if nargin < 3 || isempty(iChan) || isempty(graphDir)
+                error('You must input a channel number and directory!')
+            elseif ~exist(graphDir,'dir')
+                error('The directory specified does not exist!')
+            end
+            
+            %Second row is skeleton graph directories.
+            obj.outFilePaths_{2,iChan} = graphDir;
+        
+        
+        end
+       
+        % ----- Output Check/Load Methods ----- %
+         
         %overload the default to support 3D images.
         function outIm = loadOutImage(obj,iChan,iFrame)
             
@@ -64,38 +88,28 @@ classdef SkeletonizationProcess < ImageProcessingProcess
             
         end
         
-        function setOutGraphPath(obj,iChan,graphDir)
-            
-            if nargin < 3 || isempty(iChan) || isempty(graphDir)
-                error('You must input a channel number and directory!')
-            elseif ~exist(graphDir,'dir')
-                error('The directory specified does not exist!')
-            end
-            
-            %Second row is skeleton graph directories.
-            obj.outFilePaths_{2,iChan} = graphDir;
-        
-        
-        end
+      
         
         function OK = checkChannelSkeletonGraphs(obj,iChan)
             
             if nargin < 2 || isempty(iChan)
-                iChan = 1;
+                iChan = 1:numel(obj.owner_.channels_);
             elseif iChan < 1 || iChan > numel(obj.owner_.channels_) || numel(iChan) > 1
                 error('Invalid channel number!')
-            end            
-            
-            if size(obj.outFilePaths_,1) > 1 && ...
-                    ~isempty(obj.outFilePaths_{2,iChan}) && ...
-                    numel(dir([obj.outFilePaths_{2,iChan}  filesep '*.mat'])) ...
-                        == obj.owner_.nFrames_;
-            
-                OK = true;
-            else
-                OK = false;
-            end                                    
-            
+            end          
+            nChanCheck = numel(iChan);
+            OK = false(1,nChanCheck);
+            for j = 1:nChanCheck
+                if size(obj.outFilePaths_,1) > 1 && ...
+                        ~isempty(obj.outFilePaths_{2,iChan}) && ...
+                        numel(dir([obj.outFilePaths_{2,iChan}  filesep '*.mat'])) ...
+                            == obj.owner_.nFrames_;
+
+                    OK(j) = true;
+                else
+                    OK(j) = false;
+                end                                    
+            end
         end
         
         

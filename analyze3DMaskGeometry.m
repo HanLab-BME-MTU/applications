@@ -145,7 +145,7 @@ for iObj = 1:nObj
     [objCoord(:,2),objCoord(:,1),objCoord(:,3)] = ...
         ind2sub(size(maskIn),maskCC.PixelIdxList{iObj});
     
-    maskProp(iObj).PixelList{iObj} = maskCC.PixelIdxList{iObj};
+    maskProp(iObj).PixelList = maskCC.PixelIdxList{iObj};
     maskProp(iObj).Centroid(iObj,:) = mean(objCoord,1);
     maskProp(iObj).Volume(iObj) = numel(maskCC.PixelIdxList{iObj});
     
@@ -154,8 +154,8 @@ for iObj = 1:nObj
     currDistX(maskCC.PixelIdxList{iObj}) = distX(maskCC.PixelIdxList{iObj});    
     maskProp(iObj).CenterMostDist(iObj) = max(currDistX(:));
     %Get x-y-z coordinates of this point
-    [maskProp(iObj).CenterMost{iObj}(:,2),maskProp(iObj).CenterMost{iObj}(:,1),...
-        maskProp(iObj).CenterMost{iObj}(:,3)] = ind2sub(size(maskIn),...
+    [maskProp(iObj).CenterMost(:,2),maskProp(iObj).CenterMost(:,1),...
+        maskProp(iObj).CenterMost(:,3)] = ind2sub(size(maskIn),...
         find(currDistX == maskProp(iObj).CenterMostDist(iObj))); %In case this is a non-unique point, get all of them
                  
     

@@ -230,9 +230,9 @@ for j = 1:nEndPts
     %endpoint
     if iEdge(j) ~= 0 %First make sure it's not a spur 
         nEdgePts = size(edgePaths{iEdge(j)},1);
-        branchRadius{j} = arrayfun(@(x)(distX(edgePaths{iEdge(j)}(x,1),...
-                                              edgePaths{iEdge(j)}(x,2),...
-                                              edgePaths{iEdge(j)}(x,3))),...
+        branchRadius{j} = arrayfun(@(x)(distX(round(edgePaths{iEdge(j)}(x,1)),...
+                                              round(edgePaths{iEdge(j)}(x,2)),...
+                                              round(edgePaths{iEdge(j)}(x,3)))),...
                                               1:nEdgePts);
 
         if nEdgePts >= 3
@@ -246,7 +246,11 @@ for j = 1:nEndPts
             lFun = @(x)(x * fitCoef(2,j) + fitCoef(1,j));
             tmp.Rsquared = 1 - sum((branchRadius{j} - lFun(1:nEdgePts)) .^2) / ...
                                sum((branchRadius{j} - mean(branchRadius{j})) .^2);
-
+                           
+            if j == 1
+                %Initialize all the structures to these fields.
+                fitStats = repmat(tmp,1,nEndPts);
+            end
             fitStats(j) = tmp; %Allow extra field for Rsquared                                    
 
             if fitStats(j).p(2) < .1 && fitStats(j).Rsquared > .7 && abs(fitCoef(2,j) > .25)
