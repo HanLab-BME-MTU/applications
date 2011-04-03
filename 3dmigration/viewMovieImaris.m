@@ -194,16 +194,8 @@ end
 
 iSkelProc = movieData3D.getProcessIndex('SkeletonizationProcess',1,1);
 if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel) ...
-        && movieData3D.processes_{iSkelProc}.funParams_.GetGraph
-    disp('Skeleton Graphs found, displaying.')
-    
-    %TEMP!!! Waiting to write method for new relocation-capable class format
-    skDir = [movieData3D.processes_{iSkelProc}.outFilePaths_{iChannel} filesep 'skeleton_graphs']; 
-    skFiles = dir([skDir filesep '*.mat']);
-    if numel(skFiles) ~= nImages
-        error('Wrong number of skeleton files found!')
-    end
-    
+        && movieData3D.processes_{iSkelProc}.checkChannelSkeletonGraphs(iChannel)
+    disp('Skeleton Graphs found, displaying.')        
     
     nVert = zeros(nImages,1);    
     nEdge = zeros(nImages,1);
@@ -213,7 +205,7 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
     
     %Load the skeletons for each frame and count the verts and edges
     for iImage = 1:nImages        
-        skgr(iImage) = load([skDir filesep skFiles(iImage).name]);        
+        skgr(iImage) = movieData3D.processes_{iSkelProc}.loadSkeletonGraph(iChannel,iImage);
         nVert(iImage) = size(skgr(iImage).vertices,1);
         nEdge(iImage) = numel(skgr(iImage).edgePaths);            
         nPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgr(iImage).edgePaths);
@@ -310,7 +302,7 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
     for iImage = 1:nImages
         
         %Load the current surface geom file
-        tmp = load([mgDir filesep mgFiles(iImage).name]); %TEMP - waiting on relocatable         
+        tmp =  movieData3D.processes_{iMgProc}.loadChannelOutput(iChannel,iImage);
         if iImage == 1
             mg = repmat(tmp.maskProp,nImages,1);
         end        
