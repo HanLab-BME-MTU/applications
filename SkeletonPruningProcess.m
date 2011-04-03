@@ -65,13 +65,13 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
                 error('Invalid frame number!')
             end
             
-            if ~obj.checkChannelSkeletonGraphs(iChan);
+            if ~obj.checkChannelOutput(iChan);
                 error('The specified channel does not have valid skeleton graph files!')
             end
                         
-            skelNames = dir([obj.outFilePaths_{2,iChan} filesep '*.mat']);
+            skelNames = dir([obj.outFilePaths_{iChan} filesep '*.mat']);
             
-            skelGraph = load([obj.outFilePaths_{2,iChan} filesep skelNames(iFrame).name]);
+            skelGraph = load([obj.outFilePaths_{iChan} filesep skelNames(iFrame).name]);
             
             fNames = fieldnames(skelGraph);
             
