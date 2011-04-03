@@ -50,9 +50,16 @@ end
 
 %% -------- Init ------ %%
 
-pixXY = movieData3D.pixelSize_;
-pixZ = movieData3D.zSpacing_;
-
+if ~isempty(movieData.pixelSize_) && ~isempty(movieData.zSpacing_)
+    pixXY = movieData.pixelSize_;
+    pixZ = movieData.zSpacing_;      
+else
+    %warn the user, and assume unit pixel sizes.
+    warning('Migration3D:MissingVoxelDimensions',...
+        'Pixel XY size and Z spacing not specified in input movieData! Display will assume symmetric voxels of size 1nm!');
+    pixXY = 1;
+    pixZ = 1;    
+end
 
 nChan = 1;
 
@@ -290,10 +297,7 @@ iMgProc = movieData3D.getProcessIndex('MaskGeometry3DProcess',1,1);
 if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChannel)     
     
     disp('Mask surface geometry analysis found - displaying.')
-    
-    mgDir = movieData3D.processes_{iMgProc}.outFilePaths_{iChannel};
-    mgFiles = dir([mgDir filesep '*.mat']);
-
+        
     %Create object for adding surfaces
     imarisSurf = imarisApp.mFactory.CreateSurfaces;
     imarisSurf.mName = 'Smoothed Mask Surface';
@@ -310,14 +314,20 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
         mg(iImage) = tmp(1);%Just in case they have multiple objects
                 
         %Extract the surface info for scaling etc.
-        vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
-        vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
-        vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) .* pixZ;
-        faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
-        norms = zeros(size(mg(iImage).SurfaceNorms));
-        norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) .* pixXY;
-        norms(:,3) = mg(iImage).SurfaceNorms(:,3) .* pixZ;
-        
+        if ~movieData3D.processes_{iMgProc}.funParams_.PhysicalUnits
+                        
+            vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
+            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
+            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) .* pixXY;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+            faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
+            norms = zeros(size(mg(iImage).SurfaceNorms));
+            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) .* pixXY;
+            norms(:,3) = mg(iImage).SurfaceNorms(:,3) .* pixXY;
+            
+        else
+            
+            
+        end
         imarisSurf.AddSurface(vert,faces,norms,iImage-1);                
        
     
