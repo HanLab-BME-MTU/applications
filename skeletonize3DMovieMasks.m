@@ -123,7 +123,7 @@ if isempty(iSegProc) || ~movieData.processes_{iSegProc}.checkChannelOutput(p.Cha
 end
 
 %Get mask file names and directory
-maskDir = movieData.processes_{iSegProc}.outFilePaths_{p.ChannelIndex};
+maskDir = movieData.processes_{iSegProc}.outFilePaths_{1,p.ChannelIndex};
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
 
 %Set up output directories
@@ -188,7 +188,7 @@ for iFrame = 1:nFrames
                 'vertices','edges','edgePaths');            
     end
   
-    if ~p.BatchMode && mod(iFrame,5)
+    if ~p.BatchMode
         %Update the waitbar occasionally to minimize slowdown
         waitbar(iFrame/nFrames,wtBar)
     end
@@ -199,6 +199,9 @@ end
 
 %Store the input/output directories in the movieData
 movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex,skelDir);
+if p.GetGraph
+    movieData.processes_{iProc}.setOutGraphPath(p.ChannelIndex,graphDir);
+end
 movieData.processes_{iProc}.setInImagePath(p.ChannelIndex,maskDir);
 
 if ~p.BatchMode && ishandle(wtBar)

@@ -96,7 +96,7 @@ end
 %% ------ Init ------ %%
 
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
-maskDir = movieData.processes_{iSegProc}.outMaskPaths_{p.ChannelIndex};
+maskDir = movieData.processes_{iSegProc}.outFilePaths_{p.ChannelIndex};
 nFrames = movieData.nFrames_;
 
 mkClrDir(p.OutputDirectory)
