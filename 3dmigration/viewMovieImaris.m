@@ -304,9 +304,10 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
         %Load the current surface geom file
         tmp =  movieData3D.processes_{iMgProc}.loadChannelOutput(iChannel,iImage);
         if iImage == 1
-            mg = repmat(tmp.maskProp,nImages,1);
+            %Get field names from first frame and then initialize array
+            mg = repmat(tmp(1),nImages,1);
         end        
-        mg(iImage) = tmp.maskProp;
+        mg(iImage) = tmp(1);%Just in case they have multiple objects
                 
         %Extract the surface info for scaling etc.
         vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
