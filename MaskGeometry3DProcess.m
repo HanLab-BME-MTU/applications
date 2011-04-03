@@ -52,7 +52,7 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
            %Makes there are the right numbr of files in each output
            %directory
            OK =  arrayfun(@(x)(exist(obj.outFilePaths_{x},'dir') && ...
-                             numel(dir([obj.outFilePaths_{x} filesep '*.mat']))==obj.owner_.nFrames),iChan);
+                             numel(dir([obj.outFilePaths_{x} filesep '*.mat']))==obj.owner_.nFrames_),iChan);
         end
         
         
@@ -64,7 +64,7 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
                 error('You must specify a single, valid channel number!')
             elseif iFrame < 1 || iFrame > obj.owner_.nFrames_
                 error('Invalid frame number!')
-            elseif ~obj.checkChannelOutput(iChan,iFrame)
+            elseif ~obj.checkChannelOutput(iChan)
                 error('Specified channel does not have valid mask geometry files!')
             end
             
