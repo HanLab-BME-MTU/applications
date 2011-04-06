@@ -221,7 +221,8 @@ end
 
 %Store the input/output directories in the movieData
 movieData.processes_{iProc}.setOutFilePath(p.ChannelIndex,outDir);
-movieData.processes_{iProc}.setPara(p);%Store the additional, function-determined parameters.
+p.PruneParam = pruneParam;%Store the additional, function-determined parameters in the process array.
+movieData.processes_{iProc}.setPara(p);
 movieData.processes_{iProc}.setDateTime;
 movieData.saveMovieData;
 

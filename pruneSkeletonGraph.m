@@ -7,7 +7,7 @@ function [vertices,edges,edgePaths] = pruneSkeletonGraph(vertices,edges,edgePath
 %   This function removes branches from the input skeleton based on
 %   tests of several geometric criteria. These criteria may be altered or
 %   removed by the user. For details of the criteria, see the option
-%   descriptions below. There must be only one objec in the skeleton, the
+%   descriptions below. There must be only one object in the skeleton, the
 %   mask and the maskProps structure.
 %
 % Input:
@@ -153,7 +153,7 @@ for j = 1:nEndPts
 end
 
 if showPlots
-    %Show the skeleton and prior to pruning
+    %Show the skeleton prior to pruning
     fsFigure(.75);
     hold on
     cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k')),edgePaths);    
@@ -190,10 +190,6 @@ isGoodEP = true(nEndPts,1);
 branchRadius = cell(nEndPts,1);
 
 fitCoef = zeros(2,nEndPts);
-% fitStats = struct('R',cell(nEndPts,1),...
-%                   'df',cell(nEndPts,1),...
-%                'normr',cell(nEndPts,1),...
-%                'Rsquared',cell(nEndPts,1));
 
 for j = 1:nEndPts
 
@@ -236,9 +232,6 @@ for j = 1:nEndPts
                                               1:nEdgePts);
 
         if nEdgePts >= 3
-%             %Fit a line to the branch series
-%             [fitCoef(j,:),tmp] = polyfit(1:nEdgePts,branchRadius{j},1);                                                       
-%             
 
             [fitCoef(:,j),tmp] = robustfit(1:nEdgePts,branchRadius{j});
 
@@ -281,7 +274,7 @@ isGoodEP(startDepth > maxRad) = false;
 %Return the pruned skeleton graph
 vertices = vertices(iEndPt(isGoodEP),:);
 edgePaths = edgePaths(iEdge(isGoodEP)>0);
-edges = edges(iEdge(isGoodEP)>0);
+edges = edges(iEdge(isGoodEP)>0,:);
 
 if showPlots
     fsFigure(.75);    
@@ -290,6 +283,7 @@ if showPlots
     caxis([mean(K)-2*std(K) mean(K)+2*std(K)])
     hold on                 
     plot3(vertices(:,2),vertices(:,1),vertices(:,3),'or','MarkerSize',10);
+    cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3))),edgePaths);
     %arrayfun(@(x)(spy3d(vertices == x,'or','MarkerSize',15)),1:nVerts)    
     light
     axis image,axis vis3d    

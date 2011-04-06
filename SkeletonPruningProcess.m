@@ -34,6 +34,7 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
                     %----Defaults----%      
                                         
                     funParams.SkelProcessIndex = [];%No default 
+                    funParams.PruneParam = [];%For storing pruneSkeletonGraph.m-specific parameters
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'pruned_skeleton_graphs'];                    
                     funParams.BatchMode = false;                                                      
