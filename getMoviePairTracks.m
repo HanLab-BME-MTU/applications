@@ -132,75 +132,117 @@ assert(all(~isnan(allTrackParams(:))));
 
 clear gacombIdx gapStarts gapEnds gapLengths nGaps borderIdx gacombIdx iGap;
 
-%% Find the set of track pairs that overlap in time
-E = pcombs(1:nTracks);
-
-tOverlapFirst = max(tFirst(E(:,1)), tFirst(E(:,2)));
-tOverlapLast = min(tLast(E(:,1)), tLast(E(:,2)));
-overlap = tOverlapLast - tOverlapFirst + 1;
-hasOverlap = overlap >= minOverlap;
-
-% trim arrays
-E = E(hasOverlap,:);
-tOverlapFirst = tOverlapFirst(hasOverlap);
-overlap = overlap(hasOverlap);
-
-clear tOverlapLast hasOverlap;
-
-%% Compute the pairwise distance between tracks
+%% Find the set of track pairs whos pairwise distance is < than maxEuclidianDist
 
 % pFirst and pLast are indexing every variable named 'allTrack*'
 pLast = cumsum(lifetime);
 pFirst = pLast-lifetime+1;
 
-% Point the location of each track parameters for every pair
-pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
-pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
+E = cell(nTracks,1);
 
-% sort overlap values
-[overlap idx] = sort(overlap);
-
-% sort ANY other vector that contains pair of tracks information
-E = E(idx,:);
-tOverlapFirst = tOverlapFirst(idx);
-pFirst1 = pFirst1(idx);
-pFirst2 = pFirst2(idx);
-
-firstIdx = find([1; diff(overlap)]);
-lastIdx = find([-diff(-overlap); 1]);
-
-overlapValues = unique(overlap);
-
-PWD = zeros(size(overlap));
-
-for k = 1:length(firstIdx)
-    % indexes corresponding to overlap value
-    range = firstIdx(k):lastIdx(k);
+for iFrame = 1:nFrames
+    indTrackInFrame = find(iFrame >= tFirst & iFrame <= tLast);
     
-    M = repmat((0:overlapValues(k)-1), [length(range) 1]);
-    idx1 = repmat(pFirst1(range), [1 overlapValues(k)]) + M;
-    idx2 = repmat(pFirst2(range), [1 overlapValues(k)]) + M;
+    indP = pFirst(indTrackInFrame) + iFrame - tFirst(indTrackInFrame);
+    X = allTrackParams(indP, 1);
+    Y = allTrackParams(indP, 2);
     
-    x1 = allTrackParams(idx1,1);
-    y1 = allTrackParams(idx1,2);
-    x2 = allTrackParams(idx2,1);
-    y2 = allTrackParams(idx2,2);
+    indTrack1 = KDTreeBallQuery([X,Y],[X,Y], repmat(maxEuclidianDist, numel(X),1));
     
-    % average distance
-    PWD(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
-        [length(range) overlapValues(k)]), 2);
+    % remove self references (d == 0 which is always the first element)
+    indTrack1 = cellfun(@(c) indTrackInFrame(c(2:end)), ...
+        indTrack1, 'UniformOutput', false);
+    
+    indTrack2 = arrayfun(@(a,b) repmat(a,b,1), indTrackInFrame, ...
+        cellfun(@numel,indTrack1), 'UniformOutput', false);
+    
+    pairs = [vertcat(indTrack1{:}), vertcat(indTrack2{:})];
+    assert(all(pairs(:,1) ~= pairs(:,2)));
+    
+    % keep only those where pair(i,1) < pair(i,2)
+    pairs = pairs(pairs(:,1) < pairs(:,2),:);    
+    E(pairs(:,1)) = arrayfun(@(c,p) vertcat(c{1}, p), E(pairs(:,1)), ...
+        pairs(:,2), 'UniformOutput', false);
 end
 
-% Trim arrays
-isCloseEnough = PWD <= maxEuclidianDist;
-E = E(isCloseEnough,:);
-overlap = overlap(isCloseEnough);
-tOverlapFirst = tOverlapFirst(isCloseEnough);
-pFirst1 = pFirst1(isCloseEnough);
-pFirst2 = pFirst2(isCloseEnough);
+E = cellfun(@unique, E, 'UniformOutput', false);
+indTrack1 = arrayfun(@(a,b) repmat(a,b,1), (1:nTracks)', ...
+    cellfun(@numel,E), 'UniformOutput', false);
+indTrack1 = vertcat(indTrack1{:});
+indTrack2 = vertcat(E{:});
 
-clear idx firstIdx lastIdx overlapValues PWD range M idx1 idx2 ...
-    x1 y1 x2 y2 isCloseEnough k;
+E = [indTrack1, indTrack2];
+
+clear indTrackInFrame X Y pairs indTrack1 indTrack2;
+
+%% Find the set of track pairs that overlap in time
+
+
+tOverlapFirst = max(tFirst(E(:,1)), tFirst(E(:,2)));
+tOverlapLast = min(tLast(E(:,1)), tLast(E(:,2)));
+overlap = tOverlapLast - tOverlapFirst + 1;
+
+% THIS IS NOT NECESSARY ANYMORE SINCE YOU HAVE COMPUTED PAIRWISE DISTANCE
+% BETWEEN TRACKS WHICH AT LEAST LIVE AT THE SAME FRAME !!!
+% hasOverlap = overlap >= minOverlap;
+
+% trim arrays
+% % E = E(hasOverlap,:);
+% tOverlapFirst = tOverlapFirst(hasOverlap);
+% overlap = overlap(hasOverlap);
+
+clear tOverlapLast;% hasOverlap;
+
+% %% Compute the pairwise distance between tracks
+% 
+% % Point the location of each track parameters for every pair
+pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
+pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
+% 
+% % sort overlap values
+% [overlap idx] = sort(overlap);
+% 
+% % sort ANY other vector that contains pair of tracks information
+% E = E(idx,:);
+% tOverlapFirst = tOverlapFirst(idx);
+% pFirst1 = pFirst1(idx);
+% pFirst2 = pFirst2(idx);
+% 
+% firstIdx = find([1; diff(overlap)]);
+% lastIdx = find([-diff(-overlap); 1]);
+% 
+% overlapValues = unique(overlap);
+% 
+% PWD = zeros(size(overlap));
+% 
+% for k = 1:length(firstIdx)
+%     % indexes corresponding to overlap value
+%     range = firstIdx(k):lastIdx(k);
+%     
+%     M = repmat((0:overlapValues(k)-1), [length(range) 1]);
+%     idx1 = repmat(pFirst1(range), [1 overlapValues(k)]) + M;
+%     idx2 = repmat(pFirst2(range), [1 overlapValues(k)]) + M;
+%     
+%     x1 = allTrackParams(idx1,1);
+%     y1 = allTrackParams(idx1,2);
+%     x2 = allTrackParams(idx2,1);
+%     y2 = allTrackParams(idx2,2);
+%     
+%     % average distance
+%     PWD(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
+%         [length(range) overlapValues(k)]), 2);
+% end
+% 
+% % Trim arrays
+% isCloseEnough = PWD <= maxEuclidianDist;
+% E = E(isCloseEnough,:);
+% overlap = overlap(isCloseEnough);
+% tOverlapFirst = tOverlapFirst(isCloseEnough);
+% pFirst1 = pFirst1(isCloseEnough);
+% pFirst2 = pFirst2(isCloseEnough);
+% 
+% clear idx firstIdx lastIdx overlapValues PWD range M idx1 idx2 ...
+%     x1 y1 x2 y2 isCloseEnough k;
 
 %% Remove any pair of tracks that is:
 % - within the first 'bandWidth' nanometers of the cell edge
@@ -238,6 +280,7 @@ p = .5;
 dt = p * pi / 2;
 
 for iFrame = 1:nFrames
+    
     % Load distance transform
     load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
 
@@ -276,6 +319,10 @@ for iFrame = 1:nFrames
     ptsFirst = ptsLast - nPts + 1;
     ptsLines = vertcat(ptsLines{:});
 
+    % Note: if numel(ptsLines) == 0, there will be an 'Index exceeds matrix
+    % dimensions' error. To preven that, we force ptsLines to be a Nx2
+    % matrix.
+    ptsLines = reshape(ptsLines,size(ptsLines,1), 2);
     indLines = sub2ind(imSize, ptsLines(:,2), ptsLines(:,1));
 
     % Get cell edge orientation along the Bresenham lines
@@ -295,9 +342,12 @@ for iFrame = 1:nFrames
     ind = arrayfun(@(a,b) ones(a,1) * b, nValidPts, (1:numel(dx))', ...
         'UniformOutput', false);
     ind = vertcat(ind{:});
+    
+    % Note: same rational than above.
+    ind = reshape(ind,size(ind,1),1);
     dx = dx(ind);
     dy = dy(ind);
-        
+
     thetaLines = acos(abs(dx .* dU + dy .* dV));
     
     isAlongFlow = thetaLines <= dt;
@@ -306,6 +356,11 @@ for iFrame = 1:nFrames
     nPixelsAlongFlow(isValidPair) = nPixelsAlongFlow(isValidPair) + ...
         arrayfun(@(a,b) nnz(isAlongFlow(a:a+b-1)), ptsFirst, nValidPts);
 end
+
+% in case a pair has no valid point (accoding to isnnz), we need to update
+% the set of valid pairs. To avoid having another array, we update
+% isTrackPairInBand.
+isTrackPairInBand = isTrackPairInBand & nPixels ~= 0;
 
 maxNPixels = max(nPixels);
 
@@ -407,7 +462,11 @@ for iter = 1:5
         
         % For each track within each CC, compute the time offset between
         % the tFirstCC and tFirst
-        tOffsetPerTrack = bsxfun(@minus, tFirst(cc) ,tFirstCC(isPair));
+        % NOTE: we use reshape(tFirst(cc),size(cc)) to force the result to
+        % be the same size as cc when cc is 1xiNumTracks (by default, it
+        % would have been iNumTracksx1)
+        tOffsetPerTrack = bsxfun(@minus, reshape(tFirst(cc), size(cc)),...
+            tFirstCC(isPair));
 
         cumLifetimeCC = sum(lifetimeCC(isPair));
         allAlignedTrackParams = NaN(cumLifetimeCC * iNumTracks, 4);
@@ -454,12 +513,14 @@ for iter = 1:5
             Xp = [X + SX .* CT, X - SX .* CT];
             Yp = [Y + SX .* ST, Y - SX .* ST];
             
+            ws = warning('off','all');
             for i = 1:size(Xp,1)
                 x = Xp(i,:);
                 y = Yp(i,:);
                 p = polyfit(x(~isnan(x)), y(~isnan(y)),1);
                 allCCParamsIter(i,4) = atan2(p(1),1);
             end
+            warning(ws);
             
             X = allCCParamsIter(:,1);
             Y = allCCParamsIter(:,2);
