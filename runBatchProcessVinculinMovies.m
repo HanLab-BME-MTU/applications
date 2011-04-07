@@ -43,12 +43,12 @@ params.particleDetection.alpha = .05;
 params.particleTracking.searchRadius = 5;
 
 % PROC 4: track pairing
-params.pairTracks.iChannel = 1;
-params.pairTracks.bandWidth = 2000; % nm
-params.pairTracks.minOverlap = 1;
+
 params.pairTracks.maxEuclidianDist = 20;
-params.pairTracks.kSigma = 3;
+params.pairTracks.minOverlap = 1;
+params.pairTracks.bandWidth = 2000; % nm
 params.pairTracks.alpha = 0.05;
+params.pairTracks.maxIter = 5;
 
 % Run all processes
 batchProcessMyMovies(params);

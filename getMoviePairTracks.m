@@ -1,37 +1,39 @@
-function movieData = getMoviePairTracks(movieData,iChannel,bandWidth,...
-    minOverlap,maxEuclidianDist,kSigma,alpha,batchMode)
+function movieData = getMoviePairTracks(movieData,maxEuclidianDist,...
+    minOverlap,bandWidth,alpha,maxIter,batchMode)
 
-% iChannel              image channel where the tracks has been computed
-%                       from.
-%
-% bandWidth             distance in nanometers away from the cell edge
-%                       where pair of feature needs to be evaluate whether
-%                       it follows the Actin flow.
+% maxEuclidianDist:     maximum euclidian distance between the mean
+%                       position of 2 tracks to be considered as potential
+%                       pair of tracks.
 %
 % minOverlap:           is the minimal number of frame 2 tracks need to
 %                       live together to be considered as potential pair of
 %                       tracks. Default is 1.
 %
-% maxEuclidianDist:     maximum euclidian distance between the mean
-%                       position of 2 tracks to be considered as potential
-%                       pair of tracks.
-%
-% kSigma:               cutoff in number of standard deviations
+% bandWidth             distance in nanometers away from the cell edge
+%                       where pair of feature needs to be evaluate whether
+%                       it follows the Actin flow.
 %
 % alpha:                quantile of PDF tail. Default is 0.05.
+%
+% maxIter:              maximum number of iteration for the iterative
+%                       pairing algorithm.
 
 %% Parse input parameters
 
-if nargin < 3 || isempty(bandWidth)
-    bandWidth = 1000;
-end
-
-if nargin < 4 || isempty(minOverlap)
+if nargin < 3 || isempty(minOverlap)
     minOverlap = 1;
 end
 
-if nargin < 7 || isempty(alpha)
+if nargin < 4 || isempty(bandWidth)
+    bandWidth = 1000;
+end
+
+if nargin < 5 || isempty(alpha)
     alpha = 0.05;
+end
+
+if nargin < 6 || isempty(maxIter)
+    maxIter = 5;
 end
 
 assert(checkMovieDistanceTransform(movieData));
@@ -47,6 +49,7 @@ if ~exist(movieData.pairTracks.directory, 'dir')
     mkdir(movieData.pairTracks.directory);
 end
 
+% Save input parameters in the movieData
 nFrames = movieData.nImages(1);
 imSize = movieData.imSize;
 
@@ -176,73 +179,22 @@ E = [indTrack1, indTrack2];
 clear indTrackInFrame X Y pairs indTrack1 indTrack2;
 
 %% Find the set of track pairs that overlap in time
-
-
 tOverlapFirst = max(tFirst(E(:,1)), tFirst(E(:,2)));
 tOverlapLast = min(tLast(E(:,1)), tLast(E(:,2)));
 overlap = tOverlapLast - tOverlapFirst + 1;
 
-% THIS IS NOT NECESSARY ANYMORE SINCE YOU HAVE COMPUTED PAIRWISE DISTANCE
-% BETWEEN TRACKS WHICH AT LEAST LIVE AT THE SAME FRAME !!!
-% hasOverlap = overlap >= minOverlap;
+hasOverlap = overlap >= minOverlap;
 
 % trim arrays
-% % E = E(hasOverlap,:);
-% tOverlapFirst = tOverlapFirst(hasOverlap);
-% overlap = overlap(hasOverlap);
+E = E(hasOverlap,:);
+tOverlapFirst = tOverlapFirst(hasOverlap);
+overlap = overlap(hasOverlap);
 
-clear tOverlapLast;% hasOverlap;
-
-% %% Compute the pairwise distance between tracks
-% 
-% % Point the location of each track parameters for every pair
+% Point the location of each track parameters for every pair
 pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
 pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
-% 
-% % sort overlap values
-% [overlap idx] = sort(overlap);
-% 
-% % sort ANY other vector that contains pair of tracks information
-% E = E(idx,:);
-% tOverlapFirst = tOverlapFirst(idx);
-% pFirst1 = pFirst1(idx);
-% pFirst2 = pFirst2(idx);
-% 
-% firstIdx = find([1; diff(overlap)]);
-% lastIdx = find([-diff(-overlap); 1]);
-% 
-% overlapValues = unique(overlap);
-% 
-% PWD = zeros(size(overlap));
-% 
-% for k = 1:length(firstIdx)
-%     % indexes corresponding to overlap value
-%     range = firstIdx(k):lastIdx(k);
-%     
-%     M = repmat((0:overlapValues(k)-1), [length(range) 1]);
-%     idx1 = repmat(pFirst1(range), [1 overlapValues(k)]) + M;
-%     idx2 = repmat(pFirst2(range), [1 overlapValues(k)]) + M;
-%     
-%     x1 = allTrackParams(idx1,1);
-%     y1 = allTrackParams(idx1,2);
-%     x2 = allTrackParams(idx2,1);
-%     y2 = allTrackParams(idx2,2);
-%     
-%     % average distance
-%     PWD(range) = mean(reshape(sqrt((x1-x2).^2 + (y1-y2).^2), ...
-%         [length(range) overlapValues(k)]), 2);
-% end
-% 
-% % Trim arrays
-% isCloseEnough = PWD <= maxEuclidianDist;
-% E = E(isCloseEnough,:);
-% overlap = overlap(isCloseEnough);
-% tOverlapFirst = tOverlapFirst(isCloseEnough);
-% pFirst1 = pFirst1(isCloseEnough);
-% pFirst2 = pFirst2(isCloseEnough);
-% 
-% clear idx firstIdx lastIdx overlapValues PWD range M idx1 idx2 ...
-%     x1 y1 x2 y2 isCloseEnough k;
+
+clear tOverlapLast hasOverlap;
 
 %% Remove any pair of tracks that is:
 % - within the first 'bandWidth' nanometers of the cell edge
@@ -420,7 +372,7 @@ nCC = numel(CC);
 
 % IMPORTANT: from here on, E points to CC index
 
-for iter = 1:5
+for iter = 1:maxIter
     
     fprintf(1, 'Iterative Track Clustering level %d\n', iter);
     fprintf(1, '\tNumber of connected components:\t%d\n', nCC);
