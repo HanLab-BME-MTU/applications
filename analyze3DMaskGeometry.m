@@ -1,8 +1,8 @@
-function maskProp = analyze3DMaskGeometry(maskIn,varargin)
+function maskProp = analyze3DMaskGeometry(maskIn,smoothIter)
 %ANALYZE3DMASKGEOMETRY calculates varios properties of the geometry of the objects in the input 3D mask
 % 
 % maskProp = analyze3DMaskGeometry(maskIn)
-% maskProp = analyze3DMaskGeometry(maskIn,'OptionName1',optionValue1,'OptionName2',optionValue2,...)
+% maskProp = analyze3DMaskGeometry(maskIn,smoothIter)
 % 
 % This function analyzes the geometry of the input 3D mask and returns the
 % calculated properties for each object in the mask. This is analagous to
@@ -15,21 +15,14 @@ function maskProp = analyze3DMaskGeometry(maskIn,varargin)
 % 
 %   maskIn - A 3D logical matrix containing the mask to analyze.
 %
-%   'OptionName',optionValue - A string with an option name followed by the
-%   value for that option. 
-%
-%     Possible option name/value pairs:
-%
-%       ('OptionName'->possible values)
-%   
-%       ('SmoothSigma'->positive scalar) The sigma of the gaussian filter
-%       to use to smooth the mask prior calculating surface curvature
-%       properties. If set to 0, no smoothing is done.
-%       Default is 1.
-%
-%       ('IsoValue'->positive scalar 0 > x < 1) Specifies the value to
-%       threshold the smoothed mask image at to obtain the smoothed mask.
-%       Default is .5
+%   smoothIter - A positive integer scalar specifying the number of
+%   iterations of mesh smoothing to perform on the mask surface prior to
+%   surface curvature calculations. Due to the discretized nature of the
+%   binary mask, the curvature information in the raw mask surface is
+%   nearly meaningless, so smoothing is performed beforehand. If set to 0,
+%   no smoothing is performed. Default is 3.
+%   *NOTE* Insufficient smoothing may result in inaccurate surface
+%   curvature values, or in undefined (NaN) surface curvature values.
 %
 %
 % Output:
@@ -74,16 +67,10 @@ if nargin < 1 || ~islogical(maskIn) || ndims(maskIn) ~= 3
     error('The first input must be a 3-dimensional logical matrix!')
 end
 
-[smoothSig,isoVal] = parseInput(varargin);
-
-if isempty(smoothSig)
-    smoothSig = 1;
-end
-
-if isempty(isoVal)
-    isoVal = .5;
-elseif isoVal >= 1 || isoVal <= 0
-    error('The IsoValue input must be greater than 0 and less than 1!')
+if nargin < 2 || isempty(smoothIter)
+    smoothIter = 3;
+elseif numel(smoothIter)> 1 || round(abs(smoothIter)) ~= smoothIter
+    error('The smoothIter parameter must be a postive integer scalar!')
 end
 
 
@@ -114,18 +101,17 @@ maskProp(1:nObj) = struct('SmoothedSurface',[],...
 %Loop through the objects and get their properties
 for iObj = 1:nObj
     
-    %Smooth each object independently to avoid object merging via
-    %smoothing.    
-    if smoothSig > 0    
-        %Smooth the shit out of the mask
-        smMask = fastGauss3D(double(labelMask==iObj),smoothSig);
-    else
-        smMask = double(labelMask==iObj);
+    %Get the mask surface for this object
+    maskProp(iObj).SmoothedSurface = isosurface(labelMask == iObj,0);
+    
+    if smoothIter > 0    
+        %Smooth the mask surface
+        maskProp(iObj).SmoothedSurface = ...
+            smoothpatch(maskProp(iObj).SmoothedSurface,0,smoothIter);    
     end    
 
-    %Extract isosurface of this object
-    maskProp(iObj).SmoothedSurface = isosurface(smMask,isoVal);
-    maskProp(iObj).SurfaceNorms = isonormals(smMask,maskProp(iObj).SmoothedSurface.vertices);
+    %Get the vertex normals of this surface for curvature calculation
+    [~,maskProp(iObj).SurfaceNorms] = surfaceNormals(maskProp(iObj).SmoothedSurface);
 
     %Calculate local gaussian and mean curvature of surface
     [maskProp(iObj).GaussianCurvature,maskProp(iObj).MeanCurvature] =...
@@ -161,45 +147,3 @@ for iObj = 1:nObj
     
 end
 
-function [smoothSig,isoVal] = parseInput(argArray)
-%Sub-function for parsing variable input arguments
-
-
-smoothSig = [];
-isoVal = [];
-
-
-if isempty(argArray)
-    return
-end
-
-nArg = length(argArray);
-
-
-%Make sure there is an even number of arguments corresponding to
-%optionName/value pairs
-if mod(nArg,2) ~= 0
-    error('Inputs must be as optionName/ value pairs!')
-end
-
-for i = 1:2:nArg
-    
-   switch argArray{i}                     
-                         
-       case 'SmoothSigma'
-           
-           smoothSig = argArray{i+1};
-           
-       case 'IsoValue'
-           
-           isoVal = argArray{i+1};
-           
-       otherwise
-                  
-           imviewArgs  = [imviewArgs argArray{i:i+1}]; %#ok<AGROW>
-           
-   end
-               
-      
-   
-end

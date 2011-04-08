@@ -154,8 +154,7 @@ for iFrame = 1:nFrames
         currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);
     end
     %Get the geometry properties
-    maskProp = analyze3DMaskGeometry(currMask,'SmoothSigma',p.SmoothSigma,...
-                        'IsoValue',p.IsoValue); %#ok<*NASGU>
+    maskProp = analyze3DMaskGeometry(currMask,p.SmoothIter);                        
     
     if hasSizes && p.PhysicalUnits
         %Scale these properties so that they are in nm. We have scaled the
