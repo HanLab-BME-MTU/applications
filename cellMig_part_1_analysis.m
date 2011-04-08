@@ -138,7 +138,6 @@ if doNuclei
     display('Track nuclei:...')
     [tracksFinal]=scriptTrackNuclei(movieInfoCrop,rMin,rMax,resultDir);
     display('Done! Save results:...')
-    save('xParameters.mat','r','rMin','rMax','smoothFac');
     close all;
     
     if showMovie==1
@@ -155,5 +154,6 @@ if doNuclei
             end
         end
     end
-    display('All done!')
 end
+save('xParameters.mat','r','rMin','rMax','smoothFac');
+display('All done!')

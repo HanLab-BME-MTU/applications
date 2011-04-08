@@ -110,7 +110,7 @@ for frame=toDoList
 %     hold off;    
     
     Fsmp   = 1;                             % Sampling frequency [1/pix]
-    numPts = size(avCurve,1);               % Length of signal
+    numPts = max(512,size(avCurve,1));               % Length of signal
     y = avCurve(:,2);                       % The signal
     
     NFFT = 2^nextpow2(numPts);              % Next power of 2 from length of y

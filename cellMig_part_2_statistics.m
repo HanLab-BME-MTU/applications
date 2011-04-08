@@ -52,8 +52,8 @@ end
 
 try
     load('xDetectEdge.mat')
+    load('xParameters.mat')
     if doNuclei
-        load('xParameters.mat')
         load('xDetectNuclei.mat')
         load('xTracksNuclei.mat')
     end
@@ -231,57 +231,60 @@ display('Display results:...')
 % quiver(tracksMatxCord(:,frame),tracksMatyCord(:,frame),cellDistGradx(:,frame),cellDistGrady(:,frame));
 % hold off
 
-figure()
-label=1;
-for frame=1:dframes:(numFrames-timeWindow)
-    marker=['ro','bs','m*','c+','gd','yo','ks'];
-    %Remove the NaNs:    
-    %plot(tracksMatxCord(:,frame),
-    %velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-    plot(cell2edgeDist(:,frame),signFac*velMatxCord(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-    hold on
-    M{label}=[num2str((frame-1)*dt),'h'];
-    label=label+1;
+if doNuclei
+    
+    figure()
+    label=1;
+    for frame=1:dframes:(numFrames-timeWindow)
+        marker=['ro','bs','m*','c+','gd','yo','ks'];
+        %Remove the NaNs:
+        %plot(tracksMatxCord(:,frame),
+        %velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+        plot(cell2edgeDist(:,frame),signFac*velMatxCord(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+        hold on
+        M{label}=[num2str((frame-1)*dt),'h'];
+        label=label+1;
+    end
+    xlabel('Distance to the wound edge in [pixel]')
+    ylabel(['x-component of the velocity [pixel/',num2str(timeWindow*dt),'h]'])
+    legend(M);
+    saveas(gcf,['fig_x_vel_over_dist_to_edge','.tiff'],'tiffn');
+    clear M
+    hold off
+    
+    % figure(4)
+    % % project the cell velocity on the distance gradient (This doesn't help!):
+    % for frame=[2 6]
+    %     marker=['ro','bs','m*','c+','gd','yo','ks'];
+    %     %plot(tracksMatxCord(:,frame),  velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+    %     plot(cell2edgeDist(frame).vec,sum(cellDistGrad(frame).vec.*[velMatxCord(:,frame) velMatyCord(:,frame)],2),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+    %     hold on
+    % end
+    % hold off
+    
+    figure()
+    % plot how the cell density evolves over time in each bin:
+    label=1;
+    for frame=1:dframes:numFrames
+        marker=['ro','bs','m*','c+','gd','yo','ks'];
+        %plot(tracksMatxCord(:,frame),  velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+        [numBins,~]=size(densityMeasurement.density);
+        % disregard the last two bins:
+        dBin=0;
+        plot(densityMeasurement.binPix*(1:numBins-dBin),densityMeasurement.density(1:numBins-dBin,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
+        hold on
+        M{label}=[num2str((frame-1)*dt),'h'];
+        label=label+1;
+    end
+    display(['Disregarded the last',num2str(dBin),' bins for the density measurement'])
+    xlabel('Distance to the wound edge in [pixel]')
+    ylabel('Cell density in [1/pix]')
+    legend(M);
+    saveas(gcf,['fig_cell_density_over_dist_to_edge','.tiff'],'tiffn');
+    clear M
+    hold off
+    
 end
-xlabel('Distance to the wound edge in [pixel]')
-ylabel(['x-component of the velocity [pixel/',num2str(timeWindow*dt),'h]'])
-legend(M);
-saveas(gcf,['fig_x_vel_over_dist_to_edge','.tiff'],'tiffn');
-clear M
-hold off
-
-% figure(4)
-% % project the cell velocity on the distance gradient (This doesn't help!):
-% for frame=[2 6]
-%     marker=['ro','bs','m*','c+','gd','yo','ks'];
-%     %plot(tracksMatxCord(:,frame),  velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-%     plot(cell2edgeDist(frame).vec,sum(cellDistGrad(frame).vec.*[velMatxCord(:,frame) velMatyCord(:,frame)],2),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-%     hold on
-% end
-% hold off
-
-figure()
-% plot how the cell density evolves over time in each bin:
-label=1;
-for frame=1:dframes:numFrames
-    marker=['ro','bs','m*','c+','gd','yo','ks'];
-    %plot(tracksMatxCord(:,frame),  velMatMag(:,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-    [numBins,~]=size(densityMeasurement.density);
-    % disregard the last two bins:
-    dBin=0;
-    plot(densityMeasurement.binPix*(1:numBins-dBin),densityMeasurement.density(1:numBins-dBin,frame),marker(2*(mod(frame,7)+1)-1:2*(mod(frame,7)+1)));
-    hold on
-    M{label}=[num2str((frame-1)*dt),'h'];
-    label=label+1;
-end
-display(['Disregarded the last',num2str(dBin),' bins for the density measurement'])
-xlabel('Distance to the wound edge in [pixel]')
-ylabel('Cell density in [1/pix]')
-legend(M);
-saveas(gcf,['fig_cell_density_over_dist_to_edge','.tiff'],'tiffn');
-clear M
-hold off
-
 
 % plot how the cell density evolves over time in each bin:
 figure()
@@ -294,7 +297,11 @@ saveas(gcf,['fig_distance_over_time','.tiff'],'tiffn');
 display('done!')
 
 % save only the important results:
-save('xResults.mat','signFac','cell2edgeDist','tracksMatxCord','tracksMatyCord','velMatxCord','velMatyCord','velMatMag','densityMeasurement','coveredDist','roughness','freqSpec','minTrackLength','timeWindow','dt','pixSize_um','toDoList','badFlag','-v7.3');
+if doNuclei
+    save('xResults.mat','signFac','cell2edgeDist','tracksMatxCord','tracksMatyCord','velMatxCord','velMatyCord','velMatMag','densityMeasurement','coveredDist','roughness','freqSpec','minTrackLength','timeWindow','dt','pixSize_um','toDoList','badFlag','-v7.3');
+else
+    save('xResults.mat','signFac','coveredDist','roughness','freqSpec','minTrackLength','timeWindow','dt','pixSize_um','toDoList','badFlag','-v7.3');
+end
 
 
 % To do:
