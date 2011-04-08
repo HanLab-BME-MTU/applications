@@ -1,4 +1,4 @@
-function cellMig_part_2_statistics(binPix, minTrackLength, timeWindow, dframes, dt, showTrackerMovie, showEdgeMovie, batchJob)
+function cellMig_part_2_statistics(binPix, minTrackLength, timeWindow, dframes, dt, showTrackerMovie, showEdgeMovie, batchJob, doNuclei)
 pixSize_um=0.64;
 display(['The pixel size is set to ',num2str(pixSize_um),' um!']);
 
@@ -46,11 +46,17 @@ catch
     sglCell=0;
 end
 
+if nargin<9
+    doNuclei=1;
+end
+
 try
     load('xDetectEdge.mat')
-    load('xDetectNuclei.mat')
-    load('xParameters.mat')
-    load('xTracksNuclei.mat')
+    if doNuclei
+        load('xParameters.mat')
+        load('xDetectNuclei.mat')
+        load('xTracksNuclei.mat')
+    end
 catch exception
     display('Couldnt find all essential files, please browse to folder')
     return;
@@ -63,18 +69,21 @@ try
     display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
 end
 
-imageFileListNuclei=[pwd,filesep,'Nuclei'];
-try
-    imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
-catch exception
-    [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
-        'Select First nuclei Image');
-    
-    if ~ischar(filename) || ~ischar(pathname)
-        return;
+
+if doNuclei
+    imageFileListNuclei=[pwd,filesep,'Nuclei'];
+    try
+        imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
+    catch exception
+        [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
+            'Select First nuclei Image');
+        
+        if ~ischar(filename) || ~ischar(pathname)
+            return;
+        end
+        
+        imageFileListNuclei = getFileStackNames([pathname filesep filename]);
     end
-    
-    imageFileListNuclei = getFileStackNames([pathname filesep filename]);
 end
 
 try
@@ -100,6 +109,12 @@ end
 if dframes>=numFrames
     dframes=min(numFrames-1,dframes);
     display(['Movie is too short, plot results for every: ',num2str(dframes),' frames']);
+end
+
+try
+    dPix;
+catch
+    dPix=zeros(toDoList(end),1);
 end
 
 if sheetMask(1).mat(dPix(1)+1,dPix(1)+1)==1
@@ -157,35 +172,37 @@ end
 clear toDoListAll;
 display('done!')
 
-display('Calculating the distance transform:...')
-%[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList);
-[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList,sglCell);
-display('done!')
-
-% Calculate the cell area at front and back. This has to be done before
-% filtering out short tracks:
-display('Perform measurement of the cell density:...')
-[tracksMatxCord,tracksMatyCord]=conv2CordMatVelMat(tracksFinal,[],1,1,toDoList);
-[densityMeasurement]=perfDensityMeasurement(cellDistFromEdge,tracksMatxCord,tracksMatyCord,binPix,toDoList);
-display('done!')
-
-
-% sort out good tracks (defined by minimal track length), convert to simple
-% x-y-coordinate matrix, calculate velocities:
-display('Filter tracks for minimal track length:...')
-[tracksMatxCord,tracksMatyCord,velMatxCord,velMatyCord,velMatMag]=conv2CordMatVelMat(tracksFinal,[],minTrackLength,timeWindow,toDoList);
-display(['Calculated velocities are averaged over: ',num2str(timeWindow),' frames!'])
-display('done!')
-
-% calculate the cell to edge distance for all frames.
-display('Calculate individual cell to edge distances:...')
-[cell2edgeDist]=calcCell2EdgeDist(tracksMatxCord,tracksMatyCord,cellDistFromEdge,toDoList);
-display('done!')
-
-% calculate the distance gradient for each nuclei:
-display('Calculate distance gradients at each cell position:...')
-[cellDistGradx,cellDistGrady]=calcCellDistGrad(tracksMatxCord,tracksMatyCord,distGrad,toDoList);
-display('done!')
+if doNuclei
+    display('Calculating the distance transform:...')
+    %[cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList);
+    [cellDistFromEdge,distGrad]=createCellDistMat(sheetMask,r,dPix,toDoList,sglCell);
+    display('done!')
+    
+    % Calculate the cell area at front and back. This has to be done before
+    % filtering out short tracks:
+    display('Perform measurement of the cell density:...')
+    [tracksMatxCord,tracksMatyCord]=conv2CordMatVelMat(tracksFinal,[],1,1,toDoList);
+    [densityMeasurement]=perfDensityMeasurement(cellDistFromEdge,tracksMatxCord,tracksMatyCord,binPix,toDoList);
+    display('done!')
+    
+    
+    % sort out good tracks (defined by minimal track length), convert to simple
+    % x-y-coordinate matrix, calculate velocities:
+    display('Filter tracks for minimal track length:...')
+    [tracksMatxCord,tracksMatyCord,velMatxCord,velMatyCord,velMatMag]=conv2CordMatVelMat(tracksFinal,[],minTrackLength,timeWindow,toDoList);
+    display(['Calculated velocities are averaged over: ',num2str(timeWindow),' frames!'])
+    display('done!')
+    
+    % calculate the cell to edge distance for all frames.
+    display('Calculate individual cell to edge distances:...')
+    [cell2edgeDist]=calcCell2EdgeDist(tracksMatxCord,tracksMatyCord,cellDistFromEdge,toDoList);
+    display('done!')
+    
+    % calculate the distance gradient for each nuclei:
+    display('Calculate distance gradients at each cell position:...')
+    [cellDistGradx,cellDistGrady]=calcCellDistGrad(tracksMatxCord,tracksMatyCord,distGrad,toDoList);
+    display('done!')
+end
 
 % calculate the edge roughness and the frequency spectrum:
 display('Calculate the edge roughness:...')

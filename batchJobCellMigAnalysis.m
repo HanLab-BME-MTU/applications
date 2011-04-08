@@ -8,6 +8,7 @@ rMin=input('Specify the minimal search radius rMin=[    r]: ');
 rMax=input('Specify the maximal search radius rMax=[50pix]: ');
 smoothFac=input('Specify smoothing factor for smoother edges [2]: ');
 sglCell  =input('Are these single cell data yes/no=1/[0]: ');
+doNuclei  =input('Have you labeled nuclei yes/no=[1]/0: ');
 
 if isempty(r)
     r=5;
@@ -25,10 +26,15 @@ if isempty(sglCell)
     sglCell=0;
 end
 
+if isempty(doNuclei)
+    doNuclei=1;
+end
+
 resultDir=pwd;
 if ~isdir(resultDir)
     mkdir(resultDir);
 end
+
 
 
 % set the folder names:
@@ -58,7 +64,7 @@ for i=toDoList
     cd([pwd,filesep,folderName]);
     
     % execute the migration script
-    cellMig_part_1_analysis(r,rMin,rMax,smoothFac,[],[],0,sglCell);
+    cellMig_part_1_analysis(r,rMin,rMax,smoothFac,[],[],0,sglCell,doNuclei);
     
     % go back to the super folder
     cd ..

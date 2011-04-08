@@ -1,4 +1,4 @@
-function []=cellMig_part_1_analysis(r,rMin,rMax,smoothFac,imageFileListNuclei,imageFileListPhase,showMovie,sglCell)
+function []=cellMig_part_1_analysis(r,rMin,rMax,smoothFac,imageFileListNuclei,imageFileListPhase,showMovie,sglCell,doNuclei)
 
 if nargin<1
     r   =input('Specify the minimal nuclei radius    r=[ 5pix]: ');
@@ -25,37 +25,43 @@ if ~isdir(resultDir)
     mkdir(resultDir);
 end
 
-    
-if nargin < 5 || isempty(imageFileListNuclei)
-    imageFileListNuclei=[pwd,filesep,'Nuclei'];
-    try
-        imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
-    catch exception
-        [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
-            'Select First nuclei Image');
-        
-        if ~ischar(filename) || ~ischar(pathname)
-            return;
+if nargin<9 || isempty(doNuclei)
+    doNuclei=1;
+end
+
+if doNuclei
+    if nargin < 5 || isempty(imageFileListNuclei)
+        imageFileListNuclei=[pwd,filesep,'Nuclei'];
+        try
+            imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
+        catch exception
+            [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
+                'Select First nuclei Image');
+            
+            if ~ischar(filename) || ~ischar(pathname)
+                return;
+            end
+            
+            imageFileListNuclei = getFileStackNames([pathname filesep filename]);
         end
         
-        imageFileListNuclei = getFileStackNames([pathname filesep filename]);
+    elseif isdir(imageFileListNuclei)
+        imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
+    else
+        isValid = 1;
+        for frame = 1:numel(imageFileListNuclei)
+            isValid = isValid && exist(imageFileListNuclei{frame}, 'file');
+        end
+        if ~isValid
+            error('Invalid input files.');
+        end
     end
     
-elseif isdir(imageFileListNuclei)
-    imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
-else
-    isValid = 1;
-    for frame = 1:numel(imageFileListNuclei)
-        isValid = isValid && exist(imageFileListNuclei{frame}, 'file');
+    [~, ~, fno , ~]=getFilenameBody(imageFileListNuclei{1});
+    if str2double(fno)~=1
+        display('Collapsed file stack! First frame had frame no > 1!')
+        imageFileListNuclei=collapseFileStack(imageFileListNuclei, -1);
     end
-    if ~isValid
-        error('Invalid input files.');
-    end
-end
-[~, ~, fno , ~]=getFilenameBody(imageFileListNuclei{1});
-if str2double(fno)~=1
-    display('Collapsed file stack! First frame had frame no > 1!')
-    imageFileListNuclei=collapseFileStack(imageFileListNuclei, -1);
 end
 
 
@@ -95,12 +101,16 @@ if nargin<8 || isempty(sglCell)
 end
 
 
-% find nuclei:
-display('Detect nuclei edge:...')
-[nuclei,movieInfo,dPix]=nucleiDetect(imageFileListNuclei,r,1,'sobel',[],0.01);
-display('Done! Save results:...')
-save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase');
-close all;
+if doNuclei
+    % find nuclei:
+    display('Detect nuclei edge:...')
+    [nuclei,movieInfo,dPix]=nucleiDetect(imageFileListNuclei,r,1,'sobel',[],0.01);
+    display('Done! Save results:...')
+    save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase');
+    close all;
+else
+    dPix=[];
+end
 
 
 % find the wound edge
@@ -113,35 +123,37 @@ else
     [sheetMask,sheetBnD,sheetEdge,~,~,toDoList]=woundEdgeDetect(imageFileListPhase,r,smoothFac,'canny',2,dPix,'noholes');
 end
 display('Done! Save results:...')
-save('xDetectEdge.mat','sheetMask','sheetBnD','sheetEdge','toDoList','sglCell','-v7.3');
+save('xDetectEdge.mat','sheetMask','sheetBnD','sheetEdge','toDoList','sglCell','smoothFac','-v7.3');
 % The fields: ,'cellDistFromEdge','distGrad' are not saved!
 close all;
 
-% before tracking crop the nuclei that are within the cell sheet:
-display('Cut off out of sheet nuclei:...')
-[nucleiCrop,movieInfoCrop]=cropNucleiWithMask(imageFileListNuclei,r,nuclei,sheetMask,toDoList);
-display('Done! Save results:...')
-save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase','nucleiCrop','movieInfoCrop');
-
-% track nuclei:
-display('Track nuclei:...')
-[tracksFinal]=scriptTrackNuclei(movieInfoCrop,rMin,rMax,resultDir);
-display('Done! Save results:...')
-save('xParameters.mat','r','rMin','rMax','smoothFac');
-close all;
-
-if showMovie==1
-    % show and save movie:
-    movieFileName='mov_trackNuclei.mov';
-    display('Create tracker movie:...')
-    overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei)
-    % move the movie into the current dir:
-    if isdir('Nuclei')
-        try
-            movefile(['Nuclei',filesep,movieFileName],movieFileName);
-        catch exception
-            display('Couldnt find movie file, you have to find it yourself');
+if doNuclei
+    % before tracking crop the nuclei that are within the cell sheet:
+    display('Cut off out of sheet nuclei:...')
+    [nucleiCrop,movieInfoCrop]=cropNucleiWithMask(imageFileListNuclei,r,nuclei,sheetMask,toDoList);
+    display('Done! Save results:...')
+    save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase','nucleiCrop','movieInfoCrop');
+    
+    % track nuclei:
+    display('Track nuclei:...')
+    [tracksFinal]=scriptTrackNuclei(movieInfoCrop,rMin,rMax,resultDir);
+    display('Done! Save results:...')
+    save('xParameters.mat','r','rMin','rMax','smoothFac');
+    close all;
+    
+    if showMovie==1
+        % show and save movie:
+        movieFileName='mov_trackNuclei.mov';
+        display('Create tracker movie:...')
+        overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei)
+        % move the movie into the current dir:
+        if isdir('Nuclei')
+            try
+                movefile(['Nuclei',filesep,movieFileName],movieFileName);
+            catch exception
+                display('Couldnt find movie file, you have to find it yourself');
+            end
         end
     end
+    display('All done!')
 end
-display('All done!')

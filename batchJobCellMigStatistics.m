@@ -10,6 +10,7 @@ dframes         =input('Plot only velocities every ...                          
 dt              =input('Specify the time between two frames as fraction of 1h   =[    1/6h]: ');
 showTrackerMovie=input('Do you want to plot a tracker movie?        Yes=1 / No=0=[      No]: ');
 showEdgeMovie   =input('Do you want to show the tracked sheet edge? Yes=1 / No=0=[      No]: ');
+doNuclei        =input('Have you labeled nuclei yes/no=[1]/0: ');
 
 if isempty(binPix)
     binPix=100;
@@ -32,7 +33,9 @@ end
 if isempty(showEdgeMovie)
     showEdgeMovie=0;
 end
-
+if isempty(doNuclei)
+    doNuclei=1;
+end
 
 % set the folder names:
 A = dir();
@@ -62,7 +65,7 @@ for i=toDoList
     cd([pwd,filesep,folderName]);
     
     % execute the migration script
-    cellMig_part_2_statistics(binPix, minTrackLength, timeWindow, dframes, dt, showTrackerMovie, showEdgeMovie, 1);
+    cellMig_part_2_statistics(binPix, minTrackLength, timeWindow, dframes, dt, showTrackerMovie, showEdgeMovie, 1,doNuclei);
     
     % go back to the super folder
     cd ..
