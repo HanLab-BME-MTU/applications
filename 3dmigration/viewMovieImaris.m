@@ -233,8 +233,8 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
         currIndE = ciE:ciE+nEdgePts(iImage)-1;%Indices for the edge paths on this frame
         
         vertTimes(currIndV) = iImage-1; %Time indices for vertices        
-        vertXYZ(currIndV,1:2) = skgr(iImage).vertices(:,1:2) .* pixXY;%Scale the coordinates by pixel size
-        vertXYZ(currIndV,3) = skgr(iImage).vertices(:,3) .* pixZ;
+        vertXYZ(currIndV,1:2) = (skgr(iImage).vertices(:,1:2) -1) .* pixXY;%Scale the coordinates by pixel size, shift by one because imaris voxel coordinates start at zero
+        vertXYZ(currIndV,3) = (skgr(iImage).vertices(:,3) -1) .* pixZ;
         
         edgeTimes(currIndE) = iImage-1;
         ciEP = ciE;
@@ -245,8 +245,8 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
             currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
             currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
             
-            edgeXYZ(currIndEP,1:2) = skgr(iImage).edgePaths{iEdg}(:,1:2) .* pixXY;
-            edgeXYZ(currIndEP,3) = skgr(iImage).edgePaths{iEdg}(:,3) .* pixZ;
+            edgeXYZ(currIndEP,1:2) = (skgr(iImage).edgePaths{iEdg}(:,1:2) -1) .* pixXY;
+            edgeXYZ(currIndEP,3) = (skgr(iImage).edgePaths{iEdg}(:,3) -1) .* pixZ;
             
             %These edge path points are stored consecutively, so just
             %connect each subsequent point with an edge.
@@ -305,21 +305,21 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
         if ~movieData3D.processes_{iMgProc}.funParams_.PhysicalUnits
                         
             vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
-            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
-            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) .* pixXY;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+            vert(:,2:-1:1) = (mg(iImage).SmoothedSurface.vertices(:,1:2) -1) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
+            vert(:,3) = (mg(iImage).SmoothedSurface.vertices(:,3) -1) .* pixXY;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
             faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
             norms = zeros(size(mg(iImage).SurfaceNorms));
-            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) .* pixXY;
-            norms(:,3) = mg(iImage).SurfaceNorms(:,3) .* pixXY;
+            norms(:,2:-1:1) = (mg(iImage).SurfaceNorms(:,1:2) -1) .* pixXY;
+            norms(:,3) = (mg(iImage).SurfaceNorms(:,3) -1) .* pixXY;
             
         else
             vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
-            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2);%The surface norms are returned in cartesian rather than matrix coord
-            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3);%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) - pixXY;%No scaling, but shift for imaris voxel coord
+            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) -pixZ;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
             faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
             norms = zeros(size(mg(iImage).SurfaceNorms));
-            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2);
-            norms(:,3) = mg(iImage).SurfaceNorms(:,3);                        
+            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) - pixXY;
+            norms(:,3) = mg(iImage).SurfaceNorms(:,3) - pixZ;                        
         end
         imarisSurf.AddSurface(vert,faces,norms,iImage-1);                
        
@@ -377,7 +377,7 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
         currIndE = ciE:ciE+nEdgePts(iImage)-1;%Indices for the edge paths on this frame
         
         vertTimes(currIndV) = iImage-1; %Time indices for vertices        
-        vertXYZ(currIndV,:) = skgrPruned(iImage).vertices .* pixXY;%Scale the coordinates by the xy pixel size only, because they have been converted to symmetric-voxel coordinates        
+        vertXYZ(currIndV,:) = (skgrPruned(iImage).vertices -1) .* pixXY;%Scale the coordinates by the xy pixel size only, because they have been converted to symmetric-voxel coordinates        
         
         edgeTimes(currIndE) = iImage-1;
         ciEP = ciE;
@@ -388,7 +388,7 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
             currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
             currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
             
-            edgeXYZ(currIndEP,:) = skgrPruned(iImage).edgePaths{iEdg} .* pixXY;            
+            edgeXYZ(currIndEP,:) = (skgrPruned(iImage).edgePaths{iEdg} -1) .* pixXY;            
             
             %These edge path points are stored consecutively, so just
             %connect each subsequent point with an edge.
