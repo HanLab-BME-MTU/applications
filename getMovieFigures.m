@@ -102,10 +102,35 @@ end
 
 %% Output
 isValid = ~isnan(actinSpeedPerSegment);
+lengthPerSegment = lengthPerSegment(isValid);
+actinSpeedPerSegment = actinSpeedPerSegment(isValid);
+
+range = [0:250:1000, 1500:500:max(lengthPerSegment)];
+
+nBins = numel(range)-1;
+
+prm = zeros(5,nBins);
+
+for iBin = 1:nBins
+    isInBin = lengthPerSegment >= range(iBin) & lengthPerSegment < range(iBin+1);
+    
+    data = sort(actinSpeedPerSegment(isInBin));
+    
+    prm(1,iBin) = data(floor(numel(data)/2)+1);
+    prm(2,iBin) = data(floor(numel(data)/4)+1);
+    prm(3,iBin) = data(floor(3 * numel(data)/4)+1);
+    prm(4,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+    prm(5,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+end
 
 hFig = figure('Visible', 'off');
-plot(gca,lengthPerSegment(isValid), actinSpeedPerSegment(isValid), 'r.');
-xlabel('Adhesion length (nm)');
+hold on;
+
+labels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
+    1:nBins, 'UniformOutput', false);
+
+boxplot2({prm},[0.360000000000000   0.630000000000000   0.900000000000000],labels);
+
 ylabel('Actin Speed (nm/min)');
 
 fileName = fullfile(movieData.figures.directory, ...
