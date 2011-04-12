@@ -478,7 +478,7 @@ for c1=1:nImages %firstMatrix:lastMatrix
         img=imread(imageFileList{c1});
         
         % Show image
-        h=figure; imshow(img,[]);   
+        h=figure('Visible', 'off'); imshow(img,[]);   
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -604,9 +604,9 @@ for c1=1:nImages %firstMatrix:lastMatrix
         if nImages>1
             indxStr=sprintf(strg,imageIndices(c1));
             fname=['flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
-            print(gcf,'-dtiff', [outputdir,filesep,'tif',filesep,fname,'.tif']);
-            print(gcf,'-dpsc2', '-r300',[outputdir,filesep,'eps',filesep,fname,'.eps']);
-            
+            %print(gcf,'-dtiff', '-r300', '-noui', [outputdir,filesep,'tif',filesep,fname,'.tif']);
+            print(gcf,'-dpsc2', '-r300', '-noui', fullfile(outputdir, 'eps', [fname, '.eps']));
+            eval(['!convert -colorspace rgb ' fullfile(outputdir,'eps', [fname, '.eps']) ' tiff:' fullfile(outputdir, 'tif', [fname, '.tif'])]);
             % Close image
             close(h);
         end
