@@ -1,4 +1,4 @@
-function featuresInfo = detectFocalAdhesionParticles(ima, mask, sigmaPSF, kSigma, alpha)
+function featuresInfo = detectFocalAdhesionParticles(ima, mask, sigmaPSF, kSigma, alpha, minDist)
 
 ima = double(ima);
 [nrows ncols] = size(ima);
@@ -45,6 +45,7 @@ ymax = ymax(isValid);
 P = P(isValid,:);
 
 stdP = zeros(size(P));
+stdR = zeros(size(P,1),1);
 
 [X,Y] = meshgrid(-hside:hside);
 disk = X.^2 + Y.^2 - hside^2 <= 0;
@@ -75,7 +76,8 @@ for iFeature = 1:numel(xmin)
     
     % TEST 2: model goodness-of-fit (K-S test)
     validRes = R(disk);
-    isValid = isValid & ~kstest(validRes ./ std(validRes), [], alpha);
+    stdR(iFeature) = std(validRes);
+    isValid = isValid & ~kstest(validRes ./ stdR(iFeature), [], alpha);
     
     % TEST 3: test sigmaX
     testStat = params(4) / stdParams(4);
@@ -102,6 +104,25 @@ end
 
 P = P(success,:);
 stdP = stdP(success,:);
+
+% Remove any detection which has been localised at the same position
+ind = KDTreeBallQuery(P(:,1:2), P(:,1:2), repmat(minDist, size(P,1), 1));
+ind = cellfun(@(c) c(2:end), ind, 'UniformOutput', false);
+isInCluster = cellfun(@(c) ~isempty(c), ind);
+indInCluster = find(isInCluster);
+
+isValid = true(size(P,1),1);
+
+for iiFeature = 1:numel(indInCluster)
+    iFeature = indInCluster(iiFeature);
+    
+    if stdR(iFeature) < max(stdR(ind{iFeature}))
+        isValid(iFeature) = false;
+    end
+end
+
+P = P(isValid,:);
+stdP = stdP(isValid,:);
 
 featuresInfo.xCoord = [P(:,1), stdP(:,1)];
 featuresInfo.yCoord = [P(:,2), stdP(:,2)];
