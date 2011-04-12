@@ -1,12 +1,11 @@
 % plotFrame(data, tracks, frameIdx, ch, varargin)
 %
 % INPUTS:   data : data structure
-%          track : track structure
-%        trackID : index of the track
+%         tracks : track structure
+%       frameIdx : index of the frame
 %             ch : channel #
 %     {varargin} : optional inputs:
 %                      'Visible' : {'on'} | 'off' toggles figure visibility
-%                      'Units' : sets the axis units. Default: pixels
 %                      'Mode' : {'raw'} | 'rgb' | 'mask'
 %                      'DynamicRange' : cell array of dynamic ranges for all channels
 %                      'Handle' : h, axis handle (for plotting from within GUI)
@@ -18,46 +17,31 @@
 
 function plotFrame(data, tracks, frameIdx, ch, varargin)
 
-nCh = length(ch);
-
-%======================================
-% Check inputs
-%======================================
-if mod(length(varargin),2)~=0
-    error('Optional arguments need to be entered as pairs.');
-end
-
 %======================================
 % Parse inputs, set defaults
 %======================================
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 psize = data.pixelSize/data.M;
+nCh = length(ch);
 
-idx = find(strcmpi(varargin, 'Visible'));
-if ~isempty(idx)
-    visible = varargin{idx+1};
-else
-    visible = 'on';
-end
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addRequired('tracks');
+ip.addRequired('frameIdx');
+ip.addRequired('ch');
+ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
+ip.addParamValue('print', false, @islogical);
+ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
+ip.addParamValue('visibleTracks', 'current', @(x) strcmpi(x, 'current') | strcmpi(x, 'all'));
+ip.addParamValue('scaleBar', []);
+ip.addParamValue('handle', []);
+ip.parse(data, tracks, frameIdx, ch, varargin{:});
 
-idx = find(strcmpi(varargin, 'Mode'));
-if ~isempty(idx)
-    mode = varargin{idx+1};
-else
-    mode = 'raw';
-end
-
-idx = find(strcmpi(varargin, 'DynamicRange'));
-if ~isempty(idx)
-    iRange = varargin{idx+1};
-else
-    iRange = cell(1,nCh);
-end
-
-idx = find(strcmpi(varargin, 'Handle'));
-if ~isempty(idx)
-    ha = varargin{idx+1};
+if ~isempty(ip.Results.handle)
+    ha = ip.Results.handle;
     standalone = false;
 else
     h = figure('Visible', 'off', 'PaperPositionMode', 'auto');
@@ -68,42 +52,13 @@ else
     standalone = true;
 end
 
-idx = find(strcmpi(varargin, 'Units'));
-if ~isempty(idx)
-    unit = varargin{idx+1};
-    xa = (0:nx-1)*psize/unit;
-    ya = (0:ny-1)*psize/unit;
-else
-    xa = 1:nx;
-    ya = 1:ny;
-end
-
-idx = find(strcmpi(varargin, 'VisibleTracks'));
-if ~isempty(idx)
-    visibleTracks = varargin{idx+1};
-else
-    visibleTracks = 'current';
-end
-
-idx = find(strcmpi(varargin, 'Print'));
-if ~isempty(idx) && strcmpi(varargin{idx+1}, 'on')
-    printEPS = true;
-else
-    printEPS = false;
-end
-
-idx = find(strcmpi(varargin, 'ScaleBar'));
-if ~isempty(idx)
-    scaleBar = varargin{idx+1};
-else
-    scaleBar = [];
-end
-
+xa = 1:nx;
+ya = 1:ny;
 
 %======================================
 % Plot frame
 %======================================
-switch mode
+switch ip.Results.mode
     case 'RGB'
         if nCh>3
             error('Max. 3 channels in RGB mode.');
@@ -156,7 +111,7 @@ if ~isempty(tracks)
     %cmap = jet(data.movieLength);
     cmap = jet(max([tracks.end]-[tracks.start]+1));
     hold(ha, 'on');
-    switch visibleTracks
+    switch ip.Results.visibleTracks
         case 'current'
             idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);
             for k = idx
@@ -178,16 +133,16 @@ end
 if standalone
     axis(ha, 'off');
 end
-
-if ~isempty(scaleBar)
-    plotScaleBar(scaleBar/psize, 'Label', '5 µm');
+    
+if ~isempty(ip.Results.scaleBar)
+    plotScaleBar(ip.Results.scaleBar/psize, 'Label', '5 µm');
 end
 
 
 %======================================
 % Print EPS
 %======================================
-if printEPS
+if ip.Results.print
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
@@ -195,6 +150,6 @@ if printEPS
     print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) '_ch' num2str(ch) '.eps']);   
 end
 
-if strcmp(visible, 'off')
+if strcmp(ip.Results.visible, 'off')
     close(h);
 end

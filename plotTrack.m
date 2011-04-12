@@ -14,47 +14,33 @@
 function plotTrack(data, tracks, trackIdx, ch, varargin)
 
 %======================================
-% Check inputs
-%======================================
-if mod(length(varargin),2)~=0
-    error('Optional arguments need to be entered as pairs.');
-end
-
-%======================================
 % Parse inputs, set defaults
 %======================================
-idx = find(strcmpi(varargin, 'Visible'));
-if ~isempty(idx)
-    visible = varargin{idx+1};
-else
-    visible = 'on';
-end
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addRequired('tracks', @isstruct);
+ip.addRequired('trackIdx', @isnumeric);
+ip.addRequired('ch', @isnumeric);
+ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('print', false, @islogical);
+ip.addParamValue('handle', []);
+ip.parse(data, tracks, trackIdx, ch, varargin{:});
 
-idx = find(strcmpi(varargin, 'Handle'));
-if ~isempty(idx)
-    ha = varargin{idx+1};
+if ~isempty(ip.Results.handle)
+    ha = ip.Results.handle;
     standalone = false;
 else
-    hfig = figure('Visible', visible);
+    hfig = figure('Visible', ip.Results.visible);
     ha = axes('Position', [0.15 0.15 0.8 0.8]);
     standalone = true;
 end
-
-idx = find(strcmpi(varargin, 'Print'));
-if ~isempty(idx) && strcmpi(varargin{idx+1}, 'on')
-    printEPS = true;
-else
-    printEPS = false;
-end
-
-
 
 if length(tracks)>1
     track = tracks(trackIdx);
 else
     track = tracks;
 end
-
 
 if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
     bStart = size(track.startBuffer.A,2);
@@ -186,7 +172,7 @@ if standalone
     end
 end
 
-if printEPS
+if ip.Results.print
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
@@ -194,7 +180,7 @@ if printEPS
     print(hfig, '-depsc2', '-r300', [fpath 'track_' num2str(trackIdx) '_ch' num2str(ch) '.eps']);
 end
 
-if strcmp(visible, 'off')
+if strcmp(ip.Results.visible, 'off')
     close(hfig);
 end
 
