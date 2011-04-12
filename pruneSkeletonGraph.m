@@ -193,13 +193,12 @@ fitCoef = zeros(2,nEndPts);
 
 for j = 1:nEndPts
 
-    %Calc the distance from this endpoint to every face of the surface
-    %polygon
-    dToSurf = arrayfun(@(x)(sqrt(sum((facePos(x,[2 1 3]) - ...
-        vertices(iEndPt(j),:)).^2))),1:nFaces);%Vertices are in matrix coord, so we need to rearrange
+    %Find the closest vertex to this point
+    [~,iClosest] = min(arrayfun(@(x)(sqrt(sum((maskSurf.vertices(x,[2 1 3]) - ...
+        vertices(iEndPt(j),:)).^2))),1:nVert));%Vertices are in matrix coord, so we need to rearrange
 
-    %Find points near this tip on the surface
-    isCloseEnough = dToSurf < (curvSampD+endDepth(j));
+    %Find which faces are near this on the surface        
+    isCloseEnough = adjacentMeshVertices(maskSurf,iClosest,(curvSampD+endDepth(j)));
 
     %Get average mean and gaussian curvature   
     if nnz(isCloseEnough) > 0
