@@ -263,6 +263,14 @@ if nImages>1
         end
     end
     
+    if ~exist([outputdir,filesep,'mat'], 'dir')
+        % Create directory
+        success=mkdir(outputdir,'mat');
+        if success==0
+            error('Could not create subfolder in specified directory');
+        end
+    end
+    
     % String format
     [path,outputFileName,no]=getFilenameBody(imageFileList{1});
     s=length(no);
@@ -512,9 +520,15 @@ for c1=1:nImages %firstMatrix:lastMatrix
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         Md=Mm(Mm(:,1)~=0 & Mm(:,3)~=0,:);
         
+        % Save averaged flow field
+        indxStr=sprintf(strg,imageIndices(c1));
+        fname=['avgFlowField_d0=', num2str(d0_init),'_frames=', num2str(nAvg),'_',indxStr];
+        F = Md;
+        F(:,3:4) = (F(:,3:4) - F(:,1:2)) * scale; %#ok<NASGU>
+        save(fullfile(outputdir, 'mat', [fname, '.mat']), 'F');
+        
         % Plot averaged field
         h=vectorFieldPlot(Md,h,[],scale);
-        
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -604,9 +618,8 @@ for c1=1:nImages %firstMatrix:lastMatrix
         if nImages>1
             indxStr=sprintf(strg,imageIndices(c1));
             fname=['flowMap_d0=',num2str(d0_init),'_frames=',num2str(nAvg),'_',indxStr];
-            %print(gcf,'-dtiff', '-r300', '-noui', [outputdir,filesep,'tif',filesep,fname,'.tif']);
+            print(gcf,'-dtiff', '-noui', [outputdir,filesep,'tif',filesep,fname,'.tif']);
             print(gcf,'-dpsc2', '-r300', '-noui', fullfile(outputdir, 'eps', [fname, '.eps']));
-            eval(['!convert -colorspace rgb ' fullfile(outputdir,'eps', [fname, '.eps']) ' tiff:' fullfile(outputdir, 'tif', [fname, '.tif'])]);
             % Close image
             close(h);
         end

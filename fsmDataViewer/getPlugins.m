@@ -107,46 +107,52 @@ layerPlugins(5).filterSpec = {'*.mat'};
 layerPlugins(5).displayFunc = @displaySpeckles;
 layerPlugins(5).dispatchFunc = @dispatchFilesToFrames;
 
-% [panda] Window
-layerPlugins(6).desc = '[panda] Windows';
+% [qFSM] Flow Analysis
+layerPlugins(6).desc = '[qFSM] Flow Analysis';
 layerPlugins(6).filterSpec = {'*.mat'}; 
-layerPlugins(6).displayFunc = @plotWindowsFSM;
-layerPlugins(6).dispatchFunc = @dispatchMatrix3ToFrames;
+layerPlugins(6).displayFunc = @displayVectorField;
+layerPlugins(6).dispatchFunc = @dispatchFlowAnalysis;
+
+% [panda] Window
+layerPlugins(7).desc = '[panda] Windows';
+layerPlugins(7).filterSpec = {'*.mat'}; 
+layerPlugins(7).displayFunc = @plotWindowsFSM;
+layerPlugins(7).dispatchFunc = @dispatchMatrix3ToFrames;
 
 % [Khuloud tracker] Features
-layerPlugins(7).desc = '[Khuloud Tracker] Features Info';
-layerPlugins(7).filterSpec = {'*.mat'};
-layerPlugins(7).displayFunc = @displayIsoFeatures;
-layerPlugins(7).dispatchFunc = @dispatchFeaturesInfo;
+layerPlugins(8).desc = '[Khuloud Tracker] Features Info';
+layerPlugins(8).filterSpec = {'*.mat'};
+layerPlugins(8).displayFunc = @displayIsoFeatures;
+layerPlugins(8).dispatchFunc = @dispatchFeaturesInfo;
 
 % [Khuloud tracker] Tracks
-layerPlugins(8).desc = '[Khuloud Tracker] Tracks Final';
-layerPlugins(8).filterSpec = {'*.mat'};
-layerPlugins(8).displayFunc = @displayTracksFinal;
-layerPlugins(8).dispatchFunc = @dispatchTracksFinal;
+layerPlugins(9).desc = '[Khuloud Tracker] Tracks Final';
+layerPlugins(9).filterSpec = {'*.mat'};
+layerPlugins(9).displayFunc = @displayTracksFinal;
+layerPlugins(9).dispatchFunc = @dispatchTracksFinal;
 
 % [Khuloud tracker] Colored Tracks
-layerPlugins(9).desc = '[Khuloud Tracker] Classified Tracks';
-layerPlugins(9).filterSpec = {'*.mat'};
-layerPlugins(9).displayFunc = @displayClassifiedTracks;
-layerPlugins(9).dispatchFunc = @dispatchClassifiedTracks;
+layerPlugins(10).desc = '[Khuloud Tracker] Classified Tracks';
+layerPlugins(10).filterSpec = {'*.mat'};
+layerPlugins(10).displayFunc = @displayClassifiedTracks;
+layerPlugins(10).dispatchFunc = @dispatchClassifiedTracks;
 
 % [Graph] Pair Tracks
-layerPlugins(10).desc = '[Graph] Pair Tracks';
-layerPlugins(10).filterSpec = {'*.mat'};
-layerPlugins(10).displayFunc = @displayAnisoFeatures;
-layerPlugins(10).dispatchFunc = @dispatchCellToFrames;
-
-% [Graph] Connected Component Models
-layerPlugins(11).desc = '[Graph] Connected Component Models';
+layerPlugins(11).desc = '[Graph] Pair Tracks';
 layerPlugins(11).filterSpec = {'*.mat'};
 layerPlugins(11).displayFunc = @displayAnisoFeatures;
 layerPlugins(11).dispatchFunc = @dispatchCellToFrames;
 
-% Theta map
-layerPlugins(12).desc = 'Theta Map';
+% [Graph] Connected Component Models
+layerPlugins(12).desc = '[Graph] Connected Component Models';
 layerPlugins(12).filterSpec = {'*.mat'};
-layerPlugins(12).displayFunc = @displayVectorField;
-layerPlugins(12).dispatchFunc = @dispatchThetaMap;
+layerPlugins(12).displayFunc = @displayAnisoFeatures;
+layerPlugins(12).dispatchFunc = @dispatchCellToFrames;
+
+% Theta map
+layerPlugins(13).desc = 'Theta Map';
+layerPlugins(13).filterSpec = {'*.mat'};
+layerPlugins(13).displayFunc = @displayVectorField;
+layerPlugins(13).dispatchFunc = @dispatchThetaMap;
 
 end

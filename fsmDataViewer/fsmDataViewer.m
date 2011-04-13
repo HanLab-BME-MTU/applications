@@ -56,11 +56,13 @@ set(hFig, 'HandleVisibility', 'callback');
 function saveMovie(varargin)
 
 
-filterSpec = {'*.tif','TIFF image (*.tif)'};
+filterSpec = {'*.tif','TIFF image (*.tif)';'*.png','PNG image (*.png)'};
 
 [fileName,pathName] = uiputfile(filterSpec, 'Save As', 'Untitled.tif');
 
 if ischar(fileName) && ischar(pathName)
+    [~,~,~,ext] = getFilenameBody(fileName);
+    
     % Get figure handler
     h = findall(0, '-regexp', 'Name', 'fsmDataViewer');
     settings = get(h, 'UserData');
@@ -99,12 +101,13 @@ if ischar(fileName) && ischar(pathName)
     set(hFig,'CurrentAxes',hAxes);
     
     [path,body] = getFilenameBody(fullfile(pathName,fileName));
-    fString = strcat('%0',num2str(ceil(log10(nFrames)+1)),'.f');
     tmpOutputFile = fullfile(path, 'tmp.eps');
     
     [iFirst,iLast]=fsmTrackSelectFramesGUI(1,nFrames,0,'Select frames to be processed:');
     
-    if numel(settings.channels) == 1
+    fString = strcat('%0',num2str(ceil(log10(iLast-iFirst+1))),'d');
+
+    if numel(settings.channels) == 1 && settings.channels{1}.type == 1
         colormap 'gray';
     end
     
@@ -137,9 +140,12 @@ if ischar(fileName) && ischar(pathName)
         end
         
         % Write an .eps file
-        print(hFig, '-depsc2', '-r300', '-noui', tmpOutputFile);
+        print(hFig, '-depsc2', '-r300', '-loose', tmpOutputFile);
         % Convert the .eps into .tiff using imageMagick
-        eval(['!convert -colorspace rgb ' tmpOutputFile ' tiff:' fullfile(path, [body, num2str(iFrame,fString), '.tif'])]);
+        %eval(['!convert -colorspace rgb ' tmpOutputFile ' tiff:' fullfile(path, [body, num2str(iFrame,fString), '.tif'])]);
+        
+        cmd = ['convert -quiet -depth 8 -colorspace rgb -density 150 ' tmpOutputFile ' ' fullfile(path, [body '_' num2str(iFrame-iFirst+1,fString) ext])];
+        system(cmd);
     end
     
     % Remove the tmp.eps
@@ -148,5 +154,10 @@ if ischar(fileName) && ischar(pathName)
     end
     
     close(hFig);
+
+%     if iLast-iFirst ~= 0
+%         cmd = ['ffmpeg -y -i ' fullfile(path, [body '_' fString ext]) ' -r 24 -b 50000k ' fullfile(path, 'movie.mp4')];
+%         system(cmd);
+%     end    
 end
 
