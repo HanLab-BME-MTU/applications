@@ -116,20 +116,24 @@ for iBin = 1:nBins
     
     data = sort(actinSpeedPerSegment(isInBin));
     
-    prm(1,iBin) = data(floor(numel(data)/2)+1);
-    prm(2,iBin) = data(floor(numel(data)/4)+1);
-    prm(3,iBin) = data(floor(3 * numel(data)/4)+1);
-    prm(4,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
-    prm(5,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+    if numel(data)
+        prm(1,iBin) = data(floor(numel(data)/2)+1);
+        prm(2,iBin) = data(floor(numel(data)/4)+1);
+        prm(3,iBin) = data(floor(3 * numel(data)/4)+1);
+        prm(4,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+        prm(5,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+    else
+        prm(:,iBin) = NaN;
+    end
 end
 
 hFig = figure('Visible', 'off');
 hold on;
 
-labels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
+xlabels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
     1:nBins, 'UniformOutput', false);
 
-boxplot2({prm},[0.360000000000000   0.630000000000000   0.900000000000000],labels);
+boxplot2({prm},[0.36 .63 .9], xlabels, ylabels);
 
 ylabel('Actin Speed (nm/min)');
 
