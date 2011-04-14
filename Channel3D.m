@@ -91,7 +91,7 @@ classdef Channel3D < Channel
             end
             
             if size(unique(imSize,'rows'),1)>1
-                error('All images must have the same width,heigth and numer of z-slices! Check images!');            
+                error('All images must have the same width,heigth and number of z-slices! Check images!');            
             end
             
             %Convert to desired output format

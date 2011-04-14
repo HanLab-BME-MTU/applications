@@ -57,7 +57,6 @@ function movieData = prune3DMovieSkeletonBranches(movieData,paramsIn)
 %% ------------------------- Parameters ------------------------%%
 
 skName = 'pruned_skeleton_graph_frame_';%String for naming pruned skeleton files.
-maskThresh = .5; %The value to threshold the scaled mask image at after interpolation.
 
 %% -------------------------- Input ---------------------------- %%
 

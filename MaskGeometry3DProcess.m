@@ -29,7 +29,7 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
                                         
                     funParams.ChannelIndex = 1;
                     funParams.SmoothIter =[];%Use the analyze3DMaskGeometry.m defaults.                    
-                    funParams.PhysicalUnits = true;
+                    funParams.PhysicalUnits = false;
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'mask_geometry'];
                     funParams.BatchMode = false;                                                      

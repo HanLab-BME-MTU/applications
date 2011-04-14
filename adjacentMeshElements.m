@@ -1,14 +1,15 @@
-function [iVert,iFace] = adjacentMeshVertices(surf,iPts,maxDist)
-%ADJACENTMESHVERTICES finds vertices which are adjacent to the selected vertices on the input surface mesh
+function [iVert,iFace] = adjacentMeshElements(surf,iPts,maxDist)
+%ADJACENTMESHELEMENTS finds vertices and faces which are adjacent to the selected vertices on the input surface mesh
 % 
-%  [iVert,iFace] = adjacentMeshVertices(surf,iPts,maxDist)
+%  [iVert,iFace] = adjacentMeshElements(surf,iPts,maxDist)
 % 
-%  This function finds, for each input vertex, all vertices on the input
-%  mesh surface which are within the specified distance of the input vertex,
-%  and which are connected to the input vertices by edges which are also
-%  within the specified radius of the input points. Therefore, vertices which
-%  are within the specified cartesian distance of the input vertices, but
-%  are topologically distant along the mesh surface, will not be returned.
+%  This function finds, for each input vertex, all vertices and faces on
+%  the input mesh surface which are within the specified distance of the
+%  input vertex, and which are connected to the input vertices by edges
+%  which are also within the specified radius of the input points.
+%  Therefore, vertices which are within the specified cartesian distance of
+%  the input vertices, but are topologically distant along the mesh
+%  surface, will not be returned.
 % 
 %   Input:
 % 
@@ -64,7 +65,7 @@ end
 
 %Make sure we have column vectors
 iPts = iPts(:);
-maxDist = maxDist(:);
+maxDist = double(maxDist(:));%Make sure its a double - get strange behavior with other classes
 
 
 %First, get all the points within specified radii, ignoring mesh topology.
