@@ -1,6 +1,4 @@
 function [pMean,pSEM95,Ntot,pxMean,pxSEM95,pyMean,pySEM95]=calcPersistence(xPos,yPos)
-% remove NaNs:
-
 [~,numFrames]=size(xPos);
 
 for frame=1:numFrames-1
@@ -31,7 +29,7 @@ if nargout>3
     pxMean  = nanmean(px,1);
     pxSEM95 = facSEMtoSEM95*nanstd(px,[],1)./sqrt(Ntot);
 
-    % The persistence of the movement in x: 
+    % The persistence of the movement in y: 
     cumLy = cumsum(abs(dy),2);
     py    =  abs(dirY)./cumLy;
 

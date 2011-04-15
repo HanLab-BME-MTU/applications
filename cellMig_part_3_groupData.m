@@ -695,6 +695,83 @@ if justPlot==1
     end
     % close all
     
+    
+    
+    %**********************************************************************
+    % Perform Angle measurement:
+    %**********************************************************************
+    figure('Name','Angle');
+    clear M
+    label=1;
+    h=[];
+    %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
+    numFrames=groupData.glbMaxFrame(1);
+    numBins=4;
+    numCakePieces=24;
+    
+    % this can be freely chosen:
+    bandWidth=250;  % Band width of strips with iso-distance to the wound edge also used for correlation analysis.
+    
+    % instead you could also put in your own values:
+    timeWindowPlot     = groupData.kPaClass(classID).timeWindow;
+    minTrackLengthPlot = groupData.kPaClass(classID).minTrackLength;
+    timeWindowPlot     = 6;
+      
+    for binR=1:numBins
+        numPlotFrames=length(1:dframes:numFrames);
+        k=1;
+        for frame=1:dframes:numFrames
+            subplot(numPlotFrames,numBins,(k-1)*numBins+binR)
+            
+            for classID=1:length(groupData.kPaClass)
+                pixSize_um=groupData.kPaClass(classID).pixSize_um;
+                
+                [xPlot,yPlot,vxPlot,vyPlot,vPlot,checkVecPlot]=conv2CordMatVelMat(groupData.kPaClass(classID).tracksMatxCord,groupData.kPaClass(classID).tracksMatyCord,minTrackLengthPlot,timeWindowPlot); %,toDoList);???
+                c2edPlot=groupData.kPaClass(classID).cell2edgeDist(checkVecPlot,:);
+                signFac =groupData.kPaClass(classID).signFac(checkVecPlot);
+                vxPlot  = repmat(signFac,[1,size(vxPlot,2)]).*vxPlot;
+                
+                
+                %Remove the NaNs:
+                checkVec=~isnan(vxPlot(:,frame));
+                vxPlotClean =vxPlot(checkVec,frame);
+                vyPlotClean =vyPlot(checkVec,frame);
+                cellDistClean=c2edPlot(checkVec,frame);
+               
+                % bin the data:
+                maxDist=max(cellDistClean(:,end));
+                [n,bin]=histc(cellDistClean,0:bandWidth:maxDist+bandWidth);
+                
+                vxPlotCleanBined=vxPlotClean(bin==binR);
+                vyPlotCleanBined=vyPlotClean(bin==binR);
+                % Calculate the angle:
+                alpha=atan(vyPlotCleanBined./vxPlotCleanBined);
+                Ntot =sum(~isnan(alpha));
+                    
+                cellDistCleanBinedMean=mean(cellDistClean(bin==binR));
+                cellDistCleanBinedSEM = std(cellDistClean(bin==binR))/sqrt(n(binR));
+                
+                
+                hline=roseplot(alpha,numCakePieces,'scale','norm');
+                set(hline,'Color', marker(2*(mod(classID,7)+1)-1));
+                h=horzcat(h,hline); % 1 for marker, 2 for colored line;
+                hold on
+                M{label}=[num2str(groupData.kPaClass(classID).yModu_kPa),'kPa',' = ',groupData.kPaClass(classID).cc{1},' of: ',groupData.kPaClass(classID).cond{1},' ; N=',num2str(groupData.kPaClass(classID).numSetsInCl),' ; n=',num2str(Ntot,'%.1f')];
+                label=label+1;
+                hold on;
+            end
+            title(['Cell to edge distance: ',num2str(pixSize_um*cellDistCleanBinedMean,'%.1f'),'+-',num2str(pixSize_um*cellDistCleanBinedSEM,'%.1f'),'[um]'])
+            if frame ==1 && binR==numBins
+                legend(h,M);
+            end
+            clear M Ntot
+            label=1;
+            h=[];
+            hold off           
+            k=k+1;
+        end
+    end
+    
     %**********************************************************************
     % Perform measurement of local neigh:
     %**********************************************************************
@@ -831,7 +908,7 @@ if justPlot==1
             if frame ==1 && binc2e==numBins
                 legend(h,M);
             end
-            clear M
+            clear M Ntot
             label=1;
             h=[];
             hold off
