@@ -724,6 +724,7 @@ if justPlot==1
             subplot(numPlotFrames,numBins,(k-1)*numBins+binR)
             
             for classID=1:length(groupData.kPaClass)
+                dt = groupData.kPaClass(classID).dt;
                 pixSize_um=groupData.kPaClass(classID).pixSize_um;
                 
                 [xPlot,yPlot,vxPlot,vyPlot,vPlot,checkVecPlot]=conv2CordMatVelMat(groupData.kPaClass(classID).tracksMatxCord,groupData.kPaClass(classID).tracksMatyCord,minTrackLengthPlot,timeWindowPlot); %,toDoList);???
@@ -761,6 +762,7 @@ if justPlot==1
                 hold on;
             end
             title(['Cell to edge distance: ',num2str(pixSize_um*cellDistCleanBinedMean,'%.1f'),'+-',num2str(pixSize_um*cellDistCleanBinedSEM,'%.1f'),'[um]'])
+            ylabel(['angular distribution alpha(r,t=',num2str(dt*(frame-1)),'h)']);
             if frame ==1 && binR==numBins
                 legend(h,M);
             end
