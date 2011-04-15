@@ -4,11 +4,11 @@ function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargi
 %   errMess = batchProcess3DMigrationMovies(movieArray)
 %   errMess = batchProcess3DMigrationMovies(movieArray,'OptionName1',optionValue1,...)
 % 
-% This function runs all required processing/analysis steps on every input
-% 3D migration movie: segmentation, skeletonization, pruning, etc. etc. It
-% will analyze multiple movies in parallel. Each movie's results for each
-% step are saved to its analysis directory. Movies which cause errors will
-% be skipped, and the error messages returned.
+% This function runs process3DMigrationMovie on every input 3d movie, in
+% parallel. Each movie's results for each step are saved to its analysis
+% directory. Movies which cause errors will be skipped, and the error
+% messages returned. The same parameters will be used for every movie, and
+% each movie must have the same number and order of channels.
 % 
 % 
 % Input:
@@ -28,10 +28,14 @@ function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargi
 %       channel to use for segmentation.
 %       Default is 1.
 %       
-%       ('RunOrchestra' -> true/false) If true, the job will be submitted
-%       to Orchestra for processing there. If false, it will be run
-%       locally.
-%       Default is false.
+%       ('NumParallel' -> positive integer scalar) Specifies the number of
+%       movies to run simultaneously. If the job is run locally, the max is
+%       8. If run on orchestra, it's ... a lot???
+%       Default is 8.
+%
+%       *NOTE:* Additionally, any options supported by
+%       process3DMigrationMovie can be input, and will be passed to this
+%       function when it is called.
 % 
 % Output:
 %
@@ -54,21 +58,60 @@ p.FunctionName = mfilename;
 
 p.addRequired('movieArray',@(x)(isa(x,'MovieData3D')));
 p.addParamValue('SegChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
-p.addParamValue('RunOrchestra',false,@(x)(numel(x) == 1));
+p.addParamValue('NumParallel',8,@(x)(numel(x) == 1));
 
 p.parse(movieArray,varargin{:});
+p = p.Results;
 
 
 %% -----------------------------Init --------------------------------- %%
 
 
-poolSize = matlabpool('size');
-if poolSize ~= p.NumParallel    
-    if poolSize > 0
-        matlabpool('close');
+%Run sanity check on all movie datas, and relocate if necessary.
+
+
+
+
+nMovies = numel(movieArray);
+
+%Check if we have LSF available, and try to set it up:
+try
+    disp('Attempting to configure LSF....')
+    lsf = findResource('scheduler','type','lsf');
+    lsf.ClusterMatlabRoot = '/opt/matlab';
+    lsf.DataLocation = '/groups/lccb-nih';
+    job = createParallelJob(lsf);
+    
+    
+    
+    doLocal = false;
+catch em
+    %Otherwise, just run it locally.
+    disp(['Running processing locally - LSF scheduler could not be configured  : ' em.message]);
+    doLocal = true;
+    if p.NumParallel > 8
+        disp('Maximum of 8 workers available locally - setting NumParallel to 8!')
     end
-    matlabpool('open',p.NumParallel);
 end
 
+if doLocal
+    disp('Setting up local parallel job...')
+    %Set up the local workers
+    poolSize = matlabpool('size');
+    if poolSize ~= p.NumParallel    
+        if poolSize > 0
+            matlabpool('close');
+        end
+        matlabpool('open',p.NumParallel);
+    end
+else    
+    
+    
+    
+    
+    
+    
+end
+   
 
 
