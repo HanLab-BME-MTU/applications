@@ -1,4 +1,4 @@
-function [ statsCellCus, statsCellGS, statsCellFG, statsCellBG] = plusTipGetStats(statFileName,groupData,params2Extract,gsStats,fgStats,bgStats,percentStats)
+function [  statsCellGS, statsCellFG, statsCellBG,stats] = plusTipGetStats(saveDir,statFileName,groupData,params2Extract,gsStats,fgStats,bgStats,percentStats)
 %Extracts Data from groupDataSet for plotting in Excel etc.  
 %
 %INPUT:
@@ -17,6 +17,14 @@ function [ statsCellCus, statsCellGS, statsCellFG, statsCellBG] = plusTipGetStat
 % bgStats: 1 if you want to extract all back gap related stats 
 % 
 % percentStats: 1 if you want to extract percent related stats
+
+if nargin<1 || isempty(saveDir)
+    saveDir=uigetdir(pwd,'Select Output Directory.');
+end
+
+
+
+
 
 % Extract input data (need in this format to get group names)
 temp=struct2cell(groupData);
@@ -50,7 +58,7 @@ if ~isempty(params2Extract);
     statsCellCus = [grpNames stats1];
     statsCellCus = [statNames; statsCellCus]; 
     filename = [statFileName,'_SelectedStats'];
-    save(filename,'stats_cellCus');
+    save([saveDir filesep filename],'stats_cellCus');
 end
 
 %
@@ -77,7 +85,7 @@ if gsStats == 1
     statsCellGS = [grpNames stats2];
     statsCellGS = [statNames; statsCellGS]; 
     filename = [statFileName,'_GrowthStats'];
-    save(filename,'statsCellGS');
+    save([saveDir filesep filename],'statsCellGS');
 end     
 
 if fgStats == 1 
@@ -90,13 +98,13 @@ if fgStats == 1
     statNamesFG{1,6} = 'fgap_lifetime_mean_std';
     statNamesFG{1,7} = 'fgap_length_median';
     statNamesFG{1,8} = 'fgap_length_mean_std';
-    statNamesFG{1,9} = 'fgap_freq_time';
-    statNamesFG{1,10} = 'fgap_freq_length';
-    statNamesFG{1,11} = 'percentTimeFgap';
-    statNamesFG{1,12} = 'avgIndivPercentTimeFgap';
-    statNamesFG{1,13} = 'percentGrowthLinkedForward';
+    %statNamesFG{1,9} = 'fgap_freq_time';
+    %statNamesFG{1,9} = 'fgap_freq_length';
+    statNamesFG{1,9} = 'percentTimeFgap';
+    statNamesFG{1,10} = 'avgIndivPercentTimeFgap';
+    statNamesFG{1,11} = 'percentGrowthLinkedForward';
     
-    for iParam = 1:12
+    for iParam = 1:10
         param = statNamesFG{1,iParam+1};
         for iGroup = 1:nGroups        
             stats(iGroup,iParam) = groupData(iGroup).info.stats.(param)(1);
@@ -107,7 +115,7 @@ if fgStats == 1
     statsCellFG = [grpNames stats3];
     statsCellFG = [statNamesFG; statsCellFG]; 
     filename = [statFileName,'_FGapStats'];
-    save(filename,'statsCellFG');
+    save([saveDir filesep filename],'statsCellFG');
 end    
 
 if bgStats ==1 
@@ -120,13 +128,13 @@ if bgStats ==1
     statNames{1,6} = 'bgap_lifetime_mean_std';
     statNames{1,7} = 'bgap_length_median';
     statNames{1,8} = 'bgap_length_mean_std';
-    statNames{1,9} = 'bgap_freq_time';
-    statNames{1,10} = 'bgap_freq_length';
-    statNames{1,11} = 'percentTimeBgap'; 
-    statNames{1,12} = 'avgIndivPercentTimeBgap';
-    statNames{1,13} = 'percentGrowthLinkedBackward';
+    %statNames{1,9} = 'bgap_freq_time';
+    %statNames{1,9} = 'bgap_freq_length';
+    statNames{1,9} = 'percentTimeBgap'; 
+    statNames{1,10} = 'avgIndivPercentTimeBgap';
+    statNames{1,11} = 'percentGrowthLinkedBackward';
     
-    for iParam = 1:12
+    for iParam = 1:10
         param = statNames{1,iParam+1};
         for iGroup = 1:nGroups        
             stats(iGroup,iParam) = groupData(iGroup).info.stats.(param)(1);
@@ -137,7 +145,7 @@ if bgStats ==1
     statsCellBG = [grpNames stats];
     statsCellBG = [statNames; statsCellBG]; 
     filename = [statFileName,'_BGapStats'];
-    save(filename,'statsCellBG');
+    save([saveDir filesep filename],'statsCellBG');
 end
     
 if percentStats == 1
@@ -160,7 +168,7 @@ if percentStats == 1
     statsCellPer = [grpNames stats];
     statsCellPer = [statNamesPer; statsCellPer]; 
     filename = [statFileName,'_Percentages'];
-    save(filename,'statsCellPer');
+    save([saveDir filesep filename],'statsCellPer');
 end
         
 
