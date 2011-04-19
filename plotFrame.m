@@ -75,15 +75,9 @@ switch ip.Results.mode
         end
         % Display mask only where available
         if (exist([data.channels{ch} 'Detection' filesep 'detectionResults.mat'], 'file')==2)
-            overlayColor = [1 0 0];
-            frame = scaleContrast(double(imread(data.framePaths{ch}{frameIdx})), iRange{ch});
-            [chR chG chB] = deal(frame);
+            frame = double(imread(data.framePaths{ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
-            maskIdx = mask~=0;
-            chR(maskIdx) = chR(maskIdx)*overlayColor(1);
-            chG(maskIdx) = chG(maskIdx)*overlayColor(2);
-            chB(maskIdx) = chB(maskIdx)*overlayColor(3);
-            frame = uint8(cat(3, chR, chG, chB));
+            frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
         else
             frame = double(imread(data.framePaths{ch}{frameIdx}));
         end
