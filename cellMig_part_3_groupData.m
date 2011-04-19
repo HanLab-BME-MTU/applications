@@ -708,6 +708,7 @@ if justPlot==1
     numFrames=groupData.glbMaxFrame(1);
     numBins=4;
     numCakePieces=24;
+    rMax=0.55;
     
     % this can be freely chosen:
     bandWidth=250;  % Band width of strips with iso-distance to the wound edge also used for correlation analysis.
@@ -746,23 +747,25 @@ if justPlot==1
                 vxPlotCleanBined=vxPlotClean(bin==binR);
                 vyPlotCleanBined=vyPlotClean(bin==binR);
                 % Calculate the angle:
-                alpha=atan(vyPlotCleanBined./vxPlotCleanBined);
+                alpha=atan2(vyPlotCleanBined,vxPlotCleanBined);
                 Ntot =sum(~isnan(alpha));
                     
                 cellDistCleanBinedMean=mean(cellDistClean(bin==binR));
                 cellDistCleanBinedSEM = std(cellDistClean(bin==binR))/sqrt(n(binR));
                 
                 
-                hline=roseplot(alpha,numCakePieces,'scale','norm');
+                hline=roseplot(alpha,numCakePieces,'scale','norm','rMax',rMax);
                 set(hline,'Color', marker(2*(mod(classID,7)+1)-1));
                 h=horzcat(h,hline); % 1 for marker, 2 for colored line;
                 hold on
-                M{label}=[num2str(groupData.kPaClass(classID).yModu_kPa),'kPa',' = ',groupData.kPaClass(classID).cc{1},' of: ',groupData.kPaClass(classID).cond{1},' ; N=',num2str(groupData.kPaClass(classID).numSetsInCl),' ; n=',num2str(Ntot,'%.1f')];
+                M{label}=[num2str(groupData.kPaClass(classID).yModu_kPa),'kPa',' = ',groupData.kPaClass(classID).cc{1},' of: ',groupData.kPaClass(classID).cond{1},' ; N=',num2str(groupData.kPaClass(classID).numSetsInCl),' ; n=',num2str(Ntot,'%.0f')];
                 label=label+1;
                 hold on;
             end
             title(['Cell to edge distance: ',num2str(pixSize_um*cellDistCleanBinedMean,'%.1f'),'+-',num2str(pixSize_um*cellDistCleanBinedSEM,'%.1f'),'[um]'])
             ylabel(['angular distribution alpha(r,t=',num2str(dt*(frame-1)),'h)']);
+            %rlim = 0.5;
+            %axis([-1 1 -1 1]*rlim);
             if frame ==1 && binR==numBins
                 legend(h,M);
             end
