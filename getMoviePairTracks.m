@@ -1,22 +1,23 @@
-function movieData = getMoviePairTracks(movieData,maxEuclidianDist,...
-    minOverlap,bandWidth,alpha,maxIter,batchMode)
+function movieData = getMoviePairTracks(movieData,maxDistance,...
+    minOverlap,bandWidth,minDistance,alpha,maxIter,batchMode)
 
-% maxEuclidianDist:     maximum euclidian distance between the mean
-%                       position of 2 tracks to be considered as potential
-%                       pair of tracks.
+% maxDistance:     maximum distance between track pair candidates (t1,t2) such
+%                  that max(dist(t1,t2)) < maxDistance.
 %
-% minOverlap:           is the minimal number of frame 2 tracks need to
-%                       live together to be considered as potential pair of
-%                       tracks. Default is 1.
+% minOverlap:      is the minimal number of frame 2 tracks need to live together
+%                  to be considered as potential pair of tracks. Default is 1.
 %
-% bandWidth             distance in nanometers away from the cell edge
-%                       where pair of feature needs to be evaluate whether
-%                       it follows the Actin flow.
+% bandWidth:       distance in nanometers away from the cell edge where pair of
+%                  feature needs to be evaluate whether it follows the Actin
+%                  flow.
 %
-% alpha:                quantile of PDF tail. Default is 0.05.
+% minDistance:     minimum distance between 2 track pair candidates in the
+%                  first 'bandWidth' nanometers away from cell edge.
 %
-% maxIter:              maximum number of iteration for the iterative
-%                       pairing algorithm.
+% alpha:           quantile of PDF tail. Default is 0.05.
+%
+% maxIter:         maximum number of iteration for the iterative pairing
+%                  algorithm.
 
 %% Parse input parameters
 
@@ -50,8 +51,15 @@ if ~exist(movieData.pairTracks.directory, 'dir')
 end
 
 % Save input parameters in the movieData
+% TODO
+
 nFrames = movieData.nImages(1);
 imSize = movieData.imSize;
+pixelSize = movieData.pixelSize_nm;
+
+maxDistance = maxDistance / pixelSize;
+bandWidth = bandWidth / pixelSize;
+minDistance = minDistance / pixelSize;
 
 %% Load feature and track infos
 
@@ -109,8 +117,8 @@ for iFrame = 1:nFrames
     allTrackParams(ind,7) = bkg(tracksFeatIndx(ind));
 end
 
-clear featuresInfo tracksFeatIndx ind xCoord yCoord amp sX sY theta bkg ...
-    iFrame;
+clear featuresInfo allTrackFrameIdx tracksFeatIndx ind xCoord yCoord amp ...
+    sX sY theta bkg iFrame;
 
 %% Interpolate feature parameters in gaps
 gacombIdx = diff(isnan(allTrackParams(:,1)));
@@ -135,13 +143,17 @@ assert(all(~isnan(allTrackParams(:))));
 
 clear gacombIdx gapStarts gapEnds gapLengths nGaps borderIdx gacombIdx iGap;
 
-%% Find the set of track pairs whos pairwise distance is < than maxEuclidianDist
+%% Keep every pair (t1,t2) such that
+% max(dist(t1,t2)) < maxDistance
+% AND
+% overlap(t1,t2) >= minOverlap
 
 % pFirst and pLast are indexing every variable named 'allTrack*'
 pLast = cumsum(lifetime);
 pFirst = pLast-lifetime+1;
 
-E = cell(nTracks,1);
+D = sparse(nTracks,nTracks);
+N = sparse(nTracks,nTracks);
 
 for iFrame = 1:nFrames
     indTrackInFrame = find(iFrame >= tFirst & iFrame <= tLast);
@@ -149,192 +161,61 @@ for iFrame = 1:nFrames
     indP = pFirst(indTrackInFrame) + iFrame - tFirst(indTrackInFrame);
     X = allTrackParams(indP, 1);
     Y = allTrackParams(indP, 2);
-    
-    indTrack1 = KDTreeBallQuery([X,Y],[X,Y], repmat(maxEuclidianDist, numel(X),1));
+
+    [indTrack1 dist] = KDTreeBallQuery([X,Y],[X,Y], repmat(maxDistance, numel(X),1));
     
     % remove self references (d == 0 which is always the first element)
     indTrack1 = cellfun(@(c) indTrackInFrame(c(2:end)), ...
         indTrack1, 'UniformOutput', false);
     
+    dist = cellfun(@(c) c(2:end), dist, 'UniformOutput', false);
+    dist = vertcat(dist{:});
+    
     indTrack2 = arrayfun(@(a,b) repmat(a,b,1), indTrackInFrame, ...
         cellfun(@numel,indTrack1), 'UniformOutput', false);
-    
+
     pairs = [vertcat(indTrack1{:}), vertcat(indTrack2{:})];
-    assert(all(pairs(:,1) ~= pairs(:,2)));
     
     % keep only those where pair(i,1) < pair(i,2)
-    pairs = pairs(pairs(:,1) < pairs(:,2),:);    
-    E(pairs(:,1)) = arrayfun(@(c,p) vertcat(c{1}, p), E(pairs(:,1)), ...
-        pairs(:,2), 'UniformOutput', false);
+    isValid = pairs(:,1) < pairs(:,2);
+    indPairs = sub2ind(size(D), pairs(isValid,1), pairs(isValid,2));
+    dist = dist(isValid);
+
+    % FIXME !!!
+    D(indPairs) = max(D(indPairs), dist);
+    N(indPairs) = N(indPairs) + 1;
 end
 
-E = cellfun(@unique, E, 'UniformOutput', false);
-indTrack1 = arrayfun(@(a,b) repmat(a,b,1), (1:nTracks)', ...
-    cellfun(@numel,E), 'UniformOutput', false);
-indTrack1 = vertcat(indTrack1{:});
-indTrack2 = vertcat(E{:});
+isValid = D ~= 0;
+[I J] = find(isValid);
+E = [I J];
+[E idx] = sortrows(E);
 
-E = [indTrack1, indTrack2];
+D = full(D(isValid));
+D = D(idx);
+N = full(N(isValid));
+N = N(idx);
 
-clear indTrackInFrame X Y pairs indTrack1 indTrack2;
-
-%% Find the set of track pairs that overlap in time
+% Compute the overlap between pair of tracks
 tOverlapFirst = max(tFirst(E(:,1)), tFirst(E(:,2)));
 tOverlapLast = min(tLast(E(:,1)), tLast(E(:,2)));
 overlap = tOverlapLast - tOverlapFirst + 1;
 
-hasOverlap = overlap >= minOverlap;
+% overlap == N means that over the overlap, (t1,t2) was always < maxDistance
+isValid = overlap == N & overlap >= minOverlap;
 
 % trim arrays
-E = E(hasOverlap,:);
-tOverlapFirst = tOverlapFirst(hasOverlap);
-overlap = overlap(hasOverlap);
+E = E(isValid,:);
+tOverlapFirst = tOverlapFirst(isValid);
+overlap = overlap(isValid);
+D = D(isValid);
 
 % Point the location of each track parameters for every pair
 pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
 pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
 
-clear tOverlapLast hasOverlap;
-
-%% Remove any pair of tracks that is:
-% - within the first 'bandWidth' nanometers of the cell edge
-% AND
-% - parallel to the cell edge
-
-distToEdgePath = movieData.distanceTransform.directory;
-distToEdgeFiles = dir([distToEdgePath filesep '*.mat']);
-
-isTrackInBand = true(nTracks,1);
-bandWidth = bandWidth / movieData.pixelSize_nm;
-
-for iFrame = 1:nFrames
-    load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
-    
-    inputIdx = allTrackFrameIdx == iFrame;
-    outputIdx = iFrame >= tFirst & iFrame <= tLast;
-    
-    xi = round(allTrackParams(inputIdx,1));
-    yi = round(allTrackParams(inputIdx,2));
-    ind = sub2ind(size(distToEdge),yi,xi);
-    
-    isTrackInBand(outputIdx) = isTrackInBand(outputIdx) & ...
-        distToEdge(ind) < bandWidth;
-end
-
-isTrackPairInBand = isTrackInBand(E(:,1)) & ...
-    isTrackInBand(E(:,2));
-
-nPixels = zeros(size(overlap));
-nPixelsAlongFlow = zeros(size(overlap));
-
-% angular accuracy
-p = .5;
-dt = p * pi / 2;
-
-for iFrame = 1:nFrames
-    
-    % Load distance transform
-    load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
-
-    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-    isValidPair = isTrackPairInBand & isPairInFrame;
-
-    % Get the coordinates of the extremities of the valid pair
-    offset = iFrame - tOverlapFirst(isValidPair);
-    ind1 = pFirst1(isValidPair) + offset;
-    ind2 = pFirst2(isValidPair) + offset;
-    
-    x1 = allTrackParams(ind1,1);
-    x2 = allTrackParams(ind2,1);
-    y1 = allTrackParams(ind1,2);
-    y2 = allTrackParams(ind2,2);
-    
-    % Compute the unit vector along the pair
-    dx = x2 - x1;
-    dy = y2 - y1;
-    norm = sqrt(dx.^2 + dy.^2);
-    dx = dx ./ norm;
-    dy = dy ./ norm;
-    
-    % Integer-valued extremity points
-    x1i = round(x1);
-    y1i = round(y1);
-    x2i = round(x2);
-    y2i = round(y2);
-    
-    % Compute Bresenham line between the 2 extremity points
-    ptsLines = arrayfun(@(xx1,yy1,xx2,yy2) bresenhamMEX([xx1,yy1], [xx2,yy2]), ...
-        x1i, y1i, x2i, y2i, 'UniformOutput', false);
-
-    nPts = cellfun(@(p) size(p,1), ptsLines);
-    ptsLast = cumsum(nPts);
-    ptsFirst = ptsLast - nPts + 1;
-    ptsLines = vertcat(ptsLines{:});
-
-    % Note: if numel(ptsLines) == 0, there will be an 'Index exceeds matrix
-    % dimensions' error. To preven that, we force ptsLines to be a Nx2
-    % matrix.
-    ptsLines = reshape(ptsLines,size(ptsLines,1), 2);
-    indLines = sub2ind(imSize, ptsLines(:,2), ptsLines(:,1));
-
-    % Get cell edge orientation along the Bresenham lines
-    [dU dV] = gradient(distToEdge);
-    dU = dU(indLines);
-    dV = dV(indLines);
-    norm = sqrt(dU.^2 + dV.^2);
-    isnnz = norm ~= 0;
-    dU = dU(isnnz) ./ norm(isnnz);
-    dV = dV(isnnz) ./ norm(isnnz);
-    
-    nValidPts = arrayfun(@(a,b) nnz(isnnz(a:a+b-1)), ptsFirst, nPts);
-    ptsLast = cumsum(nValidPts);
-    ptsFirst = ptsLast - nValidPts + 1;
-    
-    % Expand dx and dy
-    ind = arrayfun(@(a,b) ones(a,1) * b, nValidPts, (1:numel(dx))', ...
-        'UniformOutput', false);
-    ind = vertcat(ind{:});
-    
-    % Note: same rational than above.
-    ind = reshape(ind,size(ind,1),1);
-    dx = dx(ind);
-    dy = dy(ind);
-
-    thetaLines = acos(abs(dx .* dU + dy .* dV));
-    
-    isAlongFlow = thetaLines <= dt;
-    
-    nPixels(isValidPair) = nPixels(isValidPair) + nValidPts;
-    nPixelsAlongFlow(isValidPair) = nPixelsAlongFlow(isValidPair) + ...
-        arrayfun(@(a,b) nnz(isAlongFlow(a:a+b-1)), ptsFirst, nValidPts);
-end
-
-% in case a pair has no valid point (accoding to isnnz), we need to update
-% the set of valid pairs. To avoid having another array, we update
-% isTrackPairInBand.
-isTrackPairInBand = isTrackPairInBand & nPixels ~= 0;
-
-maxNPixels = max(nPixels);
-
-cutoffs = icdf('bino', 1-alpha, (1:maxNPixels)', p);
-
-isValidPair = true(size(overlap));
-isValidPair(isTrackPairInBand) = nPixelsAlongFlow(isTrackPairInBand) >= ...
-    cutoffs(nPixels(isTrackPairInBand));
-
-% trim arrays
-E = E(isValidPair,:);
-tOverlapFirst = tOverlapFirst(isValidPair);
-overlap = overlap(isValidPair);
-pFirst1 = pFirst1(isValidPair);
-pFirst2 = pFirst2(isValidPair);
-
-clear distToEdgePath distToEdgeFiles isTrackInBand bandWidth iFrame ...
-    allTrackFrameIdx inputIdx outputIdx xi yi ind isTrackPairInBand ...
-    nPixels nPixelsAlongFlow p dt isPairInFrame isValidPair offset ...
-    ind1 ind2 x1 x2 y1 y2 dx dy norm x1i y1i x2i y2i ptsLines nPts ...
-    ptsLast ptsFirst ptsLines indLines dU dV isnnz nValidPts ind...
-    thetaLines isAlongFlow maxNPixels cutoffs;
+clear iFrame indTrackInFrame indP X Y dist indTrack1 indTrack2 pairs indPairs ...
+    isValid I J idx N tOverlapLast; 
 
 %% DEBUG
 segments = cell(nFrames,1);
@@ -354,7 +235,278 @@ for iFrame = 1:nFrames
     segments{iFrame} = [x1 y1 x2 y2];
 end
 
-save(fullfile(movieData.pairTracks.directory, 'pairTrackCands.mat'), 'segments');
+save(fullfile(movieData.pairTracks.directory, 'allPairTrackCands.mat'), 'segments');
+
+clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
+
+%% Remove any pair (t1,t2) such that:
+% distToEdge(t1) < bandWidth & distToEdge(t2) < bandWidth
+% AND
+% max(dist(t1,t2)) < minDistance
+
+distToEdgePath = movieData.distanceTransform.directory;
+distToEdgeFiles = dir([distToEdgePath filesep '*.mat']);
+
+isTrackInBand = false(nTracks,1);
+
+for iFrame = 1:nFrames
+    load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
+    
+    isTrackInFrame = iFrame >= tFirst & iFrame <= tLast;
+    
+    indP = pFirst(isTrackInFrame) + iFrame - tFirst(isTrackInFrame);
+    X = allTrackParams(indP, 1);
+    Y = allTrackParams(indP, 2);
+    ind = sub2ind(imSize,round(Y),round(X));
+        
+    isTrackInBand(isTrackInFrame) = isTrackInBand(isTrackInFrame) | ...
+        distToEdge(ind) < bandWidth;
+end
+
+isTrackPairInBand = isTrackInBand(E(:,1)) & isTrackInBand(E(:,2));
+isValid = ~(isTrackPairInBand & D < minDistance);
+
+% trim arrays
+E = E(isValid,:);
+D = D(isValid);
+tOverlapFirst = tOverlapFirst(isValid);
+overlap = overlap(isValid);
+pFirst1 = pFirst1(isValid);
+pFirst2 = pFirst2(isValid);
+isTrackPairInBand = isTrackPairInBand(isValid);
+
+clear isTrackInBand iFrame  isTrackInFrame indP X Y ind distToEdge isValid;
+
+%% DEBUG
+segments = cell(nFrames,1);
+for iFrame = 1:nFrames
+    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+    
+    % Get the coordinates of the extremities of the valid pair
+    offset = iFrame - tOverlapFirst(isPairInFrame);
+    ind1 = pFirst1(isPairInFrame) + offset;
+    ind2 = pFirst2(isPairInFrame) + offset;
+    
+    x1 = allTrackParams(ind1,1);
+    x2 = allTrackParams(ind2,1);
+    y1 = allTrackParams(ind1,2);
+    y2 = allTrackParams(ind2,2);
+    
+    segments{iFrame} = [x1 y1 x2 y2];
+end
+
+save(fullfile(movieData.pairTracks.directory, 'pairTrackCandsInBands.mat'), 'segments');
+
+clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
+
+% %% Remove any pair (t1,t2) that is:
+% % - distToEdge(t1) < bandWidth & distToEdge(t2) < bandWidth
+% % AND
+% % - parallel to the cell edge
+% 
+% nPixels = zeros(size(overlap));
+% nPixelsAlongFlow = zeros(size(overlap));
+% 
+% % angular accuracy
+% p = .5;
+% dt = p * pi / 2;
+% 
+% for iFrame = 1:nFrames
+%     
+%     % Load distance transform
+%     load(fullfile(distToEdgePath, distToEdgeFiles(iFrame).name));
+% 
+%     isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+%     isValid = isTrackPairInBand & isPairInFrame;
+% 
+%     % Get the coordinates of the extremities of the valid pair
+%     offset = iFrame - tOverlapFirst(isValid);
+%     ind1 = pFirst1(isValid) + offset;
+%     ind2 = pFirst2(isValid) + offset;
+%     
+%     x1 = allTrackParams(ind1,1);
+%     x2 = allTrackParams(ind2,1);
+%     y1 = allTrackParams(ind1,2);
+%     y2 = allTrackParams(ind2,2);
+%     
+%     % Compute the unit vector along the pair
+%     dx = x2 - x1;
+%     dy = y2 - y1;
+%     norm = sqrt(dx.^2 + dy.^2);
+%     dx = dx ./ norm;
+%     dy = dy ./ norm;
+%     
+%     % Integer-valued extremity points
+%     x1i = round(x1);
+%     y1i = round(y1);
+%     x2i = round(x2);
+%     y2i = round(y2);
+%     
+%     % Compute Bresenham line between the 2 extremity points
+%     ptsLines = arrayfun(@(xx1,yy1,xx2,yy2) bresenhamMEX([xx1,yy1], [xx2,yy2]), ...
+%         x1i, y1i, x2i, y2i, 'UniformOutput', false);
+% 
+%     nPts = cellfun(@(p) size(p,1), ptsLines);
+%     ptsLast = cumsum(nPts);
+%     ptsFirst = ptsLast - nPts + 1;
+%     ptsLines = vertcat(ptsLines{:});
+% 
+%     % Note: if numel(ptsLines) == 0, there will be an 'Index exceeds matrix
+%     % dimensions' error. To preven that, we force ptsLines to be a Nx2
+%     % matrix.
+%     ptsLines = reshape(ptsLines,size(ptsLines,1), 2);
+%     indLines = sub2ind(imSize, ptsLines(:,2), ptsLines(:,1));
+% 
+%     % Get cell edge orientation along the Bresenham lines
+%     [dU dV] = gradient(distToEdge);
+%     dU = dU(indLines);
+%     dV = dV(indLines);
+%     norm = sqrt(dU.^2 + dV.^2);
+%     isnnz = norm ~= 0;
+%     dU = dU(isnnz) ./ norm(isnnz);
+%     dV = dV(isnnz) ./ norm(isnnz);
+%     
+%     nValidPts = arrayfun(@(a,b) nnz(isnnz(a:a+b-1)), ptsFirst, nPts);
+%     ptsLast = cumsum(nValidPts);
+%     ptsFirst = ptsLast - nValidPts + 1;
+%     
+%     % Expand dx and dy
+%     ind = arrayfun(@(a,b) ones(a,1) * b, nValidPts, (1:numel(dx))', ...
+%         'UniformOutput', false);
+%     ind = vertcat(ind{:});
+%     
+%     % Note: same rational than above.
+%     ind = reshape(ind,size(ind,1),1);
+%     dx = dx(ind);
+%     dy = dy(ind);
+% 
+%     thetaLines = acos(abs(dx .* dU + dy .* dV));
+%     
+%     isAlongFlow = thetaLines <= dt;
+%     
+%     nPixels(isValid) = nPixels(isValid) + nValidPts;
+%     nPixelsAlongFlow(isValid) = nPixelsAlongFlow(isValid) + ...
+%         arrayfun(@(a,b) nnz(isAlongFlow(a:a+b-1)), ptsFirst, nValidPts);
+% end
+% 
+% % in case a pair has no valid point (accoding to isnnz), we need to update
+% % the set of valid pairs. To avoid having another array, we update
+% % isTrackPairInBand.
+% isTrackPairInBand = isTrackPairInBand & nPixels ~= 0;
+% 
+% maxNPixels = max(nPixels);
+% 
+% cutoffs = icdf('bino', 1-alpha, (1:maxNPixels)', p);
+% 
+% isValid = true(size(overlap));
+% isValid(isTrackPairInBand) = nPixelsAlongFlow(isTrackPairInBand) >= ...
+%     cutoffs(nPixels(isTrackPairInBand));
+% 
+% % trim array
+% E = E(isValid,:);
+% D = D(isValid);
+% tOverlapFirst = tOverlapFirst(isValid);
+% overlap = overlap(isValid);
+% pFirst1 = pFirst1(isValid);
+% pFirst2 = pFirst2(isValid);
+% 
+% clear distToEdgePath distToEdgeFiles bandWidth iFrame ind isTrackPairInBand ...
+%     nPixels nPixelsAlongFlow p dt isPairInFrame isValidPair offset ind1 ind2 ...
+%     x1 x2 y1 y2 dx dy norm x1i y1i x2i y2i ptsLines nPts ptsLast ptsFirst ...
+%     ptsLines indLines dU dV isnnz nValidPts ind thetaLines isAlongFlow ...
+%     maxNPixels cutoffs;
+% 
+% %% DEBUG
+% segments = cell(nFrames,1);
+% for iFrame = 1:nFrames
+%     isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+%     
+%     % Get the coordinates of the extremities of the valid pair
+%     offset = iFrame - tOverlapFirst(isPairInFrame);
+%     ind1 = pFirst1(isPairInFrame) + offset;
+%     ind2 = pFirst2(isPairInFrame) + offset;
+%     
+%     x1 = allTrackParams(ind1,1);
+%     x2 = allTrackParams(ind2,1);
+%     y1 = allTrackParams(ind1,2);
+%     y2 = allTrackParams(ind2,2);
+%     
+%     segments{iFrame} = [x1 y1 x2 y2];
+% end
+% 
+% save(fullfile(movieData.pairTracks.directory, 'withoutParallelPairTrackCands.mat'), 'segments');
+% 
+% clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
+
+%% Keep any pair (t1,t2) that is:
+% pD1 < tan(pi/3) * sx1 & pD2 < tan(pi/3) * sx2
+
+allTrackParams1 = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
+    pFirst1, overlap, 'UniformOutput', false);
+allTrackParams1 = num2cell(vertcat(allTrackParams1{:}),1);
+[x1,y1,sx1,t1] = allTrackParams1{:};
+
+allTrackParams2 = arrayfun(@(a,b) allTrackParams(a:a+b-1,[1 2 4 6]),...
+    pFirst2, overlap, 'UniformOutput', false);
+allTrackParams2 = num2cell(vertcat(allTrackParams2{:}),1);
+[x2,y2,sx2,t2] = allTrackParams2{:};
+
+allPWD = sqrt((x1-x2).^2 + (y1-y2).^2);
+
+% WA is the weight associated with the deviation of each feature from
+% the pair axis
+ct = cos(t1);
+st = sin(t1);
+x0 = x1 - sx1 .* ct;
+y0 = y1 - sx1 .* st;
+pD1 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
+
+ct = cos(t2);
+st = sin(t2);
+x0 = x2 - sx2 .* ct;
+y0 = y2 - sx2 .* st;
+pD2 = abs(((x2-x1) .* (y1 - y0) - (x1 - x0) .* (y2 - y1)) ./ allPWD);
+
+ppLast = cumsum(overlap);
+ppFirst = ppLast-overlap+1;
+
+t1 = asin(pD1 ./ sx1);
+t2 = asin(pD2 ./ sx2);
+
+t1 = arrayfun(@(a,b) mean(t1(a:a+b-1)), ppFirst, overlap);
+t2 = arrayfun(@(a,b) mean(t2(a:a+b-1)), ppFirst, overlap);
+
+isValid = t1 < pi/3 & t2 < pi/3;
+
+% trim arrays
+E = E(isValid,:);
+tOverlapFirst = tOverlapFirst(isValid);
+overlap = overlap(isValid);
+pFirst1 = pFirst1(isValid);
+pFirst2 = pFirst2(isValid);
+
+clear allTrackParams1 allTrackParams2 x1 x2 y1 y2 sx1 sx2 t1 t2 ct st x0 y0 ...
+    pD1 pD2 ppLast ppFirst isValidl;
+
+%% DEBUG
+segments = cell(nFrames,1);
+for iFrame = 1:nFrames
+    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
+    
+    % Get the coordinates of the extremities of the valid pair
+    offset = iFrame - tOverlapFirst(isPairInFrame);
+    ind1 = pFirst1(isPairInFrame) + offset;
+    ind2 = pFirst2(isPairInFrame) + offset;
+    
+    x1 = allTrackParams(ind1,1);
+    x2 = allTrackParams(ind2,1);
+    y1 = allTrackParams(ind1,2);
+    y2 = allTrackParams(ind2,2);
+    
+    segments{iFrame} = [x1 y1 x2 y2];
+end
+
+save(fullfile(movieData.pairTracks.directory, 'withoutPerpendicularPairTrackCands.mat'), 'segments');
 
 clear segments iFrame isPairInFrame offset ind1 ind2 x1 x2 y1 y2;
 
@@ -444,51 +596,102 @@ for iter = 1:maxIter
         allAlignedTrackParams = horzcat(allAlignedTrackParams{:});
         
         % Compute model parameters
-        if iNumTracks == 1
-            allCCParamsIter = allAlignedTrackParams;
-        else
-            allCCParamsIter = zeros(sum(lifetimeCC(isPair)), 4);
-            
-            % x,y
-            X = allAlignedTrackParams(:,1:4:end);
-            Y = allAlignedTrackParams(:,2:4:end);
-            
-            allCCParamsIter(:,1) = nanmean(X,2);
-            allCCParamsIter(:,2) = nanmean(Y,2);
-            
-            % theta
-            SX = allAlignedTrackParams(:,3:4:end);
-            T = allAlignedTrackParams(:,4:4:end);
-            CT = cos(T);
-            ST = sin(T);
-            
-            Xp = [X + SX .* CT, X - SX .* CT];
-            Yp = [Y + SX .* ST, Y - SX .* ST];
-            
-            ws = warning('off','all');
-            for i = 1:size(Xp,1)
-                x = Xp(i,:);
-                y = Yp(i,:);
-                p = polyfit(x(~isnan(x)), y(~isnan(y)),1);
-                allCCParamsIter(i,4) = atan2(p(1),1);
-            end
-            warning(ws);
-            
-            X = allCCParamsIter(:,1);
-            Y = allCCParamsIter(:,2);
-            T = allCCParamsIter(:,4);
-            CT = cos(T);
-            ST = sin(T);
-            
-            % sigma_x
-            X1 = X - .5 * ST;
-            X2 = X + .5 * ST;
-            Y1 = Y + .5 * CT;
-            Y2 = Y - .5 * CT;
-            
-            Dp = bsxfun(@times, X2 - X1, bsxfun(@minus,Y1,Yp)) - ...
-                bsxfun(@times, bsxfun(@minus,X1, Xp), Y2 - Y1);
-            allCCParamsIter(:,3) = .5 * (max(Dp,[],2) - min(Dp,[],2));
+        switch iNumTracks 
+            case 1
+                allCCParamsIter = allAlignedTrackParams;
+               
+            case 2
+                allCCParamsIter = zeros(sum(lifetimeCC(isPair)), 4);
+                
+                X = allAlignedTrackParams(:,1:4:end);
+                Y = allAlignedTrackParams(:,2:4:end);
+                SX = allAlignedTrackParams(:,3:4:end);
+                T = allAlignedTrackParams(:,4:4:end);
+                
+                isNan = sum(isnan(X),2) ~= 0;
+                
+                CT = cos(T);
+                ST = sin(T);
+                
+                Xp = X + SX .* CT;
+                Yp = Y + SX .* ST;
+
+                A = sqrt((X(:,1) - X(:,2)).^2 + (Y(:,1) - Y(:,2)).^2);
+                
+                B = bsxfun(@rdivide, abs(bsxfun(@times, X(:,2) - X(:,1), ...
+                    bsxfun(@minus,Y(:,1), Yp)) - bsxfun(@times, ...
+                    bsxfun(@minus,X(:,1), Xp), Y(:,2) - Y(:,1))), A);
+                
+                C = sqrt(SX.^2 - B.^2);
+                
+                SX = .5 * (A + sum(C,2));
+
+                T = atan2(Y(:,1) - Y(:,2), X(:,1) - X(:,2));
+                CT = cos(T);
+                ST = sin(T);
+                
+                X = nanmean(X,2);
+                Y = nanmean(Y,2);
+                
+                Xp = [X + CT .* (.5 * A + C(:,1)), X - CT .* (.5 * A + C(:,2))];
+                Yp = [Y + ST .* (.5 * A + C(:,1)), Y - ST .* (.5 * A + C(:,2))];
+                
+                allCCParamsIter(:,1) = mean(Xp,2);
+                allCCParamsIter(:,2) = mean(Yp,2);
+                allCCParamsIter(:,3) = SX;
+                allCCParamsIter(:,4) = T;
+                
+                isNan = isnan(allCCParamsIter(:,1));
+                
+                allCCParamsIter(isNan,1) = nanmean(allAlignedTrackParams(isNan,1:4:end),2);
+                allCCParamsIter(isNan,2) = nanmean(allAlignedTrackParams(isNan,2:4:end),2);
+                allCCParamsIter(isNan,3) = nanmean(allAlignedTrackParams(isNan,3:4:end),2);
+                allCCParamsIter(isNan,4) = nanmean(allAlignedTrackParams(isNan,4:4:end),2);
+                                
+            otherwise
+                allCCParamsIter = zeros(sum(lifetimeCC(isPair)), 4);
+                
+                % x,y
+                X = allAlignedTrackParams(:,1:4:end);
+                Y = allAlignedTrackParams(:,2:4:end);
+                
+                % theta
+                SX = allAlignedTrackParams(:,3:4:end);
+                T = allAlignedTrackParams(:,4:4:end);
+                CT = cos(T);
+                ST = sin(T);
+                
+                Xp = [X + SX .* CT, X - SX .* CT];
+                Yp = [Y + SX .* ST, Y - SX .* ST];
+                
+                allCCParamsIter(:,1) = nanmin(Xp,[],2) + .5 * (nanmax(Xp,[],2) - nanmin(Xp,[],2));
+                allCCParamsIter(:,2) = nanmin(Yp,[],2) + .5 * (nanmax(Yp,[],2) - nanmin(Yp,[],2));
+                
+                ws = warning('off','all');
+                for i = 1:size(Xp,1)
+                    x = Xp(i,:);
+                    y = Yp(i,:);
+                    p = polyfit(x(~isnan(x)), y(~isnan(y)),1);
+                    allCCParamsIter(i,4) = atan2(p(1),1);
+                end
+                warning(ws);
+                
+                X = allCCParamsIter(:,1);
+                Y = allCCParamsIter(:,2);
+                T = allCCParamsIter(:,4);
+                
+                CT = cos(T);
+                ST = sin(T);
+                
+                % sigma_x
+                X1 = X - .5 * ST;
+                X2 = X + .5 * ST;
+                Y1 = Y + .5 * CT;
+                Y2 = Y - .5 * CT;
+                
+                Dp = bsxfun(@times, X2 - X1, bsxfun(@minus,Y1,Yp)) - ...
+                    bsxfun(@times, bsxfun(@minus,X1, Xp), Y2 - Y1);
+                allCCParamsIter(:,3) = max(Dp,[],2);
         end
         
         % Dispatch model parameters into allCCParams
@@ -499,6 +702,8 @@ for iter = 1:maxIter
         allCCParams(indRow,:) = allCCParamsIter;
     end
 
+    assert(all(~isnan(allCCParams(:))));
+    
     % Save allCCParams into a file (use the same color as for the tracks)
     segments = cell(nFrames,1);
     for iFrame = 1:nFrames
@@ -616,8 +821,6 @@ for iter = 1:maxIter
     
     isEmpty = cellfun(@isempty,CC);
     CC = CC(~isEmpty);
-    
-    % TODO
     nCC = numel(CC);
 end
 

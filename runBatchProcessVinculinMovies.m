@@ -1,10 +1,10 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/060910_cre_CSUX_1';
-%params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
+params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/062309_cre_CSUX_3';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
 
 % name of the channel directory subfolders
@@ -18,7 +18,7 @@ params.procNames = {...
     'pairTracks',...
     'figures'};
 
-params.runSteps = [0 0 0 0 1];
+params.runSteps = [0 0 0 1 -1];
 params.batchMode = 0;
 
 % Physical parameters
@@ -46,9 +46,10 @@ params.particleTracking.searchRadius = 5;
 
 % PROC 4: track pairing
 
-params.pairTracks.maxEuclidianDist = 20;
+params.pairTracks.maxDistance = 2010; % nm (30 pixels)
 params.pairTracks.minOverlap = 1;
-params.pairTracks.bandWidth = 2000; % nm
+params.pairTracks.bandWidth = 1000;   % nm
+params.pairTracks.minDistance = 335;  % nm (5 pixels)
 params.pairTracks.alpha = 0.05;
 params.pairTracks.maxIter = 5;
 
