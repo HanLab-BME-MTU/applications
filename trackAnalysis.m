@@ -23,6 +23,9 @@ ny = data.imagesize(1);
 nx = data.imagesize(2);
 nFrames = data.movieLength;
 
+alpha = 0.05;
+kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
+
 %=================================
 % Identify master/slave channels
 %=================================
@@ -43,17 +46,11 @@ sigma = sigmaV(masterChannel);
 %w2 = ceil(2*sigma);
 w3 = ceil(3*sigma);
 w4 = ceil(4*sigma);
-dw = w4-w3;
 
 [x,y] = meshgrid(-w4:w4);
 r = sqrt(x.^2+y.^2);
-bandMask = zeros(size(r));
-bandMask(r<=w4 & r>=w3) = 1;
-
-[x,y] = meshgrid(-w3:w3);
-r = sqrt(x.^2+y.^2);
-diskMask = zeros(size(r));
-diskMask(r<=w3) = 1;
+annularMask = zeros(size(r));
+annularMask(r<=w4 & r>=w3) = 1;
 
 %=================================
 % Read and convert tracker output
@@ -81,10 +78,10 @@ else
     error('No valid tracker output found.');
 end
 tracks(1:nTracks) = struct('t', [],...
-    'x', [], 'x_std', [],...
-    'y', [], 'y_std', [],...
-    'A', [], 'A_std', [], 'pval_A', [],...
-    'c', [], 'cStd', [], 'cStd_mask', [], 'cStd_res', [], ...
+    'x', [], 'y', [], 'A', [], 'c', [],...
+    'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
+    'sigma_r', [], 'SE_sigma_r', [],...
+    'pval_Ar', [], 'pval_KS', [],...
     'maskI', [],...
     'status', [], 'gapStatus', [],...
     'gapStarts', [], 'gapEnds', [], 'gapLengths', [],...
@@ -133,17 +130,23 @@ for k = 1:nTracks
     % Read amplitude & background from detectionResults.mat (localization results)
     %==============================================================================
     nf = length(tracks(k).xcom);
+    
     tracks(k).x = NaN(1,nf);
-    tracks(k).x_std = NaN(1,nf);
     tracks(k).y = NaN(1,nf);
-    tracks(k).y_std = NaN(1,nf);
     tracks(k).A = NaN(nCh, nf);
-    tracks(k).A_std = NaN(nCh,nf);
-    tracks(k).pval_A = NaN(nCh,nf);
     tracks(k).c = NaN(nCh, nf);
-    tracks(k).cStd = NaN(nCh, nf);
-    tracks(k).cStd_mask = NaN(nCh, nf);
-    tracks(k).cStd_res = NaN(nCh, nf);
+    
+    tracks(k).x_pstd = NaN(1,nf);
+    tracks(k).y_pstd = NaN(1,nf);
+    tracks(k).A_pstd = NaN(nCh,nf);
+    tracks(k).c_pstd = NaN(nCh, nf);
+    
+    tracks(k).sigma_r = NaN(nCh, nf);
+    tracks(k).SE_sigma_r = NaN(nCh, nf);
+    
+    tracks(k).pval_Ar = NaN(nCh,nf);
+    tracks(k).pval_KS = NaN(1,nf);
+    tracks(k).isPSF = NaN(1,nf);
     
     frameRange = tracks(k).start:tracks(k).end;
     
@@ -154,21 +157,23 @@ for k = 1:nTracks
             idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
         end
         if idx ~= 0
-            tracks(k).x(i) = frameInfo(frameRange(i)).xloc(idx);
-            tracks(k).x_std(i) = frameInfo(frameRange(i)).x_std(:,idx);
-            tracks(k).y(i) = frameInfo(frameRange(i)).yloc(idx);
-            tracks(k).y_std(i) = frameInfo(frameRange(i)).y_std(:,idx);
+            tracks(k).x(i) = frameInfo(frameRange(i)).x(idx);
+            tracks(k).y(i) = frameInfo(frameRange(i)).y(idx);
             tracks(k).A(:,i) = frameInfo(frameRange(i)).A(:,idx);
-            tracks(k).A_std(:,i) = frameInfo(frameRange(i)).A_std(:,idx);
-            tracks(k).pval_A(:,i) = frameInfo(frameRange(i)).pval_A(:,idx);
             tracks(k).c(:,i) = frameInfo(frameRange(i)).c(:,idx);
-            tracks(k).cStd(:,i) = frameInfo(frameRange(i)).cStd(:,idx);
-            tracks(k).cStd_mask(:,i) = frameInfo(frameRange(i)).cStd_mask(:,idx);
-            tracks(k).cStd_res(:,i) = frameInfo(frameRange(i)).cStd_res(:,idx);
             
+            tracks(k).x_pstd(i) = frameInfo(frameRange(i)).x_pstd(:,idx);
+            tracks(k).y_pstd(i) = frameInfo(frameRange(i)).y_pstd(:,idx);
+            tracks(k).A_pstd(:,i) = frameInfo(frameRange(i)).A_pstd(:,idx);
+            tracks(k).c_pstd(:,i) = frameInfo(frameRange(i)).c_pstd(:,idx);
+            
+            tracks(k).sigma_r(:,i) = frameInfo(frameRange(i)).sigma_r(:,idx);
+            tracks(k).SE_sigma_r(:,i) = frameInfo(frameRange(i)).SE_sigma_r(:,idx);
+            
+            tracks(k).pval_Ar(:,i) = frameInfo(frameRange(i)).pval_Ar(:,idx);
             tracks(k).pval_KS(i) = frameInfo(frameRange(i)).pval_KS(idx);
-            tracks(k).valid_KS(i) = frameInfo(frameRange(i)).valid_KS(idx);
-            tracks(k).maskI(i) = frameInfo(frameRange(i)).amp(idx);
+            tracks(k).isPSF(i) = frameInfo(frameRange(i)).isPSF(idx);
+            %tracks(k).maskI(i) = frameInfo(frameRange(i)).amp(idx);
         end
     end
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
@@ -217,25 +222,34 @@ for k = 1:nTracks
         
     if ~isempty(rmIdx)
         trackLength = trackLength - length(rmIdx);
+        
+        % remove selected positions
+%         fnames = fieldnames(tracks(k));
+%         for f = 1:length(fnames)
+%             if ~isempty(tracks(k).(fnames{f}))
+%                 tracks(k).(fnames{f})
+%                 tracks(k).(fnames{f})(rmIdx) = [];
+%             end
+%         end
         tracks(k).t(rmIdx) = [];
         tracks(k).x(rmIdx) = [];
-        tracks(k).x_std(rmIdx) = [];
+        tracks(k).x_pstd(rmIdx) = [];
         tracks(k).y(rmIdx) = [];
-        tracks(k).y_std(rmIdx) = [];
+        tracks(k).y_pstd(rmIdx) = [];
         tracks(k).A(:,rmIdx) = [];
-        tracks(k).A_std(:,rmIdx) = [];
-        tracks(k).pval_A(:,rmIdx) = [];
+        tracks(k).A_pstd(:,rmIdx) = [];
+        tracks(k).pval_Ar(:,rmIdx) = [];
         tracks(k).c(:,rmIdx) = [];
-        tracks(k).cStd(:,rmIdx) = [];
-        tracks(k).cStd_mask(:,rmIdx) = [];
-        tracks(k).cStd_res(:,rmIdx) = [];
+        tracks(k).c_pstd(:,rmIdx) = [];
+        tracks(k).sigma_r(:,rmIdx) = [];
+        tracks(k).SE_sigma_r(:,rmIdx) = [];
         
         tracks(k).xcom(rmIdx) = [];
         tracks(k).ycom(rmIdx) = [];
         
         tracks(k).pval_KS(rmIdx) = [];
-        tracks(k).valid_KS(rmIdx) = [];
-        tracks(k).maskI(rmIdx) = [];
+        tracks(k).isPSF(rmIdx) = [];
+        %tracks(k).maskI(rmIdx) = [];
         
         tracks(k).lifetime_s = trackLength*data.framerate;
     end
@@ -475,24 +489,35 @@ for f = 1:data.movieLength
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
             maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-            cmask = bandMask;
+            
+            cmask = annularMask;
             cmask(maskWindow~=0) = 0;
             window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
+            
             ci = mean(window(cmask==1));
             window(maskWindow~=0) = NaN;
-            bgStd = nanstd(window(bandMask==1));
-            window = window(dw+1:end-dw, dw+1:end-dw);
-            window(diskMask==0) = NaN;
+            
             npx = sum(isfinite(window(:)));
-            [prm,prmStd,~,res] = fitGaussian2D(window, [tracks(k).x(idx)-xi tracks(k).y(idx)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
+            [prm, prmStd, ~, res] = fitGaussian2D(window, [tracks(k).x(idx)-xi tracks(k).y(idx)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).A(ch,idx) = prm(3);
-            tracks(k).A_std(ch,idx) = prmStd(1);
-            tracks(k).pval_A(ch,idx) = 1-tcdf(prm(3)/prmStd(1), npx - 3);
             tracks(k).c(ch,idx) = prm(5);
-            tracks(k).c_std(ch,idx) = prmStd(2);
-            tracks(k).cStd_mask(ch,idx) = bgStd;
-            tracks(k).cStd_res(ch,idx) = res.std;
+            
+            tracks(k).A_pstd(ch,idx) = prmStd(1);
+            tracks(k).c_pstd(ch,idx) = prmStd(2);
+
+            tracks(k).sigma_r(ch,idx) = res.std;
+            tracks(k).SE_sigma_r(ch,idx) = res.std/sqrt(2*(npx-1));
+
+            SE_r = tracks(k).SE_sigma_r(ch,idx) * kLevel;
+                    
+            tracks(k).pval_KS(idx) = res.pval;
+                    
+            df2 = (npx-1) * (tracks(k).A_pstd(ch,idx).^2 + SE_r.^2).^2 ./...
+                (tracks(k).A_pstd(ch,idx).^4 + SE_r.^4);
+            scomb = sqrt((tracks(k).A_pstd(ch,idx).^2 + SE_r.^2)/npx);
+            T = (tracks(k).A(ch,idx) - res.std*kLevel) ./ scomb;
+            tracks(k).pval_Ar(ch,idx) = tcdf(T, df2);
         end
         
         % start buffers in this frame
@@ -505,20 +530,16 @@ for f = 1:data.movieLength
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
             maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-            cmask = bandMask;
+            cmask = annularMask;
             cmask(maskWindow~=0) = 0;
             window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
             ci = mean(window(cmask==1));
             window(maskWindow~=0) = NaN;
-            bgStd = nanstd(window(bandMask==1));
-            window = window(dw+1:end-dw, dw+1:end-dw);
-            window(diskMask==0) = NaN;
             [prm,~,~,res] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).startBuffer.A(ch,bi) = prm(3);
             tracks(k).startBuffer.c(ch,bi) = prm(5);
-            tracks(k).startBuffer.cStd_mask(ch,bi) = bgStd;
-            tracks(k).startBuffer.cStd_res(ch,bi) = res.std;
+            tracks(k).startBuffer.sigma_r(ch,bi) = res.std;
         end
         
         % end buffers in this frame
@@ -531,20 +552,16 @@ for f = 1:data.movieLength
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
             maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-            cmask = bandMask;
+            cmask = annularMask;
             cmask(maskWindow~=0) = 0;
             window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
             ci = mean(window(cmask==1));
             window(maskWindow~=0) = NaN;
-            bgStd = nanstd(window(bandMask==1));
-            window = window(dw+1:end-dw, dw+1:end-dw);
-            window(diskMask==0) = NaN;
             [prm,~,~,res] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).endBuffer.A(ch,bi) = prm(3);
             tracks(k).endBuffer.c(ch,bi) = prm(5);
-            tracks(k).endBuffer.cStd_mask(ch,bi) = bgStd;
-            tracks(k).endBuffer.cStd_res(ch,bi) = res.std;
+            tracks(k).endBuffer.sigma_r(ch,bi) = res.std;
         end
         fprintf('\b\b\b\b%3d%%', round(100*(ch + (f-1)*nCh)/(nCh*data.movieLength)));
     end

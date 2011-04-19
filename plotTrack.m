@@ -63,8 +63,9 @@ fillDarkBuffer = hsv2rgb([hues(ch) 0.2 0.85]);
 
 % Significance thresholds
 % sigmaT = icdf('normal', 1-alpha/2, 0, 1);
-sigmaL = icdf('normal', 0.95, 0, 1); % weaker, single-tailed
-sigmaH = icdf('normal', 0.99, 0, 1);
+%sigmaL = icdf('normal', 0.95, 0, 1); % weaker, single-tailed
+%sigmaH = icdf('normal', 0.99, 0, 1);
+kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
 
 
 % Plot track
@@ -73,20 +74,30 @@ lh = NaN(1,9);
 A = track.A(ch,:);
 c = track.c(ch,:);
 %cStd = track.cStd_mask(ch,:);
-cStd = track.cStd_res(ch,:);
+%cStd = track.cStd_res(ch,:);
+sigma_r = track.sigma_r(ch,:);
 t = (track.start-1:track.end-1)*data.framerate;
 
 % alpha = 0.05 level
-lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)],...
-    fillLight, 'EdgeColor', 'none', 'Parent', ha);
+lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+    fillDark, 'EdgeColor', 'none', 'Parent', ha);
 hold(ha, 'on');
 
 % alpha = 0.01 level
-fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)],...
-    fillDark, 'EdgeColor', 'none', 'Parent', ha);
+% fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)],...
+%     fillDark, 'EdgeColor', 'none', 'Parent', ha);
 
 gapIdx = arrayfun(@(x,y) x:y, track.gapStarts, track.gapEnds, 'UniformOutput', false);
 gapIdx = [gapIdx{:}];
+
+% plot amplitude std.
+sigma_a = track.A_pstd(ch,:);
+% plot(ha, t, c+A+sigma_a, '-', 'Color', [1 1 0]);
+% plot(ha, t, c+A-sigma_a, '-', 'Color', [1 1 0]);
+rev = c+A-sigma_a;
+fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
+    fillLight, 'EdgeColor', 'none', 'Parent', ha);
+
 
 % plot track
 ampl = A+c;
@@ -112,12 +123,16 @@ lh(5) = plot(ha, t, c, '-', 'Color', trackColor);
 if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
     A = [track.startBuffer.A(ch,:) track.A(ch,1)];
     c = [track.startBuffer.c(ch,:) track.c(ch,1)];
-    %cStd = [track.startBuffer.cStd_mask(ch,:) track.cStd_mask(ch,1)];
-    cStd = [track.startBuffer.cStd_res(ch,:) track.cStd_res(ch,1)];
+    sigma_r = [track.startBuffer.sigma_r(ch,:) track.sigma_r(ch,1)];
     t = (track.start-bStart-1:track.start-1)*data.framerate;
+     
+    fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+        fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
-    fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
-    fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+%     rev = c+A-sigma_a;
+%     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
+%         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    
     lh(6) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
     lh(7) = plot(ha, t, c, '--', 'Color', trackColor);
 end
@@ -126,12 +141,12 @@ end
 if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
     A = [track.A(ch,end) track.endBuffer.A(ch,:)];
     c = [track.c(ch,end) track.endBuffer.c(ch,:)];
-    %cStd = [track.cStd_mask(ch,end) track.endBuffer.cStd_mask(ch,:)];
-    cStd = [track.cStd_res(ch,end) track.endBuffer.cStd_res(ch,:)];
+    sigma_r = [track.sigma_r(ch,end) track.endBuffer.sigma_r(ch,:)];
     t = (track.end-1:track.end+bEnd-1)*data.framerate;
     
-    fill([t t(end:-1:1)], [c c(end:-1:1)+sigmaL*cStd(end:-1:1)], fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
-    fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)], fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+        fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    %fill([t t(end:-1:1)], [c+kLevel*sigma_r c(end:-1:1)+kLevel*sigma_r(end:-1:1)], fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
     lh(8) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
     lh(9) = plot(ha, t, c, '--', 'Color', trackColor);
 end

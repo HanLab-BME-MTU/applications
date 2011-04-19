@@ -555,7 +555,7 @@ set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
 guidata(hObject,handles);
 % axis(handles.axes3, [0 handles.data.movieLength 0 1]);
 refreshFrameDisplay(hObject, handles);
-refreshTrackDisplay(handles)
+refreshTrackDisplay(handles);
 
 
 

@@ -18,6 +18,9 @@ end
 h = load([data.source 'Detection' filesep 'detectionResults.mat']);
 frameInfo = h.frameInfo;
 
+alpha = 0.05;
+
+kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 
 if ~isfield(frameInfo, 'xloc') || overwrite
     
@@ -32,10 +35,8 @@ if ~isfield(frameInfo, 'xloc') || overwrite
     slaveChannels = setdiff(1:nCh, masterChannel);
     
     sigmaV = zeros(nCh, 1);
-    frameList = cell(1,nCh);
     for k = 1:nCh
         sigmaV(k) = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k});
-        frameList{k} = dir([data.channels{k} '*.tif*']);
     end
     
     maskPath = [data.source 'Detection' filesep 'Masks' filesep];
@@ -45,26 +46,11 @@ if ~isfield(frameInfo, 'xloc') || overwrite
     w2 = ceil(2*sigma);
     w3 = ceil(3*sigma);
     w4 = ceil(4*sigma);
-    dw = w4-w3;
     
     [x,y] = meshgrid(-w4:w4);
     r = sqrt(x.^2+y.^2);
-    bandMask = zeros(size(r));
-    bandMask(r<=w4 & r>=w3) = 1;
-    
-    [x,y] = meshgrid(-w3:w3);
-    r = sqrt(x.^2+y.^2);
-    diskMask = zeros(size(r));
-    diskMask(r<=w3) = 1;
-   
-    % indexes for cross-correlation coefficients
-    n = 4;
-    idx = pcombs(1:n);
-    i = idx(:,1);
-    j = idx(:,2);
-    ij = i+n*(j-1);
-    ii = i+n*(i-1);
-    jj = j+n*(j-1);
+    annularMask = zeros(size(r));
+    annularMask(r<=w4 & r>=w3) = 1;
     
     % loop through frames
     iRange = zeros(nCh,2);
@@ -76,28 +62,28 @@ if ~isfield(frameInfo, 'xloc') || overwrite
         yi = round(frameInfo(k).ycom);
         np = length(xi);
 
-        xloc = NaN(1,np);
-        yloc = NaN(1,np);
+        x = NaN(1,np);
+        y = NaN(1,np);
         A = NaN(nCh,np);
         c = NaN(nCh,np);
-        cStd = NaN(nCh,np);
-        cStd_mask = NaN(nCh,np);
-        cStd_res = NaN(nCh,np);
         
-        xStd = NaN(1,np);
-        yStd = NaN(1,np);
-        aStd = NaN(nCh,np);
-        pval_A = NaN(nCh, np);
+        x_pstd = NaN(1,np);
+        y_pstd = NaN(1,np);
+        A_pstd = NaN(nCh,np);
+        c_pstd = NaN(nCh,np);
         
-        pval = NaN(1,np);
-        
+        sigma_r = NaN(nCh,np);
+        SE_sigma_r = NaN(nCh,np);
+        pval_Ar = NaN(nCh,np);
+        pval_KS = NaN(1,np);
+  
         mask = double(imread([maskPath maskList(k).name]));
         % binarize
         mask(mask~=0) = 1;
         labels = bwlabel(mask);
         
         for ch = 1:nCh
-            frames(:,:,ch) = double(imread([data.channels{ch} frameList{ch}(k).name]));
+            frames(:,:,ch) = double(imread(data.framePaths{ch}{k}));
              % dynamic range
             iRange(ch,:) = [min(min(frames(:,:,ch))) max(max(frames(:,:,ch)))];
         end
@@ -113,83 +99,91 @@ if ~isfield(frameInfo, 'xloc') || overwrite
                 maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
                 
                 % estimate background
-                cmask = bandMask;
+                cmask = annularMask;
                 cmask(maskWindow~=0) = 0;
                 window = frames(yi(p)-w4:yi(p)+w4, xi(p)-w4:xi(p)+w4, ch);
+                
+                % initial background value
                 ci = mean(window(cmask==1));
-                %cs = std(window(cmask==1));
-                % set any other components to NaN
+                
+                % exlude remaining masked components from fit
                 window(maskWindow~=0) = NaN;
                 
-                % standard deviation of the background within mask
-                bgStd = nanstd(window(bandMask==1));
-                
-                % reduce to w = 3*sigma from w = 4*sigma
-                window = window(dw+1:end-dw, dw+1:end-dw);
-                
-                % mask w/ 3*sigma disk
-                window(diskMask==0) = NaN;
                 npx = sum(isfinite(window(:)));
                 
                 % fit
-                [prm, prmStd, C, res] = fitGaussian2D(window, [0 0 max(window(:))-ci sigma ci], 'xyAc');
-                K = corrFromC(C,ij,ii,jj);
+                [prm, prmStd, ~, res] = fitGaussian2D(window, [0 0 max(window(:))-ci sigma ci], 'xyAc');
+                pval_KS(p) = res.pval;
                 
-                pval(p) = res.pval;
-                xp = prm(1);
-                yp = prm(2);
+                dx = prm(1);
+                dy = prm(2);
                 % eliminate points where localization failed or which are close to image border
-                if (xp > -w2 && xp < w2 && yp > -w2 && yp < w2 && prm(3)<2*iRange(ch,2) && max(abs(K(:)))<0.8)
-                    xloc(p) = xi(p) + xp; 
-                    yloc(p) = yi(p) + yp;
+                if (dx > -w2 && dx < w2 && dy > -w2 && dy < w2 && prm(3)<2*diff(iRange(ch,:)))
+                    
+                    x(p) = xi(p) + dx; 
+                    y(p) = yi(p) + dy;
                     A(ch,p) = prm(3);
-                    xStd(1,p) = prmStd(1);
-                    yStd(1,p) = prmStd(2);
-                    aStd(ch,p) = prmStd(3);
-                    pval_A(ch,p) = 1-tcdf(prm(3)/prmStd(3), npx - 5);
                     c(ch,p) = prm(5);
-                    cStd(ch,p) = prmStd(4);
-                    cStd_mask(ch,p) = bgStd;
-                    cStd_res(ch,p) = res.std;
+                    x_pstd(1,p) = prmStd(1);
+                    y_pstd(1,p) = prmStd(2);
+                    A_pstd(ch,p) = prmStd(3);
+                    c_pstd(ch,p) = prmStd(4);
+                    
+                    sigma_r(ch,p) = res.std;
+                    SE_sigma_r(ch,p) = res.std/sqrt(2*(npx-1));
+                    SE_r = SE_sigma_r(ch,p) * kLevel;
+                    pval_KS(p) = res.pval;
+                    
+                    df2 = (npx-1) * (A_pstd(ch,p).^2 + SE_r.^2).^2 ./...
+                        (A_pstd(ch,p).^4 + SE_r.^4);
+                    scomb = sqrt((A_pstd(ch,p).^2 + SE_r.^2)/npx);
+                    T = (A(ch,p) - res.std*kLevel) ./ scomb;
+                    pval_Ar(ch,p) = tcdf(T, df2);
+                    
                     for ch = slaveChannels
                         window = frames(yi(p)-w4:yi(p)+w4, xi(p)-w4:xi(p)+w4, ch);
                         ci = mean(window(cmask==1));
                         window(maskWindow~=0) = NaN;
-                        bgStd = nanstd(window(bandMask==1));
-                        window = window(dw+1:end-dw, dw+1:end-dw);
-                        window(diskMask==0) = NaN;
-
-                        [prm, prmStd, ~, res] = fitGaussian2D(window, [xp yp max(window(:))-ci sigmaV(ch) ci], 'Ac');
+                        
+                        [prm, prmStd, ~, res] = fitGaussian2D(window, [dx dy max(window(:))-ci sigmaV(ch) ci], 'Ac');
                         A(ch,p) = prm(3);
-                        aStd(ch,p) = prmStd(1);
-                        pval_A(ch,p) = 1-tcdf(prm(3)/prmStd(1), npx - 3);
+                        A_pstd(ch,p) = prmStd(1);
                         c(ch,p) = prm(5);
-                        cStd(ch,p) = prmStd(2);
-                        cStd_mask(ch,p) = bgStd;
-                        cStd_res(ch,p) = res.std;
+                        c_pstd(ch,p) = prmStd(2);
+                        
+                        sigma_r(ch,p) = res.std;
+                        SE_sigma_r(ch,p) = res.std/sqrt(2*(npx-1));
+                        SE_r = SE_sigma_r(ch,p) * kLevel;
+                        
+                        df2 = (npx-1) * (A_pstd(ch,p).^2 + SE_r.^2).^2 ./...
+                            (A_pstd(ch,p).^4 + SE_r.^4);
+                        scomb = sqrt((A_pstd(ch,p).^2 + SE_r.^2)/npx);
+                        T = (A(ch,p) - res.std*kLevel) ./ scomb;
+                        pval_Ar(ch,p) = tcdf(T, df2);                    
                     end
                 end
-                
             end
         end
         
         % localization parameters
-        frameInfo(k).xloc = xloc;
-        frameInfo(k).x_std = xStd;
-        frameInfo(k).yloc = yloc;
-        frameInfo(k).y_std = yStd;
+        frameInfo(k).x = x;
+        frameInfo(k).y = y;
         frameInfo(k).A = A;
-        frameInfo(k).A_std = aStd;
-        frameInfo(k).pval_A = pval_A;
+        frameInfo(k).c = c;        
+        frameInfo(k).x_pstd = x_pstd;
+        frameInfo(k).y_pstd = y_pstd;
+        frameInfo(k).A_pstd = A_pstd;
+        frameInfo(k).c_pstd = c_pstd;
+        
+        frameInfo(k).sigma_r = sigma_r;
+        frameInfo(k).SE_sigma_r = SE_sigma_r;
+        
+        frameInfo(k).pval_KS = pval_KS;
+        frameInfo(k).pval_Ar = pval_Ar;
         frameInfo(k).sigma = sigmaV;
-        frameInfo(k).c = c;
-        frameInfo(k).cStd = cStd;
-        frameInfo(k).cStd_mask = cStd_mask;
-        frameInfo(k).cStd_res = cStd_res;
 
         % test results
-        frameInfo(k).pval_KS = pval;
-        frameInfo(k).valid_KS = pval>=0.05;
+        frameInfo(k).isPSF = pval_KS >= 0.05;
         frameInfo(k).iRange = iRange;
         
         % to use localization results in tracker
@@ -208,13 +202,3 @@ if ~isfield(frameInfo, 'xloc') || overwrite
 else
     fprintf('Localization has already been performed for dataset ''%s''\n', data.source);
 end
-
-
-function K = corrFromC(C,ij,ii,jj)
-n = size(C,1);
-K = zeros(n,n);
-
-K(ij) = C(ij) ./ sqrt(C(ii).*C(jj));
-% remaining components are redundant
-% K = K + K';
-% K(sub2ind([n n], 1:n, 1:n)) = 1;
