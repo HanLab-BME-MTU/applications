@@ -535,10 +535,11 @@ for f = 1:data.movieLength
             window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
             ci = mean(window(cmask==1));
             window(maskWindow~=0) = NaN;
-            [prm,~,~,res] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
+            [prm,prmStd,~,res] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).startBuffer.A(ch,bi) = prm(3);
             tracks(k).startBuffer.c(ch,bi) = prm(5);
+            tracks(k).startBuffer.A_pstd(ch,bi) = prmStd(1);
             tracks(k).startBuffer.sigma_r(ch,bi) = res.std;
         end
         
@@ -557,10 +558,11 @@ for f = 1:data.movieLength
             window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
             ci = mean(window(cmask==1));
             window(maskWindow~=0) = NaN;
-            [prm,~,~,res] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
+            [prm,prmStd,~,res] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).endBuffer.A(ch,bi) = prm(3);
             tracks(k).endBuffer.c(ch,bi) = prm(5);
+            tracks(k).endBuffer.A_pstd(ch,bi) = prmStd(1);
             tracks(k).endBuffer.sigma_r(ch,bi) = res.std;
         end
         fprintf('\b\b\b\b%3d%%', round(100*(ch + (f-1)*nCh)/(nCh*data.movieLength)));

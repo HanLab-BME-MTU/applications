@@ -33,7 +33,7 @@ ip.addRequired('frameIdx');
 ip.addRequired('ch');
 ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
-ip.addParamValue('print', false, @islogical);
+ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
 ip.addParamValue('visibleTracks', 'current', @(x) strcmpi(x, 'current') | strcmpi(x, 'all'));
 ip.addParamValue('scaleBar', []);
@@ -47,7 +47,7 @@ else
     h = figure('Visible', 'off', 'PaperPositionMode', 'auto');
     position = get(h, 'Position');
     position(4) = ceil(ny/nx*position(3));
-    set(h, 'Position', position, 'Visible', visible);
+    set(h, 'Position', position, 'Visible', ip.Results.visible);
     ha = axes('Position', [0 0 1 1]);
     standalone = true;
 end
@@ -66,7 +66,7 @@ switch ip.Results.mode
         frame = zeros(ny,nx,3);
         idxRGB = getRGBindex(data.markers);
         for c = 1:nCh
-            frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), iRange{c});
+            frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), ip.Results.iRange{c});
         end
         frame = uint8(frame);
     case 'mask'
@@ -136,7 +136,7 @@ end
 %======================================
 % Print EPS
 %======================================
-if ip.Results.print
+if strcmpi(ip.Results.print, 'on')
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
