@@ -1,4 +1,4 @@
-function [discrimMat]=plusTipTestDistrib(groupData,distribs2test)
+function [discrimMat]=plusTipTestDistrib(saveDir,groupData,distribs2test)
 % plusTipTestDistib returns discrimination matrices for plus tip distributions
 %
 % SYNOPSIS : [discrimMat]=plusTipTestDistrib(groupData,distribs2test)
@@ -25,6 +25,12 @@ function [discrimMat]=plusTipTestDistrib(groupData,distribs2test)
 %               matrix form except they also include group labels in case
 %               you want to write them out into an Excel file.
 %  
+
+if nargin<1 || isempty(saveDir)
+    saveDir=uigetdir(pwd,'Select Output Directory.');
+end
+
+
 
 nGroups=length(groupData);
 
@@ -57,7 +63,9 @@ else
     end
 end
 
-
+ 
+ hitList=0;
+ 
 for i=1:length(idx)
     for iGroup=1:nGroups
         dataStruct(iGroup,1).(fN{idx(i)})=groupData(iGroup,1).(fN{idx(i)});
@@ -98,7 +106,54 @@ for i=1:length(idx)
     temp=mat2cell(discrimMat.(fN{idx(i)}),ones(nGroups,1),ones(nGroups,1));
     % add stat name in upper left and labels along rows and columns
     discrimMat.([fN{idx(i)} '_cell'])=[[{str} grpNames'];[grpNames temp]];
+    stringency = 0.05;
+
+    hitsIdx = find(discrimMat.(fN{idx(i)})(1,:) <stringency);
+    
+   
+    
+    
+    if hitList == 0;
+    for iHit = 1:length(hitsIdx)
+        hits{iHit,1} = grpNames((hitsIdx(iHit)),1);
+        hits{iHit,2} = fN{idx(i)};
+        hitList = 1;
+    end 
+        else
+    
+        for iHit =1:length(hitsIdx)
+            curLength = length(hits(:,1));
+            hits{curLength+1,1} = grpNames((hitsIdx(iHit)),1);
+            hits{curLength+1,2} = fN{idx(i)};
+        end
+   
+    end  
+     matLength = length(discrimMat.([fN{idx(i)} '_cell'])(1,:));
+     
+     space = cell(1,matLength);
+    if i ==1 
+    discrimMat.All = [discrimMat.([fN{idx(i)} '_cell']); space]; 
+    else 
+        discrimMat.All =[discrimMat.All ;discrimMat.([fN{idx(i)} '_cell'])];
+        discrimMat.All = [discrimMat.All; space];
+    end 
+   
 
 end
 
+if hitList == 0
+    hits = 'No Significant Differences';
+else 
+end 
+discrimMat.hits = hits;
+fileName = ['discrimMat','.mat'];
+save([saveDir filesep fileName],'discrimMat');
+
+
+
+
+
+
+
+end  
 

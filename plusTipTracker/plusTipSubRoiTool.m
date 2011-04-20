@@ -16,6 +16,13 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %       timeUnits: {'fraction','frames'}
 %       timeVal  : if distUnits is fraction: between 0 and 1
 %                  if distUnits is seconds : >0
+%% OPTION TO TURN ON MICROPATTERN
+
+micropattern = 0;  % set to 1 call micropattern function and ignore rest
+if micropattern == 1
+   plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude);
+else % proceed with Kathryn's function
+%% Check Input
 
 homeDir=pwd;
 warningState = warning;
@@ -84,7 +91,7 @@ switch selectType
         selectType='manual';
     case 1
         selectType='cellPeriphSingle';
-    case 2
+    case 2 
         selectType='cellPeriphQuad';
 end
 
@@ -101,6 +108,7 @@ end
 if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
+%% Body
 
 nProj=length(projList);
 for iProj=1:nProj
@@ -548,7 +556,7 @@ cd(homeDir)
 warning(warningState);
 disp('Sub-ROIs...finished')
 
-
+end % if micropattern
 
 function [img2show]=addMaskInColor(img,roiMask,c)
 %subfunction to add new polygon outline to composite image - this is needed

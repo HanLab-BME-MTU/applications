@@ -1,5 +1,23 @@
 function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,timeUnits,timeVal)
 % this fn is called by plusTipSubRoiTool
+%
+% NOTE: This Function was MODIFIED from the original release of
+% plusTipTracker.  Now partitions pause and shrinkage information from the
+% given subRegions.  Also fixes small bug in original code where the 
+% Fraction option was ALWAYS bi-passed, even if it was 
+% selected in the GUI, due to a small capitalization error. 
+% Maria Bagonis (MB) 03/27/11
+%
+% 
+%
+
+%% new input to be incorporated later
+onlyTarget =  1; % If set to one will select only those tracks that are 
+%targeted (ie the last point of their growth track is within the given sub
+%region if set to zero will use the settings specified in the
+%plusTipSeeTracks GUI
+
+%% Check Input
 homeDir=pwd;
 
 if isempty(strfind(subRoiDir,'sub'))
@@ -23,6 +41,7 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
 
+%% Load Necessary Files
 subRoiDir=subRoiDir;
 
 cd(subRoiDir) % sub_x directory
@@ -49,6 +68,7 @@ else
     imwrite(excludeMask,[subRoiDir filesep 'excludeMask.tif']);
 end
 
+%% Extract Data: Growth
 
 % get all the original merged tracks and convert frames to seconds and
 % pixels to microns
@@ -61,10 +81,10 @@ allDataAll(:,7)=allDataAll(:,7).*(sourceProjData.pixSizeNm./1000);
 
 % get growth track indices only and coordinates for those tracks only
 idx=find(allDataAll(:,5)==1);
-dataMatMerge=dataMatMergeAll(idx,:);
+dataMatMerge=dataMatMergeAll(idx,:); % just growth subtracks
 allData=allDataAll(idx,:);
 [xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx,1);
-%Note: xMat: x-coordinate of detected particle: row = track ID col. = frame number
+%Note: xMat: x-coordinate of detected particle: row # = track ID, col.# = frame number
 
 % get which tracks have their first point NOT in the exclude region
 %firstPtFrIdx gives the start frame for each growth subtrack
@@ -81,8 +101,39 @@ pixIdx=sub2ind([imL,imW],y,x); % pixel index of all the starts
 % not be considered
 inIncludeRegion=find(~excludeMask(pixIdx));
 
+if onlyTarget == 1;
+    
+%Find tracks targeted to sub region of interest
+lastPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'last'),1:length(idx))';
+firstPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'first'),1:length(idx))';
 
-% find which of the track indices are in the roiMask
+%Extract the Coordinates Corresponding to the last particle 
+% of each track
+xLast=ceil(arrayfun(@(i) xMat(i,lastPtFrIdx(i)),1:length(idx))'-.5);
+yLast=ceil(arrayfun(@(i) yMat(i,lastPtFrIdx(i)),1:length(idx))'-.5);
+
+xFirst=ceil(arrayfun(@(i) xMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
+yFirst=ceil(arrayfun(@(i) yMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
+
+
+
+% Do same for last point
+%Convert from xy coordinate to pixel index 
+pixIdxLast=sub2ind([imL,imW],yLast,xLast);% pixel index of all last points 
+% of track 
+
+pixIdxFirst=sub2ind([imL,imW],yFirst,xFirst);
+
+%find which tracks have their last point within the subregion of interest
+inIncludeRegionLast=find(roiMask(pixIdxLast));
+inIncludeRegionFirst=find(roiMask(pixIdxFirst));
+else % No need to calculate these variables
+end
+
+%inIncludeRegionFirst=find(roiMask(pixIdx));
+
+
+% find which of the TRACK indices (not just start sites) are in the roiMask
 % assume that the first pixel in the image will be a zero
 % but make sure this is so by making the first roiMask pixel = 0
 %Convert from xy indices to pixel index
@@ -103,33 +154,75 @@ lifeSec=allData(:,6); % track lifetimes, seconds
 %inside the ROI is just the sum of each row (sum in the 2nd D)-1
 insideSec=sourceProjData.secPerFrame.*(sum(IN,2)-1);
 
-% Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
-if ~isempty(strmatch(timeUnits,'Fraction'))
-    % Track index of those tracks you are including
-    trckIdxIn=intersect(find(insideSec./lifeSec>=timeVal),inIncludeRegion);
-    % Track index of those tracks that start in the region of interest but 
-    % are not analyzed because do not make lifetime criteria. 
-    trckIdxOut=intersect(find(insideSec./lifeSec<timeVal & insideSec>0),inIncludeRegion);
-else
-    trckIdxIn=intersect(find(insideSec>=timeVal),inIncludeRegion);
-    trckIdxOut=intersect(find(insideSec<timeVal & insideSec>0),inIncludeRegion);
-end
+if onlyTarget == 1 
+    
+%find track coordinates cooresponding to those tracks that are targeted 
+%to a given subregion
 
-% 
+trckIdxInFirst = intersect(find(insideSec>0),inIncludeRegionFirst);
+xMatFirst = xMat(trckIdxInFirst,:);
+yMatFirst = yMat(trckIdxInFirst,:);
 
-xMatOut = xMat(trckIdxOut,:);
-yMatOut = yMat(trckIdxOut,:);
+trckIdxIn= intersect(find(insideSec>0),inIncludeRegionLast);
+xMat = xMat(trckIdxIn,:);
+yMat = yMat(trckIdxIn,:);
 
 
-% limit data to these tracks
-xMat=xMat(trckIdxIn,:);
-yMat=yMat(trckIdxIn,:);
-IN=IN(trckIdxIn,:);
-% Just exchange zero values for NaN, again IN is a matrix of the same 
-%form as xMat and yMat only replaced by 1 where the tracked coordinate should be 
-%be maintained in the subROI calc
-IN=swapMaskValues(IN,0,NaN); % 1 for the sections of the tracks inside the sub-roi
-OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
+
+
+    IN=IN(trckIdxIn,:); 
+    % Just exchange zero values for NaN, again IN is a matrix of the same 
+    %form as xMat and yMat only replaced by 1 where the tracked coordinate should be 
+    %be maintained in the subROI calc
+    IN=swapMaskValues(IN,0,NaN); % 1 for the sections of the tracks inside the sub-roi
+    OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
+
+% plot all member tracks in red on top of the mask
+ figure; 
+ imshow(roiMask); 
+ hold on; 
+ plot(xMatFirst',yMatFirst','g'); % tracks initiated in subregion, not included in analysis
+ hold on;
+ plot(xMat',yMat','r')
+ 
+ saveas(gcf,[subRoiDir filesep 'tracksTargetedToSubRoi_plusLeavingTracks' fileExt])
+ close(gcf)
+ 
+else % get those tracks located within the subregion based with a given
+    % time criteria (but NO requirement for whether the track starts or 
+    % ends in the ROI of interest)
+
+    % Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
+    if ~isempty(strmatch(timeUnits,'Fraction'))
+        % Track index of those tracks you are including
+        trckIdxIn=intersect(find(insideSec./lifeSec>=timeVal),inIncludeRegion);
+        % Track index of those tracks that start in the region of interest but 
+        % are not analyzed because do not make lifetime criteria. 
+        trckIdxOut=intersect(find(insideSec./lifeSec<timeVal & insideSec>0),inIncludeRegion);
+    else
+        trckIdxIn=intersect(find(insideSec>=timeVal),inIncludeRegion);
+        trckIdxOut=intersect(find(insideSec<timeVal & insideSec>0),inIncludeRegion);
+    end
+
+%find all tracks that start within a given subregion
+%trckIdxInStart=intersect(find(insideSec>0),inIncludeRegionFirst);
+%xMatStart=xMat(trckIdxInStart,:);
+%yMatStart=yMat(trckIdxInStart,:);
+
+    %limit data to these tracks
+    xMat = xMat(trckIdxIn,:); 
+    yMat = yMat(trckIdxIn,:);
+
+    xMatOut = xMat(trckIdxOut,:);
+    yMatOut = yMat(trckIdxOut,:);
+
+
+    IN=IN(trckIdxIn,:); 
+    % Just exchange zero values for NaN, again IN is a matrix of the same 
+    %form as xMat and yMat only replaced by 1 where the tracked coordinate should be 
+    %be maintained in the subROI calc
+    IN=swapMaskValues(IN,0,NaN); % 1 for the sections of the tracks inside the sub-roi
+    OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
 
 
 % plot all member tracks in red on top of the mask
@@ -140,15 +233,19 @@ OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
  saveas(gcf,[subRoiDir filesep 'tracksInSubRoi' fileExt])
  close(gcf)
  
- %plot all tracks excluded from analysis
- figure
- imshow(roiMask);
- hold on;
- plot(xMatOut',yMatOut','g');
- saveas(gcf,[subRoiDir filesep 'tracksExcludedFromSubRoi' fileExt]);
- close(gcf)
+%plot all tracks excluded from analysis
+  figure
+  imshow(roiMask);
+  hold on;
+  plot(xMatOut',yMatOut','r');
+  saveas(gcf,[subRoiDir filesep 'tracksExcludedFromSubRoi' fileExt]);
+  close(gcf)
  
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
+ 
+%% Extract Data Pause
+%if onlyTarget == 1  % Don't calculate the pause data 
+ %   else % continue with pause calculations
 %Get Pause Data 
 idxPause=find(allDataAll(:,5)==2);
 dataMatMergePause=dataMatMergeAll(idxPause,:);
@@ -212,7 +309,12 @@ OUTPause=swapMaskValues(INPause); % 1 for the sections of the track outside the 
  saveas(gcf,[subRoiDir filesep 'PausesInSubRoi' fileExt])
  close(gcf)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%end
+%% Extract Data Shrinkage
+
+%if onlyTarget == 1 % Don't calculate the shrinkage data
+ %   else % Continue with the shrinkage calculations
+
 %Get Shrinkage Data
 
 idxShrink=find(allDataAll(:,5)==3);
@@ -231,7 +333,7 @@ yShrink=ceil(arrayfun(@(i) yMatShrink(i,firstPtFrIdxShrink(i)),1:length(idxShrin
 %Convert from xy coordinate to pixel index
 pixIdxShrink=sub2ind([imL,imW],yShrink,xShrink); % pixel index of all the starts
 %Get List of those start sites in the larger region of interest
-%(Makes sure if the user excluded any region that these tracks will 
+%(Makes sure if the user excluded any reg1.0ion that these tracks will 
 % not be considered
 inIncludeRegionShrink=find(~excludeMask(pixIdxShrink));
 
@@ -253,7 +355,7 @@ if ~isempty(strmatch(timeUnits,'Fraction'))
     trckIdxInShrink=intersect(find(insideSecShrink./lifeSecShrink>=timeVal),inIncludeRegionShrink);
     trckIdxOutShrink=intersect(find(insideSecShrink./lifeSecShrink<timeVal & insideSecShrink > 0),inIncludeRegionShrink);
 else
-    trckIdxIn=intersect(find(insideSec>=timeVal),inIncludeRegion);
+    trckIdxInShrink=intersect(find(insideSec>=timeVal),inIncludeRegion); 
     trckIdxOutShrink = intersect(find(insideSecShrink<timeVal & insideSecShrink > 0),inIncludeRegion);
 end
 
@@ -274,15 +376,9 @@ OUTShrink=swapMaskValues(INShrink); % 1 for the sections of the track outside th
  plot(xMatShrink',yMatShrink','bl')
  saveas(gcf,[subRoiDir filesep 'ShrinkagesInSubRoi' fileExt])
  close(gcf)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-
-
-
-
+ 
+%end
+%% Write Stats to Output
 
 projData=sourceProjData;
 projData.anDir=subRoiDir; % path to sub-roi
@@ -335,7 +431,8 @@ projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDi
 projData.medNNdistWithinFramePix=NaN;
 projData.meanDisp2medianNNDistRatio=NaN;
 
-% there are no track numbers that contain an fgap or bgap
+% there are no track numbers that contain an fgap or bgap- NOW THERE IS!!
+% FIX
 projData.percentFgapsReclass=NaN;
 projData.percentBgapsReclass=NaN;
 projData.tracksWithFgap = NaN;
@@ -346,30 +443,38 @@ projData.tracksWithBgap = NaN;
 % displacements (microns) for growths, fgaps,and bgaps (of which the
 % latter two do not exist here)
 
+%if onlyTarget == 1
 %Collect Information Regarding all SubTracks Within 
 % ROI
+%dataTotROI = dataMatMerge(trckIdxIn,:); % data total 
+
+%[projData.stats,M]=plusTipDynamParam(dataTotROI);
+
+%else
 dataGrowthROI = dataMatMerge(trckIdxIn,:);
 dataPauseROI = dataMatMergePause(trckIdxInPause,:);
 dataShrinkROI = dataMatMergeShrink(trckIdxInShrink,:);
 
-dataTotROI = [dataGrowthROI ; dataPauseROI];
-dataTotROI = [dataTotROI ; dataShrinkROI];
+dataTotROI = [dataGrowthROI ; dataPauseROI ; dataShrinkROI];
+dataTotROI = sortrows(dataTotROI);
+ 
 
 %Those tracks with start sites in the region of interest 
 %but were excluded based on user specified time requirement 
-dataGrowthExclude = dataMatMerge(trckIdxOut,:);
-dataPauseExclude = dataMatMerge(trckIdxOutPause,:);
-dataShrinkExclude = dataMatMergeShrink(trckIdxOutShrink,:);
+%dataGrowthExclude = dataMatMerge(trckIdxOut,:);
+%dataPauseExclude = dataMatMerge(trckIdxOutPause,:);
+%dataShrinkExclude = dataMatMergeShrink(trckIdxOutShrink,:);
 
-dataTotExclude = [dataGrowthExclude ; dataPauseExclude];
-dataTotExclude = [dataTotExclude ; dataShrinkExclude];
+%dataTotExclude = [dataGrowthExclude ; dataPauseExclude];
+%dataTotExclude = [dataTotExclude ; dataShrinkExclude];
 
 [projData.stats,M]=plusTipDynamParam(dataTotROI);
+%projData.tracksExcludedFromAnalysis = dataTotExclude;
 
+%end
 
 % put here the merged data in frames and pixels
 projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=dataTotROI;
-projData.tracksExcludedFromAnalysis = dataTotExclude;
 
 % NEW STUFF NOT IN SOURCE PROJDATA.MAT
 if projData.nTracks~=0
