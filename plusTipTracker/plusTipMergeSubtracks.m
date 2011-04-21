@@ -50,9 +50,12 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,perce
 % plusTipSpeedMovie
 %% Specify Reclassification Schemes (eventually put into input of function)
 
+%NOTE: if set all these options to zero it will default to the original 
+% reclassification scheme detailed in Kathryn's Manuscript 
+
 % CHOICES FOR FGAP RECLASSIFICATION
-localFGapReclassNew = 1; % quick fix for now make option of reclass scheme later
-useFullGrowthSubTrack = 1; % easiest without artifacts to just use full growth 
+localFGapReclassNew = 0; % quick fix for now make option of reclass scheme later
+useFullGrowthSubTrack = 0; % easiest without artifacts to just use full growth 
 % subtrack for now, in the end would like to eliminate the last 2-3 frames 
 % before the pause event (the latency time associated with dissociation of
 % the comet)
@@ -71,7 +74,8 @@ nonsymmetric = 0; % performs new reclassification scheme for bgaps taking into
                   % the 95 percentile of "true fgaps" speeds as a cut off value (all bgaps with a 
                   % speed slower than this value are considered pauses. 
 
-    % Parameters corresponding to the new bgap reclassification
+    % Parameters corresponding to the new bgap reclassification: Note these
+    % Values are set fairly arbitrarily
     multValue4PauseCutOff = 0.7; % corrected shrink velocities with a velocity
                                  % < multValue4PauseCutOff*avgVelGrowth
                                  % will be a slow shrink- potentially a
