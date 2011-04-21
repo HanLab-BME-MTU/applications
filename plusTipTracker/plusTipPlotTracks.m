@@ -37,7 +37,7 @@ function [selectedTracks] = plusTipPlotTracks(projData,subIdx,timeRange,img,ask4
 %                          note that all features, not just the ones
 %                          accepted by the tracking, will be plotted.
 %       rawToo            : 1  to show raw image on left of overlay
-%                          {0} to make overlay without dual panel
+%                          {0} to make overlay without dual panelplu
 %       isStill           : 1 if image if using for single plot, 0 in movie
 %                           call - manages "axis equal" command for stills
 %                           since this is taken care of outside the
@@ -241,7 +241,7 @@ end
 %hold on figure
 hold on
 
-for iColor=1:6
+for iColor=1:8
     switch iColor
         case 1 % growth
             c1='r';
@@ -258,14 +258,20 @@ for iColor=1:6
         case 5 % forward gaps - reclassified as growth
             c1='g';
             c2='g';
-        case 6 % backward gaps - reclassified as pause
+        case 6 % backward gaps - slow
             c1='b:';
             c2='b';
+        case 7 % backward gaps - very fast
+            c1 = 'g.-';
+            c2 = 'g';
+        case 8 
+            c1 = 'b.-';
+            c2 = 'b';
 
     end
 
     plot(xMat(trackType==iColor,timeRange(1):timeRange(2))',...
-        yMat(trackType==iColor,timeRange(1):timeRange(2))',c1,'LineWidth',1)
+        yMat(trackType==iColor,timeRange(1):timeRange(2))',c1,'LineWidth',3)
 
     % plot big circle around transition events (red circle when start of
     % growth, yellow circle when start of shrinkage, etc.)

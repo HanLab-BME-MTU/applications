@@ -126,7 +126,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               total number of backward gap trajectories
 %           .bgap_speed_median
 %               median of all backward gap sub-track speeds (microns/min)
-%           .bgap_speed_mean_std 
+%           .bgap_speed_mean_std ●●●●●●●●●●
 %               [mean std] of all backward gap sub-track speeds (microns/min)
 %           .bgap_lifetime_median
 %               median of all backward gap sub-track lifetimes (sec)
@@ -433,27 +433,54 @@ aT=[aT lifeTimes totalDispPix];
 
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
-[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
-
+[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBGapsSlow,...
+    projData.percentBGapsShortTime,projData.percentBGapsVeryFast,projData.meanCometLatency, projData.tracksBGapShortTime,...
+    projData.tracksBGapSlow, projData.tracksBGapVeryFast, projData.fgapThresh,...
+    projData.fgapReclassScheme,projData.bgapReclassScheme]=plusTipMergeSubtracks(projData,aT);
+%[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=nan(size(projData.frame2frameVel_micPerMin));
 for iSub=1:size(aT,1)
     projData.segGapAvgVel_micPerMin(aT(iSub,1),aT(iSub,2):aT(iSub,3)-1)=aT(iSub,4);
 end
 
+
 % get track numbers that contain an fgap or bgap
 projData.tracksWithFgap = unique(aT(aT(:,5)==2,1));
 projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
+
+
 
 % calculate stats using the matrix where beginning/end data has been
 % removed. M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
 [projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic);
 
+% Add info about different bgap populations
+
+if isnan(projData.tracksBGapSlow) == 1
+else 
+    projData.stats.nBGapsSlow = length(find(dataMatCrpSecMic(:,5) == 6));
+end 
+
+
+if isnan(projData.tracksBGapVeryFast) == 1
+else 
+    
+    projData.stats.nBgapsVeryFast = length(find(dataMatCrpSecMic(:,5) == 7));
+end 
+
+if isnan(projData.tracksBGapShortTime) == 1
+else 
+    projData.stats.nBapsShortTime = length(find(dataMatCrpSecMic(:,5) == 8)); 
+end 
+
+
 
 % assign the matrix retaining where growth fgaps are indicated with
 % trackType=5
 projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
+projData.originalOutput = aT;
 
 % save each projData in its own directory
 save([runInfo.metaDir filesep 'projData'],'projData')

@@ -51,19 +51,40 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,perce
 %% Specify Reclassification Schemes (eventually put into input of function)
 
 % CHOICES FOR FGAP RECLASSIFICATION
-
 localFGapReclassNew = 1; % quick fix for now make option of reclass scheme later
 useFullGrowthSubTrack = 1; % easiest without artifacts to just use full growth 
 % subtrack for now, in the end would like to eliminate the last 2-3 frames 
 % before the pause event (the latency time associated with dissociation of
 % the comet)
 
-
-
-% Choices for bgap reclassification
-
 unimodalReclass = 0;  % if 1 perform unimodalReclassification of fgaps (right now
-% implementation is an iterative scheme -- works but not sure logicaly justified)
+% implementation is an ITERATIVE scheme -- works but not sure logicaly justified)
+% DO NOT USE
+
+
+% CHOICES FOR BGAP RECLASSIFICATION
+nonsymmetric = 0; % performs new reclassification scheme for bgaps taking into 
+                  % consideration the assymetrical effects of the latency                 
+                  % of comet formation. potentially necessary at fast 
+                  % sampling time scales, otherwise too many bgaps 
+                  % will be reclassified as pause events: default uses the 
+                  % the 95 percentile of "true fgaps" speeds as a cut off value (all bgaps with a 
+                  % speed slower than this value are considered pauses. 
+
+    % Parameters corresponding to the new bgap reclassification
+    multValue4PauseCutOff = 0.7; % corrected shrink velocities with a velocity
+                                 % < multValue4PauseCutOff*avgVelGrowth
+                                 % will be a slow shrink- potentially a
+                                 % pause (NOTE here we don't put these
+                                 % into the pause data they are so far excluded from analysis
+                                 % though we can make that an option
+    multValue4FastShrinkCutOff = 4; % corrected shrink velocities with a velocity 
+                                    % > multValue4FastShrinkCutOff*multValue4ShrinkCutOff
+                                    % is disregarded from analysis; usually
+                                    % these fall into the noise category if
+                                    % you look at them empirically
+
+%% SET UP OUTPUT
 
 % note choices of fgap reclassification scheme for output
 if (localFGapReclassNew == 1 && useFullGrowthSubTrack == 1)
@@ -78,15 +99,6 @@ if unimodalReclass ~= 1
 else 
 end 
     
-
-% CHOICES FOR BGAP RECLASSIFICATION
-nonsymmetric = 0; % perform new reclassification scheme for bgaps taking into 
-                  % consideration the assymetrical effects of the latency                 
-                  % of comet formation. particularly necessary at fast 
-                  % sampling time scales, otherwise too many bgaps 
-                  % will be reclassified as pause events: default uses the 
-                  % the 95 percentile of "true fgaps" speeds as a cut off value (all bgaps with a 
-                  % speed slower than this value are considered pauses. 
 
 %note choices of bgap reclassification scheme for output                 
 if nonsymmetric == 1
@@ -106,7 +118,6 @@ if nonsymmetric == 0
 else 
 end 
    
-
 %% Check Inputs and Perform Local Fgap Reclassification If Desired
 
 if nargin<2
@@ -202,7 +213,7 @@ end
 
 %% Unimodal Thesholding Reclassification Scheme for FGAPS 
 % Below is the new iterative unimodal reclassification scheme which works 
-% but not convinced is justified.
+% but not convinced justified. DO NOT USE
 
 if unimodalReclass == 1  
     
@@ -381,7 +392,8 @@ dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to
 % NOTE: dataMat now has all fgaps that are reclassified merged
 % with their preceding growth subtrack.  Therefore, the indexing of 
 % dataMat and dataMatReclass (before merging) will be different!
-%% Old Reclassification Scheme for BGaps--- fix this later not using now!!!! 
+
+%% Old Reclassification Scheme for BGaps Based on fGap Velocity Distribution: Makes Assumption that Comet Latency Negligible
 
 if nonsymmetric ~= 1  % if unimodal is not checked proceed with old reclassification scheme for  bgaps
 % get 95th-percentile of true pause speeds
@@ -418,8 +430,8 @@ end
 else % 
 end % if nonsymmetric ~= 1
 
-%% NEW bgap Reclassification Scheme (added by MB 03/16/11)
 
+%% NEW bgap Reclassification Scheme Attempting to Correct for comet Latency (added by MB 03/16/11)
     
 % calculate necessary avg values from above merged data (where all 
 % reclassified pauses have been merged with preceding growth 
@@ -449,7 +461,10 @@ dataMatReclassCorrBgapStats = dataMatReclass; % non-merged data (retains
 % attempt to correct for this by estimating a time for the latency of comet
 % formation. 
 bGapsIdx = find(dataMat(:,5) == 3);
-useCos = 0; 
+
+useCos = 0; % Option if you would like measure only the displacement along
+            % the previous microtubule growth path for the corrected
+            % velocity calculation.
 if useCos == 1
     
     xCoord = projData.xCoord; 
@@ -560,13 +575,14 @@ end
 % velocity (can modify this thresh to make more permissive/less
 % permissive)
 
-bGap2Pause = find(dataMatCorrBgapStats(:,5) == 3 & dataMatCorrBgapStats(:,4) < 0.7*avgVelGrowth & dataMatCorrBgapStats(:,4) >0);
+bGap2Pause = find(dataMatCorrBgapStats(:,5) == 3 & dataMatCorrBgapStats(:,4) < multValue4PauseCutOff*avgVelGrowth & dataMatCorrBgapStats(:,4) >0);
 
 %find the idx of those bgaps that when velocity is corrected 
 % would yield reasonable shrinkage velocities (default between 0.7 of 
 % avgGrowthVelocity and 4* the avg growth velocity)
 
-bGapRealShrink = find(dataMatCorrBgapStats(:,5) == 3 & dataMatCorrBgapStats(:,4) > 0.7*avgVelGrowth & dataMatCorrBgapStats(:,4) < 4*avgVelGrowth);
+bGapRealShrink = find(dataMatCorrBgapStats(:,5) == 3 & dataMatCorrBgapStats(:,4) >...
+    multValue4PauseCutOff*avgVelGrowth & dataMatCorrBgapStats(:,4) < multValue4FastShrinkCutOff*avgVelGrowth);
 
 % nonconsol data
 bGap2PauseReclass = find(dataMatReclassCorrBgapStats(:,5) == 3 & dataMatReclassCorrBgapStats(:,4) < 0.7*avgVelGrowth & dataMatReclassCorrBgapStats(:,4) >0);
@@ -666,14 +682,20 @@ elseif (unimodalReclass == 1 && nonsymmetric ~=1 )
        % If new bgap Reclassification Scheme NOT chosen: Reclassify bGaps to pauses based on symmetry assumption: ie that
        % the maximum pause velocity determined from above unimodal thresholding
        % defines the maximum bgap velocity that can be defined as a pause
-       % (I personally this this assumption is not valid-as the effect of the latency of 
-       % comet formation on the velocity of a fgap and bgap is not the same...  in the paper 
-       % it supposedly corresponded well with the gfp tubulin data, perhaps it depends on time between sampling and if 
-       % you can consider this effect negligible.  However if this is the
-       % case the pause velocities should be very near zero (unless there
+       % (This assumption can be considered valid if the effect of the latency of 
+       % comet formation on the velocity of a fgap and bgap is negligible making the 
+       % velocity distributions of a pause event symmetric around zero...  in the paper 
+       % this assumption supposedly corresponded well with the labeled gfp tubulin data. 
+       % One can tell how much the latency of comet formation might be effecting
+       % these values by looking at a distribution of pause displacment 
+       % If comet latency is negligible one would argue that we should see
+       % a peak value around zero. If this peak is significantly shifted to higher displacements
+       % it should be an indication that comet latency is non-neglible. 
+       % 
+       % if this is the case the pause velocities should be very near zero (unless there
        % is significant undetected growths due to the comet moving in and
-       % out of the plane). With a sampling rate of 0.75 sec we see a major
-       % number of shrinkage events being reclassified at pauses. 
+       % out of the plane). With a sampling rate of 0.75 sec we often see empirically 
+       % a major number of seemingly viable rescued shrinkage events being reclassified as pauses. 
        % (Comment by MB: 03/16/11)
     
         % reclassify based on symmetry with fgaps: a true shrinkage is one that has a greater velocity 
