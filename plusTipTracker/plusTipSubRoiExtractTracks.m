@@ -492,7 +492,7 @@ if projData.nTracks~=0
     projData.insideSec=insideSec(trckIdxIn); % lifetime within sub-roi (seconds)
     projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
 
-    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMaIn.*IN,[],2).^2),2);
+    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
     speedOut=nanmean(sqrt(diff(xMatOut.*OUT,[],2).^2+diff(yMatOut.*OUT,[],2).^2),2);
 
     projData.speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
