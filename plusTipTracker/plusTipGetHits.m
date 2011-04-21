@@ -85,6 +85,7 @@ for iGroup = 1:length(btwGrpNames)
     dynamicity = zeros(length(tempIdx),1);
     ratioCompound2GrowthSubtrack = zeros(length(tempIdx),1);
     
+    
     gsAvgPerCell = zeros(length(tempIdx),1);
     glAvgPerCell = zeros(length(tempIdx),1);
     gdAvgPerCell = zeros(length(tempIdx),1);
