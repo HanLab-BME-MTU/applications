@@ -1,4 +1,4 @@
-function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots,scales)
+function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots,scales, multFactor4Thresh)
 % plusTipCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
 %SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)%
@@ -30,6 +30,27 @@ function [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots,
 warningState = warning;
 warning('off','MATLAB:divideByZero')
 
+%%%%%% OPTIONS TO CHANGE MANUALLY%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+removeSatPixels = 0; % put one if you want to turn on this option
+troubleShoot = 0; % put 1 if you would like detection to generate filterDiff
+% images etc
+
+%Filter Parameters
+sigma1 = 1; % set by resolution of the microscope, the larger the number 
+% the more high spatial frequencies EXCLUDED from image. 
+sigma2  = 4; % smaller numbers result in MORE background subtraction (ie
+% more low spatial frequencies are being considered background and 
+% subtracted from the sigma1 filtered image). 
+% NOTE: Larger differences between sigma1 and sigma2 result in a larger 
+% number of spatial frequencies preserved after filtering.  
+
+%Thresh Parameters
+threshMultFactor = 3;
+multFactor4StepSize = 1; 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % CHECK INPUT AND SET UP DIRECTORIES
 
 % get projData in correct format
@@ -57,6 +78,8 @@ end
 % IN ORDER FOUND IN DIRECTORY! DOES NOT YET SORT TIF FILES BY NUMBER!
 [listOfImages] = searchFiles('.tif',[],projData.imDir,0);
 nImTot = size(listOfImages,1);
+%listOfImages =cellfun(@(x) strrep(x,' ','_'),listOfImages,'uniformoutput',0);
+%listOfImages =cellfun(@(x) strrep(x,'tif.tif','tif'),listOfImages,'uniformoutput',0);
 
 %Sort Images: Image sorting is required for image names where the number 
 % is not padded by zeros. Here we quickly sort images by number.
@@ -74,7 +97,7 @@ end
 
 if padded == 0
     %Initialize Cells for Sorting
-    %path = path of file, body = body of filename, ext = extension of filename 
+    %path = path of file, body = body of filename, ex/home/mb228/orchestra/groups/lccb-comet/Pellman/Mijung/7-28-10_EB_for_Maria/EB1_4_Cropped/roi_2t = extension of filename 
     %(tif etc) (all of these require a cell because they are strings)
     % num = number of filename (do not want in cell so can sort)
     pathCell = cell(nImTot,1);
@@ -165,7 +188,12 @@ end
 
 % check input for sigma values of gaussians 
 if nargin<5 || isempty(scales)
-    scales=[1 4];
+    scales=[sigma1 sigma2];
+end
+
+% check input for multiple factor
+if nargin<6 || isempty(multFactor4Thresh)
+   multFactor4Thresh = threshMultFactor; 
 end
 
 % make feat directory if it doesn't exist from batch
@@ -174,39 +202,77 @@ if isdir(featDir)
     rmdir(featDir,'s')
 end
 mkdir(featDir)
-mkdir([featDir filesep 'filterDiff']);    
+mkdir([featDir filesep 'filterDiff']);  
+
 if savePlots==1
     mkdir([featDir filesep 'overlayImages']);
     mkdir([featDir filesep 'overlayImages' filesep 'tifs']);
+    mkdir([featDir filesep 'filterDiff' filesep 'tifs']); 
 end
 
 
 % look for region of interest info from project setup step
-if ~exist([projData.anDir filesep 'roiMask.tif'],'file')
+if ~exist([projData.anDir filesep 'roiMask.tif'],'file')...
+        && ~exist([projData.anDir filesep 'masks'],'dir');
     % not roi selected; use the whole image
     roiMask = ones(imL,imW);
     roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
-else
-    % get roi edge pixels and make region outside mask NaN
-    roiMask = double(imread([projData.anDir filesep 'roiMask.tif']));
-    roiYX=load([projData.anDir filesep 'roiYX']);
-    roiYX=roiYX.roiYX;
-end
-
+    multMasks = 0;
+else 
+%if there exists a folder called masks in the current roi dir 
+    if exist([projData.anDir filesep 'masks'],'dir');
+     % set the mask to the mask of image 1 (first mask in list) 
+     roiMask = double(imread([projData.anDir filesep 'masks' filesep 'roiMask1.tif'])); 
+     % tell the program that there is a mask for each image
+     % so it will know to update it when going through the detection 
+     multMasks = 1; 
+       
+        else % only one mask to load, load it here             
+            roiMask = double(imread([projData.anDir filesep 'roiMask.tif'])); 
+            multMasks = 0;
+    end % if exist  
+    
+        % load roi edge pixels    
+          roiYX=load([projData.anDir filesep 'roiYX']);
+          roiYX=roiYX.roiYX;
+                
+    % for some reason the donut mask will open not as 1 and 0s but as 
+    % 255 (an 8 bit image) and 0s, Check for this and correct so the donut mask will 
+    % run through detection (added MB 09/2010)
+    if isempty(find(roiMask==1,1))
+        roiMask(roiMask==255) = 1;
+    else % keep the same
+    end % isempty
+    
+end % if ~exist
 
 % string for number of files
 s1 = length(num2str(endFrame));
 strg1 = sprintf('%%.%dd',s1);
 
 
-% START DETECTION
+%% START DETECTION
 
 % initialize structure to store info for tracking
 [movieInfo(1:nImTot,1).xCoord] = deal([]);
 [movieInfo(1:nImTot,1).yCoord] = deal([]);
 [movieInfo(1:nImTot,1).amp] = deal([]);
 [movieInfo(1:nImTot,1).int] = deal([]);
+[movieInfo(1:nImTot,1).ecc] = deal([]);
 
+%If thresh different than default ask user if they would like to continue 
+%forString = 'Multiplication Factor for Thresh is Set at ';
+%forString2 = num2str(multFactor4Thresh);
+%forString3 = ' Do You Want To Continue?';
+%qstring = [forString forString2 forString3];
+%if multFactor4Thresh ~= 3
+%reply = questdlg(qstring);
+%else
+ %   reply = 'yes';
+%end 
+
+%if strcmpi(reply,'yes')
+    
 % get difference of Gaussians image for each frame and standard deviation
 % of the cell background, stored in stdList
 stdList=nan(nImTot,1);
@@ -228,13 +294,32 @@ for iFrame = startFrame:endFrame
     
 
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
-
+    
+   
+    if removeSatPixels == 1
+        img(img==1)= 0;
+    else 
+    end
+    
+    % if there is a mask for each image file
+    if multMasks == 1 && iFrame > 1
+        % load new mask 
+        maskFilename = ['roiMask' num2str(iFrame) '.tif'];
+        roiMask = double(imread([projData.anDir filesep 'masks' filesep maskFilename]));
+    else 
+    end 
+    
+    if isempty(find(roiMask==1,1))
+        roiMask(roiMask==255) = 1;
+    else % keep the same
+    end % isempty
+    
     % create kernels for gauss filtering
     blurKernelLow  = fspecial('gaussian', 21, scales(1));
     blurKernelHigh = fspecial('gaussian', 21, scales(2));
 
     % use subfunction that calls imfilter to take care of edge effects
-    lowPass = filterRegion(img,roiMask,blurKernelLow);
+    lowPass = filterRegion(img,roiMask,blurKernelLow); %
     highPass = filterRegion(img,roiMask,blurKernelHigh);
 
     % get difference of gaussians image
@@ -248,12 +333,14 @@ for iFrame = startFrame:endFrame
         saveas(gcf,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
         close(gcf)
     end
+    
     % if bg point wasn't chosen, use ROI
-    if iFrame==startFrame && exist([projData.anDir filesep 'bgPtYX.mat'])==0
-        bgMask=logical(roiMask);
+    if  exist([projData.anDir filesep 'bgPtYX.mat'])==0
+        bgMask=logical(roiMask); %Note: not sure why she has logical here (it doesn't change anything as far as I can tell)
     end
 
-    stdList(iFrame)=std(filterDiff(bgMask));
+   
+    stdList(iFrame)=std(filterDiff(bgMask)); % (just removing not a numbers here from filterDiff so can take std)
     
     indxStr1 = sprintf(strg1,iFrame);
     save([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1],'filterDiff')
@@ -262,7 +349,9 @@ for iFrame = startFrame:endFrame
     count=count+1;
 end
 
-
+ save([featDir filesep 'multFactor4Thresh'],'multFactor4Thresh')
+ save([featDir filesep 'multFactor4StepSize'],'multFactor4StepSize');
+ save([featDir filesep 'scales'],'scales');
 % loop thru frames and detect
 count=1;
 progressText(0,'Detecting comets');
@@ -290,8 +379,11 @@ for iFrame = startFrame:endFrame
     else
         eF=iFrame+1;
     end
-    stepSize=mean(stdList(sF:eF));
-    thresh=3*stepSize;
+    stepSize=multFactor4StepSize*mean(stdList(sF:eF)); 
+    thresh= multFactor4Thresh*mean(stdList(sF:eF));
+    
+  
+   
     
     % we assume each step size down the intensity profile should be on
     % the order of the size of the background std; here we find how many
@@ -312,10 +404,13 @@ for iFrame = startFrame:endFrame
         end
         slice2 = filterDiff>threshList(p+1);
 
-        % now we label them
+        % now we label them using the "bwlabel" function from matlab which 
+        % labels connected components in a 2-D binary image
         featMap1 = bwlabel(slice1);
         featMap2 = bwlabel(slice2);
-        featProp2 = regionprops(featMap2,'PixelIdxList');
+        
+        % get the regionproperty 'PixelIdxList' using "regionprops" function in matlab 
+        featProp2 = regionprops(featMap2,'PixelIdxList'); 
 
         % loop thru slice2 features and replace them if there are 2 or
         % more features from slice1 that contribute
@@ -347,12 +442,12 @@ for iFrame = startFrame:endFrame
     
     verDate=version('-date');
     if str2double(verDate(end-3:end))>=2008
-        featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity'); %'Extrema'
+        featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity','Eccentricity'); %'Extrema'
     else
         featPropFinal = regionprops(featMapFinal,'PixelIdxList','Area','Centroid');
         for iFeat=1:length(featPropFinal)
             featPropFinal(iFeat,1).WeightedCentroid=featPropFinal(iFeat,1).Centroid; % centroid's close enough...
-            featPropFinal(iFeat,1).MaxIntensity=max(filterDiff(featPropFinal(iFeat,1).PixelIdxList)); % find maximum intensity
+            featPropFinal(iFeat,1).MaxIntensity=max(filterDiff(featPropFinal(iFeat,1).PixelIdxList)); % find maximum intensity  
         end
     end
 
@@ -361,6 +456,7 @@ for iFrame = startFrame:endFrame
         xCoord = [];
         amp = [];
         featI = [];
+        featE = [];
         
     else
         % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
@@ -379,6 +475,18 @@ for iFrame = startFrame:endFrame
         featInt = vertcat(featPropFinal(:,1).MaxIntensity);
         featI = zeros(nFeats,2);
         featI(:,1) = featInt;
+         
+        verDate=version('-date');
+        
+        if str2double(verDate(end-3:end))>=2008 % can only calculate eccentricity
+           % if using version of matlab older than 2008 
+        
+        %eccentricity 
+        featEcc = vertcat(featPropFinal(:,1).Eccentricity);
+        featE = zeros(nFeats,2);
+        featE(:,1) = featEcc;
+        
+        end
     end
 
     % make structure compatible with Khuloud's tracker
@@ -386,6 +494,7 @@ for iFrame = startFrame:endFrame
     movieInfo(iFrame,1).yCoord = yCoord;
     movieInfo(iFrame,1).amp = amp;
     movieInfo(iFrame,1).int = featI;
+    movieInfo(iFrame,1).ecc = featE;
 
 
     indxStr1 = sprintf(strg1,iFrame); % frame
@@ -399,11 +508,11 @@ for iFrame = startFrame:endFrame
             fileNameIm = [char(sortedImages(iFrame,1)) filesep char(sortedImages(iFrame,2)),...;
             num2str(sortednum(iFrame)), char(sortedImages(iFrame,4))];
         end
-        
+        %imgpn = double(imread(fileNameIm));
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
-
         figure('Visible','off');
-        imagesc(img);
+        %clims = [0.01,0.5];
+        imagesc(img)
         hold on
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
@@ -412,18 +521,51 @@ for iFrame = startFrame:endFrame
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'tifs' filesep 'overlay' indxStr1 '.tif']);
         saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.fig']);
         close(gcf)
+        
+        if troubleShoot == 1 
+        figure('Visible','off');
+        imagesc(filterDiff)
+        %clims = [0.01,0.5]
+        colormap gray
+        hold on
+        scatter(xCoord(:,1),yCoord(:,1),'g.'); % plot centroid in green
+        plot(roiYX(2),roiYX(1),'w')
+        axis equal     
+        colorbar ;
+        saveas(gcf,[featDir filesep 'filterDiff' filesep 'tifs' filesep 'filterDiff' indxStr1 '.tif']);
+        saveas(gcf,[featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1 '.fig']);
+        close(gcf)  
+        
+       
+            if iFrame == startFrame || iFrame == endFrame
+        forTitle = ['Thresh = ', num2str(thresh)];
+        figure('Visible','off');
+        surf(filterDiff)
+        colormap;
+        view(2)
+        set(gca,'YDir','reverse');
+        title(forTitle)
+        saveas(gcf,[featDir filesep 'filterDiff' filesep 'surf' indxStr1 '.fig']);
+        close(gcf)
+                else
+            end 
+            else 
+       end
     end
 
     count=count+1;
+      
+       
 end
 save([featDir filesep 'movieInfo'],'movieInfo');
 
-rmdir([featDir filesep 'filterDiff'],'s');
+%rmdir([featDir filesep 'filterDiff'],'s');
 
 
 close(gcf)
 warning(warningState);
-
+%else 
+%end
 
 
 function filteredIm = filterRegion(im, mask, kernel)
