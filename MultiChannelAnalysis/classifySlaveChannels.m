@@ -233,7 +233,7 @@ for k = 1:length(tracks);
     cStatus = NaN(nChannels, 1);
     cStatusVector = NaN(nChannels, length(tracks(k).x)); 
     for c = 1:nChannels %slaveChannels
-        binary = tracks(k).A(c,:) > sigmaT * tracks(k).cStd(c,:);
+        binary = tracks(k).A(c,:) > sigmaT * tracks(k).sigma_r(c,:);
         % posLengths = find(diff([bd 0])==-1) - find(diff([0 bd 0])==1) + 1;
         
         %binoT = binoinv(0.95, length(tracks(k).x), sum(ctrlStatus)/npRef);
