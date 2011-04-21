@@ -1,4 +1,4 @@
-function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,percentBgapsSlow,percentBgapsShortTime, percentBgapsVeryFast,avgLatSec, tracksBGapShortTime,tracksBGapSlow,tracksBGapVeryFast,cutoffValueFGap,fgapReclassScheme,bgapReclassScheme]=plusTipMergeSubtracks(projData,dataMat)
+function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,percentBgapsReclass,percentBgapsSlow,percentBgapsShortTime, percentBgapsVeryFast,avgLatSec, tracksBGapShortTime,tracksBGapSlow,tracksBGapVeryFast,cutoffValueFGap,fgapReclassScheme,bgapReclassScheme]=plusTipMergeSubtracks(projData,dataMat)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
 % NOTE: THIS IS A WORKING COPY: where I am attempting to fix problems with 
@@ -54,8 +54,8 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,percentFgapsReclass,perce
 % reclassification scheme detailed in Kathryn's Manuscript 
 
 % CHOICES FOR FGAP RECLASSIFICATION
-localFGapReclassNew = 0; % quick fix for now make option of reclass scheme later
-useFullGrowthSubTrack = 0; % easiest without artifacts to just use full growth 
+localFGapReclassNew = 1; % quick fix for now make option of reclass scheme later
+useFullGrowthSubTrack = 1; % easiest without artifacts to just use full growth 
 % subtrack for now, in the end would like to eliminate the last 2-3 frames 
 % before the pause event (the latency time associated with dissociation of
 % the comet)
@@ -95,6 +95,8 @@ if (localFGapReclassNew == 1 && useFullGrowthSubTrack == 1)
     fgapReclassScheme = 'Local Scheme: Full Growth Subtrack';
 elseif unimodalReclass == 1
     fgapReclassScheme = 'New Iterative UniModal';
+elseif localFGapReclassNew == 0
+    fgapReclassScheme = 'Old Local Reclass Scheme: Velocity 2-3 Frames Before Pause';
 end 
 
 % adjust some of the output based on which reclassification was chosen                  
@@ -119,7 +121,8 @@ if nonsymmetric == 0
     percentBgapsShortTime = NaN;
     percentBgapsSlow = NaN;
     percentBgapsVeryFast = NaN;
-else 
+else
+    percentBgapsReclass = NaN;
 end 
    
 %% Check Inputs and Perform Local Fgap Reclassification If Desired
@@ -335,8 +338,47 @@ if unimodalReclass == 1
      
 else 
 end % if unimodal reclass == 1
+
+
     
-    
+ %% Old Reclassification Scheme for BGaps Based on fGap Velocity Distribution: Makes Assumption that Comet Latency Negligible
+
+if nonsymmetric ~= 1  % if unimodal is not checked proceed with old reclassification scheme for  bgaps
+% get 95th-percentile of true pause speeds
+fgapMaxSpeed=prctile(dataMatReclass(dataMatReclass(:,5)==2,4),95);
+
+% get indices of bgaps where the speeds is less than the 95% cutoff
+bgapAllIdx=find(dataMatReclass(:,5)==3 | dataMatReclass(:,5)==6);
+bgap2pauseIdx=find((dataMatReclass(:,5)==3 & abs(dataMatReclass(:,4))<fgapMaxSpeed) | dataMatReclass(:,5)==6);
+
+
+% bspeeds=abs(dataMatReclass(bgapAllIdx,4));
+% [cutoffIndex, cutoffValue] = cutFirstHistMode(bspeeds,1);
+
+dataMat(bgap2pauseIdx,5)=2; % reassign dataMat to have type 2 
+dataMat(bgap2pauseIdx,:)=abs(dataMat(bgap2pauseIdx,:)); % get abs value since now pause
+dataMatReclass(bgap2pauseIdx,5)=6; % reassign reclassified matrix to have new type of 6
+
+% Calculate Fraction Reclassified 
+% fraction of bgaps that are changed to pause, because their speeds are
+% slower than the cutoff for fgap pauses
+if isempty(bgapAllIdx)
+    percentBgapsReclass=NaN;
+else
+    percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
+end
+
+% fraction of fgaps that were consolidated into growth, since their speeds
+% were more than 50% of the growth speed just prior to the gap
+if isempty(fgapIdx)
+    percentFgapsReclass=NaN;
+else
+    percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
+end
+
+
+else % 
+end % if nonsymmetric ~= 1   
     
     
 
@@ -384,65 +426,35 @@ end
 % remove the extra rows
 dataMat(rows2remove,:)=[];
 
-% Data with pauses reclassified as growth merged in the growth velocity 
-% stats (for output)
-dataMatMerge=dataMat;
-
 
 % perform lifetime and displacement unit conversions
 dataMat(:,6)=dataMat(:,6).* projData.secPerFrame; % convert lifetimes to seconds
 dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
 
+
+
+% Data with pauses reclassified as growth merged in the growth velocity 
+% stats (for output)
+dataMatMerge=dataMat;
+
+
+
+
 % NOTE: dataMat now has all fgaps that are reclassified merged
 % with their preceding growth subtrack.  Therefore, the indexing of 
 % dataMat and dataMatReclass (before merging) will be different!
 
-%% Old Reclassification Scheme for BGaps Based on fGap Velocity Distribution: Makes Assumption that Comet Latency Negligible
 
-if nonsymmetric ~= 1  % if unimodal is not checked proceed with old reclassification scheme for  bgaps
-% get 95th-percentile of true pause speeds
-fgapMaxSpeed=prctile(dataMatReclass(dataMatReclass(:,5)==2,4),95);
-
-% get indices of bgaps where the speeds is less than the 95% cutoff
-bgapAllIdx=find(dataMatReclass(:,5)==3 | dataMatReclass(:,5)==6);
-bgap2pauseIdx=find((dataMatReclass(:,5)==3 & abs(dataMatReclass(:,4))<fgapMaxSpeed) | dataMatReclass(:,5)==6);
-
-% bspeeds=abs(dataMatReclass(bgapAllIdx,4));
-% [cutoffIndex, cutoffValue] = cutFirstHistMode(bspeeds,1);
-
-dataMat(bgap2pauseIdx,5)=2; % reassign dataMat to have type 2 
-dataMat(bgap2pauseIdx,:)=abs(dataMat(bgap2pauseIdx,:)); % get abs value since now pause
-dataMatReclass(bgap2pauseIdx,5)=6; % reassign reclassified matrix to have new type of 6
-
-% Calculate Fraction Reclassified 
-% fraction of bgaps that are changed to pause, because their speeds are
-% slower than the cutoff for fgap pauses
-if isempty(bgapAllIdx)
-    percentBgapsReclass=NaN;
-else
-    percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
-end
-
-% fraction of fgaps that were consolidated into growth, since their speeds
-% were more than 50% of the growth speed just prior to the gap
-if isempty(fgapIdx)
-    percentFgapsReclass=NaN;
-else
-    percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
-end
-
-else % 
-end % if nonsymmetric ~= 1
-
-
-%% NEW bgap Reclassification Scheme Attempting to Correct for comet Latency (added by MB 03/16/11)
-    
+%% Calculate Comet Latency
 % calculate necessary avg values from above merged data (where all 
 % reclassified pauses have been merged with preceding growth 
 % subtrack
 
+
 avgVelGrowth = mean(dataMat(dataMat(:,5) == 1,4));
-avgDispPause = mean(dataMat(dataMat(:,5) == 2,7)); % in microns
+
+
+avgDispPause = mean(dataMatReclass(dataMatReclass(:,5) == 2,7).*(projData.pixSizeNm/1000)); % in microns
 
 
 % calc avg latency of comet formation  (in min)
@@ -450,6 +462,15 @@ avgLat = avgDispPause/avgVelGrowth; % in minutes
 avgLatSec = avgLat*60; % in seconds
 
  
+
+
+
+
+
+
+%% NEW bgap Reclassification Scheme Attempting to Correct for comet Latency (added by MB 03/16/11)
+    
+
 if nonsymmetric == 1 % proceed with the bgap reclassification based on new method which accounts for assymetric effect of 
                       % latency of comet formation on fgaps and bgaps
 
@@ -735,6 +756,13 @@ elseif (unimodalReclass == 1 && nonsymmetric ~=1 )
     else 
         
 end 
+
+
+
+
+
+
+
 
 %% Remove Growths Initiated in First Frame or Ending in Last Frame From Stats
 % do this so one does not bias growth lifetime/displacement data

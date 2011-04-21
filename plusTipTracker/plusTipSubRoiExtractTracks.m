@@ -12,7 +12,7 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,timeUnits,timeVal)
 %
 
 %% new input to be incorporated later
-onlyTarget =  1; % If set to one will select only those tracks that are 
+onlyTarget =  0; % If set to one will select only those tracks that are 
 %targeted (ie the last point of their growth track is within the given sub
 %region if set to zero will use the settings specified in the
 %plusTipSeeTracks GUI
@@ -210,8 +210,8 @@ else % get those tracks located within the subregion based with a given
 %yMatStart=yMat(trckIdxInStart,:);
 
     %limit data to these tracks
-    xMat = xMat(trckIdxIn,:); 
-    yMat = yMat(trckIdxIn,:);
+    xMatIn = xMat(trckIdxIn,:); 
+    yMatIn = yMat(trckIdxIn,:);
 
     xMatOut = xMat(trckIdxOut,:);
     yMatOut = yMat(trckIdxOut,:);
@@ -229,7 +229,7 @@ else % get those tracks located within the subregion based with a given
  figure; 
  imshow(roiMask); 
  hold on; 
- plot(xMat',yMat','r')
+ plot(xMatIn',yMatIn','r')
  saveas(gcf,[subRoiDir filesep 'tracksInSubRoi' fileExt])
  close(gcf)
  
@@ -237,7 +237,7 @@ else % get those tracks located within the subregion based with a given
   figure
   imshow(roiMask);
   hold on;
-  plot(xMatOut',yMatOut','r');
+  plot(xMatOut',yMatOut','g');
   saveas(gcf,[subRoiDir filesep 'tracksExcludedFromSubRoi' fileExt]);
   close(gcf)
  
@@ -492,14 +492,14 @@ if projData.nTracks~=0
     projData.insideSec=insideSec(trckIdxIn); % lifetime within sub-roi (seconds)
     projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
 
-    speedIn=nanmean(sqrt(diff(xMat.*IN,[],2).^2+diff(yMat.*IN,[],2).^2),2);
-    speedOut=nanmean(sqrt(diff(xMat.*OUT,[],2).^2+diff(yMat.*OUT,[],2).^2),2);
+    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMaIn.*IN,[],2).^2),2);
+    speedOut=nanmean(sqrt(diff(xMatOut.*OUT,[],2).^2+diff(yMatOut.*OUT,[],2).^2),2);
 
     projData.speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
     projData.speedOutMicPerMin=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm);
 
-    projData.startOrEnd=~isnan(xMat(:,1)) | ~isnan(xMat(:,end));
-    projData.percentAtStartOrEnd=sum(projData.startOrEnd)./projData.nTracks;
+    %projData.startOrEnd=~isnan(xMat(:,1)) | ~isnan(xMat(:,end));
+    %projData.percentAtStartOrEnd=sum(projData.startOrEnd)./projData.nTracks;
 else
     projData.trackLifeFrames=NaN;
     projData.framesInSubRoi=NaN;
