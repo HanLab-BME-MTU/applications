@@ -90,11 +90,11 @@ end
 iSkelProc = movieData.getProcessIndex('SkeletonizationProcess',1,~p.BatchMode);
 if isempty(iSkelProc) 
     error('No skeletonization process found!')
-else    
-    %Store these values in the parameters so they will be logged
-    p.ChannelIndex = find(movieData.processes_{iSkelProc}.checkChannelSkeletonGraphs,1,'first');%There shouldn't be more than one skeleton channel, but just in case only find one
-    p.SkelProcessIndex = iSkelProc;
-    
+else
+    if isempty(p.ChannelIndex)    
+        p.ChannelIndex = find(movieData.processes_{iSkelProc}.checkChannelSkeletonGraphs,1,'first');%There shouldn't be more than one skeleton channel, but just in case only find one
+    end
+    p.SkelProcessIndex = iSkelProc;    
     if isempty(p.ChannelIndex)
         error('No channels have valid skeleton graphs! Please create skeleton graphs first!')
     end        
@@ -178,8 +178,9 @@ for iFrame = 1:nFrames
 
         %Scale the skeleton branch coordinates to match the new symmetric voxels
         currSkGr.vertices(:,3) = currSkGr.vertices(:,3) .* scFact;
-        currSkGr.edgePaths = cellfun(@(x)([x(:,1:2) (x(:,3) .* scFact)]),...
-                                       currSkGr.edgePaths,'UniformOutput',false);
+        hasPath = ~cellfun(@isempty,currSkGr.edgePaths);
+        currSkGr.edgePaths(hasPath) = cellfun(@(x)([x(:,1:2) (x(:,3) .* scFact)]),...
+                                       currSkGr.edgePaths(hasPath),'UniformOutput',false);
 
 
         %NOTE: The mask geometry properties already take the pixel aspect

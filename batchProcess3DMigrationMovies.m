@@ -24,10 +24,6 @@ function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargi
 %
 %       ('OptionName' -> possible values)
 %
-%       ('SegChannelIndex -> positive integer scalar) The index of the
-%       channel to use for segmentation.
-%       Default is 1.
-%       
 %       ('NumParallel' -> positive integer scalar) Specifies the number of
 %       movies to run simultaneously. If the job is run locally, the max is
 %       8. If run on orchestra, it's ... a lot???
@@ -53,15 +49,15 @@ function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargi
 %% --------------------------- Input --------------------------------- %%
 
 %Parse all the inputs
-p = inputParser;
-p.FunctionName = mfilename;
+ip = inputParser;
+ip.FunctionName = mfilename;
+ip.KeepUnmatched = true; %Keep extra parameters for passing to processing function
 
-p.addRequired('movieArray',@(x)(isa(x,'MovieData3D')));
-p.addParamValue('SegChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
-p.addParamValue('NumParallel',8,@(x)(numel(x) == 1));
+ip.addRequired('movieArray',@(x)(isa(x,'MovieData3D')));
+ip.addParamValue('NumParallel',8,@(x)(numel(x) == 1));
 
-p.parse(movieArray,varargin{:});
-p = p.Results;
+ip.parse(movieArray,varargin{:});
+p = ip.Results;
 
 
 %% -----------------------------Init --------------------------------- %%

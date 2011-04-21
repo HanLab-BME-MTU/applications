@@ -32,7 +32,7 @@ classdef SkeletonizationProcess < ImageProcessingProcess
                     %----Defaults----%      
                                         
                     funParams.ChannelIndex = 1; 
-                    funParams.GetGraph = false;
+                    funParams.GetGraph = true;
                     funParams.ClearBoundary = true;
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'skeletonization'];                    

@@ -20,10 +20,10 @@ classdef SegmentationProcess3D < SegmentationProcess
                         [owner.outputDirectory_  filesep 'masks'];                          
                     funParams.ChannelIndex = 1 : numel(owner.channels_);    
                     funParams.ThresholdValue = []; %Default is auto-thresh
-                    funParams.Method = 'Otsu';
-                    funParams.FixJumps = false; %Default is no jump suppression                    
-                    funParams.PostProcess = false;                    
-                    funParams.MinVolume = 100;
+                    funParams.Method = 'HuntThresh';
+                    funParams.FixJumps = true;
+                    funParams.PostProcess = true;                    
+                    funParams.MinVolume = 25;
                     funParams.NumObjects = 1; 
                     funParams.ClosureRadius = 3;
                     funParams.BatchMode = false;                                              

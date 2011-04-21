@@ -33,10 +33,11 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %
 %           Available methods are:
 %
-%               'Otsu' - Global Otsu thresholding. This is the default.
+%               'Otsu' - Global Otsu thresholding.
 %
 %               'HuntThresh' - Global threshold based on my histogram
-%               analysis function thresholdFluorescenceImage.m
+%               analysis function thresholdFluorescenceImage.m This is the
+%               default.
 % 
 %               'Gradient' - The image gradient is calculated
 %               and this gradient image is then thresholded using
@@ -48,12 +49,12 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %
 %       ('PostProcess' -> logical) If true, post-processing will be
 %       performed on the mask. This includes closure, area-opening and
-%       object selection. Default is false.
+%       object selection. Default is true.
 %
 %       ('FixJumps' -> Logical) If true, sudden changes in the threshold
 %       values used will be suppressed by using the last good threshold
 %       value.
-%       Default is false. 
+%       Default is true. 
 %
 %
 %       Post Processing Option/Value pairs:
@@ -61,7 +62,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %           ('MinVolume' -> Positive integer) The minimum volume (in
 %           voxels) of objects to keep. Objects smaller than this will be
 %           removed from masks. If zero, no objects are removed. Default is
-%           100 voxels.
+%           25 voxels.
 % 
 %           ('NumObjects' -> positive integer) Keep only the largest p.NumObjects
 %           objects in the masks. If set to zero, all objects are kept.
@@ -77,7 +78,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 
 %% ----- Parameters ---- %%
 
-maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled
+maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled. %TEMP - allow user-specification
 gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
 dName = 'masks_channel_'; %Name for mask directories
 

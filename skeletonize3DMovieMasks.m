@@ -40,11 +40,15 @@ function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
 % 
 %       (FieldName->fieldValue)
 %
+%       ('ChannelIndex' -> positive integer) Integer indices of the
+%       channel to use masks from for skeletonization.
+%       Optional. Default is channel 1.
+%
 %       ('GetGraph'->true/false) If true, the graph structure of the
 %       skeleton will be calculated using skel2graph.m and saved to disk.
 %       Enabling this option will significantly increase the time required
 %       for this function to run.
-%       Optional. Default is false.
+%       Optional. Default is true.
 %
 %       ('ClearBoundary'->true/false) If true, pixels on the image boundary
 %       will be removed prior to skeletonization. These pixels will not be
@@ -55,10 +59,6 @@ function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
 %       string specifying the directory to save the skeletons to.
 %       Optional. Default is a sub-directory of the movie's outputDirectory
 %       called "skeletonization"
-%
-%       ('ChannelIndex' -> positive integer) Integer indices of the
-%       channel to use masks from for skeletonization.
-%       Optional. Default is channel 1.
 %
 %       (BatchMode->true/false) If true, all graphical output is
 %       suppressed, such as progress bars, figures etc..
@@ -83,7 +83,7 @@ function movieData = skeletonize3DMovieMasks(movieData,paramsIn)
 %
 %% ------------------------- Parameters ------------------------%%
 
-skName = 'skeleton_graph_frame_'%String for naming skeleton files
+skName = 'skeleton_graph_frame_';%String for naming skeleton files
 
 %%  ------------------ Input ------------------ %%
 

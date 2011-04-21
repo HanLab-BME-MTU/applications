@@ -32,7 +32,8 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
                 if nargin < 2 || isempty(funParams)                                       
                     
                     %----Defaults----%      
-                                        
+                                   
+                    funParams.ChannelIndex = [];%Default is to check for skeleton channel
                     funParams.SkelProcessIndex = [];%No default 
                     funParams.PruneParam = [];%For storing pruneSkeletonGraph.m-specific parameters
                     funParams.OutputDirectory = ...
