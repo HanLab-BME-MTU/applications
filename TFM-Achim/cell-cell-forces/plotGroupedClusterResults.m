@@ -10,7 +10,7 @@ end
 
 %close all;
 
-onlyCorr=0;
+onlyCorr=1;
 if ~onlyCorr
 %**************************************************************************
 % Compare network and cluster analysis:
@@ -237,11 +237,11 @@ ylabel('Average Ecad intensity [a.u.]')
 end
 normVar=1;
 maxLag =10;
-errF_val_corr=Inf;
+relErrF_val_corr=0.25;
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4],'myo',0,'errF',errF_val_corr,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[4 5 6 7],'myo',0,'relErrF',relErrF_val_corr,'errs',0);
 [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
 [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar);
 
@@ -251,7 +251,7 @@ goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4],'myo',0,'errF',errF_
 %**************************************************************************
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
- goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94'},'errF',errF_val_corr,'errs',0);
+ goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[4 5 6 7],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
     [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
     [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar);

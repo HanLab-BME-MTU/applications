@@ -3,23 +3,27 @@ function goodCellSet=findCells(groupedClusters,varargin)
 % Optional constraints that can be included in the search through the
 % cluster list. Only cells that match ALL search patterns will be regarded
 % as a good data and given in the output.
-% 'deg'   : List of deg-values. Cells with a degree that is not in the
-%           given list will be dismissed in the search.
-% 'kPa'   : List of stiffness values in [kPa]. Experiments on substrates of
-%           different stiffness will be dismissed.
-% 'myo'   : 0/1: 0 = control cell; 1 = myosin cell. Cells that don't match
-%           the search pattern will be dismissed.
-% 'type'  : Select for specifc myosinII hairpins (e.g. myoIIA_hp93,
-%           myoIIA_hp94, myoIIB_hp103). 'type' can be a list of patterns,
-%           e.g. all myoIIA hair pins.
-% 'myoGlb': 0/1/-1: 0 = cluster with only control cells; 1 = cluster with only
-%           myosin cells. -1 = mixed clusters. Clusters that don't match
-%           the search pattern will be dismissed.
-% 'errF'  : x: Only clusters with an error in the force measurement of <x
-%           will be considered (the magnitude of the error in [nN]).
-% 'errs'  : 0/x: If 0, only clusters with no missing forces will be 
-%           considered. If x>0 is given then, clusters with an errors<x will 
-%           be considered.
+% 'deg'    : List of deg-values. Cells with a degree that is not in the
+%            given list will be dismissed in the search.
+% 'kPa'    : List of stiffness values in [kPa]. Experiments on substrates of
+%            different stiffness will be dismissed.
+% 'myo'    : 0/1: 0 = control cell; 1 = myosin cell. Cells that don't match
+%            the search pattern will be dismissed.
+% 'type'   : Select for specifc myosinII hairpins (e.g. myoIIA_hp93,
+%            myoIIA_hp94, myoIIB_hp103). 'type' can be a list of patterns,
+%            e.g. all myoIIA hair pins.
+% 'myoGlb' : 0/1/-1: 0 = cluster with only control cells; 1 = cluster with only
+%            myosin cells. -1 = mixed clusters. Clusters that don't match
+%            the search pattern will be dismissed.
+% 'errF'   : x: Only clusters with an error in the force measurement of <x
+%            will be considered (the magnitude of the error in [nN]).
+% 'relErrF': x: Only clusters with a rel error in the force measurement of
+%            <x will be considered. The rel error is calculated as 
+%            the (error force)/(maximal cell-cell force found in the cluster).
+%            thus [x]=1.
+% 'errs'   : 0/x: If 0, only clusters with no missing forces will be
+%            considered. If x>0 is given then, clusters with an errors<x will 
+%            be considered.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
@@ -75,6 +79,7 @@ else
     errsCheck = 0;
 end
 
+
 errFPos=find(strcmp('errF',varargin));
 if ~isempty(errFPos)
     errFCheck = 1;
@@ -84,6 +89,14 @@ else
     errFCheck = 0;
 end
 
+relErrFPos=find(strcmp('relErrF',varargin));
+if ~isempty(relErrFPos)
+    relErrFCheck = 1;
+    % it is the next entry which contains the numeric value:
+    relErrFVal   = varargin{relErrFPos+1};
+else
+    relErrFCheck = 0;
+end
 
 idx=1;
 goodCellSet(idx).clusterId=[];
@@ -111,16 +124,25 @@ for clusterId=1:groupedClusters.numClusters
             else
                 currMyoGlb=-1;
             end
+            
+            % find maximal cell-cell force in the cluster:
+            maxCCF=0;
+            for iEdge=1:length(trackedNet{frame}.edge)
+                if ~isempty(trackedNet{frame}.edge{iEdge})
+                    maxCCF=max([maxCCF, norm(trackedNet{frame}.edge{iEdge}.fc)]) ;
+                end
+            end
             % Now go through all checks:
             if     (cellId<=length(trackedNet{frame}.node))...
                     && (~isempty(trackedNet{frame}.node{cellId}))...
-                    && (~kPaCheck    || ismember(trackedNet{frame}.par.yModu_Pa/1000,kPaVal))...
-                    && (~degCheck    || ismember(trackedNet{frame}.node{cellId}.deg ,degVal))...
-                    && (~myoCheck    || ismember(trackedNet{frame}.node{cellId}.spec,myoVal))...
-                    && (~myoGlbCheck || ismember(currMyoGlb,myoGlbVal))...
-                    && (~typeCheck   || sum(strcmp(trackedNet{frame}.node{cellId}.type,typeVal)>0))...
-                    && (~errsCheck   || trackedNet{frame}.stats.errs<=errsVal)...
-                    && (~errFCheck   || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)
+                    && (~kPaCheck     || ismember(trackedNet{frame}.par.yModu_Pa/1000,kPaVal))...
+                    && (~degCheck     || ismember(trackedNet{frame}.node{cellId}.deg ,degVal))...
+                    && (~myoCheck     || ismember(trackedNet{frame}.node{cellId}.spec,myoVal))...
+                    && (~myoGlbCheck  || ismember(currMyoGlb,myoGlbVal))...
+                    && (~typeCheck    || sum(strcmp(trackedNet{frame}.node{cellId}.type,typeVal)>0))...
+                    && (~errsCheck    || trackedNet{frame}.stats.errs<=errsVal)...
+                    && (~errFCheck    || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)...
+                    && (~relErrFCheck || trackedNet{frame}.stats.errorSumForce.mag/maxCCF<=relErrFVal)
                 
                 
                 % If all of this is true we have found a good entry

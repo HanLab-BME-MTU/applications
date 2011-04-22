@@ -205,15 +205,15 @@ display(['Avg. Auto correlation cFrFr, mean all: ',num2str(nanmean(mat2vec(cFrFr
 
 figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations)])
-title('fi / fi{_tot}')
+title('f_i / f_{i_{tot}}')
 
 figure()
 plotmatrix([vertcat(fi(:,1).observations) vertcat(fi(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
-title('fi / f_res')
+title('f_i / f_{res}')
 
 figure()
 plotmatrix([vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations) vertcat(f_res(:,1).observations) vertcat(f_res(:,2).observations)])
-title('fi{_tot} / f{{_res}}')
+title('f_{i_{tot}} / f_{res}')
 
 figure()
 title('The cross correlation for cF1Ft')
@@ -223,11 +223,11 @@ for i=1:cols
         plot(-maxLag:1:maxLag,reshape(cF1Ft(i,j,:),[],1))
         ylim([-1 1])
         xlim([-maxLag maxLag])
+        title('f_i / f_{i_{tot}}')
+        xlabel('dframes')
+        ylabel('corr')
     end
 end
-title('fi / fi{_tot}')
-xlabel('dframes')
-ylabel('corr')
 
 
 if doPlotTraces
@@ -247,11 +247,12 @@ for i=1:cols
         plot(-maxLag:1:maxLag,reshape(cF1Fr(i,j,:),[],1))
         ylim([-1 1])
         xlim([-maxLag maxLag])
+        title('f_i / f_{res}')
+        xlabel('dframes')
+        ylabel('corr')
     end
 end
-title('fi / f{_res}')
-xlabel('dframes')
-ylabel('corr')
+
 
 
 figure()
@@ -262,11 +263,12 @@ for i=1:cols
         plot(-maxLag:1:maxLag,reshape(cFtFr(i,j,:),[],1))
         ylim([-1 1])
         xlim([-maxLag maxLag])
+        title('f_{i_{tot}} / f_{res}')
+        xlabel('dframes')
+        ylabel('corr')
     end
 end
-title('fi{_tot} / f{_res}')
-xlabel('dframes')
-ylabel('corr')
+
 
 
 corrResults.cF1Ft     = cF1Ft;
