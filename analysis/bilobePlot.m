@@ -170,11 +170,11 @@ for i=1:3
         % Change by Eugenio
         % We remove the nSpindles from the y axis
         % Original code from Jonas
-%         yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
-%             meanBoundaries(ct),nSpindles(ct));
+        yTickLabels{ct}=sprintf('%1.1f/%1.2f', ...
+            meanBoundaries(ct),nSpindles(ct));
         % New code by Eugenio
-        yTickLabels{ct}=sprintf('%1.1f', ...
-            meanBoundaries(ct));
+%         yTickLabels{ct}=sprintf('%1.1f', ...
+%             meanBoundaries(ct));
         
         % convolve with psf if not intensties
         if ~intensities
