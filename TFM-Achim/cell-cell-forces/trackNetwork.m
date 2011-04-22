@@ -19,10 +19,10 @@ for k=2:length(toDoList)
     prevFrame=toDoList(k-1);
     currFrame=toDoList(k);
     
-    prevNumNodes=length(constrForceField{prevFrame}.network.node);
+    %prevNumNodes=length(constrForceField{prevFrame}.network.node);
     currNumNodes=length(constrForceField{currFrame}.network.node);
     
-    prevNumEdges=length(constrForceField{prevFrame}.network.edge);
+    %prevNumEdges=length(constrForceField{prevFrame}.network.edge);
     currNumEdges=length(constrForceField{currFrame}.network.edge);
     
     %**********************************************************************
@@ -39,7 +39,7 @@ for k=2:length(toDoList)
     
     % It might be that cells divide, thus there might be more cells in the
     % current frame. Find the best match and set the other values to NaN.    
-    for nodeNum=1:prevNumNodes
+    for nodeNum=unique(reMapNode(:,1))'
         ind=find(reMapNode(:,1)==nodeNum);
         if length(ind)>1
             % Then the map is ambiguous. Remove the correct point from the
@@ -110,7 +110,7 @@ for k=2:length(toDoList)
     % It might be that cells build up more interfaces (cell division), thus
     % there might be more edges in the current frame. Find the best match
     % and set the other values to NaN.
-    for edgeNum=1:prevNumEdges
+    for edgeNum=unique(reMapEdge(:,1))'
         ind=find(reMapEdge(:,1)==edgeNum);
         if length(ind)>1
             % Then the map is ambiguous. Remove the correct point from the
