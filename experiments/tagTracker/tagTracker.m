@@ -1326,6 +1326,12 @@ else
     warning('TAGTRACKER:CANNOTREFITINT','Cannot refit intensities. RefitIntensities cannot handle input movie format')
 end
 
+% We retrofit the covariance matrices from th etracker with the values from
+% the detector. We found that sometimes the errors after the tracking step
+% were unreasonably small
+% Change made by Eugenio
+
+idlisttrack = retrofitErrors(idlisttrack,idlist);
 
 
 %=========================================================================
