@@ -2,7 +2,7 @@ function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/060910_cre_CSUX_1';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/060910_cre_CSUX_1';
 %params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/062309_cre_CSUX_3';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
@@ -51,7 +51,6 @@ params.pairTracks.minOverlap = 1;
 params.pairTracks.bandWidth = 1000;   % nm
 params.pairTracks.minDistance = 335;  % nm (5 pixels)
 params.pairTracks.alpha = 0.05;
-params.pairTracks.maxIter = 5;
 
 % PROC 5: figures
 params.figures = struct();
