@@ -45,7 +45,6 @@ params.particleDetection.minDist = .2;
 params.particleTracking.searchRadius = 5;
 
 % PROC 4: track pairing
-
 params.pairTracks.maxDistance = 2010; % nm (30 pixels)
 params.pairTracks.minOverlap = 1;
 params.pairTracks.bandWidth = 1000;   % nm
