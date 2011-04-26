@@ -169,7 +169,7 @@ classdef MovieData3D < MovieData
                     end
                     
                     if strcmp(confirmRelocate,'Yes')
-                        obj.relocateMovieData(movieDataPath); 
+                        obj.relocate(movieDataPath); 
                     else
                         obj.setMovieDataPath(newMovieDataPath);
                     end
