@@ -133,9 +133,7 @@ hold on;
 xlabels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
     1:nBins, 'UniformOutput', false);
 
-boxplot2({prm},[0.36 .63 .9], xlabels, ylabels);
-
-ylabel('Actin Speed (nm/min)');
+boxplot2({prm},'color', [0.36 .63 .9], 'xlabels', xlabels, 'ylabel', 'Actin Speed (nm/min)');
 
 fileName = fullfile(movieData.figures.directory, ...
     [getDirFromPath(movieData.imageDirectory) '_fig4C.eps']);

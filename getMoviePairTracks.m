@@ -50,9 +50,6 @@ if ~exist(movieData.pairTracks.directory, 'dir')
     mkdir(movieData.pairTracks.directory);
 end
 
-% Save input parameters in the movieData
-% TODO
-
 nFrames = movieData.nImages(1);
 imSize = movieData.imSize;
 pixelSize = movieData.pixelSize_nm;
@@ -66,14 +63,19 @@ minDistance = minDistance / pixelSize;
 load(fullfile(movieData.particleDetection.directory, movieData.particleDetection.filename));
 load(fullfile(movieData.particleTracking.directory, movieData.particleTracking.filename));
 
-nTracks = size(tracksFinal,1); %#ok<NODEF>
-
 % Check there is no split and merge. If split and merge is enabled, it
 % would complexify the interpolation in gaps.
-seqOfEvents = vertcat(tracksFinal(:).seqOfEvents);
+seqOfEvents = vertcat(tracksFinal(:).seqOfEvents); %#ok<NODEF>
 assert(nnz(isnan(seqOfEvents(:,4))) == size(seqOfEvents,1));
 
 SEL = getTrackSEL(tracksFinal);
+
+% Remove any 1-frame long track.
+isValid = SEL(:,3) ~= 1;
+tracksFinal = tracksFinal(isValid);
+SEL = SEL(isValid,:);
+
+nTracks = size(tracksFinal,1);       % number of tracks
 tFirst = SEL(:,1);                   % first frame of the track
 tLast = SEL(:,2);                    % last frame of the track
 lifetime = SEL(:,3);                 % lifetime of the track
@@ -268,14 +270,13 @@ isValid = ~(isTrackPairInBand & D < minDistance);
 
 % trim arrays
 E = E(isValid,:);
-D = D(isValid);
 tOverlapFirst = tOverlapFirst(isValid);
 overlap = overlap(isValid);
 pFirst1 = pFirst1(isValid);
 pFirst2 = pFirst2(isValid);
-isTrackPairInBand = isTrackPairInBand(isValid);
 
-clear isTrackInBand iFrame  isTrackInFrame indP X Y ind distToEdge isValid;
+clear D isTrackInBand iFrame  isTrackInFrame indP X Y ind distToEdge ...
+    isValid isTrackPairInBand ;
 
 %% DEBUG
 segments = cell(nFrames,1);
