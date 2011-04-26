@@ -118,7 +118,7 @@ ip.addParamValue('ForceRun',false,(@(x)(numel(x) == 1 || numel(x) == nSteps)));
 ip.parse(movieData,varargin{:});
 
 p = ip.Results;
-procP = ip.Unmatched;%Unrecognizes parameters will be passed to processing functions
+procP = ip.Unmatched;%Unrecognized parameters will be passed to processing functions
 
 %If scalar forceRun input, use it for all steps
 if numel(p.ForceRun) == 1
@@ -140,8 +140,6 @@ funParams = parseStepParams(procP,commonParams,nSteps);
 %Go through each step and determine if it needs to be run beforehand so we
 %can let the user know what steps will be run.
 runStep = true(1,nSteps);
-runStepString = cell(nSteps+1,1);
-runStepString{1} = 'Running steps: ';
 
 for iStep = 1:nSteps
     

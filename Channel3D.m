@@ -41,7 +41,8 @@ classdef Channel3D < Channel
         %properties of the channel
                 
         %Overloads Channel.m sanity check to deal with 3d images
-        function [width height nFrames nSlices] = sanityCheck(obj)
+        function [width height nFrames nSlices ...
+                  timeInterval binning zSpacing] = sanityCheck(obj)
         % Check the validity of each channel and return image info
             
             % Exception: channel path does not exist
@@ -66,27 +67,53 @@ classdef Channel3D < Channel
             
             % Check the consistency of image size in current channel
             imSize = zeros(nFrames,3);
+            timeStamp = nan(nFrames,1);
+            binning = zeros(nFrames,2);
+            zSpacing = zeros(nFrames,1);
             for iFrame = 1:nFrames
-                %TEMP - Go through each frame, and load the image to check
-                %size (imfinfo.m does not return the number of
-                %z-slices for metamorph STK files). Hopefully at some point
-                %I'll figure out how to do this without loading the
-                %images.-HLE
                 
-                %Try stackread first since it's faster
+                %Try to read the info from the header first, since it's much faster
                 try
-                    currIm = stackRead([obj.channelPath_ filesep fileNames(iFrame).name]);
-                catch %#ok<CTCH>
-                    %It it's an un-supported compression format, try
-                    %tif3dread.m also
-                    currIm = tif3Dread([obj.channelPath_ filesep fileNames(iFrame).name]);
+                    imInfo = stkinfo([obj.channelPath_ filesep fileNames(iFrame).name]);
+                    %Extract the relevant parameters from the header.
+                    imSize(iFrame,1) = imInfo.Height;
+                    imSize(iFrame,2) = imInfo.Width;
+                    imSize(iFrame,3) = imInfo.NumZPlanes;
+                    zSpacing(iFrame) = imInfo.ZSpacing;
+                    
+                    %Get time stamp, converting to seconds and rounding -
+                    %the data is stored only to 1-second precision and any
+                    %other values are due to numerical error.
+                    timeStamp(iFrame,:) = round(datenum(imInfo.DateTime,...
+                                    'yyyy:mm:dd  HH:MM:SS') * 86400);
+                    binning(iFrame,:) = imInfo.Binning;
+                                        
+                    
+                catch em
+                    disp(['Couldn''t read image header for file ' ...
+                         [obj.channelPath_ filesep fileNames(iFrame).name] ...
+                         ' : ' em.message ' loading entire image...']);
+                    
+                    %If we can't read the header, just go ahead and load
+                    %the whole image
+                    try
+                        %Try stackRead first since it's slightly faster.
+                        currIm = stackRead([obj.channelPath_ filesep fileNames(iFrame).name]);                        
+                    catch %#ok<CTCH>
+                        %If the compression format is unsupported,
+                        %tif3dread may be able to open it.
+                        currIm = tif3Dread([obj.channelPath_ filesep fileNames(iFrame).name]);
+                    end
+                    
+                    if ndims(currIm) ~=3
+                        error(['The image for frame ' num2str(iFrame) ' is not 3D!']);
+                    end
+    
+                    imSize(iFrame,:) = size(currIm);
+                    
                 end
                 
-                if ndims(currIm) ~=3
-                    error(['The image for frame ' num2str(iFrame) ' is not 3D!']);
-                end
-                    
-                imSize(iFrame,:) = size(currIm);
+                
                 
             end
             
@@ -94,11 +121,45 @@ classdef Channel3D < Channel
                 error('All images must have the same width,heigth and number of z-slices! Check images!');            
             end
             
+            if imSize(1,3) <= 1
+                error('The images in the specified directory are not 3D!!')
+            end
+            
+            if size(unique(binning,'rows'),1)>1
+                error('All images must have the same pixel binning! Check images!');            
+            end            
+            
+            if numel(unique(zSpacing))>1
+                error('All images must have the same z-spacing! Check images!')
+            end
+            
             %Convert to desired output format
             width = imSize(1,2);
             height = imSize(1,1);
             nSlices = imSize(1,3);
-                                            
+            binning = binning(1,:);
+            zSpacing = zSpacing(1) * 1e3;%Metamorph stores z-spacing in microns, so convert to nm
+            
+            %There are often small variations in the actual acquisition
+            %times, so we process these carefully and check for odd frame
+            %times
+            dT = diff(timeStamp);
+            uniqueDts = unique(dT);%Get the different intervals that were found
+            nDts = numel(uniqueDts);
+            nOfEach = arrayfun(@(x)(nnz(dT == x)),uniqueDts);%See how many frames had each interval
+            [~,iMostCommon] = max(nOfEach);%Find the most common interval
+            timeInterval = uniqueDts(iMostCommon);
+            
+            if nDts > 0
+                %If there were some frames with different time intervals,
+                %warn the user.                
+                warning('Channel3D:OutlierTimeStamp',...
+                    'There were %d outlier time stamp(s) out of %d images! \n For the images in %s \n the most common time interval was %s seconds, \n while the outlier time intervals were different by as much as %s second(s)!',...
+                    nDts,nFrames,obj.channelPath_,num2str(timeInterval),...
+                    num2str(max(abs(timeInterval-dT))));%We use num2str because the number display used within warning is shitty                    
+            end 
+                        
+            
         end
                         
         

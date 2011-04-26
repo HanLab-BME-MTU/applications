@@ -61,8 +61,8 @@ scFact = pixZ/pixXY;
 
 %Set up the interpolation points
 [M,N,P] = size(image);
-[X,Y,Z] = meshgrid(1:M,1:N,1:P);
-[Xi,Yi,Zi] = meshgrid(1:M,1:N,linspace(1,P,P*scFact));
+[X,Y,Z] = meshgrid(1:N,1:M,1:P);
+[Xi,Yi,Zi] = meshgrid(1:N,1:M,linspace(1,P,P*scFact));
 
 %Interpolate the image.
 image = interp3(X,Y,Z,image,Xi,Yi,Zi);

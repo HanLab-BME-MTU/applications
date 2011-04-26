@@ -224,7 +224,7 @@ movieData.processes_{iProc}.setOutFilePath(p.ChannelIndex,outDir);
 p.PruneParam = pruneParam;%Store the additional, function-determined parameters in the process array.
 movieData.processes_{iProc}.setPara(p);
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)

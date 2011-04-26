@@ -200,7 +200,7 @@ if ~p.BatchMode && ishandle(wtBar)
 end
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 disp('Finished analyzing mask geometry!')
 

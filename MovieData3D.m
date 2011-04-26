@@ -14,18 +14,63 @@ classdef MovieData3D < MovieData
         
     
     end
+    
+                      
     methods (Access = public)
         
-        %Constructor
+        
         function obj = MovieData3D(channels,outputDirectory,...
-                                    pixelSize,timeInterval,...
-                                    zSpacing)
-
-
+                                    preBinPixSizeXY)
+            %MOVIEDATA3D constructor for a MovieData object describing a 3D movie
+            %
+            % movieData3D = MovieData3D
+            % movieData3D = MovieData3D(channels,outputDir,preBinPixSizeXY)
+            %
+            % This function creates a MovieData3D object describing a 3D movie
+            % with a single .STK file per time-point, with each channel stored
+            % in a separate directory. 
+            %
+            % **NOTE*** After the MovieData3D object is created, the
+            % sanityCheck method will be called. This method will perform two
+            % actions: First it will determine the binning, number of z planes,
+            % time interval and spacing between z-planes by reading the image
+            % headers, and second it will verify that all the information in
+            % the movieData3D is valid and in accordance across channels.
+            %
+            % Input:
+            %
+            %   channels - a Channel3D object or an array of channel3D objects
+            %   describing the image channels of the movie.
+            %   Optional. If not input, the user will be asked to select
+            %   directories containing images.
+            %
+            %   outputDir - The directory wher the output of any processing
+            %   performed on the movie will be stored, and the location where
+            %   the movieData will be saved to disk.
+            %   Optional. If not input, the user will be asked to select a
+            %   directory.
+            %
+            %   preBinPixSizeXY - The image pixel size PRIOR TO BINNING. The
+            %   binning will be read from the image header and the final pixel
+            %   size will take the binning into account.
+            %   Optional. If not input, the user will be asked to enter it.
+            %
+            % Output:
+            %
+            % movieData3D - The MovieData3D object describing the movie. The
+            % object will also be saved to disk in the movie's analysis
+            % directory.
+            %
+            % Hunter Elliott
+            % 4/2011
+            %
+            
+            mdFileName = 'movieData.mat'; %Name for saving MovieData3d object to disk
+                                
             if nargin < 1 || isempty(channels)
                 channels = Channel3D;
             elseif ~isa(channels,'Channel3D')
-                error('The first input must be a valid Channel3D object!');                
+                error('The first input must be a valid Channel3D object or array of Channel3D objects!');                
             end
 
             nChan = numel(channels);
@@ -33,17 +78,13 @@ classdef MovieData3D < MovieData
             for j = 1:nChan
 
                 if isempty(channels(j).channelPath_);
-
                     tmp = uigetdir(pwd,['Select the directory with stacks for channel ' num2str(j) ':']);
-
                     if tmp == 0
                         error('You must specify a directory to continue!')
                     else
                         channels(j).setChannelPath(tmp);                        
-                    end
-                    
+                    end                    
                 end
-
                 if ~exist(channels(j).channelPath_,'dir') || isempty(imDir(channels(j).channelPath_))
                     error(['The directory specified for channel ' num2str(j) ' is not a valid directory containing image stacks!'])
                 end
@@ -65,94 +106,53 @@ classdef MovieData3D < MovieData
             end
             
             superArgs{2} = outputDirectory;
-            superArgs{3} = outputDirectory;%I just force the moviedata to be in the output directory for simplicity...
-            superArgs{4} = 'movieData.mat';            
-            superArgs{5} = ''; %Notes not used yet...
+            superArgs(3:4) = {'movieDataPath_',outputDirectory};%I just force the moviedata to be in the output directory for simplicity...
+            superArgs(5:6) = {'movieDataFileName_',mdFileName};                        
             
-            if nargin < 3 || isempty(pixelSize)
+            if nargin < 3 || isempty(preBinPixSizeXY)
 
-                pixelSize = str2double(inputdlg('Enter the XY pixel size in nm:'));
+                preBinPixSizeXY = str2double(inputdlg('Enter the PRE-BINNING, XY image pixel size in nm:'));
 
-                if isnan(pixelSize) || isempty(pixelSize)
+                if isnan(preBinPixSizeXY) || isempty(preBinPixSizeXY)
                     error('Invalid XY pixel size!')
                 end                
 
             end
-
-            superArgs{6} = pixelSize;
-
-            if nargin < 4 || isempty(timeInterval)
-                timeInterval = str2double(inputdlg('Enter the time interval in seconds:'));
-
-                if isnan(timeInterval) || isempty(timeInterval)
-                    error('Invalid time interval!')
-                end
-            end
-
-            superArgs{7} = timeInterval;
+            %We don't pass the pixel size to the MovieData constructor
+            %because it is pre-binning and we need to convert it during the
+            %sanity check.                                    
             
             obj = obj@MovieData(superArgs{:});
-                        
-
-            if nargin < 5 || isempty(zSpacing)
-                
-                zSpacing = str2double(inputdlg('Enter the Z stack spacing in nm:'));
-
-                if isnan(zSpacing) || isempty(zSpacing)
-                    error('Invalid Z spacing!')
-                end                
-
-            end
-            
-            obj.zSpacing_ = zSpacing;
-            
-            %Set up the image size and number fields
-            chanPaths = obj.getChannelPaths;
-            nIm = cellfun(@(x)(numel(imDir(x))),chanPaths);
-            if numel(unique(nIm)) > 1
-                error('All channel directories must contain the same number of images!')
-            end
-            obj.nFrames_ = nIm(1);                
-
-            %Check the image size and store it
-            imNames = obj.getImageFileNames;
-            imSize = zeros(nChan,3);
-            for j = 1:nChan
-                tmp = size(stackRead([chanPaths{j} filesep imNames{j}{1}])); %Just check the first image...
-                if numel(tmp) ~= 3 || min(tmp) < 2
-                    error(['The images in channel ' num2str(j) ' are not 3D stacks!'])
-                end
-                imSize(j,:) = tmp;                    
-            end
-            if size(unique(imSize,'rows'),1) > 1
-                error('All channels must have images of the same dimension!')
-            end
-
-            obj.imSize_ = imSize(1,1:2);
-            obj.nSlices_ = imSize(1,3);
-            
+                                    
             %Set the MovieData object as the owner of all the channels
             for j = 1:nChan
                 obj.channels_(j).setOwner(obj);
             end
+            
+            %Call the sanity check to set parameters and check images etc.
+            obj.sanityCheck([],[],0,preBinPixSizeXY)
+            
+            
             %Save the new movieData to file
-            obj.saveMovieData;
+            obj.save;
 
         end
         
+       
+        function sanityCheck(obj, movieDataPath, movieDataFileName,askUser,...
+                             preBinPixSizeXY)
         % Sanity check - verifies that all the movie information is
-        % correct, and corrects the specified paths if the movie has been
-        % moved
-        function sanityCheck(obj, movieDataPath, movieDataFileName,askUser)
-                        
-           
+        % correct, corrects the specified paths if the movie has been
+        % moved, and stores imaging parameters if not already present.     
+                       
             % Ask user by default for relocation
             if nargin < 4, askUser = true; end
+            if nargin < 5, preBinPixSizeXY = []; end
             
             % Check if the path and filename stored in the movieData are the same
             % as the ones provided in argument. They can differ if the movieData
             % MAT file has been renamed, move or copy to another location.
-            if nargin > 1
+            if nargin > 1 && ~isempty(movieDataPath) && ~isempty(movieDataFileName)
                 
                 %Remove ending file separators if any
                 endingFilesepToken = [regexptranslate('escape',filesep) '$'];
@@ -180,70 +180,109 @@ classdef MovieData3D < MovieData
                 end
             
             end
-            width = zeros(1, length(obj.channels_));
-            height = zeros(1, length(obj.channels_));
-            nFrames = zeros(1, length(obj.channels_));
-            nSlices = zeros(1, length(obj.channels_));
+            nChan = numel(obj.channels_);
+            width = zeros(1,nChan);
+            height = zeros(1,nChan);
+            nFrames = zeros(1,nChan);
+            nSlices = zeros(1,nChan);
+            timeInts = zeros(1,nChan);
+            binning = zeros(2,nChan);
+            zSpacing = zeros(1,nChan);
             
-            for i = 1: length(obj.channels_)
-                [width(i) height(i) nFrames(i) nSlices(i)] = obj.channels_(i).sanityCheck;
-            end
+            %Call the individual channel sanity checks, and get the image
+            %parameters for each channel
+            for i = 1:nChan
+                [width(i) height(i) nFrames(i) nSlices(i) ...
+                    timeInts(i) binning(:,i) zSpacing(i)] = ...
+                                            obj.channels_(i).sanityCheck;
+            end            
             
-            assert(max(nFrames) == min(nFrames), ...
-                'Different number of frames are detected in different channels. Please make sure all channels have same number of frames.')
+            %Go through all the parameters and make sure they are the same
+            %for each channel, and that they agree with what is stored in
+            %the MovieData3D object.
             
             assert(max(width)==min(width) && max(height)==min(height), ...
                 'Image sizes are inconsistent in different channels.\n\n')
+            
+            if ~isempty(obj.imSize_)
+                assert(obj.imSize_(2) == width(1) && obj.imSize_(1) ==height(1), 'Record shows image size has changed in this movie.')
+            else
+                obj.imSize_ = [height(1) width(1)];
+            end            
 
-            if numel(unique(nSlices)) > 1 
-                error('Image z-slice numbers are inconsistent between channels!')
-            end
-		
-            % Define imSize_ and nFrames_;     
+            assert(max(nFrames) == min(nFrames), ...
+                'Different number of frames are detected in different channels. Please make sure all channels have same number of frames.')            
+                        
             if ~isempty(obj.nFrames_)
                 assert(obj.nFrames_ == nFrames(1), 'Record shows the number of frames has changed in this movie.')
             else
                 obj.nFrames_ = nFrames(1);
             end
             
-            if ~isempty(obj.imSize_)
-                assert(obj.imSize_(2) == width(1) && obj.imSize_(1) ==height(1), 'Record shows image size has changed in this movie.')
-            else
-                obj.imSize_ = [height(1) width(1)];
-            end
-            
+            if numel(unique(nSlices)) > 1 
+                error('Image z-slice numbers are inconsistent between channels!')
+            end            
             if ~isempty(obj.nSlices_)
                 assert(obj.nSlices_ == nSlices(1), 'Record shows image number of z-slices has changed in this movie.')
             else
                 obj.nSlices_ = nSlices(1);
-            end                
+            end
             
+            if numel(unique(timeInts)) > 1
+                error('The time intervals differ between the channels!')
+            end
+            if ~isempty(obj.timeInterval_)
+                if obj.timeInterval_ ~= timeInts(1);
+                    error('The time interval specified for this movie does not agree with the image headers!')
+                end
+            else
+                obj.timeInterval_ = timeInts(1);
+            end                                        
+            if size(unique(binning),2) > 1
+                error('The binning differs between channels!')
+            end
+            if ~isempty(obj.binning_)
+                assert(all(obj.binning_ == binning(:,1)'),'Record shows that the binning has changed on the images in this movie!')
+            else
+                obj.binning_ = binning(:,1)';
+            end
+            if numel(unique(zSpacing)) > 1
+                error('The z-spacing differs between channels of the movie!')
+            end
+            if ~isempty(obj.zSpacing_)
+                assert(obj.zSpacing_ == zSpacing(1),'Record shows that the z-spacing has changed in this movie!')
+            else
+                obj.zSpacing_ = zSpacing(1);
+            end
+            
+            %Finally, set or check the pixel size taking the binning into
+            %account            
+            if ~isempty(preBinPixSizeXY)                
+                if ~isempty(obj.pixelSize_)
+                    assert(obj.pixelSize_ == (preBinPixSizeXY*obj.binning_(1)),...
+                        'Stored post-binning pixel size disagrees with input pre-binned pixel size and image binning!')
+                else
+                    obj.pixelSize_ = preBinPixSizeXY*obj.binning_(1);
+                end                                
+            end
 
         end
         
         
         % ------ Set / Get Methods ----- %
         
-        
-        function setzSpacing(obj,zSpacing)
-            
+        %At some point I should convert these to method used in MovieData,
+        %where calling a specific set method is not required.
+        function setzSpacing(obj,zSpacing)            
             if ~isempty(obj.zSpacing_)
                 error('Z Spacing has already been set and cannot be changed!')
-            end
-            
+            end            
             if nargin ~= 2 || isempty(zSpacing) || ...
                     zSpacing <= 0 || numel(zSpacing) ~= 1 || ~isreal(zSpacing) %you never know what they may try ;)
                 error('Invalid z-spacing specification. The value must be a positive scalar specifying the z-spacing in nm!')
-            end
-            
+            end            
             obj.zSpacing_ = zSpacing;
-                                                        
-            
         end
-        
-        
-        
-        
         
     end
 end

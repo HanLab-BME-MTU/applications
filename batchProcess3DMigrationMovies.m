@@ -1,8 +1,8 @@
-function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargin)
+function runInfo = batchProcess3DMigrationMovies(movieArray,varargin)
 %BATCHPROCESS3DMIGRATIONMOVIES runs all analysis steps on every input 3D migration movie
 % 
-%   errMess = batchProcess3DMigrationMovies(movieArray)
-%   errMess = batchProcess3DMigrationMovies(movieArray,'OptionName1',optionValue1,...)
+%   runInfo = batchProcess3DMigrationMovies(movieArray)
+%   runInfo = batchProcess3DMigrationMovies(movieArray,'OptionName1',optionValue1,...)
 % 
 % This function runs process3DMigrationMovie on every input 3d movie, in
 % parallel. Each movie's results for each step are saved to its analysis
@@ -35,8 +35,9 @@ function [movieArray,errMess] = batchProcess3DMigrationMovies(movieArray,varargi
 % 
 % Output:
 %
-%   errMess - An array the same size as movieArray containing any error
-%   messages which were generated during the processing of the movies.
+%   runInfo - An array the same size as movieArray containing information
+%   on the processing of each movie, including any error messages, the time
+%   required to complete, parameters used etc.
 %
 %   Additionally, the results of each processing/analysis step will be
 %   saved to each movie's analysis directory, and logged in the processes
@@ -57,18 +58,27 @@ ip.addRequired('movieArray',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('NumParallel',8,@(x)(numel(x) == 1));
 
 ip.parse(movieArray,varargin{:});
-p = ip.Results;
+p = ip.Results;%Parameters for this function
+fp = ip.Unmatched;%Parameters to pass to processing function
 
 
 %% -----------------------------Init --------------------------------- %%
 
+nMovies = numel(movieArray);
+
+%Set up general default parameters used on all movies.
+if isfield(fp,'BatchMode') && fp.BatchMode == false
+    %if the user tried to turn it off, warn them that this isn't supported
+    warning('Migration3D:batchProcess:batchMode','Batch mode must be enabled to run processing in parallel!')
+end
+fp.BatchMode = true;
+%replicate parameters for passing to the processing function for each movie
+fp = repmat(fp,nMovies,1);
+
 
 %Run sanity check on all movie datas, and relocate if necessary.
+%NOT DOING YET. NEED TO INPUT MOVIELIST instead AND THEN LOAD MOVIE array - TEMP
 
-
-
-
-nMovies = numel(movieArray);
 
 %Check if we have LSF available, and try to set it up:
 try
@@ -76,9 +86,9 @@ try
     lsf = findResource('scheduler','type','lsf');
     lsf.ClusterMatlabRoot = '/opt/matlab';
     lsf.DataLocation = '/groups/lccb-nih';
-    job = createParallelJob(lsf);
+    job = createJob(lsf);        
     
-    
+    %TEMP, under construction!
     
     doLocal = false;
 catch em
@@ -87,8 +97,12 @@ catch em
     doLocal = true;
     if p.NumParallel > 8
         disp('Maximum of 8 workers available locally - setting NumParallel to 8!')
-    end
+        p.NumParallel = 8;
+    end  
 end
+
+%% -------------------------- Processing --------------------------- %%
+
 
 if doLocal
     disp('Setting up local parallel job...')
@@ -100,9 +114,24 @@ if doLocal
         end
         matlabpool('open',p.NumParallel);
     end
+    
+    runInfo = cell(nMovies,1);
+    
+    for iMov = 1:nMovies
+                
+        try            
+            runInfo{iMov} = process3DMigrationMovie(movieArray(iMov),fp(iMov));                         
+        catch em
+            disp(['Error processing movie ' num2str(iMov) ' : ' em.message])
+            runInfo{iMov} = em;
+        end
+            
+    end
+    
 else    
     
     
+    disp('not set up yet!')
     
     
     

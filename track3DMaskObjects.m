@@ -219,7 +219,7 @@ save([p.OutputDirectory filesep fName '.mat'],'objTracks');
 
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData; %Save the new movieData to disk
+movieData.save; %Save the new movieData to disk
 
 
 disp('Finished object tracking!')

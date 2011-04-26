@@ -285,7 +285,7 @@ end
 
 
 movieData.processes_{iSegProc}.setDateTime;
-movieData.saveMovieData; %Save the new movieData to disk
+movieData.save; %Save the new movieData to disk
 
 disp('Finished thresholding!')
 
