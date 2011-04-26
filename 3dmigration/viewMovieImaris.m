@@ -245,13 +245,14 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
             currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
             currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
             
-            edgeXYZ(currIndEP,1:2) = (skgr(iImage).edgePaths{iEdg}(:,1:2) -1) .* pixXY;
-            edgeXYZ(currIndEP,3) = (skgr(iImage).edgePaths{iEdg}(:,3) -1) .* pixZ;
-            
-            %These edge path points are stored consecutively, so just
-            %connect each subsequent point with an edge.
-            edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
-            
+            if ~isempty(currIndEP) && ~isempty(currIndEE)%Make sure it's not a spur first
+                edgeXYZ(currIndEP,1:2) = (skgr(iImage).edgePaths{iEdg}(:,1:2) -1) .* pixXY;
+                edgeXYZ(currIndEP,3) = (skgr(iImage).edgePaths{iEdg}(:,3) -1) .* pixZ;
+
+                %These edge path points are stored consecutively, so just
+                %connect each subsequent point with an edge.
+                edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
+            end
             
             ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
             ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
@@ -299,30 +300,32 @@ if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChan
             %Get field names from first frame and then initialize array
             mg = repmat(tmp(1),nImages,1);
         end        
-        mg(iImage) = tmp(1);%Just in case they have multiple objects
+        
+        if ~isempty(tmp)        
+            mg(iImage) = tmp(1);%Just in case they have multiple objects
                 
-        %Extract the surface info for scaling etc.
-        if ~movieData3D.processes_{iMgProc}.funParams_.PhysicalUnits
-                        
-            vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
-            vert(:,2:-1:1) = (mg(iImage).SmoothedSurface.vertices(:,1:2) -1) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
-            vert(:,3) = (mg(iImage).SmoothedSurface.vertices(:,3) -1) .* pixXY;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
-            faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
-            norms = zeros(size(mg(iImage).SurfaceNorms));
-            norms(:,2:-1:1) = (mg(iImage).SurfaceNorms(:,1:2) -1) .* pixXY;
-            norms(:,3) = (mg(iImage).SurfaceNorms(:,3) -1) .* pixXY;
-            
-        else
-            vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
-            vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) - pixXY;%No scaling, but shift for imaris voxel coord
-            vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) -pixZ;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
-            faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
-            norms = zeros(size(mg(iImage).SurfaceNorms));
-            norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) - pixXY;
-            norms(:,3) = mg(iImage).SurfaceNorms(:,3) - pixZ;                        
+            %Extract the surface info for scaling etc.
+            if ~movieData3D.processes_{iMgProc}.funParams_.PhysicalUnits
+
+                vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
+                vert(:,2:-1:1) = (mg(iImage).SmoothedSurface.vertices(:,1:2) -1) .* pixXY;%The surface norms are returned in cartesian rather than matrix coord
+                vert(:,3) = (mg(iImage).SmoothedSurface.vertices(:,3) -1) .* pixXY;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+                faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
+                norms = zeros(size(mg(iImage).SurfaceNorms));
+                norms(:,2:-1:1) = (mg(iImage).SurfaceNorms(:,1:2) -1) .* pixXY;
+                norms(:,3) = (mg(iImage).SurfaceNorms(:,3) -1) .* pixXY;
+
+            else
+                vert = zeros(size(mg(iImage).SmoothedSurface.vertices));
+                vert(:,2:-1:1) = mg(iImage).SmoothedSurface.vertices(:,1:2) - pixXY;%No scaling, but shift for imaris voxel coord
+                vert(:,3) = mg(iImage).SmoothedSurface.vertices(:,3) -pixZ;%The properties already take into account the pixel aspect ratio, so we scale the z by the xy size also.
+                faces = mg(iImage).SmoothedSurface.faces - 1;%Imaris indices start at 0
+                norms = zeros(size(mg(iImage).SurfaceNorms));
+                norms(:,2:-1:1) = mg(iImage).SurfaceNorms(:,1:2) - pixXY;
+                norms(:,3) = mg(iImage).SurfaceNorms(:,3) - pixZ;                        
+            end
+            imarisSurf.AddSurface(vert,faces,norms,iImage-1);                
         end
-        imarisSurf.AddSurface(vert,faces,norms,iImage-1);                
-       
     
     end
     %Add the surfaces to the surpass scene
@@ -388,13 +391,15 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
             currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
             currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
             
-            edgeXYZ(currIndEP,:) = (skgrPruned(iImage).edgePaths{iEdg} -1) .* pixXY;            
+            if ~isempty(currIndEP) && ~isempty(currIndEE)%Make sure it's not a spur first
             
-            %These edge path points are stored consecutively, so just
-            %connect each subsequent point with an edge.
-            edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
-            
-            
+                edgeXYZ(currIndEP,:) = (skgrPruned(iImage).edgePaths{iEdg} -1) .* pixXY;            
+
+                %These edge path points are stored consecutively, so just
+                %connect each subsequent point with an edge.
+                edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
+            end
+
             ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
             ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
         end
