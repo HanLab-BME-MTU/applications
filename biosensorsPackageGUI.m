@@ -275,7 +275,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
 for i = 1: length(userData.MD)
-    userData.MD(i).save
+    userData.MD(i).save;
 end
 delete(handles.figure1);
 
@@ -741,7 +741,7 @@ function menu_file_open_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1,'Userdata');
 if isfield(userData,'MD')
     for i = 1: length(userData.MD)
-        userData.MD(i).save
+        userData.MD(i).save;
     end
 end
 movieSelectorGUI(userData.packageName);
@@ -783,7 +783,7 @@ user_response = questdlg('Do you want to save the current progress?', ...
 switch lower(user_response)
     case 'yes'
         for i = 1: length(userData.MD)
-            userData.MD(i).save
+            userData.MD(i).save;
         end
         delete(handles.figure1);
     case 'no'
@@ -835,7 +835,7 @@ function pushbutton_save_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 
 for i = 1: length(userData.MD)
-    userData.MD(i).save
+    userData.MD(i).save;
 end
 
 set(handles.text_body3, 'Visible', 'on')
@@ -846,7 +846,7 @@ set(handles.text_body3, 'Visible', 'off')
 % --------------------------------------------------------------------
 function menu_file_save_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
-userData.MD(userData.id).save
+userData.MD(userData.id).save;
 
 set(handles.text_body3, 'Visible', 'on')
 pause(1)
