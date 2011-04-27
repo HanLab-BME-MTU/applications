@@ -1,4 +1,6 @@
 function [constrForceField]=trackNetwork(constrForceField)
+% If one cell dies, trackedNetworks generated before 04/21/2011, might be
+% corrupted!!! Simply regenerate the Networks.
 toDoList=[];
 for frame=1:length(constrForceField)
     if isfield(constrForceField{frame},'network')
