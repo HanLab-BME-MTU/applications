@@ -79,6 +79,7 @@ clear movieInfo;
 [movieInfo(1:nFrames,1).yCoord] = deal([]);
 [movieInfo(1:nFrames,1).amp] = deal([]);
 [movieInfo(1:nFrames,1).int] = deal([]);
+[movieInfo(1:nFrames,1).ecc] = deal([]);
 movieInfo(startFrame:endFrame,:)=temp(startFrame:endFrame,:);
 
 % save the tracking frameRange
