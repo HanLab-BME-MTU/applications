@@ -116,10 +116,10 @@ disp('Starting ratio output ...')
 
 %Set up input and output directories
 if hasPB
-    inDir = movieData.processes_{iPBProc}.outImagePaths_{p.ChannelIndex};
+    inDir = movieData.processes_{iPBProc}.outFilePaths_{1,p.ChannelIndex};
     inNames = movieData.processes_{iPBProc}.getOutImageFileNames(p.ChannelIndex);
 else
-    inDir = movieData.processes_{iRProc}.outImagePaths_{p.ChannelIndex};
+    inDir = movieData.processes_{iRProc}.outFilePaths_{1,p.ChannelIndex};
     inNames = movieData.processes_{iRProc}.getOutImageFileNames(p.ChannelIndex);        
 end
 
@@ -176,7 +176,7 @@ end
 %Log the output in the movieData object and save it
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 
 disp('Finished!')

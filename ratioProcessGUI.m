@@ -1,35 +1,35 @@
-function varargout = ratioingProcessGUI(varargin)
-% RATIOINGPROCESSGUI M-file for ratioingProcessGUI.fig
-%      RATIOINGPROCESSGUI, by itself, creates a new RATIOINGPROCESSGUI or raises the existing
+function varargout = ratioProcessGUI(varargin)
+% RATIOPROCESSGUI M-file for ratioProcessGUI.fig
+%      RATIOPROCESSGUI, by itself, creates a new RATIOPROCESSGUI or raises the existing
 %      singleton*.
 %
-%      H = RATIOINGPROCESSGUI returns the handle to a new RATIOINGPROCESSGUI or the handle to
+%      H = RATIOPROCESSGUI returns the handle to a new RATIOPROCESSGUI or the handle to
 %      the existing singleton*.
 %
-%      RATIOINGPROCESSGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in RATIOINGPROCESSGUI.M with the given input arguments.
+%      RATIOPROCESSGUI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in RATIOPROCESSGUI.M with the given input arguments.
 %
-%      RATIOINGPROCESSGUI('Property','Value',...) creates a new RATIOINGPROCESSGUI or raises the
+%      RATIOPROCESSGUI('Property','Value',...) creates a new RATIOPROCESSGUI or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before ratioingProcessGUI_OpeningFcn gets called.  An
+%      applied to the GUI before ratioProcessGUI_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to ratioingProcessGUI_OpeningFcn via varargin.
+%      stop.  All inputs are passed to ratioProcessGUI_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help ratioingProcessGUI
+% Edit the above text to modify the response to help ratioProcessGUI
 
-% Last Modified by GUIDE v2.5 24-Aug-2010 11:16:50
+% Last Modified by GUIDE v2.5 06-Apr-2011 17:07:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @ratioingProcessGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @ratioingProcessGUI_OutputFcn, ...
+                   'gui_OpeningFcn', @ratioProcessGUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @ratioProcessGUI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,8 +44,8 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before ratioingProcessGUI is made visible.
-function ratioingProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before ratioProcessGUI is made visible.
+function ratioProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Available tools 
 % UserData data:
 %       userData.mainFig - handle of main figure
@@ -63,7 +63,7 @@ function ratioingProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 set(handles.text_copyright, 'String', copyright)
 
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for segmentationProcessGUI
+% Choose default command line output for ratioProcessGUI
 handles.output = hObject;
 
 % Get main figure handle and process id
@@ -165,7 +165,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = ratioingProcessGUI_OutputFcn(hObject, eventdata, handles) 
+function varargout = ratioProcessGUI_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB

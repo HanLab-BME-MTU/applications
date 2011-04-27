@@ -343,7 +343,7 @@ methods (Static)
         
         function id = getOptionalProcessId()
             % Get the optional process id
-            id = [3 7 8 10];
+            id = [3 4 7 8 10];
         end
 end
     

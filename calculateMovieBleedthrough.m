@@ -139,7 +139,7 @@ imDirs = cell(1,2);
 for j = 1:2
     imNames{j} = movieData.processes_{iInProc(j)}.getOutImageFileNames(iChans(j));
     imNames{j} = imNames{j}{1};
-    imDirs{j} = movieData.processes_{iInProc(j)}.outImagePaths_{iChans(j)};        
+    imDirs{j} = movieData.processes_{iInProc(j)}.outFilePaths_{1,iChans(j)};        
 end
 
 %Check segmentation processes
@@ -170,7 +170,7 @@ mDirs = cell(1,2);
 for j = 1:2
     mNames{j} = movieData.processes_{iSegProc(j)}.getOutMaskFileNames(iMaskChans(j));
     mNames{j} = mNames{j}{1};
-    mDirs{j} = movieData.processes_{iSegProc(j)}.outMaskPaths_{iMaskChans(j)};            
+    mDirs{j} = movieData.processes_{iSegProc(j)}.outFilePaths_{iMaskChans(j)};            
 end
 
 %Get camera bit depth, to check for saturation

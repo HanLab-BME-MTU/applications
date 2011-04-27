@@ -119,8 +119,7 @@ nChanCorr = length(p.ChannelIndex);
 if isempty(p.DarkImageDirectories)
     
     %Check if the paths have been specified before
-    if isempty(movieData.processes_{iProc}.correctionImagePaths_)
-        
+    if all(cellfun(@isempty,movieData.processes_{iProc}.inFilePaths_(2,:)))      
         if ~p.BatchMode
             %If not, ask the user.
             stPath = pwd;
@@ -143,7 +142,7 @@ if isempty(p.DarkImageDirectories)
     else
         %Use the existing paths
         disp('Using previously specified correction image directories...')
-        p.DarkImageDirectories = movieData.processes_{iProc}.correctionImagePaths_(p.ChannelIndex);        
+        p.DarkImageDirectories = movieData.processes_{iProc}.inFilePaths_(2,p.ChannelIndex);        
     end
 end
 
@@ -253,8 +252,8 @@ end
 for iChan = 1:nChanCorr
     
     
-    outDir = movieData.processes_{iProc}.outImagePaths_{p.ChannelIndex(iChan)};    
-    corrDir = movieData.processes_{iProc}.correctionImagePaths_{p.ChannelIndex(iChan)};
+    outDir = movieData.processes_{iProc}.outFilePaths_{1,p.ChannelIndex(iChan)};    
+    corrDir = movieData.processes_{iProc}.inFilePaths_{2,p.ChannelIndex(iChan)};
 
     if ~p.BatchMode        
         waitbar((iChan-1)*nImages / nImTot,wtBar,['Please wait, correcting channel ' num2str(p.ChannelIndex(iChan)) ' ...']);        
@@ -315,7 +314,7 @@ end
 %Log the correction in the movieData object and save it
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 disp('Finished Correcting!')
 

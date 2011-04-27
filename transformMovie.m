@@ -113,7 +113,7 @@ if isempty(iBSProc)
 end
 
 %Check that all channels have been background subtracted
-hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outImagePaths_);   
+hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outFilePaths_);   
 if ~all(hasBS(p.ChannelIndex))
     error('Every channel selected for transformation must have been background subtracted! Please perform background subtraction first, or check the ChannelIndex parameter!')
 end
@@ -139,11 +139,11 @@ for j = 1:nChanCorr
     if hasBTC(p.ChannelIndex(j))
         %If available, use the bleed-through corrected images
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
-            movieData.processes_{iBTCProc}.outImagePaths_{p.ChannelIndex(j)});
+            movieData.processes_{iBTCProc}.outFilePaths_{1,p.ChannelIndex(j)});
     else
         %Otherwise, use background subtracted
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
-            movieData.processes_{iBSProc}.outImagePaths_{p.ChannelIndex(j)});
+            movieData.processes_{iBSProc}.outFilePaths_{1,p.ChannelIndex(j)});
     end
     
     %The output is a sub-dir of the directory specified by OutputDirectory
@@ -193,8 +193,8 @@ inNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex);
 
 %Get original image size. Image pixels that are transformed out of this
 %area will be omitted to preserve this size
-m = movieData.imSize_(1);
-n = movieData.imSize_(2);        
+n = movieData.imSize_(1);
+m = movieData.imSize_(2);        
 
 
 %% ------- Spatial Transformation ------ %%
@@ -214,8 +214,8 @@ nImTot = nImages * nChanCorr;
 for iChan = 1:nChanCorr
     
     %Get directories for readability
-    inDir  = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(iChan)};    
-    outDir = movieData.processes_{iProc}.outImagePaths_{p.ChannelIndex(iChan)};    
+    inDir  = movieData.processes_{iProc}.inFilePaths_{1,p.ChannelIndex(iChan)};    
+    outDir = movieData.processes_{iProc}.outFilePaths_{1,p.ChannelIndex(iChan)};    
     
     disp(['Transforming images for channel ' num2str(p.ChannelIndex(iChan))])
     disp(['Transforming images from ' inDir ', results will be stored in ' outDir]);     
@@ -275,7 +275,7 @@ end
 %Store parameters/settings in movieData structure
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData; %Save the new movieData to disk
+movieData.save; %Save the new movieData to disk
 
 disp('Finished!')
 

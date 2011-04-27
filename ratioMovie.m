@@ -134,7 +134,7 @@ end
 %Make sure the background subtraction has been performed
 iBSProc = find(cellfun(@(x)(isa(x,'BackgroundSubtractionProcess')),movieData.processes_),1);                          
 if ~isempty(iBSProc)
-    hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outImagePaths_);
+    hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outFilePaths_);
 else
    error('Background subtraction has not been run! Please run background subtraction prior to ratioing!')   
 end
@@ -149,7 +149,7 @@ nChan = numel(movieData.channels_);
 iBTCProc = find(cellfun(@(x)(isa(x,'BleedthroughCorrectionProcess')),movieData.processes_),1);                          
 if ~isempty(iBTCProc)
     %Check which channels have been transformed
-    hasBTC = cellfun(@(x)(~isempty(x)),movieData.processes_{iBTCProc}.outImagePaths_);        
+    hasBTC = cellfun(@(x)(~isempty(x)),movieData.processes_{iBTCProc}.outFilePaths_);        
 else
     hasBTC = false(1,nChan);
 end
@@ -158,7 +158,7 @@ end
 iXFProc = find(cellfun(@(x)(isa(x,'TransformationProcess')),movieData.processes_),1);                          
 if ~isempty(iXFProc)
     %Check which channels have been transformed
-    hasXF = cellfun(@(x)(~isempty(x)),movieData.processes_{iXFProc}.outImagePaths_);
+    hasXF = cellfun(@(x)(~isempty(x)),movieData.processes_{iXFProc}.outFilePaths_);
 else
     hasXF = false(1,nChan);
 end
@@ -207,12 +207,12 @@ if p.ApplyMasks || p.CreateMasks
     %Get the most recent seg process with masks for this channel      
     iP = p.SegProcessIndex(find(hasMasks(1,:),1,'last'));
     
-    numMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(1)};
+    numMaskDir = movieData.processes_{iP}.outFilePaths_{p.MaskChannelIndex(1)};
     numMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(1));        
     
     iP = p.SegProcessIndex(find(hasMasks(2,:),1,'last'));
     
-    denomMaskDir = movieData.processes_{iP}.outMaskPaths_{p.MaskChannelIndex(2)};        
+    denomMaskDir = movieData.processes_{iP}.outFilePaths_{p.MaskChannelIndex(2)};        
     denomMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(2));
                           
 end
@@ -226,15 +226,15 @@ for j = 1:2
     if hasXF(p.ChannelIndex(j))
         %If available, use transformed images
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
-            movieData.processes_{iXFProc}.outImagePaths_{p.ChannelIndex(j)});
+            movieData.processes_{iXFProc}.outFilePaths_{1,p.ChannelIndex(j)});
     elseif hasBTC(p.ChannelIndex(j))
         %... or bleedthrough corrected images
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
-            movieData.processes_{iBTCProc}.outImagePaths_{p.ChannelIndex(j)});
+            movieData.processes_{iBTCProc}.outFilePaths_{1,p.ChannelIndex(j)});
     else
         %Otherwise, use background subtracted.
         movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
-            movieData.processes_{iBSProc}.outImagePaths_{p.ChannelIndex(j)});
+            movieData.processes_{iBSProc}.outFilePaths_{1,p.ChannelIndex(j)});
     end                    
 
 end
@@ -255,9 +255,9 @@ movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(1),outDir);
 
 nImages = movieData.nFrames_;
 
-numDir = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(1)};
+numDir = movieData.processes_{iProc}.inFilePaths_{1,p.ChannelIndex(1)};
 numImNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex(1));
-denomDir = movieData.processes_{iProc}.inImagePaths_{p.ChannelIndex(2)};
+denomDir = movieData.processes_{iProc}.inFilePaths_{1,p.ChannelIndex(2)};
 denomImNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex(2));
 
 %Format string for zero-padding file names
@@ -352,7 +352,7 @@ disp('Saving results...')
 %Log the correction in the movieData object and save it
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 disp('Finished Ratioing!')
 

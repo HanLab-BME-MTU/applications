@@ -56,27 +56,27 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
         function sanityCheck(obj)
         % Sanity check will check the correction images
             for i = obj.funParams_.ChannelIndex
-                if ~isempty(obj.correctionImagePaths_{i})
+                if ~isempty(obj.inFilePaths_{2,i})
                     
-                    if ~exist(obj.correctionImagePaths_{i}, 'dir')
+                    if ~exist(obj.inFilePaths_{2,i}, 'dir')
                         error('lccb:set:fatal', ...
-                            ['The specified shade image channel:\n\n ',obj.correctionImagePaths_{i}, ...
+                            ['The specified shade image channel:\n\n ',obj.inFilePaths_{2,i}, ...
                             '\n\ndoes not exist. Please double check your channel path.'])
                     end
-                    fileNames = imDir(obj.correctionImagePaths_{i},true);
+                    fileNames = imDir(obj.inFilePaths_{2,i},true);
                     
                     if isempty(fileNames)
                         error('lccb:set:fatal', ...
-                            ['No proper image files are detected in:\n\n ',obj.correctionImagePaths_{i}, ...
+                            ['No proper image files are detected in:\n\n ',obj.inFilePaths_{2,i}, ...
                             '\n\nPlease double check your channel path.'])                        
                     end
                     
                     for j = 1:length(fileNames)
-                        imInfo = imfinfo([obj.correctionImagePaths_{i} filesep fileNames(j).name]);
-                        if imInfo.Width ~= obj.owner_.imSize_(1) || imInfo.Height ~= obj.owner_.imSize_(2)
+                        imInfo = imfinfo([obj.inFilePaths_{2,i} filesep fileNames(j).name]);
+                        if imInfo.Width ~= obj.owner_.imSize_(2) || imInfo.Height ~= obj.owner_.imSize_(1)
                             error('lccb:set:fatal', ...
                                 ['Dark current correction image - \n\n',...
-                                obj.correctionImagePaths_{i},filesep,fileNames(j).name,...
+                                obj.inFilePaths_{2,i},filesep,fileNames(j).name,...
                                 '\n\nmust have the same size as input images. Please double check your correction image data.'])
                         end
                     end

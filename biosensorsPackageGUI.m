@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 17-Nov-2010 14:23:31
+% Last Modified by GUIDE v2.5 05-Apr-2011 15:11:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -110,7 +110,8 @@ function varargout = biosensorsPackageGUI_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 % In case the GUI has been called without argument
-if (isfield(handles,'startMovieSelectorGUI') && handles.startMovieSelectorGUI)
+userData = get(handles.figure1, 'UserData');
+if (isfield(userData,'startMovieSelectorGUI') && userData.startMovieSelectorGUI)
     menu_file_open_Callback(hObject, eventdata, handles)
 end
 
@@ -134,7 +135,7 @@ function pushbutton_set_1_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
 procID = 1;
-userData.setFig(procID) = segmentationProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = thresholdProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -274,7 +275,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
 for i = 1: length(userData.MD)
-    userData.MD(i).saveMovieData
+    userData.MD(i).save
 end
 delete(handles.figure1);
 
@@ -284,12 +285,12 @@ function pushbutton_status_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
 
-% if newMovieDataGUI exist
+% if movieDataGUI exist
 if isfield(userData, 'overviewFig') && ishandle(userData.overviewFig)
     delete(userData.overviewFig)
 end
 
-userData.overviewFig = newMovieDataGUI('mainFig',handles.figure1, 'overview', userData.MD(userData.id));
+userData.overviewFig = movieDataGUI(userData.MD(userData.id));
 set(handles.figure1, 'UserData', userData);
 
 
@@ -428,6 +429,14 @@ if isfield(userData, 'setFig')
     for i = 1: length(userData.setFig)
         if userData.setFig(i)~=0 && ishandle(userData.setFig(i))
             delete(userData.setFig(i))
+        end
+    end
+end
+
+if isfield(userData, 'toolFig')
+    for i = 1: length(userData.toolFig)
+        if userData.toolFig(i)~=0 && ishandle(userData.toolFig(i))
+            delete(userData.toolFig(i))
         end
     end
 end
@@ -636,7 +645,7 @@ function pushbutton_set_9_Callback(hObject, eventdata, handles)
 % who is the index of corresponding process in current package's process list
 userData = get(handles.figure1, 'UserData');
 procID = 9;
-userData.setFig(procID) = ratioingProcessGUI('mainFig',handles.figure1,procID);
+userData.setFig(procID) = ratioProcessGUI('mainFig',handles.figure1,procID);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
@@ -732,10 +741,10 @@ function menu_file_open_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1,'Userdata');
 if isfield(userData,'MD')
     for i = 1: length(userData.MD)
-        userData.MD(i).saveMovieData
+        userData.MD(i).save
     end
 end
-movieSelectorGUI(handles.packageName);
+movieSelectorGUI(userData.packageName);
 delete(handles.figure1)
 
 
@@ -774,7 +783,7 @@ user_response = questdlg('Do you want to save the current progress?', ...
 switch lower(user_response)
     case 'yes'
         for i = 1: length(userData.MD)
-            userData.MD(i).saveMovieData
+            userData.MD(i).save
         end
         delete(handles.figure1);
     case 'no'
@@ -826,7 +835,7 @@ function pushbutton_save_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 
 for i = 1: length(userData.MD)
-    userData.MD(i).saveMovieData
+    userData.MD(i).save
 end
 
 set(handles.text_body3, 'Visible', 'on')
@@ -837,7 +846,7 @@ set(handles.text_body3, 'Visible', 'off')
 % --------------------------------------------------------------------
 function menu_file_save_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
-userData.MD(userData.id).saveMovieData
+userData.MD(userData.id).save
 
 set(handles.text_body3, 'Visible', 'on')
 pause(1)
@@ -997,3 +1006,26 @@ function edit_path_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --------------------------------------------------------------------
+function menu_tools_bleedthrough_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_tools_bleedthrough (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+userData = get(handles.figure1, 'UserData');
+
+userData.toolFig(1) = calculateBleedthroughGUI('mainFig',handles.figure1);
+set(handles.figure1, 'UserData', userData);
+
+% --------------------------------------------------------------------
+function menu_tools_transform_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_tools_transform (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+userData = get(handles.figure1, 'UserData');
+
+userData.toolFig(2) = transformCreationGUI;
+set(handles.figure1, 'UserData', userData);
+
+

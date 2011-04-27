@@ -98,7 +98,7 @@ if isempty(iRatProc)
 end
 
 %Get the ratio numerator channel
-iNumChan = find(cellfun(@(x)(~isempty(x)),movieData.processes_{iRatProc}.outImagePaths_));
+iNumChan = find(cellfun(@(x)(~isempty(x)),movieData.processes_{iRatProc}.outFilePaths_));
 
 %Check if photobleach correction has been done
 iPbProc = movieData.getProcessIndex('PhotobleachCorrectionProcess',1,1);

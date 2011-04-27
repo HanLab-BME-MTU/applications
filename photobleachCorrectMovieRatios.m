@@ -146,15 +146,15 @@ disp('Starting photobleach correction...')
 iNum = movieData.processes_{iRProc}.funParams_.ChannelIndex(1);
 iDenom = movieData.processes_{iRProc}.funParams_.ChannelIndex(2);
 
-numDir = movieData.processes_{iRProc}.inImagePaths_{iNum};
+numDir = movieData.processes_{iRProc}.inFilePaths_{1,iNum};
 numFileNames = movieData.processes_{iRProc}.getInImageFileNames(iNum);
 
 denomDir = movieData.processes_{iRProc}. ...
-    inImagePaths_{movieData.processes_{iRProc}.funParams_.ChannelIndex(2)};
+    inFilePaths_{1,movieData.processes_{iRProc}.funParams_.ChannelIndex(2)};
 denomFileNames = movieData.processes_{iRProc}.getInImageFileNames(iDenom);
 
 ratDir = movieData.processes_{iRProc}. ...
-    outImagePaths_{movieData.processes_{iRProc}.funParams_.ChannelIndex(1)};
+    outFilePaths_{1,movieData.processes_{iRProc}.funParams_.ChannelIndex(1)};
 ratioFileNames = movieData.processes_{iRProc}.getOutImageFileNames(iNum);
 
 %Set-up output directory
@@ -341,7 +341,7 @@ save([p.OutputDirectory filesep fitFileName],'fitData','fitValues',...
 %Log the correction in the movieData object and save it
 
 movieData.processes_{iProc}.setDateTime;
-movieData.saveMovieData;
+movieData.save;
 
 
 disp('Finished!')

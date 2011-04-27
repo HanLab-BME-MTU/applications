@@ -63,7 +63,7 @@ function bleedthroughCorrectionProcessGUI_OpeningFcn(hObject, eventdata, handles
 set(handles.text_copyright, 'String', copyright)
 
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for segmentationProcessGUI
+% Choose default command line output for bleedthroughCorrectionProcessGUI
 handles.output = hObject;
 
 % Get main figure handle and process id

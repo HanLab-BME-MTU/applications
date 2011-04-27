@@ -65,7 +65,7 @@ function shadeCorrectionProcessGUI_OpeningFcn(hObject, eventdata, handles, varar
 set(handles.text_copyright, 'String', copyright)
 
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for segmentationProcessGUI
+% Choose default command line output for shadeCorrectionProcessGUI
 handles.output = hObject;
 
 % Get main figure handle and process id
@@ -143,10 +143,9 @@ end
 
 % ---------------------- Parameter Setup -------------------------
 
-if ~isempty(userData.crtProc.correctionImagePaths_)
+if ~all(cellfun(@isempty,userData.crtProc.inFilePaths_(2,:)));
     set(handles.listbox_3, 'String', ...
-        userData.crtProc.correctionImagePaths_( funParams.ChannelIndex ));
-%         userData.crtProc.correctionImagePaths_(cellfun(@(x)(~isempty(x)),userData.crtProc.correctionImagePaths_)) );
+        userData.crtProc.inFilePaths_(2,funParams.ChannelIndex ));
 end
 
 if ~funParams.MedianFilter
@@ -228,7 +227,7 @@ end
 
 if length(get(handles.listbox_2, 'String')) ~= ...
                             length(get(handles.listbox_3, 'String'))
-   errordlg('Please provide the same number of dark-current image channels as input channels.','Setting Error','modal') 
+   errordlg('Please provide the same number of shade image channels as input channels.','Setting Error','modal') 
     return;
 end
 
@@ -258,7 +257,7 @@ funParams.ChannelIndex = channelIndex;
 userData.crtProc.setPara(funParams);
 
 % Get shade image path
-temp = userData.crtProc.correctionImagePaths_;
+temp = userData.crtProc.inFilePaths_(2,:);
 userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_3, 'String'));
 
 try

@@ -22,7 +22,7 @@ function varargout = outputRatioProcessGUI(varargin)
 
 % Edit the above text to modify the response to help outputRatioProcessGUI
 
-% Last Modified by GUIDE v2.5 24-Aug-2010 11:18:00
+% Last Modified by GUIDE v2.5 23-Apr-2011 18:33:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,7 @@ function outputRatioProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 set(handles.text_copyright, 'String', copyright)
 
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for segmentationProcessGUI
+% Choose default command line output for outputRatioProcessGUI
 handles.output = hObject;
 
 % Get main figure handle and process id
@@ -133,6 +133,19 @@ end
 set(handles.edit_factor, 'String', num2str(funParams.ScaleFactor))
 set(handles.edit_path, 'String', funParams.OutputDirectory)
 
+set(handles.checkbox_MakeMovie,'Value',funParams.MakeMovie);
+if funParams.MakeMovie
+    set(get(handles.uipanel_MovieOptions,'Children'),'Enable','on');
+else
+    set(get(handles.uipanel_MovieOptions,'Children'),'Enable','off');
+end
+
+booleanMovieOptions= {'ConstantScale','ColorBar','MakeAvi','MakeMov'}; 
+for i=booleanMovieOptions
+    set(handles.(['checkbox_' i{:}]), 'Value', funParams.MovieOptions.(i{:}))
+end
+set(handles.edit_Saturate, 'String', num2str(funParams.MovieOptions.Saturate))
+set(handles.slider_Saturate, 'Value', funParams.MovieOptions.Saturate)
 % ----------------------Set up help icon------------------------
 
 % Set up help icon
@@ -170,10 +183,8 @@ varargout{1} = handles.output;
 
 
 % --- Executes on button press in pushbutton_cancel.
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_cancel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function pushbutton_cancel_Callback(~, ~, handles)
+
 delete(handles.figure1);
 
 % --- Executes on button press in pushbutton_done.
@@ -232,6 +243,12 @@ end
     funParams.OutputDirectory = outputDir;    
     funParams.ScaleFactor = str2double(get(handles.edit_factor, 'String'));
     
+    funParams.MakeMovie = get(handles.checkbox_MakeMovie,'Value');
+    booleanMovieOptions= {'ConstantScale','ColorBar','MakeAvi','MakeMov'}; 
+    for i=booleanMovieOptions
+        funParams.MovieOptions.(i{:})= get(handles.(['checkbox_' i{:}]), 'Value');
+    end
+    funParams.MovieOptions.Saturate = get(handles.slider_Saturate, 'Value')
     % Set parameters
     userData.crtProc.setPara(funParams);
 
@@ -398,22 +415,9 @@ set(handles.edit_path, 'String', pathname);
 
 
 
-function edit_factor_Callback(hObject, eventdata, handles)
+function setProcChanged_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 userData.crtProc.setProcChanged(true);
-
-% --- Executes during object creation, after setting all properties.
-function edit_factor_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_factor (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on selection change in listbox_input1.
 function listbox_input1_Callback(hObject, eventdata, handles)
@@ -427,42 +431,6 @@ if isempty(contents1) || isempty(id)
    return;
 else
     set(handles.edit_dir, 'string', contents1{id}, 'Userdata',chanIndex(id));
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_input1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_input1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_dir_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_dir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_dir as text
-%        str2double(get(hObject,'String')) returns contents of edit_dir as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_dir_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_dir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
 end
 
 
@@ -492,10 +460,47 @@ if strcmp(eventdata.Key, 'return')
 end
 
 
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
+
+function edit_Saturate_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Saturate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall
+% Hints: get(hObject,'String') returns contents of edit_Saturate as text
+%        str2double(get(hObject,'String')) returns contents of edit_Saturate as a double
+
+value =str2double(get(hObject,'String'));
+if isnan(value) || value < get(handles.edit_Saturate,'Min')
+    value = get(handles.edit_Saturate,'Min');
+elseif value > get(handles.edit_Saturate,'Max')
+    value = get(handles.edit_Saturate,'Max');
+end
+set(handles.slider_Saturate,'Value',value);
+
+userData = get(handles.figure1, 'UserData');
+userData.crtProc.setProcChanged(true);
+
+% --- Executes on slider movement.
+function slider_Saturate_Callback(hObject, ~, handles)
+
+set(handles.edit_Saturate,'String',get(hObject,'Value'));
+
+userData = get(handles.figure1, 'UserData');
+userData.crtProc.setProcChanged(true);
+
+% --- Executes on button press in checkbox_MakeMovie.
+function checkbox_MakeMovie_Callback(hObject, ~, handles)
+% hObject    handle to checkbox_MakeMovie (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_MakeMovie
+
+if get(hObject,'Value')
+    set(get(handles.uipanel_MovieOptions,'Children'),'Enable','on');
+else
+    set(get(handles.uipanel_MovieOptions,'Children'),'Enable','off');
+end
+
+userData = get(handles.figure1, 'UserData');
+userData.crtProc.setProcChanged(true);
