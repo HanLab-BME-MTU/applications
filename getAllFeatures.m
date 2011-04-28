@@ -1,4 +1,4 @@
-function [allFeatures, tFirst, lifetime] = getAllFeatures(movieData)
+function [tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures(movieData, minLifetime)
 
 nFrames = movieData.nImages(1);
 
@@ -15,7 +15,7 @@ assert(nnz(isnan(seqOfEvents(:,4))) == size(seqOfEvents,1));
 SEL = getTrackSEL(tracksFinal);
 
 % Remove any 1-frame long track.
-isValid = SEL(:,3) ~= 1;
+isValid = SEL(:,3) >= minLifetime;
 tracksFinal = tracksFinal(isValid);
 SEL = SEL(isValid,:);
 

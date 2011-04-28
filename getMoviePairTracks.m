@@ -1,6 +1,8 @@
-function movieData = getMoviePairTracks(movieData,maxDistance,...
+function movieData = getMoviePairTracks(movieData, minLifetime, maxDistance,...
     minOverlap,bandWidth,minDistance,alpha,batchMode)
 
+% minLifetime:     is the minimal number of frames every tracks must last.
+%
 % maxDistance:     maximum distance between track pair candidates (t1,t2) such
 %                  that max(dist(t1,t2)) < maxDistance.
 %
@@ -18,17 +20,21 @@ function movieData = getMoviePairTracks(movieData,maxDistance,...
 
 % Parse input parameters
 
-if nargin < 3 || isempty(minOverlap)
+if nargin < 3 || isempty(minLifetime)
+    minLifetime = 1;
+end
+
+if nargin < 4 || isempty(minOverlap)
     minOverlap = 2;
 end
 
 assert(minOverlap >= 2);
 
-if nargin < 4 || isempty(bandWidth)
+if nargin < 5 || isempty(bandWidth)
     bandWidth = 1000;
 end
 
-if nargin < 5 || isempty(alpha)
+if nargin < 7 || isempty(alpha)
     alpha = 0.05;
 end
 
@@ -47,77 +53,130 @@ if ~exist(movieData.pairTracks.directory, 'dir')
 end
 
 % Get all track parameters
-[allFeatures, tFirst, lifetime] = getAllFeatures(movieData);
+[tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures(movieData, minLifetime); %#ok<ASGLU>
+
+nTracks = numel(tFirst);
+tLast = tFirst + lifetime - 1;
+
+% pFirst and pLast are indexing allFeatures
+pLast = cumsum(lifetime);
+pFirst = pLast-lifetime+1;
 
 % Get initial pair track candidates
-[E, overlap, pFirst1, pFirst2] = ...
-    getInitialPairTracks(movieData, allFeatures, tFirst, lifetime, ...
+E = getInitialPairTracks(movieData, allFeatures, tFirst, lifetime, ...
     maxDistance, minOverlap, bandWidth, minDistance);
 
 % Define the set of connected components
+% numel(tFirst) == nTracks
 CC = arrayfun(@(x) {x}, (1:nTracks)');
 nCC = numel(CC);
 
-% For each pair i = (t1, t2), we have:
-% - ccModels1(i,:)    = segment model parameters of every points of track
-%                       t1 over overlap(i) frames
-% - ccModels2(i,:)    = segment model parameters of every points of track
-%                       t2 over overlap(i) frames
-% - pairCCModels(i,:) = segment model parameters of every point of track
-%                       t1 AND t2 over overlap(i) frames
-
-% Compute initial model for each first track within pair candidates
-allFeaturesCC1 = arrayfun(@(a,b) allFeatures(a:a+b-1,[1 2 4 6]), ...
-    pFirst1, overlap, 'UniformOutput', false);
-allFeaturesCC1 = vertcat(allFeaturesCC1{:});
-[modelsCC1 res1] = getSegmentModels(allFeaturesCC1, overlap);
-
-% Compute initial model for each second track within pair candidates
-allFeaturesCC2 = arrayfun(@(a,b) allFeatures(a:a+b-1,[1 2 4 6]), ...
-    pFirst2, overlap, 'UniformOutput', false);
-allFeaturesCC2 = vertcat(allFeaturesCC2{:});
-[modelsCC2 res2] = getSegmentModels(allFeaturesCC2, overlap);
-
-% Compute initial model for each pair candidates (merged tracks)
-pLast = cumsum(overlap);
-pFirst = pLast-overlap+1;
-allPairTrackParams = arrayfun(@(a,b) [allFeaturesCC1(a:a+b-1,:); ...
-    allFeaturesCC2(a:a+b-1,:)], pFirst, overlap, 'UniformOutput', false);
-allPairTrackParams = vertcat(allPairTrackParams{:});
-[pairCCModels resPair] = getSegmentModels(allPairTrackParams, 2 * overlap);
-
-% Compute BIC of the split model versus merged model
-N = 4 * overlap;
-varSplit = cellfun(@(res1,res2) var([res1; res2], 1), res1, res2);
-varMerge = cellfun(@(res) var(res,1), resPair);
-
-bicSplit = N .* log(varSplit) + 8 * log(N);
-bicMerge = N .* log(varMerge) + 4 * log(N);
-
-% Define score of each pair
-W = bicSplit - bicMerge;
-
-% Define which pair is valid
-isValidPair = W >= 0;
-
-% DEBUG
-% filename = fullfile(movieData.pairTracks.directory, 'allPairTrackCands.mat');
-% savePairTrack(movieData, allFeatures, tFirst, E, pFirst1, pFirst2, filename);
-
-E = E(isValidPair,:);
-W = W(isValidPair);
-pFirst1 = pFirst1(isValidPair);
-pFirst2 = pFirst2(isValidPair);
-
-% DEBUG
-% filename = fullfile(movieData.pairTracks.directory, 'allValidPairTrackCands.mat');
-% savePairTrack(movieData, allFeatures, tFirst, E, pFirst1, pFirst2, filename);
-
 % Start iteration
+iter = 0;
+
 while size(E,1)
-    M = maxWeightedMatching(E, W);
+    iter = iter + 1;
+    
+    fprintf(1, 'Iterative Track Clustering level %d\n', iter);
+    fprintf(1, '\tNumber of connected components:\t%d\n', nCC);
+    fprintf(1, '\tNumber of pair candidates:\t%d\n', size(E,1));   
+    
+    % Compute the first and last frame of each CC
+    tFirstCC = cellfun(@(trackIdx) min(tFirst(trackIdx)), CC); % first frame of CC
+    tLastCC = cellfun(@(trackIdx) max(tLast(trackIdx)), CC);   % last frame of CC
+    
+    % Compute the overlap between CC
+    tOverlapFirst = max(tFirstCC(E(:,1)), tFirstCC(E(:,2)));
+    tOverlapFirst = arrayfun(@(x) {x}, tOverlapFirst);
+    
+    tOverlapLast = min(tLastCC(E(:,1)), tLastCC(E(:,2)));
+    tOverlapLast = arrayfun(@(x) {x}, tOverlapLast);
+
+    % For each track in the first/second CC, compute the first feature
+    % index that appears at tOverlapFirst
+    pFirstCC1 = cellfun(@(trackIdx, tOverlapFirst) ...
+        pFirst(trackIdx) + tOverlapFirst - tFirst(trackIdx), ...
+        CC(E(:,1)), tOverlapFirst, 'UniformOutput', false);
+    pFirstCC2 = cellfun(@(trackIdx, tOverlapFirst) ...
+        pFirst(trackIdx) + tOverlapFirst - tFirst(trackIdx), ...
+        CC(E(:,2)), tOverlapFirst, 'UniformOutput', false);
+    
+    % For each track in the first/second CC, compute its lifetime between
+    % tOverlapFirst and tOverlapLast
+    trackLifetimeInOverlapCC1 = cellfun(@(trackIdx, tOverlapFirst, tOverlapLast) ...
+        min(tLast(trackIdx), tOverlapLast) - max(tFirst(trackIdx), ...
+        tOverlapFirst) + 1, CC(E(:,1)), tOverlapFirst, tOverlapLast, ...
+        'UniformOutput', false);
+    trackLifetimeInOverlapCC2 = cellfun(@(trackIdx, tOverlapFirst, tOverlapLast) ...
+        min(tLast(trackIdx), tOverlapLast) - max(tFirst(trackIdx), ...
+        tOverlapFirst) + 1, CC(E(:,2)), tOverlapFirst, tOverlapLast, ...
+        'UniformOutput', false);
+    
+    % Gather every feature of each track in the first/second CC between
+    % tOverlapFirst and tOverlapLast
+    allFeaturesCC1 = cellfun(@(aa,bb) arrayfun(@(a,b) ...
+        allFeatures(a:a+b-1, [1 2 4 6]), aa, bb, 'UniformOutput', false), ...
+        pFirstCC1, trackLifetimeInOverlapCC1, 'UniformOutput', false);
+    
+    allFeaturesCC1 = cellfun(@(c) vertcat(c{:}), allFeaturesCC1, ...
+        'UniformOutput', false);
+    
+    allFeaturesCC2 = cellfun(@(aa,bb) arrayfun(@(a,b) ...
+        allFeatures(a:a+b-1, [1 2 4 6]), aa, bb, 'UniformOutput', false), ...
+        pFirstCC2, trackLifetimeInOverlapCC2, 'UniformOutput', false);
+    
+    allFeaturesCC2 = cellfun(@(c) vertcat(c{:}), allFeaturesCC2, ...
+        'UniformOutput', false);
+
+    % Compute the number of features per each first/second CC
+    nFeatures1 = cellfun(@(a) size(a,1), allFeaturesCC1);    
+    allFeaturesCC1 = vertcat(allFeaturesCC1{:});
+    
+    nFeatures2 = cellfun(@(a) size(a,1), allFeaturesCC2);
+    allFeaturesCC2 = vertcat(allFeaturesCC2{:});
+   
+    % Compute model of the each first/second CC
+    [~, res1] = getSegmentModels(allFeaturesCC1, nFeatures1);
+    [~, res2] = getSegmentModels(allFeaturesCC2, nFeatures2);
+    
+    % Compute model of each pair of CC
+    ppLast1 = cumsum(nFeatures1);
+    ppFirst1 = ppLast1 - nFeatures1 + 1;
+    ppLast2 = cumsum(nFeatures2);
+    ppFirst2 = ppLast2 - nFeatures2 + 1;
+    
+    allPairFeatures = arrayfun(@(a1,b1,a2,b2) [allFeaturesCC1(a1:b1,:); ...
+        allFeaturesCC2(a2:b2,:)], ppFirst1, ppLast1, ppFirst2, ppLast2, ...
+        'UniformOutput', false);
+    
+    allPairFeatures = vertcat(allPairFeatures{:});
+    [~, resPair] = getSegmentModels(allPairFeatures, ...
+        nFeatures1 + nFeatures2);    
+    
+    % Compute BIC of the split model versus merged model
+    N = 2 * (nFeatures1 + nFeatures2);
+    varSplit = cellfun(@(res1,res2) var([res1; res2], 1), res1, res2);
+    varMerge = cellfun(@(res) var(res, 1), resPair);
+
+    bicSplit = N .* log(varSplit) + 8 * log(N);
+    bicMerge = N .* log(varMerge) + 4 * log(N);
+
+    % Define score of each pair
+    W = bicSplit - bicMerge;
+
+    % Define which pair is valid
+    %isGoodOfFit = cellfun(@(res) ~kstest(res ./ std(res, 1), [], alpha), ...
+    %    resPair);
+    
+    isValidPair = W >= 0;% & isGoodOfFit;
+
+    % Remove invalid pairs
+    E = E(isValidPair,:);
+    W = W(isValidPair);
+    
+    M = maxWeightedMatching(nCC, E, W);
         
-    % Update E, CC and nCC
+    % Merge E, CC and update nCC
     EM = E(M,:);
     ccInd = 1:nCC;
     ccInd(EM(:,2)) = EM(:,1);
@@ -137,59 +196,18 @@ while size(E,1)
     
     isEmpty = cellfun(@isempty,CC);
     CC = CC(~isEmpty);
-    nCC = numel(CC);
-
-    % Compute the lifetime of each CC
-    tFirstCC = cellfun(@(trackIdx) min(tFirst(trackIdx)), CC); % first frame of CC
-    tLastCC = cellfun(@(trackIdx) max(tLast(trackIdx)), CC);   % last frame of CC
-    lifetimeCC = tLastCC - tFirstCC + 1;                       % lifetime of CC
-    
-    % Compute the overlap between CC
-    tOverlapFirst = max(tFirst(E(:,1)), tFirst(E(:,2)));
-    tOverlapLast = min(tLast(E(:,1)), tLast(E(:,2)));
-    overlap = tOverlapLast - tOverlapFirst + 1;
-
-    % For each track in the first/second CC, compute the first feature
-    % index that appears in the overlap
-    pFirstCC1 = ;
-    pFirstCC2 = ;
-    
-    % For each track in the first/second CC, compute the last feature
-    % index that appears in the overlap
-    pLastCC1 = ;
-    pLastCC2 = ;
-    
-    % Gather every feature of each track in the first/second CC between
-    % tOverlapFirst and tOverlapLast
-    allFeaturesCC1 = cellfun(@(aa,bb) arrayfun(@(a,b) ...
-        allFeatures(a:a+b-1, [1 2 4 6]), aa, bb, 'UniformOutput', false), ...
-        ppFirst1, ppLast1, 'UniformOutput', false);
-    
-    allFeaturesCC1 = cellfun(@(c) vertcat(c{:}), allFeaturesCC1);
-    
-    allFeaturesCC2 = cellfun(@(aa,bb) arrayfun(@(a,b) ...
-        allFeatures(a:a+b-1, [1 2 4 6]), aa, bb, 'UniformOutput', false), ...
-        ppFirst2, ppLast2, 'UniformOutput', false);
-    
-    allFeaturesCC2 = cellfun(@(c) vertcat(c{:}), allFeaturesCC2);
-
-    % Compute the number of features per each first/second CC
-    nFeatures1 = cellfun(@(a) size(a,1), allFeaturesCC1);    
-    allFeaturesCC1 = vertcat(allFeaturesCC1{:});
-    
-    nFeatures2 = cellfun(@(a) size(a,1), allFeaturesCC2);
-    allFeaturesCC2 = vertcat(allFeaturesCC2{:});
-   
-    % Compute model of the each first/second CC
-    [modelsCC1 res1] = getSegmentModels(allFeaturesCC1, nFeatures1);
-    [modelsCC2 res2] = getSegmentModels(allFeaturesCC2, nFeatures2);
-    
-    
-    
-    % Recompute W
-    
-    % Threshold E, W, pFirst1, pFirst2
+    nCC = numel(CC);    
 end
+
+% Save the labeled tracks
+% Save labeled tracks into a filetracksFinal
+trackLabels = zeros(nTracks,1);
+for iCC = 1:nCC
+    trackLabels(CC{iCC}) = iCC;
+end
+assert(nnz(trackLabels) == numel(trackLabels));
+save(fullfile(movieData.pairTracks.directory, 'ClassifiedTracks.mat'), ...
+    'tracksFinal', 'trackLabels');
 
 % END
 movieData.pairTracks.status = 1;

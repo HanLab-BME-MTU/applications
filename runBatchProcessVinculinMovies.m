@@ -45,11 +45,12 @@ params.particleDetection.minDist = .2;
 params.particleTracking.searchRadius = 5;
 
 % PROC 4: track pairing
+params.pairTracks.minLifetime = 1;
 params.pairTracks.maxDistance = 2010; % nm (30 pixels)
 params.pairTracks.minOverlap = 2;
 params.pairTracks.bandWidth = 1000;   % nm
 params.pairTracks.minDistance = 335;  % nm (5 pixels)
-params.pairTracks.alpha = 0.05;
+params.pairTracks.alpha = 0.001;
 
 % PROC 5: figures
 params.figures = struct();

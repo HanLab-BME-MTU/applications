@@ -1,6 +1,5 @@
-function [E, overlap, pFirst1, pFirst2] = ...
-    getInitialPairTracks(movieData, allFeatures, tFirst, lifetime, ...
-    maxDistance, minOverlap, bandWidth, minDistance)
+function E = getInitialPairTracks(movieData, allFeatures, tFirst, ...
+    lifetime, maxDistance, minOverlap, bandWidth, minDistance)
 
 nFrames = movieData.nImages(1);
 imSize = movieData.imSize;
@@ -77,7 +76,6 @@ isValid = overlap == N & overlap >= minOverlap;
 % trim arrays
 E = E(isValid,:);
 tOverlapFirst = tOverlapFirst(isValid);
-overlap = overlap(isValid);
 D = D(isValid);
 
 % Point the location of each track parameters for every pair
@@ -85,24 +83,8 @@ pFirst1 = pFirst(E(:,1)) + tOverlapFirst - tFirst(E(:,1));
 pFirst2 = pFirst(E(:,2)) + tOverlapFirst - tFirst(E(:,2));
 
 % DEBUG
-segments = cell(nFrames,1);
-for iFrame = 1:nFrames
-    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-    
-    % Get the coordinates of the extremities of the valid pair
-    offset = iFrame - tOverlapFirst(isPairInFrame);
-    ind1 = pFirst1(isPairInFrame) + offset;
-    ind2 = pFirst2(isPairInFrame) + offset;
-    
-    x1 = allFeatures(ind1,1);
-    x2 = allFeatures(ind2,1);
-    y1 = allFeatures(ind1,2);
-    y2 = allFeatures(ind2,2);
-    
-    segments{iFrame} = [x1 y1 x2 y2];
-end
-
-save(fullfile(movieData.pairTracks.directory, 'allPairTrackCands.mat'), 'segments');
+% filename = fullfile(movieData.pairTracks.directory, 'allPairTrackCands.mat');
+% savePairTrack(movieData, allFeatures, tFirst, E, pFirst1, pFirst2, filename);
 
 % Discard any pair (t1,t2) such that:
 % distToEdge(t1) < bandWidth & distToEdge(t2) < bandWidth
@@ -133,27 +115,9 @@ isValid = ~(isTrackPairInBand & D < minDistance);
 
 % trim arrays
 E = E(isValid,:);
-tOverlapFirst = tOverlapFirst(isValid);
-overlap = overlap(isValid);
 pFirst1 = pFirst1(isValid);
 pFirst2 = pFirst2(isValid);
 
 % DEBUG
-segments = cell(nFrames,1);
-for iFrame = 1:nFrames
-    isPairInFrame = iFrame >= tOverlapFirst & iFrame <= tOverlapFirst + overlap - 1;
-    
-    % Get the coordinates of the extremities of the valid pair
-    offset = iFrame - tOverlapFirst(isPairInFrame);
-    ind1 = pFirst1(isPairInFrame) + offset;
-    ind2 = pFirst2(isPairInFrame) + offset;
-    
-    x1 = allFeatures(ind1,1);
-    x2 = allFeatures(ind2,1);
-    y1 = allFeatures(ind1,2);
-    y2 = allFeatures(ind2,2);
-    
-    segments{iFrame} = [x1 y1 x2 y2];
-end
-
-save(fullfile(movieData.pairTracks.directory, 'pairTrackCandsInBands.mat'), 'segments');
+% filename = fullfile(movieData.pairTracks.directory, 'pairTrackCandsInBands.mat');
+% savePairTrack(movieData, allFeatures, tFirst, E, pFirst1, pFirst2, filename);
