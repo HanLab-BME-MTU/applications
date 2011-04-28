@@ -1,16 +1,16 @@
-function [trackModels res] = getTrackModels(allTrackParams, nPoints)
+function [models res] = getSegmentModels(allFeatures, nFeatures)
 
-nTracks = numel(nPoints);
+nSegments = numel(nFeatures);
 
-trackModels = zeros(nTracks, 4);
-res = cell(nTracks, 1);
+models = zeros(nSegments, 4);
+res = cell(nSegments, 1);
 
-% pFirst and pLast are indexing allTrackParams
-pLast = cumsum(nPoints);
-pFirst = pLast-nPoints+1;
+% pFirst and pLast are indexing allFeatures
+pLast = cumsum(nFeatures);
+pFirst = pLast-nFeatures+1;
 
-for iTrack = 1:nTracks
-    params = allTrackParams(pFirst(iTrack):pLast(iTrack), [1 2 4 6]);
+for iSegment = 1:nSegments
+    params = allFeatures(pFirst(iSegment):pLast(iSegment), :);
     params = num2cell(params,1);
     [x, y, sx, t] = params{:};
     ct = cos(t);
@@ -18,5 +18,5 @@ for iTrack = 1:nTracks
     x = [x + sx .* ct; x - sx .* ct];
     y = [y + sx .* st; y - sx .* st];
     
-    [trackModels(iTrack, :), res{iTrack}] = getSegmentModel(x,y);
+    [models(iSegment, :), res{iSegment}] = getSegmentModel(x,y);
 end

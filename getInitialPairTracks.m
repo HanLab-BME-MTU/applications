@@ -1,5 +1,5 @@
 function [E, overlap, pFirst1, pFirst2] = ...
-    getInitialPairTracks(movieData, allTrackParams, tFirst, lifetime, ...
+    getInitialPairTracks(movieData, allFeatures, tFirst, lifetime, ...
     maxDistance, minOverlap, bandWidth, minDistance)
 
 nFrames = movieData.nImages(1);
@@ -29,8 +29,8 @@ for iFrame = 1:nFrames
     indTrackInFrame = find(iFrame >= tFirst & iFrame < tFirst + lifetime);
     
     indP = pFirst(indTrackInFrame) + iFrame - tFirst(indTrackInFrame);
-    X = allTrackParams(indP, 1);
-    Y = allTrackParams(indP, 2);
+    X = allFeatures(indP, 1);
+    Y = allFeatures(indP, 2);
 
     [indTrack1 dist] = KDTreeBallQuery([X,Y],[X,Y], repmat(maxDistance, numel(X),1));
     
@@ -94,10 +94,10 @@ for iFrame = 1:nFrames
     ind1 = pFirst1(isPairInFrame) + offset;
     ind2 = pFirst2(isPairInFrame) + offset;
     
-    x1 = allTrackParams(ind1,1);
-    x2 = allTrackParams(ind2,1);
-    y1 = allTrackParams(ind1,2);
-    y2 = allTrackParams(ind2,2);
+    x1 = allFeatures(ind1,1);
+    x2 = allFeatures(ind2,1);
+    y1 = allFeatures(ind1,2);
+    y2 = allFeatures(ind2,2);
     
     segments{iFrame} = [x1 y1 x2 y2];
 end
@@ -120,8 +120,8 @@ for iFrame = 1:nFrames
     isTrackInFrame = iFrame >= tFirst & iFrame <= tLast;
     
     indP = pFirst(isTrackInFrame) + iFrame - tFirst(isTrackInFrame);
-    X = allTrackParams(indP, 1);
-    Y = allTrackParams(indP, 2);
+    X = allFeatures(indP, 1);
+    Y = allFeatures(indP, 2);
     ind = sub2ind(imSize,round(Y),round(X));
         
     isTrackInBand(isTrackInFrame) = isTrackInBand(isTrackInFrame) | ...
@@ -148,10 +148,10 @@ for iFrame = 1:nFrames
     ind1 = pFirst1(isPairInFrame) + offset;
     ind2 = pFirst2(isPairInFrame) + offset;
     
-    x1 = allTrackParams(ind1,1);
-    x2 = allTrackParams(ind2,1);
-    y1 = allTrackParams(ind1,2);
-    y2 = allTrackParams(ind2,2);
+    x1 = allFeatures(ind1,1);
+    x2 = allFeatures(ind2,1);
+    y1 = allFeatures(ind1,2);
+    y2 = allFeatures(ind2,2);
     
     segments{iFrame} = [x1 y1 x2 y2];
 end
