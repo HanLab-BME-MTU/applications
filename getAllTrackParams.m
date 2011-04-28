@@ -8,6 +8,7 @@ load(fullfile(movieData.particleTracking.directory, movieData.particleTracking.f
 
 % Check there is no split and merge. If split and merge is enabled, it
 % would complexify the interpolation in gaps.
+
 seqOfEvents = vertcat(tracksFinal(:).seqOfEvents); %#ok<NODEF>
 assert(nnz(isnan(seqOfEvents(:,4))) == size(seqOfEvents,1));
 
