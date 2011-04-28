@@ -22,7 +22,7 @@ function varargout = biosensorsPackageGUI(varargin)
 
 % Edit the above text to modify the response to help biosensorsPackageGUI
 
-% Last Modified by GUIDE v2.5 05-Apr-2011 15:11:25
+% Last Modified by GUIDE v2.5 28-Apr-2011 11:57:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1027,5 +1027,3 @@ userData = get(handles.figure1, 'UserData');
 
 userData.toolFig(2) = transformCreationGUI;
 set(handles.figure1, 'UserData', userData);
-
-
