@@ -82,6 +82,7 @@ if ~isempty(corrPos)
     % initialize:
     maxIdx =length(goodCellSet);
     corr_out(maxIdx).edge = [];
+    corr_out(maxIdx).t    = [];
     
 %     maxEdgeNum=100;  % This can be read out of the data set!
 %     % maxFrame  =200;  % This can be read out of the data set!
@@ -108,6 +109,7 @@ for idx=1:length(goodCellSet)
     resF_vals    = NaN+zeros(toDoList(end),2);
     sumFi_vals   = NaN+zeros(toDoList(end),1);
     sumLi_vals   = NaN+zeros(toDoList(end),1);
+    corr_out(idx).t = NaN+zeros(toDoList(end),1);
     
     for frame=toDoList
         % Now go through all checks:
@@ -252,6 +254,16 @@ for idx=1:length(goodCellSet)
                     end
                 end
             end
+            % The value will be overwritten many times but in this way we
+            % don't have to check which is the first non-empty entry in the
+            % trackedNet structure.
+            corr_out(idx).dt_mean = groupedClusters.cluster{clusterId}.trackedNet{frame}.par.dt_mean;
+            corr_out(idx).dt_std  = groupedClusters.cluster{clusterId}.trackedNet{frame}.par.dt_std;
+            
+            % read out also the absolute time point:
+            corr_out(idx).t(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.par.t;
+            
+            
         end
     end
     % append the found values:

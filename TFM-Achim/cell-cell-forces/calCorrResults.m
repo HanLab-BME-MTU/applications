@@ -1,4 +1,4 @@
-function [corrResults]=calCorrResults(corrSets,maxLag,opt,normVar)
+function [corrResults]=calCorrResults(corrSets,maxLag,opt,normVar,tBtwFrms,aveType)
 % INPUT 
 % opt:  'usefn': take only network forces into account. At the moment, flag
 %                is only used to select the correct fm values, one could also use it to
@@ -8,7 +8,33 @@ function [corrResults]=calCorrResults(corrSets,maxLag,opt,normVar)
 %       'usefc': take only cluster forces into account.
 %       'usefm': take network forces when possible, cluster forces
 %                otherwise.
-
+%    'tBtwFrms': all frame rates will be transformed to this user defined
+%                time interval between frames. Of course, this value has to
+%                be set very carefully. If it is not given it is assumed
+%                that all data have been acquired at the SAME frame rate.
+% aveType:       In case tBtwFrms is not empty the user has a few options
+%                to choose how the time points are picked and bined into
+%                the bins set by tBtwFrms.
+%     'none'   : The default: If there are multiple measurments in the same 
+%                bin, then ONLY the last time point in this bin is taken.
+%     'mean'   : If there are multiple measurments in the same bin, then
+%                the average over all measurements in this bin is taken. If
+%                the number of interfaces changes in this time bin, then,
+%                the cell is considered to have the minimal connectivity it
+%                ever assums during this time interval. This is because, 
+%                the simple mean, at an interface that at least once assumes
+%                a NaN during the time intervall, will yield a NaN. So
+%                information is lost. In such a situation, the finite
+%                values at the stable edges will be biased by all values
+%                although the cell might change its connectivity. The sum
+%                over Fi_tot is underestimated in this situation.
+%     'nanmean': If there are multiple measurments in the same bin, then
+%                the average over all measurements in this bin is taken. If
+%                the number of interfaces changes in this time bin, then,
+%                the cell is considered to have the maximal connectivity it
+%                ever assums during this time interval. The sum
+%                over Fi_tot is overstimated in this situation.
+%                COMMENT: I slightly prefer the 'nanmean'.
 %**************************************************************************
 % 1) Find all frames for this cell where the network has not changed      *
 %**************************************************************************
@@ -37,10 +63,13 @@ end
 if nargin<3 || isempty(opt)
     opt='usefm';
 end
-    
 
 if nargin<4 || isempty(normVar)
     normVar=0;
+end
+
+if nargin<6 || isempty(aveType)
+    aveType='none';
 end
 
 % now pull the right data in a new field of the data structure. Once when
@@ -68,14 +97,95 @@ idx=1;
 while idx<=length(corrSets)
     if length(corrSets(idx).edge)<2
         corrSets(idx)=[];
-        display('This shouldn''t happen!')
+        display('This shouldn''t happen! Cell found with less than two interfaces!')
     else
         idx=idx+1;
     end
 end
 
+if nargin>=5 && ~isempty(tBtwFrms)
+    display('Adapted frame rates')
+    %**************************************************************************
+    % 2) Bring all time courses to the same frame rate                        *
+    %**************************************************************************
+
+    % These are either experiments with unmeasured dt or with super fast frame
+    % rates:
+    dtList = vertcat(corrSets.dt_mean);
+    badSets=dtList<=2;
+    % disregard those:
+    display(['# Disregarded experiments:= ',num2str(sum(badSets)),' out of:= ',num2str(length(corrSets))]);
+    corrSets(badSets)=[];
+    dtList(badSets)=[];
+    % find minimal dt:
+    dt_min = min(dtList);
+    % Warn the user if dt_min<tBtwFrms:
+    if dt_min<tBtwFrms
+        display('The fastest frame rate is faster then the set time between frames!')
+    end
+
+    % Find the max time span:
+    t_max   = max(vertcat(corrSets.t));
+
+    % general time vector to all experiments will be mapped:
+    tvec=(0:tBtwFrms:(t_max+tBtwFrms))';
+
+    for idx=1:length(corrSets)
+        % rounded time vector of current experiment:
+        idsTPts=round(corrSets(idx).t./tBtwFrms)+1;
+        intTPts=round(corrSets(idx).t./tBtwFrms)*tBtwFrms;
+        % disregard frames that are bad anyways:
+        goodVals=~isnan(idsTPts);
+        idsTPts=idsTPts(goodVals);
+        intTPts=intTPts(goodVals);
+
+    %!!!% ToDo: check if there are multiple entries in idsTPts!
+
+        if sum(tvec(idsTPts)-intTPts)~=0
+            error('Check sum should be zero. Time points are not calculated correctly')
+        end
+
+        % build the new time vector:
+        newTvec=NaN*zeros(size(tvec));
+        newTvec(idsTPts)=intTPts;
+
+        if nansum(tvec-newTvec)~=0
+            error('Check sum should be zero. Timepts are not calculated correctly')
+        end
+
+        % first adapt the residual force:
+        % do average if necessary:
+        if strcmpi(aveType,'mean') || strcmpi(aveType,'nanmean')
+            resF=aveInSameBin(corrSets(idx).resF,idsTPts,aveType);
+        else 
+            resF=corrSets(idx).resF;
+        end
+        corrSetsNew(idx).resF = NaN*zeros(size(tvec,1),2);
+        corrSetsNew(idx).resF(idsTPts,:) = resF(goodVals,:);
+
+        % run through all edges and set the values at the right position:
+        for edgeId=1:length(corrSets(idx).edge)
+            if strcmpi(aveType,'mean') || strcmpi(aveType,'nanmean')
+                fcorr=aveInSameBin(corrSets(idx).edge(edgeId).fcorr,idsTPts,aveType);
+            else
+                fcorr=corrSets(idx).edge(edgeId).fcorr;
+            end
+            corrSetsNew(idx).edge(edgeId).fcorr = NaN*zeros(size(tvec,1),2);
+            corrSetsNew(idx).edge(edgeId).fcorr(idsTPts,:) = fcorr(goodVals,:);
+        end
+        % fill in the new time values:
+        corrSetsNew(idx).t       = newTvec;
+        corrSetsNew(idx).dt_mean = tBtwFrms;
+        corrSetsNew(idx).dt_std  = std(corrSets(idx).t(goodVals)-intTPts);
+    end
+    % swith back to the old variable name:
+    clear corrSets
+    corrSets=corrSetsNew;
+end
+
+
 %**************************************************************************
-% 2) Extract the time course of the forces                                *
+% 3) Extract the time course of the forces                                *
 %**************************************************************************
 % run through all clusters and collect the data.
 currEdge=1;
