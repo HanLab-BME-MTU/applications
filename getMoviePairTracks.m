@@ -168,7 +168,7 @@ while size(E,1)
     %isGoodOfFit = cellfun(@(res) ~kstest(res ./ std(res, 1), [], alpha), ...
     %    resPair);
     
-    isValidPair = W >= 0;% & isGoodOfFit;
+    isValidPair = W >= 0 & varMerge <= 6^2;
 
     % Remove invalid pairs
     E = E(isValidPair,:);
@@ -200,14 +200,17 @@ while size(E,1)
 end
 
 % Save the labeled tracks
-% Save labeled tracks into a filetracksFinal
 trackLabels = zeros(nTracks,1);
 for iCC = 1:nCC
     trackLabels(CC{iCC}) = iCC;
 end
-assert(nnz(trackLabels) == numel(trackLabels));
-save(fullfile(movieData.pairTracks.directory, 'ClassifiedTracks.mat'), ...
-    'tracksFinal', 'trackLabels');
+
+filename = fullfile(movieData.pairTracks.directory, 'ClassifiedTracks.mat');
+save(filename, 'tracksFinal', 'trackLabels');
+
+% Save the segment models
+filename = fullfile(movieData.pairTracks.directory, 'ClassifiedSegments.mat');
+saveCCTracks(movieData, CC, allFeatures, tFirst, tLast, pFirst, filename);
 
 % END
 movieData.pairTracks.status = 1;
