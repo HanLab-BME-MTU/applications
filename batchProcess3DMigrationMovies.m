@@ -117,7 +117,7 @@ if doLocal
     
     runInfo = cell(nMovies,1);
     
-    for iMov = 1:nMovies
+    parfor iMov = 1:nMovies
                 
         try            
             runInfo{iMov} = process3DMigrationMovie(movieArray(iMov),fp(iMov));                         
