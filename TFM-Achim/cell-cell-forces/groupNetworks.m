@@ -1,4 +1,4 @@
-function groupedNetworks=groupNetworks(groupedNetworks,filename,doSave)
+function groupedNetworks=groupNetworks(groupedNetworks,filename,doSave,corrTpts)
 
 if nargin<1 || isempty(groupedNetworks)
     groupedNetworks.numClusters= 0;
@@ -7,6 +7,14 @@ end
 
 if nargin<2 || isempty(filename)
     filename='trackedNet.mat';
+end
+
+if nargin<3 || isempty(doSave)
+    doSave=1;
+end
+
+if nargin<4 || isempty(corrTpts)
+    corrTpts=1;
 end
 
 if isunix
@@ -24,11 +32,7 @@ else
     toc;
 end
 
-if nargin<3 || isempty(doSave)
-    doSave=1;
-end
-
-
+rootDir=pwd;
 
 for entryId=1:numel(fileList)
     % load the file
@@ -36,6 +40,31 @@ for entryId=1:numel(fileList)
     currNet=filestruc.trackedNet;
     fnameFirstBeadImg=filestruc.fnameFirstBeadImg;
     
+    % lines form here...
+    if corrTpts
+        shrtPathNet=fileList{entryId};
+        shrtPathNet=shrtPathNet(2:end);
+        fullPathNet=[rootDir,shrtPathNet];
+        [pathMechTFM]=getFilenameBody(fullPathNet);
+        [projPath]=getFilenameBody(pathMechTFM);
+        beadsPath=[projPath,filesep,'data/Beads'];
+        beadsFileList=getFileListFromFolder(beadsPath);
+        [timePtsRel timePts timeIntervals meanDT stdDT]=getTimeList(beadsFileList,[],1);
+        for iframe=1:length(currNet)
+            if ~isempty(currNet{iframe})
+                currNet{iframe}.par.t      = timePtsRel(iframe);
+                currNet{iframe}.par.dt_mean= meanDT;
+                currNet{iframe}.par.dt_std = stdDT;
+            end
+        end
+        movefile(fullPathNet,[pathMechTFM,filesep,'trackedNetOldDT.mat']);
+        trackedNet=currNet;
+        save(fullPathNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
+    end
+    % ... till here could be removed, once time measures in all
+    % trackedNet.mat have been corrected.
+    
+    %save([pwd,filesep,'test.mat'], 'currNet','fnameFirstBeadImg','-v7.3');
     %save([pwd,filesep,'test.mat'], 'currNet','fnameFirstBeadImg','-v7.3');
     
     % sort it in, if it doesn't exist yet
@@ -44,7 +73,6 @@ for entryId=1:numel(fileList)
         display(fileList{entryId});
         return;
     else
-        
         clusterId = groupedNetworks.numClusters+1;
         groupedNetworks.clusterList{clusterId}        = fnameFirstBeadImg;
         groupedNetworks.cluster{clusterId}.trackedNet = currNet;

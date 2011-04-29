@@ -236,7 +236,7 @@ ylabel('Average Ecad intensity [a.u.]')
 
 end
 normVar=1;
-tBtwFrms=240;
+tBtwFrms=540;
 aveType='nanmean'; % first checks 'none', 'nanmean', 'mean' makes little difference
 maxLag =round(7200/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;

@@ -1,32 +1,41 @@
-function [timePtsRel timePts timeIntervals meanDT stdDT]=getTimeList(fileList,timeField)
+function [timePtsRel timePts timeIntervals meanDT stdDT]=getTimeList(fileList,timeField,batch)
 % Input : list of .tif images
 % Output: timePtsRel: time points in seconds relative to the first frame in the list.
 %         timePts   : absolut time point in seconds.
-
+doBoth=0;
 if nargin <2 || isempty(timeField)
-    timeField='FileModDate';
+    doBoth=1;
 end
+if nargin<3 || isempty(batch)
+    batch=0;
+end
+    
+foundDateTime=0;
+foundFileModDate=0;
 
 timePts=zeros(length(fileList),1);
 
 for frame=1:length(fileList)
     imageInfo=imfinfo(fileList{frame});
     
-    if strcmp(timeField,'DateTime') && isfield(imageInfo,'DateTime')
+    if (doBoth && isfield(imageInfo,'DateTime')) ||...
+            (strcmp(timeField,'DateTime') && isfield(imageInfo,'DateTime'))
         accTime=imageInfo.DateTime;
-
-        % This is a strange format, here we have to remove ':' so Matlab can
-        % read it:
-        accTime(strfind(accTime,':'))=' ';
-
-        % convert it to a numerical vector:
-        accTimeNum=str2num(accTime);
-
+        
         % This can be converted now by Matlab:
-        timeInDays=datenum(accTimeNum);
-    elseif strcmp(timeField,'FileModDate')
-        timeInDays=datenum(imageInfo.FileModDate);
-    else
+        timeInDays_DateTime=datenum(accTime,'yyyymmdd HH:MM:SS.FFF');
+
+        % The date could be recovered by e.g.:
+        % datestr(timeInDays,'yyyy mm dd HH:MM:SS.FFF')
+        foundDateTime=1;
+    end
+    if (doBoth && isfield(imageInfo,'FileModDate')) ||...
+            (strcmp(timeField,'FileModDate') && isfield(imageInfo,'FileModDate'))
+        timeInDays_FileModDate=datenum(imageInfo.FileModDate);
+        foundFileModDate=1;
+    end
+    
+    if ~foundFileModDate && ~foundDateTime
         display(['The field : "',timeField,'" is not supported!']);
         % all zero:
         timePtsRel=zeros(length(fileList),1);
@@ -38,14 +47,67 @@ for frame=1:length(fileList)
     end
     
     % We convert it in seconds:
-    timePts(frame) =timeInDays*24*3600;    
+    if foundFileModDate
+        timePts_FileModDate(frame) =timeInDays_FileModDate*24*3600;
+    end
+    if foundDateTime
+        timePts_DateTime(frame) =timeInDays_DateTime*24*3600;
+    end
 end
-timePtsRel=timePts-timePts(1);
+if foundFileModDate
+    timePtsRel_FileModDate=timePts_FileModDate-timePts_FileModDate(1);
+    timeIntervals_FileModDate=timePts_FileModDate(2:end)-timePts_FileModDate(1:end-1);
+    meanDT_FileModDate=mean(timeIntervals_FileModDate);
+    stdDT_FileModDate=std(timeIntervals_FileModDate);
+end
+if foundDateTime
+    timePtsRel_DateTime=timePts_DateTime-timePts_DateTime(1);
+    timeIntervals_DateTime=timePts_DateTime(2:end)-timePts_DateTime(1:end-1);
+    meanDT_DateTime=mean(timeIntervals_DateTime);
+    stdDT_DateTime=std(timeIntervals_DateTime);
+end
 
-timeIntervals=timePts(2:end)-timePts(1:end-1);
+if foundFileModDate && foundDateTime
+    % check that the values are the same! The check is positive if the
+    % root mean squared deviation between the two time series is less then
+    % the sum of both standard deviations.
+    if sqrt(mean((timeIntervals_FileModDate-timeIntervals_DateTime).^2))<(stdDT_FileModDate+stdDT_DateTime)
+        timePtsRel    = timePtsRel_DateTime;
+        timePts       = timePts_DateTime;
+        timeIntervals = timeIntervals_DateTime;
+        meanDT        = meanDT_DateTime;
+        stdDT         = stdDT_DateTime;
+    else
+        display('**************************************')
+        display(['meanDT_DateTime:= ',num2str(meanDT_DateTime),'+-',num2str(stdDT_DateTime),'   meanDT_FileModDate:= ',num2str(meanDT_FileModDate),'+-',num2str(stdDT_FileModDate)]);
+        display('**************************************')
+        display('* The extracted values do not agree! *') 
+        display('**************************************')
+        if ~batch
+            input('Should we go on with the DateTime values? Hit enter, else abort: ');
+        end
+        
+        timePtsRel    = timePtsRel_DateTime;
+        timePts       = timePts_DateTime;
+        timeIntervals = timeIntervals_DateTime;
+        meanDT        = meanDT_DateTime;
+        stdDT         = stdDT_DateTime;        
+    end
+elseif foundFileModDate && ~foundDateTime
+        timePtsRel    = timePtsRel_FileModDate;
+        timePts       = timePts_FileModDate;
+        timeIntervals = timeIntervals_FileModDate;
+        meanDT        = meanDT_FileModDate;
+        stdDT         = stdDT_FileModDate;
+else
+        timePtsRel    = timePtsRel_DateTime;
+        timePts       = timePts_DateTime;
+        timeIntervals = timeIntervals_DateTime;
+        meanDT        = meanDT_DateTime;
+        stdDT         = stdDT_DateTime;
+end
+    
 
-meanDT=mean(timeIntervals);
-stdDT=std(timeIntervals);
 
 display(['The mean +- std of the time interval is: ',num2str(meanDT),'+-',num2str(stdDT)]);
 display(['With [min max]= [',num2str(min(timeIntervals)),' ',num2str(max(timeIntervals)),']']);
