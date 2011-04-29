@@ -131,22 +131,22 @@ layerPlugins(9).filterSpec = {'*.mat'};
 layerPlugins(9).displayFunc = @displayTracksFinal;
 layerPlugins(9).dispatchFunc = @dispatchTracksFinal;
 
-% [Khuloud tracker] Colored Tracks
-layerPlugins(10).desc = '[Khuloud Tracker] Classified Tracks';
-layerPlugins(10).filterSpec = {'*.mat'};
-layerPlugins(10).displayFunc = @displayClassifiedTracks;
-layerPlugins(10).dispatchFunc = @dispatchClassifiedTracks;
-
 % [Graph] Pair Tracks
-layerPlugins(11).desc = '[Graph] Pair Tracks';
+layerPlugins(10).desc = '[Graph] Pair Tracks';
+layerPlugins(10).filterSpec = {'*.mat'};
+layerPlugins(10).displayFunc = @displayAnisoFeatures;
+layerPlugins(10).dispatchFunc = @dispatchCellToFrames;
+
+% [Graph] Colored Tracks
+layerPlugins(11).desc = '[Graph] Colored Tracks';
 layerPlugins(11).filterSpec = {'*.mat'};
-layerPlugins(11).displayFunc = @displayAnisoFeatures;
-layerPlugins(11).dispatchFunc = @dispatchCellToFrames;
+layerPlugins(11).displayFunc = @displayClassifiedTracks;
+layerPlugins(11).dispatchFunc = @dispatchClassifiedTracks;
 
 % [Graph] Connected Component Models
-layerPlugins(12).desc = '[Graph] Connected Component Models';
+layerPlugins(12).desc = '[Graph] Colored Segments';
 layerPlugins(12).filterSpec = {'*.mat'};
-layerPlugins(12).displayFunc = @displayAnisoFeatures;
+layerPlugins(12).displayFunc = @displayClassifiedSegments;
 layerPlugins(12).dispatchFunc = @dispatchCellToFrames;
 
 % Theta map
