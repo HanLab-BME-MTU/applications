@@ -248,7 +248,7 @@ end
     for i=booleanMovieOptions
         funParams.MovieOptions.(i{:})= get(handles.(['checkbox_' i{:}]), 'Value');
     end
-    funParams.MovieOptions.Saturate = get(handles.slider_Saturate, 'Value')
+    funParams.MovieOptions.Saturate = get(handles.slider_Saturate, 'Value');
     % Set parameters
     userData.crtProc.setPara(funParams);
 
