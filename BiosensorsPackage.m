@@ -244,12 +244,12 @@ methods (Access = public)
                         if i == 7 || i == 9
                             if ~isempty(obj.processes_{3}) % MaskRefinement process
 
-                                funParams = obj.processes_{i}.funParams_;
+%                                 funParams = obj.processes_{i}.funParams_;
                                 segPI = find(cellfun(@(x)isequal(x, obj.processes_{3}), obj.owner_.processes_));
                                 if length(segPI) > 1
                                     error('User-defined: More than one identical MaskRefinement processes exists in movie data''s process list.')
                                 end
-                                funParams.SegProcessIndex = cat(2, segPI, funParams.SegProcessIndex);
+                                funParams.SegProcessIndex = cat(2, funParams.SegProcessIndex, segPI);
                              
                             end  
                         end
@@ -260,7 +260,7 @@ methods (Access = public)
                             segPI = find(cellfun(@(x)isa(x, 'MaskTransformationProcess'), obj.owner_.processes_));
                             
                             if ~isempty(segPI)
-                                funParams.SegProcessIndex = cat(2, segPI, funParams.SegProcessIndex);
+                                funParams.SegProcessIndex = cat(2, funParams.SegProcessIndex, segPI);
                             end
                         end
                         
