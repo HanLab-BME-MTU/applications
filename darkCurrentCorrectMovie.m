@@ -228,7 +228,7 @@ for iChan = 1:nChanCorr
     
     %Gaussian filter
     if p.GaussFilterSigma >= 1
-        darkIm{iChan} = Gauss2D(darkIm{iChan},p.GaussFilterSigma);        
+        darkIm{iChan} = filterGauss2D(darkIm{iChan},p.GaussFilterSigma);        
     end
         
     
@@ -277,7 +277,8 @@ for iChan = 1:nChanCorr
         
         if min(currIm(:)) < 1
             %Make sure that the correction makes sense...
-            warning('Dark current correction resulted in non-positive image values! Check correction images...')            
+            warning('BIOSENSORS:dkCorrect:badDarkCorr',...
+                'Dark current correction resulted in non-positive image values! Check correction images...')            
         end
         
         %Cast to original class

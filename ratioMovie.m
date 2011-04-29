@@ -295,24 +295,17 @@ for iImage = 1:nImages
     
     
    if p.ApplyMasks || p.CreateMasks  %If masks are to be applied, don't include the masked values      
-        
-        if hasMasks(1)
-            currNumMask = imread([numMaskDir filesep numMaskNames{1}{iImage}]);
-            if p.ApplyMasks 
-                currRatio(~currNumMask(:)) = 0;        
-            end
-        elseif p.CreateMasks
-            currNumMask = true(size(currRatio));
+                
+        currNumMask = imread([numMaskDir filesep numMaskNames{1}{iImage}]);
+        if p.ApplyMasks 
+            currRatio(~currNumMask(:)) = 0;        
+        end
+                
+        currDenomMask = imread([denomMaskDir filesep denomMaskNames{1}{iImage}]);        
+        if p.ApplyMasks 
+            currRatio(~currDenomMask(:)) = 0;        
         end
         
-        if hasMasks(2)
-            currDenomMask = imread([denomMaskDir filesep denomMaskNames{1}{iImage}]);
-            if p.ApplyMasks 
-                currRatio(~currDenomMask(:)) = 0;        
-            end
-        elseif p.CreateMasks
-            currDenomMask = true(size(currRatio));
-        end
         if p.CreateMasks              
             imwrite(currDenomMask & currNumMask,[ratMaskDir filesep 'ratio_mask_' numStr '.tif'])
         end
@@ -320,7 +313,8 @@ for iImage = 1:nImages
     end    
     
     %Remove any infinities from division-by-zero (this shouldn't happen if
-    %the masks are applied and images are good, but let's be realistic here .... )
+    %the masks are applied and all the images and corrections are good, but
+    %let's be realistic here .... )
     currRatio(~isfinite(currRatio(:))) = 0; %#ok<NASGU>
   
     %Save the ratio in double-precision floating point to avoid rounding
