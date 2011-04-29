@@ -52,15 +52,16 @@ function movieData = ratioMovie(movieData,paramsIn)
 %       If either CreateMasks or ApplyMasks are true, the following options
 %       can also be set:
 %
-%               ('SegProcessIndex' -> Positive integer scalar or vector)
-%               Optional. This specifies SegmentationProcess(s) to use
-%               masks from by its index in the array movieData.processes_;
-%               If input as a vector, masks will be used from the process
-%               specified by the first element, and if not available for a
-%               specific channel, then from the next process etc. If not
-%               input, and multiple SegmentationProcesses are present, the
-%               user will be asked to select one, unless batch mode is
-%               enabled in which case there will be an error.  
+%               ('SegProcessIndex' -> Positive integer scalar or vector) Optional.
+%               This specifies SegmentationProcess(s) to use masks from by its
+%               index in the array movieData.processes_; For each channel, masks
+%               will be used from the last process specified which has valid masks
+%               for that channel. That is if SegProcessIndex = [1 4] and both
+%               processes 1 and 4 have masks for a given channel, then the masks
+%               from process 4 will be used. If not input, and multiple
+%               SegmentationProcesses are present, the user will be asked to select
+%               one, unless batch mode is enabled in which case an error will be
+%               generated.
 %
 %       ('MaskChannelIndex' -> Positive integer vector, 1x2) The index of
 %       the channel of the masks to use for the numerator (1st element) and
@@ -171,7 +172,10 @@ if p.ApplyMasks || p.CreateMasks
     if isempty(p.SegProcessIndex)    
         if p.BatchMode
             %If batch mode, just get all the seg processes
-            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',Inf,0);            
+            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',Inf,0);
+            if numel(p.SegProcessIndex) > 1
+                error('In batch mode you must specify the SegProcessIndex if more than one SegmentationProcess is available!')
+            end      
         else
             %Otherwise, ask the user 
             p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',1,1);
@@ -201,7 +205,7 @@ if p.ApplyMasks || p.CreateMasks
     %Make sure all the selected channels have foreground masks.
     if any(~sum(hasMasks,2))
         warning('biosensors:backgroundMasks:noFGmasks',...
-            'Cannot create / apply masks because some channels do not have masks! Please segment these channels before creating / applying ratio masks!')
+            'Cannot create / apply masks because some channels do not have masks or a valid segmentation process was not selected! Please segment these channels before creating / applying ratio masks or select a different segmentation process!')
     end           
         
     %Get the most recent seg process with masks for this channel      
@@ -273,6 +277,7 @@ mkClrDir(ratMaskDir);
 
 disp('Starting ratioing...')
 disp(['Creating ratio images by dividing channel ' numDir ' by channel ' denomDir])
+disp(['Using masks from directories :' numMaskDir '  and ' denomMaskDir ])
 disp(['Resulting images will be written to channel ' outDir])
   
 if ~p.BatchMode
