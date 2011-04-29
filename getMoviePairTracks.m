@@ -68,12 +68,12 @@ E = getInitialPairTracks(movieData, allFeatures, tFirst, lifetime, ...
 
 % Define the set of connected components
 % numel(tFirst) == nTracks
-CC = arrayfun(@(x) {x}, (1:nTracks)');
+CC = arrayfun(@(t) {t}, (1:nTracks)');
 nCC = numel(CC);
 
 % Start iteration
 iter = 0;
-tic;
+
 while size(E,1)
     iter = iter + 1;
     
@@ -187,7 +187,12 @@ while size(E,1)
     CC = CC(~isEmpty);
     nCC = numel(CC);    
 end
-toc
+
+% Clean up CC
+CC = cleanUpCC(movieData, CC, allFeatures, tFirst, tLast, pFirst, bandWidth, ...
+    alpha);
+nCC = numel(CC);
+
 % Save the labeled tracks
 trackLabels = zeros(nTracks,1);
 for iCC = 1:nCC

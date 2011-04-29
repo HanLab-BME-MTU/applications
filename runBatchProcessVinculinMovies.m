@@ -18,7 +18,7 @@ params.procNames = {...
     'pairTracks',...
     'figures'};
 
-params.runSteps = [0 0 0 1 -1];
+params.runSteps = [0 1 1 1 1];
 params.batchMode = 0;
 
 % Physical parameters
