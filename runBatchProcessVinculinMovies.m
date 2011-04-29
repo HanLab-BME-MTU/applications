@@ -1,8 +1,8 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/060910_cre_CSUX_1';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
+params.rootDirectory = '/Users/sylvain/Documents/Work/HMS/Projects/VinculinFA/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/062309_cre_CSUX_3';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
@@ -18,7 +18,7 @@ params.procNames = {...
     'pairTracks',...
     'figures'};
 
-params.runSteps = [0 0 0 1 0];
+params.runSteps = [0 0 0 1 -1];
 params.batchMode = 0;
 
 % Physical parameters

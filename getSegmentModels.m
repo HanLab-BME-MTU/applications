@@ -1,16 +1,12 @@
-function [models res] = getSegmentModels(allFeatures, nFeatures)
+function [models res] = getSegmentModels(allFeatures)
 
-nSegments = numel(nFeatures);
+nModels = numel(allFeatures);
 
-models = zeros(nSegments, 4);
-res = cell(nSegments, 1);
+models = zeros(nModels, 4);
+res = cell(nModels, 1);
 
-% pFirst and pLast are indexing allFeatures
-pLast = cumsum(nFeatures);
-pFirst = pLast-nFeatures+1;
-
-for iSegment = 1:nSegments
-    params = allFeatures(pFirst(iSegment):pLast(iSegment), :);
+for iModel = 1:nModels
+    params = allFeatures{iModel};
     params = num2cell(params,1);
     [x, y, sx, t] = params{:};
     ct = cos(t);
@@ -18,5 +14,5 @@ for iSegment = 1:nSegments
     x = [x + sx .* ct; x - sx .* ct];
     y = [y + sx .* st; y - sx .* st];
     
-    [models(iSegment, :), res{iSegment}] = getSegmentModel(x,y);
+    [models(iModel, :), res{iModel}] = getSegmentModel(x,y);
 end

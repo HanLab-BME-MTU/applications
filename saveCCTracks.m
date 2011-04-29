@@ -29,10 +29,7 @@ for iFrame = 1:nFrames
     allFeaturesCC = cellfun(@(c) vertcat(c{:}), allFeaturesCC, ...
         'UniformOutput', false);
     
-    nFeatures = cellfun(@(a) size(a,1), allFeaturesCC);
-    allFeaturesCC = vertcat(allFeaturesCC{:});   
-    
-    modelsCC = getSegmentModels(allFeaturesCC, nFeatures);
+    modelsCC = getSegmentModels(allFeaturesCC);
     
     x = modelsCC(:,1);
     y = modelsCC(:,2);

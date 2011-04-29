@@ -73,7 +73,7 @@ nCC = numel(CC);
 
 % Start iteration
 iter = 0;
-
+tic;
 while size(E,1)
     iter = iter + 1;
     
@@ -130,28 +130,17 @@ while size(E,1)
 
     % Compute the number of features per each first/second CC
     nFeatures1 = cellfun(@(a) size(a,1), allFeaturesCC1);    
-    allFeaturesCC1 = vertcat(allFeaturesCC1{:});
-    
     nFeatures2 = cellfun(@(a) size(a,1), allFeaturesCC2);
-    allFeaturesCC2 = vertcat(allFeaturesCC2{:});
    
     % Compute model of the each first/second CC
-    [~, res1] = getSegmentModels(allFeaturesCC1, nFeatures1);
-    [~, res2] = getSegmentModels(allFeaturesCC2, nFeatures2);
+    [~, res1] = getSegmentModels(allFeaturesCC1);
+    [~, res2] = getSegmentModels(allFeaturesCC2);
     
     % Compute model of each pair of CC
-    ppLast1 = cumsum(nFeatures1);
-    ppFirst1 = ppLast1 - nFeatures1 + 1;
-    ppLast2 = cumsum(nFeatures2);
-    ppFirst2 = ppLast2 - nFeatures2 + 1;
+    allPairFeatures = cellfun(@(c1,c2) [c1;c2], allFeaturesCC1, ...
+        allFeaturesCC2, 'UniformOutput', false);
     
-    allPairFeatures = arrayfun(@(a1,b1,a2,b2) [allFeaturesCC1(a1:b1,:); ...
-        allFeaturesCC2(a2:b2,:)], ppFirst1, ppLast1, ppFirst2, ppLast2, ...
-        'UniformOutput', false);
-    
-    allPairFeatures = vertcat(allPairFeatures{:});
-    [~, resPair] = getSegmentModels(allPairFeatures, ...
-        nFeatures1 + nFeatures2);    
+    [~, resPair] = getSegmentModels(allPairFeatures);    
     
     % Compute BIC of the split model versus merged model
     N = 2 * (nFeatures1 + nFeatures2);
@@ -198,7 +187,7 @@ while size(E,1)
     CC = CC(~isEmpty);
     nCC = numel(CC);    
 end
-
+toc
 % Save the labeled tracks
 trackLabels = zeros(nTracks,1);
 for iCC = 1:nCC
