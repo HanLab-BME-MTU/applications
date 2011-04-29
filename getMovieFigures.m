@@ -21,8 +21,7 @@ kSigma = movieData.particleDetection.params.kSigma;
 
 %% Load data
 
-load(fullfile(movieData.pairTracks.directory, ['CCParams_iter=' ...
-    num2str(movieData.pairTracks.params.maxIter-1) '_.mat']));
+load(fullfile(movieData.pairTracks.directory, 'ClassifiedSegments.mat'));
 
 % Check that Actin tracking has been done
 load(fullfile(movieData.imageDirectory, movieData.channelDirectory{2}, ...
@@ -79,7 +78,7 @@ for iFrame = min(tFirst):max(tLast)
     speedMap(ind) = speeds(isInFrame);
     
     segmentParams = num2cell(segments{iFrame},1);
-    [x1,y1,x2,y2] = segmentParams{:};
+    [x1,y1,x2,y2] = segmentParams{1:4};
     x = .5 * (x1 + x2);
     y = .5 * (y1 + y2);
     l = sqrt((x2 - x1).^2 + (y2 - y1).^2);
@@ -105,7 +104,7 @@ isValid = ~isnan(actinSpeedPerSegment);
 lengthPerSegment = lengthPerSegment(isValid);
 actinSpeedPerSegment = actinSpeedPerSegment(isValid);
 
-range = [0:250:1000, 1500:500:max(lengthPerSegment)];
+range = [0, 500:250:1000, 1500:500:max(lengthPerSegment)];
 
 nBins = numel(range)-1;
 
@@ -131,9 +130,12 @@ hFig = figure('Visible', 'off');
 hold on;
 
 xlabels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
-    1:nBins, 'UniformOutput', false);
+    2:nBins, 'UniformOutput', false);
 
-boxplot2({prm},'color', [0.36 .63 .9], 'xlabels', xlabels, 'ylabel', 'Actin Speed (nm/min)');
+xlabels = ['Diffraction-limited', xlabels];
+
+boxplot2({prm},'color', [0.36 .63 .9], 'xlabels', xlabels, 'ylabel', ...
+    'Actin Speed (nm/min)');
 
 fileName = fullfile(movieData.figures.directory, ...
     [getDirFromPath(movieData.imageDirectory) '_fig4C.eps']);
