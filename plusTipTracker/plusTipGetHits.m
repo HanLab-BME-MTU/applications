@@ -9,7 +9,7 @@ function [dataStruct] = plusTipGetHits(saveDir,groupList,runStats,getHits,getMed
 % (can perform either the permutation T-test or t-test to validate if the two populations 
 % are equivalent. 
 % can read out hits 
-% NOTE: Likely NOT optimally written: Quick Fix MB 03/11
+% NOTE: Certainly NOT optimally written: Quick Fix MB 03/11
 % 
 % 
 % Input: 
@@ -83,8 +83,20 @@ for iGroup = 1:length(btwGrpNames)
     ratioPause2Growth = zeros(length(tempIdx),1);
     ratioShrink2Growth = zeros(length(tempIdx),1);
     dynamicity = zeros(length(tempIdx),1);
-    ratioCompound2GrowthSubtrack = zeros(length(tempIdx),1);
-    
+    ratioTotalTrack2GrowthSubtrack = zeros(length(tempIdx),1);
+    ratioGapTracks2NonGapTracks = zeros(length(tempIdx),1);
+    cometDensity = zeros(length(tempIdx),1); 
+    avgCometLat = zeros(length(tempIdx),1);
+    avgCometLatBeforeReclass = zeros(length(tempIdx),1);
+    fgap_freqTime = zeros(length(tempIdx),1);
+    fgap_freqLength = zeros(length(tempIdx),1);
+    bgap_freqTime = zeros(length(tempIdx),1);
+    bgap_freqLength = zeros(length(tempIdx),1);
+    term_freqTime = zeros(length(tempIdx),1);
+    term_freqLength = zeros(length(tempIdx),1);
+    freqTimeFgap2freqTimeTerm  = zeros(length(tempIdx),1);
+    freqLengthFgap2freqLengthTerm = zeros(length(tempIdx),1);
+    freqTimeBgap2freqTimeFgap = zeros(length(tempIdx),1);
     
     gsAvgPerCell = zeros(length(tempIdx),1);
     glAvgPerCell = zeros(length(tempIdx),1);
@@ -132,11 +144,53 @@ for iGroup = 1:length(btwGrpNames)
         trackInfo = temp.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
         
         numGrowthSubTracksAll = length(trackInfo(trackInfo == 1));
-        ratioCompound2GrowthSubtrack(iProj,1) = temp.projData.nTracks/numGrowthSubTracksAll; 
+        ratioTotalTrack2GrowthSubtrack(iProj,1) = temp.projData.nTracks/numGrowthSubTracksAll; 
+        %  (pooled over a cell)
+        % values closer to 1 suggest less fragmentation. note this parameter is calculated for
+        % the ENTIRE POPULATION Where tracks initiated in the first and
+        % last frame of the movie included
+         
+        
+        idxTracksWithGap = find(trackInfo(trackInfo(:,5) == 2 ...
+        | trackInfo(:,5) == 5 | trackInfo(:,5) == 3 | trackInfo(:,5) == 6));
+        
+        numTracksWithGap = length(unique(idxTracksWithGap));
+        
+        ratioGapTracks2NonGapTracks = numTracksWithGap/trackInfo(end,1);
+        
+        meanNNdistWithinFrame = temp.projData.medNNdistWithinFramePix.*temp.projData.pixSizeNm/1000;
+        
+        
+        fgapFreqTime = projData.stats.fgap_freq_time;
+        fgapFreqLength = projData.stats.fgap_freq_length;
+        
+        bgapFreqTime = projData.stats.bgap_freq_time;
+        bgapFreqLength = projData.stats.bgap_freq_length;
+        
+        
+        
+        
+        % find all tracks that do not contain a gap 
+        % the 1/avg time or length of the growth subtrack before
+        % termination of track 
+        
+      
+           
+        termFreqTime = projData.stats.term_freq_time;
+        termFreqLength = projData.stats.term_freq_length;
+        
+        ratioFgapFreqTime2termFreqTime = fgapFreqTime/termFreqTime;
+        ratioFgapFreqLength2termFreqLength =  ;
+        
+        ratioBgapFreqTime2termFreqTime = ;
+        ratioBgapFreqLength2termFreqLength = ;
+        
+        ratioFgapFreqTime2BgapFreqTime = ;
+        
         
         
         % Do the same for the normal per track parameters
-        % assumes each project is an individual 
+        % assumes each project is an individual cell
         
         %MEAN VALUES
         gsAvgPerCell(iProj,1) = temp.projData.stats.growth_speed_mean_std(1,1);
@@ -175,7 +229,7 @@ for iGroup = 1:length(btwGrpNames)
         dataStruct(iGroup).ratioPause2Growth = ratioPause2Growth;
         dataStruct(iGroup).ratioShrink2Growth = ratioShrink2Growth;
         dataStruct(iGroup).dynamicity = dynamicity;
-        dataStruct(iGroup).ratioCompound2GrowthSubtrack = ratioCompound2GrowthSubtrack;
+        dataStruct(iGroup).ratioTotalTrack2GrowthSubtrack = ratioTotalTrack2GrowthSubtrack;
        
         % Initiate the Test ID structure so the variables can be read into
         % the discrimination matrix
@@ -185,7 +239,7 @@ for iGroup = 1:length(btwGrpNames)
         testStruct.ratioPause2Growth = [testID1 testID2];
         testStruct.ratioShrink2Growth = [testID1 testID2];
         testStruct.dynamicity = [testID1 testID2];
-        testStruct.ratioCompound2GrowthSubtrack = [testID1 testID2];
+        testStruct.ratioTotalTrack2GrowthSubtrack = [testID1 testID2];
         
         % Again do same for per track parameters (make sure to take out
         % NaN: some values particularlly bgaps will be NaN if there is no 
@@ -291,8 +345,8 @@ for iGroup = 1:length(btwGrpNames)
         mean_std_dynamicity(iGroup,1) = mean(dynamicity(~isnan(dynamicity)));
         mean_std_dynamicity(iGroup,2) = std(dynamicity(~isnan(dynamicity)));
         
-        mean_std_ratioCompound2GrowthSubtrack(iGroup,1) = mean(ratioCompound2GrowthSubtrack(~isnan(ratioCompound2GrowthSubtrack)));
-        mean_std_ratioCompound2GrowthSubtrack(iGroup,2) = std(ratioCompound2GrowthSubtrack(~isnan(ratioCompound2GrowthSubtrack))); 
+        mean_std_ratioTotalTrack2GrowthSubtrack(iGroup,1) = mean(ratioTotalTrack2GrowthSubtrack(~isnan(ratioTotalTrack2GrowthSubtrack)));
+        mean_std_ratioTotalTrack2GrowthSubtrack(iGroup,2) = std(ratioTotalTrack2GrowthSubtrack(~isnan(ratioTotalTrack2GrowthSubtrack))); 
         
         % Per track parameters that can either be averaged per cell or
         % pooled
@@ -385,7 +439,7 @@ avgOverAllCellsInGroup.gTerm = mean_std_gTerm;
 avgOverAllCellsInGroup.ratioPause2Growth = mean_std_ratioPause2Growth;
 avgOverAllCellsInGroup.ratioShrink2Growth = mean_std_ratioShrink2Growth;
 avgOverAllCellsInGroup.dynamicity = mean_std_dynamicity;
-avgOverAllCellsInGroup.ratioCompound2GrowthSubtrack = mean_std_ratioCompound2GrowthSubtrack;
+avgOverAllCellsInGroup.ratioTotalTrack2GrowthSubtrack = mean_std_ratioTotalTrack2GrowthSubtrack;
 
 avgOverAllCellsInGroupMean.gs = mean_std_gsAvgPerCell;
 avgOverAllCellsInGroupMean.gl = mean_std_glAvgPerCell;
@@ -445,7 +499,7 @@ pValues.gTermCell = num2cell(discrimMats.gTerm);
 pValues.ratioPause2GrowthCell = num2cell(discrimMats.ratioPause2Growth);
 pValues.ratioShrink2GrowthCell = num2cell(discrimMats.ratioShrink2Growth);
 pValues.dynamicityCell = num2cell(discrimMats.dynamicity);
-pValues.ratioCompound2GrowthSubtrackCell = num2cell(discrimMats.ratioCompound2GrowthSubtrack);
+pValues.ratioTotalTrack2GrowthSubtrackCell = num2cell(discrimMats.ratioTotalTrack2GrowthSubtrack);
 
 %Per track parameters that can either be averaged per cell or
 % pooled
@@ -473,7 +527,7 @@ pValues.gTermCell = [groupNames pValues.gTermCell];
 pValues.ratioPause2GrowthCell = [groupNames pValues.ratioPause2GrowthCell];
 pValues.ratioShrink2GrowthCell = [groupNames pValues.ratioShrink2GrowthCell];
 pValues.dynamicityCell = [groupNames pValues.dynamicityCell];
-pValues.ratioCompound2GrowthSubtrackCell = [groupNames pValues.ratioCompound2GrowthSubtrackCell];
+pValues.ratioTotalTrack2GrowthSubtrackCell = [groupNames pValues.ratioTotalTrack2GrowthSubtrackCell];
 
 pValues.gs_AvgPerCell = [groupNames pValues.gs_AvgPerCell];
 pValues.gl_AvgPerCell = [groupNames pValues.gl_AvgPerCell];
@@ -535,7 +589,7 @@ save([saveDir filesep 'discrimMat_PerCell'],'pValues');
         hitsIdx_ratioPause2Growth = find(discrimMats.ratioPause2Growth(:,1)<stringency);
         hitsIdx_ratioShrink2Growth = find(discrimMats.ratioShrink2Growth(:,1)<stringency);
         hitsIdx_dynamicity = find(discrimMats.dynamicity(:,1)<stringency);
-        hitsIdx_ratioCompound2GrowthSubtrack = find(discrimMats.ratioCompound2GrowthSubtrack(:,1)<stringency);
+        hitsIdx_ratioTotalTrack2GrowthSubtrack = find(discrimMats.ratioTotalTrack2GrowthSubtrack(:,1)<stringency);
         
         %Find Hits for Second Test (first column of discrimMat) 
         % PerTrackParameters
@@ -649,14 +703,14 @@ save([saveDir filesep 'discrimMat_PerCell'],'pValues');
            %Save in Larger Structure
               hits.dynamicity = hitsList;
               
-           %Initiate ratioCompound2GrowthSubtrack
-           hitsList = cell(length(hitsIdx_ratioCompound2GrowthSubtrack),4);
+           %Initiate ratioTotalTrack2GrowthSubtrack
+           hitsList = cell(length(hitsIdx_ratioTotalTrack2GrowthSubtrack),4);
            %Write
-           for iHit = 1:length(hitsIdx_ratioCompound2GrowthSubtrack) 
-               hitsList{iHit,1} = groupNames(hitsIdx_ratioCompound2GrowthSubtrack(iHit),1);
-               hitsList{iHit,2} = avgOverAllCellsInGroup.ratioCompound2GrowthSubtrack(hitsIdx_ratioCompound2GrowthSubtrack(iHit),1);
-               hitsList{iHit,3} = avgOverAllCellsInGroup.ratioCompound2GrowthSubtrack(hitsIdx_ratioCompound2GrowthSubtrack(iHit),1)/avgOverAllCellsInGroup.ratioCompound2GrowthSubtrack(1,1);
-               hitsList{iHit,4} = discrimMats.ratioCompound2GrowthSubtrack(hitsIdx_ratioCompound2GrowthSubtrack(iHit),1);
+           for iHit = 1:length(hitsIdx_ratioTotalTrack2GrowthSubtrack) 
+               hitsList{iHit,1} = groupNames(hitsIdx_ratioTotalTrack2GrowthSubtrack(iHit),1);
+               hitsList{iHit,2} = avgOverAllCellsInGroup.ratioTotalTrack2GrowthSubtrack(hitsIdx_ratioTotalTrack2GrowthSubtrack(iHit),1);
+               hitsList{iHit,3} = avgOverAllCellsInGroup.ratioTotalTrack2GrowthSubtrack(hitsIdx_ratioTotalTrack2GrowthSubtrack(iHit),1)/avgOverAllCellsInGroup.ratioTotalTrack2GrowthSubtrack(1,1);
+               hitsList{iHit,4} = discrimMats.ratioTotalTrack2GrowthSubtrack(hitsIdx_ratioTotalTrack2GrowthSubtrack(iHit),1);
            end 
            %Save in Larger Structure
               hits.ratioCompound2Growth = hitsList; 

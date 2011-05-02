@@ -159,8 +159,11 @@ verbose = 1;
 %problem dimension
 probDim = 2;
 
+
+
+
 %% tracking function call
 
-[tracksFinal,kalmanInfoLink,errFlag] = trackCloseGapsKalman(movieInfo,...
+[tracksFinal,kalmanInfoLink,errFlag,diagnosticTrackLinearity] = plusTipTrackCloseGapsKalman(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 

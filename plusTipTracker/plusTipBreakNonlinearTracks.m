@@ -90,14 +90,30 @@ diagnosticTrackLinearity.percentAngles135to180 = (sum(sum(angles135to180))/total
 
  
 %%
-% assume max angle is 45 degrees
+% Originally assumed max angle was 45 degrees however by setting this value
+% to 180 you bypass this. If max angle is set to 180 it will not break any
+% of the non-linear tracks.  Main reason for calling this function with
+% this setting will be to gain the above diagnostic track linearity
+% information which may be a helpful statistic. Will later incorporate this 
+% information that does not call this function to save computer time. 
+noBreak = 1;
+
+if noBreak  == 1
+    max_angle = 180;
+    max_angle2 = 0;
+else 
+max_angle = 45; % set to < 180 to break tracks
+max_angle2 = 135;
+end 
+
 % Note: It is potentially useful to modifiy the max angle to retain some 
 % non-linear tracks depending on data set at hand: See above diagnostic 
 % to help trouble-shoot this parameter
-cosMax=cos(45*pi/180);
+cosMax1=cos(max_angle*pi/180);
+cosMax2 = cos(max_angle2*pi/180);
 
 % lower bound displacement - if smaller than this, may just be jitter
-lb=prctile(vmag(:),3); 
+lb=prctile(vmag(:),10); 
 
 % keep track of where cos or displacement vectors are NaNs 
 % (nanMat = matrix with value '1' where cos(angle) value is numerical and NaN at all
@@ -105,11 +121,23 @@ lb=prctile(vmag(:),3);
 nanMat=swapMaskValues(isnan(cosV12) | isnan(v1mag) | isnan(v2mag),[0 1],[1 NaN]);
 
 % these are within forward cone, so they're ok
-okAngles=cosV12>cosMax;
+if noBreak == 1
+    okAngles = cosV12 >=cosMax1;
+else 
+    okAngles1 = cosV12 >= cosMax1;
+    okAngles2 = cosV12 <= cosMax2; 
+
+okAngles = okAngles1 + okAngles2;
+end
+
+
 
 % these are not in the forward cone but one or both of the vectors is shorter 
 % than the nth percentile of all vectors, so maybe just jitter
-okLength=cosV12<cosMax & (v1mag<lb | v2mag<lb); 
+okLength =   (cosV12 > cosMax2 | cosV12 < cosMax1) & (v1mag<lb | v2mag<lb); 
+
+
+diagnosticTrackLinearity.percentLinksBroken = (totalAngles-sum(sum(okAngles)))/totalAngles*100;
 
 diagnosticTrackLinearity.percentLinksSavedFromBreak = (sum(sum(okLength))/totalAngles)*100;
 

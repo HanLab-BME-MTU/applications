@@ -81,6 +81,34 @@ else
     % median/mean for growth displacement (microns)
     stats.growth_length_median = median(gd);
     stats.growth_length_mean_std = [mean(gd) std(gd)];
+    
+    % growth term frequency 
+    
+    
+    %gapIdx = find(dataMatCrpSecMic(:,5) ~= 1);
+    %beforeGapIdx = gapIdx-1;
+    
+   % termGrowthOnly = dataMatCrpSecMic;
+    
+    %termGrowthOnly(beforeGapIdx,:) = [];
+    
+    %gapIdxNew = find(dataMatCrpSecMic(:,5) ~= 1,:);
+    
+    %termGrowthOnly(gapIdxNew,:) = [];
+    
+    
+    %freq = 1./termGrowthOnly(:,6);
+   % stats.term_freq_time_mean_SE  = [mean(freq) std(freq)/sqrt(length(freq))];
+    
+    %freq = 1./termGrowthOnly(:,7); 
+   
+    %stats.term_freq_length_mean_SE = 
+    
+    
+    
+   
+    
+    
 end
 
 
@@ -115,10 +143,10 @@ else
     % fgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to fgap
     beforeFgapIdx=fIdx-1;
-    %freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
-    %stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    %freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
-    %stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
+    stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
+    stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     stats.fgap_freq_time=1/mean(dataMatCrpSecMic(beforeFgapIdx,6));
     stats.fgap_freq_length=1/mean(dataMatCrpSecMic(beforeFgapIdx,7));
 end
@@ -154,10 +182,10 @@ else
     % bgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to bgap
     beforeBgapIdx=bIdx-1;
-    %freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
-    %stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
-    %freq=1./dataMatCrpSecMic(beforeBgapIdx,7);
-    %stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
+    stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+    freq=1./dataMatCrpSecMic(beforeBgapIdx,7);
+    stats.bgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     stats.bgap_freq_time=1/mean(dataMatCrpSecMic(beforeBgapIdx,6));
     stats.bgap_freq_length=1/mean(dataMatCrpSecMic(beforeBgapIdx,7));
 end
@@ -223,6 +251,17 @@ end
 % all track indices where there is either a forward or backward gap
 tracksWithFgap=unique(dataMatCrpSecMic(fIdx,1));
 tracksWithBgap=unique(dataMatCrpSecMic(bIdx,1));
+
+%% Percent Time Growth Dynamic Track Versus Percent Time Growth NonDynamic Track
+
+
+
+
+%% 
+
+
+
+%% 
 
 % calculate the average percentage of time a MT spends in fgap
 idx=unique(tracksWithFgap);

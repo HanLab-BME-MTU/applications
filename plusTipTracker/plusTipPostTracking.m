@@ -433,10 +433,7 @@ aT=[aT lifeTimes totalDispPix];
 
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
-[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass,projData.percentBGapsSlow,...
-    projData.percentBGapsShortTime,projData.percentBGapsVeryFast,projData.meanCometLatency, projData.tracksBGapShortTime,...
-    projData.tracksBGapSlow, projData.tracksBGapVeryFast, projData.fgapThresh,...
-    projData.fgapReclassScheme,projData.bgapReclassScheme]=plusTipMergeSubtracks(projData,aT);
+[aT,aTreclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,aT);
 %[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=nan(size(projData.frame2frameVel_micPerMin));
@@ -455,25 +452,6 @@ projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 % removed. M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
 [projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic);
-
-% Add info about different bgap populations
-
-if isnan(projData.tracksBGapSlow) == 1
-else 
-    projData.stats.nBGapsSlow = length(find(dataMatCrpSecMic(:,5) == 6));
-end 
-
-
-if isnan(projData.tracksBGapVeryFast) == 1
-else 
-    
-    projData.stats.nBgapsVeryFast = length(find(dataMatCrpSecMic(:,5) == 7));
-end 
-
-if isnan(projData.tracksBGapShortTime) == 1
-else 
-    projData.stats.nBapsShortTime = length(find(dataMatCrpSecMic(:,5) == 8)); 
-end 
 
 
 

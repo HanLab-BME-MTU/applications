@@ -17,6 +17,6 @@ projDirList = unique(listOfImages(:,2));
 for i=1:length(projDirList)
     if isempty(findstr(projDirList{i}, 'images'))
         mkdir([projDirList{i} filesep 'images'])
-        movefile([projDirList{i} filesep '*.tif'],[projDirList{i} filesep 'images'])
+        movefile([projDirList{i} filesep '*.TIF'],[projDirList{i} filesep 'images'])
     end
 end
