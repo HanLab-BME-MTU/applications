@@ -18,7 +18,7 @@ params.procNames = {...
     'pairTracks',...
     'figures'};
 
-params.runSteps = [0 0 0 0 1];
+params.runSteps = [0 0 0 1 1];
 params.batchMode = 0;
 
 % Physical parameters
@@ -39,18 +39,18 @@ params.particleDetection.detectFunc = @detectFocalAdhesionParticles;
 params.particleDetection.sigmaPSF = sigmaPSF;
 params.particleDetection.kSigma = 3;
 params.particleDetection.alpha = .05;
-params.particleDetection.minDist = .2;
+params.particleDetection.minDist = .25;
 
 % PROC 3: particle tracking
 params.particleTracking.searchRadius = 5;
 
 % PROC 4: track pairing
-params.pairTracks.minLifetime = 2;
+params.pairTracks.minLifetime = 3;
 params.pairTracks.maxDistance = 1675; % nm (25 pixels)
-params.pairTracks.minOverlap = 3;
+params.pairTracks.minOverlap = 1;
 params.pairTracks.bandWidth = 1000;   % nm
 params.pairTracks.minDistance = 335;  % nm (5 pixels)
-params.pairTracks.alpha = 0.001;
+params.pairTracks.alpha = 0.05;
 
 % PROC 5: figures
 params.figures = struct();

@@ -76,3 +76,16 @@ for iGap = 1:nGaps
 end
 
 assert(all(~isnan(allFeatures(:))));
+
+function isInCrop = cropTracks(tracks,xMin,xMax,yMin,yMax)
+
+nTracks = numel(tracks);
+
+isInCrop = false(nTracks,1);
+
+for iTrack = 1:nTracks
+    x = nonzeros(tracks(iTrack).tracksCoordAmpCG(1:8:end));
+    y = nonzeros(tracks(iTrack).tracksCoordAmpCG(2:8:end));
+
+    isInCrop(iTrack) = all(x >= xMin & x <= xMax & y >= yMin & y <= yMax);
+end

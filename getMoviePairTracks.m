@@ -28,8 +28,6 @@ if nargin < 4 || isempty(minOverlap)
     minOverlap = 2;
 end
 
-assert(minOverlap >= 2);
-
 if nargin < 5 || isempty(bandWidth)
     bandWidth = 1000;
 end
@@ -44,6 +42,9 @@ assert(checkMovieParticleTracking(movieData));
 
 % BEGIN
 movieData.pairTracks.status = 0;
+
+sigmaPSF = movieData.particleDetection.params.sigmaPSF;
+kSigma = movieData.particleDetection.params.kSigma;
 
 % Create output directory
 movieData.pairTracks.directory = fullfile(movieData.analysisDirectory, 'pairTracks');
@@ -147,8 +148,14 @@ while size(E,1)
     varSplit = cellfun(@(res1,res2) var([res1; res2], 1), res1, res2);
     varMerge = cellfun(@(res) var(res, 1), resPair);
 
-    bicSplit = N .* log(varSplit) + 8 * log(N);
-    bicMerge = N .* log(varMerge) + 4 * log(N);
+    % If a variance is too small due to too small number of points, we put
+    % a lower band of .25. This should be avoided by introducing in the fit
+    % the localization error of each point (see regression note) so that
+    % even if there are only 2 points to make the regression, the residual
+    % won't be 0. The rational behind .25 is that the error of localization
+    % is about half a pixel.
+    bicSplit = N .* log(max(varSplit,.25)) + 8 * log(N);
+    bicMerge = N .* log(max(varMerge,.25)) + 4 * log(N);
 
     % Define score of each pair
     W = bicSplit - bicMerge;
@@ -157,16 +164,17 @@ while size(E,1)
     %isGoodOfFit = cellfun(@(res) ~kstest(res ./ std(res, 1), [], alpha), ...
     %    resPair);
     
-    isValidPair = W >= 0 & varMerge <= 6^2;
-
-    % Remove invalid pairs
-    E = E(isValidPair,:);
-    W = W(isValidPair);
+    % disable invalid pairs
+    ind = find(W >= 0 & varMerge <= (kSigma * sigmaPSF)^2);
     
-    M = maxWeightedMatching(nCC, E, W);
+    if isempty(ind)
+        break;
+    end
+    
+    M = maxWeightedMatching(nCC, E(ind,:), W(ind));
         
     % Merge E, CC and update nCC
-    EM = E(M,:);
+    EM = E(ind(M),:);
     ccInd = 1:nCC;
     ccInd(EM(:,2)) = EM(:,1);
     ccIndUnique = unique(ccInd);

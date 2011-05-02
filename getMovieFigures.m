@@ -65,6 +65,7 @@ ppFirst = ppLast - nSegmentsPerFrame + 1;
 
 actinSpeedPerSegment = nan(sum(nSegmentsPerFrame), 1);
 lengthPerSegment = nan(sum(nSegmentsPerFrame), 1);
+distancePerSegment = nan(sum(nSegmentsPerFrame), 1);
 
 for iFrame = min(tFirst):max(tLast)
     % Find which Actin track leaves in iFrame
@@ -84,7 +85,7 @@ for iFrame = min(tFirst):max(tLast)
     l = sqrt((x2 - x1).^2 + (y2 - y1).^2);
     s = repmat(sigmaPSF * kSigma, numel(x), 1);
     t = atan2(y2 - y1, x2 - x1);
-    
+        
     [xRange, yRange, nzIdx] = arrayfun(@(x,y,l,s,t) ...
         segment2DSupport(x,y,l,s,t,kSigma,fliplr(imSize)), x, y, l, s, t, ...
         'UniformOutput', false);
@@ -92,17 +93,30 @@ for iFrame = min(tFirst):max(tLast)
     speedMapCrops = cellfun(@(xRange,yRange) speedMap(yRange,xRange), ...
         xRange, yRange,  'UniformOutput', false);
     
+    % Actin Speed
     actinSpeedPerSegment(ppFirst(iFrame):ppLast(iFrame)) = ...
         cellfun(@(crop,nzIdx) mean(nonzeros(crop(nzIdx))), ...
         speedMapCrops, nzIdx);
     
+    % Length
     lengthPerSegment(ppFirst(iFrame):ppLast(iFrame)) = l * pixelSize;
+
+    % Distance
+    xi = round(x);
+    yi = round(y);
+    isInside = xi > 0 & yi > 0 & xi <= imSize(2) & yi <= imSize(1);
+    ind = sub2ind(imSize, yi(isInside), xi(isInside));
+    ind = ind + prod(imSize) * (iFrame - 1);
+    dist = nan(size(xi,1),1);
+    dist(isInside) = distToEdge(ind);    
+    distancePerSegment(ppFirst(iFrame):ppLast(iFrame)) = dist;
 end
 
-%% Output
-isValid = ~isnan(actinSpeedPerSegment);
+%% Output Length / Speed
+isValid = ~(isnan(actinSpeedPerSegment) | isnan(distancePerSegment));
 lengthPerSegment = lengthPerSegment(isValid);
 actinSpeedPerSegment = actinSpeedPerSegment(isValid);
+distancePerSegment = distancePerSegment(isValid);
 
 range = [0, 500:250:1000, 1500:500:max(lengthPerSegment)];
 
@@ -142,6 +156,44 @@ fileName = fullfile(movieData.figures.directory, ...
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);
+
+%% Output Distance / Length
+range = [0:100:2000, 3000:1000:max(distancePerSegment)];
+nBins = numel(range)-1;
+
+prm = zeros(5, nBins);
+
+for iBin = 1:nBins
+    isInBin = distancePerSegment >= range(iBin) & distancePerSegment < range(iBin+1);
+    
+    data = sort(lengthPerSegment(isInBin));
+    
+    if numel(data)
+        prm(1,iBin) = data(floor(numel(data)/2)+1);
+        prm(2,iBin) = data(floor(numel(data)/4)+1);
+        prm(3,iBin) = data(floor(3 * numel(data)/4)+1);
+        prm(4,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+        prm(5,iBin) = 1.5 * (prm(3,iBin) - prm(2,iBin));
+    else
+        prm(:,iBin) = NaN;
+    end
+end
+
+hFig = figure('Visible', 'off');
+hold on;
+
+xlabels = arrayfun(@(iBin) [num2str(range(iBin)) '-' num2str(range(iBin+1))], ...
+    1:nBins, 'UniformOutput', false);
+
+boxplot2({prm},'color', [0.36 .63 .9], 'xlabels', xlabels, 'ylabel', ...
+    'Adhesion Lengh (nm)');
+
+fileName = fullfile(movieData.figures.directory, ...
+    [getDirFromPath(movieData.imageDirectory) '_suppFig4C.eps']);
+print(hFig, '-depsc', fileName);
+fixEpsFile(fileName);
+close(hFig);
+
 
 %% END
 movieData.figures.status = 1;

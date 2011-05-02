@@ -25,12 +25,13 @@ P = zeros(size(y, 1), 7);
 P(:,1) = x;
 P(:,2) = y;
 P(:,3) = ima(indMax);
-P(:,4:5) = sigmaPSF; % sigmaX, sigmaY
+P(:,4) = sigmaPSF;     % sigmaX
+P(:,5) = sigmaPSF; % sigmaY
 P(:,6) = T(indMax);
 
 % Subresolution detection
-radius = kSigma * sigmaPSF;
-hside = ceil(radius);
+hside = ceil(kSigma * sigmaPSF);
+npx = (2 * hside + 1)^2;
 xmin = x - hside;
 xmax = x + hside;
 ymin = y - hside;
@@ -47,9 +48,7 @@ P = P(isValid,:);
 stdP = zeros(size(P));
 stdR = zeros(size(P,1),1);
 
-[X,Y] = meshgrid(-hside:hside);
-disk = X.^2 + Y.^2 - hside^2 <= 0;
-numDegFreedom = nnz(disk) - 6;
+kLevel = norminv(1 - alpha / 2.0, 0, 1); % ~2 std above background
 
 success = false(numel(xmin),1);
 
@@ -58,31 +57,33 @@ for iFeature = 1:numel(xmin)
     crop = ima(ymin(iFeature):ymax(iFeature), xmin(iFeature):xmax(iFeature));
     P(iFeature,7) = min(crop(:)); % background
     P(iFeature,3) = P(iFeature,3) - P(iFeature,7); % amplitude above background
-    crop(~disk) = NaN;
+        
+    [params, stdParams, ~, res] = fitAnisoGaussian2D(crop, ...
+        [0, 0, P(iFeature,3), 3 * P(iFeature,4), P(iFeature,5), ...
+        P(iFeature,6), P(iFeature,7)], 'xyArtC');
+        
+    % TEST: position must remain in a confined area
+    isValid = max(abs(params(1:2))) < hside;
     
-    [params, stdParams, ~, R] = fitAnisoGaussian2D(crop, ...
-        [0, 0, P(iFeature,3), 3 * P(iFeature,4), P(iFeature,5), P(iFeature,6), P(iFeature,7)], 'xyArtC');
+    % TEST: sigmaX > 1
+    isValid = isValid & params(4) > 1;
     
-    % TEST 1: on parameter values:
-    % - position must remain in the disk
-    % - amplitude > 0
-    % - sigmaX and sigmaY > 1
-    % - sigmaX < 10 * sigmaPSF
-    isValid = ...
-        max(abs(params(1:2))) < radius && ...
-        params(3) > 0 && ...
-        min(params(4:5)) > 1 && ...
-        params(4) < 10 * sigmaPSF;
-    
-    % TEST 2: model goodness-of-fit (K-S test)
-    validRes = R(disk);
-    stdR(iFeature) = std(validRes);
-    isValid = isValid & ~kstest(validRes ./ stdR(iFeature), [], alpha);
-    
-    % TEST 3: test sigmaX
-    testStat = params(4) / stdParams(4);
-    pValue = 1-tcdf(testStat, numDegFreedom);
-    isValid = isValid & pValue < alpha;
+    % TEST: goodness-of-fit
+    stdRes = std(res(:));
+    [~, pval] = kstest(res(:) ./ stdRes, [], alpha);
+    isValid = isValid & pval > alpha;
+
+    % TEST: amplitude
+    SE_sigma_r = (stdRes / sqrt(2*(npx-1))) * kLevel;
+    sigma_A = stdParams(3);
+    A_est = params(3);
+    df2 = (npx - 1) * (sigma_A.^2 + SE_sigma_r.^2).^2 ./ (sigma_A.^4 + SE_sigma_r.^4);
+    scomb = sqrt((sigma_A.^2 + SE_sigma_r.^2) / npx);
+    T = (A_est - stdRes * kLevel) ./ scomb;    
+    isValid = isValid & (1 - tcdf(T, df2)) < alpha;
+  
+    % TEST: extreme value of 
+    isValid = isValid & params(4) < 10 * sigmaPSF;
     
     success(iFeature) = isValid;
     
@@ -100,25 +101,21 @@ for iFeature = 1:numel(xmin)
     stdP(iFeature,4) = stdParams(4);
     stdP(iFeature,6) = stdParams(5);
     stdP(iFeature,7) = stdParams(6);
+    
+    stdR(iFeature) = stdRes;
 end
 
 P = P(success,:);
 stdP = stdP(success,:);
 
 % Remove any detection which has been localised at the same position
-ind = KDTreeBallQuery(P(:,1:2), P(:,1:2), repmat(minDist, size(P,1), 1));
-ind = cellfun(@(c) c(2:end), ind, 'UniformOutput', false);
-isInCluster = cellfun(@(c) ~isempty(c), ind);
-indInCluster = find(isInCluster);
-
 isValid = true(size(P,1),1);
-
-for iiFeature = 1:numel(indInCluster)
-    iFeature = indInCluster(iiFeature);
+idxKD = KDTreeBallQuery(P(:,1:2), P(:,1:2), repmat(minDist, size(P,1), 1));
+idxKD = idxKD(cellfun(@(x) length(x)>1, idxKD));
     
-    if stdR(iFeature) < max(stdR(ind{iFeature}))
-        isValid(iFeature) = false;
-    end
+for k = 1:length(idxKD);
+    stdRes = stdR(idxKD{k});
+    isValid(idxKD{k}(stdRes ~= min(stdRes))) = false;
 end
 
 P = P(isValid,:);
