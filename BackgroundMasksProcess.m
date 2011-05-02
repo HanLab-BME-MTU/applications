@@ -1,5 +1,7 @@
 classdef BackgroundMasksProcess < MaskProcessingProcess
-  
+    % A concrete class for creating background masks
+    %
+    
     methods(Access = public)
         
         function obj = BackgroundMasksProcess(owner,outputDir,funParams)
@@ -10,20 +12,20 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
                 
                 super_args{1} = owner;
                 super_args{2} = 'Background Mask';
-                super_args{3} = @createMovieBackgroundMasks;                               
+                super_args{3} = @createMovieBackgroundMasks;
                 
-                if nargin < 3 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams)
                     
                     %----Defaults----%
                     funParams.OutputDirectory = ...
-                        [outputDir  filesep 'BackgroundMasks'];                       
+                        [outputDir  filesep 'BackgroundMasks'];
                     funParams.ChannelIndex = 1:nChan; %Default is to attempt to creat background masks for all channels
                     funParams.SegProcessIndex = []; %No default
                     funParams.GrowthRadius = 20;
-                    funParams.BatchMode = false;                                              
+                    funParams.BatchMode = false;
                 end
                 %Make sure the input parameters are legit??
-                super_args{4} = funParams;                    
+                super_args{4} = funParams;
             end
             
             obj = obj@MaskProcessingProcess(super_args{:});
@@ -31,5 +33,5 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
         end
         
     end
-
+    
 end
