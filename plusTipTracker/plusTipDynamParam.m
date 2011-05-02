@@ -142,7 +142,13 @@ else
     stats.fgap_length_mean_std = [mean(fd) std(fd)];
     % fgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to fgap
+        
+        
+    
     beforeFgapIdx=fIdx-1;
+    if beforeFgapIdx(1) == 0; 
+        beforeFgapIdx(1) = [];
+    end
     freq=1./dataMatCrpSecMic(beforeFgapIdx,6);
     stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     freq=1./dataMatCrpSecMic(beforeFgapIdx,7);
@@ -181,7 +187,12 @@ else
     stats.bgap_length_mean_std = [mean(bd) std(bd)]; % std(bd)/sqrt(length(bd))
     % bgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to bgap
+    
     beforeBgapIdx=bIdx-1;
+    if beforeBgapIdx(1) == 0 
+        beforeBgapIdx(1) = [];
+    end 
+    
     freq=1./dataMatCrpSecMic(beforeBgapIdx,6);
     stats.bgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     freq=1./dataMatCrpSecMic(beforeBgapIdx,7);

@@ -25,16 +25,16 @@ HPattern = 1;
     
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'subROIs_TESTING';
-analysisFolderName = 'ANALYSIS_TESTING';
+subRoiFolderName = 'subROIs_OriginalReclass_Maria';
+analysisFolderName = 'ANALYSIS_OriginalReclass_Maria';
 
 %%% Choose if want to also perform analysis 
 doAnalysis = 1;
 
-%Parameters for pooling data
-doBtw = 1;
-doWtn = 0;
-doPlot = 1;
+%Parameters for pooling data 
+doBtw = 1; % set to 1 to perform between Group Comparisons
+doWtn = 0; % set to 1 to perform within Group Comparisons
+doPlot = 1; % set to 1 to make boxplots
 
    
 %% Initialize: CheckInput Parameters
@@ -119,6 +119,7 @@ end
 if ~ismember(lower(timeUnits),{'fraction','seconds'})
     error('plusTipSubRoiTool: timeUnits must be fraction or seconds')
 end
+
 if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
@@ -139,9 +140,13 @@ for iProj=1:nProj
     end
   
     subanDir=[anDir filesep subRoiFolderName];
-    if ~isdir(subanDir)
+   
+    if isdir(subanDir)
+        rmdir(subanDir,'s')
+    end 
         mkdir(subanDir);
-    end
+   
+    
     cd(anDir)
 
     % load projData
@@ -263,7 +268,7 @@ for iProj=1:nProj
     for iWindow = 1:numWindows
         innerMasks(:,:,iWindow) = weightedRoi>windowSize*iWindow;
     end 
-%%   
+   
     %innerMaskLarge=weightedRoi>distCutoff;
     %innerMaskSmall = weightedRoi>distCutoff*2;
     
@@ -997,7 +1002,11 @@ end
     
     statDir = [pathUp2 filesep analysisFolderName];
     
-    mkdir(statDir);
+    if isDir(statDir)
+        rm(statDir,'s')
+    else 
+    end 
+      mkdir(statDir);
    
  
     %Make GroupLists for Each Type of Window   

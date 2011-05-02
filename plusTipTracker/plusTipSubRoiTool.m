@@ -17,7 +17,7 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %       timeVal  : if distUnits is fraction: between 0 and 1
 %                  if distUnits is seconds : >0
 %% OPTION TO TURN ON MICROPATTERN
-micropattern = 0;  % if set to 1 call micropattern function and ignore rest
+micropattern = 1;  % if set to 1 call micropattern function and ignore rest
 %%
 if micropattern == 1
    plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude);

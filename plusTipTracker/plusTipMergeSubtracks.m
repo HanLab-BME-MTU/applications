@@ -104,10 +104,6 @@ bgap95thPercFGapSpeeds = 0; % old reclassification scheme
 
 
 
-%% Find all fgaps and bgaps 
-
-fgapIdx=find(dataMat(:,5)==2 | dataMat(:,5)==5);
-bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
 
 %% Check Inputs To See If Data is Reclassified Yet
 
@@ -119,11 +115,18 @@ if nargin<2
     
     % these are the fgaps to consolidate
     growthFgapIdx=find(dataMat(:,5)==5);
-    
+    %% Find all fgaps and bgaps 
+
+fgapIdx=find(dataMat(:,5)==2 | dataMat(:,5)==5);
+bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
     
 else % dataMat input and need to perform reclassification with one of the schemes below
     
 %% Local FGap Reclassifications 
+%% Find all fgaps and bgaps 
+
+fgapIdx=find(dataMat(:,5)==2 | dataMat(:,5)==5);
+bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
 
 if (localFullGrowthSubtrack == 1 || localFramesBeforeGap == 1)
     
@@ -272,7 +275,41 @@ end
 if unimodalReclassPool  ~=  1
 dataMat(bgap2pauseIdx,5)=2; % reassign dataMat to have type 2 
 dataMatReclass(bgap2pauseIdx,5)=6; % reassign reclassified matrix to have new type of 6
-end 
+end
+
+
+%% Calculate Fraction of SubTracks Reclassified 
+% fraction of bgaps that are changed to pause, because their speeds are
+% slower than the cutoff for fgap pauses
+
+if unimodalReclassPool ~= 1
+    
+if isempty(bgapAllIdx)
+    projData.percentBgapsReclass=NaN;
+else
+    projData.percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
+end
+
+% fraction of fgaps that were consolidated into growth, since their speeds
+% were more than 50% of the growth speed just prior to the gap
+if isempty(fgapIdx)
+    projData.percentFgapsReclass=NaN;
+else
+    projData.percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
+end
+
+else 
+    projData.percentFgapsReclass = 0 ;
+    projData.percentBgapsReclass = 0;
+end
+
+
+
+
+
+
+
+
 
 end % if nargin < 2
 
@@ -401,28 +438,4 @@ dataMat(subIdx2rem,:)=[];
 dataMatCrpSecMic=dataMat; % NOTE: Kathyrn makes these all absolute values 
 % I think for stats it is better to keep sign (MB) 
 
-%% Calculate Fraction of SubTracks Reclassified 
-% fraction of bgaps that are changed to pause, because their speeds are
-% slower than the cutoff for fgap pauses
-
-if unimodalReclassPool ~= 1
-    
-if isempty(bgapAllIdx)
-    projData.percentBgapsReclass=NaN;
-else
-    projData.percentBgapsReclass=100*length(bgap2pauseIdx)/length(bgapAllIdx);
-end
-
-% fraction of fgaps that were consolidated into growth, since their speeds
-% were more than 50% of the growth speed just prior to the gap
-if isempty(fgapIdx)
-    projData.percentFgapsReclass=NaN;
-else
-    projData.percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
-end
-
-else 
-    projData.percentFgapsReclass = 0 ;
-    projData.percentBgapsReclass = 0;
-end
 

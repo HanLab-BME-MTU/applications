@@ -1,11 +1,11 @@
-function [ output_args ] = renameMeta(groupList,beforeRename,afterRename)
+function [ output_args ] = renameMeta(projList,beforeRename,afterRename)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
-for i = 1:length(groupList)
+for i = 1:length(projList)
     
-    fileNameBeforeRename = [char(groupList(i,2)) filesep beforeRename] ;
-    fileNameAfterRename = [char(groupList(i,2)) filesep afterRename];
+    fileNameBeforeRename = [projList(i).anDir filesep beforeRename] ;
+    fileNameAfterRename = [projList(i).anDir filesep afterRename];
     
     movefile(fileNameBeforeRename, fileNameAfterRename);
     
