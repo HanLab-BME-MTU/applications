@@ -1,12 +1,18 @@
-function movieData = getMovieDistanceTransform(movieData, batchMode)
+function movieData = getMovieDistanceTransform(movieData, varargin)
+
+%Verify that the masks have been created
+checkMovieData = @(movieData) checkMovieMasks(movieData, 1);
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('movieData', checkMovieData);
+ip.addParamValue('batchMode', true, @islogical);
+
+ip.parse(movieData, varargin{:});
+batchMode = ip.Results.batchMode;
 
 %Indicate that computing distance transform was started
 movieData.distanceTransform.status = 0;
-
-%Verify that the masks have been created
-if ~checkMovieMasks(movieData,1)
-    error('Must create masks before creating distanceTransform.')
-end
 
 movieData.distanceTransform.directory = [movieData.analysisDirectory ...
     filesep 'distanceTransform'];

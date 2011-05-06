@@ -1,9 +1,20 @@
-function movieData = getMovieFigures(movieData,batchMode)
+function movieData = getMovieFigures(movieData, varargin)
 
-assert(checkMovieDistanceTransform(movieData));
-assert(checkMoviePairTracks(movieData));
-
+% BEGIN
 movieData.figures.status = 0;
+
+% Parse input parameters
+checkMovieData = @(movieData) ...
+    checkMovieDistanceTransform(movieData) && ...
+    checkMoviePairTracks(movieData);
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('movieData', checkMovieData);
+ip.addParamValue('batchMode', true, @islogical);
+
+ip.parse(movieData, varargin{:});
+batchMode = ip.Results.batchMode;
 
 movieData.figures.directory = fullfile(movieData.analysisDirectory, 'figures');
 
@@ -16,8 +27,8 @@ nFrames = movieData.nImages(1);
 imSize = movieData.imSize;
 pixelSize = movieData.pixelSize_nm;
 timeInterval = movieData.timeInterval_s;
-sigmaPSF = movieData.particleDetection.params.sigmaPSF;
-kSigma = movieData.particleDetection.params.kSigma;
+sigmaPSF = movieData.particleDetection.params.required.sigmaPSF;
+kSigma = movieData.particleDetection.params.optional.kSigma;
 
 %% Load data
 

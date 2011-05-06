@@ -1,5 +1,5 @@
-function CC = cleanUpCC(movieData, CC, allFeatures, tFirst, tLast, pFirst, ...
-    bandWidth, alpha)
+function [CC allFeatures] = cleanUpCC(movieData, CC, allFeatures, ...
+    tFirst, tLast, pFirst, bandWidth, alpha)
 
 nFrames = movieData.nImages(1);
 pixelSize = movieData.pixelSize_nm;
@@ -151,6 +151,15 @@ isValid(isInBand) = K(isInBand) >= cutoffs(N(isInBand));
 % Split every invalid CC
 newCC = cellfun(@(trackIdx) arrayfun(@(t) {t}, trackIdx'), CC(~isValid), ...
     'UniformOutput', false);
-CC = [CC(isValid); vertcat(newCC{:})];
+% For each new CC, reset the length of detection to diffraction limit
+newCC = vertcat(newCC{:});
+
+for iCC = 1:numel(newCC)
+    t = newCC{iCC};
+    ind = pFirst(t):pFirst(t)+tLast(t)-tFirst(t);
+    allFeatures(ind,4) = allFeatures(ind,5);
+end
+
+CC = [CC(isValid); newCC];
 
 

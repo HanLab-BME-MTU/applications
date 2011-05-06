@@ -1,5 +1,4 @@
-function movieData = getMoviePairTracks(movieData, minLifetime, maxDistance,...
-    minOverlap,bandWidth,minDistance,alpha,batchMode)
+function movieData = getMoviePairTracks(movieData, varargin)
 
 % minLifetime:     is the minimal number of frames every tracks must last.
 %
@@ -18,33 +17,37 @@ function movieData = getMoviePairTracks(movieData, minLifetime, maxDistance,...
 %
 % alpha:           quantile of PDF tail. Default is 0.05.
 
-% Parse input parameters
-
-if nargin < 3 || isempty(minLifetime)
-    minLifetime = 1;
-end
-
-if nargin < 4 || isempty(minOverlap)
-    minOverlap = 2;
-end
-
-if nargin < 5 || isempty(bandWidth)
-    bandWidth = 1000;
-end
-
-if nargin < 7 || isempty(alpha)
-    alpha = 0.05;
-end
-
-assert(checkMovieDistanceTransform(movieData));
-assert(checkMovieParticleDetection(movieData));
-assert(checkMovieParticleTracking(movieData));
-
 % BEGIN
 movieData.pairTracks.status = 0;
 
-sigmaPSF = movieData.particleDetection.params.sigmaPSF;
-kSigma = movieData.particleDetection.params.kSigma;
+% Parse input parameters
+checkMovieData = @(movieData) ...
+    checkMovieDistanceTransform(movieData) && ...
+    checkMovieParticleDetection(movieData) && ...
+    checkMovieParticleTracking(movieData);
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('movieData', checkMovieData);
+ip.addParamValue('minLifetime', 1, @isscalar);
+ip.addParamValue('maxDistance', 2000, @isscalar);
+ip.addParamValue('minOverlap', 1, @isscalar);
+ip.addParamValue('bandWidth', 1000, @isscalar);
+ip.addParamValue('minDistance', 350, @isscalar);
+ip.addParamValue('alpha', 0.05, @isscalar);
+ip.addParamValue('batchMode', true, @islogical);
+
+ip.parse(movieData, varargin{:});
+minLifetime = ip.Results.minLifetime;
+maxDistance = ip.Results.maxDistance;
+minOverlap = ip.Results.minOverlap;
+bandWidth = ip.Results.bandWidth;
+minDistance = ip.Results.minDistance;
+alpha = ip.Results.alpha;
+batchMode = ip.Results.batchMode;
+
+sigmaPSF = movieData.particleDetection.params.required.sigmaPSF;
+kSigma = movieData.particleDetection.params.optional.kSigma;
 
 % Create output directory
 movieData.pairTracks.directory = fullfile(movieData.analysisDirectory, 'pairTracks');
@@ -197,8 +200,8 @@ while size(E,1)
 end
 
 % Clean up CC
-CC = cleanUpCC(movieData, CC, allFeatures, tFirst, tLast, pFirst, bandWidth, ...
-    alpha);
+[CC allFeatures] = cleanUpCC(movieData, CC, allFeatures, tFirst, tLast, ...
+    pFirst, bandWidth, alpha);
 nCC = numel(CC);
 
 % Save the labeled tracks
