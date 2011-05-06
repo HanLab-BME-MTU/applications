@@ -1,5 +1,5 @@
 function [autoCorrProtrusion,crossCorrSptProp] = ...
-    particleBehaviorVsEdgeMotion(protPerWindow,sptPropInWindow,...
+    particleBehaviorVsEdgeMotionOld(protPerWindow,sptPropInWindow,...
     prop2analyze,band2analyze,window2analyze) %#ok<STOUT,INUSL>
 %PARTICLEBEHAVIORVSEDGEMOTION looks for correlation between particle behavior and cell edge protrusion activity
 %
@@ -42,7 +42,7 @@ numProp2analyze = length(prop2analyze);
 numBands = length(band2analyze);
 
 %get protrusion vector matrix
-protNormVecMag = protPerWindow.avgNormal(:,1:end-1);
+protNormVecMag = protPerWindow.averageNormalComponent;
 
 %get number of windows and time points
 [numWindows,numTP] = size(protNormVecMag);

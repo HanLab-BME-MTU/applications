@@ -1,4 +1,4 @@
-function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows(tracksFinal,...
+function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindowsOld(tracksFinal,...
     winPositions,winFrames,diffAnalysisRes,minLength)
 %PARTICLEBEHAVIORINWINDOWS averages single particle behavior in windows based on cell edge segmentation
 %
@@ -8,14 +8,8 @@ function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
 %                        format (e.g. output of trackWithGapClosing).
-%       winPositions   : A 2D array of the window edges. 
-%                        Number of rows = number of window frames. 
-%                        Number of columns = number of windows parallel to
-%                        Each entry is the output of Hunter's new
-%                        windowing software.
-%                        Basically, to make this variable, one puts
-%                        together the windows of each frame coming out of
-%                        the windowing software.
+%       winPositions   : The window edges for all time points, as output by
+%                        Hunter's old windowing function.
 %       winFrames      : The frames at which there are windows.
 %       diffAnalysisRes: Output of trackDiffusionAnalysis1.
 %                        Optional. If not input but needed, it will be
@@ -81,13 +75,8 @@ if nargin < 5 || isempty(minLength)
     minLength = 5;
 end
 
-%get number of frames that have windows and number of windows parallel to
-%the edge
-[numWinFrames,numWinPara] = size(winPositions);
-
-%find number of windows perpendicular to the edge
-nBands = cellfun(@(x)(numel(x)),winPositions);
-numWinPerp = max(nBands(:));
+%get the number of windows in each dimension
+[numWinPerp,numWinPara,numWinFrames] = size(winPositions);
 
 %determine the number of SPT frames between window frames
 numSPTFrames = winFrames(2) - winFrames(1);
@@ -108,13 +97,10 @@ tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,winFrames,1);
 
 %% Particle behavior pre-processing
 
-%get the start, end and lifetime of each track segment
+%get the start, end and lifetime of each track
 trackLft = getTrackSEL(tracksFinal,1);
 trackSE = trackLft(:,1:2);
 trackLft = trackLft(:,3);
-
-%get the number of track segments
-numSegments = length(trackLft);
 
 %From asymmetry and diffusion analysis ...
 
@@ -127,7 +113,7 @@ trajClassDiff = trajClassDiff(:,2); %diffusion classification
 if all(isnan(trajClassAsym))
     trajClass = trajClassDiff;
 else
-    trajClass = NaN(numSegments,1);
+    trajClass = NaN(numTracks,1);
     trajClass(trajClassAsym==0&trajClassDiff==1) = 1; %isotropic+confined
     trajClass(trajClassAsym==0&trajClassDiff==2) = 2; %isotropic+free
     trajClass(trajClassAsym==0&trajClassDiff==3) = 3; %isotropic+directed
@@ -147,7 +133,7 @@ confRadAll = catStruct(1,'diffAnalysisRes.confRadInfo.confRadius(:,1)');
 if isstruct(tracksFinal) %if tracks are in structre format
     
     %reserve memory for frame-to-frame displacement
-    [frame2frameDisp,angleMotionDirWithXaxis] = deal(NaN(numSegments,1));
+    [frame2frameDisp,angleMotionDirWithXaxis] = deal(NaN(length(trajClass),1));
     
     %initialize global segment index
     iSeg = 0;
@@ -222,15 +208,18 @@ winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
 %go over all windows and get their sizes
 for iFrame = 1 : numWinFrames-1
     for iPara = 1 : numWinPara
-        for iPerp = 1 : nBands(iFrame,iPara)
+        for iPerp = 1 : numWinPerp
             
-            %if this window has a finite size
-            if ~isempty(winPositions{iFrame,iPara}{iPerp})
+            %if this window has proper boundaries (reflecting a finite
+            %size) ...
+            if ~isempty(winPositions(iPerp,iPara,iFrame).outerBorder) ...
+                    && ~isempty(winPositions(iPerp,iPara,iFrame).innerBorder)
                 
                 %get the window boundaries
-                windowsPoly = [winPositions{iFrame,iPara}{iPerp}{:}];
-                winX = windowsPoly(1,:);
-                winY = windowsPoly(2,:);
+                winX = [winPositions(iPerp,iPara,iFrame).outerBorder(1,:) ...
+                    winPositions(iPerp,iPara,iFrame).innerBorder(1,end:-1:1)]';
+                winY = [winPositions(iPerp,iPara,iFrame).outerBorder(2,:) ...
+                    winPositions(iPerp,iPara,iFrame).innerBorder(2,end:-1:1)]';
                 
                 %calculate the window size
                 winSize(iPerp,iPara,iFrame) = polyarea(winX,winY);
@@ -244,7 +233,6 @@ end
 winSize(winSize==0) = NaN;
 
 %copy winSize into the output variable windowSize and convert NaNs to zeros
-%in windowSize
 windowSize = winSize;
 windowSize(isnan(windowSize)) = 0;
 

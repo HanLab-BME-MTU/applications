@@ -1,4 +1,4 @@
-function tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
+function tracksInWindow = assignTracks2WindowsOld(tracksFinal,winPositions,...
     winFrames,assignSegments)
 %ASSIGNTRACKS2WINDOWS groups tracks into spatial and temporal windows derived from the cell edge
 %
@@ -8,14 +8,8 @@ function tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
 %                        format (e.g. output of trackWithGapClosing).
-%       winPositions   : A 2D array of the window edges. 
-%                        Number of rows = number of window frames. 
-%                        Number of columns = number of windows parallel to
-%                        Each entry is the output of Hunter's new
-%                        windowing software.
-%                        Basically, to make this variable, one puts
-%                        together the windows of each frame coming out of
-%                        the windowing software.
+%       winPositions   : The window edges for all time points, as output by
+%                        Hunter's old windowing function.
 %       winFrames      : The frames at which there are windows.
 %       assignSegments : Relevant only for tracks in structure format.
 %                        1 to assign track segments, 0 to assign compound
@@ -23,7 +17,7 @@ function tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
 %                        Optional. Default: 0.
 %
 %OUTPUT tracksInWindow : Cell array of dimensions (number of bands) x
-%                        (number of slices) x (number of window frames-1)
+%                        (number of windows) x (number of window frames-1)
 %                        storing the track indices that fall in each window
 %                        in each frame.
 %
@@ -55,18 +49,14 @@ if assignSegments == 1 && ~isstruct(tracksFinal)
     assignSegments = 0;
 end
 
-%% Pre-processing
-
 %get number of tracks
 numTracksCompound = size(tracksFinal,1);
 
-%get number of frames that have windows and number of windows parallel to
-%the edge
-[numWinFrames,numWinPara] = size(winPositions);
+%get number of windows along the edge and perpendicular to it, and number
+%of frames that have windows
+[numWinPerp,numWinPara,numWinFrames] = size(winPositions);
 
-%find number of windows perpendicular to the edge
-nBands = cellfun(@(x)(numel(x)),winPositions);
-numWinPerp = max(nBands(:));
+%% Pre-processing
 
 %get track/track segment start and end times
 trackSEL = getTrackSEL(tracksFinal,assignSegments);
@@ -138,15 +128,17 @@ for iWinFrame = 1 : numWinFrames - 1
     
     %go over the windows in this frame
     for iPara = 1 : numWinPara
-        for iPerp = 1 : nBands(iWinFrame,iPara)
+        for iPerp = 1 : numWinPerp
             
             %if this window has a finite size
-            if ~isempty(winPositions{iWinFrame,iPara}{iPerp})
+            if ~isempty(winPositions(iPerp,iPara,iWinFrame).outerBorder) ...
+                    && ~isempty(winPositions(iPerp,iPara,iWinFrame).innerBorder)
                 
                 %get the window boundaries
-                windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];
-                winX = windowsPoly(1,:);
-                winY = windowsPoly(2,:);
+                winX = [winPositions(iPerp,iPara,iWinFrame).outerBorder(1,:) ...
+                    winPositions(iPerp,iPara,iWinFrame).innerBorder(1,end:-1:1)]';
+                winY = [winPositions(iPerp,iPara,iWinFrame).outerBorder(2,:) ...
+                    winPositions(iPerp,iPara,iWinFrame).innerBorder(2,end:-1:1)]';
                 
                 %find the tracks whose "average" position lies in this window
                 indxWin = inpolygon(xCoordMeanFR,yCoordMeanFR,winX,winY);
