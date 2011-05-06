@@ -170,6 +170,19 @@ if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
 end
 
+
+if p.MakeMovie
+    % Create a cell array of parameter/value from the funParams
+    % structure
+    movieFields=fieldnames(p.MovieOptions)';
+    movieValues=struct2cell(p.MovieOptions)';
+    movieOptions = vertcat(movieFields,movieValues);
+    movieOptions = reshape(movieOptions,1,numel(movieFields)*2);
+    
+    % Call the movie creation routine
+    makeRatioMovie(movieData,movieOptions{:});
+end
+
 %% ----- Finalization ---- %%
 
 

@@ -81,32 +81,7 @@ classdef OutputRatioProcess < DoubleProcessingProcess
                 obj.funParams_.OutputDirectory '". They can be viewed with ImageJ or a comparable image viewing program.']); 
             
         end
-        
-        function run(obj)
-            % Run the process
-            %
-            % Thid function overloads the existing run process as it add
-            % the possibility of export the output as a ratio movie
-            
-            
-            % Call the superclass run method first
-            run@DoubleProcessingProcess(obj);
-            
-            if obj.funParams_.MakeMovie            
-                % Create a cell array of parameter/value from the funParams
-                % structure
-                movieFields=fieldnames(obj.funParams_.MovieOptions)';
-                movieValues=struct2cell(obj.funParams_.MovieOptions)';
-                movieOptions = vertcat(movieFields,movieValues);
-                movieOptions = reshape(movieOptions,1,numel(movieFields)*2);
-                
-                % Call the movie creation routine
-                makeRatioMovie(obj.owner_,movieOptions{:});
-            end
-        end
-        
+    
     end
-    
-end    
-    
-    
+end
+   
