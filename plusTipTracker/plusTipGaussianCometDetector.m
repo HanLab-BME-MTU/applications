@@ -185,7 +185,7 @@ for iFrame = startFrame:endFrame
     
     % Core anisotropic detection function. Returns a structure compatible
     % with Khuloud's tracker
-    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),3);
+    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),1.8,'minDist',.5,'alpha',.01);
     
     indxStr1 = sprintf(strg1,iFrame); % frame
     
