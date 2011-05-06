@@ -105,8 +105,8 @@ for iFrame = 1:nFrames
     xCoord = featuresInfo(iFrame).xCoord(:,1);
     yCoord = featuresInfo(iFrame).yCoord(:,1);
     amp = featuresInfo(iFrame).amp(:,1);
-    sX = featuresInfo(iFrame).stdAlong(:,1);
-    sY = featuresInfo(iFrame).stdAside(:,1);
+    sX = featuresInfo(iFrame).sigmaX(:,1);
+    sY = featuresInfo(iFrame).sigmaY(:,1);
     theta = featuresInfo(iFrame).theta(:,1);
     bkg = featuresInfo(iFrame).bkg(:,1);
     
