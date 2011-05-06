@@ -1,9 +1,11 @@
-function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows(tracksFinal,...
-    winPositions,winFrames,diffAnalysisRes,minLength)
+function [sptPropInWindow,tracksInWindow,windowSize] = ...
+    particleBehaviorInWindows(tracksFinal,winPositions,winFrames,...
+    protSamples,diffAnalysisRes,minLength)
 %PARTICLEBEHAVIORINWINDOWS averages single particle behavior in windows based on cell edge segmentation
 %
-%SYNOPSIS [sptPropInWindow,tracksInWindow,winSize] = particleBehaviorInWindows(tracksFinal,...
-%    winPositions,winFrames,diffAnalysisRes,minLength)
+%SYNOPSIS [sptPropInWindow,tracksInWindow,windowSize] = ...
+%    particleBehaviorInWindows(tracksFinal,winPositions,winFrames,...
+%    protPerWindow,diffAnalysisRes,minLength)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -17,6 +19,8 @@ function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows
 %                        together the windows of each frame coming out of
 %                        the windowing software.
 %       winFrames      : The frames at which there are windows.
+%       protPerWindow  : The protrusion samples as output by the windowing
+%                        software.
 %       diffAnalysisRes: Output of trackDiffusionAnalysis1.
 %                        Optional. If not input but needed, it will be
 %                        calculated within the code.
@@ -29,9 +33,22 @@ function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows
 %               From the tracks directly ...
 %           .spDensity      : Single particle density.
 %           .f2fDisp        : Average frame-to-frame displacement.
+%           .angleMean      : Average angle with protrusion vector.
+%           .angleStd       : Std of angle with protrusion vector.
 %               From track diffusion analysis ...
-%           .fracUnclass    : Fraction of unclassified tracks.
-%           .fracConf       : Among the classified tracks, fraction of confined.
+%           .fracUnclass    : Fraction of completely unclassified tracks
+%                             (i.e. tracks < frames).
+%           .fracLin        : Among tracks classifiable by asymmetry
+%                             analysis (i.e. tracks >= 5 frames),
+%                             fraction of tracks classified as linear.
+%           .fracIso        : //, fraction of tracks classified as
+%                             isotropic (i.e. 1 - fracLin).
+%           .fracIsoUnclass : Among isotropic tracks, fraction of tracks
+%                             with unclassified diffusion (i.e. tracks >= 5
+%                             frames but < 20 frames).
+%           .fracConf       : Among isotropic tracks that are also
+%                             classifiable by diffusion analysis (i.e.
+%                             tracks >= 20 frames), fraction of confined.
 %           .fracBrown      : //, fraction of Brownian.
 %           .fracDir        : //, fraction of directed.
 %           .diffCoef       : Average diffusion coefficient.
@@ -68,16 +85,16 @@ function [sptPropInWindow,tracksInWindow,windowSize] = particleBehaviorInWindows
 
 %% Input
 
-if nargin < 3
-    disp('--particleBehaviorInWindows: Incorrect number of input arguments!');
+if nargin < 4
+    disp('--particleBehaviorInWindows: Missing input arguments!');
     return
 end
 
-if nargin < 4 || isempty(diffAnalysisRes)
+if nargin < 5 || isempty(diffAnalysisRes)
     diffAnalysisRes = trackDiffusionAnalysis1(tracksFinal,1,2,0,0.05);
 end
 
-if nargin < 5 || isempty(minLength)
+if nargin < 6 || isempty(minLength)
     minLength = 5;
 end
 
@@ -105,6 +122,45 @@ numTracks = length(indx);
 
 %divide the trajectories among the windows
 tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,winFrames,1);
+
+%% Window pre-processing
+
+%initialize array storing window sizes
+winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
+
+%go over all windows and get their sizes
+for iFrame = 1 : numWinFrames-1
+    for iPara = 1 : numWinPara
+        for iPerp = 1 : nBands(iFrame,iPara)
+            
+            %if this window has a finite size
+            if ~isempty(winPositions{iFrame,iPara}{iPerp})
+                
+                %get the window boundaries
+                windowsPoly = [winPositions{iFrame,iPara}{iPerp}{:}];
+                winX = windowsPoly(1,:);
+                winY = windowsPoly(2,:);
+                
+                %calculate the window size
+                winSize(iPerp,iPara,iFrame) = polyarea(winX,winY);
+                
+            end
+            
+        end
+    end
+end
+%make sure that there are no zeros
+winSize(winSize==0) = NaN;
+
+%copy winSize into the output variable windowSize and convert NaNs to zeros
+%in windowSize
+windowSize = winSize;
+windowSize(isnan(windowSize)) = 0;
+
+%get normalized protrusion vectors
+protVec = protSamples.avgVector;
+protVecMag = sqrt(sum(protVec.^2,3));
+protVecUnit = protVec ./ repmat(protVecMag,[1 1 2]);
 
 %% Particle behavior pre-processing
 
@@ -143,11 +199,12 @@ confRadAll = catStruct(1,'diffAnalysisRes.confRadInfo.confRadius(:,1)');
 
 %From tracks directly ...
 
-%get the average frame-to-frame displacement
-if isstruct(tracksFinal) %if tracks are in structre format
+%get the average frame-to-frame displacement and direction of motion
+if isstruct(tracksFinal) %if tracks are in structure format
     
-    %reserve memory for frame-to-frame displacement
-    [frame2frameDisp,angleMotionDirWithXaxis] = deal(NaN(numSegments,1));
+    %reserve memory for frame-to-frame displacement and direction of motion
+    frame2frameDisp = NaN(numSegments,1);
+    motionDirection = NaN(numSegments,2);
     
     %initialize global segment index
     iSeg = 0;
@@ -176,14 +233,14 @@ if isstruct(tracksFinal) %if tracks are in structre format
         %calculate average frame-to-frame displacement magnitude
         f2fDispCurrent = nanmean( sqrt( diff(xCoord,[],2).^2 + diff(yCoord,[],2).^2 ) ,2);
         
-        %calculate angle between overall displacement and x-axis
-        dispStart2EndX = diff(xCoordStartEnd,1,2);
-        dispStart2EndY = diff(yCoordStartEnd,1,2);
-        angleMotionDirCurrent = acos(dispStart2EndX ./ sqrt((dispStart2EndX.^2 + dispStart2EndY.^2)));
+        %calculate direction of motion
+        dispStart2End = [diff(xCoordStartEnd,1,2) diff(yCoordStartEnd,1,2)];
+        dispStart2EndMag = sqrt(sum(dispStart2End.^2,2));
+        dispStart2EndUnit = dispStart2End ./ repmat(dispStart2EndMag,1,2);
         
         %store in big vectors
         frame2frameDisp(iSeg+1:iSeg+numSeg) = f2fDispCurrent;
-        angleMotionDirWithXaxis(iSeg+1:iSeg+numSeg) = angleMotionDirCurrent;
+        motionDirection(iSeg+1:iSeg+numSeg,:) = dispStart2EndUnit;
         
         %update global segment index
         iSeg = iSeg + numSeg;
@@ -207,46 +264,12 @@ else %if tracks are in matrix format
         yCoordStartEnd(jTrack,:) = yCoord(jTrack,[trackSE(jTrack,1) trackSE(jTrack,2)]);
     end
     
-    %calculate angle between overall displacement and x-axis
-    dispStart2EndX = diff(xCoordStartEnd,1,2);
-    dispStart2EndY = diff(yCoordStartEnd,1,2);
-    angleMotionDirWithXaxis = acos(dispStart2EndX ./ (dispStart2EndX.^2 + dispStart2EndY.^2));
+    %calculate direction of motion
+    dispStart2End = [diff(xCoordStartEnd,1,2) diff(yCoordStartEnd,1,2)];
+    dispStart2EndMag = sqrt(sum(dispStart2End.^2,2));
+    motionDirection = dispStart2End ./ repmat(dispStart2EndMag,1,2);
     
 end
-
-%% Window pre-processing
-
-%initialize array storing window sizes
-winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
-
-%go over all windows and get their sizes
-for iFrame = 1 : numWinFrames-1
-    for iPara = 1 : numWinPara
-        for iPerp = 1 : nBands(iFrame,iPara)
-            
-            %if this window has a finite size
-            if ~isempty(winPositions{iFrame,iPara}{iPerp})
-                
-                %get the window boundaries
-                windowsPoly = [winPositions{iFrame,iPara}{iPerp}{:}];
-                winX = windowsPoly(1,:);
-                winY = windowsPoly(2,:);
-                
-                %calculate the window size
-                winSize(iPerp,iPara,iFrame) = polyarea(winX,winY);
-                
-            end
-            
-        end
-    end
-end
-%make sure that there are no zeros
-winSize(winSize==0) = NaN;
-
-%copy winSize into the output variable windowSize and convert NaNs to zeros
-%in windowSize
-windowSize = winSize;
-windowSize(isnan(windowSize)) = 0;
 
 %% Calculate property values per window
 
@@ -279,11 +302,14 @@ for iFrame = 1 : numWinFrames-1
                 f2fDisp.values(iPerp,iPara,iFrame) = nanmean(frame2frameDisp(tracksCurrent));
                 f2fDisp.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 
-                %calculate the mean and std of the angle with the x-axis
-                angleMean.values(iPerp,iPara,iFrame) = nanmean(angleMotionDirWithXaxis(tracksCurrent));
+                %calculate the mean and std of angle with protrusion vector
+                motionDirCurrent = motionDirection(tracksCurrent,:);
+                protrusionCurrent = repmat(squeeze(protVecUnit(iPara,iFrame,:))',numTracksCurrent,1);
+                angleMotionDirWithProtVec = acos(dot(motionDirCurrent,protrusionCurrent,2)) * 180 / pi;
+                angleMean.values(iPerp,iPara,iFrame) = nanmean(angleMotionDirWithProtVec);
                 angleMean.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 if numTracksCurrent > 1
-                    angleStd.values(iPerp,iPara,iFrame) = nanstd(angleMotionDirWithXaxis(tracksCurrent));
+                    angleStd.values(iPerp,iPara,iFrame) = nanstd(angleMotionDirWithProtVec);
                 end
                 angleStd.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 

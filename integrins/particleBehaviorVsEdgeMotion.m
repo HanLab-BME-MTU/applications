@@ -194,7 +194,7 @@ for iProp = 1 : numProp2analyze
         caxis([nanValue maxValue])
         colormap(cmapExt);
         colorbar
-        title([propName ' in Band ' num2str(iBand)])
+        title([propName ' in Band ' num2str(band2analyze(iBand))])
         xlabel('Time (frames)')
         ylabel('Position along edge (window #)')
         
@@ -208,7 +208,8 @@ for iProp = 1 : numProp2analyze
         caxis([nanValue 1])
         colormap(cmapExt);
         colorbar
-        title(['Cross-correlation of ' propName ' with protrusion vector in Band ' num2str(iBand) ' - Individual windows'])
+        title(['Cross-correlation of ' propName ' with protrusion vector in Band ' ...
+            num2str(band2analyze(iBand)) ' - Individual windows'])
         xlabel('Time lag (frames)')
         ylabel('Position along edge (window #)')
         
@@ -220,7 +221,8 @@ for iProp = 1 : numProp2analyze
         plot([-maxLag-0.1 maxLag+0.1],1.96/sqrt(numPointsCross)*[1 1],'k')
         plot([-maxLag-0.1 maxLag+0.1],-1.96/sqrt(numPointsCross)*[1 1],'k')
         xlim([-maxLag-0.1 maxLag+0.1])
-        title(['Cross-correlation of ' propName ' with protrusion vector in Band ' num2str(iBand) ' - All windows combined'])
+        title(['Cross-correlation of ' propName ' with protrusion vector in Band ' ...
+            num2str(band2analyze(iBand)) ' - All windows combined'])
         xlabel('Time lag (frames)')
         ylabel('Cross-correlation')
         
