@@ -167,17 +167,17 @@ function windows = getMaskWindows(maskIn,perpSize,paraSize,varargin)
 %   second layer corresponds to the position away from the edge of the mask
 %   object. That is, the window specified by windows{j}{k} is in the j'th
 %   strip of windows and the k-th band. All windows with a given k will
-%   occupy the same distances from the mask edge. The fourth layer contains
+%   occupy the same distances from the mask edge. The third layer contains
 %   the different sides of the window; that is, windows{j}{k} is a 1xL cell
 %   array, where L is the number of sides to the window (either 3 or 4).
 %   For L = 4, side 1 is on the isocontour closer to the object edge, side
-%   1 follows the gradient ascent to the next contour, side 3 is on the
+%   2 follows the gradient ascent to the next contour, side 3 is on the
 %   isocontour further from the object edge, and side 4 follows the
 %   gradient ascent downhill, back to the contour closer to the object
 %   edge. Windows where L=3 are created by the intersection of two gradient
 %   ascent lines at a ridge, and therefore have no side on the isocontour
 %   further from the object edge. The coordinates of each side are
-%   specified by an 2xN matrix of x-y coordinates, where N may be different
+%   specified by a 2xN matrix of x-y coordinates, where N may be different
 %   for each side.
 %   The window array MAY contain empty windows - these are areas of the
 %   mask that were excluded, and the empty windows are left as
