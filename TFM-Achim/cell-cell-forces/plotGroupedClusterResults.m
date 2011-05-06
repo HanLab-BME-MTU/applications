@@ -236,14 +236,14 @@ ylabel('Average Ecad intensity [a.u.]')
 
 end
 normVar=1;
-tBtwFrms=540;
+tBtwFrms=240;
 aveType='nanmean'; % first checks 'none', 'nanmean', 'mean' makes little difference
 maxLag =round(7200/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-goodCellSet   = findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'relErrF',relErrF_val_corr,'errs',0);
+goodCellSet   = findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'divGlb',[-1 1],'relErrF',relErrF_val_corr,'errs',0);
 [corrSets]    = collectCellValues(groupedClusters,goodCellSet,'corr');
 [corrResults] = calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
 
@@ -253,7 +253,7 @@ goodCellSet   = findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'r
 %**************************************************************************
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
- goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+ goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'divGlb',[-1 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
     [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
     [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);

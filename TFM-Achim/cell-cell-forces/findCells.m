@@ -15,6 +15,24 @@ function goodCellSet=findCells(groupedClusters,varargin)
 % 'myoGlb' : 0/1/-1: 0 = cluster with only control cells; 1 = cluster with only
 %            myosin cells. -1 = mixed clusters. Clusters that don't match
 %            the search pattern will be dismissed.
+% 'divGlb' : 0/1/-1/NaN:
+%            This might fail if a cell leaves and joins the cluster at in
+%            the same frame!
+%            0 = cluster with constant cluster size: no devisions
+%            or cell deaths. 
+%            1 = cluster sizes increase at least once over time (but may be 
+%            shrinking at some other time point, those mixed cases are not
+%            excluded) by:
+%            a) a cell division or by 
+%            b) an additional cell joining the cluster.
+%            -1 = cluster sizes decrease at least once over time (but may 
+%            be growing at some other time point, those mixed cases are not
+%            excluded) by: 
+%            a) a cell died
+%            b) a cell left the cluster
+%            [1, -1]: look for all clusters that either shrink or grow
+%            other time. In other words a cluster that at least once
+%            changes size (in any direction).
 % 'errF'   : x: Only clusters with an error in the force measurement of <x
 %            will be considered (the magnitude of the error in [nN]).
 % 'relErrF': x: Only clusters with a rel error in the force measurement of
@@ -61,6 +79,15 @@ else
     myoGlbCheck = 0;
 end
 
+divGlbPos=find(strcmp('divGlb',varargin));
+if ~isempty(divGlbPos)
+    divGlbCheck = 1;
+    % it is the next entry which contains the numeric value:
+    divGlbVal   = varargin{divGlbPos+1};
+else
+    divGlbCheck = 0;
+end
+
 typePos=find(strcmp('type',varargin));
 if ~isempty(typePos)
     typeCheck = 1;
@@ -104,15 +131,34 @@ goodCellSet(idx).cellId   =[];
 goodCellSet(idx).frames   =[];
 for clusterId=1:groupedClusters.numClusters
     toDoList=[];
+    numCellsVec=[];
     trackedNet=groupedClusters.cluster{clusterId}.trackedNet;
     maxCell=0;
     for frame=1:length(trackedNet)
         if ~isempty(trackedNet{frame})
             toDoList=horzcat(toDoList,frame);
             maxCell=max(maxCell,length(trackedNet{frame}.node));
+            numCellsVec=vertcat(numCellsVec, trackedNet{frame}.stats.numCells);
         end
     end
-    
+    checkVec=(numCellsVec<maxCell);
+    % find subsequent frames with fewer than the maximum number of cells.
+    patterns=bwconncomp(checkVec);
+    if patterns.NumObjects>1
+        % then the cluster is growing and shrinking
+        currDivGlb=[-1,1];
+    elseif patterns.NumObjects==1 && patterns.PixelIdxList{1}(1)==1
+        % then the cluster is growing. If it is growing 1, shrinking 1 and
+        % then at least growing one it would fall in here too!!
+        currDivGlb=1;
+    elseif patterns.NumObjects==1 && patterns.PixelIdxList{1}(1)>1
+        % then the cluster is shrinking. If it is shrinking by 2 and
+        % then growing one and then shrinking at least one it would fall in
+        % here too!!
+        currDivGlb=-1;
+    else
+        currDivGlb=0;
+    end
     
     for cellId=1:maxCell
         for frame=toDoList
@@ -142,7 +188,8 @@ for clusterId=1:groupedClusters.numClusters
                     && (~typeCheck    || sum(strcmp(trackedNet{frame}.node{cellId}.type,typeVal)>0))...
                     && (~errsCheck    || trackedNet{frame}.stats.errs<=errsVal)...
                     && (~errFCheck    || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)...
-                    && (~relErrFCheck || trackedNet{frame}.stats.errorSumForce.mag/maxCCF<=relErrFVal)
+                    && (~relErrFCheck || trackedNet{frame}.stats.errorSumForce.mag/maxCCF<=relErrFVal)...
+                    && (~divGlbCheck  || sum(ismember(currDivGlb,divGlbVal))>0)
                 
                 
                 % If all of this is true we have found a good entry

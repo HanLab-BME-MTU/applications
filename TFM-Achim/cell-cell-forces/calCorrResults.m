@@ -326,6 +326,34 @@ plotmatrix([vertcat(fi_tot(:,1).observations) vertcat(fi_tot(:,2).observations) 
 title('f_{i_{tot}} / f_{res}')
 
 figure()
+title('The autco-rrelation for cF1F1')
+for i=1:cols
+    for j=1:cols
+        subplot(cols,cols,(i-1)*cols+j)
+        plot(-maxLag:1:maxLag,reshape(cF1F1(i,j,:),[],1))
+        ylim([-1 1])
+        xlim([-maxLag maxLag])
+        title('Autocorrelation f_i f_i')
+        xlabel('dframes')
+        ylabel('corr')
+    end
+end
+
+figure()
+title('The auto-correlation for cFrFr')
+for i=1:cols
+    for j=1:cols
+        subplot(cols,cols,(i-1)*cols+j)
+        plot(-maxLag:1:maxLag,reshape(cFrFr(i,j,:),[],1))
+        ylim([-1 1])
+        xlim([-maxLag maxLag])
+        title('Autocorrelation f_r f_r')
+        xlabel('dframes')
+        ylabel('corr')
+    end
+end
+
+figure()
 title('The cross correlation for cF1Ft')
 for i=1:cols
     for j=1:cols

@@ -23,10 +23,14 @@ for frame=1:length(fileList)
         accTime=imageInfo.DateTime;
         
         % This can be converted now by Matlab:
-        timeInDays_DateTime=datenum(accTime,'yyyymmdd HH:MM:SS.FFF');
+        try
+            timeInDays_DateTime=datenum(accTime,'yyyymmdd HH:MM:SS.FFF');
+        catch
+            timeInDays_DateTime=datenum(accTime,'yyyy:mm:dd HH:MM:SS');
+        end
 
         % The date could be recovered by e.g.:
-        % datestr(timeInDays,'yyyy mm dd HH:MM:SS.FFF')
+        % datestr(timeInDays_DateTime,'yyyy mm dd HH:MM:SS.FFF')
         foundDateTime=1;
     end
     if (doBoth && isfield(imageInfo,'FileModDate')) ||...
