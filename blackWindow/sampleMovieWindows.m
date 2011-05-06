@@ -34,9 +34,10 @@ function movieData = sampleMovieWindows(movieData,paramsIn)
 %       all available channels will be sampled.
 %
 %       ('ProcessIndex' -> Positive integer scalar) Optional. This
-%       specifies the index of an ImageProcessingProcess in the movieData's
-%       process array to use the output images of for sampling. If not
-%       specified, the raw images will be sampled.
+%       specifies the index of an ImageProcessingProcess or
+%       DoubleProcessingProcess in the movieData's process array to use the
+%       output images of for sampling. If not specified, the raw images
+%       will be sampled.
 %
 %
 %       ('BatchMode' -> True/False)
@@ -107,12 +108,17 @@ if isempty(p.ProcessIndex)
     
     imNames = movieData.getImageFileNames(p.ChannelIndex);
     imDirs = movieData.getChannelPaths(p.ChannelIndex);
+    isDouble = false;
     
 else
    
     %Make sure the process specified is an ImageProcessingProcess
-    if ~isa(movieData.processes_{p.ProcessIndex},'ImageProcessingProcess')
-        error('The process selected for input by the ProcessIndex parameter must be an ImageProcessingProcess!');
+    if isa(movieData.processes_{p.ProcessIndex},'DoubleProcessingProcess')
+        isDouble = true;
+    elseif isa(movieData.processes_{p.ProcessIndex},'ImageProcessingProcess')
+        isDouble = false;        
+    else
+        error('The process selected for input by the ProcessIndex parameter must be an ImageProcessingProcess or a DoubleProcessingProcess!');
     end
     
     imNames = movieData.processes_{p.ProcessIndex}.getOutImageFileNames(p.ChannelIndex);
@@ -120,9 +126,6 @@ else
 
 end
 
-
-%Store these in the movieData object
-movieData.processes_{iProc}.setInImagePath(p.ChannelIndex,imDirs);
 
 %Set up and store the output directories for the window samples.
 mkClrDir(p.OutputDirectory)
@@ -185,7 +188,12 @@ for iFrame = 1:nFrames
     %Go through each channel and sample it
     for iChan = 1:nChan
                
-        currIm = imread([imDirs{iChan} filesep imNames{iChan}{iFrame}]);                                        
+        if ~isDouble
+            currIm = imread([imDirs{iChan} filesep imNames{iChan}{iFrame}]);                                        
+        else
+            currIm = movieData.processes_{p.ProcessIndex}.loadOutImage(p.ChannelIndex(iChan),iFrame);
+        end
+        
         currSamples = sampleImageWindows(currWin,currIm,currMask);
         
         %Copy these into the whole-movie array
