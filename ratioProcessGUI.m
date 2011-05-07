@@ -344,7 +344,7 @@ for x = 1: length(userData_main.MD)
     for i = 1: length(procEx)
        if ~isempty(procEx{i})
            % Record the icon and message to user data
-           userData_main.statusM(x).IconType{userData.procID} = 'warn';
+           userData_main.statusM(x).IconType{i} = 'warn';
            userData_main.statusM(x).Msg{i} = procEx{i}(1).message;
        end
     end   
