@@ -212,30 +212,17 @@ catch ME
     return;
 end
 
-%---------Check if channel indexs are changed---------
+% -------- Set parameter --------
 
 channelIndex = get (handles.listbox_2, 'Userdata');
 funParams = userData.crtProc.funParams_;
 
-if ~isempty( setdiff(channelIndex, funParams.ChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.ChannelIndex, channelIndex) )
+funParams.ChannelIndex = channelIndex;
+funParams.GrowthRadius = str2double( get(handles.edit_gr, 'String') );
 
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
+% Set parameters
+userData.crtProc.setPara(funParams)
     
-% -------- Set parameter --------
-
-if userData.crtProc.procChanged_ 
-
-    funParams.ChannelIndex = get(handles.listbox_2, 'Userdata');
-    funParams.GrowthRadius = str2double( get(handles.edit_gr, 'String') );
-
-    % Set parameters
-    userData.crtProc.setPara(funParams)
-    
-end
-
 % -------------------------------
 
 
@@ -265,8 +252,6 @@ set(userData.mainFig, 'UserData', userData_main)
 for i = 1: length(procEx)
    if ~isempty(procEx{i})
        
-       % Set the processChanged to true
-%        userData.crtPackage.processes_{i}.setProcChanged(true);
        % Draw warning label on the i th process
       userfcn_drawIcon(userData.handles_main,'warn',i,procEx{i}(1).message, true); % user data is retrieved, updated and submitted
       
@@ -310,13 +295,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -340,29 +318,6 @@ end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 delete(handles.figure1);
-
-
-% --- Executes on selection change in listbox_1.
-function listbox_1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on button press in checkbox_all.
@@ -443,49 +398,6 @@ end
 % Refresh listbox
 set(handles.listbox_2,'String',contents);
 
-
-% --- Executes on selection change in listbox_2.
-function listbox_2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_gr_Callback(hObject, eventdata, handles)
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_gr_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_gr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
@@ -522,12 +434,3 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall

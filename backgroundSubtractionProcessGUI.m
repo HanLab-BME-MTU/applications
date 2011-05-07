@@ -230,42 +230,16 @@ end
 funParams.MaskChannelIndex = tempMaskChannelIndex;
 userData.crtProc.setPara(funParams);
 
-%---------Check if channel indexs are changed---------
-
-channelIndex = get(handles.listbox_input2, 'Userdata');
-
-
-if ~isempty( setdiff(channelIndex, funParams.ChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.ChannelIndex, channelIndex) )
-
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-
-maskChannelIndex = get(handles.listbox_mask2, 'Userdata');
-
-if ~isempty( setdiff(maskChannelIndex, funParams.MaskChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.MaskChannelIndex, maskChannelIndex) )
-
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-    
 % -------- Set parameter --------
-
-if userData.crtProc.procChanged_ 
+channelIndex = get(handles.listbox_input2, 'Userdata');
+maskChannelIndex = get(handles.listbox_mask2, 'Userdata');
+ 
+% Set mask channels
+funParams.ChannelIndex = channelIndex;
+funParams.MaskChannelIndex = maskChannelIndex;
     
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    
-    % Set mask channels
-    funParams.MaskChannelIndex = maskChannelIndex;
-    
-    % Set parameters
-    userData.crtProc.setPara(funParams);
-end
-
+% Set parameters
+userData.crtProc.setPara(funParams);
 
 % --------------------------------------------------
 
@@ -342,14 +316,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -373,35 +339,6 @@ end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 delete(handles.figure1);
-
-
-
-
-
-
-
-% --- Executes on selection change in listbox_mask1.
-function listbox_mask1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_mask1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_mask1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_mask1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_mask1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_mask1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in checkbox_mask_all.
 function checkbox_mask_all_Callback(hObject, eventdata, handles)
@@ -477,52 +414,6 @@ if (id >length(contents) && id>1)
 end
 % Refresh listbox
 set(handles.listbox_mask2,'String',contents);
-
-
-% --- Executes on selection change in listbox_mask2.
-function listbox_mask2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_mask2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_mask2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_mask2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_mask2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_mask2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in listbox_input1.
-function listbox_input1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_input1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_input1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_input1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_input1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_input1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on button press in checkbox_input_all.
@@ -601,29 +492,6 @@ if (id >length(contents) && id>1)
 end
 % Refresh listbox
 set(handles.listbox_input2,'String',contents);
-
-
-% --- Executes on selection change in listbox_input2.
-function listbox_input2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_input2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_input2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_input2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_input2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_input2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on button press in pushbutton_up.
@@ -713,12 +581,3 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall

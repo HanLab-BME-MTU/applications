@@ -273,57 +273,40 @@ catch ME
     return;
 end
 
-funParams.ChannelIndex = tempChannelIndex; 
-userData.crtProc.setPara(funParams);
 
-%---------Check if channel indexs are changed---------
-
-
-
-if ~isempty( setdiff(channelIndex, funParams.ChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.ChannelIndex, channelIndex) )
-
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-    
 % -------- Set parameter --------
 
-if userData.crtProc.procChanged_ 
-    
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    
-    % Get dark image path
-%     userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_3, 'String'));    
-    
-    % Filter parameters
-    if get(handles.checkbox_medianfilter, 'Value')
-        funParams.MedianFilter = true;
-    else
-        funParams.MedianFilter = false;
-    end
-    if get(handles.checkbox_gaussianfilter, 'Value')
-        funParams.GaussFilterSigma = str2double(get(handles.edit_sigma, 'String'));
-    else
-        funParams.GaussFilterSigma = 0;
-    end
-    
-    % Normalize parameters
-    if ~get(handles.checkbox_normal, 'Value')
-        funParams.Normalize = 0;
-    else
-        if get(handles.radiobutton_1, 'Value')
-            funParams.Normalize = 1;
-        elseif get(handles.radiobutton_2, 'Value')
-            funParams.Normalize = 2;
-        end
-    end
-    
-    % Set parameters
-    userData.crtProc.setPara(funParams);
+funParams.ChannelIndex = channelIndex;
+
+% Get dark image path
+%     userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_3, 'String'));
+
+% Filter parameters
+if get(handles.checkbox_medianfilter, 'Value')
+    funParams.MedianFilter = true;
+else
+    funParams.MedianFilter = false;
 end
+if get(handles.checkbox_gaussianfilter, 'Value')
+    funParams.GaussFilterSigma = str2double(get(handles.edit_sigma, 'String'));
+else
+    funParams.GaussFilterSigma = 0;
+end
+
+% Normalize parameters
+if ~get(handles.checkbox_normal, 'Value')
+    funParams.Normalize = 0;
+else
+    if get(handles.radiobutton_1, 'Value')
+        funParams.Normalize = 1;
+    elseif get(handles.radiobutton_2, 'Value')
+        funParams.Normalize = 2;
+    end
+end
+
+% Set parameters
+userData.crtProc.setPara(funParams);
+
 
 
 % --------------------------------------------------
@@ -398,13 +381,6 @@ for x = 1: length(userData_main.MD)
    correctionPath = get(handles.listbox_3, 'String');
    userData_main.package(x).processes_{userData.procID}.setCorrectionImagePath(funParams.ChannelIndex, correctionPath(logical(~temp)));
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -430,32 +406,6 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 delete(handles.figure1);
 
-
-
-
-% --- Executes on selection change in listbox_3.
-function listbox_3_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_3 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_3
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in pushbutton_deletechannel.
 function pushbutton_deletechannel_Callback(hObject, eventdata, handles)
 % Call back function of 'delete' button
@@ -476,9 +426,6 @@ set(handles.listbox_3,'String',contents);
 if (num>length(contents) && num>1)
     set(handles.listbox_3,'Value',length(contents));
 end
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 guidata(hObject, handles);
 
@@ -501,8 +448,6 @@ contents = get(handles.listbox_3,'String');
 contents{end+1} = path;
 set(handles.listbox_3,'string',contents);
 
-userData.crtProc.setProcChanged(true);
-
 % Set user directory
 sepDir = regexp(path, filesep, 'split');
 dir = sepDir{1};
@@ -513,30 +458,6 @@ userData.userDir = dir;
 
 set(handles.figure1, 'Userdata', userData)
 guidata(hObject, handles);
-
-
-% --- Executes on selection change in listbox_1.
-function listbox_1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in checkbox_all.
 function checkbox_all_Callback(hObject, eventdata, handles)
@@ -617,60 +538,8 @@ end
 set(handles.listbox_2,'String',contents);
 
 
-% --- Executes on selection change in listbox_2.
-function listbox_2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in checkbox_medianfilter.
-function checkbox_medianfilter_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
-function edit_sigma_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_sigma_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_sigma (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in checkbox_gaussianfilter.
 function checkbox_gaussianfilter_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 switch get(hObject, 'Value')
     case 0
@@ -684,9 +553,6 @@ end
 
 % --- Executes on button press in checkbox_normal.
 function checkbox_normal_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 switch get(hObject, 'Value')
     case 0
@@ -717,9 +583,6 @@ contents{id-1} = temp;
 set(handles.listbox_3, 'string', contents);
 set(handles.listbox_3, 'value', id-1);
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 % --- Executes on button press in pushbutton_down.
 function pushbutton_down_Callback(hObject, eventdata, handles)
 % Call back of 'Down' button
@@ -739,9 +602,6 @@ contents{id+1} = temp;
 set(handles.listbox_3, 'string', contents);
 set(handles.listbox_3, 'value', id+1);
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
@@ -754,13 +614,6 @@ set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
 function uipanel_4_SelectionChangeFcn(hObject, eventdata)
-
-handles = guidata(hObject);
-
-% Para change reporter of radiobutton
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 
 % --- Executes on key press with focus on figure1 and none of its controls.
 function figure1_KeyPressFcn(hObject, eventdata, handles)
@@ -786,12 +639,3 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall

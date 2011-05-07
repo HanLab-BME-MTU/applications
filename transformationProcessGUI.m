@@ -236,41 +236,23 @@ catch ME
     return;
 end
 
-%---------Check if channel indexs are changed---------
-
-
-funParams = userData.crtProc.funParams_;
-
-if ~isempty( setdiff(channelIndex, funParams.ChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.ChannelIndex, channelIndex) )
-
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-
-
 % -------- Set parameter --------
 
-if userData.crtProc.procChanged_ 
-    
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    if length(fileName) == 1
-        funParams.TransformFilePaths(channelIndex) = repmat({fileName{1}}, [1 length(channelIndex)]);
-    else
-        funParams.TransformFilePaths(channelIndex) = fileName;
-    end
-    if get(handles.checkbox_mask, 'Value')
-        funParams.TransformMasks = true;
-    else
-        funParams.TransformMasks = false;
-    end
-    
-    % Set parameters
-    userData.crtProc.setPara(funParams);
+funParams = userData.crtProc.funParams_;
+funParams.ChannelIndex = channelIndex;
+if length(fileName) == 1
+    funParams.TransformFilePaths(channelIndex) = repmat({fileName{1}}, [1 length(channelIndex)]);
+else
+    funParams.TransformFilePaths(channelIndex) = fileName;
+end
+if get(handles.checkbox_mask, 'Value')
+    funParams.TransformMasks = true;
+else
+    funParams.TransformMasks = false;
 end
 
+% Set parameters
+userData.crtProc.setPara(funParams);
 
 % --------------------------------------------------
 
@@ -355,13 +337,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -411,8 +386,6 @@ contents = get(handles.listbox_transform,'String');
 contents{end+1} = [pathname filename];
 set(handles.listbox_transform,'string',contents);
 
-userData.crtProc.setProcChanged(true);
-
 % Set user directory
 sepDir = regexp(pathname, filesep, 'split');
 dir = sepDir{1};
@@ -422,31 +395,6 @@ end
 userData.userDir = dir;
 
 set(handles.figure1, 'Userdata', userData)
-
-
-
-% --- Executes on selection change in listbox_1.
-function listbox_1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in checkbox_all.
 function checkbox_all_Callback(hObject, eventdata, handles)
@@ -525,37 +473,6 @@ end
 % Refresh listbox
 set(handles.listbox_2,'String',contents);
 
-
-% --- Executes on selection change in listbox_2.
-function listbox_2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in checkbox_mask.
-function checkbox_mask_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 % Notify the package GUI that the setting panel is closed
@@ -595,38 +512,6 @@ if strcmp(eventdata.Key, 'return')
 end
 
 
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall
-
-
-% --- Executes on selection change in listbox_transform.
-function listbox_transform_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_transform (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_transform contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_transform
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_transform_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_transform (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in pushbutton_deletetransform.
 function pushbutton_deletetransform_Callback(hObject, eventdata, handles)
 % Call back function of 'delete' button
@@ -647,9 +532,6 @@ set(handles.listbox_transform,'String',contents);
 if (num>length(contents) && num>1)
     set(handles.listbox_transform,'Value',length(contents));
 end
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 guidata(hObject, handles);
 
@@ -672,9 +554,6 @@ contents{id-1} = temp;
 set(handles.listbox_3, 'string', contents);
 set(handles.listbox_3, 'value', id-1);
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 % --- Executes on button press in pushbutton_down.
 function pushbutton_down_Callback(hObject, eventdata, handles)
 
@@ -693,6 +572,3 @@ contents{id+1} = temp;
 
 set(handles.listbox_3, 'string', contents);
 set(handles.listbox_3, 'value', id+1);
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);

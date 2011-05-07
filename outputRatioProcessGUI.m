@@ -22,7 +22,7 @@ function varargout = outputRatioProcessGUI(varargin)
 
 % Edit the above text to modify the response to help outputRatioProcessGUI
 
-% Last Modified by GUIDE v2.5 23-Apr-2011 18:33:59
+% Last Modified by GUIDE v2.5 07-May-2011 12:45:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -223,36 +223,20 @@ catch ME
     return;
 end
 
-%---------Check if channel indexs are changed---------
-
-funParams = userData.crtProc.funParams_;
-
-if isempty(funParams.ChannelIndex) || funParams.ChannelIndex ~= channelIndex
-
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-
 % -------- Set parameter --------
+funParams = userData.crtProc.funParams_;
+funParams.ChannelIndex = channelIndex;
+funParams.OutputDirectory = outputDir;
+funParams.ScaleFactor = str2double(get(handles.edit_factor, 'String'));
 
-
-    
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    funParams.OutputDirectory = outputDir;    
-    funParams.ScaleFactor = str2double(get(handles.edit_factor, 'String'));
-    
-    funParams.MakeMovie = get(handles.checkbox_MakeMovie,'Value');
-    booleanMovieOptions= {'ConstantScale','ColorBar','MakeAvi','MakeMov'}; 
-    for i=booleanMovieOptions
-        funParams.MovieOptions.(i{:})= get(handles.(['checkbox_' i{:}]), 'Value');
-    end
-    funParams.MovieOptions.Saturate = get(handles.slider_Saturate, 'Value');
-    % Set parameters
-    userData.crtProc.setPara(funParams);
-
-
+funParams.MakeMovie = get(handles.checkbox_MakeMovie,'Value');
+booleanMovieOptions= {'ConstantScale','ColorBar','MakeAvi','MakeMov'};
+for i=booleanMovieOptions
+    funParams.MovieOptions.(i{:})= get(handles.(['checkbox_' i{:}]), 'Value');
+end
+funParams.MovieOptions.Saturate = get(handles.slider_Saturate, 'Value');
+% Set parameters
+userData.crtProc.setPara(funParams);
 
 % --------------------------------------------------
 
@@ -337,13 +321,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -413,12 +390,6 @@ end
 
 set(handles.edit_path, 'String', pathname);
 
-
-
-function setProcChanged_Callback(hObject, eventdata, handles)
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 % --- Executes on selection change in listbox_input1.
 function listbox_input1_Callback(hObject, eventdata, handles)
 
@@ -459,15 +430,7 @@ if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
 
-
-
 function edit_Saturate_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_Saturate (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_Saturate as text
-%        str2double(get(hObject,'String')) returns contents of edit_Saturate as a double
 
 value =str2double(get(hObject,'String'));
 if isnan(value) || value < get(handles.edit_Saturate,'Min')
@@ -477,30 +440,17 @@ elseif value > get(handles.edit_Saturate,'Max')
 end
 set(handles.slider_Saturate,'Value',value);
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 % --- Executes on slider movement.
 function slider_Saturate_Callback(hObject, ~, handles)
 
 set(handles.edit_Saturate,'String',get(hObject,'Value'));
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
 % --- Executes on button press in checkbox_MakeMovie.
 function checkbox_MakeMovie_Callback(hObject, ~, handles)
-% hObject    handle to checkbox_MakeMovie (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_MakeMovie
 
 if get(hObject,'Value')
     set(get(handles.uipanel_MovieOptions,'Children'),'Enable','on');
 else
     set(get(handles.uipanel_MovieOptions,'Children'),'Enable','off');
 end
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);

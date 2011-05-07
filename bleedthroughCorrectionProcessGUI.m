@@ -225,36 +225,16 @@ catch ME
     return;
 end
 
-%---------Check if channel indexs are changed---------
+% -------- Set parameter --------
 
 funParams = userData.crtProc.funParams_;
 
-if isempty(funParams.ChannelIndex) || funParams.ChannelIndex ~= channelIndex
+funParams.ChannelIndex = channelIndex;
+funParams.BleedChannelIndex = bleedChannelIndex;
+funParams.BleedCoefficients = bleedCoefficients;
 
-    % If channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-
-if ~isempty( setdiff(bleedChannelIndex, funParams.BleedChannelIndex) ) ...
-    || ~isempty( setdiff(funParams.BleedChannelIndex, bleedChannelIndex) )
-
-    % If bleed channel indexs are changed, set procChanged to true
-    userData.crtProc.setProcChanged(true);
-end
-    
-% -------- Set parameter --------
-
-if userData.crtProc.procChanged_ 
-    
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    funParams.BleedChannelIndex = bleedChannelIndex;    
-    funParams.BleedCoefficients = bleedCoefficients;
-    
-    % Set parameters
-    userData.crtProc.setPara(funParams);
-end
+% Set parameters
+userData.crtProc.setPara(funParams);
 
 
 % --------------------------------------------------
@@ -341,13 +321,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -382,29 +355,6 @@ end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 delete(handles.figure1);
-
-% --- Executes on selection change in listbox_mask1.
-function listbox_mask1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_mask1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_mask1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_mask1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_mask1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_mask1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in checkbox_all.
 function checkbox_all_Callback(hObject, eventdata, handles)
@@ -485,29 +435,6 @@ end
 set(handles.listbox_mask2,'String',contents);
 
 
-% --- Executes on selection change in listbox_mask2.
-function listbox_mask2_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_mask2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_mask2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_mask2
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_mask2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_mask2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on selection change in listbox_input1.
 function listbox_input1_Callback(hObject, eventdata, handles)
 
@@ -520,46 +447,6 @@ if isempty(contents1) || isempty(id)
    return;
 else
     set(handles.edit_dir, 'string', contents1{id}, 'Userdata',chanIndex(id));
-end
-
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_input1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_input1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-
-
-
-function edit_dir_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_dir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_dir as text
-%        str2double(get(hObject,'String')) returns contents of edit_dir as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_dir_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_dir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
 end
 
 
@@ -595,10 +482,6 @@ contents{end + 1} = text;
 set(handles.listbox_coef1, 'String', contents)
 set(handles.edit_coef, 'String', '')
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
 
 % --- Executes on button press in pushbutton_coef_delete.
 function pushbutton_coef_delete_Callback(hObject, eventdata, handles)
@@ -621,56 +504,6 @@ if (id>length(contents) && id>1)
     set(handles.listbox_coef1,'Value',length(contents));
 end
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-
-
-
-% --- Executes on selection change in listbox_coef1.
-function listbox_coef1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_coef1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_coef1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_coef1
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_coef1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_coef1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_coef_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_coef (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_coef as text
-%        str2double(get(hObject,'String')) returns contents of edit_coef as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_coef_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_coef (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)
@@ -689,9 +522,6 @@ contents{id-1} = temp;
 
 set(handles.listbox_coef1, 'string', contents);
 set(handles.listbox_coef1, 'value', id-1);
-
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 
 % --- Executes on button press in pushbutton_down.
@@ -712,8 +542,6 @@ contents{id+1} = temp;
 set(handles.listbox_coef1, 'string', contents);
 set(handles.listbox_coef1, 'value', id+1);
 
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 
 % --- Executes on key press with focus on figure1 and none of its controls.
@@ -740,12 +568,3 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall

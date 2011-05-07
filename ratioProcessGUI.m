@@ -234,63 +234,32 @@ catch ME
     return;
 end
 
-%---------Check if channel indexs are changed---------
-
+% -------- Set parameter --------
 channelIndex = [get(handles.edit_nu_input, 'Userdata'), get(handles.edit_de_input, 'Userdata')];
 maskChannelIndex = [ get(handles.edit_nu_mask, 'Userdata'), get(handles.edit_de_mask, 'Userdata')];
 
 funParams = userData.crtProc.funParams_;
 
-% Input Channels
-if ~isempty(funParams.ChannelIndex)
-    if channelIndex(1) ~= funParams.ChannelIndex(1) || ...
-        channelIndex(2) ~= funParams.ChannelIndex(2)
+funParams.ChannelIndex = channelIndex;
+funParams.MaskChannelIndex = maskChannelIndex;
+
+if get(handles.checkbox_mask, 'Value')
     
-        userData.crtProc.setProcChanged(true);
+    funParams.ApplyMasks = true;
+    
+    if get(handles.checkbox_newmask, 'Value')
+        funParams.CreateMasks = true;
+    else
+        funParams.CreateMasks = false;
     end
 else
-    userData.crtProc.setProcChanged(true);
-end
-
-% Mask Channels
-if ~isempty(maskChannelIndex) && ...
-    ( isempty(funParams.MaskChannelIndex) || ...
-      maskChannelIndex(1) ~= funParams.MaskChannelIndex(1) || ...
-      maskChannelIndex(2) ~= funParams.MaskChannelIndex(2) )
-       
-    userData.crtProc.setProcChanged(true);
+    funParams.ApplyMasks = false;
+    funParams.CreateMasks = false;
     
 end
 
-
-% -------- Set parameter --------
-
-if userData.crtProc.procChanged_ 
-    
-    % Get parameter
-    
-    funParams.ChannelIndex = channelIndex;
-    funParams.MaskChannelIndex = maskChannelIndex;
-
-    if get(handles.checkbox_mask, 'Value')
-        
-        funParams.ApplyMasks = true;
-        
-        if get(handles.checkbox_newmask, 'Value')
-            funParams.CreateMasks = true;
-        else
-            funParams.CreateMasks = false;
-        end
-    else
-        funParams.ApplyMasks = false;
-        funParams.CreateMasks = false;
-        
-    end
-        
-    % Set parameters
-    userData.crtProc.setPara(funParams);
-end
-
+% Set parameters
+userData.crtProc.setPara(funParams);
 
 % --------------------------------------------------
 
@@ -368,13 +337,6 @@ for x = 1: length(userData_main.MD)
        userData_main.package(x).processes_{userData.procID}.setPara(funParams)
    end
    
-   % If current process is changed, then assume funParams are changed in
-   % all movies
-   if userData.crtProc.procChanged_ 
-       
-       userData_main.package(x).processes_{userData.procID}.setProcChanged(true);
-   end
-   
     % Do sanity check - only check changed parameters
     procEx = userData_main.package(x).sanityCheck(false,'all');
 
@@ -436,121 +398,6 @@ if get(handles.checkbox_mask, 'Value') && ...
 end
 
 
-% --- Executes on selection change in listbox_input.
-function listbox_input_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_input contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_input
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_input_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_nu_input_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_nu_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_nu_input as text
-%        str2double(get(hObject,'String')) returns contents of edit_nu_input as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_nu_input_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_nu_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_de_input_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_de_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_de_input as text
-%        str2double(get(hObject,'String')) returns contents of edit_de_input as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_de_input_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_de_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_nu_mask_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_nu_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_nu_mask as text
-%        str2double(get(hObject,'String')) returns contents of edit_nu_mask as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_nu_mask_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_nu_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit_de_mask_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_de_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit_de_mask as text
-%        str2double(get(hObject,'String')) returns contents of edit_de_mask as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit_de_mask_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_de_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in checkbox_mask.
 function checkbox_mask_Callback(hObject, eventdata, handles)
 % Call back of 'Use Mask Channels' checkbox
@@ -577,9 +424,6 @@ switch get(hObject, 'Value')
         set(handles.edit_de_mask, 'Enable', 'inactive')        
         
 end
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
-% Hint: get(hObject,'Value') returns toggle state of checkbox_mask
 
 
 % --- Executes on button press in pushbutton_de_input.
@@ -623,30 +467,6 @@ else
     set(handles.edit_nu_mask, 'string', contents1{id}, 'Userdata', chanIndex(id));
 end
 
-
-% --- Executes on selection change in listbox_mask.
-function listbox_mask_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_mask contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_mask
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_mask_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_mask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in pushbutton_de_mask.
 function pushbutton_de_mask_Callback(hObject, eventdata, handles)
 % call back function of 'Choose as Denominator' button in mask channel
@@ -664,16 +484,6 @@ else
     set(handles.edit_de_mask, 'string', contents1{id}, 'Userdata',chanIndex(id));
 end
 
-
-% --- Executes on button press in checkbox_newmask.
-function checkbox_newmask_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_newmask (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_newmask
-userData = get(handles.figure1, 'UserData');
-userData.crtProc.setProcChanged(true);
 
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
@@ -711,12 +521,3 @@ function pushbutton_done_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-
-% --- Executes on button press in checkbox_applytoall.
-function checkbox_applytoall_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox_applytoall (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox_applytoall
