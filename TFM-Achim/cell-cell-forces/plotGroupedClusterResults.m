@@ -269,17 +269,18 @@ end
 %**************************************************************************
 
 normVar=1;
-tBtwFrms=240;
+tBtwFrms=150;
 aveType='none'; % first checks 'none', 'nanmean', 'mean' makes little difference
 maxLag =round(7200/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;
 
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
- goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',[1],'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'dItotRel',5,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',-5,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
-    [corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useIavg');
+    [corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useItot');
 else
     display('No myosin cells of this type found!')
 end

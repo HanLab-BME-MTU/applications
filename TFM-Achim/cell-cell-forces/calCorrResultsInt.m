@@ -156,12 +156,15 @@ ylabel('corr')
 
 figure()
 title('The cross correlation for cFI')
-plot(-maxLag:1:maxLag,cFI)
-ylim([-1 1])
+errorbar(-maxLag:1:maxLag,cFI,cFI_std,'r')
+hold on
+plot(-maxLag:1:maxLag,cFI,'k')
+% ylim([-1 1])
 xlim([-maxLag maxLag])
 title('F / I')
 xlabel('dframes')
 ylabel('corr')
+hold off
 
 corrResults.cFI     = cFI;
 corrResults.cFI_std = cFI_std;

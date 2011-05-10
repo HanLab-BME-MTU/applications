@@ -27,6 +27,13 @@ function goodEdgeSet=findEdges(groupedClusters,varargin)
 % 'myoGlb': 0/1/-1: 0 = cluster with only control cells; 1 = cluster with
 %           only myosin cells. -1 = mixed clusters. Clusters that don't
 %           match the search pattern will be dismissed.
+% 'asmbly': Find edges that assemble or disassemble over time:
+%            0: edge is there over the whole length of the movie
+%            1: edge is formed during the movie
+%           -1: edge that disassemble during the movie (cell is breaking
+%               apart)
+% 'dItotRel': Threshold that the relative change in intensity (Itot) has to
+%           exceed to pass the test.
 % 'errF'  : x: Only clusters with an error in the force measurement of <x
 %           will be considered (the magnitude of the error in [nN]).
 % 'errs'  : 0/x: If 0, only clusters with no missing forces will be 
@@ -67,6 +74,24 @@ if ~isempty(myoGlbPos)
     myoGlbVal   = varargin{myoGlbPos+1};
 else
     myoGlbCheck = 0;
+end
+
+asmblyPos=find(strcmp('asmbly',varargin));
+if ~isempty(asmblyPos)
+    asmblyCheck = 1;
+    % it is the next entry which contains the numeric value:
+    asmblyVal   = varargin{asmblyPos+1};
+else
+    asmblyCheck = 0;
+end
+
+dItotRelPos=find(strcmp('dItotRel',varargin));
+if ~isempty(dItotRelPos)
+    dItotRelCheck = 1;
+    % it is the next entry which contains the numeric value:
+    dItotRelVal   = varargin{dItotRelPos+1};
+else
+    dItotRelCheck = 0;
 end
 
 typePos=find(strcmp('type',varargin));
@@ -116,6 +141,42 @@ for clusterId=1:groupedClusters.numClusters
     
     
     for edgeId=1:maxEdge
+        if asmblyCheck
+            k=1;
+            for frame=toDoList
+                % Check if the edge exists in the frame:
+                if length(trackedNet{frame}.edge)<edgeId
+                    checkVec(k,1)=0;
+                else
+                    checkVec(k,1)=~isempty(trackedNet{frame}.edge{edgeId});
+                end
+                k=k+1;
+            end
+            % if this vector is 0, the edge is there, if it is 1 the edge
+            % was formed, if it -1 the edge is lost:
+            asmblyVec=checkVec(2:end)-checkVec(1:(end-1));
+            
+            checkVecAss=(asmblyVec== 1);
+            checkSumAss= sum(checkVecAss);
+            checkVecDis=(asmblyVec==-1);
+            checkSumDis= sum(checkVecDis);
+            
+            if checkSumAss>0 && checkSumDis==0
+                % then the edge was formed over time.
+                currAssVal=1;
+            elseif checkSumAss==0 && checkSumDis>0
+                % then the edge was lost over time.
+                currAssVal=-1;
+            elseif checkSumAss>0 && checkSumDis>0
+                % then the edge was formed and lost during the movie
+                currAssVal=[-1,1];
+            else
+                % teh cluster is not changing size:
+                currAssVal=0;
+            end
+            clear checkVec
+        end
+        
         for frame=toDoList
             % check the composition of the network:
             if trackedNet{frame}.stats.numMyo==0;
@@ -167,7 +228,8 @@ for clusterId=1:groupedClusters.numClusters
                     && (~myoGlbCheck || ismember(currMyoGlb,myoGlbVal))...
                     && (~typeCheck   || sum(strcmp(myoEdgeType,typeVal))>0)...
                     && (~errsCheck   || trackedNet{frame}.stats.errs<=errsVal)...
-                    && (~errFCheck   || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)
+                    && (~errFCheck   || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)...
+                    && (~asmblyCheck || numel(setdiff(currAssVal,asmblyVal))==0)                               
                 
                 
                 % If all of this is true we have found a good entry
@@ -176,8 +238,7 @@ for clusterId=1:groupedClusters.numClusters
                 goodEdgeSet(idx).clusterId=clusterId;
                 goodEdgeSet(idx).edgeId   =edgeId;
                 goodEdgeSet(idx).frames   =[goodEdgeSet(idx).frames,frame];
-            end
-            
+            end            
         end
         idx=idx+1;
     end
@@ -191,4 +252,31 @@ while setId<length(goodEdgeSet)
     else
         setId=setId+1;
     end
+end
+
+% sort out the ones that do not change significantly in intensity:
+if dItotRelCheck
+    setId=1;
+    while setId<=length(goodEdgeSet)
+        edgeId    = goodEdgeSet(setId).edgeId;
+        toDoList  = goodEdgeSet(setId).frames;
+        clusterId = goodEdgeSet(setId).clusterId;
+        k=1;
+        for frame=toDoList
+            ItotList(k)=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot;
+            k=k+1;
+        end
+        [maxItot idMax]=max(ItotList);
+        [minItot idMin]=min(ItotList);
+        
+        
+        curr_dItotRel=maxItot/minItot;
+        if (sign(dItotRelVal)~=sign(idMax-idMin)) || (sign(dItotRelVal)==sign(idMax-idMin) && curr_dItotRel<abs(dItotRelVal))
+            goodEdgeSet(setId)    =[];
+        else
+            setId=setId+1;
+        end
+        clear ItotList
+    end
+    
 end
