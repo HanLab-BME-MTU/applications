@@ -16,22 +16,20 @@ function goodCellSet=findCells(groupedClusters,varargin)
 %            myosin cells. -1 = mixed clusters. Clusters that don't match
 %            the search pattern will be dismissed.
 % 'divGlb' : 0/1/-1/NaN:
-%            This might fail if a cell leaves and joins the cluster at in
-%            the same frame!
+%            This will fail if one cell leaves and another one joins the
+%            cluster in the same frame!
 %            0 = cluster with constant cluster size: no devisions
 %            or cell deaths. 
-%            1 = cluster sizes increase at least once over time (but may be 
-%            shrinking at some other time point, those mixed cases are not
-%            excluded) by:
+%            1 = cluster sizes increase at least once over time (but never
+%            shrinks) by: 
 %            a) a cell division or by 
 %            b) an additional cell joining the cluster.
-%            -1 = cluster sizes decrease at least once over time (but may 
-%            be growing at some other time point, those mixed cases are not
-%            excluded) by: 
+%            -1 = cluster sizes decrease at least once over time (but the
+%            cluster never grows) by: 
 %            a) a cell died
 %            b) a cell left the cluster
-%            [1, -1]: look for all clusters that either shrink or grow
-%            other time. In other words a cluster that at least once
+%            [1, -1]: look for all clusters that either shrinks or grows
+%            over time. In other words a cluster that at least once
 %            changes size (in any direction).
 % 'errF'   : x: Only clusters with an error in the force measurement of <x
 %            will be considered (the magnitude of the error in [nN]).
@@ -141,22 +139,25 @@ for clusterId=1:groupedClusters.numClusters
             numCellsVec=vertcat(numCellsVec, trackedNet{frame}.stats.numCells);
         end
     end
-    checkVec=(numCellsVec<maxCell);
+    diffVec=numCellsVec(2:end)-numCellsVec(1:(end-1));
+    
+    checkVecInc=(diffVec== 1);
+    checkSumInc= sum(checkVecInc);
+    checkVecDec=(diffVec==-1);
+    checkSumDec= sum(checkVecDec);
+    
     % find subsequent frames with fewer than the maximum number of cells.
-    patterns=bwconncomp(checkVec);
-    if patterns.NumObjects>1
-        % then the cluster is growing and shrinking
-        currDivGlb=[-1,1];
-    elseif patterns.NumObjects==1 && patterns.PixelIdxList{1}(1)==1
-        % then the cluster is growing. If it is growing 1, shrinking 1 and
-        % then at least growing one it would fall in here too!!
+    if checkSumInc>0 && checkSumDec==0
+        % then the cluster is at least growing once but never shrinks.
         currDivGlb=1;
-    elseif patterns.NumObjects==1 && patterns.PixelIdxList{1}(1)>1
-        % then the cluster is shrinking. If it is shrinking by 2 and
-        % then growing one and then shrinking at least one it would fall in
-        % here too!!
+    elseif checkSumInc==0 && checkSumDec>0
+        % Then the cluster is shrinking at least once but never grows.
         currDivGlb=-1;
+    elseif checkSumInc>0 && checkSumDec>0
+        % then the cluster is shrinking and growing at least once
+        currDivGlb=[-1,1];
     else
+        % teh cluster is not changing size:
         currDivGlb=0;
     end
     
@@ -189,7 +190,7 @@ for clusterId=1:groupedClusters.numClusters
                     && (~errsCheck    || trackedNet{frame}.stats.errs<=errsVal)...
                     && (~errFCheck    || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)...
                     && (~relErrFCheck || trackedNet{frame}.stats.errorSumForce.mag/maxCCF<=relErrFVal)...
-                    && (~divGlbCheck  || sum(ismember(currDivGlb,divGlbVal))>0)
+                    && (~divGlbCheck  || numel(setdiff(currDivGlb,divGlbVal))==0)
                 
                 
                 % If all of this is true we have found a good entry

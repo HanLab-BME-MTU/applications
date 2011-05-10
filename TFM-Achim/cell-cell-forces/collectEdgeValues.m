@@ -83,10 +83,37 @@ else
     IavgCheck = 0;
 end
 
+corrPos=find(strcmp('corr',varargin));
+if ~isempty(corrPos)
+    corrCheck = 1;
+    % initialize:
+    maxIdx =length(goodSet);
+    corr_out(maxIdx).fcMag= [];
+    corr_out(maxIdx).fmMag= [];
+    corr_out(maxIdx).Itot = [];
+    corr_out(maxIdx).Iavg = [];
+    corr_out(maxIdx).t    = [];
+else
+    corrCheck = 0;
+end
+
 for idx=1:length(goodSet)
     clusterId=goodSet(idx).clusterId;
     edgeId   =goodSet(idx).edgeId;
     toDoList =goodSet(idx).frames;
+    
+    % initialize all values:
+    corr_out(idx).clusterId = clusterId;
+    corr_out(idx).edgeId    = edgeId;
+    corr_out(idx).t         = NaN+zeros(toDoList(end),1);
+    corr_out(idx).fcMag     = NaN+zeros(toDoList(end),1);
+    corr_out(idx).fmMag     = NaN+zeros(toDoList(end),1);
+    corr_out(idx).Itot      = NaN+zeros(toDoList(end),1);
+    corr_out(idx).Iavg      = NaN+zeros(toDoList(end),1);
+    corr_out(idx).flag      = ones(toDoList(end),1);
+    corr_out(idx).frames    = 1:toDoList(end);
+    
+
     
     for frame=toDoList
         % Now go through all checks:
@@ -121,6 +148,45 @@ for idx=1:length(goodSet)
         
         if  IavgCheck
             Iavg_vals=vertcat(Iavg_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg);
+        end
+        
+        if  corrCheck
+            % collect the intensity values:
+            corr_out(idx).Itot(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot;
+            corr_out(idx).Iavg(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg;
+            
+            % Determine fmMag and fcMag. The direction is not important!
+            f1 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f1;
+            f2 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f2;
+            fc =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.fc;            
+            fn = 0.5*(f1-f2);
+            
+            corr_out(idx).fcMag(frame,1)=norm(fc);            
+            % create the mixed force vector which takes the network
+            % force whenever possible.
+            if ~isnan(sum(fn))
+                corr_out(idx).fmMag(frame,1) = norm(fn);
+                % to keep track which value we have chosen:
+                corr_out(idx).flag(frame,1)=1;
+            else
+                corr_out(idx).fmMag(frame,1) = norm(fc);
+                % to keep track which value we have chosen:
+                if ~isnan(sum(fc))
+                    corr_out(idx).flag(frame,1)=0;
+                else
+                    % then, the edge was empty and it is OK to use the
+                    % network result
+                    corr_out(idx).flag(frame,1)=1;
+                end
+            end
+            % The value will be overwritten many times but in this way we
+            % don't have to check which is the first non-empty entry in the
+            % trackedNet structure.
+            corr_out(idx).dt_mean = groupedClusters.cluster{clusterId}.trackedNet{frame}.par.dt_mean;
+            corr_out(idx).dt_std  = groupedClusters.cluster{clusterId}.trackedNet{frame}.par.dt_std;
+            
+            % read out also the absolute time point:
+            corr_out(idx).t(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.par.t;
         end
     end
 end
@@ -160,6 +226,11 @@ end
 if IavgCheck
     varargout(IavgPos) = {Iavg_vals};
 end
+
+if  corrCheck
+    varargout(corrPos) = {corr_out};
+end
+
 
 
 if length(varargout)~=optargin

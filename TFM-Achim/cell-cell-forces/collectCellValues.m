@@ -262,8 +262,6 @@ for idx=1:length(goodCellSet)
             
             % read out also the absolute time point:
             corr_out(idx).t(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.par.t;
-            
-            
         end
     end
     % append the found values:
