@@ -35,7 +35,7 @@ edgeSize = 1;%Radius of SPOTS for skeleton edges
 vertApp = [1 1 .1 0];%Raw skel vertex appearance
 edgeApp = [1 1 .1 0];%Raw skel edge appaerance
 vertAppP = [1 .1 .1 0];%Pruned skel vertex appearance
-edgeAppP = [1 .1 .1 0];%Pruned skel edge appaerance
+edgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
 msApp = [.2 .2 1 .6];%Mask surface appearance
 
 %% -------- Input -------- %%
@@ -252,10 +252,12 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
                 %These edge path points are stored consecutively, so just
                 %connect each subsequent point with an edge.
                 edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
+                
+                ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
+                ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
+                
             end
-            
-            ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
-            ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
+                        
         end
                                
         ciV = ciV + nVert(iImage);
@@ -398,10 +400,13 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
                 %These edge path points are stored consecutively, so just
                 %connect each subsequent point with an edge.
                 edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
+                
+                ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
+                ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
+                
             end
 
-            ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
-            ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
+            
         end
                                
         ciV = ciV + nVert(iImage);
