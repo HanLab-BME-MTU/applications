@@ -38,6 +38,21 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
             
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
+        
+        function OK = checkChannelOutput(obj,iChan)
+            
+           %Checks if the selected channels have valid output files
+           nChanTot = numel(obj.owner_.channels_);
+           if nargin < 2 || isempty(iChan)
+               iChan = 1:nChanTot;
+           end
+           %Makes sure there's at least one .mat file in the speified
+           %directory
+           OK =  arrayfun(@(x)(x <= nChanTot && ...
+                             x > 0 && isequal(round(x),x) && ...
+                             exist(obj.outFilePaths_{x},'file')),iChan);
+                             
+        end
                         
     end
     

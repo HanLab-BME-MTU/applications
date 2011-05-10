@@ -108,10 +108,10 @@ if doLocal
     disp('Setting up local parallel job...')
     %Set up the local workers
     poolSize = matlabpool('size');
-    if poolSize ~= p.NumParallel    
+    if poolSize ~= p.NumParallel && p.NumParallel > 1
         if poolSize > 0
             matlabpool('close');
-        end
+        end        
         matlabpool('open',p.NumParallel);
     end
     

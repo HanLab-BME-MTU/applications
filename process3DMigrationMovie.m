@@ -85,19 +85,22 @@ function stepInfo = process3DMigrationMovie(movieData,varargin)
 funHands = {@segment3DMovie,...                         % 1
             @analyze3DMovieMaskGeometry,...             % 2
             @skeletonize3DMovieMasks,...                % 3
-            @prune3DMovieSkeletonBranches};             % 4
+            @prune3DMovieSkeletonBranches,...           % 4
+            @track3DMaskObjects};                       % 5
 %Process names corresponding to each function
 processNames = {'SegmentationProcess3D',...             % 1
                 'MaskGeometry3DProcess',...             % 2
                 'SkeletonizationProcess',...            % 3
-                'SkeletonPruningProcess'};              % 4
+                'SkeletonPruningProcess',...            % 4
+                'MaskObjectTrackingProcess'};           % 5
 
 %Dependency matrix for processing functions            
-          %   1 2 3 4
-depMat    = [ 0 0 0 0 ;   % 1
-              1 0 0 0 ;   % 2
-              1 0 0 0 ;   % 3
-              0 1 1 0 ];  % 4
+          %   1 2 3 4 5
+depMat    = [ 0 0 0 0 0;   % 1
+              1 0 0 0 0;   % 2
+              1 0 0 0 0;   % 3
+              0 1 1 0 0;   % 4
+              1 0 0 0 0];  % 5
             
 nSteps = numel(funHands);
 if numel(processNames) ~= nSteps

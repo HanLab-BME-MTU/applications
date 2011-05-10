@@ -158,7 +158,7 @@ if showPlots
     hold on
     patch(maskSurf,'EdgeColor','none','EdgeAlpha',.1,'FaceAlpha',.2)
     axis vis3d,axis equal,light
-    cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k')),edgePaths);    
+    cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k','LineWidth',2)),edgePaths(cellfun(@(x)(~isempty(x)),edgePaths)));    
     arrayfun(@(x)(text(vertices(iEndPt(x),2),vertices(iEndPt(x),1),vertices(iEndPt(x),3),num2str(x),'color','r')),1:nEndPts);
     title('Original, un-pruned skeleton')
 end
@@ -214,8 +214,7 @@ for j = 1:nEndPts
     else
        %If we couldn't find any surface points within the search radius, we
        %give the branch -Inf curvature so it will pass maximum curvature
-       %criteria. (This is most likely because the branch was small enough
-       %to be removed by the smoothing). 
+       %criteria.
        meanTipCurvature(j) = -Inf;
        gaussTipCurvature(j) = -Inf;
        k1TipCurvature(j) = -Inf;
@@ -262,7 +261,7 @@ for j = 1:nEndPts
     end
 end
 
-%Find endpoints for which the surface mean curvature is convex
+%Find endpoints for which the surface mean curvature is convex.
 isGoodEP(meanTipCurvature > (mcThresh/4)) = false;
 
 
@@ -288,10 +287,10 @@ if showPlots
     fsFigure(.75);    
     hold on
     patch(maskSurf,'FaceColor','flat','EdgeColor','none','FaceVertexCData',K,'AmbientStrength',.75,'FaceAlpha',.3)
-    caxis([mean(K)-2*std(K) mean(K)+2*std(K)])
+    caxis([nanmean(K)-2*nanstd(K) nanmean(K)+2*nanstd(K)])
     hold on                 
     plot3(vertices(:,2),vertices(:,1),vertices(:,3),'or','MarkerSize',10);
-    cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3))),edgePaths);
+    cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k','LineWidth',2)),edgePaths(cellfun(@(x)(~isempty(x)),edgePaths)));    
     %arrayfun(@(x)(spy3d(vertices == x,'or','MarkerSize',15)),1:nVerts)    
     light
     axis image,axis vis3d    

@@ -215,9 +215,9 @@ if ~p.BatchMode && ishandle(wtBar)
 end
 
 
+outName = [p.OutputDirectory filesep fName '.mat'];
 save([p.OutputDirectory filesep fName '.mat'],'objTracks');
-
-
+movieData.processes_{iProc}.setOutFilePath(p.ChannelIndex,outName);
 movieData.processes_{iProc}.setDateTime;
 movieData.save; %Save the new movieData to disk
 
