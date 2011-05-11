@@ -7,6 +7,7 @@ nCC = numel(CC);
 tFirstCC = cellfun(@(trackIdx) min(tFirst(trackIdx)), CC); % first frame of CC
 tLastCC = cellfun(@(trackIdx) max(tLast(trackIdx)), CC);   % last frame of CC
 
+labels = (1:nCC)';
 colors = hsv(nCC);
 
 segments = cell(nFrames,1);
@@ -43,7 +44,7 @@ for iFrame = 1:nFrames
     y1 = y + st .* l/2;
     y2 = y - st .* l/2;
     
-    segments{iFrame} = [x1 y1 x2 y2 colors(isInFrame,:)];
+    segments{iFrame} = [x1 y1 x2 y2 labels(isInFrame) colors(isInFrame,:)];
 end
 
 save(filename, 'segments');

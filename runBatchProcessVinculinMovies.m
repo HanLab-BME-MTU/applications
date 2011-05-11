@@ -1,10 +1,10 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/';
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/062309_cre_CSUX_3';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_5';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
 
 % name of the channel directory subfolders
@@ -18,7 +18,7 @@ params.procNames = {...
     'pairTracks',...
     'figures'};
 
-params.runSteps = [-1 1 1 1 1];
+params.runSteps = [0 0 0 0 1];
 params.batchMode = false;
 
 % Physical parameters
@@ -39,7 +39,7 @@ params.particleDetection.required.iChannel = 1;
 params.particleDetection.required.sigmaPSF = sigmaPSF;
 params.particleDetection.optional.mode = 'xyArtc';
 params.particleDetection.optional.kSigma = 3;
-params.particleDetection.optional.alpha = .05;
+params.particleDetection.optional.alpha = .01;
 params.particleDetection.optional.minDist = .25;
 
 % PROC 3: particle tracking
@@ -56,8 +56,9 @@ params.pairTracks.optional.minDistance = 335;  % nm (5 pixels)
 params.pairTracks.optional.alpha = 0.05;
 
 % PROC 5: figures
-params.figures.required = struct();
-params.figures.optional = struct();
+params.figures.required.bandWidth = 12000;     % nm
+params.figures.optional.minActinLifetime = 3;
+params.figures.optional.minSegmentsPerBin = 15;
 
 % Run all processes
 batchProcessMyMovies(params);
