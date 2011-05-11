@@ -1,4 +1,4 @@
-function [movieInfo]=plusTipGaussianCometDetector(projData,varargin)
+function [movieInfo]=plusTipGaussianCometDetector(projData,sigma,varargin)
 % plusTipGaussianCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
 %SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)%
@@ -8,6 +8,9 @@ function [movieInfo]=plusTipGaussianCometDetector(projData,varargin)
 %                           folder containing the images for overlay.
 %                           if given as [], program will query user for
 %                           roi_x directory.
+%       sigma             : value of the sigma of the point-spread function
+%                           will be used in the anisotropic gaussian fit as
+%                           the lowest value of the gaussian sigma.
 %       timeRange         : row vector of the form [startFrame endFrame]
 %                           indicating time range to plot. if not given or
 %                           given as [], tracks from the whole movie will
@@ -31,18 +34,19 @@ removeSatPixels = 0; % put one if you want to turn on this option
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('projData', @(x) isstruct(x) || isempty(x));
+ip.addRequired('sigma', @(x) isnumeric(x));
 ip.addOptional('timeRange',[],@(x) isequal(sort(size(x)),[1 2]) || isempty(x));
 ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
-try
-    ip.parse(projData, varargin{:});
-catch ME
-    throw(ME)
-end
-projData = ip.Results.projData;
+ip.addParamValue('minDist',.5, @(x) isnumeric(x));
+ip.addParamValue('alpha',.01, @(x) isnumeric(x));
+ip.parse(projData, varargin{:});
+
 timeRange = ip.Results.timeRange;
 bitDepth = ip.Results.bitDepth;
 savePlots = ip.Results.savePlots;
+minDist = ip.Results.minDist;
+alpha = ip.Results.alpha;
 
 % get projData in correct format
 if isempty(projData)
@@ -104,15 +108,18 @@ if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
 end
 
 % make feat directory if it doesn't exist from batch
-featDir = [projData.anDir filesep 'feat'];
+featDir = [projData.anDir filesep 'feat-' num2str(sigma)];
 if isdir(featDir)
     rmdir(featDir,'s')
 end
 mkdir(featDir)
 
+overlayDir=[featDir filesep 'overlayImages'];
+tifOverlayDir=[overlayDir filesep 'tifs'];
+
 if savePlots==1
-    mkdir([featDir filesep 'overlayImages']);
-    mkdir([featDir filesep 'overlayImages' filesep 'tifs']);
+    mkdir(overlayDir);
+    mkdir(tifOverlayDir);
 end
 
 % look for region of interest info from project setup step
@@ -185,7 +192,7 @@ for iFrame = startFrame:endFrame
     
     % Core anisotropic detection function. Returns a structure compatible
     % with Khuloud's tracker
-    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),1.8,'minDist',.5,'alpha',.01);
+    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),sigma,'minDist',minDist,'alpha',alpha);
     
     indxStr1 = sprintf(strg1,iFrame); % frame
     
@@ -198,11 +205,13 @@ for iFrame = startFrame:endFrame
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
         axis equal
-        saveas(gcf,[featDir filesep 'overlayImages' filesep 'tifs' filesep 'overlay' indxStr1 '.tif']);
-        saveas(gcf,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.fig']);
+        saveas(gcf,[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
+        saveas(gcf,[overlayDir filesep 'overlay' indxStr1 '.fig']);
         close(gcf)
     end
     count=count+1;
+
+
 end
 save([featDir filesep 'movieInfo'],'movieInfo');
 
