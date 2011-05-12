@@ -1,32 +1,83 @@
-function [data] = runDetection(data, overwrite)
-% runDetection automatically runs Henry's detection software - with iclean
-% 1 on all the movies specified in the experiment structure
-% SYNOPSIS [data] = loadAndSaveDetection(data);
+%newDetection(data) detects CCPs using a combination of model-based (PSF) fitting and statistical tests
 %
-% INPUT     data      : experiment structure, containing a '.source' field (path to data location)
-%           overwrite : optional, 1 to overwrite previous detection results (default 0).
-%
-% OUTPUT    none
+% Inputs:   data : data/movie structure
 
-% Francois Aguet, April 2010
+% Francois Aguet, March 2011
 
-if nargin<2
-    overwrite = 0;
-end
+function runDetection(data, varargin)
 
-% loop over all entries in the structure to enter the image data necessary for the detection input
-nExp = length(data);
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addParamValue('overwrite', false, @islogical);
+ip.parse(data, varargin{:});
+overwrite = ip.Results.overwrite;
 
-parfor i = 1:nExp
-    tifFiles = dir([data(i).source '*.tif*']);
-    if isempty(tifFiles)
-        error(['No *.TIF frames found in ' data(i).source]);
-    else
-        if ~(exist([data(i).source 'Detection'], 'dir') == 7)
-            spotDetection(data(i).source, 1);
-        elseif (overwrite)
-            fprintf('Overwriting detection results for movie %d.\n', i);
-            spotDetection(data(i).source, 1);
-        end
+parfor i = 1:length(data)
+    if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
+        main(data(i));
     end
 end
+
+
+
+function main(data)
+
+% master channel
+mCh = strcmp(data.channels, data.source);
+
+sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
+
+frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
+    'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
+    'x_init', [], 'y_init', [], 'A_mask', [], ...
+    'sigma_r', [], 'SE_sigma_r', [], 'RSS', [], 'pval_KS', [], 'pval_Ar', [], 'isPSF', [],...
+    'xCoord', [], 'yCoord', [], 'amp', []);
+
+nx = data.imagesize(2);
+ny = data.imagesize(1);
+
+fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
+[~,~] = mkdir([data.source 'Detection']);
+[~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
+
+fprintf('Detection progress:     ');
+for k = 1:data.movieLength
+    img = double(imread(data.framePaths{mCh}{k}));
+    
+    [pstruct, mask] = pointSourceDetection(img, sigma);
+
+    % retain only mask regions containing localizations    
+    CC = bwconncomp(mask);
+    labels = labelmatrix(CC);
+    loclabels = labels(sub2ind([ny nx], pstruct.y_init, pstruct.x_init));
+    idx = setdiff(1:CC.NumObjects, loclabels);
+    CC.PixelIdxList(idx) = [];
+    CC.NumObjects = length(CC.PixelIdxList);
+
+    % clean mask
+    labels = labelmatrix(CC);
+    mask = labels~=0;
+
+    % update labels
+    loclabels = labels(sub2ind([ny nx], pstruct.y_init, pstruct.x_init));
+    
+    % get component intensity for each detection
+    compInt = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
+    pstruct.A_mask = compInt(loclabels);   
+    
+    % add fields for tracker
+    np = length(pstruct.x);
+    pstruct.xCoord = [pstruct.x' zeros(np,1)];
+    pstruct.yCoord = [pstruct.y' zeros(np,1)];
+    pstruct.amp = [pstruct.A' zeros(np,1)];
+    
+    frameInfo(k) = orderfields(pstruct, fieldnames(frameInfo(k)));
+    
+    maskPath = [data.source 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
+    imwrite(uint8(255*mask), maskPath, 'tif', 'compression' , 'lzw');
+    fprintf('\b\b\b\b%3d%%', round(100*k/data.movieLength));
+end
+fprintf('\n');
+
+save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
