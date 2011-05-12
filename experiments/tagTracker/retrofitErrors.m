@@ -19,10 +19,18 @@ function idlisttrack = retrofitErrors(idlisttrack,idlist)
 % Author: Eugenio 4/18/2011
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-nTags = length(idlisttrack(1,1).linklist(:,1));
 nTimePoints = length(idlisttrack);
 
+% We first find the number of tags from a non-deleted frame
+firstFrame = 0;
+nFound = 0;
+while ~nFound
+    firstFrame = firstFrame +1;
+    if ~isempty(idlist(1,firstFrame).linklist)
+        nTags = length(idlisttrack(1,firstFrame).linklist(:,1));
+        nFound = 1;
+    end
+end
 % We first find the list of detected tags
 listDetected = logical(zeros(3*nTags,nTimePoints));
 
@@ -31,9 +39,11 @@ for indexTag = 1:nTags
         % column 3 in linklist has detected spot labels 0:=detected,
         % 1:=missed
         % For convenience we expand it
-        listDetected(3*indexTag-2,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
-        listDetected(3*indexTag-1,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
-        listDetected(3*indexTag,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
+        if ~isempty(idlist(1,indexTimePoints).linklist)
+            listDetected(3*indexTag-2,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
+            listDetected(3*indexTag-1,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
+            listDetected(3*indexTag,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
+        end
     end
 end
 
@@ -46,9 +56,13 @@ for indexTimePoints = 1:nTimePoints
     %         qValuesDetected(3*indexTag-2,indexTimePoints) = idlist(1,indexTimePoints).linklist(indexTag,3);
     %         qValuesDetected(3*indexTag-1,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
     %         qValuesDetected(3*indexTag,indexTimePoints) = ~idlist(1,indexTimePoints).linklist(indexTag,3);
-    qValuesDetected(1:3*nTags,indexTimePoints) = diag(full(idlist(1,indexTimePoints).info.detectQ_Pix));
-    if isfield(idlisttrack(1,indexTimePoints).info,'totalQ_Pix')
-        qValuesTracked(1:3*nTags,indexTimePoints) = diag(full(idlisttrack(1,indexTimePoints).info.totalQ_Pix));
+    % We check that we had a detected frame, with non-empty info and
+    % linklist fields
+    if ~isempty(idlist(1,indexTimePoints).info)&&~isempty(idlist(1,indexTimePoints).linklist)
+        qValuesDetected(1:3*nTags,indexTimePoints) = diag(full(idlist(1,indexTimePoints).info.detectQ_Pix));
+        if isfield(idlisttrack(1,indexTimePoints).info,'totalQ_Pix')
+            qValuesTracked(1:3*nTags,indexTimePoints) = diag(full(idlisttrack(1,indexTimePoints).info.totalQ_Pix));
+        end
     end
 end
 
