@@ -176,7 +176,7 @@ facePos(:,3) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),3),1)),1
 distX = bwdist(~maskIn);
 
 
-%% --
+%% ------------ Pruning ---------------- %%
 
 
 %Get depth at beginning and end of branches.

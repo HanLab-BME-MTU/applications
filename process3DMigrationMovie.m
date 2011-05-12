@@ -23,7 +23,7 @@ function stepInfo = process3DMigrationMovie(movieData,varargin)
 %       2 - analyze3DMovieMaskGeometry.m
 %       3 - skeletonize3DMovieMasks.m
 %       4 - prune3DMovieSkeletonBranches.m
-%
+%       5 - track3DMaskObjects.m
 %
 % Input: 
 % 

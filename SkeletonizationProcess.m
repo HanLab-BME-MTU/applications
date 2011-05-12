@@ -83,7 +83,7 @@ classdef SkeletonizationProcess < ImageProcessingProcess
             %get the image names
             imNames = getOutImageFileNames(obj,iChan);
             
-            outIm = stackRead([obj.outFilePaths_{1,iChan} ...
+            outIm = tif3Dread([obj.outFilePaths_{1,iChan} ...
                 filesep imNames{1}{iFrame}]);
             
         end
