@@ -1,7 +1,7 @@
 function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
-params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre';
+params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_5';
@@ -16,9 +16,13 @@ params.procNames = {...
     'particleDetection',...
     'particleTracking',...
     'pairTracks',...
+    'contours',...
+    'protrusion',...
+    'windows',...
+    'protrusionSamples',...
     'figures'};
 
-params.runSteps = [0 0 0 0 1];
+params.runSteps = [0 0 0 0 0 1 1 1 0];
 params.batchMode = false;
 
 % Physical parameters
@@ -55,7 +59,39 @@ params.pairTracks.optional.bandWidth = 1000;   % nm
 params.pairTracks.optional.minDistance = 335;  % nm (5 pixels)
 params.pairTracks.optional.alpha = 0.05;
 
-% PROC 5: figures
+% PROC 5: contours
+dContour = 1000 / params.pixelSize; % 1 um
+params.contours.required.distVals = 0:dContour:500;
+params.contours.optional.forceClose = false;
+params.contours.optional.maskChannels = 1;
+params.contours.optional.contourName = ['contours_'  num2str(dContour) 'pix.mat'];
+params.contours.optional.contourAlignAlg = 1;
+
+% PROC 6: protrusion
+params.protrusion.required = struct();
+params.protrusion.optional.maskChannel = 1;
+params.protrusion.optional.downSample = 20;
+params.protrusion.optional.nSeg = 30;
+
+% PROC 7: windows
+params.windows.required = struct();
+params.windows.optional.methodStr = 'p';
+params.windows.optional.winSize = 1000 / params.pixelSize; % ~1um;
+params.windows.optional.iOuter = 2;
+params.windows.optional.iInner = 4;
+params.windows.optional.windowName = ['windows_' ...
+    params.windows.optional.methodStr '_' ...
+    num2str(dContour) 'by' num2str(params.windows.optional.winSize) ...
+    'pix_' num2str(params.windows.optional.iOuter) '_' ...
+    num2str(params.windows.optional.iInner) '.mat'];
+
+% PROC 8: protrusion sampling
+params.protrusionSamples.required = struct();
+params.protrusionSamples.optional.protName = ['protSamples_' ...
+    params.windows.optional.methodStr '_' ...
+    params.windows.optional.windowName  '.mat'];
+
+% PROC 9: figures
 params.figures.required.bandWidth = 12000;     % nm
 params.figures.optional.minActinLifetime = 3;
 params.figures.optional.minSegmentsPerBin = 15;
