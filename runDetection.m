@@ -15,17 +15,11 @@ ip.parse(data, varargin{:});
 overwrite = ip.Results.overwrite;
 
 parfor i = 1:length(data)
-    mCh = strcmp(data(i).channels, data(i).source);
-    sCh = setdiff(1:length(data(i).channels),mCh);
-    dpath = data(i).channels{sCh(1)};
-    idx = regexp(dpath, filesep);
-    dpath = dpath(idx(end-4)+1:idx(end-1));
-    
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
-        fprintf('Running detection for %s\n', dpath);
+        fprintf('Running detection for %s\n', getShortPath(data(i)));
         main(data(i));
     else
-        fprintf('Detection has already been run for %s\n', dpath);
+        fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
     end
 end
 
