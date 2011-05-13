@@ -40,7 +40,7 @@ ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
 ip.addParamValue('minDist',.5, @(x) isnumeric(x));
 ip.addParamValue('alpha',.01, @(x) isnumeric(x));
-ip.parse(projData, varargin{:});
+ip.parse(projData,sigma,varargin{:});
 
 timeRange = ip.Results.timeRange;
 bitDepth = ip.Results.bitDepth;
@@ -98,7 +98,7 @@ maxIntensity = max(img(:));
 if isempty(bitDepth)
     imgData = imfinfo(fileNameIm);
     bitDepth = imgData.BitDepth;
-    disp(['bitDepth estimated to be' bitDepth])
+    disp(['bitDepth estimated to be ' num2str(bitDepth)])
 end
 
 % check bit depth to make sure it is 12, 14, or 16 and that its dynamic
@@ -108,7 +108,7 @@ if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
 end
 
 % make feat directory if it doesn't exist from batch
-featDir = [projData.anDir filesep 'feat-' num2str(sigma)];
+featDir = [projData.anDir filesep 'feat-sigma' num2str(sigma) '-alpha' num2str(alpha)];
 if isdir(featDir)
     rmdir(featDir,'s')
 end
