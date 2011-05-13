@@ -1,4 +1,4 @@
-function [] = newTracker(data, settings, overwrite, fileName, frames)
+function [] = runTracking(data, settings, varargin)
 % runTracking tracks movies under a given condition folder. This creates
 % the TrackInfo and lftInfo data structures necessary for lifetime
 % analysis.
@@ -19,46 +19,40 @@ function [] = newTracker(data, settings, overwrite, fileName, frames)
 %           specified directory; if you want a partial or faulty tracking
 %           to be replaced, you need to DELETE these folders first.
 %
-% Dependencies  loadIndividualMovies
-%               trackMissingFields
 %
-% Francois Aguet, May 2010
+% Francois Aguet, May 2010 (last modified 05/13/2011)
 
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addOptional('settings', []);
+ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('FileName', [], @ischar);
+ip.addParamValue('Frames', [], @isvector);
+ip.parse(data, varargin{:});
+overwrite = ip.Results.Overwrite;
 
-if nargin < 1 || isempty(data)
-    % trim data structure as specified by user input
-    [data] = loadIndividualMovies();
-end
-if nargin < 2 || isempty(settings)
+if isempty(settings)
     %load track settings required for tracking
-    [fileName filePath] = uigetfile('.mat','choose track settings mat file for tracking');
+    [fileName filePath] = uigetfile('.mat', 'Choose track settings mat file for tracking');
     load([filePath fileName]);
 elseif ischar(settings)
     load(settings);
 end
-if nargin < 3 || isempty(overwrite)
-    overwrite = 0;
-end
-if nargin<4
-    fileName = [];
-end
-if nargin<5
-    frames = [];
-end
 
 
-parfor k = 1:length(data)
-    fprintf('Tracking movie no. %d\n', k);
-    if ~(exist([data(k).source 'Tracking'], 'dir')==7) || overwrite
-        trackMissingFieldsNewTracker(data(k), settings, fileName, frames);
+parfor i = 1:length(data)
+    if ~(exist([data(i).source 'Tracking'], 'dir')==7) || overwrite
+        fprintf('Running tracker on %s\n', getShortPath(data(i)));
+        main(data(i), settings, fileName, frames);
     else
-        fprintf('Movie no. %d was skipped because it has already been tracked\n', k);
+        fprintf('Tracking has already been run for %s\n', getShortPath(data(i)));
     end
 end
 
 
 
-function [data] = trackMissingFieldsNewTracker(data, settings, fileName, frames)
+function [data] = main(data, settings, fileName, frames)
 
 % now we're missing the variable movieInfo, which is the detection
 % data. If a valid detection structure is a field in data, read it,
@@ -66,7 +60,8 @@ function [data] = trackMissingFieldsNewTracker(data, settings, fileName, frames)
 if isfield(data, 'detection') && ~isempty(data.detection)
     movieInfo = data.detection;
 else
-    loadfile = load([data.source 'Detection' filesep 'detectionResults.mat']);
+    %loadfile = load([data.source 'Detection' filesep 'detectionResults.mat']);
+    loadfile = load([data.source 'Detection' filesep 'detection_v2.mat']);
     if isfield(loadfile, 'frameInfo')
         movieInfo = loadfile.frameInfo;
         if ~isempty(frames)
