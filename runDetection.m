@@ -1,8 +1,9 @@
 %newDetection(data) detects CCPs using a combination of model-based (PSF) fitting and statistical tests
 %
-% Inputs:   data : data/movie structure
+% Inputs:      data : data/movie structure
+%     {'overwrite'} : true | {false}
 
-% Francois Aguet, March 2011
+% Francois Aguet, April 2011 (last modified 05/12/2011)
 
 function runDetection(data, varargin)
 
@@ -14,8 +15,17 @@ ip.parse(data, varargin{:});
 overwrite = ip.Results.overwrite;
 
 parfor i = 1:length(data)
+    mCh = strcmp(data(i).channels, data(i).source);
+    sCh = setdiff(1:length(data(i).channels),mCh);
+    dpath = data(i).channels{sCh(1)};
+    idx = regexp(dpath, filesep);
+    dpath = dpath(idx(end-4)+1:idx(end-1));
+    
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
+        fprintf('Running detection for %s\n', dpath);
         main(data(i));
+    else
+        fprintf('Detection has already been run for %s\n', dpath);
     end
 end
 
@@ -25,8 +35,10 @@ function main(data)
 
 % master channel
 mCh = strcmp(data.channels, data.source);
+nCh = length(data.channels);
 
-sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
+sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
+%sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
 
 frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
@@ -41,12 +53,21 @@ fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
 [~,~] = mkdir([data.source 'Detection']);
 [~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
 
-fprintf('Detection progress:     ');
+fprintf('Progress:     ');
 for k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
-    [pstruct, mask] = pointSourceDetection(img, sigma);
-
+    [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
+    np = numel(pstruct.x);
+    
+    % expand structure for slave channels
+    fnames = {'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
+    for f = 1:length(fnames)
+        tmp = NaN(nCh, np);
+        tmp(mCh,:) = pstruct.(fnames{f});
+        pstruct.(fnames{f}) = tmp;
+    end
+    
     % retain only mask regions containing localizations    
     CC = bwconncomp(mask);
     labels = labelmatrix(CC);
@@ -66,8 +87,15 @@ for k = 1:data.movieLength
     compInt = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
     pstruct.A_mask = compInt(loclabels);   
     
+    for ci = setdiff(1:nCh, mCh)
+        img = double(imread(data.framePaths{ci}{k}));
+        pstructSlave = fitGaussians2D(img, pstruct.x, pstruct.y, [], sigma(ci)*ones(1,np), [], 'Ac');
+        for f = 1:length(fnames)
+            pstruct.(fnames{f})(ci,:) = pstructSlave.(fnames{f});
+        end
+    end
+    
     % add fields for tracker
-    np = length(pstruct.x);
     pstruct.xCoord = [pstruct.x' zeros(np,1)];
     pstruct.yCoord = [pstruct.y' zeros(np,1)];
     pstruct.amp = [pstruct.A' zeros(np,1)];
