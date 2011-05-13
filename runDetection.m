@@ -48,7 +48,7 @@ fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
 [~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
 
 fprintf('Progress:     ');
-for k = 1:data.movieLength
+parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
     [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
@@ -92,7 +92,7 @@ for k = 1:data.movieLength
     % add fields for tracker
     pstruct.xCoord = [pstruct.x' zeros(np,1)];
     pstruct.yCoord = [pstruct.y' zeros(np,1)];
-    pstruct.amp = [pstruct.A' zeros(np,1)];
+    pstruct.amp = [pstruct.A(mCh,:)' zeros(np,1)];
     
     frameInfo(k) = orderfields(pstruct, fieldnames(frameInfo(k)));
     
