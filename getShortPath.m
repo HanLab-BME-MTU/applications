@@ -8,4 +8,4 @@ mCh = strcmp(data.channels, data.source);
 sCh = setdiff(1:length(data.channels),mCh);
 spath = data.channels{sCh(1)};
 idx = regexp(spath, filesep);
-spath = dpath(idx(end-4)+1:idx(end-1));
+spath = spath(idx(end-4)+1:idx(end-1));

@@ -32,7 +32,7 @@ ip.addParamValue('Frames', [], @isvector);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
-frames = ip.Results.frames;
+frames = ip.Results.Frames;
 
 if isempty(settings)
     %load track settings required for tracking
