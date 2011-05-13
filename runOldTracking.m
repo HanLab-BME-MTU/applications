@@ -1,4 +1,4 @@
-function [] = runTracking(data, tracksettings, overwrite)
+function [] = runOldTracking(data, tracksettings, overwrite)
 % runTracking tracks movies under a given condition folder. This creates
 % the TrackInfo and lftInfo data structures necessary for lifetime
 % analysis.
@@ -48,4 +48,43 @@ parfor k = 1:length(data)
     fprintf('Tracking movie #%d/%d: %s\n', k, nd, idata.source);
     
     trackMissingFields(idata, overwrite);
+end
+
+
+
+function [data] = trackMissingFields(data,overwrite)
+
+if nargin < 2 || isempty(overwrite)
+    overwrite = 0;
+end
+
+for k = 1:length(data)
+    
+    if ~(exist([data(k).source 'TrackInfoMatrices'], 'dir')==7) || overwrite
+        
+        costMatrices    = data(k).tracksettings.costMat;
+        gapCloseParam   = data(k).tracksettings.gapClosePar;
+        iterParam       = data(k).tracksettings.iterPar;
+        
+        % now we're missing the variable movieInfo, which is the detection
+        % data. If a valid detection structure is a field in data, read it,
+        % else load the structure from the appropriate detection file
+        if isfield(data(k), 'detection') && ~isempty(data(k).detection)
+            movieInfo = data(k).detection;
+        else
+            loadfile = load([data(k).source 'Detection' filesep 'detectionResults.mat']);
+            if isfield(loadfile, 'frameInfo')
+                movieInfo = loadfile.frameInfo;
+            else
+                error('No detection data file of specified format found');
+            end
+        end
+        if ~(exist([data(k).source 'TrackInfoMatrices'], 'dir')==7)
+            mkdir([data(k).source 'TrackInfoMatrices']);
+        end;
+        saveResults.dir = [data.source 'TrackInfoMatrices' filesep] ;
+        trackWithGapClosing(movieInfo, costMatrices, 'getTrackStats', gapCloseParam, iterParam, saveResults);
+    else
+        fprintf('Movie no. %d was skipped because it has already been tracked\n', k);
+    end
 end
