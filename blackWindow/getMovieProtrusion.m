@@ -203,12 +203,23 @@ for iFrame = 1:nFrames
     %windows, as the windows are designed to enclose the entire mask.
     currOutline = contourc(double(currMask),[0 0]);
     currOutline = separateContours(currOutline);%Post-processing of contourc output
-    currOutline = cleanUpContours(currOutline);
+    currOutline = cleanUpContours(currOutline);    
     currOutline = currOutline{1}';%We know we only have one object...
-    if ~isCurveClockwise(currOutline)
+    
+    %Make sure the outline is correctly oriented
+    if ~isCurrClosed
+        %Close the curve before checking handedness
+        closedOutline = closeContours({currOutline'},bwdist(~currMask));
+        isClockWise = isCurveClockwise(closedOutline{1});        
+    else
+        isClockWise = isCurveClockwise(currOutline);        
+    end        
+    
+    if ~isClockWise
         %Sam requires the curves run in the same direction
         currOutline = currOutline(end:-1:1,:);
     end
+    
     %We need two timepoints to have prot vectors
     if iFrame > 1
         
