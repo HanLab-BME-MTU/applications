@@ -33,7 +33,9 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
             end
             
             obj = obj@DoubleProcessingProcess(super_args{:});
-        end   
+            obj.setFunc_ = @photobleachCorrectionProcessGUI; % FOr analyzability/ to be implemented
+
+        end
         
         function figHan = resultDisplay(obj)
             

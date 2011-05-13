@@ -41,7 +41,8 @@ classdef RatioProcess < DoubleProcessingProcess
             end
                                                         
             obj = obj@DoubleProcessingProcess(super_args{:});
-            
+            obj.setFunc_ = @ratioProcessGUI; % FOr analyzability/ to be implemented
+
         end
 
                 

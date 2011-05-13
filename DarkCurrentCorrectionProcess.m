@@ -51,6 +51,7 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
             end
             
             obj = obj@ImageCorrectionProcess(super_args{:});
+            obj.setFunc_ = @darkCurrentCorrectionProcessGUI; % FOr analyzability/ to be implemented
         end   
         
         function sanityCheck(obj)

@@ -43,7 +43,7 @@ classdef OutputRatioProcess < DoubleProcessingProcess
             end
                                                         
             obj = obj@DoubleProcessingProcess(super_args{:});
-            
+            obj.setFunc_ = @outputRatioProcessGUI; % FOr analyzability/ to be implemented
         end
         
         function sanityCheck(obj)

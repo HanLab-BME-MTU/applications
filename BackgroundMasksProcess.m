@@ -29,7 +29,8 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
             end
             
             obj = obj@MaskProcessingProcess(super_args{:});
-            
+            obj.setFunc_ = @backgroundMasksProcessGUI; % FOr analyzability/ to be implemented
+
         end
         
     end
