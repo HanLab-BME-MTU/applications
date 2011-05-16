@@ -87,6 +87,7 @@ for iGroup = 1:length(btwGrpNames)
         temp = load([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData']);
         if remBegEnd==1
             % this output has data at beginning/end removed and units
+            
             % already converted
             [dummy1,dummy2,dataMat]=plusTipMergeSubtracks(temp.projData);
         else
@@ -111,9 +112,10 @@ for iGroup = 1:length(btwGrpNames)
         projCount=projCount+1;
     end
 
-    % concat all the data
+    % concat all the data 
     allData=cell2mat(dataByProject);
-    [stats,M]=plusTipDynamParam(allData);
+    [temp.projData,M]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
+    % and do not attempt to remove fields because this will give an error 
 
     if doBtw==1
         % put data in cell array for bwt group box plot
@@ -122,7 +124,7 @@ for iGroup = 1:length(btwGrpNames)
         % make structure containing the concatenated distributions
         groupData(iGroup,1).info.name=btwGrpNames{iGroup,1};
         groupData(iGroup,1).info.groupListIdx=tempIdx;
-        groupData(iGroup,1).info.stats=stats;
+        groupData(iGroup,1).info.stats= temp.projData.stats;
         groupData(iGroup,1).gs=M(~isnan(M(:,1)),1);
         groupData(iGroup,1).fs=M(~isnan(M(:,2)),2);
         groupData(iGroup,1).bs=M(~isnan(M(:,3)),3);

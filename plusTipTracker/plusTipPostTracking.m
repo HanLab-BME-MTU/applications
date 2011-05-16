@@ -434,7 +434,7 @@ aT=[aT lifeTimes totalDispPix];
 % aT will now contain consolidated rows, while aTreclass is the final
 % matrix to be stored in projData.
 [aT,aTreclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,aT);
-%[aT,aTreclass,dataMatCrpSecMic,projData.percentFgapsReclass,projData.percentBgapsReclass]=plusTipMergeSubtracks(projData,aT);
+
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=nan(size(projData.frame2frameVel_micPerMin));
 for iSub=1:size(aT,1)
@@ -451,7 +451,7 @@ projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 % calculate stats using the matrix where beginning/end data has been
 % removed. M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
-[projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic);
+[projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,0,0);
 
 
 

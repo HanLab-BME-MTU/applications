@@ -1,17 +1,21 @@
-function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, metaOldNewName, makeHistogram )
+function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram )
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
-
 %% 
+
+
+
+
+%% Choices for Input
 bgapUniModeThreshNoCorrect = 0;
 
-bgapUniModeThreshCorrect = 1;
+bgapUniModeThreshCorrect = 0;
 
-bgapReclassFluctRadius = 0; 
+bgapReclassFluctRadius = 0;
 
+onlyFgap2GrowthReclass = 1;
 
-
-
+useFirstInList = 1;
 %%
 
     
@@ -37,13 +41,18 @@ end
 
 
 
+  
 
-
-% Collect All Track Stats
 for iGroup = 1:length(btwGrpNames)
     
-tempIdx=strmatch(btwGrpNames(iGroup),projGroupName,'exact');
+ 
 
+tempIdx= strmatch(btwGrpNames(iGroup),projGroupName,'exact');
+
+if (iGroup > 1 && useFirstInList == 1); % do nothing already calculated cut-offs 
+
+else % recalculate cut-off based on each group
+    
 for iProj = 1:length(tempIdx)
     
     temp = load([projGroupDir{tempIdx(iProj)} filesep meta2Use filesep 'projData']); 
@@ -72,14 +81,18 @@ fgapIdx = find(dataMatPooled(:,5) == 2 | dataMatPooled(:,5) == 5);
 
 fgapSpeeds = dataMatPooled(fgapIdx,4);
 
+%gapSpeed95th = prctile(fgapSpeeds,95);
+
+
+%fgapSpeeds = fgapSpeeds(fgapSpeeds<fgapSpeed95th);
 
 [cutoffIdx, cutoffValueFGap, sp, axesH,maxBinValue] = cutFirstHistMode(fgapSpeeds,makeHistogram);
      
    
-    projData.cutOffValueFGap_VelMicPerMin = cutoffValueFGap;
-    projData.maxBinValue_VelMicPerMin = maxBinValue;
-    projData.numFgapsTotal = length(fgapIdx);
-    projData.fgapReclassScheme = 'Unimodal Thresholding: Pooled Data';
+    cutOffValueFGap_VelMicPerMin = cutoffValueFGap;
+    maxBinValue_VelMicPerMin = maxBinValue;
+    numFgapsTotal = length(fgapIdx);
+    fgapReclassScheme = 'Unimodal Thresholding: Pooled Data';
     
     if makeHistogram == 1
        [pathup1 dummy1 dummy2 dummy3] =  getFilenameBody(projGroupDir{tempIdx(iProj)});
@@ -94,14 +107,19 @@ fgapSpeeds = dataMatPooled(fgapIdx,4);
         saveas(gcf,[uniModalFigureDir filesep name 'UnimodalThresh.fig']); 
         close(gcf);
     end
-    
+%% BGap2Pause No Reclass
+if onlyFgap2GrowthReclass == 1 % 
+    bgapThresh = 0;
+    bgapReclassScheme = 'No Bgap2Pause Reclass';
+    cutOffValueBGap_VelMicPerMin = 0;
+end 
 %%  Bgap Reclassification Using Unimodal Fgap Thresh
 
 if bgapUniModeThreshNoCorrect == 1
     
     bgapThresh = cutoffValueFGap;
-    projData.bgapReclassScheme = 'Unimodal Fgap Thresh- No Correct: Pooled Data'; 
-    projData.cutOffValueBGap_VelMicPerMin = cutoffValueFGap;
+    bgapReclassScheme = 'Unimodal Fgap Thresh- No Correct: Pooled Data'; 
+    cutOffValueBGap_VelMicPerMin = cutoffValueFGap;
     
 end
 
@@ -119,22 +137,26 @@ if bgapUniModeThreshCorrect == 1
         bgapThresh = widthDist - maxBinValue;
     end 
     
-    projData.bgapReclassScheme = 'Unimodal Fgap Thresh- Correct For Comet Latency: Pooled Data';
-    projData.cutOffValueBGap_VelMicPerMin = bgapThresh;
-    projData.maxBinValue_VelMicPerMin = maxBinValue;
-    projData.fgapDispWidth_VelMicPerMin = widthDist;
+    bgapReclassScheme = 'Unimodal Fgap Thresh- Correct For Comet Latency: Pooled Data';
+    cutOffValueBGap_VelMicPerMin = bgapThresh;
+    maxBinValue_VelMicPerMin = maxBinValue;
+    fgapDisbWidth_VelMicPerMin = widthDist;
 
                                                         
 end 
 
+end % if 
 
+%% Using Above Thresholds Correct Individual Projects
 
 
 for iProj = 1:length(tempIdx)
     
     temp = load([projGroupDir{tempIdx(iProj)} filesep meta2Use filesep 'projData']); 
-    dataMat =  temp.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
+    projData = temp.projData;
+    dataMat =  projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
     
+   
     fgapIdx = find(dataMat(:,5) == 2 | dataMat(:,5) == 5);
     bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
     
@@ -157,6 +179,40 @@ if bgapReclassFluctRadius == 1
     dataMat(bgap2pauseIdx,5) = 2;
     projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix = dataMatReclass;    
 end 
+
+%% SAVE INFO REGARDING THE RECLASS SCHEME EMPLOYED %%
+ if useFirstInList == 1
+     projData.fgapReclassScheme = [fgapReclassScheme, ': Use ', btwGrpNames(1), ' To Set Thresh '];
+     projData.bgapReclassScheme = [bgapReclassScheme, ': Use ' btwGrpNames(1), ' To Set Thresh '];
+ 
+ else 
+    projData.fgapReclassScheme = fgapReclassScheme;
+    projData.bgapReclassScheme = bgapReclassScheme;
+ end
+ 
+ projData.cutOffValueFGap_VelMicPerMin = cutOffValueFGap_VelMicPerMin;
+ projData.numFGapsUniModalHist = numFgapsTotal;
+ 
+ if (bgapUniModeThreshCorrect == 1 || bgapUniModeThreshNoCorrect ==1 ||onlyFgap2GrowthReclass == 1 ) 
+ projData.cutOffValueBGap_VelMicPerMin= cutOffValueBGap_VelMicPerMin;
+ end
+ 
+ if bgapUniModeThreshCorrect == 1
+ projData.maxBinValue_VelMicPerMin = maxBinValue_VelMicPerMin;
+ projData.fgapDisbWidth_VelMicPerMin = fgapDisbWidth_VelMicPerMin;
+ end 
+     
+  
+ projData.tracksWithFGapPause = dataMatReclass(dataMatReclass(:,5) == 2,1); 
+ projData.tracksWithFGapGrowth = dataMatReclass(growthFgapIdx,1);
+ projData.tracksWithBGapPause = dataMatReclass(bgap2pauseIdx,1);
+ projData.tracksWithBGapShrink = dataMatReclass(dataMatReclass(:,5) == 3,1);
+ 
+ 
+ 
+%%  
+
+
 % MERGE RECLASSIFICATIONS (ie subTrack ID 5 --> 1 need to incorporate reclassified pauses in growth stats)
 % merging will be performed regardless of reclassification scheme unless we
 % are pooling data
@@ -196,7 +252,8 @@ for i=1:length(tracks2check)
     end
 end    
     
-
+% remove the extra rows
+dataMat(rows2remove,:)=[];
     
 % Conversions and Calculation of Comet Latency
 % calculate necessary avg values from above merged data (where all 
@@ -250,11 +307,8 @@ dataMat(subIdx2rem,:)=[];
 dataMatCrpSecMic=dataMat; % NOTE: Kathyrn makes these all absolute values 
 % I think for stats it is better to keep sign (MB) 
 
-
-% Calculate the statistics from data that has removed values from tracks beginning 
-% and ending in  
-
-[projData.stats,projData.M] = plusTipDynamParam(dataMatCrpSecMic);
+%% Calculate Stats from the matrix where the tracks at the beginning and end have been removed
+[projData,projData.M] = plusTipDynamParam(dataMatCrpSecMic,projData,0,0);
 
 MCell = num2cell(projData.M);
 titles = cell(1,9);
@@ -271,17 +325,22 @@ titles{1,9} = 'bgap displacementes (microns)';
 
 projData.MCell = [titles;MCell];
 
-avgVelGrowth = mean(dataMat(dataMat(:,5) == 1,4));
+%avgVelGrowth = mean(dataMat(dataMat(:,5) == 1,4));
 
-avgDispPause = mean(dataMat(dataMat(:,5) == 2,7)); % in microns
-absAvgDispPause = mean(abs(dataMat(dataMat(:,5) == 2,7))); % in microns consider bgaps positive
+%avgDispPause = mean(dataMat(dataMat(:,5) == 2,7)); % in microns
+%absAvgDispPause = mean(abs(dataMat(dataMat(:,5) == 2,7))); % in microns consider bgaps positive
+%avgDispPauseNoBgapReclass= mean(dataMatReclass(dataMatReclass(:,5) == 2, 7)).*projData.pixSizeNm/1000;
+
 
 % calc avg latency of comet formation  (in min)
-avgLat = avgDispPause/avgVelGrowth; % in minutes
-projData.avgCometLatSec = avgLat*60; % in seconds
+%avgLat = avgDispPause/avgVelGrowth; % in minutes
+%projData.avgCometLatSec = avgLat*60; % in seconds
 
-absAvgLat = absAvgDispPause/avgVelGrowth;
-projData.avgCometLatSecAbs = absAvgLat*60;
+%absAvgLat = absAvgDispPause/avgVelGrowth;
+%projData.avgCometLatSecAbs = absAvgLat*60;
+
+%avgLatNoBgapReclass = avgDispPauseNoBgapReclass/avgVelGrowth; % in minutes
+%projData.avgCometLatSecNoBgapReclass = avgLatNoBgapReclass*60;
 
 
 %Calculate Fraction of SubTracks Reclassified 
@@ -301,17 +360,20 @@ if isempty(fgapIdx)
 else
     projData.percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
 end
-
+dirNameNew = [projGroupDir{tempIdx(iProj)} filesep 'meta'];
+if saveCopy  == 1
 % save a copy of the meta Dir Before Pooling
 dirBeforeRename = [ projGroupDir{tempIdx(iProj)} filesep meta2Use];
 dirAfterRename = [projGroupDir{tempIdx(iProj)} filesep metaOldNewName];
-dirNameNew = [projGroupDir{tempIdx(iProj)} filesep 'meta'];
 
 if isdir(dirAfterRename)
     rmdir(dirAfterRename,'s');
 end 
 
 movefile(dirBeforeRename, dirAfterRename);
+else % don't save a copy 
+   % rmdir(dirBeforeRename)
+end 
 
 mkdir(dirNameNew);
 

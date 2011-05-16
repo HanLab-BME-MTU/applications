@@ -70,14 +70,20 @@ end
 
 %% Extract Data: Growth
 
+
+
+
+
 % get all the original merged tracks and convert frames to seconds and
 % pixels to microns
 dataMatMergeAll=plusTipMergeSubtracks(sourceProjData); % merged data is first output
-allDataAll=abs(dataMatMergeAll);
+allDataAll=dataMatMergeAll; % save a separate matrix for converting
 %Convert Growth Lifetimes Frames to Seconds
 allDataAll(:,6)=allDataAll(:,6).*sourceProjData.secPerFrame;
 %Convert Growth Displacements From Pixels to Microns
 allDataAll(:,7)=allDataAll(:,7).*(sourceProjData.pixSizeNm./1000);
+
+
 
 % get growth track indices only and coordinates for those tracks only
 idx=find(allDataAll(:,5)==1);
@@ -164,8 +170,8 @@ xMatFirst = xMat(trckIdxInFirst,:);
 yMatFirst = yMat(trckIdxInFirst,:);
 
 trckIdxIn= intersect(find(insideSec>0),inIncludeRegionLast);
-xMat = xMat(trckIdxIn,:);
-yMat = yMat(trckIdxIn,:);
+xMatLast = xMat(trckIdxIn,:);
+yMatLast = yMat(trckIdxIn,:);
 
 
 
@@ -183,9 +189,9 @@ yMat = yMat(trckIdxIn,:);
  hold on; 
  plot(xMatFirst',yMatFirst','g'); % tracks initiated in subregion, not included in analysis
  hold on;
- plot(xMat',yMat','r')
+ plot(xMatLast',yMatLast','r') % tracks that end in subregion, included in analysis
  
- saveas(gcf,[subRoiDir filesep 'tracksTargetedToSubRoi_plusLeavingTracks' fileExt])
+ saveas(gcf,[subRoiDir filesep 'tracksTargetedToSubRoiRed_plusLeavingTracksGreen' fileExt])
  close(gcf)
  
 else % get those tracks located within the subregion based with a given
@@ -428,8 +434,6 @@ end
 projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDiffPix,...
     projData.secPerFrame,projData.pixSizeNm));
 
-projData.medNNdistWithinFramePix=NaN;
-projData.meanDisp2medianNNDistRatio=NaN;
 
 % there are no track numbers that contain an fgap or bgap- NOW THERE IS!!
 % FIX
@@ -451,13 +455,20 @@ projData.tracksWithBgap = NaN;
 %[projData.stats,M]=plusTipDynamParam(dataTotROI);
 
 %else
+
 dataGrowthROI = dataMatMerge(trckIdxIn,:);
 dataPauseROI = dataMatMergePause(trckIdxInPause,:);
 dataShrinkROI = dataMatMergeShrink(trckIdxInShrink,:);
 
 dataTotROI = [dataGrowthROI ; dataPauseROI ; dataShrinkROI];
-dataTotROI = sortrows(dataTotROI);
- 
+dataTotROI_Frames_Pix = sortrows(dataTotROI);
+
+%Convert (allDataAll is likewise converted from frame to sec and pix to um)
+% however lets just do it again directly for now so I make sure indexing is
+% correct (CHECK LATER)
+dataTotROI_Sec_Mic = dataTotROI_Frames_Pix;
+dataTotROI_Sec_Mic(:,6) = dataTotROI_Frames_Pix(:,6).*sourceProjData.secPerFrame;
+dataTotROI_Sec_Mic(:,7) = dataTotROI_Sec_Mic(:,7).*sourceProjData.pixSizeNm./1000;
 
 %Those tracks with start sites in the region of interest 
 %but were excluded based on user specified time requirement 
@@ -468,13 +479,16 @@ dataTotROI = sortrows(dataTotROI);
 %dataTotExclude = [dataGrowthExclude ; dataPauseExclude];
 %dataTotExclude = [dataTotExclude ; dataShrinkExclude];
 
-[projData.stats,M]=plusTipDynamParam(dataTotROI);
+[projData,M]=plusTipDynamParam(dataTotROI_Sec_Mic,projData,1,0);
 %projData.tracksExcludedFromAnalysis = dataTotExclude;
 
 %end
 
+
+    
+
 % put here the merged data in frames and pixels
-projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=dataTotROI;
+projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=dataTotROI_Frames_Pix;
 
 % NEW STUFF NOT IN SOURCE PROJDATA.MAT
 if projData.nTracks~=0
@@ -492,15 +506,22 @@ if projData.nTracks~=0
     projData.insideSec=insideSec(trckIdxIn); % lifetime within sub-roi (seconds)
     projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
 
-    % FIX LATER
-    %speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
-    %speedOut=nanmean(sqrt(diff(xMatOut.*OUT,[],2).^2+diff(yMatOut.*OUT,[],2).^2),2);
+    %  
+    if onlyTarget ~= 1
+   
+    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
+    speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
 
-    %projData.speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
-    %projData.speedOutMicPerMin=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm);
+    
+    projData.speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
+    projData.speedOutMicPerMin=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm);
 
-    %projData.startOrEnd=~isnan(xMat(:,1)) | ~isnan(xMat(:,end));
-    %projData.percentAtStartOrEnd=sum(projData.startOrEnd)./projData.nTracks;
+    projData.startOrEnd=~isnan(xMat(:,1)) | ~isnan(xMat(:,end));
+    projData.percentAtStartOrEnd=sum(projData.startOrEnd)./projData.nTracks;
+    
+    else % only calculate at this point if we aren't doing targeting I should 
+        % go back and look at this as this value might be helpful 
+    end 
 else
     projData.trackLifeFrames=NaN;
     projData.framesInSubRoi=NaN;

@@ -25,8 +25,8 @@ HPattern = 1;
     
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'subROIs_OriginalReclass_Maria';
-analysisFolderName = 'ANALYSIS_OriginalReclass_Maria';
+subRoiFolderName = 'SUBROIS_3uM_TargetedToRegion';
+analysisFolderName = 'ANALYSIS_SubRois_3uM_TargetedToRegion';
 
 %%% Choose if want to also perform analysis 
 doAnalysis = 1;
@@ -36,7 +36,7 @@ doBtw = 1; % set to 1 to perform between Group Comparisons
 doWtn = 0; % set to 1 to perform within Group Comparisons
 doPlot = 1; % set to 1 to make boxplots
 
-   
+justExtractTracks = 0;    
 %% Initialize: CheckInput Parameters
 homeDir=pwd;
 warningState = warning;
@@ -128,6 +128,9 @@ end
 
 nProj=length(projList);
 originalList = projList;
+
+if justExtractTracks ~= 1 
+%%
 for iProj=1:nProj
 
     anDir=projList(iProj,1).anDir;
@@ -362,7 +365,9 @@ for iProj=1:nProj
              %   innerMaskYX=[nan nan];
             %else
             %    [y1,x1]=ind2sub([imL,imW],find(innerMask,1));
-            %    innerMaskYX = bwtraceboundary(innerMask,[y1,x1],'N');
+            %   % 
+%if justExtractSubTracks == 1
+   %  innerMaskYX = bwtraceboundary(innerMask,[y1,x1],'N');
             %end
 
             %figure
@@ -980,7 +985,22 @@ for iProj=1:nProj
     % create updated projList for the roi_x folder containing all the sub-projects
     cd('..')
     getProj(pwd);
-end
+    
+    save([subanDir filesep 'projListSubRois'],'projList');
+end % for iProj
+
+else % skip above if just extract tracks is turned on
+    
+  
+   
+   
+end % if justExtractTracks
+    
+
+%% Partition The Data for Each Sub-Roi
+
+
+
 
 % look for repeats and only extract from unique sub-rois
 subDirList=projList2Cell(projList);
@@ -997,8 +1017,8 @@ end
 %% Start Make GroupLists
 
 
-    pathUp1 = getFileNameBody(projList(1).imDir);
-    [pathUp2,groupName] = getFileNameBody(pathUp1);    
+    pathUp1 = getFilenameBody(projList(1).imDir);
+    [pathUp2,groupName] = getFilenameBody(pathUp1);    
     
     statDir = [pathUp2 filesep analysisFolderName];
     

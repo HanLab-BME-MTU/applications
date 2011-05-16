@@ -119,7 +119,8 @@ if nargin<2
 
 fgapIdx=find(dataMat(:,5)==2 | dataMat(:,5)==5);
 bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
-    
+dataMatReclass = dataMat; % same because already reclassified
+
 else % dataMat input and need to perform reclassification with one of the schemes below
     
 %% Local FGap Reclassifications 
@@ -369,6 +370,9 @@ end % if unimodalReclassPool
 % calculate necessary avg values from above merged data (where all 
 % reclassified pauses have been merged with preceding growth 
 % subtrack
+% Data with pauses reclassified as growth merged in the growth velocity 
+% stats (for output) Save this before conversion
+dataMatMerge=dataMat;
 
 % perform lifetime and displacement unit conversions
 dataMat(:,6)=dataMat(:,6).* projData.secPerFrame; % convert lifetimes to seconds
@@ -376,24 +380,23 @@ dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to
 
 
 
-% Data with pauses reclassified as growth merged in the growth velocity 
-% stats (for output)
-dataMatMerge=dataMat;
+%avgVelGrowth = mean(dataMat(dataMat(:,5) == 1,4));
 
+%avgDispPause = mean(dataMat(dataMat(:,5) == 2,7)); % in microns
+%avgDispPauseBeforeBgapReclass = mean(dataMatReclass((dataMatReclass(:,5) == 2 | dataMatReclass(:,5) == 5),7).*(projData.pixSizeNm/1000));
+%absAvgDispPause = mean(abs(dataMat(dataMat(:,5) == 2,7))); % in microns consider bgaps positive
+
+
+% calc avg latency of comet formation  
+%avgLat = avgDispPause/avgVelGrowth; % in minutes
+%projData.avgComLatSec = avgLat*60; % in seconds
+
+%avgLatCalcBeforeBgapReclass = avgDispPauseBeforeBgapReclass/avgVelGrowth;
+%projData.avgComLatCalcBeforeBgapReclass = avgLatCalcBeforeBgapReclass*60;
+
+%absAvgLat = absAvgDispPause/avgVelGrowth;
+%projData.avgComLatSecAbs = absAvgLat*60;
  
-avgVelGrowth = mean(dataMat(dataMat(:,5) == 1,4));
-
-avgDispPause = mean(dataMat(dataMat(:,5) == 2,7)); % in microns
-absAvgDispPause = mean(abs(dataMat(dataMat(:,5) == 2,7))); % in microns consider bgaps positive
-
-
-% calc avg latency of comet formation  (in min)
-avgLat = avgDispPause/avgVelGrowth; % in minutes
-projData.avgCometLatSec = avgLat*60; % in seconds
-
-absAvgLat = absAvgDispPause/avgVelGrowth;
-projData.avgCometLatSecAbs = absAvgLat*60;
-
 
 %% Remove Growths Initiated in First Frame or Ending in Last Frame From Stats
 % do this so one does not bias growth lifetime/displacement data (might not
