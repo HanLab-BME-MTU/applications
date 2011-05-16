@@ -14,10 +14,11 @@ ip.addParamValue('overwrite', false, @islogical);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.overwrite;
 
-parfor i = 1:length(data)
+for i = 1:length(data)
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
-        fprintf('Running detection for %s\n', getShortPath(data(i)));
+        fprintf('Running detection for %s...', getShortPath(data(i)));
         main(data(i));
+        fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
     end
@@ -32,7 +33,6 @@ mCh = strcmp(data.channels, data.source);
 nCh = length(data.channels);
 
 sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
-%sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
 
 frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
@@ -47,7 +47,7 @@ fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
 [~,~] = mkdir([data.source 'Detection']);
 [~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
 
-fprintf('Progress:     ');
+%fprintf('Progress:     ');
 parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
@@ -98,8 +98,8 @@ parfor k = 1:data.movieLength
     
     maskPath = [data.source 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
     imwrite(uint8(255*mask), maskPath, 'tif', 'compression' , 'lzw');
-    fprintf('\b\b\b\b%3d%%', round(100*k/data.movieLength));
+    %fprintf('\b\b\b\b%3d%%', round(100*k/data.movieLength));
 end
-fprintf('\n');
+%fprintf('\n');
 
 save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
