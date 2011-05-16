@@ -32,7 +32,6 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,subRoiAnalysis
 % Frame or Ending in the Last Frame Have Been Removed
 projData.dataMat_FOR_STATS = dataMatCrpSecMic;  
 
-
 % growth speed, lifetime, displacement
 gIdx=find(dataMatCrpSecMic(:,5)==1);
 gs=dataMatCrpSecMic(gIdx,4);
@@ -113,6 +112,7 @@ else
     
 end
 
+projData.stats.percentFgapsReclass = projData.percentFgapsReclass;
 
 %% PARAMETERS RELATED TO FGAPS 
 
