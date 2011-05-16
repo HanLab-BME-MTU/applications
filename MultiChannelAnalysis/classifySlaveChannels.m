@@ -33,7 +33,7 @@ masterChannel = find([masterChannel{:}]);
 slaveChannels = setdiff(1:nChannels, masterChannel);
 
 sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{masterChannel});
-w = ceil(3*sigma);
+w = ceil(4*sigma);
 
 %===============================================
 % Classification
@@ -58,6 +58,7 @@ bgMask(r<=2*sigma) = 0;
 %-----------------------------------------------
 maskList = dir([data.source 'Detection' filesep 'Masks' filesep '*.tif']);
 
+i = 1;
 for k = 1:10:data.movieLength
 
     % load mask, dilate, -mask
@@ -125,45 +126,84 @@ for k = 1:10:data.movieLength
     %mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(k).name]));
     
     
-    % % use mask and localized coordinates on background
-    % xm = frameInfo(1).xloc;
-    % ym = frameInfo(1).yloc;
-    % xmi = round(xm);
-    % ymi = round(ym);
-    % idx = xmi<=w | ymi<=w | xmi>nx-w | ymi>ny-w | isnan(xmi);
-    % xm(idx) = [];
-    % ym(idx) = [];
-    % xmi(idx) = [];
-    % ymi(idx) = [];
-    
     % ctrlStatus = zeros(1, npRef);
     N = sum(bgMask(:));
     
+    %=========================================================================
+    % Note: the following code is taken from pointSourceDetection.m
+    %=========================================================================
+    
+    % Gaussian kernel
+    %w = ceil(4*sigma);
+    x = -w:w;
+    g = exp(-x.^2/(2*sigma^2));
+    u = ones(1,length(x));
+    
+    % convolutions
+    imgXT = padarrayXT(frame, [w w], 'symmetric');
+    fg = conv2(g', g, imgXT, 'valid');
+    fu = conv2(u', u, imgXT, 'valid');
+    fu2 = conv2(u', u, imgXT.^2, 'valid');
+    
+    % Laplacian of Gaussian
+    %gx2 = g.*x.^2;
+    %imgLoG = 2*fg/sigma^2 - (conv2(g, gx2, imgXT, 'valid')+conv2(gx2, g, imgXT, 'valid'))/sigma^4;
+    %imgLoG = imgLoG / (2*pi*sigma^2);
+    
+    % 2-D kernel
+    g = g'*g;
+    n = numel(g);
+    gsum = sum(g(:));
+    g2sum = sum(g(:).^2);
+    
+    % solution to linear system
+    A_est = (fg - gsum*fu/n) / (g2sum - gsum^2/n);
+    c_est = (fu - A_est*gsum)/n;
+    
+    J = [g(:) ones(n,1)]; % g_dA g_dc
+    C = inv(J'*J);
+    
+    f_c = fu2 - 2*c_est.*fu + n*c_est.^2; % f-c
+    RSS = A_est.^2*g2sum - 2*A_est.*(fg - c_est*gsum) + f_c;
+    sigma_e2 = RSS/(n-3);
+    
+    sigma_A = sqrt(sigma_e2*C(1,1));
+    
+    % standard deviation of residuals
+    sigma_res = sqrt((RSS - (A_est*gsum+n*c_est - fu)/n)/(n-1));
+    
+    kLevel = norminv(1-alpha/2.0, 0, 1);
+    
+    SE_sigma_c = sigma_res/sqrt(2*(n-1)) * kLevel;
+    df2 = (n-1) * (sigma_A.^2 + SE_sigma_c.^2).^2 ./ (sigma_A.^4 + SE_sigma_c.^4);
+    scomb = sqrt((sigma_A.^2 + SE_sigma_c.^2)/n);
+    T = (A_est - sigma_res*kLevel) ./ scomb;
+    pval = tcdf(real(T), df2);
+    
+    % mask of admissible positions for local maxima
+    mask = pval > 0.95;
+    
     % background at each pixel
-    E = conv2(padarray(frame, [w w], 'replicate'), bgMask/N, 'valid');
-    E2 = conv2(padarray((frame).^2, [w w], 'replicate'), bgMask/N, 'valid');
-    cStdMap = sqrt(N/(N-1) * (E2-E.^2));
-    cMap = E;
-    
-    % amplitude map
-    gL2 = pi*sigma^2;
-    g = exp(-(-w:w).^2/(2*sigma^2));
-    aMap = conv2(g', g, padarray(frame, [w w], 'replicate'), 'valid');
-    aMap = (aMap-2*pi*sigma^2*cMap) / gL2;
-    
-    % figure; imagesc(aMap); colormap(gray(256)); axis image; colorbar;
-    testMap = aMap > sigmaT * cStdMap;
-    % figure; imagesc(testMap); colormap(gray(256)); axis image; colorbar;
-    % figure; imagesc(mask); colormap(gray(256)); axis image; colorbar;
-    % figure; imagesc(ch2rgb(mask, testMap, dmask)); axis image;
-    
-    %falsePos = testMap-mask;
-    %falsePos(falsePos<0) = 0;
-    
-    %p = sum(sum(dmask & testMap)) / sum(dmask(:))
-    p(k) = sum(testMap(:)) / sum(dmask(:));
+%     E = conv2(padarray(frame, [w w], 'replicate'), bgMask/N, 'valid');
+%     E2 = conv2(padarray((frame).^2, [w w], 'replicate'), bgMask/N, 'valid');
+%     cStdMap = sqrt(N/(N-1) * (E2-E.^2));
+%     cMap = E;
+%     
+%     % amplitude map
+%     gL2 = pi*sigma^2;
+%     g = exp(-(-w:w).^2/(2*sigma^2));
+%     aMap = conv2(g', g, padarray(frame, [w w], 'replicate'), 'valid');
+%     aMap = (aMap-2*pi*sigma^2*cMap) / gL2;
+%     
+%     % figure; imagesc(aMap); colormap(gray(256)); axis image; colorbar;
+%     testMap = aMap > sigmaT * cStdMap;
+
+%     p(i) = sum(testMap(:)) / sum(dmask(:));
+    p(i) = sum(mask(:)) / sum(dmask(:));
+    i = i+1;
 end
 p = mean(p);
+
 
 % for p = 1:npRef
 %     window = frame(yi(p)-w:yi(p)+w, xi(p)-w:xi(p)+w);
