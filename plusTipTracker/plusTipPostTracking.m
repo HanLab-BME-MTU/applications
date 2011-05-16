@@ -285,8 +285,11 @@ y = trackedFeatureInfo(:,2:8:end);
 
 % initialize matrices for particle indices, area, and intensity
 movieInfoIdx=nan(nTracks,numTimePoints);
-featArea=nan(nTracks,numTimePoints);
-featInt =nan(nTracks,numTimePoints);
+if isfield(movieInfo,'ecc')
+    featArea=nan(nTracks,numTimePoints);
+    featInt =nan(nTracks,numTimePoints);
+end
+
 for iFrame=1:numTimePoints
     % these are the track numbers which exist in iFrame
     existCoordIdx=find(~isnan(x(:,iFrame)));
@@ -305,10 +308,12 @@ for iFrame=1:numTimePoints
 
         % fill in movieInfoIdx with indices from particles stored in movieInfo
         movieInfoIdx(existCoordIdx,iFrame)=featIdx;
-        % fill in particle area (pixels) at corresponding particles
-        featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
-        % fill in particle max intensity at corresponding particles
-        featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
+        if isfield(movieInfo,'ecc')
+            % fill in particle area (pixels) at corresponding particles
+            featArea(existCoordIdx,iFrame)=movieInfo(iFrame,1).amp(featIdx,1);
+            % fill in particle max intensity at corresponding particles
+            featInt (existCoordIdx,iFrame)=movieInfo(iFrame,1).int(featIdx,1);
+        end
     end
 end
 
@@ -345,9 +350,10 @@ projData.postTrackFrameRange = timeRange;
 % coordinate/area/intensity info from detected particles
 projData.xCoord = trackedFeatureInfoInterp(:,1:8:end);
 projData.yCoord = trackedFeatureInfoInterp(:,2:8:end);
-projData.featArea = featArea;
-projData.featInt = featInt;
-
+if isfield(movieInfo,'ecc')
+    projData.featArea = featArea;
+    projData.featInt = featInt;
+end
 
 % get frame-to-frame displacement for growth only (not forward/backward gaps)
 frame2frameDispPix=sqrt(diff(x,1,2).^2+diff(y,1,2).^2);
