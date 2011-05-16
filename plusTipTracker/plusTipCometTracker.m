@@ -73,14 +73,16 @@ elseif isequal(unique(size(timeRange)),[1 2])
 else
     error('--plusTipCometTracker: timeRange should be [startFrame endFrame] or [] for all frames')
 end
-temp=movieInfo;
+
+% Initialize a new movieInfo structure array with the old movieInfo fields 
+% movieInfo fields may vary depending of the detection method 
+oldMovieInfo=movieInfo;
 clear movieInfo;
-[movieInfo(1:nFrames,1).xCoord] = deal([]);
-[movieInfo(1:nFrames,1).yCoord] = deal([]);
-[movieInfo(1:nFrames,1).amp] = deal([]);
-[movieInfo(1:nFrames,1).int] = deal([]);
-[movieInfo(1:nFrames,1).ecc] = deal([]);
-movieInfo(startFrame:endFrame,:)=temp(startFrame:endFrame,:);
+movieFields = fieldnames(oldMovieInfo)';
+emptyFields=[movieFields; cell(size(movieFields))];
+movieInfo(nFrames,1) = struct(emptyFields{:});
+movieInfo(startFrame:endFrame,:)=oldMovieInfo(startFrame:endFrame,:);
+clear oldMovieInfo
 
 % save the tracking frameRange
 parameters.startFrame = startFrame;

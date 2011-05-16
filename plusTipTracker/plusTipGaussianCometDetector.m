@@ -108,7 +108,7 @@ if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
 end
 
 % make feat directory if it doesn't exist from batch
-featDir = [projData.anDir filesep 'feat-sigma' num2str(sigma) '-alpha' num2str(alpha)];
+featDir = [projData.anDir filesep 'feat'];
 if isdir(featDir)
     rmdir(featDir,'s')
 end
@@ -215,5 +215,4 @@ for iFrame = startFrame:endFrame
 end
 save([featDir filesep 'movieInfo'],'movieInfo');
 
-close(gcf)
 warning(warningState);
