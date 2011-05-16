@@ -1,4 +1,4 @@
-function [ forFigure ] = getSubRoiHeatMaps( subDir, statDir, numWindows, windowSize, YPattern, getConfValues,segType,colNum,condIdx,refIdx,refCond,expCond)
+function [ forFigure ] = getSubRoiHeatMaps( subDir, statDir, numWindows, windowSize, YPattern, getConfValues,segType,colNum,expIdx,refIdx,expCond,refCond)
 %
 
 % subDir = subRois directory where the subRoiMasks can be found: just has
@@ -20,10 +20,10 @@ function [ forFigure ] = getSubRoiHeatMaps( subDir, statDir, numWindows, windowS
 %                heat maps (default  P-Value < 0.05 = ** 
 %                                    P-Value < 0.005 = ***
 %                                    P-Value < 0.0005 = ****)
-% segType = 'growth', 'fgap','bgap'
+% segType = 'Growth', 'Fgap','Bgap'
 % colNum = the column number of the parameter you would like to plot (See Respective Stats
 % Cells)
-% condIdx = the row of the stats cell to which you would like to compare to
+% expIdx = the row of the stats cell to which you would like to compare to
 % reference
 % refIdx = row of the stats cell to be used as reference value
 % refCond = Name of reference Condition for Plot Title (input as String)
@@ -71,16 +71,16 @@ else
     numSubRois = (numWindows+1)*8;
 end % end if Y-Pattern 
 
-% does the user want to look at a growth, fgap, or bgap parameter
+% does the user want to look at a Growth, Fgap, or Bgap parameter
 switch lower(segType)
-    case {'growth'}
+    case {'Growth'}
         statsCell2Load = 'stats_GrowthStats';
         fieldName = 'statsCellGS';
-    case {'fgap'} 
-        statsCell2Load = 'stats_FGapStats';
+    case {'Fgap'} 
+        statsCell2Load = 'stats_FgapStats';
         fieldName = 'statsCellFG';
-    case {'bgap'} 
-        statsCell2Load = 'stats_BGapStats';
+    case {'Bgap'} 
+        statsCell2Load = 'stats_BgapStats';
         fieldName = 'statsCellBG';
 end 
 %% Body
@@ -105,7 +105,7 @@ for iRegion = 1:numRegions
         statsCell= load([statDir filesep 'SubRegions' filesep char(regionTypes{iRegion,1}) filesep ...
            num2str(iWindow*windowSize) 'uM' filesep statsCell2Load]);
         
-       diffValue  = statsCell.(fieldName){condIdx,colNum} - statsCell.(fieldName){refIdx,colNum};
+       diffValue  = (statsCell.(fieldName){expIdx,colNum} - statsCell.(fieldName){refIdx,colNum})./(statsCell.(fieldName){expIdx,colNum})*100;
        
        % Calculate the number of previously extracted subRegions
        if iRegion == 1
@@ -176,7 +176,7 @@ for iRegion = 1:numRegions
     statsCellGS = load([statDir filesep 'SubRegions' filesep char(regionTypes{iRegion,1}) filesep ...
         'Greater' num2str(numWindows*windowSize) 'uM' filesep statsCell2Load]);
    
-    diffValue = statsCellGS.statsCellGS{condIdx,colNum} - statsCellGS.statsCellGS{refIdx,colNum};
+    diffValue = statsCellGS.statsCellGS{expIdx,colNum} - statsCellGS.statsCellGS{refIdx,colNum};
    
     
     if iRegion == 1 
@@ -197,7 +197,7 @@ for iRegion = 1:numRegions
    
       
             % if you want to get the confidence values % NOTE right now
-            % only specific for growth parameters
+            % only specific for Growth parameters
             if getConfValues == 1
                 discrimMat = load([statDir filesep 'SubRegions' filesep char(regionTypes{iRegion,1}) filesep ...
                     'Greater' num2str(numWindows*windowSize) 'uM' filesep 'discrimMat.mat']);
@@ -270,7 +270,7 @@ for iRegion = 1:numRegions
         j = (iRegion-1)*(numWindows+1)*(numGroups+2) + (iRegion-1);
         
         %get appropriate pValue
-        pValue = discrimMatFinal{3+(iWindow-1)*(numGroups+2)+j,condIdx};
+        pValue = discrimMatFinal{3+(iWindow-1)*(numGroups+2)+j,expIdx};
         
         if pValue < 0.0005  
             subRoiConf{iRegion,iWindow} = '****';
@@ -299,12 +299,13 @@ plot(roiYX.roiYX(:,2),roiYX.roiYX(:,1),'w');
 
 
 % Create title
+
 if colNum == 4 ;
-    param = 'Difference in Mean Growth Speed (um)';
-elseif colNum == 6; 
-    param = 'Difference in Mean Growth LifeTime (sec)';
-elseif colNum == 8
-    param = 'Difference in Mean Growth Displacement (um)';
+    param = ['Difference in Mean ', segType, ' Speed (um)'];
+elseif colNum == 7; 
+    param = ['Difference in Mean ', segType, ' LifeTime (sec)'];
+elseif colNum == 10
+    param = ['Difference in Mean ', segType, ' Displacement (um)'];
 else
 end
 
