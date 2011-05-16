@@ -105,7 +105,7 @@ for iRegion = 1:numRegions
         statsCell= load([statDir filesep 'SubRegions' filesep char(regionTypes{iRegion,1}) filesep ...
            num2str(iWindow*windowSize) 'uM' filesep statsCell2Load]);
         
-       diffValue  = (statsCell.(fieldName){expIdx,colNum} - statsCell.(fieldName){refIdx,colNum})./(statsCell.(fieldName){expIdx,colNum})*100;
+       diffValue  = (statsCell.(fieldName){expIdx,colNum} - statsCell.(fieldName){refIdx,colNum})./(statsCell.(fieldName){refIdx,colNum})*100;
        
        % Calculate the number of previously extracted subRegions
        if iRegion == 1
