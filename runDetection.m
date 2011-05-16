@@ -16,7 +16,7 @@ overwrite = ip.Results.overwrite;
 
 for i = 1:length(data)
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
-        fprintf('Running detection for %s...', getShortPath(data(i)));
+        fprintf('Running detection for %s ...', getShortPath(data(i)));
         main(data(i));
         fprintf(' done.\n');
     else
