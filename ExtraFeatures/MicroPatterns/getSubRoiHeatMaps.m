@@ -73,13 +73,13 @@ end % end if Y-Pattern
 
 % does the user want to look at a Growth, Fgap, or Bgap parameter
 switch lower(segType)
-    case {'Growth'}
+    case {'growth'}
         statsCell2Load = 'stats_GrowthStats';
         fieldName = 'statsCellGS';
-    case {'Fgap'} 
+    case {'fgap'} 
         statsCell2Load = 'stats_FgapStats';
         fieldName = 'statsCellFG';
-    case {'Bgap'} 
+    case {'bgap'} 
         statsCell2Load = 'stats_BgapStats';
         fieldName = 'statsCellBG';
 end 
