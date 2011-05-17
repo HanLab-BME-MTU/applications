@@ -562,7 +562,7 @@ save([featDir filesep 'movieInfo'],'movieInfo');
 %rmdir([featDir filesep 'filterDiff'],'s');
 
 
-close(gcf)
+% close(gcf)
 warning(warningState);
 %else 
 %end
