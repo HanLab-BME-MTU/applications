@@ -8,16 +8,19 @@
 
 % Francois Aguet, June 2010 (revised from 'determineLifetimeStatus.m')
 
-function [tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
+function [tracks nMergeSplit] = trackAnalysis(data, varargin)
 
-if nargin<2 || isempty(buffer)
-    buffer = 5;
-end
-if nargin<3 || isempty(filename)
-    filename = 'trackedFeatures.mat';
-end
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addParamValue('Buffer', 5, @isscalar);
+ip.addParamValue('FileName', 'trackedFeatures.mat', @ischar);
+ip.parse(data, varargin{:});
+buffer = ip.Results.Buffer;
+filename = ip.Results.FileName;
 
-load([data.source 'Detection' filesep 'detectionResults.mat']);
+%load([data.source 'Detection' filesep 'detectionResults.mat']);
+load([data.source 'Detection' filesep 'detection_v2.mat']);
 
 ny = data.imagesize(1);
 nx = data.imagesize(2);
@@ -80,9 +83,9 @@ end
 tracks(1:nTracks) = struct('t', [],...
     'x', [], 'y', [], 'A', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
+    'x_init', [], 'y_init', [], 'A_mask', [],...
     'sigma_r', [], 'SE_sigma_r', [],...
-    'pval_Ar', [], 'pval_KS', [],...
-    'maskI', [],...
+    'pval_Ar', [], 'pval_KS', [], 'isPSF', [],...
     'status', [], 'gapStatus', [],...
     'gapStarts', [], 'gapEnds', [], 'gapLengths', [],...
     'segmentStarts', [], 'segmentEnds', [], 'segmentLengths', [],...
@@ -157,6 +160,8 @@ for k = 1:nTracks
             idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
         end
         if idx ~= 0
+            %idx
+            %frameInfo(frameRange(i))
             tracks(k).x(i) = frameInfo(frameRange(i)).x(idx);
             tracks(k).y(i) = frameInfo(frameRange(i)).y(idx);
             tracks(k).A(:,i) = frameInfo(frameRange(i)).A(:,idx);
