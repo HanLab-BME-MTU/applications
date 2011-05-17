@@ -1,40 +1,67 @@
-%[data] = runTrackAnalysis(data, varargin)
+% runTrackAnalysis
 %
-% INPUTS    data        : array of experiment structures
-%           {Buffer}    : length of buffer before and after tracks
-%           {Overwrite} : 1 to overwrite previous results
-%           {FileName}  : name of the output
+% INPUT     data        : array of experiment structures
+%           {buffer}    : length of buffer before and after tracks
+%           {overwrite} : 1 to overwrite previous results
 %
-% Usage example: runTrackAnalysis(data, 'Buffer', 10);
-%
-% Note: Only tracks with track.status==1 and track.gapStatus==4 are considered.
+% Usage example: runTrackAnalysis(data, 'buffer', 10);
 
-% Francois Aguet, November 2010 (last modified 05/17/2011)
+% Francois Aguet, November 2010
 
+function runOldTrackAnalysis(data, varargin)
 
-function [data] = runTrackAnalysis(data, varargin)
+% defaults:
+buffer = 5;
+overwrite = false;
 
+nv = length(varargin);
+if mod(nv,2)~=0
+    error('Incorrect format for optional inputs.');
+end
+for k = 1:nv/2
+    switch lower(varargin{2*k-1})
+        case 'buffer'
+            buffer = varargin{2*k};
+        case 'overwrite'
+            overwrite = logical(varargin{2*k});
+        otherwise
+            error('Unrecognized option');
+    end
+end
 
-ip = inputParser;
-ip.CaseSensitive = false;
-ip.addRequired('data', @isstruct);
-ip.addParamValue('Buffer', 5, @isscalar);
-ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('FileName', 'trackedFeatures.mat', @ischar);
-ip.parse(data, varargin{:});
-
-parfor i = 1:length(data)
-    if ~(exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file')==2) || ip.Results.Overwrite
-        [data(i).tracks data(i).nMergeSplit] = main(data(i), ip.Results.Buffer, ip.Results.FileName);
+nExp = length(data);
+parfor i = 1:nExp
+    if exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file') ~= 2 || overwrite
+        trackAnalysis(data(i), 'Buffer', buffer);
     else
-        fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
+        fprintf('TrackAnalysis: movie %d has already been analyzed.\n', i);
     end
 end
 
 
 
-function [tracks nMergeSplit] = main(data, buffer, filename)
+%[tracks nMergeSplit] = trackAnalysis(data, buffer, filename)
+%
+% INPUTS:     data       : experiment structure from 'loadConditionData()'
+%             {buffer}   :
+%             {filename} : name of the tracker file to load
+%
+% The only tracks of interest are those with status 1 or 4.
 
+% Francois Aguet, June 2010 (revised from 'determineLifetimeStatus.m')
+
+function [tracks nMergeSplit] = trackAnalysis(data, varargin)
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addParamValue('Buffer', 5, @isscalar);
+ip.addParamValue('FileName', 'trackedFeatures.mat', @ischar);
+ip.parse(data, varargin{:});
+buffer = ip.Results.Buffer;
+filename = ip.Results.FileName;
+
+%load([data.source 'Detection' filesep 'detectionResults.mat']);
 load([data.source 'Detection' filesep 'detection_v2.mat']);
 
 ny = data.imagesize(1);
