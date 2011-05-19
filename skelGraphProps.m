@@ -41,7 +41,7 @@ function grphStats= skelGraphProps(vertices,edges,edgePaths,mask,maskProp,vararg
 %   grphStats - A structure containing the calculated skeleton properties.
 %       Fields include:
 %           -vertexDegree - The number of edges connecting to each vertex           
-%
+%           ****TEMP - EXPAND!!!!! ******
 %
 % Hunter Elliott
 % 5/2011
@@ -95,6 +95,15 @@ if p.ShowPlots
     title('Skeleton Graph Vertex Degree')
 end
 
+% ---- Edge Multiplicity ---- %
+
+%Calculate how many edges connect each pair of vertices
+grphStats.edgeMultiplicity = nan(nEdges,1);
+for j = 1:nEdges            
+    grphStats.edgeMultiplicity(j) = nnz(all(bsxfun(@eq,edges,edges(j,:)),2));    
+end
+
+
 
 % ---- Tip Curvature ---- %
 
@@ -102,11 +111,11 @@ end
 iTips = find(grphStats.vertexDegree == 1);
 nTips = numel(iTips);
 
-grphStats.meanTipCurvature = nan(nVert);
-grphStats.gaussTipCurvature = nan(nVert);
-grphStats.k1TipCurvature = nan(nVert);
-grphStats.k2TipCurvature = nan(nVert);
-grphStats.diffk1k2TipCurvature = nan(nVert);
+grphStats.meanTipCurvature = nan(nVert,1);
+grphStats.gaussTipCurvature = nan(nVert,1);
+grphStats.k1TipCurvature = nan(nVert,1);
+grphStats.k2TipCurvature = nan(nVert,1);
+grphStats.diffk1k2TipCurvature = nan(nVert,1);
 
 for j = 1:nTips
     
