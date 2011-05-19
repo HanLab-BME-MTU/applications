@@ -1,11 +1,11 @@
-function [sptPropInWindow,tracksInWindow,windowSize] = ...
+function [sptPropInWindow,windowTrackAssign,trackWindowAssign,windowSize] = ...
     particleBehaviorInWindows(tracksFinal,winPositions,winFrames,...
     protSamples,diffAnalysisRes,minLength)
 %PARTICLEBEHAVIORINWINDOWS averages single particle behavior in windows based on cell edge segmentation
 %
-%SYNOPSIS [sptPropInWindow,tracksInWindow,windowSize] = ...
+%SYNOPSIS [sptPropInWindow,windowTrackAssign,trackWindowAssign,windowSize] = ...
 %    particleBehaviorInWindows(tracksFinal,winPositions,winFrames,...
-%    protPerWindow,diffAnalysisRes,minLength)
+%    protSamples,diffAnalysisRes,minLength)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -33,8 +33,12 @@ function [sptPropInWindow,tracksInWindow,windowSize] = ...
 %               From the tracks directly ...
 %           .spDensity      : Single particle density.
 %           .f2fDisp        : Average frame-to-frame displacement.
-%           .angleMean      : Average angle with protrusion vector.
-%           .angleStd       : Std of angle with protrusion vector.
+%           .angleMean      : Average angle between direction of motion and
+%                             protrusion vector.
+%           .angleStd       : STD of angle between direction of motion and
+%                             protrusion vector.
+%           .dirDisp        : Average frame-to-frame displacement along
+%                             direction of motion.
 %               From track diffusion analysis ...
 %           .fracUnclass    : Fraction of completely unclassified tracks
 %                             (i.e. tracks < frames).
@@ -60,12 +64,9 @@ function [sptPropInWindow,tracksInWindow,windowSize] = ...
 %                        Each of these fields is a 3-D matrix, of
 %                        dimensions (number of bands) x (number of windows)
 %                        x (number of window frames-1).
-%       tracksInWindow : Output of assignTracks2Windows. Cell array of
-%                        dimensions (number of bands) x (number of windows)
-%                        x (number of window frames-1) storing the track 
-%                        indices that fall in each window in each frame.
+%       windowTrackAssign, trackWindowAssign: Output of assignTracks2Windows.
 %       windowSize     : 3-D matrix of dimensions (number of bands) x (number
-%                        of windows) x (number of window frames - 1)
+%                        of slices) x (number of window frames - 1)
 %                        storing the size of each window. NaN indicates a
 %                        window of zero size.
 %
@@ -121,7 +122,7 @@ diffAnalysisRes = diffAnalysisRes(indx);
 numTracks = length(indx);
 
 %divide the trajectories among the windows
-tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,winFrames,1);
+[windowTrackAssign,trackWindowAssign] = assignTracks2Windows(tracksFinal,winPositions,winFrames,1);
 
 %% Window pre-processing
 
@@ -199,83 +200,30 @@ confRadAll = catStruct(1,'diffAnalysisRes.confRadInfo.confRadius(:,1)');
 
 %From tracks directly ...
 
-%get the average frame-to-frame displacement and direction of motion
-if isstruct(tracksFinal) %if tracks are in structure format
-    
-    %reserve memory for frame-to-frame displacement and direction of motion
-    frame2frameDisp = NaN(numSegments,1);
-    motionDirection = NaN(numSegments,2);
-    
-    %initialize global segment index
-    iSeg = 0;
-    
-    %go over all compound tracks
-    for iTrack = 1 : numTracks
-        
-        %get current track's coordinates
-        trackCoordCurrent = tracksFinal(iTrack).tracksCoordAmpCG;
-        xCoord = trackCoordCurrent(:,1:8:end);
-        yCoord = trackCoordCurrent(:,2:8:end);
-        
-        %get number of segments in this compound track
-        numSeg = size(xCoord,1);
-        
-        %get each segment's start and end time
-        segmentSEL = getTrackSEL(trackCoordCurrent);
-        
-        %get each segment's start and end coordinates
-        [xCoordStartEnd,yCoordStartEnd] = deal(NaN(numSeg,2));
-        for jSegment = 1 : numSeg
-            xCoordStartEnd(jSegment,:) = xCoord(jSegment,[segmentSEL(jSegment,1) segmentSEL(jSegment,2)]);
-            yCoordStartEnd(jSegment,:) = yCoord(jSegment,[segmentSEL(jSegment,1) segmentSEL(jSegment,2)]);
-        end
-        
-        %calculate average frame-to-frame displacement magnitude
-        f2fDispCurrent = nanmean( sqrt( diff(xCoord,[],2).^2 + diff(yCoord,[],2).^2 ) ,2);
-        
-        %calculate direction of motion
-        dispStart2End = [diff(xCoordStartEnd,1,2) diff(yCoordStartEnd,1,2)];
-        dispStart2EndMag = sqrt(sum(dispStart2End.^2,2));
-        dispStart2EndUnit = dispStart2End ./ repmat(dispStart2EndMag,1,2);
-        
-        %store in big vectors
-        frame2frameDisp(iSeg+1:iSeg+numSeg) = f2fDispCurrent;
-        motionDirection(iSeg+1:iSeg+numSeg,:) = dispStart2EndUnit;
-        
-        %update global segment index
-        iSeg = iSeg + numSeg;
-        
-    end
-    
-    
-else %if tracks are in matrix format
-    
-    %extract the x- and y-coordinates from the track matrix
-    xCoord = tracksFinal(:,1:8:end);
-    yCoord = tracksFinal(:,2:8:end);
-    
-    %calculate the average frame-to-frame displacement per track
-    frame2frameDisp = nanmean( sqrt( diff(xCoord,[],2).^2 + diff(yCoord,[],2).^2 ) ,2);
-    
-    %get each track's start and end coordinates
-    [xCoordStartEnd,yCoordStartEnd] = deal(NaN(numTracks,2));
-    for jTrack = 1 : numTracks
-        xCoordStartEnd(jTrack,:) = xCoord(jTrack,[trackSE(jTrack,1) trackSE(jTrack,2)]);
-        yCoordStartEnd(jTrack,:) = yCoord(jTrack,[trackSE(jTrack,1) trackSE(jTrack,2)]);
-    end
-    
-    %calculate direction of motion
-    dispStart2End = [diff(xCoordStartEnd,1,2) diff(yCoordStartEnd,1,2)];
-    dispStart2EndMag = sqrt(sum(dispStart2End.^2,2));
-    motionDirection = dispStart2End ./ repmat(dispStart2EndMag,1,2);
-    
-end
+%get direction of motion, angle with protrusion vector and various
+%frame-to-frame displacements
+[~,angleWithProtTmp,f2fDispTmp,paraDirDispTmp,perpDirDispTmp,...
+    paraProtDispTmp,perpProtDispTmp,asymParamTmp] = ...
+    trackMotionCharProtrusion(tracksFinal,protVecUnit,trackWindowAssign);
+
+%calculate ratio of perpendicular to parallel displacements
+ratioDispDirTmp = paraDirDispTmp ./ perpDirDispTmp;
+ratioDispProtTmp = paraProtDispTmp ./ perpProtDispTmp;
 
 %% Calculate property values per window
 
 %initialize output variables
-[spDensity,f2fDisp,angleMean,angleStd,fracUnclass,fracLin,fracIso,...
-    fracIsoUnclass,fracConf,fracBrown,fracDir,diffCoef,confRad] = ...
+[spDensity,f2fDispMag2D,angleMean,angleStd,...
+    f2fDispMagParaDir,f2fDispMagPerpDir,f2fDispSignParaDir,f2fDispSignPerpDir,...
+    f2fDispMagParaProt,f2fDispMagPerpProt,f2fDispSignParaProt,f2fDispSignPerpProt,...
+    ratioDispMagDir,ratioDispSignDir,ratioDispMagProt,ratioDispSignProt,...
+    asymParam,f2fDispMag2DLin,angleMeanLin,angleStdLin,f2fDispMagParaDirLin,...
+    f2fDispMagPerpDirLin,f2fDispSignParaDirLin,f2fDispSignPerpDirLin,...
+    f2fDispMagParaProtLin,f2fDispMagPerpProtLin,f2fDispSignParaProtLin,...
+    f2fDispSignPerpProtLin,ratioDispMagDirLin,ratioDispSignDirLin,...
+    ratioDispMagProtLin,ratioDispSignProtLin,asymParamLin,fracUnclass,...
+    fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
+    diffCoef,confRad] = ...
     deal(struct('values',NaN(numWinPerp,numWinPara,numWinFrames-1),...
     'numPoints',zeros(numWinPerp,numWinPara,numWinFrames-1)));
 
@@ -285,7 +233,7 @@ for iFrame = 1 : numWinFrames-1
         for iPerp = 1 : numWinPerp
             
             %get the tracks belonging to this window
-            tracksCurrent = tracksInWindow{iPerp,iPara,iFrame};
+            tracksCurrent = windowTrackAssign{iPerp,iPara,iFrame};
             numTracksCurrent = length(tracksCurrent);
             
             %if there are tracks in this window ...
@@ -298,23 +246,101 @@ for iFrame = 1 : numWinFrames-1
                     winSize(iPerp,iPara,iFrame) / numSPTFrames;
                 spDensity.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 
-                %calculate the average frame-to-frame displacement
-                f2fDisp.values(iPerp,iPara,iFrame) = nanmean(frame2frameDisp(tracksCurrent));
-                f2fDisp.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
-                
-                %calculate the mean and std of angle with protrusion vector
-                motionDirCurrent = motionDirection(tracksCurrent,:);
-                protrusionCurrent = repmat(squeeze(protVecUnit(iPara,iFrame,:))',numTracksCurrent,1);
-                angleMotionDirWithProtVec = acos(dot(motionDirCurrent,protrusionCurrent,2)) * 180 / pi;
-                angleMean.values(iPerp,iPara,iFrame) = nanmean(angleMotionDirWithProtVec);
+                %calculate the mean and std of angle between direction of
+                %motion and protrusion vector
+                angleMean.values(iPerp,iPara,iFrame) = nanmean(angleWithProtTmp(tracksCurrent));
                 angleMean.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 if numTracksCurrent > 1
-                    angleStd.values(iPerp,iPara,iFrame) = nanstd(angleMotionDirWithProtVec);
+                    angleStd.values(iPerp,iPara,iFrame) = nanstd(angleWithProtTmp(tracksCurrent));
                 end
                 angleStd.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
                 
+                %calculate the average frame-to-frame displacement
+                f2fDispMag2D.values(iPerp,iPara,iFrame) = nanmean(f2fDispTmp(tracksCurrent));
+                f2fDispMag2D.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                
+                %calculate the average frame-to-frame displacements along
+                %and perpendicular to the direction of motion
+                f2fDispSignParaDir.values(iPerp,iPara,iFrame) = nanmean(paraDirDispTmp(tracksCurrent,1));
+                f2fDispSignParaDir.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispSignPerpDir.values(iPerp,iPara,iFrame) = nanmean(perpDirDispTmp(tracksCurrent,1));
+                f2fDispSignPerpDir.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispMagParaDir.values(iPerp,iPara,iFrame) = nanmean(paraDirDispTmp(tracksCurrent,2));
+                f2fDispMagParaDir.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispMagPerpDir.values(iPerp,iPara,iFrame) = nanmean(perpDirDispTmp(tracksCurrent,2));
+                f2fDispMagPerpDir.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                
+                %calculate the average frame-to-frame displacements along
+                %and perpendicular to the protrusion vector
+                f2fDispSignParaProt.values(iPerp,iPara,iFrame) = nanmean(paraProtDispTmp(tracksCurrent,1));
+                f2fDispSignParaProt.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispSignPerpProt.values(iPerp,iPara,iFrame) = nanmean(perpProtDispTmp(tracksCurrent,1));
+                f2fDispSignPerpProt.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispMagParaProt.values(iPerp,iPara,iFrame) = nanmean(paraProtDispTmp(tracksCurrent,2));
+                f2fDispMagParaProt.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                f2fDispMagPerpProt.values(iPerp,iPara,iFrame) = nanmean(perpProtDispTmp(tracksCurrent,2));
+                f2fDispMagPerpProt.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                
+                %calculate the ratio of perpendicular to parallel
+                %displacement components
+                ratioDispSignDir.values(iPerp,iPara,iFrame) = nanmean(ratioDispDirTmp(tracksCurrent,1));
+                ratioDispSignDir.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                ratioDispMagDir.values(iPerp,iPara,iFrame)  = nanmean(ratioDispDirTmp(tracksCurrent,2));
+                ratioDispMagDir.numPoints(iPerp,iPara,iFrame)  = numTracksCurrent;
+                ratioDispSignProt.values(iPerp,iPara,iFrame) = nanmean(ratioDispProtTmp(tracksCurrent,1));
+                ratioDispSignProt.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                ratioDispMagProt.values(iPerp,iPara,iFrame)  = nanmean(ratioDispProtTmp(tracksCurrent,2));
+                ratioDispMagProt.numPoints(iPerp,iPara,iFrame)  = numTracksCurrent;
+                
+                %calculate the asymmetry parameter (ratio of maximum to
+                %minimum eigenvalues of position covariance matrix)
+                asymParam.values(iPerp,iPara,iFrame) = nanmean(asymParamTmp(tracksCurrent));
+                asymParam.numPoints(iPerp,iPara,iFrame) = numTracksCurrent;
+                
+                %repeat the above but only for tracks classified as
+                %asymmetric
+                trajClassCurrent = trajClass(tracksCurrent);
+                tracksLin = tracksCurrent(trajClassCurrent==5);
+                numTracksLin = length(tracksLin);
+                if numTracksLin ~= 0
+                    angleMeanLin.values(iPerp,iPara,iFrame) = nanmean(angleWithProtTmp(tracksLin));
+                    angleMeanLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    if numTracksLin > 1
+                        angleStdLin.values(iPerp,iPara,iFrame) = nanstd(angleWithProtTmp(tracksLin));
+                    end
+                    angleStdLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispMag2DLin.values(iPerp,iPara,iFrame) = nanmean(f2fDispTmp(tracksLin));
+                    f2fDispMag2DLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispSignParaDirLin.values(iPerp,iPara,iFrame) = nanmean(paraDirDispTmp(tracksLin,1));
+                    f2fDispSignParaDirLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispSignPerpDirLin.values(iPerp,iPara,iFrame) = nanmean(perpDirDispTmp(tracksLin,1));
+                    f2fDispSignPerpDirLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispMagParaDirLin.values(iPerp,iPara,iFrame) = nanmean(paraDirDispTmp(tracksLin,2));
+                    f2fDispMagParaDirLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispMagPerpDirLin.values(iPerp,iPara,iFrame) = nanmean(perpDirDispTmp(tracksLin,2));
+                    f2fDispMagPerpDirLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispSignParaProtLin.values(iPerp,iPara,iFrame) = nanmean(paraProtDispTmp(tracksLin,1));
+                    f2fDispSignParaProtLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispSignPerpProtLin.values(iPerp,iPara,iFrame) = nanmean(perpProtDispTmp(tracksLin,1));
+                    f2fDispSignPerpProtLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispMagParaProtLin.values(iPerp,iPara,iFrame) = nanmean(paraProtDispTmp(tracksLin,2));
+                    f2fDispMagParaProtLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    f2fDispMagPerpProtLin.values(iPerp,iPara,iFrame) = nanmean(perpProtDispTmp(tracksLin,2));
+                    f2fDispMagPerpProtLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    ratioDispSignDirLin.values(iPerp,iPara,iFrame) = nanmean(ratioDispDirTmp(tracksLin,1));
+                    ratioDispSignDirLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    ratioDispMagDirLin.values(iPerp,iPara,iFrame)  = nanmean(ratioDispDirTmp(tracksLin,2));
+                    ratioDispMagDirLin.numPoints(iPerp,iPara,iFrame)  = numTracksLin;
+                    ratioDispSignProtLin.values(iPerp,iPara,iFrame) = nanmean(ratioDispProtTmp(tracksLin,1));
+                    ratioDispSignProtLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                    ratioDispMagProtLin.values(iPerp,iPara,iFrame)  = nanmean(ratioDispProtTmp(tracksLin,2));
+                    ratioDispMagProtLin.numPoints(iPerp,iPara,iFrame)  = numTracksLin;
+                    asymParamLin.values(iPerp,iPara,iFrame) = nanmean(asymParamTmp(tracksLin));
+                    asymParamLin.numPoints(iPerp,iPara,iFrame) = numTracksLin;
+                end
+                
                 %From the asymmetry and diffusion analysis ...
-
+                
                 %calculate the fraction of tracks in each motion category
                 
                 %first completely unclassified tracks
@@ -384,11 +410,48 @@ for iFrame = 1 : numWinFrames-1
 end %(for iFrame = 1 : numWinFrames-1)
 
 %store all properties in output structure
-sptPropInWindow = struct('spDensity',spDensity,'f2fDisp',f2fDisp,...
-    'angleMean',angleMean,'angleStd',angleStd,'fracUnclass',fracUnclass,...
-    'fracLin',fracLin,'fracIso',fracIso,'fracIsoUnclass',fracIsoUnclass,...
-    'fracConf',fracConf,'fracBrown',fracBrown,'fracDir',fracDir,...
-    'diffCoef',diffCoef,'confRad',confRad);
+sptPropInWindow = struct('spDensity',spDensity,'f2fDispMag2D',f2fDispMag2D,...
+    'angleMean',angleMean,'angleStd',angleStd,...
+    'f2fDispMagParaDir',f2fDispMagParaDir,'f2fDispMagPerpDir',f2fDispMagPerpDir,...
+    'f2fDispSignParaDir',f2fDispSignParaDir,'f2fDispSignPerpDir',f2fDispSignPerpDir,...
+    'f2fDispMagParaProt',f2fDispMagParaProt,'f2fDispMagPerpProt',f2fDispMagPerpProt,...
+    'f2fDispSignParaProt',f2fDispSignParaProt,'f2fDispSignPerpProt',f2fDispSignPerpProt,...
+    'ratioDispMagDir',ratioDispMagDir,'ratioDispSignDir',ratioDispSignDir,...
+    'ratioDispMagProt',ratioDispMagProt,'ratioDispSignProt',ratioDispSignProt,...    
+    'asymParam',asymParam,'f2fDispMag2DLin',f2fDispMag2DLin,...
+    'angleMeanLin',angleMeanLin,'angleStdLin',angleStdLin,...
+    'f2fDispMagParaDirLin',f2fDispMagParaDirLin,'f2fDispMagPerpDirLin',f2fDispMagPerpDirLin,...
+    'f2fDispSignParaDirLin',f2fDispSignParaDirLin,'f2fDispSignPerpDirLin',f2fDispSignPerpDirLin,...
+    'f2fDispMagParaProtLin',f2fDispMagParaProtLin,'f2fDispMagPerpProtLin',f2fDispMagPerpProtLin,...
+    'f2fDispSignParaProtLin',f2fDispSignParaProtLin,'f2fDispSignPerpProtLin',f2fDispSignPerpProtLin,...
+    'ratioDispMagDirLin',ratioDispMagDirLin,'ratioDispSignDirLin',ratioDispSignDirLin,...
+    'ratioDispMagProtLin',ratioDispMagProtLin,'ratioDispSignProtLin',ratioDispSignProtLin,...    
+    'asymParamLin',asymParamLin,'fracUnclass',fracUnclass,'fracLin',fracLin,...
+    'fracIso',fracIso,'fracIsoUnclass',fracIsoUnclass,'fracConf',fracConf,...
+    'fracBrown',fracBrown,'fracDir',fracDir,'diffCoef',diffCoef,'confRad',confRad);
 
+%% ~~~ the end ~~~
 
-
+    %     %extract the x- and y-coordinates from the track matrix
+    %     xCoord = tracksFinal(:,1:8:end);
+    %     yCoord = tracksFinal(:,2:8:end);
+    %
+    %     %calculate the average frame-to-frame displacement per track
+    %     frame2frameDisp = nanmean( sqrt( diff(xCoord,[],2).^2 + diff(yCoord,[],2).^2 ) ,2);
+    %
+    %     %calculate direction of motion using the position covariance matrix
+    %     %also calculate frame-to-frame displacement along direction of motion
+    %     motionDirection   = NaN(numTracks,2);
+    %     parallelDisp      = NaN(numTracks,1);
+    %     perpendicularDisp = NaN(numTracks,1);
+    %     for iTrack = 1 : numTracks
+    %         posCov = nancov([xCoord(iTrack,:); yCoord(iTrack,:)]');
+    %         [eigVec,eigVal] = eig(posCov);
+    %         eigVal = diag(eigVal);
+    %         eigValMax = max(eigVal);
+    %         eigValMin = min(eigVal);
+    %         motionDirection(iTrack,:) = eigVec(:,eigVal==eigValMax)';
+    %         parallelDisp(iTrack)      = sqrt( eigValMax / (trackLft(iTrack)-1) );
+    %         perpendicularDisp(iTrack) = sqrt( eigValMin / (trackLft(iTrack)-1) );
+    %     end
+    

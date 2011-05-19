@@ -1,9 +1,9 @@
-function tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
-    winFrames,assignSegments)
+function [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
+    tracksFinal,winPositions,winFrames,assignSegments)
 %ASSIGNTRACKS2WINDOWS groups tracks into spatial and temporal windows derived from the cell edge
 %
-%SYNOPSIS tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
-%    winFrames,assignSegments)
+%SYNOPSIS [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
+%    tracksFinal,winPositions,winFrames,assignSegments)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -22,10 +22,15 @@ function tracksInWindow = assignTracks2Windows(tracksFinal,winPositions,...
 %                        tracks as is.
 %                        Optional. Default: 0.
 %
-%OUTPUT tracksInWindow : Cell array of dimensions (number of bands) x
-%                        (number of slices) x (number of window frames-1)
-%                        storing the track indices that fall in each window
-%                        in each frame.
+%OUTPUT windowTrackAssign: Cell array of dimensions (number of bands) x
+%                          (number of slices) x (number of window frames-1)
+%                          storing for each window in each frame the track
+%                          indices that fall in it.
+%       trackWindowAssign: (Number of tracks) x 3 array storing for each
+%                          track the window it falls in, indicated by
+%                          band number, slice number and frame.
+%                          trackWindowAssign and windowTrackAssign are
+%                          essentially the inverse of each other.
 %
 %REMARKS This code is designed for experiments where the particle
 %        trajectories are sampled much more frequently than the cell edge.
@@ -120,7 +125,11 @@ end
 
 %initialize cell array storing the grouping of tracks into windows for
 %each frame range
-tracksInWindow = cell(numWinPerp,numWinPara,numWinFrames-1);
+windowTrackAssign = cell(numWinPerp,numWinPara,numWinFrames-1);
+
+%also initialize numTracks x 3 array storing for each track its window
+%assignment
+trackWindowAssign = NaN(numTracks,3);
 
 %go over all window frames
 for iWinFrame = 1 : numWinFrames - 1
@@ -155,11 +164,16 @@ for iWinFrame = 1 : numWinFrames - 1
                 indxWin = indxFrameRange(indxWin);
                 
                 %store track indices in cell array
-                tracksInWindow{iPerp,iPara,iWinFrame} = indxWin;
+                windowTrackAssign{iPerp,iPara,iWinFrame} = indxWin;
+                
+                %store window indices for each track
+                trackWindowAssign(indxWin,1) = iPerp;
+                trackWindowAssign(indxWin,2) = iPara;
+                trackWindowAssign(indxWin,3) = iWinFrame;
                 
             else %if this window is collapsed, then there are no tracks in it
                 
-                tracksInWindow{iPerp,iPara,iWinFrame} = [];
+                windowTrackAssign{iPerp,iPara,iWinFrame} = [];
                 
             end
             
