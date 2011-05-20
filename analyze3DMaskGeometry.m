@@ -57,8 +57,9 @@ function maskProp = analyze3DMaskGeometry(maskIn,smoothIter)
 % 3/2011
 %
 %
+%% ----------------- Parameters --------------- %%
 
-
+smoothMethod = 1;%1 = gaussian smoothing of mask, 2 = curvature smoothing of mesh
 
 
 %% -------------------------- Input ----------------------------- %%
@@ -101,18 +102,31 @@ maskProp(1:nObj) = struct('SmoothedSurface',[],...
 %Loop through the objects and get their properties
 for iObj = 1:nObj
     
-    %Get the mask surface for this object
-    maskProp(iObj).SmoothedSurface = isosurface(labelMask == iObj,0);
     
-    if smoothIter > 0    
-        %Smooth the mask surface
-        maskProp(iObj).SmoothedSurface = ...
-            smoothpatch(maskProp(iObj).SmoothedSurface,0,smoothIter);    
-    end    
+    if smoothMethod == 1
+        
+        %Smooth the mask
+        maskSmooth = fastGauss3D(labelMask == iObj,1,[5 5 5],2);
+        %Ge the isosurface and normals                
+        maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,.25);
+        maskProp(iObj).SurfaceNorms = isonormals(maskSmooth,maskProp(iObj).SmoothedSurface.vertices);        
+        
+    else
+        
+        %Get the mask surface for this object
+        maskProp(iObj).SmoothedSurface = isosurface(labelMask == iObj,0);
 
-    %Get the vertex normals of this surface for curvature calculation
-    [~,maskProp(iObj).SurfaceNorms] = surfaceNormals(maskProp(iObj).SmoothedSurface);
+        if smoothIter > 0    
+            %Smooth the mask surface
+            maskProp(iObj).SmoothedSurface = ...
+                smoothpatch(maskProp(iObj).SmoothedSurface,0,smoothIter);    
+        end    
 
+        %Get the vertex normals of this surface for curvature calculation
+        [~,maskProp(iObj).SurfaceNorms] = surfaceNormals(maskProp(iObj).SmoothedSurface);
+
+    end
+        
     %Calculate local gaussian and mean curvature of surface
     [maskProp(iObj).GaussianCurvature,maskProp(iObj).MeanCurvature] =...
         surfaceCurvature(maskProp(iObj).SmoothedSurface,maskProp(iObj).SurfaceNorms);

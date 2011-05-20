@@ -192,7 +192,7 @@ for iFrame = 1:nFrames
     
     %Call the pruning function on the properly scaled data, passing any
     %additional user-input pruning parameters.
-    [vertices,edges,edgePaths] = pruneSkeletonGraph(currSkGr.vertices,...
+    [vertices,edges,edgePaths,edgeLabels] = pruneSkeletonGraph(currSkGr.vertices,...
                                                     currSkGr.edges,...
                                                     currSkGr.edgePaths,...
                                                     currMask,...
@@ -204,7 +204,7 @@ for iFrame = 1:nFrames
 
     %Write the pruned skeleton to disk        
     numStr = num2str(iFrame,fString); %zero-pad the frame number    
-    save([outDir filesep skName numStr '.mat'],'vertices','edges','edgePaths')
+    save([outDir filesep skName numStr '.mat'],'vertices','edges','edgePaths','edgeLabels')
     
     if ~p.BatchMode
         %Update the waitbar occasionally to minimize slowdown

@@ -42,12 +42,15 @@ function stepInfo = process3DMigrationMovie(movieData,varargin)
 %       progress bars, etc) will be suppressed in this function and in each
 %       processing step.
 % 
-%       ('ForceRun'->logical scalar or vector) If true, steps which have
-%       already been run will be re-run anyways. If false, completed steps
-%       will be skipped, unless the parameter settings have changed. If
-%       scalar, all steps will be force run, if vector, it should be the
-%       same length as the number of steps, specifying whether each should
-%       be force-run.
+%       ('ForceRun'->integer scalar or vector) This specifies under what
+%       conditions to run each step. If input as a scalar, the same value
+%       is used for all steps, if a vector then it specifies a different
+%       value for each step. If = 0 then the step is run if it hasn't been
+%       run previously, if parameters have changed, or if a step it depends
+%       on is being Run. If =1 the step is run no matter what. If = -1, the
+%       step is will not be run no matter what. Use caution when setting
+%       ForceRun to -1 as this will override dependencies!
+%       Optional. Default is 0 for all steps.
 %   
 %       Additionally, parameters for a specific step can be passed to the
 %       function for that step using this format:
@@ -117,7 +120,7 @@ ip.KeepUnmatched = true; %Keep extra parameters for passing to processing functi
 ip.addRequired('movieData',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('ChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
-ip.addParamValue('ForceRun',false,(@(x)(numel(x) == 1 || numel(x) == nSteps)));
+ip.addParamValue('ForceRun',0,(@(x)(numel(x) == 1 || numel(x) == nSteps)));
 ip.parse(movieData,varargin{:});
 
 p = ip.Results;
@@ -126,6 +129,11 @@ procP = ip.Unmatched;%Unrecognized parameters will be passed to processing funct
 %If scalar forceRun input, use it for all steps
 if numel(p.ForceRun) == 1
     p.ForceRun = repmat(p.ForceRun,nSteps,1);
+end
+
+%Check the values in forceRun
+if ~all(p.ForceRun == 1 | p.ForceRun == 0 | p.ForceRun == -1)
+    error('the ForceRun option can only have values of 0, 1 or -1 !')
 end
 
 %% --------------------- Init ------------------------ %%
@@ -146,7 +154,7 @@ runStep = true(1,nSteps);
 
 for iStep = 1:nSteps
     
-    if ~p.ForceRun(iStep)
+    if p.ForceRun(iStep) == 0
         %Check if this step has been successfully run previously
         iCurrProc = movieData.getProcessIndex(processNames{iStep},1,~p.BatchMode);      
         if ~isempty(iCurrProc) && movieData.processes_{iCurrProc}.checkChannelOutput(p.ChannelIndex)
@@ -155,15 +163,17 @@ for iStep = 1:nSteps
             runStep(iStep) = hasParamChanged(funParams{iStep},movieData.processes_{iCurrProc});
 
         end
-    else
-        runStep(iStep) = true;
-    end        
-
+    elseif p.ForceRun(iStep) == 1
+        runStep(iStep) = true;    
+    end
 end
 
 %Process dependencies so that if a step is going to be run, we run all
 %those steps which depend on it.
 runStep = processDependencies(runStep,depMat);
+
+%ForceRun of -1 overrides the dependencies
+runStep(p.ForceRun == -1) = false;
 
 if ~any(runStep)
     disp('All steps have already been successfully run with these settings - doing nothing. Enable the ForceRun option if you would like to run them anyways!');

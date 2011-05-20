@@ -25,7 +25,7 @@ classdef SegmentationProcess3D < SegmentationProcess
                     funParams.PostProcess = true;                    
                     funParams.MinVolume = 25;
                     funParams.NumObjects = 1; 
-                    funParams.ClosureRadius = 3;
+                    funParams.ClosureRadius = 2;
                     funParams.BatchMode = false;                                              
                 end
                 %Make sure the input parameters are legit??

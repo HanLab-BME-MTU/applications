@@ -57,7 +57,10 @@ function [vertices,edges,edgePaths,edgeLabels] = pruneSkeletonGraph(vertices,edg
 %% ------------------- Parameters ---------------------- %%
 
 nMultMax = 4;%Maximum length of edges with multiplicity > 1 to remove. See below for details.
-
+curvSlack = 3;%Tip curvature must be below maxRad by at least this factor 
+              %for a tip to be pruned. This is because a branch with radius
+              %<= MaxRadius can still have a fairly flat tip depending on
+              %it's geometry, so we give some leeway
 
 %% ------------------------- Input -------------------------------%%
 
@@ -72,9 +75,10 @@ ip.addRequired('mask',@(x)(islogical(x) && ndims(x) == 3));
 ip.addRequired('maskProp',@(x)(isstruct(x) && numel(x) == 1));
 ip.addParamValue('ShowPlots',false,(@(x)(numel(x)==1)));
 ip.addParamValue('MaxRadius',5,(@(x)(numel(x) == 1 && x >= 1))); 
-ip.addParamValue('MinAspectRatio',2,(@(x)(numel(x) == 1 && x >= 1))); 
+ip.addParamValue('MinAspectRatio',4,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('MinLength',5,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('ImageEdgeDist',3,(@(x)(numel(x) == 1 && x >= 1)));
+ip.addParamValue('CurvSampRad',7,(@(x)(numel(x) == 1 && x >= 1))); 
 
 ip.parse(vertices,edges,edgePaths,mask,maskProp,varargin{:});
 p = ip.Results;
@@ -86,12 +90,11 @@ p = ip.Results;
 %% -------------------------- Init ------------------------------%%
 
 %Get radius-of-curvature thresholds from the maximum radius parameter
-
-% gcThresh = 1/p.MaxRadius^2;%Maximum gaissian curvature value. This corresponds to
-%                       %the gaussian curvature of a sphere of radius maxRad
-%                          
-% mcThresh = -1/p.MaxRadius; %Maximum mean curvature value. This corresponds to
-%                       %the mean curvature of a sphere of radius maxRad
+gcThresh = 1/p.MaxRadius^2;%Maximum gaissian curvature value. This corresponds to
+                      %the gaussian curvature of a sphere of radius maxRad
+                         
+mcThresh = -1/p.MaxRadius; %Maximum mean curvature value. This corresponds to
+                      %the mean curvature of a sphere of radius maxRad
 
 nVert = size(vertices,1);
 nEdges = size(edges,1);
@@ -242,7 +245,40 @@ end
 %remove these
 [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
 
+%% ---------------- Surface Curvature Pruning ------------------ %%
+%Removes branches whose tips touch the surface at areas of very low
+%curvature
 
+
+%Sample the curvature of the mask surface adjacent to each tip
+tipCurv = sampleSkelTipCurv(vertices,edges,edgePaths,maskProp,'ShowPlots',p.ShowPlots,'CurvSampRad',p.CurvSampRad);
+%Get the indices of tips again, as this may have changed due to last
+%pruning
+[iTipVert,iTipEdge] = findTips(edges,nVerts);
+nTip = numel(iTipVert);
+tooFlat = false(nTip,1);
+
+%Go through each tip and check the surface curvature
+for j = 1:nTip
+    
+    %Check both mean and gaussian curvatures, since the curvatures are
+    %approximate and slightly noisy.
+    if tipCurv.meanTipCurvature(iTipVert(j)) > (mcThresh/curvSlack) && ... %use > for mean, because or system gives negative values for convex areas
+        tipCurv.gaussTipCurvature(iTipVert(j)) < (gcThresh/curvSlack)
+        tooFlat(j) = true;
+        if p.ShowPlots
+            plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--xr','LineWidth',2,'MarkerSize',10) 
+        end
+    elseif p.ShowPlots
+        plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--g','LineWidth',2,'MarkerSize',10) 
+    end
+end
+
+%Remove the edges marked for pruning
+%Remove the edges which were too close to the image edge
+[vertices,edges,edgePaths,~,~] = deleteEdges(vertices,edges,edgePaths,iTipEdge(tooFlat));
+%Once again, remove deg=2 vertices
+[vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
 
 %% ----------- Aspect Ratio Pruning, Branch/Body assignment ------------ %%
 %Assigns edges to either the body or branches of the skeleton based on
@@ -272,30 +308,31 @@ for j = 1:nEdges
         segLength = sqrt(sum(diff(edgePaths{j},1,1) .^2,2));
 
         %Get the index of the degree-1 vertex
-%        iDeg1 = edges(j,edVertDeg==1);
-%         %Find which end of the edgepath connects to this vertex
-%         dStart = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(1,:)) .^2));
-%         dEnd = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(end,:)) .^2));
-%                 
-%         %Flip the edge-Path so that it starts next to the deg=1 vertex.
-%         %This simplifies the commands below and will be helpful later
-%         if dEnd < dStart
-%             edgePaths{j} = edgePaths{j}(end:-1:1,:);
-%         end                
-%         
-%                 
-%         if any(edDepth{j} > p.MaxRadius)
-%             
-%             %Use only the aspect ratio of the 
-%         
-%         
-%             
-%         else
-%             %Calculate the average aspect ratio of the whole branch
-%             aspRat = sum(segLength) / mean(edDepth{j});                               
-%         end
-
-        aspRat = sum(segLength) / mean(edDepth{j});
+        iDeg1 = edges(j,edVertDeg==1);
+        %Find which end of the edgepath connects to this vertex
+        dStart = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(1,:)) .^2));
+        dEnd = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(end,:)) .^2));
+                
+        %Flip the edge-Path so that it starts next to the deg=1 vertex.
+        %This simplifies the commands below and will be helpful later
+        if dEnd < dStart
+            edgePaths{j} = edgePaths{j}(end:-1:1,:);
+        end                
+        
+                
+        if any(edDepth{j} > p.MaxRadius)
+            
+            %Use only the length of the portion with radius less than
+            %maxradius. This is sort of a cheap trick, but it seems to
+            %work...
+            iLastGoodRad = find(edDepth{j}<p.MaxRadius,1,'Last');
+            aspRat = sum(segLength(1:max(iLastGoodRad-1,1))) / mean(edDepth{j});
+            
+        else
+            %Calculate the average aspect ratio of the whole branch
+            aspRat = sum(segLength) / mean(edDepth{j});                               
+        end
+        
                            
         %assign to body/branches based on this ratio
         if aspRat > p.MinAspectRatio
@@ -330,189 +367,6 @@ for j = 1:nEdges
     
 end
 
-
-% %Determine which vertices are end-points (branch tips). These are vertices
-% %which only connect to one edge.
-% nEdgesPerVert = zeros(nVert,1);
-% for j = 1:nVert
-%     %Count the number of edges which this vertex is connected to
-%     nEdgesPerVert(j) = nnz(edges == j);       
-% end
-% 
-% %Find endpoints (they only connect to one edge)
-% iEndPt = find(nEdgesPerVert == 1);
-% nEndPts = numel(iEndPt);
-% 
-% %Find edge which this endpoint is the end of, and the vertex that starts it
-% iStartPt = zeros(nEndPts,1);
-% iEdge = zeros(nEndPts,1);
-% for j = 1:nEndPts
-% 
-%     %Get the index of the edge for this point.
-%     tmp = find(arrayfun(@(x)(any(edges(x,:) == iEndPt(j))),1:nEdges) );
-%     
-%     if ~isempty(tmp)%Make sure it isn't a spur
-%         iEdge(j) = tmp;
-%         if edges(iEdge(j),1) == iEndPt(j)
-%             iStartPt(j) = edges(iEdge(j),2);
-%         else
-%             iStartPt(j) = edges(iEdge(j),1);
-%         end        
-%     else
-%        iStartPt(j) = iEndPt(j); 
-%     end
-% end
-% 
-% if showPlots
-%     %Show the skeleton prior to pruning
-%     fsFigure(.75);
-%     hold on
-%     patch(maskSurf,'EdgeColor','none','EdgeAlpha',.1,'FaceAlpha',.2)
-%     axis vis3d,axis equal,light
-%     cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k','LineWidth',2)),edgePaths(cellfun(@(x)(~isempty(x)),edgePaths)));    
-%     arrayfun(@(x)(text(vertices(iEndPt(x),2),vertices(iEndPt(x),1),vertices(iEndPt(x),3),num2str(x),'color','r')),1:nEndPts);
-%     title('Original, un-pruned skeleton')
-% end
-% 
-% 
-% %We have curvature data for the faces, so we want their positions also.
-% %Average of the vertex locations gives us the barycenter of each face. 
-% facePos = zeros(nFaces,3);
-% facePos(:,1) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),1),1)),1:nFaces);
-% facePos(:,2) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),2),1)),1:nFaces);
-% facePos(:,3) = arrayfun(@(x)(mean(maskSurf.vertices(maskSurf.faces(x,:),3),1)),1:nFaces);
-% 
-% 
-% %Find "depth" at each point within mask via distance transform
-% distX = bwdist(~maskIn);
-% 
-% 
-% %% ------------ Pruning ---------------- %%
-% 
-% 
-% %Get depth at beginning and end of branches.
-% endDepth = arrayfun(@(x)(distX(round(vertices(x,1)),round(vertices(x,2)),round(vertices(x,3)) )),iEndPt);
-% startDepth = arrayfun(@(x)(distX(round(vertices(x,1)),round(vertices(x,2)),round(vertices(x,3)) )),iStartPt);
-% 
-% %Calculate local surface curvature near every endpoint
-% meanTipCurvature = zeros(nEndPts,1);
-% gaussTipCurvature = zeros(nEndPts,1);
-% k1TipCurvature = zeros(nEndPts,1);
-% k2TipCurvature = zeros(nEndPts,1);
-% isGoodEP = true(nEndPts,1);
-% branchRadius = cell(nEndPts,1);
-% 
-% fitCoef = zeros(2,nEndPts);
-% 
-% for j = 1:nEndPts
-% 
-%     %Find the closest vertex to this point
-%     [~,iClosest] = min(arrayfun(@(x)(sqrt(sum((maskSurf.vertices(x,[2 1 3]) - ...
-%         vertices(iEndPt(j),:)).^2))),1:nSurfVert));%Vertices are in matrix coord, so we need to rearrange
-% 
-%     %Find which faces are near this on the surface        
-%     [~,isCloseEnough] = adjacentMeshElements(maskSurf,iClosest,(curvSampD+endDepth(j)));
-%     %De-cell the indices
-%     isCloseEnough = isCloseEnough{1};
-% 
-%     %Get average mean and gaussian curvature   
-%     if nnz(isCloseEnough) > 0
-%         meanTipCurvature(j) = mean(H(isCloseEnough));
-%         gaussTipCurvature(j) = mean(K(isCloseEnough));
-%         k1TipCurvature(j) = mean(k1(isCloseEnough));
-%         k2TipCurvature(j) = mean(k2(isCloseEnough));
-%          
-%     else
-%        %If we couldn't find any surface points within the search radius, we
-%        %give the branch -Inf curvature so it will pass maximum curvature
-%        %criteria.
-%        meanTipCurvature(j) = -Inf;
-%        gaussTipCurvature(j) = -Inf;
-%        k1TipCurvature(j) = -Inf;
-%        k2TipCurvature(j) = -Inf;
-%     end
-%     
-%     if showPlots            
-%         if ~isempty(isCloseEnough)
-%             plot3(facePos(isCloseEnough,1),facePos(isCloseEnough,2),facePos(isCloseEnough,3),'b.')
-%         end
-%         plot3(maskSurf.vertices(iClosest,1),maskSurf.vertices(iClosest,2),maskSurf.vertices(iClosest,3),'gx')
-%     end
-%     
-% 
-%     %Sample the distance transform along the branch corresponding to this
-%     %endpoint
-%     if iEdge(j) ~= 0 %First make sure it's not a spur 
-%         nEdgePts = size(edgePaths{iEdge(j)},1);
-%         branchRadius{j} = arrayfun(@(x)(distX(round(edgePaths{iEdge(j)}(x,1)),...
-%                                               round(edgePaths{iEdge(j)}(x,2)),...
-%                                               round(edgePaths{iEdge(j)}(x,3)))),...
-%                                               1:nEdgePts);
-% 
-%         if nEdgePts >= 3
-% 
-%             [fitCoef(:,j),tmp] = robustfit(1:nEdgePts,branchRadius{j});
-% 
-%             %Calculate R^2 for this fit
-%             lFun = @(x)(x * fitCoef(2,j) + fitCoef(1,j));
-%             tmp.Rsquared = 1 - sum((branchRadius{j} - lFun(1:nEdgePts)) .^2) / ...
-%                                sum((branchRadius{j} - mean(branchRadius{j})) .^2);
-%                            
-%             if j == 1
-%                 %Initialize all the structures to these fields.
-%                 fitStats = repmat(tmp,1,nEndPts);
-%             end
-%             fitStats(j) = tmp; %Allow extra field for Rsquared                                    
-% 
-%             if fitStats(j).p(2) < .1 && fitStats(j).Rsquared > .7 && abs(fitCoef(2,j) > .25)
-%                 isGoodEP(j) = false;
-% 
-%             end
-%         end
-%     end
-% end
-% 
-% %Find endpoints for which the surface mean curvature is convex.
-% isGoodEP(meanTipCurvature > (mcThresh/4)) = false;
-% 
-% 
-% %Check the depth of the start-point for the branches with endpoints. If
-% %these are too deep, this is not a "real" branch
-% %TEMP - NOT DOING THIS CHECK YET - HLE
-% 
-% 
-% 
-% %Remove branches whose start point is too deep.
-% isGoodEP(startDepth > maxRad) = false;
-% 
-% 
-% %% ---------- Output ---------- %%
-% 
-% 
-% %Check if there are any vertices which now have no edges and delete them
-% nVert = size(vertices,1);
-% vDeg = graphVertDegree(edges,nVert);
-% 
-% 
-% %Return the pruned skeleton graph
-% vertices = vertices(iEndPt(isGoodEP),:);
-% edgePaths(iEdge(~isGoodEP & iEdge > 0)) = [];
-% edges(iEdge(~isGoodEP & iEdge > 0),:) = [];
-% 
-% if showPlots
-%     fsFigure(.75);    
-%     hold on
-%     patch(maskSurf,'FaceColor','flat','EdgeColor','none','FaceVertexCData',K,'AmbientStrength',.75,'FaceAlpha',.3)
-%     caxis([nanmean(K)-2*nanstd(K) nanmean(K)+2*nanstd(K)])
-%     hold on                 
-%     plot3(vertices(:,2),vertices(:,1),vertices(:,3),'or','MarkerSize',10);
-%     cellfun(@(x)(plot3(x(:,2),x(:,1),x(:,3),'k','LineWidth',2)),edgePaths(cellfun(@(x)(~isempty(x)),edgePaths)));    
-%     %arrayfun(@(x)(spy3d(vertices == x,'or','MarkerSize',15)),1:nVerts)    
-%     light
-%     axis image,axis vis3d    
-%     view(3)
-%     title('Final, Pruned Skeleton Graph with Mask Surface')           
-% end
 
 function [vertices,edges,edgePaths,nEdges,nVerts] = deleteEdges(vertices,edges,edgePaths,iEdge)
 

@@ -70,7 +70,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %
 %           ('ClosureRadius' -> positive integer) Radius of structuring
 %           element to use in closure operation. If zero, no closure is
-%           performed. Default is 3 pixels
+%           performed. Default is 2 pixels
 %
 % Hunter Elliott
 % 11/2009
@@ -79,7 +79,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %% ----- Parameters ---- %%
 
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled. %TEMP - allow user-specification
-gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
+gSig = .5; %Sigma of the filter used in the smoothed gradient filter.
 dName = 'masks_channel_'; %Name for mask directories
 
 %% ------ Input ----- %%
@@ -187,11 +187,16 @@ for iChan = 1:nChanSeg
 
                 case 'Gradient'
 
-                    %Get the gradient of the image
-    %                 [gX,gY,gZ] = gradient(double(currIm));
-    %                 currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2); %Just overwrite the image, save memory etc.                              
-    %               %Use MATITK for smoothed gradient calculation  
-                    currIm = matitk('FGMS',gSig,double(currIm));
+                    %Filter the image
+                    currIm = filterGauss3D(double(currIm),.5,'symmetric');
+                    %Get gradient of filtered image
+                    [gX,gY,gZ] = gradient(currIm);
+                    %and magnitude of gradient
+                    currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2);
+                        
+                    %MATITK is slow, so I stopped using it - HLE
+                    %Use MATITK for smoothed gradient calculation  
+                    %currIm = matitk('FGMS',gSig,double(currIm));
 
                     %Threshold this gradient based on intensity histogram
                     try
