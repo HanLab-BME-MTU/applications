@@ -14,7 +14,7 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
             else                
                 
                 super_args{1} = owner;
-                super_args{2} = 'Photobleach Correction';
+                super_args{2} = PhotobleachCorrectionProcess.getName;
                 super_args{3} = @photobleachCorrectMovieRatios;                               
                 
                 if nargin < 3 || isempty(funParams)                                       
@@ -46,7 +46,11 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
         end
         
     end
-
+    methods(Static)
+        function name =getName()
+            name = 'Photobleach Correction';
+        end
+    end
     
 end                                   
             

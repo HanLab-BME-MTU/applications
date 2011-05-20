@@ -16,7 +16,7 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
                 nChan = numel(owner.channels_);
                 
                 super_args{1} = owner;
-                super_args{2} = 'Dark Current Correction';
+                super_args{2} = DarkCurrentCorrectionProcess.getName;
                 super_args{3} = @darkCurrentCorrectMovie;                               
                 
                 if nargin < 3 || isempty(funParams)                                       
@@ -85,5 +85,10 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
             end
         end        
            
+    end
+    methods(Static)
+        function name =getName()
+            name = 'Dark Current Correction';
+        end
     end
 end

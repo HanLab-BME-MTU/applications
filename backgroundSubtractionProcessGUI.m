@@ -78,9 +78,14 @@ userData.crtPackage = userData_main.crtPackage;
 userData.crtProc = userData.crtPackage.processes_{userData.procID};
 
 % Get current process constructer
-eval ( [ 'userData.procConstr = @', ...
-    userData.crtPackage.processClassNames_{userData.procID},';']);
-
+crtProcClassName = userData.crtPackage.processClassNames_{userData.procID};
+userData.procConstr = str2func(crtProcClassName);
+crtProcName = eval([crtProcClassName '.getName']);
+procString = [' Step ' num2str(userData.procID) ': ' crtProcName];
+set(handles.text_processName,'String',procString);
+figString = [' Setting - ' crtProcName];
+set(handles.figure1,'Name',figString);
+    
 % If process does not exist, create a default one in user data.
 if isempty(userData.crtProc)
     userData.crtProc = userData.procConstr(userData_main.MD(userData_main.id), ...

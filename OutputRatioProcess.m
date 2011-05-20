@@ -14,7 +14,7 @@ classdef OutputRatioProcess < DoubleProcessingProcess
                                 
             
             super_args{1} = owner;
-            super_args{2} = 'RatioOutput';
+            super_args{2} = OutputRatioProcess.getName;
             super_args{3} = @outputMovieRatios;                
             
             if nargin < 3 || isempty(funParams)
@@ -82,6 +82,11 @@ classdef OutputRatioProcess < DoubleProcessingProcess
             
         end
     
+    end
+    methods(Static)
+        function name = getName()
+            name = 'Ratio Output';
+        end
     end
 end
    

@@ -14,7 +14,7 @@ classdef RatioProcess < DoubleProcessingProcess
                                 
             
             super_args{1} = owner;
-            super_args{2} = 'Ratioing';
+            super_args{2} = RatioProcess.getName;
             super_args{3} = @ratioMovie;                
             
             if nargin < 3 || isempty(funParams)
@@ -46,6 +46,11 @@ classdef RatioProcess < DoubleProcessingProcess
         end
 
                 
+    end
+    methods(Static)
+        function name =getName()
+            name = 'Ratioing';
+        end
     end
 
 end

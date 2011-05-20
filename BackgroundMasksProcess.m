@@ -11,7 +11,7 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
                 nChan = numel(owner.channels_);
                 
                 super_args{1} = owner;
-                super_args{2} = 'Background Mask';
+                super_args{2} = BackgroundMasksProcess.getName;
                 super_args{3} = @createMovieBackgroundMasks;
                 
                 if nargin < 3 || isempty(funParams)
@@ -34,5 +34,9 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
         end
         
     end
-    
+    methods(Static)
+        function name =getName()
+            name = 'Background Mask';
+        end
+    end
 end
