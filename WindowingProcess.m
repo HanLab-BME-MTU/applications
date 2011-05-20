@@ -23,7 +23,7 @@ classdef WindowingProcess < ImageAnalysisProcess
             else                
                 
                 super_args{1} = owner;
-                super_args{2} = 'Windowing';
+                super_args{2} = WindowingProcess.getName;
                 super_args{3} = @getMovieWindows;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
@@ -116,6 +116,11 @@ classdef WindowingProcess < ImageAnalysisProcess
             obj.nBandMax_ = nBandMax;                        
             
         end
-    end    
+    end
+    methods (Static)
+        function name =getName()
+            name = 'Windowing';
+        end
+    end
 end
     

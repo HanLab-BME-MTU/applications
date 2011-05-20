@@ -15,7 +15,7 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 
                 super_args{1} = owner;
 
-                super_args{2} = 'WindowSampling';
+                super_args{2} = WindowSamplingProcess.getName;
                 super_args{3} = @sampleMovieWindows;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
@@ -56,8 +56,11 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         end
                 
     end
-    
-    
+    methods (Static)
+        function name =getName()
+            name = 'Window Sampling';
+        end
+    end 
     
 end
        

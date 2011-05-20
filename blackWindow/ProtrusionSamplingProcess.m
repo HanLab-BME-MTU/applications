@@ -16,7 +16,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             else                
                 
                 super_args{1} = owner;
-                super_args{2} = 'ProtrusionSampling';
+                super_args{2} = ProtrusionSamplingProcess.getName;
                 super_args{3} = @sampleMovieProtrusion;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
@@ -75,6 +75,11 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
                                     
         end
         
-    end    
+    end
+    methods (Static)
+        function name =getName()
+            name = 'Protrusion Sampling';
+        end
+    end 
 end
     
