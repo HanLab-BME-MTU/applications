@@ -12,7 +12,7 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,timeUnits,timeVal)
 %
 
 %% new input to be incorporated later
-onlyTarget =  1; % If set to one will select only those tracks that are 
+onlyTarget =  0; % If set to one will select only those tracks that are 
 %targeted (ie the last point of their growth track is within the given sub
 %region if set to zero will use the settings specified in the
 %plusTipSeeTracks GUI

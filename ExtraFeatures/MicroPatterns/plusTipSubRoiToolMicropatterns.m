@@ -8,8 +8,8 @@ function plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,ti
 %% PARAMETERS
 
 % Choose H or Y Pattern 
-% Default = Y pattern 
-% if HPattern = 0 then default is YPattern
+% HPattern = 0 is YPattern (ie Default is YPattern)
+% HPattern = 1 is HPattern (ie turn on the HPattern)
 
 % Choice of H or Y Pattern
     
@@ -22,21 +22,23 @@ HPattern = 1;
     % windows will equal 3)
     windowSize = distVal; % Width of Outer Windows in Microns (Relative to Cell Edge) IN MICRONS
     %%%%%%%%%%%%%%%%%
-    
+ 
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'SUBROIS_3uM_TargetedToRegion';
-analysisFolderName = 'ANALYSIS_SubRois_3uM_TargetedToRegion';
+subRoiFolderName = 'SUBROIS_TestingInsideTracks';
+analysisFolderName = 'ANALYSIS_SubRois_TestingInsideTracks';
 
 %%% Choose if want to also perform analysis 
-doAnalysis = 1;
+doAnalysis = 1; % set this to 1 to "turn-on" anlaysis 
 
-%Parameters for pooling data 
-doBtw = 1; % set to 1 to perform between Group Comparisons
-doWtn = 0; % set to 1 to perform within Group Comparisons
+%Parameters for Pooled Analysis 
+doBtw = 1; % set to 1 to perform between Group Comparisons 
+% Here we are comparing different subRegions within the same condition.
+doWtn = 0; % set to 1 to perform within Group Comparisons: set to 1 if you want to take a look 
+% at the variability between the individual subregions before pooling
 doPlot = 1; % set to 1 to make boxplots
 
-justExtractTracks = 0;    
+justExtractTracks = 0;% ignore this for now
 %% Initialize: CheckInput Parameters
 homeDir=pwd;
 warningState = warning;
@@ -263,24 +265,20 @@ for iProj=1:nProj
 %   innerMask's boundary is fraction/microns inwards from the cellRoi boundary
     
     
+    if windowSize ~=0 
+        
+        % initialize matrix to hold inner masks 
+        innerMasks = zeros(imL,imW,numWindows);
     
-    % initialize matrix to hold inner masks 
-    innerMasks = zeros(imL,imW,numWindows);
-    
-    % fill matrix holding distance transform derived masks
-    for iWindow = 1:numWindows
-        innerMasks(:,:,iWindow) = weightedRoi>windowSize*iWindow;
+            % fill matrix holding distance transform derived masks
+            for iWindow = 1:numWindows
+                innerMasks(:,:,iWindow) = weightedRoi>windowSize*iWindow;
+            end 
+        else % no need to calculate inner masks as user does not want to do windowing
     end 
-   
-    %innerMaskLarge=weightedRoi>distCutoff;
-    %innerMaskSmall = weightedRoi>distCutoff*2;
-    
-%    if innerMask==roiMask
- %       fractionFromEdge=1;
- %   else
-  %      fractionFromEdge=0;
-  %  end
-
+        
+        
+ 
     excludeMask=swapMaskValues(roiMask);
 
     % EXCLUDEMASK IS SUBMASK (OR INVERSE OF CELL MASK) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -390,7 +388,7 @@ for iProj=1:nProj
 %% Start Modifications for Micropatterns: Parameters
     
     
-    if HPattern == 1 
+    if HPattern== 1 
         angle1 = 60;
         angle2 = 30;
     else 
@@ -421,8 +419,8 @@ for iProj=1:nProj
                 r21=(yAll<=centerRoiYX(1,1));
                 r22=(yAll> centerRoiYX(1,1));
                 
-              
-                if HPattern == 1
+              %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                if HPattern== 1 % H-Pattern
                
                     m1 = tand(angle1); %slope of line (NOTE: will look like has a neg   
                     m2 =-m1; % negative slope of line1 
@@ -510,116 +508,82 @@ for iProj=1:nProj
                 AdTopRight = d41 & d32 & roiMask;
                     
                 NonAdTop =  d21 & d31 & roiMask;
-                end       
+                end   % if HPattern     
                 
+                % Window Ad, NonAd if user desires
+                if exist('innerMasks','var') == 1
                 
-                % Initialize matrix to hold the distance cut-off rois (For
-                % all) 
-                cellEdgeRoi= zeros(imL,imW,numWindows+1);
+                    % Initialize matrix to hold the distance cut-off rois (For
+                    % all) 
+                    cellEdgeRoi= zeros(imL,imW,numWindows+1);
                 
-                % Make Cell Edge Specific Regions Based on specified distance from the cell edge 
-                cellEdgeRoi(:,:,1) = roiMask - innerMasks(:,:,1);
-                for i = 1:(size(innerMasks,3)-1)
-                    cellEdgeRoi(:,:,i+1) = innerMasks(:,:,i)-innerMasks(:,:,i+1);
+                    % Make Cell Edge Specific Regions Based on specified distance from the cell edge 
+                    cellEdgeRoi(:,:,1) = roiMask - innerMasks(:,:,1);
+                    for i = 1:(size(innerMasks,3)-1)
+                        cellEdgeRoi(:,:,i+1) = innerMasks(:,:,i)-innerMasks(:,:,i+1);
+                    end 
+                    cellEdgeRoi(:,:,numWindows+1) = innerMasks(:,:,numWindows);
+                
                 end 
-                cellEdgeRoi(:,:,numWindows+1) = innerMasks(:,:,numWindows);
                 
-                
-                % for 3 windows total = 2 small (input parameter) and 1 large    
-                %roiPeriphery=roiMask-innerMaskLarge; % Region Closest to
-                %Cell Edge 
-                %roiMiddle=innerMaskLarge-innerMaskSmall;
-                %roiInner=innerMaskSmall; 
-                
-                %roiSet=zeros(imL,imW,9);
+           
               
                 if HPattern == 1
-                
-                %Small regions need no further division
-                %roiNonAdTop1 = r11 & r21 & d11 & roiMask; 
-                %roiNonAdTop2 = r12 & r21 & d21 & roiMask;
-                %roiSet(:,:,1) = roiNonAdTop1 + roiNonAdTop2;
-                
-                
-                
-                
-                
-                 %roiNonAdTop = roiNonAdTop1 + roiNonAdTop2;
-                
-                 %Divide into windows from cell edge
-                 
                  
                 roiNonAdTop = r21 & d11 & d21 & roiMask;
-                 
-                 
-                 for i= 1:size(cellEdgeRoi,3)
-                     roiSet(:,:,i) = roiNonAdTop & cellEdgeRoi(:,:,i);
+                
+                % if the user wants to do windowing need to further divide
+                % region
+                 if exist('cellEdgeRoi','var') == 1
+                    for i= 1:size(cellEdgeRoi,3)
+                        roiSet(:,:,i) = roiNonAdTop & cellEdgeRoi(:,:,i);
+                    end 
+                 else
+                     roiSet(:,:,1) = roiNonAdTop; % no further subdivision of regions
                  end 
                  
-                %roiSet(:,:,1) = roiNonAdTop & roiPeriphery;
-                %roiSet(:,:,2) = roiNonAdTop & roiMiddle;
-                %roiSet(:,:,3) = roiNonAdTop & roiInner;
-                
-                
-                %roiNonAdBot1 = r11 & r22 & d22 & roiMask;
-                %roiNonAdBot2 = r12 & r22 & d12 & roiMask;
-                
-                %roiSet(:,:,2) = roiNonAdBot1 + roiNonAdBot2;
-                
-                %roiNonAdBot  = roiNonAdBot1 + roiNonAdBot2;
-                %roiSet(:,:,4) = roiNonAdBot & roiPeriphery;
-                %roiSet(:,:,5) = roiNonAdBot & roiMiddle;
-                %roiSet(:,:,6) = roiNonAdBot & roiInner;
-                
+               
                 roiNonAdBot = r22 & d22 & d12 & roiMask;
+                
+                
+               
+                 % Divide Non-Ad region inot Cell-Edge Based Windows
+                if exist('cellEdgeRoi','var') == 1
+               
                 
                 %Find the number of those already set
                 numSet = size(roiSet,3);
+                    for i = 1:size(cellEdgeRoi,3)
+                        roiSet(:,:,i+numSet) = roiNonAdBot & cellEdgeRoi(:,:,i);
+                    end 
+                else 
+                    roiSet(:,:,2) = roiNonAdBot; % no further subdivision of regions
+                    
+                end
                 
-                % Divide Non-Ad region inot Cell-Edge Based Windows
-                for i = 1:size(cellEdgeRoi,3)
-                    roiSet(:,:,i+numSet) = roiNonAdBot & cellEdgeRoi(:,:,i);
-                end 
-                
-                % Larger Regions to be split further (Large Regions 
-                % Closer to X-axis
-                
-                % large regions- NO Cell Edge SubRegions
-                %roiSet(:,:,5) = r11 & r21 & d12 & roiMask;
-                %roiSet(:,:,6) = r12 & r21 & d22 & roiMask; 
-                %roiSet(:,:,7) = r11 & r22 & d21 & roiMask;
-                %roiSet(:,:,8) = r12 & r22 & d11 & roiMask;
-               
                 
                 %Large regions new name
                 roiAdLeft1Big = r11 & r21 & d12 & roiMask;
                 roiAdLeft2Big = r11 & r22 & d21 & roiMask;
                 
-                %roiSet(:,:,3) = roiAdLeft1Big + roiAdLeft2Big;
                
                 
                 roiAdRight1Big = r12 & r21 & d22 & roiMask; 
                 roiAdRight2Big = r12 & r22 & d11 & roiMask;
-                %roiSet(:,:,4) = roiAdRight1Big + roiAdRight2Big;
+               
                
                 % if angle2 is not empty find the lines with an absolute angle2  
                 % from the x-axis and intersects the cell center
                 %. Use these lines to subdivide the image further
-                else 
+               
                   
-                   %roiAdBot = r22 & d22 & d12 & roiMask;
-                    
-                    %roiSet(:,:,1) = roiAdBot & roiPeriphery;
-                    %roiSet(:,:,2) = roiAdBot & roiMiddle    ; 
-                    %roiSet(:,:,3) = roiAdBot & roiInner;
-                 
-              
-                    
+                   
+                       
                 end 
                 
                 if ~isempty(angle2)
                
-                    if HPattern == 1
+                    if HPattern== 1
                
                 % Find Line3 (angle2 from x-axis) 
                 m3 = tand(angle2); % find slope 
@@ -641,17 +605,6 @@ for iProj=1:nProj
                 d42 = (yAll>yLine4);
                 
                     
-             
-                %Split Larger Rois Further 
-                %roiSet(:,:,9) = roiSet(:,:,5) & d31;
-                %roiSet(:,:,5) = roiSet(:,:,5) & d32;
-                %roiSet(:,:,10) = roiSet(:,:,7) & d41;
-                %roiSet(:,:,7) = roiSet(:,:,7) & d42;
-                %roiSet(:,:,11)= roiSet(:,:,6) & d41;
-                %roiSet(:,:,6) = roiSet(:,:,6) & d42;
-                %roiSet(:,:,12) = roiSet(:,:,8) & d31;
-                %roiSet(:,:,8) = roiSet(:,:,8) & d32;
-                
                 
                 
                  % cluster subregions based on H-pattern
@@ -664,31 +617,26 @@ for iProj=1:nProj
                
 
                 AdLeft = AdBotLeft + AdTopLeft;
-                
-                numSet = size(roiSet,3);
-                for i = 1:size(cellEdgeRoi,3)
-                    roiSet(:,:,i+numSet) = AdLeft & cellEdgeRoi(:,:,i);
-                end 
-                
-                %roiSet(:,:,7) = AdLeft & roiPeriphery;
-                %roiSet(:,:,8) = AdLeft & roiMiddle;
-                %roiSet(:,:,9) = AdLeft & roiInner;
-                
-               
                 AdRight = AdBotRight + AdTopRight;
                 
+                if exist('cellEdgeRoi','var') == 1 
+                    numSet = size(roiSet,3);
+                    for i = 1:size(cellEdgeRoi,3)
+                        roiSet(:,:,i+numSet) = AdLeft & cellEdgeRoi(:,:,i);
+                    end 
                 
-                numSet = size(roiSet,3);
-                for i = 1:size(cellEdgeRoi,3)
-                    roiSet(:,:,i+numSet) = AdRight & cellEdgeRoi(:,:,i);
-                end 
+               
                 
-                %roiSet(:,:,10) = AdRight & roiPeriphery;
-                %roiSet(:,:,11) = AdRight & roiMiddle;
-                %roiSet(:,:,12) = AdRight & roiInner;
-                % Combine 
-                %roiSet(:,:,3) = AdBotLeft + AdTopLeft;
-                %oiSet(:,:,4) = AdBotRight + AdTopRight;
+                    numSet = size(roiSet,3);
+                    for i = 1:size(cellEdgeRoi,3)
+                        roiSet(:,:,i+numSet) = AdRight & cellEdgeRoi(:,:,i);
+                    end 
+                else 
+                    roiSet(:,:,3) = AdLeft;
+                    roiSet(:,:,4) = AdRight;
+                    
+                end  
+             
                 
                     %hints r11 = left hand y-axis r12 = right hand of
                     %y=axis r22 below x-axis
@@ -701,6 +649,7 @@ for iProj=1:nProj
                 AdCorners(:,:,3) = r22 & d21 & d42 & roiMask; % bottom 
                 AdCorners(:,:,4) = r22 & d11 & d32 &  roiMask; % bottom
                 
+                if exist('cellEdgeRoi','var') == 1 
                 numSet = size(roiSet,3);
               
                     for iCorn = 1:4 
@@ -710,24 +659,15 @@ for iProj=1:nProj
                         end 
                         numSet = size(roiSet,3);
                     end 
+                else 
                     
-                    %for iWindow = 1:numWindows
-                    %roiSet(:,:,iWindow+numSet) = AdCorners(:,:,1) & cellEdgeRoi(:,:,iWindow);
-                    %end 
+                    roiSet(:,:,5) = AdCorners(:,:,1);
+                    roiSet(:,:,6) = AdCorners(:,:,2);
+                    roiSet(:,:,7) = AdCorners(:,:,3);
+                    roiSet(:,:,8) = AdCorners(:,:,4); 
                     
-                    %numSet = size(roiSet,3);
-                    %for iWindow = 1:numWindows
-                    %    roiSet(:,:,iWindow+numSet) = AdCorners(:,:,2) & cellEdgeRoi(:,:,iWindow);
-                    %end 
-                    %numSet = size(roiSet,3);
-                    %for iWindow = 1:numWindows
-                     %   roiSet(:,:,iWindow+numSet) = AdCorners(:,:,3) & cellEdgeRoi(:,:,iWindow);
-                    %end 
-                    %numSet = size(roiSet,3);
-                    %for iWindow = 1:numWindows 
-                    %    roiSet(:,:,iWindow+numSet) = AdCorners(:,:,4) & cellEdgeRoi(:,:,iWindow);
-                    %end 
-                    
+                end   
+                  
               
                
                 
@@ -772,7 +712,7 @@ for iProj=1:nProj
                     
                     
                     
-                   
+                   if exist('cellEdgeRoi','var') == 1
                    %Divide Ad Left Region Into Cell-Edge Based Windows 
                      for i= 1:size(cellEdgeRoi,3)
                      roiSet(:,:,i) = AdTopLeft & cellEdgeRoi(:,:,i);
@@ -830,7 +770,7 @@ for iProj=1:nProj
                         roiSet(:,:,i+numSet) = NonAdBotRt & cellEdgeRoi(:,:,i);
                     end
                    
-                   
+                   end  % if exist 
                    
                 end 
                     
@@ -1022,8 +962,8 @@ end
     
     statDir = [pathUp2 filesep analysisFolderName];
     
-    if isDir(statDir)
-        rm(statDir,'s')
+    if isdir(statDir)
+        rmdir(statDir,'s')
     else 
     end 
       mkdir(statDir);
@@ -1037,7 +977,7 @@ end
     groupListDir = [statDir filesep 'groupLists'];
     mkdir(groupListDir);
     
-if HPattern == 1
+if HPattern== 1
     
     %%%%% GroupLists Non-Adhesion %%%%%%%%%%
     
@@ -1485,7 +1425,7 @@ mkdir(analSaveDir2);
 
 
 
-if HPattern == 1
+if HPattern== 1
     regionTypes{1,1} = 'Ad';
     regionTypes{2,1} = 'AdCorn';
     regionTypes{3,1} = 'NonAd';

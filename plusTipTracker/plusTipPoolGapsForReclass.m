@@ -1,4 +1,4 @@
-function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram )
+function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram, useFirstInList )
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 %% 
@@ -15,7 +15,7 @@ bgapReclassFluctRadius = 0;
 
 onlyFgap2GrowthReclass = 1;
 
-useFirstInList = 1;
+
 %%
 
     
