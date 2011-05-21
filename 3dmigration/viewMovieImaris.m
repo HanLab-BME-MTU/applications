@@ -35,7 +35,8 @@ edgeSize = 1;%Radius of SPOTS for skeleton edges
 vertApp = [1 1 .1 0];%Raw skel vertex appearance
 edgeApp = [1 1 .1 0];%Raw skel edge appaerance
 vertAppP = [1 .1 .1 0];%Pruned skel vertex appearance
-edgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
+branchEdgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
+bodyEdgeAppP = [.1 .1 1 0];%Pruned skel edge appaerance
 msApp = [.2 .2 1 .6];%Mask surface appearance
 
 %% -------- Input -------- %%
@@ -343,75 +344,105 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
     disp('Pruned skeleton graphs found, displaying.')        
     
     nVert = zeros(nImages,1);
-    nEdge = zeros(nImages,1);
-    nPtsPerEdge = cell(nImages,1);
-    nEdgePts = zeros(nImages,1);
-    skgrPruned(1:nImages) = struct('vertices',[],'edges',[],'edgePaths',[]);
+    nBodyEdge = zeros(nImages,1);
+    nBodyPtsPerEdge = cell(nImages,1);    
+    nBodyEdgePts = zeros(nImages,1);
+    nBranchPtsPerEdge = cell(nImages,1);
+    nBranchEdgePts = zeros(nImages,1);    
+    nBranchEdge = zeros(nImages,1);
+    skgrPruned(1:nImages) = struct('vertices',[],'edges',[],'edgePaths',[],'edgeLabels',[]);
     
     %Load the skeletons for each frame and count the verts and edges
     for iImage = 1:nImages
         skgrPruned(iImage) = movieData3D.processes_{iPruneProc}.loadChannelOutput(iChannel,iImage);
         nVert(iImage) = size(skgrPruned(iImage).vertices,1);
-        nEdge(iImage) = numel(skgrPruned(iImage).edgePaths);            
-        nPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgrPruned(iImage).edgePaths);
-        nEdgePts(iImage) = sum(nPtsPerEdge{iImage});        
+        isBranch = skgrPruned(iImage).edgeLabels == 1;
+        nBodyEdge(iImage) = nnz(~isBranch);
+        nBodyPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgrPruned(iImage).edgePaths(~isBranch));
+        nBodyEdgePts(iImage) = sum(nBodyPtsPerEdge{iImage});
+        nBranchEdge(iImage) = nnz(isBranch);
+        nBranchPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgrPruned(iImage).edgePaths(isBranch));
+        nBranchEdgePts(iImage) = sum(nBranchPtsPerEdge{iImage});        
     end
     
-    nEdgeTot = sum(nEdge);
-    nEdgePtsTot = sum(nEdgePts);
-    nVertTot = sum(nVert);
-    nEdgeEdgesTot = nEdgePtsTot-nEdgeTot;
+    nBodyEdgeTot = sum(nBodyEdge);
+    nBodyEdgePtsTot = sum(nBodyEdgePts);
+    nBodyEdgeEdgesTot = nBodyEdgePtsTot-nBodyEdgeTot;%Total number of edges required to connect all the points on each edge
+    nBranchEdgeTot = sum(nBranchEdge);    
+    nBranchEdgePtsTot = sum(nBranchEdgePts);
+    nBranchEdgeEdgesTot = nBranchEdgePtsTot-nBranchEdgeTot;%Total number of edges required to connect all the points on each edge
     
+    nVertTot = sum(nVert);        
     vertXYZ = zeros(nVertTot,3);
     vertRad = ones(nVertTot,1) .* vertSize .* pixXY;
     vertTimes = zeros(nVertTot,1);
     
-    edgeXYZ = zeros(nEdgePtsTot,3);
-    edgeTimes = zeros(nEdgePtsTot,1);
-    edgeEdges = zeros(nEdgeEdgesTot,2);
-    edgeRad = ones(nEdgePtsTot,1) .* edgeSize .* pixXY;
+    bodyEdgeXYZ = zeros(nBodyEdgePtsTot,3);
+    bodyEdgeTimes = zeros(nBodyEdgePtsTot,1);
+    bodyEdgeEdges = zeros(nBodyEdgeEdgesTot,2);
+    bodyEdgeRad = ones(nBodyEdgePtsTot,1) .* edgeSize .* pixXY;
+    branchEdgeXYZ = zeros(nBranchEdgePtsTot,3);
+    branchEdgeTimes = zeros(nBranchEdgePtsTot,1);
+    branchEdgeEdges = zeros(nBranchEdgeEdgesTot,2);
+    branchEdgeRad = ones(nBranchEdgePtsTot,1) .* edgeSize .* pixXY;
     
     %Go through each frame and set up the spot matrices for passing to
     %imaris
     ciV = 1;
-    ciE = 1;
-    cieE = 1;
+    ciBoE = 1;
+    ciBoeE = 1;
+    ciBrE = 1;
+    ciBreE = 1;
     for iImage = 1:nImages
                         
-        currIndV = ciV:ciV+nVert(iImage)-1;%Indices for the vertices on this frame
-        currIndE = ciE:ciE+nEdgePts(iImage)-1;%Indices for the edge paths on this frame
-        
+        currIndV = ciV:ciV+nVert(iImage)-1;%Indices for the vertices on this frame                
         vertTimes(currIndV) = iImage-1; %Time indices for vertices        
         vertXYZ(currIndV,:) = (skgrPruned(iImage).vertices -1) .* pixXY;%Scale the coordinates by the xy pixel size only, because they have been converted to symmetric-voxel coordinates        
         
-        edgeTimes(currIndE) = iImage-1;
-        ciEP = ciE;
-        ciEE = cieE;
+        currIndBoE = ciBoE:ciBoE+nBodyEdgePts(iImage)-1;%Indices for the edge paths on this frame        
+        bodyEdgeTimes(currIndBoE) = iImage-1;
+        ciBoEP = ciBoE;
+        ciBoEE = ciBoeE;        
+        currIndBrE = ciBrE:ciBrE+nBranchEdgePts(iImage)-1;%Indices for the edge paths on this frame        
+        branchEdgeTimes(currIndBrE) = iImage-1;
+        ciBrEP = ciBrE;
+        ciBrEE = ciBreE;
         
-        for iEdg = 1:nEdge(iImage)
+        iBodyEdge = find(skgrPruned(iImage).edgeLabels == 2);
+        for iEdg = 1:numel(iBodyEdge)
             %Indices for the pts on the current edge
-            currIndEP = ciEP:ciEP+nPtsPerEdge{iImage}(iEdg)-1;
-            currIndEE = ciEE:ciEE+nPtsPerEdge{iImage}(iEdg)-2;
-            
-            if ~isempty(currIndEP) && ~isempty(currIndEE)%Make sure it's not a spur first
-            
-                edgeXYZ(currIndEP,:) = (skgrPruned(iImage).edgePaths{iEdg} -1) .* pixXY;            
-
+            currIndBoEP = ciBoEP:ciBoEP+nBodyPtsPerEdge{iImage}(iEdg)-1;
+            currIndBoEE = ciBoEE:ciBoEE+nBodyPtsPerEdge{iImage}(iEdg)-2;            
+            if ~isempty(currIndBoEP) && ~isempty(currIndBoEE)%Make sure it's not a spur first            
+                bodyEdgeXYZ(currIndBoEP,:) = (skgrPruned(iImage).edgePaths{iBodyEdge(iEdg)} -1) .* pixXY;            
                 %These edge path points are stored consecutively, so just
                 %connect each subsequent point with an edge.
-                edgeEdges(currIndEE,:) = [currIndEP(1:end-1)' currIndEP(2:end)']-1;%Shift indices by one for imaris
-                
-                ciEP = ciEP + nPtsPerEdge{iImage}(iEdg);            
-                ciEE = ciEE + nPtsPerEdge{iImage}(iEdg)-1;
-                
-            end
-
-            
+                bodyEdgeEdges(currIndBoEE,:) = [currIndBoEP(1:end-1)' currIndBoEP(2:end)']-1;%Shift indices by one for imaris                
+                ciBoEP = ciBoEP + nBodyPtsPerEdge{iImage}(iEdg);            
+                ciBoEE = ciBoEE + nBodyPtsPerEdge{iImage}(iEdg)-1;                
+            end           
         end
-                               
-        ciV = ciV + nVert(iImage);
-        ciE = ciE + nEdgePts(iImage);
-        cieE = cieE + nEdgePts(iImage) - nEdge(iImage); %There is one less edge than point for each skeleton branch
+        ciBoE = ciBoE + nBodyEdgePts(iImage);
+        ciBoeE = ciBoeE + nBodyEdgePts(iImage) - nBodyEdge(iImage); %There is one less edge than point for each skeleton branch                
+        
+        iBranchEdge = find(skgrPruned(iImage).edgeLabels == 1);
+        for iEdg = 1:numel(iBranchEdge)
+            %Indices for the pts on the current edge
+            currIndBrEP = ciBrEP:ciBrEP+nBranchPtsPerEdge{iImage}(iEdg)-1;
+            currIndBrEE = ciBrEE:ciBrEE+nBranchPtsPerEdge{iImage}(iEdg)-2;            
+            if ~isempty(currIndBrEP) && ~isempty(currIndBrEE)%Make sure it's not a spur first            
+                branchEdgeXYZ(currIndBrEP,:) = (skgrPruned(iImage).edgePaths{iBranchEdge(iEdg)} -1) .* pixXY;            
+                %These edge path points are stored consecutively, so just
+                %connect each subsequent point with an edge.
+                branchEdgeEdges(currIndBrEE,:) = [currIndBrEP(1:end-1)' currIndBrEP(2:end)']-1;%Shift indices by one for imaris                
+                ciBrEP = ciBrEP + nBranchPtsPerEdge{iImage}(iEdg);            
+                ciBrEE = ciBrEE + nBranchPtsPerEdge{iImage}(iEdg)-1;                
+            end           
+        end
+        ciBrE = ciBrE + nBranchEdgePts(iImage);
+        ciBreE = ciBreE + nBranchEdgePts(iImage) - nBranchEdge(iImage); %There is one less edge than point for each skeleton branch        
+        
+        ciV = ciV + nVert(iImage);        
     end    
             
     %Create spots object for skeleton vertices
@@ -423,13 +454,22 @@ if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput
     imarisApp.mSurpassScene.AddChild(imarisPruneVertSpots);
     
     %Create spots object for skeleton edges
-    imarisPruneEdgeSpots = imarisApp.mFactory.CreateSpots;
-    imarisPruneEdgeSpots.mName = 'Pruned Skeleton Branches';
-    imarisPruneEdgeSpots.SetColor(edgeAppP(1),edgeAppP(2),edgeAppP(3),edgeAppP(4));
+    imarisPruneBodySpots = imarisApp.mFactory.CreateSpots;
+    imarisPruneBodySpots.mName = 'Pruned Skeleton Body';
+    imarisPruneBodySpots.SetColor(bodyEdgeAppP(1),bodyEdgeAppP(2),bodyEdgeAppP(3),bodyEdgeAppP(4));
     %Add the vertices to the scene as spots
-    imarisPruneEdgeSpots.Set(edgeXYZ,edgeTimes,edgeRad);
-    imarisPruneEdgeSpots.SetTrackEdges(edgeEdges);
-    imarisApp.mSurpassScene.AddChild(imarisPruneEdgeSpots);        
+    imarisPruneBodySpots.Set(bodyEdgeXYZ,bodyEdgeTimes,bodyEdgeRad);
+    imarisPruneBodySpots.SetTrackEdges(bodyEdgeEdges);
+    imarisApp.mSurpassScene.AddChild(imarisPruneBodySpots);        
+    
+    %Create spots object for skeleton edges
+    imarisPruneBranchSpots = imarisApp.mFactory.CreateSpots;
+    imarisPruneBranchSpots.mName = 'Pruned Skeleton Branches';
+    imarisPruneBranchSpots.SetColor(branchEdgeAppP(1),branchEdgeAppP(2),branchEdgeAppP(3),branchEdgeAppP(4));
+    %Add the vertices to the scene as spots
+    imarisPruneBranchSpots.Set(branchEdgeXYZ,branchEdgeTimes,branchEdgeRad);
+    imarisPruneBranchSpots.SetTrackEdges(branchEdgeEdges);
+    imarisApp.mSurpassScene.AddChild(imarisPruneBranchSpots);        
     
 end
 
