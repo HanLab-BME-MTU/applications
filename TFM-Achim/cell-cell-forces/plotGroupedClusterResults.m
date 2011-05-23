@@ -10,7 +10,7 @@ end
 
 %close all;
 
-onlyCorr=1;
+onlyCorr=0;
 if ~onlyCorr
 %**************************************************************************
 % Compare network and cluster analysis:
@@ -221,18 +221,40 @@ plotIntForceDeg11(groupedClusters);
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
 goodEdgeSet=findEdges(groupedClusters,'kPa',8,'errF',500,'errs',0);
-[fc1_vals,Itot_vals,Iavg_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg');
+[fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 figure()
 plot(fc1_mag,Itot_vals,'*')
 title('Correlation Ecad intensity / cell-cell forces')
 xlabel('Cell-cell force magnitude [nN]')
 ylabel('Integrated Ecad intensity [a.u.]')
+
 figure()
 plot(fc1_mag,Iavg_vals,'o')
 title('Correlation Ecad intensity / cell-cell forces')
 xlabel('Cell-cell force magnitude [nN]')
 ylabel('Average Ecad intensity [a.u.]')
+
+figure()
+plot(SIcorr_vals(:,1),SIcorr_vals(:,2),'.')
+title('Correlation Ecad intensity profile/ cell-cell stress profile')
+xlabel('Cell-cell stress [nN]')
+ylabel('Average Ecad intensity [a.u.]')
+
+%calculate the numerical correlation coefficients:
+[RFItot PFItot RLOItot RUPItot] = corrcoef(fc1_mag,Itot_vals);
+RFItotSTD=max(max([RFItot-RLOItot RUPItot-RFItot]));
+
+[RFIavg PFIavg RLOIavg RUPIavg] = corrcoef(fc1_mag,Iavg_vals);
+RFIavgSTD=max(max([RFIavg-RLOIavg RUPIavg-RFIavg]));
+
+[RSIprf PSIprf RLOSIprf RUPSIprf] = corrcoef(SIcorr_vals(:,1),SIcorr_vals(:,2));
+RSIprfSTD=max(max([RSIprf-RLOSIprf RUPSIprf-RSIprf]));
+
+display(['corr(Fcc, Itot): ',num2str(RFItot(1,2),'%0.3f'),'+-',num2str(RFItotSTD,'%0.3f'),'  (N=',num2str(length(fc1_mag),'% 6.0f')         ,', p=',num2str(PFItot(1,2)),')']);
+display(['corr(Fcc, Iavg): ',num2str(RFIavg(1,2),'%0.3f'),'+-',num2str(RFIavgSTD,'%0.3f'),'  (N=',num2str(length(fc1_mag))         ,', p=',num2str(PFIavg(1,2)),')']);
+display(['corr(Fcc, Iprf): ',num2str(RSIprf(1,2),'%0.3f'),'+-',num2str(RSIprfSTD,'%0.3f'),'  (N=',num2str(length(SIcorr_vals(:,1))),', p=',num2str(PSIprf(1,2)),')']);
+display('!!!Since we find a significant correlation between force and intensity profile, we have achieved a subinterface force resolution!!!')
 
 %end
 

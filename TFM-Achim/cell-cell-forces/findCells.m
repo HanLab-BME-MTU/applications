@@ -208,7 +208,7 @@ end
 
 % sort out the empty ones:
 setId=1;
-while setId<length(goodCellSet)
+while setId<=length(goodCellSet)
     if isempty(goodCellSet(setId).frames)
         goodCellSet(setId)    =[];
     else

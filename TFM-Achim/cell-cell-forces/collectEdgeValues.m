@@ -2,14 +2,18 @@ function varargout=collectEdgeValues(groupedClusters,goodSet,varargin)
 % [deg_vals,lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','f1','f2','fc1','fc2')
 % Runs through the groupedClusters and collects all the data from fields
 % specified in the input arguments. Potential fields are:
-% 'deg'  : The degree of connectivity of a cell.
-% 'lgth' : The interface length.
-% 'f1'   : The force f1 determined by the network analysis
-% 'f2'   : The force f2 determined by the network analysis
-% 'fc1'  : The force f1 determined by the network analysis
-% 'fc2'  : The force f2 determined by the network analysis
-% 'Itot' : The total Ecad intensity along the interface
-% 'Iavg' : The total Ecad intensity along the interface
+% 'deg'   : The degree of connectivity of a cell.
+% 'lgth'  : The interface length.
+% 'f1'    : The force f1 determined by the network analysis
+% 'f2'    : The force f2 determined by the network analysis
+% 'fc1'   : The force f1 determined by the network analysis
+% 'fc2'   : The force f2 determined by the network analysis
+% 'Itot'  : The total Ecad intensity along the interface
+% 'Iavg'  : The total Ecad intensity along the interface
+% 'SIcorr': The stress and intensity profile along the INNER interface.
+%           Spatial but no temporal information.
+% 'corr'  : structure for cross-correlating intensity and
+%           cell-cell-forces over time.
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
@@ -83,6 +87,15 @@ else
     IavgCheck = 0;
 end
 
+SIcorrPos=find(strcmp('SIcorr',varargin));
+if ~isempty(SIcorrPos)
+    SIcorrCheck = 1;
+    % it is the next entry which contains the numeric value:
+    SIcorr_vals   = [];
+else
+    SIcorrCheck = 0;
+end
+
 corrPos=find(strcmp('corr',varargin));
 if ~isempty(corrPos)
     corrCheck = 1;
@@ -148,6 +161,15 @@ for idx=1:length(goodSet)
         
         if  IavgCheck
             Iavg_vals=vertcat(Iavg_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg);
+        end
+        
+        if  SIcorrCheck
+            SPosIn =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.cntrs;
+            SValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.s_vec;
+            IPosIn =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.intf_internal;
+            IValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.val;
+            [IVals,~,SMagVals,~]=pairSIprofiles(SPosIn,SValsIn,IPosIn,IValsIn);
+            SIcorr_vals=vertcat(SIcorr_vals ,[SMagVals IVals]);
         end
         
         if  corrCheck
@@ -225,6 +247,10 @@ end
 
 if IavgCheck
     varargout(IavgPos) = {Iavg_vals};
+end
+
+if SIcorrCheck
+    varargout(SIcorrPos) = {SIcorr_vals};
 end
 
 if  corrCheck
