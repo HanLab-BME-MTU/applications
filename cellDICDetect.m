@@ -28,11 +28,11 @@ if nargin<3 || isempty(innerR)
 end
 
 if nargin<4 || isempty(closeR)
-    closeR=8; %10
+    closeR=8; %8
 end
 
 if nargin<5 || isempty(sigmaGauss)
-    sigmaGauss=2; %10
+    sigmaGauss=2; %2
 end
 
 % These values are only needed if the segmentation is used (which is not by
@@ -62,6 +62,7 @@ doPlot=0;
 % shortened:
 toDoList=1:length(imageFileList);
 
+toDoList=[171:180]
 for frame=toDoList
     text=['Detect sheet edges in ',num2str(toDoList(end)),' images'];
     progressText(frame/toDoList(end),text);
@@ -172,9 +173,37 @@ for frame=toDoList
             colormap gray;
         end
         
-        % cut off the maxima in the noise:
-        [~, level1]=cutFirstHistMode(Imax(Imax(:)>0),0);
-        Imax(Imax(:)<level1)=0;
+        % cut off the maxima in the noise (this is unstable):
+        % [~, level1]=cutFirstHistMode(Imax(Imax(:)>0),0);
+        % level1=thresholdFluorescenceImage(Imax(Imax(:)>0),1);
+        
+        % This might be more stable. First find the BG-value (max in the
+        % intensity histogram):
+        numBins=round(sqrt(numel(IDcg)));
+        [counts,bin]=hist(IDcg(:),numBins);
+        [~,maxID]=max(counts);
+        % Then the BG-value is about:
+        bgVal=bin(maxID);
+        % The typical maximum value is at ~0.95% value of the prob. dist:
+        pVal=0.95;
+        cumProb=cumsum(counts);
+        upperPercentile=find(cumProb/cumProb(end)>pVal,1);
+        avSig=bin(upperPercentile);
+        % set the cut off in the middle of signal and noise.
+        level2=bgVal+(avSig-bgVal)*0.5;
+        
+        
+        if doPlot==1
+            countsPlot=hist(Imax(Imax(:)>0),100);
+            figure; hist(Imax(Imax(:)>0),100);
+            hold on
+            % plot([level1 level1],[0 max(countsPlot)],'-r')
+            plot([level2 level2],[0 max(countsPlot)],'-g')
+            hold off
+        end
+        
+        % take level2 to cut off:
+        Imax(Imax(:)<level2)=0;
         Imax(Imax(:)>0)=1;
         
         % Show the first set of maxima:
@@ -183,7 +212,7 @@ for frame=toDoList
         %if doPlot==1
         Idspl=Icrop;
         Idspl(ImaxDil == 1) = 0;
-        figure(1), imagesc(Idspl), title('Show only filtered local maxima')
+        figure(1), imagesc(Idspl), title(['Show only filtered local maxima, frame= ',num2str(frame)])
         hold on
         %end
         
