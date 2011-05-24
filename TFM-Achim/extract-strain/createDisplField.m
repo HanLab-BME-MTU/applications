@@ -256,16 +256,14 @@ for i=1:length(displField)
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
         tic;
-        tic;
         [pos_f, force, forceMesh, M, pos_u, u, sol_coef]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol);
         display('The total time for calculating the FastBEM solution: ')
-        toc;
         toc;
         
         % The following values are only stored for the BEM-method.
         forceField(i).par.forceMesh     = forceMesh;
         forceField(i).par.sol_coef      = sol_coef;
-        forceField(i).par.M             = M;
+        forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
         forceField(i).par.pos           = pos_u;
         forceField(i).par.u             = u;  
         forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   

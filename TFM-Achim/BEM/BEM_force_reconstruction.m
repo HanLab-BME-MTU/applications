@@ -31,7 +31,7 @@ pos_u=horzcat(x_vec,y_vec);
 
 display('2.) Building up forward map:...');
 tic;
-if nargin == 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast')
     M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);    
 else
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);
@@ -46,7 +46,7 @@ display('Done: forward map!');
 % X = A\B is the solution to the equation AX = B
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
-if nargin == 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast')
     sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);
 else
     sol_coef=(L*eye(2*forceMesh.numNodes)+M'*M)\(M'*u);
@@ -65,7 +65,7 @@ end
 %Evaluation of the solution:
 display('4.) Evaluate solution:... ')
 tic;
-if nargin == 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast')
     [fx fy x_out y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
 else
     for j=1:2*forceMesh.numNodes

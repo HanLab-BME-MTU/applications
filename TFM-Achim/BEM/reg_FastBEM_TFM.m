@@ -14,8 +14,8 @@ if isempty(grid_mat)
     [xvec,yvec]=createHexGridFromDisplField(displField,1);
 
     % plot the grid points:
-    figure(1)
-    plot(xvec,yvec,'o');
+    % figure(1)
+    % plot(xvec,yvec,'o');
 else
     xvec=grid_mat(:,:,1);
     yvec=grid_mat(:,:,2);
@@ -25,7 +25,10 @@ else
 end
 
 display('1.) Creating mesh & basis [~30sec]:...');
-forceMesh=createMeshAndBasisFastBEM(xvec,yvec,0);
+tic;
+doPlot=0;
+forceMesh=createMeshAndBasisFastBEM(xvec,yvec,0,[],doPlot);
+toc;
 display('Done: mesh & basis!');
 
 [fx fy x_out y_out M pos_u u sol_coef] = BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,[],[],'fast',meshPtsFwdSol);
