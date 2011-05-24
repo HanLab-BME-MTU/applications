@@ -31,10 +31,7 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
                 super_args{4} = funParams;    
                                 
             end
-            
             obj = obj@DoubleProcessingProcess(super_args{:});
-            obj.setFunc_ = @photobleachCorrectionProcessGUI; % FOr analyzability/ to be implemented
-
         end
         
         function figHan = resultDisplay(obj)
@@ -49,6 +46,9 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
     methods(Static)
         function name =getName()
             name = 'Photobleach Correction';
+        end
+        function h = GUI()
+            h= @photobleachCorrectionProcessGUI;
         end
     end
     

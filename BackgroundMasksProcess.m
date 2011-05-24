@@ -29,14 +29,15 @@ classdef BackgroundMasksProcess < MaskProcessingProcess
             end
             
             obj = obj@MaskProcessingProcess(super_args{:});
-            obj.setFunc_ = @backgroundMasksProcessGUI; % FOr analyzability/ to be implemented
-
         end
         
     end
     methods(Static)
         function name =getName()
             name = 'Background Mask';
+        end
+        function h = GUI()
+            h= @backgroundMasksProcessGUI;
         end
     end
 end

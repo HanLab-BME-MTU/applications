@@ -43,7 +43,6 @@ classdef OutputRatioProcess < DoubleProcessingProcess
             end
                                                         
             obj = obj@DoubleProcessingProcess(super_args{:});
-            obj.setFunc_ = @outputRatioProcessGUI; % FOr analyzability/ to be implemented
         end
         
         function sanityCheck(obj)
@@ -86,6 +85,9 @@ classdef OutputRatioProcess < DoubleProcessingProcess
     methods(Static)
         function name = getName()
             name = 'Ratio Output';
+        end
+        function h = GUI()
+            h= @outputRatioProcessGUI;
         end
     end
 end

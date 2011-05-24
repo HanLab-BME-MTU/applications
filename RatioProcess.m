@@ -41,8 +41,6 @@ classdef RatioProcess < DoubleProcessingProcess
             end
                                                         
             obj = obj@DoubleProcessingProcess(super_args{:});
-            obj.setFunc_ = @ratioProcessGUI; % FOr analyzability/ to be implemented
-
         end
 
                 
@@ -50,6 +48,9 @@ classdef RatioProcess < DoubleProcessingProcess
     methods(Static)
         function name =getName()
             name = 'Ratioing';
+        end
+        function h =GUI()
+            h = @ratioProcessGUI;
         end
     end
 
