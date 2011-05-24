@@ -21,69 +21,17 @@ function [hotSpotRadius] = determineHotSpotRadius(experiment,rest);
 %           20 plus one)
 %
 % Uses: RipleysKfunction
+%       plotPairCorrelation
 %
 % Daniel Nunez, January 20, 2009
+% Daniel Nunez, March 24, 2011
 
-dist = 1:1:20;
+dist = 1:20;
+experiment = plotPairCorrelation(experiment,dist);
 
-for iexp = 1:length(experiment)
-    
-    %Load Lifetime Information
-    cd([experiment(iexp).source filesep 'LifetimeInfo'])
-    load('lftInfo')
-    % status matrix
-    statMat = lftInfo.Mat_status;
-    % lifetime matrix
-    lftMat = lftInfo.Mat_lifetime;
-    % x-coordinate matrix
-    matX = lftInfo.Mat_xcoord;
-    % y-coordinate matrix
-    matY = lftInfo.Mat_ycoord;
-    % disapp status matrix
-    daMat = lftInfo.Mat_disapp;
-    % framerate
-    framerate = experiment(iexp).framerate;
-    % image size
-    imsize  = experiment(iexp).imagesize;
-    
-    %find all pits in movie that meet requirements specified by restriction
-    %vector
-    findPos = find((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)));
-    
-    msx = imsize(1);
-    msy = imsize(2);
-    imsizS = [imsize(2) imsize(1)];
-    % construct convex hull out of complete point distribution
-    % combined mpm
-    selx = full(matX); selx = selx(isfinite(selx)); selx = nonzeros(selx(:));
-    sely = full(matY); sely = sely(isfinite(sely)); sely = nonzeros(sely(:));
-    combMPM = [ selx sely ];
-    K = convhull(combMPM(:,1),combMPM(:,2));
-    % edge points of the convex hull
-    cpointsx = combMPM(K,1);
-    cpointsy = combMPM(K,2);
-    % create mask
-    areamask = poly2mask(cpointsx,cpointsy,msx,msy);
-    % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
-    normArea = sum(areamask(:));
-
-    mpmPits = [full(matX(findPos)) full(matY(findPos))];
-    [kr,lr]=RipleysKfunction(mpmPits,mpmPits,imsizS,dist,[],normArea);
-    Lpits(:,iexp) = lr;  
-end
-
-    [dlx,dly,dlz] = size(Lpits);
-    carea = dist.^2;
-    careadiff = carea; careadiff(2:length(careadiff)) = diff(carea);
-    amat = repmat(careadiff',1,dly);
-    dmat = repmat(dist',1,dly);
-    currLR = Lpits;
-    currKR = (currLR+dmat).^2;
-    currKRdiff = currKR;
-    currKRdiff(2:length(dist),:) = diff(currKR,1);
-    currDen = currKRdiff./amat;
-    pitDen = nanmedian(currDen,2);
+%make average pairCorrelation for exp (NOTE THAT THIS MEANS THAT THE RADIUS
+%WILL CHANGE IF SET OF MOVIES IS CHANGED)
+pitDen = mean([experiment.pairCorrelation],2);
 
 %fit spline to productive data
 pp = csaps(dist,pitDen);

@@ -23,7 +23,7 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('FileName', 'trackedFeatures.mat', @ischar);
 ip.parse(data, varargin{:});
 
-parfor i = 1:length(data)
+for i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file')==2) || ip.Results.Overwrite
         [data(i).tracks data(i).nMergeSplit] = main(data(i), ip.Results.Buffer, ip.Results.FileName);
     else

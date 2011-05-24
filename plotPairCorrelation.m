@@ -1,4 +1,4 @@
-function [experiment] = plotPairCorrelation(experiment,dist,rest,plotMask,statusValue);
+function [experiment] = plotPairCorrelation(experiment,dist,rest,plotMask,statusValue)
 
 % plotPairCorrelation calculates the density of pits defined by rest
 % and that fall within an inputMask
@@ -105,81 +105,107 @@ end
 
 for iexp = 1:length(experiment)
     
-    %Load Lifetime Information
-    lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
-    lftInfo = lftInfo.lftInfo;
-    % status matrix
-    statMat = lftInfo.Mat_status;
-    % lifetime matrix
-    lftMat = lftInfo.Mat_lifetime;
-    % x-coordinate matrix
-    matX = lftInfo.Mat_xcoord;
-    % y-coordinate matrix
-    matY = lftInfo.Mat_ycoord;
-    % disapp status matrix
-    daMat = lftInfo.Mat_disapp;
     % framerate
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
-
-    %pit status
-    if isfield(experiment,'status')
-        if isrow(experiment(iexp).status)
-        status = experiment(iexp).status';
-        else
-            status = experiment(iexp).status;
-        end
-    else
-        status = ones(1,size(daMat,1));
-    end
-
     
-    %find all pits in movie that meet requirements specified by restriction
-    %vector
-    findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
-        repmat(status,1,size(statMat,2)) == statusValue);
-
+    %Load Lifetime Information
+    try load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat'])
+        
+        %positions used to calculate mask
+        maskPositionsX = arrayfun(@(t) t.x(1),tracks)';
+        maskPositionsY = arrayfun(@(t) t.y(1),tracks)';
+        maskPositions = [maskPositionsX, maskPositionsY];
+        
+        %track.status == 1 means track is complete
+        tracks = tracks([tracks.status] == 1 & arrayfun(@(x)all(x.gapStatus~=5),tracks) == 1 &...
+            [tracks.lifetime_s] > rest(1,3)*framerate & ...
+            [tracks.lifetime_s] > rest(1,4) & [tracks.lifetime_s] < rest(1,5));
+        
+        %positions used to calculate pair correlation
+        pairPositionsX = arrayfun(@(t) t.x(1),tracks)';
+        pairPositionsY = arrayfun(@(t) t.y(1),tracks)';
+        mpm1 = [pairPositionsX pairPositionsY];
+        
+    catch ME
+        
+        lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
+        lftInfo = lftInfo.lftInfo;
+        % status matrix
+        statMat = lftInfo.Mat_status;
+        % lifetime matrix
+        lftMat = lftInfo.Mat_lifetime;
+        % x-coordinate matrix
+        matX = lftInfo.Mat_xcoord;
+        % y-coordinate matrix
+        matY = lftInfo.Mat_ycoord;
+        % disapp status matrix
+        daMat = lftInfo.Mat_disapp;
+        
+        %pit status
+        if isfield(experiment,'status')
+            if isrow(experiment(iexp).status)
+                status = experiment(iexp).status';
+            else
+                status = experiment(iexp).status;
+            end
+        else
+            status = ones(1,size(daMat,1));
+        end
+        
+        
+        %find all pits in movie that meet requirements specified by restriction
+        %vector
+        findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
+            (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
+            repmat(status',1,size(statMat,2)) == statusValue);
+        
+        %positions used to calculate pair correlation 
+        mpm1 = [full(matX(findPos)) full(matY(findPos))];
+        
+        %positions used to calculate mask
+        maskPositions = [matX(~isnan(matX)),matY(~isnan(matY))];
+        
+    end
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
-    [areamask] = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],...
-        closureRadius,dilationRadius,doFill,imsize,plotMask,[]);
+    [areamask] = makeCellMaskDetections(maskPositions,closureRadius,...
+        dilationRadius,doFill,imsize,plotMask,[]);
     %CALCULATE NORMALIZED AREA FROM MASK
     normArea = bwarea(areamask);
-    
     % CREATE CORRECTION FACTOR MATRIX FOR THIS MOVIE using all objects
     corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
     
     %CALCULATE PIT DENSITY
     %if there is a status field used to divide pit populations
-%     if isfield(experiment(iexp),'status')
-%         %for each value in the status vector
-%         pair = nan(length(dist),length(unique(experiment(iexp).status)));
-%         populations = unique(experiment(iexp).status);
-%         for ipop = 1:length(populations)
-%             mpm1 = [full(matX(findPos & repmat(experiment(iexp).status == populations(ipop),size(matX,2),1)'))...
-%                 full(matY(findPos & repmat(experiment(iexp).status == populations(ipop),size(matX,2),1)'))];
-%             [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
-%             [currDen] = calculatePitDenFromLR(kr,dist);
-%             pair(:,ipop) = currDen;
-%         end
-%     else
-        %
-        mpm1 = [full(matX(findPos)) full(matY(findPos))];
-        [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
-        [currDen] = calculatePitDenFromLR(kr,dist);
-        pair = currDen;
+    %     if isfield(experiment(iexp),'status')
+    %         %for each value in the status vector
+    %         pair = nan(length(dist),length(unique(experiment(iexp).status)));
+    %         populations = unique(experiment(iexp).status);
+    %         for ipop = 1:length(populations)
+    %             mpm1 = [full(matX(findPos & repmat(experiment(iexp).status == populations(ipop),size(matX,2),1)'))...
+    %                 full(matY(findPos & repmat(experiment(iexp).status == populations(ipop),size(matX,2),1)'))];
+    %             [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
+    %             [currDen] = calculatePitDenFromLR(kr,dist);
+    %             pair(:,ipop) = currDen;
+    %         end
+    %     else
+    %
+    
+    [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
+    [currDen] = calculatePitDenFromLR(kr,dist);
+    pair = currDen;
     
     %store pair in each experiment structure
     experiment(iexp).pairCorrelation = pair;
     experiment(iexp).clustering = sum(pair(1:2));
     
-        %SCRAMBLE MPM
-        [mpm1] = makeRandomMPM(mpm1, areamask',1);
-        [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
-        [currDen] = calculatePitDenFromLR(kr,dist);
-        experiment(iexp).pairCorrelationRandom = currDen;
+    %SCRAMBLE MPM
+    [mpm1] = makeRandomMPM(mpm1, areamask',1);
+    [kr,lr]=RipleysKfunction(mpm1,mpm1,imsizS,dist,corrFacMat,normArea);
+    [currDen] = calculatePitDenFromLR(kr,dist);
+    experiment(iexp).pairCorrelationRandom = currDen;
     
     
 end
