@@ -4,35 +4,30 @@
 %
 % François Aguet, last modified March 22, 2011
 
-function montagePlot(inputCell, varargin)
+function plotTrackMontage(inputCell, varargin)
 
 [nc, nf] = size(inputCell);
-
-if mod(length(varargin),2)~=0
-    error('Optional arguments need to be entered as pairs.');
-end
 
 %======================================
 % Parse inputs, set defaults
 %======================================
-% idx = find(strcmpi(varargin, 'Color'));
-% if ~isempty(idx)
-%     colorV = varargin{idx+1};
-% else
-%     colorV = ones(nc,3);
-% end
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('inputCell', @iscell);
+ip.addParamValue('FontName', 'Helvetica', @ischar);
+ip.addParamValue('FontSize', 14, @isscalar);
+ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('epsPath', []);
+ip.addParamValue('Labels', [], @(x) length(x)==nc && ~any(isnan(name2wavelength(x))));
+ip.addParamValue('Width', 600, @isscalar);
+ip.addParamValue('Mode', []);
+ip.addParamValue('FramesPerRow', 20, @isscalar);
+ip.parse(inputCell, varargin{:});
+width = ip.Results.Width;
+nx = ip.Results.FramesPerRow;
+labels = ip.Results.Labels;
 
-idx = find(strcmpi(varargin, 'Labels'));
-if ~isempty(idx)
-    labels = varargin{idx+1};
-    if length(labels)~=nc
-        error('The number of labels must match the number of channels.');
-    end
-else
-    labels = [];
-end
-
-if ~isempty(labels) && sum(isnan(name2wavelength(labels)))==0
+if ~isempty(labels)
     rgbColors = arrayfun(@(x) hsv2rgb([x 1 0.9]), getHuesFromMarkers(labels), 'UniformOutput', false);
 else
     rgbColors = [];
@@ -90,38 +85,16 @@ if ~isempty(idx)
     end
 end
 
-idx = find(strcmpi(varargin, 'FontName'));
-if ~isempty(idx)
-    fontName = varargin{idx+1};
-else
-    fontName = 'Helvetica';
-end
-
-idx = find(strcmpi(varargin, 'FontSize'));
-if ~isempty(idx)
-    fontSize = varargin{idx+1};
-else
-    fontSize = 14;
-end
-
-idx = find(strcmpi(varargin, 'Visible'));
-if ~isempty(idx)
-    visible = varargin{idx+1};
-else
-    visible = 'on';
-end
-
-idx = find(strcmpi(varargin, 'Print'));
-if ~isempty(idx)
-    printPath = varargin{idx+1};
-else
-    printPath = [];
-end
 
 
-height = 250;
-width = height * (1+sqrt(5))/2;
-[wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc);
+% display in golden ratio
+% height = 250;
+% width = height * (1+sqrt(5))/2;
+% [wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc);
+
+% display with fixed #frames/width
+[wxi, dxi, dci, nr, height] = getProportions(width, nx, nf, nc);
+
 
 
 hf = figure('Visible', 'off', 'PaperPositionMode', 'auto', 'Position', [50, 200, width, height]);
@@ -132,7 +105,7 @@ set(hf, 'Units', 'pixels');
 textWidth = zeros(1,nc);
 if ~isempty(labels)
     for c = 1:nc
-        ht = text(0, 0, labels{c}, 'FontName', fontName, 'FontSize', fontSize);
+        ht = text(0, 0, labels{c}, 'FontName', ip.Results.FontName, 'FontSize', ip.Results.FontSize);
         extent = get(ht, 'extent');
         textWidth(c) = extent(3);
         delete(ht);
@@ -145,7 +118,7 @@ end
 delete(ha);
 
 ha = zeros(nc,nf);
-set(hf, 'Position', [50, 100, width+offset, height], 'Visible', visible, 'ResizeFcn', {@resizeCallback});
+set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible, 'ResizeFcn', {@resizeCallback});
 for rowi = 1:nr
     for c = 1:nc
         for x = 1:nx
@@ -158,7 +131,7 @@ for rowi = 1:nr
                 if x==1 && rowi==1 && ~isempty(labels)
                     ht(c) = text(-dci, wxi/2, labels{c}, 'Units', 'pixels',...
                         'HorizontalAlignment', 'right', 'VerticalAlignment', 'baseline',...
-                        'FontUnits', 'pixels', 'FontName', fontName, 'FontSize', wxi/2.5, 'Color', rgbColors{c});
+                        'FontUnits', 'pixels', 'FontName', ip.Results.FontName, 'FontSize', wxi/2.5, 'Color', rgbColors{c});
                 end
             end
         end
@@ -166,22 +139,14 @@ for rowi = 1:nr
 end
 colormap(gray(256));
 
-
-if ~isempty(printPath)
-    print(hf, '-depsc2', printPath);
-end
-
-if strcmp(visible, 'off')
-    close(hf);
-end
-
     function resizeCallback(src, ~)
         [nc,nf] = size(inputCell);
         pos = get(src, 'Position');
-        width = pos(3);
+        width = pos(3)-offset;
         height = pos(4);
         
-        [wxi, dxi, dci, nx, nr] = getProportions(width-offset, height, nf, nc);
+        %[wxi, dxi, dci, nx, nr] = getProportions(width-offset, height, nf, nc);
+        [wxi, dxi, dci, nr] = getProportions(width, nx, nf, nc);
         
         for rowi = 1:nr
             for c = 1:nc
@@ -190,49 +155,83 @@ end
                     if fi<=nf
                         set(ha(c, fi),...
                             'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi]);
-                        
                     end
                 end
-                set(ht(c), 'Position', [-dci, wxi/2], 'FontSize', wxi/2.5);
+                if x==1 && rowi==1 && ~isempty(labels)
+                    set(ht(c), 'Position', [-dci, wxi/2], 'FontSize', wxi/2.5);
+                end
             end
         end
     end
+
+if ~isempty(ip.Results.epsPath)
+    print(hf, '-depsc2', ip.Results.epsPath);
+end
+
+if strcmp(ip.Results.Visible, 'off')
+    close(hf);
+end
+
+
 
 end
 
 
 
-function [wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc)
+function [wxi, dxi, dci, nr, height] = getProportions(width, nx, nf, nc)
 
 % fixed proportions
 wx = 1;
 dx = 1/15; % gap between frames, relative to frame width
 dc = 1/5; % gap between channels
 
-hwRatio = height/width;
+% number of rows
+nr = ceil(nf/nx);
 
-nr = 1:20;
-
-% find arrangement that comes closest to < ratio
-iheight = nr*(nc*wx+(nc-1)*dx) + (nr-1)*dc;
-nx = ceil(nf./nr);
 iwidth = nx*wx + (nx-1)*dx;
+iheight = nr*(nc*wx+(nc-1)*dx) + (nr-1)*dc;
 
-% distance
-idx = (iheight./iwidth - hwRatio).^2;
-idx = idx == min(idx);
+height = width*iheight/iwidth;
 
-% corrected width/height:
-ratio = iheight(idx)/iwidth(idx);
-nr = nr(idx);
-nx = nx(idx);
-
-% initial width/height
-width = height/ratio;
 wxi = width / ((nx/dx + nx-1)*dx);
 dxi = wxi*dx;
 dci = wxi*dc;
 
 end
+
+
+% proportions for golden ratio display
+% function [wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc)
+%
+% % fixed proportions
+% wx = 1;
+% dx = 1/15; % gap between frames, relative to frame width
+% dc = 1/5; % gap between channels
+%
+% hwRatio = height/width;
+%
+% nr = 1:20;
+%
+% % find arrangement that comes closest to < ratio
+% iheight = nr*(nc*wx+(nc-1)*dx) + (nr-1)*dc;
+% nx = ceil(nf./nr);
+% iwidth = nx*wx + (nx-1)*dx;
+%
+% % distance
+% idx = (iheight./iwidth - hwRatio).^2;
+% idx = idx == min(idx);
+%
+% % corrected width/height:
+% ratio = iheight(idx)/iwidth(idx);
+% nr = nr(idx);
+% nx = nx(idx);
+%
+% % initial width/height
+% width = height/ratio;
+% wxi = width / ((nx/dx + nx-1)*dx);
+% dxi = wxi*dx;
+% dci = wxi*dc;
+%
+% end
 
 
