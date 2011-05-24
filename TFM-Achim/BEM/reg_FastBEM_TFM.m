@@ -42,4 +42,5 @@ figure(100)
 quiver(x_out,y_out,fx,fy,'b')
 hold on
 quiver(displField(1).pos(:,1),displField(1).pos(:,2),displField(1).vec(:,1),displField(1).vec(:,2),'r')
+title('red: displacement field, blue: force field')
 hold off

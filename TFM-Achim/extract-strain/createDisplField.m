@@ -263,7 +263,7 @@ for i=1:length(displField)
         % The following values are only stored for the BEM-method.
         forceField(i).par.forceMesh     = forceMesh;
         forceField(i).par.sol_coef      = sol_coef;
-        forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
+        %forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
         forceField(i).par.pos           = pos_u;
         forceField(i).par.u             = u;  
         forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   

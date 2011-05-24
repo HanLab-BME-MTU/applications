@@ -9,11 +9,28 @@ end
 if nargin<3 || isempty(batch)
     batch=0;
 end
+
+timePts=zeros(length(fileList),1);
+
+
+imageInfo=imfinfo(fileList{1});
+if (doBoth && (~isfield(imageInfo,'DateTime') || ~isfield(imageInfo,'FileModDate'))) ||...
+    ~isfield(imageInfo,timeField)
+    timePtsRel   =NaN*timePts;
+    timePts      =NaN*timePts;
+    timeIntervals=NaN*timePts;
+    meanDT       =NaN;
+    stdDT        =NaN;
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    display('!!! could not find all necessary timefields!!!')
+    display('!!! could not find all necessary timefields!!!')
+    display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    return;
+end
     
 foundDateTime=0;
 foundFileModDate=0;
 
-timePts=zeros(length(fileList),1);
 
 for frame=1:length(fileList)
     imageInfo=imfinfo(fileList{frame});
