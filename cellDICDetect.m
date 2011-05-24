@@ -62,6 +62,7 @@ doPlot=0;
 % shortened:
 toDoList=1:length(imageFileList);
 
+toDoList=601:612
 for frame=toDoList
     text=['Detect sheet edges in ',num2str(toDoList(end)),' images'];
     progressText(frame/toDoList(end),text);
@@ -220,7 +221,7 @@ for frame=toDoList
         nucPosfltr   = round(vertcat(centoidsfltr(:).Centroid));
     end
     
-    if doBoth
+    if doBoth && ~isempty(nucPosSegm)
         %**********************************************************************
         % Combine the two results                                             *
         %**********************************************************************
@@ -265,8 +266,10 @@ for frame=toDoList
     movieInfo(frame).amp(:,2)=0;    
 end
 
+save('xCellDetect.mat','movieInfo','toDoList','outerR','innerR','closeR','sigmaGauss','edgeFilter','minSize','sigmaCanny','-v7.3');
+
 % Track the cells:
-[tracksFinal]=scriptTrackNuclei(movieInfo,10,35,pwd);
+[tracksFinal]=scriptTrackNuclei(movieInfo,outerR,1.5*outerR,pwd);
 close all
 
 % Make a movie of the tracks overlaid to the analyzed images:
