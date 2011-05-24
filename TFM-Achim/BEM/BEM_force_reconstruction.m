@@ -41,14 +41,27 @@ display('Done: forward map!');
 
 
 
-% normalization of basis function will be important when taking the norm!!!
-% This has not been considered yet! 
 % X = A\B is the solution to the equation AX = B
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
-    sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);
+    % If there are more than one basis function class, then correct
+    % weighting of basis function according to their volume is of course
+    % important when taking the norm!!! If there is only one basis function
+    % class, then the weights are all one (e.g. square lattice where
+    % boundary nodes are skipped) 
+    % See refine_BEM_force_reconstruction for a nice explanation of the next
+    % steps:
+    weights    =vertcat(forceMesh.basis(:).unitVolume); % volume of the basis function
+    repWeights =repmat(weights(:),2,1); % the basis function for x/y comp. have the same weight
+    normWeights=repWeights/max(repWeights); % normalize it with max value.
+    eyeWeights =diag(normWeights);
+    sol_coef=(L*eyeWeights+M'*M)\(M'*u);
+    % Here we use the identity matrix (all basis classes have equal weight):
+    % sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);
 else
+    % normalization of basis function will be important when taking the norm!!!
+    % This has not been considered yet! 
     sol_coef=(L*eye(2*forceMesh.numNodes)+M'*M)\(M'*u);
 end
 toc;

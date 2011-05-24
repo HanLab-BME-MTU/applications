@@ -23,7 +23,6 @@ if (doBoth && (~isfield(imageInfo,'DateTime') || ~isfield(imageInfo,'FileModDate
     stdDT        =NaN;
     display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     display('!!! could not find all necessary timefields!!!')
-    display('!!! could not find all necessary timefields!!!')
     display('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     return;
 end
