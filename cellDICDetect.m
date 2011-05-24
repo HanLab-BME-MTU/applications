@@ -62,7 +62,6 @@ doPlot=0;
 % shortened:
 toDoList=1:length(imageFileList);
 
-toDoList=601:612
 for frame=toDoList
     text=['Detect sheet edges in ',num2str(toDoList(end)),' images'];
     progressText(frame/toDoList(end),text);
