@@ -283,8 +283,34 @@ display('Filter tracks for minimal track length:...')
 display(['Calculated velocities are averaged over: ',num2str(timeWindow),' frames!'])
 display('done!')
 figure;
-hist(velMatMag(:)/timeWindow);
-title('Velocity histogram')
+[counts,bins]=hist(velMatMag(:)/timeWindow,0.5:10.5);
+totCounts=sum(counts);
+countsNorm=counts/totCounts;
+bar(bins,countsNorm,'style','hist')
+title('Velocity probablity distribution')
 xlabel(['cell velocity [pix/frame] averaged over ',num2str(timeWindow,'%.0f'),' frames']);
-ylabel('counts')
+ylabel('probablity')
 saveas(gcf,['cell_velocity_hist','.eps'],'psc2');
+
+return;
+%This is for fusing histograms of two conditions:
+counts1=countsNorm; counts1_200=countsNorm;
+counts2=countsNorm; counts2_200=countsNorm; 
+
+countsTot=horzcat(counts1(:),counts2(:))
+countsTot=horzcat(counts1_200(:),counts2_200(:));
+bar(bins,countsTot,2)
+title('Comparison of velocity probablity distribution')
+xlabel(['cell velocity [pix/frame] averaged over ',num2str(timeWindow,'%.0f'),' frames']);
+ylabel('probablity')
+set(gca,'XTick',0:10)
+XLim([0 10])
+saveas(gcf,['cell_velocity_hist_comp','.eps'],'psc2');
+saveas(gcf,['cell_velocity_hist_comp','.fig'],'fig');
+
+velMatMagDrg_200=velMatMag(:)/timeWindow;
+velMatMagDrg    =velMatMag(:)/timeWindow;
+
+velMatMagCtr_200=velMatMag(:)/timeWindow;
+velMatMagCtr    =velMatMag(:)/timeWindow;
+
