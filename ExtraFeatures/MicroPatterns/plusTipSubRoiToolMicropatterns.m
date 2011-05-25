@@ -25,11 +25,11 @@ HPattern = 1;
  
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'SUBROIS_TestingInsideTracks';
-analysisFolderName = 'ANALYSIS_SubRois_TestingInsideTracks';
+subRoiFolderName = 'SUBROIS_TestingForPlots';
+analysisFolderName = 'ANALYSIS_SubRois_TestingForPlots';
 
 %%% Choose if want to also perform analysis 
-doAnalysis = 1; % set this to 1 to "turn-on" anlaysis 
+doAnalysis = 0; % set this to 1 to "turn-on" anlaysis 
 
 %Parameters for Pooled Analysis 
 doBtw = 1; % set to 1 to perform between Group Comparisons 
@@ -976,9 +976,12 @@ end
    
     groupListDir = [statDir filesep 'groupLists'];
     mkdir(groupListDir);
-    
-if HPattern== 1
-    
+
+if windowSize ~= 0 
+
+if HPattern == 1    
+   
+        
     %%%%% GroupLists Non-Adhesion %%%%%%%%%%
     
     %Individual groupLists for Small Windows From Cell Edge
@@ -1407,7 +1410,68 @@ else
     save([groupListDir filesep 'groupListCompareBtwRegionTypes_GreaterThan' num2str(numWindows*windowSize) 'uM'],'groupList'); 
      
 end % End if H-Pattern   
-
+end 
+clear groupList;
+if windowSize == 0 % window size = 0 so don't need all the above
+    groupListCount = 1;
+    for iProj = 1:nProjOrig
+       
+        groupList{groupListCount,1} = [groupName 'NonAdhesion'];
+        groupList{groupListCount+1,1} = [groupName 'NonAdhesion'];
+        
+        groupList{groupListCount,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_1'];
+        groupList{groupListCount+1,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_2'];
+        
+        groupListCount = groupListCount + 2;
+       
+    end     
+    
+   
+    save([groupListDir filesep 'groupListNonAd'],'groupList');
+    groupListNonAd = groupList; 
+    
+    
+    clear groupList 
+    
+    groupListCount = 1;
+    for iProj = 1:nProjOrig
+        groupList{groupListCount,1} = [groupName 'Adhesion'];
+        groupList{groupListCount+1,1} = [groupName 'Adhesion'];
+        
+        groupList{groupListCount,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_3']; 
+        groupList{groupListCount+1,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_4'];
+    
+        groupListCount = groupListCount + 2;
+    end 
+    
+    
+    save([groupListDir filesep 'groupListAd'],'groupList');
+    groupListAd = groupList; 
+    
+    
+    clear groupList
+    groupListCount = 1;
+    for iProj = 1:nProjOrig 
+        groupList{groupListCount,1} = [groupName 'AdhesionCorner']; 
+        groupList{groupListCount+1,1} = [groupName 'AdhesionCorner'];
+        groupList{groupListCount+2,1} = [groupName,'AdhesionCorner'];
+        groupList{groupListCount+3,1} = [groupName,'AdhesionCorner']; 
+        
+        groupList{groupListCount,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_5'];
+        groupList{groupListCount+1,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_6'];
+        groupList{groupListCount+2,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_7'];
+        groupList{groupListCount+3,2} = [projList(iProj).anDir filesep subRoiFolderName filesep 'sub_8'];
+        
+        groupListCount = groupListCount + 4;
+    end
+    
+    save([groupListDir filesep 'groupListAdCorn'],'groupList');
+    groupListAdCorn= groupList;
+    clear groupList 
+    groupList = [groupListNonAd; groupListAd; groupListAdCorn];
+    
+    save([groupListDir filesep 'groupListCompareRegions'],'groupList');
+end  
 
 %% Perform Analysis
 
