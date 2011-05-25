@@ -110,15 +110,15 @@ if ~isempty(tracks)
             idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);
             for k = idx
                 fi = 1:frameIdx-tracks(k).start+1;
-                nf = length(tracks(k).x);
-                plot(ha, tracks(k).x(1), tracks(k).y(1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
-                plot(ha, tracks(k).x(fi), tracks(k).y(fi), '-', 'Color', cmap(nf,:));
+                nf = length(tracks(k).t);
+                plot(ha, tracks(k).x(ch,1), tracks(k).y(ch,1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
+                plot(ha, tracks(k).x(ch,fi), tracks(k).y(ch,fi), '-', 'Color', cmap(nf,:));
             end
         case 'all'
             for k = 1:length(tracks)
-                nf = length(tracks(k).x);
-                plot(ha, tracks(k).x(1), tracks(k).y(1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
-                plot(ha, tracks(k).x, tracks(k).y, '-', 'Color', cmap(nf,:));
+                nf = length(tracks(k).t);
+                plot(ha, tracks(k).x(ch,1), tracks(k).y(ch,1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
+                plot(ha, tracks(k).x(ch,:), tracks(k).y(ch,:), '-', 'Color', cmap(nf,:));
             end
     end
     hold(ha, 'off');
