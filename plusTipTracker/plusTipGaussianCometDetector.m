@@ -41,6 +41,7 @@ ip.addOptional('savePlots',1,@isscalar);
 ip.addParamValue('minDist',.5, @(x) isnumeric(x));
 ip.addParamValue('alpha',.01, @(x) isnumeric(x));
 ip.addParamValue('filterSigma',1, @isscalar);
+ip.addParamValue('displayFirstImage',1, @isscalar);
 ip.parse(projData,psfSigma,varargin{:});
 
 timeRange = ip.Results.timeRange;
@@ -49,6 +50,7 @@ savePlots = ip.Results.savePlots;
 minDist = ip.Results.minDist;
 alpha = ip.Results.alpha;
 filterSigma = ip.Results.filterSigma;
+displayFirstImage = ip.Results.displayFirstImage;
 
 % get projData in correct format
 if isempty(projData)
@@ -173,6 +175,7 @@ movieInfo(nImTot,1) = ...
 % % loop thru frames and detect
 count=1;
 progressText(0,'Detecting comets');
+if savePlots==1, saveFig = figure('Visible','off'); end
 for iFrame = startFrame:endFrame
     
     progressText(count/nFrames,'Detecting comets');
@@ -201,21 +204,26 @@ for iFrame = startFrame:endFrame
     
     %plot feat outlines and centroid on image
     if savePlots==1
-        figure('Visible','off');
+        if ishandle(saveFig), clf(saveFig); else saveFig = figure; end
+        if displayFirstImage && iFrame == startFrame
+           set(saveFig,'Visible','on');
+        else
+           set(saveFig,'Visible','off');
+        end 
         imagesc(img)
         hold on
         scatter(movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
         axis equal
-        saveas(gcf,[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
-        saveas(gcf,[overlayDir filesep 'overlay' indxStr1 '.fig']);
-        close(gcf)
+        saveas(saveFig,[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
+        saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
     end
     count=count+1;
 
 
 end
+close(saveFig)
 save([featDir filesep 'movieInfo'],'movieInfo');
 
 warning(warningState);

@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 25-May-2011 15:24:34
+% Last Modified by GUIDE v2.5 25-May-2011 15:49:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -442,47 +442,49 @@ end
 
 for i=1:numProj
     %try
-        % detection
-        if handles.doDetect==1
-            tic
-            disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir]);
-            detectionMethod = get(handles.popupmenu_detectionMethod,'Value');
-            switch detectionMethod
-                case 1
-                    plusTipCometDetector(handles.projList(i),...
-                        handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
-                case 2
-                    psfSigma = str2double(get(handles.edit_psfSigma,'String'));
-                    alpha = str2double(get(handles.edit_alpha,'String'));
-                    filterSigma = str2double(get(handles.edit_filterSigma,'String'));
-                    plusTipGaussianCometDetector(handles.projList(i),psfSigma,...
-                        handles.timeRangeDetect,handles.bitDepth,handles.savePlots,...
-                        'alpha',alpha,'filterSigma',filterSigma);
-                otherwise
-                    error('Unrecognized detection method')
-            end
-            toc
+    % detection
+    if handles.doDetect==1
+        tic
+        disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir]);
+        detectionMethod = get(handles.popupmenu_detectionMethod,'Value');
+        switch detectionMethod
+            case 1
+                plusTipCometDetector(handles.projList(i),...
+                    handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
+            case 2
+                psfSigma = str2double(get(handles.edit_psfSigma,'String'));
+                alpha = str2double(get(handles.edit_alpha,'String'));
+                filterSigma = str2double(get(handles.edit_filterSigma,'String'));
+                displayFirstImage = get(handles.checkbox_displayFirstImage,'Value');
+                plusTipGaussianCometDetector(handles.projList(i),psfSigma,...
+                    handles.timeRangeDetect,handles.bitDepth,handles.savePlots,...
+                    'alpha',alpha,'filterSigma',filterSigma,...
+                    'displayFirstImage',displayFirstImage);
+            otherwise
+                error('Unrecognized detection method')
         end
+        toc
+    end
 
-        % tracking
-        if handles.doTrack==1
-            tic
-            disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            plusTipCometTracker(handles.projList(i),handles.timeWindow,...
-                handles.minTrackLen,handles.minRadius,handles.maxRadius,...
-                handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,...
-                handles.fluctRad,handles.timeRangeTrack);
-            toc
-        end
-        
-        % post-processing
-        if handles.doMeta==1
-            tic
-            disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-            [projData]=plusTipPostTracking(handles.projList(i),...
-                handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost,handles.doHist);
-            toc
-        end
+    % tracking
+    if handles.doTrack==1
+        tic
+        disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
+        plusTipCometTracker(handles.projList(i),handles.timeWindow,...
+            handles.minTrackLen,handles.minRadius,handles.maxRadius,...
+            handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,...
+            handles.fluctRad,handles.timeRangeTrack);
+        toc
+    end
+    
+    % post-processing
+    if handles.doMeta==1
+        tic
+        disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
+        [projData]=plusTipPostTracking(handles.projList(i),...
+            handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost,handles.doHist);
+        toc
+    end
 %     catch
 %         disp(['Problem with ' handles.projList(i).anDir])
 %     end
