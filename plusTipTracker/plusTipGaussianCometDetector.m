@@ -1,16 +1,16 @@
-function [movieInfo]=plusTipGaussianCometDetector(projData,sigma,varargin)
+function [movieInfo]=plusTipGaussianCometDetector(projData,psfSigma,varargin)
 % plusTipGaussianCometDetector locates plus tip comets (or other blobs) in a movie stack
 %
 %SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)%
-%INPUT  projData           : structure containing fields .anDir, which gives
+%INPUT  projData          : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory
 %                           and .imDir, which gives the full path to the
 %                           folder containing the images for overlay.
 %                           if given as [], program will query user for
 %                           roi_x directory.
-%       sigma             : value of the sigma of the point-spread function
+%       psfSigma          : value of the psfSigma of the point-spread function
 %                           will be used in the anisotropic gaussian fit as
-%                           the lowest value of the gaussian sigma.
+%                           the lowest value of the gaussian psfSigma.
 %       timeRange         : row vector of the form [startFrame endFrame]
 %                           indicating time range to plot. if not given or
 %                           given as [], tracks from the whole movie will
@@ -34,19 +34,21 @@ removeSatPixels = 0; % put one if you want to turn on this option
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('projData', @(x) isstruct(x) || isempty(x));
-ip.addRequired('sigma', @(x) isnumeric(x));
+ip.addRequired('psfSigma', @(x) isnumeric(x));
 ip.addOptional('timeRange',[],@(x) isequal(sort(size(x)),[1 2]) || isempty(x));
 ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
 ip.addParamValue('minDist',.5, @(x) isnumeric(x));
 ip.addParamValue('alpha',.01, @(x) isnumeric(x));
-ip.parse(projData,sigma,varargin{:});
+ip.addParamValue('filterSigma',1, @isscalar);
+ip.parse(projData,psfSigma,varargin{:});
 
 timeRange = ip.Results.timeRange;
 bitDepth = ip.Results.bitDepth;
 savePlots = ip.Results.savePlots;
 minDist = ip.Results.minDist;
 alpha = ip.Results.alpha;
+filterSigma = ip.Results.filterSigma;
 
 % get projData in correct format
 if isempty(projData)
@@ -192,7 +194,8 @@ for iFrame = startFrame:endFrame
     
     % Core anisotropic detection function. Returns a structure compatible
     % with Khuloud's tracker
-    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),sigma,'minDist',minDist,'alpha',alpha);
+    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),psfSigma,...
+        'minDist',minDist,'alpha',alpha,'filterSigma',filterSigma);
     
     indxStr1 = sprintf(strg1,iFrame); % frame
     

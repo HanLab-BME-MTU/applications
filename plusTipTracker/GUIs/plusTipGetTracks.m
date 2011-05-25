@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 13-May-2011 15:27:49
+% Last Modified by GUIDE v2.5 25-May-2011 15:24:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -95,6 +95,8 @@ axes(handles.logoAxes);
 image(pic);
 axis off
 
+set(handles.edit_filterSigma,'String',...
+    str2double(get(handles.edit_psfSigma,'String'))*sqrt(2));
 % Update handles structure
 guidata(hObject,handles);
 
@@ -450,10 +452,12 @@ for i=1:numProj
                     plusTipCometDetector(handles.projList(i),...
                         handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
                 case 2
-                    sigma = str2double(get(handles.edit_sigma,'String'));
+                    psfSigma = str2double(get(handles.edit_psfSigma,'String'));
                     alpha = str2double(get(handles.edit_alpha,'String'));
-                    plusTipGaussianCometDetector(handles.projList(i),sigma,...
-                        handles.timeRangeDetect,handles.bitDepth,handles.savePlots,'alpha',alpha);
+                    filterSigma = str2double(get(handles.edit_filterSigma,'String'));
+                    plusTipGaussianCometDetector(handles.projList(i),psfSigma,...
+                        handles.timeRangeDetect,handles.bitDepth,handles.savePlots,...
+                        'alpha',alpha,'filterSigma',filterSigma);
                 otherwise
                     error('Unrecognized detection method')
             end
@@ -548,3 +552,9 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject,'CData',imread('help_icon.png'));
+
+
+
+function edit_psfSigma_Callback(hObject, eventdata, handles)
+
+set(handles.edit_filterSigma,'String',str2double(get(hObject,'String'))*sqrt(2));
