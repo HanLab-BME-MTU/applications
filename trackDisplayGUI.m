@@ -567,7 +567,9 @@ function montageButton_Callback(~, ~, handles)
 
 % Creates a montage based on the master track
 if ~isempty(handles.selectedTrack)
-    stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5);
+    h = handles.montageOptions;
+    options = get(h, 'String');
+    stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
     plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
 else
     fprintf('Cannot create montage: no track selected.');
@@ -687,7 +689,10 @@ else
     end
 end
 
-stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)));
+
+h = handles.montageOptions;
+options = get(h, 'String');
+stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
 fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
 plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPath', fpath, 'Mode', 'gray');
 
@@ -716,26 +721,3 @@ function trackCheckbox_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 refreshFrameDisplay(hObject, handles);
-
-
-% --- Executes on selection change in popupmenu2.
-function popupmenu2_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu2
-
-
-% --- Executes during object creation, after setting all properties.
-function popupmenu2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
