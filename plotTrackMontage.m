@@ -24,7 +24,6 @@ ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
 ip.parse(inputCell, varargin{:});
 width = ip.Results.Width;
-nx = ip.Results.FramesPerRow;
 labels = ip.Results.Labels;
 
 if ~isempty(labels)
@@ -85,6 +84,8 @@ if ~isempty(idx)
     end
 end
 
+% nx is now the number of frames displayed per row
+nx = ip.Results.FramesPerRow;
 
 
 % display in golden ratio
