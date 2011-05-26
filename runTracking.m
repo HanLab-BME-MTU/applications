@@ -25,6 +25,7 @@ function [] = runTracking(data, settings, varargin)
 %
 % Francois Aguet, May 2010 (last modified 05/13/2011)
 
+% Parse inputs
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
@@ -37,16 +38,19 @@ ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
 frames = ip.Results.Frames;
+dsfactor = ip.Results.DownsamplingFactor;
 
+% Determine file name
 if ~isempty(frames)
     fileName = [fileName '_customFrames(' num2str(frames(1)) '_' num2str(frames(end)) ')'];
 end
-
-if isempty(frames) && ~isempty(ip.Results.DownsamplingFactor)
-    frames = 1:ip.Results.DownsamplingFactor:data.movieLength;
-    fileName = [filename '_' num2str(data.framerate*ip.Results.DownsamplingFactor) 's'];
+if isempty(frames) && ~isempty(dsfactor)
+    frames = 1:dsfactor:data.movieLength;
+    fileName = [fileName '_' num2str(data.framerate*dsfactor) 's'];
 end
+fileName = [fileName '.mat'];
 
+% Load tracker settings
 if isempty(settings)
     %load track settings required for tracking
     [fileName filePath] = uigetfile('.mat', 'Choose track settings mat file for tracking');
@@ -55,7 +59,7 @@ elseif ischar(settings)
     load(settings);
 end
 
-
+% Run tracker on each data set
 parfor i = 1:length(data)
     if ~(exist([data(i).source 'Tracking'], 'dir')==7) || overwrite
         fprintf('Running tracker on %s\n', getShortPath(data(i)));
@@ -86,9 +90,8 @@ else
         error('No detection data file of specified format found');
     end
 end
-if ~(exist([data.source 'Tracking'], 'dir')==7)
-    mkdir([data.source 'Tracking']);
-end;
+
+[~,~] = mkdir([data.source 'Tracking']);
 saveResults.dir = [data.source 'Tracking' filesep];
 if ~isempty(fileName)
     saveResults.filename = fileName;
