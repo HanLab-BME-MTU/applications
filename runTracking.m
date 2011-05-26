@@ -32,7 +32,7 @@ ip.addOptional('settings', []);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('FileName', 'trackedFeatures', @ischar); % default of the tracker
 ip.addParamValue('Frames', [], @isvector);
-ip.addParamValue('DownsamplingFactor', [], @isinteger);
+ip.addParamValue('DownsamplingFactor', [], @isscalar);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
