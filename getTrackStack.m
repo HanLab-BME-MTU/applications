@@ -10,7 +10,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
-ip.addParamValue('Reference', 'track', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
+ip.addParamValue('Reference', 'frame', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
 ip.addParamValue('WindowWidth', 4, @isscalar);
 ip.addParamValue('Buffer', 5, @isscalar);
 ip.parse(data, track, varargin{:});
@@ -35,19 +35,21 @@ if strcmpi(ip.Results.Reference, 'track')
     xi = round(track.x);
     yi = round(track.y);
 else
-    xi = ones(1,nf)*round(mean([track.x]));
-    yi = ones(1,nf)*round(mean([track.y]));
+    xi = repmat(round(mean([track.x],2)), [1 nf]);
+    yi = repmat(round(mean([track.y],2)), [1 nf]);
 end
 
-xi = [xi(1)*ones(1,bStart) xi xi(end)*ones(1,bEnd)];
-yi = [yi(1)*ones(1,bStart) yi yi(end)*ones(1,bEnd)];
+w = min([w min(xi(:))-1 min(yi(:))-1 data.imagesize(2)-max(xi(:)) data.imagesize(1)-max(yi(:))]);
+
+xi = [repmat(xi(:,1),[1 bStart]) xi repmat(xi(:,end),[1 bEnd])];
+yi = [repmat(yi(:,1),[1 bStart]) yi repmat(yi(:,end),[1 bEnd])];
 % load all visible frames of this track and store
 for c = [masterChannel slaveChannels]
     tifFiles = dir([data.channels{c} '*.tif*']);
     tifFiles = tifFiles(idx);
     for k = 1:nf
         frame = imread([data.channels{c} tifFiles(k).name]);
-        stack{c,k} = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
+        stack{c,k} = frame(yi(c,k)-w:yi(c,k)+w, xi(c,k)-w:xi(c,k)+w);
     end
 end
 
