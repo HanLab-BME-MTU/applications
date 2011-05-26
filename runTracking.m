@@ -12,6 +12,9 @@ function [] = runTracking(data, settings, varargin)
 %           overwrite(optional): 1 to overwrite to rerun tracking, 0 otherwise
 %               (default is 0)
 %
+%          {'Frames', f} : array of frame indexes to track
+%          {'DownsamplingFactor', d} : downsampling factor, must be an integer
+%
 % OUTPUT
 %
 % REMARKS   The function only performs the tracking for a given movie if
@@ -27,12 +30,22 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('settings', []);
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('FileName', [], @ischar);
+ip.addParamValue('FileName', 'trackedFeatures', @ischar); % default of the tracker
 ip.addParamValue('Frames', [], @isvector);
+ip.addParamValue('DownsamplingFactor', [], @isinteger);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
 frames = ip.Results.Frames;
+
+if ~isempty(frames)
+    fileName = [fileName '_customFrames(' num2str(frames(1)) '_' num2str(frames(end)) ')'];
+end
+
+if isempty(frames) && ~isempty(ip.Results.DownsamplingFactor)
+    frames = 1:ip.Results.DownsamplingFactor:data.movieLength;
+    fileName = [filename '_' num2str(data.framerate*ip.Results.DownsamplingFactor) 's'];
+end
 
 if isempty(settings)
     %load track settings required for tracking
