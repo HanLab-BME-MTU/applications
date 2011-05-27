@@ -272,7 +272,7 @@ for i=1:length(displField)
             % more. The displ. measurements are enough.
             display('5.) Re-evaluate the solution:... ')
             % pull the new u-vector:
-            u=vercat(displField(i).vec(:,1),displField(i).vec(:,2));
+            u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
             % recalculate the solution for the new displacement vec:
             [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,L,x_out,y_out);
             display(['Done: solution for frame: ',num2str(i)]);
