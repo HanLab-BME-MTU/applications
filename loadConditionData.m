@@ -1,15 +1,16 @@
-function [data] = loadConditionData(condDir, chNames, markers, parameters, movieSelector)
+function [data] = loadConditionData(condDir, chNames, markers, varargin)
 % loadConditionData loads the relevant information for all the data
 % available for a specific data condition; this requires a specific
 % directory structure and nomenclature (see below)
 %
 % SYNOPSIS [data] = loadConditionData()
 %
-% INPUT          condDir : root directory where movies are located
-%                chNames : cell array of channel names
-%                markers : cell array of fluorescent markers
-%           {parameters} : optional, vector of microscope parameters: [NA M pixelSize]
-%        {movieSelector} : optional, selector string for movie folders
+% INPUT                   {condDir} : root directory where movies are located
+%                         {chNames} : cell array of channel names
+%                         {markers} : cell array of fluorescent markers
+%             {'Parameters', value} : vector of microscope parameters: [NA M pixelSize]
+%          {'MovieSelector', value} : selector string for movie folders
+%     {'IgnoreEmptyFolders', value} : true | {false}; ignores cell folders that do not contain TIFF frames
 %
 % OUTPUT   data: structure with the fields
 %                   .source      : path of the data/movie, location of master channel frames
@@ -24,23 +25,28 @@ function [data] = loadConditionData(condDir, chNames, markers, parameters, movie
 %                   .pixelSize   : pixel size of the CCD, in meters
 %
 %
-% Francois Aguet, October 2010
+% Francois Aguet, October 2010 (last modified: 05/27/2011)
 
-if nargin<1
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addOptional('condDir', [], @ischar);
+ip.addOptional('chNames', [], @iscell);
+ip.addOptional('markers', [], @iscell);
+ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
+ip.addParamValue('MovieSelector', 'cell', @ischar);
+ip.addParamValue('IgnoreEmptyFolders', false, @isboolean);
+ip.parse(condDir, chNames, markers, varargin{:});
+
+condDir = ip.Results.condDir;
+markers = ip.Results.markers;
+parameters = ip.Results.Parameters;
+movieSelector = ip.Results.MovieSelector;
+
+if isempty(condDir)
     condDir = [uigetdir(pwd, 'Select the ''condition'' folder:') filesep];
 end
 if ~strcmp(condDir(end), filesep)
     condDir = [condDir filesep];
-end
-
-if nargin<3
-    markers = [];
-end
-if nargin<4 || isempty(parameters)
-    parameters = [1.49 100 6.7e-6];
-end
-if nargin<5 || isempty(movieSelector)
-    movieSelector = 'cell';
 end
 
 fprintf('Root directory: %s\n', condDir);
@@ -52,7 +58,7 @@ expDir = dirList(condDir);
 % if condDir is a 'cell' directory
 if ~isempty(regexpi(getDirFromPath(condDir), movieSelector, 'once'))
     cellPath{1} = condDir;
-% if expDir are 'cell' directories    
+    % if expDir are 'cell' directories
 elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), movieSelector, 'once')))
     cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
 else
@@ -98,7 +104,7 @@ end
 
 channels = cell(1,nCh);
 for k = 1:nCells
-        
+    
     % detect date
     data(k).date = cell2mat(regexp(cellPath{k}, '\d{6}+', 'match'));
     if isempty(date)
@@ -133,27 +139,28 @@ for k = 1:nCells
     end
     data(k).channels = channels;
     data(k).source = channels{1}; % master channel default
-    data(k).framePaths = framePaths;
     
-    if ~any(cellfun(@isempty, framePaths))
-    
-        % if detection results exist
-        maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
-        if (exist(maskPath, 'dir')==7)
-            data(k).maskPaths = arrayfun(@(x) [maskPath x.name], dir([maskPath '*.tif']), 'UniformOutput', false);
-        end
-        
-        % load master channel frames
+    % only store frame paths if frames for all channels are found
+    if all(cellfun(@(x) ~isempty(x), framePaths))
+        data(k).framePaths = framePaths;
         data(k).imagesize = size(imread(framePaths{1}{1}));
         data(k).movieLength = length(framePaths{1});
-        data(k).markers = markers;
-        data(k).NA = parameters(1);
-        data(k).M = parameters(2);
-        data(k).pixelSize = parameters(3);
-        
-        fprintf('Loaded: %s\n', cellPath{k});
     end
+    
+    maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
+    if (exist(maskPath, 'dir')==7)
+        data(k).maskPaths = arrayfun(@(x) [maskPath x.name], dir([maskPath '*.tif']), 'UniformOutput', false);
+    end
+    
+    data(k).markers = markers;
+    data(k).NA = parameters(1);
+    data(k).M = parameters(2);
+    data(k).pixelSize = parameters(3);
+    
+    fprintf('Loaded: %s\n', cellPath{k});
 end
 
 % remove empty cell folders
-data(arrayfun(@(x) isempty(x.NA), data)) = [];
+if ip.Results.IgnoreEmptyFolders
+    data(arrayfun(@(x) isempty(x.framePaths), data)) = [];
+end
