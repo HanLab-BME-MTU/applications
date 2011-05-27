@@ -5,6 +5,7 @@ function [timePtsRel timePts timeIntervals meanDT stdDT]=getTimeList(fileList,ti
 doBoth=0;
 if nargin <2 || isempty(timeField)
     doBoth=1;
+    timeField='DateTime';
 end
 if nargin<3 || isempty(batch)
     batch=0;
