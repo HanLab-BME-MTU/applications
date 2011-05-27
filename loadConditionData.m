@@ -34,7 +34,7 @@ ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
 ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
-ip.addParamValue('IgnoreEmptyFolders', false, @isboolean);
+ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
 ip.parse(condDir, chNames, markers, varargin{:});
 
 condDir = ip.Results.condDir;
@@ -163,4 +163,8 @@ end
 % remove empty cell folders
 if ip.Results.IgnoreEmptyFolders
     data(arrayfun(@(x) isempty(x.framePaths), data)) = [];
+end
+
+if numel(data)==0
+    data = [];
 end
