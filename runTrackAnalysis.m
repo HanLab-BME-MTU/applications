@@ -1,4 +1,4 @@
-%[data] = runTrackAnalysis(data, varargin)
+
 %
 % INPUTS    data        : array of experiment structures
 %           {Buffer}    : length of buffer before and after tracks
@@ -20,12 +20,23 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Buffer', 5, @isscalar);
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('FileName', 'trackedFeatures.mat', @ischar);
+ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
+ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.parse(data, varargin{:});
+filename = ip.Results.FileName;
+overwrite = ip.Results.Overwrite;
+buffer = ip.Results.Buffer;
+trackerOutput = ip.Results.TrackerOutput;
+
 
 for i = 1:length(data)
-    if ~(exist([data(i).source filesep 'Tracking' filesep 'trackAnalysis.mat'],'file')==2) || ip.Results.Overwrite
-        [data(i).tracks data(i).nMergeSplit] = main(data(i), ip.Results.Buffer, ip.Results.FileName);
+    data(i).tracks = [];
+    data(i).nMergeSplit = [];
+end
+
+parfor i = 1:length(data)
+    if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
+        [data(i).tracks data(i).nMergeSplit] = main(data(i), buffer, trackerOutput, filename);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
@@ -33,7 +44,7 @@ end
 
 
 
-function [tracks nMergeSplit] = main(data, buffer, filename)
+function [tracks nMergeSplit] = main(data, buffer, trackerOutput, filename)
 
 load([data.source 'Detection' filesep 'detection_v2.mat']);
 
@@ -48,7 +59,7 @@ kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 % Identify master/slave channels
 %=================================
 nCh = length(data.channels);
-masterChannel = strcmp(data.source, data.channels);
+mCh = strcmp(data.source, data.channels);
 
 sigmaV = zeros(nCh, 1);
 frameList = cell(1,nCh);
@@ -60,7 +71,7 @@ end
 maskPath = [data.source 'Detection' filesep 'Masks' filesep];
 maskList = dir([maskPath '*.tif']);
 
-sigma = sigmaV(masterChannel);
+sigma = sigmaV(mCh);
 %w2 = ceil(2*sigma);
 w3 = ceil(3*sigma);
 w4 = ceil(4*sigma);
@@ -73,7 +84,7 @@ annularMask(r<=w4 & r>=w3) = 1;
 %=================================
 % Read and convert tracker output
 %=================================
-tPath = [data.source 'Tracking' filesep filename];
+tPath = [data.source 'Tracking' filesep trackerOutput];
 if exist(tPath, 'file')==2
     trackinfo = load(tPath);
     trackinfo = trackinfo.tracksFinal;
@@ -149,13 +160,13 @@ for k = 1:nTracks
     %==============================================================================
     nf = length(tracks(k).xcom);
     
-    tracks(k).x = NaN(1,nf);
-    tracks(k).y = NaN(1,nf);
+    tracks(k).x = NaN(nCh,nf);
+    tracks(k).y = NaN(nCh,nf);
     tracks(k).A = NaN(nCh, nf);
     tracks(k).c = NaN(nCh, nf);
     
-    tracks(k).x_pstd = NaN(1,nf);
-    tracks(k).y_pstd = NaN(1,nf);
+    tracks(k).x_pstd = NaN(nCh,nf);
+    tracks(k).y_pstd = NaN(nCh,nf);
     tracks(k).A_pstd = NaN(nCh,nf);
     tracks(k).c_pstd = NaN(nCh, nf);
     
@@ -175,15 +186,13 @@ for k = 1:nTracks
             idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
         end
         if idx ~= 0
-            %idx
-            %frameInfo(frameRange(i))
-            tracks(k).x(i) = frameInfo(frameRange(i)).x(idx);
-            tracks(k).y(i) = frameInfo(frameRange(i)).y(idx);
+            tracks(k).x(:,i) = frameInfo(frameRange(i)).x(:,idx);
+            tracks(k).y(:,i) = frameInfo(frameRange(i)).y(:,idx);
             tracks(k).A(:,i) = frameInfo(frameRange(i)).A(:,idx);
             tracks(k).c(:,i) = frameInfo(frameRange(i)).c(:,idx);
             
-            tracks(k).x_pstd(i) = frameInfo(frameRange(i)).x_pstd(:,idx);
-            tracks(k).y_pstd(i) = frameInfo(frameRange(i)).y_pstd(:,idx);
+            tracks(k).x_pstd(:,i) = frameInfo(frameRange(i)).x_pstd(:,idx);
+            tracks(k).y_pstd(:,i) = frameInfo(frameRange(i)).y_pstd(:,idx);
             tracks(k).A_pstd(:,i) = frameInfo(frameRange(i)).A_pstd(:,idx);
             tracks(k).c_pstd(:,i) = frameInfo(frameRange(i)).c_pstd(:,idx);
             
@@ -203,12 +212,12 @@ fprintf('\n');
 
 % Remove all tracks that entirely consist of NaNs or that are at image border
 trackLengths = [tracks.end] - [tracks.start] + 1;
-nanCount = arrayfun(@(t) sum(isnan(t.x)), tracks);
+nanCount = arrayfun(@(t) sum(isnan(t.x(mCh,:))), tracks);
 
-minx = arrayfun(@(t) min(round(t.x)), tracks); %%%%%%%% changed from xcom, ycom
-maxx = arrayfun(@(t) max(round(t.x)), tracks);
-miny = arrayfun(@(t) min(round(t.y)), tracks);
-maxy = arrayfun(@(t) max(round(t.y)), tracks);
+minx = arrayfun(@(t) min(round(t.x(:))), tracks); %%%%%%%% changed from xcom, ycom
+maxx = arrayfun(@(t) max(round(t.x(:))), tracks);
+miny = arrayfun(@(t) min(round(t.y(:))), tracks);
+maxy = arrayfun(@(t) max(round(t.y(:))), tracks);
 
 idx = trackLengths==nanCount | minx<=w4 | miny<=w4 | maxx>nx-w4 | maxy>ny-w4;
 tracks(idx) = [];
@@ -223,7 +232,7 @@ fprintf('TrackAnalysis - Classification:     ');
 for k = 1:nTracks
     
     % prune track if 'gap' at beginning or end (NaNs from localization)
-    nanIdx = isnan(tracks(k).x);
+    nanIdx = isnan(tracks(k).x(mCh,:));
     diffIdx = diff(nanIdx);
     rmIdx = [];
     
@@ -252,10 +261,10 @@ for k = 1:nTracks
 %             end
 %         end
         tracks(k).t(rmIdx) = [];
-        tracks(k).x(rmIdx) = [];
-        tracks(k).x_pstd(rmIdx) = [];
-        tracks(k).y(rmIdx) = [];
-        tracks(k).y_pstd(rmIdx) = [];
+        tracks(k).x(:,rmIdx) = [];
+        tracks(k).x_pstd(:,rmIdx) = [];
+        tracks(k).y(:,rmIdx) = [];
+        tracks(k).y_pstd(:,rmIdx) = [];
         tracks(k).A(:,rmIdx) = [];
         tracks(k).A_pstd(:,rmIdx) = [];
         tracks(k).pval_Ar(:,rmIdx) = [];
@@ -279,7 +288,9 @@ for k = 1:nTracks
     x = tracks(k).x;
     y = tracks(k).y;
     
-    trackPoints = sum(~isnan(x));
+    nanIdx = isnan(x(mCh,:));
+    
+    trackPoints = sum(~nanIdx);
     
     %=================================
     % Determine track and gap status
@@ -301,7 +312,7 @@ for k = 1:nTracks
             tracks(k).valid = 0;
         else
             
-            gacombIdx = diff(isnan(x));%diff(~isnan(x));
+            gacombIdx = diff(nanIdx);
             gapStarts = find(gacombIdx==1)+1;
             gapEnds = find(gacombIdx==-1);
             
@@ -314,7 +325,7 @@ for k = 1:nTracks
             end
             gapLengths = gapEnds-gapStarts+1;
             
-            segmentIdx = diff([0 ~isnan(x) 0]);
+            segmentIdx = diff([0 ~nanIdx 0]);
             segmentStarts = find(segmentIdx==1);
             segmentEnds = find(segmentIdx==-1)-1;
             segmentLengths = segmentEnds-segmentStarts+1;
@@ -337,8 +348,12 @@ for k = 1:nTracks
                 for g = 1:nGaps
                     borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
                     gacombIdx = gapStarts(g):gapEnds(g);
-                    x(gacombIdx) = interp1(borderIdx, x(borderIdx), gacombIdx);
-                    y(gacombIdx) = interp1(borderIdx, y(borderIdx), gacombIdx);
+                    %x(gacombIdx) = interp1(borderIdx, x(borderIdx), gacombIdx);
+                    %y(gacombIdx) = interp1(borderIdx, y(borderIdx), gacombIdx);
+                    for c = 1:nCh
+                        x(c, gacombIdx) = interp1(borderIdx, x(c, borderIdx), gacombIdx);
+                        y(c, gacombIdx) = interp1(borderIdx, y(c, borderIdx), gacombIdx);
+                    end
                 end
             end
             
@@ -418,12 +433,12 @@ for k = 1:nTracks
         %===============
         % gaps
         %===============
-%         gapIdx = find(isnan(tracks(k).A(masterChannel,:)));
+%         gapIdx = find(isnan(tracks(k).A(mCh,:)));
 %         if ~isempty(gapIdx)
 %             frameIdx = gapIdx + tracks(k).start - 1;
 %             
 %             % linear interpolation of background values %%%%%%%%%%%% change to fit?
-%             trackIdx = find(~isnan(tracks(k).A(masterChannel,:)));
+%             trackIdx = find(~isnan(tracks(k).A(mCh,:)));
 %             
 %             
 % %             tracks(k).c(:,gapIdx) = interp1(trackIdx, tracks(k).c(:,trackIdx)', gapIdx)';
@@ -503,8 +518,8 @@ for f = 1:data.movieLength
         trackIdx = find([tracks.valid] & arrayfun(@(t) ismember(f, t.start-1 + find(isnan(t.A(ch,:)))), tracks));
         for k = trackIdx
             idx = f-tracks(k).start + 1;
-            xi = round(tracks(k).x(idx));
-            yi = round(tracks(k).y(idx));
+            xi = round(tracks(k).x(ch,idx));
+            yi = round(tracks(k).y(ch,idx));
 
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
@@ -544,8 +559,8 @@ for f = 1:data.movieLength
         trackIdx = find([tracks.start]-bStart<=f & f<[tracks.start] & [tracks.valid]);
         for k = trackIdx
             bi = f-tracks(k).start + bStart(k) + 1;
-            xi = round(tracks(k).x(1));
-            yi = round(tracks(k).y(1));
+            xi = round(tracks(k).x(ch,1));
+            yi = round(tracks(k).y(ch,1));
             
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
@@ -567,8 +582,8 @@ for f = 1:data.movieLength
         trackIdx = find([tracks.end]<f & f<=([tracks.end]+bEnd) & [tracks.valid]);
         for k = trackIdx
             bi = f-tracks(k).end;
-            xi = round(tracks(k).x(end));
-            yi = round(tracks(k).y(end));
+            xi = round(tracks(k).x(ch,end));
+            yi = round(tracks(k).y(ch,end));
             
             % window/masks (see psfLocalization.m for details)
             maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
@@ -600,7 +615,7 @@ fprintf('\n');
 if ~(exist([data.source 'Tracking'], 'dir')==7)
     mkdir([data.source 'Tracking']);
 end
-save([data.source 'Tracking' filesep 'trackAnalysis.mat'], 'tracks', 'nMergeSplit');
+save([data.source 'Tracking' filesep filename], 'tracks', 'nMergeSplit');
 
 
 % loop through frames and estimate intensity
