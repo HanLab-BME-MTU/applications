@@ -262,10 +262,10 @@ for i=1:length(displField)
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
         tic;
-        if i==1 || displFieldNew(i).par.prep4fastBEM==0;
+        if i==1 || displField(i).par.prep4fastBEM==0;
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol);
             display('The total time for calculating the FastBEM solution: ')
-        elseif i>1 && displFieldNew(i).par.prep4fastBEM==1
+        elseif i>1 && displField(i).par.prep4fastBEM==1
             % since the displ field has been prepared such
             % that the measurements in different frames are ordered in the
             % same way, we don't need the position information any
