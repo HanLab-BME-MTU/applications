@@ -1,4 +1,4 @@
-function [pos_f force forceMesh M pos_u u sol_coef]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol)
+function [pos_f force forceMesh M pos_u u sol_coef sol_mat]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol)
 if nargin < 7
     meshPtsFwdSol=[];
 end
@@ -24,7 +24,7 @@ else
     yvec=yvec(:);
 end
 
-display('1.) Creating mesh & basis [~30sec]:...');
+display('1.) Creating mesh & basis [~5sec]:...');
 tic;
 keepBDPts=0;
 doPlot=0;
@@ -32,10 +32,10 @@ forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 toc;
 display('Done: mesh & basis!');
 
-[fx fy x_out y_out M pos_u u sol_coef] = BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,[],[],'fast',meshPtsFwdSol);
+[fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,[],[],'fast',meshPtsFwdSol);
 % The units of fx and fy are the same as the input E, that is ususally Pa!
 
-pos_f  =horzcat(x_out,y_out);
+pos_f=horzcat(x_out,y_out);
 force=horzcat(   fx,   fy);
 
 

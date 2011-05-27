@@ -82,7 +82,6 @@ end
 if nargin < 13  || isempty(doRotReg)
     doRotReg=0;
 end
-
 saveAllBEMpar=0;
 
 
@@ -178,13 +177,18 @@ for i=1:n
 %         out(i).num=sum(bad_abs);
 %         displField(i).pos=displField(i).pos(~bad_abs,:);
 %         displField(i).vec=displField(i).vec(~bad_abs,:);
-    end      
+    end
+    displField(i).par.prep4fastBEM=0;
 end
 display('Number of points filtered out: '); 
 display([num2str((1:n)'),repmat(': ',n,1),num2str([out(:).num]')]);
 
 if doRotReg
    displField=perfRotReg(displField,1);
+end
+
+if strcmp(method,'FastBEM')
+   displField=prepDisplForBEM(displField,'linear');
 end
 
 save([targetDir,filesep,'displField.mat'], 'displField');
@@ -258,8 +262,21 @@ for i=1:length(displField)
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
         tic;
-        [pos_f, force, forceMesh, M, pos_u, u, sol_coef]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol);
-        display('The total time for calculating the FastBEM solution: ')
+        if i==1 || displFieldNew(i).par.prep4fastBEM==0;
+            [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol);
+            display('The total time for calculating the FastBEM solution: ')
+        elseif i>1 && displFieldNew(i).par.prep4fastBEM==1
+            % since the displ field has been prepared such
+            % that the measurements in different frames are ordered in the
+            % same way, we don't need the position information any
+            % more. The displ. measurements are enough.
+            display('5.) Re-evaluate the solution:... ')
+            % pull the new u-vector:
+            u=vercat(displField(i).vec(:,1),displField(i).vec(:,2));
+            % recalculate the solution for the new displacement vec:
+            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,L,x_out,y_out);
+            display(['Done: solution for frame: ',num2str(i)]);
+        end
         toc;
         
         % The following values should/could be stored for the BEM-method.

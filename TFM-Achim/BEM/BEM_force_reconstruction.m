@@ -1,4 +1,4 @@
-function [fx fy x_out y_out M pos_u u sol_coef] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol)
+function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol)
 % Input :  x,y,ux,uy have to be in the same units, namely
 %         pixels. 
 % Output: The output fx,fy is actually a surface stress with the same units
@@ -41,7 +41,7 @@ display('Done: forward map!');
 
 
 
-% X = A\B is the solution to the equation AX = B
+% x = A\B is the solution to the equation Ax = B
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
@@ -52,14 +52,11 @@ if nargin >= 10 && strcmp(method,'fast')
     % boundary nodes are skipped) 
     % See refine_BEM_force_reconstruction for a nice explanation of the next
     % steps:
-    weights    =vertcat(forceMesh.basis(:).unitVolume); % volume of the basis function
-    repWeights =repmat(weights(:),2,1); % the basis function for x/y comp. have the same weight
-    normWeights=repWeights/max(repWeights); % normalize it with max value.
-    eyeWeights =diag(normWeights);    
-    weightList=unique(normWeights);
     
+    [normWeights,listNormWeights]=getNormWeights(forceMesh);
+    eyeWeights =diag(normWeights);
     
-    if length(weightList)==1
+    if length(listNormWeights)==1
         doSVD =1;
         doGSVD=0;
     else
@@ -79,23 +76,44 @@ if nargin >= 10 && strcmp(method,'fast')
     if doSVD && ~forceBackSlash        
         tic;
         [U,s,V] = csvd(M);
-        [sol_coef,rho,eta] = tikhonov(U,s,V,u,sqrt(L));
+        [sol_coef,~,~] = tikhonov(U,s,V,u,sqrt(L));
+        % store these matrices for next frames:
+        sol_mats.U=U;
+        sol_mats.s=s;
+        sol_mats.V=V;
+        sol_mats.tool='svd';
         toc;
     elseif doGSVD && ~forceBackSlash
         % gSVD takes about twice as long as SVD
         tic;
-        [U,sm,X,V] = cgsvd(M,eyeWeights);
-        [sol_coef,rho,eta] = tikhonov(U,sm,X,u,sqrt(L));
+        [U,sm,X,~] = cgsvd(M,eyeWeights);
+        [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
+        % store these matrices for next frames:
+        sol_mats.U =U;
+        sol_mats.sm=sm;
+        sol_mats.X =X;
+        sol_mats.tool='gsvd';
         toc;
     else
-        sol_coef=(L*eyeWeights+M'*M)\(M'*u);
+        % This matrix multiplication takes most of the time. Therefore we
+        % store it for later use:
+        MpM=M'*M;
+        sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+        % sol_coef=(L*eyeWeights+M'*M)\(M'*u);
+        % store these matrices for next frames:
+        sol_mats.MpM=MpM;
+        sol_mats.tool='backslash';
     end
     % Here we use the identity matrix (all basis classes have equal weight):
     % sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);
 else
     % normalization of basis function will be important when taking the norm!!!
-    % This has not been considered yet! 
-    sol_coef=(L*eye(2*forceMesh.numNodes)+M'*M)\(M'*u);
+    % This has not been considered yet!
+    MpM=M'*M;
+    sol_coef=(L*eye(2*forceMesh.numNodes)+MpM)\(M'*u);
+    % store these matrices for next frames:
+    sol_mats.MpM=MpM;
+    sol_mats.tool='backslash';
 end
 toc;
 display('Done: coefficients!');

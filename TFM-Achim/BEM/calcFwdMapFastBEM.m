@@ -100,6 +100,7 @@ for class=1:numClass
             x_model_pix  = double(basisClassTbl(idBestMatch).uSol.x);
             y_model_pix  = double(basisClassTbl(idBestMatch).uSol.y);
         else
+            display('Could not find a good match in the tablebase! Have to calculate the solution!')
             % no good match has been found in the table, we have to calculate the
             % solution from scratch. Here we could force xrange>xrange_min
             % and meshPtsFwdSol>meshPtsFwdSol_min, such that it is more
