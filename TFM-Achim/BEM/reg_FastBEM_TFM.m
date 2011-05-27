@@ -1,4 +1,4 @@
-function [pos_f force forceMesh M pos_u u sol_coef sol_mat]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol)
+function [pos_f force forceMesh M pos_u u sol_coef sol_mats]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol)
 if nargin < 7
     meshPtsFwdSol=[];
 end
