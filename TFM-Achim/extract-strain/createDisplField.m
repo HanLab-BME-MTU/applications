@@ -83,6 +83,8 @@ if nargin < 13  || isempty(doRotReg)
     doRotReg=0;
 end
 
+saveAllBEMpar=0;
+
 
 % if the field of view is too large one has the option to choose a
 % x-y-range where the force field should be calculated.
@@ -260,13 +262,15 @@ for i=1:length(displField)
         display('The total time for calculating the FastBEM solution: ')
         toc;
         
-        % The following values are only stored for the BEM-method.
-        forceField(i).par.forceMesh     = forceMesh;
-        forceField(i).par.sol_coef      = sol_coef;
-        %forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
-        forceField(i).par.pos           = pos_u;
-        forceField(i).par.u             = u;  
-        forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   
+        % The following values should/could be stored for the BEM-method.
+        if saveAllBEMpar==1
+            forceField(i).par.forceMesh     = forceMesh;
+            forceField(i).par.sol_coef      = sol_coef;
+            forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
+            forceField(i).par.pos           = pos_u;
+            forceField(i).par.u             = u;  
+            forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   
+        end
     else
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, yModu_Pa, pRatio, pixSize_mu, gridSpacing, i_max, j_max, regParam);
     end   

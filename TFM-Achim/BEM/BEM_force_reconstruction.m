@@ -55,8 +55,41 @@ if nargin >= 10 && strcmp(method,'fast')
     weights    =vertcat(forceMesh.basis(:).unitVolume); % volume of the basis function
     repWeights =repmat(weights(:),2,1); % the basis function for x/y comp. have the same weight
     normWeights=repWeights/max(repWeights); % normalize it with max value.
-    eyeWeights =diag(normWeights);
-    sol_coef=(L*eyeWeights+M'*M)\(M'*u);
+    eyeWeights =diag(normWeights);    
+    weightList=unique(normWeights);
+    
+    
+    if length(weightList)==1
+        doSVD =1;
+        doGSVD=0;
+    else
+        doSVD =0;
+        doGSVD=1;
+    end
+    % Checked (g)SVD against Matlab inversion! Found no advantage of
+    % (g)SVD over Matlab inversion but (g)SVD is much slower. Differences
+    % seem to arise only for irregular meshes or at mesh boundaries.
+    % For size(M'*M)=7688*7688 I find:
+    % M'*M\ =  19sec
+    % csvd  = 340sec
+    % cgsvd = 561sec
+    % Therefore we force the Matlab back slash operator:
+    forceBackSlash=1;
+    
+    if doSVD && ~forceBackSlash        
+        tic;
+        [U,s,V] = csvd(M);
+        [sol_coef,rho,eta] = tikhonov(U,s,V,u,sqrt(L));
+        toc;
+    elseif doGSVD && ~forceBackSlash
+        % gSVD takes about twice as long as SVD
+        tic;
+        [U,sm,X,V] = cgsvd(M,eyeWeights);
+        [sol_coef,rho,eta] = tikhonov(U,sm,X,u,sqrt(L));
+        toc;
+    else
+        sol_coef=(L*eyeWeights+M'*M)\(M'*u);
+    end
     % Here we use the identity matrix (all basis classes have equal weight):
     % sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);
 else

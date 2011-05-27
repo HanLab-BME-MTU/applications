@@ -57,40 +57,15 @@ for j=1:myMesh.numNodes
         noClass=true;
         newClNo=1;
     else
-        numClass=length(basisClass);
-        
-        % now run through all classes and see if you find a match:
-        for classNo=1:numClass
-            % first check if the number of neighbors is consistent:
-            check1=basisClass(classNo).numNeigh==length(myMesh.neigh(j).cand);
-            
-            % then check if the neighbors are consistent:
-            if check1
-                % this can be improved! By refining not all identical
-                % classes are found since the ordering might be not exactly
-                % be the same!
-                % check2=sum(sum(abs(basisClass(classNo).neighPos-(myMesh.neigh(j).pos-repmat(myMesh.p(j,:),length(myMesh.neigh(j).cand),1)))))<10^4*eps;
-                
-                pts1=basisClass(classNo).neighPos;
-                pts2=myMesh.neigh(j).pos-repmat(myMesh.p(j,:),length(myMesh.neigh(j).cand),1);
-                
-                % sort these points:
-                pts1=sortrows(pts1);
-                pts2=sortrows(pts2);
-                
-                % calculate the difference between the points
-                check2=sum(sum(abs(pts1-pts2)))<10^4*eps;
-            end
-            
-            % if both checks are positive:
-            if check1 && check2
-            	foundClass=classNo;
-            end
-        end
-        
+        currNeighPos   = myMesh.neigh(j).pos;
+        currCtrNodePos = myMesh.p(j,:);
+        [foundClass]=findBasisClass(basisClass,currNeighPos,currCtrNodePos);        
         if isempty(foundClass)
             noClass=true;
+            numClass=length(basisClass);
             newClNo=numClass+1;
+        elseif length(foundClass)>1
+            error('Basis Classes should be unique, something went wrong!')
         end
     end
     
