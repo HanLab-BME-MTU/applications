@@ -110,4 +110,4 @@ parfor k = 1:data.movieLength
 end
 %fprintf('\n');
 
-save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
+save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo', 'data');
