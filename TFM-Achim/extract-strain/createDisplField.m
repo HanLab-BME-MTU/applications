@@ -274,7 +274,7 @@ for i=1:length(displField)
             % pull the new u-vector:
             u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
             % recalculate the solution for the new displacement vec:
-            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,L,x_out,y_out);
+            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,regParam,x_out,y_out);
             display(['Done: solution for frame: ',num2str(i)]);
         end
         toc;
