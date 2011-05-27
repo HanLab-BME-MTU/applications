@@ -6,7 +6,7 @@ function [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh
 
 %if no points of interests are specified, i.e x_out, y_out, then forces are 
 %calculated on the nodes of the force mesh:                                                      
-if nargin<9 || isempty(x_out)
+if nargin<6 || isempty(x_out)
     x_out=forceMesh.p(:,1);
     y_out=forceMesh.p(:,2);
 end
