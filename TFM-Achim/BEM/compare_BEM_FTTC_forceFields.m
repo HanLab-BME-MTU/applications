@@ -160,4 +160,8 @@ for i=frameList
     imagesc(ffFTTC(i).imag)
     caxis([0 maxForceMag])
     title('FTTC: force magnitude')
+    
+    if length(frameList)>1
+        input('hit enter to continue: ')
+    end
 end    
