@@ -41,7 +41,9 @@ display('Done: forward map!');
 
 
 
-% x = A\B is the solution to the equation Ax = B
+% x = A\B is the solution to the equation Ax = B. The equation we have to
+% solve is:
+% (L*eyeWeights+ MpM)*sol_coef=(M'*u);
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
@@ -57,11 +59,9 @@ if nargin >= 10 && strcmp(method,'fast')
     eyeWeights =diag(normWeights);
     
     if length(listNormWeights)==1
-        doSVD =1;
-        doGSVD=0;
+        needGSVD =0;
     else
-        doSVD =0;
-        doGSVD=1;
+        needGSVD =1;
     end
     % Checked (g)SVD against Matlab inversion! Found no advantage of
     % (g)SVD over Matlab inversion but (g)SVD is much slower. Differences
@@ -71,9 +71,10 @@ if nargin >= 10 && strcmp(method,'fast')
     % csvd  = 340sec
     % cgsvd = 561sec
     % Therefore we force the Matlab back slash operator:
-    forceBackSlash=1;
+    forceQR=1;
+    forceBackSlash=0;
     
-    if doSVD && ~forceBackSlash        
+    if ~needGSVD && ~forceQR && ~forceBackSlash        
         tic;
         [U,s,V] = csvd(M);
         [sol_coef,~,~] = tikhonov(U,s,V,u,sqrt(L));
@@ -83,7 +84,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.V=V;
         sol_mats.tool='svd';
         toc;
-    elseif doGSVD && ~forceBackSlash
+    elseif ~forceQR && ~forceBackSlash
         % gSVD takes about twice as long as SVD
         tic;
         [U,sm,X,~] = cgsvd(M,eyeWeights);
@@ -94,6 +95,18 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.X =X;
         sol_mats.tool='gsvd';
         toc;
+    elseif ~forceBackSlash
+        % for a force field with 2*6400 basis function, the residual
+        % between the QR-sol and the sol obtained from the backslash
+        % operator was: 2.0057e-06 for a mean force magnitude of
+        % 85.7. Thus they seem to be numerical identical!
+        [Q,R] = qr((L*eyeWeights+ M'*M));
+        sol_coef=R\(Q'*(M'*u));
+        sol_mats.Q=Q;
+        sol_mats.R=R;
+        sol_mats.L=L;
+        sol_mats.nW=normWeights;        
+        sol_mats.tool='QR';
     else
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:

@@ -24,6 +24,20 @@ elseif strcmp(sol_mats.tool,'gsvd')
     sm=sol_mats.sm;
     X =sol_mats.X;
     [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
+elseif strcmp(sol_mats.tool,'QR')
+    [normWeights]=getNormWeights(forceMesh);
+    sol_nW=sol_mats.nW;
+    sol_L =sol_mats.L;
+    % check that regularization parameter and weights have not changed
+    % (since Q,R have been calculated for a certain set of reg. par. and
+    % weights!). But this should always be the case:
+    if sol_L==L && sum(sol_nW~=normWeights)==0
+        Q=sol_mats.Q;
+        R=sol_mats.R;
+        sol_coef=R\(Q'*(M'*u));
+    else
+        error('Weights or regularization parameter have been changed. QR cannot be reused!')
+    end
 elseif strcmp(sol_mats.tool,'backslash')
     % This matrix multiplication takes most of the time. Therefore we
     % store it for later use:

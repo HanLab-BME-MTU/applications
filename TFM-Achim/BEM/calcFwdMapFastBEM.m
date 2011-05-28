@@ -60,15 +60,10 @@ ymin=min(y_vec_u); ymax=max(y_vec_u);
 dx=xmax-xmin;
 dy=ymax-ymin;
 
-% here we can force the range to be large. This is useful to generate
-% re-useable basis class solutions
-if forceSpan==1
-    dx=max(imgRows,dx);
-    dy=max(imgCols,dy);
-end
-
-xrange=[-dx dx]';
-yrange=[-dy dy]';
+% The minimum x/y-range over which the basis solution has/had to be
+% calculated:
+xrangeReq=[-dx dx]';
+yrangeReq=[-dy dy]';
     
 % calculate the basis solution for all basis classes:
 numClass=length(forceMesh.basisClass);
@@ -84,7 +79,7 @@ for class=1:numClass
 
     % try to find the basis class in the table base:
     basisClassIn=forceMesh.basisClass(class);
-    [idBestMatch]=findBasisClassInTbl(basisClassTbl,basisClassIn,xrange,yrange,meshPtsFwdSol);
+    [idBestMatch]=findBasisClassInTbl(basisClassTbl,basisClassIn,xrangeReq,yrangeReq,meshPtsFwdSol);
     
     % now run through the x/y-comp. and either pull the fwdSol from the
     % table base or calculate it from scratch. The latter will be saved in
@@ -102,11 +97,22 @@ for class=1:numClass
         else
             display('Could not find a good match in the tablebase! Have to calculate the solution!')
             % no good match has been found in the table, we have to calculate the
-            % solution from scratch. Here we could force xrange>xrange_min
+            % solution from scratch. Here we could force xrangeSol>xrangeReq
             % and meshPtsFwdSol>meshPtsFwdSol_min, such that it is more
             % likely that this solution can be used in the future. We will
             % store this solution only for method='direct'!
-            [ux_model, uy_model, x_model, y_model]=fwdSolution(xrange,yrange,E,xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,'fft','noIntp',meshPtsFwdSol);
+            if forceSpan==1
+                dxSol=max(imgCols,dx);
+                dySol=max(imgRows,dy);
+                
+                xrangeSol=[-dxSol dxSol]';
+                yrangeSol=[-dySol dySol]';
+            else
+                xrangeSol=xrangeReq;
+                yrangeSol=yrangeReq;
+            end               
+            % calculate the solution:
+            [ux_model, uy_model, x_model, y_model]=fwdSolution(xrangeSol,yrangeSol,E,xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,'fft','noIntp',meshPtsFwdSol);
             % check if the sampling is fine enough for method 'direct':
             if strcmp(method,'direct')
                 % This works perfectly for all mesh types as long as the
@@ -218,8 +224,8 @@ for class=1:numClass
             basisClassTbl(end).uSol.y = int16(y_model_pix);
             
             % enter parameters:
-            basisClassTbl(end).uSol.xrange       = xrange;
-            basisClassTbl(end).uSol.yrange       = yrange;
+            basisClassTbl(end).uSol.xrange       = xrangeSol;
+            basisClassTbl(end).uSol.yrange       = yrangeSol;
             basisClassTbl(end).uSol.E            = 1; % this could be more general!
             basisClassTbl(end).uSol.method       ='fft';
             basisClassTbl(end).uSol.meshPtsFwdSol= meshPtsFwdSol;

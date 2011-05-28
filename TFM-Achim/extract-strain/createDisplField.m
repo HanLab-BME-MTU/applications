@@ -255,7 +255,7 @@ if ~isdir(targetDirForce)
     mkdir(targetDirForce)
 end
 
-for i=1:length(displField)
+for i=1:2% length(displField)
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
     if strcmp(method,'FastBEM')
