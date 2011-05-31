@@ -75,7 +75,6 @@ if nargin >= 10 && strcmp(method,'fast')
     forceBackSlash=0;
     
     if ~needGSVD && ~forceQR && ~forceBackSlash        
-        tic;
         [U,s,V] = csvd(M);
         [sol_coef,~,~] = tikhonov(U,s,V,u,sqrt(L));
         % store these matrices for next frames:
@@ -83,10 +82,8 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.s=s;
         sol_mats.V=V;
         sol_mats.tool='svd';
-        toc;
     elseif ~forceQR && ~forceBackSlash
         % gSVD takes about twice as long as SVD
-        tic;
         [U,sm,X,~] = cgsvd(M,eyeWeights);
         [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
         % store these matrices for next frames:
@@ -94,7 +91,6 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.sm=sm;
         sol_mats.X =X;
         sol_mats.tool='gsvd';
-        toc;
     elseif ~forceBackSlash
         % for a force field with 2*6400 basis function, the residual
         % between the QR-sol and the sol obtained from the backslash
