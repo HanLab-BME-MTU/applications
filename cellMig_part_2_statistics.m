@@ -132,7 +132,7 @@ end
 % Show and save the movie:
 if showTrackerMovie==1
     % show and save movie:
-    movieFileName='mov_trackNuclei.mov';
+    movieFileName='mov_trackNuclei';
     
     display('Create tracker movie:...')
     % Set the position of the current figure to screen size:
@@ -140,7 +140,7 @@ if showTrackerMovie==1
 %     h     = figure();
 %     set(h,'Position',scrsz);
     
-    overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei,[],[],1)
+    overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei,[pwd,filesep],[],1)
     % move the movie into the current dir:
     if isdir('Nuclei')
         try

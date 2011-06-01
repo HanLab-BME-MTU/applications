@@ -147,7 +147,7 @@ for frame=1:numFrames
     
     % Find the local maxima:
     se   = strel('disk', r);
-    Imax=locmax2d(Iflt,getnhood(se),1);    
+    Imax=locmax2d(Iflt,getnhood(se),1);
     if doPlot==1
         figure, imagesc(Imax), title('Maxima in the image')
         colormap gray;
@@ -156,7 +156,17 @@ for frame=1:numFrames
     end
     
     % cut off the maxima in the noise:
-    [~, level1]=cutFirstHistMode(Imax(Imax(:)>0),0);
+    try
+        % This only works for dense sheets!
+        level1=thresholdFluorescenceImageFewBg(Imax(Imax(:)>0),doPlot);
+        % This only works for significant amount of Bg, but is then more reliable than the above method!
+        %level1=thresholdFluorescenceImage(Imax(Imax(:)>0),doPlot,1);
+    catch
+        % This shouldn't be used anymore. Instead, one should use the
+        % algorithm above!
+        display('!!!switched to cutFirstHistMode!!!')
+        [~, level1]=cutFirstHistMode(Imax(Imax(:)>0),0);
+    end
     Imax(Imax(:)<level1)=0;
     Imax(Imax(:)>0)=1;
     
@@ -175,7 +185,7 @@ for frame=1:numFrames
     
     % Simply filter the original image with a Gaussian, some of these might
     % have been cut-off if they are small in size and have a huge gradient!
-    IfltSimple = filterGauss2D(Icrop,r);    
+    IfltSimple = filterGauss2D(Icrop,r);
     ImaxSimple=locmax2d(IfltSimple,getnhood(se),1);
     [~, level2]=cutFirstHistMode(ImaxSimple(ImaxSimple(:)>0),0);
     ImaxSimple(ImaxSimple(:)<level2)=0;
