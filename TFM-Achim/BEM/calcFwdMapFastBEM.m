@@ -16,6 +16,12 @@ catch
 end
 addAtLeastOneToTbl=0;
 
+% for a field of view with 1024x1344 pix and a square grid with grid size
+% of 10 pix, the average rel. difference between the solutions with 2^11 and
+% 2^12 pts for the fwd solution is less than 0.27% for all positions with
+% non-vanishing forces. The maximum error is 4%. These results indicate
+% that actually 2^11 points are fine for calculating the basis solutions
+% for such a configuration. 2^12 should be fine for sure!
 forceSpan=1;
 imgRows=1024;
 imgCols=1344;
