@@ -22,21 +22,22 @@ ip.addParamValue('Buffer', 5, @isscalar);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
+ip.addParamValue('DownsamplingFactor', 1, @isscalar);
 ip.parse(data, varargin{:});
 filename = ip.Results.FileName;
 overwrite = ip.Results.Overwrite;
 buffer = ip.Results.Buffer;
 trackerOutput = ip.Results.TrackerOutput;
-
+dsfactor = ip.Results.DownsamplingFactor;
 
 for i = 1:length(data)
     data(i).tracks = [];
     data(i).nMergeSplit = [];
 end
 
-parfor i = 1:length(data)
+for i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        [data(i).tracks data(i).nMergeSplit] = main(data(i), buffer, trackerOutput, filename);
+        data(i) = main(data(i), buffer, trackerOutput, filename, dsfactor);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
@@ -44,13 +45,13 @@ end
 
 
 
-function [tracks nMergeSplit] = main(data, buffer, trackerOutput, filename)
+function [data] = main(data, buffer, trackerOutput, filename, dsfactor)
 
 load([data.source 'Detection' filesep 'detection_v2.mat']);
 
 ny = data.imagesize(1);
 nx = data.imagesize(2);
-nFrames = data.movieLength;
+nFrames = floor(data.movieLength/dsfactor);
 
 alpha = 0.05;
 kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
@@ -66,13 +67,19 @@ frameList = cell(1,nCh);
 for k = 1:nCh
     sigmaV(k) = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k});
     frameList{k} = dir([data.channels{k} '*.tif*']);
+    frameList{k} = frameList{k}(1:dsfactor:end);
 end
 
 maskPath = [data.source 'Detection' filesep 'Masks' filesep];
 maskList = dir([maskPath '*.tif']);
+maskList = maskList(1:dsfactor:end);
+
+data.framerate = data.framerate*dsfactor;
+data.movieLength = length(maskList);
+%data.framePaths
+%data.maskPaths
 
 sigma = sigmaV(mCh);
-%w2 = ceil(2*sigma);
 w3 = ceil(3*sigma);
 w4 = ceil(4*sigma);
 
@@ -93,7 +100,6 @@ if exist(tPath, 'file')==2
     msIdx = arrayfun(@(x) size(x.seqOfEvents, 1)>2, trackinfo);
     nMergeSplit = length(msIdx);
     trackinfo(msIdx) = [];
-    
     nTracks = length(trackinfo);
     
 elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
@@ -124,6 +130,7 @@ tracks(1:nTracks) = struct('t', [],...
 %==============================
 fprintf('TrackAnalysis - Converting tracker output:     ');
 for k = 1:nTracks
+    
     if ~isstruct(trackinfo)
         x = trackinfo(k,1:8:end); % COM coordinates
         y = trackinfo(k,2:8:end);
@@ -137,9 +144,9 @@ for k = 1:nTracks
         tracks(k).xcom = x(firstIdx:lastIdx);
         tracks(k).ycom = y(firstIdx:lastIdx);
         tracks(k).maskI = maskI(firstIdx:lastIdx);
-    else
+    else % new tracker
         % convert/assign structure fields
-        tracks(k).xcom = trackinfo(k).tracksCoordAmpCG(1:8:end);
+        tracks(k).xcom = trackinfo(k).tracksCoordAmpCG(1:8:end); %%%%%%%%%% change field names
         tracks(k).ycom = trackinfo(k).tracksCoordAmpCG(2:8:end);
         tracks(k).maskI = trackinfo(k).tracksCoordAmpCG(4:8:end);
         tracks(k).seqOfEvents = trackinfo(k).seqOfEvents;
@@ -148,36 +155,27 @@ for k = 1:nTracks
         firstIdx = trackinfo(k).seqOfEvents(1,1);
         lastIdx = trackinfo(k).seqOfEvents(end,1);
     end
-
-    tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
-    tracks(k).lifetime_s = (lastIdx-firstIdx+1)*data.framerate;
+    
+    tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate*dsfactor;
+    tracks(k).lifetime_s = (lastIdx-firstIdx+1)*data.framerate*dsfactor;
     
     tracks(k).start = firstIdx;
     tracks(k).end = lastIdx;
-    
+
     %==============================================================================
     % Read amplitude & background from detectionResults.mat (localization results)
     %==============================================================================
-    nf = length(tracks(k).xcom);
-    
-    tracks(k).x = NaN(nCh,nf);
-    tracks(k).y = NaN(nCh,nf);
-    tracks(k).A = NaN(nCh, nf);
-    tracks(k).c = NaN(nCh, nf);
-    
-    tracks(k).x_pstd = NaN(nCh,nf);
-    tracks(k).y_pstd = NaN(nCh,nf);
-    tracks(k).A_pstd = NaN(nCh,nf);
-    tracks(k).c_pstd = NaN(nCh, nf);
-    
-    tracks(k).sigma_r = NaN(nCh, nf);
-    tracks(k).SE_sigma_r = NaN(nCh, nf);
-    
-    tracks(k).pval_Ar = NaN(nCh,nf);
+    nf = length(tracks(k).t);
+
+    % field names with multiple channels
+    mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
+    for f = 1:length(mcFieldNames)
+        tracks(k).(mcFieldNames{f}) = NaN(nCh,nf);
+    end
     tracks(k).pval_KS = NaN(1,nf);
     tracks(k).isPSF = NaN(1,nf);
     
-    frameRange = tracks(k).start:tracks(k).end;
+    frameRange = dsfactor*(tracks(k).start:tracks(k).end) - (dsfactor-1);
     
     for i = 1:length(frameRange)
         if isstruct(trackinfo)
@@ -185,24 +183,13 @@ for k = 1:nTracks
         else
             idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
         end
+        
         if idx ~= 0
-            tracks(k).x(:,i) = frameInfo(frameRange(i)).x(:,idx);
-            tracks(k).y(:,i) = frameInfo(frameRange(i)).y(:,idx);
-            tracks(k).A(:,i) = frameInfo(frameRange(i)).A(:,idx);
-            tracks(k).c(:,i) = frameInfo(frameRange(i)).c(:,idx);
-            
-            tracks(k).x_pstd(:,i) = frameInfo(frameRange(i)).x_pstd(:,idx);
-            tracks(k).y_pstd(:,i) = frameInfo(frameRange(i)).y_pstd(:,idx);
-            tracks(k).A_pstd(:,i) = frameInfo(frameRange(i)).A_pstd(:,idx);
-            tracks(k).c_pstd(:,i) = frameInfo(frameRange(i)).c_pstd(:,idx);
-            
-            tracks(k).sigma_r(:,i) = frameInfo(frameRange(i)).sigma_r(:,idx);
-            tracks(k).SE_sigma_r(:,i) = frameInfo(frameRange(i)).SE_sigma_r(:,idx);
-            
-            tracks(k).pval_Ar(:,i) = frameInfo(frameRange(i)).pval_Ar(:,idx);
+            for f = 1:length(mcFieldNames)
+                tracks(k).(mcFieldNames{f})(:,i) = frameInfo(frameRange(i)).(mcFieldNames{f})(:,idx);
+            end
             tracks(k).pval_KS(i) = frameInfo(frameRange(i)).pval_KS(idx);
             tracks(k).isPSF(i) = frameInfo(frameRange(i)).isPSF(idx);
-            %tracks(k).maskI(i) = frameInfo(frameRange(i)).amp(idx);
         end
     end
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
@@ -260,7 +247,16 @@ for k = 1:nTracks
 %                 tracks(k).(fnames{f})(rmIdx) = [];
 %             end
 %         end
+
+    %mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
+
+
+%     for f = 1:length(mcFieldNames)
+%         tracks(k).(mcFieldNames{f})(:,i) = frameInfo(frameRange(i)).(mcFieldNames{f})(:,idx);
+%     end
+
         tracks(k).t(rmIdx) = [];
+        
         tracks(k).x(:,rmIdx) = [];
         tracks(k).x_pstd(:,rmIdx) = [];
         tracks(k).y(:,rmIdx) = [];
@@ -278,9 +274,8 @@ for k = 1:nTracks
         
         tracks(k).pval_KS(rmIdx) = [];
         tracks(k).isPSF(rmIdx) = [];
-        %tracks(k).maskI(rmIdx) = [];
         
-        tracks(k).lifetime_s = trackLength*data.framerate;
+        tracks(k).lifetime_s = trackLength*data.framerate*dsfactor;
     end
     
     
@@ -502,6 +497,8 @@ fprintf('\n');
 bStart = [tracks.start] - max(1, [tracks.start]-buffer);
 bEnd = min(data.movieLength, [tracks.end]+buffer) - [tracks.end];
 
+
+
 fprintf('TrackAnalysis - Gap interpolation & generation of track buffers:     ');
 for f = 1:data.movieLength
 
@@ -606,12 +603,12 @@ end
 fprintf('\n');
 
 
-
-
-
 %==========================================
 % Save results
 %==========================================
+data.tracks = tracks;
+data.nMergeSplit = nMergeSplit;
+
 if ~(exist([data.source 'Tracking'], 'dir')==7)
     mkdir([data.source 'Tracking']);
 end
