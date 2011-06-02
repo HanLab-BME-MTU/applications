@@ -1,4 +1,4 @@
-function [ output_args ] = plusTipGetHitsTake2( saveDir,groupList,stringency,testID1,testID2 )
+function [ output_args ] = plusTipGetHits( saveDir,groupList,stringency,testID1,testID2 )
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -138,11 +138,18 @@ for iHit = 1:length(hitsIdx.(nameOfField))
     hitsList{iHit,4} = discrimMats.(nameOfField)(hitsIdx.(nameOfField)(iHit),1);
 end % iHit
 
-%Save in Larger Structure
+%Save in Larger Structure (but only if there is a hit)
+   
+    
+    
+    if isempty(hitsList) ~= 1
     hits.(nameOfField) = [titleHits ; hitsList];
+    end 
 end 
 
 save([saveDir filesep 'hitsTest1'],'hits');
+
+
 
 
 %% Do Same for Second Test
@@ -172,11 +179,16 @@ for iHit = 1:length(hitsIdx.(nameOfField))
     hitsList{iHit,4} = discrimMats.(nameOfField)(1,hitsIdx.(nameOfField)(iHit));
 end % iHit
 
-%Save in Larger Structure
+%Save in Larger Structure (but only if there is a hit)
+   
+    if isempty(hitsList) ~=  1 
     hits.(nameOfField) = [titleHits ; hitsList];
+    end 
+    
 end 
 
 save([saveDir filesep 'hitsTest2'],'hits');
+
 
 
 
