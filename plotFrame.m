@@ -74,7 +74,7 @@ switch ip.Results.mode
             error('Mask overlay mode only supports 1 channel.');
         end
         % Display mask only where available
-        if (exist([data.channels{ch} 'Detection' filesep 'detectionResults.mat'], 'file')==2)
+        if (exist(data.maskPaths{frameIdx}, 'file')==2)
             frame = double(imread(data.framePaths{ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
             frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
