@@ -29,13 +29,14 @@ function [data] = loadConditionData(condDir, chNames, markers, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
+ip.FunctionName = 'loadConditionData';
 ip.addOptional('condDir', [], @ischar);
 ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
 ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
 ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
-ip.parse(condDir, chNames, markers, varargin{:});
+ip.parse(varargin{:});
 
 condDir = ip.Results.condDir;
 markers = ip.Results.markers;
