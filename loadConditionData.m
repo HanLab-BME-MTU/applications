@@ -9,7 +9,7 @@ function [data] = loadConditionData(condDir, chNames, markers, varargin)
 %                         {chNames} : cell array of channel names
 %                         {markers} : cell array of fluorescent markers
 %             {'Parameters', value} : vector of microscope parameters: [NA M pixelSize]
-%          {'MovieSelector', value} : selector string for movie folders
+%          {'MovieSelector', value} : selector string for movie folders, i.e., 'cell'
 %     {'IgnoreEmptyFolders', value} : true | {false}; ignores cell folders that do not contain TIFF frames
 %
 % OUTPUT   data: structure with the fields
@@ -145,6 +145,13 @@ for k = 1:nCells
         data(k).framePaths = framePaths;
         data(k).imagesize = size(imread(framePaths{1}{1}));
         data(k).movieLength = length(framePaths{1});
+    elseif exist([data(k).source 'Detection' filesep 'detection_v2.mat'], 'file')==2
+        d = load([data(k).source 'Detection' filesep 'detection_v2.mat']);
+        if isfield(d, 'data')
+            data(k).framePaths = d.data.framePaths;
+            data(k).imagesize = d.data.imagesize;
+            data(k).movieLength = d.data.movieLength;
+        end
     end
     
     maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
