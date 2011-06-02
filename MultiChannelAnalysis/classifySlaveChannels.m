@@ -1,36 +1,19 @@
-% Francois Aguet, October 2010
+% Francois Aguet, October 2010 (last modified: 06/30/2011)
 
 function tracks = classifySlaveChannels(data, tracks)
 
-% intensity-based classification of slave channels alone is unreliable
-% measure: correlation (time-based max)
-% compare with spline-based detection on Allen's data
-
-% procedure:
-% 1) Randomly selected in each frame are linked as phantom tracks
-
-
-% Approach A.) independent of master channel
-% 1) use track + mask ->
-% decision frame by frame
-% level above background: x * std(background)
-% distrib. of x -> cutoff
-
 % Significance thresholds
 alpha = 0.05;
-% sigmaT = icdf('normal', 1-alpha/2, 0, 1);
-sigmaT = icdf('normal', 1-alpha, 0, 1); % weaker, single-tailed
+% sigmaT = icdf('normal', 1-alpha/2, 0, 1); % ~2 sigma
+sigmaT = icdf('normal', 1-alpha, 0, 1); % weaker, single-tailed (~1.6 sigma)
 
 
 %=================================
 % Determine master/slave channels
 %=================================
-% detect number of channels (up to 4)
-nChannels = length(data.channels);
-% exclude master from list of channels
-masterChannel = regexp(data.source, data.channels);
-masterChannel = find([masterChannel{:}]);
-slaveChannels = setdiff(1:nChannels, masterChannel);
+nCh = length(data.channels); % number of channels
+masterChannel = strcmp(data.source, data.channels);
+slaveChannels = setdiff(1:nCh, masterChannel);
 
 sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{masterChannel});
 w = ceil(4*sigma);
@@ -60,7 +43,7 @@ maskList = dir([data.source 'Detection' filesep 'Masks' filesep '*.tif']);
 
 i = 1;
 for k = 1:10:data.movieLength
-
+    
     % load mask, dilate, -mask
     mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(k).name]));
     mask(mask~=0) = 1;
@@ -69,11 +52,6 @@ for k = 1:10:data.movieLength
     dmask(dmask~=0) = 1;
     %dmask = dmask - mask;
     %dmask(dmask<0) = 0;
-
-    % generate background points
-    % ny = data.imagesize(1);
-    % nx = data.imagesize(2);
-    
     
     % % in first frame, determine proportion of positive detections in background
     %
@@ -123,18 +101,15 @@ for k = 1:10:data.movieLength
     
     frameList = dir([data.channels{2} '*.tif*']);
     frame = double(imread([data.channels{2} frameList(10).name]));
-    %mask = double(imread([data.source 'Detection' filesep 'Masks' filesep maskList(k).name]));
-    
     
     % ctrlStatus = zeros(1, npRef);
     N = sum(bgMask(:));
     
     %=========================================================================
-    % Note: the following code is taken from pointSourceDetection.m
+    % Note: the following code is adapted from pointSourceDetection.m
     %=========================================================================
     
     % Gaussian kernel
-    %w = ceil(4*sigma);
     x = -w:w;
     g = exp(-x.^2/(2*sigma^2));
     u = ones(1,length(x));
@@ -183,22 +158,22 @@ for k = 1:10:data.movieLength
     % mask of admissible positions for local maxima
     mask = pval > 0.95;
     
-    % background at each pixel
-%     E = conv2(padarray(frame, [w w], 'replicate'), bgMask/N, 'valid');
-%     E2 = conv2(padarray((frame).^2, [w w], 'replicate'), bgMask/N, 'valid');
-%     cStdMap = sqrt(N/(N-1) * (E2-E.^2));
-%     cMap = E;
-%     
-%     % amplitude map
-%     gL2 = pi*sigma^2;
-%     g = exp(-(-w:w).^2/(2*sigma^2));
-%     aMap = conv2(g', g, padarray(frame, [w w], 'replicate'), 'valid');
-%     aMap = (aMap-2*pi*sigma^2*cMap) / gL2;
-%     
-%     % figure; imagesc(aMap); colormap(gray(256)); axis image; colorbar;
-%     testMap = aMap > sigmaT * cStdMap;
-
-%     p(i) = sum(testMap(:)) / sum(dmask(:));
+    % old threshold/test: background at each pixel
+    %     E = conv2(padarray(frame, [w w], 'replicate'), bgMask/N, 'valid');
+    %     E2 = conv2(padarray((frame).^2, [w w], 'replicate'), bgMask/N, 'valid');
+    %     cStdMap = sqrt(N/(N-1) * (E2-E.^2));
+    %     cMap = E;
+    %
+    %     % amplitude map
+    %     gL2 = pi*sigma^2;
+    %     g = exp(-(-w:w).^2/(2*sigma^2));
+    %     aMap = conv2(g', g, padarray(frame, [w w], 'replicate'), 'valid');
+    %     aMap = (aMap-2*pi*sigma^2*cMap) / gL2;
+    %
+    %     % figure; imagesc(aMap); colormap(gray(256)); axis image; colorbar;
+    %     testMap = aMap > sigmaT * cStdMap;
+    
+    %     p(i) = sum(testMap(:)) / sum(dmask(:));
     p(i) = sum(mask(:)) / sum(dmask(:));
     i = i+1;
 end
@@ -210,17 +185,17 @@ p = mean(p);
 %     % pick random mask
 %     mi = unidrnd(length(xm));
 %     maskWindow = ~mask(ymi(mi)-w:ymi(mi)+w, xmi(mi)-w:xmi(mi)+w);
-%     
+%
 %     % background estimate
 %     c = mean(window(maskWindow));
 %     cStd = std(window(maskWindow));
-% 
+%
 %     prm = fitGaussian2D(window, [0 0 max(window(:))-c sigma c], 'xyA');
 %     %prm = fitGaussian2D(window, [x(p)-xi(p) y(p)-yi(p) max(window(:))-c sigma c], 'A');
 %     %prm = fitGaussian2D(window, [xm(mi)-xmi(mi) ym(mi)-ymi(mi) max(window(:))-c sigma c], 'A');
 %     A = prm(3);
 %     ctrlStatus(p) = A > sigmaT*cStd;
-%     
+%
 %     if A > sigmaT*cStd
 %         prm
 %         figure; imagesc(window); colormap(gray(256)); axis image;
@@ -229,32 +204,10 @@ p = mean(p);
 %         figure; imagesc(maskWindow); colormap(gray(256)); axis image;
 %         return
 %     end
-%     
-%     
+%
+%
 % end
 % fprintf('Ch. %d background detections: %d/%d (%.2f %%)\n', 2, sum(ctrlStatus), npRef, 100*sum(ctrlStatus)/npRef);
-
-
-
-% for c = slaveChannels
-% 
-%     % list of frames channel
-%     
-%     
-% 
-% bgMask = filterGauss2D(frame, 4, 'symmetric');
-% bgMask = bgMask/max(bgMask(:));
-% %bgMask = im2bw(bgMask, graythresh(bgMask(mask~=1)));
-% 
-% bgMask = im2bw(bgMask, graythresh(bgMask));
-% sum(bgMask(:))
-% 
-% %bgMask = imclose(bgMask, strel('disk', 20));
-% figure; imagesc(frame); colormap(gray(256)); axis image;
-% figure; imagesc(bgMask); colormap(gray(256)); axis image;
-% 
-% % 
-% 
 
 
 %=================================
@@ -262,7 +215,7 @@ p = mean(p);
 %=================================
 
 %=================================
-% Classify tracks in slave channels 
+% Classify tracks in slave channels
 %=================================
 
 % steps for required to reject H_0: binomial
@@ -270,28 +223,53 @@ p = mean(p);
 
 % Loops through all the tracks
 for k = 1:length(tracks);
-    cStatus = NaN(nChannels, 1);
-    cStatusVector = NaN(nChannels, length(tracks(k).x)); 
-    for c = 1:nChannels %slaveChannels
-        binary = tracks(k).A(c,:) > sigmaT * tracks(k).sigma_r(c,:);
+    
+    nt = numel(tracks(k).t);
+    tracks(k).A_binary = NaN(nCh, nt);
+    %tracks(k).signalSignificance = NaN(nCh,1);
+    tracks(k).significantSignal = NaN(nCh,1);
+    tracks(k).significantSignal_buffered = NaN(nCh,1);
+    
+    for c = 1:nCh % loop through all channels
+        tracks(k).A_binary(c,:) = tracks(k).A(c,:) > sigmaT * tracks(k).sigma_r(c,:);
+        % To do: apply clustering algorithm in place of global analysis
         % posLengths = find(diff([bd 0])==-1) - find(diff([0 bd 0])==1) + 1;
         
-        %binoT = binoinv(0.95, length(tracks(k).x), sum(ctrlStatus)/npRef);
-        binoT = binoinv(0.95, length(tracks(k).x), p);
-        %if max(binary) > 0%nBinSteps
-        if sum(binary) > binoT
-            cStatus(c) = 1;
+        if sum(tracks(k).A_binary(c,:)) > binoinv(0.95, nt, p);
+            tracks(k).significantSignal(c) = 1;
         else
-            cStatus(c) = 0;
+            tracks(k).significantSignal(c) = 0;
         end
-        cStatusVector(c,:) = binary;
+        
+        if isfield(tracks(k), 'startBuffer') && isfield(tracks(k), 'endBuffer')
+            tracks(k).startBuffer.A_binary(c,:) = tracks(k).startBuffer.A(c,:) > sigmaT * tracks(k).startBuffer.sigma_r(c,:);
+            tracks(k).endBuffer.A_binary(c,:) = tracks(k).endBuffer.A(c,:) > sigmaT * tracks(k).endBuffer.sigma_r(c,:);
+            
+            % test extended track
+            A_binary_XT = [tracks(k).startBuffer.A_binary(c,:) tracks(k).A_binary(c,:) tracks(k).endBuffer.A_binary(c,:)];
+            if sum(A_binary_XT) > binoinv(0.95, numel(A_binary_XT), p)
+                tracks(k).significantSignal_buffered(c) = 1;
+            else
+                tracks(k).significantSignal_buffered(c) = 0;
+            end
+            
+            % test each buffer individually
+            if sum(tracks(k).startBuffer.A_binary(c,:)) > binoinv(0.95, size(tracks(k).startBuffer.A,2), p)
+                tracks(k).startBuffer.significantSignal(c) = 1;
+            else
+                tracks(k).startBuffer.significantSignal(c) = 0;
+            end
+            if sum(tracks(k).endBuffer.A_binary(c,:)) > binoinv(0.95, size(tracks(k).endBuffer.A,2), p)
+                tracks(k).endBuffer.significantSignal(c) = 1;
+            else
+                tracks(k).endBuffer.significantSignal(c) = 0;
+            end
+        end
     end
-    tracks(k).cStatus = cStatus;
-    tracks(k).cStatusVector = cStatusVector;
 end
 
 for c = slaveChannels
-    nPos = sum(arrayfun(@(x) x.cStatus(c), tracks));
+    nPos = sum(arrayfun(@(x) x.significantSignal(c), tracks));
     fprintf('Ch. %d positive tracks: %d/%d (%.2f %%)\n', c, nPos, length(tracks), 100*nPos/length(tracks));
 end
 
@@ -313,6 +291,6 @@ end
 % maskInt(maskInt~=0) = 1;
 % maskInt = imclose(maskInt, strel('disk', 2*w));
 % maskInt = ~imclose(~maskInt, strel('disk', 2*w));
-% 
-% 
-% 
+%
+%
+%
