@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 25-May-2011 16:28:29
+% Last Modified by GUIDE v2.5 31-May-2011 00:30:44
 
 % Francois Aguet, September 2010
 
@@ -324,7 +324,7 @@ if strcmp(handles.displayType, 'RGB')
         hold(handles.fAxes{1}, 'off');
     end
     
-else
+else % all modes except RGB
     if length(handles.fAxes)~=handles.nCh
         handles = setupFrameAxes(handles);
     end
@@ -368,7 +368,6 @@ else
                 plot(handles.fAxes{c}, d.xloc, d.yloc, 'gx', 'MarkerSize', 8);
             end
         end
-        hold(handles.fAxes{c}, 'off');
         
         if get(handles.('labelCheckbox'), 'Value')
             % plot channel name
@@ -380,6 +379,28 @@ else
                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
                 'Parent', handles.fAxes{c});
         end
+        
+        % plot EAP status
+        if get(handles.('eapCheckbox'), 'Value')
+            if c ~= handles.masterChannel
+                % all tracks
+                tracks = handles.tracks{chIdx};
+                % tracks visible in current frame
+                idx = [tracks.start]<=f & f<=[tracks.end];
+                tracks = tracks(idx);
+                % EAP status
+                eapIdx = [tracks.significantSignal];
+                eapIdx = eapIdx(c,:);
+                % relative position in track
+                fIdx = f-[tracks.start]+1;
+                x = arrayfun(@(i) tracks(i).x(c,fIdx(i)), 1:length(tracks));
+                y = arrayfun(@(i) tracks(i).y(c,fIdx(i)), 1:length(tracks));
+  
+                plot(handles.fAxes{c}, x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
+                plot(handles.fAxes{c}, x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
+            end            
+        end
+        hold(handles.fAxes{c}, 'off');
     end
 end
 
@@ -718,6 +739,14 @@ refreshFrameDisplay(hObject, handles);
 % --- Executes on button press in trackCheckbox.
 function trackCheckbox_Callback(hObject, ~, handles)
 % hObject    handle to trackCheckbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+refreshFrameDisplay(hObject, handles);
+
+
+% --- Executes on button press in eapCheckbox.
+function eapCheckbox_Callback(hObject, ~, handles)
+% hObject    handle to eapCheckbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 refreshFrameDisplay(hObject, handles);
