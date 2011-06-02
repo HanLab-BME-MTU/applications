@@ -1,4 +1,4 @@
-function [data] = loadConditionData(condDir, chNames, markers, varargin)
+function [data] = loadConditionData(varargin)
 % loadConditionData loads the relevant information for all the data
 % available for a specific data condition; this requires a specific
 % directory structure and nomenclature (see below)
@@ -39,6 +39,7 @@ ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
 ip.parse(varargin{:});
 
 condDir = ip.Results.condDir;
+chNames = ip.Results.chNames;
 markers = ip.Results.markers;
 parameters = ip.Results.Parameters;
 movieSelector = ip.Results.MovieSelector;
