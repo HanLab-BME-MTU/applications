@@ -19,7 +19,7 @@ costMatrices(1).funcName = 'costMatEndosomesLink';
 parameters.linearMotion = 0; %use linear motion Kalman filter.
 
 parameters.minSearchRadius = 5; %minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
-parameters.maxSearchRadius = 5; %maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
+parameters.maxSearchRadius = 10; %maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
 parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.
 
 parameters.useLocalDensity = 1; %1 if you want to expand the search radius of isolated features in the linking (initial tracking) step.
@@ -45,7 +45,7 @@ costMatrices(2).funcName = 'costMatEndosomesCloseGaps';
 parameters.linearMotion = 0; %use linear motion Kalman filter.
 
 parameters.minSearchRadius = 5; %minimum allowed search radius.
-parameters.maxSearchRadius = 5; %maximum allowed search radius.
+parameters.maxSearchRadius = 10; %maximum allowed search radius.
 parameters.brownStdMult = 3*ones(gapCloseParam.timeWindow,1); %multiplication factor to calculate Brownian search radius from standard deviation.
 
 parameters.brownScaling = [0.2 0.01]; %power for scaling the Brownian search radius with time, before and after timeReachConfB (next parameter).
