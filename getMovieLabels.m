@@ -1,23 +1,21 @@
 function movieData = getMovieLabels(movieData, method, varargin)
 
-% Verify that windows and protusion vectors are available
-checkMovieData = @(movieData) checkMovieWindows(movieData) && ...
-    checkMovieProtrusion(movieData);
+validMethods = {'band', 'sector', 'window'};
+isValidMethod = @(m) any(strcmp(m,validMethods));
 
 ip = inputParser;
 ip.CaseSensitive = true;
-ip.addRequired('movieData', checkMovieData);
-ip.addParamValue('protName', 'protSamples.mat', @isstr);
+ip.addRequired('movieData', @checkMovieWindows);
+ip.addRequired('method', isValidMethod);
 ip.addParamValue('batchMode', true, @islogical);
 
-ip.parse(movieData, varargin{:});
-protName = ip.Results.protName;
+ip.parse(movieData, method, varargin{:});
 batchMode = ip.Results.batchMode;
 
 %Indicate that labeling was started
 movieData.labels.status = 0;
 
-imSize = movieData.imSize';
+imSize = movieData.imSize;
 
 %Load the windows
 load([movieData.windows.directory filesep movieData.windows.fileName]);
