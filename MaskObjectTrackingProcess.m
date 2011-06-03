@@ -53,7 +53,13 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
                              exist(obj.outFilePaths_{x},'file')),iChan);
                              
         end
-                        
+        function sanityCheck(obj)
+            
+        end
+           
+        function getName
+        end                                                    
+        
     end
     
 end

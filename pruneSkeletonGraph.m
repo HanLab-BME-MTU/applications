@@ -149,7 +149,7 @@ for j = 1:nMult
                     title('Mutliple-Edge Pruning')
                 end
 
-                plot3(edgePaths{iSharing(2)}(:,2),edgePaths{iSharing(2)}(:,1),edgePaths{iSharing(1)}(:,3),'rx','MarkerSize',20)
+                plot3(edgePaths{iSharing(2)}(:,2),edgePaths{iSharing(2)}(:,1),edgePaths{iSharing(2)}(:,3),'rx','MarkerSize',20)
                 plot3(edgePaths{iSharing(1)}(:,2),edgePaths{iSharing(1)}(:,1),edgePaths{iSharing(1)}(:,3),'bo','MarkerSize',20)
             end
 
@@ -308,7 +308,7 @@ for j = 1:nEdges
         segLength = sqrt(sum(diff(edgePaths{j},1,1) .^2,2));
 
         %Get the index of the degree-1 vertex
-        iDeg1 = edges(j,edVertDeg==1);
+        iDeg1 = find(edges(j,edVertDeg==1),1);
         %Find which end of the edgepath connects to this vertex
         dStart = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(1,:)) .^2));
         dEnd = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(end,:)) .^2));

@@ -80,7 +80,7 @@ end
 %Label the mask so we can calculate object-specific properties
 maskCC = bwconncomp(maskIn);
 labelMask = labelmatrix(maskCC);
-nObj = maskCC.NumObjects;
+[~,objInd] = sort(cellfun(@numel,maskCC.PixelIdxList),'descend');%Sort the objects by size.
 
 
 %Initialize mask property structure
@@ -106,7 +106,7 @@ for iObj = 1:nObj
     if smoothMethod == 1
         
         %Smooth the mask
-        maskSmooth = fastGauss3D(labelMask == iObj,1,[5 5 5],2);
+        maskSmooth = fastGauss3D(labelMask == objInd(iObj),1,[5 5 5],2);
         %Ge the isosurface and normals                
         maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,.25);
         maskProp(iObj).SurfaceNorms = isonormals(maskSmooth,maskProp(iObj).SmoothedSurface.vertices);        
@@ -114,7 +114,7 @@ for iObj = 1:nObj
     else
         
         %Get the mask surface for this object
-        maskProp(iObj).SmoothedSurface = isosurface(labelMask == iObj,0);
+        maskProp(iObj).SmoothedSurface = isosurface(labelMask == objInd(iObj),0);
 
         if smoothIter > 0    
             %Smooth the mask surface
@@ -138,20 +138,20 @@ for iObj = 1:nObj
         sqrt(maskProp(iObj).MeanCurvature .^2 - maskProp(iObj).GaussianCurvature);
 
     %Get distance transform of interior of this object
-    distX = bwdist(~(labelMask==iObj));
+    distX = bwdist(~(labelMask==objInd(iObj)));
 
     %Get x-y-z coordinates of each point in this object.
     objCoord = [];
     [objCoord(:,2),objCoord(:,1),objCoord(:,3)] = ...
-        ind2sub(size(maskIn),maskCC.PixelIdxList{iObj});
+        ind2sub(size(maskIn),maskCC.PixelIdxList{objInd(iObj)});
     
-    maskProp(iObj).PixelList = maskCC.PixelIdxList{iObj};
+    maskProp(iObj).PixelList = maskCC.PixelIdxList{objInd(iObj)};
     maskProp(iObj).Centroid(iObj,:) = mean(objCoord,1);
-    maskProp(iObj).Volume(iObj) = numel(maskCC.PixelIdxList{iObj});
+    maskProp(iObj).Volume(iObj) = numel(maskCC.PixelIdxList{objInd(iObj)});
     
     %Find centermost point of this object
     currDistX = zeros(size(maskIn));
-    currDistX(maskCC.PixelIdxList{iObj}) = distX(maskCC.PixelIdxList{iObj});    
+    currDistX(maskCC.PixelIdxList{objInd(iObj)}) = distX(maskCC.PixelIdxList{objInd(iObj)});    
     maskProp(iObj).CenterMostDist(iObj) = max(currDistX(:));
     %Get x-y-z coordinates of this point
     [maskProp(iObj).CenterMost(:,2),maskProp(iObj).CenterMost(:,1),...

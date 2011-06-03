@@ -89,8 +89,9 @@ for iMov = 1:nMovies
         
             currSkel = MA(iMov).processes_{iSkProc}.loadChannelOutput(p.ChannelIndex,iFrame);
             
-            skelStats = skelGraphStats(currSkel.vertices,currSkel.edges,currSkel.edgePaths);
-                        
+            %skelStats = skelGraphStats(currSkel.vertices,currSkel.edges,currSkel.edgePaths);
+            skelStats.vertexDegree = graphVertDegree(currSkel.edges,size(currSkel.vertices,1)); 
+            
             vdHists{iMov}(iFrame,:) = histc(skelStats.vertexDegree(skelStats.vertexDegree > 0),histBins);            
                         
             

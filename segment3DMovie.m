@@ -79,8 +79,9 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %% ----- Parameters ---- %%
 
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled. %TEMP - allow user-specification
-gSig = .5; %Sigma of the filter used in the smoothed gradient filter.
+%gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
 dName = 'masks_channel_'; %Name for mask directories
+
 
 %% ------ Input ----- %%
 
@@ -102,6 +103,10 @@ if nargin < 2
 end
 
 p = parseProcessParams(movieData.processes_{iSegProc},paramsIn);
+
+%TEMP!!!! 
+p.PreFilterSig = 0;
+
 
 if isempty(p.ChannelIndex)
     %Default is to use all channels
@@ -157,6 +162,14 @@ for iChan = 1:nChanSeg
 
         %Load the current image
         currIm = stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);
+        
+        
+        %Pre-filter the image if requested
+        if p.PreFilterSig > 0
+            ogClass = class(currIm);
+            currIm = filterGauss3D(double(currIm),p.PreFilterSig,'symmetric');
+            currIm = cast(currIm,ogClass);%Cast back so Otsu will work...
+        end
                
         % ---- Perform initial segmentation ---- %
         if isempty(p.ThresholdValue)
@@ -180,19 +193,26 @@ for iChan = 1:nChanSeg
                             % Jumps enabled
                             currThresh = Inf;                        
                         else
-                            %Otherwise, throw an error.
+                            bsFill%Otherwise, throw an error.
                             error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
                         end                    
                     end
 
                 case 'Gradient'
-
-                    %Filter the image
-                    currIm = filterGauss3D(double(currIm),.5,'symmetric');
+% NOW HHAVE PRE-FILTERING, NOT NECESSARY
+%                     %Filter the image
+%                     currIm = filterGauss3D(double(currIm),gSig,'symmetric');
                     %Get gradient of filtered image
-                    [gX,gY,gZ] = gradient(currIm);
+                    [gX,gY,gZ] = gradient(double(currIm));
                     %and magnitude of gradient
                     currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2);
+                    
+                    %There are often strong intensity variations in the
+                    %first few stacks at top and bottom, so we just cut
+                    %these out. - TEMP??! -HLE
+                    nCut = 4;
+                    currIm(:,:,1:nCut) = min(currIm(:));
+                    currIm(:,:,end:-1:end-nCut) = min(currIm(:));                    
                         
                     %MATITK is slow, so I stopped using it - HLE
                     %Use MATITK for smoothed gradient calculation  
@@ -240,7 +260,7 @@ for iChan = 1:nChanSeg
                 end
             end                
                 
-        elseif iImage == 1
+        else
             currThresh = p.ThresholdValue;
         end
         

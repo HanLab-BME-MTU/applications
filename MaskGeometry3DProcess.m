@@ -78,7 +78,13 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
             end
             mg = mg.(fNames{1});
         end
+        
+        function sanityCheck(obj)
             
+        end
+           
+        function getName
+        end        
             
         
     end    

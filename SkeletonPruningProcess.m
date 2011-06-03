@@ -86,6 +86,15 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
                 
             
         end
+        
+        function sanityCheck(obj)
+            
+        end
+           
+        function getName
+        end        
+            
+
 
 
     end
