@@ -2,7 +2,7 @@ function runBatchProcessVinculinMovies
 
 % parent directory of every movie to be analyzed
 params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con';
-%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/062609_con_CSUX_1';
+%params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/cre/102709_cre_CSUX_8';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_2';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/completed/con/052710_con_CSUX_5';
 %params.rootDirectory = '/home/sb234/Projects/VinculinFA/SDC Y27632 20s';
@@ -20,9 +20,10 @@ params.procNames = {...
     'protrusion',...
     'windows',...
     'protrusionSamples',...
+    'labels',...
     'figures'};
 
-params.runSteps = [0 0 0 0 0 1 1 1 0];
+params.runSteps = [0 0 0 0 0 0 0 0 0 1];
 params.batchMode = false;
 
 % Physical parameters
@@ -91,10 +92,15 @@ params.protrusionSamples.optional.protName = ['protSamples_' ...
     params.windows.optional.methodStr '_' ...
     params.windows.optional.windowName  '.mat'];
 
-% PROC 9: figures
+% PROC 9: window labeling
+params.labels.required.method = 'sector';
+params.labels.optional = struct();
+
+% PROC 10: figures
 params.figures.required.bandWidth = 12000;     % nm
 params.figures.optional.minActinLifetime = 3;
 params.figures.optional.minSegmentsPerBin = 15;
+params.figures.optional.alpha = 1e-5;
 
 % Run all processes
 batchProcessMyMovies(params);
