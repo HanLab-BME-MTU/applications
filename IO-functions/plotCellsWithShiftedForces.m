@@ -86,10 +86,12 @@ for i=frameList
         forceScale=currForceScale;
     end
 end
-forceScale=1/4*forceScale;
+forceScale=1/2*forceScale;
+displScale=5;
 
 % calculate the length of the scale bars:
 lengthScaleBar_mu=5;
+uScaleBar_mu=lengthScaleBar_mu/displScale;
 fxScaleBar_Pa=1000;
 fyScaleBar_Pa=0;
 
@@ -103,20 +105,28 @@ for i=frameList
       
     % calculate the size of um in pixel for a scale bar:
     pixSize_mu=forceField(i).par.pixSize_mu;
-    lengthScaleBar_pix=lengthScaleBar_mu/pixSize_mu;  
-    
+    lengthScaleBar_pix=lengthScaleBar_mu/pixSize_mu;
+    uScaleBar_pix=uScaleBar_mu/pixSize_mu;
     % This is the original force field:    
     figure(1)
     colormap('gray');
     imagesc(I)
     hold on
-    quiver(forceField(i).pos(:,1),forceField(i).pos(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'b')
+    if nargin>=5 && ~isempty(displField(i))
+        quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)*displScale,displField(i).vec(:,2)*displScale,0,'b');
+    end    
+    quiver(forceField(i).pos(:,1),forceField(i).pos(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'r')
     % The scale bar um/pix:
     plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'w','LineWidth',3)
     text(theXlim-lengthScaleBar_pix-dPix, theYlim-dPix-textSpace,[num2str(lengthScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     % The scale bar for the stresses:
     quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'w','LineWidth',2,'MaxHeadSize',5)
     text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'w','FontSize',16)
+    if nargin>=5 && ~isempty(displField(i))
+        % The scale bar for the displacement:
+        quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-3*dPix,uScaleBar_pix*displScale,0,0,'w','LineWidth',2,'MaxHeadSize',5)
+        text(theXlim-lengthScaleBar_pix-dPix, theYlim-3*dPix-textSpace,[num2str(uScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
+    end
     %!!! Equal axis is important for dimension/y-forces scale to be accuarte!!!
     axis equal
     xlim([1 theXlim])
@@ -127,13 +137,16 @@ for i=frameList
     %saveas(gcf,[target_dir,filesep,'Cells_with_',fieldName,num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
     hold off
     
-    theXlim=465;
-    theYlim=465;
+    theXlim=850;
+    theYlim=535;
     % This is the shifted force field:
     figure(2)
     colormap('gray');
     imagesc(I)
     hold on
+    if nargin>=5 && ~isempty(displField(i))
+        quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)*displScale,displField(i).vec(:,2)*displScale,0,'b');
+    end
     quiver(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'r')
     % The scale bar um/pix:
     plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'w','LineWidth',3)
@@ -141,17 +154,22 @@ for i=frameList
     % The scale bar for the stresses:
     quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'w','LineWidth',2,'MaxHeadSize',5)
     text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'w','FontSize',16)
-%!!! Equal axis is important for dimension/y-forces scale to be accuarte!!!
-    axis equal 
-    title(['Cells with shifted forces, reg. param=',num2str(forceField.par.regParam)])
-    set(gca,'YDir','reverse')%,'XTick',[],'YTick',[])
+    if nargin>=5 && ~isempty(displField(i))
+        % The scale bar for the displacement:
+        quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-3*dPix,uScaleBar_pix*displScale,0,0,'w','LineWidth',2,'MaxHeadSize',5)
+        text(theXlim-lengthScaleBar_pix-dPix, theYlim-3*dPix-textSpace,[num2str(uScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
+    end
+    %!!! Equal axis is important for dimension/y-forces scale to be accuarte!!!
+    axis equal
+    %title(['Cells with shifted forces, reg. param=',num2str(forceField(i).par.regParam)])
+    set(gca,'YDir','reverse','XTick',[],'YTick',[])
     %xlim([1 theXlim])
     %ylim([1 theYlim])
-    xlim([45 theXlim])
-    ylim([45 theYlim])
+    xlim([525 theXlim])
+    ylim([350 theYlim])
     saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
     saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
-    saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
+    % print('-depsc2','-loose', [target_dir,filesep,'Cells_with_shifted_forces_HQ',num2str(i,['%0.',int2str(padZeros),'d']),'.eps']);
     hold off
     
     return;
