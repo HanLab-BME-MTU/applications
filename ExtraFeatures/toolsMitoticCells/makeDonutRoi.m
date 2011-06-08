@@ -9,7 +9,7 @@ imDir = [pwd filesep 'images'];
 [listOfImages] = searchFiles('.tif',[],imDir,0);
 fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
 img = double(imread(fileNameIm))./((2^bitDepth)-1);
-
+imgOrg = double(imread(fileNameIm))./((2^bitDepth-1)); 
 % Make a mask from the image where normalized values above 0.7 
 % and thus considered saturated are set to 1 and all non-saturated pixels
 % are set to zero. 
@@ -35,7 +35,10 @@ while dilate == 1
     
 
 figure; 
-imagesc(roiMask); 
+forFig = roiMask - imgOrg; 
+forFig(forFig < 0) = 0; 
+
+imagesc(forFig); 
 dilateMask = questdlg('Would You Like To Dilate the Donut Mask?', 'Dilate Mask?', 'Yes', 'No', 'Cancel', 'Yes');
 
 
@@ -53,8 +56,7 @@ switch dilateMask
         roiMaskDonutHole = bwmorph( roiMaskDonutHole,'erode'); 
         roiMask = roiMaskAll - roiMaskDonutHole;
         roiMask(roiMask<0) = 0; 
-        figure; 
-        imagesc(roiMask); 
+        
             case 'No'
                 dilate = 0; 
         end 
