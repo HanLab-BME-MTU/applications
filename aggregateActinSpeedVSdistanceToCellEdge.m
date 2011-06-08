@@ -1,7 +1,7 @@
 function aggregateActinSpeedVSdistanceToCellEdge(conDirectory, creDirectory, outputDirectory, alpha)
 
-cmd1 = ['find ' conDirectory ' -name ''*_DATA.mat''|grep [a-z]_DATA.mat'];
-cmd2 = ['find ' creDirectory ' -name ''*_DATA.mat''|grep [a-z]_DATA.mat'];
+cmd1 = ['find ' conDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
+cmd2 = ['find ' creDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
 [err1, result1] = system(cmd1);
 [err2, result2] = system(cmd2);
 
@@ -47,6 +47,9 @@ for iMovie = 1:nConMovies
     nConBin2(iMovie) = numel(data{2});
     muConBin2(iMovie) = mean(data{2});
     stdConBin2(iMovie) = std(data{2});
+    
+    fprintf(1, '%s: (BIN 1) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConBin1(iMovie), muConBin1(iMovie), stdConBin1(iMovie));
+    fprintf(1, '%s: (BIN 2) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConBin2(iMovie), muConBin2(iMovie), stdConBin2(iMovie));    
 end
 
 for iMovie = 1:nCreMovies    
@@ -60,6 +63,9 @@ for iMovie = 1:nCreMovies
     nCreBin2(iMovie) = numel(data{2});
     muCreBin2(iMovie) = mean(data{2});
     stdCreBin2(iMovie) = std(data{2});
+    
+    fprintf(1, '%s: (BIN 1) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreBin1(iMovie), muCreBin1(iMovie), stdCreBin1(iMovie));
+    fprintf(1, '%s: (BIN 2) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreBin2(iMovie), muCreBin2(iMovie), stdCreBin2(iMovie));    
 end
 
 nTotalConBin1 = sum(nConBin1);
@@ -86,8 +92,8 @@ SE = S ./ sqrt(N); % Standard Error of the mean
 hFig = figure('Visible', 'off');
 h = bar(Y, 'grouped');
 set(gca, 'FontName', 'Helvetica', 'FontSize', 14);
-set(gca, 'XTickLabel', {'0-1500 nm', '> 1500 nm'});
-ylabel('Actin Speed (nm/min)');
+set(gca, 'XTickLabel', {'0-1700 nm', '> 1700 nm'});
+ylabel('Actin Speed Outside Adhesions (nm/min)');
 hold on;
 
 hAxes = get(h, 'Children');
@@ -100,7 +106,7 @@ X = [XData1', XData2'];
 % Display Standard Error of the Mean
 errorbar(reshape(X,4,1), reshape(Y,4,1), reshape(1.96 * SE,4,1),'xk');
 
-% Perform the T-test on control
+% Perform the T-test on 2 control bins
 n1 = nTotalConBin1;
 n2 = nTotalConBin2;
 m1 = muTotalConBin1;
@@ -111,12 +117,12 @@ T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 +
 isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
 
 if isSignificant
-    y = max(Y(:,1) + S(:,1));
-    line(X(:,1), repmat(y + 40, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
-    text(mean(X(:,1)), y + 65, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
+    y = max(Y(:));
+    line(X(:,1), repmat(y + 80, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
+    text(mean(X(:,1)), y + 95, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
 end
 
-% Perform the T-test on null
+% Perform the T-test on 2 null bins
 n1 = nTotalCreBin1;
 n2 = nTotalCreBin2;
 m1 = muTotalCreBin1;
@@ -127,13 +133,47 @@ T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 +
 isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
 
 if isSignificant
-    y = max(Y(:,2) + S(:,2));
-    line(X(:,2), repmat(y + 10, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
-    text(mean(X(:,2)), y + 35, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
+    y = max(Y(:));
+    line(X(:,2), repmat(y + 130, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
+    text(mean(X(:,2)), y + 145, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
+end
+
+% Perform the T-test on the 1st control and null bins
+n1 = nTotalCreBin1;
+n2 = nTotalConBin1;
+m1 = muTotalCreBin1;
+m2 = muTotalConBin1;
+v1 = stdTotalCreBin1;
+v2 = stdTotalConBin1;
+
+T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
+isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
+
+if isSignificant
+    y = max(Y(:));
+    line(X(1,:), repmat(y + 20, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
+    text(mean(X(1,:)), y + 35, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
+end
+
+% Perform the T-test on the 2nd control and null bins
+n1 = nTotalCreBin2;
+n2 = nTotalConBin2;
+m1 = muTotalCreBin2;
+m2 = muTotalConBin2;
+v1 = stdTotalCreBin2;
+v2 = stdTotalConBin2;
+
+T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
+isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
+
+if isSignificant
+    y = max(Y(:));
+    line(X(2,:), repmat(y + 20, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
+    text(mean(X(2,:)), y + 35, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
 end
 
 % Saving
-fileName = fullfile(outputDirectory, 'aggregateActinSpeedVSdistanceToCellEdge_fig4C.eps');
+fileName = fullfile(outputDirectory, 'aggregateActinSpeedOutsideAdhVSdistanceToCellEdge_fig4C.eps');
 print(hFig, '-depsc', fileName);
 fixEpsFile(fileName);
 close(hFig);
