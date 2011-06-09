@@ -25,10 +25,10 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 09-Jun-2011 13:34:11
+% Last Modified by GUIDE v2.5 09-Jun-2011 16:57:33
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 0;
+gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @plusTipGetTracks_OpeningFcn, ...
