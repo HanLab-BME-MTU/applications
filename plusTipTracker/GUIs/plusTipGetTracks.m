@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 25-May-2011 15:49:52
+% Last Modified by GUIDE v2.5 09-Jun-2011 13:34:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -90,13 +90,19 @@ handles.timeRangePost=[1 inf];
 handles.doHist=1;
 
 %place image onto the axes, remove tick marks
-pic=imread('pTT_logo_sm.png');
-axes(handles.logoAxes);
-image(pic);
+set(handles.figure1,'CurrentAxes',handles.logoAxes);
+image(imread('pTT_logo_sm.png'));
 axis off
 
 set(handles.edit_filterSigma,'String',...
     str2double(get(handles.edit_psfSigma,'String'))*sqrt(2));
+for i=1:3
+    hslider= handles.(['slider_' num2str(i)]);
+    props = get(hslider,{'Min','Max'});
+    set(hslider,'SliderStep',[.1 .5]/(props{2}-props{1}));
+end
+
+updateDetection(hObject, eventdata, handles);
 % Update handles structure
 guidata(hObject,handles);
 
@@ -339,30 +345,38 @@ handles.maxShrinkFactor=str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
 % --- Executes on button press in doDetectCheck.
-function detectionupdate_Callback(hObject, eventdata, handles)
+function updateDetection(hObject, eventdata, handles)
 % hObject    handle to doDetectCheck (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of doDetectCheck
 handles.doDetect=get(handles.doDetectCheck,'Value');
-detectionHandles=get(handles.detectionPanel,'Children');
-panelIndx = (detectionHandles==handles.uipanel_GaussianFit);
-
+detectionChildren=get(handles.detectionPanel,'Children');
+isPanel = strcmp(get(detectionChildren,'Type'),'uipanel');
+panelTags = get(detectionChildren(isPanel),'Tag');
+panelIndx = cellfun(@(x) str2double(x(length('uipanel_method')+1:end)),...
+    panelTags);
+methodIndx = get(handles.popupmenu_detectionMethod,'Value');
+methodPanelTag = panelTags{panelIndx==methodIndx};
+set(handles.(methodPanelTag),'Visible','on');
+otherPanelTag = panelTags(panelIndx~=methodIndx);
+cellfun(@(x) set(handles.(x),'Visible','off'),otherPanelTag);
+    
 if handles.doDetect==1
-    set(detectionHandles(~panelIndx),'Enable','on');
+    set(detectionChildren(~isPanel),'Enable','on');
     set(handles.startFrameDetect,'Enable','on');
-    set(handles.endFrameDetect,'Enable','on');
-    detectionMethodIndx = get(handles.popupmenu_detectionMethod,'Value');
-    if detectionMethodIndx==2
-        set(get(handles.uipanel_GaussianFit,'Children'),'Enable','on');
-    else
-        set(get(handles.uipanel_GaussianFit,'Children'),'Enable','off');
-    end
+    set(handles.endFrameDetect,'Enable','on');    
+    if get(handles.checkbox_custom,'Value'),enableState = 'on'; else enableState = 'off'; end
+    set(get(handles.(methodPanelTag),'Children'),'Enable',enableState);
+    otherPanelTag = panelTags(panelIndx~=methodIndx);
+    cellfun(@(x) set(handles.(x),'Visible','off'),otherPanelTag);
+    cellfun(@(x) set(get(handles.(x),'Children'),'Enable','off'),otherPanelTag);
 else
-    set(detectionHandles(~panelIndx),'Enable','off');
-    set(get(handles.uipanel_GaussianFit,'Children'),'Enable','off');
-    set(handles.startFrameDetect,'Enable','of');
+    set(detectionChildren(~isPanel),'Enable','off');
+    arrayfun(@(x) set(get(x,'Children'),'Enable','off'),...
+        detectionChildren(isPanel));
+    set(handles.startFrameDetect,'Enable','off');
     set(handles.endFrameDetect,'Enable','off');
 end
 guidata(hObject, handles);
@@ -449,8 +463,17 @@ for i=1:numProj
         detectionMethod = get(handles.popupmenu_detectionMethod,'Value');
         switch detectionMethod
             case 1
+                if get(handles.checkbox_custom, 'Value')
+                    handles.scales(1) = get(handles.slider_1, 'Value');
+                    handles.scales(2) = get(handles.slider_2, 'Value');
+                    handles.multFactor4Thresh = get(handles.slider_3, 'Value');
+                    optional_arguments ={handles.scales,handles.multFactor4Thresh};
+                else                    
+                    optional_arguments={};
+                end
                 plusTipCometDetector(handles.projList(i),...
-                    handles.timeRangeDetect,handles.bitDepth,handles.savePlots);
+                        handles.timeRangeDetect,handles.bitDepth,...
+                        handles.savePlots,optional_arguments{:});
             case 2
                 psfSigma = str2double(get(handles.edit_psfSigma,'String'));
                 alpha = str2double(get(handles.edit_alpha,'String'));
@@ -546,7 +569,8 @@ function getHelpPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-open plusTipGetTracks_README.txt
+open('plusTipGetTracks.pdf');
+
 
 % --- Executes during object creation, after setting all properties.
 function getHelpPush_CreateFcn(hObject, eventdata, handles)
@@ -555,8 +579,51 @@ function getHelpPush_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject,'CData',imread('help_icon.png'));
 
-
-
 function edit_psfSigma_Callback(hObject, eventdata, handles)
 
 set(handles.edit_filterSigma,'String',str2double(get(hObject,'String'))*sqrt(2));
+
+
+% --- Executes on button press in pushbutton_preview.
+function pushbutton_preview_Callback(hObject, eventdata, handles)
+
+userData= get(handles.figure1,'UserData');
+if isfield(userData, 'previewGUI') && ishandle(userData.previewGUI)
+   delete(userData.previewGUI) 
+end
+userData.previewGUI = detectionPreviewGUI ('mainFig', handles.figure1);
+set(handles.figure1,'UserData',userData)
+
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
+
+userData=get(handles.figure1,'UserData');
+if isfield(userData, 'previewGUI') && ishandle(userData.previewGUI)
+   delete(userData.previewGUI) 
+end
+
+function editWatershed(hObject, eventdata, handles)
+
+% Retrieve tag and style and read the new and old value
+props = get(hObject,{'Tag','Style'});
+id = str2double(props{1}(end));
+if strcmp(props{2},'slider')
+    value = get(hObject,'Value');
+    oldvalue = str2double(get(handles.(['edit_detect_' num2str(id)]),'String'));
+else
+    value = str2double(get(hObject,'String'));
+    oldvalue = get(handles.(['slider_' num2str(id)]),'Value');
+end
+
+% DO a series of test and reset value to old value in case of failure
+nanTest = isnan(value);
+minmaxTest = value<get(handles.(['slider_' num2str(id)]),'Min') ||...
+        value>get(handles.(['slider_' num2str(id)]),'Max');
+diffTest1 = (id==2 && value<=get(handles.slider_1, 'Value')); 
+diffTest2 = (id==1 && value>=get(handles.slider_2, 'Value')); 
+if nanTest || minmaxTest || diffTest1 || diffTest2,  value=oldvalue; end
+
+% Update the slider and the edit_box
+set(handles.(['slider_' num2str(id)]),'Value',value);
+set(handles.(['edit_detect_' num2str(id)]),'String',value);
