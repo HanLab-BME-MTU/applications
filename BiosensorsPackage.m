@@ -64,7 +64,7 @@ methods (Access = public)
         
         if ~full, return; end
         
-        validProc = find(~cellfun(@isempty,obj.processes_(procID)));
+        validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
         for i = validProc     
             parentIndex = find(obj.depMatrix_(i,:));    
             if length(parentIndex) > 1   
