@@ -1,4 +1,4 @@
-function aggregateActinSpeedVSdistanceToCellEdge(conDirectory, creDirectory, outputDirectory, alpha)
+function aggregateActinSpeedVSdistanceToCellEdge(conDirectory, creDirectory, outputDirectory, alpha, n)
 
 cmd1 = ['find ' conDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
 cmd2 = ['find ' creDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
@@ -17,75 +17,104 @@ crePaths = C{1};
 nConMovies = numel(conPaths);
 nCreMovies = numel(crePaths);
 
-% Number of adhesion counts in bin 1 and 2 for control and null movies
-nConBin1 = zeros(nConMovies,1);
-nConBin2 = zeros(nConMovies,1);
-nCreBin1 = zeros(nCreMovies,1);
-nCreBin2 = zeros(nCreMovies,1);
+% Number of pixels in bin 1 and 2 for control and null movies
+nConLP = zeros(nConMovies,1);
+nConLM = zeros(nConMovies,1);
+nCreLP = zeros(nCreMovies,1);
+nCreLM = zeros(nCreMovies,1);
 
 % Average Actin speed in bin 1 and 2 for control and null movies
-muConBin1 = zeros(nConMovies,1);
-muConBin2 = zeros(nConMovies,1);
-muCreBin1 = zeros(nCreMovies,1);
-muCreBin2 = zeros(nCreMovies,1);
+muConLP = zeros(nConMovies,1);
+muConLM = zeros(nConMovies,1);
+muCreLP = zeros(nCreMovies,1);
+muCreLM = zeros(nCreMovies,1);
 
 % Standard deviation of Actin speed in bin 1 and 2 for control and null
 % movies
-stdConBin1 = zeros(nConMovies,1);
-stdConBin2 = zeros(nConMovies,1);
-stdCreBin1 = zeros(nCreMovies,1);
-stdCreBin2 = zeros(nCreMovies,1);
+stdConLP = zeros(nConMovies,1);
+stdConLM = zeros(nConMovies,1);
+stdCreLP = zeros(nCreMovies,1);
+stdCreLM = zeros(nCreMovies,1);
+
+totalConLP = cell(nConLP,1);
+totalConLM = cell(nConLM,1);
+totalCreLP = cell(nCreLP,1);
+totalCreLM = cell(nCreLM,1);
 
 for iMovie = 1:nConMovies    
     % load data
     load(conPaths{iMovie});
     
-    nConBin1(iMovie) = numel(data{1}); %#ok<*USENS>
-    muConBin1(iMovie)= mean(data{1});
-    stdConBin1(iMovie) = std(data{1});
+    totalConLP{iMovie} = data{1};
+    totalConLM{iMovie} = data{2};
     
-    nConBin2(iMovie) = numel(data{2});
-    muConBin2(iMovie) = mean(data{2});
-    stdConBin2(iMovie) = std(data{2});
+    nConLP(iMovie) = numel(data{1}); %#ok<*USENS>
+    muConLP(iMovie)= mean(data{1});
+    stdConLP(iMovie) = std(data{1});
     
-    fprintf(1, '%s: (BIN 1) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConBin1(iMovie), muConBin1(iMovie), stdConBin1(iMovie));
-    fprintf(1, '%s: (BIN 2) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConBin2(iMovie), muConBin2(iMovie), stdConBin2(iMovie));    
+    nConLM(iMovie) = numel(data{2});
+    muConLM(iMovie) = mean(data{2});
+    stdConLM(iMovie) = std(data{2});
+    
+    fprintf(1, '%s: (BIN 1) number of pixels = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConLP(iMovie), muConLP(iMovie), stdConLP(iMovie));
+    fprintf(1, '%s: (BIN 2) number of pixels = %d, mean = %f, std = %f\n', getDirFromPath(conPaths{iMovie}), nConLM(iMovie), muConLM(iMovie), stdConLM(iMovie));    
 end
 
 for iMovie = 1:nCreMovies    
     % load data
     load(crePaths{iMovie});
     
-    nCreBin1(iMovie) = numel(data{1}); %#ok<*USENS>
-    muCreBin1(iMovie)= mean(data{1});
-    stdCreBin1(iMovie) = std(data{1});
+    totalCreLP{iMovie} = data{1};
+    totalCreLM{iMovie} = data{2};
     
-    nCreBin2(iMovie) = numel(data{2});
-    muCreBin2(iMovie) = mean(data{2});
-    stdCreBin2(iMovie) = std(data{2});
+    nCreLP(iMovie) = numel(data{1}); %#ok<*USENS>
+    muCreLP(iMovie)= mean(data{1});
+    stdCreLP(iMovie) = std(data{1});
     
-    fprintf(1, '%s: (BIN 1) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreBin1(iMovie), muCreBin1(iMovie), stdCreBin1(iMovie));
-    fprintf(1, '%s: (BIN 2) number of adhesion counts = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreBin2(iMovie), muCreBin2(iMovie), stdCreBin2(iMovie));    
+    nCreLM(iMovie) = numel(data{2});
+    muCreLM(iMovie) = mean(data{2});
+    stdCreLM(iMovie) = std(data{2});
+    
+    fprintf(1, '%s: (BIN 1) number of pixels = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreLP(iMovie), muCreLP(iMovie), stdCreLP(iMovie));
+    fprintf(1, '%s: (BIN 2) number of pixels = %d, mean = %f, std = %f\n', getDirFromPath(crePaths{iMovie}), nCreLM(iMovie), muCreLM(iMovie), stdCreLM(iMovie));    
 end
 
-nTotalConBin1 = sum(nConBin1);
-nTotalConBin2 = sum(nConBin2);
-nTotalCreBin1 = sum(nCreBin1);
-nTotalCreBin2 = sum(nCreBin2);
+nTotalConLP = sum(nConLP);
+nTotalConLM = sum(nConLM);
+nTotalCreLP = sum(nCreLP);
+nTotalCreLM = sum(nCreLM);
 
-muTotalConBin1 = mean(muConBin1);
-muTotalConBin2 = mean(muConBin2);
-stdTotalConBin1 = sqrt((1/nConMovies) * sum(stdConBin1.^2));
-stdTotalConBin2 = sqrt((1/nConMovies) * sum(stdConBin2.^2));
+muTotalConLP = mean(muConLP);
+muTotalConLM = mean(muConLM);
+stdTotalConLP = sqrt((1/nConMovies) * sum(stdConLP.^2));
+stdTotalConLM = sqrt((1/nConMovies) * sum(stdConLM.^2));
 
-muTotalCreBin1 = mean(muCreBin1);
-muTotalCreBin2 = mean(muCreBin2);
-stdTotalCreBin1 = sqrt((1/nCreMovies) * sum(stdCreBin1.^2));
-stdTotalCreBin2 = sqrt((1/nCreMovies) * sum(stdCreBin2.^2));
+muTotalCreLP = mean(muCreLP);
+muTotalCreLM = mean(muCreLM);
+stdTotalCreLP = sqrt((1/nCreMovies) * sum(stdCreLP.^2));
+stdTotalCreLM = sqrt((1/nCreMovies) * sum(stdCreLM.^2));
 
-Y = [muTotalConBin1, muTotalCreBin1; muTotalConBin2, muTotalCreBin2];
-S = [stdTotalConBin1, stdTotalCreBin1; stdTotalConBin2, stdTotalCreBin2];
-N = [nTotalConBin1, nTotalCreBin1; nTotalConBin2, nTotalCreBin2];
+totalConLP = vertcat(totalConLP{:});
+totalConLM = vertcat(totalConLM{:});
+totalCreLP = vertcat(totalCreLP{:});
+totalCreLM = vertcat(totalCreLM{:});
+
+% sub-sample data:
+perms = randperm(numel(totalConLP));
+totalConLP = totalConLP(perms(1:min(n,numel(perms))));
+perms = randperm(numel(totalConLM));
+totalConLM = totalConLM(perms(1:min(n,numel(perms))));
+perms = randperm(numel(totalCreLP));
+totalCreLP = totalCreLP(perms(1:min(n,numel(perms))));
+perms = randperm(numel(totalCreLM));
+totalCreLM = totalCreLM(perms(1:min(n,numel(perms))));
+
+save(fullfile(outputDirectory, 'RAW_DATA_aggregateActinSpeedVSdistanceToEdge_12um.mat'),...
+  'totalConLP', 'totalConLM', 'totalCreLP', 'totalCreLM');
+
+Y = [muTotalConLP, muTotalCreLP; muTotalConLM, muTotalCreLM];
+S = [stdTotalConLP, stdTotalCreLP; stdTotalConLM, stdTotalCreLM];
+N = [nTotalConLP, nTotalCreLP; nTotalConLM, nTotalCreLM];
 SE = S ./ sqrt(N); % Standard Error of the mean
 
 % Display bars
@@ -107,66 +136,35 @@ X = [XData1', XData2'];
 errorbar(reshape(X,4,1), reshape(Y,4,1), reshape(1.96 * SE,4,1),'xk');
 
 % Perform the T-test on 2 control bins
-n1 = nTotalConBin1;
-n2 = nTotalConBin2;
-m1 = muTotalConBin1;
-m2 = muTotalConBin2;
-v1 = stdTotalConBin1^2;
-v2 = stdTotalConBin2^2;
-T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
-isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
+pValue = ranksum(totalConLP, totalConLM);
 
-if isSignificant
+if pValue < alpha
     y = max(Y(:));
     line(X(:,1), repmat(y + 80, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
     text(mean(X(:,1)), y + 95, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
 end
 
 % Perform the T-test on 2 null bins
-n1 = nTotalCreBin1;
-n2 = nTotalCreBin2;
-m1 = muTotalCreBin1;
-m2 = muTotalCreBin2;
-v1 = stdTotalCreBin1^2;
-v2 = stdTotalCreBin2^2;
-T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
-isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
+pValue = ranksum(totalCreLP, totalCreLM);
 
-if isSignificant
+if pValue < alpha
     y = max(Y(:));
     line(X(:,2), repmat(y + 130, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
     text(mean(X(:,2)), y + 145, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
 end
 
 % Perform the T-test on the 1st control and null bins
-n1 = nTotalCreBin1;
-n2 = nTotalConBin1;
-m1 = muTotalCreBin1;
-m2 = muTotalConBin1;
-v1 = stdTotalCreBin1;
-v2 = stdTotalConBin1;
+pValue = ranksum(totalConLP, totalCreLP);
 
-T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
-isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
-
-if isSignificant
+if pValue < alpha
     y = max(Y(:));
     line(X(1,:), repmat(y + 20, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
     text(mean(X(1,:)), y + 35, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
 end
 
 % Perform the T-test on the 2nd control and null bins
-n1 = nTotalCreBin2;
-n2 = nTotalConBin2;
-m1 = muTotalCreBin2;
-m2 = muTotalConBin2;
-v1 = stdTotalCreBin2;
-v2 = stdTotalConBin2;
-
-T = (m1 - m2) / sqrt((((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)) * (1/n1 + 1/n2));
-isSignificant = (1 - tcdf(T, n1 + n2 - 2)) < alpha;
-
-if isSignificant
+pValue = ranksum(totalConLM, totalCreLM);
+if pValue < alpha
     y = max(Y(:));
     line(X(2,:), repmat(y + 20, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
     text(mean(X(2,:)), y + 35, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
