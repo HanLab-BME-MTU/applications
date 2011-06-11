@@ -214,8 +214,8 @@ switch callbackName
         closeGUI = handles.figure1; %handles.figure1 is the GUI figure
         guiPosition = get(handles.figure1,'Position'); %get the position of the GUI
         guiName = get(handles.figure1,'Name'); %get the name of the GUI
-        eval(guiName) %call the GUI again
-        close(closeGUI); %close the old GUI
+        close(closeGUI); %close the old GUI before calling it (singleton)
+        eval(guiName) %call the GUI again        
         set(gcf,'Position',guiPosition); %set the position for the new GUI
     case 'pickGroups'
         saveResult=1;
