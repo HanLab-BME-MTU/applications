@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 09-Jun-2011 16:57:33
+% Last Modified by GUIDE v2.5 11-Jun-2011 09:59:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -103,7 +103,11 @@ for i=1:3
 end
 
 updateDetection(hObject, eventdata, handles);
+
+userData= get(handles.figure1,'UserData');
+userData.previewGUI=[];
 % Update handles structure
+set(handles.figure1,'UserData',userData)
 guidata(hObject,handles);
 
 % UIWAIT makes plusTipGetTracks wait for user response (see UIRESUME)
@@ -588,7 +592,7 @@ set(handles.edit_filterSigma,'String',str2double(get(hObject,'String'))*sqrt(2))
 function pushbutton_preview_Callback(hObject, eventdata, handles)
 
 userData= get(handles.figure1,'UserData');
-if isfield(userData, 'previewGUI') && ishandle(userData.previewGUI)
+if ~isempty(userData.previewGUI) && ishandle(userData.previewGUI)
    delete(userData.previewGUI) 
 end
 userData.previewGUI = detectionPreviewGUI ('mainFig', handles.figure1);
@@ -599,7 +603,7 @@ set(handles.figure1,'UserData',userData)
 function figure1_DeleteFcn(hObject, eventdata, handles)
 
 userData=get(handles.figure1,'UserData');
-if isfield(userData, 'previewGUI') && ishandle(userData.previewGUI)
+if ~isempty(userData.previewGUI) && ishandle(userData.previewGUI)
    delete(userData.previewGUI) 
 end
 
@@ -627,3 +631,7 @@ if nanTest || minmaxTest || diffTest1 || diffTest2,  value=oldvalue; end
 % Update the slider and the edit_box
 set(handles.(['slider_' num2str(id)]),'Value',value);
 set(handles.(['edit_detect_' num2str(id)]),'String',value);
+
+function fluctRadEdit_Callback(hObject, eventdata, handles)
+handles.fluctRad=str2double(get(hObject,'String'));
+guidata(hObject, handles);
