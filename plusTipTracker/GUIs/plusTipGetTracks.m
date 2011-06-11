@@ -104,6 +104,9 @@ end
 
 updateDetection(hObject, eventdata, handles);
 
+set(handles.getHelpPush,'CData',imread('help_icon.png'),'Callback',...
+    @(hObject,eventdata)open('plusTipGetTracks.pdf'));
+
 userData= get(handles.figure1,'UserData');
 userData.previewGUI=[];
 % Update handles structure
@@ -566,22 +569,6 @@ function getProjListFile_check_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
 handles.loadProjList=get(hObject,'Value');
 guidata(hObject, handles);
-
-
-% --- Executes on button press in getHelpPush.
-function getHelpPush_Callback(hObject, eventdata, handles)
-% hObject    handle to getHelpPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-open('plusTipGetTracks.pdf');
-
-
-% --- Executes during object creation, after setting all properties.
-function getHelpPush_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to getHelpPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-set(hObject,'CData',imread('help_icon.png'));
 
 function edit_psfSigma_Callback(hObject, eventdata, handles)
 
