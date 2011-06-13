@@ -37,8 +37,8 @@ if nargin < 3 || isempty(imageFileList)
     end
 else
     isValid = 1;
-    for i = 1:numel(imageFileList)
-        isValid = isValid && exist(imageFileList{frame}, 'file');
+    for iframe = 1:numel(imageFileList)
+        isValid = isValid && exist(imageFileList{iframe}, 'file');
     end
     if ~isValid
         error('Invalid input files.');
@@ -59,6 +59,7 @@ if nargin < 4 || isempty(frame)
 else
     toDoList=frame;
 end
+    
 display(['Do frames: ',num2str(toDoList)]);
 
 % first test if the cluster analysis has been performed on this frame. For
