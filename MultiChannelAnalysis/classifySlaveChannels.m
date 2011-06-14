@@ -241,7 +241,7 @@ for k = 1:length(tracks);
             tracks(k).significantSignal(c) = 0;
         end
         
-        if isfield(tracks(k), 'startBuffer') && isfield(tracks(k), 'endBuffer')
+        if isfield(tracks(k), 'startBuffer') && isfield(tracks(k), 'endBuffer') && ~isempty(tracks(k).startBuffer) && ~isempty(tracks(k).endBuffer)
             tracks(k).startBuffer.A_binary(c,:) = tracks(k).startBuffer.A(c,:) > sigmaT * tracks(k).startBuffer.sigma_r(c,:);
             tracks(k).endBuffer.A_binary(c,:) = tracks(k).endBuffer.A(c,:) > sigmaT * tracks(k).endBuffer.sigma_r(c,:);
             
