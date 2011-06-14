@@ -12,6 +12,8 @@ nodes=edge.nodes;
 %     plot(pt2(1),pt2(2),'xb')
 % end
 
+cellInNv=[];
+cellAwNv=[];
 
 % find the cells to which these points belong:
 for cellId=nodes
@@ -25,8 +27,46 @@ for cellId=nodes
         cellAwNv=cellId;
     end
 end
-
 % Cross validate with another method?!
+
+% if we couldn't find the cell automatically, find it by hand. This happens
+% very rarely:
+if isempty(cellInNv) || isempty(cellAwNv)
+    mask1=nodes(1)*constrForceField{frame}.cell{nodes(1)}.mask;
+    mask2=nodes(2)*constrForceField{frame}.cell{nodes(2)}.mask;
+    [rows1,cols1]=size(mask1);
+    [rows2,cols2]=size(mask2);
+    rowMax=max(rows1,rows2);
+    colMax=max(cols1,cols2);
+    if rows1<rowMax || cols1<colMax
+        mask1(rowMax,colMax)=0;
+    end
+    if rows2<rowMax || cols2<colMax
+        mask2(rowMax,colMax)=0;
+    end    
+    combMask=mask1+mask2;
+    
+    imagesc(combMask)
+    colormap jet;
+    colorbar;
+    hold on;
+    plot(pt1(1),pt1(2),'or');
+    plot(pt2(1),pt2(2),'xb');
+    hold off;
+    center1=constrForceField{frame}.cell{nodes(1)}.center;
+    center2=constrForceField{frame}.cell{nodes(2)}.center;
+    text(center1(1),center1(2),num2str(nodes(1)));
+    text(center2(1),center2(2),num2str(nodes(2)));
+    title(['pt1=or; pt2=xb; frame= ',num2str(frame)]);
+    if isempty(cellInNv)
+        cellInNv=input('Enter cell ID of point pt1=or: ');
+    end
+    if isempty(cellAwNv)
+        cellAwNv=input('Enter cell ID of point pt2=xb: ');
+    end        
+end
+
+
 
 % check with the nodes connected to the edge:
 if cellInNv==nodes(1) && cellAwNv==nodes(2)
