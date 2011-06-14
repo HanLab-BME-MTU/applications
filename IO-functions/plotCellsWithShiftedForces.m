@@ -86,7 +86,7 @@ for i=frameList
         forceScale=currForceScale;
     end
 end
-forceScale=1/2*forceScale;
+forceScale=1/4*forceScale;
 displScale=5;
 
 % calculate the length of the scale bars:

@@ -439,6 +439,7 @@ while finished==false
         if mod(find(i==toDoList),saveInterval)==0
             display('saving the file. This might take a while:...');
             save(path_cellCellForces, 'constrForceField','-v7.3');
+            display(['saved frame: ',num2str(i)]);
         end
         % This is only needed for redrawing the interfaces
         numCellsOld=numCells;
