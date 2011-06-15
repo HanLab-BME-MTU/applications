@@ -120,6 +120,9 @@ axes(handles.logoAxes);
 image(pic);
 axis off
 
+set(handles.getHelpPush,'CData',imread('help_icon.png'),'Callback',...
+    @(hObject,eventdata)open('plusTipSeeTracks.pdf'));
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -467,21 +470,6 @@ function getQueryStr_Check_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of getQueryStr_Check
 handles.getStr=get(hObject,'Value');
 guidata(hObject, handles);
-
-
-% --- Executes on button press in getHelpPush.
-function getHelpPush_Callback(hObject, eventdata, handles)
-% hObject    handle to getHelpPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-open plusTipSeeTracks_README.txt
-
-% --- Executes during object creation, after setting all properties.
-function getHelpPush_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to getHelpPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-set(hObject,'CData',imread('help_icon.png'));
 
 
 % --- Executes on button press in getProjListFile_check.
