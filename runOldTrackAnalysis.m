@@ -61,8 +61,7 @@ ip.parse(data, varargin{:});
 buffer = ip.Results.Buffer;
 filename = ip.Results.FileName;
 
-%load([data.source 'Detection' filesep 'detectionResults.mat']);
-load([data.source 'Detection' filesep 'detection_v2.mat']);
+load([data.source 'Detection' filesep 'detectionResults.mat']);
 
 ny = data.imagesize(1);
 nx = data.imagesize(2);
