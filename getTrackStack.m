@@ -43,6 +43,12 @@ w = min([w min(xi(:))-1 min(yi(:))-1 data.imagesize(2)-max(xi(:)) data.imagesize
 
 xi = [repmat(xi(:,1),[1 bStart]) xi repmat(xi(:,end),[1 bEnd])];
 yi = [repmat(yi(:,1),[1 bStart]) yi repmat(yi(:,end),[1 bEnd])];
+
+if size(xi,1)~=nc
+    xi = repmat(xi, [nc 1]);
+    yi = repmat(yi, [nc 1]);
+end
+
 % load all visible frames of this track and store
 for c = [masterChannel slaveChannels]
     tifFiles = dir([data.channels{c} '*.tif*']);
