@@ -137,7 +137,7 @@ for k = 1:nCells
         if ~(exist(channels{c}, 'dir')==7)
             channels{c} = [uigetdir(cellPath{k}, ['Select channel #' num2str(c) ':']) filesep];
         end
-        framePaths{c} = arrayfun(@(x) [channels{c} x.name], dir([channels{c} '*.tif*']), 'UniformOutput', false);
+        framePaths{c} = arrayfun(@(x) [channels{c} x.name], [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])], 'UniformOutput', false);
     end
     data(k).channels = channels;
     data(k).source = channels{1}; % master channel default
@@ -158,7 +158,7 @@ for k = 1:nCells
     
     maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
     if (exist(maskPath, 'dir')==7)
-        data(k).maskPaths = arrayfun(@(x) [maskPath x.name], dir([maskPath '*.tif']), 'UniformOutput', false);
+        data(k).maskPaths = arrayfun(@(x) [maskPath x.name], [dir([maskPath '*.tif']) dir([maskPath '*.TIF'])], 'UniformOutput', false);
     end
     
     data(k).markers = markers;
