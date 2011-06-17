@@ -25,6 +25,7 @@ ip.addRequired('ch', @isnumeric);
 ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('handle', []);
+ip.addParamValue('Legend', 'show', @(x) strcmpi(x, 'show') | strcmpi(x, 'hide'));
 ip.parse(data, tracks, trackIdx, ch, varargin{:});
 
 if ~isempty(ip.Results.handle)
@@ -161,6 +162,9 @@ end
 
 
 l = legend(lh([2 5 1]), ['Amplitude ch. ' num2str(ch)], ['Background ch. ' num2str(ch)], '\alpha = 0.95 level', 'Location', 'NorthEast');
+legend(l, ip.Results.Legend);
+
+
 tlength = track.end+bEnd - track.start-bStart + 1;
 set(ha, 'XLim', ([track.start-bStart-0.1*tlength track.end+bEnd+0.1*tlength]-1)*data.framerate);
 box off;
