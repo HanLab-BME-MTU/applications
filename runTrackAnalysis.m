@@ -569,6 +569,8 @@ for f = 1:data.movieLength
             window(maskWindow~=0) = NaN;
             [prm,prmStd,~,res] = fitGaussian2D(window, [tracks(k).x(1)-xi tracks(k).y(1)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
+            tracks(k).startBuffer.x(ch,bi) = tracks(k).x(ch,1);
+            tracks(k).startBuffer.y(ch,bi) = tracks(k).y(ch,1);            
             tracks(k).startBuffer.A(ch,bi) = prm(3);
             tracks(k).startBuffer.c(ch,bi) = prm(5);
             tracks(k).startBuffer.A_pstd(ch,bi) = prmStd(1);
@@ -592,6 +594,8 @@ for f = 1:data.movieLength
             window(maskWindow~=0) = NaN;
             [prm,prmStd,~,res] = fitGaussian2D(window, [tracks(k).x(end)-xi tracks(k).y(end)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
+            tracks(k).endBuffer.x(ch,bi) = tracks(k).x(ch,end);
+            tracks(k).endBuffer.y(ch,bi) = tracks(k).y(ch,end);
             tracks(k).endBuffer.A(ch,bi) = prm(3);
             tracks(k).endBuffer.c(ch,bi) = prm(5);
             tracks(k).endBuffer.A_pstd(ch,bi) = prmStd(1);
