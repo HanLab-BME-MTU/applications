@@ -4,7 +4,7 @@
 
 % Francois Aguet, Jan 26 2011
 
-function stack = getTrackStack(data, track, varargin)
+function [stack, dx, dy] = getTrackStack(data, track, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -31,23 +31,23 @@ nf = length(idx);
 
 stack = cell(nc,nf);
 
-if strcmpi(ip.Results.Reference, 'track')
-    xi = round(track.x);
-    yi = round(track.y);
+x = [track.startBuffer.x track.x track.endBuffer.x];
+y = [track.startBuffer.y track.y track.endBuffer.y];
+if size(x,1)==1 % expand if master channel detection only
+    x = repmat(x, [nc 1]);
+    y = repmat(y, [nc 1]);
+end
+
+if strcmpi(ip.Results.Reference, 'frame')
+    xi = repmat(round(mean(x,2)), [1 nf]);
+    yi = repmat(round(mean(y,2)), [1 nf]);
 else
-    xi = repmat(round(mean([track.x],2)), [1 nf]);
-    yi = repmat(round(mean([track.y],2)), [1 nf]);
+    xi = round(x);
+    yi = round(y);
 end
 
+% adjust w if track is close to image border
 w = min([w min(xi(:))-1 min(yi(:))-1 data.imagesize(2)-max(xi(:)) data.imagesize(1)-max(yi(:))]);
-
-xi = [repmat(xi(:,1),[1 bStart]) xi repmat(xi(:,end),[1 bEnd])];
-yi = [repmat(yi(:,1),[1 bStart]) yi repmat(yi(:,end),[1 bEnd])];
-
-if size(xi,1)~=nc
-    xi = repmat(xi, [nc 1]);
-    yi = repmat(yi, [nc 1]);
-end
 
 % load all visible frames of this track and store
 for c = [masterChannel slaveChannels]
@@ -59,3 +59,6 @@ for c = [masterChannel slaveChannels]
     end
 end
 
+% return deviation
+dx = x-xi;
+dy = y-yi;
