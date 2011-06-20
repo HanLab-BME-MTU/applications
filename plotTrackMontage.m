@@ -22,9 +22,14 @@ ip.addParamValue('Labels', [], @(x) length(x)==nc && ~any(isnan(name2wavelength(
 ip.addParamValue('Width', 600, @isscalar);
 ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
+ip.addParamValue('TrackCoords', []);
+ip.addParamValue('Detection', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.parse(inputCell, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
+trackCoords = ip.Results.TrackCoords;
+
+
 
 if ~isempty(labels)
     rgbColors = arrayfun(@(x) hsv2rgb([x 1 0.9]), getHuesFromMarkers(labels), 'UniformOutput', false);
@@ -118,6 +123,7 @@ else
 end
 delete(ha);
 
+w = (size(inputCell{1,1},1)-1)/2;
 ha = zeros(nc,nf);
 set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible, 'ResizeFcn', {@resizeCallback});
 for rowi = 1:nr
@@ -128,7 +134,14 @@ for rowi = 1:nr
                 ha(c,fi) = axes('Units', 'pixels',...
                     'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
                     'XLim', [0 wxi], 'YLim', [0 wxi]);
-                imagesc([0 wxi], [0 wxi], inputCell{c, fi}); axis off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                imagesc([-w w], [-w,w], inputCell{c, fi}); axis off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                if ~isempty(trackCoords)
+                    hold on;
+                    ci = min(c, size(trackCoords{1},1));
+                    plot(trackCoords{1}(ci,fi), trackCoords{2}(ci,fi), 'rx');
+                    
+                end
+                
                 if x==1 && rowi==1 && ~isempty(labels)
                     ht(c) = text(-dci, wxi/2, labels{c}, 'Units', 'pixels',...
                         'HorizontalAlignment', 'right', 'VerticalAlignment', 'baseline',...
