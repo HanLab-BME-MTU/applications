@@ -97,29 +97,75 @@ end
 borderInside = [];
 for iexp = 1:length(experiment)
     
-    %Load Lifetime Information
-    lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
-    lftInfo = lftInfo.lftInfo;
-    % status matrix
-    statMat = lftInfo.Mat_status;
-    % lifetime matrix
-    lftMat = lftInfo.Mat_lifetime;
-    % x-coordinate matrix
-    matX = lftInfo.Mat_xcoord;
-    % y-coordinate matrix
-    matY = lftInfo.Mat_ycoord;
-    % disapp status matrix
-    daMat = lftInfo.Mat_disapp;
-    % framerate
+     % framerate
     framerate = experiment(iexp).framerate;
     % image size
     imsize  = experiment(iexp).imagesize;
     
-    %find all pits in movie that meet requirements specified by restriction
-    %vector
-    findPos = find((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)));
-    
+    %Load Lifetime Information
+    try load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat'])
+        
+        %positions used to calculate mask
+        maskPositionsX = arrayfun(@(t) t.x(1),tracks)';
+        maskPositionsY = arrayfun(@(t) t.y(1),tracks)';
+        maskPositions = [maskPositionsX, maskPositionsY];
+        
+        %track.status == 1 means track is complete
+        tracks = tracks([tracks.status] == 1 & arrayfun(@(x)all(x.gapStatus~=5),tracks) == 1 &...
+            [tracks.lifetime_s] > rest(1,3)*framerate & ...
+            [tracks.lifetime_s] > rest(1,4) & [tracks.lifetime_s] < rest(1,5));
+        
+        %positions used to calculate pair correlation
+        pairPositionsX = arrayfun(@(t) t.x(1),tracks)';
+        pairPositionsY = arrayfun(@(t) t.y(1),tracks)';
+        mpm1 = [pairPositionsX pairPositionsY];
+        
+        %lifetimes
+        lifetimes = [tracks.lifetime_s];
+        
+    catch ME
+        
+        lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
+        lftInfo = lftInfo.lftInfo;
+        % status matrix
+        statMat = lftInfo.Mat_status;
+        % lifetime matrix
+        lftMat = lftInfo.Mat_lifetime;
+        % x-coordinate matrix
+        matX = lftInfo.Mat_xcoord;
+        % y-coordinate matrix
+        matY = lftInfo.Mat_ycoord;
+        % disapp status matrix
+        daMat = lftInfo.Mat_disapp;
+        
+        %pit status
+        if isfield(experiment,'status')
+            if isrow(experiment(iexp).status)
+                status = experiment(iexp).status';
+            else
+                status = experiment(iexp).status;
+            end
+        else
+            status = ones(1,size(daMat,1));
+        end
+        
+        
+        %find all pits in movie that meet requirements specified by restriction
+        %vector
+        findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
+            (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
+            repmat(status',1,size(statMat,2)) == statusValue);
+        
+        %positions used to calculate pair correlation 
+        mpm1 = [full(matX(findPos)) full(matY(findPos))];
+        
+        %positions used to calculate mask
+        maskPositions = [matX(~isnan(matX)),matY(~isnan(matY))];
+        
+        %lifetimes
+        lifetimes = lftMat(findPos);
+        
+    end
     %count windows
     windowsPerSlice = cellfun(@(x)numel(x),windowPolygons);
     numWindows  = sum(windowsPerSlice);
@@ -129,9 +175,9 @@ for iexp = 1:length(experiment)
         for j = 1:windowsPerSlice(i)
             
             border = [windowPolygons{i}{j}{:}];
-            in  = inpolygon(full(matX(findPos)),full(matY(findPos)),border(1,:),border(2,:));
+            in  = inpolygon(mpm1(1,:),mpm1(2,:),border(1,:),border(2,:));
             
-            windowInfo(i,j).pits = [matX(findPos(in)) matY(findPos(in))];
+            windowInfo(i,j).pits = mpm1(in,:);
             
             if length(windowInfo(i,j).pits) >= 3
                 %MAKE MASK
@@ -144,14 +190,12 @@ for iexp = 1:length(experiment)
                 corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
                 
                 %CALCULATE PIT DENSITY
-                mpm2 = windowInfo(i,j).pits;
-                mpm1 = mpm2;
-                [kr,lr]=RipleysKfunction(mpm1,mpm2,imsizS,dist,corrFacMat,normArea);
+                [kr,lr]=RipleysKfunction(windowInfo(i,j).pits,windowInfo(i,j).pits,imsizS,dist,corrFacMat,normArea);
                 [currDen] = calculatePitDenFromLR(kr,dist);
                 
                 %calculate other good stuff
                 windowInfo(i,j).pairCorrelation = currDen;
-                windowInfo(i,j).nucDen = size(mpm2,1)/normArea;
+                windowInfo(i,j).nucDen = size(windowInfo(i,j).pits,1)/normArea;
                 windowInfo(i,j).lft = lftMat(findPos(in));
             else
                 windowInfo(i,j).pairCorrelation = [];
