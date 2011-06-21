@@ -31,17 +31,30 @@ if nargin < 2 || isempty(mask)
     closureRadius = 50;
     dilationRadius = 5;
     doFill = 1;
-    %Load Lifetime Information
-    lftInfo = load([data.source filesep 'LifetimeInfo' filesep 'lftInfo']);
-    lftInfo = lftInfo.lftInfo;
-    matX = lftInfo.Mat_xcoord;
-    % y-coordinate matrix
-    matY = lftInfo.Mat_ycoord;
-    % image size
     imsize  = data.imagesize;
+    %Load Lifetime Information
+    try load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat'])
+        
+        %positions used to calculate mask
+        maskPositionsX = arrayfun(@(t) t.x(1),tracks)';
+        maskPositionsY = arrayfun(@(t) t.y(1),tracks)';
+        maskPositions = [maskPositionsX, maskPositionsY];
+        
+    catch ME
+        
+        lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
+        lftInfo = lftInfo.lftInfo;
+        matX = lftInfo.Mat_xcoord;
+        % y-coordinate matrix
+        matY = lftInfo.Mat_ycoord;
+        %positions used to calculate mask
+        maskPositions = [matX(~isnan(matX)),matY(~isnan(matY))];
+        
+    end
+    
     %MAKE MASK
     imsizS = [imsize(2) imsize(1)];
-    maskDetections = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],closureRadius,dilationRadius,doFill,imsize,0,[]);
+    maskDetections = makeCellMaskDetections(maskPositions,closureRadius,dilationRadius,doFill,imsize,0,[]);
     mask = zeros(size(maskDetections));
     mask = maskDetections & maskHandCut;
 end
