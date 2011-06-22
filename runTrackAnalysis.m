@@ -530,7 +530,7 @@ for f = 1:data.movieLength
             window(maskWindow~=0) = NaN;
             
             npx = sum(isfinite(window(:)));
-            [prm, prmStd, ~, res] = fitGaussian2D(window, [tracks(k).x(idx)-xi tracks(k).y(idx)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
+            [prm, prmStd, ~, res] = fitGaussian2D(window, [tracks(k).x(ch,idx)-xi tracks(k).y(ch,idx)-yi max(window(:))-ci sigmaV(ch) ci], 'Ac');
             
             tracks(k).A(ch,idx) = prm(3);
             tracks(k).c(ch,idx) = prm(5);
