@@ -103,17 +103,21 @@ axis(ha, 'image');
 %======================================
 if ~isempty(tracks)
     %cmap = jet(data.movieLength);
-    cmap = jet(max([tracks.end]-[tracks.start]+1));
+    lifetimes_f = [tracks.end]-[tracks.start]+1;
+    cmap = jet(max(lifetimes_f));
+    X = catTrackFields(data, tracks, 'x', ch);
+    Y = catTrackFields(data, tracks, 'y', ch);
+
     hold(ha, 'on');
     switch ip.Results.visibleTracks
         case 'current'
-            idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);
-            for k = idx
-                fi = 1:frameIdx-tracks(k).start+1;
-                nf = length(tracks(k).t);
-                plot(ha, tracks(k).x(ch,1), tracks(k).y(ch,1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
-                plot(ha, tracks(k).x(ch,fi), tracks(k).y(ch,fi), '-', 'Color', cmap(nf,:));
-            end
+            idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);            
+            M = cmap(lifetimes_f(idx),:);
+            M([tracks(idx).valid]==0,:) = 0.5;
+            set(ha, 'ColorOrder', M);
+            %idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
+            %plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
+            plot(ha, X(idx,1:frameIdx)', Y(idx,1:frameIdx)');
         case 'all'
             for k = 1:length(tracks)
                 nf = length(tracks(k).t);

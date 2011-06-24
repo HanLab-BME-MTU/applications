@@ -22,7 +22,7 @@ function varargout = trackDisplayGUI(varargin)
 
 % Edit the above text to modify the response to help trackDisplayGUI
 
-% Last Modified by GUIDE v2.5 31-May-2011 00:30:44
+% Last Modified by GUIDE v2.5 17-Jun-2011 13:41:48
 
 % Francois Aguet, September 2010
 
@@ -590,8 +590,14 @@ function montageButton_Callback(~, ~, handles)
 if ~isempty(handles.selectedTrack)
     h = handles.montageOptions;
     options = get(h, 'String');
-    stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
-    plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
+    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)),...
+        'WindowWidth', 6, 'Reference', options{get(h, 'Value')});
+    
+    if get(handles.montageLocCheckbox, 'Value')
+        plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray', 'TrackCoords', {x,y});
+    else
+        plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
+    end
 else
     fprintf('Cannot create montage: no track selected.');
 end
