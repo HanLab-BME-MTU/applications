@@ -115,8 +115,8 @@ if ~isempty(tracks)
             M = cmap(lifetimes_f(idx),:);
             M([tracks(idx).valid]==0,:) = 0.5;
             set(ha, 'ColorOrder', M);
-            %idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
-            %plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
+            idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
+            plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
             plot(ha, X(idx,1:frameIdx)', Y(idx,1:frameIdx)');
         case 'all'
             for k = 1:length(tracks)
