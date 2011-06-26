@@ -13,8 +13,12 @@ hue = hue(:,1);
 N = length(markers);
 
 switch N
-    case {1,2}
-        hueV = [120 0]/360;
+    case 1
+        hueV = [120 0 240]/360;
+        D = (hue-hueV).^2;
+        colors = hueV(D==min(D));
+    case 2
+        hueV = [120 0]/360; % green red
         D = (hue(1)-hueV).^2;
         [~,idx] = sort(D);
         colors = arrayfun(@(x) hueV(x), idx);
