@@ -10,14 +10,15 @@ function runDetection(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('overwrite', false, @islogical);
+ip.addParamValue('Sigma', [], @(x) numel(x)==length(data.channels));
+ip.addParamValue('Overwrite', false, @islogical);
 ip.parse(data, varargin{:});
-overwrite = ip.Results.overwrite;
+overwrite = ip.Results.Overwrite;
 
 for i = 1:length(data)
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
-        main(data(i));
+        main(data(i), ip.Results.Sigma);
         fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
@@ -26,13 +27,15 @@ end
 
 
 
-function main(data)
+function main(data, sigma)
 
 % master channel
 mCh = strcmp(data.channels, data.source);
 nCh = length(data.channels);
 
-sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
+if isempty(sigma)
+    sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
+end
 
 frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
