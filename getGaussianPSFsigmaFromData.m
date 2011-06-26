@@ -6,52 +6,46 @@
 
 % Francois Aguet, September 2010
 
-function sigma = getGaussianPSFsigmaFromData(data, frames)
 
-if nargin<2
-    frames = 1;
+function sigma = getGaussianPSFsigmaFromData(img, varargin)
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('img');
+ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.parse(img, varargin{:});
+
+
+% First pass with fixed sigma
+pstruct = pointSourceDetection(img, 1.5, 'Mode', 'xyac');
+pstruct = fitGaussians2D(img, pstruct.x, pstruct.y, pstruct.A, 1.5*ones(1,length(pstruct.x)), pstruct.c, 'xyasc');
+
+isPSF = pstruct.pval_KS > 0.05 & [pstruct.pval_Ar] > 0.95;
+fprintf('PSFs detected: %d\n', sum(isPSF));
+
+svect = pstruct.s(~isnan(pstruct.s) & isPSF);
+
+opts = statset('maxIter', 200);
+
+BIC = zeros(1,3);
+sigma = zeros(1,3);
+for n = 1:3
+    obj = gmdistribution.fit(svect', n, 'Options', opts);
+    BIC(n) = obj.BIC;
+    sigma(n) = obj.mu(obj.PComponents==max(obj.PComponents));
 end
 
-ny = data.imagesize(1);
-nx = data.imagesize(2);
+sigma = sigma(BIC==min(BIC));
 
-frameList = dir([data.source '*.tif*']);
-
-maskPath = [data.source 'Detection' filesep 'Masks' filesep];
-maskList = dir([maskPath '*.tif']);
-
-w = 6; % assuming sigma = 2, sufficient for estimate
-sigmaCell = cell(1,length(frames));
-for f = frames
-    % load detection results
-    load([data.source 'Detection' filesep 'detectionResults.mat']);
-    frame = double(imread([data.source frameList(f).name]));
-    mask = double(imread([maskPath maskList(f).name]));
+if strcmpi(ip.Results.Display, 'on')
+    ds = 0.2;
+    si = -1:ds:10;
+    ni = hist(svect, si);
+    ni = ni/sum(ni*ds);
+    figure;
+    h = bar(si,ni);
+    set(h, 'BarWidth', 1);
     
-    xi = round(frameInfo(1).xcom);
-    yi = round(frameInfo(1).ycom);
-    % detections within frame bounds
-    idx = xi<=w | xi>nx-w | yi<=w | yi>ny-w;
-    xi(idx) = [];
-    yi(idx) = [];
-    np = length(xi);
-    
-    sigmaVect = zeros(1,np);
-    for k = 1:np
-        window = frame(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
-        % binary mask
-        maskWindow = ~mask(yi(k)-w:yi(k)+w, xi(k)-w:xi(k)+w);
-        maskWindow(maskWindow~=0) = 1;
-        % background estimate
-        c = mean(mean(window(maskWindow)));
-        [p] = fitGaussian2D(window, [0 0 max(window(:))-c 1.5 c], 'xyAs');
-        sigmaVect(k) = p(4);
-    end
-    sigmaCell{f} = sigmaVect;
+    hold on;
+    plot(si, pdf(obj,si'), 'r'); 
 end
-sigmaVect = [sigmaCell{:}];
-figure;
-[ni ti] = hist(sigmaVect);
-bar(ti, ni, 'BarWidth', 1, 'FaceColor', [0.8 0 0], 'EdgeColor', [0.4 0 0]);
-sigma = mean(sigmaVect);
-fprintf('Sigma = %1.3f ± %.3f pixels\n', sigma, std(sigmaVect));
