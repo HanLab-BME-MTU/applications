@@ -2,13 +2,26 @@
 
 % Francois Aguet, March 14 2011
 
-function [dname dpath] = getCellDirectory(data)
+function [dname dpath] = getCellDirectory(data, selector)
+
+if nargin<2
+    selector = 'cell';
+end
 
 nCh = length(data.channels);
 
 masterChannel = find(strcmp(data.channels, data.source));
 slaveChannels = setdiff(1:nCh, masterChannel);
 
-dpath = getParentDir(data.channels{slaveChannels(1)});
-dname = getDirFromPath(dpath);
-dpath = getParentDir(dpath);
+if ~isempty(slaveChannels)
+    dpath = getParentDir(data.channels{slaveChannels(1)});
+    dname = getDirFromPath(dpath);
+    dpath = getParentDir(dpath);
+else
+    dpath = data.source;
+    dname = getDirFromPath(dpath);
+    % verify that directory contains selector
+    if ~isempty(strfind(dname, selector))
+        error([data.source ' is not a valid movie directory.']);
+    end
+end
