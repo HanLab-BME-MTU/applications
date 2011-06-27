@@ -42,7 +42,6 @@ for k = 1:N
     plotFrame(data(k), [], ip.Results.Frame, ip.Results.Channel, 'Handle', h, 'Mode', ip.Results.Mode, 'ScaleBar', 5e-6);
 
     axis image off;
-    %plotScaleBar(ip.Results.Scale, 'Handle', h, 'Label', [num2str(ip.Results.Scale) ' ' ip.Results.Units], 'FontName', ip.Results.FontName, 'FontSize', ip.Results.FontSize);
     r = data(k).imagesize(2)/data(k).imagesize(1);
     d = 0.02;
     text(1-d, 1-d*r, getCellDirectory(data(k)), 'Color', 'w',...
