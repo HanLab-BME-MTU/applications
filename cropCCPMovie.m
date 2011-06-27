@@ -3,7 +3,7 @@
 
 % Francois Aguet, 06/27/2011
 
-function cropMovie(data)
+function cropCCPMovie(data)
 
 nCh = length(data.channels);
 
