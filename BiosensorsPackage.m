@@ -271,30 +271,18 @@ methods (Access = public)
         processExceptions = cell(1,nProcesses);
         processVisited = false(1,nProcesses); 
         
-        for i = procID
-            if isempty(obj.processes_{i})
-                continue
-            else
-                [processExceptions, processVisited] = ...
-                    obj.dfs_optional(i, procRun, processExceptions, processVisited);
-            end
+        validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
+        for i = validProc     
+            [processExceptions, processVisited] = ...
+                obj.dfs_optional(i, procRun, processExceptions, processVisited);
         end
     end
     function [processExceptions, processVisited] = ...
                     dfs_optional(obj, i, procRun, processExceptions, processVisited)
                 
         childIndex = find(obj.depMatrix_(:,i)');
-        
-        
-        if isempty(childIndex)
-            return
-        end
-        
-        for j=childIndex
-            
-            if processVisited(j)
-                continue
-            end
+        unvisitedChildIndex = childIndex(~processVisited(childIndex));
+        for j=unvisitedChildIndex
             
             if  ~isempty(obj.processes_{j}) && ...
                 ~isempty(setdiff(j, procRun)) && ...
