@@ -2,7 +2,7 @@
 
 % Francois Aguet, 06/24/11
 
-function M = catTrackFields(data, tracks, fieldname, ch)
+function M = catTrackFields(tracks, movieLength, fieldname, ch)
 
 if nargin<4
     ch = 1;
@@ -10,7 +10,7 @@ end
 
 nt = length(tracks);
 
-M = NaN(nt, data.movieLength);
+M = NaN(nt, movieLength);
 
 starts = [tracks.start];
 ends = [tracks.end];
