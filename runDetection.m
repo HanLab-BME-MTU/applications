@@ -41,7 +41,7 @@ frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', 
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
     'x_init', [], 'y_init', [], 'A_mask', [], ...
     'sigma_r', [], 'SE_sigma_r', [], 'RSS', [], 'pval_KS', [], 'pval_Ar', [], 'isPSF', [],...
-    'xCoord', [], 'yCoord', [], 'amp', []);
+    'xCoord', [], 'yCoord', [], 'amp', [], 'dRange', []);
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
@@ -55,7 +55,9 @@ parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
     [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
+    
     if ~isempty(pstruct)
+        pstruct.dRange{mCh} = [min(img(:)) max(img(:))];
         np = numel(pstruct.x);
         
         % expand structure for slave channels
@@ -88,6 +90,7 @@ parfor k = 1:data.movieLength
         
         for ci = setdiff(1:nCh, mCh)
             img = double(imread(data.framePaths{ci}{k}));
+            pstruct.dRange{ci} = [min(img(:)) max(img(:))];
             pstructSlave = fitGaussians2D(img, pstruct.x(mCh,:), pstruct.y(mCh,:), [], sigma(ci)*ones(1,np), [], 'Ac');
             
             % localize, and compare intensities & (x,y)-coordinates. Use localization result if it yields better contrast
@@ -106,6 +109,12 @@ parfor k = 1:data.movieLength
         pstruct.yCoord = [pstruct.y(mCh,:)' zeros(np,1)];
         pstruct.amp = [pstruct.A(mCh,:)' zeros(np,1)];
         frameInfo(k) = orderfields(pstruct, fieldnames(frameInfo(k)));
+    else
+        frameInfo(k).dRange = [min(img(:)) max(img(:))];
+        for ci = setdiff(1:nCh, mCh)
+            img = double(imread(data.framePaths{ci}{k}));
+            frameInfo(k).dRange{ci} = [min(img(:)) max(img(:))];
+        end
     end
     
     maskPath = [data.source 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
