@@ -110,7 +110,7 @@ parfor k = 1:data.movieLength
         pstruct.amp = [pstruct.A(mCh,:)' zeros(np,1)];
         frameInfo(k) = orderfields(pstruct, fieldnames(frameInfo(k)));
     else
-        frameInfo(k).dRange = [min(img(:)) max(img(:))];
+        frameInfo(k).dRange{mCh} = [min(img(:)) max(img(:))];
         for ci = setdiff(1:nCh, mCh)
             img = double(imread(data.framePaths{ci}{k}));
             frameInfo(k).dRange{ci} = [min(img(:)) max(img(:))];
