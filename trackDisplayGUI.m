@@ -87,18 +87,22 @@ for c = 1:nCh
     masks = dir([maskPath '*.tif']);
     maskList{c} = cellfun(@(x) [maskPath x], {masks.name}, 'UniformOutput', false);
     
-    detectionFile = [data.channels{c} 'Detection' filesep 'detectionResults.mat'];
+    detectionFile = [data.channels{c} 'Detection' filesep 'detection_v2.mat'];
     if exist(detectionFile, 'file')==2
         load(detectionFile);
         handles.detection{c} = frameInfo;
-        %handles.dRange{c} = [min([frameInfo.minI]) max([frameInfo.maxI])];
+        if isfield(frameInfo, 'dRange')
+            M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
+            M = vertcat(M{:});
+            handles.dRange{c} = [min(M(1,:)) max(M(2,:))];
+        end
     else
         handles.detection{c} = [];
+        % determine dynamic range
+        firstFrame = double(imread(frameList{c}{1}));
+        lastFrame = double(imread(frameList{c}{data.movieLength}));
+        handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
     end
-    % determine dynamic range
-    firstFrame = double(imread(frameList{c}{1}));
-    lastFrame = double(imread(frameList{c}{data.movieLength}));
-    handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
 end
 handles.frameList = frameList;
 handles.maskList = maskList;
@@ -115,7 +119,7 @@ else
     handles.selectedTrack = [];
 end
 
-handles.hues = getHuesFromMarkers(data.markers);
+handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
 
@@ -184,7 +188,7 @@ xlabel('Time (s)');
 % initialize figures/plots
 %===========================
 for c = 1:nCh
-    set(handles.fAxes{c}, 'XLim', [1 data.imagesize(2)], 'YLim', [1 data.imagesize(1)]);
+    set(handles.fAxes{c}, 'XLim', [0.5 data.imagesize(2)+0.5], 'YLim', [0.5 data.imagesize(1)+0.5]);
 end
 colormap(gray(256));
 linkaxes([handles.tAxes{:}], 'x');
@@ -363,9 +367,8 @@ else % all modes except RGB
         % show detection COM values
         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
             d = handles.detection{c}(f);
-            plot(handles.fAxes{c}, d.xcom, d.ycom, 'ro', 'MarkerSize', 8);
-            if isfield(d, 'xloc') && ~isempty(d.xloc)
-                plot(handles.fAxes{c}, d.xloc, d.yloc, 'gx', 'MarkerSize', 8);
+            if ~isempty(d.x)
+                plot(handles.fAxes{c}, d.x(c,:), d.y(c,:), 'ro', 'MarkerSize', 8);
             end
         end
         
@@ -412,8 +415,6 @@ setappdata(handles.figure1, 'mydata', settings);
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
 guidata(hObject, handles);
-
-
 
 
 
@@ -691,6 +692,8 @@ function printButton_Callback(~, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+fprintf('Printing...');
+
 
 for ch = 1:handles.nCh
     if ~isempty(handles.tracks{ch})
@@ -699,7 +702,7 @@ for ch = 1:handles.nCh
         tracks = handles.tracks{handles.masterChannel};
     end
     plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch,...
-        'Print', 'on', 'Visible', 'off');
+        'Print', 'on', 'Visible', 'off', 'Legend', 'hide');
 end
 
 
@@ -723,7 +726,7 @@ stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handle
 fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
 plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPath', fpath, 'Mode', 'gray');
 
-fprintf('Printing done.\n');
+fprintf(' done.\n');
 
 
 % --- Executes on button press in detectionCheckbox.
