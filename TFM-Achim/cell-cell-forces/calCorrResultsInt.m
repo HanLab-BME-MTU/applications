@@ -153,11 +153,45 @@ xlabel('dframes')
 ylabel('corr')
 
 
+% generate the smoothing spline:
+x=-maxLag:1:maxLag;
+y=cFI;
+p=0.2;
+w=min(cFI_std.^2)./(cFI_std.^2); % in this way 0<=w<=1
+% generate the spline form:
+sp=csaps(x,y,p,[],w);
+
+% calculate the first derivative:
+sp_p    = fnder(sp,1);
+sp_pp   = fnder(sp,2);
+
+% find the extrema:
+zeroVals = fnzeros(sp_p);
+zeroVals=zeroVals(1,:);
+
+% check that second derivative is >0
+zeroVals_pp=fnval(sp_pp,zeroVals);
+
+% the max pos are:
+maxPos=zeroVals(zeroVals_pp<=0);
+
+glbMaxVal=[];
+glbMaxPos=[];
+if ~isempty(maxPos)
+    maxVals=fnval(sp,maxPos);
+    % the global maximum:
+    [glbMaxVal,id]=max(maxVals);
+    glbMaxPos=maxPos(id);
+end
+glbMaxPos
+glbMaxVal
+    
 
 figure()
 title('The cross correlation for cFI')
 errorbar(-maxLag:1:maxLag,cFI,cFI_std,'r')
 hold on
+fnplt(sp);
 plot(-maxLag:1:maxLag,cFI,'k')
 % ylim([-1 1])
 xlim([-maxLag maxLag])
