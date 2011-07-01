@@ -143,23 +143,23 @@ for i=frameList
     yrange = [45 theYlim];
     % This is the shifted force field:
     figure(2)
-    %colormap('gray');
-    %imagesc(I)
+    colormap('gray');
+    imagesc(I)
     hold on
     if nargin>=5 && ~isempty(displField(i))
         quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)*displScale,displField(i).vec(:,2)*displScale,0,'b');
     end
     quiver(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'r')
     % The scale bar um/pix:
-    plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'k','LineWidth',3)
-    text(theXlim-lengthScaleBar_pix-dPix, theYlim-dPix-textSpace,[num2str(lengthScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'w','LineWidth',3)
+    text(theXlim-lengthScaleBar_pix-dPix, theYlim-dPix-textSpace,[num2str(lengthScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     % The scale bar for the stresses:
-    quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'k','LineWidth',2,'MaxHeadSize',5)
-    text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'w','LineWidth',2,'MaxHeadSize',5)
+    text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     if nargin>=5 && ~isempty(displField(i))
         % The scale bar for the displacement:
-        quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-3*dPix,uScaleBar_pix*displScale,0,0,'k','LineWidth',2,'MaxHeadSize',5)
-        text(theXlim-lengthScaleBar_pix-dPix, theYlim-3*dPix-textSpace,[num2str(uScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+        quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-3*dPix,uScaleBar_pix*displScale,0,0,'w','LineWidth',2,'MaxHeadSize',5)
+        text(theXlim-lengthScaleBar_pix-dPix, theYlim-3*dPix-textSpace,[num2str(uScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     end
     %!!! Equal axis is important for dimension/y-forces scale to be accuarte!!!
     axis equal
@@ -269,7 +269,12 @@ for i=frameList
   
     [rows,cols]=size(I);
     [XI,YI]=meshgrid(1:cols,1:rows);
+    % for the magnitude:
     Mblue = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),sqrt(sum(forceField(i).vec.^2,2)),XI,YI,'cubic');
+    % for x-component:
+    % Mblue = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1),XI,YI,'cubic');
+    % for y-component:
+    % Mblue = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,2),XI,YI,'cubic');
     % remove NaNs:
     Mblue(isnan(Mblue))=0;
     % plot colorful image:
