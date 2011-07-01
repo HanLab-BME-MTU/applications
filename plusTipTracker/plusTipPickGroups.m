@@ -151,7 +151,8 @@ else
     
 end
 if saveResult==1
-    temp=inputdlg({'Enter file name:'},'',1);
-    dirName=uigetdir(pwd,'Select output directory for groupList.');
-    save([dirName filesep temp{1}],'groupList')
+    [file,path] = uiputfile('*.mat','Select a location to save your group list',...
+        [pwd filesep 'groupList.mat']);
+    if ~any([file,path]), return; end
+    save([path filesep file],'groupList')
 end

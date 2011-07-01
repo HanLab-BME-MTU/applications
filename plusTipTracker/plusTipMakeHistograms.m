@@ -3,92 +3,65 @@ function plusTipMakeHistograms(speedLifeDispMat,saveDir)
 % for growth, fgap, and bgap populations
 %
 % Called by plusTipPoolGroupData.  See function for input format.
+% Kathryn Applegate, Jan 2010
+% Sebastien Besson, June 2011
 
-if ~isdir(saveDir)
-    mkdir(saveDir)
-end
+if ~isdir(saveDir), mkdir(saveDir); end
 
+% Define types of data and events
+dataType(1).name = 'speed';
+dataType(1).xlabel = 'Speed (microns/min)';
+dataType(1).columns = 1:3;
+dataType(2).name = 'lifetime';
+dataType(2).xlabel = 'Lifetime (sec)';
+dataType(2).columns = 4:6;
+dataType(3).name = 'displacement';
+dataType(3).xlabel = 'Displacement (microns)';
+dataType(3).columns = 7:9;
 
-for iParam=1:3
-    switch iParam
-        case 1
-            data=speedLifeDispMat(:,1:3); % speed
-            titleStr='speed';
-            xStr='speed (microns/min)';
-        case 2
-            data=speedLifeDispMat(:,4:6); % lifetime
-            titleStr='lifetime';
-            xStr='lifetime (sec)';
-        case 3
-            data=speedLifeDispMat(:,7:9); % displacement
-            titleStr='displacement';
-            xStr='displacement (microns)';
-    end
+eventType(1).name='growth';
+eventType(1).color=[1 0 0];
+eventType(2).name='fgap';
+eventType(2).color=[0 0 1];
+eventType(3).name='bgap';
+eventType(3).color=[0 1 0];
 
+for i=1:numel(dataType)
+    data = speedLifeDispMat(:,dataType(i).columns);
 
     % create x-axis bins spanning all values
     n=linspace(nanmin(data(:)),nanmax(data(:)),25);
 
     % bin the samples
-    [x1,dummy] = histc(data(:,1),n); % growth
-    [x2,dummy] = histc(data(:,2),n); % fgap
-    [x3,dummy] = histc(data(:,3),n); % bgap
+    binData = arrayfun(@(x)histc(data(:,x),n),1:3,'UniformOutput',false);
 
-    % put the binned values into a matrix for the stacked plot
-    M=nan(max([length(x1) length(x2) length(x3)]),3);
-    M(1:length(x1),1)=x1;
-    M(1:length(x2),2)=x2;
-    M(1:length(x3),3)=x3;
+    % put the binned values into a matrix filled with NaNs for the stacked plot 
+    maxLength = max(cellfun(@length,binData));
+    M = cell2mat(cellfun(@(x) vertcat(x,NaN(maxLength-length(x),1)),...
+        binData,'UniformOutput',false));
 
-    % make the plot
+    % Make the stacked plot
     figure
     bar(n,M,'stack')
-    colormap([1 0 0; 0 0 1; 0 1 0])
-    legend('growth','fgap','bgap','Location','best')
-    title(['stacked ' titleStr ' distributions'])
-    xlabel(xStr);
-    ylabel('frequency of tracks');
-   %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_stacked.fig'])
-    saveas(gcf,[saveDir filesep 'histogram_' titleStr '_stacked.tif'])
+    colormap(vertcat(eventType.color))
+    legend({eventType.name},'Location','best')
+    title(['Stacked ' dataType(i).name ' distributions'])
+    xlabel(dataType(i).xlabel);
+    ylabel('Frequency of tracks');
+    saveas(gcf,[saveDir filesep 'histogram_' dataType(i).name '_stacked.tif'])
     close(gcf)
 
-    figure;
-    % growth
-    if ~isempty(x1)
-        bar(n,x1,'r')
-        title(['growth ' titleStr ' distribution'])
-        xlabel(xStr);
-        ylabel('frequency of tracks');
-
-       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_growth.fig'])
-        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_growth.tif'])
+    % Make individual plots for non-empty event data
+    validBinData = find(~cellfun(@isempty,binData));
+    for j=1:validBinData
+        figure;
+        bar(n,binData{j})
+        colormap(eventType(j).color)
+        title([eventType(i).name ' ' dataType(i).name ' distribution'])
+        xlabel(dataType(i).xlabel);
+        ylabel('Frequency of tracks');
+        saveas(gcf,[saveDir filesep 'histogram_' dataType(i).name '_'...
+            eventType(i).name '.tif'])
+        close(gcf);
     end
-    close(gcf)
-
-    figure
-    % fgap
-    if ~isempty(x2)
-        bar(n,x2,'b')
-        title(['fgap ' titleStr ' distribution'])
-        xlabel(xStr);
-        ylabel('frequency of tracks');
-
-       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_fgap.fig'])
-        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_fgap.tif'])
-    end
-    close(gcf)
-
-    figure
-    % bgap
-    if ~isempty(x3)
-        bar(n,x3,'g')
-        title(['bgap ' titleStr ' distribution'])
-        xlabel(xStr);
-        ylabel('frequency of tracks');
-
-       %saveas(gcf,[saveDir filesep 'histogram_' titleStr '_bgap.fig'])
-        saveas(gcf,[saveDir filesep 'histogram_' titleStr '_bgap.tif'])
-    end
-    close(gcf)
-
 end

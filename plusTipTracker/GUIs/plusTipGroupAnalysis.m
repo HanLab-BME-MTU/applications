@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 30-Jun-2011 10:59:03
+% Last Modified by GUIDE v2.5 01-Jul-2011 11:49:49
 
 
 % Begin initialization code - DO NOT EDIT
@@ -67,6 +67,7 @@ handles.projData=[]; % if one project is selected, projData will be retrieved
 % for "create groups" pushbutton
 userData=get(handles.figure1,'UserData');
 userData.groupList=[]; % also select groups pushbutton
+userData.saveDir = [];
 set(handles.figure1,'UserData',userData);
 
 %place image onto the axes, remove tick marks
@@ -196,13 +197,11 @@ set(handles.figure1,'UserData',userData);
 
 % --- Executes on button press in pickGroupsPush.
 function pickGroupsPush_Callback(hObject, eventdata, handles)
-
+userData=get(handles.figure1,'UserData');
 autoGrp =get(handles.checkbox_autoGrp,'Value');
-
-[handles.groupList]=plusTipPickGroups(autoGrp,[],...
+[userData.groupList]=plusTipPickGroups(autoGrp,[],...
     handles.projList,1);
-assignin('base','groupList',handles.groupList);
-guidata(hObject, handles);
+set(handles.figure1,'UserData',userData);
 
 % --- Executes on button press in pushbutton_poolData.
 function pushbutton_poolData_Callback(hObject, eventdata, handles)
@@ -212,5 +211,21 @@ doBtw=get(handles.checkbox_doBtw,'Value');
 doWtn=get(handles.checkbox_doWtn,'Value');
 doPlot=get(handles.checkbox_doPlot,'Value');
 remBegEnd=get(handles.checkbox_remBegEnd,'Value');
-[groupData]=plusTipPoolGroupData(handles.groupList,...
+[groupData]=plusTipPoolGroupData(userData.groupList,...
     userData.saveDir,doBtw,doWtn,doPlot,remBegEnd);
+
+
+% --- Executes on button press in pushbutton_loadGroup.
+function pushbutton_loadGroup_Callback(hObject, eventdata, handles)
+
+[file,path] = uigetfile('*.mat','Select the group list to open',pwd);
+if ~any([file,path]), return; end
+try
+    userData=get(handles.figure1,'UserData');    
+    s=load([path file]);
+    userData.groupList = s.groupList;
+    set(handles.figure1,'UserData',userData);    
+catch ME
+    throw(ME)
+end
+
