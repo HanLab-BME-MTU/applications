@@ -53,15 +53,15 @@ for i=1:numel(dataType)
 
     % Make individual plots for non-empty event data
     validBinData = find(~cellfun(@isempty,binData));
-    for j=1:validBinData
+    for j=validBinData
         figure;
         bar(n,binData{j})
         colormap(eventType(j).color)
-        title([eventType(i).name ' ' dataType(i).name ' distribution'])
+        title([eventType(j).name ' ' dataType(i).name ' distribution'])
         xlabel(dataType(i).xlabel);
         ylabel('Frequency of tracks');
         saveas(gcf,[saveDir filesep 'histogram_' dataType(i).name '_'...
-            eventType(i).name '.tif'])
+            eventType(j).name '.tif'])
         close(gcf);
     end
 end
