@@ -75,10 +75,11 @@ groupData=struct('info',{},...
     'gl',{},'fl',{},'bl',{},...
     'gd',{},'fd',{},'bd',{});
 
+M=cell(1,length(btwGrpNames));
 for iGroup = 1:length(btwGrpNames)
 
     % indices of projects in iGroup
-    tempIdx=strmatch(btwGrpNames(iGroup),projGroupName,'exact');
+    tempIdx=find(strcmp(btwGrpNames(iGroup),projGroupName));
 
     dataByProject=cell(length(tempIdx),1);
     trkCount=1;
@@ -114,7 +115,10 @@ for iGroup = 1:length(btwGrpNames)
 
     % concat all the data 
     allData=cell2mat(dataByProject);
-    [temp.projData,M]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
+    %     [~,M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
+    %         dataByProject,'UniformOutput',false);
+    % stackedM =  vertcat(M{iGroup}{:})
+    [temp.projData,M{iGroup}]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
     % and do not attempt to remove fields because this will give an error 
 
     if doBtw==1
@@ -125,15 +129,12 @@ for iGroup = 1:length(btwGrpNames)
         groupData(iGroup,1).info.name=btwGrpNames{iGroup,1};
         groupData(iGroup,1).info.groupListIdx=tempIdx;
         groupData(iGroup,1).info.stats= temp.projData.stats;
-        groupData(iGroup,1).gs=M(~isnan(M(:,1)),1);
-        groupData(iGroup,1).fs=M(~isnan(M(:,2)),2);
-        groupData(iGroup,1).bs=M(~isnan(M(:,3)),3);
-        groupData(iGroup,1).gl=M(~isnan(M(:,4)),4);
-        groupData(iGroup,1).fl=M(~isnan(M(:,5)),5);
-        groupData(iGroup,1).bl=M(~isnan(M(:,6)),6);
-        groupData(iGroup,1).gd=M(~isnan(M(:,7)),7);
-        groupData(iGroup,1).fd=M(~isnan(M(:,8)),8);
-        groupData(iGroup,1).bd=M(~isnan(M(:,9)),9);
+        events={'gs','fs','bs','gl','fl','bl','gd','fd','bd'};
+        cols=1:9;
+        for iEvent=1:numel(events)
+            groupData(iGroup,1).(events{iEvent})=...
+                M{iGroup}(~isnan(M{iGroup}(:,cols(iEvent))),cols(iEvent));
+        end
     end
 
     if doWtn==1
@@ -144,11 +145,13 @@ for iGroup = 1:length(btwGrpNames)
         mkdir(tempDir);
 
         % write out speed/lifetime/displacement distributions into a text file
-        dlmwrite([tempDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' btwGrpNames{iGroup,1} '.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+        dlmwrite([tempDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' ...
+            btwGrpNames{iGroup,1} '.txt'], M{iGroup}, 'precision', 3,...
+            'delimiter', '\t','newline', 'pc');
 
         if doPlot==1
             % save histograms of pooled distributions from iGroup
-            plusTipMakeHistograms(M,tempDir);
+            plusTipMakeHistograms(M{iGroup},tempDir);
 
             % here are the names for each movie in iGroup
             wtnGrpNames=repmat(btwGrpNames(iGroup,1),[length(dataByProject) 1]);
