@@ -94,8 +94,6 @@ set(handles.figure1,'CurrentAxes',handles.logoAxes);
 image(imread('pTT_logo_sm.png'));
 axis off
 
-set(handles.edit_filterSigma,'String',...
-    str2double(get(handles.edit_psfSigma,'String'))*sqrt(2));
 for i=1:3
     hslider= handles.(['slider_' num2str(i)]);
     props = get(hslider,{'Min','Max'});
@@ -484,12 +482,10 @@ for i=1:numProj
             case 2
                 psfSigma = str2double(get(handles.edit_psfSigma,'String'));
                 alpha = str2double(get(handles.edit_alpha,'String'));
-                filterSigma = str2double(get(handles.edit_filterSigma,'String'));
                 displayFirstImage = get(handles.checkbox_displayFirstImage,'Value');
                 plusTipGaussianCometDetector(handles.projList(i),psfSigma,...
                     handles.timeRangeDetect,handles.bitDepth,handles.savePlots,...
-                    'alpha',alpha,'filterSigma',filterSigma,...
-                    'displayFirstImage',displayFirstImage);
+                    'alpha',alpha,'displayFirstImage',displayFirstImage);
             otherwise
                 error('Unrecognized detection method')
         end
@@ -569,11 +565,6 @@ function getProjListFile_check_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
 handles.loadProjList=get(hObject,'Value');
 guidata(hObject, handles);
-
-function edit_psfSigma_Callback(hObject, eventdata, handles)
-
-set(handles.edit_filterSigma,'String',str2double(get(hObject,'String'))*sqrt(2));
-
 
 % --- Executes on button press in pushbutton_preview.
 function pushbutton_preview_Callback(hObject, eventdata, handles)

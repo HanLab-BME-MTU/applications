@@ -40,7 +40,6 @@ ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
 ip.addParamValue('minDist',.5, @(x) isnumeric(x));
 ip.addParamValue('alpha',.01, @(x) isnumeric(x));
-ip.addParamValue('filterSigma',1, @isscalar);
 ip.addParamValue('displayFirstImage',1, @isscalar);
 ip.parse(projData,psfSigma,varargin{:});
 
@@ -49,7 +48,6 @@ bitDepth = ip.Results.bitDepth;
 savePlots = ip.Results.savePlots;
 minDist = ip.Results.minDist;
 alpha = ip.Results.alpha;
-filterSigma = ip.Results.filterSigma;
 displayFirstImage = ip.Results.displayFirstImage;
 
 % get projData in correct format
@@ -198,7 +196,7 @@ for iFrame = startFrame:endFrame
     % Core anisotropic detection function. Returns a structure compatible
     % with Khuloud's tracker
     movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),psfSigma,...
-        'minDist',minDist,'alpha',alpha,'filterSigma',filterSigma);
+        'minDist',minDist,'alpha',alpha);
     
     indxStr1 = sprintf(strg1,iFrame); % frame
     
