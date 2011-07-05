@@ -87,7 +87,7 @@ for i=frameList
     end
 end
 forceScale=1/3*forceScale;
-displScale=3;
+displScale=2;
 
 % calculate the length of the scale bars:
 lengthScaleBar_mu=3;
@@ -137,10 +137,14 @@ for i=frameList
     %saveas(gcf,[target_dir,filesep,'Cells_with_',fieldName,num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
     hold off
     
-    theXlim=457;
-    theYlim=457;
-    xrange = [45 theXlim];
-    yrange = [45 theYlim];
+%     theXlim=457;
+%     theYlim=457;
+%     xrange = [45 theXlim];
+%     yrange = [45 theYlim];
+    
+    xrange = [0 theXlim];
+    yrange = [0 theYlim];
+    
     % This is the shifted force field:
     figure(2)
     colormap('gray');

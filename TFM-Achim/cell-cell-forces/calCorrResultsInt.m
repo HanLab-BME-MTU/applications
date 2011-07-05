@@ -200,6 +200,9 @@ xlabel('dframes')
 ylabel('corr')
 hold off
 
+% make the bootstrap analysis:
+
+
 corrResults.cFI     = cFI;
 corrResults.cFI_std = cFI_std;
 corrResults.cFF     = cFF;
