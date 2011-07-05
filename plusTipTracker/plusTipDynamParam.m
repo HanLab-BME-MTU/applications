@@ -325,17 +325,17 @@ end % isempty
     
    
 
-    
-    beforeGapIdx = gapIdx-1; % find growth subtracks before these gaps
-    
-    if beforeGapIdx(1) == 0; % This means the first track was a gap event 
-                              % this should of course not happen with
-                              % normal tracking, but tracks can be sub-divided
-                              % by spatial regions and therefore the pause
-                              % and not the growth track just before 
-                              % might be first in dataMatCrpSecMat
-        beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error. 
-    end 
+
+    beforeGapIdx = gapIdx(gapIdx~=1)-1; % find growth subtracks before these gaps
+    % SB: removed test below as it crashes when gapIdx is empty
+%     if beforeGapIdx(1) == 0; % This means the first track was a gap event 
+%                               % this should of course not happen with
+%                               % normal tracking, but tracks can be sub-divided
+%                               % by spatial regions and therefore the pause
+%                               % and not the growth track just before 
+%                               % might be first in dataMatCrpSecMat
+%         beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error. 
+%     end 
     
     % Note these values might not be correct for  sub roi manipulations
     % Have to go back and check 
