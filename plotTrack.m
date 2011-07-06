@@ -54,7 +54,7 @@ else
     bEnd = 0;
 end
 
-hues = getHuesFromMarkers(data.markers);
+hues = getFluorophoreHues(data.markers);
 trackColor = hsv2rgb([hues(ch) 1 0.8]);
 fillLight = hsv2rgb([hues(ch) 0.4 1]);
 fillDark = hsv2rgb([hues(ch) 0.2 1]);

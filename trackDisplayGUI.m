@@ -80,6 +80,22 @@ end
 
 frameList = cell(1,nCh);
 maskList = cell(1,nCh);
+handles.detection = cell(1,nCh);
+handles.dRange = cell(1,nCh);
+
+detectionFile = [data.source 'Detection' filesep 'detection_v2.mat'];
+if exist(detectionFile, 'file')==2
+    load(detectionFile);
+    handles.detection{handles.masterChannel} = frameInfo;
+    if isfield(frameInfo, 'dRange')
+        for c = 1:nCh
+            M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
+            M = vertcat(M{:});
+            handles.dRange{c} = [min(M(1,:)) max(M(2,:))];
+        end
+    end
+end
+
 for c = 1:nCh
     frames = dir([data.channels{c} '*.tif']);
     frameList{c} = cellfun(@(x) [data.channels{c} x], {frames.name}, 'UniformOutput', false);
@@ -87,17 +103,7 @@ for c = 1:nCh
     masks = dir([maskPath '*.tif']);
     maskList{c} = cellfun(@(x) [maskPath x], {masks.name}, 'UniformOutput', false);
     
-    detectionFile = [data.channels{c} 'Detection' filesep 'detection_v2.mat'];
-    if exist(detectionFile, 'file')==2
-        load(detectionFile);
-        handles.detection{c} = frameInfo;
-        if isfield(frameInfo, 'dRange')
-            M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
-            M = vertcat(M{:});
-            handles.dRange{c} = [min(M(1,:)) max(M(2,:))];
-        end
-    else
-        handles.detection{c} = [];
+    if isempty(handles.dRange{c})        
         % determine dynamic range
         firstFrame = double(imread(frameList{c}{1}));
         lastFrame = double(imread(frameList{c}{data.movieLength}));
@@ -384,7 +390,7 @@ else % all modes except RGB
         end
         
         % plot EAP status
-        if get(handles.('eapCheckbox'), 'Value')
+        if get(handles.('eapCheckbox'), 'Value') && isfield(handles.tracks{chIdx}, 'significantSignal');
             if c ~= handles.masterChannel
                 % all tracks
                 tracks = handles.tracks{chIdx};

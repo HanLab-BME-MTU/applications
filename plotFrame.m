@@ -15,7 +15,7 @@
 
 % Francois Aguet, March 16 2011
 
-function plotFrame(data, tracks, frameIdx, ch, varargin)
+function ha = plotFrame(data, tracks, frameIdx, ch, varargin)
 
 %======================================
 % Parse inputs, set defaults
@@ -24,6 +24,7 @@ nx = data.imagesize(2);
 ny = data.imagesize(1);
 psize = data.pixelSize/data.M;
 nCh = length(ch);
+mCh = strcmp(data.channels, data.source);
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -69,6 +70,8 @@ switch ip.Results.mode
             frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), ip.Results.iRange{c});
         end
         frame = uint8(frame);
+        % set channel index to master
+        ch = mCh;        
     case 'mask'
         if nCh>1
             error('Mask overlay mode only supports 1 channel.');
@@ -93,7 +96,8 @@ end
 %         frame = imrotate(frame, 90);
 %     end
 
-imagesc(xa, ya, frame, 'Parent', ha);
+imagesc(frame, 'Parent', ha);
+%caxis(ha, ip.Results.iRange{ch});%%%%%%%%%%%%%%%%
 colormap(gray(256));
 axis(ha, 'image');
 
@@ -105,19 +109,22 @@ if ~isempty(tracks)
     %cmap = jet(data.movieLength);
     lifetimes_f = [tracks.end]-[tracks.start]+1;
     cmap = jet(max(lifetimes_f));
-    X = catTrackFields(data, tracks, 'x', ch);
-    Y = catTrackFields(data, tracks, 'y', ch);
+    
+    X = catTrackFields(tracks, data.movieLength, 'x', ch);
+    Y = catTrackFields(tracks, data.movieLength, 'y', ch);
 
     hold(ha, 'on');
     switch ip.Results.visibleTracks
         case 'current'
-            idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);            
-            M = cmap(lifetimes_f(idx),:);
-            M([tracks(idx).valid]==0,:) = 0.5;
-            set(ha, 'ColorOrder', M);
-            idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
-            plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
-            plot(ha, X(idx,1:frameIdx)', Y(idx,1:frameIdx)');
+            idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]); 
+            if ~isempty(idx)
+                M = cmap(lifetimes_f(idx),:);
+                M([tracks(idx).valid]==0,:) = 0.5;
+                set(ha, 'ColorOrder', M);
+                %idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
+                %plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
+                plot(ha, X(idx,1:frameIdx)', Y(idx,1:frameIdx)');
+            end
         case 'all'
             for k = 1:length(tracks)
                 nf = length(tracks(k).t);

@@ -32,7 +32,7 @@ trackCoords = ip.Results.TrackCoords;
 
 
 if ~isempty(labels)
-    rgbColors = arrayfun(@(x) hsv2rgb([x 1 0.9]), getHuesFromMarkers(labels), 'UniformOutput', false);
+    rgbColors = arrayfun(@(x) hsv2rgb([x 1 0.9]), getFluorophoreHues(labels), 'UniformOutput', false);
 else
     rgbColors = [];
 end
