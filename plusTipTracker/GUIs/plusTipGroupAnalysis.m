@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 01-Jul-2011 11:49:49
+% Last Modified by GUIDE v2.5 06-Jul-2011 09:01:07
 
 
 % Begin initialization code - DO NOT EDIT
@@ -229,3 +229,9 @@ catch ME
     throw(ME)
 end
 
+
+% --- Executes on button press in checkbox_doPlot.
+function checkbox_doPlot_Callback(hObject, eventdata, handles)
+
+if get(hObject,'Value'); enable='on'; else enable='off'; end
+set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
