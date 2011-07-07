@@ -45,7 +45,7 @@ end
 
 
 %MAKE MASK OUT OF POINTS
-mask = zeros(imSize(1),imSize(2));
+mask = zeros(imSize);
 %fill in pixels that have a point with a one
 xpos = nonzeros(ceil(positions(:,1)));
 ypos = nonzeros(ceil(positions(:,2)));
@@ -89,7 +89,7 @@ if plotMask
     boundaries = bwboundaries(mask);
     for iter = 1:2
         figure
-        if exist(overlayImage,'var') && ~isempty(overlayImage)
+        if exist('overlayImage','var') && ~isempty(overlayImage)
             imagesc(overlayImage)
             colormap(gray)
         end
