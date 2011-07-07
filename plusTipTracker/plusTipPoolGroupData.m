@@ -115,10 +115,10 @@ for iGroup = 1:length(btwGrpNames)
 
     % concat all the data 
     allData=cell2mat(dataByProject);
-    %     [~,M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
-    %         dataByProject,'UniformOutput',false);
-    % stackedM =  vertcat(M{iGroup}{:})
-    [temp.projData,M{iGroup}]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
+    [~,M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
+        dataByProject,'UniformOutput',false);
+    stackedM =  vertcat(M{iGroup}{:});
+%     [temp.projData,M{iGroup}]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
     % and do not attempt to remove fields because this will give an error 
 
     if doBtw==1
@@ -133,7 +133,7 @@ for iGroup = 1:length(btwGrpNames)
         cols=1:9;
         for iEvent=1:numel(events)
             groupData(iGroup,1).(events{iEvent})=...
-                M{iGroup}(~isnan(M{iGroup}(:,cols(iEvent))),cols(iEvent));
+                stackedM(~isnan(stackedM(:,cols(iEvent))),cols(iEvent));
         end
     end
 
@@ -146,7 +146,7 @@ for iGroup = 1:length(btwGrpNames)
 
         % write out speed/lifetime/displacement distributions into a text file
         dlmwrite([tempDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' ...
-            btwGrpNames{iGroup,1} '.txt'], M{iGroup}, 'precision', 3,...
+            btwGrpNames{iGroup,1} '.txt'], stackedM, 'precision', 3,...
             'delimiter', '\t','newline', 'pc');
 
         if doPlot==1
@@ -177,6 +177,9 @@ if doBtw==1
     mkdir(tempDir);
 
     if doPlot==1
+        
+        % save histograms of pooled distributions from iGroup
+        plusTipMakeHistograms(M,tempDir,'labels',unique(projGroupName));
         % make between-group boxplots (show pooled data)
         plusTipMakeBoxplots(allDataCell,btwGrpNames,tempDir);
     end

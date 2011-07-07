@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 06-Jul-2011 09:01:07
+% Last Modified by GUIDE v2.5 07-Jul-2011 14:41:35
 
 
 % Begin initialization code - DO NOT EDIT
@@ -68,6 +68,15 @@ handles.projData=[]; % if one project is selected, projData will be retrieved
 userData=get(handles.figure1,'UserData');
 userData.groupList=[]; % also select groups pushbutton
 userData.saveDir = [];
+testList = {'t-test';'Wilcoxon ranksum test';'K-S test';...
+    'K-S test with substracted means';'K-S test with substracted medians';...
+    'Permutation tests';'Calibrated K-S test with mean subtraction'};
+testValues=[1 2 10 11 12 20 21];
+set(handles.popupmenu_testID1,'String',testList,'UserData',testValues,...
+    'Value',1);
+set(handles.popupmenu_testID2,'String',testList,'UserData',testValues,...
+    'Value',4);
+
 set(handles.figure1,'UserData',userData);
 
 %place image onto the axes, remove tick marks
@@ -211,8 +220,11 @@ doBtw=get(handles.checkbox_doBtw,'Value');
 doWtn=get(handles.checkbox_doWtn,'Value');
 doPlot=get(handles.checkbox_doPlot,'Value');
 remBegEnd=get(handles.checkbox_remBegEnd,'Value');
-[groupData]=plusTipPoolGroupData(userData.groupList,...
-    userData.saveDir,doBtw,doWtn,doPlot,remBegEnd);
+plotSte=get(handles.checkbox_plotSte,'Value');
+plotStd=get(handles.checkbox_plotStd,'Value');
+plusTipPoolGroupData(userData.groupList,...
+    userData.saveDir,doBtw,doWtn,doPlot,remBegEnd,...
+    'plotSte',plotSte,'plotStd',plotStd);
 
 
 % --- Executes on button press in pushbutton_loadGroup.
@@ -235,3 +247,15 @@ function checkbox_doPlot_Callback(hObject, eventdata, handles)
 
 if get(hObject,'Value'); enable='on'; else enable='off'; end
 set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
+
+
+% --- Executes on button press in pushbutton_plusTipGetHits.
+function pushbutton_plusTipGetHits_Callback(hObject, eventdata, handles)
+
+userData = get(handles.figure1,'UserData');
+stringency=str2double(get(handles.edit_stringency,'String'));
+testValues = get(handles.popupmenu_testID1,'UserData');
+testID1=testValues(get(handles.popupmenu_testID1,'Value'));
+testID2=testValues(get(handles.popupmenu_testID2,'Value'));
+plusTipGetHits(userData.saveDir,userData.groupList,...
+    stringency,testID1,testID2);
