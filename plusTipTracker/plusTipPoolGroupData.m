@@ -1,4 +1,4 @@
-function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
+function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd,varargin)
 % plusTipPoolGroupData pools plus tip data from multiple projects in groups
 %
 % SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
@@ -151,7 +151,7 @@ for iGroup = 1:length(btwGrpNames)
 
         if doPlot==1
             % save histograms of pooled distributions from iGroup
-            plusTipMakeHistograms(M{iGroup},tempDir);
+            plusTipMakeHistograms(M{iGroup},tempDir,varargin{:});
 
             % here are the names for each movie in iGroup
             wtnGrpNames=repmat(btwGrpNames(iGroup,1),[length(dataByProject) 1]);
@@ -179,7 +179,7 @@ if doBtw==1
     if doPlot==1
         
         % save histograms of pooled distributions from iGroup
-        plusTipMakeHistograms(M,tempDir,'labels',unique(projGroupName));
+        plusTipMakeHistograms(M,tempDir,'labels',unique(projGroupName),varargin{:});
         % make between-group boxplots (show pooled data)
         plusTipMakeBoxplots(allDataCell,btwGrpNames,tempDir);
     end
