@@ -97,7 +97,7 @@ end
 %     end
 
 imagesc(frame, 'Parent', ha);
-%caxis(ha, ip.Results.iRange{ch});%%%%%%%%%%%%%%%%
+caxis(ha, ip.Results.iRange{ch});
 colormap(gray(256));
 axis(ha, 'image');
 
