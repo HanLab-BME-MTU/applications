@@ -1,6 +1,6 @@
 function [autoCorrProtrusion,crossCorrSptProp] = ...
     particleBehaviorVsEdgeMotion(protPerWindow,sptPropInWindow,...
-    prop2analyze,band2analyze,window2analyze) %#ok<STOUT,INUSL>
+    prop2analyze,band2analyze,window2analyze,frameRange) %#ok<STOUT,INUSL>
 %PARTICLEBEHAVIORVSEDGEMOTION looks for correlation between particle behavior and cell edge protrusion activity
 %
 %SYNOPSIS
@@ -19,6 +19,9 @@ function [autoCorrProtrusion,crossCorrSptProp] = ...
 %                        Optional. Default: 1.
 %      window2analyze  : Vector indicating which windows to analyze. 
 %                        Optional. Default: all windows.
+%      frameRange      : Row vector with first and last frame to include
+%                        in analysis.
+%                        Optional. Default: all frames.
 %
 %OUTPUT
 %
@@ -44,6 +47,7 @@ if nargin < 3 || isempty(prop2analyze)
         'fracConf','fracBrown','fracDir','diffCoef','confRad'};
 end
 
+%get bands to analyze
 if nargin < 4 || isempty(band2analyze)
     band2analyze = 1;
 end
@@ -64,8 +68,17 @@ if nargin < 5 || isempty(window2analyze)
 end
 window2ignore = setdiff(1:numWindows,window2analyze);
 
+%get which frames to include in analysis
+if nargin < 6 || isempty(frameRange)
+    frameRange = [1 numTP];
+else
+    frameRange(1) = max(frameRange(1),1);
+    frameRange(2) = min(frameRange(2),numTP);
+end
+numFramesAnalysis = diff(frameRange) + 1;
+
 %determine maximum lag for correlation analysis
-maxLag = floor(numTP/4);
+maxLag = floor(numFramesAnalysis/4);
 
 %define extended color map
 cmapExt = [[0 0 0]; colormap];
@@ -84,7 +97,7 @@ protNormVecMag(window2ignore,:) = NaN;
 
 %calculate auto-correlation for each individual window
 for iWindow = window2analyze
-    protNormAllWindows(iWindow).observations = protNormVecMag(iWindow,:)';
+    protNormAllWindows(iWindow).observations = protNormVecMag(iWindow,frameRange(1):frameRange(2))';
     autoCorrProtInd(:,:,iWindow) = autoCorr(protNormAllWindows(iWindow),maxLag);
 end
 
@@ -130,7 +143,7 @@ for iProp = 1 : numProp2analyze
         %go over all windows and cross-correlate particle property with
         %protrusion vector
         for iWindow = window2analyze
-            partPropAllWindows(iWindow).observations = propCurrentBand(iWindow,:)';
+            partPropAllWindows(iWindow).observations = propCurrentBand(iWindow,frameRange(1):frameRange(2))';
             crossCorrBandInd(:,:,iWindow,iBand) = crossCorr(protNormAllWindows(iWindow),...
                 partPropAllWindows(iWindow),maxLag);
         end
@@ -149,14 +162,16 @@ for iProp = 1 : numProp2analyze
         
         %plot protrusion vectors
         subplot(2,3,1);
+        protNormVecMagRange = protNormVecMag(:,frameRange(1):frameRange(2));
         imagesc(protNormVecMag);
-        maxValue = max(abs(protNormVecMag(:)));
+        maxValue = max(abs(protNormVecMagRange(:)));
         nanValue = -maxValue - 2*maxValue/64;
         caxis([nanValue maxValue])
         colormap(cmapExt);
         colorbar
         title('Protrusion Vectors')
-        xlabel('Time lag (frames)')
+        xlim([frameRange(1)-0.5 frameRange(2)+0.5])
+        xlabel('Time (frames)')
         ylabel('Position along edge (window #)')
         
         %plot auto-correlation of protrusion vectors in each window
@@ -188,6 +203,7 @@ for iProp = 1 : numProp2analyze
         
         %plot current particle property
         subplot(2,3,4);
+        propCurrentBandRange = propCurrentBand(:,frameRange(1):frameRange(2));
         switch propName
             case {'spDensity',...
                     'f2fDispMag2D','f2fDispMagParaDir',...
@@ -205,7 +221,7 @@ for iProp = 1 : numProp2analyze
                     'ratioDispSignDirLin','ratioDispMagProtLin',...
                     'ratioDispSignProtLin','asymParamLin',...
                     'diffCoef','confRad'}
-                valuesNoNaNs = propCurrentBand(:);
+                valuesNoNaNs = propCurrentBandRange(:);
                 valuesNoNaNs = valuesNoNaNs(~isnan(valuesNoNaNs));
                 minValue = prctile(valuesNoNaNs,1);
                 maxValue = prctile(valuesNoNaNs,99);
@@ -225,6 +241,7 @@ for iProp = 1 : numProp2analyze
         colormap(cmapExt);
         colorbar
         title([propName ' in Band ' num2str(band2analyze(iBand))])
+        xlim([frameRange(1)-0.5 frameRange(2)+0.5])
         xlabel('Time (frames)')
         ylabel('Position along edge (window #)')
         
