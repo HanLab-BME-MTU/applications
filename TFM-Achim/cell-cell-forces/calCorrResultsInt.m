@@ -201,7 +201,7 @@ ylabel('corr')
 hold off
 
 % make the bootstrap analysis:
-
+perfJackKnife(corrSets,maxLag,normVar)
 
 corrResults.cFI     = cFI;
 corrResults.cFI_std = cFI_std;

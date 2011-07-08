@@ -1,5 +1,5 @@
 function []=plotCellsWithShiftedForces(inputFileList,forceField,target_dir,frameList,displField)
-
+plotAll=0;
 % max of the color scale:
 cMax=[];%3000;
 cMaxZoom=cMax;
@@ -87,7 +87,7 @@ for i=frameList
     end
 end
 forceScale=1/3*forceScale;
-displScale=2;
+displScale=5;
 
 % calculate the length of the scale bars:
 lengthScaleBar_mu=3;
@@ -100,7 +100,7 @@ for i=frameList
     I = double(imread(inputFileList{i}));
     
     % extra spacing from the image edge in pixel:
-    dPix=25;
+    dPix=50;
     textSpace=12;
       
     % calculate the size of um in pixel for a scale bar:
@@ -146,20 +146,22 @@ for i=frameList
     yrange = [0 theYlim];
     
     % This is the shifted force field:
-    figure(2)
+    scrsz = get(0,'ScreenSize');
+    h     = figure(2);
+    set(h,'Position',scrsz);
     colormap('gray');
     imagesc(I)
     hold on
     if nargin>=5 && ~isempty(displField(i))
         quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1)*displScale,displField(i).vec(:,2)*displScale,0,'b');
     end
-    quiver(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'r')
+    % quiver(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1)/forceScale,forceField(i).vec(:,2)/forceScale,0,'r')
     % The scale bar um/pix:
     plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'w','LineWidth',3)
     text(theXlim-lengthScaleBar_pix-dPix, theYlim-dPix-textSpace,[num2str(lengthScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     % The scale bar for the stresses:
-    quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'w','LineWidth',2,'MaxHeadSize',5)
-    text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'w','FontSize',16)
+    % quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-2*dPix,fxScaleBar_Pa/forceScale,fyScaleBar_Pa/forceScale,0,'w','LineWidth',2,'MaxHeadSize',5)
+    % text(theXlim-lengthScaleBar_pix-dPix, theYlim-2*dPix-textSpace,[num2str(fxScaleBar_Pa/1000),' kPa'],'HorizontalAlignment','left','color', 'w','FontSize',16)
     if nargin>=5 && ~isempty(displField(i))
         % The scale bar for the displacement:
         quiver(theXlim-lengthScaleBar_pix-dPix,theYlim-3*dPix,uScaleBar_pix*displScale,0,0,'w','LineWidth',2,'MaxHeadSize',5)
@@ -201,6 +203,8 @@ for i=frameList
     %saveas(gcf,[target_dir,filesep,'Cells_with_',fieldName,num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
     %saveas(gcf,[target_dir,filesep,'Cells_with_',fieldName,num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
     hold off
+    
+    if plotAll==1
     
     % cut off for evaluating background:
     xLimZoom=input('Input xLim for zoom in [300 430]:');
@@ -469,4 +473,6 @@ for i=frameList
     ylim(yrange)
     %imwrite(RGBmat,[target_dir,filesep,'Cells_with_',fieldName,'Magnitude',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff']) 
     hold off
+    
+    end
 end
