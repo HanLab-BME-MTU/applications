@@ -1,5 +1,5 @@
 function []=plotCellsWithShiftedForces(inputFileList,forceField,target_dir,frameList,displField)
-plotAll=0;
+plotAll=1;
 % max of the color scale:
 cMax=[];%3000;
 cMaxZoom=cMax;
@@ -175,8 +175,8 @@ for i=frameList
     %ylim([1 theYlim])
     xlim(xrange)
     ylim(yrange)
-    saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
-    saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
+    % saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.tiff'],'tiffn');
+    % saveas(gcf,[target_dir,filesep,'Cells_with_shifted_forces',num2str(i,['%0.',int2str(padZeros),'d']),'.eps'], 'psc2');
     % print('-depsc2','-loose', [target_dir,filesep,'Cells_with_shifted_forces_HQ',num2str(i,['%0.',int2str(padZeros),'d']),'.eps']);
     hold off
     
@@ -386,7 +386,8 @@ for i=frameList
     imagesc(max(Mblue(:))*I/max(I(:)))
     hold on
     %contour(max(I(:))*Mblue/max(Mblue(:)),10);
-    contour(Mblue,10);
+    [cMat,h]=contour(Mblue,10);
+    set(h,'ShowText','on','TextStep',get(h,'LevelStep')*2)
     % The scale bar um/pix:
     plot([theXlim-lengthScaleBar_pix-dPix theXlim-dPix], [theYlim-dPix theYlim-dPix],'w','LineWidth',3)
     text(theXlim-lengthScaleBar_pix-dPix, theYlim-dPix-textSpace,[num2str(lengthScaleBar_mu),' \mum'],'HorizontalAlignment','left','color', 'w','FontSize',16)
@@ -399,6 +400,18 @@ for i=frameList
     xlim(xrange)
     ylim(yrange)
     hold off
+    
+    % levels are:
+    newPos=1;
+    entryId=1;
+    while newPos<=size(cMat,2)
+        heights(entryId)=cMat(1,newPos);
+        entryId=entryId+1;
+        newPos =newPos+cMat(2,newPos)+1;
+    end
+    [n,val]=hist(heights,100000);
+    sglHghts=val(n>0);
+    display(['contour line heights: ',num2str(sglHghts,' %6.1f ')]);
     
     % substract background:
     checkVec=forceField(i).posShifted(:,1)<xCutOff;
