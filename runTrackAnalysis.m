@@ -30,15 +30,16 @@ overwrite = ip.Results.Overwrite;
 buffer = ip.Results.Buffer;
 trackerOutput = ip.Results.TrackerOutput;
 frameIdx = ip.Results.FrameIndexes;
+bufferMode = ip.Results.BufferMode;
 
 for i = 1:length(data)
     data(i).tracks = [];
     data(i).smTracks = [];
 end
 
-for i = 1:length(data)
+parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, ip.Results.BufferMode);
+        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, bufferMode);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
