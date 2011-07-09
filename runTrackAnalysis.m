@@ -23,7 +23,7 @@ ip.addParamValue('BufferMode', 'xyAc', @(x) strcmpi(x, 'xyAc') | strcmpi(x, 'Ac'
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
-ip.addParamValue('FrameIndexes', 1:data.movieLength, @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
+ip.addParamValue('FrameIndexes', arrayfun(@(x) 1:x.movieLength, data, 'UniformOutput', false), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
 ip.parse(data, varargin{:});
 filename = ip.Results.FileName;
 overwrite = ip.Results.Overwrite;
@@ -38,7 +38,7 @@ end
 
 for i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx, ip.Results.BufferMode);
+        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, ip.Results.BufferMode);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
