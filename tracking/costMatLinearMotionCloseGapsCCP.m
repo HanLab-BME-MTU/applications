@@ -237,7 +237,7 @@ end
 %get the x,y-coordinates and amplitudes at the starts of tracks
 coordStart = zeros(numTracks,probDim);
 %ampStart   = zeros(numTracks,1);
-w = 3; % number of points used for amplitude comparison
+w = 5; % number of points used for amplitude comparison
 b = w-1;
 %startAmpVect = NaN(numTracks,w);
 startAmpVect = cell(1,numTracks);
@@ -736,7 +736,7 @@ if mergeSplit > 0
             %find tracks that start before or in this frame and end after this
             %frame
             mergesToConsider = intersect(vertcat(tracksPerFrame(1:endTime).starts),...
-                vertcat(tracksPerFrame(endTime+1:end).ends));
+                vertcat(tracksPerFrame(endTime+1:end).ends)); %%%%%%%%%%%% +1?
 
             %get index indicating frame of merging
             timeIndx = endTime*8;
