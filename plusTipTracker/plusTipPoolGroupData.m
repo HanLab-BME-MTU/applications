@@ -76,6 +76,7 @@ groupData=struct('info',{},...
     'gd',{},'fd',{},'bd',{});
 
 M=cell(1,length(btwGrpNames));
+S=cell(1,length(btwGrpNames));
 for iGroup = 1:length(btwGrpNames)
 
     % indices of projects in iGroup
@@ -115,7 +116,7 @@ for iGroup = 1:length(btwGrpNames)
 
     % concat all the data 
     allData=cell2mat(dataByProject);
-    [~,M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
+    [S{iGroup},M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
         dataByProject,'UniformOutput',false);
     stackedM =  vertcat(M{iGroup}{:});
 %     [temp.projData,M{iGroup}]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
@@ -189,7 +190,7 @@ if doBtw==1
 %     groupData.projIdx(:,1)=projGroupName;
 %     groupData.projIdx(:,2:3)=projNum(:,1:2);
 
-    save([tempDir filesep 'groupData'],'groupData');
+    save([tempDir filesep 'groupData'],'groupData','S','M');
 end
 
 
