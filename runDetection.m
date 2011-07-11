@@ -10,7 +10,7 @@ function runDetection(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Sigma', [], @(x) numel(x)==length(data.channels));
+ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
 ip.addParamValue('Overwrite', false, @islogical);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
