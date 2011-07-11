@@ -1,7 +1,8 @@
 % Script which simulates EB1 movies of varying shapes and signal-to-noise
-% ratios, runs the default  watershed detection from the plusTipTracker,
-% determines the number of fals posotives/negatives and create contour
+% ratios, runs the chosen plusTip detection from the plusTipTracker,
+% determines the number of false positives/negatives and create contour
 % maps.
+%
 %
 % Sebastien Besson, June 2011
 
@@ -10,7 +11,9 @@ clc
 close all
 
 % Set up main analysis folder
-dataFolder = '/home/seb286/orchestra/groups/lccb-comet/EB1Simulations/Detection';
+dataFolder = '/home/sb286/Desktop/EB1Simulations/Detection';
+detectionMethod =2;
+generateMovie =0;
 
 % Constant parameters
 imSize=512;
@@ -25,8 +28,12 @@ sigmay=1.5;
 mtSimParam = struct('growthSpeed',[20 5],'shrinkageSpeed',[30
 5],'growthTime',[20 4],'shrinkageTime',[10 4]);
 
+detectionFcn{1}=@(x)plusTipCometDetector(x,[1 totalTime],16,1);
+detectionFcn{2}=@(x)plusTipGaussianCometDetector(x,sigmay,[1 totalTime],16,1,...
+    'alpha',.01);
+
 % Parameters sweep
-n = 11; % Number of parameters
+n = 5; % Number of parameters
 SNR_min=2;
 SNR_max=10;
 ecc_min = 1;
@@ -60,7 +67,7 @@ paramSimulation = @(x,y) simEB1Images(imSize,pixelSize,mtDensity,SNR(x),...
 %% Initialize simulations
 mkClrDir(dataFolder);
 for index=1:n^2
-    [i,j]=ind2sub([nParameters,nParameters],index);
+    [i,j]=ind2sub([n,n],index);
     % Clears the project directories if any
     mkClrDir(projList(i,j).imDir);
     mkClrDir(projList(i,j).anDir);
@@ -74,7 +81,7 @@ movieInfoGT = cell(n,n);
 tracksGT = cell(n,n);
 progressText(0,'Generating simulations');
 for index=1:n^2
-    [i,j]=ind2sub([nParameters,nParameters],index);
+    [i,j]=ind2sub([n,n],index);
     [movieInfoGT{i,j},tracksGT{i,j}]=paramSimulation(i,j);
     progressText(index/n^2);
     
@@ -84,8 +91,8 @@ save([dataFolder filesep 'simData.mat'],'movieInfoGT','tracksGT');
 %% Detect comets
 progressText(0,'Detecting comets');
 for index=1:n^2
-    [i,j]=ind2sub([nParameters,nParameters],index);
-    plusTipCometDetector(projList(i,j),[1 totalTime],16,1);
+    [i,j]=ind2sub([n,n],index);
+    detectionFcn{detectionMethod}(projList(i,j));
     progressText(index/n^2);
 end
 
@@ -109,7 +116,7 @@ threshold=2;
 
 progressText(0,'Calculating false positives/negatives');
 for index=1:n^2
-    [i,j]=ind2sub([nParameters,nParameters],index);
+    [i,j]=ind2sub([n,n],index);
     % Load the detection movie Info
     s=load([projList(i,j).anDir filesep 'feat' filesep 'movieInfo.mat']);
     movieInfoPT{i,j} = s.movieInfo;
@@ -150,7 +157,7 @@ for index=1:n^2
 
     progressText(index/n^2);
 end
-save([dataFolder filesep 'analysisData.mat'],'movieInfoPT','meanFN',...
+save([analysisFolder filesep 'analysisData.mat'],'movieInfoPT','meanFN',...
     'meanFP','stdFN','stdFP');
 %% Plot results
 
@@ -160,39 +167,32 @@ sfont = {'FontName', 'Helvetica', 'FontSize', 18};
 lfont = {'FontName', 'Helvetica', 'FontSize', 22};
 
 % plot
-figure('PaperPositionMode', 'auto','Position',[50 50 500 500]); % enable resizing
-hold on;
-[C,h] = contour(SNR(1:n),ecc(1:n),meanFN','LineWidth',2);
-% set(h,'ShowText','on','TextStep',get(h,'LevelStep'),'LineWidth',2)
-hText = clabel(C,h);
-set(hText,tfont{:})
-axis square
 
-% Set thickness of axes, ticks and assign tick labels
-box on
-set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');
-xlabel('SNR', lfont{:});
-ylabel('Comet shape', lfont{:});
-set(gca,'LooseInset',get(gca,'TightInset'))
+detectionOutput.var = {meanFN,meanFP,linkRatio,bgapFP,bgapFN,fgapFP,fgapFN};
+detectionOutput.name = {'Detection false negatives','Detection false positives'};
 
-% plot
-figure('PaperPositionMode', 'auto','Position',[50 50 500 500]); % enable resizing
-hold on;
-[C,h] = contour(SNR(1:n),ecc(1:n),meanFP','LineWidth',2);
-% set(h,'ShowText','on','TextStep',get(h,'LevelStep'),'LineWidth',2)
-hText = clabel(C,h);
-set(hText,tfont{:})
-axis square
-
-% Set thickness of axes, ticks and assign tick labels
-box on
-set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');
-xlabel('SNR', lfont{:});
-ylabel('Comet shape', lfont{:});
-set(gca,'LooseInset',get(gca,'TightInset'))
+for i=1:numel(detectionOutput.var);
+    
+    figure('PaperPositionMode', 'auto','Position',[50 50 500 500],...
+        'Name',detectionOutput.name{i}); % enable resizing
+    hold on;
+    [C,h] = contour(SNR(1:n),ecc(1:n),detectionOutput.var{i}','LineWidth',2);    
+    hText = clabel(C,h);
+    set(hText,tfont{:})
+    axis square
+    
+    % Set thickness of axes, ticks and assign tick labels
+    box on
+    set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');
+    xlabel('SNR', lfont{:});
+    ylabel('Comet shape', lfont{:});
+    set(gca,'LooseInset',get(gca,'TightInset'),'XScale','log')
+    print('-dpng', '-r300', [analysisFolder filesep gapOutput.name{i} '.png']);
+end
 
 %% Generate detection movie
 
+if generateMovie, return; end
 figure;
 % Choose detection parameters
 i = 5;
