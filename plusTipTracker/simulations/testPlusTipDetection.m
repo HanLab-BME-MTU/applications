@@ -168,7 +168,7 @@ lfont = {'FontName', 'Helvetica', 'FontSize', 22};
 
 % plot
 
-detectionOutput.var = {meanFN,meanFP,linkRatio,bgapFP,bgapFN,fgapFP,fgapFN};
+detectionOutput.var = {meanFN,meanFP};
 detectionOutput.name = {'Detection false negatives','Detection false positives'};
 
 for i=1:numel(detectionOutput.var);
@@ -187,7 +187,7 @@ for i=1:numel(detectionOutput.var);
     xlabel('SNR', lfont{:});
     ylabel('Comet shape', lfont{:});
     set(gca,'LooseInset',get(gca,'TightInset'),'XScale','log')
-    print('-dpng', '-r300', [analysisFolder filesep gapOutput.name{i} '.png']);
+    print('-dpng', '-r300', [analysisFolder filesep detectionOutput.name{i} '.png']);
 end
 
 %% Generate detection movie
