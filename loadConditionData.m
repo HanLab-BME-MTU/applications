@@ -36,6 +36,7 @@ ip.addOptional('markers', [], @iscell);
 ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
 ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
+ip.addParamValue('FrameRate', [], @isscalar);
 ip.parse(varargin{:});
 
 condDir = ip.Results.condDir;
@@ -66,6 +67,10 @@ elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', 
 else
     cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
     cellPath = vertcat(cellPath{:});
+end
+
+if isempty(cellPath)
+    error(['No valid movies found in: ' condDir]);
 end
 
 % check whether directory names contain 'cell'
@@ -115,7 +120,9 @@ for k = 1:nCells
     
     % detect frame
     fr = regexp(cellPath{k}, '_(\d+)?(.)?\d+s', 'match');
-    if ~isempty(fr)
+    if ~isempty(ip.Results.FrameRate)
+        data(k).framerate = ip.Results.FrameRate;
+    elseif ~isempty(fr)
         data(k).framerate = str2double(fr{1}(2:end-1));
     else
         fr = regexp(cellPath{k}, '_\d+ms', 'match');
