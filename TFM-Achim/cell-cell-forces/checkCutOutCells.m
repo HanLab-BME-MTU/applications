@@ -76,7 +76,7 @@ for frame =toDoList
     max_x=max(constrForceField{frame}.roi.pos(:,1))+dPix;
     min_y=min(constrForceField{frame}.roi.pos(:,2))-dPix;
     max_y=max(constrForceField{frame}.roi.pos(:,2))+dPix;
-    maxForcePlot=1/forceField(frame).par.gridSpacing*max(sqrt(forceField(frame).vec(:,1).^2+forceField(frame).vec(:,2).^2));
+    maxForcePlot=1/forceField(frame).par.gridSpacing*max(sqrt(constrForceField{frame}.roi.vec(:,1).^2+constrForceField{frame}.roi.vec(:,2).^2));
     [rows,cols]=size(currentImage);
     
     factor_Pa2nN=constrForceField{frame}.par.gridSpacing^2*constrForceField{frame}.par.pixSize_mu^2*10^(-3);

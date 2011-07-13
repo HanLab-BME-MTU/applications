@@ -139,7 +139,7 @@ while finished==false
             max_x=max(constrForceField{i}.roi.pos(:,1))+dPix;
             min_y=min(constrForceField{i}.roi.pos(:,2))-dPix;
             max_y=max(constrForceField{i}.roi.pos(:,2))+dPix;
-            maxForcePlot=1/forceField(i).par.gridSpacing*max(sqrt(forceField(i).vec(:,1).^2+forceField(i).vec(:,2).^2));
+            maxForcePlot=1/forceField(i).par.gridSpacing*max(sqrt(constrForceField{i}.roi.vec(:,1).^2+constrForceField{i}.roi.vec(:,2).^2));
             [rows,cols]=size(currentImage);
 
             % needed to convert the error force vector backk to the units
