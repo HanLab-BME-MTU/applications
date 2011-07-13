@@ -45,14 +45,22 @@ elseif length(filter)==1
     numStd=filter(1);
     boxSizeLocFac=[];
     boxSizeGlbFac=[];
+    maxItr=1;
 elseif length(filter)==2
     numStd=filter(1);
     boxSizeLocFac=filter(2);
     boxSizeGlbFac=[];
+    maxItr=1;
 elseif length(filter)==3
     numStd=filter(1);
     boxSizeLocFac=filter(2);
     boxSizeGlbFac=filter(3);
+    maxItr=1;
+elseif length(filter)==4
+    numStd=filter(1);
+    boxSizeLocFac=filter(2);
+    boxSizeGlbFac=filter(3);
+    maxItr=filter(4);
 end
 
 if nargin < 5 || isempty(yModu_Pa)
@@ -158,25 +166,31 @@ for i=1:n
    
  
     if ~isempty(filter)
-        [pos_fltr,vec_fltr,pos_out,vec_out,~,id_out]=filterVectorOutliers(displField(i).pos,displField(i).vec,numStd,boxSizeLocFac,boxSizeGlbFac,[]);
+        pos_fltr=displField(i).pos;
+        vec_fltr=displField(i).vec;
+        pos_out_all=[];
+        vec_out_all=[];
+        id_out_all =[];
+        for iItr=1:maxItr
+            [pos_fltr,vec_fltr,pos_out,vec_out,~,id_out]=filterVectorOutliers(pos_fltr,vec_fltr,numStd,boxSizeLocFac,boxSizeGlbFac,[]);
+            pos_out_all=vertcat(pos_out_all,pos_out);
+            vec_out_all=vertcat(vec_out_all,vec_out);
+            % the actual id's are wrong when maxIt>1;
+            id_out_all=vertcat(id_out_all,id_out);            
+        end
         displField(i).pos = pos_fltr;
         displField(i).vec = vec_fltr;
-        out(i).pos = pos_out;
-        out(i).vec = vec_out;
-        out(i).num = length(id_out);
-        
+        out(i).pos = pos_out_all;
+        out(i).vec = vec_out_all;
+        out(i).num = length(id_out_all);
+            
         % dummy=input('Press enter to proceed: ');
-        
-        %filter bad values super simple, should be improved:
-        %First idea: there are usually very large values at the boundary:
-        %bad y-values:
-%         du=filter;
-%         bad_abs=(displField(i).vec(:,1)).^2+(displField(i).vec(:,2)).^2>du^2;
-%         out(i).vec=displField(i).vec(bad_abs,:);
-%         out(i).pos=displField(i).pos(bad_abs,:);
-%         out(i).num=sum(bad_abs);
-%         displField(i).pos=displField(i).pos(~bad_abs,:);
-%         displField(i).vec=displField(i).vec(~bad_abs,:);
+        figure()
+        quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1),displField(i).vec(:,2),0)
+        hold on;
+        quiver(out(i).pos(:,1),out(i).pos(:,2),out(i).vec(:,1),out(i).vec(:,2),0,'r')
+        hold off;
+
     end
     displField(i).par.prep4fastBEM=0;
 end

@@ -1,5 +1,12 @@
 function [pos_fltr,vec_fltr,pos_out,vec_out,id_in,id_out]=filterVectorOutliers(pos,vec,numStd,boxSizeLocFac,boxSizeGlbFac,doPlot)
 % for i=1:5:75; figure(i); filterVectorOutliers(displField(i).pos,displField(i).vec,14,8,2,1); end
+% tripple sort-out:
+% for i=1:10:200
+%     figure(1000+i);[pos_fltr,vec_fltr,pos_out,vec_out,id_in,id_out]=filterVectorOutliers(displField(i).pos,displField(i).vec,18,10,6,1);
+%     figure(2000+i);[pos_fltr_2,vec_fltr_2]=filterVectorOutliers(pos_fltr,vec_fltr,18,10,6,1);
+%     figure(i);[pos_fltr_3,vec_fltr_3]=filterVectorOutliers(pos_fltr_2,vec_fltr_2,18,10,6,1); 
+% end
+
 if nargin < 3 || isempty(numStd)
     % Set a threshold based on the global std:
     numStd=10;

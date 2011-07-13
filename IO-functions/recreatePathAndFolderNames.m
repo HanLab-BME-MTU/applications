@@ -21,7 +21,7 @@ pattern_RefFrame                        ='w2642';
 folder_name_Beads                       ='Beads';
 folder_name_Cells                       ='Cells';
 folder_name_Xtra                        ='Ecad'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
-folder_name_Xtra2nd                     ='Myos'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
+folder_name_Xtra2nd                     ='Tln1'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
 folder_name_RefFrame                    ='Reference Frame';
 
 
