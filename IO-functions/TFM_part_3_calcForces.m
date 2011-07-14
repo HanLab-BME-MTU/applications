@@ -54,7 +54,7 @@ end
 
 fieldsOK='n';
 while strcmp(fieldsOK,'n') || strcmp(fieldsOK,'no') || strcmp(fieldsOK,'N')
-    filter      = input('Filter spec: [numStd boxSizeLocFac boxSizeGlbFac]=[10 6 2 1] (default: no filter): ');
+    filter      = input('Filter spec: [numStd boxSizeLocFac boxSizeGlbFac]=[18 10 6 3] (default: no filter): ');
     regParam    = input('Regularization parameter          (default:  10^(-7)): ');    
 
     [displField, forceField, ~]=createDisplField(path_ResidualT,flowTFM_FileList,path_mechTFM,filter,yModu_Pa,[],pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg);
