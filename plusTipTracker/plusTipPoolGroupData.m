@@ -181,8 +181,6 @@ if doBtw==1
         
         % save histograms of pooled distributions from iGroup
         plusTipMakeHistograms(M,tempDir,'labels',unique(projGroupName),varargin{:});
-        % save histograms of stats from iGroup
-        plusTipMakeStatsHistograms(S,tempDir,'labels',unique(projGroupName),varargin{:});
         % make between-group boxplots (show pooled data)
         plusTipMakeBoxplots(allDataCell,btwGrpNames,tempDir);
         
@@ -193,7 +191,7 @@ if doBtw==1
 %     groupData.projIdx(:,1)=projGroupName;
 %     groupData.projIdx(:,2:3)=projNum(:,1:2);
 
-    save([tempDir filesep 'groupData'],'groupData','S','M');
+    save([tempDir filesep 'groupData'],'groupData','S','M','projGroupName');
 end
 
 
