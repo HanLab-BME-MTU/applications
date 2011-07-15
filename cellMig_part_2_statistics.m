@@ -140,7 +140,9 @@ if showTrackerMovie==1
 %     h     = figure();
 %     set(h,'Position',scrsz);
     
-    overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei,[pwd,filesep],[],1)
+    % overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei,[pwd,filesep],[],1)    
+    overlayTracksMovieNew(tracksFinal,[],10,1,movieFileName,[],1,0,0,[],0,1,[],0,0,imageFileListNuclei,[pwd,filesep],minTrackLength,1)
+    
     % move the movie into the current dir:
     if isdir('Nuclei')
         try

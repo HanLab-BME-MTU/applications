@@ -55,7 +55,7 @@ end
 % 'roughness','freqSpec'
 % minTrackLength','timeWindow','dt','pixSize_um','toDoList','badFlag'
 
-dFramesCorr=24;      % The correlation analysis is done only every dFramesCorr-frames
+dFramesCorr=24      % The correlation analysis is done only every dFramesCorr-frames
 dR=100;             % The disc width for calculating I(r+dr);
 minlength=12; %12;       % The minimal movie length in hours, shorter movies are disregarded!           
 timeWindowCorr=6    % Time window for averaging velocities for correlation analysis.
@@ -462,7 +462,8 @@ end
 
 % tracksMatxCord(~checkVec,:)=[];
 if justPlot==1
-    dframes=24;
+    sglCell=0
+    dframes=dFramesCorr;
     marker=['ro','bs','m*','c+','gd','yo','ks'];
     % plot the results for each kPaClass:
     for classID=1:length(groupData.kPaClass)
@@ -707,6 +708,11 @@ if justPlot==1
     %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
     numFrames=groupData.glbMaxFrame(1);
     numBins=4;
+    if sglCell
+        numBins=1;
+    else
+        numBins=4;
+    end
     numCakePieces=24;
     rMax=0.55;
     
@@ -721,7 +727,7 @@ if justPlot==1
     for binR=1:numBins
         numPlotFrames=length(1:dframes:numFrames);
         k=1;
-        for frame=1:dframes:numFrames
+        for frame=1:dframes:(numFrames-timeWindowPlot)
             subplot(numPlotFrames,numBins,(k-1)*numBins+binR)
             
             for classID=1:length(groupData.kPaClass)
@@ -786,7 +792,11 @@ if justPlot==1
     h=[];
     %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
     numFrames=groupData.glbMaxFrame(1);
-    numBins=4;
+    if sglCell
+        numBins=1;
+    else
+        numBins=4;
+    end
     for binR=1:numBins
         numPlotFrames=length(1:dframes:numFrames);
         k=1;
@@ -828,7 +838,7 @@ if justPlot==1
             title(['Cell to edge distance: ',num2str(pixSize_um*c2edClassMean,'%.1f'),'+-',num2str(pixSize_um*c2edSTDClassMean,'%.1f'),'[um]'])
             ylabel(['Change of cell to cell dist, dD(r,t=',num2str(dt*(frame-1)),'h)']);
             xlabel('dt [h]');
-            ylim([ 0 0.4]);
+            ylim([ 0 0.6]);
             xlim([ 0 20]);
             if frame ==1 && binR==numBins
                 legend(h,M);
@@ -855,8 +865,12 @@ if justPlot==1
     h=[];
     %figure('Name',['Velocity correlation, for
     %',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
-    numBins=4;
-    trgDFrames=24; % this = 4h
+    if sglCell
+        numBins=1;
+    else
+        numBins=4;
+    end
+    trgDFrames=dframes; % this = 4h
     numFrames=min([1+trgDFrames*4,groupData.glbMaxFrame(2)]);
     for binc2e=1:numBins
         numPlotFrames=length(1:dframes:(numFrames-trgDFrames));
@@ -1069,7 +1083,11 @@ if justPlot==1
     h=[];
     %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
     numFrames=groupData.glbMaxFrame(1);
-    numBins=4;
+    if sglCell
+        numBins=1;
+    else
+        numBins=4;
+    end
     for binR=1:numBins
         numPlotFrames=length(1:dframes:(numFrames-timeWindowCorr));
         k=1;
