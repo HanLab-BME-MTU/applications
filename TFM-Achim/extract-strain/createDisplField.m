@@ -185,11 +185,11 @@ for i=1:n
         out(i).num = length(id_out_all);
             
         % dummy=input('Press enter to proceed: ');
-        figure()
-        quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1),displField(i).vec(:,2),0)
-        hold on;
-        quiver(out(i).pos(:,1),out(i).pos(:,2),out(i).vec(:,1),out(i).vec(:,2),0,'r')
-        hold off;
+%         figure()
+%         quiver(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1),displField(i).vec(:,2),0)
+%         hold on;
+%         quiver(out(i).pos(:,1),out(i).pos(:,2),out(i).vec(:,1),out(i).vec(:,2),0,'r')
+%         hold off;
 
     end
     displField(i).par.prep4fastBEM=0;
