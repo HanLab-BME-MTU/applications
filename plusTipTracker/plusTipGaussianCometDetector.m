@@ -222,7 +222,6 @@ for iFrame = startFrame:endFrame
 
 
 end
-close(saveFig)
 save([featDir filesep 'movieInfo'],'movieInfo');
 
 warning(warningState);
