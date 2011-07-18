@@ -202,20 +202,21 @@ for iFrame = startFrame:endFrame
     
     %plot feat outlines and centroid on image
     if savePlots==1
-        if ishandle(saveFig), clf(saveFig); else saveFig = figure; end
-        if displayFirstImage && iFrame == startFrame
-           set(saveFig,'Visible','on');
+        if displayFirstImage && iFrame == startFrame, 
+            visibleState='on'; 
         else
-           set(saveFig,'Visible','off');
-        end 
+            visibleState='off';
+        end
+        saveFig = figure('Visible',visibleState);
         imagesc(img)
         hold on
         scatter(movieInfo(iFrame,1).xCoord(:,1),movieInfo(iFrame,1).yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
         axis equal
-        saveas(saveFig,[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
+        print(saveFig,'-dtiff',[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
         saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
+        close(saveFig)
     end
     count=count+1;
 
