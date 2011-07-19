@@ -136,7 +136,8 @@ if doNuclei
     
     % track nuclei:
     display('Track nuclei:...')
-    [tracksFinal]=scriptTrackNuclei(movieInfoCrop,rMin,rMax,resultDir);
+    %[tracksFinal]=scriptTrackNuclei(movieInfoCrop,rMin,rMax,resultDir);
+    [tracksFinal]=scriptTrackNucleiWithGapCl(movieInfoCrop,rMin,rMax,resultDir);
     display('Done! Save results:...')
     close all;
     
