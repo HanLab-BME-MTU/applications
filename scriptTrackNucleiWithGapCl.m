@@ -1,7 +1,7 @@
 function [tracksFinal]=scriptTrackNucleiWithGapCl(movieInfo,rMin,rMax,resultDir)
 %% general gap closing parameters
-gapCloseParam.timeWindow = 1; %maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
-gapCloseParam.mergeSplit = 1; %1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
+gapCloseParam.timeWindow = 2; %maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
+gapCloseParam.mergeSplit = 3; %1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
 gapCloseParam.minTrackLen = 3; %minimum length of track segments from linking to be used in gap closing.
 
 %optional input:
