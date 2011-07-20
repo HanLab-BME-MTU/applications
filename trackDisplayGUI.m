@@ -1,85 +1,126 @@
-function varargout = trackDisplayGUI(varargin)
-% TRACKDISPLAYGUI M-file for trackDisplayGUI.fig
-%      TRACKDISPLAYGUI, by itself, creates a new TRACKDISPLAYGUI or raises the existing
-%      singleton*.
-%
-%      H = TRACKDISPLAYGUI returns the handle to a new TRACKDISPLAYGUI or the handle to
-%      the existing singleton*.
-%
-%      TRACKDISPLAYGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in TRACKDISPLAYGUI.M with the given input arguments.
-%
-%      TRACKDISPLAYGUI('Property','Value',...) creates a new TRACKDISPLAYGUI or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before trackDisplayGUI_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to trackDisplayGUI_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+function newGUI(data, tracks)
 
-% Edit the above text to modify the response to help trackDisplayGUI
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addRequired('tracks', @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
+ip.parse(data, tracks);
 
-% Last Modified by GUIDE v2.5 17-Jun-2011 13:41:48
-
-% Francois Aguet, September 2010
-
-% Begin initialization code - DO NOT EDIT
-gui_Singleton = 0;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @trackDisplayGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @trackDisplayGUI_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
-
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
-
-
-% --- Executes just before trackDisplayGUI is made visible.
-function trackDisplayGUI_OpeningFcn(hObject, ~, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to trackDisplayGUI (see VARARGIN)
-
-data = varargin{1};
 handles.data = data;
-handles.fAspectRatio = handles.data.imagesize(1) / handles.data.imagesize(2);
-
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
+if nCh>4
+    error('Only data with up to 4 channels are supported.');
+end
+    
+if isstruct(tracks)
+    handles.tracks = cell(1,nCh);
+    handles.tracks{1} = tracks;
+else
+    handles.tracks = tracks;
+end
+
+
+handles.fig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.8 0.7],...
+    'Toolbar', 'figure', 'ResizeFcn', @figResize,...
+    'Color', get(0,'defaultUicontrolBackgroundColor'));
+
+set(handles.fig, 'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
+pos = get(handles.fig, 'Position');
+
+
+%---------------------
+% Frames
+%---------------------
+
+handles.frameLabel = uicontrol('Style', 'text', 'String', 'Frame 2', ...
+    'Position', [20 pos(4)-40, 100 20], 'HorizontalAlignment', 'left');
+
+
+% Slider
+handles.frameSlider = uicontrol('Style', 'slider',...
+    'Value', 2, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
+    'Position', [20 60 0.6*pos(3) 20], 'Callback', {@frameSlider_Callback, handles.fig});
+
+uicontrol('Style', 'text', 'String', 'Display: ',...
+    'Position', [20 20, 80 20], 'HorizontalAlignment', 'left');
+
+handles.frameChoice = uicontrol('Style', 'popup',...
+    'String', {'Raw frames', 'Detection', 'RGB'},...
+    'Position', [90 20 120 20], 'Callback', {@frameChoice_Callback, handles.fig});
+
+% Checkboxes
+handles.detectionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Positions',...
+    'Position', [250 30, 140 20], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, handles.fig});
+handles.labelCheckbox = uicontrol('Style', 'checkbox', 'String', 'Channel labels',...
+    'Position', [250 10, 140 20], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, handles.fig});
+handles.trackCheckbox = uicontrol('Style', 'checkbox', 'String', 'Tracks', 'Value', true,...
+    'Position', [390 30, 140 20], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, handles.fig});
+handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
+    'Position', [390 10, 140 20], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, handles.fig});
+
+handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
+    'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
+    'Callback', {@trackButton_Callback, handles.fig});
+
+
+%---------------------
+% Tracks
+%---------------------
+
+handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
+    'Position', [40+0.6*pos(3) pos(4)-40, 100 20], 'HorizontalAlignment', 'left');
+
+handles.trackSlider = uicontrol('Style', 'slider',...
+    'Value', 1, 'SliderStep', [1 1], 'Min', 1, 'Max', 100,...
+    'Position', [pos(3)-35 60 20 pos(4)-80],...
+    'Callback', {@trackSlider_Callback, handles.fig});
+
+
+% Output panel
+ph = uipanel('Parent', handles.fig, 'Units', 'pixels', 'Title', 'Output', 'Position', [pos(3)-180 5 140 70]);
+handles.printButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Print figures',...
+    'Units', 'normalized', 'Position', [0.1 0.5 0.8 0.45],...
+    'Callback', {@printButton_Callback, handles.fig});
+
+handles.movieButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Make movie',...
+    'Units', 'normalized', 'Position', [0.1 0.05 0.8 0.45],...
+    'Callback', {@printButton_Callback, handles.fig});
+handles.outputPanel = ph;
+
+% Montage panel
+ph = uipanel('Parent', handles.fig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-390 5 180 70]);
+handles.montageButton = uicontrol(ph,'Style','pushbutton','String','Generate',...
+    'Units','normalized', 'Position',[.1 .55 .6 .4],...
+    'Callback', {@montageButton_Callback, handles.fig});     
+handles.montageText = uicontrol(ph, 'Style', 'text', 'String', 'Align to: ',...
+    'Units', 'normalized', 'Position', [0.1 0.1 0.3 0.4], 'HorizontalAlignment', 'left');
+handles.montageOptions = uicontrol(ph, 'Style', 'popup',...
+    'String', {'Track', 'Frame'},...
+    'Units', 'normalized', 'Position', [0.4 0.1 0.5 0.4]);
+handles.montageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show track',...
+    'Position', [pos(3)-120 10, 100 20], 'HorizontalAlignment', 'left', 'Visible', 'off');
+handles.montagePanel = ph;
+
+
+setappdata(handles.fig, 'handles', handles);
+
+%================================
+
+
+handles.fAspectRatio = handles.data.imagesize(1) / handles.data.imagesize(2);
+
+
+
 % exclude master from list of channels
 handles.masterChannel = find(strcmp(data.source, data.channels));
 handles.slaveChannels = setdiff(1:nCh, handles.masterChannel);
 
-
-for k = 1:length(varargin)-1
-    handles.tracks{k} = varargin{k+1};
-end
-for k = length(varargin):nCh
-    handles.tracks{k} = [];
-end
-% if numel(varargin)>3
-%     handles.trackLinks = varargin{4};
-% end
-
-
-
-frameList = cell(1,nCh);
-maskList = cell(1,nCh);
 handles.detection = cell(1,nCh);
 handles.dRange = cell(1,nCh);
 
@@ -97,21 +138,13 @@ if exist(detectionFile, 'file')==2
 end
 
 for c = 1:nCh
-    frames = dir([data.channels{c} '*.tif']);
-    frameList{c} = cellfun(@(x) [data.channels{c} x], {frames.name}, 'UniformOutput', false);
-    maskPath = [data.channels{c} 'Detection' filesep 'Masks' filesep];
-    masks = dir([maskPath '*.tif']);
-    maskList{c} = cellfun(@(x) [maskPath x], {masks.name}, 'UniformOutput', false);
-    
     if isempty(handles.dRange{c})        
         % determine dynamic range
-        firstFrame = double(imread(frameList{c}{1}));
-        lastFrame = double(imread(frameList{c}{data.movieLength}));
+        firstFrame = double(imread(data.framePaths{c}{1}));
+        lastFrame = double(imread(data.framePaths{c}{data.movieLength}));
         handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
     end
 end
-handles.frameList = frameList;
-handles.maskList = maskList;
 handles.nCh = nCh;
 
 
@@ -128,32 +161,21 @@ end
 handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
-
 settings.zoom = 1;
-setappdata(handles.figure1, 'mydata', settings);
+setappdata(handles.fig, 'settings', settings);
 
 
 %=================================================
 % Set initial values for sliders and checkboxes
 %=================================================
-h = handles.frameSlider;
-set(h, 'Min', 1);
-set(h, 'Max', data.movieLength);
-set(h, 'Value', 2);
-set(h, 'SliderStep', [1/(data.movieLength-1) 0.05]);
-
-h = handles.trackSlider;
 if ~isempty([handles.tracks{:}]) && length(handles.tracks{handles.masterChannel}) > 1
-    set(h, 'Min', 1);
+    set(handles.trackSlider, 'Min', 1);
     nTracks = length(handles.tracks{handles.masterChannel});
-    set(h, 'Max', nTracks);
-    set(h, 'SliderStep', [1/(nTracks-1) 0.05]);
+    set(handles.trackSlider, 'Max', nTracks);
+    set(handles.trackSlider, 'SliderStep', [1/(nTracks-1) 0.05]);
 else
-    set(h, 'Visible', 'off');
+    set(handles.trackSlider, 'Visible', 'off');
 end
-% Choose default command line output for trackDisplayGUI
-handles.output = hObject;
-
 
 if nCh > 2
     set(handles.('labelCheckbox'), 'Value', 1);
@@ -166,7 +188,6 @@ end
 % Generate axes
 %=================================================
 % hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
-% uicontrol(hFig(1), 'Style', 'slider');
 
 handles = setupFrameAxes(handles);
 dx = 1/23; % unit
@@ -202,30 +223,29 @@ axis([handles.fAxes{:}], 'image');
 
 % save XLim diff. for zoom reference
 handles.refXLimDiff = data.imagesize(2)-1;
-handles = refreshFrameDisplay(hObject, handles);
+handles = refreshFrameDisplay(handles);
 
 
-% init. track display
-set(handles.trackLabel, 'String', 'Track 1');
 refreshTrackDisplay(handles);
 
-guidata(hObject, handles);
+% guidata(hObject, handles);
 % set(zoom, 'ActionPostCallback', {@zoompostcallback, handles, hObject});
-set(zoom, 'ActionPostCallback', {@zoompostcallback, handles});
-guidata(hObject, handles);
+set(zoom, 'ActionPostCallback', {@zoompostcallback, handles.fig});
+% guidata(hObject, handles);
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+
 
 
 
 %===================================
 % Automatic actions after zoom
 %===================================
-function zoompostcallback(~, eventdata, handles)
+function zoompostcallback(~, eventdata, hfig)
 
 XLim = get(eventdata.Axes, 'XLim');
 
-settings = getappdata(handles.figure1, 'mydata');
+settings = getappdata(hfig, 'settings');
 settings.zoom = handles.refXLimDiff / diff(XLim);
 
 for c = 1:length(settings.selectedTrackMarkerID)
@@ -235,7 +255,29 @@ for c = 1:length(settings.selectedTrackMarkerID)
     end
 end
 
-setappdata(handles.figure1, 'mydata', settings);
+setappdata(hfig, 'settings', settings);
+
+
+
+
+
+
+
+function figResize(src,~)
+pos = get(src, 'Position');
+handles = getappdata(src, 'handles');
+
+% frames
+set(handles.frameLabel, 'Position', [20 pos(4)-40, 100 20]);
+set(handles.frameSlider, 'Position', [20 60 0.6*pos(3) 20]);
+
+% tracks
+set(handles.trackLabel, 'Position', [40+0.6*pos(3) pos(4)-40, 100 20]);
+set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
+set(handles.trackSlider, 'Position', [pos(3)-35 60 20 pos(4)-80]);
+set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
+set(handles.montagePanel, 'Position', [pos(3)-390 5 180 70]);
+
 
 
 
@@ -278,22 +320,22 @@ linkaxes([handles.fAxes{:}]);
 
 
 
-% --- Outputs from this function are returned to the command line.
-function varargout = trackDisplayGUI_OutputFcn(~, ~, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+% % --- Outputs from this function are returned to the command line.
+% function varargout = trackDisplayGUI_OutputFcn(~, ~, handles)
+% % varargout  cell array for returning output args (see VARARGOUT);
+% % hObject    handle to figure
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Get default command line output from handles structure
+% varargout{1} = handles.output;
 
 
 
 %===================================
 % Plot frames with overlaid tracks
 %===================================
-function handles = refreshFrameDisplay(hObject, handles)
+function handles = refreshFrameDisplay(handles)
 
 % save zoom settings
 XLim = get(handles.fAxes{1}, 'XLim');
@@ -302,7 +344,7 @@ YLim = get(handles.fAxes{1}, 'YLim');
 % zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
-settings = getappdata(handles.figure1, 'mydata');
+settings = getappdata(handles.fig, 'settings');
 
 
 if strcmp(handles.displayType, 'RGB')
@@ -370,7 +412,7 @@ else % all modes except RGB
             end
         end
         
-        % show detection COM values
+        % show detection localization values
         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
             d = handles.detection{c}(f);
             if ~isempty(d.x)
@@ -415,13 +457,14 @@ end
 
 settings.selectedTrackMarkerID = markerHandles;
 settings.selectedTrackLabelID = textHandles;
-setappdata(handles.figure1, 'mydata', settings);
+setappdata(handles.fig, 'mydata', settings);
 
 % write zoom level
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
-guidata(hObject, handles);
+% guidata(hObject, handles);
 
+setappdata(handles.fig, 'handles', handles);
 
 
 
@@ -461,7 +504,7 @@ if ~isempty(handles.selectedTrack)
             cx = ci;
         end
         
-        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h);
+        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h, 'Legend', 'hide');
         box on;
         l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         set(l, 'FontSize', 7);
@@ -487,52 +530,36 @@ if ~isempty(handles.selectedTrack)
 end
 
 
+%========================
+% Callback functions
+%========================
 
-
-% --- Executes during object creation, after setting all properties.
-function frameSlider_CreateFcn(hObject, ~, ~)
-% hObject    handle to frameSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
+function refresh_Callback(~,~,hfig)
+refreshFrameDisplay(getappdata(hfig, 'handles'));
 
 
 
-% --- Executes on slider movement.
-function frameSlider_Callback(hObject, ~, handles)
-% hObject    handle to frameSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% function frameSlider_CreateFcn(hObject, ~, ~)
+% if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor',[.9 .9 .9]);
+% end
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
+function frameSlider_Callback(hObject, ~, hfig)
 f = round(get(hObject, 'value'));
 set(hObject, 'Value', f);
+handles = getappdata(hfig, 'handles');
 set(handles.frameLabel, 'String', ['Frame ' num2str(f)]);
 handles.f = f;
-guidata(hObject,handles);
-refreshFrameDisplay(hObject, handles);
+setappdata(hfig, 'handles', handles);
+refreshFrameDisplay(handles);
 refreshTrackDisplay(handles);
 
 
 
-% --- Executes when figure1 is resized.
-function figure1_ResizeFcn(~, ~, ~)
-% hObject    handle to figure1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function trackButton_Callback(~, ~, hfig)
 
-
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, ~, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+handles = getappdata(hfig, 'handles');
 
 % set focus for next input
 axes(handles.fAxes{1}); % linked to axes2, selection possible in both
@@ -580,31 +607,32 @@ set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
 % handles.selectedTrack(2) = idx(d==min(d));
 % % handles.selectedTrack(2) = handles.trackLinks(selectedIdx);
 
-guidata(hObject,handles);
+
+setappdata(hfig, 'handles', handles);
 % axis(handles.axes3, [0 handles.data.movieLength 0 1]);
-refreshFrameDisplay(hObject, handles);
+refreshFrameDisplay(handles);
 refreshTrackDisplay(handles);
 
 
 
 % --- Executes on button press in montageButton.
-function montageButton_Callback(~, ~, handles)
-% hObject    handle to montageButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function montageButton_Callback(~, ~, hfig)
+handles = getappdata(hfig, 'handles');
 
 % Creates a montage based on the master track
 if ~isempty(handles.selectedTrack)
-    h = handles.montageOptions;
-    options = get(h, 'String');
-    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)),...
-        'WindowWidth', 6, 'Reference', options{get(h, 'Value')});
+    fprintf('Generating montage...');
+    options = get(handles.montageOptions, 'String');
     
-    if get(handles.montageLocCheckbox, 'Value')
+    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)),...
+        'WindowWidth', 6, 'Reference', options{get(handles.montageOptions, 'Value')});
+    
+    if get(handles.montageCheckbox, 'Value')
         plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray', 'TrackCoords', {x,y});
     else
         plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
     end
+    fprintf(' done.\n');
 else
     fprintf('Cannot create montage: no track selected.');
 end
@@ -612,13 +640,15 @@ end
 
 
 % --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, ~, handles)
+function frameChoice_Callback(hObject, ~, hfig)
 % hObject    handle to popupmenu1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmenu1
+
+handles = getappdata(hfig, 'handles');
 
 contents = cellstr(get(hObject,'String'));
 switch contents{get(hObject,'Value')}
@@ -629,32 +659,16 @@ switch contents{get(hObject,'Value')}
     case 'Detection'
         handles.displayType = 'mask';
 end
-guidata(hObject,handles);
-refreshFrameDisplay(hObject, handles);
+setappdata(hfig, 'handles', handles);
+refreshFrameDisplay(handles);
 
 
 
-% --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, ~, ~)
-% hObject    handle to popupmenu1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
-% --- Executes on slider movement.
-function trackSlider_Callback(hObject, ~, handles)
-% hObject    handle to trackSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function trackSlider_Callback(hObject, ~, hfig)
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+handles = getappdata(hfig, 'handles');
 
 t = round(get(hObject, 'value'));
 set(hObject, 'Value', t);
@@ -674,22 +688,12 @@ if handles.f < t.start || handles.f > t.end
     set(handles.frameSlider, 'Value', handles.f);
 end
 
-refreshFrameDisplay(hObject, handles);
+refreshFrameDisplay(handles);
 refreshTrackDisplay(handles);
 
 
 
 
-% --- Executes during object creation, after setting all properties.
-function trackSlider_CreateFcn(hObject, ~, ~)
-% hObject    handle to trackSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
 
 
 % --- Executes on button press in printButton.
@@ -725,7 +729,6 @@ else
     end
 end
 
-
 h = handles.montageOptions;
 options = get(h, 'String');
 stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
@@ -734,34 +737,3 @@ plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPa
 
 fprintf(' done.\n');
 
-
-% --- Executes on button press in detectionCheckbox.
-function detectionCheckbox_Callback(hObject, ~, handles)
-% hObject    handle to detectionCheckbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-refreshFrameDisplay(hObject, handles);
-
-
-% --- Executes on button press in labelCheckbox.
-function labelCheckbox_Callback(hObject, ~, handles)
-% hObject    handle to labelCheckbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-refreshFrameDisplay(hObject, handles);
-
-
-% --- Executes on button press in trackCheckbox.
-function trackCheckbox_Callback(hObject, ~, handles)
-% hObject    handle to trackCheckbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-refreshFrameDisplay(hObject, handles);
-
-
-% --- Executes on button press in eapCheckbox.
-function eapCheckbox_Callback(hObject, ~, handles)
-% hObject    handle to eapCheckbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-refreshFrameDisplay(hObject, handles);
