@@ -1,12 +1,12 @@
-function newGUI(data, tracks)
+function trackDisplayGUI(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addRequired('tracks', @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
-ip.parse(data, tracks);
-
+ip.addOptional('tracks', cell(1,length(data.channels)), @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
+ip.parse(data, varargin{:});
 handles.data = data;
+tracks = ip.Results.tracks;
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
@@ -99,10 +99,10 @@ handles.montageButton = uicontrol(ph,'Style','pushbutton','String','Generate',..
     'Units','normalized', 'Position',[.1 .55 .6 .4],...
     'Callback', {@montageButton_Callback, handles.fig});     
 handles.montageText = uicontrol(ph, 'Style', 'text', 'String', 'Align to: ',...
-    'Units', 'normalized', 'Position', [0.1 0.1 0.3 0.4], 'HorizontalAlignment', 'left');
+    'Units', 'normalized', 'Position', [0.1 0.1 0.35 0.4], 'HorizontalAlignment', 'left');
 handles.montageOptions = uicontrol(ph, 'Style', 'popup',...
     'String', {'Track', 'Frame'},...
-    'Units', 'normalized', 'Position', [0.4 0.1 0.5 0.4]);
+    'Units', 'normalized', 'Position', [0.45 0.1 0.5 0.4]);
 handles.montageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show track',...
     'Position', [pos(3)-120 10, 100 20], 'HorizontalAlignment', 'left', 'Visible', 'off');
 handles.montagePanel = ph;
