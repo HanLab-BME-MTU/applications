@@ -216,9 +216,9 @@ if robust
 			end
 		end
 		warning(warning_state)
-	catch
+    catch err %Replaced lasterr with error catching and rethrowing - HLE
 		warning(warning_state)
-		rethrow(lasterror)
+		rethrow(err)
 	end
 	% Find where t1 and t2 are between 0 and 1 and return the corresponding
 	% x0 and y0 values.
@@ -242,12 +242,14 @@ if robust
 	xy0 = T(3:4,selected).';
 	
 	% Remove duplicate intersection points.
-	[xy0,index] = unique(xy0,'rows');
+	%[xy0,index] = unique(xy0,'rows'); - Moved this to below the iout &
+	%jout calculation - HLE
+    index = 1:size(xy0,1);
 	x0 = xy0(:,1);
-	y0 = xy0(:,2);
+	y0 = xy0(:,2);   
 	
 	% Compute how far along each line segment the intersections are.
-	if nargout > 2
+    if nargout > 2
 		sel_index = find(selected);
 		sel = sel_index(index);
         if ~isempty(sel) %Check if there are any intersections first to avoid error - HLE
@@ -257,7 +259,54 @@ if robust
             iout = [];
             jout = [];
         end
-	end
+    end
+    
+    if numel(iout) > 1
+        %Remove duplicate intersection points. I Moved this to after computing
+        %iout and jout. This allows truly redundant intersections to be
+        %separated from instances where there are two distinct intersections at
+        %different indices on the polygon which occur at the same point because
+        %one polygon either intersects itself or is colinear with itself.
+        %Additionally, when two line segments touch at one point, this often is
+        %returned as multiple, very close but not identical intersections. This
+        %is also handled here. HLE, 7/2011
+
+        epsIJ = 1e-5;%Small number for identifying close intersection indices        
+        
+        %Since the problem results from line segments which share a vertex,
+        %we just check if the intersections indicesare very close to
+        %integer values.-HLE
+        iout(abs(round(iout)-iout) <= epsIJ) = round(iout(abs(round(iout)-iout) <= epsIJ));
+        jout(abs(round(jout)-jout) <= epsIJ) = round(jout(abs(round(jout)-jout) <= epsIJ));
+        
+        %Now get only the unique intersection points, based on the i and j
+        %indices          
+        
+        %If one of the curves is closed, we need to take into account that
+        %the first and last segments are adjacent
+        if x1(1) == x1(end) && y1(1) == y1(end)            
+            iCheck = iout;
+            iCheck(mod(iout,numel(x1))==0) = 1;            
+        else
+            iCheck = iout;
+        end
+        if x2(1) == x2(end) && y2(1) == y2(end)
+            jCheck = jout;
+            jCheck(mod(jout,numel(x2))==0) = 1;
+        else
+            jCheck = jout;
+        end
+        
+        [~,index] = unique([iCheck jCheck],'rows');
+        %[~,index] = unique([iout jout],'rows');
+
+        iout = iout(index);
+        jout = jout(index);
+        x0 = x0(index);
+        y0 = y0(index);    
+        
+    end
+        
 else % non-robust option
 	for k = 1:n
 		[L,U] = lu(AA(:,:,k));
