@@ -24,7 +24,7 @@ nx = data.imagesize(2);
 ny = data.imagesize(1);
 psize = data.pixelSize/data.M;
 nCh = length(ch);
-mCh = strcmp(data.channels, data.source);
+mCh = find(strcmp(data.channels, data.source));
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -53,9 +53,6 @@ else
     standalone = true;
 end
 
-xa = 1:nx;
-ya = 1:ny;
-
 %======================================
 % Plot frame
 %======================================
@@ -76,8 +73,9 @@ switch ip.Results.mode
         if nCh>1
             error('Mask overlay mode only supports 1 channel.');
         end
+        
         % Display mask only where available
-        if (exist(data.maskPaths{frameIdx}, 'file')==2)
+        if ch==mCh && (exist(data.maskPaths{frameIdx}, 'file')==2)
             frame = double(imread(data.framePaths{ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
             frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
