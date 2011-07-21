@@ -90,7 +90,7 @@ handles.printButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Print figu
 
 handles.movieButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Make movie',...
     'Units', 'normalized', 'Position', [0.1 0.05 0.8 0.45],...
-    'Callback', {@printButton_Callback, handles.fig});
+    'Callback', {@movieButton_Callback, handles.fig});
 handles.outputPanel = ph;
 
 % Montage panel
@@ -737,3 +737,9 @@ plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPa
 
 fprintf(' done.\n');
 
+
+
+function movieButton_Callback(~, ~, hfig)
+
+handles = getappdata(hfig, 'handles');
+makeMovie(handles.data, handles.tracks{handles.masterChannel});

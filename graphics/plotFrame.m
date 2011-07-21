@@ -35,9 +35,10 @@ ip.addRequired('ch');
 ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
+ip.addParamValue('iRange', [], @(x) iscell(x));
 ip.addParamValue('visibleTracks', 'current', @(x) strcmpi(x, 'current') | strcmpi(x, 'all'));
-ip.addParamValue('scaleBar', []);
+ip.addParamValue('ScaleBar', []);
+ip.addParamValue('ScaleBarLabel', []);
 ip.addParamValue('handle', []);
 ip.parse(data, tracks, frameIdx, ch, varargin{:});
 
@@ -95,7 +96,9 @@ end
 %     end
 
 imagesc(frame, 'Parent', ha);
-caxis(ha, ip.Results.iRange{ch});
+if ~isempty(ip.Results.iRange)
+    caxis(ha, ip.Results.iRange{ch});
+end
 colormap(gray(256));
 axis(ha, 'image');
 
@@ -104,7 +107,6 @@ axis(ha, 'image');
 % Plot tracks
 %======================================
 if ~isempty(tracks)
-    %cmap = jet(data.movieLength);
     lifetimes_f = [tracks.end]-[tracks.start]+1;
     cmap = jet(max(lifetimes_f));
     
@@ -137,8 +139,8 @@ if standalone
     axis(ha, 'off');
 end
     
-if ~isempty(ip.Results.scaleBar)
-    plotScaleBar(ip.Results.scaleBar/psize, 'Label', '5 µm');
+if ~isempty(ip.Results.ScaleBar)
+    plotScaleBar(ip.Results.ScaleBar/psize, 'Label', ip.Results.ScaleBarLabel);
 end
 
 
