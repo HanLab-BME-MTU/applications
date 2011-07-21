@@ -198,6 +198,10 @@ B = -[x1(i) x2(j) y1(i) y2(j)].';
 % only when you know you will never have overlapping or parallel segment
 % pairs.
 
+%Small number for identifying close intersection indices which should be
+%integers but are slightly off due to numerical error. 
+epsIJ = 1e-5;
+
 if robust
 	overlap = false(1,n);
 	warning_state = warning('off','MATLAB:singularMatrix');
@@ -222,7 +226,12 @@ if robust
 	end
 	% Find where t1 and t2 are between 0 and 1 and return the corresponding
 	% x0 and y0 values.
-	in_range = T(1,:) >= 0 & T(2,:) >= 0 & T(1,:) <= 1 & T(2,:) <= 1;
+	%in_range = T(1,:) >= 0 & T(2,:) >= 0 & T(1,:) <= 1 & T(2,:) <= 1;
+    %Altered this line to allow for numerical error, which was causing some
+    %intersection points to be missed. -HLE
+    in_range = T(1,:) >= -epsIJ  & T(2,:) >= -epsIJ & ... %t1 and t2 are ~ greater than 0
+               T(1,:) <= (1+epsIJ) & T(2,:) <= (1+epsIJ); %t1 and t2 are ~ less than 1 
+    
 	% For overlapping segment pairs the algorithm will return an
 	% intersection point that is at the center of the overlapping region.
 	if any(overlap)
@@ -262,25 +271,32 @@ if robust
     end
     
     if numel(iout) > 1
-        %Remove duplicate intersection points. I Moved this to after computing
-        %iout and jout. This allows truly redundant intersections to be
-        %separated from instances where there are two distinct intersections at
-        %different indices on the polygon which occur at the same point because
-        %one polygon either intersects itself or is colinear with itself.
-        %Additionally, when two line segments touch at one point, this often is
-        %returned as multiple, very close but not identical intersections. This
-        %is also handled here. HLE, 7/2011
+        %Remove duplicate intersection points. I Moved this to after
+        %computing iout and jout. This allows truly redundant intersections
+        %to be separated from instances where there are two distinct
+        %intersections at different indices on the polygon which occur at
+        %the same point because one polygon either intersects itself or is
+        %colinear with itself. Additionally, when two line segments touch
+            %at one point, this often is returned as multiple, very close but
+        %not identical intersections. This is also handled here so that
+        %these are returned as a single intersection. HLE, 7/2011
+        
+        %Loop through the indices, setting those which are closer together
+        %than epsilon equal to one another. Repeat this until no indices
+        %are this close and non-identical.
+        iTooClose = 1;jTooClose =1;
+        while ~isempty(iTooClose) || ~isempty(jTooClose)
+        
+            [ioutSorted,sortInd] = sort(iout);
+            iTooClose = find(diff(ioutSorted) < epsIJ & diff(ioutSorted) > 0);%Find values that are closer than epsilon to each other
+            iout(sortInd(iTooClose))  = iout(sortInd(iTooClose+1));%Set these equal to each other, preserving the original order               
 
-        epsIJ = 1e-5;%Small number for identifying close intersection indices        
-        
-        %Since the problem results from line segments which share a vertex,
-        %we just check if the intersections indicesare very close to
-        %integer values.-HLE
-        iout(abs(round(iout)-iout) <= epsIJ) = round(iout(abs(round(iout)-iout) <= epsIJ));
-        jout(abs(round(jout)-jout) <= epsIJ) = round(jout(abs(round(jout)-jout) <= epsIJ));
-        
-        %Now get only the unique intersection points, based on the i and j
-        %indices          
+            [joutSorted,sortInd] = sort(jout);
+            jTooClose = find(diff(joutSorted) < epsIJ & diff(joutSorted) > 0);%Find values that are closer than epsilon to each other
+            jout(sortInd(jTooClose))  = jout(sortInd(jTooClose+1));%Set these equal to each other, preserving the original order
+        end
+        %Now get only the remaining unique intersection points, based on
+        %the i and j indices
         
         %If one of the curves is closed, we need to take into account that
         %the first and last segments are adjacent
@@ -297,8 +313,7 @@ if robust
             jCheck = jout;
         end
         
-        [~,index] = unique([iCheck jCheck],'rows');
-        %[~,index] = unique([iout jout],'rows');
+        [~,index] = unique([iCheck jCheck],'rows');        
 
         iout = iout(index);
         jout = jout(index);

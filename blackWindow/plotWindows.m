@@ -2,7 +2,7 @@ function plotWindows(windowIn,stringIn,showNum)
 %PLOTWINDOWS plots the input windows on the current axes
 % 
 % plotWindows(windowIn)
-% plotWindows(windowIn,plotStyle)
+% plotWindows(windowIn,plotStyle,showNum)
 %
 % This function is for displaying the window geometry. It plots the window
 % oultines and fills in their interior on the current figure axes. This can
@@ -11,21 +11,26 @@ function plotWindows(windowIn,stringIn,showNum)
 % Input 
 %
 %   windowIn - The cell-array containing the windows, as created with
-%   getMaskWindows or getMovieWindows.m
+%   getMaskWindows or getMovieWindows.m You may also pass a sub-set of the
+%   windows, e.g. plotWindows(windows(1:3)) or plotWindows(windows{1}(4)),
+%   but in this case if the showNum option is enabled, the numbering
+%   displayed will be altered.
 % 
-%   stringIn - A plot style option(s) to pass to the patch command,
-%   determining the appearance of the windows when plotted. May also be a
-%   cell-array specifying multiple options, or a cell-array-of-cell-arrays
-%   the same size as the window array, specifying different plot styles for
-%   each window. Optional. Default is {'r','FaceAlpha',.2}, which plots
-%   windows filled in transparently with red, and with a black outline.
+%   stringIn - Plot style option(s) to pass to the patch command,
+%   determining the appearance of the windows when plotted. To pass
+%   multiple options, include them in a cell array. See the patch.m help
+%   for more details. Optional. Default is {'r','FaceAlpha',.2}, which
+%   plots windows filled in transparently with red, and with a black
+%   outline.
 %
 %   showNum - Integer. If greater than 0, the indices of each showNum-th
 %   window will be plotted next to the window. That is, if showNum equals
 %   5, then every 5th window will have it's location in the window cell
 %   array plotted next to it. Optional. Default is 0 (no numbers). WARNING:
 %   If you have lots of windows, enabling this option may drastically slow
-%   down the plotting.
+%   down the plotting. Also, if you are plotting only a sub-set of the
+%   windows, the numbering will start at (1,1) at the beginning of this
+%   subset.
 %
 % Output:
 %
@@ -45,13 +50,24 @@ elseif ~iscell(stringIn)
     stringIn = {stringIn};
 end
 
-if ~iscell(stringIn{1})
-    %We need to replicate this string for each window            
-    stringIn = cellfun(@(x)(arrayfun(@(y)(stringIn),1:numel(x),'UniformOutput',false)),windowIn,'UniformOutput',false);    
-end
-
 if nargin < 3 || isempty(showNum)
     showNum = 0;
+end
+
+%Check the cell array to see if a sub-set of windows were passed
+if iscell(windowIn)
+    if iscell(windowIn{1})
+        if any(cellfun(@(x)(~isempty(x) && iscell(x{1})),windowIn))
+            cellDepth = 3;                            
+        else
+            cellDepth = 2;
+        end
+    else
+        %A single window was passed
+        cellDepth = 1;
+    end        
+else
+    error('The input windowIn must be a cell array!')
 end
 
 prevHold = ishold(gca);%Get hold state so we can restore it.
@@ -61,21 +77,57 @@ if ~prevHold
     hold on
 end
 
-for j = 1:numel(windowIn)        
-    for k = 1:numel(windowIn{j})        
-        if ~isempty(windowIn{j}{k})                
-            currWin = [windowIn{j}{k}{:}];
+
+switch cellDepth
+    
+    
+    case 1
+        
+        if ~isempty(windowIn{1})                
+            currWin = [windowIn{:}];
             if ~isempty(currWin)
 
-                patch(currWin(1,:),currWin(2,:),stringIn{j}{k}{:});
+                patch(currWin(1,:),currWin(2,:),stringIn{:});
 
-                if showNum && mod(j,showNum)==0 && mod(k,showNum) == 0
-                    text(currWin(1,1),currWin(2,1),[num2str(j) ',' num2str(k)])                       
-                end                    
             end
-        end
-    end       
-end    
+        end                
+        
+    case 2
+
+        for j = 1:numel(windowIn)            
+            if ~isempty(windowIn{j})                
+                currWin = [windowIn{j}{:}];
+                if ~isempty(currWin)
+
+                    patch(currWin(1,:),currWin(2,:),stringIn{:});
+
+                    if showNum && mod(j,showNum)==0
+                        text(currWin(1,1),currWin(2,1),num2str(j))
+                    end                    
+                end
+            end
+        end                               
+        
+    case 3
+        
+        for j = 1:numel(windowIn)        
+            for k = 1:numel(windowIn{j})        
+                if ~isempty(windowIn{j}{k})                
+                    currWin = [windowIn{j}{k}{:}];
+                    if ~isempty(currWin)
+
+                        patch(currWin(1,:),currWin(2,:),stringIn{:});
+
+                        if showNum && mod(j,showNum)==0 && mod(k,showNum) == 0
+                            text(currWin(1,1),currWin(2,1),[num2str(j) ',' num2str(k)])                       
+                        end                    
+                    end
+                end
+            end       
+        end    
+        
+end
+
 
 if ~prevHold %Restore previous hold state
     hold off

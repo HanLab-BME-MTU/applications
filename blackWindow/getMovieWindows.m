@@ -465,7 +465,6 @@ for iFrame = 1:nFrames;
               
             else
                               
-                    
                 iBestProt = correspondingIndices(startPts',smoothedEdge{iFrame-1}');                    
                 startPts = smoothedEdge{iFrame-1}(iBestProt,:) + protrusion{iFrame-1}(iBestProt,:);
                     

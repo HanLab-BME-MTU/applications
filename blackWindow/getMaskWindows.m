@@ -332,10 +332,22 @@ else
     iZeroCont = find(contourValues==0);
 end
 
-%Determine which contours are closed / open. If the zero level contour is
-%closed, all the contours will be closed. However if the zero-level contour
-%is open, we may still have closed higher-level contours.
-isClosed = cellfun(@(x)(all(round(x(:,end)) == round(x(:,1)))),contours);
+%Determine which contours are closed / open. We check all because if the
+%zero level contour is closed, all the contours will be closed. However if
+%the zero-level contour is open, we may still have closed higher-level
+%contours.
+%Additionally, we consider a contour to be closed if its start and endpoint
+%are within the same pixel. This is because contourc.m occasionally returns
+%start and end points which are very close but not identical (due to
+%numerical error?) and because it is impractical to have an open contour
+%whose endpoints are less than a pixel apart.
+
+%Get maximum difference of start and end coordinates
+startEndDist = cellfun(@(x)(max(diff(x(:,[1 end]),1,2))),contours);
+isClosed = startEndDist < 1;
+%Because we allow this leeway in considering a contour closed, we
+%completely close them by setting the last and first points equal.
+contours(isClosed & startEndDist > 0) = cellfun(@(x)(x(:,[1:end-1 1])),contours(isClosed & startEndDist > 0),'UniformOutput',false);
 
 %If the contour is open, we need to fill in the boundary before checking
 %handedness
@@ -433,7 +445,7 @@ for i = 1:nStart
     elseif nStartPts > 1
         nWinPara = nStartPts-1;
         %If the user specified the slice start points locations directly...
-        for j = 1:min(nStartPts,nPts)%In case the user specified more start points than points on this contour...
+        for j = 1:min(nStartPts,nPts)%In case the user specified more start points than points on this contour...Anything can happen....
             dToContour = @(x)(sqrt( (x(1,:) - startPoint(j,1) ) .^2 + ... 
                                     (x(2,:) - startPoint(j,2) ) .^2 ));
             
@@ -508,7 +520,7 @@ for i = 1:nStart
         %Transpose and reverse these...
         tmp = cellfun(@(x)(x(end:-1:1,:)'),tmp,'UniformOutput',false);
         %... and add them to the slices
-        slices{i} = arrayfun(@(x)([tmp{x} slices{i}{x}]),1:length(tmp),'UniformOutput',false);        
+        slices{i} = arrayfun(@(x)([tmp{x}(:,1:end-1) slices{i}{x}]),1:length(tmp),'UniformOutput',false);        
     end
 end
 
@@ -522,7 +534,7 @@ if nStart > 1
         %Determine the indices where these slices intersect the zero-value
         %contour.
         [~,~,iZeroContInt{i},jZeroContInt{i}] = find_intersections(contours{iZeroCont},...
-                                                slices{i},false(numel(slices{i}),1));        
+                                                slices{i});        
         
     end   
     
@@ -562,7 +574,7 @@ end
 
 %Find the intersections of the first slice.
 [intXprev,intYprev,iSintPrev,iCintPrev] = find_intersections(slices{1},...                                                
-                                                   contours,isClosed);                                                                                                                         
+                                                   contours);                                                                                                                         
 
 iContIntPrev = find(~isnan(intXprev));
 nBandPrev = numel(iContIntPrev)-1;%One band less than the number of contour intersections
@@ -575,7 +587,7 @@ windows = cell(1,nStrips);
 for j = 2:(nStrips+1)
 
     [intXcur,intYcur,iSintCur,iCintCur] = find_intersections(slices{j},...
-                                                    contours,isClosed);
+                                                    contours);
 
     iContIntCur = find(~isnan(intXcur));
 
@@ -652,7 +664,7 @@ for j = 2:(nStrips+1)
                         da = contours{iContIntCur(k)}(:,[floor(iCintCur(iContIntCur(k))):-1:1 end:-1:ceil(iCintPrev(iContIntPrev(k)))]);
                     else %If we get here, something has gone wrong!
                         if doChecks
-                            error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
+                            %error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
                         else
                             error('Problem with mask - check mask yourself or enable the mask checking option!')
                         end
@@ -740,9 +752,9 @@ end
     
 
 
-function [ix,iy,i1,i2] = find_intersections(c,cInt,isClosed)
-%This finds intersections, taking into account the fact that some curves
-%are closed.
+function [ix,iy,i1,i2] = find_intersections(c,cInt)
+%This finds intersections, ensuring that only one intersection is returned.
+%See below for details of why this is necessary.
 
     nCon = length(cInt);
         
@@ -757,41 +769,124 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt,isClosed)
         %This can be sped up by taking into account that each subsequent
         %intersection will occur further along the slice... HLE
         
-        if isClosed(j)
-            %For the closed contours, we need to close the polygon. Otherwise the
-            %slice can sneak through the gap between the first and last points!    
-            [tmpix,tmpiy,tmpi1,tmpi2] = intersectionsHLE( ...
-                                                  c(1,:),c(2,:), ... 
-                                                  [cInt{j}(1,end) cInt{j}(1,:)], ...
-                                                  [cInt{j}(2,end) cInt{j}(2,:)]);                                                      
-                                              
-        else
             
-            [tmpix,tmpiy,tmpi1,tmpi2] = intersectionsHLE( ...
-                                                  c(1,:),c(2,:), ...
-                                                  cInt{j}(1,:),cInt{j}(2,:));
-        end
+        [tmpix,tmpiy,tmpi1,tmpi2] = intersectionsHLE( ...
+                                              c(1,:),c(2,:), ...
+                                              cInt{j}(1,:),cInt{j}(2,:));
         
-        if ~isempty(tmpix)           
-            %Occasionally intersections.m returns multiple points. Because
-            %our slices and contours are always perpindicular on the
-            %surface of the distance transform, there can only be one real
-            %intersection. These duplicates are always nearly identical,
-            %and I think they may be due to numerical error..? So anways, we
-            %just take the first non-nan intersection!
-            ix(j) = tmpix(find(~isnan(tmpix),1));
-            iy(j) = tmpiy(find(~isnan(tmpiy),1));
-            i1(j) = tmpi1(find(~isnan(tmpi1),1));
-            i2(j) = tmpi2(find(~isnan(tmpi2),1));
+        if ~isempty(tmpi1)                                    
+                        
+            if numel(tmpi1) > 1
+            
+                %Deal with duplicate intersections. In general the slices
+                %and contours should only intersect at one point (because
+                %they are perpindicular on the surface of the distance
+                %transform), but some rare situations cause exceptions to
+                %this rule.
+                
+                if numel(unique(tmpi1)) > 1
+                   
+                    %This can only be caused (as far as I know) by the
+                    %contour running along a rideline and the gradient
+                    %ascent just slightly overshooting this ridgeline, and
+                    %then intersecting the contour again (gradient ascent
+                    %is sub-pixel, while contouring is at the pixel level)
+                    %Therefore we need only keep the first intersection(s).
+                    [~,i1Unique] = unique(tmpi1);                                                            
+                    iKeep = tmpi1 == tmpi1(i1Unique(1));
+                    tmpi1 = tmpi1(iKeep);
+                    tmpi2 = tmpi2(iKeep);
+                    tmpix = tmpix(iKeep);
+                    tmpiy = tmpiy(iKeep);
+                    
+                end
+                
+                %Check again in case the above check removed the duplicate
+                %intersection
+                if numel(tmpi1) == 2                                                                                                                                 
+
+                    %This can only be caused (again, as far as I know) by
+                    %the contour being colinear with itself because it is
+                    %running along a saddle. This will give two
+                    %intersections at the exact same x and y and index on
+                    %the slice, but with different index on the contour.
+
+                    %We want to take the intersection which corresponds to
+                    %the part of the contour that is running in the same
+                    %direction as the slices (clockwise). So we check the
+                    %directions via the cross-product and use that to
+                    %choose the intersection to return.
+                    
+                    %Set up the vectors for taking the cross-product
+                    if tmpi1(1) >= 1.5
+                        %tmpi1(1) and tmpi1(2) are identical due to the
+                        %check above, so just use 1
+                        vecSlice = [diff(c(1,round(tmpi1(1))-1:round(tmpi1(1)))) ...     %X1, vector from slice
+                                    diff(c(2,round(tmpi1(1))-1:round(tmpi1(1)))) ...     %Y1, vector from slice
+                                    0];                                    %Z1, vector from slice. Always zero of course.
+                    else
+                        vecSlice = [diff(c(1,round(tmpi1(1)):round(tmpi1(1))+1)) ...     %X1, vector from slice
+                                    diff(c(2,round(tmpi1(1)):round(tmpi1(1))+1)) ...     %Y1, vector from slice
+                                    0];                                    %Z1, vector from slice. Always zero of course.
+                    end
+                    if tmpi2(1) >= 1.5
+                        vecCont1 = [diff(cInt{j}(1,round(tmpi2(1))-1:round(tmpi2(1)))), ...  %X1 contour intersection 1
+                                    diff(cInt{j}(2,round(tmpi2(1))-1:round(tmpi2(1)))), ...  %Y1 contour intersection 1
+                                    0];                                        %Z1 contour intersection 1
+                    else
+                        vecCont1 = [diff(cInt{j}(1,round(tmpi2(1)):round(tmpi2(1))+1)), ...  %X1 contour intersection 1
+                                    diff(cInt{j}(2,round(tmpi2(1)):round(tmpi2(1))+1)), ...  %Y1 contour intersection 1
+                                    0];                                        %Z1 contour intersection 1
+                    end
+                    if tmpi2(2) >= 1.5
+                        vecCont2 = [diff(cInt{j}(1,round(tmpi2(2))-1:round(tmpi2(2)))), ...  %X1 contour intersection 2
+                                    diff(cInt{j}(2,round(tmpi2(2))-1:round(tmpi2(2)))), ...  %Y1 contour intersection 2
+                                    0];                                        %Z1 contour intersection 2
+                    else
+                        vecCont2 = [diff(cInt{j}(1,round(tmpi2(2)):round(tmpi2(2))+1)), ...  %X1 contour intersection 2
+                                    diff(cInt{j}(2,round(tmpi2(2)):round(tmpi2(2))+1)), ...  %Y1 contour intersection 2
+                                    0];                                        %Z1 contour intersection 2
+                    end
+                    
+                    %Take the cross product, and use the intersection where
+                    %the cross has a positive z-component - this is the one
+                    %that is running clockwise.
+                    crossP1 = cross(vecSlice,vecCont1);                    
+                    crossP2 = cross(vecSlice,vecCont2);
+                    
+                    if crossP1(3) > 0
+                        iKeep = 1;
+                    elseif crossP2(3) > 0
+                        iKeep = 2;
+                    else
+                        error('Problem with multiple contour-slice intersections: Ambiguous cross product!')
+                    end                                     
+                                        
+                    i1(j) = tmpi1(iKeep);
+                    i2(j) = tmpi2(iKeep);
+                    ix(j) = tmpix(iKeep);
+                    iy(j) = tmpiy(iKeep);
+                        
+                elseif numel(tmpi1) == 1
+                    
+                    ix(j) = tmpix;
+                    iy(j) = tmpiy;
+                    i1(j) = tmpi1;
+                    i2(j) = tmpi2;
+                    
+                elseif numel(tmpi1) > 2                    
+                    error('Problem creating windows: too many slice-contour intersections!')                    
+                end
+                    
+            else                                
+                ix(j) = tmpix;
+                iy(j) = tmpiy;
+                i1(j) = tmpi1;
+                i2(j) = tmpi2;
+            end
         end
         
     end                                
-
-
-%Adjust the contour indices to remove effect of closure
-nPts = cellfun(@(x)(size(x,2)),cInt);
-i2(isClosed) = i2(isClosed) - 1;
-i2(isClosed & i2 < 1) = nPts(isClosed & i2 < 1);
 
 
 function [startPoint,nPara,startContour,showPlots,doChecks] = parseInput(argArray)
