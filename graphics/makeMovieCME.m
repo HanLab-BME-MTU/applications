@@ -12,7 +12,7 @@
 
 % Francois Aguet, 07/20/2011
 
-function makeMovie(data, varargin)
+function makeMovieCME(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -93,9 +93,8 @@ fprintf('\n');
 close(h);
 
 % Generate movie
-fprintf('Generating movie:     ');
+fprintf('Generating movie... ');
 fr = num2str(ip.Results.FrameRate);
-cmd = ['ffmpeg -loglevel quiet -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -r ' fr ' -b 50000k -bt 20000k ' mpath 'movie.mp4'];
+cmd = ['ffmpeg -loglevel quiet -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -r ' fr ' -b 50000k -bt 20000k ' mpath 'movie.mp4 > /dev/null 2>&1' ];
 system(cmd);
-fprintf('\n');
-fprintf('... done.\n');
+fprintf('done.\n');

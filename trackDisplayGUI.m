@@ -742,4 +742,4 @@ fprintf(' done.\n');
 function movieButton_Callback(~, ~, hfig)
 
 handles = getappdata(hfig, 'handles');
-makeMovie(handles.data, handles.tracks{handles.masterChannel});
+makeMovieCME(handles.data, handles.tracks{handles.masterChannel});
