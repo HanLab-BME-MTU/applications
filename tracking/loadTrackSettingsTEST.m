@@ -17,7 +17,7 @@ ip.addParamValue('IntensityConstraint', [0.8 1.2]);
 ip.parse(varargin{:});
 
 radius = ip.Results.Radius;
-linearMotion = ip.Results.linearMotion;
+linearMotion = ip.Results.LinearMotion;
 intensityConstraint = ip.Results.IntensityConstraint;
 
 if all(intensityConstraint == [0 Inf]);
