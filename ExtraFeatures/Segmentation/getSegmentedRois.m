@@ -16,7 +16,9 @@ for iProj = 1:length(projList)
     
 [listOfImages] = searchFiles('.tif',[],projList(iProj).imDir,0);
 
-fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
+for iImg = 1:length(listOfImages)
+    
+fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(iImg,1))];
 img = double(imread(fileNameIm));
 
 [imL imW] = size(img);
@@ -26,14 +28,38 @@ img = double(imread(fileNameIm));
 roiMask = roiMask(:,:,1);
 %centerRoiXCoord = zeros(2,1);
 
+
+
+ 
+if iImg == 1
+roiMaskAvg = roiMask ;
+else 
+    roiMaskAvg = roiMaskAvg + roiMask; 
+end 
+
+end 
+
 [path body no ext] = getFilenameBody(projList(iProj).imDir);
 
-[y1,x1]= ind2sub([imL,imW],find(roiMask,1));
-roiYX = bwtraceboundary(roiMask(:,:,1),[y1,x1],'N');
+save([path filesep 'roi_1' filesep 'roiSegMaskAvg.mat'], 'roiMaskAvg')
+
+figure; imagesc(roiMaskAvg); 
+
+saveas(gcf,[path filesep 'roi_1' filesep 'avgMask.tif']); 
+
+roiMaskAvg(roiMaskAvg > 1) = 1;
+
+
+
+[y1,x1]= ind2sub([imL,imW],find(roiMaskAvg,1));
+roiYX = bwtraceboundary(roiMaskAvg(:,:,1),[y1,x1],'N');
+
+
 
 save([path filesep 'roi_1' filesep 'roiYXSeg.mat'],'roiYX');
 
-imwrite(roiMask,[path filesep 'roi_1' filesep 'roiMaskSeg.tif']);
+
+imwrite(roiMaskAvg,[path filesep 'roi_1' filesep 'roiMaskSeg.tif']);
 
 %for i = 1:2
 %stats = regionprops(bwlabel(roiMask(:,:,i)),'centroid');
