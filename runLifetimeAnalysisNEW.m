@@ -1,9 +1,15 @@
-function data = runLifetimeAnalysisNEW(data)
+function data = runLifetimeAnalysisNEW(data, varargin)
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
+ip.parse(data, varargin{:});
 
 
 for k = 1:length(data)
 
-    ta = load([data(k).source 'Tracking' filesep 'trackAnalysis.mat']);
+    ta = load([data(k).source 'Tracking' filesep ip.Results.FileName]);
     tracks = ta.tracks;
     data(k).tracks = tracks([tracks.valid]==1);
 
