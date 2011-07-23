@@ -1,4 +1,4 @@
-function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,subRoiAnalysis,fromPoolGroupData)
+function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupData,subRoiAnalysis)
 % plusTipDynamParam: generic function for calculating dynamics parameters
 %
 % SYNOPSIS: [projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic)
@@ -27,7 +27,8 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,subRoiAnalysis
 % plusTipPoolGroupData
 
 
-
+%subRoiAnalysis = 0; 
+%subRoiAnalysis = 0; 
 % Put a Copy of the Data Mat Where Those Tracks Beginning in the First
 % Frame or Ending in the Last Frame Have Been Removed
 projData.dataMat_FOR_STATS = dataMatCrpSecMic;  
@@ -315,7 +316,7 @@ end % isempty
 
 %% PARAMETERS OF GROWTH SUBTRACKS PRECEDING TERMINAL EVENT
     
-  if subRoiAnalysis ~=1  % basicially if not calling this from original analysis 
+  if subRoiAnalysis == ~1  % if calling from original analysis  
        % plusTipPoolGroupData and plusTipSubRoiExtractTracks will use value
        % of 1 
 
@@ -360,13 +361,13 @@ end % isempty
     
     %%% FREQUENCIES (INVERSES OF AVG TIME AND DISPLACEMENT %%%%
   
-    %projData.stats.term_freq_time=1/mean(termGrowthOnly(:,6));
-    %projData.stats.term_freq_length=1/mean(termGrowthOnly(:,7));
+    projData.stats.term_freq_time=1/mean(termGrowthOnly(:,6));
+    projData.stats.term_freq_length=1/mean(termGrowthOnly(:,7));
     
     %%% INDIVIDUAL FREQUENCIES %%%
     
     %freq=1./termGrowthOnly(:,6);
-    %projData.stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
+   % projData.stats.fgap_freq_time_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
     %freq=1./termGrowthOnly(:,7);
     %projData.stats.fgap_freq_length_mean_SE=[mean(freq) std(freq)/sqrt(length(freq))];
    
@@ -381,7 +382,7 @@ end % isempty
     % Lifetime Ratios
     projData.stats.ratio_preFgapLife2preTermLife  = projData.stats.fgap_LifetimeGrowthBefore_Sec_mean/projData.stats.term_LifetimeGrowthBefore_Sec_mean;
     projData.stats.ratio_preBgapLife2preTermLife= projData.stats.bgap_LifetimeGrowthBefore_Sec_mean/projData.stats.term_LifetimeGrowthBefore_Sec_mean;
-    projData.stats.ratio_preFgapLife2preBgapLife  = projData.stats.fgap_LifetimeGrowthBefore_Sec_mean/projData.stats.bgap_LifetimeGrowthBefore_Sec_mean;
+   projData.stats.ratio_preFgapLife2preBgapLife  = projData.stats.fgap_LifetimeGrowthBefore_Sec_mean/projData.stats.bgap_LifetimeGrowthBefore_Sec_mean;
     
     % Displacment (length) ratios
     projData.stats.ratio_preFgapDisp2preTermDisp = projData.stats.fgap_LengthGrowthBefore_Mic_mean/projData.stats.term_LengthGrowthBefore_Mic_mean;
@@ -490,9 +491,10 @@ end
    % partitioned in the same ROI making the below stats buggy.  
    % until fix simply do not do this analysis for subROI regions. 
    
-   if subRoiAnalysis ~=1 % basicially if not calling this from original analysis 
-       % plusTipPoolGroupData and plusTipSubRoiExtractTracks will use value
-       % of 1 
+   if (subRoiAnalysis ~=1 && fromPoolGroupData ~= 1) % if not calling this from original analysis 
+       % skip below 
+       % plusTipPoolGroupData and plusTipSubRoiExtractTracks 
+       % so will skip the below analysis otherwise buggy MB : quick fix Check it later. 
        
    compIdx= [gapIdx ; (gapIdx+1) ; (gapIdx -1)];
    compIdx = unique(sort(compIdx));
@@ -549,7 +551,7 @@ end
    projData.stats.ratio_LifeGrowthComp2Single = lc/ls;
    projData.stats.ratio_DispGrowthComp2Single = dc/ds;
    
-   elseif (subRoiAnalysis ~= 1 && fromPoolGroupData ~= 1)
+   
        % do not perform this analysis and remove these fields as they
        % represent the original analysis and this can be confusing. 
       projData =  rmfield(projData,'singleDataMat');
