@@ -8,5 +8,7 @@ function [ output_args ] = helpMeCompGroupsMicro
 
 plusTipTestDistrib(saveDir,groupData,[]); 
 
+plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0); 
+
 end
 
