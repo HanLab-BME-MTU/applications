@@ -6,7 +6,7 @@ function plusTipMakeBoxplots(data,setName,saveDir)
 %
 % Called by plusTipPoolGroupData.  See function for input format.
 
-
+visible = 'off';
 
 if ~isdir(saveDir)
     mkdir(saveDir)
@@ -59,7 +59,7 @@ for iParam=1:3
     % for each value, put group name into matrix
     grpVar=repmat(setName',[max(maxSize'),1]);
 
-    figure % boxplot of speeds
+    figure ('Visible',visible) % boxplot of speeds
     boxplot(allMS(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' speeds'])
     set(gca,'YDir','reverse')
@@ -68,7 +68,7 @@ for iParam=1:3
     saveas(gcf,[saveDir filesep 'boxplot_speed_' titleStr '.tif'])
     close(gcf)
 
-    figure % boxplot of lifetimes
+    figure ('Visible', visible) % boxplot of lifetimes
     boxplot(allML(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' lifetimes'])
     set(gca,'YDir','reverse')
@@ -77,7 +77,7 @@ for iParam=1:3
     saveas(gcf,[saveDir filesep 'boxplot_lifetime_' titleStr '.tif'])
     close(gcf)
 
-    figure % boxplot of displacements
+    figure ('Visible', visible) ;% boxplot of displacements
     boxplot(allMD(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' displacements'])
     set(gca,'YDir','reverse')
