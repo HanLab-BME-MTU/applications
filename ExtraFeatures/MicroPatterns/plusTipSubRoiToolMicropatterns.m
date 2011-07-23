@@ -25,11 +25,11 @@ HPattern = 1;
  
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'SUBROIS_TestingForPlots';
-analysisFolderName = 'ANALYSIS_SubRois_TestingForPlots';
+subRoiFolderName = 'SUBROIS_3um_SubRois_TargetedToRegion_MB_07_23';
+analysisFolderName = 'ANALYSIS_3um_SubRois_TargetedToRegion_MB_07_23';
 
 %%% Choose if want to also perform analysis 
-doAnalysis = 0; % set this to 1 to "turn-on" anlaysis 
+doAnalysis = 1; % set this to 1 to "turn-on" anlaysis 
 
 %Parameters for Pooled Analysis 
 doBtw = 1; % set to 1 to perform between Group Comparisons 
@@ -37,7 +37,9 @@ doBtw = 1; % set to 1 to perform between Group Comparisons
 doWtn = 0; % set to 1 to perform within Group Comparisons: set to 1 if you want to take a look 
 % at the variability between the individual subregions before pooling
 doPlot = 1; % set to 1 to make boxplots
-
+removeBeginEnd = 1; % 1 if you want to remove tracks from beginning and end for 
+                    % analyis -- note need to check for subRois that this
+                    % is not buggy. 0 to analyze all tracks 
 justExtractTracks = 0;% ignore this for now
 %% Initialize: CheckInput Parameters
 homeDir=pwd;
@@ -1513,7 +1515,7 @@ for iWindow = 1:numWindows
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList,saveDir, doBtw, doWtn, doPlot, 1); 
+    [groupData] = plusTipPoolGroupData(groupList,saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
     
     
     % Collect Data
@@ -1612,7 +1614,7 @@ mkdir(saveDir);
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, 1); 
+    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
     
    
     
@@ -1714,7 +1716,7 @@ for iRegionType= 1:length(regionTypes)
     
     
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, 1); 
+    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
     
     
     [ statsCellGS, statsCellFG, statsCellBG] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
