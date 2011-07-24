@@ -1,4 +1,4 @@
-function [groupList]=combineGroupListFiles(saveResult)
+function [groupList, dirName]=combineGroupListFiles(saveResult)
 % combineGroupListFiles allows selection of multiple groupList files to combine
 %
 % SYNOPSIS: [groupList]=combineGroupListFiles(saveResult)
