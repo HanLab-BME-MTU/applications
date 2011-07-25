@@ -35,6 +35,16 @@ function [ forFigure ] = getSubRoiHeatMapsGradientWithinReg( subDir, statDir,dis
 %                heat maps (default  P-Value < 0.05 = * 
 %                                    P-Value < 0.005 = **
 %                                    P-Value < 0.0005 = ***)
+%% a couple extra params
+color = 'k'; 
+
+fontSizeTextBox = 12; 
+fontSizeTitle = 12; 
+
+pValueCutOff1 = 0.05;
+pValueCutOff2 = 0.005;
+pValueCutOff3 = 0.0005; 
+
 %% Check AND Set-up Parameters
 if nargin<1 || isempty(subDir)
     subDir=uigetdir(pwd,'Select the directory where the subRoi masks are located');
@@ -327,11 +337,11 @@ for iSeg = 1:length(segType)
                     end
                     
                     
-                    if pValue(iRegion,iWindow) < 0.0005
+                    if pValue(iRegion,iWindow) < pValueCutOff3
                          subRoiConf{iRegion,iWindow} = '***';
-                    elseif pValue(iRegion,iWindow) > 0.0005 && pValue(iRegion,iWindow) < 0.005
+                    elseif pValue(iRegion,iWindow) > pValueCutOff3 && pValue(iRegion,iWindow) < pValueCutOff2
                         subRoiConf{iRegion,iWindow} = '**';
-                    elseif  (pValue(iRegion,iWindow) > 0.005 && pValue(iRegion,iWindow) < 0.05)
+                    elseif  (pValue(iRegion,iWindow) > pValueCutOff2 && pValue(iRegion,iWindow) < pValueCutOff1)
                         subRoiConf{iRegion,iWindow} = '*';
                     else
                         subRoiConf{iRegion,iWindow} = 'NotSig';
@@ -371,7 +381,7 @@ for iSeg = 1:length(segType)
         forTitle = [expCond ' Gradient : ' param];
         title({forTitle},...
             'FontWeight','bold',...
-            'FontSize',16);
+            'FontSize',fontSizeTitle);
         caxis([-50,50]); % Here You Can Change Scale of ColorBar Axis
         colorbar;
         
@@ -395,10 +405,10 @@ for iSeg = 1:length(segType)
                             [0.229090575226929 0.667649239817323 0.0548788904219262 0.0505195727720901],...
                             'String',{[char(regionTypes{iRegion,1}), ' ' num2str(iWindow*windowSize),'uM ' char(subRoiConf{iRegion,iWindow})]},...
                             'FontWeight','bold',...
-                            'FontSize',16,...
+                            'FontSize',fontSizeTextBox,...
                             'FitBoxToText','off',...
                             'EdgeColor','none', ...
-                            'Color', [ 1 1 1],...
+                            'Color', color ,...
                             'HorizontalAlignment', 'Center');
                     end % if strcmp
                 end % iWindow
