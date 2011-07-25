@@ -257,7 +257,7 @@ display(['corr(Fcc, Iavg): ',num2str(RFIavg(1,2),'%0.3f'),'+-',num2str(RFIavgSTD
 display(['corr(Fcc, Iprf): ',num2str(RSIprf(1,2),'%0.3f'),'+-',num2str(RSIprfSTD,'%0.3f'),'  (N=',num2str(length(SIcorr_vals(:,1))),', p=',num2str(PSIprf(1,2)),')']);
 display('!!!Since we find a significant correlation between force and intensity profile, we have achieved a subinterface force resolution!!!')
 
-end
+end %if ~onlyCorr
 
 
 normVar=1;
@@ -299,8 +299,8 @@ relErrF_val_corr=Inf;
 
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');

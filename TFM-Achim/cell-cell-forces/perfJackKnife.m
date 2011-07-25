@@ -110,6 +110,13 @@ glbMaxValList=glbMaxValList(~badMax)
 display(['mean+-95%-error= ',num2str(mean(glbMaxPosList)),' +- ',num2str(facSEMtoSEM95*std(glbMaxPosList)/sqrt(length(glbMaxPosList)-1))]);
 display(['p-value t-test = ',num2str(p)]);
 
+% for these parameters
+% normVar=1;
+% tBtwFrms=150;
+% aveType='none'; % first checks 'none', 'nanmean', 'mean' makes little difference
+% maxLag =round(7200/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
+
+% I got from:
 % random drawing of numSet datasets (Bootstrap), 250 times:
 % all data (none rejected):
 % mean+-95%-error= -0.0038131 +- 0.043399
