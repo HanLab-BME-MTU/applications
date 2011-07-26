@@ -1,4 +1,4 @@
-function [intRes] = generateIntensityCohorts(data, restvector, cohortBounds, channel, reference, sframerate, align, voidAlignPoint, parname, status, condition)
+function [intRes] = generateIntensityCohorts(data, restvector, cohortBounds, ch, reference, sframerate, align, voidAlignPoint, parname, status, condition)
 % Multichannel Universal Event Correlator (MUEC) to read out image
 % intensities or parameter values at specified object locations
 %
@@ -121,8 +121,8 @@ fileNameRef = cell(1,nMovies);
 
 for i = 1:nMovies
     % set search path for parameter/intensity file
-    if nargin>2 && ~isempty(channel)
-        sourcePath = data(i).(channel);
+    if nargin>2 && ~isempty(ch)
+        sourcePath = data(i).channel{ch};
     else
         sourcePath = data(i).source;
     end
