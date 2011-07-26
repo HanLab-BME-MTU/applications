@@ -169,7 +169,7 @@ smoothedEdge = cell(nFrames,1);
 for iFrame = 1:nFrames        
     
     %Load and combine masks from all channels
-    currMask = true(movieData.imSize_([2 1]));
+    currMask = true(movieData.imSize_);
     for iChan = 1:nChan    
         currMask = currMask & imread([maskDirs{iChan} filesep maskNames{iChan}{iFrame}]);        
     end
