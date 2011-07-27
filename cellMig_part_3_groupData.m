@@ -1186,115 +1186,126 @@ if justPlot==1
     end
     % saveas(gcf,['fig_x_vel_over_dist_to_edge','.tiff'],'tiffn')
     
+    marker=['ro','bs','m*','c+','gd','yo','ks'];
     
-    figure('Name','Velocity correlation collapsed space');
-    clear M
-    label=1;
-    h=[];
-    %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
-    numFrames=groupData.glbMaxFrame(1);
-    if sglCell
-        numBins=1;
-    else
-        numBins=4;
-    end
-    for binR=1:numBins
-        numPlotFrames=length(1:dframes:(numFrames-timeWindowCorr));
-        k=1;
-        for frame=1:dframes:(numFrames-timeWindowCorr)
-            subplot(1,numPlotFrames,k)
-            hold on
-                        
-            for classID=1:length(groupData.kPaClass)
-                pixSize_um=groupData.kPaClass(classID).pixSize_um;
-                dt = groupData.kPaClass(classID).dt;
-                
-                c2edClassMean    = mean(groupData.kPaClass(classID).corr(binR,frame).c2edMean);
-                c2edSTDClassMean = mean(groupData.kPaClass(classID).corr(binR,frame).c2edSTD);
-                
-                % Calculate the correlation from scratch:
-                R=groupData.kPaClass(classID).corr(binR,frame).R;
-                for c2cRBin=1:length(R)
-                    NtotClass(c2cRBin)         = sum(R(c2cRBin).Ntot);
-                    RClassMean(c2cRBin)        = nanmean(R(c2cRBin).pts2ptR);
-                    RClassSEM95(c2cRBin)       = facSEMtoSEM95*nanstd(R(c2cRBin).pts2ptR)/sqrt(NtotClass(c2cRBin));
-                    % The correlation of the full velocity:
-                    [I, Isem95]                = corrFunc(R(c2cRBin).xVelCtr,R(c2cRBin).xVelPts,R(c2cRBin).yVelCtr,R(c2cRBin).yVelPts);
-                    funcVelClassMean(c2cRBin)  = I;
-                    funcVelClassSEM95(c2cRBin) = Isem95;
-                    % The correlation of ux:
-                    [I, Isem95]                = corrFunc(R(c2cRBin).xVelCtr,R(c2cRBin).xVelPts);
-                    funcVelxClassMean(c2cRBin) = I;
-                    funcVelxClassSEM95(c2cRBin)= Isem95;
-                    % The correlation of uy:
-                    [I, Isem95]                = corrFunc(R(c2cRBin).yVelCtr,R(c2cRBin).yVelPts);
-                    funcVelyClassMean(c2cRBin) = I;
-                    funcVelyClassSEM95(c2cRBin)= Isem95;
-                    
-                    
-                    % The cosa needs a special treatment, since here the caclulation could
-                    % introduce additional NaNs (if vel=0). These positions have to be
-                    % canceled out in the distance vector:
-                    R4CosaClassMean(c2cRBin)  = mean(R(c2cRBin).pts2ptR(~isnan(R(c2cRBin).cosda)));
-                    R4CosaClassSEM95(c2cRBin) = facSEMtoSEM95*std(R(c2cRBin).pts2ptR(~isnan(R(c2cRBin).cosda)))/sqrt(sum(~isnan(R(c2cRBin).cosda)));
-                    cosaClassMean(c2cRBin)    = nanmean(R(c2cRBin).cosda);
-                    cosaClassSEM95(c2cRBin)   = facSEMtoSEM95*nanstd(R(c2cRBin).cosda)/sqrt(sum(~isnan(R(c2cRBin).cosda)));
-                end
-                % First average then normalize:
-                % Normalize the correlation by the autocorrelation (If
-                % doNorm==1 in corrFunc nothing will be done in the folowing
-                % lines since I(1)=1 anyways.):
-                funcVelClassMeanNorm  = funcVelClassMean /funcVelClassMean(1);
-                funcVelClassSEM95Norm = funcVelClassSEM95/funcVelClassMean(1);
-                
-                funcVelxClassMeanNorm  = funcVelxClassMean /funcVelxClassMean(1);
-                funcVelxClassSEM95Norm = funcVelxClassSEM95/funcVelxClassMean(1);
-                
-                funcVelyClassMeanNorm  = funcVelyClassMean /funcVelyClassMean(1);
-                funcVelyClassSEM95Norm = funcVelyClassSEM95/funcVelyClassMean(1);
-                
-                % The correlation of the full velocity:
-                currh=errorbarxy(pixSize_um*RClassMean,funcVelClassMeanNorm,pixSize_um*RClassSEM95,funcVelClassSEM95Norm,[],[],['.',marker(2*(mod(classID,7)+1)-1)],marker(2*(mod(classID,7)+1)-1));
-                % currh=errorbar(pixSize_um*RClassMean,funcVelClassMeanNorm,funcVelClassSEM95Norm,['.',marker(2*(mod(classID,7)+1)-1)]);
-                
-                % The correlation by cosa:
-                % currh=errorbar(pixSize_um*R4CosaClassMean,cosaClassMean,cosaClassSEM95,['+',marker(2*(mod(classID,7)+1)-1)]);
-                
-                % The correlation of ux:
-                % currh=errorbarxy(pixSize_um*RClassMean,funcVelxClassMeanNorm,pixSize_um*RClassSEM95,funcVelxClassSEM95Norm,[],[],['.',marker(2*(mod(classID,7)+1)-1)],marker(2*(mod(classID,7)+1)-1));
-                
-                % The correlation of uy:
-                % currh=errorbarxy(pixSize_um*RClassMean,funcVelyClassMeanNorm,pixSize_um*RClassSEM95,funcVelyClassSEM95Norm,[],[],['.',marker(2*(mod(classID,7)+1)-1)],marker(2*(mod(classID,7)+1)-1));
-                
-                h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
-                hold on
-                M{label}=[num2str(groupData.kPaClass(classID).yModu_kPa),'kPa',' = ',groupData.kPaClass(classID).cc{1},' of: ',groupData.kPaClass(classID).cond{1},' ; N=',num2str(groupData.kPaClass(classID).numSetsInCl),' ; <n>=',num2str(mean(NtotClass),'%.1f')];
-                label=label+1;
-                hold on;
-            end
-            title(['Cell to edge distance: ',num2str(pixSize_um*c2edClassMean,'%.1f'),'+-',num2str(pixSize_um*c2edSTDClassMean,'%.1f'),'[um]'])
-            ylabel(['Correlation I(r,t=',num2str(dt*(frame-1)),'h)']);
-            xlabel('R [um]');
-            ylim([-0.1 1]);
-            xlim([ 0 pixSize_um*1000]);
-            if frame ==1 && binR==numBins
-                legend(h,M);
-            end
-            clear M
-            label=1;
-            h=[];
-            hold off
-            
-            clear NtotClass RClassMean RClassSEM95
-            clear funcVelClassMean funcVelClassSEM95
-            clear funcVelxClassMean funcVelxClassSEM95Norm
-            clear funcVelyClassMean funcVelyClassSEM95Norm
-            clear R4CosaClassMean R4CosaClassSEM95
-            clear cosaClassMean cosaClassSEM95
-            
-            k=k+1;
+    classIDofInt=[];
+    for classID=1:length(groupData.kPaClass);
+        if groupData.kPaClass(classID).yModu_kPa==65
+            classIDofInt=classID;
         end
     end
-    hold off
-    % saveas(gcf,['fig_x_vel_over_dist_to_edge','.tiff'],'tiffn')
+        
+    if ~isempty(classIDofInt)
+        
+        figure('Name','Velocity correlation collapsed space');
+        clear M
+        label=1;
+        h=[];
+        %figure('Name',['Velocity correlation, for ',num2str(groupData.kPaClass(classID).yModu_kPa),' kPa-Class = ',groupData.kPaClass(classID).cc{1}],'NumberTitle','off')
+        numFrames=groupData.glbMaxFrame(1);
+        if sglCell
+            numBins=1;
+        else
+            numBins=4;
+        end
+        for binR=1:numBins
+            numPlotFrames=length(1:dframes:(numFrames-timeWindowCorr));
+            k=1;
+            for frame=1:dframes:(numFrames-timeWindowCorr)
+                subplot(1,numPlotFrames,k)
+                hold on
+                
+                for classID=classIDofInt
+                    pixSize_um=groupData.kPaClass(classID).pixSize_um;
+                    dt = groupData.kPaClass(classID).dt;
+                    
+                    c2edClassMean    = mean(groupData.kPaClass(classID).corr(binR,frame).c2edMean);
+                    c2edSTDClassMean = mean(groupData.kPaClass(classID).corr(binR,frame).c2edSTD);
+                    
+                    % Calculate the correlation from scratch:
+                    R=groupData.kPaClass(classID).corr(binR,frame).R;
+                    for c2cRBin=1:length(R)
+                        NtotClass(c2cRBin)         = sum(R(c2cRBin).Ntot);
+                        RClassMean(c2cRBin)        = nanmean(R(c2cRBin).pts2ptR);
+                        RClassSEM95(c2cRBin)       = facSEMtoSEM95*nanstd(R(c2cRBin).pts2ptR)/sqrt(NtotClass(c2cRBin));
+                        % The correlation of the full velocity:
+                        [I, Isem95]                = corrFunc(R(c2cRBin).xVelCtr,R(c2cRBin).xVelPts,R(c2cRBin).yVelCtr,R(c2cRBin).yVelPts);
+                        funcVelClassMean(c2cRBin)  = I;
+                        funcVelClassSEM95(c2cRBin) = Isem95;
+                        % The correlation of ux:
+                        [I, Isem95]                = corrFunc(R(c2cRBin).xVelCtr,R(c2cRBin).xVelPts);
+                        funcVelxClassMean(c2cRBin) = I;
+                        funcVelxClassSEM95(c2cRBin)= Isem95;
+                        % The correlation of uy:
+                        [I, Isem95]                = corrFunc(R(c2cRBin).yVelCtr,R(c2cRBin).yVelPts);
+                        funcVelyClassMean(c2cRBin) = I;
+                        funcVelyClassSEM95(c2cRBin)= Isem95;
+                        
+                        
+                        % The cosa needs a special treatment, since here the caclulation could
+                        % introduce additional NaNs (if vel=0). These positions have to be
+                        % canceled out in the distance vector:
+                        R4CosaClassMean(c2cRBin)  = mean(R(c2cRBin).pts2ptR(~isnan(R(c2cRBin).cosda)));
+                        R4CosaClassSEM95(c2cRBin) = facSEMtoSEM95*std(R(c2cRBin).pts2ptR(~isnan(R(c2cRBin).cosda)))/sqrt(sum(~isnan(R(c2cRBin).cosda)));
+                        cosaClassMean(c2cRBin)    = nanmean(R(c2cRBin).cosda);
+                        cosaClassSEM95(c2cRBin)   = facSEMtoSEM95*nanstd(R(c2cRBin).cosda)/sqrt(sum(~isnan(R(c2cRBin).cosda)));
+                    end
+                    % First average then normalize:
+                    % Normalize the correlation by the autocorrelation (If
+                    % doNorm==1 in corrFunc nothing will be done in the folowing
+                    % lines since I(1)=1 anyways.):
+                    funcVelClassMeanNorm  = funcVelClassMean /funcVelClassMean(1);
+                    funcVelClassSEM95Norm = funcVelClassSEM95/funcVelClassMean(1);
+                    
+                    funcVelxClassMeanNorm  = funcVelxClassMean /funcVelxClassMean(1);
+                    funcVelxClassSEM95Norm = funcVelxClassSEM95/funcVelxClassMean(1);
+                    
+                    funcVelyClassMeanNorm  = funcVelyClassMean /funcVelyClassMean(1);
+                    funcVelyClassSEM95Norm = funcVelyClassSEM95/funcVelyClassMean(1);
+                    
+                    % The correlation of the full velocity:
+                    currh=errorbarxy(pixSize_um*RClassMean,funcVelClassMeanNorm,pixSize_um*RClassSEM95,funcVelClassSEM95Norm,[],[],['-',marker(2*(mod(classID,7)+1)),marker(2*(mod(binR,7)+1)-1)],marker(2*(mod(binR,7)+1)-1));
+                    % currh=errorbar(pixSize_um*RClassMean,funcVelClassMeanNorm,funcVelClassSEM95Norm,['.',marker(2*(mod(classID,7)+1)-1)]);
+                    
+                    % The correlation by cosa:
+                    % currh=errorbar(pixSize_um*R4CosaClassMean,cosaClassMean,cosaClassSEM95,['+',marker(2*(mod(classID,7)+1)-1)]);
+                    
+                    % The correlation of ux:
+                    % currh=errorbarxy(pixSize_um*RClassMean,funcVelxClassMeanNorm,pixSize_um*RClassSEM95,funcVelxClassSEM95Norm,[],[],['.',marker(2*(mod(classID,7)+1)-1)],marker(2*(mod(classID,7)+1)-1));
+                    
+                    % The correlation of uy:
+                    % currh=errorbarxy(pixSize_um*RClassMean,funcVelyClassMeanNorm,pixSize_um*RClassSEM95,funcVelyClassSEM95Norm,[],[],['.',marker(2*(mod(classID,7)+1)-1)],marker(2*(mod(classID,7)+1)-1));
+                    
+                    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+                    hold on
+                    M{label}=[num2str(groupData.kPaClass(classID).yModu_kPa),'kPa',' = ',groupData.kPaClass(classID).cc{1},' of: ',groupData.kPaClass(classID).cond{1},' ; N=',num2str(groupData.kPaClass(classID).numSetsInCl),' ; <n>=',num2str(mean(NtotClass),'%.1f')];
+                    label=label+1;
+                    hold on;
+                end
+                title(['Correlation at ', num2str(numBins),' positions'])
+                ylabel(['Correlation I(r,t=',num2str(dt*(frame-1)),'h)']);
+                xlabel('R [um]');
+                ylim([0 1]);
+                xlim([ 0 500]);
+                if frame ==1 && binR==numBins
+                    legend(h,M);
+                end
+                clear M
+                label=1;
+                h=[];
+                hold off
+                
+                clear NtotClass RClassMean RClassSEM95
+                clear funcVelClassMean funcVelClassSEM95
+                clear funcVelxClassMean funcVelxClassSEM95Norm
+                clear funcVelyClassMean funcVelyClassSEM95Norm
+                clear R4CosaClassMean R4CosaClassSEM95
+                clear cosaClassMean cosaClassSEM95
+                
+                k=k+1;
+            end
+        end
+        hold off
+        % saveas(gcf,['fig_x_vel_over_dist_to_edge','.tiff'],'tiffn')
+    end
 end
