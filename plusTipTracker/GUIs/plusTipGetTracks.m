@@ -105,7 +105,7 @@ set(handles.getHelpPush,'CData',imread('help_icon.png'),'Callback',...
     @(hObject,eventdata)open('plusTipGetTracks.pdf'));
 
 userData= get(handles.figure1,'UserData');
-userData.previewGUI=[];
+userData.previewGUI=-1;
 % Update handles structure
 set(handles.figure1,'UserData',userData)
 guidata(hObject,handles);

@@ -38,7 +38,7 @@ end
 %% cost matrix for frame-to-frame linking
 
 %function name
-costMatrices(1).funcName = 'plusTipCostMatLinearMotionLink'; 
+costMatrices(1).funcName = func2str(@plusTipCostMatLinearMotionLink); 
 
 %minimum allowed search radius. the search radius is calculated on the spot
 %in the code given a feature's motion parameters. if it happens to be
@@ -105,7 +105,7 @@ clear parameters
 %% cost matrix for gap closing
 
 %function name
-costMatrices(2).funcName = 'plusTipCostMatCloseGaps';
+costMatrices(2).funcName = func2str(@plusTipCostMatCloseGaps);
 
 parameters.maxFAngle = maxFAngle;
 parameters.maxBAngle = maxBAngle;
@@ -140,10 +140,10 @@ end
 
 %% Kalman filter function names
 
-kalmanFunctions.reserveMem  = 'kalmanResMemLM';
-kalmanFunctions.initialize  = 'plusTipKalmanInitLinearMotion';
-kalmanFunctions.calcGain    = 'plusTipKalmanGainLinearMotion';
-kalmanFunctions.timeReverse = 'kalmanReverseLinearMotion';
+kalmanFunctions.reserveMem  = func2str(@kalmanResMemLM);
+kalmanFunctions.initialize  = func2str(@plusTipKalmanInitLinearMotion);
+kalmanFunctions.calcGain    = func2str(@plusTipKalmanGainLinearMotion);
+kalmanFunctions.timeReverse = func2str(@kalmanReverseLinearMotion);
 
 %% additional input
 
