@@ -87,37 +87,44 @@ function plotHistogram(rawData,field,saveDir,plotStd,plotSte,labels,name,unit)
 % Create anonymous function to parse raw data for each group/cell
 parseSampleRawData = @(groupData) cellfun(@(x) x.stats.(field),...
     groupData,'UniformOutput',false);
-plotData.rawData = cellfun(@(x) cell2mat(parseSampleRawData(x)),rawData,...
+rawData = cellfun(@(x) cell2mat(parseSampleRawData(x)),rawData,...
     'UniformOutput',false);
 
 % Read raw data for each couple quantity event.;
-plotData.avgData= cellfun(@(x) mean(x),plotData.rawData);
-plotData.stdData= cellfun(@(x) std(x),plotData.rawData);
-plotData.steData= cellfun(@(x) std(x)/sqrt(size(x,1)),plotData.rawData);
+plotData= cellfun(@(x) mean(x),rawData);
+stdData= cellfun(@(x) std(x),rawData);
+if nnz(stdData)~=0 && plotStd, plotData = [plotData;stdData]; end
+steData= cellfun(@(x) std(x)/sqrt(size(x,1)),rawData);
+if nnz(steData)~=0 && plotSte, plotData = [plotData;steData]; end
+
 
 % Create initial bar plot
-figure;
-nGroups = numel(rawData);
-x=1:nGroups;
-bar(x,plotData.avgData);
-hold on;
+% figure;
+% nGroups = numel(rawData);
+% x=1:nGroups;
+% bar(x,plotData.avgData);
+% hold on;
+% 
+% % Overlay standard error
+% validSte = plotData.steData~=0;
+% if ~isempty(find(validSte,1)) && plotSte
+%     errorbar(x(validSte),plotData.avgData(validSte),plotData.steData(validSte),'.k');
+% end
+%         
+% % Overlay standard deviation
+% validStd = plotData.stdData~=0;
+% if ~isempty(find(validStd,1)) && plotStd
+%     errorbar(x(validStd),plotData.avgData(validStd),plotData.stdData(validStd),'.k');
+% end
+% 
+% % Additional graphic options (does not use the interpreter b
+% title([name ' comparison'],'Interpreter','none');
+% set(gca,'XTick',1:nGroups,'XTickLabel',labels);
+% ylabel([name ' (' unit ')'],'Interpreter','none');
+% saveas(gcf,[saveDir filesep 'histogram_' field '.tif'])
+figure;barplot2(plotData,'xLabels',labels,...
+    'ylabel',[name ' (' unit ')']);
+print('-dtiff', '-r300',[saveDir filesep 'histogram_' field '.tif']);
 
-% Overlay standard error
-validSte = plotData.steData~=0;
-if ~isempty(find(validSte,1)) && plotSte
-    errorbar(x(validSte),plotData.avgData(validSte),plotData.steData(validSte),'.k');
-end
-        
-% Overlay standard deviation
-validStd = plotData.stdData~=0;
-if ~isempty(find(validStd,1)) && plotStd
-    errorbar(x(validStd),plotData.avgData(validStd),plotData.stdData(validStd),'.k');
-end
-
-% Additional graphic options (does not use the interpreter b
-title([name ' comparison'],'Interpreter','none');
-set(gca,'XTick',1:nGroups,'XTickLabel',labels);
-ylabel([name ' (' unit ')'],'Interpreter','none');
-saveas(gcf,[saveDir filesep 'histogram_' field '.tif'])
 close(gcf)
 end

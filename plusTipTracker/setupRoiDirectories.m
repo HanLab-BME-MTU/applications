@@ -13,20 +13,18 @@ function setupRoiDirectories(selectROI,overwriteROIs,doCrop)
 % The user can either overwrite or retain roi directories that have
 % already been created.
 %
-% INPUT  selectROI     : 1 if the user wants to select regions of interest
+% INPUT  selectROI     : 0 if using the whole image as a ROI
+%                        1 if the user wants to select regions of interest
 %                        for each image directory found in the 
 %                        user-selected top-level directory
-%                        (0) if not (note: in this case, a roi_1 directory
-%                        will be created and the "roi" will be the whole image)
+%                        2 if the user wants to select the cell centers to 
+%                        create background region of interest
 %        overwriteROIs : 1 if projects that have already have rois should
 %                        be overwritten; (0) if they should be preserved
 %                        and more should be added
 %        doCrop (opt)  : 1 if you want to generate cropped 16-bit images in
 %                        a subdirectory of roi_x called 'cropped_imgs'.
 %
-% OUTPUT roiMask       : tif the size of the raw images containing the
-%                        roiMask
-%        roiYX         : xy-coordinates of the roi
 %
 % Created 20 July 2008 by Kathryn Applegate, Matlab R2008a
 
@@ -36,7 +34,7 @@ if topDir==0
 end
 
 % default - make roi_1 directory, roi is whole image
-if nargin<1 || isempty(selectROI) || (selectROI~=0 && selectROI~=1)
+if nargin<1 || isempty(selectROI)
     selectROI=0;
 end
 
@@ -68,14 +66,10 @@ end
 
 % find existing /images and /roi_x directories. "images" directories make
 % up the list of all the projects; "roi_x" ones have already been analyzed
-p=genpath(topDir);
-if ispc
-    tempDirList=strrep(p,';',' ');
-else
-    tempDirList=strrep(p,':',' ');
-end
+dirList=regexp(genpath(topDir),pathsep,'split');
 % cell array of "images" directories
-imageDirList=regexp(tempDirList,['\S*images\s'],'match')';
+imageDirList=regexp(dirList,'(.+)images$','match','once');
+imageDirList=imageDirList(~cellfun(@isempty,imageDirList));
 % check whether there are any movies in the image directory list
 if isempty(imageDirList)
     h=msgbox('No directories called "images" were found.');
@@ -86,9 +80,10 @@ end
 % if we should overwrite ROI data, remove existing directories
 if overwriteROIs==1
     % cell array of "roi_x" directories
-    roiDirList  =regexp(tempDirList,['\S*roi_\d\s'],'match')';
+    roiDirList  =regexp(dirList,'(.+)roi_(\d+)$','match','once')';
+    roiDirList=roiDirList(~cellfun(@isempty,roiDirList));
     for iProj=1:length(roiDirList)
-        temp=roiDirList{iProj,1}(1:end-1);
+        temp=roiDirList{iProj}(1:end-1);
         rmdir(temp,'s');
     end
 end
@@ -96,13 +91,13 @@ end
 % flags for help messages
 crpFlag=doCrop;
 polyFlag=selectROI;
-bgFlag=~selectROI;
+bgFlag=logical(selectROI);
 
 % loop through projects
 for iProj=1:length(imageDirList)
 
     % define image and roi directories
-    imDir=imageDirList{iProj,1}(1:end-1);
+    imDir=imageDirList{iProj};
     roiDir=[imDir(1:end-7) filesep 'roi'];
 
     % count existing rois - roiCount will be number of first new one
@@ -163,10 +158,12 @@ for iProj=1:length(imageDirList)
             [imL,imW]=size(img);
             roiMask=true(imL,imW);
             roiYX=[1 1; imL 1; imL imW; 1 imW; 1 1];
-
+        end
+        
+        if selectROI==2
             % get within-cell point for each project
             figure; imagesc(img); colormap gray; axis equal
-            if bgFlag==1
+            if bgFlag
                 h=msgbox('For each ROI, select a point in the cell center and press enter.');
                 uiwait(h);
                 bgFlag=0;

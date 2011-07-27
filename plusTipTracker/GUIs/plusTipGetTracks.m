@@ -57,7 +57,6 @@ function plusTipGetTracks_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for plusTipGetTracks
 handles.output = hObject;
-handles.selectRoi = 1;
 handles.getStr = 0;
 handles.loadProjList = 0;
 handles.projList = [];
@@ -527,26 +526,13 @@ function histCheck_Callback(hObject, eventdata, handles)
 handles.doHist=get(hObject,'Value');
 guidata(hObject, handles);
 
-
 % --- Executes on button press in setupRoiPush.
 function setupRoiPush_Callback(hObject, eventdata, handles)
-% hObject    handle to setupRoiPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 overwriteROIs=0;
 doCrop=0;
-setupRoiDirectories(handles.selectRoi,overwriteROIs,doCrop);
-
-
-% --- Executes on button press in selectRoiCheck.
-function selectRoiCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to selectRoiCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selectRoiCheck
-handles.selectRoi=get(hObject,'Value');
-guidata(hObject, handles);
+selectRoiTag = get(get(handles.uipanel_roi,'SelectedObject'),'Tag');
+selectRoi = str2double(selectRoiTag(end));
+setupRoiDirectories(selectRoi,overwriteROIs,doCrop);
 
 % --- Executes on button press in resetButton.
 function resetButton_Callback(hObject, eventdata, handles)
