@@ -35,7 +35,7 @@ ip.addRequired('ch');
 ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('iRange', [], @(x) iscell(x));
+ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
 ip.addParamValue('visibleTracks', 'current', @(x) strcmpi(x, 'current') | strcmpi(x, 'all'));
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
@@ -96,7 +96,7 @@ end
 %     end
 
 imagesc(frame, 'Parent', ha);
-if ~isempty(ip.Results.iRange)
+if ~isempty(ip.Results.iRange{ch})
     caxis(ha, ip.Results.iRange{ch});
 end
 colormap(gray(256));
