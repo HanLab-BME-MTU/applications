@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 07-Jul-2011 14:41:35
+% Last Modified by GUIDE v2.5 28-Jul-2011 13:54:37
 
 
 % Begin initialization code - DO NOT EDIT
@@ -222,6 +222,10 @@ doPlot=get(handles.checkbox_doPlot,'Value');
 remBegEnd=get(handles.checkbox_remBegEnd,'Value');
 plotSte=get(handles.checkbox_plotSte,'Value');
 plotStd=get(handles.checkbox_plotStd,'Value');
+if isempty(userData.groupList) || isempty(userData.saveDir)
+    warndlg('Select a group and an output directory first');
+    return
+end
 plusTipPoolGroupData(userData.groupList,...
     userData.saveDir,doBtw,doWtn,doPlot,remBegEnd,...
     'plotSte',plotSte,'plotStd',plotStd);
@@ -257,5 +261,9 @@ stringency=str2double(get(handles.edit_stringency,'String'));
 testValues = get(handles.popupmenu_testID1,'UserData');
 testID1=testValues(get(handles.popupmenu_testID1,'Value'));
 testID2=testValues(get(handles.popupmenu_testID2,'Value'));
-plusTipGetHits(userData.saveDir,userData.groupList,...
+if isempty(userData.groupList) || isempty(userData.saveDir)
+    warndlg('Select a group and an output directory first');
+    return
+end
+plusTipGetHits(userData.groupList,userData.saveDir,...
     stringency,testID1,testID2);

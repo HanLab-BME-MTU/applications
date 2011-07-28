@@ -79,10 +79,12 @@ handles.fluctRadRange=1.0:0.5:5.0;
 
 %place image onto the axes, remove tick marks
 pic=imread('pTT_logo_sm.png');
-axes(handles.logoAxes);
+set(handles.figure1,'CurrentAxes',handles.logoAxes);
 image(pic);
 axis off
 
+set(handles.getHelpPush,'CData',imread('help_icon.png'),'Callback',...
+    @(hObject,eventdata)open('plusTipParamSweepGUI.pdf'));
 
 % Update handles structure
 guidata(hObject, handles);
