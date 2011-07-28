@@ -817,36 +817,67 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
                     %directions via the cross-product and use that to
                     %choose the intersection to return.
                     
-                    %Set up the vectors for taking the cross-product
-                    if tmpi1(1) >= 1.5
-                        %tmpi1(1) and tmpi1(2) are identical due to the
-                        %check above, so just use 1
-                        vecSlice = [diff(c(1,round(tmpi1(1))-1:round(tmpi1(1)))) ...     %X1, vector from slice
-                                    diff(c(2,round(tmpi1(1))-1:round(tmpi1(1)))) ...     %Y1, vector from slice
-                                    0];                                    %Z1, vector from slice. Always zero of course.
+                    %--Set up the vectors for taking the cross-product--%
+                   
+                    %Get the vector going in the direction of the slice at
+                    %the intersection.
+                    %tmpi1(1) and tmpi1(2) are identical due to the
+                    %check above, so just use 1
+                    if tmpi1(1) == round(tmpi1(1))
+                        %If the intersection occurs right at a vertex...
+                        if tmpi1(1) == size(c,2)
+                            %... and this is the last vertex, use the preceding segment
+                            vecSlice = [diff(c(1,end-1:end)) ...
+                                        diff(c(2,end-1:end)) ...
+                                        0];                                                    
+                        else
+                            %...otherwise, use the next segment
+                            vecSlice = [diff(c(1,tmpi1(1):tmpi1(1)+1)) ...
+                                        diff(c(2,tmpi1(1):tmpi1(1)+1))...
+                                        0];                                                                                
+                        end                    
                     else
-                        vecSlice = [diff(c(1,round(tmpi1(1)):round(tmpi1(1))+1)) ...     %X1, vector from slice
-                                    diff(c(2,round(tmpi1(1)):round(tmpi1(1))+1)) ...     %Y1, vector from slice
-                                    0];                                    %Z1, vector from slice. Always zero of course.
+                        %... or the vector from the intersection to the next vertex
+                        vecSlice = [c(1,ceil(tmpi1(1))) - tmpix(1) ...     
+                                    c(2,ceil(tmpi1(1))) - tmpiy(1) ...     
+                                    0];                                    
                     end
-                    if tmpi2(1) >= 1.5
-                        vecCont1 = [diff(cInt{j}(1,round(tmpi2(1))-1:round(tmpi2(1)))), ...  %X1 contour intersection 1
-                                    diff(cInt{j}(2,round(tmpi2(1))-1:round(tmpi2(1)))), ...  %Y1 contour intersection 1
-                                    0];                                        %Z1 contour intersection 1
+                    %Get the vector in the direction of the contour at its
+                    %first intersection
+                    if tmpi2(1) == round(tmpi2(1))                        
+                        if tmpi2(1) == size(cInt{j},2)                            
+                            vecCont1 = [diff(cInt{j}(1,end-1:end)) ...
+                                        diff(cInt{j}(2,end-1:end)) ...
+                                        0];                                                    
+                        else                            
+                            vecCont1= [diff(cInt{j}(1,tmpi2(1):tmpi2(1)+1)) ...
+                                       diff(cInt{j}(2,tmpi2(1):tmpi2(1)+1))...
+                                        0];                                               
+                        end    
                     else
-                        vecCont1 = [diff(cInt{j}(1,round(tmpi2(1)):round(tmpi2(1))+1)), ...  %X1 contour intersection 1
-                                    diff(cInt{j}(2,round(tmpi2(1)):round(tmpi2(1))+1)), ...  %Y1 contour intersection 1
-                                    0];                                        %Z1 contour intersection 1
+                        %... or the vector from the intersection to the next vertex
+                        vecCont1 = [cInt{j}(1,ceil(tmpi2(1))) - tmpix(1) ...     
+                                    cInt{j}(2,ceil(tmpi2(1))) - tmpiy(1) ...     
+                                    0];                                    
                     end
-                    if tmpi2(2) >= 1.5
-                        vecCont2 = [diff(cInt{j}(1,round(tmpi2(2))-1:round(tmpi2(2)))), ...  %X1 contour intersection 2
-                                    diff(cInt{j}(2,round(tmpi2(2))-1:round(tmpi2(2)))), ...  %Y1 contour intersection 2
-                                    0];                                        %Z1 contour intersection 2
+                    %Get the vector in the direction of the contour at its
+                    %second intersection
+                    if tmpi2(2) == round(tmpi2(2))                        
+                        if tmpi2(2) == size(cInt{j},2)                            
+                            vecCont2 = [diff(cInt{j}(1,end-1:end)) ...
+                                        diff(cInt{j}(2,end-1:end)) ...
+                                        0];                                                    
+                        else                            
+                            vecCont2= [diff(cInt{j}(1,tmpi2(2):tmpi2(2)+1)) ...
+                                       diff(cInt{j}(2,tmpi2(2):tmpi2(2)+1))...
+                                        0];                                               
+                        end    
                     else
-                        vecCont2 = [diff(cInt{j}(1,round(tmpi2(2)):round(tmpi2(2))+1)), ...  %X1 contour intersection 2
-                                    diff(cInt{j}(2,round(tmpi2(2)):round(tmpi2(2))+1)), ...  %Y1 contour intersection 2
-                                    0];                                        %Z1 contour intersection 2
-                    end
+                        %... or the vector from the intersection to the next vertex
+                        vecCont2 = [cInt{j}(1,ceil(tmpi2(2))) - tmpix(1) ...     
+                                    cInt{j}(2,ceil(tmpi2(2))) - tmpiy(1) ...     
+                                    0];                                    
+                    end                                        
                     
                     %Take the cross product, and use the intersection where
                     %the cross has a positive z-component - this is the one

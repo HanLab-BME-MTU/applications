@@ -1,8 +1,12 @@
 function [x0,y0,iout,jout] = intersectionsHLE(x1,y1,x2,y2,robust)
 %INTERSECTIONSHLE Intersections of curves.
 %
-%   Modified from version found on matlab exchange to fix a few bugs, sort
-%   output etc. -Hunter
+%   NOTE:Modified from version found on matlab exchange to fix a few bugs,
+%   speed calculation, sort output etc. Part of this modification involves
+%   removal of redundant intersections, and rounding of intersections
+%   indices (iout, jout) slightly different from integer indices due
+%   primarily to numerical error. If you need intersection indices which
+%   are more precise than +/-1e-6, don't use this function. - HLE
 %
 %   Computes the (x,y) locations where two curves intersect.  The curves
 %   can be broken with NaNs or have vertical segments.
@@ -197,7 +201,7 @@ B = -[x1(i) x2(j) y1(i) y2(j)].';
 
 %Small number for identifying close intersection indices which should be
 %integers but are slightly off due to numerical error. 
-epsIJ = 1e-5;
+epsIJ = 1e-6;
 
 if robust
 	overlap = false(1,n);
@@ -278,6 +282,13 @@ if robust
         %not identical intersections. This is also handled here so that
         %these are returned as a single intersection. HLE, 7/2011
         
+        %First, simply round any indices which are within epsilon of an
+        %integer value. This is simply for convenience of use of the
+        %output, as the loop below would still remove any reduntant
+        %near-integer indices.
+        iout(abs(iout - round(iout)) < epsIJ) = round(iout(abs(iout -round(iout)) < epsIJ));
+        jout(abs(jout - round(jout)) < epsIJ) = round(jout(abs(jout -round(jout)) < epsIJ));
+        
         %Loop through the indices, setting those which are closer together
         %than epsilon equal to one another. Repeat this until no indices
         %are this close and non-identical.
@@ -292,6 +303,7 @@ if robust
             jTooClose = find(diff(joutSorted) < epsIJ & diff(joutSorted) > 0);%Find values that are closer than epsilon to each other
             jout(sortInd(jTooClose))  = jout(sortInd(jTooClose+1));%Set these equal to each other, preserving the original order
         end
+                
         %Now get only the remaining unique intersection points, based on
         %the i and j indices
         
