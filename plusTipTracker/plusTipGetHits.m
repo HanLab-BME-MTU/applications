@@ -218,7 +218,7 @@ for i=1:numel(paramNames)
     steData= cellfun(@(x) std(x)/sqrt(size(x,1)),rawData);
     f = figure;
     barplot2(plotData,steData,'YLabel',paramNames{i},...
-        'XLabels',groupNames);
+        'XLabels',groupNames,'Interpreter','none');
     print(f,'-dtiff', '-r300',[saveDir filesep 'histogram_' paramNames{i} '.tif']);
     close(f);
 end
