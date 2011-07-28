@@ -10,6 +10,12 @@ tracks = ip.Results.tracks;
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
+handles.nCh = nCh;
+% exclude master from list of channels
+handles.mCh = find(strcmp(data.source, data.channels));
+handles.slaveChannels = setdiff(1:nCh, handles.mCh);
+
+
 if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
@@ -19,6 +25,16 @@ if isstruct(tracks)
     handles.tracks{1} = tracks;
 else
     handles.tracks = tracks;
+end
+
+
+handles.displayType = 'raw';
+if ~all(cellfun(@(x) isempty(x), handles.tracks))
+    handles.selectedTrack = ones(1,handles.nCh);
+    handles.f = handles.tracks{handles.mCh}(1).start;
+else
+    handles.selectedTrack = [];
+    handles.f = 2; % valid tracks start in frame 2 at the earliest
 end
 
 
@@ -34,13 +50,13 @@ pos = get(handles.fig, 'Position');
 % Frames
 %---------------------
 
-handles.frameLabel = uicontrol('Style', 'text', 'String', 'Frame 2', ...
+handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
     'Position', [20 pos(4)-40, 100 20], 'HorizontalAlignment', 'left');
 
 
 % Slider
 handles.frameSlider = uicontrol('Style', 'slider',...
-    'Value', 2, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
+    'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
     'Position', [20 60 0.6*pos(3) 20], 'Callback', {@frameSlider_Callback, handles.fig});
 
 uicontrol('Style', 'text', 'String', 'Display: ',...
@@ -84,6 +100,7 @@ handles.trackSlider = uicontrol('Style', 'slider',...
 
 % Output panel
 ph = uipanel('Parent', handles.fig, 'Units', 'pixels', 'Title', 'Output', 'Position', [pos(3)-180 5 140 70]);
+
 handles.printButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Print figures',...
     'Units', 'normalized', 'Position', [0.1 0.5 0.8 0.45],...
     'Callback', {@printButton_Callback, handles.fig});
@@ -116,18 +133,13 @@ setappdata(handles.fig, 'handles', handles);
 handles.fAspectRatio = handles.data.imagesize(1) / handles.data.imagesize(2);
 
 
-
-% exclude master from list of channels
-handles.masterChannel = find(strcmp(data.source, data.channels));
-handles.slaveChannels = setdiff(1:nCh, handles.masterChannel);
-
 handles.detection = cell(1,nCh);
 handles.dRange = cell(1,nCh);
 
 detectionFile = [data.source 'Detection' filesep 'detection_v2.mat'];
 if exist(detectionFile, 'file')==2
     load(detectionFile);
-    handles.detection{handles.masterChannel} = frameInfo;
+    handles.detection{handles.mCh} = frameInfo;
     if isfield(frameInfo, 'dRange')
         for c = 1:nCh
             M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
@@ -145,18 +157,10 @@ for c = 1:nCh
         handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
     end
 end
-handles.nCh = nCh;
 
 
 % initialize handles
-handles.f = 2; % valid tracks start in frame 2 at the earliest
-set(handles.frameLabel, 'String', 'Frame 2');
-handles.displayType = 'raw';
-if ~all(cellfun(@(x) isempty(x), handles.tracks))
-    handles.selectedTrack = ones(1,handles.nCh);
-else
-    handles.selectedTrack = [];
-end
+
 
 handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
@@ -168,9 +172,9 @@ setappdata(handles.fig, 'settings', settings);
 %=================================================
 % Set initial values for sliders and checkboxes
 %=================================================
-if ~isempty([handles.tracks{:}]) && length(handles.tracks{handles.masterChannel}) > 1
+if ~isempty([handles.tracks{:}]) && length(handles.tracks{handles.mCh}) > 1
     set(handles.trackSlider, 'Min', 1);
-    nTracks = length(handles.tracks{handles.masterChannel});
+    nTracks = length(handles.tracks{handles.mCh});
     set(handles.trackSlider, 'Max', nTracks);
     set(handles.trackSlider, 'SliderStep', [1/(nTracks-1) 0.05]);
 else
@@ -246,16 +250,16 @@ function zoompostcallback(~, eventdata, hfig)
 XLim = get(eventdata.Axes, 'XLim');
 
 settings = getappdata(hfig, 'settings');
-settings.zoom = handles.refXLimDiff / diff(XLim);
+% settings.zoom = handles.refXLimDiff / diff(XLim); 
 
-for c = 1:length(settings.selectedTrackMarkerID)
-    id = settings.selectedTrackMarkerID(c);
-    if ~isnan(id)
-        set(id, 'MarkerSize', 10*settings.zoom);
-    end
-end
-
-setappdata(hfig, 'settings', settings);
+% for c = 1:length(settings.selectedTrackMarkerID)
+%     id = settings.selectedTrackMarkerID(c);
+%     if ~isnan(id)
+%         set(id, 'MarkerSize', 10*settings.zoom);
+%     end
+% end
+% 
+% setappdata(hfig, 'settings', settings);
 
 
 
@@ -345,115 +349,108 @@ YLim = get(handles.fAxes{1}, 'YLim');
 
 f = handles.f;
 settings = getappdata(handles.fig, 'settings');
+mc = handles.mCh;
 
+isRGB = strcmpi(handles.displayType, 'RGB');
 
-if strcmp(handles.displayType, 'RGB')
+if isRGB
     if length(handles.fAxes)>1
         handles = setupFrameAxes(handles, 1);
     end
-
-    mc = handles.masterChannel;
-    if get(handles.('trackCheckbox'), 'Value')
-        plotFrame(handles.data, handles.tracks{mc}, f, 1:min(handles.nCh,3),...
-            'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
-            'Mode', handles.displayType);
-    else
-        plotFrame(handles.data, [], f, 1:min(handles.nCh,3),...
-            'Handle', handles.fAxes{1}, 'iRange', handles.dRange,...
-            'Mode', handles.displayType);
-    end
-    markerHandles = NaN;
-    textHandles = NaN;
-    % plot selected track marker
-    if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
-        hold(handles.fAxes{1}, 'on');
-        t = handles.tracks{mc}(handles.selectedTrack(mc));
-        ci = f-t.start+1;
-        if 1 <= ci && ci <= length(t.x)
-            markerHandles = plot(handles.fAxes{mc}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
-            textHandles = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(mc)), 'Color', 'w', 'Parent', handles.fAxes{mc});
-        end
-        hold(handles.fAxes{1}, 'off');
-    end
+    cvec = mc;
     
-else % all modes except RGB
+else 
     if length(handles.fAxes)~=handles.nCh
         handles = setupFrameAxes(handles);
     end
-
-    markerHandles = NaN(1, handles.nCh);
-    textHandles = NaN(1, handles.nCh);
-    for c = 1:handles.nCh
-        if ~isempty(handles.tracks{c})
-            chIdx = c;
-        else
-            chIdx = handles.masterChannel;
-        end
-        
-        if get(handles.('trackCheckbox'), 'Value')
-            plotFrame(handles.data, handles.tracks{c}, f, c,...
-                'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
-                'Mode', handles.displayType);
-        else
-            plotFrame(handles.data, [], f, c,...
-                'Handle', handles.fAxes{c}, 'iRange', handles.dRange,...
-                'Mode', handles.displayType);
-        end
-        
-        hold(handles.fAxes{c}, 'on');
-              
-        % plot selected track marker
-        if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
-            t = handles.tracks{chIdx}(handles.selectedTrack(c));
-            ci = f-t.start+1;
-            if 1 <= ci && ci <= length(t.x)
-                markerHandles(c) = plot(handles.fAxes{c}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
-                textHandles(c) = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(c)), 'Color', 'w', 'Parent', handles.fAxes{c});
-            end
-        end
-        
-        % show detection localization values
-        if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
-            d = handles.detection{c}(f);
-            if ~isempty(d.x)
-                plot(handles.fAxes{c}, d.x(c,:), d.y(c,:), 'ro', 'MarkerSize', 8);
-            end
-        end
-        
-        if get(handles.('labelCheckbox'), 'Value')
-            % plot channel name
-            %[getDirFromPath(handles.data.channels{c}) '-' handles.data.markers{c}],...
-            dx = 0.03;
-            text(1-dx*handles.fAspectRatio, dx,...
-                handles.data.markers{c},...
-                'Color', handles.rgbColors{c}, 'Units', 'normalized',...
-                'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
-                'Parent', handles.fAxes{c});
-        end
-        
-        % plot EAP status
-        if get(handles.('eapCheckbox'), 'Value') && isfield(handles.tracks{chIdx}, 'significantSignal');
-            if c ~= handles.masterChannel
-                % all tracks
-                tracks = handles.tracks{chIdx};
-                % tracks visible in current frame
-                idx = [tracks.start]<=f & f<=[tracks.end];
-                tracks = tracks(idx);
-                % EAP status
-                eapIdx = [tracks.significantSignal];
-                eapIdx = eapIdx(c,:);
-                % relative position in track
-                fIdx = f-[tracks.start]+1;
-                x = arrayfun(@(i) tracks(i).x(c,fIdx(i)), 1:length(tracks));
-                y = arrayfun(@(i) tracks(i).y(c,fIdx(i)), 1:length(tracks));
-  
-                plot(handles.fAxes{c}, x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
-                plot(handles.fAxes{c}, x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
-            end            
-        end
-        hold(handles.fAxes{c}, 'off');
-    end
+    cvec = 1:handles.nCh;
 end
+nAxes = length(cvec);
+
+markerHandles = NaN(1, nAxes);
+textHandles = NaN(1, nAxes);
+
+
+for k = 1:nAxes
+    
+    cla(handles.fAxes{k}); % clear axis content
+    
+    % channel index for RGB display
+    if isRGB
+        cidx = 1:min(handles.nCh,3);
+    else
+        cidx = cvec(k);
+    end
+    
+    if ~isempty(handles.tracks{k})
+        chIdx = k;
+    else
+        chIdx = mc;
+    end
+    
+    if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
+        plotFrame(handles.data, handles.tracks{cvec(k)}, f, cidx,...
+            'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
+            'Mode', handles.displayType);
+    else
+        plotFrame(handles.data, [], f, cidx,...
+            'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
+            'Mode', handles.displayType);
+    end
+    
+    hold(handles.fAxes{k}, 'on');
+    
+    % plot selected track marker
+    if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
+        t = handles.tracks{chIdx}(handles.selectedTrack(k));
+        ci = f-t.start+1;
+        if 1 <= ci && ci <= length(t.x)
+            markerHandles(k) = plot(handles.fAxes{k}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
+            textHandles(k) = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
+        end
+    end
+    
+    % show detection localization values
+    if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
+        d = handles.detection{k}(f);
+        if ~isempty(d.x)
+            plot(handles.fAxes{k}, d.x(k,:), d.y(k,:), 'ro', 'MarkerSize', 8);
+        end
+    end
+    
+    if ~isRGB && get(handles.('labelCheckbox'), 'Value')
+        % plot channel name
+        %[getDirFromPath(handles.data.channels{k}) '-' handles.data.markers{k}],...
+        dx = 0.03;
+        text(1-dx*handles.fAspectRatio, dx,...
+            handles.data.markers{k},...
+            'Color', handles.rgbColors{k}, 'Units', 'normalized',...
+            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
+            'Parent', handles.fAxes{k});
+    end
+    
+    % plot EAP status
+    if ~isRGB && get(handles.('eapCheckbox'), 'Value') &&...
+            isfield(handles.tracks{chIdx}, 'significantSignal') && cvec(k) ~= handles.mCh
+        % all tracks
+        tracks = handles.tracks{chIdx};
+        % tracks visible in current frame
+        idx = [tracks.start]<=f & f<=[tracks.end];
+        tracks = tracks(idx);
+        % EAP status
+        eapIdx = [tracks.significantSignal];
+        eapIdx = eapIdx(k,:);
+        % relative position in track
+        fIdx = f-[tracks.start]+1;
+        x = arrayfun(@(i) tracks(i).x(k,fIdx(i)), 1:length(tracks));
+        y = arrayfun(@(i) tracks(i).y(k,fIdx(i)), 1:length(tracks));
+        
+        plot(handles.fAxes{k}, x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
+        plot(handles.fAxes{k}, x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
+    end
+    
+    hold(handles.fAxes{k}, 'off');
+end 
 
 settings.selectedTrackMarkerID = markerHandles;
 settings.selectedTrackLabelID = textHandles;
@@ -462,7 +459,6 @@ setappdata(handles.fig, 'mydata', settings);
 % write zoom level
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
-% guidata(hObject, handles);
 
 setappdata(handles.fig, 'handles', handles);
 
@@ -484,7 +480,7 @@ if ~isempty(handles.selectedTrack)
         if ~isempty(handles.tracks{ci})
             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
         else
-            sTrack = handles.tracks{handles.masterChannel}(handles.selectedTrack(1));
+            sTrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
         end
         
         if isfield(sTrack, 'startBuffer') && ~isempty(sTrack.startBuffer)
@@ -570,7 +566,7 @@ for c = 1:handles.nCh
     if ~isempty(handles.tracks{c})
         chIdx = c;
     else
-        chIdx = handles.masterChannel;
+        chIdx = handles.mCh;
     end   
     idx = find([handles.tracks{chIdx}.start] <= handles.f & handles.f <= [handles.tracks{chIdx}.end]);
 
@@ -624,7 +620,7 @@ if ~isempty(handles.selectedTrack)
     fprintf('Generating montage...');
     options = get(handles.montageOptions, 'String');
     
-    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)),...
+    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)),...
         'WindowWidth', 6, 'Reference', options{get(handles.montageOptions, 'Value')});
     
     if get(handles.montageCheckbox, 'Value')
@@ -709,7 +705,7 @@ for ch = 1:handles.nCh
     if ~isempty(handles.tracks{ch})
         tracks = handles.tracks{ch};
     else
-        tracks = handles.tracks{handles.masterChannel};
+        tracks = handles.tracks{handles.mCh};
     end
     plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch,...
         'Print', 'on', 'Visible', 'off', 'Legend', 'hide');
@@ -717,7 +713,7 @@ end
 
 
 if strcmp(handles.displayType, 'RGB')
-    mc = handles.masterChannel;
+    mc = handles.mCh;
     plotFrame(handles.data, handles.tracks{mc}, handles.f, 1:min(handles.nCh,3),...
         'iRange', handles.dRange, 'Mode', handles.displayType,...
             'Print', 'on', 'Visible', 'off');
@@ -731,7 +727,7 @@ end
 
 h = handles.montageOptions;
 options = get(h, 'String');
-stack = getTrackStack(handles.data, handles.tracks{handles.masterChannel}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
+stack = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
 fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
 plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPath', fpath, 'Mode', 'gray');
 
@@ -742,4 +738,4 @@ fprintf(' done.\n');
 function movieButton_Callback(~, ~, hfig)
 
 handles = getappdata(hfig, 'handles');
-makeMovieCME(handles.data, handles.tracks{handles.masterChannel});
+makeMovieCME(handles.data, handles.tracks{handles.mCh});
