@@ -1,3 +1,6 @@
+
+% Handles/settings are stored in 'appdata' of the figure handle
+
 function trackDisplayGUI(data, varargin)
 
 ip = inputParser;
@@ -38,12 +41,12 @@ else
 end
 
 
-handles.fig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.8 0.7],...
+hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.8 0.7],...
     'Toolbar', 'figure', 'ResizeFcn', @figResize,...
     'Color', get(0,'defaultUicontrolBackgroundColor'));
 
-set(handles.fig, 'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
-pos = get(handles.fig, 'Position');
+set(hfig, 'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
+pos = get(hfig, 'Position');
 
 
 %---------------------
@@ -57,32 +60,32 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
 % Slider
 handles.frameSlider = uicontrol('Style', 'slider',...
     'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-    'Position', [20 60 0.6*pos(3) 20], 'Callback', {@frameSlider_Callback, handles.fig});
+    'Position', [20 60 0.6*pos(3) 20], 'Callback', {@frameSlider_Callback, hfig});
 
 uicontrol('Style', 'text', 'String', 'Display: ',...
     'Position', [20 20, 80 20], 'HorizontalAlignment', 'left');
 
 handles.frameChoice = uicontrol('Style', 'popup',...
     'String', {'Raw frames', 'Detection', 'RGB'},...
-    'Position', [90 20 120 20], 'Callback', {@frameChoice_Callback, handles.fig});
+    'Position', [90 20 120 20], 'Callback', {@frameChoice_Callback, hfig});
 
 % Checkboxes
 handles.detectionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Positions',...
     'Position', [250 30, 140 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, handles.fig});
+    'Callback', {@refresh_Callback, hfig});
 handles.labelCheckbox = uicontrol('Style', 'checkbox', 'String', 'Channel labels',...
     'Position', [250 10, 140 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, handles.fig});
+    'Callback', {@refresh_Callback, hfig});
 handles.trackCheckbox = uicontrol('Style', 'checkbox', 'String', 'Tracks', 'Value', true,...
     'Position', [390 30, 140 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, handles.fig});
+    'Callback', {@refresh_Callback, hfig});
 handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
     'Position', [390 10, 140 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, handles.fig});
+    'Callback', {@refresh_Callback, hfig});
 
 handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
     'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
-    'Callback', {@trackButton_Callback, handles.fig});
+    'Callback', {@trackButton_Callback, hfig});
 
 
 %---------------------
@@ -95,26 +98,26 @@ handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
 handles.trackSlider = uicontrol('Style', 'slider',...
     'Value', 1, 'SliderStep', [1 1], 'Min', 1, 'Max', 100,...
     'Position', [pos(3)-35 60 20 pos(4)-80],...
-    'Callback', {@trackSlider_Callback, handles.fig});
+    'Callback', {@trackSlider_Callback, hfig});
 
 
 % Output panel
-ph = uipanel('Parent', handles.fig, 'Units', 'pixels', 'Title', 'Output', 'Position', [pos(3)-180 5 140 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Output', 'Position', [pos(3)-180 5 140 70]);
 
 handles.printButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Print figures',...
     'Units', 'normalized', 'Position', [0.1 0.5 0.8 0.45],...
-    'Callback', {@printButton_Callback, handles.fig});
+    'Callback', {@printButton_Callback, hfig});
 
 handles.movieButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Make movie',...
     'Units', 'normalized', 'Position', [0.1 0.05 0.8 0.45],...
-    'Callback', {@movieButton_Callback, handles.fig});
+    'Callback', {@movieButton_Callback, hfig});
 handles.outputPanel = ph;
 
 % Montage panel
-ph = uipanel('Parent', handles.fig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-390 5 180 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-390 5 180 70]);
 handles.montageButton = uicontrol(ph,'Style','pushbutton','String','Generate',...
     'Units','normalized', 'Position',[.1 .55 .6 .4],...
-    'Callback', {@montageButton_Callback, handles.fig});     
+    'Callback', {@montageButton_Callback, hfig});     
 handles.montageText = uicontrol(ph, 'Style', 'text', 'String', 'Align to: ',...
     'Units', 'normalized', 'Position', [0.1 0.1 0.35 0.4], 'HorizontalAlignment', 'left');
 handles.montageOptions = uicontrol(ph, 'Style', 'popup',...
@@ -125,7 +128,7 @@ handles.montageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show track',
 handles.montagePanel = ph;
 
 
-setappdata(handles.fig, 'handles', handles);
+setappdata(hfig, 'handles', handles);
 
 %================================
 
@@ -166,7 +169,7 @@ handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
 settings.zoom = 1;
-setappdata(handles.fig, 'settings', settings);
+setappdata(hfig, 'settings', settings);
 
 
 %=================================================
@@ -227,19 +230,14 @@ axis([handles.fAxes{:}], 'image');
 
 % save XLim diff. for zoom reference
 handles.refXLimDiff = data.imagesize(2)-1;
-handles = refreshFrameDisplay(handles);
 
+setappdata(hfig, 'handles', handles);
+refreshFrameDisplay(hfig);
+refreshTrackDisplay(hfig);
 
-refreshTrackDisplay(handles);
-
-% guidata(hObject, handles);
-% set(zoom, 'ActionPostCallback', {@zoompostcallback, handles, hObject});
-set(zoom, 'ActionPostCallback', {@zoompostcallback, handles.fig});
-% guidata(hObject, handles);
+set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
-
-
 
 
 %===================================
@@ -250,16 +248,18 @@ function zoompostcallback(~, eventdata, hfig)
 XLim = get(eventdata.Axes, 'XLim');
 
 settings = getappdata(hfig, 'settings');
-% settings.zoom = handles.refXLimDiff / diff(XLim); 
+handles = getappdata(hfig, 'handles');
 
-% for c = 1:length(settings.selectedTrackMarkerID)
-%     id = settings.selectedTrackMarkerID(c);
-%     if ~isnan(id)
-%         set(id, 'MarkerSize', 10*settings.zoom);
-%     end
-% end
-% 
-% setappdata(hfig, 'settings', settings);
+settings.zoom = handles.refXLimDiff / diff(XLim);
+
+for c = 1:length(settings.selectedTrackMarkerID)
+    id = settings.selectedTrackMarkerID(c);
+    if ~isnan(id)
+        set(id, 'MarkerSize', 10*settings.zoom);
+    end
+end
+
+setappdata(hfig, 'settings', settings);
 
 
 
@@ -339,7 +339,10 @@ linkaxes([handles.fAxes{:}]);
 %===================================
 % Plot frames with overlaid tracks
 %===================================
-function handles = refreshFrameDisplay(handles)
+function handles = refreshFrameDisplay(hfig)
+
+handles = getappdata(hfig, 'handles');
+settings = getappdata(hfig, 'settings');
 
 % save zoom settings
 XLim = get(handles.fAxes{1}, 'XLim');
@@ -348,7 +351,7 @@ YLim = get(handles.fAxes{1}, 'YLim');
 % zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
-settings = getappdata(handles.fig, 'settings');
+
 mc = handles.mCh;
 
 isRGB = strcmpi(handles.displayType, 'RGB');
@@ -454,13 +457,13 @@ end
 
 settings.selectedTrackMarkerID = markerHandles;
 settings.selectedTrackLabelID = textHandles;
-setappdata(handles.fig, 'mydata', settings);
 
 % write zoom level
 set(handles.fAxes{1}, 'XLim', XLim);
 set(handles.fAxes{1}, 'YLim', YLim);
 
-setappdata(handles.fig, 'handles', handles);
+setappdata(hfig, 'settings', settings);
+setappdata(hfig, 'handles', handles);
 
 
 
@@ -468,7 +471,9 @@ setappdata(handles.fig, 'handles', handles);
 %=========================
 % Plot tracks
 %=========================
-function refreshTrackDisplay(handles)
+function refreshTrackDisplay(hfig)
+
+handles = getappdata(hfig, 'handles');
 
 if ~isempty(handles.selectedTrack)
 
@@ -524,6 +529,7 @@ if ~isempty(handles.selectedTrack)
     set(h, 'XLim', [max(sTrack.start-bStart-11,0) min(sTrack.end+bEnd+9,handles.data.movieLength-1)]*handles.data.framerate);
     xlabel(h, 'Time (s)');
 end
+setappdata(hfig, 'handles', handles);
 
 
 %========================
@@ -531,7 +537,7 @@ end
 %========================
 
 function refresh_Callback(~,~,hfig)
-refreshFrameDisplay(getappdata(hfig, 'handles'));
+refreshFrameDisplay(hfig);
 
 
 
@@ -548,8 +554,8 @@ handles = getappdata(hfig, 'handles');
 set(handles.frameLabel, 'String', ['Frame ' num2str(f)]);
 handles.f = f;
 setappdata(hfig, 'handles', handles);
-refreshFrameDisplay(handles);
-refreshTrackDisplay(handles);
+refreshFrameDisplay(hfig);
+refreshTrackDisplay(hfig);
 
 
 
@@ -606,8 +612,8 @@ set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
 
 setappdata(hfig, 'handles', handles);
 % axis(handles.axes3, [0 handles.data.movieLength 0 1]);
-refreshFrameDisplay(handles);
-refreshTrackDisplay(handles);
+refreshFrameDisplay(hfig);
+refreshTrackDisplay(hfig);
 
 
 
@@ -656,7 +662,7 @@ switch contents{get(hObject,'Value')}
         handles.displayType = 'mask';
 end
 setappdata(hfig, 'handles', handles);
-refreshFrameDisplay(handles);
+refreshFrameDisplay(hfig);
 
 
 
@@ -684,8 +690,10 @@ if handles.f < t.start || handles.f > t.end
     set(handles.frameSlider, 'Value', handles.f);
 end
 
-refreshFrameDisplay(handles);
-refreshTrackDisplay(handles);
+setappdata(hfig, 'handles', handles);
+
+refreshFrameDisplay(hfig);
+refreshTrackDisplay(hfig);
 
 
 
