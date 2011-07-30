@@ -189,19 +189,47 @@ glbMaxVal
 
 figure()
 title('The cross correlation for cFI')
-errorbar(-maxLag:1:maxLag,cFI,cFI_std,'r')
+errorbar(-maxLag:1:maxLag,cFI,cFI_std,'k')
 hold on
-fnplt(sp);
+fnplt(sp,'r');
 plot(-maxLag:1:maxLag,cFI,'k')
 % ylim([-1 1])
 xlim([-maxLag maxLag])
 title('F / I')
 xlabel('dframes')
 ylabel('corr')
+box on
+set(gca,'LineWidth',2,'FontSize',20)
 hold off
 
 % make the bootstrap analysis:
-perfJackKnife(corrSets,maxLag,normVar)
+[glbMaxPosMean,glbMaxValMean,glbMaxPosSTD,glbMaxValSTD,glbMaxPosSEM95,glbMaxValSEM95]=perfJackKnife(corrSets,maxLag,normVar);
+
+
+% plot the inset:
+xmin=-3;
+xmax= 3;
+ymin= 0.3;
+ymax= 0.45;
+figure()
+title('The cross correlation for cFI zoom up')
+% have to add a second fake point in the limbo to get the nice errorbars...
+% but I dont under stand why
+errorbarxy([glbMaxPosMean glbMaxPosMean+10],[glbMaxValMean glbMaxValMean+1.5],[glbMaxPosSTD   0],[glbMaxValSTD 0]  ,[],[],'sr','r')
+%errorbarxy([glbMaxPosMean glbMaxPosMean+5 ],[glbMaxValMean glbMaxValMean+1  ],[glbMaxPosSEM95 0],[glbMaxValSEM95 0],[],[],'sr','r')
+hold on
+fnplt(sp,'r');
+plot([0 0],[0 1],'k','LineWidth',2);
+xlim([xmin xmax])
+ylim([ymin ymax])
+title('F / I')
+xlabel('dframes')
+ylabel('corr')
+box on
+set(gca,'LineWidth',2,'FontSize',20)
+hold off
+
+
 
 corrResults.cFI     = cFI;
 corrResults.cFI_std = cFI_std;

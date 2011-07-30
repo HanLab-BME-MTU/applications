@@ -1,4 +1,4 @@
-function []=perfJackKnife(corrSets,maxLag,normVar)
+function [glbMaxPosMean,glbMaxValMean,glbMaxPosSTD,glbMaxValSTD,glbMaxPosSEM95,glbMaxValSEM95]=perfJackKnife(corrSets,maxLag,normVar)
 % This is rather a bootstrap
 
 % skip always one data set
@@ -106,9 +106,23 @@ end
 glbMaxPosList=glbMaxPosList(~badMax)
 glbMaxValList=glbMaxValList(~badMax)
 [h,p] = ttest(glbMaxPosList);
- 
-display(['mean+-95%-error= ',num2str(mean(glbMaxPosList)),' +- ',num2str(facSEMtoSEM95*std(glbMaxPosList)/sqrt(length(glbMaxPosList)-1))]);
+
+glbMaxPosMean  = mean(glbMaxPosList);
+glbMaxPosSTD   = std(glbMaxPosList);
+glbMaxPosSEM95 = facSEMtoSEM95*glbMaxPosSTD/sqrt(length(glbMaxPosList)-1);
+
+glbMaxValMean  = mean(glbMaxValList);
+glbMaxValSTD   = std(glbMaxValList);
+glbMaxValSEM95 = facSEMtoSEM95*std(glbMaxValList)/sqrt(length(glbMaxValList)-1);
+
+display(['value:    mean+-std (+-95%-error)= ',num2str(glbMaxValMean),' +- ',num2str(glbMaxValSTD),' (+- ',num2str(glbMaxValSEM95),')']);
+
+display(['position: mean+-std (+-95%-error)= ',num2str(glbMaxPosMean),' +- ',num2str(glbMaxPosSTD),' (+- ',num2str(glbMaxPosSEM95),')']);
 display(['p-value t-test = ',num2str(p)]);
+
+
+
+
 
 % for these parameters
 % normVar=1;

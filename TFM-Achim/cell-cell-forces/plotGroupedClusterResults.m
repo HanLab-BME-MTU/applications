@@ -1,4 +1,5 @@
 function []=plotGroupedClusterResults(groupedClusters)
+doPrint=1;
 if nargin<1 || isempty(groupedClusters)
     try
         load('groupedClusters.mat')
@@ -217,7 +218,7 @@ ylabel('Interface length [um]')
 %**************************************************************************
 plotIntForceDeg11(groupedClusters);
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
@@ -246,28 +247,37 @@ for iBin=1:max(bin)
 end
 
 figure()
-plot(fc1_mag,Itot_vals,'.k')%,'MarkerSize',1)
+plot(fc1_mag,Itot_vals,'.k','MarkerSize',6)
 hold on;
 errorbarxy([corrFItot.FValsMean],[corrFItot.IValsMean],[corrFItot.FValsSTD],[corrFItot.IValsSTD],[],[],'sk','k');
 hold on;
 % plot robust fit:
 [fc1_mag id] =sortrows(fc1_mag);
 Itot_vals = Itot_vals(id);
-coeff = regress(Itot_vals,[ones(size(Itot_vals)) fc1_mag]);
+coeff_FI = regress(Itot_vals,[ones(size(Itot_vals)) fc1_mag]);
 %coeff = robustfit(fc1_mag,Itot_vals);
-plot(fc1_mag,coeff(1)+coeff(2)*fc1_mag,'k','LineWidth',2)
+plot(fc1_mag,coeff_FI(1)+coeff_FI(2)*fc1_mag,'k','LineWidth',2)
 title('Correlation Ecad intensity / cell-cell forces')
 xlabel('Cell-cell force magnitude [nN]')
 ylabel('Integrated Ecad intensity [a.u.]')
 box on
-set(gca,'LineWidth',2)
+set(gca,'LineWidth',2,'FontSize',20)
 hold off;
+if doPrint
+    saveas(gcf,'corrFI.fig');
+    saveas(gcf,'corrFI.eps','psc2');
+end
+
 
 % figure()
 % plot(fc1_mag,Iavg_vals,'o')
 % title('Correlation Ecad intensity / cell-cell forces')
 % xlabel('Cell-cell force magnitude [nN]')
 % ylabel('Average Ecad intensity [a.u.]')
+
+pixSize_mu=groupedClusters.cluster{1}.trackedNet{1}.par.pixSize_mu;
+factor_S_to_nN_per_um=pixSize_mu*10^(-3); % See calcIntfacialStress to figure it out
+SIcorr_vals(:,1)=SIcorr_vals(:,1)*factor_S_to_nN_per_um;
 
 edgesSBins=linspace(0,max(SIcorr_vals(:,1)),20);
 [n,bin]=histc(SIcorr_vals(:,1),edgesSBins);
@@ -284,21 +294,25 @@ for iBin=1:max(bin)
 end
 
 figure()
-plot(SIcorr_vals(:,1),SIcorr_vals(:,2),'.k','MarkerSize',1)
+plot(SIcorr_vals(:,1),SIcorr_vals(:,2),'.k','MarkerSize',3)
 hold on;
 errorbarxy([corrSItot.SValsMean],[corrSItot.IValsMean],[corrSItot.SValsSTD],[corrSItot.IValsSTD],[],[],'sk','k');
 hold on;
 % plot robust fit:
 SIcorr_vals =sortrows(SIcorr_vals);
-coeff = regress(SIcorr_vals(:,2),[ones(size(SIcorr_vals(:,2))) SIcorr_vals(:,1)]);
+coeff_SI = regress(SIcorr_vals(:,2),[ones(size(SIcorr_vals(:,2))) SIcorr_vals(:,1)]);
 % coeff = robustfit(SIcorr_vals(:,1),SIcorr_vals(:,2));
-plot(SIcorr_vals(:,1),coeff(1)+coeff(2)*SIcorr_vals(:,1),'k','LineWidth',2)
+plot(SIcorr_vals(:,1),coeff_SI(1)+coeff_SI(2)*SIcorr_vals(:,1),'k','LineWidth',2)
 title('Correlation Ecad intensity profile/ cell-cell stress profile')
-xlabel('Cell-cell stress [nN]')
+xlabel('Cell-cell stress [nN/um]')
 ylabel('Locally average Ecad intensity [a.u.]')
 box on
-set(gca,'LineWidth',2)
+set(gca,'LineWidth',2,'FontSize',20)
 hold off;
+if doPrint
+    saveas(gcf,'corrSI.fig');
+    saveas(gcf,'corrSI.eps','psc2');
+end
 
 
 %calculate the numerical correlation coefficients:
@@ -315,9 +329,12 @@ display(['corr(Fcc, Itot): ',num2str(RFItot(1,2),'%0.3f'),'+-',num2str(RFItotSTD
 display(['corr(Fcc, Iavg): ',num2str(RFIavg(1,2),'%0.3f'),'+-',num2str(RFIavgSTD,'%0.3f'),'  (N=',num2str(length(fc1_mag))         ,', p=',num2str(PFIavg(1,2)),')']);
 display(['corr(Fcc, Iprf): ',num2str(RSIprf(1,2),'%0.3f'),'+-',num2str(RSIprfSTD,'%0.3f'),'  (N=',num2str(length(SIcorr_vals(:,1))),', p=',num2str(PSIprf(1,2)),')']);
 display('!!!Since we find a significant correlation between force and intensity profile, we have achieved a subinterface force resolution!!!')
+display('The parameters of the regression are I(F):')
+display(['I = ',num2str(coeff_FI(1),'%0.1f'),' + ',num2str(coeff_FI(2),'%0.1f'),' * F']);
+display('The parameters of the regression are I(S):')
+display(['I = ',num2str(coeff_SI(1),'%0.1f'),' + ',num2str(coeff_SI(2)),' * S']);
 
 %end %if ~onlyCorr
-
 
 normVar=1;
 tBtwFrms=240;
@@ -346,7 +363,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************
@@ -359,9 +376,9 @@ relErrF_val_corr=Inf;
 
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF','myo',[-1 0],relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
