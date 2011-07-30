@@ -217,30 +217,89 @@ ylabel('Interface length [um]')
 %**************************************************************************
 plotIntForceDeg11(groupedClusters);
 
+end %if ~onlyCorr
 
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'errF',500,'errs',0);
+% ech single conditions works really well, but mixtures are a bit worse.
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',0,'errF',500,'errs',0);
+ goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',1,'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myoGlb',0,'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
+
 [fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
+% bin the data
+edgesFBins=linspace(0,max(fc1_mag),20);
+[n,bin]=histc(fc1_mag,edgesFBins);
+corrFItot=[];
+for iBin=1:max(bin)
+    checkVec= (iBin==bin);
+    corrFItot(iBin).FVals    =fc1_mag(checkVec);
+    corrFItot(iBin).FValsMean=mean(corrFItot(iBin).FVals);
+    corrFItot(iBin).FValsSTD = std(corrFItot(iBin).FVals);
+    
+    corrFItot(iBin).IVals    = Itot_vals(checkVec);
+    corrFItot(iBin).IValsMean=mean(corrFItot(iBin).IVals);
+    corrFItot(iBin).IValsSTD = std(corrFItot(iBin).IVals);
+end
+
 figure()
-plot(fc1_mag,Itot_vals,'*')
+plot(fc1_mag,Itot_vals,'.k')%,'MarkerSize',1)
+hold on;
+errorbarxy([corrFItot.FValsMean],[corrFItot.IValsMean],[corrFItot.FValsSTD],[corrFItot.IValsSTD],[],[],'sk','k');
+hold on;
+% plot robust fit:
+[fc1_mag id] =sortrows(fc1_mag);
+Itot_vals = Itot_vals(id);
+coeff = regress(Itot_vals,[ones(size(Itot_vals)) fc1_mag]);
+%coeff = robustfit(fc1_mag,Itot_vals);
+plot(fc1_mag,coeff(1)+coeff(2)*fc1_mag,'k','LineWidth',2)
 title('Correlation Ecad intensity / cell-cell forces')
 xlabel('Cell-cell force magnitude [nN]')
 ylabel('Integrated Ecad intensity [a.u.]')
+box on
+set(gca,'LineWidth',2)
+hold off;
+
+% figure()
+% plot(fc1_mag,Iavg_vals,'o')
+% title('Correlation Ecad intensity / cell-cell forces')
+% xlabel('Cell-cell force magnitude [nN]')
+% ylabel('Average Ecad intensity [a.u.]')
+
+edgesSBins=linspace(0,max(SIcorr_vals(:,1)),20);
+[n,bin]=histc(SIcorr_vals(:,1),edgesSBins);
+corrSItot=[];
+for iBin=1:max(bin)
+    checkVec= (iBin==bin);
+    corrSItot(iBin).SVals    =SIcorr_vals(checkVec,1);
+    corrSItot(iBin).SValsMean=mean(corrSItot(iBin).SVals);
+    corrSItot(iBin).SValsSTD = std(corrSItot(iBin).SVals);
+    
+    corrSItot(iBin).IVals    =SIcorr_vals(checkVec,2);
+    corrSItot(iBin).IValsMean=mean(corrSItot(iBin).IVals);
+    corrSItot(iBin).IValsSTD = std(corrSItot(iBin).IVals);
+end
 
 figure()
-plot(fc1_mag,Iavg_vals,'o')
-title('Correlation Ecad intensity / cell-cell forces')
-xlabel('Cell-cell force magnitude [nN]')
-ylabel('Average Ecad intensity [a.u.]')
-
-figure()
-plot(SIcorr_vals(:,1),SIcorr_vals(:,2),'.')
+plot(SIcorr_vals(:,1),SIcorr_vals(:,2),'.k','MarkerSize',1)
+hold on;
+errorbarxy([corrSItot.SValsMean],[corrSItot.IValsMean],[corrSItot.SValsSTD],[corrSItot.IValsSTD],[],[],'sk','k');
+hold on;
+% plot robust fit:
+SIcorr_vals =sortrows(SIcorr_vals);
+coeff = regress(SIcorr_vals(:,2),[ones(size(SIcorr_vals(:,2))) SIcorr_vals(:,1)]);
+% coeff = robustfit(SIcorr_vals(:,1),SIcorr_vals(:,2));
+plot(SIcorr_vals(:,1),coeff(1)+coeff(2)*SIcorr_vals(:,1),'k','LineWidth',2)
 title('Correlation Ecad intensity profile/ cell-cell stress profile')
 xlabel('Cell-cell stress [nN]')
-ylabel('Average Ecad intensity [a.u.]')
+ylabel('Locally average Ecad intensity [a.u.]')
+box on
+set(gca,'LineWidth',2)
+hold off;
+
 
 %calculate the numerical correlation coefficients:
 [RFItot PFItot RLOItot RUPItot] = corrcoef(fc1_mag,Itot_vals);
@@ -257,7 +316,7 @@ display(['corr(Fcc, Iavg): ',num2str(RFIavg(1,2),'%0.3f'),'+-',num2str(RFIavgSTD
 display(['corr(Fcc, Iprf): ',num2str(RSIprf(1,2),'%0.3f'),'+-',num2str(RSIprfSTD,'%0.3f'),'  (N=',num2str(length(SIcorr_vals(:,1))),', p=',num2str(PSIprf(1,2)),')']);
 display('!!!Since we find a significant correlation between force and intensity profile, we have achieved a subinterface force resolution!!!')
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 
 
 normVar=1;
@@ -295,12 +354,12 @@ end
 normVar=1;
 tBtwFrms=150;
 aveType='none'; % first checks 'none', 'nanmean', 'mean' makes little difference
-maxLag =round(7200/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
+maxLag =round(3600/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;
 
 %goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF','myo',[-1 0],relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);

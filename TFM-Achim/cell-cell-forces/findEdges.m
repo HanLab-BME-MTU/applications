@@ -15,7 +15,7 @@ function goodEdgeSet=findEdges(groupedClusters,varargin)
 %                  -1 = a mixture.
 %           'myo' can be a list of values. Edges that don't match the
 %           search pattern will be dismissed.
-% 'type'  : Select for specifc myosinII hairpins e.g. {'myoIIA_hp93';
+% 'type'  : Select for specific myosinII hairpins e.g. {'myoIIA_hp93';
 %           'myoIIA_hp94'; 'myoIIB_hp103'}. 'type' can be a list of patterns,
 %           e.g. all myoIIA hair pins. This makes only sense if it is
 %           required that the edge connects to at least one myosin cell.

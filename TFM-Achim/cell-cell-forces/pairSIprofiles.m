@@ -9,7 +9,8 @@ function [IVals SVals SMagVals Pos]=pairSIprofiles(SPosIn,SValsIn,IPosIn,IValsIn
 distMat=createDistanceMatrix(SPosIn,IPosIn);
 
 % find the nearest force node for each position along the intensity curve:
-[~,fPtId]=min(distMat);
+[~,fPtId]=min(distMat,[],1);
+
 % sort out multiple Ids (the result is ordered!):
 uniqueIds=unique(fPtId);
 numPts=length(uniqueIds);

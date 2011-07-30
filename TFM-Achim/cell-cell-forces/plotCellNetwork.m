@@ -91,10 +91,10 @@ for k=1:length(node)
         if isnan(sumIntF)
             sizeCirc=10^(-5);
         else
-            sizeCirc=15*sumIntF/maxMag;
+            sizeCirc=20*sumIntF/maxMag;
         end
         if isfield(node{k},'spec') && ~isempty(node{k}.spec) && node{k}.spec==1
-            plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','w','MarkerSize',sizeCirc,'LineWidth',2)
+            plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','r','MarkerSize',sizeCirc,'LineWidth',2)
             text(node{k}.pos(:,1),node{k}.pos(:,2),[num2str(k),'^',num2str(node{k}.deg)],'VerticalAlignment','middle','HorizontalAlignment','center','color','k');% marker(mod(k,7)+1))
             % change this back to:
             % plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','r','MarkerSize',sizeCirc,'LineWidth',2)
@@ -112,15 +112,18 @@ end
 if nargin > 1 && ~isempty(xLimVal) && ~isempty(yLimVal)
     fxScaleBar_nN=100;
     fyScaleBar_nN=0;
-    dPixX=130;
+    dPixX=100;
     dPixY=20;
     textSpace=20;
     % lower right corner:
     % quiver(xLimVal(2)-dPixX, yLimVal(2)-dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
     % text(  xLimVal(2)-dPixX, yLimVal(2)-dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
     % upper right corner:
-     quiver(xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
-     text(  xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    % quiver(xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
+    % text(  xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    % upper left corner:
+     quiver(xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
+     text(  xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
 end
 if noTicks
     set(gca,'YDir','reverse','XTick',[],'YTick',[]);

@@ -83,5 +83,5 @@ for entryId=1:numel(fileList)
 end
 
 if doSave
-    save('groupedNetwork.mat','groupedNetworks')
+    save('groupedNetwork.mat','groupedNetworks','-v7.3')
 end

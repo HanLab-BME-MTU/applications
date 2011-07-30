@@ -24,7 +24,7 @@ nFac=sqrt((x1.^2+x2.^2));
 x1=x1./nFac;
 x2=x2./nFac;
 nVec=horzcat(x1,x2);
-nVec_mean=mean(nVec);
+nVec_mean=mean(nVec,1);
 
 % figure(10)
 % plot(curve(:,1),curve(:,2),'-k')
