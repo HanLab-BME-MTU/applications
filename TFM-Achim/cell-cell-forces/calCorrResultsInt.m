@@ -207,16 +207,16 @@ hold off
 
 
 % plot the inset:
-xmin=-3;
-xmax= 3;
-ymin= 0.3;
-ymax= 0.45;
+xmin=-2;
+xmax= 4;
+ymin= 0.34;
+ymax= 0.61;
 figure()
 title('The cross correlation for cFI zoom up')
 % have to add a second fake point in the limbo to get the nice errorbars...
 % but I dont under stand why
-errorbarxy([glbMaxPosMean glbMaxPosMean+10],[glbMaxValMean glbMaxValMean+1.5],[glbMaxPosSTD   0],[glbMaxValSTD 0]  ,[],[],'sr','r')
-%errorbarxy([glbMaxPosMean glbMaxPosMean+5 ],[glbMaxValMean glbMaxValMean+1  ],[glbMaxPosSEM95 0],[glbMaxValSEM95 0],[],[],'sr','r')
+%errorbarxy([glbMaxPosMean glbMaxPosMean+10],[glbMaxValMean glbMaxValMean+1.5],[glbMaxPosSTD   0],[glbMaxValSTD 0]  ,[],[],'sr','r')
+errorbarxy([glbMaxPosMean glbMaxPosMean+5 ],[glbMaxValMean glbMaxValMean+1  ],[glbMaxPosSEM95 0],[glbMaxValSEM95 0],[],[],'sr','r')
 hold on
 fnplt(sp,'r');
 plot([0 0],[0 1],'k','LineWidth',2);
