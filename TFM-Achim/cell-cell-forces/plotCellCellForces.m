@@ -117,7 +117,7 @@ for frame=toDoList
     end
 end
 % arbitrary factor:
-forceScale=0.33*forceScale;
+forceScale=0.66*forceScale;
 
 xLimVal=[max([1 xmin]) min([cols,xmax])];
 yLimVal=[max([1 ymin]) min([rows,ymax])];
