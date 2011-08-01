@@ -7,7 +7,7 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
 
     methods (Access = public)
         
-        function obj = WindowSamplingProcess(owner,funParams)
+        function obj = WindowSamplingProcess(owner,outputDir,funParams)
                                               
             if nargin == 0
                 super_args = {};
@@ -18,14 +18,13 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 super_args{2} = WindowSamplingProcess.getName;
                 super_args{3} = @sampleMovieWindows;                               
                 
-                if nargin < 2 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams)                                       
                     
                     %----Defaults----%      
                     nChan = numel(owner.channels_);
                     funParams.ChannelIndex = 1:nChan;%Default is to sample all channels                    
                     funParams.ProcessIndex = [];%Default is to use raw images
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'window_sampling'];
+                    funParams.OutputDirectory = [outputDir  filesep 'window_sampling'];
                     funParams.BatchMode = false;                                                                                
                                     
                 end

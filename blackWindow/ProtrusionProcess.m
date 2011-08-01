@@ -9,7 +9,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
 
     methods (Access = public)
         
-        function obj = ProtrusionProcess(owner,funParams)
+        function obj = ProtrusionProcess(owner,outputDir,funParams)
                                               
             if nargin == 0
                 super_args = {};
@@ -19,7 +19,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
                 super_args{2} = ProtrusionProcess.getName;
                 super_args{3} = @getMovieProtrusion;                               
                 
-                if nargin < 2 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams)                                       
                     
                     %----Defaults----%      
                     
@@ -28,8 +28,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
                     funParams.SegProcessIndex = [];%No default.
                     funParams.DownSample = 50;
                     funParams.SplineTolerance = 30;%This is the default in protrusionAnalysis, so I use it also.
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'protrusion'];
+                    funParams.OutputDirectory = [outputDir filesep 'protrusion'];
                     funParams.BatchMode = false;                                                      
                                     
                 end
@@ -85,6 +84,9 @@ classdef ProtrusionProcess < ImageAnalysisProcess
     methods (Static)
         function name =getName()
             name = 'Protrusion';
+        end
+        function h = GUI()
+            h= @protrusionProcessGUI;
         end
     end
 end

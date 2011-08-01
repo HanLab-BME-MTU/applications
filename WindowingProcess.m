@@ -16,7 +16,7 @@ classdef WindowingProcess < ImageAnalysisProcess
 
     methods (Access = public)
         
-        function obj = WindowingProcess(owner,funParams)
+        function obj = WindowingProcess(owner,outputDir,funParams)
                                               
             if nargin == 0
                 super_args = {};
@@ -26,7 +26,7 @@ classdef WindowingProcess < ImageAnalysisProcess
                 super_args{2} = WindowingProcess.getName;
                 super_args{3} = @getMovieWindows;                               
                 
-                if nargin < 2 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams)                                       
                     
                     %----Defaults----%      
                     
@@ -42,8 +42,7 @@ classdef WindowingProcess < ImageAnalysisProcess
                     funParams.ReInit = Inf;                    
                     funParams.StartPoint = []; %No default
                     funParams.MinSize = 10; %Minimum number of pixels a mask object must have to be windowed.
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'windows'];
+                    funParams.OutputDirectory = [outputDir  filesep 'windows'];
                     funParams.BatchMode = false;                                                      
                                     
                 end
@@ -120,6 +119,9 @@ classdef WindowingProcess < ImageAnalysisProcess
     methods (Static)
         function name =getName()
             name = 'Windowing';
+        end
+        function h = GUI()
+            h= @windowingProcessGUI;
         end
     end
 end

@@ -66,7 +66,7 @@ end
 iProc = movieData.getProcessIndex('ProtrusionSamplingProcess',1,false);
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(ProtrusionSamplingProcess(movieData));
+    movieData.addProcess(ProtrusionSamplingProcess(movieData,movieData.outputDirectory_));
 end
 
 %Parse input, store in parameter structure

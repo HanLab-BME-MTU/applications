@@ -9,7 +9,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
 
     methods (Access = public)
         
-        function obj = ProtrusionSamplingProcess(owner,funParams)
+        function obj = ProtrusionSamplingProcess(owner,outputDir,funParams)
                                               
             if nargin == 0
                 super_args = {};
@@ -19,12 +19,11 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
                 super_args{2} = ProtrusionSamplingProcess.getName;
                 super_args{3} = @sampleMovieProtrusion;                               
                 
-                if nargin < 2 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams)                                       
                     
                     %----Defaults----%      
                     
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'protrusion_samples'];
+                    funParams.OutputDirectory = [outputDir  filesep 'protrusion_samples'];
                     funParams.BatchMode = false;                                                      
                                     
                 end

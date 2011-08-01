@@ -76,7 +76,7 @@ end
 iProc = movieData.getProcessIndex('WindowSamplingProcess',1,false);
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(WindowSamplingProcess(movieData));
+    movieData.addProcess(WindowSamplingProcess(movieData,movieData.outputDirectory_));
 end
 
 %Parse input, store in parameter structure
