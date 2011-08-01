@@ -40,7 +40,7 @@ ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
 ip.addParamValue('minDist',.5, @(x) isnumeric(x));
 ip.addParamValue('alpha',.01, @(x) isnumeric(x));
-ip.addParamValue('displayFirstImage',1, @isscalar);
+ip.addParamValue('displayFirstImage',0, @isscalar);
 ip.parse(projData,psfSigma,varargin{:});
 
 timeRange = ip.Results.timeRange;
