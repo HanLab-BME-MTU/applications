@@ -93,7 +93,7 @@ iProc = movieData.getProcessIndex('ProtrusionProcess',1,0);
 %If the process doesn't exist, create it
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(ProtrusionProcess(movieData,,movieData.outputDirectory_));                                                                                                 
+    movieData.addProcess(ProtrusionProcess(movieData,movieData.outputDirectory_));                                                                                                 
 end
 
 %Parse input, store in parameter structure
