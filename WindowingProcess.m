@@ -54,7 +54,7 @@ classdef WindowingProcess < ImageAnalysisProcess
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
         
-        function wins = loadChannelOutput(obj,iFrame)
+        function wins = loadChannelOutput(obj,iFrame,varargin)
             
             if nargin < 2 || isempty(iFrame)
                 error('You must specify a frame number to load windows for!');
@@ -115,6 +115,37 @@ classdef WindowingProcess < ImageAnalysisProcess
             obj.nBandMax_ = nBandMax;                        
             
         end
+        function h=draw(obj,iFrame,varargin)
+            % Function to draw process output (template method)
+            
+            if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
+            outputList = obj.getDrawableOutput();
+            ip = inputParser;
+            ip.addRequired('obj',@(x) isa(x,'Process'));
+            ip.addRequired('iFrame',@isnumeric);
+            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+            ip.KeepUnmatched = true;
+            ip.parse(obj,iFrame,varargin{:})
+			
+            data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+            iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+            if ~isempty(outputList(iOutput).formatData),
+                data=outputList(iOutput).formatData(data);
+            end
+            try
+                assert(~isempty(obj.displayMethod_{iOutput}));
+            catch ME
+                obj.displayMethod_{iOutput}=...
+                    outputList(iOutput).defaultDisplayMethod();
+            end
+            
+            % Delegate to the corresponding method
+            tag = [obj.getName '_output' num2str(iOutput)];
+            drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
+                2*numel(fieldnames(ip.Unmatched)),1);
+            h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
+        end
+        
     end
     methods (Static)
         function name =getName()
@@ -123,6 +154,14 @@ classdef WindowingProcess < ImageAnalysisProcess
         function h = GUI()
             h= @windowingProcessGUI;
         end
+        function output = getDrawableOutput()
+            output(1).name='Windows';
+            output(1).var='windows';
+            output(1).formatData=[];
+            output(1).type='movieOverlay';
+            output(1).defaultDisplayMethod=@WindowDisplay;
+        end
+        
     end
 end
     

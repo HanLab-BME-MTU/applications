@@ -79,8 +79,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             
             outputList = {'protrusion','normals','smoothedEdge'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'ProtrusionProcess'));
-            ip.addOptional('iChan',1,@(x) ismember(x,1:numel(obj.owner_.channels_)));          
+            ip.addRequired('obj',@(x) isa(x,'ProtrusionProcess'));        
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',{},@(x) all(ismember(x,outputList)));
@@ -103,8 +102,39 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             else
                 varargout{1} = [s.smoothedEdge{iFrame} s.smoothedEdge{iFrame}+s.protrusion{iFrame}];
             end
+                        
+        end
+        
+        
+        function h=draw(obj,iFrame,varargin)
+            % Function to draw process output (template method)
             
+            if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
+            outputList = obj.getDrawableOutput();
+            ip = inputParser;
+            ip.addRequired('obj',@(x) isa(x,'Process'));
+            ip.addRequired('iFrame',@isnumeric);
+            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+            ip.KeepUnmatched = true;
+            ip.parse(obj,iFrame,varargin{:})
+			
+            data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+            iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+            if ~isempty(outputList(iOutput).formatData),
+                data=outputList(iOutput).formatData(data);
+            end
+            try
+                assert(~isempty(obj.displayMethod_{iOutput}));
+            catch ME
+                obj.displayMethod_{iOutput}=...
+                    outputList(iOutput).defaultDisplayMethod();
+            end
             
+            % Delegate to the corresponding method
+            tag = [obj.getName '_output' num2str(iOutput)];
+            drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
+                2*numel(fieldnames(ip.Unmatched)),1);
+            h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
         end
         
     end
@@ -120,7 +150,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             output(1).name='Protrusion vectors';
             output(1).var={'smoothedEdge','protrusion'};
             output(1).formatData=@(x) x(:,[2 1 4 3]);
-            output(1).type='overlay';
+            output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
         end
     end
