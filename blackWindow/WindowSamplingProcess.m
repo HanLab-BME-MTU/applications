@@ -59,6 +59,9 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         function name =getName()
             name = 'Window Sampling';
         end
+        function name= GUI()
+            name =@windowSamplingProcessGUI;
+        end
     end 
     
 end

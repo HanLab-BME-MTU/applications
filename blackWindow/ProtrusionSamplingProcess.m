@@ -79,6 +79,9 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
         function name =getName()
             name = 'Protrusion Sampling';
         end
+        function name =GUI()
+            name =@protrusionSamplingProcessGUI;
+        end
     end 
 end
     
