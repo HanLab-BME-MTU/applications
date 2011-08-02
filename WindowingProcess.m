@@ -159,7 +159,7 @@ classdef WindowingProcess < ImageAnalysisProcess
             output(1).var='windows';
             output(1).formatData=[];
             output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@WindowDisplay;
+            output(1).defaultDisplayMethod=@WindowsDisplay;
         end
         
     end
