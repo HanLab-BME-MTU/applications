@@ -1,5 +1,6 @@
-edgeId=5; %5
-cellId=3;
+edgeId=4; %5
+cellId=6;
+plotAll=0;
 
 close all
 
@@ -9,7 +10,7 @@ if length(groupedNetworks)>1
     return;
 end
 
-goodCellSet=findCells(groupedNetworks,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errs',0);
+goodCellSet=findCells(groupedNetworks,'kPa',35,'deg',[2 3 4 5 6 7],'errs',0);
 
 % take only the cell of interest:
 cellSetId=find([goodCellSet.cellId]==cellId);
@@ -31,68 +32,228 @@ checkVec=sum(fi_tot,2)==0;
 fi_tot(checkVec,1)=NaN;
 fi_tot(checkVec,2)=NaN;
 
-% plot the time courses:
+tmin=1;
+tmax=numFrames;
+
+if plotAll
+    % plot the time courses:
+    figure()
+    plot(tmin:tmax,fi(:,1),'b');
+    hold on;
+    plot(tmin:tmax,-fi_tot(:,1),'r');
+    title('fi_x [b] vs. fi_{tot,x} [r]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    
+    figure()
+    plot((tmin:tmax)-tmin+1,fi(tmin:tmax,1),'b');
+    hold on;
+    plot((tmin:tmax)-tmin+1,-fi_tot(tmin:tmax,1),'r');
+    title('fi_x [b] vs. fi_{tot,x} [r]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    % plot the time courses:
+    figure()
+    plot(tmin:tmax,sqrt(sum(fi.^2,2)),'b');
+    hold on;
+    plot(tmin:tmax,-fi_tot(:,1),'r');
+    title('fi_x [b] vs. fi_{tot,x} [r]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    % plot the time courses:
+    figure()
+    plot(tmin:tmax,fi(:,2),'b');
+    hold on;
+    plot(tmin:tmax,-fi_tot(:,2),'r');
+    title('fi_y [b] vs. fi_{tot,y} [r]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    
+    % plot the time courses:
+    figure()
+    plot(tmin:tmax,fi(:,1),'b');
+    hold on;
+    plot(tmin:tmax,-f_res(:,1),'k');
+    title('fi_x [b] vs. f_{res,x} [k]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    figure()
+    plot((tmin:tmax)-tmin+1,fi(tmin:tmax,1),'b');
+    hold on;
+    plot((tmin:tmax)-tmin+1,-f_res(tmin:tmax,1),'k');
+    title('fi_x [b] vs. f_{res,x} [k]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+    % plot the time courses:
+    figure()
+    plot(tmin:tmax,fi(:,2),'b');
+    hold on;
+    plot(tmin:tmax,-f_res(:,2),'k');
+    title('fi_y [b] vs. f_{res,y} [k]')
+    hold off;
+    box on;
+    set(gca,'fontsize',20,'LineWidth',2)
+    
+end
+
+
+marker=['r','b','m','c','g','y','k'];
+label=1;
+h=[];
 figure()
-plot(1:numFrames,fi(:,1),'b');
-hold on;
-plot(1:numFrames,-fi_tot(:,1),'r');
-title('fi_x [b] vs. fi_{tot,x} [r]')
-hold off;
+for iEdge=1:length(horzcat(corrSets.edge.edgeId))
+    currh=plot(tmin:tmax, sqrt(sum(corrSets.edge(iEdge).fc.^2,2)), marker(mod(iEdge,7)+1));
+    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+    M{label}=['edgeId=',num2str(corrSets.edge(iEdge).edgeId)];
+    label=label+1;
+    hold on;
+end
+plot([ 56  56],[0 1000],'--k');
+plot([150 150],[0 1000],'--k');
+title(['force magnitude of all individual edges connected to cell: ',num2str(cellId)])
+xlim([0 numFrames])
+ylim([0 110])
+legend(h,M);
 box on;
 set(gca,'fontsize',20,'LineWidth',2)
-
-tmin=35;
-figure()
-plot((tmin:numFrames)-tmin+1,fi(tmin:numFrames,1),'b');
-hold on;
-plot((tmin:numFrames)-tmin+1,-fi_tot(tmin:numFrames,1),'r');
-title('fi_x [b] vs. fi_{tot,x} [r]')
-hold off;
-box on;
-set(gca,'fontsize',20,'LineWidth',2)
-
-RHO = corr(fi(35:177,1),fi_tot(35:177,1))
+hold off
+clear M
 
 
-% plot the time courses:
-figure()
-plot(1:numFrames,fi(:,2),'b');
-hold on;
-plot(1:numFrames,-fi_tot(:,2),'r');
-title('fi_y [b] vs. fi_{tot,y} [r]')
-hold off;
-box on;
-set(gca,'fontsize',20,'LineWidth',2)
 
+allCellSets=findCells(groupedNetworks,'kPa',35,'deg',[2 3 4 5 6 7],'errs',0);
+cellList=[1 2 3 4 5 6];
 
-% plot the time courses:
-figure()
-plot(1:numFrames,fi(:,1),'b');
-hold on;
-plot(1:numFrames,-f_res(:,1),'k');
-title('fi_x [b] vs. f_{res,x} [k]')
-hold off;
-box on;
-set(gca,'fontsize',20,'LineWidth',2)
 
 figure()
-plot((tmin:numFrames)-tmin+1,fi(tmin:numFrames,1),'b');
-hold on;
-plot((tmin:numFrames)-tmin+1,-f_res(tmin:numFrames,1),'k');
-title('fi_x [b] vs. f_{res,x} [k]')
-hold off;
+label=1;
+h=[];
+elE_vals_tot=zeros(numFrames,1);
+for cellId=cellList
+    % take only the cell of interest:
+    cellSetId=find([allCellSets.cellId]==cellId);
+    goodCellSet=allCellSets(cellSetId);
+    [elE_vals]=collectCellValues(groupedNetworks,goodCellSet,'elE');
+    elE_vals_tot=nansum([elE_vals_tot elE_vals],2);
+    currh=plot(tmin:tmax, elE_vals,marker(mod(cellId,7)+1));
+    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+    M{label}=['cellId=',num2str(cellId)];
+    label=label+1;
+    hold on;
+end
+plot([ 56  56],[0 1],'--k');
+plot([150 150],[0 1],'--k');
+title(['elastic energy for cell: ',num2str(cellList)])
+xlim([0 numFrames])
+ylim([0 0.08])
+legend(h,M);
 box on;
 set(gca,'fontsize',20,'LineWidth',2)
+hold off;
+clear M
 
-RHO = corr(fi(35:177,1),f_res(35:177,1))
-
-
-% plot the time courses:
 figure()
-plot(1:numFrames,fi(:,2),'b');
-hold on;
-plot(1:numFrames,-f_res(:,2),'k');
-title('fi_y [b] vs. f_{res,y} [k]')
-hold off;
+label=1;
+h=[];
+sumFi_vals_tot=zeros(numFrames,1);
+for cellId=cellList
+    % take only the cell of interest:
+    cellSetId=find([allCellSets.cellId]==cellId);
+    goodCellSet=allCellSets(cellSetId);
+    [sumFi_vals]=collectCellValues(groupedNetworks,goodCellSet,'sumFi');
+    sumFi_vals_tot=nansum([sumFi_vals_tot sumFi_vals],2);
+    currh=plot(tmin:tmax, sumFi_vals,marker(mod(cellId,7)+1));
+    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+    M{label}=['cellId=',num2str(cellId)];
+    label=label+1;
+    hold on;
+end
+% since counting twice, we have to multiply by 1/2!
+sumFi_vals_tot=1/2*sumFi_vals_tot;
+plot([ 56  56],[0 1000],'--k');
+plot([150 150],[0 1000],'--k');
+title(['Sum of all cell-cell forces acting on cell: ',num2str(cellList)])
+xlim([0 numFrames])
+ylim([0 215])
+legend(h,M);
 box on;
 set(gca,'fontsize',20,'LineWidth',2)
+hold off;
+clear M
+
+figure()
+label=1;
+h=[];
+resF_vals_tot=zeros(numFrames,1);
+for cellId=cellList
+    % take only the cell of interest:
+    cellSetId=find([allCellSets.cellId]==cellId);
+    goodCellSet=allCellSets(cellSetId);
+    [resF_vals]=collectCellValues(groupedNetworks,goodCellSet,'resF');
+    resF_vals_tot=nansum([resF_vals_tot sqrt(sum(resF_vals.^2,2))],2);
+    currh=plot(tmin:tmax, sqrt(sum(resF_vals.^2,2)),marker(mod(cellId,7)+1));
+    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+    M{label}=['cellId=',num2str(cellId)];
+    label=label+1;
+    hold on;
+end
+plot([ 56  56],[0 1000],'--k');
+plot([150 150],[0 1000],'--k');
+title(['residual TF magnitude of cell: ',num2str(cellList)])
+xlim([0 numFrames])
+ylim([0 145])
+legend(h,M);
+box on;
+set(gca,'fontsize',20,'LineWidth',2)
+hold off;
+clear M
+
+
+figure()
+plot(tmin+1:tmax, elE_vals_tot(tmin+1:tmax));
+hold on;
+plot([ 56  56],[0 1],'--k');
+plot([150 150],[0 1],'--k');
+title('Total Elastic Energy of whole cell cluster: ')
+xlim([0 numFrames])
+ylim([0 0.25])
+box on;
+set(gca,'fontsize',20,'LineWidth',2)
+hold off;
+
+
+figure()
+plot(tmin+1:tmax, sumFi_vals_tot(tmin+1:tmax));
+hold on;
+plot([ 56  56],[0 1500],'--k');
+plot([150 150],[0 1500],'--k');
+title('Sum of all cell-cell forces measured in the cluster')
+xlim([0 numFrames])
+ylim([0 500])
+box on;
+set(gca,'fontsize',20,'LineWidth',2)
+hold off;
+
+figure()
+plot(tmin+1:tmax, resF_vals_tot(tmin+1:tmax));
+hold on;
+plot([ 56  56],[0 1500],'--k');
+plot([150 150],[0 1500],'--k');
+title('Sum of all rsidual forces')
+xlim([0 numFrames])
+ylim([0 550])
+box on;
+set(gca,'fontsize',20,'LineWidth',2)
+hold off;
