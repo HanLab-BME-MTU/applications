@@ -11,8 +11,118 @@ end
 
 %close all;
 
-onlyCorr=1;
+onlyCorr=0;
 if ~onlyCorr
+    
+%**************************************************************************
+% Error analysis:
+%**************************************************************************
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8 35],'relErrF',Inf,'errs',0);
+[f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1','fc2');
+f1_mag = sqrt(sum(f1_vals.^2,2));
+f2_mag = sqrt(sum(f2_vals.^2,2));
+fc_mag = sqrt(sum(fc1_vals.^2,2));
+fnet_vals= 0.5*(f1_vals-f2_vals);
+fnet_mag = sqrt(sum(fnet_vals.^2,2));
+
+% remove the edges that can not be covered by the network analysis:
+checkVec=isnan(fnet_mag);
+f1_mag(checkVec)=[];
+f2_mag(checkVec)=[];
+fc_mag(checkVec)=[];
+fnet_mag(checkVec)=[];
+fnet_vals(checkVec,:)=[];
+f1_vals(checkVec,:)=[];
+f2_vals(checkVec,:)=[];
+fc1_vals(checkVec,:)=[];
+
+figure()
+% checked with part7
+glbMin=min([f1_mag;f2_mag]);
+glbMax=max([f1_mag;f2_mag]);
+%plot(f1_mag,f2_mag,'.b');
+plot(fnet_mag,f1_mag,'.b')
+plot(fnet_mag,f2_mag,'.b')
+hold on
+plot(fc_mag,f2_mag,'.r');
+plot(fc_mag,f1_mag,'.r');
+plot([0 glbMax],[0 glbMax],'--k')
+title('magnitude of fi vs <f_{net}> [b] or fc [r]')
+xlim([glbMin glbMax])
+ylim([glbMin glbMax])
+xlabel('<f_{net}> or fc [nN]')
+ylabel('f1 or f2 [nN]')
+hold off
+
+
+checkVec=fnet_mag<0;
+f1_mag(checkVec)=[];
+f2_mag(checkVec)=[];
+fnet_mag(checkVec)=[];
+fc_mag(checkVec)=[];
+f1_vals(checkVec,:)=[];
+f2_vals(checkVec,:)=[];
+fc1_vals(checkVec,:)=[];
+
+alpha_f12_to_fn= vertcat(acosd(dot(-f1_vals,fnet_vals,2)./(f1_mag.*fnet_mag)),acosd(dot(f2_vals,fnet_vals,2)./(f2_mag.*fnet_mag)));
+% alpha_f1_f2= acos(dot(f1_vals,f2_vals,2)./(f1_mag*f2_mag));
+alpha_f12_to_fc= vertcat(acosd(dot(-f1_vals,fc1_vals,2)./(f1_mag.*fc_mag)),acosd(dot(f2_vals,fc1_vals,2)./(f2_mag.*fc_mag)));
+
+figure()
+hist(alpha_f12_to_fn,250,'b')
+title('Angular histogram fn')
+xlabel('angle')
+ylabel('counts')
+xlim([90 180])
+hold off
+
+figure()
+hist(alpha_f12_to_fc,250,'r')
+title('Angular histogram fc')
+xlabel('angle')
+ylabel('counts')
+xlim([90 180])
+hold off
+
+
+% rel_err_f1_f2=2*(f1_mag-f2_mag)./(f1_mag+f2_mag);
+rel_err_fn=sqrt(sum((f1_vals-fnet_vals).^2,2))./fnet_mag;
+figure()
+% checked with part7
+hist(rel_err_fn,2000);
+xlim([0 1])
+title('rel. error: (fi_{mag}-<f_{net}>)./(<f_{net}>)')
+xlabel('rel. error')
+ylabel('counts')
+hold off
+
+mean(rel_err_fn)
+median(rel_err_fn)
+std(rel_err_fn)
+1.4826*mad(rel_err_fn)
+
+fc_mag_all=vertcat(fc_mag,fc_mag);
+fn_mag_all=vertcat(f1_mag,f2_mag);
+
+%rel_err_fc_fn=2*(fc_mag_all-fn_mag_all)./(fc_mag_all+fn_mag_all);
+rel_err_fc_fn=(fn_mag_all-fc_mag_all)./(fc_mag_all);
+figure()
+% checked with part7
+glbMin=min([f1_mag;f2_mag]);
+glbMax=max([f1_mag;f2_mag]);
+% hist(rel_err_fn ,500);
+hist(rel_err_fc_fn ,1000);
+%title('rel. error: 2*(f1_{mag}-f2_{mag})./(f1_{mag}+f2_{mag})')
+title('rel. error: (fi_{mag}-fc_{mag})./(fc_{mag})')
+xlabel('rel. error')
+ylabel('counts')
+xlim([-1 1])
+hold off
+
+mean(rel_err_fc_fn)
+std(rel_err_fc_fn)
+1.4826*mad(rel_err_fc_fn)
+
 %**************************************************************************
 % Compare network and cluster analysis:
 %**************************************************************************
