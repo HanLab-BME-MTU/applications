@@ -59,30 +59,30 @@ for iParam=1:3
     % for each value, put group name into matrix
     grpVar=repmat(setName',[max(maxSize'),1]);
 
-    figure ('Visible',visible) % boxplot of speeds
+    saveFig = figure ('Visible',visible); % boxplot of speeds
     boxplot(allMS(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' speeds'])
     set(gca,'YDir','reverse')
     xlabel('speed (microns/min)')
-    saveas(gcf,[saveDir filesep 'boxplot_speed_' titleStr '.fig'])
-    saveas(gcf,[saveDir filesep 'boxplot_speed_' titleStr '.tif'])
-    close(gcf)
+    saveas(saveFig,[saveDir filesep 'boxplot_speed_' titleStr '.fig'])
+    saveas(saveFig,[saveDir filesep 'boxplot_speed_' titleStr '.tif'])
+    close(saveFig)
 
-    figure ('Visible', visible) % boxplot of lifetimes
+    saveFig = figure ('Visible', visible); % boxplot of lifetimes
     boxplot(allML(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' lifetimes'])
     set(gca,'YDir','reverse')
     xlabel('lifetimes (sec)')
-    saveas(gcf,[saveDir filesep 'boxplot_lifetime_' titleStr '.fig'])
-    saveas(gcf,[saveDir filesep 'boxplot_lifetime_' titleStr '.tif'])
-    close(gcf)
+    saveas(saveFig,[saveDir filesep 'boxplot_lifetime_' titleStr '.fig'])
+    saveas(saveFig,[saveDir filesep 'boxplot_lifetime_' titleStr '.tif'])
+    close(saveFig)
 
-    figure ('Visible', visible) ;% boxplot of displacements
+    saveFig = figure ('Visible', visible); ;% boxplot of displacements
     boxplot(allMD(:),grpVar(:),'notch','on','orientation','horizontal');
     title([titleStr ' displacements'])
     set(gca,'YDir','reverse')
     xlabel('displacement (microns)')
-    saveas(gcf,[saveDir filesep 'boxplot_displacement_' titleStr '.fig'])
-    saveas(gcf,[saveDir filesep 'boxplot_displacement_' titleStr '.tif'])
-    close(gcf)
+    saveas(saveFig,[saveDir filesep 'boxplot_displacement_' titleStr '.fig'])
+    saveas(saveFig,[saveDir filesep 'boxplot_displacement_' titleStr '.tif'])
+    close(saveFig)
 end

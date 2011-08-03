@@ -91,7 +91,7 @@ for k=1:9
     % Make individual plots for non-empty event data
     %     validBinData = find(~cellfun(@isempty,data(i).avgBins));
     %     for j=validBinData
-    figure;hold on;
+    saveFig =figure;hold on;
     if nGroups>1
         colors=varycolor(nGroups);
     else
@@ -127,9 +127,9 @@ for k=1:9
     yLim = get(gca,'YLim');
     set(gca,'YLim',[0 yLim(2)]);
     if nGroups>1, legend(h,labels); end
-    saveas(gcf,[saveDir filesep 'histogram_' dataType(i).name '_'...
+    saveas(saveFig,[saveDir filesep 'histogram_' dataType(i).name '_'...
         eventType(j).name '.tif'])
-    close(gcf)
+    close(saveFig)
 
 end
 

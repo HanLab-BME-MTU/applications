@@ -1,7 +1,12 @@
-function [movieInfo]=plusTipGaussianCometDetector(projData,psfSigma,varargin)
-% plusTipGaussianCometDetector locates plus tip comets (or other blobs) in a movie stack
+function [movieInfo]=plusTipAnisoGaussianCometDetector(projData,psfSigma,varargin)
+% plusTipAnisoGaussianCometDetector locates plus tip comets in a movie stack
 %
-%SYNOPSIS [movieInfo]=plusTipCometDetector(projData,timeRange,bitDepth,savePlots)%
+% plusTipAnisoGaussianCometDetector uses a combination of steerable
+% filtering, local maxima detection to find comet candidates. Each
+% candidate is then fitted by an anisotropic 2D Gaussian and the comets
+% passing the statistical tests (goodness-of-fit...) are returned.
+%
+%SYNOPSIS [movieInfo]=plusTipAnisoGaussianCometDetector(projData,timeRange,bitDepth,savePlots)%
 %INPUT  projData          : structure containing fields .anDir, which gives
 %                           the full path to the roi_x directory
 %                           and .imDir, which gives the full path to the
@@ -20,7 +25,7 @@ function [movieInfo]=plusTipGaussianCometDetector(projData,psfSigma,varargin)
 %                           0 if not
 %
 %OUTPUT movieInfo         : nFrames-structure containing x/y coordinates
-%
+
 % Sebastien Besson 5/2011
 
 warningState = warning;
@@ -38,15 +43,13 @@ ip.addRequired('psfSigma', @(x) isnumeric(x));
 ip.addOptional('timeRange',[],@(x) isequal(sort(size(x)),[1 2]) || isempty(x));
 ip.addOptional('bitDepth',[], @(x) isnumeric(x) || isempty(x));
 ip.addOptional('savePlots',1,@isscalar);
-ip.addParamValue('minDist',.5, @(x) isnumeric(x));
-ip.addParamValue('alpha',.01, @(x) isnumeric(x));
+ip.addParamValue('alpha',.1, @(x) isnumeric(x));
 ip.addParamValue('displayFirstImage',0, @isscalar);
 ip.parse(projData,psfSigma,varargin{:});
 
 timeRange = ip.Results.timeRange;
 bitDepth = ip.Results.bitDepth;
 savePlots = ip.Results.savePlots;
-minDist = ip.Results.minDist;
 alpha = ip.Results.alpha;
 displayFirstImage = ip.Results.displayFirstImage;
 
@@ -63,7 +66,7 @@ if isempty(projData)
 else
     % adjust for OS
     if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
-        error('--plusTipGaussianCometDetector: first argument should be a structure with fields imDir and anDir');
+        error('--plusTipAnisoGaussianCometDetector: first argument should be a structure with fields imDir and anDir');
     else
         [projData.anDir] = formatPath(projData.anDir);
         [projData.imDir] = formatPath(projData.imDir);
@@ -173,7 +176,6 @@ movieInfo(nImTot,1) = ...
 % % loop thru frames and detect
 count=1;
 progressText(0,'Detecting comets');
-if savePlots==1, saveFig = figure('Visible','off'); end
 for iFrame = startFrame:endFrame
     
     progressText(count/nFrames,'Detecting comets');
@@ -195,8 +197,7 @@ for iFrame = startFrame:endFrame
     
     % Core anisotropic detection function. Returns a structure compatible
     % with Khuloud's tracker
-    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),psfSigma,...
-        'minDist',minDist,'alpha',alpha);
+    movieInfo(iFrame,1) = cometDetection(img,logical(roiMask),psfSigma,'alpha',alpha);
     
     indxStr1 = sprintf(strg1,iFrame); % frame
     
@@ -215,11 +216,10 @@ for iFrame = startFrame:endFrame
         plot(roiYX(2),roiYX(1),'w')
         axis equal
         print(saveFig,'-dtiff',[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
-        saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
+%         saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
         close(saveFig)
     end
     count=count+1;
-
 
 end
 save([featDir filesep 'movieInfo'],'movieInfo');

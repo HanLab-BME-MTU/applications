@@ -41,7 +41,7 @@ mtSimParam = struct('growthSpeed',[20 5],'shrinkageSpeed',[30
 detectionMethod(1).name = 'watershed';
 detectionMethod(1).function = @(x) plusTipCometDetector(x,[1 totalTime],16,1);
 detectionMethod(2).name = 'anisoGaussian';
-detectionMethod(2).function = @(x) plusTipGaussianCometDetector(x,...
+detectionMethod(2).function = @(x) plusTipAnisoGaussianCometDetector(x,...
     sigmay,[1 totalTime],16,1,'alpha',.1);
 nDetectionMethods=numel(detectionMethod);
 
