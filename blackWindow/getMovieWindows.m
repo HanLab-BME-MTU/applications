@@ -408,7 +408,7 @@ nSliceMax = 0;
 
 
 
-for iFrame = 1:nFrames;
+for iFrame = 1:nFrames
 
         
     
@@ -499,18 +499,41 @@ for iFrame = 1:nFrames;
                                    zeros(nPtsClosed-size(protrusion{iFrame-1},1),2));
                 end
                 
-                
-                
+                                
                 %Propagate these windows based on the PDE solution given
-                %the protrusion vectors as a boundary condition.
-                
-                %Get the vector field
-                [X,Y] = solvePDEVectorBoundary(...
-                    vertcat(smoothedEdge{iFrame-1},smoothedEdge{iFrame-1}(1,:)),...
-                    vertcat(protrusion{iFrame-1},protrusion{iFrame-1}(1,:)),...
-                    p.PDEPar,imSize,p.MeshQuality,p.NonLinearSolver);
-                
-                
+                %the protrusion vectors as a boundary condition.                                
+                iStrtPt = 1;                                                                
+                while 1
+                    
+                    try
+                        %Get point indices, repeating one point to completely
+                        %close the curve.
+                        iBoundPts = [iStrtPt:size(smoothedEdge{iFrame-1},1) 1:iStrtPt];
+                        %Get the vector field
+                        [X,Y] = solvePDEVectorBoundary(...
+                            smoothedEdge{iFrame-1}(iBoundPts,:),...
+                            protrusion{iFrame-1}(iBoundPts,:),...
+                            p.PDEPar,imSize,p.MeshQuality,p.NonLinearSolver);                    
+                        
+                        break
+                        
+                    catch errMess
+                        
+                        if strcmp(errMess.identifier,'PDE:pdevoron:GeomError') && iStrtPt < 5                               
+                            
+                            %This is an ugly workaround for a bug in the PDE
+                            %toolbox which occasionally causes a geometry error
+                            %on valid geometry. Circularly permuting the
+                            %boundary and boundary condition (which is mathematically                            
+                            %equivalent) somehow avoids this error...
+                            iStrtPt = iStrtPt + 1;
+                            
+                        else
+                            rethrow(errMess)
+                        end
+                        
+                    end
+                end
                 %Displace the inner windows with this vector field
                 windows = displaceWindows(windows,X,Y,...
                         smoothedEdge{iFrame-1}',smoothedEdge{iFrame}',...
