@@ -342,8 +342,8 @@ end
 %numerical error?) and because it is impractical to have an open contour
 %whose endpoints are less than a pixel apart.
 
-%Get maximum difference of start and end coordinates
-startEndDist = cellfun(@(x)(max(diff(x(:,[1 end]),1,2))),contours);
+%Get distance between start and end points
+startEndDist = cellfun(@(x)(sqrt(sum(diff(x(:,[1 end]),1,2) .^2))),contours);
 isClosed = startEndDist < 1;
 %Because we allow this leeway in considering a contour closed, we
 %completely close them by setting the last and first points equal.
@@ -401,46 +401,63 @@ nWinPara = zeros(1,nStart);
 paraVertices = cell(1,nStart);
 slices = cell(1,nStart);
 
-%Function for calc. length along contour. This is needed because, depending
-%on the curvature and contours, the index is NOT directly proportional to
-%length!
-lenFun = @(x)(cumsum(sqrt(diff(x(1,:)) .^2 + diff(x(2,:)) .^2)));
+%Calculate length along each start contour beforehand in case nPara rather
+%than paraSize was specified
+distAlong = cellfun(@(x)([0 cumsum(sqrt(diff(x(1,:)) .^2 + diff(x(2,:)) .^2))]),contours(iPerpStart),'UniformOutput',false);
+
+%If the user specified nPara rather than paraSize, and there are multiple
+%start contours, we need to  apportion this number among the start contours
+%according to their length.
+if nStart > 1 && isempty(paraSize) && ~isempty(nPara)                    
+    %Calculate total start-contour length
+    totLen = sum(cellfun(@(x)(x(end)),distAlong));
+    
+    %Get fraction of total length corresponding to each contour
+    fracLen = cellfun(@(x)(x(end) / totLen),distAlong);
+    
+    %Apportion the slices among the start contours according to this
+    %fraction, while maintaining the total
+    nPara = apportionIntegers(fracLen,nPara);    
+    
+    %Remove contours which are too small for even a single window
+    tooShort = nPara == 0;    
+    nStart = nStart - nnz(tooShort);
+    nPara(tooShort) = [];
+    
+end
 
 for i = 1:nStart
 
     %Calculate cumulative distance along the contour
     nPts = length(contours{iPerpStart(i)});
     if iParaStart(i) > 1 %Get the indices using the new start-point, and make sure the contour is completely closed
-        contours{iPerpStart(i)} = contours{iPerpStart(i)}(:,[iParaStart(i):nPts 1:iParaStart(i)]);                          
+        contours{iPerpStart(i)} = contours{iPerpStart(i)}(:,[iParaStart(i):nPts 1:iParaStart(i)]);  
         nPts = nPts+1; %Extra point created by closure.
     end
-    
-   
-    distAlong = [0 lenFun(contours{iPerpStart(i)})];
 
     %Determine window slice locations via one of the possible inputs
     if ~isempty(paraSize)
         %If the user specified a strip size...
         if length(paraSize) == 1
-            distVals{i} = 0:paraSize:distAlong(end);                        
+            distVals{i} = 0:paraSize:distAlong{i}(end);                        
         else
             %If the user specified an array of sizes for the strips
             distVals{i} = [0 cumsum(paraSize)];
             %Remove those which go past the end of  the contour.
-            distVals{i} = distVals{i}(1:(find(distVals{i}>distAlong(end),1)-1));            
+            distVals{i} = distVals{i}(1:(find(distVals{i}>distAlong{i}(end),1)-1));            
         end
         %If the total contour length is not an even multiple of
             %paraSize, we add an extra slice to close the gap.
-        if abs(distVals{i}(end) - distAlong(end)) > collapsedSize
-                distVals{i} = [distVals{i} distAlong(end)];
+        if abs(distVals{i}(end) - distAlong{i}(end)) > collapsedSize
+                distVals{i} = [distVals{i} distAlong{i}(end)];
         end            
         %Determine the number of windows there will be parallel to this edge 
         nWinPara(i) = numel(distVals{i})-1; %If the contours are closed, there will be duplication of the vertices on the "seam", but who cares?
 
     elseif ~isempty(nPara)
-        %If the user specified the number of strips...
-        distVals{i} = linspace(0,distAlong(end),nPara+1);
-        nWinPara(i) = nPara;
+                        
+        distVals{i} = linspace(0,distAlong{i}(end),nPara(i)+1);
+        nWinPara(i) = nPara(i);
         
     elseif nStartPts > 1
         nWinPara = nStartPts-1;
@@ -451,7 +468,7 @@ for i = 1:nStart
             
             [~,iClosest] = cellfun(@(x)(min(dToContour(x))),...
                                     contours(iPerpStart(i)));
-            distVals{i}(j) = distAlong(iClosest);
+            distVals{i}(j) = distAlong{i}(iClosest);
         end
         %Make sure these are in ascending order                
         
@@ -460,7 +477,7 @@ for i = 1:nStart
         %min will return the first point rather than the last, even though
         %they are equidistant
         if isClosed(iPerpStart(i)) && distVals{i}(end) == 0
-            distVals{i}(end) = distAlong(end);
+            distVals{i}(end) = distAlong{i}(end);
         end
         %Now we can sort the values safely
         distVals{i} = sort(distVals{i});
@@ -468,7 +485,7 @@ for i = 1:nStart
     
     %Find the indices which best match these values
     [~,paraVertices{i}] = arrayfun(@(x)(...
-        min(abs(distAlong-distVals{i}(x)))),1:nWinPara(i)+1);
+        min(abs(distAlong{i}-distVals{i}(x)))),1:nWinPara(i)+1);
         
     %Find start points on image boundary - these are a special case
     sOnBoundA = arrayfun(@(x)(any(ceil(contours{iPerpStart(i)}... %On high boundary
