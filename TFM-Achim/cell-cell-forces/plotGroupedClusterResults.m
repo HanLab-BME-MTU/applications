@@ -63,6 +63,7 @@ fc_mag(checkVec)=[];
 f1_vals(checkVec,:)=[];
 f2_vals(checkVec,:)=[];
 fc1_vals(checkVec,:)=[];
+fnet_vals(checkVec,:)=[];
 
 alpha_f12_to_fn= vertcat(acosd(dot(-f1_vals,fnet_vals,2)./(f1_mag.*fnet_mag)),acosd(dot(f2_vals,fnet_vals,2)./(f2_mag.*fnet_mag)));
 % alpha_f1_f2= acos(dot(f1_vals,f2_vals,2)./(f1_mag*f2_mag));
@@ -104,19 +105,23 @@ std(rel_err_fn)
 fc_mag_all=vertcat(fc_mag,fc_mag);
 fn_mag_all=vertcat(f1_mag,f2_mag);
 
+rel_err_fc_fn=(fn_mag_all-fc_mag_all)./(fn_mag_all+fc_mag_all)/2;
 %rel_err_fc_fn=2*(fc_mag_all-fn_mag_all)./(fc_mag_all+fn_mag_all);
-rel_err_fc_fn=(fn_mag_all-fc_mag_all)./(fc_mag_all);
+%rel_err_fc_fn=(fn_mag_all-fc_mag_all)./(fc_mag_all);
 figure()
 % checked with part7
 glbMin=min([f1_mag;f2_mag]);
 glbMax=max([f1_mag;f2_mag]);
 % hist(rel_err_fn ,500);
 hist(rel_err_fc_fn ,1000);
-%title('rel. error: 2*(f1_{mag}-f2_{mag})./(f1_{mag}+f2_{mag})')
-title('rel. error: (fi_{mag}-fc_{mag})./(fc_{mag})')
+title('rel. error: 2*(fn_{mag}-fc_{mag})./(fn_{mag}+fc_{mag})')
+%title('rel. error: (fi_{mag}-fc_{mag})./(fc_{mag})')
 xlabel('rel. error')
 ylabel('counts')
-xlim([-1 1])
+xlim([-0.3 0.3])
+ylim([   0 130])
+box on
+set(gca,'LineWidth',2,'FontSize',20)
 hold off
 
 mean(rel_err_fc_fn)
