@@ -269,66 +269,67 @@ if robust
             iout = [];
             jout = [];
         end
-    end
+
     
-    if numel(iout) > 1
-        %Remove duplicate intersection points. I Moved this to after
-        %computing iout and jout. This allows truly redundant intersections
-        %to be separated from instances where there are two distinct
-        %intersections at different indices on the polygon which occur at
-        %the same point because one polygon either intersects itself or is
-        %colinear with itself. Additionally, when two line segments touch
-            %at one point, this often is returned as multiple, very close but
-        %not identical intersections. This is also handled here so that
-        %these are returned as a single intersection. HLE, 7/2011
-        
-        %First, simply round any indices which are within epsilon of an
-        %integer value. This is simply for convenience of use of the
-        %output, as the loop below would still remove any reduntant
-        %near-integer indices.
-        iout(abs(iout - round(iout)) < epsIJ) = round(iout(abs(iout -round(iout)) < epsIJ));
-        jout(abs(jout - round(jout)) < epsIJ) = round(jout(abs(jout -round(jout)) < epsIJ));
-        
-        %Loop through the indices, setting those which are closer together
-        %than epsilon equal to one another. Repeat this until no indices
-        %are this close and non-identical.
-        iTooClose = 1;jTooClose =1;
-        while ~isempty(iTooClose) || ~isempty(jTooClose)
-        
-            [ioutSorted,sortInd] = sort(iout);
-            iTooClose = find(diff(ioutSorted) < epsIJ & diff(ioutSorted) > 0);%Find values that are closer than epsilon to each other
-            iout(sortInd(iTooClose))  = iout(sortInd(iTooClose+1));%Set these equal to each other, preserving the original order               
+        if numel(iout) > 1
+            %Remove duplicate intersection points. I Moved this to after
+            %computing iout and jout. This allows truly redundant intersections
+            %to be separated from instances where there are two distinct
+            %intersections at different indices on the polygon which occur at
+            %the same point because one polygon either intersects itself or is
+            %colinear with itself. Additionally, when two line segments touch
+                %at one point, this often is returned as multiple, very close but
+            %not identical intersections. This is also handled here so that
+            %these are returned as a single intersection. HLE, 7/2011
 
-            [joutSorted,sortInd] = sort(jout);
-            jTooClose = find(diff(joutSorted) < epsIJ & diff(joutSorted) > 0);%Find values that are closer than epsilon to each other
-            jout(sortInd(jTooClose))  = jout(sortInd(jTooClose+1));%Set these equal to each other, preserving the original order
-        end
-                
-        %Now get only the remaining unique intersection points, based on
-        %the i and j indices
-        
-        %If one of the curves is closed, we need to take into account that
-        %the first and last segments are adjacent
-        if x1(1) == x1(end) && y1(1) == y1(end)            
-            iCheck = iout;
-            iCheck(mod(iout,numel(x1))==0) = 1;            
-        else
-            iCheck = iout;
-        end
-        if x2(1) == x2(end) && y2(1) == y2(end)
-            jCheck = jout;
-            jCheck(mod(jout,numel(x2))==0) = 1;
-        else
-            jCheck = jout;
-        end
-        
-        [~,index] = unique([iCheck jCheck],'rows');        
+            %First, simply round any indices which are within epsilon of an
+            %integer value. This is simply for convenience of use of the
+            %output, as the loop below would still remove any reduntant
+            %near-integer indices.
+            iout(abs(iout - round(iout)) < epsIJ) = round(iout(abs(iout -round(iout)) < epsIJ));
+            jout(abs(jout - round(jout)) < epsIJ) = round(jout(abs(jout -round(jout)) < epsIJ));
 
-        iout = iout(index);
-        jout = jout(index);
-        x0 = x0(index);
-        y0 = y0(index);    
-        
+            %Loop through the indices, setting those which are closer together
+            %than epsilon equal to one another. Repeat this until no indices
+            %are this close and non-identical.
+            iTooClose = 1;jTooClose =1;
+            while ~isempty(iTooClose) || ~isempty(jTooClose)
+
+                [ioutSorted,sortInd] = sort(iout);
+                iTooClose = find(diff(ioutSorted) < epsIJ & diff(ioutSorted) > 0);%Find values that are closer than epsilon to each other
+                iout(sortInd(iTooClose))  = iout(sortInd(iTooClose+1));%Set these equal to each other, preserving the original order               
+
+                [joutSorted,sortInd] = sort(jout);
+                jTooClose = find(diff(joutSorted) < epsIJ & diff(joutSorted) > 0);%Find values that are closer than epsilon to each other
+                jout(sortInd(jTooClose))  = jout(sortInd(jTooClose+1));%Set these equal to each other, preserving the original order
+            end
+
+            %Now get only the remaining unique intersection points, based on
+            %the i and j indices
+
+            %If one of the curves is closed, we need to take into account that
+            %the first and last segments are adjacent
+            if x1(1) == x1(end) && y1(1) == y1(end)            
+                iCheck = iout;
+                iCheck(mod(iout,numel(x1))==0) = 1;            
+            else
+                iCheck = iout;
+            end
+            if x2(1) == x2(end) && y2(1) == y2(end)
+                jCheck = jout;
+                jCheck(mod(jout,numel(x2))==0) = 1;
+            else
+                jCheck = jout;
+            end
+
+            [~,index] = unique([iCheck jCheck],'rows');        
+
+            iout = iout(index);
+            jout = jout(index);
+            x0 = x0(index);
+            y0 = y0(index);    
+
+        end
     end
         
 else % non-robust option
@@ -350,7 +351,7 @@ else % non-robust option
 	end
 end
 
-if ~isempty(iout) && ~isempty(jout) %Again, make sure there were intersections first. - HLE
+if nargout > 2 && ~isempty(iout) && ~isempty(jout) %Again, make sure there were intersections first. - HLE
     [~, sortI] = sort(iout,'ascend');
     iout = iout(sortI); 
     idx = isnan(iout) | isnan(jout);  iout(idx) = [];
