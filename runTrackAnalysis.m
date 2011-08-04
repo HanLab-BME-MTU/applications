@@ -37,7 +37,7 @@ for i = 1:length(data)
     data(i).smTracks = [];
 end
 
-for i = 1:length(data)
+parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
         data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, bufferMode);
     else
