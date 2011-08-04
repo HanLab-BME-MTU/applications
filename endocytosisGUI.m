@@ -95,7 +95,7 @@ function slider1_Callback(hObject, eventdata, handles)
 % get frame number out of slider value
 handles.iframe = round(get(hObject,'Value'));
 %set text box next to dragtail input to the input value
-set(handles.text1,'String', ['frame ' num2str(handles.iframe) ' out of ' num2str(size(handles.lftInfo.Mat_xcoord,2))]);
+set(handles.text1,'String', ['frame ' num2str(handles.iframe) ' out of ' handles.lftMax]);
 % Update handles structure
 guidata(hObject, handles);
 %plot image
@@ -125,10 +125,26 @@ if experiment.source ~= 0
     handles.source = experiment.source;
     % load lifetime info
     %it is loaded here to get the number of frames
-    load([experiment.source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
+    [FILENAME, PATHNAME] = UIGETFILE('.mat', 'chose trackInfo.mat');
+    trackinfo = load([PATHNAME filesep FILENAME]);
+    trackinfo = trackinfo.tracksFinal;
+    % Filter out tracks with merge/split events
+    msIdx = arrayfun(@(x) size(x.seqOfEvents, 1)>2, trackinfo);
+    smTracks = trackinfo(msIdx);
+    trackinfo(msIdx) = [];
+    nTracks = length(trackinfo);
+    for itrack = 1:nTracks
+        tracks(itrack).xcom = trackinfo(itrack).tracksCoordAmpCG(1:8:end); %%%%%%%%%% change field names
+        tracks(itrack).ycom = trackinfo(itrack).tracksCoordAmpCG(2:8:end);
+        tracks(itrack).start = trackinfo(itrack).seqOfEvents(1,1);
+        tracks(itrack).end = trackinfo(itrack).seqOfEvents(end,1);
+    end
+    handles.tracks = tracks;
+    
+    %load([experiment.source filesep 'Tracking' filesep 'lftInfo.mat']);
     %set lifetime maximum to length of movie; done here for easy storage of
     %movie length
-    handles.lftMax = size(lftInfo.Mat_xcoord,2);
+    handles.lftMax = 151;
     %set text box on top of frame slider to read 'frame 1 out of
     %movielength
     set(handles.text1,'String', ['frame 1 out of ' num2str(handles.lftMax)]);
@@ -194,15 +210,8 @@ if experiment.source ~= 0
         handles.hotSpotsX = X ;
         handles.hotSpotsY = Y ;
     end %of if cluster results exist
-    %make zeros into nans so that the dragtails can be plotted
-    %sparse matrices take too long to change into nans
-    Mat_xcoord = full(lftInfo.Mat_xcoord);
-    Mat_xcoord(Mat_xcoord==0) = nan;
-    handles.Mat_xcoord = Mat_xcoord;
-    Mat_ycoord = full(lftInfo.Mat_ycoord);
-    Mat_ycoord(Mat_ycoord==0) = nan;
-    handles.Mat_ycoord = Mat_ycoord;
-    handles.lftInfo = lftInfo;
+    
+    
     %write current movie path in text box next to load movie button
     set(handles.text7,'String', experiment.source);
     %clear intensity data for channel one so that it can be reloaded for
@@ -481,108 +490,55 @@ else
     numChannels = 1;
 end
 
+% tracks to plot
+tracks = handles.tracks;
+tracks = handles.tracks([tracks.start] <= handles.iframe...
+    & [tracks.end] >= handles.iframe);
+%frames to plot:
+index = handles.iframe - [tracks.start] + 1;
+
 for ichannel = 1:numChannels
     eval(['axHandle = handles.axes' num2str(ichannel) ';']);
     
-    statusGap = ones(size(handles.lftInfo.Mat_lifetime,1),1);
-    statusLft = statusGap;
-    statusLft(handles.lftInfo.Mat_lifetime(:,handles.iframe) < lftMin ...
-        | handles.lftInfo.Mat_lifetime(:,handles.iframe) > lftMax) = 0;
-    if ~handles.markBadTrajectories
-        statusGap(max(handles.lftInfo.Mat_status,[],2)==5) = 0;
+    for itrack = 1:length(tracks)
+        plot(axHandle,tracks(itrack).xcom(max(1,index(itrack)-handles.dragTailLength):index(itrack)), ...
+            tracks(itrack).ycom(max(1,index(itrack)-handles.dragTailLength):index(itrack)),...
+            'y-','MarkerSize',2);
     end
     
-    
+    %MARK INITIATIONS IN GREEN
     if handles.markInitiation
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.lftInfo.Mat_disapp(:,handles.iframe)==1 & ...
-            statusLft & statusGap,handles.iframe), ...
-            handles.lftInfo.Mat_ycoord(handles.lftInfo.Mat_disapp(:,handles.iframe)==1 & ...
-            statusLft & statusGap,handles.iframe),'go');
+        plot(axHandle,arrayfun(@(x)x.xcom(1),tracks(index==1)),...
+            arrayfun(@(x)x.ycom(1),tracks(index==1)),'g.','MarkerSize',2)
     end
+    %MARK INTERNALIZATIONS IN RED
     if handles.markIternalization
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.lftInfo.Mat_disapp(:,handles.iframe)==-1 & ...
-            statusLft & statusGap,handles.iframe), ...
-            handles.lftInfo.Mat_ycoord(handles.lftInfo.Mat_disapp(:,handles.iframe)==-1 & ...
-            statusLft & statusGap,handles.iframe),'ro');
+        endIndex = handles.iframe - [tracks.end] + 1;
+        plot(axHandle,arrayfun(@(x)x.xcom(1),tracks(endIndex==1)),...
+            arrayfun(@(x)x.ycom(1),tracks(endIndex==1)),'r.','MarkerSize',2)
     end
-    %Mark 'good gaps'
+    %MARK GAP IN WHITE
     if handles.markGap
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe)>=4 & ...
-            statusGap & statusLft, handles.iframe), ...
-            handles.lftInfo.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe)>=4 & ...
-            statusGap & statusLft,handles.iframe),'wx');
+        gapIndex = arrayfun(@(x)isnan(x.xcom(handles.iframe-x.start+1)),tracks);
+        plot(axHandle,arrayfun(@(x)x.xcom(handles.iframe-x.start+1),tracks(gapIndex)),...
+            arrayfun(@(x)x.ycom(handles.iframe-x.start+1),tracks(gapIndex)),'cs','MarkerSize',2)
     end
     
-    if handles.dragTailLength ~= 0
-        %had to do this because when X and Y are vectors instead of matrices
-        %all the points are connected
-        if handles.iframe == 1
-            plot(axHandle,handles.Mat_xcoord(statusGap & statusLft, handles.iframe)', ...
-                handles.Mat_ycoord(statusGap & statusLft, handles.iframe)','y.','MarkerSize',2);
-        elseif ~handles.showHotSpots
-            plot(axHandle,handles.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
-                statusGap & statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
-                handles.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
-                statusGap & statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)','y-','LineWidth',1);
-        else
-            plot(axHandle,handles.Mat_xcoord(handles.hotOrNot==1 & ...
-                handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
-                statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
-                handles.Mat_ycoord(handles.hotOrNot==1 & ...
-                handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
-                statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)','m-');
-            plot(axHandle,handles.Mat_xcoord(handles.hotOrNot==-1 & ...
-                handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
-                statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
-                handles.Mat_ycoord(handles.hotOrNot==-1 & ...
-                handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
-                statusLft, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)','c-');
-            %plot hotspot centroids
-            plot(axHandle,handles.hotSpotsX(:),handles.hotSpotsY(:),'y.')
-            plot(axHandle,handles.hotSpotsX(:),handles.hotSpotsY(:),'y.')
-        end %of if first frame
-    end
-    %Mark 'bad gaps' and plot the trajectories of pits with bad gaps
-    if handles.markBadTrajectories
-        if handles.iframe == 1
-            plot(axHandle,handles.Mat_xcoord(statusLft ...
-                & max(handles.lftInfo.Mat_status,[],2) == 5,handles.iframe)', ...
-                handles.Mat_ycoord(statusLft...
-                & max(handles.lftInfo.Mat_status,[],2) == 5, handles.iframe)','b.','MarkerSize',2);
-        else
-            plot(axHandle,handles.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 & ...
-                statusLft &  max(handles.lftInfo.Mat_status,[],2) == 5, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)', ...
-                handles.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe) ~=0 &...
-                statusLft &  max(handles.lftInfo.Mat_status,[],2) == 5, ...
-                max(handles.iframe-handles.dragTailLength,1):handles.iframe)','b-','LineWidth',1);
-        end
-    end
-    %mark persistent
-    if handles.markPersistent
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe)==3, ...
-            handles.iframe), ...
-            handles.lftInfo.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe)==3, ...
-            handles.iframe),'bo');
-    end
-    %mark cut-off
+    %MARK CUT OFF IN MAGENTA
     if handles.markCutOff
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.lftInfo.Mat_status(:,handles.iframe)==2, ...
-            handles.iframe), ...
-            handles.lftInfo.Mat_ycoord(handles.lftInfo.Mat_status(:,handles.iframe)==2, ...
-            handles.iframe),'co');
+        cutPreIndex = arrayfun(@(x)x.start == 1,tracks);
+        cutPostIndex = arrayfun(@(x)x.end == handles.lftMax,tracks);
+        plot(axHandle,arrayfun(@(x)x.xcom(handles.iframe-x.start+1),tracks(cutPreIndex | cutPostIndex)),...
+            arrayfun(@(x)x.ycom(handles.iframe-x.start+1),tracks(cutIndex)),'mo','MarkerSize',2)
     end
-    %mark chosen pit
-    if isfield(handles,'pitInfo') && isfield(handles.pitInfo,'pitID')
-        plot(axHandle,handles.lftInfo.Mat_xcoord(handles.pitInfo.pitID,handles.iframe),...
-            handles.Mat_ycoord(handles.pitInfo.pitID,handles.iframe),'ws')
+    
+    %MARK PERSISTENT IN BLUE
+    if handles.markPersistent
+        perIndex = arrayfun(@(x)length(x.xcom) == handles.lftMax,tracks);
+        plot(axHandle,arrayfun(@(x)x.xcom(handles.iframe-x.start+1),tracks(perIndex)),...
+            arrayfun(@(x)x.ycom(handles.iframe-x.start+1),tracks(perIndex)),'co','MarkerSize',2)
     end
+    
 end %of for each channel being plotted
 % link the zoom factor for axes of channel one and channel two
 linkaxes([handles.axes1 handles.axes2])

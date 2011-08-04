@@ -166,7 +166,9 @@ for i = 1:nMovies
     end
     
     % extract the positions with the desired parameters (e.g. lifetime range) from lftInfo data
+
     [posvec nTracksRestricted] = getCohortIndexes([data(i).source 'LifetimeInfo'], restvector, cohortBounds, data(i).framerate);
+
     
     for c = 1:nCohorts
         
@@ -220,6 +222,7 @@ for i = 1:nMovies
         [cIntensity cIntensityStd] = alignCohort(data(i), [restvector cohortBounds(c) cohortBounds(c+1)], reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, intRes(c).tFrames);
         intRes(c).cIntensity(i,:) = cIntensity;
         intRes(c).cIntensityStd(i,:) = cIntensityStd;
+        intRes(c).CCPs(i).allCCPIntenities = allIntensity;
     end    
 end
 
@@ -252,7 +255,7 @@ end;
 
 
 
-function [int_weighted, error_weighted] = alignCohort(data, restvector, reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, tvec_standard)
+function [int_weighted, error_weighted,all_weighted] = alignCohort(data, restvector, reference, sframerate, voidAlignPoint, alignvar, paraT1, paraT2, paraInt, paraInt2, tvec_standard)
 
 % ===================================================================
 % data alignment:

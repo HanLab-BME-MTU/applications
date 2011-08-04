@@ -175,7 +175,7 @@ for iexp = 1:length(experiment)
         for j = 1:windowsPerSlice(i)
             
             border = [windowPolygons{i}{j}{:}];
-            in  = inpolygon(mpm1(1,:),mpm1(2,:),border(1,:),border(2,:));
+            in  = inpolygon(mpm1(:,1),mpm1(:,2),border(1,:),border(2,:));
             
             windowInfo(i,j).pits = mpm1(in,:);
             

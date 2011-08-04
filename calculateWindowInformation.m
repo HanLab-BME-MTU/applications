@@ -33,7 +33,7 @@ if nargin < 2 || isempty(mask)
     doFill = 1;
     imsize  = data.imagesize;
     %Load Lifetime Information
-    try load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat'])
+    try load([data.source filesep 'Tracking' filesep 'trackAnalysis.mat'])
         
         %positions used to calculate mask
         maskPositionsX = arrayfun(@(t) t.x(1),tracks)';
@@ -42,7 +42,7 @@ if nargin < 2 || isempty(mask)
         
     catch ME
         
-        lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
+        lftInfo = load([data.source filesep 'LifetimeInfo' filesep 'lftInfo']);
         lftInfo = lftInfo.lftInfo;
         matX = lftInfo.Mat_xcoord;
         % y-coordinate matrix

@@ -54,7 +54,7 @@ fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
 parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
-    [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
+    [pstruct, mask] = pointSourceDetection(img, sigma(mCh),'alpha',0.00001);
     
     if ~isempty(pstruct)
         pstruct.dRange{mCh} = [min(img(:)) max(img(:))];
