@@ -13,7 +13,7 @@ function plusTipMakeHistograms(rawData,saveDir,varargin)
 %
 %   plotSde - 0 or 1 if the user wants to plot the standard error as an
 %   errorbar
-%
+
 % Called by plusTipPoolGroupData.  See function for input format.
 % Kathryn Applegate, Jan 2010
 % Sebastien Besson, June 2011
@@ -108,14 +108,14 @@ for k=1:9
         
         % Overlay standard error
         validSte = plotData(i,j).steBins(:,iGroup)~=0;
-        if ~isempty(validSte) && plotSte
+        if ~isempty(find(validSte,1)) && plotSte
             errorbar(x(validSte),plotData(i,j).avgBins(validSte,iGroup),...
                 plotData(i,j).steBins(validSte),'.k');
         end
         
         % Overlay standard error
         validStd = plotData(i,j).stdBins(:,iGroup)~=0;
-        if ~isempty(validStd) && plotStd
+        if ~isempty(find(validStd,1)) && plotStd
             errorbar(x(validStd),plotData(i,j).avgBins(validStd,iGroup),...
                 plotData(i,j).stdBins(validStd,iGroup),'.k');
         end

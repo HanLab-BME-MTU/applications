@@ -216,7 +216,8 @@ for iFrame = startFrame:endFrame
         plot(roiYX(2),roiYX(1),'w')
         axis equal
         print(saveFig,'-dtiff',[tifOverlayDir filesep 'overlay' indxStr1 '.tif']);
-%         saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
+        set(saveFig,'Visible','on'); % So that the .fig is in visible state
+        saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
         close(saveFig)
     end
     count=count+1;

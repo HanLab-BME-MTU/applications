@@ -74,14 +74,14 @@ for i=1:length(paramsTested);
             case 5
                 str='prcntStatIdx';
         end
+           
+        print(saveFig,'-dpng',[saveDir filesep paramsTested{i} '_' str '.png']);
+        set(saveFig,'Visible','on'); % So that the .fig is in visible state
         saveas(saveFig,[saveDir filesep paramsTested{i} '_' str '.fig'])
-        saveas(saveFig,[saveDir filesep paramsTested{i} '_' str '.png'])
         close(saveFig)
 
     end
 end
-
-
 
 
 % make plot

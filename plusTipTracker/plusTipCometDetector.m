@@ -330,7 +330,7 @@ for iFrame = startFrame:endFrame
         bgPtYX=load([projData.anDir filesep 'bgPtYX.mat']);
         bgPtYX=bgPtYX.bgPtYX;
         [bgMask saveFig]=eb3BgMask(filterDiff,bgPtYX);
-        saveas(saveFig,[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
+        print(saveFig,'-dtiff',[featDir filesep 'filterDiff' filesep 'bgMask.tif']);
         close(saveFig)
     end
     
@@ -518,7 +518,8 @@ for iFrame = startFrame:endFrame
         colormap gray
         plot(roiYX(2),roiYX(1),'w')
         axis equal
-        saveas(saveFig,[featDir filesep 'overlayImages' filesep 'tifs' filesep 'overlay' indxStr1 '.tif']);
+        print(saveFig,'-dtiff',[featDir filesep 'overlayImages' filesep 'tifs' filesep 'overlay' indxStr1 '.tif']);
+        set(saveFig,'Visible','on'); % So that the fig is saved in visible state
         saveas(saveFig,[featDir filesep 'overlayImages' filesep 'overlay' indxStr1 '.fig']);
         close(saveFig)
         
@@ -532,7 +533,8 @@ for iFrame = startFrame:endFrame
             plot(roiYX(2),roiYX(1),'w')
             axis equal
             colorbar ;
-            saveas(saveFig,[featDir filesep 'filterDiff' filesep 'tifs' filesep 'filterDiff' indxStr1 '.tif']);
+            print(saveFig,'-dtiff',[featDir filesep 'filterDiff' filesep 'tifs' filesep 'filterDiff' indxStr1 '.tif']);
+            set(saveFig,'Visible','on'); % So that the fig is saved in visible state
             saveas(saveFig,[featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1 '.fig']);
             close(saveFig)
             
@@ -545,6 +547,7 @@ for iFrame = startFrame:endFrame
                 view(2)
                 set(gca,'YDir','reverse');
                 title(forTitle)
+                set(saveFig,'Visible','on'); % So that the fig is saved in visible state
                 saveas(saveFig,[featDir filesep 'filterDiff' filesep 'surf' indxStr1 '.fig']);
                 close(saveFig)
             else

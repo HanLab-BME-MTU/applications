@@ -64,8 +64,9 @@ for iParam=1:3
     title([titleStr ' speeds'])
     set(gca,'YDir','reverse')
     xlabel('speed (microns/min)')
+    print(saveFig,'-dtiff',[saveDir filesep 'boxplot_speed_' titleStr '.tif'])
+    set(saveFig,'Visible','on'); % So that the .fig is in visible state
     saveas(saveFig,[saveDir filesep 'boxplot_speed_' titleStr '.fig'])
-    saveas(saveFig,[saveDir filesep 'boxplot_speed_' titleStr '.tif'])
     close(saveFig)
 
     saveFig = figure ('Visible', visible); % boxplot of lifetimes
@@ -73,8 +74,9 @@ for iParam=1:3
     title([titleStr ' lifetimes'])
     set(gca,'YDir','reverse')
     xlabel('lifetimes (sec)')
+    print(saveFig,'-dtiff',[saveDir filesep 'boxplot_lifetime_' titleStr '.tif'])
+    set(saveFig,'Visible','on'); % So that the .fig is in visible state
     saveas(saveFig,[saveDir filesep 'boxplot_lifetime_' titleStr '.fig'])
-    saveas(saveFig,[saveDir filesep 'boxplot_lifetime_' titleStr '.tif'])
     close(saveFig)
 
     saveFig = figure ('Visible', visible); ;% boxplot of displacements
@@ -82,7 +84,8 @@ for iParam=1:3
     title([titleStr ' displacements'])
     set(gca,'YDir','reverse')
     xlabel('displacement (microns)')
+    print(saveFig,'-dtiff',[saveDir filesep 'boxplot_displacement_' titleStr '.tif'])
+    set(saveFig,'Visible','on'); % So that the .fig is in visible state
     saveas(saveFig,[saveDir filesep 'boxplot_displacement_' titleStr '.fig'])
-    saveas(saveFig,[saveDir filesep 'boxplot_displacement_' titleStr '.tif'])
     close(saveFig)
 end
