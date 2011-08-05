@@ -1,5 +1,5 @@
 function [displField, forceField, out]=createDisplField(sdT,inputFileList,target_dir,filter,yModu_Pa,pRatio,pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg)
-%nargin=0;
+saveAllBEMpar=1;
 
 if nargin < 1 || isempty(sdT)
    [filename, pathname] = uigetfile({'*.mat';'*.*'}, ...
@@ -90,7 +90,6 @@ end
 if nargin < 13  || isempty(doRotReg)
     doRotReg=0;
 end
-saveAllBEMpar=0;
 
 
 % if the field of view is too large one has the option to choose a
@@ -294,10 +293,13 @@ for i=1:length(displField)
         toc;
         
         % The following values should/could be stored for the BEM-method.
+        % In most cases, except the sol_coef this has to be stored only
+        % once for all frames!
         if saveAllBEMpar==1
             forceField(i).par.forceMesh     = forceMesh;
             forceField(i).par.sol_coef      = sol_coef;
             forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
+            forceField(i).par.sol_mats      = sol_mats;
             forceField(i).par.pos           = pos_u;
             forceField(i).par.u             = u;  
             forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   

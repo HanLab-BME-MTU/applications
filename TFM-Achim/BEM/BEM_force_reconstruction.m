@@ -71,7 +71,7 @@ if nargin >= 10 && strcmp(method,'fast')
     % csvd  = 340sec
     % cgsvd = 561sec
     % Therefore we force the Matlab back slash operator:
-    forceQR=1;
+    forceQR=0;
     forceBackSlash=0;
     
     if ~needGSVD && ~forceQR && ~forceBackSlash        

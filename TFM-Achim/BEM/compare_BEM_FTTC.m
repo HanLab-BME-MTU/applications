@@ -281,8 +281,8 @@ if FTTC==1
     int_fy_ass = quad2d(@(x,y) assumedForce(2,x,y),xmin,xmax,ymin,ymax)
 end
 
-%plot the L-curve:
-plotLcurve(M,u_M,forceMesh)
+% plot the L-curve:
+% plotLcurve(M,sol_mats,u_M,forceMesh)
 
 return;
 

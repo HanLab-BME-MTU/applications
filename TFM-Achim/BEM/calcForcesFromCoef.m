@@ -20,6 +20,7 @@ if nargin < 5 || isempty(method) || strcmp(method,'new')
     
     % interpolate only if necessary
     if ~isempty(x_out) && ~isempty(y_out)
+        % display('This might yield wrong results for square lattice since the Matlab triangulation doesnt agree with Achim''s triangulations!!!')
         % then interpolate the solution:
         fx_intp=TriScatteredInterp(pos(:,1),pos(:,2),vec(:,1),'linear');
         fy_intp=TriScatteredInterp(pos(:,1),pos(:,2),vec(:,2),'linear');
