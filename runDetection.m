@@ -38,7 +38,7 @@ if isempty(sigma)
 end
 
 frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
-    'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 's_pstd', [], 'c_pstd', [],...
+    'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
     'x_init', [], 'y_init', [], 'A_mask', [], ...
     'sigma_r', [], 'SE_sigma_r', [], 'RSS', [], 'pval_KS', [], 'pval_Ar', [], 'isPSF', [],...
     'xCoord', [], 'yCoord', [], 'amp', [], 'dRange', []);
@@ -55,13 +55,14 @@ parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
     [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
+    pstruct = rmfield(pstruct, 's_pstd');
+    pstruct.s = sigma;
     
     if ~isempty(pstruct)
         pstruct.dRange{mCh} = [min(img(:)) max(img(:))];
         np = numel(pstruct.x);
         
         % expand structure for slave channels
-        %fnames = {'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
         fnames = {'x', 'x_pstd', 'y', 'y_pstd', 'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
         for f = 1:length(fnames)
             tmp = NaN(nCh, np);
@@ -102,6 +103,12 @@ parfor k = 1:data.movieLength
                 pstruct.(fnames{f})(ci,~idx) = pstructSlave.(fnames{f})(~idx);
                 pstruct.(fnames{f})(ci,idx) = pstructSlaveLoc.(fnames{f})(idx);
             end
+            
+            nanIdx = isnan(pstructSlave.x); % points within slave channel border, remove from detection results
+            for f = 1:length(fnames)
+                pstruct.(fnames{f})(:,nanIdx) = [];
+            end
+            np = size(pstruct.x,2);
         end
         
         % add fields for tracker
@@ -123,4 +130,4 @@ parfor k = 1:data.movieLength
 end
 %fprintf('\n');
 
-save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo', 'data');
+save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
