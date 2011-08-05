@@ -64,12 +64,8 @@ if nargin<1 || isempty(projData)
     projData.imDir=[pwd filesep 'images'];
     cd(homeDir)
 else
-    % adjust for OS
     if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
         error('--plusTipCometDetector: first argument should be a structure with fields imDir and anDir');
-    else
-        [projData.anDir] = formatPath(projData.anDir);
-        [projData.imDir] = formatPath(projData.imDir);
     end
 end
 

@@ -63,14 +63,10 @@ if isempty(projData)
     cd('..');
     projData.imDir=[pwd filesep 'images'];
     cd(homeDir)
-else
-    % adjust for OS
-    if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
-        error('--plusTipAnisoGaussianCometDetector: first argument should be a structure with fields imDir and anDir');
-    else
-        [projData.anDir] = formatPath(projData.anDir);
-        [projData.imDir] = formatPath(projData.imDir);
-    end
+end
+
+if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
+    error('--plusTipAnisoGaussianCometDetector: first argument should be a structure with fields imDir and anDir');
 end
 
 % Get list of Images in Image Directory and count them.
@@ -109,7 +105,7 @@ end
 % check bit depth to make sure it is 12, 14, or 16 and that its dynamic
 % range is not greater than the provided bitDepth
 if sum(bitDepth==[12 14 16])~=1 || maxIntensity > 2^bitDepth-1
-    error('--plusTipCometDetector: bit depth should be 12, 14, or 16');
+    error('--plusTipAnisGaussianCometDetector: bit depth should be 12, 14, or 16');
 end
 
 % make feat directory if it doesn't exist from batch

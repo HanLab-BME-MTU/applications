@@ -100,7 +100,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               total number of forward gap trajectories
 %           .fgap_speed_median
 %               median of all forward gap sub-track speeds (microns/min)
-%           .fgap_speed_mean_std 
+%           .fgap_speed_mean_std Tracke
 %               [mean std] of all forward gap sub-track speeds (microns/min)
 %           .fgap_lifetime_median
 %               median of all forward gap sub-track lifetimes (sec)
@@ -118,7 +118,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %           .fgap_freq_length     
 %               the inverse of the average growth displacement (microns) 
 %               prior to fgap
-%               1/mean(D) where D is the growth displacement (microns) just
+%               1/mean(D) where D is thTrackee growth displacement (microns) just
 %               prior to a forward gap, excluding growth trajectories
 %               beginning in the first frame
 %
@@ -209,15 +209,8 @@ if isempty(runInfo)
     runInfo.imDir=uigetdir(pwd,'Please select image directory');
     cd(homeDir)
 else
-    % adjust for OS
     if ~isfield(runInfo,'imDir') || ~isfield(runInfo,'anDir')
         error('--plusTipPostTracking: first argument should be a structure with fields imDir and anDir');
-    else
-        [runInfo.anDir] = formatPath(runInfo.anDir);
-        homeDir=pwd;
-        cd(runInfo.anDir)
-        [runInfo.imDir] = formatPath(runInfo.imDir);
-        cd(homeDir)
     end
 end
 

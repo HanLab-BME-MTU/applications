@@ -79,12 +79,7 @@ end
 
 %initialize output variable
 linkStats = NaN(numFrames0-1,5);
-nd merges/splits obtained via tracking to the ground truth
-%
-%SYNOPSIS [linkStats,gapStats,mergeSplitStats] = scoreLinksGapsMS(tracksFinal,tracksSim)
-%
-%INPUT  tracksFinal : Either output of trackCloseGapsKalman (structure) or
-%                     output of trackWithGapClosing (matri
+
 %go over all frames ...
 for iFrame = 1 : numFrames0 - 1
     

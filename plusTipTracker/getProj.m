@@ -138,7 +138,7 @@ if ~isempty(subDirList)
     matches=find(tempSUB);
 
     for j=1:length(matches)
-        subDir=subDirList{matches(j),1};
+        subDir=subDirList{matches(j)};
         homeDir=pwd;
         projList(projCount+j,1).anDir=subDir;
         cd(projList(projCount+j,1).anDir)

@@ -10,15 +10,8 @@ if nargin<1 || isempty(projData)
     projData.imDir=uigetdir(pwd,'Please select image directory');
     cd(homeDir)
 else
-    % adjust for OS
     if ~isfield(projData,'imDir') || ~isfield(projData,'anDir')
         error('--plusTipCometTracker: first argument should be a structure with fields imDir and anDir');
-    else
-        [projData.anDir] = formatPath(projData.anDir);
-        homeDir=pwd;
-        cd(projData.anDir)
-        [projData.imDir] = formatPath(projData.imDir);
-        cd(homeDir)
     end
 end
 
