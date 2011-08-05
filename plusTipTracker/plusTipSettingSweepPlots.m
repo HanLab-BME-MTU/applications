@@ -60,7 +60,7 @@ for i=1:length(paramsTested);
     y={speedMean; lifeMean; lengthMean; numEvents; prcntStatIdx};
     
     for iPlot=1:length(y)
-        mkPlot(allData,r,x,y{iPlot},paramsTested{i});
+        saveFig = mkPlot(allData,r,x,y{iPlot},paramsTested{i});
         
         switch iPlot
             case 1
@@ -74,9 +74,9 @@ for i=1:length(paramsTested);
             case 5
                 str='prcntStatIdx';
         end
-        saveas(gcf,[saveDir filesep paramsTested{i} '_' str '.fig'])
-        saveas(gcf,[saveDir filesep paramsTested{i} '_' str '.png'])
-        close(gcf)
+        saveas(saveFig,[saveDir filesep paramsTested{i} '_' str '.fig'])
+        saveas(saveFig,[saveDir filesep paramsTested{i} '_' str '.png'])
+        close(saveFig)
 
     end
 end
@@ -85,7 +85,7 @@ end
 
 
 % make plot
-function mkPlot(allData,r,x,y,paramName)
+function saveFig = mkPlot(allData,r,x,y,paramName)
 % r=rows corresponding to current parameter
 % x=column with values tested for the current parameter (x-axis values)
 % y=columns of allData where data should be pulled for plotting
@@ -109,7 +109,7 @@ prop_name(4) = {'Color'};
 cM=varycolor(nLines);
 cMap=mat2cell(cM,ones(nLines,1),3);
 
-figure('Visible','off'); hold on
+saveFig = figure('Visible','off'); hold on
 for iLine=1:nLines
     prop_values(1,1) = {mrkTpe(iLine)};
     prop_values(1,2) = cMap(iLine,:);

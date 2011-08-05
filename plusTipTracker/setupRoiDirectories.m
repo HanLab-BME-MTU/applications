@@ -210,7 +210,7 @@ for iProj=1:length(imageDirList)
     end % while makeNewROI==1 && roiCount<10
 end % iterate through projects
 
-cd(topDir)
-getProj(pwd)
+% cd(topDir)
+%getProj(pwd)
 
 
