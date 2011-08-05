@@ -1,4 +1,4 @@
-function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol)
+function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol,solMethodBEM)
 % Input :  x,y,ux,uy have to be in the same units, namely
 %         pixels. 
 % Output: The output fx,fy is actually a surface stress with the same units
@@ -10,7 +10,11 @@ function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruct
 %         dx (essentially cluster_size) are in the same units, then the
 %         resulting force has the same dimension as the input E.
 
-%         u: is the measured displacement! (not the model u!)     
+%         u: is the measured displacement! (not the model u!)
+
+if nargin < 12 || isempty(solMethodBEM)
+    solMethodBEM='QR';
+end
 
 [~, cols]=size(x);
 
@@ -71,10 +75,10 @@ if nargin >= 10 && strcmp(method,'fast')
     % csvd  = 340sec
     % cgsvd = 561sec
     % Therefore we force the Matlab back slash operator:
-    forceQR=0;
-    forceBackSlash=0;
+%     forceQR=1;
+%     forceBackSlash=0;
     
-    if ~needGSVD && ~forceQR && ~forceBackSlash        
+    if ~needGSVD && strcmpi(solMethodBEM,'svd')
         [U,s,V] = csvd(M);
         [sol_coef,~,~] = tikhonov(U,s,V,u,sqrt(L));
         % store these matrices for next frames:
@@ -82,7 +86,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.s=s;
         sol_mats.V=V;
         sol_mats.tool='svd';
-    elseif ~forceQR && ~forceBackSlash
+    elseif strcmpi(solMethodBEM,'svd') || strcmpi(solMethodBEM,'gsvd')
         % gSVD takes about twice as long as SVD
         [U,sm,X,~] = cgsvd(M,eyeWeights);
         [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
@@ -91,7 +95,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.sm=sm;
         sol_mats.X =X;
         sol_mats.tool='gsvd';
-    elseif ~forceBackSlash
+    elseif strcmpi(solMethodBEM,'QR')
         % for a force field with 2*6400 basis function, the residual
         % between the QR-sol and the sol obtained from the backslash
         % operator was: 2.0057e-06 for a mean force magnitude of
@@ -103,7 +107,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.L=L;
         sol_mats.nW=normWeights;        
         sol_mats.tool='QR';
-    else
+    elseif strcmpi(solMethodBEM,'backslash') || strcmpi(solMethodBEM,'\')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
         MpM=M'*M;
@@ -112,6 +116,8 @@ if nargin >= 10 && strcmp(method,'fast')
         % store these matrices for next frames:
         sol_mats.MpM=MpM;
         sol_mats.tool='backslash';
+    else
+        error(['I don''t understand the input for the solution method: ',solMethodBEM])
     end
     % Here we use the identity matrix (all basis classes have equal weight):
     % sol_coef=(L*eye(2*forceMesh.numBasis)+M'*M)\(M'*u);

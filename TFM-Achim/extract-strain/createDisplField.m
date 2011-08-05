@@ -1,5 +1,5 @@
-function [displField, forceField, out]=createDisplField(sdT,inputFileList,target_dir,filter,yModu_Pa,pRatio,pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg)
-saveAllBEMpar=1;
+function [displField, forceField, out]=createDisplField(sdT,inputFileList,target_dir,filter,yModu_Pa,pRatio,pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg,solMethodBEM)
+
 
 if nargin < 1 || isempty(sdT)
    [filename, pathname] = uigetfile({'*.mat';'*.*'}, ...
@@ -84,11 +84,21 @@ if nargin < 9 || isempty(method)
 end
 
 if nargin < 10 || isempty(meshPtsFwdSol)
-    meshPtsFwdSol=2^11;
+    meshPtsFwdSol=2^12;
 end
 
 if nargin < 13  || isempty(doRotReg)
     doRotReg=0;
+end
+
+if nargin < 14  || isempty(solMethodBEM)
+    solMethodBEM='QR';
+end
+
+if strcmpi(solMethodBEM,'svd') || strcmpi(solMethodBEM,'gsvd')
+    saveAllBEMpar=1;
+else
+    saveAllBEMpar=0;
 end
 
 
@@ -268,6 +278,7 @@ if ~isdir(targetDirForce)
     mkdir(targetDirForce)
 end
 
+savedSolMatsOnce=0;
 for i=1:length(displField)
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
@@ -276,7 +287,7 @@ for i=1:length(displField)
         % given the bead locations defined in displField:
         tic;
         if i==1 || displField(i).par.prep4fastBEM==0;
-            [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol);
+            [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=reg_FastBEM_TFM(grid_mat, displField, i, yModu_Pa, pRatio, regParam, meshPtsFwdSol,solMethodBEM);
             display('The total time for calculating the FastBEM solution: ')
         elseif i>1 && displField(i).par.prep4fastBEM==1
             % since the displ field has been prepared such
@@ -295,14 +306,21 @@ for i=1:length(displField)
         % The following values should/could be stored for the BEM-method.
         % In most cases, except the sol_coef this has to be stored only
         % once for all frames!
-        if saveAllBEMpar==1
+        if saveAllBEMpar==1 && ~savedSolMatsOnce
             forceField(i).par.forceMesh     = forceMesh;
             forceField(i).par.sol_coef      = sol_coef;
             forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
-            forceField(i).par.sol_mats      = sol_mats;
+            forceField(i).par.sol_mats      = sol_mats; % This should not be saved every time! Although necessary to calculate the L-curve!
             forceField(i).par.pos           = pos_u;
             forceField(i).par.u             = u;  
-            forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;   
+            forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;
+            
+            % don't save it again for the next frames. sol_coef can be
+            % easily obtained from calcSolFromSolMatsFastBEM!
+            savedSolMatsOnce = 1;
+        elseif saveAllBEMpar==1 && displField(i).par.prep4fastBEM==0
+            display('!!! The solution matrices cannot be saved for all frames (~1GB per frame)!!!')
+            display('!!!        Choose manually the ones you are intereseted in               !!!')
         end
     else
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, yModu_Pa, pRatio, pixSize_mu, gridSpacing, i_max, j_max, regParam);

@@ -1,4 +1,4 @@
-function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift,doRotReg)
+function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift,doRotReg,solMethodBEM)
 % INPUT      method: 'FastBEM' or 'FTTC'
 %            area [yTL xTL yBR xBR]
 %                           yTL  : y coordinate of the top-left corner
@@ -8,7 +8,8 @@ function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift,doRotRe
 %            Pass area=[] to manually draw a region of interest
 
 if nargin < 1 || isempty(method)
-    method='FTTC';
+    method ='FastBEM';
+    %method='FTTC';
 end
 
 if nargin <2 || isempty(xrange) || isempty(yrange)
@@ -22,6 +23,10 @@ end
 
 if nargin <5 || isempty(doRotReg)
     doRotReg=0;
+end
+
+if nargin <6 || isempty(solMethodBEM)
+    solMethodBEM='QR';
 end
 
 load('fileAndFolderNames.mat')
@@ -47,7 +52,7 @@ yModu_Pa = yModu_kPa*1000;
 pixSize_mu  = input('Pixel size in mu                  (default:    0.163): ');
 
 if strcmp(method,'FastBEM')
-    meshPtsFwdSol = input('Number of mesh pts of fwdSolution (default:     2^11): ');
+    meshPtsFwdSol = input('Number of mesh pts of fwdSolution (default:     2^12): ');
 else
     meshPtsFwdSol =0;
 end
@@ -57,7 +62,7 @@ while strcmp(fieldsOK,'n') || strcmp(fieldsOK,'no') || strcmp(fieldsOK,'N')
     filter      = input('Filter spec: [numStd boxSizeLocFac boxSizeGlbFac]=[18 10 6 3] (default: no filter): ');
     regParam    = input('Regularization parameter          (default:  10^(-7)): ');    
 
-    [displField, forceField, ~]=createDisplField(path_ResidualT,flowTFM_FileList,path_mechTFM,filter,yModu_Pa,[],pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg);
+    [displField, forceField, ~]=createDisplField(path_ResidualT,flowTFM_FileList,path_mechTFM,filter,yModu_Pa,[],pixSize_mu,regParam,method,meshPtsFwdSol,xrange,yrange,doRotReg,solMethodBEM);
     
     fieldsOK=input('Are you satisfied with the results?: Y/N [Y]: ','s');
 end

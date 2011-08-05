@@ -278,7 +278,11 @@ for i=frameList
     [rows,cols]=size(I);
     [XI,YI]=meshgrid(1:cols,1:rows);
     % for the magnitude:
-    Mblue = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),sqrt(sum(forceField(i).vec.^2,2)),XI,YI,'cubic');
+    Mblue  = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),sqrt(sum(forceField(i).vec.^2,2)),XI,YI,'cubic');
+    % for the x-component of the force:
+    % Mgreen = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1),XI,YI,'cubic');
+    % for the y-component of the force:
+    % Mred   = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,2),XI,YI,'cubic');
     % for x-component:
     % Mblue = griddata(forceField(i).posShifted(:,1),forceField(i).posShifted(:,2),forceField(i).vec(:,1),XI,YI,'cubic');
     % for y-component:
@@ -382,7 +386,8 @@ for i=frameList
     hold off
     
     figure(9)
-    colormap('gray');
+    %colormap('gray');
+    colormap('jet');
     imagesc(max(Mblue(:))*I/max(I(:)))
     hold on
     %contour(max(I(:))*Mblue/max(Mblue(:)),10);
