@@ -63,7 +63,7 @@ parfor k = 1:data.movieLength
         np = numel(pstruct.x);
         
         % expand structure for slave channels
-        fnames = {'x', 'x_pstd', 'y', 'y_pstd', 'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
+        fnames = {'x', 'x_pstd', 'y', 'y_pstd', 'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_KS', 'pval_Ar'};
         for f = 1:length(fnames)
             tmp = NaN(nCh, np);
             tmp(mCh,:) = pstruct.(fnames{f});
@@ -109,6 +109,8 @@ parfor k = 1:data.movieLength
                 pstruct.(fnames{f})(:,nanIdx) = [];
             end
             np = size(pstruct.x,2);
+            
+            pstruct.isPSF(ci,:) = pstruct.pval_KS(ci,:) > 0.05;
         end
         
         % add fields for tracker
