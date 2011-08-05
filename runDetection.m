@@ -50,6 +50,11 @@ fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
 [~,~] = mkdir([data.source 'Detection']);
 [~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
 
+fnames = {'x', 'x_pstd', 'y', 'y_pstd', 'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_KS', 'pval_Ar'};
+fnamesPt = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd',...
+    'x_init', 'y_init', 'A_mask',...
+    'sigma_r', 'SE_sigma_r', 'RSS', 'pval_KS', 'pval_Ar', 'isPSF'};
+
 %fprintf('Progress:     ');
 parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
@@ -63,12 +68,14 @@ parfor k = 1:data.movieLength
         np = numel(pstruct.x);
         
         % expand structure for slave channels
-        fnames = {'x', 'x_pstd', 'y', 'y_pstd', 'A', 'A_pstd', 'c', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_KS', 'pval_Ar'};
         for f = 1:length(fnames)
             tmp = NaN(nCh, np);
             tmp(mCh,:) = pstruct.(fnames{f});
             pstruct.(fnames{f}) = tmp;
         end
+        tmp = NaN(nCh, np);
+        tmp(mCh,:) = pstruct.isPSF;
+        pstruct.isPSF = tmp;
         
         % retain only mask regions containing localizations
         CC = bwconncomp(mask);
@@ -105,8 +112,8 @@ parfor k = 1:data.movieLength
             end
             
             nanIdx = isnan(pstructSlave.x); % points within slave channel border, remove from detection results
-            for f = 1:length(fnames)
-                pstruct.(fnames{f})(:,nanIdx) = [];
+            for f = 1:length(fnamesPt)
+                pstruct.(fnamesPt{f})(:,nanIdx) = [];
             end
             np = size(pstruct.x,2);
             
