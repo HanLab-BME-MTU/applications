@@ -439,41 +439,23 @@ for iFrame = 1:nFrames
                 %(Re)Initialize the windows to this frame
                 
                 %Since we need to propagate the startpoints anyaways, we
-                %just get them ourselves here.               
-                
-                %Get the zero-contour of the mask, and post-process it in
-                %the same way as getMaskWindows.m
-                zeroCont = contourc(double(maskArray(:,:,iFrame)),[0 0]);
-                zeroCont = separateContours(zeroCont);
-                zeroCont = cleanUpContours(zeroCont,4);
-                if numel(zeroCont) > 1
-                    error('Problem with mask - mask must contain only one object, and that object may not have holes in it! Check masks!')
-                end
-                zeroCont = zeroCont{1};
-                %Calculate the cumulative distance along the contour
-                distAlong = [0 cumsum(sqrt(diff(zeroCont(1,:)) .^2 + diff(zeroCont(2,:)) .^2))];
-                %Get the desired distance values based on the window size
-                distVals = 0:p.ParaSize:distAlong(end);
-                %If the size isn't an even multiple of the contour length,
-                %we need to add an additional start point.
-                if distVals(end) ~= distAlong(end)
-                    distVals = [distVals distAlong(end)]; %#ok<AGROW>
-                end
-                %Get the start points from the zero contour
-                [~,iStartPts] = arrayfun(@(x)(min(abs(distAlong-distVals(x)))),1:numel(distVals));
-                startPts = zeroCont(:,iStartPts)';                
+                %first get them from getMaskWindows.m                         
+                startPts = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                    p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false,...
+                    'StartPointsOnly',true);
               
             else
-                              
+                %Find the closest point on the edge to these start points              
                 iBestProt = correspondingIndices(startPts',smoothedEdge{iFrame-1}');                    
-                startPts = smoothedEdge{iFrame-1}(iBestProt,:) + protrusion{iFrame-1}(iBestProt,:);
-                    
+                %Move the start points with the protrusion vectors for
+                %these edge points
+                startPts = startPts + protrusion{iFrame-1}(iBestProt,:);                                
             end
             
             %Get the new windows with these start points.                
             windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                [],'StartPoint',startPts,'StartContour',1,'DoChecks',false);
-                                                             
+                [],'StartPoint',startPts,'StartContour',2,'DoChecks',false);
+            
 
         case 'PDEBased'
             
