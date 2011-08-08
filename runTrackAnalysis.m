@@ -1,4 +1,4 @@
-
+%[data] = runTrackAnalysis(data, varargin)
 %
 % INPUTS    data        : array of experiment structures
 %           {Buffer}    : length of buffer before and after tracks
@@ -9,11 +9,9 @@
 %
 % Note: Only tracks with track.status==1 and track.gapStatus==4 are considered.
 
-% Francois Aguet, November 2010 (last modified 07/09/2011)
-
+% Francois Aguet, November 2010 (last modified 08/08/2011)
 
 function [data] = runTrackAnalysis(data, varargin)
-
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -36,7 +34,6 @@ for i = 1:length(data)
     data(i).tracks = [];
     data(i).smTracks = [];
 end
-
 parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
         data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, bufferMode);
@@ -96,20 +93,13 @@ tPath = [data.source 'Tracking' filesep trackerOutput];
 if exist(tPath, 'file')==2
     trackinfo = load(tPath);
     trackinfo = trackinfo.tracksFinal;
-    
-    % Filter out tracks with merge/split events
-    msIdx = arrayfun(@(x) size(x.seqOfEvents, 1)>2, trackinfo);
-    smTracks = trackinfo(msIdx);   
-    trackinfo(msIdx) = [];
-    nTracks = length(trackinfo);
-    
+    nTracks = length(trackinfo);  
 elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
     % (for old tracker. oldest version: trackInfo.mat)
     trackinfo = load([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat']);
-    trackedFeatureNum = trackinfo.trackedFeatureNum;
+    %trackedFeatureNum = trackinfo.trackedFeatureNum;
     trackinfo = trackinfo.trackedFeatureInfo;
     nTracks = size(trackinfo, 1);
-    smTracks = NaN;
 else
     error('No valid tracker output found.');
 end
@@ -120,18 +110,21 @@ tracks(1:nTracks) = struct('t', [],...
     'sigma_r', [], 'SE_sigma_r', [],...
     'pval_Ar', [], 'pval_KS', [], 'isPSF', [],...
     'status', [], 'gapStatus', [],...
-    'gapStarts', [], 'gapEnds', [], 'gapLengths', [],...
+    'gapStarts', [], 'gapEnds', [], 'gapLengths', [], 'gapVect', [],...
     'segmentStarts', [], 'segmentEnds', [], 'segmentLengths', [],...
-    'alpha', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
+    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
     'seqOfEvents', [], 'tracksFeatIndxCG', []);
 
+
+% field names with multiple channels
+mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'pval_KS', 'isPSF'};
+gapFieldNames = {'gapStatus', 'gapStarts', 'gapEnds', 'gapLengths', 'gapVect', 'segmentStarts', 'segmentEnds', 'segmentLengths'};
 
 %==============================
 % Loop through tracks
 %==============================
 fprintf('TrackAnalysis - Converting tracker output:     ');
 for k = 1:nTracks
-    
     if ~isstruct(trackinfo)
         x = trackinfo(k,1:8:end); % COM coordinates
         y = trackinfo(k,2:8:end);
@@ -147,9 +140,6 @@ for k = 1:nTracks
         tracks(k).maskI = maskI(firstIdx:lastIdx);
     else % new tracker
         % convert/assign structure fields
-        tracks(k).xcom = trackinfo(k).tracksCoordAmpCG(1:8:end); %%%%%%%%%% change field names
-        tracks(k).ycom = trackinfo(k).tracksCoordAmpCG(2:8:end);
-        tracks(k).maskI = trackinfo(k).tracksCoordAmpCG(4:8:end);
         tracks(k).seqOfEvents = trackinfo(k).seqOfEvents;
         tracks(k).tracksFeatIndxCG = trackinfo(k).tracksFeatIndxCG;
         
@@ -157,7 +147,7 @@ for k = 1:nTracks
         lastIdx = trackinfo(k).seqOfEvents(end,1);
     end
     
-    tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
+    
     tracks(k).lifetime_s = (lastIdx-firstIdx+1)*data.framerate;
     
     tracks(k).start = firstIdx;
@@ -166,153 +156,166 @@ for k = 1:nTracks
     %==============================================================================
     % Read amplitude & background from detectionResults.mat (localization results)
     %==============================================================================
-    nf = length(tracks(k).t);
-
-    % field names with multiple channels
-    mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
-    for f = 1:length(mcFieldNames)
-        tracks(k).(mcFieldNames{f}) = NaN(nCh,nf);
-    end
-    tracks(k).pval_KS = NaN(1,nf);
-    tracks(k).isPSF = NaN(1,nf);
     
-    frameRange = frameIdx(tracks(k).start:tracks(k).end);
-        
-    for i = 1:length(frameRange)
-        if isstruct(trackinfo)
-            idx = tracks(k).tracksFeatIndxCG(i);
-        else
-            idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
+    nSeg = size(tracks(k).tracksFeatIndxCG,1);
+%     if nSeg==1
+%         tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
+%         nf = length(tracks(k).t);
+%         
+%         % initialize fields
+%         for f = 1:length(mcFieldNames)
+%             tracks(k).(mcFieldNames{f}) = NaN(nCh,nf);
+%         end
+%         tracks(k).pval_KS = NaN(1,nf);
+%         tracks(k).isPSF = NaN(1,nf);
+%         
+%         % index of frames in case movie is subsampled
+%         frameRange = frameIdx(tracks(k).start:tracks(k).end);
+%         % copy data from frameInfo (detection) to track
+%         for i = 1:length(frameRange)
+%             idx = tracks(k).tracksFeatIndxCG(i); % feature index in frame
+%             %idx = trackedFeatureNum(k, frameRange(i)); % for old tracker
+%             if idx ~= 0 % if not a gap
+%                 for f = 1:length(mcFieldNames)
+%                     tracks(k).(mcFieldNames{f})(:,i) = frameInfo(frameRange(i)).(mcFieldNames{f})(:,idx);
+%                 end
+%                 tracks(k).pval_KS(i) = frameInfo(frameRange(i)).pval_KS(idx);
+%                 tracks(k).isPSF(i) = frameInfo(frameRange(i)).isPSF(idx);
+%             end
+%         end
+    %else % contains merges/splits -> segments stored in cell array
+        tracks(k).t = (firstIdx-1:lastIdx-1)*data.framerate;
+        for f = 1:length(mcFieldNames)
+            tracks(k).(mcFieldNames{f}) = cell(1,nSeg);
         end
-        
-        if idx ~= 0
+        for f = 1:length(gapFieldNames)
+            tracks(k).(gapFieldNames{f}) = cell(1,nSeg);
+        end
+
+        for s = 1:nSeg
+            bounds = tracks(k).seqOfEvents(tracks(k).seqOfEvents(:,3)==s);
+            nf = bounds(2)-bounds(1)+1;
             for f = 1:length(mcFieldNames)
-                tracks(k).(mcFieldNames{f})(:,i) = frameInfo(frameRange(i)).(mcFieldNames{f})(:,idx);
+                tracks(k).(mcFieldNames{f}){s} = NaN(nCh,nf);
             end
-            tracks(k).pval_KS(i) = frameInfo(frameRange(i)).pval_KS(idx);
-            tracks(k).isPSF(i) = frameInfo(frameRange(i)).isPSF(idx);
+            
+            % for this segment
+            smStatus = tracks(k).seqOfEvents(tracks(k).seqOfEvents(:,3)==s,4);
+            if ~isnan(smStatus(2)) % split or merge
+                frameRange = frameIdx(bounds(1):bounds(2)-1);
+            else
+                frameRange = frameIdx(bounds(1):bounds(2)); % relative to movie (also when movie is subsampled)
+            end
+            for i = 1:length(frameRange)
+                idx = tracks(k).tracksFeatIndxCG(s, frameRange(i) - tracks(k).start + 1); % -> relative to IndxCG
+                if idx ~= 0 % if not a gap, get detection values
+                    for f = 1:length(mcFieldNames)
+                        tracks(k).(mcFieldNames{f}){s}(:,i) = frameInfo(frameRange(i)).(mcFieldNames{f})(:,idx);
+                    end
+                end
+            end
         end
-    end
+    %end
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
 end
 fprintf('\n');
 
-
 % remove tracks that fall into image boundary
-minx = arrayfun(@(t) min(round(t.x(:))), tracks);
-maxx = arrayfun(@(t) max(round(t.x(:))), tracks);
-miny = arrayfun(@(t) min(round(t.y(:))), tracks);
-maxy = arrayfun(@(t) max(round(t.y(:))), tracks);
+minx = arrayfun(@(t) min(cellfun(@(i) min(round(i(:))), t.x)), tracks);
+maxx = arrayfun(@(t) max(cellfun(@(i) max(round(i(:))), t.x)), tracks);
+miny = arrayfun(@(t) min(cellfun(@(i) min(round(i(:))), t.y)), tracks);
+maxy = arrayfun(@(t) max(cellfun(@(i) max(round(i(:))), t.y)), tracks);
 idx = minx<=w4 | miny<=w4 | maxx>nx-w4 | maxy>ny-w4;
 tracks(idx) = [];
-
 nTracks = length(tracks);
+
 
 %=======================================
 % Interpolate gaps and clean up tracks
 %=======================================
 fprintf('TrackAnalysis - Classification:     ');
 for k = 1:nTracks
-       
-    trackLength = length(tracks(k).x);
-   
-    % use localization coordinates from this point on
-    x = tracks(k).x;
-    y = tracks(k).y;
     
-    nanIdx = isnan(x(mCh,:));
-    
-    nanPoints = sum(nanIdx);
+    nanIdx = cellfun(@(s) isnan(s(mCh,:)), tracks(k).x, 'UniformOutput', false);
+    tracks(k).gapVect = nanIdx; % binary gap vector
+    nanPoints = cellfun(@(s) sum(s), nanIdx);
+    %x = tracks(k).x{s};
+    %y = tracks(k).y{s};
+    %nanIdx = isnan(x(mCh,:));
     
     %=================================
     % Determine track and gap status
     %=================================
-    if (trackLength == nFrames)
+    if (1<tracks(k).start) && (tracks(k).end<nFrames) % complete tracks
+        tracks(k).status = 1;
+    elseif tracks(k).start==1 && tracks(k).end==nFrames % persistent tracks
         tracks(k).status = 3;
-        tracks(k).lifetime_s = nFrames*data.framerate;
     else
-        if (tracks(k).start>1) && (tracks(k).end<nFrames) % complete tracks
-            tracks(k).status = 1;
-        else
-            tracks(k).status = 2; % incomplete tracks
-        end
-        tracks(k).lifetime_s = trackLength*data.framerate;
+        tracks(k).status = 2; % incomplete tracks
     end
     
-    if nanPoints > 0 % tracks has gaps
-        if trackLength==1
-            tracks(k).valid = 0;
+    % loop through track segments with gaps
+    segmentsWithGaps = find(nanPoints~=0);
+    for s = segmentsWithGaps
+        %gacombIdx = diff([0 nanIdx{s} 0]);
+        %gapStarts = find(gacombIdx==1);
+        if nanIdx{s}(1)==1 || nanIdx{s}(end)==1 % temporary fix for segments that begin or end with gap
+            tracks(k).gapStatus{s} = 5;
         else
-            
-            gacombIdx = diff(nanIdx);
+            gacombIdx = diff(nanIdx{s});
             gapStarts = find(gacombIdx==1)+1;
             gapEnds = find(gacombIdx==-1);
-            
-            % ignore 'gaps' at beginning or end
-            if gacombIdx(find(gacombIdx~=0, 1, 'first')) == -1
-                gapEnds = gapEnds(2:end);
-            end
-            if gacombIdx(find(gacombIdx~=0, 1, 'last')) == 1
-                gapStarts = gapStarts(1:end-1);
-            end
             gapLengths = gapEnds-gapStarts+1;
             
-            segmentIdx = diff([0 ~nanIdx 0]);
+            segmentIdx = diff([0 ~nanIdx{s} 0]);
             segmentStarts = find(segmentIdx==1);
             segmentEnds = find(segmentIdx==-1)-1;
             segmentLengths = segmentEnds-segmentStarts+1;
             
             % loop over gaps
             nGaps = length(gapLengths);
-            gapStatus = zeros(1,nGaps);
-            for g = 1:nGaps
-                % gap is valid if segments that precede & follow are > 1 frame
-                % of if gap is a single frame
-                if (segmentLengths(g) > 1 && segmentLengths(g+1) > 1) || gapLengths(g) == 1
-                    gapStatus(g) = 4;
-                else
-                    gapStatus(g) = 5;
-                end
-            end
+            gv = 1:nGaps;
+            gapStatus = 5*ones(1,nGaps);
+            % gap is valid if segments that precede & follow are > 1 frame
+            % of if gap is a single frame
+            gapStatus(segmentLengths(gv)>1 & segmentLengths(gv+1)>1 | gapLengths(gv)==1) = 4;
             
             % fill position information for valid gaps using linear interpolation
-            if max(gapStatus) == 4 % only if all gaps are valid
-                for g = 1:nGaps
-                    borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
-                    gacombIdx = gapStarts(g):gapEnds(g);
-                    for c = 1:nCh
-                        x(c, gacombIdx) = interp1(borderIdx, x(c, borderIdx), gacombIdx);
-                        y(c, gacombIdx) = interp1(borderIdx, y(c, borderIdx), gacombIdx);
-                    end
+            for g = 1:nGaps
+                borderIdx = [gapStarts(g)-1 gapEnds(g)+1];
+                gacombIdx = gapStarts(g):gapEnds(g);
+                for c = 1:nCh
+                    tracks(k).x{s}(c, gacombIdx) = interp1(borderIdx, tracks(k).x{s}(c, borderIdx), gacombIdx);
+                    tracks(k).y{s}(c, gacombIdx) = interp1(borderIdx, tracks(k).y{s}(c, borderIdx), gacombIdx);
                 end
             end
             
-            tracks(k).gapStarts = gapStarts;
-            tracks(k).gapEnds = gapEnds;
-            tracks(k).gapLengths = gapLengths;
-            tracks(k).gapStatus = gapStatus;
-            tracks(k).segmentStarts = segmentStarts;
-            tracks(k).segmentEnds = segmentEnds;
-            tracks(k).segmentLengths = segmentLengths;
+            tracks(k).gapStarts{s} = gapStarts;
+            tracks(k).gapEnds{s} = gapEnds;
+            tracks(k).gapLengths{s} = gapLengths;
+            tracks(k).gapStatus{s} = gapStatus;
             
-            % if a single gap is invalid, the entire tracks is discarded
-            tracks(k).valid = tracks(k).status == 1 && max(gapStatus) == 4;
+            tracks(k).segmentStarts{s} = segmentStarts;
+            tracks(k).segmentEnds{s} = segmentEnds;
+            tracks(k).segmentLengths{s} = segmentLengths;
         end
-    else
+    end
+    if isempty(segmentsWithGaps)
         tracks(k).valid = tracks(k).status == 1;
+    else
+        % status for entire track (if a single gap is invalid, track is considered invalid)
+        tracks(k).valid = tracks(k).status == 1 && max([tracks(k).gapStatus{:}]) == 4;
     end
     
-    tracks(k).x = x;
-    tracks(k).y = y;    
     
     %==========================================
     % Compute displacements
     %==========================================    
-    if tracks(k).valid
+    if tracks(k).valid && numel(tracks(k).x)==1
 
         tracks(k).totalDisplacement = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);        
         % MSD
-        L = min(5, trackLength);
+        L = min(5, length(tracks(k).t));
         msdVect = zeros(1,L);
         msdStdVect = zeros(1,L);
         for l = 1:L
@@ -335,32 +338,48 @@ for k = 1:nTracks
 end
 fprintf('\n');
 
+% Re-assign fields for valid regular tracks
+rTrackIdx = find(arrayfun(@(t) numel(t.x)==1, tracks));
+for k = rTrackIdx
+    for f = 1:length(mcFieldNames)
+        tracks(k).(mcFieldNames{f}) = tracks(k).(mcFieldNames{f}){1};
+    end
+    for f = 1:length(gapFieldNames)
+        tracks(k).(gapFieldNames{f}) = tracks(k).(gapFieldNames{f}){1};
+    end
+end
+nRegTracks = length(rTrackIdx);
+tracks = tracks([rTrackIdx setdiff(1:nTracks, rTrackIdx)]);
+rTrackIdx = 1:nRegTracks;
 
-%==========================================
-% Generate buffers before and after track
-%==========================================
+% load('tmp.mat');
+
+%====================================================================================
+% Generate buffers before and after track, only for valid, single-segment tracks
+%====================================================================================
 % Loop through frames and fill gap and buffer values
 
 % number of buffer frames before and after track
-bStart = [tracks.start] - max(1, [tracks.start]-buffer);
-bEnd = min(data.movieLength, [tracks.end]+buffer) - [tracks.end];
+bStart = [tracks(rTrackIdx).start] - max(1, [tracks(rTrackIdx).start]-buffer);
+bEnd = min(data.movieLength, [tracks(rTrackIdx).end]+buffer) - [tracks(rTrackIdx).end];
 
+gapMap = catTrackFields(tracks(rTrackIdx), data.movieLength, 'gapVect', 1)==1;
 
 fprintf('TrackAnalysis - Gap interpolation & generation of track buffers:     ');
 for f = 1:data.movieLength
-
+    
     mask = double(imread(data.maskPaths{f}));
     % binarize
     mask(mask~=0) = 1;
     labels = bwlabel(mask);
     
     for ch = 1:nCh
-        
         frame = double(imread(data.framePaths{ch}{f}));
         
         % tracks with gaps in this frame
-        trackIdx = find([tracks.valid] & arrayfun(@(t) ismember(f, t.start-1 + find(isnan(t.A(ch,:)))), tracks));
+        trackIdx = find(gapMap(:,f) & [tracks(rTrackIdx).valid]')';
         for k = trackIdx
+            
             idx = f-tracks(k).start + 1;
             xi = round(tracks(k).x(ch,idx));
             yi = round(tracks(k).y(ch,idx));
@@ -400,7 +419,9 @@ for f = 1:data.movieLength
         end
         
         % start buffers in this frame
-        trackIdx = find([tracks.start]-bStart<=f & f<[tracks.start] & [tracks.valid]);
+        %trackIdx = find([tracks.start]-bStart<=f & f<[tracks.start] & [tracks.valid]);
+        trackIdx = find([tracks(rTrackIdx).start]-bStart<=f & f<[tracks(rTrackIdx).start] & [tracks(rTrackIdx).valid]);
+        %trackIdx = find(trackMap(:,f) & [tracks.valid]')
         for k = trackIdx
             bi = f - tracks(k).start + bStart(k) + 1;
             xi = round(tracks(k).x(ch,1));
@@ -435,7 +456,7 @@ for f = 1:data.movieLength
         end
         
         % end buffers in this frame
-        trackIdx = find([tracks.end]<f & f<=([tracks.end]+bEnd) & [tracks.valid]);
+        trackIdx = find([tracks(rTrackIdx).end]<f & f<=([tracks(rTrackIdx).end]+bEnd) & [tracks(rTrackIdx).valid]);
         for k = trackIdx
             bi = f-tracks(k).end;
             xi = round(tracks(k).x(ch,end));
@@ -478,12 +499,11 @@ fprintf('\n');
 % Save results
 %==========================================
 data.tracks = tracks;
-data.smTracks = smTracks;
 
 if ~(exist([data.source 'Tracking'], 'dir')==7)
     mkdir([data.source 'Tracking']);
 end
-save([data.source 'Tracking' filesep filename], 'tracks', 'smTracks');
+save([data.source 'Tracking' filesep filename], 'tracks');
 
 
 % function [D c alpha] = fitMSD(MSD, prmVect, prmSel)
