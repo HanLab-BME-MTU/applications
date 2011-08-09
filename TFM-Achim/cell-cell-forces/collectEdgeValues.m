@@ -11,18 +11,16 @@ function varargout=collectEdgeValues(groupedClusters,goodSet,varargin)
 % 'nVec'  : is actually nVec_internal, the normal on the internal part of
 %           the interface (and not the field n_Vec which contains segments
 %           outside the cell).
-% 'Itot ' : The total Ecad intensity along the interface (raw image average
+% 'Itot'  : The total Ecad intensity along the interface (raw image average
 %           with average filter of radius r1=10pix)
-% 'Itot2' : The total Ecad intensity along the interface (raw image average
-%           with average filter of radius r2=5pix) 
 % 'Iavg'  : The total Ecad intensity along the interface (raw image average
 %           with average filter of radius r1=10pix)
-% 'Iavg2' : The total Ecad intensity along the interface (raw image average
-%           with average filter of radius r2=5pix)
 % 'SIcorr': The stress and intensity profile along the INNER interface.
 %           Spatial but no temporal information.
 % 'corr'  : structure for cross-correlating intensity and
 %           cell-cell-forces over time.
+% 'r2'    : if option 'r2' is given we take r2=5pix values for averaging
+%           the Ecad images. This applies to 'Itot', 'Iavg' and 'SIcorr'
 
 degPos=find(strcmp('deg',varargin));
 if ~isempty(degPos)
@@ -96,16 +94,6 @@ else
     ItotCheck = 0;
 end
 
-Itot2Pos=find(strcmp('Itot2',varargin));
-if ~isempty(Itot2Pos)
-    Itot2Check = 1;
-    % it is the next entry which contains the numeric value:
-    Itot2_vals   = [];
-else
-    Itot2Check = 0;
-end
-
-
 IavgPos=find(strcmp('Iavg',varargin));
 if ~isempty(IavgPos)
     IavgCheck = 1;
@@ -113,15 +101,6 @@ if ~isempty(IavgPos)
     Iavg_vals   = [];
 else
     IavgCheck = 0;
-end
-
-Iavg2Pos=find(strcmp('Iavg2',varargin));
-if ~isempty(Iavg2Pos)
-    Iavg2Check = 1;
-    % it is the next entry which contains the numeric value:
-    Iavg2_vals   = [];
-else
-    Iavg2Check = 0;
 end
 
 SIcorrPos=find(strcmp('SIcorr',varargin));
@@ -133,6 +112,13 @@ else
     SIcorrCheck = 0;
 end
 
+r2Pos=find(strcmp('r2',varargin));
+if ~isempty(r2Pos)
+    r2Check = 1;
+else
+    r2Check = 0;
+end
+
 corrPos=find(strcmp('corr',varargin));
 if ~isempty(corrPos)
     corrCheck = 1;
@@ -141,9 +127,7 @@ if ~isempty(corrPos)
     corr_out(maxIdx).fcMag= [];
     corr_out(maxIdx).fmMag= [];
     corr_out(maxIdx).Itot = [];
-    corr_out(maxIdx).Itot2= [];
     corr_out(maxIdx).Iavg = [];
-    corr_out(maxIdx).Iavg2= [];
     corr_out(maxIdx).t    = [];
 else
     corrCheck = 0;
@@ -161,9 +145,7 @@ for idx=1:length(goodSet)
     corr_out(idx).fcMag     = NaN+zeros(toDoList(end),1);
     corr_out(idx).fmMag     = NaN+zeros(toDoList(end),1);
     corr_out(idx).Itot      = NaN+zeros(toDoList(end),1);
-    corr_out(idx).Itot2     = NaN+zeros(toDoList(end),1);
     corr_out(idx).Iavg      = NaN+zeros(toDoList(end),1);
-    corr_out(idx).Iavg2     = NaN+zeros(toDoList(end),1);
     corr_out(idx).flag      = ones(toDoList(end),1);
     corr_out(idx).frames    = 1:toDoList(end);
     
@@ -201,36 +183,43 @@ for idx=1:length(goodSet)
         end
         
         if  ItotCheck
-            Itot_vals=vertcat(Itot_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot);
-        end
-        
-        if  Itot2Check
-            Itot2_vals=vertcat(Itot2_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot2);
+            if r2Check
+                Itot_vals=vertcat(Itot_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot2);
+            else % this is the default:
+                Itot_vals=vertcat(Itot_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot);
+            end
         end
         
         if  IavgCheck
-            Iavg_vals=vertcat(Iavg_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg);
-        end
-        
-        if  Iavg2Check
-            Iavg2_vals=vertcat(Iavg2_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg2);
+            if r2Check
+                Iavg_vals=vertcat(Iavg_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg2);
+            else
+                Iavg_vals=vertcat(Iavg_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg);
+            end
         end
         
         if  SIcorrCheck
             SPosIn =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.cntrs;
             SValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.s_vec;
             IPosIn =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.intf_internal;
-            IValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.val;
+            if r2Check
+                IValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.val2;
+            else
+                IValsIn=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.val;
+            end
             [IVals,~,SMagVals,~]=pairSIprofiles(SPosIn,SValsIn,IPosIn,IValsIn);
             SIcorr_vals=vertcat(SIcorr_vals ,[SMagVals IVals]);
         end
         
         if  corrCheck
             % collect the intensity values:
-            corr_out(idx).Itot(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot;
-            corr_out(idx).Itot2(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot2;
-            corr_out(idx).Iavg(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg;
-            corr_out(idx).Iavg2(frame,1)=groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg2;
+            if r2Check
+                corr_out(idx).Itot(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot2;
+                corr_out(idx).Iavg(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg2;
+            else % this is the default:
+                corr_out(idx).Itot(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot;
+                corr_out(idx).Iavg(frame,1) =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.avg;
+            end
             
             % Determine fmMag and fcMag. The direction is not important!
             f1 =groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.f1;
@@ -304,21 +293,17 @@ if ItotCheck
     varargout(ItotPos) = {Itot_vals};
 end
 
-if Itot2Check
-    varargout(Itot2Pos) = {Itot2_vals};
-end
-
 if IavgCheck
     varargout(IavgPos) = {Iavg_vals};
 end
 
-if Iavg2Check
-    varargout(Iavg2Pos) = {Iavg2_vals};
-end
-
-
 if SIcorrCheck
     varargout(SIcorrPos) = {SIcorr_vals};
+end
+
+if r2Check
+    r2_vals='taken r2';
+    varargout(r2Pos) = {r2_vals};
 end
 
 if  corrCheck

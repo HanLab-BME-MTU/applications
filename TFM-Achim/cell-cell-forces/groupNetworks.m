@@ -37,7 +37,11 @@ rootDir=pwd;
 for entryId=1:numel(fileList)
     % load the file
     filestruc=load(fileList{entryId});
-    currNet=filestruc.trackedNet;
+    if strcmpi(filename,'trackedNet.mat');
+        currNet=filestruc.trackedNet;
+    else
+        currNet=filestruc.trackedNetCorrected;
+    end
     fnameFirstBeadImg=filestruc.fnameFirstBeadImg;
     
     % lines form here...
@@ -56,10 +60,17 @@ for entryId=1:numel(fileList)
                 currNet{iframe}.par.dt_mean= meanDT;
                 currNet{iframe}.par.dt_std = stdDT;
             end
+        end        
+        if strcmpi(filename,'trackedNet.mat');
+            trackedNet=currNet;
+            movefile(fullPathNet,[pathMechTFM,filesep,'trackedNetOldDT.mat']);
+            save(fullPathNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
+        else
+            trackedNetCorrected=currNet;
+            movefile(fullPathNet,[pathMechTFM,filesep,'trackedNetCorrectedOldDT.mat']);
+            save(fullPathNet, 'trackedNetCorrected','fnameFirstBeadImg','-v7.3');
         end
-        movefile(fullPathNet,[pathMechTFM,filesep,'trackedNetOldDT.mat']);
-        trackedNet=currNet;
-        save(fullPathNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
+       
     end
     % ... till here could be removed, once time measures in all
     % trackedNet.mat have been corrected.
@@ -82,6 +93,9 @@ for entryId=1:numel(fileList)
     end
 end
 
-if doSave
+if doSave && strcmpi(filename,'trackedNet.mat');
     save('groupedNetwork.mat','groupedNetworks','-v7.3')
+elseif doSave
+    groupedNetworksCorrected=groupedNetworks;
+    save('groupedNetworkCorrected.mat','groupedNetworksCorrected','-v7.3')
 end

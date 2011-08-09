@@ -69,4 +69,4 @@ save('cellCellForcesCorrected.mat','constrForceFieldCorrected','-v7.3');
 [constrForceFieldCorrected]=TFM_part_5_calcElEnergies(constrForceFieldCorrected,forceFieldCorrected,displField,2^11,[],1);
 
 % update the cluster analysis:
-[forceFieldCorrected]=TFM_part_6_clusterAnalysis(constrForceFieldCorrected,forceFieldCorrected,[],[],1);
+[constrForceFieldCorrected]=TFM_part_6_clusterAnalysis(constrForceFieldCorrected,forceFieldCorrected,[],[],1);

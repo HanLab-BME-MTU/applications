@@ -252,8 +252,8 @@ tooShort
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
-% goodCellSet=findCells(groupedClusters,'kPa',8,'myo',1,'myoGlb',[-1 0 1],'errF',Inf,'errs',0);
-goodCellSet=findCells(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',Inf,'errs',0);
+% goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[1],'myoGlb',[-1 0 1],'errF',Inf,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 
@@ -369,9 +369,9 @@ plotResultsForTwoStiff(groupedClusters);
 %**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93'},'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag    = sqrt(sum(fc1_vals.^2,2));
@@ -466,11 +466,11 @@ clear M
 %**************************************************************************
 % plot the angle in depdence of pair degree of connectivity:
 %**************************************************************************
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93'},'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
@@ -527,9 +527,9 @@ plotIntForceDeg11(groupedClusters);
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
 % ech single conditions works really well, but mixtures are a bit worse.
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',0,'errF',500,'errs',0);
- goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',1,'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myoGlb',0,'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
+ goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[1],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myoGlb',[0],'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
 
 [fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
@@ -647,8 +647,8 @@ relErrF_val_corr=Inf;
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-% goodCellSet   = findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',0,'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
-goodCellSet   = findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+% goodCellSet   = findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[0],'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+goodCellSet   = findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[0],'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
 [corrSets]    = collectCellValues(groupedClusters,goodCellSet,'corr');
 [corrResults] = calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
 
@@ -656,9 +656,9 @@ goodCellSet   = findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',0,'d
 %**************************************************************************
 % correlate forces for myosin cells:
 %**************************************************************************
- goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
-% goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-% goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+ goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
+% goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
+% goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
     [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
     [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
@@ -679,12 +679,12 @@ aveType='nanmean'; % first checks 'none', 'nanmean', 'mean' makes little differe
 maxLag =round(3600/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;
 
-%goodCellSet=findCells(groupedClusters,'kPa',8,'deg',[2 3 4 5 6 7],'myo',1,'type',{'tln1'},'errF',errF_val_corr,'errs',0);
-%goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
+%goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'errF',errF_val_corr,'errs',0);
+%goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
     %[corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useItot');
@@ -696,4 +696,4 @@ end
 %**************************************************************************
 % Plot the edges from above:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
