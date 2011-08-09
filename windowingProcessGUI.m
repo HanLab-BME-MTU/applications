@@ -56,8 +56,19 @@ funParams = userData.crtProc.funParams_;
 userData.editParams ={'MeshQuality','ParaSize','PerpSize','MinSize'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.editParams)
-set(handles.popupmenu_MethodName,'String',{'Constant Number';...
-    'Constant Width';'ProtrusionBased';'PDEBased'},'Value',1);
+
+segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
+segProcID=find(segProc);
+segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',false);
+segProcString = vertcat('Choose later',segProcNames(:));
+segProcData=horzcat({[]},num2cell(segProcID));
+segProcValue = find(cellfun(@(x) isequal(x,funParams.SegProcessIndex),segProcData));
+set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
+    'UserData',segProcData,'Value',segProcValue);
+
+methodString ={'ConstantNumber';'ConstantWidth';'ProtrusionBased';'PDEBased'};
+methodValue = find(strcmp(funParams.MethodName,methodString));
+set(handles.popupmenu_MethodName,'String',methodString,'Value',1);
 
 % Choose default command line output for windowingProcessGUI
 handles.output = hObject;
@@ -126,6 +137,13 @@ for i=1:numel(userData.editParams)
    funParams.(userData.editParams{i})=...
        str2double(get(handles.(['edit_' userData.editParams{i}]),'String'));
 end
+
+props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
+funParams.SegProcessIndex=props{1}{props{2}};
+
+props=get(handles.popupmenu_MethodName,{'String','Value'});
+funParams.MethodName=props{1}{props{2}};
+
 
 % Process Sanity check ( only check underlying data )
 try

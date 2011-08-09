@@ -38,18 +38,13 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         
         function samp = loadChannelOutput(obj,iChan,varargin)
             
+            % Input check
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'ImageProcessingProcess'));
+            ip.addRequired('obj',@(x) isa(x,'ImageAnalysisProcess'));
             ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
             ip.addOptional('iFrame',@(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',[],@ischar);            
-            ip.parse(obj,iChan,iFrame,varargin{:})
-            
-            if nargin < 2 || isempty(iChan)
-                error('You must specify a channel number to load window samples for!');
-            elseif round(abs(iChan)) ~= iChan || iChan > numel(obj.owner_.channels_)
-                error('The channel number must be a positive integer less than or equal to the number of channels in the movie!')
-            end
+            ip.parse(obj,iChan,varargin{:})      
                         
             tmp = load(obj.outFilePaths_{iChan});
             fNames = fieldnames(tmp);
