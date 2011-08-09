@@ -163,12 +163,12 @@ display('rel. error fc:')
 display(['mean   +-      std: ',num2str(  mean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fc_fn),'%0.4f')])
 display(['median +- 1.48*MAD: ',num2str(median(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',[65]);
+goodCellSet=findCells(groupedClusters,'kPa',[8]);
 
 goodCluster=unique(horzcat(goodCellSet.clusterId));
    
@@ -666,7 +666,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************

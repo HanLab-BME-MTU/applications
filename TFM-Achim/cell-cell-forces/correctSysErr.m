@@ -16,7 +16,7 @@ end
 
 if nargin<1 || isempty(displField)
     load('displField.mat');
-    copyfile('displField.mat','displField_tmp.mat')
+    % copyfile('displField.mat','displField_tmp.mat')
 end
 
 if nargin<1
