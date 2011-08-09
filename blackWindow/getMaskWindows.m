@@ -100,19 +100,19 @@ function windows = getMaskWindows(maskIn,perpSize,paraSize,varargin)
 %   These are input as optionName/value pairs:
 %   ('OptionName'->possible values)
 %
-%   ('StartPoint'->Mx2 Vector) If input as a 1x2 vector, this specifies the
+%   ('StartPoint'->Mx2 matrix) If input as a 1x2 vector, this specifies the
 %   m,n coordinates of the "origin" of the window polygons in the mask.
 %   This will determine the location of the first strip of windows. If the
 %   mask object is not completely contained in the image, the start point
 %   will always be at the edge of the image and this input will be ignored.
-%   Alternatively, if input as a Mx2 vector, where M>1, this specifies the
+%   Alternatively, if input as a Mx2 matrix, where M>1, this specifies the
 %   start points of each of the M strips of windows, and therefore also
 %   their widths in the direction parallel to the mask edge. If the
 %   location(s) specified by the StartPoint option are not on the mask
 %   boundary, the closest point on the mask boundary to each specified
 %   point will be used.
 %   No default. If not input, the start point will be wherever countourc.m
-%   decides to put it.
+%   decides to put it. (Usually leftmost point in image).
 % 
 %   ('NumParallel'->Positive integer scalar) This option is an alternative
 %   to specifying the window size in the direction parallel to the object
@@ -148,6 +148,11 @@ function windows = getMaskWindows(maskIn,perpSize,paraSize,varargin)
 %   that case, it can speed processing slightly. 
 %   Default is true.
 %
+%   ('StartPointsOnly'->true/false) If true, the windowing will not be
+%   performed and instead the start point locations (the locations of the
+%   gradient ascent starts) will be returned returned as an Mx2 matrix.
+%   This is used by getMovieWindows.m for propagating these start points
+%   and is probably useless for anything else.
 %
 % Output:
 %
@@ -183,11 +188,16 @@ function windows = getMaskWindows(maskIn,perpSize,paraSize,varargin)
 %   mask that were excluded, and the empty windows are left as
 %   place-holders.
 %
-% Known Issues:
+% Known Issues (areas excluded from windowing):
 %
-%   -When StartContour is set to 1, and there are small features in the mask approaching the size of
-%   ~perpSize in radius, these areas and areas uphill of them on the
-%   distance transform may be missed. Working on this bug. - HLE 
+%   -When StartContour is set to 1, and there are small features in the
+%   mask approaching the size of ~perpSize in radius, these areas and areas
+%   uphill of them on the distance transform will not be windowed.
+%   -If a Windows would cross a ridgeline in the distance transform that
+%   would cause part of the window to actually be closer to an edge on the
+%   other side of the object, this window is excluded.
+%   -When the object to be windowed touches the image border, there will be
+%   areas near the image boundary which will not be windowed.
 %
 % Hunter Elliott 
 % Re-Written 4/2010
@@ -214,7 +224,7 @@ if any(paraSize < 1)
 end
 
 %Parse additional options
-[startPoint,nPara,startContour,showPlots,doChecks] = parseInput(varargin);
+[startPoint,nPara,startContour,showPlots,doChecks,spOnly] = parseInput(varargin);
 
 if ~isempty(nPara) && (numel(nPara) > 1 || nPara < 2 || round(nPara) ~= nPara)
     error('The number of windows specified by the nPara input must be a positive integer scalar >= 2!')
@@ -261,6 +271,10 @@ end
 
 if showPlots
     firstTime = true;
+end
+
+if isempty(spOnly)
+    spOnly = false;
 end
 
 %% --------------- Parameters ----------------- %%
@@ -398,32 +412,73 @@ end
 %Loop through contours with this value
 distVals = cell(1,nStart);
 nWinPara = zeros(1,nStart);
-paraVertices = cell(1,nStart);
+paraVertInd = cell(1,nStart);
+paraVert = cell(1,nStart);
 slices = cell(1,nStart);
 
 %Calculate length along each start contour beforehand in case nPara rather
 %than paraSize was specified
 distAlong = cellfun(@(x)([0 cumsum(sqrt(diff(x(1,:)) .^2 + diff(x(2,:)) .^2))]),contours(iPerpStart),'UniformOutput',false);
 
-%If the user specified nPara rather than paraSize, and there are multiple
-%start contours, we need to  apportion this number among the start contours
-%according to their length.
 if nStart > 1 && isempty(paraSize) && ~isempty(nPara)                    
-    %Calculate total start-contour length
-    totLen = sum(cellfun(@(x)(x(end)),distAlong));
+        
+        %If the user specified nPara rather than paraSize, and there are
+        %multiple start contours, we need to  apportion this number among
+        %the start contours according to their length.
+        
+        %Calculate total start-contour length
+        totLen = sum(cellfun(@(x)(x(end)),distAlong));
+
+        %Get fraction of total length corresponding to each contour
+        fracLen = cellfun(@(x)(x(end) / totLen),distAlong);
+
+        %Apportion the slices among the start contours according to this
+        %fraction, while maintaining the total
+        nPara = apportionIntegers(fracLen,nPara);    
+
+        %Remove start contours which are too small for even a single window
+        tooShort = nPara == 0;    
+        nStart = nStart - nnz(tooShort);
+        nPara(tooShort) = [];
+        iPerpStart(tooShort) = [];
+        
+end
+
+if isempty(paraSize) && nStartPts > 1    
+    if nStart > 1
     
-    %Get fraction of total length corresponding to each contour
-    fracLen = cellfun(@(x)(x(end) / totLen),distAlong);
-    
-    %Apportion the slices among the start contours according to this
-    %fraction, while maintaining the total
-    nPara = apportionIntegers(fracLen,nPara);    
-    
-    %Remove contours which are too small for even a single window
-    tooShort = nPara == 0;    
-    nStart = nStart - nnz(tooShort);
-    nPara(tooShort) = [];
-    
+        %If the user specified a start point array and there are multiple
+        %starting contours, we need to assign each start point to the
+        %contour it is closest to.                
+        iClosestCont = zeros(nStartPts,1);
+        %Find which contour each start point is closest to
+        for j = 1:nStartPts
+            
+            [~,iClosestCont(j)] = min(cellfun(@(x)(min(sqrt( ...
+                               (x(1,:) - startPoint(j,1)) .^2 + ...
+                               (x(2,:) - startPoint(j,2)) .^2))),...
+                               contours(iPerpStart)));
+                        
+        end 
+        %Split the start points up among the contours        
+        spArray = cell(1,nStart);
+        nStartPerCont = zeros(1,nStart);
+        for j = 1:nStart
+            nStartPerCont(j) = nnz(iClosestCont == j);
+            spArray{j} = startPoint(iClosestCont==j,:);            
+        end
+        
+        %Remove start contours which do not have any start points
+        %associated with them
+        noPoints = nStartPerCont==0;
+        nStart = nStart - nnz(noPoints);
+        nStartPerCont(noPoints) = [];
+        iPerpStart(noPoints) = [];        
+        
+    else
+        spArray = {startPoint};
+        nStartPerCont = nStartPts;                        
+    end
 end
 
 for i = 1:nStart
@@ -454,24 +509,25 @@ for i = 1:nStart
         %Determine the number of windows there will be parallel to this edge 
         nWinPara(i) = numel(distVals{i})-1; %If the contours are closed, there will be duplication of the vertices on the "seam", but who cares?
 
-    elseif ~isempty(nPara)
-                        
+    elseif ~isempty(nPara) && nPara(i) > 0
+        %If the user specified the number of windows...                
         distVals{i} = linspace(0,distAlong{i}(end),nPara(i)+1);
         nWinPara(i) = nPara(i);
         
     elseif nStartPts > 1
-        nWinPara = nStartPts-1;
+        %If the user specified a start-point array...                
+        nWinPara(i) = nStartPerCont(i)-1;
         %If the user specified the slice start points locations directly...
-        for j = 1:min(nStartPts,nPts)%In case the user specified more start points than points on this contour...Anything can happen....
-            dToContour = @(x)(sqrt( (x(1,:) - startPoint(j,1) ) .^2 + ... 
-                                    (x(2,:) - startPoint(j,2) ) .^2 ));
-            
+        for j = 1:min(nStartPerCont(i),nPts)%In case the user specified more start points than points on this contour...Anything can happen....
+            dToContour = @(x)(sqrt( (x(1,:) - spArray{i}(j,1) ) .^2 + ... 
+                                    (x(2,:) - spArray{i}(j,2) ) .^2 ));
+
             [~,iClosest] = cellfun(@(x)(min(dToContour(x))),...
                                     contours(iPerpStart(i)));
             distVals{i}(j) = distAlong{i}(iClosest);
         end
         %Make sure these are in ascending order                
-        
+
         %First, if this is a closed contour we may need to change the last
         %index. This is because for start points near the "seam" in the windows
         %min will return the first point rather than the last, even though
@@ -480,52 +536,55 @@ for i = 1:nStart
             distVals{i}(end) = distAlong{i}(end);
         end
         %Now we can sort the values safely
-        distVals{i} = sort(distVals{i});
-    end        
-    
-    %Find the indices which best match these values
-    [~,paraVertices{i}] = arrayfun(@(x)(...
-        min(abs(distAlong{i}-distVals{i}(x)))),1:nWinPara(i)+1);
+        distVals{i} = sort(distVals{i});        
+    end                            
         
+    %Find the indices which best match these values
+    [~,paraVertInd{i}] = arrayfun(@(x)(...
+        min(abs(distAlong{i}-distVals{i}(x)))),1:nWinPara(i)+1);
+
+    %Get the coordinates of these indices
+    paraVert{i} = contours{iPerpStart(i)}(:,paraVertInd{i});
+
     %Find start points on image boundary - these are a special case
     sOnBoundA = arrayfun(@(x)(any(ceil(contours{iPerpStart(i)}... %On high boundary
-                (:,paraVertices{i}(x)))==[N,M]')),1:nWinPara(i)+1);
+                (:,paraVertInd{i}(x)))==[N,M]')),1:nWinPara(i)+1);
     sOnBoundB = arrayfun(@(x)(any(floor(contours{iPerpStart(i)}...%On low boundary
-                (:,paraVertices{i}(x)))==[1;1])),1:nWinPara(i)+1);    
-    
+                (:,paraVertInd{i}(x)))==[1;1])),1:nWinPara(i)+1);    
+
     % ---- Slice it up! ---- %
     %Compliments of Sylvain! 
     slices{i} = cell(1,nWinPara(i)+1);
     slices{i}(~(sOnBoundA | sOnBoundB)) = gradientDescent(double(max(distX(:)) - distX),... %invert to get gradient ascent
-            contours{iPerpStart(i)}(1,paraVertices{i}(~(sOnBoundA | sOnBoundB))),...
-            contours{iPerpStart(i)}(2,paraVertices{i}(~(sOnBoundA | sOnBoundB))));
-    
+            contours{iPerpStart(i)}(1,paraVertInd{i}(~(sOnBoundA | sOnBoundB))),...
+            contours{iPerpStart(i)}(2,paraVertInd{i}(~(sOnBoundA | sOnBoundB))));
+
     %Start points on the image boundary will terminate immediately during
     %gradient ascent/descent. We just shift these inwards to avoid this.
     if any(sOnBoundA)
-        tmpStartsA = contours{iPerpStart(i)}(:,paraVertices{i}(sOnBoundA))-gaShift;        
+        tmpStartsA = contours{iPerpStart(i)}(:,paraVertInd{i}(sOnBoundA))-gaShift;        
         slices{i}(sOnBoundA) = gradientDescent(double(max(distX(:)) - distX),... 
                                          tmpStartsA(1,:),tmpStartsA(2,:));
     end
     if any(sOnBoundB)
-        tmpStartsB = contours{iPerpStart(i)}(:,paraVertices{i}(sOnBoundB))+gaShift;                    
+        tmpStartsB = contours{iPerpStart(i)}(:,paraVertInd{i}(sOnBoundB))+gaShift;                    
         slices{i}(sOnBoundB) = gradientDescent(double(max(distX(:)) - distX),... 
                                          tmpStartsB(1,:),tmpStartsB(2,:));            
     end
-    
-    
+
+
     %Transpose these slices so they match with the contours
     slices{i} = cellfun(@(x)(x'),slices{i},'UniformOutput',false);
-    
+
     %If the starting contour was not the object boundary, we need to extend
     %the slices to the boundary by doing a gradient descent from the same
     %points
     if contourValues(iPerpStart(i)) > 0
-        
+
         tmp = cell(1,nWinPara(i)+1);
         tmp(~(sOnBoundA | sOnBoundB)) = gradientDescent(double(distX),...
-        contours{iPerpStart(i)}(1,paraVertices{i}(~(sOnBoundA | sOnBoundB))),...
-        contours{iPerpStart(i)}(2,paraVertices{i}(~(sOnBoundA | sOnBoundB))));    
+        contours{iPerpStart(i)}(1,paraVertInd{i}(~(sOnBoundA | sOnBoundB))),...
+        contours{iPerpStart(i)}(2,paraVertInd{i}(~(sOnBoundA | sOnBoundB))));    
         if any(sOnBoundA)            
             tmp(sOnBoundA) = gradientDescent(double(distX),... 
                                              tmpStartsA(1,:),tmpStartsA(2,:));
@@ -537,7 +596,7 @@ for i = 1:nStart
         %Transpose and reverse these...
         tmp = cellfun(@(x)(x(end:-1:1,:)'),tmp,'UniformOutput',false);
         %... and add them to the slices
-        slices{i} = arrayfun(@(x)([tmp{x}(:,1:end-1) slices{i}{x}]),1:length(tmp),'UniformOutput',false);        
+        slices{i} = arrayfun(@(x)([tmp{x}(:,1:end-1) slices{i}{x}]),1:length(tmp),'UniformOutput',false);                
     end
 end
 
@@ -569,18 +628,23 @@ if nStart > 1
     %Sort the slices using this ordering
     slices = cat(2,slices{:});
     slices = slices(sortZeroInt);
-    %Sort the paraVertices also
-    paraVertices = [paraVertices{:}];
-    paraVertices = paraVertices(sortZeroInt);
+    %Sort the paraVertInd also
+    paraVertInd = [paraVertInd{:}];    
+    paraVertInd = paraVertInd(sortZeroInt);
+    paraVert = [paraVert{:}];
+    paraVert = paraVert(:,sortZeroInt);
             
 else
     %Un-cell the 1x1 cell arrays
     slices = slices{1};
-    paraVertices = paraVertices{1};
+    paraVertInd = paraVertInd{1};
+    paraVert = paraVert{1};
 end
 
-
-
+if spOnly
+    windows = paraVert';
+    return
+end
 
 %% ------- Windowing ------- %%
 %Finds intersections of slices and contours (perpindicular and parallel
@@ -612,7 +676,7 @@ for j = 2:(nStrips+1)
     %barely touch and the intersection algorithm (sometimes) doesn't
     %count this as an intersection. We need to add these back... 
     if startContour == 1 && ~any(iContIntCur == iZeroCont)
-        iCintCur(iZeroCont) = paraVertices(j);
+        iCintCur(iZeroCont) = paraVertInd(j);
         iSintCur(iZeroCont) = 1;
         intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
         intYcur(iZeroCont) = contours{iZeroCont}(2,iCintCur(iZeroCont));
@@ -937,13 +1001,14 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
     end                                
 
 
-function [startPoint,nPara,startContour,showPlots,doChecks] = parseInput(argArray)
+function [startPoint,nPara,startContour,showPlots,doChecks,spOnly] = parseInput(argArray)
 
 startPoint = [];
 nPara = [];
 startContour = [];
 showPlots = [];
 doChecks = [];
+spOnly = [];
 
 if isempty(argArray)
     return
@@ -979,6 +1044,10 @@ for i = 1:2:nArg
         case 'DoChecks'
             
             doChecks = argArray{i+1};
+            
+        case 'StartPointsOnly'
+            
+            spOnly = argArray{i+1};
             
         otherwise
 
