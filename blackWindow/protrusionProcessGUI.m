@@ -22,7 +22,7 @@ function varargout = protrusionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help protrusionProcessGUI
 
-% Last Modified by GUIDE v2.5 01-Aug-2011 12:58:04
+% Last Modified by GUIDE v2.5 09-Aug-2011 14:51:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,6 +53,16 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
+
+segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
+segProcID=find(segProc);
+segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',false);
+segProcString = vertcat('Choose later',segProcNames(:));
+segProcData=horzcat({[]},num2cell(segProcID));
+segProcValue = find(cellfun(@(x) isequal(x,funParams.SegProcessIndex),segProcData));
+set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
+    'UserData',segProcData,'Value',segProcValue);
+
 userData.editParams ={'DownSample','SplineTolerance'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.editParams)
@@ -119,6 +129,9 @@ else
     channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
     funParams.ChannelIndex = channelIndex;
 end
+
+props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
+funParams.SegProcessIndex=props{1}{props{2}};
 
 for i=1:numel(userData.editParams)  
    funParams.(userData.editParams{i})=...
