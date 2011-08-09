@@ -3,6 +3,9 @@ if nargin < 4 || isempty(toDoList);
     toDoList=1:length(distGrad);
 end
 
+tracksMatxCord=round(tracksMatxCord);
+tracksMatyCord=round(tracksMatyCord);
+
 for frame=toDoList
     DX=distGrad(frame).xmat;
     DY=distGrad(frame).ymat;

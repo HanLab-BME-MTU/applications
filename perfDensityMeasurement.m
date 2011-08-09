@@ -3,6 +3,9 @@ if nargin < 5 || isempty(toDoList);
     toDoList=1:length(cellDistFromEdge);
 end
 
+tracksMatxCord=round(tracksMatxCord);
+tracksMatyCord=round(tracksMatyCord);
+
 for frame=toDoList
     k=1;
     maxC2ED=max(cellDistFromEdge(frame).mat(:));

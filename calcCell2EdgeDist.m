@@ -3,6 +3,9 @@ if nargin < 5 || isempty(toDoList);
     toDoList=1:length(cellDistFromEdge);
 end
 
+tracksMatxCord=round(tracksMatxCord);
+tracksMatyCord=round(tracksMatyCord);
+
 for frame=toDoList
     D=cellDistFromEdge(frame).mat;
     xvec=tracksMatxCord(:,frame);
