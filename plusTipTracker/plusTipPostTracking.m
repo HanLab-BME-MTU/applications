@@ -315,6 +315,15 @@ end
 projData.imDir = runInfo.imDir;
 projData.anDir = runInfo.anDir;
 
+% look for region of interest info from project setup step
+if exist([runInfo.anDir filesep 'masks'],'dir');
+    % set the mask to the mask of image 1 (first mask in list)
+    roiMask = double(logical(imread([projData.anDir filesep 'masks' filesep 'roiMask1.tif'])));      
+else % only one mask to load, load it here
+    roiMask = double(logical(imread([projData.anDir filesep 'roiMask.tif'])));
+end % if exist
+projData.roiArea = numel(roiMask);
+
 projData.trackingParameters.maxGapLength=gapCloseParam.timeWindow;
 projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
 projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
@@ -468,6 +477,7 @@ dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M, 'precisi
 
 if mkHist==1
    plusTipMakeHistograms(M,[runInfo.metaDir filesep 'histograms']) 
+   plusTipPlotTrackAngles(runInfo,[runInfo.metaDir filesep 'histograms']) 
 end
 
 

@@ -16,8 +16,8 @@ analysisFolder = [dataFolder filesep 'analysis'];
 
 % Script flads
 generateEB1Images = 0;
-detectComets =0;
-analyzeData =0;
+detectComets =1;
+analyzeData =1;
 plotData=1;
 generateMovie =0;
 
@@ -46,7 +46,7 @@ detectionMethod(2).function = @(x) plusTipAnisoGaussianCometDetector(x,...
 nDetectionMethods=numel(detectionMethod);
 
 % Parameters sweep
-n = 5; % Number of parameters
+n = 11; % Number of parameters
 SNR_min=2;
 SNR_max=10;
 ecc_min = 1;
