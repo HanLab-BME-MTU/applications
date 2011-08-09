@@ -32,24 +32,25 @@ ip.addRequired('data', @isstruct);
 ip.addRequired('tracks');
 ip.addRequired('frameIdx');
 ip.addRequired('ch');
-ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
-ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
+ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
-ip.addParamValue('visibleTracks', 'current', @(x) strcmpi(x, 'current') | strcmpi(x, 'all'));
+ip.addParamValue('DisplayType', 'valid', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection'})));
+ip.addParamValue('ShowEvents', 'true', @islogical);
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
-ip.addParamValue('handle', []);
+ip.addParamValue('Handle', []);
 ip.parse(data, tracks, frameIdx, ch, varargin{:});
 
-if ~isempty(ip.Results.handle)
-    ha = ip.Results.handle;
+if ~isempty(ip.Results.Handle)
+    ha = ip.Results.Handle;
     standalone = false;
 else
     h = figure('Visible', 'off', 'PaperPositionMode', 'auto');
     position = get(h, 'Position');
     position(4) = ceil(ny/nx*position(3));
-    set(h, 'Position', position, 'Visible', ip.Results.visible);
+    set(h, 'Position', position, 'Visible', ip.Results.Visible);
     ha = axes('Position', [0 0 1 1]);
     standalone = true;
 end
@@ -57,7 +58,7 @@ end
 %======================================
 % Plot frame
 %======================================
-switch ip.Results.mode
+switch ip.Results.Mode
     case 'RGB'
         if nCh>3
             error('Max. 3 channels in RGB mode.');
@@ -81,13 +82,15 @@ switch ip.Results.mode
             mask = double(imread(data.maskPaths{frameIdx}));
             frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
         else
-            frame = double(imread(data.framePaths{ch}{frameIdx}));
+            %frame = double(imread(data.framePaths{ch}{frameIdx}));
+            frame = uint8(scaleContrast(repmat(double(imread(data.framePaths{ch}{frameIdx})), [1 1 3]), ip.Results.iRange{ch}));
         end
     otherwise % grayscale frame
         if nCh>1
             error('Grayscale mode only supports 1 channel.');
         end
-        frame = double(imread(data.framePaths{ch}{frameIdx}));
+        %frame = double(imread(data.framePaths{ch}{frameIdx}));
+        frame = uint8(scaleContrast(repmat(double(imread(data.framePaths{ch}{frameIdx})), [1 1 3]), ip.Results.iRange{ch}));
 end
 
 %     [sy sx] = size(frame);
@@ -99,7 +102,6 @@ imagesc(frame, 'Parent', ha);
 if ~isempty(ip.Results.iRange{ch})
     caxis(ha, ip.Results.iRange{ch});
 end
-colormap(gray(256));
 axis(ha, 'image');
 
 
@@ -110,27 +112,79 @@ if ~isempty(tracks)
     lifetimes_f = [tracks.end]-[tracks.start]+1;
     cmap = jet(max(lifetimes_f));
     
-    X = catTrackFields(tracks, data.movieLength, 'x', ch);
-    Y = catTrackFields(tracks, data.movieLength, 'y', ch);
-
     hold(ha, 'on');
-    switch ip.Results.visibleTracks
-        case 'current'
+    switch lower(ip.Results.DisplayType)
+        case 'lifetime'
+            % discard any compound tracks
+            tracks(arrayfun(@(t) iscell(t.x), tracks)) = [];
+            tracks([tracks.valid]~=1) = [];
+            
+            X = catTrackFields(tracks, data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks, data.movieLength, 'y', ch);
+            gapMap = catTrackFields(tracks, data.movieLength, 'gapVect', 1)==1;
+            
             idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]); 
             if ~isempty(idx)
                 M = cmap(lifetimes_f(idx),:);
-                M([tracks(idx).valid]==0,:) = 0.5;
                 set(ha, 'ColorOrder', M);
-                %idx2 = sub2ind(size(X), idx, [tracks(idx).start])';
-                %plot(ha, [X(idx2) NaN(size(idx2))]', [Y(idx2) NaN(size(idx2))]', '*');
                 plot(ha, X(idx,1:frameIdx)', Y(idx,1:frameIdx)');
+                if ip.Results.ShowEvents
+                    % Births
+                    midx = find([tracks(idx).start]==frameIdx);
+                    for k = midx
+                        plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), '*', 'Color', M(k,:), 'MarkerSize', 8, 'LineWidth', 1);
+                    end
+                    % Deaths
+                    midx = find([tracks(idx).end]==frameIdx);
+                    for k = midx
+                        plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'x', 'Color', M(k,:), 'MarkerSize', 8, 'LineWidth', 1);
+                    end
+                    % Gaps
+                    midx = find(gapMap(idx,frameIdx))';
+                    for k = midx
+                        plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', M(k,:), 'MarkerSize', 6, 'LineWidth', 1);
+                    end                    
+                end
             end
-        case 'all'
-            for k = 1:length(tracks)
-                nf = length(tracks(k).t);
-                plot(ha, tracks(k).x(ch,1), tracks(k).y(ch,1), '*', 'Color', cmap(nf,:), 'MarkerSize', 5);
-                plot(ha, tracks(k).x(ch,:), tracks(k).y(ch,:), '-', 'Color', cmap(nf,:));
-            end
+        case 'category'
+            % plot regular tracks
+            cidx = [tracks.valid]==1 & arrayfun(@(t) ~iscell(t.x), tracks);
+            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'g');
+            
+            % Persistent tracks
+            cidx = arrayfun(@(t) ~iscell(t.x), tracks) & [tracks.status]==3;
+            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'y');
+            
+            % Invalid tracks
+            cidx = [tracks.valid]==0 & arrayfun(@(t) ~iscell(t.x), tracks) & [tracks.status]~=3;
+            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'r');
+            
+            % plot split/merge tracks
+            cidx = arrayfun(@(t) iscell(t.x), tracks);
+            [X, starts, ends] = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+            idx = find(starts <= frameIdx & frameIdx <= ends);
+            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'c');
+            
+        case 'projection'
+            X = catTrackFields(tracks, data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks, data.movieLength, 'y', ch);
+            M = cmap(lifetimes_f,:);
+            set(ha, 'ColorOrder', M);
+            plot(ha, X', Y');
     end
     hold(ha, 'off');
 end
@@ -147,7 +201,7 @@ end
 %======================================
 % Print EPS
 %======================================
-if strcmpi(ip.Results.print, 'on')
+if strcmpi(ip.Results.Print, 'on')
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
@@ -155,6 +209,6 @@ if strcmpi(ip.Results.print, 'on')
     print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) '_ch' num2str(ch) '.eps']);   
 end
 
-if strcmp(ip.Results.visible, 'off')
+if strcmp(ip.Results.Visible, 'off')
     close(h);
 end

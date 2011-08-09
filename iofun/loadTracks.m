@@ -15,12 +15,17 @@ cutoff = ip.Results.Cutoff * data.framerate;
 
 ta = load([data.source 'Tracking' filesep ip.Results.FileName]);
 tracks = ta.tracks;
+
 if strcmpi(ip.Results.Type, 'valid')
-    tracks = tracks([tracks.valid]==1 & [tracks.lifetime_s] >= cutoff);
-else
+    tracks = tracks([tracks.valid]==1 & [tracks.lifetime_s] >= cutoff & arrayfun(@(t) ~iscell(t.x), tracks));
+else % if all
     tracks = tracks([tracks.lifetime_s] >= cutoff);
 end
+
 if strcmpi(ip.Results.Sort, 'on')
-    [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
-    tracks = tracks(sortIdx);
+    rTrackIdx = find(arrayfun(@(t) ~iscell(t.x), tracks));
+    mTrackIdx = setdiff(1:length(tracks), rTrackIdx);
+    [~, rSortIdx] = sort([tracks(rTrackIdx).lifetime_s], 'descend');
+    [~, mSortIdx] = sort([tracks(mTrackIdx).lifetime_s], 'descend');
+    tracks = tracks([rSortIdx mSortIdx+rTrackIdx(end)]);
 end

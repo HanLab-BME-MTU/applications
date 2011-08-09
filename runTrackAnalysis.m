@@ -111,14 +111,14 @@ tracks(1:nTracks) = struct('t', [],...
     'pval_Ar', [], 'pval_KS', [], 'isPSF', [],...
     'status', [], 'gapStatus', [],...
     'gapStarts', [], 'gapEnds', [], 'gapLengths', [], 'gapVect', [],...
-    'segmentStarts', [], 'segmentEnds', [], 'segmentLengths', [],...
+    'segmentStarts', [], 'segmentEnds', [],...
     'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
     'seqOfEvents', [], 'tracksFeatIndxCG', []);
 
 
 % field names with multiple channels
 mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'pval_KS', 'isPSF'};
-gapFieldNames = {'gapStatus', 'gapStarts', 'gapEnds', 'gapLengths', 'gapVect', 'segmentStarts', 'segmentEnds', 'segmentLengths'};
+gapFieldNames = {'gapStatus', 'gapStarts', 'gapEnds', 'gapLengths', 'gapVect', 'segmentStarts', 'segmentEnds'};
 
 %==============================
 % Loop through tracks
@@ -214,6 +214,8 @@ for k = 1:nTracks
                     end
                 end
             end
+            tracks(k).segmentStarts{s} = bounds(1);
+            tracks(k).segmentEnds{s} = bounds(2);
         end
     %end
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
@@ -294,10 +296,6 @@ for k = 1:nTracks
             tracks(k).gapEnds{s} = gapEnds;
             tracks(k).gapLengths{s} = gapLengths;
             tracks(k).gapStatus{s} = gapStatus;
-            
-            tracks(k).segmentStarts{s} = segmentStarts;
-            tracks(k).segmentEnds{s} = segmentEnds;
-            tracks(k).segmentLengths{s} = segmentLengths;
         end
     end
     if isempty(segmentsWithGaps)
@@ -351,8 +349,6 @@ end
 nRegTracks = length(rTrackIdx);
 tracks = tracks([rTrackIdx setdiff(1:nTracks, rTrackIdx)]);
 rTrackIdx = 1:nRegTracks;
-
-% load('tmp.mat');
 
 %====================================================================================
 % Generate buffers before and after track, only for valid, single-segment tracks

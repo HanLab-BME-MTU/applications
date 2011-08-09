@@ -31,8 +31,13 @@ nf = length(idx);
 
 stack = cell(nc,nf);
 
-x = [track.startBuffer.x track.x track.endBuffer.x];
-y = [track.startBuffer.y track.y track.endBuffer.y];
+if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
+    x = [track.startBuffer.x track.x track.endBuffer.x];
+    y = [track.startBuffer.y track.y track.endBuffer.y];
+else
+    x = track.x;
+    y = track.y;
+end
 if size(x,1)==1 % expand if master channel detection only
     x = repmat(x, [nc 1]);
     y = repmat(y, [nc 1]);

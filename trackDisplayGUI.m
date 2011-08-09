@@ -1,7 +1,7 @@
 
 % Handles/settings are stored in 'appdata' of the figure handle
 
-function trackDisplayGUI(data, varargin)
+function hfig = trackDisplayGUI(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -16,7 +16,6 @@ nCh = length(data.channels);
 handles.nCh = nCh;
 % exclude master from list of channels
 handles.mCh = find(strcmp(data.source, data.channels));
-handles.slaveChannels = setdiff(1:nCh, handles.mCh);
 
 
 if nCh>4
@@ -29,6 +28,7 @@ if isstruct(tracks)
 else
     handles.tracks = tracks;
 end
+handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
 
 
 handles.displayType = 'raw';
@@ -77,11 +77,19 @@ handles.labelCheckbox = uicontrol('Style', 'checkbox', 'String', 'Channel labels
     'Position', [250 10, 140 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 handles.trackCheckbox = uicontrol('Style', 'checkbox', 'String', 'Tracks', 'Value', true,...
-    'Position', [390 30, 140 20], 'HorizontalAlignment', 'left',...
+    'Position', [390 30, 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
-handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
+handles.trackEventCheckbox = uicontrol('Style', 'checkbox', 'String', 'Gaps/Births/Deaths',...
     'Position', [390 10, 140 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
+
+handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
+    'Position', [540 10, 100 20], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, hfig});
+
+handles.trackChoice = uicontrol('Style', 'popup',...
+    'String', {'Lifetime', 'Category'},...
+    'Position', [460 30 100 20], 'Callback', {@trackChoice_Callback, hfig});
 
 handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
     'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
@@ -163,8 +171,7 @@ end
 
 
 % initialize handles
-
-
+handles.trackMode = 'Lifetime';
 handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
@@ -224,7 +231,6 @@ xlabel('Time (s)');
 for c = 1:nCh
     set(handles.fAxes{c}, 'XLim', [0.5 data.imagesize(2)+0.5], 'YLim', [0.5 data.imagesize(1)+0.5]);
 end
-colormap(gray(256));
 linkaxes([handles.tAxes{:}], 'x');
 axis([handles.fAxes{:}], 'image');
 
@@ -394,22 +400,26 @@ for k = 1:nAxes
     if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
         plotFrame(handles.data, handles.tracks{cvec(k)}, f, cidx,...
             'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
-            'Mode', handles.displayType);
+            'Mode', handles.displayType, 'DisplayType', handles.trackMode);
     else
         plotFrame(handles.data, [], f, cidx,...
             'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
             'Mode', handles.displayType);
     end
     
+    if k==1 && get(handles.('trackCheckbox'), 'Value') 
+        setColorbar(hfig, handles.trackMode);
+    end
+    
     hold(handles.fAxes{k}, 'on');
     
     % plot selected track marker
-    if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value')
+    if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value') 
         t = handles.tracks{chIdx}(handles.selectedTrack(k));
         ci = f-t.start+1;
         if 1 <= ci && ci <= length(t.x)
-            markerHandles(k) = plot(handles.fAxes{k}, t.x(ci), t.y(ci), 'ws', 'MarkerSize', 10*settings.zoom);
-            textHandles(k) = text(t.x(ci)+15, t.y(ci)+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
+            markerHandles(k) = plot(handles.fAxes{k}, t.x(chIdx,ci), t.y(chIdx,ci), 'ws', 'MarkerSize', 10*settings.zoom);
+            textHandles(k) = text(t.x(chIdx,ci)+15, t.y(chIdx,ci)+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
         end
     end
     
@@ -464,6 +474,51 @@ set(handles.fAxes{1}, 'YLim', YLim);
 
 setappdata(hfig, 'settings', settings);
 setappdata(hfig, 'handles', handles);
+
+
+
+
+function setColorbar(hfig, mode)
+handles = getappdata(hfig, 'handles');
+
+colorbar('peer', handles.fAxes{1}, 'delete');
+hc = colorbar('peer', handles.fAxes{1}, 'Units', 'normalized', 'Location', 'South');
+
+% Position colorbar on top of figures
+cpos = get(hc, 'Position');
+fpos = get(hfig, 'Position');
+% Top
+cpos(1) = cpos(1)+cpos(3)-150/fpos(3);
+cpos(3) = 150/fpos(3);
+cpos(2) = 1-40/fpos(4);
+cpos(4) = 0.8*cpos(4);
+
+% Right
+%pos(1) = pos(1)+15;
+%pos(2) = pos(2)+pos(4)-100;
+%pos(3) = 0.66*pos(3);
+%pos(4) = 100;
+%ml = handles.data.movieLength*handles.data.framerate;
+
+switch mode
+    case 'Lifetime'
+        colormap(handles.fAxes{1}, jet(handles.maxLifetime_f));
+        caxis(handles.fAxes{1}, [0 handles.maxLifetime_f])
+        set(hc, 'Position', cpos);
+        XTick = get(hc, 'XTick');
+        if XTick(1)==0
+            XTick(1) = handles.data.framerate;
+        end
+        if XTick(end) < 0.85*handles.maxLifetime_f
+            XTick = [XTick handles.maxLifetime_f];
+        end
+        set(hc, 'XTick', XTick);
+    case 'Category'
+        colormap(handles.fAxes{1}, [0 1 0; 0 1 1; 1 1 0; 1 0 0]);
+        caxis(handles.fAxes{1}, [0 4])
+        set(hc, 'Position', cpos);
+        set(hc, 'XTick', 0.5:1:3.5, 'TickLength', [0 0], 'XTickLabel', {'Valid', 'M/S', 'Pers.', 'Invalid'});
+end
 
 
 
@@ -661,6 +716,17 @@ switch contents{get(hObject,'Value')}
     case 'Detection'
         handles.displayType = 'mask';
 end
+setappdata(hfig, 'handles', handles);
+refreshFrameDisplay(hfig);
+
+
+
+
+function trackChoice_Callback(hObject, ~, hfig)
+handles = getappdata(hfig, 'handles');
+contents = cellstr(get(hObject, 'String'));
+handles.trackMode = contents{get(hObject,'Value')};
+setColorbar(hfig, handles.trackMode);
 setappdata(hfig, 'handles', handles);
 refreshFrameDisplay(hfig);
 
