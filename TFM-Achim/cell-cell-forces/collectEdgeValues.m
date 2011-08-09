@@ -8,6 +8,9 @@ function varargout=collectEdgeValues(groupedClusters,goodSet,varargin)
 % 'f2'    : The force f2 determined by the network analysis
 % 'fc1'   : The force f1 determined by the network analysis
 % 'fc2'   : The force f2 determined by the network analysis
+% 'nVec'  : is actually nVec_internal, the normal on the internal part of
+%           the interface (and not the field n_Vec which contains segments
+%           outside the cell).
 % 'Itot'  : The total Ecad intensity along the interface
 % 'Iavg'  : The total Ecad intensity along the interface
 % 'SIcorr': The stress and intensity profile along the INNER interface.
@@ -67,6 +70,15 @@ if ~isempty(fc2Pos)
     fc2_vals   = [];
 else
     fc2Check = 0;
+end
+
+nVecPos=find(strcmp('nVec',varargin));
+if ~isempty(nVecPos)
+    nVecCheck = 1;
+    % it is the next entry which contains the numeric value:
+    nVec_vals   = [];
+else
+    nVecCheck = 0;
 end
 
 ItotPos=find(strcmp('Itot',varargin));
@@ -155,6 +167,10 @@ for idx=1:length(goodSet)
             fc2_vals=vertcat(fc2_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.fc2);
         end
         
+        if  nVecCheck
+            nVec_vals=vertcat(nVec_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.nVec_internal);
+        end
+        
         if  ItotCheck
             Itot_vals=vertcat(Itot_vals ,groupedClusters.cluster{clusterId}.trackedNet{frame}.edge{edgeId}.int.tot);
         end
@@ -239,6 +255,10 @@ end
 
 if fc2Check
     varargout(fc2Pos) = {fc2_vals};
+end
+
+if nVecCheck
+    varargout(nVecPos) = {nVec_vals};
 end
 
 if ItotCheck

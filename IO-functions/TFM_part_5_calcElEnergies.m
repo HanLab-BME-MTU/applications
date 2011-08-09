@@ -1,7 +1,13 @@
-function [constrForceField]=TFM_part_5_calcElEnergies(constrForceField,forceField,displField,meshPtsFwdSol,toDoList)
-load('fileAndFolderNames.mat')
+function [constrForceField]=TFM_part_5_calcElEnergies(constrForceField,forceField,displField,meshPtsFwdSol,toDoList,doCorrection)
+if nargin<6
+    doCorrection=0;
+end
 
-if ~strcmp(pwd,path_ProjFolder)
+if nargin<6 || ~doCorrection
+    load('fileAndFolderNames.mat')
+end
+
+if ~doCorrection && ~strcmp(pwd,path_ProjFolder)
     display('Before running this script browse to the FSM project folder')
     return
 end
@@ -45,4 +51,8 @@ for frame=toDoList
     % here, saving should be still very fast:
 end
 % or save it after every frame (but that might take some time!):
-save(path_cellCellForces, 'constrForceField','-v7.3');
+if ~doCorrection
+    save(path_cellCellForces, 'constrForceField','-v7.3');
+else
+    save('cellCellForcesCorrected.mat','constrForceFieldCorrected','-v7.3');
+end

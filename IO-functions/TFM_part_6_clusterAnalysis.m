@@ -1,10 +1,17 @@
-function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField,opt,saveAll)
-load('fileAndFolderNames.mat')
+function [constrForceField]=TFM_part_6_clusterAnalysis(constrForceField,forceField,opt,saveAll,doCorrection)
 doPlot=0;
 
-if ~strcmp(pwd,path_ProjFolder)
+if nargin<5
+    doCorrection=0;
+end
+
+if ~doCorrection
+    load('fileAndFolderNames.mat')
+end
+
+if ~doCorrection && ~strcmp(pwd,path_ProjFolder)
     display('Before running this script browse to the FSM project folder')
-    return
+    return;
 end
 
 if nargin < 1 || isempty(constrForceField)
@@ -28,10 +35,10 @@ if nargin<4 || isempty(saveAll)
     saveAll=1;
 end
 
-% load the image file list for Ecad or Cytoplasmic marker:
-[sortedXtraFinalFileList]=getFileListFromFolder(path_XtraFinal);
-
-
+if doPlot && ~doCorrection
+    % load the image file list for Ecad or Cytoplasmic marker:
+    [sortedXtraFinalFileList]=getFileListFromFolder(path_XtraFinal);
+end
 
 % check which frames have been analyzed so far, and which frames contain
 % more than one cell, that is, has at least one interface:
@@ -47,8 +54,10 @@ end
 %**************************************************************************
 % Identify cells that are special: Radius [100] about the center of mass of
 % the cells. Channel and threshold has to be defined by the user:
-imageFileList=getFileListFromFolder(path_Xtra2ndFinal);
-constrForceField=identifySpecialCells(constrForceField,imageFileList,opt);
+if ~doCorrection
+    imageFileList=getFileListFromFolder(path_Xtra2ndFinal);
+    constrForceField=identifySpecialCells(constrForceField,imageFileList,opt);
+end
     
 
 %**************************************************************************
@@ -68,6 +77,9 @@ end
 %**************************************************************************
 % 2) Measure the intensity along the edges:                               *
 %**************************************************************************
+if doCorrection
+    path_XtraFinal='../data/Ecad';
+end
 imageFileList=getFileListFromFolder(path_XtraFinal);
 constrForceField=perfIntMeasures(constrForceField,imageFileList);
 
@@ -99,7 +111,11 @@ end
 %**************************************************************************
 % 5) Save the whole data so we can iterate on it later on                 *
 %**************************************************************************
-save(path_cellCellForces, 'constrForceField','-v7.3');
+if ~doCorrection
+    save(path_cellCellForces, 'constrForceField','-v7.3');
+else
+    save('cellCellForcesCorrected.mat','constrForceFieldCorrected','-v7.3');
+end
 
 %**************************************************************************
 % 6) Save only the tracked network for statistics (smaller size)          *
@@ -111,7 +127,14 @@ for frame=toDoList
     trackedNet{frame}.par  =constrForceField{frame}.par;
 end
 
+if doCorrection
+    path_BeadsFolder='../data/Beads';
+end
+
 [~,fnameFirstBeadImg]=getFileListFromFolder(path_BeadsFolder);
-save(path_trackedNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
 
-
+if ~doCorrection
+    save(path_trackedNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
+else
+    save('trackedNetCorrected.mat','constrForceFieldCorrected','-v7.3');
+end

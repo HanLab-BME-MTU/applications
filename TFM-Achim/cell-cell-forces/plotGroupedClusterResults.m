@@ -11,15 +11,16 @@ end
 
 %close all;
 
-onlyCorr=0;
+onlyCorr=1;
 if ~onlyCorr
     
 cutOffMag=0;
 cutOffRelErr=Inf;
+
 %**************************************************************************
 % Error analysis:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8 35],'relErrF',Inf,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'relErrF',Inf,'errs',0);
 [f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1','fc2');
 f1_mag = sqrt(sum(f1_vals.^2,2));
 f2_mag = sqrt(sum(f2_vals.^2,2));
@@ -97,7 +98,7 @@ box on
 set(gca,'LineWidth',2,'FontSize',20)
 hold off
 
-close all;
+%close all;
 
 % append f1,f2 and doublicat the other measurements:
 
@@ -162,31 +163,89 @@ display('rel. error fc:')
 display(['mean   +-      std: ',num2str(  mean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fc_fn),'%0.4f')])
 display(['median +- 1.48*MAD: ',num2str(median(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
 
+end %if ~onlyCorr
 
+%**************************************************************************
+% Estimate improvement from substracting systematic error                 :
+%**************************************************************************
+goodCellSet=findCells(groupedClusters,'kPa',[65]);
 
+goodCluster=unique(horzcat(goodCellSet.clusterId));
+   
+tooShort=0;
+for iCluster=goodCluster
+    close all
+    currErrVecList=[];
+    for iFrame=1:length(groupedClusters.cluster{iCluster}.trackedNet)
+        if ~isempty(groupedClusters.cluster{iCluster}.trackedNet{iFrame})
+            currErrVecList=vertcat(currErrVecList,groupedClusters.cluster{iCluster}.trackedNet{iFrame}.stats.errorSumForce.vec);
+        end
+    end
+    figure()
+    plot(currErrVecList(:,1),currErrVecList(:,2),'*')
+    hold on;
+    plot([-1.1*max(abs(currErrVecList(:,1))) 1.1*max(abs(currErrVecList(:,1)))], [0 0],'k')
+    plot([0 0], [-1.1*max(abs(currErrVecList(:,2))) 1.1*max(abs(currErrVecList(:,2)))],'k')
+    xlim([-1.1*max(abs(currErrVecList(:,1))) 1.1*max(abs(currErrVecList(:,1)))])
+    ylim([-1.1*max(abs(currErrVecList(:,2))) 1.1*max(abs(currErrVecList(:,2)))])
+    axis equal
+    hold off;
+    
+   
+    %corrected:
+    if length(currErrVecList(:,1))>10
+        currErrVecListNew=[currErrVecList(:,1)-nanmean(currErrVecList(:,1)) currErrVecList(:,2)-nanmean(currErrVecList(:,2))];
+    else
+        currErrVecListNew=currErrVecList;
+        tooShort=tooShort+1;
+    end
+    
+    figure()
+    plot(currErrVecListNew(:,1),currErrVecListNew(:,2),'*')
+    hold on;
+    plot([-1.1*max(abs(currErrVecListNew(:,1))) 1.1*max(abs(currErrVecListNew(:,1)))], [0 0],'k')
+    plot([0 0], [-1.1*max(abs(currErrVecListNew(:,2))) 1.1*max(abs(currErrVecListNew(:,2)))],'k')
+    xlim([-1.1*max(abs(currErrVecListNew(:,1))) 1.1*max(abs(currErrVecListNew(:,1)))])
+    ylim([-1.1*max(abs(currErrVecListNew(:,2))) 1.1*max(abs(currErrVecListNew(:,2)))])
+    axis equal
+    hold off
+    
+    avgErr    = nanmean(sqrt(nansum(currErrVecList.^2   ,2)),1);
+    avgErrNew = nanmean(sqrt(nansum(currErrVecListNew.^2,2)),1);
+    relImprov = avgErrNew/avgErr;
+    
+    errAnalysis(iCluster).errVecList    = currErrVecList;
+    errAnalysis(iCluster).errVecListNew = currErrVecListNew;
+    errAnalysis(iCluster).avgErr        = avgErr;
+    errAnalysis(iCluster).avgErrNew     = avgErrNew;
+    errAnalysis(iCluster).relImprov     = relImprov;
+end
+hist(horzcat(errAnalysis.relImprov),10)
+mean(horzcat(errAnalysis.relImprov))
+tooShort
 
 
 
 %**************************************************************************
 % Compare network and cluster analysis:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters);%,'errF',500,'errs',0);
-[f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1');
-fn_mag = sqrt(sum((0.5*(f1_vals-f2_vals)).^2,2));
-fc_mag   = sqrt(sum(fc1_vals.^2,2));
-
-figure()
-% checked with part7
-glbMin=min([fc_mag;fn_mag]);
-glbMax=max([fc_mag;fn_mag]);
-plot(fc_mag,fn_mag,'*');
-hold on
-plot([0 glbMax],[0 glbMax],'--k')
-xlim([glbMin glbMax])
-ylim([glbMin glbMax])
-xlabel('fc [nN]')
-ylabel('fnet [nN]')
-hold off
+% goodEdgeSet=findEdges(groupedClusters);%,'errF',500,'errs',0);
+% [f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1');
+% fn_mag = sqrt(sum((0.5*(f1_vals-f2_vals)).^2,2));
+% fc_mag   = sqrt(sum(fc1_vals.^2,2));
+% 
+% figure()
+% % checked with part7
+% glbMin=min([fc_mag;fn_mag]);
+% glbMax=max([fc_mag;fn_mag]);
+% plot(fc_mag,fn_mag,'*');
+% hold on
+% plot([0 glbMax],[0 glbMax],'--k')
+% xlim([glbMin glbMax])
+% ylim([glbMin glbMax])
+% xlabel('fc [nN]')
+% ylabel('fnet [nN]')
+% hold off
 
 % Do the angular deviation.
 
@@ -313,9 +372,10 @@ plotResultsForTwoStiff(groupedClusters);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93'},'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
 goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
-[deg_vals,lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','f1','f2','fc1','fc2');
+[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
-fc1_mag = sqrt(sum(fc1_vals.^2,2));
+fc1_mag    = sqrt(sum(fc1_vals.^2,2));
+intfStress = fc1_mag./lgth_vals;
 
 figure()
 % checked with part7
@@ -355,7 +415,7 @@ clear M
 
 figure()
 % checked with part7, but the deg values should be sorted in a nicer way!
-boxplot(fc1_mag./lgth_vals,num2str(deg_vals_sorted),'notch','on')
+boxplot(intfStress,num2str(deg_vals_sorted),'notch','on')
 title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals))])
 xlabel('Deg of connectivity')
 ylabel('Interface stress [nN/um]')
@@ -366,6 +426,95 @@ boxplot(lgth_vals,num2str(deg_vals_sorted),'notch','on')
 title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals))])
 xlabel('Deg of connectivity')
 ylabel('Interface length [um]')
+
+
+figure()
+% checked with part7
+degij_stress=[deg_vals_sorted intfStress];
+% first sort according to the first column (the small degree value, since
+% presorted above), and then sort once more according to the second degree
+% value to obtain a nice ordering of the degree pairs:
+degij_stress_dbl_sorted=sortrows(degij_stress,[1 2]);
+stress_dbl_sorted = degij_stress_dbl_sorted(:,3);
+deg_dbl_sorted    = degij_stress_dbl_sorted(:,1:2);
+boxplot(stress_dbl_sorted,num2str(deg_dbl_sorted),'notch','on')
+title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('Interface stress [nN]')
+
+figure()
+% replot grouped values:
+% make the legend:
+deg_dbl_sorted_groups=deg_dbl_sorted(:,1);
+label=1;
+while ~isempty(deg_dbl_sorted_groups)
+    degGroup=deg_dbl_sorted_groups(1);
+    checkVec=deg_dbl_sorted_groups==degGroup;
+    degCount=sum(checkVec);
+    deg_dbl_sorted_groups(checkVec)=[];
+    M{label}=['deg: ',num2str(degGroup),'-x; [n= ',num2str(degCount),']'];
+    label=label+1;
+end
+boxplot(stress_dbl_sorted,num2str(deg_dbl_sorted(:,1)),'labels',M,'notch','on')
+% this should be compared with the following to make sure that the counting is correct:
+% h=boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted(:,1)));
+title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Minimal deg. of connectivity')
+ylabel('Interface stress [nN/um]')
+clear M
+
+%**************************************************************************
+% plot the angle in depdence of pair degree of connectivity:
+%**************************************************************************
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',8,'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',0,'myoGlb',[0],'errF',500,'errs',0);
+[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
+deg_vals_sorted=sort(deg_vals,2);
+fc1_mag = sqrt(sum(fc1_vals.^2,2));
+alpha_fc1_nVec= acosd(dot(fc1_vals,nVec_vals,2)./(fc1_mag));
+
+%quick cheat:
+cv=alpha_fc1_nVec>90;
+alpha_fc1_nVec(cv)=180-alpha_fc1_nVec(cv);
+
+figure()
+% checked with part7
+degij_alpha_fc_nVec=[deg_vals_sorted alpha_fc1_nVec];
+% first sort according to the first column (the small degree value, since
+% presorted above), and then sort once more according to the second degree
+% value to obtain a nice ordering of the degree pairs:
+degij_alpha_dbl_sorted = sortrows(degij_alpha_fc_nVec,[1 2]);
+alpha_dbl_sorted       = degij_alpha_dbl_sorted(:,3);
+deg_dbl_sorted         = degij_alpha_dbl_sorted(:,1:2);
+boxplot(alpha_dbl_sorted,num2str(deg_dbl_sorted),'notch','on')
+title(['Angle to the normal of the interface for edges with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('Angle [deg]')
+
+figure()
+% replot grouped values:
+% make the legend:
+deg_dbl_sorted_groups=deg_dbl_sorted(:,1);
+label=1;
+while ~isempty(deg_dbl_sorted_groups)
+    degGroup=deg_dbl_sorted_groups(1);
+    checkVec=deg_dbl_sorted_groups==degGroup;
+    degCount=sum(checkVec);
+    deg_dbl_sorted_groups(checkVec)=[];
+    M{label}=['deg: ',num2str(degGroup),'-x; [n= ',num2str(degCount),']'];
+    label=label+1;
+end
+boxplot(alpha_dbl_sorted,num2str(deg_dbl_sorted(:,1)),'labels',M,'notch','on')
+% this should be compared with the following to make sure that the counting is correct:
+% h=boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted(:,1)));
+title(['Angle to the normal of the interface for edges with connectivit: ',num2str(1:max(deg_vals))])
+xlabel('Minimal deg. of connectivity')
+ylabel('Angle [deg]')
+clear M
+
 
 %**************************************************************************
 % Plot ctr-ctr, ctr-myo, myo-myo, for degree 1-1 interfaces for E=8,35kPa:*
@@ -517,7 +666,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-end %if ~onlyCorr
+% end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************

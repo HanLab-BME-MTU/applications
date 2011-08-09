@@ -1,5 +1,5 @@
 function [constrForceFieldUpdated]=updateConstrForceField(constrForceField,forceField,method)
-% updates the constrForceField give a new forceField. This function is
+% updates the constrForceField given a new forceField. This function is
 % useful e.g. when a forceField has been recalculated with a different
 % regularization parameter or the displacement field has been reanalyzed
 % with a different template size.
@@ -38,7 +38,7 @@ for frame=toDoList
     % Fill in the unchanged fields:
     constrForceFieldUpdated{frame}.segmRes  =constrForceField{frame}.segmRes;
     constrForceFieldUpdated{frame}.interface=constrForceField{frame}.interface;
-    if isfield(constrForceFieldUpdated{frame},'twoCellIntf');
+    if isfield(constrForceField{frame},'twoCellIntf');
         constrForceFieldUpdated{frame}.twoCellIntf=constrForceField{frame}.twoCellIntf;
     end
     
@@ -84,6 +84,15 @@ for frame=toDoList
         constrForceFieldUpdated{frame}.cell{cellID}.interface=constrForceField{frame}.cell{cellID}.interface;
         constrForceFieldUpdated{frame}.cell{cellID}.innerMask=constrForceField{frame}.cell{cellID}.innerMask;
         constrForceFieldUpdated{frame}.cell{cellID}.cellArea =constrForceField{frame}.cell{cellID}.cellArea;
+        
+        % if myosin cells have been identified, then fill in the values:
+        if isfield(constrForceField{frame}.cell{cellID}.stats,'spec');
+            constrForceFieldUpdated{frame}.cell{cellID}.stats.spec=constrForceField{frame}.cell{cellID}.stats.spec;
+        end
+        if isfield(constrForceField{frame}.cell{cellID}.stats,'type');
+            constrForceFieldUpdated{frame}.cell{cellID}.stats.type=constrForceField{frame}.cell{cellID}.stats.type;    
+        end
+        % some stats field are updated below...    
         
         %******************************************************************
         % .pos, vec and stats: fill in the new values                     *
