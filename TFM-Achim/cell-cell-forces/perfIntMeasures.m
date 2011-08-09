@@ -56,9 +56,9 @@ for frame=toDoList
 
             edge{edgeId}.int.val    = Iflt1(idxCurve1);
             edge{edgeId}.int.val2   = Iflt2(idxCurve2);
-            edge{edgeId}.int.tot    = sum(edge{edgeId}.int.val1);
+            edge{edgeId}.int.tot    = sum(edge{edgeId}.int.val);
             edge{edgeId}.int.tot2   = sum(edge{edgeId}.int.val2);
-            edge{edgeId}.int.avg    = sum(edge{edgeId}.int.tot1)/numel(idxCurve1);
+            edge{edgeId}.int.avg    = sum(edge{edgeId}.int.tot)/numel(idxCurve1);
             edge{edgeId}.int.avg2   = sum(edge{edgeId}.int.tot2)/numel(idxCurve2);
             edge{edgeId}.int.h      = h1;
             edge{edgeId}.int.h2     = h2;
