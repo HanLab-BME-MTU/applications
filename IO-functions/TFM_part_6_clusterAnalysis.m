@@ -114,6 +114,7 @@ end
 if ~doCorrection
     save(path_cellCellForces, 'constrForceField','-v7.3');
 else
+    constrForceFieldCorrected=constrForceField;
     save('cellCellForcesCorrected.mat','constrForceFieldCorrected','-v7.3');
 end
 
@@ -136,5 +137,6 @@ end
 if ~doCorrection
     save(path_trackedNet, 'trackedNet','fnameFirstBeadImg','-v7.3');
 else
-    save('trackedNetCorrected.mat','constrForceFieldCorrected','-v7.3');
+    trackedNetCorrected=trackedNet;
+    save('trackedNetCorrected.mat','trackedNetCorrected','fnameFirstBeadImg','-v7.3');
 end
