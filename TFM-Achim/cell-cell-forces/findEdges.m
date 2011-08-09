@@ -33,7 +33,9 @@ function goodEdgeSet=findEdges(groupedClusters,varargin)
 %           -1: edge that disassemble during the movie (cell is breaking
 %               apart)
 % 'dItotRel': Threshold that the relative change in intensity (Itot) has to
-%           exceed to pass the test.
+%           exceed to pass the test. This is based on the averaging with
+%           radius r1=10pix. It needs to be changed in the code if one
+%           wants to try r2=5pix. See line ~268%   
 % 'errF'  : x: Only clusters with an error in the force measurement of <x
 %           will be considered (the magnitude of the error in [nN]).
 % 'errs'  : 0/x: If 0, only clusters with no missing forces will be 

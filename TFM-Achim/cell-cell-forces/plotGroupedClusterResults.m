@@ -163,7 +163,7 @@ display('rel. error fc:')
 display(['mean   +-      std: ',num2str(  mean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fc_fn),'%0.4f')])
 display(['median +- 1.48*MAD: ',num2str(median(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
@@ -666,7 +666,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-% end %if ~onlyCorr
+end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************
@@ -683,7 +683,7 @@ relErrF_val_corr=Inf;
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',1,'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',8,'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
@@ -692,3 +692,8 @@ if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
 else
     display('No myosin cells of this type found!')
 end
+
+%**************************************************************************
+% Plot the edges from above:
+%**************************************************************************
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
