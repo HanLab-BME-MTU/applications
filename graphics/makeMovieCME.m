@@ -25,6 +25,7 @@ ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | str
 ip.addParamValue('Channel', 1, @(x) ismember(x, 1:length(data.channels)));
 ip.addParamValue('FrameRange', 1:data.movieLength);
 ip.addParamValue('FileType', 'png', @(x) strcmpi(x, 'png') | strcmpi(x, 'tif') | strcmpi(x, 'tiff'));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection'})));
 ip.parse(data, varargin{:});
 
 nx = data.imagesize(2);
@@ -82,7 +83,7 @@ nf = numel(ip.Results.FrameRange);
 fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
     plotFrame(data, tracks, f, ch, 'iRange', dRange, 'Handle', ha,...
-        'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar);
+        'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar, 'DisplayType', ip.Results.DisplayType);
     axis(ha, 'off');
     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
     %print(h, '-djpeg100', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);

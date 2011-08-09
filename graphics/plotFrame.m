@@ -36,7 +36,7 @@ ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
-ip.addParamValue('DisplayType', 'valid', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection'})));
 ip.addParamValue('ShowEvents', 'true', @islogical);
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
