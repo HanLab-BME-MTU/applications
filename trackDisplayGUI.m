@@ -502,7 +502,14 @@ cpos(4) = 0.8*cpos(4);
 
 switch mode
     case 'Lifetime'
-        colormap(handles.fAxes{1}, jet(handles.maxLifetime_f));
+        if handles.maxLifetime_f>120
+            df = handles.maxLifetime_f-120;
+            dc = 0.25/df;
+            cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
+        else
+            cmap = jet(handles.maxLifetime_f);
+        end
+        colormap(handles.fAxes{1}, cmap);
         caxis(handles.fAxes{1}, [0 handles.maxLifetime_f])
         set(hc, 'Position', cpos);
         XTick = get(hc, 'XTick');
