@@ -37,7 +37,7 @@ for iframe=1:numFrames
         errorStress(iframe,:)            = constrForceField{iframe}.errorSumForce.vec/factor_Pa2nN;
         area(iframe)                     = sum(constrForceField{iframe}.segmRes.maskDilated(:));
         errorStress_perpix(iframe,:)     = errorStress(iframe,:)/area(iframe);        
-        gridSpacing(iframe)              = constrForceField{1}.par.gridSpacing;
+        gridSpacing(iframe)              = constrForceField{iframe}.par.gridSpacing;
     end
 end
 
