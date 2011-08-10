@@ -4,15 +4,19 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
+ip.addParamValue('Tracks', []);
+
 ip.parse(data, varargin{:});
 
 
 for k = 1:length(data)
-
-    ta = load([data(k).source 'Tracking' filesep ip.Results.FileName]);
-    tracks = ta.tracks;
-    data(k).tracks = tracks([tracks.valid]==1);
-
+    if isempty(ip.Results.Tracks)
+        ta = load([data(k).source 'Tracking' filesep ip.Results.FileName]);
+        tracks = ta.tracks;
+        data(k).tracks = tracks([tracks.valid]==1);
+    else
+        data(k).tracks = ip.Results.tracks;
+    end        
     data(k).lifetimes = [tracks.lifetime_s];
 end
 
