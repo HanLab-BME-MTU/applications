@@ -28,8 +28,12 @@ if isstruct(tracks)
 else
     handles.tracks = tracks;
 end
-handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
 
+if ~isempty(handles.tracks{handles.mCh})
+    handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
+else
+    handles.maxLifetime_f = [];
+end
 
 handles.displayType = 'raw';
 if ~all(cellfun(@(x) isempty(x), handles.tracks))
@@ -71,25 +75,25 @@ handles.frameChoice = uicontrol('Style', 'popup',...
 
 % Checkboxes
 handles.detectionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Positions',...
-    'Position', [250 30, 140 20], 'HorizontalAlignment', 'left',...
+    'Position', [250 35 140 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 handles.labelCheckbox = uicontrol('Style', 'checkbox', 'String', 'Channel labels',...
-    'Position', [250 10, 140 20], 'HorizontalAlignment', 'left',...
+    'Position', [250 10 140 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 handles.trackCheckbox = uicontrol('Style', 'checkbox', 'String', 'Tracks', 'Value', true,...
-    'Position', [390 30, 100 20], 'HorizontalAlignment', 'left',...
+    'Position', [390 35 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 handles.trackEventCheckbox = uicontrol('Style', 'checkbox', 'String', 'Gaps/Births/Deaths',...
-    'Position', [390 10, 140 20], 'HorizontalAlignment', 'left',...
+    'Position', [390 10 150 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 
 handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
-    'Position', [540 10, 100 20], 'HorizontalAlignment', 'left',...
+    'Position', [540 10 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 
 handles.trackChoice = uicontrol('Style', 'popup',...
     'String', {'Lifetime', 'Category'},...
-    'Position', [460 30 100 20], 'Callback', {@trackChoice_Callback, hfig});
+    'Position', [460 35 100 20], 'Callback', {@trackChoice_Callback, hfig});
 
 handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
     'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
@@ -481,52 +485,53 @@ setappdata(hfig, 'handles', handles);
 function setColorbar(hfig, mode)
 handles = getappdata(hfig, 'handles');
 
-colorbar('peer', handles.fAxes{1}, 'delete');
-hc = colorbar('peer', handles.fAxes{1}, 'Units', 'normalized', 'Location', 'South');
-
-% Position colorbar on top of figures
-cpos = get(hc, 'Position');
-fpos = get(hfig, 'Position');
-% Top
-cpos(1) = cpos(1)+cpos(3)-150/fpos(3);
-cpos(3) = 150/fpos(3);
-cpos(2) = 1-40/fpos(4);
-cpos(4) = 0.8*cpos(4);
-
-% Right
-%pos(1) = pos(1)+15;
-%pos(2) = pos(2)+pos(4)-100;
-%pos(3) = 0.66*pos(3);
-%pos(4) = 100;
-%ml = handles.data.movieLength*handles.data.framerate;
-
-switch mode
-    case 'Lifetime'
-        if handles.maxLifetime_f>120
-            df = handles.maxLifetime_f-120;
-            dc = 0.25/df;
-            cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
-        else
-            cmap = jet(handles.maxLifetime_f);
-        end
-        colormap(handles.fAxes{1}, cmap);
-        caxis(handles.fAxes{1}, [0 handles.maxLifetime_f])
-        set(hc, 'Position', cpos);
-        XTick = get(hc, 'XTick');
-        if XTick(1)==0
-            XTick(1) = handles.data.framerate;
-        end
-        if XTick(end) < 0.85*handles.maxLifetime_f
-            XTick = [XTick handles.maxLifetime_f];
-        end
-        set(hc, 'XTick', XTick);
-    case 'Category'
-        colormap(handles.fAxes{1}, [0 1 0; 0 1 1; 1 1 0; 1 0 0]);
-        caxis(handles.fAxes{1}, [0 4])
-        set(hc, 'Position', cpos);
-        set(hc, 'XTick', 0.5:1:3.5, 'TickLength', [0 0], 'XTickLabel', {'Valid', 'M/S', 'Pers.', 'Invalid'});
+if ~isempty(handles.tracks{handles.mCh})
+    colorbar('peer', handles.fAxes{1}, 'delete');
+    hc = colorbar('peer', handles.fAxes{1}, 'Units', 'normalized', 'Location', 'South');
+    
+    % Position colorbar on top of figures
+    cpos = get(hc, 'Position');
+    fpos = get(hfig, 'Position');
+    % Top
+    cpos(1) = cpos(1)+cpos(3)-150/fpos(3);
+    cpos(3) = 150/fpos(3);
+    cpos(2) = 1-40/fpos(4);
+    cpos(4) = 0.8*cpos(4);
+    
+    % Right
+    %pos(1) = pos(1)+15;
+    %pos(2) = pos(2)+pos(4)-100;
+    %pos(3) = 0.66*pos(3);
+    %pos(4) = 100;
+    %ml = handles.data.movieLength*handles.data.framerate;
+    
+    switch mode
+        case 'Lifetime'
+            if handles.maxLifetime_f>120
+                df = handles.maxLifetime_f-120;
+                dc = 0.25/df;
+                cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
+            else
+                cmap = jet(handles.maxLifetime_f);
+            end
+            colormap(handles.fAxes{1}, cmap);
+            caxis(handles.fAxes{1}, [0 handles.maxLifetime_f])
+            set(hc, 'Position', cpos);
+            XTick = get(hc, 'XTick');
+            if XTick(1)==0
+                XTick(1) = handles.data.framerate;
+            end
+            if XTick(end) < 0.85*handles.maxLifetime_f
+                XTick = [XTick handles.maxLifetime_f];
+            end
+            set(hc, 'XTick', XTick);
+        case 'Category'
+            colormap(handles.fAxes{1}, [0 1 0; 0 1 1; 1 1 0; 1 0 0]);
+            caxis(handles.fAxes{1}, [0 4])
+            set(hc, 'Position', cpos);
+            set(hc, 'XTick', 0.5:1:3.5, 'TickLength', [0 0], 'XTickLabel', {'Valid', 'M/S', 'Pers.', 'Invalid'});
+    end
 end
-
 
 
 
@@ -576,17 +581,48 @@ if ~isempty(handles.selectedTrack)
         ybounds = get(h, 'YLim');
         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
         axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
-    end
-  
-    % display result of classification, if available
-    if isfield(handles.tracks{1}, 'cStatus')
-        cStatus = handles.tracks{1}(handles.selectedTrack(1)).cStatus(2);
-        if cStatus == 1
-            set(handles.statusLabel, 'String', 'Ch. 2: EAF+');
-        else
-            set(handles.statusLabel, 'String', 'Ch. 2: EAF-');
+        
+        
+        % display result of classification, if available
+        %if isfield(handles.tracks{1}, 'cStatus')
+        %    cStatus = handles.tracks{1}(handles.selectedTrack(1)).cStatus(2);
+        %    if cStatus == 1
+        %        set(handles.statusLabel, 'String', 'Ch. 2: EAF+');
+        %    else
+        %        set(handles.statusLabel, 'String', 'Ch. 2: EAF-');
+        %    end
+        %end
+        %pos = get(handles.
+        %aspectRatio = 
+        dx = 0.03;
+        if isfield(handles.tracks{1}, 'significantSignal')
+            s = handles.tracks{1}(handles.selectedTrack).significantSignal;
+            if s(ci)==1
+                slabel = 'yes';
+                scolor = [0 0.8 0];
+            else
+                slabel = 'no';
+                scolor = [0.8 0 0];
+            end
+            text(1-dx, 1-dx,...
+                ['Significant: ' slabel],...
+                'Color', scolor, 'Units', 'normalized',...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+                'Parent', handles.tAxes{ci});
         end
+        
+        %     if ~isRGB && get(handles.('labelCheckbox'), 'Value')
+        %         dx = 0.03;
+        %         text(1-dx*handles.fAspectRatio, dx,...
+        %             handles.data.markers{k},...
+        %             'Color', handles.rgbColors{k}, 'Units', 'normalized',...
+        %             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
+        %             'Parent', handles.fAxes{k});
+        %     end
+        
+        
     end
+    
     % retain zoom level
     set(h, 'XLim', [max(sTrack.start-bStart-11,0) min(sTrack.end+bEnd+9,handles.data.movieLength-1)]*handles.data.framerate);
     xlabel(h, 'Time (s)');

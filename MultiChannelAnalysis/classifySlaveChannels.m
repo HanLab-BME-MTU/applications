@@ -97,13 +97,10 @@ for k = 1:10:data.movieLength
     %-----------------------------------------------
     % Pick random mask from detection
     %-----------------------------------------------
-    load([data.source 'Detection' filesep 'detectionResults.mat']);
-    
-    frameList = dir([data.channels{2} '*.tif*']);
-    frame = double(imread([data.channels{2} frameList(10).name]));
+    frame = double(imread(data.framePaths{2}{10}));
     
     % ctrlStatus = zeros(1, npRef);
-    N = sum(bgMask(:));
+    %N = sum(bgMask(:));
     
     %=========================================================================
     % Note: the following code is adapted from pointSourceDetection.m
