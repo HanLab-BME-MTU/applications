@@ -54,7 +54,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 handles.output = hObject;
 
 % Update user data and GUI data
-set(hObject, 'UserData', userData);
+% set(hObject, 'UserData', userData);
 guidata(hObject, handles);
 
 

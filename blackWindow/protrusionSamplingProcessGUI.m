@@ -47,14 +47,11 @@ end
 % --- Executes just before protrusionSamplingProcessGUI is made visible.
 function protrusionSamplingProcessGUI_OpeningFcn(hObject,eventdata,handles,varargin)
 
-processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
-    'initChannel',1);
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
 % Choose default command line output for protrusionSamplingProcessGUI
 handles.output = hObject;
 
-% Update user data and GUI data
-set(hObject, 'UserData', userData);
 guidata(hObject, handles);
 
 
@@ -103,18 +100,9 @@ end
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 
-% Check user input
-userData = get(handles.figure1, 'UserData');
-if isempty(get(handles.listbox_selectedChannels, 'String'))
-    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
-    return;
-else
-    channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
-    funParams.ChannelIndex = channelIndex;
-end
-
-
 % Process Sanity check ( only check underlying data )
+userData = get(handles.figure1, 'UserData');
+funParams.dummy=0;
 try
     userData.crtProc.sanityCheck;
 catch ME

@@ -22,7 +22,7 @@ function varargout = windowingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help windowingProcessGUI
 
-% Last Modified by GUIDE v2.5 01-Aug-2011 12:57:33
+% Last Modified by GUIDE v2.5 10-Aug-2011 09:25:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,18 +57,33 @@ userData.editParams ={'MeshQuality','ParaSize','PerpSize','MinSize'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.editParams)
 
+% Read available segmentaation processes
 segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
 segProcID=find(segProc);
 segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',false);
 segProcString = vertcat('Choose later',segProcNames(:));
 segProcData=horzcat({[]},num2cell(segProcID));
-segProcValue = find(cellfun(@(x) isequal(x,funParams.SegProcessIndex),segProcData));
+
+% Read the default segmentation process index
+% If empty, try to propagate segmentation process from protrusion process
+initSegProcIndex = funParams.SegProcessIndex;
+if isempty(initSegProcIndex)
+    try %#ok<TRYNC>
+        initSegProcIndex = userData.crtPackage.processes_{1}.funParams_.SegProcessIndex;  
+    end
+end
+segProcValue = find(cellfun(@(x) isequal(x,initSegProcIndex),segProcData));
 set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
     'UserData',segProcData,'Value',segProcValue);
 
-methodString ={'ConstantNumber';'ConstantWidth';'ProtrusionBased';'PDEBased'};
-methodValue = find(strcmp(funParams.MethodName,methodString));
-set(handles.popupmenu_MethodName,'String',methodString,'Value',1);
+% Create pop-up menu for windowing methods
+methodString ={'Constant number';'Constant width';'Protrusion based';'PDE based'};
+methodData ={'ConstantNumber';'ConstantWidth';'ProtrusionBased';'PDEBased'};
+methodValue = find(strcmp(funParams.MethodName,methodData));
+set(handles.popupmenu_MethodName,'String',methodString,...
+    'UserData',methodData,'Value',methodValue);
+% Update pde panels
+popupmenu_MethodName_Callback(hObject,eventdata,handles);
 
 % Choose default command line output for windowingProcessGUI
 handles.output = hObject;
@@ -135,13 +150,13 @@ end
 
 for i=1:numel(userData.editParams)  
    funParams.(userData.editParams{i})=...
-       str2double(get(handles.(['edit_' userData.editParams{i}]),'String'));
+       str2num(get(handles.(['edit_' userData.editParams{i}]),'String'));
 end
 
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
 funParams.SegProcessIndex=props{1}{props{2}};
 
-props=get(handles.popupmenu_MethodName,{'String','Value'});
+props=get(handles.popupmenu_MethodName,{'UserData','Value'});
 funParams.MethodName=props{1}{props{2}};
 
 
@@ -157,3 +172,17 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+
+
+% --- Executes on selection change in popupmenu_MethodName.
+function popupmenu_MethodName_Callback(hObject, eventdata, handles)
+
+props=get(handles.popupmenu_MethodName,{'UserData','Value'});
+methodName=props{1}{props{2}};
+
+if strcmp(methodName,'PDEBased')
+    enableState='on';
+else
+    enableState='off';
+end
+set(get(handles.uipanel_pdeParameters,'Children'),'Enable',enableState);
