@@ -643,5 +643,13 @@ end
 
 projData.stats.avgComLatSec = projData.stats.fgap_length_mean/projData.stats.growth_speed_mean*60;
 
+%% Growth, fgap, bgap events density
+try %#ok<TRYNC>
+    area=projData.roiArea*(projData.pixSizeNm/1e3)^2; % area in microns
+    time= projData.nFrames*projData.secPerFrame; % time in seconds
+    projData.stats.growth_density=projData.stats.nGrowths/area/time;
+    projData.stats.fgap_density=projData.stats.nFgaps/area/time;
+    projData.stats.bgap_density=projData.stats.nBgaps/area/time;
+end
 end
 
