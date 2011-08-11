@@ -15,9 +15,9 @@ for k = 1:length(data)
         tracks = ta.tracks;
         data(k).tracks = tracks([tracks.valid]==1);
     else
-        data(k).tracks = ip.Results.tracks;
+        data(k).tracks = ip.Results.Tracks;
     end        
-    data(k).lifetimes = [tracks.lifetime_s];
+    data(k).lifetimes = [data(k).tracks.lifetime_s];
 end
 
 % maxLifetime = max([data.lifetimes]);
