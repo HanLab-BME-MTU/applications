@@ -149,7 +149,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
         function output = getDrawableOutput()
             output(1).name='Protrusion vectors';
             output(1).var={'smoothedEdge','protrusion'};
-            output(1).formatData=@(x) x(:,[2 1 4 3]);
+            output(1).formatData=@(x)[x(:,1:2) x(:,3:4)-x(:,1:2)];
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
         end

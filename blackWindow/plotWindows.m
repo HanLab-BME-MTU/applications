@@ -1,4 +1,4 @@
-function plotWindows(windowIn,stringIn,showNum)
+function h=plotWindows(windowIn,stringIn,showNum)
 %PLOTWINDOWS plots the input windows on the current axes
 % 
 % plotWindows(windowIn)
@@ -33,6 +33,9 @@ function plotWindows(windowIn,stringIn,showNum)
 %   subset.
 %
 % Output:
+%   
+%   h - array of handles to the patch graphic objects and text objects if
+%   applicable
 %
 %   The windows will be plotted as polygons on the current axes.
 %
@@ -77,7 +80,7 @@ if ~prevHold
     hold on
 end
 
-
+h=[];
 switch cellDepth
     
     
@@ -87,7 +90,7 @@ switch cellDepth
             currWin = [windowIn{:}];
             if ~isempty(currWin)
 
-                patch(currWin(1,:),currWin(2,:),stringIn{:});
+                h=patch(currWin(1,:),currWin(2,:),stringIn{:});
 
             end
         end                
@@ -99,10 +102,10 @@ switch cellDepth
                 currWin = [windowIn{j}{:}];
                 if ~isempty(currWin)
 
-                    patch(currWin(1,:),currWin(2,:),stringIn{:});
+                    h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
 
                     if showNum && mod(j,showNum)==0
-                        text(currWin(1,1),currWin(2,1),num2str(j))
+                        h(end+1)=text(currWin(1,1),currWin(2,1),num2str(j));
                     end                    
                 end
             end
@@ -116,10 +119,10 @@ switch cellDepth
                     currWin = [windowIn{j}{k}{:}];
                     if ~isempty(currWin)
 
-                        patch(currWin(1,:),currWin(2,:),stringIn{:});
+                        h(end+1)=patch(currWin(1,:),currWin(2,:),stringIn{:});
 
                         if showNum && mod(j,showNum)==0 && mod(k,showNum) == 0
-                            text(currWin(1,1),currWin(2,1),[num2str(j) ',' num2str(k)])                       
+                            h(end+1)=text(currWin(1,1),currWin(2,1),[num2str(j) ',' num2str(k)]);                       
                         end                    
                     end
                 end
