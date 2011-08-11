@@ -42,7 +42,7 @@ classdef WindowingPackage < Package
             
             %    1 2 3 4
             m = [0 0 0 0; %1 ProtrusionProcess
-                 1 0 0 0; %2 WindowingProcess
+                 2 0 0 0; %2 WindowingProcess
                  1 1 0 0;  %3 ProtrusionSamplingProcess
                  0 1 0 0;]; %4 WindowSamplingProcess
         end
