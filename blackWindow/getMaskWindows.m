@@ -970,7 +970,15 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
                         iKeep = 1;
                     elseif crossP2(3) > 0
                         iKeep = 2;
-                    else
+                    elseif all(crossP1==0) && all(crossP2 == 0)
+                        %If the slice is parallel/antiparallel with the
+                        %contour here, we take the parallel one
+                        if dot(vecSlice,vecCont1) > 0
+                            iKeep = 1;
+                        else
+                            iKeep = 2;
+                        end                                                
+                    else                        
                         error('Problem with multiple contour-slice intersections: Ambiguous cross product!')
                     end                                     
                                         
