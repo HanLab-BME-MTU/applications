@@ -498,17 +498,17 @@ for numItf=1:length(twoCellIntf)
     end    
 end
 
-
-marker=['r','b','m','c','g','y','k'];
-figure(112)
-for p=1:length(twoCellIntfCond)
-    plot(twoCellIntfCond{p}.pos(:,1),twoCellIntfCond{p}.pos(:,2),marker(mod(p,7)+1))
-    title(['frame',num2str(frame)])
-    hold on
+if doPlot
+    marker=['r','b','m','c','g','y','k'];
+    figure(112)
+    for p=1:length(twoCellIntfCond)
+        plot(twoCellIntfCond{p}.pos(:,1),twoCellIntfCond{p}.pos(:,2),marker(mod(p,7)+1))
+        title(['frame',num2str(frame)])
+        hold on
+    end
+    plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.curve(:,2),'k')
+    set(gca,'YDir','reverse')
+    hold off
 end
-plot(constrForceField{frame}.segmRes.curve(:,1),constrForceField{frame}.segmRes.curve(:,2),'k')
-set(gca,'YDir','reverse')
-hold off
 
 constrForceField{i}.twoCellIntf=twoCellIntfCond;
-

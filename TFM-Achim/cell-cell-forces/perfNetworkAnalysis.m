@@ -6,7 +6,7 @@ constrForceField=createConctField(constrForceField,frame);
 % now break the interface into smaller parts based on the connectivity
 % of the points along each interface to determine interface-pieces
 % that belong EXACTLY to two cells:
-constrForceField=createTwoCellIntf(constrForceField,frame);
+constrForceField=createTwoCellIntf(constrForceField,frame,0);
 
 % Now create a force network:
 constrForceField=createNetwork(constrForceField,frame);
