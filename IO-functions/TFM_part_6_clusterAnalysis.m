@@ -78,7 +78,7 @@ end
 % 2) Measure the intensity along the edges:                               *
 %**************************************************************************
 if doCorrection
-    path_XtraFinal='../data/Ecad';
+    path_XtraFinal='../data/6EcadFinal'; % for the first run I had 'Ecad' the unregistered images.
 end
 imageFileList=getFileListFromFolder(path_XtraFinal);
 constrForceField=perfIntMeasures(constrForceField,imageFileList);

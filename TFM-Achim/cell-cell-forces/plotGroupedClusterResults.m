@@ -1,5 +1,5 @@
 function []=plotGroupedClusterResults(groupedClusters)
-doPrint=1;
+doPrint=0;
 if nargin<1 || isempty(groupedClusters)
     try
         load('groupedClusters.mat')
@@ -11,249 +11,26 @@ end
 
 %close all;
 
-onlyCorr=1;
+onlyCorr=0;
 if ~onlyCorr
     
-cutOffMag=0;
-cutOffRelErr=Inf;
-
 %**************************************************************************
 % Error analysis:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'relErrF',Inf,'errs',0);
-[f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1','fc2');
-f1_mag = sqrt(sum(f1_vals.^2,2));
-f2_mag = sqrt(sum(f2_vals.^2,2));
-fc_mag = sqrt(sum(fc1_vals.^2,2));
-fn_vals= 0.5*(f1_vals-f2_vals);
-fn_mag = sqrt(sum(fn_vals.^2,2));
-
-% remove the edges that can not be covered by the network analysis:
-checkVec=isnan(fn_mag);
-f1_mag(checkVec)=[];
-f2_mag(checkVec)=[];
-fc_mag(checkVec)=[];
-fn_mag(checkVec)=[];
-fn_vals(checkVec,:)=[];
-f1_vals(checkVec,:)=[];
-f2_vals(checkVec,:)=[];
-fc1_vals(checkVec,:)=[];
-
-figure()
-% checked with part7
-glbMin=min([f1_mag;f2_mag]);
-glbMax=max([f1_mag;f2_mag]);
-% plot(f1_mag,f2_mag,'.b');
-plot(fn_mag,f1_mag,'.b')
-hold on
-plot(fn_mag,f2_mag,'.b')
-% these are the abs erors:
-% plot(fn_mag,sqrt(sum(( f1_vals-fn_vals).^2,2)),'.b')
-% hold on;
-% plot(fn_mag,sqrt(sum((-f2_vals-fn_vals).^2,2)),'.b')
-plot(fc_mag,f2_mag,'.r');
-plot(fc_mag,f1_mag,'.r');
-plot([0 glbMax],[0 glbMax],'--k')
-title('magnitude of fi vs <f_{net}> [b] or fc [r]')
-xlim([glbMin glbMax])
-ylim([glbMin glbMax])
-xlabel('<f_{net}> or fc [nN]')
-ylabel('f1 or f2 [nN]')
-box on
-set(gca,'LineWidth',2,'FontSize',20)
-hold off
-
-
-checkVec=fn_mag<cutOffMag;
-f1_mag(checkVec)=[];
-f2_mag(checkVec)=[];
-fn_mag(checkVec)=[];
-fc_mag(checkVec)=[];
-f1_vals(checkVec,:)=[];
-f2_vals(checkVec,:)=[];
-fc1_vals(checkVec,:)=[];
-fn_vals(checkVec,:)=[];
-
-alpha_f12_to_fn= vertcat(acosd(dot(f1_vals,fn_vals,2)./(f1_mag.*fn_mag)),acosd(dot(-f2_vals,fn_vals,2)./(f2_mag.*fn_mag)));
-% alpha_f1_f2= acos(dot(f1_vals,f2_vals,2)./(f1_mag*f2_mag));
-alpha_f12_to_fc= vertcat(acosd(dot(f1_vals,fc1_vals,2)./(f1_mag.*fc_mag)),acosd(dot(-f2_vals,fc1_vals,2)./(f2_mag.*fc_mag)));
-
-figure()
-hist(alpha_f12_to_fn,250,'b')
-title('Angular histogram fn')
-xlabel('angle')
-ylabel('counts')
-xlim([0 180])
-box on
-set(gca,'LineWidth',2,'FontSize',20)
-hold off
-
-figure()
-hist(alpha_f12_to_fc,250,'r')
-title('Angular histogram fc')
-xlabel('angle')
-ylabel('counts')
-xlim([0 180])
-box on
-set(gca,'LineWidth',2,'FontSize',20)
-hold off
-
-%close all;
-
-% append f1,f2 and doublicat the other measurements:
-
-fi_vals_all = vertcat(f1_vals,-f2_vals);
-fi_mag_all  = vertcat(f1_mag , f2_mag);
-
-fn_vals_all = vertcat(fn_vals, fn_vals);
-fn_mag_all  = vertcat(fn_mag , fn_mag);
-
-fc_vals_all= vertcat(fc1_vals,fc1_vals);
-fc_mag_all  = vertcat(fc_mag  ,fc_mag);
-
-% Gaudenz suggestion:
-% rel_err_fn = 2*(f1_mag-f2_mag)./(f1_mag+f2_mag);
-% better suggestion:
-% rel_err_fn = (fi_mag_all-fn_mag_all)./fn_mag_all;
-% my suggestion:
-rel_err_fn = sqrt(sum((fi_vals_all-fn_vals_all).^2,2))./fn_mag_all;
-figure()
-% checked with part7
-hist(rel_err_fn,2000);
-%xlim([0 1])
-title('rel. error: (fi_{mag}-<f_{net}>)./(<f_{net}>)')
-xlabel('rel. error')
-ylabel('counts')
-box on
-set(gca,'LineWidth',2,'FontSize',20)
-hold off
-
-rel_err_fn(abs(rel_err_fn)>cutOffRelErr)=[];
-display('rel. error fn:')
-display(['mean   +-      std: ',num2str(  mean(rel_err_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fn),'%0.4f')])
-display(['median +- 1.48*MAD: ',num2str(median(rel_err_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fn),'%0.4f')])
-
-
-
-% Old analysis:
-% rel_err_fc_fn = (fn_mag_all-fc_mag_all)./(fn_mag_all+fc_mag_all)/2;
-% better suggestion:
-% rel_err_fc_fn = (fi_mag_all-fc_mag_all)./fc_mag_all;
-% my suggestion:
-rel_err_fc_fn = sqrt(sum((fi_vals_all-fc_vals_all).^2,2))./fc_mag_all;
-
-figure()
-% checked with part7
-glbMin=min([f1_mag;f2_mag]);
-glbMax=max([f1_mag;f2_mag]);
-% hist(rel_err_fn ,500);
-hist(rel_err_fc_fn ,2000);
-title('rel. error: 2*(fn_{mag}-fc_{mag})./(fn_{mag}+fc_{mag})')
-%title('rel. error: (fi_{mag}-fc_{mag})./(fc_{mag})')
-xlabel('rel. error')
-ylabel('counts')
-%xlim([0 1])
-ylim([0 550])
-box on
-set(gca,'LineWidth',2,'FontSize',20)
-hold off
-
-rel_err_fc_fn(abs(rel_err_fc_fn)>cutOffRelErr)=[];
-display('rel. error fc:')
-display(['mean   +-      std: ',num2str(  mean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fc_fn),'%0.4f')])
-display(['median +- 1.48*MAD: ',num2str(median(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
-
-end %if ~onlyCorr
+plotErrorAnalysisNetworks(groupedClusters);
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
 %**************************************************************************
-goodCellSet=findCells(groupedClusters,'kPa',[8]);
+plotSysError(groupedClusters)
+%end %if ~onlyCorr
 
-goodCluster=unique(horzcat(goodCellSet.clusterId));
-   
-tooShort=0;
-for iCluster=goodCluster
-    close all
-    currErrVecList=[];
-    for iFrame=1:length(groupedClusters.cluster{iCluster}.trackedNet)
-        if ~isempty(groupedClusters.cluster{iCluster}.trackedNet{iFrame})
-            currErrVecList=vertcat(currErrVecList,groupedClusters.cluster{iCluster}.trackedNet{iFrame}.stats.errorSumForce.vec);
-        end
-    end
-    figure()
-    plot(currErrVecList(:,1),currErrVecList(:,2),'*')
-    hold on;
-    plot([-1.1*max(abs(currErrVecList(:,1))) 1.1*max(abs(currErrVecList(:,1)))], [0 0],'k')
-    plot([0 0], [-1.1*max(abs(currErrVecList(:,2))) 1.1*max(abs(currErrVecList(:,2)))],'k')
-    xlim([-1.1*max(abs(currErrVecList(:,1))) 1.1*max(abs(currErrVecList(:,1)))])
-    ylim([-1.1*max(abs(currErrVecList(:,2))) 1.1*max(abs(currErrVecList(:,2)))])
-    axis equal
-    hold off;
-    
-   
-    %corrected:
-    if length(currErrVecList(:,1))>10
-        currErrVecListNew=[currErrVecList(:,1)-nanmean(currErrVecList(:,1)) currErrVecList(:,2)-nanmean(currErrVecList(:,2))];
-    else
-        currErrVecListNew=currErrVecList;
-        tooShort=tooShort+1;
-    end
-    
-    figure()
-    plot(currErrVecListNew(:,1),currErrVecListNew(:,2),'*')
-    hold on;
-    plot([-1.1*max(abs(currErrVecListNew(:,1))) 1.1*max(abs(currErrVecListNew(:,1)))], [0 0],'k')
-    plot([0 0], [-1.1*max(abs(currErrVecListNew(:,2))) 1.1*max(abs(currErrVecListNew(:,2)))],'k')
-    xlim([-1.1*max(abs(currErrVecListNew(:,1))) 1.1*max(abs(currErrVecListNew(:,1)))])
-    ylim([-1.1*max(abs(currErrVecListNew(:,2))) 1.1*max(abs(currErrVecListNew(:,2)))])
-    axis equal
-    hold off
-    
-    avgErr    = nanmean(sqrt(nansum(currErrVecList.^2   ,2)),1);
-    avgErrNew = nanmean(sqrt(nansum(currErrVecListNew.^2,2)),1);
-    relImprov = avgErrNew/avgErr;
-    
-    errAnalysis(iCluster).errVecList    = currErrVecList;
-    errAnalysis(iCluster).errVecListNew = currErrVecListNew;
-    errAnalysis(iCluster).avgErr        = avgErr;
-    errAnalysis(iCluster).avgErrNew     = avgErrNew;
-    errAnalysis(iCluster).relImprov     = relImprov;
-end
-hist(horzcat(errAnalysis.relImprov),10)
-mean(horzcat(errAnalysis.relImprov))
-tooShort
-
-
-
-%**************************************************************************
-% Compare network and cluster analysis:
-%**************************************************************************
-% goodEdgeSet=findEdges(groupedClusters);%,'errF',500,'errs',0);
-% [f1_vals,f2_vals,fc1_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'f1','f2','fc1');
-% fn_mag = sqrt(sum((0.5*(f1_vals-f2_vals)).^2,2));
-% fc_mag   = sqrt(sum(fc1_vals.^2,2));
-% 
-% figure()
-% % checked with part7
-% glbMin=min([fc_mag;fn_mag]);
-% glbMax=max([fc_mag;fn_mag]);
-% plot(fc_mag,fn_mag,'*');
-% hold on
-% plot([0 glbMax],[0 glbMax],'--k')
-% xlim([glbMin glbMax])
-% ylim([glbMin glbMax])
-% xlabel('fc [nN]')
-% ylabel('fnet [nN]')
-% hold off
-
-% Do the angular deviation.
 
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
 % goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[1],'myoGlb',[-1 0 1],'errF',Inf,'errs',0);
-goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 
@@ -470,7 +247,7 @@ clear M
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
@@ -521,15 +298,15 @@ clear M
 %**************************************************************************
 plotIntForceDeg11(groupedClusters);
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
 % ech single conditions works really well, but mixtures are a bit worse.
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
- goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[1],'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[1],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
 
 [fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
@@ -656,9 +433,9 @@ goodCellSet   = findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[0
 %**************************************************************************
 % correlate forces for myosin cells:
 %**************************************************************************
- goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
+% goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
 % goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-% goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
     [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
     [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
@@ -683,7 +460,7 @@ relErrF_val_corr=Inf;
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
@@ -696,4 +473,4 @@ end
 %**************************************************************************
 % Plot the edges from above:
 %**************************************************************************
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);

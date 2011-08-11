@@ -49,7 +49,7 @@ for iframe=1:numFrames
     forceFieldCorrected(iframe).pos=forceField(iframe).pos;
     forceFieldCorrected(iframe).vec=horzcat(forceField(iframe).vec(:,1)-crrPFN(:,1),forceField(iframe).vec(:,2)-crrPFN(:,2));
     forceFieldCorrected(iframe).par=forceField(iframe).par;
-    forceFieldCorrected(iframe).par=forceField(iframe).par;
+    forceFieldCorrected(iframe).doc=forceField(iframe).doc;
 end
 
 

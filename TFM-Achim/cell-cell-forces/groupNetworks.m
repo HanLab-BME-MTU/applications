@@ -94,8 +94,8 @@ for entryId=1:numel(fileList)
 end
 
 if doSave && strcmpi(filename,'trackedNet.mat');
-    save('groupedNetwork.mat','groupedNetworks','-v7.3')
+    save('groupedNetwork.mat','groupedNetworks');%,'-v7.3')
 elseif doSave
     groupedNetworksCorrected=groupedNetworks;
-    save('groupedNetworkCorrected.mat','groupedNetworksCorrected','-v7.3')
+    save('groupedNetworkCorrected.mat','groupedNetworksCorrected');%,'-v7.3')
 end
