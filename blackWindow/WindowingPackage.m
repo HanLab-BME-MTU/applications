@@ -1,6 +1,6 @@
 classdef WindowingPackage < Package
     % The main class of the Windowing package
-    %
+    
     % Sebastien Besson, July 2011
     
     methods
@@ -32,6 +32,18 @@ classdef WindowingPackage < Package
             % Call the superclass constructor
             obj = obj@Package(super_args{:},...
                 'processClassHandles_',WindowingProcConstr);
+        end
+        
+        function parentID = getParent(obj,procID)
+            % Use default getParent method
+            parentID=getParent@Package(obj,procID);
+            
+            % Refine dependency relationship between protrusion and
+            % windowing processes
+            if procID==2 && ~strcmp(obj.processes_{procID}.funParams_.MethodName,...
+                    'ProtrusionBased')
+                parentID(parentID==1)=[];
+            end
         end
     end
     
