@@ -477,13 +477,5 @@ dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M, 'precisi
 
 if mkHist==1
    plusTipMakeHistograms(M,[runInfo.metaDir filesep 'histograms']) 
-   plusTipPlotTrackAngles(runInfo,[runInfo.metaDir filesep 'histograms']) 
+   plusTipPlotTrackAngles(runInfo,[runInfo.metaDir filesep 'histograms']);
 end
-
-
-
-
-
-
-
-
