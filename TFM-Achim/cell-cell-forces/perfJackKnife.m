@@ -5,7 +5,7 @@ function [glbMaxPosMean,glbMaxValMean,glbMaxPosSTD,glbMaxValSTD,glbMaxPosSEM95,g
 numSets=length(corrSets);
 wholeList=1:numSets;
 
-for NAindex=1:100 %wholeList
+for NAindex=1:500 %wholeList
     clear edgF;
     
 %     % for JackKnife:

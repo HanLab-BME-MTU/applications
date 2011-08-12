@@ -1,6 +1,6 @@
 function []=plotResultsForTwoStiff(groupedClusters)
 
-goodCellSet_35=findCells(groupedClusters,'kPa',35,'myo',0,'myoGlb',[-1 0 1],'errF',Inf,'errs',0);
+goodCellSet_35=findCells(groupedClusters,'kPa',35,'myo',0,'myoGlb',[0],'errF',Inf,'errs',0);
 [deg_vals_35,elE_vals_35,sumFmag_vals_35,resF_vals_35,sumFi_vals_35,sumLi_vals_35]=collectCellValues(groupedClusters,goodCellSet_35,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 goodCellSet_8=findCells(groupedClusters,'kPa',8,'myo',0,'myoGlb',0,'errF',Inf,'errs',0);

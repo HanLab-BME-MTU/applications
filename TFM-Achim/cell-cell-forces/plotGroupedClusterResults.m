@@ -17,12 +17,12 @@ if ~onlyCorr
 %**************************************************************************
 % Error analysis:
 %**************************************************************************
-plotErrorAnalysisNetworks(groupedClusters);
+%plotErrorAnalysisNetworks(groupedClusters);
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
 %**************************************************************************
-plotSysError(groupedClusters)
+%plotSysError(groupedClusters)
 %end %if ~onlyCorr
 
 
@@ -298,7 +298,7 @@ clear M
 %**************************************************************************
 plotIntForceDeg11(groupedClusters);
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
@@ -443,7 +443,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************

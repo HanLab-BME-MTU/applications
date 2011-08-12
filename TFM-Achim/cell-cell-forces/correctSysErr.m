@@ -6,12 +6,12 @@ function [constrForceFieldCorrected,forceFieldCorrected]=correctSysErr(constrFor
 
 if nargin<1 || isempty(constrForceField)
     load('cellCellForces.mat');
-    copyfile('cellCellForces.mat','cellCellForces_tmp.mat')
+    % copyfile('cellCellForces.mat','cellCellForces_tmp.mat')
 end
 
 if nargin<1 || isempty(forceField)
     load('forceField.mat');
-    copyfile('forceField.mat','forceField_tmp.mat')
+    % copyfile('forceField.mat','forceField_tmp.mat')
 end
 
 if nargin<1 || isempty(displField)
@@ -20,7 +20,7 @@ if nargin<1 || isempty(displField)
 end
 
 if nargin<1
-    copyfile('trackedNet.mat','trackedNet_tmp.mat')
+    % copyfile('trackedNet.mat','trackedNet_tmp.mat')
 end
 
 % first estimate the systematic error:

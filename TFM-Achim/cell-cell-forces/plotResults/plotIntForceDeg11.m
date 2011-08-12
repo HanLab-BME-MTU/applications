@@ -1,36 +1,36 @@
 function []=plotIntForceDeg11(groupedClusters)
 
 % Plot for degree 1-1 interfaces: myo: 0-0; 1-1; 0-1
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94'},'errs',0);
 [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
 %deg_vals_sorted=sort(deg_vals,2);
 fc1_mag_ctr_8 = sqrt(sum(fc1_vals.^2,2));
 
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',-1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',-1,'type',{'myoIIA_hp93';'myoIIA_hp94'},'errs',0);
 [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
 %deg_vals_sorted=sort(deg_vals,2);
 fc1_mag_mix_8 = sqrt(sum(fc1_vals.^2,2));
 
-goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',8,'deg',1,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94'},'errs',0);
 [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
 %deg_vals_sorted=sort(deg_vals,2);
 fc1_mag_myo_8 = sqrt(sum(fc1_vals.^2,2));
 
-% Plot for degree 1-1 interfaces: myo: 0-0; 1-1; 0-1
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
-[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
-%deg_vals_sorted=sort(deg_vals,2);
-fc1_mag_ctr_35 = sqrt(sum(fc1_vals.^2,2));
-
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',-1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
-[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
-%deg_vals_sorted=sort(deg_vals,2);
-fc1_mag_mix_35 = sqrt(sum(fc1_vals.^2,2));
-
-goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
-[lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
-%deg_vals_sorted=sort(deg_vals,2);
-fc1_mag_myo_35 = sqrt(sum(fc1_vals.^2,2));
+% % Plot for degree 1-1 interfaces: myo: 0-0; 1-1; 0-1
+% goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',0,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+% [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+% %deg_vals_sorted=sort(deg_vals,2);
+% fc1_mag_ctr_35 = sqrt(sum(fc1_vals.^2,2));
+% 
+% goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',-1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+% [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+% %deg_vals_sorted=sort(deg_vals,2);
+% fc1_mag_mix_35 = sqrt(sum(fc1_vals.^2,2));
+% 
+% goodEdgeSet=findEdges(groupedClusters,'kPa',35,'deg',1,'myo',1,'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errs',0);
+% [lgth_vals,f1_vals,f2_vals,fc1_vals,fc2_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'lgth','f1','f2','fc1','fc2');
+% %deg_vals_sorted=sort(deg_vals,2);
+% fc1_mag_myo_35 = sqrt(sum(fc1_vals.^2,2));
 
 figure()
 maxLp1=max([length(fc1_mag_ctr_8),length(fc1_mag_mix_8),length(fc1_mag_myo_8),length(fc1_mag_ctr_35),length(fc1_mag_mix_35),length(fc1_mag_myo_35)])+1;

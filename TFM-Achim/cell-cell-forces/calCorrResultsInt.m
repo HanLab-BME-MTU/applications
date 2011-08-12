@@ -73,7 +73,7 @@ if nargin<6 || isempty(aveType)
 end
 
 if nargin<7 || isempty(opt2)
-    opt1='useItot';
+    opt2='useItot';
 end
 
 %**************************************************************************
