@@ -144,7 +144,7 @@ if nargin < 5 || isempty(showRaw)
 end
 
 %check where to save resulting movie
-if saveMovie && (nargin < 7 || isempty(dir2saveMovie))
+if nargin < 7 || isempty(dir2saveMovie)
     dir2saveMovie = dirName;
 end
 
@@ -178,13 +178,35 @@ numPixelsNewXY = numPixelsXY*factorSR;
 imageConv = zeros(numPixelsXY(2),numPixelsXY(1));
 
 %initialize super-resolution image
-imageSupRes = zeros(numPixelsNewXY(2),numPixelsNewXY(1));
+imageSupRes = sparse(zeros(numPixelsNewXY(2),numPixelsNewXY(1)));
+
+%make figure for movie
+if saveMovie
+    figure1 = figure;
+end
+
+%initialize progress text
+progressText(0,'Reconstructing image');
+
+%define some numbers for axes labeling in movie and final image
+xTickConv = imageRange(2,1):100:imageRange(2,2);
+if length(xTickConv) == 1
+    xTickConv = imageRange(2,:);
+end
+yTickConv = imageRange(1,1):100:imageRange(1,2);
+if length(yTickConv) == 1
+    yTickConv = imageRange(1,:);
+end
+xTickSR = xTickConv*factorSR;
+yTickSR = yTickConv*factorSR;
+for i = 1 : length(xTickConv)
+    xTickName{i} = num2str(xTickConv(i));
+end
+for i = 1 : length(yTickConv)
+    yTickName{i} = num2str(yTickConv(i));
+end
 
 %go over all specified frames
-if saveMovie
-    figure
-end
-progressText(0,'Reconstructing image');
 for iFrame = 1 : numFramesMovie
     
     %generate conventional image
@@ -214,7 +236,7 @@ for iFrame = 1 : numFramesMovie
         numFeat = length(amp);
         
         %initialize empty image for this frame
-        image = zeros(numPixelsNewXY(2),numPixelsNewXY(1));
+        image = sparse(zeros(numPixelsNewXY(2),numPixelsNewXY(1)));
         
         %go over all features
         for iFeat = 1 : numFeat
@@ -253,39 +275,87 @@ for iFrame = 1 : numFramesMovie
         
         switch showRaw
             case 1
-                axes('Position',[0 0 0.495 1]);
-                imshow(imageConv,[]);
-                xlim(imageRange(2,:));
-                ylim(imageRange(1,:));
-                hold on;
+                %                 axes('Position',[0 0 0.495 1]);
+                %                 imshow(imageConv,[]);
+                %                 xlim(imageRange(2,:));
+                %                 ylim(imageRange(1,:));
+                %                 hold on;
+                axes1 = axes('Parent',figure1,'Position',[0 0 0.495 1],...
+                    'YDir','reverse','DataAspectRatio',[1 1 1],...
+                    'XTick',xTickConv,'YTick',yTickConv);
+                xlim(axes1,imageRange(2,:));
+                ylim(axes1,imageRange(1,:));
+                box(axes1,'on');
+                hold(axes1,'all');
+                imagesc(imageConv,'Parent',axes1);
+                colormap('gray')
                 textDeltaCoord = min(diff(imageRange,[],2))/20;
                 text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
                     textDeltaCoord,num2str(iFrame+startend(1)-1),'Color','white');
-                axes('Position',[0.505 0 0.495 1]);
-                imshow(imageSupRes,[]);
-                xlim(imageRange(2,:)*factorSR);
-                ylim(imageRange(1,:)*factorSR);
-                hold on;
+                %                 axes('Position',[0.505 0 0.495 1]);
+                %                 imshow(imageSupRes,[]);
+                %                 xlim(imageRange(2,:)*factorSR);
+                %                 ylim(imageRange(1,:)*factorSR);
+                %                 hold on;
+                axes1 = axes('Parent',figure1,'Position',[0.505 0 0.495 1],...
+                    'YDir','reverse','DataAspectRatio',[1 1 1],...
+                    'XTick',xTickSR,'XTickLabel',xTickName,...
+                    'YTick',yTickSR,'YTickLabel',yTickName);
+                xlim(axes1,imageRange(2,:)*factorSR);
+                ylim(axes1,imageRange(1,:)*factorSR);
+                box(axes1,'on');
+                hold(axes1,'all');
+                imagesc(imageSupRes,'Parent',axes1);
+                colormap('gray')
             case 2
-                axes('Position',[0 0.505 1 0.495]);
-                imshow(imageConv,[]);
-                xlim(imageRange(2,:));
-                ylim(imageRange(1,:));
-                hold on;
+                %                 axes('Position',[0 0.505 1 0.495]);
+                %                 imshow(imageConv,[]);
+                %                 xlim(imageRange(2,:));
+                %                 ylim(imageRange(1,:));
+                %                 hold on;
+                axes1 = axes('Parent',figure1,'Position',[0 0.505 1 0.495],...
+                    'YDir','reverse','DataAspectRatio',[1 1 1],...
+                    'XTick',xTickConv,'YTick',yTickConv);
+                xlim(axes1,imageRange(2,:));
+                ylim(axes1,imageRange(1,:));
+                box(axes1,'on');
+                hold(axes1,'all');
+                imagesc(imageConv,'Parent',axes1);
+                colormap('gray')
                 textDeltaCoord = min(diff(imageRange,[],2))/20;
                 text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
                     textDeltaCoord,num2str(iFrame+startend(1)-1),'Color','white');
-                axes('Position',[0 0 1 0.495]);
-                imshow(imageSupRes,[]);
-                xlim(imageRange(2,:)*factorSR);
-                ylim(imageRange(1,:)*factorSR);
-                hold on;
+                %                 axes('Position',[0 0 1 0.495]);
+                %                 imshow(imageSupRes,[]);
+                %                 xlim(imageRange(2,:)*factorSR);
+                %                 ylim(imageRange(1,:)*factorSR);
+                %                 hold on;
+                axes1 = axes('Parent',figure1,'Position',[0 0 1 0.495],...
+                    'YDir','reverse','DataAspectRatio',[1 1 1],...
+                    'XTick',xTickSR,'XTickLabel',xTickName,...
+                    'YTick',yTickSR,'YTickLabel',yTickName);
+                xlim(axes1,imageRange(2,:)*factorSR);
+                ylim(axes1,imageRange(1,:)*factorSR);
+                box(axes1,'on');
+                hold(axes1,'all');
+                imagesc(imageSupRes,'Parent',axes1);
+                colormap('gray')
             otherwise
-                axes('Position',[0 0 1 1]);
-                imshow(imageSupRes,[]);
-                xlim(imageRange(2,:)*factorSR);
-                ylim(imageRange(1,:)*factorSR);
-                hold on;
+                %                 axes('Position',[0 0 1 1]);
+                %                 imshow(imageSupRes,[]);
+                %                 xlim(imageRange(2,:)*factorSR);
+                %                 ylim(imageRange(1,:)*factorSR);
+                %                 hold on;
+                axes1 = axes('Parent',figure1,'Position',[0 0 1 1],...
+                    'YDir','reverse','DataAspectRatio',[1 1 1],...
+                    'XTick',xTickSR,'XTickLabel',xTickName,...
+                    'YTick',yTickSR,'YTickLabel',yTickName);
+                xlim(axes1,imageRange(2,:)*factorSR);
+                ylim(axes1,imageRange(1,:)*factorSR);
+                box(axes1,'on');
+                hold(axes1,'all');
+                imagesc(imageSupRes,'Parent',axes1);
+                colormap('gray')
                 textDeltaCoord = min(diff(imageRange,[],2))/20;
                 text((imageRange(1,1)+textDeltaCoord)*factorSR,(imageRange(2,1)+...
                     textDeltaCoord)*factorSR,num2str(iFrame+startend(1)-1),'Color','white');
@@ -310,6 +380,43 @@ if saveMovie
     movieInfrastructure('finalize',movieType,dir2saveMovie,...
         movieName,numFramesMovie,movieVar,[]);
 end
+
+%show final conventional image
+figure1 = figure;
+axes1 = axes('Parent',figure1,'YDir','reverse','DataAspectRatio',[1 1 1],...
+    'XTick',xTickConv,'YTick',yTickConv);
+xlim(axes1,imageRange(2,:));
+ylim(axes1,imageRange(1,:));
+box(axes1,'on');
+hold(axes1,'all');
+imagesc(imageConv,'Parent',axes1);
+colormap('gray')
+% print('-dtiff','-loose','-r300',fullfile(dir2saveMovie,'imageConventional.tif'));
+
+%show final reconstructed image
+figure1 = figure;
+axes1 = axes('Parent',figure1,'YDir','reverse','DataAspectRatio',[1 1 1],...
+    'XTick',xTickSR,'XTickLabel',xTickName,'YTick',yTickSR,'YTickLabel',yTickName);
+xlim(axes1,imageRange(2,:)*factorSR);
+ylim(axes1,imageRange(1,:)*factorSR);
+box(axes1,'on');
+hold(axes1,'all');
+imagesc(imageSupRes,'Parent',axes1);
+colormap('gray')
+% print('-dtiff','-loose','-r300',fullfile(dir2saveMovie,'imageSuperRes.tif'));
+
+%save conventional and reconstructed images in a .mat file
+save(fullfile(dir2saveMovie,'resultsImageReconstruction'),'imageSupRes','imageConv','factorSR');
+
+%save conventional and reconstructed images as tiff files
+%NOTE:
+%this requires converting the reconstructed image back to full, so it might
+%cause memory problems
+%if it does, the code will crash, but by now the whole movie is made and
+%the images have been saved in the .mat file, so damage is not complete
+imwrite(uint16(imageConv/max(imageConv(:))*(2^16-1)),fullfile(dir2saveMovie,'imageConventional.tif'),'tif');
+imwrite(uint16(full(imageSupRes/max(imageSupRes(:)))*(2^16-1)),fullfile(dir2saveMovie,'imageSuperRes.tif'),'tif');
+
 
 %% ~~~ end ~~~
 
