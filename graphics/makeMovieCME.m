@@ -1,4 +1,4 @@
-% makeMovie(data, varargin)
+% makeMovieCME(data, varargin)
 %
 % Inputs: 
 %             data : data structure from 'loadConditionData()'
