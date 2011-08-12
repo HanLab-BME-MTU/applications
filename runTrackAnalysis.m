@@ -299,10 +299,10 @@ for k = 1:nTracks
         end
     end
     if isempty(segmentsWithGaps)
-        tracks(k).valid = tracks(k).status == 1;
+        tracks(k).valid = numel(tracks(k).x) == 1 && tracks(k).status == 1;
     else
         % status for entire track (if a single gap is invalid, track is considered invalid)
-        tracks(k).valid = tracks(k).status == 1 && max([tracks(k).gapStatus{:}]) == 4;
+        tracks(k).valid = numel(tracks(k).x) == 1 && tracks(k).status == 1 && max([tracks(k).gapStatus{:}]) == 4;
     end
     
     
