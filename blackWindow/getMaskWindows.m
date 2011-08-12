@@ -675,8 +675,25 @@ for j = 2:(nStrips+1)
     %If the starting contour was zero, the contour and the slice just
     %barely touch and the intersection algorithm (sometimes) doesn't
     %count this as an intersection. We need to add these back... 
-    if startContour == 1 && ~any(iContIntCur == iZeroCont)
-        iCintCur(iZeroCont) = paraVertInd(j);
+    if ~any(iContIntCur == iZeroCont)        
+        if startContour == 1        
+            iCintCur(iZeroCont) = paraVertInd(j);            
+        else
+            %Since there cannot be true local minima within the distance
+            %transform, if the slice terminates before reaching the
+            %zero-value contour, it either hit the image edge or numerical
+            %error caused it to stop just short. We therefore introduce an
+            %intersection if the termination was close enough
+            
+            %Find the point on the zero contour which is closes to the end
+            %of the slice
+            [minDist,iMinDist] = min(sqrt((slices{j}(1,1) - contours{iZeroCont}(1,:)) .^2 + ...
+                                          (slices{j}(2,1) - contours{iZeroCont}(2,:)) .^2));
+            %If it's close enough, use this point as the intersection
+            if minDist < perpSize                
+                iCintCur(iZeroCont) = iMinDist;                                
+            end
+        end
         iSintCur(iZeroCont) = 1;
         intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
         intYcur(iZeroCont) = contours{iZeroCont}(2,iCintCur(iZeroCont));
@@ -834,7 +851,8 @@ end
 
 
 function [ix,iy,i1,i2] = find_intersections(c,cInt)
-%This finds intersections, ensuring that only one intersection is returned.
+%This finds intersections, ensuring that only one intersection is returned
+%per contour.
 %See below for details of why this is necessary.
 
     nCon = length(cInt);
