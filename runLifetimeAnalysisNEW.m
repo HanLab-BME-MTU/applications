@@ -1,8 +1,9 @@
-function data = runLifetimeAnalysisNEW(data, varargin)
+function [data, res] = runLifetimeAnalysisNEW(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
+ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Tracks', []);
 
@@ -56,31 +57,36 @@ end
 % Mean histogram
 %-------------------------
 M = vertcat(data.lftHist);
-histMean = mean(M,1);
-histSEM = std(M,1) / sqrt(length(data));
+t_hist = (1:Nmax)*dt;
+meanHist = mean(M,1);
+histSEM = std(M,[],1) / sqrt(length(data));
+
+res.t = t_hist;
+res.meanHist = meanHist;
+res.SEM = histSEM;
 
 
-tfont = {'FontName', 'Helvetica', 'FontSize', 14};
-sfont = {'FontName', 'Helvetica', 'FontSize', 18};
-lfont = {'FontName', 'Helvetica', 'FontSize', 22};
+if strcmpi(ip.Results.Display, 'on')
+    tfont = {'FontName', 'Helvetica', 'FontSize', 14};
+    sfont = {'FontName', 'Helvetica', 'FontSize', 18};
+    lfont = {'FontName', 'Helvetica', 'FontSize', 22};
 
+    figure;
+    hold on;
 
-figure;
-hold on;
+    t = (1:Nmax)*dt;
 
-t = (1:Nmax)*dt;
+    fill([t_hist t_hist(end:-1:1)], [meanHist-histSEM meanHist(end:-1:1)+histSEM(end:-1:1)],...
+        [1 1 1]*0.7, 'EdgeColor', 'none');
+    plot(t_hist, meanHist, 'k.-');
 
-fill([t t(end:-1:1)], [histMean-histSEM histMean(end:-1:1)+histSEM(end:-1:1)],...
-    [1 1 1]*0.7, 'EdgeColor', 'none');
-plot(t, histMean, 'k.-');
+    axis([0 min(300,t(end)) 0 0.05]);
 
-axis([0 300 0 0.05]);
+    set(gca, 'LineWidth', 1.5, sfont{:});
 
-set(gca, 'LineWidth', 1.5, sfont{:});
-
-xlabel('Lifetime (s)', lfont{:});
-ylabel('Frequency', lfont{:});
-
+    xlabel('Lifetime (s)', lfont{:});
+    ylabel('Frequency', lfont{:});
+end
 
 
 % TO DO:

@@ -171,35 +171,43 @@ if ~isempty(tracks)
         case 'category'
             % plot regular tracks
             cidx = [tracks.valid]==1 & arrayfun(@(t) ~iscell(t.x), tracks);
-            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
-            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
-            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
-            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
-                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'g');
+            if sum(cidx)~=0
+                X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+                Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+                idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+                plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                    [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'g');
+            end
             
             % Persistent tracks
             cidx = arrayfun(@(t) ~iscell(t.x), tracks) & [tracks.status]==3;
-            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
-            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
-            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
-            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
-                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'y');
+            if sum(cidx)~=0
+                X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+                Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+                idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+                plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                    [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'y');
+            end
             
             % Invalid tracks
             cidx = [tracks.valid]==0 & arrayfun(@(t) ~iscell(t.x), tracks) & [tracks.status]~=3;
-            X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
-            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
-            idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
-            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
-                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'r');
+            if sum(cidx)~=0
+                X = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+                Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+                idx = find([tracks(cidx).start] <= frameIdx & frameIdx <= [tracks(cidx).end]);
+                plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                    [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'r');
+            end
             
             % plot split/merge tracks
             cidx = arrayfun(@(t) iscell(t.x), tracks);
-            [X, starts, ends] = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
-            Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
-            idx = find(starts <= frameIdx & frameIdx <= ends);
-            plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
-                [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'c');
+            if sum(cidx)~=0
+                [X, starts, ends] = catTrackFields(tracks(cidx), data.movieLength, 'x', ch);
+                Y = catTrackFields(tracks(cidx), data.movieLength, 'y', ch);
+                idx = find(starts <= frameIdx & frameIdx <= ends);
+                plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
+                    [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'c');
+            end
             
         case 'projection'
             X = catTrackFields(tracks, data.movieLength, 'x', ch);

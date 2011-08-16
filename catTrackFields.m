@@ -49,5 +49,10 @@ else
     si2 = [];
     ei2 = [];
 end
-startIndex = [rIdx rIdx(end)+si2]';
-endIndex = [rIdx rIdx(end)+ei2]';
+if ~isempty(rIdx)
+    startIndex = [rIdx rIdx(end)+si2]';
+    endIndex = [rIdx rIdx(end)+ei2]';
+else
+    startIndex = si2';
+    endIndex = ei2';
+end
