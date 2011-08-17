@@ -33,6 +33,8 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupD
 % Frame or Ending in the Last Frame Have Been Removed
 projData.dataMat_FOR_STATS = dataMatCrpSecMic;  
 
+
+
 % growth speed, lifetime, displacement
 gIdx=find(dataMatCrpSecMic(:,5)==1);
 gs=dataMatCrpSecMic(gIdx,4);
@@ -314,34 +316,33 @@ else
   
 end % isempty
 
-%% PARAMETERS OF GROWTH SUBTRACKS PRECEDING TERMINAL EVENT
+%% PARAMETERS OF GROWTH SUBTRACKS PRECEDING TERMINAL EVENT 
+% should be ok to calculate subRoi Data from now on (MB)
     
-  if subRoiAnalysis == ~1  % if calling from original analysis  
-       % plusTipPoolGroupData and plusTipSubRoiExtractTracks will use value
-       % of 1 
-
-
+ 
     % Create data mat that has only growth before term events
     gapIdx = find(dataMatCrpSecMic(:,5)~=1); % find all gap subtracks 
     
    
 
-
+    if isempty(gapIdx) == 0 % test for empty gapIdx 
     beforeGapIdx = gapIdx(gapIdx~=1)-1; % find growth subtracks before these gaps
+    % MB just made a quick check for emptiness of gapIdx shouldn't crash anymore 
     % SB: removed test below as it crashes when gapIdx is empty
-%     if beforeGapIdx(1) == 0; % This means the first track was a gap event 
-%                               % this should of course not happen with
-%                               % normal tracking, but tracks can be sub-divided
-%                               % by spatial regions and therefore the pause
-%                               % and not the growth track just before 
-%                               % might be first in dataMatCrpSecMat
-%         beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error. 
-%     end 
-    
+     if beforeGapIdx(1) == 0; % This means the first track was a gap event 
+                               % this should of course not happen with
+                               % normal tracking, but tracks can be sub-divided
+                               % by spatial regions and therefore the pause
+                               % and not the growth track just before 
+                               % might be first in dataMatCrpSecMat
+         beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error. 
+     end 
+    else % skip test
+    end 
     % Note these values might not be correct for  sub roi manipulations
     % Have to go back and check 
     termGrowthOnly = dataMatCrpSecMic; % initiate for manipulation 
-    termGrowthOnly(beforeGapIdx,:) = []; %  remove all growth subtracks before fgaps
+    termGrowthOnly(beforeGapIdx,:) = []; %  remove all growth subtracks before fgaps/bgaps
     gapIdxNew = termGrowthOnly(:,5) ~= 1; % get the new Idx for gap subtracks 
     termGrowthOnly(gapIdxNew,:) = []; % remove all gap substracks: now should have only growth subtracks before a terminal event
     
@@ -389,8 +390,7 @@ end % isempty
     projData.stats.ratio_preFgapDisp2preTermDisp = projData.stats.bgap_LengthGrowthBefore_Mic_mean/projData.stats.term_LengthGrowthBefore_Mic_mean;
     projData.stats.ratio_preFgapDisp2preBgapDisp = projData.stats.fgap_LengthGrowthBefore_Mic_mean/projData.stats.bgap_LengthGrowthBefore_Mic_mean;
     
-  else % don't do these calcs because it will just error 
-  end 
+ 
      
 %% MISC PARAMETERS
 
@@ -491,11 +491,12 @@ end
    % partitioned in the same ROI making the below stats buggy.  
    % until fix simply do not do this analysis for subROI regions. 
    
-   if (subRoiAnalysis ~=1 && fromPoolGroupData ~= 1) % if not calling this from original analysis 
-       % skip below 
+   if (subRoiAnalysis == 1 || fromPoolGroupData == 1) % if not calling this from original analysis 
+       % skip below (ie if calling from subRoiAnalysis or poolGroupData skip
+       % below)
        % plusTipPoolGroupData and plusTipSubRoiExtractTracks 
        % so will skip the below analysis otherwise buggy MB : quick fix Check it later. 
-       
+   else 
    compIdx= [gapIdx ; (gapIdx+1) ; (gapIdx -1)];
    compIdx = unique(sort(compIdx));
    compDataMat = dataMatCrpSecMic(compIdx,:);

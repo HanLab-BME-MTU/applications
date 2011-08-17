@@ -1,4 +1,4 @@
-function [ roiMask ] = getSegmentedRois(projList)
+function [ roiMask ] = getSegmentedRois(projList,useFirstImage)
 % Currently there is no automatic cell-edge segmentation in the plusTipTracker. In order to 
 % perform analysis relative to cell edge one therefore needs to call a 
 % separate function to segment the image
@@ -13,10 +13,16 @@ function [ roiMask ] = getSegmentedRois(projList)
 
 for iProj = 1:length(projList)
     
-    
+        
 [listOfImages] = searchFiles('.tif',[],projList(iProj).imDir,0);
 
-for iImg = 1:length(listOfImages)
+    if useFirstImage == 1 
+    numberImages = 1 ;
+    else 
+        numberImages = length(listOfImages); 
+    end 
+    
+for iImg = 1:numberImages
     
 fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(iImg,1))];
 img = double(imread(fileNameIm));

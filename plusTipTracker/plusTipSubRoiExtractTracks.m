@@ -16,6 +16,7 @@ onlyTarget =  0; % If set to one will select only those tracks that are
 %targeted (ie the last point of their growth track is within the given sub
 %region if set to zero will use the settings specified in the
 %plusTipSeeTracks GUI
+useCropped = 1;
 
 %% Check Input
 homeDir=pwd;
@@ -70,18 +71,27 @@ end
 
 %% Extract Data: Growth
 
-
+% notes : tech could change this to just read in the projData converted
+% which is already saved (projData.dataMatForStats should do the trick
+% here) though not sure if the way i did the indexing would allow for this 
+% might be safer to just use the original data- then crop if user asks 
 
 
 
 % get all the original merged tracks and convert frames to seconds and
-% pixels to microns
-dataMatMergeAll=plusTipMergeSubtracks(sourceProjData); % merged data is first output
+% pixels to microns % this merging step is redundant we could maybe save in
+% original analysis and read in
+
+[dataMatMergeAll] =plusTipMergeSubtracks(sourceProjData); % merged data is first output
+
+
 allDataAll=dataMatMergeAll; % save a separate matrix for converting
 %Convert Growth Lifetimes Frames to Seconds
+
 allDataAll(:,6)=allDataAll(:,6).*sourceProjData.secPerFrame;
 %Convert Growth Displacements From Pixels to Microns
 allDataAll(:,7)=allDataAll(:,7).*(sourceProjData.pixSizeNm./1000);
+
 
 
 
@@ -479,7 +489,22 @@ dataTotROI_Sec_Mic(:,7) = dataTotROI_Sec_Mic(:,7).*sourceProjData.pixSizeNm./100
 %dataTotExclude = [dataGrowthExclude ; dataPauseExclude];
 %dataTotExclude = [dataTotExclude ; dataShrinkExclude];
 
-[projData,M]=plusTipDynamParam(dataTotROI_Sec_Mic,projData,1,0);
+
+% index of one at the end tells the program it is calling this function
+% from subRoiAnalysis and to not calculate certain params and these might
+% be buggy
+
+if useCropped == 1
+[dataTotROI_Sec_Mic] = plusTipRemBegEnd(dataTotROI_Sec_Mic, projData);
+ projData.dataMatCropped_MicPerMin_Sec_Mic = dataTotROI_Sec_Mic; % save a copy
+ projData.removeBegEnd = 'yes'; 
+else 
+     projData =  rmfield(projData,'dataMatCropped_MicPerMin_Sec_Mic'); % remove the field
+     projData.removeBegEnd = 'no'; 
+end 
+    [projData,M]=plusTipDynamParam(dataTotROI_Sec_Mic,projData,0,1);
+   
+    
 %projData.tracksExcludedFromAnalysis = dataTotExclude;
 
 %end

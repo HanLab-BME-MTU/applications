@@ -17,7 +17,9 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %       timeVal  : if distUnits is fraction: between 0 and 1
 %                  if distUnits is seconds : >0
 %% OPTION TO TURN ON MICROPATTERN
-micropattern = 1;  % if set to 1 call micropattern function and ignore rest
+micropattern = 0;  % if set to 1 call micropattern function and ignore rest
+%selectType = 'cellPeriphSingle';
+useSegMask = 0; 
 %%
 if micropattern == 1
    plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude);
@@ -122,10 +124,13 @@ for iProj=1:nProj
         continue
     end
 
+    
     subanDir=[anDir filesep 'subROIs'];
-    if ~isdir(subanDir)
-        mkdir(subanDir);
+    if isdir(subanDir)  
+        rmdir(subanDir,'s');  
+        
     end
+    mkdir(subanDir);
     cd(anDir)
 
     % load projData
@@ -179,6 +184,7 @@ for iProj=1:nProj
             roiMask=imread([subanDir filesep 'roiMask.tif']);
             roiYX=load([subanDir filesep 'roiYX.mat']); roiYX=roiYX.roiYX;
         else % for sub_1, establish what cell region will be
+            if useSegMask ~= 1 
             choice=questdlg('Before creating Sub-ROIs, you need to define the cell boundary.','Cell ROI option','Draw new','Load roiYX.mat','Draw new');
             if ~isempty(strmatch(choice,'Draw new'))
                 c=1;
@@ -215,9 +221,16 @@ for iProj=1:nProj
                     end
                 end
             end
-        end
-    end
-
+            else 
+                 p = load([anDir filesep 'roiYXSeg.mat']); % load the roiYX file in the anDir
+                        roiYX=p.roiYX;
+                        roiMask=roipoly(img,roiYX(:,2),roiYX(:,1)); 
+                
+                
+        
+            end
+        end 
+    end 
 
     % set cell boundary in white to composite image
     [img2show]=addMaskInColor(img2show,roiMask,[1 1 1]);

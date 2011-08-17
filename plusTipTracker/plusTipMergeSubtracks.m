@@ -5,7 +5,7 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSub
 % the reclassification scheme: therefore there might and likely is bugs
 % talk to me if you intend to use MB 03/27/11
 % 
-% SYNOPSIS  : [dataMatMerge,dataMatReclass,percentFgapsReclass]=...
+% SYNOPSIS  : [dataMatMerge,dataMatReclass,dataMatCrpSecMic, projData]=...
 %                   plusTipMergeSubtracks(projData,dataMat)
 %
 % INPUT
