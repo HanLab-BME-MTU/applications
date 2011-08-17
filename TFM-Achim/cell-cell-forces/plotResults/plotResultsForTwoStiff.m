@@ -43,7 +43,7 @@ set(gca,'fontsize',16)
 ylim([0,0.11])
 
 
-goodEdgeSet_35=findEdges(groupedClusters,'kPa',35,'myo',0,'myoGlb',[-1 0 1],'errF',Inf,'errs',0);
+goodEdgeSet_35=findEdges(groupedClusters,'kPa',35,'myo',0,'myoGlb',[0],'errF',Inf,'errs',0);
 [deg_vals_35,lgth_vals_35,f1_vals_35,f2_vals_35,fc1_vals_35,fc2_vals_35]=collectEdgeValues(groupedClusters,goodEdgeSet_35,'deg','lgth','f1','f2','fc1','fc2');
 deg_vals_sorted_35=sort(deg_vals_35,2);
 fc1_mag_35 = sqrt(sum(fc1_vals_35.^2,2));
