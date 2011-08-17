@@ -38,7 +38,8 @@ ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | str
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
 ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection', 'all'})));
-ip.addParamValue('ShowEvents', 'true', @islogical);
+ip.addParamValue('ShowEvents', false, @islogical);
+ip.addParamValue('ShowGaps', true, @islogical);
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
 ip.addParamValue('Handle', []);
@@ -111,19 +112,22 @@ axis(ha, 'image');
 % Plot tracks
 %======================================
 if ~isempty(tracks)
-    lifetimes_f = [tracks.end]-[tracks.start]+1;
-    maxlft = max(lifetimes_f);
-    if maxlft>120
-        df = maxlft-120;
-        dc = 0.25/df;
-        cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
-    else
-        cmap = jet(maxlft);
-    end    
+     
     
     hold(ha, 'on');
     switch lower(ip.Results.DisplayType)
         case 'lifetime'
+            
+            lifetimes_f = [tracks.end]-[tracks.start]+1;
+            maxlft = max(lifetimes_f);
+            if maxlft>120
+                df = maxlft-120;
+                dc = 0.25/df;
+                cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
+            else
+                cmap = jet(maxlft);
+            end
+            
             % discard any compound tracks
             tracks(arrayfun(@(t) iscell(t.x), tracks)) = [];
             tracks([tracks.valid]~=1) = [];
@@ -146,9 +150,6 @@ if ~isempty(tracks)
                     % Deaths
                     k = find([tracks(idx).end]==frameIdx);                    
                     plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
-                    % Gaps
-                    k = find(gapMap(idx,frameIdx))';
-                    plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
 
                     % Old display: markers have the same color as track
                     % % Births
@@ -166,6 +167,11 @@ if ~isempty(tracks)
                     % for k = midx
                     %     plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', M(k,:), 'MarkerSize', 6, 'LineWidth', 1);
                     % end
+                end
+                
+                if ip.Results.ShowGaps
+                    k = find(gapMap(idx,frameIdx))';
+                    plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
                 end
             end
         case 'category'
@@ -208,22 +214,44 @@ if ~isempty(tracks)
                 plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
                     [Y(idx,1:frameIdx)'; NaN(1, length(idx))], 'Color', 'c');
             end
-            
-        case 'projection'
-            X = catTrackFields(tracks, data.movieLength, 'x', ch);
-            Y = catTrackFields(tracks, data.movieLength, 'y', ch);
-            M = cmap(lifetimes_f,:);
-            set(ha, 'ColorOrder', M);
-            plot(ha, X', Y');
-            
         case 'all'
-            X = catTrackFields(tracks, data.movieLength, 'x', ch);
+            [X segStarts segEnds trackIndex] = catTrackFields(tracks, data.movieLength, 'x', ch);
             Y = catTrackFields(tracks, data.movieLength, 'y', ch);
-            idx = find([tracks.start] <= frameIdx & frameIdx <= [tracks.end]);
-            set(ha, 'ColorOrder', ip.Results.Colormap(idx,:));            
+            gapMap = catTrackFields(tracks, data.movieLength, 'gapVect', 1)==1; % logical
+            
+            idx = find(segStarts <= frameIdx & frameIdx <= segEnds);
+            set(ha, 'ColorOrder', ip.Results.Colormap(trackIndex(idx),:));
+
             plot(ha, [X(idx,1:frameIdx)'; NaN(1, length(idx))],...
                 [Y(idx,1:frameIdx)'; NaN(1, length(idx))]);
             
+            if ip.Results.ShowEvents
+                % Births
+                k = segStarts==frameIdx;
+                plot(ha, X(k,frameIdx), Y(k,frameIdx), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+                
+                % Deaths
+                k = segEnds==frameIdx;
+                plot(ha, X(k,frameIdx), Y(k,frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
+            end
+            if ip.Results.ShowGaps
+                k = gapMap(idx,frameIdx);
+                plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+            end
+        case 'projection'
+            lifetimes_f = [tracks.end]-[tracks.start]+1;
+            maxlft = max(lifetimes_f);
+            if maxlft>120
+                df = maxlft-120;
+                dc = 0.25/df;
+                cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
+            else
+                cmap = jet(maxlft);
+            end
+            X = catTrackFields(tracks, data.movieLength, 'x', ch);
+            Y = catTrackFields(tracks, data.movieLength, 'y', ch);
+            set(ha, 'ColorOrder', cmap(lifetimes_f,:));
+            plot(ha, X', Y');
     end
     hold(ha, 'off');
 end

@@ -25,7 +25,9 @@ ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | str
 ip.addParamValue('Channel', 1, @(x) ismember(x, 1:length(data.channels)));
 ip.addParamValue('FrameRange', 1:data.movieLength);
 ip.addParamValue('FileType', 'png', @(x) strcmpi(x, 'png') | strcmpi(x, 'tif') | strcmpi(x, 'tiff'));
-ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'all', 'projection'})));
+ip.addParamValue('Filename', 'Movie', @ischar);
+ip.addParamValue('Colormap', []);
 ip.parse(data, varargin{:});
 
 nx = data.imagesize(2);
@@ -38,6 +40,13 @@ ext = ['.' ip.Results.FileType];
 if strcmpi(ip.Results.Mode, 'RGB')
     ch = 1:nCh;
 end
+
+cmap = ip.Results.Colormap;
+if ~isempty(tracks) && isempty(cmap)
+    nt = length(tracks);
+    cmap = hsv2rgb([rand(nt,1) ones(nt,2)]);
+end
+
 
 mpath = [data.source 'Movies' filesep];
 fpath = [mpath 'Frames' filesep];
@@ -83,7 +92,8 @@ nf = numel(ip.Results.FrameRange);
 fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
     plotFrame(data, tracks, f, ch, 'iRange', dRange, 'Handle', ha,...
-        'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar, 'DisplayType', ip.Results.DisplayType);
+        'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar,...
+        'DisplayType', ip.Results.DisplayType, 'ColorMap', cmap);
     axis(ha, 'off');
     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
     %print(h, '-djpeg100', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
@@ -96,6 +106,6 @@ close(h);
 % Generate movie
 fprintf('Generating movie... ');
 fr = num2str(ip.Results.FrameRate);
-cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -r ' fr ' -b 50000k -bt 20000k ' mpath 'movie.mp4 > /dev/null 2>&1'];
+cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -r ' fr ' -b 50000k -bt 20000k ' mpath ip.Results.FileName '.mp4 > /dev/null 2>&1'];
 system(cmd);
 fprintf('done.\n');
