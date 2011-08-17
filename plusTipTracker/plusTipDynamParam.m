@@ -496,6 +496,24 @@ end
        % below)
        % plusTipPoolGroupData and plusTipSubRoiExtractTracks 
        % so will skip the below analysis otherwise buggy MB : quick fix Check it later. 
+       
+        % do not perform this analysis and remove these fields as they
+       % represent the original analysis and this can be confusing. 
+      projData =  rmfield(projData,'singleDataMat');
+      projData =  rmfield(projData,'compDataMat');
+      projData.stats =  rmfield(projData.stats,'ratio_Compound2SingleTracks');
+      projData.stats =  rmfield(projData.stats,'VelGrowthInCompTrack_mean_MicPerMin');
+      projData.stats =  rmfield(projData.stats, 'VelGrowthInSingleTrack_mean_MicPerMin');
+      projData.stats =  rmfield(projData.stats, 'LifeGrowthInCompTrack_mean_Sec');
+      projData.stats =  rmfield(projData.stats, 'LifeGrowthInSingleTrack_mean_Sec');
+      projData.stats =  rmfield(projData.stats, 'DispGrowthInCompTrack_mean_Mic');
+      projData.stats =  rmfield(projData.stats, 'DispGrowthInSingleTrack_mean_Mic');
+      projData.stats =  rmfield(projData.stats, 'ratio_VelGrowthComp2Single');
+      projData.stats =  rmfield(projData.stats, 'ratio_LifeGrowthComp2Single');
+      projData.stats =  rmfield(projData.stats, 'ratio_DispGrowthComp2Single');
+       
+       
+       
    else 
    compIdx= [gapIdx ; (gapIdx+1) ; (gapIdx -1)];
    compIdx = unique(sort(compIdx));
@@ -553,20 +571,7 @@ end
    projData.stats.ratio_DispGrowthComp2Single = dc/ds;
    
    
-       % do not perform this analysis and remove these fields as they
-       % represent the original analysis and this can be confusing. 
-      projData =  rmfield(projData,'singleDataMat');
-      projData =  rmfield(projData,'compDataMat');
-      projData.stats =  rmfield(projData.stats,'ratio_Compound2SingleTracks');
-      projData.stats =  rmfield(projData.stats,'VelGrowthInCompTrack_mean_MicPerMin');
-      projData.stats =  rmfield(projData.stats, 'VelGrowthInSingleTrack_mean_MicPerMin');
-      projData.stats =  rmfield(projData.stats, 'LifeGrowthInCompTrack_mean_Sec');
-      projData.stats =  rmfield(projData.stats, 'LifeGrowthInSingleTrack_mean_Sec');
-      projData.stats =  rmfield(projData.stats, 'DispGrowthInCompTrack_mean_Mic');
-      projData.stats =  rmfield(projData.stats, 'DispGrowthInSingleTrack_mean_Mic');
-      projData.stats =  rmfield(projData.stats, 'ratio_VelGrowthComp2Single');
-      projData.stats =  rmfield(projData.stats, 'ratio_LifeGrowthComp2Single');
-      projData.stats =  rmfield(projData.stats, 'ratio_DispGrowthComp2Single');
+      
        
       
       
