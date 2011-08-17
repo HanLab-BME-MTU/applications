@@ -109,7 +109,7 @@ tracks(1:nTracks) = struct('t', [],...
     'x_init', [], 'y_init', [], 'A_mask', [],...
     'sigma_r', [], 'SE_sigma_r', [],...
     'pval_Ar', [], 'pval_KS', [], 'isPSF', [],...
-    'status', [], 'gapStatus', [],...
+    'status', [], 'type', 2, 'gapStatus', [],...
     'gapStarts', [], 'gapEnds', [], 'gapLengths', [], 'gapVect', [],...
     'segmentStarts', [], 'segmentEnds', [],...
     'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
@@ -193,19 +193,28 @@ for k = 1:nTracks
         end
 
         for s = 1:nSeg
-            bounds = tracks(k).seqOfEvents(tracks(k).seqOfEvents(:,3)==s);
+            ievents = tracks(k).seqOfEvents(tracks(k).seqOfEvents(:,3)==s, :);
+            bounds = ievents(:,1);
+%             if ~isnan(ievents(1,4))
+%                 bounds(1) = bounds(1)+1;
+%             end
+            if ~isnan(ievents(2,4))
+                bounds(2) = bounds(2)-1;
+            end
+            
             nf = bounds(2)-bounds(1)+1;
             for f = 1:length(mcFieldNames)
                 tracks(k).(mcFieldNames{f}){s} = NaN(nCh,nf);
             end
             
             % for this segment
-            smStatus = tracks(k).seqOfEvents(tracks(k).seqOfEvents(:,3)==s,4);
-            if ~isnan(smStatus(2)) % split or merge
-                frameRange = frameIdx(bounds(1):bounds(2)-1);
-            else
+            smStatus = ievents(:,4);
+            %if ~isnan(smStatus(2)) % split or merge
+                %frameRange = frameIdx(bounds(1):bounds(2)-1);
+            %else
                 frameRange = frameIdx(bounds(1):bounds(2)); % relative to movie (also when movie is subsampled)
-            end
+            %end
+            
             for i = 1:length(frameRange)
                 idx = tracks(k).tracksFeatIndxCG(s, frameRange(i) - tracks(k).start + 1); % -> relative to IndxCG
                 if idx ~= 0 % if not a gap, get detection values
@@ -345,6 +354,7 @@ for k = rTrackIdx
     for f = 1:length(gapFieldNames)
         tracks(k).(gapFieldNames{f}) = tracks(k).(gapFieldNames{f}){1};
     end
+    tracks(k).type = 1;
 end
 nRegTracks = length(rTrackIdx);
 tracks = tracks([rTrackIdx setdiff(1:nTracks, rTrackIdx)]);

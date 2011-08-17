@@ -26,7 +26,7 @@ ip.addParamValue('Channel', 1, @(x) ismember(x, 1:length(data.channels)));
 ip.addParamValue('FrameRange', 1:data.movieLength);
 ip.addParamValue('FileType', 'png', @(x) strcmpi(x, 'png') | strcmpi(x, 'tif') | strcmpi(x, 'tiff'));
 ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'all', 'projection'})));
-ip.addParamValue('Filename', 'Movie', @ischar);
+ip.addParamValue('FileName', 'Movie', @ischar);
 ip.addParamValue('Colormap', []);
 ip.parse(data, varargin{:});
 
@@ -80,7 +80,7 @@ set(h, 'InvertHardcopy', 'off');
 set(h, 'PaperUnits', 'Points');
 set(h, 'PaperSize', [nx ny]);
 set(h, 'PaperPosition', [0 0 nx ny]); % very important
-set(h,'DefaultLineLineSmoothing','on');
+set(h,'DefaultLineLineSmoothing','on'); % points are not rendered !!
 set(h,'DefaultPatchLineSmoothing','on');
 
 % Configure axes

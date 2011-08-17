@@ -2,7 +2,7 @@
 
 % Francois Aguet, 06/24/11 (Last modified: 08/12/11)
 
-function [M segStarts segEnds startIndex endIndex] = catTrackFields(tracks, movieLength, fieldname, ch)
+function [M segStarts segEnds trackIndex] = catTrackFields(tracks, movieLength, fieldname, ch)
 
 if nargin<4
     ch = 1;
@@ -12,6 +12,7 @@ nt = length(tracks);
 
 % tracks must be sorted as regular followed by merging/splitting
 idx = find(arrayfun(@(t) ~iscell(t.x), tracks)==1, 1, 'last');
+%idx = find([tracks.type]==1, 1, 'last');
 rIdx = 1:idx; % regular tracks
 cIdx = (idx+1):nt; % compound tracks
 
@@ -29,7 +30,10 @@ M2 = NaN(sum(ns), movieLength);
 i = 1;
 starts2 = NaN(sum(ns),1);
 ends2 = NaN(sum(ns),1);
-for t = 1:length(cIdx)
+nc = length(cIdx);
+trackIndex = cell(1,nc);
+for t = 1:nc
+    trackIndex{t} = t*ones(1,ns(t))+idx;
     for s = 1:ns(t)
         ti = tracks(cIdx(t));
         starts2(i) = ti.segmentStarts{s};
@@ -38,21 +42,11 @@ for t = 1:length(cIdx)
         i = i+1;
     end
 end
+trackIndex = [1:idx trackIndex{:}];
 
 M = [M1; M2];
-segStarts = [starts1; starts2];
-segEnds = [ends1; ends2];
-if ~isempty(ns)
-    si2 = cumsum([1 ns(1:end-1)]);
-    ei2 = si2+ns-1;
-else
-    si2 = [];
-    ei2 = [];
-end
-if ~isempty(rIdx)
-    startIndex = [rIdx rIdx(end)+si2]';
-    endIndex = [rIdx rIdx(end)+ei2]';
-else
-    startIndex = si2';
-    endIndex = ei2';
+
+if nargout > 1
+    segStarts = [starts1; starts2];
+    segEnds = [ends1; ends2];
 end
