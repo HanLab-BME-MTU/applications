@@ -8,11 +8,10 @@ ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff', 4, @ischar);
 ip.addParamValue('Tracks', []);
-
 ip.parse(data, varargin{:});
+nd = length(data);
 
-
-for k = 1:length(data)
+for k = 1:nd
     if isempty(ip.Results.Tracks)
         data(k).tracks = loadTracks(data(k), 'Cutoff', ip.Results.Cutoff, 'Type', ip.Results.Type,...
             'FileName', ip.Results.FileName);
@@ -28,7 +27,6 @@ end
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
 
-nd = length(data);
 
 % generate lifetime histograms
 for k = 1:nd
@@ -68,31 +66,31 @@ for k = 1:nd
     
     % birth/death statistics
     starts = [tracks.start];
-    data(k).startsPerFrame = arrayfun(@(f) sum(starts==f), 1:data.movieLength);
+    data(k).startsPerFrame = arrayfun(@(f) sum(starts==f), 1:data(k).movieLength);
     ends = [tracks.end];
-    data(k).endsPerFrame = arrayfun(@(f) sum(ends==f), 1:data.movieLength);
+    data(k).endsPerFrame = arrayfun(@(f) sum(ends==f), 1:data(k).movieLength);
     %
     % idx = [tracks.valid]==1;
     % starts = [tracks(idx).start];
-    % starts = arrayfun(@(f) sum(starts==f), 1:data.movieLength);
+    % starts = arrayfun(@(f) sum(starts==f), 1:data(k).movieLength);
     % ends = [tracks(idx).end];
-    % ends = arrayfun(@(f) sum(ends==f), 1:data.movieLength);
+    % ends = arrayfun(@(f) sum(ends==f), 1:data(k).movieLength);
     % data(k).startsPerFrame_valid = starts;
     % data(k).endsPerFrame_valid = ends;
     %
     % idx = [tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1;
     % starts = [tracks(idx).start];
-    % starts = arrayfun(@(f) sum(starts==f), 1:data.movieLength);
+    % starts = arrayfun(@(f) sum(starts==f), 1:data(k).movieLength);
     % ends = [tracks(idx).end];
-    % ends = arrayfun(@(f) sum(ends==f), 1:data.movieLength);
+    % ends = arrayfun(@(f) sum(ends==f), 1:data(k).movieLength);
     % data(k).startsPerFrame_invalid = starts;
     % data(k).endsPerFrame_invalid = ends;
     %
     % idx = [tracks.type]==2 & [tracks.status]==1;
     % starts = [tracks(idx).start];
-    % starts = arrayfun(@(f) sum(starts==f), 1:data.movieLength);
+    % starts = arrayfun(@(f) sum(starts==f), 1:data(k).movieLength);
     % ends = [tracks(idx).end];
-    % ends = arrayfun(@(f) sum(ends==f), 1:data.movieLength);
+    % ends = arrayfun(@(f) sum(ends==f), 1:data(k).movieLength);
     % data(k).startsPerFrame_ms = starts;
     % data(k).endsPerFrame_ms = ends;
     
@@ -134,7 +132,7 @@ for k = 1:nd
     idxMS = [tracks.type]==2 & [tracks.status]==1;
     
     lifetimes_s = [tracks.lifetime_s];
-    %lifetimes_f = lifetimes_s/data.framerate;
+    %lifetimes_f = lifetimes_s/data(k).framerate;
     bins = [0:20:100 data(k).movieLength];
     nb = length(bins)-1;
     
@@ -265,8 +263,8 @@ if strcmpi(ip.Results.Display, 'on')
         % Inset
         hi = axes('Units', 'pixels', 'Position', [360 300 140 80]);
         
-        nt = length(data.tracks);
         tracks = data.tracks;
+        nt = length(tracks);
         M = [sum([tracks.valid]==1)...
             sum([tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1)...
             sum([tracks.type]==2 & [tracks.status]==1)...
@@ -284,9 +282,7 @@ if strcmpi(ip.Results.Display, 'on')
     end
     %print('-depsc2', [])
     
-    figure;
-    %M = [data.gapsPerTrack_valid; data.gapsPerTrack_invalid; data.gapsPerTrack_MS];
-    
+    figure;    
     M = [mean(vertcat(data.gapsPerTrack_valid),1);...
          mean(vertcat(data.gapsPerTrack_invalid),1);...
          mean(vertcat(data.gapsPerTrack_MS),1)];
