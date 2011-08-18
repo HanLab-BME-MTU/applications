@@ -241,15 +241,12 @@ if strcmpi(ip.Results.Display, 'on')
         [1 1 1]*0.7, 'EdgeColor', 'none');
     
     ha(2) = plot(t_hist, res.meanHist_ms, '.-', 'Color', 0.8*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 16);
-    
     ha(1) = plot(t_hist, meanHist, 'k.-', 'LineWidth', 1.5, 'MarkerSize', 16);
     
     ha(3) = plot(t_hist, expFit, 'r--', 'LineWidth', 1.5);
     
     axis([0 min(300,t(end)) 0 0.05]);
-    
-    set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');
-    
+    set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');    
     xlabel('Lifetime (s)', lfont{:});
     ylabel('Frequency', lfont{:});
     
@@ -291,7 +288,7 @@ if strcmpi(ip.Results.Display, 'on')
          std(vertcat(data.gapsPerTrack_MS),[],1)];
      
     xlabels = arrayfun(@(b) [num2str(data(1).bins(b)) '-' num2str(data(1).bins(b+1)-data(1).framerate) ' s'], 1:length(data(1).bins)-1, 'UniformOutput', false);
-    barplot2(M', S', 'Color', [0 0.8 0; 0.8 0 0; 0.6 0.6 0.6], 'XLabels', xlabels, 'YLabel', '# gaps');
+    barplot2(M', S', 'Color', [0 0.8 0; 0.8 0 0; 0.6 0.6 0.6], 'XLabels', xlabels, 'YLabel', '# gaps/track');
     legend('Valid', 'Invalid', 'Merge/split', 'Location', 'NorthWest');
     
     
