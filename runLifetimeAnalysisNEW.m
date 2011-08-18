@@ -5,6 +5,8 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
+ip.addParamValue('Type', 'all', @ischar);
+ip.addParamValue('Cutoff', 4, @ischar);
 ip.addParamValue('Tracks', []);
 
 ip.parse(data, varargin{:});
@@ -12,9 +14,8 @@ ip.parse(data, varargin{:});
 
 for k = 1:length(data)
     if isempty(ip.Results.Tracks)
-        %         ta = load([data(k).source 'Tracking' filesep ip.Results.FileName]);
-        %         tracks = ta.tracks;
-        %         data(k).tracks = tracks([tracks.valid]==1);
+        data(k).tracks = loadTracks(data(k), 'Cutoff', ip.Results.Cutoff, 'Type', ip.Results.Type,...
+            'FileName', ip.Results.FileName);
     else
         data(k).tracks = ip.Results.Tracks;
     end
