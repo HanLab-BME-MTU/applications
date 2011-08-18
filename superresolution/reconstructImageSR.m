@@ -242,7 +242,9 @@ for iFrame = 1 : numFramesMovie
         for iFeat = 1 : numFeat
             
             %generate Gaussian template
-            template = GaussMask2D(coordStd(iFeat),8*ceil(coordStd(iFeat))-1,[xCoordDev(iFeat) yCoordDev(iFeat)]);
+            tmpSize = round(7*coordStd(iFeat));
+            tmpSize = tmpSize + (1-mod(tmpSize,2));
+            template = GaussMask2D(coordStd(iFeat),tmpSize,[xCoordDev(iFeat) yCoordDev(iFeat)]);
             templateSize = (size(template,1) - 1) / 2;
             
             %add Gaussians to image
