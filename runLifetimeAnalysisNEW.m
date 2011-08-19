@@ -8,6 +8,7 @@ ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff', 4, @ischar);
 ip.addParamValue('Tracks', []);
+ip.addParamValue('Print', false, @islogical);
 ip.parse(data, varargin{:});
 nd = length(data);
 
@@ -94,6 +95,17 @@ for k = 1:nd
     % data(k).startsPerFrame_ms = starts;
     % data(k).endsPerFrame_ms = ends;
     
+    %====================
+    % Track statistics
+    %====================
+    data(k).trackStats = [sum([tracks.valid]==1)...
+        sum([tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1)...
+        sum([tracks.type]==2 & [tracks.status]==1)...
+        sum([tracks.status]==3) sum([tracks.status]==2)] / length(tracks); % normalized
+    
+    if sum(data(k).trackStats)~=1
+        error('Selection error');
+    end
     
     %====================
     % Initiation density
@@ -178,7 +190,7 @@ res.mean = arrayfun(@(d) sum(d.lftHist.*res.t*d.framerate), data);
 res.expFit = expFit;
 
 
-if strcmpi(ip.Results.Display, 'on')
+% if strcmpi(ip.Results.Display, 'on')
     tfont = {'FontName', 'Helvetica', 'FontSize', 14};
     sfont = {'FontName', 'Helvetica', 'FontSize', 18};
     lfont = {'FontName', 'Helvetica', 'FontSize', 22};
@@ -226,7 +238,7 @@ if strcmpi(ip.Results.Display, 'on')
     %
     %
     
-    figure;
+    hf(1) = figure;
     %figure('Position', [440 358 560 420]);
     %figure('Position', [440 358 3*dLeft+sum(axesWidths) 370], 'PaperPositionMode', 'auto',...
     %    'InvertHardCopy', 'off', 'Color', [1 1 1], 'Units', 'pixels');
@@ -256,30 +268,21 @@ if strcmpi(ip.Results.Display, 'on')
     set(hl, 'Position', pos);
     
     
-    if length(data)==1
-        % Inset
-        hi = axes('Units', 'pixels', 'Position', [360 300 140 80]);
-        
-        tracks = data.tracks;
-        nt = length(tracks);
-        M = [sum([tracks.valid]==1)...
-            sum([tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1)...
-            sum([tracks.type]==2 & [tracks.status]==1)...
-            sum([tracks.status]==3) sum([tracks.status]==2)];
-        if sum(M)~=nt
-            error('Selection error');
-        end
-        
-        barplot2(M,...
-            'XLabels', {'valid', 'invalid', 'merge/split', 'persistent', 'cut'}, 'YLabel', '% tracks',...
-            'BarWidth', 0.8, 'Color', 0.8*[1 1 1], 'EdgeColor', 0.6*[1 1 1],...
-            'Handle', hi, 'AdjustFigure', false, 'LabelFontSize', 16, 'AxisFontSize', 14);
-        set(hi, 'YTick', 0:200:1000);
-        %set(hi, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(t) num2str(t, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
-    end
-    %print('-depsc2', [])
+    % Inset
+    hi = axes('Units', 'pixels', 'Position', [360 300 140 80]);
     
-    figure;    
+    M = mean(vertcat(data.trackStats),1);
+    S = std(vertcat(data.trackStats),[],1);
+    
+    barplot2(M, S,...
+        'XLabels', {'valid', 'invalid', 'merge/split', 'persistent', 'cut'}, 'YLabel', '% tracks',...
+        'BarWidth', 0.8, 'Color', 0.8*[1 1 1], 'EdgeColor', 0.6*[1 1 1],...
+        'Handle', hi, 'AdjustFigure', false, 'LabelFontSize', 16, 'AxisFontSize', 14);
+    %set(hi, 'YTick', 0:200:1000);
+    set(hi, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(t) num2str(t, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
+    
+    
+    hf(2) = figure;    
     M = [mean(vertcat(data.gapsPerTrack_valid),1);...
          mean(vertcat(data.gapsPerTrack_invalid),1);...
          mean(vertcat(data.gapsPerTrack_MS),1)];
@@ -291,6 +294,20 @@ if strcmpi(ip.Results.Display, 'on')
     barplot2(M', S', 'Color', [0 0.8 0; 0.8 0 0; 0.6 0.6 0.6], 'XLabels', xlabels, 'YLabel', '# gaps/track');
     legend('Valid', 'Invalid', 'Merge/split', 'Location', 'NorthWest');
     
+    
+    if ip.Results.Print
+        fpath = unique(cellfun(@(c) getParentDir(c),...
+            arrayfun(@(d) getCellDir(d), data, 'UniformOutput', false),...
+            'UniformOutput', false));
+        if numel(fpath)>1
+            fprintf('Figures could not be printed.');
+        else
+            fpath = [fpath{1} 'Figures' filesep];            
+            [~,~] = mkdir(fpath);
+            print(hf(1), '-depsc2', [fpath 'lifetimeHist.eps']);
+            print(hf(2), '-depsc2', [fpath 'gapStatistics.eps']);
+        end
+    end
     
     %figure;
     %hold on;
