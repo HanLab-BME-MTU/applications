@@ -89,7 +89,7 @@ while finished==false
     
     numFrames=length(toDoList);
     % saveInterval=min(5,ceil(0.1*numFrames));
-    saveInterval=5;
+    saveInterval=1;
     
     for i=toDoList
         display('Plotting constraint forceField might take some time...')
