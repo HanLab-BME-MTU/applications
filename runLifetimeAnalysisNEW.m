@@ -6,7 +6,7 @@ ip.addRequired('data', @isstruct);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
-ip.addParamValue('Cutoff', 4, @ischar);
+ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Tracks', []);
 ip.addParamValue('Print', false, @islogical);
 ip.parse(data, varargin{:});
@@ -49,11 +49,12 @@ for k = 1:nd
     
     % Extend
     if N<Nmax
-        lftHist = [lftHist Nmax-N];
-        lftHist_ms = [lftHist_ms Nmax-N];
+        lftHist = [lftHist zeros(1,Nmax-N)];
+        lftHist_ms = [lftHist_ms zeros(1,Nmax-N)];
     end
     
-    cutoff_f = min(data(k).lifetimes_s)/dt;
+    %cutoff_f = min(data(k).lifetimes_s)/dt;
+    cutoff_f = ip.Results.Cutoff;
     lftHist = lftHist(cutoff_f:end);
     lftHist_ms = lftHist_ms(cutoff_f:end);
     
@@ -101,11 +102,13 @@ for k = 1:nd
     data(k).trackStats = [sum([tracks.valid]==1)...
         sum([tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1)...
         sum([tracks.type]==2 & [tracks.status]==1)...
-        sum([tracks.status]==3) sum([tracks.status]==2)] / length(tracks); % normalized
+        sum([tracks.status]==3) sum([tracks.status]==2)]; % normalized
     
-    if sum(data(k).trackStats)~=1
+    if sum(data(k).trackStats)~=length(tracks)
         error('Selection error');
     end
+    
+    data(k).trackStats = data(k).trackStats / length(tracks);
     
     %====================
     % Initiation density
@@ -119,6 +122,7 @@ for k = 1:nd
 
     T = thresholdFluorescenceImage(bf);
     mask = bf>T;
+        
     %figure; imagesc(mask); axis image; colormap(gray(256));
     px = data(k).pixelSize / data(k).M;
     data(k).area = sum(mask(:)) * px^2 / 1e-12; % in µm^2
@@ -127,9 +131,12 @@ for k = 1:nd
     % CC.PixelIdxList = CC.PixelIdxList(csize == max(csize));
     % CC.NumObjects = 1;
     % mask = labelmatrix(CC);
-    % figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
+    %figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
     
-    spf = data(k).startsPerFrame(2:end-cutoff_f+1);
+    %spf = data(k).startsPerFrame(2:end-cutoff_f+1);
+    %figure; plot(data(k).startsPerFrame)
+    
+    spf = data(k).startsPerFrame(10:end-9);
     meanInit_f = mean(spf);
     madFactor = 1/norminv(0.75, 0, 1);
     %stdInit_f = std(spf);
