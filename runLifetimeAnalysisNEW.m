@@ -120,8 +120,12 @@ for k = 1:nd
     %figure; imagesc(frame); axis image; colormap(gray(256));
     %figure; imagesc(bf); axis image; colormap(gray(256));
 
-    T = thresholdFluorescenceImage(bf);
-    mask = bf>T;
+    try
+        T = thresholdFluorescenceImage(bf);
+        mask = bf>T;
+    catch
+        mask = ones(size(bf));
+    end
         
     %figure; imagesc(mask); axis image; colormap(gray(256));
     px = data(k).pixelSize / data(k).M;
