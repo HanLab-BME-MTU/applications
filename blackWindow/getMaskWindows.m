@@ -282,8 +282,8 @@ end
 %know what you are doing.
 
 smNum = .1;%Small number for recognizing zero-value contours - the contourc.m function replaces zero contour values with an arbitrary small number.
-collapsedSize = .1; %Small number for recognizing collapsed window strips. If vertex separation along the contours is less than this, thew window is considered collapsed.
-gaShift = .51;%How far to shift points near the image edge to avoid immediate termination of gradient ascent.
+collapsedSize = .1; %Small number for recognizing collapsed window strips. If vertex separation along the contours is smaller than this number of pixels, thew window is considered collapsed.
+gaShift = .01;%How far to shift points near the image edge to avoid immediate termination of gradient ascent.
 intErr = .6;%Number for checking if contour intersections are approximately increasing in index. This number allows for numerical error in intersection locations in windows which have partially collapsed.
 
 %% ---------------- Contouring ---------------- &&
@@ -380,6 +380,17 @@ contours(~isClockwise) = cellfun(@(x)(x(:,end:-1:1)),contours(~isClockwise),'Uni
 %Find the contours which have the start isocontour value
 iPerpStart = find(contourValues == distXvals(startContour));
 nStart = numel(iPerpStart);
+
+%If the zero-value contour is open, we may have image-border effects and
+%will need these later
+if ~isClosed(iZeroCont)
+    %Get the coordinates of the image border in a  clock-wise fashion, starting
+    %at origin.
+    borderCoord = vertcat([ones(1,M-1)  2:N  ones(1,M-1)*N (N-1):-1:1],...
+                          [2:M    ones(1,N-1)*M  (M-1):-1:1 ones(1,N-1)]);
+    nBordPts = size(borderCoord,2);
+    bordCornerInd = cumsum([M-1 N-1 M-1 N-1]);%Indices of points at image corners
+end
 
 
 %% --------- Slicing --------- %%
@@ -546,33 +557,27 @@ for i = 1:nStart
     %Get the coordinates of these indices
     paraVert{i} = contours{iPerpStart(i)}(:,paraVertInd{i});
 
-    %Find start points on image boundary - these are a special case
-    sOnBoundA = arrayfun(@(x)(any(ceil(contours{iPerpStart(i)}... %On high boundary
-                (:,paraVertInd{i}(x)))==[N,M]')),1:nWinPara(i)+1);
-    sOnBoundB = arrayfun(@(x)(any(floor(contours{iPerpStart(i)}...%On low boundary
-                (:,paraVertInd{i}(x)))==[1;1])),1:nWinPara(i)+1);    
+    %Find start points on high-value image boundary - these are a special
+    %case beacause of how the gradientAscent function handles pixel
+    %coordinates
+    sOnBound = arrayfun(@(x)(any(ceil(contours{iPerpStart(i)}... %On high boundary
+                (:,paraVertInd{i}(x)))==[N;M])),1:nWinPara(i)+1);    
 
     % ---- Slice it up! ---- %
     %Compliments of Sylvain! 
     slices{i} = cell(1,nWinPara(i)+1);
-    slices{i}(~(sOnBoundA | sOnBoundB)) = gradientDescent(double(max(distX(:)) - distX),... %invert to get gradient ascent
-            contours{iPerpStart(i)}(1,paraVertInd{i}(~(sOnBoundA | sOnBoundB))),...
-            contours{iPerpStart(i)}(2,paraVertInd{i}(~(sOnBoundA | sOnBoundB))));
+    slices{i}(~sOnBound) = gradientDescent(double(max(distX(:)) - distX),... %invert to get gradient ascent
+            contours{iPerpStart(i)}(1,paraVertInd{i}(~sOnBound)),...
+            contours{iPerpStart(i)}(2,paraVertInd{i}(~sOnBound)));
 
     %Start points on the image boundary will terminate immediately during
     %gradient ascent/descent. We just shift these inwards to avoid this.
-    if any(sOnBoundA)
-        tmpStartsA = contours{iPerpStart(i)}(:,paraVertInd{i}(sOnBoundA))-gaShift;        
-        slices{i}(sOnBoundA) = gradientDescent(double(max(distX(:)) - distX),... 
+    if any(sOnBound)
+        tmpStartsA = contours{iPerpStart(i)}(:,paraVertInd{i}(sOnBound))-gaShift;        
+        slices{i}(sOnBound) = gradientDescent(double(max(distX(:)) - distX),... 
                                          tmpStartsA(1,:),tmpStartsA(2,:));
     end
-    if any(sOnBoundB)
-        tmpStartsB = contours{iPerpStart(i)}(:,paraVertInd{i}(sOnBoundB))+gaShift;                    
-        slices{i}(sOnBoundB) = gradientDescent(double(max(distX(:)) - distX),... 
-                                         tmpStartsB(1,:),tmpStartsB(2,:));            
-    end
-
-
+    
     %Transpose these slices so they match with the contours
     slices{i} = cellfun(@(x)(x'),slices{i},'UniformOutput',false);
 
@@ -582,17 +587,13 @@ for i = 1:nStart
     if contourValues(iPerpStart(i)) > 0
 
         tmp = cell(1,nWinPara(i)+1);
-        tmp(~(sOnBoundA | sOnBoundB)) = gradientDescent(double(distX),...
-        contours{iPerpStart(i)}(1,paraVertInd{i}(~(sOnBoundA | sOnBoundB))),...
-        contours{iPerpStart(i)}(2,paraVertInd{i}(~(sOnBoundA | sOnBoundB))));    
-        if any(sOnBoundA)            
-            tmp(sOnBoundA) = gradientDescent(double(distX),... 
+        tmp(~sOnBound) = gradientDescent(double(distX),...
+        contours{iPerpStart(i)}(1,paraVertInd{i}(~sOnBound)),...
+        contours{iPerpStart(i)}(2,paraVertInd{i}(~sOnBound)));    
+        if any(sOnBound)            
+            tmp(sOnBound) = gradientDescent(double(distX),... 
                                              tmpStartsA(1,:),tmpStartsA(2,:));
         end
-        if any(sOnBoundB)            
-            tmp(sOnBoundB) = gradientDescent(double(distX),... 
-                                             tmpStartsB(1,:),tmpStartsB(2,:));
-        end        
         %Transpose and reverse these...
         tmp = cellfun(@(x)(x(end:-1:1,:)'),tmp,'UniformOutput',false);
         %... and add them to the slices
@@ -650,19 +651,10 @@ end
 %Finds intersections of slices and contours (perpindicular and parallel
 %divisions respectively) to determine window polygons
 
-
-%Since each window depends on two slices, we do the first slice as a special case.
-
-%Find the intersections of the first slice.
-% [intXprev,intYprev,iSintPrev,iCintPrev] = find_intersections(slices{1},...                                                
-%                                                    contours);                                                                                                                         
-% 
-% iContIntPrev = find(~isnan(intXprev));
-% nBandPrev = numel(iContIntPrev)-1;%One band less than the number of contour intersections
-% 
-
+%Initialize the window cell array
 nStrips = numel(slices)-1;%we have one window strip less than the number of slices
 windows = cell(1,nStrips);
+isCollapsed = false;
 
 %Go through each subsequent slice, and find intersections w/ contours.    
 for j = 1:(nStrips+1)
@@ -678,6 +670,10 @@ for j = 1:(nStrips+1)
     if ~any(iContIntCur == iZeroCont)        
         if startContour == 1        
             iCintCur(iZeroCont) = paraVertInd(j);            
+            iSintCur(iZeroCont) = 1;
+            intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
+            intYcur(iZeroCont) = contours{iZeroCont}(2,iCintCur(iZeroCont));
+            iContIntCur = find(~isnan(intXcur));
         else
             %Since there cannot be true local minima within the distance
             %transform, if the slice terminates before reaching the
@@ -685,19 +681,19 @@ for j = 1:(nStrips+1)
             %error caused it to stop just short. We therefore introduce an
             %intersection if the termination was close enough
             
-            %Find the point on the zero contour which is closes to the end
+            %Find the point on the zero contour which is closest to the end
             %of the slice
             [minDist,iMinDist] = min(sqrt((slices{j}(1,1) - contours{iZeroCont}(1,:)) .^2 + ...
                                           (slices{j}(2,1) - contours{iZeroCont}(2,:)) .^2));
             %If it's close enough, use this point as the intersection
             if minDist < perpSize                
                 iCintCur(iZeroCont) = iMinDist;                                
-            end
-        end
-        iSintCur(iZeroCont) = 1;
-        intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
-        intYcur(iZeroCont) = contours{iZeroCont}(2,iCintCur(iZeroCont));
-        iContIntCur = find(~isnan(intXcur));
+                iSintCur(iZeroCont) = 1;
+                intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
+                intYcur(iZeroCont) = contours{iZeroCont}(2,iCintCur(iZeroCont));
+                iContIntCur = find(~isnan(intXcur));
+            end            
+        end        
     end
     nBandCur = numel(iContIntCur)-1;                
 
@@ -708,115 +704,111 @@ for j = 1:(nStrips+1)
         %The number of bands here is determined by the minimum number of
         %intersections of this slice and the previous slice, since both are
         %needed to create a window.
-        windows{j-1} = cell(1,min(nBandCur,nBandPrev));
+        minBandsCur = min(nBandCur,nBandPrev);  
+        windows{j-1} = cell(1,minBandsCur);
+        
+        for k = 1:minBandsCur            
 
-        for k = 1:nBandPrev
+            %Make sure that both slices intersect the same contours.
+            if all(iContIntPrev(k:k+1) == iContIntCur(k:k+1))                                                
 
-            if k <= nBandCur %This is pointless for now, but will be needed later if I decide to add back windows which meet image boundary.
+                %Corners run clockwise, starting with lower left
+                a = [intXprev(iContIntPrev(k)) ; intYprev(iContIntPrev(k))];              %Corner A
+                b = [intXprev(iContIntPrev(k+1)) ; intYprev(iContIntPrev(k+1))];          %Corner B
+                c = [intXcur(iContIntCur(k+1)) ; intYcur(iContIntCur(k+1))];              %Corner C
+                d = [intXcur(iContIntCur(k)) ; intYcur(iContIntCur(k))];                  %Corner D
 
-                %Make sure that both slices intersect the same contours.
-                if all(iContIntPrev(k:k+1) == iContIntCur(k:k+1))                                                
+                %Make sure that the window has not completely collapsed into a
+                %line.
+                if any([sqrt(sum((a-d) .^2)) sqrt(sum((b-c) .^2))] > collapsedSize)                                               
 
-                    %Corners run clockwise, starting with lower left
-                    a = [intXprev(iContIntPrev(k)) ; intYprev(iContIntPrev(k))];              %Corner A
-                    b = [intXprev(iContIntPrev(k+1)) ; intYprev(iContIntPrev(k+1))];          %Corner B
-                    c = [intXcur(iContIntCur(k+1)) ; intYcur(iContIntCur(k+1))];              %Corner C
-                    d = [intXcur(iContIntCur(k)) ; intYcur(iContIntCur(k))];                  %Corner D
-
-                    %Make sure that the window has not completely collapsed into a
-                    %line.
-                    if any([sqrt(sum((a-d) .^2)) sqrt(sum((b-c) .^2))] > collapsedSize)                                               
-
-                        ab = slices{j-1}(:,ceil(iSintPrev(iContIntPrev(k))):...
-                            floor(iSintPrev(iContIntPrev(k+1))));                                                     %Side A->B
+                    ab = slices{j-1}(:,ceil(iSintPrev(iContIntPrev(k))):...
+                        floor(iSintPrev(iContIntPrev(k+1))));                                                     %Side A->B
 
 
-                        if iCintPrev(iContIntPrev(k+1)) <= iCintCur(iContIntCur(k+1)) + intErr                             %Side B->C
-                            %The "normal" case, where the previous intersection
-                            %has an index lower than the current, or where the
-                            %window has collapsed and the intersections are the
-                            %same.
-                            bc = contours{iContIntPrev(k+1)}(:,ceil(iCintPrev(iContIntPrev(k+1))):...
-                                    floor(iCintCur(iContIntCur(k+1)))); 
-                        elseif isClosed(iContIntPrev(k+1))
+                    if iCintPrev(iContIntPrev(k+1)) <= iCintCur(iContIntCur(k+1)) + intErr                             %Side B->C
+                        %The "normal" case, where the previous intersection
+                        %has an index lower than the current, or where the
+                        %window has collapsed and the intersections are the
+                        %same.
+                        bc = contours{iContIntPrev(k+1)}(:,ceil(iCintPrev(iContIntPrev(k+1))):...
+                                floor(iCintCur(iContIntCur(k+1)))); 
+                    elseif isClosed(iContIntPrev(k+1))
 
-                            %In the case that this window side crosses the
-                            %starting point of this contour...
-                            bc = contours{iContIntPrev(k+1)}(:,...
-                                [ceil(iCintPrev(iContIntPrev(k+1))):end 1:floor(iCintCur(iContIntCur(k+1)))]);                         
+                        %In the case that this window side crosses the
+                        %starting point of this contour...
+                        bc = contours{iContIntPrev(k+1)}(:,...
+                            [ceil(iCintPrev(iContIntPrev(k+1))):end 1:floor(iCintCur(iContIntCur(k+1)))]);                         
+                    else
+                        %If we get here, something has gone wrong!
+                        if doChecks
+                            error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
                         else
-                            %If we get here, something has gone wrong!
-                            if doChecks
-                                error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
-                            else
-                                error('Problem with mask - check mask yourself or enable the mask checking option!')
-                            end
+                            error('Problem with mask - check mask yourself or enable the mask checking option!')
                         end
-
-                        cd = slices{j}(:,floor(iSintCur(iContIntCur(k+1))):-1:ceil(iSintCur(iContIntCur(k))));         %Side C->D
-
-                        if iCintCur(iContIntCur(k)) >= iCintPrev(iContIntPrev(k)) - intErr                                             %Side D->A
-                            %The "normal" case - this side runs anti-parallel
-                            %to the contour so we expect the intersections to
-                            %occur in decreasing order.
-                            da = contours{iContIntCur(k)}(:,floor(iCintCur(iContIntCur(k))):-1:ceil(iCintPrev(iContIntPrev(k))));
-                        elseif isClosed(iContIntCur(k))
-                            %This is the case where this window side
-                            %crosses the start point of this contour.
-                            da = contours{iContIntCur(k)}(:,[floor(iCintCur(iContIntCur(k))):-1:1 end:-1:ceil(iCintPrev(iContIntPrev(k)))]);
-                        else %If we get here, something has gone wrong!
-                            if doChecks
-                                %error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
-                            else
-                                error('Problem with mask - check mask yourself or enable the mask checking option!')
-                            end
-                        end
-
-                        %Combine all the vertices and sides to create the
-                        %window
-                        windows{j-1}{k}  = {[a ab],[b bc],[c cd],[d da]};                                                                                                                                                                
-
-                        isCollapsed = false;
-
-                        if showPlots
-
-                            if firstTime
-                                firstTime = false;
-                                fsFigure(.6);
-                                hold on                            
-                                gX = gradient(distX);%Show gradient of distance transform so ridgelines are obvious
-                                imagesc(gX);
-                                colormap gray
-                                plotDirection(contours,'g');  
-                                plotDirection(slices,'g');
-                                axis image,axis ij,set(gca,'color','none')
-                            end
-                            winBorder = [windows{j-1}{k}{:}];
-                            fill(winBorder(1,:),winBorder(2,:),'y','FaceAlpha',.5)
-                            plot(ab(1,:),ab(2,:),'r.');
-                            plot(bc(1,:),bc(2,:),'g.');
-                            plot(cd(1,:),cd(2,:),'b.');
-                            plot(da(1,:),da(2,:),'m.');
-                        end
-
-                    else%If the window has collapsed, we need to terminate this strip of windows.                        
-                        windows{j-1} = windows{j-1}(1:k-1);                    
-                        isCollapsed = true;
-                        break
                     end
-                 end
 
+                    cd = slices{j}(:,floor(iSintCur(iContIntCur(k+1))):-1:ceil(iSintCur(iContIntCur(k))));         %Side C->D
 
-            end
+                    if iCintCur(iContIntCur(k)) >= iCintPrev(iContIntPrev(k)) - intErr                                             %Side D->A
+                        %The "normal" case - this side runs anti-parallel
+                        %to the contour so we expect the intersections to
+                        %occur in decreasing order.
+                        da = contours{iContIntCur(k)}(:,floor(iCintCur(iContIntCur(k))):-1:ceil(iCintPrev(iContIntPrev(k))));
+                    elseif isClosed(iContIntCur(k))
+                        %This is the case where this window side
+                        %crosses the start point of this contour.
+                        da = contours{iContIntCur(k)}(:,[floor(iCintCur(iContIntCur(k))):-1:1 end:-1:ceil(iCintPrev(iContIntPrev(k)))]);
+                    else %If we get here, something has gone wrong!
+                        if doChecks
+                            error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
+                        else
+                            error('Problem with mask - check mask yourself or enable the mask checking option!')
+                        end
+                    end
 
+                    %Combine all the vertices and sides to create the
+                    %window
+                    windows{j-1}{k}  = {[a ab],[b bc],[c cd],[d da]};                                                                                                                                                                
+
+                    isCollapsed = false;
+
+                    if showPlots
+
+                        if firstTime
+                            firstTime = false;
+                            fsFigure(.6);
+                            hold on                            
+                            gX = gradient(distX);%Show gradient of distance transform so ridgelines are obvious
+                            imagesc(gX);
+                            colormap gray
+                            plotDirection(contours,'g');  
+                            plotDirection(slices,'g');
+                            axis image,axis ij,set(gca,'color','none')
+                        end
+                        winBorder = [windows{j-1}{k}{:}];
+                        fill(winBorder(1,:),winBorder(2,:),'y','FaceAlpha',.5)
+                        plot(ab(1,:),ab(2,:),'r.');
+                        plot(bc(1,:),bc(2,:),'g.');
+                        plot(cd(1,:),cd(2,:),'b.');
+                        plot(da(1,:),da(2,:),'m.');
+                    end
+
+                else%If the window has collapsed, we need to terminate this strip of windows.                        
+                    windows{j-1} = windows{j-1}(1:k-1);                    
+                    isCollapsed = true;
+                    break
+                end
+             end           
         end       
 
         %If the two slices end in the same local maxima of the distance
-        %transform, and the strip hasn't collapsed, we need to add a final
-        %3-corner window to cover the areas inside the innermost contours
+        %transform or image border location, and the strip hasn't
+        %collapsed, we need to add a final 3-corner window to cover the
+        %areas inside the innermost contours
         if nBandCur > 0 && nBandCur == nBandPrev && ...
-                all(round(slices{j-1}(:,end)) == ...
-                    round(slices{j}(:,end))) && ~isCollapsed
+                sqrt(sum(diff([slices{j-1}(:,end) slices{j}(:,end)],1,2).^2)) <=1 ...
+                    && ~isCollapsed
 
             %Corner where slices hit local maxima of distance transform
             e = slices{j-1}(:,end); %Should we instead use the first point where they overlap?
@@ -832,15 +824,218 @@ for j = 1:(nStrips+1)
 
             if showPlots
 
-                    winPoly = [windows{j-1}{nBandCur+1}{:}];
+                winPoly = [windows{j-1}{nBandCur+1}{:}];
 
-                    fill(winPoly(1,:),winPoly(2,:),'m','FaceAlpha',.5)
+                fill(winPoly(1,:),winPoly(2,:),'m','FaceAlpha',.5)
 
-                    plot(be(1,:),be(2,:),'r.');
-                    plot(ec(1,:),ec(2,:),'g.');
-                    plot(cb(1,:),cb(2,:),'b.');                   
+                plot(be(1,:),be(2,:),'r.');
+                plot(ec(1,:),ec(2,:),'g.');
+                plot(cb(1,:),cb(2,:),'b.');                   
             end                          
 
+            
+        %If both of the slices terminate at the image border, we may need
+        %to add additional windows. This can only happen if zero-contour is open        
+        elseif ~isClosed(iZeroCont) && ~isCollapsed
+            %Find where these slices hit the image border, if at all
+            [~,~,~,iBordIntCur] = intersectionsHLE(slices{j}(1,end-1:end),slices{j}(2,end-1:end),...
+                                                   borderCoord(1,:),borderCoord(2,:));            
+            [~,~,~,iBordIntPrev] = intersectionsHLE(slices{j-1}(1,end-1:end),slices{j-1}(2,end-1:end),...
+                                                    borderCoord(1,:),borderCoord(2,:));
+                        
+            if ~isempty(iBordIntPrev) && ~isempty(iBordIntCur)
+                
+                %Get the indices of the border coordinates enclosed by this
+                %strip
+                if iBordIntPrev > iBordIntCur
+                    %The intersections should always occur in
+                    %counter-clockwise order, so this is the normal case
+                    curBordInd = ceil(iBordIntCur):floor(iBordIntPrev);
+                else
+                    %This means the border section spans the origin.
+                    curBordInd = [ceil(iBordIntCur):nBordPts 1:floor(iBordIntPrev)];
+                end
+                                
+                %Find the maximum distance value this strip contains by
+                %sampling the distance transform along the image border
+                maxStripDist = max(arrayfun(@(x)(distX(...
+                    borderCoord(2,curBordInd(x)),borderCoord(1,curBordInd(x)))),1:numel(curBordInd)));
+                
+                %Determine the number of additional bands needed to reach
+                %the image border, making sure these bands will be at least
+                %a pixel wide
+                totalBandCur = nnz((distXvals+1) <= maxStripDist);
+                %TEMP - WINDOW ARRAY IS BEING RESIZED - DO THIS CHECK PRIOR TO CREATING ARRAY!!!!!-HLE
+                
+                %If there are additional contours which do not intersect
+                %with the slices, we need to find them
+                if totalBandCur > max(nBandPrev,nBandCur) + 1
+                    
+                    %Any contours at isovalues higher than the last band
+                    %are candidates
+                    iExtraContours = find(contourValues > distXvals(max(nBandPrev,nBandCur)+1));
+                    %Find those which intersect the current border region
+                    iExtraContours = iExtraContours(cellfun(@(x)(any(...
+                        borderCoord(1,curBordInd) == round(x(1,end)) & ...
+                        borderCoord(2,curBordInd) == round(x(2,end)))),contours(iExtraContours)));
+                
+                end
+                
+                %Go through each additional band and create the window
+                for k = minBandsCur+1:totalBandCur
+                                                            
+                    %Corner A                                        
+                    if k <= nBandPrev + 1
+                        %If the slice intersects this contour, we have a
+                        %normal A corner
+                        a = [intXprev(iContIntPrev(k)) ; intYprev(iContIntPrev(k))];
+                    else
+                        a = zeros(2,0);
+                    end
+                    
+                    %Side A->B
+                    if k <= nBandPrev
+                        %If the slice intersects both this and the next
+                        %contour, we have a normal side A->B
+                        ab = slices{j-1}(:,ceil(iSintPrev(iContIntPrev(k))):...
+                                    floor(iSintPrev(iContIntPrev(k+1))));
+                    elseif k == nBandPrev + 1
+                        %If the slice intersects this contour but not the
+                        %next, we have a truncated A->B side
+                        ab = slices{j-1}(:,ceil(iSintPrev(iContIntPrev(k))):end);                                                
+                    else                        
+                        ab = zeros(2,0);
+                    end
+                    
+                    %Corner B
+                    if k <= nBandPrev
+                        %If the slice intersects the next contour, we have
+                        %a normal b corner
+                        b = [intXprev(iContIntPrev(k+1)) ; intYprev(iContIntPrev(k+1))];
+                    else
+                        b = zeros(2,0);
+                    end
+                    
+                    %Side B->C
+                    %This side will never be normal since we've hit the
+                    %image boundary
+                    if k <= nBandPrev
+                        %If the previous slice but not current intersected
+                        %the current contour, the contour ends within this
+                        %window so we take the remainder of the contour
+                        bc = contours{iContIntPrev(k+1)}(:,ceil(iCintPrev(iContIntPrev(k+1))):end); 
+                    elseif k <= nBandCur
+                        %If the opposite is true, the contour starts within
+                        %this window so we take the portion up to the first
+                        %intersection
+                        bc = contours{iContIntCur(k+1)}(:,1:floor(iCintCur(iContIntCur(k+1))));
+                                                
+                    elseif k < totalBandCur                                                
+                        %Neither slice hits a contour but we still have a
+                        %partial B->C side
+                        
+                        %Find the extra contour corresponding to this band
+                        bcContour = contourValues(iExtraContours) == distXvals(k+1);
+                        if nnz(bcContour) ~= 1
+                            error('Problem windowing image border areas! - Problem identifying non-intersecting extra contours! Report this to Hunter so he can debug!')
+                        else
+                            %This contour starts and ends at the image
+                            %border, so we use the whole thing
+                            bc = contours{iExtraContours(bcContour)};                            
+                        end                        
+                    elseif k == totalBandCur
+                        %The B-C side is completely outside the image and
+                        %is replaced by the image border. We can leave it
+                        %empty unless there is an image corner here.
+                        iCurCorners = find(any(bsxfun(@eq,curBordInd,bordCornerInd'),1));
+                        if ~isempty(iCurCorners)                            
+                            bc = borderCoord(:,curBordInd(iCurCorners(end:-1:1)));
+                        else
+                            bc = zeros(2,0);
+                        end
+                    end
+                    
+                                                            
+                    %Corner C
+                    if k <= nBandCur
+                        %We have a normal C corner
+                        c = [intXcur(iContIntCur(k+1)) ; intYcur(iContIntCur(k+1))];
+                    else
+                        c = zeros(2,0);
+                    end
+                    
+                    %Side C->D
+                    if k <= nBandCur
+                        %We have a normal C->D side
+                        cd = slices{j}(:,floor(iSintCur(iContIntCur(k+1))):-1:ceil(iSintCur(iContIntCur(k))));
+                    elseif k == nBandCur + 1
+                        %The slice intersects the current contour but not
+                        %the next, we have a truncated C->D side.
+                        cd = slices{j}(:,end:-1:ceil(iSintCur(iContIntCur(k))));
+                    else
+                        cd = zeros(2,0);
+                    end
+                        
+                    %Corner D
+                    if k <= nBandCur + 1
+                        %Normal d corner
+                        d = [intXcur(iContIntCur(k)) ; intYcur(iContIntCur(k))];
+                    else
+                        d = zeros(2,0);
+                    end
+                    
+                    %Side D->A
+                    if (k <= nBandCur + 1) && (k <= nBandPrev + 1)
+                        %Both slices intersect this contour, so we have a
+                        %normal D->A side
+                        da = contours{iContIntCur(k)}(:,floor(iCintCur(iContIntCur(k))):-1:ceil(iCintPrev(iContIntPrev(k))));
+                    elseif k <= nBandPrev + 1
+                        %If only the previous side intersects this contour,
+                        %the contour ends within this window
+                        da = contours{iContIntPrev(k)}(:,end:-1:ceil(iCintPrev(iContIntPrev(k))));
+                    elseif k <= nBandCur + 1
+                        %If only the current, it starts in this window
+                        da = contours{iContIntCur(k)}(:,floor(iCintCur(iContIntCur(k))):-1:1);
+                    else
+                        %Neither slice hits a contour but we still have a
+                        %partial D->A side.
+                        
+                        %Find the extra contour corresponding to this band
+                        daContour = contourValues(iExtraContours) == distXvals(k);
+                        if nnz(daContour) ~= 1
+                            error('Problem windowing image border areas! - Problem identifying non-intersecting extra contours! Report this to Hunter so he can debug!')
+                        else
+                            %This contour starts and ends at the image
+                            %border, so we use the whole thing
+                            da = contours{iExtraContours(daContour)}(:,end:-1:1);                            
+                        end                        
+                    
+                    end                                                           
+                     
+                    windows{j-1}{k} =  {[a ab],[b bc],[c cd],[d da]};
+                    
+                    if showPlots
+                        if firstTime
+                            firstTime = false;
+                            fsFigure(.6);
+                            hold on                            
+                            gX = gradient(distX);%Show gradient of distance transform so ridgelines are obvious
+                            imagesc(gX);
+                            colormap gray
+                            plotDirection(contours,'g');  
+                            plotDirection(slices,'g');
+                            axis image,axis ij,set(gca,'color','none')
+                        end
+                        winBorder = [windows{j-1}{k}{:}];
+                        fill(winBorder(1,:),winBorder(2,:),'r','FaceAlpha',.5)
+                        plot(ab(1,:),ab(2,:),'r.');
+                        plot(bc(1,:),bc(2,:),'g.');
+                        plot(cd(1,:),cd(2,:),'b.');
+                        plot(da(1,:),da(2,:),'m.');                                 
+                    end                                                                              
+                        
+                end
+            end             
         end
     end
     intXprev = intXcur;

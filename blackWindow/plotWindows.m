@@ -1,8 +1,9 @@
-function h=plotWindows(windowIn,stringIn,showNum)
+function varargout=plotWindows(windowIn,stringIn,showNum)
 %PLOTWINDOWS plots the input windows on the current axes
 % 
 % plotWindows(windowIn)
-% plotWindows(windowIn,plotStyle,showNum)
+% h = plotWindows(windowIn)
+% h = plotWindows(windowIn,plotStyle,showNum)
 %
 % This function is for displaying the window geometry. It plots the window
 % oultines and fills in their interior on the current figure axes. This can
@@ -137,3 +138,7 @@ if ~prevHold %Restore previous hold state
 end
 axis image
 axis ij
+%Only return the handles if output requested.
+if nargout > 0
+    varargout{1} = h;
+end
