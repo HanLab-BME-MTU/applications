@@ -1,5 +1,5 @@
 function [imageSupRes,factorSR,imageConv] = reconstructImageSR(movieInfo,startend,...
-    saveMovie,movieName,showRaw,firstImageFile,dir2saveMovie,movieType)
+    saveMovie,movieName,showRaw,firstImageFile,dir2saveMovie,movieType,useMedianStd)
 %RECONSTRUCTIMAGESR reconstructs a "super-resolution" image from single molecule coordinates
 %
 %SYNPOSIS [imageSupRes,imageConv] = reconstructImageSR(movieInfo,startend,...
@@ -34,6 +34,10 @@ function [imageSupRes,factorSR,imageConv] = reconstructImageSR(movieInfo,starten
 %                     using ImageMagick and ffmpeg. These options works
 %                     only under linux or mac.
 %                     Optional. Default: 'mov'.
+%       useMedianStd: 1 to use median standard deviation for all molecules
+%                     for the sake of speed, 0 to use for each molecule its
+%                     own standard deviation.
+%                     Optional. Default: 0.
 %
 %OUTPUT imageSupRes : The reconstructed super-resolution image.
 %       pixelSizeSR : The ratio of the original pixel size to the
@@ -153,6 +157,10 @@ if nargin < 8 || isempty(movieType)
     movieType = 'mov';
 end
 
+if nargin < 9 || isempty(useMedianStd)
+    useMedianStd = 0;
+end
+
 %% Image reconstruction
 
 %initialize movie if it is to be saved
@@ -162,9 +170,23 @@ if saveMovie
         movieName,numFramesMovie,movieVar,[]);
 end
 
-%find minimum positional uncertainty
+%get positional standard deviations
 minPosStd = [vertcat(movieInfo.xCoord) vertcat(movieInfo.yCoord)];
-minPosStd = min(mean(minPosStd(:,[2 4]),2));
+
+%also get total number of molecules
+numMolecules = size(minPosStd,1);
+
+if useMedianStd
+    
+    %find median positional uncertainty
+    minPosStd = median(mean(minPosStd(:,[2 4]),2));
+    
+else
+    
+    %find 10th percentile of positional uncertainty
+    minPosStd = prctile(mean(minPosStd(:,[2 4]),2),10);
+    
+end
 
 %define the "super-resolution factor", namely the number of pixels that
 %each original pixel is divided into such that the minimum positional
@@ -178,7 +200,7 @@ numPixelsNewXY = numPixelsXY*factorSR;
 imageConv = zeros(numPixelsXY(2),numPixelsXY(1));
 
 %initialize super-resolution image
-imageSupRes = sparse(zeros(numPixelsNewXY(2),numPixelsNewXY(1)));
+imageSupRes = spalloc(numPixelsNewXY(2),numPixelsNewXY(1),49*numMolecules);
 
 %make figure for movie
 if saveMovie
@@ -205,6 +227,11 @@ end
 for i = 1 : length(yTickConv)
     yTickName{i} = num2str(yTickConv(i));
 end
+
+%generate Gaussian template if average std is to be used for all molecules
+tmpSize = 7;
+template = GaussMask2D(1,tmpSize,[0 0]);
+templateSize = (size(template,1) - 1) / 2;
 
 %go over all specified frames
 for iFrame = 1 : numFramesMovie
@@ -236,16 +263,18 @@ for iFrame = 1 : numFramesMovie
         numFeat = length(amp);
         
         %initialize empty image for this frame
-        image = sparse(zeros(numPixelsNewXY(2),numPixelsNewXY(1)));
+        image = spalloc(numPixelsNewXY(2),numPixelsNewXY(1),49*numFeat);
         
         %go over all features
         for iFeat = 1 : numFeat
             
-            %generate Gaussian template
-            tmpSize = round(7*coordStd(iFeat));
-            tmpSize = tmpSize + (1-mod(tmpSize,2));
-            template = GaussMask2D(coordStd(iFeat),tmpSize,[xCoordDev(iFeat) yCoordDev(iFeat)]);
-            templateSize = (size(template,1) - 1) / 2;
+            %generate Gaussian template for this molecule
+            if ~useMedianStd
+                tmpSize = round(7*coordStd(iFeat));
+                tmpSize = tmpSize + (1-mod(tmpSize,2));
+                template = GaussMask2D(coordStd(iFeat),tmpSize,[xCoordDev(iFeat) yCoordDev(iFeat)]);
+                templateSize = (size(template,1) - 1) / 2;
+            end
             
             %add Gaussians to image
             ymin = yCoordInt(iFeat) - templateSize;
@@ -391,7 +420,7 @@ xlim(axes1,imageRange(2,:));
 ylim(axes1,imageRange(1,:));
 box(axes1,'on');
 hold(axes1,'all');
-imagesc(imageConv,'Parent',axes1);
+imagesc(-imageConv,'Parent',axes1);
 colormap('gray')
 % print('-dtiff','-loose','-r300',fullfile(dir2saveMovie,'imageConventional.tif'));
 
@@ -403,7 +432,7 @@ xlim(axes1,imageRange(2,:)*factorSR);
 ylim(axes1,imageRange(1,:)*factorSR);
 box(axes1,'on');
 hold(axes1,'all');
-imagesc(imageSupRes,'Parent',axes1);
+imagesc(-imageSupRes,'Parent',axes1);
 colormap('gray')
 % print('-dtiff','-loose','-r300',fullfile(dir2saveMovie,'imageSuperRes.tif'));
 
