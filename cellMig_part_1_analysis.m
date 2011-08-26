@@ -31,8 +31,8 @@ end
 
 if doNuclei
     if nargin < 5 || isempty(imageFileListNuclei)
-        imageFileListNuclei=[pwd,filesep,'Nuclei'];
         try
+            imageFileListNuclei=[pwd,filesep,'Nuclei'];
             imageFileListNuclei=getFileListFromFolder(imageFileListNuclei);
         catch exception
             [filename, pathname] = uigetfile({'*.tif';'*.jpg';'*.png';'*.*'}, ...
