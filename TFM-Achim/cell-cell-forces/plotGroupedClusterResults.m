@@ -78,13 +78,6 @@ set(gca,'fontsize',16)
 
 figure()
 % checked with part7
-boxplot(sqrt(sum(resF_vals.^2,2))./elE_vals,deg_vals,'notch','on')
-title(['Residual force per elastic energy for cells with connectivity: ',num2str(1:max(deg_vals))])
-xlabel('Deg of connectivity')
-ylabel('Residual force / contraction energy [nN/pJ]')
-
-figure()
-% checked with part7
 boxplot(sumFi_vals,deg_vals,'notch','on')
 title(['Sum of interfacial forces for cells with connectivity: ',num2str(1:max(deg_vals))])
 xlabel('Deg of connectivity')
@@ -114,14 +107,12 @@ xlabel('Deg of connectivity')
 ylabel('Sum of interfacial forces / el. energy [nN/pJ]')
 set(gca,'fontsize',16)
 
-
 figure()
-% checked with part7: same but could be colored according to the deg. of
-% connectivity as in part7.
-plot(sumLi_vals,sumFi_vals,'*')
-title(['Correlation: cum. interf. force with cumulative length of all interfaces (any degree): ',num2str(1:max(deg_vals))])
-xlabel('Cumulative length of all interfaces [um]')
-ylabel('Sum interf. forces [nN]')
+% checked with part7
+boxplot(sumFi_vals./sumFmag_vals,deg_vals,'notch','on')
+title(['Sum of interfacial forces / Sum of traction force magnitude of cells with connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('Sum of interfacial forces / Sum of traction force magnitude [1]')
 
 figure()
 % checked with part7
@@ -149,7 +140,7 @@ plotResultsForTwoStiff(groupedClusters);
 %**************************************************************************
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag    = sqrt(sum(fc1_vals.^2,2));
@@ -248,7 +239,7 @@ clear M
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
 [deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
@@ -293,7 +284,7 @@ xlabel('Minimal deg. of connectivity')
 ylabel('Angle [deg]')
 clear M
 
-
+end %if ~onlyCorr
 %**************************************************************************
 % Plot ctr-ctr, ctr-myo, myo-myo, for degree 1-1 interfaces for E=8,35kPa:*
 %**************************************************************************
@@ -444,7 +435,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************
