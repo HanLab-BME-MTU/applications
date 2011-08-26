@@ -150,12 +150,6 @@ searchRadius = parameterSet.searchRadius;
 timeWindow = parameterSet.timeWindow;
 gapPenalty = parameterSet.gapPenalty;
 
-%make sure that timeWindow is not equal to 0
-%set to 1 in this case, in order to not have any gap closing
-if timeWindow == 0
-    timeWindow = 1;
-end
-
 %get number of features in each frame
 if ~isfield(movieInfo,'num')
     for iFrame = 1 : numFrames
@@ -247,7 +241,7 @@ numTracksLink = length(trackStartTime);
 
 %if there are gaps to close (i.e. if there are tracks that start after the
 %first frame and tracks that end before the last frame) ...
-if any(trackStartTime > 1) && any(trackEndTime < numFramesEff)
+if any(trackStartTime > 1) && any(trackEndTime < numFramesEff) && timeWindow > 1
 
     if verbose
         fprintf('Closing gaps (%d starts and %d ends) ...\n',...
@@ -294,7 +288,7 @@ if any(trackStartTime > 1) && any(trackEndTime < numFramesEff)
             seedLengthOld = 0; %dummy just to get into the while loop
 
             %while current seed contains more tracks than previous seed, i.e.
-            %whie new track segments are still being added to the compound
+            %while new track segments are still being added to the compound
             %track
             while seedLength > seedLengthOld
 
