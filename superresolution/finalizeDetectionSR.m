@@ -139,10 +139,8 @@ tracksFinal = trackCloseGapsSR(movieInfoFinal,parameterSet,...
     probDim,saveResults,verbose);
 
 %convert tracks into matrix format
-%keep matrix as sparse for the sake of memory
-tracksFinal1 = convStruct2MatNoMS(tracksFinal);
-
-tracksFinal2 = convStruct2SparseMatNoMS(tracksFinal);
+%use sparse matrix for the sake of memory
+tracksFinal = convStruct2SparseMatNoMS(tracksFinal);
 
 %get track start, end and lifetime information
 trackSEL = getTrackSEL(tracksFinal);
@@ -184,11 +182,13 @@ if correctDrift
         tracksFiduciary = tracksFinal(indxFiduciary,:);
         
         %calculate drift in x and y
-        xCoordFiduciary = tracksFiduciary(:,1:8:end);
-        yCoordFiduciary = tracksFiduciary(:,2:8:end);
-        xCoordDrift = mean(xCoordFiduciary,1);
+        xCoordFiduciary = full(tracksFiduciary(:,1:8:end));
+        yCoordFiduciary = full(tracksFiduciary(:,2:8:end));
+        xCoordFiduciary(xCoordFiduciary==0) = NaN;
+        yCoordFiduciary(yCoordFiduciary==0) = NaN;
+        xCoordDrift = nanmean(xCoordFiduciary,1);
         xCoordDrift = xCoordDrift - xCoordDrift(1);
-        yCoordDrift = mean(yCoordFiduciary,1);
+        yCoordDrift = nanmean(yCoordFiduciary,1);
         yCoordDrift = yCoordDrift - yCoordDrift(1);
         
         %remove tracks of fiduciary markers from list of tracks
@@ -198,10 +198,18 @@ if correctDrift
         numTracks = length(indxKeep);
         
         %eliminate drift from tracks
-        tracksFinal(:,1:8:end) = tracksFinal(:,1:8:end) - ...
-            repmat(xCoordDrift,numTracks,1);
-        tracksFinal(:,2:8:end) = tracksFinal(:,2:8:end) - ...
-            repmat(yCoordDrift,numTracks,1);
+        for iTrack = 1 : numTracks
+            xCoordTrack = tracksFinal(iTrack,1:8:end);
+            xCoordTrack(trackSEL(iTrack,1):trackSEL(iTrack,2)) = ...
+                xCoordTrack(trackSEL(iTrack,1):trackSEL(iTrack,2)) - ...
+                xCoordDrift(trackSEL(iTrack,1):trackSEL(iTrack,2));
+            tracksFinal(iTrack,1:8:end) = xCoordTrack;
+            yCoordTrack = tracksFinal(iTrack,2:8:end);
+            yCoordTrack(trackSEL(iTrack,1):trackSEL(iTrack,2)) = ...
+                yCoordTrack(trackSEL(iTrack,1):trackSEL(iTrack,2)) - ...
+                yCoordDrift(trackSEL(iTrack,1):trackSEL(iTrack,2));
+            tracksFinal(iTrack,2:8:end) = yCoordTrack;
+        end
                 
     else
         
