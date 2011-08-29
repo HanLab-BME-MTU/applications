@@ -328,7 +328,7 @@ xlabel(['displacement map of bgaps, max displacement ' num2str(m) ' microns'])
 
 %% STACKED HISTOGRAMS
 
-[dummy,speedLifeDispMat]=plusTipDynamParam(allData);
+[dummy,speedLifeDispMat]=plusTipDynamParam(allData,[],1,0);
 
 for iParam=1:3
     switch iParam
