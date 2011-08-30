@@ -29,22 +29,29 @@ path_experiment=path_ProjFolder(1:startIndex-2); %-2 because there is a filesep
 
 
 % Set TFM parameters:
-pattern_RefFrame                        ='w2642';
+pattern_RefFrame                        ='REF__w2642';
 folder_name_Beads                       ='Beads';
 folder_name_Cells                       ='Cells';
-folder_name_Xtra                        ='Ecad';  %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
-folder_name_Xtra2nd                     ='Tln1'; %This Xtra-Folder (for Actin or other stuff) is treated as the Cell images.
+folder_name_Xtra                        ='Monolayer';%'Ecad';  %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
+folder_name_Xtra2nd                     ='Spheroid' ;%'Tln1'; %This Xtra-Folder (for Actin or other stuff) is treated as the Cell images.
 folder_name_RefFrame                    ='Reference Frame';
+% new:
+folder_name_RegChannel                  ='BeadsOnGlass'; % This is the channel that is used for registration purposes
+pattern_RefFrame_RegChannel             ='REFglass__w2642';
 
 
 folder_name_BeadsWithRefFrame           ='2BeadsWithRefFrame';
 folder_name_CellsWithRefFrame           ='2CellsWithRefFrame';
 folder_name_XtraWithRefFrame            =['2',folder_name_Xtra,'WithRefFrame'];
 folder_name_Xtra2ndWithRefFrame         =['2',folder_name_Xtra2nd,'WithRefFrame'];
+% new:
+folder_name_RegChannelWithRefFrame      =['2',folder_name_RegChannel,'WithRefFrame']; % This will not be the same reference frame!
 folder_name_BeadsCollapsed              ='3BeadsCollapsed';
 folder_name_CellsCollapsed              ='3CellsCollapsed';
 folder_name_XtraCollapsed               =['3',folder_name_Xtra,'Collapsed'];
 folder_name_Xtra2ndCollapsed            =['3',folder_name_Xtra2nd,'Collapsed'];
+% new:
+folder_name_RegChannelCollapsed         =['3',folder_name_RegChannel,'Collapsed'];
 folder_name_BeadsCropSDC                ='4BeadsCropSDC';
 folder_name_tmp                         ='PreRegTmpFolder';
 
@@ -71,15 +78,24 @@ path_BeadsFolder            =[path_DataFolder,filesep,folder_name_Beads];
 path_CellsFolder            =[path_DataFolder,filesep,folder_name_Cells];
 path_XtraFolder             =[path_DataFolder,filesep,folder_name_Xtra];
 path_Xtra2ndFolder          =[path_DataFolder,filesep,folder_name_Xtra2nd];
+%new:
+path_RegChannelFolder       =[path_DataFolder,filesep,folder_name_RegChannel];
+
 path_RefFrameFolder         =[path_DataFolder,filesep,folder_name_RefFrame];
 path_BeadsWithRefFrame      =[path_DataFolder,filesep,folder_name_BeadsWithRefFrame];
 path_CellsWithRefFrame      =[path_DataFolder,filesep,folder_name_CellsWithRefFrame];
 path_XtraWithRefFrame       =[path_DataFolder,filesep,folder_name_XtraWithRefFrame];
 path_Xtra2ndWithRefFrame    =[path_DataFolder,filesep,folder_name_Xtra2ndWithRefFrame];
+%new:
+path_RegChannelWithRefFrame =[path_DataFolder,filesep,folder_name_RegChannelWithRefFrame];
+
 path_BeadsCollapsed         =[path_DataFolder,filesep,folder_name_BeadsCollapsed];
 path_CellsCollapsed         =[path_DataFolder,filesep,folder_name_CellsCollapsed];
 path_XtraCollapsed          =[path_DataFolder,filesep,folder_name_XtraCollapsed];
 path_Xtra2ndCollapsed       =[path_DataFolder,filesep,folder_name_Xtra2ndCollapsed];
+%new:
+path_RegChannelCollapsed    =[path_DataFolder,filesep,folder_name_RegChannelCollapsed];
+
 path_BeadsCropSDC           =[path_DataFolder,filesep,folder_name_BeadsCropSDC];
 path_tmp                    =[path_DataFolder,filesep,folder_name_tmp];
 
@@ -110,7 +126,6 @@ file_name_forceField     = 'forceField.mat';
 file_name_cellCellForces = 'cellCellForces.mat';
 file_name_trackedNet     = 'trackedNet.mat';
 
-
 % These is the path to the pre-registration folder:
 path_PreRegT = [path_DataFolder,filesep,file_name_PreRegT];
 
@@ -128,6 +143,16 @@ path_trackedNet    =[path_mechTFM,filesep,file_name_trackedNet];
 [refFrameFileList]=   getFileListFromFolder(path_RefFrameFolder, pattern_RefFrame);
 % if there is more than one ref. Frame in the List, take the first one:
 path_RefFrame=refFrameFileList{1};
+
+% get the path to the reference frame for the registration channel:
+[refFrameFileListRegChannel] = getFileListFromFolder(path_RefFrameFolder, pattern_RefFrame_RegChannel);
+% if there is more than one ref. Frame in the List, take the first one:
+if ~isempty(refFrameFileListRegChannel)
+    path_RefFrame_RegChannel=refFrameFileListRegChannel{1};
+else
+    path_RefFrame_RegChannel=[];
+end
+
 
 %**************************************************************************
 % Make the Bead folders
@@ -152,20 +177,34 @@ createCollapsedFolder(path_XtraFolder,path_XtraWithRefFrame,path_XtraCollapsed,p
 %**************************************************************************
 createCollapsedFolder(path_Xtra2ndFolder,path_Xtra2ndWithRefFrame,path_Xtra2ndCollapsed,path_RefFrame);
 
+%**************************************************************************
+% Make the RegChannel folders if necessary
+%**************************************************************************
+createCollapsedFolder(path_RegChannelFolder,path_RegChannelWithRefFrame,path_RegChannelCollapsed,path_RefFrame_RegChannel);
+
 
 %**************************************************************************
 % Crop the bead images
 %**************************************************************************
-sortedCellsFileList   =getFileListFromFolder(path_CellsFolder);
-BeadsCollapsedFileList=getFileListFromFolder(path_BeadsCollapsed);
+RegChannelCollapsedFileList=getFileListFromFolder(path_RegChannelCollapsed);
+if ~isempty(RegChannelCollapsedFileList)
+    if isempty(crop_area)
+        [crop_area]=createCropArea(RegChannelCollapsedFileList{1});
+    end
+    
+    [crop_area]=cropStack(crop_area,path_BeadsCropSDC,RegChannelCollapsedFileList{1},0);
+    save('crop_area_SDC.mat','crop_area')
+else    
+    sortedCellsFileList   =getFileListFromFolder(path_CellsFolder);
+    BeadsCollapsedFileList=getFileListFromFolder(path_BeadsCollapsed);
 
-if isempty(crop_area)
-    [crop_area]=createCropArea(sortedCellsFileList{1});
+    if isempty(crop_area)
+        [crop_area]=createCropArea(sortedCellsFileList{1});
+    end
+
+    [crop_area]=cropStack(crop_area,path_BeadsCropSDC,BeadsCollapsedFileList{1},0);
+    save('crop_area_SDC.mat','crop_area')
 end
-
-
-[crop_area]=cropStack(crop_area,path_BeadsCropSDC,BeadsCollapsedFileList{1},0);
-save('crop_area_SDC.mat','crop_area')
 
 if nargin<2 || isempty(doPreReg) || doPreReg==1
     %**************************************************************************
@@ -177,21 +216,18 @@ if nargin<2 || isempty(doPreReg) || doPreReg==1
     %**************************************************************************
     % Perform the pre-registration on all folders
     %**************************************************************************
-    createPreRegFolder(path_BeadsCollapsed  ,path_tmp,path_PreRegT);
-    createPreRegFolder(path_CellsCollapsed  ,path_tmp,path_PreRegT);
-    createPreRegFolder(path_XtraCollapsed   ,path_tmp,path_PreRegT);
-    createPreRegFolder(path_Xtra2ndCollapsed,path_tmp,path_PreRegT);
+    createPreRegFolder(path_BeadsCollapsed     ,path_tmp,path_PreRegT);
+    createPreRegFolder(path_CellsCollapsed     ,path_tmp,path_PreRegT);
+    createPreRegFolder(path_XtraCollapsed      ,path_tmp,path_PreRegT);
+    createPreRegFolder(path_Xtra2ndCollapsed   ,path_tmp,path_PreRegT);
+    createPreRegFolder(path_RegChannelCollapsed,path_tmp,path_PreRegT);
 
 
     %**************************************************************************
     % Recrop the bead images for the subpixel registration:
     %**************************************************************************
-    % sortedCellsFileList   =getFileListFromFolder(path_CellsFolder);
-    BeadsCollapsedFileList=getFileListFromFolder(path_BeadsCollapsed);
-
-    % if isempty(crop_area)
-    %     [crop_area]=createCropArea(sortedCellsFileList{1});
-    % end
+    BeadsCollapsedFileList      = getFileListFromFolder(path_BeadsCollapsed);
+    RegChannelCollapsedFileList = getFileListFromFolder(path_RegChannelCollapsed);
 
     if isdir(path_BeadsCropSDC)
         rmdir(path_BeadsCropSDC,'s');
@@ -199,8 +235,11 @@ if nargin<2 || isempty(doPreReg) || doPreReg==1
     else
         mkdir(path_BeadsCropSDC);
     end
-
-    [crop_area]=cropStack(crop_area,path_BeadsCropSDC,BeadsCollapsedFileList{1},0);
+    if ~isempty(RegChannelCollapsedFileList)
+        [crop_area]=cropStack(crop_area,path_BeadsCropSDC,RegChannelCollapsedFileList{1},0);
+    else
+        [crop_area]=cropStack(crop_area,path_BeadsCropSDC,BeadsCollapsedFileList{1},0);
+    end
     save('crop_area_SDC.mat','crop_area');
 end
 

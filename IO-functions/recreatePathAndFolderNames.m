@@ -21,18 +21,25 @@ pattern_RefFrame                        ='w2642';
 folder_name_Beads                       ='Beads';
 folder_name_Cells                       ='Cells';
 folder_name_Xtra                        ='Ecad'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
-folder_name_Xtra2nd                     ='Tln1'; %'Nuclei, Tln1'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
+folder_name_Xtra2nd                     ='Nuclei'; %'Nuclei, Tln1'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
 folder_name_RefFrame                    ='Reference Frame';
+% new:
+folder_name_RegChannel                  ='BeadsOnGlass'; % This is the channel that is used for registration purposes
+pattern_RefFrame_RegChannel             ='REFglass__w2642';
 
 
 folder_name_BeadsWithRefFrame           ='2BeadsWithRefFrame';
 folder_name_CellsWithRefFrame           ='2CellsWithRefFrame';
 folder_name_XtraWithRefFrame            =['2',folder_name_Xtra,'WithRefFrame'];
 folder_name_Xtra2ndWithRefFrame         =['2',folder_name_Xtra2nd,'WithRefFrame'];
+% new:
+folder_name_RegChannelWithRefFrame      =['2',folder_name_RegChannel,'WithRefFrame']; % This will not be the same reference frame!
 folder_name_BeadsCollapsed              ='3BeadsCollapsed';
 folder_name_CellsCollapsed              ='3CellsCollapsed';
 folder_name_XtraCollapsed               =['3',folder_name_Xtra,'Collapsed'];
 folder_name_Xtra2ndCollapsed            =['3',folder_name_Xtra2nd,'Collapsed'];
+% new:
+folder_name_RegChannelCollapsed         =['3',folder_name_RegChannel,'Collapsed'];
 folder_name_BeadsCropSDC                ='4BeadsCropSDC';
 folder_name_tmp                         ='PreRegTmpFolder';
 
@@ -55,21 +62,30 @@ folder_name_displFieldWithCells         ='displFieldWithCells';
 folder_name_forceFieldWithCells         ='forceFieldWithCells';
 folder_name_result                      ='result';
 
-path_BeadsFolder      =[path_DataFolder,filesep,folder_name_Beads];
-path_CellsFolder      =[path_DataFolder,filesep,folder_name_Cells];
-path_XtraFolder       =[path_DataFolder,filesep,folder_name_Xtra];
-path_Xtra2ndFolder    =[path_DataFolder,filesep,folder_name_Xtra2nd];
-path_RefFrameFolder   =[path_DataFolder,filesep,folder_name_RefFrame];
-path_BeadsWithRefFrame=[path_DataFolder,filesep,folder_name_BeadsWithRefFrame];
-path_CellsWithRefFrame=[path_DataFolder,filesep,folder_name_CellsWithRefFrame];
-path_XtraWithRefFrame =[path_DataFolder,filesep,folder_name_XtraWithRefFrame];
-path_Xtra2ndWithRefFrame =[path_DataFolder,filesep,folder_name_Xtra2ndWithRefFrame];
-path_BeadsCollapsed   =[path_DataFolder,filesep,folder_name_BeadsCollapsed];
-path_CellsCollapsed   =[path_DataFolder,filesep,folder_name_CellsCollapsed];
-path_XtraCollapsed    =[path_DataFolder,filesep,folder_name_XtraCollapsed];
-path_Xtra2ndCollapsed =[path_DataFolder,filesep,folder_name_Xtra2ndCollapsed];
-path_BeadsCropSDC     =[path_DataFolder,filesep,folder_name_BeadsCropSDC];
-path_tmp              =[path_DataFolder,filesep,folder_name_tmp];
+path_BeadsFolder            =[path_DataFolder,filesep,folder_name_Beads];
+path_CellsFolder            =[path_DataFolder,filesep,folder_name_Cells];
+path_XtraFolder             =[path_DataFolder,filesep,folder_name_Xtra];
+path_Xtra2ndFolder          =[path_DataFolder,filesep,folder_name_Xtra2nd];
+%new:
+path_RegChannelFolder       =[path_DataFolder,filesep,folder_name_RegChannel];
+
+path_RefFrameFolder         =[path_DataFolder,filesep,folder_name_RefFrame];
+path_BeadsWithRefFrame      =[path_DataFolder,filesep,folder_name_BeadsWithRefFrame];
+path_CellsWithRefFrame      =[path_DataFolder,filesep,folder_name_CellsWithRefFrame];
+path_XtraWithRefFrame       =[path_DataFolder,filesep,folder_name_XtraWithRefFrame];
+path_Xtra2ndWithRefFrame    =[path_DataFolder,filesep,folder_name_Xtra2ndWithRefFrame];
+%new:
+path_RegChannelWithRefFrame =[path_DataFolder,filesep,folder_name_RegChannelWithRefFrame];
+
+path_BeadsCollapsed         =[path_DataFolder,filesep,folder_name_BeadsCollapsed];
+path_CellsCollapsed         =[path_DataFolder,filesep,folder_name_CellsCollapsed];
+path_XtraCollapsed          =[path_DataFolder,filesep,folder_name_XtraCollapsed];
+path_Xtra2ndCollapsed       =[path_DataFolder,filesep,folder_name_Xtra2ndCollapsed];
+%new:
+path_RegChannelCollapsed    =[path_DataFolder,filesep,folder_name_RegChannelCollapsed];
+
+path_BeadsCropSDC           =[path_DataFolder,filesep,folder_name_BeadsCropSDC];
+path_tmp                    =[path_DataFolder,filesep,folder_name_tmp];
 
 % These pathnames are prepared for TFM_part_2_perfSDC.m only, they are not
 % used here yet:
