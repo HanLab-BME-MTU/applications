@@ -63,7 +63,9 @@ end
 
 % get first image from imDir
 [listOfImages] = searchFiles('.tif',[],imDir,0);
-img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
+[filename pathname]  = uigetfile('*','Select an Image File'); 
+%img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
+img = double(imread([pathname filesep filename])); 
 
 % extract track info (block matrix)
 dataMatMerge=plusTipMergeSubtracks(projData); % merged data is first output
