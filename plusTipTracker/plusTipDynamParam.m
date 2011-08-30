@@ -66,9 +66,10 @@ M(1:length(fd),8)=fd;
 M(1:length(bd),9)=bd;
 
 %% PARAMETERS RELATED TO COMET DENSITY 
-
-projData.stats.medNNdistWithinFrameMic = projData.medNNdistWithinFramePix*projData.pixSizeNm/1000;
-
+if isfield(projData,'medNNdistWithinFramePix') == 1; 
+    projData.stats.medNNdistWithinFrameMic = projData.medNNdistWithinFramePix*projData.pixSizeNm/1000;
+else 
+end 
 
 %% PARAMETERS RELATED TO GROWTH
 
@@ -114,9 +115,10 @@ else
     projData.stats.growth_length_mean_robust = trimmean(gd,10);
     
 end
-
+if isfield(projData,'percentFgapsReclass'); 
 projData.stats.percentFgapsReclass = projData.percentFgapsReclass;
-
+else 
+end 
 %% PARAMETERS RELATED TO FGAPS 
 
 if isempty(fIdx)
@@ -492,13 +494,11 @@ end
    % until fix simply do not do this analysis for subROI regions. 
    
    if (subRoiAnalysis == 1 || fromPoolGroupData == 1) % if not calling this from original analysis 
-       % skip below (ie if calling from subRoiAnalysis or poolGroupData skip
-       % below)
-       % plusTipPoolGroupData and plusTipSubRoiExtractTracks 
-       % so will skip the below analysis otherwise buggy MB : quick fix Check it later. 
+       % ie either pooling group data or subRoianalysis 
        
-        % do not perform this analysis and remove these fields as they
+        % do not perform compound track analysis (because it has not yet been checked for bugs in the analysis)   and remove these fields as they
        % represent the original analysis and this can be confusing. 
+      if isfield(projData,'singleDataMat') == 1 
       projData =  rmfield(projData,'singleDataMat');
       projData =  rmfield(projData,'compDataMat');
       projData.stats =  rmfield(projData.stats,'ratio_Compound2SingleTracks');
@@ -512,9 +512,9 @@ end
       projData.stats =  rmfield(projData.stats, 'ratio_LifeGrowthComp2Single');
       projData.stats =  rmfield(projData.stats, 'ratio_DispGrowthComp2Single');
        
+      end 
        
-       
-   else 
+   else % from original analysis so perform this 
    compIdx= [gapIdx ; (gapIdx+1) ; (gapIdx -1)];
    compIdx = unique(sort(compIdx));
    compDataMat = dataMatCrpSecMic(compIdx,:);
