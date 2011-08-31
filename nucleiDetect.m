@@ -158,9 +158,9 @@ for frame=1:numFrames
     % cut off the maxima in the noise:
     try
         % This only works for dense sheets!
-        %level1=thresholdFluorescenceImageFewBg(Imax(Imax(:)>0),doPlot);
+         level1=thresholdFluorescenceImageFewBg(Imax(Imax(:)>0),doPlot);
         % This only works for significant amount of Bg, but is then more reliable than the above method!
-        level1=thresholdFluorescenceImage(Imax(Imax(:)>0),doPlot,1);
+        % level1=thresholdFluorescenceImage(Imax(Imax(:)>0),doPlot,1);
     catch
         % This shouldn't be used anymore. Instead, one should use the
         % algorithm above!
