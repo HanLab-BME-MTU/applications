@@ -1,22 +1,44 @@
 function [movieInfoFinal,tracksFinal,xyDrift] = finalizeDetectionSR(...
-    movieInfo,maxStd,minDuration,correctDrift)
+    movieInfo,param,saveResults)
 %FINALIZEDETECTIONSR removes molecule repetition, corrects drift and removes badly localized molecules for super-resolution imaging
 %
 %SYNPOSIS [movieInfoFinal,tracksFinal,xyDrift] = finalizeDetectionSR(...
-%    movieInfo,maxStd,minDuration,correctDrift)
+%    movieInfo,param,saveResults)
 %
 %INPUT  movieInfo   : Output of detectSubResFeatures2D_StandAlone.
-%       maxStd      : Maximum positional standard deviation allowed, in
-%                     pixels. Molecules with larger positional standard
-%                     deviation will be discarded. Use Inf to retain
-%                     everything.
-%                     Optional. Default: 0.5.
-%       minDuration : Minimum duration of a molecule, in frames. Molecules
-%                     that last for less frames will be discarded.
-%                     Optional. Default: 1.
-%       correctDrift: 1 to attempt to find fiduciary markers and correct
-%                     for drift, 0 otherwise.
-%                     Optional. Default: 1.
+%       param       : Structure with fields:
+%           .maxStd    : Maximum positional standard deviation allowed, in
+%                        pixels. Molecules with larger positional standard
+%                        deviation will be discarded. Use Inf to retain
+%                        everything.
+%                        Optional. Default: 0.5.
+%           .minDuration : Minimum duration of a molecule, in frames.
+%                        Molecules that last for less frames will be
+%                        discarded.
+%                        Optional. Default: 1.
+%           .correctDrift: 1 to attempt to find fiduciary markers and
+%                        correct for drift, 0 otherwise.
+%                        Optional. Default: 1.
+%           .tracking  : Structure listing tracking parameteres:
+%               .searchRadius: Search radius for linking molecules between
+%                              frames and for gap closing.
+%                              Optional. Default: 1.
+%               .timeWindow  : Time window for gap closing. A time window
+%                              of n allows molecule disappearance for at
+%                              most n-1 consecutive frames.
+%                              Optional. Default: 3.
+%               .gapPenalty  : Penalty for increasing gap length in gap
+%                              closing. For a disappearance of n frames,
+%                              penalty is defined as gapPenalty^n.
+%                              Optional. Default: 1.5.
+%                     Whole structure optional. 
+%       saveResults : 0 if no saving is requested.
+%                     If saving is requested, structure with fields:
+%           .dir       : Directory where results should be saved.
+%                        Optional. Default: current directory.
+%           .filename  : Name of file where results should be saved.
+%                        Optional. Default: detectedFeaturesFinal.
+%                     Whole structure optional.
 %
 %OUTPUT movieInfoFinal: Like movieInfo, but after processing.
 %       tracksFinal   : The surviving molecules' tracks, excluding
@@ -44,29 +66,79 @@ if nargin < 1
     return
 end
 
-%ssign defaults to input arguments if not supplied
-if nargin < 2 || isempty(maxStd)
-    maxStd = 0.5;
+%check parameters structure
+if nargin < 2 || isempty(param)
+    param.maxStd = 0.5;
+    param.minDuration = 1;
+    param.correctDrift = 1;
+    param.tracking.searchRadius = 1;
+    param.tracking.timeWindow = 3;
+    param.tracking.gapPenalty = 1.5;
+else
+    if ~isfield(param,'maxStd') || isempty(param.maxStd)
+        param.maxStd = 0.5;
+    end
+    if ~isfield(param,'minDuration') || isempty(param.minDuration)
+        param.minDuration = 1;
+    end
+    if ~isfield(param,'correctDrift') || isempty(param.correctDrift)
+        param.correctDrift = 1;
+    end
+    if ~isfield(param,'tracking') || isempty(param.tracking)
+        param.tracking.searchRadius = 1;
+        param.tracking.timeWindow = 3;
+        param.tracking.gapPenalty = 1.5;
+    else
+        trackingParam = param.tracking;
+        if ~isfield(trackingParam,'searchRadius')
+            param.tracking.searchRadius = 1;
+        end
+        if ~isfield(trackingParam,'timeWindow')
+            param.tracking.timeWindow = 3;
+        end
+        if ~isfield(trackingParam,'gapPenalty')
+            param.tracking.gapPenalty = 1.5;
+        end
+    end
+end
+maxStd = param.maxStd;
+minDuration = param.minDuration;
+correctDrift = param.correctDrift;
+trackingParam = param.tracking;
+
+%check whether to save results and where
+if nargin < 3 || isempty(saveResults)
+    saveResDir = pwd;
+    saveResFile = 'detectedFeaturesFinal.mat';
+    saveResults.dir = pwd;
+else
+    if isstruct(saveResults)
+        if ~isfield(saveResults,'dir') || isempty(saveResults.dir)
+            saveResDir = pwd;
+        else
+            saveResDir = saveResults.dir;
+        end
+        if ~isfield(saveResults,'filename') || isempty(saveResults.filename)
+            saveResFile = 'detectedFeatures.mat';
+        else
+            saveResFile = saveResults.filename;
+        end
+    else
+        saveResults = 0;
+    end
 end
 
-if nargin < 3 || isempty(minDuration)
-    minDuration = 1;
-end
-
-if nargin < 4 || isempty(correctDrift)
-    correctDrift = 1;
-end
-
+%get number of frames in movie
 numFrames = length(movieInfo);
+
+%copy movieInfo into the output variable movieInfoFinal
+movieInfoFinal = movieInfo;
 
 %% Remove bad localizations
 
 if maxStd < Inf
     
     fprintf('Removing localizations with standard deviation > %4.2f pixels ...\n',maxStd)
-    
-    %copy movieInfo into the output variable movieInfoFinal
-    movieInfoFinal = movieInfo;
     
     %go over all coordinates in all frames and remove badly localized molecules
     for iFrame = 1 : numFrames
@@ -92,51 +164,7 @@ end
 
 disp('Tracking ...')
 
-% %general parameters
-% gapCloseParam.timeWindow = 3; %maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
-% gapCloseParam.mergeSplit = 0; %1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
-% gapCloseParam.minTrackLen = 1; %minimum length of track segments from linking to be used in gap closing.
-% gapCloseParam.diagnostics = []; %1 to plot a histogram of gap lengths in the end; 0 or empty otherwise.
-% 
-% %function name
-% costMatrices(1).funcName = 'costMatStationaryLink';
-% 
-% %parameters
-% parameters.searchRadius = 1; 
-% costMatrices(1).parameters = parameters;
-% clear parameters
-% 
-% %function name
-% costMatrices(2).funcName = 'costMatStationaryCloseGaps';
-% 
-% %parameters
-% parameters.searchRadius = 1;
-% parameters.gapPenalty = 1.5;
-% costMatrices(2).parameters = parameters;
-% clear parameters
-% 
-% %Kalman filter functions
-% kalmanFunctions = [];
-
-%saveResults
-saveResults = 0; %don't save results
-
-%verbose
-verbose = 1;
-
-%problem dimension
-probDim = 2;
-
-% %construct tracks of detected molecules
-% tracksFinal = trackCloseGapsKalmanSparse(movieInfoFinal,costMatrices,...
-%     gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
-
-parameterSet.searchRadius = 1;
-parameterSet.timeWindow = 3;
-parameterSet.gapPenalty = 1.5;
-
-tracksFinal = trackCloseGapsSR(movieInfoFinal,parameterSet,...
-    probDim,saveResults,verbose);
+tracksFinal = trackCloseGapsSR(movieInfoFinal,trackingParam,2,0,1);
 
 %convert tracks into matrix format
 %use sparse matrix for the sake of memory
@@ -187,9 +215,24 @@ if correctDrift
         xCoordFiduciary(xCoordFiduciary==0) = NaN;
         yCoordFiduciary(yCoordFiduciary==0) = NaN;
         xCoordDrift = nanmean(xCoordFiduciary,1);
-        xCoordDrift = xCoordDrift - xCoordDrift(1);
         yCoordDrift = nanmean(yCoordFiduciary,1);
-        yCoordDrift = yCoordDrift - yCoordDrift(1);
+        
+        %find first non-NaN value in xCoordDrift and yCoordDrift
+        indxFirst = find(~isnan(xCoordDrift),1,'first');
+        if indxFirst > 1
+            fprintf('Can only estimate drift from %i onwards \n',indxFirst)
+        end
+        xCoordDrift = xCoordDrift - xCoordDrift(indxFirst);
+        yCoordDrift = yCoordDrift - yCoordDrift(indxFirst);
+        
+        %fill in values for frames without drift estimation
+        xCoordDrift(1:indxFirst-1) = 0;
+        yCoordDrift(1:indxFirst-1) = 0;
+        indxNaN = find(isnan(xCoordDrift));
+        for i=indxNaN
+            xCoordDrift(i) = xCoordDrift(i-1);
+            yCoordDrift(i) = yCoordDrift(i-1);
+        end
         
         %remove tracks of fiduciary markers from list of tracks
         indxKeep = setdiff(1:numTracks,indxFiduciary);
@@ -333,6 +376,12 @@ for iFrame = 1 : numFrames
    movieInfoFinal(iFrame).amp    = moleculeInfoFrame(:,[5 8]);
    movieInfoFinal(iFrame).numAppearance = moleculeInfoFrame(:,2);
    
+end
+
+%% Save results
+if isstruct(saveResults)
+    save([saveResDir filesep saveResFile],'movieInfoFinal','param',...
+        'tracksFinal','xyDrift');
 end
 
 disp('DONE')
