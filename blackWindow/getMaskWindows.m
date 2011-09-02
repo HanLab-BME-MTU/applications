@@ -686,7 +686,7 @@ for j = 1:(nStrips+1)
             [minDist,iMinDist] = min(sqrt((slices{j}(1,1) - contours{iZeroCont}(1,:)) .^2 + ...
                                           (slices{j}(2,1) - contours{iZeroCont}(2,:)) .^2));
             %If it's close enough, use this point as the intersection
-            if minDist < perpSize                
+            if minDist <= perpSize                
                 iCintCur(iZeroCont) = iMinDist;                                
                 iSintCur(iZeroCont) = 1;
                 intXcur(iZeroCont) = contours{iZeroCont}(1,iCintCur(iZeroCont));
@@ -838,9 +838,9 @@ for j = 1:(nStrips+1)
         %to add additional windows. This can only happen if zero-contour is open        
         elseif ~isClosed(iZeroCont) && ~isCollapsed
             %Find where these slices hit the image border, if at all
-            [~,~,~,iBordIntCur] = intersectionsHLE(slices{j}(1,end-1:end),slices{j}(2,end-1:end),...
+            [~,~,~,iBordIntCur] = intersectionsHLE(slices{j}(1,max(end-1,1):end),slices{j}(2,max(end-1,1):end),...
                                                    borderCoord(1,:),borderCoord(2,:));            
-            [~,~,~,iBordIntPrev] = intersectionsHLE(slices{j-1}(1,end-1:end),slices{j-1}(2,end-1:end),...
+            [~,~,~,iBordIntPrev] = intersectionsHLE(slices{j-1}(1,max(end-1,1):end),slices{j-1}(2,max(end-1,1):end),...
                                                     borderCoord(1,:),borderCoord(2,:));
                         
             if ~isempty(iBordIntPrev) && ~isempty(iBordIntCur)
