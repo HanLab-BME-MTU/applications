@@ -26,6 +26,15 @@ function movieData = calculateWindowSampleAutocorrelation(movieData,paramsIn)
 %       calculate the autocorrelation to. Optional. Default is 1/4 of the
 %       total number of frames.
 %
+%       ('DetrendMethod'->'linear','robustLinear','difference','none') This
+%       specifies what kind of de-trending to apply to the samples prior to
+%       calculating autocorrelation:
+%           'linear' - Default. Linear least-squares fit is removed from data.
+%           'robustLinear' - Linear least-median-squares fit is removed
+%              from data.
+%           'difference' - The first difference is taken.
+%           'none' - What do you think this one does?
+%
 %       ('OutputDirectory' -> character string) Optional. A character
 %       string specifying the directory to save the results and figures to.
 %       Samples for different channels will be saved as files in this
@@ -133,7 +142,19 @@ for iChan = 1:nChan
 
             %De-trend the current time-series.
             if nObs(k,l) >= 3 %We need at least 3 points for de-trending to make sense                    
-                actTimeSeries(k,l).observations = removeLinearTrend(actTimeSeries(k,l).observations,[],0);
+                switch p.DetrendMethod
+                    
+                    case 'linear'
+                        actTimeSeries(k,l).observations = removeLinearTrend(actTimeSeries(k,l).observations,[],0);                        
+                    case 'linearRobust'
+                        actTimeSeries(k,l).observations = removeLinearTrend(actTimeSeries(k,l).observations,[],1);
+                    case 'difference'
+                        actTimeSeries(k,l).observations = diff(actTimeSeries(k,l).observations);
+                    case 'none'
+                        
+                    otherwise
+                        error(['"' p.DetrendMethod '" is not a supported detrending method! Check the DetrendMethod option!'])
+                end                
                 %If its long enough, get the individual autocorrelation
                 if (nObs(k,l) - p.MaxLag) >= (3*p.MaxLag)
                     acPerWin(k,l,:,:) = autoCorr(actTimeSeries(k,l),p.MaxLag,-1);
