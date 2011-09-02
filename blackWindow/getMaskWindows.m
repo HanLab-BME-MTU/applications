@@ -847,7 +847,9 @@ for j = 1:(nStrips+1)
                 
                 %Get the indices of the border coordinates enclosed by this
                 %strip
-                if iBordIntPrev > iBordIntCur
+                if ceil(iBordIntPrev) == ceil(iBordIntCur)
+                    curBordInd = round(iBordIntPrev);
+                elseif iBordIntPrev > iBordIntCur
                     %The intersections should always occur in
                     %counter-clockwise order, so this is the normal case
                     curBordInd = ceil(iBordIntCur):floor(iBordIntPrev);
