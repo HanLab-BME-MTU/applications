@@ -39,8 +39,16 @@ for k = 1:N
     x = k-(y-1)*nx;
     h = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
     
-    plotFrame(data(k), [], ip.Results.Frame, ip.Results.Channel, 'Handle', h, 'Mode', ip.Results.Mode, 'ScaleBar', 5e-6);
-
+    if strcmpi(ip.Results.Mode, 'cellmask')
+        imagesc(imread([data(k).source 'Detection' filesep 'cellmask.tif']))
+        axis image tight;
+    elseif strcmpi(ip.Results.Mode, 'cellproj')
+        imagesc(imread([data(k).source 'Detection' filesep 'cellAIP.tif']))
+        axis image tight;        
+    else
+        plotFrame(data(k), [], ip.Results.Frame, ip.Results.Channel, 'Handle', h, 'Mode', ip.Results.Mode, 'ScaleBar', 5e-6);
+    end
+    
     axis image off;
     r = data(k).imagesize(2)/data(k).imagesize(1);
     d = 0.02;
