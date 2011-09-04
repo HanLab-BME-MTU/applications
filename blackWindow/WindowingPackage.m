@@ -12,7 +12,7 @@ classdef WindowingPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                super_args{2} = 'Windowing';
+                super_args{2} = WindowingPackage.getName;
                 % Dependency Matrix (same length as process class name
                 % string)
                 super_args{3} = WindowingPackage.getDependencyMatrix;
@@ -63,6 +63,10 @@ classdef WindowingPackage < Package
             M=WindowingPackage.getDependencyMatrix;
             % Get the optional process id
             id=find(sum(M==2,1));
+        end
+        
+        function name = getName()
+            name = 'Windowing';
         end
         
         function varargout = start(varargin)
