@@ -14,7 +14,6 @@ function goodEdgeSet=findEdges(groupedClusters,varargin)
 %                   1 = two myosin cells;
 %                  -1 = a mixture.
 %           'myo' can be a list of values. Edges that don't match the
-%           search pattern will be dismissed.
 % 'type'  : Select for specific myosinII hairpins e.g. {'myoIIA_hp93';
 %           'myoIIA_hp94'; 'myoIIB_hp103'}. 'type' can be a list of patterns,
 %           e.g. all myoIIA hair pins. This makes only sense if it is
@@ -27,6 +26,9 @@ function goodEdgeSet=findEdges(groupedClusters,varargin)
 % 'myoGlb': 0/1/-1: 0 = cluster with only control cells; 1 = cluster with
 %           only myosin cells. -1 = mixed clusters. Clusters that don't
 %           match the search pattern will be dismissed.
+%           search pattern will be dismissed.
+%  dt     : Only edges will be taken where the frame rate of the experiment
+%           is >=1/dt, that is dt_mean=<dt
 % 'asmbly': Find edges that assemble or disassemble over time:
 %            0: edge is there over the whole length of the movie
 %            1: edge is formed during the movie
@@ -76,6 +78,15 @@ if ~isempty(myoGlbPos)
     myoGlbVal   = varargin{myoGlbPos+1};
 else
     myoGlbCheck = 0;
+end
+
+dtPos=find(strcmp('dt',varargin));
+if ~isempty(dtPos)
+    dtCheck = 1;
+    % it is the next entry which contains the numeric value:
+    dtVal   = varargin{dtPos+1};
+else
+    dtCheck = 0;
 end
 
 asmblyPos=find(strcmp('asmbly',varargin));
@@ -228,6 +239,7 @@ for clusterId=1:groupedClusters.numClusters
                     && (~degCheck    || isempty(setdiff(degPair,degVal)))...
                     && (~myoCheck    || ismember(myoEdgeVal,myoVal))...
                     && (~myoGlbCheck || ismember(currMyoGlb,myoGlbVal))...
+                    && (~dtCheck     || trackedNet{frame}.par.dt_mean<=dtVal)...
                     && (~typeCheck   || sum(strcmp(myoEdgeType,typeVal))>0)...
                     && (~errsCheck   || trackedNet{frame}.stats.errs<=errsVal)...
                     && (~errFCheck   || trackedNet{frame}.stats.errorSumForce.mag<=errFVal)...

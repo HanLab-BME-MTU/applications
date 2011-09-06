@@ -1,11 +1,11 @@
-function [glbMaxPosMean,glbMaxValMean,glbMaxPosSTD,glbMaxValSTD,glbMaxPosSEM95,glbMaxValSEM95]=perfJackKnife(corrSets,maxLag,normVar)
+function [glbMaxPosMean,glbMaxValMean,glbMaxPosSEM,glbMaxValSEM,glbMaxPosCI95,glbMaxValCI95,glbMaxPosList,glbMaxValList]=perfJackKnife(corrSets,maxLag,normVar)
 % This is rather a bootstrap
 
 % skip always one data set
 numSets=length(corrSets);
 wholeList=1:numSets;
 
-for NAindex=1:500 %wholeList
+for NAindex=1:1000 %wholeList
     clear edgF;
     
 %     % for JackKnife:
@@ -45,13 +45,12 @@ for NAindex=1:500 %wholeList
     cFI=out1(:,1);
     cFI_std=out1(:,2);
     
-   
-    display(['Avg. XXXX correlation cFI: ',num2str(cFI(maxLag+1)),'+-(',num2str(cFI_std(maxLag+1)),')']);
+    %display(['cFI(dt=0): ',num2str(cFI(maxLag+1)),'+-(',num2str(cFI_std(maxLag+1)),')']);
     
     % generate the smoothing spline:
     x=-maxLag:1:maxLag;
     y=cFI;
-    p=0.2;
+    p=0.2;%0.2; %take 0.2 for 8kPa and 0.5 for 35kPa, the 35kPa is more spiked and therefore should be smoothed less.
     w=min(cFI_std.^2)./(cFI_std.^2); % in this way 0<=w<=1
     % generate the spline form:
     sp=csaps(x,y,p,[],w);
@@ -94,6 +93,8 @@ for NAindex=1:500 %wholeList
     xlabel('dframes')
     ylabel('corr')
     hold off
+    
+    display(['run: ',num2str(NAindex),'cFI: max x-corr val: ',num2str(glbMaxVal), ' at time-lag [frames]: ',num2str(glbMaxPos)]);
 end
 
 % Check if there are some unreasonable values:
@@ -103,21 +104,21 @@ if ~isempty(badMax)
     display(['rejected ',num2str(sum(badMax)),' bad maxima: ',num2str(glbMaxPosList(badMax))])
 end
 
-glbMaxPosList=glbMaxPosList(~badMax)
-glbMaxValList=glbMaxValList(~badMax)
+glbMaxPosList=glbMaxPosList(~badMax);
+glbMaxValList=glbMaxValList(~badMax);
 [h,p] = ttest(glbMaxPosList);
 
 glbMaxPosMean  = mean(glbMaxPosList);
-glbMaxPosSTD   = std(glbMaxPosList);
-glbMaxPosSEM95 = facSEMtoSEM95*glbMaxPosSTD/sqrt(length(glbMaxPosList)-1);
+glbMaxPosSEM   = std(glbMaxPosList); % this is the bootstrap estimate for the standard error of the mean given by the std of the distributions of the means in the bootstrap samples.
+glbMaxPosCI95  = prctile(glbMaxPosList,[2.5 97.5]);
 
 glbMaxValMean  = mean(glbMaxValList);
-glbMaxValSTD   = std(glbMaxValList);
-glbMaxValSEM95 = facSEMtoSEM95*std(glbMaxValList)/sqrt(length(glbMaxValList)-1);
+glbMaxValSEM   = std(glbMaxValList);
+glbMaxValCI95  = prctile(glbMaxValList,[2.5 97.5]);
 
-display(['value:    mean+-std (+-95%-error)= ',num2str(glbMaxValMean),' +- ',num2str(glbMaxValSTD),' (+- ',num2str(glbMaxValSEM95),')']);
+display(['value:    mean+-SEM (95% conf. intv.)= ',num2str(glbMaxValMean),' +- ',num2str(glbMaxValSEM),' (',num2str(glbMaxValCI95),')']);
 
-display(['position: mean+-std (+-95%-error)= ',num2str(glbMaxPosMean),' +- ',num2str(glbMaxPosSTD),' (+- ',num2str(glbMaxPosSEM95),')']);
+display(['position: mean+-SEM (95% conf. intv.)= ',num2str(glbMaxPosMean),' +- ',num2str(glbMaxPosSEM),' (',num2str(glbMaxPosCI95),')']);
 display(['p-value t-test = ',num2str(p)]);
 
 

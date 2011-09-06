@@ -11,7 +11,7 @@ end
 
 %close all;
 
-onlyCorr=0;
+onlyCorr=1;
 if ~onlyCorr
     
 %**************************************************************************
@@ -284,7 +284,7 @@ xlabel('Minimal deg. of connectivity')
 ylabel('Angle [deg]')
 clear M
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 %**************************************************************************
 % Plot ctr-ctr, ctr-myo, myo-myo, for degree 1-1 interfaces for E=8,35kPa:*
 %**************************************************************************
@@ -435,7 +435,7 @@ else
     display('No myosin cells of this type found!')
 end
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************
@@ -452,8 +452,10 @@ relErrF_val_corr=Inf;
 %goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
 %goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
 % goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'dItotRel',2,'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedClusters,'myo',[1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedClusters,'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedClusters,'relErrF',relErrF_val_corr,'errs',0,'dt',280);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
     [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
     %[corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useItot');

@@ -206,6 +206,14 @@ end
 display('Number of points filtered out: '); 
 display([num2str((1:n)'),repmat(': ',n,1),num2str([out(:).num]')]);
 
+doSubMeanDispl=1;
+if doSubMeanDispl
+    display('!!!SUBTRACT MEAN DISPLACEMENT! PROBABLY OTHER CHANNELS WONT MATCH UP WITH FORCES ANYMORE!!!')
+    for i=1:n
+         displField(i).vec=displField(i).vec-repmat(mean(displField(i).vec,1),size(displField(i).vec,1),1);
+    end
+end
+
 if doRotReg
    displField=perfRotReg(displField,1);
 end
