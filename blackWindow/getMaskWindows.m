@@ -367,7 +367,7 @@ contours(isClosed & startEndDist > 0) = cellfun(@(x)(x(:,[1:end-1 1])),contours(
 %handedness
 closedContours = contours;
 if any(~isClosed)
-    closedContours(~isClosed) = closeContours(contours(~isClosed),distX);        
+    closedContours(~isClosed) = closeContours(contours(~isClosed),distX,1e-3);        
     isClockwise = cellfun(@(x)(isCurveClockwise(x)),closedContours);
 else    
     isClockwise = cellfun(@(x)(isCurveClockwise(x)),contours);
@@ -601,9 +601,13 @@ for i = 1:nStart
     end
 end
 
-%If the start contour was > 1, and this gave nStart>1, we need to
-%combine and order the slices from the different starting contours.
+%If the start contour was > 1, we potentially need to combine slices from
+%different start contours, and ensure that all the slices hit the
+%zero-contour in the correct order.
 if nStart > 1
+    %TEMP - THIS NEEDS TO BE AFTER YOU INSURE THAT ALL SLICES INTERSECT THE
+    %ZERO-CONTOUR!!! ALSO, REDUNDANT WITH SORTING ON USER-ENTERED START
+    %POINTS
     iZeroContInt = cell(1,nStart);
     jZeroContInt = cell(1,nStart);
     for i = 1:nStart
@@ -616,7 +620,7 @@ if nStart > 1
     end   
     
     %Combine and sort the intersection indices, retaining only unique
-    %intersectiosn
+    %intersections
     [iZeroContInt,sortZeroInt] = unique(cat(1,iZeroContInt{:}));
 
     
@@ -879,7 +883,9 @@ for j = 1:(nStrips+1)
                     %Find those which intersect the current border region
                     iExtraContours = iExtraContours(cellfun(@(x)(any(...
                         borderCoord(1,curBordInd) == round(x(1,end)) & ...
-                        borderCoord(2,curBordInd) == round(x(2,end)))),contours(iExtraContours)));
+                        borderCoord(2,curBordInd) == round(x(2,end))) | ...
+                        any(borderCoord(1,curBordInd) == round(x(1,1)) & ...
+                        borderCoord(2,curBordInd) == round(x(2,1)))),contours(iExtraContours)));
                 
                 end
                 
