@@ -17,7 +17,7 @@ path_experiment=path_ProjFolder(1:startIndex-2); %-2 because there is a filesep
 
 
 % Set TFM parameters:
-pattern_RefFrame                        ='w2642';
+pattern_RefFrame                        ='w2642';%'REF__w2642';
 folder_name_Beads                       ='Beads';
 folder_name_Cells                       ='Cells';
 folder_name_Xtra                        ='Ecad'; %This Xtra-Folder (for Caax or Ecad) is treated as the Cell images.
