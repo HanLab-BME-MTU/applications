@@ -60,6 +60,7 @@ dR=100;             % The disc width for calculating I(r+dr);
 minlength=12; %12;  % The minimal movie length in hours, shorter movies are disregarded!           
 timeWindowCorr=6    % Time window for averaging velocities for correlation analysis.
 bandWidth=250;      % Band width of strips with iso-distance to the wound edge for correlation analysis. binPix=100 used for the density seems to be too small!
+maxPairDist=50;     % Maximal distance between a cell pair that is still accepted in the neighborhood calculation.
 maxDist=max(cell2edgeDist(:,end)); % Bands with a larger distance are to the wound edge are disregarded in the correlation analysis.
 %maxDist=1000;
 
@@ -184,8 +185,7 @@ if ~justPlot
             trvDisMean=NaN;
         end
         % Take only the pairs which are there at the beginning and which
-        % are close together:
-        maxPairDist=50;
+        % are close together maxPairDist=50:
         cv1=~isnan(c2cDvec(:,1));
         cv2=c2cDvec(:,1)<maxPairDist;
         cvtot=cv1&cv2;
