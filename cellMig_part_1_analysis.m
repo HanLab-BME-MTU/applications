@@ -132,7 +132,7 @@ if doNuclei
     display('Cut off out of sheet nuclei:...')
     [nucleiCrop,movieInfoCrop]=cropNucleiWithMask(imageFileListNuclei,r,nuclei,sheetMask,toDoList);
     display('Done! Save results:...')
-    save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase','nucleiCrop','movieInfoCrop');
+    save('xDetectNuclei.mat','nuclei','movieInfo','dPix','imageFileListNuclei','imageFileListPhase','nucleiCrop','movieInfoCrop','-v7.3');
     
     % track nuclei:
     display('Track nuclei:...')
