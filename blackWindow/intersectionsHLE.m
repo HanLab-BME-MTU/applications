@@ -118,14 +118,19 @@ switch nargin
 end
 
 % x1 and y1 must be vectors with same number of points (at least 2).
-if sum(size(x1) > 1) ~= 1 || sum(size(y1) > 1) ~= 1 || ...
-		length(x1) ~= length(y1)
-	error('X1 and Y1 must be equal-length vectors of at least 2 points.')
+if length(x1) ~= length(y1)
+	error('X1 and Y1 must be equal-length vectors!')
 end
+
+if sum(size(x1) > 1) ~= 1 || sum(size(y1) > 1) ~= 1 || ...
+        sum(size(x2) > 1) ~= 1 || sum(size(y2) > 1) ~= 1
+    x0=[];y0=[];iout=[];jout=[];
+    return
+end
+
 % x2 and y2 must be vectors with same number of points (at least 2).
-if sum(size(x2) > 1) ~= 1 || sum(size(y2) > 1) ~= 1 || ...
-		length(x2) ~= length(y2)
-	error('X2 and Y2 must be equal-length vectors of at least 2 points.')
+if length(x2) ~= length(y2)
+	error('X2 and Y2 must be equal-length vectors!!')
 end
 
 

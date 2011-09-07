@@ -711,7 +711,7 @@ for j = 1:(nStrips+1)
         minBandsCur = min(nBandCur,nBandPrev);  
         windows{j-1} = cell(1,minBandsCur);
         
-        for k = 1:minBandsCur            
+        for k = 1:minBandsCur                                    
 
             %Make sure that both slices intersect the same contours.
             if all(iContIntPrev(k:k+1) == iContIntCur(k:k+1))                                                
@@ -744,12 +744,9 @@ for j = 1:(nStrips+1)
                         bc = contours{iContIntPrev(k+1)}(:,...
                             [ceil(iCintPrev(iContIntPrev(k+1))):end 1:floor(iCintCur(iContIntCur(k+1)))]);                         
                     else
-                        %If we get here, something has gone wrong!
-                        if doChecks
-                            error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
-                        else
-                            error('Problem with mask - check mask yourself or enable the mask checking option!')
-                        end
+                        %If we get here, something has gone wrong!                        
+                        warning('GETMASKWINDOWS:unwindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')                        
+                        break
                     end
 
                     cd = slices{j}(:,floor(iSintCur(iContIntCur(k+1))):-1:ceil(iSintCur(iContIntCur(k))));         %Side C->D
@@ -764,17 +761,13 @@ for j = 1:(nStrips+1)
                         %crosses the start point of this contour.
                         da = contours{iContIntCur(k)}(:,[floor(iCintCur(iContIntCur(k))):-1:1 end:-1:ceil(iCintPrev(iContIntPrev(k)))]);
                     else %If we get here, something has gone wrong!
-                        if doChecks
-                            error('What the fuck? this should never happen - report this to Hunter so he can check windowing algorithm!!!')
-                        else
-                            error('Problem with mask - check mask yourself or enable the mask checking option!')
-                        end
+                        warning('GETMASKWINDOWS:unWindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')
+                        break
                     end
 
                     %Combine all the vertices and sides to create the
-                    %window
+                    %window                    
                     windows{j-1}{k}  = {[a ab],[b bc],[c cd],[d da]};                                                                                                                                                                
-
                     isCollapsed = false;
 
                     if showPlots
@@ -796,7 +789,7 @@ for j = 1:(nStrips+1)
                         plot(bc(1,:),bc(2,:),'g.');
                         plot(cd(1,:),cd(2,:),'b.');
                         plot(da(1,:),da(2,:),'m.');
-                    end
+                    end                    
 
                 else%If the window has collapsed, we need to terminate this strip of windows.                        
                     windows{j-1} = windows{j-1}(1:k-1);                    
@@ -840,7 +833,8 @@ for j = 1:(nStrips+1)
             
         %If both of the slices terminate at the image border, we may need
         %to add additional windows. This can only happen if zero-contour is open        
-        elseif ~isClosed(iZeroCont) && ~isCollapsed
+        elseif ~isClosed(iZeroCont) && ~isCollapsed                        
+            
             %Find where these slices hit the image border, if at all
             [~,~,~,iBordIntCur] = intersectionsHLE(slices{j}(1,max(end-1,1):end),slices{j}(2,max(end-1,1):end),...
                                                    borderCoord(1,:),borderCoord(2,:));            
@@ -945,7 +939,9 @@ for j = 1:(nStrips+1)
                         %Find the extra contour corresponding to this band
                         bcContour = contourValues(iExtraContours) == distXvals(k+1);
                         if nnz(bcContour) ~= 1
-                            error('Problem windowing image border areas! - Problem identifying non-intersecting extra contours! Report this to Hunter so he can debug!')
+                            %If we get here, something has gone wrong!                        
+                            warning('GETMASKWINDOWS:unwindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')                        
+                            break
                         else
                             %This contour starts and ends at the image
                             %border, so we use the whole thing
@@ -1011,17 +1007,19 @@ for j = 1:(nStrips+1)
                         %Find the extra contour corresponding to this band
                         daContour = contourValues(iExtraContours) == distXvals(k);
                         if nnz(daContour) ~= 1
-                            error('Problem windowing image border areas! - Problem identifying non-intersecting extra contours! Report this to Hunter so he can debug!')
+                            %If we get here, something has gone wrong!                        
+                            warning('GETMASKWINDOWS:unwindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')                        
+                            break
                         else
                             %This contour starts and ends at the image
                             %border, so we use the whole thing
                             da = contours{iExtraContours(daContour)}(:,end:-1:1);                            
                         end                        
                     
-                    end                                                           
-                     
-                    windows{j-1}{k} =  {[a ab],[b bc],[c cd],[d da]};
+                    end                                                                                                   
                     
+                    windows{j-1}{k} =  {[a ab],[b bc],[c cd],[d da]};
+
                     if showPlots
                         if firstTime
                             firstTime = false;
@@ -1041,7 +1039,7 @@ for j = 1:(nStrips+1)
                         plot(cd(1,:),cd(2,:),'b.');
                         plot(da(1,:),da(2,:),'m.');                                 
                     end                                                                              
-                        
+                    
                 end
             end             
         end
@@ -1204,13 +1202,17 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
                             iKeep = 2;
                         end                                                
                     else                        
-                        error('Problem with multiple contour-slice intersections: Ambiguous cross product!')
+                        warning('GETMASKWINDOWS:unwindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')
+                        iKeep = NaN;
                     end                                     
-                                        
-                    i1(j) = tmpi1(iKeep);
-                    i2(j) = tmpi2(iKeep);
-                    ix(j) = tmpix(iKeep);
-                    iy(j) = tmpiy(iKeep);
+                                    
+                    
+                    if ~isnan(iKeep)
+                        i1(j) = tmpi1(iKeep);
+                        i2(j) = tmpi2(iKeep);
+                        ix(j) = tmpix(iKeep);
+                        iy(j) = tmpiy(iKeep);
+                    end
                         
                 elseif numel(tmpi1) == 1
                     
@@ -1220,9 +1222,8 @@ function [ix,iy,i1,i2] = find_intersections(c,cInt)
                     i2(j) = tmpi2;
                     
                 elseif numel(tmpi1) > 2                    
-                    error('Problem creating windows: too many slice-contour intersections!')                    
-                end
-                    
+                    warning('GETMASKWINDOWS:unwindowedArea','An area of the mask was unabled to be windowed! Please copy this movie, including analysis, images and MovieData file to the X-change and email Hunter!')
+                end                    
             else                                
                 ix(j) = tmpix;
                 iy(j) = tmpiy;
