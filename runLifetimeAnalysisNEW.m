@@ -313,7 +313,7 @@ res.expFit = expFit;
         if numel(fpath)>1
             fprintf('Figures could not be printed.');
         else
-            fpath = [fpath{1} 'Figures' filesep];            
+            fpath = [fpath{1} 'Figures' filesep]
             [~,~] = mkdir(fpath);
             print(hf(1), '-depsc2', [fpath 'lifetimeHist.eps']);
             print(hf(2), '-depsc2', [fpath 'gapStatistics.eps']);

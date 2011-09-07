@@ -784,7 +784,6 @@ refreshFrameDisplay(hfig);
 
 
 function trackSlider_Callback(hObject, ~, hfig)
-
 handles = getappdata(hfig, 'handles');
 
 t = round(get(hObject, 'value'));
@@ -816,13 +815,13 @@ refreshTrackDisplay(hfig);
 
 
 % --- Executes on button press in printButton.
-function printButton_Callback(~, ~, handles)
+function printButton_Callback(~, ~, hfig)
 % hObject    handle to printButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 fprintf('Printing...');
-
+handles = getappdata(hfig, 'handles');
 
 for ch = 1:handles.nCh
     if ~isempty(handles.tracks{ch})
