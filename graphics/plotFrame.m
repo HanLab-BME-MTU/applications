@@ -39,6 +39,7 @@ ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
 ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection', 'all'})));
 ip.addParamValue('ShowEvents', false, @islogical);
+ip.addParamValue('ShowDetection', false, @islogical);
 ip.addParamValue('ShowGaps', true, @islogical);
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
@@ -106,6 +107,13 @@ if ~isempty(ip.Results.iRange{ch})
     caxis(ha, ip.Results.iRange{ch});
 end
 axis(ha, 'image');
+
+if ip.Results.ShowDetection
+    load([data.source 'Detection' filesep 'detection_v2.mat']);
+    hold(ha, 'on');
+    plot(ha, frameInfo(frameIdx).x, frameInfo(frameIdx).y, 'ro', 'MarkerSize', 8);
+    hold(ha, 'off');
+end
 
 
 %======================================
