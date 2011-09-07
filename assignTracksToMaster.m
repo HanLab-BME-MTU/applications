@@ -12,9 +12,9 @@ minOverlap = ip.Results.MinOverlap;
 R = ip.Results.MaxDistance;
 
 % mean positions
-mMeans = arrayfun(@(t) [mean(t.x) mean(t.x)], masterTracks, 'UniformOutput', false);
+mMeans = arrayfun(@(t) [mean(t.x(1,:)) mean(t.x(1,:))], masterTracks, 'UniformOutput', false);
 mMeans = vertcat(mMeans{:});
-sMeans = arrayfun(@(t) [mean(t.x) mean(t.y)], slaveTracks, 'UniformOutput', false);
+sMeans = arrayfun(@(t) [mean(t.x(1,:)) mean(t.y(1,:))], slaveTracks, 'UniformOutput', false);
 sMeans = vertcat(sMeans{:});
 
 idx = KDTreeBallQuery(mMeans, sMeans, R);
