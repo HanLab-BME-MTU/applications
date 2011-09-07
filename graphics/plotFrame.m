@@ -108,10 +108,10 @@ if ~isempty(ip.Results.iRange{ch})
 end
 axis(ha, 'image');
 
-if ip.Results.ShowDetection
+if ip.Results.ShowDetection && ch==mCh
     load([data.source 'Detection' filesep 'detection_v2.mat']);
     hold(ha, 'on');
-    plot(ha, frameInfo(frameIdx).x, frameInfo(frameIdx).y, 'ro', 'MarkerSize', 8);
+    plot(ha, frameInfo(frameIdx).x(ch,:), frameInfo(frameIdx).y(ch,:), 'ro', 'MarkerSize', 8);
     hold(ha, 'off');
 end
 
