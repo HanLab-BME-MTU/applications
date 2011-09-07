@@ -17,7 +17,7 @@ mMeans = vertcat(mMeans{:});
 sMeans = arrayfun(@(t) [mean(t.x(1,:)) mean(t.y(1,:))], slaveTracks, 'UniformOutput', false);
 sMeans = vertcat(sMeans{:});
 
-idx = KDTreeBallQuery(mMeans, sMeans, R);
+idx = KDTreeBallQuery(sMeans, mMeans, R);
 
 % parse each set of assignments and check for overlap
 nm = numel(masterTracks);
@@ -25,7 +25,7 @@ for k = 1:nm
     if ~isempty(idx{k})
         overlap = min([slaveTracks(idx{k}).end], masterTracks(k).end) - ...
             max([slaveTracks(idx{k}).start], masterTracks(k).start) + 1;
-        idx{k} = idx{k}(overlap>=minOverlap);
+        idx{k} = idx{k}(overlap>=minOverlap & numel(masterTracks(k).t)>=numel(slaveTracks(idx{k}).t));
     end
 end
         

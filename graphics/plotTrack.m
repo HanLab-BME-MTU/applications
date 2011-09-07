@@ -28,6 +28,8 @@ ip.addParamValue('handle', []);
 ip.addParamValue('Legend', 'show', @(x) strcmpi(x, 'show') | strcmpi(x, 'hide'));
 ip.parse(data, tracks, trackIdx, ch, varargin{:});
 
+mCh = find(strcmp(data.channels, data.source));
+
 if ~isempty(ip.Results.handle)
     ha = ip.Results.handle;
     standalone = false;
@@ -102,16 +104,19 @@ fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
 
 % plot track
 ampl = A+c;
-ampl(gapIdx) = NaN;
+if ch==mCh
+    ampl(gapIdx) = NaN;
+end
 lh(2) = plot(ha, t, ampl, '.-', 'Color', trackColor, 'LineWidth', 1);
 
 % plot gaps separately
-ampl = A+c;
-ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
-
-if ~isempty(gapIdx)
-    lh(3) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
-    lh(4) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
+if ch==mCh
+    ampl = A+c;
+    ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
+    if ~isempty(gapIdx)
+        lh(3) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
+        lh(4) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
+    end
 end
 
 % plot background level
