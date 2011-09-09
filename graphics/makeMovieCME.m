@@ -26,6 +26,9 @@ ip.addParamValue('Channel', 1, @(x) ismember(x, 1:length(data.channels)));
 ip.addParamValue('FrameRange', 1:data.movieLength);
 ip.addParamValue('FileType', 'png', @(x) strcmpi(x, 'png') | strcmpi(x, 'tif') | strcmpi(x, 'tiff'));
 ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'all', 'projection'})));
+ip.addParamValue('ShowEvents', false, @islogical);
+ip.addParamValue('ShowDetection', false, @islogical);
+ip.addParamValue('ShowGaps', true, @islogical);
 ip.addParamValue('FileName', 'Movie', @ischar);
 ip.addParamValue('Colormap', []);
 ip.parse(data, varargin{:});
@@ -93,6 +96,8 @@ fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
     plotFrame(data, tracks, f, ch, 'iRange', dRange, 'Handle', ha,...
         'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar,...
+        'ShowDetection', ip.Results.ShowDetection, 'ShowEvents', ip.Results.ShowEvents',...
+        'ShowGaps', ip.Results.ShowGaps,...
         'DisplayType', ip.Results.DisplayType, 'ColorMap', cmap);
     axis(ha, 'off');
     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
