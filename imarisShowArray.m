@@ -52,6 +52,12 @@ if nargin < 5 || isempty(assigninBase)
     assigninBase = def_assigninBase;
 end
 
+%Setup colors for channels
+if sizeArray(4) <= 3
+    chanCols = [ 1 0 0 ; 0 1 0 ; 0 0 1];
+else
+    chanCols = jet(sizeArray(4));
+end
 
 % check whether we have to start a new imaris
 if nargin < 2 || isempty(imaApp)
@@ -163,6 +169,7 @@ minArray = nanmin(array(:));
 maxArray = nanmax(array(:));
 
 for ch = 0:size(array,4)-1
+    imaDataSet.SetChannelColor(ch,chanCols(ch+1,1),chanCols(ch+1,2),chanCols(ch+1,3),0);
     imaDataSet.SetChannelRange(ch,minArray,maxArray);
     imaDataSet.SetChannelName(ch,num2str(ch+1));
 end
