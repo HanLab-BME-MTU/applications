@@ -72,31 +72,32 @@ if topDir==0
 end
 
 disp(topDir);
-% get semi-colon- (windows) or colon- (linux) separated list of all
-% sub-directories under the top directory
-p=genpath(topDir);
-if ispc
-    tempDirList=strrep(p,';',' ');
-else
-    tempDirList=strrep(p,':',' ');
-end
-% get cell array of "roi_x" directories
-[roiDirList1]=regexp(tempDirList,['\S*roi_\d\s'],'match')';   % rois 1-9
-[roiDirList2]=regexp(tempDirList,['\S*roi_\d\d\s'],'match')'; % rois >=10
-roiDirList=[roiDirList1; roiDirList2]; % concat them
-% add a zero in the middle of 1-9 so they can be sorted
-roiTemp=[cellfun(@(x) [x(1:end-2) '0' x(end-1:end)],roiDirList1,'uniformOutput',0); roiDirList2];
-[b,idx]=sort(roiTemp);
-roiDirList=roiDirList(idx);
+% get cell array sub-directories under the top directory
+dirList=regexp(genpath(topDir),pathsep,'split');
 
-% get cell array of "sub_x" directories
-[subDirList1]=regexp(tempDirList,['\S*sub_\d\s'],'match')';   % subs 1-9
-[subDirList2]=regexp(tempDirList,['\S*sub_\d\d\s'],'match')'; % subs >=10
-subDirList=[subDirList1; subDirList2]; % concat them
-% add a zero in the middle of 1-9 so they can be sorted
-subTemp=[cellfun(@(x) [x(1:end-2) '0' x(end-1:end)],subDirList1,'uniformOutput',0); subDirList2];
-[b,idx]=sort(subTemp);
-subDirList=subDirList(idx);
+% cell array of "roi_xx" directories
+[roiDirList tokens]=regexp(dirList,'(.+)roi_(\d+)$','match','once','tokens');
+roiDirList=roiDirList(~cellfun(@isempty,roiDirList));
+%Sort them by number
+if ~isempty(roiDirList)
+    tokens=tokens(~cellfun(@isempty,tokens));
+    roiDictList = cellfun(@(x) {x{1} str2double(x{2})}, tokens,'UniformOutput',false);
+    [~,idx]=sortrows(vertcat(roiDictList{:}),[1 2]);
+    roiDirList=roiDirList(idx);
+    roiParentDirList=cellfun(@(x) x{1},tokens(idx),'UniformOutput',false);
+end
+
+% get cell array of "sub_xx" directories
+[subDirList tokens]=regexp(dirList,'(.+)sub_(\d+)$','match','once','tokens');
+subDirList=subDirList(~cellfun(@isempty,subDirList));
+%Sort them by index
+if ~isempty(subDirList)
+    tokens=tokens(~cellfun(@isempty,tokens));
+    subDictList = cellfun(@(x) {x{1} str2double(x{2})}, tokens,'UniformOutput',false);
+    [~,idx]=sortrows(vertcat(subDictList{:}),[1 2]);
+    subDirList=subDirList(idx);
+    
+end
 
 % initialize as empty in case no projects found
 projList=[];
@@ -111,7 +112,7 @@ end
 % check roi list for matches to input strings
 projCount=0;
 if ~isempty(roiDirList)
-    tempROI=ones(length(roiDirList),1);
+    tempROI=ones(size(roiDirList));
     for i=1:nStr
         testStr = varargin{i};
         tempROI=tempROI & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(roiDirList));
@@ -120,9 +121,9 @@ if ~isempty(roiDirList)
     matches=find(tempROI);
 
     for i=1:length(matches)
-        roiDir=roiDirList{matches(i),1};
-        projList(i,1).imDir=[roiDir(1:end-6) 'images'];
-        projList(i,1).anDir=roiDir(1:end-1);
+        roiDir=roiDirList{matches(i)};
+        projList(i,1).imDir=[roiParentDirList{matches(i)} 'images'];
+        projList(i,1).anDir=roiDir;
         projCount=projCount+1;
     end
 end
@@ -137,9 +138,9 @@ if ~isempty(subDirList)
     matches=find(tempSUB);
 
     for j=1:length(matches)
-        subDir=subDirList{matches(j),1};
+        subDir=subDirList{matches(j)};
         homeDir=pwd;
-        projList(projCount+j,1).anDir=subDir(1:end-1);
+        projList(projCount+j,1).anDir=subDir;
         cd(projList(projCount+j,1).anDir)
         cd(['..' filesep '..' filesep '..' filesep 'images'])
         projList(projCount+j,1).imDir=pwd;
