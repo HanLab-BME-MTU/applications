@@ -58,21 +58,58 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             end
         end
         
-        function prot = loadChannelOutput(obj)
+        function prot = loadChannelOutput(obj,varargin)
            
             %Make sure the prot samples are ok
             if ~checkChannelOutput(obj)
                 error('Cannot load the protrusion samples - they could not be found!')
             end
             
+            outputList = {'','avgNormal'};
+            ip =inputParser;
+            ip.addRequired('obj',@(x) isa(x,'ProtrusionSamplingProcess'));        
+            ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
+            ip.parse(obj,varargin{:})
+            output = ip.Results.output;
+            
             prot = load(obj.outFilePaths_);
             fn = fieldnames(prot);
-            if numel(fn) > 1
-                error('Invalid protrusion sample file!')
-            end            
+            if numel(fn) > 1, error('Invalid protrusion sample file!'); end            
             prot = prot.(fn{1});
+            if ~isempty(output), prot=prot.(output); end
                                     
         end
+               
+        function h=draw(obj,varargin)
+            % Function to draw process output (template method)
+            
+            if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
+            outputList = obj.getDrawableOutput();
+            ip = inputParser;
+            ip.addRequired('obj',@(x) isa(x,'Process'));
+            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+            ip.KeepUnmatched = true;
+            ip.parse(obj,varargin{:})
+			
+            data=obj.loadChannelOutput('output',ip.Results.output);
+            iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+            if ~isempty(outputList(iOutput).formatData),
+                data=outputList(iOutput).formatData(data);
+            end
+            try
+                assert(~isempty(obj.displayMethod_{iOutput}));
+            catch ME
+                obj.displayMethod_{iOutput}=...
+                    outputList(iOutput).defaultDisplayMethod();
+            end
+            
+            % Delegate to the corresponding method
+            tag = [obj.getName '_output' num2str(iOutput)];
+            drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
+                2*numel(fieldnames(ip.Unmatched)),1);
+            h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
+        end
+        
         
     end
     methods (Static)
@@ -82,6 +119,17 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
         function name =GUI()
             name =@protrusionSamplingProcessGUI;
         end
+        function output = getDrawableOutput(obj)
+            output(1).name='Protrusion map';
+            output(1).var='avgNormal';
+            output(1).formatData=[];
+            output(1).type='graph';
+            output(1).defaultDisplayMethod=@(x)ScalarMapDisplay('Colormap','jet',...
+                'Colorbar','on','Units','pixels/frame','XUnits','Frame number',...
+                'YUnits','Window');
+        end
+        
+        
     end 
 end
     
