@@ -39,20 +39,21 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         function samp = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
+            outputList = {'','avg'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ImageAnalysisProcess'));
             ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
-            ip.addOptional('iFrame',@(x) ismember(x,1:obj.owner_.nFrames_));
-            ip.addParamValue('output',[],@ischar);            
+            ip.addParamValue('output','',@(x) all(ismember(x,outputList)));          
             ip.parse(obj,iChan,varargin{:})      
-                        
+            output=ip.Results.output;      
+                  
             tmp = load(obj.outFilePaths_{iChan});
             fNames = fieldnames(tmp);
             if numel(fNames) ~= 1
                 error('Invalid window sample file !');
             end
             samp = tmp.(fNames{1});
-            
+            if ~isempty(output), samp=samp.(output); end
             
         end
         
@@ -70,23 +71,53 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                              exist(obj.outFilePaths_{x},'file')),iChan);
         end                
         
+        function h=draw(obj,iChan,varargin)
+            % Function to draw process output (template method)
+            
+            if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
+            outputList = obj.getDrawableOutput();
+            ip = inputParser;
+            ip.addRequired('obj',@(x) isa(x,'Process'));
+            ip.addRequired('iChan',@isnumeric);
+            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+            ip.KeepUnmatched = true;
+            ip.parse(obj,iChan,varargin{:})
+            
+            data=obj.loadChannelOutput(iChan,'output',ip.Results.output);
+            iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+            if ~isempty(outputList(iOutput).formatData),
+                data=outputList(iOutput).formatData(data);
+            end
+            try
+                assert(~isempty(obj.displayMethod_{iOutput,iChan}));
+            catch ME
+                obj.displayMethod_{iOutput,iChan}=...
+                    outputList(iOutput).defaultDisplayMethod(iChan);
+            end
+            
+            % Delegate to the corresponding method
+            tag = [obj.getName '_channel' num2str(iChan) '_output' num2str(iOutput)];
+            drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
+                2*numel(fieldnames(ip.Unmatched)),1);
+            h=obj.displayMethod_{iOutput,iChan}.draw(data,tag,drawArgs{:});
+        end
+        
+        
         function output = getDrawableOutput(obj)
-            output(1).name='Images';
-            output(1).var='';
+            output(1).name='Sampled maps';
+            output(1).var='avg';
             output(1).formatData=[];
-            output(1).type='image';
-            output(1).defaultDisplayMethod=@(x) ImageDisplay('Colormap','jet',...
-                'Colorbar','on','Units','','CLim',obj.getIntensityLimits(x));
+            output(1).type='graph';
+            output(1).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap','jet',...
+                'CLim',obj.getIntensityLimits(x),'Labels',{'Frame number','Window depth','Window number'});
         end
             
     end
     
     methods (Access=protected)
         function limits = getIntensityLimits(obj,iChan)
-            ratioImages=arrayfun(@(x)loadChannelOutput(obj,iChan,x),1:obj.owner_.nFrames_,...
-                'UniformOutput',false);
-            allRatioImages = vertcat(ratioImages{:});
-            limits=[min(allRatioImages(:)) max(allRatioImages(:))];
+            data=obj.loadChannelOutput(iChan,'output','avg');
+            limits=[min(data(:)) max(data(:))];
         end   
     end
     methods (Static)

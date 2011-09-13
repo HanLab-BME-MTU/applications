@@ -123,10 +123,9 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output(1).name='Protrusion map';
             output(1).var='avgNormal';
             output(1).formatData=[];
-            output(1).type='graph';
+            output(1).type='movieGraph';
             output(1).defaultDisplayMethod=@(x)ScalarMapDisplay('Colormap','jet',...
-                'Colorbar','on','Units','pixels/frame','XUnits','Frame number',...
-                'YUnits','Window');
+                'ScaleLabel','pixels/frame','Labels',{'Frame number','Window number'});
         end
         
         
