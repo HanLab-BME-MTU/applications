@@ -2,6 +2,7 @@ function [constrForceField]=TFM_part_4_cutOutForceField(ROI)
 load('fileAndFolderNames.mat');
 fileStruct=load(path_forceField);
 forceField=fileStruct.forceField;
+close all;
 
 if nargin<1
     ROI=[];

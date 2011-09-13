@@ -206,7 +206,7 @@ end
 display('Number of points filtered out: '); 
 display([num2str((1:n)'),repmat(': ',n,1),num2str([out(:).num]')]);
 
-doSubMeanDispl=1;
+doSubMeanDispl=0;
 if doSubMeanDispl
     display('!!!SUBTRACT MEAN DISPLACEMENT! PROBABLY OTHER CHANNELS WONT MATCH UP WITH FORCES ANYMORE!!!')
     for i=1:n

@@ -39,6 +39,11 @@ elseif iscell(path_cell_images)
    listCellImages=path_cell_images;
 end
 
+%get the target directory:
+if nargin < 4 || isempty(target_dir)
+    target_dir = uigetdir('','Select target directory for singleCellForces.mat');
+end
+
 if (nargin < 5) || isempty(pauseSec)
     pauseSec=0;
     display(['There is a breaks of ',num2str(pauseSec),'sec between the images'])
@@ -165,10 +170,11 @@ while finished==false
     
     display('The sum of the constrained forceField should be zero.') 
     display('The sum(constrforceField)/max(constrforceField)=')
-    for i=1:n
+    numFields=length(constrForceField);
+    for i=1:numFields
         allDeviations(i)=constrForceField{i}.stats.relDeviation;
     end    
-    display([num2str((1:n)') repmat(': ',n,1) num2str(allDeviations')])
+    display([num2str((1:numFields)') repmat(': ',numFields,1) num2str(allDeviations')])
 
     
     reply=input('All went well? Then press Enter, else type "no": ','s');
@@ -183,7 +189,7 @@ end
 % Interpolate the measured displacement field on the grid of the
 % constrained forcefield. Then calculate the elastic energy:
 
-for i=1:n
+for i=1:numFields
     currentImage=double(imread(listCellImages{i}));
     
     iDisplCoordx = TriScatteredInterp(displField(i).pos(:,1),displField(i).pos(:,2),displField(i).vec(:,1));
@@ -222,10 +228,10 @@ for i=1:n
     constrForceField{i}.stats.elEnergy= 1/2*sum(sum(constrDisplField{i}.vec.*constrForceField{i}.vec))*factor;
 end
 display('The elastic energy is:');
-for i=1:n
+for i=1:numFields
     allelEnergy(i)=constrForceField{i}.stats.elEnergy;
 end  
-display([num2str((1:n)') repmat(': ',n,1) num2str(allelEnergy')]);
+display([num2str((1:numFields)') repmat(': ',numFields,1) num2str(allelEnergy')]);
 
 save([target_dir, filesep, 'singleCellForces.mat'], 'constrForceField', 'constrDisplField');
 

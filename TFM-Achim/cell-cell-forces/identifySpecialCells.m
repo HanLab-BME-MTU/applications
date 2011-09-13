@@ -159,7 +159,7 @@ if isempty(markerChar) || markerChar~=0
     markerChar=1;
 end
 
-myoType    = input('Which myosin type is it? type e.g. [myoIIA_hp93], myoIIA_hp94, myoIIB_hp103: ','s');
+myoType    = input('Which myosin type is it? type e.g. [myoIIA_hp93], myoIIA_hp94, myoIIB_hp103, tln1: ','s');
 if isempty(myoType)
     myoType='myoIIA_hp93';
 end

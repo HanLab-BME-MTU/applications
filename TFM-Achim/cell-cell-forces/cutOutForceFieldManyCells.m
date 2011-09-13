@@ -214,11 +214,26 @@ while finished==false
             curveInterface=[];
             while size(curveInterface,1)<2
                 display('Plot the interface')                
+                inputOk=0;
                 if i~=toDoList(1) && numCells>=numCellsOld && j<=numCellsOld-1
-                    polygonObject = impoly(gca,curveInterfaceOld{j},'Closed',false);
-                    replyDummy=input('Press ENTER to continue:...');
+                    while ~inputOk
+                        try
+                            polygonObject = impoly(gca,curveInterfaceOld{j},'Closed',false);
+                            replyDummy=input('Press ENTER to continue:...');
+                            inputOk=1;
+                        catch
+                            inputOk=0;
+                        end
+                    end
                 else
-                    polygonObject = impoly(gca,'Closed',false);
+                    while ~inputOk
+                        try
+                            polygonObject = impoly(gca,'Closed',false);
+                            inputOk=1;
+                        catch
+                            inputOk=0;
+                        end
+                    end
                 end
                 curveInterface       = round(getPosition(polygonObject));
                 curveInterfaceOld{j} = curveInterface;
