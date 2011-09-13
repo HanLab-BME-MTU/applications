@@ -179,18 +179,18 @@ end
 
 figure(10)
 boxplot(elEnergyBoxPlotVec,boxPlotGroupVec,'notch','marker');
-title('Elastic energy provided by the cells')
+title('strain energy (substrate deformation caused by the cells)')
 
 figure(20)
 boxplot(maxForceBoxPlotVec,boxPlotGroupVec,'notch','marker');
-title('Maximum local stress built up by the cells')
+title('maximum stress built up by the cells')
 
 figure(30)
 boxplot(peakForceBoxPlotVec,boxPlotGroupVecPeakForce,'notch','marker');
-title('Peak stress built up by the cells')
+title('peak stress built up by the cells (maximum over all frames)')
 
 if roiExists
     figure(40)
     boxplot(elEnPerSprArPlotVec,boxPlotGroupVec,'notch','marker');
-    title('Elastic energy per spreading area')
+    title('strain energy per spreading area')
 end
