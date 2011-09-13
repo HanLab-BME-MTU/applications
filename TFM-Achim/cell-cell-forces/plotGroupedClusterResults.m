@@ -17,7 +17,7 @@ if ~onlyCorr
 %**************************************************************************
 % Error analysis:
 %**************************************************************************
-%plotErrorAnalysisNetworks(groupedClusters);
+plotErrorAnalysisNetworks(groupedClusters);
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
@@ -31,7 +31,7 @@ if ~onlyCorr
 %**************************************************************************
 % goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
 % goodCellSet=findCells(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[-1 0 1],'type',{'ctrl','ctr','myoIIB_hp103'},'errF',Inf,'errs',0);
-goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
+goodCellSet=findCells(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
 [deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
 
 

@@ -143,5 +143,5 @@ hold off
 
 rel_err_fc_fn(abs(rel_err_fc_fn)>cutOffRelErr)=[];
 display('rel. error fc:')
-display(['mean   +-      std: ',num2str(  mean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(       std(rel_err_fc_fn),'%0.4f')])
-display(['median +- 1.48*MAD: ',num2str(median(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
+display(['mean   +-      std: ',num2str(  nanmean(rel_err_fc_fn),'%0.4f'),' +- ',num2str(    nanstd(rel_err_fc_fn),'%0.4f')])
+display(['median +- 1.48*MAD: ',num2str(nanmedian(rel_err_fc_fn),'%0.4f'),' +- ',num2str(1.4826*mad(rel_err_fc_fn),'%0.4f')])
