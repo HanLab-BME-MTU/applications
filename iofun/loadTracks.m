@@ -8,7 +8,7 @@ ip.addRequired('data', @(x) isstruct(x) & numel(x)==1);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar); 
 ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Sort', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('PostProc', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('PostProc', [], @isscalar);
 ip.addParamValue('Type', 'valid', @(x) strcmpi(x, 'valid') | strcmpi(x, 'all'));
 ip.parse(data, varargin{:});
 
@@ -19,11 +19,15 @@ tracks = ta.tracks;
 
 if strcmpi(ip.Results.Type, 'valid')
     tracks = tracks([tracks.valid]==1 & [tracks.lifetime_s] >= cutoff & arrayfun(@(t) ~iscell(t.x), tracks));
-    if strcmpi(ip.Results.PostProc, 'on')
+    if ~isempty(ip.Results.PostProc)
         kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
         sb = arrayfun(@(t) sum(sum(t.startBuffer.A(1,:) > t.startBuffer.sigma_r(1,:)*kLevel))>1, tracks);
         eb = arrayfun(@(t) sum(sum(t.endBuffer.A(1,:) > t.endBuffer.sigma_r(1,:)*kLevel))>1, tracks);
         tracks(sb | eb) = [];
+        % threshold max intensity
+        maxRatio = arrayfun(@(t) max(t.A(1,:) ./ (t.sigma_r(1,:)*kLevel)), tracks);
+        tracks(maxRatio < ip.Results.PostProc) = [];
+        
     end
 else % if all
     tracks = tracks([tracks.lifetime_s] >= cutoff);
