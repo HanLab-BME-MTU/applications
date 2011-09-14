@@ -56,7 +56,28 @@ xlabel('Deg of connectivity')
 ylabel('Contraction Energy [pJ]')
 set(gca,'fontsize',20)
 box on
-ylim([0,0.11])
+ylim([0,0.15])
+
+
+figure()
+% checked with part7
+boxplot([sumFmag_vals_8; sumFmag_vals_35],{G1 G2},'factorgap',[20 0],'colorgroup',Gcol,'color','bg','notch','on','symbol','+')
+title(['Sum of traction force magnitudes for cells with connectivity: ',num2str(1:maxDeg)])
+xlabel('Deg of connectivity')
+ylabel('Sum of traction force magnitudes [nN]')
+set(gca,'fontsize',20)
+box on
+
+
+figure()
+% checked with part7
+boxplot([sumFmag_vals_8; sumFmag_vals_35]./[sumFi_vals_8; sumFi_vals_35],{G1 G2},'factorgap',[20 0],'colorgroup',Gcol,'color','bg','notch','on','symbol','+')
+title(['ratio: \{sum} |Ft|/ \{sum} Fi for cells with connectivity: ',num2str(1:maxDeg)])
+xlabel('Deg of connectivity')
+ylabel('ratio \{sum} |Ft|/ \{sum} Fi [nN]')
+set(gca,'fontsize',20)
+box on
+ylim([0,10])
 
 clear M_8 M_35;
 
@@ -222,13 +243,13 @@ clear M
 figure()
 % checked with part7, but the deg values should be sorted in a nicer way!
 boxplot(intfStress_35,num2str(deg_vals_sorted_35),'notch','on')
-title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals))])
+title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals_35))])
 xlabel('Deg of connectivity')
 ylabel('Interface stress [nN/um]')
 
 figure()
 % checked with part7
-boxplot(lgth_vals,num2str(deg_vals_sorted),'notch','on')
-title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals))])
+boxplot(lgth_vals_35,num2str(deg_vals_sorted_35),'notch','on')
+title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals_35))])
 xlabel('Deg of connectivity')
 ylabel('Interface length [um]')
