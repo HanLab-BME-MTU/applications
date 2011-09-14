@@ -4,7 +4,7 @@ if nargin<2 || isempty(checkTransform)
 end
 
 for frame=1:length(displField)
-    displField_reg(frame).par   = displField(frame).par;
+%     displField_reg(frame).par   = displField(frame).par;
     checkVec=(displField(frame).pos(:,1)>50 & displField(frame).pos(:,1)<200 & displField(frame).pos(:,2)>25 & displField(frame).pos(:,2)<700) | (displField(frame).pos(:,1)>1100 & displField(frame).pos(:,2)>25);
     
     X1=displField(frame).pos(checkVec,:);
