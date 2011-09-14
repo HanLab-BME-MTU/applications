@@ -53,9 +53,9 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
-userData.editParams ={'MeshQuality','ParaSize','PerpSize','MinSize'};
+userData.numParams ={'ParaSize','PerpSize','MinSize'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
-    userData.editParams)
+    userData.numParams)
 
 % Read available segmentaation processes
 segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
@@ -67,8 +67,8 @@ segProcData=horzcat({[]},num2cell(segProcID));
 % Read the default segmentation process index
 % If empty, try to propagate segmentation process from protrusion process
 initSegProcIndex = funParams.SegProcessIndex;
-if isempty(initSegProcIndex)
-    try %#ok<TRYNC>
+if isempty(initSegProcIndex) && ~isempty(userData.crtPackage.processes_{1});
+    if ~isempty(userData.crtPackage.processes_{1}.funParams_.SegProcessIndex)
         initSegProcIndex = userData.crtPackage.processes_{1}.funParams_.SegProcessIndex;  
     end
 end
@@ -79,11 +79,25 @@ set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
 % Create pop-up menu for windowing methods
 methodString ={'Constant number';'Constant width';'Protrusion based';'PDE based'};
 methodData ={'ConstantNumber';'ConstantWidth';'ProtrusionBased';'PDEBased'};
-methodValue = find(strcmp(funParams.MethodName,methodData));
+methodValue = find(strcmpi(funParams.MethodName,methodData));
 set(handles.popupmenu_MethodName,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
-% Update pde panels
-popupmenu_MethodName_Callback(hObject,eventdata,handles);
+
+% Set-up pde parameters
+pdeString ={'Select a model';'Viscous';'Viscous-convective';'Visco-elastic'};
+pdeData ={'';'Viscous';'ViscousConvective';'ViscoElastic'};
+if ~isempty(funParams.PDEPar)
+    PDEValue = find(strcmpi(funParams.PDEPar,pdeData));
+else
+    PDEValue =1;
+end
+set(handles.popupmenu_PDEPar,'Value',PDEValue);
+set(handles.edit_MeshQuality,'String',funParams.MeshQuality);
+value=strcmpi(funParams.NonLinearSolver,'on');
+set(handles.checkbox_NonLinearSolver,'Value',value);
+set(handles.popupmenu_PDEPar,'String',pdeString,'UserData',pdeData);
+
+popupmenu_MethodName_Callback(hObject, eventdata, handles)
 
 % Choose default command line output for windowingProcessGUI
 handles.output = hObject;
@@ -148,23 +162,50 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
-for i=1:numel(userData.editParams)  
-   funParams.(userData.editParams{i})=...
-       str2num(get(handles.(['edit_' userData.editParams{i}]),'String'));
+for i=1:numel(userData.numParams)  
+    value = get(handles.(['edit_' userData.numParams{i}]),'String');
+    if isempty(value)
+        errordlg(['Please enter a valid value for the '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],'Setting Error','modal');
+        return;
+    end
+    funParams.(userData.numParams{i})=str2double(value); 
 end
 
+%Retrieve segmentation process
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
 funParams.SegProcessIndex=props{1}{props{2}};
 
+% Retrieve windowing method
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
 funParams.MethodName=props{1}{props{2}};
+
+if strcmpi(funParams.MethodName,'pdebased');
+    meshQuality = get(handles.edit_MeshQuality,'String');
+    if isempty(meshQuality)
+        errordlg('Please enter a valid value for the Quality of the triangular mesh.','Setting Error','modal');
+        return;
+    end
+    funParams.MeshQuality=str2double(meshQuality);       
+    props = get(handles.popupmenu_PDEPar,{'UserData','Value'});
+    if props{2}==1
+        errordlg('Select a valid window propagation method.','Setting Error','modal');
+        return;
+    end
+    funParams.PDEPar=props{1}{props{2}};
+    nonLinearSolver=get(handles.checkbox_NonLinearSolver,'Value');
+    if nonLinearSolver
+        funParams.NonLinearSolver='on';
+    else
+        funParams.NonLinearSolver='off';
+    end
+end
 
 
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
 catch ME
-
     errordlg([ME.message 'Please double check your data.'],...
                 'Setting Error','modal');
     return;
@@ -180,7 +221,7 @@ function popupmenu_MethodName_Callback(hObject, eventdata, handles)
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
 methodName=props{1}{props{2}};
 
-if strcmp(methodName,'PDEBased')
+if strcmpi(methodName,'PDEBased')
     enableState='on';
 else
     enableState='off';

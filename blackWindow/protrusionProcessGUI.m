@@ -63,9 +63,9 @@ segProcValue = find(cellfun(@(x) isequal(x,funParams.SegProcessIndex),segProcDat
 set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
     'UserData',segProcData,'Value',segProcValue);
 
-userData.editParams ={'DownSample','SplineTolerance'};
+userData.numParams ={'DownSample','SplineTolerance'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
-    userData.editParams)
+    userData.numParams)
 
 % Choose default command line output for protrusionProcessGUI
 handles.output = hObject;
@@ -133,9 +133,14 @@ end
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
 funParams.SegProcessIndex=props{1}{props{2}};
 
-for i=1:numel(userData.editParams)  
-   funParams.(userData.editParams{i})=...
-       str2double(get(handles.(['edit_' userData.editParams{i}]),'String'));
+for i=1:numel(userData.numParams)
+    value = get(handles.(['edit_' userData.numParams{i}]),'String');
+    if isempty(value)
+        errordlg(['Please enter a valid value for the '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],'Setting Error','modal');
+        return;
+    end
+    funParams.(userData.numParams{i})=str2double(value);
 end
 
 % Process Sanity check ( only check underlying data )
