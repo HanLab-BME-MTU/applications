@@ -150,11 +150,11 @@ while ~isempty(deg_dbl_sorted_groups_8)
     M_8{label}=['8kPa: ',num2str(degCount_8),';'];
     label=label+1;
 end
-boxplot(fc_mag_dbl_sorted_8,num2str(deg_dbl_sorted_8(:,1)),'labels',M_8,'notch','on')
-title(['Interface force for edges with connectivity: ',num2str(1:max(deg_vals_8))])
-xlabel('Minimal deg. of connectivity')
-ylabel('Interface force [nN]')
-%clear M_8
+% boxplot(fc_mag_dbl_sorted_8,num2str(deg_dbl_sorted_8(:,1)),'labels',M_8,'notch','on')
+% title(['Interface force for edges with connectivity: ',num2str(1:max(deg_vals_8))])
+% xlabel('Minimal deg. of connectivity')
+% ylabel('Interface force [nN]')
+% %clear M_8
 
 
 maxDeg=(max([deg_dbl_sorted_8(:,1);deg_dbl_sorted_35(:,1)]));
@@ -191,6 +191,86 @@ set(gca,'fontsize',20)
 ylim([0,8])
 box on
 
+
+% % plot the stress:
+% figure()
+% % checked with part7, but the deg values should be sorted in a nicer way!
+% boxplot(intfStress_35,num2str(deg_vals_sorted_35),'notch','on')
+% title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals_35))])
+% xlabel('Deg of connectivity')
+% ylabel('Interface stress [nN/um]')
+% 
+% figure()
+% % checked with part7
+% boxplot(lgth_vals_35,num2str(deg_vals_sorted_35),'notch','on')
+% title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals_35))])
+% xlabel('Deg of connectivity')
+% ylabel('Interface length [um]')
+
+
+clear M_8 M_35;
+
+goodEdgeSet_35=findEdges(groupedClusters,'kPa',35,'myo',0,'myoGlb',[0],'errF',Inf,'errs',0);
+[deg_vals_35,lgth_vals_35,fc1_vals_35,nVec_vals_35]=collectEdgeValues(groupedClusters,goodEdgeSet_35,'deg','lgth','fc1','nVec');
+deg_vals_sorted_35=sort(deg_vals_35,2);
+fc1_mag_35        = sqrt(sum(fc1_vals_35.^2,2));
+alpha_fc1_nVec_35 = acosd(dot(fc1_vals_35,nVec_vals_35,2)./(fc1_mag_35));
+cv=alpha_fc1_nVec_35>90;
+alpha_fc1_nVec_35(cv)=180-alpha_fc1_nVec_35(cv);
+
+goodEdgeSet_8=findEdges(groupedClusters,'kPa',8,'myo',0,'myoGlb',0,'errF',Inf,'errs',0);
+% goodEdgeSet_8=findEdges(groupedClusters,'kPa',8,'errF',30,'errs',0);
+[deg_vals_8,lgth_vals_8,fc1_vals_8,nVec_vals_8]=collectEdgeValues(groupedClusters,goodEdgeSet_8,'deg','lgth','fc1','nVec');
+deg_vals_sorted_8 =sort(deg_vals_8,2);
+fc1_mag_8         = sqrt(sum(fc1_vals_8.^2,2));
+alpha_fc1_nVec_8 = acosd(dot(fc1_vals_8,nVec_vals_8,2)./(fc1_mag_8));
+%quick cheat:
+cv=alpha_fc1_nVec_8>90;
+alpha_fc1_nVec_8(cv)=180-alpha_fc1_nVec_8(cv);
+
+
+[deg_dbl_sorted_35,idx_35]  =sortrows(deg_vals_sorted_35,[1 2]);
+fc_mag_dbl_sorted_35        =fc1_mag_35(idx_35);
+alpha_fc1_nVec_dbl_sorted_35=alpha_fc1_nVec_35(idx_35);
+
+deg_dbl_sorted_groups_35=deg_dbl_sorted_35(:,1);
+label=1;
+while ~isempty(deg_dbl_sorted_groups_35)
+    degGroup_35=deg_dbl_sorted_groups_35(1);
+    checkVec_35=deg_dbl_sorted_groups_35==degGroup_35;
+    degCount_35=sum(checkVec_35);
+    deg_dbl_sorted_groups_35(checkVec_35)=[];
+    %M_35{label}=['deg: ',num2str(degGroup_35),'-x; [n= ',num2str(degCount_35),']'];
+    M_35{label}=['35kPa: ',num2str(degCount_35)];
+    label=label+1;
+end
+
+
+[deg_dbl_sorted_8,idx_8]  =sortrows(deg_vals_sorted_8,[1 2]);
+fc_mag_dbl_sorted_8        =fc1_mag_8(idx_8);
+alpha_fc1_nVec_dbl_sorted_8=alpha_fc1_nVec_8(idx_8);
+
+deg_dbl_sorted_groups_8=deg_dbl_sorted_8(:,1);
+label=1;
+while ~isempty(deg_dbl_sorted_groups_8)
+    degGroup_8=deg_dbl_sorted_groups_8(1);
+    checkVec_8=deg_dbl_sorted_groups_8==degGroup_8;
+    degCount_8=sum(checkVec_8);
+    deg_dbl_sorted_groups_8(checkVec_8)=[];
+    %M_8{label}=['deg: ',num2str(degGroup_8),'-x; [n= ',num2str(degCount_8),']'];
+    M_8{label}=['8kPa: ',num2str(degCount_8)];
+    label=label+1;
+end
+
+maxDeg=(max([deg_dbl_sorted_8(:,1);deg_dbl_sorted_35(:,1)]));
+G8kPa    =repmat({'8kPa'} ,length(deg_dbl_sorted_8(:,1)) ,1);
+G35kPa   =repmat({'35kPa'},length(deg_dbl_sorted_35(:,1)),1);
+
+G1=[deg_dbl_sorted_8(:,1);deg_dbl_sorted_35(:,1)];
+Gcol=vertcat(G8kPa,G35kPa);
+
+G2=[M_8(deg_dbl_sorted_8(:,1)),M_35(deg_dbl_sorted_35(:,1))]';
+
 figure()
 % plot both together:
 boxplot([alpha_fc1_nVec_dbl_sorted_8;alpha_fc1_nVec_dbl_sorted_35],{G1 G2},'factorgap',[20 0],'colorgroup',Gcol,'color','bg','notch','on','symbol','+')
@@ -201,55 +281,3 @@ xlabel('Minimal deg. of connectivity')
 ylabel('Interface stress [nN/um]')
 set(gca,'fontsize',20)
 box on
-
-
-figure()
-% checked with part7
-degij_alpha_fc_nVec=[deg_vals_sorted alpha_fc1_nVec];
-% first sort according to the first column (the small degree value, since
-% presorted above), and then sort once more according to the second degree
-% value to obtain a nice ordering of the degree pairs:
-degij_alpha_dbl_sorted = sortrows(degij_alpha_fc_nVec,[1 2]);
-alpha_dbl_sorted       = degij_alpha_dbl_sorted(:,3);
-deg_dbl_sorted         = degij_alpha_dbl_sorted(:,1:2);
-boxplot(alpha_dbl_sorted,num2str(deg_dbl_sorted),'notch','on')
-title(['Angle to the normal of the interface for edges with connectivity: ',num2str(1:max(deg_vals))])
-xlabel('Deg of connectivity')
-ylabel('Angle [deg]')
-
-figure()
-% replot grouped values:
-% make the legend:
-deg_dbl_sorted_groups=deg_dbl_sorted(:,1);
-label=1;
-while ~isempty(deg_dbl_sorted_groups)
-    degGroup=deg_dbl_sorted_groups(1);
-    checkVec=deg_dbl_sorted_groups==degGroup;
-    degCount=sum(checkVec);
-    deg_dbl_sorted_groups(checkVec)=[];
-    M{label}=['deg: ',num2str(degGroup),'-x; [n= ',num2str(degCount),']'];
-    label=label+1;
-end
-boxplot(alpha_dbl_sorted,num2str(deg_dbl_sorted(:,1)),'labels',M,'notch','on')
-% this should be compared with the following to make sure that the counting is correct:
-% h=boxplot(fc_mag_dbl_sorted,num2str(deg_dbl_sorted(:,1)));
-title(['Angle to the normal of the interface for edges with connectivit: ',num2str(1:max(deg_vals))])
-xlabel('Minimal deg. of connectivity')
-ylabel('Angle [deg]')
-clear M
-
-
-% plot the stress:
-figure()
-% checked with part7, but the deg values should be sorted in a nicer way!
-boxplot(intfStress_35,num2str(deg_vals_sorted_35),'notch','on')
-title(['Interface stress for edges with connectivity: ',num2str(1:max(deg_vals_35))])
-xlabel('Deg of connectivity')
-ylabel('Interface stress [nN/um]')
-
-figure()
-% checked with part7
-boxplot(lgth_vals_35,num2str(deg_vals_sorted_35),'notch','on')
-title(['Interface length for edges with connectivity: ',num2str(1:max(deg_vals_35))])
-xlabel('Deg of connectivity')
-ylabel('Interface length [um]')
