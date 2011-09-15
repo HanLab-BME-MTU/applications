@@ -34,9 +34,9 @@ if isempty(iProc)
     movieData.addProcess(DisplacementFieldCorrectionProcess(movieData,...
         movieData.outputDirectory_));                                                                                                 
 end
-displFieldProc = movieData.processes_{iProc};
+displFieldCorrProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
-p = parseProcessParams(displFieldProc,paramsIn);
+p = parseProcessParams(displFieldCorrProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
@@ -48,29 +48,23 @@ bitDepth = movieData.camBitdepth_;
 nFrames = movieData.nFrames_;
 maxIntensity =(2^bitDepth-1);
 
-% Check optional process Flow Tracking
-iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-if ~isempty(iSDCProc)
-    SDCProc=movieData.processes_{iSDCProc};
-    if ~SDCProc.checkChannelOutput(p.ChannelIndex)
-        error(['The channel must have been corrected ! ' ...
-            'Please apply stage drift correction to all needed channels before '...
-            'running displacement field calclation tracking!'])
-    end
-    imDirs{1} = SDCProc.outFilePaths_{1,p.ChannelIndex};
-    imageFileNames = SDCProc.getInImageFileNames(p.ChannelIndex);
-    s = load(SDCProc.outFilePaths_{3,p.ChannelIndex});
-    residualT = s.T-round(s.T);
-    refFrame = double(imread(SDCProc.outFilePaths_{2,p.ChannelIndex}));
-else
-    imDirs  = movieData.getChannelPaths(p.ChannelIndex);
-    imageFileNames = movieData.getImageFileNames(p.ChannelIndex);
-    refFrame = double(imread(p.referenceFramePath));
-    residualT = zeros(nFrames,2);
+% Check displacement field process
+iDisplFieldCalcProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,1);     
+if isempty(iDisplFieldCalcProc)
+    error(['Displacement field calculation has not been run! '...
+        'Please run displacement field calculation prior to force field calculation!'])   
 end
-inFilePaths{1,p.ChannelIndex} = imDirs{:};
-displFieldProc.setInFilePaths(inFilePaths);
-    
+
+displFieldCalcProc=movieData.processes_{iDisplFieldProc};
+if ~displFieldCalcProc.checkChannelOutput
+    error(['The channel must have a displacement field ! ' ...
+        'Please calculate displacement field to all needed channels before '...
+        'running force field calculation!'])
+end
+
+inFilePaths{1} = displFieldCalcProc.outFilePaths_{1};
+displFieldCorrProc.setInFilePaths(inFilePaths);
+
 % Set up the output directories
 outputFile = cell(1,numel(movieData.channels_));
 for i = p.ChannelIndex;    
@@ -78,57 +72,28 @@ for i = p.ChannelIndex;
     outputFile{i} = [p.OutputDirectory filesep 'displField.mat'];
     mkClrDir(p.OutputDirectory);
 end
-displFieldProc.setOutFilePaths(outputFile);
+displFieldCorrProc.setOutFilePaths(outputFile);
 
 %% --------------- Displacement field calculation ---------------%%% 
 
-disp('Starting calculating displacement field...')
+disp('Starting correctiong displacement field...')
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
+displField=displFieldCalcProc.loadChannelOutput;
 
-% Detect beads in reference frame and select only valid candidates
-disp('Detecting beads in the reference frame...')
-filteredRefFrame = filterGauss2D(refFrame/maxIntensity,...
-    movieData.channels_(p.ChannelIndex(1)).psfSigma_);
-beadsMask = true(size(filteredRefFrame));
-erosionDist=(p.minCorLength-1)/2;
-beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 
-% Create noise parameter vector
-k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
-noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
-cands = detectSpeckles(filteredRefFrame.*~beadsMask,noiseParam,[1 0]);
-M = vertcat(cands([cands.status]==1).Lmax);
-beads = M(:,2:-1:1);
-
-% For debugging purposes
-% indx=beads(:,1)>600 & beads(:,1)<900&beads(:,2)>350&beads(:,2)<650;
-% beads=beads(indx,:);
-
-% Initialize displacement field structure
-displField(nFrames)=struct('pos',[],'vec',[]);
-
-disp('Calculating displacement field...')
-logMsg = 'Please wait, calculating displacement field';
+disp('Detecting and filtering vector field outliers...')
+logMsg = 'Please wait, detecting and filtering vector field outliers';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
-% Perform sub-pixel registration
+% Perform vector field outlier detection
+if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for j= 1:nFrames
-    % Read image and perform correlation
-    currImage = double(imread(inImage(p.ChannelIndex(1),j)));
-    [vx,vy] = trackStackFlow(cat(3,refFrame,currImage),beads(:,1),beads(:,2),...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
-    
-    % Extract finite displacement and prepare displFiel
-    validV = ~isnan(vx) & ~isnan(vy) & ~isinf(vx);
-    displField(j).pos=[beads(validV,1) beads(validV,2)];
-    displField(j).vec=[vx(validV)+residualT(j,1) vy(validV)+residualT(j,2)];
-    
+
     % Outlier detection
     dispMat = [displField(j).pos displField(j).vec];
     if ~isempty(p.outlierThreshold)
-        outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,0);
+        outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,1);
         displField(j).pos(outlierIndex,:)=[];
         displField(j).vec(outlierIndex,:)=[];
     end
@@ -140,7 +105,7 @@ for j= 1:nFrames
     end
 end
 % Find rotational registration
-% if doRotReg
+% if p.doRotReg
 %    displField=perfRotReg(displField,1);
 % end
 
@@ -149,4 +114,4 @@ save([p.OutputDirectory filesep 'displField.mat'],'displField');
 % Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 
-disp('Finished calculating displacement field!')
+disp('Finished correcting displacement field!')

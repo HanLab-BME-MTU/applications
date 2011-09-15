@@ -43,7 +43,6 @@ if feature('ShowFigureWindows'),
 end
 
 % Reading various constants
-bitDepth = movieData.camBitdepth_;
 nFrames = movieData.nFrames_;
 
 % Check displacement field process
