@@ -60,14 +60,6 @@ userData.numParams ={'I0','sDN','GaussRatio','alpha','minCorLength',...
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams);
 
-if ~isempty(funParams.outlierThreshold),
-    set(handles.checkbox_filterOutliers,'Value',1);
-    set(handles.edit_outlierThreshold,'String',funParams.outlierThreshold);
-else
-    set(handles.checkbox_filterOutliers,'Value',0);
-end
-set(handles.checkbox_doRotReg,'Value',funParams.doRotReg);
-
 % Propagate stage drift correction parameters if no process and stage drift
 % correction parameters has been set up
 if ~isempty(userData.crtPackage.processes_{1})
@@ -177,17 +169,6 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
-
-% --- Executes on button press in checkbox_filterOutliers.
-function checkbox_filterOutliers_Callback(hObject, eventdata, handles)
-
-if get(hObject,'Value')
-    enableState='on';
-else
-    enableState='off';    
-end
-set(handles.edit_outlierThreshold,'Enable',enableState);
 
 
 % --- Executes on button press in pushbutton_loadNoiseParameters.
