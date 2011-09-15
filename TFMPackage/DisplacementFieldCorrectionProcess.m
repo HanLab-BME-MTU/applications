@@ -1,10 +1,10 @@
-classdef DisplacementFieldCalculationProcess < Process
-    % Concrete class for a displacement field calculation process
+classdef DisplacementFieldCorrectionProcess < Process
+    % Concrete class for a displacement field correction process
     %
     % Sebastien Besson, Aug 2011
     
     methods
-        function obj = DisplacementFieldCalculationProcess(owner,outputDir,funParams)
+        function obj = DisplacementFieldCorrectionProcess(owner,outputDir,funParams)
             
             if nargin == 0
                 super_args = {};
@@ -15,19 +15,13 @@ classdef DisplacementFieldCalculationProcess < Process
             
             obj = obj@Process(super_args{:});
             
-            obj.funName_ = @calculateMovieDisplacementField;
+            obj.funName_ = @correctMovieDisplacementField;
             if nargin < 3 || isempty(funParams)
                 
                 %----Defaults----%
-                funParams.ChannelIndex = 1;
                 funParams.OutputDirectory = [outputDir  filesep 'displacementField'];
-                funParams.referenceFramePath='';
-                funParams.I0=[];
-                funParams.sDN=[];
-                funParams.GaussRatio=[];
-                funParams.alpha=.05;
-                funParams.minCorLength = 21;
-                funParams.maxFlowSpeed =20;  
+                funParams.doRotReg=0;
+                funParams.outlierThreshold = 2;
             end
             %Make sure the input parameters are legit??
             obj.funParams_ = funParams;
@@ -46,7 +40,7 @@ classdef DisplacementFieldCalculationProcess < Process
             
             outputList = {'displField'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'DisplacementFieldCalculationProcess'));
+            ip.addRequired('obj',@(x) isa(x,'DisplacementFieldCorrectionProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
@@ -103,10 +97,10 @@ classdef DisplacementFieldCalculationProcess < Process
     end
     methods (Static)
         function name =getName()
-            name = 'Displacement Field Calculation';
+            name = 'Displacement Field Correction';
         end
         function h = GUI()
-            h= @displacementFieldCalculationProcessGUI;
+            h= @displacementFieldCorrectionProcessGUI;
         end
         
         function output = getDrawableOutput()

@@ -84,21 +84,24 @@ stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
 for j = 1:nFrames, stack(:,:,j) = double(imread(inImage(p.ChannelIndex(1),j))); end
 
-% Detect beads in reference frame and select only valid candidates
+% Detect beads in reference frame
 disp('Detecting beads in the reference frame...')
 filteredRefFrame = filterGauss2D(croppedRefFrame/maxIntensity,...
     movieData.channels_(p.ChannelIndex(1)).psfSigma_);
-beadsMask = true(size(filteredRefFrame));
-erosionDist=(p.minCorLength-1)/2;
-beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-
-% Create noise parameter vector
 k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
 noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
-cands = detectSpeckles(filteredRefFrame.*~beadsMask,noiseParam,[1 0]);
+cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
-        
+
+% Select only valid candidates
+beadsMask = true(size(filteredRefFrame));
+% erosionDist=(p.minCorLength-1)/2;
+erosionDist=p.minCorLength;
+beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+indx=beadsMask(sub2ind(size(beadsMask),beads(:,1),beads(:,2)));
+beads(indx,:)=[];
+
 if p.doPreReg % Perform pixel-wise registration by auto-correlation
     % Initialize subpixel transformation array
     preT=zeros(nFrames,2);
@@ -160,8 +163,8 @@ end
 % Initialize transformation array
 T=zeros(nFrames,2);
 
-disp('Calculating subpixel-wise pre-registration...')
-logMsg = 'Please wait, performing sub-pixel pre-registration';
+disp('Calculating subpixel-wise registration...')
+logMsg = 'Please wait, performing sub-pixel registration';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 

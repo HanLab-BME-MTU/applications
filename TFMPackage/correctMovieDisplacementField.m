@@ -1,9 +1,9 @@
-function calculateMovieDisplacementField(movieData,varargin)
-% calculateMovieDisplacementField calculate the displacement field
+function correctMovieDisplacementField(movieData,varargin)
+% correctMovieDisplacementField calculate the displacement field
 %
-% calculateMovieDisplacementField 
+% correctMovieDisplacementField 
 %
-% SYNOPSIS calculateMovieDisplacementField(movieData,paramsIn)
+% SYNOPSIS correctMovieDisplacementField(movieData,paramsIn)
 %
 % INPUT   
 %   movieData - A MovieData object describing the movie to be processed
@@ -26,12 +26,12 @@ ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
 
 %Get the indices of any previous stage drift processes                                                                     
-iProc = movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
+iProc = movieData.getProcessIndex('DisplacementFieldCorrectionProcess',1,0);
 
 %If the process doesn't exist, create it
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(DisplacementFieldCalculationProcess(movieData,...
+    movieData.addProcess(DisplacementFieldCorrectionProcess(movieData,...
         movieData.outputDirectory_));                                                                                                 
 end
 displFieldProc = movieData.processes_{iProc};
@@ -125,12 +125,24 @@ for j= 1:nFrames
     displField(j).pos=[beads(validV,1) beads(validV,2)];
     displField(j).vec=[vx(validV)+residualT(j,1) vy(validV)+residualT(j,2)];
     
+    % Outlier detection
+    dispMat = [displField(j).pos displField(j).vec];
+    if ~isempty(p.outlierThreshold)
+        outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,0);
+        displField(j).pos(outlierIndex,:)=[];
+        displField(j).vec(outlierIndex,:)=[];
+    end
+    
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
     end
 end
+% Find rotational registration
+% if doRotReg
+%    displField=perfRotReg(displField,1);
+% end
 
 save([p.OutputDirectory filesep 'displField.mat'],'displField');
 

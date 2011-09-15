@@ -22,6 +22,7 @@ classdef TFMPackage < Package
                 TFMProcConstr = {
                     @StageDriftCorrectionProcess,...
                     @DisplacementFieldCalculationProcess,...
+                    @DisplacementFieldCorrectionProcess,...
                     @ForceFieldCalculationProcess};
                 super_args{4} = cellfun(@func2str,TFMProcConstr,...
                     'UniformOutput',false);
@@ -41,10 +42,11 @@ classdef TFMPackage < Package
         function m = getDependencyMatrix()
             % Get dependency matrix
             
-            %    1 2 3 
-            m = [0 0 0; 
-                 2 0 0; %2 ThresholdProcess
-                 0 1 0;];  %3 MaskRefinementProcess
+            %    1 2 3 4
+            m = [0 0 0 0;  
+                 2 0 0 0;
+                 0 1 0 0   
+                 0 1 2 0;];
         end 
         
         function name = getName()

@@ -228,10 +228,14 @@ if get(handles.checkbox_crop,'Value')
     end
     
     % Retrieve the image object handle
-    imHandle =get(get(userData.previewFig,'Children'),'Children');
-    if userData.newFigure || userData.updateImage || isempty(imHandle)
-        imHandle=imshow(userData.imData);
-        axis off;
+    imHandle =findobj(userData.previewFig,'-regexp','Type','image');
+    if userData.newFigure || userData.updateImage
+        if isempty(imHandle)
+            imHandle=imshow(userData.imData);
+            axis off;
+        else
+            set(imHandle,'CData',userData.imData);
+        end
     end
         
     try
