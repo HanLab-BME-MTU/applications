@@ -90,20 +90,22 @@ inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 disp('Detecting beads in the reference frame...')
 filteredRefFrame = filterGauss2D(refFrame/maxIntensity,...
     movieData.channels_(p.ChannelIndex(1)).psfSigma_);
-beadsMask = true(size(filteredRefFrame));
-erosionDist=(p.minCorLength-1)/2;
-beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-
-% Create noise parameter vector
 k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
 noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
-cands = detectSpeckles(filteredRefFrame.*~beadsMask,noiseParam,[1 0]);
+cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
 
 % For debugging purposes
 % indx=beads(:,1)>600 & beads(:,1)<900&beads(:,2)>350&beads(:,2)<650;
 % beads=beads(indx,:);
+
+% Remove beads using the correlation length as the erosion distance
+beadsMask = true(size(filteredRefFrame));
+erosionDist=p.minCorLength+1;
+beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
+beads(indx,:)=[];
 
 % Initialize displacement field structure
 displField(nFrames)=struct('pos',[],'vec',[]);
@@ -114,15 +116,21 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 % Perform sub-pixel registration
-for j= 1:nFrames
+for j= 1:1
     % Read image and perform correlation
     currImage = double(imread(inImage(p.ChannelIndex(1),j)));
-    [vx,vy] = trackStackFlow(cat(3,refFrame,currImage),beads(:,1),beads(:,2),...
+
+    % Filter out beads which are in the background
+    indx = currImage(sub2ind(size(currImage),beads(:,2),beads(:,1)))==0;
+    localbeads = beads(~indx,:);
+    
+    [vx,vy] = trackStackFlow(cat(3,refFrame,currImage),...
+        localbeads(:,1),localbeads(:,2),...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
     
     % Extract finite displacement and prepare displFiel
     validV = ~isnan(vx) & ~isnan(vy) & ~isinf(vx);
-    displField(j).pos=[beads(validV,1) beads(validV,2)];
+    displField(j).pos=[localbeads(validV,1) localbeads(validV,2)];
     displField(j).vec=[vx(validV)+residualT(j,1) vy(validV)+residualT(j,2)];
     
     % Update the waitbar

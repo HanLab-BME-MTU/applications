@@ -65,7 +65,7 @@ userData_main = get(userData.mainFig, 'UserData');
 userData.imageFileNames = userData_main.MD(userData_main.id).getImageFileNames();
 userData.imDirs  = userData_main.MD(userData_main.id).getChannelPaths();
 userData.nFrames = userData_main.MD(userData_main.id).nFrames_;
-userData.imRectHandle =[];
+userData.imRectHandle.isvalid=0;
 userData.cropROI = funParams.cropROI;
 userData.previewFig=-1;
 
@@ -113,10 +113,7 @@ if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
 end
 
-if isfield(userData, 'previewFig') && ishandle(userData.previewFig)
-   delete(userData.previewFig) 
-end
-
+if ishandle(userData.previewFig), delete(userData.previewFig); end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
@@ -165,6 +162,11 @@ for i = 1:numel(userData.numParams),
     end
     funParams.(userData.numParams{i})=str2num(value); 
 end
+
+% Read cropRoi if window if
+if userData.imRectHandle.isvalid
+    userData.cropROI=getPosition(userData.imRectHandle);
+end
 funParams.cropROI = userData.cropROI;
 funParams.doPreReg = get(handles.checkbox_doPreReg,'Value');
 
@@ -180,7 +182,6 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
 
 % --- Executes on button press in pushbutton_selectReferenceFrame.
 function pushbutton_selectReferenceFrame_Callback(hObject, eventdata, handles)
@@ -203,14 +204,17 @@ imIndx = get(handles.slider_frameNumber,'Value');
 
 % Load a new image if either the image number or the channel has been changed
 if (chanIndx~=userData.chanIndx) ||  (imIndx~=userData.imIndx)
+    % Update image flag and dat
     userData.imData=mat2gray(imread([userData.imDirs{chanIndx} filesep...
         userData.imageFileNames{chanIndx}{imIndx}]));
-    try
-        userData.cropROI=getPosition(userData.imRectHandle);
-    end
     userData.updateImage=1;
     userData.chanIndx=chanIndx;
     userData.imIndx=imIndx;
+        
+    % Update roi
+    if userData.imRectHandle.isvalid
+        userData.cropROI=getPosition(userData.imRectHandle);
+    end    
 else
     userData.updateImage=0;
 end
@@ -238,22 +242,22 @@ if get(handles.checkbox_crop,'Value')
         end
     end
         
-    try
+    if userData.imRectHandle.isvalid
         % Update the imrect position
         setPosition(userData.imRectHandle,userData.cropROI)
-    catch 
+    else 
         % Create a new imrect object and store the handle
         userData.imRectHandle = imrect(get(imHandle,'Parent'),userData.cropROI);
         fcn = makeConstrainToRectFcn('imrect',get(imHandle,'XData'),get(imHandle,'YData'));
         setPositionConstraintFcn(userData.imRectHandle,fcn);
     end
 else
-    if isfield(userData, 'previewFig') && ishandle(userData.previewFig)
-        try
-            userData.cropROI=getPosition(userData.imRectHandle);
-        end
-        delete(userData.previewFig);
+    % Save the roi if applicable
+    if userData.imRectHandle.isvalid, 
+        userData.cropROI=getPosition(userData.imRectHandle); 
     end
+    % Close the figure if applicable
+    if ishandle(userData.previewFig), delete(userData.previewFig); end
 end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);

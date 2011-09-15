@@ -59,7 +59,7 @@ end
 displFieldProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outFilePaths = cell(3,numel(movieData.channels_));
+outFilePaths = cell(4,numel(movieData.channels_));
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
@@ -68,6 +68,8 @@ end
 [~,refName,refExt]=fileparts(movieData.processes_{1}.funParams_.referenceFramePath);
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationMatrix.mat'];
+outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1))];
+mkClrDir(outFilePaths{4,p.ChannelIndex(1)});
 displFieldProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Stage drift correction ---------------%%% 
@@ -97,9 +99,9 @@ beads = M(:,2:-1:1);
 % Select only valid candidates
 beadsMask = true(size(filteredRefFrame));
 % erosionDist=(p.minCorLength-1)/2;
-erosionDist=p.minCorLength;
+erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-indx=beadsMask(sub2ind(size(beadsMask),beads(:,1),beads(:,2)));
+indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
 beads(indx,:)=[];
 
 if p.doPreReg % Perform pixel-wise registration by auto-correlation
@@ -107,7 +109,6 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     preT=zeros(nFrames,2);
 
     disp('Calculating pixel-wise pre-registration...')
-
     logMsg = 'Please wait, performing pixel-wise pre-registration';
     timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
     tic;
@@ -144,6 +145,10 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     end
     
     % Apply pixel-wise registration to thre reference channel
+    disp('Applying pixel-wise pre-registration...')
+    logMsg = 'Please wait, applying pixel-wise pre-registration';
+    timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
+    tic;
     % Get limits of transformation array
     maxX = ceil(max(abs(preT(:, 2))));
     maxY = ceil(max(abs(preT(:, 1))));
@@ -154,6 +159,12 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
         % Pad image and apply transform
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(preT(j,:)) 1]);
         stack(:,:,j) = imtransform(stack(:,:,j), Tr, 'XData',[1 size(refFrame, 2)],'YData', [1 size(refFrame, 1)]);
+        
+        % Update the waitbar
+        if mod(j,5)==1 && feature('ShowFigureWindows')
+            tj=toc;
+            waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*nFrames/j-tj)]));
+        end
     end  
 else
     % Initialize transformation array
@@ -176,8 +187,19 @@ for j= 1:nFrames
     %The transformation has the same form as the registration method from
     %Sylvain. Here we take simply the median of the determined flow
     %vectors. We take the median since it is less distorted by outliers.
+    % Concatenate flow as a [pos1 pos2] matrix
+    finiteFlow  = ~isinf(vx);
+    flow = [beads(finiteFlow,2:-1:1) vy(finiteFlow) vx(finiteFlow)];
 
-    T(j,:)=-[nanmedian(vy(~isinf(vx))) nanmedian(vx(~isinf(vx)))];
+    % Save flow result under [pos pos+vel] format
+    flow(:,3:4)=flow(:,1:2)+flow(:,3:4);
+    flowFileName = [outFilePaths{4,p.ChannelIndex(1)} filesep 'flow' num2str(j) '.mat'];
+    save(flowFileName,'flow');
+    
+    %The transformation has the same form as the registration method from
+    %Sylvain. Here we take simply the median of the determined flow
+    %vectors. We take the median since it is less distorted by outliers.
+    T(j,:)=-[nanmedian(vy(finiteFlow)) nanmedian(vx(finiteFlow))];
     
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
@@ -203,6 +225,7 @@ for i = 1:numel(p.ChannelIndex)
     % Get limits of transformation array
     maxX = ceil(max(abs(T(:, 2))));
     maxY = ceil(max(abs(T(:, 1))));
+    refFrame = padarray(double(imread(p.referenceFramePath)), [maxY, maxX]);
     
     for j= 1:nFrames
         % Apply subpixel-wise registration to thre reference channel
