@@ -96,9 +96,9 @@ cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
 
-% Select only valid candidates
+% Select only beads  which are minCorLength away from the border of the
+% cropped reference frame
 beadsMask = true(size(filteredRefFrame));
-% erosionDist=(p.minCorLength-1)/2;
 erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
@@ -123,6 +123,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     [~ , imax] = max(abs(selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
+    if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
     for j= 1:nFrames       
         % Find the maximum of the cross correlation between the template and
         % the current image:
@@ -155,6 +156,8 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     stack = padarray(stack, [maxY, maxX, 0]);
     refFrame = padarray(refFrame, [maxY, maxX]);
     p.cropROI=p.cropROI+[maxX maxY 0 0];
+      
+    if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
     for j = 1:nFrames
         % Pad image and apply transform
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(preT(j,:)) 1]);
@@ -180,26 +183,24 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 % Perform sub-pixel registration
+if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for j= 1:nFrames
+    % Stack reference frame and current frame and track beads displacement
     corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
-    [vx,vy] = trackStackFlow(corrStack,beads(:,1),beads(:,2),...
+    [dx,dy] = trackStackFlow(corrStack,beads(:,1),beads(:,2),...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
-    %The transformation has the same form as the registration method from
-    %Sylvain. Here we take simply the median of the determined flow
-    %vectors. We take the median since it is less distorted by outliers.
-    % Concatenate flow as a [pos1 pos2] matrix
-    finiteFlow  = ~isinf(vx);
-    flow = [beads(finiteFlow,2:-1:1) vy(finiteFlow) vx(finiteFlow)];
-
-    % Save flow result under [pos pos+vel] format
-    flow(:,3:4)=flow(:,1:2)+flow(:,3:4);
+    
+    % Remove infinite flow and save raw displacement under [pos1 pos2] format
+    finiteFlow  = ~isinf(dx);
+    flow = [beads(finiteFlow,2) beads(finiteFlow,1) ...
+        beads(finiteFlow,2)+dy(finiteFlow) beads(finiteFlow,1)+dx(finiteFlow)];
     flowFileName = [outFilePaths{4,p.ChannelIndex(1)} filesep 'flow' num2str(j) '.mat'];
     save(flowFileName,'flow');
     
     %The transformation has the same form as the registration method from
     %Sylvain. Here we take simply the median of the determined flow
     %vectors. We take the median since it is less distorted by outliers.
-    T(j,:)=-[nanmedian(vy(finiteFlow)) nanmedian(vx(finiteFlow))];
+    T(j,:)=-[nanmedian(dy(finiteFlow)) nanmedian(dx(finiteFlow))];
     
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')

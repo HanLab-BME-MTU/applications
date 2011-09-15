@@ -86,7 +86,7 @@ disp('Starting calculating displacement field...')
 % Anonymous functions for reading input/output
 inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 
-% Detect beads in reference frame and select only valid candidates
+% Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
 filteredRefFrame = filterGauss2D(refFrame/maxIntensity,...
     movieData.channels_(p.ChannelIndex(1)).psfSigma_);
@@ -100,7 +100,8 @@ beads = M(:,2:-1:1);
 % indx=beads(:,1)>600 & beads(:,1)<900&beads(:,2)>350&beads(:,2)<650;
 % beads=beads(indx,:);
 
-% Remove beads using the correlation length as the erosion distance
+% Select only beads which are minCorLength away from the border of the
+% reference frame 
 beadsMask = true(size(filteredRefFrame));
 erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
@@ -116,14 +117,27 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 % Perform sub-pixel registration
-for j= 1:1
+if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+
+for j= 1:nFrames
     % Read image and perform correlation
     currImage = double(imread(inImage(p.ChannelIndex(1),j)));
 
-    % Filter out beads which are in the background
-    indx = currImage(sub2ind(size(currImage),beads(:,2),beads(:,1)))==0;
-    localbeads = beads(~indx,:);
-    
+    % Exclude all beads which are less  than half the correlation length 
+    % away from the padded border. By default, no centered template should 
+    % include any NaN's for correlation
+    % Create beads mask with zero intensity points as false
+    beadsMask = true(size(filteredRefFrame));
+    beadsMask(currImage==0)=false;
+    % Remove false regions non-adjacent to the image border
+    beadsMask = beadsMask | imclearborder(~beadsMask);
+    % Erode the mask with half the correlation length and filter beads
+    erosionDist=round((p.minCorLength+1)/2);
+    beadsMask=imerode(beadsMask,strel('square',erosionDist));
+    indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
+    localbeads = beads(indx,:);
+
+    % Track beads displacement 
     [vx,vy] = trackStackFlow(cat(3,refFrame,currImage),...
         localbeads(:,1),localbeads(:,2),...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
