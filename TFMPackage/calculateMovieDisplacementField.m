@@ -119,7 +119,7 @@ tic;
 % Perform sub-pixel registration
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 
-for j= 1:nFrames
+for j= 1
     % Read image and perform correlation
     currImage = double(imread(inImage(p.ChannelIndex(1),j)));
 
