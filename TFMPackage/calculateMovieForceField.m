@@ -34,6 +34,7 @@ if isempty(iProc)
         movieData.outputDirectory_));                                                                                                 
 end
 forceFieldProc = movieData.processes_{iProc};
+
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
 
@@ -45,26 +46,30 @@ end
 % Reading various constants
 nFrames = movieData.nFrames_;
 
-% Check displacement field process
-iDisplFieldProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,1);     
+% Check optional process Displacement field correction first
+iDisplFieldProc =movieData.getProcessIndex('DisplacementFieldCorrectionProcess',1,0);     
+if isempty(iDisplFieldProc)
+    iDisplFieldProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);     
+end
+
 if isempty(iDisplFieldProc)
     error(['Displacement field calculation has not been run! '...
-        'Please run displacement field calculation prior to force field calculation!'])   
+        'Please run displacement field calculation prior to force field calculation!'])
 end
 
-displFieldProc=movieData.processes_{iDisplFieldProc};
-if ~displFieldProc.checkChannelOutput
-    error(['The channel must have a displacement field ! ' ...
-        'Please calculate displacement field to all needed channels before '...
-        'running force field calculation!'])
+displFielProc=movieData.processes_{iDisplFieldProc};
+
+if ~displFielProc.checkChannelOutput()
+    error(['Missing displacement field ! Please apply displacement field '...
+        'calculation/correction  before running force field calculation!'])
 end
 
+% Set up the input file
 inFilePaths{1} = displFieldProc.outFilePaths_{1};
 forceFieldProc.setInFilePaths(inFilePaths);
 
-% Set up the output directories
-
-outputFile = [p.OutputDirectory filesep 'forceField.mat'];
+% Set up the output file
+outputFile{1} = [p.OutputDirectory filesep 'forceField.mat'];
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
 
