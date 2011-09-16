@@ -19,7 +19,7 @@ classdef DisplacementFieldCorrectionProcess < Process
             if nargin < 3 || isempty(funParams)
                 
                 %----Defaults----%
-                funParams.OutputDirectory = [outputDir  filesep 'displacementField'];
+                funParams.OutputDirectory = [outputDir  filesep 'correctedDisplacementField'];
                 funParams.doRotReg=0;
                 funParams.outlierThreshold = 2;
             end
@@ -108,7 +108,7 @@ classdef DisplacementFieldCorrectionProcess < Process
             output(1).var='displField';
             output(1).formatData=@(x) [x.pos x.vec];
             output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','b');
         end
     end
 end

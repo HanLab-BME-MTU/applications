@@ -22,7 +22,7 @@ function varargout = displacementFieldCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 14-Sep-2011 21:36:28
+% Last Modified by GUIDE v2.5 16-Sep-2011 09:30:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,9 +51,10 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
+funParams = userData.crtProc.funParams_;
 
 if ~isempty(funParams.outlierThreshold),
-    set(handles.checkbox_filterOutliers,'Value',1);
+    set(handles.checkbox_outlierThreshold,'Value',1);
     set(handles.edit_outlierThreshold,'String',funParams.outlierThreshold);
 else
     set(handles.checkbox_filterOutliers,'Value',0);
@@ -151,4 +152,3 @@ if get(hObject,'Value')
 else
     enableState=set(handles.edit_outlierThreshold,'Enable','off');    
 end
-

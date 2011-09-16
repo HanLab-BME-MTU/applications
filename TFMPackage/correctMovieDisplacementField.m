@@ -40,13 +40,11 @@ p = parseProcessParams(displFieldCorrProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
-    wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
+    wtBar = waitbar(0,'Initializing...','Name',displFieldCorrProc.getName());
 end
 
 % Reading various constants
-bitDepth = movieData.camBitdepth_;
 nFrames = movieData.nFrames_;
-maxIntensity =(2^bitDepth-1);
 
 % Check displacement field process
 iDisplFieldCalcProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,1);     
@@ -55,7 +53,7 @@ if isempty(iDisplFieldCalcProc)
         'Please run displacement field calculation prior to force field calculation!'])   
 end
 
-displFieldCalcProc=movieData.processes_{iDisplFieldProc};
+displFieldCalcProc=movieData.processes_{iDisplFieldCalcProc};
 if ~displFieldCalcProc.checkChannelOutput
     error(['The channel must have a displacement field ! ' ...
         'Please calculate displacement field to all needed channels before '...
@@ -66,12 +64,8 @@ inFilePaths{1} = displFieldCalcProc.outFilePaths_{1};
 displFieldCorrProc.setInFilePaths(inFilePaths);
 
 % Set up the output directories
-outputFile = cell(1,numel(movieData.channels_));
-for i = p.ChannelIndex;    
-    %Create string for current directory
-    outputFile{i} = [p.OutputDirectory filesep 'displField.mat'];
-    mkClrDir(p.OutputDirectory);
-end
+outputFile = {[p.OutputDirectory filesep 'displField.mat']};
+mkClrDir(p.OutputDirectory);
 displFieldCorrProc.setOutFilePaths(outputFile);
 
 %% --------------- Displacement field calculation ---------------%%% 
