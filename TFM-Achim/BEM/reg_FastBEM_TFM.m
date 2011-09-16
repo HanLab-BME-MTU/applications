@@ -1,15 +1,22 @@
-function [pos_f force forceMesh M pos_u u sol_coef sol_mats]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol, solMethodBEM)
-if nargin < 7
-    meshPtsFwdSol=[];
-end
+function [pos_f force forceMesh M pos_u u sol_coef sol_mats]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin)
+% Synopsis [pos_f force forceMesh M pos_u u sol_coef sol_mats]=reg_FastBEM_TFM(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, meshPtsFwdSol, solMethodBEM,varargin)
 
-if nargin < 8  || isempty(solMethodBEM)
-    solMethodBEM='QR';
-end
+% Input check
+ip =inputParser;
+ip.addRequired('grid_mat');
+ip.addRequired('displField',@isstruct);
+ip.addRequired('frame',@isscalar);
+ip.addRequired('yModu_Pa',@isscalar);
+ip.addRequired('pRatio',@(x) isequal(pRatio,.5));
+ip.addRequired('regParam',@isscalar);
+ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
+ip.addOptional('solMethodBEM','QR',@ischar);
+ip.addParamValue('basisClassTblPath','',@ischar);
+ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
+meshPtsFwdSol=ip.Results.meshPtsFwdSol;
+solMethodBEM=ip.Results.solMethodBEM;
+basisClassTblPath=ip.Results.basisClassTblPath;
 
-if isempty(pRatio) || pRatio~=0.5
-    display('The poisson ratio has been set to 0.5, the script has not been generalized yet!');
-end
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -36,7 +43,10 @@ forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 toc;
 display('Done: mesh & basis!');
 
-[fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,[],[],'fast',meshPtsFwdSol,solMethodBEM);
+[fx fy x_out y_out M pos_u u sol_coef sol_mats] = ...
+    BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
+    displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
+    [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath);
 % The units of fx and fy are the same as the input E, that is ususally Pa!
 
 pos_f=horzcat(x_out,y_out);

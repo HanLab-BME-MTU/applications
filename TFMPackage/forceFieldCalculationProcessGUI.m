@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 08-Sep-2011 10:28:18
+% Last Modified by GUIDE v2.5 16-Sep-2011 15:57:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,18 +52,31 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
-userData.numParams ={'YoungModulus','PoissonRatio','meshPtsFwdSol','regParam'};
+userData.numParams ={'PoissonRatio','meshPtsFwdSol','regParam'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
+set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
 
-% Create pop-up menu for windowing methods
+% Create pop-up menu for force reconstruction method
+solMethodBEMString ={'QR';'svd';'gsvd';'backslash'};
+solMethodBEMData ={'QR';'svd';'gsvd';'backslash'};
+solMethodBEMValue = find(strcmp(funParams.solMethodBEM,solMethodBEMData));
+set(handles.popupmenu_solMethodBEM,'String',solMethodBEMString,...
+    'UserData',solMethodBEMData,'Value',solMethodBEMValue);
+
+% Create pop-up menu for force reconstruction method
 methodString ={'FastBEM';'FTTC'};
 methodData ={'FastBEM';'FTTC'};
 methodValue = find(strcmp(funParams.method,methodData));
 set(handles.popupmenu_method,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
-% Update pde panels
+
+
+% Update BEM parameter panel
 popupmenu_method_Callback(hObject,eventdata,handles);
+
+% Set basis class lookup table path
+set(handles.edit_basisClassTblPath,'String',funParams.basisClassTblPath);
 
 % Choose default command line output for forceFieldCalculationProcessGUI
 handles.output = hObject;
@@ -121,14 +134,31 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % Check user input
 userData = get(handles.figure1, 'UserData');
 
+% Read numerical parameters
 for i=1:numel(userData.numParams)  
-   funParams.(userData.numParams{i})=...
-       str2num(get(handles.(['edit_' userData.numParams{i}]),'String'));
+    value = get(handles.(['edit_' userData.numParams{i}]),'String');
+    if isempty(value)
+        errordlg(['Please enter a valid value for '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
+            'Setting Error','modal')
+        return;
+    end
+    funParams.(userData.numParams{i})=str2double(value); 
 end
 
+if isempty(get(handles.edit_YoungModulus,'String'))
+    errordlg(['Please enter a valid value for ' ...
+        get(handles.text_YoungModulus,'String') '.'],'Setting Error','modal');
+    return;
+end
+funParams.YoungModulus = str2double(get(handles.edit_YoungModulus,'String'))*1000;
+
+% Read reconstruction method
 props=get(handles.popupmenu_method,{'UserData','Value'});
 funParams.method=props{1}{props{2}};
 
+% Read basis class lookup table path
+funParams.basisClassTblPath=get(handles.edit_basisClassTblPath,'String');
 
 % Process Sanity check ( only check underlying data )
 try
@@ -160,9 +190,9 @@ function popupmenu_method_Callback(hObject, eventdata, handles)
 
 props=get(handles.popupmenu_method,{'UserData','Value'});
 if strcmpi(props{1}{props{2}},'fastbem'),
-    set(handles.edit_meshPtsFwdSol,'Enable','on');
+    set(get(handles.uipanel_BEM,'Children'),'Enable','on');
 else
-    set(handles.edit_meshPtsFwdSol,'Enable','off');
+    set(get(handles.uipanel_BEM,'Children'),'Enable','off');
 end
 
 
@@ -174,4 +204,21 @@ if any(strcmpi(props{1}{props{2}},{'svd','gsvd'}))
     set(handles.edit_regParam,'Enable','off');
 else
     set(handles.edit_regParam,'Enable','on');
+end
+
+
+% --- Executes on button press in pushbutton_basisClassTblPath.
+function pushbutton_basisClassTblPath_Callback(hObject, eventdata, handles)
+
+[file path]=uigetfile({'*.mat;*.MAT',...
+    'Mat files (*.mat)'},...
+    'Select the file containing the basis class lookup table');
+if ~isequal(file,0) && ~isequal(path,0)
+    vars=whos('basisClassTbl','-file',[path file]);
+    if numel(vars)~=1,
+        errordlg('Please select a file containing a valid basis class lookup table');
+        return 
+    end
+    set(handles.edit_basisClassTblPath,'String',[path file]);
+    
 end

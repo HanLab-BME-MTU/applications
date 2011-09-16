@@ -160,7 +160,7 @@ for i = 1:numel(userData.numParams),
         errordlg('Please enter a valid value.','Setting Error','modal')
         return;
     end
-    funParams.(userData.numParams{i})=str2num(value); 
+    funParams.(userData.numParams{i})=str2double(value); 
 end
 
 % Read cropRoi if window if

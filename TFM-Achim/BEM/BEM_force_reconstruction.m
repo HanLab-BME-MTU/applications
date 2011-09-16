@@ -1,4 +1,6 @@
-function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol,solMethodBEM)
+function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin)
+% Synopsis  [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol,solMethodBEM)
+%
 % Input :  x,y,ux,uy have to be in the same units, namely
 %         pixels. 
 % Output: The output fx,fy is actually a surface stress with the same units
@@ -11,6 +13,27 @@ function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruct
 %         resulting force has the same dimension as the input E.
 
 %         u: is the measured displacement! (not the model u!)
+
+% Input check
+ip =inputParser;
+ip.addRequired('x',@isnumeric);
+ip.addRequired('y',@isnumeric);
+ip.addRequired('ux',@isnumeric);
+ip.addRequired('uy',@isnumeric);
+ip.addRequired('forceMesh',@isstruct);
+ip.addRequired('E',@isscalar);
+ip.addRequired('L',@isscalar);
+ip.addRequired('x_out',@(x)isscalar(x)||isempty(x));
+ip.addRequired('y_out',@(x)isscalar(x)||isempty(x));
+ip.addRequired('method',@ischar);
+ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
+ip.addOptional('solMethodBEM','QR',@ischar);
+ip.addParamValue('basisClassTblPath','',@ischar);
+ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
+meshPtsFwdSol=ip.Results.meshPtsFwdSol;
+solMethodBEM=ip.Results.solMethodBEM;
+basisClassTblPath=ip.Results.basisClassTblPath;
+
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -36,7 +59,7 @@ pos_u=horzcat(x_vec,y_vec);
 display('2.) Building up forward map:...');
 tic;
 if nargin >= 10 && strcmp(method,'fast')
-    M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);    
+    M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,'basisClassTblPath',basisClassTblPath);    
 else
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);
 end

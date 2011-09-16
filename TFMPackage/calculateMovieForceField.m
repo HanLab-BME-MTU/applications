@@ -57,9 +57,9 @@ if isempty(iDisplFieldProc)
         'Please run displacement field calculation prior to force field calculation!'])
 end
 
-displFielProc=movieData.processes_{iDisplFieldProc};
+displFieldProc=movieData.processes_{iDisplFieldProc};
 
-if ~displFielProc.checkChannelOutput()
+if ~displFieldProc.checkChannelOutput()
     error(['Missing displacement field ! Please apply displacement field '...
         'calculation/correction  before running force field calculation!'])
 end
@@ -80,6 +80,7 @@ displField=displFieldProc.loadChannelOutput;
 
 % Prepare displ for BEM
 if strcmpi(p.method,'fastBEM')
+    displField(end).par=0; % for compatibility with Achim parameter saving
     displField=prepDisplForBEM(displField,'linear');
 end
 
@@ -110,12 +111,13 @@ for i=1:nFrames
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
 
-        if i==1 || displField(i).par.prep4fastBEM==0;
+        if i==1
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
-                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM);
+                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                'basisClassTblPath',p.basisClassTblPath);
             display('The total time for calculating the FastBEM solution: ')
-        elseif i>1 && displField(i).par.prep4fastBEM==1
+        elseif i>1
             % since the displ field has been prepared such
             % that the measurements in different frames are ordered in the
             % same way, we don't need the position information any
@@ -148,7 +150,8 @@ for i=1:nFrames
             display('!!!        Choose manually the ones you are intereseted in               !!!')
         end
     else
-        [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, yModu_Pa, pRatio, pixSize_mu, gridSpacing, i_max, j_max, regParam);
+        [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
+            p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, p.regParam);
     end   
     
     
@@ -166,7 +169,7 @@ for i=1:nFrames
     end
 end
 
-save(outputFile,'forceField');
+save(outputFile{1},'forceField');
 
 % Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end

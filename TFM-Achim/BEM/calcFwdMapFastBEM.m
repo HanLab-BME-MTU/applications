@@ -1,17 +1,23 @@
-function [M]=calcFwdMapFastBEM(x_vec_u, y_vec_u, forceMesh, E, meshPtsFwdSol, doPlot)
+function [M]=calcFwdMapFastBEM(x_vec_u, y_vec_u, forceMesh, E,varargin)
+% Synoposis:  M=calcFwdMapFastBEM(x_vec_u, y_vec_u, forceMesh, E)
 
-if nargin < 5
-    meshPtsFwdSol=[];
-end
-
-if nargin < 6 || isempty(doPlot)
-    doPlot=0;
-end
+ip = inputParser;
+ip.addRequired('x_vec_u',@isnumeric);
+ip.addRequired('y_vec_u',@isnumeric);
+ip.addRequired('forceMesh',@isstruct);
+ip.addRequired('E',@isscalar);
+ip.addOptional('meshPtsFwdSol',[],@isscalar);
+ip.addOptional('doPlot',0,@isscalar);
+ip.addParamValue('basisClassTblPath','basisClassTbl.mat',@ischar);
+ip.parse(x_vec_u, y_vec_u, forceMesh, E,varargin{:})
+meshPtsFwdSol=ip.Results.meshPtsFwdSol;
+doPlot=ip.Results.doPlot;
+basisClassTblPath=ip.Results.basisClassTblPath;
 
 % try to load the lookup table:
 try
-    load('basisClassTbl.mat');
-catch
+    load(basisClassTblPath);
+catch ME
     basisClassTbl=struct([]) ;
 end
 addAtLeastOneToTbl=0;
@@ -51,8 +57,6 @@ end
 % determine the size of M
 numBasis=length(forceMesh.basis);
 numPts  =length(x_vec_u);
-
-M=NaN*zeros(2*numPts,2*numBasis);
 
 % here actually each basis function hast to be evaluated twice, which means
 % it actually give two values:
@@ -153,6 +157,9 @@ for class=1:numClass
             % Interpolate the basis-solution:
             xShift = forceMesh.basis(basisID).node(1);
             yShift = forceMesh.basis(basisID).node(2);
+            
+            % Initialize M
+            M=NaN(2*numPts,2*numBasis);
             
             if strcmp(method,'direct')
                 % Instead of interpolation we can simply search for the
