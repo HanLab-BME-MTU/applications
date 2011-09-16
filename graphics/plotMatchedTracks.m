@@ -16,16 +16,16 @@ ssize = get(0, 'ScreenSize');
 b = min(ssize(4)-pos(4), 400);
 pos(2) = pos(2) - b;
 pos(4) = pos(4) + b;
-figure('Position', pos);
+figure('Position', pos, 'PaperPositionMode', 'auto');
 
-ha(1) = axes('Position', [0.15 0.7 0.8 0.25]);
+ha(1) = axes('Position', [0.15 0.7 0.8 0.27]);
 plotTrack(data, masterTrack, 1, 1, 'Handle', ha(1), 'Legend', 'hide');
 
-ha(2) = axes('Position', [0.15 0.4 0.8 0.25]);
+ha(2) = axes('Position', [0.15 0.4 0.8 0.27]);
 plotTrack(data, masterTrack, 1, 2, 'Handle', ha(2), 'Legend', 'hide');
 
-ha(3) = axes('Position', [0.15 0.1 0.8 0.25]);
-
+% plot track fragments
+ha(3) = axes('Position', [0.15 0.1 0.8 0.27]);
 for k = 1:length(slaveTracks)
     
     % Plot track
@@ -39,6 +39,9 @@ for k = 1:length(slaveTracks)
         fillDark, 'EdgeColor', 'none', 'Parent', ha(3));
     hold(ha(3), 'on');
 
+    gapIdx = arrayfun(@(x,y) x:y, slaveTracks(k).gapStarts, slaveTracks(k).gapEnds, 'UniformOutput', false);
+    gapIdx = [gapIdx{:}];
+    
     % plot amplitude std.
     sigma_a = slaveTracks(k).A_pstd(1,:);
     
@@ -48,10 +51,27 @@ for k = 1:length(slaveTracks)
     
     % plot track
     ampl = A+c;
+    ampl(gapIdx) = NaN;
     plot(ha(3), t, ampl, '.-', 'Color', trackColor, 'LineWidth', 1);
+    
+    ampl = A+c;
+    ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
+    if ~isempty(gapIdx)
+        lh(3) = plot(ha(3), t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
+        lh(4) = plot(ha(3), t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
+    end
     
     % plot background level
     plot(ha(3), t, c, '-', 'Color', trackColor);
 end
-set(ha(3), 'XLim', get(ha(2), 'XLim'), 'YLim', get(ha(2), 'YLim'));
+set(ha(3), 'XLim', get(ha(2), 'XLim'), 'YLim', get(ha(2), 'YLim'), 'Box', 'off');
+
+set(ha(1:2), 'XTickLabel', []);
+set(ha, 'FontName', 'Helvetica', 'FontSize', 16);
+xlabel('Time (s)');
+arrayfun(@(x) ylabel(x, 'Fluo. intensity (A.U.)'), ha);
+
+
+
+
 
