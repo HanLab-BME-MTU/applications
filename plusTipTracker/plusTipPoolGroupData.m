@@ -83,6 +83,7 @@ for iGroup = 1:length(btwGrpNames)
     tempIdx=find(strcmp(btwGrpNames(iGroup),projGroupName));
 
     dataByProject=cell(length(tempIdx),1);
+    detectionData = cell(length(tempIdx),1);
     trkCount=1;
     for iProj = 1:length(tempIdx)
 
@@ -112,6 +113,10 @@ for iGroup = 1:length(btwGrpNames)
         projNum{projCount,2}=formatPath(temp.projData.anDir);
 
         projCount=projCount+1;
+        
+        % For plotting comets as a function of time (Krek lab feature)
+        s = load([projGroupDir{tempIdx(iProj)} filesep 'feat' filesep 'movieInfo']);
+        detectionData{iProj}=arrayfun(@(x) size(x.xCoord,1),s.movieInfo);
     end
 
     % concat all the data 
@@ -162,6 +167,10 @@ for iGroup = 1:length(btwGrpNames)
 
             % make within-group boxplots (show each movie in iGroup)
             plusTipMakeBoxplots(dataByProject,wtnGrpNames,tempDir);
+            
+            % Plot comets as a function of time (Krek lab request)
+            plotDetectedCometsNumber(detectionData,tempDir)
+
         end
 
     end
@@ -196,3 +205,29 @@ end
 
 
 cd(homeDir)
+
+function plotDetectedCometsNumber(data,saveDir)
+
+maxFrame=max(cellfun(@numel,data));
+nProjects = numel(data);
+colors=hsv(nProjects);
+
+% define small and large fonts
+sfont = {'FontName', 'Helvetica', 'FontSize', 18};
+lfont = {'FontName', 'Helvetica', 'FontSize', 22};
+
+% plot
+saveFig=figure('PaperPositionMode', 'auto'); % enable resizing
+hold on;
+arrayfun(@(i) plot(data{i},'-','Color',colors(i,:),'LineWidth',2),1:nProjects);
+
+% Set thickness of axes, ticks and assign tick labels
+set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top','Xlim',[0 maxFrame]);
+xlabel('Frame number', lfont{:});
+ylabel('Comet number', lfont{:});
+
+% remove box around figure
+box off;
+
+saveas(saveFig,[saveDir filesep 'DetectedCometsCount.tif']);
+close(saveFig)
