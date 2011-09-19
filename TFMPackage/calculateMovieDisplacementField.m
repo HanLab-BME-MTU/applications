@@ -72,12 +72,40 @@ inFilePaths{1,p.ChannelIndex} = imDirs{:};
 displFieldProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outputFile = cell(1,numel(movieData.channels_));
-for i = p.ChannelIndex;    
-    %Create string for current directory
-    outputFile{i} = [p.OutputDirectory filesep 'displField.mat'];
-    mkClrDir(p.OutputDirectory);
+outputFile{1} = [p.OutputDirectory filesep 'displField.mat'];
+
+% Add a recovery mechanism if process has been stopped in the middle of the
+% computation to re-use previous results
+firstFrame =1; % Set the strating fram eto 1 by default
+if exist(outputFile{1},'file');
+    % Check analyzed frames
+    s=load(outputFile{1},'displField');
+    frameDisplField=~arrayfun(@(x)isempty(x.pos),s.displField);
+    
+    if ~all(frameDisplField) && ~all(~frameDisplField)
+        % Look at the first non-analyzed frame
+        firstFrame = find(~frameDisplField,1);
+        % Ask the user if display mode is active
+        if feature('ShowFigureWindows'),
+            recoverRun = questdlg(...
+                ['A displacement field output has been dectected with ' ...
+                num2str(firstFrame-1) ' analyzed frames. Do you' ...
+                ' want to use these results and continue the analysis'],...
+                'Recover previous run','Yes','No','Yes');
+            if ~strcmpi(recoverRun,'Yes'), firstFrame=1; end
+        end
+    end
 end
+
+if firstFrame == 1, 
+    % Clean output file and initialize displacement field structure
+    mkClrDir(p.OutputDirectory); 
+    displField(nFrames)=struct('pos',[],'vec',[]);
+else
+    % Load old displacement field structure 
+    displField=s.displField;
+end
+
 displFieldProc.setOutFilePaths(outputFile);
 
 %% --------------- Displacement field calculation ---------------%%% 
@@ -96,8 +124,8 @@ cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
 
-% For debugging purposes
-% indx=beads(:,1)>600 & beads(:,1)<900&beads(:,2)>350&beads(:,2)<650;
+% % For debugging purposes
+% indx=beads(:,1)>600 & beads(:,1)<700&beads(:,2)>350&beads(:,2)<550;
 % beads=beads(indx,:);
 
 % Select only beads which are minCorLength away from the border of the
@@ -108,9 +136,6 @@ beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
 beads(indx,:)=[];
 
-% Initialize displacement field structure
-displField(nFrames)=struct('pos',[],'vec',[]);
-
 disp('Calculating displacement field...')
 logMsg = 'Please wait, calculating displacement field';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
@@ -119,7 +144,7 @@ tic;
 % Perform sub-pixel registration
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 
-for j= 1
+for j= firstFrame:nFrames
     % Read image and perform correlation
     currImage = double(imread(inImage(p.ChannelIndex(1),j)));
 
@@ -150,11 +175,13 @@ for j= 1
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
         tj=toc;
-        waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+        waitbar(j/nFrames,wtBar,sprintf([logMsg ...
+            timeMsg(tj*(nFrames-firstFrame++1-j)/j)]));
     end
+    
+    % Save each iteration (for recovery of unfinished processes)
+    save(outputFile{1},'displField');
 end
-
-save([p.OutputDirectory filesep 'displField.mat'],'displField');
 
 % Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
