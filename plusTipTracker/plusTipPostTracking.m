@@ -472,8 +472,18 @@ projData.originalOutput = aT;
 save([runInfo.metaDir filesep 'projData'],'projData')
 
 % write out speed/lifetime/displacement distributions into a text file 
-dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M, 'precision', 3,'delimiter', '\t','newline', 'pc');
+dlmwrite([runInfo.metaDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd.txt'], M,...
+    'precision', 3,'delimiter', '\t','newline', 'pc');
 
+% Write stats results into a text file
+statsFile = [runInfo.metaDir filesep 'Stats.txt'];
+statsData= struct2cell(projData.stats);
+statsName = fieldnames(projData.stats);
+fid=fopen(statsFile,'w+');
+for i=1:numel(statsName)
+    fprintf(fid,'%s\t%g\n',statsName{i},statsData{i});
+end
+fclose(fid);
 
 if mkHist==1
    plusTipMakeHistograms(M,[runInfo.metaDir filesep 'histograms']) 
