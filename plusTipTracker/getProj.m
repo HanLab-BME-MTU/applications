@@ -129,7 +129,7 @@ if ~isempty(roiDirList)
 end
 % do this also for sub list
 if ~isempty(subDirList)
-    tempSUB=ones(length(subDirList),1);
+    tempSUB=ones(size(subDirList));
     for i=1:nStr
         testStr = varargin{i};
         tempSUB=tempSUB & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(subDirList));

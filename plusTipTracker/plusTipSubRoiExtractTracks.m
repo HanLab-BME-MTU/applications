@@ -302,7 +302,7 @@ if ~isempty(strmatch(timeUnits,'Fraction'))
     trckIdxOutPause=intersect(find(insideSecPause./lifeSecPause<timeVal & insideSecPause > 0),inIncludeRegionPause);
 else
     trckIdxInPause=intersect(find(insideSec>=timeVal),inIncludeRegion);
-    trckIdxOutPause=intersect(find(insideSec<timeVal & insideSecPause > 0),inIncludeRegion);
+    trckIdxOutPause=intersect(find(insideSecPause<timeVal & insideSecPause > 0),inIncludeRegion);
 end
 
 % limit data to these tracks
