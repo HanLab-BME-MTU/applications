@@ -232,7 +232,7 @@ if get(handles.checkbox_crop,'Value')
     end
     
     % Retrieve the image object handle
-    imHandle =findobj(userData.previewFig,'-regexp','Type','image');
+    imHandle =findobj(userData.previewFig,'Type','image');
     if userData.newFigure || userData.updateImage
         if isempty(imHandle)
             imHandle=imshow(userData.imData);

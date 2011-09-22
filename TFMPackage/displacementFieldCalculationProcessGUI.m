@@ -150,7 +150,9 @@ end
 for i = 1:numel(userData.numParams),
     value = get(handles.(['edit_' userData.numParams{i}]),'String');
     if isempty(value)
-        errordlg('Please enter a valid value.','Setting Error','modal')
+        errordlg(['Please enter a valid value for '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
+            'Setting Error','modal')
         return;
     end
     funParams.(userData.numParams{i})=str2double(value); 
