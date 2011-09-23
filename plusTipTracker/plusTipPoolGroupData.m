@@ -1,4 +1,4 @@
-function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd,varargin)
+function plusTipPoolGroupData(groupData,varargin)
 % plusTipPoolGroupData pools plus tip data from multiple projects in groups
 %
 % SYNOPSIS:  [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,remBegEnd)
@@ -23,188 +23,102 @@ function [groupData]=plusTipPoolGroupData(groupList,saveDir,doBtw,doWtn,doPlot,r
 %             (bl), growth displacement (gd), fgap displacement (fd), and
 %             bgap displacement (bd).
 
+% Input check
+ip=inputParser;
+ip.addRequired('groupData',@(x) isstruct(x) || iscell(x) || isempty(x));
+ip.addOptional('saveDir',[],@ischar);
+ip.addOptional('doWtn',1,@isscalar);
+ip.addOptional('doPlot',1,@isscalar);
+ip.parse(groupData,varargin{:});
+saveDir=ip.Results.saveDir;
+doWtn=ip.Results.doWtn;
+doPlot=ip.Results.doPlot;
 
-homeDir=pwd;
-
-if nargin<1 || isempty(groupList)
-    [groupList]=combineGroupListFiles;
+% Call extract groupData function if empty or string input
+if isempty(groupData) || iscell(groupData)
+   groupData=plusTipExtractGroupData(groupData); 
 end
 
-if nargin<2 || isempty(saveDir)
+% Launch interface if empty directory
+if isempty(saveDir)
     saveDir=uigetdir(pwd,'Select output directory for pooled group data.');
 end
 
-if nargin<3 || isempty(doBtw)
-    doBtw=1;
-end
-
-if nargin<4 || isempty(doWtn)
-    doWtn=1;
-end
-
-if nargin<5 || isempty(doPlot)
-    doPlot=1;
-end
-
-% assume we should use all data
-if nargin<6 || isempty(remBegEnd)
-    remBegEnd=0;
-end
-
-projGroupName=groupList(:,1);
-projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'uniformoutput',0);
-
-
-% fix the names if there are spaces or hyphens and append prefix 'grp'
-projGroupName=cellfun(@(x) strrep(x,'-','_'),projGroupName,'uniformoutput',0);
-projGroupName=cellfun(@(x) strrep(x,' ','_'),projGroupName,'uniformoutput',0);
-projGroupName=cellfun(@(x) ['grp_' x],projGroupName,'uniformoutput',0);
-
-
-% count unique groups and keep them in order of the original list
-[btwGrpNames,m,projGroupIdx] = unique(projGroupName);
-[b,idx]=sort(m);
-btwGrpNames=btwGrpNames(idx);
-
-
-projCount=1; % all-project counter
-projNum=cell(length(projGroupName),1); % within-group counter
-allDataCell=cell(length(btwGrpNames),1); % cell-array for data matrix
-groupData=struct('info',{},...
-    'gs',{},'fs',{},'bs',{},...
-    'gl',{},'fl',{},'bl',{},...
-    'gd',{},'fd',{},'bd',{});
-
-M=cell(1,length(btwGrpNames));
-S=cell(1,length(btwGrpNames));
-for iGroup = 1:length(btwGrpNames)
-
-    % indices of projects in iGroup
-    tempIdx=find(strcmp(btwGrpNames(iGroup),projGroupName));
-
-    dataByProject=cell(length(tempIdx),1);
-    detectionData = cell(length(tempIdx),1);
-    trkCount=1;
-    for iProj = 1:length(tempIdx)
-
-        temp = load([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData']);
-        if remBegEnd==1
-            % this output has data at beginning/end removed and units
-            
-            % already converted
-            [dummy1,dummy2,dataMat]=plusTipMergeSubtracks(temp.projData);
-        else
-            % this output just gives merged tracks without converting units
-            % or removing beginning/end data
-            [dataMat,dummy1,dummy2]=plusTipMergeSubtracks(temp.projData);
-            dataMat(:,6)=dataMat(:,6).* temp.projData.secPerFrame; % convert lifetimes to seconds
-            dataMat(:,7)=dataMat(:,7).*(temp.projData.pixSizeNm/1000); % convert displacements to microns
-        end
-
-        % reassign the track numbers so when combined from multiple projects they don't repeat
-        trkIdx=unique(dataMat(:,1));
-        dataMat(:,1)=swapMaskValues(dataMat(:,1),trkIdx,[trkCount:trkCount+length(trkIdx)-1]);
-        trkCount=trkCount+length(trkIdx);
-
-        % assign matrix to cell array
-        dataByProject{iProj,1}=dataMat;
-
-        projNum{projCount,1}=iProj;
-        projNum{projCount,2}=formatPath(temp.projData.anDir);
-
-        projCount=projCount+1;
+nGroups = numel(groupData.M);
+% Within-group comparison
+if doWtn
+    for iGroup = 1:nGroups
+        % Set up output directory
+        wtnDir=[saveDir filesep 'withinGroupComparisons' filesep groupData.names{iGroup}];
+        if isdir(wtnDir), rmdir(wtnDir,'s'); end
+        mkdir(wtnDir);
         
-        % For plotting comets as a function of time (Krek lab feature)
-        s = load([projGroupDir{tempIdx(iProj)} filesep 'feat' filesep 'movieInfo']);
-        detectionData{iProj}=arrayfun(@(x) size(x.xCoord,1),s.movieInfo);
-    end
-
-    % concat all the data 
-    allData=cell2mat(dataByProject);
-    [S{iGroup},M{iGroup}]=cellfun(@(x) plusTipDynamParam(x,temp.projData,1,0),...
-        dataByProject,'UniformOutput',false);
-    stackedM =  vertcat(M{iGroup}{:});
-%     [temp.projData,M{iGroup}]=plusTipDynamParam(allData,temp.projData,1,0); % keep this on 1
-    % and do not attempt to remove fields because this will give an error 
-
-    if doBtw==1
-        % put data in cell array for bwt group box plot
-        allDataCell{iGroup,1}=allData;
-
-        % make structure containing the concatenated distributions
-        groupData(iGroup,1).info.name=btwGrpNames{iGroup,1};
-        groupData(iGroup,1).info.groupListIdx=tempIdx;
-        groupData(iGroup,1).info.stats= temp.projData.stats;
-        events={'gs','fs','bs','gl','fl','bl','gd','fd','bd'};
-        cols=1:9;
-        for iEvent=1:numel(events)
-            groupData(iGroup,1).(events{iEvent})=...
-                stackedM(~isnan(stackedM(:,cols(iEvent))),cols(iEvent));
-        end
-    end
-
-    if doWtn==1
-        tempDir=[saveDir filesep 'withinGroupComparisons' filesep btwGrpNames{iGroup,1}];
-        if isdir(tempDir)
-            rmdir(tempDir,'s')
-        end
-        mkdir(tempDir);
-
         % write out speed/lifetime/displacement distributions into a text file
-        dlmwrite([tempDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' ...
-            btwGrpNames{iGroup,1} '.txt'], stackedM, 'precision', 3,...
+        stackedM =  vertcat(groupData.M{iGroup}{:});
+        dlmwrite([wtnDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' ...
+            groupData.names{iGroup} '.txt'], stackedM, 'precision', 3,...
             'delimiter', '\t','newline', 'pc');
-
+        
+        % Names for each movie in iGroup
+        wtnGrpNames = arrayfun(@(x) [groupData.names{iGroup} '_' num2str(x)],...
+            1:numel(groupData.dataMat{iGroup}),'Unif',0);
+        
+        % Write stats results into a text file
+        statsFile = [wtnDir filesep 'Stats.txt'];
+        statsNames = fieldnames(groupData.stats{1}{1});
+        statsData= cellfun(@struct2cell,groupData.stats{iGroup},'Unif',false);
+        statsData =horzcat(statsData{:});
+        pooledDataStats = struct2cell(groupData.pooledStats{iGroup});
+        fid=fopen(statsFile,'w+');
+        fprintf(fid,'\t%s',wtnGrpNames{:});
+        fprintf(fid,'\tPooled Data');
+        for i=1:numel(statsNames)
+            fprintf(fid,'\n%s\t',statsNames{i});
+            fprintf(fid,'%g\t',statsData{i,:});
+            fprintf(fid,'%g',pooledDataStats{i});
+        end
+        fclose(fid);
+        
         if doPlot==1
             % save histograms of pooled distributions from iGroup
-            plusTipMakeHistograms(M{iGroup},tempDir,varargin{:});
-
-            % here are the names for each movie in iGroup
-            wtnGrpNames=repmat(btwGrpNames(iGroup,1),[length(dataByProject) 1]);
-            for iName=1:length(wtnGrpNames)
-                wtnGrpNames{iName}=[wtnGrpNames{iName} '_' num2str(iName)];
-            end
-
+            plusTipMakeHistograms(groupData.M{iGroup},wtnDir);
+            
             % make within-group boxplots (show each movie in iGroup)
-            plusTipMakeBoxplots(dataByProject,wtnGrpNames,tempDir);
+            plusTipMakeBoxplots(groupData.dataMat{iGroup}',wtnGrpNames',wtnDir);
             
             % Plot comets as a function of time (Krek lab request)
-            plotDetectedCometsNumber(detectionData,tempDir)
-
-        end
-
+            plotDetectedCometsNumber(groupData.detection{iGroup},wtnDir)
+        end                  
     end
-
-    clear dataByProject allData
-
 end
-if doBtw==1
+
+% Set up output directory
+btwDir=[saveDir filesep 'btwGroupComparisons'];
+if isdir(btwDir), rmdir(btwDir,'s'); end
+mkdir(btwDir);
+
+% Write stats results into a text file
+statsFile = [btwDir filesep 'Stats.txt'];
+statsNames = fieldnames(groupData.pooledStats{1});
+pooledDataStats = cellfun(@struct2cell,groupData.pooledStats,'Unif',false);
+pooledDataStats =horzcat(pooledDataStats{:});
+fid=fopen(statsFile,'w+');
+fprintf(fid,'\t%s',groupData.names{:});
+for i=1:numel(statsNames)
+    fprintf(fid,'\n%s\t',statsNames{i});
+    fprintf(fid,'%g\t',pooledDataStats{i,:});
+end
+fclose(fid);
+
+if doPlot
+    % save histograms of pooled distributions from iGroup
+    plusTipMakeHistograms(groupData.M,btwDir,'labels',groupData.names);
     
-    tempDir=[saveDir filesep 'btwGroupComparisons'];
-    if isdir(tempDir)
-        rmdir(tempDir,'s')
-    end
-    mkdir(tempDir);
-
-    if doPlot==1
-        
-        % save histograms of pooled distributions from iGroup
-        plusTipMakeHistograms(M,tempDir,'labels',unique(projGroupName),varargin{:});
-        % make between-group boxplots (show pooled data)
-        plusTipMakeBoxplots(allDataCell,btwGrpNames,tempDir);
-        
-    end
-
-%     % save movie reference list
-%     groupData.projIdx=cell(length(projGroupName),3);
-%     groupData.projIdx(:,1)=projGroupName;
-%     groupData.projIdx(:,2:3)=projNum(:,1:2);
-
-    save([tempDir filesep 'groupData'],'groupData','S','M','projGroupName');
+    % make between-group boxplots (show pooled data)
+    pooledDataMat = cellfun(@(x) vertcat(x{:}),groupData.dataMat,'UniformOutput',false);
+    plusTipMakeBoxplots(pooledDataMat',groupData.names',btwDir);
 end
 
-
-cd(homeDir)
 
 function plotDetectedCometsNumber(data,saveDir)
 

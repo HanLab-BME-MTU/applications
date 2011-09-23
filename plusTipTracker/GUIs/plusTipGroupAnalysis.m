@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 28-Jul-2011 13:54:37
+% Last Modified by GUIDE v2.5 23-Sep-2011 15:14:48
 
 
 % Begin initialization code - DO NOT EDIT
@@ -145,8 +145,6 @@ if ~isempty(handles.projList)
         handles.dataDir=selectionList{1,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
-        set(handles.anDirEdit,'String',handles.projData.anDir);
-        
         assignin('base','projData',handles.projData)
     else
         handles.projList=handles.projList(selection,1);
@@ -154,11 +152,18 @@ if ~isempty(handles.projList)
 else
     msgbox('No projects selected.')
     handles.dataDir=[];
+    return
 end
 temp=projList2Cell(handles.projList);
 assignin('base','selectedProjects',temp);
-guidata(hObject, handles);
 
+% Launch the group creation routine
+autoGrp =get(handles.checkbox_autoGrp,'Value');
+userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
+if isempty(userData.hroupList),return; end
+userData.groupData=plusTipExtractGroupData(userData.groupList);
+set(handles.figure1,'UserData',userData);
+guidata(hObject, handles);
 
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)
@@ -184,11 +189,6 @@ guidata(hObject, handles);
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
-% hObject    handle to selectOutputDirPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-userData = get(handles.figure1,'UserData');
 
 if isfield(handles,'dataDir')
     dirStart=handles.dataDir;
@@ -202,33 +202,8 @@ if isequal(outDir,0), return; end
 
 userData = get(handles.figure1,'UserData');
 userData.saveDir=outDir;
+set(handles.edit_outDir,'String',outDir);
 set(handles.figure1,'UserData',userData);
-
-% --- Executes on button press in pickGroupsPush.
-function pickGroupsPush_Callback(hObject, eventdata, handles)
-userData=get(handles.figure1,'UserData');
-autoGrp =get(handles.checkbox_autoGrp,'Value');
-[userData.groupList]=plusTipPickGroups(autoGrp,[],...
-    handles.projList,1);
-set(handles.figure1,'UserData',userData);
-
-% --- Executes on button press in pushbutton_poolData.
-function pushbutton_poolData_Callback(hObject, eventdata, handles)
-
-userData = get(handles.figure1,'UserData');
-doBtw=get(handles.checkbox_doBtw,'Value');
-doWtn=get(handles.checkbox_doWtn,'Value');
-doPlot=get(handles.checkbox_doPlot,'Value');
-remBegEnd=get(handles.checkbox_remBegEnd,'Value');
-plotSte=get(handles.checkbox_plotSte,'Value');
-plotStd=get(handles.checkbox_plotStd,'Value');
-if isempty(userData.groupList) || isempty(userData.saveDir)
-    warndlg('Select a group and an output directory first');
-    return
-end
-plusTipPoolGroupData(userData.groupList,...
-    userData.saveDir,doBtw,doWtn,doPlot,remBegEnd,...
-    'plotSte',plotSte,'plotStd',plotStd);
 
 
 % --- Executes on button press in pushbutton_loadGroup.
@@ -240,11 +215,11 @@ try
     userData=get(handles.figure1,'UserData');    
     s=load([path file]);
     userData.groupList = s.groupList;
-    set(handles.figure1,'UserData',userData);    
+    userData.groupData=plusTipExtractGroupData(userData.groupList);
+    set(handles.figure1,'UserData',userData);   
 catch ME
     throw(ME)
 end
-
 
 % --- Executes on button press in checkbox_doPlot.
 function checkbox_doPlot_Callback(hObject, eventdata, handles)
@@ -253,17 +228,47 @@ if get(hObject,'Value'); enable='on'; else enable='off'; end
 set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
 
 
-% --- Executes on button press in pushbutton_plusTipGetHits.
-function pushbutton_plusTipGetHits_Callback(hObject, eventdata, handles)
+% --- Executes on button press in pushbutton_analyzeGroups.
+function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1,'UserData');
-stringency=str2double(get(handles.edit_stringency,'String'));
-testValues = get(handles.popupmenu_testID1,'UserData');
-testID1=testValues(get(handles.popupmenu_testID1,'Value'));
-testID2=testValues(get(handles.popupmenu_testID2,'Value'));
+
+% Test the group setup (groupList and output directory)
 if isempty(userData.groupList) || isempty(userData.saveDir)
     warndlg('Select a group and an output directory first');
     return
 end
-plusTipGetHits(userData.groupList,userData.saveDir,...
+
+% Read common value for statistical tests
+stringency=str2double(get(handles.edit_stringency,'String'));
+testValues = get(handles.popupmenu_testID1,'UserData');
+testID1=testValues(get(handles.popupmenu_testID1,'Value'));
+testID2=testValues(get(handles.popupmenu_testID2,'Value'));
+
+doPlot=get(handles.checkbox_doPlot,'Value');
+if get(handles.radiobutton_poolData,'Value')
+    doWtn=get(handles.checkbox_doWtn,'Value');
+    plusTipPoolGroupData(userData.groupData,...
+        [userData.saveDir filesep 'pooledData'],doWtn,doPlot);
+    plusTipTestDistrib(userData.groupData,[userData.saveDir filesep 'pooledData'],...
     stringency,testID1,testID2);
+end
+
+if get(handles.radiobutton_perCell,'Value')
+    plusTipGetHits(userData.groupData,[userData.saveDir filesep 'perCell'],...
+    stringency,testID1,testID2);
+end
+
+% --- Executes when selected object is changed in uipanel_analysisMode.
+function uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
+
+if get(handles.radiobutton_poolData,'Value')
+    set(handles.checkbox_doWtn,'Enable','on');
+    set(handles.popupmenu_testID1,'Value',6);
+    set(handles.popupmenu_testID2,'Value',4);
+else
+    set(handles.checkbox_doWtn,'Enable','off');
+    set(handles.popupmenu_testID1,'Value',1);
+    set(handles.popupmenu_testID2,'Value',6);    
+
+end
