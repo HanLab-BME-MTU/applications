@@ -41,6 +41,9 @@ p = parseProcessParams(forceFieldProc,paramsIn);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows'),
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
+    wtBarArgs={'wtBar',wtBar};
+else
+    wtBarArgs={};
 end
 
 % Reading various constants
@@ -69,7 +72,9 @@ inFilePaths{1} = displFieldProc.outFilePaths_{1};
 forceFieldProc.setInFilePaths(inFilePaths);
 
 % Set up the output file
-outputFile{1} = [p.OutputDirectory filesep 'forceField.mat'];
+outputFile{1,1} = [p.OutputDirectory filesep 'forceField.mat'];
+outputFile{2,1} = [p.OutputDirectory filesep 'BEMParams.mat'];
+outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.mat'];
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
 
@@ -78,7 +83,7 @@ forceFieldProc.setOutFilePaths(outputFile);
 disp('Starting calculating force  field...')
 displField=displFieldProc.loadChannelOutput;
 
-% Prepare displ for BEM
+% Prepare displacement field for BEM
 if strcmpi(p.method,'fastBEM')
     displField(end).par=0; % for compatibility with Achim parameter saving
     displField=prepDisplForBEM(displField,'linear');
@@ -112,12 +117,28 @@ for i=1:nFrames
         % given the bead locations defined in displField:
 
         if i==1
+            if ishandle(wtBar)
+                waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+            end
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                'basisClassTblPath',p.basisClassTblPath);
+                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:});
             display('The total time for calculating the FastBEM solution: ')
-        elseif i>1
+            
+            % The following values should/could be stored for the BEM-method.
+            % In most cases, except the sol_coef this has to be stored only
+            % once for all frames!
+            save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u');
+            
+            % Calculate L-curve
+            if ~strcmp(p.solMethodBEM,'QR')
+                [residuals_u norm_f]=generateLcurve(M,sol_mats,u,forceMesh,...
+                    p.LcurveFactor,'wtBar',wtBar); %#ok<NASGU,ASGLU>
+                save(outputFile{3},'residuals_u','norm_f');
+            end
+            
+        else
             % since the displ field has been prepared such
             % that the measurements in different frames are ordered in the
             % same way, we don't need the position information any
@@ -128,26 +149,6 @@ for i=1:nFrames
             % recalculate the solution for the new displacement vec:
             [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,p.regParam,[],[]);
             display(['Done: solution for frame: ',num2str(i)]);
-        end
-        
-        % The following values should/could be stored for the BEM-method.
-        % In most cases, except the sol_coef this has to be stored only
-        % once for all frames!
-        if saveAllBEMpar==1 && ~savedSolMatsOnce
-            forceField(i).par.forceMesh     = forceMesh;
-            forceField(i).par.sol_coef      = sol_coef;
-            forceField(i).par.M             = M; % This should not be saved every time! Although necessary to calculate the L-curve!
-            forceField(i).par.sol_mats      = sol_mats; % This should not be saved every time! Although necessary to calculate the L-curve!
-            forceField(i).par.pos           = pos_u;
-            forceField(i).par.u             = u;  
-            forceField(i).par.meshPtsFwdSol = meshPtsFwdSol;
-            
-            % don't save it again for the next frames. sol_coef can be
-            % easily obtained from calcSolFromSolMatsFastBEM!
-            savedSolMatsOnce = 1;
-        elseif saveAllBEMpar==1 && displField(i).par.prep4fastBEM==0
-            display('!!! The solution matrices cannot be saved for all frames (~1GB per frame)!!!')
-            display('!!!        Choose manually the ones you are intereseted in               !!!')
         end
     else
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
@@ -163,7 +164,7 @@ for i=1:nFrames
     clear iu_mat;
     
     % Update the waitbar
-    if mod(i,5)==1 && feature('ShowFigureWindows')
+    if mod(i,5)==1 && ishandle(wtBar)
         ti=toc;
         waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
     end

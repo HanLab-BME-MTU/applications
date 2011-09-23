@@ -25,6 +25,7 @@ classdef ForceFieldCalculationProcess < Process
             defaultParams.regParam=1e-7;
             defaultParams.solMethodBEM='QR';
             defaultParams.basisClassTblPath='';
+            defaultParams.LcurveFactor=10;
             
             if nargin < 3 || isempty(funParams)
                 obj.funParams_=defaultParams;

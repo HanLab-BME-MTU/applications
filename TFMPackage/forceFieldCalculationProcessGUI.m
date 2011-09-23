@@ -52,7 +52,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
-userData.numParams ={'PoissonRatio','meshPtsFwdSol','regParam'};
+userData.numParams ={'PoissonRatio','meshPtsFwdSol','regParam','LcurveFactor'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
 set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
@@ -74,6 +74,7 @@ set(handles.popupmenu_method,'String',methodString,...
 
 % Update BEM parameter panel
 popupmenu_method_Callback(hObject,eventdata,handles);
+popupmenu_solMethodBEM_Callback(hObject,eventdata,handles);
 
 % Set basis class lookup table path
 set(handles.edit_basisClassTblPath,'String',funParams.basisClassTblPath);
@@ -157,6 +158,11 @@ funParams.YoungModulus = str2double(get(handles.edit_YoungModulus,'String'))*100
 props=get(handles.popupmenu_method,{'UserData','Value'});
 funParams.method=props{1}{props{2}};
 
+
+% Read BEM solution method
+props=get(handles.popupmenu_solMethodBEM,{'UserData','Value'});
+funParams.solMethodBEM=props{1}{props{2}};
+
 % Read basis class lookup table path
 funParams.basisClassTblPath=get(handles.edit_basisClassTblPath,'String');
 
@@ -199,11 +205,13 @@ end
 % --- Executes on selection change in popupmenu_solMethodBEM.
 function popupmenu_solMethodBEM_Callback(hObject, eventdata, handles)
 
-props=get(hObject,{'String','Value'});
+props=get(handles.popupmenu_solMethodBEM,{'String','Value'});
 if any(strcmpi(props{1}{props{2}},{'svd','gsvd'}))
     set(handles.edit_regParam,'Enable','off');
+    set(handles.edit_LcurveFactor,'Enable','on');
 else
     set(handles.edit_regParam,'Enable','on');
+    set(handles.edit_LcurveFactor,'Enable','off');
 end
 
 

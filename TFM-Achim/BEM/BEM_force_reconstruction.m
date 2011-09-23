@@ -29,11 +29,12 @@ ip.addRequired('method',@ischar);
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
+ip.addParamValue('wtBar',-1,@isscalar);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
-
+wtBar=ip.Results.wtBar;
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -59,7 +60,8 @@ pos_u=horzcat(x_vec,y_vec);
 display('2.) Building up forward map:...');
 tic;
 if nargin >= 10 && strcmp(method,'fast')
-    M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,'basisClassTblPath',basisClassTblPath);    
+    M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+        'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);    
 else
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);
 end
