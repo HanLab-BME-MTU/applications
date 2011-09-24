@@ -41,6 +41,8 @@ function [vertices,edges,edgePaths,edgeLabels] = pruneSkeletonGraph(vertices,edg
 %       if they pass the other pruning criteria.
 %       Optional. Default is 1.5
 %
+%       UNDER CONSTRUCTION - NEED TO UPDATE WITH NEW PARAMS
+%
 %       ('ShowPlots'->true/false) If true, figures will be displayed
 %       showing the branches before and after pruning/labelling.
 %       Optional. Default is false.
@@ -56,7 +58,7 @@ function [vertices,edges,edgePaths,edgeLabels] = pruneSkeletonGraph(vertices,edg
 
 %% ------------------- Parameters ---------------------- %%
 
-nMultMax = 4;%Maximum length of edges with multiplicity > 1 to remove. See below for details.
+
 curvSlack = 3;%Tip curvature must be below maxRad by at least this factor 
               %for a tip to be pruned. This is because a branch with radius
               %<= MaxRadius can still have a fairly flat tip depending on
@@ -83,7 +85,6 @@ ip.addParamValue('CurvSampRad',7,(@(x)(numel(x) == 1 && x >= 1)));
 ip.parse(vertices,edges,edgePaths,mask,maskProp,varargin{:});
 p = ip.Results;
 
-
 %TEMP - MORE CHECKING OF REQUIRED INPUTS???!!-HLE
 
 
@@ -96,6 +97,10 @@ gcThresh = 1/p.MaxRadius^2;%Maximum gaissian curvature value. This corresponds t
 mcThresh = -1/p.MaxRadius; %Maximum mean curvature value. This corresponds to
                       %the mean curvature of a sphere of radius maxRad
 
+                      
+nMultMax = p.MinLength;%Maximum length of edges with multiplicity > 1 to remove. See below for details.                      
+                      
+                      
 nVert = size(vertices,1);
 nEdges = size(edges,1);
 [M,N,P] = size(mask);

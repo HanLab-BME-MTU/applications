@@ -43,6 +43,9 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %               and this gradient image is then thresholded using
 %               thresholdFluorescenceImage.m
 %
+%       ('PreFilterSig'->positive scalar) Specifies the sigma of the
+%       gaussian filter to apply the images prior to segmentation.
+%       Optional. Default is 0 (no filtering).
 % 
 %       ('BatchMode' -> logical) If true, all graphical output is suppressed. 
 %       Default is false.       
@@ -71,6 +74,19 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %           ('ClosureRadius' -> positive integer) Radius of structuring
 %           element to use in closure operation. If zero, no closure is
 %           performed. Default is 2 pixels
+%
+%           ('FillHoles' -> 0,1,2,3 or 4) Specifies if and how to do hole-filling
+%           in the mask:
+%               0 - No hole filling.
+%               1-3 - Lenient hole filling. Does hole-filling in 2D along
+%               each dimension of the mask, and then any pixels which were
+%               filled in the specified number of dimensions. That is, if
+%               FillHoles = 2, then only pixels which were filled in 2 or
+%               more of the 2D hole-fills will be filled in the final mask.
+%               A closure operation will then be applied to this filled mask.
+%               4 - Strict hole filling. Only true 3D holes will be filled
+%               (pixels which cannot be reached by filling in from the
+%               image border)
 %
 % Hunter Elliott
 % 11/2009
@@ -104,14 +120,12 @@ end
 
 p = parseProcessParams(movieData.processes_{iSegProc},paramsIn);
 
-%TEMP!!!! 
-p.PreFilterSig = 0;
-
-
 if isempty(p.ChannelIndex)
     %Default is to use all channels
     p.ChannelIndex = 1:length(movieData.channelDirectory);
 end
+
+%MORE INPUT CHECKING!?!
 
 
 %% ----- Init -----%%
@@ -181,6 +195,9 @@ for iChan = 1:nChanSeg
                     currThresh = graythresh(currIm);
                     range = getrangefromclass(currIm);
                     currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
+                    
+                    %Threshold the damn thing!
+                    currMask = currIm > currThresh;
 
                 case 'HuntThresh'
 
@@ -197,11 +214,11 @@ for iChan = 1:nChanSeg
                             error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
                         end                    
                     end
+                    
+                    %Threshold the damn thing!
+                    currMask = currIm > currThresh;        
 
                 case 'Gradient'
-% NOW HHAVE PRE-FILTERING, NOT NECESSARY
-%                     %Filter the image
-%                     currIm = filterGauss3D(double(currIm),gSig,'symmetric');
                     %Get gradient of filtered image
                     [gX,gY,gZ] = gradient(double(currIm));
                     %and magnitude of gradient
@@ -231,6 +248,14 @@ for iChan = 1:nChanSeg
                             error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
                         end                    
                     end
+                    
+                    %Threshold the damn thing!
+                    currMask = currIm > currThresh;        
+                    
+                case 'SurfaceEnhancement'
+                    
+                    %Surface-filtering and intensity segmentation.
+                    currMask = huntersFancySegmentation3(currIm);
 
                 otherwise
 
@@ -264,32 +289,56 @@ for iChan = 1:nChanSeg
             currThresh = p.ThresholdValue;
         end
         
-        %Threshold the damn thing!
-        currMask = currIm > currThresh;
-        
                 
         % ---- Post-Processing if Requested ----- %
         
-        if p.PostProcess                                
+        if p.PostProcess     
             
-            currMask = bwareaopen(currMask,p.MinVolume);
             
-            currMask = imclose(currMask,closeBall);
-                    
-            labelMask = bwlabeln(currMask);
+            currMask = postProcess3DMask(currMask,p);
             
-            if p.NumObjects > 0
-                rProp = regionprops(labelMask,'Area');
-                [goodObj,iGood] = sort([rProp(:).Area],'descend'); %#ok<ASGLU>
-
-                currMask = false(size(currMask));
-                for i = 1:min(p.NumObjects,numel(iGood))
-                    currMask = currMask | (labelMask == iGood(i));
-                end
-            end
             
-            currMask = imfill(currMask,'holes');
-            
+%             currMask = bwareaopen(currMask,p.MinVolume);
+%             
+%             currMask = imclose(currMask,closeBall);
+%                     
+%             labelMask = bwlabeln(currMask);
+%             
+%             if p.NumObjects > 0
+%                 rProp = regionprops(labelMask,'Area');
+%                 [goodObj,iGood] = sort([rProp(:).Area],'descend'); %#ok<ASGLU>
+% 
+%                 currMask = false(size(currMask));
+%                 for i = 1:min(p.NumObjects,numel(iGood))
+%                     currMask = currMask | (labelMask == iGood(i));
+%                 end
+%             end
+%                                         
+%             if p.FillHoles > 0 && p.FillHoles < 4
+%                 
+%                 %'Lenient' semi-2D hole filling                
+%                 mFill1 = false(size(currMask));
+%                 mFill2 = false(size(currMask));
+%                 mFill3 = false(size(currMask));                
+%                 for j = 1:size(currMask,1)
+%                     mFill1(j,:,:) = imfill(squeeze(currMask(j,:,:)),'holes');                    
+%                 end
+%                 for j = 1:size(currMask,2)
+%                     mFill2(:,j,:) = imfill(squeeze(currMask(:,j,:)),'holes');                    
+%                 end                    
+%                 for j = 1:size(currMask,3)
+%                     mFill3(:,:,j) = imfill(currMask(:,:,j),'holes');                    
+%                 end   
+%                 %Only fill pixels which were filled in the specified number
+%                 %of dimensions
+%                 currMask = double(mFill1)+double(mFill2)+double(mFill3) >= p.FillHoles;                
+%                 %Follow this with another round of closure
+%                 currMask = imclose(currMask,closeBall);                
+%                     
+%             elseif p.FillHoles == 4
+%                 %Do strict, full-3D hole-filling.
+%                 currMask = imfill(currMask,'holes');                
+%             end
         end
            
         %We want to compress the masks, so don't use stackWrite.m

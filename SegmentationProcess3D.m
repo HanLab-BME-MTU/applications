@@ -20,12 +20,14 @@ classdef SegmentationProcess3D < SegmentationProcess
                         [owner.outputDirectory_  filesep 'masks'];                          
                     funParams.ChannelIndex = 1 : numel(owner.channels_);    
                     funParams.ThresholdValue = []; %Default is auto-thresh
+                    funParams.PreFilterSig = 0;
                     funParams.Method = 'HuntThresh';
                     funParams.FixJumps = true;
                     funParams.PostProcess = true;                    
                     funParams.MinVolume = 25;
                     funParams.NumObjects = 1; 
                     funParams.ClosureRadius = 2;
+                    funParams.FillHoles = 2;
                     funParams.BatchMode = false;                                              
                 end
                 %Make sure the input parameters are legit??

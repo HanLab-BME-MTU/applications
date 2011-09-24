@@ -233,23 +233,4 @@ end
 disp('Finished skeleton pruning!')
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 % TEMP - SAVE NEW PARAMS BECAUSE THEY HAVE BEEN ALTERED

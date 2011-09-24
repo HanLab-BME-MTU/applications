@@ -239,7 +239,9 @@ for j = 1:nPar
     
     if any(strcmp(parField{j},procField)) 
         
-        if ~isequalwithequalnans(par.(parField{j}),...
+        %Check if it has changed, ignoring the BatchMode parameter which
+        %doesn't affect output.
+        if ~strcmp(parField{j},'BatchMode') && ~isequalwithequalnans(par.(parField{j}),...
                 proc.funParams_.(parField{j}))
                         
            %Return true, and stop checking further parameters.

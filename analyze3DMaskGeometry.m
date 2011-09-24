@@ -60,7 +60,7 @@ function maskProp = analyze3DMaskGeometry(maskIn,smoothIter)
 %% ----------------- Parameters --------------- %%
 
 smoothMethod = 1;%1 = gaussian smoothing of mask, 2 = curvature smoothing of mesh
-
+nObj = 1; %TEMP - only 1 object now!!!
 
 %% -------------------------- Input ----------------------------- %%
 
