@@ -1,4 +1,4 @@
-function imarisApp = viewMovieImaris(movieData3D,iChannel)
+function imarisApp = viewMovieImaris(movieData3D,iChannel,showSteps)
 %VIEWMOVIEIMARIS opens the input 3D movie for viewing in Imaris
 % 
 % viewMovieImaris(movieData3D)
@@ -15,7 +15,15 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel)
 %   iChannel - The index of the channel to view in imaris. This
 %   corresponds to the channel object's location within the channel array
 %   in the MovieData3D.
-% 
+%    
+%   showSteps - logical vector specifying which processing steps to
+%   display, if available. Steps available for display are:
+%       1 - Masks
+%       2 - Skeletons (unpruned)
+%       3 - Smoothed Mask surface (mask geometry)
+%       4 - Pruned Skeletons
+%   Optional. Default is to display all available steps.
+%
 % Output:
 %   
 %   imarisApp - The handle to the imaris application. If deleted, imaris
@@ -39,6 +47,8 @@ branchEdgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
 bodyEdgeAppP = [.1 .1 1 0];%Pruned skel edge appaerance
 msApp = [.2 .2 1 .6];%Mask surface appearance
 
+nSteps = 4;%Total number of processing steps which can be displayed
+
 %% -------- Input -------- %%
 
 if nargin < 1 || isempty(movieData3D) || ~isa(movieData3D,'MovieData3D')
@@ -49,6 +59,10 @@ if nargin < 2 || isempty(iChannel)
     iChannel = 1;
 elseif ~isequal(round(abs(iChannel)),iChannel) || numel(iChannel) > 1
     error('The iChannel argument must be a single, positive integer.')
+end
+
+if nargin < 3 || isempty(showSteps)
+    showSteps = true(nSteps,1);
 end
 
 %% -------- Init ------ %%
@@ -89,7 +103,7 @@ chanNames = {'Fluorescence','Masks'};%,'Skeleton'};
                
 %Check for masks 
 iSegProc = movieData3D.getProcessIndex('SegmentationProcess3D',1,1);
-if ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iChannel)
+if showSteps(1) && ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iChannel)
     disp('Masks found - displaying as additional channel.')
     nChan = nChan + 1;
     imagePaths{nChan} = movieData3D.processes_{iSegProc}.outFilePaths_{iChannel};
@@ -132,19 +146,6 @@ for iImage = 1:nImages
 
     for iChan = 1:nChan
     
-        if iImage == 1
-            %Set channel color and range
-            volData.SetChannelColor(iChan-1,...
-                                        chanCols(iChan,1),...
-                                        chanCols(iChan,2),...
-                                        chanCols(iChan,3),0);                                 
-            volData.SetChannelRange(iChan-1,...
-                                            chanRange(iChan,1),...
-                                            chanRange(iChan,2));
-                                        
-            volData.SetChannelName(iChan-1,chanNames{iChan});
-            
-        end
         
         %Load the image
         if iChan == 1
@@ -157,6 +158,24 @@ for iImage = 1:nImages
     
         %Add it to the imaris scene
         volData.SetDataVolume(currIm,iChan-1,iImage-1); %Imaris indexes start at 0
+        
+        if iImage == 1
+            %Set channel color and range
+            if iChan == iChannel
+                %For the image channel, set max to max in first frame
+                chanRange(iChan,2) = max(currIm(:));                
+            end
+            volData.SetChannelColor(iChan-1,...
+                                        chanCols(iChan,1),...
+                                        chanCols(iChan,2),...
+                                        chanCols(iChan,3),0);                                 
+            volData.SetChannelRange(iChan-1,...
+                                            chanRange(iChan,1),...
+                                            chanRange(iChan,2));
+                                        
+            volData.SetChannelName(iChan-1,chanNames{iChan});
+            
+        end                        
         
     end
         
@@ -178,6 +197,7 @@ end
 
 %Add this volume data to the scene
 imarisApp.mDataSet = volData;
+imarisApp.mDataSet.SetParameter('Image','Name',movieData3D.outputDirectory_);
 
 %Adjust the camera so all the data is in view
 imarisApp.mSurpassCamera.Fit;
@@ -189,7 +209,7 @@ end
 %% ------------ Load and Display All Available Analysis --------------- %%
 
 iSkelProc = movieData3D.getProcessIndex('SkeletonizationProcess',1,1);
-if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel) ...
+if showSteps(2) && ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel) ...
         && movieData3D.processes_{iSkelProc}.checkChannelSkeletonGraphs(iChannel)
     disp('Skeleton Graphs found, displaying.')        
     
@@ -286,7 +306,7 @@ if ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(i
 end
 
 iMgProc = movieData3D.getProcessIndex('MaskGeometry3DProcess',1,1);
-if ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChannel)     
+if showSteps(3) && ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChannel)     
     
     disp('Mask surface geometry analysis found - displaying.')
         
@@ -339,7 +359,7 @@ end
 %TEMP - There is massive code duplication between displaying the raw skeletons and
 %displaying the pruned ones here...Probably should fix at some point...HLE
 iPruneProc = movieData3D.getProcessIndex('SkeletonPruningProcess',1,1);
-if ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput(iChannel)        
+if showSteps(4) && ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput(iChannel)        
     
     disp('Pruned skeleton graphs found, displaying.')        
     
