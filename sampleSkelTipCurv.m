@@ -62,11 +62,11 @@ for j = 1:nTips
     %Get average curvatures for this tip    
     if nnz(isCloseEnough) > 0
         
-        tipCurv.meanTipCurvature(iTips(j)) = nanmean(maskProp.MeanCurvature(isCloseEnough));
-        tipCurv.gaussTipCurvature(iTips(j)) = nanmean(maskProp.GaussianCurvature(isCloseEnough));
-        tipCurv.k1TipCurvature(iTips(j)) = nanmean(maskProp.CurvaturePC1(isCloseEnough));
-        tipCurv.k2TipCurvature(iTips(j)) = nanmean(maskProp.CurvaturePC2(isCloseEnough));
-        tipCurv.diffk1k2TipCurvature(iTips(j)) = nanmean(real(maskProp.CurvaturePC1(isCloseEnough)) - ...
+        tipCurv.meanTipCurvature(iTips(j)) = robustMean(maskProp.MeanCurvature(isCloseEnough));
+        tipCurv.gaussTipCurvature(iTips(j)) = robustMean(maskProp.GaussianCurvature(isCloseEnough));
+        tipCurv.k1TipCurvature(iTips(j)) = robustMean(maskProp.CurvaturePC1(isCloseEnough));
+        tipCurv.k2TipCurvature(iTips(j)) = robustMean(maskProp.CurvaturePC2(isCloseEnough));
+        tipCurv.diffk1k2TipCurvature(iTips(j)) = robustMean(real(maskProp.CurvaturePC1(isCloseEnough)) - ...
                                                            real(maskProp.CurvaturePC2(isCloseEnough)));                         
     end
     
