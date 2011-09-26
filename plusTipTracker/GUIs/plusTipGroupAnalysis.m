@@ -67,14 +67,15 @@ handles.projData=[]; % if one project is selected, projData will be retrieved
 % for "create groups" pushbutton
 userData=get(handles.figure1,'UserData');
 userData.groupList=[]; % also select groups pushbutton
+
+% Set-up popup-menus
 testList = {'t-test';'Wilcoxon ranksum test';'K-S test';...
     'K-S test with substracted means';'K-S test with substracted medians';...
     'Permutation tests';'Calibrated K-S test with mean subtraction'};
 testValues=[1 2 10 11 12 20 21];
-set(handles.popupmenu_testID1,'String',testList,'UserData',testValues,...
-    'Value',1);
-set(handles.popupmenu_testID2,'String',testList,'UserData',testValues,...
-    'Value',4);
+set(handles.popupmenu_testID1,'String',testList,'UserData',testValues);
+set(handles.popupmenu_testID2,'String',testList,'UserData',testValues);
+uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
 
 set(handles.figure1,'UserData',userData);
 
