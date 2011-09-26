@@ -71,19 +71,33 @@ classdef ForceFieldCalculationProcess < Process
             end
         end
         
-        function h=draw(obj,iFrame,varargin)
-            % Function to draw process output (template method)
+        function h=draw(obj,varargin)
+            % Function to draw process output
             
-            if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
             outputList = obj.getDrawableOutput();
-            ip = inputParser;
-            ip.addRequired('obj',@(x) isa(x,'Process'));
-            ip.addRequired('iFrame',@isnumeric);
-            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
-            ip.KeepUnmatched = true;
-            ip.parse(obj,iFrame,varargin{:})
+            drawLcurve = any(strcmpi('lcurve',varargin));
             
-            data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+            if drawLcurve
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+                ip.addParamValue('output',outputList(1).var,...
+                    @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj,varargin{:})
+                data=obj.outFilePaths_{3,1};
+            else    
+                % Input parser
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+                ip.addRequired('iFrame',@isnumeric);
+                ip.addParamValue('output',outputList(1).var,...
+                    @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj,varargin{1},varargin{2:end})
+                iFrame=ip.Results.iFrame;
+
+                data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+            end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
                 data=outputList(iOutput).formatData(data);
@@ -102,6 +116,21 @@ classdef ForceFieldCalculationProcess < Process
             h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
         end
         
+        function output = getDrawableOutput(obj)
+            output(1).name='Force  field';
+            output(1).var='forceField';
+            output(1).formatData=@(x) [x.pos x.vec];
+            output(1).type='movieOverlay';
+            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+            if ~strcmp(obj.funParams_.solMethodBEM,'QR')
+                output(2).name='Lcurve';
+                output(2).var='lcurve';
+                output(2).formatData=[];
+                output(2).type='movieGraph';
+                output(2).defaultDisplayMethod=@FigFileDisplay;
+            end
+        end
+        
         
     end
     methods (Static)
@@ -110,13 +139,6 @@ classdef ForceFieldCalculationProcess < Process
         end
         function h = GUI()
             h= @forceFieldCalculationProcessGUI;
-        end
-        function output = getDrawableOutput()
-            output(1).name='Force  field';
-            output(1).var='forceField';
-            output(1).formatData=@(x) [x.pos x.vec];
-            output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
         end
         
     end

@@ -74,7 +74,9 @@ forceFieldProc.setInFilePaths(inFilePaths);
 % Set up the output file
 outputFile{1,1} = [p.OutputDirectory filesep 'forceField.mat'];
 outputFile{2,1} = [p.OutputDirectory filesep 'BEMParams.mat'];
-outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.mat'];
+if  ~strcmp(p.solMethodBEM,'QR')
+    outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.fig'];
+end
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
 
@@ -133,9 +135,10 @@ for i=1:nFrames
             
             % Calculate L-curve
             if ~strcmp(p.solMethodBEM,'QR')
-                [residuals_u norm_f]=generateLcurve(M,sol_mats,u,forceMesh,...
-                    p.LcurveFactor,'wtBar',wtBar); %#ok<NASGU,ASGLU>
-                save(outputFile{3},'residuals_u','norm_f');
+                hLcurve=plotLcurve(M,sol_mats,u,forceMesh,p.LcurveFactor,...
+                    'wtBar',wtBar);
+                saveas(hLcurve,outputFile{3});
+                close(hLcurve)
             end
             
         else
