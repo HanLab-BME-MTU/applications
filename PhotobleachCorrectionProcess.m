@@ -34,13 +34,46 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
             obj = obj@DoubleProcessingProcess(super_args{:});
         end
         
-        function figHan = resultDisplay(obj)
+        function h=draw(obj,varargin)
+            % Function to draw process output
             
-            %Open the figure
-            figHan = open([obj.funParams_.OutputDirectory ...
-                            filesep obj.funParams_.figName]);
+            outputList = obj.getDrawableOutput();
+            drawFit = any(strcmpi('fit',varargin));
             
+            if drawFit
+                ip = inputParser;
+                data=[obj.funParams_.OutputDirectory  filesep obj.funParams_.figName];
+                iOutput= 2;
+                if ~isempty(outputList(iOutput).formatData),
+                    data=outputList(iOutput).formatData(data);
+                end
+                try
+                    assert(~isempty(obj.displayMethod_{iOutput,1}));
+                catch ME
+                    obj.displayMethod_{iOutput,1}=...
+                        outputList(iOutput).defaultDisplayMethod();
+                end
+                
+                % Delegate to the corresponding method
+                tag = [obj.getName '_output' num2str(iOutput)];
+                drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
+                    2*numel(fieldnames(ip.Unmatched)),1);
+                h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
+            else
+                h=draw@DoubleProcessingProcess(obj,varargin{1},varargin{2},...
+                    varargin{3:end});
+            end
         end
+        
+        function output = getDrawableOutput(obj)
+            output = getDrawableOutput@DoubleProcessingProcess(obj);
+            output(2).name='Photobleach correction fit';
+            output(2).var='fit';
+            output(2).formatData=[];
+            output(2).type='movieGraph';
+            output(2).defaultDisplayMethod=@FigFileDisplay;
+        end
+        
         
     end
     methods(Static)
