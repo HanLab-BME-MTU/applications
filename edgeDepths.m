@@ -1,4 +1,4 @@
-function depths = edgeDepths(edgePaths,mask)
+function depths = edgeDepths(edgePaths,mask,distX)
 %EDGEDEPTHS calculates the depth of each point on each edge within the input mask
 % 
 % depths = edgeDepths(edgePaths,mask)
@@ -9,9 +9,11 @@ function depths = edgeDepths(edgePaths,mask)
 % 5/2011
 %
 
+if nargin < 3 || isempty(distX)    
+    distX = bwdist(~mask);
+end 
+    
 nEdges = numel(edgePaths);
-
-distX = bwdist(~mask);
 
 depths = cell(nEdges,1);
 

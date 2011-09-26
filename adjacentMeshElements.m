@@ -2,6 +2,7 @@ function [iVert,iFace] = adjacentMeshElements(surf,iPts,maxDist)
 %ADJACENTMESHELEMENTS finds vertices and faces which are adjacent to the selected vertices on the input surface mesh
 % 
 %  [iVert,iFace] = adjacentMeshElements(surf,iPts,maxDist)
+%  [iVert,iFace] = adjacentMeshElements(surf,qPts,maxDist)
 % 
 %  This function finds, for each input vertex, all vertices and faces on
 %  the input mesh surface which are within the specified distance of the
@@ -17,8 +18,12 @@ function [iVert,iFace] = adjacentMeshElements(surf,iPts,maxDist)
 %       points on, stored in the FV format (faces,vertices) used by patch,
 %       isosurface etc.
 % 
-%       iPts - Mx3 matrix containing the positions of the points to find
-%       adjacent mesh vertices for.
+%       iPts - An integer scalar or vector specifying the indices of
+%       vertices on the mesh to find adjacents points to.
+%               ----OR-----
+%       iPts - Mx3 matrix containing the [x,y,z] positions of the points to
+%       find adjacent mesh vertices for. Topology will be determined based
+%       on the closest point on the mesh to these points.
 %
 %       maxDist - A positive scalar or Mx1 vector specifying The maximum
 %       distance from the input point to consider adjacent points. If
@@ -49,11 +54,16 @@ if ~isfv(surf)
     error('Input surf is not a valid FV surface mesh!')
 end
 
-if ~isequal(round(abs(iPts)),iPts)
-   error('The input vertex indices must be a positive integer vector or scalar!')
-end
-
-nPts = numel(iPts);
+if size(iPts,2) == 1
+    qPts = [];
+    nPts = numel(iPts);
+elseif size(iPts,2) == 3
+    qPts = iPts;
+    nPts = size(qPts,1);
+    iPts = [];
+else
+    error('The second input must be either Mx1 or Mx3!')
+end   
 
 if any(maxDist <= 0)
     error('The maxDist input must be a positive scalar or vector!')
@@ -64,12 +74,26 @@ elseif numel(maxDist) ~= nPts
 end
 
 %Make sure we have column vectors
-iPts = iPts(:);
 maxDist = double(maxDist(:));%Make sure its a double - get strange behavior with other classes
 
-
 %First, get all the points within specified radii, ignoring mesh topology.
-iClose = KDTreeBallQuery(surf.vertices,surf.vertices(iPts,:),maxDist);
+if isempty(iPts)
+    %If query points were input instead of indices, get the indices of the
+    %closes point
+    [iClose,distTo] = KDTreeBallQuery(surf.vertices,qPts,maxDist);
+    hasClose = ~cellfun(@isempty,iClose);
+    [~,iPts(hasClose)] = cellfun(@(x)(min(x)),distTo(hasClose));
+    if isempty(iPts)
+        iVert = [];
+        iFace = [];
+        return
+    else
+        iPts = arrayfun(@(x)(iClose{x}(iPts(x))),1:nPts);    
+    end
+else
+    iClose = KDTreeBallQuery(surf.vertices,surf.vertices(iPts,:),maxDist);
+end
+
 
 iVert  = cell(nPts,1);
 if nargout > 1

@@ -79,7 +79,7 @@ ip.addParamValue('ShowPlots',false,(@(x)(numel(x)==1)));
 ip.addParamValue('MaxRadius',5,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('MinAspectRatio',4,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('MinLength',5,(@(x)(numel(x) == 1 && x >= 1))); 
-ip.addParamValue('ImageEdgeDist',3,(@(x)(numel(x) == 1 && x >= 1)));
+ip.addParamValue('ImageEdgeDist',-1,(@(x)(numel(x) == 1 && x >= 1)));%Default is no image-edge pruning.
 ip.addParamValue('CurvSampRad',7,(@(x)(numel(x) == 1 && x >= 1))); 
 
 ip.parse(vertices,edges,edgePaths,mask,maskProp,varargin{:});
@@ -99,7 +99,7 @@ mcThresh = -1/p.MaxRadius; %Maximum mean curvature value. This corresponds to
 
                       
 nMultMax = p.MinLength;%Maximum length of edges with multiplicity > 1 to remove. See below for details.                      
-                      
+                     
                       
 nVert = size(vertices,1);
 nEdges = size(edges,1);
@@ -220,35 +220,43 @@ end
 
 
 %% --------------- Image - Edge Pruning -------------- %%
-%Removes any branch tips that touch the image border.
+%Removes any branch tips within a specified distance of the image border.
 
-%Find tips again as they may have changed due to the previous pruning
-[iTipVert,iTipEdge] = findTips(edges,nVerts);
-nTip = numel(iTipVert);
+if p.ImageEdgeDist >= 0 
 
-%Loop through each tip and check how close to the image edge it is
-tooClose = false(nTip,1);
-for j = 1:nTip    
-    if any([M-vertices(iTipVert(j),1) N-vertices(iTipVert(j),2), P-vertices(iTipVert(j),3)] < p.ImageEdgeDist) || ...
-        any(vertices(iTipVert(j),:) < p.ImageEdgeDist)
-        
-        tooClose(j) = true;
-        
-        if p.ShowPlots
-            if ~exist('ieFig','var')
-                ieFig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
-                title('Image Edge Pruning')
-            end            
-            plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--xk','LineWidth',2,'MarkerSize',10) 
+    %Find tips again as they may have changed due to the previous pruning
+    [iTipVert,iTipEdge] = findTips(edges,nVerts);
+    nTip = numel(iTipVert);
+
+    %Loop through each tip and check how close to the image edge it is
+    tooClose = false(nTip,1);
+    for j = 1:nTip    
+        if any([M-vertices(iTipVert(j),1) N-vertices(iTipVert(j),2), P-vertices(iTipVert(j),3)] < p.ImageEdgeDist) || ...
+            any(vertices(iTipVert(j),:) < p.ImageEdgeDist)
+
+            tooClose(j) = true;
+
+            if p.ShowPlots
+                if ~exist('ieFig','var')
+                    ieFig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
+                    title('Image Edge Pruning')
+                end            
+                plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--xk','LineWidth',2,'MarkerSize',10) 
+            end        
         end        
-    end        
+    end
+
+    %Remove the edges which were too close to the image edge
+    [vertices,edges,edgePaths,~,~] = deleteEdges(vertices,edges,edgePaths,iTipEdge(tooClose));
+    %This may have introduced degree=2 vertices, so once again we need to
+    %remove these
+    [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
 end
 
-%Remove the edges which were too close to the image edge
-[vertices,edges,edgePaths,~,~] = deleteEdges(vertices,edges,edgePaths,iTipEdge(tooClose));
-%This may have introduced degree=2 vertices, so once again we need to
-%remove these
-[vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
+
+%Remove any vertices which are now isolated (not connected by any edge)
+[edges,vertices,nVert] = removeIsolatedVertices(edges,vertices);
+
 
 %% ---------------- Surface Curvature Pruning ------------------ %%
 %Removes branches whose tips touch the surface at areas of very low
@@ -256,7 +264,7 @@ end
 
 
 %Sample the curvature of the mask surface adjacent to each tip
-tipCurv = sampleSkelTipCurv(vertices,edges,edgePaths,maskProp,'ShowPlots',p.ShowPlots,'CurvSampRad',p.CurvSampRad);
+tipCurv = sampleSkelTipCurv(vertices,edges,edgePaths,maskProp,mask,'ShowPlots',p.ShowPlots,'CurvSampRad',p.CurvSampRad);
 %Get the indices of tips again, as this may have changed due to last
 %pruning
 [iTipVert,iTipEdge] = findTips(edges,nVerts);
@@ -276,6 +284,7 @@ for j = 1:nTip
         end
     elseif p.ShowPlots
         plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--g','LineWidth',2,'MarkerSize',10) 
+        title('Surface-Curvature Based Pruning')
     end
 end
 
@@ -285,16 +294,24 @@ end
 %Once again, remove deg=2 vertices
 [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
 
+
+%Remove any vertices which are now isolated (not connected by any edge)
+[edges,vertices,nVert] = removeIsolatedVertices(edges,vertices);
+
+
 %% ----------- Aspect Ratio Pruning, Branch/Body assignment ------------ %%
 %Assigns edges to either the body or branches of the skeleton based on
 %geometric criteria
 
 
+%Calculate the distance transform here, as this will be used by several
+%other functions. Include the image boundary in the calculation.
+distX = bwdist(~padarray(maskIn,[1 1 1],0));
+distX = distX(2:end-1,2:end-1,2:end-1);
+
 %Get the depth of each edge within the mask. This is used as an
 %approximation of the radius of that portion of the mask.
-edDepth = edgeDepths(edgePaths,mask);
-%we will also need the 
-
+edDepth = edgeDepths(edgePaths,mask,distX);
 
 %Yet again calculate the degree of each vertex
 vDegree = graphVertDegree(edges,nVert);
@@ -322,14 +339,13 @@ for j = 1:nEdges
         %This simplifies the commands below and will be helpful later
         if dEnd < dStart
             edgePaths{j} = edgePaths{j}(end:-1:1,:);
-        end                
-        
+        end                        
                 
         if any(edDepth{j} > p.MaxRadius)
             
             %Use only the length of the portion with radius less than
-            %maxradius. This is sort of a cheap trick, but it seems to
-            %work...
+            %maxradius. This prevents us from counting parts of the
+            %skeleton which are buried within the cell body.
             iLastGoodRad = find(edDepth{j}<p.MaxRadius,1,'Last');
             aspRat = sum(segLength(1:max(iLastGoodRad-1,1))) / mean(edDepth{j});
             
@@ -375,8 +391,6 @@ end
 
 function [vertices,edges,edgePaths,nEdges,nVerts] = deleteEdges(vertices,edges,edgePaths,iEdge)
 
-
-
 %Remove the edge and edgePath
 edges(iEdge,:) = [];
 edgePaths(iEdge) = [];
@@ -384,6 +398,7 @@ edgePaths(iEdge) = [];
 %Return the new edge and vertex numbers
 nEdges = size(edges,1);
 nVerts = size(vertices,1);
+
 
 function [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p)
 
@@ -491,8 +506,20 @@ for j = 1:nTip
     iTipEdge(j) = find(any(bsxfun(@eq,edges,iTipVert(j)),2));    
 end
 
+function [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
 
+%Remove any vertices which no longer connect to any edges due to pruning
+nVert = size(vertices,1);
+vDeg = graphVertDegree(edges,nVert);
+oldInd = find(vDeg > 0);
+nVert = numel(oldInd);
+vertices(vDeg==0,:) = [];
+for j = 1:nVert
+    edges(edges == oldInd(j)) = j;
+end
     
+
+
 
 
 
