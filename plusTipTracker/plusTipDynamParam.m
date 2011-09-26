@@ -324,23 +324,18 @@ end % isempty
  
     % Create data mat that has only growth before term events
     gapIdx = find(dataMatCrpSecMic(:,5)~=1); % find all gap subtracks 
-    
-   
-
-    if isempty(gapIdx) == 0 % test for empty gapIdx 
     beforeGapIdx = gapIdx(gapIdx~=1)-1; % find growth subtracks before these gaps
-    % MB just made a quick check for emptiness of gapIdx shouldn't crash anymore 
-    % SB: removed test below as it crashes when gapIdx is empty
-     if beforeGapIdx(1) == 0; % This means the first track was a gap event 
-                               % this should of course not happen with
-                               % normal tracking, but tracks can be sub-divided
-                               % by spatial regions and therefore the pause
-                               % and not the growth track just before 
-                               % might be first in dataMatCrpSecMat
-         beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error. 
-     end 
-    else % skip test
-    end 
+    
+    if ~isempty(beforeGapIdx)
+        if beforeGapIdx(1) == 0; % This means the first track was a gap event
+            % this should of course not happen with
+            % normal tracking, but tracks can be sub-divided
+            % by spatial regions and therefore the pause
+            % and not the growth track just before
+            % might be first in dataMatCrpSecMat
+            beforeGapIdx(1) = []; % simply remove the 0 idx as it is nonsensical and will give error.
+        end
+    end
     % Note these values might not be correct for  sub roi manipulations
     % Have to go back and check 
     termGrowthOnly = dataMatCrpSecMic; % initiate for manipulation 
