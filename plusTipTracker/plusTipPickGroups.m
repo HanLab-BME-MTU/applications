@@ -90,8 +90,12 @@ if isempty(autoGrp)
         allProjects(selection,:)=[];
         
         % ask whether to select another group
-        pickAgain=questdlg('Select another group?');
-        countLabel=countLabel+1;
+        if isempty(allProjects),
+            pickAgain='no';
+        else
+            pickAgain=questdlg('Select another group?');
+            countLabel=countLabel+1;
+        end
     end
     groupList(countMovie:end,:)=[];
 
