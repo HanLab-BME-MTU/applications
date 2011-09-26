@@ -66,7 +66,7 @@ end
 n=cell(1,3);
 for i=1:3
     allCellsData=vertcat(plotData(i,:).rawData);
-    allData = vertcat(allCellsData{:});
+    allData = vertcat([allCellsData{:}]);
     n{i} = linspace(nanmin(vertcat(allData{:})), nanmax(vertcat(allData{:})),25);
 end
 

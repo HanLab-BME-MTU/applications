@@ -67,7 +67,6 @@ handles.projData=[]; % if one project is selected, projData will be retrieved
 % for "create groups" pushbutton
 userData=get(handles.figure1,'UserData');
 userData.groupList=[]; % also select groups pushbutton
-userData.saveDir = [];
 testList = {'t-test';'Wilcoxon ranksum test';'K-S test';...
     'K-S test with substracted means';'K-S test with substracted medians';...
     'Permutation tests';'Calibrated K-S test with mean subtraction'};
@@ -160,7 +159,7 @@ assignin('base','selectedProjects',temp);
 % Launch the group creation routine
 autoGrp =get(handles.checkbox_autoGrp,'Value');
 userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
-if isempty(userData.hroupList),return; end
+if isempty(userData.groupList),return; end
 userData.groupData=plusTipExtractGroupData(userData.groupList);
 set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
@@ -201,7 +200,6 @@ outDir=uigetdir(dirStart,'Please select OUTPUT directory for group analyis');
 if isequal(outDir,0), return; end
 
 userData = get(handles.figure1,'UserData');
-userData.saveDir=outDir;
 set(handles.edit_outDir,'String',outDir);
 set(handles.figure1,'UserData',userData);
 
@@ -232,9 +230,9 @@ set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
 function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1,'UserData');
-
+saveDir = get(handles.edit_outDir,'String');
 % Test the group setup (groupList and output directory)
-if isempty(userData.groupList) || isempty(userData.saveDir)
+if isempty(userData.groupList) || isempty(saveDir)
     warndlg('Select a group and an output directory first');
     return
 end
@@ -249,13 +247,13 @@ doPlot=get(handles.checkbox_doPlot,'Value');
 if get(handles.radiobutton_poolData,'Value')
     doWtn=get(handles.checkbox_doWtn,'Value');
     plusTipPoolGroupData(userData.groupData,...
-        [userData.saveDir filesep 'pooledData'],doWtn,doPlot);
-    plusTipTestDistrib(userData.groupData,[userData.saveDir filesep 'pooledData'],...
+        [saveDir filesep 'pooledData'],doWtn,doPlot);
+    plusTipTestDistrib(userData.groupData,[saveDir filesep 'pooledData'],...
     stringency,testID1,testID2);
 end
 
 if get(handles.radiobutton_perCell,'Value')
-    plusTipGetHits(userData.groupData,[userData.saveDir filesep 'perCell'],...
+    plusTipGetHits(userData.groupData,[saveDir filesep 'perCell'],...
     stringency,testID1,testID2);
 end
 
