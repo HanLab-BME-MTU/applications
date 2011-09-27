@@ -76,7 +76,8 @@ ip.addRequired('edgePaths',@(x)(iscell(x) && numel(x) > 1));
 ip.addRequired('mask',@(x)(islogical(x) && ndims(x) == 3));
 ip.addRequired('maskProp',@(x)(isstruct(x) && numel(x) == 1));
 ip.addParamValue('ShowPlots',false,(@(x)(numel(x)==1)));
-ip.addParamValue('MaxRadius',5,(@(x)(numel(x) == 1 && x >= 1))); 
+ip.addParamValue('MaxRadius',5,(@(x)(numel(x) == 1 && x >= 1))); %TEMP - Could we set this value based on the body-radius we calculate below????
+ip.addParamValue('MaxRadiusRatio',2/3,(@(x)(numel(x) == 1 && x > 0)));
 ip.addParamValue('MinAspectRatio',4,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('MinLength',5,(@(x)(numel(x) == 1 && x >= 1))); 
 ip.addParamValue('ImageEdgeDist',-1,(@(x)(numel(x) == 1 && x >= 1)));%Default is no image-edge pruning.
@@ -150,7 +151,7 @@ for j = 1:nMult
             if p.ShowPlots   
 
                 if ~exist('meFig','var')
-                    meFig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
+                    meFig = plotSkel(vertices,edgePaths); %#ok<NASGU>
                     title('Mutliple-Edge Pruning')
                 end
 
@@ -203,7 +204,7 @@ for j = 1:nTip
         tooShort(j) = true;
         if p.ShowPlots
             if ~exist('mlFig','var')
-                mlFig = plotSkel(vertices,edges,edgePaths);
+                mlFig = plotSkel(vertices,edgePaths);
                 title('Minimum Length Pruning')
             end            
             plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--xk','LineWidth',2,'MarkerSize',10) 
@@ -238,7 +239,7 @@ if p.ImageEdgeDist >= 0
 
             if p.ShowPlots
                 if ~exist('ieFig','var')
-                    ieFig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
+                    ieFig = plotSkel(vertices,edgePaths); %#ok<NASGU>
                     title('Image Edge Pruning')
                 end            
                 plot3(edgePaths{iTipEdge(j)}(:,2),edgePaths{iTipEdge(j)}(:,1),edgePaths{iTipEdge(j)}(:,3),'--xk','LineWidth',2,'MarkerSize',10) 
@@ -255,7 +256,7 @@ end
 
 
 %Remove any vertices which are now isolated (not connected by any edge)
-[edges,vertices,nVert] = removeIsolatedVertices(edges,vertices);
+[edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
 
 
 %% ---------------- Surface Curvature Pruning ------------------ %%
@@ -296,41 +297,43 @@ end
 
 
 %Remove any vertices which are now isolated (not connected by any edge)
-[edges,vertices,nVert] = removeIsolatedVertices(edges,vertices);
+[edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
 
 
-%% ----------- Aspect Ratio Pruning, Branch/Body assignment ------------ %%
-%Assigns edges to either the body or branches of the skeleton based on
-%geometric criteria
+%% ----------- Aspect Ratio Pruningx ------------ %%
+%Removes branch tips based on their aspect ratio
 
+%Yet again calculate the degree of each vertex
+vDegree = graphVertDegree(edges,nVert);
 
 %Calculate the distance transform here, as this will be used by several
 %other functions. Include the image boundary in the calculation.
-distX = bwdist(~padarray(maskIn,[1 1 1],0));
+distX = bwdist(~padarray(mask,[1 1 1],0));
 distX = distX(2:end-1,2:end-1,2:end-1);
 
 %Get the depth of each edge within the mask. This is used as an
 %approximation of the radius of that portion of the mask.
 edDepth = edgeDepths(edgePaths,mask,distX);
 
-%Yet again calculate the degree of each vertex
-vDegree = graphVertDegree(edges,nVert);
-
 %Go through each edge and prune or label it
-edgeLabels = nan(nEdges,1);
+%edgeLabels = nan(nEdges,1);
+vertLabels = nan(nVert,1);
+tooFat = false(nEdges,1);
 for j = 1:nEdges
     
     %Check the degree of the vertices of this edge
     edVertDeg = vDegree(edges(j,:));
-                
-    if any(edVertDeg == 1)
+    
+    %If this is a branch tip...
+    if nnz(edVertDeg == 1) == 1
 
         
         %Get the length of each segment of this edge
         segLength = sqrt(sum(diff(edgePaths{j},1,1) .^2,2));
 
         %Get the index of the degree-1 vertex
-        iDeg1 = find(edges(j,edVertDeg==1),1);
+        iDeg1 = edges(j,edVertDeg==1);
+        %iDegNot1 = edges(j,edVertDeg~=1);
         %Find which end of the edgepath connects to this vertex
         dStart = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(1,:)) .^2));
         dEnd = sqrt(sum((vertices(iDeg1,:)-edgePaths{j}(end,:)) .^2));
@@ -357,35 +360,112 @@ for j = 1:nEdges
                            
         %assign to body/branches based on this ratio
         if aspRat > p.MinAspectRatio
-            edgeLabels(j) = 1;%Label it as a branch
+            %edgeLabels(j) = 1;%Label it as a branch
         else
-            edgeLabels(j) = 2;%Label it as cell body
+            %edgeLabels(j) = 2;%Label it as cell body
+            %Mark the edge for pruning if it is too short and fat
+            tooFat(j) = true;
         end
+        
+%        vertLabels(iDeg1) = 1;
+%        vertLabels(iDegNot1) = 2;
                         
-    else
+    elseif nnz(edVertDeg==1) == 2
+        
+        %TEMP - this temporarily deals with a bug in the
+        %skeleton-graphization which causes isolated edges when a branch
+        %runs along the image border.... HLE
+        tooFat(j) = true;
+        
         %If we are not at a branch tip, we classify only by radius
-        if mean(edDepth{j}) < p.MaxRadius
-            edgeLabels(j) = 1; %Label it as a branch
-        else
-            edgeLabels(j) = 2; %Label this as part of the cell body
-        end
+%         if avgEdDepth(j) < (maxAvgDepth * p.MaxRadiusRatio);
+%             edgeLabels(j) = 1; %Label it as a branch
+%         else
+%             edgeLabels(j) = 2; %Label this as part of the cell body
+%         end
+%        vertLabels(edges(j,:)) = 2;
+        
     end
     
     if p.ShowPlots
         if ~exist('apFig','var')
-            apFig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
+            apFig = plotSkel(vertices,edgePaths); %#ok<NASGU>
             patch(maskProp.SmoothedSurface,'FaceAlpha',.1,'EdgeColor','none');
             light;
-            title('Aspect ratio-based assignment. Black=Branches, Red=body')
+            title('Aspect ratio-based pruning')
+        end
+        if tooFat(j)
+            plot3(edgePaths{j}(:,2),edgePaths{j}(:,1),edgePaths{j}(:,3),'--xr','LineWidth',2,'MarkerSize',10)             
+        end
+
+    end    
+    
+end
+
+%Remove the edges marked for pruning
+[vertices,edges,edgePaths,~,~] = deleteEdges(vertices,edges,edgePaths,find(tooFat));
+%Once again, remove deg=2 vertices
+[vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
+
+%Remove any vertices which are now isolated (not connected by any edge)
+[edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
+
+
+%% --------------------- Branch / Body Assignment ---------------------- %%
+%Assigns core skeleton elements to the cell body, and the rest as branches.
+
+%Get the depth of the remaining edges %TEMP - We shouldn't re-calc this,
+%just remove the pruned edges!!! (need to store indices, or pass to prunig
+%sub-routines!!)
+edDepth = edgeDepths(edgePaths,mask,distX);
+
+%Get the average depth of each edge.
+avgEdDepth = cellfun(@mean,edDepth);
+
+%The edge with the highest average depth is always considered part of the
+%body skeleton. The "bodiness" criteria are determined by this.
+[maxAvgDepth,iDeepest] = max(avgEdDepth);
+
+%Initially label all edges with sufficient average depth as body. We allow
+%for variations in cell body thickness by adjusting our threshold to the
+%thickest part. This also ensures that we will always have at least one
+%component labeleld as cell body.
+%depthThresh = min(p.MaxRadius*p.MaxRadiusRatio,maxAvgDepth * p.MaxRadiusRatio);
+depthThresh = maxAvgDepth * p.MaxRadiusRatio;
+edgeLabels = ones(nEdges,1);
+edgeLabels(avgEdDepth > depthThresh) = 2;
+
+%We have only one cell body, and it must be connected to itself, so we
+%select the largest connected component of the body graph
+isBody = edgeLabels==2;
+%Convert edge list to adjacency matrix
+adjMat = sparse(vertcat(edges(isBody,1),edges(isBody,2)),vertcat(edges(isBody,2),edges(isBody,1)),1,nVert,nVert,2*nVert);
+%Find connected components, and find the component which contains the
+%deepest edge.
+[~,iComp] = graphconncomp(adjMat,'Directed',false);
+iDeepestComp = iComp(edges(iDeepest,1));%Just get the conncomp of one edge, since they have to be the same.
+
+% %Get the largest one
+% [~,iLargest] = max(arrayfun(@(x)(nnz(iComp==x)),1:max(iComp)));
+
+%Retain only the labels of the edges which are connected to largest
+%component
+for j = 1:nEdges        
+    if ~any(iComp(edges(j,:))==iDeepestComp)
+        edgeLabels(j) = 1;
+    end        
+    if p.ShowPlots
+        if ~exist('baFig','var')
+            baFig = fsFigure(.75); %#ok<NASGU>
+            show3DMask(mask);
+            hold on;
         end
         if edgeLabels(j) == 1
             plot3(edgePaths{j}(:,2),edgePaths{j}(:,1),edgePaths{j}(:,3),'--k','LineWidth',3,'MarkerSize',10)
         else
             plot3(edgePaths{j}(:,2),edgePaths{j}(:,1),edgePaths{j}(:,3),'--r','LineWidth',3,'MarkerSize',10)
         end
-        
-    end    
-    
+    end
 end
 
 
@@ -409,7 +489,6 @@ iDeg2 = find(vDeg==2);
 nDeg2 = numel(iDeg2);
 iPrune = nan(nDeg2,1);
 
-
 for j = 1:nDeg2
     
     %Get the indices of the two edges for this vertex
@@ -432,7 +511,7 @@ for j = 1:nDeg2
     if p.ShowPlots
         
         if ~exist('d2Fig','var')
-            d2Fig = plotSkel(vertices,edges,edgePaths); %#ok<NASGU>
+            d2Fig = plotSkel(vertices,edgePaths); %#ok<NASGU>
             title('Degree 2 vertex removal')
         end        
         plot3(edgePaths{iEdges(1)}(:,2),edgePaths{iEdges(1)}(:,1),edgePaths{iEdges(1)}(:,3),'--k','LineWidth',2)
@@ -506,7 +585,7 @@ for j = 1:nTip
     iTipEdge(j) = find(any(bsxfun(@eq,edges,iTipVert(j)),2));    
 end
 
-function [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
+function [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges)
 
 %Remove any vertices which no longer connect to any edges due to pruning
 nVert = size(vertices,1);

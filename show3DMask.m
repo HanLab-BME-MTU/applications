@@ -6,7 +6,9 @@ patch(fv,'EdgeColor','none','FaceAlpha',.15)
 xlim([0 N])
 ylim([0 M])
 zlim([0 P])
+view(3);
 axis equal
+
 
 
 

@@ -36,6 +36,7 @@ function movieData = track3DMaskObjects(movieData,paramsIn)
 %       If true, graphical output and user interaction is
 %       supressed (i.e. progress bars, dialog and question boxes etc.)
 %
+% NEEDS UPDATING _ NEW PARAMS ADDED TEMP HLE!!
 %
 % Output:
 %
@@ -54,6 +55,8 @@ function movieData = track3DMaskObjects(movieData,paramsIn)
 fName = 'object_tracks'; %String for naming result file
 
 showPlots = false; %Show plots for debugging
+
+minSize = 50;%Minimum object size to track.
 
 %% ---- Input ---- %%
 
@@ -116,6 +119,8 @@ end
 for iFrame = 1:nFrames
     
     mask = tif3Dread([maskDir filesep maskNames{1}{iFrame}]);
+    
+    mask = bwareaopen(mask,minSize);
             
     %Since we expect sparse objects, label them using maximal connectivity
     %(which is default).

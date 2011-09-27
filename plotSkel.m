@@ -6,10 +6,7 @@ if nargout > 0
 end
 
 if nargin > 3 && ~isempty(mask) 
-    fv = isosurface(mask,0);
-    patch(fv,'EdgeColor','none','FaceAlpha',.15);
-    hold on
-    light
+    show3DMask(mask);
 end
 
 for j = 1:size(vertices,1)    
