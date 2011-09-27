@@ -119,6 +119,7 @@ if nargin<2
 
 fgapIdx=find(dataMat(:,5)==2 | dataMat(:,5)==5);
 bgapAllIdx = find(dataMat(:,5) == 3 | dataMat(:,5) == 6);
+mergeTracks = 1; 
 dataMatReclass = dataMat; % same because already reclassified
 
 else % dataMat input and need to perform reclassification with one of the schemes below
@@ -318,7 +319,7 @@ end % if nargin < 2
 % merging will be performed regardless of reclassification scheme unless we
 % are pooling data
 
-if unimodalReclassPool ~= 1
+if unimodalReclassPool ~= 1 || mergeTracks == 1
     
     
 % these are the affected track numbers for growth fgaps
