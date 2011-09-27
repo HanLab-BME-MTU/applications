@@ -169,11 +169,17 @@ for j = 1:nChanCorr;
     mkClrDir(currDir);    
     
     %Save this in the process object
-    movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(j),currDir);       
-
+    movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(j),currDir); 
+    
 end
-
-
+    
+% Set the path of the processed correction image
+outFilePaths=movieData.processes_{iProc}.outFilePaths_;
+for j = 1:nChanCorr;
+    outFilePaths{2,p.ChannelIndex(j)} = [p.OutputDirectory filesep saveName ...
+        num2str(p.ChannelIndex(j)) '.mat'];
+end
+movieData.processes_{iProc}.setOutFilePaths(outFilePaths);
 
 
 %% ------------ Init ---------- %%
@@ -254,7 +260,7 @@ for iChan = 1:nChanCorr
     
     outDir = movieData.processes_{iProc}.outFilePaths_{1,p.ChannelIndex(iChan)};    
     corrDir = movieData.processes_{iProc}.inFilePaths_{2,p.ChannelIndex(iChan)};
-
+   
     if ~p.BatchMode        
         waitbar((iChan-1)*nImages / nImTot,wtBar,['Please wait, correcting channel ' num2str(p.ChannelIndex(iChan)) ' ...']);        
     end        
@@ -308,8 +314,9 @@ disp('Saving results...')
 
 %Save the averaged/filtered dark current images
 for i = 1:nChanCorr
+    outCorrPath = movieData.processes_{iProc}.outFilePaths_{2,p.ChannelIndex(i)}; 
     processedDarkImage = darkIm{i}; %#ok<NASGU> %Get this element of save array because the save function sucks.
-    save([p.OutputDirectory filesep saveName num2str(p.ChannelIndex(i)) '.mat'],'processedDarkImage');
+    save(outCorrPath,'processedDarkImage');
 end
 
 %Log the correction in the movieData object and save it
