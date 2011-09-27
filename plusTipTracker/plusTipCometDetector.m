@@ -49,6 +49,10 @@ threshMultFactor = 3;
 multFactor4StepSize = 1;
 
 
+manChooseBck = 0; % set to 1 if you want to manually choose the background
+% area to calculate the std for for the watershed method. If set to zero
+% will use the entire intracellular region of the ROI
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % CHECK INPUT AND SET UP DIRECTORIES
@@ -68,6 +72,7 @@ else
         error('--plusTipCometDetector: first argument should be a structure with fields imDir and anDir');
     end
 end
+
 
 % Get list of Images in Image Directory and count them.
 %NOTE: LIST OF IMAGES WILL BE
@@ -247,6 +252,11 @@ s1 = length(num2str(endFrame));
 strg1 = sprintf('%%.%dd',s1);
 
 
+
+
+
+
+
 %% START DETECTION
 
 % initialize structure to store info for tracking
@@ -255,6 +265,10 @@ strg1 = sprintf('%%.%dd',s1);
 [movieInfo(1:nImTot,1).amp] = deal([]);
 [movieInfo(1:nImTot,1).int] = deal([]);
 [movieInfo(1:nImTot,1).ecc] = deal([]);
+
+
+
+
 
 %If thresh different than default ask user if they would like to continue
 %forString = 'Multiplication Factor for Thresh is Set at ';
@@ -274,7 +288,7 @@ strg1 = sprintf('%%.%dd',s1);
 stdList=nan(nImTot,1);
 count=1;
 progressText(0,'Filtering images for comet detection');
-
+background = []; 
 for iFrame = startFrame:endFrame
     
     progressText(count/nFrames,'Filtering images for comet detection');
@@ -291,6 +305,35 @@ for iFrame = startFrame:endFrame
     
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
     
+if manChooseBck == 1 
+    
+    if iFrame == 1 
+    
+   
+   
+     while isempty(background) ==1 
+           
+                   try
+                     
+       
+                        figure;
+                        set(gcf,'Name','Choose an ROI that estimates your cells intracellular background by clicking on image...')
+                        [background,polyXcoord,polyYcoord]=roipoly(img);
+                         
+                        roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
+                   catch
+                        h=msgbox('Please try again.','help');
+                        uiwait(h);
+                        c=c+1;
+                        if c<=3 % give them 3 chances, then abort
+                            return
+                        end
+                    end
+      end % while 
+    close(gcf)
+    end % if iFrame
+    
+end % if   man ChooseBck
     
     if removeSatPixels == 1
         img(img==1)= 0;
@@ -310,17 +353,30 @@ for iFrame = startFrame:endFrame
     else % keep the same
     end % isempty
     
+   
+    
     % create kernels for gauss filtering
     blurKernelLow  = fspecial('gaussian', 21, scales(1));
     blurKernelHigh = fspecial('gaussian', 21, scales(2));
+   
+    
+    
     
     % use subfunction that calls imfilter to take care of edge effects
-    lowPass = filterRegion(img,roiMask,blurKernelLow); %
+    % for now don't apply roiMask 
+    lowPass = filterRegion(img,roiMask, blurKernelLow); %
     highPass = filterRegion(img,roiMask,blurKernelHigh);
+    
+    if manChooseBck == 1 
+    lowPassBckGround = filterRegion(img,background,blurKernelLow); 
+    highPassBckGround = filterRegion(img,background,blurKernelHigh);
+    filterDiffBck = lowPassBckGround - highPassBckGround;
+    end % if
+    
     
     % get difference of gaussians image
     filterDiff = lowPass-highPass;
-    
+     
     % if bg point was chosen and saved, get bgMask from first frame
     if iFrame==startFrame && exist([projData.anDir filesep 'bgPtYX.mat'])~=0
         bgPtYX=load([projData.anDir filesep 'bgPtYX.mat']);
@@ -335,8 +391,15 @@ for iFrame = startFrame:endFrame
         bgMask=logical(roiMask); %Note: not sure why she has logical here (it doesn't change anything as far as I can tell)
     end
     
+   if manChooseBck == 1
+       forStdEst = filterDiffBck; % use the background area selected 
+   else 
+       forStdEst = filterDiff; % use the whole image
+   end 
+       
+    stdList(iFrame)=std(forStdEst(~isnan(forStdEst))); % (just removing not a numbers here from filterDiff so can take std)
     
-    stdList(iFrame)=std(filterDiff(bgMask)); % (just removing not a numbers here from filterDiff so can take std)
+    
     
     indxStr1 = sprintf(strg1,iFrame);
     save([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1],'filterDiff')
