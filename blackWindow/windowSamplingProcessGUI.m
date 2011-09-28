@@ -22,7 +22,7 @@ function varargout = windowSamplingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help windowSamplingProcessGUI
 
-% Last Modified by GUIDE v2.5 02-Aug-2011 13:40:41
+% Last Modified by GUIDE v2.5 28-Sep-2011 11:43:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -49,6 +49,28 @@ function windowSamplingProcessGUI_OpeningFcn(hObject,eventdata,handles,varargin)
 
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
     'initChannel',1);
+% Set process parameters
+userData = get(handles.figure1, 'UserData');
+funParams = userData.crtProc.funParams_;
+
+
+% Read available segmentaation processes
+imProc =  cellfun(@(x) isa(x,'ImageProcessingProcess'),userData.MD.processes_);
+imProcID=find(imProc);
+imProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(imProc),'Unif',false);
+imProcString = vertcat('Raw images',imProcNames(:));
+imProcData=horzcat({[]},num2cell(imProcID));
+
+
+% Read the default segmentation process index
+% If empty, try to propagate segmentation process from protrusion process
+initProcessIndex = funParams.ProcessIndex;
+initProcessValue = find(cellfun(@(x) isequal(x,initProcessIndex),imProcData));
+set(handles.popupmenu_ProcessIndex,'String',imProcString,...
+    'UserData',imProcData,'Value',initProcessValue);
+
+% Update channels listboxes depending on the selected process
+popupmenu_ProcessIndex_Callback(hObject,eventdata,handles);
 
 % Choose default command line output for windowSamplingProcessGUI
 handles.output = hObject;
@@ -113,6 +135,11 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
+% Retrieve selected process ID
+props= get(handles.popupmenu_ProcessIndex,{'UserData','Value'});
+procID = props{1}{props{2}};
+funParams.ProcessIndex=procID;
+
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
@@ -125,3 +152,37 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+
+
+% --- Executes on selection change in popupmenu_ProcessIndex.
+function popupmenu_ProcessIndex_Callback(hObject, eventdata, handles)
+
+% Retrieve selected process ID
+props= get(handles.popupmenu_ProcessIndex,{'UserData','Value'});
+procID = props{1}{props{2}};
+
+% Read process and check available channels
+userData = get(handles.figure1, 'UserData');
+if isempty(procID)
+    allChannelIndex=1:numel(userData.MD.channels_);
+else
+    allChannelIndex = find(userData.MD.processes_{procID}.checkChannelOutput);
+end
+
+% Set up available channels listbox
+if ~isempty(allChannelIndex)
+    channelString = userData.MD.getChannelPaths(allChannelIndex);
+else
+    channelString = {};
+end
+set(handles.listbox_availableChannels,'String',channelString,'UserData',allChannelIndex);
+
+% Set up selected channels listbox
+channelIndex = get(handles.listbox_selectedChannels, 'UserData');
+channelIndex = intersect(channelIndex,allChannelIndex);
+if ~isempty(channelIndex)
+    channelString = userData.MD.getChannelPaths(channelIndex);
+else
+    channelString = {};
+end
+set(handles.listbox_selectedChannels,'String',channelString,'UserData',channelIndex);
