@@ -15,7 +15,7 @@ function cenXYZ = centerMostPoint3D(maskIn,distX)
 alpha = .01;
 nPointsMin = 5;%Minimum number of points to average.
 
-showPlots = true;
+showPlots = false;
 
 if nargin < 2 || isempty(distX)
     %Get distance transform, including distance to image boundary

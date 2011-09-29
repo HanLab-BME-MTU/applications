@@ -39,6 +39,17 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
         
+        function mt = loadChannelOutput(obj,iChan)
+            
+            if nargin < 1 || isempty(iChan)
+                iChan = 1;
+            end
+            
+            mt = load(obj.outFilePaths_{iChan});
+            mt = mt.objTracks;                                    
+            
+        end
+        
         function OK = checkChannelOutput(obj,iChan)
             
            %Checks if the selected channels have valid output files
