@@ -148,21 +148,8 @@ switch callbackName
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
 
-
     case 'remBegEndCheck'
         handles.remBegEnd=get(hObject,'Value');
-
-    case 'speedLimitEdit'
-        velLimVal=get(hObject,'String');
-        if isequal(lower(velLimVal),'max')
-            handles.velLimit=inf;
-        else
-            handles.velLimit=str2double(velLimVal);
-        end
-
-    case 'indivTrackNumbersEdit'
-        userInput=get(hObject,'String');
-        handles.indivTrack=str2num(userInput)';
 
     case 'plotTracksPush'
         rawToo=0;

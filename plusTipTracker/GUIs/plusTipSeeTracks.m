@@ -80,9 +80,6 @@ handles.selectedTracks=[];
 handles.plotCurrentOnly=[];
 handles.movieInfo=[];
 
-% for "speed movies" panel
-handles.velLimit=inf;
-
 % for "track movies" panel
 handles.indivTrack=[];
 handles.showDetect=3;
@@ -228,30 +225,6 @@ function selectTracksCheck_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectTracksCheck');
 guidata(hObject, handles);
 
-function speedLimitEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to speedLimitEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of speedLimitEdit as text
-%        str2double(get(hObject,'String')) returns contents of
-%        speedLimitEdit as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'speedLimitEdit');
-guidata(hObject, handles);
-
-
-function indivTrackNumbersEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to indivTrackNumbersEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of indivTrackNumbersEdit as text
-%        str2double(get(hObject,'String')) returns contents of
-%        indivTrackNumbersEdit as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'indivTrackNumbersEdit');
-guidata(hObject, handles);
-
-
 % --- Executes on button press in plotTracksPush.
 function plotTracksPush_Callback(hObject, eventdata, handles)
 % hObject    handle to plotTracksPush (see GCBO)
@@ -278,8 +251,14 @@ guidata(hObject, handles);
 function speedMovieButton_Callback(hObject, eventdata, handles)
 
 doAvi=get(handles.aviCheckTrackMov,'Value');
-
-plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,handles.velLimit,...
+velLimVal=get(handles.speedLimitEdit,'String');
+if strcmpi(velLimVal,'max')
+    velLimit=inf;
+else
+    velLimit=str2double(velLimVal);
+end
+        
+plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,velLimit,...
     handles.roi,doAvi);
 
 
@@ -297,12 +276,11 @@ showDetect = str2double(detectedObject(length('detectionRadio')+1:end));
 doAvi=get(handles.aviCheckTrackMov,'Value');
 rawToo=get(handles.dualPanelCheck,'Value');
 showTracks=get(handles.showTracksCheck,'Value');
+indivTrack=str2num(get(handle.indivTrackNumbersEdti,'String'))';
 magCoef =[];
-plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRangeDetect,...
+plusTipTrackMovie(handles.projData,indivTrack,handles.timeRangeDetect,...
     handles.roi,magCoef,showTracks,showDetect,doAvi,rawToo);
 
-% --- Executes when selected object is changed in radioButtonGroupDetection.
-function radioButtonGroupDetection_SelectionChangeFcn(hObject, eventdata, handles)
 
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)
