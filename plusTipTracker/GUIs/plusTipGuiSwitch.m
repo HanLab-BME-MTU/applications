@@ -148,14 +148,9 @@ switch callbackName
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
 
-    case 'dualPanelCheck'
-        handles.rawToo=get(hObject,'Value');
 
     case 'remBegEndCheck'
         handles.remBegEnd=get(hObject,'Value');
-
-    case 'showTracksCheck'
-        handles.showTracks=get(hObject,'Value');
 
     case 'speedLimitEdit'
         velLimVal=get(hObject,'String');
@@ -188,9 +183,6 @@ switch callbackName
 
         end
 
-    case 'aviCheckTrackMov'
-        handles.doAvi=get(hObject,'Value');
-
     case 'selectedTracksDisplay'
         hObject=handles.selectedTracksDisplay;
         if isempty(handles.selectedTracks)
@@ -200,16 +192,7 @@ switch callbackName
         end
         set(hObject,'String',num2str(handles.selectedTracks));
 
-    case 'speedMovieButton'
-        plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,handles.velLimit,handles.roi,handles.doAvi);
 
-    case 'trackMovieButton'
-        plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRangeDetect,...
-            handles.roi,handles.magCoef,handles.showTracks,handles.showDetect,handles.doAvi,handles.rawToo);
-
-    case 'aviCheckSpeedMov'
-        handles.doAvi=get(hObject,'Value');
-        
     case 'resetButton'
         closeGUI = handles.figure1; %handles.figure1 is the GUI figure
         guiPosition = get(handles.figure1,'Position'); %get the position of the GUI

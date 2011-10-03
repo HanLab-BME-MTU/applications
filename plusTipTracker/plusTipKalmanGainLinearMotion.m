@@ -3,7 +3,7 @@ function [kalmanFilterInfoOut,errFlag] = plusTipKalmanGainLinearMotion(trackedFe
     filterInfoPrev,costMatParam,initFunctionName)
 %KALMANGAINLINEARMOTION uses the Kalman gain from linking to get better estimates of the state vector, its covariance matrix, state noise and its variance
 %
-%SYNOPSIS [kalmanFilterInfoOut,errFlag] = kalmanGainLinearMotion(trackedFeatureIndx,...
+%SYNOPSIS [kalmanFilterInfoOut,errFlag] = plusTipKalmainGainLinearMotion(trackedFeatureIndx,...
 %    frameInfo,kalmanFilterInfoTmp,propagationScheme,kalmanFilterInfoIn,probDim,...
 %    filterInfoPrev,costMatParam,initFunctionName)
 %
@@ -79,7 +79,7 @@ errFlag = [];
 
 %check whether correct number of input arguments was used
 if nargin < 9
-    disp('--kalmanGainLinearMotion: Incorrect number of input arguments!');
+    disp('--plusTipKalmainGainLinearMotion: Incorrect number of input arguments!');
     errFlag  = 1;
     return
 end

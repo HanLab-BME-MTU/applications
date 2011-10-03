@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 11-Jun-2011 10:56:27
+% Last Modified by GUIDE v2.5 03-Oct-2011 13:08:50
 
 
 % Begin initialization code - DO NOT EDIT
@@ -73,9 +73,6 @@ handles.roi=[];
 % for "choose frame range" edit boxes
 handles.timeRangeDetect=[1 inf];
 
-% check for movie type
-handles.doAvi=0;
-
 % for "track overlays" panel
 handles.img=[];
 handles.ask4select=0;
@@ -88,18 +85,11 @@ handles.velLimit=inf;
 
 % for "track movies" panel
 handles.indivTrack=[];
-handles.magCoef=[];
-handles.showTracks=1;
 handles.showDetect=3;
-handles.rawToo=1;
 
 % for "sub-ROIs" panel
-handles.subroiSelectType=0; % 0=manual, 1=center/singlePeriph, 2=center/quadPeriph
-handles.subroiDistUnit='Microns';
-handles.subroiDistVal=[];
-handles.subroiTimeUnit='Fraction';
-handles.subroiTimeVal=[];
-handles.subroiExcludeRegion=0;
+set(handles.subroiDistUnitPop,'String',{'Microns','Fraction'},'Value',1);
+set(handles.subroiTimeUnitPop,'String',{'Fraction','Seconds'},'Value',1);
 
 % for "quadrant scatter plots" panel
 handles.xAxisScatParam='growthSpeed';
@@ -216,18 +206,6 @@ function startFrame_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameDetect');
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function startFrame_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to startFrame (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 function endFrame_Callback(hObject, eventdata, handles)
 % hObject    handle to endFrame (see GCBO)
@@ -240,19 +218,6 @@ function endFrame_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameDetect');
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function endFrame_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to endFrame (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in selectTracksCheck.
 function selectTracksCheck_Callback(hObject, eventdata, handles)
 % hObject    handle to selectTracksCheck (see GCBO)
@@ -262,18 +227,6 @@ function selectTracksCheck_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of selectTracksCheck
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectTracksCheck');
 guidata(hObject, handles);
-
-
-% --- Executes on button press in showTracksCheck.
-function showTracksCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to showTracksCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of showTracksCheck
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'showTracksCheck');
-guidata(hObject, handles);
-
 
 function speedLimitEdit_Callback(hObject, eventdata, handles)
 % hObject    handle to speedLimitEdit (see GCBO)
@@ -285,18 +238,6 @@ function speedLimitEdit_Callback(hObject, eventdata, handles)
 %        speedLimitEdit as a double
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'speedLimitEdit');
 guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function speedLimitEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to speedLimitEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 function indivTrackNumbersEdit_Callback(hObject, eventdata, handles)
@@ -310,18 +251,6 @@ function indivTrackNumbersEdit_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'indivTrackNumbersEdit');
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function indivTrackNumbersEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to indivTrackNumbersEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on button press in plotTracksPush.
 function plotTracksPush_Callback(hObject, eventdata, handles)
@@ -331,17 +260,6 @@ function plotTracksPush_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'plotTracksPush');
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
-guidata(hObject, handles);
-
-
-% --- Executes on button press in aviCheckTrackMov.
-function aviCheckTrackMov_Callback(hObject, eventdata, handles)
-% hObject    handle to aviCheckTrackMov (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of aviCheckTrackMov
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'aviCheckTrackMov');
 guidata(hObject, handles);
 
 
@@ -356,20 +274,13 @@ function selectedTracksDisplay_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function selectedTracksDisplay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to selectedTracksDisplay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-
 % --- Executes on button press in speedMovieButton.
 function speedMovieButton_Callback(hObject, eventdata, handles)
-% hObject    handle to speedMovieButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'speedMovieButton');
-guidata(hObject, handles);
+
+doAvi=get(handles.aviCheckTrackMov,'Value');
+
+plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,handles.velLimit,...
+    handles.roi,doAvi);
 
 
 % --- Executes on button press in trackMovieButton.
@@ -377,89 +288,21 @@ function trackMovieButton_Callback(hObject, eventdata, handles)
 % hObject    handle to trackMovieButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'trackMovieButton');
-guidata(hObject, handles);
 
+% Read detection mode
+detectedObject= get(get(handles.radioButtonGroupDetection,'SelectedObject'),'Tag');
+showDetect = str2double(detectedObject(length('detectionRadio')+1:end));
 
-% --- Executes on button press in aviCheckSpeedMov.
-function aviCheckSpeedMov_Callback(hObject, eventdata, handles)
-% hObject    handle to aviCheckSpeedMov (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of aviCheckSpeedMov
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'aviCheckSpeedMov');
-guidata(hObject, handles);
-
-
-% --- Executes on button press in detectionRadio1.
-function detectionRadio1_Callback(hObject, eventdata, handles)
-% hObject    handle to detectionRadio1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of detectionRadio1
-handles.showDetect=1;
-guidata(hObject, handles);
-
-
-% --- Executes on button press in detectionRadio2.
-function detectionRadio2_Callback(hObject, eventdata, handles)
-% hObject    handle to detectionRadio2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of detectionRadio2
-handles.showDetect=2;
-guidata(hObject, handles);
-
-
-% --- Executes on button press in detectionRadio3.
-function detectionRadio3_Callback(hObject, eventdata, handles)
-% hObject    handle to detectionRadio3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of detectionRadio3
-handles.showDetect=3;
-guidata(hObject, handles);
-
-% --- Executes on button press in detectionRadio4.
-function detectionRadio4_Callback(hObject, eventdata, handles)
-% hObject    handle to detectionRadio4 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of detectionRadio4
-handles.showDetect=0;
-guidata(hObject, handles);
+% Read movie parameters
+doAvi=get(handles.aviCheckTrackMov,'Value');
+rawToo=get(handles.dualPanelCheck,'Value');
+showTracks=get(handles.showTracksCheck,'Value');
+magCoef =[];
+plusTipTrackMovie(handles.projData,handles.indivTrack,handles.timeRangeDetect,...
+    handles.roi,magCoef,showTracks,showDetect,doAvi,rawToo);
 
 % --- Executes when selected object is changed in radioButtonGroupDetection.
 function radioButtonGroupDetection_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in radioButtonGroupDetection
-% eventdata  structure with the following fields (see UIBUTTONGROUP)
-%	EventName: string 'SelectionChanged' (read only)
-%	OldValue: handle of the previously selected object or empty if none was selected
-%	NewValue: handle of the currently selected object
-% handles    structure with handles and user data (see GUIDATA)
-switch get(hObject,'Tag')   % Get Tag of selected object
-    case 'detectionRadio1'
-        detectionRadio1_Callback(hObject, eventdata, handles)
-    case 'detectionRadio2'
-        detectionRadio2_Callback(hObject, eventdata, handles)
-    case 'detectionRadio3'
-        detectionRadio3_Callback(hObject, eventdata, handles)
-    case 'detectionRadio3'
-        detectionRadio4_Callback(hObject, eventdata, handles)
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function radioButtonGroupDetection_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to radioButtonGroupDetection (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
 
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)
@@ -521,19 +364,6 @@ handles.xAxisScatParam=group{val};
 
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function xaxisScatterDrop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 
 function xAxisScatterInput_Callback(hObject, eventdata, handles)
 % hObject    handle to xAxisScatterInput (see GCBO)
@@ -545,19 +375,6 @@ function xAxisScatterInput_Callback(hObject, eventdata, handles)
 handles.xScatInput = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function xAxisScatterInput_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xAxisScatterInput (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 function xAxisLim_Callback(hObject, eventdata, handles)
 % hObject    handle to xAxisLim (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -568,17 +385,6 @@ function xAxisLim_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'xAxisLim');
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function xAxisLim_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xAxisLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes on selection change in yaxisScatterDrop.
 function yaxisScatterDrop_Callback(hObject, eventdata, handles)
@@ -619,19 +425,6 @@ handles.yAxisScatParam=group{val};
 guidata(hObject, handles);
 
 
-% --- Executes during object creation, after setting all properties.
-function yaxisScatterDrop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 function yAxisScatterInput_Callback(hObject, eventdata, handles)
 % hObject    handle to yAxisScatterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -642,17 +435,6 @@ function yAxisScatterInput_Callback(hObject, eventdata, handles)
 handles.yScatInput = str2double(get(hObject,'String'));
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function yAxisScatterInput_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yAxisScatterInput (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 function yAxisLim_Callback(hObject, eventdata, handles)
 % hObject    handle to yAxisLim (see GCBO)
@@ -663,18 +445,6 @@ function yAxisLim_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of yAxisLim as a double
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'yAxisLim');
 guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function yAxisLim_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yAxisLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 % --- Executes on button press in quadScatterPlotPush.
@@ -724,17 +494,6 @@ handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectOutputDir');
 guidata(hObject, handles);
 
 
-% --- Executes on button press in dualPanelCheck.
-function dualPanelCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to dualPanelCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of dualPanelCheck
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'dualPanelCheck');
-guidata(hObject, handles);
-
-
 % --- Executes on button press in remTrackBegEnd.
 function remTrackBegEnd_Callback(hObject, eventdata, handles)
 % hObject    handle to remTrackBegEnd (see GCBO)
@@ -760,18 +519,6 @@ handles.xScatValType=group{val};
 
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function xParamDrop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xParamDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % --- Executes on selection change in yParamDrop.
 function yParamDrop_Callback(hObject, eventdata, handles)
@@ -787,87 +534,35 @@ handles.yScatValType=group{val};
 
 guidata(hObject, handles);
 
-
-% --- Executes during object creation, after setting all properties.
-function yParamDrop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yParamDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in subRoiPush.
 function subRoiPush_Callback(hObject, eventdata, handles)
-% hObject    handle to subRoiPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-plusTipSubRoiTool(handles.projList,handles.subroiSelectType,...
-    handles.subroiDistUnit,handles.subroiDistVal,...
-    handles.subroiTimeUnit,handles.subroiTimeVal,...
-    handles.roi,handles.subroiExcludeRegion);
 
-
-function subroiDistValEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiDistValEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of subroiDistValEdit as text
-%        str2double(get(hObject,'String')) returns contents of subroiDistValEdit as a double
-handles.subroiDistVal=str2double(get(hObject,'String'));
-if isnan(handles.subroiDistVal)
-    handles.subroiDistVal=[];
+% Read selection type
+if get(handles.subroiManualRadio,'Value'),
+    subroiSelectType =0;
+elseif get(handles.subroiAutoDivPeriphCheck,'Value'),
+    subroiSelectType =2;
+else
+    subroiSelectType =1;
 end
-guidata(hObject, handles);
+      
+% Read distance units and value
+props = get(handles.subroiDistUnitPop,{'String','Value'});
+subroiDistUnit=props{1}{props{2}};
+subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
+if isnan(subroiDistVal), subroiDistVal=[]; end
 
+% Read time units and value
+props = get(handles.subroiTimeUnitPop,{'String','Value'});
+subroiTimeUnit=props{1}{props{2}};
+subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
+if isnan(subroiTimeVal), subroiTimeVal=[]; end
 
-% --- Executes during object creation, after setting all properties.
-function subroiDistValEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to subroiDistValEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function anDirEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to anDirEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of anDirEdit as text
-%        str2double(get(hObject,'String')) returns contents of anDirEdit as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function anDirEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to anDirEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function figure1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
+plusTipSubRoiTool(handles.projList,subroiSelectType,...
+    subroiDistUnit,subroiDistVal,subroiTimeUnit,subroiTimeVal,...
+    handles.roi,subroiExcludeRegion);
 
 % --- Executes on button press in summQuadPlotOnlyCheck.
 function summQuadPlotOnlyCheck_Callback(hObject, eventdata, handles)
@@ -920,166 +615,18 @@ function selectGroupsPush_Callback(hObject, eventdata, handles)
 assignin('base','groupList',handles.groupList);
 guidata(hObject, handles);
 
-
-% --- Executes on selection change in subroiDistUnitPop.
-function subroiDistUnitPop_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiDistUnitPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns subroiDistUnitPop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from subroiDistUnitPop
-val = get(hObject,'Value');
-group = {'Microns','Fraction'};
-handles.subroiDistUnit=group{val};
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function subroiDistUnitPop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to subroiDistUnitPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes when selected object is changed in subroiRadioPanel.
 function subroiRadioPanel_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in subroiRadioPanel 
-% eventdata  structure with the following fields (see UIBUTTONGROUP)
-%	EventName: string 'SelectionChanged' (read only)
-%	OldValue: handle of the previously selected object or empty if none was selected
-%	NewValue: handle of the currently selected object
-% handles    structure with handles and user data (see GUIDATA)
-switch get(hObject,'Tag')   % Get Tag of selected object
-    case 'subManualRadio'
-        subManualRadio_Callback(hObject, eventdata, handles)
-    case 'subAutoRadio'
-        subAutoRadio_Callback(hObject, eventdata, handles)
-end
 
-
-% --- Executes on button press in subroiManualRadio.
-function subroiManualRadio_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiManualRadio (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of subroiManualRadio
-handles.subroiSelectType=0;
-if handles.subroiSelectType==0
-    set(handles.subroiDistValEdit,'Enable','Off');
-    set(handles.subroiDistValEdit,'String','');
-    handles.subroiDistVal=[];
-    
+if strcmp(get(hObject,'Tag'),'subroiManualRadio')
+    set(handles.subroiDistValEdit,'Enable','Off','String','');
     set(handles.subroiDistUnitPop,'Enable','Off');
     set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
 else
-    set(handles.subroiDistValEdit,'Enable','On');
-    set(handles.subroiDistUnitPop,'Enable','On');
-    set(handles.subroiAutoDivPeriphCheck,'Enable','On');
-end
-guidata(hObject, handles);
-
-
-% --- Executes on button press in subroiAutoRadio.
-function subroiAutoRadio_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiAutoRadio (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of subroiAutoRadio
-handles.subroiSelectType=1;
-if handles.subroiSelectType==0
-    set(handles.subroiDistValEdit,'Enable','Off');
-    set(handles.subroiDistValEdit,'String','');
-    handles.subroiDistVal=[];
-    
-    set(handles.subroiDistUnitPop,'Enable','Off');
-    set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
-else
-    set(handles.subroiDistValEdit,'Enable','On');
+        set(handles.subroiDistValEdit,'Enable','On');
     set(handles.subroiDistUnitPop,'Enable','On');
     set(handles.subroiAutoDivPeriphCheck,'Enable','On');
 end
 
 guidata(hObject, handles);
-
-
-% --- Executes on button press in subroiAutoDivPeriphCheck.
-function subroiAutoDivPeriphCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiAutoDivPeriphCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of subroiAutoDivPeriphCheck
-handles.subroiSelectType=2;
-guidata(hObject, handles);
-
-
-
-function subroiTimeValEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiTimeValEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of subroiTimeValEdit as text
-%        str2double(get(hObject,'String')) returns contents of subroiTimeValEdit as a double
-handles.subroiTimeVal=str2double(get(hObject,'String'));
-if isnan(handles.subroiTimeVal)
-    handles.subroiTimeVal=[];
-end
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function subroiTimeValEdit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to subroiTimeValEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in subroiTimeUnitPop.
-function subroiTimeUnitPop_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiTimeUnitPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns subroiTimeUnitPop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from subroiTimeUnitPop
-val = get(hObject,'Value');
-group = {'Fraction','Seconds'};
-handles.subroiTimeUnit=group{val};
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function subroiTimeUnitPop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to subroiTimeUnitPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in subroiExcludeCheck.
-function subroiExcludeCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to subroiExcludeCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of subroiExcludeCheck
-handles.subroiExcludeRegion=get(hObject,'Value');
-guidata(hObject, handles);
+  
