@@ -22,7 +22,7 @@ function varargout = stageDriftCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help stageDriftCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 08-Sep-2011 13:16:56
+% Last Modified by GUIDE v2.5 03-Oct-2011 14:13:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,6 +59,8 @@ set(handles.edit_referenceFramePath,'String',funParams.referenceFramePath);
 userData.numParams = {'I0','sDN','GaussRatio','alpha','minCorLength','maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),userData.numParams);
 set(handles.checkbox_doPreReg,'Value',funParams.doPreReg);
+set(handles.edit_maxFlowSpeedNmMin,'String',...
+    funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
 
 % Save the image directories and names (for cropping preview)
 userData_main = get(userData.mainFig, 'UserData');
@@ -316,3 +318,10 @@ if ~isequal(file,0) && ~isequal(path,0)
         
     end
 end
+
+
+function edit_maxFlowSpeed_Callback(hObject, eventdata, handles)
+userData=get(handles.figure1,'UserData');
+value=str2double(get(handles.edit_maxFlowSpeed,'String'));
+set(handles.edit_maxFlowSpeedNmMin,'String',...
+    value*userData.MD.pixelSize_/userData.MD.timeInterval_*60);

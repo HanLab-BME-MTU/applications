@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 08-Sep-2011 11:48:40
+% Last Modified by GUIDE v2.5 03-Oct-2011 14:17:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,6 +59,9 @@ userData.numParams ={'I0','sDN','GaussRatio','alpha','minCorLength',...
     'maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams);
+set(handles.edit_maxFlowSpeedNmMin,'String',...
+    funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+
 
 % Propagate stage drift correction parameters if no process and stage drift
 % correction parameters has been set up
@@ -203,3 +206,10 @@ function pushbutton_selectReferenceFrame_Callback(hObject, eventdata, handles)
 if ~isequal(file,0) && ~isequal(path,0)
     set(handles.edit_referenceFramePath,'String',[path file]);
 end
+
+
+function edit_maxFlowSpeed_Callback(hObject, eventdata, handles)
+userData=get(handles.figure1,'UserData');
+value=str2double(get(handles.edit_maxFlowSpeed,'String'));
+set(handles.edit_maxFlowSpeedNmMin,'String',...
+    value*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
