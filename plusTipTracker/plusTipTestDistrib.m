@@ -64,7 +64,7 @@ for iGroup=1:nGroups
 end
 
 % Fill the testStruct structure with corresponding test
-for i = 1:numel(distribNames)
+for iDistrib = 1:numel(distribNames)
     testStruct.(distribNames{iDistrib}) = [testID1 testID2];
 end
 
