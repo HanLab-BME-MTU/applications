@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 03-Oct-2011 13:08:50
+% Last Modified by GUIDE v2.5 04-Oct-2011 11:24:53
 
 
 % Begin initialization code - DO NOT EDIT
@@ -64,7 +64,6 @@ handles.getStr = 0; % narrow down list checkbox
 handles.projData=[]; % if one project is selected, projData will be retrieved
 
 % for "create groups" pushbutton
-handles.autoGrp=1; % auto group from hierarchy
 handles.groupList=[]; % also select groups pushbutton
 
 % for "select saved ROI" pushbutton
@@ -79,10 +78,6 @@ handles.ask4select=0;
 handles.selectedTracks=[];
 handles.plotCurrentOnly=[];
 handles.movieInfo=[];
-
-% for "track movies" panel
-handles.indivTrack=[];
-handles.showDetect=3;
 
 % for "sub-ROIs" panel
 set(handles.subroiDistUnitPop,'String',{'Microns','Fraction'},'Value',1);
@@ -258,6 +253,12 @@ else
     velLimit=str2double(velLimVal);
 end
         
+%Read output directory
+if isempty(handles.projData), errordlg('Please select a project'); end
+saveDir = get(handles.edit_outputDir,'String');
+if isempty(saveDir), errordlg('Please select an output directory'); end
+handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
+
 plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,velLimit,...
     handles.roi,doAvi);
 
@@ -278,6 +279,13 @@ rawToo=get(handles.dualPanelCheck,'Value');
 showTracks=get(handles.showTracksCheck,'Value');
 indivTrack=str2num(get(handles.indivTrackNumbersEdit,'String'))';
 magCoef =[];
+
+%Read output directory
+if isempty(handles.projData), errordlg('Please select a project'); end
+saveDir = get(handles.edit_outputDir,'String');
+if isempty(saveDir), errordlg('Please select an output directory'); end
+handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
+
 plusTipTrackMovie(handles.projData,indivTrack,handles.timeRangeDetect,...
     handles.roi,magCoef,showTracks,showDetect,doAvi,rawToo);
 
@@ -465,10 +473,19 @@ plusTipQuadScatter(xAxisInfo,yAxisInfo,handles.groupList,handles.remBegEnd,...
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
-% hObject    handle to selectOutputDirPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectOutputDir');
+
+outDir=0;
+if isfield(handles,'dataDir')
+    dirStart=handles.dataDir;
+else
+    dirStart=pwd;
+end
+
+outDir=uigetdir(dirStart,'Please select tutput directory for plots and movies');
+if isequal(outDir,0), 
+    set(handles.edit_outputDir,'String','');
+end
+set(handles.edit_outputDir,'String',outDir);
 guidata(hObject, handles);
 
 
@@ -555,21 +572,10 @@ guidata(hObject, handles);
 
 % --- Executes on button press in pickGroupsPush.
 function pickGroupsPush_Callback(hObject, eventdata, handles)
-% hObject    handle to pickGroupsPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'pickGroups');
-assignin('base','groupList',handles.groupList);
-guidata(hObject, handles);
 
-% --- Executes on button press in autoGrpCheck.
-function autoGrpCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to autoGrpCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of autoGrpCheck
-handles.autoGrp=get(hObject,'Value');
+saveResult=1;
+autoGrp=get(handles.autoGrpCheck,'Value');
+handles.groupList=plusTipPickGroups(autoGrp,[],handles.projList,saveResult);
 guidata(hObject, handles);
 
 
@@ -608,3 +614,20 @@ end
 
 guidata(hObject, handles);
   
+
+%---- Executes on button press in pushbutton_createMTdynamicsMaps.
+function pushbutton_createMTdynamicsMaps_Callback(hObject, eventdata, handles)
+
+% Read movie parameters
+remBegEnd=1;
+value = get(handles.edit_speedLimMax,'String');
+if strcmpi(value,'max'), speedLim=[]; else speedLim=str2num(value); end
+value = get(handles.edit_lifeLimMax,'String');
+if strcmpi(value,'max'), lifeLim=[]; else lifeLim=str2num(value); end
+value = get(handles.edit_dispLimMax,'String');
+if strcmpi(value,'max'), dispLim=[]; else dispLim=str2num(value); end
+      
+saveDir = get(handles.edit_outputDir,'String');
+
+plusTipPlotResults(handles.projData,remBegEnd,handles.timeRangeDetect,...
+    speedLim,lifeLim,dispLim,saveDir);

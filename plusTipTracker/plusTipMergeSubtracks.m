@@ -106,7 +106,7 @@ bgap95thPercFGapSpeeds = 0; % old reclassification scheme
 
 
 %% Check Inputs To See If Data is Reclassified Yet
-
+mergeTracks=0;
 if nargin<2
     
     % dataMat is the output matrix in projData, where the gaps to

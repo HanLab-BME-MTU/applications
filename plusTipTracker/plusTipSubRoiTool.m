@@ -241,7 +241,7 @@ for iProj=1:nProj
     weightedRoi=bwdist(swapMaskValues(roiMask)).*pixSizMic;
 
     % inner mask will be used unless manual option is used
-    if ~isempty(strmatch('fraction',distUnits))
+    if strcmpi('fraction',distUnits)
         distCutoff=distVal.*max(weightedRoi(:));
     else
         distCutoff=distVal;

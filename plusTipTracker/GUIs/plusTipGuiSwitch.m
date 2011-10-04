@@ -132,19 +132,6 @@ switch callbackName
             handles.yAxisLim=str2num(userInput);
         end
 
-    case 'selectOutputDir'
-        outDir=0;
-        if isfield(handles,'dataDir')
-            dirStart=handles.dataDir;
-        else
-            dirStart=pwd;
-        end
-        while isequal(outDir,0)
-            outDir=uigetdir(dirStart,'Please select OUTPUT directory for plots and movies');
-        end
-        handles.projData.saveDir=outDir;
-        %cd(outDir);
-
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
 
@@ -153,7 +140,7 @@ switch callbackName
 
     case 'plotTracksPush'
         rawToo=0;
-               isStill=1;
+        isStill=1;
         [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
             handles.timeRangeDetect,handles.img,handles.ask4select,...
             handles.plotCurrentOnly,handles.roi,handles.movieInfo,rawToo,isStill);
@@ -186,14 +173,6 @@ switch callbackName
         guiHandle = str2func(get(handles.figure1,'Name')); %get the name of the GUI
         close(closeGUI); %close the old GUI before calling it (singleton)
         guiHandle('Position',guiPosition) %call the GUI again        
-    case 'pickGroups'
-        saveResult=1;
-        if ~isfield(handles,'autoGrp')
-            handles.autoGrp=1;
-        end
-        [handles.groupList]=plusTipPickGroups(handles.autoGrp,[],handles.projList,saveResult);
-
-
         
     otherwise
         error('???')
