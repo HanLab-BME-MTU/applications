@@ -276,7 +276,7 @@ showDetect = str2double(detectedObject(length('detectionRadio')+1:end));
 doAvi=get(handles.aviCheckTrackMov,'Value');
 rawToo=get(handles.dualPanelCheck,'Value');
 showTracks=get(handles.showTracksCheck,'Value');
-indivTrack=str2num(get(handle.indivTrackNumbersEdti,'String'))';
+indivTrack=str2num(get(handles.indivTrackNumbersEdit,'String'))';
 magCoef =[];
 plusTipTrackMovie(handles.projData,indivTrack,handles.timeRangeDetect,...
     handles.roi,magCoef,showTracks,showDetect,doAvi,rawToo);
