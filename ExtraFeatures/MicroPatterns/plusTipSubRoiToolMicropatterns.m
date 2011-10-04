@@ -168,9 +168,7 @@ for iProj=1:nProj
     img1=(img-min(img(:)))./(max(img(:))-min(img(:)));
     img=repmat(img1,[1,1,3]);
 
-    % input to varycolor is black (we don't use it since the image is dark;
-    % make it one more than the number of ROIs (max is 9)
-    cMap=varycolor(10);
+    cMap=hsv(9);
 
 
 

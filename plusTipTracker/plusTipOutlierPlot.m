@@ -119,7 +119,7 @@ for iGroup = 1:nGroups
 
             % set the colormap to be random
             if isempty(cMap)
-                cM=varycolor(nGroups);
+                cM=hsv(nGroups);
                 cM=cM(randsample(nGroups,nGroups),:);
                 cMap=mat2cell(cM,ones(nGroups,1),3);
             end

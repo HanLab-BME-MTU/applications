@@ -93,7 +93,7 @@ for k=1:9
     %     for j=validBinData
     saveFig =figure;hold on;
     if nGroups>1
-        colors=varycolor(nGroups);
+        colors=hsv(nGroups);
     else
         colors= eventType(j).color;
     end

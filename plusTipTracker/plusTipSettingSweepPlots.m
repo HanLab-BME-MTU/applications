@@ -106,7 +106,7 @@ prop_name(3) = {'MarkerEdgeColor'};
 prop_name(4) = {'Color'};
 
 % set the colormap
-cM=varycolor(nLines);
+cM=hsv(nLines);
 cMap=mat2cell(cM,ones(nLines,1),3);
 
 saveFig = figure('Visible','off'); hold on
