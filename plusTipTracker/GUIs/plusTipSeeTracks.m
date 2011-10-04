@@ -542,16 +542,27 @@ else
 end
       
 % Read distance units and value
-props = get(handles.subroiDistUnitPop,{'String','Value'});
-subroiDistUnit=props{1}{props{2}};
-subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
-if isnan(subroiDistVal), subroiDistVal=[]; end
+if subroiSelectType>0
+    props = get(handles.subroiDistUnitPop,{'String','Value'});
+    subroiDistUnit=props{1}{props{2}};
+    subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
+    if ~(subroiDistVal>0 && subroiDistVal<=1)
+        errordlg('Please enter a valide value for the distance from cell edge');
+        return;
+    end
+else
+    subroiDistVal=[];
+    subroiDistUnit='';
+end
 
 % Read time units and value
 props = get(handles.subroiTimeUnitPop,{'String','Value'});
 subroiTimeUnit=props{1}{props{2}};
 subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
-if isnan(subroiTimeVal), subroiTimeVal=[]; end
+if ~(subroiTimeVal>0 && subroiTimeVal<=1)
+    errordlg('Please enter a valide value for the fraction of lifetime');
+    return;
+end
 
 subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
 

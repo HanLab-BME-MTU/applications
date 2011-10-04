@@ -69,9 +69,9 @@ userData=get(handles.figure1,'UserData');
 userData.groupList=[]; % also select groups pushbutton
 
 % Set-up popup-menus
-testList = {'t-test';'Wilcoxon ranksum test';'K-S test';...
-    'K-S test with substracted means';'K-S test with substracted medians';...
-    'Permutation tests';'Calibrated K-S test with mean subtraction'};
+testList = {'t-test of the means';'Wilcoxon ranksum test';'Kolmogorov-Smirnov test (K-S test)';...
+    'Mean substracted K-S test';'Median substracted K-S test';...
+    'Permutation t-test of the means';'Calibrated mean subtracted K-S test'};
 testValues=[1 2 10 11 12 20 21];
 set(handles.popupmenu_testID1,'String',testList,'UserData',testValues);
 set(handles.popupmenu_testID2,'String',testList,'UserData',testValues);
@@ -131,6 +131,13 @@ if ~isempty(handles.projList)
     % allow multiple projects to be selected
     if isempty(a)
         selection=[];
+
+% two-sided p-value: proportion of abs(delta) values greater than deltaPop
+%pValue = sum(abs(delta)>deltaPop)/nReps;
+
+% calculate the one-sided p-value
+pValue = 1-normcdf(deltaPop,mean(delta),std(delta));
+
     else
         [selection,selectionList]=listSelectGUI(a,[],'move',1);
     end
@@ -264,7 +271,7 @@ function uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
 if get(handles.radiobutton_poolData,'Value')
     set(handles.checkbox_doWtn,'Enable','on');
     set(handles.popupmenu_testID1,'Value',6);
-    set(handles.popupmenu_testID2,'Value',4);
+    set(handles.popupmenu_testID2,'Value',7);
 else
     set(handles.checkbox_doWtn,'Enable','off');
     set(handles.popupmenu_testID1,'Value',1);
