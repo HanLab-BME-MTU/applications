@@ -84,17 +84,15 @@ set(handles.subroiDistUnitPop,'String',{'Microns','Fraction'},'Value',1);
 set(handles.subroiTimeUnitPop,'String',{'Fraction','Seconds'},'Value',1);
 
 % for "quadrant scatter plots" panel
-handles.xAxisScatParam='growthSpeed';
-handles.xScatValType='Value';
-handles.xScatInput=15;
-handles.xAxisLim=[-inf inf];
-handles.yAxisScatParam='growthLifetime';
-handles.yScatValType='Value';
-handles.yScatInput=10;
-handles.yAxisLim=[-inf inf];
-handles.remBegEnd=1;
-handles.doBatchQuad=1;
-handles.doPlotQuad=1;
+scatterData = {'growthSpeed','growthLifetime','growthDisp','bgapSpeed',...
+    'bgapLifetime','bgapDisp''fgapSpeed','fgapLifetime','fgapDisp'};
+scatterString={'Growth speed (microns/min)','Growth lifetime (s)',...
+    'Growth displacement (microns)','Bgap speed (microns/min)','Bgap lifetime (s)',...
+    'Bgap displacement (microns)','Fgap speed (microns/min)','Fgap lifetime (s)',...
+    'Fgap displacement (microns)'};
+set(handles.xaxisScatterDrop,'String',scatterString','UserData',scatterData,'Value',1);
+set(handles.yaxisScatterDrop,'String',scatterString','UserData',scatterData,'Value',2);
+set([handles.xParamDrop handles.yParamDrop],'String',{'Value','Percentile'},'Value',1);
 
 %place image onto the axes, remove tick marks
 pic=imread('pTT_logo_sm.png');
@@ -312,163 +310,80 @@ handles.loadProjList=get(hObject,'Value');
 guidata(hObject, handles);
 
 
-% --- Executes on selection change in xaxisScatterDrop.
-function xaxisScatterDrop_Callback(hObject, eventdata, handles)
-% hObject    handle to xaxisScatterDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns xaxisScatterDrop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from xaxisScatterDrop
-val = get(hObject,'Value');
-
-% string labels in drop down menu
-%
-% Growth speed (um/min)
-% Growth lifetime (sec)
-% Growth displacement (um)
-% Bgap speed (um/min)
-% Bgap lifetime (sec)
-% Bgap displacement (um)
-% Fgap speed (um/min)
-% Fgap lifetime (sec)
-% Fgap displacement (um)
-
-group = {...
-    'growthSpeed',...
-    'growthLifetime',...
-    'growthDisp',...
-    'bgapSpeed',...
-    'bgapLifetime',...
-    'bgapDisp'...
-    'fgapSpeed',...
-    'fgapLifetime',...
-    'fgapDisp',...
-    };
-
-handles.xAxisScatParam=group{val};
-
-guidata(hObject, handles);
-
-
-function xAxisScatterInput_Callback(hObject, eventdata, handles)
-% hObject    handle to xAxisScatterInput (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of xAxisScatterInput as text
-%        str2double(get(hObject,'String')) returns contents of xAxisScatterInput as a double
-handles.xScatInput = str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-function xAxisLim_Callback(hObject, eventdata, handles)
-% hObject    handle to xAxisLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of xAxisLim as text
-%        str2double(get(hObject,'String')) returns contents of xAxisLim as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'xAxisLim');
-guidata(hObject, handles);
-
-
-% --- Executes on selection change in yaxisScatterDrop.
-function yaxisScatterDrop_Callback(hObject, eventdata, handles)
-% hObject    handle to yaxisScatterDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns yaxisScatterDrop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from yaxisScatterDrop
-val = get(hObject,'Value');
-
-% string labels in drop down menu
-%
-% Growth speed (um/min)
-% Growth lifetime (sec)
-% Growth displacement (um)
-% Bgap speed (um/min)
-% Bgap lifetime (sec)
-% Bgap displacement (um)
-% Fgap speed (um/min)
-% Fgap lifetime (sec)
-% Fgap displacement (um)
-
-group = {...
-    'growthSpeed',...
-    'growthLifetime',...
-    'growthDisp',...
-    'bgapSpeed',...
-    'bgapLifetime',...
-    'bgapDisp'...
-    'fgapSpeed',...
-    'fgapLifetime',...
-    'fgapDisp',...
-    };
-
-handles.yAxisScatParam=group{val};
-
-guidata(hObject, handles);
-
-
-function yAxisScatterInput_Callback(hObject, eventdata, handles)
-% hObject    handle to yAxisScatterInput (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of yAxisScatterInput as text
-%        str2double(get(hObject,'String')) returns contents of yAxisScatterInput as a double
-handles.yScatInput = str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-function yAxisLim_Callback(hObject, eventdata, handles)
-% hObject    handle to yAxisLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of yAxisLim as text
-%        str2double(get(hObject,'String')) returns contents of yAxisLim as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'yAxisLim');
-guidata(hObject, handles);
-
-
 % --- Executes on button press in quadScatterPlotPush.
 function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 % hObject    handle to quadScatterPlotPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isfield(handles,'projData') && handles.doBatchQuad==0
+if isfield(handles,'projData') && ~get(handles.batchQuadCheck,'Value')
     handles.projData.anDir=formatPath(handles.projData.anDir);
     saveDir=handles.projData.anDir;
     handles.groupList={'singleProject',handles.projData.anDir};
 else
-    saveDir=[];
+    saveDir=get(handles.edit_outputDir,'String');
 end
 
-xAxisInfo.name=handles.xAxisScatParam;
-if strcmpi(handles.xScatValType,'percentile')
-    xAxisInfo.splitPercentile=handles.xScatInput;
+% Read x-axis scatter name
+props=get(handles.xaxisScatterDrop,{'UserData','Value'});
+xAxisInfo.name=props{1}{props{2}};
+
+% Read x-axis scatter input
+value = str2double(get(handles.xAxisScatterInput,'String'));
+if isnan(value), 
+    errordlg('Please enter a valid value for the x-axis scatter'); 
+    return; 
+end
+props = get(handles.xParamDrop,{'String','Value'});
+if strcmpi(props{1}{props{2}},'percentile')
+    xAxisInfo.splitPercentile=value;
     xAxisInfo.splitValue=[];
 else
     xAxisInfo.splitPercentile=[];
-    xAxisInfo.splitValue=handles.xScatInput;
+    xAxisInfo.splitValue=value;
 end
-yAxisInfo.name=handles.yAxisScatParam;
-if strcmpi(handles.yScatValType,'percentile')
-    yAxisInfo.splitPercentile=handles.yScatInput;
+
+% Read x-axis limits
+value=get(handles.xAxisLim,'String');
+if strcmpi(value,'use all')
+    xAxisInfo.minMax=[-inf inf];
+else
+    xAxisInfo.minMax=str2dm(value);
+end
+
+% Read y-axis scatter name
+props=get(handles.yaxisScatterDrop,{'UserData','Value'});
+yAxisInfo.name=props{1}{props{2}};
+
+% Read y-axis scatter input
+value = str2double(get(handles.yAxisScatterInput,'String'));
+if isnan(value), 
+    errordlg('Please enter a valid value for the x-axis scatter'); 
+    return; 
+end
+props = get(handles.yParamDrop,{'String','Value'});
+if strcmpi(props{1}{props{2}},'percentile')
+    yAxisInfo.splitPercentile=value;
     yAxisInfo.splitValue=[];
 else
     yAxisInfo.splitPercentile=[];
-    yAxisInfo.splitValue=handles.yScatInput;
+    yAxisInfo.splitValue=value;
 end
 
-xAxisInfo.minMax=handles.xAxisLim;
-yAxisInfo.minMax=handles.yAxisLim;
+% Read y-axis limits
+value=get(handles.yAxisLim,'String');
+if strcmpi(value,'use all')
+    yAxisInfo.minMax=[-inf inf];
+else
+    yAxisInfo.minMax=str2num(value);
+end
 
-plusTipQuadScatter(xAxisInfo,yAxisInfo,handles.groupList,handles.remBegEnd,...
-    handles.timeRangeDetect,handles.doPlotQuad,saveDir);
+% Read checkboxes
+doPlotQuad=~get(handles.summQuadPlotOnlyCheck,'Value');
+remBegEnd = get(handles.remTrackBegEnd,'Value');
+
+plusTipQuadScatter(xAxisInfo,yAxisInfo,handles.groupList,remBegEnd,...
+    handles.timeRangeDetect,doPlotQuad,saveDir);
 
 
 % --- Executes on button press in selectOutputDirPush.
@@ -488,46 +403,6 @@ end
 set(handles.edit_outputDir,'String',outDir);
 guidata(hObject, handles);
 
-
-% --- Executes on button press in remTrackBegEnd.
-function remTrackBegEnd_Callback(hObject, eventdata, handles)
-% hObject    handle to remTrackBegEnd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of remTrackBegEnd
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'remBegEndCheck');
-guidata(hObject, handles);
-
-
-% --- Executes on selection change in xParamDrop.
-function xParamDrop_Callback(hObject, eventdata, handles)
-% hObject    handle to xParamDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns xParamDrop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from xParamDrop
-val = get(hObject,'Value');
-group = {'Value','Percentile'};
-handles.xScatValType=group{val};
-
-guidata(hObject, handles);
-
-
-% --- Executes on selection change in yParamDrop.
-function yParamDrop_Callback(hObject, eventdata, handles)
-% hObject    handle to yParamDrop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns yParamDrop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from yParamDrop
-val = get(hObject,'Value');
-group = {'Value','Percentile'};
-handles.yScatValType=group{val};
-
-guidata(hObject, handles);
 
 % --- Executes on button press in subRoiPush.
 function subRoiPush_Callback(hObject, eventdata, handles)
@@ -570,16 +445,6 @@ plusTipSubRoiTool(handles.projList,subroiSelectType,...
     subroiDistUnit,subroiDistVal,subroiTimeUnit,subroiTimeVal,...
     handles.roi,subroiExcludeRegion);
 
-% --- Executes on button press in summQuadPlotOnlyCheck.
-function summQuadPlotOnlyCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to summQuadPlotOnlyCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of summQuadPlotOnlyCheck
-handles.doPlotQuad=~get(hObject,'Value');
-guidata(hObject, handles);
-
 
 % --- Executes on button press in pickGroupsPush.
 function pickGroupsPush_Callback(hObject, eventdata, handles)
@@ -588,18 +453,6 @@ saveResult=1;
 autoGrp=get(handles.autoGrpCheck,'Value');
 handles.groupList=plusTipPickGroups(autoGrp,[],handles.projList,saveResult);
 guidata(hObject, handles);
-
-
-% --- Executes on button press in batchQuadCheck.
-function batchQuadCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to batchQuadCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of batchQuadCheck
-handles.doBatchQuad=get(hObject,'Value');
-guidata(hObject, handles);
-
 
 % --- Executes on button press in selectGroupsPush.
 function selectGroupsPush_Callback(hObject, eventdata, handles)
@@ -652,8 +505,5 @@ value = get(handles.edit_dispLimMax,'String');
 if strcmpi(value,'max'), dispLim=[]; else dispLim = str2double(value); end
 if isnan(dispLim), errordlg('Please enter a valid maximum displacement'); return; end
 
-
-tic
 plusTipPlotResults(handles.projData,remBegEnd,handles.timeRangeDetect,...
     speedLim,lifeLim,dispLim,saveDir);
-toc

@@ -116,27 +116,8 @@ switch callbackName
         end
         set(hObject,'String',num2str(handles.timeRangeTrack(2)));
 
-    case 'xAxisLim'
-        userInput=get(hObject,'String');
-        if isequal(lower(userInput),'use all')
-            handles.xAxisLim=[-inf inf];
-        else
-            handles.xAxisLim=str2num(userInput);
-        end
-
-    case 'yAxisLim'
-        userInput=get(hObject,'String');
-        if isequal(lower(userInput),'use all')
-            handles.yAxisLim=[-inf inf];
-        else
-            handles.yAxisLim=str2num(userInput);
-        end
-
     case 'selectTracksCheck'
         handles.ask4select=get(hObject,'Value');
-
-    case 'remBegEndCheck'
-        handles.remBegEnd=get(hObject,'Value');
 
     case 'plotTracksPush'
         rawToo=0;
