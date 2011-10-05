@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 04-Oct-2011 11:24:53
+% Last Modified by GUIDE v2.5 05-Oct-2011 09:02:45
 
 
 % Begin initialization code - DO NOT EDIT
@@ -254,9 +254,9 @@ else
 end
         
 %Read output directory
-if isempty(handles.projData), errordlg('Please select a project'); end
+if isempty(handles.projData), errordlg('Please select a project'); return; end
 saveDir = get(handles.edit_outputDir,'String');
-if isempty(saveDir), errordlg('Please select an output directory'); end
+if isempty(saveDir), errordlg('Please select an output directory'); return; end
 handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
 
 plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,velLimit,...
@@ -281,9 +281,9 @@ indivTrack=str2num(get(handles.indivTrackNumbersEdit,'String'))';
 magCoef =[];
 
 %Read output directory
-if isempty(handles.projData), errordlg('Please select a project'); end
+if isempty(handles.projData), errordlg('Please select a project'); return;  end
 saveDir = get(handles.edit_outputDir,'String');
-if isempty(saveDir), errordlg('Please select an output directory'); end
+if isempty(saveDir), errordlg('Please select an output directory');return;  end
 handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
 
 plusTipTrackMovie(handles.projData,indivTrack,handles.timeRangeDetect,...
@@ -547,7 +547,7 @@ if subroiSelectType>0
     subroiDistUnit=props{1}{props{2}};
     subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
     if ~(subroiDistVal>0 && subroiDistVal<=1)
-        errordlg('Please enter a valide value for the distance from cell edge');
+        errordlg('Please enter a valid value for the distance from cell edge');
         return;
     end
 else
@@ -560,7 +560,7 @@ props = get(handles.subroiTimeUnitPop,{'String','Value'});
 subroiTimeUnit=props{1}{props{2}};
 subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
 if ~(subroiTimeVal>0 && subroiTimeVal<=1)
-    errordlg('Please enter a valide value for the fraction of lifetime');
+    errordlg('Please enter a valid value for the fraction of lifetime');
     return;
 end
 
@@ -629,16 +629,31 @@ guidata(hObject, handles);
 %---- Executes on button press in pushbutton_createMTdynamicsMaps.
 function pushbutton_createMTdynamicsMaps_Callback(hObject, eventdata, handles)
 
-% Read movie parameters
-remBegEnd=1;
-value = get(handles.edit_speedLimMax,'String');
-if strcmpi(value,'max'), speedLim=[]; else speedLim=str2num(value); end
-value = get(handles.edit_lifeLimMax,'String');
-if strcmpi(value,'max'), lifeLim=[]; else lifeLim=str2num(value); end
-value = get(handles.edit_dispLimMax,'String');
-if strcmpi(value,'max'), dispLim=[]; else dispLim=str2num(value); end
-      
+%Read output directory
+if isempty(handles.projData), errordlg('Please select a project'); return; end
 saveDir = get(handles.edit_outputDir,'String');
+if isempty(saveDir), errordlg('Please select an output directory'); return; end
+handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
 
+remBegEnd=1;
+% Read speed limit
+value = get(handles.edit_speedLimMax,'String');
+if strcmpi(value,'max'), speedLim=[]; else speedLim = str2double(value); end
+if isnan(speedLim), errordlg('Please enter a valid maximum speed'); return; end
+
+% Read lifetime limit
+value = get(handles.edit_lifeLimMax,'String');
+if strcmpi(value,'max'), lifeLim=[]; else lifeLim = str2double(value); end
+if isnan(speedLim), errordlg('Please enter a valid maximum lifetime'); return; end
+
+
+% Read displacement range
+value = get(handles.edit_dispLimMax,'String');
+if strcmpi(value,'max'), dispLim=[]; else dispLim = str2double(value); end
+if isnan(dispLim), errordlg('Please enter a valid maximum displacement'); return; end
+
+
+tic
 plusTipPlotResults(handles.projData,remBegEnd,handles.timeRangeDetect,...
     speedLim,lifeLim,dispLim,saveDir);
+toc

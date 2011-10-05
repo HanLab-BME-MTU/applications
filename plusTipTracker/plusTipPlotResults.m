@@ -74,18 +74,17 @@ allData(:,6)=allData(:,6).* projData.secPerFrame; % convert lifetimes to seconds
 allData(:,7)=allData(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
 
 
-if nargin<4 || isempty(speedLim)
-    speedLim=prctile(allData(:,4),95);
+if nargin<4 || isempty(speedLim) || strcmpi(speedLim,'max')
+    speedLim=prctile(allData(:,4),95);    
 end
 
-if nargin<5 || isempty(lifeLim)
+if nargin<5 || isempty(lifeLim) || strcmpi(lifeLim,'max')
     lifeLim=prctile(allData(:,6),95);
 end
 
-if nargin<6 || isempty(dispLim)
+if nargin<6 || isempty(dispLim) || strcmpi(dispLim,'max')
     dispLim=prctile(allData(:,7),95);
 end
-
 
 % get track type and matrices containing xy-coordinates for all subtracks
 trackType=allData(:,5);
@@ -129,204 +128,77 @@ figPos=[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) 
 
 cMapLength=128; cMap=jet(cMapLength);
 
-%% GROWTH SUBTRACKS
+events= {'growth','lifetime','displacement'};
+type= {'growth tracks','fgaps','bgaps'};
+typeIndx= {gIdx;fIdx;bIdx};
 
-x=xMat(gIdx,1:end-1)';
-y=yMat(gIdx,1:end-1)';
-
-% SPEED
-speed=allData(gIdx,4);
-m=ceil(speedLim);
-speed(speed>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(speed,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
+for iType=1:3
+    
+    %% GROWTH SUBTRACKS
+    
+    x=xMat(typeIndx{iType},1:end-1)';
+    y=yMat(typeIndx{iType},1:end-1)';
+    
+    % SPEED
+    speed=allData(typeIndx{iType},4);
+    speedRange=ceil(speedLim);
+    speed(speed>speedRange)=speedRange;
+    mapper=linspace(0,speedRange,cMapLength)';
+    
+    % get closest colormap index for each feature
+    D=createDistanceMatrix(speed,mapper);
+    [sD,idx]=sort(abs(D),2);
+    
+    % make the plot
+    figure('Position',figPos)
+    imagesc(img); colormap gray;
+    axis ij
+    hold on
+    for i=1:size(x,2)
+        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
+    end
+    xlabel(['speed map of ' type{iType} ', max speed ' num2str(speedRange) ' microns/min']);
+    
+    
+    % LIFETIME
+    life=allData(typeIndx{iType},6);
+    lifeRange=ceil(lifeLim);
+    life(life>lifeRange)=lifeRange;
+    mapper=linspace(0,lifeRange,cMapLength)';
+    
+    % get closest colormap index for each feature
+    D=createDistanceMatrix(life,mapper);
+    [sD,idx]=sort(abs(D),2);
+    
+    % make the plot
+    figure('Position',figPos)
+    imagesc(img); colormap gray;
+    hold on
+    for i=1:size(x,2)
+        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
+    end
+    xlabel(['lifetime map of ' type{iType} ', max lifetime ' num2str(lifeRange) ' s']);
+    
+    
+    % DISPLACEMENT
+    disp=allData(typeIndx{iType},7);
+    dispRange=ceil(dispLim);
+    disp(disp>dispRange)=dispRange;
+    mapper=linspace(0,dispRange,cMapLength)';
+    
+    % get closest colormap index for each feature
+    D=createDistanceMatrix(disp,mapper);
+    [sD,idx]=sort(abs(D),2);
+    
+    % make the plot
+    figure('Position',figPos)
+    imagesc(img); colormap gray;
+    hold on
+    for i=1:size(x,2)
+        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
+    end
+    xlabel(['displacmement map of ' type{iType} ', max displacement ' num2str(dispRange) ' microns']);
 end
-xlabel(['speed map of growth tracks, max speed ' num2str(m) ' microns/min'])
-
-
-
-% LIFETIME
-life=allData(gIdx,6);
-m=ceil(lifeLim);
-life(life>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(life,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['lifetime map of growth tracks, max lifetime ' num2str(m) ' sec'])
-
-
-
-% DISPLACEMENT
-disp=allData(gIdx,7);
-m=ceil(dispLim);
-disp(disp>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(disp,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['displacement map of growth tracks, max displacement ' num2str(m) ' microns'])
-
-%% FGAP SUBTRACKS
-
-x=xMat(fIdx,1:end-1)';
-y=yMat(fIdx,1:end-1)';
-
-% SPEED
-speed=allData(fIdx,4);
-m=ceil(speedLim);
-speed(speed>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(speed,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['speed map of fgaps, max speed ' num2str(m) ' microns/min'])
-
-
-
-% LIFETIME
-life=allData(fIdx,6);
-m=ceil(lifeLim);
-life(life>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(life,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['lifetime map of fgaps, max lifetime ' num2str(m) ' sec'])
-
-
-
-% DISPLACEMENT
-disp=allData(fIdx,7);
-m=ceil(dispLim);
-disp(disp>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(disp,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['displacement map of fgaps, max displacement ' num2str(m) ' microns'])
-
-
-%% BGAP SUBTRACKS
-
-x=xMat(bIdx,1:end-1)';
-y=yMat(bIdx,1:end-1)';
-
-% SPEED
-speed=allData(bIdx,4);
-m=ceil(speedLim);
-speed(speed>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(speed,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['speed map of bgaps, max speed ' num2str(m) ' microns/min'])
-
-
-
-% LIFETIME
-life=allData(bIdx,6);
-m=ceil(lifeLim);
-life(life>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(life,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['lifetime map of bgaps, max lifetime ' num2str(m) ' sec'])
-
-
-
-% DISPLACEMENT
-disp=allData(bIdx,7);
-m=ceil(dispLim);
-disp(disp>m)=m;
-mapper=linspace(0,m,cMapLength)';
-
-% get closest colormap index for each feature
-D=createDistanceMatrix(disp,mapper);
-[sD,idx]=sort(abs(D),2);
-
-% make the plot
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-for i=1:size(x,2)
-    plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-end
-xlabel(['displacement map of bgaps, max displacement ' num2str(m) ' microns'])
 
 %% STACKED HISTOGRAMS
 

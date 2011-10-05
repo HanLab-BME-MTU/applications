@@ -80,9 +80,9 @@ for i=1:numel(distribNames)
     discrimMat.([field '_cell'])=[[field groupData.names];...
         [groupData.names' num2cell(discrimMat.(field))]];
 
-    hitsIdx = find(discrimMat.(field)(1,:) <stringency);
+    hitsIdx = find(discrimMat.(field)(:,1) <stringency);
 
-    for iHit = hitsIdx
+    for iHit = hitsIdx'
         hits{end+1,1} = groupData.names{iHit};
         hits{end,2} = field;
     end
