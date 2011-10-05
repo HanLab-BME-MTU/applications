@@ -33,6 +33,25 @@ classdef TFMPackage < Package
             obj = obj@Package(super_args{:},...
                 'processClassHandles_',TFMProcConstr);
         end
+        
+        
+        function processExceptions = sanityCheck(obj,varargin) 
+            
+            % Check that the first channel has a psf function
+            psfSigmaCheck = isempty(obj.owner_.channels_(1).psfSigma_);
+            if psfSigmaCheck
+                error(['Missing standard deviation of the theoretical point-spread function! '...
+                    'Please fill the numerical aperture, pixel size and'...
+                    ' emission wavelengths for the beads channel!']);            
+            end
+            
+            % Check that the movie has a frame rate
+            if isempty(obj.owner_.timeInterval_)
+                error('Missing frame rate! Please fill the time interval!');            
+            end
+            processExceptions = sanityCheck@Package(obj,varargin{:});
+        end
+
 
 
     end
