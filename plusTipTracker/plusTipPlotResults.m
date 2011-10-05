@@ -63,7 +63,7 @@ end
 
 % get first image from imDir
 [listOfImages] = searchFiles('.tif',[],imDir,0);
-[filename pathname]  = uigetfile('*','Select an Image File'); 
+[filename pathname]  = uigetfile('*','Select an Image File',imDir); 
 %img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
 img = double(imread([pathname filesep filename])); 
 
@@ -152,11 +152,11 @@ for iType=1:3
     % make the plot
     figure('Position',figPos)
     imagesc(img); colormap gray;
-    axis ij
+    axis off
     hold on
-    for i=1:size(x,2)
-        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-    end
+    for i=1:cMapLength
+        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
+    end  
     xlabel(['speed map of ' type{iType} ', max speed ' num2str(speedRange) ' microns/min']);
     
     
@@ -174,9 +174,9 @@ for iType=1:3
     figure('Position',figPos)
     imagesc(img); colormap gray;
     hold on
-    for i=1:size(x,2)
-        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-    end
+    for i=1:cMapLength
+        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
+    end  
     xlabel(['lifetime map of ' type{iType} ', max lifetime ' num2str(lifeRange) ' s']);
     
     
@@ -194,9 +194,9 @@ for iType=1:3
     figure('Position',figPos)
     imagesc(img); colormap gray;
     hold on
-    for i=1:size(x,2)
-        plot(x(:,i),y(:,i),'color',cMap(idx((i),1),:));
-    end
+    for i=1:cMapLength
+        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
+    end  
     xlabel(['displacmement map of ' type{iType} ', max displacement ' num2str(dispRange) ' microns']);
 end
 
