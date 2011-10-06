@@ -20,11 +20,7 @@ function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLi
 %       initition/termination locations for fgaps and bgaps, separate and
 %             merged (6)
 
-if ispc
-    fileExt='.emf';
-else
-    fileExt='.jpg';
-end
+fileExt='.tif';
 
 
 if nargin<1 || isempty(projData)

@@ -25,11 +25,8 @@ if isempty(strfind(subRoiDir,'sub'))
     return
 end
 
-if ispc
-    fileExt='.emf';
-else
-    fileExt='.tif';
-end
+fileExt='.tif';
+
 
 % check input
 if ~ismember(lower(timeUnits),{'fraction','seconds'})

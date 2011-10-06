@@ -141,11 +141,8 @@ if errFlag==1
     return
 end
 
-if ispc
-    fileExt='.emf';
-else
-    fileExt='.png';
-end
+fileExt='.tif';
+
 
 % get the group names
 [grpNames,b,m]=unique(groupList(:,1));

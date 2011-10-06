@@ -47,11 +47,7 @@ warningState = warning;
 warning('off','Images:initSize:adjustingMag')
 warning('off','MATLAB:divideByZero')
 
-if ispc
-    fileExt='.emf';
-else
-    fileExt='.tif';
-end
+fileExt='.tif';
 
 if nargin<1 || isempty(projList)
     projList=combineProjListFiles(0);
