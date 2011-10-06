@@ -158,12 +158,4 @@ end
 % convert structure to cell to view easier - but don't save it.
 projPaths=projList2Cell(projList);
 
-% If interactive mode launch a dialog box to ask where to save the projList
-if feature('ShowFigureWindows')
-    [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
-        [topDir filesep 'projList' n]);
-    if isequal(file,0), return; end
-    save([path file],'projList');
-else
-    save([topDir filesep 'projList' n],'projList')
-end
+% save([topDir filesep 'projList' n],'projList')

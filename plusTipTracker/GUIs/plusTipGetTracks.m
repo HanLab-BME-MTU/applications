@@ -158,6 +158,12 @@ temp=projList2Cell(handles.projList);
 assignin('base','selectedProjects',temp);
 guidata(hObject, handles);
 
+if ~isempty(handles.projList)
+    [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
+        [pwd filesep 'projList.mat']);
+    if isequal(file,0), return; end
+    save([path file],'projList');
+end
 
 % --- Executes on button press in getQueryStr_Check.
 function getQueryStr_Check_Callback(hObject, eventdata, handles)

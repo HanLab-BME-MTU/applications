@@ -81,7 +81,7 @@ handles.movieInfo=[];
 
 
 %place image onto the axes, remove tick marks
-pic=imread('pTT_logo_sm.png');
+pic=imread('pTT_logo_sm.jpg');
 axes(handles.logoAxes);
 image(pic);
 axis off
@@ -129,13 +129,13 @@ if ~isempty(handles.projList)
     
     % here we do NOT filter out any sub-directories
     a=projList2Cell(handles.projList);
-    a=a(:,1);
+    selectionList=a(:,1);
 
     % allow multiple projects to be selected
-    if isempty(a)
-        selection=[];
-    else
-        [selection,selectionList]=listSelectGUI(a,[],'move',1);
+    if ~isempty(selectionList)
+        selection=listdlg('PromptString',...
+            'Select the project you want to visualize','ListString',selectionList,...
+            'SelectionMode','single','ListSize',[300 300]);
     end
 
     handles.dataDir=[];
@@ -144,13 +144,11 @@ if ~isempty(handles.projList)
         msgbox('No projects selected or tracking has not been completed.')
         handles.projList=[];
     else
-        handles.projList=handles.projList(selection(1),1);
-        handles.dataDir=selectionList{1,1};
+        handles.projList=handles.projList(selection,1);
+        handles.dataDir=selectionList{selection,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
-        set(handles.anDirEdit,'String',handles.projData.anDir);
-        
-        assignin('base','projData',handles.projData)
+        set(handles.anDirEdit,'String',selectionList{selection,1});
     end
 else
     msgbox('No projects selected.')
