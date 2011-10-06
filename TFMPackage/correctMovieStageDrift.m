@@ -69,6 +69,8 @@ end
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationMatrix.mat'];
 outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1))];
+outFilePaths{5,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'x_flow.fig'];
+outFilePaths{6,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'y_flow.fig'];
 mkClrDir(outFilePaths{4,p.ChannelIndex(1)});
 displFieldProc.setOutFilePaths(outFilePaths);
 
@@ -181,6 +183,10 @@ disp('Calculating subpixel-wise registration...')
 logMsg = 'Please wait, performing sub-pixel registration';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
+% Initialize diagnosis tools
+frameIndx =[1 ceil(nFrames)/2 nFrames];
+vx=cell(1,numel(frameIndx));
+vy=vx;
 
 % Perform sub-pixel registration
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -202,12 +208,45 @@ for j= 1:nFrames
     %vectors. We take the median since it is less distorted by outliers.
     T(j,:)=-[nanmedian(dy(finiteFlow)) nanmedian(dx(finiteFlow))];
     
+    if ismember(j,frameIndx),
+        vy{j==frameIndx}=dy(finiteFlow);
+        vx{j==frameIndx}=dx(finiteFlow);
+    end
     % Update the waitbar
     if mod(j,5)==1 && feature('ShowFigureWindows')
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
     end
 end
+
+% Create diagnostic tools
+nbins=10;
+colors=hsv(numel(frameIndx));
+flowFig=figure('Visible','off');
+hold on;
+for i=1:numel(frameIndx),     
+    [n,x]=hist(vx{i},nbins);
+    plot(x,n,'Color',colors(i,:),'Linewidth',2);
+end
+legend(arrayfun(@(x) ['Frame ' num2str(x)],frameIndx,'UniformOutput',false));
+xlabel('Flow along the x-axis');
+ylabel('Number');
+set(flowFig,'Visible','off');
+saveas(flowFig,outFilePaths{5,p.ChannelIndex(1)});
+close(flowFig);
+
+flowFig=figure('Visible','off');
+hold on;
+for i=1:numel(frameIndx),     
+    [n,x]=hist(vy{i},nbins);
+    plot(x,n,'Color',colors(i,:),'Linewidth',2);
+end
+legend(arrayfun(@(x) ['Frame ' num2str(x)],frameIndx,'UniformOutput',false));
+xlabel('Flow along the y-axis');
+ylabel('Number');
+set(flowFig,'Visible','off');
+saveas(flowFig,outFilePaths{6,p.ChannelIndex(1)});
+close(flowFig);
 
 T=T+preT;
 disp('Applying stage drift correction...')

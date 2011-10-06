@@ -188,9 +188,10 @@ processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 % --- Executes on button press in pushbutton_selectReferenceFrame.
 function pushbutton_selectReferenceFrame_Callback(hObject, eventdata, handles)
 
+userData=get(handles.figure1,'UserData');
 [file path]=uigetfile({'*.tif;*.TIF;*.stk;*.STK;*.bmp;*.BMP;*.jpg;*.JPG',...
     'Image files (*.tif,*.stk,*.bmp,*.jpg)'},...
-    'Select the reference frame');
+    'Select the reference frame',userData.MD.outputDirectory_);
 if ~isequal(file,0) && ~isequal(path,0)
     set(handles.edit_referenceFramePath,'String',[path file]);
 end
