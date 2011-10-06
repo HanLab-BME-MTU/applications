@@ -171,7 +171,11 @@ end
 
 % Set up available channels listbox
 if ~isempty(allChannelIndex)
-    channelString = userData.MD.getChannelPaths(allChannelIndex);
+    if isempty(procID)
+        channelString = userData.MD.getChannelPaths(allChannelIndex);
+    else
+        channelString = userData.MD.processes_{procID}.outFilePaths_(1,allChannelIndex);
+    end
 else
     channelString = {};
 end
@@ -181,7 +185,11 @@ set(handles.listbox_availableChannels,'String',channelString,'UserData',allChann
 channelIndex = get(handles.listbox_selectedChannels, 'UserData');
 channelIndex = intersect(channelIndex,allChannelIndex);
 if ~isempty(channelIndex)
-    channelString = userData.MD.getChannelPaths(channelIndex);
+    if isempty(procID)
+        channelString = userData.MD.getChannelPaths(channelIndex);
+    else
+        channelString = userData.MD.processes_{procID}.outFilePaths_(1,channelIndex);
+    end
 else
     channelString = {};
 end
