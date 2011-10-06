@@ -77,7 +77,7 @@ title{1,1} = [];
 title{1,2} = 'Mean Value Of Per Project Parameter: Calculated From The List of Value Corresponding to Each Project In Group (ie N = numProjects)';
 title{1,3} = 'STD Of Per Project Parameter: Calculated From The List of Values Corresponding to Each Project In Group (ie N = numProjects)';
 
-for iParam = 1:length(statsNames)
+for i = 1:length(statsNames)
     mean_stdOverAllCellsInGroup.(statsNames{i}) = [groupData.names' num2cell(mean_std.(statsNames{i}))];
     mean_stdOverAllCellsInGroup.(statsNames{i}) = [title ; mean_stdOverAllCellsInGroup.(statsNames{i})];   
 end
@@ -168,18 +168,27 @@ save([saveDir filesep 'hitsTest2'],'hits2');
 
 %% Plot results
 
+% Rerieve the hit field of the datastruct only
 nonHitFields = setxor(fieldnames(dataStruct(1)),fieldnames(hits1));
-plotDataStruct =arrayfun(@(x) rmfield(x,nonHitFields),dataStruct);
-statsNames=fieldnames(plotDataStruct);
-for i=1:numel(statsNames)
-    rawData={plotDataStruct(:).(statsNames{i})};
+hitsDataStruct =arrayfun(@(x) rmfield(x,nonHitFields),dataStruct);
+hitsStatsNames=fieldnames(hitsDataStruct);
+
+% Plot barplots
+for i=1:numel(hitsStatsNames)
+    rawData={hitsDataStruct(:).(hitsStatsNames{i})};
     plotData= cellfun(@(x) mean(x),rawData);
     steData= cellfun(@(x) std(x)/sqrt(size(x,1)),rawData);
     f = figure;
-    barplot2(plotData,steData,'YLabel',statsNames{i},...
+    barplot2(plotData,steData,'YLabel',hitsStatsNames{i},...
         'XLabels',groupData.names,'Interpreter','none');
-    print(f,'-dtiff', '-r300',[saveDir filesep 'histogram_' statsNames{i} '.tif']);
+    print(f,'-dtiff', '-r300',[saveDir filesep 'histogram_' hitsStatsNames{i} '.tif']);
     close(f);
+    
+    plusTipPerCellPlot(hitsDataStruct,mean_stdOverAllCellsInGroup,hitsStatsNames{i},...
+        groupData.names)
+    print(gcf,'-dtiff', '-r300',[saveDir filesep 'plot_' hitsStatsNames{i} '.tif']);
+    close(gcf);
+    
 end
 
 end

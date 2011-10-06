@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 23-Sep-2011 15:14:48
+% Last Modified by GUIDE v2.5 06-Oct-2011 11:32:25
 
 
 % Begin initialization code - DO NOT EDIT
@@ -77,6 +77,23 @@ set(handles.popupmenu_testID1,'String',testList,'UserData',testValues);
 set(handles.popupmenu_testID2,'String',testList,'UserData',testValues);
 uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
 
+% for "sub-ROIs" panel
+set(handles.subroiDistUnitPop,'String',{'Microns','Fraction'},'Value',1);
+set(handles.subroiTimeUnitPop,'String',{'Fraction','Seconds'},'Value',1);
+
+% for "quadrant scatter plots" panel
+scatterData = {'growthSpeed','growthLifetime','growthDisp','bgapSpeed',...
+    'bgapLifetime','bgapDisp''fgapSpeed','fgapLifetime','fgapDisp'};
+scatterString={'Growth speed (microns/min)','Growth lifetime (s)',...
+    'Growth displacement (microns)','Bgap speed (microns/min)','Bgap lifetime (s)',...
+    'Bgap displacement (microns)','Fgap speed (microns/min)','Fgap lifetime (s)',...
+    'Fgap displacement (microns)'};
+set(handles.xaxisScatterDrop,'String',scatterString','UserData',scatterData,'Value',1);
+set(handles.yaxisScatterDrop,'String',scatterString','UserData',scatterData,'Value',2);
+set([handles.xParamDrop handles.yParamDrop],'String',{'Value','Percentile'},'Value',1);
+
+
+
 set(handles.figure1,'UserData',userData);
 
 %place image onto the axes, remove tick marks
@@ -108,9 +125,7 @@ varargout{1} = handles.output;
 
 % --- Executes on button press in resetButton.
 function resetButton_Callback(hObject, eventdata, handles)
-% hObject    handle to resetButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');
 
 
@@ -131,13 +146,6 @@ if ~isempty(handles.projList)
     % allow multiple projects to be selected
     if isempty(a)
         selection=[];
-
-% two-sided p-value: proportion of abs(delta) values greater than deltaPop
-%pValue = sum(abs(delta)>deltaPop)/nReps;
-
-% calculate the one-sided p-value
-pValue = 1-normcdf(deltaPop,mean(delta),std(delta));
-
     else
         [selection,selectionList]=listSelectGUI(a,[],'move',1);
     end
@@ -161,15 +169,7 @@ else
     handles.dataDir=[];
     return
 end
-temp=projList2Cell(handles.projList);
-assignin('base','selectedProjects',temp);
 
-% Launch the group creation routine
-autoGrp =get(handles.checkbox_autoGrp,'Value');
-userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
-if isempty(userData.groupList),return; end
-userData.groupData=plusTipExtractGroupData(userData.groupList);
-set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
 
 % --- Executes on button press in getQueryStr_Check.
@@ -203,29 +203,34 @@ else
     dirStart=pwd;
 end
 
-outDir=uigetdir(dirStart,'Please select OUTPUT directory for group analyis');
+outputDir=uigetdir(dirStart,'Please select output directory for group analyis');
 
-if isequal(outDir,0), return; end
+if isequal(outputDir,0), return; end
 
 userData = get(handles.figure1,'UserData');
-set(handles.edit_outDir,'String',outDir);
+set(handles.edit_outputDir,'String',outputDir);
 set(handles.figure1,'UserData',userData);
 
 
 % --- Executes on button press in pushbutton_loadGroup.
 function pushbutton_loadGroup_Callback(hObject, eventdata, handles)
 
-[file,path] = uigetfile('*.mat','Select the group list to open',pwd);
-if ~any([file,path]), return; end
-try
-    userData=get(handles.figure1,'UserData');    
-    s=load([path file]);
-    userData.groupList = s.groupList;
-    userData.groupData=plusTipExtractGroupData(userData.groupList);
-    set(handles.figure1,'UserData',userData);   
-catch ME
-    throw(ME)
-end
+userData=get(handles.figure1,'UserData');    
+[userData.groupList]=combineGroupListFiles(0);
+userData.groupData=plusTipExtractGroupData(userData.groupList);
+
+set(handles.figure1,'UserData',userData);
+% [file,path] = uigetfile('*.mat','Select the group list to open',pwd);
+% if ~any([file,path]), return; end
+% try
+%     userData=get(handles.figure1,'UserData');    
+%     s=load([path file]);
+%     userData.groupList = s.groupList;
+%     userData.groupData=plusTipExtractGroupData(userData.groupList);
+%     set(handles.figure1,'UserData',userData);   
+% catch ME
+%     throw(ME)
+% end
 
 % --- Executes on button press in checkbox_doPlot.
 function checkbox_doPlot_Callback(hObject, eventdata, handles)
@@ -238,7 +243,7 @@ set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
 function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1,'UserData');
-saveDir = get(handles.edit_outDir,'String');
+saveDir = get(handles.edit_outputDir,'String');
 % Test the group setup (groupList and output directory)
 if isempty(userData.groupList) || isempty(saveDir)
     warndlg('Select a group and an output directory first');
@@ -278,3 +283,183 @@ else
     set(handles.popupmenu_testID2,'Value',6);    
 
 end
+
+
+% --- Executes on button press in subRoiPush.
+function subRoiPush_Callback(hObject, eventdata, handles)
+
+% Read selection type
+if get(handles.subroiManualRadio,'Value'),
+    subroiSelectType =0;
+elseif get(handles.subroiAutoDivPeriphCheck,'Value'),
+    subroiSelectType =2;
+else
+    subroiSelectType =1;
+end
+      
+% Read distance units and value
+if subroiSelectType>0
+    props = get(handles.subroiDistUnitPop,{'String','Value'});
+    subroiDistUnit=props{1}{props{2}};
+    subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
+    if ~(subroiDistVal>0 && subroiDistVal<=1)
+        errordlg('Please enter a valid value for the distance from cell edge');
+        return;
+    end
+else
+    subroiDistVal=[];
+    subroiDistUnit='';
+end
+
+% Read time units and value
+props = get(handles.subroiTimeUnitPop,{'String','Value'});
+subroiTimeUnit=props{1}{props{2}};
+subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
+if ~(subroiTimeVal>0 && subroiTimeVal<=1)
+    errordlg('Please enter a valid value for the fraction of lifetime');
+    return;
+end
+
+subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
+
+plusTipSubRoiTool(handles.projList,subroiSelectType,...
+    subroiDistUnit,subroiDistVal,subroiTimeUnit,subroiTimeVal,...
+    [],subroiExcludeRegion);
+
+% --- Executes on button press in quadScatterPlotPush.
+function quadScatterPlotPush_Callback(hObject, eventdata, handles)
+% hObject    handle to quadScatterPlotPush (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+userData = get(handles.figure1,'UserData');
+% if isfield(handles,'projData') && ~get(handles.batchQuadCheck,'Value')
+%     handles.projData.anDir=formatPath(handles.projData.anDir);
+%     saveDir=handles.projData.anDir;
+%     handles.groupList={'singleProject',handles.projData.anDir};
+% else
+saveDir=get(handles.edit_outputDir,'String');
+
+if isempty(userData.groupList) || isempty(saveDir)
+    warndlg('Select a group and an output directory first');
+    return
+end
+
+
+% Read start and end frames
+value=get(handles.startFrame,'String');
+if strcmpi(value,'min'), 
+    timeRangeDetect(1)=1;
+else
+    timeRangeDetect(1)=str2double(value);
+end
+
+value=get(handles.endFrame,'String');
+if strcmpi(value,'max'), 
+    timeRangeDetect(2)=Inf;
+else
+    timeRangeDetect(2)=str2double(value);
+end
+
+   
+% Read x-axis scatter name
+props=get(handles.xaxisScatterDrop,{'UserData','Value'});
+xAxisInfo.name=props{1}{props{2}};
+
+% Read x-axis scatter input
+value = str2double(get(handles.xAxisScatterInput,'String'));
+if isnan(value), 
+    errordlg('Please enter a valid value for the x-axis scatter'); 
+    return; 
+end
+props = get(handles.xParamDrop,{'String','Value'});
+if strcmpi(props{1}{props{2}},'percentile')
+    xAxisInfo.splitPercentile=value;
+    xAxisInfo.splitValue=[];
+else
+    xAxisInfo.splitPercentile=[];
+    xAxisInfo.splitValue=value;
+end
+
+% Read x-axis limits
+value=get(handles.xAxisMin,'String');
+if strcmpi(value,'min'), xAxisInfo.minMax(1) = -Inf; 
+else xAxisInfo.minMax(1) = str2double(value);
+end
+
+value=get(handles.xAxisMax,'String');
+if strcmpi(value,'max'), xAxisInfo.minMax(2) = Inf; 
+else xAxisInfo.minMax(2) = str2double(value);
+end
+
+% Read y-axis scatter name
+props=get(handles.yaxisScatterDrop,{'UserData','Value'});
+yAxisInfo.name=props{1}{props{2}};
+
+% Read y-axis scatter input
+value = str2double(get(handles.yAxisScatterInput,'String'));
+if isnan(value), 
+    errordlg('Please enter a valid value for the x-axis scatter'); 
+    return; 
+end
+props = get(handles.yParamDrop,{'String','Value'});
+if strcmpi(props{1}{props{2}},'percentile')
+    yAxisInfo.splitPercentile=value;
+    yAxisInfo.splitValue=[];
+else
+    yAxisInfo.splitPercentile=[];
+    yAxisInfo.splitValue=value;
+end
+
+% Read y-axis limits
+value=get(handles.yAxisMin,'String');
+if strcmpi(value,'min'), yAxisInfo.minMax(1) = -Inf; 
+else yAxisInfo.minMax(1) = str2double(value);
+end
+
+value=get(handles.yAxisMax,'String');
+if strcmpi(value,'max'), yAxisInfo.minMax(2) = Inf; 
+else yAxisInfo.minMax(2) = str2double(value);
+end
+
+
+% Read checkboxes
+doPlotQuad=~get(handles.summQuadPlotOnlyCheck,'Value');
+remBegEnd = get(handles.remTrackBegEnd,'Value');
+
+plusTipQuadScatter(xAxisInfo,yAxisInfo,userData.groupList,remBegEnd,...
+    timeRangeDetect,doPlotQuad,saveDir);
+
+% --- Executes when selected object is changed in subroiRadioPanel.
+function subroiRadioPanel_SelectionChangeFcn(hObject, eventdata, handles)
+
+if strcmp(get(hObject,'Tag'),'subroiManualRadio')
+    set(handles.subroiDistValEdit,'Enable','Off','String','');
+    set(handles.subroiDistUnitPop,'Enable','Off');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
+else
+        set(handles.subroiDistValEdit,'Enable','On');
+    set(handles.subroiDistUnitPop,'Enable','On');
+    set(handles.subroiAutoDivPeriphCheck,'Enable','On');
+end
+
+guidata(hObject, handles);
+  
+
+% --- Executes on button press in pushbutton_createGroups.
+function pushbutton_createGroups_Callback(hObject, eventdata, handles)
+
+if isempty(handles.projList),
+    errordlg('No projects selected. Please select projects first');
+    return
+end
+    
+% Launch the group creation routine
+userData =get(handles.figure1,'UserData');
+autoGrp =get(handles.checkbox_autoGrp,'Value');
+userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
+if isempty(userData.groupList),return; end
+
+userData.groupData=plusTipExtractGroupData(userData.groupList);
+set(handles.figure1,'UserData',userData);
+guidata(hObject, handles);
