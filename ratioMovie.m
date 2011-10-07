@@ -53,13 +53,13 @@ function movieData = ratioMovie(movieData,paramsIn)
 %       can also be set:
 %
 %               ('SegProcessIndex' -> Positive integer scalar or vector) Optional.
-%               This specifies SegmentationProcess(s) to use masks from by its
+%               This specifies MaskProcess(s) to use masks from by its
 %               index in the array movieData.processes_; For each channel, masks
 %               will be used from the last process specified which has valid masks
 %               for that channel. That is if SegProcessIndex = [1 4] and both
 %               processes 1 and 4 have masks for a given channel, then the masks
 %               from process 4 will be used. If not input, and multiple
-%               SegmentationProcesses are present, the user will be asked to select
+%               MaskProcesses are present, the user will be asked to select
 %               one, unless batch mode is enabled in which case an error will be
 %               generated.
 %
@@ -172,18 +172,18 @@ if p.ApplyMasks || p.CreateMasks
     if isempty(p.SegProcessIndex)    
         if p.BatchMode
             %If batch mode, just get all the seg processes
-            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',Inf,0);
+            p.SegProcessIndex = movieData.getProcessIndex('MaskProcess',Inf,0);
             if numel(p.SegProcessIndex) > 1
-                error('In batch mode you must specify the SegProcessIndex if more than one SegmentationProcess is available!')
+                error('In batch mode you must specify the SegProcessIndex if more than one MaskProcess is available!')
             end      
         else
             %Otherwise, ask the user 
-            p.SegProcessIndex = movieData.getProcessIndex('SegmentationProcess',1,1);
+            p.SegProcessIndex = movieData.getProcessIndex('MaskProcess',1,1);
         end
     end
 
     if isempty(p.SegProcessIndex) 
-        error('This function requires that the input movie has already been segmented - no valid SegmentationProcesses were found!')
+        error('This function requires that the input movie has already been segmented - no valid MaskProcesses were found!')
     end
 
     nProc = numel(p.SegProcessIndex);
@@ -192,9 +192,9 @@ if p.ApplyMasks || p.CreateMasks
     %Check every specified process for masks
     for j = 1:nProc
 
-        %Make sure the specified process is a SegmentationProcess
-        if ~isa(movieData.processes_{p.SegProcessIndex(j)},'SegmentationProcess')
-            error(['The process specified by SegProcessIndex(' num2str(j) ') is not a SegmentationProcess!'])
+        %Make sure the specified process is a MaskProcess
+        if ~isa(movieData.processes_{p.SegProcessIndex(j)},'MaskProcess')
+            error(['The process specified by SegProcessIndex(' num2str(j) ') is not a MaskProcess!'])
         end
 
         %Check which channels have masks from this process

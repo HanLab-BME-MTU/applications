@@ -143,13 +143,13 @@ for j = 1:2
 end
 
 %Check segmentation processes
-if isempty(movieData.getProcessIndex('SegmentationProcess',Inf,0))
+if isempty(movieData.getProcessIndex('MaskProcess',Inf,0))
     error('The movie must have been segmented! Please segment movie first!')
 end
 
 h = msgbox('After you click OK, when the next window pops up, select the segmentation process to use masks from for the channel WITH a fluorophore','modal');
 uiwait(h);
-iSegProc(1) = movieData.getProcessIndex('SegmentationProcess',1,1);
+iSegProc(1) = movieData.getProcessIndex('MaskProcess',1,1);
 %Check the specified mask channels
 if ~movieData.processes_{iSegProc(1)}.checkChannelOutput(iMaskChans(1))
     error('Specified mask channels do not have valid masks! Check channels & masks!')
@@ -157,7 +157,7 @@ end
 
 h = msgbox('After you click OK, when the next window pops up, select the segmentation process to use masks from for the channel WITHOUT a fluorophore','modal');
 uiwait(h);
-iSegProc(2) = movieData.getProcessIndex('SegmentationProcess',1,1);
+iSegProc(2) = movieData.getProcessIndex('MaskProcess',1,1);
 %Check the specified mask channels
 if ~movieData.processes_{iSegProc(2)}.checkChannelOutput(iMaskChans(2))
     error('Specified mask channels do not have valid masks! Check channels & masks!')

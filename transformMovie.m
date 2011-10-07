@@ -51,12 +51,12 @@ function movieData = transformMovie(movieData,paramsIn)
 %       If masks are transformed, these additional options apply:
 %       
 %               ('SegProcessIndex' -> Positive integer scalar or vector)
-%               Optional. This specifies SegmentationProcess(s) to use
+%               Optional. This specifies MaskProcess(s) to use
 %               masks from by its index in the array movieData.processes_;
 %               If input as a vector, masks will be used from the process
 %               specified by the first element, and if not available for a
 %               specific channel, then from the next process etc. If not
-%               input, and multiple SegmentationProcesses are present, the
+%               input, and multiple MaskProcesses are present, the
 %               user will be asked to select one, unless batch mode is
 %               enabled in which case there will be an error.  
 %
