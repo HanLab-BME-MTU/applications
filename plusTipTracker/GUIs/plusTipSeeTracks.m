@@ -81,7 +81,7 @@ handles.movieInfo=[];
 
 
 %place image onto the axes, remove tick marks
-pic=imread('pTT_logo_sm.jpg');
+pic=imread('pTT_logo_sm.png');
 axes(handles.logoAxes);
 image(pic);
 axis off

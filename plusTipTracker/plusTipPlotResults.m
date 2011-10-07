@@ -22,7 +22,6 @@ function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLi
 
 fileExt='.tif';
 
-
 if nargin<1 || isempty(projData)
     dirName=uigetdir(pwd,'Please select project directory');
     temp=load([dirName filesep 'meta' filesep 'projData.mat']);
@@ -56,6 +55,9 @@ if nargin<7 || isempty(saveDir)
     saveDir=uigetdir(anDir,'Please choose output directory');
 end
 
+if feature('ShowFigureWindows')
+    wtBar = waitbar(0,'Initializing...');
+end
 
 % get first image from imDir
 [listOfImages] = searchFiles('.tif',[],imDir,0);
@@ -124,104 +126,61 @@ figPos=[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) 
 
 cMapLength=128; cMap=jet(cMapLength);
 
-events= {'growth','lifetime','displacement'};
-type= {'growth tracks','fgaps','bgaps'};
-typeIndx= {gIdx;fIdx;bIdx};
+% Create MT dynamics maps of speed, lifetime and displacement for growth,
+% fgaps and bgaps events
+type= {'speed','lifetime','displacement'};
+typeIndx= {4,6,7};
+typeMatIndx = {1:3,4:6,7:9};
+typeLim = {speedLim;lifeLim;dispLim};
+typeUnits = {speedLim;lifeLim;dispLim};
+event= {'growth tracks','fgaps','bgaps'};
+eventIndx= {gIdx;fIdx;bIdx};
 
-for iType=1:3
+for i=1:3
+    x=xMat(eventIndx{i},1:end-1)';
+    y=yMat(eventIndx{i},1:end-1)';
     
-    %% GROWTH SUBTRACKS
-    
-    x=xMat(typeIndx{iType},1:end-1)';
-    y=yMat(typeIndx{iType},1:end-1)';
-    
-    % SPEED
-    speed=allData(typeIndx{iType},4);
-    speedRange=ceil(speedLim);
-    speed(speed>speedRange)=speedRange;
-    mapper=linspace(0,speedRange,cMapLength)';
-    
-    % get closest colormap index for each feature
-    D=createDistanceMatrix(speed,mapper);
-    [sD,idx]=sort(abs(D),2);
-    
-    % make the plot
-    figure('Position',figPos)
-    imagesc(img); colormap gray;
-    axis off
-    hold on
-    for i=1:cMapLength
-        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
-    end  
-    xlabel(['speed map of ' type{iType} ', max speed ' num2str(speedRange) ' microns/min']);
-    
-    
-    % LIFETIME
-    life=allData(typeIndx{iType},6);
-    lifeRange=ceil(lifeLim);
-    life(life>lifeRange)=lifeRange;
-    mapper=linspace(0,lifeRange,cMapLength)';
-    
-    % get closest colormap index for each feature
-    D=createDistanceMatrix(life,mapper);
-    [sD,idx]=sort(abs(D),2);
-    
-    % make the plot
-    figure('Position',figPos)
-    imagesc(img); colormap gray;
-    hold on
-    for i=1:cMapLength
-        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
-    end  
-    xlabel(['lifetime map of ' type{iType} ', max lifetime ' num2str(lifeRange) ' s']);
-    
-    
-    % DISPLACEMENT
-    disp=allData(typeIndx{iType},7);
-    dispRange=ceil(dispLim);
-    disp(disp>dispRange)=dispRange;
-    mapper=linspace(0,dispRange,cMapLength)';
-    
-    % get closest colormap index for each feature
-    D=createDistanceMatrix(disp,mapper);
-    [sD,idx]=sort(abs(D),2);
-    
-    % make the plot
-    figure('Position',figPos)
-    imagesc(img); colormap gray;
-    hold on
-    for i=1:cMapLength
-        plot(x(:,idx(:,1)==i),y(:,idx(:,1)==i),'color',cMap(i,:));
-    end  
-    xlabel(['displacmement map of ' type{iType} ', max displacement ' num2str(dispRange) ' microns']);
+    for j=1:3
+        % SPEED
+        data=allData(eventIndx{i},typeIndx{j});
+        dataRange=ceil(typeLim{j});
+        data(data>dataRange)=dataRange;
+        mapper=linspace(0,dataRange,cMapLength)';
+        
+        % get closest colormap index for each feature
+        D=createDistanceMatrix(data,mapper);
+        [sD,idx]=sort(abs(D),2);
+        
+        % make the plot
+        figure('Position',figPos)
+        imagesc(img); colormap gray;
+        axis off
+        hold on
+        for k=1:cMapLength
+            plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:));
+        end
+        xlabel([type{i} 'map of ' event{j} ', max ' type{i}...
+            ' ' num2str(dataRange) ' ' typeUnits{i}]);
+        
+        saveas(gcf,[saveDir filesep 'overlay_' event{j} '_' type{i} '.fig'])
+        saveas(gcf,[saveDir filesep 'overlay_' event{j} '_' type{i} fileExt])
+        close(gcf)
+        
+        if ishandle(wtBar)
+            waitbar(((i-1)*3+ j)/18,wtBar,'Creating overlay maps');
+        end
+        
+    end
 end
 
 %% STACKED HISTOGRAMS
 
 [dummy,speedLifeDispMat]=plusTipDynamParam(allData,[],1,0);
 
-for iParam=1:3
-    switch iParam
-        case 1
-            data=speedLifeDispMat(:,1:3); % speed
-            lim=speedLim;
-            titleStr='speed';
-            xStr='speed (microns/min)';
-        case 2
-            data=speedLifeDispMat(:,4:6); % lifetime
-            lim=lifeLim;
-            titleStr='lifetime';
-            xStr='lifetime (sec)';
-        case 3
-            data=speedLifeDispMat(:,7:9); % displacement
-            lim=dispLim;
-            titleStr='displacement';
-            xStr='displacement (microns)';
-    end
-
-
+for j=1:3
+    data=speedLifeDispMat(:,typeMatIndx{j});
     % create x-axis bins spanning all values
-    n=linspace(0,lim,25);
+    n=linspace(0,typeLim{j},25);
 
     % bin the samples
     [x1,dummy] = histc(data(:,1),n); % growth
@@ -239,8 +198,15 @@ for iParam=1:3
     bar(n,M,'stack')
     colormap([1 0 0; 0 0 1; 0 1 0])
     legend('growth','fgap','bgap','Location','best')
-    xlabel(xStr);
-    ylabel('frequency');
+    xlabel([type{j} ' (' typeUnits{j} ')']);
+    ylabel('Frequency');
+    
+    saveas(gcf,[saveDir filesep 'histogram_' type{j} '.fig'])
+    saveas(gcf,[saveDir filesep 'histogram_' type{j} fileExt])
+    close(gcf)
+    if ishandle(wtBar)
+        waitbar(.5+j/6,wtBar,'Creating stacked histograms');
+    end
 end
 
 %% RESCUE FROM PAUSE AND SHRINKAGE PLOTS
@@ -277,6 +243,7 @@ for iBgap=1:nBgaps
     yResShrink(iBgap)=yMat(c,idx);
 end
 
+if ishandle(wtBar),  waitbar(.75,wtBar,'Creating sites plots'); end
 
 % make the pause/shrink initiation plots
 figure('Position',figPos)
@@ -284,12 +251,19 @@ imagesc(img); colormap gray;
 hold on
 scatter(xCatPause,yCatPause,'y','filled')
 xlabel('pause initiation sites (growth to pause)')
+saveas(gcf,[saveDir filesep 'pause initiation sites (growth to pause)' '.fig'])
+saveas(gcf,[saveDir filesep 'pause initiation sites (growth to pause)' fileExt])
+close(gcf)
 
 figure('Position',figPos)
 imagesc(img); colormap gray;
 hold on
 scatter(xCatShrink,yCatShrink,'r','filled')
 xlabel('shrinkage initiation sites (growth to shrinkage)')
+
+saveas(gcf,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' '.fig'])
+saveas(gcf,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' fileExt])
+close(gcf)
 
 figure('Position',figPos)
 imagesc(img); colormap gray;
@@ -298,6 +272,10 @@ scatter(xCatPause,yCatPause,'y','filled')
 scatter(xCatShrink,yCatShrink,'r','filled')
 xlabel('pause (yellow) and shrinkage (red) initiation sites')
 
+saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' '.fig'])
+saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' fileExt])
+close(gcf)
+
 % make the pause/shrinkage termination plots
 figure('Position',figPos)
 imagesc(img); colormap gray;
@@ -305,11 +283,21 @@ hold on
 scatter(xResPause,yResPause,'y','filled')
 xlabel('pause termination sites (pause to growth)')
 
+saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
+saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
+close(gcf)
+
+
 figure('Position',figPos)
 imagesc(img); colormap gray;
 hold on
 scatter(xResShrink,yResShrink,'r','filled')
 xlabel('shrinkage termination sites (shrinkage to growth)')
+
+saveas(gcf,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' '.fig'])
+saveas(gcf,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' fileExt])
+close(gcf)
+
 
 figure('Position',figPos)
 imagesc(img); colormap gray;
@@ -318,80 +306,9 @@ scatter(xResPause,yResPause,'y','filled')
 scatter(xResShrink,yResShrink,'r','filled')
 xlabel('pause (yellow) and shrinkage (red) termination sites')    
 
-%% save all the plots
-figNum=1;
-for iType=1:3
-    switch iType
-        case 1
-            typeStr='growth';
-        case 2
-            typeStr='fgap';
-        case 3
-            typeStr='bgap';
-    end
-
-    % save the track overlays
-    for iParam=1:3
-        switch iParam
-            case 1
-                paramStr='speed';
-            case 2
-                paramStr='lifetime';
-            case 3
-                paramStr='displacement';
-        end
-        saveas(figNum,[saveDir filesep 'overlay_' typeStr '_' paramStr '.fig'])
-        saveas(figNum,[saveDir filesep 'overlay_' typeStr '_' paramStr fileExt])
-        close(figNum)
-        figNum=figNum+1;
-    end
-end
-% save the stacked histograms
-for iParam=1:3
-    switch iParam
-        case 1
-            paramStr='speed';
-        case 2
-            paramStr='lifetime';
-        case 3
-            paramStr='displacement';
-    end
-    saveas(figNum,[saveDir filesep 'histogram_' paramStr '.fig'])
-    saveas(figNum,[saveDir filesep 'histogram_' paramStr fileExt])
-    close(figNum)
-    figNum=figNum+1;
-end
-
-% save the catastophe/rescue plots
-saveas(figNum,[saveDir filesep 'pause initiation sites (growth to pause)' '.fig'])
-saveas(figNum,[saveDir filesep 'pause initiation sites (growth to pause)' fileExt])
-close(figNum)
-figNum=figNum+1;
-
-saveas(figNum,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' '.fig'])
-saveas(figNum,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' fileExt])
-close(figNum)
-figNum=figNum+1;
-
-saveas(figNum,[saveDir filesep 'pause and shrinkage initiation sites' '.fig'])
-saveas(figNum,[saveDir filesep 'pause and shrinkage initiation sites' fileExt])
-close(figNum)
-figNum=figNum+1;
-
-saveas(figNum,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
-saveas(figNum,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
-close(figNum)
-figNum=figNum+1;
-
-saveas(figNum,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' '.fig'])
-saveas(figNum,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' fileExt])
-close(figNum)
-figNum=figNum+1;
-
-saveas(figNum,[saveDir filesep 'pause and shrinkage termination sites' '.fig'])
-saveas(figNum,[saveDir filesep 'pause and shrinkage termination sites' fileExt])
-close(figNum)
-figNum=figNum+1;
+saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' '.fig'])
+saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' fileExt])
+close(gcf)
 
 
-
+if ishandle(wtBar), close(wtBar); end

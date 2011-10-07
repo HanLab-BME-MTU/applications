@@ -302,7 +302,12 @@ if subroiSelectType>0
     props = get(handles.subroiDistUnitPop,{'String','Value'});
     subroiDistUnit=props{1}{props{2}};
     subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
-    if ~(subroiDistVal>0 && subroiDistVal<=1)
+    if strcmpi(subroiDistUnit,'fraction');
+        check=@(x) x>0 && x<1 && ~isnan(x);
+    else
+        check= @(x) x>0 && ~isnan(x);
+    end
+    if ~check(subroiDistVal)
         errordlg('Please enter a valid value for the distance from cell edge');
         return;
     end
@@ -315,10 +320,17 @@ end
 props = get(handles.subroiTimeUnitPop,{'String','Value'});
 subroiTimeUnit=props{1}{props{2}};
 subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
-if ~(subroiTimeVal>0 && subroiTimeVal<=1)
-    errordlg('Please enter a valid value for the fraction of lifetime');
+if strcmpi(subroiTimeUnit,'fraction');
+    check=@(x) x>0 && x<1 && ~isnan(x);
+else
+    check= @(x) x>0 && ~isnan(x);
+end
+
+if ~check(subroiTimeVal)
+    errordlg('Please enter a valid value for the time in the sub-region');
     return;
 end
+    
 
 subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
 
