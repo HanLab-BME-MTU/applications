@@ -162,7 +162,7 @@ if ~isempty(handles.projList)
     [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
         [pwd filesep 'projList.mat']);
     if isequal(file,0), return; end
-    save([path file],'projList');
+    save([path file],'-struct',handles,'projList');
 end
 
 % --- Executes on button press in getQueryStr_Check.
