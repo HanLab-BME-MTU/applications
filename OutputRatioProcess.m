@@ -47,7 +47,7 @@ classdef OutputRatioProcess < DoubleProcessingProcess
         
         function sanityCheck(obj)
         end
-        function OK = checkChannelOutput(obj,iChan)
+        function status = checkChannelOutput(obj,iChan)
             
            %Checks if the selected channels have valid output images          
            nChanTot = numel(obj.owner_.channels_);
@@ -55,11 +55,27 @@ classdef OutputRatioProcess < DoubleProcessingProcess
                iChan = 1:nChanTot;
            end
            
-           OK =  arrayfun(@(x)(x <= nChanTot && ...
-                             x > 0 && isequal(round(x),x) && ...
+           status =  arrayfun(@(x)(ismember(x,1:nChanTot) && ...
                              (length(dir([obj.outFilePaths_{1,x} filesep '*.tif']))...
                              == obj.owner_.nFrames_)),iChan);
         end   
+        
+        function outIm = loadChannelOutput(obj,iChan,iFrame,varargin)
+            
+            ip =inputParser;
+            ip.addRequired('obj');
+            ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
+            ip.addRequired('iFrame',@(x) ismember(x,1:obj.owner_.nFrames_));
+            ip.addParamValue('output',[],@ischar);            
+            ip.parse(obj,iChan,iFrame,varargin{:})
+            
+            %get the image names
+            imNames = getOutImageFileNames(obj,iChan);
+            outIm = double(imread([obj.outFilePaths_{1,iChan} filesep imNames{1}{iFrame}]));
+            
+        end
+        
+        
         function fileNames = getOutImageFileNames(obj,iChan)
             if obj.checkChannelOutput(iChan)
                 fileNames = cellfun(@(x)(imDir(x)),obj.outFilePaths_(1,iChan),'UniformOutput',false);
@@ -83,6 +99,7 @@ classdef OutputRatioProcess < DoubleProcessingProcess
     
     end
     methods(Static)
+
         function name = getName()
             name = 'Ratio Output';
         end

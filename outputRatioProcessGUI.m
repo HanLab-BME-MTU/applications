@@ -257,7 +257,7 @@ end
 % ----------------------Sanity Check (II, III check)----------------------
 
 % Do sanity check - only check changed parameters
-procEx = userData.crtPackage.sanityCheck(false,'all');
+[status procEx] = userData.crtPackage.sanityCheck(false,'all');
 
 % Return user data !!!
 set(userData.mainFig, 'UserData', userData_main)
@@ -322,7 +322,7 @@ for x = 1: length(userData_main.MD)
    end
    
     % Do sanity check - only check changed parameters
-    procEx = userData_main.package(x).sanityCheck(false,'all');
+    [status procEx] = userData_main.package(x).sanityCheck(false,'all');
 
     % Draw some bugs on the wall 
     for i = 1: length(procEx)

@@ -20,7 +20,7 @@ classdef BiosensorsPackage < Package
             
         end
         
-        function processExceptions = sanityCheck(obj,varargin) % throws Exception Cell Array
+        function [status processExceptions] = sanityCheck(obj,varargin) % throws Exception Cell Array
             nProcesses = length(obj.getProcessClassNames);
             
             ip = inputParser;
@@ -33,7 +33,7 @@ classdef BiosensorsPackage < Package
             procID = ip.Results.procID;
             if strcmp(procID,'all'), procID = 1:nProcesses;end
             
-            processExceptions = sanityCheck@Package(obj,full,procID);
+            [status processExceptions] = sanityCheck@Package(obj,full,procID);
             
             if ~full, return; end
             
@@ -326,7 +326,7 @@ classdef BiosensorsPackage < Package
         end
         function classes = getProcessClassNames(index)
             biosensorsClasses = {
-                'ThresholdProcess',...
+                'SegmentationProcess',...
                 'BackgroundMasksProcess',...
                 'MaskRefinementProcess',...
                 'DarkCurrentCorrectionProcess',...
