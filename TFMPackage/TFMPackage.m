@@ -12,26 +12,12 @@ classdef TFMPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                super_args{2} = TFMPackage.getName;
-                % Dependency Matrix (same length as process class name
-                % string)
-                super_args{3} = TFMPackage.getDependencyMatrix;
-                
-                % Process CLASS NAME string (same length as dependency matrix)
-                % Must be accurate process class name
-                TFMProcConstr = {
-                    @StageDriftCorrectionProcess,...
-                    @DisplacementFieldCalculationProcess,...
-                    @DisplacementFieldCorrectionProcess,...
-                    @ForceFieldCalculationProcess};
-                super_args{4} = cellfun(@func2str,TFMProcConstr,...
-                    'UniformOutput',false);
-                super_args{5} = [outputDir  filesep 'TFMPackage'];
+                super_args{2} = TFMPackage.getDependencyMatrix;               
+                super_args{3} = [outputDir  filesep 'TFMPackage'];
             end
             
             % Call the superclass constructor
-            obj = obj@Package(super_args{:},...
-                'processClassHandles_',TFMProcConstr);
+            obj = obj@Package(super_args{:});
         end
         
         
@@ -52,21 +38,18 @@ classdef TFMPackage < Package
             processExceptions = sanityCheck@Package(obj,varargin{:});
         end
 
-
-
     end
     
     methods (Static)
         
         function m = getDependencyMatrix()
             % Get dependency matrix
-            
             %    1 2 3 4
-            m = [0 0 0 0;  
-                 2 0 0 0;
-                 0 1 0 0   
-                 0 1 2 0;];
-        end 
+            m = [0 0 0 0;
+                2 0 0 0;
+                0 1 0 0
+                0 1 2 0;];
+        end
         
         function name = getName()
             name = 'Traction Force Microscopy';
@@ -78,12 +61,30 @@ classdef TFMPackage < Package
             id=find(sum(M==2,1));
         end
         
-        function varargout = start(varargin)
+        function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = tfmPackageGUI(varargin{:});
         end
+        
+        function procConstr = getDefaultProcessConstructors(index)
+            TFMProcConstr = {
+                @StageDriftCorrectionProcess,...
+                @DisplacementFieldCalculationProcess,...
+                @DisplacementFieldCorrectionProcess,...
+                @ForceFieldCalculationProcess};
+            
+            if nargin==0, index=1:numel(TFMProcConstr); end
+            procConstr=TFMProcConstr(index);
+        end
+        function classes = getProcessClassNames(index)
+            TFMClasses = {
+                'StageDriftCorrectionProcess',...
+                'DisplacementFieldCalculationProcess',...
+                'DisplacementFieldCorrectionProcess',...
+                'ForceFieldCalculationProcess'};
+            if nargin==0, index=1:numel(TFMClasses); end
+            classes=TFMClasses(index);
+        end
     end
-
-    
+   
 end
-
