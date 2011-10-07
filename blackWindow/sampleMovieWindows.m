@@ -149,7 +149,7 @@ end
 
 %Get the mask information from the windowing process
 iSegProc = movieData.processes_{iWinProc}.funParams_.SegProcessIndex;
-if ~isa(movieData.processes_{iSegProc},'SegmentationProcess')
+if ~isa(movieData.processes_{iSegProc},'MaskProcess')
     error('The segmentation process specified by the windowing process is invalid! Please check settings and re-run windowing!')
 end
 

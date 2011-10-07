@@ -58,7 +58,7 @@ cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
 
 % Read available segmentaation processes
-segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
+segProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
 segProcID=find(segProc);
 segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',false);
 segProcString = vertcat('Choose later',segProcNames(:));

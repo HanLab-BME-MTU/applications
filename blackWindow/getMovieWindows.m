@@ -203,11 +203,11 @@ p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 %Make sure the movie has been segmented, and find the desired process.
 if isempty(p.SegProcessIndex)
-    iSegProc = movieData.getProcessIndex('SegmentationProcess',1,~p.BatchMode);
-elseif isa(movieData.processes_{p.SegProcessIndex},'SegmentationProcess')
+    iSegProc = movieData.getProcessIndex('MaskProcess',1,~p.BatchMode);
+elseif isa(movieData.processes_{p.SegProcessIndex},'MaskProcess')
     iSegProc = p.SegProcessIndex;
 else
-    error('The process specified by SegProcessIndex is not a valid SegmentationProcess! Check input!')
+    error('The process specified by SegProcessIndex is not a valid MaskProcess! Check input!')
 end
 if isempty(iSegProc)
     error('The movie could not be windowed, because it has not been segmented yet!')

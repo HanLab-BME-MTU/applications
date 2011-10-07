@@ -54,7 +54,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
-segProc =  cellfun(@(x) isa(x,'SegmentationProcess'),userData.MD.processes_);
+segProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
 segProcID=find(segProc);
 segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',false);
 segProcString = vertcat('Choose later',segProcNames(:));
