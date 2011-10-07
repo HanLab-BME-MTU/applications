@@ -35,17 +35,20 @@ end
 tracks = tracks(idx);
 
 if nargout>1
-    % segments corresponding to index    
+    
+    % segments to retain
     sidx = trackInfo.track2segIndex(idx);
     sidx = [sidx{:}];
     
+    [gapMap, segStarts, segEnds, seg2trackIndex, track2segIndex] = catTrackFields(tracks, data.movieLength, 'gapVect', 1);
+   
     trackInfo.x = trackInfo.x(sidx,:);
     trackInfo.y = trackInfo.y(sidx,:);
-    trackInfo.gapMap = trackInfo.gapMap(sidx,:);
-    trackInfo.segStarts = trackInfo.segStarts(sidx);
-    trackInfo.segEnds = trackInfo.segEnds(sidx);
-    trackInfo.seg2trackIndex = trackInfo.seg2trackIndex(sidx);
-    trackInfo.track2segIndex = trackInfo.track2segIndex(idx);
+    trackInfo.gapMap = gapMap;
+    trackInfo.segStarts = segStarts;
+    trackInfo.segEnds = segEnds;
+    trackInfo.seg2trackIndex = seg2trackIndex;
+    trackInfo.track2segIndex = track2segIndex;
     
     trackInfo.nSeg = [tracks.nSeg];
     trackInfo.status = [tracks.status];
