@@ -1,33 +1,44 @@
+%
+%
+% Inputs:       data : 
+%          trackInfo : structure containing 'tracks'
+%
+
 
 % Handles/settings are stored in 'appdata' of the figure handle
 
 function hfig = trackDisplayGUI(data, varargin)
-
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('tracks', cell(1,length(data.channels)), @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
+ip.addOptional('trackInfo', cell(1,length(data.channels)), @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
 ip.parse(data, varargin{:});
+
 handles.data = data;
-tracks = ip.Results.tracks;
+
+% tracks = ip.Results.tracks;
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
 handles.nCh = nCh;
 % exclude master from list of channels
 handles.mCh = find(strcmp(data.source, data.channels));
-nt = length(tracks);
+nt = length(ip.Results.tracks);
 handles.colorMap = hsv2rgb([rand(nt,1) ones(nt,2)]);
 
 if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
     
-if isstruct(tracks)
+if isstruct(ip.Results.tracks)
     handles.tracks = cell(1,nCh);
-    handles.tracks{1} = tracks;
+    handles.tracks{1} = ip.Results.tracks;
+    handles.trackInfo = cell(1,nCh);
+    handles.trackInfo{1} = ip.Results.trackInfo;    
 else
-    handles.tracks = tracks;
+    handles.tracks = ip.Results.tracks;
+    handles.trackInfo = ip.Results.trackInfo;
 end
 
 if ~isempty(handles.tracks{handles.mCh})
@@ -163,7 +174,7 @@ if exist(detectionFile, 'file')==2
         for c = 1:nCh
             M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
             M = vertcat(M{:});
-            handles.dRange{c} = [min(M(1,:)) max(M(2,:))];
+            handles.dRange{c} = [min(M(:,1)) max(M(:,2))];
         end
     end
 end
@@ -406,7 +417,7 @@ for k = 1:nAxes
     end
     
     if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
-        plotFrame(handles.data, handles.tracks{cvec(k)}, f, cidx,...
+        plotFrame(handles.data, handles.trackInfo{cvec(k)}, f, cidx,...
             'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
             'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
@@ -427,10 +438,12 @@ for k = 1:nAxes
     % plot selected track marker
     if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value') 
         t = handles.tracks{chIdx}(handles.selectedTrack(k));
-        ci = f-t.start+1;
-        if 1 <= ci && ci <= length(t.x)
-            markerHandles(k) = plot(handles.fAxes{k}, t.x(chIdx,ci), t.y(chIdx,ci), 'ws', 'MarkerSize', 10*settings.zoom);
-            textHandles(k) = text(t.x(chIdx,ci)+15, t.y(chIdx,ci)+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
+        fi = f-t.start+1;
+        if 1 <= fi && fi <= length(t.x{1})
+            xi = t.x{1}(chIdx,fi);
+            yi = t.y{1}(chIdx,fi);
+            markerHandles(k) = plot(handles.fAxes{k}, xi, yi, 'ws', 'MarkerSize', 10*settings.zoom);
+            textHandles(k) = text(xi+15, yi+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
         end
     end
     
@@ -552,10 +565,11 @@ function refreshTrackDisplay(hfig)
 handles = getappdata(hfig, 'handles');
 
 if ~isempty(handles.selectedTrack)
-
+    
     for ci = 1:handles.nCh
-        
+        %handles.tAxes
         h = handles.tAxes{ci};
+        %cla(h);
         hold(h, 'off');
 
         if ~isempty(handles.tracks{ci})
@@ -575,22 +589,22 @@ if ~isempty(handles.selectedTrack)
             bEnd = 0;
         end
         
-        if size(sTrack.A, 1)==1
+        if size(sTrack.A{1}, 1)==1
             cx = 1;
         else
             cx = ci;
         end
         
-        plotTrack(handles.data, sTrack, handles.selectedTrack, cx, 'Handle', h, 'Legend', 'hide');
+        plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Legend', 'hide');
         box on;
-        l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
-        set(l, 'FontSize', 7);
+        %l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
+        %set(l, 'FontSize', 7);
                      
         % plot current frame position
         ybounds = get(h, 'YLim');
         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
         axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
-        
+        hold(h, 'off');
         
         % display result of classification, if available
         %if isfield(handles.tracks{1}, 'cStatus')
@@ -680,42 +694,18 @@ for c = 1:handles.nCh
         chIdx = c;
     else
         chIdx = handles.mCh;
-    end   
-    idx = find([handles.tracks{chIdx}.start] <= handles.f & handles.f <= [handles.tracks{chIdx}.end]);
-
-    np = length(idx);
-    mu_x = zeros(1,length(np));
-    mu_y = zeros(1,length(np));
-    for k = 1:np
-        fi = 1:handles.f-handles.tracks{chIdx}(idx(k)).start+1;
-        mu_x(k) = mean(handles.tracks{chIdx}(idx(k)).x(fi));
-        mu_y(k) = mean(handles.tracks{chIdx}(idx(k)).y(fi));
     end
+    % track segments visible in current frame
+    mu_x = handles.trackInfo{chIdx}.x(:,handles.f);
+    mu_y = handles.trackInfo{chIdx}.y(:,handles.f);
+    
     % nearest point
     d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
-    selectedIdx = idx(d==min(d));
-    handles.selectedTrack(c) = selectedIdx;
+    handles.selectedTrack(c) = handles.trackInfo{chIdx}.seg2trackIndex(d==min(d));
 end
 
 set(handles.trackSlider, 'Value', handles.selectedTrack(1));
 set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
-
-
-% % mean position of visible tracks
-% idx = handles.visibleIdx{2};
-% np = length(idx);
-% mu_x = zeros(1,length(np));
-% mu_y = zeros(1,length(np));
-% for k = 1:np
-%     fi = 1:handles.f-handles.tracks2(idx(k)).start+1;
-%     mu_x(k) = mean(handles.tracks2(idx(k)).x(fi));
-%     mu_y(k) = mean(handles.tracks2(idx(k)).y(fi));
-% end
-% % nearest point
-% d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
-% handles.selectedTrack(2) = idx(d==min(d));
-% % handles.selectedTrack(2) = handles.trackLinks(selectedIdx);
-
 
 setappdata(hfig, 'handles', handles);
 % axis(handles.axes3, [0 handles.data.movieLength 0 1]);
@@ -829,8 +819,9 @@ for ch = 1:handles.nCh
     else
         tracks = handles.tracks{handles.mCh};
     end
-    plotTrack(handles.data, tracks, handles.selectedTrack(ch), ch,...
-        'Print', 'on', 'Visible', 'off', 'Legend', 'hide');
+    plotTrack(handles.data, tracks(handles.selectedTrack(ch)), ch,...
+        'FileName', ['track_' num2str(handles.selectedTrack(ch)) '_ch' num2str(ch) '.eps'],...
+        'Visible', 'off', 'Legend', 'hide');
 end
 
 

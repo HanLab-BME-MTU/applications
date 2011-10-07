@@ -9,9 +9,9 @@
 %                      'Handle' : h, axis handle (for plotting from within GUI)
 %                      'Print' : 'on' | {'off'} generates an EPS in 'data.source/Figures/'
 
-% Francois Aguet, March 9 2011 (split from trackDisplayGUI)
+% Francois Aguet, March 9 2011 (Last modified: 09/22/2011)
 
-function plotTrack(data, tracks, trackIdx, ch, varargin)
+function plotTrack(data, track, ch, varargin)
 
 %======================================
 % Parse inputs, set defaults
@@ -19,42 +19,28 @@ function plotTrack(data, tracks, trackIdx, ch, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addRequired('tracks', @isstruct);
-ip.addRequired('trackIdx', @isnumeric);
+ip.addRequired('track', @isstruct);
 ip.addRequired('ch', @isnumeric);
-ip.addParamValue('visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('handle', []);
-ip.addParamValue('Legend', 'show', @(x) strcmpi(x, 'show') | strcmpi(x, 'hide'));
-ip.parse(data, tracks, trackIdx, ch, varargin{:});
+ip.addParamValue('Visible', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.addParamValue('FileName', [], @ischar);
+ip.addParamValue('Handle', []);
+ip.addParamValue('Legend', 'show', @(x) any(strcmpi(x, {'show','hide'})));
+ip.addParamValue('Segment', 1, @isscalar);
+ip.addParamValue('Background', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.parse(data, track, ch, varargin{:});
+s = ip.Results.Segment;
 
 mCh = find(strcmp(data.channels, data.source));
 
-if ~isempty(ip.Results.handle)
-    ha = ip.Results.handle;
+if ~isempty(ip.Results.Handle)
+    ha = ip.Results.Handle;
     standalone = false;
 else
-    hfig = figure('Visible', ip.Results.visible);
+    hfig = figure('Visible', ip.Results.Visible);
     ha = axes('Position', [0.15 0.15 0.8 0.8]);
     standalone = true;
 end
 
-if length(tracks)>1
-    track = tracks(trackIdx);
-else
-    track = tracks;
-end
-
-if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
-    bStart = size(track.startBuffer.A,2);
-else
-    bStart = 0;
-end
-if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
-    bEnd = size(track.endBuffer.A,2);
-else
-    bEnd = 0;
-end
 
 hues = getFluorophoreHues(data.markers);
 trackColor = hsv2rgb([hues(ch) 1 0.8]);
@@ -74,66 +60,65 @@ kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
 % Plot track
 lh = NaN(1,9);
 
-A = track.A(ch,:);
-c = track.c(ch,:);
-%cStd = track.cStd_mask(ch,:);
-%cStd = track.cStd_res(ch,:);
-sigma_r = track.sigma_r(ch,:);
-t = (track.start-1:track.end-1)*data.framerate;
-
-% alpha = 0.05 level
-lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
-    fillDark, 'EdgeColor', 'none', 'Parent', ha);
-hold(ha, 'on');
-
-% alpha = 0.01 level
-% fill([t t(end:-1:1)], [c+sigmaL*cStd c(end:-1:1)+sigmaH*cStd(end:-1:1)],...
-%     fillDark, 'EdgeColor', 'none', 'Parent', ha);
-
-gapIdx = arrayfun(@(x,y) x:y, track.gapStarts, track.gapEnds, 'UniformOutput', false);
-gapIdx = [gapIdx{:}];
-
-% plot amplitude std.
-sigma_a = track.A_pstd(ch,:);
-
-rev = c+A-sigma_a;
-fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
-    fillLight, 'EdgeColor', 'none', 'Parent', ha);
-% plot(ha, t, c+A+sigma_a, '-', 'Color', fillLight);
-% plot(ha, t, c+A-sigma_a, '-', 'Color', fillLight);
-
-% plot track
-ampl = A+c;
-if ch==mCh
-    ampl(gapIdx) = NaN;
-end
-lh(2) = plot(ha, t, ampl, '.-', 'Color', trackColor, 'LineWidth', 1);
-
-% plot gaps separately
-if ch==mCh
-    ampl = A+c;
-    ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
-    if ~isempty(gapIdx)
-        lh(3) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
-        lh(4) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
-    end
-end
-
-% plot background level
-lh(5) = plot(ha, t, c, '-', 'Color', trackColor);
-
-
-
-
-% Plot left buffer
-if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
-    A = [track.startBuffer.A(ch,:) track.A(ch,1)];
-    c = [track.startBuffer.c(ch,:) track.c(ch,1)];
+for s = 1:track.nSeg
     
-    sigma_a = [track.startBuffer.A_pstd(ch,:) track.A_pstd(ch,1)];
-    sigma_r = [track.startBuffer.sigma_r(ch,:) track.sigma_r(ch,1)];
-    t = (track.start-bStart-1:track.start-1)*data.framerate;
-     
+    A = track.A{s}(ch,:);
+    c = track.c{s}(ch,:);
+    if strcmpi(ip.Results.Background, 'off')
+        bgcorr = nanmean(c);
+        c = c-bgcorr;
+    else
+        bgcorr = 0;
+    end
+    sigma_r = track.sigma_r{s}(ch,:);
+    t = track.t{s};
+    
+    % alpha = 0.05 level
+    lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+        fillDark, 'EdgeColor', 'none', 'Parent', ha);
+    hold(ha, 'on');
+    
+    gapIdx = arrayfun(@(x,y) x:y, track.gapStarts{s}, track.gapEnds{s}, 'UniformOutput', false);
+    gapIdx = [gapIdx{:}];
+    
+    % plot amplitude std.
+    sigma_a = track.A_pstd{s}(ch,:);
+    
+    rev = c+A-sigma_a;
+    fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
+        fillLight, 'EdgeColor', 'none', 'Parent', ha);
+    
+    % plot track
+    ampl = A+c;
+    if ch==mCh
+        ampl(gapIdx) = NaN;
+    end
+    lh(2) = plot(ha, t, ampl, '.-', 'Color', trackColor, 'LineWidth', 1);
+    
+    % plot gaps separately
+    if ch==mCh
+        ampl = A+c;
+        ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
+        if ~isempty(gapIdx)
+            lh(3) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
+            lh(4) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
+        end
+    end
+    
+    % plot background level
+    lh(5) = plot(ha, t, c, '-', 'Color', trackColor);
+    
+end
+
+% Plot start buffer
+if isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s})
+    A = [track.startBuffer.A{s}(ch,:) track.A{s}(ch,1)];
+    c = [track.startBuffer.c{s}(ch,:) track.c{s}(ch,1)]-bgcorr;
+    
+    sigma_a = [track.startBuffer.A_pstd{s}(ch,:) track.A_pstd{s}(ch,1)];
+    sigma_r = [track.startBuffer.sigma_r{s}(ch,:) track.sigma_r{s}(ch,1)];
+    t = [track.startBuffer.t{s} track.t{s}(1)];
+    
     fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
         fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
@@ -145,18 +130,18 @@ if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
     lh(7) = plot(ha, t, c, '--', 'Color', trackColor);
 end
 
-% Plot right buffer
-if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
-    A = [track.A(ch,end) track.endBuffer.A(ch,:)];
-    c = [track.c(ch,end) track.endBuffer.c(ch,:)];
+% Plot end buffer
+if isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s})
+    A = [track.A{s}(ch,end) track.endBuffer.A{s}(ch,:)];
+    c = [track.c{s}(ch,end) track.endBuffer.c{s}(ch,:)]-bgcorr;
     
-    sigma_a = [track.A_pstd(ch,end) track.endBuffer.A_pstd(ch,:)];
-    sigma_r = [track.sigma_r(ch,end) track.endBuffer.sigma_r(ch,:)];
-    t = (track.end-1:track.end+bEnd-1)*data.framerate;
+    sigma_a = [track.A_pstd{s}(ch,end) track.endBuffer.A_pstd{s}(ch,:)];
+    sigma_r = [track.sigma_r{s}(ch,end) track.endBuffer.sigma_r{s}(ch,:)];
+    t = [track.t{s}(end) track.endBuffer.t{s}];
     
     fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
         fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
-
+    
     rev = c+A-sigma_a;
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
@@ -166,12 +151,27 @@ if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
 end
 
 
-l = legend(lh([2 5 1]), ['Amplitude ch. ' num2str(ch)], ['Background ch. ' num2str(ch)], '\alpha = 0.95 level', 'Location', 'NorthEast');
-legend(l, ip.Results.Legend);
+% legend
+if strcmpi(ip.Results.Legend, 'show')
+    l = legend(lh([2 5 1]), ['Amplitude ch. ' num2str(ch)], ['Background ch. ' num2str(ch)], '\alpha = 0.95 level', 'Location', 'NorthEast');
+    %legend(l, ip.Results.Legend);
+end
 
 
+% set bounding box
+if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
+    bStart = size(track.startBuffer.A{s},2);
+else
+    bStart = 0;
+end
+if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
+    bEnd = size(track.endBuffer.A{s},2);
+else
+    bEnd = 0;
+end
 tlength = track.end+bEnd - track.start-bStart + 1;
-set(ha, 'XLim', ([track.start-bStart-0.1*tlength track.end+bEnd+0.1*tlength]-1)*data.framerate);
+set(ha, 'XLim', ([track.start-bStart-0.1*tlength track.end+bEnd+0.1*tlength]-1)*data.framerate, 'Layer', 'top');
+
 box off;
 
 
@@ -181,7 +181,9 @@ if standalone
     sfont = {'FontName', 'Helvetica', 'FontSize', 18};
     lfont = {'FontName', 'Helvetica', 'FontSize', 22};
     
-    set(l, tfont{:});
+    if strcmpi(ip.Results.Legend, 'show')
+        set(l, tfont{:});
+    end
     
     set(gca, 'LineWidth', 1.5, sfont{:});
     xlabel('Time (s)', lfont{:})
@@ -204,15 +206,14 @@ if standalone
     end
 end
 
-if strcmpi(ip.Results.print, 'on')
+if ~isempty(ip.Results.FileName)
     fpath = [data.source 'Figures' filesep];
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
     end
-    print(hfig, '-depsc2', '-r300', [fpath 'track_' num2str(trackIdx) '_ch' num2str(ch) '.eps']);
+    print(hfig, '-depsc2', '-r300', [fpath ip.Results.FileName]);
 end
 
-if strcmp(ip.Results.visible, 'off')
+if strcmp(ip.Results.Visible, 'off')
     close(hfig);
 end
-
