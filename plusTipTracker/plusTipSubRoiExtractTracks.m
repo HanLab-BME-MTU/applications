@@ -16,7 +16,7 @@ onlyTarget =  0; % If set to one will select only those tracks that are
 %targeted (ie the last point of their growth track is within the given sub
 %region if set to zero will use the settings specified in the
 %plusTipSeeTracks GUI
-onlyInitiate = 0; 
+onlyInitiate = 1; 
 useCropped = 1;
 
 %% Check Input
@@ -97,8 +97,18 @@ allDataAll(:,7)=allDataAll(:,7).*(sourceProjData.pixSizeNm./1000);
 idx=find(allDataAll(:,5)==1);
 dataMatMerge=dataMatMergeAll(idx,:); % just growth subtracks
 allData=allDataAll(idx,:);
+
 [xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx,1);
-%Note: xMat: x-coordinate of detected particle: row # = track ID, col.# = frame number
+%Note: xMat: x-coordinate of detected particle: row # = subtrack ID, col.# = frame number
+nuc = 1; 
+if nuc == 1 
+    % take only the first growth in region
+    
+   [dummy idx dummy] = unique(dataMatMerge(:,1),'first'); 
+   
+    xMat = xMat(idx,:); 
+    yMat = yMat(idx,:); 
+end 
 
 % get which tracks have their first point NOT in the exclude region
 %firstPtFrIdx gives the start frame for each growth subtrack
