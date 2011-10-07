@@ -16,6 +16,7 @@ onlyTarget =  0; % If set to one will select only those tracks that are
 %targeted (ie the last point of their growth track is within the given sub
 %region if set to zero will use the settings specified in the
 %plusTipSeeTracks GUI
+onlyInitiate = 0; 
 useCropped = 1;
 
 %% Check Input
@@ -114,7 +115,7 @@ pixIdx=sub2ind([imL,imW],y,x); % pixel index of all the starts
 % not be considered
 inIncludeRegion=find(~excludeMask(pixIdx));
 
-if onlyTarget == 1;
+if (onlyTarget == 1 || onlyInitiate == 1);
     
 %Find tracks targeted to sub region of interest
 lastPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'last'),1:length(idx))';
@@ -140,6 +141,8 @@ pixIdxFirst=sub2ind([imL,imW],yFirst,xFirst);
 %find which tracks have their last point within the subregion of interest
 inIncludeRegionLast=find(roiMask(pixIdxLast));
 inIncludeRegionFirst=find(roiMask(pixIdxFirst));
+
+
 else % No need to calculate these variables
 end
 
@@ -167,7 +170,7 @@ lifeSec=allData(:,6); % track lifetimes, seconds
 %inside the ROI is just the sum of each row (sum in the 2nd D)-1
 insideSec=sourceProjData.secPerFrame.*(sum(IN,2)-1);
 
-if onlyTarget == 1 
+if (onlyTarget == 1 || onlyInitiate ==1) 
     
 %find track coordinates cooresponding to those tracks that are targeted 
 %to a given subregion
@@ -176,11 +179,41 @@ trckIdxInFirst = intersect(find(insideSec>0),inIncludeRegionFirst);
 xMatFirst = xMat(trckIdxInFirst,:);
 yMatFirst = yMat(trckIdxInFirst,:);
 
-trckIdxIn= intersect(find(insideSec>0),inIncludeRegionLast);
-xMatLast = xMat(trckIdxIn,:);
-yMatLast = yMat(trckIdxIn,:);
+trckIdxInLast= intersect(find(insideSec>0),inIncludeRegionLast);
+xMatLast = xMat(trckIdxInLast,:);
+yMatLast = yMat(trckIdxInLast,:);
 
+% find those that start and end in the same region
+trckIdxInRegion = intersect(trckIdxInFirst,trckIdxInLast); 
+xMatInRegion = xMat(trckIdxInRegion,:);
+yMatInRegion = yMat(trckIdxInRegion,:); 
 
+xMat3 = xMatInRegion'; 
+yMat3 = yMatInRegion'; 
+
+if onlyTarget == 1 % include those tracks with subTrack end sites in analysis 
+    trckIdxIn = trckIdxInLast; 
+    xMat1 = xMatFirst';
+    yMat1 = yMatFirst';
+    xMat2 = xMatLast';
+    yMat2 = yMatLast';
+    
+   
+    title = 'subTracksTargetedToSubRoiRedAndPink_plusSubTracksLeavingRegionGreen';
+elseif onlyInitiate == 1 % include those tracks with subtrack initiation sites in analysis 
+    trckIdxIn = trckIdxInFirst; 
+    xMat1 = xMatLast'; 
+    yMat1 = yMatLast';
+  
+    xMat2 = xMatFirst';
+    yMat2 = yMatFirst'; 
+    
+    
+   
+    title = 'subTracksInitiatedInSubRoiRedAndPink_plusSubTracksInitiatedInOtherRegionsGreen';
+end 
+
+projData.stats.percentTracksStartAndEndInRegion = length(trckIdxInRegion)/length(trckIdxIn)*100; 
 
 
     IN=IN(trckIdxIn,:); 
@@ -194,11 +227,14 @@ yMatLast = yMat(trckIdxIn,:);
  figure; 
  imshow(roiMask); 
  hold on; 
- plot(xMatFirst',yMatFirst','g'); % tracks initiated in subregion, not included in analysis
+ plot(xMat1,yMat1,'g'); % plot all tracks targeted/initiated in region
+
  hold on;
- plot(xMatLast',yMatLast','r') % tracks that end in subregion, included in analysis
- 
- saveas(gcf,[subRoiDir filesep 'tracksTargetedToSubRoiRed_plusLeavingTracksGreen' fileExt])
+ plot(xMat2,yMat2,'r') %  plot all tracks targeted/initiate in region- those 
+ % that are both will be overwritten in red.  
+ hold on; 
+ plot(xMat3,yMat3,'m')
+ saveas(gcf,[subRoiDir filesep title fileExt])
  close(gcf)
  
 else % get those tracks located within the subregion based with a given
@@ -477,7 +513,7 @@ dataTotROI_Sec_Mic = dataTotROI_Frames_Pix;
 dataTotROI_Sec_Mic(:,6) = dataTotROI_Frames_Pix(:,6).*sourceProjData.secPerFrame;
 dataTotROI_Sec_Mic(:,7) = dataTotROI_Sec_Mic(:,7).*sourceProjData.pixSizeNm./1000;
 
-%Those tracks with start sites in the region of interest 
+%Those tracks with start sit/home/mb228/files/LCCB/comet/Pellman/Mijung/2-9-11_RPE_inter_H/2-9-10_RPE_Control_H/Control_H2/roi_2es in the region of interest 
 %but were excluded based on user specified time requirement 
 %dataGrowthExclude = dataMatMerge(trckIdxOut,:);
 %dataPauseExclude = dataMatMerge(trckIdxOutPause,:);
@@ -523,13 +559,24 @@ if projData.nTracks~=0
     percentRoiArea=100*(subRoiAreaSqMic/cellAreaSqMic);
     projData.subRoiAreaSqMic=subRoiAreaSqMic;
     projData.percentRoiArea=percentRoiArea;
-
+   
     projData.lifeSec=lifeSec(trckIdxIn); % total lifetime (seconds)
     projData.insideSec=insideSec(trckIdxIn); % lifetime within sub-roi (seconds)
     projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
+    
+    % calculate densities for subregion
+    time= projData.nFrames*projData.secPerFrame; % time in seconds
+    area = projData.subRoiAreaSqMic;
+    projData.stats.growth_density=projData.stats.nGrowths/area/time;
+    growthData = dataTotROI_Sec_Mic(dataTotROI_Sec_Mic(:,5) == 1,1); 
+    [dummy idxNucSubtrackVector dummy] =  unique(growthData(:,1),'first');
+    projData.stats.numNucEvents = length(idxNucSubtrackVector);
+    projData.stats.nucleation_density = projData.stats.numNucEvents/area/time; 
+    projData.stats.fgap_density=projData.stats.nFgaps/area/time;
+    projData.stats.bgap_density=projData.stats.nBgaps/area/time;
 
     %  
-    if onlyTarget ~= 1
+    if (onlyTarget ~= 1 && onlyInitiate ~= 1)
    
     speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
     speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
