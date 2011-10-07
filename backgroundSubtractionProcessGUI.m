@@ -78,7 +78,7 @@ userData.crtPackage = userData_main.crtPackage;
 userData.crtProc = userData.crtPackage.processes_{userData.procID};
 
 % Get current process constructer
-crtProcClassName = userData.crtPackage.processClassNames_{userData.procID};
+crtProcClassName = userData.crtPackage.getProcessClassNames{userData.procID};
 userData.procConstr = str2func(crtProcClassName);
 crtProcName = eval([crtProcClassName '.getName']);
 procString = [' Step ' num2str(userData.procID) ': ' crtProcName];

@@ -79,7 +79,7 @@ userData.crtProc = userData.crtPackage.processes_{userData.procID};
 
 % Get current process constructer
 eval ( [ 'userData.procConstr = @', ...
-    userData.crtPackage.processClassNames_{userData.procID},';']);
+    userData.crtPackage.getProcessClassNames{userData.procID},';']);
 
 % If process does not exist, create a default one in user data.
 if isempty(userData.crtProc)

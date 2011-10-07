@@ -9,46 +9,19 @@ classdef BiosensorsPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                super_args{2} = BiosensorsPackage.getName;
                 % Dependency Matrix (same length as process class name
                 % string)
-                super_args{3} = BiosensorsPackage.getDependencyMatrix;
-                
-                % Process CLASS NAME string (same length as dependency matrix)
-                % Must be accurate process class name
-                biosensorsClasses = {
-                    @ThresholdProcess,...
-                    @BackgroundMasksProcess,...
-                    @MaskRefinementProcess,...
-                    @DarkCurrentCorrectionProcess,...
-                    @ShadeCorrectionProcess,...
-                    @BackgroundSubtractionProcess,...
-                    @TransformationProcess,...
-                    @BleedthroughCorrectionProcess,...
-                    @RatioProcess,...
-                    @PhotobleachCorrectionProcess,...
-                    @OutputRatioProcess...
-                    };
-                super_args{4} = cellfun(@func2str,biosensorsClasses,...
-                    'UniformOutput',false);
-                
-                biosensorsTools(1).name = 'Bleedthrough coefficient calculation';
-                biosensorsTools(1).funHandle = @calculateBleedthroughGUI;
-                
-                biosensorsTools(2).name = 'Alignement/Registration Transform Creation';
-                biosensorsTools(2).funHandle = @transformCreationGUI;
-                
-                super_args{5} = [outputDir  filesep 'BiosensorsPackage'];
+                super_args{2} = BiosensorsPackage.getDependencyMatrix;
+                super_args{3} = [outputDir  filesep 'BiosensorsPackage'];
                 
             end
             % Call the superclass constructor
-            obj = obj@Package(super_args{:},'tools_',biosensorsTools,...
-                'processClassHandles_',biosensorsClasses);
+            obj = obj@Package(super_args{:});
             
         end
         
         function processExceptions = sanityCheck(obj,varargin) % throws Exception Cell Array
-            nProcesses = length(obj.processClassNames_);
+            nProcesses = length(obj.getProcessClassNames);
             
             ip = inputParser;
             ip.CaseSensitive = false;
@@ -267,7 +240,7 @@ classdef BiosensorsPackage < Package
             % The function check if the successfuly processing of optional
             % processes (with id procID) would affect the update status of
             % decendent processes
-            nProcesses = length(obj.processClassNames_);
+            nProcesses = length(obj.getProcessClassNames);
             processExceptions = cell(1,nProcesses);
             processVisited = false(1,nProcesses);
             
@@ -325,14 +298,56 @@ classdef BiosensorsPackage < Package
             % Get the optional process id
             id = [3 4 7 8 10];
         end
-
+        
         function name = getName()
             name = 'Biosensors';
         end
-
-        function varargout = start(varargin)
+        
+        function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = biosensorsPackageGUI(varargin{:});
+        end
+        function procConstr = getDefaultProcessConstructors(index)
+            biosensorsConstr = {
+                @ThresholdProcess,...
+                @BackgroundMasksProcess,...
+                @MaskRefinementProcess,...
+                @DarkCurrentCorrectionProcess,...
+                @ShadeCorrectionProcess,...
+                @BackgroundSubtractionProcess,...
+                @TransformationProcess,...
+                @BleedthroughCorrectionProcess,...
+                @RatioProcess,...
+                @PhotobleachCorrectionProcess,...
+                @OutputRatioProcess...
+                };
+            if nargin==0, index=1:numel(biosensorsConstr); end
+            procConstr=biosensorsConstr(index);
+        end
+        function classes = getProcessClassNames(index)
+            biosensorsClasses = {
+                'ThresholdProcess',...
+                'BackgroundMasksProcess',...
+                'MaskRefinementProcess',...
+                'DarkCurrentCorrectionProcess',...
+                'ShadeCorrectionProcess',...
+                'BackgroundSubtractionProcess',...
+                'TransformationProcess',...
+                'BleedthroughCorrectionProcess',...
+                'RatioProcess',...
+                'PhotobleachCorrectionProcess',...
+                'OutputRatioProcess'};
+            if nargin==0, index=1:numel(biosensorsClasses); end
+            classes=biosensorsClasses(index);
+        end
+        
+        function tools = getTools(index)
+            biosensorsTools(1).name = 'Bleedthrough coefficient calculation';
+            biosensorsTools(1).funHandle = @calculateBleedthroughGUI;            
+            biosensorsTools(2).name = 'Alignement/Registration Transform Creation';
+            biosensorsTools(2).funHandle = @transformCreationGUI;
+            if nargin==0, index=1:numel(biosensorsTools); end
+            tools=biosensorsTools(index);    
         end
     end
     
