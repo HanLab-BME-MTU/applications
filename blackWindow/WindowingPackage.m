@@ -12,26 +12,12 @@ classdef WindowingPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                super_args{2} = WindowingPackage.getName;
-                % Dependency Matrix (same length as process class name
-                % string)
-                super_args{3} = WindowingPackage.getDependencyMatrix;
-                
-                % Process CLASS NAME string (same length as dependency matrix)
-                % Must be accurate process class name
-                WindowingProcConstr = {
-                    @ProtrusionProcess,...
-                    @WindowingProcess,...
-                    @ProtrusionSamplingProcess,...
-                    @WindowSamplingProcess};
-                super_args{4} = cellfun(@func2str,WindowingProcConstr,...
-                    'UniformOutput',false);
-                super_args{5} = [outputDir  filesep 'WindowingPackage'];
+                super_args{2} = WindowingPackage.getDependencyMatrix;
+                super_args{3} = [outputDir  filesep 'WindowingPackage'];
             end
             
             % Call the superclass constructor
-            obj = obj@Package(super_args{:},...
-                'processClassHandles_',WindowingProcConstr);
+            obj = obj@Package(super_args{:});
         end
         
         function parentID = getParent(obj,procID)
@@ -54,9 +40,9 @@ classdef WindowingPackage < Package
             
             %    1 2 3 4
             m = [0 0 0 0; %1 ProtrusionProcess
-                 2 0 0 0; %2 WindowingProcess
-                 1 1 0 0;  %3 ProtrusionSamplingProcess
-                 0 1 0 0;]; %4 WindowSamplingProcess
+                2 0 0 0; %2 WindowingProcess
+                1 1 0 0;  %3 ProtrusionSamplingProcess
+                0 1 0 0;]; %4 WindowSamplingProcess
         end
         
         function id = getOptionalProcessId()
@@ -69,13 +55,33 @@ classdef WindowingPackage < Package
             name = 'Windowing';
         end
         
-        function varargout = start(varargin)
+        function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = windowingPackageGUI(varargin{:});
         end
         
+        function procConstr = getDefaultProcessConstructors(index)
+            windowingProcConstr = {
+                    @ProtrusionProcess,...
+                    @WindowingProcess,...
+                    @ProtrusionSamplingProcess,...
+                    @WindowSamplingProcess};
+            
+            if nargin==0, index=1:numel(windowingProcConstr); end
+            procConstr=windowingProcConstr(index);
+        end
+        function classes = getProcessClassNames(index)
+            windowingClasses = {
+                'ProtrusionProcess',...
+                'WindowingProcess',...
+                'ProtrusionSamplingProcess',...
+                'WindowSamplingProcess'};
+            if nargin==0, index=1:numel(windowingClasses); end
+            classes=windowingClasses(index);
+        end
+        
     end
-
+    
     
 end
 
