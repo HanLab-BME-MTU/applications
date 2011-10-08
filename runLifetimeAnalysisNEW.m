@@ -35,8 +35,8 @@ for k = 1:nd
     N = data(k).movieLength-2;
     t = (1:N)*dt;
     tracks = data(k).tracks;
-    lftHist = hist(data(k).lifetimes_s([tracks.type]==1 & [tracks.status]==1), t);
-    lftHist_ms = hist(data(k).lifetimes_s([tracks.type]==2 & [tracks.status]==1), t);
+    lftHist = hist(data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1), t);
+    lftHist_ms = hist(data(k).lifetimes_s([tracks.nSeg]>1 & [tracks.status]==1), t);
     
     % apply correction
     % longest observable lifetime: N = movieLength-2
@@ -99,10 +99,16 @@ for k = 1:nd
     %====================
     % Track statistics
     %====================
+    % Categories
+    % I.   Valid (single segment, fully visible)
+    % II.  Invalid (single segment fully visible; gap problem)
+    % III. Merge/split, fully visible
+    % IV.  
     data(k).trackStats = [sum([tracks.valid]==1)...
-        sum([tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1)...
-        sum([tracks.type]==2 & [tracks.status]==1)...
-        sum([tracks.status]==3) sum([tracks.status]==2)]; % normalized
+        sum([tracks.valid]==0 & [tracks.nSeg]==1 & [tracks.status]==1)...
+        sum([tracks.valid]==0 & [tracks.nSeg]>1 & [tracks.status]==1)...
+        sum([tracks.status]==3)...
+        sum([tracks.status]==2)]; % normalized
     
     if sum(data(k).trackStats)~=length(tracks)
         error('Selection error');
@@ -151,8 +157,8 @@ for k = 1:nd
     % Gap statistics
     %====================
     idxValid = [tracks.valid]==1; 
-    idxInvalid = [tracks.type]==1 & [tracks.valid]==0 & [tracks.status]==1;
-    idxMS = [tracks.type]==2 & [tracks.status]==1;
+    idxInvalid = [tracks.nSeg]==1 & [tracks.valid]==0 & [tracks.status]==1;
+    idxMS = [tracks.nSeg]>1 & [tracks.status]==1;
     
     lifetimes_s = [tracks.lifetime_s];
     %lifetimes_f = lifetimes_s/data(k).framerate;
@@ -162,20 +168,20 @@ for k = 1:nd
     %lifetimes_s = [tracks(idxValid).lifetime_s];
     binIdx = arrayfun(@(b) idxValid & bins(b)<=lifetimes_s & lifetimes_s<bins(b+1), 1:nb, 'UniformOutput', false);
     for b = 1:nb
-        data(k).gapsPerTrack_valid(b) = mean(arrayfun(@(t) sum(t.gapVect), tracks(binIdx{b})));
+        data(k).gapsPerTrack_valid(b) = mean(arrayfun(@(t) sum([t.gapVect{:}]), tracks(binIdx{b})));
     end
     
     %lifetimes_s = [tracks(idxInvalid).lifetime_s];
     binIdx = arrayfun(@(b) idxInvalid & bins(b)<=lifetimes_s & lifetimes_s<bins(b+1), 1:nb, 'UniformOutput', false);
     for b = 1:nb
-        data(k).gapsPerTrack_invalid(b) = mean(arrayfun(@(t) sum(t.gapVect), tracks(binIdx{b})));
+        data(k).gapsPerTrack_invalid(b) = mean(arrayfun(@(t) sum([t.gapVect{:}]), tracks(binIdx{b})));
     end
     
     %lifetimes_s = [tracks.lifetime_s];
     binIdx = arrayfun(@(b) idxMS & bins(b)<=lifetimes_s & lifetimes_s<bins(b+1), 1:nb, 'UniformOutput', false);
     %binIdx{1}
     for b = 1:nb
-        data(k).gapsPerTrack_MS(b) = mean(arrayfun(@(t) sum(cellfun(@(s) sum(s), t.gapVect)), tracks(binIdx{b})));
+        data(k).gapsPerTrack_MS(b) = mean(arrayfun(@(t) sum([t.gapVect{:}]), tracks(binIdx{b})));
     end
     data(k).bins = bins;
     
