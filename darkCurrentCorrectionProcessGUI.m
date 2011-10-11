@@ -70,6 +70,7 @@ if funParams.GaussFilterSigma >= 1
             'String',num2str(funParams.GaussFilterSigma))
 end
     
+userData.userDir=userData.MD.outputDirectory_;
 
 % Update user data and GUI data
 handles.output = hObject;
