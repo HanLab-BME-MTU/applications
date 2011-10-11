@@ -188,10 +188,10 @@ for iGroup=1:nGrps
     quadStats.grpPopRYGB=zeros(length(grpIdx),4);
     quadStats.grpPrctRYGB=zeros(length(grpIdx),4);
 
+    data1grp=[];
+    data2grp=[];
     % load data and make plots for each project iSub in group iGroup
     for iSub=1:length(grpIdx)
-        data1grp=[];
-        data2grp=[];
 
         % load data for iSub
         projDir=groupList{grpIdx(iSub),2};

@@ -345,11 +345,6 @@ function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 userData = get(handles.figure1,'UserData');
-% if isfield(handles,'projData') && ~get(handles.batchQuadCheck,'Value')
-%     handles.projData.anDir=formatPath(handles.projData.anDir);
-%     saveDir=handles.projData.anDir;
-%     handles.groupList={'singleProject',handles.projData.anDir};
-% else
 saveDir=get(handles.edit_outputDir,'String');
 
 if isempty(userData.groupList) || isempty(saveDir)
