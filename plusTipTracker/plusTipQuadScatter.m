@@ -153,7 +153,7 @@ btwGrpQuadStats.grpPopRYGB=zeros(length(grpNames),4);
 btwGrpQuadStats.grpPrctRYGB=zeros(length(grpNames),4);
 
 % iterate through each group
-nProj=size(grpNames,1);
+nProj=size(groupList,1);
 nGrps=length(grpNames);
 
 s = length(num2str(nProj));
