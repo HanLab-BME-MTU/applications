@@ -126,7 +126,7 @@ for k=1:9
     ylabel('Frequency of tracks');
     yLim = get(gca,'YLim');
     set(gca,'YLim',[0 yLim(2)]);
-    if nGroups>1, legend(h,labels); end
+    if nGroups>1, legend(h,strrep(labels,'_',' ')); end
     saveas(saveFig,[saveDir filesep 'histogram_' dataType(i).name '_'...
         eventType(j).name '.tif'])
     close(saveFig)
