@@ -68,7 +68,7 @@ for iGroup = 1:length(groupNames)
     plot(xValues(iGroup), yValue,'Marker','+','MarkerSize',16,'MarkerEdgeColor',cMap{iGroup},'MarkerFaceColor',cMap{iGroup});
 end
 
-legend(h1,groupNames,'location','BestOutside');
+legend(h1,strrep(groupNames,'_',' '),'location','BestOutside');
 
 
 end

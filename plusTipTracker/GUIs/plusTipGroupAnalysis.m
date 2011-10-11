@@ -303,7 +303,7 @@ if subroiSelectType>0
     subroiDistUnit=props{1}{props{2}};
     subroiDistVal=str2double(get(handles.subroiDistValEdit,'String'));
     if strcmpi(subroiDistUnit,'fraction');
-        check=@(x) x>0 && x<1 && ~isnan(x);
+        check=@(x) x>0 && x<=1 && ~isnan(x);
     else
         check= @(x) x>0 && ~isnan(x);
     end
@@ -321,7 +321,7 @@ props = get(handles.subroiTimeUnitPop,{'String','Value'});
 subroiTimeUnit=props{1}{props{2}};
 subroiTimeVal=str2double(get(handles.subroiTimeValEdit,'String'));
 if strcmpi(subroiTimeUnit,'fraction');
-    check=@(x) x>0 && x<1 && ~isnan(x);
+    check=@(x) x>0 && x<=1 && ~isnan(x);
 else
     check= @(x) x>0 && ~isnan(x);
 end

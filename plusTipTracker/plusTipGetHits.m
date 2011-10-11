@@ -179,8 +179,8 @@ for i=1:numel(hitsStatsNames)
     plotData= cellfun(@(x) mean(x),rawData);
     steData= cellfun(@(x) std(x)/sqrt(size(x,1)),rawData);
     f = figure;
-    barplot2(plotData,steData,'YLabel',hitsStatsNames{i},...
-        'XLabels',groupData.names,'Interpreter','none');
+    barplot2(plotData,steData,'YLabel',strrep(hitsStatsNames{i},'_',' '),...
+        'XLabels',strrep(groupData.names,'_',' ' ),'Interpreter','none');
     print(f,'-dtiff', '-r300',[saveDir filesep 'histogram_' hitsStatsNames{i} '.tif']);
     close(f);
     

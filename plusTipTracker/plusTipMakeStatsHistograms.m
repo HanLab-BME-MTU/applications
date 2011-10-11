@@ -122,8 +122,8 @@ if nnz(steData)~=0 && plotSte, plotData = [plotData;steData]; end
 % set(gca,'XTick',1:nGroups,'XTickLabel',labels);
 % ylabel([name ' (' unit ')'],'Interpreter','none');
 % saveas(gcf,[saveDir filesep 'histogram_' field '.tif'])
-figure;barplot2(plotData,'xLabels',labels,...
-    'ylabel',[name ' (' unit ')']);
+figure;barplot2(plotData,'xLabels',strrep(labels,'_',' '),...
+    'ylabel',[strrep(name,'_',' ') ' (' unit ')']);
 print('-dtiff', '-r300',[saveDir filesep 'histogram_' field '.tif']);
 
 close(gcf)
