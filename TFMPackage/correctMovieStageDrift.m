@@ -69,9 +69,9 @@ end
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationMatrix.mat'];
 outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1))];
+mkClrDir(outFilePaths{4,p.ChannelIndex(1)});
 outFilePaths{5,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'x_flow.fig'];
 outFilePaths{6,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'y_flow.fig'];
-mkClrDir(outFilePaths{4,p.ChannelIndex(1)});
 displFieldProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Stage drift correction ---------------%%% 

@@ -21,7 +21,7 @@ classdef TFMPackage < Package
         end
         
         
-        function processExceptions = sanityCheck(obj,varargin) 
+        function [status processExceptions] = sanityCheck(obj,varargin) 
             
             % Check that the first channel has a psf function
             psfSigmaCheck = isempty(obj.owner_.channels_(1).psfSigma_);
@@ -35,7 +35,7 @@ classdef TFMPackage < Package
             if isempty(obj.owner_.timeInterval_)
                 error('Missing frame rate! Please fill the time interval!');            
             end
-            processExceptions = sanityCheck@Package(obj,varargin{:});
+            [status processExceptions] = sanityCheck@Package(obj,varargin{:});
         end
 
     end
