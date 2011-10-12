@@ -44,7 +44,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
                error('lccb:set:fatal',...
                    'The file specified specified as output for the function is invalid!') 
            else
-               obj.outFilePaths_ = filePath;                               
+               obj.outFilePaths_ = {filePath};                               
            end
                         
         end 
@@ -52,10 +52,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
         function status = checkChannelOutput(obj)
             %Overrides the generic function - there is only one set of prot
             %samples for all channels.            
-            status = false;
-            if exist(obj.outFilePaths_,'file')                                
-                status = true;                                                   
-            end
+            status = logical(exist(obj.outFilePaths_{1},'file'));
         end
         
         function prot = loadChannelOutput(obj,varargin)
@@ -72,7 +69,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             ip.parse(obj,varargin{:})
             output = ip.Results.output;
             
-            prot = load(obj.outFilePaths_);
+            prot = load(obj.outFilePaths_{1});
             fn = fieldnames(prot);
             if numel(fn) > 1, error('Invalid protrusion sample file!'); end            
             prot = prot.(fn{1});
@@ -119,7 +116,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
         function name =GUI()
             name =@protrusionSamplingProcessGUI;
         end
-        function output = getDrawableOutput(obj)
+        function output = getDrawableOutput()
             output(1).name='Protrusion map';
             output(1).var='avgNormal';
             output(1).formatData=[];
