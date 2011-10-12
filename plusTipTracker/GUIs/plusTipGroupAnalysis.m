@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 06-Oct-2011 11:32:25
+% Last Modified by GUIDE v2.5 11-Oct-2011 22:20:44
 
 
 % Begin initialization code - DO NOT EDIT
@@ -138,7 +138,6 @@ function getProjPush_Callback(hObject, eventdata, handles)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'getProjPush');
 
 if ~isempty(handles.projList)
-    
     % here we do NOT filter out any sub-directories
     a=projList2Cell(handles.projList);
     a=a(:,1);
@@ -170,6 +169,16 @@ else
     return
 end
 
+% If checked, create groups from selected projects
+if get(handles.checkbox_createGroups)
+    autoGrp =get(handles.checkbox_autoGrp,'Value');
+    userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
+    if ~isempty(userData.groupList),
+        userData.groupData=plusTipExtractGroupData(userData.groupList);
+    end
+end
+
+set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
 
 % --- Executes on button press in getQueryStr_Check.
@@ -220,17 +229,6 @@ userData=get(handles.figure1,'UserData');
 userData.groupData=plusTipExtractGroupData(userData.groupList);
 
 set(handles.figure1,'UserData',userData);
-% [file,path] = uigetfile('*.mat','Select the group list to open',pwd);
-% if ~any([file,path]), return; end
-% try
-%     userData=get(handles.figure1,'UserData');    
-%     s=load([path file]);
-%     userData.groupList = s.groupList;
-%     userData.groupData=plusTipExtractGroupData(userData.groupList);
-%     set(handles.figure1,'UserData',userData);   
-% catch ME
-%     throw(ME)
-% end
 
 % --- Executes on button press in checkbox_doPlot.
 function checkbox_doPlot_Callback(hObject, eventdata, handles)
@@ -450,23 +448,4 @@ else
     set(handles.subroiAutoDivPeriphCheck,'Enable','On');
 end
 
-guidata(hObject, handles);
-  
-
-% --- Executes on button press in pushbutton_createGroups.
-function pushbutton_createGroups_Callback(hObject, eventdata, handles)
-
-if isempty(handles.projList),
-    errordlg('No projects selected. Please select projects first');
-    return
-end
-    
-% Launch the group creation routine
-userData =get(handles.figure1,'UserData');
-autoGrp =get(handles.checkbox_autoGrp,'Value');
-userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
-if isempty(userData.groupList),return; end
-
-userData.groupData=plusTipExtractGroupData(userData.groupList);
-set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
