@@ -170,7 +170,7 @@ else
 end
 
 % If checked, create groups from selected projects
-if get(handles.checkbox_createGroups)
+if get(handles.checkbox_createGroups,'Value')
     autoGrp =get(handles.checkbox_autoGrp,'Value');
     userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
     if ~isempty(userData.groupList),
