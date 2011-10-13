@@ -158,9 +158,15 @@ temp=projList2Cell(handles.projList);
 assignin('base','selectedProjects',temp);
 guidata(hObject, handles);
 
+% Allow the user to save the project list
 if ~isempty(handles.projList)
+    if ~isempty(handles.strList)
+        defaultListName = ['projList', sprintf('_%s',handles.strList{:}) '.mat'];
+    else
+        defaultListName='projList.mat';
+    end
     [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
-        [pwd filesep 'projList.mat']);
+        [pwd filesep defaultListName]);
     if isequal(file,0), return; end
     save([path file],'-struct','handles','projList');
 end
@@ -202,7 +208,7 @@ function startFramePost_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of startFramePost as text
+% Hints: get(hObject,'String') returns projList_roi_1.matprojList_ro.matcontents of startFramePost as text
 %        str2double(get(hObject,'String')) returns contents of startFramePost as a double
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFramePost');
 guidata(hObject, handles);

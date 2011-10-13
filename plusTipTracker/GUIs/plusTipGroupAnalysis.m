@@ -169,6 +169,19 @@ else
     return
 end
 
+% Allow the user to save the project list
+if ~isempty(handles.projList)
+    if ~isempty(handles.strList)
+        defaultListName = ['projList', sprintf('_%s',handles.strList{:}) '.mat'];
+    else
+        defaultListName='projList.mat';
+    end
+    [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
+        [pwd filesep defaultListName]);
+    if isequal(file,0), return; end
+    save([path file],'-struct','handles','projList');
+end
+
 % If checked, create groups from selected projects
 if get(handles.checkbox_createGroups,'Value')
     autoGrp =get(handles.checkbox_autoGrp,'Value');
