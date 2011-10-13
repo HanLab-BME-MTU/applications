@@ -63,6 +63,7 @@ handles.projList=[]; % select projects pushbutton
 handles.loadProjList = 0; % load projList checkbox
 handles.getStr = 0; % narrow down list checkbox
 handles.projData=[]; % if one project is selected, projData will be retrieved
+handles.strList='';
 
 % for "create groups" pushbutton
 userData=get(handles.figure1,'UserData');
