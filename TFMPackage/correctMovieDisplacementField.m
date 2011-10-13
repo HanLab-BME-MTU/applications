@@ -98,10 +98,9 @@ for j= 1:nFrames
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
     end
 end
+
 % Find rotational registration
-% if p.doRotReg
-%    displField=perfRotReg(displField,1);
-% end
+if p.doRotReg, displField=perfRotReg(displField,1); end %#ok<NASGU>
 
 save([p.OutputDirectory filesep 'displField.mat'],'displField');
 
