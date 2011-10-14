@@ -41,24 +41,19 @@ classdef TFMPackage < Package
     end
     
     methods (Static)
-        
-        function m = getDependencyMatrix()
-            % Get dependency matrix
-            %    1 2 3 4
-            m = [0 0 0 0;
-                2 0 0 0;
-                0 1 0 0
-                0 1 2 0;];
-        end
-        
         function name = getName()
             name = 'Traction Force Microscopy';
         end
         
-        function id = getOptionalProcessId()
-            M=TFMPackage.getDependencyMatrix;
-            % Get the optional process id
-            id=find(sum(M==2,1));
+        function m = getDependencyMatrix(i,j)
+  
+            m = [0 0 0 0;  %1 StageDriftCorrectionProcess
+                2 0 0 0;   %2 DisplacementFieldCalculationProcess
+                0 1 0 0;   %3 DisplacementFieldCorrectionProcess
+                0 1 2 0;]; %4 ForceFieldCalculationProcess
+            if nargin<2, j=1:size(m,2); end
+            if nargin<1, i=1:size(m,1); end
+            m=m(i,j);
         end
         
         function varargout = GUI(varargin)
