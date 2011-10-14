@@ -60,6 +60,7 @@ segProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(segProc),'Unif',f
 segProcString = vertcat('Choose later',segProcNames(:));
 segProcData=horzcat({[]},num2cell(segProcID));
 segProcValue = find(cellfun(@(x) isequal(x,funParams.SegProcessIndex),segProcData));
+if isempty(segProcValue), segProcValue = 1; end
 set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
     'UserData',segProcData,'Value',segProcValue);
 

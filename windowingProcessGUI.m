@@ -73,6 +73,7 @@ if isempty(initSegProcIndex) && ~isempty(userData.crtPackage.processes_{1});
     end
 end
 segProcValue = find(cellfun(@(x) isequal(x,initSegProcIndex),segProcData));
+if isempty(segProcValue), segProcValue = 1; end
 set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
     'UserData',segProcData,'Value',segProcValue);
 
