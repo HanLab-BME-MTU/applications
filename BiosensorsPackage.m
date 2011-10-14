@@ -187,11 +187,9 @@ classdef BiosensorsPackage < Package
             %       funParams.SegProcessIndex = [MaskrefinementProcessIndex,  SegmentationProcessIndex]
             %
             
-            for i = intersect(validProc, [2 3 7 9])
-                
+            for i = intersect(validProc, [2 3 7 9])  
                 if ~isempty(obj.processes_{1}) % Threshold process
                     
-                    funParams = obj.processes_{i}.funParams_;
                     segPI = find(cellfun(@(x)isequal(x, obj.processes_{1}), obj.owner_.processes_));
                     if length(segPI) > 1
                         error('User-defined: More than one identical Threshold processes exists in movie data''s process list.')
@@ -200,109 +198,54 @@ classdef BiosensorsPackage < Package
                     
                     % If mask transformation or ratioing process, find
                     % if any mask refinement is done
-                    if i == 7 || i == 9
-                        if ~isempty(obj.processes_{3}) % MaskRefinement process
-                            
-                            %                                 funParams = obj.processes_{i}.funParams_;
-                            segPI = find(cellfun(@(x)isequal(x, obj.processes_{3}), obj.owner_.processes_));
-                            if length(segPI) > 1
-                                error('User-defined: More than one identical MaskRefinement processes exists in movie data''s process list.')
-                            end
-                            funParams.SegProcessIndex = cat(2, funParams.SegProcessIndex, segPI);
-                            
+                    if i == 7 || i == 9 && ~isempty(obj.processes_{3})
+                        segPI = find(cellfun(@(x)isequal(x, obj.processes_{3}), obj.owner_.processes_));
+                        if length(segPI) > 1
+                            error('User-defined: More than one identical MaskRefinement processes exists in movie data''s process list.')
                         end
+                        funParams.SegProcessIndex = cat(2, funParams.SegProcessIndex, segPI);
                     end
                     
                     % if ratioing process, find if there is any mask
                     % refinement process
                     if i == 9
-                        segPI = find(cellfun(@(x)isa(x, 'MaskTransformationProcess'), obj.owner_.processes_));
-                        
+                        segPI=getProcessIndex(obj.owner_,'MaskTransformationProcess',Inf,0);
                         if ~isempty(segPI)
                             funParams.SegProcessIndex = cat(2, funParams.SegProcessIndex, segPI);
                         end
-                    end
-                    
-                    obj.processes_{i}.setPara(funParams)
-                    
+                    end           
                 else
-                    funParams = obj.processes_{i}.funParams_;
                     funParams.SegProcessIndex = [];
-                    obj.processes_{i}.setPara(funParams)
                 end
-                
+                parseProcessParams(obj.processes_{i},funParams);
             end
-            
-            
         end
         
-        function processExceptions = checkOptionalProcess(obj, procRun, procID)
-            % The function check if the successfuly processing of optional
-            % processes (with id procID) would affect the update status of
-            % decendent processes
-            nProcesses = length(obj.getProcessClassNames);
-            processExceptions = cell(1,nProcesses);
-            processVisited = false(1,nProcesses);
-            
-            validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
-            for i = validProc
-                [processExceptions, processVisited] = ...
-                    obj.dfs_optional(i, procRun, processExceptions, processVisited);
-            end
-        end
-        function [processExceptions, processVisited] = ...
-                dfs_optional(obj, i, procRun, processExceptions, processVisited)
-            
-            childIndex = find(obj.depMatrix_(:,i)');
-            unvisitedChildIndex = childIndex(~processVisited(childIndex));
-            for j=unvisitedChildIndex
-                
-                if  ~isempty(obj.processes_{j}) && ...
-                        ~isempty(setdiff(j, procRun)) && ...
-                        obj.processes_{j}.success_
-                    
-                    obj.processes_{j}.setUpdated (false)
-                    ME = MException('lccb:depe:warn', ...
-                        ['The current step is out of date because one of the optional steps changes the input data of current step. '...
-                        'Please run again to update your result.']);
-                    processExceptions{j} = horzcat(processExceptions{j}, ME);
-                end
-                
-                processVisited(j) = true;
-                
-                [processExceptions, processVisited] = ...
-                    obj.dfs_optional(j, procRun, processExceptions, processVisited);
-            end
-        end
     end
     methods (Static)
-        
-        function m = getDependencyMatrix()
-            % Get dependency matrix
-            
-            %    1 2 3 4 5 6 7 8 9 10 11
-            m = [0 0 0 0 0 0 0 0 0 0 0; %1 MasksProcess
-                1 0 0 0 0 0 0 0 0 0 0; %2 BackgroundMasksProcess
-                1 0 0 0 0 0 0 0 0 0 0; %3 MaskRefinementProcess
-                0 0 0 0 0 0 0 0 0 0 0; %4 DarkCurrentCorrectionProcess
-                0 0 0 0 0 0 0 0 0 0 0; %5 ShadeCorrectionProcess
-                0 1 0 0 1 0 0 0 0 0 0; %6 BackgroundSubtractionProcess
-                0 0 0 0 0 1 0 0 0 0 0; %7 TransformationProcess
-                0 0 0 0 0 1 0 0 0 0 0; %8 BleedthroughCorrectionProcess
-                0 0 0 0 0 1 0 0 0 0 0; %9 RatioProcess
-                0 0 0 0 0 0 0 0 1 0 0; %10PhotobleachCorrectionProcess
-                0 0 0 0 0 0 0 0 1 0 0];%11OutputRatioProcess
-        end
-        
-        function id = getOptionalProcessId()
-            % Get the optional process id
-            id = [3 4 7 8 10];
-        end
         
         function name = getName()
             name = 'Biosensors';
         end
         
+        function m = getDependencyMatrix(i,j)
+            
+            m = [0 0 0 0 0 0 0 0 0 0 0; %1 SegmentationProcess
+                1 0 0 0 0 0 0 0 0 0 0;  %2 BackgroundMasksProcess
+                1 0 0 0 0 0 0 0 0 0 0;  %3 MaskRefinementProcess
+                0 0 0 0 0 0 0 0 0 0 0;  %4 DarkCurrentCorrectionProcess
+                0 0 0 2 0 0 0 0 0 0 0;  %5 ShadeCorrectionProcess
+                0 1 0 0 1 0 0 0 0 0 0;  %6 BackgroundSubtractionProcess
+                1 0 2 0 0 1 0 0 0 0 0;  %7 TransformationProcess
+                0 0 0 0 0 1 2 0 0 0 0;  %8 BleedthroughCorrectionProcessj
+                1 0 2 0 0 1 2 2 0 0 0;  %9 RatioProcess
+                0 0 0 0 0 0 0 0 1 0 0;  %10PhotobleachCorrectionProcess
+                0 0 0 0 0 0 0 0 1 2 0]; %11OutputRatioProcess
+            if nargin<2, j=1:size(m,2); end
+            if nargin<1, i=1:size(m,1); end
+            m=m(i,j);
+        end
+       
         function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = biosensorsPackageGUI(varargin{:});
@@ -343,13 +286,12 @@ classdef BiosensorsPackage < Package
         
         function tools = getTools(index)
             biosensorsTools(1).name = 'Bleedthrough coefficient calculation';
-            biosensorsTools(1).funHandle = @calculateBleedthroughGUI;            
+            biosensorsTools(1).funHandle = @calculateBleedthroughGUI;
             biosensorsTools(2).name = 'Alignement/Registration Transform Creation';
             biosensorsTools(2).funHandle = @transformCreationGUI;
             if nargin==0, index=1:numel(biosensorsTools); end
-            tools=biosensorsTools(index);    
+            tools=biosensorsTools(index);
         end
     end
     
 end
-
