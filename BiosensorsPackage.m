@@ -9,10 +9,7 @@ classdef BiosensorsPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                % Dependency Matrix (same length as process class name
-                % string)
-                super_args{2} = BiosensorsPackage.getDependencyMatrix;
-                super_args{3} = [outputDir  filesep 'BiosensorsPackage'];
+                super_args{2} = [outputDir  filesep 'BiosensorsPackage'];
                 
             end
             % Call the superclass constructor
@@ -39,7 +36,7 @@ classdef BiosensorsPackage < Package
             
             validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
             for i = validProc
-                parentIndex = find(obj.depMatrix_(i,:));
+                parentIndex = find(obj.getDependencyMatrix(i,:));
                 if length(parentIndex) > 1
                     switch i
                         case 6
