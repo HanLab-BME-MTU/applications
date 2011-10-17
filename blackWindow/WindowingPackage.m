@@ -26,9 +26,13 @@ classdef WindowingPackage < Package
             
             % Refine dependency relationship between protrusion and
             % windowing processes
-            if procID==2 && ~strcmp(obj.processes_{procID}.funParams_.MethodName,...
-                    'ProtrusionBased')
-                parentID(parentID==1)=[];
+            if procID==2
+                if isempty(obj.processes_{procID})
+                    parentID(parentID==1)=[];
+                elseif ~strcmp(obj.processes_{procID}.funParams_.MethodName,...
+                        'ProtrusionBased')
+                    parentID(parentID==1)=[];
+                end
             end
         end
     end
@@ -36,7 +40,7 @@ classdef WindowingPackage < Package
     methods (Static)
         
         function m = getDependencyMatrix(i,j)
-
+            
             m = [0 0 0 0; %1 ProtrusionProcess
                 2 0 0 0; %2 WindowingProcess
                 1 1 0 0;  %3 ProtrusionSamplingProcess
@@ -57,10 +61,10 @@ classdef WindowingPackage < Package
         
         function procConstr = getDefaultProcessConstructors(index)
             windowingProcConstr = {
-                    @ProtrusionProcess,...
-                    @WindowingProcess,...
-                    @ProtrusionSamplingProcess,...
-                    @WindowSamplingProcess};
+                @ProtrusionProcess,...
+                @WindowingProcess,...
+                @ProtrusionSamplingProcess,...
+                @WindowSamplingProcess};
             
             if nargin==0, index=1:numel(windowingProcConstr); end
             procConstr=windowingProcConstr(index);
