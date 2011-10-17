@@ -47,7 +47,7 @@ end
 % --- Executes just before photobleachCorrectionProcessGUI is made visible.
 function photobleachCorrectionProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
-processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',);
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',0);
 
 % Channel Setup--------------------------
 
