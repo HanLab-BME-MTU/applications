@@ -11,9 +11,8 @@ classdef TFMPackage < Package
                 super_args = {};
             else
                 % Owner: MovieData object
-                super_args{1} = owner;
-                super_args{2} = TFMPackage.getDependencyMatrix;               
-                super_args{3} = [outputDir  filesep 'TFMPackage'];
+                super_args{1} = owner;          
+                super_args{2} = [outputDir  filesep 'TFMPackage'];
             end
             
             % Call the superclass constructor
