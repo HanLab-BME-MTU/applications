@@ -278,6 +278,8 @@ saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' '.fig'])
 saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' fileExt])
 close(gcf)
 
+if ishandle(wtBar),  waitbar(.875,wtBar,'Creating sites plots'); end
+
 % make the pause/shrinkage termination plots
 figure('Position',figPos)
 imagesc(img); colormap gray;
@@ -289,7 +291,6 @@ saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
 saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
 close(gcf)
 
-if ishandle(wtBar),  waitbar(.875,wtBar,'Creating sites plots'); end
 
 figure('Position',figPos)
 imagesc(img); colormap gray;
