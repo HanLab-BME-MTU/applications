@@ -46,63 +46,21 @@ end
 
 % --- Executes just before bleedthroughCorrectionProcessGUI is made visible.
 function bleedthroughCorrectionProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% Available tools 
-% UserData data:
-%       userData.mainFig - handle of main figure
-%       userData.handles_main - 'handles' of main figure
-%       userData.procID - The ID of process in the current package
-%       userData.crtProc - handle of current process
-%       userData.crtPackage - handles of current package
-%       userData.procConstr - constructor of current process
-%
-%       userData.questIconData - help icon image information
-%       userData.colormap - color map information
-%
 
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
-
-userData = get(handles.figure1, 'UserData');
-% Choose default command line output for bleedthroughCorrectionProcessGUI
-handles.output = hObject;
-
-% Get main figure handle and process id
-t = find(strcmp(varargin,'mainFig'));
-userData.mainFig = varargin{t+1};
-userData.procID = varargin{t+2};
-userData.handles_main = guidata(userData.mainFig);
-
-% Get current package and process
-userData_main = get(userData.mainFig, 'UserData');
-userData.crtPackage = userData_main.crtPackage;
-userData.crtProc = userData.crtPackage.processes_{userData.procID};
-
-% Get current process constructer
-eval ( [ 'userData.procConstr = @', ...
-    userData.crtPackage.getProcessClassNames{userData.procID},';']);
-
-% If process does not exist, create a default one in user data.
-if isempty(userData.crtProc)
-    userData.crtProc = userData.procConstr(userData_main.MD(userData_main.id), ...
-                                userData.crtPackage.outputDirectory_);
-end
-
-% Get icon infomation
-userData.questIconData = userData_main.questIconData;
-userData.colormap = userData_main.colormap;
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',0);
 
 % ---------------------- Channel Setup -------------------------
-
+userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 % Set up available input channels
-set(handles.listbox_input1, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
+set(handles.listbox_input1, 'String', {userData.MD.channels_.channelPath_},...
+        'Userdata', 1: length(userData.MD.channels_));
     
 % Set up input channel (one channel)
 if ~isempty(funParams.ChannelIndex)
     set(handles.edit_dir, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex).channelPath_} , ...
+        {userData.MD.channels_(funParams.ChannelIndex).channelPath_} , ...
         'Userdata', funParams.ChannelIndex )
 end
 
@@ -111,18 +69,17 @@ if ~isempty(funParams.ChannelIndex)
 end
     
 % Set up bleed channels
-set(handles.listbox_mask1, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));    
+set(handles.listbox_mask1, 'String', {userData.MD.channels_.channelPath_},...
+        'Userdata', 1: length(userData.MD.channels_));    
 
 % Set up bleedthrough channels
 if ~isempty(funParams.BleedChannelIndex)
     set(handles.listbox_mask2, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.BleedChannelIndex).channelPath_}, ...
+        {userData.MD.channels_(funParams.BleedChannelIndex).channelPath_}, ...
         'Userdata', funParams.BleedChannelIndex)
 end
 
-% ---------------------- Parameter Setup -------------------------
-
+%  Parameter Setup 
 strBleedCoef = cell(1,length(funParams.BleedCoefficients));
 
 for i = 1:length(funParams.BleedCoefficients)
@@ -131,25 +88,9 @@ end
 
 set(handles.listbox_coef1, 'String', strBleedCoef)
 
-% ----------------------Set up help icon------------------------
 
-% Set up help icon
-set(hObject,'colormap',userData.colormap);
-% Set up package help. Package icon is tagged as '0'
-axes(handles.axes_help);
-Img = image(userData.questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class',class(userData.crtProc)))
-end
-
-% ----------------------------------------------------------------
-
-% Update user data and GUI data
-set(userData.mainFig, 'UserData', userData_main);
-set(hObject, 'UserData', userData);
+% Choose default command line output for bleedthroughCorrectionProcessGUI
+handles.output = hObject;
 
 uicontrol(handles.pushbutton_done)
 guidata(hObject, handles);
@@ -175,7 +116,6 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-userData_main = get(userData.mainFig, 'UserData');
 
 % -------- Check user input --------
 channelIndex = get (handles.edit_dir, 'Userdata');
