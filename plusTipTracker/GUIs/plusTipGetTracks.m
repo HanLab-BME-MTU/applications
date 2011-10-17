@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 11-Jun-2011 09:59:31
+% Last Modified by GUIDE v2.5 17-Oct-2011 10:19:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,36 +57,8 @@ function plusTipGetTracks_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for plusTipGetTracks
 handles.output = hObject;
-handles.getStr = 0;
-handles.loadProjList = 0;
 handles.projList = [];
-
-handles.doDetect=0;
-handles.doTrack=0; 
-handles.doMeta=0; 
-
-% DETECTION parameters
-handles.timeRangeDetect = [1 inf];
-handles.bitDepth  = 16; 
-handles.savePlots = 1;
-
-
-% TRACKING parameters
-handles.timeWindow=[];
-handles.minTrackLen=3;
-handles.minRadius=[];
-handles.maxRadius=[];
-handles.maxFAngle=30;
-handles.maxBAngle=10;
-handles.maxShrinkFactor=1.5;
-handles.fluctRad=1;
-handles.timeRangeTrack = [1 inf];
-
-% META parameters
-handles.secPerFrame=[];
-handles.pixSizeNm=[];
-handles.timeRangePost=[1 inf];
-handles.doHist=1;
+handles.nProjLists = 0;
 
 %place image onto the axes, remove tick marks
 set(handles.figure1,'CurrentAxes',handles.logoAxes);
@@ -158,8 +130,9 @@ temp=projList2Cell(handles.projList);
 assignin('base','selectedProjects',temp);
 guidata(hObject, handles);
 
-% Allow the user to save the project list
-if ~isempty(handles.projList)
+% Allow the user to save the project list if not from a single projList
+isSingleProjList = handles.nProjLists == 1 && ~get(handles.getQueryStr_Check,'Value');
+if ~isempty(handles.projList) && ~isSingleProjList
     if ~isempty(handles.strList)
         defaultListName = ['projList', sprintf('_%s',handles.strList{:}) '.mat'];
     else
@@ -171,203 +144,11 @@ if ~isempty(handles.projList)
     save([path file],'-struct','handles','projList');
 end
 
-% --- Executes on button press in getQueryStr_Check.
-function getQueryStr_Check_Callback(hObject, eventdata, handles)
-% hObject    handle to getQueryStr_Check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.getStr=get(hObject,'Value');
-guidata(hObject, handles);
 
-
-function startFrameDetect_Callback(hObject, eventdata, handles)
-% hObject    handle to startFrameDetect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of startFrameDetect as text
-%        str2double(get(hObject,'String')) returns contents of startFrameDetect as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameDetect');
-guidata(hObject, handles);
-
-
-function endFrameDetect_Callback(hObject, eventdata, handles)
-% hObject    handle to endFrameDetect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of endFrameDetect as text
-%        str2double(get(hObject,'String')) returns contents of endFrameDetect as
-%        a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameDetect');  
-guidata(hObject, handles);
-
-
-function startFramePost_Callback(hObject, eventdata, handles)
-% hObject    handle to startFramePost (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns projList_roi_1.matprojList_ro.matcontents of startFramePost as text
-%        str2double(get(hObject,'String')) returns contents of startFramePost as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFramePost');
-guidata(hObject, handles);
-
-function endFramePost_Callback(hObject, eventdata, handles)
-% hObject    handle to endFramePost (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of endFramePost as text
-%        str2double(get(hObject,'String')) returns contents of endFramePost as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFramePost');
-guidata(hObject, handles);
-
-function startFrameTrack_Callback(hObject, eventdata, handles)
-% hObject    handle to startFrameTrack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of startFrameTrack as text
-%        str2double(get(hObject,'String')) returns contents of startFrameTrack as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameTrack');
-guidata(hObject, handles);
-
-
-function endFrameTrack_Callback(hObject, eventdata, handles)
-% hObject    handle to endFrameTrack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of endFrameTrack as text
-%        str2double(get(hObject,'String')) returns contents of endFrameTrack as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameTrack');
-guidata(hObject, handles);
-
-
-function bitDepthEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to bitDepthEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of bitDepthEdit as text
-%        str2double(get(hObject,'String')) returns contents of bitDepthEdit as a double
-handles.bitDepth=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-% --- Executes on button press in savePlotCheck.
-function savePlotCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to savePlotCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of savePlotCheck
-handles.savePlots=get(hObject,'Value');
-guidata(hObject, handles);
-
-function frameRateEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to frameRateEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of frameRateEdit as text
-%        str2double(get(hObject,'String')) returns contents of frameRateEdit as a double
-handles.secPerFrame=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-function pixSizeEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to pixSizeEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of pixSizeEdit as text
-%        str2double(get(hObject,'String')) returns contents of pixSizeEdit as a double
-handles.pixSizeNm=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-function timeWindowEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to timeWindowEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of timeWindowEdit as text
-%        str2double(get(hObject,'String')) returns contents of timeWindowEdit as a double
-handles.timeWindow=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-function minTrackLengthEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to minTrackLengthEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of minTrackLengthEdit as text
-%        str2double(get(hObject,'String')) returns contents of minTrackLengthEdit as a double
-handles.minTrackLen=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-function minRadiusEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to minRadiusEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of minRadiusEdit as text
-%        str2double(get(hObject,'String')) returns contents of minRadiusEdit as a double
-handles.minRadius=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-function maxRadiusEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxRadiusEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of maxRadiusEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxRadiusEdit as a double
-handles.maxRadius=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-function maxFAngleEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxFAngleEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of maxFAngleEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxFAngleEdit as a double
-handles.maxFAngle=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-function maxBAngleEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxBAngleEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of maxBAngleEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxBAngleEdit as a double
-handles.maxBAngle=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-
-function maxShrinkFactorEdit_Callback(hObject, eventdata, handles)
-% hObject    handle to maxShrinkFactorEdit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of maxShrinkFactorEdit as text
-%        str2double(get(hObject,'String')) returns contents of maxShrinkFactorEdit as a double
-handles.maxShrinkFactor=str2double(get(hObject,'String'));
-guidata(hObject, handles);
-
-% --- Executes on button press in doDetectCheck.
+% --- Executes on button press in detectionCheck.
 function updateDetection(hObject, eventdata, handles)
-% hObject    handle to doDetectCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of doDetectCheck
-handles.doDetect=get(handles.doDetectCheck,'Value');
+% Hint: get(hObject,'Value') returns toggle state of detectionCheck
+doDetect=get(handles.detectionCheck,'Value');
 detectionChildren=get(handles.detectionPanel,'Children');
 isPanel = strcmp(get(detectionChildren,'Type'),'uipanel');
 panelTags = get(detectionChildren(isPanel),'Tag');
@@ -379,7 +160,7 @@ set(handles.(methodPanelTag),'Visible','on');
 otherPanelTag = panelTags(panelIndx~=methodIndx);
 cellfun(@(x) set(handles.(x),'Visible','off'),otherPanelTag);
     
-if handles.doDetect==1
+if doDetect
     set(detectionChildren(~isPanel),'Enable','on');
     set(handles.startFrameDetect,'Enable','on');
     set(handles.endFrameDetect,'Enable','on');    
@@ -400,35 +181,22 @@ guidata(hObject, handles);
 
 % --- Executes on button press in trackingCheck.
 function trackingCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to trackingCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of trackingCheck
-handles.doTrack=get(hObject,'Value');
 trackingHandles=get(handles.trackingPanel,'Children');
-if handles.doTrack==1
+if get(hObject,'Value')
     set(trackingHandles,'Enable','on')
     set(handles.startFrameTrack,'Enable','on')
     set(handles.endFrameTrack,'Enable','on')
-    
 else
     set(trackingHandles,'Enable','off')
     set(handles.startFrameTrack,'Enable','off')
     set(handles.endFrameTrack,'Enable','off')
 end
-guidata(hObject, handles);
-
 
 % --- Executes on button press in metaCheck.
 function metaCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to metaCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of metaCheck
-handles.doMeta=get(hObject,'Value');
-if handles.doMeta==1
+if get(hObject,'Value')
     set(handles.startFramePost,'Enable','on')
     set(handles.endFramePost,'Enable','on')
     set(handles.frameRateEdit,'Enable','on')
@@ -441,8 +209,6 @@ else
     set(handles.pixSizeEdit,'Enable','off')
     set(handles.histCheck,'Enable','off')
 end
-guidata(hObject, handles);
-
 
 % --- Executes on button press in startPush.
 function startPush_Callback(hObject, eventdata, handles)
@@ -455,16 +221,117 @@ if isempty(handles.projList)
 end
 
 numProj=size(handles.projList,1);
+doDetect=get(handles.detectionCheck,'Value');
+doTrack=get(handles.trackingCheck,'Value');
+doMeta=get(handles.metaCheck,'Value');
 
-if handles.doTrack==1
-    if isempty(handles.timeWindow) || isempty(handles.minRadius) || isempty(handles.maxRadius)
-        errordlg('Please check tracking parameters.','Missing Input');
+% Read detection parameters
+if doDetect
+    detectionParams=[];
+    
+    % Read detection time range
+    sFVal=get(handles.startFrameDetect,'String');
+    if strcmpi(sFVal,'min')
+        detectionParams.timeRangeDetect(1)=1;
+    else
+        detectionParams.timeRangeDetect(1)=str2double(sFVal);
+    end  
+    eFVal=get(handles.endFrameDetect,'String');
+    if strcmpi(eFVal,'max')
+        detectionParams.timeRangeDetect(2)=Inf;
+    else
+        detectionParams.timeRangeDetect(2)=str2double(eFVal);
+    end
+    if ~all(isposint(detectionParams.timeRangeDetect)),
+        errordlg('Invalid detection parameter range. Please check again','Missing Input');
         return
-    end       
+    end
+    
+    % Read detection common parameters
+    detectionParams.bitDepth = str2double(get(handles.bitDepth,'String'));
+    detectionParams.savePlots = get(handles.savePlotCheck,'value');
+    detectionParams.addArgs={};
+    
+    % Read detection method specific parameters      
+    detectionMethod = get(handles.popupmenu_detectionMethod,'Value');
+    if get(handles.checkbox_custom, 'Value') && detectionMethod ==1;
+        scales(1) = get(handles.slider_1, 'Value');
+        scales(2) = get(handles.slider_2, 'Value');
+        multFactor4Thresh = get(handles.slider_3, 'Value');
+        detectionParams.addArgs ={scales,multFactor4Thresh};
+    end
+    if detectionMethod==2
+        detectionParams.psfSigma = str2double(get(handles.edit_psfSigma,'String'));
+    end
+    if get(handles.checkbox_custom, 'Value') && detectionMethod ==2;
+        alpha = str2double(get(handles.edit_alpha,'String'));
+        displayFirstImage = get(handles.checkbox_displayFirstImage,'Value');
+        detectionParams.addArgs ={'alpha',alpha,'displayFirstImage',displayFirstImage};
+    end
 end
-if handles.doMeta==1
-    if isempty(handles.secPerFrame) || isempty(handles.pixSizeNm)
-        errordlg('Please check post-processing parameters.','Missing Input');
+
+% Read tracking parameters
+if doTrack
+    trackParams=[];
+    
+    % Read tracking time range
+    sFVal=get(handles.startFrameTrack,'String');
+    if strcmpi(sFVal,'min')
+        trackParams.timeRangeTrack(1)=1;
+    else
+        trackParams.timeRangeTrack(1)=str2double(sFVal);
+    end  
+    eFVal=get(handles.endFrameTrack,'String');
+    if strcmpi(eFVal,'max')
+        trackParams.timeRangeTrack(2)=Inf;
+    else
+        trackParams.timeRangeTrack(2)=str2double(eFVal);
+    end
+    if ~all(isposint(trackParams.timeRangeDetect)),
+        errordlg('Invalid tracking parameter range. Please check again','Missing Input');
+        return
+    end
+    
+    % Read tracking numeric parameters
+    trackParamsNames = {'timeWindow','minTrackLength','minRadius','maxRadius',...
+        'maxFAngle','maxBAngle','maxShrinkFactor','fluctRad'};
+    for j=1:numel(trackParamsNames);
+        value = str2double(get(handles.(trackParamsNames{j}),'String'));
+        if isnan(value) || value < 0
+            errordlg('Invalid tracking parameter value. Please check again','Missing Input');
+            return
+        end
+        trackParams.(trackParamsNames{j})=value;
+    end        
+end
+
+% Read meta parameters
+if doMeta
+    metaParams=[];
+    % Read post-processing time range
+    sFVal=get(handles.startFramePost,'String');
+    if strcmpi(sFVal,'min')
+        metaParams.timeRangePost(1)=1;
+    else
+        metaParams.timeRangePost(1)=str2double(sFVal);
+    end  
+    eFVal=get(handles.endFramePost,'String');
+    if strcmpi(eFVal,'max')
+        metaParams.timeRangePost(2)=Inf;
+    else
+        metaParams.timeRangePost(2)=str2double(eFVal);
+    end
+    if ~all(isposint(metaParams.timeRangeDetect)),
+        errordlg('Invalid post-processing parameter range. Please check again','Missing Input');
+        return
+    end
+    
+    % Read post-processing parameters
+    metaParams.secPerFrame = str2double(get(handles.frameRateEdit,'String'));
+    metaParams.pixSizeNm = str2double(get(handles.pixSizeEdit,'String'));
+    metaParams.doHist=get(handles.histCheck,'Value');
+    if isnan(metaParams.secPerFrame) || isnan(metaParams.pixSizeNm)
+        errordlg('Invalid post-processing parameter value. Please check again','Missing Input');
         return
     end       
 end
@@ -473,30 +340,20 @@ end
 for i=1:numProj
     %try
     % detection
-    if handles.doDetect==1
+    if doDetect
         tic
         disp(['Detecting project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir]);
         detectionMethod = get(handles.popupmenu_detectionMethod,'Value');
         switch detectionMethod
             case 1
-                if get(handles.checkbox_custom, 'Value')
-                    handles.scales(1) = get(handles.slider_1, 'Value');
-                    handles.scales(2) = get(handles.slider_2, 'Value');
-                    handles.multFactor4Thresh = get(handles.slider_3, 'Value');
-                    optional_arguments ={handles.scales,handles.multFactor4Thresh};
-                else                    
-                    optional_arguments={};
-                end
                 plusTipCometDetector(handles.projList(i),...
-                        handles.timeRangeDetect,handles.bitDepth,...
-                        handles.savePlots,optional_arguments{:});
+                    detectionParams.timeRangeDetect,detectionParams.bitDepth,...
+                    detectionParams.savePlots,detectionParams.addArgs{:});
             case 2
-                psfSigma = str2double(get(handles.edit_psfSigma,'String'));
-                alpha = str2double(get(handles.edit_alpha,'String'));
-                displayFirstImage = get(handles.checkbox_displayFirstImage,'Value');
-                plusTipAnisoGaussianCometDetector(handles.projList(i),psfSigma,...
-                    handles.timeRangeDetect,handles.bitDepth,handles.savePlots,...
-                    'alpha',alpha,'displayFirstImage',displayFirstImage);
+                plusTipAnisoGaussianCometDetector(handles.projList(i),...
+                    detectionParams.psfSigma,detectionParams.timeRangeDetect,...
+                    detectionParams.bitDepth,detectionParams.savePlots,...
+                    detectionParams.addArgs{:});
             otherwise
                 error('Unrecognized detection method')
         end
@@ -504,39 +361,26 @@ for i=1:numProj
     end
 
     % tracking
-    if handles.doTrack==1
+    if doTrack==1
         tic
         disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-        plusTipCometTracker(handles.projList(i),handles.timeWindow,...
-            handles.minTrackLen,handles.minRadius,handles.maxRadius,...
-            handles.maxFAngle,handles.maxBAngle,handles.maxShrinkFactor,...
-            handles.fluctRad,handles.timeRangeTrack);
+        plusTipCometTracker(handles.projList(i),trackParams.timeWindow,...
+            trackParams.minTrackLength,trackParams.minRadius,trackParams.maxRadius,...
+            trackParams.maxFAngle,trackParams.maxBAngle,trackParams.maxShrinkFactor,...
+            trackParams.fluctRad,trackParams.timeRangeTrack);
         toc
     end
     
     % post-processing
-    if handles.doMeta==1
+    if doMeta
         tic
         disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
-        [projData]=plusTipPostTracking(handles.projList(i),...
-            handles.secPerFrame,handles.pixSizeNm,handles.timeRangePost,handles.doHist);
+        plusTipPostTracking(handles.projList(i),metaParams.secPerFrame,...
+            metaParams.pixSizeNm,metaParams.timeRangePost,metaParams.doHist);
         toc
     end
-%     catch
-%         disp(['Problem with ' handles.projList(i).anDir])
-%     end
 end
 disp('Finished!')
-
-% --- Executes on button press in histCheck.
-function histCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to histCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of histCheck
-handles.doHist=get(hObject,'Value');
-guidata(hObject, handles);
 
 % --- Executes on button press in setupRoiPush.
 function setupRoiPush_Callback(hObject, eventdata, handles)
@@ -552,17 +396,6 @@ function resetButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 plusTipGuiSwitch(hObject,eventdata,handles,'resetButton');   
-
-
-% --- Executes on button press in getProjListFile_check.
-function getProjListFile_check_Callback(hObject, eventdata, handles)
-% hObject    handle to getProjListFile_check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
-handles.loadProjList=get(hObject,'Value');
-guidata(hObject, handles);
 
 % --- Executes on button press in pushbutton_preview.
 function pushbutton_preview_Callback(hObject, eventdata, handles)
@@ -607,7 +440,3 @@ if nanTest || minmaxTest || diffTest1 || diffTest2,  value=oldvalue; end
 % Update the slider and the edit_box
 set(handles.(['slider_' num2str(id)]),'Value',value);
 set(handles.(['edit_detect_' num2str(id)]),'String',value);
-
-function fluctRadEdit_Callback(hObject, eventdata, handles)
-handles.fluctRad=str2double(get(hObject,'String'));
-guidata(hObject, handles);

@@ -4,16 +4,9 @@ function [handles]=plusTipGuiSwitch(hObject,eventdata,handles,callbackName)
 switch callbackName
 
     case 'getProjPush'
-        if ~isfield(handles,'loadProjList')
-            handles.loadProjList=0;
-        end
-        if ~isfield(handles,'getStr')
-            handles.getStr=0;
-        end
-
-        if handles.loadProjList==0
-
-            if handles.getStr==1
+        if ~get(handles.getProjListFile_check,'Value')
+            % If load projList is not checked
+            if get(handles.getQueryStr_Check,'Value')
                 handles.strList=inputGUI;
                 projList=getProj(handles.strList);
             else
@@ -21,121 +14,29 @@ switch callbackName
                 projList=getProj;
             end
             handles.projList=projList;
-
+            handles.nProjLists = 0;
         else
             % select one or more projList files
-            handles.projList=combineProjListFiles(0);
+            [handles.projList handles.nProjLists]=combineProjListFiles(0);
             
             % if "select subset" is checked, ask user for search string(s)
             % and find matches from projList
-            if handles.getStr==1
+            if get(handles.getQueryStr_Check,'Value')
                 handles.strList=inputGUI;
                 roiDirList=projList2Cell(handles.projList);
                 nStr=length(handles.strList);
 
-                projCount=0;
                 if ~isempty(roiDirList)
                     tempROI=ones(length(roiDirList),1);
                     for i=1:nStr
                         testStr = handles.strList{i};
                         tempROI=tempROI & cellfun(@(y) ~isempty(strfind(y,lower(testStr))),lower(roiDirList(:,2)));
                     end
-
+                    
                     matches=find(tempROI);
-
                     handles.projList=handles.projList(matches);
                 end
             end
-
-        end
-
-    case 'selectSavedRoiPushbutton'
-        [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat file');
-        if ~isequal(FileName,0)
-            if ~isempty(strfind(FileName,'tif'))
-                handles.roi=imread([PathName FileName]);
-            elseif ~isempty(strfind(FileName,'mat'))
-                p=load([PathName FileName]);
-                handles.roi=p.roiYX;
-            else
-                errordlg('File chosen was not a roiYX.mat or roiMask.tif file. Please try again.','File Error');
-            end
-        end
-
-    case 'startFrameDetect'
-        sFVal=get(hObject,'String');
-        if isequal(lower(sFVal),'min')
-            handles.timeRangeDetect(1)=1;
-        else
-            handles.timeRangeDetect(1)=str2double(sFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangeDetect(1)));
-
-    case 'endFrameDetect'
-        eFVal=get(hObject,'String');
-        if isequal(lower(eFVal),'max')
-            handles.timeRangeDetect(2)=handles.projData.nFrames;
-        else
-            handles.timeRangeDetect(2)=str2double(eFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangeDetect(2)));
-        
-    case 'startFramePost'
-        sFVal=get(hObject,'String');
-        if isequal(lower(sFVal),'min')
-            handles.timeRangePost(1)=1;
-        else
-            handles.timeRangePost(1)=str2double(sFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangePost(1)));
-
-    case 'endFramePost'
-        eFVal=get(hObject,'String');
-        if isequal(lower(eFVal),'max')
-            handles.timeRangePost(2)=handles.projData.nFrames;
-        else
-            handles.timeRangePost(2)=str2double(eFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangePost(2)));
-
-    case 'startFrameTrack'
-        sFVal=get(hObject,'String');
-        if isequal(lower(sFVal),'min')
-            handles.timeRangeTrack(1)=1;
-        else
-            handles.timeRangeTrack(1)=str2double(sFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangeTrack(1)));
-
-    case 'endFrameTrack'
-        eFVal=get(hObject,'String');
-        if isequal(lower(eFVal),'max')
-            handles.timeRangeTrack(2)=handles.projData.nFrames;
-        else
-            handles.timeRangeTrack(2)=str2double(eFVal);
-        end
-        set(hObject,'String',num2str(handles.timeRangeTrack(2)));
-
-    case 'selectTracksCheck'
-        handles.ask4select=get(hObject,'Value');
-
-    case 'plotTracksPush'
-        rawToo=0;
-        isStill=1;
-        [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
-            handles.timeRangeDetect,handles.img,handles.ask4select,...
-            handles.plotCurrentOnly,handles.roi,handles.movieInfo,rawToo,isStill);
-
-        if ~isempty(handles.selectedTracks)
-
-            temp=vertcat(handles.selectedTracks{:});
-            handles.selectedTracks=unique(temp(:,1));
-            [l w]=size(handles.selectedTracks);
-
-            if l>w
-                handles.selectedTracks=handles.selectedTracks';
-            end
-
         end
 
     case 'selectedTracksDisplay'

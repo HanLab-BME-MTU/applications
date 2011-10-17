@@ -57,6 +57,8 @@ end
 
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...');
+else
+    wtBar=-1;
 end
 
 % get first image from imDir
@@ -205,7 +207,7 @@ for j=1:3
     saveas(gcf,[saveDir filesep 'histogram_' type{j} fileExt])
     close(gcf)
     if ishandle(wtBar)
-        waitbar(.5+j/6,wtBar,'Creating stacked histograms');
+        waitbar(.5+j/12,wtBar,'Creating stacked histograms');
     end
 end
 
@@ -287,6 +289,7 @@ saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
 saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
 close(gcf)
 
+if ishandle(wtBar),  waitbar(.875,wtBar,'Creating sites plots'); end
 
 figure('Position',figPos)
 imagesc(img); colormap gray;

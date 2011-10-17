@@ -60,8 +60,6 @@ handles.output = hObject;
 
 % for "select projects" pushbutton
 handles.projList=[]; % select projects pushbutton
-handles.loadProjList = 0; % load projList checkbox
-handles.getStr = 0; % narrow down list checkbox
 handles.projData=[]; % if one project is selected, projData will be retrieved
 handles.strList='';
 
@@ -170,8 +168,9 @@ else
     return
 end
 
-% Allow the user to save the project list
-if ~isempty(handles.projList)
+% Allow the user to save the project list if not from a single projList
+isSingleProjList = handles.nProjLists == 1 && ~get(handles.getQueryStr_Check,'Value');
+if ~isempty(handles.projList) && ~isSingleProjList
     if ~isempty(handles.strList)
         defaultListName = ['projList', sprintf('_%s',handles.strList{:}) '.mat'];
     else
@@ -194,28 +193,6 @@ end
 
 set(handles.figure1,'UserData',userData);
 guidata(hObject, handles);
-
-% --- Executes on button press in getQueryStr_Check.
-function getQueryStr_Check_Callback(hObject, eventdata, handles)
-% hObject    handle to getQueryStr_Check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of getQueryStr_Check
-handles.getStr=get(hObject,'Value');
-guidata(hObject, handles);
-
-
-% --- Executes on button press in getProjListFile_check.
-function getProjListFile_check_Callback(hObject, eventdata, handles)
-% hObject    handle to getProjListFile_check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
-handles.loadProjList=get(hObject,'Value');
-guidata(hObject, handles);
-
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
@@ -293,7 +270,6 @@ else
     set(handles.checkbox_doWtn,'Enable','off');
     set(handles.popupmenu_testID1,'Value',1);
     set(handles.popupmenu_testID2,'Value',6);    
-
 end
 
 

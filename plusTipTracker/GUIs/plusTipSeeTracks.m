@@ -23,7 +23,7 @@ function varargout = plusTipSeeTracks(varargin)
 
 % Edit the above text to modify the response to help plusTipSeeTracks
 
-% Last Modified by GUIDE v2.5 05-Oct-2011 09:02:45
+% Last Modified by GUIDE v2.5 17-Oct-2011 11:18:36
 
 
 % Begin initialization code - DO NOT EDIT
@@ -59,8 +59,6 @@ handles.output = hObject;
 
 % for "select projects" pushbutton
 handles.projList=[]; % select projects pushbutton
-handles.loadProjList = 0; % load projList checkbox
-handles.getStr = 0; % narrow down list checkbox
 handles.projData=[]; % if one project is selected, projData will be retrieved
 
 % for "create groups" pushbutton
@@ -69,12 +67,8 @@ handles.groupList=[]; % also select groups pushbutton
 % for "select saved ROI" pushbutton
 handles.roi=[]; 
 
-% for "choose frame range" edit boxes
-handles.timeRangeDetect=[1 inf];
-
 % for "track overlays" panel
 handles.img=[];
-handles.ask4select=0;
 handles.selectedTracks=[];
 handles.plotCurrentOnly=[];
 handles.movieInfo=[];
@@ -161,44 +155,20 @@ guidata(hObject, handles);
 
 % --- Executes on button press in selectSavedRoiPushbutton.
 function selectSavedRoiPushbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to selectSavedRoiPushbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectSavedRoiPushbutton');
-guidata(hObject, handles);
+
+[FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat file');
+if ~isequal(FileName,0)
+    if ~isempty(strfind(FileName,'tif'))
+        handles.roi=imread([PathName FileName]);
+    elseif ~isempty(strfind(FileName,'mat'))
+        p=load([PathName FileName]);
+        handles.roi=p.roiYX;
+    else
+        errordlg('File chosen was not a roiYX.mat or roiMask.tif file. Please try again.','File Error');
+    end
+end
 
 
-function startFrame_Callback(hObject, eventdata, handles)
-% hObject    handle to startFrame (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of startFrame as text
-%        str2double(get(hObject,'String')) returns contents of startFrame as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'startFrameDetect');
-guidata(hObject, handles);
-
-
-function endFrame_Callback(hObject, eventdata, handles)
-% hObject    handle to endFrame (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of endFrame as text
-%        str2double(get(hObject,'String')) returns contents of endFrame as
-%        a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'endFrameDetect');
-guidata(hObject, handles);
-
-% --- Executes on button press in selectTracksCheck.
-function selectTracksCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to selectTracksCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selectTracksCheck
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectTracksCheck');
-guidata(hObject, handles);
 
 % --- Executes on button press in plotTracksPush.
 function plotTracksPush_Callback(hObject, eventdata, handles)
@@ -206,7 +176,30 @@ function plotTracksPush_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'plotTracksPush');
+
+
+% Read time range
+timeRange = getTimeRange(handles);
+rawToo=0;
+isStill=1;
+ask4select = get(handles.selectTracksCheck,'Value');
+[handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
+    timeRange,handles.img,ask4select,...
+    handles.plotCurrentOnly,handles.roi,handles.movieInfo,rawToo,isStill);
+
+if ~isempty(handles.selectedTracks)
+    
+    temp=vertcat(handles.selectedTracks{:});
+    handles.selectedTracks=unique(temp(:,1));
+    [l w]=size(handles.selectedTracks);
+    
+    if l>w
+        handles.selectedTracks=handles.selectedTracks';
+    end
+    
+end
+        
+
 handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
 guidata(hObject, handles);
 
@@ -225,6 +218,16 @@ guidata(hObject, handles);
 % --- Executes on button press in speedMovieButton.
 function speedMovieButton_Callback(hObject, eventdata, handles)
 
+%Read project and output directory
+if isempty(handles.projData), errordlg('Please select a project'); return; end
+saveDir = get(handles.edit_outputDir,'String');
+if isempty(saveDir), errordlg('Please select an output directory'); return; end
+handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
+
+% Read time range
+timeRange = getTimeRange(handles);
+
+% Read movie specific parameters
 doAvi=get(handles.aviCheckTrackMov,'Value');
 velLimVal=get(handles.speedLimitEdit,'String');
 if strcmpi(velLimVal,'max')
@@ -233,21 +236,19 @@ else
     velLimit=str2double(velLimVal);
 end
         
-%Read output directory
+plusTipSpeedMovie(handles.projData,timeRange,velLimit,handles.roi,doAvi);
+
+% --- Executes on button press in trackMovieButton.
+function trackMovieButton_Callback(hObject, eventdata, handles)
+
+%Read project and output directory
 if isempty(handles.projData), errordlg('Please select a project'); return; end
 saveDir = get(handles.edit_outputDir,'String');
 if isempty(saveDir), errordlg('Please select an output directory'); return; end
 handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
 
-plusTipSpeedMovie(handles.projData,handles.timeRangeDetect,velLimit,...
-    handles.roi,doAvi);
-
-
-% --- Executes on button press in trackMovieButton.
-function trackMovieButton_Callback(hObject, eventdata, handles)
-% hObject    handle to trackMovieButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Read time range
+timeRange = getTimeRange(handles);
 
 % Read detection mode
 detectedObject= get(get(handles.radioButtonGroupDetection,'SelectedObject'),'Tag');
@@ -260,37 +261,8 @@ showTracks=get(handles.showTracksCheck,'Value');
 indivTrack=str2num(get(handles.indivTrackNumbersEdit,'String'))';
 magCoef =[];
 
-%Read output directory
-if isempty(handles.projData), errordlg('Please select a project'); return;  end
-saveDir = get(handles.edit_outputDir,'String');
-if isempty(saveDir), errordlg('Please select an output directory');return;  end
-handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
-
-plusTipTrackMovie(handles.projData,indivTrack,handles.timeRangeDetect,...
+plusTipTrackMovie(handles.projData,indivTrack,timeRange,...
     handles.roi,magCoef,showTracks,showDetect,doAvi,rawToo);
-
-
-% --- Executes on button press in getQueryStr_Check.
-function getQueryStr_Check_Callback(hObject, eventdata, handles)
-% hObject    handle to getQueryStr_Check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of getQueryStr_Check
-handles.getStr=get(hObject,'Value');
-guidata(hObject, handles);
-
-
-% --- Executes on button press in getProjListFile_check.
-function getProjListFile_check_Callback(hObject, eventdata, handles)
-% hObject    handle to getProjListFile_check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of getProjListFile_check
-handles.loadProjList=get(hObject,'Value');
-guidata(hObject, handles);
-
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
@@ -317,7 +289,9 @@ if isempty(handles.projData), errordlg('Please select a project'); return; end
 saveDir = get(handles.edit_outputDir,'String');
 if isempty(saveDir), errordlg('Please select an output directory'); return; end
 handles.projData.saveDir = saveDir; % For compatibility with plusTipTrackMovie
+ 
 
+timeRange = getTimeRange(handles);
 remBegEnd=1;
 % Read speed limit
 value = get(handles.edit_speedLimMax,'String');
@@ -335,5 +309,26 @@ value = get(handles.edit_dispLimMax,'String');
 if strcmpi(value,'max'), dispLim=[]; else dispLim = str2double(value); end
 if isnan(dispLim), errordlg('Please enter a valid maximum displacement'); return; end
 
-plusTipPlotResults(handles.projData,remBegEnd,handles.timeRangeDetect,...
+plusTipPlotResults(handles.projData,remBegEnd,timeRange,...
     speedLim,lifeLim,dispLim,saveDir);
+
+
+function timeRange = getTimeRange(handles)
+
+% Read time range
+sFVal=get(handles.startFrame,'String');
+if strcmpi(sFVal,'min')
+    timeRange(1)=1;
+else
+    timeRange(1)=str2double(sFVal);
+end
+eFVal=get(handles.endFrame,'String');
+if strcmpi(eFVal,'max')
+    timeRange(2)=Inf;
+else
+    timeRange(2)=str2double(eFVal);
+end
+if ~all(isposint(timeRange)),
+    errordlg('Invalid frame  range. Please check again','Missing Input');
+    return
+end

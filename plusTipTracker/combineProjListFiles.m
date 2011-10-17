@@ -1,4 +1,4 @@
-function [projList]=combineProjListFiles(saveResult)
+function [projList nLists]=combineProjListFiles(saveResult)
 % combineProjListFiles allows selection of multiple projList files to combine
 
 % SYNOPSIS: [projList]=combineProjListFiles(saveResult)
@@ -9,19 +9,19 @@ function [projList]=combineProjListFiles(saveResult)
 %
 % 2009/08 - Kathryn Applegate, Matlab R2008a
 
-if nargin<1
-    saveResult=0;
-end
+if nargin<1, saveResult=0; end
 
 projList=[];
 temp=[];
 userEntry='Yes';
+nLists=0;
 while strcmp(userEntry,'Yes')
     [fileName,pathName] = uigetfile('*.mat','Select projList.mat file');
     if fileName==0
         msgbox('No projects selected.')
         return
     end
+    nLists = nLists+1;
     load([pathName filesep fileName]);
     temp=[temp; projList];
     disp(['Selected: ' pathName fileName])
