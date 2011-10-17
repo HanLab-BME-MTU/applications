@@ -12,8 +12,7 @@ classdef WindowingPackage < Package
             else
                 % Owner: MovieData object
                 super_args{1} = owner;
-                super_args{2} = WindowingPackage.getDependencyMatrix;
-                super_args{3} = [outputDir  filesep 'WindowingPackage'];
+                super_args{2} = [outputDir  filesep 'WindowingPackage'];
             end
             
             % Call the superclass constructor

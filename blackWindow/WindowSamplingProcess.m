@@ -104,7 +104,11 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         
         
         function output = getDrawableOutput(obj)
-            output(1).name='Sampled maps';
+            if isempty(obj.funParams_.ProcessIndex)
+                output(1).name='Raw image map';
+            else
+                output(1).name='Activity map';
+            end
             output(1).var='avg';
             output(1).formatData=[];
             output(1).type='graph';
