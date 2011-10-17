@@ -8,7 +8,7 @@ ip.CaseSensitive = false;
 ip.addRequired('M');
 ip.addParamValue('AxisLabels', 1:np);
 ip.addParamValue('Handle', []);
-ip.addParamValue('TickLabels', []);
+ip.addParamValue('TickLabels', arrayfun(@(i) num2str(i), 1:np, 'UniformOutput', false));
 ip.parse(M, varargin{:});
 ha = ip.Results.Handle;
 
