@@ -1,8 +1,7 @@
 function [handles]=plusTipGuiSwitch(hObject,eventdata,handles,callbackName)
 
-
 switch callbackName
-
+    
     case 'getProjPush'
         if ~get(handles.getProjListFile_check,'Value')
             % If load projList is not checked
@@ -25,7 +24,7 @@ switch callbackName
                 handles.strList=inputGUI;
                 roiDirList=projList2Cell(handles.projList);
                 nStr=length(handles.strList);
-
+                
                 if ~isempty(roiDirList)
                     tempROI=ones(length(roiDirList),1);
                     for i=1:nStr
@@ -38,25 +37,15 @@ switch callbackName
                 end
             end
         end
-
-    case 'selectedTracksDisplay'
-        hObject=handles.selectedTracksDisplay;
-        if isempty(handles.selectedTracks)
-            set(hObject,'Enable','Off');
-        else
-            set(hObject,'Enable','On');
-        end
-        set(hObject,'String',num2str(handles.selectedTracks));
-
-
+        
     case 'resetButton'
         closeGUI = handles.figure1; %handles.figure1 is the GUI figure
         guiPosition = get(handles.figure1,'Position'); %get the position of the GUI
         guiHandle = str2func(get(handles.figure1,'Name')); %get the name of the GUI
         close(closeGUI); %close the old GUI before calling it (singleton)
-        guiHandle('Position',guiPosition) %call the GUI again        
+        guiHandle('Position',guiPosition) %call the GUI again
         
     otherwise
         error('???')
-
+        
 end

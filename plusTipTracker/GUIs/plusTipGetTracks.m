@@ -147,79 +147,62 @@ end
 
 % --- Executes on button press in detectionCheck.
 function updateDetection(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of detectionCheck
-doDetect=get(handles.detectionCheck,'Value');
-detectionChildren=get(handles.detectionPanel,'Children');
-isPanel = strcmp(get(detectionChildren,'Type'),'uipanel');
-panelTags = get(detectionChildren(isPanel),'Tag');
+
+% Update detection panel and time range states
+detectionPanel=get(handles.detectionPanel,'Children');
+isPanel = strcmp(get(detectionPanel,'Type'),'uipanel');
+if get(handles.detectionCheck,'Value'), state='on'; else state='off'; end
+set(detectionPanel(~isPanel),'Enable',state);
+set(handles.startFrameDetect,'Enable',state);
+set(handles.endFrameDetect,'Enable',state);
+
+% Retrieve detection method panels
+panelTags = get(detectionPanel(isPanel),'Tag');
 panelIndx = cellfun(@(x) str2double(x(length('uipanel_method')+1:end)),...
     panelTags);
 methodIndx = get(handles.popupmenu_detectionMethod,'Value');
-methodPanelTag = panelTags{panelIndx==methodIndx};
-set(handles.(methodPanelTag),'Visible','on');
-otherPanelTag = panelTags(panelIndx~=methodIndx);
-cellfun(@(x) set(handles.(x),'Visible','off'),otherPanelTag);
-    
-if doDetect
-    set(detectionChildren(~isPanel),'Enable','on');
-    set(handles.startFrameDetect,'Enable','on');
-    set(handles.endFrameDetect,'Enable','on');    
-    if get(handles.checkbox_custom,'Value'),enableState = 'on'; else enableState = 'off'; end
-    set(get(handles.(methodPanelTag),'Children'),'Enable',enableState);
-    otherPanelTag = panelTags(panelIndx~=methodIndx);
-    cellfun(@(x) set(handles.(x),'Visible','off'),otherPanelTag);
-    cellfun(@(x) set(get(handles.(x),'Children'),'Enable','off'),otherPanelTag);
+selectedMethodPanel = panelTags{panelIndx==methodIndx};
+unselectedMethodPanel = panelTags{panelIndx~=methodIndx};
+
+% Update detection method panel visibile and enable state
+if get(handles.checkbox_custom,'Value') && strcmp(state,'on'),
+    state = 'on'; 
 else
-    set(detectionChildren(~isPanel),'Enable','off');
-    arrayfun(@(x) set(get(x,'Children'),'Enable','off'),...
-        detectionChildren(isPanel));
-    set(handles.startFrameDetect,'Enable','off');
-    set(handles.endFrameDetect,'Enable','off');
+    state = 'off'; 
 end
-guidata(hObject, handles);
+set(handles.(selectedMethodPanel),'Visible','on');
+set(get(handles.(selectedMethodPanel),'Children'),'Enable',state)
+set(handles.(unselectedMethodPanel),'Visible','off');
+set(get(handles.(unselectedMethodPanel),'Children'),'Enable','off')
 
 
 % --- Executes on button press in trackingCheck.
 function trackingCheck_Callback(hObject, eventdata, handles)
 
-trackingHandles=get(handles.trackingPanel,'Children');
-if get(hObject,'Value')
-    set(trackingHandles,'Enable','on')
-    set(handles.startFrameTrack,'Enable','on')
-    set(handles.endFrameTrack,'Enable','on')
-else
-    set(trackingHandles,'Enable','off')
-    set(handles.startFrameTrack,'Enable','off')
-    set(handles.endFrameTrack,'Enable','off')
-end
+trackingPanel=get(handles.trackingPanel,'Children');
+if get(hObject,'Value'), state='on'; else state='off'; end
+set(trackingPanel,'Enable',state);
+set(handles.startFrameTrack,'Enable',state);
+set(handles.endFrameTrack,'Enable',state);
 
 % --- Executes on button press in metaCheck.
 function metaCheck_Callback(hObject, eventdata, handles)
 
-if get(hObject,'Value')
-    set(handles.startFramePost,'Enable','on')
-    set(handles.endFramePost,'Enable','on')
-    set(handles.frameRateEdit,'Enable','on')
-    set(handles.pixSizeEdit,'Enable','on')
-    set(handles.histCheck,'Enable','on')
-else
-    set(handles.startFramePost,'Enable','off')
-    set(handles.endFramePost,'Enable','off')
-    set(handles.frameRateEdit,'Enable','off')
-    set(handles.pixSizeEdit,'Enable','off')
-    set(handles.histCheck,'Enable','off')
-end
+metaPanel=get(handles.metaPanel,'Children');
+if get(hObject,'Value'), state='on'; else state='off'; end
+set(metaPanel,'Enable',state);
+set(handles.startFramePost,'Enable',state);
+set(handles.endFramePost,'Enable',state);
 
 % --- Executes on button press in startPush.
 function startPush_Callback(hObject, eventdata, handles)
-% hObject    handle to startPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 if isempty(handles.projList)
     errordlg('Please select project(s) first','No project error');
     return
 end
 
+% Read analysis flags
 numProj=size(handles.projList,1);
 doDetect=get(handles.detectionCheck,'Value');
 doTrack=get(handles.trackingCheck,'Value');
@@ -229,25 +212,8 @@ doMeta=get(handles.metaCheck,'Value');
 if doDetect
     detectionParams=[];
     
-    % Read detection time range
-    sFVal=get(handles.startFrameDetect,'String');
-    if strcmpi(sFVal,'min')
-        detectionParams.timeRangeDetect(1)=1;
-    else
-        detectionParams.timeRangeDetect(1)=str2double(sFVal);
-    end  
-    eFVal=get(handles.endFrameDetect,'String');
-    if strcmpi(eFVal,'max')
-        detectionParams.timeRangeDetect(2)=Inf;
-    else
-        detectionParams.timeRangeDetect(2)=str2double(eFVal);
-    end
-    if ~all(isposint(detectionParams.timeRangeDetect)),
-        errordlg('Invalid detection parameter range. Please check again','Missing Input');
-        return
-    end
-    
     % Read detection common parameters
+    detectionParams.timeRange = getTimeRange(handles,'Detect');
     detectionParams.bitDepth = str2double(get(handles.bitDepth,'String'));
     detectionParams.savePlots = get(handles.savePlotCheck,'value');
     detectionParams.addArgs={};
@@ -274,25 +240,8 @@ end
 if doTrack
     trackParams=[];
     
-    % Read tracking time range
-    sFVal=get(handles.startFrameTrack,'String');
-    if strcmpi(sFVal,'min')
-        trackParams.timeRangeTrack(1)=1;
-    else
-        trackParams.timeRangeTrack(1)=str2double(sFVal);
-    end  
-    eFVal=get(handles.endFrameTrack,'String');
-    if strcmpi(eFVal,'max')
-        trackParams.timeRangeTrack(2)=Inf;
-    else
-        trackParams.timeRangeTrack(2)=str2double(eFVal);
-    end
-    if ~all(isposint(trackParams.timeRangeDetect)),
-        errordlg('Invalid tracking parameter range. Please check again','Missing Input');
-        return
-    end
-    
-    % Read tracking numeric parameters
+    % Read tracking  parameters
+    trackParams.timeRange = getTimeRange(handles,'Track');
     trackParamsNames = {'timeWindow','minTrackLength','minRadius','maxRadius',...
         'maxFAngle','maxBAngle','maxShrinkFactor','fluctRad'};
     for j=1:numel(trackParamsNames);
@@ -308,25 +257,9 @@ end
 % Read meta parameters
 if doMeta
     metaParams=[];
-    % Read post-processing time range
-    sFVal=get(handles.startFramePost,'String');
-    if strcmpi(sFVal,'min')
-        metaParams.timeRangePost(1)=1;
-    else
-        metaParams.timeRangePost(1)=str2double(sFVal);
-    end  
-    eFVal=get(handles.endFramePost,'String');
-    if strcmpi(eFVal,'max')
-        metaParams.timeRangePost(2)=Inf;
-    else
-        metaParams.timeRangePost(2)=str2double(eFVal);
-    end
-    if ~all(isposint(metaParams.timeRangeDetect)),
-        errordlg('Invalid post-processing parameter range. Please check again','Missing Input');
-        return
-    end
     
     % Read post-processing parameters
+    metaParams.timeRange = getTimeRange(handles,'Post');
     metaParams.secPerFrame = str2double(get(handles.frameRateEdit,'String'));
     metaParams.pixSizeNm = str2double(get(handles.pixSizeEdit,'String'));
     metaParams.doHist=get(handles.histCheck,'Value');
@@ -347,11 +280,11 @@ for i=1:numProj
         switch detectionMethod
             case 1
                 plusTipCometDetector(handles.projList(i),...
-                    detectionParams.timeRangeDetect,detectionParams.bitDepth,...
+                    detectionParams.timeRange,detectionParams.bitDepth,...
                     detectionParams.savePlots,detectionParams.addArgs{:});
             case 2
                 plusTipAnisoGaussianCometDetector(handles.projList(i),...
-                    detectionParams.psfSigma,detectionParams.timeRangeDetect,...
+                    detectionParams.psfSigma,detectionParams.timeRange,...
                     detectionParams.bitDepth,detectionParams.savePlots,...
                     detectionParams.addArgs{:});
             otherwise
@@ -361,13 +294,13 @@ for i=1:numProj
     end
 
     % tracking
-    if doTrack==1
+    if doTrack
         tic
         disp(['Tracking project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
         plusTipCometTracker(handles.projList(i),trackParams.timeWindow,...
             trackParams.minTrackLength,trackParams.minRadius,trackParams.maxRadius,...
             trackParams.maxFAngle,trackParams.maxBAngle,trackParams.maxShrinkFactor,...
-            trackParams.fluctRad,trackParams.timeRangeTrack);
+            trackParams.fluctRad,trackParams.timeRange);
         toc
     end
     
@@ -376,7 +309,7 @@ for i=1:numProj
         tic
         disp(['Post-processing project ' num2str(i) filesep num2str(numProj) ': ' handles.projList(i).anDir])
         plusTipPostTracking(handles.projList(i),metaParams.secPerFrame,...
-            metaParams.pixSizeNm,metaParams.timeRangePost,metaParams.doHist);
+            metaParams.pixSizeNm,metaParams.timeRange,metaParams.doHist);
         toc
     end
 end
@@ -440,3 +373,22 @@ if nanTest || minmaxTest || diffTest1 || diffTest2,  value=oldvalue; end
 % Update the slider and the edit_box
 set(handles.(['slider_' num2str(id)]),'Value',value);
 set(handles.(['edit_detect_' num2str(id)]),'String',value);
+
+function timeRange = getTimeRange(handles,type)
+% Read post-processing time range
+sFVal=get(handles.(['startFrame' type]),'String');
+if strcmpi(sFVal,'min')
+    timeRange(1)=1;
+else
+    timeRange(1)=str2double(sFVal);
+end
+eFVal=get(handles.(['endFrame' type]),'String');
+if strcmpi(eFVal,'max')
+    timeRange(2)=Inf;
+else
+    timeRange(2)=str2double(eFVal);
+end
+if ~all(isposint(timeRange)),
+    errordlg('Invalid time range. Please check again','Missing Input');
+    return
+end

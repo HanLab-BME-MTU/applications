@@ -68,11 +68,7 @@ handles.groupList=[]; % also select groups pushbutton
 handles.roi=[]; 
 
 % for "track overlays" panel
-handles.img=[];
 handles.selectedTracks=[];
-handles.plotCurrentOnly=[];
-handles.movieInfo=[];
-
 
 %place image onto the axes, remove tick marks
 pic=imread('pTT_logo_sm.png');
@@ -142,7 +138,6 @@ if ~isempty(handles.projList)
         handles.dataDir=selectionList{selection,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
-        set(handles.anDirEdit,'String',selectionList{selection,1});
     end
 else
     msgbox('No projects selected.')
@@ -175,17 +170,23 @@ function plotTracksPush_Callback(hObject, eventdata, handles)
 % hObject    handle to plotTracksPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
 
+if isempty(handles.projData), errordlg('Please select a project'); return; end
+
+if isempty(handles.selectedTracks), state ='off'; else state='on'; end
+set(handles.selectedTracksDisplay,'Enable',state,'String',num2str(handles.selectedTracks));
 
 % Read time range
 timeRange = getTimeRange(handles);
 rawToo=0;
 isStill=1;
+img=[];
+plotCurrentOnly=[];
+movieInfo=[];
 ask4select = get(handles.selectTracksCheck,'Value');
 [handles.selectedTracks] = plusTipPlotTracks(handles.projData,[],...
-    timeRange,handles.img,ask4select,...
-    handles.plotCurrentOnly,handles.roi,handles.movieInfo,rawToo,isStill);
+    timeRange,img,ask4select,...
+    plotCurrentOnly,handles.roi,movieInfo,rawToo,isStill);
 
 if ~isempty(handles.selectedTracks)
     
@@ -199,20 +200,9 @@ if ~isempty(handles.selectedTracks)
     
 end
         
+if isempty(handles.selectedTracks), state ='off'; else state='on'; end
+set(handles.selectedTracksDisplay,'Enable',state,'String',num2str(handles.selectedTracks));
 
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
-guidata(hObject, handles);
-
-
-function selectedTracksDisplay_Callback(hObject, eventdata, handles)
-% hObject    handle to selectedTracksDisplay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of selectedTracksDisplay as text
-%        str2double(get(hObject,'String')) returns contents of
-%        selectedTracksDisplay as a double
-handles=plusTipGuiSwitch(hObject,eventdata,handles,'selectedTracksDisplay');
 guidata(hObject, handles);
 
 % --- Executes on button press in speedMovieButton.

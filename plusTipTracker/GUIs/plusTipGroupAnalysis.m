@@ -140,14 +140,14 @@ if ~isempty(handles.projList)
     % here we do NOT filter out any sub-directories
     a=projList2Cell(handles.projList);
     a=a(:,1);
-
+    
     % allow multiple projects to be selected
     if isempty(a)
         selection=[];
     else
         [selection,selectionList]=listSelectGUI(a,[],'move',1);
     end
-
+    
     handles.dataDir=[];
     % if only one project was selected, save projData info and get data
     if isempty(selection)
@@ -178,8 +178,9 @@ if ~isempty(handles.projList) && ~isSingleProjList
     end
     [file,path] = uiputfile('projList.mat','Find a location to save your project list',...
         [pwd filesep defaultListName]);
-    if isequal(file,0), return; end
-    save([path file],'-struct','handles','projList');
+    if ~isequal(file,0), 
+        save([path file],'-struct','handles','projList');
+    end
 end
 
 % If checked, create groups from selected projects
@@ -189,10 +190,9 @@ if get(handles.checkbox_createGroups,'Value')
     if ~isempty(userData.groupList),
         userData.groupData=plusTipExtractGroupData(userData.groupList);
     end
+    set(handles.figure1,'UserData',userData);
+    guidata(hObject, handles);
 end
-
-set(handles.figure1,'UserData',userData);
-guidata(hObject, handles);
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
@@ -215,9 +215,11 @@ set(handles.figure1,'UserData',userData);
 % --- Executes on button press in pushbutton_loadGroup.
 function pushbutton_loadGroup_Callback(hObject, eventdata, handles)
 
-userData=get(handles.figure1,'UserData');    
+userData=get(handles.figure1,'UserData');
 [userData.groupList]=combineGroupListFiles(0);
-userData.groupData=plusTipExtractGroupData(userData.groupList);
+if ~isempty(userData.groupList)
+    userData.groupData=plusTipExtractGroupData(userData.groupList);
+end
 
 set(handles.figure1,'UserData',userData);
 
@@ -251,12 +253,12 @@ if get(handles.radiobutton_poolData,'Value')
     plusTipPoolGroupData(userData.groupData,...
         [saveDir filesep 'pooledData'],doWtn,doPlot);
     plusTipTestDistrib(userData.groupData,[saveDir filesep 'pooledData'],...
-    stringency,testID1,testID2);
+        stringency,testID1,testID2);
 end
 
 if get(handles.radiobutton_perCell,'Value')
     plusTipGetHits(userData.groupData,[saveDir filesep 'perCell'],...
-    stringency,testID1,testID2);
+        stringency,testID1,testID2);
 end
 
 % --- Executes when selected object is changed in uipanel_analysisMode.
@@ -269,9 +271,18 @@ if get(handles.radiobutton_poolData,'Value')
 else
     set(handles.checkbox_doWtn,'Enable','off');
     set(handles.popupmenu_testID1,'Value',1);
-    set(handles.popupmenu_testID2,'Value',6);    
+    set(handles.popupmenu_testID2,'Value',6);
 end
 
+% --- Executes when selected object is changed in subroiRadioPanel.
+function subroiRadioPanel_SelectionChangeFcn(hObject, eventdata, handles)
+
+manualSelection = strcmp(get(hObject,'Tag'),'subroiManualRadio');
+if manualSelection, state = 'off'; else state='on'; end
+set(handles.subroiDistValEdit,'Enable',state);
+set(handles.subroiDistUnitPop,'Enable',state);
+set(handles.subroiAutoDivPeriphCheck,'Enable',state);
+if manualSelection,set(handles.subroiDistValEdit,'String',''); end
 
 % --- Executes on button press in subRoiPush.
 function subRoiPush_Callback(hObject, eventdata, handles)
@@ -284,7 +295,7 @@ elseif get(handles.subroiAutoDivPeriphCheck,'Value'),
 else
     subroiSelectType =1;
 end
-      
+
 % Read distance units and value
 if subroiSelectType>0
     props = get(handles.subroiDistUnitPop,{'String','Value'});
@@ -318,7 +329,7 @@ if ~check(subroiTimeVal)
     errordlg('Please enter a valid value for the time in the sub-region');
     return;
 end
-    
+
 
 subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
 
@@ -328,114 +339,74 @@ plusTipSubRoiTool(handles.projList,subroiSelectType,...
 
 % --- Executes on button press in quadScatterPlotPush.
 function quadScatterPlotPush_Callback(hObject, eventdata, handles)
-% hObject    handle to quadScatterPlotPush (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
+% Read groupList and output directory
 userData = get(handles.figure1,'UserData');
 saveDir=get(handles.edit_outputDir,'String');
-
 if isempty(userData.groupList) || isempty(saveDir)
     warndlg('Select a group and an output directory first');
     return
 end
 
-
-% Read start and end frames
-value=get(handles.startFrame,'String');
-if strcmpi(value,'min'), 
-    timeRangeDetect(1)=1;
-else
-    timeRangeDetect(1)=str2double(value);
-end
-
-value=get(handles.endFrame,'String');
-if strcmpi(value,'max'), 
-    timeRangeDetect(2)=Inf;
-else
-    timeRangeDetect(2)=str2double(value);
-end
-
-   
-% Read x-axis scatter name
-props=get(handles.xaxisScatterDrop,{'UserData','Value'});
-xAxisInfo.name=props{1}{props{2}};
-
-% Read x-axis scatter input
-value = str2double(get(handles.xAxisScatterInput,'String'));
-if isnan(value), 
-    errordlg('Please enter a valid value for the x-axis scatter'); 
-    return; 
-end
-props = get(handles.xParamDrop,{'String','Value'});
-if strcmpi(props{1}{props{2}},'percentile')
-    xAxisInfo.splitPercentile=value;
-    xAxisInfo.splitValue=[];
-else
-    xAxisInfo.splitPercentile=[];
-    xAxisInfo.splitValue=value;
-end
-
-% Read x-axis limits
-value=get(handles.xAxisMin,'String');
-if strcmpi(value,'min'), xAxisInfo.minMax(1) = -Inf; 
-else xAxisInfo.minMax(1) = str2double(value);
-end
-
-value=get(handles.xAxisMax,'String');
-if strcmpi(value,'max'), xAxisInfo.minMax(2) = Inf; 
-else xAxisInfo.minMax(2) = str2double(value);
-end
-
-% Read y-axis scatter name
-props=get(handles.yaxisScatterDrop,{'UserData','Value'});
-yAxisInfo.name=props{1}{props{2}};
-
-% Read y-axis scatter input
-value = str2double(get(handles.yAxisScatterInput,'String'));
-if isnan(value), 
-    errordlg('Please enter a valid value for the x-axis scatter'); 
-    return; 
-end
-props = get(handles.yParamDrop,{'String','Value'});
-if strcmpi(props{1}{props{2}},'percentile')
-    yAxisInfo.splitPercentile=value;
-    yAxisInfo.splitValue=[];
-else
-    yAxisInfo.splitPercentile=[];
-    yAxisInfo.splitValue=value;
-end
-
-% Read y-axis limits
-value=get(handles.yAxisMin,'String');
-if strcmpi(value,'min'), yAxisInfo.minMax(1) = -Inf; 
-else yAxisInfo.minMax(1) = str2double(value);
-end
-
-value=get(handles.yAxisMax,'String');
-if strcmpi(value,'max'), yAxisInfo.minMax(2) = Inf; 
-else yAxisInfo.minMax(2) = str2double(value);
-end
-
-
-% Read checkboxes
+% Read scatter plot parameters
+xAxisInfo=getAxisParameters(handles,'x');
+yAxisInfo=getAxisParameters(handles,'y');
+timeRange=getTimeRange(handles);
 doPlotQuad=~get(handles.summQuadPlotOnlyCheck,'Value');
 remBegEnd = get(handles.remTrackBegEnd,'Value');
 
 plusTipQuadScatter(xAxisInfo,yAxisInfo,userData.groupList,remBegEnd,...
-    timeRangeDetect,doPlotQuad,saveDir);
+    timeRange,doPlotQuad,saveDir);
 
-% --- Executes when selected object is changed in subroiRadioPanel.
-function subroiRadioPanel_SelectionChangeFcn(hObject, eventdata, handles)
 
-if strcmp(get(hObject,'Tag'),'subroiManualRadio')
-    set(handles.subroiDistValEdit,'Enable','Off','String','');
-    set(handles.subroiDistUnitPop,'Enable','Off');
-    set(handles.subroiAutoDivPeriphCheck,'Enable','Off');
+function timeRange = getTimeRange(handles)
+% Read post-processing time range
+sFVal=get(handles.startFrame,'String');
+if strcmpi(sFVal,'min')
+    timeRange(1)=1;
 else
-        set(handles.subroiDistValEdit,'Enable','On');
-    set(handles.subroiDistUnitPop,'Enable','On');
-    set(handles.subroiAutoDivPeriphCheck,'Enable','On');
+    timeRange(1)=str2double(sFVal);
+end
+eFVal=get(handles.endFrame,'String');
+if strcmpi(eFVal,'max')
+    timeRange(2)=Inf;
+else
+    timeRange(2)=str2double(eFVal);
+end
+if ~all(isposint(timeRange)),
+    errordlg('Invalid time range. Please check again','Missing Input');
+    return
 end
 
-guidata(hObject, handles);
+
+function axisInfo = getAxisParameters(handles,type)
+% Read axis scatter name
+props=get(handles.([type 'axisScatterDrop']),{'UserData','Value'});
+axisInfo.name=props{1}{props{2}};
+
+% Read axis scatter input
+value = str2double(get(handles.([type 'AxisScatterInput']),'String'));
+if isnan(value),
+    errordlg(['Please enter a valid value for the '  type '-axis scatter']);
+    return;
+end
+props = get(handles.([type 'ParamDrop']),{'String','Value'});
+if strcmpi(props{1}{props{2}},'percentile')
+    axisInfo.splitPercentile=value;
+    axisInfo.splitValue=[];
+else
+    axisInfo.splitPercentile=[];
+    axisInfo.splitValue=value;
+end
+
+% Read axis limits
+value=get(handles.([type 'AxisMin']),'String');
+if strcmpi(value,'min'), axisInfo.minMax(1) = -Inf;
+else axisInfo.minMax(1) = str2double(value);
+end
+
+value=get(handles.([type 'AxisMax']),'String');
+if strcmpi(value,'max'), axisInfo.minMax(2) = Inf;
+else axisInfo.minMax(2) = str2double(value);
+end
+
