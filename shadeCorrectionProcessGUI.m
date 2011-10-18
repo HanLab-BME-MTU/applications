@@ -105,7 +105,7 @@ set(handles.listbox_1, 'String', {userData_main.MD(userData_main.id).channels_.c
         'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
     
 % Set up selected input data channels and channel index
-parentI = find( userData.crtPackage.depMatrix_(userData.procID,:) );
+parentI = find( userData.crtPackage.getDependencyMatrix(userData.procID,:) );
 
 if isempty(parentI) || ~isempty( userData.crtPackage.processes_{userData.procID} )
     
