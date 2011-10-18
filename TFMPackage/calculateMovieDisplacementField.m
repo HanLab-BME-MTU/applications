@@ -41,6 +41,8 @@ p = parseProcessParams(displFieldProc,paramsIn);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
+else
+    wtBar = -1;
 end
 
 % Reading various constants
@@ -86,7 +88,7 @@ if exist(outputFile{1},'file');
         % Look at the first non-analyzed frame
         firstFrame = find(~frameDisplField,1);
         % Ask the user if display mode is active
-        if feature('ShowFigureWindows'),
+        if ishandle(wtBar),
             recoverRun = questdlg(...
                 ['A displacement field output has been dectected with ' ...
                 num2str(firstFrame-1) ' analyzed frames. Do you' ...
@@ -142,7 +144,7 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 % Perform sub-pixel registration
-if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
 
 for j= firstFrame:nFrames
     % Read image and perform correlation
@@ -173,7 +175,7 @@ for j= firstFrame:nFrames
     displField(j).vec=[vx(validV)+residualT(j,1) vy(validV)+residualT(j,2)];
     
     % Update the waitbar
-    if mod(j,5)==1 && feature('ShowFigureWindows')
+    if mod(j,5)==1 && ishandle(wtBar)
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg ...
             timeMsg(tj*(nFrames-firstFrame++1-j)/j)]));
@@ -184,6 +186,6 @@ for j= firstFrame:nFrames
 end
 
 % Close waitbar
-if feature('ShowFigureWindows'), close(wtBar); end
+if ishandle(wtBar), close(wtBar); end
 
 disp('Finished calculating displacement field!')
