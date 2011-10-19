@@ -42,6 +42,8 @@ p = parseProcessParams(displFieldProc,paramsIn);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
+else
+    wtBar=-1;
 end
 
 % Reading various constants
@@ -60,6 +62,7 @@ displFieldProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
 outFilePaths = cell(4,numel(movieData.channels_));
+mkClrDir(p.OutputDirectory);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
@@ -68,10 +71,7 @@ end
 [~,refName,refExt]=fileparts(movieData.processes_{1}.funParams_.referenceFramePath);
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationMatrix.mat'];
-outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1))];
-mkClrDir(outFilePaths{4,p.ChannelIndex(1)});
-outFilePaths{5,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'x_flow.fig'];
-outFilePaths{6,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'y_flow.fig'];
+outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1)) '.mat'];
 displFieldProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Stage drift correction ---------------%%% 
@@ -125,7 +125,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     [~ , imax] = max(abs(selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
-    if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+    if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
     for j= 1:nFrames       
         % Find the maximum of the cross correlation between the template and
         % the current image:
@@ -141,7 +141,7 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
         preT(j,:)=-[rowShift colShift];
         
         % Update the waitbar
-        if mod(j,5)==1 && feature('ShowFigureWindows')
+        if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
             waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*nFrames/j-tj)]));
         end
@@ -159,14 +159,14 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     refFrame = padarray(refFrame, [maxY, maxX]);
     p.cropROI=p.cropROI+[maxX maxY 0 0];
       
-    if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+    if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
     for j = 1:nFrames
         % Pad image and apply transform
         Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(preT(j,:)) 1]);
         stack(:,:,j) = imtransform(stack(:,:,j), Tr, 'XData',[1 size(refFrame, 2)],'YData', [1 size(refFrame, 1)]);
         
         % Update the waitbar
-        if mod(j,5)==1 && feature('ShowFigureWindows')
+        if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
             waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*nFrames/j-tj)]));
         end
@@ -183,70 +183,33 @@ disp('Calculating subpixel-wise registration...')
 logMsg = 'Please wait, performing sub-pixel registration';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
-% Initialize diagnosis tools
-frameIndx =[1 ceil(nFrames)/2 nFrames];
-vx=cell(1,numel(frameIndx));
-vy=vx;
 
 % Perform sub-pixel registration
-if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
+if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
+flow=cell(nFrames,1);
 for j= 1:nFrames
     % Stack reference frame and current frame and track beads displacement
     corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
     [dx,dy] = trackStackFlow(corrStack,beads(:,1),beads(:,2),...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
     
-    % Remove infinite flow and save raw displacement under [pos1 pos2] format
-    finiteFlow  = ~isinf(dx);
-    flow = [beads(finiteFlow,2) beads(finiteFlow,1) ...
-        beads(finiteFlow,2)+dy(finiteFlow) beads(finiteFlow,1)+dx(finiteFlow)];
-    flowFileName = [outFilePaths{4,p.ChannelIndex(1)} filesep 'flow' num2str(j) '.mat'];
-    save(flowFileName,'flow');
-    
     %The transformation has the same form as the registration method from
     %Sylvain. Here we take simply the median of the determined flow
     %vectors. We take the median since it is less distorted by outliers.
+    finiteFlow  = ~isinf(dx);
     T(j,:)=-[nanmedian(dy(finiteFlow)) nanmedian(dx(finiteFlow))];
     
-    if ismember(j,frameIndx),
-        vy{j==frameIndx}=dy(finiteFlow);
-        vx{j==frameIndx}=dx(finiteFlow);
-    end
+    % Remove infinite flow and save raw displacement under [pos1 pos2] format
+    flow{j} = [beads(finiteFlow,2) beads(finiteFlow,1) ...
+        beads(finiteFlow,2)+dy(finiteFlow) beads(finiteFlow,1)+dx(finiteFlow)];
+    
     % Update the waitbar
-    if mod(j,5)==1 && feature('ShowFigureWindows')
+    if mod(j,5)==1 && ishandle(wtBar)
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
     end
 end
-
-% Create diagnostic tools
-nbins=10;
-colors=hsv(numel(frameIndx));
-flowFig=figure('Visible','off');
-hold on;
-for i=1:numel(frameIndx),     
-    [n,x]=hist(vx{i},nbins);
-    plot(x,n,'Color',colors(i,:),'Linewidth',2);
-end
-legend(arrayfun(@(x) ['Frame ' num2str(x)],frameIndx,'UniformOutput',false));
-xlabel('Flow along the x-axis');
-ylabel('Number');
-set(flowFig,'Visible','off');
-saveas(flowFig,outFilePaths{5,p.ChannelIndex(1)});
-close(flowFig);
-
-flowFig=figure('Visible','off');
-hold on;
-for i=1:numel(frameIndx),     
-    [n,x]=hist(vy{i},nbins);
-    plot(x,n,'Color',colors(i,:),'Linewidth',2);
-end
-legend(arrayfun(@(x) ['Frame ' num2str(x)],frameIndx,'UniformOutput',false));
-xlabel('Flow along the y-axis');
-ylabel('Number');
-set(flowFig,'Visible','off');
-saveas(flowFig,outFilePaths{6,p.ChannelIndex(1)});
-close(flowFig);
+save(outFilePaths{4,p.ChannelIndex(1)},'flow');
 
 T=T+preT;
 disp('Applying stage drift correction...')
@@ -281,7 +244,7 @@ for i = 1:numel(p.ChannelIndex)
         imwrite(uint16(I2), outFile(iChan,j));
         
         % Update the waitbar
-        if mod(j,5)==1 && feature('ShowFigureWindows')
+        if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
             nj = (i-1)*nFrames+ j;
             waitbar(nj/nTot,wtBar,sprintf([logMsg(iChan) timeMsg(tj*nTot/nj-tj)]));
@@ -292,6 +255,6 @@ end
 imwrite(uint16(refFrame), outFilePaths{2,p.ChannelIndex(1)});
 save(outFilePaths{3,p.ChannelIndex(1)},'preT','T');
 % Close waitbar
-if feature('ShowFigureWindows'), close(wtBar); end
+if ishandle(wtBar), close(wtBar); end
 
 disp('Finished correcting stage drift!')

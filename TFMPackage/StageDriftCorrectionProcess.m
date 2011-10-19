@@ -40,19 +40,29 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
             % Function to draw process output
             
             outputList = obj.getDrawableOutput();
-            drawFlow = any(strcmpi(outputList(2).var,varargin) |...
-                strcmpi(outputList(3).var,varargin) );
+            drawGraph = any(strcmp(varargin,'x-flow') | strcmp(varargin,'y-flow') |...
+                strcmp(varargin,'refFrame'));
             
-            if drawFlow
+            
+            if drawGraph
                 % Use dedicated draw method for plotting flow histograms
                 ip = inputParser;
                 ip.addRequired('obj');
-                ip.addParamValue('output',outputList(2).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.addParamValue('output',outputList(2).var,@(x) all(ismember(x,{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{:})
                 
-                iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
-                data=obj.outFilePaths_{3+iOutput,:};
+                [~,iOutput] =ismember(ip.Results.output,{outputList.var});
+                if regexp(outputList(iOutput).var,'(.+)flow','once')
+                    s=load(obj.outFilePaths_{4,1},'flow');
+                    data=s.flow;
+                else
+                    data=imread(obj.funParams_.referenceFramePath);
+                end
+                
+                if ~isempty(outputList(iOutput).formatData),
+                    data=outputList(iOutput).formatData(data);
+                end
 
                 try
                     assert(~isempty(obj.displayMethod_{iOutput,1}));
@@ -67,6 +77,7 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                     2*numel(fieldnames(ip.Unmatched)),1);
                 h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
             else
+                % Call superclass method
                 h=draw@ImageProcessingProcess(obj,varargin{1},varargin{2},...
                     varargin{3:end});
             end
@@ -87,18 +98,27 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
             output(1).formatData=@mat2gray;
             output(1).type='image';
             output(1).defaultDisplayMethod=@ImageDisplay;
-            output(2).name='Flow along x-axis';
-            output(2).var='x-flow';
-            output(2).formatData=[];
+            output(2).name='Reference frame';
+            output(2).var='refFrame';
+            output(2).formatData=@mat2gray;
             output(2).type='movieGraph';
-            output(2).defaultDisplayMethod=@FigFileDisplay;
-            output(3).name='Flow along y-axis';
-            output(3).var='y-flow';
-            output(3).formatData=[];
+            output(2).defaultDisplayMethod=@ImageDisplay;
+            output(3).name='Flow along x-axis';
+            output(3).var='x-flow';
+            output(3).formatData=@(x)getFlow(x,1);
             output(3).type='movieGraph';
-            output(3).defaultDisplayMethod=@FigFileDisplay;
+            output(3).defaultDisplayMethod=@FlowHistogramDisplay;
+            output(4).name='Flow along y-axis';
+            output(4).var='y-flow';
+            output(4).formatData=@(x)getFlow(x,2);
+            output(4).type='movieGraph';
+            output(4).defaultDisplayMethod=@FlowHistogramDisplay;
         end
 
     end
 end
 
+function data=getFlow(data,i)
+
+data=cellfun(@(x) x(:,i+2)-x(:,i),data,'UniformOutput',false);
+end
