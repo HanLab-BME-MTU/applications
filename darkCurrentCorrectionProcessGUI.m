@@ -180,7 +180,9 @@ else
 end
 
 % Set parameters
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+imageCorrectionSettingFcn =@(x) setCorrectionImagePath(x,channelIndex, ...
+    get(handles.listbox_darkCurrentChannels, 'String'));
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,{imageCorrectionSettingFcn});
 
 % --- Executes on button press in pushbutton_deleteDarkCurrentChannel.
 function pushbutton_deleteDarkCurrentChannel_Callback(hObject, eventdata, handles)
