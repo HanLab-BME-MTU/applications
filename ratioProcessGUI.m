@@ -22,7 +22,7 @@ function varargout = ratioProcessGUI(varargin)
 
 % Edit the above text to modify the response to help ratioProcessGUI
 
-% Last Modified by GUIDE v2.5 06-Apr-2011 17:07:19
+% Last Modified by GUIDE v2.5 19-Oct-2011 15:55:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -129,14 +129,9 @@ if ~funParams.ApplyMasks
         set(handles.pushbutton_nu_mask, 'enable', 'off')
         set(handles.pushbutton_de_mask, 'enable', 'off')
         set(handles.checkbox_mask, 'Value', 0)
-        set(handles.checkbox_newmask, 'enable', 'off', 'Value', 0)
         set(handles.text_input6, 'enable', 'off')
         set(handles.edit_de_mask, 'enable', 'off')
         set(handles.edit_nu_mask, 'enable', 'off')
-else
-    if ~funParams.CreateMasks
-        set(handles.checkbox_newmask, 'Value', 0);
-    end
 end
 
     
@@ -243,20 +238,7 @@ funParams = userData.crtProc.funParams_;
 funParams.ChannelIndex = channelIndex;
 funParams.MaskChannelIndex = maskChannelIndex;
 
-if get(handles.checkbox_mask, 'Value')
-    
-    funParams.ApplyMasks = true;
-    
-    if get(handles.checkbox_newmask, 'Value')
-        funParams.CreateMasks = true;
-    else
-        funParams.CreateMasks = false;
-    end
-else
-    funParams.ApplyMasks = false;
-    funParams.CreateMasks = false;
-    
-end
+funParams.ApplyMasks = get(handles.checkbox_mask, 'Value');
 
 % Set parameters
 userData.crtProc.setPara(funParams);
@@ -408,7 +390,6 @@ switch get(hObject, 'Value')
         set(handles.listbox_mask, 'enable', 'off')
         set(handles.pushbutton_nu_mask, 'enable', 'off')
         set(handles.pushbutton_de_mask, 'enable', 'off')
-        set(handles.checkbox_newmask, 'enable', 'off', 'Value', 0)
         set(handles.text_input6, 'enable', 'off')
         set(handles.edit_nu_mask, 'Enable', 'off')
         set(handles.edit_de_mask, 'Enable', 'off')
@@ -418,7 +399,6 @@ switch get(hObject, 'Value')
         set(handles.listbox_mask, 'enable', 'on')
         set(handles.pushbutton_nu_mask, 'enable', 'on')
         set(handles.pushbutton_de_mask, 'enable', 'on')
-        set(handles.checkbox_newmask, 'enable', 'on')
         set(handles.text_input6, 'enable', 'on')
         set(handles.edit_nu_mask, 'Enable', 'inactive')
         set(handles.edit_de_mask, 'Enable', 'inactive')        

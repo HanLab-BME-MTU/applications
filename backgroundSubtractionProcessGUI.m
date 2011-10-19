@@ -22,7 +22,7 @@ function varargout = backgroundSubtractionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help backgroundSubtractionProcessGUI
 
-% Last Modified by GUIDE v2.5 24-Aug-2010 11:14:35
+% Last Modified by GUIDE v2.5 18-Oct-2011 18:01:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -101,9 +101,9 @@ userData.colormap = userData_main.colormap;
 funParams = userData.crtProc.funParams_;
 
 % Set up available input and mask channels
-set(handles.listbox_input1, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
+set(handles.listbox_availableChannels, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
         'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
-set(handles.listbox_mask1, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
+set(handles.listbox_availableMaskChannels, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
         'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));    
     
 % Set up selected input data channels and channel index
@@ -112,11 +112,11 @@ parentI = userData.crtPackage.getParent(userData.procID);
 if isempty(parentI) || ~isempty( userData.crtPackage.processes_{userData.procID} )
     
     % If process has no dependency, or process already exists, display saved channels 
-    set(handles.listbox_input2, 'String', ...
+    set(handles.listbox_selectedChannels, 'String', ...
         {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex).channelPath_}, ...
         'Userdata',funParams.ChannelIndex);
     
-    set(handles.listbox_mask2, 'String', ...
+    set(handles.listbox_selectedMaskChannels, 'String', ...
         {userData_main.MD(userData_main.id).channels_(funParams.MaskChannelIndex).channelPath_}, ...
         'Userdata',funParams.MaskChannelIndex);    
     
@@ -141,10 +141,10 @@ elseif isempty( userData.crtPackage.processes_{userData.procID} )
             
             if ~isempty(channelIndex)
                 
-                set(handles.listbox_input2, 'String', ...
+                set(handles.listbox_selectedChannels, 'String', ...
                     {userData_main.MD(userData_main.id).channels_(channelIndex).channelPath_}, ...
                     'Userdata',channelIndex);
-                set(handles.listbox_mask2, 'String', ...
+                set(handles.listbox_selectedMaskChannels, 'String', ...
                     {userData_main.MD(userData_main.id).channels_(channelIndex).channelPath_}, ...
                     'Userdata',channelIndex);        
             end
@@ -200,13 +200,13 @@ userData_main = get(userData.mainFig, 'UserData');
 
 % -------- Check user input --------
 
-if isempty(get(handles.listbox_input2, 'String'))
+if isempty(get(handles.listbox_selectedChannels, 'String'))
    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal') 
     return;
 end
 
-if length(get(handles.listbox_input2, 'String')) ~= ...
-                            length(get(handles.listbox_mask2, 'String'))
+if length(get(handles.listbox_selectedChannels, 'String')) ~= ...
+                            length(get(handles.listbox_selectedMaskChannels, 'String'))
    errordlg('Please provide the same number of mask channels as input channels.','Setting Error','modal') 
     return;
 end
@@ -216,7 +216,7 @@ end
 funParams = userData.crtProc.funParams_;
 
 tempMaskChannelIndex = funParams.MaskChannelIndex;
-funParams.MaskChannelIndex = get(handles.listbox_mask2, 'Userdata');
+funParams.MaskChannelIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
 
 userData.crtProc.setPara(funParams);
 
@@ -236,8 +236,8 @@ funParams.MaskChannelIndex = tempMaskChannelIndex;
 userData.crtProc.setPara(funParams);
 
 % -------- Set parameter --------
-channelIndex = get(handles.listbox_input2, 'Userdata');
-maskChannelIndex = get(handles.listbox_mask2, 'Userdata');
+channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
+maskChannelIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
  
 % Set mask channels
 funParams.ChannelIndex = channelIndex;
@@ -348,10 +348,10 @@ delete(handles.figure1);
 % --- Executes on button press in checkbox_mask_all.
 function checkbox_mask_all_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox_all
-contents1 = get(handles.listbox_mask1, 'String');
+contents1 = get(handles.listbox_availableMaskChannels, 'String');
 
-chanIndex1 = get(handles.listbox_mask1, 'Userdata');
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
+chanIndex1 = get(handles.listbox_availableMaskChannels, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedMaskChannels, 'Userdata');
 
 % Return if listbox1 is empty
 if isempty(contents1)
@@ -360,26 +360,26 @@ end
 
 switch get(hObject,'Value')
     case 1
-        set(handles.listbox_mask2, 'String', contents1);
+        set(handles.listbox_selectedMaskChannels, 'String', contents1);
         chanIndex2 = chanIndex1;
     case 0
-        set(handles.listbox_mask2, 'String', {}, 'Value',1);
+        set(handles.listbox_selectedMaskChannels, 'String', {}, 'Value',1);
         chanIndex2 = [ ];
 end
-set(handles.listbox_mask2, 'UserData', chanIndex2);
+set(handles.listbox_selectedMaskChannels, 'UserData', chanIndex2);
 
 
 % --- Executes on button press in pushbutton_mask_select.
 function pushbutton_mask_select_Callback(hObject, eventdata, handles)
 % call back function of 'select' button
 
-contents1 = get(handles.listbox_mask1, 'String');
-contents2 = get(handles.listbox_mask2, 'String');
-id = get(handles.listbox_mask1, 'Value');
+contents1 = get(handles.listbox_availableMaskChannels, 'String');
+contents2 = get(handles.listbox_selectedMaskChannels, 'String');
+id = get(handles.listbox_availableMaskChannels, 'Value');
 
 % If channel has already been added, return;
-chanIndex1 = get(handles.listbox_mask1, 'Userdata');
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
+chanIndex1 = get(handles.listbox_availableMaskChannels, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedMaskChannels, 'Userdata');
 
 for i = id
 
@@ -389,15 +389,15 @@ for i = id
 
 end
 
-set(handles.listbox_mask2, 'String', contents2, 'Userdata', chanIndex2);
+set(handles.listbox_selectedMaskChannels, 'String', contents2, 'Userdata', chanIndex2);
 
 
 
 % --- Executes on button press in pushbutton_mask_delete.
 function pushbutton_mask_delete_Callback(hObject, eventdata, handles)
 % Call back function of 'delete' button
-contents = get(handles.listbox_mask2,'String');
-id = get(handles.listbox_mask2,'Value');
+contents = get(handles.listbox_selectedMaskChannels,'String');
+id = get(handles.listbox_selectedMaskChannels,'Value');
 
 % Return if list is empty
 if isempty(contents) || isempty(id)
@@ -408,26 +408,26 @@ end
 contents(id) = [ ];
 
 % Delete userdata
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedMaskChannels, 'Userdata');
 chanIndex2(id) = [ ];
-set(handles.listbox_mask2, 'Userdata', chanIndex2);
+set(handles.listbox_selectedMaskChannels, 'Userdata', chanIndex2);
 
 % Point 'Value' to the second last item in the list once the 
 % last item has been deleted
 if (id >length(contents) && id>1)
-    set(handles.listbox_mask2,'Value',length(contents));
+    set(handles.listbox_selectedMaskChannels,'Value',length(contents));
 end
 % Refresh listbox
-set(handles.listbox_mask2,'String',contents);
+set(handles.listbox_selectedMaskChannels,'String',contents);
 
 
 % --- Executes on button press in checkbox_input_all.
 function checkbox_input_all_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox_all
-contents1 = get(handles.listbox_input1, 'String');
+contents1 = get(handles.listbox_availableChannels, 'String');
 
-chanIndex1 = get(handles.listbox_input1, 'Userdata');
-chanIndex2 = get(handles.listbox_input2, 'Userdata');
+chanIndex1 = get(handles.listbox_availableChannels, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
 
 % Return if listbox1 is empty
 if isempty(contents1)
@@ -436,26 +436,26 @@ end
 
 switch get(hObject,'Value')
     case 1
-        set(handles.listbox_input2, 'String', contents1);
+        set(handles.listbox_selectedChannels, 'String', contents1);
         chanIndex2 = chanIndex1;
     case 0
-        set(handles.listbox_input2, 'String', {}, 'Value',1);
+        set(handles.listbox_selectedChannels, 'String', {}, 'Value',1);
         chanIndex2 = [ ];
 end
-set(handles.listbox_input2, 'UserData', chanIndex2);
+set(handles.listbox_selectedChannels, 'UserData', chanIndex2);
 
 
 % --- Executes on button press in pushbutton_input_select.
 function pushbutton_input_select_Callback(hObject, eventdata, handles)
 % call back function of 'select' button
 
-contents1 = get(handles.listbox_input1, 'String');
-contents2 = get(handles.listbox_input2, 'String');
-id = get(handles.listbox_input1, 'Value');
+contents1 = get(handles.listbox_availableChannels, 'String');
+contents2 = get(handles.listbox_selectedChannels, 'String');
+id = get(handles.listbox_availableChannels, 'Value');
 
 % If channel has already been added, return;
-chanIndex1 = get(handles.listbox_input1, 'Userdata');
-chanIndex2 = get(handles.listbox_input2, 'Userdata');
+chanIndex1 = get(handles.listbox_availableChannels, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
 
 for i = id
     if any(strcmp(contents1{i}, contents2) )
@@ -468,14 +468,14 @@ for i = id
     end
 end
 
-set(handles.listbox_input2, 'String', contents2, 'Userdata', chanIndex2);
+set(handles.listbox_selectedChannels, 'String', contents2, 'Userdata', chanIndex2);
 
 
 % --- Executes on button press in pushbutton_input_delete.
 function pushbutton_input_delete_Callback(hObject, eventdata, handles)
 % Call back function of 'delete' button
-contents = get(handles.listbox_input2,'String');
-id = get(handles.listbox_input2,'Value');
+contents = get(handles.listbox_selectedChannels,'String');
+id = get(handles.listbox_selectedChannels,'Value');
 
 % Return if list is empty
 if isempty(contents) || isempty(id)
@@ -486,25 +486,25 @@ end
 contents(id) = [ ];
 
 % Delete userdata
-chanIndex2 = get(handles.listbox_input2, 'Userdata');
+chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
 chanIndex2(id) = [ ];
-set(handles.listbox_input2, 'Userdata', chanIndex2);
+set(handles.listbox_selectedChannels, 'Userdata', chanIndex2);
 
 % Point 'Value' to the second last item in the list once the 
 % last item has been deleted
 if (id >length(contents) && id>1)
-    set(handles.listbox_input2,'Value',length(contents));
+    set(handles.listbox_selectedChannels,'Value',length(contents));
 end
 % Refresh listbox
-set(handles.listbox_input2,'String',contents);
+set(handles.listbox_selectedChannels,'String',contents);
 
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)
 % call back of 'Up' button
 
-id = get(handles.listbox_mask2,'Value');
-contents = get(handles.listbox_mask2,'String');
+id = get(handles.listbox_selectedMaskChannels,'Value');
+contents = get(handles.listbox_selectedMaskChannels,'String');
 
 
 % Return if list is empty
@@ -516,21 +516,21 @@ temp = contents{id};
 contents{id} = contents{id-1};
 contents{id-1} = temp;
 
-chanIndex = get(handles.listbox_mask2, 'Userdata');
+chanIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
 temp = chanIndex(id);
 chanIndex(id) = chanIndex(id-1);
 chanIndex(id-1) = temp;
 
-set(handles.listbox_mask2, 'String', contents, 'Userdata', chanIndex);
-set(handles.listbox_mask2, 'value', id-1);
+set(handles.listbox_selectedMaskChannels, 'String', contents, 'Userdata', chanIndex);
+set(handles.listbox_selectedMaskChannels, 'value', id-1);
 
 
 % --- Executes on button press in pushbutton_down.
 function pushbutton_down_Callback(hObject, eventdata, handles)
 % Call back of 'Down' button
 
-id = get(handles.listbox_mask2,'Value');
-contents = get(handles.listbox_mask2,'String');
+id = get(handles.listbox_selectedMaskChannels,'Value');
+contents = get(handles.listbox_selectedMaskChannels,'String');
 
 % Return if list is empty
 if isempty(contents) || isempty(id) || id == length(contents)
@@ -541,13 +541,13 @@ temp = contents{id};
 contents{id} = contents{id+1};
 contents{id+1} = temp;
 
-chanIndex = get(handles.listbox_mask2, 'Userdata');
+chanIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
 temp = chanIndex(id);
 chanIndex(id) = chanIndex(id+1);
 chanIndex(id+1) = temp;
 
-set(handles.listbox_mask2, 'string', contents, 'Userdata',chanIndex);
-set(handles.listbox_mask2, 'value', id+1);
+set(handles.listbox_selectedMaskChannels, 'string', contents, 'Userdata',chanIndex);
+set(handles.listbox_selectedMaskChannels, 'value', id+1);
 
 
 % --- Executes during object deletion, before destroying properties.

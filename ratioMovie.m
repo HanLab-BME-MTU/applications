@@ -164,8 +164,7 @@ else
     hasXF = false(1,nChan);
 end
 
-
-if p.ApplyMasks || p.CreateMasks
+if p.ApplyMasks
         
     %Make sure the move has been segmented
 
@@ -183,7 +182,7 @@ if p.ApplyMasks || p.CreateMasks
     end
 
     if isempty(p.SegProcessIndex) 
-        error('This function requires that the input movie has already been segmented - no valid MaskProcesses were found!')
+        error('This function requires that the input movie has already been segmented - no valid MaskProcess were found!')
     end
 
     nProc = numel(p.SegProcessIndex);
@@ -208,17 +207,46 @@ if p.ApplyMasks || p.CreateMasks
             'Cannot create / apply masks because some channels do not have masks or a valid segmentation process was not selected! Please segment these channels before creating / applying ratio masks or select a different segmentation process!')
     end           
         
-    %Get the most recent seg process with masks for this channel      
-    iP = p.SegProcessIndex(find(hasMasks(1,:),1,'last'));
+    if p.MaskChannelIndex(1) == p.MaskChannelIndex(2)
+        %Get the most recent seg process with masks for this channel
+        iP = p.SegProcessIndex(find(hasMasks(1,:),1,'last'));
+        
+         % Get mask directory and names
+        maskDir = movieData.processes_{iP}.outFilePaths_{p.MaskChannelIndex(1)};
+        maskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(1));
+        
+    else
+        % Create a mask intersection process
+        
+        %Get the most recent seg process with masks for this channel
+        iP1 = p.SegProcessIndex(find(hasMasks(1,:),1,'last'));
+        iP2 = p.SegProcessIndex(find(hasMasks(2,:),1,'last'));
+        
+        %Get the indices of any previous mask intersection process
+        iMaskIntProc = movieData.getProcessIndex('MaskIntersectionProcess',1,0);
+        
+        %If the process doesn't exist, create it
+        if isempty(iMaskIntProc)
+            ratMaskDir = [p.OutputDirectory filesep 'ratio_masks'];
+            mkClrDir(ratMaskDir);
+            
+            iMaskIntProc = numel(movieData.processes_)+1;
+            movieData.addProcess(MaskIntersectionProcess(movieData,ratMaskDir));
+        end
+        maskIntProc = movieData.processes_{iMaskIntProc};
+        
+        %Set up the parameters for mask transformation
+        maskIntParams.ChannelIndex = p.MaskChannelIndex;
+        maskIntParams.SegProcessIndex = [iP1 iP2];
+        
+        parseProcessParams(maskIntProc,maskIntParams);
+        maskIntProc.run;
+        
+        % Get mask directory and names
+        maskDir = maskIntProc.outFilePaths_{1};
+        maskNames = maskIntProc.getOutMaskFileNames(1);
+    end
     
-    numMaskDir = movieData.processes_{iP}.outFilePaths_{p.MaskChannelIndex(1)};
-    numMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(1));        
-    
-    iP = p.SegProcessIndex(find(hasMasks(2,:),1,'last'));
-    
-    denomMaskDir = movieData.processes_{iP}.outFilePaths_{p.MaskChannelIndex(2)};        
-    denomMaskNames = movieData.processes_{iP}.getOutMaskFileNames(p.MaskChannelIndex(2));
-                          
 end
 
 %Save these selected channels / parameters in the movieData
@@ -241,8 +269,7 @@ for j = 1:2
             movieData.processes_{iBSProc}.outFilePaths_{1,p.ChannelIndex(j)});
     end                    
 
-end
-
+end   
 
 %% ------------- Init ------------ %%
 
@@ -267,23 +294,22 @@ denomImNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex(2)
 %Format string for zero-padding file names
 fString = ['%0' num2str(floor(log10(nImages))+1) '.f'];
 
-
-ratMaskDir = [p.OutputDirectory filesep 'ratio_masks'];
-mkClrDir(ratMaskDir);
-
 %% ------ Ratio -----%%
 % Ratios the channels and writes the resulting ratio images to file
 
 
 disp('Starting ratioing...')
 disp(['Creating ratio images by dividing channel ' numDir ' by channel ' denomDir])
-disp(['Using masks from directories :' numMaskDir '  and ' denomMaskDir ])
+if p.ApplyMasks
+    disp(['Using masks from directory :' maskDir]);
+end
 disp(['Resulting images will be written to channel ' outDir])
   
 if ~p.BatchMode
     wtBar = waitbar(0,['Please wait, ratioing channel ' ...
         num2str(p.ChannelIndex(1)) ' to channel ' num2str(p.ChannelIndex(2)) '...']);        
 end        
+
 
 for iImage = 1:nImages
     
@@ -299,22 +325,10 @@ for iImage = 1:nImages
     numStr = num2str(iImage,fString);
     
     
-   if p.ApplyMasks || p.CreateMasks  %If masks are to be applied, don't include the masked values      
-                
-        currNumMask = imread([numMaskDir filesep numMaskNames{1}{iImage}]);
-        if p.ApplyMasks 
-            currRatio(~currNumMask(:)) = 0;        
-        end
-                
-        currDenomMask = imread([denomMaskDir filesep denomMaskNames{1}{iImage}]);        
-        if p.ApplyMasks 
-            currRatio(~currDenomMask(:)) = 0;        
-        end
-        
-        if p.CreateMasks              
-            imwrite(currDenomMask & currNumMask,[ratMaskDir filesep 'ratio_mask_' numStr '.tif'])
-        end
-        
+   if p.ApplyMasks 
+       %If masks are to be applied, don't include the masked values      
+       intMask = imread([maskDir filesep maskNames{1}{iImage}]);
+       currRatio(~intMask(:)) = 0;  
     end    
     
     %Remove any infinities from division-by-zero (this shouldn't happen if

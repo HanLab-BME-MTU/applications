@@ -25,7 +25,6 @@ classdef RatioProcess < DoubleProcessingProcess
                 funParams.ChannelIndex = [];                
                 funParams.ApplyMasks = true;
                 funParams.SegProcessIndex = []; %No default
-                funParams.CreateMasks = false;
                 funParams.MaskChannelIndex = [];
                 funParams.BatchMode = false;                
                 
