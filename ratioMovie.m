@@ -227,11 +227,8 @@ if p.ApplyMasks
         
         %If the process doesn't exist, create it
         if isempty(iMaskIntProc)
-            ratMaskDir = [p.OutputDirectory filesep 'ratio_masks'];
-            mkClrDir(ratMaskDir);
-            
             iMaskIntProc = numel(movieData.processes_)+1;
-            movieData.addProcess(MaskIntersectionProcess(movieData,ratMaskDir));
+            movieData.addProcess(MaskIntersectionProcess(movieData,p.OutputDirectory));
         end
         maskIntProc = movieData.processes_{iMaskIntProc};
         

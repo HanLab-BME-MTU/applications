@@ -252,17 +252,27 @@ end
 %% ------- Mask Transformation ----- %%
 
 if p.TransformMasks    
-
-    %Set up the parameters for mask transformation
-    mXp.ChannelIndex = p.ChannelIndex;
-    mXp.TransformFilePaths = p.TransformFilePaths;    
-    mXp.SegProcessIndex = p.SegProcessIndex;
-    mXp.OutputDirectory = p.OutputDirectory;
-    mXp.BatchMode = p.BatchMode;
     
-    %Transform the masks
-    movieData = transformMovieMasks(movieData,mXp);
-
+    %Get the indices of any previous mask intersection process
+    iMaskTransfProc = movieData.getProcessIndex('MaskTransformationProcess',1,0);
+    
+    %If the process doesn't exist, create it
+    if isempty(iMaskTransfProc)
+        iMaskTransfProc = numel(movieData.processes_)+1;
+        movieData.addProcess(MaskTransformationProcess(movieData,p.OutputDirectory));
+    end
+    maskTransfProc = movieData.processes_{iMaskTransfProc};
+       
+    %Set up the parameters for mask transformation
+    maskTransfParams.ChannelIndex = p.ChannelIndex;
+    maskTransfParams.TransformFilePaths = p.TransformFilePaths;    
+    maskTransfParams.SegProcessIndex = p.SegProcessIndex;
+    maskTransfParams.BatchMode = p.BatchMode;
+    
+    
+    parseProcessParams(maskTransfProc,maskTransfParams);
+    maskTransfProc.run;
+        
 end
 
 
