@@ -22,7 +22,7 @@ function varargout = protrusionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help protrusionProcessGUI
 
-% Last Modified by GUIDE v2.5 09-Aug-2011 14:51:56
+% Last Modified by GUIDE v2.5 20-Oct-2011 10:49:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,6 +67,9 @@ set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
 userData.numParams ={'DownSample','SplineTolerance'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
+
+% Update channels listboxes depending on the selected process
+popupmenu_SegProcessIndex_Callback(hObject, eventdata, handles)
 
 % Choose default command line output for protrusionProcessGUI
 handles.output = hObject;
@@ -156,3 +159,45 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+
+
+% --- Executes on selection change in popupmenu_SegProcessIndex.
+function popupmenu_SegProcessIndex_Callback(hObject, eventdata, handles)
+
+% Retrieve selected process ID
+props= get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
+procID = props{1}{props{2}};
+
+% Read process and check available channels
+userData = get(handles.figure1, 'UserData');
+if isempty(procID)
+    allChannelIndex=1:numel(userData.MD.channels_);
+else
+    allChannelIndex = find(userData.MD.processes_{procID}.checkChannelOutput);
+end
+
+% Set up available channels listbox
+if ~isempty(allChannelIndex)
+    if isempty(procID)
+        channelString = userData.MD.getChannelPaths(allChannelIndex);
+    else
+        channelString = userData.MD.processes_{procID}.outFilePaths_(1,allChannelIndex);
+    end
+else
+    channelString = {};
+end
+set(handles.listbox_availableChannels,'String',channelString,'UserData',allChannelIndex);
+
+% Set up selected channels listbox
+channelIndex = get(handles.listbox_selectedChannels, 'UserData');
+channelIndex = intersect(channelIndex,allChannelIndex);
+if ~isempty(channelIndex)
+    if isempty(procID)
+        channelString = userData.MD.getChannelPaths(channelIndex);
+    else
+        channelString = userData.MD.processes_{procID}.outFilePaths_(1,channelIndex);
+    end
+else
+    channelString = {};
+end
+set(handles.listbox_selectedChannels,'String',channelString,'UserData',channelIndex);
