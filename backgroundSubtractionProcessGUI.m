@@ -22,7 +22,7 @@ function varargout = backgroundSubtractionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help backgroundSubtractionProcessGUI
 
-% Last Modified by GUIDE v2.5 18-Oct-2011 18:01:42
+% Last Modified by GUIDE v2.5 20-Oct-2011 13:47:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,134 +46,51 @@ end
 
 % --- Executes just before backgroundSubtractionProcessGUI is made visible.
 function backgroundSubtractionProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% Available tools 
-% UserData data:
-%       userData.mainFig - handle of main figure
-%       userData.handles_main - 'handles' of main figure
-%       userData.procID - The ID of process in the current package
-%       userData.crtProc - handle of current process
-%       userData.crtPackage - handles of current package
-%       userData.procConstr - constructor of current process
-%
-%       userData.questIconData - help icon image information
-%       userData.colormap - color map information
-%
 
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
+% Parameter setup
 userData = get(handles.figure1, 'UserData');
+funParams = userData.crtProc.funParams_;
+
+
+% Set up available mask channels
+set(handles.listbox_availableMaskChannels,'String',userData.MD.getChannelPaths(), ...
+    'UserData',1:numel(userData.MD.channels_));
+
+maskChannelIndex = funParams.ChannelIndex;
+
+% Find any parent process
+parentProc = userData.crtPackage.getParent(userData.procID);
+if isempty(userData.crtPackage.processes_{userData.procID}) && ~isempty(parentProc)
+    % Check existence of all parent processes
+    emptyParentProc = any(cellfun(@isempty,userData.crtPackage.processes_(parentProc)));
+    if ~emptyParentProc
+        % Intersect channel index with channel index of parent processes
+        parentChannelIndex = @(x) userData.crtPackage.processes_{x}.funParams_.ChannelIndex;
+        for i = parentProc
+            maskChannelIndex = intersect(maskChannelIndex,parentChannelIndex(i));
+        end
+    end
+   
+end
+
+if ~isempty(maskChannelIndex)
+    maskChannelString = userData.MD.getChannelPaths(maskChannelIndex);
+else
+    maskChannelString = {};
+end
+
+set(handles.listbox_selectedMaskChannels,'String',maskChannelString,...
+    'UserData',maskChannelIndex);
+
 % Choose default command line output for backgroundSubtractionProcessGUI
 handles.output = hObject;
 
-% Get main figure handle and process id
-t = find(strcmp(varargin,'mainFig'));
-userData.mainFig = varargin{t+1};
-userData.procID = varargin{t+2};
-userData.handles_main = guidata(userData.mainFig);
-
-% Get current package and process
-userData_main = get(userData.mainFig, 'UserData');
-userData.crtPackage = userData_main.crtPackage;
-userData.crtProc = userData.crtPackage.processes_{userData.procID};
-
-% Get current process constructer
-crtProcClassName = userData.crtPackage.getProcessClassNames{userData.procID};
-userData.procConstr = str2func(crtProcClassName);
-crtProcName = eval([crtProcClassName '.getName']);
-procString = [' Step ' num2str(userData.procID) ': ' crtProcName];
-set(handles.text_processName,'String',procString);
-figString = [' Setting - ' crtProcName];
-set(handles.figure1,'Name',figString);
-    
-% If process does not exist, create a default one in user data.
-if isempty(userData.crtProc)
-    userData.crtProc = userData.procConstr(userData_main.MD(userData_main.id), ...
-                                userData.crtPackage.outputDirectory_);
-end
-
-% Get icon infomation
-userData.questIconData = userData_main.questIconData;
-userData.colormap = userData_main.colormap;
-
-% ---------------------- Input and Mask Channel Setup --------------------
-
-funParams = userData.crtProc.funParams_;
-
-% Set up available input and mask channels
-set(handles.listbox_availableChannels, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
-set(handles.listbox_availableMaskChannels, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));    
-    
-% Set up selected input data channels and channel index
-parentI = userData.crtPackage.getParent(userData.procID);
-
-if isempty(parentI) || ~isempty( userData.crtPackage.processes_{userData.procID} )
-    
-    % If process has no dependency, or process already exists, display saved channels 
-    set(handles.listbox_selectedChannels, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex).channelPath_}, ...
-        'Userdata',funParams.ChannelIndex);
-    
-    set(handles.listbox_selectedMaskChannels, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.MaskChannelIndex).channelPath_}, ...
-        'Userdata',funParams.MaskChannelIndex);    
-    
-elseif isempty( userData.crtPackage.processes_{userData.procID} )
-    % If new process
-        empty = false;
-        for i = parentI
-           if isempty(userData.crtPackage.processes_{i})
-               empty = true;
-               break;
-           end
-        end
-            
-        if ~empty
-
-            % If all dependent processes exist
-            channelIndex = userData.crtPackage.processes_{parentI(1)}.funParams_.ChannelIndex;
-            for i = 2: length(parentI)
-                channelIndex = intersect(channelIndex, ...
-                    userData.crtPackage.processes_{parentI(i)}.funParams_.ChannelIndex);
-            end  
-            
-            if ~isempty(channelIndex)
-                
-                set(handles.listbox_selectedChannels, 'String', ...
-                    {userData_main.MD(userData_main.id).channels_(channelIndex).channelPath_}, ...
-                    'Userdata',channelIndex);
-                set(handles.listbox_selectedMaskChannels, 'String', ...
-                    {userData_main.MD(userData_main.id).channels_(channelIndex).channelPath_}, ...
-                    'Userdata',channelIndex);        
-            end
-        end
-end
-
-% ----------------------Set up help icon------------------------
-
-% Set up help icon
-set(hObject,'colormap',userData.colormap);
-% Set up package help. Package icon is tagged as '0'
-axes(handles.axes_help);
-Img = image(userData.questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class',class(userData.crtProc)))
-end
-
-% ----------------------------------------------------------------
-
 % Update user data and GUI data
-set(userData.mainFig, 'UserData', userData_main);
 set(handles.figure1, 'UserData', userData);
-
 uicontrol(handles.pushbutton_done)
 guidata(hObject, handles);
-
 
 
 % --- Outputs from this function are returned to the command line.
@@ -196,154 +113,41 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-userData_main = get(userData.mainFig, 'UserData');
 
 % -------- Check user input --------
 
-if isempty(get(handles.listbox_selectedChannels, 'String'))
-   errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal') 
+channelProps = get(handles.listbox_selectedChannels, {'Userdata','String'});
+maskChannelProps = get(handles.listbox_selectedMaskChannels, {'Userdata','String'});
+if isempty(channelProps{2})
+    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
 end
 
-if length(get(handles.listbox_selectedChannels, 'String')) ~= ...
-                            length(get(handles.listbox_selectedMaskChannels, 'String'))
-   errordlg('Please provide the same number of mask channels as input channels.','Setting Error','modal') 
+if numel(channelProps{2}) ~= numel(maskChannelProps{2})
+    errordlg('Please provide the same number of mask channels as input channels.','Setting Error','modal')
     return;
 end
 
-% -------- Process Sanity check --------
-% ( only check underlying data )
-funParams = userData.crtProc.funParams_;
+% Process Sanity check  ( only check underlying data )
+oldFunParams = userData.crtProc.funParams_;
 
-tempMaskChannelIndex = funParams.MaskChannelIndex;
-funParams.MaskChannelIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
-
-userData.crtProc.setPara(funParams);
-
+funParams.MaskChannelIndex = maskChannelProps{1};
+parseProcessParams(userData.crtProc,funParams);
+ 
 try
     % Background Subtraction Process sanity check the mask channels
     userData.crtProc.sanityCheck;
 catch ME
-
     errordlg([ME.message 'Please double check your data'],...
-                'Setting Error','modal');
-    funParams.MaskChannelIndex = tempMaskChannelIndex;
-    userData.crtProc.setPara(funParams);
+        'Setting Error','modal');
+    userData.crtProc.setPara(oldFunParams);
     return;
 end
 
-funParams.MaskChannelIndex = tempMaskChannelIndex;
-userData.crtProc.setPara(funParams);
+% Set input channels
+funParams.ChannelIndex = channelProps{1};
 
-% -------- Set parameter --------
-channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
-maskChannelIndex = get(handles.listbox_selectedMaskChannels, 'Userdata');
- 
-% Set mask channels
-funParams.ChannelIndex = channelIndex;
-funParams.MaskChannelIndex = maskChannelIndex;
-    
-% Set parameters
-userData.crtProc.setPara(funParams);
-
-% --------------------------------------------------
-
-
-% If this is a brand new process, attach current process to MovieData and 
-% package's process list 
-if isempty( userData.crtPackage.processes_{userData.procID} )
-    
-    % Add new process to both process lists of MovieData and current package
-    userData_main.MD(userData_main.id).addProcess( userData.crtProc );
-    userData.crtPackage.setProcess(userData.procID, userData.crtProc);
-    
-    % Set font weight of process name bold
-    eval([ 'set(userData.handles_main.checkbox_',...
-            num2str(userData.procID),', ''FontWeight'',''bold'')' ]);
-end
-
-% ----------------------Sanity Check (II, III check)----------------------
-
-% Do sanity check - only check changed parameters
-[status procEx] = userData.crtPackage.sanityCheck(false,'all');
-
-% Return user data !!!
-set(userData.mainFig, 'UserData', userData_main)
-
-% Draw some bugs on the wall 
-for i = 1: length(procEx)
-   if ~isempty(procEx{i})
-       % Draw warning label on the i th process
-       userfcn_drawIcon(userData.handles_main,'warn',i,procEx{i}(1).message, true); % user data is retrieved, updated and submitted
-   end
-end
-
-% Refresh user data !!
-userData_main = get(userData.mainFig, 'UserData');
-
-% -------------------- Apply setting to all movies ------------------------
-
-if get(handles.checkbox_applytoall, 'Value')
-
-for x = 1: length(userData_main.MD)
-    
-   if x == userData_main.id
-      continue 
-   end
-   
-   l = length(userData_main.MD(x).channels_);
-   
-   temp = arrayfun(@(x)(x > l),channelIndex, 'UniformOutput', true );
-   
-   % Customize funParams to other movies 
-   % ChannelIndex - all channels
-   % OutputDirectory - pacakge output directory
-   funParams.ChannelIndex = channelIndex(logical(~temp));
-   
-   if any( arrayfun(@(x)(x > l),maskChannelIndex(logical(~temp)), 'UniformOutput', true ) ) 
-       funParams.MaskChannelIndex = funParams.ChannelIndex;
-   else
-       funParams.MaskChannelIndex = maskChannelIndex(logical(~temp));
-   end
-   
-   funParams.OutputDirectory  = [userData_main.package(x).outputDirectory_  filesep 'background_subtracted_images'];
-   
-   % if new process, create a new process with funParas and add to
-   % MovieData and package's process list
-   if isempty(userData_main.package(x).processes_{userData.procID})
-       
-       process = userData.procConstr(userData_main.MD(x), userData_main.package(x).outputDirectory_, funParams);
-       userData_main.MD(x).addProcess( process )
-       userData_main.package(x).setProcess(userData.procID, process )
-       
-   % if process exist, replace the funParams with the new one
-   else
-       userData_main.package(x).processes_{userData.procID}.setPara(funParams)
-   end
-   
-    % Do sanity check - only check changed parameters
-    [status procEx] = userData_main.package(x).sanityCheck(false,'all');
-
-    % Draw some bugs on the wall 
-    for i = 1: length(procEx)
-       if ~isempty(procEx{i})
-           % Record the icon and message to user data
-           userData_main.statusM(x).IconType{i} = 'warn';
-           userData_main.statusM(x).Msg{i} = procEx{i}(1).message;
-       end
-    end   
-end
-
-% Save user data
-set(userData.mainFig, 'UserData', userData_main)
-
-end
-% -------------------------------------------------------------------------
-
-
-set(handles.figure1, 'UserData', userData);
-guidata(hObject,handles);
-delete(handles.figure1);
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 % --- Executes on button press in checkbox_mask_all.
 function checkbox_mask_all_Callback(hObject, eventdata, handles)
@@ -419,85 +223,6 @@ if (id >length(contents) && id>1)
 end
 % Refresh listbox
 set(handles.listbox_selectedMaskChannels,'String',contents);
-
-
-% --- Executes on button press in checkbox_input_all.
-function checkbox_input_all_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of checkbox_all
-contents1 = get(handles.listbox_availableChannels, 'String');
-
-chanIndex1 = get(handles.listbox_availableChannels, 'Userdata');
-chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
-
-% Return if listbox1 is empty
-if isempty(contents1)
-    return;
-end
-
-switch get(hObject,'Value')
-    case 1
-        set(handles.listbox_selectedChannels, 'String', contents1);
-        chanIndex2 = chanIndex1;
-    case 0
-        set(handles.listbox_selectedChannels, 'String', {}, 'Value',1);
-        chanIndex2 = [ ];
-end
-set(handles.listbox_selectedChannels, 'UserData', chanIndex2);
-
-
-% --- Executes on button press in pushbutton_input_select.
-function pushbutton_input_select_Callback(hObject, eventdata, handles)
-% call back function of 'select' button
-
-contents1 = get(handles.listbox_availableChannels, 'String');
-contents2 = get(handles.listbox_selectedChannels, 'String');
-id = get(handles.listbox_availableChannels, 'Value');
-
-% If channel has already been added, return;
-chanIndex1 = get(handles.listbox_availableChannels, 'Userdata');
-chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
-
-for i = id
-    if any(strcmp(contents1{i}, contents2) )
-        continue;
-    else
-        contents2{end+1} = contents1{i};
-        
-        chanIndex2 = cat(2, chanIndex2, chanIndex1(i));
-
-    end
-end
-
-set(handles.listbox_selectedChannels, 'String', contents2, 'Userdata', chanIndex2);
-
-
-% --- Executes on button press in pushbutton_input_delete.
-function pushbutton_input_delete_Callback(hObject, eventdata, handles)
-% Call back function of 'delete' button
-contents = get(handles.listbox_selectedChannels,'String');
-id = get(handles.listbox_selectedChannels,'Value');
-
-% Return if list is empty
-if isempty(contents) || isempty(id)
-    return;
-end
-
-% Delete selected item
-contents(id) = [ ];
-
-% Delete userdata
-chanIndex2 = get(handles.listbox_selectedChannels, 'Userdata');
-chanIndex2(id) = [ ];
-set(handles.listbox_selectedChannels, 'Userdata', chanIndex2);
-
-% Point 'Value' to the second last item in the list once the 
-% last item has been deleted
-if (id >length(contents) && id>1)
-    set(handles.listbox_selectedChannels,'Value',length(contents));
-end
-% Refresh listbox
-set(handles.listbox_selectedChannels,'String',contents);
-
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)

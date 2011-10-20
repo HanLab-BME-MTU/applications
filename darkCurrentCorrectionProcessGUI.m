@@ -100,89 +100,67 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-userData_main = get(userData.mainFig, 'UserData');
 
+channelProps = get (handles.listbox_selectedChannels, {'Userdata','String'});
+channelIndex=channelProps{1};
+channelString=channelProps{2};
+darkCurrentChannels = get(handles.listbox_darkCurrentChannels, 'String');
 
-% -------- Check user input --------
-
-if isempty(get(handles.listbox_selectedChannels, 'String'))
+% Check user input
+if isempty(channelString)
     errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
 end
 
-if length(get(handles.listbox_selectedChannels, 'String')) ~= ...
-        length(get(handles.listbox_darkCurrentChannels, 'String'))
+if numel(channelString) ~= numel(darkCurrentChannels)
     errordlg('Please provide the same number of dark-current image channels as input channels.','Setting Error','modal')
     return;
 end
 
 if get(handles.checkbox_gaussianfilter, 'value')
-    value = str2double(get(handles.edit_sigma, 'String'));
-    
-    if isnan(value) || value < 0
+    sigma = str2double(get(handles.edit_sigma, 'String'));
+    if isnan(sigma) || sigma < 0
         errordlg('Please provide a valid input for ''Sigma''.','Setting Error','modal');
         return;
         
-    elseif value < 1
-        warndlg('In order to perform Gaussian filtering, ''Sigma'' should be larger than 1.','Setting Error','modal');
+    elseif sigma < 1
+        warndlg('''Sigma'' ought to be larger than 1 in Gaussian filtering','Setting Error','modal');
         return;
     end
-    
+else
+    sigma=0;
 end
 
-% -------- Process Sanity check --------
-% ( only check underlying data )
 
-channelIndex = get (handles.listbox_selectedChannels, 'Userdata');
-funParams = userData.crtProc.funParams_;
+% Save old process settings (for recovery if sanity check fails)
+oldFunParams = userData.crtProc.funParams_;
+oldDarkCurrentChannels = userData.crtProc.inFilePaths_(2,:);
 
-% Get input index
-tempChannelIndex = funParams.ChannelIndex;
+% Apply new channel index and new shade images for sanity check
 funParams.ChannelIndex = channelIndex; 
-userData.crtProc.setPara(funParams);
+parseProcessParams(userData.crtProc,funParams);
+userData.crtProc.setCorrectionImagePath(channelIndex, darkCurrentChannels);
 
-% Get dark current image path
-temp = userData.crtProc.inFilePaths_(2,:);
-userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_darkCurrentChannels, 'String'));
-
+%  Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
 catch ME
 
     errordlg(ME.message,'Setting Error','modal');
-    if ~isempty(temp)
-        userData.crtProc.setCorrectionImagePath(1:length(temp), temp)
+    if ~isempty(oldDarkCurrentChannels)
+        userData.crtProc.setCorrectionImagePath(1:length(oldDarkCurrentChannels), oldDarkCurrentChannels)
     end
-    funParams.ChannelIndex = tempChannelIndex; 
-    userData.crtProc.setPara(funParams);
+    userData.crtProc.setPara(oldFunParams);
     return;
 end
 
-funParams.ChannelIndex = tempChannelIndex; 
-userData.crtProc.setPara(funParams);
-
-
-% -------- Set parameter --------
-
-clear funParams
-funParams.ChannelIndex = channelIndex;
-  
 % Filter parameters
-if get(handles.checkbox_medianfilter, 'Value')
-    funParams.MedianFilter = true;
-else
-    funParams.MedianFilter = false;
-end
-if get(handles.checkbox_gaussianfilter, 'Value')
-    funParams.GaussFilterSigma = str2double(get(handles.edit_sigma, 'String'));
-else
-    funParams.GaussFilterSigma = 0;
-end
+funParams.MedianFilter = get(handles.checkbox_medianfilter, 'Value');
+funParams.GaussFilterSigma = sigma;
 
 % Set parameters
-imageCorrectionSettingFcn =@(x) setCorrectionImagePath(x,channelIndex, ...
-    get(handles.listbox_darkCurrentChannels, 'String'));
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams,{imageCorrectionSettingFcn});
+darkCurrentSettingFcn =@(x) setCorrectionImagePath(x,channelIndex,darkCurrentChannels);
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,{darkCurrentSettingFcn});
 
 % --- Executes on button press in pushbutton_deleteDarkCurrentChannel.
 function pushbutton_deleteDarkCurrentChannel_Callback(hObject, eventdata, handles)
@@ -242,15 +220,8 @@ guidata(hObject, handles);
 % --- Executes on button press in checkbox_gaussianfilter.
 function checkbox_gaussianfilter_Callback(hObject, eventdata, handles)
 
-switch get(hObject, 'Value')
-    case 0
-        set(handles.text_filters1, 'Enable', 'off');
-        set(handles.edit_sigma, 'Enable', 'off');
-    case 1
-        set(handles.text_filters1, 'Enable', 'on');
-        set(handles.edit_sigma, 'Enable', 'on');        
-end
-
+if get(hObject, 'Value'), state='on'; else state='off'; end
+set([handles.text_filters1 handles.edit_sigma], 'Enable',state);
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)

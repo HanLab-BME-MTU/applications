@@ -22,7 +22,7 @@ function varargout = shadeCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help shadeCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 24-Aug-2010 11:13:46
+% Last Modified by GUIDE v2.5 20-Oct-2011 14:05:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,150 +46,45 @@ end
 
 % --- Executes just before shadeCorrectionProcessGUI is made visible.
 function shadeCorrectionProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% Available tools 
-% UserData data:
-%       userData.mainFig - handle of main figure
-%       userData.handles_main - 'handles' of main figure
-%       userData.procID - The ID of process in the current package
-%       userData.crtProc - handle of current process
-%       userData.crtPackage - handles of current package
-%       userData.procConstr - constructor of current process
-%       userData.userDir - save the default directory when user click 'Add
-%                           Channel'
-%
-%       userData.questIconData - help icon image information
-%       userData.colormap - color map information
-%
 
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
+% Parameter setup
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for shadeCorrectionProcessGUI
-handles.output = hObject;
-
-% Get main figure handle and process id
-t = find(strcmp(varargin,'mainFig'));
-userData.mainFig = varargin{t+1};
-userData.procID = varargin{t+2};
-userData.handles_main = guidata(userData.mainFig);
-
-% Get current package and process
-userData_main = get(userData.mainFig, 'UserData');
-userData.crtPackage = userData_main.crtPackage;
-userData.crtProc = userData.crtPackage.processes_{userData.procID};
-
-% Get current process constructer
-eval ( [ 'userData.procConstr = @', ...
-    userData.crtPackage.getProcessClassNames{userData.procID},';']);
-
-% If process does not exist, create a default one in user data.
-if isempty(userData.crtProc)
-    userData.crtProc = userData.procConstr(userData_main.MD(userData_main.id), ...
-                                userData.crtPackage.outputDirectory_);
-end
-
-% Get default user directory when clicking 'Add channel'
-userData.userDir = pwd;
-
-% Get icon infomation
-userData.questIconData = userData_main.questIconData;
-userData.colormap = userData_main.colormap;
-
-% ---------------------- Channel Setup -------------------------
-
 funParams = userData.crtProc.funParams_;
 
-% Set up available input channels
-set(handles.listbox_1, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
-    
-% Set up selected input data channels and channel index
-parentI = userData.crtPackage.getParent(userData.procID);
-
-if isempty(parentI) || ~isempty( userData.crtPackage.processes_{userData.procID} )
-    
-    % If process has no dependency, or process already exists, display saved channels 
-    set(handles.listbox_2, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex).channelPath_}, ...
-        'Userdata',funParams.ChannelIndex);
-    
-elseif isempty( userData.crtPackage.processes_{userData.procID} )
-    % If new process
-        empty = false;
-        for i = parentI
-           if isempty(userData.crtPackage.processes_{i})
-               empty = true;
-               break;
-           end
-        end
-            
-        if ~empty
-
-            % If all dependent processes exist
-            channelIndex = userData.crtPackage.processes_{parentI(1)}.funParams_.ChannelIndex;
-            for i = 2: length(parentI)
-                channelIndex = intersect(channelIndex, ...
-                    userData.crtPackage.processes_{parentI(i)}.funParams_.ChannelIndex);
-            end  
-            
-            if ~isempty(channelIndex)
-                set(handles.listbox_2, 'String', ...
-                    {userData_main.MD(userData_main.id).channels_(channelIndex).channelPath_}, ...
-                    'Userdata',channelIndex);   
-            end
-        end
-end
-
-% ---------------------- Parameter Setup -------------------------
-
 if ~all(cellfun(@isempty,userData.crtProc.inFilePaths_(2,:)));
-    set(handles.listbox_3, 'String', ...
+    set(handles.listbox_shadeChannels, 'String', ...
         userData.crtProc.inFilePaths_(2,funParams.ChannelIndex ));
 end
 
-if ~funParams.MedianFilter
-    set(handles.checkbox_medianfilter, 'Value',0)
-end
+set(handles.checkbox_medianfilter, 'Value',funParams.MedianFilter);
+
 if funParams.GaussFilterSigma >= 1
     set(handles.checkbox_gaussianfilter, 'Value', 1)
     set(handles.text_filters1, 'Enable','on');
     set(handles.edit_sigma, 'Enable','on',...
             'String',num2str(funParams.GaussFilterSigma))
 end
+
+set(handles.checkbox_normal, 'Value', logical(funParams.Normalize));
+
 if ~funParams.Normalize
-    set(handles.checkbox_normal, 'Value', 0)
-    set(handles.radiobutton_1, 'Enable', 'off')
-    set(handles.radiobutton_2, 'Enable', 'off')
+    set([handles.radiobutton_1 handles.radiobutton_2], 'Enable', 'off');
 elseif funParams.Normalize == 2
     set(handles.radiobutton_2, 'Value', 1)
 end
 
-% ----------------------Set up help icon------------------------
+set(handles.listbox_shadeChannels, 'Value',1);
 
-% Set up help icon
-set(hObject,'colormap',userData.colormap);
-% Set up package help. Package icon is tagged as '0'
-axes(handles.axes_help);
-Img = image(userData.questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class',class(userData.crtProc)))
-end
+userData.userDir=userData.MD.outputDirectory_;
 
-% ----------------------------------------------------------------
 
-% Set callback function of radio button group uipanel_4
-set(handles.uipanel_4, 'SelectionChangeFcn', @uipanel_4_SelectionChangeFcn);
-
-set(handles.listbox_3, 'Value',1);
+% Choose default command line output for shadeCorrectionProcessGUI
+handles.output = hObject;
 
 % Update user data and GUI data
-set(userData.mainFig, 'UserData', userData_main);
 set(handles.figure1, 'UserData', userData);
-
 uicontrol(handles.pushbutton_done)
 guidata(hObject, handles);
 
@@ -213,85 +108,65 @@ delete(handles.figure1);
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
+
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-userData_main = get(userData.mainFig, 'UserData');
 
+channelProps = get (handles.listbox_selectedChannels, {'Userdata','String'});
+channelIndex=channelProps{1};
+channelString=channelProps{2};
+shadeChannels = get(handles.listbox_shadeChannels, 'String');
 
-% -------- Check user input --------
-
-if isempty(get(handles.listbox_2, 'String'))
-   errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal') 
+% Check user input
+if isempty(channelString)
+    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
 end
 
-if length(get(handles.listbox_2, 'String')) ~= ...
-                            length(get(handles.listbox_3, 'String'))
-   errordlg('Please provide the same number of shade image channels as input channels.','Setting Error','modal') 
+if numel(channelString) ~= numel(shadeChannels)
+    errordlg('Please provide the same number of shade image channels as input channels.','Setting Error','modal')
     return;
 end
 
 if get(handles.checkbox_gaussianfilter, 'value')
-
-        if isnan(str2double(get(handles.edit_sigma, 'String'))) ...
-                || str2double(get(handles.edit_sigma, 'String')) < 0
-            errordlg('Please provide a valid input for ''Sigma''.','Setting Error','modal');
-            return;
-            
-        elseif str2double(get(handles.edit_sigma, 'String')) < 1
-            warndlg('''Sigma'' ought to be larger than 1 in Gaussian filtering','Setting Error','modal');
-            return;
-        end    
-
+    sigma = str2double(get(handles.edit_sigma, 'String'));
+    if isnan(sigma) || sigma < 0
+        errordlg('Please provide a valid input for ''Sigma''.','Setting Error','modal');
+        return;
+        
+    elseif sigma < 1
+        warndlg('''Sigma'' ought to be larger than 1 in Gaussian filtering','Setting Error','modal');
+        return;
+    end
+else
+    sigma=0;
 end
 
-% -------- Process Sanity check --------
-% ( only check underlying data )
+% Save old process settings (for recovery if sanity check fails)
+oldFunParams = userData.crtProc.funParams_;
+oldShadeChannels = userData.crtProc.inFilePaths_(2,:);
 
-channelIndex = get (handles.listbox_2, 'Userdata');
-funParams = userData.crtProc.funParams_;
-
-% Get input index
-tempChannelIndex = funParams.ChannelIndex;
+% Apply new channel index and new shade images for sanity check
 funParams.ChannelIndex = channelIndex; 
-userData.crtProc.setPara(funParams);
+parseProcessParams(userData.crtProc,funParams);
+userData.crtProc.setCorrectionImagePath(channelIndex, shadeChannels);
 
-% Get shade image path
-temp = userData.crtProc.inFilePaths_(2,:);
-userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_3, 'String'));
-
+%  Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
 catch ME
-
     errordlg(ME.message,'Setting Error','modal');
-    if ~isempty(temp)
-        userData.crtProc.setCorrectionImagePath(1:length(temp), temp)
-    end
-    funParams.ChannelIndex = tempChannelIndex; 
-    userData.crtProc.setPara(funParams);
+    if ~isempty(oldShadeChannels)
+        userData.crtProc.setCorrectionImagePath(1:numel(oldShadeChannels), oldShadeChannels)
+    end 
+    userData.crtProc.setPara(oldFunParams);
     return;
 end
 
+% Filter parametersprocessGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
-% -------- Set parameter --------
-
-funParams.ChannelIndex = channelIndex;
-
-% Get dark image path
-%     userData.crtProc.setCorrectionImagePath(channelIndex, get(handles.listbox_3, 'String'));
-
-% Filter parameters
-if get(handles.checkbox_medianfilter, 'Value')
-    funParams.MedianFilter = true;
-else
-    funParams.MedianFilter = false;
-end
-if get(handles.checkbox_gaussianfilter, 'Value')
-    funParams.GaussFilterSigma = str2double(get(handles.edit_sigma, 'String'));
-else
-    funParams.GaussFilterSigma = 0;
-end
+funParams.MedianFilter = get(handles.checkbox_medianfilter, 'Value');
+funParams.GaussFilterSigma = sigma;
 
 % Normalize parameters
 if ~get(handles.checkbox_normal, 'Value')
@@ -305,126 +180,29 @@ else
 end
 
 % Set parameters
-userData.crtProc.setPara(funParams);
+shadeSettingFcn =@(x) setCorrectionImagePath(x,channelIndex,shadeChannels);
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,{shadeSettingFcn});
 
-
-
-% --------------------------------------------------
-
-
-% If this is a brand new process, attach current process to MovieData and 
-% package's process list 
-if isempty( userData.crtPackage.processes_{userData.procID} )
-    
-    % Add new process to both process lists of MovieData and current package
-    userData_main.MD(userData_main.id).addProcess( userData.crtProc );
-    userData.crtPackage.setProcess(userData.procID, userData.crtProc);
-    
-    % Set font weight of process name bold
-    eval([ 'set(userData.handles_main.checkbox_',...
-            num2str(userData.procID),', ''FontWeight'',''bold'')' ]);
-end
-
-% ----------------------Sanity Check (II, III check)----------------------
-
-% Do sanity check - only check changed parameters
-[status procEx] = userData.crtPackage.sanityCheck(false,'all');
-
-% Return user data !!!
-set(userData.mainFig, 'UserData', userData_main)
-
-% Draw some bugs on the wall 
-for i = 1: length(procEx)
-   if ~isempty(procEx{i})
-       % Draw warning label on the i th process
-       userfcn_drawIcon(userData.handles_main,'warn',i,procEx{i}(1).message, true); % user data is retrieved, updated and submitted
-   end
-end
-
-% Refresh user data !!
-userData_main = get(userData.mainFig, 'UserData');
-
-% -------------------- Apply setting to all movies ------------------------
-
-if get(handles.checkbox_applytoall, 'Value')
-
-for x = 1: length(userData_main.MD)
-    
-   if x == userData_main.id
-      continue 
-   end
-   
-   l = length(userData_main.MD(x).channels_);
-   
-   temp = arrayfun(@(x)(x > l),channelIndex, 'UniformOutput', true );
-   
-   % Customize funParams to other movies 
-   % ChannelIndex - all channels
-   % OutputDirectory - pacakge output directory
-   funParams.ChannelIndex = channelIndex(logical(~temp));
-   funParams.OutputDirectory  = [userData_main.package(x).outputDirectory_  filesep 'shade_corrected_images'];
-   
-   % if new process, create a new process with funParas and add to
-   % MovieData and package's process list
-   if isempty(userData_main.package(x).processes_{userData.procID})
-       
-       process = userData.procConstr(userData_main.MD(x), userData_main.package(x).outputDirectory_, funParams);
-       userData_main.MD(x).addProcess( process )
-       userData_main.package(x).setProcess(userData.procID, process )
-       
-   % if process exist, replace the funParams with the new one
-   else
-       userData_main.package(x).processes_{userData.procID}.setPara(funParams)
-   end
-   
-   % Additionally, for dark current process, set correction image path
-   correctionPath = get(handles.listbox_3, 'String');
-   userData_main.package(x).processes_{userData.procID}.setCorrectionImagePath(funParams.ChannelIndex, correctionPath(logical(~temp)));
-   
-    % Do sanity check - only check changed parameters
-    [status procEx] = userData_main.package(x).sanityCheck(false,'all');
-
-    % Draw some bugs on the wall 
-    for i = 1: length(procEx)
-       if ~isempty(procEx{i})
-           % Record the icon and message to user data
-           userData_main.statusM(x).IconType{i} = 'warn';
-           userData_main.statusM(x).Msg{i} = procEx{i}(1).message;
-       end
-    end   
-end
-
-% Save user data
-set(userData.mainFig, 'UserData', userData_main)
-
-end
-% -------------------------------------------------------------------------
-
-
-% Save user data
-set(handles.figure1, 'UserData', userData);
-guidata(hObject,handles);
-delete(handles.figure1);
 
 % --- Executes on button press in pushbutton_deletechannel.
 function pushbutton_deletechannel_Callback(hObject, eventdata, handles)
 % Call back function of 'delete' button
-contents = get(handles.listbox_3,'String');
+contents = get(handles.listbox_shadeChannels,'String');
 % Return if list is empty
 if isempty(contents)
     return;
 end
-num = get(handles.listbox_3,'Value');
+num = get(handles.listbox_shadeChannels,'Value');
 
 % Delete selected item
 contents(num) = [ ];
 
 % Refresh listbox
-set(handles.listbox_3,'String',contents);
+set(handles.listbox_shadeChannels,'String',contents);
 % Point 'Value' to the second last item in the list once the 
 % last item has been deleted
 if (num>length(contents) && num>1)
-    set(handles.listbox_3,'Value',length(contents));
+    set(handles.listbox_shadeChannels,'Value',length(contents));
 end
 
 guidata(hObject, handles);
@@ -434,7 +212,7 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 % Call back of 'add' button
 userData = get(handles.figure1, 'UserData');
 
-set(handles.listbox_3, 'Value',1)
+set(handles.listbox_shadeChannels, 'Value',1)
 
 path = uigetdir(userData.userDir, 'Add Channels ...');
 if path == 0
@@ -442,11 +220,11 @@ if path == 0
 end
 % Input validation function ...
 % Get current list
-contents = get(handles.listbox_3,'String');
+contents = get(handles.listbox_shadeChannels,'String');
 
 % Add current formula to the listbox
 contents{end+1} = path;
-set(handles.listbox_3,'string',contents);
+set(handles.listbox_shadeChannels,'string',contents);
 
 % Set user directory
 sepDir = regexp(path, filesep, 'split');
@@ -459,117 +237,25 @@ userData.userDir = dir;
 set(handles.figure1, 'Userdata', userData)
 guidata(hObject, handles);
 
-% --- Executes on button press in checkbox_all.
-function checkbox_all_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of checkbox_all
-contents1 = get(handles.listbox_1, 'String');
-
-chanIndex1 = get(handles.listbox_1, 'Userdata');
-chanIndex2 = get(handles.listbox_2, 'Userdata');
-
-% Return if listbox1 is empty
-if isempty(contents1)
-    return;
-end
-
-switch get(handles.checkbox_all,'Value')
-    case 1
-        set(handles.listbox_2, 'String', contents1);
-        chanIndex2 = chanIndex1;
-    case 0
-        set(handles.listbox_2, 'String', {}, 'Value',1);
-        chanIndex2 = [ ];
-end
-set(handles.listbox_2, 'UserData', chanIndex2);
-
-
-% --- Executes on button press in pushbutton_select.
-function pushbutton_select_Callback(hObject, eventdata, handles)
-% call back function of 'select' button
-
-contents1 = get(handles.listbox_1, 'String');
-contents2 = get(handles.listbox_2, 'String');
-id = get(handles.listbox_1, 'Value');
-
-% If channel has already been added, return;
-chanIndex1 = get(handles.listbox_1, 'Userdata');
-chanIndex2 = get(handles.listbox_2, 'Userdata');
-
-for i = id
-    if any(strcmp(contents1{i}, contents2) )
-        continue;
-    else
-        contents2{end+1} = contents1{i};
-        
-        chanIndex2 = cat(2, chanIndex2, chanIndex1(i));
-
-    end
-end
-
-set(handles.listbox_2, 'String', contents2, 'Userdata', chanIndex2);
-
-
-
-% --- Executes on button press in pushbutton_delete.
-function pushbutton_delete_Callback(hObject, eventdata, handles)
-% Call back function of 'delete' button
-contents = get(handles.listbox_2,'String');
-id = get(handles.listbox_2,'Value');
-
-% Return if list is empty
-if isempty(contents) || isempty(id)
-    return;
-end
-
-% Delete selected item
-contents(id) = [ ];
-
-% Delete userdata
-chanIndex2 = get(handles.listbox_2, 'Userdata');
-chanIndex2(id) = [ ];
-set(handles.listbox_2, 'Userdata', chanIndex2);
-
-% Point 'Value' to the second last item in the list once the 
-% last item has been deleted
-if (id >length(contents) && id>1)
-    set(handles.listbox_2,'Value',length(contents));
-end
-% Refresh listbox
-set(handles.listbox_2,'String',contents);
-
-
 % --- Executes on button press in checkbox_gaussianfilter.
 function checkbox_gaussianfilter_Callback(hObject, eventdata, handles)
 
-switch get(hObject, 'Value')
-    case 0
-        set(handles.text_filters1, 'Enable', 'off');
-        set(handles.edit_sigma, 'Enable', 'off');
-    case 1
-        set(handles.text_filters1, 'Enable', 'on');
-        set(handles.edit_sigma, 'Enable', 'on');        
-end
-
+if get(hObject, 'Value'), state='on'; else state='off'; end
+set([handles.text_filters1 handles.edit_sigma], 'Enable',state);
 
 % --- Executes on button press in checkbox_normal.
 function checkbox_normal_Callback(hObject, eventdata, handles)
 
-switch get(hObject, 'Value')
-    case 0
-        set(handles.radiobutton_1, 'Enable', 'off');
-        set(handles.radiobutton_2, 'Enable', 'off');
-    case 1
-        set(handles.radiobutton_1, 'Enable', 'on');
-        set(handles.radiobutton_2, 'Enable', 'on');        
-end
-
+if get(hObject, 'Value'), state='on'; else state='off'; end
+set([handles.radiobutton_1 handles.radiobutton_1], 'Enable',state);
+   
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)
 % call back of 'Up' button
 
-id = get(handles.listbox_3,'Value');
-contents = get(handles.listbox_3,'String');
+id = get(handles.listbox_shadeChannels,'Value');
+contents = get(handles.listbox_shadeChannels,'String');
 
 % Return if list is empty
 if isempty(contents) || isempty(id) || id == 1
@@ -580,15 +266,15 @@ temp = contents{id};
 contents{id} = contents{id-1};
 contents{id-1} = temp;
 
-set(handles.listbox_3, 'string', contents);
-set(handles.listbox_3, 'value', id-1);
+set(handles.listbox_shadeChannels, 'string', contents);
+set(handles.listbox_shadeChannels, 'value', id-1);
 
 % --- Executes on button press in pushbutton_down.
 function pushbutton_down_Callback(hObject, eventdata, handles)
 % Call back of 'Down' button
 
-id = get(handles.listbox_3,'Value');
-contents = get(handles.listbox_3,'String');
+id = get(handles.listbox_shadeChannels,'Value');
+contents = get(handles.listbox_shadeChannels,'String');
 
 % Return if list is empty
 if isempty(contents) || isempty(id) || id == length(contents)
@@ -599,8 +285,8 @@ temp = contents{id};
 contents{id} = contents{id+1};
 contents{id+1} = temp;
 
-set(handles.listbox_3, 'string', contents);
-set(handles.listbox_3, 'value', id+1);
+set(handles.listbox_shadeChannels, 'string', contents);
+set(handles.listbox_shadeChannels, 'value', id+1);
 
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
@@ -613,7 +299,7 @@ end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
-function uipanel_4_SelectionChangeFcn(hObject, eventdata)
+function uipanel_normalization_SelectionChangeFcn(hObject, eventdata)
 
 % --- Executes on key press with focus on figure1 and none of its controls.
 function figure1_KeyPressFcn(hObject, eventdata, handles)

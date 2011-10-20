@@ -22,7 +22,7 @@ function varargout = ratioProcessGUI(varargin)
 
 % Edit the above text to modify the response to help ratioProcessGUI
 
-% Last Modified by GUIDE v2.5 19-Oct-2011 15:55:05
+% Last Modified by GUIDE v2.5 20-Oct-2011 14:28:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,115 +46,44 @@ end
 
 % --- Executes just before ratioProcessGUI is made visible.
 function ratioProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% Available tools 
-% UserData data:
-%       userData.mainFig - handle of main figure
-%       userData.handles_main - 'handles' of main figure
-%       userData.procID - The ID of process in the current package
-%       userData.crtProc - handle of current process
-%       userData.crtPackage - handles of current package
-%       userData.procConstr - constructor of current process
-%
-%       userData.questIconData - help icon image information
-%       userData.colormap - color map information
-%
 
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
 userData = get(handles.figure1, 'UserData');
-% Choose default command line output for ratioProcessGUI
-handles.output = hObject;
-
-% Get main figure handle and process id
-t = find(strcmp(varargin,'mainFig'));
-userData.mainFig = varargin{t+1};
-userData.procID = varargin{t+2};
-userData.handles_main = guidata(userData.mainFig);
-
-% Get current package and process
-userData_main = get(userData.mainFig, 'UserData');
-userData.crtPackage = userData_main.crtPackage;
-userData.crtProc = userData.crtPackage.processes_{userData.procID};
-
-% Get current process constructer
-eval ( [ 'userData.procConstr = @', ...
-    userData.crtPackage.getProcessClassNames{userData.procID},';']);
-
-% If process does not exist, create a default one in user data.
-if isempty(userData.crtProc)
-    userData.crtProc = userData.procConstr(userData_main.MD(userData_main.id), ...
-                                userData.crtPackage.outputDirectory_);
-end
-
-% Get icon infomation
-userData.questIconData = userData_main.questIconData;
-userData.colormap = userData_main.colormap;
-
-% -----------------------Channel Setup--------------------------
-
 funParams = userData.crtProc.funParams_;
 
-set(handles.listbox_input, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
-set(handles.listbox_mask, 'String', {userData_main.MD(userData_main.id).channels_.channelPath_},...
-        'Userdata', 1: length(userData_main.MD(userData_main.id).channels_));
-    
+% Channel setup
+set([handles.listbox_input handles.listbox_mask],...
+    'String', userData.MD.getChannelPaths(),...
+    'Userdata', 1: length(userData.MD.channels_));
+
 if ~isempty(funParams.ChannelIndex)
-    
-    set(handles.edit_nu_input, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex(1)).channelPath_}, ...
-        'Userdata',funParams.ChannelIndex(1));    
-    
-    set(handles.edit_de_input, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.ChannelIndex(2)).channelPath_}, ...
-        'Userdata',funParams.ChannelIndex(2));      
+    set(handles.edit_nu_input, 'String',userData.MD.getChannelPaths(funParams.ChannelIndex(1)), ...
+        'Userdata',funParams.ChannelIndex(1));
+      
+    set(handles.edit_de_input, 'String',userData.MD.getChannelPaths(funParams.ChannelIndex(1)), ...
+        'Userdata',funParams.ChannelIndex(2));   
 end
 
 if ~isempty(funParams.MaskChannelIndex)
-    
-    set(handles.edit_nu_mask, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.MaskChannelIndex(1)).channelPath_}, ...
-        'Userdata',funParams.MaskChannelIndex(1));    
-    
-    set(handles.edit_de_mask, 'String', ...
-        {userData_main.MD(userData_main.id).channels_(funParams.MaskChannelIndex(2)).channelPath_}, ...
-        'Userdata',funParams.MaskChannelIndex(2));      
+    set(handles.edit_nu_mask, 'String',userData.MD.getChannelPaths(funParams.MaskChannelIndex(1)), ...
+        'Userdata',funParams.MaskChannelIndex(1));
+   
+    set(handles.edit_de_mask, 'String',userData.MD.getChannelPaths(funParams.MaskChannelIndex(2)), ...
+        'Userdata',funParams.MaskChannelIndex(2));
 end
     
-% ---------------------- Parameter Setup -------------------------
-
+% Parameter Setup
+set(handles.checkbox_mask, 'Value', funParams.ApplyMasks)
 if ~funParams.ApplyMasks
-        set(handles.listbox_mask, 'enable', 'off')
-        set(handles.pushbutton_nu_mask, 'enable', 'off')
-        set(handles.pushbutton_de_mask, 'enable', 'off')
-        set(handles.checkbox_mask, 'Value', 0)
-        set(handles.text_input6, 'enable', 'off')
-        set(handles.edit_de_mask, 'enable', 'off')
-        set(handles.edit_nu_mask, 'enable', 'off')
+    set(get(handles.uipanel_mask,'Children'),'Enable','off');
 end
 
-    
-% ----------------------Set up help icon------------------------
-
-% Set up help icon
-set(hObject,'colormap',userData.colormap);
-% Set up package help. Package icon is tagged as '0'
-axes(handles.axes_help);
-Img = image(userData.questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class',class(userData.crtProc)))
-end
-
-% ----------------------------------------------------------------
+% Choose default command line output for ratioProcessGUI
+handles.output = hObject;
 
 % Update user data and GUI data
-set(userData.mainFig, 'UserData', userData_main);
 set(handles.figure1, 'UserData', userData);
-
 uicontrol(handles.pushbutton_done)
 guidata(hObject, handles);
 
@@ -177,49 +106,56 @@ delete(handles.figure1);
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
+
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-userData_main = get(userData.mainFig, 'UserData');
 
-% -------- Check user input --------
-if isempty(get(handles.edit_nu_input, 'String'))
-   errordlg('Please select a channel as numerator ''Input channel''.','Setting Error','modal') 
+%Check user input
+nuChannelIndex = get(handles.edit_nu_input, 'Userdata');
+deChannelIndex = get(handles.edit_de_input, 'Userdata');
+
+if isempty(nuChannelIndex)
+    errordlg('Please select a channel as numerator ''Input channel''.','Setting Error','modal')
     return;
-else
-    if strcmp(get(handles.edit_nu_input, 'String'), ...
-                            get(handles.edit_de_input, 'String'))
-        errordlg('Numerator and denominator cannot be the same ''Input Channel''.','Setting Error','modal') 
-        return;
-    end
-end
-
-if isempty(get(handles.edit_de_input, 'String'))
-   errordlg('Please select a channel as denominator ''Input Channel''.','Setting Error','modal') 
-    return;
-end
-
-if get(handles.checkbox_mask, 'Value')
-    if isempty(get(handles.edit_nu_mask, 'String'))
-        errordlg('Please select a channel as numerator ''Mask Channel''.','Setting Error','modal') 
-        return;
-    else
-        if strcmp(get(handles.edit_nu_mask, 'String'), ...
-                            get(handles.edit_de_mask, 'String'))
-            errordlg('Numerator and denominator cannot be the same ''Mask Channel''.','Setting Error','modal') 
-            return;
-        end
-    end
-
-    if isempty(get(handles.edit_de_mask, 'String'))
-        errordlg('Please select a channel as denominator ''Mask Channel''.','Setting Error','modal') 
-        return;
-    end
     
 end
 
-% -------- Process Sanity check --------
-% ( only check underlying data )
+if isempty(deChannelIndex)
+    errordlg('Please select a channel as denominator ''Input Channel''.','Setting Error','modal')
+    return;
+end
 
+if nuChannelIndex == deChannelIndex
+    errordlg('Numerator and denominator cannot be the same ''Input Channel''.','Setting Error','modal')
+    return;
+end
+
+funParams.ChannelIndex = [nuChannelIndex deChannelIndex];
+
+
+if get(handles.checkbox_mask, 'Value')
+    nuMaskChannelIndex = get(handles.edit_nu_mask, 'Userdata');
+    deMaskChannelIndex = get(handles.edit_de_mask, 'Userdata');
+
+    if isempty(nuMaskChannelIndex)
+        errordlg('Please select a channel as numerator ''Mask Channel''.','Setting Error','modal') 
+        return;
+    end
+
+    if isempty(deMaskChannelIndex)
+        errordlg('Please select a channel as denominator ''Mask Channel''.','Setting Error','modal')
+        return;
+    end
+    
+    if nuMaskChannelIndex==deMaskChannelIndex
+        errordlg('Numerator and denominator cannot be the same ''Mask Channel''.','Setting Error','modal')
+        return;
+    end
+    
+    funParams.MaskChannelIndex = [nuMaskChannelIndex deMaskChannelIndex];
+end
+
+%  Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
 catch ME
@@ -229,131 +165,10 @@ catch ME
     return;
 end
 
-% -------- Set parameter --------
-channelIndex = [get(handles.edit_nu_input, 'Userdata'), get(handles.edit_de_input, 'Userdata')];
-maskChannelIndex = [ get(handles.edit_nu_mask, 'Userdata'), get(handles.edit_de_mask, 'Userdata')];
-
-funParams = userData.crtProc.funParams_;
-
-funParams.ChannelIndex = channelIndex;
-funParams.MaskChannelIndex = maskChannelIndex;
-
+% Set parameter
 funParams.ApplyMasks = get(handles.checkbox_mask, 'Value');
 
-% Set parameters
-userData.crtProc.setPara(funParams);
-
-% --------------------------------------------------
-
-
-% If this is a brand new process, attach current process to MovieData and 
-% package's process list 
-if isempty( userData.crtPackage.processes_{userData.procID} )
-    
-    % Add new process to both process lists of MovieData and current package
-    userData_main.MD(userData_main.id).addProcess( userData.crtProc );
-    userData.crtPackage.setProcess(userData.procID, userData.crtProc);
-    
-    % Set font weight of process name bold
-    eval([ 'set(userData.handles_main.checkbox_',...
-            num2str(userData.procID),', ''FontWeight'',''bold'')' ]);
-end
-
-% ----------------------Sanity Check (II, III check)----------------------
-
-% Do sanity check - only check changed parameters
-[status procEx] = userData.crtPackage.sanityCheck(false,'all');
-
-% Return user data !!!
-set(userData.mainFig, 'UserData', userData_main)
-
-% Draw some bugs on the wall 
-for i = 1: length(procEx)
-   if ~isempty(procEx{i})
-       % Draw warning label on the i th process
-       userfcn_drawIcon(userData.handles_main,'warn',i,procEx{i}(1).message, true); % user data is retrieved, updated and submitted
-   end
-end
-
-% Refresh user data !!
-userData_main = get(userData.mainFig, 'UserData');
-
-% -------------------- Apply setting to all movies ------------------------
-
-if get(handles.checkbox_applytoall, 'Value')
-errorIndex = [];
-
-for x = 1: length(userData_main.MD)
-    
-   if x == userData_main.id
-      continue 
-   end
-   
-   % Customize funParams to other movies 
-   % ChannelIndex - all channels
-   % bleedChannelIndex - the indexs of bleedthrough channels
-   % bleedCoefficients - the coefficients of bleedthrough channels
-   % OutputDirectory - pacakge output directory
-   l = length(userData_main.MD(x).channels_);
-   
-   % If channel index is larger than the number of channels of current movie, report error 
-   if any( channelIndex > l ) || any( maskChannelIndex > l )
-       errorIndex = cat(2, errorIndex, x);
-       continue
-   else
-       funParams.ChannelIndex = channelIndex;
-   end
-   
-   funParams.OutputDirectory  = [userData_main.package(x).outputDirectory_  filesep 'ratio_images'];
-   
-   % if new process, create a new process with funParas and add to
-   % MovieData and package's process list
-   if isempty(userData_main.package(x).processes_{userData.procID})
-       
-       process = userData.procConstr(userData_main.MD(x), userData_main.package(x).outputDirectory_, funParams);
-       userData_main.MD(x).addProcess( process )
-       userData_main.package(x).setProcess(userData.procID, process )
-       
-   % if process exist, replace the funParams with the new one
-   else
-       userData_main.package(x).processes_{userData.procID}.setPara(funParams)
-   end
-   
-    % Do sanity check - only check changed parameters
-    [status procEx] = userData_main.package(x).sanityCheck(false,'all');
-
-    % Draw some bugs on the wall 
-    for i = 1: length(procEx)
-       if ~isempty(procEx{i})
-           % Record the icon and message to user data
-           userData_main.statusM(x).IconType{i} = 'warn';
-           userData_main.statusM(x).Msg{i} = procEx{i}(1).message;
-       end
-    end   
-end
-
-% Write error report
-if ~isempty( errorIndex )
-    msg = '';
-    for i = errorIndex
-        msg = strcat(msg, sprintf('Movie %d  ', i));
-    end
-    msg = strcat(msg, sprintf('\n\nThe above movie(s) do not have the channel you selected as numerator or denominator. Please set up step 9, the Ratioing in above movie(s) manually.'));
-    titlemsg = 'Fail to be set up Ratioing step of the following movie(s):';
-    userData_main.msgboxGUI = msgboxGUI('title',titlemsg,'text', msg);
-end
-
-% Save user data
-set(userData.mainFig, 'UserData', userData_main)
-
-end
-% -------------------------------------------------------------------------
-
-
-set(handles.figure1, 'UserData', userData);
-guidata(hObject,handles);
-delete(handles.figure1);
-
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 
 % --- Executes on button press in pushbutton_nu_input.
@@ -383,28 +198,9 @@ end
 % --- Executes on button press in checkbox_mask.
 function checkbox_mask_Callback(hObject, eventdata, handles)
 % Call back of 'Use Mask Channels' checkbox
-switch get(hObject, 'Value')
-    
-    case 0
 
-        set(handles.listbox_mask, 'enable', 'off')
-        set(handles.pushbutton_nu_mask, 'enable', 'off')
-        set(handles.pushbutton_de_mask, 'enable', 'off')
-        set(handles.text_input6, 'enable', 'off')
-        set(handles.edit_nu_mask, 'Enable', 'off')
-        set(handles.edit_de_mask, 'Enable', 'off')
-        
-    case 1
-
-        set(handles.listbox_mask, 'enable', 'on')
-        set(handles.pushbutton_nu_mask, 'enable', 'on')
-        set(handles.pushbutton_de_mask, 'enable', 'on')
-        set(handles.text_input6, 'enable', 'on')
-        set(handles.edit_nu_mask, 'Enable', 'inactive')
-        set(handles.edit_de_mask, 'Enable', 'inactive')        
-        
-end
-
+if get(hObject, 'Value'), state= 'on'; else state ='off'; end
+set(get(handles.uipanel_mask,'Children'),'Enable',state);
 
 % --- Executes on button press in pushbutton_de_input.
 function pushbutton_de_input_Callback(hObject, eventdata, handles)
