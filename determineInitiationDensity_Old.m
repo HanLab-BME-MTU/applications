@@ -1,4 +1,4 @@
-function [experiment] = determineInitiationDensity(experiment,rest,plotMask,statusValue)
+function [experiment] = determineInitiationDensity_Old(experiment,rest,plotMask,inputMask,statusValue)
 
 % determineInitiationDensity calculates the density of pits defined by rest
 % and that fall within an inputMask
@@ -80,15 +80,33 @@ end
 if nargin < 3 || isempty(plotMask)
    plotMask = 0;
 end
-if nargin < 4 || isempty(statusValue)
+if nargin < 4 || isempty(inputMask)
+    inputMask = [];
+end
+if nargin < 5 || isempty(statusValue)
     statusValue = 1;
 end
 
 
+
+
+%make image binary
+inputMask = im2bw(inputMask);
+
 for iexp = 1:length(experiment)
 
-    load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat']);
+    load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo.mat']);
 
+    % status matrix
+    statMat = lftInfo.Mat_status;
+    % lifetime matrix
+    lftMat = lftInfo.Mat_lifetime;
+    % x-coordinate matrix
+    matX = lftInfo.Mat_xcoord;
+    % y-coordinate matrix
+    matY = lftInfo.Mat_ycoord;
+    % disapp status matrix
+    daMat = lftInfo.Mat_disapp;
     % framerate
     framerate = experiment(iexp).framerate;
     %movie length
@@ -103,23 +121,26 @@ for iexp = 1:length(experiment)
             status = experiment(iexp).status;
         end
     else
-        status = ones(1,size(tracks));
+        status = ones(1,size(daMat,1));
     end
 
     
     %find all pits in movie that meet requirements specified by restriction
     %vector
-    tracksRestricted = tracks([tracks.valid] == 1 & ...
-            [tracks.lifetime_s] > rest(1,3)*framerate & ...
-            [tracks.lifetime_s] > rest(1,4) & [tracks.lifetime_s] < rest(1,5) & ...
-            status == 1);
+    findPos = find((statMat==rest(1,1))& (daMat==rest(1,2)) &...
+        (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
+        repmat(status',1,size(statMat,2)) == statusValue);
     
+    %get pits inside mask
+    if exist('inputMask','var') && ~isempty(inputMask)
+        findPos = findPos(diag(inputMask(ceil(matY(findPos)),ceil(matX(findPos)))) == 1);
+    end
 
-    [areamask] = makeCellMaskDetections([arrayfun(@(t) t.x(1),tracks)', arrayfun(@(t) t.y(1),tracks)'],closureRadius,dilationRadius,doFill,imSize,plotMask,[]);
+    [areamask] = makeCellMaskDetections([matX(~isnan(matX)),matY(~isnan(matY))],closureRadius,dilationRadius,doFill,imSize,plotMask,[]);
     normArea = bwarea(areamask);
     
-    experiment(iexp).initiationDen = length(tracksRestricted)/normArea/movieLength;
-    experiment(iexp).initiationDenUnits = length(tracksRestricted)/(normArea*0.067^2)/(movieLength*framerate)*60;
+    experiment(iexp).initiationDen = length(findPos)/normArea/movieLength;
+    experiment(iexp).initiationDenUnits = length(findPos)/(normArea*0.067^2)/(movieLength*framerate)*60;
 
 
 end %for each experiment

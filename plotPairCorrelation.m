@@ -122,6 +122,8 @@ for iexp = 1:length(experiment)
         tracks = tracks([tracks.status] == 1 & arrayfun(@(x)all(x.gapStatus~=5),tracks) == 1 &...
             [tracks.lifetime_s] > rest(1,3)*framerate & ...
             [tracks.lifetime_s] > rest(1,4) & [tracks.lifetime_s] < rest(1,5));
+        %THIS DOES NOT FILTER FOR
+        %NUCLEATIONS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         %positions used to calculate pair correlation
         pairPositionsX = arrayfun(@(t) t.x(1),tracks)';
@@ -159,7 +161,7 @@ for iexp = 1:length(experiment)
         %vector
         findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
             (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
-            repmat(status',1,size(statMat,2)) == statusValue);
+            repmat(status,1,size(statMat,2)) == statusValue);
         
         %positions used to calculate pair correlation 
         mpm1 = [full(matX(findPos)) full(matY(findPos))];
