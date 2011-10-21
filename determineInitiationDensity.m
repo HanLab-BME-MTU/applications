@@ -20,8 +20,7 @@ function [experiment] = determineInitiationDensity(experiment,rest,plotMask,stat
 %                       optionally, the length can be extended to nine,
 %                       where the additional entries are
 %                       [... minint maxint minmot maxmot]
-%           inputMask = binary mask; pits that fall within pixels of value
-%                       one will be counted towards density.
+%
 % OUTPUT
 %           experiment.initiationDen in pits/frame/pixel
 %           experiment.initiationDen in pits/second/micrometer^2
