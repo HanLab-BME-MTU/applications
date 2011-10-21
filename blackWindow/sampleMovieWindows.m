@@ -191,7 +191,7 @@ for iFrame = 1:nFrames
         if ~isDouble
             currIm = imread([imDirs{iChan} filesep imNames{iChan}{iFrame}]);                                        
         else
-            currIm = movieData.processes_{p.ProcessIndex}.loadOutImage(p.ChannelIndex(iChan),iFrame);
+            currIm = movieData.processes_{p.ProcessIndex}.loadChannelOutput(p.ChannelIndex(iChan),iFrame);
         end
         
         currSamples = sampleImageWindows(currWin,currIm,currMask);
