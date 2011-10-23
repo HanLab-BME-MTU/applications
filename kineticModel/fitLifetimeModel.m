@@ -9,16 +9,16 @@ opts = optimset('Jacobian', 'off', ...
     'TolX', 1e-8, ...
     'Tolfun', 1e-8);
 
-cf1 = [184 238 255]/255; % blue
-ce1 = [0 186 255]/255;
-
-cf2 = [255 194 213]/255; % red
-ce2 = [223 8 0]/255;
-
-cf3 = [1 1 1]*0.6;
-ce3 = [1 1 1]*0.3;
-
-tfont = {'FontName', 'Helvetica', 'FontSize', 12};
+% cf1 = [184 238 255]/255; % blue
+% ce1 = [0 186 255]/255;
+% 
+% cf2 = [255 194 213]/255; % red
+% ce2 = [223 8 0]/255;
+% 
+% cf3 = [1 1 1]*0.6;
+% ce3 = [1 1 1]*0.3;
+% 
+% tfont = {'FontName', 'Helvetica', 'FontSize', 12};
 sfont = {'FontName', 'Helvetica', 'FontSize', 20};
 lfont = {'FontName', 'Helvetica', 'FontSize', 24};
 
@@ -27,82 +27,51 @@ dt = t(2)-t(1);
 dti = dt/10;
 t_fine = 0:dti:t(end);
 
-BIC = zeros(1,3); % BIC for the three models
 n = numel(lftDist);
 
-%===========================
-% 1-subpopulation model
-%===========================
-% Intializations
-ns = 2;
-S0 = [1 zeros(1,ns-1)];
-k0 = 0.1*rand(1,ns);
-% k0(1) = 1;
-k0 = [0.05];
+res = struct([]);
+for i = 1:4
 
-% Optimization bounds
-lb = zeros(1,ns-1);
-ub = Inf(1,ns-1);
-[k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPop1Model, k0, lb, ub, opts, t, lftDist, S0);
-BIC(1) = n*log(resnorm/n) + numel(k)*log(n);
-J = full(J);
-C = resnorm/(n-numel(k)-1)*inv(J'*J);
-k_std = sqrt(diag(C));
+    % # states
+    ns = i*2;
+    
+    % Intializations & bounds
+    S0 = [1 zeros(1,ns-1)];
+    k0 = 0.05 * ones(1,ns-1);
+    lb = zeros(1,ns-1);
+    ub = Inf(1,ns-1);
+
+    [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(str2func(['@costPop' num2str(i) 'Model']), k0, lb, ub, opts, t, lftDist, S0);
+    
+    % BIC and correlation matrix
+    J = full(J);
+    C = resnorm/(n-numel(k)-1)*inv(J'*J);
+    k_std = sqrt(diag(C));
+    K = corrFromC(C);
+
+    res(i).k = k;
+    res(i).k_std = k_std;
+    res(i).corr = K';
+    res(i).BIC = n*log(resnorm/n) + numel(k)*log(n);
+end
+
+bicV = [res.BIC];
+minIdx = find(bicV==min(bicV), 1, 'first');
+
+
+% plot result of best fit
+plotKineticModelRates(res(minIdx).k, res(minIdx).k_std, res(minIdx).corr);
 
 % compute scaling factor/renormalize (or: normalize input to model??)
-[t_ode, Y] = ode45(@(t,y) pop1Model(t, y, k), [0 t(end)], S0);
-modelPDF = Y(end,2)*Y(:,1);
+hf = str2func(['pop' num2str(minIdx) 'Model']);
+[t_ode, Y] = ode45(@(t,y) hf(t, y, res(minIdx).k), [0 t(end)], S0);
+
+modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
 nf = sum(dt*interp1(t_ode, modelPDF, t));
 
 % interpolate at fine scale for display
 Y = interp1(t_ode, Y, t_fine);
-modelPDF = Y(end,2)*Y(:,1);
-
-figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
-hold on;
-hp(1) = plot(t, lftDist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-hp(2) = plot(t_fine, Y(end,2)*Y(:,1)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-hp(3) = plot(t_fine, modelPDF/nf, 'r--', 'LineWidth', 4);
-
-axis([0 100 0 0.12]);
-set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:});
-xlabel('Lifetime (s)', lfont{:});
-ylabel('Frequency', lfont{:});
-
-hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
-set(hl, 'Box', 'off');
-
-
-%===========================
-% 2-subpopulation model
-%===========================
-% Intializations
-ns = 4;
-S0 = [1 zeros(1,ns-1)];
-k0 = 0.1*rand(1,ns);
-k0(1) = 1;
-k0 = [0.05 0.05 0.05];
-
-% Optimization bounds
-lb = zeros(1,ns-1);
-ub = Inf(1,ns-1);
-[k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPop2Model, k0, lb, ub, opts, t, lftDist, S0);
-BIC(2) = n*log(resnorm/n) + numel(k)*log(n);
-J = full(J);
-C = resnorm/(n-numel(k)-1)*inv(J'*J);
-k_std = sqrt(diag(C));
-K = corrFromC(C);
-plotKineticModelRates(k, k_std, K')
-
-
-% compute scaling factor/renormalize (or: normalize input to model??)
-[t_ode, Y] = ode45(@(t,y) pop2Model(t, y, k), [0 t(end)], S0);
-modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3);
-nf = sum(dt*interp1(t_ode, modelPDF, t));
-
-% interpolate at fine scale for display
-Y = interp1(t_ode, Y, t_fine);
-modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3);
+modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
 
 
 %------------------------------------
@@ -124,132 +93,19 @@ hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
 set(hl, 'Box', 'off');
 
 
-
-
-
-
-%===========================
-% 3-subpopulation model
-%===========================
-% Intializations
-ns = 6;
-S0 = [1 zeros(1,ns-1)];
-k0 = 0.1*rand(1,ns);
-k0(1) = 1;
-k0 = [0.05 0.05 0.05 0.05 0.05];
-
-% Optimization bounds
-lb = zeros(1,ns-1);
-ub = Inf(1,ns-1);
-[k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPop3Model, k0, lb, ub, opts, t, lftDist, S0);
-BIC(3) = n*log(resnorm/n) + numel(k)*log(n);
-J = full(J);
-C = resnorm/(n-numel(k)-1)*inv(J'*J);
-k_std = sqrt(diag(C));
-K = corrFromC(C);
-plotKineticModelRates(k, k_std, K')
-
-
-% compute scaling factor/renormalize (or: normalize input to model??)
-[t_ode, Y] = ode45(@(t,y) pop3Model(t, y, k), [0 t(end)], S0);
-modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3) + Y(end,6)*Y(:,5);
-nf = sum(dt*interp1(t_ode, modelPDF, t));
-
-% interpolate at fine scale for display
-Y = interp1(t_ode, Y, t_fine);
-modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3) + Y(end,6)*Y(:,5);
-
-
-%------------------------------------
-% Display result of best fit
-%------------------------------------
-figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
-hold on;
-hp(1) = plot(t, lftDist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-hp(2) = plot(t_fine, Y(end,2)*Y(:,1)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-        plot(t_fine, Y(end,4)*Y(:,3)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-        plot(t_fine, Y(end,6)*Y(:,5)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-hp(3) = plot(t_fine, modelPDF/nf, 'r--', 'LineWidth', 4);
-
-axis([0 100 0 0.12]);
-set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:});
-xlabel('Lifetime (s)', lfont{:});
-ylabel('Frequency', lfont{:});
-
-hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
-set(hl, 'Box', 'off');
-
-
-
-% %===========================
-% % 4-subpopulation model
-% %===========================
-% % Intializations
-% ns = 8;
-% S0 = [1 zeros(1,ns-1)];
-% k0 = 0.1*rand(1,ns);
-% k0(1) = 1;
-% k0 = [0.05 0.05 0.05 0.05 0.05 0.05 0.05];
-% 
-% % Optimization bounds
-% lb = zeros(1,ns-1);
-% ub = Inf(1,ns-1);
-% [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPop4Model, k0, lb, ub, opts, t, lftDist, S0);
-% BIC(4) = n*log(resnorm/n) + numel(k)*log(n);
-% J = full(J);
-% C = resnorm/(n-numel(k)-1)*inv(J'*J);
-% k_std = sqrt(diag(C));
-% K = corrFromC(C);
-% covarianceColormap(K);
-% 
-% 
-% % compute scaling factor/renormalize (or: normalize input to model??)
-% [t_ode, Y] = ode45(@(t,y) pop4Model(t, y, k), [0 t(end)], S0);
-% modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3) + Y(end,6)*Y(:,5) + Y(end,8)*Y(:,7);
-% 
-% nf = sum(dt*interp1(t_ode, modelPDF, t));
-% 
-% % interpolate at fine scale for display
-% Y = interp1(t_ode, Y, t_fine);
-% modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3) + Y(end,6)*Y(:,5) + Y(end,8)*Y(:,7);
-% 
-% 
-% %------------------------------------
-% % Display result of best fit
-% %------------------------------------
-% figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
-% hold on;
-% hp(1) = plot(t, lftDist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-% hp(2) = plot(t_fine, Y(end,2)*Y(:,1)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-%         plot(t_fine, Y(end,4)*Y(:,3)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-%         plot(t_fine, Y(end,6)*Y(:,5)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-%         plot(t_fine, Y(end,8)*Y(:,7)/nf, 'Color', [0 0.8 0], 'LineWidth', 2);
-% hp(3) = plot(t_fine, modelPDF/nf, 'r--', 'LineWidth', 4);
-% 
-% axis([0 100 0 0.12]);
-% set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:});
-% xlabel('Lifetime (s)', lfont{:});
-% ylabel('Frequency', lfont{:});
-% 
-% hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
-% set(hl, 'Box', 'off');
-
-
-
 %%
 % Plot BIC
 
 figure;
 hold on;
-plot(BIC, 'r.', 'MarkerSize', 20);
-set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:}, 'XLim', [0.5 numel(BIC)+0.5], 'XTick', 1:numel(BIC));
+plot(bicV, 'r.', 'MarkerSize', 20);
+set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:}, 'XLim', [0.5 numel(bicV)+0.5], 'XTick', 1:numel(bicV));
 xlabel('# populations', lfont{:});
 ylabel('BIC', lfont{:});
 
 
 
 
-%%
 
 
 function v = costPop1Model(kVect, t, lftDist, S_init)
@@ -289,7 +145,7 @@ v = modelPDF - lftDist;
 
 
 function v = costPop4Model(kVect, t, lftDist, S_init)
-[ti, Y] = ode45(@(t,y) pop3Model(t, y, kVect), [0 t(end)], S_init);
+[ti, Y] = ode45(@(t,y) pop4Model(t, y, kVect), [0 t(end)], S_init);
 modelPDF = Y(end,2)*Y(:,1) + Y(end,4)*Y(:,3) + Y(end,6)*Y(:,5) + Y(end,8)*Y(:,7);
 
 % interpolate ODE output to input grid
