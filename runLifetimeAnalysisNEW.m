@@ -1,4 +1,4 @@
-function [data, res] = runLifetimeAnalysisNEW(data, varargin)
+function [res] = runLifetimeAnalysisNEW(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -22,12 +22,8 @@ for k = 1:nd
     data(k).lifetimes_s = [data(k).tracks.lifetime_s];
 end
 
-% maxLifetime = max([data.lifetimes]);
-
-
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
-
 
 % generate lifetime histograms
 for k = 1:nd
@@ -47,13 +43,13 @@ for k = 1:nd
     lftHist = lftHist .* N./(N:-1:1);
     lftHist_ms = lftHist_ms .* N./(N:-1:1);
     
-    % Extend
+    % Pad with trailing zeros
     if N<Nmax
         lftHist = [lftHist zeros(1,Nmax-N)];
         lftHist_ms = [lftHist_ms zeros(1,Nmax-N)];
     end
     
-    %cutoff_f = min(data(k).lifetimes_s)/dt;
+    % Exclude short tracks from histogram
     cutoff_f = ip.Results.Cutoff;
     lftHist = lftHist(cutoff_f:end);
     lftHist_ms = lftHist_ms(cutoff_f:end);
@@ -62,9 +58,13 @@ for k = 1:nd
     lftHist = lftHist / sum(dt*lftHist);
     lftHist_ms = lftHist_ms / sum(dt*lftHist_ms);
     
-    data(k).lftHist = lftHist;
-    data(k).lftHist_ms = lftHist_ms;
+    res.lftHist{k} = lftHist;
+    res.lftHist_ms{k} = lftHist_ms;
     
+    % Cumulative histograms
+    [f_ecdf, t_ecdf] = ecdf(data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1));
+    res.t_ecdf{k} = t_ecdf(2:end);
+    res.f_ecdf{k} = f_ecdf(2:end);
     
     % birth/death statistics
     starts = [tracks.start];
@@ -187,20 +187,28 @@ for k = 1:nd
     
 end
 
+
+% cumulative
+t_meanCDF = unique(vertcat(res.t_ecdf{:}));
+
+% interpolate all ECDFs to common timepoints
+res.interpCDF = arrayfun(@(i) interp1(res.t_ecdf{i}, res.f_ecdf{i}, t_meanCDF), 1:nd, 'UniformOutput', false);
+res.meanCDF = mean([res.interpCDF{:}], 2);
+res.t_meanCDF = t_meanCDF;
+
 %-------------------------
 % Mean histogram
 %-------------------------
-M = vertcat(data.lftHist);
+M = vertcat(res.lftHist{:});
 t_hist = (cutoff_f:Nmax)*dt;
 meanHist = mean(M,1);
 histSEM = std(M,[],1) / sqrt(length(data));
 
 res.t = t_hist;
 res.meanHist = meanHist;
-res.meanHist_ms = mean(vertcat(data.lftHist_ms),1);
+res.meanHist_ms = mean(vertcat(res.lftHist_ms{:}),1);
 res.SEM = histSEM;
-res.mean = arrayfun(@(d) sum(d.lftHist.*res.t*d.framerate), data);
-
+res.mean = arrayfun(@(i) sum(res.lftHist{i}.*res.t*data(i).framerate), 1:nd);
 
 
 [~,~,expFit] = fitExp(res.t, res.meanHist, [1/sum(res.meanHist.*res.t*data(1).framerate) max(res.meanHist) 0], 'kA', '-');
