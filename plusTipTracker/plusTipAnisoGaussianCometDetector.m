@@ -173,8 +173,7 @@ movieInfo(nImTot,1) = ...
 count=1;
 progressText(0,'Detecting comets');
 for iFrame = startFrame:endFrame
-    
-    progressText(count/nFrames,'Detecting comets');
+
     fileNameIm = [projData.imDir filesep listOfImages(iFrame).name];
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
     
@@ -216,6 +215,7 @@ for iFrame = startFrame:endFrame
         saveas(saveFig,[overlayDir filesep 'overlay' indxStr1 '.fig']);
         close(saveFig)
     end
+    progressText(count/nFrames,'Detecting comets');
     count=count+1;
 
 end

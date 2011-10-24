@@ -415,8 +415,7 @@ save([featDir filesep 'scales'],'scales');
 count=1;
 progressText(0,'Detecting comets');
 for iFrame = startFrame:endFrame
-    
-    progressText(count/nFrames,'Detecting comets');
+   
     
     if iFrame==startFrame
         tic
@@ -614,7 +613,7 @@ for iFrame = startFrame:endFrame
         else
         end
     end
-    
+    progressText(count/nFrames,'Detecting comets');
     count=count+1;
     
     
