@@ -18,6 +18,7 @@ ip.CaseSensitive = false;
 ip.addRequired('lftData');
 ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
 ip.addParamValue('MaxP', 3, @(x) any(ismember(x, 1:4)));
+ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
 ip.parse(lftData, varargin{:});
 dBIC = 2*log(ip.Results.AlphaBIC/(1-ip.Results.AlphaBIC));
@@ -92,14 +93,10 @@ end
 sortBIC = sort(res.BIC);
 minIdx = find(res.BIC==min(sortBIC(diff(sortBIC) > dBIC)));
 
-
 ns = minIdx*2;
 % Intializations & bounds
 S0 = [1 zeros(1,ns-1)];
 
-
-% plot result of best fit
-% plotKineticModelRates(res(minIdx).k, res(minIdx).k_std, res(minIdx).corr);
 
 % compute scaling factor/renormalize (or: normalize input to model??)
 hf = str2func(['pop' num2str(minIdx) 'Model']);
@@ -141,36 +138,33 @@ ylabel('Frequency', lfont{:});
 % hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
 % set(hl, 'Box', 'off');
 
-% % Insets with population percentiles
-% ha = axes('Units', 'Pixels', 'Position', [85+450+60 155 110 180]);
-% pct = vertcat(res.pPercentiles{:})';
-% M = [pct(3,:); pct(2,:); pct(4,:); pct(1,:); pct(5,:)];
-% xlabels = arrayfun(@(i) ['P' num2str(i)], 1:np, 'UniformOutput', false);
-% boxplot2(M, 'AdjustFigure', false, 'XLabels', cell(1,np));
-% set(ha, tfont{:});
-% ylabel('Lifetime (s)', sfont{:})
-% 
-% ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 65]);
-% barplot2(res.pA', 'AdjustFigure', false, 'XLabels', xlabels, 'EdgeColor', [0 0.7 1], 'Color', [0.7 0.9 1]);
-% set(ha, tfont{:});
-% ylabel('Contrib.', sfont{:})
-
-
 % Insets with population percentiles
 xlabels = arrayfun(@(i) ['P' num2str(i)], 1:np, 'UniformOutput', false);
 
 ha = axes('Units', 'Pixels', 'Position', [85+450+60 270 110 65]);
-barplot2(res.pA', 'AdjustFigure', false, 'XLabels', cell(1,np), 'EdgeColor', [0 0.7 1], 'Color', [0.7 0.9 1]);
-set(ha, tfont{:});
+barplot2(res.pA, 'AdjustFigure', false, 'XLabels', cell(1,np),...
+    'EdgeColor', [0 0.7 1], 'Color', [0.7 0.9 1],...
+    'BarWidth', 0.5, 'GroupDistance', 0.5);
+set(ha, tfont{:}, 'YTick', 0:0.2:0.8, 'YLim', [0 0.8]);
 ylabel('Contrib.', sfont{:})
+pos = get(get(ha, 'YLabel'), 'Position');
+
+dx = pos(1);% = -0.4;
+% set(get(ha, 'YLabel'), 'Position', pos);
+
+
+
 
 ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 180]);
 pct = vertcat(res.pPercentiles{:})';
 M = [pct(3,:); pct(2,:); pct(4,:); pct(1,:); pct(5,:)];
-boxplot2(M, 'AdjustFigure', false, 'XLabels', xlabels);
+boxplot2(M, 'AdjustFigure', false, 'XLabels', xlabels,...
+    'BarWidth', 0.5, 'GroupDistance', 0.5);
 set(ha, tfont{:});
 ylabel('Lifetime (s)', sfont{:})
-
+pos = get(get(ha, 'YLabel'), 'Position');
+pos(1) = dx;
+set(get(ha, 'YLabel'), 'Position', pos);
 
 
 
@@ -216,16 +210,17 @@ ylabel('Lifetime (s)', sfont{:})
 
 
 
-% Plot BIC
-
-% figure;
-% hold on;
-% plot(res.BIC, 'r.', 'MarkerSize', 20);
-% set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:}, 'XLim', [0.5 numel(res.BIC)+0.5], 'XTick', 1:numel(res.BIC));
-% xlabel('# populations', lfont{:});
-% ylabel('BIC', lfont{:});
-
-
+% Plot control metrics: BIC, correlation btw. rates
+if ip.Results.PlotAll
+    figure;
+    hold on;
+    plot(res.BIC, 'r.', 'MarkerSize', 20);
+    set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:}, 'XLim', [0.5 numel(res.BIC)+0.5], 'XTick', 1:numel(res.BIC));
+    xlabel('# populations', lfont{:});
+    ylabel('BIC', lfont{:});
+    
+    plotKineticModelRates(res.k{minIdx}, res.k_std{minIdx}, res.corr{minIdx});
+end
 
 
 

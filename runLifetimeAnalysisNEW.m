@@ -2,7 +2,7 @@ function [res] = runLifetimeAnalysisNEW(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('data', @isstruct);
+ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
@@ -11,6 +11,8 @@ ip.addParamValue('Tracks', []);
 ip.addParamValue('Print', false, @islogical);
 ip.parse(data, varargin{:});
 nd = length(data);
+
+framerate = data(1).framerate;
 
 for k = 1:nd
     if isempty(ip.Results.Tracks)
@@ -27,9 +29,8 @@ Nmax = max([data.movieLength])-2;
 
 % generate lifetime histograms
 for k = 1:nd
-    dt = data(k).framerate;
     N = data(k).movieLength-2;
-    t = (1:N)*dt;
+    t = (1:N)*framerate;
     tracks = data(k).tracks;
     lftHist = hist(data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1), t);
     lftHist_ms = hist(data(k).lifetimes_s([tracks.nSeg]>1 & [tracks.status]==1), t);
@@ -55,13 +56,13 @@ for k = 1:nd
     lftHist_ms = lftHist_ms(cutoff_f:end);
     
     % Normalization
-    lftHist = lftHist / sum(dt*lftHist);
-    lftHist_ms = lftHist_ms / sum(dt*lftHist_ms);
+    lftHist = lftHist / sum(framerate*lftHist);
+    lftHist_ms = lftHist_ms / sum(framerate*lftHist_ms);
     
     res.lftHist{k} = lftHist;
     res.lftHist_ms{k} = lftHist_ms;
     
-    % Cumulative histograms
+    % Empirical cumulative distribution
     [f_ecdf, t_ecdf] = ecdf(data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1));
     res.t_ecdf{k} = t_ecdf(2:end);
     res.f_ecdf{k} = f_ecdf(2:end);
@@ -189,18 +190,18 @@ end
 
 
 % cumulative
-t_meanCDF = unique(vertcat(res.t_ecdf{:}));
+%t_meanCDF = unique(vertcat(res.t_ecdf{:}));
 
 % interpolate all ECDFs to common timepoints
-res.interpCDF = arrayfun(@(i) interp1(res.t_ecdf{i}, res.f_ecdf{i}, t_meanCDF), 1:nd, 'UniformOutput', false);
-res.meanCDF = mean([res.interpCDF{:}], 2);
-res.t_meanCDF = t_meanCDF;
+%res.interpCDF = arrayfun(@(i) interp1(res.t_ecdf{i}, res.f_ecdf{i}, t_meanCDF), 1:nd, 'UniformOutput', false);
+%res.meanCDF = mean([res.interpCDF{:}], 2);
+%res.t_meanCDF = t_meanCDF;
 
 %-------------------------
 % Mean histogram
 %-------------------------
 M = vertcat(res.lftHist{:});
-t_hist = (cutoff_f:Nmax)*dt;
+t_hist = (cutoff_f:Nmax)*framerate;
 meanHist = mean(M,1);
 histSEM = std(M,[],1) / sqrt(length(data));
 
@@ -209,6 +210,12 @@ res.meanHist = meanHist;
 res.meanHist_ms = mean(vertcat(res.lftHist_ms{:}),1);
 res.SEM = histSEM;
 res.mean = arrayfun(@(i) sum(res.lftHist{i}.*res.t*data(i).framerate), 1:nd);
+
+% CDF
+res.meanECDF = cumsum(meanHist)*framerate;
+res.ECDF = cellfun(@(i) cumsum(i)*framerate, res.lftHist, 'UniformOutput', false);
+
+
 
 
 [~,~,expFit] = fitExp(res.t, res.meanHist, [1/sum(res.meanHist.*res.t*data(1).framerate) max(res.meanHist) 0], 'kA', '-');
@@ -272,7 +279,7 @@ res.expFit = expFit;
     
     hold on;
     
-    t = (1:Nmax)*dt;
+    t = (1:Nmax)*framerate;
     
     fill([t_hist t_hist(end:-1:1)], [meanHist-histSEM meanHist(end:-1:1)+histSEM(end:-1:1)],...
         [1 1 1]*0.7, 'EdgeColor', 'none');
