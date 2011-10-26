@@ -122,7 +122,7 @@ fileNameRef = cell(1,nMovies);
 for i = 1:nMovies
     % set search path for parameter/intensity file
     if nargin>2 && ~isempty(ch)
-        sourcePath = data(i).channel{ch};
+        sourcePath = data(i).channels{ch};
     else
         sourcePath = data(i).source;
     end
