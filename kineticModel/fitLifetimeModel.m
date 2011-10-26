@@ -167,49 +167,6 @@ pos(1) = dx;
 set(get(ha, 'YLabel'), 'Position', pos);
 
 
-
-
-%======================================
-
-% test CDF fit
-% figure; plot(t, lftData.meanECDF(1:endIdx), 'k.-');
-% hold on;
-
-% compute ECDF on 't'
-% Y = interp1(t_ode, Y, t);
-% modelCDF = sum(Y(:,2:2:end),2);
-% T = modelCDF(1);
-% modelCDF = (modelCDF-T)/(1-T) * (lftData.meanECDF(endIdx) - lftData.meanECDF(1)) + lftData.meanECDF(1);
-
-% equiv. to CDF:
-% modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
-% mx = cumsum(modelPDF)*dt/nf;
-% plot(t, mx, 'g--');
-
-% plot(t, modelCDF, 'r.--');
-% plot(lftData.t_ecdf{1}, lftData.f_ecdf{1}, 'b--');
-
-% attempt fit
-% k0 = [0.05 0.05 0.05];
-% [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftData.meanECDF(1:endIdx), S0, i);
-
-% [t_ode, Y] = ode45(@(t,y) hf(t, y, k), [0 t(end)], S0);
-% Y = interp1(t_ode, Y, t);
-
-% modelCDF = sum(Y(:,2:2:end),2);
-% T = modelCDF(1);
-% modelCDF = (modelCDF-T)/(1-T) * (lftData.meanECDF(endIdx) - lftData.meanECDF(1)) + lftData.meanECDF(1);
-% plot(t, modelCDF, 'm');
-
-% modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
-% 
-% p1 = Y(end,2)*Y(:,1)/sum(modelPDF*dt);
-% p2 = Y(end,4)*Y(:,3)/sum(modelPDF*dt);
-% 
-% modelPDF = modelPDF/sum(modelPDF*dt);
-
-
-
 % Plot control metrics: BIC, correlation btw. rates
 if ip.Results.PlotAll
     figure;
@@ -221,6 +178,7 @@ if ip.Results.PlotAll
     
     plotKineticModelRates(res.k{minIdx}, res.k_std{minIdx}, res.corr{minIdx});
 end
+
 
 
 
@@ -238,8 +196,6 @@ modelPDF = modelPDF/sum(dt*modelPDF);
 v = modelPDF - lftHist;
 
 
-
-
 function v = costCDF(kVect, t, lftECDF, S0, M)
 hf = str2func(['pop' num2str(M) 'Model']);
 [t_ode, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
@@ -250,15 +206,9 @@ modelCDF = interp1(t_ode, modelCDF, t);
 
 % normalize to [0..1]
 T = modelCDF(1);
-
-% modelCDF = (modelCDF - modelCDF(1)) / (modelCDF(end)-modelCDF(1));
 modelCDF = (modelCDF-T)/(1-T) * (lftECDF(end) - lftECDF(1)) + lftECDF(1);
 
 v = modelCDF - lftECDF;
-
-
-
-
 
 
 
