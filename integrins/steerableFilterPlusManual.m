@@ -1,19 +1,55 @@
-function mask = steerableFilterPlusManual(image)
+function [mask,filterSigma,closureRadius] = steerableFilterPlusManual(image)
+%STEERABLEFILTERPLUSMANUAL is an interactive tool that allows the user to find cell edges based on intensity gradients
+%
+%SYNOPSIS [mask,filterSigma,closureRadius] = steerableFilterPlusManual(image)
+%
+%INPUT  image        : Cell image to be segmented.
+%
+%OUTPUT mask         : Mask (1 inside cell, 0 outside).
+%       filterSigma  : Gaussian standard deviation used in line filter.
+%       closureRadius: Radius used to close gaps in edge.
+%
+%Khuloud Jaqaman, October 2011
 
 %% Output
 
 mask = [];
 
-%% Steerable filter to enhance edges
+%% Input
 
-%get image size
+%get image size and normalize it for later display
+image = double(image);
 [imSizeX] = size(image,1);
 imageNorm = (image-min(image(:))) / (max(image(:))-min(image(:)));
 
-%use steerable filter to get potential edges
-image = double(image);
-[~,~,nms] = steerableDetector(image, 3, 1.5);
+%% Steerable filter to enhance edges
 
+userEntry = 'y';
+while strcmp(userEntry,'y')
+    
+    %get filter sigma from user
+    userEntry = input('Filter sigma: ','s');
+    filterSigma = str2double(userEntry);
+    
+    %use steerable filter to get potential edges
+    [~,~,nms] = steerableDetector(image, 3, filterSigma);
+    
+    %make composite image for display
+    nmsNorm = (nms-min(nms(:))) / (max(nms(:))-min(nms(:)));
+    imageComp(:,:,2) = nmsNorm;
+    imageComp(:,:,1) = 0;
+    imageComp(:,:,3) = imageNorm;
+    
+    %display composite image
+    h = figure;
+    imshow(imageComp,[]);
+    
+    %ask user if they want to use a different sigma
+    userEntry = input('Choose a different filter sigma? y/n ','s');
+    close(h);
+    
+end
+    
 %% Seeds
 
 %display image
@@ -23,13 +59,14 @@ imshow(image,[]);
 userEntry = 'y';
 xEdge = [];
 yEdge = [];
+edgeMask1 = zeros(size(image));
 while strcmp(userEntry,'y')
     
     %close figure
     close(h);
     
     %call subfunction that gets edges from manual seeds and NMS image
-    [x0,y0] = edgesFromManualSeeds(image,nms);
+    [x0,y0] = edgesFromManualSeeds(imageNorm,nms,edgeMask1);
     
     %add coordinates to existing coordinates and retain only unique elements
     xEdge = [xEdge; x0];
@@ -50,14 +87,13 @@ while strcmp(userEntry,'y')
     edgeMask1(linIndx) = 1;
     
     %display edge mask
-    imageComp1(:,:,1) = edgeMask1;
-    imageComp1(:,:,2) = edgeMask1;
-    imageComp1(:,:,3) = imageNorm;
+    imageComp(:,:,1) = edgeMask1;
+    imageComp(:,:,2) = 0;
     h = figure;
-    imshow(imageComp1,[]);
+    imshow(imageComp,[]);
     
     %ask user if they want to select more seeds
-    userEntry = input('Choose more seeds? y/n ','s');
+    userEntry = input('Select more edge points? y/n ','s');
     
 end
 
@@ -66,22 +102,22 @@ end
 userEntry = 'y';
 while strcmp(userEntry,'y')
     
-    %ask user for dilation radius
-    userEntry = input('Choose square edge size to close all gaps in edge. ','s');
-    dilationRadius = str2double(userEntry);
-    SE = strel('square',dilationRadius);
+    %ask user for closure radius
+    userEntry = input('Closure radius to close gaps in edge: ','s');
+    closureRadius = str2double(userEntry);
+    SE = strel('disk',closureRadius);
     edgeMask2 = imclose(edgeMask1,SE);
+    edgeMask2 = bwmorph(edgeMask2,'bridge');
     
     %display edge mask
     close(h);
     h = figure;
-    imageComp2(:,:,1) = edgeMask2;
-    imageComp2(:,:,2) = edgeMask2;
-    imageComp2(:,:,3) = imageNorm;
-    imshow(imageComp2,[]);
+    imageComp(:,:,1) = edgeMask2;
+    imageComp(:,:,2) = 0;
+    imshow(imageComp,[]);
     
     %ask user if they want a different dilation radius
-    userEntry = input('Choose a different square edge size? y/n ','s');
+    userEntry = input('Choose another closure radius? y/n ','s');
     
 end
 close(h);
@@ -95,26 +131,31 @@ mask = imfill(mask,'holes');
 %then ask user to specify points in cell interior for floodfill
 figure
 imshow(mask);
-disp('Please click on points in cell interior to fill')
-[yIn,xIn] = getpts;
-mask = imfill(mask,[xIn yIn]);
+disp('Click on points in cell interior to fill the whole cell.')
 close(h);
+[yIn,xIn] = getpts;
+mask = imfill(mask,round([xIn yIn]));
+
+%some final polishing of final mask ...
+mask = imfill(mask,'holes');
+SE = strel('disk',5);
+mask = imerode(mask,SE);
+mask = imdilate(mask,SE);
 
 %show final mask
 SE = strel('square',3);
 maskEdge = mask - imerode(mask,SE);
-imageComp3(:,:,1) = double(maskEdge);
-imageComp3(:,:,2) = double(maskEdge);
-imageComp3(:,:,3) = imageNorm;
+imageComp(:,:,1) = double(maskEdge);
+imageComp(:,:,2) = 0;
 figure
-imshow(imageComp3,[]);
+imshow(imageComp,[]);
 
 %% ~~~ the end ~~~
 
 
 %% Sub-function
 
-function [x0,y0,errFlag] = edgesFromManualSeeds(image,nms)
+function [x0,y0,errFlag] = edgesFromManualSeeds(image,nms,edgeMask1)
 
 errFlag = 0;
 
@@ -123,28 +164,21 @@ errFlag = 0;
 
 %make composite image for display
 nmsNorm = (nms-min(nms(:))) / (max(nms(:))-min(nms(:)));
-imageNorm = (image-min(image(:))) / (max(image(:))-min(image(:)));
-imageComp(:,:,1) = nmsNorm;
+nmsNorm(find(edgeMask1==1)) = 0; %#ok<FNDSB>
+imageComp(:,:,1) = edgeMask1;
 imageComp(:,:,2) = nmsNorm;
-imageComp(:,:,3) = imageNorm;
+imageComp(:,:,3) = image;
 
 %allow user to click on image to indicate edges of interest
 h = figure;
 imshow(imageComp,[]);
-userEntry = input('select points? y/n ','s');
-x = [];
-y = [];
-while strcmp(userEntry,'y')
-    [yT,xT] = getpts;
-    x = [x; xT];
-    y = [y; yT];
-    userEntry = input('select points again? y/n ','s');
-end
+disp('Select edge points.')
+[yT,xT] = getpts;
 close(h);
 
 %starting seed
-x0 = round(x);
-y0 = round(y);
+x0 = round(xT);
+y0 = round(yT);
 
 %keep only points where nms is not zero
 linIndx = (y0-1)*imSizeX + x0;
