@@ -19,7 +19,11 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %% OPTION TO TURN ON MICROPATTERN
 micropattern = 0;  % if set to 1 call micropattern function and ignore rest
 %selectType = 'cellPeriphSingle';
-useSegMask = 0; 
+useSegMask = 0; % option to use a previously defined segmented Mask 
+% could change to make it read in the the name of the mask
+subRoiFilename = 'subRois';
+
+
 %%
 if micropattern == 1
    plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude);
@@ -31,7 +35,13 @@ warningState = warning;
 warning('off','Images:initSize:adjustingMag')
 warning('off','MATLAB:divideByZero')
 
-fileExt='.tif';
+
+
+if ispc
+    fileExt='.emf';
+else
+    fileExt='.tif';
+end
 
 if nargin<1 || isempty(projList)
     projList=combineProjListFiles(0);
@@ -107,8 +117,14 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
 %% Body
-
+collectPlots = 1; 
 nProj=length(projList);
+if collectPlots == 1
+up1 = getFileNameBody(projList(1,1).anDir);
+collectedDataPath = getFileNameBody(up1); 
+mkdir([collectedDataPath filesep 'collectedSubRoiPlots'])
+end 
+
 for iProj=1:nProj
 
     anDir=projList(iProj,1).anDir;
@@ -121,7 +137,7 @@ for iProj=1:nProj
     end
 
     
-    subanDir=[anDir filesep 'subROIs'];
+    subanDir=[anDir filesep subRoiFilename];
     if isdir(subanDir)  
         rmdir(subanDir,'s');  
         
@@ -547,11 +563,15 @@ for iProj=1:nProj
     getProj(pwd);
 end
 
+
+    
+    
 % look for repeats and only extract from unique sub-rois
 subDirList=projList2Cell(projList);
 projCell=unique(subDirList(:,1));
 nProj=length(projCell);
 progressText(0,'Extracting tracks from Sub-ROIs');
+
 for iProj=1:nProj
     % create new projData from original data and save it in new meta folder
     currentRoiAnDir=projCell{iProj,1};
