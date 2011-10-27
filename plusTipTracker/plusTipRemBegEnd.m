@@ -1,11 +1,15 @@
-function [ dataMatCrpSecMic,projData] = plusTipRemBegEnd(dataBeforeCrop, projData)
+function [ dataMatCrpSecMic,projData] = plusTipRemBegEnd(dataBeforeCrop, projData,comp)
 %Decided it would be useful to separate this bit of code from the
 %reclassification scheme so can call for subregional analysis where this 
 % has already been performed- might decide to change later(MB)
+
 %% Remove Growths Initiated in First Frame or Ending in Last Frame From Stats
 % do this so one does not bias growth lifetime/displacement data (might not
 % be what we want for 
 
+if nargin < 3 || isempty(comp) 
+comp = 0; 
+end 
 dataMat = dataBeforeCrop; 
 
 subIdx2rem=[];
@@ -29,6 +33,8 @@ for iTr=1:length(fullIdx2rem)
     end
 end
 
+ 
+
 % get index of growth and preceeding fgap or bgap
 % (if it exists) that end in the last frame
 
@@ -42,8 +48,30 @@ for iTr=1:length(fullIdx2rem)
         subIdx2rem=[subIdx2rem; subIdx(end)];
     end
 end
+
+if comp == 0 
+    
+% calculate percentages removed  for output (if not a comp/single mat)
+lostDataMat = dataMat(subIdx2rem,:); 
+numLostGrowth = length(find(lostDataMat(:,5)==1)); 
+numLostFgap = length(find(lostDataMat(:,5) == 2)); 
+numLostBgap = length(find(lostDataMat(:,5) == 3)); 
+
+totGrowth = length(find(dataMat(:,5)==1)); 
+totBgap = length(find(dataMat(:,5)==3)); 
+totFgap = length(find(dataMat(:,5) ==2)); 
+
+projData.percentGrowthAtStartOrEnd = 100*(numLostGrowth/totGrowth); 
+projData.percentBgapFlankingBegAndEnd = 100*(numLostBgap/totBgap);
+projData.percentFgapFlankingBegAndEnd = 100*(numLostFgap/totFgap);
+
+end 
+
 % remove both classes for statistics
 dataMat(subIdx2rem,:)=[];
+
+ 
+
 dataMatCrpSecMic=dataMat; % NOTE: Kathyrn makes these all absolute values 
 % I think for stats it is better to keep sign (MB) 
 
