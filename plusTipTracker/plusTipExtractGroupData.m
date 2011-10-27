@@ -60,19 +60,23 @@ for iGroup = 1:length(btwGrpNames)
         s = load([projGroupDir{iProj} filesep 'feat' filesep 'movieInfo']);
         D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),s.movieInfo);
         
-        % Read post-tracking info
+        % Read post-tracking info 
         s = load([projGroupDir{iProj} filesep 'meta' filesep 'projData']);
+        
+        %
+        dataMat = s.projData.mergedDataMatAllSubTracksConverted;
         if remBegEnd==1
+            dataMat = plusTipRemBegEnd(dataMat,s.projData); 
             % this output has data at beginning/end removed and units
             
             % already converted
-            [~,~,dataMat]=plusTipMergeSubtracks(s.projData);
-        else
+            %[~,~,dataMat]=plusTipMergeSubtracks(s.projData);
+        %else 
             % this output just gives merged tracks without converting units
             % or removing beginning/end data
-            dataMat=plusTipMergeSubtracks(s.projData);
-            dataMat(:,6)=dataMat(:,6).* s.projData.secPerFrame; % convert lifetimes to seconds
-            dataMat(:,7)=dataMat(:,7).*(s.projData.pixSizeNm/1000); % convert displacements to microns
+            %dataMat=plusTipMergeSubtracks(s.projData);
+            %dataMat(:,6)=dataMat(:,6).* s.projData.secPerFrame; % convert lifetimes to seconds
+            %dataMat(:,7)=dataMat(:,7).*(s.projData.pixSizeNm/1000); % convert displacements to microns
         end
         
         % reassign the track numbers so when combined from multiple projects they don't repeat
