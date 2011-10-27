@@ -19,6 +19,7 @@ ip.addRequired('lftData');
 ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
 ip.addParamValue('MaxP', 3, @(x) any(ismember(x, 1:4)));
 ip.addParamValue('PlotAll', false, @islogical);
+ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
 ip.parse(lftData, varargin{:});
 dBIC = 2*log(ip.Results.AlphaBIC/(1-ip.Results.AlphaBIC));
@@ -90,8 +91,12 @@ end
 
 % Only differences in BIC with probability ? alpha (0.95 default)
 % are considered significant
-sortBIC = sort(res.BIC);
-minIdx = find(res.BIC==min(sortBIC(diff(sortBIC) > dBIC)));
+if ip.Results.ConstrainBIC
+    sortBIC = sort(res.BIC);
+    minIdx = find(res.BIC==min(sortBIC(diff(sortBIC) > dBIC)));
+else
+    minIdx = find(BIC==min(BIC));
+end
 
 ns = minIdx*2;
 % Intializations & bounds
