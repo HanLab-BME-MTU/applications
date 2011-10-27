@@ -32,7 +32,12 @@ angles=angles(~isnan(angles));
 
 saveFig =figure;
 rose(angles);
+[tout, rout] = rose(angles); 
 print(saveFig,'-dtiff',[saveDir filesep 'angles_histogram.tif'])
+close(saveFig)
+saveFig = figure;
+polar(tout,rout./max(rout)); 
+print(saveFig,'-dtiff',[saveDir filesep 'angles_historgramNormalized.tif']); 
 close(saveFig)
 
 end
@@ -40,5 +45,5 @@ end
 function angles = getAngles(track)
 x=track.tracksCoordAmpCG(1:8:end);
 y=track.tracksCoordAmpCG(2:8:end);
-angles=atan2(y(2:end)-y(1:end-1),x(2:end)-x(1:end-1));
+angles=atan2(-(y(2:end)-y(1:end-1)),x(2:end)-x(1:end-1));
 end
