@@ -1,12 +1,24 @@
 %res = fitLifetimeModel(lftData, varargin)
 %
 % Inputs:
-%      lftData : structure returned by 'runLifetimeAnalysis'
+%         lftData : structure returned by 'runLifetimeAnalysis'
 %
 % Options: 
-%       'Mode' : 'PDF | {'CDF'} fit to the histogram or empirical distribution
-%   'AlphaBIC' : Threshold for BIC selection; default: 0.95
-%       'MaxP' : Maximum number of populations to fit. Default: 3
+%          'Mode' : 'PDF | {'CDF'} fit to the histogram or empirical distribution
+%          'NumP' : Number of populations to test/fit. Default: 1:3
+%  'ConstrainBIC' : Smallest BIC with probability > AlphaBIC than next candidate is chosen 
+%      'AlphaBIC' : Threshold for BIC selection; default: 0.95
+%       'PlotAll' : Display BIC curve and rate plot
+%
+% Output:
+%             res : output structure with fields:
+%                .k            : vector of rates from the model
+%                .k_std        : standard deviation (error propagated) of the rates
+%                .corr         : correlation matrix for the rates
+%                .BIC          : BIC for the populations tested
+%                .pPercentiles : percentiles of each subpopulations in the optimal model
+%                .pA           : constributions of each subpopulation in the optimal model
+%                .pMean        : means of each subpopulation in the optimal model
 
 % Francois Aguet (last modified 10/25/2011)
 
@@ -17,7 +29,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
 ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
-ip.addParamValue('MaxP', 3, @(x) any(ismember(x, 1:4)));
+ip.addParamValue('NumP', 1:3, @(x) all(ismember(x, 1:4)));
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
@@ -58,8 +70,7 @@ dti = dt/10;
 t_fine = 0:dti:t(end);
 n = numel(lftHist);
 
-
-for i = 1:ip.Results.MaxP
+for i = ip.Results.NumP
 
     % # states
     ns = i*2;
@@ -88,14 +99,13 @@ for i = 1:ip.Results.MaxP
     res.BIC(i) = n*log(resnorm/n) + numel(k)*log(n);
 end
 
-
 % Only differences in BIC with probability ? alpha (0.95 default)
 % are considered significant
-if ip.Results.ConstrainBIC
+if ip.Results.ConstrainBIC && numel(res.BIC)>1
     sortBIC = sort(res.BIC);
     minIdx = find(res.BIC==min(sortBIC(diff(sortBIC) > dBIC)));
 else
-    minIdx = find(BIC==min(BIC));
+    minIdx = find(res.BIC==min(res.BIC));
 end
 
 ns = minIdx*2;
@@ -117,8 +127,12 @@ popMat = bsxfun(@times, Y_fine(end,2:2:end), Y_fine(:,1:2:end)) / nf;
 modelPDF = sum(popMat, 2);
 np = size(popMat,2);
 
+% Compute population percentiles, mean, and contribution
 pECDF = arrayfun(@(i) Y_fine(:,i)/Y_fine(end,i), 2:2:ns, 'UniformOutput', false);
-res.pPercentiles = arrayfun(@(i) interp1(pECDF{i}, t_fine, [0.05 0.25 0.5 0.75 0.95]), 1:np, 'UniformOutput', false);
+for p = 1:np
+    [u, uidx] = unique(pECDF{p});
+    res.pPercentiles{p} = interp1(u, t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
+end
 res.pA = Y_fine(end,2:2:end);
 res.pMean = arrayfun(@(i) sum(t_fine.*popMat(:,i)'*dti) / sum(popMat(:,i)*dti), 1:np);
 
@@ -153,12 +167,7 @@ barplot2(res.pA, 'AdjustFigure', false, 'XLabels', cell(1,np),...
 set(ha, tfont{:}, 'YTick', 0:0.2:0.8, 'YLim', [0 0.8]);
 ylabel('Contrib.', sfont{:})
 pos = get(get(ha, 'YLabel'), 'Position');
-
-dx = pos(1);% = -0.4;
-% set(get(ha, 'YLabel'), 'Position', pos);
-
-
-
+dx = pos(1);
 
 ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 180]);
 pct = vertcat(res.pPercentiles{:})';
