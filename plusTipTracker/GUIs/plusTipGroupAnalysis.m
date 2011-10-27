@@ -91,8 +91,6 @@ set(handles.xaxisScatterDrop,'String',scatterString','UserData',scatterData,'Val
 set(handles.yaxisScatterDrop,'String',scatterString','UserData',scatterData,'Value',2);
 set([handles.xParamDrop handles.yParamDrop],'String',{'Value','Percentile'},'Value',1);
 
-
-
 set(handles.figure1,'UserData',userData);
 
 %place image onto the axes, remove tick marks
@@ -223,12 +221,6 @@ end
 
 set(handles.figure1,'UserData',userData);
 
-% --- Executes on button press in checkbox_doPlot.
-function checkbox_doPlot_Callback(hObject, eventdata, handles)
-
-if get(hObject,'Value'); enable='on'; else enable='off'; end
-set(get(handles.uipanel_histogram,'Children'),'Enable',enable);
-
 
 % --- Executes on button press in pushbutton_analyzeGroups.
 function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
@@ -247,7 +239,7 @@ testValues = get(handles.popupmenu_testID1,'UserData');
 testID1=testValues(get(handles.popupmenu_testID1,'Value'));
 testID2=testValues(get(handles.popupmenu_testID2,'Value'));
 
-doPlot=get(handles.checkbox_doPlot,'Value');
+doPlot=1;
 if get(handles.radiobutton_poolData,'Value')
     doWtn=get(handles.checkbox_doWtn,'Value');
     plusTipPoolGroupData(userData.groupData,...
