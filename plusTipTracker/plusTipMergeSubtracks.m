@@ -1,9 +1,7 @@
 function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,dataMat)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
-% NOTE: THIS IS A WORKING COPY: where I am attempting to fix problems with 
-% the reclassification scheme: therefore there might and likely is bugs
-% talk to me if you intend to use MB 03/27/11
+%
 % 
 % SYNOPSIS  : [dataMatMerge,dataMatReclass,dataMatCrpSecMic, projData]=...
 %                   plusTipMergeSubtracks(projData,dataMat)
@@ -51,11 +49,11 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSub
 
 %% Specify Reclassification Schemes (eventually put into input of function)
 % could make this a switch instead of binary and if statements
-
+mergeTracks = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % OPTIONS FOR FGAP --> UNDETECTED GROWTH RECLASSIFICATION
 
-localFramesBeforeGap = 0; 
+localFramesBeforeGap = 1; 
 % Kathyryn's original scheme: Compares gap 
 % velocity to the velocity of the last 2-3 frames of the growth just before
 % Problem with this scheme is that 
@@ -80,12 +78,14 @@ unimodalReclassSingleProj = 0;  % if 1, perform unimodalReclassification
 % of fgaps per Project
 
 
-unimodalReclassPool = 1; % if 1, skip reclassification step entirely until 
+unimodalReclassPool = 0; % if 1, skip reclassification step entirely until 
 % have proceeded with the tracking of all projects. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % OPTIONS FOR BGAP-->PAUSE RECLASSIFICATION
+
+bgap95thPercFGapSpeeds = 1; % old reclassification scheme
 
 bgapUniModeThreshCorrect = 0; % if 1 will correct for comet latency 
 % typically more shrinkage events are maintained 
@@ -97,7 +97,6 @@ bgapFluctRadius = 0; % base the bgap based on the fluct radius (get from
 % estimate of fgap displacement) used 2um(could use max value from pause
 % data)
 
-bgap95thPercFGapSpeeds = 0; % old reclassification scheme
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    
