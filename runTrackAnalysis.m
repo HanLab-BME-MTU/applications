@@ -512,7 +512,7 @@ for ki = 1:length(trackIdx)
         msdVect{s} = zeros(1,L);
         msdStdVect{s} = zeros(1,L);
         for l = 1:L
-            tmp = sqrt((x(1+l:end)-x(1:end-l)).^2 + (y(1+l:end)-y(1:end-l)).^2);
+            tmp = (x(1+l:end)-x(1:end-l)).^2 + (y(1+l:end)-y(1:end-l)).^2;
             msdVect{s}(l) = mean(tmp);
             msdStdVect{s}(l) = std(tmp);
         end
