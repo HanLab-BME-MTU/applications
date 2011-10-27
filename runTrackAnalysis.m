@@ -508,10 +508,10 @@ for ki = 1:length(trackIdx)
         y = tracks(k).y{s}(mCh,:);
         tracks(k).totalDisplacement{s} = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);        
         % MSD
-        L = min(5, numel(x));
-        msdVect{s} = zeros(1,L);
-        msdStdVect{s} = zeros(1,L);
-        for l = 1:L
+        L = 10;
+        msdVect{s} = NaN(1,L);
+        msdStdVect{s} = NaN(1,L);
+        for l = 1:min(L, numel(x)-1)
             tmp = (x(1+l:end)-x(1:end-l)).^2 + (y(1+l:end)-y(1:end-l)).^2;
             msdVect{s}(l) = mean(tmp);
             msdStdVect{s}(l) = std(tmp);
