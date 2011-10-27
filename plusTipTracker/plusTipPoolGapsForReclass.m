@@ -1,10 +1,10 @@
-function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram, useFirstInList )
+function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram, useFirstInList,mkHist )
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 %% 
 
-
-
+% flag to remove beginning and end tracks for analyis 
+remBegEnd = 1; 
 
 %% Choices for Input
 bgapUniModeThreshNoCorrect = 0;
@@ -15,10 +15,7 @@ bgapReclassFluctRadius = 0;
 
 onlyFgap2GrowthReclass = 1;
 
-
 %%
-
-    
 projGroupName=groupList(:,1);
 projGroupDir= groupList(:,2);
 
@@ -39,10 +36,6 @@ for iGroup = 1:length(btwGrpNames)
 end 
 
 
-
-
-  
-
 for iGroup = 1:length(btwGrpNames)
     
  
@@ -54,8 +47,8 @@ if (iGroup > 1 && useFirstInList == 1); % do nothing already calculated cut-offs
 else % recalculate cut-off based on each group
     
 for iProj = 1:length(tempIdx)
-    
-    temp = load([projGroupDir{tempIdx(iProj)} filesep meta2Use filesep 'projData']); 
+    dirToload = formatPath([projGroupDir{tempIdx(iProj)} filesep meta2Use ]);
+    temp = load([dirToload filesep 'projData.mat']); 
 
 
     projData = temp.projData;
@@ -95,8 +88,10 @@ fgapSpeeds = dataMatPooled(fgapIdx,4);
     fgapReclassScheme = 'Unimodal Thresholding: Pooled Data';
     
     if makeHistogram == 1
+        
        [pathup1 dummy1 dummy2 dummy3] =  getFilenameBody(projGroupDir{tempIdx(iProj)});
        [pathup2 name dummy2 dummy3] = getFilenameBody(pathup1);
+       pathup2 = formatPath(pathup2); 
        
        uniModalFigureDir = [pathup2 filesep 'PoolUnimodalThreshFigures'];  
        
@@ -151,8 +146,8 @@ end % if
 
 
 for iProj = 1:length(tempIdx)
-    
-    temp = load([projGroupDir{tempIdx(iProj)} filesep meta2Use filesep 'projData']); 
+     dir2Load = formatPath([projGroupDir{tempIdx(iProj)} filesep meta2Use]);
+    temp = load([dir2Load filesep 'projData']); 
     projData = temp.projData;
     dataMat =  projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
     
@@ -182,8 +177,10 @@ end
 
 %% SAVE INFO REGARDING THE RECLASS SCHEME EMPLOYED %%
  if useFirstInList == 1
-     projData.fgapReclassScheme = [fgapReclassScheme, ': Use ', btwGrpNames(1), ' To Set Thresh '];
-     projData.bgapReclassScheme = [bgapReclassScheme, ': Use ' btwGrpNames(1), ' To Set Thresh '];
+ 
+     projData.fgapReclassScheme = [fgapReclassScheme ': Use ' char(btwGrpNames(1)) ' To Set Thresh '];
+     
+     projData.bgapReclassScheme = [bgapReclassScheme ': Use ' char(btwGrpNames(1)) ' To Set Thresh '];
  
  else 
     projData.fgapReclassScheme = fgapReclassScheme;
@@ -260,52 +257,93 @@ dataMat(rows2remove,:)=[];
 % reclassified pauses have been merged with preceding growth 
 % subtrack
 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Add 2 more columns corresponding to extrac subTrack information
+% Though obvious here when partition these subtracks based on 
+% regional criteria it can become ambigious. 
+% Therefore it is useful to mark these here while the dataStruct for the 
+% whole cell compound tracks are in tact.
+% Column 8: Nuc Event 1= yes 0 = no
+% Column 9: Growth Before Term Event = 1, Growth Before Fgap = 2, 
+% Growth before Bgap = 3, Growth before undefined gap = 4
+
+[ dummy nucEventsIdx] =  unique(dataMat(:,1),'first');
+[ dummy termEventsIdx dummy] = unique(dataMat(:,1),'last'); 
+
+dataMat(nucEventsIdx,8) = 1; 
+allIdx = 1:length(dataMat(:,1)); 
+nonNucIdx = setDiff(allIdx,nucEventsIdx); 
+
+dataMat(nonNucIdx,8) = 0; 
+
+dataMat(termEventsIdx,9) = 1;
+
+fIdx = find(dataMat(:,5) == 2); 
+bIdx = find(dataMat(:,5) == 3); 
+uIdx = find(dataMat(:,5) == 4); 
+
+beforeFgapIdx=fIdx-1;
+beforeBgapIdx = bIdx-1; 
+beforeUgapIdx = uIdx-1; 
+
+dataMat(beforeFgapIdx,9) = 2; 
+dataMat(beforeBgapIdx,9) = 3; 
+dataMat(beforeUgapIdx,9) = 4; 
+dataMat([fIdx;bIdx;uIdx],9)= 0; 
+
+
+
 % perform lifetime and displacement unit conversions
 dataMat(:,6)=dataMat(:,6).* projData.secPerFrame; % convert lifetimes to seconds
 dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
 
-%% Remove Growths Initiated in First Frame or Ending in Last Frame From Stats
-% do this so one does not bias growth lifetime/displacement data (might not
-% be what we want for 
+% mark if part of compound versus non-compound track 
+   gapIdx = sort([fIdx;bIdx]); 
+   compIdx= unique(sort([gapIdx ; (gapIdx+1) ; (gapIdx -1)]));
+   % set those part of a compound track to in column 10 to 1 
+   % so marked for later partitioning
+   dataMat(compIdx,10) = 1; 
+   
+   compDataMat = dataMat(compIdx,:);
+   
+  
+   
+ % Segregate Tracks That Are Exclusively From Single Tracks
+   singleDataMat = dataMat;
+   singleDataMat(compIdx,:) = [];
+   
+   % remove uIdx 
+   uIdxSingleMat = find(singleDataMat(:,5) == 4);
+   toRemove = sort([uIdxSingleMat;uIdxSingleMat+1;uIdxSingleMat-1]); 
+   singleDataMat(toRemove,:) = []; 
+   
 
-subIdx2rem=[];
-% get index of growth and following fgap or bgap (if it exists) that
-% begin in the first frame
+   if remBegEnd == 1 
+      compDataMat = plusTipRemBegEnd(compDataMat,projData,1); 
+      singleDataMat = plusTipRemBegEnd(singleDataMat,projData,1);  
+   end 
+       
+     projData.compDataMat = compDataMat;  
+     projData.singleDataMat = singleDataMat;  
 
-sF = projData.detectionFrameRange(1,1);
-eF = projData.detectionFrameRange(1,2);
+% save the merged tracks dataStructure in projData 
+projData.mergedDataMatAllSubTracksConverted = dataMat; % save this dataStruct for subRoi 
+% partitioning and stat calculations from pooled data. 
 
-%sF=min(dataMat(:,2));
 
-% compound track IDs of all subtracks with nminimum starting frame number
 
-fullIdx2rem=unique(dataMat(dataMat(:,2)==sF,1)); 
-for iTr=1:length(fullIdx2rem)
-    subIdx=find(dataMat(:,1)==fullIdx2rem(iTr));
-    if (length(subIdx)>1) && (dataMat(subIdx(2),5) > 1) % if there is a forward backward gap linked to growth in first frame
-        subIdx2rem=[subIdx2rem; subIdx(1:2)]; % Don't remove entire compound track only the fgap or bgap it's linked to
-    else
-        subIdx2rem=[subIdx2rem; subIdx(1)];
-    end
-end
-
-% get index of growth and preceeding fgap or bgap
-% (if it exists) that end in the last frame
-
-%eF=max(dataMat(:,3));
-fullIdx2rem=unique(dataMat(dataMat(:,3)==eF,1));
-for iTr=1:length(fullIdx2rem)
-    subIdx=find(dataMat(:,1)==fullIdx2rem(iTr));
-    if (length(subIdx)>1) && (dataMat(subIdx(end-1),5) > 1)
-        subIdx2rem=[subIdx2rem; subIdx(end-1:end)]; % take out the last two of list  
-    else
-        subIdx2rem=[subIdx2rem; subIdx(end)];
-    end
-end
-% remove both classes for statistics
-dataMat(subIdx2rem,:)=[];
-dataMatCrpSecMic=dataMat; % NOTE: Kathyrn makes these all absolute values 
-% I think for stats it is better to keep sign (MB) 
+% Remove growth subtracks that start in the first frame and end in the
+% last frame (as well as flanking fgap and bgaps) 
+if remBegEnd == 1
+dataMatCrpSecMic = plusTipRemBegEnd(dataMat,projData);
+projData.remBegEnd = 'yes';
+else 
+    projData.remBegEnd = 'no'; 
+end 
 
 %% Calculate Stats from the matrix where the tracks at the beginning and end have been removed
 [projData,projData.M] = plusTipDynamParam(dataMatCrpSecMic,projData,0,0);
@@ -360,11 +398,10 @@ if isempty(fgapIdx)
 else
     projData.percentFgapsReclass=100*length(growthFgapIdx)/length(fgapIdx);
 end
-dirNameNew = [projGroupDir{tempIdx(iProj)} filesep 'meta'];
 if saveCopy  == 1
 % save a copy of the meta Dir Before Pooling
-dirBeforeRename = [ projGroupDir{tempIdx(iProj)} filesep meta2Use];
-dirAfterRename = [projGroupDir{tempIdx(iProj)} filesep metaOldNewName];
+dirBeforeRename = dir2Load;
+dirAfterRename = regexprep(dir2Load,meta2Use,metaOldNewName);
 
 if isdir(dirAfterRename)
     rmdir(dirAfterRename,'s');
@@ -375,10 +412,20 @@ else % don't save a copy
    % rmdir(dirBeforeRename)
 end 
 
-mkdir(dirNameNew);
 
 % rewrite the projData
-save([projGroupDir{tempIdx(iProj)} filesep 'meta' filesep 'projData'],'projData')    
+dir2Write = regexprep(dir2Load,meta2Use,'meta'); 
+if isdir(dir2Write) == 0 
+mkdir(dir2Write);
+end 
+save([dir2Write filesep 'projData'],'projData')   
+
+
+if mkHist==1
+   plusTipMakeHistograms(projData.M,[dir2Write filesep 'histograms']) 
+   plusTipPlotTrackAngles(projData,[dir2Write filesep 'histograms']); 
+end
+
 
 end % for iProj
 end % for iGroup
