@@ -46,7 +46,7 @@ y = yCoord(iTrack,:);
 % so it is easier for the user to interpret 
 angles = atan2(-(y(2:end)-y(1:end-1)),x(2:end)-x(1:end-1)); 
 % convert to degrees 
-anglesDeg = rad2deg(angles(:)) ;
+anglesDeg = (180/pi)*(angles(:)) ;
 % convert to four quadrant degrees
 for i = 1:length(anglesDeg)
     if anglesDeg(i) <0 

@@ -23,7 +23,7 @@ function varargout = plusTipGroupAnalysis(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysis
 
-% Last Modified by GUIDE v2.5 11-Oct-2011 22:20:44
+% Last Modified by GUIDE v2.5 27-Oct-2011 14:42:59
 
 
 % Begin initialization code - DO NOT EDIT
@@ -409,4 +409,3 @@ value=get(handles.([type 'AxisMax']),'String');
 if strcmpi(value,'max'), axisInfo.minMax(2) = Inf;
 else axisInfo.minMax(2) = str2double(value);
 end
-
