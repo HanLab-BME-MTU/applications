@@ -126,7 +126,7 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %               total number of backward gap trajectories
 %           .bgap_speed_median
 %               median of all backward gap sub-track speeds (microns/min)
-%           .bgap_speed_mean_std ●●●●●●●●●●
+%           .bgap_speed_mean_std 
 %               [mean std] of all backward gap sub-track speeds (microns/min)
 %           .bgap_lifetime_median
 %               median of all backward gap sub-track lifetimes (sec)
@@ -195,8 +195,11 @@ function [projData]=plusTipPostTracking(runInfo,secPerFrame,pixSizeNm,timeRange,
 %              reclassified as pause)
 %           6. lifetime (frames)
 %           7. total displacement (pixels), negative for bgaps
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+remBegEnd = 1; % Flag to turn on or off the remove beginning and end 
+% option: Value of 1 will turn on the function while value of 0 will turn
+% off the function 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin<5
     error('plusTipPostTracking: not enough input parameters!')
 end
@@ -426,6 +429,7 @@ if ~isempty(ugaps)
 end
 
 
+
 % put segs/gaps into one matrix and sort to see track profiles in order
 aT=sortrows(compositeMatrix,[1 2]);
 
@@ -439,9 +443,16 @@ aT=[aT lifeTimes totalDispPix];
 % convert pix/frame to micron/min velocities
 [aT(:,4)] = pixPerFrame2umPerMin(aT(:,4),secPerFrame,pixSizeNm);
 
-% aT will now contain consolidated rows, while aTreclass is the final
-% matrix to be stored in projData.
-[aT,aTreclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,aT);
+% aT will now contain consolidated rows (we will further use this one to 
+% calculate the stats), while aTreclass will be stored in projData.
+
+[aT,aTreclass,dummy,projData]=plusTipMergeSubtracks(projData,aT);
+
+% assign the matrix retaining where growth fgaps are indicated with
+% trackType=5 (This structure will be read into plotting functions so one
+% can visualize which tracks have been reclassified)
+projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
+
 
 % recalculate segment average speeds to reflect consolidation
 projData.segGapAvgVel_micPerMin=nan(size(projData.frame2frameVel_micPerMin));
@@ -449,24 +460,107 @@ for iSub=1:size(aT,1)
     projData.segGapAvgVel_micPerMin(aT(iSub,1),aT(iSub,2):aT(iSub,3)-1)=aT(iSub,4);
 end
 
-
 % get track numbers that contain an fgap or bgap
 projData.tracksWithFgap = unique(aT(aT(:,5)==2,1));
 projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Add 2 more columns corresponding to extra subTrack information
+% Though obvious here when partition these subtracks based on 
+% regional criteria it can become ambigious. 
+% Therefore it is useful to mark these here while the dataStruct for the 
+% whole cell compound tracks are in tact.
+% Column 8: Nuc Event 1= yes 0 = no
+% Column 9: Growth Before Term Event = 1, Growth Before Fgap = 2, 
+% Growth before Bgap = 3, Growth before undefined gap = 4
+
+[dummy nucEventsIdx dummy] =  unique(aT(:,1),'first');
+[dummy termEventsIdx dummy] = unique(aT(:,1),'last'); 
+
+aT(nucEventsIdx,8) = 1; 
+allIdx = 1:length(aT(:,1)); 
+nonNucIdx = setDiff(allIdx,nucEventsIdx); 
+
+aT(nonNucIdx,8) = 0; 
+
+aT(termEventsIdx,9) = 1;
+
+fIdx = find(aT(:,5) == 2); 
+bIdx = find(aT(:,5) == 3); 
+uIdx = find(aT(:,5) == 4); 
+
+beforeFgapIdx=fIdx-1;
+beforeBgapIdx = bIdx-1; 
+beforeUgapIdx = uIdx-1; 
+
+aT(beforeFgapIdx,9) = 2; 
+aT(beforeBgapIdx,9) = 3; 
+aT(beforeUgapIdx,9) = 4; 
+aT([fIdx;bIdx;uIdx],9)= 0; 
 
 
-% calculate stats using the matrix where beginning/end data has been
-% removed. M records speeds (microns/min), lifetimes (sec), and
+% perform lifetime and displacement unit conversions
+aT(:,6)=aT(:,6).* projData.secPerFrame; % convert lifetimes to seconds
+aT(:,7)=aT(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
+
+% mark if part of compound versus non-compound track 
+   gapIdx = sort([fIdx;bIdx]); 
+   compIdx= unique(sort([gapIdx ; (gapIdx+1) ; (gapIdx -1)]));
+   % set those part of a compound track to in column 10 to 1 
+   % so marked for later partitioning
+   aT(compIdx,10) = 1;
+   
+   compDataMat = aT(compIdx,:); 
+ 
+   
+    
+   
+ % Segregate Tracks That Are Exclusively From Single Tracks
+   singleDataMat = aT;
+   singleDataMat(compIdx,:) = [];
+   
+   % remove uIdx 
+   uIdxSingleMat = find(singleDataMat(:,5) == 4);
+   toRemove = sort([uIdxSingleMat;uIdxSingleMat+1;uIdxSingleMat-1]); 
+   singleDataMat(toRemove,:) = []; 
+   
+
+   if remBegEnd == 1 
+      compDataMat = plusTipRemBegEnd(compDataMat,projData,1); 
+      singleDataMat = plusTipRemBegEnd(singleDataMat,projData,1);  
+   end 
+       
+     projData.compDataMat = compDataMat;  
+     projData.singleDataMat = singleDataMat; 
+   
+  
+% save this dataStruct for subRoi 
+% partitioning and stat calculations from pooled data.  
+projData.mergedDataMatAllSubTracksConverted = aT; 
+
+
+   
+   
+
+
+if remBegEnd == 1
+% Remove growth subtracks that start in the first frame and end in the
+% last frame (as well as flanking fgap and bgaps) 
+
+[dataMatCrpSecMic projData] = plusTipRemBegEnd(aT,projData);
+projData.remBegEnd = 'yes';
+else 
+    dataMatCrpSecMic = aT;
+    projData.remBegEnd = 'no'; 
+end 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% calculate stats using the matrix beginning/end data has been
+% . M records speeds (microns/min), lifetimes (sec), and
 % displacements (microns) for growths, fgaps,and bgaps.
+% note the input 0,0 just tells the program that it is NOT 
+% calling from subRoi or poolGroupData
 [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,0,0);
-
-
-
-% assign the matrix retaining where growth fgaps are indicated with
-% trackType=5
-projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix=aTreclass;
-projData.originalOutput = aT;
 
 % save each projData in its own directory
 save([runInfo.metaDir filesep 'projData'],'projData')
@@ -488,4 +582,5 @@ fclose(fid);
 if mkHist==1
    plusTipMakeHistograms(M,[runInfo.metaDir filesep 'histograms']) 
    plusTipPlotTrackAngles(runInfo,[runInfo.metaDir filesep 'histograms']);
+   
 end
