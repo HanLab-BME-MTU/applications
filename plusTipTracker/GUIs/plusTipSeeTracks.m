@@ -138,6 +138,7 @@ if ~isempty(handles.projList)
         handles.dataDir=selectionList{selection,1};
         p=load([handles.dataDir filesep 'meta' filesep 'projData.mat']);
         handles.projData=p.projData;
+        set(handles.edit_currentProject,'String',handles.dataDir);
     end
 else
     msgbox('No projects selected.')
