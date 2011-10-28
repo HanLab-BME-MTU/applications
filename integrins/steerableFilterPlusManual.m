@@ -132,8 +132,8 @@ mask = imfill(mask,'holes');
 figure
 imshow(mask);
 disp('Click on points in cell interior to fill the whole cell.')
-close(h);
 [yIn,xIn] = getpts;
+close(h);
 mask = imfill(mask,round([xIn yIn]));
 
 %some final polishing of final mask ...
