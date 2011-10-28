@@ -55,7 +55,7 @@ if nargin<7 || isempty(saveDir)
     saveDir=uigetdir(anDir,'Please choose output directory');
 end
 
-if feature('ShowFigureWindows')
+if feature('ShowFigureWindows'), 
     wtBar = waitbar(0,'Initializing...');
 else
     wtBar=-1;
@@ -68,10 +68,7 @@ end
 img = double(imread([pathname filesep filename])); 
 
 % extract track info (block matrix)
-dataMatMerge=plusTipMergeSubtracks(projData); % merged data is first output
-allData=abs(dataMatMerge);
-allData(:,6)=allData(:,6).* projData.secPerFrame; % convert lifetimes to seconds
-allData(:,7)=allData(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
+allData=abs(projData.mergedDataMatAllSubTracksConverted);
 
 
 if nargin<4 || isempty(speedLim) || strcmpi(speedLim,'max')

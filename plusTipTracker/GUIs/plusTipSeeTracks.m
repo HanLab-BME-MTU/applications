@@ -163,7 +163,7 @@ if ~isequal(FileName,0)
         errordlg('File chosen was not a roiYX.mat or roiMask.tif file. Please try again.','File Error');
     end
 end
-
+guidata(hObject, handles);
 
 
 % --- Executes on button press in plotTracksPush.

@@ -114,8 +114,8 @@ maxX=ceil(max(roiYX(:,2)));
 trackVelMatrix=abs(projData.frame2frameVel_micPerMin);
 
 % get merged matrix so all we have are growths, fgaps, and bgaps (1,2,3)
-dataMatMerge=plusTipMergeSubtracks(projData); % first output is merged
-
+% dataMatMerge=plusTipMergeSubtracks(projData); % first output is merged
+dataMatMerge=projData.mergedDataMatAllSubTracksConverted;
 % make corresponding matrix to velocity matrix where values represent type
 trackTypeMtrix=zeros(size(projData.xCoord));
 for iSub=size(dataMatMerge,1):-1:1

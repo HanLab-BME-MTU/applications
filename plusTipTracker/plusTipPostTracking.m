@@ -479,7 +479,7 @@ projData.tracksWithBgap = unique(aT(aT(:,5)==3,1));
 
 aT(nucEventsIdx,8) = 1; 
 allIdx = 1:length(aT(:,1)); 
-nonNucIdx = setDiff(allIdx,nucEventsIdx); 
+nonNucIdx = setdiff(allIdx,nucEventsIdx); 
 
 aT(nonNucIdx,8) = 0; 
 
