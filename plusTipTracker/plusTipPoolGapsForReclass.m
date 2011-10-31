@@ -1,19 +1,46 @@
-function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, makeHistogram, useFirstInList,mkHist )
-%UNTITLED4 Summary of this function goes here
-%   Detailed explanation goes here
+function [projData ] = plusTipPoolGapsForReclass( groupList, meta2Use, saveCopy, metaOldNewName, mkHistGaps, useFirstInList,mkHist)
+%If Unimodal thresholding requires a full population of fgaps 
+%  (ie the number of fgaps per cell is too small to get reliable
+%  thresholding. One can use this function to pool fgap data and 
+% apply the threshold. 
 %% 
+% Input 
+% groupList:  groupList of projects of the same condition
+%
+% meta2Use: meta folder from which you would like to pool your data
+% (typcically  'meta') input as a string
+%
+% saveCopy: 1 if you want to save a copy of the old projData before the
+% reclass
+%
+% metaOldNewName: if saveCopy = 1, give a name to the folder (if saveCopy =0 
+% just set to []) 
+%
+% mkHistGaps: set to 1 to save a copy of the histogram of the pooled fgap 
+% speeds including the unimodal thresh  
+% 
+% useFirstInList: set to 1 to use the first group in list to calculate the 
+% threshold for all groups in the groupList
+% 
+% mkHist: set to 1 to save histograms of speed, lifetime, displacement 
+% (same option as in the post-processing settings)
 
 % flag to remove beginning and end tracks for analyis 
-remBegEnd = 1; 
+remBegEnd = 1; % set to zero if you do not want to remove tracks at the beginning 
+% and end
 
-%% Choices for Input
-bgapUniModeThreshNoCorrect = 0;
+%% Choices for Input 
+onlyFgap2GrowthReclass = 1; %  unimodal thresholding
+% on pooled gap data
 
-bgapUniModeThreshCorrect = 0;
 
-bgapReclassFluctRadius = 0;
+bgapUniModeThreshNoCorrect = 0; % use symmetrical reclassification (currenlty default is to not reclassify bgaps as pauses)
 
-onlyFgap2GrowthReclass = 1;
+bgapUniModeThreshCorrect = 0; % attempts to correct for the overestimation of the bgap to pause threshold that occurs due to comet latency
+
+bgapReclassFluctRadius = 0; %   not recommended 
+
+ 
 
 %%
 projGroupName=groupList(:,1);
@@ -79,7 +106,7 @@ fgapSpeeds = dataMatPooled(fgapIdx,4);
 
 %fgapSpeeds = fgapSpeeds(fgapSpeeds<fgapSpeed95th);
 
-[cutoffIdx, cutoffValueFGap, sp, axesH,maxBinValue] = cutFirstHistMode(fgapSpeeds,makeHistogram);
+[cutoffIdx, cutoffValueFGap, sp, axesH,maxBinValue] = cutFirstHistMode(fgapSpeeds,mkHistGaps);
      
    
     cutOffValueFGap_VelMicPerMin = cutoffValueFGap;
@@ -87,7 +114,7 @@ fgapSpeeds = dataMatPooled(fgapIdx,4);
     numFgapsTotal = length(fgapIdx);
     fgapReclassScheme = 'Unimodal Thresholding: Pooled Data';
     
-    if makeHistogram == 1
+    if mkHistGaps == 1
         
        [pathup1 dummy1 dummy2 dummy3] =  getFilenameBody(projGroupDir{tempIdx(iProj)});
        [pathup2 name dummy2 dummy3] = getFilenameBody(pathup1);
@@ -276,7 +303,7 @@ dataMat(rows2remove,:)=[];
 
 dataMat(nucEventsIdx,8) = 1; 
 allIdx = 1:length(dataMat(:,1)); 
-nonNucIdx = setDiff(allIdx,nucEventsIdx); 
+nonNucIdx = setdiff(allIdx,nucEventsIdx); 
 
 dataMat(nonNucIdx,8) = 0; 
 
