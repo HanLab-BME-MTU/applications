@@ -17,7 +17,7 @@ cutoff = ip.Results.Cutoff * data.framerate;
 load([data.source 'Tracking' filesep ip.Results.FileName]);
 
 if strcmpi(ip.Results.Type, 'valid')
-    idx = [tracks.valid]==1 & [tracks.lifetime_s] >= cutoff & arrayfun(@(t) ~iscell(t.x), tracks);
+    idx = [tracks.valid]==1 & [tracks.lifetime_s] >= cutoff & [tracks.nSeg]==1;
 %     if ~isempty(ip.Results.PostProc)
 %         kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
 %         sb = arrayfun(@(t) sum(sum(t.startBuffer.A(1,:) > t.startBuffer.sigma_r(1,:)*kLevel))>1, tracks);
