@@ -25,6 +25,26 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupD
 % functions that call this one:
 % plusTipPostTracking
 % plusTipPoolGroupData
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
+
 
 
 % Put a Copy of the Data Mat Used to Calcualte All Stats in the projData
@@ -156,8 +176,10 @@ if isempty(fIdx)
     
     % fgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to fgap
-    projData.stats.fgap_freq_time=NaN;
-    projData.stats.fgap_freq_length=NaN;
+    projData.stats.fgap_freq_time_mean=NaN;
+    projData.stats.fgap_freq_length_mean=NaN;
+    projData.stats.fgap_freq_time_SE = NaN; 
+    projData.stats.fgap_freq_length_SE = NaN;
     
     % 
     projData.stats.GrowthSpeedBeforeFgap_MicPerMin_mean = NaN;
@@ -243,8 +265,10 @@ if isempty(bIdx)
     
     % bgap frequency is the inverse of the average growth time (sec) or
     % displacement (microns) prior to bgap
-    projData.stats.bgap_freq_time=NaN;
-    projData.stats.bgap_freq_length=NaN;
+    projData.stats.bgap_freq_time_mean=NaN;
+    projData.stats.bgap_freq_length_mean=NaN;
+    projData.stats.bgap_freq_time_SE = NaN;
+    projData.stats.bgap_freq_length_SE = NaN;
     
     projData.stats.GrowthSpeedBeforeBgap_MicPerMin_mean = NaN;
     projData.stats.GrowthSpeedBeforeBgap_MicPerMin_SE = NaN;
@@ -295,7 +319,7 @@ else
    
     
     %Convert these Average Values to frequencies
-    % projData.stats.bgap_freq_time=1/mean(lifetimeBeforeBgap);
+    %projData.stats.bgap_freq_time=1/mean(lifetimeBeforeBgap);
     %projData.stats.bgap_freq_length=1/mean(lengthBeforeBgap);
     
     % Find Freqency Values for each subtrack and find avg and std
@@ -312,8 +336,27 @@ end % isempty
 %% PARAMETERS OF GROWTH SUBTRACKS PRECEDING TERMINAL EVENT 
 % 
 
+
   beforeTermIdx  = find(dataMatCrpSecMic(:,9) == 1); 
-       
+
+  if isempty(beforeTermIdx)
+      projData.stats.GrowthSpeedBeforeTermEvent_MicPerMin_mean = NaN; 
+      
+      projData.stats.GrowthSpeedBeforeTermEvent_MicPerMin_mean = NaN;
+      projData.stats.GrowthSpeedBeforeTermEvent_MicPerMin_SE = NaN ;
+      projData.stats.GrowthLifetimeBeforeTermEvent_Sec_mean = NaN;
+      projData.stats.GrowthLifetimeBeforeTermEvent_Sec_SE = NaN;
+      projData.stats.GrowthLengthBeforeTermEvent_Mic_mean = NaN; 
+      projData.stats.GrowthLengthBeforeTermEvent_Mic_SE = NaN;
+      projData.stats.term_freq_time_mean =NaN;
+      projData.stats.term_freq_time_SE = NaN;
+       projData.stats.term_freq_length_mean = NaN;
+       projData.stats.term_freq_length_SE = NaN; 
+      
+      
+  else 
+      
+      
     % collect the parameter under question for all subtracks
     velocityBeforeTermEvent = dataMatCrpSecMic(beforeTermIdx,4);
     lifetimeBeforeTermEvent = dataMatCrpSecMic(beforeTermIdx,6);
@@ -336,12 +379,13 @@ end % isempty
     %%% INDIVIDUAL FREQUENCIES %%%
     
     freq=1./dataMatCrpSecMic(beforeTermIdx,6);
-    projData.stats.fgap_freq_time_mean =mean(freq);
-    projData.stats.fgap_freq_time_SE = std(freq)/sqrt(length(freq));
+    projData.stats.term_freq_time_mean =mean(freq);
+    projData.stats.term_freq_time_SE = std(freq)/sqrt(length(freq));
     
     freq=1./dataMatCrpSecMic(beforeTermIdx,7);
-    projData.stats.fgap_freq_length_mean = mean(freq);
-    projData.stats.fgap_freq_length_SE = std(freq)/sqrt(length(freq));
+    projData.stats.term_freq_length_mean = mean(freq);
+    projData.stats.term_freq_length_SE = std(freq)/sqrt(length(freq));
+  end 
    
     %%% RATIOS OF GROWTH VELOCITY, GROWTH LIFETIME, OR GROWTH LENGTH JUST 
     % BEFRORE AN FGAP/BGAP/TERM EVENT
