@@ -161,8 +161,8 @@ for i=1:3
         xlabel([type{i} 'map of ' event{j} ', max ' type{i}...
             ' ' num2str(dataRange) ' ' typeUnits{i}]);
         
-        saveas(gcf,[saveDir filesep 'overlay_' event{j} '_' type{i} '.fig'])
-        saveas(gcf,[saveDir filesep 'overlay_' event{j} '_' type{i} fileExt])
+        saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} '.fig'])
+        saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} fileExt])
         close(gcf)
         
         if ishandle(wtBar)
