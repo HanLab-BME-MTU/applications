@@ -25,6 +25,25 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupD
 % functions that call this one:
 % plusTipPostTracking
 % plusTipPoolGroupData
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
 
 
 
@@ -247,8 +266,8 @@ if isempty(bIdx)
     projData.stats.bgap_freq_time=NaN;
     projData.stats.bgap_freq_length=NaN;
     
-    projData.stats.GrowthVelocityBeforeBgap_MicPerMin_mean = NaN;
-    projData.stats.GrowthVelocityBeforeBgap_MicPerMin_SE = NaN;
+    projData.stats.GrowthSpeedBeforeBgap_MicPerMin_mean = NaN;
+    projData.stats.GrowthSpeedBeforeBgap_MicPerMin_SE = NaN;
     projData.stats.GrowthLifetimeBeforeBgap_Sec_mean = NaN ;
     projData.stats.GrowthLifetimeBeforeBgap_Sec_SE = NaN;
     projData.stats.GrowthLengthBeforeBgap_Mic_mean = NaN ;
@@ -391,19 +410,39 @@ else
     projData.stats.percentGapsBackward= 100*(projData.stats.nBgaps/(projData.stats.nFgaps+projData.stats.nBgaps));
 end
 
+beforeUndefinedIdx = find(dataMatCrpSecMic(:,9) == 4);
 
 if isempty(gIdx)
     projData.stats.percentGrowthLinkedForward  = NaN;
     projData.stats.percentGrowthLinkedBackward = NaN;
     projData.stats.percentGrowthTerminal       = NaN;
-
-else
-    beforeUndefinedIdx = find(dataMatCrpSecMic(:,9) == 4);
-    projData.stats.percentGrowthLinkedForward = 100*length(beforeBgapIdx)/length(gIdx);
-    projData.stats.percentGrowthLinkedBackward = 100*length(beforeFgapIdx)/length(gIdx); 
+else 
+    if isempty(bIdx)
+        projData.stats.percentGrowthLinkedBackward = NaN;
+    else 
+    projData.stats.percentGrowthLinkedBackward = 100*length(beforeBgapIdx)/length(gIdx);
+    end
+    
+    if isempty(fIdx) 
+        projData.stats.percentGrowthLinkedForward = NaN; 
+    else 
+    projData.stats.percentGrowthLinkedForward = 100*length(beforeFgapIdx)/length(gIdx); 
+    end 
+    
+    if isempty(beforeTermIdx)
+        projData.percentGrowthTerminal = NaN; 
+    else 
     projData.stats.percentGrowthTerminal = 100*length(beforeTermIdx)/length(gIdx); 
-    projData.stats.percentGrowthLinkedUndefinedGap = 100*length(beforeUndefinedIdx)/length(gIdx); 
-end
+    end 
+    
+    if isempty(beforeUndefinedIdx) 
+    projData.stats.percentGrowthLinkedUndefinedGap = NaN; 
+    else 
+        projData.stats.percentGrowthLinkedUndefinedGap = 100*length(beforeUndefinedIdx)/length(gIdx); 
+    end  
+        
+end 
+
 
 %% More Microtubule Parameters:
 % These parameters require in-tact compound microtubule tracks for correct 
