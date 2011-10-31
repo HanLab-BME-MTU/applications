@@ -238,23 +238,24 @@ if ~isempty(trackInfo)
             end
         case 'all'
             idx = [trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds];
-            
-            set(ha, 'ColorOrder', ip.Results.Colormap(trackInfo.seg2trackIndex(idx),:));
-            plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)');
-            
-            if ip.Results.ShowEvents
-                % Births
-                k = trackInfo.segStarts==frameIdx;
-                plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+            if sum(idx)>0
+                set(ha, 'ColorOrder', ip.Results.Colormap(trackInfo.seg2trackIndex(idx),:));
+                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)');
                 
-                % Deaths
-                k = trackInfo.segEnds==frameIdx;
-                plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
-            end
-            
-            if ip.Results.ShowGaps
-                idx = idx & gapMap(:,frameIdx);
-                plot(ha, trackInfo.x(idx,frameIdx), trackInfo.y(idx,frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+                if ip.Results.ShowEvents
+                    % Births
+                    k = trackInfo.segStarts==frameIdx;
+                    plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+                    
+                    % Deaths
+                    k = trackInfo.segEnds==frameIdx;
+                    plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
+                end
+                
+                if ip.Results.ShowGaps
+                    idx = idx & gapMap(:,frameIdx);
+                    plot(ha, trackInfo.x(idx,frameIdx), trackInfo.y(idx,frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+                end
             end
         case 'projection'
             maxlft = max(trackInfo.lifetimes_f);

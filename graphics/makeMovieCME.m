@@ -2,7 +2,7 @@
 %
 % Inputs: 
 %             data : data structure from 'loadConditionData()'
-%         {tracks} : track structure
+%      {trackinfo} : track structure returned by loadtracks()
 %
 % Options: 
 %       'Scalebar' : length of the scalebar. Default: 5 µm
@@ -17,7 +17,7 @@ function makeMovieCME(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('tracks', [], @(x) isstruct(x) || isempty(x));
+ip.addOptional('trackinfo', [], @(x) isstruct(x) || isempty(x));
 ip.addParamValue('ScaleBar', 5e-6, @isscalar);
 ip.addParamValue('FrameRate', 15, @isscalar);
 ip.addParamValue('Zoom', 1, @isscalar);
@@ -36,7 +36,7 @@ ip.parse(data, varargin{:});
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 nCh = length(data.channels);
-tracks = ip.Results.tracks;
+trackinfo = ip.Results.trackinfo;
 zoom = ip.Results.Zoom;
 ch = ip.Results.Channel;
 ext = ['.' ip.Results.FileType];
@@ -45,8 +45,9 @@ if strcmpi(ip.Results.Mode, 'RGB')
 end
 
 cmap = ip.Results.Colormap;
-if ~isempty(tracks) && isempty(cmap)
-    nt = length(tracks);
+if ~isempty(trackinfo) && isempty(cmap)
+    trackIdx = unique(trackinfo.seg2trackIndex);
+    nt = numel(trackIdx);
     cmap = hsv2rgb([rand(nt,1) ones(nt,2)]);
 end
 
@@ -94,7 +95,7 @@ fmt = ['%0' num2str(ceil(log10(data.movieLength))) 'd'];
 nf = numel(ip.Results.FrameRange);
 fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
-    plotFrame(data, tracks, f, ch, 'iRange', dRange, 'Handle', ha,...
+    plotFrame(data, trackinfo, f, ch, 'iRange', dRange, 'Handle', ha,...
         'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar,...
         'ShowDetection', ip.Results.ShowDetection, 'ShowEvents', ip.Results.ShowEvents',...
         'ShowGaps', ip.Results.ShowGaps,...
