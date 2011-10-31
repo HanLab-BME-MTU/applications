@@ -123,9 +123,9 @@ tracks(1:nTracks) = struct('t', [],...
 
 
 % field names with multiple channels
-mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'pval_KS', 'isPSF'};
+mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'significantA', 'pval_KS', 'isPSF'};
 gapFieldNames = {'gapStatus', 'gapStarts', 'gapEnds', 'gapLengths', 'gapVect'};
-bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r'};
+bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'significantA'};
 
 %==============================
 % Loop through tracks
@@ -378,9 +378,11 @@ for f = 1:data.movieLength
                 
                 df2 = (npx-1) * (tracks(k).A_pstd{s}(ch,idx).^2 + SE_r.^2).^2 ./...
                     (tracks(k).A_pstd{s}(ch,idx).^4 + SE_r.^4);
+                
                 scomb = sqrt((tracks(k).A_pstd{s}(ch,idx).^2 + SE_r.^2)/npx);
                 T = (tracks(k).A{s}(ch,idx) - res.std*kLevel) ./ scomb;
-                tracks(k).pval_Ar{s}(ch,idx) = tcdf(T, df2);
+                tracks(k).pval_Ar{s}(ch,idx) = 1-tcdf(T, df2);
+                tracks(k).significantA{s}(ch,idx) = tracks(k).pval_Ar{s}(ch,idx) < 0.05;
             end
         end
         
@@ -431,6 +433,19 @@ for f = 1:data.movieLength
                 tracks(k).startBuffer.A{s}(ch,bi) = prm(3);
                 tracks(k).startBuffer.c{s}(ch,bi) = prm(5);
                 tracks(k).startBuffer.sigma_r{s}(ch,bi) = res.std;
+                
+                npx = sum(isfinite(window(:)));
+                
+                tracks(k).startBuffer.SE_sigma_r{s}(ch,idx) = res.std/sqrt(2*(npx-1));
+                SE_r = tracks(k).startBuffer.SE_sigma_r{s}(ch,idx) * kLevel;
+                
+                df2 = (npx-1) * (tracks(k).startBuffer.A_pstd{s}(ch,idx).^2 + SE_r.^2).^2 ./...
+                    (tracks(k).startBuffer.A_pstd{s}(ch,idx).^4 + SE_r.^4);
+                
+                scomb = sqrt((tracks(k).startBuffer.A_pstd{s}(ch,idx).^2 + SE_r.^2)/npx);
+                T = (tracks(k).startBuffer.A{s}(ch,idx) - res.std*kLevel) ./ scomb;
+                tracks(k).startBuffer.pval_Ar{s}(ch,idx) = 1-tcdf(T, df2);
+                tracks(k).startBuffer.significantA{s}(ch,idx) = tracks(k).startBuffer.pval_Ar{s}(ch,idx) < 0.05;
             end
         end
         
@@ -480,6 +495,19 @@ for f = 1:data.movieLength
                 tracks(k).endBuffer.A{s}(ch,bi) = prm(3);
                 tracks(k).endBuffer.c{s}(ch,bi) = prm(5);
                 tracks(k).endBuffer.sigma_r{s}(ch,bi) = res.std;
+                
+                npx = sum(isfinite(window(:)));
+                
+                tracks(k).endBuffer.SE_sigma_r{s}(ch,idx) = res.std/sqrt(2*(npx-1));
+                SE_r = tracks(k).endBuffer.SE_sigma_r{s}(ch,idx) * kLevel;
+                
+                df2 = (npx-1) * (tracks(k).endBuffer.A_pstd{s}(ch,idx).^2 + SE_r.^2).^2 ./...
+                    (tracks(k).endBuffer.A_pstd{s}(ch,idx).^4 + SE_r.^4);
+                
+                scomb = sqrt((tracks(k).endBuffer.A_pstd{s}(ch,idx).^2 + SE_r.^2)/npx);
+                T = (tracks(k).endBuffer.A{s}(ch,idx) - res.std*kLevel) ./ scomb;
+                tracks(k).endBuffer.pval_Ar{s}(ch,idx) = 1-tcdf(T, df2);
+                tracks(k).endBuffer.significantA{s}(ch,idx) = tracks(k).endBuffer.pval_Ar{s}(ch,idx) < 0.05;
             end
         end
         fprintf('\b\b\b\b%3d%%', round(100*(ch + (f-1)*nCh)/(nCh*data.movieLength)));
