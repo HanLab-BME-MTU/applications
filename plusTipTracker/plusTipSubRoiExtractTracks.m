@@ -34,9 +34,19 @@ onlyInitiate = 0; % Value of 1: Flag to bypass the GUI options and select
 % Value of 0 will use the settings specified in the
 % plusTipGroupAnalysis GUI for subdividing all subtracks types
 
+onlyNuc = 1;% value of 1: Flag to bypass the GUI options and select
+% only those SUBTRACKS that are NUCLEATED (ie the first point of their 
+% growth track is within the given subregion and NOT after a bgap or fgap). 
+% Subdivision of bgap and
+% fgaps among subRois will still be based on the GUI input specifications. 
+% Value of 0 will use the settings specified in the
+% plusTipGroupAnalysis GUI for subdividing all subtracks types
+
+
 remBegEnd = 1; % Value of 1 will remove tracks from the beginning and end
 
-collectPlots = 1; % collect all subRoi track plots in one folder 
+collectPlots = 1; % collect all subRoi track plots in one folder (series of 
+%tifs that can be read into imagej for easy viewing of each cell). 
 
 %% Check Input
 homeDir=pwd;
@@ -58,7 +68,9 @@ end
 if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
-
+if onlyNuc ==1 
+    onlyInitiate = 1; 
+end 
 %% Load Necessary Files
 subRoiDir=subRoiDir;
 
@@ -160,7 +172,10 @@ pixIdxFirst=sub2ind([imL,imW],yFirst,xFirst);
 % idx based on dataMatMerge
 inIncludeRegionLast=find(roiMask(pixIdxLast));
 inIncludeRegionFirst=find(roiMask(pixIdxFirst));
-
+if onlyNuc == 1
+    nucIdx = find(dataMatMerge(:,8) == 1);
+    inIncludeRegionFirst = intersect(inIncludeRegionFirst,nucIdx); 
+end 
 else % No need to calculate these variables
 end
 
@@ -195,6 +210,8 @@ if (onlyTarget == 1 || onlyInitiate ==1)
 % Note inside sec have to be greater than 0 because can potentially 
 % have only 1-coordinate in region: we would like to exclude these as they 
 % are not useful for stats. 
+
+
 
 trckIdxInFirst = intersect(find(insideSec>0),inIncludeRegionFirst);
 
@@ -232,19 +249,22 @@ elseif onlyInitiate == 1 % include those tracks with subtrack initiation sites i
     xMatIn = xMatFirst;
     yMatIn = yMatFirst; 
     
+    if onlyNuc ==1 
+        x = 'Nucleated';
+        y = 'Nucleated in Other Regions OR Not a Nucleation Event';
+    else 
+        x = 'Initiated';
+        y = 'Initiated in Other Regions';
+    end 
     
-    forTitle1 = 'subTracks Initiated In SubRoi: Included in Analyis (Red and Pink)';
-    forTitle2 = 'subTracks Initiated In Other Regions: Not Included in Analysis (Green) '; 
-    forTitle3 = 'subTracks Initiated AND Terminated In SubRoi: Included in Analysis (Pink)';
+    forTitle1 = ['subTracks', x,  'In SubRoi: Included in Analyis (Red and Pink)'];
+    forTitle2 = ['subTracks' y, 'Not Included in Analysis (Green) ']; 
+    forTitle3 = ['subTracks', x,  'AND Terminated In SubRoi: Included in Analysis (Pink)'];
     filename = 'subTracksInitiatedInSubRoiRedAndPink_plusSubTracksInitiatedInOtherRegionsGreen';
     
 end 
 
-if ~isempty(trckIdxIn)
-projData.stats.percentTracksStartAndEndInRegion = length(trckIdxInRegion)/length(trckIdxIn)*100; 
-else 
-    projData.stats.percentTracksStartAndEndInRegion = NaN;
-end 
+ 
 
     IN=IN(trckIdxIn,:); 
     % Just exchange zero values for NaN, again IN is a matrix of the same 
@@ -278,10 +298,20 @@ end
     if exist([collectedDataPath filesep sub],'dir') == 0
      mkdir([collectedDataPath filesep sub]); 
     end
- 
     
-    saveas(gcf,[collectedDataPath filesep sub filesep projName filename fileExt]);
-
+    
+    collectedDataPathTracks = [collectedDataPath filesep sub filesep projName filesep 'subRoiGrowthTracks'];
+    if exist(collectedDataPathTracks,'dir') == 0;
+        mkdir(collectedDataPathTracks); 
+    end 
+    
+    if exist([collectedDataPath filesep 'tifs'],'dir') == 0
+        mkdir([collectedDataPath filesep 'tifs']);
+        mkdir([collectedDataPath filesep 'eps']); 
+    end 
+    
+    saveas(gcf,[collectedDataPathTracks filesep 'tifs' filesep filename '.tif']);
+    saveas(gcf,[collectedDataPathTracks filesep 'eps' filesep filename '.eps'],'psc2'); 
  end % if collectPlots
  close(gcf); 
 
@@ -333,19 +363,35 @@ else % get those tracks located within the subregion based with a given
  saveas(gcf,[subRoiDir filesep 'tracksInSubRoi.eps'],'psc2');
  close(gcf)
  
- % if option on put all in one folder for easy viewing
  if collectPlots == 1
  [path sub num] = getFileNameBody(subRoiDir);
  sub = [sub num];
  
- if exist([collectedDataPath filesep sub],'dir') == 0
+    if exist([collectedDataPath filesep sub],'dir') == 0
      mkdir([collectedDataPath filesep sub]); 
- end
-
- projName = [name roi];
- saveas(gcf,[collectedDataPath filesep sub filesep projName 'tracksInSubRoi.eps'],'psc2');
-
- end 
+    end
+    
+    
+    collectedDataPathTracks = [collectedDataPath filesep sub filesep projName filesep 'subRoiGrowthTracks'];
+    if exist(collectedDataPathTracks,'dir') == 0;
+        mkdir(collectedDataPathTracks); 
+    end 
+    
+    if exist([collectedDataPath filesep 'tifs'],'dir') == 0
+        mkdir([collectedDataPath filesep 'tifs']);
+        mkdir([collectedDataPath filesep 'eps']); 
+    end 
+    projName = [name roi];
+    saveas(gcf,[collectedDataPathTracks filesep 'tifs' filesep projName '.tif']);
+    saveas(gcf,[collectedDataPathTracks filesep 'eps' filesep projName '.eps'],'psc2'); 
+ end % if collectPlots
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
  
@@ -515,10 +561,12 @@ projData.imDir=projData.imDir;
 
 if ~isempty(trckIdxIn)
 projData.nTracks = length(unique(dataMatMerge(trckIdxIn,1))); % number of
-% compound tracks represents (NOTE: depending on the user specifications the 
+% compound tracks represented (NOTE: depending on the user specifications the 
  %complete compound track may not be in the region)
+projData.stats.percentTracksStartAndEndInRegion = length(trckIdxInRegion)/length(trckIdxIn)*100;  
 else 
     projData.nTracks = 0; 
+    projData.stats.percentTracksStartAndEndInRegion = 0;    
 end 
 
 
@@ -548,7 +596,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Calculate Median Nearest Neighbor For SubRoi  
  [numSubTracks numFrames] = size(xMatIn);
-  NNdist=nan(length(xMat(:,1))*numFrames,1);
+  NNdist=nan(length(xMatIn(:,1))*numFrames,1);
     count=1;
    
     for iFrame=5:numFrames
@@ -812,23 +860,30 @@ title({projNameTit ; 'Rose Plot of All Frame-to-Frame Growth Displacement (Conve
 saveas(saveFig2,[subRoiDir filesep 'meta' filesep 'histograms' filesep 'angles_histogramInside.eps'], 'psc2');
  
 
+collectedDataPathPolarity = [collectedDataPath filesep sub filesep 'Polarity'];
 if collectPlots == 1
-    if ~exist([collectedDataPath filesep sub filesep 'Polarity'],'dir')==1;
-        mkdir([collectedDataPath filesep sub filesep 'Polarity']);
+    if ~exist(collectedDataPathPolarity,'dir')==1;
+        mkdir(collectedDataPathPolarity);
     end    
     
-    saveas(saveFig1,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'angles_histogram.eps'], 'psc2');
-    saveas(saveFig2,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'angles_histogramInside.eps'], 'psc2');
+    if ~exist([collectedDataPathPolarity filesep 'tifs'],'dir') == 1
+        mkdir([collectedDataPathPolarity filesep 'tifs']); 
+        mkdir([collectedDataPathPolarity filesep 'eps']);
+    end 
+    saveas(saveFig1,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogram.tif']); 
+    saveas(saveFig2,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogrameInside.tif']); 
+    saveas(saveFig1,[collectedDataPathPolarity filesep 'eps' filesep projName 'angles_histogram.eps'], 'psc2');
+    saveas(saveFig2,[collectedDataPath filesep 'eps' filesep projName 'angles_histogramInside.eps'], 'psc2');
 end 
 close(saveFig1)
 close(saveFig2)
 
-test = figure; 
- imshow(roiMask); 
- hold on; 
- plot(xCoordInside',yCoordInside','r'); % plot all tracks targeted/initiated in region
- saveas(test,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'Inside.eps'], 'psc2');
- close(test)
+%test = figure; 
+ %imshow(roiMask); 
+ %hold on; 
+ %plot(xCoordInside',yCoordInside','r'); % plot all tracks targeted/initiated in region
+ %saveas(test,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'Inside.eps'], 'psc2');
+ %close(test)
 %%
 
 % Now write the interpolated coordinates corresponding to pause (necessary
