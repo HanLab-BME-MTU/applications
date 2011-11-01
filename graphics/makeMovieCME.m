@@ -33,9 +33,9 @@ ip.addParamValue('FileName', 'Movie', @ischar);
 ip.addParamValue('Colormap', []);
 ip.parse(data, varargin{:});
 
-if isunix && ~ismac
-    opengl software; % fix for linux bug (orchestra only?) that causes segmentation fault in 'print'
-end
+% if isunix && ~ismac
+%     opengl software; % fix for linux bug (orchestra only?) that causes segmentation fault in 'print'
+% end
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
