@@ -22,7 +22,7 @@ function varargout = plusTipParamSweepGUI(varargin)
 
 % Edit the above text to modify the response to help plusTipParamSweepGUI
 
-% Last Modified by GUIDE v2.5 03-Nov-2009 07:26:30
+% Last Modified by GUIDE v2.5 01-Nov-2011 10:08:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -604,7 +604,4 @@ function getHelpPush_Callback(hObject, eventdata, handles)
 % hObject    handle to getHelpPush (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-open plusTipParamSweepGUI_README.txt
-
-
-
+open plusTipParamSweepGUI_README.pdf
