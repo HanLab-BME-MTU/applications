@@ -64,8 +64,8 @@ for iGroup = 1:nGroups
     
     %% Calculate the Average and STD of the Per Cell Parameter Over All Projects (ie Cells) in Group  
     for i = 1:length(statsNames)
-        mean_std.(statsNames{i})(iGroup,1) = mean(dataStruct(iGroup).(statsNames{i}));
-        mean_std.(statsNames{i})(iGroup,2) = std(dataStruct(iGroup).(statsNames{i})); 
+        mean_std.(statsNames{i})(iGroup,1) = nanmean(dataStruct(iGroup).(statsNames{i}));
+        mean_std.(statsNames{i})(iGroup,2) = nanstd(dataStruct(iGroup).(statsNames{i})); 
     end 
     
 end % Finished Collecting Data for All Projects and all Groups
@@ -176,8 +176,8 @@ hitsStatsNames=fieldnames(hitsDataStruct);
 % Plot barplots
 for i=1:numel(hitsStatsNames)
     rawData={hitsDataStruct(:).(hitsStatsNames{i})};
-    plotData= cellfun(@(x) mean(x),rawData);
-    steData= cellfun(@(x) std(x)/sqrt(size(x,1)),rawData);
+    plotData= cellfun(@(x) nanmean(x),rawData);
+    steData= cellfun(@(x) nanstd(x)/sqrt(size(x,1)),rawData);
     f = figure;
     barplot2(plotData,steData,'YLabel',strrep(hitsStatsNames{i},'_',' '),...
         'XLabels',strrep(groupData.names,'_',' ' ),'Interpreter','none');
