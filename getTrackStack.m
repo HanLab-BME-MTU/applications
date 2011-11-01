@@ -4,15 +4,16 @@
 
 % Francois Aguet, Jan 26 2011 (last modified 10/26/2011)
 
-function [stack, dx, dy] = getTrackStack(data, track, varargin)
+function [stack, xa, ya] = getTrackStack(data, track, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
 ip.addParamValue('Reference', 'track', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
-ip.addParamValue('WindowWidth', 4, @isscalar);
+ip.addParamValue('WindowWidth', 8, @isscalar);
 ip.addParamValue('Buffer', 5, @isscalar);
+ip.addParamValue('Channels', []);
 ip.parse(data, track, varargin{:});
 buffer = ip.Results.Buffer;
 
@@ -43,29 +44,31 @@ mu_y = cellfun(@(s) round(mean(s,2)), yv, 'UniformOutput', false);
 mu_y = [mu_y{:}];
 mu_y = mu_y(mCh,:);
 
+
 if ns==1 && strcmpi(ip.Results.Reference, 'track') % align frames to track
-    xi = round(xv{1});
-    yi = round(yv{1});
+    xi = round(xv{1}(mCh,:));
+    yi = round(yv{1}(mCh,:));
     % ensure that window falls within frame bounds
-    x0 = xi - min(min(xi,[],2)-1,w,[],2);
-    x1 = xi + min(nx-max(xi,[],2),w,[],2);
-    y0 = yi - min(min(yi,[],2)-1,w,[],2);
-    y1 = yi + min(ny-max(yi,[],2),w,[],2);
-    dx = xv{1}-xi;
-    dy = yv{1}-yi;
+    
+    x0 = xi - min([xi-1 w]);
+    x1 = xi + min([nx-xi w]);
+    y0 = yi - min([yi-1 w]);
+    y1 = yi + min([ny-yi w]);
+    xa = arrayfun(@(i) x0(i):x1(i), 1:nf, 'UniformOutput', false);
+    ya = arrayfun(@(i) y0(i):y1(i), 1:nf, 'UniformOutput', false);
 else
-    x0 = repmat(max(1, min(mu_x)-w), [1 nf]);
-    x1 = repmat(min(data.imagesize(2), max(mu_x)+w), [1 nf]);
-    y0 = repmat(max(1, min(mu_y)-w), [1 nf]);
-    y1 = repmat(min(data.imagesize(1), max(mu_y)+w), [1 nf]);
-    dx = [];
-    dy = [];
+    x0 = max(1, min(mu_x)-w);
+    x1 = min(data.imagesize(2), max(mu_x)+w);
+    y0 = max(1, min(mu_y)-w);
+    y1 = min(data.imagesize(1), max(mu_y)+w);
+    xa = repmat({x0:x1}, [nf 1]);
+    ya = repmat({y0:y1}, [nf 1]);
 end
 
 % load all visible frames of this track and store
 for c = 1:nc
     for k = 1:nf
         frame = imread(data.framePaths{c}{k});
-        stack{c,k} = frame(y0(k):y1(k), x0(k):x1(k));
+        stack{c,k} = frame(ya{1}, xa{k});
     end
 end

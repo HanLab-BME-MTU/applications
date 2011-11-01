@@ -83,6 +83,8 @@ else
     set(h, 'Position', position, 'Visible', ip.Results.Visible);
     ha = axes('Position', [0 0 1 1]);
     standalone = true;
+    set(h,'DefaultLineLineSmoothing', 'on'); % points are not rendered !!
+    set(h,'DefaultPatchLineSmoothing', 'on');
 end
 
 %======================================

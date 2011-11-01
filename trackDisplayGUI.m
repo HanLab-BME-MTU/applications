@@ -723,13 +723,13 @@ if ~isempty(handles.selectedTrack)
     fprintf('Generating montage...');
     options = get(handles.montageOptions, 'String');
     
-    [stack, x, y] = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)),...
+    [stack, xa, ya] = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)),...
         'WindowWidth', 6, 'Reference', options{get(handles.montageOptions, 'Value')});
     
     if get(handles.montageCheckbox, 'Value')
-        plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray', 'TrackCoords', {x,y});
+        plotTrackMontage(stack, xa, ya, 'Labels', handles.data.markers, 'Mode', 'gray');
     else
-        plotTrackMontage(stack, 'Labels', handles.data.markers, 'Mode', 'gray');
+        plotTrackMontage(stack, xa, ya, 'Labels', handles.data.markers, 'Mode', 'gray');
     end
     fprintf(' done.\n');
 else
@@ -862,9 +862,10 @@ end
 
 h = handles.montageOptions;
 options = get(h, 'String');
-stack = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)), 'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
+[stack, xa, ya] = getTrackStack(handles.data, handles.tracks{handles.mCh}(handles.selectedTrack(1)),...
+        'WindowWidth', 5, 'Reference', options{get(h, 'Value')});
 fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
-plotTrackMontage(stack, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPath', fpath, 'Mode', 'gray');
+plotTrackMontage(stack, xa, ya, 'Labels', handles.data.markers, 'Visible', 'off', 'epsPath', fpath, 'Mode', 'gray');
 
 fprintf(' done.\n');
 

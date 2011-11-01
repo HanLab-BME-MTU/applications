@@ -14,6 +14,8 @@ function plotTrackMontage(inputCell, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('inputCell', @iscell);
+ip.addOptional('xa', []);
+ip.addOptional('ya', []);
 ip.addParamValue('FontName', 'Helvetica', @ischar);
 ip.addParamValue('FontSize', 14, @isscalar);
 ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
@@ -28,6 +30,17 @@ ip.parse(inputCell, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
 trackCoords = ip.Results.TrackCoords;
+
+xa = ip.Results.xa;
+ya = ip.Results.ya;
+if isempty(xa)
+    w = (size(inputCell{1,1},2)-1)/2;
+    xa = -w:w;
+end
+if isempty(ya)
+    w = (size(inputCell{1,1},1)-1)/2;
+    ya = -w:w;
+end
 
 
 
@@ -123,7 +136,6 @@ else
 end
 delete(ha);
 
-w = (size(inputCell{1,1},1)-1)/2;
 ha = zeros(nc,nf);
 set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible, 'ResizeFcn', {@resizeCallback});
 for rowi = 1:nr
@@ -134,12 +146,10 @@ for rowi = 1:nr
                 ha(c,fi) = axes('Units', 'pixels',...
                     'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
                     'XLim', [0 wxi], 'YLim', [0 wxi]);
-                imagesc([-w w], [-w,w], inputCell{c, fi}); axis off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
-                if ~isempty(trackCoords)
+                imagesc(xa{fi}, ya{fi}, inputCell{c, fi}); axis image off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                if ~isempty(trackCoords) && c==1
                     hold on;
-                    ci = min(c, size(trackCoords{1},1));
-                    plot(trackCoords{1}(ci,fi), trackCoords{2}(ci,fi), 'rx');
-                    
+                    plot(trackCoords{1}(:,fi), trackCoords{2}(:,fi), 'rx');
                 end
                 
                 if x==1 && rowi==1 && ~isempty(labels)
