@@ -11,7 +11,7 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
 ip.addParamValue('Reference', 'track', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
-ip.addParamValue('WindowWidth', 8, @isscalar);
+ip.addParamValue('WindowWidth', 5, @isscalar);
 ip.addParamValue('Buffer', 5, @isscalar);
 ip.addParamValue('Channels', []);
 ip.parse(data, track, varargin{:});
@@ -68,7 +68,7 @@ end
 % load all visible frames of this track and store
 for c = 1:nc
     for k = 1:nf
-        frame = imread(data.framePaths{c}{k});
-        stack{c,k} = frame(ya{1}, xa{k});
+        frame = imread(data.framePaths{c}{idx(k)});
+        stack{c,k} = frame(ya{k}, xa{k});
     end
 end
