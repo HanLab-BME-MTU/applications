@@ -7,7 +7,7 @@ ip.addRequired('dataMaster');
 ip.addRequired('dataSlave');
 ip.addParamValue('ChannelNames', {'Master', 'Slave'});
 ip.parse(dataMaster, dataSlave, varargin{:});
-
+chNames = ip.Results.ChannelNames;
 
 % add input checks to verify that all members are equal
 
@@ -83,16 +83,16 @@ lfont = {'FontName', 'Helvetica', 'FontSize', 24};
 
 figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
 hold on;
-fill([t t(end:-1:1)], [res.histSlave_Mean+res.histSlave_SEM res.histSlave_Mean(end:-1:1)-res.histSlave_SEM(end:-1:1)],...
+fill([res.t res.t(end:-1:1)], [res.histSlave_Mean+res.histSlave_SEM res.histSlave_Mean(end:-1:1)-res.histSlave_SEM(end:-1:1)],...
     slaveFillColor, 'EdgeColor', 'none');
 hp(2) = plot(res.t, res.histSlave_Mean, '-', 'Color', slaveColor, 'LineWidth', 3);
-fill([t t(end:-1:1)], [res.histMaster_Mean+res.histMaster_SEM res.histMaster_Mean(end:-1:1)-res.histMaster_SEM(end:-1:1)],...
+fill([res.t res.t(end:-1:1)], [res.histMaster_Mean+res.histMaster_SEM res.histMaster_Mean(end:-1:1)-res.histMaster_SEM(end:-1:1)],...
     masterFillColor, 'EdgeColor', 'none');
 hp(1) = plot(res.t, res.histMaster_Mean, '-', 'Color', masterColor, 'LineWidth', 3);
 axis([0 150 0 0.05]);
 set(gca, 'LineWidth', 2, 'YTick', 0:0.01:0.05, 'Layer', 'top', sfont{:});
 xlabel('Lifetime (s)', lfont{:});
 ylabel('Frequency', lfont{:});
-hl = legend(hp, ip.Results.ChannelNames);
+hl = legend(hp, chNames);
 set(hl, 'Box', 'off');
 
