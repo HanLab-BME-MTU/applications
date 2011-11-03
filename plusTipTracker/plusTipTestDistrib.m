@@ -26,6 +26,25 @@ function [discrimMat]=plusTipTestDistrib(groupData,saveDir,stringency,testID1,te
 %  
 % Maria Bagonis, April 2011
 % Sebastien Besson, Sep 2011
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
 
 % Input check
 ip=inputParser;
@@ -51,26 +70,63 @@ end
 distribNames = {'growth_speed';'fgap_speed';'bgap_speed';...
     'growth_lifetime';'fgap_lifetime';'bgap_lifetime';...
     'growth_displacement';'fgap_displacement';'bgap_displacement'};
-           
+
+
+
+
 % Fill the dataStruct structure array
+% remove any fields that cannot be compared because they 
+% do not subtracks in one of the groups for that param
+
 nGroups=length(groupData.names);
 dataStruct(nGroups,1)=struct();
+count = 1;
 for iGroup=1:nGroups
     M =  vertcat(groupData.M{iGroup}{:});
     for iDistrib=1:numel(distribNames)
         field=distribNames{iDistrib};
-        dataStruct(iGroup,1).(field)=M(~isnan(M(:,iDistrib)),iDistrib);
+       
+        data = M(~isnan(M(:,iDistrib)),iDistrib); 
+        dataStruct(iGroup,1).(field)=data;
+   
+        
+        if (isempty(data) || length(data) == 1)   
+           toremove{count,1} = field; 
+           count = count +1; 
+      
+        end 
+   
     end
+    
+    
 end
+
+
+    
+
 
 % Fill the testStruct structure with corresponding test
 for iDistrib = 1:numel(distribNames)
     testStruct.(distribNames{iDistrib}) = [testID1 testID2];
 end
 
+toremove = unique(toremove); 
+if ~isempty(toremove) 
+   
+   dataStruct=  rmfield(dataStruct,toremove); 
+   testStruct = rmfield(testStruct,toremove); 
+   
+end
+
+
 % run the test
 discrimMat=discriminationMatrix(dataStruct,testStruct);
 
+distribNames = fieldnames(testStruct); 
+
+if ~isempty(toremove)
+   discrimMat.NotEnoughTracksForAnalysis = toremove;
+end 
 % convert the matrices to cell arrays with labels
 hits={};
 for i=1:numel(distribNames)
