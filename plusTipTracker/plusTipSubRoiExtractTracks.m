@@ -250,15 +250,15 @@ elseif onlyInitiate == 1 % include those tracks with subtrack initiation sites i
     yMatIn = yMatFirst; 
     
     if onlyNuc ==1 
-        x = 'Nucleated';
-        y = 'Nucleated in Other Regions OR Not a Nucleation Event';
+        x = ' Nucleated ';
+        y = ' Nucleated in Other Regions OR Not a Nucleation Event ';
     else 
-        x = 'Initiated';
-        y = 'Initiated in Other Regions';
+        x = ' Initiated ';
+        y = ' Initiated in Other Regions ';
     end 
     
     forTitle1 = ['subTracks', x,  'In SubRoi: Included in Analyis (Red and Pink)'];
-    forTitle2 = ['subTracks' y, 'Not Included in Analysis (Green) ']; 
+    forTitle2 = ['subTracks', y, ':Not Included in Analysis (Green) ']; 
     forTitle3 = ['subTracks', x,  'AND Terminated In SubRoi: Included in Analysis (Pink)'];
     filename = 'subTracksInitiatedInSubRoiRedAndPink_plusSubTracksInitiatedInOtherRegionsGreen';
     
@@ -300,18 +300,18 @@ end
     end
     
     
-    collectedDataPathTracks = [collectedDataPath filesep sub filesep projName filesep 'subRoiGrowthTracks'];
+    collectedDataPathTracks = [collectedDataPath filesep sub filesep 'subRoiGrowthTracks'];
     if exist(collectedDataPathTracks,'dir') == 0;
         mkdir(collectedDataPathTracks); 
     end 
     
-    if exist([collectedDataPath filesep 'tifs'],'dir') == 0
-        mkdir([collectedDataPath filesep 'tifs']);
-        mkdir([collectedDataPath filesep 'eps']); 
+    if exist([collectedDataPathTracks filesep 'tifs'],'dir') == 0
+        mkdir([collectedDataPathTracks filesep 'tifs']);
+        mkdir([collectedDataPathTracks filesep 'eps']); 
     end 
     
-    saveas(gcf,[collectedDataPathTracks filesep 'tifs' filesep filename '.tif']);
-    saveas(gcf,[collectedDataPathTracks filesep 'eps' filesep filename '.eps'],'psc2'); 
+    saveas(gcf,[collectedDataPathTracks filesep 'tifs' filesep projName '.tif']);
+    saveas(gcf,[collectedDataPathTracks filesep 'eps' filesep projName '.eps'],'psc2'); 
  end % if collectPlots
  close(gcf); 
 
@@ -372,7 +372,7 @@ else % get those tracks located within the subregion based with a given
     end
     
     
-    collectedDataPathTracks = [collectedDataPath filesep sub filesep projName filesep 'subRoiGrowthTracks'];
+    collectedDataPathTracks = [collectedDataPath filesep sub filesep 'subRoiGrowthTracks'];
     if exist(collectedDataPathTracks,'dir') == 0;
         mkdir(collectedDataPathTracks); 
     end 
@@ -594,8 +594,12 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Calculate Median Nearest Neighbor For SubRoi  
+% Calculate Median Nearest Neighbor For SubRoi 
+
  [numSubTracks numFrames] = size(xMatIn);
+ if (isempty(xMatIn) || numSubTracks == 1)
+     projData.stats.medNNdistWithinFrameMic = NaN; 
+ else  
   NNdist=nan(length(xMatIn(:,1))*numFrames,1);
     count=1;
    
@@ -615,7 +619,7 @@ end
     end
 
     projData.stats.medNNdistWithinFrameMic = nanmedian(NNdist)*projData.pixSizeNm/1000; 
-
+ end 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -810,8 +814,9 @@ end
 
 
 % Make Histograms
-
+if projData.nTracks ~= 0 
 plusTipMakeHistograms(M,[subRoiDir filesep 'meta' filesep 'histograms']);
+
 %%
 %Calculate Polarity Plots for Growth Tracks In SubRoi (uses projData.xCoord/projData.yCoord)
 
@@ -847,6 +852,7 @@ yCoordInside = yMatIn.*IN;
 [anglesFinalInside,subTrackAnglesIndMeanInside] = plusTipPlotTrackAngles2(xCoordInside,yCoordInside); 
 
 
+
 projData.subTrackAnglesIndMean_INSIDE_REGION = [dataTotROI(dataTotROI(:,5)==1,1),subTrackAnglesIndMeanInside]; 
 
 projData.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION= nanmean(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2)); 
@@ -868,16 +874,19 @@ if collectPlots == 1
     
     if ~exist([collectedDataPathPolarity filesep 'tifs'],'dir') == 1
         mkdir([collectedDataPathPolarity filesep 'tifs']); 
+    end 
+    if ~exist([collectedDataPathPolarity filesep 'eps'],'dir') == 1
+       
         mkdir([collectedDataPathPolarity filesep 'eps']);
     end 
     saveas(saveFig1,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogram.tif']); 
     saveas(saveFig2,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogrameInside.tif']); 
     saveas(saveFig1,[collectedDataPathPolarity filesep 'eps' filesep projName 'angles_histogram.eps'], 'psc2');
-    saveas(saveFig2,[collectedDataPath filesep 'eps' filesep projName 'angles_histogramInside.eps'], 'psc2');
+    saveas(saveFig2,[collectedDataPathPolarity filesep 'eps' filesep projName 'angles_histogramInside.eps'], 'psc2');
 end 
 close(saveFig1)
 close(saveFig2)
-
+end 
 %test = figure; 
  %imshow(roiMask); 
  %hold on; 
