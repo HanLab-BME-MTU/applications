@@ -110,7 +110,7 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 output(1).name='Activity map';
             end
             output(1).var='avg';
-            output(1).formatData=[];
+            output(1).formatData=@(x) permute(x,[1 3 2]);
             output(1).type='graph';
             output(1).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap','jet',...
                 'CLim',obj.getIntensityLimits(x),'Labels',{'Frame number','Window depth','Window number'});
