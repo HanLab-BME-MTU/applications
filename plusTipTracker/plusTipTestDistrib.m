@@ -110,9 +110,9 @@ for iDistrib = 1:numel(distribNames)
     testStruct.(distribNames{iDistrib}) = [testID1 testID2];
 end
 
-toremove = unique(toremove); 
+
 if ~isempty(toremove) 
-   
+   toremove = unique(toremove); 
    dataStruct=  rmfield(dataStruct,toremove); 
    testStruct = rmfield(testStruct,toremove); 
    
