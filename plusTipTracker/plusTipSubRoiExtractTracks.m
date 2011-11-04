@@ -34,7 +34,7 @@ onlyInitiate = 0; % Value of 1: Flag to bypass the GUI options and select
 % Value of 0 will use the settings specified in the
 % plusTipGroupAnalysis GUI for subdividing all subtracks types
 
-onlyNuc = 1;% value of 1: Flag to bypass the GUI options and select
+onlyNuc = 0;% value of 1: Flag to bypass the GUI options and select
 % only those SUBTRACKS that are NUCLEATED (ie the first point of their 
 % growth track is within the given subregion and NOT after a bgap or fgap). 
 % Subdivision of bgap and
@@ -45,7 +45,7 @@ onlyNuc = 1;% value of 1: Flag to bypass the GUI options and select
 
 remBegEnd = 1; % Value of 1 will remove tracks from the beginning and end
 
-collectPlots = 1; % collect all subRoi track plots in one folder (series of 
+collectPlots = 0; % collect all subRoi track plots in one folder (series of 
 %tifs that can be read into imagej for easy viewing of each cell). 
 
 %% Check Input
