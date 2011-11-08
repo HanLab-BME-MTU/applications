@@ -42,7 +42,8 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
                 @(x) ismember(x,1:obj.owner_.nFrames_));
              ip.addParamValue('output','MPM',@(x) all(ismember(x,outputList)));
              ip.parse(obj,iChan,varargin{:})
-
+             iFrame=ip.Results.iFrame;
+             
              % Data loading
              output = ip.Results.output;
              if ischar(output), output = {output}; end
@@ -51,13 +52,17 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
              for i=1:numel(output), varargout{i}=s.(output{i}); end
              
              % If single frame is selected
-             if numel(ip.Results.iFrame)==1
+             if numel(iFrame)==1
                  for i=1:numel(output)
                      switch output{i}
                          case 'M'
-                             varargout{i}=varargout{i}(:,:,ip.Results.iFrame);
+                             varargout{i}=varargout{i}(:,:,iFrame);
+                         case 'MPM'
+                             index = all(varargout{i}(:,2*iFrame-1:2*iFrame),2)~=0;
+                             varargout{i}=varargout{i}(index,1:2*iFrame);    
+                             
                          case {'flow','gapList'}
-                             varargout{i}=varargout{i}{ip.Results.iFrame};
+                             varargout{i}=varargout{i}{iFrame};
                      end
                  end
              end
@@ -82,18 +87,25 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
         
          function output = getDrawableOutput(obj)
             colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Tracks';
+            output(1).name='Frame to frame displacement';
             output(1).var='M';
-            output(1).formatData=@formatTracks;
+            output(1).formatData=@(x) [x(all(x(:,[1 3])~=0,2),[2 1])...
+                x(all(x(:,[1 3])~=0,2),[4 3])-x(all(x(:,[1 3])~=0,2),[2 1])];
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x)...
-                VectorFieldDisplay('Color',colors(x,:));
+                 VectorFieldDisplay('Color',colors(x,:));
             output(2).name='Interpolated flow';
             output(2).var='flow';
             output(2).formatData=@formatFlow;
             output(2).type='overlay';
             output(2).defaultDisplayMethod=@(x)...
                 VectorFieldDisplay('Color',colors(x,:));
+            output(3).name='Tracks';
+            output(3).var='MPM';
+            output(3).formatData=@formatTracks;
+            output(3).type='overlay';
+            output(3).defaultDisplayMethod=@(x)...
+                TracksDisplay('Color',colors(x,:),'showLabel',false);
         end
 
     end
@@ -130,7 +142,10 @@ end
 end
 
 
-function y=formatTracks(x)
-ind = (x(:,1)~=0 & x(:,3)~=0);
-y=[x(ind,[2 1]) x(ind,[4 3])-x(ind,[2 1])];
+function fdata=formatTracks(data)
+trackStart=arrayfun(@(x) find(data(x,:)==0,1,'last')+1,1:size(data,1),'Uniformout',false);
+trackStart(cellfun(@isempty,trackStart))={1};
+trackStart = [trackStart{:}];
+fdata.x=arrayfun(@(x,y)data(x,y+1:2:end),1:size(data,1),trackStart,'UniformOutput',false);
+fdata.y=arrayfun(@(x,y)data(x,y:2:end),1:size(data,1),trackStart,'UniformOutput',false);
 end
