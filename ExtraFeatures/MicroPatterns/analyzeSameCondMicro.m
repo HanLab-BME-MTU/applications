@@ -1,4 +1,4 @@
-function [ output_args ] = analyzeSameCondMicro(statDir,doBtw,doWtn,doPlot,removeBeginEnd,HPattern,numWindows,windowSize)
+function [ output_args ] = analyzeSameCondMicro(statDir,doWtn,doPlot,removeBeginEnd,HPattern,numWindows,windowSize)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -14,10 +14,11 @@ groupListDir = [statDir filesep 'groupLists'];
 % Make Directories for Analysis
 
 analSaveDir1 = [ statDir filesep 'CompareBtwRegionTypes'];
-mkdir(analSaveDir1);
+if ~isdir(analSaveDir1); mkdir(analSaveDir1); end 
 
 analSaveDir2 = [statDir filesep 'CompareWindowsWithinRegionType'];
-mkdir(analSaveDir2);
+if ~isdir(analSaveDir2); mkdir(analSaveDir2); end 
+
 
 
 
@@ -36,7 +37,7 @@ end
 for iWindow = 1:numWindows
 
     saveDir = [analSaveDir1 filesep num2str(iWindow*windowSize) '_uM'];
-    mkdir(saveDir);
+    if ~isdir(saveDir);  mkdir(saveDir); end
     
     
     
@@ -45,7 +46,9 @@ for iWindow = 1:numWindows
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList,saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
+    groupData = plusTipExtractGroupData(groupList,removeBeginEnd); 
+    
+  plusTipPoolGroupData(groupData,saveDir, doWtn, doPlot); 
     
     
     % Collect Data
@@ -54,57 +57,7 @@ for iWindow = 1:numWindows
     
     [statsCellGS,statsCellFG, statsCellBG] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
     
-    
-    %Perform Statistical Tests
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1:(nRows-1)
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end 
-    
-  zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
+  
     
     
     
@@ -128,7 +81,7 @@ for iWindow = 1:numWindows
     end
     
     
-    
+    plusTipTestDistrib(groupData,saveDir,0.005,20,21); 
     
     
     
@@ -137,14 +90,17 @@ for iWindow = 1:numWindows
 end % end for iWindows
 
 saveDir = [analSaveDir1 filesep 'GreaterThan_' num2str(numWindows*windowSize) 'uM' ];
-mkdir(saveDir);
+if ~isdir(saveDir);
+    mkdir(saveDir) ;end ;
 
  %Load GroupList
     groupList = load([groupListDir filesep 'groupListCompareBtwRegionTypes_GreaterThan' num2str(numWindows*windowSize) 'uM.mat']);
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
+    groupData = plusTipExtractGroupData(groupList,removeBeginEnd ); 
+    
+    plusTipPoolGroupData(groupData, saveDir, doWtn, doPlot); 
     
    
     
@@ -152,60 +108,9 @@ mkdir(saveDir);
    
     
     
-    [ statsCellGS, statsCellFG, statsCellBG, stats ] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
+    [ statsCellGS, statsCellFG, statsCellBG ] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
     
-    
-    %Perform Statistical Tests
-    
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1: nRows-1
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end 
-    
-   zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
+  plusTipTestDistrib(groupData,saveDir,0.005,20,21); 
     
     
     meanValueGS = statsCellGS(2:(length(regionTypes)+1),4);
@@ -234,8 +139,10 @@ for iRegionType= 1:length(regionTypes)
     
     % Collect Data
    
+    
     saveDir = [analSaveDir2 filesep char(regionTypes{iRegionType})];
-    mkdir(saveDir);
+    if ~isdir(saveDir) ; 
+    mkdir(saveDir); end
     
     
 
@@ -246,7 +153,9 @@ for iRegionType= 1:length(regionTypes)
     
     
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
+    groupData = plusTipExtractGroupData(groupList,removeBeginEnd); 
+    
+    plusTipPoolGroupData(groupData, saveDir, doWtn, doPlot); 
     
     
     [ statsCellGS, statsCellFG, statsCellBG] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
@@ -254,56 +163,9 @@ for iRegionType= 1:length(regionTypes)
     
     %Perform Statistical Tests
     
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1: nRows-1
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end
-    
-    zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
-    
+   plusTipTestDistrib(groupData,saveDir,0.005,20,21); 
+   
+   
     
     
 end % end for iRegionType
