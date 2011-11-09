@@ -6,6 +6,25 @@ function plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,ti
 % Crazy Dirty Code for Generating SubRois, Segregating Stats, and Performing Analysis for Mijungs Micropatterns 
 % MB 04-2011 (NOTE super inefficient but gets the job done) 
 %% PARAMETERS
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
 
 % Choose H or Y Pattern 
 % HPattern = 0 is YPattern (ie Default is YPattern)
@@ -25,14 +44,14 @@ HPattern = 1;
  
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'SUBROIS_3um_SubRois_TargetedToRegion_MB_07_23';
-analysisFolderName = 'ANALYSIS_3um_SubRois_TargetedToRegion_MB_07_23';
+subRoiFolderName = 'SUBROIS_3um_TargetedToRegion_MB_11_08';
+analysisFolderName = 'ANALYSIS_3um_TargetedToRegion_MB_11_08';
 
 %%% Choose if want to also perform analysis 
 doAnalysis = 1; % set this to 1 to "turn-on" anlaysis 
 
 %Parameters for Pooled Analysis 
-doBtw = 1; % set to 1 to perform between Group Comparisons 
+doBtw = 0; % set to 1 to perform between Group Comparisons 
 % Here we are comparing different subRegions within the same condition.
 doWtn = 0; % set to 1 to perform within Group Comparisons: set to 1 if you want to take a look 
 % at the variability between the individual subregions before pooling
@@ -144,7 +163,7 @@ for iProj=1:nProj
   
     subanDir=[anDir filesep subRoiFolderName];
    
-    if isdir(subanDir)
+    if isdir(subanDir) ==1 
         rmdir(subanDir,'s')
     end 
         mkdir(subanDir);
@@ -779,6 +798,8 @@ for iProj=1:nProj
     % iterate til the user is finished
     makeNewROI=1; % flag for making new roi
     while makeNewROI==1
+        
+        
         % make new roi_n image/analysis directories
         % string for number of files
 
@@ -786,6 +807,8 @@ for iProj=1:nProj
         mkdir(currentRoiAnDir);
         mkdir([currentRoiAnDir filesep 'meta']);
         mkdir([currentRoiAnDir filesep 'feat']);
+        dir{roiCount} = currentRoiAnDir; 
+        
 
         %copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
         [a,b,c]=copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo1.mat']);
@@ -866,9 +889,11 @@ for iProj=1:nProj
         n=length(projList);
         projList(n+1,1).imDir=imDir;
         projList(n+1,1).anDir=currentRoiAnDir;
+        
+   
 
     end % while makeNewROI==1
-
+    subDirList{iProj} = dir';
 
     % plot old sub-roi boundaries in white and new ones in color
     % add a number to center of each sub-roi to show sub-roi number
@@ -893,7 +918,7 @@ for iProj=1:nProj
         currentRoiAnDir=[subanDir filesep 'sub_' num2str(iRoi)];
         tempRoiMask=imread([currentRoiAnDir filesep 'roiMask.tif']);
         roiYX=load([currentRoiAnDir filesep 'roiYX.mat']); roiYX=roiYX.roiYX;
-
+         
         plot(roiYX(:,2),roiYX(:,1),'Color',cMap(max(1,mod(iRoi,10)),:));
 
         % make weighted mask using distance transform to find position
@@ -919,10 +944,10 @@ for iProj=1:nProj
     close(h)
 
     % create updated projList for the roi_x folder containing all the sub-projects
-    cd('..')
-    getProj(pwd);
+    %cd('..')
+    %getProj(pwd);
     
-    save([subanDir filesep 'projListSubRois'],'projList');
+    % save([subanDir filesep 'projListSubRois'],'projList');
 end % for iProj
 
 else % skip above if just extract tracks is turned on
@@ -935,12 +960,13 @@ end % if justExtractTracks
 
 %% Partition The Data for Each Sub-Roi
 
-
+projCell = vertcat(subDirList{:}); 
 
 
 % look for repeats and only extract from unique sub-rois
-subDirList=projList2Cell(projList);
-projCell=unique(subDirList(:,1));
+%subDirList=projList2Cell(projList);
+%projCell=unique(subDirList(:,1));
+
 nProj=length(projCell);
 progressText(0,'Extracting tracks from Sub-ROIs');
 for iProj=1:nProj
@@ -963,7 +989,7 @@ end
     else 
     end 
       mkdir(statDir);
-   
+   save([statDir filesep 'projCellSubRois'],'projCell'); 
  
     %Make GroupLists for Each Type of Window   
     %for all types of windows make a groupList combining all projects
@@ -1509,70 +1535,15 @@ for iWindow = 1:numWindows
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList,saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
-    
+    groupData = plusTipExtractGroupData(groupList,removeBeginEnd); 
+    save([saveDir filesep 'groupData'], 'groupData'); 
+    plusTipPoolGroupData(groupData, saveDir, doWtn, doPlot); 
     
     % Collect Data
    
-   
-    
     [statsCellGS,statsCellFG, statsCellBG] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
     
-    
-    %Perform Statistical Tests
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1:(nRows-1)
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end 
-    
-  zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
-    
-    
-    
-    
+    plusTipTestDistrib(groupData,saveDir,0.005,20,21);
     
     meanValueGS = statsCellGS(2:(length(regionTypes)+1),4);
     meanValueGL = statsCellGS(2:(length(regionTypes)+1),6);
@@ -1608,7 +1579,10 @@ mkdir(saveDir);
     
     groupList = groupList.groupList;
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
+    [groupData] = plusTipExtractGroupData(groupList,removeBeginEnd); 
+    save([saveDir filesep 'groupData'],'groupData'); 
+    
+    plusTipPoolGroupData(groupData, saveDir, doWtn, doPlot); 
     
    
     
@@ -1616,60 +1590,12 @@ mkdir(saveDir);
    
     
     
-    [ statsCellGS, statsCellFG, statsCellBG, stats ] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
+   [ statsCellGS, statsCellFG, statsCellBG, stats ] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
     
     
     %Perform Statistical Tests
     
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1: nRows-1
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end 
-    
-   zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
+   plusTipTestDistrib(groupData,saveDir,0.005,20,21); 
     
     
     meanValueGS = statsCellGS(2:(length(regionTypes)+1),4);
@@ -1710,73 +1636,21 @@ for iRegionType= 1:length(regionTypes)
     
     
     %Perform Pooling of Data
-    [groupData] = plusTipPoolGroupData(groupList, saveDir, doBtw, doWtn, doPlot, removeBeginEnd); 
+    groupData = plusTipExtractGroupData(groupList,removeBeginEnd); 
+    save([saveDir filesep 'groupData'],'groupData')
+    plusTipPoolGroupData(groupData, saveDir, doWtn, doPlot); 
     
     
     [ statsCellGS, statsCellFG, statsCellBG] = plusTipGetStats(saveDir,'stats',groupData,[],1,1,1,0);
     
     
-    %Perform Statistical Tests
-    
-    [nRows nCols] = size(statsCellBG);
-    
-    zeroBGaps = 0;
-    
-    for i = 1: nRows-1
-          if cell2mat(statsCellBG(1+i,2)) == 0 
-              zeroBGaps = 1 ;
-          else 
-          end 
-    end
-    
-    zeroFGaps = 0 ;
-    for i = 1: nRows-1
-        if cell2mat(statsCellFG(1+i,2)) == 0 
-            zeroFGaps = 1; 
-        else 
-        end 
-    end 
-    
-    if zeroBGaps == 1  && zeroFGaps == 0
-            params{1,1} = 'gs';
-            params{1,2} = 'fs';
-            params{1,3} = 'gl';
-            params{1,4} = 'fl';
-            params{1,5} = 'gd';
-            params{1,6} = 'fd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-    
-        elseif zeroFGaps ==1 && zeroBGaps == 0
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'bs';
-            params{1,3} = 'gl';
-            params{1,4} = 'bl';
-            params{1,5} = 'gd';
-            params{1,6} = 'bd';
-        
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,params);
-        
-        elseif zeroFGaps == 1 && zeroBGaps == 1 
-        
-            params{1,1} = 'gs';
-            params{1,2} = 'gl';
-            params{1,3} = 'gd';
-        
-        else 
-            [discrimMat] = plusTipTestDistrib(saveDir,groupData,[]);
-    end 
-    
+   %Perform Statistical Tests
+   plusTipTestDistrib(groupData,saveDir,0.005,20,21); 
     
     
 end % end for iRegionType
 
         
-     
-else % don't do analysis
-
-    
 end % end if doAnalysis
     
 
