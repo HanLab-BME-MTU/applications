@@ -44,8 +44,6 @@ if feature('ShowFigureWindows')
 end
 
 % Reading various constants
-imDirs  = movieData.getChannelPaths;
-imageFileNames = movieData.getImageFileNames;
 nFrames = movieData.nFrames_;
 
 % Test the presence and output validity of the speckle tracking process
@@ -99,7 +97,6 @@ disp('Starting analyzing flow...')
 fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
 numStr = @(frame) num2str(frame,fString);
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 logMsg = @(chan) ['Please wait, analyzing flow for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'flowMaps_' numStr(frame) '.mat'];
 
@@ -115,7 +112,7 @@ for iChan = p.ChannelIndex
     stack=zeros([movieData.imSize_ nFrames]);
     for j = 1:nFrames
         mask(:,:,j) = logical(imread(inMask(j)));
-        stack(:,:,j) = double(imread(inImage(iChan,j)));
+        stack(:,:,j) = movieData.channels_(iChan).loadImage(j);
     end
     
    
@@ -123,14 +120,17 @@ for iChan = p.ChannelIndex
     % Replace fsmTrackFillSpeckleList
     if ishandle(wtBar), waitbar(0,wtBar,'Loading tracks...'); end
     M = specTrackProc.loadChannelOutput(iChan,'output','M'); 
-    replicateFrames = @(x) [repmat(x(1),1,fix(p.timeWindow/2)) x ...
-        repmat(x(end),1,fix(p.timeWindow/2)+1)];
     
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,'Interpolating flow...'); end
     [Mv,Md,Ms,E,S] = ...
         analyzeFlow(M,p.timeWindow,p.corrLength,...
         'interpolate',p.interpolate,'noise',p.noise,'error',p.error);
+    
+    
+    % Repliacte frames
+    replicateFrames = @(x) [repmat(x(1),1,fix(p.timeWindow/2)) x ...
+        repmat(x(end),1,fix(p.timeWindow/2)+1)];
     Md=replicateFrames(Md); %#ok<NASGU>
     Ms=replicateFrames(Ms); %#ok<NASGU>
     E=replicateFrames(E);

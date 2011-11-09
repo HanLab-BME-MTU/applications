@@ -49,6 +49,7 @@ end
 
 % Reading various constants
 nFrames = movieData.nFrames_;
+nChan = numel(movieData.channels_);
 
 % Test the presence and output validity of the speckle detection process
 iSpecProc =movieData.getProcessIndex('SpeckleDetectionProcess',1,1);     
@@ -65,7 +66,7 @@ if ~specDetProc.checkChannelOutput(p.ChannelIndex)
 end
     
 % Set up the input directories
-inFilePaths = cell(1,1:numel(movieData.channels_));
+inFilePaths = cell(1,nChan);
 for j = p.ChannelIndex
     inFilePaths{1,j} = specDetProc.outFilePaths_{1,j};
 end
@@ -89,7 +90,7 @@ end
 specTrackProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outFilePaths_=cell(1,1:numel(movieData.channels_));
+outFilePaths_=cell(1,nChan);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outputDir = [p.OutputDirectory filesep 'tracks_for_channel_' num2str(i)];
@@ -229,6 +230,3 @@ switch method
         flow(isnanIndx,:) = vectorFieldInterp(flow(~isnanIndx,:),...
             flow(isnanIndx,1:2),corLen,[]);
 end
-
-
-

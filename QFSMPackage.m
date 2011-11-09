@@ -21,14 +21,14 @@ classdef QFSMPackage < Package
 
         function [status processExceptions] = sanityCheck(obj,varargin) 
             
-            % Check that the channels have a psf function
+            % Check that the channels have a value for the spsf sigma
             psfSigmaCheck =arrayfun(@(x)isempty(x.psfSigma_),obj.owner_.channels_);
             if any(psfSigmaCheck)
                 error(['Missing standard deviation of the theoretical point-spread function! '...
                     'Please fill the numerical aperture, pixel size and'...
                     ' emission wavelengths!']);            
             end
-            % Check that the 
+            % Check that the time interval is correctly setup
             if isempty(obj.owner_.timeInterval_)
                 error('Missing frame rate! Please fill the time interval!');            
             end
@@ -46,10 +46,10 @@ classdef QFSMPackage < Package
                 0 0 0 0 0 0 0 0;   %2 ThresholdProcess
                 0 1 0 0 0 0 0 0;   %3 MaskRefinementProcess
                 2 0 1 0 0 0 0 0;   %4 SpeckleDetectionProcess
-                0 0 0 1 0 0 0 0;   %5 FlowTrackingProcess
+                0 0 1 1 0 0 0 0;   %5 FlowTrackingProcess
                 0 0 0 1 2 0 0 0;   %6 SpeckleTrackingProcess
-                0 0 0 0 0 1 0 0;   %7 KineticAnalysisProcess
-                0 0 0 0 0 1 0 0;]; %8 FlowAnalysisProcess
+                2 0 1 1 0 1 0 0;   %7 KineticAnalysisProcess
+                0 0 1 0 0 1 0 0;]; %8 FlowAnalysisProcess
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);

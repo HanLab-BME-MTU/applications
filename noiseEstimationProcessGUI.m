@@ -63,7 +63,7 @@ userData_main = get(userData.mainFig, 'UserData');
 userData.imageFileNames = userData_main.MD(userData_main.id).getImageFileNames();
 userData.imDirs  = userData_main.MD(userData_main.id).getChannelPaths();
 userData.nFrames = userData_main.MD(userData_main.id).nFrames_;
-userData.imRectHandle =[];
+userData.imRectHandle.isvalid=0;
 userData.firstImage = funParams.firstImage;
 userData.lastImage = funParams.lastImage;
 userData.cropROI = funParams.cropROI;
@@ -116,13 +116,10 @@ if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
 end
 
-if isfield(userData, 'previewFig') && ishandle(userData.previewFig)
-   delete(userData.previewFig) 
-end
+if ishandle(userData.previewFig), delete(userData.previewFig); end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
-
 
 % --- Executes on key press with focus on pushbutton_done and none of its controls.
 function pushbutton_done_KeyPressFcn(~, eventdata, handles)
@@ -168,12 +165,15 @@ end
 if (chanIndx~=userData.chanIndx) ||  (imIndx~=userData.imIndx)
     userData.imData=mat2gray(imread([userData.imDirs{chanIndx} filesep...
         userData.imageFileNames{chanIndx}{imIndx}]));
-    try
-        userData.cropROI(userData.chanIndx,:)=getPosition(userData.imRectHandle);
-    end
     userData.updateImage=1;
     userData.chanIndx=chanIndx;
     userData.imIndx=imIndx;
+    
+    % Update ROI
+    if userData.imRectHandle.isvalid
+        userData.cropROI=getPosition(userData.imRectHandle);
+    end
+    
 else
     userData.updateImage=0;
 end
@@ -182,7 +182,7 @@ end
 if get(handles.checkbox_crop,'Value')
     % Create figure if non-existing or closed
     if ~isfield(userData, 'previewFig') || ~ishandle(userData.previewFig)
-        userData.previewFig = figure('Name','Select the region to crop',...
+        userData.previewFig = figure('Name','Select the background region to crop',...
             'DeleteFcn',@close_previewFig,'UserData',handles.figure1);
         userData.newFigure = 1;
     else
@@ -191,28 +191,34 @@ if get(handles.checkbox_crop,'Value')
     end
     
     % Retrieve the image object handle
-    imHandle =get(get(userData.previewFig,'Children'),'Children');
-    if userData.newFigure || userData.updateImage || isempty(imHandle)
-        imHandle=imshow(userData.imData);
-        axis off;
+    imHandle = findobj(userData.previewFig,'Type','image');
+    if userData.newFigure || userData.updateImage 
+        if isempty(imHandle)
+            imHandle=imshow(userData.imData);
+            axis off;
+        else
+            set(imHandle,'CData',userData.imData);
+        end
     end
         
-    try
+
+   if userData.imRectHandle.isvalid
         % Update the imrect position
         setPosition(userData.imRectHandle,userData.cropROI(userData.chanIndx,:))
-    catch 
+   else 
         % Create a new imrect object and store the handle
         userData.imRectHandle = imrect(get(imHandle,'Parent'),userData.cropROI(userData.chanIndx,:));
         fcn = makeConstrainToRectFcn('imrect',get(imHandle,'XData'),get(imHandle,'YData'));
         setPositionConstraintFcn(userData.imRectHandle,fcn);
     end
 else
-    if isfield(userData, 'previewFig') && ishandle(userData.previewFig)
-        try
-            userData.cropROI(userData.chanIndx,:)=getPosition(userData.imRectHandle);
-        end
-        delete(userData.previewFig);
+    if userData.imRectHandle.isvalid, 
+        userData.cropROI(userData.chanIndx,:)=getPosition(userData.imRectHandle);
     end
+    
+    % Close the figure if applicable
+    if ishandle(userData.previewFig), delete(userData.previewFig); end
+    
 end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
@@ -282,15 +288,12 @@ if isempty(get(handles.listbox_selectedChannels, 'String'))
     return;
 end
 
+channelIndex = get (handles.listbox_selectedChannels, 'Userdata');
+funParams.ChannelIndex = channelIndex;
+
 % Process Sanity check ( only check underlying data )
 userData = get(handles.figure1, 'UserData');
 
-% Close cropping figure if applicable
-if ishandle(userData.previewFig), 
-    delete(userData.previewFig); 
-    % Reload cropRoi value
-    userData = get(handles.figure1, 'UserData');
-end
 try
     userData.crtProc.sanityCheck;
 catch ME
@@ -301,11 +304,13 @@ catch ME
 end
 
 % Retrieve GUI-defined parameters
-channelIndex = get (handles.listbox_selectedChannels, 'Userdata');
-funParams.ChannelIndex = channelIndex;
+if userData.imRectHandle.isvalid
+    userData.cropROI=getPosition(userData.imRectHandle);
+end
 funParams.cropROI=userData.cropROI;
 funParams.firstImage=userData.firstImage;
 funParams.lastImage=userData.lastImage;
+
 % Save the filterSigma if different from psfSigma
 % In order not to override filterSigma in batch movie set up
 if ~isequal(userData.filterSigma,[userData.MD.channels_.psfSigma_])

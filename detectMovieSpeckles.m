@@ -48,19 +48,18 @@ end
 
 % Reading various constants
 imDirs  = movieData.getChannelPaths;
-imageFileNames = movieData.getImageFileNames;
 bitDepth = movieData.camBitdepth_;
 nFrames = movieData.nFrames_;
 maxIntensity =(2^bitDepth-1);
 
 %Find the required segmentation process
-iSegProc =movieData.getProcessIndex('MaskRefinementProcess',1,1); 
-if isempty(iSegProc)
+iMaskProc =movieData.getProcessIndex('MaskRefinementProcess',1,1); 
+if isempty(iMaskProc)
     error(['Mask refinement have not yet been performed '...
     'on this movie! Please run first!!']);
 end
 
-segProc = movieData.processes_{iSegProc};
+segProc = movieData.processes_{iMaskProc};
 if ~all(segProc.checkChannelOutput(p.MaskChannelIndex))
     error(['Mask refinement has not been run for all selected channels! '...
         'Please apply segmentation before running correlation!']);
@@ -81,7 +80,7 @@ if length(p.MaskChannelIndex) >1
     
     %Set up the parameters for mask transformation
     maskIntParams.ChannelIndex = p.MaskChannelIndex;
-    maskIntParams.SegProcessIndex = iSegProc;
+    maskIntParams.SegProcessIndex = iMaskProc;
     
     parseProcessParams(maskIntProc,maskIntParams);
     maskIntProc.run;
@@ -133,8 +132,8 @@ disp('Starting detecting speckles...')
 %Format string for zero-padding file names
 fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
 numStr = @(frame) num2str(frame,fString);
+
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 outFile=@(chan,frame) [outputDir{chan} filesep 'cands_' numStr(frame) '.mat'];
 inMask=@(frame) [maskDir filesep maskNames{1}{frame}];
 
@@ -163,7 +162,7 @@ for i = 1:numel(p.ChannelIndex)
     allcands=[];
     for j= 1:nFrames
         % Load the current image, scale it and apply Gaussian filter
-        currImage = double(imread(inImage(iChan,j)))/maxIntensity; 
+        currImage = movieData.channels_(iChan).loadImage(j)/maxIntensity; 
         if p.filterSigma(iChan)>0
             currImage = filterGauss2D(currImage,p.filterSigma(iChan));
         end

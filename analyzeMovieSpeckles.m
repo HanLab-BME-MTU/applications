@@ -43,6 +43,7 @@ if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',kinProc.getName());
     wtBarArgs={'waitbar',wtBar};
 else
+    wtBar=-1;
     wtBarArgs={};
 end
 

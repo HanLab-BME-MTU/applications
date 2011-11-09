@@ -27,6 +27,13 @@ function [I0,sDN,GaussRatio]=calculateStackNoiseParam(stack,bitDepth,sigma)
 %
 % Copied from fsmCalcNoiseParam
 
+% Input check
+ip =inputParser;
+ip.addRequired('stack',@isnumeric);
+ip.addRequired('bitDepth',@isscalar);
+ip.addRequired('sigma',@isscalar);
+ip.parse(stack,bitDepth,sigma);
+
 % Normalization boundaries
 mx=2^bitDepth-1;
 mn=0;
@@ -68,12 +75,11 @@ end
 border=3*fix(sigma)+1;
 
 % Initialize vector
-L=size(stack,3);
-GaussRatios=zeros(1,L);
+nFrames=size(stack,3);
+GaussRatios=zeros(1,nFrames);
 
-% h=waitbar(0,'Calculating Gaussian ratio');
 % Calculate all ratios
-for i=1:L
+for i=1:nFrames
     % Get current image
     rImg=stack(:,:,i);
     % Filter it with user-input sigma
@@ -83,12 +89,7 @@ for i=1:L
     fImg=fImg(border:end-border+1,border:end-border+1);
     % Calculate current ratio
     GaussRatios(i)=std(rImg(:))/std(fImg(:));
-    % Update waitbar
-%     waitbar(i/L,h);
 end
-
-% Close waitbar
-% close(h);
 
 % Calcaulate GaussRatio as the mean of the vector GaussRatios
 GaussRatio=mean(GaussRatios);

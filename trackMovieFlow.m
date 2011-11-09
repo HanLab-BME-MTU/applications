@@ -1,7 +1,6 @@
 function trackMovieFlow(movieData,varargin)
 % trackMovieFlow track the flow of a movie using image correlation
 %
-%
 % SYNOPSIS trackMovieFlow(movieData,paramsIn)
 %
 % INPUT
@@ -12,7 +11,7 @@ function trackMovieFlow(movieData,varargin)
 %   names and possible values as described below
 %
 
-% Sebastien Besson 5/2011
+% Sebastien Besson 5/2011 (last modified Nov 2011)
 
 %% ----------- Input ----------- %%
 
@@ -41,25 +40,27 @@ p = parseProcessParams(flowTrackProc,paramsIn);
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...');
+else
+    wtBar=-1;
 end
 
 %Find the speckle detection process, and the segmentation process
-iSegProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);
+iMaskProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);
 iSpecProc =movieData.getProcessIndex('SpeckleDetectionProcess',1,1);
 
 nChan = length(p.ChannelIndex);
-if isempty(iSpecProc) || isempty(iSegProc)
+if isempty(iSpecProc) || isempty(iMaskProc)
     error(['Speckle detection and segmentation have not yet been performed '...
         'on this movie! Please run first!!']);
 end
-segProc = movieData.processes_{iSegProc};
-specDetProc = movieData.processes_{iSegProc};
+segProc = movieData.processes_{iMaskProc};
+specDetProc = movieData.processes_{iSpecProc};
 
 %Check which channels have speckles and masks
 hasMasks = segProc.checkChannelOutput(p.ChannelIndex);
-hasSpeck = specDetProc.checkChannelOutput(p.ChannelIndex);
-if ~all(hasMasks && hasSpeck)
-    error(['Each channel must have speckles! ' ...
+hasSpec = specDetProc.checkChannelOutput(p.ChannelIndex);
+if ~all(hasMasks && hasSpec)
+    error(['Each channel must have speckles and masks! ' ...
         'Please apply speckle detection to all needed channels before '...
         'running flow tracking!'])
 end
@@ -86,30 +87,24 @@ flowTrackProc.setOutFilePaths(outFilePaths);
 
 disp('Starting tracking flow...')
 % Reading various constants
-imDirs  = movieData.getChannelPaths;
-imageFileNames = movieData.getImageFileNames;
-nFrames = movieData.nFrames_;
-
-% Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
+firstFrameIndx = p.firstImage:p.timeStepSize:p.lastImage -p.timeWindow+1;
+nFrames = numel(firstFrameIndx);
+nTot = nChan*nFrames;
 
 logMsg = @(chan) ['Please wait, tracking flow for channel ' num2str(chan)];
-timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
+timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
-nTot = nChan*nFrames;
 
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Log display
     disp(logMsg(iChan))
-    disp(imDirs{iChan});
+    disp(movieData.getChannelPaths{iChan});
     disp('Results will be saved under:')
     disp(outFilePaths{1,iChan});
     
     % Load raw images and masks from segmentation output
-    if feature('ShowFigureWindows')
-        waitbar(0,wtBar,'Loading images and masks...');
-    end
+    if ishandle(wtBar), waitbar(0,wtBar,'Loading images and masks...'); end
     disp('Loading images and masks...');
     stack = zeros([movieData.imSize_ movieData.nFrames_]);
     bgMask = zeros([movieData.imSize_ movieData.nFrames_]);
@@ -117,41 +112,35 @@ for i = 1:numel(p.ChannelIndex)
     inMask=@(frame) [flowTrackProc.inFilePaths_{2,iChan}...
         filesep maskNames{1}{frame}];
     for j = p.firstImage:p.lastImage
-        stack(:,:,j) = imread(inImage(iChan,j));
+        stack(:,:,j) = movieData.channels_(iChan).loadImage(j);
         bgMask(:,:,j) = imerode(logical(imread(inMask(j))),...
             strel('disk',p.edgeErodeWidth));
     end
     
     % Load speckles from speckle detection output
-    if feature('ShowFigureWindows')
-        waitbar(0,wtBar,'Loading speckles...');
-    end
+    if ishandle(wtBar), waitbar(0,wtBar,'Loading speckles...'); end
     disp('Loading speckles...');
-    firstImagesIndx = p.firstImage:p.timeStepSize:p.lastImage -p.timeWindow+1;
-    speckles = cell(1,length(firstImagesIndx));
-    for j = firstImagesIndx
-        cands = movieData.processes_{iSpecProc}.loadChannelOutput(iChan,j);
-        M = vertcat(cands([cands.status]==1).Lmax);
-        speckles{j} = M(:,2:-1:1);
+    speckles = cell(1,nFrames);
+    for j = firstFrameIndx
+        cands = specDetProc.loadChannelOutput(iChan,j);
+        speckles{j} = vertcat(cands([cands.status]==1).Lmax);
     end
     
     % Call the main correlation routine
     disp('Starting tracking flow...');
-    if feature('ShowFigureWindows'), waitbar(0,wtBar,logMsg(iChan)); end
-    for j=firstImagesIndx
+    if ishandle(wtBar), waitbar(0,wtBar,logMsg(iChan)); end
+    for j=firstFrameIndx
+        % Call the flow tracking routine
         [vx,vy,corLen] = trackStackFlow(stack(:,:,j:j+p.timeWindow-1),...
-            speckles{j}(:,1),speckles{j}(:,2),...
-            p.minCorLength,p.maxCorLength,...
+            speckles{j}(:,2),speckles{j}(:,1),p.minCorLength,p.maxCorLength,...
             'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,j:j+p.timeWindow-1), ...
-            'numStBgForAvg',p.numStBgForAvg,'minFeatureSize',p.minFeatureSize);
-        velocity = [vx vy];
+            'numStBgForAvg',p.numStBgForAvg,'minFeatureSize',p.minFeatureSize);  %#ok<NASGU>
         
         % Concatenate flow as a [pos1 pos2] matrix
-        flow = [speckles{j}(:,2:-1:1) velocity(:,2:-1:1,1)];
+        flow = [speckles{j} vy vx];
         
         % Set infinite flow to nan
-        finiteFlow  = ~isinf(velocity(:,1));
-        flow(~finiteFlow,3:4)=NaN;
+        flow(isinf(vx),3:4)=NaN;
         
         % Filter vector field outliers
         if ~isempty(p.outlierThreshold)
@@ -165,14 +154,14 @@ for i = 1:numel(p.ChannelIndex)
         save(flowFileName,'flow','corLen');
         
         % Update waitbar
-        if mod(j,5)==1 && feature('ShowFigureWindows')
+        if mod(j,5)==1 && ishandle(wtBar), 
             tj=toc;
             nj = (i-1)*nFrames+ j;
             waitbar(nj/nTot,wtBar,sprintf([logMsg(iChan) timeMsg(tj*nTot/nj-tj)]));
         end
-
     end
 end
+
 % Close waitbar
-if feature('ShowFigureWindows'), close(wtBar);end
+if ishandle(wtBar), close(wtBar); end
 disp('Finished tracking flow!')

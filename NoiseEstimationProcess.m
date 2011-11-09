@@ -24,7 +24,6 @@ classdef NoiseEstimationProcess < ImageAnalysisProcess
                 funParams.firstImage = ones(size(owner.channels_));
                 funParams.lastImage = owner.nFrames_*ones(size(owner.channels_));
                 funParams.cropROI = repmat([1 1 owner.imSize_(end:-1:1)],numel(owner.channels_),1);
-                funParams.loadExternalFile = [];
                 psfSigmaCheck =arrayfun(@(x)isempty(x.psfSigma_),owner.channels_);
                 if any(psfSigmaCheck)                    
                     funParams.filterSigma = zeros(size(owner.channels_));

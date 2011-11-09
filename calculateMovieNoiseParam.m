@@ -51,44 +51,39 @@ if isempty(iProc)
         movieData.outputDirectory_));                                                                                                 
 end
 
+noiseProc = movieData.processes_{iProc};
+
 %Parse input, store in parameter structure
-p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+p = parseProcessParams(noiseProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
-wtBar = waitbar(0,'Initializing...');
-
+if feature('ShowFigureWindows')
+    wtBar = waitbar(0,'Initializing...','Name',noiseProc.getName());
+else
+    wtBar=-1;
+end
 % Get channel paths and initialize process paths and output dirs
-imDirs = movieData.getChannelPaths;
-inFilePaths = cell(1,numel(movieData.channels_));
-outFilePaths = cell(1,numel(movieData.channels_));
-cropImagesDir = cell(1,numel(movieData.channels_));
+nChan = numel(movieData.channels_);
 
-% Define string extension
-pfName = 'noise_for_channel_'; 
-dName = 'cropped_images_for_channel_'; 
-
+% Setup the  input directories
+inFilePaths = cell(1,nChan);
 for j = p.ChannelIndex;    
     %Create string for current directory
-    inFilePaths{j} = imDirs{j};
-    cropImagesDir{j} = [p.OutputDirectory filesep dName num2str(j)];    
-    outFilePaths{j} = [p.OutputDirectory filesep pfName num2str(j) '.mat'];
-   
-    %Check/create directory
-    mkClrDir(cropImagesDir{j})               
+    inFilePaths{1,j} = movieData.getChannelPaths{j};
 end
-movieData.processes_{iProc}.setOutFilePaths(outFilePaths)
+noiseProc.setInFilePaths(inFilePaths);
 
-% Load external file (to be checked!!)
-if ~isempty(p.loadExternalFile)
-    for i = 1:numel(p.ChannelIndex)
-        iChan = p.ChannelIndex(i);
-        waitbar(0,wtBar,['Please wait, loading noise data for channel ' ...
-            num2str(iChan) ' ...']);
-        disp('Loading external file:')
-        load(p.loadExternalFile)
-        save(outFilePaths{iChan},'I0','sDN','GaussRatio')
-    end
+% Setup the output directories
+outFilePaths = cell(2,nChan);
+pfName = 'noise_for_channel_'; 
+dName = 'cropped_images_for_channel_'; 
+for  j = p.ChannelIndex;   
+    outFilePaths{1,j} = [p.OutputDirectory filesep pfName num2str(j) '.mat'];
+    outFilePaths{2,j} = [p.OutputDirectory filesep dName num2str(j)];
+    %Check/create directory
+    mkClrDir(p.OutputDirectory)               
 end
+noiseProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Estimating noise ---------------%%% 
 
@@ -97,60 +92,59 @@ imageFileNames = movieData.getImageFileNames;
 nFrames = p.lastImage - p.firstImage+1;
 
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
-outImage=@(chan,frame) [cropImagesDir{chan} filesep imageFileNames{chan}{frame}];
+outImage=@(chan,frame) [outFilePaths{2,chan} filesep imageFileNames{chan}{frame}];
 logMsg = @(chan) ['Please wait, calculating noise for channel ' num2str(chan)];
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
 
 disp('Starting estimating noise...')
-tic;
 nTot = sum(nFrames(p.ChannelIndex));
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Display log
     disp(logMsg(iChan))
-    disp(inFilePaths{iChan});
-    disp('Cropped images will be saved as :')
-    disp(cropImagesDir{iChan});
+    disp(inFilePaths{1,iChan});
+    disp('Result will be saved as :')
+    disp(outFilePaths{1,iChan});
+    disp('Cropped images will be saved under :')
+    disp(outFilePaths{2,iChan});
     
     % Read the first image, get the crop dimensions and initialize stack
     frameRange = p.firstImage(iChan):p.lastImage(iChan);
-    currImage = imread(inImage(iChan,1));
+    currImage = movieData.channels_(iChan).loadImage(1);
     dummy=imcrop(currImage,p.cropROI(iChan,:));
     cropSize = size(dummy);
     stack = zeros([cropSize frameRange(end)-frameRange(1)],class(currImage));
 
-    fprintf(1,'Loading stack...');
-    for j = 1:numel(frameRange)
-        if mod(j,5)==0
+    disp('Loading stack...');
+    tic
+    for j = 1:numel(frameRange)                
+        %Load the current image, crop and save it
+        iFrame = frameRange(j);   
+        stack(:,:,j) = imcrop(movieData.channels_(iChan).loadImage(iFrame),p.cropROI(iChan,:));
+        imwrite(stack(:,:,j),outImage(iChan,iFrame),'tif');
+        
+        if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
             nj = sum(nFrames(1:i-1))+ j;
             waitbar(nj/nTot,wtBar,sprintf([logMsg(iChan) ...
                 timeMsg(tj*nTot/nj-tj)]));
-        end
-                
-        %Load the current image, crop and save it
-        iFrame = frameRange(j);   
-        currImage = imread(inImage(iChan,iFrame));
-        stack(:,:,j) = imcrop(currImage,p.cropROI(iChan,:));
-        imwrite(stack(:,:,j),outImage(iChan,iFrame),'tif');
+        end  
     end
 
     % Calculate noise model
-    fprintf(1,'Calculating noise parameters...');
+    disp('Calculating noise parameters...');
     [I0,sDN,GaussRatio] = calculateStackNoiseParam(stack,...
-        movieData.camBitdepth_,p.filterSigma(iChan));
+        movieData.camBitdepth_,p.filterSigma(iChan)); %#ok<ASGLU,NASGU>
     
     % Save results
-    save(outFilePaths{iChan},'I0','sDN','GaussRatio');
+    save(outFilePaths{1,iChan},'I0','sDN','GaussRatio');
 end
 % Close waitbar
-close(wtBar);
+if ishandle(wtBar), close(wtBar); end
 
-%% ------ Finish - Save parameters and movieData ----- %%
-
-%Set process date and time and save the movieData
-movieData.processes_{iProc}.setDateTime;
-movieData.save; 
-
+noiseLog= sprintf(['Noise model parameters\n' ...
+    'Average background intensity\t: %2.5f +/- %2.5f\n'...
+    'Gauss ratio\t\t\t: %2.4f\n'],I0,sDN,GaussRatio);
+disp(noiseLog);
+    
 disp('Finished calculating noise!')
