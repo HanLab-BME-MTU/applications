@@ -26,9 +26,16 @@ ip.addParamValue('FileName', [], @ischar);
 ip.addParamValue('Handle', []);
 ip.addParamValue('Legend', 'show', @(x) any(strcmpi(x, {'show','hide'})));
 ip.addParamValue('Segment', 1, @isscalar);
-ip.addParamValue('Background', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.addParamValue('Background', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.addParamValue('BackgroundValue', 'zero', @(x) any(strcmpi(x, {'zero', 'data'})));
+ip.addParamValue('Hues', []);
 ip.parse(data, track, ch, varargin{:});
+
 s = ip.Results.Segment;
+hues = ip.Results.Hues;
+if isempty(hues)
+    hues = getFluorophoreHues(data.markers);
+end
 
 mCh = find(strcmp(data.channels, data.source));
 
@@ -41,8 +48,6 @@ else
     standalone = true;
 end
 
-
-hues = getFluorophoreHues(data.markers);
 trackColor = hsv2rgb([hues(ch) 1 0.8]);
 fillLight = hsv2rgb([hues(ch) 0.4 1]);
 fillDark = hsv2rgb([hues(ch) 0.2 1]);
@@ -64,7 +69,7 @@ for s = 1:track.nSeg
     
     A = track.A{s}(ch,:);
     c = track.c{s}(ch,:);
-    if strcmpi(ip.Results.Background, 'off')
+    if strcmpi(ip.Results.BackgroundValue, 'zero')
         bgcorr = nanmean(c);
         c = c-bgcorr;
     else
@@ -74,8 +79,10 @@ for s = 1:track.nSeg
     t = track.t{s};
     
     % alpha = 0.05 level
-    lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
-        fillDark, 'EdgeColor', 'none', 'Parent', ha);
+    if strcmpi(ip.Results.Background, 'on')
+        lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+            fillDark, 'EdgeColor', 'none', 'Parent', ha);
+    end
     hold(ha, 'on');
     
     gapIdx = arrayfun(@(x,y) x:y, track.gapStarts{s}, track.gapEnds{s}, 'UniformOutput', false);
@@ -106,8 +113,9 @@ for s = 1:track.nSeg
     end
     
     % plot background level
-    lh(5) = plot(ha, t, c, '-', 'Color', trackColor);
-    
+    if strcmpi(ip.Results.Background, 'on')
+        lh(5) = plot(ha, t, c, '-', 'Color', trackColor);
+    end    
 end
 
 % Plot start buffer
@@ -119,15 +127,19 @@ if isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s})
     sigma_r = [track.startBuffer.sigma_r{s}(ch,:) track.sigma_r{s}(ch,1)];
     t = [track.startBuffer.t{s} track.t{s}(1)];
     
-    fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
-        fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
-    
+    if strcmpi(ip.Results.Background, 'on')
+        fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+            fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    end
+
     rev = c+A-sigma_a;
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
     lh(6) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
-    lh(7) = plot(ha, t, c, '--', 'Color', trackColor);
+    if strcmpi(ip.Results.Background, 'on')
+        lh(7) = plot(ha, t, c, '--', 'Color', trackColor);
+    end
 end
 
 % Plot end buffer
@@ -139,15 +151,19 @@ if isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s})
     sigma_r = [track.sigma_r{s}(ch,end) track.endBuffer.sigma_r{s}(ch,:)];
     t = [track.t{s}(end) track.endBuffer.t{s}];
     
-    fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
-        fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    if strcmpi(ip.Results.Background, 'on')
+        fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
+            fillDarkBuffer, 'EdgeColor', 'none', 'Parent', ha);
+    end
     
     rev = c+A-sigma_a;
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
     lh(8) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
-    lh(9) = plot(ha, t, c, '--', 'Color', trackColor);
+    if strcmpi(ip.Results.Background, 'on')
+        lh(9) = plot(ha, t, c, '--', 'Color', trackColor);
+    end
 end
 
 
