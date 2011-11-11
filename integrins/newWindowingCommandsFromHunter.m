@@ -3,11 +3,10 @@ movieSelectorGUI
 load movieData.mat
 
 %get cell mask
-% threshParam.ThresholdValue = 570;
-% threshParam.GaussFilterSigma = 3;
-% threshParam.MaxJump = 0.2;
-% MD = thresholdMovie(MD,threshParam);
-MD = thresholdMovie(MD);
+threshParam.GaussFilterSigma = 1;
+threshParam.MaxJump = 1.2;
+MD = thresholdMovie(MD,threshParam);
+% MD = thresholdMovie(MD);
 
 %refine cell mask
 % refinementParam.MaxEdgeAdjust = 50;
@@ -22,7 +21,18 @@ MD = refineMovieMasks(MD);
 %make movie of mask
 figure('units','normalized','position',[0 0 1 1])
 axHandle = gca;
-makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMask2','AxesHandle',axHandle)
+makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskOriginal','AxesHandle',axHandle)
+
+%refine masks using gradient information
+refineMovieEdgeWithSteerableFilter(MD,1)
+
+%refine cell mask again with Hunter's code to get back on track
+MD = refineMovieMasks(MD);
+
+%make movie of final mask
+figure('units','normalized','position',[0 0 1 1])
+axHandle = gca;
+makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskFinal','AxesHandle',axHandle)
 
 %calculate protrusion vectors
 protrusionParam.SegProcessIndex = 2;
