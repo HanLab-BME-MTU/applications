@@ -1,7 +1,7 @@
 function aggregateActinSpeedVSdistanceToCellEdge(conDirectory, creDirectory, outputDirectory, alpha, n)
 
 cmd1 = ['find ' conDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
-cmd2 = ['find ' creDirectory ' -name ''*_ActinSpeedOutsideAdhesionVSdistanceToEdge_DATA.mat'''];
+cmd2 = ['find ' creDirectory ' -name ''*_12000nm.mat'''];
 [err1, result1] = system(cmd1);
 [err2, result2] = system(cmd2);
 
@@ -139,6 +139,7 @@ errorbar(reshape(X,4,1), reshape(Y,4,1), reshape(1.96 * SE,4,1),'xk');
 pValue = ranksum(totalConLP, totalConLM);
 
 if pValue < alpha
+    pValue
     y = max(Y(:));
     line(X(:,1), repmat(y + 80, 1, 2) + 10, 'Color', 'k', 'LineWidth', 2);
     text(mean(X(:,1)), y + 95, '*', 'FontName', 'Helvetica', 'FontSize', 24);    
