@@ -4,31 +4,35 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
     % Sebastien Besson, May 2011
     
     methods
-        function obj = SpeckleTrackingProcess(owner,outputDir, funParams)
+        function obj = SpeckleTrackingProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = SpeckleTrackingProcess.getName;
                 super_args{3} = @trackMovieSpeckles;
-                if nargin < 3 || isempty(funParams)
-                    
-                    %----Defaults----%
-                    funParams.ChannelIndex = 1 : numel(owner.channels_);
-                    funParams.OutputDirectory = [outputDir  filesep 'speckleTracks'];
-                    funParams.enhanced = 0;                  
-                    funParams.threshold = 3;
-                    funParams.corrLength = 33;
-                    funParams.interpolationMethod = 1;
+                if isempty(funParams)
+                    funParams=SpeckleTrackingProcess.getDefaultParams(owner,outputDir);
                 end
                 super_args{4} = funParams;
             end
             
             obj = obj@DataProcessingProcess(super_args{:});
         end
+        
         function sanityCheck(obj)
-            
+            sanityCheck@DataProcessingProcess(obj)
         end
         
          function varargout = loadChannelOutput(obj,iChan,varargin)
@@ -66,8 +70,6 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
                      end
                  end
              end
-             
-       
          end
                      
          function status = checkChannelOutput(obj,varargin)
@@ -129,6 +131,23 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
             ip.addOptional('index',1:length(intMethods),@isvector);
             ip.parse(varargin{:});
             methods=intMethods(ip.Results.index);
+        end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1 : numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'speckleTracks'];
+            funParams.enhanced = 0;
+            funParams.threshold = 3;
+            funParams.corrLength = 33;
+            funParams.interpolationMethod = 1;
         end
     end
 end

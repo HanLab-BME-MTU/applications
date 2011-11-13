@@ -43,6 +43,9 @@ function [vx,vy,corLength,sigtVal] = trackStackFlow(stack,x,y,minCorL,maxCorL,va
 %    sigtVal : The 1st, 2nd local maximum and the reference score for
 %              significance test can also be output for use in
 %              postprocessing.
+%
+% References:
+% J. Li & G. Danuser, J. of microscopy, 220 150-167, 2005.
 
 % Sebastien Besson, May 2011
 % Adapted from imFlowTrack.m

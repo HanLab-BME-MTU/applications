@@ -1,41 +1,49 @@
-classdef FlowTrackingProcess < DataProcessingProcess
+classdef FlowTrackingProcess < ImageAnalysisProcess
     % Concrete class for a flow tracking process
     %
     % Sebastien Besson, 5/2011
     
     methods
-        function obj = FlowTrackingProcess(owner,outputDir, funParams)
+        function obj = FlowTrackingProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = FlowTrackingProcess.getName;
                 super_args{3} = @trackMovieFlow;
-                if nargin < 3 || isempty(funParams)
-                    
-                    %----Defaults----%
-                    funParams.ChannelIndex = 1:numel(owner.channels_);
-                    funParams.OutputDirectory = [outputDir  filesep 'flow'];
-                    funParams.firstImage = 1;
-                    funParams.lastImage = owner.nFrames_;
-                    funParams.timeWindow = 2;
-                    funParams.timeStepSize = 1;
-                    funParams.minCorLength = 11;
-                    funParams.maxCorLength = 11;
-                    funParams.numStBgForAvg = 0;
-                    funParams.minFeatureSize = 11;
-                    funParams.edgeErodeWidth =5;
-                    funParams.maxFlowSpeed =10;
-                    funParams.outlierThreshold = 2;
-                    funParams.ROI = [1 1;owner.imSize_];
+                if isempty(funParams)
+                   funParams=FlowTrackingProcess.getDefaultParams(owner,outputDir);
                 end
                 super_args{4} = funParams;
             end
             
-            obj = obj@DataProcessingProcess(super_args{:});
+            obj = obj@ImageAnalysisProcess(super_args{:});
         end
         function sanityCheck(obj)
+            sanityCheck@ImageAnalysisProcess(obj)
+        end 
+        
+        function OK = checkChannelOutput(obj,varargin)
+           % Input check
+           ip =inputParser;
+           ip.addOptional('iChan',1:numel(obj.owner_.channels_),...
+               @(x) ismember(x,1:numel(obj.owner_.channels_)));
+           ip.parse(varargin{:});
+           iChan=ip.Results.iChan;
+
+           %Makes sure there's at least one output file per channel
+           OK =  arrayfun(@(x) exist(obj.outFilePaths_{1,x},'file'),iChan);
         end
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
@@ -50,7 +58,7 @@ classdef FlowTrackingProcess < DataProcessingProcess
             ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(obj,iChan,varargin{:})
             iFrame = ip.Results.iFrame;
-            output = ip.Results.output; 
+            output = ip.Results.output;
             if ischar(output), output={output}; end
             
             % Initialize output
@@ -72,27 +80,17 @@ classdef FlowTrackingProcess < DataProcessingProcess
                 % Read variables and dispatch them
                 s = load(flowFile,output{:});
                 for j=1:numel(output)
-                    if numel(iFrame)==1, 
+                    if numel(iFrame)==1,
                         varargout{j}=s.(output{j});
                     else
                         varargout{j}{i}=s.(output{j});
                     end
                 end
-            end
-                
+            end    
         end
-
+        
         function checkValue=checkValue(obj,property,value)
             % Test the validity of a property value
-            %
-            % INPUT:
-            %    property - a property name (string)
-            %    value - the property value to be checked
-            %
-            % OUTPUT:
-            %    checkValue - a boolean containing the result of the test
-            %
-            % Sebastien Besson, 5/2011
             
             switch property
                 case {'lastImage','timeWindow','timeStepSize'}
@@ -122,11 +120,36 @@ classdef FlowTrackingProcess < DataProcessingProcess
         function h = GUI()
             h= @flowTrackingProcessGUI;
         end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1:numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'flow'];
+            funParams.firstImage = 1;
+            funParams.lastImage = owner.nFrames_;
+            funParams.timeWindow = 2;
+            funParams.timeStepSize = 1;
+            funParams.minCorLength = 11;
+            funParams.maxCorLength = 11;
+            funParams.numStBgForAvg = 0;
+            funParams.minFeatureSize = 11;
+            funParams.edgeErodeWidth =5;
+            funParams.maxFlowSpeed =10;
+            funParams.outlierThreshold = 2;
+            funParams.ROI = [1 1;owner.imSize_];
+        end
     end
 end
 
 function flow = formatFlow(initFlow)
-if isempty(initFlow), 
+if isempty(initFlow),
     flow=zeros(1,4);
 else
     flow=[initFlow(:,[2 1]) initFlow(:,[4 3])-initFlow(:,[2 1])];

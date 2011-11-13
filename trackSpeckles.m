@@ -13,8 +13,9 @@ function [M vectors]=trackSpeckles(I,J,threshold, varargin)
 %
 % OUTPUT     M          : matrix of matches [y1(1) x1(1) y1(2) x1(2)]n 
 %
-% DEPENDENCES   fsmTrackTrackerMain uses { framework ; vectorFieldAdaptInterp ; propagateSpecklePositions }
-%               fsmTrackTrackerMain is used by { fsmTrackMain }
+% References:
+% A. Ponti et al., Biophysical J., 84 336-3352, 2003.
+% A. Ponti et al., Biophysical J., 89 2459-3469, 2005.
 
 % Aaron Ponti, September 8th, 2004
 % Sebastien Besson, 5/2011

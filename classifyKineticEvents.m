@@ -6,7 +6,10 @@ function speckleArray=classifyKineticEvents(speckleArray,bleachRed,k,varargin)
 %
 % OUTPUT     speckleArray : speckleArray with added kinetic information
 
+% Sebastien Besson, July 2011
+% Adapted from fsmKinEventClassifier
 
+% Input check
 ip =inputParser;
 ip.addRequired('speckleArray',@isstruct);
 ip.addRequired('bleachRed',@isscalar);

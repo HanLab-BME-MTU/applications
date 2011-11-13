@@ -17,10 +17,10 @@ function pSpPos=propagateSpecklePositions(spPos,Mi,varargin)
 %
 % DEPENDENCES   propagateSpecklePositions uses { }
 %               propagateSpecklePositions is used by { } 
-%
+
 % Aaron Ponti, January 3rd, 2003
 % Sebastien Besson, June 2011
-% COpied from fsmTrackPropSpecklePos
+% Adapted from fsmTrackPropSpecklePos
 
 % Check input parameters
 ip = inputParser;

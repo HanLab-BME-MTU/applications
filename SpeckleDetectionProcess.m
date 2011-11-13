@@ -4,39 +4,34 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
     % Sebastien Besson, May 2011
     
     methods
-        function obj = SpeckleDetectionProcess(owner,outputDir, funParams)
+        function obj = SpeckleDetectionProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = SpeckleDetectionProcess.getName;
                 super_args{3} = @detectMovieSpeckles;
-                if nargin < 3 || isempty(funParams)
-                    
-                    %----Defaults----%
-                    funParams.ChannelIndex = 1 : numel(owner.channels_);
-                    funParams.MaskChannelIndex = 1:numel(owner.channels_);
-                    funParams.OutputDirectory = [outputDir  filesep 'speckles'];
-                    funParams.paramSpeckles = [1 0];                
-                    funParams.alpha = .01;
-                    funParams.I0 = [];
-                    funParams.sDN = [];
-                    funParams.GaussRatio = [];
-                    psfSigmaCheck =arrayfun(@(x)isempty(x.psfSigma_),owner.channels_);
-                    if any(psfSigmaCheck)
-                        funParams.filterSigma = zeros(size(owner.channels_));
-                    else
-                        funParams.filterSigma = [owner.channels_.psfSigma_];
-                    end
+                if isempty(funParams)
+                    funParams = SpeckleDetectionProcess.getDefaultParams(owner,outputDir);
                 end
                 super_args{4} = funParams;
             end
             
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
-
-            
+        
+        
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
@@ -58,7 +53,7 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
             for j=1:numel(output)
                 varargout{j} = cell(size(iFrame));
             end
-
+            
             for i=1:numel(iFrame)
                 inSpeckle= [obj.outFilePaths_{1,iChan}...
                     filesep outFileNames{iFrame(i)}(1:end-4) '.mat'];
@@ -68,9 +63,9 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
                 end
             end
             if numel(iFrame)==1,
-                 for j=1:numel(output)
+                for j=1:numel(output)
                     varargout{j} = varargout{j}{1};
-                 end
+                end
             end
         end
         function output = getDrawableOutput(obj)
@@ -91,7 +86,30 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
             h= @speckleDetectionProcessGUI;
         end
         
-    end
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Define default process parameters
+            funParams.ChannelIndex = 1 : numel(owner.channels_);
+            funParams.MaskChannelIndex = 1:numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'speckles'];
+            funParams.paramSpeckles = [1 0];
+            funParams.alpha = .01;
+            funParams.I0 = [];
+            funParams.sDN = [];
+            funParams.GaussRatio = [];
+            psfSigmaCheck =~arrayfun(@(x)isempty(x.psfSigma_),owner.channels_);
+            if all(psfSigmaCheck)
+                funParams.filterSigma = [owner.channels_.psfSigma_];
+            else
+                funParams.filterSigma = zeros(size(owner.channels_));
+            end
+        end
         
+    end
 end
-

@@ -1,69 +1,53 @@
-classdef FlowAnalysisProcess < Process
-    % Concrete class for a speed map
+classdef FlowAnalysisProcess < DataProcessingProcess
+    % Concrete class for a process analyzing flow
     %
     % Sebastien Besson, 5/2011
     
     methods
-        function obj = FlowAnalysisProcess(owner,outputDir,funParams)
+        function obj = FlowAnalysisProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = FlowAnalysisProcess.getName;
+                super_args{3} = @analyzeMovieFlow;
+                if isempty(funParams)
+                    funParams=FlowAnalysisProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4} = funParams;
             end
             
-            obj = obj@Process(super_args{:});
+            obj = obj@DataProcessingProcess(super_args{:});
             
-            obj.funName_ = @analyzeMovieFlow;
-            if nargin < 3 || isempty(funParams)
-                %----Defaults----%
-                funParams.ChannelIndex = 1 : numel(owner.channels_);
-                funParams.OutputDirectory = [outputDir  filesep 'flowAnalysis'];
-                funParams.timeWindow = 1;
-                funParams.corrLength = 33;
-                funParams.gridSize = 11;
-                funParams.interpolate = 1;
-                funParams.noise = 1;
-                funParams.error = 1;
-            end
-            
-            obj.funParams_ = funParams;
         end
         function sanityCheck(obj)
-            
-        end
-        
-        function OK = checkChannelOutput(obj,varargin)
-                        
-            % Input check
-            ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'FlowAnalysisProcess'));
-            ip.addOptional('iChan',1:numel(obj.owner_.channels_),...
-                @(x) ismember(x,1:numel(obj.owner_.channels_)));
-            ip.parse(obj,varargin{:});
-            iChan=ip.Results.iChan;
-            
-
-            %Makes sure there's at least one .mat file in the speified
-            %directory
-            OK =  arrayfun(@(x)exist(obj.outFilePaths_{x},'file'),iChan);
+            sanityCheck@DataProcessingProcess(obj)
         end
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
-                               
+            
             % Input check
             outputList = {'speedMap','Md','Mv','Ms','E','S','img3C_map','img3C_SNR'};
-                        ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'FlowAnalysisProcess'));
+            ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && ...
                 ismember(x,1:numel(obj.owner_.channels_)));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
-                                  
+            
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -74,7 +58,7 @@ classdef FlowAnalysisProcess < Process
             for j=1:numel(output)
                 varargout{j} = cell(size(iFrame));
             end
-
+            
             % Load output
             for i=1:numel(iFrame)
                 kineticMapFile= [obj.outFilePaths_{1,iChan}...
@@ -85,11 +69,11 @@ classdef FlowAnalysisProcess < Process
                 end
             end
             if numel(iFrame)==1,
-                 for j=1:numel(output)
+                for j=1:numel(output)
                     varargout{j} = varargout{j}{1};
-                 end
+                end
             end
-
+            
         end
         
         function output = getDrawableOutput(obj)
@@ -130,15 +114,14 @@ classdef FlowAnalysisProcess < Process
             output(7).formatData=[];
             output(7).type='image';
             output(7).defaultDisplayMethod=@ImageDisplay;
-         end
+        end
     end
     methods (Access=protected)
         function output = getSpeedLimits(obj,iChan)
             speedMap=loadChannelOutput(obj,iChan,'output','speedMap');
             allMaps = vertcat(speedMap{:});
             output=[min(allMaps(:)) max(allMaps(:))];
-        end
-
+        end        
     end
     
     methods (Static)
@@ -148,6 +131,24 @@ classdef FlowAnalysisProcess < Process
         function h = GUI()
             h= @flowAnalysisProcessGUI;
         end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1 : numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'flowAnalysis'];
+            funParams.timeWindow = 1;
+            funParams.corrLength = 33;
+            funParams.gridSize = 11;
+            funParams.interpolate = 1;
+            funParams.noise = 1;
+            funParams.error = 1;
+        end        
     end
 end
-

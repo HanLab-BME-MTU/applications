@@ -1,4 +1,3 @@
-
 function [cands locMax]=detectSpeckles(I,noiseParam,specParam,varargin)
 
 % detectSpeckles detects speckles in a filtered image
@@ -19,10 +18,13 @@ function [cands locMax]=detectSpeckles(I,noiseParam,specParam,varargin)
 % OUTPUT     cands      :  augmented cands structure (see fsmPrepTestLocalMaxima.m)
 %            locMax     :  image containing the significant local maxima 
 %
+% References:
+% A. Ponti et al., Biophysical J., 84 336-3352, 2003.
+% A. Ponti et al., Biophysical J., 89 2459-3469, 2005.
 
 % Aaron Ponti, October 4th, 2002
 % Sylvain Berlemont, Jan 2010
-% Sebastien Besson, May 2011 (last modified Aug 2011)
+% Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from fsmPrepMainSecondarySpeckles.m
 
 ip=inputParser;
@@ -189,21 +191,20 @@ deltaI2 = [newCands(validIdx2).deltaI];
 %     end
 % end
 
-% Classifies secondary speckles by distance to the primary speckles
+% Classify secondary speckles by their distance to the primary speckles
 rmax = 4*psfSigma;
 idx1= KDTreeBallQuery(pos1,pos2,2*psfSigma);
 [idx2 D2]= KDTreeBallQuery(pos1,pos2,rmax);
 
-% Intialize removal index
+% Intialize logical array for removing speckles
 r=false(sum(validIdx2),1);
 
-% Remove all points closer than 2 psfSigma
+% Remove all points closer than 2*psfSigma to any existing speckle
 r(~cellfun(@isempty,idx1))=true;
 
-% Application of the generalized Sparrow criterion to all speckles which
-% distance is between 2 psfSigma and 4 psfSigma
-% See Ponti et al. 2005 (supplementary material)
-
+% Apply generalized Sparrow criterion to all speckles which distance is
+% between 2 psfSigma and 4 psfSigma of an existing speckle
+% See A. Ponti et al. 2005 (supplementary material)
 w = @(r) sqrt(r.^2-4*psfSigma^2);
 Acrit = @(r) (r-w(r))./(r+w(r)).*exp(w(r).*r/(2*psfSigma.^2));
 A = @(x) deltaI1(idx2{x}) / deltaI2(x);
@@ -213,13 +214,13 @@ for i=find(~cellfun(@isempty,idx2) & cellfun(@isempty,idx1))'
     r(i)=~applyGSC(i);
 end
 
+% Remove invalid speckles
 if any(r)
     ind2 = find(validIdx2);
     newCands(ind2(r)) = [];
 end
 
  function [cands,triMin,pMin]=fsmPrepConfirmSpeckles(IG,Imin,noiseParam,userROIbw)
-
 % fsmPrepConfirmSpeckles uses statistical tests to confirm the significance
 % of detected speckles
 %

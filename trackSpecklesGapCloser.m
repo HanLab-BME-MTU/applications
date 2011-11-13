@@ -26,9 +26,7 @@ function [M,gapList]=trackSpecklesGapCloser(M,threshold,invalidCands,varargin)
 % OUTPUT        M          : corrected M stack
 %               gapClosed  : number of gaps closed
 %
-% DEPENDENCES   fsmTrackgapCloser uses { }
-%               fsmTrackgapCloser is used by { fsmTrackMain } 
-%
+
 % Aaron Ponti, October 4th, 2002
 % Sebastien Besson, June 2011
 % Adapted from fsmTrackGapCloser

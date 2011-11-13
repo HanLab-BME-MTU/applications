@@ -13,6 +13,8 @@ function [Imin,deltaI,k,sigmaDiff,sigmaMax,sigmaMin,status]=testSpeckleSignifica
 %
 % OUTPUT
 %
+% References:
+% A. Ponti et al., Biophysical J., 84 336-3352, 2003.
 
 % Sebastien Besson, Aug 2011
 % Adapated from fsmPrepTestSpeckleSignif.m

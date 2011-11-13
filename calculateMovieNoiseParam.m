@@ -81,7 +81,7 @@ for  j = p.ChannelIndex;
     outFilePaths{1,j} = [p.OutputDirectory filesep pfName num2str(j) '.mat'];
     outFilePaths{2,j} = [p.OutputDirectory filesep dName num2str(j)];
     %Check/create directory
-    mkClrDir(p.OutputDirectory)               
+    mkClrDir( outFilePaths{2,j})               
 end
 noiseProc.setOutFilePaths(outFilePaths);
 

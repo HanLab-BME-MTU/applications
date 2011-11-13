@@ -1,51 +1,37 @@
-classdef KineticAnalysisProcess < Process
+classdef KineticAnalysisProcess < DataProcessingProcess
     % Concrete class for a kinetic analysis process
     %
     % Sebastien Besson, 5/2011
     
     methods
-        function obj = KineticAnalysisProcess(owner,outputDir,funParams)
+        function obj = KineticAnalysisProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = KineticAnalysisProcess.getName;
+                super_args{3} = @analyzeMovieSpeckles;
+                if isempty(funParams)
+                    funParams=KineticAnalysisProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4} = funParams;
             end
             
-            obj = obj@Process(super_args{:});
-            
-            obj.funName_ = @analyzeMovieSpeckles;
-            if nargin < 3 || isempty(funParams)
-                
-                %----Defaults----%
-                funParams.ChannelIndex = 1 : numel(owner.channels_);
-                funParams.OutputDirectory = [outputDir  filesep 'kineticAnalysis'];
-                funParams.bleachRed = 0;
-                funParams.timeWindow = 1;
-                funParams.sigma = 5;
-            end
-            %Make sure the input parameters are legit??
-            obj.funParams_ = funParams;
+            obj = obj@DataProcessingProcess(super_args{:});            
         end
         function sanityCheck(obj)
-            
-        end
-        
-        function status = checkChannelOutput(obj,varargin)
-            
-           %Checks if the selected channels have valid output files
-           ip =inputParser;
-           ip.addRequired('obj',@(x) isa(x,'KineticAnalysisProcess'));
-           ip.addOptional('iChan',1:numel(obj.owner_.channels_),...
-               @(x) ismember(x,1:numel(obj.owner_.channels_)));
-           ip.parse(obj,varargin{:});
-           iChan=ip.Results.iChan;
-           
-           %Makes sure there's at least one .mat file in the speified
-           %directory
-           status = all(arrayfun(@(x) exist(obj.outFilePaths_{x},'file'),...
-               iChan));           
+            sanityCheck@DataProcessingProcess(obj)            
         end
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
@@ -53,13 +39,12 @@ classdef KineticAnalysisProcess < Process
             outputList = {'kinScore','polyMap',...
                 'depolyMap','kinMap2C'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'KineticAnalysisProcess'));
             ip.addRequired('iChan',@(x) isscalar(x) && ...
                 ismember(x,1:numel(obj.owner_.channels_)));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
                                   
             % Data loading
@@ -114,6 +99,21 @@ classdef KineticAnalysisProcess < Process
             output(3).type='image';
             output(3).defaultDisplayMethod=@ImageDisplay;
         end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1 : numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'kineticAnalysis'];
+            funParams.bleachRed = 0;
+            funParams.timeWindow = 1;
+            funParams.sigma = 5;
+        end        
     end
 end
-
