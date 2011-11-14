@@ -1,47 +1,45 @@
-classdef ForceFieldCalculationProcess < Process
-    % Concrete class for a force field calculation process
+classdef ForceFieldCalculationProcess < DataProcessingProcess
+    % Concrete process for calculating a force field
     %
     % Sebastien Besson, Aug 2011
     
     methods
-        function obj = ForceFieldCalculationProcess(owner,outputDir,funParams)
+        function obj = ForceFieldCalculationProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = ForceFieldCalculationProcess.getName;
+                super_args{3} = @calculateMovieForceField;
+                if isempty(funParams)
+                    funParams=ForceFieldCalculationProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4} = funParams;
             end
             
-            obj = obj@Process(super_args{:});
-            obj.funName_ = @calculateMovieForceField;
             
-            %----Defaults----%
-            defaultParams.OutputDirectory = [outputDir  filesep 'forceField'];
-            defaultParams.YoungModulus = 10000;
-            defaultParams.PoissonRatio = .5;
-            defaultParams.method = 'FastBEM';
-            defaultParams.meshPtsFwdSol = 4096;
-            defaultParams.regParam=1e-7;
-            defaultParams.solMethodBEM='QR';
-            defaultParams.basisClassTblPath='';
-            defaultParams.LcurveFactor=10;
+            obj = obj@DataProcessingProcess(super_args{:});
             
-            if nargin < 3 || isempty(funParams)
-                obj.funParams_=defaultParams;
-            else
-                obj.funParams_=parseProcessParams(defaultParams,funParams);
-            end
-
         end
         function sanityCheck(obj)
             
         end
         
-           function status = checkChannelOutput(obj,varargin)
+        function status = checkChannelOutput(obj,varargin)
             
             status = logical(exist(obj.outFilePaths_{1},'file'));
-          
+            
         end
         
         function varargout = loadChannelOutput(obj,varargin)
@@ -54,7 +52,7 @@ classdef ForceFieldCalculationProcess < Process
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
-                                  
+            
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -85,7 +83,7 @@ classdef ForceFieldCalculationProcess < Process
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{:})
                 data=obj.outFilePaths_{3,1};
-            else    
+            else
                 % Input parser
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
@@ -95,7 +93,7 @@ classdef ForceFieldCalculationProcess < Process
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{1},varargin{2:end})
                 iFrame=ip.Results.iFrame;
-
+                
                 data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
@@ -140,7 +138,24 @@ classdef ForceFieldCalculationProcess < Process
         function h = GUI()
             h= @forceFieldCalculationProcessGUI;
         end
-        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.OutputDirectory = [outputDir  filesep 'forceField'];
+            funParams.YoungModulus = 10000;
+            funParams.PoissonRatio = .5;
+            funParams.method = 'FastBEM';
+            funParams.meshPtsFwdSol = 4096;
+            funParams.regParam=1e-7;
+            funParams.solMethodBEM='QR';
+            funParams.basisClassTblPath='';
+            funParams.LcurveFactor=10;
+        end
     end
 end
-

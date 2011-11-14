@@ -1,30 +1,34 @@
-classdef DisplacementFieldCorrectionProcess < Process
+classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
     % Concrete class for a displacement field correction process
     %
     % Sebastien Besson, Aug 2011
     
     methods
-        function obj = DisplacementFieldCorrectionProcess(owner,outputDir,funParams)
+        function obj = DisplacementFieldCorrectionProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
-                super_args{1} = owner;
-                super_args{2} = DisplacementFieldCalculationProcess.getName;
-            end
-            
-            obj = obj@Process(super_args{:});
-            
-            obj.funName_ = @correctMovieDisplacementField;
-            if nargin < 3 || isempty(funParams)
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
                 
-                %----Defaults----%
-                funParams.OutputDirectory = [outputDir  filesep 'correctedDisplacementField'];
-                funParams.doRotReg=0;
-                funParams.outlierThreshold = 2;
+                % Define arguments for superclass constructor
+                super_args{1} = owner;
+                super_args{2} = DisplacementFieldCorrectionProcess.getName;
+                super_args{3} = @correctMovieDisplacementField;
+                if isempty(funParams)
+                    funParams=DisplacementFieldCorrectionProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4} = funParams;
             end
-            %Make sure the input parameters are legit??
-            obj.funParams_ = funParams;
+            
+            obj = obj@DataProcessingProcess(super_args{:});
         end
         function sanityCheck(obj)
             
@@ -33,7 +37,7 @@ classdef DisplacementFieldCorrectionProcess < Process
         function status = checkChannelOutput(obj,varargin)
             
             status = logical(exist(obj.outFilePaths_{1},'file'));
-          
+            
         end
         
         function varargout = loadChannelOutput(obj,varargin)
@@ -46,7 +50,7 @@ classdef DisplacementFieldCorrectionProcess < Process
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
-                                  
+            
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -110,6 +114,19 @@ classdef DisplacementFieldCorrectionProcess < Process
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','b');
         end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.OutputDirectory = [outputDir  filesep 'correctedDisplacementField'];
+            funParams.doRotReg=0;
+            funParams.outlierThreshold = 2;
+        end
     end
 end
-

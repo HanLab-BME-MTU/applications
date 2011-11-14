@@ -1,45 +1,42 @@
-classdef DisplacementFieldCalculationProcess < Process
+classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
     % Concrete class for a displacement field calculation process
     %
     % Sebastien Besson, Aug 2011
     
     methods
-        function obj = DisplacementFieldCalculationProcess(owner,outputDir,funParams)
+        function obj = DisplacementFieldCalculationProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = DisplacementFieldCalculationProcess.getName;
+                super_args{3} = @calculateMovieDisplacementField;
+                if isempty(funParams)
+                    funParams=DisplacementFieldCalculationProcess.getDefaultParams(owner,outputDir);
+                end
+                super_args{4}=funParams;
             end
             
-            obj = obj@Process(super_args{:});
+            obj = obj@ImageAnalysisProcess(super_args{:});
             
-            obj.funName_ = @calculateMovieDisplacementField;
-            if nargin < 3 || isempty(funParams)
-                
-                %----Defaults----%
-                funParams.ChannelIndex = 1;
-                funParams.OutputDirectory = [outputDir  filesep 'displacementField'];
-                funParams.referenceFramePath='';
-                funParams.I0=[];
-                funParams.sDN=[];
-                funParams.GaussRatio=[];
-                funParams.alpha=.05;
-                funParams.minCorLength = 21;
-                funParams.maxFlowSpeed =20;  
-            end
-            %Make sure the input parameters are legit??
-            obj.funParams_ = funParams;
         end
         function sanityCheck(obj)
             
         end
         
         function status = checkChannelOutput(obj,varargin)
-            
             status = logical(exist(obj.outFilePaths_{1},'file'));
-          
         end
         
         function varargout = loadChannelOutput(obj,varargin)
@@ -52,7 +49,7 @@ classdef DisplacementFieldCalculationProcess < Process
             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
-                                  
+            
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
@@ -116,6 +113,25 @@ classdef DisplacementFieldCalculationProcess < Process
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
         end
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1;
+            funParams.OutputDirectory = [outputDir  filesep 'displacementField'];
+            funParams.referenceFramePath='';
+            funParams.I0=[];
+            funParams.sDN=[];
+            funParams.GaussRatio=[];
+            funParams.alpha=.05;
+            funParams.minCorLength = 21;
+            funParams.maxFlowSpeed =20;
+        end
     end
 end
-

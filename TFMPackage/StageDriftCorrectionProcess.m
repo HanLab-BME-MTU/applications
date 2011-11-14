@@ -4,33 +4,30 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
     % Sebastien Besson, Sep 2011
     
     methods
-        function obj = StageDriftCorrectionProcess(owner,outputDir,funParams)
+        function obj = StageDriftCorrectionProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = StageDriftCorrectionProcess.getName;
                 super_args{3} = @correctMovieStageDrift;
-    
-                if nargin < 3 || isempty(funParams)
-                    
-                    %----Defaults----%
-                    funParams.ChannelIndex = 1 : numel(owner.channels_);
-                    funParams.OutputDirectory = [outputDir  filesep 'stageDriftCorrection'];
-                    funParams.referenceFramePath = '';
-                    funParams.minCorLength = 51;
-                    funParams.maxFlowSpeed =5;
-                    funParams.I0=[];
-                    funParams.sDN=[];
-                    funParams.GaussRatio=[];
-                    funParams.alpha=.05;
-                    funParams.cropROI=[1 1 owner.imSize_(end:-1:1)];
-                    funParams.doPreReg=1;
+                if isempty(funParams)
+                    funParams=StageDriftCorrectionProcess.getDefaultParams(owner,outputDir);
                 end
                 super_args{4} = funParams;
             end
-             obj = obj@ImageProcessingProcess(super_args{:});
+            obj = obj@ImageProcessingProcess(super_args{:});
         end
         function sanityCheck(obj)
             
@@ -63,7 +60,7 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                 if ~isempty(outputList(iOutput).formatData),
                     data=outputList(iOutput).formatData(data);
                 end
-
+                
                 try
                     assert(~isempty(obj.displayMethod_{iOutput,1}));
                 catch ME
@@ -81,8 +78,8 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                 h=draw@ImageProcessingProcess(obj,varargin{1},varargin{2},...
                     varargin{3:end});
             end
-                end
-
+        end
+        
     end
     methods (Static)
         
@@ -114,7 +111,28 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
             output(4).type='movieGraph';
             output(4).defaultDisplayMethod=@FlowHistogramDisplay;
         end
-
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1 : numel(owner.channels_);
+            funParams.OutputDirectory = [outputDir  filesep 'stageDriftCorrection'];
+            funParams.referenceFramePath = '';
+            funParams.minCorLength = 51;
+            funParams.maxFlowSpeed =5;
+            funParams.I0=[];
+            funParams.sDN=[];
+            funParams.GaussRatio=[];
+            funParams.alpha=.05;
+            funParams.cropROI=[1 1 owner.imSize_(end:-1:1)];
+            funParams.doPreReg=1;
+        end
     end
 end
 
