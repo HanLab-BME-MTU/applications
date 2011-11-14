@@ -9,32 +9,29 @@ classdef ProtrusionProcess < ImageAnalysisProcess
     
     methods (Access = public)
         
-        function obj = ProtrusionProcess(owner,outputDir,funParams)
+        function obj = ProtrusionProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
             else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
                 
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = ProtrusionProcess.getName;
                 super_args{3} = @getMovieProtrusion;
                 
-                if nargin < 3 || isempty(funParams)
-                    
-                    %----Defaults----%
-                    
-                    nChan = numel(owner.channels_);
-                    funParams.ChannelIndex = 1:nChan;%Default is to combine masks from all channels
-                    funParams.SegProcessIndex = [];%No default.
-                    funParams.DownSample = 50;
-                    funParams.SplineTolerance = 30;%This is the default in protrusionAnalysis, so I use it also.
-                    funParams.OutputDirectory = [outputDir filesep 'protrusion'];
-                    funParams.BatchMode = false;
-                    
+                if isempty(funParams)
+                    funParams=ProtrusionProcess.getDefaultParams(owner,outputDir);
                 end
-                
                 super_args{4} = funParams;
-                
             end
             
             obj = obj@ImageAnalysisProcess(super_args{:});
@@ -75,11 +72,11 @@ classdef ProtrusionProcess < ImageAnalysisProcess
                 error('Cannot load the protrusion vectors - they could not be found!')
             end
             
-%             prot = load(obj.outFilePaths_);
+            %             prot = load(obj.outFilePaths_);
             
             outputList = {'protrusion','normals','smoothedEdge'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'ProtrusionProcess'));        
+            ip.addRequired('obj',@(x) isa(x,'ProtrusionProcess'));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
                 @(x) ismember(x,1:obj.owner_.nFrames_));
             ip.addParamValue('output',{},@(x) all(ismember(x,outputList)));
@@ -93,7 +90,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             
             if numel(ip.Results.iFrame)>1,
                 if isempty(output)
-                   varargout{1}=s;
+                    varargout{1}=s;
                 else
                     for i=1:numel(output),
                         varargout{i}=s.(output{i});
@@ -102,7 +99,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             else
                 varargout{1} = [s.smoothedEdge{iFrame} s.smoothedEdge{iFrame}+s.protrusion{iFrame}];
             end
-                        
+            
         end
         
         
@@ -117,7 +114,7 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
             ip.KeepUnmatched = true;
             ip.parse(obj,iFrame,varargin{:})
-			
+            
             data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
@@ -152,6 +149,24 @@ classdef ProtrusionProcess < ImageAnalysisProcess
             output(1).formatData=@(x)[x(:,1:2) x(:,3:4)-x(:,1:2)];
             output(1).type='movieOverlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+        end
+        
+        
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1:numel(owner.channels_);%Default is to combine masks from all channels
+            funParams.SegProcessIndex = [];%No default.
+            funParams.OutputDirectory = [outputDir filesep 'protrusion'];
+            funParams.DownSample = 50;
+            funParams.SplineTolerance = 30;%This is the default in protrusionAnalysis, so I use it also.
+            funParams.BatchMode = false;            
         end
     end
 end

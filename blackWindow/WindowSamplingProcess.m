@@ -7,28 +7,27 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
 
     methods (Access = public)
         
-        function obj = WindowSamplingProcess(owner,outputDir,funParams)
+        function obj = WindowSamplingProcess(owner,varargin)
                                               
             if nargin == 0
                 super_args = {};
             else                
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
                 
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
-
                 super_args{2} = WindowSamplingProcess.getName;
-                super_args{3} = @sampleMovieWindows;                               
-                
-                if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%      
-                    nChan = numel(owner.channels_);
-                    funParams.ChannelIndex = 1:nChan;%Default is to sample all channels                    
-                    funParams.ProcessIndex = [];%Default is to use raw images
-                    funParams.OutputDirectory = [outputDir  filesep 'window_sampling'];
-                    funParams.BatchMode = false;                                                                                
-                                    
-                end
-                
+                super_args{3} = @sampleMovieWindows;                                               
+                if isempty(funParams)                                       
+                    funParams=WindowSamplingProcess.getDefaultParams(owner,outputDir);
+                end                
                 super_args{4} = funParams;    
                                 
             end
@@ -132,8 +131,19 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             name =@windowSamplingProcessGUI;
         end
         
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1:numel(owner.channels_);%Default is to sample all channels
+            funParams.ProcessIndex = [];%Default is to use raw images
+            funParams.OutputDirectory = [outputDir  filesep 'window_sampling'];
+            funParams.BatchMode = false;           
+        end
     end 
-    
 end
-       
-    

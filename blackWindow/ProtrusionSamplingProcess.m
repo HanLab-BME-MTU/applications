@@ -1,62 +1,64 @@
 classdef ProtrusionSamplingProcess < ImageAnalysisProcess
-%
-% Process Class for sampling the protrusion vectors which correspond with
-% each window for a given movie.
-%     
-% Hunter Elliott
-% 1/2011    
-%
-
+    %
+    % Process Class for sampling the protrusion vectors which correspond with
+    % each window for a given movie.
+    %
+    % Hunter Elliott
+    % 1/2011
+    %
+    
     methods (Access = public)
         
-        function obj = ProtrusionSamplingProcess(owner,outputDir,funParams)
-                                              
+        function obj = ProtrusionSamplingProcess(owner,varargin)
+            
             if nargin == 0
                 super_args = {};
-            else                
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
                 
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = ProtrusionSamplingProcess.getName;
-                super_args{3} = @sampleMovieProtrusion;                               
+                super_args{3} = @sampleMovieProtrusion;                
+                if isempty(funParams)
+                    funParams=ProtrusionSamplingProcess.getDefaultParams(owner,outputDir);
+                end                
+                super_args{4} = funParams;
                 
-                if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%      
-                    
-                    funParams.OutputDirectory = [outputDir  filesep 'protrusion_samples'];
-                    funParams.BatchMode = false;                                                      
-                                    
-                end
-                
-                super_args{4} = funParams;    
-                                
             end
             
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
-                
+        
         function setOutFilePath(obj,filePath)
             %Overloads the method from ImageAnalysisProcess because there
             %is only one set of vectors for all channels, which is stored
             %as a single file
-                                    
-           if ~exist(filePath,'file')
-               error('lccb:set:fatal',...
-                   'The file specified specified as output for the function is invalid!') 
-           else
-               obj.outFilePaths_ = {filePath};                               
-           end
-                        
-        end 
+            
+            if ~exist(filePath,'file')
+                error('lccb:set:fatal',...
+                    'The file specified specified as output for the function is invalid!')
+            else
+                obj.outFilePaths_ = {filePath};
+            end
+            
+        end
         
         function status = checkChannelOutput(obj)
             %Overrides the generic function - there is only one set of prot
-            %samples for all channels.            
+            %samples for all channels.
             status = logical(exist(obj.outFilePaths_{1},'file'));
         end
         
         function prot = loadChannelOutput(obj,varargin)
-           
+            
             %Make sure the prot samples are ok
             if ~checkChannelOutput(obj)
                 error('Cannot load the protrusion samples - they could not be found!')
@@ -64,19 +66,19 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             
             outputList = {'','avgNormal'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'ProtrusionSamplingProcess'));        
+            ip.addRequired('obj',@(x) isa(x,'ProtrusionSamplingProcess'));
             ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             output = ip.Results.output;
             
             prot = load(obj.outFilePaths_{1});
             fn = fieldnames(prot);
-            if numel(fn) > 1, error('Invalid protrusion sample file!'); end            
+            if numel(fn) > 1, error('Invalid protrusion sample file!'); end
             prot = prot.(fn{1});
             if ~isempty(output), prot=prot.(output); end
-                                    
+            
         end
-               
+        
         function h=draw(obj,varargin)
             % Function to draw process output (template method)
             
@@ -87,7 +89,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
             ip.KeepUnmatched = true;
             ip.parse(obj,varargin{:})
-			
+            
             data=obj.loadChannelOutput('output',ip.Results.output);
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
@@ -124,8 +126,17 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output(1).defaultDisplayMethod=@(x)ScalarMapDisplay('Colormap','jet',...
                 'ScaleLabel','pixels/frame','Labels',{'Frame number','Window number'});
         end
-        
-        
-    end 
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.OutputDirectory = [outputDir  filesep 'protrusion_samples'];
+            funParams.BatchMode = false;
+        end
+    end
 end
-    

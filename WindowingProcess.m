@@ -1,58 +1,49 @@
 classdef WindowingProcess < ImageAnalysisProcess
-%WINDOWINGPROCESS is a process for creating sampling windows with getMovieWindows.m     
-%     
-%     
-% Hunter Elliott
-% 7/2010    
-%
-
+    %WINDOWINGPROCESS is a process for creating sampling windows with getMovieWindows.m
+    %
+    %
+    % Hunter Elliott
+    % 7/2010
+    %
+    
     properties (SetAccess = protected, GetAccess = public)
         
         %Window number statistics
         nBandMax_
-        nSliceMax_                
+        nSliceMax_
         
     end
-
+    
     methods (Access = public)
         
-        function obj = WindowingProcess(owner,outputDir,funParams)
-                                              
+        function obj = WindowingProcess(owner,varargin)
+            
             if nargin == 0
                 super_args = {};
-            else                
+            else
+                % Input check
+                ip = inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+                ip.addOptional('funParams',[],@isstruct);
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
                 
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = WindowingProcess.getName;
-                super_args{3} = @getMovieWindows;                               
-                
-                if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%      
-                    
-                    nChan = numel(owner.channels_);
-                    funParams.ChannelIndex = 1:nChan;%Default is to combine masks from all channels
-                    funParams.SegProcessIndex = []; %No Default.
-                    funParams.MethodName = 'ConstantNumber';   
-                    funParams.PDEPar = []; %No default.
-                    funParams.NonLinearSolver = 'off';
-                    funParams.ParaSize = 10;
-                    funParams.MeshQuality = []; %Use function default
-                    funParams.PerpSize = 10;
-                    funParams.ReInit = Inf;                    
-                    funParams.StartPoint = []; %No default
-                    funParams.MinSize = 10; %Minimum number of pixels a mask object must have to be windowed.
-                    funParams.OutputDirectory = [outputDir  filesep 'windows'];
-                    funParams.BatchMode = false;                                                      
-                                    
+                super_args{3} = @getMovieWindows;
+                if  isempty(funParams)
+                    funParams=WindowingProcess.getDefaultParams(owner,outputDir);
                 end
+                super_args{4} = funParams;
                 
-                super_args{4} = funParams;    
-                                
             end
-            
             obj = obj@ImageAnalysisProcess(super_args{:});
+      
         end
+        
         
         function wins = loadChannelOutput(obj,iFrame,varargin)
             
@@ -79,27 +70,27 @@ classdef WindowingProcess < ImageAnalysisProcess
         
         function setOutFilePath(obj,filePath)
             %Overloads the method from ImageAnalysisProcess because there
-            %is only one set of windows for all channels.            
-                                    
-           if ~exist(filePath,'dir')
-               error('lccb:set:fatal',...
-                   'The directory specified for output is invalid!') 
-           else
-               obj.outFilePaths_ = filePath;     
-               
-           end
+            %is only one set of windows for all channels.
+            
+            if ~exist(filePath,'dir')
+                error('lccb:set:fatal',...
+                    'The directory specified for output is invalid!')
+            else
+                obj.outFilePaths_ = filePath;
+                
+            end
             
             
-        end 
+        end
         function status = checkChannelOutput(obj)
-           %Overloads the generic function - only one set for all channels
-           %Make sure the windows exist and are valid
-           if ~exist(obj.outFilePaths_,'dir') || ...
-                   numel(dir([obj.outFilePaths_ filesep '*.mat'])) ~= obj.owner_.nFrames_;
-               status = false;
-           else
-               status = true;
-           end
+            %Overloads the generic function - only one set for all channels
+            %Make sure the windows exist and are valid
+            if ~exist(obj.outFilePaths_,'dir') || ...
+                    numel(dir([obj.outFilePaths_ filesep '*.mat'])) ~= obj.owner_.nFrames_;
+                status = false;
+            else
+                status = true;
+            end
             
         end
         
@@ -110,9 +101,9 @@ classdef WindowingProcess < ImageAnalysisProcess
                     any([nBandMax nSliceMax]<1)
                 error('Invalid window numbers!')
             end
-                        
+            
             obj.nSliceMax_ = nSliceMax;
-            obj.nBandMax_ = nBandMax;                        
+            obj.nBandMax_ = nBandMax;
             
         end
         function h=draw(obj,iFrame,varargin)
@@ -126,7 +117,7 @@ classdef WindowingProcess < ImageAnalysisProcess
             ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
             ip.KeepUnmatched = true;
             ip.parse(obj,iFrame,varargin{:})
-			
+            
             data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
@@ -162,6 +153,28 @@ classdef WindowingProcess < ImageAnalysisProcess
             output(1).defaultDisplayMethod=@WindowsDisplay;
         end
         
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.ChannelIndex = 1:numel(owner.channels_);%Default is to combine masks from all channels
+            funParams.SegProcessIndex = []; %No Default.
+            funParams.OutputDirectory = [outputDir  filesep 'windows'];
+            funParams.MethodName = 'ConstantNumber';
+            funParams.PDEPar = []; %No default.
+            funParams.NonLinearSolver = 'off';
+            funParams.ParaSize = 10;
+            funParams.MeshQuality = []; %Use function default
+            funParams.PerpSize = 10;
+            funParams.ReInit = Inf;
+            funParams.StartPoint = []; %No default
+            funParams.MinSize = 10; %Minimum number of pixels a mask object must have to be windowed.
+            funParams.BatchMode = false;
+        end
     end
 end
-    
