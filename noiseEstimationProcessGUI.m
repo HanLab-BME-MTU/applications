@@ -78,7 +78,7 @@ set(handles.edit_frameNumber,'String',firstImage);
 set(handles.slider_frameNumber,'Min',firstImage,'Value',firstImage,'Max',lastImage,...
     'SliderStep',[1/double(lastImage-firstImage)  10/double(lastImage-firstImage)]);
 userData.imIndx=firstImage;
-userData.imData=mat2gray(userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx));
+userData.imData=userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx);
 set(handles.edit_filterSigma,'String',userData.filterSigma(userData.chanIndx));
 
 % ----------------------------------------------------------------
@@ -189,10 +189,10 @@ if get(handles.checkbox_crop,'Value')
     imHandle = findobj(userData.previewFig,'Type','image');
     if userData.newFigure || userData.updateImage 
         if isempty(imHandle)
-            imHandle=imshow(userData.imData);
+            imHandle=imshow(mat2gray(userData.imData));
             axis off;
         else
-            set(imHandle,'CData',userData.imData);
+            set(imHandle,'CData',mat2gray(userData.imData));
         end
     end
         
