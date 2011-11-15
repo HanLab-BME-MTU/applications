@@ -233,10 +233,10 @@ if get(handles.checkbox_crop,'Value')
     imHandle =findobj(userData.previewFig,'Type','image');
     if userData.newFigure || userData.updateImage
         if isempty(imHandle)
-            imHandle=imshow(userData.imData);
+            imHandle=imshow(mat2gray(userData.imData));
             axis off;
         else
-            set(imHandle,'CData',userData.imData);
+            set(imHandle,'CData',mat2gray(userData.imData));
         end
     end
         
