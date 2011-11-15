@@ -59,10 +59,7 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 % Save the image directories and names (for cropping preview)
-userData_main = get(userData.mainFig, 'UserData');
-userData.imageFileNames = userData_main.MD(userData_main.id).getImageFileNames();
-userData.imDirs  = userData_main.MD(userData_main.id).getChannelPaths();
-userData.nFrames = userData_main.MD(userData_main.id).nFrames_;
+userData.nFrames = userData.MD.nFrames_;
 userData.imRectHandle.isvalid=0;
 userData.firstImage = funParams.firstImage;
 userData.lastImage = funParams.lastImage;
@@ -71,8 +68,8 @@ userData.filterSigma = funParams.filterSigma;
 userData.previewFig=-1;
 
 % Read the first image and update the sliders max value and steps
-props = get(handles.listbox_selectedChannels, {'String','Value'});
-userData.chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props = get(handles.listbox_selectedChannels, {'UserData','Value'});
+userData.chanIndx = props{1}(props{2});
 firstImage = userData.firstImage(userData.chanIndx);
 lastImage = userData.lastImage(userData.chanIndx);
 set(handles.edit_firstImage,'String',firstImage);
@@ -81,8 +78,7 @@ set(handles.edit_frameNumber,'String',firstImage);
 set(handles.slider_frameNumber,'Min',firstImage,'Value',firstImage,'Max',lastImage,...
     'SliderStep',[1/double(lastImage-firstImage)  10/double(lastImage-firstImage)]);
 userData.imIndx=firstImage;
-userData.imData=mat2gray(imread([userData.imDirs{userData.chanIndx} filesep...
-        userData.imageFileNames{userData.chanIndx}{userData.imIndx}]));
+userData.imData=mat2gray(userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx));
 set(handles.edit_filterSigma,'String',userData.filterSigma(userData.chanIndx));
 
 % ----------------------------------------------------------------
@@ -145,8 +141,8 @@ function update_data(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 
 % Retrieve the channel index
-props=get(handles.listbox_selectedChannels,{'String','Value'});
-chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props=get(handles.listbox_selectedChannels,{'UserData','Value'});
+chanIndx = props{1}(props{2});
 imIndx = get(handles.slider_frameNumber,'Value');
 
 % If channel index has been modified, load new frame values
@@ -163,8 +159,7 @@ end
 
 % Load a new image if either the image number or the channel has been changed
 if (chanIndx~=userData.chanIndx) ||  (imIndx~=userData.imIndx)
-    userData.imData=mat2gray(imread([userData.imDirs{chanIndx} filesep...
-        userData.imageFileNames{chanIndx}{imIndx}]));
+    userData.imData=userData.MD.channels_(chanIndx).loadImage(imIndx);
     userData.updateImage=1;
     userData.chanIndx=chanIndx;
     userData.imIndx=imIndx;
@@ -267,8 +262,8 @@ update_data(hObject,eventdata,handles);
 function edit_filterSigma_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 % Retrieve the channel index
-props=get(handles.listbox_selectedChannels,{'String','Value'});
-chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props=get(handles.listbox_selectedChannels,{'UserData','Value'});
+chanIndx = props{1}(props{2});
 
 value = str2double(get(hObject, 'String'));
 if ~(value>0), 
