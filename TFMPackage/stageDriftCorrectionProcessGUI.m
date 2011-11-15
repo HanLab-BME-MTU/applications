@@ -63,23 +63,19 @@ set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
 
 % Save the image directories and names (for cropping preview)
-userData_main = get(userData.mainFig, 'UserData');
-userData.imageFileNames = userData_main.MD(userData_main.id).getImageFileNames();
-userData.imDirs  = userData_main.MD(userData_main.id).getChannelPaths();
-userData.nFrames = userData_main.MD(userData_main.id).nFrames_;
+userData.nFrames = userData.MD.nFrames_;
 userData.imRectHandle.isvalid=0;
 userData.cropROI = funParams.cropROI;
 userData.previewFig=-1;
 
 % Read the first image and update the sliders max value and steps
-props = get(handles.listbox_selectedChannels, {'String','Value'});
-userData.chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props = get(handles.listbox_selectedChannels, {'UserData','Value'});
+userData.chanIndx = props{1}(props{2});
 set(handles.edit_frameNumber,'String',1);
 set(handles.slider_frameNumber,'Min',1,'Value',1,'Max',userData.nFrames,...
     'SliderStep',[1/double(userData.nFrames-1)  10/double(userData.nFrames-1)]);
 userData.imIndx=1;
-userData.imData=mat2gray(imread([userData.imDirs{userData.chanIndx} filesep...
-        userData.imageFileNames{userData.chanIndx}{userData.imIndx}]));
+userData.imData=userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx);
     
 set(handles.listbox_selectedChannels,'Callback',@(h,event) update_data(h,event,guidata(h)));
     
@@ -201,15 +197,14 @@ function update_data(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 
 % Retrieve the channel index
-props=get(handles.listbox_selectedChannels,{'String','Value'});
-chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props=get(handles.listbox_selectedChannels,{'UserData','Value'});
+chanIndx = props{1}(props{2});
 imIndx = get(handles.slider_frameNumber,'Value');
 
 % Load a new image if either the image number or the channel has been changed
 if (chanIndx~=userData.chanIndx) ||  (imIndx~=userData.imIndx)
     % Update image flag and dat
-    userData.imData=mat2gray(imread([userData.imDirs{chanIndx} filesep...
-        userData.imageFileNames{chanIndx}{imIndx}]));
+    userData.imData=userData.MD.channels_(chanIndx).loadImage(imIndx);
     userData.updateImage=1;
     userData.chanIndx=chanIndx;
     userData.imIndx=imIndx;
