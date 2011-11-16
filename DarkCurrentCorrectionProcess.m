@@ -13,23 +13,13 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
             if nargin == 0
                 super_args = {};
             else
-                nChan = numel(owner.channels_);
-                
+
                 super_args{1} = owner;
                 super_args{2} = DarkCurrentCorrectionProcess.getName;
                 super_args{3} = @darkCurrentCorrectMovie;                               
                 
                 if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%      
-                    funParams.OutputDirectory = ...
-                        [outputDir  filesep 'dark_current_corrected_images'];  
-                    funParams.DarkImageDirectories = []; %No default for this! It will be handled differently...
-                    funParams.ChannelIndex = 1:nChan;
-                    funParams.MedianFilter = true;
-                    funParams.GaussFilterSigma = 0;                    
-                    funParams.BatchMode = false;                                                                                
-                                       
+                    funParams = DarkCurrentCorrectionProcess.getDefaultParams(owner,outputDir);
                 end
                 
                 super_args{4} = funParams;    
@@ -54,6 +44,7 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
         end   
         
         function sanityCheck(obj)
+        sanityCheck@ImageCorrectionProcess(obj);
         % Sanity check will check the correction images
             for i = obj.funParams_.ChannelIndex
                 if ~isempty(obj.inFilePaths_{2,i})
@@ -92,5 +83,21 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
         function h = GUI()
             h= @darkCurrentCorrectionProcessGUI;
         end
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.OutputDirectory = [outputDir  filesep 'dark_current_corrected_images'];
+            funParams.DarkImageDirectories = []; %No default for this! It will be handled differently...
+            funParams.ChannelIndex = 1:numel(owner.channels_);                
+            funParams.MedianFilter = true;
+            funParams.GaussFilterSigma = 0;
+            funParams.BatchMode = false;
+        end   
     end
 end

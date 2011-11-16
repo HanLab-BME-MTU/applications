@@ -18,13 +18,7 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
                 super_args{3} = @photobleachCorrectMovieRatios;                               
                 
                 if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%      
-                    funParams.OutputDirectory = ...
-                        [outputDir  filesep 'photobleach_corrected_images'];                      
-                    funParams.ChannelIndex = [];%No default
-                    funParams.CorrectionType = 'RatioOfAverages';
-                    funParams.BatchMode = false;                                                                                
+                    funParams=PhotobleachCorrectionProcess.getDefaultParams(owner,outputDir);                                                                              
                                     
                 end
                 
@@ -82,6 +76,20 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
         end
         function h = GUI()
             h= @photobleachCorrectionProcessGUI;
+        end
+        function funParams = getDefaultParams(owner,varargin)
+            % Input check
+            ip=inputParser;
+            ip.addRequired('owner',@(x) isa(x,'MovieData'));
+            ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
+            ip.parse(owner, varargin{:})
+            outputDir=ip.Results.outputDir;
+            
+            % Set default parameters
+            funParams.OutputDirectory = [outputDir  filesep 'photobleach_corrected_images'];
+            funParams.ChannelIndex = [];%No default
+            funParams.CorrectionType = 'RatioOfAverages';
+            funParams.BatchMode = false;
         end
     end
     
