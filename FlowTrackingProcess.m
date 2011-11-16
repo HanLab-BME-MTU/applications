@@ -30,9 +30,6 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
             
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
-        function sanityCheck(obj)
-            sanityCheck@ImageAnalysisProcess(obj)
-        end 
         
         function OK = checkChannelOutput(obj,varargin)
            % Input check

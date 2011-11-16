@@ -31,10 +31,6 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
             obj = obj@DataProcessingProcess(super_args{:});
         end
         
-        function sanityCheck(obj)
-            sanityCheck@DataProcessingProcess(obj)
-        end
-        
          function varargout = loadChannelOutput(obj,iChan,varargin)
              
              % Input check
