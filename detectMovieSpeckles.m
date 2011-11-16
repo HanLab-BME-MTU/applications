@@ -59,8 +59,8 @@ if isempty(iMaskProc)
     'on this movie! Please run first!!']);
 end
 
-segProc = movieData.processes_{iMaskProc};
-if ~all(segProc.checkChannelOutput(p.MaskChannelIndex))
+maskProc = movieData.processes_{iMaskProc};
+if ~all(maskProc.checkChannelOutput(p.MaskChannelIndex))
     error(['Mask refinement has not been run for all selected channels! '...
         'Please apply segmentation before running correlation!']);
 end
@@ -89,21 +89,17 @@ if length(p.MaskChannelIndex) >1
     maskDir = maskIntProc.outFilePaths_{1};
     maskNames = maskIntProc.getOutMaskFileNames(1);
 else
-    maskDir = segProc.outFilePaths_{p.MaskChannelIndex};
-    maskNames = segProc.getOutMaskFileNames(p.MaskChannelIndex);
+    maskDir = maskProc.outFilePaths_{p.MaskChannelIndex};
+    maskNames = maskProc.getOutMaskFileNames(p.MaskChannelIndex);
 end
 
 iNDProc =movieData.getProcessIndex('NoiseEstimationProcess',1,1);   
 if ~isempty(iNDProc)
     noiseProc=movieData.processes_{iNDProc};
-    if ~noiseProc.checkChannelOutput()
+    if ~noiseProc.checkChannelOutput(p.ChannelIndex)
         error(['There is no noise estimation output !' ...
             'Please apply noise estimation before running speckle detection!'])
     end
-    
-    % Read noise parameters from noise estimation process if input
-    [p.I0 p.sDN p.GaussRatio] = noiseProc.loadChannelOutput('output',{'I0','sDN','GaussRatio'});
-
 end
 
 % Set up the input directories
@@ -112,7 +108,7 @@ for j = p.ChannelIndex
     inFilePaths{1,j} = imDirs{j};
     inFilePaths{2,j} = maskDir;
     if ~isempty(iNDProc)
-        inFilePaths{3,j} = movieData.processes_{iNDProc}.outFilePaths_{j};
+        inFilePaths{3,j} = movieData.processes_{iNDProc}.outFilePaths_{1,j};
     end
 end
 specDetProc.setInFilePaths(inFilePaths);
@@ -154,6 +150,12 @@ for i = 1:numel(p.ChannelIndex)
     disp('Results will be saved under:')
     disp(outputDir{iChan});
     if ishandle(wtBar), waitbar(0,wtBar,logMsg(iChan)); end
+
+    % Read noise parameters from noise estimation process if input
+    if ~isempty(iNDProc)
+         [p.I0 p.sDN p.GaussRatio] = noiseProc.loadChannelOutput(iChan,...
+             'output',{'I0','sDN','GaussRatio'});
+    end
 
     % Construct noiseParameters vector from noise model and alpha value
     k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);

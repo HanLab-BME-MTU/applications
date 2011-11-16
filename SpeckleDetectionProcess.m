@@ -69,12 +69,13 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
             end
         end
         function output = getDrawableOutput(obj)
-            markers={'o','^','s','d'};
+
             output(1).name='Speckle candidates';
             output(1).var='cands';
             output(1).formatData=@(x) x([x.status]==1);
             output(1).type='overlay';
-            output(1).defaultDisplayMethod=@(x) SpeckleDisplay('Marker',markers{x});
+            colors = hsv(numel(obj.owner_.channels_));
+            output(1).defaultDisplayMethod=@(x) SpeckleDisplay('Color',colors(x,:));
         end
         
     end

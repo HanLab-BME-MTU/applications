@@ -77,13 +77,11 @@ p.alpha = specDetProc.funParams_.alpha;
 iNDProc =movieData.getProcessIndex('NoiseEstimationProcess',1,1);   
 if ~isempty(iNDProc)
     noiseProc=movieData.processes_{iNDProc};
-    if ~noiseProc.checkChannelOutput()
+    if ~noiseProc.checkChannelOutput(p.ChannelIndex)
         error(['There is no noise estimation output !' ...
             'Please apply noise estimation before running speckle detection!'])
     end
-    
-    % Read noise parameters from noise estimation process if applicable
-    [p.I0 p.sDN p.GaussRatio] = noiseProc.loadChannelOutput('output',{'I0','sDN','GaussRatio'});
+
 else
     % Read noise parameters from speckle detection process
     p.I0=specDetProc.funParams_.I0;
@@ -98,7 +96,7 @@ for j = p.ChannelIndex
     inFilePaths{1,j} = specDetProc.outFilePaths_{1,j};
     inFilePaths{2,j} = specTrackProc.outFilePaths_{1,j};
     if ~isempty(iNDProc)
-        inFilePaths{3,j} = movieData.processes_{iNDProc}.outFilePaths_{j};
+        inFilePaths{3,j} = movieData.processes_{iNDProc}.outFilePaths_{1,j};
     end
 end
 kinProc.setInFilePaths(inFilePaths);
@@ -148,6 +146,12 @@ for iChan = p.ChannelIndex
     % Replace fsmTrackFillSpeckleList
     fprintf(1,'Loading tracks...\n');    
     [MPM,gapList] = specTrackProc.loadChannelOutput(iChan,'output',{'MPM','gapList'});
+
+    % Read noise parameters from noise estimation process if input
+    if ~isempty(iNDProc)
+         [p.I0 p.sDN p.GaussRatio] = noiseProc.loadChannelOutput(iChan,...
+             'output',{'I0','sDN','GaussRatio'});
+    end
 
     % Create noise parameter vector
     k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);

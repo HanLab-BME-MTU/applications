@@ -140,7 +140,8 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             % Set default parameters
             funParams.ChannelIndex = 1 : numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'flowAnalysis'];
-            funParams.timeWindow = 1;
+            funParams.MaskProcess = [];
+            funParams.timeWindow = 3;
             funParams.corrLength = 33;
             funParams.gridSize = 11;
             funParams.interpolate = 1;

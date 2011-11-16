@@ -59,7 +59,7 @@ specDetProc = movieData.processes_{iSpecProc};
 %Check which channels have speckles and masks
 hasMasks = segProc.checkChannelOutput(p.ChannelIndex);
 hasSpec = specDetProc.checkChannelOutput(p.ChannelIndex);
-if ~all(hasMasks && hasSpec)
+if ~all(hasMasks & hasSpec)
     error(['Each channel must have speckles and masks! ' ...
         'Please apply speckle detection to all needed channels before '...
         'running flow tracking!'])

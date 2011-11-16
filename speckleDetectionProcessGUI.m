@@ -64,7 +64,6 @@ props=get(handles.listbox_selectedChannels,{'String','UserData'});
 set(handles.listbox_maskChannels,'String',props{1},'UserData',props{1});  
 
 % Store the image directories and filterSigma values (for multi-channel)
-userData.imDirs  = userData.MD.getChannelPaths();
 userData.filterSigma = funParams.filterSigma;
 
 % Update status of noise parameter fields
@@ -73,8 +72,7 @@ if ~isempty(userData.crtPackage.processes_{1})
     cellfun(@(x)set(handles.(['edit_' x]),'Enable','off'),userData.noiseParams);
     set(handles.pushbutton_loadNoiseParameters,'Enable','off');
 else
-    cellfun(@(x)set(handles.(['edit_' x]),'Enable','on',...
-        'String',funParams.(x)),userData.noiseParams);
+    cellfun(@(x)set(handles.(['edit_' x]),'String',funParams.(x)),userData.noiseParams);
 end
     
 set(handles.figure1, 'UserData', userData);
@@ -192,13 +190,13 @@ function listbox_selectedChannels_Callback(hObject, eventdata, handles)
 
 % Read channel index
 userData = get(handles.figure1, 'UserData');
-props = get(handles.listbox_selectedChannels, {'String','Value'});
-chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props = get(handles.listbox_selectedChannels, {'UserData','Value'});
+chanIndx = props{1}(props{2});
 
 set(handles.edit_filterSigma,'String',userData.filterSigma(chanIndx));
 if ~isempty(userData.crtPackage.processes_{1})
     if userData.crtPackage.processes_{1}.checkChannelOutput() 
-        [I0,sDN,GaussRatio] =userData.crtPackage.processes_{1}.loadChannelOutput();
+        [I0,sDN,GaussRatio] =userData.crtPackage.processes_{1}.loadChannelOutput(chanIndx);
         set(handles.edit_I0,'String',I0);
         set(handles.edit_sDN,'String',sDN);
         set(handles.edit_GaussRatio,'String',GaussRatio);
@@ -210,8 +208,8 @@ end
 function edit_filterSigma_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 % Retrieve the channel index
-props=get(handles.listbox_selectedChannels,{'String','Value'});
-chanIndx = find(strcmp(props{1}{props{2}},userData.imDirs));
+props=get(handles.listbox_selectedChannels,{'UserData','Value'});
+chanIndx = props{1}(props{2});
 
 value = str2double(get(hObject, 'String'));
 if ~(value>0), 
@@ -239,8 +237,7 @@ if ~isequal(file,0) && ~isequal(path,0)
     
     s=load([path file],noiseParams{:});
     for i=1:numel(noiseParams)
-        set(handles.(['edit_' noiseParams{i}]),'String',s.(noiseParams{i}),...
-            'Enable','on');
+        set(handles.(['edit_' noiseParams{i}]),'String',s.(noiseParams{i}));
         
     end
 end

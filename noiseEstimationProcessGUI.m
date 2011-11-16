@@ -199,16 +199,16 @@ if get(handles.checkbox_crop,'Value')
 
    if userData.imRectHandle.isvalid
         % Update the imrect position
-        setPosition(userData.imRectHandle,userData.cropROI(userData.chanIndx,:))
+        setPosition(userData.imRectHandle,userData.cropROI)
    else 
         % Create a new imrect object and store the handle
-        userData.imRectHandle = imrect(get(imHandle,'Parent'),userData.cropROI(userData.chanIndx,:));
+        userData.imRectHandle = imrect(get(imHandle,'Parent'),userData.cropROI);
         fcn = makeConstrainToRectFcn('imrect',get(imHandle,'XData'),get(imHandle,'YData'));
         setPositionConstraintFcn(userData.imRectHandle,fcn);
     end
 else
     if userData.imRectHandle.isvalid, 
-        userData.cropROI(userData.chanIndx,:)=getPosition(userData.imRectHandle);
+        userData.cropROI=getPosition(userData.imRectHandle);
     end
     
     % Close the figure if applicable

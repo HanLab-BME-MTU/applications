@@ -49,25 +49,31 @@ classdef NoiseEstimationProcess < ImageAnalysisProcess
             end
         end
         
-        function status = checkChannelOutput(obj)
+        function status = checkChannelOutput(obj,iChan)
+            
+            %Checks if the selected channels have valid output files
+            nChan = numel(obj.owner_.channels_);
+            if nargin < 2, iChan = 1:nChan; end
+ 
             %Makes sure there's at least one .mat file in the speified
             %directory
-            status = logical(exist(obj.outFilePaths_{1},'file'));
+            status= arrayfun(@(x) exist(obj.outFilePaths_{1,x},'file'),iChan);
         end
         
         
-        function varargout = loadChannelOutput(obj,varargin)
+        function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
             outputList = {'I0','sDN','GaussRatio'};
             ip =inputParser;
             ip.addRequired('obj');
+            ip.addRequired('iChan',@isscalar);
             ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
-            ip.parse(obj,varargin{:})
+            ip.parse(obj,iChan,varargin{:})
             output = ip.Results.output;
             if ischar(output), output={output}; end
             
-            s =load(obj.outFilePaths_{1},output{:});
+            s =load(obj.outFilePaths_{1,iChan},output{:});
             % Initialize output
             for j=1:numel(output)
                 varargout{j} = s.(output{j});
@@ -95,7 +101,7 @@ classdef NoiseEstimationProcess < ImageAnalysisProcess
             funParams.OutputDirectory = [outputDir  filesep 'noise'];
             funParams.firstImage = ones(size(owner.channels_));
             funParams.lastImage = owner.nFrames_*ones(size(owner.channels_));
-            funParams.cropROI = repmat([1 1 owner.imSize_(end:-1:1)],numel(owner.channels_),1);
+            funParams.cropROI = [1 1 owner.imSize_(end:-1:1)];
             psfSigmaCheck =~arrayfun(@(x)isempty(x.psfSigma_),owner.channels_);
             if all(psfSigmaCheck)
                 funParams.filterSigma = [owner.channels_.psfSigma_];

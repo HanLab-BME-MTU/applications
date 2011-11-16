@@ -47,37 +47,77 @@ end
 nFrames = movieData.nFrames_;
 
 % Test the presence and output validity of the speckle tracking process
-iSpecTrack =movieData.getProcessIndex('SpeckleTrackingProcess',1,1);     
-if isempty(iSpecTrack)
+iSpecDetProc =movieData.getProcessIndex('SpeckleDetectionProcess',1,1);     
+if isempty(iSpecDetProc)
+    error(['Speckle detection has not yet been performed'...
+    'on this movie! Please run first!!']);
+end        
+%Check that there is a valid output
+specDetProc = movieData.processes_{iSpecDetProc};
+if ~specDetProc.checkChannelOutput(p.ChannelIndex)
+    error(['Each channel must have speckles! ' ...
+        'Please apply speckle detection to all needed channels before '...
+        'running flow analysis!'])
+end
+p.MaskChannelIndex = specDetProc.funParams_.MaskChannelIndex;
+
+% Test the presence and output validity of the speckle tracking process
+iSpecTrackProc =movieData.getProcessIndex('SpeckleTrackingProcess',1,1);     
+if isempty(iSpecTrackProc)
     error(['Speckle tracking has not yet been performed'...
     'on this movie! Please run first!!']);
 end        
 %Check that there is a valid output
-specTrackProc = movieData.processes_{iSpecTrack};
+specTrackProc = movieData.processes_{iSpecTrackProc};
 if ~specTrackProc.checkChannelOutput(p.ChannelIndex)
     error(['Each channel must have tracks!' ...
         'Please apply speckle tracking to all needed channels before '...
         'running flow analysis!'])
 end
     
-iSegProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);     
-if isempty(iSegProc)
-    error(['Segmentation has not yet been performed'...
+
+% Create mask directory if several masks need to be merged
+if length(p.MaskChannelIndex) >1
+    %Get the indices of any previous mask intersection process
+    iMaskProc = movieData.getProcessIndex('MaskIntersectionProcess',1,0);
+else  
+    iMaskProc =movieData.getProcessIndex('MaskRefinementProcess',1,1);
+end
+
+if isempty(iMaskProc)
+    error(['Mask refinement has not yet been performed '...
+        'on this movie! Please run first!!']);
+end
+%Check that there is a valid output
+maskProc = movieData.processes_{iMaskProc};
+if ~maskProc.checkChannelOutput(p.ChannelIndex)
+    error(['Each channel must have masks !' ...
+        'Please apply mask refinement to all needed channels before'...
+        'running speckle tracking!'])
+end
+
+
+% Test the presence and output validity of the speckle tracking process
+iSpecTrackProc =movieData.getProcessIndex('SpeckleTrackingProcess',1,1);     
+if isempty(iSpecTrackProc)
+    error(['Speckle tracking has not yet been performed'...
     'on this movie! Please run first!!']);
 end        
 %Check that there is a valid output
-segProc = movieData.processes_{iSegProc};
-if ~segProc.checkChannelOutput(p.ChannelIndex)
-    error(['Each channel must have masks !' ...
-        'Please apply speckle tracking to all needed channels before'...
-        'running speckle tracking!'])
+specTrackProc = movieData.processes_{iSpecTrackProc};
+if ~specTrackProc.checkChannelOutput(p.ChannelIndex)
+    error(['Each channel must have tracks!' ...
+        'Please apply speckle tracking to all needed channels before '...
+        'running flow analysis!'])
 end
+    
+
 
 % Set up the input directories
 inFilePaths = cell(2,numel(movieData.channels_));
 for j = p.ChannelIndex
     inFilePaths{1,j} = specTrackProc.outFilePaths_{1,j};
-    inFilePaths{2,j} = segProc.outFilePaths_{1,j};
+    inFilePaths{2,j} = maskProc.outFilePaths_{1,j};
 end
 flowAnProc.setInFilePaths(inFilePaths);
     
@@ -105,7 +145,7 @@ for iChan = p.ChannelIndex
     disp(logMsg(iChan))
     
     if ishandle(wtBar), waitbar(0,wtBar,'Loading masks and images...'); end
-    maskNames = segProc.getOutMaskFileNames(iChan);
+    maskNames = maskProc.getOutMaskFileNames(iChan);
     inMask=@(frame) [flowAnProc.inFilePaths_{2,iChan}...
         filesep maskNames{1}{frame}];
     mask=true([movieData.imSize_ nFrames]);
@@ -118,11 +158,11 @@ for iChan = p.ChannelIndex
    
     % Load candidates and generate Nx3 matrices with position and intensity
     % Replace fsmTrackFillSpeckleList
-    if ishandle(wtBar), waitbar(0,wtBar,'Loading tracks...'); end
+    if ishandle(wtBar), waitbar(0,wtBar,['Loading tracks for channel ' num2str(iChan)']); end
     M = specTrackProc.loadChannelOutput(iChan,'output','M'); 
     
     % Interpolate field
-    if ishandle(wtBar), waitbar(.25,wtBar,'Interpolating flow...'); end
+    if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
     [Mv,Md,Ms,E,S] = ...
         analyzeFlow(M,p.timeWindow,p.corrLength,...
         'interpolate',p.interpolate,'noise',p.noise,'error',p.error);
@@ -138,7 +178,7 @@ for iChan = p.ChannelIndex
     
     
     % Speed maps creation
-    if ishandle(wtBar), waitbar(.5,wtBar,'Generating speed maps...'); end
+    if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
     % Interpolate raw vector on a grid
     G=framework(movieData.imSize_,[p.gridSize p.gridSize]);
     Mdgrid=arrayfun(@(i) vectorFieldAdaptInterp(Mv{i},G,p.corrLength,...
@@ -148,7 +188,7 @@ for iChan = p.ChannelIndex
         movieData.pixelSize_,movieData.imSize_,mask);
     speedMap=replicateFrames(speedMap); %#ok<NASGU>
     
-    if ishandle(wtBar), waitbar(.75,wtBar,'Generating error maps...'); end
+    if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
     
     % Fill output structure for each frame and save it

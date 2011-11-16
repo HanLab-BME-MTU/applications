@@ -98,9 +98,11 @@ timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
 
 disp('Starting estimating noise...')
 nTot = sum(nFrames(p.ChannelIndex));
+noiseLog=cell(numel(p.ChannelIndex),1);
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Display log
+    noiseLog{i} = sprintf('Channel %g: %s\n',iChan,inFilePaths{1,iChan});
     disp(logMsg(iChan))
     disp(inFilePaths{1,iChan});
     disp('Result will be saved as :')
@@ -111,7 +113,7 @@ for i = 1:numel(p.ChannelIndex)
     % Read the first image, get the crop dimensions and initialize stack
     frameRange = p.firstImage(iChan):p.lastImage(iChan);
     currImage = movieData.channels_(iChan).loadImage(1);
-    dummy=imcrop(currImage,p.cropROI(iChan,:));
+    dummy=imcrop(currImage,p.cropROI);
     cropSize = size(dummy);
     stack = zeros([cropSize frameRange(end)-frameRange(1)],class(currImage));
 
@@ -120,7 +122,7 @@ for i = 1:numel(p.ChannelIndex)
     for j = 1:numel(frameRange)                
         %Load the current image, crop and save it
         iFrame = frameRange(j);   
-        stack(:,:,j) = imcrop(movieData.channels_(iChan).loadImage(iFrame),p.cropROI(iChan,:));
+        stack(:,:,j) = imcrop(movieData.channels_(iChan).loadImage(iFrame),p.cropROI);
         imwrite(stack(:,:,j),outImage(iChan,iFrame),'tif');
         
         if mod(j,5)==1 && ishandle(wtBar)
@@ -138,13 +140,22 @@ for i = 1:numel(p.ChannelIndex)
     
     % Save results
     save(outFilePaths{1,iChan},'I0','sDN','GaussRatio');
+    
+    % Create channel log fot output
+    noiseLog{i} = [noiseLog{i} ...
+        sprintf(['Noise model parameters\n' ...
+        'Average background intensity\t: %2.5f +/- %2.5f\n'...
+        'Gauss ratio\t\t\t: %2.4f\n'],I0,sDN,GaussRatio)];
+    
 end
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 
-noiseLog= sprintf(['Noise model parameters\n' ...
-    'Average background intensity\t: %2.5f +/- %2.5f\n'...
-    'Gauss ratio\t\t\t: %2.4f\n'],I0,sDN,GaussRatio);
-disp(noiseLog);
-    
+% Create process report
+procLog=[sprintf('Noise model calibration detection summary\n\n') noiseLog{:}];
+disp(procLog);
+fid=fopen([p.OutputDirectory filesep 'NoiseModelCalibrationSummary.txt'],'w+');
+fprintf(fid,procLog);
+fclose(fid);
+
 disp('Finished calculating noise!')

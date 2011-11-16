@@ -74,7 +74,7 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
            ip =inputParser;
            ip.addRequired('obj',@(x) isa(x,'SpeckleTrackingProcess'));
            ip.addOptional('iChan',1:numel(obj.owner_.channels_),...
-               @(x) ismember(x,1:numel(obj.owner_.channels_)));
+               @(x) all(obj.checkChanNum(x)));
            ip.parse(obj,varargin{:});
            iChan=ip.Results.iChan;
            

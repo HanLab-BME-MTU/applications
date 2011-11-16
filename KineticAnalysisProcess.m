@@ -84,17 +84,18 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(1).formatData=[];
             output(1).var='kinMap2C';
             output(1).type='image';
-            output(1).defaultDisplayMethod=@ImageDisplay;
+            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',redgreencmap,...
+                'Colorbar','on');
 			output(2).name='Polymerization map';
             output(2).var='polyMap';
             output(2).formatData=@mat2gray;
             output(2).type='image';
-            output(2).defaultDisplayMethod=@ImageDisplay;
-			output(3).name='Depolymerization map';
+            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colorbar','on');
+            output(3).name='Depolymerization map';
             output(3).formatData=@(x)mat2gray(-x);
             output(3).var='depolyMap';
             output(3).type='image';
-            output(3).defaultDisplayMethod=@ImageDisplay;
+            output(3).defaultDisplayMethod=@(x)ImageDisplay('Colorbar','on');
         end
         
         function funParams = getDefaultParams(owner,varargin)
@@ -109,7 +110,7 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             funParams.ChannelIndex = 1 : numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'kineticAnalysis'];
             funParams.bleachRed = 0;
-            funParams.timeWindow = 1;
+            funParams.timeWindow = 5;
             funParams.sigma = 5;
         end        
     end
