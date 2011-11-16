@@ -31,9 +31,6 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             obj = obj@ImageAnalysisProcess(super_args{:});
             
         end
-        function sanityCheck(obj)
-            
-        end
         
         function status = checkChannelOutput(obj,varargin)
             status = logical(exist(obj.outFilePaths_{1},'file'));

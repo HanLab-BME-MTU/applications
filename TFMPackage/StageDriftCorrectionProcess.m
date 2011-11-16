@@ -29,9 +29,6 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
             end
             obj = obj@ImageProcessingProcess(super_args{:});
         end
-        function sanityCheck(obj)
-            
-        end
         
         function h=draw(obj,varargin)
             % Function to draw process output

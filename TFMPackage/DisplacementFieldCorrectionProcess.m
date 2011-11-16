@@ -30,9 +30,6 @@ classdef DisplacementFieldCorrectionProcess < DataProcessingProcess
             
             obj = obj@DataProcessingProcess(super_args{:});
         end
-        function sanityCheck(obj)
-            
-        end
         
         function status = checkChannelOutput(obj,varargin)
             
