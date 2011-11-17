@@ -35,7 +35,7 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
            % Input check
            ip =inputParser;
            ip.addOptional('iChan',1:numel(obj.owner_.channels_),...
-               @(x) ismember(x,1:numel(obj.owner_.channels_)));
+               @(x) all(ismember(x,1:numel(obj.owner_.channels_))));
            ip.parse(varargin{:});
            iChan=ip.Results.iChan;
 

@@ -70,7 +70,36 @@ classdef KineticAnalysisProcess < DataProcessingProcess
                  end
             end
         end
+        function output =getDrawableOutput(obj)
+            output(1).name='Combined map';
+            output(1).formatData=[];
+            output(1).var='kinMap2C';
+            output(1).type='image';
+            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',...
+                [(1:-1/32:0)'*[0 1 0]; (0:1/32:1)'*[1 0 0]],'Colorbar','on');
+			output(2).name='Polymerization map';
+            output(2).var='polyMap';
+            output(2).formatData=[];
+            output(2).type='image';
+            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(0:1/64:1)'*[1 0 0],...
+            'Colorbar','on','CLim',obj.getKineticLimits(x,'polyMap'),'Units','Kinetic score');
+            output(3).name='Depolymerization map';
+            output(3).formatData=[];
+            output(3).var='depolyMap';
+            output(3).type='image';
+            output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(1:-1/64:0)'*[0 1 0],...
+                'Colorbar','on','CLim',obj.getKineticLimits(x,'depolyMap'),'Units','Kinetic score');
+        end
+        
     end
+    methods (Access=protected)
+        function limits = getKineticLimits(obj,iChan,output)
+            kinMap=loadChannelOutput(obj,iChan,'output',output);
+            allMaps = vertcat(kinMap{:});
+            limits=[min(allMaps(:)) max(allMaps(:))];
+        end
+    end
+    
     methods (Static)
         function name =getName()
             name = 'Kinetic Analysis';
@@ -79,25 +108,6 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             h= @kineticAnalysisProcessGUI;
         end
 
-        function output =getDrawableOutput()
-            output(1).name='Combined map';
-            output(1).formatData=[];
-            output(1).var='kinMap2C';
-            output(1).type='image';
-            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',redgreencmap,...
-                'Colorbar','on');
-			output(2).name='Polymerization map';
-            output(2).var='polyMap';
-            output(2).formatData=@mat2gray;
-            output(2).type='image';
-            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colorbar','on');
-            output(3).name='Depolymerization map';
-            output(3).formatData=@(x)mat2gray(-x);
-            output(3).var='depolyMap';
-            output(3).type='image';
-            output(3).defaultDisplayMethod=@(x)ImageDisplay('Colorbar','on');
-        end
-        
         function funParams = getDefaultParams(owner,varargin)
             % Input check
             ip=inputParser;
