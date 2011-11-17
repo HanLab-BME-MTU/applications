@@ -3,7 +3,7 @@ movieSelectorGUI
 load movieData.mat
 
 %get cell mask
-threshParam.GaussFilterSigma = 1;
+threshParam.GaussFilterSigma = 0.5;
 threshParam.MaxJump = 1.2;
 MD = thresholdMovie(MD,threshParam);
 % MD = thresholdMovie(MD);
@@ -14,7 +14,7 @@ MD = thresholdMovie(MD,threshParam);
 % refinementParam.PreEdgeGrow = 0;
 % refinementParam.EdgeRefinement = 1;
 % refinementParam.EdgeRefinement = 0;
-% refinementParam.ClosureRadius = 3;
+% refinementParam.ClosureRadius = 0;
 % MD = refineMovieMasks(MD,refinementParam);
 MD = refineMovieMasks(MD);
 
@@ -26,7 +26,11 @@ makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskOrig
 %refine masks using gradient information
 refineMovieEdgeWithSteerableFilter(MD,1)
 
+imtool close all
+
 %refine cell mask again with Hunter's code to get back on track
+% refinementParam.ClosureRadius = 5;
+% MD = refineMovieMasks(MD,refinementParam);
 MD = refineMovieMasks(MD);
 
 %make movie of final mask

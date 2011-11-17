@@ -47,9 +47,9 @@ edgeMask = bwmorph(edgeMask,'bridge');
 %remove isolated edges whose area is not larger than 3 pixels
 regionStats = regionprops(edgeMask,'Area');
 regionArea = vertcat(regionStats.Area);
-indxBad = find(regionArea <= 3)';
+indxBad = find(regionArea <= 3);
 L = bwlabel(edgeMask);
-for iBad = indxBad
+for iBad = indxBad'
     edgeMask(L==iBad) = 0;
 end
 
@@ -79,7 +79,7 @@ regionStats = regionprops(mask,'Area');
 regionArea = vertcat(regionStats.Area);
 indxBad = find(regionArea<max(regionArea));
 L = bwlabel(mask);
-for iBad = indxBad
+for iBad = indxBad'
     mask(L==iBad) = 0;
 end
 

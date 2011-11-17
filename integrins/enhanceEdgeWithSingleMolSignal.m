@@ -74,7 +74,7 @@ for iEdge = 1 : numEdgeFiles
     %filter single molecule images to smoothen the signal
     filteredSMImage = repmat(zeros(size(edgeImage)),[1 1 numSMFrames-1]);
     for iSM = 1 : numSMFrames-1
-        filteredSMImage(:,:,iIntegrin) = filterGauss2D(smImage(:,:,iSM),3);
+        filteredSMImage(:,:,iSM) = filterGauss2D(smImage(:,:,iSM),3);
     end
     
     %put the single molecule images together
