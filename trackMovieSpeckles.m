@@ -91,12 +91,10 @@ specTrackProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
 outFilePaths_=cell(1,nChan);
+mkClrDir(p.OutputDirectory)
 for i = p.ChannelIndex;    
     %Create string for current directory
-    outputDir = [p.OutputDirectory filesep 'tracks_for_channel_' num2str(i)];
-    mkClrDir(outputDir);
-
-    outFilePaths_{1,i} = [outputDir filesep 'mpm.mat'];
+    outFilePaths_{1,i} = [p.OutputDirectory filesep 'tracks_for_channel_' num2str(i) '.mat'];
 end
 specTrackProc.setOutFilePaths(outFilePaths_);
 
