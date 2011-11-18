@@ -164,8 +164,29 @@ for iFrame = 1 : numFrames-1
         
         if numFeaturesFrame2 ~= 0 %if there are features in 2nd frame
             
+            %calculate modified positions of features in 1st frame
+            %basically the position is taken as the average from the
+            %multiple appearances upto the first frame
+            movieInfoTmp = movieInfo(iFrame:iFrame+1);
+            %             coordInfoTmp = coordAmpMatFromIndicesSparse(trackedFeatureIndx,...
+            %                 movieInfo(1:iFrame),iFrame,probDim);
+            %             xCoordTmp = full(coordInfoTmp(:,1:8:end));
+            %             xCoordTmp(xCoordTmp==0) = NaN;
+            %             xCoordTmp = nanmean(xCoordTmp,2);
+            %             movieInfoTmp(1).allCoord(:,1) = xCoordTmp;
+            %             yCoordTmp = full(coordInfoTmp(:,2:8:end));
+            %             yCoordTmp(yCoordTmp==0) = NaN;
+            %             yCoordTmp = nanmean(yCoordTmp,2);
+            %             movieInfoTmp(1).allCoord(:,3) = yCoordTmp;
+            %             if probDim == 3
+            %                 zCoordTmp = full(coordInfoTmp(:,3:8:end));
+            %                 zCoordTmp(zCoordTmp==0) = NaN;
+            %                 zCoordTmp = nanmean(zCoordTmp,2);
+            %                 movieInfoTmp(1).allCoord(:,5) = zCoordTmp;
+            %             end
+            
             %calculate cost matrix
-            [costMat,nonlinkMarker,errFlag] = costMatLinkSR(movieInfo(iFrame:iFrame+1),...
+            [costMat,nonlinkMarker,errFlag] = costMatLinkSR(movieInfoTmp,...
                 searchRadius);
             
             if any(costMat(:)~=nonlinkMarker) %if there are potential links

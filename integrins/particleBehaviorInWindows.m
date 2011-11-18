@@ -167,7 +167,7 @@ protVecUnit = protVec ./ repmat(protVecMag,[1 1 2]);
 
 %get the start, end and lifetime of each track segment
 trackLft = getTrackSEL(tracksFinal,1);
-trackSE = trackLft(:,1:2);
+% trackSE = trackLft(:,1:2);
 trackLft = trackLft(:,3);
 
 %get the number of track segments
@@ -204,9 +204,9 @@ confRadAll = catStruct(1,'diffAnalysisRes.confRadInfo.confRadius(:,1)');
 %frame-to-frame displacements
 [~,angleWithProtTmp,f2fDispTmp,paraDirDispTmp,perpDirDispTmp,...
     paraProtDispTmp,perpProtDispTmp,asymParamTmp] = ...
-    trackMotionCharProtrusion(tracksFinal,protVecUnit,trackWindowAssign);
+    trackMotionCharProtrusion(tracksFinal,protVecUnit,trackWindowAssign,minLength);
 
-%calculate ratio of perpendicular to parallel displacements
+%calculate ratio of parallel to perpendicular displacements
 ratioDispDirTmp = paraDirDispTmp ./ perpDirDispTmp;
 ratioDispProtTmp = paraProtDispTmp ./ perpProtDispTmp;
 

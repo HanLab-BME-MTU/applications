@@ -1,6 +1,6 @@
 function [motionDir,angleWithProt,f2fDisp,paraDirDisp,perpDirDisp,...
-    paraProtDisp,perpProtDisp,asymParam] = trackMotionCharProtrusion(tracksFinal,...
-    protVecUnit,trackWindowAssign)
+    paraProtDisp,perpProtDisp,asymParam] = trackMotionCharProtrusion(...
+    tracksFinal,protVecUnit,trackWindowAssign,minLength)
 
 %get number of tracks
 numTracks = length(tracksFinal);
@@ -40,8 +40,14 @@ for iTrack = 1 : numTracks
     %get number of segments in this compound track
     numSeg = numSegPerTrack(iTrack);
     
+    %determine which segments are of sufficient length
+    segLft = getTrackSEL(trackCoordCurrent);
+    indxGood = find(segLft(:,3) >= minLength);
+    indxBad  = setdiff(1:numSeg,indxGood);
+    
     %calculate average frame-to-frame displacement
     f2fDispCurrent = nanmean( sqrt( xCoordDelta.^2 + yCoordDelta.^2 ) ,2);
+    f2fDispCurrent(indxBad) = NaN;
     f2fDisp(iSeg+1:iSeg+numSeg) = f2fDispCurrent;
     
     %reserve memory for this track
@@ -50,7 +56,7 @@ for iTrack = 1 : numTracks
         perpProtDispCurrent] = deal(NaN(numSeg,2));
     
     %go over segments in track
-    for iSegment = 1 : numSeg
+    for iSegment = indxGood'
         
         %calculate segment's motion direction using the position covariance matrix
         posCov = nancov([xCoord(iSegment,:); yCoord(iSegment,:)]');
@@ -72,10 +78,10 @@ for iTrack = 1 : numTracks
         perpDir = [-paraDir(2) paraDir(1)];
         paraTrackDisp = dot(trackDisp,repmat(paraDir,numEntries,1),2);
         perpTrackDisp = dot(trackDisp,repmat(perpDir,numEntries,1),2);
-        paraDirDispCurrent(iSegment,:) = [abs(nanmean(paraTrackDisp)) ...
-            nanmean(abs(paraTrackDisp))];
-        perpDirDispCurrent(iSegment,:) = [abs(nanmean(perpTrackDisp)) ...
-            nanmean(abs(perpTrackDisp))];
+        paraDirDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
+            nanmean(abs(paraTrackDisp))],eps);
+        perpDirDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
+            nanmean(abs(perpTrackDisp))],eps);
                 
         %flip motion direction if necessary
         %the condition used is that the net displacement along direction of
@@ -101,10 +107,10 @@ for iTrack = 1 : numTracks
             %decompose displacement relative to protrusion vector
             paraTrackDisp = dot(trackDisp,repmat(protParaDir,numEntries,1),2);
             perpTrackDisp = dot(trackDisp,repmat(protPerpDir,numEntries,1),2);
-            paraProtDispCurrent(iSegment,:) = [abs(nanmean(paraTrackDisp)) ...
-                nanmean(abs(paraTrackDisp))];
-            perpProtDispCurrent(iSegment,:) = [abs(nanmean(perpTrackDisp)) ...
-                nanmean(abs(perpTrackDisp))];
+            paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
+                nanmean(abs(paraTrackDisp))],eps);
+            perpProtDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
+                nanmean(abs(perpTrackDisp))],eps);
             
         end
         

@@ -311,18 +311,28 @@ for iMolecule = indxMultiple'
     %calculate each observation's weight, normalized such that the
     %sum of weights = 1
     obsWeight = 1 ./ (xyStdAve.^2);
-    obsWeight = obsWeight / sum(obsWeight);
+    sumWeights = sum(obsWeight);
+    obsWeight = obsWeight / sumWeights;
     
-    %calculate weighted average coordinates and intensity
-    weightedAve = sum( repmat(obsWeight,1,3).*coordAmpStd(:,1:3),1 );
+    %calculate weighted average of coordinates
+    weightedAve = sum( repmat(obsWeight,1,2).*coordAmpStd(:,1:2),1 );
     
-    %calculate weighted standard deviations
-    sumSqDiff = sum( repmat(obsWeight,1,3) .* ...
-        (coordAmpStd(:,1:3)-repmat(weightedAve,numObs,1)).^2,1 );
+    %sum up the amplitudes
+    weightedAve(:,3) = sum(coordAmpStd(:,3),1);
+    
+    %calculate weighted standard deviation of coordinates
+    sumSqDiff = sum( repmat(obsWeight,1,2) .* ...
+        (coordAmpStd(:,1:2)-repmat(weightedAve(:,1:2),numObs,1)).^2,1 );
     denominator = (numObs-1) / numObs;
     weightedStd = sqrt( sumSqDiff / denominator );
     
-    %collect weighted average and standard deviation
+    %calculate amplitude standard deviation
+    %note the multiplication by sqrt(numObs) - this is because at this stage
+    %we want the sample standard deviation and not the standard error of the
+    %mean, which is calculated from the standard deviation at a later step
+    weightedStd(:,3) = sqrt(sum(coordAmpStd(:,6).^2)) * sqrt(numObs);
+    
+    %collect new coordinates and amplitude and their standard deviations
     coordAmpStd = [weightedAve weightedStd];
     
     %put molecule's information in the molecule information matrix

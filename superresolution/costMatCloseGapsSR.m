@@ -79,6 +79,19 @@ for iTrack = 1 : numTracks
     ampEnd(iTrack) = full(trackedFeatInfo(iTrack,(trackEndTime(iTrack)-1)*8+4));
 end
 
+%get the average coordinate of each track
+coordMean = zeros(numTracks,probDim);
+for iTrack = 1 : numTracks
+    xCoordTmp = full(trackedFeatInfo(iTrack,...
+        (trackStartTime(iTrack)-1)*8+1:8:(trackEndTime(iTrack)-1)*8+1));
+    yCoordTmp = full(trackedFeatInfo(iTrack,...
+        (trackStartTime(iTrack)-1)*8+2:8:(trackEndTime(iTrack)-1)*8+2));
+    zCoordTmp = full(trackedFeatInfo(iTrack,...
+        (trackStartTime(iTrack)-1)*8+3:8:(trackEndTime(iTrack)-1)*8+3));
+    xyzCoordTmp = [mean(xCoordTmp,2) mean(yCoordTmp,2) mean(zCoordTmp,2)];
+    coordMean(iTrack,:) = xyzCoordTmp(1:probDim);
+end
+
 %% Gap closing
 
 %find all pairs of ends and starts that can potentially be linked
@@ -101,6 +114,8 @@ for iFrame = 1 : numFrames - 1
         %calculate the distance between ends and starts
         dispMat2 = createDistanceMatrix(coordEnd(endsToConsider,:),...
             coordStart(startsToConsider,:));
+        %         dispMat2 = createDistanceMatrix(coordMean(endsToConsider,:),...
+        %             coordMean(startsToConsider,:));
         
         %find possible pairs
         [indxEnd3,indxStart3] = find(dispMat2 <= searchRadius);
@@ -141,6 +156,7 @@ for iPair = 1 : numPairs
     %calculate the vector connecting the end of track iEnd to the
     %start of track iStart and compute its magnitude
     dispVec = coordEnd(iEnd,:) - coordStart(iStart,:);
+    %     dispVec = coordMean(iEnd,:) - coordMean(iStart,:);
     dispVecMag = norm(dispVec);
     
     %check whether the end of track iEnd is within the search
