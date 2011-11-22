@@ -124,7 +124,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output(1).formatData=[];
             output(1).type='movieGraph';
             output(1).defaultDisplayMethod=@(x)ScalarMapDisplay('Colormap','jet',...
-                'ScaleLabel','pixels/frame','Labels',{'Frame number','Window number'});
+                'Units','pixels/frame','Labels',{'Frame number','Window number'});
         end
         function funParams = getDefaultParams(owner,varargin)
             % Input check
