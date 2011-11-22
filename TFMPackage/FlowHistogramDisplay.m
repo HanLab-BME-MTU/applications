@@ -45,20 +45,19 @@ classdef FlowHistogramDisplay < MovieDataDisplay
             cla(get(get(h(1),'Parent')))
             obj.initDraw(data,tag);
         end
-        function additionalInputParsing(obj,ip)
-            ip.addParamValue('Marker',obj.Marker,@ischar); 
-            ip.addParamValue('Linewidth',obj.Linewidth,@isscalar);  
-            ip.addParamValue('nBins',obj.nBins,@isscalar);  
-        end 
-        function setProperties(obj,ip)
-            obj.Marker=ip.Results.Marker;
-            obj.Linewidth=ip.Results.Linewidth;
-            obj.nBins=ip.Results.nBins;
-        end
     end    
     
     methods (Static)
-        function f=dataCheck()
+        function params=getParamValidators()
+            params(1).name='Marker';
+            params(1).validator=@ischar;
+            params(2).name='Linewidth';
+            params(2).validator=@isscalar;
+            params(3).name='nBins';
+            params(3).validator=@isscalar;
+        end
+        
+        function f=getDataValidator()
             f=@iscell;
         end
     end    
