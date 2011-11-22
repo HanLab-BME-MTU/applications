@@ -4,16 +4,10 @@ classdef SpeckleDisplay < MovieDataDisplay
         Markers={'o','^','s','d'};
         LineStyle = '-'
         Color='r';        
-        maxOrder=4;
     end
     methods
         function obj=SpeckleDisplay(varargin)
-            nVarargin = numel(varargin);
-            if nVarargin > 1 && mod(nVarargin,2)==0
-                for i=1 : 2 : nVarargin-1
-                    obj.(varargin{i}) = varargin{i+1};
-                end
-            end
+            obj@MovieDataDisplay(varargin{:})
         end
         function h=initDraw(obj,data,tag,varargin)
             pos = vertcat(data.Lmax);
@@ -43,20 +37,19 @@ classdef SpeckleDisplay < MovieDataDisplay
             
             delete(h(orderMax+1:end));
         end
-        function additionalInputParsing(obj,ip)
-            ip.addParamValue('Color',obj.Color,@ischar);
-            ip.addParamValue('Markers',obj.Markers,@ischar);
-            ip.addParamValue('LineStyle',obj.LineStyle,@ischar);  
-        end 
-        function setProperties(obj,ip)
-            obj.Color=ip.Results.Color;
-            obj.Markers=ip.Results.Markers;
-            obj.LineStyle=ip.Results.LineStyle;
-        end
     end    
     
     methods (Static)
-        function f=dataCheck()
+        function params=getParamValidators()
+            params(1).name='Markers';
+            params(1).validator=@iscell;
+            params(2).name='Color';
+            params(2).validator=@ischar;
+            params(3).name='LineStyle';
+            params(3).validator=@ischar;
+        end
+
+        function f=getDataValidator()
             f=@isstruct;
         end
     end    

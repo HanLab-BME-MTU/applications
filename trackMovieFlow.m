@@ -138,10 +138,10 @@ for i = 1:numel(p.ChannelIndex)
         
         % Concatenate flow as a [pos1 pos2] matrix
         flow = [speckles{j} vy vx];
-        
+        corLen = [speckles{j} corLen];
         % Set infinite flow to nan
         flow(isinf(vx),3:4)=NaN;
-        
+                
         % Filter vector field outliers
         if ~isempty(p.outlierThreshold)
             outlierIndex = detectVectorFieldOutliers(flow,p.outlierThreshold);

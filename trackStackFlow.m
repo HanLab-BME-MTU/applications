@@ -454,23 +454,10 @@ else
     % zero.
     %First, Get the linear index of the image block in the big cropped image.
     [BI1,BI2] = ndgrid(bI1,bI2);
-    bI = (BI2(:)-1)*kymWidth+BI1(:);
-    
-    validFrames_old = [];
-    for k = 1:numFrames-1
-        nzInd = find(kymMask(bI,k));
-        if length(nzInd) >= bAreaThreshold
-            validFrames_old = [validFrames_old k];
-        end
-    end
+    bI = (BI2(:)-1)*kymWidth+BI1(:);  
     allFrames = 1:numFrames-1;
     nzInd = arrayfun(@(x)sum(kymMask(bI,x)),allFrames);    
     validFrames = allFrames(nzInd >= bAreaThreshold);
-    if isempty(validFrames_old)
-        assert(isempty(validFrames))
-    else
-        assert(all(validFrames==validFrames_old));
-    end
     
     %If the number of valid frames is less than half of the number of
     % correlating frames, we reject the tracking for this point with the default
@@ -515,48 +502,6 @@ else
     bNormS(bNormS==0)=1;
     score = mean(corrM./bNorm./bNormS,2);
     score = reshape(score,size(v));
-
-    % End of vectorization
-%     tic
-%     bNorm      = sqrt(sum(kymValidP2,1));
-%     for j1 = 1:length(vP)
-%         v1 = vP(j1);
-%         for j2 = 1:length(vF)
-%             v2 = vF(j2);
-%             v = v2*kymWidth+v1;
-%             
-%             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%             %Shift in the positive flow direction to the next frame.
-%             %Substract the same background average image as 'kym' keeps the
-%             %characteristic of the template while removing the peak at zero
-%             % velocity due to stationary background.
-%             
-%             kymShift = kym(bI+v,validFrames+1)-kymAvgImg(bI,validFrames);
-%             bNormS   = sqrt(sum(kymShift.^2.*kymMask(bI,validFrames),1));
-%             
-%             corrM   = -ones(1,length(validFrames));
-%             nzInd   = find(bNorm~=0);
-%             nzInd   = nzInd(bNormS(nzInd)~=0);
-%             zeroInd = find(bNorm==0);
-%             zeroInd = zeroInd(bNormS(zeroInd)==0);
-%             
-%             corrM(zeroInd) = 1;
-%             corrM(nzInd)   = sum(kymValid(:,nzInd).*kymShift(:,nzInd),1);
-%             
-%             zeroInd = find(bNorm==0);
-%             if ~isempty(zeroInd)
-%                 bNorm(zeroInd) = 1;
-%             end
-%             zeroInd = find(bNormS==0);
-%             if ~isempty(zeroInd)
-%                 bNormS(zeroInd) = 1;
-%             end
-%             
-%             score(j1,j2) = mean(corrM./bNorm./bNormS);
-%             
-%         end
-%     end
-%     toc
 
     minusOnesI = find(score(:)==-1);
     nMOnesI    = (score(:)~=-1);

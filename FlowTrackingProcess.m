@@ -107,6 +107,11 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
             output(1).formatData=@formatFlow;
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',colors(x,:));
+            output(2).name='Template sizes';
+            output(2).var='corLen';
+            output(2).formatData=@formatBoxes;
+            output(2).type='overlay';
+            output(2).defaultDisplayMethod=@(x) RectangleDisplay('Color',colors(x,:));
         end
         
     end
@@ -152,3 +157,14 @@ else
     flow=[initFlow(:,[2 1]) initFlow(:,[4 3])-initFlow(:,[2 1])];
 end
 end
+
+function data = formatBoxes(initData)
+if isempty(initData),
+    data=[];
+else
+    finiteLength = isfinite(initData(:,3));
+    data=[initData(finiteLength,1:2) repmat(initData(finiteLength,3)/2,1,2)];
+
+end
+end
+

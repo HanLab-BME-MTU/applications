@@ -107,14 +107,16 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(3).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',colors(x,:));
             output(4).name='Error circles';
             output(4).var='E';
-            output(4).formatData=[];
+            output(4).formatData=@(x) [x(:,1:3) x(:,3)];
             output(4).type='overlay';
-            output(4).defaultDisplayMethod=@(x) CircleDisplay('Color',colors(x,:));
+            output(4).defaultDisplayMethod=@(x) RectangleDisplay('Color',colors(x,:),...
+                'Curvature',[1 1]);
             output(5).name='SNR circles';
             output(5).var='S';
-            output(5).formatData=[];
+            output(5).formatData=@(x) [x(:,1:3) x(:,3)];
             output(5).type='overlay';
-            output(5).defaultDisplayMethod=@(x) CircleDisplay('Color',colors(x,:));
+            output(5).defaultDisplayMethod=@(x) RectangleDisplay('Color',colors(x,:),...
+                'Curvature',[1 1]);
             output(6).name='Error maps';
             output(6).var='img3C_map';
             output(6).formatData=[];
