@@ -1,13 +1,13 @@
-function [Mv,Md,Ms,E,S] = analyzeFlow(M,nAvg,corrLength,varargin)
+function [Md,Ms,E,S] = analyzeFlow(flow,nAvg,corrLength,varargin)
 % analyzeFlow reports several statistics on vector fields (obtained from FSM)
 %
-% SYNOPSIS      analyzeFlow(M,nAvg,corrLength)
-%               analyzeFlow(M,nAvg,corrLength,'interpolate',1)
-%               analyzeFlow(M,nAvg,corrLength,'interpolate',1,'noise',1)
-%               analyzeFlow(M,nAvg,corrLength,'interpolate',1,'noise',1,'error',1)
+% SYNOPSIS      analyzeFlow(flow,nAvg,corrLength)
+%               analyzeFlow(flow,nAvg,corrLength,'interpolate',1)
+%               analyzeFlow(flow,nAvg,corrLength,'interpolate',1,'noise',1)
+%               analyzeFlow(flow,nAvg,corrLength,'interpolate',1,'noise',1,'error',1)
 %
 %
-% INPUT         M           : matrix of matches from the speckle tracking
+% INPUT         flow        : cell array of Nx4 arrays containing the flow
 %               nAvg        : number of frames for time averaging (must be odd)
 %               corrLength  : correlation length of the interpolator
 %                
@@ -20,50 +20,44 @@ function [Mv,Md,Ms,E,S] = analyzeFlow(M,nAvg,corrLength,varargin)
 %
 
 % Aaron Ponti, May 15th, 2003
-% Sebastien Besson, June 2011
+% Sebastien Besson, June 2011 (last modified Nov 2011)
 % Adapted from fsmVectorAnalysis
 
 % Check input
 ip = inputParser;
-ip.addRequired('M',@isnumeric);
+ip.addRequired('flow',@iscell);
 ip.addRequired('nAvg',@(x) isscalar(x) & mod(x,2)~=0);
 ip.addRequired('corrLength',@isscalar);
-ip.addParamValue('interpolate',1,@isscalar);
 ip.addParamValue('noise',1,@isscalar);
 ip.addParamValue('error',1,@isscalar);
-ip.parse(M,nAvg,corrLength,varargin{:});
+ip.parse(flow,nAvg,corrLength,varargin{:});
 
-% Get raw vectors
-Mv=arrayfun(@(i)M(M(:,1,i)~=0 & M(:,3,i)~=0,:,i),1:size(M,3),'Unif',false);
+nImages= numel(flow)-nAvg+1;
+frames = find(~arrayfun(@isempty,flow(1:nImages)));
 
 % Initialize empty output
-Md={};
-Ms={};
-E={};
-S={};
-
-if ~ip.Results.interpolate, return; end
-nImages= size(M,3)-nAvg+1;
+Md=cell(1,nImages);
+Ms=cell(1,nImages);
+E=cell(1,nImages);
+S=cell(1,nImages);
 
 % Interpolate vector field
-Md=arrayfun(@(i) vectorFieldAdaptInterp(vertcat(Mv{i:i+nAvg-1}),...
-    Mv{i+fix(nAvg/2)}(:,1:2),corrLength,[],'strain'),1:nImages,...
+Md(frames)=arrayfun(@(i) vectorFieldAdaptInterp(vertcat(flow{i:i+nAvg-1}),...
+    flow{i+fix(nAvg/2)}(:,1:2),corrLength,[],'strain'),frames,...
     'UniformOutput',false);
-
 
 if ~ip.Results.noise, return; end
 
 % Return cell array of noise vectors
-Ms=arrayfun(@(i) horzcat(Md{i}(:,3:4),Mv{i+fix(nAvg/2)}(:,3:4)),1:nImages,...
+Ms(frames)=arrayfun(@(i) horzcat(Md{i}(:,3:4),flow{i+fix(nAvg/2)}(:,3:4)),frames,...
     'UniformOutput',false);
 
 if ~ip.Results.error, return; end
-E=cell(1,nImages);
-S=cell(1,nImages);
-for i=1:nImages
+
+for i=frames
     % Extract vectors
     d=Md{i}(:,3:4)-Md{i}(:,1:2); % Interpolated vector field
-    v=Mv{i+fix(nAvg/2)}(:,3:4)-Mv{i+fix(nAvg/2)}(:,1:2); % Raw vector field
+    v=flow{i+fix(nAvg/2)}(:,3:4)-flow{i+fix(nAvg/2)}(:,1:2); % Raw vector field
     s=Ms{i}(:,3:4)-Ms{i}(:,1:2); % Noise field
     
     % Vector lengths
@@ -86,8 +80,8 @@ for i=1:nImages
     eT=sqrt(eL.^2+eA.^2);
     
     % Construct matrices for display
-    E{i}=[Mv{i+fix(nAvg/2)}(:,1:2) eT];
-    S{i}=[Mv{i+fix(nAvg/2)}(:,1:2) SNR];
+    E{i}=[flow{i+fix(nAvg/2)}(:,1:2) eT];
+    S{i}=[flow{i+fix(nAvg/2)}(:,1:2) SNR];
 end
         
 %     
@@ -95,7 +89,7 @@ end
 % 
 %         fprintf(1,'File name                        : %s\n',imageFileList{c1});
 %         fprintf(1,'Correlation length corrLength            : %d\n',corrLength_init);
-%         fprintf(1,'Number of RAW vectors            : %d\n',size(Mv,1));
+%         fprintf(1,'Number of RAW vectors            : %d\n',size(flow,1));
 %         fprintf(1,'Mean RAW vector length           : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(lv),std(lv),100*std(lv)/mean(lv));
 %         fprintf(1,'Median RAW vector length         : %2.4f\n',median(lv));
 %         fprintf(1,'Mean INTERPOLATED vector length  : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(ld),std(ld),100*std(ld)/mean(ld));

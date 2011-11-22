@@ -91,7 +91,8 @@ end
 
 
 % Set up the input directories
-inFilePaths = cell(2,numel(movieData.channels_));
+nChan=numel(movieData.channels_);
+inFilePaths = cell(2,nChan);
 for j = p.ChannelIndex
     inFilePaths{1,j} = specDetProc.outFilePaths_{1,j};
     inFilePaths{2,j} = specTrackProc.outFilePaths_{1,j};
@@ -102,7 +103,7 @@ end
 kinProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outputDir=cell(1,numel(movieData.channels_));
+outputDir=cell(1,nChan);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outputDir{i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
@@ -121,9 +122,15 @@ inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 logMsg = @(chan) ['Please wait, analyzing speckles for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'kineticMaps_' numStr(frame) '.mat'];
 
-for iChan = p.ChannelIndex
+kineticLimits=cell(1,nChan);
+channelLog=cell(1,numel(p.ChannelIndex));
+
+for i = 1:numel(p.ChannelIndex);
+    iChan = p.ChannelIndex(i);
     % Log display
+    channelLog{i} = sprintf('Channel %g: %s\n',iChan,imDirs{iChan});
     disp(logMsg(iChan))
+    if ishandle(wtBar), set(wtBar,'Name',[kinProc.getName() ' - Channel ' num2str(iChan)]); end
     
     % Load images
     fprintf(1,'Loading images...\n'); 
@@ -160,8 +167,9 @@ for iChan = p.ChannelIndex
     
     speckleArray=buildSpeckleArray(MPM,noiseParam,threshold,gapList,cands,...
         filteredImages,wtBarArgs{:});
-    speckleArray=classifyKineticEvents(speckleArray,p.bleachRed,k,wtBarArgs{:});
-
+    [speckleArray,log]=classifyKineticEvents(speckleArray,p.bleachRed,k,wtBarArgs{:});
+    channelLog{i} = [channelLog{i} log];
+    
     % Get activity, birth and death events index
     scoreIndx=[speckleArray.activity]~=0;
     birthEvents=speckleArray.status(scoreIndx)=='b';
@@ -201,10 +209,24 @@ for iChan = p.ChannelIndex
         s.depolyMap=depolyMap{j};
         s.kinMap2C=kinMap2C{j};
         save(outFile(iChan,j),'-struct','s');
-
     end
+    
+    % Store kinetic map limits
+    allPolyMaps=vertcat(polyMap{:});
+    allDepolyMaps=vertcat(depolyMap{:});
+    kineticLimits{iChan}=[min(allDepolyMaps(:)) max(allPolyMaps(:))];
 end
+kinProc.setKineticLimits(kineticLimits)
+
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 
 disp('Finished analyzing speckles!');
+
+% Create process report
+procLog=[sprintf('Kinetic analysis summary\n\n') channelLog{:}];
+disp(procLog);
+fid=fopen([p.OutputDirectory filesep 'KineticAnalysisSummary.txt'],'w+');
+fprintf(fid,procLog);
+fclose(fid);
+

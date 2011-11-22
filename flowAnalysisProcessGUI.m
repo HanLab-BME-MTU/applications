@@ -62,6 +62,14 @@ set(handles.edit_corrLengthMicrons,'String',...
 set(handles.edit_gridSizeMicrons,'String',...
     funParams.gridSize*userData.MD.pixelSize_/1000);
 
+% Set popup-menu
+flowProc = userData.crtProc.getFlowProcesses;
+flowString = cellfun(@(x) eval([x '.getName']),...
+    userData.crtProc.getFlowProcesses,'UniformOutput',false);
+flowValue = find(strcmp(funParams.FlowProcess,flowProc));
+set(handles.popupmenu_FlowProcess,'String',flowString,'Value',flowValue,...
+    'UserData',flowProc);
+
 % Choose default command line output for speedMapsProcessGUI
 handles.output = hObject;
 
@@ -150,6 +158,9 @@ for i=1:numel(userData.numericParams)
    funParams.(userData.numericParams{i})=...
        str2double(get(handles.(['edit_' userData.numericParams{i}]),'String'));
 end
+
+flowProps = get(handles.popupmenu_FlowProcess,{'UserData','Value'});
+funParams.FlowProcess = flowProps{1}{flowProps{2}};
 
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 

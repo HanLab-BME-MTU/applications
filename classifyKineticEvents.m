@@ -1,12 +1,14 @@
-function speckleArray=classifyKineticEvents(speckleArray,bleachRed,k,varargin)
+function [speckleArray,log]=classifyKineticEvents(speckleArray,bleachRed,k,varargin)
 %
 % SYNOPSIS   speckleArray=classifyKineticEvents(speckleArray,bleachRed,k)
 %
 % INPUT      speckleArray : structure containing all speckle information from a movie
 %
 % OUTPUT     speckleArray : speckleArray with added kinetic information
+%     
+%            log : formatted string containing the log of the classification
 
-% Sebastien Besson, July 2011
+% Sebastien Besson, July 2011 (last modified Nov 2011)
 % Adapted from fsmKinEventClassifier
 
 % Input check
@@ -648,37 +650,20 @@ end
 % Close waitbar if not-delegated
 if isempty(ip.Results.waitbar) && ishandle(wtBar), close(wtBar); end
 
-% Write info to console and 'log.txt'
-fid=fopen('log.txt','a');
-
-% Could the file be opened successfully?
-if fid==-1
-	error('Couldn''t open the file.');
-end
-
-% To console
-fprintf(1,'\n\nSpeckle classification - Summary\n--------------------------------\n\n');
-fprintf(1,'[1] Total number of events                         : %d\n',numberOfEvents);
-fprintf(1,'[2] Number of VALID events                         : %d\n',numberOfSignificantEvents+numberOfInsignificantEvents);
-fprintf(1,'[3] Number of STATISTICALLY SIGNIFICANT events     : %d\n',numberOfSignificantEvents);
-fprintf(1,'[4] Number of NON STATISTICALLY SIGNIFICANT events : %d\n',numberOfInsignificantEvents);
-fprintf(1,'[5] Number of BLEACH events (a subset of [3])      : %d\n',numberOfBleachEvents);
-fprintf(1,'[6] Number of RESULTING SCORES                     : %d\n\n\n',numberOfSignificantEvents-numberOfBleachEvents);
-
-% To file
-fprintf(fid,'\n\nSpeckle classification (%s)\n',datestr(now));
-fprintf(fid,'Summary\n-----------------------------------------------\n\n');
-fprintf(fid,'[1] Total number of events                         : %d\n',numberOfEvents);
-fprintf(fid,'[2] Number of VALID events                         : %d\n',numberOfSignificantEvents+numberOfInsignificantEvents);
-fprintf(fid,'[3] Number of STATISTICALLY SIGNIFICANT events     : %d\n',numberOfSignificantEvents);
-fprintf(fid,'[4] Number of NON STATISTICALLY SIGNIFICANT events : %d\n',numberOfInsignificantEvents);
-fprintf(fid,'[5] Number of BLEACH events (a subset of [3])      : %d\n',numberOfBleachEvents);
-fprintf(fid,'[6] Number of RESULTING SCORES                     : %d\n\n\n',numberOfSignificantEvents-numberOfBleachEvents);
-
-% Close file
-if fclose(fid)==-1;
-	error('File  could not be closed!');
-end
+% Create log
+log= sprintf([...
+    '\nSpeckle classification - Summary'...
+    '\n--------------------------------\n\n'...
+    '[1] Total number of events\t\t\t\t: %d\n'...
+    '[2] Number of VALID events\t\t\t\t: %d\n'...
+    '[3] Number of STATISTICALLY SIGNIFICANT events\t\t: %d\n'...
+    '[4] Number of NON STATISTICALLY SIGNIFICANT events\t: %d\n'...
+    '[5] Number of BLEACH events (a subset of [3])\t\t: %d\n'...
+    '[6] Number of RESULTING SCORES\t\t\t\t: %d\n\n'],...
+    numberOfEvents,numberOfSignificantEvents+numberOfInsignificantEvents,...
+    numberOfSignificantEvents,numberOfInsignificantEvents,numberOfBleachEvents,...
+    numberOfSignificantEvents-numberOfBleachEvents);
+disp(log);
 
 
 

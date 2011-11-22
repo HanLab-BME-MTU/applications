@@ -3,6 +3,11 @@ classdef FlowAnalysisProcess < DataProcessingProcess
     %
     % Sebastien Besson, 5/2011
     
+    properties (SetAccess = protected)  
+        flowLimits_
+        speedMapLimits_ 
+    end
+    
     methods
         function obj = FlowAnalysisProcess(owner,varargin)
             
@@ -73,6 +78,14 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             
         end
         
+        function setSpeedMapLimits(obj,speedMapLimits)
+            obj.speedMapLimits_=speedMapLimits;
+        end
+        
+        function setFlowLimits(obj,flowLimits)
+            obj.flowLimits_=flowLimits;
+        end        
+        
         function output = getDrawableOutput(obj)
             colors = hsv(numel(obj.owner_.channels_));
             output(1).name='Speed maps';
@@ -80,12 +93,13 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(1).formatData=[];
             output(1).type='image';
             output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
-                'Colorbar','on','Units','nm/min','CLim',obj.getSpeedLimits(x));
+                'Colorbar','on','Units','nm/min','CLim',obj.speedMapLimits_{x});
             output(2).name='Interpolated vectors';
             output(2).var='Md';
             output(2).formatData=@(x)[x(:,[2 1]) x(:,[4 3])-x(:,[2 1])];
             output(2).type='overlay';
-            output(2).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',colors(x,:));
+            output(2).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',colors(x,:),...
+                'Colormap',jet,'CLim',obj.flowLimits_{x});
             output(3).name='Noise vectors';
             output(3).var='Ms';
             output(3).formatData=@(x)[x(:,[2 1]) x(:,[4 3])-x(:,[2 1])];
@@ -111,14 +125,8 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(7).formatData=[];
             output(7).type='image';
             output(7).defaultDisplayMethod=@ImageDisplay;
-        end
-    end
-    methods (Access=protected)
-        function output = getSpeedLimits(obj,iChan)
-            speedMap=loadChannelOutput(obj,iChan,'output','speedMap');
-            allMaps = vertcat(speedMap{:});
-            output=[min(allMaps(:)) max(allMaps(:))];
-        end        
+        end  
+        
     end
     
     methods (Static)
@@ -128,6 +136,12 @@ classdef FlowAnalysisProcess < DataProcessingProcess
         function h = GUI()
             h= @flowAnalysisProcessGUI;
         end
+        
+        function procNames =getFlowProcesses()
+            procNames = {'SpeckleTrackingProcess';...
+                'FlowTrackingProcess'};
+        end
+
         
         function funParams = getDefaultParams(owner,varargin)
             % Input check
@@ -140,11 +154,10 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             % Set default parameters
             funParams.ChannelIndex = 1 : numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'flowAnalysis'];
-            funParams.MaskProcess = [];
+            funParams.FlowProcess = 'SpeckleTrackingProcess';
             funParams.timeWindow = 3;
             funParams.corrLength = 33;
             funParams.gridSize = 11;
-            funParams.interpolate = 1;
             funParams.noise = 1;
             funParams.error = 1;
         end        

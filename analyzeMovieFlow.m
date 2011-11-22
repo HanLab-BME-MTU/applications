@@ -60,20 +60,6 @@ if ~specDetProc.checkChannelOutput(p.ChannelIndex)
         'running flow analysis!'])
 end
 p.MaskChannelIndex = specDetProc.funParams_.MaskChannelIndex;
-
-% Test the presence and output validity of the speckle tracking process
-iSpecTrackProc =movieData.getProcessIndex('SpeckleTrackingProcess',1,1);     
-if isempty(iSpecTrackProc)
-    error(['Speckle tracking has not yet been performed'...
-    'on this movie! Please run first!!']);
-end        
-%Check that there is a valid output
-specTrackProc = movieData.processes_{iSpecTrackProc};
-if ~specTrackProc.checkChannelOutput(p.ChannelIndex)
-    error(['Each channel must have tracks!' ...
-        'Please apply speckle tracking to all needed channels before '...
-        'running flow analysis!'])
-end
     
 
 % Create mask directory if several masks need to be merged
@@ -98,31 +84,32 @@ end
 
 
 % Test the presence and output validity of the speckle tracking process
-iSpecTrackProc =movieData.getProcessIndex('SpeckleTrackingProcess',1,1);     
-if isempty(iSpecTrackProc)
-    error(['Speckle tracking has not yet been performed'...
+iFlowProc =movieData.getProcessIndex(p.FlowProcess,1,1);     
+if isempty(iFlowProc)
+    error([eval([p.FlowProcess '.getName']) ' has not yet been performed'...
     'on this movie! Please run first!!']);
 end        
+
 %Check that there is a valid output
-specTrackProc = movieData.processes_{iSpecTrackProc};
-if ~specTrackProc.checkChannelOutput(p.ChannelIndex)
-    error(['Each channel must have tracks!' ...
-        'Please apply speckle tracking to all needed channels before '...
+flowProc = movieData.processes_{iFlowProc};
+if ~flowProc.checkChannelOutput(p.ChannelIndex)
+    error(['Each channel must have flow! Please apply '...
+        eval([p.FlowProcess '.getName']) ' to all needed channels before '...
         'running flow analysis!'])
 end
     
 
-
 % Set up the input directories
-inFilePaths = cell(2,numel(movieData.channels_));
+nChan=numel(movieData.channels_);
+inFilePaths = cell(2,nChan);
 for j = p.ChannelIndex
-    inFilePaths{1,j} = specTrackProc.outFilePaths_{1,j};
+    inFilePaths{1,j} = flowProc.outFilePaths_{1,j};
     inFilePaths{2,j} = maskProc.outFilePaths_{1,j};
 end
 flowAnProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outputDir=cell(1,numel(movieData.channels_));
+outputDir=cell(1,nChan);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outputDir{i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
@@ -140,6 +127,8 @@ numStr = @(frame) num2str(frame,fString);
 logMsg = @(chan) ['Please wait, analyzing flow for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'flowMaps_' numStr(frame) '.mat'];
 
+speedMapLimits=cell(1,nChan);
+flowLimits=cell(1,nChan);
 for iChan = p.ChannelIndex
     % Log display
     disp(logMsg(iChan))
@@ -158,20 +147,27 @@ for iChan = p.ChannelIndex
    
     % Load candidates and generate Nx3 matrices with position and intensity
     % Replace fsmTrackFillSpeckleList
-    if ishandle(wtBar), waitbar(0,wtBar,['Loading tracks for channel ' num2str(iChan)']); end
-    M = specTrackProc.loadChannelOutput(iChan,'output','M'); 
+    if ishandle(wtBar), waitbar(0,wtBar,['Loading flow for channel ' num2str(iChan)']); end
+    
+    switch p.FlowProcess
+        case 'SpeckleTrackingProcess'
+            M = flowProc.loadChannelOutput(iChan,'output','M');
+            flow=arrayfun(@(i)M(M(:,1,i)~=0 & M(:,3,i)~=0,:,i),1:size(M,3),'Unif',false);
+        case 'FlowTrackingProcess'
+            flow = flowProc.loadChannelOutput(iChan,'output','flow');
+            flow=flow(1:end-1);
+    end
     
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
-    [Mv,Md,Ms,E,S] = ...
-        analyzeFlow(M,p.timeWindow,p.corrLength,...
-        'interpolate',p.interpolate,'noise',p.noise,'error',p.error);
+    [Md,Ms,E,S] = ...
+        analyzeFlow(flow,p.timeWindow,p.corrLength,'noise',p.noise,'error',p.error);
     
     
     % Repliacte frames
     replicateFrames = @(x) [repmat(x(1),1,fix(p.timeWindow/2)) x ...
         repmat(x(end),1,fix(p.timeWindow/2)+1)];
-    Md=replicateFrames(Md); %#ok<NASGU>
+    Md=replicateFrames(Md); 
     Ms=replicateFrames(Ms); %#ok<NASGU>
     E=replicateFrames(E);
     S=replicateFrames(S);
@@ -181,12 +177,12 @@ for iChan = p.ChannelIndex
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
     % Interpolate raw vector on a grid
     G=framework(movieData.imSize_,[p.gridSize p.gridSize]);
-    Mdgrid=arrayfun(@(i) vectorFieldAdaptInterp(Mv{i},G,p.corrLength,...
+    Mdgrid=arrayfun(@(i) vectorFieldAdaptInterp(flow{i},G,p.corrLength,...
         [],'strain'),1:size(M,3),'UniformOutput',false);
 
     speedMap = createSpeedMaps(cat(3,Mdgrid{:}),p.timeWindow,movieData.timeInterval_,...
         movieData.pixelSize_,movieData.imSize_,mask);
-    speedMap=replicateFrames(speedMap); %#ok<NASGU>
+    speedMap=replicateFrames(speedMap);
     
     if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
@@ -201,7 +197,20 @@ for iChan = p.ChannelIndex
         end
         save(outFile(iChan,j),'-struct','s');
     end
+    
+    % Store speed maps and flow limits
+    allMaps = vertcat(speedMap{:});
+    speedMapLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
+    
+    allFlow = vertcat(Md{:});
+    flowLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
+    flowMagnitude = (diff(allFlow(:,[1 3]),1,2).^2+diff(allFlow(:,[2 4]),1,2).^2).^.5;
+    flowLimits{iChan}=[min(flowMagnitude(:)) max(flowMagnitude(:))];
+    
 end
+flowAnProc.setSpeedMapLimits(speedMapLimits)
+flowAnProc.setFlowLimits(flowLimits);
+
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 

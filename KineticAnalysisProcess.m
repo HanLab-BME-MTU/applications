@@ -3,6 +3,10 @@ classdef KineticAnalysisProcess < DataProcessingProcess
     %
     % Sebastien Besson, 5/2011
     
+    properties (SetAccess = protected)  
+        kineticLimits_
+    end
+    
     methods
         function obj = KineticAnalysisProcess(owner,varargin)
             
@@ -70,6 +74,12 @@ classdef KineticAnalysisProcess < DataProcessingProcess
                  end
             end
         end
+        
+        function setKineticLimits(obj,kineticLimits)
+            obj.kineticLimits_=kineticLimits;
+        end
+        
+        
         function output =getDrawableOutput(obj)
             output(1).name='Combined map';
             output(1).formatData=[];
@@ -82,22 +92,15 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(2).formatData=[];
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(0:1/64:1)'*[1 0 0],...
-            'Colorbar','on','CLim',obj.getKineticLimits(x,'polyMap'),'Units','Kinetic score');
+            'Colorbar','on','CLim',[0 obj.kineticLimits_{x}(2)],'Units','Kinetic score');
             output(3).name='Depolymerization map';
             output(3).formatData=[];
             output(3).var='depolyMap';
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(1:-1/64:0)'*[0 1 0],...
-                'Colorbar','on','CLim',obj.getKineticLimits(x,'depolyMap'),'Units','Kinetic score');
+                'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units','Kinetic score');
         end
         
-    end
-    methods (Access=protected)
-        function limits = getKineticLimits(obj,iChan,output)
-            kinMap=loadChannelOutput(obj,iChan,'output',output);
-            allMaps = vertcat(kinMap{:});
-            limits=[min(allMaps(:)) max(allMaps(:))];
-        end
     end
     
     methods (Static)
