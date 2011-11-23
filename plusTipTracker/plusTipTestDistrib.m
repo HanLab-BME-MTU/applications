@@ -77,7 +77,7 @@ distribNames = {'growth_speed';'fgap_speed';'bgap_speed';...
 % Fill the dataStruct structure array
 % remove any fields that cannot be compared because they 
 % do not subtracks in one of the groups for that param
-
+toremove ={};
 nGroups=length(groupData.names);
 dataStruct(nGroups,1)=struct();
 count = 1;
