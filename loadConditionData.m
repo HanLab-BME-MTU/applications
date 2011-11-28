@@ -119,7 +119,7 @@ for k = 1:nCells
     end
     
     % detect frame
-    fr = regexp(cellPath{k}, '_(\d+)?(.)?\d+s', 'match');
+    fr = regexp(cellPath{k}, '_(\d+)?(\.)?\d+s', 'match');
     if ~isempty(ip.Results.FrameRate)
         data(k).framerate = ip.Results.FrameRate;
     elseif ~isempty(fr)
