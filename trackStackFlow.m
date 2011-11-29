@@ -81,7 +81,7 @@ bgAvgImg=ip.Results.bgAvgImg;
 % quality is bad or the flow velocity is even higher than this limit.
 maxSpdLimit = 2*maxSpd;
 
-[imgW imgL] = size(stack);
+[imgW imgL numFrames] = size(stack);
 x=points(:,1);
 y=points(:,2);
 
@@ -113,8 +113,6 @@ minCorL = max(3,minCorL+(1-mod(minCorL,2)));
 maxCorL = max(minCorL,maxCorL+(1-mod(maxCorL,2)));
 
 bAreaThreshold = min(0.95*minCorL^2,maxCorL^2*0.5);
-
-numFrames = size(stack,3);
 
 %Options for optimization.
 options = optimset('GradObj','on','Display','off');
