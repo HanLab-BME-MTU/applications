@@ -13,7 +13,7 @@ gapCloseParam.diagnostics = 0; %1 to plot a histogram of gap lengths in the end;
 % cost matrix for frame-to-frame linking
 costMatrices(1).funcName = 'costMatLinearMotionLink2';
 costMatrices(1).parameters.linearMotion = 0; %use linear motion Kalman filter.
-costMatrices(1).parameters.minSearchRadius = 10; %minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
+costMatrices(1).parameters.minSearchRadius = 5; %minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
 costMatrices(1).parameters.maxSearchRadius = 10; %maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
 costMatrices(1).parameters.brownStdMult = 3; %multiplication factor to calculate search radius from standard deviation.
 
@@ -28,7 +28,7 @@ costMatrices(1).parameters.diagnostics = []; %if you want to plot the histogram 
 % cost matrix for gap closing
 costMatrices(2).funcName = 'costMatLinearMotionCloseGaps2';
 costMatrices(2).parameters.linearMotion = 0; %use linear motion Kalman filter.
-costMatrices(2).parameters.minSearchRadius = 10; %minimum allowed search radius.
+costMatrices(2).parameters.minSearchRadius = 5; %minimum allowed search radius.
 costMatrices(2).parameters.maxSearchRadius = 10; %maximum allowed search radius.
 costMatrices(2).parameters.brownStdMult = 3*ones(gapCloseParam.timeWindow,1); %multiplication factor to calculate Brownian search radius from standard deviation.
 costMatrices(2).parameters.brownScaling = [0.5 0.01]; %power for scaling the Brownian search radius with time, before and after timeReachConfB (next parameter).
