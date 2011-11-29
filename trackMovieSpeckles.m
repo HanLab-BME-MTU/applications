@@ -111,15 +111,19 @@ for iChan = p.ChannelIndex
     % Log display
     disp(logMsg(iChan))
     
-    
-    % Load candidates and generate Nx3 matrices with position and intensity
-    % Replace fsmTrackFillSpeckleList
+    % Load all speckle candidates
     if ishandle(wtBar), waitbar(0,wtBar,'Loading speckles...'); end
     fprintf(1,'Loading speckles...\n');    
     cands = specDetProc.loadChannelOutput(iChan);
+    
+    % Generate Nx3 matrices with position (in image coordinate system) and 
+    % intensity of significant candidates
+    % Replace fsmTrackFillSpeckleList
     validCands = cellfun(@(x) x([x.status]==1),cands,'UniformOutput',false);
     speckles = cellfun(@(x) horzcat([vertcat(x.Lmax) vertcat(x.ILmax)]),...
         validCands,'UniformOutput',false);
+    
+    % Retrieve insignificant candidates (for gap closing)
     invalidCands = cellfun(@(x) x([x.status]==0),cands,'UniformOutput',false);
     clear validCands 
     
@@ -143,6 +147,7 @@ for iChan = p.ChannelIndex
     for j=1:nFrames-1;
         % Track speckles between frame j and j+1;
         if p.enhanced
+            % Generate match matrix in image coordinate system
             [matchM,vectors] = trackSpeckles(speckles{j},speckles{j+1},p.threshold,...
                 'initM',flow{j},'initCorLen',initCorLen,...
                 'enhanced',p.enhanced,'corrLength',p.corrLength);

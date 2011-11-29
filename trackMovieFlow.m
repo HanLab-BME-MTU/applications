@@ -161,13 +161,13 @@ for i = 1:numel(p.ChannelIndex)
         bgMask(:,:,j) = imerode(logical(imread(inMask(j))),se);
     end
     
-    
-    % Load speckles from speckle detection output
     if ishandle(wtBar), waitbar(0,wtBar,'Loading speckles...'); end
     disp('Loading speckles...');
     speckles = cell(1,nFrames);
     for firstFrame = firstFrames
+        % Load speckles from speckle detection output
         cands = specDetProc.loadChannelOutput(iChan,firstFrame);
+        % Retrieve position of significant candidates (in image coordinate system)
         speckles{firstFrame} = vertcat(cands([cands.status]==1).Lmax);
     end
     
@@ -180,8 +180,8 @@ for i = 1:numel(p.ChannelIndex)
         firstFrame=firstFrames(j);
         frameRange =firstFrame:firstFrame+p.timeWindow-1;
         
-        % Call the flow tracking routine (using speckles positions in image
-        % coordinate system)
+        % Call the main flow tracking routine using speckles positions in xy
+        % coordinate system
         [v,corLen] = trackStackFlow(stack(:,:,frameRange),...
             speckles{firstFrame}(:,2:-1:1),p.minCorLength,p.maxCorLength,...
             'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,frameRange), ...
@@ -189,8 +189,7 @@ for i = 1:numel(p.ChannelIndex)
             'minFeatureSize',p.minFeatureSize);
         allCorLen{j}=corLen;
         
-        % Convert flow field back into xy coordinate system
-        % Concatenate flow as a [pos1 pos2] matrix
+        % Concatenate flow as a [pos1 pos2] matrix into image coordinate system
         flow = [speckles{firstFrame} v(:,2:-1:1)];
         
         % Set infinite flow to nan

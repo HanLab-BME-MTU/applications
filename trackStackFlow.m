@@ -9,7 +9,7 @@ function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
 % INPUT :
 %    stack : An image stack (i.e. of dimensions n x m x l) to be correlated
 % 
-%    points : A set of points (size nP x 2) expressed in the image 
+%    points : A set of points (size nP x 2) expressed in the xy 
 %             coordinate system where the velocity is calculated.
 %
 %    minCorL : The minimum side length of an image block (or band)
@@ -41,7 +41,7 @@ function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
 %                      Default, 11 pixels (typical speckle size).
 %
 % OUTPUT :
-%    v      : velocity vector of (size nP x2) expressed in the image
+%    v      : velocity vector of (size nP x2) expressed in the xy
 %             coordinate system.
 %
 %    corLen : The optimal block length in the sense that it is the minimum
