@@ -1,45 +1,53 @@
-function [vx,vy,corLength,sigtVal] = trackStackFlow(stack,x,y,minCorL,maxCorL,varargin)
+function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
 %trackStackFlow: Calculate the flow velocity from a stack of movie images.
 %
 % SYNOPSIS :
-%    [vx,vy] = trackStackFlow(stack,x,y,minCorL,maxCorL)
-%    [vx,vy] = trackStackFlow(stack,x,y,minCorL,maxCorL,'verbose','on')
-%    [vx,vy,corLen] = trackStackFlow(stack,x,y,minCorL,maxCorL,varargin)
-%    [vx,vy,corLen,sigtVal] = trackStackFlow(stack,x,y,minCorL,maxCorL,varargin)
+%    v = trackStackFlow(stack,points,minCorL)
+%    [v,corLen] = trackStackFlow(stack,points,minCorL,maxCorL,varargin)
+%    [v,corLen,sigtVal] = trackStackFlow(stack,points,minCorL,maxCorL,varargin)
 %
 % INPUT :
-%    stack : An iamge stack to be correlated
-%    x     : x-coordinates of a set of points where the velocity is
-%            calculated.
-%    y     : y-coordinates of a set of points where the velocity is
-%            calculated.
-%    minCorL
-%    maxCorL : The minimum and maximum side length of an image block (or band)
+%    stack : An image stack (i.e. of dimensions n x m x l) to be correlated
+% 
+%    points : A set of points (size nP x 2) expressed in the image 
+%             coordinate system where the velocity is calculated.
+%
+%    minCorL : The minimum side length of an image block (or band)
 %            that is to be cross correlated over frames to detect flow
 %            velocity. Optimal block size will be searched in the range
 %            [minCorL maxCorL] for the detection of coherent flow pattern
 %            behind noisy data.
 %
-%    The following optional parameters can be set:
-%    'numStBgForAvg': The number of stationary background frames used to substract stationary
-%                background. Enter 0 for no stationary background, -1 (default) for the whole stack.
+%    maxCorL : Optional - The maximum side length of an image block (or band)
+%            that is to be cross correlated over frames to detect flow
+%            velocity. Optimal block size will be searched in the range
+%            [minCorL maxCorL] for the detection of coherent flow pattern
+%            behind noisy data.
+%            If not input, will be set to minCorL
+%
+%    The following optional parameters can be set as parameter/value pairs:
+%
+%    'bgAvgImg': A stack of stationary background frames to be substracted 
+%                during image correlation. Default is zeros matrix.
+%
 %    'maxSpd'  : A numerical value that specifies the maximum speed that can
-%                be detected. The default is half the image size.
-%    'verbose' : 'on' (default) or 'off'.
-%                Specify if progressing message is displayed.
-%    'bgMaskStack': A stack (cell array) of background mask image which is used to
-%                remove background pixels from being used in correlation.
-%    'bgMaskFrmNo': Since the mask of some images can be missing, 'bgMaskFrmNo' gives
-%                the frame number of available 'bgMask' relative to the frames in 'stack'.
-%    'minFeatureSize': The minimum feature size in the image. This is measured as the diameter
-%                      of fetures. Default, 11 pixels (typical speckle size).
+%                be detected (in pixels/frame). The default is 10.
+%
+%    'bgMask':   A stack of background masks which is used to remove
+%                background pixels from being used in correlation.
+%
+%    'minFeatureSize': The minimum feature size in the image. This is 
+%                      measured as the diameter of features.
+%                      Default, 11 pixels (typical speckle size).
 %
 % OUTPUT :
-%    vx     : x-component of the velocity vector.
-%    vy     : y-component of the velocity vector.
+%    v      : velocity vector of (size nP x2) expressed in the image
+%             coordinate system.
+%
 %    corLen : The optimal block length in the sense that it is the minimum
 %             block length in the range [minCorLen, maxCorLe] that gives a
 %             stable coherent flow.
+%
 %    sigtVal : The 1st, 2nd local maximum and the reference score for
 %              significance test can also be output for use in
 %              postprocessing.
@@ -47,75 +55,35 @@ function [vx,vy,corLength,sigtVal] = trackStackFlow(stack,x,y,minCorL,maxCorL,va
 % References:
 % J. Li & G. Danuser, J. of microscopy, 220 150-167, 2005.
 
-% Sebastien Besson, May 2011
+% Lin Ji, 2005
+% Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from imFlowTrack.m
 
-validSwitch = {'on','off'};
+% Input check
 ip= inputParser;
 ip.addRequired('stack',@(x) isnumeric(x) && size(x,3)>=2);
-% numImages  = length(stack);
-ip.addRequired('x',@isnumeric);
-ip.addRequired('y',@isnumeric);
+ip.addRequired('points',@(x) isnumeric(x) && size(x,2)==2);
 ip.addRequired('minCorL',@isscalar);
-ip.addRequired('maxCorL',@isscalar);
-ip.addParamValue('numStBgForAvg',-1,@isscalar);
+ip.addOptional('maxCorL',minCorL,@isscalar);
 ip.addParamValue('maxSpd',10,@isscalar);
-ip.addParamValue('verbose','on',@(x) any(strcmp(x,validSwitch)));
-ip.addParamValue('bgMask',true(size(stack)),@(x) isnumeric(x) && size(x,3)>=2);
+ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
+ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.parse(stack,x,y,minCorL,maxCorL,varargin{:});
-fields = fieldnames(ip.Results);
-for i=1:length(fields)
-    eval([fields{i} '= ip.Results.(fields{i});']);
-end
+ip.parse(stack,points,minCorL,varargin{:});
+maxCorL=ip.Results.maxCorL;
+maxSpd=ip.Results.maxSpd;
+minFeatureSize=ip.Results.minFeatureSize;
+bgMask=ip.Results.bgMask;
+bgAvgImg=ip.Results.bgAvgImg;
 
 %We automatically update the speed search radius until a high limit is
 % reached. If no significant maximum is detected, it means either the image
 % quality is bad or the flow velocity is even higher than this limit.
 maxSpdLimit = 2*maxSpd;
-% if iscell(bgMask), bgMaskStack = bgMask; else bgMaskStack = {bgMask}; end
-% bgMaskFrmNo = bgMaskI;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Calculate the average background image. This is used to correct the
-% problem associated with stationary background.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Figuring out the starting and ending frame of stationary background based on 'numStBgForAvg' and
-%'startFrame' and 'endFrame'.
-% if numStBgForAvg <= -1 || numStBgForAvg >= numImages
-%     startStBgFrame = 1;
-%     endStBgFrame   = numImages;
-%     numStBgForAvg  = numImages;
-% elseif numStBgForAvg == 0
-%     startStBgFrame = 1;
-%     endStBgFrame   = 0;
-% elseif numStBgForAvg == 1
-%     startStBgFrame = startFrame;
-%     endStBgFrame   = endFrame;
-%     numStBgForAvg  = endFrame-startFrame+1;
-% else
-%     startStBgFrame = min(startFrame,numImages-numStBgForAvg+1);
-%     endStBgFrame   = max(endFrame,startStBgFrame+numStBgForAvg-1);
-% end
-% numStBgFrames = endStBgFrame-startStBgFrame+1;
-% 
-% if numStBgForAvg == 0
-%     bgAvgImg = zeros(imgHeight,imgWidth);
-% else
-%     bgAvgImg = zeros(imgHeight,imgWidth,numStBgFrames-numStBgForAvg+1);
-%     stBgImg  = zeros(imgHeight,imgWidth,numStBgFrames);
-%     for kk = startStBgFrame:endStBgFrame
-%         k = kk-startStBgFrame+1;
-%         stBgImg(:,:,k) = double(imread(stackFileList{kk}));
-%     end
-%     for kk = 1:numStBgFrames-numStBgForAvg+1
-%         bgAvgImg(:,:,kk) = mean(stBgImg(:,:,kk:kk+numStBgForAvg-1),3);
-%     end
-% end
-% bgAvgImg(:,:,kk) = mean(stBgImg(:,:,kk:kk+numStBgForAvg-1),1);
-imgL = size(stack,2);
-imgW = size(stack,1);
-bgAvgImg = zeros(imgW,imgL);
+[imgW imgL] = size(stack);
+x=points(:,1);
+y=points(:,2);
 
 %Initial maximum speed components in both direction.
 initMaxFlowSpd = 5;
@@ -126,11 +94,10 @@ closenessThreshold = 0.25;
 maxSpdLimit = max(maxSpdLimit,initMaxFlowSpd);
 
 % Initialize output
-numPoints = length(x);
-vx = zeros(size(x));
-vy = zeros(size(x));
-corLength = minCorL*ones(size(x));
-sigtValues = NaN*ones(numPoints,3);
+nPoints = size(points,1);
+v = zeros(nPoints,2);
+corLength = minCorL*ones(nPoints,1);
+sigtValues = NaN*ones(nPoints,3);
 
 %We calculate a score for each sampling velocity. The score is an average of
 % the normalized cross-correlation coefficient of an image block that moves
@@ -153,15 +120,15 @@ numFrames = size(stack,3);
 options = optimset('GradObj','on','Display','off');
 
 % Creates the format string for the numerical indexes
-L=length(num2str(numPoints));
+L=length(num2str(nPoints));
 strg=sprintf('%%.%dd',L);
 backSpc =repmat('\b',1,L);
 
 %Calculate the correlation coefficient for each sampling velocity at
 % each point.
 startTime = cputime;
-fprintf(1,['   Start tracking (total: ' strg ' points): '],numPoints);
-for k = 1:numPoints
+fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
+for k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -339,25 +306,23 @@ for k = 1:numPoints
     end
     
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
-        v= maxV*[perpDir;bandDir];
-        vx(k) = v(1);
-        vy(k) = v(2);
+        rotv= maxV*[perpDir;bandDir];
+        v(k,:) = [rotv(1) rotv(2)];
     else
-        vx(k) = NaN;
-        vy(k) = NaN;
+        v(k,:) = [NaN NaN];
     end
     corLength(k) = corL;
     sigtValues(k,:) = sigtVal;
     
     fprintf(1,[backSpc '\b\b\b\b']);
 end
-nanInd = find(isnan(vx));
+nanInd = find(isnan(v(:,1)));
 endTime = cputime;
-fprintf(1,[strg '.\n'],numPoints);
+fprintf(1,[strg '.\n'],nPoints);
 fprintf(1,'   Tracking is done in %f sec (%f sec per point).\n', ...
-    endTime-startTime,(endTime-startTime)/numPoints);
+    endTime-startTime,(endTime-startTime)/nPoints);
 fprintf(1,'   Total tracked points: %d (out of %d).\n', ...
-    numPoints-length(nanInd),numPoints);
+    nPoints-length(nanInd),nPoints);
 
 
 
@@ -380,24 +345,15 @@ numFrames = size(kym,3);
 kymLen    = size(kym,2);
 kymWidth  = size(kym,1);
 
-%Default parameter.
-bAreaThreshold = 0.5*corL^2;
-%kymNoMask      = kym;
-
-if nargin > 6
-    for k = 1:2:nargin-6
-        switch varargin{k}
-            case 'bAreaThreshold'
-                bAreaThreshold = varargin{k+1};
-            case 'kymMask'
-                %This the cropped background mask.
-                kymMask = varargin{k+1};
-            case 'kymAvgImg'
-                %This the cropped background mask.
-                kymAvgImg = varargin{k+1};
-        end
-    end
-end
+%Check additional parameters
+ip =inputParser;
+ip.addParamValue('bAreaThreshold',0.5*corL^2,@isscalar);
+ip.addParamValue('kymMask',[],@islogical)
+ip.addParamValue('kymAvgImg',zeros(size(kym)),@isnumeric)
+ip.parse(varargin{:});
+bAreaThreshold=ip.Results.bAreaThreshold;
+kymMask=ip.Results.kymMask;
+kymAvgImg=ip.Results.kymAvgImg;
 
 %The index of the correlating image block in the big cropped image.
 bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
@@ -473,12 +429,44 @@ else
     kymValidP2 = kymValid.*kymValid;
     bNorm      = sqrt(sum(kymValidP2,1));
     
-    % Beginning of vectorization
+    % SB:old score calculation function from imFlowTrack
+    %     for j1 = 1:length(vP)
+    %       v1 = vP(j1);
+    %       for j2 = 1:length(vF)
+    %          v2 = vF(j2);
+    %          v = v2*kymWidth+v1;
+    %
+    %          kymShift = kym(bI+v,validFrames+1)-kymAvgImg(bI,validFrames);
+    %          bNormS   = sqrt(sum(kymShift.^2.*kymMask(bI,validFrames),1));
+    %
+    %          corrM   = -ones(1,length(validFrames));
+    %          nzInd   = find(bNorm~=0);
+    %          nzInd   = nzInd(bNormS(nzInd)~=0);
+    %          zeroInd = find(bNorm==0);
+    %          zeroInd = zeroInd(bNormS(zeroInd)==0);
+    %
+    %          corrM(zeroInd) = 1;
+    %          corrM(nzInd)   = sum(kymValid(:,nzInd).*kymShift(:,nzInd),1);
+    %
+    %          zeroInd = find(bNorm==0);
+    %          if ~isempty(zeroInd)
+    %             bNorm(zeroInd) = 1;
+    %          end
+    %          zeroInd = find(bNormS==0);
+    %          if ~isempty(zeroInd)
+    %             bNormS(zeroInd) = 1;
+    %          end
+    %
+    %          score(j1,j2) = mean(corrM./bNorm./bNormS);
+    %       end
+    %     end
+    
+    % SB: beginning of vectorized score calculation
     [v1,v2]=ndgrid(vP,vF);
     v = v2*kymWidth+v1;    
-    
     [bI2,v2]=ndgrid(bI,v(:));
     allbI=bI2+v2;
+    
     % Create a matrix of size (size(bI,1)xsize(validFrames)xsize(v))
     kymShiftMatrix= reshape(kym(allbI(:),validFrames+1),...
         length(bI),numel(v),length(validFrames))-...
@@ -496,13 +484,13 @@ else
     nzInd = repmat(bNorm~=0,numel(v),1) & bNormS~=0;
     corrM(nzInd) = validCorrM(nzInd);
     
-    % Set bNorm and bNormS null components to 1 (to avoid division by zero
+    % Set bNorm and bNormS null components to 1 (to avoid division by zero)
     bNorm(bNorm==0)=1;
     bNorm=repmat(bNorm,numel(v),1);
     bNormS(bNormS==0)=1;
     score = mean(corrM./bNorm./bNormS,2);
     score = reshape(score,size(v));
-
+    
     minusOnesI = find(score(:)==-1);
     nMOnesI    = (score(:)~=-1);
     [minScore,minScoreI] = min(score(nMOnesI));

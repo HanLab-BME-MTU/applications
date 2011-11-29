@@ -22,7 +22,7 @@ function varargout = flowTrackingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help flowTrackingProcessGUI
 
-% Last Modified by GUIDE v2.5 30-Sep-2011 21:53:11
+% Last Modified by GUIDE v2.5 29-Nov-2011 10:45:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,11 +57,28 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 userData.numParams = {'firstImage','lastImage','timeWindow','timeStepSize',...
-  'minCorLength','maxCorLength','numStBgForAvg','minFeatureSize',...
+  'minCorLength','maxCorLength','minFeatureSize',...
   'edgeErodeWidth','maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),userData.numParams);
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+
+% Stationary background parameters
+substractBackground = (funParams.numStBgForAvg~=0);
+set(handles.checkbox_substractBackground,'Value',substractBackground)
+if substractBackground
+    if funParams.numStBgForAvg==-1
+        set(handles.checkbox_useAllStBgImages,'Value',1);
+        set(handles.edit_numStBgForAvg,'String','','Enable','off');
+    else
+        set(handles.checkbox_useAllStBgImages,'Value',0);
+        set(handles.edit_numStBgForAvg,'String',funParams.numStBgForAvg,...
+            'Enable','on');
+    end
+else
+    set(handles.checkbox_useAllStBgImages,'Value',0,'Enable','off');
+    set(handles.edit_numStBgForAvg,'String','','Enable','off');
+end
 
 % Outlier parameters
 detectOutliers = ~isempty(funParams.outlierThreshold);
@@ -147,18 +164,36 @@ end
 channelIndex = get (handles.listbox_selectedChannels, 'Userdata');
 funParams.ChannelIndex = channelIndex;
 
-
+% Retrieve numeric parameters
 for i = 1:numel(userData.numParams),
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
+    value = str2double(get(handles.(['edit_' userData.numParams{i}]),'String'));
+    if isnan(value) || value<0
         errordlg(['Please enter a valid value for '...
             get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
             'Setting Error','modal')
         return;
     end
-    funParams.(userData.numParams{i})=str2double(value);
+    funParams.(userData.numParams{i})=value;
 end
 
+% Retrieve stationary background parameters
+if ~get(handles.checkbox_substractBackground,'Value')
+    funParams.numStBgForAvg=0;
+else
+    if get(handles.checkbox_useAllStBgImages,'Value')
+        funParams.numStBgForAvg=0-1;
+    else
+        numStBgForAvg= str2double(get(handles.edit_numStBgForAvg,'String'));
+        if isnan(numStBgForAvg) || numStBgForAvg<=0
+            errordlg(['Please enter a valid value for the '...
+                get(handles.text_numStBgForAvg,'String') '.'],'Setting Error','modal');
+            return;
+        end
+        funParams.numStBgForAvg=numStBgForAvg;
+    end
+end
+
+% Retrieve outlier parameters
 if get(handles.checkbox_filterOutliers,'Value')
     funParams.outlierThreshold=str2double(get(handles.edit_outlierThreshold,...
         'String'));
@@ -168,26 +203,6 @@ end
 
 % Set parameters and update main window
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
-
-function edit_property(hObject, eventdata, handles)
-
-userData = get(handles.figure1, 'UserData');
-
-if ~isempty(get(hObject,'String'))
-    propTag = get(hObject,'Tag');
-    propName = propTag(length('edit_')+1:end);
-    propValue = str2double(get(hObject,'String'));
-    if ~userData.crtProc.checkValue(propName,propValue)
-        warndlg('Invalid property value','Setting Error','modal');
-        set(hObject,'BackgroundColor',[1 .8 .8]);
-        set(handles.pushbutton_done,'Enable','off');
-        return
-    end
-end
-set(hObject,'BackgroundColor',[1 1 1]);
-set(handles.pushbutton_done,'Enable','on');
-
 
 % --- Executes on button press in checkbox_filterOutliers.
 function checkbox_filterOutliers_Callback(hObject, eventdata, handles)
@@ -203,3 +218,24 @@ userData=get(handles.figure1,'UserData');
 value=str2double(get(handles.edit_maxFlowSpeed,'String'));
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     value*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+
+
+% --- Executes on button press in checkbox_substractBackground.
+function checkbox_substractBackground_Callback(hObject, eventdata, handles)
+
+if get(hObject,'Value'), 
+    set(handles.checkbox_useAllStBgImages,'Enable','on');
+    set(handles.edit_numStBgForAvg,'Enable','on');
+else
+    set(handles.checkbox_useAllStBgImages,'Value',0,'Enable','off');
+    set(handles.edit_numStBgForAvg,'String','','Enable','off');
+end
+
+% --- Executes on button press in checkbox_useAllStBgImages.
+function checkbox_useAllStBgImages_Callback(hObject, eventdata, handles)
+
+if get(hObject,'Value'), 
+    set(handles.edit_numStBgForAvg,'String','','Enable','off');
+else
+    set(handles.edit_numStBgForAvg,'Enable','on');
+end

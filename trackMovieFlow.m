@@ -53,11 +53,11 @@ if isempty(iSpecProc) || isempty(iMaskProc)
     error(['Speckle detection and segmentation have not yet been performed '...
         'on this movie! Please run first!!']);
 end
-segProc = movieData.processes_{iMaskProc};
+maskProc = movieData.processes_{iMaskProc};
 specDetProc = movieData.processes_{iSpecProc};
 
 %Check which channels have speckles and masks
-hasMasks = segProc.checkChannelOutput(p.ChannelIndex);
+hasMasks = maskProc.checkChannelOutput(p.ChannelIndex);
 hasSpec = specDetProc.checkChannelOutput(p.ChannelIndex);
 if ~all(hasMasks & hasSpec)
     error(['Each channel must have speckles and masks! ' ...
@@ -67,10 +67,12 @@ end
 
 
 % Set up the input directories
-inFilePaths = cell(1,1:numel(movieData.channels_));
+inFilePaths = cell(3,1:numel(movieData.channels_));
+imDirs = movieData.getChannelPaths;
 for i = p.ChannelIndex
-    inFilePaths{1,i} = specDetProc.outFilePaths_{1,i};
-    inFilePaths{2,i} = segProc.outFilePaths_{1,i};
+    inFilePaths{1,i} = imDirs{i};
+    inFilePaths{2,i} = specDetProc.outFilePaths_{1,i};
+    inFilePaths{3,i} = maskProc.outFilePaths_{1,i};
 end
 flowTrackProc.setInFilePaths(inFilePaths);
 
@@ -87,81 +89,159 @@ flowTrackProc.setOutFilePaths(outFilePaths);
 
 disp('Starting tracking flow...')
 % Reading various constants
-firstFrameIndx = p.firstImage:p.timeStepSize:p.lastImage -p.timeWindow+1;
-nFrames = numel(firstFrameIndx);
-nTot = nChan*nFrames;
+if p.timeStepSize==0
+    firstFrames = p.firstImage;
+else
+    firstFrames = p.firstImage:p.timeStepSize:p.lastImage-p.timeWindow+1;
+end 
+imSize= movieData.imSize_;
+nFrames = movieData.nFrames_;
+nStacks=numel(firstFrames);
+nTot = nChan*nStacks;
+
+% Get number of stationary images for background
+if p.numStBgForAvg==-1, 
+    p.numStBgForAvg=nFrames; 
+elseif p.numStBgForAvg>0,
+    p.numStBgForAvg = min(nFrames,p.numStBgForAvg);
+end
 
 logMsg = @(chan) ['Please wait, tracking flow for channel ' num2str(chan)];
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
+channelLog=cell(numel(p.ChannelIndex),1);
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
-    % Log display
+     % Log display
+    channelLog{i} = sprintf('Channel %g: %s\n',iChan,imDirs{iChan});
     disp(logMsg(iChan))
-    disp(movieData.getChannelPaths{iChan});
+    disp('Using images from directory:')
+    disp(inFilePaths{1,iChan});
+    disp('and speckles from diretory:')
+    disp(inFilePaths{2,iChan});
     disp('Results will be saved under:')
     disp(outFilePaths{1,iChan});
     
-    % Load raw images and masks from segmentation output
-    if ishandle(wtBar), waitbar(0,wtBar,'Loading images and masks...'); end
-    disp('Loading images and masks...');
-    stack = zeros([movieData.imSize_ movieData.nFrames_]);
-    bgMask = zeros([movieData.imSize_ movieData.nFrames_]);
-    maskNames = segProc.getOutMaskFileNames(iChan);
-    inMask=@(frame) [flowTrackProc.inFilePaths_{2,iChan}...
-        filesep maskNames{1}{frame}];
-    for j = p.firstImage:p.lastImage
+    % Initialize input
+    stack = zeros([imSize nFrames]);
+    bgMask = true([imSize nFrames]);
+    bgAvgImg=zeros([imSize nFrames]);
+    
+    % Load raw images (incl. images for background averaging)
+    if ishandle(wtBar), waitbar(0,wtBar,'Loading images ...'); end
+    disp('Loading images...');
+    minFrame=min(p.firstImage,nFrames-p.numStBgForAvg+1);
+    maxFrame=max(p.lastImage,min(p.lastImage-p.timeWindow+1+p.numStBgForAvg,nFrames));
+    for j = minFrame:maxFrame
         stack(:,:,j) = movieData.channels_(iChan).loadImage(j);
-        bgMask(:,:,j) = imerode(logical(imread(inMask(j))),...
-            strel('disk',p.edgeErodeWidth));
     end
+    
+    % Construct background stack by averaging stationary images
+    if p.numStBgForAvg>0
+        nStBgFrames=p.timeWindow-min(p.timeWindow,p.numStBgForAvg)+1;
+        for j = firstFrames
+            for k=j:j+nStBgFrames-1
+                startStBgFrame = min(k,nFrames-p.numStBgForAvg+1);
+                bgAvgImg(:,:,k)=mean(stack(:,:,startStBgFrame:startStBgFrame+p.numStBgForAvg-1),3);
+            end
+        end
+    else
+        nStBgFrames=1;
+    end
+
+    
+    % Load masks
+    if ishandle(wtBar), waitbar(0,wtBar,'Loading masks ...'); end
+    disp('Loading masks...');
+    maskNames = maskProc.getOutMaskFileNames(iChan);
+    inMask=@(frame) [maskProc.outFilePaths_{1,iChan} filesep maskNames{1}{frame}];
+    se=strel('disk',p.edgeErodeWidth);
+    for j = p.firstImage:p.lastImage
+        bgMask(:,:,j) = imerode(logical(imread(inMask(j))),se);
+    end
+    
     
     % Load speckles from speckle detection output
     if ishandle(wtBar), waitbar(0,wtBar,'Loading speckles...'); end
     disp('Loading speckles...');
     speckles = cell(1,nFrames);
-    for j = firstFrameIndx
-        cands = specDetProc.loadChannelOutput(iChan,j);
-        speckles{j} = vertcat(cands([cands.status]==1).Lmax);
+    for firstFrame = firstFrames
+        cands = specDetProc.loadChannelOutput(iChan,firstFrame);
+        speckles{firstFrame} = vertcat(cands([cands.status]==1).Lmax);
     end
     
     % Call the main correlation routine
     disp('Starting tracking flow...');
     if ishandle(wtBar), waitbar(0,wtBar,logMsg(iChan)); end
-    for j=firstFrameIndx
-        % Call the flow tracking routine
-        [vx,vy,corLen] = trackStackFlow(stack(:,:,j:j+p.timeWindow-1),...
-            speckles{j}(:,2),speckles{j}(:,1),p.minCorLength,p.maxCorLength,...
-            'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,j:j+p.timeWindow-1), ...
-            'numStBgForAvg',p.numStBgForAvg,'minFeatureSize',p.minFeatureSize);  %#ok<NASGU>
+    allCorLen=cell(numel(firstFrames));
+    
+    for j=1:numel(firstFrames)
+        firstFrame=firstFrames(j);
+        frameRange =firstFrame:firstFrame+p.timeWindow-1;
         
+        % Call the flow tracking routine (using speckles positions in image
+        % coordinate system)
+        [v,corLen] = trackStackFlow(stack(:,:,frameRange),...
+            speckles{firstFrame}(:,2:-1:1),p.minCorLength,p.maxCorLength,...
+            'maxSpd',p.maxFlowSpeed,'bgMask',bgMask(:,:,frameRange), ...
+            'bgAvgImg',bgAvgImg(:,:,firstFrame:firstFrame+nStBgFrames-1),...
+            'minFeatureSize',p.minFeatureSize);
+        allCorLen{j}=corLen;
+        
+        % Convert flow field back into xy coordinate system
         % Concatenate flow as a [pos1 pos2] matrix
-        flow = [speckles{j} vy vx];
-        corLen = [speckles{j} corLen];
+        flow = [speckles{firstFrame} v(:,2:-1:1)];
+        
         % Set infinite flow to nan
-        flow(isinf(vx),3:4)=NaN;
+        flow(isinf(v(:,1)),3:4)=NaN;
                 
         % Filter vector field outliers
-        if ~isempty(p.outlierThreshold)
-            outlierIndex = detectVectorFieldOutliers(flow,p.outlierThreshold);
-            flow(outlierIndex,3:4)=NaN;
-        end
+%         if ~isempty(p.outlierThreshold)
+%             outlierIndex = detectVectorFieldOutliers(flow,p.outlierThreshold);
+%             flow(outlierIndex,3:4)=NaN;
+%         end
         
         % Save flow result under [pos pos+vel] format
         flow(:,3:4)=flow(:,1:2)+flow(:,3:4); %#ok<NASGU>
-        flowFileName = [outFilePaths{1,iChan} filesep 'flow' num2str(j) '.mat'];
+        flowFileName = [outFilePaths{1,iChan} filesep 'flow' num2str(firstFrame) '.mat'];
         save(flowFileName,'flow','corLen');
         
         % Update waitbar
         if mod(j,5)==1 && ishandle(wtBar), 
             tj=toc;
-            nj = (i-1)*nFrames+ j;
+            nj = (i-1)*nStacks+ j;
             waitbar(nj/nTot,wtBar,sprintf([logMsg(iChan) timeMsg(tj*nTot/nj-tj)]));
         end
     end
+    
+    % Get count of finit correlation lengths
+    allCorLen=vertcat(allCorLen{:});
+    finiteCorLen =allCorLen(~isinf(allCorLen));
+    [corLenValues,~,index]=unique(finiteCorLen);
+    corLenCount = hist(index,unique(index));
+    
+    % Create channel log fot output
+    channelLog{i} = [channelLog{i} ...
+        sprintf(['Total number of speckles in the movie\t\t\t\t: %g\n'...
+        'Total number of tracked points overall\t\t\t\t: %g\n'],...
+        numel(allCorLen),numel(finiteCorLen))];
+        
+    for j=1:numel(corLenValues)
+        channelLog{i} = [channelLog{i} ...
+           sprintf('Total number of points tracked with a template size of  %d\t: %g\n',...
+        corLenValues(j),corLenCount(j))];  
+    end
+    clear allCorLen 
 end
 
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 disp('Finished tracking flow!')
+
+% Create process report
+procLog=[sprintf('Flow tracking summary\n\n') channelLog{:}];
+disp(procLog);
+fid=fopen([p.OutputDirectory filesep 'FlowTrackingSummary.txt'],'w+');
+fprintf(fid,procLog);
+fclose(fid);
