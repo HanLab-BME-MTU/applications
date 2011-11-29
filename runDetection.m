@@ -60,10 +60,11 @@ parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k}));
     
     [pstruct, mask] = pointSourceDetection(img, sigma(mCh));
-    pstruct = rmfield(pstruct, 's_pstd');
-    pstruct.s = sigma;
     
     if ~isempty(pstruct)
+        pstruct = rmfield(pstruct, 's_pstd');
+        pstruct.s = sigma;
+        
         pstruct.dRange{mCh} = [min(img(:)) max(img(:))];
         np = numel(pstruct.x);
         
