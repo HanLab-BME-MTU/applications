@@ -197,10 +197,10 @@ for i = 1:numel(p.ChannelIndex)
         flow(isinf(v(:,1)),3:4)=NaN;
                 
         % Filter vector field outliers
-%         if ~isempty(p.outlierThreshold)
-%             outlierIndex = detectVectorFieldOutliers(flow,p.outlierThreshold);
-%             flow(outlierIndex,3:4)=NaN;
-%         end
+        if ~isempty(p.outlierThreshold)
+            outlierIndex = detectVectorFieldOutliers(flow,p.outlierThreshold);
+            flow(outlierIndex,3:4)=NaN;
+        end
         
         % Save flow result under [pos pos+vel] format
         flow(:,3:4)=flow(:,1:2)+flow(:,3:4); %#ok<NASGU>
