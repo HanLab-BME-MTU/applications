@@ -61,7 +61,7 @@ if ~isempty(iSDCProc)
     end
     imDirs{1} = SDCProc.outFilePaths_{1,p.ChannelIndex};
     imageFileNames = SDCProc.getInImageFileNames(p.ChannelIndex);
-    s = load(SDCProc.outFilePaths_{3,p.ChannelIndex});
+    s = load(SDCProc.outFilePaths_{3,p.ChannelIndex},'T');
     residualT = s.T-round(s.T);
     refFrame = double(imread(SDCProc.outFilePaths_{2,p.ChannelIndex}));
 else
@@ -123,12 +123,10 @@ filteredRefFrame = filterGauss2D(refFrame/maxIntensity,...
 k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
 noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
 cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
+
+% Exclude insignificant candidates and transform beads into xy coordinate system
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
-
-% % For debugging purposes
-% indx=beads(:,1)>600 & beads(:,1)<700&beads(:,2)>350&beads(:,2)<550;
-% beads=beads(indx,:);
 
 % Select only beads which are minCorLength away from the border of the
 % reference frame 
@@ -164,15 +162,15 @@ for j= firstFrame:nFrames
     indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
     localbeads = beads(indx,:);
 
-    % Track beads displacement 
-    [vx,vy] = trackStackFlow(cat(3,refFrame,currImage),...
-        localbeads(:,1),localbeads(:,2),...
+    % Track beads displacement in the xy coordinate system
+    v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
     
-    % Extract finite displacement and prepare displFiel
-    validV = ~isnan(vx) & ~isnan(vy) & ~isinf(vx);
-    displField(j).pos=[localbeads(validV,1) localbeads(validV,2)];
-    displField(j).vec=[vx(validV)+residualT(j,1) vy(validV)+residualT(j,2)];
+    % Extract finite displacement and prepare displField structure in the xy
+    % coordinate system
+    validV = ~isinf(v(:,1));
+    displField(j).pos=localbeads(validV,:);
+    displField(j).vec=[v(validV,1)+residualT(j,1) v(validV,2)+residualT(j,2)];
     
     % Update the waitbar
     if mod(j,5)==1 && ishandle(wtBar)

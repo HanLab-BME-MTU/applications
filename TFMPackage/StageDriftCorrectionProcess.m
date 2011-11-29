@@ -48,7 +48,7 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
                 
                 [~,iOutput] =ismember(ip.Results.output,{outputList.var});
                 if regexp(outputList(iOutput).var,'(.+)flow','once')
-                    s=load(obj.outFilePaths_{4,1},'flow');
+                    s=load(obj.outFilePaths_{3,1},'flow');
                     data=s.flow;
                 else
                     data=imread(obj.funParams_.referenceFramePath);

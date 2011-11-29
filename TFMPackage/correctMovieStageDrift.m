@@ -61,7 +61,7 @@ end
 displFieldProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outFilePaths = cell(4,numel(movieData.channels_));
+outFilePaths = cell(3,numel(movieData.channels_));
 mkClrDir(p.OutputDirectory);
 for i = p.ChannelIndex;    
     %Create string for current directory
@@ -70,8 +70,7 @@ for i = p.ChannelIndex;
 end
 [~,refName,refExt]=fileparts(movieData.processes_{1}.funParams_.referenceFramePath);
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
-outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationMatrix.mat'];
-outFilePaths{4,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(p.ChannelIndex(1)) '.mat'];
+outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
 displFieldProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Stage drift correction ---------------%%% 
@@ -95,6 +94,8 @@ filteredRefFrame = filterGauss2D(croppedRefFrame/maxIntensity,...
 k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
 noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
 cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
+
+% Exclude insignificant candidates and transform beads into xy coordinate system
 M = vertcat(cands([cands.status]==1).Lmax);
 beads = M(:,2:-1:1);
 
@@ -190,18 +191,18 @@ flow=cell(nFrames,1);
 for j= 1:nFrames
     % Stack reference frame and current frame and track beads displacement
     corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
-    [dx,dy] = trackStackFlow(corrStack,beads(:,1),beads(:,2),...
+    delta = trackStackFlow(corrStack,beads,...
         p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
     
     %The transformation has the same form as the registration method from
     %Sylvain. Here we take simply the median of the determined flow
     %vectors. We take the median since it is less distorted by outliers.
-    finiteFlow  = ~isinf(dx);
-    T(j,:)=-[nanmedian(dy(finiteFlow)) nanmedian(dx(finiteFlow))];
+    finiteFlow  = ~isinf(delta(:,1));
+    T(j,:)=-nanmedian(delta(finiteFlow,2:-1:1),1);
     
     % Remove infinite flow and save raw displacement under [pos1 pos2] format
-    flow{j} = [beads(finiteFlow,2) beads(finiteFlow,1) ...
-        beads(finiteFlow,2)+dy(finiteFlow) beads(finiteFlow,1)+dx(finiteFlow)];
+    % into image coordinate system
+    flow{j} = [beads(finiteFlow,2:-1:1) beads(finiteFlow,2:-1:1)+delta(finiteFlow,2:-1:1)];
     
     % Update the waitbar
     if mod(j,5)==1 && ishandle(wtBar)
@@ -209,7 +210,6 @@ for j= 1:nFrames
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
     end
 end
-save(outFilePaths{4,p.ChannelIndex(1)},'flow');
 
 T=T+preT;
 disp('Applying stage drift correction...')
@@ -231,13 +231,14 @@ for i = 1:numel(p.ChannelIndex)
     refFrame = padarray(double(imread(p.referenceFramePath)), [maxY, maxX]);
     
     for j= 1:nFrames
-        % Apply subpixel-wise registration to thre reference channel
+         if i==1
+             %  Apply pixel-wise registration to the reference channel
+             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(round(T(j, :))) 1]);
+         else
+             % Apply subpixel-wise registration to other channels
+             Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
+         end
         I = padarray(double(imread(inImage(iChan,j))), [maxY, maxX]);
-        if iChan==1
-            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(round(T(j, :))) 1]);
-        else           
-            Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
-        end
         I2 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
           
         % Statistically test the local maxima to extract (significant) speckles
@@ -253,7 +254,7 @@ for i = 1:numel(p.ChannelIndex)
 end
 
 imwrite(uint16(refFrame), outFilePaths{2,p.ChannelIndex(1)});
-save(outFilePaths{3,p.ChannelIndex(1)},'preT','T');
+save(outFilePaths{3,p.ChannelIndex(1)},'preT','T','flow');
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 
