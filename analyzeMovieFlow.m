@@ -110,9 +110,10 @@ flowAnProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
 outputDir=cell(1,nChan);
+channelName = @(x)movieData.getChannelPaths{x}(max(regexp(movieData.getChannelPaths{x},filesep))+1:end);   
 for i = p.ChannelIndex;    
     %Create string for current directory
-    outputDir{i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
+    outputDir{i} = fullfile(p.OutputDirectory,channelName(i));
     mkClrDir(outputDir{i});
 end
 flowAnProc.setOutFilePaths(outputDir);

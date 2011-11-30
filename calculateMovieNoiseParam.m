@@ -75,11 +75,12 @@ noiseProc.setInFilePaths(inFilePaths);
 
 % Setup the output directories
 outFilePaths = cell(2,nChan);
-pfName = 'noise_for_channel_'; 
-dName = 'cropped_images_for_channel_'; 
+channelName = @(x)movieData.getChannelPaths{x}(max(regexp(movieData.getChannelPaths{x},filesep))+1:end);
+pfName = '_noise_model_parameters.mat'; 
+dName = '_cropped_images'; 
 for  j = p.ChannelIndex;   
-    outFilePaths{1,j} = [p.OutputDirectory filesep pfName num2str(j) '.mat'];
-    outFilePaths{2,j} = [p.OutputDirectory filesep dName num2str(j)];
+    outFilePaths{1,j} = [p.OutputDirectory filesep channelName(j) pfName];
+    outFilePaths{2,j} = [p.OutputDirectory filesep channelName(j) dName ];
     %Check/create directory
     mkClrDir( outFilePaths{2,j})               
 end

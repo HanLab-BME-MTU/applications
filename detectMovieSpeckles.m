@@ -115,9 +115,10 @@ specDetProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
 outputDir = cell(1,numel(movieData.channels_));
+channelName = @(x)movieData.getChannelPaths{x}(max(regexp(movieData.getChannelPaths{x},filesep))+1:end);
 for i = p.ChannelIndex;    
     %Create string for current directory
-    outputDir{i} = [p.OutputDirectory filesep 'speckles_for_channel_' num2str(i)];
+    outputDir{i} = fullfile(p.OutputDirectory,channelName(i));
     mkClrDir(outputDir{i});
 end
 specDetProc.setOutFilePaths(outputDir);

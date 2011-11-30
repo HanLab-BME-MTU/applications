@@ -67,7 +67,7 @@ end
 
 
 % Set up the input directories
-inFilePaths = cell(3,1:numel(movieData.channels_));
+inFilePaths = cell(3,numel(movieData.channels_));
 imDirs = movieData.getChannelPaths;
 for i = p.ChannelIndex
     inFilePaths{1,i} = imDirs{i};
@@ -77,10 +77,11 @@ end
 flowTrackProc.setInFilePaths(inFilePaths);
 
 % Set up the output directories
-outFilePaths = cell(2,1:numel(movieData.channels_));
+outFilePaths = cell(2,numel(movieData.channels_));
+channelName = @(x)movieData.getChannelPaths{x}(max(regexp(movieData.getChannelPaths{x},filesep))+1:end);
 for i = p.ChannelIndex;
     %Create string for current directory
-    outFilePaths{1,i} = [p.OutputDirectory filesep 'flow_for_channel_' num2str(i)];
+    outFilePaths{1,i} = fullfile(p.OutputDirectory,channelName(i));
     mkClrDir(outFilePaths{1,i});
 end
 flowTrackProc.setOutFilePaths(outFilePaths);

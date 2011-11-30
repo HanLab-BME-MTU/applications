@@ -28,11 +28,39 @@ classdef QFSMPackage < Package
                     'Please fill the numerical aperture, pixel size and'...
                     ' emission wavelengths!']);            
             end
+            
             % Check that the time interval is correctly setup
             if isempty(obj.owner_.timeInterval_)
                 error('Missing frame rate! Please fill the time interval!');            
             end
-            [status processExceptions] = sanityCheck@Package(obj,varargin{:});
+            
+            % Input check
+            nProc = length(obj.getProcessClassNames);
+            ip = inputParser;
+            ip.CaseSensitive = false;
+            ip.addOptional('full',true, @(x) islogical(x));
+            ip.addOptional('procID',1:nProc,@(x) all(ismember(x,1:nProc)) || strcmp(x,'all'));
+            ip.parse(varargin{:});
+            full = ip.Results.full;
+            procID = ip.Results.procID;
+            if strcmp(procID,'all'), procID = 1:nProc;end
+            
+            [status processExceptions] = sanityCheck@Package(obj,full,procID);
+            
+            if ~full, return; end
+            
+            validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
+            % Set the segProcessIndex of the mask refinement
+            if ismember(3,validProc)
+                if ~isempty(obj.processes_{2})
+                    segPI = find(cellfun(@(x)isequal(x, obj.processes_{2}), obj.owner_.processes_));
+                    if length(segPI) > 1
+                        error('User-defined: More than one identical Threshold processes exists in movie data''s process list.')
+                    end
+                    funParams.SegProcessIndex = segPI;
+                    parseProcessParams(obj.processes_{3},funParams);
+                end
+            end
         end
 
     end
