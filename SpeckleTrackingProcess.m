@@ -91,19 +91,19 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x)...
                 TracksDisplay('Color',colors(x,:),'showLabel',false);
-%             output(1).name='Frame to frame displacement';
-%             output(1).var='M';
-%             output(1).formatData=@(x) [x(all(x(:,[1 3])~=0,2),[2 1])...
-%                 x(all(x(:,[1 3])~=0,2),[4 3])-x(all(x(:,[1 3])~=0,2),[2 1])];
-%             output(1).type='overlay';
-%             output(1).defaultDisplayMethod=@(x)...
-%                  VectorFieldDisplay('Color',colors(x,:));
-            output(2).name='Interpolated flow';
-            output(2).var='flow';
-            output(2).formatData=@formatFlow;
+            output(2).name='Frame to frame displacement';
+            output(2).var='M';
+            output(2).formatData=@(x) [x(all(x(:,[1 3])~=0,2),[2 1])...
+                x(all(x(:,[1 3])~=0,2),[4 3])-x(all(x(:,[1 3])~=0,2),[2 1])];
             output(2).type='overlay';
             output(2).defaultDisplayMethod=@(x)...
-                VectorFieldDisplay('Color',colors(x,:));
+                 VectorFieldDisplay('Color',colors(x,:));
+            output(3).name='Tracking initializers';
+            output(3).var='flow';
+            output(3).formatData=@formatFlow;
+            output(3).type='overlay';
+            output(3).defaultDisplayMethod=@(x)...
+                VectorFieldDisplay('Color',[0 1 0]);
 
         end
 
