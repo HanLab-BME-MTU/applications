@@ -145,6 +145,18 @@ classdef WindowingProcess < ImageAnalysisProcess
         function h = GUI()
             h= @windowingProcessGUI;
         end
+        
+        function methods = getMethods()
+            methods(1).description = 'Constant number';
+            methods(1).name = 'ConstantNumber';
+            methods(2).description = 'Constant width';
+            methods(2).name = 'ConstantWidth';
+            methods(3).description = 'Protrusion based';
+            methods(3).name = 'ProtrusionBased';
+            methods(4).description = 'PDE based';
+            methods(4).name = 'PDEBased';
+        end
+
         function output = getDrawableOutput()
             output(1).name='Windows';
             output(1).var='windows';

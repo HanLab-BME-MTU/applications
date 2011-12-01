@@ -22,7 +22,7 @@ function varargout = windowingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help windowingProcessGUI
 
-% Last Modified by GUIDE v2.5 20-Oct-2011 10:55:30
+% Last Modified by GUIDE v2.5 01-Dec-2011 10:59:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,7 @@ funParams = userData.crtProc.funParams_;
 userData.numParams ={'ParaSize','PerpSize','MinSize'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
+editSize(hObject,eventdata,handles);
 
 % Read available segmentaation processes
 segProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
@@ -78,11 +79,10 @@ set(handles.popupmenu_SegProcessIndex,'String',segProcString,...
     'UserData',segProcData,'Value',segProcValue);
 
 % Create pop-up menu for windowing methods
-methodString ={'Constant number';'Constant width';'Protrusion based';'PDE based'};
-methodData ={'ConstantNumber';'ConstantWidth';'ProtrusionBased';'PDEBased'};
-methodValue = find(strcmpi(funParams.MethodName,methodData));
-set(handles.popupmenu_MethodName,'String',methodString,...
-    'UserData',methodData,'Value',methodValue);
+methods = WindowingProcess.getMethods;
+methodValue = find(strcmpi(funParams.MethodName,{methods.name}));
+set(handles.popupmenu_MethodName,'String',{methods.description},...
+    'UserData',{methods.name},'Value',methodValue);
 
 % Set-up pde parameters
 pdeString ={'Select a model';'Viscous';'Viscous-convective';'Visco-elastic'};
@@ -97,6 +97,15 @@ set(handles.edit_MeshQuality,'String',funParams.MeshQuality);
 value=strcmpi(funParams.NonLinearSolver,'on');
 set(handles.checkbox_NonLinearSolver,'Value',value);
 set(handles.popupmenu_PDEPar,'String',pdeString,'UserData',pdeData);
+
+%
+if isinf(funParams.ReInit)
+    set(handles.checkbox_doReInit,'Value',0);
+    set(handles.edit_ReInit,'String','','Enable','off');
+else
+    set(handles.checkbox_doReInit,'Value',1);
+    set(handles.edit_ReInit,'String',funParams.ReInit,'Enable','on');
+end
 
 % Update PDE panel
 popupmenu_MethodName_Callback(hObject, eventdata, handles)
@@ -154,72 +163,6 @@ if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
 
-% --- Executes on button press in pushbutton_done.
-function pushbutton_done_Callback(hObject, eventdata, handles)
-
-% Check user input
-userData = get(handles.figure1, 'UserData');
-if isempty(get(handles.listbox_selectedChannels, 'String'))
-    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
-    return;
-else
-    channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
-    funParams.ChannelIndex = channelIndex;
-end
-
-for i=1:numel(userData.numParams)  
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
-        errordlg(['Please enter a valid value for the '...
-            get(handles.(['text_' userData.numParams{i}]),'String') '.'],'Setting Error','modal');
-        return;
-    end
-    funParams.(userData.numParams{i})=str2double(value); 
-end
-
-%Retrieve segmentation process
-props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
-funParams.SegProcessIndex=props{1}{props{2}};
-
-% Retrieve windowing method
-props=get(handles.popupmenu_MethodName,{'UserData','Value'});
-funParams.MethodName=props{1}{props{2}};
-
-if strcmpi(funParams.MethodName,'pdebased');
-    meshQuality = get(handles.edit_MeshQuality,'String');
-    if isempty(meshQuality)
-        errordlg('Please enter a valid value for the Quality of the triangular mesh.','Setting Error','modal');
-        return;
-    end
-    funParams.MeshQuality=str2double(meshQuality);       
-    props = get(handles.popupmenu_PDEPar,{'UserData','Value'});
-    if props{2}==1
-        errordlg('Select a valid window propagation method.','Setting Error','modal');
-        return;
-    end
-    funParams.PDEPar=props{1}{props{2}};
-    nonLinearSolver=get(handles.checkbox_NonLinearSolver,'Value');
-    if nonLinearSolver
-        funParams.NonLinearSolver='on';
-    else
-        funParams.NonLinearSolver='off';
-    end
-end
-
-
-% Process Sanity check ( only check underlying data )
-try
-    userData.crtProc.sanityCheck;
-catch ME
-    errordlg([ME.message 'Please double check your data.'],...
-                'Setting Error','modal');
-    return;
-end
-
-% Set parameters
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
-
 % --- Executes on selection change in popupmenu_MethodName.
 function popupmenu_MethodName_Callback(hObject, eventdata, handles)
 
@@ -274,3 +217,109 @@ else
     channelString = {};
 end
 set(handles.listbox_selectedChannels,'String',channelString,'UserData',channelIndex);
+
+
+function editSize(hObject, eventdata, handles)
+
+userData=get(handles.figure1,'UserData');
+pixelSize = userData.MD.pixelSize_;
+paraSize = str2double(get(handles.edit_ParaSize,'String'));
+perpSize = str2double(get(handles.edit_PerpSize,'String'));
+paraSizeMicrons = pixelSize/1000*paraSize;
+perpSizeMicrons = pixelSize/1000*perpSize;
+if ~isempty(paraSizeMicrons) && ~isnan(paraSizeMicrons)
+    set(handles.edit_ParaSizeMicrons,'String',paraSizeMicrons);
+else
+    set(handles.edit_ParaSizeMicrons,'String','');
+end
+if ~isempty(perpSizeMicrons) && ~isnan(perpSizeMicrons)
+    set(handles.edit_PerpSizeMicrons,'String',perpSizeMicrons);
+else
+    set(handles.edit_PerpSizeMicrons,'String','');
+end
+
+
+% --- Executes on button press in checkbox_doReInit.
+function checkbox_doReInit_Callback(hObject, eventdata, handles)
+
+if ~get(hObject,'Value')
+    set(handles.edit_ReInit,'String','','Enable','off');
+else
+    set(handles.edit_ReInit,'Enable','on');
+end
+
+% --- Executes on button press in pushbutton_done.
+function pushbutton_done_Callback(hObject, eventdata, handles)
+
+% Check user input
+userData = get(handles.figure1, 'UserData');
+if isempty(get(handles.listbox_selectedChannels, 'String'))
+    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
+    return;
+else
+    channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
+    funParams.ChannelIndex = channelIndex;
+end
+
+for i=1:numel(userData.numParams)  
+    value = get(handles.(['edit_' userData.numParams{i}]),'String');
+    if isempty(value)
+        errordlg(['Please enter a valid value for the '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],'Setting Error','modal');
+        return;
+    end
+    funParams.(userData.numParams{i})=str2double(value); 
+end
+
+%Retrieve segmentation process
+props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
+funParams.SegProcessIndex=props{1}{props{2}};
+
+% Retrieve windowing method
+props=get(handles.popupmenu_MethodName,{'UserData','Value'});
+funParams.MethodName=props{1}{props{2}};
+
+if strcmpi(funParams.MethodName,'pdebased');
+    meshQuality = get(handles.edit_MeshQuality,'String');
+    if isempty(meshQuality)
+        errordlg('Please enter a valid value for the Quality of the triangular mesh.','Setting Error','modal');
+        return;
+    end
+    funParams.MeshQuality=str2double(meshQuality);       
+    props = get(handles.popupmenu_PDEPar,{'UserData','Value'});
+    if props{2}==1
+        errordlg('Select a valid window propagation method.','Setting Error','modal');
+        return;
+    end
+    funParams.PDEPar=props{1}{props{2}};
+    nonLinearSolver=get(handles.checkbox_NonLinearSolver,'Value');
+    if nonLinearSolver
+        funParams.NonLinearSolver='on';
+    else
+        funParams.NonLinearSolver='off';
+    end
+end
+
+if get(handles.checkbox_doReInit,'Value')
+    reInit = str2double(get(handles.edit_ReInit,'String'));
+    if isnan(reInit) || reInit<1
+        errordlg(['Please enter a valid value for the '...
+            get(handles.text_ReInit,'String') '.'],'Setting Error','modal');
+        return;
+    end
+    funParams.ReInit=reInit; 
+else
+    funParams.ReInit=Inf;
+end
+
+% Process Sanity check ( only check underlying data )
+try
+    userData.crtProc.sanityCheck;
+catch ME
+    errordlg([ME.message 'Please double check your data.'],...
+                'Setting Error','modal');
+    return;
+end
+
+% Set parameters
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
