@@ -22,17 +22,24 @@ figure('Position', [440 378 560 720], 'PaperPositionMode', 'auto');
 
 ha(1) = axes('Position', [0.15 0.72 0.8 0.27]);
 hold on;
-plotTrack(data, masterTrack, 1, 'Handle', ha(1), 'DisplayMode', 'print');
+plotTrack(data, masterTrack, 1, 'Handle', ha(1), 'DisplayMode', 'print', 'Time', 'Track');
 YLim{1} = get(ha(1), 'YLim');
+
+dt = data.framerate;
+XLim = [-10*dt masterTrack.t{1}(end)-masterTrack.t{1}(1)+10*dt];
+XTick = 0:20:data.movieLength*dt+20;
+
 
 ha(2) = axes('Position', [0.15 0.42 0.8 0.27]);
 hold on;
-plotTrack(data, masterTrack, 2, 'Handle', ha(2), 'DisplayMode', 'print');
+plotTrack(data, masterTrack, 2, 'Handle', ha(2), 'DisplayMode', 'print', 'Time', 'Track');
 YLim{2} = get(ha(2), 'YLim');
+
 
 % plot track fragments
 ha(3) = axes('Position', [0.15 0.08 0.8 0.27]);
 hold(ha(3), 'on');
+dt = masterTrack.t{1}(1);
 for k = 1:length(slaveTracks)
     
     A = slaveTracks(k).A{1}(1,:);
@@ -40,7 +47,7 @@ for k = 1:length(slaveTracks)
     bgcorr = nanmean(c);
     c = c-bgcorr;
     sigma_r = slaveTracks(k).sigma_r{1}(1,:);
-    t = (slaveTracks(k).start-1:slaveTracks(k).end-1)*data.framerate;
+    t = (slaveTracks(k).start-1:slaveTracks(k).end-1)*data.framerate - dt;
     
     % alpha = 0.05 level
     fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
@@ -75,7 +82,9 @@ for k = 1:length(slaveTracks)
 end
 
 set(ha(1:2), 'XTickLabel', []);
-set(ha, 'FontName', 'Helvetica', 'FontSize', 20, 'LineWidth', 2, 'TickDir', 'out');
+set(ha, 'FontName', 'Helvetica', 'FontSize', 20, 'LineWidth', 2,...
+    'TickDir', 'out', 'XLim', XLim, 'XTick', XTick);
+
 xlabel('Time (s)');
 hy = arrayfun(@(x) ylabel(x, 'Intensity (A.U.)'), ha);
 
