@@ -1,8 +1,8 @@
-function closedContours = closeContours(contoursIn,matIn,shiftVal)
+function closedContours = closeContours(contoursIn,maskIn,shiftVal)
 %CLOSECONTOURS takes the input  open contours and closes them by filling in the gaps where they meet the image border
 %
-% closedContours = closeContours(contoursIn,matIn)
-% closedContours = closeContours(contoursIn,matIn,shiftVal)
+% closedContours = closeContours(contoursIn,maskIn)
+% closedContours = closeContours(contoursIn,maskIn,shiftVal)
 %
 % Description:
 % 
@@ -10,17 +10,14 @@ function closedContours = closeContours(contoursIn,matIn,shiftVal)
 % contourc.m etc) will contain gaps where a given contour meets the edge of
 % the matrix is being contoured. This function closes these contours by
 % filling in the appropriate areas at the image boundary, so that the
-% closed contour encloses areas of the matrix where the value is higher
-% than the isovalue for that contour. The contours should be first
-% separated using separateContours.m Any input contours which are already
-% closed will be un-affected.
+% closed contour encloses only areas of the mask with true (nonzero) values.
 % 
 % Required Input: 
 % 
 %   contoursIn - A 1xM cell array of the M input contours, as returned by
 %                separateContours.m
 % 
-%   matIn -    The matrix the contours were derived from. 
+%   maskIn -    The mask the contours were derived from. 
 % 
 % Optional Input:
 % 
@@ -40,7 +37,7 @@ function closedContours = closeContours(contoursIn,matIn,shiftVal)
 
 %% ----- Input ----- %%
 
-if nargin < 2 || isempty(matIn) || isempty(contoursIn)
+if nargin < 2 || isempty(maskIn) || isempty(contoursIn)
     error('Must input both a cell-array of contours and the matrix which the contours came from!')
 end
 
@@ -57,7 +54,7 @@ end
 
 %% -----  Init ----- %%
 
-[M,N] = size(matIn);
+[M,N] = size(maskIn);
 
 nContours = length(contoursIn);
 
@@ -100,32 +97,31 @@ for j = 1:nContours
             if iTouchEnd < iTouchStart
 
                 %Close clockwise, adding border points to the contour in their original order
-                closeClockwise = [contoursIn{j} borderCoord(:,iTouchEnd+1:iTouchStart-1)];
+                closeClockwise = borderCoord(:,iTouchEnd+1:iTouchStart-1);
                 
                 %Close counter-clockwise, adding border points to the
                 %contour in reverse order and looping past origin
-                closeCounterClockwise = [contoursIn{j} borderCoord(:,iTouchEnd-1:-1:1) borderCoord(:,end:-1:iTouchStart+1)];
+                closeCounterClockwise = [borderCoord(:,iTouchEnd-1:-1:1) borderCoord(:,end:-1:iTouchStart+1)];
 
             elseif iTouchEnd > iTouchStart
 
                 %Close clockwise, adding border points to the contour in their
                 %original order and looping past the origin
-                closeClockwise = [contoursIn{j} borderCoord(:,iTouchEnd+1:end) borderCoord(:,1:iTouchStart-1)];
+                closeClockwise = [borderCoord(:,iTouchEnd+1:end) borderCoord(:,1:iTouchStart-1)];
 
                 %Close counter-clockwise, adding the border points in reverse
                 %order
-                closeCounterClockwise = [contoursIn{j} borderCoord(:,iTouchEnd-1:-1:iTouchStart+1)];
+                closeCounterClockwise = borderCoord(:,iTouchEnd-1:-1:iTouchStart+1);
             end
         
             %Sample the input matrix at the border coordinates for the two
-            %closures to determine which encloses the higher areas
-            avgClockwise = nanmean(matIn(sub2ind([M,N],round(closeClockwise(2,:)),round(closeClockwise(1,:)))));
-            avgCounterClockwise = nanmean(matIn(sub2ind([M,N],round(closeCounterClockwise(2,:)),round(closeCounterClockwise(1,:)))));
+            %closure directions to check which only contains true mask
+            %areas.            
             
-            if avgClockwise > avgCounterClockwise
-                closedContours{j} = closeClockwise;
-            elseif avgCounterClockwise > avgClockwise
-                closedContours{j} = closeCounterClockwise;
+            if nnz(~maskIn(sub2ind([M,N],round(closeClockwise(2,:)),round(closeClockwise(1,:)))))==0;
+                closedContours{j} = [contoursIn{j} closeClockwise];
+            elseif nnz(~maskIn(sub2ind([M,N],round(closeCounterClockwise(2,:)),round(closeCounterClockwise(1,:)))))==0;
+                closedContours{j} = [contoursIn{j} closeCounterClockwise];
             else
                 error(['Check input matrix and contours - unable to close contour ' num2str(j) ])
             end                                        
