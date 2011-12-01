@@ -26,10 +26,12 @@ ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
 ip.addParamValue('TrackCoords', []);
 ip.addParamValue('Detection', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('Buffer', 5);
 ip.parse(inputCell, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
 trackCoords = ip.Results.TrackCoords;
+buffer = ip.Results.Buffer;
 
 xa = ip.Results.xa;
 ya = ip.Results.ya;
@@ -50,13 +52,13 @@ else
     rgbColors = [];
 end
 
-% dynamic range adjustments
+% dynamic range for each channel
 maxI = zeros(1,nc);
 minI = zeros(1,nc);
-for k = 1:nc
-    cCat = [inputCell{k,:}];
-    maxI(k) = max(cCat(:));
-    minI(k) = min(cCat(:));
+for c = 1:nc
+    cCat = [inputCell{c,1+buffer:end-buffer}];
+    maxI(c) = max(cCat(:));
+    minI(c) = min(cCat(:));
 end
 
 % loop through cells, adjust contrast, convert to 8-bit
