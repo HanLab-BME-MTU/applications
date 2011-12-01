@@ -22,7 +22,7 @@ function varargout = windowingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help windowingProcessGUI
 
-% Last Modified by GUIDE v2.5 01-Dec-2011 10:59:40
+% Last Modified by GUIDE v2.5 01-Dec-2011 15:26:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -98,7 +98,7 @@ value=strcmpi(funParams.NonLinearSolver,'on');
 set(handles.checkbox_NonLinearSolver,'Value',value);
 set(handles.popupmenu_PDEPar,'String',pdeString,'UserData',pdeData);
 
-%
+% Update reinitialization parameters
 if isinf(funParams.ReInit)
     set(handles.checkbox_doReInit,'Value',0);
     set(handles.edit_ReInit,'String','','Enable','off');
@@ -106,6 +106,15 @@ else
     set(handles.checkbox_doReInit,'Value',1);
     set(handles.edit_ReInit,'String',funParams.ReInit,'Enable','on');
 end
+
+% Update StartPoint
+userData.StartPoint=funParams.StartPoint;
+
+set(handles.checkbox_useStartPoint,'Value',~isempty(funParams.StartPoint));
+set(handles.edit_StartPoint,'String',funParams.StartPoint);
+
+userData.previewFig=-1;
+userData.imPointHandle.isvalid=0;
 
 % Update PDE panel
 popupmenu_MethodName_Callback(hObject, eventdata, handles)
@@ -312,6 +321,13 @@ else
     funParams.ReInit=Inf;
 end
 
+if get(handles.checkbox_useStartPoint,'Value')
+    if userData.imPointHandle.isvalid
+        userData.StartPoint=ceil(getPosition(userData.imPointHandle));
+    end
+    funParams.StartPoint=userData.StartPoint;
+    delete(userData.previewFig);
+end
 % Process Sanity check ( only check underlying data )
 try
     userData.crtProc.sanityCheck;
@@ -323,3 +339,55 @@ end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+
+
+% --- Executes on button press in checkbox_selectStartPoint.
+function update_data(hObject, eventdata, handles)
+userData=get(handles.figure1,'UserData');
+if ~get(handles.checkbox_selectStartPoint,'Value')
+    if userData.imPointHandle.isvalid,
+        userData.StartPoint=ceil(getPosition(userData.imPointHandle));
+    end
+    if ishandle(userData.previewFig), delete(userData.previewFig); end
+else
+    if ishandle(userData.previewFig), 
+        delete(userData.previewFig); 
+    else
+        userData.previewFig=figure('NumberTitle','off','Name','Select the origin of the windows',...
+            'DeleteFcn',@close_previewFig,'UserData',handles.figure1);
+    end
+    
+    imHandle = findobj(userData.previewFig,'Type','image');
+    if isempty(imHandle)
+        imHandle=userData.MD.channels_.draw(1);
+    end
+
+    
+    if userData.imPointHandle.isvalid
+        setPosition(userData.imPointHandle,userData.StartPoint);
+    else
+        % Create a new imrect object and store the handle
+        if isempty(userData.StartPoint),
+            userData.StartPoint=userData.MD.imSize_(2:-1:1)/2;
+        end
+        userData.imPointHandle = impoint(get(imHandle,'Parent'),userData.StartPoint);
+        constraintFcn = makeConstrainToRectFcn('impoint',get(imHandle,'XData'),get(imHandle,'YData'));
+        motionFcn = @(x) updateStartPointPosition(x,userData.previewFig);
+        setPositionConstraintFcn(userData.imPointHandle,constraintFcn);
+        addNewPositionCallback(userData.imPointHandle,motionFcn);
+        updateStartPointPosition(userData.StartPoint,userData.previewFig)
+    end
+    
+end
+set(handles.figure1, 'UserData', userData);
+guidata(hObject,handles);
+
+function close_previewFig(hObject, eventdata)
+handles = guidata(get(hObject,'UserData'));
+set(handles.checkbox_selectStartPoint,'Value',0);
+update_data(handles.checkbox_selectStartPoint, eventdata, handles);
+
+function updateStartPointPosition(pos,fig)
+handles = guidata(get(fig,'UserData'));
+set(handles.edit_StartPoint,'String',['(' num2str(ceil(pos(2))) ',' num2str(ceil(pos(1))) ')']);
+       
