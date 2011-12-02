@@ -111,7 +111,11 @@ end
 userData.StartPoint=funParams.StartPoint;
 
 set(handles.checkbox_useStartPoint,'Value',~isempty(funParams.StartPoint));
-set(handles.edit_StartPoint,'String',funParams.StartPoint);
+if isempty(funParams.StartPoint)
+    set(handles.edit_StartPoint,'String',funParams.StartPoint);
+else
+    set(handles.edit_StartPoint,'String',['(' num2str(funParams.StartPoint(1)) ',' num2str(funParams.StartPoint(2)) ')']);
+end
 
 userData.previewFig=-1;
 userData.imPointHandle.isvalid=0;
@@ -326,7 +330,7 @@ if get(handles.checkbox_useStartPoint,'Value')
         userData.StartPoint=ceil(getPosition(userData.imPointHandle));
     end
     funParams.StartPoint=userData.StartPoint;
-    delete(userData.previewFig);
+    if ishandle(userData.previewFig), delete(userData.previewFig); end
 end
 % Process Sanity check ( only check underlying data )
 try
@@ -347,6 +351,7 @@ userData=get(handles.figure1,'UserData');
 if ~get(handles.checkbox_selectStartPoint,'Value')
     if userData.imPointHandle.isvalid,
         userData.StartPoint=ceil(getPosition(userData.imPointHandle));
+        userData.StartPoint=userData.StartPoint(2:-1:1);
     end
     if ishandle(userData.previewFig), delete(userData.previewFig); end
 else
@@ -388,6 +393,7 @@ set(handles.checkbox_selectStartPoint,'Value',0);
 update_data(handles.checkbox_selectStartPoint, eventdata, handles);
 
 function updateStartPointPosition(pos,fig)
+% Pos is in xy coordinate while start point is in
 handles = guidata(get(fig,'UserData'));
-set(handles.edit_StartPoint,'String',['(' num2str(ceil(pos(2))) ',' num2str(ceil(pos(1))) ')']);
+set(handles.edit_StartPoint,'String',['(' num2str(ceil(pos(1))) ',' num2str(ceil(pos(2))) ')']);
        
