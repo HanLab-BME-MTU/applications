@@ -44,8 +44,8 @@ HPattern = 1;
  
 % Choose Name for folders: input as strings 
 
-subRoiFolderName = 'SUBROIS_3um_TargetedToRegion_MB_11_08';
-analysisFolderName = 'ANALYSIS_3um_TargetedToRegion_MB_11_08';
+subRoiFolderName = 'SUBROIS_3um_RegionType_Local_MB_12_03';
+analysisFolderName = 'ANALYSIS_3um_RegionType_Local_MB_12_03';
 
 %%% Choose if want to also perform analysis 
 doAnalysis = 1; % set this to 1 to "turn-on" anlaysis 
@@ -1033,7 +1033,7 @@ if HPattern == 1
     end
     
     %Save GroupList Files for Each Window Size/Region Type 
-    save([groupListDir filesep 'groupListNonAd' num2str(iWindow*windowSize) '_uM'],'groupList');
+    save([groupListDir filesep 'groupListNonAd_' num2str(iWindow*windowSize) 'uM'],'groupList');
     
     % Hold Window Groups for Between Region Comparisons
     groupListNonAd(:,:,iWindow) = groupList;
@@ -1055,7 +1055,7 @@ if HPattern == 1
      %mkdir(NonAdDir);
      
      %Save Individual GroupList For Central Region
-     save([groupListDir filesep 'groupListNonAd_GreaterThan' num2str(numWindows*windowSize) 'uM'],'groupList');   
+     save([groupListDir filesep 'groupListNonAd_GreaterThan_' num2str(numWindows*windowSize) 'uM'],'groupList');   
      
      % Hold Central Region Group for Between Region Comparisons
      groupListNonAd(:,:,numWindows+1) = groupList;
@@ -1189,7 +1189,7 @@ if HPattern == 1
             groupListAdCorn(:,:,iWindow) = groupList;
     
     %Save GroupList Files for Each Window Size/Region Type 
-    save([groupListDir filesep 'groupListAdCorn_' num2str(iWindow*windowSize) '_uM'],'groupList');
+    save([groupListDir filesep 'groupListAdCorn_' num2str(iWindow*windowSize) 'uM'],'groupList');
     
     end   % for iWindows 
  
@@ -1221,7 +1221,7 @@ if HPattern == 1
     % mkdir(AdCornDir);
     
     %Save Individual Group List for Central Region 
-    save([groupListDir filesep 'groupListAdCornGreaterThan_' num2str(numWindows*windowSize) 'uM'],'groupList');   
+    save([groupListDir filesep 'groupListAdCorn_GreaterThan_' num2str(numWindows*windowSize) 'uM'],'groupList');   
     
     % Hold Central Region Group for Between Region Comparisons
     groupListAdCorn(:,:,numWindows+1) = groupList;
