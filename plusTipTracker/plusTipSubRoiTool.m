@@ -17,11 +17,30 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %       timeVal  : if distUnits is fraction: between 0 and 1
 %                  if distUnits is seconds : >0
 %% OPTION TO TURN ON MICROPATTERN
-micropattern = 0;  % if set to 1 call micropattern function and ignore rest
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
+micropattern = 1;  % if set to 1 call micropattern function and ignore rest
 %selectType = 'cellPeriphSingle';
-useSegMask = 0; % option to use a previously defined segmented Mask 
+useSegMask = 1; % option to use a previously defined segmented Mask 
 % could change to make it read in the the name of the mask
-subRoiFilename = 'subRois';
+subRoiFilename = 'subRois_ForLocalMeasure_3um_RegionType_12_03';
 
 
 %%
@@ -138,7 +157,7 @@ for iProj=1:nProj
 
     
     subanDir=[anDir filesep subRoiFilename];
-    if isdir(subanDir)  
+    if isdir(subanDir)  == 1
         rmdir(subanDir,'s');  
         
     end
@@ -426,7 +445,8 @@ for iProj=1:nProj
         mkdir(currentRoiAnDir);
         mkdir([currentRoiAnDir filesep 'meta']);
         mkdir([currentRoiAnDir filesep 'feat']);
-
+        dir{roiCount} = currentRoiAnDir; 
+        
         %copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
         [a,b,c]=copyfile([anDir filesep 'feat' filesep 'movieInfo.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo1.mat']);
         [a,b,c]=movefile([currentRoiAnDir filesep 'feat' filesep 'movieInfo1.mat'],[currentRoiAnDir filesep 'feat' filesep 'movieInfo.mat']);
@@ -508,7 +528,7 @@ for iProj=1:nProj
         projList(n+1,1).anDir=currentRoiAnDir;
 
     end % while makeNewROI==1
-
+ subDirList{iProj} = dir'; 
 
     % plot old sub-roi boundaries in white and new ones in color
     % add a number to center of each sub-roi to show sub-roi number
@@ -559,16 +579,17 @@ for iProj=1:nProj
     close(h)
 
     % create updated projList for the roi_x folder containing all the sub-projects
-    cd('..')
-    getProj(pwd);
+    %cd('..')
+    %getProj(pwd);
 end
 
 
-    
+projCell = vertcat(subDirList{:});     
     
 % look for repeats and only extract from unique sub-rois
-subDirList=projList2Cell(projList);
-projCell=unique(subDirList(:,1));
+%subDirList=projList2Cell(projList);
+%projCell=unique(subDirList(:,1));
+
 nProj=length(projCell);
 progressText(0,'Extracting tracks from Sub-ROIs');
 
