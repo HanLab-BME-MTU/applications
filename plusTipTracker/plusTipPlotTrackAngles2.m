@@ -18,6 +18,25 @@ function [anglesFinal meanAngleVector,stdAngleVector] =plusTipPlotTrackAngles2(x
 %
 % Sebastien Besson, August 2011
 % Maria Bagonis, October 2011
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
 
 % Input check
 %ip =inputParser;
@@ -42,6 +61,14 @@ stdAngleVector = zeros(nTracks,1);
 for iTrack = 1:nTracks
 x = xCoord(iTrack,:);
 y = yCoord(iTrack,:); 
+deltaX = x(2:end)-x(1:end-1); 
+deltaY = -(y(2:end)-y(1:end-1)); 
+
+avgDeltaX = nanmean(deltaX); 
+avgDeltaY = nanmean(deltaY); 
+
+meanAngleVector(iTrack)= rad2deg(atan2(avgDeltaY, avgDeltaX)); 
+
 % use negative y here to correct for the y coordinate system of images
 % so it is easier for the user to interpret 
 angles = atan2(-(y(2:end)-y(1:end-1)),x(2:end)-x(1:end-1)); 
@@ -52,11 +79,13 @@ for i = 1:length(anglesDeg)
     if anglesDeg(i) <0 
         anglesDeg(i) = 360+anglesDeg(i);
     end 
-end 
+
+end
+
 
 % save the mean orientation for each subtrack in a vector 
-meanAngleVector(iTrack,1) =nanmean(anglesDeg(:)) ;
-stdAngleVector(iTrack,1) = nanstd(anglesDeg(:)); 
+%meanAngleVector(iTrack,1) =nanmean(anglesDeg(:)) ;
+%stdAngleVector(iTrack,1) = nanstd(anglesDeg(:)); 
 
 % angleForPlotting Rose are in Radians (right now the Rose plot 
 % plots all frame to frame orientations NOT the average subtrack orientations) 
