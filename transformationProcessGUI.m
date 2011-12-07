@@ -110,34 +110,21 @@ elseif length(fileName) ~= length(channelIndex) && length(fileName) ~= 1
     return;      
 end
 
-    tempFileName = unique(fileName);
-    for i = 1: length(tempFileName)
-        try
-            pre = whos('-file', fileName{i});  % - Exception: fail to access .mat file
-        catch ME
-            errordlg(ME.message,sprintf('MAT file:\n\n%s\n\ncan not be opened. Please verify the selected MAT file is valid', fileName{i}),'modal');
-            return;
-        end
+tempFileName = unique(fileName);
+for i = 1: length(tempFileName)
+    try
+        pre = whos('-file', fileName{i});  % - Exception: fail to access .mat file
+    catch ME
+        errordlg(ME.message,sprintf('MAT file:\n\n%s\n\ncan not be opened. Please verify the selected MAT file is valid', fileName{i}),'modal');
+        return;
     end
-
-
-% -------- Process Sanity check --------
-% ( only check underlying data )
-
-try
-    userData.crtProc.sanityCheck;
-catch ME
-
-    errordlg([ME.message 'Please double check your data.'],...
-                'Setting Error','modal');
-    return;
 end
 
 % -------- Set parameter --------
 
 funParams.ChannelIndex = channelIndex;
 if length(fileName) == 1
-    funParams.TransformFilePaths(channelIndex) = repmat({fileName{1}}, [1 length(channelIndex)]);
+    funParams.TransformFilePaths(channelIndex) = repmat(fileName(1), [1 length(channelIndex)]);
 else
     funParams.TransformFilePaths(channelIndex) = fileName;
 end

@@ -73,7 +73,7 @@ function movieData = photobleachCorrectMovieRatios(movieData,paramsIn)
 
 %%  --------- Parameters ------- %%
 
-pString = 'pbc_'; %The string to prepend before the corrected image directory & channel name
+pString = 'photobleached_corrected_ratio_'; %The string to prepend before the corrected image directory & channel name
 dName = 'photobleach_corrected_images_for_channel_'; %String for naming the directories for each corrected channel
 fitFileName = 'photobleach_correction.mat'; %File name for saving fit results to
 figName = 'photobleach correction fit.fig'; %Name for saving figure to file
@@ -269,6 +269,8 @@ if ~p.BatchMode
     waitbar(nImages / nImTot,wtBar,'Please wait, applying photobleach correction ...');
 end        
 
+fString = ['%0' num2str(floor(log10(nImages))+1) '.f'];
+numStr = @(frame) num2str(frame,fString);
 
 %Go through all the images and correct them
 for iImage = 1:nImages
@@ -282,7 +284,7 @@ for iImage = 1:nImages
     currRat = currRat ./ fitValues(iImage) .* meanRat(1); %#ok<NASGU>
     
     %Write it back to file.    
-    save([outDir filesep pString ratioFileNames{1}{iImage}],'currRat');
+    save([outDir filesep pString numStr(iImage)],'currRat');
     
     if ~p.BatchMode && mod(iImage,5)
         %Update the waitbar occasionally to minimize slowdown
