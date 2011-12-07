@@ -107,11 +107,6 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
             output(1).formatData=@formatFlow;
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',colors(x,:));
-            output(2).name='Template sizes';
-            output(2).var='corLen';
-            output(2).formatData=@formatBoxes;
-            output(2).type='overlay';
-            output(2).defaultDisplayMethod=@(x) RectangleDisplay('Color',colors(x,:));
         end
         
     end
