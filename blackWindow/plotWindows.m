@@ -60,7 +60,7 @@ end
 
 %Check the cell array to see if a sub-set of windows were passed
 if iscell(windowIn)
-    if iscell(windowIn{1})
+    if any(cellfun(@iscell,windowIn))
         if any(cellfun(@(x)(~isempty(x) && iscell(x{1})),windowIn))
             cellDepth = 3;                            
         else
