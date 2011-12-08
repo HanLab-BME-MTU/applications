@@ -37,12 +37,10 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
             % Input check
             outputList = {'cands','locMax'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'SpeckleDetectionProcess'));
-            ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
-            ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
-                @(x) ismember(x,1:obj.owner_.nFrames_));
-            ip.addParamValue('output','cands',@(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
+            ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
+            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
+            ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
             output = ip.Results.output;
             if ischar(output),output={output}; end

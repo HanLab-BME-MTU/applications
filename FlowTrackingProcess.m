@@ -48,12 +48,10 @@ classdef FlowTrackingProcess < ImageAnalysisProcess
             % Input check
             outputList = {'flow','corLen'};
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'FlowTrackingProcess'));
-            ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
-            ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
-                @(x) all(ismember(x,1:obj.owner_.nFrames_)));
+            ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
+            ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
             ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
             output = ip.Results.output;
             if ischar(output), output={output}; end

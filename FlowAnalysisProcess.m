@@ -42,11 +42,9 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             % Input check
             outputList = {'speedMap','Md','Mv','Ms','E','S','img3C_map','img3C_SNR'};
             ip =inputParser;
-            ip.addRequired('iChan',@(x) isscalar(x) && ...
-                ismember(x,1:numel(obj.owner_.channels_)));
-            ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
-                @(x) ismember(x,1:obj.owner_.nFrames_));
-            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
+            ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
+            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(iChan,varargin{:})
             iFrame = ip.Results.iFrame;
             
