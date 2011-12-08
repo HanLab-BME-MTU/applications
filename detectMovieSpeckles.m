@@ -162,7 +162,8 @@ for i = 1:numel(p.ChannelIndex)
     k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
     noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
     
-    allcands=[];
+    nCands=zeros(p.paramSpeckles(1),1);
+    nSignCands=0;
     for j= 1:nFrames
         % Load the current image, scale it and apply Gaussian filter
         currImage = movieData.channels_(iChan).loadImage(j)/maxIntensity; 
@@ -173,14 +174,19 @@ for i = 1:numel(p.ChannelIndex)
         % Mask the filtered image
         currImage= currImage.*logical(imread(inMask(j)));
 
-        % Statistically test the local maxima to extract (significant) speckles
+        % Detect local maxima and apply speckle detection statistical test
         [cands locMax] = detectSpeckles(currImage,noiseParam,p.paramSpeckles,p.filterSigma(iChan));  %#ok<NASGU>
         
         % Save results
         save(outFile(iChan,j), 'cands','locMax');
-        allcands = cat(1,allcands,cands);
         
-        % Update the 
+        % Increment counter
+        for order=1:p.paramSpeckles(1)
+            nCands(order)=nCands(order)+sum([cands.speckleType]==order);
+        end
+        nSignCands=nSignCands+sum([cands.status]);
+
+        % Update the waitbar
         if mod(j,5)==1 && ishandle(wtBar)
             tj=toc;
             nj = (i-1)*nFrames+ j;
@@ -188,27 +194,27 @@ for i = 1:numel(p.ChannelIndex)
         end
     end
     
-    % Create channel log fot output
+    % Create channel log
     channelLog{i} = [channelLog{i} ...
         sprintf(['Total number of detected speckles in the movie\t\t\t: %g\n'...
         'Average number of detected speckles per frame\t\t\t: %g\n'...
         'Average number of statistically significant speckles per frame\t: %g\n'],...
-        numel(allcands),numel(allcands)/nFrames,sum([allcands.status])/nFrames)];
+         sum(nCands),sum(nCands)/nFrames,nSignCands/nFrames)];
     
     order = {'primary','secondary','tertiary','quaternary'};
-    for j=1:max([allcands.speckleType])
+    for j=1:find(nCands,1,'last')
         channelLog{i} = [channelLog{i} ...
            sprintf(['Average number of ' order{j} ' speckles per frame \t\t\t: %g\n'],...
-        sum([allcands.speckleType]==j)/nFrames)];  
+        nCands(j)/nFrames)];  
     end
-    clear allcands
 end
+
 % Close waitbar
 if ishandle(wtBar), close(wtBar); end
 
 disp('Finished detecting speckles!')
 
-% Create process report
+% Create and save process report
 procLog=[sprintf('Speckle detection summary\n\n') channelLog{:}];
 disp(procLog);
 fid=fopen([p.OutputDirectory filesep 'SpeckleDetectionSummary.txt'],'w+');
