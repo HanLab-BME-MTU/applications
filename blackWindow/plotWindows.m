@@ -87,7 +87,7 @@ switch cellDepth
     
     case 1
         
-        if ~isempty(windowIn{1})                
+        if any(~cellfun(@isempty,windowIn))                
             currWin = [windowIn{:}];
             if ~isempty(currWin)
 

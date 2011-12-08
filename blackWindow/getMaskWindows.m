@@ -318,6 +318,10 @@ else
     distXvals = 0:perpSize:maxDist;
 end
 
+if numel(distXvals) < 2
+    error('The specified perpSize is too large for the input mask objects! Check window sizes!')
+end
+
 % --- Get Contours ---- %
 
 %Find the isocontours of the distance transform at these values
@@ -606,38 +610,26 @@ end
 %zero-contour in the correct order.
 if nStart > 1
     %TEMP - THIS NEEDS TO BE AFTER YOU INSURE THAT ALL SLICES INTERSECT THE
-    %ZERO-CONTOUR!!! ALSO, REDUNDANT WITH SORTING ON USER-ENTERED START
-    %POINTS
-    iZeroContInt = cell(1,nStart);
-    jZeroContInt = cell(1,nStart);
+    %ZERO-CONTOUR!!!
+    iZeroContInt = nan(1,nStart);    
     for i = 1:nStart
         
-        %Determine the indices where these slices intersect the zero-value
-        %contour.
-        [~,~,iZeroContInt{i},jZeroContInt{i}] = find_intersections(contours{iZeroCont},...
-                                                slices{i});        
+        %Determine the indices where the first slice from each start
+        %contour hits the zero-contour.
+        [~,~,iZeroContInt(i)] = find_intersections(contours{iZeroCont},...
+                                                    slices{i}(1));        
         
     end   
     
-    %Combine and sort the intersection indices, retaining only unique
-    %intersections
-    [iZeroContInt,sortZeroInt] = unique(cat(1,iZeroContInt{:}));
-
-    
-    %The sorting and uniqueness may remove the duplicated slice at the
-    %contour start. Replace this.
-    if isClosed(iZeroCont) && iZeroContInt(1) ~= iZeroContInt(end)            
-        sortZeroInt(end+1) = sortZeroInt(1);
-    end    
+    %Combine and sort the intersection indices
+    [~,sortZeroInt] = sort(iZeroContInt);
     
     %Sort the slices using this ordering
-    slices = cat(2,slices{:});
-    slices = slices(sortZeroInt);
+    slices = [slices{sortZeroInt}];
+    
     %Sort the paraVertInd also
-    paraVertInd = [paraVertInd{:}];    
-    paraVertInd = paraVertInd(sortZeroInt);
-    paraVert = [paraVert{:}];
-    paraVert = paraVert(:,sortZeroInt);
+    paraVertInd = [paraVertInd{sortZeroInt}];    
+    paraVert = [paraVert{sortZeroInt}];    
             
 else
     %Un-cell the 1x1 cell arrays
