@@ -66,10 +66,9 @@ classdef NoiseEstimationProcess < ImageAnalysisProcess
             % Input check
             outputList = {'I0','sDN','GaussRatio'};
             ip =inputParser;
-            ip.addRequired('obj');
-            ip.addRequired('iChan',@isscalar);
+            ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(iChan,varargin{:})
             output = ip.Results.output;
             if ischar(output), output={output}; end
             
