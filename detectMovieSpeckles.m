@@ -150,7 +150,7 @@ for i = 1:numel(p.ChannelIndex)
     disp(imDirs{iChan});
     disp('Results will be saved under:')
     disp(outputDir{iChan});
-    if ishandle(wtBar), waitbar(0,wtBar,logMsg(iChan)); end
+    if ishandle(wtBar), waitbar((i-1)/numel(p.ChannelIndex),wtBar,logMsg(iChan)); end
 
     % Read noise parameters from noise estimation process if input
     if ~isempty(iNDProc)
