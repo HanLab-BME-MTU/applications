@@ -3,8 +3,8 @@ movieSelectorGUI
 load movieData.mat
 
 %get cell mask
+% threshParam.MaxJump = [];
 threshParam.GaussFilterSigma = 0.5;
-threshParam.MaxJump = 1.2;
 MD = thresholdMovie(MD,threshParam);
 % MD = thresholdMovie(MD);
 
