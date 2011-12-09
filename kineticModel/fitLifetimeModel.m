@@ -3,10 +3,10 @@
 % Inputs:
 %         lftData : structure returned by 'runLifetimeAnalysis'
 %
-% Options: 
+% Options:
 %          'Mode' : 'PDF | {'CDF'} fit to the histogram or empirical distribution
 %          'NumP' : Number of populations to test/fit. Default: 1:3
-%  'ConstrainBIC' : Smallest BIC with probability > AlphaBIC than next candidate is chosen 
+%  'ConstrainBIC' : Smallest BIC with probability > AlphaBIC than next candidate is chosen
 %      'AlphaBIC' : Threshold for BIC selection; default: 0.95
 %       'PlotAll' : Display BIC curve and rate plot
 %
@@ -33,6 +33,7 @@ ip.addParamValue('NumP', 1:3, @(x) all(ismember(x, 1:4)));
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
+ip.addParamValue('ShowInset', false, @islogical);
 ip.parse(lftData, varargin{:});
 dBIC = 2*log(ip.Results.AlphaBIC/(1-ip.Results.AlphaBIC));
 
@@ -51,19 +52,7 @@ opts = optimset('Jacobian', 'off', ...
     'TolX', 1e-8, ...
     'Tolfun', 1e-8);
 
-% cf1 = [184 238 255]/255; % blue
-% ce1 = [0 186 255]/255;
-% 
-% cf2 = [255 194 213]/255; % red
-% ce2 = [223 8 0]/255;
-% 
-% cf3 = [1 1 1]*0.6;
-% ce3 = [1 1 1]*0.3;
-% 
-tfont = {'FontName', 'Helvetica', 'FontSize', 16};
-sfont = {'FontName', 'Helvetica', 'FontSize', 20};
-lfont = {'FontName', 'Helvetica', 'FontSize', 24};
-
+fset = loadFigureSettings();
 
 dt = t(2)-t(1);
 dti = dt/10;
@@ -71,7 +60,7 @@ t_fine = 0:dti:t(end);
 n = numel(lftHist);
 
 for i = ip.Results.NumP
-
+    
     % # states
     ns = i*2;
     
@@ -80,7 +69,7 @@ for i = ip.Results.NumP
     k0 = 0.05 * ones(1,ns-1);
     lb = zeros(1,ns-1);
     ub = Inf(1,ns-1);
-
+    
     if strcmpi(ip.Results.Mode, 'CDF')
         [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, S0, i);
     else
@@ -92,7 +81,7 @@ for i = ip.Results.NumP
     C = resnorm/(n-numel(k)-1)*inv(J'*J);
     k_std = sqrt(diag(C))';
     K = corrFromC(C)';
-
+    
     res.k{i} = k;
     res.k_std{i} = k_std;
     res.corr{i} = K;
@@ -139,33 +128,63 @@ res.pMean = arrayfun(@(i) sum(t_fine.*popMat(:,i)'*dti) / sum(popMat(:,i)*dti), 
 %------------------------------------
 % Display result of best fit
 %------------------------------------
+switch np
+    case 1
+        colorOrder = fset.ceG;
+    case 2
+        colorOrder = [fset.ceR; fset.ceG];
+    case 3
+        colorOrder = [fset.ceR; fset.ceY; fset.ceG];
+    case 4
+        colorOrder = [fset.ceR; fset.ceY; fset.ceB; fset.ceG];
+end
+colorOrderFill = rgb2hsv(colorOrder);
+colorOrderFill(:,2) = colorOrderFill(:,2)*0.3;
+colorOrderFill = hsv2rgb(colorOrderFill);
+
+
 figure('Position', [440 378 560+150 360], 'PaperPositionMode', 'auto');
 % axes('Position', [0.15 0.18 0.8 0.75]);
 axes('Units', 'Pixels', 'Position', [85 65 450 270]);
+set(gca, 'ColorOrder', colorOrder);
 
 hold on;
 hp(1) = plot(t, lftHist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-hi = plot(t_fine, popMat, 'Color', [0 0.7 1], 'LineWidth', 2);
+hi = plot(t_fine, popMat, 'LineWidth', 2);
 hp(2) = hi(1);
-hp(3) = plot(t_fine, modelPDF, '--', 'Color', [0.8 0 0], 'LineWidth', 4);
+hp(3) = plot(t_fine, modelPDF, '--', 'Color', fset.ceB, 'LineWidth', 4);
 
 axis([0 100 0 0.12]);
-set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:});
-xlabel('Lifetime (s)', lfont{:});
-ylabel('Frequency', lfont{:});
+set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:});
+xlabel('Lifetime (s)', fset.lfont{:});
+ylabel('Frequency', fset.lfont{:});
 
 % hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
 % set(hl, 'Box', 'off');
+
+if ip.Results.ShowInset
+    % Inset with zoom
+    axes('Units', 'Pixels', 'Position', [300 200 220 120]);
+    set(gca, 'ColorOrder', colorOrder);
+    
+    hold on;
+    hp(1) = plot(t, lftHist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
+    hi = plot(t_fine, popMat, 'LineWidth', 2);
+    hp(2) = hi(1);
+    hp(3) = plot(t_fine, modelPDF, '--', 'Color', [0 0.7 1], 'LineWidth', 4);
+    axis([10 40 0.005 0.035]);
+    set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.tfont{:});
+end
 
 % Insets with population percentiles
 xlabels = arrayfun(@(i) ['P' num2str(i)], 1:np, 'UniformOutput', false);
 
 ha = axes('Units', 'Pixels', 'Position', [85+450+60 270 110 65]);
 barplot2(res.pA, 'AdjustFigure', false, 'XLabels', cell(1,np),...
-    'EdgeColor', [0 0.7 1], 'Color', [0.7 0.9 1],...
+    'FaceColor', colorOrderFill, 'EdgeColor', colorOrder,...
     'BarWidth', 0.5, 'GroupDistance', 0.5);
-set(ha, tfont{:}, 'YTick', 0:0.2:0.8, 'YLim', [0 0.8]);
-ylabel('Contrib.', sfont{:})
+set(ha, fset.tfont{:}, 'YTick', 0:0.2:0.8, 'YLim', [0 0.8]);
+ylabel('Contrib.', fset.sfont{:})
 pos = get(get(ha, 'YLabel'), 'Position');
 dx = pos(1);
 
@@ -173,9 +192,10 @@ ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 180]);
 pct = vertcat(res.pPercentiles{:})';
 M = [pct(3,:); pct(2,:); pct(4,:); pct(1,:); pct(5,:)];
 boxplot2(M, 'AdjustFigure', false, 'XLabels', xlabels,...
+    'FaceColor', colorOrderFill, 'EdgeColor', colorOrder,...
     'BarWidth', 0.5, 'GroupDistance', 0.5);
-set(ha, tfont{:});
-ylabel('Lifetime (s)', sfont{:})
+set(ha, fset.tfont{:});
+ylabel('Lifetime (s)', fset.sfont{:})
 pos = get(get(ha, 'YLabel'), 'Position');
 pos(1) = dx;
 set(get(ha, 'YLabel'), 'Position', pos);
@@ -183,12 +203,15 @@ set(get(ha, 'YLabel'), 'Position', pos);
 
 % Plot control metrics: BIC, correlation btw. rates
 if ip.Results.PlotAll
-    figure;
+    np = numel(res.BIC);
+    figure('Position', [440 378 400 300], 'PaperPositionMode', 'auto');
+    axes('Units', 'pixels', 'Position', [100 60 60*np 220])
+    
     hold on;
-    plot(res.BIC, 'r.', 'MarkerSize', 20);
-    set(gca, 'LineWidth', 2, 'Layer', 'top', sfont{:}, 'XLim', [0.5 numel(res.BIC)+0.5], 'XTick', 1:numel(res.BIC));
-    xlabel('# populations', lfont{:});
-    ylabel('BIC', lfont{:});
+    plot(res.BIC, 'r.', 'MarkerSize', 40);
+    set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:}, 'XLim', [0.5 np+0.5], 'XTick', 1:np);
+    xlabel('# populations', fset.lfont{:});
+    ylabel('BIC', fset.lfont{:});
     
     plotKineticModelRates(res.k{minIdx}, res.k_std{minIdx}, res.corr{minIdx});
 end
@@ -238,9 +261,9 @@ dy(2) = k(1)*y(1);
 
 
 % Model:
-%       k2     k3 
+%       k2     k3
 %    S1 --> S3 --> S4
-% k1 |       
+% k1 |
 %    v
 %    S2
 function dy = pop2Model(~, y, k)
@@ -255,7 +278,7 @@ dy(4) = k(3)*y(3);
 % Model:
 %       k2     k4     k5
 %    S1 --> S3 --> S5 --> S6
-% k1 |   k3 | 
+% k1 |   k3 |
 %    v      v
 %    S2     S4
 function dy = pop3Model(~, y, k)
