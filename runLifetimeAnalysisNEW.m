@@ -308,7 +308,7 @@ res.expFit = expFit;
     
     barplot2(M, S,...
         'XLabels', {'valid', 'invalid', 'merge/split', 'persistent', 'cut'}, 'YLabel', '% tracks',...
-        'BarWidth', 0.8, 'Color', 0.8*[1 1 1], 'EdgeColor', 0.6*[1 1 1],...
+        'BarWidth', 0.8, 'FaceColor', 0.8*[1 1 1], 'EdgeColor', 0.6*[1 1 1],...
         'Handle', hi, 'AdjustFigure', false, 'LabelFontSize', 16, 'AxisFontSize', 14);
     %set(hi, 'YTick', 0:200:1000);
     set(hi, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(t) num2str(t, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
@@ -323,7 +323,7 @@ res.expFit = expFit;
          std(vertcat(data.gapsPerTrack_MS),[],1)];
      
     xlabels = arrayfun(@(b) [num2str(data(1).bins(b)) '-' num2str(data(1).bins(b+1)-data(1).framerate) ' s'], 1:length(data(1).bins)-1, 'UniformOutput', false);
-    barplot2(M', S', 'Color', [0 0.8 0; 0.8 0 0; 0.6 0.6 0.6], 'XLabels', xlabels, 'YLabel', '# gaps/track');
+    barplot2(M', S', 'FaceColor', [0 0.8 0; 0.8 0 0; 0.6 0.6 0.6], 'XLabels', xlabels, 'YLabel', '# gaps/track');
     legend('Valid', 'Invalid', 'Merge/split', 'Location', 'NorthWest');
     
     
