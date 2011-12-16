@@ -202,6 +202,8 @@ else
 end
 
 % Set parameters and update main window
+setLastImage =@(x) parseProcessParams(x,struct('lastImage',...
+    min(x.funParams_.lastImageNum,x.owner_.nFrames_)));
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
 % --- Executes on button press in checkbox_filterOutliers.
