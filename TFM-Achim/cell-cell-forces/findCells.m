@@ -18,7 +18,7 @@ function goodCellSet=findCells(groupedClusters,varargin)
 % 'divGlb' : 0/1/-1/NaN:
 %            This will fail if one cell leaves and another one joins the
 %            cluster in the same frame!
-%            0 = cluster with constant cluster size: no devisions
+%            0 = cluster with constant cluster size: no divisions
 %            or cell deaths. 
 %            1 = cluster sizes increase at least once over time (but never
 %            shrinks) by: 

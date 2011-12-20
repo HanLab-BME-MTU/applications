@@ -180,5 +180,5 @@ for frame=toDoList
         end
     end    
 end
-display(['normal cells: ',num2str(numNorm),';   myosin cells: ',num2str(numSpec)]);
+display(['normal cells: ',num2str(numNorm),';   ',myoType,' cells: ',num2str(numSpec)]);
 
