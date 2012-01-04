@@ -20,7 +20,6 @@ function trackSEL = getSpeckleTrackSEL(MD,varargin)
 % structure)
 
 % Sebastien Besson, Jan 2012
-% 
 
 % Input check
 ip = inputParser;
@@ -49,15 +48,27 @@ end
 % Load the MPM and keep x-components only
 MPM=specTrackProc.loadChannelOutput(iChan,'output','MPM');
 MPM = MPM(:,1:2:end)';
+% Add zeros a time nFrames+1
+MPM(end+1,:)=0;
 
-% Retrieve time index of non-tracks and compute tracks lifetimes
-trackTimes=find([1; ~MPM(:); 1]);
-lifetimes = diff(trackTimes)-1;
+% Retrieve linear index of non-tracks elemetns
+nontrackTimes=find([1; ~MPM(:); 1]);
+% Compute lifetime of block betwen two consecutive non-track elements
+lifetimes = diff(nontrackTimes)-1;
 
-% Determine number of tracks, lifetimes and start/end
+% Determine number of tracks and lifetimes
 nTracks=sum(lifetimes~=0);
 trackSEL = zeros(nTracks,3);
 trackSEL(:,3) = lifetimes(lifetimes~=0);
-trackSEL(:,1)  =  mod(trackTimes(lifetimes~=0),size(MPM,1));
+
+% Compute start and end of tracks
+% Linear index is converted back into time index
+% Should substract 1 as we added an extra 1 at the beginning of the array
+% Should add one as we are interest in the start of the track (i.e. the
+% next element after the nontrackTimes)
+trackSEL(:,1)  =  mod(nontrackTimes(lifetimes~=0),size(MPM,1));
 trackSEL(:,2)  =  trackSEL(:,1)+trackSEL(:,3) -1;
+
+assert(min(trackSEL(:,1))>=1 && max(trackSEL(:,1))<=MD.nFrames_);
+assert(max(trackSEL(:,3))<=MD.nFrames_);
 end
