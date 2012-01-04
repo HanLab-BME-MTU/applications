@@ -157,7 +157,7 @@ end
 
 
 function fdata=formatTracks(data)
-trackStart=arrayfun(@(x) find(data(x,:)==0,1,'last')+1,1:size(data,1),'Uniformout',false);
+trackStart=arrayfun(@(x) find(data(x,:)==0,1,'last')+1,1:size(data,1),'UniformOutput',false);
 trackStart(cellfun(@isempty,trackStart))={1};
 trackStart = [trackStart{:}];
 fdata.x=arrayfun(@(x,y)data(x,y+1:2:end),1:size(data,1),trackStart,'UniformOutput',false);
