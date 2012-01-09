@@ -143,23 +143,26 @@ classdef Channel3D < Channel
             %There are often small variations in the actual acquisition
             %times, so we process these carefully and check for odd frame
             %times
-            dT = diff(timeStamp);
-            uniqueDts = unique(dT);%Get the different intervals that were found
-            nDts = numel(uniqueDts);
-            nOfEach = arrayfun(@(x)(nnz(dT == x)),uniqueDts);%See how many frames had each interval
-            [~,iMostCommon] = max(nOfEach);%Find the most common interval
-            timeInterval = uniqueDts(iMostCommon);
-            
-            if nDts > 0
-                %If there were some frames with different time intervals,
-                %warn the user.                
-                warning('Channel3D:OutlierTimeStamp',...
-                    'There were %d outlier time stamp(s) out of %d images! \n For the images in %s \n the most common time interval was %s seconds, \n while the outlier time intervals were different by as much as %s second(s)!',...
-                    nDts,nFrames,obj.channelPath_,num2str(timeInterval),...
-                    num2str(max(abs(timeInterval-dT))));%We use num2str because the number display used within warning is shitty                    
-            end 
-                        
-            
+            if nFrames > 1
+                dT = diff(timeStamp);
+                uniqueDts = unique(dT);%Get the different intervals that were found
+                nDts = numel(uniqueDts);
+                nOfEach = arrayfun(@(x)(nnz(dT == x)),uniqueDts);%See how many frames had each interval
+                [~,iMostCommon] = max(nOfEach);%Find the most common interval
+                timeInterval = uniqueDts(iMostCommon);
+
+                if nDts > 0
+                    %If there were some frames with different time intervals,
+                    %warn the user.                
+                    warning('Channel3D:OutlierTimeStamp',...
+                        'There were %d outlier time stamp(s) out of %d images! \n For the images in %s \n the most common time interval was %s seconds, \n while the outlier time intervals were different by as much as %s second(s)!',...
+                        nDts,nFrames,obj.channelPath_,num2str(timeInterval),...
+                        num2str(max(abs(timeInterval-dT))));%We use num2str because the number display used within warning is shitty                    
+                end 
+                    
+            else
+                timeInterval = NaN;
+            end            
         end
                         
         

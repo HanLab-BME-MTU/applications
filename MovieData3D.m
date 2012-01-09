@@ -228,14 +228,14 @@ classdef MovieData3D < MovieData
                 obj.nSlices_ = nSlices(1);
             end
             
-            if numel(unique(timeInts)) > 1
+            if obj.nFrames_ > 1 && numel(unique(timeInts)) > 1
                 error('The time intervals differ between the channels!')
             end
             if ~isempty(obj.timeInterval_)
-                if obj.timeInterval_ ~= timeInts(1);
+                if obj.timeInterval_ ~= timeInts(1) && obj.nFrames_ > 1
                     error('The time interval specified for this movie does not agree with the image headers!')
                 end
-            else
+            elseif obj.nFrames_ > 1
                 obj.timeInterval_ = timeInts(1);
             end                                        
             if size(unique(binning),2) > 1

@@ -17,7 +17,10 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %   paramsIn - Structure with inputs for optional parameters. The
 %   parameters should be stored as fields in the structure, with the field
 %   names and possible values as described below
-% 
+% %
+% $$$$$%%%%****THIS IS OUT OF DATE - NEEDS MORE PARMS, NEW DESCRIPTION OF
+% FUNCTION, ETC ETC ETC YOU LAZY BASTARD!!!
+%
 %   Possible Parameter Structure Field Names:
 %       ('FieldName' -> possible values)
 %
@@ -96,7 +99,7 @@ function movieData = segment3DMovie(movieData,paramsIn)
 
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled. %TEMP - allow user-specification
 %gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
-dName = 'masks_channel_'; %Name for mask directories
+dName = 'masks'; %Name for mask directories
 
 
 %% ------ Input ----- %%
@@ -134,14 +137,15 @@ end
 nChanSeg = length(p.ChannelIndex);
 
 %Set up mask output paths
-maskDir = cell(1,nChanSeg);
-for j = 1:nChanSeg
+% maskDir = cell(1,nChanSeg);
+% for j = 1:nChanSeg
+%     
+%     maskDir{j} = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
+maskDir = [p.OutputDirectory filesep dName];
+movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(1),maskDir);        
+mkClrDir(maskDir);
     
-    maskDir{j} = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
-    movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(j),maskDir{j});        
-    mkClrDir(maskDir{j});
-    
-end
+%end
 
 %Create structuring element for post-processing
 if p.PostProcess && p.ClosureRadius > 0
@@ -162,142 +166,144 @@ nImTot = nImages * nChanSeg;
 
 imNames = movieData.getImageFileNames(p.ChannelIndex);
 imDir = movieData.getChannelPaths(p.ChannelIndex);
-    
+   
+if p.FixJumps
+    threshVals = nan(nImages,1);                                
+end
 
-for iChan = 1:nChanSeg                
-    
-    
-    if p.FixJumps
-        threshVals = nan(nImages,1);                                
+
+for iImage = 1:nImages
+
+    %Load and combine the current image(s)
+    for iChan = 1:nChanSeg
+        if iChan == 1
+            currIm = zeros([movieData.imSize_ movieData.nSlices_],'uint16');
+        end
+        %Whats the best way to do this? Normalize and then average? How
+        %best to normalizE?? This will have to do for now... TEMP HLE
+        currIm = currIm + stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);                
     end
-    
-    
-    for iImage = 1:nImages
 
-        %Load the current image
-        currIm = stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);
-        
-        
-        %Pre-filter the image if requested
-        if p.PreFilterSig > 0
-            ogClass = class(currIm);
-            currIm = filterGauss3D(double(currIm),p.PreFilterSig,'symmetric');
-            currIm = cast(currIm,ogClass);%Cast back so Otsu will work...
-        end
-               
-        % ---- Perform initial segmentation ---- %
-        if isempty(p.ThresholdValue)
-            switch p.Method
+    %Pre-filter the image if requested
+    if p.PreFilterSig > 0
+        ogClass = class(currIm);
+        currIm = filterGauss3D(double(currIm),p.PreFilterSig,'symmetric');
+        currIm = cast(currIm,ogClass);%Cast back so Otsu will work...
+    end
 
-                case 'Otsu'
+    % ---- Perform initial segmentation ---- %
+    if isempty(p.ThresholdValue)
+        switch p.Method
 
-                    %Perform otsu thresholding to get the mask
-                    currThresh = graythresh(currIm);
-                    range = getrangefromclass(currIm);
-                    currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
-                    
-                    %Threshold the damn thing!
-                    currMask = currIm > currThresh;
+            case 'Otsu'
 
-                case 'HuntThresh'
+                %Perform otsu thresholding to get the mask
+                currThresh = graythresh(currIm);
+                range = getrangefromclass(currIm);
+                currThresh = range(2) * currThresh; %Convert the stupid fractional threshold
 
-                    try                
-                        currThresh = thresholdFluorescenceImage(currIm);
+                %Threshold the damn thing!
+                currMask = currIm > currThresh;
 
-                     catch errMess %If the auto-thresholding fails, 
-                        if p.FixJumps
-                            % just force use of last good threshold, if Fix
-                            % Jumps enabled
-                            currThresh = Inf;                        
-                        else
-                            bsFill%Otherwise, throw an error.
-                            error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
-                        end                    
-                    end
-                    
-                    %Threshold the damn thing!
-                    currMask = currIm > currThresh;        
+            case 'HuntThresh'
 
-                case 'Gradient'
-                    %Get gradient of filtered image
-                    [gX,gY,gZ] = gradient(double(currIm));
-                    %and magnitude of gradient
-                    currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2);
-                    
-                    %There are often strong intensity variations in the
-                    %first few stacks at top and bottom, so we just cut
-                    %these out. - TEMP??! -HLE
-                    nCut = 4;
-                    currIm(:,:,1:nCut) = min(currIm(:));
-                    currIm(:,:,end:-1:end-nCut) = min(currIm(:));                    
-                        
-                    %MATITK is slow, so I stopped using it - HLE
-                    %Use MATITK for smoothed gradient calculation  
-                    %currIm = matitk('FGMS',gSig,double(currIm));
+                try                
+                    currThresh = thresholdFluorescenceImage(currIm);
 
-                    %Threshold this gradient based on intensity histogram
-                    try
-                        currThresh = thresholdFluorescenceImage(currIm);                
-                    catch errMess %If the auto-thresholding fails, 
-                        if p.FixJumps
-                            % just force use of last good threshold, if Fix
-                            % Jumps enabled
-                            currThresh = Inf;                        
-                        else
-                            %Otherwise, throw an error.
-                            error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
-                        end                    
-                    end
-                    
-                    %Threshold the damn thing!
-                    currMask = currIm > currThresh;        
-                    
-                case 'SurfaceEnhancement'
-                    
-                    %Surface-filtering and intensity segmentation.
-                    currMask = huntersFancySegmentation3(currIm);
-
-                otherwise
-
-                    error(['The segmentation method ' p.Method ' is not recognized! Please check Method option!'])
-
-            end                         
-        
-
-            % --- Check the new thresholdValue if requested ---- % 
-            if p.FixJumps
-
-                if iImage == 1
-                    if currThresh == Inf
-                        error('Failed on first frame: couldn'' automatically determine a threshold!');
-                    else                    
-                        threshVals(iImage) = currThresh; %Nothing to compare 1st frame to
-                    end
-                else
-                    if abs(currThresh / threshVals(find(~isnan(threshVals),1,'last'))-1) > maxJump
-                        %If the change was too large, don't store this threshold
-                        %and use the most recent good value
-                        threshVals(iImage) = NaN;
-                        currThresh = threshVals(find(~isnan(threshVals),1,'last'));
+                 catch errMess %If the auto-thresholding fails, 
+                    if p.FixJumps
+                        % just force use of last good threshold, if Fix
+                        % Jumps enabled
+                        currThresh = Inf;                        
                     else
-                        threshVals(iImage) = currThresh;
-                    end 
+                        bsFill%Otherwise, throw an error.
+                        error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
+                    end                    
                 end
-            end                
-                
-        else
-            currThresh = p.ThresholdValue;
-        end
-        
-                
-        % ---- Post-Processing if Requested ----- %
-        
-        if p.PostProcess     
-            
-            
-            currMask = postProcess3DMask(currMask,p);
-            
-            
+
+                %Threshold the damn thing!
+                currMask = currIm > currThresh;        
+
+            case 'Gradient'
+                %Get gradient of filtered image
+                [gX,gY,gZ] = gradient(double(currIm));
+                %and magnitude of gradient
+                currIm = sqrt( gX .^2 +  gY .^2 + gZ .^2);
+
+                %There are often strong intensity variations in the
+                %first few stacks at top and bottom, so we just cut
+                %these out. - TEMP??! -HLE
+                nCut = 4;
+                currIm(:,:,1:nCut) = min(currIm(:));
+                currIm(:,:,end:-1:end-nCut) = min(currIm(:));                    
+
+                %MATITK is slow, so I stopped using it - HLE
+                %Use MATITK for smoothed gradient calculation  
+                %currIm = matitk('FGMS',gSig,double(currIm));
+
+                %Threshold this gradient based on intensity histogram
+                try
+                    currThresh = thresholdFluorescenceImage(currIm);                
+                catch errMess %If the auto-thresholding fails, 
+                    if p.FixJumps
+                        % just force use of last good threshold, if Fix
+                        % Jumps enabled
+                        currThresh = Inf;                        
+                    else
+                        %Otherwise, throw an error.
+                        error(['Error: ' errMess.message ' Try enabling the FixJumps option!'])                                                
+                    end                    
+                end
+
+                %Threshold the damn thing!
+                currMask = currIm > currThresh;        
+
+            case 'SurfaceEnhancement'
+
+                %Surface-filtering and intensity segmentation.
+                currMask = huntersFancySegmentation3(currIm);
+
+            otherwise
+
+                error(['The segmentation method ' p.Method ' is not recognized! Please check Method option!'])
+
+        end                         
+
+
+        % --- Check the new thresholdValue if requested ---- % 
+        if p.FixJumps
+
+            if iImage == 1
+                if currThresh == Inf
+                    error('Failed on first frame: couldn'' automatically determine a threshold!');
+                else                    
+                    threshVals(iImage) = currThresh; %Nothing to compare 1st frame to
+                end
+            else
+                if abs(currThresh / threshVals(find(~isnan(threshVals),1,'last'))-1) > maxJump
+                    %If the change was too large, don't store this threshold
+                    %and use the most recent good value
+                    threshVals(iImage) = NaN;
+                    currThresh = threshVals(find(~isnan(threshVals),1,'last'));
+                else
+                    threshVals(iImage) = currThresh;
+                end 
+            end
+        end                
+
+    else
+        currThresh = p.ThresholdValue;
+    end
+
+
+    % ---- Post-Processing if Requested ----- %
+
+    if p.PostProcess     
+
+
+        currMask = postProcess3DMask(currMask,p);
+
+
 %             currMask = bwareaopen(currMask,p.MinVolume);
 %             
 %             currMask = imclose(currMask,closeBall);
@@ -339,21 +345,21 @@ for iChan = 1:nChanSeg
 %                 %Do strict, full-3D hole-filling.
 %                 currMask = imfill(currMask,'holes');                
 %             end
-        end
-           
-        %We want to compress the masks, so don't use stackWrite.m
-        for i = 1:size(currIm,3)
-            %Append each z-slice to the tiff. This uses matlab default
-            %compression for binary files - bitpacking.
-            imwrite(currMask(:,:,i),[maskDir{iChan} filesep ...
-            'mask_' imNames{iChan}{iImage}(1:end-3) 'tif'],'tif','WriteMode','append')
-        end
-        
-        if ~p.BatchMode
-            waitbar( (iImage+(nImages*(iChan-1))) / nImTot,wtBar)
-        end
+    end
+
+    %We want to compress the masks, so don't use stackWrite.m
+    for i = 1:size(currIm,3)
+        %Append each z-slice to the tiff. This uses matlab default
+        %compression for binary files - bitpacking.
+        imwrite(currMask(:,:,i),[maskDir filesep ...
+        'mask_' num2str(iImage) '.tif'],'tif','WriteMode','append')
+    end
+
+    if ~p.BatchMode
+        waitbar(iImage+nImages,wtBar)
     end
 end
+
 
 %% ------Output/Finalization----- %%
 

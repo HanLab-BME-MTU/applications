@@ -2,7 +2,7 @@ function currMask = postProcess3DMask(currMask,p)
 
 
 %if nargin < 2 || isempty(p)
-    
+%TEMP TEMP TEMP TEMP TEMP dda da da ddddaaa ddddddaaaahahahah!!!     
 p.MinVolume = 10;
 p.ClosureRadius = 3;
 p.FillHoles = 2;
@@ -11,12 +11,22 @@ p.FillDilateDiam = 5;
 p.FuzzyFillThresh = 60;
 p.CylinderFillDiam = 12;
 p.CylinderFillHt = 30;
-p.SuppressBorder = 6;
+p.SuppressWalls = 6;
+p.SuppressFloor = 3;
 
-if p.SuppressBorder
-    nSub = p.SuppressBorder;
+if p.SuppressWalls
+    nSub = p.SuppressWalls;
     currMask([1:nSub end-nSub:end],:,:) = false;
     currMask(:,[1:nSub end-nSub:end],:) = false;
+    
+    %We Do floor and ceiling of image separately, since different
+    %imaging/filtering/seg artifacts may occur at these locations
+    if p.SuppressFloor
+        
+        currMask(:,:,1:p.SuppressFloor) = false;
+        
+    end
+    
 end
 
 
