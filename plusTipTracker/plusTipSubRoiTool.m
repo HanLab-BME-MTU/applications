@@ -17,36 +17,13 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %       timeVal  : if distUnits is fraction: between 0 and 1
 %                  if distUnits is seconds : >0
 %% OPTION TO TURN ON MICROPATTERN
-%
-% Copyright (C) 2011 LCCB 
-%
-% This file is part of plusTipTracker.
-% 
-% plusTipTracker is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% plusTipTracker is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
-micropattern = 1;  % if set to 1 call micropattern function and ignore rest
+
 %selectType = 'cellPeriphSingle';
-useSegMask = 1; % option to use a previously defined segmented Mask 
+useSegMask = 0; % option to use a previously defined segmented Mask 
 % could change to make it read in the the name of the mask
-subRoiFilename = 'subRois_ForLocalMeasure_3um_RegionType_12_03';
+subRoiFilename = 'subRois';
 
 
-%%
-if micropattern == 1
-   plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude);
-else % proceed with Kathryn's function
 %% Check Input
 
 homeDir=pwd;
@@ -603,8 +580,6 @@ end
 cd(homeDir)
 warning(warningState);
 disp('Sub-ROIs...finished')
-
-end % if micropattern
 
 function [img2show]=addMaskInColor(img,roiMask,c)
 %subfunction to add new polygon outline to composite image - this is needed

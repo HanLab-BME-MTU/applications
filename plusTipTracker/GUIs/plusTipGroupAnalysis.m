@@ -189,8 +189,8 @@ if get(handles.checkbox_createGroups,'Value')
         userData.groupData=plusTipExtractGroupData(userData.groupList);
     end
     set(handles.figure1,'UserData',userData);
-    guidata(hObject, handles);
 end
+guidata(hObject, handles);
 
 % --- Executes on button press in selectOutputDirPush.
 function selectOutputDirPush_Callback(hObject, eventdata, handles)
@@ -325,9 +325,17 @@ end
 
 subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
 
-plusTipSubRoiTool(handles.projList,subroiSelectType,...
+if get(handles.popupmenu_subRoiTool,'Value')==1
+    subRoiFcn = @plusTipSubRoiTool;
+else
+    subRoiFcn = @plusTipSubRoiToolMicropatterns;
+
+end
+
+subRoiFcn(handles.projList,subroiSelectType,...
     subroiDistUnit,subroiDistVal,subroiTimeUnit,subroiTimeVal,...
     [],subroiExcludeRegion);
+
 
 % --- Executes on button press in quadScatterPlotPush.
 function quadScatterPlotPush_Callback(hObject, eventdata, handles)
