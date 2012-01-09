@@ -217,7 +217,7 @@ for iProj=1:nProj
     if isempty(roiMask)
         if roiCount>1 % for sub_2 or later
             % load the previously-used roiMask
-            roiMask=imread([subanDir filesep 'roiMask.tif']);
+            roiMask=imread([anDir filesep 'roiMask.tif']);
             roiYX=load([subanDir filesep 'roiYX.mat']); roiYX=roiYX.roiYX;
         else % for sub_1, establish what cell region will be
            % choice=questdlg('Before creating Sub-ROIs, you need to define the cell boundary.','Cell ROI option','Draw new','Load roiYX.mat','Draw new');
@@ -249,14 +249,15 @@ for iProj=1:nProj
                              roiYX=p.roiYX;
                              roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
                          else
-                             load([anDir filesep 'movieData.mat']);
+                             load([anDir(1:end-6) filesep 'movieData.mat']);
                              roiMask = MD.processes_{2}.loadChannelOutput(1,1);
                              RoiYX = bwboundaries(roiMask);
                              RoiYX = RoiYX{1};
                              roiYX = RoiYX;
                              roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
-                             figure;imagesc(roiMask);
-                             saveas([subanDir filesep 'roiMask.tif']);
+                             h = figure;imagesc(roiMask);
+                             saveas(h,[subanDir filesep 'roiMask.tif']);
+                             close;
                              save([subanDir filesep 'roiYX.mat'],'roiYX');
                          end
                   % catch
