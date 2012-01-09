@@ -244,10 +244,21 @@ for iProj=1:nProj
                   %   try
                    %      [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat');
                          %p =load([PathName FileName]);
-                 p = load([anDir filesep 'roiYXSeg.mat']); % load the roiYX file in the anDir
-                        roiYX=p.roiYX;
-                        roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
-                   % roiMask = imread([anDir filesep 'roiMaskSeg.tif']); 
+                         if exist([anDir filesep 'roiYXSeg.mat'],'file')
+                             p = load([anDir filesep 'roiYXSeg.mat']); % load the roiYX file in the anDir
+                             roiYX=p.roiYX;
+                             roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
+                         else
+                             load([anDir filesep 'movieData.mat']);
+                             roiMask = MD.processes_{2}.loadChannelOutput(1,1);
+                             RoiYX = bwboundaries(roiMask);
+                             RoiYX = RoiYX{1};
+                             roiYX = RoiYX;
+                             roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
+                             figure;imagesc(roiMask);
+                             saveas([subanDir filesep 'roiMask.tif']);
+                             save([subanDir filesep 'roiYX.mat'],'roiYX');
+                         end
                   % catch
                     %    h=msgbox('Please try again.','help');
                       %  uiwait(h);
@@ -364,10 +375,18 @@ for iProj=1:nProj
             % split cell into two parts - central and periphery - based on some number
             % of microns or fraction from the periphery inwards
             roiSet=zeros(imL,imW,2);
+
+            % If there isn't innerMaskLarge, make them here, as around 3um
+            % thick erosions
+            if( exist('innerMaskLarge','var') == 0)
+                innerMaskLarge = imerode(roiMask, ones(30,30));
+                innerMaskSmall = imerode(innerMaskLarge,ones(30,30));
+            end
             
             roiSet(:,:,1)=roiMask-innerMaskLarge;
             roiSet(:,:,2)=roiMask-innerMaskSmall;
             roiSet(:,:,3)=innerMaskSmall;
+                        
         case 'cellPeriphQuad'
             
             % divide the cell into 5 sub-rois consisting of a central polygon and four
