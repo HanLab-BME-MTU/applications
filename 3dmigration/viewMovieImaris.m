@@ -12,9 +12,10 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel,showSteps)
 % 
 %   movieData3D - The MovieData3D object describing the movie to view.
 % 
-%   iChannel - The index of the channel to view in imaris. This
+%   iChannel - The index of the channel(s) to view in imaris. This
 %   corresponds to the channel object's location within the channel array
 %   in the MovieData3D.
+%   Optional. Default is to view all available channels.
 %    
 %   showSteps - logical vector specifying which processing steps to
 %   display, if available. Steps available for display are:
@@ -45,9 +46,10 @@ edgeApp = [1 1 .1 0];%Raw skel edge appaerance
 vertAppP = [1 .1 .1 0];%Pruned skel vertex appearance
 branchEdgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
 bodyEdgeAppP = [.1 .1 1 0];%Pruned skel edge appaerance
-msApp = [.2 .2 1 .6];%Mask surface appearance
-
+msApp = [.2 .2 .2 .5];%Mask surface appearance
 nSteps = 4;%Total number of processing steps which can be displayed
+iProcChan = 1;%The convention is to associate the processing steps which are not channel-specific with the first channel.
+
 
 %% -------- Input -------- %%
 
@@ -56,9 +58,10 @@ if nargin < 1 || isempty(movieData3D) || ~isa(movieData3D,'MovieData3D')
 end
 
 if nargin < 2 || isempty(iChannel)
-    iChannel = 1;
-elseif ~isequal(round(abs(iChannel)),iChannel) || numel(iChannel) > 1
-    error('The iChannel argument must be a single, positive integer.')
+    %Use all available channels
+    iChannel = 1:numel(movieData3D.channels_);
+elseif ~isposint(iChannel)
+    error('The iChannel argument must contain only positive integers.')
 end
 
 if nargin < 3 || isempty(showSteps)
@@ -78,14 +81,12 @@ else
     pixZ = 1;    
 end
 
-nChan = 1;
-
 %Get the image file names etc
 imageNames = movieData3D.getImageFileNames(iChannel);
-imagePaths{1} = movieData3D.channels_(iChannel).channelPath_;
+imagePaths = movieData3D.getChannelPaths(iChannel);
 nImages = movieData3D.nFrames_;
-chanCols = [1 0 0];
-chanRange = [0 2e16-2];
+nChan = numel(iChannel);
+chanRange = [zeros(nChan,1) ones(nChan,1)*2e16-2];%Start with image range, later we will set this based on the image values
 
 %Start imaris and get app handle
 imarisApp = imarisStartNew(nargout==0);
@@ -98,21 +99,40 @@ imarisApp.mSurpassScene = imarisScene;
 imarisScene.AddChild(imarisApp.mFactory.CreateLightSource); %add the light to the scene
 imarisScene.AddChild(imarisApp.mFactory.CreateFrame); %add the frame to the scene
 
-%Check if we have masks or skeletons as these will be additional channels
-chanNames = {'Fluorescence','Masks'};%,'Skeleton'};
+%Set up channel names using directory name
+chanNames = cell(nChan,1);
+for j = 1:nChan
+    [~,chanNames{j},~] = fileparts(imagePaths{j});
+end
+%Set up channel display colors. For 3 or less use RGB, for more just use a
+%colormap.
+if nChan <= 3    
+    chanCols = eye(nChan,3);           
+    if nChan > 1 && all(cellfun(@(x)(~isnan(str2double(x))),chanNames))
+        %If all the channel names are numbers, we assume they are
+        %wavelengths and re-arrange the colors accordingly.
+        chanCols = chanCols(end:-1:1,:);
+    end    
+else    
+    chanCols = jet(nChan);
+end
                
-%Check for masks 
+%Check for masks - these are displayed as an additional volume channel
 iSegProc = movieData3D.getProcessIndex('SegmentationProcess3D',1,1);
-if showSteps(1) && ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iChannel)
+if showSteps(1) && ~isempty(iSegProc) && movieData3D.processes_{iSegProc}.checkChannelOutput(iProcChan)
     disp('Masks found - displaying as additional channel.')
     nChan = nChan + 1;
-    imagePaths{nChan} = movieData3D.processes_{iSegProc}.outFilePaths_{iChannel};
-    imageNames{nChan} = movieData3D.processes_{iSegProc}.getOutMaskFileNames(iChannel);
-    imageNames{nChan} = imageNames{nChan}{1};%De-cell this element
+    iMaskChan = nChan;
+    imagePaths{iMaskChan} = movieData3D.processes_{iSegProc}.outFilePaths_{iProcChan};
+    imageNames{iMaskChan} = movieData3D.processes_{iSegProc}.getOutMaskFileNames(iProcChan);
+    imageNames{iMaskChan} = imageNames{iMaskChan}{1};%De-cell this element
     chanCols = vertcat(chanCols,[1 1 1]);
-    chanRange = vertcat(chanRange,[0 2]);%We make the range go to slightly above 1 so the masks are transparent
-end
+    chanRange = vertcat(chanRange,[0 2]);%We make the range go to slightly above 1 so the masks are transparent            
+    chanNames = vertcat(chanNames,'Masks');
 
+else
+    iMaskChan = NaN;
+end
 
 %Initialize the volume data
 volData = imarisApp.mFactory.CreateDataSet;
@@ -145,37 +165,37 @@ wtBar = waitbar(0,'Please wait, loading all images...');
 for iImage = 1:nImages
 
     for iChan = 1:nChan
-    
-        
+            
         %Load the image
-        if iChan == 1
-            currIm = stackRead([imagePaths{iChan} filesep imageNames{iChan}{iImage}]);
-        else
+        if iChan == iMaskChan
             %Stackread doesn't support the bitpacking compression of
-            %binary tifs
+            %binary tifs, so we use tif3Dread for the masks.
             currIm = uint16(tif3Dread([imagePaths{iChan} filesep imageNames{iChan}{iImage}]));
+        else                        
+            currIm = stackRead([imagePaths{iChan} filesep imageNames{iChan}{iImage}]);
         end
     
         %Add it to the imaris scene
         volData.SetDataVolume(currIm,iChan-1,iImage-1); %Imaris indexes start at 0
         
-        if iImage == 1
-            %Set channel color and range
-            if iChan == iChannel
-                %For the image channel, set max to max in first frame
-                chanRange(iChan,2) = max(currIm(:));                
-            end
-            volData.SetChannelColor(iChan-1,...
-                                        chanCols(iChan,1),...
-                                        chanCols(iChan,2),...
-                                        chanCols(iChan,3),0);                                 
-            volData.SetChannelRange(iChan-1,...
-                                            chanRange(iChan,1),...
-                                            chanRange(iChan,2));
-                                        
-            volData.SetChannelName(iChan-1,chanNames{iChan});
-            
-        end                        
+        
+        %Set channel color and range
+        if iChan ~= iMaskChan
+            %For the image channels, set max to max in first frame,
+            %which is usually the brightest value in the whole movie
+            chanRange(iChan,2) = max(currIm(:));                
+        end
+        volData.SetChannelColor(iChan-1,...
+                                    chanCols(iChan,1),...
+                                    chanCols(iChan,2),...
+                                    chanCols(iChan,3),0);                                 
+        volData.SetChannelRange(iChan-1,...
+                                        chanRange(iChan,1),...
+                                        chanRange(iChan,2));
+
+        volData.SetChannelName(iChan-1,chanNames{iChan});
+
+
         
     end
         
@@ -209,8 +229,8 @@ end
 %% ------------ Load and Display All Available Analysis --------------- %%
 
 iSkelProc = movieData3D.getProcessIndex('SkeletonizationProcess',1,1);
-if showSteps(2) && ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iChannel) ...
-        && movieData3D.processes_{iSkelProc}.checkChannelSkeletonGraphs(iChannel)
+if showSteps(2) && ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.checkChannelOutput(iProcChan) ...
+        && movieData3D.processes_{iSkelProc}.checkChannelSkeletonGraphs(iProcChan)
     disp('Skeleton Graphs found, displaying.')        
     
     nVert = zeros(nImages,1);    
@@ -221,7 +241,7 @@ if showSteps(2) && ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.chec
     
     %Load the skeletons for each frame and count the verts and edges
     for iImage = 1:nImages        
-        skgr(iImage) = movieData3D.processes_{iSkelProc}.loadSkeletonGraph(iChannel,iImage);
+        skgr(iImage) = movieData3D.processes_{iSkelProc}.loadSkeletonGraph(iProcChan,iImage);
         nVert(iImage) = size(skgr(iImage).vertices,1);
         nEdge(iImage) = numel(skgr(iImage).edgePaths);            
         nPtsPerEdge{iImage} = cellfun(@(x)(size(x,1)),skgr(iImage).edgePaths);
@@ -306,7 +326,7 @@ if showSteps(2) && ~isempty(iSkelProc) && movieData3D.processes_{iSkelProc}.chec
 end
 
 iMgProc = movieData3D.getProcessIndex('MaskGeometry3DProcess',1,1);
-if showSteps(3) && ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iChannel)     
+if showSteps(3) && ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkChannelOutput(iProcChan)     
     
     disp('Mask surface geometry analysis found - displaying.')
         
@@ -318,7 +338,7 @@ if showSteps(3) && ~isempty(iMgProc) && movieData3D.processes_{iMgProc}.checkCha
     for iImage = 1:nImages
         
         %Load the current surface geom file
-        tmp =  movieData3D.processes_{iMgProc}.loadChannelOutput(iChannel,iImage);
+        tmp =  movieData3D.processes_{iMgProc}.loadChannelOutput(iProcChan,iImage);
         if iImage == 1
             %Get field names from first frame and then initialize array
             mg = repmat(tmp(1),nImages,1);
@@ -359,7 +379,7 @@ end
 %TEMP - There is massive code duplication between displaying the raw skeletons and
 %displaying the pruned ones here...Probably should fix at some point...HLE
 iPruneProc = movieData3D.getProcessIndex('SkeletonPruningProcess',1,1);
-if showSteps(4) && ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput(iChannel)        
+if showSteps(4) && ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.checkChannelOutput(iProcChan)        
     
     disp('Pruned skeleton graphs found, displaying.')        
     
@@ -374,7 +394,7 @@ if showSteps(4) && ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.ch
     
     %Load the skeletons for each frame and count the verts and edges
     for iImage = 1:nImages
-        skgrPruned(iImage) = movieData3D.processes_{iPruneProc}.loadChannelOutput(iChannel,iImage);
+        skgrPruned(iImage) = movieData3D.processes_{iPruneProc}.loadChannelOutput(iProcChan,iImage);
         nVert(iImage) = size(skgrPruned(iImage).vertices,1);
         isBranch = skgrPruned(iImage).edgeLabels == 1;
         nBodyEdge(iImage) = nnz(~isBranch);
