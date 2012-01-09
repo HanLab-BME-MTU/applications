@@ -25,14 +25,7 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
-                    %----Defaults----%      
-                                        
-                    funParams.ChannelIndex = 1;
-                    funParams.SmoothIter =[];%Use the analyze3DMaskGeometry.m defaults.                    
-                    funParams.PhysicalUnits = false;
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'mask_geometry'];
-                    funParams.BatchMode = false;                                                      
+                    funParams = MaskGeometry3DProcess.getDefaultParams(owner);                 
                                     
                 end
                 
@@ -83,11 +76,26 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
             
         end
            
+    end
+    methods(Static)
         function getName
         end        
-            
-        
-    end    
-    
+        function h = GUI()   
+            h = [];
+        end
+        function procClasses = getConcreteClasses()
+            procClasses = [];
+        end        
+        function funParams = getDefaultParams(owner)
+              %----Defaults----%      
+
+                    funParams.ChannelIndex = 1;
+                    funParams.SmoothIter =[];%Use the analyze3DMaskGeometry.m defaults.                    
+                    funParams.PhysicalUnits = false;
+                    funParams.OutputDirectory = ...
+                        [owner.outputDirectory_  filesep 'mask_geometry'];
+                    funParams.BatchMode = false;                                                   
+        end
+    end            
     
 end

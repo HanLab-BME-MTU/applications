@@ -31,14 +31,8 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
-                    %----Defaults----%      
-                                   
-                    funParams.ChannelIndex = [];%Default is to check for skeleton channel
-                    funParams.SkelProcessIndex = [];%No default 
-                    funParams.PruneParam = [];%For storing pruneSkeletonGraph.m-specific parameters
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'pruned_skeleton_graphs'];                    
-                    funParams.BatchMode = false;                                                      
+                    funParams = SkeletonPruningProcess.getDefaultParams(owner);
+                    
                                     
                     
                 end
@@ -90,12 +84,31 @@ classdef SkeletonPruningProcess < ImageAnalysisProcess
         function sanityCheck(obj)
             
         end
-           
+    end
+    
+    methods(Static)
+        
         function getName
+        end
+        
+        function h = GUI()   
+            h = [];
+        end
+        function procClasses = getConcreteClasses()
+            procClasses = [];
         end        
-            
 
+        function funParams = getDefaultParams(owner)
+            %----Defaults----%
 
+            funParams.ChannelIndex = [];%Default is to check for skeleton channel
+            funParams.SkelProcessIndex = [];%No default 
+            funParams.PruneParam = [];%For storing pruneSkeletonGraph.m-specific parameters
+            funParams.OutputDirectory = ...
+                [owner.outputDirectory_  filesep 'pruned_skeleton_graphs'];                    
+            funParams.BatchMode = false;                                                      
+
+        end
 
     end
     

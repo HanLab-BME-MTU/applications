@@ -29,14 +29,9 @@ classdef SkeletonizationProcess < ImageProcessingProcess
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
-                    %----Defaults----%      
-                                        
-                    funParams.ChannelIndex = 1; 
-                    funParams.GetGraph = true;
-                    funParams.ClearBoundary = true;
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'skeletonization'];                    
-                    funParams.BatchMode = false;                                                      
+                    
+                    funParams = SkeletonizationProcess.getDefaultParams(owner);
+                    
                                     
                 end
                 
@@ -146,13 +141,34 @@ classdef SkeletonizationProcess < ImageProcessingProcess
             
         end
            
-        function getName
-        end        
-            
-
-            
     end
     
+    
+    methods(Static)
+        
+        function getName
+        end        
+        function h = GUI()   
+            h = [];
+        end
+        function procClasses = getConcreteClasses()
+            procClasses = [];
+        end        
+            
+        function funParams = getDefaultParams(owner)
+            
+            %----Defaults----%      
+
+            funParams.ChannelIndex = 1; 
+            funParams.GetGraph = true;
+            funParams.ClearBoundary = true;
+            funParams.OutputDirectory = ...
+                [owner.outputDirectory_  filesep 'skeletonization'];                    
+            funParams.BatchMode = false;                                                      
+
+        end
+                
+    end
     
 end
         
