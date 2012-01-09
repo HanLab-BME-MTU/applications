@@ -256,6 +256,9 @@ axis([handles.fAxes{:}], 'image');
 % save XLim diff. for zoom reference
 handles.refXLimDiff = data.imagesize(2)-1;
 
+%set(handles.figure1,'KeyPressFcn',@myFunction)
+set(hfig, 'KeyPressFcn', @keyListener);
+
 setappdata(hfig, 'handles', handles);
 refreshFrameDisplay(hfig);
 refreshTrackDisplay(hfig);
@@ -782,8 +785,6 @@ set(handles.trackLabel, 'String', ['Track ' num2str(t)]);
 
 handles.selectedTrack = t * ones(1,handles.nCh);
 
-guidata(hObject,handles);
-
 % if track not visible, jump to first frame
 t = handles.tracks{1}(t);
 if handles.f < t.start || handles.f > t.end
@@ -879,3 +880,40 @@ makeMovieCME(handles.data, handles.tracks{handles.mCh}, 'Mode', handles.displayT
     'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
     'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
     'Displaytype', handles.trackMode);
+
+
+function keyListener(src, evnt)
+
+handles = getappdata(src, 'handles');
+
+itrack = handles.selectedTrack(1);
+
+switch evnt.Key
+    case 'uparrow'
+        if itrack < numel(handles.tracks{1})
+            itrack = itrack + 1;
+        end
+    case 'downarrow'
+        if itrack > 1
+            itrack = itrack - 1;
+        end
+end
+handles.selectedTrack = itrack * ones(1,handles.nCh);
+set(handles.trackSlider, 'Value', itrack);
+set(handles.trackLabel, 'String', ['Track ' num2str(itrack)]);
+
+% if track not visible, jump to first frame
+t = handles.tracks{1}(itrack);
+if handles.f < t.start || handles.f > t.end
+    handles.f = t.start;
+    % set frame number
+    set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
+    % set frame slider
+    set(handles.frameSlider, 'Value', handles.f);
+end
+
+setappdata(src, 'handles', handles);
+
+refreshFrameDisplay(src);
+refreshTrackDisplay(src);
+
