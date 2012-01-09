@@ -18,15 +18,7 @@ classdef SampleAutocorrelationProcess < DataProcessingProcess
                 super_args{3} = @calculateWindowSampleAutocorrelation;                               
                 
                 if nargin < 3 || isempty(funParams)                                       
-                    
-                    %----Defaults----%
-                    nChan = numel(owner.channels_);
-                    funParams.ChannelIndex = 1:nChan;%Default is all channels
-                    funParams.MaxLag = floor(owner.nFrames_/4);%Rule-of-thumb for autocorrelation
-                    funParams.DetrendMethod = 'linear';%Default is linear trend removal.
-                    funParams.OutputDirectory = [outputDir  filesep 'sample_autocorrelation'];
-                    funParams.BatchMode = false;                              
-
+                    funParams=SampleAutocorrelationProcess.getDefaultParams(owner,outputDir);
                 end
                 
                 super_args{4} = funParams;    
@@ -50,6 +42,16 @@ classdef SampleAutocorrelationProcess < DataProcessingProcess
         function name =getName()
             name = 'Window Sample Autocorrelation';
         end                
+        function funParams=getDefaultParams(owner,outputDir)
+            %----Defaults----%
+            nChan = numel(owner.channels_);
+            funParams.ChannelIndex = 1:nChan;%Default is all channels
+            funParams.MaxLag = floor(owner.nFrames_/4);%Rule-of-thumb for autocorrelation
+            funParams.DetrendMethod = 'linear';%Default is linear trend removal.
+            funParams.OutputDirectory = [outputDir  filesep 'sample_autocorrelation'];
+            funParams.BatchMode = false;                              
+        end
+        
     end 
     
 end           

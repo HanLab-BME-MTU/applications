@@ -17,15 +17,9 @@ classdef SampleCrosscorrelationProcess < DataProcessingProcess
                 super_args{2} = SampleCrosscorrelationProcess.getName;
                 super_args{3} = @calculateWindowSampleCrosscorrelation;                               
                 
-                if nargin < 3 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams,outputDir)                                       
                     
-                    %----Defaults----%
-                    nChan = numel(owner.channels_);
-                    funParams.ChannelIndex = 1:nChan;%Default is all channels
-                    funParams.MaxLag = floor(owner.nFrames_/4);%Rule-of-thumb for autocorrelation                    
-                    funparams.MaxBands = Inf;%Default is to include all bands in combined correlation
-                    funParams.OutputDirectory = [outputDir  filesep 'sample_crosscorrelation'];                    
-                    funParams.BatchMode = false;                              
+                   funParams = SampleCrosscorrelationProcess.getDefaultParams(owner,outputDir);
 
                 end
                 
@@ -49,7 +43,17 @@ classdef SampleCrosscorrelationProcess < DataProcessingProcess
     methods (Static)
         function name =getName()
             name = 'Window Sample Crosscorrelation';
-        end                
+        end   
+        function funParams=getDefaultParams(owner,outputDir)
+            %----Defaults----%
+            nChan = numel(owner.channels_);
+            funParams.ChannelIndex = 1:nChan;%Default is all channels
+            funParams.MaxLag = floor(owner.nFrames_/4);%Rule-of-thumb for autocorrelation                    
+            funParams.UseBands =[];%Default is to use all bands.
+            funParams.OutputDirectory = [outputDir  filesep 'sample_crosscorrelation'];                    
+            funParams.BatchMode = false;                              
+            
+        end
     end 
     
 end    

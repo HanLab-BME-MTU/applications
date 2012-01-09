@@ -318,6 +318,10 @@ else
     distXvals = 0:perpSize:maxDist;
 end
 
+if numel(distXvals) < 2
+    error('The specified perpSize is too large for the input mask objects! Check mask and perpSize!')
+end
+
 % --- Get Contours ---- %
 
 %Find the isocontours of the distance transform at these values

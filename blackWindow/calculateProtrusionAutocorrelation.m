@@ -2,7 +2,7 @@ function movieData = calculateProtrusionAutocorrelation(movieData)
 
 
 p.BatchMode = false;
-p.MaxLag = 200;
+%p.MaxLag = 200;
 
 
 %UNDER CONSTRUCTION
@@ -37,18 +37,26 @@ for iFrame = 1:(nFrames-1)
     %Get the magnitude of the protrusion at each point
     mCurr = sqrt(dot(protrusion{iFrame}',protrusion{iFrame}'))';
 
-    %use Khulouds splitting trick - divide more than once??? Why only two??
-    %Middle justified? Or something fancier?    
-    nPtsCurr = numel(mCurr);
-    nHalf = round(nPtsCurr/2);    
-    normalComponent(iFrame).observations = ncCurr(1:nHalf);
-    normalComponent(iFrame+nFrames-1).observations = ncCurr(nHalf+1:end);        
-    magnitude(iFrame).observations = mCurr(1:nHalf);
-    magnitude(iFrame+nFrames-1).observations = mCurr(nHalf+1:end);
+%     %use Khulouds splitting trick - divide more than once??? Why only two??
+%     %Middle justified? Or something fancier?    
+%     nPtsCurr = numel(mCurr);
+%     nHalf = round(nPtsCurr/2);    
+%     normalComponent(iFrame).observations = ncCurr(1:nHalf);
+%     normalComponent(iFrame+nFrames-1).observations = ncCurr(nHalf+1:end);        
+%     magnitude(iFrame).observations = mCurr(1:nHalf);
+%     magnitude(iFrame+nFrames-1).observations = mCurr(nHalf+1:end);
+%     nPtsTot = nPtsTot + nPtsCurr;
+
+    nPtsCurr = numel(mCurr);    
+    nPtsAll(iFrame) = nPtsCurr;
+    normalComponent(iFrame).observations = ncCurr;    
+    magnitude(iFrame).observations = mCurr;    
     nPtsTot = nPtsTot + nPtsCurr;
     
 end
 
+
+p.MaxLag = round(min(nPtsAll)/4);
 
 %Get the total autocorrelation
 [acNormalComponent,err(1)] = autoCorr(normalComponent,p.MaxLag);
@@ -63,11 +71,13 @@ end
 plot(0:p.MaxLag,acNormalComponent(:,1),'r');
 hold on
 plot(0:p.MaxLag,acMagnitude(:,1),'b');
-plot(xlim,ones(1,2)*1.96/sqrt(nPtsTot),'--k');
-legend('Normal Component','Magnitude','+/-1.96/sqrt(n)');
-plot(xlim,-ones(1,2)*1.96/sqrt(nPtsTot),'--k');
+plot(xlim,ones(1,2)*1.96/sqrt(mean(nPtsAll)),'--k');
+legend('Normal Component','Magnitude','+/-1.96/sqrt(Minimum # Edge Points)');
+plot(xlim,-ones(1,2)*1.96/sqrt(mean(nPtsAll)),'--k');
 plotTransparent(0:p.MaxLag,acNormalComponent(:,1),acNormalComponent(:,2),'r',.2,0);
 plotTransparent(0:p.MaxLag,acMagnitude(:,1),acMagnitude(:,2),'b',.2,0);
+xlabel('Distance, Pixels')
+ylabel('Spatial Autocorrelation of Protrusion')
 if any(err)
     error('Problem calculating autocorrelation!')
 end

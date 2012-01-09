@@ -28,12 +28,9 @@ function movieData = calculateWindowSampleCrosscorrelation(movieData,paramsIn)
 %       calculate the crosscorrelation to. Optional. Default is 1/4 of the
 %       total number of frames.
 %
-%       ('MaxBands' ->Positive integer scalar) The maximum number of bands
-%       of windows, starting at the cell edge, to include in the combined
-%       cross-correlation. Because the correlations with edge velocity
-%       often fall off further from the edge, specifying a smaller number
-%       here may give a stronger combined cross-correlation. Optional.
-%       Default is Infinity - that is, all bands are included.
+%       ('UseBands' -> Positive integer scalar/Vector) Specifies which
+%       bands of windows to use in calculating combined cross-correlation.
+%       Optional. Default is to use all bands.
 %
 %       ('OutputDirectory' -> character string) Optional. A character
 %       string specifying the directory to save the results and figures to.
@@ -63,6 +60,15 @@ function movieData = calculateWindowSampleCrosscorrelation(movieData,paramsIn)
 % Hunter Elliott
 % 8/2011
 %
+
+%% ------------------- Params ------------------ %%
+
+%Number of lags must be <= N/4, N must be >50
+%Ref: Time Series Analysis, Forecast and Control. Jenkins, G. Box,G
+nPmin = 50;
+
+%% ----------------- Input -------------- %%
+
 
 
 if nargin < 1 || ~isa(movieData,'MovieData')   
@@ -96,10 +102,12 @@ end
 iProtProc = movieData.getProcessIndex('ProtrusionSamplingProcess',1,~p.BatchMode);
 if isempty(iProtProc) || ~movieData.processes_{iProtProc}.checkChannelOutput
     disp('Cannot calculate protrusion-cross correlation: No protrusion calculation found!')
-else
-    
+else    
     protSamples = movieData.processes_{iProtProc}.loadChannelOutput;    
-    
+end
+
+if movieData.nFrames_ < nPmin
+    error('Too few frames to calculate cross-correlation!!! Need at least 50 frames!')
 end
 
 
@@ -117,14 +125,25 @@ pOpt = {'-r300',...% dpi = 300
 
 %Get time data if available
 if ~isempty(movieData.timeInterval_)
-    tData = 0:movieData.timeInterval_:p.MaxLag*movieData.timeInterval_;
+    tData = -p.MaxLag*movieData.timeInterval_:movieData.timeInterval_:p.MaxLag*movieData.timeInterval_;
     tLabel = 'Time Lag, Seconds';
 else
-    tData = 0:p.MaxLag;
+    tData = -p.MaxLag:p.MaxLag;
     tLabel = 'Time Lag, Frames';
 end
-            
    
+%Make sure the max lag isn't too large for the data.
+p.MaxLag = min(p.MaxLag,floor(movieData.nFrames_/4));
+
+
+%Double-exponential function for photobleach correction fit
+fitFun = @(b,x)(b(1) .* exp(b(2) .* x))+(b(3) .* exp(b(4) .* x));
+bInit = [1 0 1 0]; %Initial guess for fit parameters.
+fitOptions = statset('Robust','on','MaxIter',5e3,'Display','off');
+timePoints = 0:(movieData.nFrames_-1);
+
+nBandUse = numel(p.UseBands);
+
 %% ----------------- Crosscorr Calc ------------------ %%
 
 for iChan = 1:nChan
@@ -134,192 +153,164 @@ for iChan = 1:nChan
     
     [nStripMax,nBandMax,~] = size(actSamples.avg);
     
-    nObs = zeros(nStripMax,nBandMax);
-    
-    actTimeSeries(1:nStripMax,1:nBandMax) = struct('observations',[]);
-    protTimeSeries(1:nStripMax) = struct('observations',[]);
+    nObsAct = zeros(nStripMax,nBandMax);
+    nObsProt = zeros(nStripMax,1);
+    nObsComb = zeros(nStripMax,nBandMax);
+        
     ccProtActPerWin = nan(nStripMax,nBandMax,2*p.MaxLag+1,2);
-    ccProtActPerStrip = nan(nStripMax,2*p.MaxLag+1,2);
-    ccProtActPerBand = nan(nBandMax,2*p.MaxLag+1,2);
+        
+    isActStationary = false(nStripMax,nBandMax);
+    isProtStationary = false(nStripMax,1);
     
-    %Get the current maximum bands
-    currMaxBands = min(p.MaxBands,nBandMax);
+    %Photobleach correction.
+    %Fit function to ratio timeseries  TEMP - this needs to be optional in
+    %case correction has already been performed!!!!!!!!!!!!!!!!!!!!!!!!
+
+    fitData = squeeze(nanmean(nanmean(actSamples.avg,1),2));
+    [bFit,resFit,jacFit,covFit,mseFit] = nlinfit(timePoints(:),fitData,fitFun,bInit,fitOptions);
+    %Get confidence intervals of fit and fit values
+    [fitValues,deltaFit] = nlpredci(fitFun,timePoints(:),bFit,resFit,'covar',covFit,'mse',mseFit);
+    
+    
+    %Check the fit jacobian
+    [dummy,R] = qr(jacFit,0); %#ok<ASGLU>
+    if condest(R) > 1/(eps(class(bFit)))^(1/2)        
+        warning('WARNING: The photobleach correction fit is not very good. This may intruduce artifacts in the resulting cross-correlation!!') %#ok<WNTAG>
+    end
+       
+    if p.BatchMode
+        pbCorrFig = figure('Visible','off');
+    else
+        pbCorrFig = figure;
+    end    
+    hold on
+    title('Photobleach correction fit')
+    xlabel('Frame Number')
+    plot(timePoints,fitData)
+    plot(timePoints,fitValues,'r')
+    plot(timePoints,fitValues+deltaFit,'--r')
+    legend('Average Activity','Fit','Fit 95% C.I.')
+    plot(timePoints,fitValues-deltaFit,'--r')
+
+    hgsave(pbCorrFig,[p.OutputDirectory filesep 'photobleach correction fit.fig']);
     
     for k = 1:nStripMax 
         
+        nObsProt(k) = nnz(~isnan(protSamples.avgNormal(k,:)));
+        if nObsProt(k) > nPmin
+            isProtStationary(k) = adftest(squeeze(protSamples.avgNormal(k,:)));
+        end
         for l = 1:nBandMax
+                        
+            %Get number of non-Nan points
+            nObsAct(k,l) = nnz(~isnan(actSamples.avg(k,l,:)));
             
-            %Get the protrusion for this strip. We copy this into every
-            %band to make the combined cross-correlation easier later.
-            protTimeSeries(k,l).observations = squeeze(protSamples.avgNormal(k,:))';
-        
+            %Apply the photobleach correction
+            actSamples.avg(k,l,:) = squeeze(actSamples.avg(k,l,:)) ./ fitValues;
+            
+            if nObsAct(k,l) > nPmin                                
+                
+                %Test the time-series for stationarity using Dickey-Fuller.
+                %Uses default alpha of .05;
+                isActStationary(k,l) = adftest(squeeze(actSamples.avg(k,l,:)) - nanmean(squeeze(actSamples.avg(k,l,:))));           
 
-            %Extract the current activity time-series
-            actTimeSeries(k,l).observations = squeeze(actSamples.avg(k,l,:));
-            
-            %Leave the empty series as placeholders, and get number of
-            %non-Nan points
-            nObs(k,l) = nnz(~isnan(actTimeSeries(k,l).observations));
-            
-            %Calculate the cross-corr for this window
-            if (nObs(k,l) - p.MaxLag) >= 3*p.MaxLag                                 
-                ccProtActPerWin(k,l,:,:) = crossCorr(actTimeSeries(k,l),protTimeSeries(k,l),p.MaxLag);                                                                          
-            end                                   
-            
-        end
-        
-        if (sum(squeeze(nObs(k,nObs(k,1:currMaxBands)>p.MaxLag))) - p.MaxLag) >= (3*p.MaxLag) %Make sure we have enough points
-            ccProtActPerStrip(k,:,:) = crossCorr(actTimeSeries(k,1:currMaxBands),protTimeSeries(k,1:currMaxBands),p.MaxLag);
-        end
-            
-    end                
-        
-    for l = 1:nBandMax
-        if (sum(squeeze(nObs(nObs(:,l)>p.MaxLag))) - p.MaxLag) >= (3*p.MaxLag) %Make sure we have enough points by K's criteria
-            ccProtActPerBand(l,:,:) = crossCorr(actTimeSeries(nObs(:,l)>=3,l),protTimeSeries(nObs(:,l)>=3,l),p.MaxLag);
-        end
-    end        
-
-    %Go through again and do local activity cross-corr. Better way to do this than looping through again???
-    %Lazy right now....
-    ccActLocal = nan(nStripMax,nBandMax,3,3,2*p.MaxLag+1,2);
-    for k = 1:nStripMax
-        
-        for l = 1:nBandMax
-            
-            if (nObs(k,l) - p.MaxLag) >= 3*p.MaxLag      
-                
-                %Throw the auto-corr in for good measure
-                ccActLocal(k,l,2,2,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k,l),p.MaxLag);                
-                
-                %Do cross-correlatioin with neighborhing time-series
-                %TEMP: If whole-cell (closed contours) this should "wrap
-                %around" - HLE
-                %Also, there's probably a better way to do
-                %this, without all the if statements...????
-                if k > 1 && (nObs(k-1,l) - p.MaxLag) >= 3*p.MaxLag
-                    ccActLocal(k,l,2,1,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k-1,l),p.MaxLag);                           
-                    if l > 1 && (nObs(k-1,l-1) - p.MaxLag) >= 3*p.MaxLag                
-                        ccActLocal(k,l,1,1,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k-1,l-1),p.MaxLag);                                                   
+                %Calculate the cross-corr for this window, if there are
+                %enough observations and at least one of the time series is
+                %stationary.
+                if nObsAct(k,l) >= nPmin && nObsProt(k) >= nPmin && isProtStationary(k) && isActStationary(k,l)
+                    ccProtActPerWin(k,l,:,:) = crossCorr(squeeze(actSamples.avg(k,l,:)),protSamples.avgNormal(k,:)',p.MaxLag);
+                    nObsComb(k,l) = nnz(squeeze(~isnan(actSamples.avg(k,l,:))) & ~isnan(protSamples.avgNormal(k,:))');
+                    if any(abs(ccProtActPerWin(k,l,:,1))>1) %TEMP? - workaround for the fact that even with 50 points, we can have CC values outside the range {-1, 1}, presumably because the STD estimate can be horrible depending on the NaN pattern
+                        ccProtActPerWin(k,l,:,:) = NaN;
                     end
-                    if l < nBandMax && (nObs(k-1,l+1) - p.MaxLag) >= 3*p.MaxLag
-                        ccActLocal(k,l,3,1,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k-1,l+1),p.MaxLag);                        
-                    end                    
-                end
-                
-                if l > 1  && (nObs(k,l-1) - p.MaxLag) >= 3*p.MaxLag                                    
-                    ccActLocal(k,l,1,2,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k,l-1),p.MaxLag);                    
-                    if k < nStripMax && (nObs(k+1,l-1) - p.MaxLag) >= 3*p.MaxLag                        
-                        ccActLocal(k,l,1,3,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k+1,l-1),p.MaxLag);                    
-                    end                    
-                end
-                if l < nBandMax && (nObs(k,l+1) - p.MaxLag) >= 3*p.MaxLag                        
-                    ccActLocal(k,l,3,2,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k,l+1),p.MaxLag);                    
-                    if k < nStripMax && (nObs(k+1,l+1) - p.MaxLag) >= 3*p.MaxLag                        
-                        ccActLocal(k,l,3,3,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k+1,l+1),p.MaxLag);
-                    end
-                end
-                if k < nStripMax && (nObs(k+1,l) - p.MaxLag) >= 3*p.MaxLag                        
-                    ccActLocal(k,l,2,3,:,:) = crossCorr(actTimeSeries(k,l),actTimeSeries(k+1,l),p.MaxLag);
-                end
-                
-            end            
-        end
-    end
-    
-    
-    ccProtActAll = crossCorr(actTimeSeries(:,1:currMaxBands),protTimeSeries,p.MaxLag);       
+                end                                   
+            end
+        end                
+            
+    end                                    
     
     if p.BatchMode
         ccFig = figure('Visible','off');
     else
         ccFig = figure;
     end
+    
+    %Bootstrap the cross-correlation for the selected bands    
+    
+    %Extract and reshape the individual correlations to be combined
+    allCC = reshape(ccProtActPerWin(:,p.UseBands,:,1),nStripMax*nBandUse,2*p.MaxLag+1)';    
+    allCB = 1.96 ./ sqrt(reshape(nObsComb(:,p.UseBands),nStripMax*nBandUse,1)');
+    hasCorr = sum(~isnan(allCC),1) > 0;
+    allCC = allCC(:,hasCorr);
+    allCB = allCB(hasCorr);
+    
+    [combMeanCC,combBootCI] = correlationBootstrap(allCC,allCB);        
 
-    plot(-p.MaxLag:p.MaxLag,ccProtActAll(:,1),'r');
+    plot(tData,combMeanCC)
     hold on    
-    plotTransparent(-p.MaxLag:p.MaxLag,ccProtActAll(:,1),ccProtActAll(:,2),'r',.2,0);
+    plot(tData,combBootCI(1,:),'--')
+    legend('Mean Correlation','Bootstrapped 95% CI')
+    plot(tData,combBootCI(2,:),'--')
     plot([0 0],ylim,'--k')
-    xlabel('Time Lag, frames'); %TEMP - get time interval and scale if available!!!!
-    ylabel('cross-correlation');
+    plot(xlim,[0 0],'--k')
+    xlabel(tLabel); %TEMP - get time interval and scale if available!!!!
+    ylabel('Cross Correlation');
     %TEMP - Change this so that if all bands are used, it says "all
     %samples" and if not, it says the bands used
     title({['Selected Bands, All Strips Combined, Temporal Cross-Correlation of Protrusion and Activity, Channel ' num2str(p.ChannelIndex(iChan))],'Positive lags mean protrusion follows activity'});
     
     hgsave(ccFig,[p.OutputDirectory filesep 'combined temporal crosscorrelation between protrusion and activity channel ' num2str(p.ChannelIndex(iChan))]);            
             
+    
+    %Show the individual contributions to the combined cross-corr   
     if p.BatchMode
         ccFigBand = figure('Visible','off');
+        ccFigBandMean = figure('Visible','off');
     else
         ccFigBand = figure;
-    end        
-    
-    imagesc(-p.MaxLag:p.MaxLag,1:nBandMax,squeeze(ccProtActPerBand(:,:,1)))    
-    ylabel('Into Cell (band #)')
-    xlabel('Time Lag (frames)')
-    colorbar
-    axis image
-    
-    title(['Per Band, Temporal Cross-Correaltion of Protrusion and Activity, Channel ' num2str(p.ChannelIndex(iChan))]);
-    
-    hgsave(ccFigBand,[p.OutputDirectory filesep 'per band temporal crosscorrelation between protrusion and acitivity channel ' num2str(p.ChannelIndex(iChan))]);
-    
-    if p.BatchMode
-        ccFigStrip = figure('Visible','off');
-    else
-        ccFigStrip = figure;
-    end        
-    
-    imagesc(-p.MaxLag:p.MaxLag,1:nStripMax,squeeze(ccProtActPerStrip(:,:,1)))    
-    axis image
-    ylabel('Along Cell Edgel (band #)')
-    xlabel('Time Lag (frames)')
-    colorbar
-    
-    title(['Per Strip, Selected Bands, Temporal Cross-Correaltion of Protrusion and Activity, Channel ' num2str(p.ChannelIndex(iChan))]);
-    
-    hgsave(ccFigStrip,[p.OutputDirectory filesep 'per strip temporal crosscorrelation between protrusion and acitivity channel ' num2str(p.ChannelIndex(iChan))]);
-
-    if p.BatchMode
-        ccFigLocal = figure('Visible','off');
-    else
-        ccFigLocal = figure;
-    end        
-    title(['Cross-Correlation of activity with neighboring windows, Channel ' num2str(p.ChannelIndex(iChan))]);
-    hold on
-    titlesArray = {'Prev Strip, Towards Edge','Same Strip, Towards Edge','Next Strip, Towards Edge';
-                   'Prev Strip, Same Band','Auto-Correlation & Overlay','Next Strip, Same Band';
-                   'Prev Strip, Away From Edge','Same Strip, Away from Edge','Next Strip, Away from Edge'};
-    subplot(3,3,1);
-    plotColors = colormap(hsv(9));
-    for j = 1:3
-        for k = 1:3
-            
-            ccActLocalMean(j,k,:) = squeeze(nanmean(nanmean(ccActLocal(:,1:currMaxBands,j,k,:,1),1),2));        
-                        
-            plotInd = sub2ind([3 3],k,j);
-            subplot(3,3,plotInd);      
-            hold on
-            plot(-p.MaxLag:p.MaxLag,squeeze(ccActLocalMean(j,k,:)),'Color',plotColors(plotInd,:))            
-            title(titlesArray{j,k})
-            plot(xlim,[0 0],'--k');
-            plot([0 0],ylim,'--k')
-            
-            %Plot them all on the center for comparison
-            subplot(3,3,5);
-            hold on
-            plot(-p.MaxLag:p.MaxLag,squeeze(ccActLocalMean(j,k,:)),'Color',plotColors(plotInd,:))
-            
-            
-        end        
+        ccFigBandMean = figure;
+    end         
+    for j = 1:nBandUse
+        figure(ccFigBand)
+        subplot(1,nBandUse,j);
+        hold on;
+        imagesc(tData,1:nStripMax,squeeze(ccProtActPerWin(:,p.UseBands(j),:,1)))
+        xlabel(tLabel),ylabel('Window #, Along cell edge'),colorbar
+        plot([0 0],ylim,'--w')
+        title(['Per-Strip Cross-correlation, band ' num2str(p.UseBands(j))])
+        
+        figure(ccFigBandMean)
+        subplot(1,nBandUse,j);
+        hold on;
+        bandCC = squeeze(ccProtActPerWin(:,p.UseBands(j),:,1))';        
+        bandCB = 1.96 ./ sqrt(nObsComb(:,p.UseBands(j)))';
+        hasCorr = sum(~isnan(bandCC),1) > 0;
+        bandCC = bandCC(:,hasCorr);
+        bandCB = bandCB(hasCorr);
+        [bandMeanCC(j,:),bandBootCI(j,:,:)] = correlationBootstrap(bandCC,bandCB);                          
+        plot(tData,bandMeanCC(j,:))
+        plot(tData,squeeze(bandBootCI(j,1,:)),'--')
+        legend('Mean CrossCorr','Bootstrappedn 95% CI')
+        plot(tData,squeeze(bandBootCI(j,2,:)),'--')
+        plot([0 0 ],ylim,'--k');
+        plot(xlim,[ 0 0 ],'--k');
+        title(['All Strip mean correlation, band ' num2str(p.UseBands(j))])
+        xlabel(tLabel);
+        ylabel('Cross Correlation')
+        
     end
     
-    hgsave(ccFigLocal,[p.OutputDirectory filesep 'neighborhood temporal crosscorrelation between acitivities channel ' num2str(p.ChannelIndex(iChan))]);
+    hgsave(ccFigBand,[p.OutputDirectory filesep 'per window temporal crosscorrelation between protrusion and activity channel ' num2str(p.ChannelIndex(iChan))]);            
+    hgsave(ccFigBandMean,[p.OutputDirectory filesep 'per band mean temporal crosscorrelation between protrusion and activity channel ' num2str(p.ChannelIndex(iChan))]);                                
     
-    
-    save([p.OutputDirectory filesep 'temporal crosscorrelation channel ' num2str(p.ChannelIndex(iChan))],'ccProtActAll','ccProtActPerBand','ccProtActPerStrip','ccProtActPerWin','ccActLocal','ccActLocalMean')
-    
+    save([p.OutputDirectory filesep 'temporal crosscorrelation channel ' num2str(p.ChannelIndex(iChan))],'ccProtActPerWin','nObsComb','nObsAct','nObsProt','combMeanCC','combBootCI','bandMeanCC','bandBootCI');        
+            
 end
+
+
+%Set output directories in movieData
+%TEMP -DOOOOOO THHHIIISSS!!!!
+
 
 
 
