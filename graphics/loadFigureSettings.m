@@ -1,7 +1,13 @@
 function fset = loadFigureSettings()
 
+% light blue
 fset.cfB = hsv2rgb([5/9 0.3 1]);
 fset.ceB = hsv2rgb([5/9 1 1]);
+
+% dark blue
+fset.cfB2 = hsv2rgb([0.6 0.3 1]);
+fset.ceB2 = hsv2rgb([0.6 1 1]);
+
 
 fset.cfR = hsv2rgb([0 0.3 1]);
 fset.ceR = hsv2rgb([0 1 1]);
