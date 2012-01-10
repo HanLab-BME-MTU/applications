@@ -15,7 +15,7 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,timeUnits,timeVal)
 % 
 %
 %% new input to be incorporated later
-onlyTarget =  0; % 
+onlyTarget =  1; % 
 
 % onlyTarget: Value of 1: flag to bypass the GUI options and 
 % select only those growth SUBTRACKS that are 
@@ -109,6 +109,7 @@ roi = [roi numSub];
 name = [folder numProj]; 
 projName = [name roi];
 projNameTitle = regexprep(projName,'_',' '); 
+
 
 %% Collect Data to Be Subdivided
 
@@ -229,6 +230,14 @@ yMatInRegion = yMat(trckIdxInRegion,:);
 
 xMat3 = xMatInRegion; 
 yMat3 = yMatInRegion; 
+
+% find those that start or end in the current region
+trckIdxOrRegion = union(trckIdxInFirst,trckIdxInLast); 
+xMatOrRegion = xMat(trckIdxOrRegion,:);
+yMatOrRegion = yMat(trckIdxOrRegion,:); 
+
+xMat4 = xMatOrRegion; 
+yMat4 = yMatOrRegion; 
 
 if onlyTarget == 1 % include those tracks with subTrack end sites in analysis 
     trckIdxIn = trckIdxInLast; 
@@ -684,7 +693,7 @@ dataPauseROI = dataMatMergePause(trckIdxInPause,:);
 dataShrinkROI = dataMatMergeShrink(trckIdxInShrink,:);
 
 dataTotROI = [dataGrowthROI ; dataPauseROI ; dataShrinkROI];
-dataTotROI = sortRows(dataTotROI);
+dataTotROI = sortrows(dataTotROI);
 
 % put here the merged data in frames and pixels 
 dataTotROI_frame_pix = dataTotROI; 
@@ -866,7 +875,7 @@ title({projNameTit ; 'Rose Plot of All Frame-to-Frame Growth Displacement (Conve
 saveas(saveFig2,[subRoiDir filesep 'meta' filesep 'histograms' filesep 'angles_histogramInside.eps'], 'psc2');
  
 
-collectedDataPathPolarity = [collectedDataPath filesep sub filesep 'Polarity'];
+collectedDataPathPolarity = [collectedDataPath filesep 'sub' filesep 'Polarity'];
 if collectPlots == 1
     if ~exist(collectedDataPathPolarity,'dir')==1;
         mkdir(collectedDataPathPolarity);
@@ -886,6 +895,19 @@ if collectPlots == 1
 end 
 close(saveFig1)
 close(saveFig2)
+
+
+
+% Calculate the angle that MT hit the cell boundary
+load([up2 filesep 'contour_normal.mat']);
+projData.contourYX = contourYX;
+projData.normalYX = normalYX;
+clear('contourYX','normalYX');
+
+projData=plusTipIncidence(projData,xCoord,yCoord);
+   
+
+
 end 
 %test = figure; 
  %imshow(roiMask); 
