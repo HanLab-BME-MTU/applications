@@ -188,6 +188,20 @@ for c = 1:nCh
     end
 end
 
+% min/max track intensities
+maxA = arrayfun(@(t) max([t.A{:}], [], 2), handles.tracks{1}, 'UniformOutput', false);
+maxA = [maxA{:}];
+handles.maxA = zeros(1,nCh);
+for c = 1:nCh
+    [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
+    handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
+end
+d = floor(log10(handles.maxA));
+% y-axis unit
+handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
+handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
+
+
 
 % initialize handles
 handles.trackMode = 'Lifetime';
@@ -598,7 +612,7 @@ if ~isempty(handles.selectedTrack)
             cx = ci;
         end
         
-        plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Legend', 'hide');
+        plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Legend', 'hide', 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci));
         box on;
         %l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         %set(l, 'FontSize', 7);
