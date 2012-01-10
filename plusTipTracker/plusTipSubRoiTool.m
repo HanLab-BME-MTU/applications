@@ -113,13 +113,15 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
 %% Body
-collectPlots = 1; 
+collectPlots = 1;
 nProj=length(projList);
 if collectPlots == 1
-up1 = getFileNameBody(projList(1,1).anDir);
-collectedDataPath = getFileNameBody(up1); 
-mkdir([collectedDataPath filesep 'collectedSubRoiPlots'])
-end 
+    up1 = getFileNameBody(projList(1,1).anDir);
+    collectedDataPath = getFileNameBody(up1);
+    if (exist([collectedDataPath filesep 'collectedSubRoiPlots'],'dir')==0)
+        mkdir([collectedDataPath filesep 'collectedSubRoiPlots'])
+    end
+end
 
 for iProj=1:nProj
 
@@ -238,6 +240,16 @@ for iProj=1:nProj
         end 
     end 
 
+    % Define the outer contour of the cell and the normals
+    [contourYX, normalYX] = outercontour_normal(roiMask);
+    save([anDir filesep 'contour_normal.mat'],'contourYX','normalYX');
+
+    % Display the normals on the contour
+    h = figure; imagesc(roiMask); colormap(gray);
+    hold on;  quiver(contourYX(1:5:end,2),contourYX(1:5:end,1), normalYX(1:5:end,2),normalYX(1:5:end,1),'r'); axis image;
+    saveas(h, [anDir filesep 'contour_normal.tif']);
+    close;
+    
     % set cell boundary in white to composite image
     [img2show]=addMaskInColor(img2show,roiMask,[1 1 1]);
 
