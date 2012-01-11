@@ -364,14 +364,33 @@ for iProj=1:nProj
             axis equal
             plot(innerMaskYX(:,2),innerMaskYX(:,1))
             plot(roiYX(:,2),roiYX(:,1))
-            h=msgbox('Draw a line across the cell and double-click when finished','help');
-            uiwait(h);
-            h=imline;
-            position = wait(h);
-            close(gcf)
-
-            % position of the ends of the user-chosen line
-            lineEndsYX=position(:,2:-1:1);
+            
+            % Liya: temporary added for if we want to have four regions but not
+            % equally four (pi/2) parts. 
+            % if quadrant_flag_free==0, four equal parts, as original case.
+            % if quadrant_flag_free==1, define two lines for the four parts.
+            quadrant_flag_free = 1;
+            
+            if quadrant_flag_free == 0
+                h=msgbox('Draw a line across the cell and double-click when finished','help');
+                uiwait(h);
+                h=imline;
+                position = wait(h);
+                close(gcf);
+                % position of the ends of the user-chosen line
+                lineEndsYX=position(:,2:-1:1);            
+            else
+                h=msgbox('Draw two lines across the cell and double-click when finished','help');
+                uiwait(h);
+                h=imline;
+                position = wait(h);
+                h=imline;
+                position2 = wait(h);
+                close(gcf);
+                % position of the ends of the user-chosen line
+                lineEndsYX=position(:,2:-1:1);
+                lineEndsYX2=position2(:,2:-1:1);
+           end
 
             % get roi centroid
             stats=regionprops(bwlabel(roiMask),'centroid');
@@ -392,9 +411,15 @@ for iProj=1:nProj
                 % user-chosen line slope and y-intercept
                 m1=diff(lineEndsYX(:,1))/diff(lineEndsYX(:,2));
                 b1=lineEndsYX(1,1)-m1*lineEndsYX(1,2);
-                % perpendicular line going through roi's centroid
-                m2=-1/m1;
-                b2=centerRoiYX(1,1)-m2*centerRoiYX(1,2);
+                
+                if quadrant_flag_free == 0 % original case
+                    % perpendicular line going through roi's centroid
+                    m2=-1/m1;
+                    b2=centerRoiYX(1,1)-m2*centerRoiYX(1,2);
+                else % define the second line by user input
+                    m2=diff(lineEndsYX2(:,1))/diff(lineEndsYX2(:,2));
+                    b2=lineEndsYX2(1,1)-m2*lineEndsYX2(1,2);
+                end
                 % y-coordinates of both lines across all the x-pixels
                 yLine1=repmat(m1.*[1:imW]+b1,[imL,1]);
                 yLine2=repmat(m2.*[1:imW]+b2,[imL,1]);
