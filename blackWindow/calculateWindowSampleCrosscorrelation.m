@@ -111,6 +111,7 @@ if movieData.nFrames_ < nPmin
 end
 
 
+
 %% ---------------------- Init ---------------------------- %%
 
 %Set up the output directory
@@ -142,7 +143,12 @@ bInit = [1 0 1 0]; %Initial guess for fit parameters.
 fitOptions = statset('Robust','on','MaxIter',5e3,'Display','off');
 timePoints = 0:(movieData.nFrames_-1);
 
-nBandUse = numel(p.UseBands);
+if isempty(p.UseBands)
+    bandsSelected = false;
+else
+    bandsSelected = true;    
+    nBandUse = numel(p.UseBands);
+end
 
 %% ----------------- Crosscorr Calc ------------------ %%
 
@@ -151,7 +157,12 @@ for iChan = 1:nChan
     %Load the activity samples for this channel
     actSamples = movieData.processes_{iSampProc}.loadChannelOutput(p.ChannelIndex(iChan));        
     
-    [nStripMax,nBandMax,~] = size(actSamples.avg);
+    [nStripMax,nBandMax,~] = size(actSamples.avg);    
+    
+    if ~bandsSelected
+        p.UseBands = 1:nBandMax;
+        nBandUse = numel(p.UseBands);
+    end
     
     nObsAct = zeros(nStripMax,nBandMax);
     nObsProt = zeros(nStripMax,1);

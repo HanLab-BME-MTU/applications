@@ -148,9 +148,16 @@ samIn.dl_rate = p.DownSample;
 %to know which line segements intersect and don't care about the accuracy
 %of the intersection point, so it is okay to ignore this warning.
 warning('off','MATLAB:nearlySingularMatrix');
+
 %Disable the annoying optimization algorithm options that result from a
 %faulty version check in sam's software
-warning('off','optim:fmincon:NLPAlgLargeScaleConflict');
+if datenum(version('-date')) < datenum('August 13, 2011')
+    warning('off','optim:fmincon:NLPAlgLargeScaleConflict');
+else
+    %For matlab2011b (and presumably future versions) the warning identifier
+    %has changed, so we need to use a different command to 
+    warning('off','optimlib:fmincon:NLPAlgLargeScaleConflict')
+end
 
 
 %% ----- Protrusion Calculation ---- %%
