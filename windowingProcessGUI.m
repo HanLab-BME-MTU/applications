@@ -286,8 +286,8 @@ end
 
 %Retrieve segmentation process
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
-funParams.segProcessIndex = props{1}{props{2}};
-segProcessClass=class(userData.MD.processes_{funParams.segProcessIndex});
+funParams.SegProcessIndex = props{1}{props{2}};
+segProcessClass=class(userData.MD.processes_{funParams.SegProcessIndex});
 
 % Retrieve windowing method
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
