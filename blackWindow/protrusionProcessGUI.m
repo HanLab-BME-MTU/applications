@@ -135,7 +135,8 @@ else
 end
 
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
-segProcessClass=class(userData.MD.processes_{props{1}{props{2}}});
+funParams.segProcessIndex = props{1}{props{2}};
+segProcessClass=class(userData.MD.processes_{funParams.segProcessIndex});
 
 for i=1:numel(userData.numParams)
     value = get(handles.(['edit_' userData.numParams{i}]),'String');
