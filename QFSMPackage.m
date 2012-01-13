@@ -4,13 +4,19 @@ classdef QFSMPackage < Package
     % Sebastien Besson, 5/2011
     
     methods
-        function obj = QFSMPackage(owner,outputDir)
+        function obj = QFSMPackage(owner,varargin)
             % Constructor of class QFSMPackage
             
             if nargin == 0
                 super_args = {};
             else
-                % Owner: MovieData object
+                % Check input
+                ip =inputParser;
+                ip.addRequired('owner',@(x) isa(x,'MovieObject'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@(x) isa(x,'MovieObject'));
+                ip.parse(owner,varargin{:});
+                outputDir = ip.Results.outputDir;
+                
                 super_args{1} = owner;
                 super_args{2} = [outputDir  filesep 'QFSMPackage'];
             end
