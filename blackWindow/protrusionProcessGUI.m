@@ -135,7 +135,7 @@ else
 end
 
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
-funParams.SegProcessIndex=props{1}{props{2}};
+segProcessClass=class(props{1}{props{2}});
 
 for i=1:numel(userData.numParams)
     value = get(handles.(['edit_' userData.numParams{i}]),'String');
@@ -158,7 +158,9 @@ catch ME
 end
 
 % Set parameters
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+setMaskProcess = @(x) parseProcessParams(x, struct('SegProcessIndex',...
+    x.owner_.getProcessIndex(segProcessClass,1,false)));
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,'settingFcn',{setMaskProcess});
 
 
 % --- Executes on selection change in popupmenu_SegProcessIndex.

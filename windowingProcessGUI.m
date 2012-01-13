@@ -286,7 +286,7 @@ end
 
 %Retrieve segmentation process
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
-funParams.SegProcessIndex=props{1}{props{2}};
+segProcessClass=class(props{1}{props{2}});
 
 % Retrieve windowing method
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
@@ -342,7 +342,9 @@ catch ME
 end
 
 % Set parameters
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+setMaskProcess = @(x) parseProcessParams(x, struct('SegProcessIndex',...
+    x.owner_.getProcessIndex(segProcessClass,1,false)));
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,'settingFcn',{setMaskProcess});
 
 
 % --- Executes on button press in checkbox_selectStartPoint.
