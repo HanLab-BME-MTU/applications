@@ -134,9 +134,14 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
+% Retrieve mask process index and class (for propagation)
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
 funParams.SegProcessIndex = props{1}{props{2}};
-segProcessClass=class(userData.MD.processes_{funParams.SegProcessIndex});
+if ~isempty(funParams.SegProcessIndex)
+    segProcessClass=class(userData.MD.processes_{funParams.SegProcessIndex});
+else
+    segProcessClass = '';
+end
 
 for i=1:numel(userData.numParams)
     value = get(handles.(['edit_' userData.numParams{i}]),'String');

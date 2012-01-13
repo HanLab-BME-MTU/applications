@@ -284,11 +284,14 @@ for i=1:numel(userData.numParams)
     funParams.(userData.numParams{i})=str2double(value); 
 end
 
-%Retrieve segmentation process
+% Retrieve mask process index and class (for propagation)
 props=get(handles.popupmenu_SegProcessIndex,{'UserData','Value'});
 funParams.SegProcessIndex = props{1}{props{2}};
-segProcessClass=class(userData.MD.processes_{funParams.SegProcessIndex});
-
+if ~isempty(funParams.SegProcessIndex)
+    segProcessClass=class(userData.MD.processes_{funParams.SegProcessIndex});
+else
+    segProcessClass = '';
+end
 % Retrieve windowing method
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
 funParams.MethodName=props{1}{props{2}};
