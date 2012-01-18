@@ -74,7 +74,7 @@ end
 for k=1:9
     [i,j]=ind2sub([3,3],k);
     % Create bin for each group/cell in a group
-    binData = cellfun(@(x) cellfun(@(y) histc(y,n{i}),...
+    binData = cellfun(@(x) cellfun(@(y) histc(y,n{i})/numel(y),...
         x,'UniformOutput',false),plotData(i,j).rawData,'UniformOutput',false);
     plotData(i,j).binData = cellfun(@(x) horzcat(x{:}),binData,'UniformOutput',false);
     % Average the groups
