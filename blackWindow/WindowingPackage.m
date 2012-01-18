@@ -13,7 +13,7 @@ classdef WindowingPackage < Package
                  % Check input
                 ip =inputParser;
                 ip.addRequired('owner',@(x) isa(x,'MovieObject'));
-                ip.addOptional('outputDir',owner.outputDirectory_,@(x) isa(x,'MovieObject'));
+                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
                 ip.parse(owner,varargin{:});
                 outputDir = ip.Results.outputDir;
                 
