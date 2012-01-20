@@ -18,6 +18,8 @@ classdef DarkCurrentCorrectionProcess < ImageCorrectionProcess
                 super_args{2} = DarkCurrentCorrectionProcess.getName;
                 super_args{3} = @darkCurrentCorrectMovie;                               
                 
+                if nargin < 2, outputDir = owner.outputDirectory_; end
+                    
                 if nargin < 3 || isempty(funParams)                                       
                     funParams = DarkCurrentCorrectionProcess.getDefaultParams(owner,outputDir);
                 end

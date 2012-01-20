@@ -164,10 +164,16 @@ classdef BiosensorsPackage < Package
                 
                 % Set the process index of segmentationProcess
                 if i == 3 && ~isempty(obj.processes_{2})
-                    thresholdParams.ProcessIndex = find(cellfun(@(x) isequal(x,obj.processes_{2}),...
-                        obj.owner_.processes_));
-                    parseProcessParams(obj.processes_{i},thresholdParams);
+                    parseProcessParams(obj.processes_{i},...
+                        struct('ProcessIndex',obj.owner_.getProcessIndex(obj.processes_{2})));
                 end
+                
+                % Set the process index of bleedthrough correction
+                if i == 8 && ~isempty(obj.processes_{6})
+                    parseProcessParams(obj.processes_{i},...
+                        struct('ProcessIndex',obj.owner_.getProcessIndex(obj.processes_{6})));
+                end
+                
             end
             
             % Hard-coded, when processing processes 2,3,7,9,  add mask
