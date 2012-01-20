@@ -9,6 +9,7 @@
 %  'ConstrainBIC' : Smallest BIC with probability > AlphaBIC than next candidate is chosen
 %      'AlphaBIC' : Threshold for BIC selection; default: 0.95
 %       'PlotAll' : Display correlation matrix and BIC values
+%       'PlotCDF' : Display CDF and fitted model
 %
 % Output:
 %             res : output structure with fields:
@@ -94,7 +95,7 @@ for i = ip.Results.NumP
         case 'CDF'
             [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, S0, i);
     end
-    
+
     % BIC and correlation matrix
     J = full(J);
     C = resnorm/(n-numel(k)-1)*inv(J'*J);
@@ -118,20 +119,6 @@ end
 
 np = minIdx;
 
-% final models
-% [pdf, popMat] = computePDF(res.k{np}, t_fine, np);
-% [cdf, popCDF] = computeCDF(res.k{np}, t_fine, np);
-% a = interp1(t_fine, cdf, t(1));
-% 
-% % Compute population percentiles, mean, and contribution
-% for p = 1:np
-%     [u, uidx] = unique(popCDF(p,:));
-%     res.pPercentiles{p} = interp1(u/popCDF(p,end), t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
-% end
-% res.pA = popCDF(:,end)';%Y(end,2:2:end);
-% res.pMean = arrayfun(@(i) sum(t_fine.*popMat(i,:)*dti) / sum(popMat(i,:)*dti), 1:np);
-
-
 % Intializations & bounds
 ns = np*2;
 S0 = [1 zeros(1,ns-1)];
@@ -141,15 +128,15 @@ hf = str2func(['pop' num2str(np) 'Model']);
 [t_ode, Y] = ode45(@(t,y) hf(t, y, res.k{np}), [0 t(end)], S0);
 
 % interpolate result over full time vector
-popMat = zeros(np,numel(t_fine));
+popPDF = zeros(np,numel(t_fine));
 Y = interp1(t_ode, Y, t_fine);
 
 % normalize subpopulation PDFs, weigh by output
 for k = 1:np
     p = Y(:,2*k-1);
-    popMat(k,:) = p/sum(p)/dti * Y(end,2*k);
+    popPDF(k,:) = p/sum(p)/dti * Y(end,2*k);
 end
-pdf = sum(popMat, 1);
+pdf = sum(popPDF, 1);
 
 popCDF = Y(:,2:2:end);
 cdf = sum(Y(:,2:2:end),2);
@@ -162,7 +149,7 @@ for p = 1:np
     res.pPercentiles{p} = interp1(u, t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
 end
 res.pA = Y(end,2:2:end);
-res.pMean = arrayfun(@(i) sum(t_fine.*popMat(i,:)*dti) / sum(popMat(i,:)*dti), 1:np);
+res.pMean = arrayfun(@(i) sum(t_fine.*popPDF(i,:)*dti) / sum(popPDF(i,:)*dti), 1:np);
 
 %------------------------------------
 % Display result of best fit
@@ -191,7 +178,7 @@ else
     xt = 0;
 end
 
-figure('Position', [440 378 850+xt 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
+figure('Position', [240 378 850+xt 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
 %---------------------------------
 % Lifetime histogram
 %---------------------------------
@@ -199,7 +186,7 @@ axes('Units', 'Pixels', 'Position', [85 65 450 270]);
 set(gca, 'ColorOrder', colorOrder);
 hold on;
 hp(1) = plot(t, lftHist*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-hi = plot(t_fine, popMat, 'LineWidth', 2);
+hi = plot(t_fine, popPDF, 'LineWidth', 2);
 hp(2) = hi(1);
 hp(3) = plot(t_fine, pdf, '--', 'Color', fset.ceB, 'LineWidth', 4);
 
@@ -278,7 +265,9 @@ if ip.Results.PlotAll
     
     % Plot control metrics: BIC, correlation btw. rates
     if numel(ip.Results.NumP)>1
+        figure('Position', [440 378 400 300], 'PaperPositionMode', 'auto');
         np = numel(res.BIC);
+        %axes('Units', 'pixels', 'Position', [85+450+200+dx+60 65 60*np 120]);
         axes('Units', 'pixels', 'Position', [100 60 60*np 220])
         
         hold on;
@@ -333,37 +322,23 @@ hf = str2func(['pop' num2str(M) 'Model']);
 % interpolate result over full time vector
 dt = t(2)-t(1);
 t_full = 0:dt:t(end);
-popMat = zeros(M,numel(t_full));
+
+popPDF = zeros(M,numel(t_full));
 Y = interp1(t_ode, Y, t_full);
 
 % normalize subpopulation PDFs, weigh by output
 for k = 1:M
     p = Y(:,2*k-1);
-    popMat(k,:) = p/sum(p)/dt * Y(end,2*k);
+    popPDF(k,:) = p/sum(p)/dt * Y(end,2*k);
 end
-pdf = sum(popMat, 1);
+pdf = sum(popPDF, 1);
 
 %normalize pdf to 1 over 't'
 pdf = interp1(t_full, pdf, t);
 n = sum(pdf)*dt;
 pdf = pdf/n;
-% popMat = interp1(t_full, popMat', t)';
-% popMat = popMat/n;
-
-% [pdfx, pM2] = computePDF(kVect, t_full, M);
-% pdfx = interp1(t_full, pdfx, t);
-% n = sum(pdfx)*dt;
-% pdfx = pdfx/n;
-% pM2 = interp1(t_full, pM2', t)';
-% pM2 = pM2/n;
-
-% figure; hold on; plot(t, lftHist, 'k.'); plot(t, pdf);% plot(t, popMat, 'c');
-% plot(t, pdfx, 'r--'); plot(t, pM2, 'm--');
 
 v = pdf - lftHist;
-
-
-
 
 
 
@@ -379,62 +354,6 @@ T = CDF(1);
 CDF = (CDF-T)/(1-T);
 
 v = CDF - lftECDF;
-
-
-
-
-function [f, p] = computePDF(k, t, M)
-k = num2cell(k);
-dt = t(2)-t(1);
-
-switch M
-    case 3
-        [k1, k2, k3, k4, k5] = deal(k{:});
-       
-        p1 = exp(-(k1+k2)*t);
-        
-        w1 = -(exp(-(k1+k2)*t(end))-1)*k1/(k1+k2);
-        
-        p2 = -(exp(-(k1+k2)*t)-exp(-(k3+k4)*t))*k2/(k1+k2-k3-k4);
-        
-        w2 = -(k2*k3*((-1 + exp(-(k3+k4)*t(end)))*k1 + (-1 + exp(-(k3+k4)*t(end)))*k2 + k3+k4 - exp(-(k1+k2)*t(end))*(k3+k4)))...
-            /((k1+k2)*(k1+k2-k3-k4)*(k3 + k4));
-        
-        p3 = (exp(-(k1+k2+k3+k4-k5)*t) .* k2*k4.*(exp((k1+k2+k3+k4-2*k5)*t)*(k1+k2-k3-k4) - ...
-            exp((k1+k2-k5)*t).*(k1+k2-k5) + exp((k3+k4-k5)*t)*(k3+k4-k5)))...
-            /((k1+k2-k3-k4)*(k1+k2-k5)*(k3+k4-k5));
-        
-        w3 = (exp(-(k1+k2+2*(k3+k4)-k5)*t(end)).*k2*k4.*(exp((k1+k2+2*(k3+k4-k5))*t(end)).*(k1+k2)*(k3+k4).*(-k1-k2+k3+k4)+...
-            exp((k1+k2+2*(k3+k4)-k5)*t(end)).*(k1+k2-k3-k4).*(k1+k2-k5).*(k3+k4-k5)+exp((k1+k2+k3+k4-k5)*t(end)).*(k1+k2).*(k1+k2-k5).*k5-...
-            exp((2*(k3+k4)-k5)*t(end)).*(k3+k4).*(k3+k4-k5)*k5))/((k1+k2)*(k1+k2-k3-k4)*(k3+k4)*(k1+k2-k5)*(k3+k4-k5));
-
-        p1 = p1/sum(p1)/dt * w1;
-        p2 = p2/sum(p2)/dt * w2;
-        p3 = p3/sum(p3)/dt * w3;
-        
-        p = [p1; p2; p3];
-        f = sum(p,1);
-end
-
-
-function [f, p] = computeCDF(k, t, M)
-k = num2cell(k);
-
-switch M
-    case 3
-        [k1, k2, k3, k4, k5] = deal(k{:});
-        p1 = -(exp(-(k1+k2)*t)-1)*k1/(k1+k2);
-        
-        p2 = -(k2*k3*((-1 + exp(-(k3+k4)*t))*k1 + (-1 + exp(-(k3+k4)*t))*k2 + k3+k4 - exp(-(k1+k2)*t)*(k3+k4)))...
-            /((k1+k2)*(k1+k2-k3-k4)*(k3 + k4));
-      
-        p3 = (exp(-(k1+k2+2*(k3+k4)-k5)*t).*k2*k4.*(exp((k1+k2+2*(k3+k4-k5))*t).*(k1+k2)*(k3+k4).*(-k1-k2+k3+k4)+...
-            exp((k1+k2+2*(k3+k4)-k5)*t).*(k1+k2-k3-k4).*(k1+k2-k5).*(k3+k4-k5)+exp((k1+k2+k3+k4-k5)*t).*(k1+k2).*(k1+k2-k5).*k5-...
-            exp((2*(k3+k4)-k5)*t).*(k3+k4).*(k3+k4-k5)*k5))/((k1+k2)*(k1+k2-k3-k4)*(k3+k4)*(k1+k2-k5)*(k3+k4-k5));
-        
-        p = [p1; p2; p3];
-        f = sum(p,1);
-end
 
 
 
