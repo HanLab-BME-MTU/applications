@@ -8,7 +8,7 @@
 %          'NumP' : Number of populations to test/fit. Default: 1:3
 %  'ConstrainBIC' : Smallest BIC with probability > AlphaBIC than next candidate is chosen
 %      'AlphaBIC' : Threshold for BIC selection; default: 0.95
-%       'PlotAll' : Display BIC curve and rate plot
+%       'PlotAll' : Display correlation matrix and BIC values
 %
 % Output:
 %             res : output structure with fields:
@@ -28,22 +28,30 @@ function res = fitLifetimeModel(lftData, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
-ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
-ip.addParamValue('NumP', 1:3, @(x) all(ismember(x, 1:4)));
-ip.addParamValue('PlotAll', false, @islogical);
+ip.addParamValue('Mode', 'PDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
+ip.addParamValue('NumP', 3, @(x) all(ismember(x, 1:4)));
 ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
-ip.addParamValue('ShowInset', false, @islogical);
+ip.addParamValue('PlotAll', false, @islogical);
+ip.addParamValue('PlotCDF', false, @islogical);
+% ip.addParamValue('ShowInset', false, @islogical);
+ip.addParamValue('EndIdx', find(lftData.meanHist~=0, 1, 'last'));
 ip.parse(lftData, varargin{:});
 dBIC = 2*log(ip.Results.AlphaBIC/(1-ip.Results.AlphaBIC));
 
 
 % cutoff at last non-zero data point
-endIdx = find(lftData.meanHist~=0, 1, 'last');
+endIdx = ip.Results.EndIdx;
 
 t = lftData.t(1:endIdx);
+dt = t(2)-t(1);
+
 lftHist = lftData.meanHist(1:endIdx);
+lftHist = lftHist/sum(lftHist)/dt;
 lftECDF = lftData.meanECDF(1:endIdx);
+
+a = lftECDF(1);
+lftECDF = (lftECDF-a)/(1-a);
 
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e5, ...
@@ -54,7 +62,6 @@ opts = optimset('Jacobian', 'off', ...
 
 fset = loadFigureSettings();
 
-dt = t(2)-t(1);
 dti = dt/10;
 t_fine = 0:dti:t(end);
 n = numel(lftHist);
@@ -66,14 +73,26 @@ for i = ip.Results.NumP
     
     % Intializations & bounds
     S0 = [1 zeros(1,ns-1)];
-    k0 = 0.05 * ones(1,ns-1);
+    switch i
+        case 1
+            k0 = 0.01;
+        case 2
+            k0 = [0.2 0.2 0.05];
+        case 3
+            k0 = [0.2 0.2 0.05 0.01 0.02];
+            %k0 = 0.01 * ones(1,ns-1);
+        case 4
+            %k0 = [0.2 0.2 0.05 0.01 0.02 0.01 0.02];
+            k0 = 0.02 * ones(1,ns-1);
+    end
     lb = zeros(1,ns-1);
     ub = Inf(1,ns-1);
     
-    if strcmpi(ip.Results.Mode, 'CDF')
-        [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, S0, i);
-    else
-        [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPDF, k0, lb, ub, opts, t, lftHist, S0, i);
+    switch ip.Results.Mode
+        case 'PDF'
+            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPDF, k0, lb, ub, opts, t, lftHist, S0, i);
+        case 'CDF'
+            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, S0, i);
     end
     
     % BIC and correlation matrix
@@ -88,8 +107,8 @@ for i = ip.Results.NumP
     res.BIC(i) = n*log(resnorm/n) + numel(k)*log(n);
 end
 
-% Only differences in BIC with probability ? alpha (0.95 default)
-% are considered significant
+
+% Only significant differences in BIC (alpha = 0.05 default) are considered
 if ip.Results.ConstrainBIC && numel(res.BIC)>1
     sortBIC = sort(res.BIC);
     minIdx = find(res.BIC==min(sortBIC(diff(sortBIC) > dBIC)));
@@ -97,33 +116,53 @@ else
     minIdx = find(res.BIC==min(res.BIC));
 end
 
-ns = minIdx*2;
+np = minIdx;
+
+% final models
+% [pdf, popMat] = computePDF(res.k{np}, t_fine, np);
+% [cdf, popCDF] = computeCDF(res.k{np}, t_fine, np);
+% a = interp1(t_fine, cdf, t(1));
+% 
+% % Compute population percentiles, mean, and contribution
+% for p = 1:np
+%     [u, uidx] = unique(popCDF(p,:));
+%     res.pPercentiles{p} = interp1(u/popCDF(p,end), t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
+% end
+% res.pA = popCDF(:,end)';%Y(end,2:2:end);
+% res.pMean = arrayfun(@(i) sum(t_fine.*popMat(i,:)*dti) / sum(popMat(i,:)*dti), 1:np);
+
+
 % Intializations & bounds
+ns = np*2;
 S0 = [1 zeros(1,ns-1)];
 
 
-% compute scaling factor/renormalize (or: normalize input to model??)
-hf = str2func(['pop' num2str(minIdx) 'Model']);
-[t_ode, Y] = ode45(@(t,y) hf(t, y, res.k{minIdx}), [0 t(end)], S0);
+hf = str2func(['pop' num2str(np) 'Model']);
+[t_ode, Y] = ode45(@(t,y) hf(t, y, res.k{np}), [0 t(end)], S0);
 
-modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
-nf = sum(dt*interp1(t_ode, modelPDF, t));
+% interpolate result over full time vector
+popMat = zeros(np,numel(t_fine));
+Y = interp1(t_ode, Y, t_fine);
 
-% interpolate at fine scale for display
-Y_fine = interp1(t_ode, Y, t_fine);
+% normalize subpopulation PDFs, weigh by output
+for k = 1:np
+    p = Y(:,2*k-1);
+    popMat(k,:) = p/sum(p)/dti * Y(end,2*k);
+end
+pdf = sum(popMat, 1);
 
-popMat = bsxfun(@times, Y_fine(end,2:2:end), Y_fine(:,1:2:end)) / nf;
-modelPDF = sum(popMat, 2);
-np = size(popMat,2);
+popCDF = Y(:,2:2:end);
+cdf = sum(Y(:,2:2:end),2);
+a = interp1(t_fine, cdf, t(1));
 
 % Compute population percentiles, mean, and contribution
-pECDF = arrayfun(@(i) Y_fine(:,i)/Y_fine(end,i), 2:2:ns, 'UniformOutput', false);
+pECDF = arrayfun(@(i) Y(:,i)/Y(end,i), 2:2:ns, 'UniformOutput', false);
 for p = 1:np
     [u, uidx] = unique(pECDF{p});
     res.pPercentiles{p} = interp1(u, t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
 end
-res.pA = Y_fine(end,2:2:end);
-res.pMean = arrayfun(@(i) sum(t_fine.*popMat(:,i)'*dti) / sum(popMat(:,i)*dti), 1:np);
+res.pA = Y(end,2:2:end);
+res.pMean = arrayfun(@(i) sum(t_fine.*popMat(i,:)*dti) / sum(popMat(i,:)*dti), 1:np);
 
 %------------------------------------
 % Display result of best fit
@@ -134,87 +173,154 @@ switch np
     case 2
         colorOrder = [fset.ceR; fset.ceG];
     case 3
-        colorOrder = [fset.ceR; fset.ceY; fset.ceG];
+        colorOrder = [fset.ceR; fset.ceB2; fset.ceG];
     case 4
-        colorOrder = [fset.ceR; fset.ceY; fset.ceB; fset.ceG];
+        colorOrder = [fset.ceR; fset.ceB2; fset.ceB; fset.ceG];
 end
 colorOrderFill = rgb2hsv(colorOrder);
 colorOrderFill(:,2) = colorOrderFill(:,2)*0.3;
 colorOrderFill = hsv2rgb(colorOrderFill);
 
 
-figure('Position', [440 378 560+150 360], 'PaperPositionMode', 'auto');
-% axes('Position', [0.15 0.18 0.8 0.75]);
+dx = 85; % spacing between panels
+% layout: width: 85 450 dx 200 dx 240
+
+if ip.Results.PlotAll
+    xt = 250;
+else
+    xt = 0;
+end
+
+figure('Position', [440 378 850+xt 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
+%---------------------------------
+% Lifetime histogram
+%---------------------------------
 axes('Units', 'Pixels', 'Position', [85 65 450 270]);
 set(gca, 'ColorOrder', colorOrder);
-
 hold on;
-hp(1) = plot(t, lftHist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
+hp(1) = plot(t, lftHist*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
 hi = plot(t_fine, popMat, 'LineWidth', 2);
 hp(2) = hi(1);
-hp(3) = plot(t_fine, modelPDF, '--', 'Color', fset.ceB, 'LineWidth', 4);
+hp(3) = plot(t_fine, pdf, '--', 'Color', fset.ceB, 'LineWidth', 4);
 
-axis([0 100 0 0.12]);
+axis([0 100 0 getYAxisBound(max(lftHist)*(1-a))]);
 set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:});
 xlabel('Lifetime (s)', fset.lfont{:});
 ylabel('Frequency', fset.lfont{:});
-
 % hl = legend(hp, 'Meas. lifetime', 'Pop. lifetimes', 'Model');
 % set(hl, 'Box', 'off');
 
-if ip.Results.ShowInset
-    % Inset with zoom
-    axes('Units', 'Pixels', 'Position', [300 200 220 120]);
-    set(gca, 'ColorOrder', colorOrder);
-    
-    hold on;
-    hp(1) = plot(t, lftHist, '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-    hi = plot(t_fine, popMat, 'LineWidth', 2);
-    hp(2) = hi(1);
-    hp(3) = plot(t_fine, modelPDF, '--', 'Color', [0 0.7 1], 'LineWidth', 4);
-    axis([10 40 0.005 0.035]);
-    set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.tfont{:});
-end
+%---------------------------------
+% Inset with amplitudes
+%---------------------------------
 
-% Insets with population percentiles
+
+% main axes: [85 65 450 270]
+% ha = axes('Units', 'Pixels', 'Position', [85+450-110 270 110 65]); % matches edge
+ha = axes('Units', 'Pixels', 'Position', [85+450-32*np-10 260 32*np 65]);
+% ha = axes('Units', 'Pixels', 'Position', [85+450+60 270 110 65]);
 xlabels = arrayfun(@(i) ['P' num2str(i)], 1:np, 'UniformOutput', false);
 
-ha = axes('Units', 'Pixels', 'Position', [85+450+60 270 110 65]);
-barplot2(res.pA, 'AdjustFigure', false, 'XLabels', cell(1,np),...
+barplot2(res.pA, 'AdjustFigure', false, 'XLabels', xlabels,...
     'FaceColor', colorOrderFill, 'EdgeColor', colorOrder,...
-    'BarWidth', 0.5, 'GroupDistance', 0.5);
+    'BarWidth', 0.6, 'GroupDistance', 0.5, 'Angle', 45);
 set(ha, fset.tfont{:}, 'YTick', 0:0.2:0.8, 'YLim', [0 0.8]);
 ylabel('Contrib.', fset.sfont{:})
-pos = get(get(ha, 'YLabel'), 'Position');
-dx = pos(1);
 
-ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 180]);
-pct = vertcat(res.pPercentiles{:})';
-M = [pct(3,:); pct(2,:); pct(4,:); pct(1,:); pct(5,:)];
-boxplot2(M, 'AdjustFigure', false, 'XLabels', xlabels,...
-    'FaceColor', colorOrderFill, 'EdgeColor', colorOrder,...
-    'BarWidth', 0.5, 'GroupDistance', 0.5);
-set(ha, fset.tfont{:});
-ylabel('Lifetime (s)', fset.sfont{:})
-pos = get(get(ha, 'YLabel'), 'Position');
-pos(1) = dx;
-set(get(ha, 'YLabel'), 'Position', pos);
+% pos = get(get(ha, 'YLabel'), 'Position');
+% % dx = pos(1);
 
+%---------------------------------
+% Lifetime histogram zoom
+%---------------------------------
+% if ip.Results.ShowInset
+%     % Inset with zoom
+%     axes('Units', 'Pixels', 'Position', [300 200 220 120]);
+%     set(gca, 'ColorOrder', colorOrder);
+%     
+%     hold on;
+%     hp(1) = plot(t, lftHist*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
+%     hi = plot(t_fine, popMat, 'LineWidth', 2);
+%     hp(2) = hi(1);
+%     hp(3) = plot(t_fine, pdf, '--', 'Color', fset.ceB, 'LineWidth', 4);
+%     axis([10 40 0.005 0.035]);
+%     set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.tfont{:});
+% end
 
-% Plot control metrics: BIC, correlation btw. rates
+ha = axes('Units', 'Pixels', 'Position', [85+450+dx 65 200 270]);
+rateLabels = plotKineticModelRates(res.k{np}, res.k_std{np}, 'Handle', ha);
+
 if ip.Results.PlotAll
-    np = numel(res.BIC);
-    figure('Position', [440 378 400 300], 'PaperPositionMode', 'auto');
-    axes('Units', 'pixels', 'Position', [100 60 60*np 220])
+ 
+    % 85 450 dx 200 dx 240
+    nk = numel(res.k{np})-1;
+    ha = axes('Units', 'Pixels', 'Position', [85+450+200+dx+60 65+270-30*nk 30*nk 30*nk]);
+    plotCorrelationMatrix(res.corr{np}, 'Handle', ha, 'TickLabels', rateLabels, 'ColorBar', false);
+    axis off;
     
-    hold on;
-    plot(res.BIC, 'r.', 'MarkerSize', 40);
-    set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:}, 'XLim', [0.5 np+0.5], 'XTick', 1:np);
-    xlabel('# populations', fset.lfont{:});
-    ylabel('BIC', fset.lfont{:});
+    axes('Units', 'Pixels', 'Position', [85+450+200+dx+60+30*nk+10 65+270-30*4 1 30*4]);
+    axis off;
     
-    plotKineticModelRates(res.k{minIdx}, res.k_std{minIdx}, res.corr{minIdx});
+    values = -1:1/100:1;
+    N = length(values);
+    map = zeros(N,3);
+    
+    ridx = values<0;
+    map(ridx,1) = -values(ridx);
+    gidx = values>0;
+    map(gidx,2) = values(gidx);
+    colormap(map);
+    caxis([-1 1]);
+    hc = colorbar('Units', 'pixels', 'YTick', -1:0.2:1);
+    pos = get(hc, 'Position');
+    pos(3) = 15;
+    set(hc, 'Position', pos);
+    
+    % Plot control metrics: BIC, correlation btw. rates
+    if numel(ip.Results.NumP)>1
+        np = numel(res.BIC);
+        axes('Units', 'pixels', 'Position', [100 60 60*np 220])
+        
+        hold on;
+        plot(res.BIC, 'r.', 'MarkerSize', 40);
+        set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:}, 'XLim', [0.5 np+0.5], 'XTick', 1:np);
+        xlabel('# populations', fset.lfont{:});
+        ylabel('BIC', fset.lfont{:});
+    end
 end
+
+%---------------------------------
+% Lifetime CDF
+%---------------------------------
+if ip.Results.PlotCDF
+    figure('Position', [440 378 550 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
+    axes('Units', 'Pixels', 'Position', [85 65 450 270]);
+    set(gca, 'ColorOrder', colorOrder);
+    hold on;
+    plot(t, lftECDF*(1-a)+a, 'k.', 'MarkerSize', 20)
+    plot(t_fine, popCDF, 'LineWidth', 2);
+    plot(t_fine, cdf, '--', 'Color', fset.ceB, 'LineWidth', 4);
+    
+    axis([0 100 0 1]);
+    set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:});
+    xlabel('Lifetime (s)', fset.lfont{:});
+    ylabel('Frequency', fset.lfont{:});
+end
+
+% ha = axes('Units', 'Pixels', 'Position', [85+450+60 65 110 180]);
+% pct = vertcat(res.pPercentiles{:})';
+% M = [pct(3,:); pct(2,:); pct(4,:); pct(1,:); pct(5,:)];
+% boxplot2(M, 'AdjustFigure', false, 'XLabels', xlabels,...
+%     'FaceColor', colorOrderFill, 'EdgeColor', colorOrder,...
+%     'BarWidth', 0.5, 'GroupDistance', 0.5);
+% set(ha, fset.tfont{:});
+% ylabel('Lifetime (s)', fset.sfont{:})
+% pos = get(get(ha, 'YLabel'), 'Position');
+% pos(1) = dx;
+% set(get(ha, 'YLabel'), 'Position', pos);
+
+
+
 
 
 
@@ -222,30 +328,113 @@ end
 % M: model #
 function v = costPDF(kVect, t, lftHist, S0, M)
 hf = str2func(['pop' num2str(M) 'Model']);
-[ti, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
-modelPDF = sum(bsxfun(@times, Y(end,2:2:end), Y(:,1:2:end)), 2);
+[t_ode, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
 
-% interpolate ODE output to input grid
-modelPDF = interp1(ti, modelPDF, t); % same length as input
-% renormalize (or: normalize input to model??)
+% interpolate result over full time vector
 dt = t(2)-t(1);
-modelPDF = modelPDF/sum(dt*modelPDF);
-v = modelPDF - lftHist;
+t_full = 0:dt:t(end);
+popMat = zeros(M,numel(t_full));
+Y = interp1(t_ode, Y, t_full);
+
+% normalize subpopulation PDFs, weigh by output
+for k = 1:M
+    p = Y(:,2*k-1);
+    popMat(k,:) = p/sum(p)/dt * Y(end,2*k);
+end
+pdf = sum(popMat, 1);
+
+%normalize pdf to 1 over 't'
+pdf = interp1(t_full, pdf, t);
+n = sum(pdf)*dt;
+pdf = pdf/n;
+% popMat = interp1(t_full, popMat', t)';
+% popMat = popMat/n;
+
+% [pdfx, pM2] = computePDF(kVect, t_full, M);
+% pdfx = interp1(t_full, pdfx, t);
+% n = sum(pdfx)*dt;
+% pdfx = pdfx/n;
+% pM2 = interp1(t_full, pM2', t)';
+% pM2 = pM2/n;
+
+% figure; hold on; plot(t, lftHist, 'k.'); plot(t, pdf);% plot(t, popMat, 'c');
+% plot(t, pdfx, 'r--'); plot(t, pM2, 'm--');
+
+v = pdf - lftHist;
+
+
+
+
 
 
 function v = costCDF(kVect, t, lftECDF, S0, M)
 hf = str2func(['pop' num2str(M) 'Model']);
 [t_ode, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
-modelCDF = sum(Y(:,2:2:end),2);
 
 % interpolate ODE output to input grid
-modelCDF = interp1(t_ode, modelCDF, t);
+CDF = interp1(t_ode, sum(Y(:,2:2:end),2), t);
 
 % normalize to [0..1]
-T = modelCDF(1);
-modelCDF = (modelCDF-T)/(1-T) * (lftECDF(end) - lftECDF(1)) + lftECDF(1);
+T = CDF(1);
+CDF = (CDF-T)/(1-T);
 
-v = modelCDF - lftECDF;
+v = CDF - lftECDF;
+
+
+
+
+function [f, p] = computePDF(k, t, M)
+k = num2cell(k);
+dt = t(2)-t(1);
+
+switch M
+    case 3
+        [k1, k2, k3, k4, k5] = deal(k{:});
+       
+        p1 = exp(-(k1+k2)*t);
+        
+        w1 = -(exp(-(k1+k2)*t(end))-1)*k1/(k1+k2);
+        
+        p2 = -(exp(-(k1+k2)*t)-exp(-(k3+k4)*t))*k2/(k1+k2-k3-k4);
+        
+        w2 = -(k2*k3*((-1 + exp(-(k3+k4)*t(end)))*k1 + (-1 + exp(-(k3+k4)*t(end)))*k2 + k3+k4 - exp(-(k1+k2)*t(end))*(k3+k4)))...
+            /((k1+k2)*(k1+k2-k3-k4)*(k3 + k4));
+        
+        p3 = (exp(-(k1+k2+k3+k4-k5)*t) .* k2*k4.*(exp((k1+k2+k3+k4-2*k5)*t)*(k1+k2-k3-k4) - ...
+            exp((k1+k2-k5)*t).*(k1+k2-k5) + exp((k3+k4-k5)*t)*(k3+k4-k5)))...
+            /((k1+k2-k3-k4)*(k1+k2-k5)*(k3+k4-k5));
+        
+        w3 = (exp(-(k1+k2+2*(k3+k4)-k5)*t(end)).*k2*k4.*(exp((k1+k2+2*(k3+k4-k5))*t(end)).*(k1+k2)*(k3+k4).*(-k1-k2+k3+k4)+...
+            exp((k1+k2+2*(k3+k4)-k5)*t(end)).*(k1+k2-k3-k4).*(k1+k2-k5).*(k3+k4-k5)+exp((k1+k2+k3+k4-k5)*t(end)).*(k1+k2).*(k1+k2-k5).*k5-...
+            exp((2*(k3+k4)-k5)*t(end)).*(k3+k4).*(k3+k4-k5)*k5))/((k1+k2)*(k1+k2-k3-k4)*(k3+k4)*(k1+k2-k5)*(k3+k4-k5));
+
+        p1 = p1/sum(p1)/dt * w1;
+        p2 = p2/sum(p2)/dt * w2;
+        p3 = p3/sum(p3)/dt * w3;
+        
+        p = [p1; p2; p3];
+        f = sum(p,1);
+end
+
+
+function [f, p] = computeCDF(k, t, M)
+k = num2cell(k);
+
+switch M
+    case 3
+        [k1, k2, k3, k4, k5] = deal(k{:});
+        p1 = -(exp(-(k1+k2)*t)-1)*k1/(k1+k2);
+        
+        p2 = -(k2*k3*((-1 + exp(-(k3+k4)*t))*k1 + (-1 + exp(-(k3+k4)*t))*k2 + k3+k4 - exp(-(k1+k2)*t)*(k3+k4)))...
+            /((k1+k2)*(k1+k2-k3-k4)*(k3 + k4));
+      
+        p3 = (exp(-(k1+k2+2*(k3+k4)-k5)*t).*k2*k4.*(exp((k1+k2+2*(k3+k4-k5))*t).*(k1+k2)*(k3+k4).*(-k1-k2+k3+k4)+...
+            exp((k1+k2+2*(k3+k4)-k5)*t).*(k1+k2-k3-k4).*(k1+k2-k5).*(k3+k4-k5)+exp((k1+k2+k3+k4-k5)*t).*(k1+k2).*(k1+k2-k5).*k5-...
+            exp((2*(k3+k4)-k5)*t).*(k3+k4).*(k3+k4-k5)*k5))/((k1+k2)*(k1+k2-k3-k4)*(k3+k4)*(k1+k2-k5)*(k3+k4-k5));
+        
+        p = [p1; p2; p3];
+        f = sum(p,1);
+end
 
 
 
@@ -323,3 +512,10 @@ ii = i+n*(i-1);
 jj = j+n*(j-1);
 
 K(ij) = C(ij) ./ sqrt(C(ii).*C(jj));
+
+
+function y = getYAxisBound(vmax)
+d = floor(log10(vmax));
+% y-axis unit
+yunit = round(vmax ./ 10.^d) .* 10.^(d-1);
+y = ceil(vmax ./ yunit) .* yunit;

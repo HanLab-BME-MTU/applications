@@ -1,4 +1,6 @@
-% Francois Aguet, October 2010
+%plotCorrelationMatrix(M, varargin) displays a correlation matrix as a green-red colormapped image
+
+% Francois Aguet, October 2010 (Last modified 01/19/2012)
 
 function plotCorrelationMatrix(M, varargin)
 
@@ -9,11 +11,15 @@ ip.addRequired('M');
 ip.addParamValue('AxisLabels', 1:np);
 ip.addParamValue('Handle', []);
 ip.addParamValue('TickLabels', arrayfun(@(i) num2str(i), 1:np, 'UniformOutput', false));
+ip.addParamValue('ScalePrint', 10);
+ip.addParamValue('Colorbar', true, @islogical);
+ip.addParamValue('ShowTitle', false, @islogical);
+ip.addParamValue('ShowDiagonal', false, @islogical);
 ip.parse(M, varargin{:});
 ha = ip.Results.Handle;
+scale = ip.Results.ScalePrint;
 
-sfont = {'FontName', 'Helvetica', 'FontSize', 14};
-lfont = {'FontName', 'Helvetica', 'FontSize', 18};
+fset = loadFigureSettings();
 
 
 triuMask = triu(ones(size(M)));
@@ -26,55 +32,60 @@ M = M-triu(M);
 M = cat(3, -M.*(M<0), M.*(M>0), zeros(size(M)));
 
 M(repmat(triuMask, [1 1 3])==1)=1;
+M = uint8(255*M);
 
+if ~ip.Results.ShowDiagonal
+    M = M(2:end,1:end-1,:);
+    u0 = 1;
+else
+    u0 = 0;
+end
 
 if isempty(ha)
     figure('Position', [440 378 300 250]);
     ha = gca;
 end
 
-imagesc(M, 'Parent', ha); colormap(getMap()); axis image; caxis([-1 1]);
-%hc = colorbar('YTick', -1:0.2:1, 'YTickLabel', arrayfun(@(i) num2str(i, '%.2f'), -1:0.2:1, 'UniformOutput', false));
-colorbar('YTick', -1:0.2:1);
-% hc = colorbar('SouthOutside', 'XTick', -1:0.2:1);
-% cpos = get(hc, 'Position');
-% cpos(2) = cpos(2)*0.8;
-% cpos(1) = cpos(1)*1.1;
-% set(hc, 'Position', cpos);
-% get(hc)
-% set(hc, 'YAxisLocation', 'left');
+imagesc(imresize(M, scale, 'nearest'), 'Parent', ha); colormap(getMap()); axis image; caxis([-1 1]);
 
 
 np = size(M,1);
-ta = 1:np;
+ta = (1:np)*scale - scale/2 + 0.5;
 set(gca, 'XTick', ta, 'YTick', ta, 'XAxisLocation', 'bottom',...
     'TickLength', [0 0], 'XTickLabel', [], 'YTickLabel', [],...
-    sfont{:}, 'LineWidth', 1.5);%, 'XColor', [1 1 1], 'YColor', [1 1 1]);
+    fset.sfont{:}, 'LineWidth', 1.5);%, 'XColor', [1 1 1], 'YColor', [1 1 1]);
 
-title('Correlation matrix', sfont{:})
+if ip.Results.Colorbar
+    %hc = colorbar('YTick', -1:0.2:1, 'YTickLabel', arrayfun(@(i) num2str(i, '%.2f'), -1:0.2:1, 'UniformOutput', false));
+    hc = colorbar('YTick', -1:0.2:1);
+    set(hc, fset.tfont{:});
+end
+
+if ip.Results.ShowTitle
+    title('Correlation matrix', fset.sfont{:})
+end
 
 XLim = get(gca, 'XLim');
 YLim = get(gca, 'YLim');
 
 % plot x-axis tick labels
 arrayfun(@(k) text(ta(k), YLim(2)+0.05*diff(YLim), ip.Results.TickLabels{k},...
-    sfont{:},...
+    fset.sfont{:},...
     'Units', 'data', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center',...
     'Interpreter', 'TeX'),...
-    ta, 'UniformOutput', false);
+    1:np, 'UniformOutput', false);
 
 
 % plot y-axis tick labels
-arrayfun(@(k) text(XLim(1)-0.05*diff(XLim), ta(k), ip.Results.TickLabels{k},...
-    sfont{:},...
+arrayfun(@(k) text(XLim(1)-0.05*diff(XLim), ta(k), ip.Results.TickLabels{k+u0},...
+    fset.sfont{:},...
     'Units', 'data', 'VerticalAlignment', 'middle', 'HorizontalAlignment', 'right',...
     'Interpreter', 'TeX'),...
-    ta, 'UniformOutput', false);
-
+    1:np, 'UniformOutput', false);
 
 hold on;
-plot(y, x, 'w.', 'LineWidth', 3, 'MarkerSize', 20);
-
+plot(ta(y), ta(x-u0), 'w.', 'LineWidth', 3, 'MarkerSize', 20);
+% plot(ta(y), ta(x-u0), 'w*', 'LineWidth', 1.5, 'MarkerSize', 12);
 
 
 function map = getMap()
