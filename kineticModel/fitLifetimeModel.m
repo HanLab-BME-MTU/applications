@@ -130,7 +130,7 @@ if ip.Results.JackKnife
     M = vertcat(lftData.lftHist{:});
     M = M(:,1:endIdx);
     k_jk = cell(1,N);
-    for i = 1:N
+    parfor i = 1:N
         jkMean = mean(M(setdiff(1:N,i),:), 1);
         switch ip.Results.Mode
             case 'PDF'
