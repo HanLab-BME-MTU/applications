@@ -37,7 +37,7 @@ classdef KineticAnalysisProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
-            outputList = {'kinMap2C','polyMap','depolyMap'};
+            outputList = {'kinMap2C','polyMap','depolyMap','netMap'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -60,9 +60,13 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             for i=1:numel(iFrame)
                 kineticMapFile= [obj.outFilePaths_{1,iChan}...
                     filesep outFileNames{iFrame(i)}(1:end-4) '.mat'];
-                s = load(kineticMapFile,output{:});
+                s = load(kineticMapFile);
                 for j=1:numel(output)
-                    varargout{j}{i} = s.(output{j});
+                    if strcmp(output{j},'netMap')
+                        varargout{j}{i} = s.polyMap+s.depolyMap;
+                    else
+                        varargout{j}{i} = s.(output{j});
+                    end
                 end
             end
             if numel(iFrame)==1,
@@ -78,12 +82,13 @@ classdef KineticAnalysisProcess < DataProcessingProcess
         
         
         function output =getDrawableOutput(obj)
-            output(1).name='Combined map';
+            output(1).name='Net polymerization map';
             output(1).formatData=[];
-            output(1).var='kinMap2C';
+            output(1).var='netMap';
             output(1).type='image';
-            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',...
-                [(1:-1/32:0)'*[0 1 0]; (0:1/32:1)'*[1 0 0]],'Colorbar','on');
+            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.createNetColormap(x),...
+                'Colorbar','on','CLim',obj.kineticLimits_{x},'Units','Kinetic score');
+            
 			output(2).name='Polymerization map';
             output(2).var='polyMap';
             output(2).formatData=[];
@@ -96,8 +101,29 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(1:-1/64:0)'*[0 1 0],...
                 'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units','Kinetic score');
+%             output(4).name='Combined map';
+%             output(4).formatData=[];
+%             output(4).var='kinMap2C';
+%             output(4).type='image';
+%             output(4).defaultDisplayMethod=@(x)ImageDisplay('Colormap',...
+%                 [(1:-1/32:0)'*[0 1 0]; (0:1/32:1)'*[1 0 0]],'Colorbar','on');
         end
         
+    end
+    
+    methods (Access = protected)
+        function cMap =createNetColormap(obj,x)
+            % Get scores and normalize them
+            minScore= obj.kineticLimits_{x}(1);
+            maxScore = obj.kineticLimits_{x}(2);        
+            dScore=maxScore-minScore;
+            nBins = 256;
+            nr= round(nBins*maxScore/dScore);
+            ng= nBins-nr;
+            g=[0 1 0];
+            r=[1 0 0];
+            cMap= vertcat((1:-1/ng:0)'*g,(0:1/nr:1)'*r) ;
+        end
     end
     
     methods (Static)
