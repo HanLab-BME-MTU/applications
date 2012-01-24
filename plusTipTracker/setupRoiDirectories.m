@@ -83,8 +83,7 @@ if overwriteROIs==1
     roiDirList  =regexp(dirList,'(.+)roi_(\d+)$','match','once')';
     roiDirList=roiDirList(~cellfun(@isempty,roiDirList));
     for iProj=1:length(roiDirList)
-        temp=roiDirList{iProj}(1:end-1);
-        rmdir(temp,'s');
+        rmdir(roiDirList{iProj},'s');
     end
 end
 
@@ -97,8 +96,7 @@ bgFlag=logical(selectROI);
 for iProj=1:length(imageDirList)
 
     % define image and roi directories
-    imDir=imageDirList{iProj};
-    roiDir=[imDir(1:end-7) filesep 'roi'];
+    roiDir=[imageDirList{iProj}(1:end-7) filesep 'roi'];
 
     % count existing rois - roiCount will be number of first new one
     roiCount=1;
@@ -112,8 +110,9 @@ for iProj=1:length(imageDirList)
     end
 
     % get list and number of images
-    [listOfImages]=searchFiles('.tif',[],imDir,0);
-
+    [listOfImages]=searchFiles('.tif',[],imageDirList{iProj},0);
+    assert(~isempty(listOfImages),'Folder %s does not contain any image',imageDirList{iProj});
+    
     % make new ROIs until user is finished or we reach 10
     makeNewROI=1;
     while makeNewROI==1 && roiCount<10
