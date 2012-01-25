@@ -17,9 +17,9 @@ classdef PhotobleachCorrectionProcess < DoubleProcessingProcess
                 super_args{2} = PhotobleachCorrectionProcess.getName;
                 super_args{3} = @photobleachCorrectMovieRatios;                               
                 
-                if nargin < 3 || isempty(funParams)                                       
-                    funParams=PhotobleachCorrectionProcess.getDefaultParams(owner,outputDir);                                                                              
-                                    
+                if nargin < 3 || isempty(funParams)   
+                    if nargin <2, outputDir = owner.outputDirectory_; end
+                    funParams=PhotobleachCorrectionProcess.getDefaultParams(owner,outputDir);                                                                                                
                 end
                 
                 super_args{4} = funParams;    

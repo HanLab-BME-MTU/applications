@@ -144,6 +144,8 @@ if isempty(p.DarkImageDirectories)
         disp('Using previously specified correction image directories...')
         p.DarkImageDirectories = movieData.processes_{iProc}.inFilePaths_(2,p.ChannelIndex);        
     end
+else
+    movieData.processes_{iProc}.setCorrectionImagePath(p.ChannelIndex,p.DarkImageDirectories) 
 end
 
 %Check how many directories were specified

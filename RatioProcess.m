@@ -18,6 +18,7 @@ classdef RatioProcess < DoubleProcessingProcess
             super_args{3} = @ratioMovie;                
             
             if nargin < 3 || isempty(funParams)
+                if nargin <2, outputDir = owner.outputDirectory_; end
                 funParams=RatioProcess.getDefaultParams(owner,outputDir);                
             end
             
