@@ -86,43 +86,20 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(1).formatData=[];
             output(1).var='netMap';
             output(1).type='image';
-            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.createNetColormap(x),...
-                'Colorbar','on','CLim',obj.kineticLimits_{x},'Units','Kinetic score');
-            
+            output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(1,obj.kineticLimits_{x}),...
+                'Colorbar','on','CLim',obj.kineticLimits_{x},'Units','Kinetic score');        
 			output(2).name='Polymerization map';
             output(2).var='polyMap';
             output(2).formatData=[];
             output(2).type='image';
-            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(0:1/64:1)'*[1 0 0],...
+            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(2,obj.kineticLimits_{x}),...
             'Colorbar','on','CLim',[0 obj.kineticLimits_{x}(2)],'Units','Kinetic score');
             output(3).name='Depolymerization map';
             output(3).formatData=[];
             output(3).var='depolyMap';
             output(3).type='image';
-            output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',(1:-1/64:0)'*[0 1 0],...
+            output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(3,obj.kineticLimits_{x}),...
                 'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units','Kinetic score');
-%             output(4).name='Combined map';
-%             output(4).formatData=[];
-%             output(4).var='kinMap2C';
-%             output(4).type='image';
-%             output(4).defaultDisplayMethod=@(x)ImageDisplay('Colormap',...
-%                 [(1:-1/32:0)'*[0 1 0]; (0:1/32:1)'*[1 0 0]],'Colorbar','on');
-        end
-        
-    end
-    
-    methods (Access = protected)
-        function cMap =createNetColormap(obj,x)
-            % Get scores and normalize them
-            minScore= obj.kineticLimits_{x}(1);
-            maxScore = obj.kineticLimits_{x}(2);        
-            dScore=maxScore-minScore;
-            nBins = 256;
-            nr= round(nBins*maxScore/dScore);
-            ng= nBins-nr;
-            g=[0 1 0];
-            r=[1 0 0];
-            cMap= vertcat((1:-1/ng:0)'*g,(0:1/nr:1)'*r) ;
         end
     end
     
@@ -148,6 +125,26 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             funParams.bleachRed = 0;
             funParams.timeWindow = 5;
             funParams.sigma = 5;
+        end 
+        function cMap = getColormap(iOutput,scores)
+            % Get scores and normalize them
+            if islogical(iOutput), iOutput=find(iOutput); end
+            nBins = 256-1;
+            g=[0 1 0];
+            r=[1 0 0];
+            switch iOutput
+                case 1
+                    % Get scores and normalize them
+                    nr= round(nBins*max(scores)/diff(scores));
+                    ng= nBins-nr;
+                    g=[0 1 0];
+                    r=[1 0 0];
+                    cMap= vertcat((1:-1/ng:0)'*g,(0:1/nr:1)'*r) ;
+                case 2
+                    cMap= (0:1/nBins:1)'*r;
+                case 3
+                    cMap= (1:-1/nBins:0)'*g;
+            end
         end        
     end
 end
