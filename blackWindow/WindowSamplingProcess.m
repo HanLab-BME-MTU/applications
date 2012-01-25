@@ -124,7 +124,7 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 drawableOutput(i).formatData=@(x) permute(x,[1 3 2]);
                 drawableOutput(i).type='sampledGraph';
                 % Use custom colormap for display if defined
-                cmap = @(x)jet(2^8);
+                cmap = @(varargin)jet(2^8);
                 if ~isempty(procId) && ismember('getColormap',methods(obj.owner_.processes_{procId}))
                     cmap=@(x,i)obj.owner_.processes_{procId}.getColormap(iOutput,obj.getIntensityLimits(x,i));
                 end
