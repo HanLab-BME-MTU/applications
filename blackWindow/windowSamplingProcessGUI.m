@@ -22,7 +22,7 @@ function varargout = windowSamplingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help windowSamplingProcessGUI
 
-% Last Modified by GUIDE v2.5 28-Sep-2011 11:43:25
+% Last Modified by GUIDE v2.5 24-Jan-2012 15:18:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -48,29 +48,98 @@ end
 function windowSamplingProcessGUI_OpeningFcn(hObject,eventdata,handles,varargin)
 
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
-    'initChannel',1);
+    'initChannel',0);
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 
-% Read available segmentaation processes
-imProc =  cellfun(@(x) isa(x,'ImageProcessingProcess'),userData.MD.processes_);
-imProcID=find(imProc);
-imProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(imProc),'Unif',false);
-imProcString = vertcat('Raw images',imProcNames(:));
-imProcData=horzcat({[]},num2cell(imProcID));
+% Read available samplable process output
+imageProc = userData.MD.processes_;
+samplableInput = WindowSamplingProcess.getSamplableInput;
+samplableProcessNames = {samplableInput.processName};
+samplableOutput = {samplableInput.samplableOutput};
+samplableProcessIndex = cellfun(@(x)userData.MD.getProcessIndex(x,Inf),...
+    unique({samplableInput.processName}),'UniformOutput',false);
+samplableProcessIndex = vertcat(samplableProcessIndex{:});
+samplableChannelIndex = arrayfun(@(x)find(imageProc{x}.checkChannelOutput),...
+    samplableProcessIndex,'UniformOutput',false);
+samplableType = @(pid) cellfun(@(x)isa(imageProc{pid},x),samplableProcessNames);
+samplableProcessOutput = arrayfun(@(x) samplableOutput(samplableType(x)),...
+    samplableProcessIndex,'UniformOutput',false);
+
+% Append Raw images
+
+createText= @(pos,text) uicontrol(handles.uipanel_samplableInput,'Style','text',...
+    'Position',[40 pos 350 20],'String',text,'HorizontalAlignment','left');
+createChannelBox= @(i,j,k,pos,varargin) uicontrol(handles.uipanel_samplableInput,'Style','checkbox',...
+    'Position',[400+30*k pos 20 20],'Tag',['checkbox_process' num2str(i) '_output'...
+    num2str(j) '_channel' num2str(k)]);
+
+hPosition1 =10;
+for i = numel(samplableProcessIndex):-1:1
+    iProc = samplableProcessIndex(i);
+    output=imageProc{iProc}.getDrawableOutput;
+    [~,validOutput]=intersect(samplableProcessOutput{1},{output.var});
+    for iOutput=validOutput(end:-1:1)
+        createText(hPosition1,[imageProc{iProc}.getName  ' - ' output(iOutput).name]);
+        arrayfun(@(x) createChannelBox(iProc,iOutput,x,hPosition1),samplableChannelIndex{i});
+        hPosition1=hPosition1+20;
+    end
+end
+createText(hPosition1,'Raw images');
+arrayfun(@(x) createChannelBox(0,1,x,hPosition1),1:numel(userData.MD.channels_));
+hPosition1=hPosition1+20;
+
+uicontrol(handles.uipanel_samplableInput,'Style','text',...
+    'Position',[250 hPosition1 150 20],'String','Channels');
+arrayfun(@(x) uicontrol(handles.uipanel_samplableInput,'Style','text',...
+    'Position',[400+30*x hPosition1 20 20],'String',x),1:numel(userData.MD.channels_));
+
+a=get(get(handles.uipanel_samplableInput,'Children'),'Position');
+P=vertcat(a{:});
+panelSize = [max(P(:,1)+P(:,3))+10 max(P(:,2)+P(:,4))+20];
+pos = get(handles.uipanel_samplableInput,'Position');
+dh= panelSize(2) - pos(2);
+set(handles.figure1,'Position',get(handles.figure1,'Position')+[0 -dh 0 dh]);
+set(handles.uipanel_samplableInput,'Position',get(handles.uipanel_samplableInput,'Position')+[0 0 0 dh]);
+
+uicontrols = {'axes_help','text_processName','text_copyright'};
+for i=1:numel(uicontrols)
+    set(handles.(uicontrols{i}),'Position',get(handles.(uicontrols{i}),'Position')+[0 dh 0 0]);
+end
+   
+% Update handles structure and attach it to the main figure
+handles = guihandles(handles.figure1);
+guidata(handles.figure1, handles); 
 
 
-% Read the default segmentation process index
-% If empty, try to propagate segmentation process from protrusion process
-initProcessIndex = funParams.ProcessIndex;
-initProcessValue = find(cellfun(@(x) isequal(x,initProcessIndex),imProcData));
-set(handles.popupmenu_ProcessIndex,'String',imProcString,...
-    'UserData',imProcData,'Value',initProcessValue);
+% Read the default sampled processes
+initProcessIndex =funParams.ProcessIndex;
+initChannelIndex =funParams.ChannelIndex;
+initOutputName =funParams.OutputName;
 
-% Update channels listboxes depending on the selected process
-popupmenu_ProcessIndex_Callback(hObject,eventdata,handles);
+if ~iscell(initProcessIndex),initProcessIndex={initProcessIndex}; end
+if ~iscell(initChannelIndex),initChannelIndex={initChannelIndex};end
+if ~iscell(initOutputName),initOutputName={initOutputName};end
+
+for i=1:numel(initProcessIndex)
+    procId=initProcessIndex{i};
+
+    
+    % Retrieve the id, process nr and channel nr of the selected imageProc
+    if ~isempty(procId)
+         output=imageProc{procId}.getDrawableOutput;
+         iOutput=find(strcmp(initOutputName{i},{output.var}));
+         procTag=['checkbox_process' num2str(procId) '_output' num2str(iOutput)];
+    else
+        procTag=['checkbox_process0_output1'];
+    end
+        
+    for j=initChannelIndex{i}(:)'      
+        set(handles.([procTag '_channel' num2str(j)]),'Value',1);
+    end
+end
 
 % Choose default command line output for windowSamplingProcessGUI
 handles.output = hObject;
@@ -100,9 +169,7 @@ function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
 
-if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
-   delete(userData.helpFig) 
-end
+if ishandle(userData.helpFig), delete(userData.helpFig); end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
@@ -127,70 +194,36 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Check user input
 userData = get(handles.figure1, 'UserData');
-if isempty(get(handles.listbox_selectedChannels, 'String'))
-    errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
-    return;
-else
-    channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
-    funParams.ChannelIndex = channelIndex;
+
+h=findobj(handles.figure1,'Style','Checkbox','-and','Value',1);
+tokens=cellfun(@(x)regexp(x,'^checkbox_process(\d+)_output(\d+)_channel(\d+)','tokens'),get(h,'Tag'));
+procID=cellfun(@(x)  str2double(x{1}),tokens);
+outputID=cellfun(@(x)  str2double(x{2}),tokens);
+chanID=cellfun(@(x)  str2double(x{3}),tokens);
+uProcID=unique(procID);
+
+% Initialize funParams
+funParams.ProcessIndex={};
+funParams.ChannelIndex={};
+funParams.OutputName={};
+
+if ismember(0,uProcID)
+    nInput=numel(funParams.ProcessIndex);
+    funParams.ProcessIndex{nInput+1}=[];
+    funParams.ChannelIndex{nInput+1}=sort(chanID(procID==0));
+    funParams.OutputName{nInput+1}='';
+end
+for pid=uProcID(uProcID>0)'
+    output = userData.MD.processes_{pid}.getDrawableOutput;
+    uOutputID=unique(outputID(procID==pid));
+    for j=uOutputID'
+        nInput=numel(funParams.ProcessIndex);
+        funParams.ProcessIndex{nInput+1}=pid;
+        funParams.ChannelIndex{nInput+1}=sort(chanID(procID==pid & outputID==j));
+        funParams.OutputName{nInput+1}=output(j).var;
+    end
 end
 
-% Retrieve selected process ID
-props= get(handles.popupmenu_ProcessIndex,{'UserData','Value'});
-procID = props{1}{props{2}};
-funParams.ProcessIndex=procID;
-
-% Process Sanity check ( only check underlying data )
-try
-    userData.crtProc.sanityCheck;
-catch ME
-
-    errordlg([ME.message 'Please double check your data.'],...
-                'Setting Error','modal');
-    return;
-end
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
-
-
-% --- Executes on selection change in popupmenu_ProcessIndex.
-function popupmenu_ProcessIndex_Callback(hObject, eventdata, handles)
-
-% Retrieve selected process ID
-props= get(handles.popupmenu_ProcessIndex,{'UserData','Value'});
-procID = props{1}{props{2}};
-
-% Read process and check available channels
-userData = get(handles.figure1, 'UserData');
-if isempty(procID)
-    allChannelIndex=1:numel(userData.MD.channels_);
-else
-    allChannelIndex = find(userData.MD.processes_{procID}.checkChannelOutput);
-end
-
-% Set up available channels listbox
-if ~isempty(allChannelIndex)
-    if isempty(procID)
-        channelString = userData.MD.getChannelPaths(allChannelIndex);
-    else
-        channelString = userData.MD.processes_{procID}.outFilePaths_(1,allChannelIndex);
-    end
-else
-    channelString = {};
-end
-set(handles.listbox_availableChannels,'String',channelString,'UserData',allChannelIndex);
-
-% Set up selected channels listbox
-channelIndex = get(handles.listbox_selectedChannels, 'UserData');
-channelIndex = intersect(channelIndex,allChannelIndex);
-if ~isempty(channelIndex)
-    if isempty(procID)
-        channelString = userData.MD.getChannelPaths(channelIndex);
-    else
-        channelString = userData.MD.processes_{procID}.outFilePaths_(1,channelIndex);
-    end
-else
-    channelString = {};
-end
-set(handles.listbox_selectedChannels,'String',channelString,'UserData',channelIndex);

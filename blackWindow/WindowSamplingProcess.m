@@ -1,17 +1,17 @@
 classdef WindowSamplingProcess < ImageAnalysisProcess
-%Process     
-%     
-% Hunter Elliott
-% 7/2010    
-%
-
+    %Process
+    %
+    % Hunter Elliott
+    % 7/2010
+    %
+    
     methods (Access = public)
         
         function obj = WindowSamplingProcess(owner,varargin)
-                                              
+            
             if nargin == 0
                 super_args = {};
-            else                
+            else
                 % Input check
                 ip = inputParser;
                 ip.addRequired('owner',@(x) isa(x,'MovieData'));
@@ -24,51 +24,54 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = WindowSamplingProcess.getName;
-                super_args{3} = @sampleMovieWindows;                                               
-                if isempty(funParams)                                       
+                super_args{3} = @sampleMovieWindows;
+                if isempty(funParams)
                     funParams=WindowSamplingProcess.getDefaultParams(owner,outputDir);
-                end                
-                super_args{4} = funParams;    
-                                
+                end
+                super_args{4} = funParams;
+                
             end
             
             obj = obj@ImageAnalysisProcess(super_args{:});
-        end   
+        end
         
         function samp = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
             outputList = {'','avg'};
+            nOutput = numel(obj.funParams_.ProcessIndex);
             ip =inputParser;
-            ip.addRequired('obj',@(x) isa(x,'ImageAnalysisProcess'));
-            ip.addRequired('iChan',@(x) ismember(x,1:numel(obj.owner_.channels_)));
-            ip.addParamValue('output','',@(x) all(ismember(x,outputList)));          
-            ip.parse(obj,iChan,varargin{:})      
-            output=ip.Results.output;      
-                  
-            tmp = load(obj.outFilePaths_{iChan});
-            fNames = fieldnames(tmp);
-            if numel(fNames) ~= 1
-                error('Invalid window sample file !');
-            end
-            samp = tmp.(fNames{1});
-            if ~isempty(output), samp=samp.(output); end
+            ip.addRequired('iChan',@(x) obj.checkChanNum(x));
+            ip.addOptional('iOutput',1,@(x) ismember(x,1:nOutput));
+            ip.addParamValue('output','',@(x) all(ismember(x,outputList)));
+            ip.parse(iChan,varargin{:})
+            iOutput =ip.Results.iOutput;
+            output=ip.Results.output;
             
+            s = load(obj.outFilePaths_{iOutput,iChan});
+            fNames = fieldnames(s);
+            assert(numel(fNames) == 1,'Invalid window sample file !');
+            samp = s.(fNames{1});
+            
+            if ~isempty(output), samp=samp.(output); end
         end
         
-        function OK = checkChannelOutput(obj,iChan)
+        function status = checkChannelOutput(obj,varargin)
             
-           %Checks if the selected channels have valid output files
-           nChanTot = numel(obj.owner_.channels_);
-           if nargin < 2 || isempty(iChan)
-               iChan = 1:nChanTot;
-           end
-           %Makes sure there's at least one .mat file in the speified
-           %directory
-           OK =  arrayfun(@(x)(x <= nChanTot && ...
-                             x > 0 && isequal(round(x),x) && ...
-                             exist(obj.outFilePaths_{x},'file')),iChan);
-        end                
+            %Checks if the selected channels have valid output files
+            nChanTot = numel(obj.owner_.channels_);
+            nOutput = numel(obj.funParams_.ProcessIndex);
+            ip = inputParser;
+            ip.addOptional('iChan',1:nChanTot,@(x) obj.checkChanNum(x));
+            ip.addOptional('iOutput',1:nOutput,@(x) ismember(x,1:nOutput));
+            ip.parse(varargin{:});
+            iChan=ip.Results.iChan;
+            iOutput=ip.Results.iOutput;
+            
+            %Makes sure there's at least one .mat file in the speified
+            %directory
+            status =  cellfun(@(x)logical(exist(x,'file')),obj.outFilePaths_(iOutput,iChan));
+        end
         
         function h=draw(obj,iChan,varargin)
             % Function to draw process output (template method)
@@ -76,14 +79,13 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             if ~ismember('getDrawableOutput',methods(obj)), h=[]; return; end
             outputList = obj.getDrawableOutput();
             ip = inputParser;
-            ip.addRequired('obj',@(x) isa(x,'Process'));
-            ip.addRequired('iChan',@isnumeric);
-            ip.addParamValue('output',outputList(1).var,@(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+            ip.addRequired('iChan',@isscalar);
+            ip.addOptional('iOutput',1,@isscalar);
             ip.KeepUnmatched = true;
-            ip.parse(obj,iChan,varargin{:})
+            ip.parse(iChan,varargin{:})
+            iOutput = ip.Results.iOutput;
             
-            data=obj.loadChannelOutput(iChan,'output',ip.Results.output);
-            iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
+            data=obj.loadChannelOutput(iChan,iOutput,'output','avg');
             if ~isempty(outputList(iOutput).formatData),
                 data=outputList(iOutput).formatData(data);
             end
@@ -101,27 +103,44 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             h=obj.displayMethod_{iOutput,iChan}.draw(data,tag,drawArgs{:});
         end
         
-        
-        function output = getDrawableOutput(obj)
-            if isempty(obj.funParams_.ProcessIndex)
-                output(1).name='Raw image map';
-            else
-                output(1).name='Activity map';
+        function drawableOutput = getDrawableOutput(obj)
+            % Build the list of drawable output from 
+            processIndex = obj.funParams_.ProcessIndex;
+            outputName = obj.funParams_.OutputName;
+            if ~iscell(processIndex), processIndex={processIndex}; end
+            if ~iscell(outputName), outputName={outputName}; end
+            nOutput = numel(processIndex);
+            drawableOutput(nOutput,1)=struct();
+            for i=1:nOutput
+                procId = processIndex{i};
+                if isempty(procId)
+                    drawableOutput(i).name='Raw images';
+                else
+                    parentOutput = obj.owner_.processes_{procId}.getDrawableOutput;
+                    iOutput = strcmp(outputName{i},{parentOutput.var});
+                    drawableOutput(i).name=parentOutput(iOutput).name;
+                end
+                drawableOutput(i).var='avg';
+                drawableOutput(i).formatData=@(x) permute(x,[1 3 2]);
+                drawableOutput(i).type='sampledGraph';
+                % Use custom colormap for display if defined
+                cmap = @(x)jet(2^8);
+                if ~isempty(procId) && ismember('getColormap',methods(obj.owner_.processes_{procId}))
+                    cmap=@(x,i)obj.owner_.processes_{procId}.getColormap(iOutput,obj.getIntensityLimits(x,i));
+                end
+                drawableOutput(i).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap',cmap(x,i),...
+                    'CLim',obj.getIntensityLimits(x,i),'Labels',{'Frame number','Window depth','Window number'});
             end
-            output(1).var='avg';
-            output(1).formatData=@(x) permute(x,[1 3 2]);
-            output(1).type='graph';
-            output(1).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap','jet',...
-                'CLim',obj.getIntensityLimits(x),'Labels',{'Frame number','Window depth','Window number'});
         end
-            
+        
+        
     end
     
     methods (Access=protected)
-        function limits = getIntensityLimits(obj,iChan)
-            data=obj.loadChannelOutput(iChan,'output','avg');
+        function limits = getIntensityLimits(obj,iChan,iOutput)
+            data=obj.loadChannelOutput(iChan,iOutput,'output','avg');
             limits=[min(data(:)) max(data(:))];
-        end   
+        end
     end
     methods (Static)
         function name =getName()
@@ -142,8 +161,24 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);%Default is to sample all channels
             funParams.ProcessIndex = [];%Default is to use raw images
+            funParams.OutputName = '';%Default is to use raw images
             funParams.OutputDirectory = [outputDir  filesep 'window_sampling'];
-            funParams.BatchMode = false;           
+            funParams.BatchMode = false;
         end
-    end 
+        function samplableInput = getSamplableInput()
+            samplableInput(1).processName = 'Raw images';
+            samplableInput(1).samplableOutput = '';
+            samplableInput(2).processName = 'DoubleProcessingProcess';
+            samplableInput(2).samplableOutput = '';
+            samplableInput(3).processName = 'KineticAnalysisProcess';
+            samplableInput(3).samplableOutput = 'polyMap';
+            samplableInput(3).sampledOutputName = 'Polymerization';
+            samplableInput(4).processName = 'KineticAnalysisProcess';
+            samplableInput(4).samplableOutput = 'depolyMap';
+            samplableInput(5).processName = 'KineticAnalysisProcess';
+            samplableInput(5).samplableOutput = 'netMap';
+        end
+        
+        
+    end
 end

@@ -57,12 +57,8 @@ function movieData = sampleMovieWindows(movieData,paramsIn)
 % Hunter Elliott
 % 7/2010
 %
-%% --------- Parameters ------------ %%
-
-pString = 'window_samples_for_channel_'; %Prefix for saving samples to file
 
 %% ---------- Input ---------------- %%
-
 
 if nargin < 1 || ~isa(movieData,'MovieData')   
     error('The first input must be a valid MovieData object!');        
@@ -78,96 +74,77 @@ if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
     movieData.addProcess(WindowSamplingProcess(movieData,movieData.outputDirectory_));
 end
+winSampProc = movieData.processes_{iProc};
 
 %Parse input, store in parameter structure
-p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+p = parseProcessParams(winSampProc,paramsIn);
 
 %Make sure the movie has been windowed, and find the desired process.
 iWinProc = movieData.getProcessIndex('WindowingProcess',1,~p.BatchMode);
-if isempty(iWinProc)
-    error('The movie could not be sampled, because it has not been windowed yet!')
-end
+assert(~isempty(iWinProc),'The movie could not be sampled, because it has not been windowed yet!')
+winProc= movieData.processes_{iWinProc};
 
 %Make sure that the windows are okay.
-if ~movieData.processes_{iWinProc}.checkChannelOutput;
-    error('The window files for the input movie are not valid!')    
-end
+assert(winProc.checkChannelOutput,'The window files for the input movie are not valid!')  
 
-
+% Check 
+stack=dbstack;
+if ~any(strcmp('Process.run',{stack(:).name})); winSampProc.run(); return; end
 
 %% -------- Init ---------- %%
+if ~iscell(p.ProcessIndex), p.ProcessIndex={p.ProcessIndex}; end
+if ~iscell(p.ChannelIndex), p.ChannelIndex={p.ChannelIndex}; end
+if ~iscell(p.OutputName), p.ProcessIndex={p.OutputName}; end
 
-
-nChan = numel(p.ChannelIndex);
 nFrames = movieData.nFrames_;
 imSize = movieData.imSize_;
 
-
-%Get & set the input image directories and file names
-if isempty(p.ProcessIndex)
-    
-    imNames = movieData.getImageFileNames(p.ChannelIndex);
-    imDirs = movieData.getChannelPaths(p.ChannelIndex);
-    isDouble = false;
-    
-else
-   
-    %Make sure the process specified is an ImageProcessingProcess
-    if isa(movieData.processes_{p.ProcessIndex},'DoubleProcessingProcess')
-        isDouble = true;
-    elseif isa(movieData.processes_{p.ProcessIndex},'ImageProcessingProcess')
-        isDouble = false;        
-    else
-        error('The process selected for input by the ProcessIndex parameter must be an ImageProcessingProcess or a DoubleProcessingProcess!');
-    end
-    
-    imNames = movieData.processes_{p.ProcessIndex}.getOutImageFileNames(p.ChannelIndex);
-    imDirs = movieData.processes_{p.ProcessIndex}.outFilePaths_(p.ChannelIndex);
-
-end
-
+nChan = cellfun(@numel,p.ChannelIndex);
+nInput = sum(nChan);
 
 %Set up and store the output directories for the window samples.
 mkClrDir(p.OutputDirectory)
-    
-%Initialize sample array
-samples(1:nChan) = struct('avg',[],'std',[],'max',[],'min',[],'med',[]);
-fNames = fieldnames(samples(1));
-nFields = numel(fNames);
-
-for j = 1:nFields
-
-    for k = 1:nChan
-        
-        samples(k).(fNames{j}) = nan(...
-                  movieData.processes_{iWinProc}.nSliceMax_,...
-                  movieData.processes_{iWinProc}.nBandMax_,...
-                  nFrames);
+outFilePaths =cell(numel(p.ProcessIndex),numel(movieData.channels_));
+for i=1:numel(p.ProcessIndex)
+    iProc = p.ProcessIndex{i};
+    if isempty(iProc)
+        pString='Raw images - channel ';
+    else
+        parentOutput = movieData.processes_{iProc}.getDrawableOutput;
+        iOutput = strcmp(p.OutputName{i},{parentOutput.var});
+        pString=[parentOutput(iOutput).name ' - channel '];
+    end
+    for j=1:numel(p.ChannelIndex{i})
+        iChan = p.ChannelIndex{i}(j);
+        outFilePaths{i,iChan} =  [p.OutputDirectory filesep pString num2str(iChan) '.mat'];
     end
 end
+winSampProc.setOutFilePaths(outFilePaths);
 
+%Initialize sample array
+sampledFields = {'avg','std','max','min','med'};
+nFields = numel(sampledFields);
+allSamples(nInput,1)=struct();
+for j = 1:nFields
+    [allSamples.(sampledFields{j})] = deal(nan(winProc.nSliceMax_,winProc.nBandMax_,nFrames));
+end
 
 %Get the mask information from the windowing process
 iSegProc = movieData.processes_{iWinProc}.funParams_.SegProcessIndex;
-if ~isa(movieData.processes_{iSegProc},'MaskProcess')
-    error('The segmentation process specified by the windowing process is invalid! Please check settings and re-run windowing!')
-end
+assert(isa(movieData.processes_{iSegProc},'MaskProcess'),'The segmentation process specified by the windowing process is invalid! Please check settings and re-run windowing!')
 
 %Store these in the parameter structure.
 p.SegProcessIndex = iSegProc;
 p.MaskChannelIndex = movieData.processes_{iWinProc}.funParams_.ChannelIndex;
-nMaskChan = numel(p.MaskChannelIndex);
-
-%Get the mask directories and file names
-maskDir = movieData.processes_{iSegProc}.outFilePaths_(p.MaskChannelIndex);
-maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.MaskChannelIndex);
 
 
 
 %% --------- Sampling --------- %%
 
-if ~p.BatchMode
+if ~p.BatchMode && feature('ShowFigureWindows')
     wtBar = waitbar(0,'Please wait, sampling windows...');
+else 
+    wtBar = -1;
 end  
 
 disp('Starting window sampling...');
@@ -176,37 +153,46 @@ disp('Starting window sampling...');
 for iFrame = 1:nFrames
      
     %Load the windows
-    currWin = movieData.processes_{iWinProc}.loadChannelOutput(iFrame);    
+    currWin = winProc.loadChannelOutput(iFrame);    
         
     %Load the mask(s) to use first, so we can combine them and use this to
     %mask every channel.
     currMask = true(imSize);
-    for j = 1:nMaskChan
-        currMask = currMask & imread([maskDir{j} filesep maskNames{j}{iFrame}]);
+    for j = p.MaskChannelIndex
+        currMask = currMask & movieData.processes_{iSegProc}.loadChannelOutput(j,iFrame);
     end    
     
     %Go through each channel and sample it
-    for iChan = 1:nChan
-               
-        if ~isDouble
-            currIm = imread([imDirs{iChan} filesep imNames{iChan}{iFrame}]);                                        
-        else
-            currIm = movieData.processes_{p.ProcessIndex}.loadChannelOutput(p.ChannelIndex(iChan),iFrame);
+    stack2sample=zeros([imSize nInput]);
+
+    for i=1:numel(p.ProcessIndex)
+        iProc = p.ProcessIndex{i};
+        for j=1:numel(p.ChannelIndex{i})
+            iChan = p.ChannelIndex{i}(j);
+            iInput = sum(nChan(1:i-1))+j;
+
+            if ~isempty(iProc)
+                stack2sample(:,:,iInput) = movieData.processes_{iProc}.loadChannelOutput(iChan,iFrame,'output',p.OutputName{i});
+            else
+                stack2sample(:,:,iInput) = movieData.channels_(iChan).loadImage(iFrame);
+            end
         end
-        
-        currSamples = sampleImageWindows(currWin,currIm,currMask);
-        
-        %Copy these into the whole-movie array
-        currSize = size(currSamples.(fNames{1}));%all field arrays are same size
-        for j = 1:nFields            
-            samples(iChan).(fNames{j})(1:currSize(1),1:currSize(2),iFrame) ...
-                = currSamples.(fNames{j});                         
+    end
+    
+    currSamples = sampleStackWindows(currWin,stack2sample,currMask);
+    assert(numel(currSamples)==nInput);
+    
+    %Copy these into the whole-movie array
+    currSize = size(currSamples(1).(sampledFields{1}));%all field arrays are same size
+    for i=1:nInput
+        for j = 1:nFields
+            allSamples(i).(sampledFields{j})(1:currSize(1),1:currSize(2),iFrame) ...
+                = currSamples(i).(sampledFields{j});
         end
+    end
+       
         
-        
-    end                    
-        
-    if ~p.BatchMode && mod(iFrame,5)
+    if ishandle(wtBar) && mod(iFrame,5)
         %Update the waitbar occasionally  to minimize slowdown
         waitbar(iFrame/nFrames,wtBar)
     end
@@ -215,26 +201,19 @@ end
 
 %% ------- Output ------- %%
 
-if ~p.BatchMode && ishandle(wtBar)
-    close(wtBar);
-end
+if ishandle(wtBar), close(wtBar); end
 
-for j = 1:nChan
-    %Save the samples to file    
-    actSamples = samples(j); %#ok<NASGU>
-    fPath = [p.OutputDirectory filesep pString num2str(p.ChannelIndex(j)) '.mat'];
-    save(fPath,'actSamples');
-    movieData.processes_{iProc}.setOutFilePath(p.ChannelIndex(j),fPath);    
+for i=1:numel(p.ProcessIndex)
+    for j=1:numel(p.ChannelIndex{i})
+        iChan = p.ChannelIndex{i}(j);
+        iInput = sum(nChan(1:i-1))+j;
+
+        samples = allSamples(iInput);  %#ok<NASGU>
+        save(outFilePaths{i,iChan},'samples');
+    end
 end
 
 %Update the movie data, save it
-movieData.processes_{iProc}.setDateTime;
-movieData.processes_{iProc}.setPara(p);%We've stored additional parameters, so add to the process structure.
-movieData.save; %Save the new movieData to disk
-
+winSampProc.setPara(p);%We've stored additional parameters, so add to the process structure.
 
 disp('Finished sampling!')
-
-
-
-
