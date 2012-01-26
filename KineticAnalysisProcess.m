@@ -87,19 +87,19 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(1).var='netMap';
             output(1).type='image';
             output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(1,obj.kineticLimits_{x}),...
-                'Colorbar','on','CLim',obj.kineticLimits_{x},'Units','Kinetic score');        
+                'Colorbar','on','CLim',obj.kineticLimits_{x},'Units',obj.getUnits);        
 			output(2).name='Polymerization map';
             output(2).var='polyMap';
             output(2).formatData=[];
             output(2).type='image';
             output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(2,obj.kineticLimits_{x}),...
-            'Colorbar','on','CLim',[0 obj.kineticLimits_{x}(2)],'Units','Kinetic score');
+            'Colorbar','on','CLim',[0 obj.kineticLimits_{x}(2)],'Units',obj.getUnits);
             output(3).name='Depolymerization map';
             output(3).formatData=[];
             output(3).var='depolyMap';
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(3,obj.kineticLimits_{x}),...
-                'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units','Kinetic score');
+                'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units',obj.getUnits);
             output(4).name='Combined map';
             output(4).formatData=[];
             output(4).var='kinMap2C';
@@ -150,6 +150,9 @@ classdef KineticAnalysisProcess < DataProcessingProcess
                 case 3
                     cMap= (1:-1/nBins:0)'*g;
             end
-        end        
+        end 
+        function units = getUnits(varargin)
+            units = 'Kinetic score';
+        end
     end
 end

@@ -86,12 +86,12 @@ classdef FlowAnalysisProcess < DataProcessingProcess
         
         function output = getDrawableOutput(obj)
             colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Speed maps';
+            output(1).name='Speed map';
             output(1).var='speedMap';
             output(1).formatData=[];
             output(1).type='image';
             output(1).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
-                'Colorbar','on','Units','nm/min','CLim',obj.speedMapLimits_{x});
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.speedMapLimits_{x});
             output(2).name='Interpolated vectors';
             output(2).var='Md';
             output(2).formatData=@(x)[x(:,[2 1]) x(:,[4 3])-x(:,[2 1])];
@@ -115,12 +115,12 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             output(5).type='overlay';
             output(5).defaultDisplayMethod=@(x) RectangleDisplay('Color',colors(x,:),...
                 'Curvature',[1 1]);
-            output(6).name='Error maps';
+            output(6).name='Error map';
             output(6).var='img3C_map';
             output(6).formatData=[];
             output(6).type='image';
             output(6).defaultDisplayMethod=@ImageDisplay;
-            output(7).name='SNR maps';
+            output(7).name='SNR map';
             output(7).var='img3C_SNR';
             output(7).formatData=[];
             output(7).type='image';
@@ -160,6 +160,9 @@ classdef FlowAnalysisProcess < DataProcessingProcess
             funParams.gridSize = 11;
             funParams.noise = 1;
             funParams.error = 1;
-        end        
+        end 
+        function units = getUnits(varargin)
+            units = 'Speed (nm/min)';
+        end
     end
 end
