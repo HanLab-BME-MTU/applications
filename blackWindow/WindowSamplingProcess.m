@@ -123,13 +123,22 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                 drawableOutput(i).var='avg';
                 drawableOutput(i).formatData=@(x) permute(x,[1 3 2]);
                 drawableOutput(i).type='sampledGraph';
-                % Use custom colormap for display if defined
+                
+                % Get process-defined colormap if applicable
                 cmap = @(varargin)jet(2^8);
                 if ~isempty(procId) && ismember('getColormap',methods(obj.owner_.processes_{procId}))
                     cmap=@(x,i)obj.owner_.processes_{procId}.getColormap(iOutput,obj.getIntensityLimits(x,i));
                 end
+                
+                % Get process-defined units if applicable
+                units =@(varargin) '';
+                if ~isempty(procId) && ismember('getUnits',methods(obj.owner_.processes_{procId}))
+                    units=@(i)obj.owner_.processes_{procId}.getUnits(i);
+                end
+                
                 drawableOutput(i).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap',cmap(x,i),...
-                    'CLim',obj.getIntensityLimits(x,i),'Labels',{'Frame number','Window depth','Window number'});
+                    'CLim',obj.getIntensityLimits(x,i),'Units',units(i),...
+                    'Labels',{'Frame number','Window depth','Window number'});
             end
         end
         
@@ -166,17 +175,12 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             funParams.BatchMode = false;
         end
         function samplableInput = getSamplableInput()
-            samplableInput(1).processName = 'Raw images';
-            samplableInput(1).samplableOutput = '';
-            samplableInput(2).processName = 'DoubleProcessingProcess';
-            samplableInput(2).samplableOutput = '';
-            samplableInput(3).processName = 'KineticAnalysisProcess';
-            samplableInput(3).samplableOutput = 'polyMap';
-            samplableInput(3).sampledOutputName = 'Polymerization';
-            samplableInput(4).processName = 'KineticAnalysisProcess';
-            samplableInput(4).samplableOutput = 'depolyMap';
-            samplableInput(5).processName = 'KineticAnalysisProcess';
-            samplableInput(5).samplableOutput = 'netMap';
+            % List process output that can be sampled
+            processNames = horzcat('Raw images','DoubleProcessingProcess',...
+                repmat({'KineticAnalysisProcess'},1,3),'FlowAnalysisProcess');
+            samplableOutput = {'','','netMap','polyMap','depolyMap','speedMap'};
+            samplableInput=cell2struct(vertcat(processNames,samplableOutput),...
+                {'processName','samplableOutput'});  
         end
         
         

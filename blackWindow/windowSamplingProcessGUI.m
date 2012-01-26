@@ -53,49 +53,54 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
-
-% Read available samplable process output
-imageProc = userData.MD.processes_;
+% Get list of samplable output
 samplableInput = WindowSamplingProcess.getSamplableInput;
 samplableProcessNames = {samplableInput.processName};
 samplableOutput = {samplableInput.samplableOutput};
+
+% Read available samplable  output for the given movie
+imageProc = userData.MD.processes_;
 samplableProcessIndex = cellfun(@(x)userData.MD.getProcessIndex(x,Inf),...
     unique({samplableInput.processName}),'UniformOutput',false);
-samplableProcessIndex = vertcat(samplableProcessIndex{:});
+samplableProcessIndex = sort(vertcat(samplableProcessIndex{:}),'descend');
 samplableChannelIndex = arrayfun(@(x)find(imageProc{x}.checkChannelOutput),...
     samplableProcessIndex,'UniformOutput',false);
 samplableType = @(pid) cellfun(@(x)isa(imageProc{pid},x),samplableProcessNames);
 samplableProcessOutput = arrayfun(@(x) samplableOutput(samplableType(x)),...
     samplableProcessIndex,'UniformOutput',false);
 
-% Append Raw images
-
+% Create templates for GUI generation
 createText= @(pos,text) uicontrol(handles.uipanel_samplableInput,'Style','text',...
     'Position',[40 pos 350 20],'String',text,'HorizontalAlignment','left');
 createChannelBox= @(i,j,k,pos,varargin) uicontrol(handles.uipanel_samplableInput,'Style','checkbox',...
     'Position',[400+30*k pos 20 20],'Tag',['checkbox_process' num2str(i) '_output'...
     num2str(j) '_channel' num2str(k)]);
 
+% Create checkboxes for samplable processes
 hPosition1 =10;
-for i = numel(samplableProcessIndex):-1:1
+for i = 1:numel(samplableProcessIndex)
     iProc = samplableProcessIndex(i);
     output=imageProc{iProc}.getDrawableOutput;
-    [~,validOutput]=intersect(samplableProcessOutput{1},{output.var});
-    for iOutput=validOutput(end:-1:1)
+    for j=numel(samplableProcessOutput{i}):-1:1
+        samplableOutputVar = samplableProcessOutput{i}(j);
+        iOutput = find(strcmp(samplableOutputVar,{output.var}));
         createText(hPosition1,[imageProc{iProc}.getName  ' - ' output(iOutput).name]);
         arrayfun(@(x) createChannelBox(iProc,iOutput,x,hPosition1),samplableChannelIndex{i});
         hPosition1=hPosition1+20;
     end
 end
+% Create checkbox for samplable raw iamges
 createText(hPosition1,'Raw images');
 arrayfun(@(x) createChannelBox(0,1,x,hPosition1),1:numel(userData.MD.channels_));
 hPosition1=hPosition1+20;
 
+% Add cosmetic title for channels
 uicontrol(handles.uipanel_samplableInput,'Style','text',...
     'Position',[250 hPosition1 150 20],'String','Channels');
 arrayfun(@(x) uicontrol(handles.uipanel_samplableInput,'Style','text',...
     'Position',[400+30*x hPosition1 20 20],'String',x),1:numel(userData.MD.channels_));
 
+% Fix GUI position/size
 a=get(get(handles.uipanel_samplableInput,'Children'),'Position');
 P=vertcat(a{:});
 panelSize = [max(P(:,1)+P(:,3))+10 max(P(:,2)+P(:,4))+20];
@@ -113,7 +118,6 @@ end
 handles = guihandles(handles.figure1);
 guidata(handles.figure1, handles); 
 
-
 % Read the default sampled processes
 initProcessIndex =funParams.ProcessIndex;
 initChannelIndex =funParams.ChannelIndex;
@@ -125,17 +129,16 @@ if ~iscell(initOutputName),initOutputName={initOutputName};end
 
 for i=1:numel(initProcessIndex)
     procId=initProcessIndex{i};
-
-    
     % Retrieve the id, process nr and channel nr of the selected imageProc
     if ~isempty(procId)
-         output=imageProc{procId}.getDrawableOutput;
-         iOutput=find(strcmp(initOutputName{i},{output.var}));
-         procTag=['checkbox_process' num2str(procId) '_output' num2str(iOutput)];
+        output=imageProc{procId}.getDrawableOutput;
+        iOutput=find(strcmp(initOutputName{i},{output.var}));
+        procTag=['checkbox_process' num2str(procId) '_output' num2str(iOutput)];
     else
-        procTag=['checkbox_process0_output1'];
+        procTag='checkbox_process0_output1';
     end
         
+    % Set checkbox values to 1
     for j=initChannelIndex{i}(:)'      
         set(handles.([procTag '_channel' num2str(j)]),'Value',1);
     end
@@ -195,6 +198,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % Check user input
 userData = get(handles.figure1, 'UserData');
 
+% Retrieve list of checked boxes
 h=findobj(handles.figure1,'Style','Checkbox','-and','Value',1);
 tokens=cellfun(@(x)regexp(x,'^checkbox_process(\d+)_output(\d+)_channel(\d+)','tokens'),get(h,'Tag'));
 procID=cellfun(@(x)  str2double(x{1}),tokens);
@@ -207,20 +211,21 @@ funParams.ProcessIndex={};
 funParams.ChannelIndex={};
 funParams.OutputName={};
 
+% If raw images are selected
 if ismember(0,uProcID)
-    nInput=numel(funParams.ProcessIndex);
-    funParams.ProcessIndex{nInput+1}=[];
-    funParams.ChannelIndex{nInput+1}=sort(chanID(procID==0));
-    funParams.OutputName{nInput+1}='';
+    funParams.ProcessIndex{1}=[];
+    funParams.ChannelIndex{1}=sort(chanID(procID==0));
+    funParams.OutputName{1}='';
 end
+
+% List output to sample
 for pid=uProcID(uProcID>0)'
     output = userData.MD.processes_{pid}.getDrawableOutput;
     uOutputID=unique(outputID(procID==pid));
     for j=uOutputID'
-        nInput=numel(funParams.ProcessIndex);
-        funParams.ProcessIndex{nInput+1}=pid;
-        funParams.ChannelIndex{nInput+1}=sort(chanID(procID==pid & outputID==j));
-        funParams.OutputName{nInput+1}=output(j).var;
+        funParams.ProcessIndex{end+1}=pid;
+        funParams.ChannelIndex{end+1}=sort(chanID(procID==pid & outputID==j));
+        funParams.OutputName{end+1}=output(j).var;
     end
 end
 
