@@ -100,6 +100,11 @@ classdef KineticAnalysisProcess < DataProcessingProcess
             output(3).type='image';
             output(3).defaultDisplayMethod=@(x)ImageDisplay('Colormap',obj.getColormap(3,obj.kineticLimits_{x}),...
                 'Colorbar','on','CLim',[obj.kineticLimits_{x}(1) 0],'Units','Kinetic score');
+            output(4).name='Combined map';
+            output(4).formatData=[];
+            output(4).var='kinMap2C';
+            output(4).type='image';
+            output(4).defaultDisplayMethod=@ImageDisplay;
         end
     end
     
