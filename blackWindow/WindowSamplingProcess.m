@@ -103,6 +103,43 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             h=obj.displayMethod_{iOutput,iChan}.draw(data,tag,drawArgs{:});
         end
         
+        function output = getSampledOutput(obj)
+            % Construct linear output of time series (to be used by
+            % integrator)
+            processIndex = obj.funParams_.ProcessIndex;
+            channelIndex = obj.funParams_.ChannelIndex;
+            outputName = obj.funParams_.OutputName;
+            if ~iscell(processIndex), processIndex={processIndex}; end
+            if ~iscell(channelIndex), processIndex={processIndex}; end
+            if ~iscell(outputName), outputName={outputName}; end
+            
+            nChanPerOutput = cellfun(@numel,channelIndex);
+            nOutputTot = sum(nChanPerOutput);
+            output(nOutputTot,1)=struct();
+            for i=1:numel(processIndex)
+                procId = processIndex{i};
+                if isempty(procId)
+                    processName = '';
+                    name='Raw images';
+                    
+                else
+                    processName = class(obj.owner_.processes_{procId});
+                    parentOutput = obj.owner_.processes_{procId}.getDrawableOutput;
+                    iOutput = strcmp(outputName{i},{parentOutput.var});
+                    name=parentOutput(iOutput).name;
+                end
+                
+                for j =1:numel(channelIndex{i})
+                    iInput = sum(nChanPerOutput(1:i-1))+j;
+                    output(iInput).processName = processName;
+                    output(iInput).processIndex = procId;
+                    output(iInput).channelIndex = channelIndex{i}(j);
+                    output(iInput).var = 'avg';
+                    output(iInput).name = [name ' - Channel ' num2str(channelIndex{i}(j))];
+                end
+            end
+        end
+        
         function drawableOutput = getDrawableOutput(obj)
             % Build the list of drawable output from 
             processIndex = obj.funParams_.ProcessIndex;
@@ -143,9 +180,8 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
         end
         
         
-    end
-    
-    methods (Access=protected)
+
+        
         function limits = getIntensityLimits(obj,iChan,iOutput)
             data=obj.loadChannelOutput(iChan,iOutput,'output','avg');
             limits=[min(data(:)) max(data(:))];

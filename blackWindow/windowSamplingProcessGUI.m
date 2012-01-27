@@ -199,8 +199,14 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
 
 % Retrieve list of checked boxes
-h=findobj(handles.figure1,'Style','Checkbox','-and','Value',1);
-tokens=cellfun(@(x)regexp(x,'^checkbox_process(\d+)_output(\d+)_channel(\d+)','tokens'),get(h,'Tag'));
+h=findobj(handles.figure1,'Style','Checkbox','-and','Value',1,'-not',...
+    'Tag','checkbox_applytoall');
+tags= get(h,'Tag');
+if ischar(tags), tags={tags}; end
+tokens=cellfun(@(x)regexp(x,'^checkbox_process(\d+)_output(\d+)_channel(\d+)','tokens'),...
+    tags);
+
+% Read process index, channel index and output index
 procID=cellfun(@(x)  str2double(x{1}),tokens);
 outputID=cellfun(@(x)  str2double(x{2}),tokens);
 chanID=cellfun(@(x)  str2double(x{3}),tokens);
@@ -228,7 +234,6 @@ for pid=uProcID(uProcID>0)'
         funParams.OutputName{end+1}=output(j).var;
     end
 end
-
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);

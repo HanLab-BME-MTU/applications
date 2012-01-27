@@ -109,6 +109,12 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
         end
         
+        function output = getSampledOutput(obj)
+            output.processName = 'Protrusion';
+            output.channelIndex = obj.owner_.getProcessIndex('ProtrusionProcess',1,~obj.funParams_.BatchMode);
+            output.var = 'avgNormal';
+            output.name = 'Protrusion';
+        end
         
     end
     methods (Static)
