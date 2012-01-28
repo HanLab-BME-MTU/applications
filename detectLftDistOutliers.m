@@ -1,6 +1,6 @@
 % Francois Aguet, 01/28/2012
 
-function lftDataOut = removeLftDistOutliers(lftData, varargin)
+function lftDataOut = detectLftDistOutliers(lftData, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
