@@ -26,67 +26,50 @@ end
 %============================================
 % Plot with random colors
 %============================================
-figure; hold on;
-fset = loadFigureSettings();
-% set(gca, 'ColorOrder', C);
-plot(t, ecdfMat', 'k', 'LineWidth', 1);
-axis([0 100 0 1]);
-set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
-    'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
-xlabel('Time (s)');
-ylabel('F(t)');
-
-
-
-% % plot all true ECDFs
-% figure;
-% hold on;
-% for i = 1:N
-%    plot(lftData.t_ecdf{i}, lftData.f_ecdf{i}, 'Color', C(i,:));
-%    
-%    
-%    [f_ecdf, t_ecdf] = ecdf([lftData.samples{setdiff(1:N,i)}]);
-%    
-%    [hval, pval, ksstat] = kstest2([lftData.samples{setdiff(1:N,i)}], lftData.samples{i});
-%    %[f_ecdf, t_ecdf] = ecdf(lftData.samples{i});
-%    plot(t_ecdf(2:end), f_ecdf(2:end), 'k--'); 
-%    
-%    
-% end
-% axis([0 lftData.t(endIdx) 0 1]);
-% 
-
+% figure; hold on;
+% fset = loadFigureSettings();
+% % set(gca, 'ColorOrder', C);
+% plot(t, ecdfMat', 'k', 'LineWidth', 1);
+% axis([0 100 0 1]);
+% set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
+%     'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
+% xlabel('Time (s)');
+% ylabel('F(t)');
 
 
 cmb = pcombs(1:N);
 nc = size(cmb,1);
-% hval = zeros(1,nc);
-% pval = zeros(1,nc);
 D = zeros(1,nc);
 for i = 1:nc
     D(i) = max(abs(ecdfMat(cmb(i,1),:)-ecdfMat(cmb(i,2),:)));
-    
-    %[hval(i), pval(i)] = kstest2(ecdfMat(cmb(i,1),:), ecdfMat(cmb(i,2),:));
-    %[hval(i), pval(i), ksstat(i)] = kstest2(lftData.samples{cmb(i,1)}, lftData.samples{cmb(i,2)});
 end
 
 %============================================
 % Identification of lifetime subpopulations (clusters) 
 %============================================
 
+% check whether a two-component mixture fits the data
+% obj = gmdistribution.fit(D(:),2, 'replicates', 20);
+% mu = obj.mu;
+% sigma = sqrt(squeeze(obj.Sigma));
+% if abs(diff(mu)) > 2*sum(sigma)
+%     k = 2;
+% else
+%     k = 1;
+% end
+
 k = 0;
 isnormal = 0;
-
 while k<=2 && ~all(isnormal)
     k = k+1;
-    [idx ctr] = kmeans(D, k, 'replicates', 20);
     
+    [idx] = kmeans(D, k, 'replicates', 20);
     % test each cluster for normality
     isnormal = NaN(1,k);
     for c = 1:k
         dstr = D(idx==c);
         dstr = (dstr-mean(dstr))/std(dstr);
-        hval = kstest(dstr);
+        [hval] = kstest(dstr,[], 0.1);
         %if numel(dstr)>5
         %    hval = adtest(dstr);
         %else
@@ -94,32 +77,37 @@ while k<=2 && ~all(isnormal)
         %end
         isnormal(c) = ~hval;
     end
-    
 end
 if ~all(isnormal)
     error('More than two characteristic distributions detected.');
 end
 
-minIdx = find(ctr==min(ctr));
 
-% idx for the cluster with smaller distances contains two sets
-cand = cmb(idx==minIdx,:);
-sets{1} = cand(1,:);
-cand(1,:) = [];
 
-newset = 0;
-while ~isempty(newset)
-    idx2 = ismember(cand(:,1), sets{1}) | ismember(cand(:,2), sets{1});
-    newset = cand(idx2==1,:);
-    sets{1} = unique([sets{1} newset(:)']);
-    cand(idx2==1,:) = [];
+if k == 2
+    [idx ctr] = kmeans(D, k, 'replicates', 20);
+    
+    minIdx = find(ctr==min(ctr));
+    
+    % idx for the cluster with smaller distances contains two sets
+    cand = cmb(idx==minIdx,:);
+    sets{1} = cand(1,:);
+    cand(1,:) = [];
+    
+    newset = 0;
+    while ~isempty(newset)
+        idx2 = ismember(cand(:,1), sets{1}) | ismember(cand(:,2), sets{1});
+        newset = cand(idx2==1,:);
+        sets{1} = unique([sets{1} newset(:)']);
+        cand(idx2==1,:) = [];
+    end
+    tmp = unique(cand(:))';
+    if ~isempty(tmp)
+        sets{2} = tmp;
+    end
+else
+    sets{1} = 1:N;
 end
-tmp = unique(cand(:))';
-if ~isempty(tmp)
-    sets{2} = tmp;
-end
-
-% sets{1} = setdiff(sets{1}, [3 4 7 8])
 
 %============================================
 % Outliers in each set: median ± 3*sigma
@@ -133,9 +121,11 @@ lb = cell(1,nset);
 outlierIdx = cell(1,nset);
 inlierIdx = cell(1,nset);
 for k = 1:nset
+    N = numel(sets{k});
+    
     medianECDF{k} = median(ecdfMat(sets{k},:), 1);
     sigma{k} = 1/norminv(0.75) * mad(ecdfMat(sets{k},:), 1, 1);
-    %sigma = std(ecdfMat(sets{k},:), [], 1);
+    %sigma{k} = std(ecdfMat(sets{k},:), [], 1);
     
     ub{k} = medianECDF{k}+3*sigma{k};
     lb{k} = medianECDF{k}-3*sigma{k};
@@ -160,10 +150,10 @@ for k = 1:nset
     ub{k} = medianECDF{k}+du;
     lb{k} = medianECDF{k}-du;
     
-    N = numel(sets{k});
     outlierIdx{k} = zeros(1,N);
     for i = 1:N
-        outlierIdx{k}(i) = (any(ecdfMat(sets{k}(i),:) > ub{k} | ecdfMat(sets{k}(i),:) < lb{k}));
+        tmp = ecdfMat(sets{k}(i),:) > ub{k} | ecdfMat(sets{k}(i),:) < lb{k};
+        outlierIdx{k}(i) =  sum(tmp)/numel(tmp) > 0.025;
     end
     outlierIdx{k} = find(outlierIdx{k});
     inlierIdx{k} = setdiff(1:N, outlierIdx{k});
@@ -239,42 +229,3 @@ for k = 1:nset
     end
     lftDataOut(k).meanHist = mean(vertcat(lftDataOut(k).lftHist{:}),1);
 end
-
-
-
-
-
-% newOutlier = 0;
-% inlierIdx = 1:N;
-% % nsamples = cellfun(@(x) numel(x), lftData.samples);
-% % Ne = size(ecdfMat,2)/2; % Effective data points
-% while ~isempty(newOutlier)
-%     n = numel(inlierIdx);
-%     hval = zeros(1,n);
-%     pval = zeros(1,n);
-%     
-%     for i = 1:n
-%         poolIdx = setdiff(inlierIdx, inlierIdx(i));
-%         
-%         medianECDF = median(ecdfMat(poolIdx,:), 1);
-%         %[hval(i), pval(i) ks2stat(i)] = kstest2(ecdfMat(i,:), medianECDF);
-%         
-%         % from kstest2.m
-%         %Nmed = median(nsamples(poolIdx));
-%         %Ni = nsamples(i);
-%         %Ne = Nmed*Ni/(Nmed+Ni);
-%         Ne = 100;
-%         KSstatistic = max(abs(ecdfMat(i,:)-medianECDF));
-%         lambda = max((sqrt(Ne) + 0.12 + 0.11/sqrt(Ne)) * KSstatistic , 0);
-%         j       =  (1:101)';
-%         pValue  =  2 * sum((-1).^(j-1).*exp(-2*lambda*lambda*j.^2));
-%         pValue  =  min(max(pValue, 0), 1);
-%         hval(i) = (0.05 >= pValue);
-%         pval(i) = pValue;
-%         
-%     end
-%     
-%     newOutlier = inlierIdx(hval==1);
-%     outlierIdx = [outlierIdx newOutlier];
-%     inlierIdx = setdiff(inlierIdx, newOutlier);
-% end
