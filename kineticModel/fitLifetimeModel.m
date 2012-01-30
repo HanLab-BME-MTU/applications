@@ -57,39 +57,48 @@ lftECDF = (lftECDF-a)/(1-a);
 lftHist = lftData.meanHist(1:endIdx);
 lftHist = lftHist/sum(lftHist)/dt;
 
-
 %===================================================
 % Weights for weighted least-squares fit
 %===================================================
 switch ip.Results.Mode
     case 'PDF'
-        W = 1./std(vertcat(lftData.lftHist{:}));
+        W = std(vertcat(lftData.lftHist{:}), [], 1);
+        %W = 1/norminv(0.75) * mad(vertcat(lftData.lftHist{:}), 1, 1);
         W = W(1:endIdx);
+        W = 1./W;
+        W = W/max(W);
     case 'CDF'
-        
+
         lftECDF_all = cumsum(vertcat(lftData.lftHist{:}), 2);
         lftECDF_all = lftECDF_all(:,1:endIdx);
         A = lftECDF_all(:,1);
         for i = 1:numel(A)
             lftECDF_all(i,:) = (lftECDF_all(i,:)-A(i))/(1-A(i));
         end
-        W = std(lftECDF_all);
-        % Wx = (1/norminv(0.75) * mad(lftECDF_all, 1, 1)).^2;
+        W = std(lftECDF_all, [], 1);
+        %W = (1/norminv(0.75) * mad(lftECDF_all, 1, 1)).^2;
         
         W(W==0) = min(W(W~=0));
         W = 1./W; % weight: 1/sigma^2 -> 1/sigma for lsqnonlin
+        W = W/max(W);
 end
-
 if ip.Results.PlotAll
     fset = loadFigureSettings();
 
     figure;
     hold on;
     plot(t, W, 'r-', 'LineWidth', 1.5);
-    set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:}, 'XLim', [t(1) t(end)]);
+    %set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:}, 'XLim', [t(1) t(end)]);
+    set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:});
+    axis([t(1) t(end) 0 1]);
     xlabel('t', fset.lfont{:});
     ylabel('W(t)', fset.lfont{:});
 end
+
+
+
+
+
 
 
 opts = optimset('Jacobian', 'off', ...
@@ -122,7 +131,7 @@ for i = ip.Results.NumP
             k0 = [0.2 0.2 0.05];
         case 3
             %k0 = [0.2 0.2 0.05 0.01 0.02];
-            k0 = [0.5 0.25 0.1 0.1 0.03];
+            k0 = [0.6    0.25    0.1    0.1    0.03];
             %k0 = 0.1 * ones(1,ns-1);
         case 4
             %k0 = [0.2 0.2 0.05 0.01 0.02 0.01 0.02];
@@ -156,20 +165,18 @@ for i = ip.Results.NumP
 %             end
         case 'CDF'
             [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, i, W);
+            %k = fminsearch(@costCDFmedian, k0, opts, t, lftECDF, i);
+            %residual = costCDF(k, t, lftECDF, i);
+            %resnorm = sum(residual.^2);
             
-%             [k fval] = fminsearch(@costCDFmedian, k0, opts, t, lftECDF, i);
-%             fval
-%             residual = costCDF(k, t, lftECDF, i);
-%             resnorm = sum(residual.^2);
-%             
-%             h = 2*sqrt(eps); % assuming that f''(x) ~ 1
-%             nk = numel(k);
-%             J = zeros(numel(t), nk);
-%             for ki = 1:nk
-%                 kp = k;
-%                 kp(ki) = kp(ki)+h;
-%                 J(:,ki) = (computeCDF(kp, t, i) - computeCDF(k, t, i))/h;
-%             end
+            %h = 2*sqrt(eps); % assuming that f''(x) ~ 1
+            %nk = numel(k);
+            %J = zeros(numel(t), nk);
+            %for ki = 1:nk
+            %    kp = k;
+            %    kp(ki) = kp(ki)+h;
+            %    J(:,ki) = (computeCDF(kp, t, i) - computeCDF(k, t, i))/h;
+            %end
     end
     %k
     % BIC and correlation matrix
@@ -225,10 +232,10 @@ Y = deval(sol, t_fine);
 % ev = eig(A)
 
 if ip.Results.Verbose
-    for i = 1:numel(res.k{np})
-        fprintf('k%d = %.4f, ', i, res.k{np}(i))
-    end
-    fprintf('\b\b\n');
+   for i = 1:numel(res.k{np})
+       fprintf('k%d = %.4f, ', i, res.k{np}(i));
+   end
+   fprintf('\b\b\n');
 end
 
 % normalize subpopulation PDFs, weigh by output
@@ -302,9 +309,9 @@ end
 v = computePDF(kVect, t, M) - lftHist;
 v = v.*W;
 
-% function v = costPDFmedian(kVect, t, lftHist, M)
-% v = costPDF(kVect, t, lftHist, M);
-% v = median(v.^2);
+function v = costPDFmedian(kVect, t, lftHist, M)
+v = costPDF(kVect, t, lftHist, M);
+v = median(v.^2);
 
 
 
@@ -321,15 +328,15 @@ cdf = (cdf-T)/(1-T);
 
 function v = costCDF(kVect, t, lftECDF, M, W)
 if nargin<5
-    W = ones(size(lftHist));
+    W = ones(size(lftECDF));
 end
 v = computeCDF(kVect, t, M) - lftECDF;
 v = v.*W;
 
 
-% function v = costCDFmedian(kVect, t, lftECDF, M)
-% v = costCDF(kVect, t, lftECDF, M);
-% v = median(v.^2);
+function v = costCDFmedian(kVect, t, lftECDF, M)
+v = costCDF(kVect, t, lftECDF, M);
+v = median(v.^2);
 
 
 
