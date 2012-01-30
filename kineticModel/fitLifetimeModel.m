@@ -28,14 +28,15 @@ function res = fitLifetimeModel(lftData, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
-ip.addParamValue('Mode', 'PDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
+ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
 ip.addParamValue('NumP', 3, @(x) all(ismember(x, 1:4)));
 ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('PlotCDF', false, @islogical);
 ip.addParamValue('Display', true, @islogical);
-ip.addParamValue('JackKnife', true, @islogical);
+ip.addParamValue('Verbose', false, @islogical);
+ip.addParamValue('JackKnife', false, @islogical);
 % ip.addParamValue('ShowInset', false, @islogical);
 ip.addParamValue('EndIdx', find(lftData.meanHist~=0, 1, 'last'));
 ip.parse(lftData, varargin{:});
@@ -48,20 +49,55 @@ endIdx = ip.Results.EndIdx;
 t = lftData.t(1:endIdx);
 dt = t(2)-t(1);
 
-lftHist = lftData.meanHist(1:endIdx);
-lftHist = lftHist/sum(lftHist)/dt;
-% lftECDF = cumsum(lftHist)*dt;
-lftECDF = lftData.meanECDF(1:endIdx);
-
+lftECDF = cumsum(lftData.meanHist)*dt;
+lftECDF = lftECDF(1:endIdx);
 a = lftECDF(1);
 lftECDF = (lftECDF-a)/(1-a);
+
+lftHist = lftData.meanHist(1:endIdx);
+lftHist = lftHist/sum(lftHist)/dt;
+
+
+%===================================================
+% Weights for weighted least-squares fit
+%===================================================
+switch ip.Results.Mode
+    case 'PDF'
+        W = 1./std(vertcat(lftData.lftHist{:}));
+        W = W(1:endIdx);
+    case 'CDF'
+        
+        lftECDF_all = cumsum(vertcat(lftData.lftHist{:}), 2);
+        lftECDF_all = lftECDF_all(:,1:endIdx);
+        A = lftECDF_all(:,1);
+        for i = 1:numel(A)
+            lftECDF_all(i,:) = (lftECDF_all(i,:)-A(i))/(1-A(i));
+        end
+        W = std(lftECDF_all);
+        % Wx = (1/norminv(0.75) * mad(lftECDF_all, 1, 1)).^2;
+        
+        W(W==0) = min(W(W~=0));
+        W = 1./W; % weight: 1/sigma^2 -> 1/sigma for lsqnonlin
+end
+
+if ip.Results.PlotAll
+    fset = loadFigureSettings();
+
+    figure;
+    hold on;
+    plot(t, W, 'r-', 'LineWidth', 1.5);
+    set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:}, 'XLim', [t(1) t(end)]);
+    xlabel('t', fset.lfont{:});
+    ylabel('W(t)', fset.lfont{:});
+end
+
 
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e5, ...
     'MaxIter', 1e5, ...
     'Display', 'off', ...
-    'TolX', 1e-8, ...
-    'Tolfun', 1e-8);
+    'TolX', 1e-12, ...
+    'Tolfun', 1e-12);
 
 dti = dt/10;
 t_fine = 0:dti:t(end);
@@ -79,16 +115,15 @@ for i = ip.Results.NumP
     ns = i*2;
     
     % Intializations & bounds
-    S0 = [1 zeros(1,ns-1)];
     switch i
         case 1
             k0 = 0.01;
         case 2
             k0 = [0.2 0.2 0.05];
         case 3
-            k0 = [0.2 0.2 0.05 0.01 0.02];
-            %k0 = [0.5935    0.2466    0.0947    0.1129    0.0331];
-            %k0 = 0.01 * ones(1,ns-1);
+            %k0 = [0.2 0.2 0.05 0.01 0.02];
+            k0 = [0.5 0.25 0.1 0.1 0.03];
+            %k0 = 0.1 * ones(1,ns-1);
         case 4
             %k0 = [0.2 0.2 0.05 0.01 0.02 0.01 0.02];
             k0 = 0.02 * ones(1,ns-1);
@@ -98,11 +133,45 @@ for i = ip.Results.NumP
     
     switch ip.Results.Mode
         case 'PDF'
-            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPDF, k0, lb, ub, opts, t, lftHist, S0, i);
+            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costPDF, k0, lb, ub, opts, t, lftHist, i, W);
+%             k = fminsearch(@costPDFmedian, k0, opts, t, lftHist, i);
+%           
+%             %opts.('Algorithm') = 'levenberg-marquardt';
+%             %opts.('LargeScale') = 'off';
+%             %[k, fval, exitflag, output, grad, hessian] = fminunc(@(x) costPDFmedian(x, t, lftHist, i), k0, opts);
+%         
+%             %opts.('Algorithm') = 'sqp';
+%             %[k,fval,exitflag,output,lambda,grad] = fmincon(@(x) costPDFmedian(x, t, lftHist, i), k0, [], [], [], [], lb, ub, [], opts)
+%             
+%             residual = costPDF(k, t, lftHist, i);
+%             resnorm = sum(residual.^2);
+%             
+%             h = 2*sqrt(eps); % assuming that f''(x) ~ 1
+%             nk = numel(k);
+%             J = zeros(numel(t), nk);
+%             for ki = 1:nk
+%                 kp = k;
+%                 kp(ki) = kp(ki)+h;
+%                 J(:,ki) = (computePDF(kp, t, i) - computePDF(k, t, i))/h;
+%             end
         case 'CDF'
-            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, S0, i);
+            [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, i, W);
+            
+%             [k fval] = fminsearch(@costCDFmedian, k0, opts, t, lftECDF, i);
+%             fval
+%             residual = costCDF(k, t, lftECDF, i);
+%             resnorm = sum(residual.^2);
+%             
+%             h = 2*sqrt(eps); % assuming that f''(x) ~ 1
+%             nk = numel(k);
+%             J = zeros(numel(t), nk);
+%             for ki = 1:nk
+%                 kp = k;
+%                 kp(ki) = kp(ki)+h;
+%                 J(:,ki) = (computeCDF(kp, t, i) - computeCDF(k, t, i))/h;
+%             end
     end
-   
+    %k
     % BIC and correlation matrix
     J = full(J);
     C = resnorm/(n-numel(k)-1)*inv(J'*J);
@@ -134,10 +203,10 @@ if ip.Results.JackKnife
         jkMean = mean(M(setdiff(1:N,i),:), 1);
         switch ip.Results.Mode
             case 'PDF'
-                k_jk{i} = lsqnonlin(@costPDF, k0, lb, ub, opts, t, jkMean, S0, np);
+                k_jk{i} = lsqnonlin(@costPDF, k0, lb, ub, opts, t, jkMean, np);
             case 'CDF'
                 jkECDF = cumsum(jkMean)*dt;
-                k_jk{i} = lsqnonlin(@costCDF, k0, lb, ub, opts, t, jkECDF, S0, np);
+                k_jk{i} = lsqnonlin(@costCDF, k0, lb, ub, opts, t, jkECDF, np);
         end
     end
     k_jk = vertcat(k_jk{:});
@@ -145,38 +214,42 @@ if ip.Results.JackKnife
 else
     k_std = res.k_pstd{np};
 end
-% k = res.k{np};
-
 
 % Intializations & bounds
 ns = np*2;
 S0 = [1 zeros(1,ns-1)];
 
-hf = str2func(['pop' num2str(np) 'Model']);
-[t_ode, Y] = ode45(@(t,y) hf(t, y, res.k{np}), [0 t(end)], S0);
+sol = ode45(@(t,y) getStateMatrix(np, res.k{np})*y, [0 t(end)], S0);
+Y = deval(sol, t_fine);
+% A = getStateMatrix(np, res.k{np});
+% ev = eig(A)
 
-% interpolate result over full time vector
-popPDF = zeros(np,numel(t_fine));
-Y = interp1(t_ode, Y, t_fine);
+if ip.Results.Verbose
+    for i = 1:numel(res.k{np})
+        fprintf('k%d = %.4f, ', i, res.k{np}(i))
+    end
+    fprintf('\b\b\n');
+end
 
 % normalize subpopulation PDFs, weigh by output
+popPDF = zeros(np,numel(t_fine));
 for i = 1:np
-    p = Y(:,2*i-1);
-    popPDF(i,:) = p/sum(p)/dti * Y(end,2*i);
+    p = Y(2*i-1,:);
+    popPDF(i,:) = p/sum(p)/dti * Y(2*i,end);
 end
 pdf = sum(popPDF, 1);
 
-popCDF = Y(:,2:2:end)';
+popCDF = Y(2:2:end,:);
 cdf = sum(popCDF,1);
 a = interp1(t_fine, cdf, t(1));
 
 % Compute population percentiles, mean, and contribution
-pECDF = arrayfun(@(i) Y(:,i)/Y(end,i), 2:2:ns, 'UniformOutput', false);
+pECDF = arrayfun(@(i) Y(i,:)/Y(i,end), 2:2:ns, 'UniformOutput', false);
 for i = 1:np
     [u, uidx] = unique(pECDF{i});
     res.pPercentiles{i} = interp1(u, t_fine(uidx), [0.05 0.25 0.5 0.75 0.95]);
 end
-res.pA = Y(end,2:2:end);
+res.pA = Y(2:2:end,end)';
 res.pMean = arrayfun(@(i) sum(t_fine.*popPDF(i,:)*dti) / sum(popPDF(i,:)*dti), 1:np);
 
 res.np = np;
@@ -189,6 +262,7 @@ res.cdf = cdf;
 res.popCDF = popCDF;
 res.k_std = k_std;
 res.lftHist = lftHist;
+res.lftECDF = lftECDF;
 
 if ip.Results.Display
     plotLifetimeModel(res, 'PlotAll', ip.Results.PlotAll, 'PlotCDF', ip.Results.PlotCDF);
@@ -196,22 +270,23 @@ end
 
 
 
-% M: model #
-function v = costPDF(kVect, t, lftHist, S0, M)
-hf = str2func(['pop' num2str(M) 'Model']);
-[t_ode, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
+function pdf = computePDF(kVect, t, M)
+
+% Intializations & bounds
+S0 = [1 zeros(1,2*M-1)];
 
 % interpolate result over full time vector
 dt = t(2)-t(1);
 t_full = 0:dt:t(end);
 
-popPDF = zeros(M,numel(t_full));
-Y = interp1(t_ode, Y, t_full);
+sol = ode45(@(t,y) getStateMatrix(M,kVect)*y, [0 t(end)], S0);
+Y = deval(sol, t_full); %[Y, dY]
 
 % normalize subpopulation PDFs, weigh by output
+popPDF = zeros(M,numel(t_full));
 for k = 1:M
-    p = Y(:,2*k-1);
-    popPDF(k,:) = p/sum(p)/dt * Y(end,2*k);
+    p = Y(2*k-1,:);
+    popPDF(k,:) = p/sum(p)/dt * Y(2*k,end);
 end
 pdf = sum(popPDF, 1);
 
@@ -220,85 +295,42 @@ pdf = interp1(t_full, pdf, t);
 n = sum(pdf)*dt;
 pdf = pdf/n;
 
-v = pdf - lftHist;
+function v = costPDF(kVect, t, lftHist, M, W)
+if nargin<5
+    W = ones(size(lftHist));
+end
+v = computePDF(kVect, t, M) - lftHist;
+v = v.*W;
+
+% function v = costPDFmedian(kVect, t, lftHist, M)
+% v = costPDF(kVect, t, lftHist, M);
+% v = median(v.^2);
 
 
 
-function v = costCDF(kVect, t, lftECDF, S0, M)
-hf = str2func(['pop' num2str(M) 'Model']);
-[t_ode, Y] = ode45(@(t,y) hf(t, y, kVect), [0 t(end)], S0);
+function cdf = computeCDF(kVect, t, M)
+S0 = [1 zeros(1,2*M-1)];
 
-% interpolate ODE output to input grid
-CDF = interp1(t_ode, sum(Y(:,2:2:end),2), t);
+sol = ode45(@(t,y) getStateMatrix(M,kVect)*y, [0 t(end)], S0);
+Y = deval(sol, t);
+cdf = sum(Y(2:2:end,:),1);
 
 % normalize to [0..1]
-T = CDF(1);
-CDF = (CDF-T)/(1-T);
+T = cdf(1);
+cdf = (cdf-T)/(1-T);
 
-v = CDF - lftECDF;
-
-
-
-
-% Model:
-%       k1
-%    S1 --> S2
-function dy = pop1Model(~, y, k)
-N = numel(y);
-dy = zeros(N,1);
-dy(1) = -k(1)*y(1);
-dy(2) = k(1)*y(1);
+function v = costCDF(kVect, t, lftECDF, M, W)
+if nargin<5
+    W = ones(size(lftHist));
+end
+v = computeCDF(kVect, t, M) - lftECDF;
+v = v.*W;
 
 
-% Model:
-%       k2     k3
-%    S1 --> S3 --> S4
-% k1 |
-%    v
-%    S2
-function dy = pop2Model(~, y, k)
-N = numel(y);
-dy = zeros(N,1);
-dy(1) = -(k(1)+k(2))*y(1);
-dy(2) = k(1)*y(1);
-dy(3) = -k(3)*y(3) + k(2)*y(1);
-dy(4) = k(3)*y(3);
+% function v = costCDFmedian(kVect, t, lftECDF, M)
+% v = costCDF(kVect, t, lftECDF, M);
+% v = median(v.^2);
 
-
-% Model:
-%       k2     k4     k5
-%    S1 --> S3 --> S5 --> S6
-% k1 |   k3 |
-%    v      v
-%    S2     S4
-function dy = pop3Model(~, y, k)
-N = numel(y);
-dy = zeros(N,1);
-dy(1) = -(k(1)+k(2))*y(1);
-dy(2) = k(1)*y(1);
-dy(3) = -(k(3)+k(4))*y(3) + k(2)*y(1);
-dy(4) = k(3)*y(3);
-dy(5) = -k(5)*y(5) + k(4)*y(3);
-dy(6) = k(5)*y(5);
-
-
-% Model:
-%       k2     k4     k6     k7
-%    S1 --> S3 --> S5 --> S7 --> S8
-% k1 |   k3 |   k5 |
-%    v      v      V
-%    S2     S4     S6
-function dy = pop4Model(~, y, k)
-N = numel(y);
-dy = zeros(N,1);
-dy(1) = -(k(1)+k(2))*y(1);
-dy(2) = k(1)*y(1);
-dy(3) = -(k(3)+k(4))*y(3) + k(2)*y(1);
-dy(4) = k(3)*y(3);
-dy(5) = -(k(5)+k(6))*y(5) + k(4)*y(3);
-dy(6) = k(5)*y(5);
-dy(7) = -k(7)*y(7) + k(6)*y(5);
-dy(8) = k(7)*y(7);
 
 
 function K = corrFromC(C)
