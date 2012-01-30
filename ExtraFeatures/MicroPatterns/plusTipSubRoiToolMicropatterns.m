@@ -6,25 +6,6 @@ function plusTipSubRoiToolMicropatterns(projList,selectType,distUnits,distVal,ti
 % Crazy Dirty Code for Generating SubRois, Segregating Stats, and Performing Analysis for Mijungs Micropatterns 
 % MB 04-2011 (NOTE super inefficient but gets the job done) 
 %% PARAMETERS
-%
-% Copyright (C) 2011 LCCB 
-%
-% This file is part of plusTipTracker.
-% 
-% plusTipTracker is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% plusTipTracker is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
 
 % Choose H or Y Pattern 
 % HPattern = 0 is YPattern (ie Default is YPattern)
