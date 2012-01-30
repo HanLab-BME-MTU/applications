@@ -58,6 +58,7 @@ end
 %     k = 1;
 % end
 
+ns = sqrt(mean(lftData.nSamples)/2);
 k = 0;
 isnormal = 0;
 while k<=2 && ~all(isnormal)
@@ -68,8 +69,28 @@ while k<=2 && ~all(isnormal)
     isnormal = NaN(1,k);
     for c = 1:k
         dstr = D(idx==c);
-        dstr = (dstr-mean(dstr))/std(dstr);
-        [hval] = kstest(dstr,[], 0.1);
+        
+        [f_ecdf, t_ecdf] = ecdf(ns*dstr);
+        
+        % Kolmogorov CDF
+        ni = 50;
+        i = 1:ni;
+        nx = numel(t_ecdf);
+        xM = repmat(t_ecdf', [ni 1]);
+        iM = repmat(i(:), [1 nx]);        
+        M = exp(-(2*iM-1).^2*pi^2./(8*xM.^2))*sqrt(2*pi)./xM;
+        F = sum(M,1);
+        
+        D_ks = max(abs(F-f_ecdf')); % test statistic
+        
+        pval = qks((sqrt(ns) + 0.12 + 0.11/sqrt(ns))*D_ks);
+        hval = pval < 0.05;
+        
+        % test for normality (usually when numel(dstr) is small (<10))
+        if hval==1
+            dstr = (dstr-mean(dstr))/std(dstr);
+            [hval] = kstest(dstr,[], 0.1);
+        end
         %if numel(dstr)>5
         %    hval = adtest(dstr);
         %else
@@ -153,7 +174,7 @@ for k = 1:nset
     outlierIdx{k} = zeros(1,N);
     for i = 1:N
         tmp = ecdfMat(sets{k}(i),:) > ub{k} | ecdfMat(sets{k}(i),:) < lb{k};
-        outlierIdx{k}(i) =  sum(tmp)/numel(tmp) > 0.025;
+        outlierIdx{k}(i) =  sum(tmp)/numel(tmp) > 0.05;
     end
     outlierIdx{k} = find(outlierIdx{k});
     inlierIdx{k} = setdiff(1:N, outlierIdx{k});
@@ -228,4 +249,20 @@ for k = 1:nset
         end
     end
     lftDataOut(k).meanHist = mean(vertcat(lftDataOut(k).lftHist{:}),1);
+end
+
+
+
+function q = qks(z)
+% if z < 0.0
+%     error('z value for KS dist. must be positive.');
+% end
+if z == 0.0
+    q = 1.0;
+elseif z < 1.8
+    y = exp(-pi^2/(8*z^2));
+    q = 1.0 - sqrt(2*pi) / z * (y + y^9 + y^25 + y^49);
+else
+    x = exp(-2*z^2);
+    q = 2.0*(x - x^4 - x^9);
 end
