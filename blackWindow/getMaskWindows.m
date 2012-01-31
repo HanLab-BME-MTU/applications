@@ -597,11 +597,18 @@ for i = 1:nStart
         if any(sOnBound)            
             tmp(sOnBound) = gradientDescent(double(distX),... 
                                              tmpStartsA(1,:),tmpStartsA(2,:));
+            %This descent may terminate at the image border... So we mark
+            %the start point as part of a quick-and-dirty fix...
+            didTerm = cellfun(@isempty,tmp(sOnBound));
+            didTerm2 = cellfun(@isempty,tmp) & sOnBound;
+            tmp(didTerm2) = mat2cell(tmpStartsA(:,didTerm)',ones(1,nnz(didTerm)),2);
         end
         %Transpose and reverse these...
         tmp = cellfun(@(x)(x(end:-1:1,:)'),tmp,'UniformOutput',false);
-        %... and add them to the slices
-        slices{i} = arrayfun(@(x)([tmp{x}(:,1:end-1) slices{i}{x}]),1:length(tmp),'UniformOutput',false);                
+        %... and add them to the slices, excluding the duplicated point if
+        %present
+        nAddedPts = cellfun(@(x)(max(size(x,2)-1,1)),tmp);
+        slices{i} = arrayfun(@(x)([tmp{x}(:,1:nAddedPts(x)) slices{i}{x}]),1:length(tmp),'UniformOutput',false);
     end
 end
 
