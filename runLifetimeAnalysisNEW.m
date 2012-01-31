@@ -46,8 +46,8 @@ for k = 1:nd
     
     % Pad with trailing zeros
     if N<Nmax
-        lftHist = [lftHist zeros(1,Nmax-N)];
-        lftHist_ms = [lftHist_ms zeros(1,Nmax-N)];
+        lftHist = [lftHist zeros(1,Nmax-N)]; %#ok<AGROW>
+        lftHist_ms = [lftHist_ms zeros(1,Nmax-N)]; %#ok<AGROW>
     end
     
     % Exclude short tracks from histogram
@@ -63,9 +63,9 @@ for k = 1:nd
     res.lftHist_ms{k} = lftHist_ms;
     
     % Empirical cumulative distribution
-    [f_ecdf, t_ecdf] = ecdf(data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1));
-    res.t_ecdf{k} = t_ecdf(2:end);
-    res.f_ecdf{k} = f_ecdf(2:end);
+    samples = data(k).lifetimes_s([tracks.nSeg]==1 & [tracks.status]==1);
+    res.samples{k} = samples;
+    res.nSamples(k) = numel(samples);
     
     % birth/death statistics
     starts = [tracks.start];
@@ -189,14 +189,6 @@ for k = 1:nd
 end
 
 
-% cumulative
-%t_meanCDF = unique(vertcat(res.t_ecdf{:}));
-
-% interpolate all ECDFs to common timepoints
-%res.interpCDF = arrayfun(@(i) interp1(res.t_ecdf{i}, res.f_ecdf{i}, t_meanCDF), 1:nd, 'UniformOutput', false);
-%res.meanCDF = mean([res.interpCDF{:}], 2);
-%res.t_meanCDF = t_meanCDF;
-
 %-------------------------
 % Mean histogram
 %-------------------------
@@ -207,19 +199,8 @@ histSEM = std(M,[],1) / sqrt(length(data));
 
 res.t = t_hist;
 res.meanHist = meanHist;
-res.meanHist_ms = mean(vertcat(res.lftHist_ms{:}),1);
-res.SEM = histSEM;
-res.mean = arrayfun(@(i) sum(res.lftHist{i}.*res.t*data(i).framerate), 1:nd);
-
-% CDF
-res.meanECDF = cumsum(meanHist)*framerate;
-res.ECDF = cellfun(@(i) cumsum(i)*framerate, res.lftHist, 'UniformOutput', false);
-
-
-
-
-[~,~,expFit] = fitExp(res.t, res.meanHist, [1/sum(res.meanHist.*res.t*data(1).framerate) max(res.meanHist) 0], 'kA', '-');
-res.expFit = expFit;
+res.source = {data.source};
+meanHist_ms = mean(vertcat(res.lftHist_ms{:}),1);
 
 
 % if strcmpi(ip.Results.Display, 'on')
@@ -284,17 +265,16 @@ res.expFit = expFit;
     fill([t_hist t_hist(end:-1:1)], [meanHist-histSEM meanHist(end:-1:1)+histSEM(end:-1:1)],...
         [1 1 1]*0.7, 'EdgeColor', 'none');
     
-    ha(2) = plot(t_hist, res.meanHist_ms, '.-', 'Color', 0.8*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 16);
+    ha(2) = plot(t_hist, meanHist_ms, '.-', 'Color', 0.8*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 16);
     ha(1) = plot(t_hist, meanHist, 'k.-', 'LineWidth', 1.5, 'MarkerSize', 16);
     
-    ha(3) = plot(t_hist, expFit, 'r--', 'LineWidth', 1.5);
     
     axis([0 min(300,t(end)) 0 0.05]);
     set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top');    
     xlabel('Lifetime (s)', lfont{:});
     ylabel('Frequency', lfont{:});
     
-    hl = legend(ha, 'Valid tracks', 'M/S tracks', 'Exp. fit', 'Location', 'SouthEast');
+    hl = legend(ha, 'Valid tracks', 'M/S tracks', 'Location', 'SouthEast');
     pos = get(hl, 'Position');
     pos(2) = 1.5*pos(2);
     set(hl, 'Position', pos);
@@ -310,7 +290,6 @@ res.expFit = expFit;
         'XLabels', {'valid', 'invalid', 'merge/split', 'persistent', 'cut'}, 'YLabel', '% tracks',...
         'BarWidth', 0.8, 'FaceColor', 0.8*[1 1 1], 'EdgeColor', 0.6*[1 1 1],...
         'Handle', hi, 'AdjustFigure', false, 'LabelFontSize', 16, 'AxisFontSize', 14);
-    %set(hi, 'YTick', 0:200:1000);
     set(hi, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(t) num2str(t, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
     
     
@@ -334,7 +313,7 @@ res.expFit = expFit;
         if numel(fpath)>1
             fprintf('Figures could not be printed.');
         else
-            fpath = [fpath{1} 'Figures' filesep]
+            fpath = [fpath{1} 'Figures' filesep];
             [~,~] = mkdir(fpath);
             print(hf(1), '-depsc2', [fpath 'lifetimeHist.eps']);
             print(hf(2), '-depsc2', [fpath 'gapStatistics.eps']);
