@@ -24,17 +24,17 @@ end
 
 
 %============================================
-% Plot with random colors
+% Plot raw distributions
 %============================================
-% figure; hold on;
-% fset = loadFigureSettings();
-% % set(gca, 'ColorOrder', C);
-% plot(t, ecdfMat', 'k', 'LineWidth', 1);
-% axis([0 100 0 1]);
-% set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
-%     'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
-% xlabel('Time (s)');
-% ylabel('F(t)');
+figure; hold on;
+fset = loadFigureSettings();
+% set(gca, 'ColorOrder', C);
+plot(t, ecdfMat', 'k', 'LineWidth', 1);
+axis([0 100 0 1.01]);
+set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
+    'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
+xlabel('Time (s)');
+ylabel('F(t)');
 
 
 cmb = pcombs(1:N);
@@ -214,7 +214,7 @@ if ip.Results.Display
         hp(1) = hx(1);
         hp(3) = plot(t, medianECDF{k}, 'k--', 'LineWidth', 1.5);
     end
-    axis([0 100 0 1]);
+    axis([0 100 0 1.01]);
     set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
         'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
     xlabel('Time (s)');
