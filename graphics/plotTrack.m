@@ -9,9 +9,9 @@
 %                      'Handle' : h, axis handle (for plotting from within GUI)
 %                      'Print' : 'on' | {'off'} generates an EPS in 'data.source/Figures/'
 
-% Francois Aguet, March 9 2011 (Last modified: 09/22/2011)
+% Francois Aguet, March 9 2011 (Last modified: 01/31/2012)
 
-function plotTrack(data, track, ch, varargin)
+function plotTrack(data, track, varargin)
 
 %======================================
 % Parse inputs, set defaults
@@ -20,7 +20,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
-ip.addRequired('ch', @isnumeric);
+ip.addOptional('ch', [], @isnumeric);
 ip.addParamValue('Visible', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('FileName', [], @ischar);
 ip.addParamValue('Handle', []);
@@ -29,12 +29,14 @@ ip.addParamValue('Segment', 1, @isscalar);
 ip.addParamValue('Background', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('BackgroundValue', 'zero', @(x) any(strcmpi(x, {'zero', 'data'})));
 ip.addParamValue('Hues', []);
-ip.addParamValue('Time', 'Movie', @(x) any(strcmpi(x, {'Movie', 'Track'})));
+ip.addParamValue('Time', 'Track', @(x) any(strcmpi(x, {'Movie', 'Track'})));
 ip.addParamValue('XTick', []);
 ip.addParamValue('YTick', []);
 ip.addParamValue('XLim', []);
+% ip.addParamValue('Scale', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('DisplayMode', 'Screen', @(x) any(strcmpi(x, {'Print', 'Screen'})));
-ip.parse(data, track, ch, varargin{:});
+ip.addParamValue('OverlayBackground', false, @islogical);
+ip.parse(data, track, varargin{:});
 
 s = ip.Results.Segment;
 hues = ip.Results.Hues;
@@ -43,14 +45,9 @@ if isempty(hues)
 end
 
 mCh = find(strcmp(data.channels, data.source));
-
-if ~isempty(ip.Results.Handle)
-    ha = ip.Results.Handle;
-    standalone = false;
-else
-    hfig = figure('Visible', ip.Results.Visible);
-    ha = axes('Position', [0.15 0.15 0.8 0.8]);
-    standalone = true;
+ch = ip.Results.ch;
+if isempty(ch)
+    ch = mCh;
 end
 
 if strcmpi(ip.Results.Time, 'Track')
@@ -59,11 +56,40 @@ else
     dt = 0;
 end
 
+% Flags
+hasStartBuffer = isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s});
+hasEndBuffer = isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s});
 
+XLim = ip.Results.XLim;
+
+b0 = 2*data.framerate;
+if hasStartBuffer && hasEndBuffer
+    bf = max(numel(track.startBuffer.t{1}), numel(track.endBuffer.t{1}));
+else
+    bf = 0;
+end
+bt = track.end-track.start; % #frames - 1
+
+w = 2*b0+2*bf+bt;
+u = 10;
+if isempty(XLim)
+    XLim = track.t{1}(1)-dt + [-(bf+b0) bt+bf+b0]*data.framerate;
+end
+
+
+% Setup figure window
+if ~isempty(ip.Results.Handle)
+    ha = ip.Results.Handle;
+else
+    hfig = figure('Visible', ip.Results.Visible, 'Position', [440 378 85+w*u+20 400], 'PaperPositionMode', 'auto');
+    ha = axes('Units', 'pixels', 'Position', [85 70 w*u 300]);
+end
+
+
+% Color definitions
 trackColor = hsv2rgb([hues(ch) 1 0.8]);
 fillLight = hsv2rgb([hues(ch) 0.4 1]);
 fillDark = hsv2rgb([hues(ch) 0.2 1]);
-
 fillLightBuffer = hsv2rgb([hues(ch) 0.4 0.85]);
 fillDarkBuffer = hsv2rgb([hues(ch) 0.2 0.85]);
 
@@ -75,7 +101,7 @@ kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
 
 
 % Plot track
-lh = NaN(1,9);
+lh = NaN(1,15);
 
 for s = 1:track.nSeg
     
@@ -129,10 +155,13 @@ for s = 1:track.nSeg
     if strcmpi(ip.Results.Background, 'on')
         lh(6) = plot(ha, t, c, '-', 'Color', trackColor);
     end    
+    if ip.Results.OverlayBackground
+        lh(13) = plot(ha, t, c+kLevel*sigma_r, '-', 'Color', trackColor);
+    end
 end
 
 % Plot start buffer
-if isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s})
+if hasStartBuffer
     A = [track.startBuffer.A{s}(ch,:) track.A{s}(ch,1)];
     c = [track.startBuffer.c{s}(ch,:) track.c{s}(ch,1)]-bgcorr;
     
@@ -153,10 +182,13 @@ if isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s})
     if strcmpi(ip.Results.Background, 'on')
         lh(8) = plot(ha, t, c, '--', 'Color', trackColor);
     end
+    if ip.Results.OverlayBackground
+        lh(14) = plot(ha, t, c+kLevel*sigma_r, '--', 'Color', trackColor);
+    end
 end
 
 % Plot end buffer
-if isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s})
+if hasEndBuffer
     A = [track.A{s}(ch,end) track.endBuffer.A{s}(ch,:)];
     c = [track.c{s}(ch,end) track.endBuffer.c{s}(ch,:)]-bgcorr;
     
@@ -177,52 +209,38 @@ if isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s})
     if strcmpi(ip.Results.Background, 'on')
         lh(10) = plot(ha, t, c, '--', 'Color', trackColor);
     end
+    if ip.Results.OverlayBackground
+        lh(15) = plot(ha, t, c+kLevel*sigma_r, '--', 'Color', trackColor);
+    end
 end
+
+
+
 
 
 % legend
 if strcmpi(ip.Results.Legend, 'show')
     lh(11) = plot(-20:-10, rand(1,11), 'o--', 'MarkerSize', 7, 'LineWidth', 2, 'Color', trackColor, 'MarkerFaceColor', 'w');
-    %l = legend(lh([2 5 1]), ['Amplitude ch. ' num2str(ch)], ['Background ch. ' num2str(ch)], '\alpha = 0.95 level', 'Location', 'NorthEast');
     l = legend(lh([3 2 11 6 1 12 8]), 'Intensity', 'Intensity uncertainty', 'Gap', 'Background intensity', 'Significance level (\alpha = 0.95)', 'Buffer', 'Buffer intensity', 'Location', 'NorthEast');
-    %legend(l, ip.Results.Legend);
 end
-
-
-% set bounding box
-if isfield(track, 'startBuffer') && ~isempty(track.startBuffer)
-    bStart = size(track.startBuffer.A{s},2);
-else
-    bStart = 0;
-end
-if isfield(track, 'endBuffer') && ~isempty(track.endBuffer)
-    bEnd = size(track.endBuffer.A{s},2);
-else
-    bEnd = 0;
-end
-tlength = track.end+bEnd - track.start-bStart + 1;
 
 
 
 if ~isempty(ip.Results.XTick)
     XTick = ip.Results.XTick;
-    set(ha, 'XTick', XTick, 'XLim', [XTick(1) XTick(end)]);
+    set(ha, 'XTick', XTick);
 end
-if ~isempty(ip.Results.XLim)
-    set(ha, 'XLim', ip.Results.XLim);
-end
+set(ha, 'XLim', XLim);
 
 if ~isempty(ip.Results.YTick)
     YTick = ip.Results.YTick;
     YLim = [YTick(1) YTick(end)];
     YTick(YTick<0) = [];
-    set(ha, 'YTick', YTick, 'YLim', YLim);
+    set(ha, 'YTick', YTick, 'YLim', YLim, 'Layer', 'top');
 else
     YTick = get(ha, 'YTick');
     YTick(YTick<0) = [];
     set(ha, 'YTick', YTick, 'Layer', 'top');
-    % set(ha, 'XLim', ([track.start-bStart-0.1*tlength track.end+bEnd+0.1*tlength]-1)*data.framerate);
-
 end
 
 
@@ -231,7 +249,7 @@ box off;
 
 
 % Bigger fonts, line widths etc
-if standalone
+if isempty(ip.Results.Handle)
     tfont = {'FontName', 'Helvetica', 'FontSize', 20};
     sfont = {'FontName', 'Helvetica', 'FontSize', 20};
     lfont = {'FontName', 'Helvetica', 'FontSize', 24};
@@ -246,7 +264,7 @@ if standalone
 end
 
 if strcmpi(ip.Results.DisplayMode, 'Print')
-    for k = lh([3 4 6 7:10])
+    for k = lh([3 4 6 7:10 13:15])
         if ~isnan(k)
             set(k, 'LineWidth', 2);
         end
