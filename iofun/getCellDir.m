@@ -5,10 +5,8 @@ sParent = getParentDir(data.source);
 
 v = strcmp(sParent, chParents);
 
-if all(v) % all channels at same level
-    cellDir = sParent;
-elseif sum(v)==1
+if numel(data.channels)==1 || ~all(v)
     cellDir = data.source;
-else
-    error('Incompatible data structure.');
+else % all channels at same level, below 'source'
+    cellDir = sParent;
 end
