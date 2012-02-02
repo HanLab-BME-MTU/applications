@@ -72,7 +72,7 @@ ngcBinsPerMov = nan(nMovies,1);
 ndpcBinsPerMov = nan(nMovies,1);
 
 physUnits = false(nMovies,1);
-timIntPerMov = nan(nMovies,1);
+%timIntPerMov = nan(nMovies,1);
 
 gcFigPM = zeros(nMovies,1);%gauss curv fig handles per movie
 mcFigPM = zeros(nMovies,1);%mean curv fig handles per movie
@@ -100,7 +100,7 @@ for iMov = 1:nMovies
         hasMG(iMov) = true;
         nFramesPerMov(iMov) = MA(iMov).nFrames_;                
         pixSizePerMov(iMov) = MA(iMov).pixelSize_;
-        timeIntPerMov(iMov) = MA(iMov).timeInterval_;
+        %timeIntPerMov(iMov) = MA(iMov).timeInterval_;
         
         %Set up the curvature histogram bins for this movie based on the
         %pixel size - no object can have higher curvature than a single
@@ -227,8 +227,8 @@ end
 compFig = figure;
 hold on
 movColors = jet(nMovies);
-
-useFrames = 1:10;
+%TEMP - fix this shit you lazy bastard!!
+useFrames = 1:nanmin(10,nFramesPerMov);
 
 for iMov = 1:nMovies
 

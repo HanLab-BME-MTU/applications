@@ -4,13 +4,14 @@ function image = make3DImageVoxelsSymmetric(image,pixXY,pixZ)
 % image = make3DImageVoxelsSymmetric(image,pixXY,pixZ)
 % 
 % This function scales the input 3D image matrix so that the resulting
-% voxels are symmetric. By symmetric it is meant that the physical
-% dimensions of the voxels in each dimension. This is done based on the
-% input pixel sizes in X-Y and Z. It is assumed that the last dimension of
-% the matrix is the Z axis, and that the pixel sizes in the X and Y
-% directions are equal. The scaling is done in the Z-direction, so that the
-% resulting matrix is the same size in the first two dimensions, but larger
-% in the third dimension.
+% voxels are symmetric, allowing pixel-level calculations (e.g. distance
+% transform) to be calculated correctly. By symmetric it is meant that the
+% physical dimensions of the voxels in each dimension. This is done based
+% on the input pixel sizes in X-Y and Z. It is assumed that the last
+% dimension of the matrix is the Z axis, and that the pixel sizes in the X
+% and Y directions are equal. The scaling is done in the Z-direction, so
+% that the resulting matrix is the same size in the first two dimensions,
+% but larger in the third dimension.
 %   This function is intended to be used to pre-process 3D image data where
 % the spacing between z-planes is not equal to the pixel size in X-Y. The
 % units of the input pixel sizes are unimportant, as only the relative

@@ -166,7 +166,12 @@ for iStep = 1:nSteps
     elseif p.ForceRun(iStep) == 1
         runStep(iStep) = true;    
     end
+    
 end
+
+
+
+
 
 %Process dependencies so that if a step is going to be run, we run all
 %those steps which depend on it.

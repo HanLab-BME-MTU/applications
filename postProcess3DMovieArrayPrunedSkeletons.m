@@ -27,7 +27,9 @@ perMovDirName = 'pruned skeleton post processing';%Directory for saving individu
 %Print options for saving figures to disk
 pOpt = {'-r300',...% dpi = 300
         '-depsc2'};% use eps format
-
+pOptTIFF = {'-r100','-dtiff'};%150 dpi for TIF format since this is usally just used for emailing to Bob!
+    
+    
 %% ------------- Input ------------ %%
 
 
@@ -37,7 +39,7 @@ ip.FunctionName = mfilename;
 ip.addRequired('MA',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('ChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
-ip.addParamValue('OutputDirectory',[],(@(x)(exist(x,'dir'))));
+ip.addParamValue('OutputDirectory',[],@ischar);%Directory will be created if it doesn't exist
 ip.parse(MA,varargin{:});
 
 p = ip.Results;
@@ -56,7 +58,9 @@ nMovies = numel(MA);
 
 nFramesPerMov = nan(nMovies,1);
 
-
+if ~exist(p.OutputDirectory,'dir')
+    mkdir(p.OutputDirectory)
+end
 
 if ~p.BatchMode
     wtBar = waitbar(0,'Please wait, performing post-processing on each movie...');
@@ -172,6 +176,9 @@ for iMov = 1:nMovies
         
         % ---- Vertex Degree Figure ----- %
         
+        %TEMP - the x limits on this and the rest of the figures need to be
+        %fixed! The auto-selection fucks it up most of the time...
+        
         if p.BatchMode
             vdFigPM(iMov) = figure('Visible','off');
         else
@@ -189,8 +196,10 @@ for iMov = 1:nMovies
         set(gca,'XTickLabel',histBins)
         xlabel('Branch Point Degree')
         ylabel('Count in Each Frame')                
-        print(pOpt{:},[currOutDir filesep 'Branch Degree Distribution.eps']);
-        
+        figName = [currOutDir filesep 'Branch Degree Distribution'];
+        print(pOpt{:},[figName '.eps']);
+        print(pOptTIFF{:},[figName '.tif']);
+        hgsave([figName '.fig'])
         
         % -------- Branch Direction Figure ------ %
         
@@ -243,8 +252,14 @@ for iMov = 1:nMovies
         bar(thetaBins,branchAngHist{iMov}(:,1))        
         plot(avgAng(iMov) * ones(1,2),ylim,'--r')                        
         
+        figName = [currOutDir filesep 'Branch Angle Distribution'];
+        print(pOpt{:},[figName '.eps']);
+        print(pOptTIFF{:},[figName '.tif']);
+        hgsave([figName '.fig'])
         
-        % ----- Tip Path-Length Figure ---- %
+        
+        
+        % ----- Tip Path Figure ---- %
         if p.BatchMode
             tpFigPM(iMov) = figure('Visible','off');
         else
@@ -264,6 +279,12 @@ for iMov = 1:nMovies
         ylabel('Count')
         title('Tip-To-Cell-Body Path Complexity Distribution, All frames')
         
+        figName = [currOutDir filesep 'Tip Path Distributions'];
+        print(pOpt{:},[figName '.eps']);
+        print(pOptTIFF{:},[figName '.tif']);
+        hgsave([figName '.fig'])
+        
+        
     
     else
         warning('MIGRATION3D:ppSkelGraph:noPruning',...
@@ -281,7 +302,11 @@ close(wtBar);
 % ------ Combined (All-Movie) Branch-Point-Degree Data ------- %
 
 combMean = nanmean(meanHist,1);
-combSTD = nanstd(meanHist,1);
+if nMovies > 1
+    combSTD = nanstd(meanHist,1);
+else
+    combSTD = zeros(1,numel(combMean));
+end
 
 if p.BatchMode
     cmFig(iMov) = figure('Visible','off');
@@ -305,9 +330,13 @@ errorbar(combProbDist,combProbSTD,'.r')
 set(gca,'XTickLabel',histBins)
 xlabel('Branch Point Degree')
 ylabel('Average Probability')
-title('Branch point degree probability distribution, all movies')
+title({'Branch point degree probability distribution, all movies',['n=' num2str(nMovies)]})
 
-print(pOpt{:},[p.OutputDirectory filesep 'Combined Branch Degree Distribution.eps']);
+
+figName = [p.OutputDirectory filesep 'Combined Branch Degree Distribution'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
 
 
 % ------------- Combined Branch-Direction Data ------------ %
@@ -323,7 +352,7 @@ bar(phiBins,combPhiHist)
 xlim([-pi/2 pi/2])
 xlabel('Phi, Radians')
 ylabel('Count')
-title({'Unaligned, combined Phi Histogram, all Movies',['Combined Phi STD: ' num2str(stdPhi)]})
+title({'Unaligned, combined Phi Histogram, all Movies',['Combined Phi STD: ' num2str(stdPhi)],['n=' num2str(nMovies)]})
 
 combThetaHist = histc(combAngData(:,1),thetaBins);
 meanTheta = nanmean(combAngData(:,1));
@@ -333,8 +362,12 @@ bar(thetaBins,combThetaHist)
 xlim([-pi pi])
 xlabel('Theta, Radians')
 ylabel('Count')
-title({'Unaligned, combined Theta Histogram, all Movies',['Combined Theta STD: ' num2str(stdTheta)]})
-print(pOpt{:},[p.OutputDirectory filesep 'Combined Branch Angle Distributions.eps']);
+title({'Unaligned, combined Theta Histogram, all Movies',['Combined Theta STD: ' num2str(stdTheta)],['n=' num2str(nMovies)]})
+
+figName = [p.OutputDirectory filesep 'Combined Branch Angle Distributions'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
 
 
 
@@ -363,7 +396,7 @@ subplot(2,1,1)
 bar(combPathLenBins,mean(combPathHist,1))
 hold on
 %errorbar(combPathLenBins,mean(combPathHist,1),std(combPathHist,[],1),'.r')
-title('Combined Tip-To-Body Path-Length Probability Distribution, All Movies')
+title({'Combined Tip-To-Body Path-Length Probability Distribution, All Movies',['n=' num2str(nMovies)]})
 xlabel('Path Length, microns')
 ylabel('Average Probability')
 
@@ -375,8 +408,10 @@ title('Combined Tip-To-Body Path Complexity Probability Distribution, All Movies
 xlabel('Path Complexity, # of Vertices')
 ylabel('Average Probability')
 
-
-
+figName = [p.OutputDirectory filesep 'Combined Tip Path Distributions'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
 
 
 

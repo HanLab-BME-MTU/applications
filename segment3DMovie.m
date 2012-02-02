@@ -91,6 +91,19 @@ function movieData = segment3DMovie(movieData,paramsIn)
 %               (pixels which cannot be reached by filling in from the
 %               image border)
 %
+% Output:
+%
+%   The final (potentially post-processed) masks will be written to a
+%   sub-directory of the output directory called, strangely enough,
+%   "masks". Additionally, pixels added to these masks due to any
+%   post-processing will be written to separate masks in a directory called
+%   "mask_post_processing" this is so that later analysis functions will
+%   have the ability to exclude pixels which were added via
+%   post-processing. Just to be clear, the files in the "masks" directory
+%   ARE post-processed. Those in the "masks_post_processing" directory
+%   contain ONLY the pixels ADDED by post-processing.
+%
+%
 % Hunter Elliott
 % 11/2009
 %
@@ -100,7 +113,9 @@ function movieData = segment3DMovie(movieData,paramsIn)
 maxJump = .25; %The maximum fractional change in a threshold value to allow if the FixJumps option is enabled. %TEMP - allow user-specification
 %gSig = 1; %Sigma of the filter used in the smoothed gradient filter.
 dName = 'masks'; %Name for mask directories
-
+pName = 'mask_post_processing';%Name for directory with post-processing
+maskChan = 1;%Channel which masks are associated with. There is only one mask channel, irrespective of how many image channels were used to create the masks.
+ppChan = 2;%Channel associated with post-processing logging
 
 %% ------ Input ----- %%
 
@@ -133,26 +148,25 @@ end
 
 %% ----- Init -----%%
 
-%Get number of channels to segment
+%Get number of channels to segment. We have only one mask channel, but we
+%may use multiple image channels to produce it.
 nChanSeg = length(p.ChannelIndex);
-
-%Set up mask output paths
-% maskDir = cell(1,nChanSeg);
-% for j = 1:nChanSeg
-%     
-%     maskDir{j} = [p.OutputDirectory filesep dName num2str(p.ChannelIndex(j))];
 maskDir = [p.OutputDirectory filesep dName];
-movieData.processes_{iSegProc}.setOutMaskPath(p.ChannelIndex(1),maskDir);        
+movieData.processes_{iSegProc}.setOutMaskPath(maskChan,maskDir);        
 mkClrDir(maskDir);
-    
-%end
 
-%Create structuring element for post-processing
-if p.PostProcess && p.ClosureRadius > 0
-    closeBall = binarySphere(p.ClosureRadius);
+if nChanSeg > 1
+    imClass = 'uint32';%To allow for values > 2^16-1 in the combined image
+else
+    imClass = 'uint16';
 end
 
-
+if p.PostProcess
+    %create a directory for tracking the effects of post-processing
+    postDir = [p.OutputDirectory filesep pName];
+    movieData.processes_{iSegProc}.setOutMaskPath(ppChan,postDir);
+    mkClrDir(postDir);
+end
 
 %% ---------- Segmentation ----------%%
 %Go through each image in each channel and create a mask
@@ -162,7 +176,7 @@ if ~p.BatchMode
 end
 
 nImages = movieData.nFrames_;
-nImTot = nImages * nChanSeg;
+%nImTot = nImages * nChanSeg;
 
 imNames = movieData.getImageFileNames(p.ChannelIndex);
 imDir = movieData.getChannelPaths(p.ChannelIndex);
@@ -176,12 +190,12 @@ for iImage = 1:nImages
 
     %Load and combine the current image(s)
     for iChan = 1:nChanSeg
-        if iChan == 1
-            currIm = zeros([movieData.imSize_ movieData.nSlices_],'uint16');
+        if iChan == 1            
+            currIm = zeros([movieData.imSize_ movieData.nSlices_],imClass);            
         end
         %Whats the best way to do this? Normalize and then average? How
         %best to normalizE?? This will have to do for now... TEMP HLE
-        currIm = currIm + stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]);                
+        currIm = currIm + cast(stackRead([imDir{iChan} filesep imNames{iChan}{iImage}]),imClass);
     end
 
     %Pre-filter the image if requested
@@ -299,61 +313,15 @@ for iImage = 1:nImages
     % ---- Post-Processing if Requested ----- %
 
     if p.PostProcess     
-
-
-        currMask = postProcess3DMask(currMask,p);
-
-
-%             currMask = bwareaopen(currMask,p.MinVolume);
-%             
-%             currMask = imclose(currMask,closeBall);
-%                     
-%             labelMask = bwlabeln(currMask);
-%             
-%             if p.NumObjects > 0
-%                 rProp = regionprops(labelMask,'Area');
-%                 [goodObj,iGood] = sort([rProp(:).Area],'descend'); %#ok<ASGLU>
-% 
-%                 currMask = false(size(currMask));
-%                 for i = 1:min(p.NumObjects,numel(iGood))
-%                     currMask = currMask | (labelMask == iGood(i));
-%                 end
-%             end
-%                                         
-%             if p.FillHoles > 0 && p.FillHoles < 4
-%                 
-%                 %'Lenient' semi-2D hole filling                
-%                 mFill1 = false(size(currMask));
-%                 mFill2 = false(size(currMask));
-%                 mFill3 = false(size(currMask));                
-%                 for j = 1:size(currMask,1)
-%                     mFill1(j,:,:) = imfill(squeeze(currMask(j,:,:)),'holes');                    
-%                 end
-%                 for j = 1:size(currMask,2)
-%                     mFill2(:,j,:) = imfill(squeeze(currMask(:,j,:)),'holes');                    
-%                 end                    
-%                 for j = 1:size(currMask,3)
-%                     mFill3(:,:,j) = imfill(currMask(:,:,j),'holes');                    
-%                 end   
-%                 %Only fill pixels which were filled in the specified number
-%                 %of dimensions
-%                 currMask = double(mFill1)+double(mFill2)+double(mFill3) >= p.FillHoles;                
-%                 %Follow this with another round of closure
-%                 currMask = imclose(currMask,closeBall);                
-%                     
-%             elseif p.FillHoles == 4
-%                 %Do strict, full-3D hole-filling.
-%                 currMask = imfill(currMask,'holes');                
-%             end
+        ppMask = postProcess3DMask(currMask,p);
+        %Write the pixels ADDED due to post-processing to a separate file
+        %so these may be excluded from later analysis when necessary.
+        stackWrite(ppMask & ~currMask,[postDir filesep 'post_process_added_pixels_' num2str(iImage) '.tif'],'ccitt');
+        currMask = ppMask;
     end
 
-    %We want to compress the masks, so don't use stackWrite.m
-    for i = 1:size(currIm,3)
-        %Append each z-slice to the tiff. This uses matlab default
-        %compression for binary files - bitpacking.
-        imwrite(currMask(:,:,i),[maskDir filesep ...
-        'mask_' num2str(iImage) '.tif'],'tif','WriteMode','append')
-    end
+    %Write to disk, using binary compression to save space.
+    stackWrite(currMask,[maskDir filesep 'mask_' num2str(iImage) '.tif'],'ccitt')    
 
     if ~p.BatchMode
         waitbar(iImage+nImages,wtBar)
