@@ -185,9 +185,6 @@ end
 if get(handles.checkbox_createGroups,'Value')
     autoGrp =get(handles.checkbox_autoGrp,'Value');
     userData.groupList=plusTipPickGroups(autoGrp,[],handles.projList,1);
-    if ~isempty(userData.groupList),
-        userData.groupData=plusTipExtractGroupData(userData.groupList);
-    end
     set(handles.figure1,'UserData',userData);
 end
 guidata(hObject, handles);
@@ -215,12 +212,7 @@ function pushbutton_loadGroup_Callback(hObject, eventdata, handles)
 
 userData=get(handles.figure1,'UserData');
 [userData.groupList]=combineGroupListFiles(0);
-if ~isempty(userData.groupList)
-    userData.groupData=plusTipExtractGroupData(userData.groupList);
-end
-
 set(handles.figure1,'UserData',userData);
-
 
 % --- Executes on button press in pushbutton_analyzeGroups.
 function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
@@ -232,6 +224,10 @@ if isempty(userData.groupList) || isempty(saveDir)
     warndlg('Select a group and an output directory first');
     return
 end
+
+% Load group data
+remBegEnd = get(handles.checkbox_remBegEnd,'Value');
+userData.groupData=plusTipExtractGroupData(userData.groupList,remBegEnd);
 
 % Read common value for statistical tests
 stringency=str2double(get(handles.edit_stringency,'String'));
