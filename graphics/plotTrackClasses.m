@@ -24,5 +24,10 @@ end
 
 fset = loadFigureSettings();
 
-barplot2(v, ip.Results.v_std, 'Handle', ha, 'BarWidth', 1.5, 'GroupDistance', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB,...
+v_std = ip.Results.v_std;
+if all(v_std==0)
+    v_std = [];
+end
+barplot2(v, v_std, 'Handle', ha, 'BarWidth', 1.5, 'GroupDistance', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB,...
     'XLabels', xlabels, 'YTick', 0:0.1:0.8, 'YLim', ip.Results.YLim, 'YLabel', '% tracks');
+set(ha, 'LineWidth', 2);
