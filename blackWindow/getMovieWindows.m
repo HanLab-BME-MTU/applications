@@ -347,7 +347,7 @@ maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(p.ChannelIndex);
 %Go through and load and check all the masks prior to windowing
 disp('Loading and checking all masks...')
 
-maskArray = true([imSize nFrames]);
+maskArray = movieData.getROI;
 for iFrame = 1:nFrames;
     
     %Open and combine masks from the selected channels

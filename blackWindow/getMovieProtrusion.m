@@ -173,10 +173,11 @@ protrusion = cell(nFrames-1,1);
 normals = cell(nFrames-1,1);
 smoothedEdge = cell(nFrames,1);
 
+roiMask=movieData.getROI;
 for iFrame = 1:nFrames        
     
     %Load and combine masks from all channels
-    currMask = true(movieData.imSize_);
+    currMask = roiMask(:,:,iFrame);
     for iChan = 1:nChan    
         currMask = currMask & imread([maskDirs{iChan} filesep maskNames{iChan}{iFrame}]);        
     end
