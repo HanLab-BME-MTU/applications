@@ -32,11 +32,20 @@ projList=temp;
 
 % format imDir and anDir paths for current OS
 nProj=length(projList);
+nProjBeforeRelocatation  = numel(unique({projList.anDir}));
 curDir=pwd;
-temp1=cellfun(@(x) formatPath(projList(x,1).anDir),mat2cell([1:nProj]',ones(nProj,1),1),'uniformOutput',0);
-temp2=cellfun(@(x) formatPath(projList(x,1).imDir),mat2cell([1:nProj]',ones(nProj,1),1),'uniformOutput',0);
+temp1=cellfun(@(x) formatPath(projList(x,1).anDir),mat2cell((1:nProj)',ones(nProj,1),1),'uniformOutput',0);
+temp2=cellfun(@(x) formatPath(projList(x,1).imDir),mat2cell((1:nProj)',ones(nProj,1),1),'uniformOutput',0);
 projList=cell2struct([temp1 temp2],{'anDir','imDir'},2);
 cd(curDir)
+
+% Check number of unique projects is preserved by formatPath
+nProjAfterRelocatation = numel(unique({projList.anDir}));
+assert(isequal(nProjBeforeRelocatation,nProjAfterRelocatation),...
+    ['Found %g unique projects before relocation and %g unique projects after ' ...
+    'relocation. Make sure your starting directory is not too deep.'],...
+    nProjBeforeRelocatation,nProjAfterRelocatation);
+
 
 if saveResult==1
     temp=inputdlg({'Enter file name:'},'',1);
