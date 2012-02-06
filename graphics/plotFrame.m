@@ -13,9 +13,9 @@
 %                      'ScaleBar' : scale | {[]} display scale bar
 %                      'Print' : 'on' | {'off'} generates an EPS in 'data.source/Figures/'
 
-% Francois Aguet, March 16 2011
+% Francois Aguet, March 16 2011 (last modified: 02/06/2012)
 
-function ha = plotFrame(data, trackInfo, frameIdx, ch, varargin)
+function ha = plotFrame(data, tracks, frameIdx, ch, varargin)
 
 %======================================
 % Parse inputs, set defaults
@@ -26,29 +26,8 @@ psize = data.pixelSize/data.M;
 nCh = length(ch);
 mCh = find(strcmp(data.channels, data.source));
 
-% if trackMatrix is a track structure, convert to matrix;
-% this makes selection/visualization of a subset of tracks possible
-if isfield(trackInfo, 'A')
-    tracks = trackInfo;
-    clear('trackInfo');
-    trackInfo.x = catTrackFields(tracks, data.movieLength, 'x', mCh);
-    trackInfo.y = catTrackFields(tracks, data.movieLength, 'y', mCh);
-    [gapMap, segStarts, segEnds, seg2trackIndex, track2segIndex] = catTrackFields(tracks, data.movieLength, 'gapVect', mCh);
-    gapMap = gapMap==1;
-    trackInfo.gapMap = gapMap;
-    trackInfo.segStarts = segStarts;
-    trackInfo.segEnds = segEnds;
-    trackInfo.seg2trackIndex = seg2trackIndex;
-    trackInfo.track2segIndex = track2segIndex;
-    trackInfo.nSeg = [tracks.nSeg];
-    trackInfo.status = [tracks.status];
-    trackInfo.valid = [tracks.valid];
-    trackInfo.lifetimes_f = [tracks.end]-[tracks.start]+1;     
-end
-
-if ~isempty(trackInfo)
-    trackIdx = unique(trackInfo.seg2trackIndex);
-    nt = numel(trackIdx);
+if ~isempty(tracks)
+    nt = numel(tracks);
 else
     nt = 0;
 end
@@ -56,31 +35,33 @@ end
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addRequired('trackMatrix');
+ip.addRequired('tracks');
 ip.addRequired('frameIdx');
 ip.addRequired('ch');
 ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
-ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'projection', 'all'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'random'})));
 ip.addParamValue('ShowEvents', false, @islogical);
-ip.addParamValue('ShowDetection', false, @islogical);
+% ip.addParamValue('ShowDetection', false, @islogical); % add optional load fct?
+ip.addParamValue('Detection', []);
 ip.addParamValue('ShowGaps', true, @islogical);
 ip.addParamValue('ScaleBar', []);
 ip.addParamValue('ScaleBarLabel', []);
 ip.addParamValue('Handle', []);
 ip.addParamValue('Colormap', hsv2rgb([rand(nt,1) ones(nt,2)]), @(x) size(x,1)==nt && size(x,2)==3);
-ip.parse(data, trackInfo, frameIdx, ch, varargin{:});
+ip.parse(data, tracks, frameIdx, ch, varargin{:});
+
+detection = ip.Results.Detection;
 
 if ~isempty(ip.Results.Handle)
     ha = ip.Results.Handle;
     standalone = false;
 else
-    h = figure('Visible', 'off', 'PaperPositionMode', 'auto');
-    position = get(h, 'Position');
-    position(4) = ceil(ny/nx*position(3));
-    set(h, 'Position', position, 'Visible', ip.Results.Visible);
+    pos = get(0, 'DefaultFigurePosition');
+    pos(4) = ceil(ny/nx*pos(3));
+    h = figure('Position', pos, 'Visible', ip.Results.Visible, 'PaperPositionMode', 'auto');
     ha = axes('Position', [0 0 1 1]);
     standalone = true;
     set(h,'DefaultLineLineSmoothing', 'on'); % points are not rendered !!
@@ -107,28 +88,22 @@ switch ip.Results.Mode
         if nCh>1
             error('Mask overlay mode only supports 1 channel.');
         end
-        
         % Display mask only where available
         if ch==mCh && (exist(data.maskPaths{frameIdx}, 'file')==2)
             frame = double(imread(data.framePaths{ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
             frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
         else
-            %frame = double(imread(data.framePaths{ch}{frameIdx}));
-            frame = uint8(scaleContrast(repmat(double(imread(data.framePaths{ch}{frameIdx})), [1 1 3]), ip.Results.iRange{ch}));
+            frame = imread(data.framePaths{ch}{frameIdx});
+            colormap(gray(256));
         end
     otherwise % grayscale frame
         if nCh>1
             error('Grayscale mode only supports 1 channel.');
         end
-        %frame = double(imread(data.framePaths{ch}{frameIdx}));
-        frame = uint8(scaleContrast(repmat(double(imread(data.framePaths{ch}{frameIdx})), [1 1 3]), ip.Results.iRange{ch}));
+        frame = imread(data.framePaths{ch}{frameIdx});
+        colormap(gray(256));
 end
-
-%     [sy sx] = size(frame);
-%     if sy>sx
-%         frame = imrotate(frame, 90);
-%     end
 
 imagesc(frame, 'Parent', ha);
 if ~isempty(ip.Results.iRange{ch})
@@ -136,10 +111,15 @@ if ~isempty(ip.Results.iRange{ch})
 end
 axis(ha, 'image');
 
-if ip.Results.ShowDetection && ch==mCh
-    load([data.source 'Detection' filesep 'detection_v2.mat']);
+if ~isempty(detection) && ch==mCh
     hold(ha, 'on');
-    plot(ha, frameInfo(frameIdx).x(ch,:), frameInfo(frameIdx).y(ch,:), 'ro', 'MarkerSize', 8);
+    isPSF = detection.isPSF==1;
+    if any(isPSF)
+        plot(ha, detection.x(ch,isPSF), detection.y(ch,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
+    end
+    if any(~isPSF)
+        plot(ha, detection.x(ch,~isPSF), detection.y(ch,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
+    end 
     hold(ha, 'off');
 end
 
@@ -147,136 +127,110 @@ end
 %======================================
 % Plot tracks
 %======================================
-if ~isempty(trackInfo)
-     
+if ~isempty(tracks)
     
-    hold(ha, 'on');
-    fi = [1:frameIdx frameIdx];
-
-    switch lower(ip.Results.DisplayType)
-        case 'lifetime'
-            
-            maxlft = max(trackInfo.lifetimes_f);
-            if maxlft>120
-                df = maxlft-120;
-                dc = 0.25/df;
-                cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
-            else
-                cmap = jet(maxlft);
-            end
-            
-            % single-segment tracks visible in this frame
-            idx = find([trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds] &...
-                trackInfo.nSeg(trackInfo.seg2trackIndex)==1);
-            if ~isempty(idx)
-                M = cmap(trackInfo.lifetimes_f(trackInfo.seg2trackIndex(idx)),:);
+    trackStarts = [tracks.start];
+    trackEnds = [tracks.end];
+    
+    % visible in current frame
+    idx = [tracks.start]<=frameIdx & frameIdx<=[tracks.end];
+    if sum(idx)>0
+        
+        np = arrayfun(@(i) numel(i.t), tracks); % points in each track
+        nt = numel(tracks);
+        
+        maxn = max(np);
+        X = NaN(maxn, nt);
+        Y = NaN(maxn, nt);
+        F = NaN(maxn, nt);
+        G = zeros(maxn, nt);
+        
+        for k = 1:nt
+            i = 1:np(k);
+            X(i,k) = tracks(k).x;
+            Y(i,k) = tracks(k).y;
+            F(i,k) = tracks(k).f;
+            G(i,k) = tracks(k).gapVect;
+        end
+        
+        X(F>frameIdx) = NaN;
+        Y(F>frameIdx) = NaN;
+        
+        hold(ha, 'on');
+        switch lower(ip.Results.DisplayType)
+            case 'lifetime'
+                
+                % colormap: blue to red, [0..120] seconds
+                lifetimes_f = round([tracks.lifetime_s]/data.framerate);
+                maxLft_f = data.movieLength / data.framerate;
+                df = maxLft_f-120;
+                dcoord = 0.25/df;
+                cmap = [jet(round(120/data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
+                
+                M = cmap(lifetimes_f(idx),:);
                 set(ha, 'ColorOrder', M);
-                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)');
-                if ip.Results.ShowEvents
-                    
-                    % Births
-                    plot(ha, trackInfo.x(trackInfo.segStarts==frameIdx,frameIdx),...
-                        trackInfo.y(trackInfo.segStarts==frameIdx,frameIdx), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
-                    
-                    % Deaths
-                    plot(ha, trackInfo.x(trackInfo.segEnds==frameIdx,frameIdx),...
-                        trackInfo.y(trackInfo.segEnds==frameIdx,frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
-
-                    % Old display: markers have the same color as track
-                    % % Births
-                    % midx = find([tracks(idx).start]==frameIdx);
-                    % for k = midx
-                    %     plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), '*', 'Color', M(k,:), 'MarkerSize', 8, 'LineWidth', 1);
-                    % end
-                    % % Deaths
-                    % midx = find([tracks(idx).end]==frameIdx);
-                    % for k = midx
-                    %     plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'x', 'Color', M(k,:), 'MarkerSize', 8, 'LineWidth', 1);
-                    % end
-                    % % Gaps
-                    % midx = find(gapMap(idx,frameIdx))';
-                    % for k = midx
-                    %     plot(ha, X(idx(k),frameIdx), Y(idx(k),frameIdx), 'o', 'Color', M(k,:), 'MarkerSize', 6, 'LineWidth', 1);
-                    % end
-                end
+                plot(ha, X, Y);
+               
+            case 'category'
+                % Categories
+                % Ia)  Single tracks with valid gaps
+                % Ib)  Single tracks with invalid gaps
+                % Ic)  Single tracks cut at beginning or end
+                % Id)  Single tracks, persistent
+                % IIa) Compound tracks with valid gaps
+                % IIb) Compound tracks with invalid gaps
+                % IIc) Compound tracks cut at beginning or end
+                % IId) Compound tracks, persistent
+                singleIdx = [tracks.nSeg]==1;
+                validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
+                vis = [tracks.visibility];
                 
-                if ip.Results.ShowGaps
-                    k = find(trackInfo.gapMap(idx,frameIdx))';
-                    plot(ha, trackInfo.x(idx(k),frameIdx), trackInfo.y(idx(k),frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
-                end
-            end
-        case 'category'
-            
-            
-            % plot regular tracks (single-segment, valid)
-            idx = [trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds] &...
-                trackInfo.nSeg(trackInfo.seg2trackIndex)==1 &...
-                trackInfo.status(trackInfo.seg2trackIndex)==1 &...
-                trackInfo.valid(trackInfo.seg2trackIndex)==1;
-            if sum(idx)~=0
-                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)', 'Color', 'g');
-            end
-            
-            % Persistent tracks
-            idx = trackInfo.status(trackInfo.seg2trackIndex)==3;
-            if sum(idx)~=0
-                plot(ha, trackInfo.x(idx,fi)',trackInfo.y(idx,fi)', 'Color', 'y');
-            end
-            
-            % Invalid tracks (single-segment)
-            idx = [trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds] &...
-                trackInfo.nSeg(trackInfo.seg2trackIndex)==1 &...
-                trackInfo.status(trackInfo.seg2trackIndex)~=3 &...
-                trackInfo.valid(trackInfo.seg2trackIndex)==0;
-            if sum(idx)~=0
-                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)', 'Color', 'r');
-            end
-            
-            % plot split/merge tracks
-            idx = [trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds] &...
-                trackInfo.nSeg(trackInfo.seg2trackIndex)>1;
-            if sum(idx)~=0
-                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)', 'Color', 'c');
-            end
-        case 'all'
-            idx = [trackInfo.segStarts] <= frameIdx & frameIdx <= [trackInfo.segEnds];
-            if sum(idx)>0
-                set(ha, 'ColorOrder', ip.Results.Colormap(trackInfo.seg2trackIndex(idx),:));
-                plot(ha, trackInfo.x(idx,fi)', trackInfo.y(idx,fi)');
+                idx_Ia = singleIdx & validGaps & vis==1;
+                idx_Ib = singleIdx & ~validGaps & vis==1;
+                idx_Ic = singleIdx & vis==2;
+                idx_Id = singleIdx & vis==3;
+                idx_IIa = ~singleIdx & validGaps & vis==1;
+                idx_IIb = ~singleIdx & ~validGaps & vis==1;
+                idx_IIc = ~singleIdx & vis==2;
+                idx_IId = ~singleIdx & vis==3;
                 
-                if ip.Results.ShowEvents
-                    % Births
-                    k = trackInfo.segStarts==frameIdx;
-                    plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
-                    
-                    % Deaths
-                    k = trackInfo.segEnds==frameIdx;
-                    plot(ha, trackInfo.x(k,frameIdx), trackInfo.y(k,frameIdx), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
-                end
+                plot(ha, X(:,idx_Ia), Y(:,idx_Ia), 'Color', [0 1 0]);
+                plot(ha, X(:,idx_Ib), Y(:,idx_Ib), 'Color', [1 1 0]);
+                plot(ha, X(:,idx_Ic), Y(:,idx_Ic), 'Color', [1 0.5 0]);
+                plot(ha, X(:,idx_Id), Y(:,idx_Id), 'Color', [1 0 0]);
+                plot(ha, X(:,idx_IIa), Y(:,idx_IIa), 'Color', [0 1 1]);
+                plot(ha, X(:,idx_IIb), Y(:,idx_IIb), 'Color', [0 0.5 1]);
+                plot(ha, X(:,idx_IIc), Y(:,idx_IIc), 'Color', [0 0 1]);
+                plot(ha, X(:,idx_IId), Y(:,idx_IId), 'Color', [0.5 0 1]);
                 
-                if ip.Results.ShowGaps
-                    idx = idx & gapMap(:,frameIdx);
-                    plot(ha, trackInfo.x(idx,frameIdx), trackInfo.y(idx,frameIdx), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
-                end
-            end
-        case 'projection'
-            maxlft = max(trackInfo.lifetimes_f);
-            if maxlft>120
-                df = maxlft-120;
-                dc = 0.25/df;
-                cmap = [jet(120); (0.5:-dc:0.25+dc)' zeros(df,2)];
-            else
-                cmap = jet(maxlft);
-            end
+            case 'random'
+                set(ha, 'ColorOrder', ip.Results.Colormap(idx,:));
+                plot(ha, X, Y);
+        end
+        if ip.Results.ShowEvents
             
-            set(ha, 'ColorOrder', cmap(trackInfo.lifetimes_f,:));
-            plot(ha, trackInfo.x', trackInfo.y');
+            % Births
+            bcoord = arrayfun(@(i) [i.x(ch,1) i.y(ch,1)], tracks(trackStarts==frameIdx), 'UniformOutput', false);
+            bcoord = vertcat(bcoord{:});
+            plot(ha, bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+            
+            % Deaths
+            dcoord = arrayfun(@(i) [i.x(ch,1) i.y(ch,1)], tracks(trackEnds==frameIdx), 'UniformOutput', false);
+            dcoord = vertcat(dcoord{:});
+            plot(ha, dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
+        end
+        
+        if ip.Results.ShowGaps
+            x_gap = X(F==frameIdx & G==1);
+            y_gap = Y(F==frameIdx & G==1);
+            plot(ha, x_gap, y_gap, 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+        end
     end
     hold(ha, 'off');
 end
 
 if standalone
-    axis(ha, 'off');
+    set(ha, 'TickDir', 'out');
 end
     
 if ~isempty(ip.Results.ScaleBar)
@@ -292,6 +246,7 @@ if strcmpi(ip.Results.Print, 'on')
     if ~(exist(fpath, 'dir')==7)
         mkdir(fpath);
     end
+    axis(ha, 'off');
     print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) '_ch' num2str(ch) '.eps']);   
 end
 

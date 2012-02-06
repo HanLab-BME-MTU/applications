@@ -1,19 +1,23 @@
 % Montage of multichannel time-lapses with adjustable window size.
 %
-% INPUT:   inputCell : cell array containing image frames
+% INPUT:   trackStack : cell array containing image frames
 %
 % François Aguet, last modified March 22, 2011
 
-function plotTrackMontage(inputCell, varargin)
+% track, data -> load
+% track, trackStack (cell array), 
 
-[nc, nf] = size(inputCell);
+function plotTrackMontage(track, trackStack, varargin)
+
+[nc, nf] = size(trackStack);
 
 %======================================
 % Parse inputs, set defaults
 %======================================
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('inputCell', @iscell);
+ip.addRequired('track', @isstruct);
+ip.addRequired('trackStack', @iscell);
 ip.addOptional('xa', []);
 ip.addOptional('ya', []);
 ip.addParamValue('FontName', 'Helvetica', @ischar);
@@ -26,21 +30,19 @@ ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
 ip.addParamValue('TrackCoords', []);
 ip.addParamValue('Detection', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('Buffer', 5);
-ip.parse(inputCell, varargin{:});
+ip.parse(track, trackStack, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
 trackCoords = ip.Results.TrackCoords;
-buffer = ip.Results.Buffer;
 
 xa = ip.Results.xa;
 ya = ip.Results.ya;
 if isempty(xa)
-    w = (size(inputCell{1,1},2)-1)/2;
+    w = (size(trackStack{1,1},2)-1)/2;
     xa = -w:w;
 end
 if isempty(ya)
-    w = (size(inputCell{1,1},1)-1)/2;
+    w = (size(trackStack{1,1},1)-1)/2;
     ya = -w:w;
 end
 
@@ -53,25 +55,37 @@ else
 end
 
 % dynamic range for each channel
+if ~isempty(track.startBuffer)
+    sb = numel(track.startBuffer.t);
+else
+    sb = 0;
+end
+if ~isempty(track.endBuffer)
+    eb = numel(track.endBuffer.t);
+else
+    eb = 0;
+end
+
+
 maxI = zeros(1,nc);
 minI = zeros(1,nc);
 for c = 1:nc
-    cCat = [inputCell{c,1+buffer:end-buffer}];
+    cCat = [trackStack{c,1+sb:end-eb}];
     maxI(c) = max(cCat(:));
     minI(c) = min(cCat(:));
 end
 
 % loop through cells, adjust contrast, convert to 8-bit
 for c = 1:nc
-    inputCell(c,:) = cellfun(@(x) uint8(scaleContrast(x, [minI(c) maxI(c)])), inputCell(c,:), 'UniformOutput', false);
+    trackStack(c,:) = cellfun(@(x) uint8(scaleContrast(x, [minI(c) maxI(c)])), trackStack(c,:), 'UniformOutput', false);
 end
 
 idx = find(strcmpi(varargin, 'Mode'));
 if ~isempty(idx)
     rgbIdx = getRGBindex(labels);
-    [ny,nx] = size(inputCell{1,1});
+    [ny,nx] = size(trackStack{1,1});
     rgbCells = cell(3,nf);
-    rgbCells(rgbIdx,:) = inputCell;
+    rgbCells(rgbIdx,:) = trackStack;
     zcells = squeeze(num2cell(zeros(ny,nx,nf,'uint8'), [1 2]));
     for k = setdiff(1:3, rgbIdx)
         rgbCells(k,:) = zcells;
@@ -81,24 +95,24 @@ if ~isempty(idx)
     switch varargin{idx+1}
         case 'color'
             for c = 1:nc
-                inputCell(c,:) = cellfun(@(x) circshift(cat(3, x, zeros(ny,nx,2)), [0 0 rgbIdx(c)-1]), inputCell(c,:), 'UniformOutput', false);
+                trackStack(c,:) = cellfun(@(x) circshift(cat(3, x, zeros(ny,nx,2)), [0 0 rgbIdx(c)-1]), trackStack(c,:), 'UniformOutput', false);
             end
             rgbColors = repmat({zeros(1,3)}, [1 nc]);
         case 'RGB+color'
             for c = 1:nc
-                inputCell(c,:) = cellfun(@(x) circshift(cat(3, x, zeros(ny,nx,2)), [0 0 rgbIdx(c)-1]), inputCell(c,:), 'UniformOutput', false);
+                trackStack(c,:) = cellfun(@(x) circshift(cat(3, x, zeros(ny,nx,2)), [0 0 rgbIdx(c)-1]), trackStack(c,:), 'UniformOutput', false);
             end
-            inputCell = cat(1, rgbCells, inputCell);
+            trackStack = cat(1, rgbCells, trackStack);
             nc = nc + 1;
             labels = [' ', labels];
             rgbColors = [zeros(1,3) rgbColors];
         case 'RGB+gray'
-            inputCell = cat(1, rgbCells, inputCell);
+            trackStack = cat(1, rgbCells, trackStack);
             nc = nc + 1;
             labels = [' ', labels];
             rgbColors = [zeros(1,3) rgbColors];
         case 'RGB'
-            inputCell = rgbCells;
+            trackStack = rgbCells;
             nc = 1;
             labels = [];
     end
@@ -107,11 +121,6 @@ end
 % nx is now the number of frames displayed per row
 nx = ip.Results.FramesPerRow;
 
-
-% display in golden ratio
-% height = 250;
-% width = height * (1+sqrt(5))/2;
-% [wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc);
 
 % display with fixed #frames/width
 [wxi, dxi, dci, nr, height] = getProportions(width, nx, nf, nc);
@@ -138,6 +147,10 @@ else
 end
 delete(ha);
 
+dt = (track.end-track.start+1)/track.lifetime_s;
+gapIdx = round((track.t+dt)/dt);
+gapIdx = gapIdx(track.gapVect==1) - track.start + 1;
+
 ha = zeros(nc,nf);
 set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible, 'ResizeFcn', {@resizeCallback});
 for rowi = 1:nr
@@ -148,9 +161,22 @@ for rowi = 1:nr
                 ha(c,fi) = axes('Units', 'pixels',...
                     'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
                     'XLim', [0 wxi], 'YLim', [0 wxi]);
-                imagesc(xa{fi}, ya{fi}, inputCell{c, fi}); axis image off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                imagesc(xa{fi}, ya{fi}, trackStack{c, fi}); axis image off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                hold on;
+                if c==1 && fi>sb && fi<=(track.end-track.start+1)+sb%&& x>sb && x<numel(track.t)+sb
+                    if fi==sb+1
+                        %plot(mean(xa{fi}([1 end])), ya{fi}(1),'o', 'Color', [1 1 0], 'LineWidth', 2, 'Markersize', 7);
+                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                    end
+                    if ismember(fi-sb, gapIdx)
+                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 10, 'MarkerFaceColor', [0.8 0 0]);
+                    end
+                    if fi==(track.end-track.start+1)+sb
+% %                         %plot(mean(xa{fi}([1 end])), ya{fi}(1),'x', 'Color', [0 1 1], 'LineWidth', 2, 'Markersize', 9);
+                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                    end
+                end
                 if ~isempty(trackCoords) && c==1
-                    hold on;
                     plot(trackCoords{1}(:,fi), trackCoords{2}(:,fi), 'rx');
                 end
                 
@@ -166,7 +192,7 @@ end
 colormap(gray(256));
 
     function resizeCallback(src, ~)
-        [nc,nf] = size(inputCell);
+        [nc,nf] = size(trackStack);
         pos = get(src, 'Position');
         width = pos(3)-offset;
         height = pos(4);
@@ -224,40 +250,3 @@ dxi = wxi*dx;
 dci = wxi*dc;
 
 end
-
-
-% proportions for golden ratio display
-% function [wxi, dxi, dci, nx, nr, width] = getProportions(width, height, nf, nc)
-%
-% % fixed proportions
-% wx = 1;
-% dx = 1/15; % gap between frames, relative to frame width
-% dc = 1/5; % gap between channels
-%
-% hwRatio = height/width;
-%
-% nr = 1:20;
-%
-% % find arrangement that comes closest to < ratio
-% iheight = nr*(nc*wx+(nc-1)*dx) + (nr-1)*dc;
-% nx = ceil(nf./nr);
-% iwidth = nx*wx + (nx-1)*dx;
-%
-% % distance
-% idx = (iheight./iwidth - hwRatio).^2;
-% idx = idx == min(idx);
-%
-% % corrected width/height:
-% ratio = iheight(idx)/iwidth(idx);
-% nr = nr(idx);
-% nx = nx(idx);
-%
-% % initial width/height
-% width = height/ratio;
-% wxi = width / ((nx/dx + nx-1)*dx);
-% dxi = wxi*dx;
-% dci = wxi*dc;
-%
-% end
-
-

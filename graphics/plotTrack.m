@@ -51,20 +51,23 @@ if isempty(ch)
 end
 
 if strcmpi(ip.Results.Time, 'Track')
-    dt = track.t{1}(1); % first segment always contains first time point
+    dt = track.t(1); % first segment always contains first time point
 else
     dt = 0;
 end
 
 % Flags
-hasStartBuffer = isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A{s});
-hasEndBuffer = isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A{s});
+% hasStartBuffer = isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A);
+% hasEndBuffer = isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A);
+hasStartBuffer = ~isempty(track.startBuffer);
+hasEndBuffer = ~isempty(track.endBuffer);
+
 
 XLim = ip.Results.XLim;
 
 b0 = 2*data.framerate;
 if hasStartBuffer && hasEndBuffer
-    bf = max(numel(track.startBuffer.t{1}), numel(track.endBuffer.t{1}));
+    bf = max(numel(track.startBuffer.t), numel(track.endBuffer.t));
 else
     bf = 0;
 end
@@ -73,7 +76,7 @@ bt = track.end-track.start; % #frames - 1
 w = 2*b0+2*bf+bt;
 u = 10;
 if isempty(XLim)
-    XLim = track.t{1}(1)-dt + [-(bf+b0) bt+bf+b0]*data.framerate;
+    XLim = track.t(1)-dt + [-(bf+b0) bt+bf+b0]*data.framerate;
 end
 
 
@@ -105,16 +108,16 @@ lh = NaN(1,15);
 
 for s = 1:track.nSeg
     
-    A = track.A{s}(ch,:);
-    c = track.c{s}(ch,:);
+    A = track.A(ch,:);
+    c = track.c(ch,:);
     if strcmpi(ip.Results.BackgroundValue, 'zero')
         bgcorr = nanmean(c);
         c = c-bgcorr;
     else
         bgcorr = 0;
     end
-    sigma_r = track.sigma_r{s}(ch,:);
-    t = track.t{s} - dt;
+    sigma_r = track.sigma_r(ch,:);
+    t = track.t - dt;
     
     % alpha = 0.05 level
     if strcmpi(ip.Results.Background, 'on')
@@ -123,11 +126,10 @@ for s = 1:track.nSeg
     end
     hold(ha, 'on');
     
-    gapIdx = arrayfun(@(x,y) x:y, track.gapStarts{s}, track.gapEnds{s}, 'UniformOutput', false);
-    gapIdx = [gapIdx{:}];
+    gapIdx = find(track.gapVect~=0);
     
     % plot amplitude std.
-    sigma_a = track.A_pstd{s}(ch,:);
+    sigma_a = track.A_pstd(ch,:);
     
     rev = c+A-sigma_a;
     lh(2) = fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
@@ -162,12 +164,12 @@ end
 
 % Plot start buffer
 if hasStartBuffer
-    A = [track.startBuffer.A{s}(ch,:) track.A{s}(ch,1)];
-    c = [track.startBuffer.c{s}(ch,:) track.c{s}(ch,1)]-bgcorr;
+    A = [track.startBuffer.A(ch,:) track.A(ch,1)];
+    c = [track.startBuffer.c(ch,:) track.c(ch,1)]-bgcorr;
     
-    sigma_a = [track.startBuffer.A_pstd{s}(ch,:) track.A_pstd{s}(ch,1)];
-    sigma_r = [track.startBuffer.sigma_r{s}(ch,:) track.sigma_r{s}(ch,1)];
-    t = [track.startBuffer.t{s} track.t{s}(1)] - dt;
+    sigma_a = [track.startBuffer.A_pstd(ch,:) track.A_pstd(ch,1)];
+    sigma_r = [track.startBuffer.sigma_r(ch,:) track.sigma_r(ch,1)];
+    t = [track.startBuffer.t track.t(1)] - dt;
     
     if strcmpi(ip.Results.Background, 'on')
         lh(12) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
@@ -189,12 +191,12 @@ end
 
 % Plot end buffer
 if hasEndBuffer
-    A = [track.A{s}(ch,end) track.endBuffer.A{s}(ch,:)];
-    c = [track.c{s}(ch,end) track.endBuffer.c{s}(ch,:)]-bgcorr;
+    A = [track.A(ch,end) track.endBuffer.A(ch,:)];
+    c = [track.c(ch,end) track.endBuffer.c(ch,:)]-bgcorr;
     
-    sigma_a = [track.A_pstd{s}(ch,end) track.endBuffer.A_pstd{s}(ch,:)];
-    sigma_r = [track.sigma_r{s}(ch,end) track.endBuffer.sigma_r{s}(ch,:)];
-    t = [track.t{s}(end) track.endBuffer.t{s}] - dt;
+    sigma_a = [track.A_pstd(ch,end) track.endBuffer.A_pstd(ch,:)];
+    sigma_r = [track.sigma_r(ch,end) track.endBuffer.sigma_r(ch,:)];
+    t = [track.t(end) track.endBuffer.t] - dt;
     
     if strcmpi(ip.Results.Background, 'on')
         fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
