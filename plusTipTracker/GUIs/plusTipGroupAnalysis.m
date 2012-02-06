@@ -320,17 +320,11 @@ end
 
 
 subroiExcludeRegion = get(handles.subroiExcludeCheck,'Value');
+useSegMask = get(handles.checkbox_useSegMask,'Value');
 
-if get(handles.popupmenu_subRoiTool,'Value')==1
-    subRoiFcn = @plusTipSubRoiTool;
-else
-    subRoiFcn = @plusTipSubRoiToolMicropatterns;
-
-end
-
-subRoiFcn(handles.projList,subroiSelectType,...
+plusTipSubRoiTool(handles.projList,subroiSelectType,...
     subroiDistUnit,subroiDistVal,subroiTimeUnit,subroiTimeVal,...
-    [],subroiExcludeRegion);
+    [],subroiExcludeRegion,useSegMask);
 
 
 % --- Executes on button press in quadScatterPlotPush.

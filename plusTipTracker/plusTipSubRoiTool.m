@@ -1,7 +1,7 @@
-function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude)
+function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude,useSegMask)
 % plusTipSubRoiTool allows sub-ROI selection and extracts MT growth tracks
 %
-% SYNOPSIS: plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude)
+% SYNOPSIS: plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeVal,cellRoiYX,pickExclude,useSegMask)
 %
 % selectType:
 %   0: manual, freehand regions
@@ -19,7 +19,6 @@ function plusTipSubRoiTool(projList,selectType,distUnits,distVal,timeUnits,timeV
 %% OPTION TO TURN ON MICROPATTERN
 
 %selectType = 'cellPeriphSingle';
-useSegMask = 0; % option to use a previously defined segmented Mask 
 % could change to make it read in the the name of the mask
 subRoiFilename = 'subRois';
 
@@ -89,6 +88,8 @@ else
     pickExcludeInput=pickExclude;
 end
 
+if nargin<9 || isempty(useSegMask), useSegMask =0; end
+
 
 switch selectType
     case 0
@@ -116,7 +117,7 @@ end
 collectPlots = 1;
 nProj=length(projList);
 if collectPlots == 1
-    up1 = getFileNameBody(projList(1,1).anDir);
+    up1 = getFilenameBody(projList(1,1).anDir);
     collectedDataPath = getFileNameBody(up1);
     if (exist([collectedDataPath filesep 'collectedSubRoiPlots'],'dir')==0)
         mkdir([collectedDataPath filesep 'collectedSubRoiPlots'])
@@ -229,13 +230,10 @@ for iProj=1:nProj
                     end
                 end
             end
-            else 
-                 p = load([anDir filesep 'roiYXSeg.mat']); % load the roiYX file in the anDir
-                        roiYX=p.roiYX;
-                        roiMask=roipoly(img,roiYX(:,2),roiYX(:,1)); 
-                
-                
-        
+            else
+                p = load([anDir filesep 'roiYX.mat']); % load the roiYX file in the anDir
+                roiYX=p.roiYX;
+                roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
             end
         end 
     end 
@@ -244,11 +242,11 @@ for iProj=1:nProj
 %     [contourYX, normalYX] = outercontour_normal(roiMask);
 %     save([anDir filesep 'contour_normal.mat'],'contourYX','normalYX');
 
-    % Display the normals on the contour
-    h = figure; imagesc(roiMask); colormap(gray);
-    hold on;  quiver(contourYX(1:5:end,2),contourYX(1:5:end,1), normalYX(1:5:end,2),normalYX(1:5:end,1),'r'); axis image;
-    saveas(h, [anDir filesep 'contour_normal.tif']);
-    close;
+%     % Display the normals on the contour
+%     h = figure; imagesc(roiMask); colormap(gray);
+%     hold on;  quiver(contourYX(1:5:end,2),contourYX(1:5:end,1), normalYX(1:5:end,2),normalYX(1:5:end,1),'r'); axis image;
+%     saveas(h, [anDir filesep 'contour_normal.tif']);
+%     close;
     
     % set cell boundary in white to composite image
     [img2show]=addMaskInColor(img2show,roiMask,[1 1 1]);
