@@ -898,13 +898,13 @@ close(saveFig2)
 
 
 
-% Calculate the angle that MT hit the cell boundary
-load([up2 filesep 'contour_normal.mat']);
-projData.contourYX = contourYX;
-projData.normalYX = normalYX;
-clear('contourYX','normalYX');
-
-projData=plusTipIncidence(projData,xCoord,yCoord);
+% % Calculate the angle that MT hit the cell boundary
+% load([up2 filesep 'contour_normal.mat']);
+% projData.contourYX = contourYX;
+% projData.normalYX = normalYX;
+% clear('contourYX','normalYX');
+% 
+% projData=plusTipIncidence(projData,xCoord,yCoord);
    
 
 

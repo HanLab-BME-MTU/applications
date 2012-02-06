@@ -240,9 +240,9 @@ for iProj=1:nProj
         end 
     end 
 
-    % Define the outer contour of the cell and the normals
-    [contourYX, normalYX] = outercontour_normal(roiMask);
-    save([anDir filesep 'contour_normal.mat'],'contourYX','normalYX');
+%     % Define the outer contour of the cell and the normals
+%     [contourYX, normalYX] = outercontour_normal(roiMask);
+%     save([anDir filesep 'contour_normal.mat'],'contourYX','normalYX');
 
     % Display the normals on the contour
     h = figure; imagesc(roiMask); colormap(gray);
@@ -369,7 +369,7 @@ for iProj=1:nProj
             % equally four (pi/2) parts. 
             % if quadrant_flag_free==0, four equal parts, as original case.
             % if quadrant_flag_free==1, define two lines for the four parts.
-            quadrant_flag_free = 1;
+            quadrant_flag_free = 0;
             
             if quadrant_flag_free == 0
                 h=msgbox('Draw a line across the cell and double-click when finished','help');
