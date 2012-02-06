@@ -248,10 +248,10 @@ end
 fprintf('\n');
 
 % remove tracks that fall into image boundary
-minx = round(arrayfun(@(t) min(t.x), tracks));
-maxx = round(arrayfun(@(t) max(t.x), tracks));
-miny = round(arrayfun(@(t) min(t.y), tracks));
-maxy = round(arrayfun(@(t) max(t.y), tracks));
+minx = round(arrayfun(@(t) min(t.x(:)), tracks));
+maxx = round(arrayfun(@(t) max(t.x(:)), tracks));
+miny = round(arrayfun(@(t) min(t.y(:)), tracks));
+maxy = round(arrayfun(@(t) max(t.y(:)), tracks));
 
 idx = minx<=w4 | miny<=w4 | maxx>nx-w4 | maxy>ny-w4;
 tracks(idx) = [];
