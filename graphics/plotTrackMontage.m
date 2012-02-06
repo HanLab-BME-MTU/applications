@@ -28,12 +28,11 @@ ip.addParamValue('Labels', [], @(x) length(x)==nc && ~any(isnan(name2wavelength(
 ip.addParamValue('Width', 600, @isscalar);
 ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
-ip.addParamValue('TrackCoords', []);
-ip.addParamValue('Detection', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('ShowDetection', false, @islogical);
+ip.addParamValue('ShowMarkers', false, @islogical);
 ip.parse(track, trackStack, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
-trackCoords = ip.Results.TrackCoords;
 
 xa = ip.Results.xa;
 ya = ip.Results.ya;
@@ -163,21 +162,25 @@ for rowi = 1:nr
                     'XLim', [0 wxi], 'YLim', [0 wxi]);
                 imagesc(xa{fi}, ya{fi}, trackStack{c, fi}); axis image off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
                 hold on;
-                if c==1 && fi>sb && fi<=(track.end-track.start+1)+sb%&& x>sb && x<numel(track.t)+sb
+                if ip.Results.ShowDetection && fi>sb && fi<=(track.end-track.start+1)+sb && c==1
+                    if track.gapVect(fi-sb)
+                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 1 1], 'MarkerSize', 16);
+                    elseif track.isPSF(fi-sb)
+                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [0 1 0], 'MarkerSize', 16);
+                    else
+                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 0 0], 'MarkerSize', 16);
+                    end
+                end
+                if ip.Results.ShowMarkers && c==1 && fi>sb && fi<=(track.end-track.start+1)+sb
                     if fi==sb+1
-                        %plot(mean(xa{fi}([1 end])), ya{fi}(1),'o', 'Color', [1 1 0], 'LineWidth', 2, 'Markersize', 7);
                         plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
                     end
                     if ismember(fi-sb, gapIdx)
                         plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 10, 'MarkerFaceColor', [0.8 0 0]);
                     end
                     if fi==(track.end-track.start+1)+sb
-% %                         %plot(mean(xa{fi}([1 end])), ya{fi}(1),'x', 'Color', [0 1 1], 'LineWidth', 2, 'Markersize', 9);
                         plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
                     end
-                end
-                if ~isempty(trackCoords) && c==1
-                    plot(trackCoords{1}(:,fi), trackCoords{2}(:,fi), 'rx');
                 end
                 
                 if x==1 && rowi==1 && ~isempty(labels)

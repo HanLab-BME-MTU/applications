@@ -7,34 +7,28 @@
 
 % Handles/settings are stored in 'appdata' of the figure handle
 
-function hfig = trackDisplayGUI(data, varargin)
-ip = inputParser;
-ip.CaseSensitive = false;
-ip.addRequired('data', @isstruct);
-ip.addOptional('tracks', cell(1,length(data.channels)), @(x) isstruct(x) || (iscell(x) && numel(x)==numel(data.channels)));
-ip.parse(data, varargin{:});
+function hfig = trackDisplayGUI(data, tracks)
 
 handles.data = data;
-
-% tracks = ip.Results.tracks;
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
 handles.nCh = nCh;
 % exclude master from list of channels
 handles.mCh = find(strcmp(data.source, data.channels));
-nt = length(ip.Results.tracks);
+% nt = length(ip.Results.tracks);
+nt = numel(tracks);
 handles.colorMap = hsv2rgb([rand(nt,1) ones(nt,2)]);
 
 if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
     
-if isstruct(ip.Results.tracks)
+if isstruct(tracks)
     handles.tracks = cell(1,nCh);
-    handles.tracks{1} = ip.Results.tracks;
+    handles.tracks{1} = tracks;
 else
-    handles.tracks = ip.Results.tracks;
+    handles.tracks = tracks;
 end
 
 if ~isempty(handles.tracks{handles.mCh})
@@ -124,6 +118,21 @@ handles.trackSlider = uicontrol('Style', 'slider',...
     'Callback', {@trackSlider_Callback, hfig});
 
 
+% Montage panel
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-400 5 200 70]);
+
+handles.montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
+    'Position', [5 35 120 15], 'HorizontalAlignment', 'left', 'Value', true);
+handles.montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
+    'Position', [5 20 120 15], 'HorizontalAlignment', 'left');
+handles.montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
+    'Position', [5 5 120 15], 'HorizontalAlignment', 'left');
+handles.montageButton = uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
+    'Units', 'pixels', 'Position', [120 15 75 30],...%[.1 .55 .6 .4]
+    'Callback', {@montageButton_Callback, hfig});
+handles.montagePanel = ph;
+
+
 % Output panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Output', 'Position', [pos(3)-180 5 140 70]);
 
@@ -135,20 +144,6 @@ handles.movieButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Make movie
     'Units', 'normalized', 'Position', [0.1 0.05 0.8 0.45],...
     'Callback', {@movieButton_Callback, hfig});
 handles.outputPanel = ph;
-
-% Montage panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-390 5 180 70]);
-handles.montageButton = uicontrol(ph,'Style','pushbutton','String','Generate',...
-    'Units','normalized', 'Position',[.1 .55 .6 .4],...
-    'Callback', {@montageButton_Callback, hfig});     
-handles.montageText = uicontrol(ph, 'Style', 'text', 'String', 'Align to: ',...
-    'Units', 'normalized', 'Position', [0.1 0.1 0.35 0.4], 'HorizontalAlignment', 'left');
-handles.montageOptions = uicontrol(ph, 'Style', 'popup',...
-    'String', {'Track', 'Frame'},...
-    'Units', 'normalized', 'Position', [0.45 0.1 0.5 0.4]);
-handles.montageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show track',...
-    'Position', [pos(3)-120 10, 100 20], 'HorizontalAlignment', 'left', 'Visible', 'off');
-handles.montagePanel = ph;
 
 
 setappdata(hfig, 'handles', handles);
@@ -255,7 +250,7 @@ xlabel('Time (s)');
 
 % Colorbar
 handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
-
+% return
 %===========================
 % initialize figures/plots
 %===========================
@@ -340,7 +335,7 @@ set(handles.trackLabel, 'Position', [40+0.6*pos(3) pos(4)-40, 100 20]);
 set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
 set(handles.trackSlider, 'Position', [pos(3)-35 60 20 pos(4)-80]);
 set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
-set(handles.montagePanel, 'Position', [pos(3)-390 5 180 70]);
+set(handles.montagePanel, 'Position', [pos(3)-400 5 200 70]);
 
 
 
@@ -400,7 +395,7 @@ linkaxes([handles.fAxes{:}]);
 % Plot frames with overlaid tracks
 %===================================
 function handles = refreshFrameDisplay(hfig)
-disp('framedisplay call');
+
 handles = getappdata(hfig, 'handles');
 settings = getappdata(hfig, 'settings');
 
@@ -739,17 +734,18 @@ handles = getappdata(hfig, 'handles');
 % Creates a montage based on the master track
 if ~isempty(handles.selectedTrack)
     fprintf('Generating montage...');
-    options = get(handles.montageOptions, 'String');
-    
+    %options = get(handles.montageOptions, 'String');
+    if get(handles.montageAlignCheckbox, 'Value')
+        ref = 'Track';
+    else
+        ref = 'Frame';
+    end
     itrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
     [stack, xa, ya] = getTrackStack(handles.data, itrack,...
-        'WindowWidth', 6, 'Reference', options{get(handles.montageOptions, 'Value')});
-    
-    if get(handles.montageCheckbox, 'Value')
-        plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers, 'Mode', 'gray');
-    else
-        plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers, 'Mode', 'gray');
-    end
+        'WindowWidth', 6, 'Reference', ref);
+    plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers,...
+        'ShowMarkers', get(handles.montageMarkerCheckbox, 'Value')==1,...
+        'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
     fprintf(' done.\n');
 else
     fprintf('Cannot create montage: no track selected.');
