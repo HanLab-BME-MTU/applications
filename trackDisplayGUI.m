@@ -249,8 +249,11 @@ end
 xlabel('Time (s)');
 
 % Colorbar
-handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
-% return
+% horizontal
+%handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
+% vertical
+handles.cAxes = axes('Parent', gcf, 'Position', [13*dx 7.5*dy dx/5 4*dy], 'Visible', 'off');
+
 %===========================
 % initialize figures/plots
 %===========================
@@ -530,6 +533,8 @@ setappdata(hfig, 'handles', handles);
 function setColorbar(hfig, mode)
 handles = getappdata(hfig, 'handles');
 
+lfont = {'FontName', 'Helvetica', 'FontSize', 13};
+sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
 if ~isempty(handles.tracks{handles.mCh})
     switch mode
         case 'Lifetime'
@@ -537,23 +542,37 @@ if ~isempty(handles.tracks{handles.mCh})
             df = maxLft_f-120;
             dcoord = 0.25/df;
             cmap = [jet(round(120/handles.data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
-            imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
-            axis(handles.cAxes, 'xy');
-            set(handles.cAxes, 'Visible', 'on', 'YTick', [],...
-                'XTick', [1 20:20:120 maxLft_f]*handles.data.framerate,...
-                'XTickLabel', [1 20:20:120 handles.data.movieLength / handles.data.framerate]);
-            text(80, 2.5, 'Lifetime (s)', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
+            imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
+            set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+               'YTick', [1 20:20:120 maxLft_f]*handles.data.framerate,...
+               'YTickLabel', [1 20:20:120 handles.data.movieLength / handles.data.framerate], sfont{:});
+            text(-0.5, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
+            %imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
+            %axis(handles.cAxes, 'xy');
+            %set(handles.cAxes, 'Visible', 'on', 'YTick', [],...
+            %    'XTick', [1 20:20:120 maxLft_f]*handles.data.framerate,...
+            %    'XTickLabel', [1 20:20:120 handles.data.movieLength / handles.data.framerate]);
+            %text(80, 2.5, 'Lifetime (s)', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
         case 'Category'
             xlabels = {'valid', 'rej. gaps', 'cut', 'persistent',...
                 'valid', 'rej. gaps', 'cut', 'persistent'};
             cmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
-            imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
-            axis(handles.cAxes, 'xy');
-            set(handles.cAxes, 'Visible', 'on', 'YTick', [], 'XTick', 1:8, 'XTickLabel', xlabels,...
-                'TickLength', [0 0]);
-            rotateXTickLabels(handles.cAxes, 'Angle', 45, 'AdjustFigure', false);
-            text(2.5, 2.5, 'Single tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
-            text(6.5, 2.5, 'Compound tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
+            imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
+            set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                'YTick', 1:8, 'YTickLabel', [], 'TickLength', [0 0]);
+            text(-.5, 2.5, 'Single tracks', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
+            text(-.5, 6.5, 'Compound tracks', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
+            
+            for k = 1:8
+                text(1.6, k-0.1, xlabels{k}, 'Rotation', 45, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top', 'Parent', handles.cAxes, sfont{:});
+            end
+            %imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
+            %axis(handles.cAxes, 'xy');
+            %set(handles.cAxes, 'Visible', 'on', 'YTick', [], 'XTick', 1:8, 'XTickLabel', xlabels,...
+            %    'TickLength', [0 0]);
+            %rotateXTickLabels(handles.cAxes, 'Angle', 45, 'AdjustFigure', false);
+            %text(2.5, 2.5, 'Single tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
+            %text(6.5, 2.5, 'Compound tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
         otherwise
             set(handles.cAxes, 'Visible', 'off');
             cla(handles.cAxes);
