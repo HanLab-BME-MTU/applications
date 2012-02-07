@@ -28,6 +28,7 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('FrameIndexes', arrayfun(@(x) 1:x.movieLength, data, 'UniformOutput', false), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
+ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
 ip.parse(data, varargin{:});
 filename = ip.Results.FileName;
 overwrite = ip.Results.Overwrite;
@@ -41,7 +42,7 @@ for i = 1:length(data)
 end
 parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i});
+        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, ip.Results.Sigma);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
@@ -49,7 +50,7 @@ end
 
 
 
-function [data] = main(data, buffer, trackerOutput, filename, frameIdx)
+function [data] = main(data, buffer, trackerOutput, filename, frameIdx, sigmaV)
 
 detection = load([data.source 'Detection' filesep 'detection_v2.mat']);
 frameInfo = detection.frameInfo;
@@ -67,10 +68,12 @@ kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 nCh = length(data.channels);
 mCh = strcmp(data.source, data.channels);
 
-sigmaV = zeros(nCh, 1);
-for k = 1:nCh
-    sigmaV(k) = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k});
-    data.framePaths{k} = data.framePaths{k}(frameIdx);
+if isempty(sigmaV)
+    sigmaV = zeros(nCh, 1);
+    for k = 1:nCh
+        sigmaV(k) = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k});
+        data.framePaths{k} = data.framePaths{k}(frameIdx);
+    end
 end
 
 if isempty(data.maskPaths)
@@ -99,7 +102,7 @@ tPath = [data.source 'Tracking' filesep trackerOutput];
 if exist(tPath, 'file')==2
     trackinfo = load(tPath);
     trackinfo = trackinfo.tracksFinal;
-    nTracks = length(trackinfo);  
+    nTracks = length(trackinfo);
 elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
     % (for old tracker. oldest version: trackInfo.mat)
     trackinfo = load([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat']);
@@ -118,7 +121,7 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
     'tracksFeatIndxCG', [], 'gapVect', [], 'gapStatus', [], 'seqOfEvents', [],...
     'nSeg', [], 'visibility', [], 'lifetime_s', [], 'start', [], 'end', [],...
     'startBuffer', [], 'endBuffer', [], 'MotionParameters', []);
-    %    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
+%    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
 
 % field names with multiple channels
 mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'pval_KS', 'isPSF'};
@@ -129,14 +132,14 @@ bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 
 %==============================
 fprintf('TrackAnalysis - Converting tracker output:     ');
 for k = 1:nTracks
-
+    
     % convert/assign structure fields
     seqOfEvents = trackinfo(k).seqOfEvents;
-    tracksFeatIndxCG = trackinfo(k).tracksFeatIndxCG; % index of the feature in each frame    
+    tracksFeatIndxCG = trackinfo(k).tracksFeatIndxCG; % index of the feature in each frame
     nSeg = size(tracksFeatIndxCG,1);
-
+    
     segLengths = NaN(1,nSeg);
-
+    
     % discarding rules: single frame segments w/ merge/split. ADD: longer segments with merge & split
     msIdx = NaN(1,nSeg);
     for s = 1:nSeg
@@ -219,7 +222,7 @@ for k = 1:nTracks
     % Read amplitude & background from detectionResults.mat (localization results)
     %==============================================================================
     delta = [0 cumsum(segLengths(1:end-1))+(1:nSeg-1)];
-
+    
     for s = 1:nSeg
         ievents = seqOfEvents(seqOfEvents(:,3)==segIdx(s), :);
         bounds = ievents(:,1);
@@ -242,7 +245,7 @@ for k = 1:nTracks
         tracks(k).f(delta(s)+(1:nf)) = frameRange;
     end
     tracks(k).pval_Ar = 1-tracks(k).pval_Ar; % bug fix for detection
-
+    
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
 end
 fprintf('\n');
@@ -272,7 +275,7 @@ for k = 1:nTracks
     % gap locations in 'x' for all segments
     gapVect = isnan(tracks(k).x(mCh,:)) & ~isnan(tracks(k).t);
     tracks(k).gapVect = gapVect;
-
+    
     %=================================
     % Determine track and gap status
     %=================================
@@ -294,7 +297,7 @@ for k = 1:nTracks
     %if nanIdx{s}(1)==1 || nanIdx{s}(end)==1 % temporary fix for segments that begin or end with gap
     %    tracks(k).gapStatus{s} = 5;
     %else
-        
+    
     % loop over gaps
     nGaps = numel(gapLengths);
     if nGaps>0
@@ -413,20 +416,20 @@ for f = 1:data.movieLength
                 scomb = sqrt((tracks(k).A_pstd(ch,idx).^2 + SE_r.^2)/npx);
                 T = (tracks(k).A(ch,idx) - res.std*kLevel) ./ scomb;
                 tracks(k).pval_Ar(ch,idx) = 1-tcdf(T, df2);
-            end            
+            end
         end
         
         %------------------------
         % start buffer
         %------------------------
         % tracks with start buffers in this frame
-        cand = max(1, trackStarts-buffer)<=f & f<trackStarts;        
+        cand = max(1, trackStarts-buffer)<=f & f<trackStarts;
         % corresponding tracks, only if status = 1
         currentBufferIdx = find(cand & fullTracks);
-     
+        
         for ki = 1:length(currentBufferIdx)
             k = currentBufferIdx(ki);
-        
+            
             xi = round(tracks(k).x(ch,1));
             yi = round(tracks(k).y(ch,1));
             
@@ -472,7 +475,7 @@ for f = 1:data.movieLength
             T = (tracks(k).startBuffer.A(ch,bi) - res.std*kLevel) ./ scomb;
             tracks(k).startBuffer.pval_Ar(ch,bi) = 1-tcdf(T, df2);
         end
-    
+        
         %------------------------
         % end buffer
         %------------------------
@@ -532,11 +535,11 @@ for f = 1:data.movieLength
     end
 end
 fprintf('\n');
-% 
+%
 % % sort tracks by type
 % % idx = find([tracks.type]==1);
 % % tracks = tracks([idx setdiff(1:nTracks, idx)]);
-% 
+%
 % %==========================================
 % % Compute displacements
 % %==========================================
@@ -549,10 +552,10 @@ fprintf('\n');
 %     msdVect = cell(1,ns);
 %     msdStdVect = cell(1,ns);
 %     for s = 1:ns
-% 
+%
 %         x = tracks(k).x{s}(mCh,:);
 %         y = tracks(k).y{s}(mCh,:);
-%         tracks(k).totalDisplacement{s} = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);        
+%         tracks(k).totalDisplacement{s} = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);
 %         % MSD
 %         L = 10;
 %         msdVect{s} = NaN(1,L);
@@ -564,14 +567,14 @@ fprintf('\n');
 %         end
 %         tracks(k).MSD = msdVect;
 %         tracks(k).MSDstd = msdStdVect;
-% 
+%
 %         %if L > 1 % min 2 points to fit
 %         %    [D c alpha] = fitMSD(MSDvect(1:L), [MSDvect(L)/(4*L) 0 1], 'Dc');
 %         %    tracks(k).D = D;
 %         %    tracks(k).c = c;
 %         %    tracks(k).alpha = alpha;
 %         %end
-%         
+%
 %         % add buffer time vectors
 %         %b = size(tracks(k).startBuffer.x,2);
 %         %tracks(k).startBuffer.t = ((-b:-1) + tracks(k).segmentStarts(s)-1) * data.framerate;
