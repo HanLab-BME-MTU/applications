@@ -46,7 +46,7 @@ else
     handles.f = 2; % valid tracks start in frame 2 at the earliest
 end
 
-hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7],...
+hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7], 'PaperPositionMode', 'auto',...
     'Toolbar', 'figure', 'ResizeFcn', @figResize,...
     'Color', get(0,'defaultUicontrolBackgroundColor'));
 
@@ -107,6 +107,10 @@ handles.trackChoice = uicontrol('Style', 'popup',...
 handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
     'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
     'Callback', {@trackButton_Callback, hfig});
+
+handles.statsButton = uicontrol('Style', 'pushbutton', 'String', 'Track statistics',...
+    'Position', [20+0.6*pos(3)-100 5, 100 25], 'HorizontalAlignment', 'left',...
+    'Callback', {@statsButton_Callback, hfig});
 
 
 %---------------------
@@ -842,6 +846,41 @@ setappdata(hfig, 'handles', handles);
 refreshFrameDisplay(hfig);
 refreshTrackDisplay(hfig);
 
+
+
+function statsButton_Callback(~, ~, hfig)
+handles = getappdata(hfig, 'handles');
+if ~isempty(handles.tracks{handles.mCh})
+    
+    % Categories
+    % Ia)  Single tracks with valid gaps
+    % Ib)  Single tracks with invalid gaps
+    % Ic)  Single tracks cut at beginning or end
+    % Id)  Single tracks, persistent
+    % IIa) Compound tracks with valid gaps
+    % IIb) Compound tracks with invalid gaps
+    % IIc) Compound tracks cut at beginning or end
+    % IId) Compound tracks, persistent
+    validGaps = arrayfun(@(t) max([t.gapStatus 4]), handles.tracks{handles.mCh})==4;
+    singleIdx = [handles.tracks{handles.mCh}.nSeg]==1;
+    vis = [handles.tracks{handles.mCh}.visibility];
+    
+    idx_Ia = singleIdx & validGaps & vis==1;
+    idx_Ib = singleIdx & ~validGaps & vis==1;
+    idx_IIa = ~singleIdx & validGaps & vis==1;
+    
+    v = [sum(idx_Ia);
+        sum(idx_Ib);
+        sum(singleIdx & vis==2);
+        sum(singleIdx & vis==3);
+        sum(idx_IIa);
+        sum(~singleIdx & ~validGaps & vis==1);
+        sum(~singleIdx & vis==2);
+        sum(~singleIdx & vis==3)];
+    v = v/numel(handles.tracks{handles.mCh});
+    
+    plotTrackClasses(v, 'YLim', [0 max(0.8, max(v))]);
+end
 
 
 % --- Executes on button press in montageButton.
