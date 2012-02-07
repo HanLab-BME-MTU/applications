@@ -2,7 +2,8 @@ classdef Data < handle & matlab.mixin.Copyable
     
     % ---------------------
     % This class contains the input data of the algorithm, intermediate 
-    % and final outputs. 
+    % and final outputs.
+    % Pascal Bérard, February 2012
     % ---------------------
     
     properties (GetAccess = 'public',SetAccess = 'public')

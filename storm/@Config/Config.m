@@ -2,6 +2,7 @@ classdef Config < handle
     
     % ---------------------
     % This class contains the configuration parameters of the algorithm.
+    % Pascal Bérard, February 2012
     % ---------------------
     
     properties (GetAccess = 'public',SetAccess = 'public')
