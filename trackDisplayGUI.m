@@ -46,10 +46,10 @@ else
     handles.f = 2; % valid tracks start in frame 2 at the earliest
 end
 
-
 hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7],...
     'Toolbar', 'figure', 'ResizeFcn', @figResize,...
     'Color', get(0,'defaultUicontrolBackgroundColor'));
+
 
 set(hfig, 'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
 pos = get(hfig, 'Position');
@@ -118,7 +118,7 @@ handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
 
 handles.trackSlider = uicontrol('Style', 'slider',...
     'Value', 1, 'SliderStep', [1 1], 'Min', 1, 'Max', 100,...
-    'Position', [pos(3)-35 60 20 pos(4)-80],...
+    'Position', [pos(3)-35 110 20 pos(4)-130],...
     'Callback', {@trackSlider_Callback, hfig});
 
 
@@ -148,7 +148,6 @@ handles.movieButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Make movie
     'Units', 'normalized', 'Position', [0.1 0.05 0.8 0.45],...
     'Callback', {@movieButton_Callback, hfig});
 handles.outputPanel = ph;
-
 
 setappdata(hfig, 'handles', handles);
 
@@ -224,14 +223,11 @@ if nCh > 2
 end
 
 
-
-
 %=================================================
 % Generate axes
 %=================================================
 % hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
 
-handles = setupFrameAxes(handles);
 
 
 % track panels: 20 spacer, 110 bottom, 30 top
@@ -259,11 +255,18 @@ switch nCh
 end
 xlabel('Time (s)');
 
+
+
 % Colorbar
 % horizontal
 %handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
 % vertical
 handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
+
+
+setappdata(hfig, 'handles', handles);%%%%%%%%%
+handles = setupFrameAxes(hfig);
+
 
 % return
 %===========================
@@ -343,6 +346,35 @@ w = 350;
 dx = pos(3)-w-50;
 handles = getappdata(src, 'handles');
 
+% tracks
+set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
+set(handles.trackSlider, 'Position', [pos(3)-35 110 20 pos(4)-140]);
+set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
+set(handles.montagePanel, 'Position', [pos(3)-400 5 200 70]);
+
+h_tot = pos(4) - 140;
+nx = numel(handles.tAxes);
+h = min((h_tot-(nx-1)*20)/nx, 200);
+
+switch nx
+    case 1
+        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
+    case 2
+        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+    case 3
+        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        set(handles.tAxes{3}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
+    case 4        
+        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        set(handles.tAxes{3}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
+        set(handles.tAxes{4}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
+end
+
+set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
+
 % frames
 width = pos(3) - 350-50-100-50 -50;
 set(handles.frameLabel, 'Position', [50 pos(4)-20, 100 15]);
@@ -350,15 +382,39 @@ set(handles.frameSlider, 'Position', [50 60 width 20]);
 
 set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
 
-% tracks
-set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
-set(handles.trackSlider, 'Position', [pos(3)-35 60 20 pos(4)-80]);
-set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
-set(handles.montagePanel, 'Position', [pos(3)-400 5 200 70]);
+dx = 50;
+switch numel(handles.fAxes)
+    case 1
+        set(handles.fAxes{1}, 'Position', [dx 110 width pos(4)-140]);
+    case 2
+        if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
+            width = (width-20)/2;
+            set(handles.fAxes{1}, 'Position', [dx 110 width pos(4)-140]);
+            set(handles.fAxes{2}, 'Position', [dx+width+20 110 width pos(4)-140]);
+        else
+            set(handles.fAxes{1}, 'Position', [dx 7*dy width 4*dy]);
+            set(handles.fAxes{2}, 'Position', [dx 110 width 4*dy]);
+        end
+%     case 3
+%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%     case 4
+%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+end
 
 
 
-function handles = setupFrameAxes(handles, N)
+
+
+
+
+function handles = setupFrameAxes(hfig, N)
+
+handles = getappdata(hfig, 'handles');
 
 if nargin<2
     N = handles.nCh;
@@ -369,9 +425,6 @@ pos = get(gcf, 'Position');
 
 dx = 50;
 width = pos(3) - 350-50-100-50 -50;
-
-% dx = 1/23; % unit
-% dy = 1/12;
 
 if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
     cellfun(@(x) delete(x), handles.fAxes);
@@ -385,22 +438,25 @@ switch N
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-20)/2;
             handles.fAxes{1} = axes(opts{:}, 'Position', [dx 110 width pos(4)-140]);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 110 width pos(4)-140]);
+            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 110 width pos(4)-140], 'YTick', []);
         else
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy width 4*dy]);
+            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy width 4*dy], 'XTick', []);
             handles.fAxes{2} = axes(opts{:}, 'Position', [dx 110 width 4*dy]);
         end
-    case 3
-        handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-    case 4
-        handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-        handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-        handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+%     case 3
+%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%     case 4
+%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
-linkaxes([handles.fAxes{:}]);
+setappdata(hfig, 'handles', handles);
+if N>1
+    linkaxes([handles.fAxes{:}]);
+end
 
 
 % % --- Outputs from this function are returned to the command line.
@@ -437,13 +493,13 @@ isRGB = strcmpi(handles.displayType, 'RGB');
 
 if isRGB
     if length(handles.fAxes)>1
-        handles = setupFrameAxes(handles, 1);
+        handles = setupFrameAxes(hfig, 1);
     end
     cvec = mc;
     
 else 
     if length(handles.fAxes)~=handles.nCh
-        handles = setupFrameAxes(handles);
+        handles = setupFrameAxes(hfig);
     end
     cvec = 1:handles.nCh;
 end
