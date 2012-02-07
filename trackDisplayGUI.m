@@ -798,8 +798,8 @@ for c = 1:handles.nCh
         
         for k = 1:nt
             i = 1:np(k);
-            X(i,k) = handles.tracks{chIdx}(idx(k)).x;
-            Y(i,k) = handles.tracks{chIdx}(idx(k)).y;
+            X(i,k) = handles.tracks{chIdx}(idx(k)).x(chIdx,:);
+            Y(i,k) = handles.tracks{chIdx}(idx(k)).y(chIdx,:);
             F(i,k) = handles.tracks{chIdx}(idx(k)).f;
         end
         

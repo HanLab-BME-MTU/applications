@@ -146,7 +146,7 @@ else
 end
 delete(ha);
 
-dt = (track.end-track.start+1)/track.lifetime_s;
+dt = track.lifetime_s/(track.end-track.start+1);
 gapIdx = round((track.t+dt)/dt);
 gapIdx = gapIdx(track.gapVect==1) - track.start + 1;
 
@@ -165,11 +165,11 @@ for rowi = 1:nr
                 if ip.Results.ShowDetection && fi>sb && fi<=(track.end-track.start+1)+sb && c==1
                     if track.gapVect(fi-sb)
                         plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 1 1], 'MarkerSize', 16);
-                    elseif track.isPSF(fi-sb)
+                    elseif track.isPSF(c,fi-sb)
                         plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [0 1 0], 'MarkerSize', 16);
                     else
                         plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 0 0], 'MarkerSize', 16);
-                    end
+                    end                    
                 end
                 if ip.Results.ShowMarkers && c==1 && fi>sb && fi<=(track.end-track.start+1)+sb
                     if fi==sb+1
