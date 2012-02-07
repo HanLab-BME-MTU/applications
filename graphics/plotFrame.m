@@ -147,8 +147,8 @@ if ~isempty(tracks)
         
         for k = 1:nt
             i = 1:np(k);
-            X(i,k) = tracks(k).x;
-            Y(i,k) = tracks(k).y;
+            X(i,k) = tracks(k).x(ch,:);
+            Y(i,k) = tracks(k).y(ch,:);
             F(i,k) = tracks(k).f;
             G(i,k) = tracks(k).gapVect;
         end
@@ -162,8 +162,7 @@ if ~isempty(tracks)
                 
                 % colormap: blue to red, [0..120] seconds
                 lifetimes_f = round([tracks.lifetime_s]/data.framerate);
-                maxLft_f = data.movieLength / data.framerate;
-                df = maxLft_f-120;
+                df = data.movieLength-round(120/data.framerate);
                 dcoord = 0.25/df;
                 cmap = [jet(round(120/data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
                 

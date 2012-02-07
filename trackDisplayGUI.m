@@ -60,6 +60,7 @@ dx = pos(3)-w-50;
 %---------------------
 % Frames
 %---------------------
+width = pos(3) - 350-50-100-50 -50;
 
 handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
     'Position', [50 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
@@ -67,9 +68,9 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
 % [dx pos(4)-20 100 15]
 
 % Slider
-handles.frameSlider = uicontrol('Style', 'slider',...
+handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
     'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-    'Position', [20 60 0.6*pos(3) 20], 'Callback', {@frameSlider_Callback, hfig});
+    'Position', [20 130 width 20], 'Callback', {@frameSlider_Callback, hfig});
 
 uicontrol('Style', 'text', 'String', 'Display: ',...
     'Position', [20 20, 80 20], 'HorizontalAlignment', 'left');
@@ -264,7 +265,7 @@ xlabel('Time (s)');
 % vertical
 handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
 
-
+% return
 %===========================
 % initialize figures/plots
 %===========================
@@ -343,17 +344,17 @@ dx = pos(3)-w-50;
 handles = getappdata(src, 'handles');
 
 % frames
+width = pos(3) - 350-50-100-50 -50;
 set(handles.frameLabel, 'Position', [50 pos(4)-20, 100 15]);
-set(handles.frameSlider, 'Position', [20 60 0.6*pos(3) 20]);
+set(handles.frameSlider, 'Position', [50 60 width 20]);
+
+set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
 
 % tracks
 set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
-set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
 set(handles.trackSlider, 'Position', [pos(3)-35 60 20 pos(4)-80]);
 set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
 set(handles.montagePanel, 'Position', [pos(3)-400 5 200 70]);
-
-
 
 
 
@@ -382,11 +383,12 @@ switch N
         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 110 width pos(4)-140]);
     case 2
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 9*dy]);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 9*dy]);
+            width = (width-20)/2;
+            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 110 width pos(4)-140]);
+            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 110 width pos(4)-140]);
         else
             handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy width 4*dy]);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx 2*dy width 4*dy]);
+            handles.fAxes{2} = axes(opts{:}, 'Position', [dx 110 width 4*dy]);
         end
     case 3
         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
@@ -399,7 +401,6 @@ switch N
         handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
 linkaxes([handles.fAxes{:}]);
-
 
 
 % % --- Outputs from this function are returned to the command line.
@@ -558,14 +559,15 @@ sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
 if ~isempty(handles.tracks{handles.mCh})
     switch mode
         case 'Lifetime'
-            maxLft_f = 160;
-            df = maxLft_f-120;
+            %maxLft_f = 160;
+            %df = maxLft_f-120;
+            df = 40;
             dcoord = 0.25/df;
-            cmap = [jet(round(120/handles.data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
+            cmap = [jet(120); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
             imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
             set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-               'YTick', [1 20:20:120 maxLft_f]*handles.data.framerate,...
-               'YTickLabel', [1 20:20:120 handles.data.movieLength / handles.data.framerate], sfont{:});
+               'YTick', [1 20:20:120 160],...
+               'YTickLabel', [handles.data.framerate 20:20:120 handles.data.movieLength*handles.data.framerate], sfont{:});
             text(-0.5, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
             %imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
             %axis(handles.cAxes, 'xy');
