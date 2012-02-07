@@ -156,22 +156,42 @@ setappdata(hfig, 'handles', handles);
 
 handles.fAspectRatio = handles.data.imagesize(1) / handles.data.imagesize(2);
 
-
+%--------------------------------
+% Load detection files
+%--------------------------------
 handles.detection = cell(1,nCh);
-handles.dRange = cell(1,nCh);
-
-detectionFile = [data.source 'Detection' filesep 'detection_v2.mat'];
-if exist(detectionFile, 'file')==2
-    load(detectionFile);
-    handles.detection{handles.mCh} = frameInfo;
-    if isfield(frameInfo, 'dRange')
-        for c = 1:nCh
-            M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
-            M = vertcat(M{:});
-            handles.dRange{c} = [min(M(:,1)) max(M(:,2))];
-        end
+for c = 1:nCh
+    detectionFile = [data.channels{c} 'Detection' filesep 'detection_v2.mat'];
+    if (exist(detectionFile, 'file')==2)
+        load(detectionFile);
+        handles.detection{c} = frameInfo;
     end
 end
+
+% dynamic range from master
+handles.dRange = cell(1,nCh);
+for c = 1:nCh
+    M = arrayfun(@(i) i.dRange{c}, handles.detection{handles.mCh}, 'UniformOutput', false);
+    M = vertcat(M{:});
+    handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
+end
+
+% % detectionFile = [data.source 'Detection' filesep 'detection_v2.mat'];
+% if exist(detectionFile, 'file')==2
+%     %load(detectionFile);
+% %     handles.detection{handles.mCh} = frameInfo;
+%     if isfield(frameInfo, 'dRange')
+%         for c = 1:nCh
+%             M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
+%             M = vertcat(M{:});
+%             handles.dRange{c} = [min(M(:,1)) max(M(:,2))];
+%         end
+%     end
+% end
+
+
+
+
 
 for c = 1:nCh
     if isempty(handles.dRange{c})        
@@ -525,7 +545,7 @@ for k = 1:nAxes
         chIdx = mc;
     end
     
-    if get(handles.('detectionCheckbox'), 'Value') 
+    if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
         detection = handles.detection{k}(f);
     else
         detection = [];

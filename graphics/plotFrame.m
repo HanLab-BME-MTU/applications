@@ -111,14 +111,14 @@ if ~isempty(ip.Results.iRange{ch})
 end
 axis(ha, 'image');
 
-if ~isempty(detection) && ch==mCh
+if ~isempty(detection)% temporary fix: channel 1 is always selected (assumed master) -> change in call
     hold(ha, 'on');
-    isPSF = detection.isPSF==1;
+    isPSF = detection.isPSF(1,:)==1;
     if any(isPSF)
-        plot(ha, detection.x(ch,isPSF), detection.y(ch,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
+        plot(ha, detection.x(1,isPSF), detection.y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
     end
     if any(~isPSF)
-        plot(ha, detection.x(ch,~isPSF), detection.y(ch,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
+        plot(ha, detection.x(1,~isPSF), detection.y(1,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
     end 
     hold(ha, 'off');
 end
