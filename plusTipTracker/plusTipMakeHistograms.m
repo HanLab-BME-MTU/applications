@@ -38,6 +38,7 @@ elseif isnumeric(rawData{1})
     rawData={rawData};
 end
 nGroups = numel(rawData);
+nCells = cellfun(@numel,rawData);
 
 if ~isdir(saveDir), mkdir(saveDir); end
 
@@ -63,24 +64,36 @@ for k=1:9
     plotData(i,j).rawData=parseRawData(i,j);
 end
 
-n=cell(1,3);
+binSize = zeros(1,3);
+binCenters=cell(1,3);
+nBins=25;
+% Create 
 for i=1:3
+    % Read the minimum and maximum value and deduce the bin size
     allCellsData=vertcat(plotData(i,:).rawData);
     allData = vertcat([allCellsData{:}]);
-    n{i} = linspace(nanmin(vertcat(allData{:})), nanmax(vertcat(allData{:})),25);
+    minData = min(0,nanmin(vertcat(allData{:})));
+    maxData = nanmax(vertcat(allData{:}));
+    binSize(i) = (maxData-minData)/nBins;
+    
+    % Create arrays of bin centers
+    minEdge = floor(minData/binSize(i))*binSize(i);
+    maxEdge = round(maxData/binSize(i))*binSize(i);
+    edges = minEdge:binSize(i):maxEdge;
+    binCenters{i} = edges(1:end-1)+binSize(i)/2;
 end
 
 
 for k=1:9
     [i,j]=ind2sub([3,3],k);
-    % Create bin for each group/cell in a group
-    binData = cellfun(@(x) cellfun(@(y) histc(y,n{i})/numel(y),...
+    % Count data per bin for each cell in each group
+    binData = cellfun(@(x) cellfun(@(y) hist(y,binCenters{i})/numel(y),...
         x,'UniformOutput',false),plotData(i,j).rawData,'UniformOutput',false);
-    plotData(i,j).binData = cellfun(@(x) horzcat(x{:}),binData,'UniformOutput',false);
-    % Average the groups
-    plotData(i,j).avgBins = cell2mat(cellfun(@(x) mean(x,2),plotData(i,j).binData,'Unif',false));
-    plotData(i,j).stdBins = cell2mat(cellfun(@(x) std(x,0,2),plotData(i,j).binData,'Unif',false));
-    plotData(i,j).steBins = cell2mat(cellfun(@(x) std(x,0,2)/sqrt(size(x,2)),plotData(i,j).binData,'Unif',false));
+    plotData(i,j).binData = cellfun(@(x) vertcat(x{:}),binData,'UniformOutput',false)';
+    % Average the results per groups
+    plotData(i,j).avgBins = cell2mat(cellfun(@(x) mean(x,1),plotData(i,j).binData,'Unif',false));
+    plotData(i,j).stdBins = cell2mat(cellfun(@(x) std(x,0,1),plotData(i,j).binData,'Unif',false));
+    plotData(i,j).steBins = cell2mat(cellfun(@(x) std(x,0,1)/sqrt(size(x,1)),plotData(i,j).binData,'Unif',false));
 end
 
 for k=1:9
@@ -92,35 +105,31 @@ for k=1:9
     %     validBinData = find(~cellfun(@isempty,data(i).avgBins));
     %     for j=validBinData
     saveFig =figure;hold on;
-    if nGroups>1
-        colors=hsv(nGroups);
-    else
-        colors= eventType(j).color;
-    end
+    if nGroups>1, colors=hsv(nGroups); else colors= eventType(j).color; end
     
     h=zeros(1,nGroups);
     for iGroup=1:nGroups
-        dn=mean(diff(n{i})); % get bar spacing
-        x = n{i}-dn/2+dn/(2*nGroups)+(iGroup-1)*dn/nGroups;
+        x = binCenters{i}-binSize(i)/2+(2*iGroup-1)*binSize(i)/(2*nGroups);
         hold on;
-        h(iGroup)=bar(x,plotData(i,j).avgBins(:,iGroup),...
+        h(iGroup)=bar(x,plotData(i,j).avgBins(iGroup,:),...
             'BarWidth',1/nGroups,'FaceColor',colors(iGroup,:));
         
         % Overlay standard error
-        validSte = plotData(i,j).steBins(:,iGroup)~=0;
+        validSte = plotData(i,j).steBins(iGroup,:)~=0;
         if ~isempty(find(validSte,1)) && plotSte
-            errorbar(x(validSte),plotData(i,j).avgBins(validSte,iGroup),...
-                plotData(i,j).steBins(validSte),'.k');
+            errorbar(x(validSte),plotData(i,j).avgBins(iGroup,validSte),...
+                plotData(i,j).steBins(iGroup,validSte),'.k');
         end
         
         % Overlay standard error
         validStd = plotData(i,j).stdBins(:,iGroup)~=0;
         if ~isempty(find(validStd,1)) && plotStd
-            errorbar(x(validStd),plotData(i,j).avgBins(validStd,iGroup),...
-                plotData(i,j).stdBins(validStd,iGroup),'.k');
+            errorbar(x(validStd),plotData(i,j).avgBins(iGroup.validSte),...
+                plotData(i,j).stdBins(iGroup,validStd),'.k');
         end
     end
-    %         colormap(eventType(j).color);
+
+    % Add title, label, limits and save figure
     title([eventType(j).name ' ' dataType(i).name ' distribution'])
     xlabel(label);
     ylabel('Frequency of tracks');

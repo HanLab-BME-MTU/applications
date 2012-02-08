@@ -300,8 +300,9 @@ value = get(handles.edit_dispLimMax,'String');
 if strcmpi(value,'max'), dispLim=[]; else dispLim = str2double(value); end
 if isnan(dispLim), errordlg('Please enter a valid maximum displacement'); return; end
 
+useFirstImage = get(handles.checkbox_useFirstImage,'Value');
 plusTipPlotResults(handles.projData,remBegEnd,timeRange,...
-    speedLim,lifeLim,dispLim,saveDir);
+    speedLim,lifeLim,dispLim,saveDir,useFirstImage);
 
 
 function timeRange = getTimeRange(handles)

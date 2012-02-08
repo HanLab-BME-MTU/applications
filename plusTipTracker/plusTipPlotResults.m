@@ -1,5 +1,5 @@
-function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir)
-% plusTipPlotResults make 18 summary overlay plots and histograms
+function plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir,useFirstImage)
+% plusTipPlotResults make 18 summary overlay plots and histograms0
 %
 % SYNOPSIS: plusTipPlotResults(projData,remBegEnd,timeRange,speedLim,lifeLim,dispLim,saveDir)
 %
@@ -61,12 +61,6 @@ else
     wtBar=-1;
 end
 
-% get first image from imDir
-[listOfImages] = searchFiles('.tif',[],imDir,0);
-[filename pathname]  = uigetfile('*','Select an Image File',imDir); 
-%img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
-img = double(imread([pathname filesep filename])); 
-
 % extract track info (block matrix)
 allData=abs(projData.mergedDataMatAllSubTracksConverted);
 
@@ -81,6 +75,17 @@ end
 
 if nargin<6 || isempty(dispLim) || strcmpi(dispLim,'max')
     dispLim=prctile(allData(:,7),95);
+end
+
+if nargin<8, useFirstImage=0; end
+
+% get first image from imDir
+if useFirstImage
+    [listOfImages] = searchFiles('.tif',[],imDir,0);
+    img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
+else
+    [filename pathname]  = uigetfile('*','Select an Image File',imDir);
+    img = double(imread([pathname filesep filename]));
 end
 
 % get track type and matrices containing xy-coordinates for all subtracks
@@ -123,6 +128,11 @@ movieW = (calcMagCoef*(maxX-minX+1));
 figPos=[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) movieW movieL];
 
 
+overlayFig = figure;
+imshow(img,[]);
+set(gca,'Position',[0 0 1 .95]);
+hold on
+
 cMapLength=128; cMap=jet(cMapLength);
 
 % Create MT dynamics maps of speed, lifetime and displacement for growth,
@@ -131,9 +141,10 @@ type= {'speed','lifetime','displacement'};
 typeIndx= {4,6,7};
 typeMatIndx = {1:3,4:6,7:9};
 typeLim = {speedLim;lifeLim;dispLim};
-typeUnits = {speedLim;lifeLim;dispLim};
+typeUnits = {'microns/min';'s';'microns'};
 event= {'growth tracks','fgaps','bgaps'};
 eventIndx= {gIdx;fIdx;bIdx};
+
 
 for i=1:3
     x=xMat(eventIndx{i},1:end-1)';
@@ -151,26 +162,24 @@ for i=1:3
         [sD,idx]=sort(abs(D),2);
         
         % make the plot
-        figure('Position',figPos)
-        imagesc(img); colormap gray;
-        axis off
-        hold on
+        figure(overlayFig);
+        delete(findobj(overlayFig,'Type','line'));
         for k=1:cMapLength
             plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:));
         end
-        xlabel([type{i} 'map of ' event{j} ', max ' type{i}...
-            ' ' num2str(dataRange) ' ' typeUnits{i}]);
+        title([type{j} ' map of ' event{i} ', max ' type{j}...
+            ' ' num2str(dataRange) ' ' typeUnits{j}]);
         
         saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} '.fig'])
         saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} fileExt])
-        close(gcf)
-        
+
         if ishandle(wtBar)
             waitbar(((i-1)*3+ j)/18,wtBar,'Creating overlay maps');
         end
         
     end
 end
+delete(findobj(overlayFig,'Type','line'));
 
 %% STACKED HISTOGRAMS
 
@@ -182,9 +191,9 @@ for j=1:3
     n=linspace(0,typeLim{j},25);
 
     % bin the samples
-    [x1,dummy] = histc(data(:,1),n); % growth
-    [x2,dummy] = histc(data(:,2),n); % fgap
-    [x3,dummy] = histc(data(:,3),n); % bgap
+    x1 = histc(data(:,1),n)/numel(data); % growth
+    x2 = histc(data(:,2),n)/numel(data); % fgap
+    x3 = histc(data(:,3),n)/numel(data); % bgap
 
     % put the binned values into a matrix for the stacked plot
     M=nan(max([length(x1) length(x2) length(x3)]),3);
@@ -245,68 +254,41 @@ end
 if ishandle(wtBar),  waitbar(.75,wtBar,'Creating sites plots'); end
 
 % make the pause/shrink initiation plots
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xCatPause,yCatPause,'y','filled')
-xlabel('pause initiation sites (growth to pause)')
+figure(overlayFig);
+
+h=scatter(xCatPause,yCatPause,'y','filled');
+title('pause initiation sites (growth to pause)')
 saveas(gcf,[saveDir filesep 'pause initiation sites (growth to pause)' '.fig'])
 saveas(gcf,[saveDir filesep 'pause initiation sites (growth to pause)' fileExt])
-close(gcf)
 
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xCatShrink,yCatShrink,'r','filled')
-xlabel('shrinkage initiation sites (growth to shrinkage)')
-
+delete(h);
+h=scatter(xCatShrink,yCatShrink,'r','filled');
+title('shrinkage initiation sites (growth to shrinkage)')
 saveas(gcf,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' '.fig'])
 saveas(gcf,[saveDir filesep 'shrinkage initiation sites (growth to shrinkage)' fileExt])
-close(gcf)
 
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xCatPause,yCatPause,'y','filled')
-scatter(xCatShrink,yCatShrink,'r','filled')
-xlabel('pause (yellow) and shrinkage (red) initiation sites')
-
+h(2)=scatter(xCatPause,yCatPause,'y','filled');
+title('pause (yellow) and shrinkage (red) initiation sites')
 saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' '.fig'])
 saveas(gcf,[saveDir filesep 'pause and shrinkage initiation sites' fileExt])
-close(gcf)
 
 if ishandle(wtBar),  waitbar(.875,wtBar,'Creating sites plots'); end
 
 % make the pause/shrinkage termination plots
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xResPause,yResPause,'y','filled')
-xlabel('pause termination sites (pause to growth)')
-
+delete(h);
+h=scatter(xResPause,yResPause,'y','filled');
+title('pause termination sites (pause to growth)')
 saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' '.fig'])
 saveas(gcf,[saveDir filesep 'pause termination sites (pause to growth)' fileExt])
-close(gcf)
 
-
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xResShrink,yResShrink,'r','filled')
-xlabel('shrinkage termination sites (shrinkage to growth)')
-
+delete(h);
+h=scatter(xResShrink,yResShrink,'r','filled');
+title('shrinkage termination sites (shrinkage to growth)')
 saveas(gcf,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' '.fig'])
 saveas(gcf,[saveDir filesep 'shrinkage termination sites(shrinkage to growth)' fileExt])
-close(gcf)
 
-
-figure('Position',figPos)
-imagesc(img); colormap gray;
-hold on
-scatter(xResPause,yResPause,'y','filled')
-scatter(xResShrink,yResShrink,'r','filled')
-xlabel('pause (yellow) and shrinkage (red) termination sites')    
-
+h(2) = scatter(xResPause,yResPause,'y','filled');
+title('pause (yellow) and shrinkage (red) termination sites')    
 saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' '.fig'])
 saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' fileExt])
 close(gcf)
