@@ -2,10 +2,7 @@
 %
 % INPUT:   trackStack : cell array containing image frames
 %
-% François Aguet, last modified March 22, 2011
-
-% track, data -> load
-% track, trackStack (cell array), 
+% François Aguet (last modified 02/07/2012)
 
 function plotTrackMontage(track, trackStack, varargin)
 
@@ -30,6 +27,7 @@ ip.addParamValue('Mode', []);
 ip.addParamValue('FramesPerRow', 20, @isscalar);
 ip.addParamValue('ShowDetection', false, @islogical);
 ip.addParamValue('ShowMarkers', false, @islogical);
+ip.addParamValue('DynamicRange', []);
 ip.parse(track, trackStack, varargin{:});
 width = ip.Results.Width;
 labels = ip.Results.Labels;
@@ -59,24 +57,15 @@ if ~isempty(track.startBuffer)
 else
     sb = 0;
 end
-if ~isempty(track.endBuffer)
-    eb = numel(track.endBuffer.t);
-else
-    eb = 0;
-end
 
-
-maxI = zeros(1,nc);
-minI = zeros(1,nc);
-for c = 1:nc
-    cCat = [trackStack{c,1+sb:end-eb}];
-    maxI(c) = max(cCat(:));
-    minI(c) = min(cCat(:));
-end
-
-% loop through cells, adjust contrast, convert to 8-bit
-for c = 1:nc
-    trackStack(c,:) = cellfun(@(x) uint8(scaleContrast(x, [minI(c) maxI(c)])), trackStack(c,:), 'UniformOutput', false);
+% dynamic range of the entire stack
+dRange = ip.Results.DynamicRange;
+if isempty(dRange)
+    dRange = zeros(nc,2);
+    for c = 1:nc
+        cstack = cat(3, trackStack{c,:});
+        dRange(c,:) = [min(cstack(:)) max(cstack(:))];
+    end
 end
 
 idx = find(strcmpi(varargin, 'Mode'));
@@ -160,7 +149,7 @@ for rowi = 1:nr
                 ha(c,fi) = axes('Units', 'pixels',...
                     'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
                     'XLim', [0 wxi], 'YLim', [0 wxi]);
-                imagesc(xa{fi}, ya{fi}, trackStack{c, fi}); axis image off; caxis([0 255]);%caxis([minI(c) maxI(c)]);
+                imagesc(xa{fi}, ya{fi}, trackStack{c, fi}); axis image off; caxis(dRange(c,:));            
                 hold on;
                 if ip.Results.ShowDetection && fi>sb && fi<=(track.end-track.start+1)+sb && c==1
                     if track.gapVect(fi-sb)

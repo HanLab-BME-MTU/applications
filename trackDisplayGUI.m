@@ -65,51 +65,51 @@ width = pos(3) - 350-50-100-50 -50;
 handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
     'Position', [50 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
-% [dx pos(4)-20 100 15]
-
-% Slider
+% Frame slider
 handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
     'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-    'Position', [20 130 width 20], 'Callback', {@frameSlider_Callback, hfig});
+    'Position', [20 60 width 20], 'Callback', {@frameSlider_Callback, hfig});
 
-uicontrol('Style', 'text', 'String', 'Display: ',...
-    'Position', [20 20, 80 20], 'HorizontalAlignment', 'left');
+% Main control panel
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 700 70]);
 
-handles.frameChoice = uicontrol('Style', 'popup',...
+uicontrol(ph, 'Style', 'text', 'String', 'Display: ',...
+    'Position', [5 40 60 20], 'HorizontalAlignment', 'left');
+handles.frameChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Raw frames', 'Detection', 'RGB'},...
-    'Position', [90 20 120 20], 'Callback', {@frameChoice_Callback, hfig});
+    'Position', [65 42 120 20], 'Callback', {@frameChoice_Callback, hfig});
 
-% Checkboxes
-handles.detectionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Positions',...
-    'Position', [250 35 140 20], 'HorizontalAlignment', 'left',...
+handles.detectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Detections',...
+    'Position', [200 45 100 15], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
-handles.labelCheckbox = uicontrol('Style', 'checkbox', 'String', 'Channel labels',...
-    'Position', [250 10 140 20], 'HorizontalAlignment', 'left',...
+handles.trackCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Tracks:', 'Value', true,...
+    'Position', [200 25 80 15], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
-handles.trackCheckbox = uicontrol('Style', 'checkbox', 'String', 'Tracks', 'Value', true,...
-    'Position', [390 35 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, hfig});
-handles.gapCheckbox = uicontrol('Style', 'checkbox', 'String', 'Gaps',...
-    'Position', [390 10 60 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, hfig});
-handles.trackEventCheckbox = uicontrol('Style', 'checkbox', 'String', 'Births/Deaths',...
-    'Position', [450 10 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, hfig});
-
-handles.eapCheckbox = uicontrol('Style', 'checkbox', 'String', 'EAP status',...
-    'Position', [560 10 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@refresh_Callback, hfig});
-
 handles.trackChoice = uicontrol('Style', 'popup',...
     'String', {'Lifetime', 'Category', 'Random'},...
-    'Position', [460 35 100 20], 'Callback', {@trackChoice_Callback, hfig});
+    'Position', [280 28 100 20], 'Callback', {@trackChoice_Callback, hfig});
 
-handles.trackButton = uicontrol('Style', 'pushbutton', 'String', 'Select track',...
-    'Position', [20+0.6*pos(3)-100 30, 100 28], 'HorizontalAlignment', 'left',...
+
+handles.gapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Gaps',...
+    'Position', [390 45 140 15], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, hfig});
+handles.trackEventCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Births/Deaths',...
+    'Position', [390 25 140 15], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, hfig});
+handles.eapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'EAP status',...
+    'Position', [390 5 140 15], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, hfig});
+
+handles.labelCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Channel labels',...
+    'Position', [200 5 140 15], 'HorizontalAlignment', 'left',...
+    'Callback', {@refresh_Callback, hfig});
+
+
+handles.trackButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Select track',...
+    'Position', [590 40 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@trackButton_Callback, hfig});
-
-handles.statsButton = uicontrol('Style', 'pushbutton', 'String', 'Track statistics',...
-    'Position', [20+0.6*pos(3)-100 5, 100 25], 'HorizontalAlignment', 'left',...
+handles.statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
+    'Position', [590 10 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@statsButton_Callback, hfig});
 
 
@@ -402,22 +402,23 @@ set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
 % frames
 width = pos(3) - 350-50-100-50 -50;
 set(handles.frameLabel, 'Position', [50 pos(4)-20, 100 15]);
-set(handles.frameSlider, 'Position', [50 60 width 20]);
-
-set(handles.trackButton, 'Position', [20+0.6*pos(3)-100 30, 100 30]);
+set(handles.frameSlider, 'Position', [50 75 width 20]);
 
 dx = 50;
+dy = 120; % bottom spacer
+height = pos(4) - dy-30;
 switch numel(handles.fAxes)
     case 1
-        set(handles.fAxes{1}, 'Position', [dx 110 width pos(4)-140]);
+        set(handles.fAxes{1}, 'Position', [dx dy width pos(4)-140]);
     case 2
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-20)/2;
-            set(handles.fAxes{1}, 'Position', [dx 110 width pos(4)-140]);
-            set(handles.fAxes{2}, 'Position', [dx+width+20 110 width pos(4)-140]);
+            set(handles.fAxes{1}, 'Position', [dx dy width pos(4)-140]);
+            set(handles.fAxes{2}, 'Position', [dx+width+20 dy width pos(4)-140]);
         else
-            set(handles.fAxes{1}, 'Position', [dx 7*dy width 4*dy]);
-            set(handles.fAxes{2}, 'Position', [dx 110 width 4*dy]);
+            height = (height-20)/2;
+            set(handles.fAxes{1}, 'Position', [dx dy+20+height width height]);
+            set(handles.fAxes{2}, 'Position', [dx dy width height]);
         end
 %     case 3
 %         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
@@ -445,10 +446,12 @@ if nargin<2
 end
 
 pos = get(gcf, 'Position');
-% spacers: bottom: 110 bottom, 30 top, 50 left
+% spacers: bottom: 120 bottom, 30 top, 50 left
 
+dy = 120; % bottom spacer
 dx = 50;
 width = pos(3) - 350-50-100-50 -50;
+height = pos(4) - dy-30;
 
 if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
     cellfun(@(x) delete(x), handles.fAxes);
@@ -457,15 +460,16 @@ handles.fAxes = cell(1,N);
 opts = {'Parent', gcf, 'Units', 'pixels'};
 switch N
     case 1
-        handles.fAxes{1} = axes(opts{:}, 'Position', [dx 110 width pos(4)-140]);
+        handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy width height]);
     case 2
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-20)/2;
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 110 width pos(4)-140]);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 110 width pos(4)-140], 'YTick', []);
+            handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy width height]);
+            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 dy width height], 'YTick', []);
         else
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy width 4*dy], 'XTick', []);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx 110 width 4*dy]);
+            height = (height-20)/2;
+            handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy+20+height width height], 'XTick', []);
+            handles.fAxes{2} = axes(opts{:}, 'Position', [dx dy width height]);
         end
 %     case 3
 %         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
