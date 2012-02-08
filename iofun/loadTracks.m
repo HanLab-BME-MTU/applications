@@ -19,6 +19,8 @@
 
 function tracks = loadTracks(data, varargin)
 
+catValues = {'all', 'Ia', 'Ib', 'Ic', 'Id', 'IIa', 'IIb', 'IIc', 'IId'};
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) & numel(x)==1);
@@ -26,8 +28,13 @@ ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
 % ip.addParamValue('PostProc', [], @isscalar);
-ip.addParamValue('Category', 'all', @(x) any(strcmpi(x, {'all', 'Ia', 'Ib', 'Ic', 'Id', 'IIa', 'IIb', 'IIc', 'IId'})));
+ip.addParamValue('Category', 'all', @(x) all(arrayfun(@(x) any(strcmpi(x, catValues)), x)));
 ip.parse(data, varargin{:});
+category = ip.Results.Category;
+if ~iscell(category)
+    category = {category};
+end
+
 
 cutoff_s = ip.Results.Cutoff * data.framerate;
 
@@ -41,25 +48,30 @@ end
 singleIdx = [tracks.nSeg]==1;
 validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
 vis = [tracks.visibility];
-switch ip.Results.Type
-    case 'Ia'
-        idx = singleIdx & validGaps & vis==1;
-    case 'Ib'
-        idx = singleIdx & ~validGaps & vis==1;
-    case 'Ic'
-        idx = singleIdx & vis==2;
-    case 'Id'
-        idx = singleIdx & vis==3;
-    case 'IIa'
-        idx = ~singleIdx & validGaps & vis==1;
-    case 'IIb'
-        idx = ~singleIdx & ~validGaps & vis==1;
-    case 'IIc'
-        idx = ~singleIdx & vis==2;
-    case 'IId'
-        idx = ~singleIdx & vis==3;
-    case 'all'
-        idx = 1:numel(tracks);
+
+idx = false(1,numel(singleIdx));
+for k = 1:numel(category);
+    switch category{k}
+        case 'Ia'
+            idx0 = singleIdx & validGaps & vis==1;
+        case 'Ib'
+            idx0 = singleIdx & ~validGaps & vis==1;
+        case 'Ic'
+            idx0 = singleIdx & vis==2;
+        case 'Id'
+            idx0 = singleIdx & vis==3;
+        case 'IIa'
+            idx0 = ~singleIdx & validGaps & vis==1;
+        case 'IIb'
+            idx0 = ~singleIdx & ~validGaps & vis==1;
+        case 'IIc'
+            idx0 = ~singleIdx & vis==2;
+        case 'IId'
+            idx0 = ~singleIdx & vis==3;
+        case 'all'
+            idx0 = 1:numel(tracks);
+    end
+    idx = idx | idx0;
 end
 idx = idx & [tracks.lifetime_s] >= cutoff_s;
 tracks = tracks(idx);
