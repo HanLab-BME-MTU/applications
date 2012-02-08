@@ -1,3 +1,13 @@
+%lftDataOut = detectLftDistOutliers(lftData, varargin)
+%
+% Inputs:
+%
+%    lftData : structure with fields:
+%           .lftHist  : cell array of lifetime histograms
+%           .t        : time vector (common to all histograms)
+%           .nSamples : number of samples in each histogram
+%
+
 % Francois Aguet, 01/28/2012
 
 function lftDataOut = detectLftDistOutliers(lftData, varargin)
@@ -5,14 +15,20 @@ function lftDataOut = detectLftDistOutliers(lftData, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
-ip.addParamValue('EndIdx', find(lftData.meanHist~=0, 1, 'last'));
-ip.addParamValue('Display', true, @islogical);
+ip.addParamValue('EndIdx', []);
+ip.addParamValue('Display', false, @islogical);
 ip.parse(lftData, varargin{:});
 endIdx = ip.Results.EndIdx;
 
 N = numel(lftData.lftHist);
-
 histMat = vertcat(lftData.lftHist{:});
+if ~isfield(lftData, 'meanHist')
+    lftData.meanHist = mean(histMat,1);
+end
+
+if isempty(endIdx)
+    endIdx = find(lftData.meanHist~=0, 1, 'last');    
+end
 
 ecdfMat = cumsum(histMat, 2);
 ecdfMat = ecdfMat(:,1:endIdx);
