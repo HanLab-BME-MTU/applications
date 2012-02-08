@@ -173,7 +173,7 @@ protrusion = cell(nFrames-1,1);
 normals = cell(nFrames-1,1);
 smoothedEdge = cell(nFrames,1);
 
-roiMask=movieData.getROI;
+roiMask=movieData.getROIMask;
 for iFrame = 1:nFrames        
     
     %Load and combine masks from all channels
