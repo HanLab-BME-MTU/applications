@@ -28,12 +28,16 @@ ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
 % ip.addParamValue('PostProc', [], @isscalar);
-ip.addParamValue('Category', 'all', @(x) all(arrayfun(@(x) any(strcmpi(x, catValues)), x)));
+ip.addParamValue('Category', 'all');
 ip.parse(data, varargin{:});
 category = ip.Results.Category;
 if ~iscell(category)
     category = {category};
 end
+if ~all(arrayfun(@(i) any(strcmpi(i, catValues)), category))
+    error('Unknown ''Category''.');
+end
+
 
 
 cutoff_s = ip.Results.Cutoff * data.framerate;
