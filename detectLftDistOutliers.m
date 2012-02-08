@@ -12,7 +12,9 @@ endIdx = ip.Results.EndIdx;
 
 N = numel(lftData.lftHist);
 
-ecdfMat = cumsum(vertcat(lftData.lftHist{:}), 2);
+histMat = vertcat(lftData.lftHist{:});
+
+ecdfMat = cumsum(histMat, 2);
 ecdfMat = ecdfMat(:,1:endIdx);
 t = lftData.t(1:endIdx);
 
@@ -21,20 +23,20 @@ for i = 1:numel(A)
     ecdfMat(i,:) = (ecdfMat(i,:)-A(i))/(1-A(i));
 end
 
-
+histMat = histMat(:,1:endIdx);
 
 %============================================
 % Plot raw distributions
 %============================================
-figure; hold on;
-fset = loadFigureSettings();
-% set(gca, 'ColorOrder', C);
-plot(t, ecdfMat', 'k', 'LineWidth', 1);
-axis([0 100 0 1.01]);
-set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
-    'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
-xlabel('Time (s)');
-ylabel('F(t)');
+% figure; hold on;
+% fset = loadFigureSettings();
+% % set(gca, 'ColorOrder', C);
+% plot(t, ecdfMat', 'k', 'LineWidth', 1);
+% axis([0 100 0 1.01]);
+% set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
+%     'YTick', 0:0.1:1, 'XTick', 0:10:lftData.t(end));
+% xlabel('Time (s)');
+% ylabel('F(t)');
 
 
 cmb = pcombs(1:N);
@@ -229,6 +231,30 @@ if ip.Results.Display
     pos = get(hl, 'Position');
     pos(2) = 0.2;
     set(hl, 'Position', pos);
+    
+    % Histograms
+    hp = NaN(1,2);
+    figure; hold on;
+    for k = 1:numel(sets)
+        if ~isempty(outlierIdx{k})
+            hx = plot(t, histMat(sets{k}(outlierIdx{k}),:), 'Color', [1 0 0], 'LineWidth', 2);
+            hp(2) = hx(1);
+        end
+        hx = plot(t, histMat(sets{k}(inlierIdx{k}),:), 'Color', 'k', 'LineWidth', 2);
+        hp(1) = hx(1);
+    end
+    axis([0 100 0 0.05]);
+    set(gca, fset.sfont{:}, 'LineWidth', 2, 'Layer', 'top',...
+        'YTick', 0:0.005:0.05, 'XTick', 0:10:lftData.t(end));
+    xlabel('Time (s)');
+    ylabel('Frequency');
+    if isnan(hp(2))
+        hp(2) = [];
+        hl = legend(hp, 'Inlier distribution', 'Location', 'NorthEast');
+    else
+        hl = legend(hp, 'Inlier distribution', 'Outlier distribution', 'Location', 'NorthEast');
+    end
+    set(hl, fset.tfont{:}, 'Box', 'off');
 end
 
 
