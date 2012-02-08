@@ -128,7 +128,7 @@ gapCloseParam.mergeSplit = 0;
 if nargin<11 || isempty(diagnostics)
     gapCloseParam.diagnostics = 0;
 else
-    gapCloseParam.diagnostics = 1;
+    gapCloseParam.diagnostics = diagnostics;
 end
 
 %% Kalman filter function names
@@ -159,6 +159,6 @@ probDim = 2;
 
 %% tracking function call
 
-[tracksFinal,kalmanInfoLink,errFlag,diagnosticTrackLinearity] = plusTipTrackCloseGapsKalman(movieInfo,...
+[tracksFinal,kalmanInfoLink,errFlag] = trackCloseGapsKalman(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 
