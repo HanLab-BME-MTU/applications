@@ -17,10 +17,10 @@ classdef SampleCrosscorrelationProcess < DataProcessingProcess
                 super_args{2} = SampleCrosscorrelationProcess.getName;
                 super_args{3} = @calculateWindowSampleCrosscorrelation;                               
                 
-                if nargin < 3 || isempty(funParams,outputDir)                                       
+                if nargin < 3 || isempty(funParams,outputDir)
+                    if nargin < 2, outputDir = owner.outputDirectory_; end
+                    funParams = SampleCrosscorrelationProcess.getDefaultParams(owner,outputDir);
                     
-                   funParams = SampleCrosscorrelationProcess.getDefaultParams(owner,outputDir);
-
                 end
                 
                 super_args{4} = funParams;    

@@ -17,7 +17,8 @@ classdef SampleAutocorrelationProcess < DataProcessingProcess
                 super_args{2} = SampleAutocorrelationProcess.getName;
                 super_args{3} = @calculateWindowSampleAutocorrelation;                               
                 
-                if nargin < 3 || isempty(funParams)                                       
+                if nargin < 3 || isempty(funParams) 
+                    if nargin < 2, outputDir = owner.outputDirectory_; end
                     funParams=SampleAutocorrelationProcess.getDefaultParams(owner,outputDir);
                 end
                 
