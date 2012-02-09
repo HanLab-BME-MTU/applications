@@ -74,10 +74,10 @@ mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
 mask = imdilate(mask, se);
 
 % add border within 'w'
-[yi,xi] = ind2sub([ny nx], find(mask==1));
-[yb,xb] = ind2sub([ny nx], borderIdx);
-idx = KDTreeBallQuery([xi yi], [xb' yb'], w);
-mask(borderIdx(cellfun(@(x) ~isempty(x), idx))) = 1;
+% [yi,xi] = ind2sub([ny nx], find(mask==1));
+% [yb,xb] = ind2sub([ny nx], borderIdx);
+% idx = KDTreeBallQuery([xi yi], [xb' yb'], w);
+% mask(borderIdx(cellfun(@(x) ~isempty(x), idx))) = 1;
 
 mask = imclose(mask, se);
 
@@ -90,3 +90,51 @@ borderLabels = unique(M(borderIdx));
 labels = setdiff(1:CC.NumObjects, borderLabels);
 idx = vertcat(CC.PixelIdxList{labels});
 mask(idx) = 1;
+
+% average intensity projection
+aip = zeros(ny,nx);
+nf = 0;
+for k = 1:10:data.movieLength
+    aip = aip + double(imread(data.framePaths{mCh}{k}));
+    nf = nf+1;
+end
+aip = aip / nf;
+
+% smooth projection
+% sigma2 = 2*sigma;
+% w = ceil(4*sigma2);
+% g = exp(-(-w:w).^2/(2*sigma2^2));
+% g = g/sum(g);
+% aip = conv2(g, g, padarrayXT(aip, [w w], 'Symmetric'), 'valid');
+
+mf = 1/norminv(0.75);
+
+bgMean = median(aip(mask==0));
+fgMean = median(aip(mask==1));
+bgVar = (mf * mad(aip(mask==0),1))^2;
+fgVar = (mf * mad(aip(mask==1),1))^2;
+
+obj1 = gmdistribution.fit(aip(:), 1, 'CovType', 'diagonal');
+S.mu = [bgMean fgMean]';
+S.Sigma = reshape([bgVar fgVar], [1 1 2]);
+obj2 = gmdistribution.fit(aip(:), 2, 'start', S);
+
+if obj2.BIC < obj1.BIC % threshold found
+    stdV = sqrt(obj2.Sigma);
+    T = norminv(0.05, obj2.mu(2), stdV(2));
+    mask = aip>T;
+    mask = bwmorph(mask, 'clean');
+    mask = medfilt2(mask,[9 9]);
+    se = strel('disk', w, 0);
+    mask = imclose(mask, se);
+    
+    % close any holes not connected to border
+    CC = bwconncomp(~mask, 8);
+    M = labelmatrix(CC);
+    borderLabels = unique(M(borderIdx));
+    labels = setdiff(1:CC.NumObjects, borderLabels);
+    idx = vertcat(CC.PixelIdxList{labels});
+    mask(idx) = 1;    
+else
+    mask = ones(ny,nx);
+end
