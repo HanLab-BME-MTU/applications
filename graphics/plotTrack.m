@@ -38,7 +38,6 @@ ip.addParamValue('DisplayMode', 'Screen', @(x) any(strcmpi(x, {'Print', 'Screen'
 ip.addParamValue('OverlayBackground', false, @islogical);
 ip.parse(data, track, varargin{:});
 
-s = ip.Results.Segment;
 hues = ip.Results.Hues;
 if isempty(hues)
     hues = getFluorophoreHues(data.markers);
