@@ -174,36 +174,18 @@ end
 
 % dynamic range from master
 handles.dRange = cell(1,nCh);
-for c = 1:nCh
-    M = arrayfun(@(i) i.dRange{c}, handles.detection{handles.mCh}, 'UniformOutput', false);
-    M = vertcat(M{:});
-    handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
-end
-
-% % detectionFile = [data.source 'Detection' filesep 'detection_v2.mat'];
-% if exist(detectionFile, 'file')==2
-%     %load(detectionFile);
-% %     handles.detection{handles.mCh} = frameInfo;
-%     if isfield(frameInfo, 'dRange')
-%         for c = 1:nCh
-%             M = arrayfun(@(x) x.dRange{c}, frameInfo, 'UniformOutput', false);
-%             M = vertcat(M{:});
-%             handles.dRange{c} = [min(M(:,1)) max(M(:,2))];
-%         end
-%     end
-% end
-
-
-
-
-
-for c = 1:nCh
-    if isempty(handles.dRange{c})        
-        % determine dynamic range
-        firstFrame = double(imread(data.framePaths{c}{1}));
-        lastFrame = double(imread(data.framePaths{c}{data.movieLength}));
-        handles.dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
+if isfield(handles.detection{handles.mCh}, 'dRange')
+    for c = 1:nCh
+        M = arrayfun(@(i) i.dRange{c}, handles.detection{handles.mCh}, 'UniformOutput', false);
+        M = vertcat(M{:});
+        handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
     end
+else
+    for c = 1:nCh
+        frame1 = double(imread(data.framePaths{c}{1}));
+        frameN = double(imread(data.framePaths{c}{end}));
+        handles.dRange{c} = [min(min(frame1(:)), min(frameN(:))) max(max(frame1(:)), max(frameN(:)))];
+    end    
 end
 
 % min/max track intensities
