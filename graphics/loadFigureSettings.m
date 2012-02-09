@@ -25,3 +25,10 @@ fset.ce0 = hsv2rgb([0 0 0.3]);
 fset.tfont = {'FontName', 'Helvetica', 'FontSize', 16};
 fset.sfont = {'FontName', 'Helvetica', 'FontSize', 20};
 fset.lfont = {'FontName', 'Helvetica', 'FontSize', 24};
+
+ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
+cf = rgb2hsv(ce);
+cf(:,2) = 0.3;
+cf = hsv2rgb(cf);
+fset.ceTrackClasses = ce;
+fset.cfTrackClasses = cf;
