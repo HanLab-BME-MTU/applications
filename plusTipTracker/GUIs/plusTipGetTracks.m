@@ -25,7 +25,7 @@ function varargout = plusTipGetTracks(varargin)
 %
 % adding space to test SVN
 %
-% Last Modified by GUIDE v2.5 17-Oct-2011 10:19:39
+% Last Modified by GUIDE v2.5 09-Feb-2012 09:56:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -251,7 +251,8 @@ if doTrack
             return
         end
         trackParams.(trackParamsNames{j})=value;
-    end        
+    end
+    trackParams.breakNonLinearTracks = get(handles.checkbox_breakNonLinearTracks,'Value');
 end
 
 % Read meta parameters
@@ -300,7 +301,7 @@ for i=1:numProj
         plusTipCometTracker(handles.projList(i),trackParams.timeWindow,...
             trackParams.minTrackLength,trackParams.minRadius,trackParams.maxRadius,...
             trackParams.maxFAngle,trackParams.maxBAngle,trackParams.maxShrinkFactor,...
-            trackParams.fluctRad,trackParams.timeRange);
+            trackParams.fluctRad,trackParams.timeRange,[],trackParams.breakNonLinearTracks);
         toc
     end
     

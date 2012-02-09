@@ -1,4 +1,4 @@
-function plusTipCometTracker(projData,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics)
+function plusTipCometTracker(projData,timeWindow,minTrackLen,minRadius,maxRadius,maxFAngle,maxBAngle,maxShrinkFactor,fluctRad,timeRange,diagnostics,breakNonLinearTracks)
 % plusTipCometTracker is the main tracking function
 
 
@@ -104,7 +104,10 @@ parameters.maxFAngle = maxFAngle;
 parameters.maxBAngle = maxBAngle;
 parameters.backVelMultFactor = maxShrinkFactor;
 parameters.fluctRad = fluctRad;
+if nargin<12, breakNonLinearTracks=false; end
+parameters.breakNonLinearTracks = breakNonLinearTracks;
 
+    
 costMatrices(2).parameters = parameters;
 clear parameters
 
