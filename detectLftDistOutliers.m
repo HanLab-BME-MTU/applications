@@ -16,7 +16,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
 ip.addParamValue('EndIdx', []);
-ip.addParamValue('Display', false, @islogical);
+ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(lftData, varargin{:});
 endIdx = ip.Results.EndIdx;
 
