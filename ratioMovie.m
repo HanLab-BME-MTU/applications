@@ -134,15 +134,13 @@ end
 
 %Make sure the background subtraction has been performed
 iBSProc = find(cellfun(@(x)(isa(x,'BackgroundSubtractionProcess')),movieData.processes_),1);                          
-if ~isempty(iBSProc)
-    hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outFilePaths_);
-else
-   error('Background subtraction has not been run! Please run background subtraction prior to ratioing!')   
-end
+assert(~isempty(iBSProc),...
+    'Background subtraction has not been run! Please run background subtraction prior to ratioing!')   
 
-if ~all(hasBS(p.ChannelIndex))
-    error('Both channels to be ratioed must be background subtracted prior to ratioing!')
-end
+
+hasBS = movieData.processes_{iBSProc}.checkChannelOutput; 
+assert(all(hasBS(p.ChannelIndex)),...
+    'Both channels to be ratioed must be background subtracted prior to ratioing!')
 
 nChan = numel(movieData.channels_);
 
@@ -240,8 +238,8 @@ if p.ApplyMasks
         maskIntProc.run;
         
         % Get mask directory and names
-        maskDir = maskIntProc.outFilePaths_{1};
-        maskNames = maskIntProc.getOutMaskFileNames(1);
+        maskDir = maskIntProc.outFilePaths_{1,p.MaskChannelIndex(1)};
+        maskNames = maskIntProc.getOutMaskFileNames(p.MaskChannelIndex(1));
     end
     
 end

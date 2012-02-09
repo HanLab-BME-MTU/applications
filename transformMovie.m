@@ -113,7 +113,7 @@ if isempty(iBSProc)
 end
 
 %Check that all channels have been background subtracted
-hasBS = cellfun(@(x)(~isempty(x)),movieData.processes_{iBSProc}.outFilePaths_);   
+hasBS = movieData.processes_{iBSProc}.checkChannelOutput;   
 if ~all(hasBS(p.ChannelIndex))
     error('Every channel selected for transformation must have been background subtracted! Please perform background subtraction first, or check the ChannelIndex parameter!')
 end
