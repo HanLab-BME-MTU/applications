@@ -40,7 +40,8 @@ for k = 1:N
     x = k-(y-1)*nx;
     ha = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
 
-    frame = scaleContrast(double(imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame})));
+    %frame = scaleContrast(double(imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame})));
+    frame = double(imread([data(k).source 'Detection' filesep 'avgProj.tif']));
     if strcmpi(ip.Results.Mode, 'mask')
         mask = double(imread([data(k).source 'Detection' filesep 'cellmask.tif']));
         
