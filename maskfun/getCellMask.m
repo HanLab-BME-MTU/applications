@@ -1,6 +1,6 @@
 % Francois Aguet, 02/08/2012
 
-function getCellMask(data, varargin)
+function mask = getCellMask(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -10,7 +10,8 @@ ip.addParamValue('Sigma', []);
 ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(data, varargin{:});
 
-parfor i = 1:length(data)
+mask = cell(1,numel(data));
+parfor i = 1:numel(data)
     
     aipPath = [data(i).source 'Detection' filesep 'avgProj.tif'];
     if ~(exist(aipPath, 'file')==2)
@@ -29,16 +30,25 @@ parfor i = 1:length(data)
     if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file')==2)
         error('Detection must be run before using this function.');
     elseif ~(exist([data(i).source 'Detection' filesep 'cellmask.tif'], 'file') == 2) || ip.Results.Overwrite
-        mask = computeMask(data(i), ip.Results.Sigma);
-        
-        if strcmpi(ip.Results.Display, 'on')
-            [ny,nx] = size(mask);
-            B = bwboundaries(mask);
+        mask{i} = computeMask(data(i), ip.Results.Sigma);
+        % save
+        imwrite(uint8(mask{i}), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
+    else
+        fprintf('Cell mask has already been computed for %s\n', getShortPath(data(i)));
+    end
+end
+
+if strcmpi(ip.Results.Display, 'on')
+    for i = 1:numel(data)
+        if ~isempty(mask{i})
+            [ny,nx] = size(mask{i});
+            B = bwboundaries(mask{i});
             B = sub2ind([ny nx], B{1}(:,1), B{1}(:,2));
             bmask = zeros([ny nx]);
             bmask(B) = 1;
             bmask = bwmorph(bmask, 'dilate');
             
+            aipPath = [data(i).source 'Detection' filesep 'avgProj.tif'];
             aip = double(imread(aipPath));
             aip(bmask==1) = 0;
             overlay = aip;
@@ -46,12 +56,9 @@ parfor i = 1:length(data)
             overlay = uint8(cat(3, overlay, aip, aip));
             figure; imagesc(overlay); axis image; colormap(gray(256)); colorbar;
         end
-        % save
-        imwrite(uint8(mask), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
-    else
-        fprintf('Cell mask has already been computed for %s\n', getShortPath(data(i)));
     end
 end
+
 
 
 function mask = computeMask(data, sigma)
