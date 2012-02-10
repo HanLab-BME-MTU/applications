@@ -119,17 +119,17 @@ end
 
 function updateDataSets(handles)
 data = guidata(gcf);
-path = [data.rootPath '_data\'];
+path = [data.rootPath '_data' filesep];
 list = dir(path);
 dataSetIdx = 0;
 data.dataSets = [];
 for i=3:numel(list)
     if list(i).isdir
-        sublist = dir([path list(i).name '\']);
+        sublist = dir([path list(i).name filesep]);
         for k=3:numel(sublist)
             if strcmp(sublist(k).name(end-3:end),'.bin')
                 dataSetIdx = dataSetIdx + 1;
-                data.dataSets{dataSetIdx,1} = [path list(i).name '\' sublist(k).name];
+                data.dataSets{dataSetIdx,1} = [path list(i).name filesep sublist(k).name];
                 data.dataSets{dataSetIdx,2} = list(i).name;
                 break;
             end
@@ -147,7 +147,7 @@ guidata(gcf,data);
 
 function updatePresets(handles)
 data = guidata(gcf);
-path = [data.rootPath '_presets\'];
+path = [data.rootPath '_presets' filesep];
 list = dir(path);
 presetIdx = 0;
 data.presets = [];
@@ -169,18 +169,18 @@ guidata(gcf,data);
 
 function updateQueue(handles)
 data = guidata(gcf);
-path = [data.rootPath '_queue\'];
+path = [data.rootPath '_queue' filesep];
 list = dir(path);
 itemIdx = 0;
 data.queue = [];
 for i=3:numel(list)
     if list(i).isdir
-        sublist = dir([path list(i).name '\']);
+        sublist = dir([path list(i).name filesep]);
         sublist = sublist(~vertcat(sublist.isdir));
         for k=1:numel(sublist)
             if strcmp(sublist(k).name(end-3:end),'.cfg')
                 itemIdx = itemIdx + 1;
-                data.queue{itemIdx,1} = [path list(i).name '\'];
+                data.queue{itemIdx,1} = [path list(i).name filesep];
                 data.queue{itemIdx,2} = list(i).name;
                 data.queue{itemIdx,3} = [sublist(k).name];
                 data.queue{itemIdx,4} = 0;
@@ -189,13 +189,13 @@ for i=3:numel(list)
                         switch (sublist(j).name(end-5:end))
                             case '.d.dat'
                                 data.queue{itemIdx,4} = data.queue{itemIdx,4} + bin2dec('100');
-                                data.queue{itemIdx,5} = [path list(i).name '\' sublist(j).name];
+                                data.queue{itemIdx,5} = [path list(i).name filesep sublist(j).name];
                             case '.i.dat'
                                 data.queue{itemIdx,4} = data.queue{itemIdx,4} + bin2dec('010');
-                                data.queue{itemIdx,5} = [path list(i).name '\' sublist(j).name];
+                                data.queue{itemIdx,5} = [path list(i).name filesep sublist(j).name];
                             case '.p.dat'
                                 data.queue{itemIdx,4} = data.queue{itemIdx,4} + bin2dec('001');
-                                data.queue{itemIdx,5} = [path list(i).name '\' sublist(j).name];
+                                data.queue{itemIdx,5} = [path list(i).name filesep sublist(j).name];
                         end
                     end
                 end
@@ -300,7 +300,7 @@ function pushbutton4_Callback(hObject, eventdata, handles)
 disp('pb4');
 data = guidata(gcf);
 fullPathName = data.dataSets{get(handles.listbox1,'Value'),1};
-delimiterPos = strfind(fullPathName,'\');
+delimiterPos = strfind(fullPathName,filesep);
 pathName = fullPathName(1:delimiterPos(end));
 fileName = fullPathName(delimiterPos(end)+1:end);
 myROISelector = ROISelector(pathName,fileName);
@@ -319,7 +319,7 @@ function pushbutton5_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 disp('pb5');
 data = guidata(gcf);
-data.currentConfig.save([data.rootPath '_presets\' data.currentConfig.configName '.cfg']);
+data.currentConfig.save([data.rootPath '_presets' filesep data.currentConfig.configName '.cfg']);
 % Detect the presets
 updatePresets(handles);
 
@@ -425,8 +425,11 @@ function pushbutton15_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 disp('pb15');
-dos('C:\Users\PB93\Desktop\Software\putty.exe');
-
+if ispc
+    dos('C:\Users\PB93\Desktop\Software\putty.exe');
+else
+    disp('Main: This function is supported only on Windows');
+end
 
 % --- Executes on button press in pushbutton16.
 function pushbutton16_Callback(hObject, eventdata, handles)
@@ -444,13 +447,13 @@ function pushbutton19_Callback(hObject, eventdata, handles)
 disp('pb19'); % Add to Queue
 data = guidata(gcf);
 fullPath = data.dataSets{get(handles.listbox1,'Value'),1};
-delimiterPos = strfind(fullPath,'\');
+delimiterPos = strfind(fullPath,filesep);
 data.currentConfig.fileName = fullPath(delimiterPos(end)+1:end);
 data.currentConfig.path = fullPath(1:delimiterPos(end));
 dataSetName = data.dataSets{get(handles.listbox1,'Value'),2};
 dirName = [dataSetName '--' datestr(now,'yymmdd--HHMM--SS--') strtok(data.currentConfig.configName,'.')];
-mkdir([data.rootPath '_queue\'],dirName);
-data.currentConfig.save([data.rootPath '_queue\' dirName '\' data.currentConfig.configName '.cfg']);
+mkdir([data.rootPath '_queue' filesep],dirName);
+data.currentConfig.save([data.rootPath '_queue' filesep dirName filesep data.currentConfig.configName '.cfg']);
 guidata(gcf,data);
 % Detect the queued items
 updateQueue(handles);
@@ -653,11 +656,11 @@ disp('pb26');
 data = guidata(gcf);
 src = data.queue{get(handles.listbox3,'Value'),1};
 if strcmp(src(end-1),'+')
-    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) '-\'];
+    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) '-' filesep];
 elseif strcmp(src(end-1),'-')
-    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) '\'];
+    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) filesep];
 else
-    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-1) '-\'];
+    dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-1) '-' filesep];
 end
 movefile(src,dest,'f');
 currentPos = get(handles.listbox3,'Value');
@@ -689,7 +692,7 @@ if ~strcmp(src(end-1),'+')
     for i=1:size(data.queue,1)
         if strcmp(data.queue{i,2}(end),'+')
             src = data.queue{i,1};
-            dest = [data.queue{i,1}(1:end-2) '\'];
+            dest = [data.queue{i,1}(1:end-2) filesep];
             movefile(src,dest,'f')
         end
     end
@@ -697,9 +700,9 @@ if ~strcmp(src(end-1),'+')
     data = guidata(gcf);
     src = data.queue{get(handles.listbox3,'Value'),1};
     if strcmp(src(end-1),'-')
-        dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) '+\'];
+        dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-2) '+' filesep];
     else
-        dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-1) '+\'];
+        dest = [data.queue{get(handles.listbox3,'Value'),1}(1:end-1) '+' filesep];
     end
     movefile(src,dest,'f');
     updateQueue(handles);
@@ -707,7 +710,7 @@ else
     for i=1:size(data.queue,1)
         if strcmp(data.queue{i,2}(end),'+')
             src = data.queue{i,1};
-            dest = [data.queue{i,1}(1:end-2) '\'];
+            dest = [data.queue{i,1}(1:end-2) filesep];
             movefile(src,dest,'f')
         end
     end
@@ -766,7 +769,7 @@ function pushbutton31_Callback(hObject, eventdata, handles)
 disp('pb31');
 data = guidata(gcf);
 fullPathName = data.dataSets{get(handles.listbox1,'Value'),1};
-delimiterPos = strfind(fullPathName,'\');
+delimiterPos = strfind(fullPathName,filesep);
 pathName = fullPathName(1:delimiterPos(end));
 fileName = fullPathName(delimiterPos(end)+1:end);
 myROISelector = ROISelector(pathName,fileName);
@@ -826,7 +829,7 @@ function pushbutton33_Callback(hObject, eventdata, handles)
 disp('pb33'); % Repetition
 data = guidata(gcf);
 fullPathName = data.dataSets{get(handles.listbox1,'Value'),1};
-delimiterPos = strfind(fullPathName,'\');
+delimiterPos = strfind(fullPathName,filesep);
 pathName = fullPathName(1:delimiterPos(end));
 fileName = fullPathName(delimiterPos(end)+1:end);
 myROISelector = ROISelector(pathName,fileName);
@@ -846,13 +849,13 @@ if state
             data.currentConfig.configName = sprintf([data.currentConfig.configName '_%02u_%02u'],x,y);
             
             fullPath = data.dataSets{get(handles.listbox1,'Value'),1};
-            delimiterPos = strfind(fullPath,'\');
+            delimiterPos = strfind(fullPath,filesep);
             data.currentConfig.fileName = fullPath(delimiterPos(end)+1:end);
             data.currentConfig.path = fullPath(1:delimiterPos(end));
             dataSetName = data.dataSets{get(handles.listbox1,'Value'),2};
             dirName = [dataSetName '--' datestr(now,'yymmdd--HHMM--SS--') strtok(data.currentConfig.configName,'.') '-'];
-            mkdir([data.rootPath '_queue\'],dirName);
-            data.currentConfig.save([data.rootPath '_queue\' dirName '\' data.currentConfig.configName '.cfg']);
+            mkdir([data.rootPath '_queue' filesep],dirName);
+            data.currentConfig.save([data.rootPath '_queue' filesep dirName filesep data.currentConfig.configName '.cfg']);
             
             data.currentConfig.roiPosition(1:2) = posBackup;
             data.currentConfig.configName = configNameBackup;
@@ -928,20 +931,20 @@ if ~strcmp([configFolderDest configNameSrc],data.configLoadedFrom)
         case 'Yes'
             configFolderDestOld = configFolderDest;
             [~,endPos] = regexp(configFolderDestOld,'--......--....--..--');
-            configFolderDest = [configFolderDest(1:endPos) data.currentConfig.configName '\'];
+            configFolderDest = [configFolderDest(1:endPos) data.currentConfig.configName filesep];
             movefile(configFolderDestOld,configFolderDest,'f');
     end
 end
 % If the backup subfolder does not exist, create it
-if ~exist([configFolderDest '\bak'],'file')
-    mkdir([configFolderDest '\bak']);
+if ~exist([configFolderDest filesep 'bak'],'file')
+    mkdir([configFolderDest filesep 'bak']);
 end
 % Create backup in subfolder of the old config file
 try
-    movefile([configFolderDest configNameDest],[configFolderDest 'bak\' configNameDest],'f');
+    movefile([configFolderDest configNameDest],[configFolderDest 'bak' filesep configNameDest],'f');
 catch
     fprintf('from = %s',[configFolderDest configNameDest])
-    fprintf('to = %s',[configFolderDest 'bak\' configNameDest])
+    fprintf('to = %s',[configFolderDest 'bak' filesep configNameDest])
 end
 % Write the new config file
 data.currentConfig.save([configFolderDest configNameSrc]);
@@ -1053,4 +1056,11 @@ function pushbutton43_Callback(hObject, eventdata, handles)
 disp('pb43');
 data = guidata(gcf);
 dirPath = data.queue{get(handles.listbox3,'Value'),1};
-system(['c:\Windows\explorer.exe ' '"' dirPath  '"']);
+if ispc
+    system(['c:\Windows\explorer.exe ' '"' dirPath  '"']);
+else
+    disp('Main: This function is supported only on Windows');
+end
+
+
+

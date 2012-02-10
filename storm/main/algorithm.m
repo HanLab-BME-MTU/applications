@@ -210,21 +210,13 @@ stormTimer__.stop('Init Clusters');
 stormTimer__.start('Main Loop');
 for mergeIter=1:cfg.maxIterMerge
     
-%     tic
-%     pro.updateEdges();
-%     b = size(data.edges,1)
-%     toc
-    
-    tic
+    % tic
     dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
     pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
-    c = size(data.edges,1);
-    toc
-    
-%     tic
-%     pro.updateEdgesEndPoints(cfg.initialEdgeRadius);
-%     b = size(data.edges,1)
-%     toc
+    % pro.updateEdges();
+    % pro.updateEdgesEndPoints(cfg.initialEdgeRadius);
+    % nEdges = size(data.edges,1)
+    % toc
     
     fprintf('Main: Merge run: %d\n',mergeIter);
     
