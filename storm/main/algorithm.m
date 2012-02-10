@@ -85,6 +85,14 @@ if isempty(dataName) % No *.i.dat file present
         stormTimer__.stop('Read Data');
         
         % Prefilter data
+        if cfg.subsampleFraction ~= 1
+            stormTimer__.start('Subsample Data');
+            pro.subsamplePoints(cfg.subsampleFraction);
+            dis.points();
+            im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
+            stormTimer__.stop('Subsample Data');
+        end
+        
         if cfg.dataReductionEnabled
             stormTimer__.start('Data Reduction');
             pro.dataReduction(cfg.reductionEdgeRadius,cfg.nReductionRun);

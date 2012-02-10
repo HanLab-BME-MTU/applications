@@ -32,6 +32,7 @@ classdef Config < handle
         neighborBallRadius; % Size of the neighborhood in which the density will be computed
         nNeighborsThreshold; % Threshold on the number of points in the neighborhood
         edgeWidthInitFree = 0; % e <= 0: Disabled, e > 0: Enabled
+        subsampleFraction = 1; % 1 == No subsampling, < 1 Fraction of points remaining, > 1 max number of points remaining
         
         % === Orientation detector
         filterLength; % Length of the filer support

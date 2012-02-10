@@ -29,7 +29,7 @@ classdef Processor < handle
         setErrorArray(obj,errorX,errorY,errorZ);
         cropData(obj,roiPosRel,roiSize);
         centerData(obj);
-        subsamplePoints(obj,limit,type);
+        subsamplePoints(obj,limit);
         densityFilter(obj,nNeighborsThreshold,ballRadius)
         dataReduction(obj,initialEdgeRadius,reductionRuns);
         computeOrientation(obj,filterLength,filterAngularSampling);

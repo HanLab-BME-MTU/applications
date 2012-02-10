@@ -1,19 +1,22 @@
-function subsamplePoints(obj,limit,type)
+function subsamplePoints(obj,fraction)
 
-if narg == 2
-    type = 'nPoints';
-end
+nPointsBefore = obj.data.nPoints;
 
 [~,frameIdx] = sort(obj.data.frame);
 
-switch type
-    case 'nPoints'
-        obj.data.points = obj.data.points(frameIdx(1:limit));
-    case 'fraction'
-        obj.data.points = obj.data.points(frameIdx(1:round(obj.data.nPoints*limit)));
-    otherwise
-        disp('Process: The subsampling type is not valid');
+if fraction >= 0 && fraction < 1
+    obj.data.points = obj.data.points(frameIdx(1:round(fraction*obj.data.nPoints)),:);
+elseif fraction > 1
+    obj.data.points = obj.data.points(frameIdx(1:fraction),:);
+elseif fraction == 1
+    disp('Process: fraction == 1, data will not be subsampled!')
+else
+    disp('Process: This subsample fraction is not valid!')
 end
+
+nPointsAfter = obj.data.nPoints;
+
+fprintf('Process: Data points subsampled: %d -> %d\n',nPointsBefore,nPointsAfter);
 
 end
 
