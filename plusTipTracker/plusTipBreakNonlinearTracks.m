@@ -96,7 +96,7 @@ diagnosticTrackLinearity.percentAngles135to180 = (sum(sum(angles135to180))/total
 % this setting will be to gain the above diagnostic track linearity
 % information which may be a helpful statistic. Will later incorporate this 
 % information that does not call this function to save computer time. 
-noBreak = 1;
+noBreak = 0;
 
 if noBreak  == 1
     max_angle = 180;
