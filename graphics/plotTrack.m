@@ -11,7 +11,7 @@
 
 % Francois Aguet, March 9 2011 (Last modified: 01/31/2012)
 
-function plotTrack(data, track, varargin)
+function ha = plotTrack(data, track, varargin)
 
 %======================================
 % Parse inputs, set defaults
