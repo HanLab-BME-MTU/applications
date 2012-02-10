@@ -30,8 +30,9 @@ end
 
 % Load the configuration file
 cfg = Config.load([dirPath configName]);
+cfg.path
 cfg.path = checkStormPath(cfg.path);
-
+cfg.path
 if isunix
     disp('Main: Unix system detected: Display and snapshots are disabled!');
     cfg.displayEnabled = false;
@@ -65,6 +66,7 @@ if isempty(dataName) % No *.i.dat file present
     if isempty(dataName) % No *.d.dat file present
         % Read data
         timerX99.start('Read Data');
+        [cfg.path cfg.fileName]
         data = Data.read([cfg.path cfg.fileName]);
         dis = Show(data,im);
         pro = Processor(data);
