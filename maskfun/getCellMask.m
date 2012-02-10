@@ -120,8 +120,21 @@ S.Sigma = reshape([bgVar fgVar], [1 1 2]);
 obj2 = gmdistribution.fit(aip(:), 2, 'start', S);
 
 if obj2.BIC < obj1.BIC % threshold found
+%     mu1 = obj2.mu(1);
+%     mu2 = obj2.mu(2);
     stdV = sqrt(obj2.Sigma);
-    T = norminv(0.05, obj2.mu(2), stdV(2));
+%     s1 = stdV(1);
+%     s2 = stdV(2);
+%     a1 = obj2.PComponents(1);
+%     a2 = obj2.PComponents(2);
+%     
+%     a = s2^2-s1^2;
+%     b = 2.0*(mu2*s1^2 - mu1*s2^2);
+%     c = mu1^2*s2^2 - mu2^2*s1^2 - 2.0*log(a1/a2);
+%     
+%     T = (-b + sqrt(b^2-4.0*a*c))/(2*a);
+    T = norminv(0.99, obj2.mu(1), stdV(1));
+%     T = norminv(0.05, obj2.mu(2), stdV(2));
     mask = aip>T;
     mask = bwmorph(mask, 'clean');
     mask = medfilt2(mask,[9 9]);
@@ -134,7 +147,13 @@ if obj2.BIC < obj1.BIC % threshold found
     borderLabels = unique(M(borderIdx));
     labels = setdiff(1:CC.NumObjects, borderLabels);
     idx = vertcat(CC.PixelIdxList{labels});
-    mask(idx) = 1;    
+    mask(idx) = 1;
+    
+    % keep largest connected component
+    CC = bwconncomp(mask, 8);
+    mask = zeros(ny,nx);
+    mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
+    
 else
     mask = ones(ny,nx);
 end
