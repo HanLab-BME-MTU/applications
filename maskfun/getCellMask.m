@@ -1,6 +1,6 @@
 % Francois Aguet, 02/08/2012
 
-function [mask] = getCellMask(data, varargin)
+function getCellMask(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -10,7 +10,7 @@ ip.addParamValue('Sigma', []);
 ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(data, varargin{:});
 
-for i = 1:length(data)
+parfor i = 1:length(data)
     
     aipPath = [data(i).source 'Detection' filesep 'avgProj.tif'];
     if ~(exist(aipPath, 'file')==2)
@@ -47,12 +47,10 @@ for i = 1:length(data)
             figure; imagesc(overlay); axis image; colormap(gray(256)); colorbar;
         end
         % save
-        imwrite(uint8(255*mask), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
+        imwrite(uint8(mask), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
     else
         fprintf('Cell mask has already been computed for %s\n', getShortPath(data(i)));
     end
-    
-    
 end
 
 
