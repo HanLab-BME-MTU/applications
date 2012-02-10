@@ -29,12 +29,15 @@ ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('FrameIndexes', arrayfun(@(x) 1:x.movieLength, data, 'UniformOutput', false), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
+ip.addParamValue('Preprocess', true, @islogical);
 ip.parse(data, varargin{:});
 filename = ip.Results.FileName;
 overwrite = ip.Results.Overwrite;
 buffer = ip.Results.Buffer;
 trackerOutput = ip.Results.TrackerOutput;
 frameIdx = ip.Results.FrameIndexes;
+sigma = ip.Results.Sigma;
+preprocess = ip.Results.Preprocess;
 
 for i = 1:length(data)
     data(i).tracks = [];
@@ -42,7 +45,7 @@ for i = 1:length(data)
 end
 parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, ip.Results.Sigma);
+        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, sigma, preprocess);
     else
         fprintf('TrackAnalysis has already been run for: %s\n', getShortPath(data(i)));
     end
@@ -50,7 +53,7 @@ end
 
 
 
-function [data] = main(data, buffer, trackerOutput, filename, frameIdx, sigmaV)
+function [data] = main(data, buffer, trackerOutput, filename, frameIdx, sigmaV, preprocess)
 
 detection = load([data.source 'Detection' filesep 'detection_v2.mat']);
 frameInfo = detection.frameInfo;
@@ -154,21 +157,25 @@ for k = 1:nTracks
         % determine whether segment has merged and split from same master, if length < 4
         msIdx(s) = segLengths(s)==1 || (diff(ievents(:,4))==0 && segLengths(s)<4);
     end
-    if nSeg>1
-        segIdx = find(msIdx==0);
-        nSeg = numel(segIdx);
-        msIdx = find(msIdx);
-        if ~isempty(msIdx)
-            tracksFeatIndxCG(msIdx,:) = [];
-            for i = 1:numel(msIdx)
-                seqOfEvents(seqOfEvents(:,3)==msIdx(i),:) = [];
+    if preprocess
+        if nSeg>1
+            segIdx = find(msIdx==0);
+            nSeg = numel(segIdx);
+            msIdx = find(msIdx);
+            if ~isempty(msIdx)
+                tracksFeatIndxCG(msIdx,:) = [];
+                for i = 1:numel(msIdx)
+                    seqOfEvents(seqOfEvents(:,3)==msIdx(i),:) = [];
+                end
             end
+            segLengths = segLengths(segIdx);
+        else
+            segIdx = 1;
         end
-        segLengths = segLengths(segIdx);
     else
-        segIdx = 1;
+        segIdx = 1:nSeg;
     end
-    
+            
     tracks(k).nSeg = nSeg;
     firstIdx = trackinfo(k).seqOfEvents(1,1);
     lastIdx = trackinfo(k).seqOfEvents(end,1);
