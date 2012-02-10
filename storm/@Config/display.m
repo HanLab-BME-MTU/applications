@@ -2,9 +2,11 @@ function display(obj)
 % Display selected object properties
 disp('Config: ===================');
 fprintf('| configName: %s\n', obj.configName);
-fprintf('| snapshotsEnabled: %f\n', obj.snapshotsEnabled);
-fprintf('| displayEnabled: %f\n', obj.displayEnabled);
+fprintf('| snapshotsEnabled: %d\n', obj.snapshotsEnabled);
+fprintf('| displayEnabled: %d\n', obj.displayEnabled);
 fprintf('| snapshotsPath: %s\n', obj.snapshotsPath);
+fprintf('| intermediateResultsTimerEnabled: %d\n', obj.intermediateResultsTimerEnabled);
+fprintf('| intermediateResultsDataEnabled: %d\n', obj.intermediateResultsDataEnabled);
 fprintf('| path: %s\n', obj.path);
 fprintf('| fileName: %s\n', obj.fileName);
 fprintf('| errorX: %f\n', obj.errorX);
@@ -18,6 +20,7 @@ fprintf('| reductionEdgeRadius: %f\n', obj.reductionEdgeRadius);
 fprintf('| densityFilteringEnabled: %u\n', obj.densityFilteringEnabled);
 fprintf('| nNeighborsThreshold: %u\n', obj.nNeighborsThreshold);
 fprintf('| neighborBallRadius: %f\n', obj.neighborBallRadius);
+fprintf('| subsampleFraction: %f\n', obj.subsampleFraction);
 fprintf('| edgeWidthInitFree: %f\n', obj.edgeWidthInitFree);
 fprintf('| filterLength: %f\n', obj.filterLength);
 fprintf('| angularSampling: %f\n', obj.angularSampling);

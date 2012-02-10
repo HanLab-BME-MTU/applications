@@ -7,7 +7,6 @@ stormTimer__ = Timing();
 stormTimer__.start('Main');
 
 smallClusterSize = 3;
-dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
  
 % INIT DATA
 disp('-- INIT ----------------------------------------');
@@ -217,6 +216,7 @@ for mergeIter=1:cfg.maxIterMerge
 %     toc
     
     tic
+    dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
     pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
     c = size(data.edges,1);
     toc
@@ -280,9 +280,14 @@ for mergeIter=1:cfg.maxIterMerge
         return;
     end
     
-    stormTimer__.save([dirPath cfg.configName '_tmp.tim']);
-    data.save([dirPath cfg.configName '._tmp.dat']);
-
+    if intermediateResultsTimerEnabled
+        stormTimer__.save([dirPath cfg.configName '._tmp.tim']);
+    end
+    
+    if intermediateResultsDataEnabled
+        data.save([dirPath cfg.configName '._tmp.dat']);
+    end
+    
 end
 stormTimer__.stop('Main Loop');
 stormTimer__.stop('Process');

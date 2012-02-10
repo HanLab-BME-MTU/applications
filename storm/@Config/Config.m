@@ -10,10 +10,12 @@ classdef Config < handle
         % === Config
         configName; % The name of this configuration
         
-        % === Display
+        % === Debug
         snapshotsEnabled = false; % Enable/disable Imaris snapshots of the current algorithm state (Windows only)
         displayEnabled = false; % Enable/disable the visualization of the intermediate states in Imaris (Windows only)
         snapshotsPath = 'C:\Users\PB93\Desktop\Snapshots\'; % The path where Imaris will store the snapshots
+        intermediateResultsTimerEnabled = false; % Enable/disable writing intermediate timer results to the disk
+        intermediateResultsDataEnabled = false; % Enable/disable writing intermediate data results to the disk
         
         % === Data
         path; % Location of the raw data
@@ -60,6 +62,7 @@ classdef Config < handle
         
         % === Noise
         nSigmaThreshold; % Multiple of the component standard deviation used to classify points as noise     
+                
     end
     
     methods(Static = true)

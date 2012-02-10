@@ -503,6 +503,8 @@ prompt = {...
     'angleThreshold',...
     'snapshotsPath',...
     'subsampleFraction',...
+    'intermediateResultsTimerEnabled',...
+    'intermediateResultsDataEnabled',...
     };
 name = 'Edit Advanced Parameters';
 defaultanswer = {...
@@ -519,10 +521,12 @@ defaultanswer = {...
     num2str(data.currentConfig.angleThreshold),...
     data.currentConfig.snapshotsPath,...
     num2str(data.currentConfig.subsampleFraction),...
+    num2str(data.currentConfig.intermediateResultsTimerEnabled),...
+    num2str(data.currentConfig.intermediateResultsDataEnabled),...
     };
 options.Resize = 'on';
 options.WindowStyle = 'normal';
-answer = inputdlg(prompt,name,[ones(13,1),ones(13,1)*50],defaultanswer,options);
+answer = inputdlg(prompt,name,[ones(15,1),ones(15,1)*50],defaultanswer,options);
 if ~isempty(answer)
     data.currentConfig.dataReductionEnabled  = str2double(answer{1});
     data.currentConfig.nReductionRun  = str2double(answer{2});
@@ -537,6 +541,8 @@ if ~isempty(answer)
     data.currentConfig.angleThreshold  = str2double(answer{11});
     data.currentConfig.snapshotsPath = answer{12};
     data.currentConfig.subsampleFraction = str2double(answer{13});
+    data.currentConfig.intermediateResultsTimerEnabled  = str2double(answer{14});
+    data.currentConfig.intermediateResultsDataEnabled  = str2double(answer{15});
 end
 guidata(gcf,data);
 
@@ -873,8 +879,9 @@ path = data.queue{get(handles.listbox3,'Value'),1};
 fullPath = [path fileName];
 assignin('base', 'fullPath', fullPath);
 evalin('base','cfg = Config.load(fullPath);');
-if data.queue{get(handles.listbox3,'Value'),4}
-    dataPath = [data.queue{get(handles.listbox3,'Value'),5}(1:end-5) 'p.dat'];
+% if data.queue{get(handles.listbox3,'Value'),4}
+dataPath = [data.queue{get(handles.listbox3,'Value'),5}(1:end-5) 'p.dat'];
+if exist(dataPath,'file')
     assignin('base', 'dataPath', dataPath);
     evalin('base','data = Data.load(dataPath);');
     % Launch Imaris
@@ -882,9 +889,21 @@ if data.queue{get(handles.listbox3,'Value'),4}
     % Display the data
     evalin('base','dis.points();');
     evalin('base','dis.models();');
-    disp('Main: Show Models in Imaris: Done!')
+    disp('Main: Show models in Imaris: Done!')
 else
-    disp('Main: Show Models in Imaris: No data found!');
+    dataPath = [data.queue{get(handles.listbox3,'Value'),5}(1:end-5) '_tmp.dat'];
+    if ~exist(dataPath,'file')
+        disp('Main: Show models in Imaris: No data found!');
+    else
+        assignin('base', 'dataPath', dataPath);
+        evalin('base','data = Data.load(dataPath);');
+        % Launch Imaris
+        evalin('base','dis = Show(data);');
+        % Display the data
+        evalin('base','dis.points();');
+        evalin('base','dis.models();');
+        disp('Main: Show temporary models in Imaris: Done!')
+    end
 end
 
 
