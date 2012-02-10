@@ -53,6 +53,8 @@ function guiRepetition_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to guiRepetition (see VARARGIN)
 
 % Choose default command line output for guiRepetition
+disp('Main: guiRepetition can only be called by guiMain!');
+
 handles.output = hObject;
 
 handles.roiSelector = varargin{1};
