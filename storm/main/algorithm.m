@@ -31,7 +31,8 @@ end
 % Load the configuration file
 cfg = Config.load([dirPath configName]);
 pos = strfind(cfg.path,'_data');
-cfg.path = [getStormPath() cfg.path(pos:end)]; 
+cfg.path
+cfg.path = [getStormPath() cfg.path(pos:end)]
 
 if isunix
     disp('Main: Unix system detected: Display and snapshots are disabled!');
