@@ -1,6 +1,6 @@
 function edgePointOrder = updateBICWeights(obj,maxDegreeBezier,maxCurvature,fitMethod,betaVar,modeVar)
 
-global timerX99; % :-D
+global stormTimer__; % :-D
 
 % % % if maxCurvature < 0
 % % %     maxCurvature = -maxCurvature;
@@ -45,7 +45,7 @@ effNPoint = sum(edgeClusterSize);
 avNPoint = mean(edgeClusterSize);
 data = [effNPoint,avNPoint,nEdges];
 
-timerX99.start('BIC Parfor');
+stormTimer__.start('BIC Parfor');
 parfor e=1:nEdges
 % for e=1:nEdges
     % Get the cluster index
@@ -166,7 +166,7 @@ parfor e=1:nEdges
     end
     
 end % for
-timerX99.stop('BIC Parfor',data);
+stormTimer__.stop('BIC Parfor',data);
 
 obj.data.weights = obj_data_weights;
 obj.edgeModelType = obj_edgeModelType;
