@@ -1,4 +1,4 @@
-function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp)
+function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp,maskPP)
 %ANALYZE3DIMAGEMASKEDINTENSITIES calculates several statistics regarding the spatial variation of the image intensities within the input mask 
 % 
 % bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp)
@@ -20,6 +20,8 @@ function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp)
 %   maskProp - structure describing the mask's geometric properties, as
 %   produced by analyze3DMaskGeometry.m
 % 
+%   maskPP - MxNxP logical matrix containing true values corresponding to
+%   pixels in the mask which were added by post-processing.
 %
 % Output:
 % 
@@ -40,6 +42,8 @@ nIntBins = 100;%Number of bins for intensity histograms
 
 %% ----------------- Input ------------------ %%
 
+%TEMP - INPUT CHECKS!! DEFAULTS!!!
+
 %TEMP - right now this function is not really optimized for speed, and
 %could be made quite a bit faster if necessary.... HLE
 
@@ -47,98 +51,103 @@ nIntBins = 100;%Number of bins for intensity histograms
 
 [M,N,P,nChan] = size(images);
 
-
 %--Get distance transform of mask and background and combine them--%
 
-%SHHHIIIITTTT!!! Due to a bug in bwdist which causes an incorrect label
-%matrix to be returned when image has more than 2^24 elements, we are
-%forced to use the old version of bwdist which is SLOOWW. This is a known
-%issue: http://www.mathworks.com/support/bugreports/737384 but currently
-%there is not a fix and this is the workaround they suggest... !!
-% [distX distL] = bwdist(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
-% [distXOut distOutL] = bwdist(mask);%Background pixel distance transform - distance FROM mask
-% distX(~mask) = -distXOut(~mask);%Combine, inverting so that distances outside the mask are negative
-
-[distX distL] = bwdist_old(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
-[distXOut distOutL] = bwdist_old(mask);%Background pixel distance transform - distance FROM mask
+if numel(mask) < 2^24
+    [distX distL] = bwdist(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
+    [distXOut distOutL] = bwdist(mask);%Background pixel distance transform - distance FROM mask    
+else    
+    %SHHHIIIITTTT!!! Due to a bug in bwdist which causes an incorrect label
+    %matrix to be returned when image has more than 2^24 elements (which in our
+    %data is invariably the case), we are forced to use the old version of
+    %bwdist which is SLOOWW. This is a known issue:
+    %http://www.mathworks.com/support/bugreports/737384 but currently there is
+    %not a fix and this is the workaround they suggest... !!
+    [distX distL] = bwdist_old(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
+    [distXOut distOutL] = bwdist_old(mask);%Background pixel distance transform - distance FROM mask
+    distX(~mask) = -distXOut(~mask);%Combine, inverting so that distances outside the mask are negative
+end
 distX(~mask) = -distXOut(~mask);%Combine, inverting so that distances outside the mask are negative
 
-
-
 %% -------------- Whole-Mask Curvature vs. Intensity Analysis ----------- %%
-nSurfPts = size(maskProp.SmoothedSurface.faces,1);
-subSampRate = 50;%Takes WAAAAYYY too long to do every single surface point so we randomly sub-sample
 
-rng('shuffle');%Init random number generator
-iSamp = randperm(nSurfPts);
-nSamp = floor(nSurfPts/subSampRate);
-iSamp = iSamp(1:nSamp);
+nSurfFaces = size(maskProp.SmoothedSurface.faces,1);
 
-% iSamp = 1:subSampRate:nSurfPts;%TEMP - for debugging, just sample like this so we can reproduce errors etc.
-% nSamp = numel(iSamp);
+%Find surface pixels which are not the result of post-processing to be
+%extra careful.
+surfPix = distX == 1 & ~maskPP;
 
-bp.intForCurvSamp = cell(nSamp,1);
-bp.depthForCurvSamp = cell(nSamp,1);
-bp.gaussCurvSamp = nan(nSamp,1);
-bp.meanCurvSamp = nan(nSamp,1);
+%Convert these to XYZ coordinates to agree with the surface mesh
+surfPixI = find(surfPix);
+[surfPixXYZ(:,2),surfPixXYZ(:,1),surfPixXYZ(:,3)] = ind2sub([M N P],surfPixI);
+nSurfPix = size(surfPixXYZ,1);
 
-%Get the curvature data for these surface samples
-bp.gaussCurvSamp = maskProp.GaussianCurvature(iSamp);
-bp.meanCurvSamp = maskProp.MeanCurvature(iSamp);
-    
+%And find the face centroid locations since we have curvature data at the
+%per-face level.
+faceCenters = zeros(nSurfFaces,3);
+for j = 1:nSurfFaces
+    faceCenters(j,:) = mean(maskProp.SmoothedSurface.vertices(maskProp.SmoothedSurface.faces(j,:),:),1);
+end
+
+%Now find surface faces within the specified sampling radius of each of the
+%surface pixels
+[surfFaceIdxs,surfFaceDist] = KDTreeClosestPoint(faceCenters,surfPixXYZ);
+
+%First, get the surface curv properties for this surface pixel
+bp.gaussCurvSamp = maskProp.GaussianCurvature(surfFaceIdxs);
+bp.meanCurvSamp = maskProp.MeanCurvature(surfFaceIdxs);
+bp.PC1CurvSamp = maskProp.CurvaturePC1(surfFaceIdxs);
+bp.PC2CurvSamp = maskProp.CurvaturePC2(surfFaceIdxs);  
+bp.distToSurf = surfFaceDist;
+bp.surfPixForCurvSamp = surfPixI;
+bp.surfFaceForCurvSamp = surfFaceIdxs;
+
+bp.intForCurvSamp = cell(nSurfPix,1);
+bp.depthForCurvSamp = cell(nSurfPix,1);
+
 nMaskPix = numel(mask);%Needed later for indexing
-
-for j = 1:nSamp           
-    
-    %Find the closest mask surface pixel to this surface face (due to
-    %smoothing, they aren't perfectly colocalized)        
-    currPt = round(mean(maskProp.SmoothedSurface.vertices(maskProp.SmoothedSurface.faces(iSamp(j),:),:),1));%Use barycenter of face vertices
-    %Convert to linear index to speed up the steps below
-    currPt = sub2ind([M N P],currPt(2),currPt(1),currPt(3));
-    %Due to the rounding above this point may not actually lie in the mask.
-    if ~mask(currPt)
-        %If not, use the background distance
-        %labelling to find the closest mask surface pixel        
-        currPt = distOutL(currPt);
-    end        
-    %TEMP - debug
-    if ~mask(currPt)
-        error('curr Pt not in mask1!!')
-    end
+for j = 1:nSurfPix                  
+            
+    %tic          
     
     %Find pixels in the mask interior for which this is the closest surface
     %point using the distance labelling matrices
     
     %First, we find the closest background pixel to this mask pixel
-    bakPt = distL(currPt);
+    bakPt = distL(surfPixI(j));
     %Now we use this to find all mask pixels where this background pixel is
     %the closest background pixel.       
-    closestPts = find(distL == distL(bakPt));%Logical indexing faster?? Even though it will be VERY sparse?????
-    closestPts(closestPts == bakPt) = [];%Exclude the background pixel itself, which is found due to the indexing method.
+    closestPts = find(distL == distL(bakPt));%Logical indexing faster?? If we do it this way we can do the indexing trick below...
+    %Now we want to exclude the background pixel itself, which is found due
+    %to the indexing method, and any other surface pixels that were found -
+    %these can be equidistant to this background point and so will be
+    %returned by the label matrix, but they will have their own curvature
+    %samples.
+    closestPts(closestPts == bakPt |  distX(closestPts) == 1 & closestPts ~= surfPixI(j)) = [];
     
-    %closestPts = distL == distL(currPt(2),currPt(1),currPt(3));    
-    %nPts = nnz(closestPts,1);        
     nPts = size(closestPts,1);
-    
-    if ~all(mask(closestPts))
-        error('not all found points are in mask!')
-    end            
-    
+        
     %Sample the fluorescence in each channel and the distance transform at these points                
     bp.depthForCurvSamp{j} = distX(closestPts);        
     bp.intForCurvSamp{j} = nan(nPts,nChan);
     for k = 1:nChan%Faster to do it this way, or to sample all channels at once and then re-shape the array?
         bp.intForCurvSamp{j}(:,k) = images(closestPts + ((k-1)*nMaskPix));
     end
-    
+        
 %     %TEMP - for debugging
-%     cp = false(size(mask));
-%     cp(currPt) = true;
-%     closePt = false(size(mask));
-%     closePt(closestPts) = true;    
-%     imMax = max(max(max(images(:,:,:,1))));
-%     imarisShowArray(cat(5,double(mask)*imMax*2,double(cp)*imMax*2,double(closePt)*imMax*2,images(:,:,:,1)))
+%     if nPts > Inf
+%         cp = false(size(mask));
+%         cp(surfPixXYZ(j,2),surfPixXYZ(j,1),surfPixXYZ(j,3)) = true;
+%         closePt = false(size(mask));
+%         closePt(closestPts) = true;    
+%         imMax = max(max(max(images(:,:,:,1))));
+%         imarisShowArray(cat(5,double(mask)*imMax*2,double(cp)*imMax*2,double(closePt)*imMax*2,images(:,:,:,3)))
+%     end
 %     
+    if mod(j,round(nSurfPix/20))==0
+        disp(j/nSurfPix)
+    end
+    
 end
 
 %% ------------ Whole-Mask Intensity Vs Distance Analysis -------------- %%
@@ -188,7 +197,6 @@ for j = 1:nDistBins
 end
 
 
-
 %% ---------------- Per-Branch Analysis ---------------- %%
 
 [iTipVert,iTipEdge] = findTips(skelGraph.edges,size(skelGraph.vertices,1));
@@ -211,7 +219,7 @@ for j = 1:nTips
     iBaseVert = skelGraph.edges(iTipEdge(j),:);
     iBaseVert = iBaseVert(iBaseVert ~= iTipVert(j));
     baseSub = round(skelGraph.vertices(iBaseVert,:));
-    baseGeoDist = currGDist(baseSub(1),baseSub(2),baseSub(3));    
+    baseGeoDist = currGDist(baseSub(1),baseSub(2),baseSub(3));
     %Find pixels associated with this branch tip using this base distance.
     %This is only approximate and may include some non-branch areas of the mask.
     currBranchPix = currGDist <= baseGeoDist;        
