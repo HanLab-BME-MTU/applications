@@ -10,14 +10,14 @@
 %           'Zoom' : zoom with respect to pixel resolution of raw data. Default: 1
 %
 
-% Francois Aguet, 07/20/2011
+% Francois Aguet (last modified 02/12/2012)
 
 function makeMovieCME(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('trackinfo', [], @(x) isstruct(x) || isempty(x));
+ip.addOptional('tracks', [], @(x) isstruct(x) || isempty(x));
 ip.addParamValue('ScaleBar', 5e-6, @isscalar);
 ip.addParamValue('FrameRate', 15, @isscalar);
 ip.addParamValue('Zoom', 1, @isscalar);
@@ -25,9 +25,9 @@ ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | str
 ip.addParamValue('Channel', 1, @(x) ismember(x, 1:length(data.channels)));
 ip.addParamValue('FrameRange', 1:data.movieLength);
 ip.addParamValue('FileType', 'png', @(x) strcmpi(x, 'png') | strcmpi(x, 'tif') | strcmpi(x, 'tiff'));
-ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'all', 'projection'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'random', 'projection'})));
 ip.addParamValue('ShowEvents', false, @islogical);
-ip.addParamValue('ShowDetection', false, @islogical);
+ip.addParamValue('Detection', []);
 ip.addParamValue('ShowGaps', true, @islogical);
 ip.addParamValue('FileName', 'Movie', @ischar);
 ip.addParamValue('Colormap', []);
@@ -40,21 +40,13 @@ ip.parse(data, varargin{:});
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 nCh = length(data.channels);
-trackinfo = ip.Results.trackinfo;
+tracks = ip.Results.tracks;
 zoom = ip.Results.Zoom;
 ch = ip.Results.Channel;
 ext = ['.' ip.Results.FileType];
 if strcmpi(ip.Results.Mode, 'RGB')
     ch = 1:nCh;
 end
-
-cmap = ip.Results.Colormap;
-if ~isempty(trackinfo) && isempty(cmap)
-    trackIdx = unique(trackinfo.seg2trackIndex);
-    nt = numel(trackIdx);
-    cmap = hsv2rgb([rand(nt,1) ones(nt,2)]);
-end
-
 
 mpath = [data.source 'Movies' filesep];
 fpath = [mpath 'Frames' filesep];
@@ -100,11 +92,26 @@ fmt = ['%0' num2str(ceil(log10(data.movieLength))) 'd'];
 nf = numel(ip.Results.FrameRange);
 fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
-    plotFrame(data, trackinfo, f, ch, 'iRange', dRange, 'Handle', ha,...
-        'Mode', ip.Results.Mode, 'ScaleBar', ip.Results.ScaleBar,...
-        'ShowDetection', ip.Results.ShowDetection, 'ShowEvents', ip.Results.ShowEvents',...
-        'ShowGaps', ip.Results.ShowGaps,...
-        'DisplayType', ip.Results.DisplayType, 'ColorMap', cmap);
+    
+    if ~isempty(ip.Results.Detection)
+        detection = ip.Results.Detection(f);
+    else
+        detection = [];
+    end
+    idx = [tracks.start]<=f & f<=[tracks.end];
+    
+    if ~isempty(ip.Results.Colormap)
+        cmap = ip.Results.Colormap(idx,:);
+    else
+        cmap = [];
+    end
+    
+    plotFrame(data, tracks(idx), f, ch,...
+        'Handle', ha, 'iRange', dRange,...
+        'Mode', ip.Results.Mode, 'DisplayType', ip.Results.DisplayType,...
+        'ShowEvents', ip.Results.ShowEvents,...
+        'ShowGaps', ip.Results.ShowGaps, 'Detection', detection, 'Colormap', cmap);
+    
     axis(ha, 'off');
     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
     %print(h, '-djpeg100', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
@@ -117,6 +124,6 @@ close(h);
 % Generate movie
 fprintf('Generating movie... ');
 fr = num2str(ip.Results.FrameRate);
-cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -r ' fr ' -b 50000k -bt 20000k ' mpath ip.Results.FileName '.mp4 > /dev/null 2>&1'];
+cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -b 20000k ' mpath ip.Results.FileName '.mp4'];
 system(cmd);
 fprintf('done.\n');
