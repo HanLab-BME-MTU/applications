@@ -272,11 +272,11 @@ for mergeIter=1:cfg.maxIterMerge
         return;
     end
     
-    if intermediateResultsTimerEnabled
+    if cfg.intermediateResultsTimerEnabled
         stormTimer__.save([dirPath cfg.configName '._tmp.tim']);
     end
     
-    if intermediateResultsDataEnabled
+    if cfg.intermediateResultsDataEnabled
         data.save([dirPath cfg.configName '._tmp.dat']);
     end
     
