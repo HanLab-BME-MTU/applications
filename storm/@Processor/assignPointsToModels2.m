@@ -1,14 +1,9 @@
 function assignPointsToModels2(obj)
 
-% Compute an estimate of the data volume
-vol = prod(diff(quantile(obj.data.points,[0.05,0.95],1))./0.9);
-
 % Compute the classification mixture component weigths
 nPointsInCluster = cellfun(@numel,obj.data.clusters);
 compWeights = nPointsInCluster/obj.data.nPoints;
 nullCompWeight = numel(obj.data.nullCluster)/obj.data.nPoints;
-
-fprintf('CODE TEST: This should be one: %f\n',sum(compWeights)+nullCompWeight);
 
 % Create cluster IDs
 clusterIDs = cellfun(@sort,obj.data.clusters,'UniformOutput',false);
@@ -25,6 +20,9 @@ parents = cellfun(@(a) p(a(:)),neighbors,'UniformOutput',false);
 
 % Remove double entries
 parents = cellfun(@unique,parents,'UniformOutput',false);
+
+% Compute an estimate of the data volume
+vol = prod(diff(quantile(obj.data.points,[0.05,0.95],1))./0.9);
 
 % Determine the likelihood threshold
 logLThreshold = log(1/vol*nullCompWeight);

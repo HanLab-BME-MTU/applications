@@ -1,8 +1,36 @@
 function assignPointsToModels(obj,nSigmaThreshold)
-
+% function assignPointsToModels(obj,nSigmaThreshold)
+% SYNOPSIS:
+% Assigns every point in the data set to the closest model.
 %
-% Assign every point in the data set to its "neareast" model
+% REQUIRED INPUTS:         
+% - nSigmaThreshold
+% If a point is further away than nSigmaThrehold times the error from its
+% closest model, the point is classified as noise.
+% 
+% OPTIONAL INPUTS:
 %
+% NEEDED PROPERTIES: 
+% - obj.data.points
+% - obj.data.nPoints
+% - obj.data.clusters
+% - obj.data.nullCluster
+% - obj.data.neighbors
+% - obj.data.parents
+% - obj.data.error
+% - obj.data.modelBezCP
+% - obj.data.modelType
+% - obj.data.modelIsOutOfDate
+% - obj.data.modelVar
+%
+% MODIFIED PROPERTIES: 
+% - obj.data.clusters
+% - obj.data.nullCluster
+% - obj.data.modelIsOutOfDate
+%
+% OUTPUTS:
+%
+% Pascal Bérard, October 2011
 
 % Create cluster IDs
 clusterIDs = cellfun(@sort,obj.data.clusters,'UniformOutput',false);

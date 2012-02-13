@@ -1,8 +1,52 @@
 function updateModels(obj,maxCurvature,fitMethod,betaVar,modeVar)
-
+% function updateModels(obj,maxCurvature,fitMethod,betaVar,modeVar)
+% SYNOPSIS:
+% Updates the Bézier curve models of all clusters. 
 %
-% Updates the models of all clusters
+% REQUIRED INPUTS:         
+% - maxCurvature
+% Depending on fitMethod this is the beta parameter of the snakes based fit
+% or the maximum curvature for the standard fit.
 %
+% - fitMethod
+% Different curve fitting methods can be specified.
+% Standard 3D: 1
+% Standard 2D: 2
+% Snakes 3D: 3
+% Snakes 2D: 4
+%
+% - betaVar
+% The shape parameter of the variance prior.
+%
+% - modeVar
+% The mode parameter of the variance prior.
+% 
+% OPTIONAL INPUTS:
+%
+% NEEDED PROPERTIES: 
+% - obj.data.points
+% - obj.data.clusters
+% - obj.data.error
+% - obj.data.modelBezCP
+% - obj.data.modelType
+% - obj.data.modelLength
+% - obj.data.modelRes
+% - obj.data.modelProj
+% - obj.data.modelIsOutOfDate
+% - obj.data.modelVar
+%
+% MODIFIED PROPERTIES: 
+% - obj.data.clusters
+% - obj.data.modelLength
+% - obj.data.modelRes
+% - obj.data.modelProj
+% - obj.data.modelBezCP
+% - obj.data.modelVar
+% - obj.data.modelIsOutOfDate
+%
+% OUTPUTS:
+%
+% Pascal Bérard, October 2011
 
 % Copy data
 obj_data_points = obj.data.points;
@@ -21,7 +65,7 @@ parfor c=1:obj.data.nClusters
         points = obj_data_points(obj_data_clusters{c},:);
         locPrec = obj_data_error(obj_data_clusters{c},:);
         
-        % Reorder the points
+        % Order the points
         [~,~,~,idxProj,~] = projectPointsOntoLine(points,obj_data_modelBezCP{c}(1,:),obj_data_modelBezCP{c}(1,:)-obj_data_modelBezCP{c}(end,:));
         points = points(idxProj,:);
         locPrec = locPrec(idxProj,:);
@@ -31,7 +75,7 @@ parfor c=1:obj.data.nClusters
         pointWeights = 1./locPrec;
         
         switch(fitMethod)
-            case {1,2,5} % std. 3D, std. 2D
+            case {1,2} % std. 3D, std. 2D
                 [cP,t,res] = TLSFitBezierWeightedConstrainedCP(points,pointWeights,obj_data_modelType(c),maxCurvature);
                 
             case {3,4} % snakes 3D, snakes 2D
