@@ -14,6 +14,10 @@ function showMaskSurfaceProp(maskProp,dispType)
 %
 %       'gauss' - Color-codes each surface face by it's gaussian curvature.
 %       This is the default
+%       'mean' - Color codes by mean curvature
+%       'pc1' - color codes by largest principle component of curvature
+%       'pc2' - color codes by smalles principle component of curvature
+%       'curv' - color codes by maximum absolute value ofcurvature component
 %       'wire' - Simple wireframe surface only
 %
 %   Shows the 3D smoothed surface with the Gaussian curvature overlain on
@@ -33,7 +37,28 @@ switch dispType
     case 'gauss'
 
         patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.GaussianCurvature)
-        caxis([-.4 .4])
+        caxis([prctile(maskProp.GaussianCurvature,5) prctile(maskProp.GaussianCurvature,95)]) 
+
+    case 'mean'
+
+        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.MeanCurvature)
+        caxis([prctile(maskProp.MeanCurvature,5) prctile(maskProp.MeanCurvature,95)])    
+        
+    case 'pc1'
+
+        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC1)
+        caxis([prctile(maskProp.CurvaturePC1,5) prctile(maskProp.CurvaturePC1,95)]) 
+        
+     case 'pc2'
+
+        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC2)
+        caxis([prctile(maskProp.CurvaturePC2,95) prctile(maskProp.CurvaturePC2,5)]) 
+        
+     case 'curv'
+        
+        maxCurv = max(abs(real(maskProp.CurvaturePC1)),abs(real(maskProp.CurvaturePC2)));
+        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maxCurv)
+        caxis([prctile(maxCurv,5) prctile(maxCurv,95)]) 
         
     case 'wire'
         
@@ -47,6 +72,7 @@ end
 axis equal
 light
 view(3)
+colorbar
 
 
 
