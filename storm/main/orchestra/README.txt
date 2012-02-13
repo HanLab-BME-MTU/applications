@@ -25,5 +25,5 @@ HOW TO RUN JOBS ON ORCHESTRA
    the "-" to run them in batch mode on orchestra.
 
 8) Run one of the provided scripts (E.g. silentMax.sh) to process the 
-   data sets. If you use the "silentMax.sh" script you should receive 
-   an email once the jobs are finished. 
+   labeled data sets. If you use the "silentMax.sh" script you should 
+   receive an email once the jobs are finished. 
