@@ -193,7 +193,8 @@ while any(parentsOld ~= data.parents)
     end
     parentsOld = data.parents;
 
-    pro.assignPointsToModels(cfg.nSigmaThreshold);
+    % pro.assignPointsToModels(cfg.nSigmaThreshold);
+    pro.assignPointsToModels2();
 
     pro.dissolveClustersSmallerThan(smallClusterSize);
     pro.updateModels(cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar);
@@ -246,7 +247,8 @@ for mergeIter=1:cfg.maxIterMerge
         parentsOld = data.parents;
 
         stormTimer__.start('Assign Points');
-        pro.assignPointsToModels(cfg.nSigmaThreshold);
+        % pro.assignPointsToModels(cfg.nSigmaThreshold);
+        pro.assignPointsToModels2();
         pro.dissolveClustersSmallerThan(smallClusterSize);
         stormTimer__.stop('Assign Points');
     

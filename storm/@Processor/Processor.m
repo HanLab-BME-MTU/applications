@@ -46,6 +46,7 @@ classdef Processor < handle
         edgePointOrder = updateBICWeights(obj,maxDegreeBezier,maxCurvature,fitMethod,betaVar,modeVar);        
         stop = mergeClustersBIC(obj,maxDegreeBezier,maxCurvature,fitMethod,betaVar,modeVar);
         assignPointsToModels(obj,nSigmaThreshold);
+        assignPointsToModels2(obj);
         dissolveClustersSmallerThan(obj,sizeThreshold);
         dissolveModelsLessDenseThan(obj,densityThreshold);
         dissolveModelsShorterThan(obj,thresholdLength);
