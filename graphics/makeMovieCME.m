@@ -72,20 +72,23 @@ else
     end
 end
 
-
-% Configure figure
-h = figure('Visible', 'off', 'Position', [50 50 nx ny]);
 iptsetpref('ImshowBorder','tight');
-set(h, 'InvertHardcopy', 'off');
-set(h, 'PaperUnits', 'Points');
-set(h, 'PaperSize', [nx ny]);
-set(h, 'PaperPosition', [0 0 nx ny]); % very important
-set(h, 'PaperPositionMode', 'auto');
-set(h,'DefaultLineLineSmoothing','on'); % points are not rendered !!
-set(h,'DefaultPatchLineSmoothing','on');
+
+% Figure options (PaperPosition is most important); points are not rendered !!
+fopts = {'Visible', 'off', 'Position', [50 50 nx ny],...
+    'InvertHardcopy', 'off', 'PaperUnits', 'Points', 'PaperSize', [nx ny],...
+    'PaperPosition', [0 0 nx ny], 'PaperPositionMode', 'auto',...
+    'DefaultLineLineSmoothing','on', 'DefaultPatchLineSmoothing','on'};
+
+h = figure(fopts{:});
 
 % Configure axes
 ha = axes('Position', [0 0 1 1]);
+
+frameopts = {'iRange', dRange,...
+        'Mode', ip.Results.Mode, 'DisplayType', ip.Results.DisplayType,...
+        'ShowEvents', ip.Results.ShowEvents,...
+        'ShowGaps', ip.Results.ShowGaps};
 
 % Generate frames
 fmt = ['%0' num2str(ceil(log10(data.movieLength))) 'd'];
@@ -93,24 +96,23 @@ nf = numel(ip.Results.FrameRange);
 fprintf('Generating movie frames:     ');
 for f = ip.Results.FrameRange
     
+    iopts = frameopts;
+    
     if ~isempty(ip.Results.Detection)
-        detection = ip.Results.Detection(f);
-    else
-        detection = [];
-    end
-    idx = [tracks.start]<=f & f<=[tracks.end];
-    
-    if ~isempty(ip.Results.Colormap)
-        cmap = ip.Results.Colormap(idx,:);
-    else
-        cmap = [];
+        iopts = [iopts {'Detection', ip.Results.Detection(f)}];
     end
     
-    plotFrame(data, tracks(idx), f, ch,...
-        'Handle', ha, 'iRange', dRange,...
-        'Mode', ip.Results.Mode, 'DisplayType', ip.Results.DisplayType,...
-        'ShowEvents', ip.Results.ShowEvents,...
-        'ShowGaps', ip.Results.ShowGaps, 'Detection', detection, 'Colormap', cmap);
+    if ~isempty(tracks)
+        idx = [tracks.start]<=f & f<=[tracks.end];
+        itracks = tracks(idx);
+        if ~isempty(ip.Results.Colormap)
+            iopts = [iopts {'ColorMap', ip.Results.Colormap(idx,:)}]; %#ok<*AGROW>
+        end
+    else
+        itracks = [];
+    end
+    
+    plotFrame(data, itracks, f, ch, 'Handle', ha, iopts{:});
     
     axis(ha, 'off');
     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], [fpath 'frame' num2str(f, fmt) ext]);
