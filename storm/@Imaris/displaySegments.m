@@ -29,8 +29,6 @@ if obj.displayEnabled
     % Add the spot object to the scene
     imarisSpots.SetTrackEdges(edges);
     
-    imarisSpots.SetColor(1.0,0.0,0.0,0.0);
-    
     obj.imarisApp.mSurpassScene.AddChild(imarisSpots);
 end
 end

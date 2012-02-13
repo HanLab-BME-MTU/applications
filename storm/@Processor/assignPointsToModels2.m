@@ -26,12 +26,9 @@ parents = cellfun(@(a) p(a(:)),neighbors,'UniformOutput',false);
 % Remove double entries
 parents = cellfun(@unique,parents,'UniformOutput',false);
 
-% % % % Determine the likelihood threshold for each point (The threshold is at nSigmaThreshold times the sqrt(component variance))
-% % % likelihoodThreshold = -0.5*nSigmaThreshold^2;
 % Determine the likelihood threshold
 logLThreshold = log(1/vol*nullCompWeight);
 
-% % % nearestParent = cell(obj.data.nPoints,1);
 likeliestParent = cell(obj.data.nPoints,1);
 
 obj_data_modelBezCP = obj.data.modelBezCP;
@@ -43,50 +40,37 @@ obj_data_modelLength = obj.data.modelLength;
 
 parfor i=1:obj.data.nPoints
     % Compute the likelihood
-% % %     likelihood = arrayfun(@(b)-(0.5*distancePointBezier(obj_data_modelBezCP{b}./repmat(obj_data_error(i,:),obj_data_modelType(b)+1,1), ...
-% % %         obj_data_points(i,:)./obj_data_error(i,:))^2/obj_data_modelVar(b)), ...
-% % %         parents{i}); 
     dist = arrayfun(@(b) distancePointBezier(obj_data_modelBezCP{b}./repmat(obj_data_error(i,:),obj_data_modelType(b)+1,1), ...
         obj_data_points(i,:)./obj_data_error(i,:)), ...
         parents{i});
-    
     modelLength = obj_data_modelLength(parents{i});
     sigmaComponent = sqrt(obj_data_modelVar(parents{i})/2);
     compWeightsNeighborModels = compWeights(parents{i});
-    
     logL = arrayfun(@(a,c,d) Processor.logLikelihoodModelAlongAway2D([a 0 0],1./obj_data_error(i,:),c,d),dist.*obj_data_error(i,1),sigmaComponent,modelLength);
-  
     weightedLogL = log(compWeightsNeighborModels)+logL;
     
     % Find the indices of the models with a bigger likelihood than the threshold likelihood
-% % %     idx = find(likelihood>likelihoodThreshold);
     idx = find(weightedLogL>logLThreshold);
     
     % Remove these models from the likelihood and parents arrays
-% % %     likelihood = likelihood(idx);
     weightedLogL = weightedLogL(idx);
     parents{i} = parents{i}(idx);
     
     % Find the most likeliest model
-% % %     [~,idx] = max(likelihood);
     [~,idx] = max(weightedLogL);
     
     % Get the cluster index for the likeliest model
-% % %     nearestParent{i} = parents{i}(idx);
     likeliestParent{i} = parents{i}(idx);
 end
 
 % Add the point to the unclustered points if no closest model exists
-% % % emptyNearestParent = cellfun(@isempty,nearestParent);
 emptyLikeliestParent = cellfun(@isempty,likeliestParent);
 pointsIdx = 1:obj.data.nPoints;
 
 % Rebuild cluster list
 obj.data.clusters = cell(obj.data.nClusters,1);
 
-% % % for p=pointsIdx(~emptyNearestParent)
 for p=pointsIdx(~emptyLikeliestParent)
-% % %     obj.data.clusters(nearestParent{p}) = {[obj.data.clusters{nearestParent{p}} pointsIdx(p)]};
     obj.data.clusters(likeliestParent{p}) = {[obj.data.clusters{likeliestParent{p}} pointsIdx(p)]};
 end
 
@@ -100,7 +84,6 @@ obj.data.modelIsOutOfDate = ~cellfun(@isequal,clusterIDs,newClusterIDs);
 obj.data.clusters(~obj.data.modelIsOutOfDate) = clustersOld(~obj.data.modelIsOutOfDate);
 
 % Build null cluster
-% % % obj.data.nullCluster = permute(pointsIdx(emptyNearestParent),[2 1]);
 obj.data.nullCluster = permute(pointsIdx(emptyLikeliestParent),[2 1]);
 
 disp('Process: All points have been assigned!');
