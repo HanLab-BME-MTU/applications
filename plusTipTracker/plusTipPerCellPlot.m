@@ -66,10 +66,14 @@ for iGroup = 1:length(groupNames)
     
     
     plot(xValues(iGroup), yValue,'Marker','+','MarkerSize',16,'MarkerEdgeColor',cMap{iGroup},'MarkerFaceColor',cMap{iGroup});
+    
 end
 
 legend(h1,strrep(groupNames,'_',' '),'location','BestOutside');
 
-
+fieldName = strrep(fieldName, '_',' '); 
+ylabel(fieldName); 
+xlabel('Cell Count'); 
+title(['Scatter Plot of Cellular Distribution for Dynamic Parameter: ' fieldName]); 
 end
 
