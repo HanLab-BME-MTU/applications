@@ -1,8 +1,8 @@
 %[data] = runTrackAnalysis(data, varargin)
 %
 % INPUTS    data        : array of experiment structures
-%           {Buffer}    : length of buffer before and after tracks
-%           {Overwrite} : 1 to overwrite previous results
+%           {Buffer}    : length of buffer before/after tracks. Default: 5
+%           {Overwrite} : true to overwrite previous results
 %           {FileName}  : name of the output
 %
 % Outputs
@@ -12,11 +12,11 @@
 %      gapStatus : 4) valid gap, 5) invalid gap
 %          valid : '1' if status == 1 and all gaps have status 4;
 %
-% Usage example: runTrackAnalysis(data, 'Buffer', 10);
+% Usage example: runTrackAnalysis(data, 'Buffer', 3);
 %
-% Note: Only tracks with track.status==1 and track.gapStatus==4 are considered.
-
-% Francois Aguet, November 2010 (last modified 02/01/2012)
+% Notes: The buffer size influences the number of visible tracks
+%
+% Francois Aguet, November 2010 (last modified 02/10/2012)
 
 function runTrackAnalysis(data, varargin)
 
@@ -155,7 +155,9 @@ for k = 1:nTracks
         segLengths(s) = bounds(2)-bounds(1)+1;
         
         % determine whether segment has merged and split from same master, if length < 4
-        msIdx(s) = segLengths(s)==1 || (diff(ievents(:,4))==0 && segLengths(s)<4);
+        msIdx(s) = segLengths(s)==1 || (diff(ievents(:,4))==0 && segLengths(s)<4) ||...
+            (segLengths(s)<4 && isnan(ievents(1,4)) && ~isnan(ievents(2,4)) && ievents(1,1)>seqOfEvents(1,1)) ||...
+            (segLengths(s)<4 && isnan(ievents(2,4)) && ~isnan(ievents(1,4)) && ievents(2,1)<seqOfEvents(end,1));
     end
     if preprocess
         if nSeg>1
@@ -187,7 +189,7 @@ for k = 1:nTracks
     tracks(k).seqOfEvents = seqOfEvents;
     tracks(k).tracksFeatIndxCG = tracksFeatIndxCG; % index of the feature in each frame
     
-    if (1<tracks(k).start) && (tracks(k).end<nFrames) % complete tracks
+    if (buffer<tracks(k).start) && (tracks(k).end<=nFrames-buffer) % complete tracks
         tracks(k).visibility = 1;
     elseif tracks(k).start==1 && tracks(k).end==nFrames % persistent tracks
         tracks(k).visibility = 3;
