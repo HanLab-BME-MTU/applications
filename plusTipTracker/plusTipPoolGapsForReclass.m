@@ -346,6 +346,7 @@ dataMat(:,7)=dataMat(:,7).*(projData.pixSizeNm/1000); % convert displacements to
    % remove uIdx 
    uIdxSingleMat = find(singleDataMat(:,5) == 4);
    toRemove = sort([uIdxSingleMat;uIdxSingleMat+1;uIdxSingleMat-1]); 
+   toRemove = toRemove(toRemove~=0);
    singleDataMat(toRemove,:) = []; 
    
 
