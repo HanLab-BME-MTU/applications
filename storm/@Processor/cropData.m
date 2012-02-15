@@ -1,4 +1,34 @@
 function cropData(obj,roiPosRel,roiSize)
+% function cropData(obj,roiPosRel,roiSize)
+% SYNOPSIS:
+% Crops the data set. Select a subset of the points. If roiSize(3) == 0 the
+% data set is not cropped in the z-dimension.
+%
+% REQUIRED INPUTS:         
+% - roiPosRel
+% The position of the region of interest relative to the edges of the data
+% set.
+%
+% - roiSize
+% The size of the region of interest.
+% 
+% OPTIONAL INPUTS:
+%
+% NEEDED PROPERTIES: 
+% - obj.data.points
+% - obj.data.intensity
+% - obj.data.frame
+%
+% MODIFIED PROPERTIES:
+% - obj.data.points 
+% - obj.data.roiPosition
+% - obj.data.roiSize
+% - obj.data.intensity
+% - obj.data.frame
+%
+% OUTPUTS:
+%
+% Pascal Bérard, October 2011
 
 obj.data.roiSize = roiSize;
 obj.data.roiPosition = roiPosRel+min(obj.data.points,[],1);

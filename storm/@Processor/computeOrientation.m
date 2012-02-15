@@ -81,7 +81,7 @@ parfor i=1:obj_data_nPoints
     orthogonalVectors = points-(centerPoints+tNormRep.*directionVectorGrid*filterLength/2);
     distanceSq = sum(orthogonalVectors.^2,2); % Squared distances
     
-    % CHOICE: Compute the contribution to the response. The distances have a
+    % Compute the contribution to the response. The distances have a
     % variance of 2. Two times the standard deviation (95%) (four times the 
     % variance) is used here. => 2*(2*sqrt(2))^2 = 16
     contribution = exp(-distanceSq/16);
@@ -94,7 +94,7 @@ parfor i=1:obj_data_nPoints
     tNormMin = min(min(tNorm.*double(contribution>0),[],1),0);
     tNormMax = max(max(tNorm.*double(contribution>0),[],1),0);
     
-    % CHOICE: The effective filter length should be at least half as long as the 
+    % The effective filter length should be at least half as long as the 
     % defined length
     m = tNormMin+0.5 > tNormMax;
     delta = (tNormMin(m)+0.5-tNormMax(m))/2;
