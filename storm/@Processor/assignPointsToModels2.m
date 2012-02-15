@@ -1,4 +1,33 @@
 function assignPointsToModels2(obj)
+% function assignPointsToModels2(obj)
+% SYNOPSIS:
+% Assigns every point in the data set to the likeliest model.
+%
+% REQUIRED INPUTS:         
+% 
+% OPTIONAL INPUTS:
+%
+% NEEDED PROPERTIES: 
+% - obj.data.points
+% - obj.data.nPoints
+% - obj.data.clusters
+% - obj.data.nullCluster
+% - obj.data.neighbors
+% - obj.data.parents
+% - obj.data.error
+% - obj.data.modelBezCP
+% - obj.data.modelType
+% - obj.data.modelIsOutOfDate
+% - obj.data.modelVar
+%
+% MODIFIED PROPERTIES: 
+% - obj.data.clusters
+% - obj.data.nullCluster
+% - obj.data.modelIsOutOfDate
+%
+% OUTPUTS:
+%
+% Pascal Bérard, February 2012
 
 % Compute the classification mixture component weigths
 nPointsInCluster = cellfun(@numel,obj.data.clusters);

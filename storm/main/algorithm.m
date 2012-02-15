@@ -6,7 +6,16 @@ global stormTimer__; % :-D
 stormTimer__ = Timing();
 stormTimer__.start('Main');
 
+% PARAMS
+
+% Dissolve clusters
 smallClusterSize = 3;
+
+% Orientation detector
+nBins = 4; minBinResponse = 1;
+
+% Update edges anisotropic
+dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
  
 % INIT DATA
 disp('-- INIT ----------------------------------------');
@@ -125,7 +134,7 @@ if isempty(dataName) % No *.i.dat file present
         
     dis.points();
     stormTimer__.start('Orientation');
-    pro.computeOrientation(cfg.filterLength,cfg.angularSampling);
+    pro.computeOrientation(cfg.filterLength,cfg.angularSampling,nBins,minBinResponse);
     stormTimer__.stop('Orientation');
     dis.orientation(100);
         
@@ -212,7 +221,6 @@ stormTimer__.start('Main Loop');
 for mergeIter=1:cfg.maxIterMerge
     
     % tic
-    dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
     pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
     % pro.updateEdges();
     % pro.updateEdgesEndPoints(cfg.initialEdgeRadius);

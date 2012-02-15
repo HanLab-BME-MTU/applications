@@ -32,7 +32,7 @@ classdef Processor < handle
         subsamplePoints(obj,limit);
         densityFilter(obj,nNeighborsThreshold,ballRadius)
         dataReduction(obj,initialEdgeRadius,reductionRuns);
-        computeOrientation(obj,filterLength,filterAngularSampling);
+        computeOrientation(obj,filterLength,filterAngularSampling,nBins,minBinResponse);
         [weights,hausDorffEdges] = updateGeomWeights(obj,sigmaFilament,modelLength,angleThreshold);
         mergeClustersGeome(obj,sigmaFilament,modelLength,angleThreshold);
         edgeLength = initEdges(obj,initialEdgeRadius);
