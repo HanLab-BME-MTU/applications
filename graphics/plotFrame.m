@@ -41,7 +41,7 @@ ip.addRequired('ch');
 ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.addParamValue('iRange', cell(1,nCh), @(x) iscell(x));
+ip.addParamValue('iRange', cell(1,numel(data.channels)), @(x) iscell(x));
 ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'random'})));
 ip.addParamValue('ShowEvents', false, @islogical);
 % ip.addParamValue('ShowDetection', false, @islogical); % add optional load fct?
