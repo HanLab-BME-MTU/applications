@@ -9,6 +9,8 @@
 
 function hfig = trackDisplayGUI(data, tracks)
 
+
+
 handles.data = data;
 
 % detect number of channels (up to 4)
@@ -16,35 +18,60 @@ nCh = length(data.channels);
 handles.nCh = nCh;
 % exclude master from list of channels
 handles.mCh = find(strcmp(data.source, data.channels));
-% nt = length(ip.Results.tracks);
-nt = numel(tracks);
-handles.colorMap = hsv2rgb([rand(nt,1) ones(nt,2)]);
+
+if nargin<2
+    tracks = [];
+    handles.tracks = cell(1,nCh);
+end
+
+
 
 if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
+
+if ~isempty(tracks)
+    nt = numel(tracks);
+    handles.colorMap = hsv2rgb([rand(nt,1) ones(nt,2)]);
     
-if isstruct(tracks)
-    handles.tracks = cell(1,nCh);
-    handles.tracks{1} = tracks;
-else
-    handles.tracks = tracks;
-end
+    if isstruct(tracks)
+        handles.tracks = cell(1,nCh);
+        handles.tracks{1} = tracks;
+    else
+        handles.tracks = tracks;
+    end
+    
+    if ~isempty(handles.tracks{handles.mCh})
+        handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
+    else
+        handles.maxLifetime_f = [];
+    end
+    
+    
+    if ~all(cellfun(@(x) isempty(x), handles.tracks))
+        handles.selectedTrack = ones(1,handles.nCh);
+        handles.f = handles.tracks{handles.mCh}(1).start;
+    end
+    
+    % min/max track intensities
+    maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
+    maxA = [maxA{:}];
+    handles.maxA = zeros(1,nCh);
+    for c = 1:nCh
+        [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
+        handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
+    end
+    d = floor(log10(handles.maxA));
+    % y-axis unit
+    handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
+    handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
 
-if ~isempty(handles.tracks{handles.mCh})
-    handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
-else
-    handles.maxLifetime_f = [];
-end
-
-handles.displayType = 'raw';
-if ~all(cellfun(@(x) isempty(x), handles.tracks))
-    handles.selectedTrack = ones(1,handles.nCh);
-    handles.f = handles.tracks{handles.mCh}(1).start;
 else
     handles.selectedTrack = [];
-    handles.f = 2; % valid tracks start in frame 2 at the earliest
+    handles.f = 1;
 end
+handles.displayType = 'raw';
+    
 
 hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7], 'PaperPositionMode', 'auto',...
     'Toolbar', 'figure', 'ResizeFcn', @figResize,...
@@ -178,7 +205,12 @@ if isfield(handles.detection{handles.mCh}, 'dRange')
     for c = 1:nCh
         M = arrayfun(@(i) i.dRange{c}, handles.detection{handles.mCh}, 'UniformOutput', false);
         M = vertcat(M{:});
-        handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
+        [f_ecdf, x_ecdf] = ecdf(M(:,1));
+        minp = interp1(f_ecdf, x_ecdf, 0.01);
+        [f_ecdf, x_ecdf] = ecdf(M(:,2));
+        maxp = interp1(f_ecdf, x_ecdf, 0.99);
+        %handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
+        handles.dRange{c} = [minp maxp];
     end
 else
     for c = 1:nCh
@@ -187,20 +219,6 @@ else
         handles.dRange{c} = [min(min(frame1(:)), min(frameN(:))) max(max(frame1(:)), max(frameN(:)))];
     end    
 end
-
-% min/max track intensities
-maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
-maxA = [maxA{:}];
-handles.maxA = zeros(1,nCh);
-for c = 1:nCh
-    [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
-    handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
-end
-d = floor(log10(handles.maxA));
-% y-axis unit
-handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
-handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
-
 
 
 % initialize handles
@@ -234,8 +252,6 @@ end
 %=================================================
 % hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
 
-
-
 % track panels: 20 spacer, 110 bottom, 30 top
 h_tot = pos(4) - 140;
 h = min((h_tot-(nCh-1)*20)/nCh, 200);
@@ -261,20 +277,16 @@ switch nCh
 end
 xlabel('Time (s)');
 
-
-
 % Colorbar
 % horizontal
 %handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
 % vertical
 handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
 
-
 setappdata(hfig, 'handles', handles);%%%%%%%%%
 handles = setupFrameAxes(hfig);
 
 
-% return
 %===========================
 % initialize figures/plots
 %===========================
@@ -542,9 +554,7 @@ for k = 1:nAxes
     end
     
     if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
-        
         idx = [handles.tracks{cvec(k)}.start]<=f & f<=[handles.tracks{cvec(k)}.end];
-        
         plotFrame(handles.data, handles.tracks{cvec(k)}(idx), f, cidx,...
             'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
@@ -679,7 +689,6 @@ handles = getappdata(hfig, 'handles');
 if ~isempty(handles.selectedTrack)
     
     for ci = 1:handles.nCh
-        %handles.tAxes
         h = handles.tAxes{ci};
         %cla(h);
         hold(h, 'off');
