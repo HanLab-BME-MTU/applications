@@ -126,8 +126,13 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
     'startBuffer', [], 'endBuffer', [], 'MotionParameters', []);
 %    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
 
-% field names with multiple channels
-mcFieldNames = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar', 'pval_KS', 'isPSF'};
+% track field names
+idx = structfun(@(i) size(i,2)==size(frameInfo(1).x,2), frameInfo(1));
+mcFieldNames = fieldnames(frameInfo);
+mcFieldNames = mcFieldNames(idx);
+[~,loc] = ismember({'x_init', 'y_init', 'RSS'}, mcFieldNames);
+mcFieldNames(loc) = [];
+
 bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
 
 %==============================
@@ -417,7 +422,8 @@ for f = 1:data.movieLength
                 
                 SE_r = tracks(k).SE_sigma_r(ch,idx) * kLevel;
                 
-                tracks(k).pval_KS(idx) = res.pval;
+                tracks(k).hval_AD(idx) = res.hAD;
+                %tracks(k).pval_KS(idx) = res.pval;
                 
                 df2 = (npx-1) * (tracks(k).A_pstd(ch,idx).^2 + SE_r.^2).^2 ./...
                     (tracks(k).A_pstd(ch,idx).^4 + SE_r.^4);
