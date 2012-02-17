@@ -8,9 +8,11 @@ ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Print', false, @islogical);
+ip.addParamValue('Buffer', 5);
 ip.parse(data, varargin{:});
 nd = length(data);
 framerate = data(1).framerate;
+buffer = ip.Results.Buffer;
 
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
@@ -39,9 +41,10 @@ for k = 1:nd
     x = round(arrayfun(@(tr) nanmean(tr.x(1,:)), tracks));
     y = round(arrayfun(@(tr) nanmean(tr.y(1,:)), tracks));
     
-%     [ny,nx] = size(mask);
-%     idx = sub2ind([ny nx], y, x);
-%     tracks = tracks(mask(idx)==1);
+    % exclude tracks in background
+    [ny,nx] = size(mask);
+    idx = sub2ind([ny nx], y, x);
+    tracks = tracks(mask(idx)==1);
     
     
     lifetimes_s = [tracks.lifetime_s];
@@ -83,36 +86,41 @@ for k = 1:nd
     %====================
     % Histogram etc.
     %====================
-    N = data(k).movieLength-2;
+    % longest observable lifetime (in frames): N = movieLength-2*buffer
+    N = data(k).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
-    lftHist = hist(lifetimes_s(idx_Ia | idx_Ib), t);
+    lftHist_Iab = hist(lifetimes_s(idx_Ia | idx_Ib), t);
+    lftHist_Ia = hist(lifetimes_s(idx_Ia), t);
     lftHist_Ib = hist(lifetimes_s(idx_Ib), t);
     lftHist_IIa = hist(lifetimes_s(idx_IIa), t);
     
     % apply correction
-    % longest observable lifetime: N = movieLength-2
     % relative probabilities:
     % P(obs. lifetime==1) = N
     % P(obs. lifetime==N) = 1
     % => weighting:
     w = N./(N-cutoff_f+1:-1:1);
-    lftHist = lftHist .* w;
+    lftHist_Iab = lftHist_Iab .* w;
+    lftHist_Ia = lftHist_Ia .* w;
     lftHist_Ib = lftHist_Ib .* w;
     lftHist_IIa = lftHist_IIa .* w;
     
     % Pad with trailing zeros
     if N<Nmax
-        lftHist = [lftHist zeros(1,Nmax-N)]; %#ok<AGROW>
+        lftHist_Iab = [lftHist_Iab zeros(1,Nmax-N)]; %#ok<AGROW>
+        lftHist_Ia = [lftHist_Ia zeros(1,Nmax-N)]; %#ok<AGROW>
         lftHist_Ib = [lftHist_Ib zeros(1,Nmax-N)]; %#ok<AGROW>
         lftHist_IIa = [lftHist_IIa zeros(1,Nmax-N)]; %#ok<AGROW>
     end
     
     % Normalization
-    lftHist = lftHist / sum(framerate*lftHist);
-    lftHist_Ib = lftHist_Ib / sum(framerate*lftHist_Ib);
-    lftHist_IIa = lftHist_IIa / sum(framerate*lftHist_IIa);
+    lftHist_Iab = lftHist_Iab / sum(lftHist_Iab) / framerate;
+    lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
+    lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
+    lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
     
-    res.lftHist{k} = lftHist;
+    res.lftHist_Iab{k} = lftHist_Iab;
+    res.lftHist_Ia{k} = lftHist_Ia;
     res.lftHist_Ib{k} = lftHist_Ib;
     res.lftHist_IIa{k} = lftHist_IIa;
     
@@ -167,7 +175,8 @@ t_hist = (cutoff_f:Nmax)*framerate;
 v = mean([res.trackClassStats{:}],2);
 v_std = std([res.trackClassStats{:}],[],2);
 
-meanHist_Ia =  mean(vertcat(res.lftHist{:}),1);
+% meanHist_Iab =  mean(vertcat(res.lftHist_Iab{:}),1);
+meanHist_Ia =  mean(vertcat(res.lftHist_Ia{:}),1);
 meanHist_Ib =  mean(vertcat(res.lftHist_Ib{:}),1);
 meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
 
@@ -177,7 +186,7 @@ meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
 % Assign output
 %-------------------------
 res.t = t_hist;
-res.meanHist = meanHist_Ia;
+% res.meanHist_Ia = meanHist_Ia;
 res.source = {data.source};
 
 if strcmpi(ip.Results.Display, 'on')
