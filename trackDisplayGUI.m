@@ -30,16 +30,21 @@ if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
 
+
+
 if ~isempty(tracks)
-    nt = numel(tracks);
-    handles.colorMap = hsv2rgb([rand(nt,1) ones(nt,2)]);
     
     if isstruct(tracks)
         handles.tracks = cell(1,nCh);
-        handles.tracks{1} = tracks;
+        handles.tracks{handles.mCh} = tracks;
     else
         handles.tracks = tracks;
     end
+    
+    for c = 1:nCh
+        nt = numel(handles.tracks{c});
+        handles.colorMap{c} = hsv2rgb([rand(nt,1) ones(nt,2)]);
+    end    
     
     if ~isempty(handles.tracks{handles.mCh})
         handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
@@ -47,9 +52,9 @@ if ~isempty(tracks)
         handles.maxLifetime_f = [];
     end
     
-    
     if ~all(cellfun(@(x) isempty(x), handles.tracks))
-        handles.selectedTrack = ones(1,handles.nCh);
+        handles.selectedTrack = NaN(1,handles.nCh);
+        handles.selectedTrack(handles.mCh) = 1;
         handles.f = handles.tracks{handles.mCh}(1).start;
     end
     
@@ -65,7 +70,6 @@ if ~isempty(tracks)
     % y-axis unit
     handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
     handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
-
 else
     handles.selectedTrack = [];
     handles.f = 1;
@@ -261,19 +265,19 @@ opts = {'Parent', gcf, 'Units', 'pixels', 'Box', 'on'};
 
 switch nCh
     case 1
-        handles.tAxes{1} = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
     case 2
-        handles.tAxes{1} = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-        handles.tAxes{2} = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
     case 3
-        handles.tAxes{1} = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-        handles.tAxes{2} = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-        handles.tAxes{3} = axes(opts{:}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
     case 4        
-        handles.tAxes{1} = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-        handles.tAxes{2} = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-        handles.tAxes{3} = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
-        handles.tAxes{4} = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
+        handles.tAxes(4) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
 end
 xlabel('Time (s)');
 
@@ -291,10 +295,10 @@ handles = setupFrameAxes(hfig);
 % initialize figures/plots
 %===========================
 for c = 1:nCh
-    set(handles.fAxes{c}, 'XLim', [0.5 data.imagesize(2)+0.5], 'YLim', [0.5 data.imagesize(1)+0.5]);
+    set(handles.fAxes(c), 'XLim', [0.5 data.imagesize(2)+0.5], 'YLim', [0.5 data.imagesize(1)+0.5]);
 end
-linkaxes([handles.tAxes{:}], 'x');
-axis([handles.fAxes{:}], 'image');
+linkaxes(handles.tAxes, 'x');
+axis(handles.fAxes, 'image');
 
 % save XLim diff. for zoom reference
 handles.refXLimDiff = data.imagesize(2)-1;
@@ -317,7 +321,7 @@ set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 %===================================
 % for fi = 1:numel(handles.fAxes)
 %     handles.hcmenu(fi) = uicontextmenu;
-%     handles.himg(fi) = findall(handles.fAxes{fi},'Type','image');
+%     handles.himg(fi) = findall(handles.fAxes(fi),'Type','image');
 %     uimenu(handles.hcmenu(fi), 'Label', 'Adjust contrast', @contrastCallback);
 %     set(handles.himg(fi), 'uicontextmenu', handles.hcmenu(fi));
 % end
@@ -325,7 +329,7 @@ set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 %{@imcontrast, handles.himg(fi)}
 
 % % Attach the context menu to axes
-% himg = findall(handles.fAxes{:},'Type','image');
+% himg = findall(handles.fAxes,'Type','image');
 % for fi = 1:numel(himg)
 %     set(himg(fi), 'uicontextmenu', handles.hcmenu);
 %     
@@ -343,7 +347,7 @@ function zoompostcallback(~, eventdata, hfig)
 settings = getappdata(hfig, 'settings');
 handles = getappdata(hfig, 'handles');
 
-if ismember(eventdata.Axes, [handles.fAxes{:}])
+if ismember(eventdata.Axes, handles.fAxes)
     settings.zoom = handles.refXLimDiff / diff(get(eventdata.Axes, 'XLim'));
     for c = 1:length(settings.selectedTrackMarkerID)
         id = settings.selectedTrackMarkerID(c);
@@ -376,19 +380,19 @@ h = min((h_tot-(nx-1)*20)/nx, 200);
 
 switch nx
     case 1
-        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes(1), 'Position', [dx 110+(h_tot-h) w h]);
     case 2
-        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
-        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        set(handles.tAxes(1), 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes(2), 'Position', [dx 110+(h_tot-2*h-20) w h]);
     case 3
-        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
-        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-        set(handles.tAxes{3}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
+        set(handles.tAxes(1), 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes(2), 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        set(handles.tAxes(3), 'Position', [dx 110+(h_tot-3*h-40) w h]);
     case 4        
-        set(handles.tAxes{1}, 'Position', [dx 110+(h_tot-h) w h]);
-        set(handles.tAxes{2}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-        set(handles.tAxes{3}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
-        set(handles.tAxes{4}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
+        set(handles.tAxes(1), 'Position', [dx 110+(h_tot-h) w h]);
+        set(handles.tAxes(2), 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        set(handles.tAxes(3), 'Position', [dx 110+(h_tot-2*h-40) w h]);
+        set(handles.tAxes(4), 'Position', [dx 110+(h_tot-2*h-60) w h]);
 end
 
 set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
@@ -403,26 +407,26 @@ dy = 120; % bottom spacer
 height = pos(4) - dy-30;
 switch numel(handles.fAxes)
     case 1
-        set(handles.fAxes{1}, 'Position', [dx dy width pos(4)-140]);
+        set(handles.fAxes(1), 'Position', [dx dy width pos(4)-140]);
     case 2
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-20)/2;
-            set(handles.fAxes{1}, 'Position', [dx dy width pos(4)-140]);
-            set(handles.fAxes{2}, 'Position', [dx+width+20 dy width pos(4)-140]);
+            set(handles.fAxes(1), 'Position', [dx dy width pos(4)-140]);
+            set(handles.fAxes(2), 'Position', [dx+width+20 dy width pos(4)-140]);
         else
             height = (height-20)/2;
-            set(handles.fAxes{1}, 'Position', [dx dy+20+height width height]);
-            set(handles.fAxes{2}, 'Position', [dx dy width height]);
+            set(handles.fAxes(1), 'Position', [dx dy+20+height width height]);
+            set(handles.fAxes(2), 'Position', [dx dy width height]);
         end
 %     case 3
-%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
 %     case 4
-%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%         handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(4) = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
 
 
@@ -450,34 +454,34 @@ height = pos(4) - dy-30;
 if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
     cellfun(@(x) delete(x), handles.fAxes);
 end
-handles.fAxes = cell(1,N);
+handles.fAxes = zeros(1,N);
 opts = {'Parent', gcf, 'Units', 'pixels'};
 switch N
     case 1
-        handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy width height]);
+        handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy width height]);
     case 2
         if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-20)/2;
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy width height]);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx+width+20 dy width height], 'YTick', []);
+            handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy width height]);
+            handles.fAxes(2) = axes(opts{:}, 'Position', [dx+width+20 dy width height], 'YTick', []);
         else
             height = (height-20)/2;
-            handles.fAxes{1} = axes(opts{:}, 'Position', [dx dy+20+height width height], 'XTick', []);
-            handles.fAxes{2} = axes(opts{:}, 'Position', [dx dy width height]);
+            handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy+20+height width height], 'XTick', []);
+            handles.fAxes(2) = axes(opts{:}, 'Position', [dx dy width height]);
         end
 %     case 3
-%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
 %     case 4
-%         handles.fAxes{1} = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{2} = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes{3} = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%         handles.fAxes{4} = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
+%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
+%         handles.fAxes(4) = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
 end
 setappdata(hfig, 'handles', handles);
 if N>1
-    linkaxes([handles.fAxes{:}]);
+    linkaxes(handles.fAxes);
 end
 
 
@@ -502,8 +506,8 @@ handles = getappdata(hfig, 'handles');
 settings = getappdata(hfig, 'settings');
 
 % save zoom settings
-XLim = get(handles.fAxes{1}, 'XLim');
-YLim = get(handles.fAxes{1}, 'YLim');
+XLim = get(handles.fAxes(1), 'XLim');
+YLim = get(handles.fAxes(1), 'YLim');
 
 % zoomFactor = handles.refXLimDiff / diff(XLim);
 
@@ -528,11 +532,11 @@ end
 nAxes = length(cvec);
 
 markerHandles = NaN(1, nAxes);
-textHandles = NaN(1, nAxes);
+% textHandles = NaN(1, nAxes);
 
 for k = 1:nAxes
     
-    cla(handles.fAxes{k}); % clear axis content
+    cla(handles.fAxes(k)); % clear axis content
     
     % channel index for RGB display
     if isRGB
@@ -556,27 +560,28 @@ for k = 1:nAxes
     if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
         idx = [handles.tracks{cvec(k)}.start]<=f & f<=[handles.tracks{cvec(k)}.end];
         plotFrame(handles.data, handles.tracks{cvec(k)}(idx), f, cidx,...
-            'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
+            'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
             'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-            'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection, 'Colormap', handles.colorMap(idx,:));
+            'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection, 'Colormap', handles.colorMap{cvec(k)}(idx,:));
     else
         plotFrame(handles.data, [], f, cidx,...
-            'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
+            'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
             'Mode', handles.displayType, 'Detection', detection);
     end
     
-    hold(handles.fAxes{k}, 'on');
+    hold(handles.fAxes(k), 'on');
     
     % plot selected track marker
     if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value') 
-        t = handles.tracks{chIdx}(handles.selectedTrack(k));
+        selMask = ~isnan(handles.selectedTrack);
+        t = handles.tracks{selMask}(handles.selectedTrack(selMask));
         fi = f-t.start+1;
         if 1 <= fi && fi <= length(t.x)
             xi = t.x(chIdx,fi);
             yi = t.y(chIdx,fi);
-            markerHandles(k) = plot(handles.fAxes{k}, xi, yi, 'ws', 'MarkerSize', 10*settings.zoom);
-            textHandles(k) = text(xi+15, yi+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes{k});            
+            markerHandles(k) = plot(handles.fAxes(k), xi, yi, 'ws', 'MarkerSize', 10*settings.zoom);
+            %textHandles(k) = text(xi+15, yi+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes(k));            
         end
     end
     
@@ -588,7 +593,7 @@ for k = 1:nAxes
             handles.data.markers{k},...
             'Color', handles.rgbColors{k}, 'Units', 'normalized',...
             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
-            'Parent', handles.fAxes{k});
+            'Parent', handles.fAxes(k));
     end
     
     % plot EAP status
@@ -607,19 +612,19 @@ for k = 1:nAxes
         x = arrayfun(@(i) tracks(i).x(k,fIdx(i)), 1:length(tracks));
         y = arrayfun(@(i) tracks(i).y(k,fIdx(i)), 1:length(tracks));
         
-        plot(handles.fAxes{k}, x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
-        plot(handles.fAxes{k}, x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
+        plot(handles.fAxes(k), x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
+        plot(handles.fAxes(k), x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
     end
     
-    hold(handles.fAxes{k}, 'off');
+    hold(handles.fAxes(k), 'off');
 end 
 
 settings.selectedTrackMarkerID = markerHandles;
-settings.selectedTrackLabelID = textHandles;
+% settings.selectedTrackLabelID = textHandles;
 
 % write zoom level
-set(handles.fAxes{1}, 'XLim', XLim);
-set(handles.fAxes{1}, 'YLim', YLim);
+set(handles.fAxes(1), 'XLim', XLim);
+set(handles.fAxes(1), 'YLim', YLim);
 
 setappdata(hfig, 'settings', settings);
 setappdata(hfig, 'handles', handles);
@@ -689,15 +694,17 @@ handles = getappdata(hfig, 'handles');
 if ~isempty(handles.selectedTrack)
     
     for ci = 1:handles.nCh
-        h = handles.tAxes{ci};
+        h = handles.tAxes(ci);
         %cla(h);
         hold(h, 'off');
+        selMask = ~isnan(handles.selectedTrack);
+        sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
 
-        if ~isempty(handles.tracks{ci})
-            sTrack = handles.tracks{ci}(handles.selectedTrack(1));
-        else
-            sTrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
-        end
+%         if ~isempty(handles.tracks{ci})
+%             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
+%         else
+%             sTrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
+%         end
         
         if size(sTrack.A, 1)==1
             cx = 1;
@@ -713,7 +720,7 @@ if ~isempty(handles.selectedTrack)
         % plot current frame position
         ybounds = get(h, 'YLim');
         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
-        %axis(handles.tAxes{ci}, [0 handles.data.movieLength ybounds]);
+        %axis(handles.tAxes(ci), [0 handles.data.movieLength ybounds]);
         hold(h, 'off');
         
         % display result of classification, if available
@@ -741,7 +748,7 @@ if ~isempty(handles.selectedTrack)
                 ['Significant: ' slabel],...
                 'Color', scolor, 'Units', 'normalized',...
                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-                'Parent', handles.tAxes{ci});
+                'Parent', handles.tAxes(ci));
         end
         
         %     if ~isRGB && get(handles.('labelCheckbox'), 'Value')
@@ -750,7 +757,7 @@ if ~isempty(handles.selectedTrack)
         %             handles.data.markers{k},...
         %             'Color', handles.rgbColors{k}, 'Units', 'normalized',...
         %             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
-        %             'Parent', handles.fAxes{k});
+        %             'Parent', handles.fAxes(k));
         %     end
         
         
@@ -793,16 +800,13 @@ function trackButton_Callback(~, ~, hfig)
 handles = getappdata(hfig, 'handles');
 
 % set focus for next input
-axes(handles.fAxes{1}); % linked to axes2, selection possible in both
+%axes(handles.fAxes(1)); % linked to axes2, selection possible in both
+% set(figure_handle,'CurrentAxes',handles.fAxes(1))
 [x,y] = ginput(1);
+chIdx = find(gca==handles.fAxes);
 
-for c = 1:handles.nCh
-    % mean position of visible tracks
-    if ~isempty(handles.tracks{c})
-        chIdx = c;
-    else
-        chIdx = handles.mCh;
-    end
+if ~isempty(chIdx) && ~isempty(handles.tracks{chIdx})
+    
     % track segments visible in current frame
     f = handles.f;
     idx = find([handles.tracks{chIdx}.start]<=f & f<=[handles.tracks{chIdx}.end]);
@@ -826,20 +830,23 @@ for c = 1:handles.nCh
         Y(F~=f) = NaN;
         mu_x = nanmean(X,1); % average position for compound tracks
         mu_y = nanmean(Y,1);
-
+        
         % nearest point
         d = sqrt((x-mu_x).^2 + (y-mu_y).^2);
-        handles.selectedTrack(c) = idx(d==nanmin(d));
+        handles.selectedTrack = NaN(1,handles.nCh);
+        handles.selectedTrack(chIdx) = idx(d==nanmin(d));
+        set(handles.trackSlider, 'Value', handles.selectedTrack(chIdx));
+        set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(chIdx))]);
+        setappdata(hfig, 'handles', handles);
+        % axis(handles.axes3, [0 handles.data.movieLength 0 1]);
+        refreshFrameDisplay(hfig);
+        refreshTrackDisplay(hfig);
     end
 end
 
-set(handles.trackSlider, 'Value', handles.selectedTrack(1));
-set(handles.trackLabel, 'String', ['Track ' num2str(handles.selectedTrack(1))]);
 
-setappdata(hfig, 'handles', handles);
-% axis(handles.axes3, [0 handles.data.movieLength 0 1]);
-refreshFrameDisplay(hfig);
-refreshTrackDisplay(hfig);
+
+
 
 
 
@@ -946,7 +953,8 @@ t = round(get(hObject, 'value'));
 set(hObject, 'Value', t);
 set(handles.trackLabel, 'String', ['Track ' num2str(t)]);
 
-handles.selectedTrack = t * ones(1,handles.nCh);
+selMask = ~isnan(handles.selectedTrack);
+handles.selectedTrack(selMask) = t;
 
 % if track not visible, jump to first frame
 t = handles.tracks{1}(t);
@@ -1005,11 +1013,11 @@ end
 %         end
 %         idx = [handles.tracks{cvec(k)}.start]<=f & f<=[handles.tracks{cvec(k)}.end];
 %         plotFrame(handles.data, handles.tracks{cvec(k)}(idx), f, cidx,...
-%             'Handle', handles.fAxes{cvec(k)}, 'iRange', handles.dRange,...
+%             'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
 %             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
 %             'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
 %             'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
-%             'Colormap', handles.colorMap(idx,:), 'Print', 'on', 'Visible', 'off');
+%             'Colormap', handles.colorMap{cvec(k)}(idx,:), 'Print', 'on', 'Visible', 'off');
 %     end
 % end
 
@@ -1046,14 +1054,15 @@ makeMovieCME(handles.data, handles.tracks{handles.mCh}, 'Mode', handles.displayT
     'Detection', detection,...
     'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
     'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
-    'Displaytype', handles.trackMode, 'Colormap', handles.colorMap);
+    'Displaytype', handles.trackMode, 'Colormap', handles.colorMap{handles.mCh});
 
 
 function keyListener(src, evnt)
 
 handles = getappdata(src, 'handles');
 
-itrack = handles.selectedTrack(1);
+selMask = ~isnan(handles.selectedTrack);
+itrack = handles.selectedTrack(selMask);
 
 trackSelect = false;
 switch evnt.Key
@@ -1078,7 +1087,7 @@ switch evnt.Key
 end
 
 if trackSelect
-    handles.selectedTrack = itrack * ones(1,handles.nCh);
+    handles.selectedTrack(selMask) = itrack;
     set(handles.trackSlider, 'Value', itrack);
     set(handles.trackLabel, 'String', ['Track ' num2str(itrack)]);
     % if track not visible, jump to first frame
