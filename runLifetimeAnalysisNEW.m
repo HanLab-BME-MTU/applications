@@ -19,6 +19,7 @@ cutoff_f = ip.Results.Cutoff; %REDUNDANT
 cutoff_s = ip.Results.Cutoff * framerate;
 
 % generate lifetime histograms
+fprintf('Lifetime analysis:   0%%');
 for k = 1:nd
     
     % load tracks
@@ -38,9 +39,9 @@ for k = 1:nd
     x = round(arrayfun(@(tr) nanmean(tr.x(1,:)), tracks));
     y = round(arrayfun(@(tr) nanmean(tr.y(1,:)), tracks));
     
-    [ny,nx] = size(mask);
-    idx = sub2ind([ny nx], y, x);
-    tracks = tracks(mask(idx)==1);
+%     [ny,nx] = size(mask);
+%     idx = sub2ind([ny nx], y, x);
+%     tracks = tracks(mask(idx)==1);
     
     
     lifetimes_s = [tracks.lifetime_s];
@@ -84,7 +85,7 @@ for k = 1:nd
     %====================
     N = data(k).movieLength-2;
     t = (cutoff_f:N)*framerate;
-    lftHist_Ia = hist(lifetimes_s(idx_Ia), t);
+    lftHist = hist(lifetimes_s(idx_Ia | idx_Ib), t);
     lftHist_Ib = hist(lifetimes_s(idx_Ib), t);
     lftHist_IIa = hist(lifetimes_s(idx_IIa), t);
     
@@ -95,23 +96,23 @@ for k = 1:nd
     % P(obs. lifetime==N) = 1
     % => weighting:
     w = N./(N-cutoff_f+1:-1:1);
-    lftHist_Ia = lftHist_Ia .* w;
+    lftHist = lftHist .* w;
     lftHist_Ib = lftHist_Ib .* w;
     lftHist_IIa = lftHist_IIa .* w;
     
     % Pad with trailing zeros
     if N<Nmax
-        lftHist_Ia = [lftHist_Ia zeros(1,Nmax-N)]; %#ok<AGROW>
+        lftHist = [lftHist zeros(1,Nmax-N)]; %#ok<AGROW>
         lftHist_Ib = [lftHist_Ib zeros(1,Nmax-N)]; %#ok<AGROW>
         lftHist_IIa = [lftHist_IIa zeros(1,Nmax-N)]; %#ok<AGROW>
     end
     
     % Normalization
-    lftHist_Ia = lftHist_Ia / sum(framerate*lftHist_Ia);
+    lftHist = lftHist / sum(framerate*lftHist);
     lftHist_Ib = lftHist_Ib / sum(framerate*lftHist_Ib);
     lftHist_IIa = lftHist_IIa / sum(framerate*lftHist_IIa);
     
-    res.lftHist_Ia{k} = lftHist_Ia;
+    res.lftHist{k} = lftHist;
     res.lftHist_Ib{k} = lftHist_Ib;
     res.lftHist_IIa{k} = lftHist_IIa;
     
@@ -153,8 +154,9 @@ for k = 1:nd
     res.gapsPerTrack_Ia{k} = gapsPerTrack_Ia;
     res.gapsPerTrack_Ib{k} = gapsPerTrack_Ib;
     res.gapsPerTrack_IIa{k} = gapsPerTrack_IIa;
+    fprintf('\b\b\b\b%3d%%', round(100*k/(nd)));
 end
-
+fprintf('\n');
 
 %-------------------------
 % Mean histogram
@@ -165,7 +167,7 @@ t_hist = (cutoff_f:Nmax)*framerate;
 v = mean([res.trackClassStats{:}],2);
 v_std = std([res.trackClassStats{:}],[],2);
 
-meanHist_Ia =  mean(vertcat(res.lftHist_Ia{:}),1);
+meanHist_Ia =  mean(vertcat(res.lftHist{:}),1);
 meanHist_Ib =  mean(vertcat(res.lftHist_Ib{:}),1);
 meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
 
@@ -177,7 +179,6 @@ meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
 res.t = t_hist;
 res.meanHist = meanHist_Ia;
 res.source = {data.source};
-
 
 if strcmpi(ip.Results.Display, 'on')
     fset = loadFigureSettings();
@@ -212,7 +213,7 @@ if strcmpi(ip.Results.Display, 'on')
     S = [std(M_Ia,[],1); std(M_Ib,[],1); std(M_IIa,[],1)]';
     
     hf(3) = figure; barplot2(M, S, 'FaceColor', cf, 'EdgeColor', ce,...
-        'XLabels', xlabels, 'XLabel', 'Lifetime bins', 'YLabel', 'gaps/track');
+        'XLabels', xlabels, 'XLabel', 'Lifetime cohort', 'YLabel', 'gaps/track');
     
 end
 
