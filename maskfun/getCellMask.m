@@ -48,8 +48,9 @@ if strcmpi(ip.Results.Display, 'on')
             bmask(B) = 1;
             bmask = bwmorph(bmask, 'dilate');
             
-            aipPath = [data(i).source 'Detection' filesep 'avgProj.tif'];
-            aip = double(imread(aipPath));
+            aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
+            load(aipPath);
+            aip = scaleContrast(aip);
             aip(bmask==1) = 0;
             overlay = aip;
             overlay(bmask==1) = 255;
