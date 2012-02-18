@@ -37,24 +37,33 @@ ip.addParamValue('PlotCDF', false, @islogical);
 ip.addParamValue('Display', true, @islogical);
 ip.addParamValue('Verbose', false, @islogical);
 ip.addParamValue('JackKnife', false, @islogical);
+ip.addParamValue('fYLim', []);
+ip.addParamValue('rYLim', []);
+ip.addParamValue('HistType', 'lftHist_Ia');
 % ip.addParamValue('ShowInset', false, @islogical);
-ip.addParamValue('EndIdx', find(lftData.meanHist~=0, 1, 'last'));
+ip.addParamValue('EndIdx', []);
 ip.parse(lftData, varargin{:});
 dBIC = 2*log(ip.Results.AlphaBIC/(1-ip.Results.AlphaBIC));
 
 
+histType = ip.Results.HistType;
+meanHist =  mean(vertcat(lftData.(histType){:}),1); % add selector
+
 % cutoff at last non-zero data point
 endIdx = ip.Results.EndIdx;
+if isempty(endIdx)
+    endIdx = find(meanHist~=0, 1, 'last');
+end
 
 t = lftData.t(1:endIdx);
 dt = t(2)-t(1);
 
-lftECDF = cumsum(lftData.meanHist)*dt;
+lftECDF = cumsum(meanHist)*dt;
 lftECDF = lftECDF(1:endIdx);
 a = lftECDF(1);
 lftECDF = (lftECDF-a)/(1-a);
 
-lftHist = lftData.meanHist(1:endIdx);
+lftHist = meanHist(1:endIdx);
 lftHist = lftHist/sum(lftHist)/dt;
 
 %===================================================
@@ -62,14 +71,14 @@ lftHist = lftHist/sum(lftHist)/dt;
 %===================================================
 switch ip.Results.Mode
     case 'PDF'
-        W = std(vertcat(lftData.lftHist{:}), [], 1);
+        W = std(vertcat(lftData.(histType){:}), [], 1);
         %W = 1/norminv(0.75) * mad(vertcat(lftData.lftHist{:}), 1, 1);
         W = W(1:endIdx);
         W = 1./W;
         W = W/max(W);
     case 'CDF'
 
-        lftECDF_all = cumsum(vertcat(lftData.lftHist{:}), 2);
+        lftECDF_all = cumsum(vertcat(lftData.(histType){:}), 2);
         lftECDF_all = lftECDF_all(:,1:endIdx);
         A = lftECDF_all(:,1);
         for i = 1:numel(A)
@@ -87,7 +96,7 @@ if ip.Results.PlotAll
 
     figure;
     hold on;
-    plot(t, W, 'r-', 'LineWidth', 1.5);
+    plot(t, W, 'r-', 'LineWidth', 3);
     %set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:}, 'XLim', [t(1) t(end)]);
     set(gca, 'LineWidth', 1.5, 'Layer', 'top', fset.sfont{:});
     axis([t(1) t(end) 0 1]);
@@ -105,8 +114,8 @@ opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e5, ...
     'MaxIter', 1e5, ...
     'Display', 'off', ...
-    'TolX', 1e-12, ...
-    'Tolfun', 1e-12);
+    'TolX', 1e-8, ...
+    'Tolfun', 1e-8);
 
 dti = dt/10;
 t_fine = 0:dti:t(end);
@@ -138,6 +147,7 @@ for i = ip.Results.NumP
             k0 = 0.02 * ones(1,ns-1);
     end
     lb = zeros(1,ns-1);
+    %lb = 0.01*ones(1,ns-1);
     ub = Inf(1,ns-1);
     
     switch ip.Results.Mode
@@ -165,6 +175,7 @@ for i = ip.Results.NumP
 %             end
         case 'CDF'
             [k, resnorm, ~, ~, ~, ~, J] = lsqnonlin(@costCDF, k0, lb, ub, opts, t, lftECDF, i, W);
+            %resnorm
             %k = fminsearch(@costCDFmedian, k0, opts, t, lftECDF, i);
             %residual = costCDF(k, t, lftECDF, i);
             %resnorm = sum(residual.^2);
@@ -202,8 +213,8 @@ np = minIdx;
 
 if ip.Results.JackKnife
     % bootstrap optimal p
-    N = numel(lftData.lftHist);
-    M = vertcat(lftData.lftHist{:});
+    N = numel(lftData.(histType));
+    M = vertcat(lftData.(histType){:});
     M = M(:,1:endIdx);
     k_jk = cell(1,N);
     parfor i = 1:N
@@ -272,8 +283,10 @@ res.lftHist = lftHist;
 res.lftECDF = lftECDF;
 
 if ip.Results.Display
-    plotLifetimeModel(res, 'PlotAll', ip.Results.PlotAll, 'PlotCDF', ip.Results.PlotCDF);
+    plotLifetimeModel(res, 'PlotAll', ip.Results.PlotAll, 'PlotCDF', ip.Results.PlotCDF,...
+        'fYLim', ip.Results.fYLim, 'rYLim', ip.Results.rYLim);
 end
+
 
 
 
