@@ -3,11 +3,11 @@
 
 clear all; clc;
 
-nCurves = 100; % 100
+nCurves = 10; % 100
 nPoints = 40;
-offsetY = 500;
+offsetY = 400; % 500
 
-types = 4:6;
+types = 4;
 for type=types
     switch(type)
         case 1
@@ -51,7 +51,7 @@ for type=types
 
             % Generate the data
             dat = Data();
-            dis = Display(dat);
+            dis = Show(dat);
             sim = Simulation(dat);
 
             % sim.setSamplingToRandom();
@@ -154,7 +154,7 @@ end
 
 clear all; clc; format short;
 
-offsetY = 500;
+offsetY = 400; % 500
 
 % Get a list with all the .dat-files in _sim
 path = 'Y:\fsm\harvard\data\Zhuang\_sim\';

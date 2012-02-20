@@ -221,8 +221,8 @@ stormTimer__.start('Main Loop');
 for mergeIter=1:cfg.maxIterMerge
     
     % tic
-    pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
-    % pro.updateEdges();
+    % pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
+    pro.updateEdges();
     % pro.updateEdgesEndPoints(cfg.initialEdgeRadius);
     % nEdges = size(data.edges,1)
     % toc
