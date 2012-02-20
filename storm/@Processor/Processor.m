@@ -30,7 +30,8 @@ classdef Processor < handle
         cropData(obj,roiPosRel,roiSize);
         centerData(obj);
         subsamplePoints(obj,limit);
-        densityFilter(obj,nNeighborsThreshold,ballRadius)
+        densityFilter(obj,nNeighborsThreshold,ballRadius);
+        nearestNeighborClutterRemoval(obj,k);
         dataReduction(obj,initialEdgeRadius,reductionRuns);
         computeOrientation(obj,filterLength,filterAngularSampling,nBins,minBinResponse);
         [weights,hausDorffEdges] = updateGeomWeights(obj,sigmaFilament,modelLength,angleThreshold);

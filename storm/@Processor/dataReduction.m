@@ -1,4 +1,38 @@
 function dataReduction(obj,initialEdgeRadius,reductionRuns)
+% function dataReduction(obj,initialEdgeRadius,reductionRuns)
+% SYNOPSIS:
+% Reduces the total number of points by building pairs of points and
+% replacing them with their average. A distance based criterion is used to 
+% group the points and the optimal subset is found with a maximum weight 
+% matching. Each iteration reduces the number of points by a little bit
+% more than a factor 2. Points not part of the matching are discarded.
+%
+% REQUIRED INPUTS:         
+% - initialEdgeRadius
+% The maximum distance between two points so that they can still be merged.
+% 
+% - reductionRuns
+% Number of iterations. At each iteration the number of points is reduced
+% by a little bit more than a factor 2.
+% 
+% OPTIONAL INPUTS:
+%
+% NEEDED PROPERTIES: 
+% - obj.data.points
+% - obj.data.nPoints
+% - obj.data.edges
+%
+% MODIFIED PROPERTIES:
+% - obj.data.points 
+% - obj.data.intensity
+% - obj.data.frame
+% - obj.data.weights
+% - obj.data.edges
+%
+% OUTPUTS:
+%
+% Pascal Bérard, October 2011
+
 nPointsInitial = obj.data.nPoints;
 for i = 1:reductionRuns
     
