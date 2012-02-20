@@ -84,8 +84,8 @@ mean(kNNdist)
 delta(mean(kNNdist) > kNNdist) = 0;
 
 % Initialize the poisson rates
-lamda_feature = poissonRate(kNNdist,delta);
-lamda_clutter = poissonRate(kNNdist,1-delta);
+lambda_feature = poissonRate(kNNdist,delta);
+lambda_clutter = poissonRate(kNNdist,1-delta);
 
 % Initialize the mixture coefficients
 p = mixtureCoeff(delta);
@@ -96,25 +96,25 @@ p = mixtureCoeff(delta);
 for i=1:10
     i
     % The E-step
-    fDK_feature = arrayfun(@(a) fDK(a,lamda_feature),kNNdist);
-    fDK_clutter = arrayfun(@(a) fDK(a,lamda_clutter),kNNdist);
+    fDK_feature = arrayfun(@(a) fDK(a,lambda_feature),kNNdist);
+    fDK_clutter = arrayfun(@(a) fDK(a,lambda_clutter),kNNdist);
     delta = (p*fDK_feature)./(p*fDK_feature+(1-p)*fDK_clutter);
     aaa=(p*fDK_feature)./(p*fDK_feature)
     class(aaa)
     % The M-step
-    lamda_feature = poissonRate(kNNdist,delta);
-    lamda_clutter = poissonRate(kNNdist,1-delta);
+    lambda_feature = poissonRate(kNNdist,delta);
+    lambda_clutter = poissonRate(kNNdist,1-delta);
     p = mixtureCoeff(delta);
 end
 
-lamda_feature
-lamda_clutter
+lambda_feature
+lambda_clutter
 isClutter = (delta > 0.5);
 obj.data.points = obj.data.points(haveEnoughNeighbors,:);
 obj.data.points = obj.data.points(~isClutter,:);
 xx=linspace(min(kNNdist),max(kNNdist),200);
-    fDK_feature = arrayfun(@(a) fDK(a,lamda_feature),xx);
-    fDK_clutter = arrayfun(@(a) fDK(a,lamda_clutter),xx);
+    fDK_feature = arrayfun(@(a) fDK(a,lambda_feature),xx);
+    fDK_clutter = arrayfun(@(a) fDK(a,lambda_clutter),xx);
 plot(xx,fDK_feature*10000,'r','LineWidth',2)
 plot(xx,fDK_clutter*10000,'r','LineWidth',2)
 figure(1)
@@ -123,17 +123,17 @@ hold on
 
 hold off
 
-    function lamda = poissonRate(di,delta)
-        lamda = k*sum(delta)/(pi*sum(di.^2.*delta));
+    function lambda = poissonRate(di,delta)
+        lambda = k*sum(delta)/(pi*sum(di.^2.*delta));
     end
 
     function p = mixtureCoeff(delta)
         p = sum(delta)/numel(delta);
     end
 
-    function out = fDK(di,lamda) % The probability density function
-        term1 = d*exp(-(lamda*pi^(d/2)*di^d)/(gamma((2+d)/2)));
-        term2 = ((lamda*pi^(d/2)*di^d)/gamma((2+d)/2))^k;
+    function out = fDK(di,lambda) % The probability density function
+        term1 = d*exp(-(lambda*pi^(d/2)*di^d)/(gamma((2+d)/2)));
+        term2 = ((lambda*pi^(d/2)*di^d)/gamma((2+d)/2))^k;
         out = term1*term2/(di*gamma(k));
     end
 
