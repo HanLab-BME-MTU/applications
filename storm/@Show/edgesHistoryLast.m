@@ -1,7 +1,12 @@
-function edgesHistoryLast(obj)
+function edgesHistoryLast(obj,idx)
 
-pointsStart = obj.data.points(obj.data.edgesHistory{end}(:,1),:);
-pointsEnd = obj.data.points(obj.data.edgesHistory{end}(:,2),:);
+if nargin == 2
+    pointsStart = obj.data.points(obj.data.edgesHistory{end-idx+1}(:,1),:);
+    pointsEnd = obj.data.points(obj.data.edgesHistory{end-idx+1}(:,2),:);
+else
+    pointsStart = obj.data.points(obj.data.edgesHistory{end}(:,1),:);
+    pointsEnd = obj.data.points(obj.data.edgesHistory{end}(:,2),:);
+end
 
 obj.imaris.displaySegments(pointsStart,pointsEnd,'Display: Edges History');
 

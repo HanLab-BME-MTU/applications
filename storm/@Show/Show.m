@@ -57,7 +57,7 @@ classdef Show < handle
         orientationWithVariableLength(obj,maxModelLength);
         modelGroundTruth(obj);
         clustersHistoryLast(obj);
-        edgesHistoryLast(obj);
+        edgesHistoryLast(obj,idx);
         roi(obj);
         
     end

@@ -3,9 +3,9 @@
 
 clear all; clc;
 
-nCurves = 10; % 100
+nCurves = 100; % 100
 nPoints = 40;
-offsetY = 400; % 500
+offsetY = 500; % 500
 
 types = 4;
 for type=types
@@ -19,7 +19,7 @@ for type=types
         case 4
             VARS = [10,20,50,100,200]; % Noise
         case 5
-            VARS = [5,10,15,20,30,40,50]; % Distance
+            VARS = [10,20,30,40,50]; % Distance
         case 6
             VARS = [15,30,45,60,75,90]; % Angle
     end
@@ -154,7 +154,7 @@ end
 
 clear all; clc; format short;
 
-offsetY = 400; % 500
+offsetY = 500; % 500
 
 % Get a list with all the .dat-files in _sim
 path = 'Y:\fsm\harvard\data\Zhuang\_sim\';
