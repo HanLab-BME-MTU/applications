@@ -111,7 +111,7 @@ if ~isempty(ip.Results.iRange{ch})
 end
 axis(ha, 'image');
 
-if ~isempty(detection)% temporary fix: channel 1 is always selected (assumed master) -> change in call
+if ~isempty(detection) && ~isempty(detection.x) % temporary fix: channel 1 is always selected (assumed master) -> change in call
     hold(ha, 'on');
     isPSF = detection.isPSF(1,:)==1;
     if any(isPSF)
