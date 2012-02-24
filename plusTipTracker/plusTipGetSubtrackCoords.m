@@ -12,12 +12,9 @@ function [xMat,yMat]=plusTipGetSubtrackCoords(projData,idx,useMerged)
 %                    in frames where subtracks do not exist, matrices are
 %                    backfilled with NaNs
 %
-% this function is called by:
-% plusTipParamPlot
-% plusTipEventSpeedOverlay
-% plusTipPlotRandTraj
-% plusTipPlotTracks
-
+%
+% Kathryn Applegate, 2010
+% Sebastien Besson, last modified Feb 2012
 
 if nargin<3 || isempty(useMerged) || useMerged~=1
     trackData=projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix; % all
@@ -26,49 +23,37 @@ else
 end
 
 % get data from all subtracks
-if nargin<2 || isempty(idx)
-    % we already have all the data
-else
-    % just take the subset from idx
-    trackData=trackData(idx,:);
-end
+if nargin>=2 && ~isempty(idx), trackData=trackData(idx,:); end
 
+% total number of subtracks
+nSubtracks=size(trackData,1);
 % list of corresponding track numbers for each subtrack
 trackNum=trackData(:,1);
 % list of start frame for each subtrack
 sF=trackData(:,2);
 % list of end frame for each subtrack
 eF=trackData(:,3);
-% total number of subtracks
-nSubtracks=size(trackData,1);
+% Create linear frame index 
+frameIndex=[0; cumsum(eF-sF+1)];
 
 % initialize where coordinates will be stored
-xMat=nan(nSubtracks,projData.nFrames);
-yMat=nan(nSubtracks,projData.nFrames);
+xMat=NaN(nSubtracks,projData.nFrames);
+yMat=NaN(nSubtracks,projData.nFrames);
 
 % for each subtrack, get list of frames over which subtrack exists
-framesPerSubtrack=arrayfun(@(x,y) [x:y]', sF,eF,'UniformOutput',0);
-% for each subtrack, get length in frames
-if isempty(framesPerSubtrack)
-    len=framesPerSubtrack;
-else
-len=cell2mat(arrayfun(@(x) length(x{:}), framesPerSubtrack,'UniformOutput',0));
-end
+framesPerSubtrack=zeros(frameIndex(end),1);
+for i=1:nSubtracks, framesPerSubtrack(frameIndex(i)+1:frameIndex(i+1))=sF(i):eF(i); end
 
 % for each frame of each subtrack, write corresponding TRACK number
-trackNumPerSub=arrayfun(@(x,y) x*ones(1,y)', trackNum,len,'UniformOutput',0);
-% convert i,j to index
-idx=cellfun(@(x,y) sub2ind([size(projData.xCoord,1), projData.nFrames],x,y), trackNumPerSub,framesPerSubtrack,'UniformOutput',0);
-% coordinates for features in all subtracks at all frames
-coordsX=cellfun(@(i) projData.xCoord(i), idx,'UniformOutput',0);
-coordsY=cellfun(@(i) projData.yCoord(i), idx,'UniformOutput',0);
-
+trackNumPerSub=zeros(frameIndex(end),1);
+for i=1:nSubtracks, trackNumPerSub(frameIndex(i)+1:frameIndex(i+1))=trackNum(i); end
+idx=sub2ind([size(projData.xCoord,1), projData.nFrames],trackNumPerSub,framesPerSubtrack);
 
 % for each frame of each subtrack, write corresponding SUBTRACK number
-subNumPerSub=arrayfun(@(x,y) x*ones(1,y)', [1:nSubtracks]',len,'UniformOutput',0);
-% convert i,j to index
-idx=cellfun(@(x,y) sub2ind(size(xMat),x,y),subNumPerSub,framesPerSubtrack,'UniformOutput',0);
-% fill in matrices with coordinates
-xMat(cell2mat(idx))=cell2mat(coordsX);
-yMat(cell2mat(idx))=cell2mat(coordsY);
+subNumPerSub=zeros(frameIndex(end),1);
+for i=1:nSubtracks, subNumPerSub(frameIndex(i)+1:frameIndex(i+1))=i; end
+idx2=sub2ind(size(xMat),subNumPerSub,framesPerSubtrack);
 
+% Fill the matrix
+xMat(idx2)=projData.xCoord(idx);
+yMat(idx2)=projData.yCoord(idx);
