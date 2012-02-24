@@ -238,6 +238,13 @@ for k = 1:nPoints
                         dsp1 = fnder(sp,[1,0]);
                         dsp2 = fnder(sp,[0,1]);
                         
+                        % SB: here Jin Li was using a spline to refine the
+                        % velocity estimation. This creates a bottleneck in
+                        % terms of speed execution.
+                        % Maybe looking at the local neighborhood and
+                        % fitting a 2D parabola to extract sub-pixel
+                        % maximum woudl be a good idea in future
+                        % development of the function
                         maxV2  = [vP(maxI2(1)) vF(maxI2(2))]; 
                         maxV2 = fmincon(@vFun,maxV2,[],[],[],[], ...
                             [max(vP(1),maxV2(1)-2) max(vF(1),maxV2(2)-2)], ...
