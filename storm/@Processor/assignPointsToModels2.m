@@ -52,15 +52,7 @@ parents = cellfun(@unique,parents,'UniformOutput',false);
 
 % Compute an estimate of the data volume
 dim = any(obj.data.points ~= 0,1); % Dimensionality of the points
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-vol = prod(diff(quantile(obj.data.points(:,dim),[0.05,0.95],1))./0.9)*400/500;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
+vol = prod(diff(quantile(obj.data.points(:,dim),[0.05,0.95],1))./0.9); %*400/500;
 % vol = prod(max(obj.data.points(:,dim),[],1)-min(obj.data.points(:,dim),[],1));
 
 % Determine the likelihood threshold

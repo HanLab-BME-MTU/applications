@@ -8,7 +8,7 @@ nCurves = 100; % 100
 density = 20/200; % 30/200 40/200 1/7
 offsetY = 500; % 500
 
-types = 1:3;
+types = 5;
 for type=types
     switch(type)
         case 1
@@ -334,6 +334,181 @@ xlswrite('C:\Users\PB93\Desktop\output.xls',output);
 
 disp('==========================')
 
+%% EVALUATE DATA (Noise special)
+
+clear all; clc; format short;
+
+offsetY = 500; % 500
+
+% Get a list with all the .dat-files in _sim
+path = 'Y:\fsm\harvard\data\Zhuang\_sim\';
+list = dir(path);
+itemIdx = 0;
+nDataSets = numel(list)-2;
+items = cell(nDataSets,2);
+for i=3:numel(list)
+    if list(i).isdir
+        sublist = dir([path list(i).name '\']);
+        for k=3:numel(sublist)
+            if strcmp(sublist(k).name(end-3:end),'.cfg')
+                % Config found - look for corresponding data file
+                for j=3:numel(sublist)
+                    if strcmp(sublist(j).name(end-5:end),'.p.dat')
+                        itemIdx = itemIdx + 1;
+                        items{itemIdx,1} = [path list(i).name '\' sublist(k).name];
+                        items{itemIdx,2} = [path list(i).name '\' sublist(j).name];
+                        items{itemIdx,3} = sublist(j).name;
+                        break;
+                    end
+                end
+                break;
+            end
+        end
+    end
+end
+items = items(1:itemIdx,:);
+
+output = cell(4,size(items,1)); 
+
+% Loop through all the files
+lineCounter = 1;    
+arcCounter = 1;   
+splineCounter = 1;  
+distanceCounter = 1;  
+angleCounter = 1;  
+noiseCounter = 1;  
+for i=1:size(items,1)
+    
+    % Read the .dat-file and .cfg-file
+    cfg = Config.load(items{i,1});
+    dat = Data.load(items{i,2});
+    pro = Processor(dat);
+    pro.dissolveClustersSmallerThan(5);
+    
+    fprintf('-------------\nFile: %s\n',items{i,1});
+    
+    modelBezCP = dat.modelBezCP;
+    
+    nModel = size(modelBezCP,1);
+    idxModel = zeros(nModel,1);
+    for m=1:nModel
+        idxModel(m) = round(mean(modelBezCP{m}(:,2))/offsetY)+1;
+    end
+    
+    nSimModel = length(dat.simModelBezCP);
+    idxSimModel = zeros(nSimModel,1);
+    for m=1:nSimModel
+        idxSimModel(m) = round(mean(dat.simModelBezCP{m}(:,2))/offsetY)+1;
+    end
+    
+    failed = false(max(idxSimModel),1);
+    hausdorffDist = zeros(max(idxSimModel),1);
+    
+    for s=1:max(idxSimModel)
+        nSimMod = nnz(idxSimModel == s);
+        nMod = nnz(idxModel == s);
+        
+        if nMod ~= nSimMod
+            % The number of models is not the same
+            failed(s) = true;
+        else
+            % Compare the models pairwise
+            m=find(idxModel == s);
+            n=find(idxSimModel == s);
+            
+            for k=1:numel(m)     
+                % Check model complexity
+                if size(dat.simModelBezCP{n(k)},1) ~= size(modelBezCP{m(k)},1)
+                    % The complexity of the models is not the same
+                    % if isempty(strfind(items{i,1},'angle')) && isempty(strfind(items{i,1},'distance')) % All except angle and distance
+                    if isempty(strfind(items{i,1},'angle')) % All except angle
+                        failed(s) = true;
+                    end
+                end
+            end
+            if ~isempty(strfind(items{i,1},'angle')) % Angle only
+                cP1 = modelBezCP{m(1)};
+                cP2 = modelBezCP{m(2)};
+                dist = segments_dist_3d (cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
+                if dist > 1
+                    failed(s) = true;
+                end
+            end
+            if ~isempty(strfind(items{i,1},'distance')) % Distance only
+                cP1 = modelBezCP{m(1)};
+                cP2 = modelBezCP{m(2)};
+                cPRef1 = dat.simModelBezCP{n(1)};
+                dist = segments_dist_3d(cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
+                center = mean(cPRef1(:,1));
+                if ~(any(cP1(:,1) > center) && any(cP1(:,1) < center))
+                    failed(s) = true;
+                elseif ~(any(cP2(:,1) > center) && any(cP2(:,1) < center))
+                    failed(s) = true;
+                elseif dist < 1 % They are crossing
+                    failed(s) = true;
+                end
+            end
+        end
+                
+        if failed(s) == false
+            % Compute the model distance
+            nSamples = 1000;
+            refPointsCell = cellfun(@(a) renderBezier(a,linspace(0,1,nSamples)'),dat.simModelBezCP(idxSimModel == s),'UniformOutput',0);
+            refPoints = zeros(numel(refPointsCell)*nSamples,3);
+            for m=1:numel(refPointsCell)
+                refPoints((m-1)*nSamples+1:m*nSamples,:) = refPointsCell{m};
+            end
+            
+            pointsCell = cellfun(@(a) renderBezier(a,linspace(0,1,nSamples)'),modelBezCP(idxModel == s),'UniformOutput',0);
+            points = zeros(numel(pointsCell)*nSamples,3);
+            for m=1:numel(pointsCell)
+                points((m-1)*nSamples+1:m*nSamples,:) = pointsCell{m};
+            end
+            d = createDistanceMatrix(refPoints,points);
+            hausdorffDist(s) = max(min(d));
+        end
+    end
+        
+    hausdorffDist = hausdorffDist(~failed);
+    
+    meanHausdorffDist = mean(hausdorffDist);
+    stdDevHausdorffDist = sqrt(1/numel(hausdorffDist)*sum((hausdorffDist-meanHausdorffDist).^2));
+    fractionOfFailedModels = nnz(failed)/numel(failed);
+    nFailedModels = nnz(failed);
+    [meanHausdorffDist;stdDevHausdorffDist;1-fractionOfFailedModels]
+    
+    %     figure(i);
+    %     hist(hausdorffDist,20)
+    
+    if ~isempty(strfind(items{i,1},'line')) && isempty(strfind(items{i,1},'spline'))
+        lineCounter = lineCounter + 1;  
+        x = 2; y = lineCounter;
+    elseif strfind(items{i,1},'arc')
+        arcCounter = arcCounter + 1;  
+        x = 8; y = arcCounter;
+    elseif strfind(items{i,1},'spline')
+        splineCounter = splineCounter + 1;  
+        x = 14; y = splineCounter;
+    elseif strfind(items{i,1},'distance')
+        distanceCounter = distanceCounter + 1;  
+        x = 20; y = distanceCounter;
+    elseif strfind(items{i,1},'angle')
+        angleCounter = angleCounter + 1;
+        x = 26; y = angleCounter;
+    elseif strfind(items{i,1},'noise')
+        noiseCounter = noiseCounter + 1;  
+        x = 32; y = noiseCounter;
+    end
+    % output(x,y) = items(i,3);
+    output(x+1,y) = {meanHausdorffDist};
+    output(x+2,y) = {stdDevHausdorffDist};
+    output(x+3,y) = {1-fractionOfFailedModels};
+    
+end
+
+xlswrite('C:\Users\PB93\Desktop\output.xls',output);
+
+disp('==========================')
 
 %% Crop marks
 
