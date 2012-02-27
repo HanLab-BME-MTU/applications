@@ -218,7 +218,11 @@ for i=1:size(data.queue,1)
     end
     dispNames{i} = [status '   ' data.queue{i,2}];
 end
+if ~exist('dispNames','var')
+    dispNames = 'Directory _queue contains no data sets!';
+end
 set(handles.listbox3,'String',dispNames);
+
 guidata(gcf,data);
 
 

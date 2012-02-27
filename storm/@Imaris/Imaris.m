@@ -43,9 +43,9 @@ classdef Imaris < handle
                 
                 % Create some dummy data to be able to use the "Save" option of Imaris
                 type = 'eTypeUInt8';
-                sizeX = 100;
-                sizeY = 100;
-                sizeZ = 100;
+                sizeX = 1000;
+                sizeY = 1000;
+                sizeZ = 1000;
                 sizeC = 1;
                 sizeT = 1;
                 obj.imarisApp.mDataSet.Create(type,sizeX,sizeY,sizeZ,sizeC,sizeT);

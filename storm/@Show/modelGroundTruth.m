@@ -15,8 +15,8 @@ if nModels
             pointsEnd = [pointsEnd;obj.data.simModelBezCP{m}(2,:)];
         else
             curvePoints = renderBezier(obj.data.simModelBezCP{m},(linspace(0,1,nCurveSamples))');
-            pointsStart = [pointsStart;curvePoints(1:(end-1),:)];
-            pointsEnd = [pointsEnd;curvePoints(2:end,:)];
+            pointsStart = [pointsStart;curvePoints(1:(end-2),:)];
+            pointsEnd = [pointsEnd;curvePoints(3:end,:)];
         end
     end
     

@@ -1,16 +1,13 @@
 function density(obj)
 nBins = round(sqrt(obj.data.nClusters));
-bigClusterIdx = 1:obj.data.nClusters;
-len = obj.data.modelLength(bigClusterIdx);
-nPoints = cellfun(@numel,obj.data.clusters(bigClusterIdx));
-pointDensity = num2cell(nPoints./len);
+pointDensity = obj.data.clusterSize./obj.data.modelLength;
 
 % Weight the individual densities with the rounded length
-histInput = cellfun(@repmat,pointDensity,num2cell(round(len)),num2cell(ones(size(len))),'UniformOutput',false);
+histInput = arrayfun(@repmat,pointDensity,round(obj.data.modelLength),ones(size(obj.data.modelLength)),'UniformOutput',false);
 histInput = vertcat(histInput{:});
 
 % Display the weighted point density histogram
-hist(histInput,2*nBins);
+hist(histInput,20*nBins);
 xlabel('Point density [1/nm]');
 ylabel('Amount of filament length [nm]');
 end

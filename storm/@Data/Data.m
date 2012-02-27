@@ -73,6 +73,7 @@ classdef Data < handle & matlab.mixin.Copyable
     properties (GetAccess = 'public',SetAccess = 'private',Dependent = true)
         nPoints;
         nClusters;
+        clusterSize;
         parents; % Parent cluster
     end
     
@@ -95,6 +96,10 @@ classdef Data < handle & matlab.mixin.Copyable
         
         function value = get.nClusters(obj)
             value = size(obj.clusters,1);
+        end
+        
+        function value = get.clusterSize(obj)
+            value = cellfun(@numel,obj.clusters);
         end
         
         function parents = get.parents(obj)

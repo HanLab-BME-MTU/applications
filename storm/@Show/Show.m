@@ -17,7 +17,7 @@ classdef Show < handle
         nullClusterColor = [0.5 0.5 0.5 0]; % Noise cluster color
         pointColor = [0.0 1.0 0.0 0.0];
         projectionColor = [1.0 0.0 0.0 0.0];
-        pointSize = 4; % The diameter of the points
+        pointSize = 4*0.6*5;% = 4*0.6; % = 4; % The diameter of the points
         projectionSize = 3;
         pointModelSize = 15;
         pointModelColor = [1.0 1.0 1.0 0.9];

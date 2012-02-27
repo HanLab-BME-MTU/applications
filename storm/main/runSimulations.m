@@ -4,10 +4,11 @@
 clear all; clc;
 
 nCurves = 100; % 100
-nPoints = 40;
+% nPoints = 40;
+density = 20/200; % 30/200 40/200 1/7
 offsetY = 500; % 500
 
-types = 4;
+types = 1:3;
 for type=types
     switch(type)
         case 1
@@ -51,7 +52,7 @@ for type=types
 
             % Generate the data
             dat = Data();
-            dis = Show(dat);
+            % dis = Show(dat);
             sim = Simulation(dat);
 
             % sim.setSamplingToRandom();
@@ -60,26 +61,30 @@ for type=types
             for c=1:nCurves
                 switch(type)
                     case 1 % Line
-                        cP = [0 0 0; 200 0 0];
+                        % cP = [0 0 0; 200 0 0];
+                        cP = [0 0 0; 300 0 0];
                     case 2 % Arc
-                        % cP = [0 0 0; 100 50 0; 200 0 0];
-                        % cP = [0 0 0; 100 100 0; 200 0 0];
-                        cP = [0 0 0; 100 75 0; 200 0 0];
+                        % cP = [0 0 0; 100 75 0; 200 0 0];
+                        cP = [0 -100 0; 150 100 0; 300 -100 0];
                     case 3 % Spline
+                        % cP = [0 0 0; 100 100 0; 200 -100 0; 300 0 0];
+                        % cP = [0 0 0; 100 75 0; 200 -75 0; 300 0 0];
                         cP = [0 0 0; 100 100 0; 200 -100 0; 300 0 0];
-                        % cP = [0 0 0; 100 150 0; 200 -150 0; 300 0 0];
                     case 4 % Noise
+                        % cP = [0 0 0; 100 100 0; 200 -100 0; 300 0 0];
+                        % cP = [0 0 0; 100 75 0; 200 -75 0; 300 0 0];
                         cP = [0 0 0; 100 100 0; 200 -100 0; 300 0 0];
                         sim.setDomain([-100 -200+(c-1)*offsetY 0],[500 400 0]);
                         sim.addRandomNoise(VAR);
                     case 5 % Distance
-                        % cP1 = [0 0 0; 100 100 0; 200 -100 0; 300 0 0]; % Spline
-                        cP1 = [0 0 0; 200 0 0]; % Line
+                        % cP1 = [0 0 0; 200 0 0]; % Line
+                        cP1 = [0 0 0; 300 0 0];
                         cP2 = cP1;
                         cP1(:,2) = cP1(:,2)+VAR/2;
                         cP2(:,2) = cP2(:,2)-VAR/2;
                         cP1(:,2) = cP1(:,2)+(c-1)*offsetY;
-                        sim.bezier(cP1,nPoints);
+                        % sim.bezier(cP1,nPoints);
+                        sim.bezierWithDensity(cP1,density);
                         % sim.bezierWithOrthogonalGaussianNoise2D(cP1,nPoints,cfg.modeVar);
                         dat.simModelBezCP = [dat.simModelBezCP {cP1}];
                         cP = cP2;
@@ -87,7 +92,8 @@ for type=types
                         R_plus = [cosd(VAR/2) -sind(VAR/2); sind(VAR/2) cosd(VAR/2)];
                         R_min = [cosd(-VAR/2) -sind(-VAR/2); sind(-VAR/2) cosd(-VAR/2)];
                         
-                        cP1 = [0 0 0; 200 0 0];
+                        % cP1 = [0 0 0; 200 0 0];
+                        cP1 = [0 0 0; 300 0 0];
                         cP2 = cP1;
                         
                         center = (cP1(1,1:2)+cP1(end,1:2))/2;
@@ -101,13 +107,15 @@ for type=types
                         cP2(:,1:2) = cP2(:,1:2)+[center;center];
                         
                         cP1(:,2) = cP1(:,2)+(c-1)*offsetY;
-                        sim.bezier(cP1,nPoints);
+                        % sim.bezier(cP1,nPoints);
+                        sim.bezierWithDensity(cP1,density);
                         % sim.bezierWithOrthogonalGaussianNoise2D(cP1,nPoints,cfg.modeVar);
                         dat.simModelBezCP = [dat.simModelBezCP {cP1}];
                         cP = cP2;
                 end
                 cP(:,2) = cP(:,2)+(c-1)*offsetY;
-                sim.bezier(cP,nPoints);
+                % sim.bezier(cP,nPoints);
+                sim.bezierWithDensity(cP,density);
                 % sim.bezierWithOrthogonalGaussianNoise2D(cP,nPoints,cfg.modeVar);
                 dat.simModelBezCP = [dat.simModelBezCP {cP}];
             end
@@ -117,7 +125,7 @@ for type=types
             pro.setErrorArray(cfg.errorX,cfg.errorY,cfg.errorZ);
             
             % Display data
-            dis.points();
+            % dis.points();
             
             % Create folder and save cfg and dat file
             switch(type)
@@ -232,8 +240,8 @@ for i=1:size(items,1)
             m=find(idxModel == s);
             n=find(idxSimModel == s);
             
-            for k=1:numel(m)
-                                
+            for k=1:numel(m)     
+                % Check model complexity
                 if size(dat.simModelBezCP{n(k)},1) ~= size(modelBezCP{m(k)},1)
                     % The complexity of the models is not the same
                     % if isempty(strfind(items{i,1},'angle')) && isempty(strfind(items{i,1},'distance')) % All except angle and distance
@@ -247,6 +255,20 @@ for i=1:size(items,1)
                 cP2 = modelBezCP{m(2)};
                 dist = segments_dist_3d (cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
                 if dist > 1
+                    failed(s) = true;
+                end
+            end
+            if ~isempty(strfind(items{i,1},'distance')) % Distance only
+                cP1 = modelBezCP{m(1)};
+                cP2 = modelBezCP{m(2)};
+                cPRef1 = dat.simModelBezCP{n(1)};
+                dist = segments_dist_3d(cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
+                center = mean(cPRef1(:,1));
+                if ~(any(cP1(:,1) > center) && any(cP1(:,1) < center))
+                    failed(s) = true;
+                elseif ~(any(cP2(:,1) > center) && any(cP2(:,1) < center))
+                    failed(s) = true;
+                elseif dist < 1 % They are crossing
                     failed(s) = true;
                 end
             end
@@ -311,6 +333,74 @@ end
 xlswrite('C:\Users\PB93\Desktop\output.xls',output);
 
 disp('==========================')
+
+
+%% Crop marks
+
+idx = 17;
+offsetY = 500;
+xMin = -100; xMax = 400;
+yMin = -200+(idx-1)*offsetY; yMax = 200+(idx-1)*offsetY;
+% yMin = -250+(idx-1)*offsetY; yMax = 150+(idx-1)*offsetY; % Arc
+corners = [xMin,yMin,0;xMin,yMax,0;xMax,yMin,0;xMax,yMax,0];
+dis.imaris.displayPoints(corners,0,[1,0,0,0],'Corners');
+
+
+%% Models to the back
+% % % data.modelBezCP = cellfun(@(a) [a(:,1:2),-20*ones(size(a(:,3)))],data.modelBezCP,'UniformOutput',false);
+data.modelBezCP = cellfun(@(a) [a(:,1:2),20*ones(size(a(:,3)))],data.modelBezCP,'UniformOutput',false);
+dis.models
+% data.simModelBezCP = cellfun(@(a) [a(:,1:2),-40*ones(size(a(:,3)))],data.simModelBezCP,'UniformOutput',false);
+% dis.modelGroundTruth
+% d = data.copy;
+% d.points(:,3) = 10*ones(size(d.points(:,3)));
+% dis2 = Show(d,dis.imaris);
+% dis2.nullCluster
+disp('Done')
+
+%% Remove small models
+pro = Processor(data);
+pro.dissolveClustersSmallerThan(5);
+dis.models
+dis.nullCluster
+
+
+%% Models to the back (Density vs. gaps)
+zModels = min(data.points(:,3))-100;
+zNull = max(data.points(:,3))+100;
+data.modelBezCP = cellfun(@(a) [a(:,1:2),zModels*ones(size(a(:,3)))],data.modelBezCP,'UniformOutput',false);
+dis.models
+
+data.points(:,3) = zNull*ones(size(data.points(:,3)));
+dis.nullCluster
+
+%% 
+mi = min(data.points(:,2));
+ma = max(data.points(:,2));
+low = 10;
+high = 20;
+lo = mi+low*(ma-mi)/100;
+hi = mi+high*(ma-mi)/100;
+modok = cellfun(@(a) any(a(:,2)<hi&a(:,2)>lo),data.modelBezCP);
+simmodok = cellfun(@(a) any(a(:,2)<hi&a(:,2)>lo),data.simModelBezCP);
+size(data.modelType)
+
+data.modelBezCP = data.modelBezCP(modok);
+data.clusters = data.clusters(modok);
+data.simModelBezCP = data.simModelBezCP(simmodok);
+data.modelType = data.modelType(modok);
+size(data.modelType)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

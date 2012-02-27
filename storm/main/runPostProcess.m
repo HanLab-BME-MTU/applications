@@ -46,12 +46,12 @@ mySimulator.displayTruth(im);
 disp('------------------------------------------------');
 
 %% POST-PROCESS
-
-% thresholdLength = 10;
-% myModel.dissolveModelsShorterThan(thresholdLength);
-% densityThreshold = 15/100;
-% myModel.dissolveModelsLessDenseThan(densityThreshold);
-myModel.dissolveClustersSmallerThan(5);
+pro = Processor(data);
+thresholdLength = 150;
+pro.dissolveModelsShorterThan(thresholdLength);
+densityThreshold = 0.05;
+pro.dissolveModelsLessDenseThan(densityThreshold);
+% pro.dissolveClustersSmallerThan(5);
 
 disp('------------------------------------------------');
 
@@ -93,9 +93,9 @@ ana = Analysis(data);
 % % % figure(5);
 % % % medianSpacing = ana.spacings();
 
-% % % % Point density
-% % % figure(6);
-% % % ana.density();
+% Point density
+figure(6);
+ana.density();
 
 % % % % Intensity
 % % % figure(7);
@@ -112,9 +112,9 @@ ana = Analysis(data);
 % % % % Statistics
 % % % ana.statistics();
 
-% Reconstruction score
-sampleInterval = 5; edgeRadius = 100;
-ana.reconstructionScore(sampleInterval,edgeRadius);
+% % % % Reconstruction score
+% % % sampleInterval = 5; edgeRadius = 100;
+% % % ana.reconstructionScore(sampleInterval,edgeRadius);
 
 % % % % Width histogram
 % % % figure(10);
@@ -231,26 +231,27 @@ disp('------------------------------------------------');
 
 clc;
 
-nModels = numel(data.isBigCluster);
 maxDist = 80; % 80
 closeGapSize = 200; % 200
 angleTol = 30; % 30
 
 % Get all the model edges up to maxDist
-myCropper = Cropper(data);
-myCropper.initEdges(2*closeGapSize+maxDist);
-myCropper.updateEdges();
+pro = Processor(data);
+pro.initEdges(2*closeGapSize+maxDist);
+pro.updateEdges();
 
 % Clear edges leading to a model-less cluster
-clustersWithModels = find(data.isBigCluster);
-isModelEdge = ismember(data.edges,clustersWithModels);
-isModelEdge = isModelEdge(:,1) & isModelEdge(:,2);
-edges = data.edges(isModelEdge,:);
+idx = ismember(data.edges(:,1),0);
+edges = data.edges(~idx,:);
+idx = ismember(edges(:,2),0);
+edges = edges(~idx,:);
+
 nEdges = size(edges,1);
 
 linksStart = [0 0 0];
 linksEnd = [0 0 0];
 linksEdges = [0 0];
+linksWeights = 0;
 
 % Loop through all the edges
 for e=1:nEdges
@@ -261,7 +262,8 @@ for e=1:nEdges
     cP1 = data.modelBezCP{clusterIdx1};
     cP2 = data.modelBezCP{clusterIdx2};
 
-    % Computing the tangent vectors at the endpoints pointing away
+    % Computing the tangent vectors at the endpoints pointing away from the
+    % model
     t = [0,1];
     [~,normalT1] = tangentBezier(cP1,t');
     normalT1(1,:) = -normalT1(1,:);
@@ -305,22 +307,23 @@ for e=1:nEdges
     weightMat(angleMat>angleTol) = -1;
     weightMat(dMat>maxDist) = -1;
     
+    % Find the max weight of all the model start/end combinations
     [colVal rowIdx] = max(weightMat);
     [weightMatMax colIdx] = max(colVal);
     rowIdx = rowIdx(colIdx);
    
-%     im.displaySegments(cP1StartA,cP1StartB,'Model: Linear Model');
-%     im.displaySegments(cP1EndA,cP1EndB,'Model: Linear Model');
-%     im.displaySegments(cP2StartA,cP2StartB,'Model: Linear Model');
-%     im.displaySegments(cP2EndA,cP2EndB,'Model: Linear Model');
-%     im.displayPoints(cP1StartA,15,[1.0 0.0 0.0 0.0]);
-%     im.displayPoints(cP1StartB,30,[0.0 0.0 1.0 0.0]);
-%     im.displayPoints(cP1EndA,15,[1.0 0.0 0.0 0.0]);
-%     im.displayPoints(cP1EndB,30,[0.0 0.0 1.0 0.0]);
-%     im.displayPoints(cP2StartA,15,[1.0 0.0 0.0 0.0]);
-%     im.displayPoints(cP2StartB,30,[0.0 0.0 1.0 0.0]);
-%     im.displayPoints(cP2EndA,15,[1.0 0.0 0.0 0.0]);
-%     im.displayPoints(cP2EndB,30,[0.0 0.0 1.0 0.0]);
+%     dis.imaris.displaySegments(cP1StartA,cP1StartB,'Model: Linear Model');
+%     dis.imaris.displaySegments(cP1EndA,cP1EndB,'Model: Linear Model');
+%     dis.imaris.displaySegments(cP2StartA,cP2StartB,'Model: Linear Model');
+%     dis.imaris.displaySegments(cP2EndA,cP2EndB,'Model: Linear Model');
+%     dis.imaris.displayPoints(cP1StartA,15,[1.0 0.0 0.0 0.0]);
+%     dis.imaris.displayPoints(cP1StartB,30,[0.0 0.0 1.0 0.0]);
+%     dis.imaris.displayPoints(cP1EndA,15,[1.0 0.0 0.0 0.0]);
+%     dis.imaris.displayPoints(cP1EndB,30,[0.0 0.0 1.0 0.0]);
+%     dis.imaris.displayPoints(cP2StartA,15,[1.0 0.0 0.0 0.0]);
+%     dis.imaris.displayPoints(cP2StartB,30,[0.0 0.0 1.0 0.0]);
+%     dis.imaris.displayPoints(cP2EndA,15,[1.0 0.0 0.0 0.0]);
+%     dis.imaris.displayPoints(cP2EndB,30,[0.0 0.0 1.0 0.0]);
     
     if weightMatMax > 0
         cP1End = cP1([1,end],:);
@@ -334,10 +337,38 @@ for e=1:nEdges
         linksStart = [linksStart;cP1EndLinked];
         linksEnd = [linksEnd;cP2EndLinked];
         linksEdges = [linksEdges;clusterIdx1,clusterIdx2];
+        linksWeights = [linksWeights;weightMatMax]; % Unused so far
+        
     end
 end
 
-im.displaySegments(linksStart(2:end,:),linksEnd(2:end,:),'Post Process: Cluster links');
+linksStart = linksStart(2:end,:);
+linksEnd = linksEnd(2:end,:);
+linksEdges = linksEdges(2:end,:);
+linksWeights = linksWeights(2:end,:);
+
+%%%% SUBSET SELECTION ###############################################
+% Nodes
+pnts = [linksStart;linksEnd];
+nPnts = size(pnts,1);
+nEdges = size(linksStart,1);
+[unqPnts,~,n] = unique(pnts,'rows'); % Unique points
+nUnqPnts = size(unqPnts,1);
+nodes = 1:nUnqPnts;
+lut = nodes(n); % Look-up table
+edgs = [lut(1:nPnts/2);lut(nPnts/2+1:nPnts)]';
+wghts = linksWeights;
+
+% Find the maximum weight matching 
+matching = maxWeightedMatching(nPnts,edgs,wghts);
+
+linksStart = linksStart(matching,:);
+linksEnd = linksEnd(matching,:);
+linksEdges = linksEdges(matching,:);
+linksWeights = linksWeights(matching,:);
+%%%% SUBSET SELECTION ###############################################
+
+dis.imaris.displaySegments(linksStart(1:end,:),linksEnd(1:end,:),'Post Process: Cluster links');
 
 % Backup cluster color
 clusterColorBak = data.clusterColor;
@@ -347,30 +378,52 @@ map = linksEdges;
 for e=1:size(linksEdges,1)
     parent = map(e,1);
     child = map(e,2);
-    map(map==child) = parent;
+    map(map==child) = parent; % Parent inherits the color to its child and the children's children
 end
 
 % Concatenate map
 map = map(:);
 
 % Find unique elements
-[linksEdges,idx] = unique(linksEdges(:));
-map = map(idx);
+[linksEdges,idx] = unique(linksEdges(:)); % List of unique node indices
+map = map(idx); % The indx of the node color
 
 % Copy color
-if ~isempty(intersect([linksEdges,map],[0,0],'rows'))
-    linksEdges = linksEdges(2:end);
-    map = map(2:end);
-end
 data.clusterColor(linksEdges,:) = data.clusterColor(map,:);
 
 % Display clusters
-myModel.displayClusters(im);
+% % dis.clusters
 
 % Revert cluster color
-data.clusterColor = clusterColorBak;
+% % data.clusterColor = clusterColorBak;
 
 disp('------------------------------------------------');
+
+%%
+%%%% REMOVE CLUSTERS SHORTER THAN XXX IF THEY ARE NOT ALIGNED ###############################################
+% Find long models
+thresholdLength = 700;
+isLongCluster = data.modelLength>=thresholdLength;
+isShortAndUnlinkedIdx = setdiff(find(~isLongCluster),linksEdges);
+isShortAndUnlinked = false(size(isLongCluster));
+isShortAndUnlinked(isShortAndUnlinkedIdx) = true;
+
+% Update clusters
+shortClusters = data.clusters(isShortAndUnlinked);
+data.clusters = data.clusters(~isShortAndUnlinked);
+
+% Update model lists
+pro = Processor(data);
+pro.removeModels(isShortAndUnlinked);
+
+% Update null cluster
+unclustered = horzcat(shortClusters{:})';
+data.nullCluster = [data.nullCluster;unclustered];
+%%%% REMOVE CLUSTERS SHORTER THAN XXX IF THEY ARE NOT ALIGNED ###############################################
+disp('The End')
+
+%%
+
 
 %% COUNT MODELS
 clc;

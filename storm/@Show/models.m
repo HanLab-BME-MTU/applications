@@ -9,8 +9,8 @@ linCurvePointsStart = vertcat(linCurvePointsStart{:});
 linCurvePointsEnd = vertcat(linCurvePointsEnd{:});
 
 curvePoints = cellfun(@(a) renderBezier(a,(linspace(0,1,nCurveSamples))'),obj.data.modelBezCP(obj.data.modelType >= 2),'UniformOutput',false);
-curvePointsStart = cellfun(@(a) a(1:end-1,:),curvePoints,'UniformOutput',false);
-curvePointsEnd = cellfun(@(a) a(2:end,:),curvePoints,'UniformOutput',false);
+curvePointsStart = cellfun(@(a) a(1:end-2,:),curvePoints,'UniformOutput',false);
+curvePointsEnd = cellfun(@(a) a(3:end,:),curvePoints,'UniformOutput',false);
 curvePointsStart = vertcat(curvePointsStart{:});
 curvePointsEnd = vertcat(curvePointsEnd{:});
 
