@@ -6,6 +6,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('Connect', true, @islogical);
 % ip.addParamValue('Sigma', []);
 ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(data, varargin{:});
@@ -30,7 +31,7 @@ for i = 1:numel(data)
     end
     
     if ~(exist([data(i).source 'Detection' filesep 'cellmask.tif'], 'file') == 2) || ip.Results.Overwrite
-        mask{i} = computeMask(data(i), aip);%, ip.Results.Sigma);
+        mask{i} = computeMask(data(i), aip, ip.Results.Connect);%, ip.Results.Sigma);
         % save
         imwrite(uint8(mask{i}), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
     else
@@ -43,7 +44,8 @@ if strcmpi(ip.Results.Display, 'on')
         if ~isempty(mask{i})
             [ny,nx] = size(mask{i});
             B = bwboundaries(mask{i});
-            B = sub2ind([ny nx], B{1}(:,1), B{1}(:,2));
+            B = cellfun(@(var)sub2ind([ny nx], var(:,1), var(:,2)),B,'UniformOutput',false);
+            B = cell2mat(B);
             bmask = zeros([ny nx]);
             bmask(B) = 1;
             bmask = bwmorph(bmask, 'dilate');
@@ -62,7 +64,7 @@ end
 
 
 
-function mask = computeMask(data, aip)
+function mask = computeMask(data, aip, Connect)
 
 aip = scaleContrast(aip, [], [0 1]);
 g = filterGauss2D(aip, 5);
@@ -108,10 +110,12 @@ else
 end
 
 % retain largest connected component
+if Connect
 CC = bwconncomp(mask, 8);
 compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
 mask = zeros(data.imagesize);
 mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
+end
 
 % figure; 
 % hold on;
