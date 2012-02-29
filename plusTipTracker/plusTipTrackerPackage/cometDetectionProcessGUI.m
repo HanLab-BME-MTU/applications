@@ -53,6 +53,8 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
+set(handles.edit_firstFrame,'String',funParams.firstFrame);
+set(handles.edit_lastFrame,'String',funParams.lastFrame);
 userData.numParams ={'sigma1','sigma2','multFactorThresh'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
@@ -110,37 +112,54 @@ end
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 
-% -------- Check user input --------
-
+% Check user input
 if isempty(get(handles.listbox_selectedChannels, 'String'))
     errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
 end
+funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 
-% -------- Process Sanity check --------
-% ( only check underlying data )
-
-userData = get(handles.figure1, 'UserData');
-try
-    userData.crtProc.sanityCheck;
-catch ME
-    errordlg([ME.message 'Please double check your data.'],...
-                'Setting Error','modal');
+% Get frame range
+userData=get(handles.figure1,'UserData');
+firstFrame = str2double(get(handles.edit_firstFrame,'String'));
+if isnan(firstFrame) || firstFrame < 0
+    errordlg(['Please enter a valid ' get(handles.text_frameRange,'String') '.'],...
+        'Setting Error','modal')
     return;
 end
+funParams.firstFrame=firstFrame;
 
-% Retrieve GUI-defined parameters
+% Get last range
+lastFrame = str2double(get(handles.edit_lastFrame,'String'));
+if isnan(lastFrame) || lastFrame > userData.MD.nFrames_ || firstFrame>lastFrame
+    errordlg(['Please enter a valid ' get(handles.text_frameRange,'String') '.'],...
+        'Setting Error','modal')
+    return;
+end
+if userData.crtProc.funParams_.lastFrame~=lastFrame, funParams.lastFrame=lastFrame;end
+
+% Retrieve detection parameters
 for i=1:numel(userData.numParams)  
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
+    value = str2double(get(handles.(['edit_' userData.numParams{i}]),'String'));
+    if isnan(value) || value < 0
         errordlg(['Please enter a valid value for '...
             get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
             'Setting Error','modal')
         return;
     end
-    funParams.(userData.numParams{i})=str2double(value); 
+    funParams.(userData.numParams{i})=value; 
 end
 
-channelIndex = get(handles.listbox_selectedChannels, 'Userdata');
-funParams.ChannelIndex = channelIndex;
+% Retrieve numerical parameters
+for i=1:numel(userData.numParams)  
+    value = str2double(get(handles.(['edit_' userData.numParams{i}]),'String'));
+    if isnan(value) || value < 0
+        errordlg(['Please enter a valid value for '...
+            get(handles.(['text_' userData.numParams{i}]),'String') '.'],...
+            'Setting Error','modal')
+        return;
+    end
+    funParams.(userData.numParams{i})=value; 
+end
+
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);

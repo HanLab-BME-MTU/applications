@@ -85,9 +85,8 @@ if nFeats==0
     yCoord = [];
     xCoord = [];
     amp = [];
-    area=[];
-    maxInt = [];
     featE = [];
+    featI=[];
     
 else
     % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
@@ -97,7 +96,7 @@ else
     yCoord(:,1) = temp(:,2);
     xCoord(:,1) = temp(:,1);
     
-    % SB: here we could use meanIntensity instead
+    % SB: shoudl we use meanIntensity instead>>>
     % area
     featArea = vertcat(featPropFinal(:,1).Area);
     amp = zeros(nFeats,2);

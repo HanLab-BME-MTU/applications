@@ -69,6 +69,8 @@ classdef CometDetectionProcess < DetectionProcess
             funParams.MaskChannelIndex =  1 : numel(owner.channels_);
             
             % Detection parameters
+            funParams.firstFrame=1;
+            funParams.lastFrame=owner.nFrames_;
             funParams.sigma1 = 1;
             funParams.sigma2 = 4;
             funParams.multFactorStepSize=1;

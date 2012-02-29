@@ -3,7 +3,6 @@ classdef PlusTipTrackerPackage < TrackingPackage
     
     methods (Access = public)
         function obj = PlusTipTrackerPackage (owner,varargin)
-            % Construntor of class MaskProcess
             if nargin == 0
                 super_args = {};
             else
@@ -18,8 +17,7 @@ classdef PlusTipTrackerPackage < TrackingPackage
                 super_args{2} = [outputDir  filesep 'PlusTipTrackerPackage'];
             end
             % Call the superclass constructor
-            obj = obj@TrackingPackage(super_args{:});
-            
+            obj = obj@TrackingPackage(super_args{:});        
         end
     end
     methods (Static)

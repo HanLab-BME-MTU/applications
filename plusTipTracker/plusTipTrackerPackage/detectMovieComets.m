@@ -59,45 +59,49 @@ for j = p.ChannelIndex,  inFilePaths{1,j} = imDirs{j}; end
 cometDetProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outFilePaths = cell(1,nChan);
+outFilePaths = cell(2,nChan);
 mkClrDir(p.OutputDirectory);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
+    outFilePaths{2,i} = [p.OutputDirectory filesep 'fileted_images_for_channel_' num2str(i)];
+    mkClrDir(outFilePaths{2,i});
 end
 cometDetProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Comet detection ---------------%%% 
 disp('Starting detecting comets...')
 
-logMsg = @(chan) ['Please wait, detecting comets for channel ' num2str(chan)];
-timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
-tic;
-
-% Read region of interest
+% Get region of interest
 roiMask = movieData.getROIMask;
 allMovieInfo(nFrames,nChan) = struct('xCoord', [], 'yCoord', [], 'amp', [],...
         'int',[],'ecc',[]);
     
 for iChan= p.ChannelIndex    
     if ishandle(wtBar), waitbar(0,wtBar,'Loading image stack'); end    
-    stack = movieData.channels_(iChan).loadImage(1:nFrames)/maxIntensity;
-    
     
     % get difference of Gaussians image for each frame and standard deviation
     % of the cell background, stored in stdList
-    stdList=nan(nFrames,1);
-    filteredStack=zeros([movieData.imSize_ nFrames]);
+    stdList=NaN(nFrames,1);
     
     logMsg='Filtering images for comet detection';
     progressText(0,logMsg);
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
-    for i = 1:nFrames
+    for i = p.firstFrame:p.lastFrame
+        % Loading image
+        im = movieData.channels_(iChan).loadImage(i)/maxIntensity;
+        
+        % Combine region of interest with preselected segmentation output
         if ~isempty(p.MaskProcessIndex)
             mask= roiMask(:,:,i) & movieData.processes_{p.MaskProcessIndex}.loadChannelOutput(iChan,i);
         else
             mask=roiMask(:,:,i);
         end
+        
+        % SB: copied and pasted from plusTipCometDetector
+        % Think we should use filterGauss2D and improve the std of the cell
+        % background using blobSegmentThreshold
+        
         % create kernels for gauss filtering
         blurKernelLow  = fspecial('gaussian', 21, p.sigma1);
         blurKernelHigh = fspecial('gaussian', 21, p.sigma2);
@@ -107,7 +111,6 @@ for iChan= p.ChannelIndex
         
         % use subfunction that calls imfilter to take care of edge effects
         % for now don't apply roiMask
-        im=stack(:,:,i);
         im(~mask)=0;
         lowPass = imfilter(im, blurKernelLow)./Wlow;
         lowPass(~mask)=NaN;
@@ -115,35 +118,39 @@ for iChan= p.ChannelIndex
         highPass(~mask)=NaN;
         filterDiff=lowPass-highPass;
 
-        % Replace the imfilter
-        % filterDiff=filterGauss2D(stack(:,:,i),p.sigma1) - filterGauss2D(stack(:,:,i),p.sigma2);
         
         % if there is a mask for each image file
         stdList(i)=nanstd(filterDiff(:));
-        % (just removing not a numbers here from filterDiff so can take std)
-        
-        filteredStack(:,:,i)=filterDiff;
+
+        % Save filtered images on disk (avoid memory errors)x
+        save(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']),'filterDiff');
         progressText(i/nFrames,'Filtering images for comet detection');
         if ishandle(wtBar) && mod(i,5)==0, waitbar(i/nFrames,wtBar,logMsg); end  
     end
     
     meanStd = arrayfun(@(x) mean(stdList(max(1,x-1):min(nFrames,x+1))),1:nFrames);
-    %         meanStd = smooth(stdList,3); % Discrepancy for endpoint
+    % meanStd = smooth(stdList,3); % Discrepancy for endpoint
     
+    fprintf(1,'\n');
     % loop thru frames and detect
     logMsg='Detecting comets';
     progressText(0,logMsg);
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
-    for i = 1:nFrames
+    for i = p.firstFrame:p.lastFrame
+        % Reload filtered images
+        s=load(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']));
+        filterDiff=s.filterDiff;
         stepSize=p.multFactorStepSize*meanStd(i);
         thresh= p.multFactorThresh*meanStd(i);
-        allMovieInfo(i,iChan) = detectComets(filteredStack(:,:,i),stepSize,thresh);
+        
+        % Detect comets using watershed detection
+        allMovieInfo(i,iChan) = detectComets(filterDiff,stepSize,thresh);
         progressText(i/nFrames,'Detecting comets');
         if ishandle(wtBar) && mod(i,5)==0, waitbar(i/nFrames,wtBar,logMsg); end
     end
     
     movieInfo=allMovieInfo(:,iChan); %#ok<NASGU>
-    save(outFilePaths{1,iChan} ,'movieInfo','stdList','filteredStack');
+    save(outFilePaths{1,iChan} ,'movieInfo','stdList');
 end
 
 if ishandle(wtBar), close(wtBar); end
