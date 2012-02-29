@@ -440,125 +440,15 @@ for iFrame = startFrame:endFrame
     stepSize=multFactor4StepSize*mean(stdList(sF:eF));
     thresh= multFactor4Thresh*mean(stdList(sF:eF));
     
-    
-    
-    
-    % we assume each step size down the intensity profile should be on
-    % the order of the size of the background std; here we find how many
-    % steps we need and what their spacing should be. we also assume peaks
-    % should be taller than 3*std
-    nSteps = round((nanmax(filterDiff(:))-thresh)/(stepSize));
-    threshList = linspace(nanmax(filterDiff(:)),thresh,nSteps);
-    
-    % compare features in z-slices startest from the highest one
-    for p = 1:length(threshList)-1
-        
-        % slice1 is top slice; slice2 is next slice down
-        % here we generate BW masks of slices
-        if p==1
-            slice1 = filterDiff>threshList(p);
-        else
-            slice1 = slice2;
-        end
-        slice2 = filterDiff>threshList(p+1);
-        
-        % now we label them using the "bwlabel" function from matlab which
-        % labels connected components in a 2-D binary image
-        featMap1 = bwlabel(slice1);
-        featMap2 = bwlabel(slice2);
-        
-        % get the regionproperty 'PixelIdxList' using "regionprops" function in matlab
-        featProp2 = regionprops(featMap2,'PixelIdxList');
-        
-        % loop thru slice2 features and replace them if there are 2 or
-        % more features from slice1 that contribute
-        for iFeat = 1:max(featMap2(:))
-            pixIdx = featProp2(iFeat,1).PixelIdxList; % pixel indices from slice2
-            featIdx = unique(featMap1(pixIdx)); % feature indices from slice1 using same pixels
-            featIdx(featIdx==0) = []; % 0's shouldn't count since not feature
-            if length(featIdx)>1 % if two or more features contribute...
-                slice2(pixIdx) = slice1(pixIdx); % replace slice2 pixels with slice1 values
-            end
-        end
-        
-    end
-    
-    % label slice2 again and get region properties
-    featMap2 = bwlabel(slice2);
-    featProp2 = regionprops(featMap2,'PixelIdxList','Area');
-    
-    % here we sort through features and retain only the "good" ones
-    % we assume the good features have area > 2 pixels
-    goodFeatIdx = find(vertcat(featProp2(:,1).Area)>2);
-    %    goodFeatIdxI = find(vertcat(featProp2(:,1).MaxIntensity)>2*cutOffValueInitInt);
-    %    goodFeatIdx = intersect(goodFeatIdxA,goodFeatIdxI);
-    
-    % make new label matrix and get props
-    featureMap = zeros(imL,imW);
-    featureMap(vertcat(featProp2(goodFeatIdx,1).PixelIdxList)) = 1;
-    [featMapFinal,nFeats] = bwlabel(featureMap);
-    
-    verDate=version('-date');
-    if str2double(verDate(end-3:end))>=2008
-        featPropFinal = regionprops(featMapFinal,filterDiff,'PixelIdxList','Area','WeightedCentroid','MaxIntensity','Eccentricity'); %'Extrema'
-    else
-        featPropFinal = regionprops(featMapFinal,'PixelIdxList','Area','Centroid');
-        for iFeat=1:length(featPropFinal)
-            featPropFinal(iFeat,1).WeightedCentroid=featPropFinal(iFeat,1).Centroid; % centroid's close enough...
-            featPropFinal(iFeat,1).MaxIntensity=max(filterDiff(featPropFinal(iFeat,1).PixelIdxList)); % find maximum intensity
-        end
-    end
-    
-    if nFeats==0
-        yCoord = [];
-        xCoord = [];
-        amp = [];
-        featI = [];
-        featE = [];
-        
-    else
-        % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
-        yCoord = 0.5*ones(nFeats,2);
-        xCoord = 0.5*ones(nFeats,2);
-        temp = vertcat(featPropFinal.WeightedCentroid);
-        yCoord(:,1) = temp(:,2);
-        xCoord(:,1) = temp(:,1);
-        
-        % area
-        featArea = vertcat(featPropFinal(:,1).Area);
-        amp = zeros(nFeats,2);
-        amp(:,1) = featArea;
-        
-        % intensity
-        featInt = vertcat(featPropFinal(:,1).MaxIntensity);
-        featI = zeros(nFeats,2);
-        featI(:,1) = featInt;
-        
-        verDate=version('-date');
-        
-        if str2double(verDate(end-3:end))>=2008 % can only calculate eccentricity
-            % if using version of matlab older than 2008
-            
-            %eccentricity
-            featEcc = vertcat(featPropFinal(:,1).Eccentricity);
-            featE = zeros(nFeats,2);
-            featE(:,1) = featEcc;
-            
-        end
-    end
-    
     % make structure compatible with Khuloud's tracker
-    movieInfo(iFrame,1).xCoord = xCoord;
-    movieInfo(iFrame,1).yCoord = yCoord;
-    movieInfo(iFrame,1).amp = amp;
-    movieInfo(iFrame,1).int = featI;
-    movieInfo(iFrame,1).ecc = featE;
-    
-    
+    movieInfo(iFrame,1) = detectComets(filterDiff,stepSize,thresh);
+        
     indxStr1 = sprintf(strg1,iFrame); % frame
     
     %plot feat outlines and centroid on image
     if savePlots==1
+        xCoord=movieInfo(iFrame,1).xCoord;
+        yCoord=movieInfo(iFrame,1).yCoord;
         
         if padded == 1;% If image filename padded use listOfImages
             fileNameIm = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
