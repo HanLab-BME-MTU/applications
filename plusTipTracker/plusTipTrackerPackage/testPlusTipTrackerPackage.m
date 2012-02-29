@@ -107,11 +107,15 @@ plusTipPostTracking(projData,frameRate,pixelSize,[],makeHist)
 if isempty(movie.packages_{1}.processes_{3})
     movie.packages_{1}.createDefaultProcess(3)
 end   
-postProc=movie.packages_{1}.processes_{2};  
+postProc=movie.packages_{1}.processes_{3};  
 postProc.run();
 
 % 3- Compare output
 s=load(postProc.outFilePaths_{1});
 s2=load(fullfile(projData.anDir,'meta','projData.mat'));
 
-assertEqual(s.projData,s2.projData);
+s2.projData.stats=rmfield(s2.projData.stats,{'growth_density','numNucleationEvents',...
+    'nucleationDensity','fgap_density','bgap_density'});
+
+assertEqual(s.projData.stats,s2.projData.stats);
+assertEqual(s.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix,s2.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix);

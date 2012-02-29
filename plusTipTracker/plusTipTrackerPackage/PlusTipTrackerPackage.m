@@ -33,11 +33,20 @@ classdef PlusTipTrackerPackage < TrackingPackage
             varargout{1} = plusTipTrackerPackageGUI(varargin{:});
         end
         
+        function classes = getProcessClassNames(index)
+            classes = TrackingPackage.getProcessClassNames;
+            classes{3}='CometPostTrackingProcess';
+            
+            if nargin==0, index=1:numel(classes); end
+            classes=classes(index);
+        end
+        
+        
         function procConstr = getDefaultProcessConstructors(index)
             procConstr = {
                 @CometDetectionProcess,...
                 @(x,y)TrackingProcess(x,y,PlusTipTrackerPackage.getDefaultTrackingParams(x,y)),...
-                @(x,y)PostTrackingProcess(x,y,PlusTipTrackerPackage.getDefaultPostTrackingParams(x,y))};
+                @CometPostTrackingProcess};
             if nargin==0, index=1:numel(procConstr); end
             procConstr=procConstr(index);
         end
@@ -49,12 +58,6 @@ classdef PlusTipTrackerPackage < TrackingPackage
             funParams.kalmanFunctions.calcGain    = TrackingProcess.getKalmanCalcGainFunctions(2).funcName;
             funParams.costMatrices(1) = TrackingProcess.getDefaultLinkingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
             funParams.costMatrices(2) = TrackingProcess.getDefaultGapClosingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
-        end
-        
-        function funParams = getDefaultPostTrackingParams(owner,outputDir)
-            funParams = PostTrackingProcess.getDefaultParams(owner,outputDir);
-%             tools =  PostTrackingProcess.getProcessingTools;
-%             funParams.tools(1) = 5;
         end
         
     end

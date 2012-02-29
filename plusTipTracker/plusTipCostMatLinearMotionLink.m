@@ -285,8 +285,14 @@ end
 %% Birth and death
 
 %append matrix to allow birth and death
-if any(~isnan(prevCost(:)) & prevCost(:)~=0)
-    maxCost = 1.05*max(prevCost(:));
+if isstruct(prevCost)
+    prevCostMax = prevCost.max;
+else
+    prevCostMax = max(prevCost(:));
+end
+
+if ~isnan(prevCostMax) && prevCostMax ~= 0
+    maxCost = 1.05*prevCostMax;
 else
     maxCost = max(prctile(costMat(:),80),eps);
 end
