@@ -53,6 +53,17 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
+maskProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
+maskProcID=find(maskProc);
+maskProcNames = cellfun(@(x) x.getName(),userData.MD.processes_(maskProc),'Unif',false);
+maskProcString = vertcat('None',maskProcNames(:));
+maskProcData=horzcat({[]},num2cell(maskProcID));
+maskProcValue = find(cellfun(@(x) isequal(x,funParams.MaskProcessIndex),maskProcData));
+if isempty(maskProcValue), maskProcValue = 1; end
+set(handles.popupmenu_MaskProcess,'String',maskProcString,...
+    'UserData',maskProcData,'Value',maskProcValue,'Enable','on');
+
+
 set(handles.edit_firstFrame,'String',funParams.firstFrame);
 set(handles.edit_lastFrame,'String',funParams.lastFrame);
 userData.numParams ={'sigma1','sigma2','multFactorThresh'};
@@ -162,4 +173,17 @@ for i=1:numel(userData.numParams)
     funParams.(userData.numParams{i})=value; 
 end
 
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
+% Retrieve mask process index and class (for propagation)
+props=get(handles.popupmenu_MaskProcess,{'UserData','Value'});
+funParams.MaskProcessIndex = props{1}{props{2}};
+if ~isempty(funParams.MaskProcessIndex)
+    maskProcessClass=class(userData.MD.processes_{funParams.MaskProcessIndex});
+else
+    maskProcessClass = '';
+end
+
+% Set parameters
+setMaskProcess = @(x) parseProcessParams(x, struct('MaskProcessIndex',...
+    x.owner_.getProcessIndex(maskProcessClass,1,false)));
+
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,'settingFcn',{setMaskProcess});

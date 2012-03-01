@@ -99,9 +99,7 @@ for iChan= p.ChannelIndex
         end
         
         % SB: copied and pasted from plusTipCometDetector
-        % Think we should use filterGauss2D and improve the std of the cell
-        % background using blobSegmentThreshold
-        
+      
         % create kernels for gauss filtering
         blurKernelLow  = fspecial('gaussian', 21, p.sigma1);
         blurKernelHigh = fspecial('gaussian', 21, p.sigma2);
@@ -118,20 +116,26 @@ for iChan= p.ChannelIndex
         highPass(~mask)=NaN;
         filterDiff=lowPass-highPass;
 
-        
-        % if there is a mask for each image file
+        % Save filtered images on disk (avoid memory errors)
+        save(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']),'filterDiff');
+
+        % SB: Think we could use filterGauss2D and improve the std of the cell
+        % background using blobSegmentThreshold
+        % filterDiff=filterGauss2D(im,p.sigma1)-filterGauss2D(im,p.sigma2);
+        % filterDiff(~mask)=NaN;
+        % bw = blobSegmentThreshold(filterDiff,0,0,mask);
+        % filterDiff(bw)=NaN;
         stdList(i)=nanstd(filterDiff(:));
 
-        % Save filtered images on disk (avoid memory errors)x
-        save(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']),'filterDiff');
-        progressText(i/nFrames,'Filtering images for comet detection');
-        if ishandle(wtBar) && mod(i,5)==0, waitbar(i/nFrames,wtBar,logMsg); end  
+        % Update progress status
+        frac = (i-p.firstFrame+1)/(p.lastFrame-p.firstFrame+1);
+        progressText(frac,'Filtering images for comet detection');
+        if ishandle(wtBar) && mod(i,5)==0, waitbar(frac,wtBar,logMsg);  end  
     end
     
     meanStd = arrayfun(@(x) mean(stdList(max(1,x-1):min(nFrames,x+1))),1:nFrames);
     % meanStd = smooth(stdList,3); % Discrepancy for endpoint
     
-    fprintf(1,'\n');
     % loop thru frames and detect
     logMsg='Detecting comets';
     progressText(0,logMsg);
@@ -145,8 +149,11 @@ for iChan= p.ChannelIndex
         
         % Detect comets using watershed detection
         allMovieInfo(i,iChan) = detectComets(filterDiff,stepSize,thresh);
-        progressText(i/nFrames,'Detecting comets');
-        if ishandle(wtBar) && mod(i,5)==0, waitbar(i/nFrames,wtBar,logMsg); end
+             
+        % Update progress status
+        frac = (i-p.firstFrame+1)/(p.lastFrame-p.firstFrame+1);
+        progressText(frac,'Detecting comets');
+        if ishandle(wtBar) && mod(i,5)==0, waitbar(frac,wtBar,logMsg); end
     end
     
     movieInfo=allMovieInfo(:,iChan); %#ok<NASGU>
