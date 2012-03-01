@@ -1,7 +1,7 @@
 classdef CometPostTrackingProcess < DataProcessingProcess
-    % A concrete class associated to the comet detection
+    % A concrete class for classifying comet tracks
     %
-    % Sebastien Besson, Sep 2011
+    % Sebastien Besson, March 2012
 
     methods (Access = public)
         function obj = CometPostTrackingProcess(owner, varargin)

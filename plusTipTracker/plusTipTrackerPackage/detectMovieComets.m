@@ -1,7 +1,5 @@
 function detectMovieComets(movieData,varargin)
-% detectMovieComets detect comets in a movie
-%
-% detectMovieComets 
+% detectMovieComets detect comets in a movie using successive thresholds
 %
 % SYNOPSIS detectMovieComets(movieData,paramsIn)
 %
@@ -10,9 +8,40 @@ function detectMovieComets(movieData,varargin)
 %
 %   paramsIn - Structure with inputs for optional parameters. The
 %   parameters should be stored as fields in the structure, with the field
-%   names and possible values as described below
+%   names and possible values as described below:
 %
-% OUTPUT   
+%   Possible Parameter Structure Field Names:
+%       ('FieldName' -> possible values)
+%
+%       ('OutputDirectory' -> character string)
+%       Optional. A character string specifying the directory to save the
+%       detected comets to.
+%
+%       ('ChannelIndex' -> Positive integer scalar or vector)
+%       Optional. The integer index of the plusTip channel(s). If not
+%       input, all channels will be segmented. If multiple
+%       channels are selected, comets are detected for each independently.
+%
+%       ('sigma1' -> Positive scalar) Optional.
+%       Smallest standard deviation to be used when filtering the image 
+%       with the difference of Gaussian. Default is 1.
+% 
+%       ('sigma2' -> Positive scalar) Optional.
+%       Lagest standard deviation to be used when filtering the image 
+%       with the difference of Gaussian. Default is 5.
+% 
+%       ('multFactThresh' -> Positive scalar) 
+%       Multiplicative factor to apply to the standard deviation of the
+%       filtered images to determine the threshold for detecting comets.
+%       Optional. Default is 3
+%
+%       ('multFactorStepSize' -> Positive scalar) 
+%       Multiplicative factor to apply to the standard deviation of the
+%       filtered images to determine the difference of intensity between 
+%       successive detection thresholds.
+%       Optional. Default is 1
+%
+
 
 % Sebastien Besson, Sep 2011 (last modified Sep 2011)
 
