@@ -18,8 +18,8 @@ classdef MTTracksDisplay < MovieDataDisplay
         end
         function h=initDraw(obj,data,tag,varargin)
             
-            if isempty(data.x), h=[]; return; end
-            h= -ones(size(data.x),1);
+            if isempty(data.x), h=[]; return; end            
+            h= -ones(size(data.x,1),1);
             uniqueTypes=unique(data.trackType);
             for i=1:numel(uniqueTypes), 
                 index=data.trackType==uniqueTypes(i);
