@@ -103,7 +103,8 @@ noiseLog=cell(numel(p.ChannelIndex),1);
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Display log
-    noiseLog{i} = sprintf('Channel %g: %s\n',iChan,inFilePaths{1,iChan});
+    noiseLog{i} = sprintf('Channel %g: %s\n',iChan,...
+        regexptranslate('escape',inFilePaths{1,iChan}));
     disp(logMsg(iChan))
     disp(inFilePaths{1,iChan});
     disp('Result will be saved as :')
@@ -155,7 +156,7 @@ if ishandle(wtBar), close(wtBar); end
 % Create process report
 procLog=[sprintf('Noise model calibration detection summary\n\n') noiseLog{:}];
 disp(procLog);
-fid=fopen([p.OutputDirectory filesep 'NoiseModelCalibrationSummary.txt'],'w+');
+fid=fopen([p.OutputDirectory filesep 'NoiseModelCalibrationSummary.txt'],'wt');
 fprintf(fid,procLog);
 fclose(fid);
 

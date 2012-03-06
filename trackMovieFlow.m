@@ -115,7 +115,8 @@ channelLog=cell(numel(p.ChannelIndex),1);
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
      % Log display
-    channelLog{i} = sprintf('Channel %g: %s\n',iChan,imDirs{iChan});
+    channelLog{i} = sprintf('Channel %g: %s\n',iChan,...
+        regexptranslate('escape',imDirs{iChan}));
     disp(logMsg(iChan))
     disp('Using images from directory:')
     disp(inFilePaths{1,iChan});
@@ -242,6 +243,6 @@ disp('Finished tracking flow!')
 % Create process report
 procLog=[sprintf('Flow tracking summary\n\n') channelLog{:}];
 disp(procLog);
-fid=fopen([p.OutputDirectory filesep 'FlowTrackingSummary.txt'],'w+');
+fid=fopen([p.OutputDirectory filesep 'FlowTrackingSummary.txt'],'wt');
 fprintf(fid,procLog);
 fclose(fid);
