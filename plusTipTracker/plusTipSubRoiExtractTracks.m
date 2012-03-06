@@ -45,8 +45,11 @@ onlyNuc = 0;% value of 1: Flag to bypass the GUI options and select
 
 remBegEnd = 1; % Value of 1 will remove tracks from the beginning and end
 
-collectPlots = 0; % collect all subRoi track plots in one folder (series of 
+collectPlots = 1; % collect all subRoi track plots in one folder (series of 
 %tifs that can be read into imagej for easy viewing of each cell). 
+
+showResultsProc = 1 ; % show results during processing...will still collect these plots just will not pop-up 
+                  % for troubleshooting during processing. 
 
 %% Check Input
 homeDir=pwd;
@@ -70,6 +73,12 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
 end
 if onlyNuc ==1 
     onlyInitiate = 1; 
+end 
+
+if showResultsProc == 1 
+   visible = 'on'; 
+else 
+   visible = 'off'; 
 end 
 %% Load Necessary Files
 subRoiDir=subRoiDir;
@@ -100,10 +109,10 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-up1 = getFileNameBody(subRoiDir);
-up2 = getFileNameBody(up1); 
-[up3 roi numSub] = getFileNameBody(up2); 
-[collectedDataPath folder numProj] = getFileNameBody(up3); 
+up1 = getFilenameBody(subRoiDir);
+up2 = getFilenameBody(up1); 
+[up3 roi numSub] = getFilenameBody(up2); 
+[collectedDataPath folder numProj] = getFilenameBody(up3); 
 collectedDataPath = [collectedDataPath filesep 'collectedSubRoiPlots']; 
 roi = [roi numSub]; 
 name = [folder numProj]; 
@@ -283,7 +292,7 @@ end
     OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
 
 % plot all member tracks in red on top of the mask
- figure; 
+ figure('Visible',visible); 
  imshow(roiMask); 
  hold on; 
  plot(xMat1',yMat1','g'); % plot all tracks targeted/initiated in region
@@ -301,7 +310,7 @@ end
  
  % if option on put all in one folder for easy viewing
  if collectPlots == 1
- [path sub num] = getFileNameBody(subRoiDir);
+ [path sub num] = getFilenameBody(subRoiDir);
  sub = [sub num];
  
     if exist([collectedDataPath filesep sub],'dir') == 0
@@ -360,10 +369,13 @@ else % get those tracks located within the subregion based with a given
     %be maintained in the subROI calc
     IN=swapMaskValues(IN,0,NaN); % 1 for the sections of the tracks inside the sub-roi
     OUT=swapMaskValues(IN); % 1 for the sections of the track outside the sub-roi
-
+    
+  
+ 
+    
 
 % plot all member tracks in red on top of the mask
- figure; 
+ figure('Visible',visible); 
  imshow(roiMask); 
  hold on; 
  plot(xMatIn',yMatIn','r')
@@ -373,7 +385,7 @@ else % get those tracks located within the subregion based with a given
  close(gcf)
  
  if collectPlots == 1
- [path sub num] = getFileNameBody(subRoiDir);
+ [path sub num] = getFilenameBody(subRoiDir);
  sub = [sub num];
  
     if exist([collectedDataPath filesep sub],'dir') == 0
@@ -405,7 +417,7 @@ else % get those tracks located within the subregion based with a given
  
  
 %plot all tracks excluded from analysis
-  figure
+  figure('Visible',visible)
   imshow(roiMask);
   hold on;
   plot(xMatOut',yMatOut','g');
@@ -481,7 +493,7 @@ INPause=swapMaskValues(INPause,0,NaN); % 1 for the sections of the tracks inside
 OUTPause=swapMaskValues(INPause); % 1 for the sections of the track outside the sub-roi
 
 % plot all member tracks in red on top of the mask
- figure; 
+ figure('Visible',visible); 
  imshow(roiMask); 
  hold on; 
  plot(xMatPause',yMatPause','b')
@@ -552,7 +564,7 @@ INShrink=swapMaskValues(INShrink,0,NaN); % 1 for the sections of the tracks insi
 OUTShrink=swapMaskValues(INShrink); % 1 for the sections of the track outside the sub-roi
 
 % plot all member tracks in red on top of the mask
- figure; 
+ figure('Visible',visible); 
  imshow(roiMask); 
  hold on; 
  plot(xMatShrink',yMatShrink','k')
@@ -567,12 +579,27 @@ OUTShrink=swapMaskValues(INShrink); % 1 for the sections of the track outside th
 projData=sourceProjData;
 projData.anDir=subRoiDir; % path to sub-roi
 projData.imDir=projData.imDir;
+ 
+  xCoordIn = xMatIn.*IN; % calc coordinates before removing beg and end for plotting
+    yCoordIn = yMatIn.*IN; % calc coordinates before removing beg and end for plotting
+    
+    
+    xCoordOut = xMatIn.*OUT; 
+    yCoordOut = yMatIn.*OUT; 
+    
+    projData.xCoordInAllTracks = xCoordIn;  % save these coordinates before removing beg and end for plotting
+    projData.yCoordInAllTracks = yCoordIn;
+
+    projData.xCoordOutAllTracks= xCoordOut ; 
+    projData.yCoordOutAllTracks = yCoordOut; 
+
 
 if ~isempty(trckIdxIn)
 projData.nTracks = length(unique(dataMatMerge(trckIdxIn,1))); % number of
 % compound tracks represented (NOTE: depending on the user specifications the 
  %complete compound track may not be in the region)
-projData.stats.percentTracksStartAndEndInRegion = length(trckIdxInRegion)/length(trckIdxIn)*100;  
+%projData.stats.percentTracksStartAndEndInRegion = length(trckIdxInRegion)/length(trckIdxIn)*100;  
+
 else 
     projData.nTracks = 0; 
     projData.stats.percentTracksStartAndEndInRegion = 0;    
@@ -638,8 +665,8 @@ end
 % Initiate
 projData.xCoord=nan(size(sourceProjData.xCoord));
 projData.yCoord=nan(size(sourceProjData.yCoord));
-projData.featArea=nan(size(sourceProjData.featArea));
-projData.featInt=nan(size(sourceProjData.featInt));
+% projData.featArea=nan(size(sourceProjData.featArea));
+% projData.featInt=nan(size(sourceProjData.featInt));
 projData.frame2frameVel_micPerMin=nan(size(sourceProjData.frame2frameVel_micPerMin));
 projData.segGapAvgVel_micPerMin=nan(size(sourceProjData.segGapAvgVel_micPerMin));
 
@@ -652,8 +679,8 @@ for iSub=1:length(trckIdxIn)
     projData.xCoord(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.xCoord(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
     projData.yCoord(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.yCoord(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
 
-    projData.featArea(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.featArea(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
-    projData.featInt(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.featInt(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
+%     projData.featArea(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.featArea(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
+%     projData.featInt(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3))=sourceProjData.featInt(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3));
 
     projData.frame2frameVel_micPerMin(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3)-1)=sourceProjData.frame2frameVel_micPerMin(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3)-1);
     projData.segGapAvgVel_micPerMin(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3)-1)=sourceProjData.segGapAvgVel_micPerMin(dataMatMerge(k,1),dataMatMerge(k,2):dataMatMerge(k,3)-1);
@@ -720,6 +747,19 @@ projData.mergedDataMatAllSubTracksConverted = dataTotROI;
 lifeSec = lifeSec(trckIdxIn); 
 insideSec= insideSec(trckIdxIn); 
 
+projData.insideSecAllTracks = insideSec; % save these tracks before removing subtracks 
+% at the beginning or end of movie (for plotting)
+
+% calculate speed in before removing the beginning and the end tracks (for
+% plots)
+    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
+    speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
+    
+    projData.speedInMicPerMinAllTracks=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
+    projData.speedOutMicPerMinAllTracks=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm); 
+
+% these values will be used for plotting
+
 %%
 % Remove Growth SubTracks (and any preceding fgap/bgap) that begin in frame
 % first frame or end in last frame if user specifies
@@ -736,10 +776,13 @@ if remBegEnd== 1
  %projData.percentGrowthAtStartOrEnd=sum(projData.startOrEnd)./projData.stats.nGrowths*100;
  
  % modify lifeSec and insideLifeSec to only include those included in stats
+
  
-lifeSec = lifeSec(~projData.startOrEnd); 
+lifeSec = lifeSec(~projData.startOrEnd); % remove subtracks at the beg or end of  movie for stats
 insideSec = insideSec(~projData.startOrEnd); 
- 
+
+
+
  % modify the coordinate matrix and the lifeSec matrix so can calculate 
  % some other stats from cropped data structure 
  
@@ -747,7 +790,7 @@ insideSec = insideSec(~projData.startOrEnd);
  yMatIn = yMatIn(~projData.startOrEnd,:); 
  IN = IN(~projData.startOrEnd,:); 
  OUT = OUT(~projData.startOrEnd,:); 
- 
+%  
 else
      if isfield(projData,'dataMatCropped_MicPerMin_Sec_Mic')== 1; 
      projData =  rmfield(projData,'dataMatCropped_MicPerMin_Sec_Mic'); % a field in an older version
@@ -774,7 +817,7 @@ if projData.nTracks~=0
     % will calculate two local parameters(speed and growth lifetime) 
     % within this region)
      
-    projData.lifeSec=lifeSec; % total lifetime (seconds)
+    projData.lifeSec=lifeSec; % total lifetime (seconds) % only those cacluated in stats
     projData.insideSec=insideSec; % lifetime within sub-roi (seconds)
     projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
     
@@ -805,6 +848,10 @@ else
 
     projData.startOrEnd=NaN;
     projData.percentGrowthAtStartOrEnd=NaN;
+    projData.stats.growth_speed_mean_INSIDE_REGION = NaN; 
+    projData.stats.growth_lifetime_median_INSIDE_REGION = NaN; 
+    projData.stats.growth_lifetime_mean_INSIDE_REGION = NaN; 
+    
 end
 
 
@@ -820,10 +867,10 @@ end
 
 
 
-
-
-% Make Histograms
-if projData.nTracks ~= 0 
+turnHistOn  = 0 ; 
+if turnHistOn == 1
+% Make Histograms % make option to turn these on
+ if projData.nTracks ~= 0 
 plusTipMakeHistograms(M,[subRoiDir filesep 'meta' filesep 'histograms']);
 
 %%
@@ -837,7 +884,7 @@ yCoord = yMatIn;
 
 projNameTit = regexprep(projName,'_',' '); 
 
-saveFig1 =figure;
+saveFig1 =figure('Visible',visible);
 rose(anglesFinal); % based on all frame to frame angles 
 projData.anglesFrame2Frame = anglesFinal; 
 
@@ -858,6 +905,11 @@ projData.stats.polarCoordStdOfAllSubtracks = nanstd(projData.subTrackAnglesIndMe
 xCoordInside = xMatIn.*IN; 
 yCoordInside = yMatIn.*IN;
 
+xCoordOutside = xMatIn.*OUT; 
+yCoordOutside = yMatIn.*OUT; 
+
+
+
 [anglesFinalInside,subTrackAnglesIndMeanInside] = plusTipPlotTrackAngles2(xCoordInside,yCoordInside); 
 
 
@@ -868,7 +920,7 @@ projData.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION= nanmean(projData.subT
 projData.stats.polarCoordMedianOfAllSubtracks_INSIDE_REGION = nanmedian(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2)); 
 projData.stats.polarCoordStdOfAllSubtracks = nanstd(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2)); 
 
-saveFig2 = figure; 
+saveFig2 = figure('Visible',visible); 
 rose(anglesFinalInside);
 projData.anglesFrame2Frame_INSIDE_REGION = anglesFinalInside; 
 title({projNameTit ; 'Rose Plot of All Frame-to-Frame Growth Displacement (Converted to Theta): INSIDE SubRoi Only'});
@@ -916,7 +968,7 @@ end
  %saveas(test,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'Inside.eps'], 'psc2');
  %close(test)
 %%
-
+end 
 % Now write the interpolated coordinates corresponding to pause (necessary
 % for plotting functions)
 
@@ -926,8 +978,8 @@ for iSub=1:length(trckIdxInPause)
     projData.xCoord(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.xCoord(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
     projData.yCoord(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.yCoord(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
 
-    projData.featArea(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.featArea(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
-    projData.featInt(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.featInt(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
+%     projData.featArea(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.featArea(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
+%     projData.featInt(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3))=sourceProjData.featInt(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3));
 
     projData.frame2frameVel_micPerMin(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3)-1)=sourceProjData.frame2frameVel_micPerMin(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3)-1);
     projData.segGapAvgVel_micPerMin(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3)-1)=sourceProjData.segGapAvgVel_micPerMin(dataMatMergePause(k,1),dataMatMergePause(k,2):dataMatMergePause(k,3)-1);
@@ -942,10 +994,10 @@ for iSub=1:length(trckIdxInShrink)
 
     projData.xCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.xCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
     projData.yCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.yCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-
-    projData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-    projData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-
+% 
+%     projData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
+%     projData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
+% 
     projData.frame2frameVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1)=sourceProjData.frame2frameVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1);
     projData.segGapAvgVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1)=sourceProjData.segGapAvgVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1);
 end
