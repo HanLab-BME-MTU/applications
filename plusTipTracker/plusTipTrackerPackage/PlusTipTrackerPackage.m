@@ -51,9 +51,15 @@ classdef PlusTipTrackerPackage < TrackingPackage
         
         function funParams = getDefaultTrackingParams(owner,outputDir)
             funParams = TrackingProcess.getDefaultParams(owner,outputDir);
+            % Set default minimum track length
             funParams.gapCloseParam.minTrackLen = 3;
-            funParams.kalmanFunctions.initialize  = TrackingProcess.getKalmanInitializeFunctions(2).funcName;
-            funParams.kalmanFunctions.calcGain    = TrackingProcess.getKalmanCalcGainFunctions(2).funcName;
+            % Set default kalman functions
+            kalmanFunctions = TrackingProcess.getKalmanFunctions(2);
+            fields = fieldnames(kalmanFunctions);
+            validFields = {'reserveMem','initialize','calcGain','timeReverse'};
+            kalmanFunctions = rmfield(kalmanFunctions,fields(~ismember(fields,validFields)));
+            funParams.kalmanFunctions = kalmanFunctions;            
+            % Set default cost matrices
             funParams.costMatrices(1) = TrackingProcess.getDefaultLinkingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
             funParams.costMatrices(2) = TrackingProcess.getDefaultGapClosingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
         end

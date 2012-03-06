@@ -93,7 +93,7 @@ mkClrDir(p.OutputDirectory);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
-    outFilePaths{2,i} = [p.OutputDirectory filesep 'fileted_images_for_channel_' num2str(i)];
+    outFilePaths{2,i} = [p.OutputDirectory filesep 'filtered_images_for_channel_' num2str(i)];
     mkClrDir(outFilePaths{2,i});
 end
 cometDetProc.setOutFilePaths(outFilePaths);
@@ -113,7 +113,7 @@ for iChan= p.ChannelIndex
     % of the cell background, stored in stdList
     stdList=NaN(nFrames,1);
     
-    logMsg='Filtering images for comet detection';
+    logMsg=['Filtering images for comet detection for channel ' num2str(iChan)];
     progressText(0,logMsg);
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
     for i = p.firstFrame:p.lastFrame
@@ -152,8 +152,10 @@ for iChan= p.ChannelIndex
         % background using blobSegmentThreshold
         % filterDiff=filterGauss2D(im,p.sigma1)-filterGauss2D(im,p.sigma2);
         % filterDiff(~mask)=NaN;
-        % bw = blobSegmentThreshold(filterDiff,0,0,mask);
-        % filterDiff(bw)=NaN;
+        % enanchedFilterDiff = ordfilt2d(filterDiff,9,ones(3,3));
+        % threshold = thresholdOtsu(enhancedFilterDiff)/3 + ...
+        % thresholdRosin(enhancedFilterDiff)*2/3 + ...
+        % stdList(i)=nanstd(filterDiff(enhancedFilterDiff>threshold));
         stdList(i)=nanstd(filterDiff(:));
 
         % Update progress status
@@ -170,7 +172,7 @@ for iChan= p.ChannelIndex
     progressText(0,logMsg);
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
     for i = p.firstFrame:p.lastFrame
-        % Reload filtered images
+        % Reload band-pass images
         s=load(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']));
         filterDiff=s.filterDiff;
         stepSize=p.multFactorStepSize*meanStd(i);

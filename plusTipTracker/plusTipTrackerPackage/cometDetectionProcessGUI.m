@@ -66,7 +66,7 @@ set(handles.popupmenu_MaskProcess,'String',maskProcString,...
 
 set(handles.edit_firstFrame,'String',funParams.firstFrame);
 set(handles.edit_lastFrame,'String',funParams.lastFrame);
-userData.numParams ={'sigma1','sigma2','multFactorThresh'};
+userData.numParams ={'sigma1','sigma2','multFactorThresh','multFactorStepSize'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
 % Update GUI user data
