@@ -34,6 +34,10 @@ warning('off','MATLAB:divideByZero')
 removeSatPixels = 0; % put one if you want to turn on this option
 troubleShoot = 0; % put 1 if you would like detection to generate filterDiff
 % images etc
+useCellBckGround = 0; %this flag will mask the comets in an attempt a more 
+% accurate estimation of the cellular background for noise estimation 
+% if this flag is turned on the std of the comet masked image will be used
+% for the threshold estimation and step size for the watershed. 
 
 %Filter Parameters
 sigma1 = 1; % set by resolution of the microscope, the larger the number
@@ -46,12 +50,7 @@ sigma2  = 4; % smaller numbers result in MORE background subtraction (ie
 
 %Thresh Parameters
 threshMultFactor = 3;
-multFactor4StepSize = 1;
-
-
-manChooseBck = 0; % set to 1 if you want to manually choose the background
-% area to calculate the std for for the watershed method. If set to zero
-% will use the entire intracellular region of the ROI
+multFactor4StepSize = 0.5;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -98,7 +97,7 @@ end
 
 if padded == 0
     %Initialize Cells for Sorting
-    %path = path of file, body = body of filename, ex/home/mb228/orchestra/groups/lccb-comet/Pellman/Mijung/7-28-10_EB_for_Maria/EB1_4_Cropped/roi_2t = extension of filename
+    %path = path of file, body = body of filename, 
     %(tif etc) (all of these require a cell because they are strings)
     % num = number of filename (do not want in cell so can sort)
     pathCell = cell(nImTot,1);
@@ -288,7 +287,7 @@ strg1 = sprintf('%%.%dd',s1);
 stdList=nan(nImTot,1);
 count=1;
 progressText(0,'Filtering images for comet detection');
-background = []; 
+%background = []; 
 for iFrame = startFrame:endFrame
     
     progressText(count/nFrames,'Filtering images for comet detection');
@@ -304,36 +303,58 @@ for iFrame = startFrame:endFrame
     
     
     img = double(imread(fileNameIm))./((2^bitDepth)-1);
+  
     
-if manChooseBck == 1 
+
     
-    if iFrame == 1 
     
+    
+    
+%if useCellBckGround == 1 
+%     
+ % if iFrame == 1 
+%     
+%    
+%    
+%      while isempty(background) ==1 
+%            
+%                    try
+%                      
+%        
+%                         figure;
+%                         set(gcf,'Name','Choose an ROI that estimates your cells intracellular background by clicking on image...')
+%                         [background,polyXcoord,polyYcoord]=roipoly(img);
+%                          
+%                         roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
+%                    catch
+%                         h=msgbox('Please try again.','help');
+%                         uiwait(h);
+%                         c=c+1;
+%                         if c<=3 % give them 3 chances, then abort
+%                             return
+%                         end
+%                     end
+%       end % while 
+%     close(gcf)
+%     end % if iFrame
+    
+%      % add a use distance transform option
+%     
+%            % size of a pixel in microns
+%            weightedRoi=bwdist(swapMaskValues(roiMask)).*108/1000;
+%     
+%         %[r,c]=find(weightedRoi==max(weightedRoi(:)));
+%         
+%        
+%         
+%         innerMask  = weightedRoi > 2;
+%         
+%         background = roiMask - innerMask ; 
+%         
+%         
    
-   
-     while isempty(background) ==1 
-           
-                   try
-                     
-       
-                        figure;
-                        set(gcf,'Name','Choose an ROI that estimates your cells intracellular background by clicking on image...')
-                        [background,polyXcoord,polyYcoord]=roipoly(img);
-                         
-                        roiYX=[polyYcoord polyXcoord; polyYcoord(1) polyXcoord(1)];
-                   catch
-                        h=msgbox('Please try again.','help');
-                        uiwait(h);
-                        c=c+1;
-                        if c<=3 % give them 3 chances, then abort
-                            return
-                        end
-                    end
-      end % while 
-    close(gcf)
-    end % if iFrame
-    
-end % if   man ChooseBck
+
+% end % if   man ChooseBck
     
     if removeSatPixels == 1
         img(img==1)= 0;
@@ -353,7 +374,22 @@ end % if   man ChooseBck
     else % keep the same
     end % isempty
     
-   
+    
+    if useCellBckGround ==1  
+       
+        %background= double(imread([projData.anDir filesep
+        %'roiMaskBack.tif'])); % load background mask
+        blobMask = blobSegmentThreshold(img,5,0,[]);
+        
+        background = roiMask+~blobMask; % combine masks
+        background(background~=2) = 0; % 
+        background(background==2) = 1; 
+    end 
+        
+        
+      
+    
+    
     
     % create kernels for gauss filtering
     blurKernelLow  = fspecial('gaussian', 21, scales(1));
@@ -367,10 +403,13 @@ end % if   man ChooseBck
     lowPass = filterRegion(img,roiMask, blurKernelLow); %
     highPass = filterRegion(img,roiMask,blurKernelHigh);
     
-    if manChooseBck == 1 
+    if useCellBckGround == 1 
+        
     lowPassBckGround = filterRegion(img,background,blurKernelLow); 
     highPassBckGround = filterRegion(img,background,blurKernelHigh);
     filterDiffBck = lowPassBckGround - highPassBckGround;
+    
+    
     end % if
     
     
@@ -391,7 +430,7 @@ end % if   man ChooseBck
         bgMask=logical(roiMask); %Note: not sure why she has logical here (it doesn't change anything as far as I can tell)
     end
     
-   if manChooseBck == 1
+   if useCellBckGround == 1
        forStdEst = filterDiffBck; % use the background area selected 
    else 
        forStdEst = filterDiff; % use the whole image
@@ -404,6 +443,11 @@ end % if   man ChooseBck
     indxStr1 = sprintf(strg1,iFrame);
     save([featDir filesep 'filterDiff' filesep 'filterDiff' indxStr1],'filterDiff')
     save([featDir filesep 'stdList'],'stdList')
+    if useCellBckGround ==1 % if manual background or equivalent option on 
+       
+      
+    imwrite(background,[featDir filesep 'backgroundMask.tif'],'tif'); 
+    end 
     
     count=count+1;
 end
@@ -458,9 +502,11 @@ for iFrame = startFrame:endFrame
         end
         %imgpn = double(imread(fileNameIm));
         img = double(imread(fileNameIm))./((2^bitDepth)-1);
-        saveFig=figure('Visible','off');
+        saveFig=figure( 'Visible','off');
         %clims = [0.01,0.5];
         imagesc(img)
+       % imshow(img)
+        set(gca,'Position',[0 0 1 .95]);
         hold on
         scatter(xCoord(:,1),yCoord(:,1),'c.'); % plot centroid in cyan
         colormap gray
@@ -551,7 +597,7 @@ K = convhull(c(goodIdx(closeIdx)),r(goodIdx(closeIdx)));
 [bgMask,xi,yi]=roipoly(fImg,c(goodIdx(closeIdx(K))),r(goodIdx(closeIdx(K))));
 
 
-saveFig = figure
+saveFig = figure;
 imagesc(filterDiff);
 colormap gray;
 axis equal
