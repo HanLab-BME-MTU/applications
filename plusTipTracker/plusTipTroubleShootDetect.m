@@ -143,8 +143,8 @@ end % end sort image list
 
 fileNameIm = [char(listOfImages(1,2)) filesep char(listOfImages(1,1))];
 img = double(imread(fileNameIm))./((2^bitDepth)-1);
-[imL,imW] = size(img);
-
+[imL,imW] = size(img); 
+ img(img==1) = 0; % maske out sat pixels 
 
 %[path body no ext ] = getFilenameBody(projData.imDir);
 %projData.anDir = [path filesep 'roi_2'];
@@ -158,6 +158,7 @@ if ~exist([projData.anDir filesep 'roiMask.tif'],'file')
 else
     % get roi edge pixels and make region outside mask NaN
     roiMask = double(imread([projData.anDir filesep 'roiMask.tif']));
+    
     
     % for some reason the donut mask will open not as 1 and 0s but as 
     % 255 (an 8 bit image) and 0s, Check for this and correct so the donut mask will 
@@ -283,7 +284,7 @@ for i = 1:length(frameList)
     % Load and normalize image based on bitdepth
     img = double(imread(fileNameIm))./((2^bitDepth)-1); 
     
-    
+    img(img==1)=0; 
     %FILTER IMAGE
 
     % create kernels for gauss filtering
@@ -312,6 +313,12 @@ for i = 1:length(frameList)
         bgMask=logical(roiMask); %Note: not sure why she has logical here (it doesn't change anything as far as I can tell)
     end
     
+    if exist([projData.anDir filesep 'feat' filesep 'backgroundMask.tif'],'file') ~=0
+      bgMask = double(imread([projData.anDir filesep 'feat' filesep 'backgroundMask.tif']));
+      bgMask = logical(bgMask)  ;
+    end 
+    
+   
     %CALC: std of image intensity
     stdList(iter) = std(filterDiff(bgMask));
    
