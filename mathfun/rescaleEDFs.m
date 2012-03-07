@@ -1,3 +1,7 @@
+%function [a medIdx] = rescaleEDFs(samples, varargin) computes the x-scaling factor between the EDFs of the input sample sets
+
+% Francois Aguet, 03/06/2012
+
 function [a medIdx] = rescaleEDFs(samples, varargin)
 
 ip = inputParser;
