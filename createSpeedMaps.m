@@ -26,7 +26,7 @@ function speedMap=createSpeedMaps(Md,n,sampling,pixelSize,imgSize,mask)
 
 % Calculate average vector fields
 nMaps=size(Md,3)-n+1;
-speedMap=cell(1,nMaps);
+speedMap=cell(1,size(Md,3)+1);
 for i=1:nMaps
     
     % Extract mean velocities over n frames
@@ -44,15 +44,17 @@ for i=1:nMaps
     velocities(:,3)=sqrt(meanVectors(:,1).^2+meanVectors(:,2).^2);
     
     % Reshape
-    speedMap{i}=reshape(velocities(:,3),length(unique(Md(:,2,1))),length(unique(Md(:,1,1))))';
+    iMap=i+fix(n/2);
+    speedMap{iMap}=reshape(velocities(:,3),length(unique(Md(:,2,1))),length(unique(Md(:,1,1))))';
     
     % Transform to nm/min
-    speedMap{i}=speedMap{i}*(60/sampling)*pixelSize;
+    speedMap{iMap}=speedMap{iMap}*(60/sampling)*pixelSize;
     
     % If needed, resize
-    speedMap{i}=imresize(speedMap{i},imgSize,'bilinear');
+    speedMap{iMap}=imresize(speedMap{iMap},imgSize,'bilinear');
 
     % Use union of masks
-    speedMap{i} = speedMap{i} .* logical(sum(mask(:,:,i:i+n-1),3));
+    speedMap{iMap} = speedMap{iMap} .* logical(sum(mask(:,:,i:i+n-1),3));
 end
-
+speedMap(1:fix(n/2))=speedMap(fix(n/2)+1);
+speedMap(nMaps+fix(n/2)+1:end)=speedMap(nMaps+fix(n/2));

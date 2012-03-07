@@ -130,8 +130,11 @@ outFile=@(chan,frame) [outputDir{chan} filesep 'flowMaps_' numStr(frame) '.mat']
 
 speedMapLimits=cell(1,nChan);
 flowLimits=cell(1,nChan);
+channelLog=cell(1,numel(p.ChannelIndex));
+
 for iChan = p.ChannelIndex
     % Log display
+    channelLog{i} = sprintf('Channel %g: %s\n',iChan,inFilePaths{1,iChan});
     disp(logMsg(iChan))
     
     if ishandle(wtBar), waitbar(0,wtBar,'Loading masks and images...'); end
@@ -161,29 +164,18 @@ for iChan = p.ChannelIndex
     
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
-    [Md,Ms,E,S] = ...
-        analyzeFlow(flow,p.timeWindow,p.corrLength,'noise',p.noise,'error',p.error);
-    
-    
-    % Repliacte frames
-    replicateFrames = @(x) [repmat(x(1),1,fix(p.timeWindow/2)) x ...
-        repmat(x(end),1,fix(p.timeWindow/2)+1)];
-    Md=replicateFrames(Md); 
-    Ms=replicateFrames(Ms); %#ok<NASGU>
-    E=replicateFrames(E);
-    S=replicateFrames(S);
-    
+    [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow,p.corrLength,...
+        'noise',p.noise,'error',p.error);
     
     % Speed maps creation
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
+
     % Interpolate raw vector on a grid
     G=framework(movieData.imSize_,[p.gridSize p.gridSize]);
     Mdgrid=arrayfun(@(i) vectorFieldAdaptInterp(flow{i},G,p.corrLength,...
         [],'strain'),1:size(M,3),'UniformOutput',false);
-
     speedMap = createSpeedMaps(cat(3,Mdgrid{:}),p.timeWindow,movieData.timeInterval_,...
         movieData.pixelSize_,movieData.imSize_,mask);
-    speedMap=replicateFrames(speedMap);
     
     if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
@@ -191,11 +183,15 @@ for iChan = p.ChannelIndex
     % Fill output structure for each frame and save it
     disp('Results will be saved under:')
     disp(flowAnProc.outFilePaths_{1,iChan});
-    output={'speedMap','Md','Ms','E','S','img3C_map','img3C_SNR'};
     for j=1:nFrames
-        for k=1:numel(output)
-            s.(output{k})=eval([output{k} '{' num2str(j) '}']);
-        end
+        s.Md=Md{j};
+        s.Ms=Ms{j};
+        s.E=E{j};
+        s.S=S{j};
+        s.speedMap=speedMap{j};
+        s.img3C_map=img3C_map{j};
+        s.img3C_SNR=img3C_SNR{j};
+        
         save(outFile(iChan,j),'-struct','s');
     end
     
@@ -208,6 +204,22 @@ for iChan = p.ChannelIndex
     flowMagnitude = (diff(allFlow(:,[1 3]),1,2).^2+diff(allFlow(:,[2 4]),1,2).^2).^.5;
     flowLimits{iChan}=[min(flowMagnitude(:)) max(flowMagnitude(:))];
     
+    % Create channel log fot output
+    lv=vertcat(stats.lv{:})*(60/movieData.timeInterval_)*movieData.pixelSize_;
+    ld=vertcat(stats.ld{:})*(60/movieData.timeInterval_)*movieData.pixelSize_;
+    ls=vertcat(stats.ls{:})*(60/movieData.timeInterval_)*movieData.pixelSize_;
+    snr=vertcat(stats.snr{:});
+    
+    channelLog{i} = [channelLog{i} ...
+        sprintf('Number of RAW vectors            : %d\n',numel(lv))...
+        sprintf('Mean RAW vector length           : %2.4f nm/min +/- %2.4f nm/min (+/- %2.2f%%)\n',mean(lv),std(lv),100*std(lv)/mean(lv))...
+        sprintf('Median RAW vector length         : %2.4f nm/min \n',median(lv))...
+        sprintf('Mean INTERPOLATED vector length  : %2.4f nm/min +/- %2.4f nm/min (+/- %2.2f%%)\n',mean(ld),std(ld),100*std(ld)/mean(ld))...
+        sprintf('Median INTERPOLATED vector length: %2.4f nm/min\n',median(ld))...
+        sprintf('Mean NOISE vector length         : %2.4f nm/min +/- %2.4f nm/min (+/- %2.2f%%)\n',mean(ls),std(ls),100*std(ls)/mean(ls))...
+        sprintf('Median NOISE vector length       : %2.4f nm/min\n',median(ls))...
+        sprintf('Mean / median SNR                : %2.4f +/- %2.4f (+/- %2.2f%%) / %2.4f\n',mean(snr),std(snr),100*std(snr)/mean(snr),median(snr))];
+    
 end
 flowAnProc.setSpeedMapLimits(speedMapLimits)
 flowAnProc.setFlowLimits(flowLimits);
@@ -216,3 +228,10 @@ flowAnProc.setFlowLimits(flowLimits);
 if ishandle(wtBar), close(wtBar); end
 
 disp('Finished analyzing flow!');
+
+% Create process report
+procLog=[sprintf('Flow analysis summary\n\n') channelLog{:}];
+disp(procLog);
+fid=fopen([p.OutputDirectory filesep 'FlowAnalysisSummary.txt'],'wt');
+fprintf(fid,'%s',procLog);
+fclose(fid);

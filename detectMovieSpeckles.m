@@ -145,8 +145,7 @@ channelLog=cell(1,numel(p.ChannelIndex));
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Log display
-    channelLog{i} = sprintf('Channel %g: %s\n',iChan,...
-        regexptranslate('escape',imDirs{iChan}));
+    channelLog{i} = sprintf('Channel %g: %s\n',iChan,imDirs{iChan});
     disp(logMsg(iChan))
     disp(imDirs{iChan});
     disp('Results will be saved under:')
@@ -219,5 +218,5 @@ disp('Finished detecting speckles!')
 procLog=[sprintf('Speckle detection summary\n\n') channelLog{:}];
 disp(procLog);
 fid=fopen([p.OutputDirectory filesep 'SpeckleDetectionSummary.txt'],'wt');
-fprintf(fid,procLog);
+fprintf(fid,'%s',procLog);
 fclose(fid);
