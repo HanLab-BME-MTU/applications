@@ -12,7 +12,7 @@ for i = 1:nd
         lft = [tracks.lifetime_s];
         itracks = tracks(lb(k)<=lft & lft<=ub(k));
         % max intensities
-        w = min(4, round(lb(k)/data(k).framerate));
+        w = min(4, round(lb(k)/data(i).framerate));
         res(i).maxA{k} = arrayfun(@(t) max(t.A(1,:)), itracks);
         res(i).maxA4{k} = arrayfun(@(t) max(t.A(1,1:w)), itracks);
         res(i).sum4{k} = arrayfun(@(t) sum(t.A(1,1:w)), itracks);
