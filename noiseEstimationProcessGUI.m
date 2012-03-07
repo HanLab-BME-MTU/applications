@@ -179,6 +179,7 @@ if get(handles.checkbox_crop,'Value')
     if ~isfield(userData, 'previewFig') || ~ishandle(userData.previewFig)
         userData.previewFig = figure('Name','Select the background region to crop',...
             'DeleteFcn',@close_previewFig,'UserData',handles.figure1);
+        axes('Position',[.05 .05 .9 .9]);
         userData.newFigure = 1;
     else
         figure(userData.previewFig);

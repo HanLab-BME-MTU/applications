@@ -59,11 +59,7 @@ if isempty(iMaskProc)
     'on this movie! Please run first!!']);
 end
 
-maskProc = movieData.processes_{iMaskProc};
-if ~all(maskProc.checkChannelOutput(p.MaskChannelIndex))
-    error(['Mask refinement has not been run for all selected channels! '...
-        'Please apply segmentation before running correlation!']);
-end
+
        
 
 % Create mask directory if several masks need to be merged
@@ -76,21 +72,21 @@ if length(p.MaskChannelIndex) >1
         iMaskIntProc = numel(movieData.processes_)+1;
         movieData.addProcess(MaskIntersectionProcess(movieData,p.OutputDirectory));
     end
-    maskIntProc = movieData.processes_{iMaskIntProc};
+    maskProc = movieData.processes_{iMaskIntProc};
     
     %Set up the parameters for mask transformation
-    maskIntParams.ChannelIndex = p.MaskChannelIndex;
-    maskIntParams.SegProcessIndex = iMaskProc;
+    maskParams.ChannelIndex = p.MaskChannelIndex;
+    maskParams.SegProcessIndex = iMaskProc;
     
-    parseProcessParams(maskIntProc,maskIntParams);
-    maskIntProc.run;
-    
-    % Get mask directory and names
-    maskDir = maskIntProc.outFilePaths_{1};
-    maskNames = maskIntProc.getOutMaskFileNames(1);
+    parseProcessParams(maskProc,maskParams);
+    maskProc.run;
 else
-    maskDir = maskProc.outFilePaths_{p.MaskChannelIndex};
-    maskNames = maskProc.getOutMaskFileNames(p.MaskChannelIndex);
+    maskProc = movieData.processes_{iMaskProc};
+end
+
+if ~all(maskProc.checkChannelOutput(p.MaskChannelIndex))
+    error(['Mask refinement has not been run for all selected channels! '...
+        'Please apply segmentation before running correlation!']);
 end
 
 iNDProc =movieData.getProcessIndex('NoiseEstimationProcess',1,1);   
@@ -106,7 +102,7 @@ end
 inFilePaths = cell(2,numel(movieData.channels_));
 for j = p.ChannelIndex
     inFilePaths{1,j} = imDirs{j};
-    inFilePaths{2,j} = maskDir;
+    inFilePaths{2,j} = maskProc.outFilePaths_{1,j};
     if ~isempty(iNDProc)
         inFilePaths{3,j} = movieData.processes_{iNDProc}.outFilePaths_{1,j};
     end
@@ -132,7 +128,6 @@ numStr = @(frame) num2str(frame,fString);
 
 % Anonymous functions for reading input/output
 outFile=@(chan,frame) [outputDir{chan} filesep 'cands_' numStr(frame) '.mat'];
-inMask=@(frame) [maskDir filesep maskNames{1}{frame}];
 
 logMsg = @(chan) ['Please wait, detecting speckles for channel ' num2str(chan)];
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t)) 's'];
@@ -141,6 +136,7 @@ nChan = length(p.ChannelIndex);
 nTot = nChan*nFrames;
 
 channelLog=cell(1,numel(p.ChannelIndex));
+roiMask = movieData.getROIMask;
 
 for i = 1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
@@ -167,12 +163,13 @@ for i = 1:numel(p.ChannelIndex)
     for j= 1:nFrames
         % Load the current image, scale it and apply Gaussian filter
         currImage = movieData.channels_(iChan).loadImage(j)/maxIntensity; 
+        currMask = maskProc.loadChannelOutput(iChan,j).*roiMask(:,:,j);
         if p.filterSigma(iChan)>0
             currImage = filterGauss2D(currImage,p.filterSigma(iChan));
         end
         
         % Mask the filtered image
-        currImage= currImage.*logical(imread(inMask(j)));
+        currImage= currImage.*currMask;
 
         % Detect local maxima and apply speckle detection statistical test
         [cands locMax] = detectSpeckles(currImage,noiseParam,p.paramSpeckles,p.filterSigma(iChan));  %#ok<NASGU>

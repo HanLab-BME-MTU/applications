@@ -155,11 +155,9 @@ for i = 1:numel(p.ChannelIndex)
     % Load masks
     if ishandle(wtBar), waitbar(0,wtBar,'Loading masks ...'); end
     disp('Loading masks...');
-    maskNames = maskProc.getOutMaskFileNames(iChan);
-    inMask=@(frame) [maskProc.outFilePaths_{1,iChan} filesep maskNames{1}{frame}];
     se=strel('disk',p.edgeErodeWidth);
     for j = p.firstImage:p.lastImage
-        bgMask(:,:,j) = imerode(logical(imread(inMask(j))),se);
+        bgMask(:,:,j) = imerode(maskProc.loadChannelOutput(iChan,j),se);
     end
     
     if ishandle(wtBar), waitbar(0,wtBar,'Loading speckles...'); end
