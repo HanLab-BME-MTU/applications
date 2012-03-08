@@ -40,7 +40,7 @@ classdef FlowAnalysisProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'speedMap','Md','Mv','Ms','E','S','img3C_map','img3C_SNR'};
+            outputList = {'speedMap','Md','Ms','E','S','img3C_map','img3C_SNR'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));

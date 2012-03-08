@@ -83,7 +83,7 @@ classdef QFSMPackage < Package
                 0 0 1 1 0 0 0 0;   %5 FlowTrackingProcess
                 0 0 0 1 2 0 0 0;   %6 SpeckleTrackingProcess
                 2 0 1 1 0 1 0 0;   %7 KineticAnalysisProcess
-                0 0 1 1 0 1 0 0;]; %8 FlowAnalysisProcess
+                0 0 1 1 2 2 0 0;]; %8 FlowAnalysisProcess
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
             m=m(i,j);

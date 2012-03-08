@@ -8,6 +8,10 @@ function varargout = qfsmPackageGUI(varargin)
 % Sebastien Besson 5/2011
 %
 
-varargout{1} = packageGUI(@QFSMPackage,varargin{:});
+if nargin>0 && isa(varargin{1},'MovieList')
+    varargout{1} = packageGUI(@QFSMPackage,[varargin{1}.getMovies{:}],varargin{2:end});
+else
+    varargout{1} = packageGUI(@QFSMPackage,varargin{:});
+end
 
 end

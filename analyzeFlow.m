@@ -33,10 +33,13 @@ ip.addParamValue('error',true,@isscalar);
 ip.parse(flow,nAvg,corrLength,varargin{:});
 
 % Get frame for interpolation
-nInterpolations= numel(flow)-nAvg+1;
-validFrames = find(~arrayfun(@isempty,flow(1:nInterpolations)));
-startFrames=1:fix(nAvg/2);
-endFrames = validFrames(end)+fix(nAvg/2)+1:numel(flow)+1;
+validFlowFrames = find(~cellfun(@isempty,flow));
+assert(isequal(unique(diff(validFlowFrames)),1),['Flow must be measured on consecutive'...
+    ' frames to be analyzed']);
+startFrames = validFlowFrames(1:end-nAvg+1);
+midFrames = startFrames+fix(nAvg/2);
+preFrames=1:midFrames(1)-1;
+postFrames = midFrames(end)+1:numel(flow)+1;
 
 % Initialize empty output
 Md=cell(1,numel(flow)+1);
@@ -45,25 +48,25 @@ E=cell(1,numel(flow)+1);
 S=cell(1,numel(flow)+1);
 
 % Interpolate vector field
-for i=validFrames
+for i=startFrames
     Md{i+fix(nAvg/2)}=vectorFieldAdaptInterp(vertcat(flow{i:i+nAvg-1}),...
         flow{i+fix(nAvg/2)}(:,1:2),corrLength,[],'strain');
 end
-Md(startFrames)=Md(fix(nAvg/2)+1);
-Md(endFrames)=Md(nInterpolations+fix(nAvg/2));
+Md(preFrames)=Md(midFrames(1));
+Md(postFrames)=Md(midFrames(end));
 
 if ~ip.Results.noise, return; end
 
 % Return cell array of noise vectors
-for i=validFrames+fix(nAvg/2)
+for i=midFrames
     Ms{i}=horzcat(Md{i}(:,3:4),flow{i}(:,3:4));
 end
-Ms(startFrames)=Ms(fix(nAvg/2)+1);
-Ms(endFrames)=Ms(nInterpolations+fix(nAvg/2));
+Ms(preFrames)=Ms(midFrames(1));
+Ms(postFrames)=Ms(midFrames(end));
 
 if ~ip.Results.error, return; end
 
-for i=validFrames+fix(nAvg/2)
+for i=midFrames
     % Extract vectors
     v=flow{i}(:,3:4)-flow{i}(:,1:2); % Raw vector field
     d=Md{i}(:,3:4)-Md{i}(:,1:2); % Interpolated vector field    
@@ -98,24 +101,8 @@ for i=validFrames+fix(nAvg/2)
     stats.snr{i}=snr;
 end
 
-E(startFrames)=E(fix(nAvg/2)+1);
-E(endFrames)=E(nInterpolations+fix(nAvg/2));
-S(startFrames)=S(fix(nAvg/2)+1);
-S(endFrames)=S(nInterpolations+fix(nAvg/2));
+E(preFrames)=E(midFrames(1));
+E(postFrames)=E(midFrames(end));
 
-
-% fprintf(1,'Number of RAW vectors            : %d\n',size(flow,1));
-% fprintf(1,'Mean RAW vector length           : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(lv),std(lv),100*std(lv)/mean(lv));
-% fprintf(1,'Median RAW vector length         : %2.4f\n',median(lv));
-% fprintf(1,'Mean INTERPOLATED vector length  : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(ld),std(ld),100*std(ld)/mean(ld));
-% fprintf(1,'Median INTERPOLATED vector length: %2.4f\n',median(ld));
-% fprintf(1,'Mean NOISE vector length         : %2.4f +/- %2.4f (+/- %2.2f%%)\n',mean(ls),std(ls),100*std(ls)/mean(ls));
-% fprintf(1,'Median NOISE vector length       : %2.4f\n',median(ls));
-% snr=ld./ls;
-% fprintf(1,'Mean / median SNR                : %2.4f +/- %2.4f (+/- %2.2f%%) / %2.4f\n',mean(snr),std(snr),100*std(snr)/mean(snr),median(snr));
-% [n,h]=hist(snr,0.5:max(snr)+0.5);
-% n=cumsum(n); n=n/max(n);
-% indx=find(n>=0.95);indx=indx(1);
-% fprintf(1,'95%% of all vectors have SNR <= %d\n',indx);
-% 
-%     
+S(preFrames)=S(midFrames(1));
+S(postFrames)=S(midFrames(end));

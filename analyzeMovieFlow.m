@@ -132,7 +132,8 @@ speedMapLimits=cell(1,nChan);
 flowLimits=cell(1,nChan);
 channelLog=cell(1,numel(p.ChannelIndex));
 
-for iChan = p.ChannelIndex
+for i=1:numel(p.ChannelIndex)
+    iChan = p.ChannelIndex(i);
     % Log display
     channelLog{i} = sprintf('Channel %g: %s\n',iChan,inFilePaths{1,iChan});
     disp(logMsg(iChan))
@@ -160,6 +161,11 @@ for iChan = p.ChannelIndex
         case 'FlowTrackingProcess'
             flow = flowProc.loadChannelOutput(iChan,'output','flow');
             flow=flow(1:end-1);
+            
+            % Remove NaNs 
+            for j=find(~cellfun(@isempty,flow))
+                flow{j}=flow{j}(~isnan(flow{j}(:,3)),:);
+            end           
     end
     
     % Interpolate field
@@ -167,16 +173,12 @@ for iChan = p.ChannelIndex
     [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow,p.corrLength,...
         'noise',p.noise,'error',p.error);
     
-    % Speed maps creation
+    % Create speed maps
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
-
-    % Interpolate raw vector on a grid
-    G=framework(movieData.imSize_,[p.gridSize p.gridSize]);
-    Mdgrid=arrayfun(@(i) vectorFieldAdaptInterp(flow{i},G,p.corrLength,...
-        [],'strain'),1:size(M,3),'UniformOutput',false);
-    speedMap = createSpeedMaps(cat(3,Mdgrid{:}),p.timeWindow,movieData.timeInterval_,...
-        movieData.pixelSize_,movieData.imSize_,mask);
+    speedMap = createSpeedMaps(flow,p.timeWindow,p.corrLength,movieData.timeInterval_,...
+        movieData.pixelSize_,movieData.imSize_,p.gridSize,mask);
     
+    % Create error mapss
     if ishandle(wtBar), waitbar(.75,wtBar,['Generating error maps for channel ' num2str(iChan)']); end
     [img3C_map img3C_SNR]=createErrorMaps(stack,E,S); %#ok<ASGLU,NASGU>
     

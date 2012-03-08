@@ -64,9 +64,12 @@ set(handles.edit_gridSizeMicrons,'String',...
 
 % Set popup-menu
 flowProc = userData.crtProc.getFlowProcesses;
-flowString = cellfun(@(x) eval([x '.getName']),...
-    userData.crtProc.getFlowProcesses,'UniformOutput',false);
+validProc =  cellfun(@(x) ~isempty(userData.MD.getProcessIndex(x,1)),flowProc);
+flowProc=flowProc(validProc);
+
+flowString = cellfun(@(x) eval([x '.getName']),flowProc,'Unif',false);
 flowValue = find(strcmp(funParams.FlowProcess,flowProc));
+if isempty(flowValue), flowValue=1; end
 set(handles.popupmenu_FlowProcess,'String',flowString,'Value',flowValue,...
     'UserData',flowProc);
 
