@@ -1,23 +1,36 @@
-function exitflag = algorithmIncremental(dirPath,rootPathWin,rootPathUnix)
+function exitflag = algorithm(dirPath)
 % Disable stupid MATLAB parfor warning!
 warning('off','MATLAB:mir_warning_maybe_uninitialized_temporary');
 
-tStart = tic;
+global stormTimer__; % :-D
+stormTimer__ = Timing();
+stormTimer__.start('Main');
 
+% PARAMS
+
+% Dissolve clusters
 smallClusterSize = 3;
+
+% Orientation detector
+nBins = 4; minBinResponse = 1;
+
+% Update edges anisotropic
+dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
 
 % INIT DATA
 disp('-- INIT ----------------------------------------');
+stormTimer__.start('Read Configuration');
 
-dirPath = checkPath(dirPath,rootPathWin,rootPathUnix);
 list = dir(dirPath);
+list = list(~vertcat(list.isdir));
 
 % Find the first configuration file in the directory
-for i=3:numel(list)
+for i=1:numel(list)
     if strcmp(list(i).name(end-3:end),'.cfg')
         configName = list(i).name;
         break;
-    else
+    end
+    if i == numel(list)
         exitflag = 'Main: Configuration file not found!';
         return;
     end
@@ -25,13 +38,15 @@ end
 
 % Load the configuration file
 cfg = Config.load([dirPath configName]);
-cfg.path = checkPath(cfg.path,rootPathWin,rootPathUnix);
+pos = strfind(cfg.path,'_data');
+cfg.path = [getStormPath() strrep(strrep(cfg.path(pos:end),'\',filesep),'/',filesep)];
 
 if isunix
     disp('Main: Unix system detected: Display and snapshots are disabled!');
     cfg.displayEnabled = false;
     cfg.snapshotsEnabled = false;
 end
+stormTimer__.stop('Read Configuration');
 
 % Initialize Imaris
 im = Imaris(cfg.displayEnabled,cfg.snapshotsEnabled,cfg.snapshotsPath);
@@ -39,7 +54,7 @@ im.setupScene();
 
 % Check if *.i.dat file exists
 dataName = [];
-for i=3:numel(list)
+for i=1:numel(list)
     if strcmp(list(i).name(end-5:end),'.i.dat')
         dataName = list(i).name;
         break;
@@ -49,7 +64,7 @@ end
 if isempty(dataName) % No *.i.dat file present
     
     % Check if *.d.data file exists
-    for i=3:numel(list)
+    for i=1:numel(list)
         if strcmp(list(i).name(end-5:end),'.d.dat')
             dataName = list(i).name;
             break;
@@ -58,6 +73,7 @@ if isempty(dataName) % No *.i.dat file present
     
     if isempty(dataName) % No *.d.dat file present
         % Read data
+        stormTimer__.start('Read Data');
         data = Data.read([cfg.path cfg.fileName]);
         dis = Show(data,im);
         pro = Processor(data);
@@ -74,18 +90,31 @@ if isempty(dataName) % No *.i.dat file present
         im.fitAndSaveCamera();
         im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
         data.rawPoints = data.points;
+        stormTimer__.stop('Read Data');
         
         % Prefilter data
+        if cfg.subsampleFraction ~= 1
+            stormTimer__.start('Subsample Data');
+            pro.subsamplePoints(cfg.subsampleFraction);
+            dis.points();
+            im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
+            stormTimer__.stop('Subsample Data');
+        end
+        
         if cfg.dataReductionEnabled
+            stormTimer__.start('Data Reduction');
             pro.dataReduction(cfg.reductionEdgeRadius,cfg.nReductionRun);
             dis.points();
             im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
+            stormTimer__.stop('Data Reduction');
         end
         
         if cfg.densityFilteringEnabled
+            stormTimer__.start('Density Filter');
             pro.densityFilter(cfg.nNeighborsThreshold,cfg.neighborBallRadius);
             dis.points();
             im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
+            stormTimer__.stop('Density Filter');
         end
         
         pro.setErrorArray(cfg.errorX,cfg.errorY,cfg.errorZ);
@@ -104,11 +133,14 @@ if isempty(dataName) % No *.i.dat file present
     disp('-- PRE-PROCESS ---------------------------------');
     
     dis.points();
-    pro.computeOrientation(cfg.filterLength,cfg.angularSampling);
+    stormTimer__.start('Orientation');
+    pro.computeOrientation(cfg.filterLength,cfg.angularSampling,nBins,minBinResponse);
+    stormTimer__.stop('Orientation');
     dis.orientation(100);
     
     im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
     
+    stormTimer__.start('Geometric Matching');
     pro.initClusters();
     pro.initEdges(cfg.initialEdgeRadiusGeom);
     dis.initialEdges();
@@ -122,7 +154,8 @@ if isempty(dataName) % No *.i.dat file present
         dis.points();
         im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
     end
-
+    stormTimer__.stop('Geometric Matching');
+    
     data.save([dirPath cfg.configName '.i.dat']);
     
 else % Load *.i.dat file
@@ -145,9 +178,14 @@ end
 disp('------------------------------------------------');
 disp('-- PROCESS -------------------------------------');
 
+stormTimer__.start('Process');
+stormTimer__.start('Init Clusters');
 pro.initEdges(cfg.initialEdgeRadius);
 pro.dissolveClustersSmallerThan(smallClusterSize);
-pro.initModels();
+
+stormTimer__.start('Init Models');
+pro.initModels(cfg.betaVar,cfg.modeVar);
+stormTimer__.stop('Init Models');
 
 if cfg.snapshotsEnabled
     dis.points(); dis.models(); % dis.clusters();
@@ -163,11 +201,13 @@ while any(parentsOld ~= data.parents)
         break;
     end
     parentsOld = data.parents;
-
-    pro.assignPointsToModels(cfg.nSigmaThreshold,cfg.modeVar);
+    
+    % pro.assignPointsToModels(cfg.nSigmaThreshold);
+    pro.assignPointsToModels2();
+    
     pro.dissolveClustersSmallerThan(smallClusterSize);
-    pro.updateModels(cfg.maxCurvature,cfg.fitMethod,cfg.modeVar);
-
+    pro.updateModels(cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar);
+    
     fprintf('Main: Relaxed %d points in run %d: \n',nnz(parentsOld ~= data.parents),relax);
     
     if cfg.snapshotsEnabled
@@ -176,24 +216,33 @@ while any(parentsOld ~= data.parents)
     
     im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
 end
+stormTimer__.stop('Init Clusters');
+stormTimer__.start('Main Loop');
 
 % for curveDegree=1:cfg.maxDegreeBezier+1
 for curveDegree=1:cfg.maxDegreeBezier
     fprintf('Main: Current maximal curve degree: %u\n',curveDegree);
+    if curveDegree == 4
+        pro.initEdges(cfg.initialEdgeRadius*2);
+    end
     for mergeIter=1:cfg.maxIterMerge
+        
+        % tic
+        % pro.updateEdgesAnisotropic(dRef,alpha,samplePeriod,dMaxAlong,dMinAway);
         pro.updateEdges();
+        % pro.updateEdgesEndPoints(cfg.initialEdgeRadius);
+        % nEdges = size(data.edges,1)
+        % toc
+        
         fprintf('Main: Merge run: %d\n',mergeIter);
         
-        if curveDegree == cfg.maxDegreeBezier+1
-            if pro.mergeClustersBIC(cfg.maxDegreeBezier,-cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar)
-                disp('Main: Nothing to merge!');
-                break;
-            end
-        else
-            if pro.mergeClustersBIC(curveDegree,cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar)
+        stormTimer__.start('Compute BIC Weights');
+        if pro.mergeClustersBIC(curveDegree,cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar)
             disp('Main: Nothing to merge!');
+            stormTimer__.stop('Compute BIC Weights',data.nClusters);
             break;
-            end
+        else
+            stormTimer__.stop('Compute BIC Weights',data.nClusters);
         end
         
         if cfg.snapshotsEnabled
@@ -204,6 +253,7 @@ for curveDegree=1:cfg.maxDegreeBezier
         
         parentsOld = zeros(size(data.parents));
         relax = 0;
+        stormTimer__.start('Refine Model');
         while any(parentsOld ~= data.parents)
             relax = relax+1;
             if relax > cfg.nIterEM
@@ -211,9 +261,15 @@ for curveDegree=1:cfg.maxDegreeBezier
             end
             parentsOld = data.parents;
             
-            pro.assignPointsToModels(cfg.nSigmaThreshold,cfg.modeVar);
+            stormTimer__.start('Assign Points');
+            % pro.assignPointsToModels(cfg.nSigmaThreshold);
+            pro.assignPointsToModels2();
             pro.dissolveClustersSmallerThan(smallClusterSize);
-            pro.updateModels(cfg.maxCurvature,cfg.fitMethod,cfg.modeVar);
+            stormTimer__.stop('Assign Points');
+            
+            stormTimer__.start('Update Models');
+            pro.updateModels(cfg.maxCurvature,cfg.fitMethod,cfg.betaVar,cfg.modeVar);
+            stormTimer__.stop('Update Models');
             
             fprintf('Main: Relaxed %d points in run %d: \n',nnz(parentsOld ~= data.parents),relax);
             
@@ -223,23 +279,34 @@ for curveDegree=1:cfg.maxDegreeBezier
             
             im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
         end
+        stormTimer__.stop('Refine Model');
         
         if mergeIter == cfg.maxIterMerge
             disp('Main: maxIterMerge reached!')
-            tEnd = round(toc(tStart));
-            data.runTime = tEnd;
+            data.runTime = stormTimer__.stop('Main');
             data.save([dirPath cfg.configName '.p.dat']);
             exitflag = 'maxIterMerge reached!';
             return;
         end
         
+        if cfg.intermediateResultsTimerEnabled
+            stormTimer__.save([dirPath cfg.configName '._tmp.tim']);
+        end
+        
+        if cfg.intermediateResultsDataEnabled
+            data.save([dirPath cfg.configName '._tmp.dat']);
+        end
+        
     end
 end
+stormTimer__.stop('Main Loop');
+stormTimer__.stop('Process');
 
-tEnd = round(toc(tStart));
-data.runTime = tEnd;
+data.runTime = stormTimer__.stop('Main');
+stormTimer__.running()
+stormTimer__.save([dirPath cfg.configName '.tim']);
 data.save([dirPath cfg.configName '.p.dat']);
-exitflag = sprintf('Success! %s',secs2hms(tEnd));
+exitflag = ['Success! ' cell2mat(stormTimer__.getFormatted('Main'))];
 
 disp('------------------------------------------------');
 

@@ -289,7 +289,10 @@ for i=1:size(items,1)
                 points((m-1)*nSamples+1:m*nSamples,:) = pointsCell{m};
             end
             d = createDistanceMatrix(refPoints,points);
-            hausdorffDist(s) = max(min(d));
+            % hausdorffDist(s) = max(min(d));
+            d1 = min(d,[],1);
+            d2 = min(d,[],2);
+            hausdorffDist(s) = max([d1(:);d2(:)]);
         end
     end
         
@@ -340,6 +343,11 @@ clear all; clc; format short;
 
 offsetY = 500; % 500
 
+overlapTH = 0.75;
+distTH = 15;
+nOverlapSamples = 100; 
+nSamples = 1000; % Hausdorff
+
 % Get a list with all the .dat-files in _sim
 path = 'Y:\fsm\harvard\data\Zhuang\_sim\';
 list = dir(path);
@@ -371,11 +379,6 @@ items = items(1:itemIdx,:);
 output = cell(4,size(items,1)); 
 
 % Loop through all the files
-lineCounter = 1;    
-arcCounter = 1;   
-splineCounter = 1;  
-distanceCounter = 1;  
-angleCounter = 1;  
 noiseCounter = 1;  
 for i=1:size(items,1)
     
@@ -408,65 +411,67 @@ for i=1:size(items,1)
         nSimMod = nnz(idxSimModel == s);
         nMod = nnz(idxModel == s);
         
-        if nMod ~= nSimMod
-            % The number of models is not the same
-            failed(s) = true;
+        if 1 ~= nSimMod
+            disp('Oops, the number of simulated models should be 1!');
         else
             % Compare the models pairwise
             m=find(idxModel == s);
             n=find(idxSimModel == s);
             
-            for k=1:numel(m)     
-                % Check model complexity
-                if size(dat.simModelBezCP{n(k)},1) ~= size(modelBezCP{m(k)},1)
-                    % The complexity of the models is not the same
-                    % if isempty(strfind(items{i,1},'angle')) && isempty(strfind(items{i,1},'distance')) % All except angle and distance
-                    if isempty(strfind(items{i,1},'angle')) % All except angle
-                        failed(s) = true;
-                    end
+            cP_sim = dat.simModelBezCP{n};
+            
+            % For all the fragments
+            failed_k = false(numel(m),1);
+            for k=1:numel(m)    
+                cP_mod = modelBezCP{m(k)};
+                
+                t = linspace(0,1,nOverlapSamples);
+                
+                pnts_mod = arrayfun(@(a) renderBezier(cP_mod,arcLengthToNativeBezierParametrization(cP_mod,a)),t,'UniformOutput',false);
+                pnts_sim = arrayfun(@(a) renderBezier(cP_sim,arcLengthToNativeBezierParametrization(cP_sim,a)),t,'UniformOutput',false);
+                
+                [d_mod2sim,t_mod2sim] = cellfun(@(a) distancePointBezier(cP_sim,a),pnts_mod);
+                [d_sim2mod,t_sim2mod] = cellfun(@(a) distancePointBezier(cP_mod,a),pnts_sim);
+                                
+                d_mod2sim_ok = d_mod2sim <= distTH;
+                d_sim2mod_ok = d_sim2mod <= distTH;
+               
+                upPos_mod2sim = d_mod2sim_ok & ~circshift([d_mod2sim_ok(1:end-1),0],[1,1]);
+                downPos_mod2sim = d_mod2sim_ok & ~circshift([0,d_mod2sim_ok(2:end)],[-1,-1]);
+                
+                upPos_sim2mod = d_sim2mod_ok & ~circshift([d_sim2mod_ok(1:end-1),0],[1,1]);
+                downPos_sim2mod = d_sim2mod_ok & ~circshift([0,d_sim2mod_ok(2:end)],[-1,-1]);
+                
+                segLength_mod2sim = arrayfun(@(a,b) lengthBezier(cP_sim,a,b),t_mod2sim(upPos_mod2sim),t_mod2sim(downPos_mod2sim));
+                segLength_sim2mod = arrayfun(@(a,b) lengthBezier(cP_mod,a,b),t_sim2mod(upPos_sim2mod),t_sim2mod(downPos_sim2mod));
+                
+                sim_overlaps_mod = sum(segLength_mod2sim)/lengthBezier(cP_sim);
+                mod_overlaps_sim = sum(segLength_sim2mod)/lengthBezier(cP_mod);
+                
+                if (overlapTH > sim_overlaps_mod) || (overlapTH > mod_overlaps_sim)
+                    failed_k(k) = true;
                 end
             end
-            if ~isempty(strfind(items{i,1},'angle')) % Angle only
-                cP1 = modelBezCP{m(1)};
-                cP2 = modelBezCP{m(2)};
-                dist = segments_dist_3d (cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
-                if dist > 1
-                    failed(s) = true;
+            if all(failed_k)
+                failed(s) = true;
+            else
+                % For all the valid submodels compute the Hausdorff
+                % distance
+                refPoints = renderBezier(cP_sim,linspace(0,1,nSamples)');
+                hausdorffDist_k = zeros(nnz(~failed_k),1);
+                for k=find(~failed_k)
+                    cP_mod = modelBezCP{m(k)};
+                    points = renderBezier(cP_mod,linspace(0,1,nSamples)');                   
+                    d = createDistanceMatrix(refPoints,points);
+                    d1 = min(d,[],1);
+                    d2 = min(d,[],2);                   
+                    hausdorffDist_k(k) = max([d1(:);d2(:)]);
                 end
-            end
-            if ~isempty(strfind(items{i,1},'distance')) % Distance only
-                cP1 = modelBezCP{m(1)};
-                cP2 = modelBezCP{m(2)};
-                cPRef1 = dat.simModelBezCP{n(1)};
-                dist = segments_dist_3d(cP1(1,:)',cP1(end,:)',cP2(1,:)',cP2(end,:)');
-                center = mean(cPRef1(:,1));
-                if ~(any(cP1(:,1) > center) && any(cP1(:,1) < center))
-                    failed(s) = true;
-                elseif ~(any(cP2(:,1) > center) && any(cP2(:,1) < center))
-                    failed(s) = true;
-                elseif dist < 1 % They are crossing
-                    failed(s) = true;
-                end
+                % Find the smallest Hausdorff distance
+                hausdorffDist(s) = min(hausdorffDist_k);
             end
         end
                 
-        if failed(s) == false
-            % Compute the model distance
-            nSamples = 1000;
-            refPointsCell = cellfun(@(a) renderBezier(a,linspace(0,1,nSamples)'),dat.simModelBezCP(idxSimModel == s),'UniformOutput',0);
-            refPoints = zeros(numel(refPointsCell)*nSamples,3);
-            for m=1:numel(refPointsCell)
-                refPoints((m-1)*nSamples+1:m*nSamples,:) = refPointsCell{m};
-            end
-            
-            pointsCell = cellfun(@(a) renderBezier(a,linspace(0,1,nSamples)'),modelBezCP(idxModel == s),'UniformOutput',0);
-            points = zeros(numel(pointsCell)*nSamples,3);
-            for m=1:numel(pointsCell)
-                points((m-1)*nSamples+1:m*nSamples,:) = pointsCell{m};
-            end
-            d = createDistanceMatrix(refPoints,points);
-            hausdorffDist(s) = max(min(d));
-        end
     end
         
     hausdorffDist = hausdorffDist(~failed);
@@ -480,22 +485,7 @@ for i=1:size(items,1)
     %     figure(i);
     %     hist(hausdorffDist,20)
     
-    if ~isempty(strfind(items{i,1},'line')) && isempty(strfind(items{i,1},'spline'))
-        lineCounter = lineCounter + 1;  
-        x = 2; y = lineCounter;
-    elseif strfind(items{i,1},'arc')
-        arcCounter = arcCounter + 1;  
-        x = 8; y = arcCounter;
-    elseif strfind(items{i,1},'spline')
-        splineCounter = splineCounter + 1;  
-        x = 14; y = splineCounter;
-    elseif strfind(items{i,1},'distance')
-        distanceCounter = distanceCounter + 1;  
-        x = 20; y = distanceCounter;
-    elseif strfind(items{i,1},'angle')
-        angleCounter = angleCounter + 1;
-        x = 26; y = angleCounter;
-    elseif strfind(items{i,1},'noise')
+    if strfind(items{i,1},'noise')
         noiseCounter = noiseCounter + 1;  
         x = 32; y = noiseCounter;
     end

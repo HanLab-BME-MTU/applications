@@ -20,7 +20,7 @@ if obj.displayEnabled
     imarisSpots.Set(points,spotTime,spotRadii);
     
     % Name displayed in Imaris for this spot object
-    if nargin > 2
+    if nargin > 3
         imarisSpots.mName = name;
     else
         imarisSpots.mName = 'Imaris: Segments';

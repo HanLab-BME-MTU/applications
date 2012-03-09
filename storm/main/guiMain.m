@@ -566,7 +566,6 @@ prompt = {...
     'maxDegreeBezier',...
     'maxCurvature',...
     'errorX,errorY,errorZ',...
-    'nSigmaThreshold',...
     'roiPosition(1),roiPosition(2),roiPosition(3)',...
     'roiSize(1),roiSize(2),roiSize(3)',...
     'initialEdgeRadiusGeom',...
@@ -586,7 +585,6 @@ defaultanswer = {...
     num2str(data.currentConfig.maxDegreeBezier),...
     num2str(data.currentConfig.maxCurvature),...
     [num2str(data.currentConfig.errorX) ',' num2str(data.currentConfig.errorY) ',' num2str(data.currentConfig.errorZ)],...
-    num2str(data.currentConfig.nSigmaThreshold),...
     [num2str(data.currentConfig.roiPosition(1)) ',' num2str(data.currentConfig.roiPosition(2)) ',' num2str(data.currentConfig.roiPosition(3))],...
     [num2str(data.currentConfig.roiSize(1)) ',' num2str(data.currentConfig.roiSize(2)) ',' num2str(data.currentConfig.roiSize(3))],...
     num2str(data.currentConfig.initialEdgeRadiusGeom),...
@@ -602,7 +600,7 @@ defaultanswer = {...
     };
 options.Resize = 'on';
 options.WindowStyle = 'normal';
-answer = inputdlg(prompt,name,[ones(17,1),ones(17,1)*50],defaultanswer,options);
+answer = inputdlg(prompt,name,[ones(16,1),ones(16,1)*50],defaultanswer,options);
 if ~isempty(answer)
     data.currentConfig.configName = answer{1};
     set(handles.edit2,'String',data.currentConfig.configName);
@@ -612,25 +610,24 @@ if ~isempty(answer)
     data.currentConfig.errorX = str2double(answer{4}(1:delimiterPos(1)-1));
     data.currentConfig.errorY = str2double(answer{4}(delimiterPos(1)+1:delimiterPos(2)-1));
     data.currentConfig.errorZ = str2double(answer{4}(delimiterPos(2)+1:end));
-    data.currentConfig.nSigmaThreshold = str2double(answer{5});
-    delimiterPos = strfind(answer{6},',');
-    data.currentConfig.roiPosition(1) = str2double(answer{6}(1:delimiterPos(1)-1));
-    data.currentConfig.roiPosition(2) = str2double(answer{6}(delimiterPos(1)+1:delimiterPos(2)-1));
-    data.currentConfig.roiPosition(3) = str2double(answer{6}(delimiterPos(2)+1:end));
-    delimiterPos = strfind(answer{7},',');
-    data.currentConfig.roiSize(1) = str2double(answer{7}(1:delimiterPos(1)-1));
-    data.currentConfig.roiSize(2) = str2double(answer{7}(delimiterPos(1)+1:delimiterPos(2)-1));
-    data.currentConfig.roiSize(3) = str2double(answer{7}(delimiterPos(2)+1:end));
-    data.currentConfig.initialEdgeRadiusGeom = str2double(answer{8});
-    data.currentConfig.initialEdgeRadius = str2double(answer{9});
-    data.currentConfig.filterLength = str2double(answer{10});
-    data.currentConfig.angularSampling = str2double(answer{11});
-    data.currentConfig.displayEnabled = str2double(answer{12});
-    data.currentConfig.snapshotsEnabled = str2double(answer{13});
-    data.currentConfig.fitMethod = str2double(answer{14});
-    data.currentConfig.edgeWidthInitFree = str2double(answer{15});
-    data.currentConfig.betaVar = str2double(answer{16});
-    data.currentConfig.modeVar = str2double(answer{17});
+    delimiterPos = strfind(answer{5},',');
+    data.currentConfig.roiPosition(1) = str2double(answer{7}(1:delimiterPos(1)-1));
+    data.currentConfig.roiPosition(2) = str2double(answer{7}(delimiterPos(1)+1:delimiterPos(2)-1));
+    data.currentConfig.roiPosition(3) = str2double(answer{7}(delimiterPos(2)+1:end));
+    delimiterPos = strfind(answer{8},',');
+    data.currentConfig.roiSize(1) = str2double(answer{8}(1:delimiterPos(1)-1));
+    data.currentConfig.roiSize(2) = str2double(answer{8}(delimiterPos(1)+1:delimiterPos(2)-1));
+    data.currentConfig.roiSize(3) = str2double(answer{8}(delimiterPos(2)+1:end));
+    data.currentConfig.initialEdgeRadiusGeom = str2double(answer{9});
+    data.currentConfig.initialEdgeRadius = str2double(answer{10});
+    data.currentConfig.filterLength = str2double(answer{11});
+    data.currentConfig.angularSampling = str2double(answer{12});
+    data.currentConfig.displayEnabled = str2double(answer{13});
+    data.currentConfig.snapshotsEnabled = str2double(answer{14});
+    data.currentConfig.fitMethod = str2double(answer{15});
+    data.currentConfig.edgeWidthInitFree = str2double(answer{16});
+    data.currentConfig.betaVar = str2double(answer{17});
+    data.currentConfig.modeVar = str2double(answer{18});
 end
 guidata(gcf,data);
 

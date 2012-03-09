@@ -10,11 +10,10 @@ for color=1:obj.nColorSlices
     % Create Imaris Spot object
     if size(pointIdxsSameColor) > 0
         colorRGBA = [colorTable(color,1) colorTable(color,2) colorTable(color,3) 0.0];
-        obj.imaris.displayPoints(obj.data.points(pointIdxsSameColor,:),3,colorRGBA,'Display: Points');
+        obj.imaris.displayPoints(obj.data.points(pointIdxsSameColor,:),obj.pointSize,colorRGBA,'Display: Points');
     end
 end
 
 obj.imaris.fitCamera();
 
 end
-

@@ -56,7 +56,7 @@ classdef Imaris < handle
         displayCurve(obj,points,name);
         displayDashedCurve(obj);
         displayPoints(obj,points,spotSize,color,name);
-        displaySegements(obj);
+        displaySegments(obj,pointsStart,pointsEnd,name);
         displayVectors(obj);
         fitAndSaveCamera(obj);
         fitCamera(obj);

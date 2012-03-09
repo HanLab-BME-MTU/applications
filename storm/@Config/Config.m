@@ -61,8 +61,9 @@ classdef Config < handle
         maxIterMerge; % Maximum merging iterations
         
         % === Noise
-        nSigmaThreshold; % Multiple of the component standard deviation used to classify points as noise     
-                
+        nSigmaThreshold = 3; % Multiple of the component standard deviation used to classify points as noise 
+                             % This property is only used by assignPointsToModels.m which was replaced by assignPointsToModels2.m 
+                             
     end
     
     methods(Static = true)
