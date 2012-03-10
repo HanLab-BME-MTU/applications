@@ -1,8 +1,8 @@
 classdef SpeckleDisplay < MovieDataDisplay
-    %Concreate display class for displaying points or lines
+    %Concreate display class for displaying speckles
     properties
         Markers={'o','^','s','d'};
-        LineStyle = '-'
+        MarkerSize = 6;
         Color='r';        
     end
     methods
@@ -15,7 +15,7 @@ classdef SpeckleDisplay < MovieDataDisplay
             h=-ones(numel(unique(order)),1);
             for i=unique(order)
                 h(i)=plot(pos(order==i,2),pos(order==i,1),obj.Markers{i},...
-                   'MarkerEdgeColor',obj.Color);%,'MarkerFaceColor',colors(i,:));
+                   'MarkerSize',obj.MarkerSize,'MarkerEdgeColor',obj.Color);%,'MarkerFaceColor',colors(i,:));
             end
             set(h,'Tag',tag);
         end
@@ -31,7 +31,7 @@ classdef SpeckleDisplay < MovieDataDisplay
             
             for i=numel(h)+1:orderMax
                 h(i)=plot(pos(order==i,2),pos(order==i,1),obj.Markers{i},...
-                    'MarkerEdgeColor',obj.Color);%,'MarkerFaceColor',colors(i,:));
+                    'MarkerSize',obj.MarkerSize,'MarkerEdgeColor',obj.Color);%,'MarkerFaceColor',colors(i,:));
                 set(h,'Tag',tag);
             end           
             
@@ -45,8 +45,8 @@ classdef SpeckleDisplay < MovieDataDisplay
             params(1).validator=@iscell;
             params(2).name='Color';
             params(2).validator=@ischar;
-            params(3).name='LineStyle';
-            params(3).validator=@ischar;
+            params(3).name='MarkerSize';
+            params(3).validator=@isscalar;
         end
 
         function f=getDataValidator()

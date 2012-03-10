@@ -37,7 +37,7 @@ classdef KineticAnalysisProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
-            outputList = {'kinMap2C','polyMap','depolyMap','netMap'};
+            outputList = {'kinMap2C','polyMap','depolyMap','netMap','kinScore'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));

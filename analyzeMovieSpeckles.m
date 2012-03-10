@@ -206,6 +206,7 @@ for i = 1:numel(p.ChannelIndex);
     disp('Results will be saved under:')
     disp(kinProc.outFilePaths_{1,iChan});
     for j=1:nFrames
+        s.kinScore=kinScore{j};
         s.polyMap=polyMap{j};
         s.depolyMap=depolyMap{j};
         s.kinMap2C=kinMap2C{j};
