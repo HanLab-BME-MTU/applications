@@ -31,7 +31,7 @@ classdef Processor < handle
         centerData(obj);
         subsamplePoints(obj,limit);
         densityFilter(obj,nNeighborsThreshold,ballRadius);
-        nearestNeighborClutterRemoval(obj,k);
+        nearestNeighborClutterRemoval(obj,k,mode);
         dataReduction(obj,initialEdgeRadius,reductionRuns);
         computeOrientation(obj,filterLength,filterAngularSampling,nBins,minBinResponse);
         [weights,hausDorffEdges] = updateGeomWeights(obj,sigmaFilament,modelLength,angleThreshold);
