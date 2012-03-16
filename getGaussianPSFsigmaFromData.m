@@ -6,24 +6,41 @@
 
 % Francois Aguet, September 2010
 
+% Inputs:
+%
+%    Single image, or list of image paths
+%
 
-function sigma = getGaussianPSFsigmaFromData(img, varargin)
+function sigma = getGaussianPSFsigmaFromData(input, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('img');
+ip.addRequired('input');
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
-ip.parse(img, varargin{:});
+ip.parse(input, varargin{:});
 
+if ~iscell(input)
+    input = {input};
+end
 
-% First pass with fixed sigma
-pstruct = pointSourceDetection(img, 1.5, 'Mode', 'xyac');
-pstruct = fitGaussians2D(img, pstruct.x, pstruct.y, pstruct.A, 1.5*ones(1,length(pstruct.x)), pstruct.c, 'xyasc');
-
-isPSF = pstruct.pval_KS > 0.05 & [pstruct.pval_Ar] > 0.95;
-fprintf('PSFs detected: %d\n', sum(isPSF));
-
-svect = pstruct.s(~isnan(pstruct.s) & isPSF);
+nd = numel(input);
+svect = cell(1,nd);
+for i = 1:nd
+    if ischar(input{i})
+        img = double(imread(input{i}));
+    else
+        img = input{i};
+    end
+    % First pass with fixed sigma
+    pstruct = pointSourceDetection(img, 1.5, 'Mode', 'xyac');
+    pstruct = fitGaussians2D(img, pstruct.x, pstruct.y, pstruct.A, 1.5*ones(1,length(pstruct.x)), pstruct.c, 'xyasc');
+    
+    isPSF = ~[pstruct.hval_AD] & [pstruct.pval_Ar] < 0.05;
+    
+    svect{i} = pstruct.s(~isnan(pstruct.s) & isPSF);
+end
+svect = [svect{:}];
+% fprintf('PSFs detected: %d\n', numel(svect));
 
 opts = statset('maxIter', 200);
 
