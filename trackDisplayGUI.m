@@ -78,7 +78,7 @@ handles.displayType = 'raw';
     
 
 hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7], 'PaperPositionMode', 'auto',...
-    'Toolbar', 'figure', 'ResizeFcn', @figResize,...
+    'Toolbar', 'figure',...
     'Color', get(0,'defaultUicontrolBackgroundColor'));
 
 
@@ -237,7 +237,7 @@ setappdata(hfig, 'settings', settings);
 %=================================================
 % Set initial values for sliders and checkboxes
 %=================================================
-if ~isempty([handles.tracks{:}]) && length(handles.tracks{handles.mCh}) > 1
+if ~isempty([handles.tracks{handles.mCh}]) && length(handles.tracks{handles.mCh}) > 1
     set(handles.trackSlider, 'Min', 1);
     nTracks = length(handles.tracks{handles.mCh});
     set(handles.trackSlider, 'Max', nTracks);
@@ -313,6 +313,10 @@ refreshTrackDisplay(hfig);
 setColorbar(hfig, handles.trackMode);
 
 set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
+
+set(hfig, 'ResizeFcn', @figResize);
+
+
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
