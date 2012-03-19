@@ -11,8 +11,9 @@ ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('ShowHistogram', false, @islogical);
 ip.parse(data, varargin{:});
 
-mask = cell(1,numel(data));
-for i = 1:numel(data)
+nd = numel(data);
+mask = cell(1,nd);
+for i = 1:nd
     
     aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
     if ~(exist(aipPath, 'file')==2)
@@ -30,17 +31,19 @@ for i = 1:numel(data)
         load(aipPath);
     end
     
-    if ~(exist([data(i).source 'Detection' filesep 'cellmask.tif'], 'file') == 2) || ip.Results.Overwrite
+    maskPath = [data(i).source 'Detection' filesep 'cellmask.tif'];
+    if ~(exist(maskPath, 'file') == 2) || ip.Results.Overwrite
         mask{i} = computeMask(data(i), aip, ip.Results.Connect, ip.Results.ShowHistogram);
         % save
-        imwrite(uint8(mask{i}), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
+        imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
     else
-        fprintf('Cell mask has already been computed for %s\n', getShortPath(data(i)));
+        %fprintf('Cell mask has already been computed for %s\n', getShortPath(data(i)));
+        mask{i} = double(imread(maskPath));
     end
 end
 
 if strcmpi(ip.Results.Display, 'on')
-    for i = 1:numel(data)
+    for i = 1:nd
         if ~isempty(mask{i})
             [ny,nx] = size(mask{i});
             B = bwboundaries(mask{i});
@@ -60,6 +63,10 @@ if strcmpi(ip.Results.Display, 'on')
             figure; imagesc(overlay); axis image; colormap(gray(256)); colorbar;
         end
     end
+end
+
+if nd==1
+    mask = mask{1};
 end
 
 
@@ -85,12 +92,13 @@ lmax = locmax1d(f, 3);
 lmin = locmin1d(f, 3);
 
 % max value
-hmax = find(f==max(f), 1, 'first');
+% hmax = find(f==max(f), 1, 'first');
+dxi = xi(2)-xi(1);
 
 % identify min after first mode
 if ~isempty(lmin)
     idx = find(lmin>lmax(1), 1, 'first');
-    if ~isempty(idx) && lmin(idx)<hmax% && xi(lmax(1)) < xi(0.8*lmax(2))
+    if ~isempty(idx) && sum(f(1:lmin(idx(1))))*dxi < 0.6
         min0 = lmin(idx);
         T = xi(min0);
         mask = g>T;
@@ -101,13 +109,32 @@ else
     mask = ones(data.imagesize);
 end
 
+nx = data.imagesize(2);
+ny = data.imagesize(1); 
+borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
+
 % retain largest connected component
 if connect
-CC = bwconncomp(mask, 8);
-compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
-mask = zeros(data.imagesize);
-mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
+    CC = bwconncomp(mask, 8);
+    compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
+    mask = zeros(data.imagesize);
+    mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
 end
+
+% fill holes (retain largest boundary)
+B = bwboundaries(mask);
+nb = cellfun(@(i) numel(i), B);
+B = B{nb==max(nb)};
+boundary = zeros(data.imagesize);
+boundary(sub2ind(data.imagesize, B(:,1), B(:,2))) = 1;
+% boundary(borderIdx) = 1;
+CC = bwconncomp(1-boundary, 4);
+
+% mask indexes
+labels = double(labelmatrix(CC));
+idx = unique(mask.*labels);
+mask = boundary | labels==idx(2);
+
 
 if showHist
     dx = xi(2)-xi(1);
@@ -168,7 +195,7 @@ end
 % nx = data.imagesize(2);
 % 
 % 
-% borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
+% 
 % 
 % % concatenate all positions
 % X = [frameInfo.x];
