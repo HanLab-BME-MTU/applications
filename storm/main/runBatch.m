@@ -44,7 +44,7 @@ if ~isempty(dirName)
     % Set up the scheduler
     jm = findResource('scheduler','type','lsf');
     set(jm,'ClusterMatlabRoot','/opt/matlab');
-    set(jm, 'DataLocation','/home/pb93/jobs');
+    set(jm, 'DataLocation','~/jobs');
     % set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=8000:matlab_dc_lic=1]" -q danuser_1d']);
     set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=4000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_7d']);
     % set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=2000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_2h']);
