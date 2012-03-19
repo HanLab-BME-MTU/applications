@@ -7,8 +7,8 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Connect', true, @islogical);
-% ip.addParamValue('Sigma', []);
 ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
+ip.addParamValue('ShowHistogram', false, @islogical);
 ip.parse(data, varargin{:});
 
 mask = cell(1,numel(data));
@@ -31,7 +31,7 @@ for i = 1:numel(data)
     end
     
     if ~(exist([data(i).source 'Detection' filesep 'cellmask.tif'], 'file') == 2) || ip.Results.Overwrite
-        mask{i} = computeMask(data(i), aip, ip.Results.Connect);%, ip.Results.Sigma);
+        mask{i} = computeMask(data(i), aip, ip.Results.Connect, ip.Results.ShowHistogram);
         % save
         imwrite(uint8(mask{i}), [data(i).source 'Detection' filesep 'cellmask.tif'], 'tif', 'compression' , 'lzw');
     else
@@ -64,15 +64,12 @@ end
 
 
 
-function mask = computeMask(data, aip, Connect)
+function mask = computeMask(data, aip, connect, showHist)
 
 aip = scaleContrast(aip, [], [0 1]);
 g = filterGauss2D(aip, 5);
 
 v = aip(:);
-
-% di = diff(sort(v));
-% di(di==0) = [];
 
 [f_ecdf, x_ecdf] = ecdf(v);
 x_ecdf = x_ecdf(2:end)';
@@ -82,11 +79,6 @@ x1 = interp1(f_ecdf, x_ecdf, 0.99);
 v(v>x1) = [];
 
 [f,xi] = ksdensity(v, 'npoints', 100); 
-
-dx = xi(2)-xi(1);
-
-ni = hist(v, xi);
-ni = ni/sum(ni)/dx;
 
 % local max/min
 lmax = locmax1d(f, 3);
@@ -110,17 +102,25 @@ else
 end
 
 % retain largest connected component
-if Connect
+if connect
 CC = bwconncomp(mask, 8);
 compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
 mask = zeros(data.imagesize);
 mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
 end
 
-% figure; 
-% hold on;
-% plot(xi, ni, 'k.-');
-% plot(xi, f, 'r-');
+if showHist
+    dx = xi(2)-xi(1);
+    ni = hist(v, xi);
+    ni = ni/sum(ni)/dx;
+    
+    figure;
+    hold on;
+    plot(xi, ni, 'k.-', 'LineWidth', 3, 'MarkerSize', 20);
+    plot(xi, f, 'r-', 'LineWidth', 1);
+    set(gca, 'LineWidth', 2, 'FontSize', 18);
+end
+
 
 % figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
 
