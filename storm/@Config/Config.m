@@ -30,11 +30,18 @@ classdef Config < handle
         dataReductionEnabled = false; % Enable/disable the data reduction step
         nReductionRun = 0; % The data reduction factor (Each run reduces the data by about a factor 2)
         reductionEdgeRadius; % Longest edge considered in reduction algorithm
+        
         densityFilteringEnabled = false; % Enable/disable the density based filtering
         neighborBallRadius; % Size of the neighborhood in which the density will be computed
         nNeighborsThreshold; % Threshold on the number of points in the neighborhood
+        
         edgeWidthInitFree = 0; % e <= 0: Disabled, e > 0: Enabled
+        
         subsampleFraction = 1; % 1 == No subsampling, < 1 Fraction of points remaining, > 1 max number of points remaining
+        
+        nearestNeighborFilteringEnabled = false;
+        kThNearestNeighbor = -1;
+        kThNearestNeighborDistanceTH = -1;
         
         % === Orientation detector
         filterLength; % Length of the filer support

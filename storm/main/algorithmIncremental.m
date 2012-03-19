@@ -101,6 +101,14 @@ if isempty(dataName) % No *.i.dat file present
             stormTimer__.stop('Subsample Data');
         end
         
+        if cfg.nearestNeighborFilteringEnabled
+            stormTimer__.start('Nearest Neighbor Filter');
+            pro.nearestNeighborClutterRemoval(cfg.kThNearestNeighbor,cfg.kThNearestNeighborDistanceTH);
+            dis.points();
+            im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
+            stormTimer__.stop('Nearest Neighbor Filter');
+        end
+        
         if cfg.dataReductionEnabled
             stormTimer__.start('Data Reduction');
             pro.dataReduction(cfg.reductionEdgeRadius,cfg.nReductionRun);
