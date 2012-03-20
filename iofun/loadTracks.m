@@ -24,6 +24,7 @@ catValues = {'all', 'Ia', 'Ib', 'Ic', 'Id', 'IIa', 'IIb', 'IIc', 'IId'};
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) & numel(x)==1);
+ip.addParamValue('Mask', true, @islogical);
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar); 
 ip.addParamValue('Cutoff', 4, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
@@ -47,6 +48,21 @@ load([data.source 'Tracking' filesep ip.Results.FileName]);
 if ip.Results.Sort
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend'); %#ok<NODEF>
     tracks = tracks(sortIdx);
+end
+
+
+% load cell mask, discard tracks that fall into background
+mpath = [data.source 'Detection' filesep 'cellmask.tif'];
+if ip.Results.Mask && (exist(mpath, 'file')==2)
+    mask = logical(imread(mpath));
+    
+    x = round(arrayfun(@(tr) nanmean(tr.x(1,:)), tracks));
+    y = round(arrayfun(@(tr) nanmean(tr.y(1,:)), tracks));
+
+    % exclude tracks in background
+    [ny,nx] = size(mask);
+    idx = sub2ind([ny nx], y, x);
+    tracks = tracks(mask(idx)==1);
 end
 
 singleIdx = [tracks.nSeg]==1;
