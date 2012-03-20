@@ -6,30 +6,21 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
-ip.addParamValue('Cutoff', 4, @isscalar);
+ip.addParamValue('Cutoff_f', 4, @isscalar);
 ip.addParamValue('Print', false, @islogical);
 ip.addParamValue('Buffer', 5);
 ip.parse(data, varargin{:});
 nd = length(data);
 framerate = data(1).framerate;
-buffer = ip.Results.Buffer;
 
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
 
-cutoff_f = ip.Results.Cutoff; %REDUNDANT
-cutoff_s = ip.Results.Cutoff * framerate;
+cutoff_f = ip.Results.Cutoff_f;
 
 % generate lifetime histograms
 fprintf('Lifetime analysis:   0%%');
 for k = 1:nd
-    
-    % load tracks
-    load([data(k).source 'Tracking' filesep ip.Results.FileName]);
-    
-    % Apply cut-off
-    idx = [tracks.lifetime_s]>=cutoff_s;
-    tracks = tracks(idx);
     
     % load/create cell mask, discard tracks that fall into background
     mpath = [data(k).source 'Detection' filesep 'cellmask.tif'];
@@ -38,14 +29,10 @@ for k = 1:nd
     else
         mask = logical(getCellMask(data(k)));
     end
-    x = round(arrayfun(@(tr) nanmean(tr.x(1,:)), tracks));
-    y = round(arrayfun(@(tr) nanmean(tr.y(1,:)), tracks));
     
-    % exclude tracks in background
-    [ny,nx] = size(mask);
-    idx = sub2ind([ny nx], y, x);
-    tracks = tracks(mask(idx)==1);
-    
+    % load tracks
+    tracks = loadTracks(data(k), 'Mask', true);
+
     
     lifetimes_s = [tracks.lifetime_s];
     
@@ -86,43 +73,11 @@ for k = 1:nd
     %====================
     % Histogram etc.
     %====================
-    % longest observable lifetime (in frames): N = movieLength-2*buffer
-    N = data(k).movieLength-2*buffer;
-    t = (cutoff_f:N)*framerate;
-    lftHist_Iab = hist(lifetimes_s(idx_Ia | idx_Ib), t);
-    lftHist_Ia = hist(lifetimes_s(idx_Ia), t);
-    lftHist_Ib = hist(lifetimes_s(idx_Ib), t);
-    lftHist_IIa = hist(lifetimes_s(idx_IIa), t);
-    
-    % apply correction
-    % relative probabilities:
-    % P(obs. lifetime==1) = N
-    % P(obs. lifetime==N) = 1
-    % => weighting:
-    w = N./(N-cutoff_f+1:-1:1);
-    lftHist_Iab = lftHist_Iab .* w;
-    lftHist_Ia = lftHist_Ia .* w;
-    lftHist_Ib = lftHist_Ib .* w;
-    lftHist_IIa = lftHist_IIa .* w;
-    
-    % Pad with trailing zeros
-    if N<Nmax
-        lftHist_Iab = [lftHist_Iab zeros(1,Nmax-N)]; %#ok<AGROW>
-        lftHist_Ia = [lftHist_Ia zeros(1,Nmax-N)]; %#ok<AGROW>
-        lftHist_Ib = [lftHist_Ib zeros(1,Nmax-N)]; %#ok<AGROW>
-        lftHist_IIa = [lftHist_IIa zeros(1,Nmax-N)]; %#ok<AGROW>
-    end
-    
-    % Normalization
-    lftHist_Iab = lftHist_Iab / sum(lftHist_Iab) / framerate;
-    lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
-    lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
-    lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
-    
-    res.lftHist_Iab{k} = lftHist_Iab;
-    res.lftHist_Ia{k} = lftHist_Ia;
-    res.lftHist_Ib{k} = lftHist_Ib;
-    res.lftHist_IIa{k} = lftHist_IIa;
+    lftHist = getLifetimeHistogram(data(k), tracks, Nmax, 'Cutoff_f', ip.Results.Cutoff_f, 'Buffer', ip.Results.Buffer);
+    res.lftHist_Iab{k} = lftHist.Iab;
+    res.lftHist_Ia{k} = lftHist.Ia;
+    res.lftHist_Ib{k} = lftHist.Ib;
+    res.lftHist_IIa{k} = lftHist.IIa;
     
     samples = lifetimes_s(idx_Ia);
     res.samples{k} = samples;
