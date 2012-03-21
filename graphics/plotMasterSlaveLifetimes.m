@@ -61,6 +61,17 @@ for k = 1:nd
         res.dEnd{k}(i) = eSlave-e0;
     end
     
+    
+    % Ia histograms for master and slave
+    idxIa = validGaps & [tracksM.nSeg]==1 & [tracksM.visibility]==1;
+    tmp = getLifetimeHistogram(dataMaster(k), tracksM(idxIa));
+    res.lftHistM_Ia{k} = tmp.Ia;
+    
+    validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracksS)==4;
+    idxIa = validGaps & [tracksS.nSeg]==1 & [tracksS.visibility]==1;
+    tmp = getLifetimeHistogram(dataSlave(k), tracksS(idxIa));
+    res.lftHistS_Ia{k} = tmp.Ia;
+    
     fprintf('\b\b\b\b%3d%%', round(100*k/nd));
 end
 fprintf('\n');
@@ -78,6 +89,8 @@ res.meanLftHistM_mapped = mean(M,1);
 % res.meanLftHistM_mapped_SEM = std(M, [], 1) / sqrt(nd);
 M = vertcat(res.lftHistM_notmapped_Ia{:});
 res.meanLftHistM_notmapped = mean(M,1);
+M = vertcat(res.lftHistM_Ia{:});
+res.meanLftHistM_Ia = mean(M,1);
 
 
 S = vertcat(res.lftHistS_mapped_Ia{:});
@@ -85,6 +98,8 @@ res.meanLftHistS_mapped = mean(S,1);
 % res.meanLftHistS_mapped_SEM = std(S, [], 1) / sqrt(nd);
 S = vertcat(res.lftHistS_notmapped_Ia{:});
 res.meanLftHistS_notmapped = mean(S,1);
+S = vertcat(res.lftHistS_Ia{:});
+res.meanLftHistS_Ia = mean(S,1);
 
 
 % Assuming that all input data have same movieLength
@@ -124,7 +139,6 @@ set(hl, 'Box', 'off');
 
 
 
-
 figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
 hold on;
 % fill([res.t res.t(end:-1:1)], [res.histSlave_Mean+res.histSlave_SEM res.histSlave_Mean(end:-1:1)-res.histSlave_SEM(end:-1:1)],...
@@ -139,6 +153,28 @@ xlabel('Lifetime (s)', lfont{:});
 ylabel('Frequency', lfont{:});
 hl = legend(hp, chNames);
 set(hl, 'Box', 'off');
+
+
+
+% All Ia tracks, independent
+figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
+hold on;
+% fill([res.t res.t(end:-1:1)], [res.histSlave_Mean+res.histSlave_SEM res.histSlave_Mean(end:-1:1)-res.histSlave_SEM(end:-1:1)],...
+%     slaveFillColor, 'EdgeColor', 'none');
+hp(2) = plot(res.t, res.meanLftHistS_Ia, '.-', 'Color', slaveColor, 'LineWidth', 3, 'MarkerSize', 20);
+% fill([res.t res.t(end:-1:1)], [res.histMaster_Mean+res.histMaster_SEM res.histMaster_Mean(end:-1:1)-res.histMaster_SEM(end:-1:1)],...
+%     masterFillColor, 'EdgeColor', 'none');
+hp(1) = plot(res.t, res.meanLftHistM_Ia, '.-', 'Color', masterColor, 'LineWidth', 3, 'MarkerSize', 20);
+axis([0 140 0 0.05]);
+set(gca, 'LineWidth', 2, 'YTick', 0:0.01:0.05, 'XTick', 0:20:140, 'Layer', 'top', sfont{:}, 'TickDir', 'out');
+xlabel('Lifetime (s)', lfont{:});
+ylabel('Frequency', lfont{:});
+hl = legend(hp, chNames);
+set(hl, 'Box', 'off');
+
+
+
+
 
 
 dStart = [res.dStart{:}];
