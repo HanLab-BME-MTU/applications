@@ -53,9 +53,9 @@ if ip.Results.Display
     
     axes('Units', 'pixels', 'Position', [80 80 300 280]);
     hold on;
-    plot(x_edf{medIdx}, f_edf{medIdx}, 'r', 'LineWidth', 2);
+    plot(x_edf{medIdx}, f_edf{medIdx}, 'r', 'LineWidth', 3);
     for i = 1:nd-1
-        plot(x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 2);
+        plot(x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 1);
     end
     axis([0 T99 0 1.01]);
     set(gca, 'LineWidth', 2, 'TickDir', 'out', fset.tfont{:});
@@ -65,9 +65,9 @@ if ip.Results.Display
     
     axes('Units', 'pixels', 'Position', [440 80 300 280]);
     hold on;
-    plot(x_edf{medIdx}, f_edf{medIdx}, 'r', 'LineWidth', 2);
+    plot(x_edf{medIdx}, f_edf{medIdx}, 'r', 'LineWidth', 3);
     for i = 1:nd-1
-        plot(p(i)*x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 2);
+        plot(p(i)*x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 1);
     end
     axis([0 T99 0 1.01]);
     set(gca, 'LineWidth', 2, 'TickDir', 'out', fset.tfont{:}, 'YTick', [], 'YColor', 'w');
@@ -86,12 +86,12 @@ if ip.Results.Display
     ni = hist(samples{medIdx}, xi);
     ni = ni/sum(ni)/dx;
     %[ni,xi] = ksdensity(samples{medIdx}, 'npoints', 1000);
-    plot(xi, ni, 'r-', 'LineWidth', 2);
+    plot(xi, ni, 'r-', 'LineWidth', 3);
     for i = 1:nd-1
         ni = hist(samples{idx(i)}, xi);
         ni = ni/sum(ni)/dx;
         %[ni,xi] = ksdensity(samples{idx(i)}, 'npoints', 1000);
-        plot(xi, ni, 'k-', 'LineWidth', 2);
+        plot(xi, ni, 'k-', 'LineWidth', 1);
     end
     axis([0 T99 0 0.02]);
     set(gca, 'LineWidth', 2, 'TickDir', 'out', fset.tfont{:});
@@ -104,12 +104,12 @@ if ip.Results.Display
     ni = hist(samples{medIdx}, xi);
     ni = ni/sum(ni)/dx;
     %[ni,xi] = ksdensity(samples{medIdx}, 'npoints', 1000);
-    plot(xi, ni, 'r-', 'LineWidth', 2);
+    plot(xi, ni, 'r-', 'LineWidth', 3);
     for i = 1:nd-1
         ni = hist(samples{idx(i)}*p(i), xi);
         ni = ni/sum(ni)/dx;
         %[ni,xi] = ksdensity(samples{idx(i)}*p(i), 'npoints', 1000);
-        plot(xi, ni, 'k-', 'LineWidth', 2);
+        plot(xi, ni, 'k-', 'LineWidth', 1);
     end
     axis([0 T99 0 0.02]);
     set(gca, 'LineWidth', 2, 'TickDir', 'out', fset.tfont{:}, 'YTick', [], 'YColor', 'w');
