@@ -107,9 +107,11 @@ classdef BiosensorsPackage < Package
                 % Check the validity of bleed channels in Bleedthrough
                 % Correction Process (step 8 in biosensors package)
                 if i == 8 && ~isempty(obj.processes_{6})
-                    tmp = setdiff(obj.processes_{i}.funParams_.BleedChannelIndex, ...
-                        union(obj.processes_{6}.funParams_.ChannelIndex,...
-                        find(obj.processes_{6}.checkChannelOutput)));
+                    
+                    validChannels = union(obj.processes_{6}.funParams_.ChannelIndex,...
+                        find(obj.processes_{6}.checkChannelOutput));
+                    correctionChannels = find(sum(obj.processes_{i}.funParams_.Coefficients,2)>0);
+                    tmp = setdiff(correctionChannels,validChannels);
                     
                     if  ~isempty(tmp)
                         if length(tmp) ==1
@@ -169,11 +171,16 @@ classdef BiosensorsPackage < Package
                 end
                 
                 % Set the process index of bleedthrough correction
-                if i == 8 && ~isempty(obj.processes_{6})
-                    parseProcessParams(obj.processes_{i},...
-                        struct('ProcessIndex',obj.owner_.getProcessIndex(obj.processes_{6})));
-                end
-                
+                if i == 8 
+                    if ~isempty(obj.processes_{7})
+                        processIndex=obj.owner_.getProcessIndex(obj.processes_{7});
+                    elseif ~isempty(obj.processes_{6})
+                        processIndex=obj.owner_.getProcessIndex(obj.processes_{6});
+                    else
+                        processIndex=[];                 
+                    end
+                    parseProcessParams(obj.processes_{i},struct('ProcessIndex',processIndex));
+                end                
             end
             
             % Hard-coded, when processing processes 2,3,7,9,  add mask

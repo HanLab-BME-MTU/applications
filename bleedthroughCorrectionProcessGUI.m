@@ -22,7 +22,7 @@ function varargout = bleedthroughCorrectionProcessGUI(varargin)
 
 % Edit the above text to modify the response to help bleedthroughCorrectionProcessGUI
 
-% Last Modified by GUIDE v2.5 24-Aug-2010 11:16:03
+% Last Modified by GUIDE v2.5 20-Mar-2012 17:08:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,39 +54,36 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 % Set up available input channels
-set(handles.listbox_input1, 'String', {userData.MD.channels_.channelPath_},...
+set(handles.listbox_availableChannels, 'String', userData.MD.getChannelPaths,...
         'Userdata', 1: length(userData.MD.channels_));
     
 % Set up input channel (one channel)
 if ~isempty(funParams.ChannelIndex)
-    set(handles.edit_dir, 'String', ...
+    set(handles.edit_channel, 'String', ...
         {userData.MD.channels_(funParams.ChannelIndex).channelPath_} , ...
         'Userdata', funParams.ChannelIndex )
 end
 
 if ~isempty(funParams.ChannelIndex)
-    set(handles.listbox_input1, 'Value', funParams.ChannelIndex(1))
+    set(handles.listbox_availableChannels, 'Value', funParams.ChannelIndex)
 end
     
+set(handles.uitable_Coefficients,'Data',horzcat(userData.MD.getChannelPaths',...
+    num2cell(funParams.Coefficients)));
+%num2cell(funParams.Coefficients))
 % Set up bleed channels
-set(handles.listbox_mask1, 'String', {userData.MD.channels_.channelPath_},...
-        'Userdata', 1: length(userData.MD.channels_));    
+% set(handles.listbox_mask1, 'String', {userData.MD.channels_.channelPath_},...
+%         'Userdata', 1: length(userData.MD.channels_));    
 
-% Set up bleedthrough channels
-if ~isempty(funParams.BleedChannelIndex)
-    set(handles.listbox_mask2, 'String', ...
-        {userData.MD.channels_(funParams.BleedChannelIndex).channelPath_}, ...
-        'Userdata', funParams.BleedChannelIndex)
-end
-
-%  Parameter Setup 
-strBleedCoef = cell(1,length(funParams.BleedCoefficients));
-
-for i = 1:length(funParams.BleedCoefficients)
-    strBleedCoef{i} = funParams.BleedCoefficients(i);
-end
-
-set(handles.listbox_coef1, 'String', strBleedCoef)
+% 
+% %  Parameter Setup 
+% strBleedCoef = cell(1,length(funParams.BleedCoefficients));
+% 
+% for i = 1:length(funParams.BleedCoefficients)
+%     strBleedCoef{i} = funParams.BleedCoefficients(i);
+% end
+% 
+% set(handles.listbox_coef1, 'String', strBleedCoef)
 
 
 % Choose default command line output for bleedthroughCorrectionProcessGUI
@@ -115,157 +112,48 @@ delete(handles.figure1);
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
-userData = get(handles.figure1, 'UserData');
 
 % -------- Check user input --------
-channelIndex = get (handles.edit_dir, 'Userdata');
-
+channelIndex = get(handles.edit_channel, 'Userdata');
 if isempty(channelIndex)
-   errordlg('Please select a channel as input channel.','Setting Error','modal') 
+    errordlg('Please select a channel as input channel.','Setting Error','modal')
     return;
 end
-
-bleedChannelIndex = get(handles.listbox_mask2, 'Userdata');
-if isempty(bleedChannelIndex)
-   errordlg('Please select at least one bleedthrough channel from ''Available Bleed Channels''.','Setting Error','modal') 
-    return;
-else
-    for i = 1: length(bleedChannelIndex)
-        if bleedChannelIndex(i) == channelIndex
-            errordlg('Bleedthrough channel cannot be input channel.','Setting Error','modal') 
-            return;
-        end
-    end
-end
-
-if isempty(get(handles.listbox_coef1, 'String'))
-   errordlg('Please add bleedthrough coefficients.','Setting Error','modal') 
-   return;    
-elseif length(bleedChannelIndex) ~= length(get(handles.listbox_coef1, 'String'))
-        
-   errordlg('The coefficients must be the same number as selected bleed channels.','Setting Error','modal') 
-   return;
-else
-    bleedCoefficients = str2double(get(handles.listbox_coef1, 'String'));
-    if any( isnan(bleedCoefficients) ) || any(bleedCoefficients < 0)
-        errordlg('Please provide valid bleedthrough coefficients. Coefficients cannot be a negative number.','Setting Error','modal');
-        return;
-    end
-end
-
-% -------- Process Sanity check --------
-% ( only check underlying data )
-
-try
-    userData.crtProc.sanityCheck;
-catch ME
-
-    errordlg([ME.message 'Please double check your data.'],...
-                'Setting Error','modal');
-    return;
-end
-
-% -------- Set parameter --------
-
 funParams.ChannelIndex = channelIndex;
-funParams.BleedChannelIndex = bleedChannelIndex;
-funParams.BleedCoefficients = bleedCoefficients;
+
+% Get coefficients
+data= get(handles.uitable_Coefficients,'Data');
+if ~all(cellfun(@isscalar,data(:,2:end)))
+    errordlg('Please enter valid coefficients.','Setting Error','modal')
+    return;
+end
+coefficients=cell2mat(data(:,2:end));
+if ~all(coefficients>=0)
+    errordlg('Please enter valid coefficients.','Setting Error','modal')
+    return;
+end
+
+if any(coefficients(:,1)>0 & coefficients(:,2)>0)
+    errordlg('The same channel cannot be  used for bleed-through and cross-talk correction.',...
+        'Setting Error','modal')
+    return;
+end
+funParams.Coefficients = coefficients;
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 
-% --- Executes on button press in checkbox_all.
-function checkbox_all_Callback(hObject, eventdata, handles)
-% Hint: get(hObject,'Value') returns toggle state of checkbox_all
-contents1 = get(handles.listbox_mask1, 'String');
 
-chanIndex1 = get(handles.listbox_mask1, 'Userdata');
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
+% --- Executes on selection change in listbox_availableChannels.
+function listbox_availableChannels_Callback(hObject, eventdata, handles)
 
-% Return if listbox1 is empty
-if isempty(contents1)
-    return;
-end
-
-switch get(hObject,'Value')
-    case 1
-        set(handles.listbox_mask2, 'String', contents1);
-        chanIndex2 = chanIndex1;
-    case 0
-        set(handles.listbox_mask2, 'String', {}, 'Value',1);
-        chanIndex2 = [ ];
-end
-set(handles.listbox_mask2, 'UserData', chanIndex2);
-
-
-% --- Executes on button press in pushbutton_mask_select.
-function pushbutton_mask_select_Callback(hObject, eventdata, handles)
-% call back function of 'select' button
-set(handles.listbox_mask2, 'Value', 1)
-
-contents1 = get(handles.listbox_mask1, 'String');
-contents2 = get(handles.listbox_mask2, 'String');
-id = get(handles.listbox_mask1, 'Value');
-
-% If channel has already been added, return;
-chanIndex1 = get(handles.listbox_mask1, 'Userdata');
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
-
-for i = id
-    if any(strcmp(contents1{i}, contents2) )
-        continue;
-    else
-        contents2{end+1} = contents1{i};
-        
-        chanIndex2 = cat(2, chanIndex2, chanIndex1(i));
-
-    end
-end
-
-set(handles.listbox_mask2, 'String', contents2, 'Userdata', chanIndex2);
-
-
-% --- Executes on button press in pushbutton_mask_delete.
-function pushbutton_mask_delete_Callback(hObject, eventdata, handles)
-% Call back function of 'delete' button
-contents = get(handles.listbox_mask2,'String');
-id = get(handles.listbox_mask2,'Value');
-
-% Return if list is empty
-if isempty(contents) || isempty(id)
-    return;
-end
-
-% Delete selected item
-contents(id) = [ ];
-
-% Delete userdata
-chanIndex2 = get(handles.listbox_mask2, 'Userdata');
-chanIndex2(id) = [ ];
-set(handles.listbox_mask2, 'Userdata', chanIndex2);
-
-% Point 'Value' to the second last item in the list once the 
-% last item has been deleted
-if (id >length(contents) && id>1)
-    set(handles.listbox_mask2,'Value',length(contents));
-end
-% Refresh listbox
-set(handles.listbox_mask2,'String',contents);
-
-
-% --- Executes on selection change in listbox_input1.
-function listbox_input1_Callback(hObject, eventdata, handles)
-
-contents1 = get(hObject, 'String');
-chanIndex = get(hObject, 'Userdata');
+props = get(hObject, {'String','UserData'});
+if isempty(props{1}), return; end
 
 id = get(hObject, 'Value');
+if isempty(id), return; end
 
-if isempty(contents1) || isempty(id)
-   return;
-else
-    set(handles.edit_dir, 'string', contents1{id}, 'Userdata',chanIndex(id));
-end
+set(handles.edit_channel, 'String', props{1}{id}, 'UserData',props{2}(id));
 
 
 % --- Executes during object deletion, before destroying properties.
@@ -278,87 +166,6 @@ end
 
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
-
-
-% --- Executes on button press in pushbutton_add.
-function pushbutton_add_Callback(hObject, eventdata, handles)
-
-
-set(handles.listbox_coef1, 'Value', 1);
-text = get(handles.edit_coef, 'String');
-if isempty(text)
-    return;
-end
-
-if isnan(str2double(text)) || str2double(text) < 0 
-    errordlg('Please provide a valid coefficient. Coefficient must be positive.','Setting Error','modal');
-    return;
-end
-
-contents = get(handles.listbox_coef1, 'String');
-contents{end + 1} = text;
-set(handles.listbox_coef1, 'String', contents)
-set(handles.edit_coef, 'String', '')
-
-
-% --- Executes on button press in pushbutton_coef_delete.
-function pushbutton_coef_delete_Callback(hObject, eventdata, handles)
-% Call back function of 'delete' button
-contents = get(handles.listbox_coef1,'String');
-% Return if list is empty
-if isempty(contents)
-    return;
-end
-id = get(handles.listbox_coef1,'Value');
-
-% Delete selected item
-contents(id) = [ ];
-
-% Refresh listbox
-set(handles.listbox_coef1,'String',contents);
-% Point 'Value' to the second last item in the list once the 
-% last item has been deleted
-if (id>length(contents) && id>1)
-    set(handles.listbox_coef1,'Value',length(contents));
-end
-
-
-% --- Executes on button press in pushbutton_up.
-function pushbutton_up_Callback(hObject, eventdata, handles)
-% call back of 'Up' button
-id = get(handles.listbox_coef1,'Value');
-contents = get(handles.listbox_coef1,'String');
-
-% Return if list is empty
-if isempty(contents) || isempty(id) || id == 1
-    return;
-end
-
-temp = contents{id};
-contents{id} = contents{id-1};
-contents{id-1} = temp;
-
-set(handles.listbox_coef1, 'string', contents);
-set(handles.listbox_coef1, 'value', id-1);
-
-
-% --- Executes on button press in pushbutton_down.
-function pushbutton_down_Callback(hObject, eventdata, handles)
-% Call back of 'Down' button
-id = get(handles.listbox_coef1,'Value');
-contents = get(handles.listbox_coef1,'String');
-
-% Return if list is empty
-if isempty(contents) || isempty(id) || id == length(contents)
-    return;
-end
-
-temp = contents{id};
-contents{id} = contents{id+1};
-contents{id+1} = temp;
-
-set(handles.listbox_coef1, 'string', contents);
-set(handles.listbox_coef1, 'value', id+1);
 
 
 
