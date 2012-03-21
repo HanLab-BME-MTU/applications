@@ -12,9 +12,10 @@ ip.CaseSensitive = false;
 % ip.addRequired('masterTracks', @(t) isstruct(t) && all([t.nSeg]==1));
 ip.addParamValue('MinOverlap', 1, @isscalar);
 ip.addParamValue('MaxDistance', 10, @isscalar);
+ip.addParamValue('MaxSlaveDelta_f', 10, @isscalar);
 ip.parse(varargin{:});
 minOverlap = ip.Results.MinOverlap;
-R = ip.Results.MaxDistance;
+
 
 % mean positions
 mMeans = arrayfun(@(t) [nanmean(t.x(1,:)) nanmean(t.y(1,:))], masterTracks, 'UniformOutput', false);
@@ -23,10 +24,10 @@ sMeans = arrayfun(@(t) [nanmean(t.x(1,:)) nanmean(t.y(1,:))], slaveTracks, 'Unif
 sMeans = vertcat(sMeans{:});
 
 % slave tracks in vicinity to master tracks
-idxMap = KDTreeBallQuery(sMeans, mMeans, R);
+idxMap = KDTreeBallQuery(sMeans, mMeans, ip.Results.MaxDistance);
 
 % masterLengths = arrayfun(@(i) numel(i.t), masterTracks);
-% slaveLengths = arrayfun(@(i) numel(i.t), slaveTracks);
+slaveLengths = arrayfun(@(i) numel(i.t), slaveTracks);
 
 % parse each set of assignments and check for overlap
 nm = numel(masterTracks);
@@ -36,7 +37,8 @@ for k = 1:nm
         overlapEnd = min([slaveTracks(idxMap{k}).end], masterTracks(k).end);
         overlap = overlapEnd - overlapStart + 1;
         % for positive overlaps, compute average distance
-        sel = find(overlap>=minOverlap);
+        %sel = find(overlap>=minOverlap);
+        sel = find(overlap>=minOverlap & slaveLengths(idxMap{k})-overlap <= ip.Results.MaxSlaveDelta_f);
         idxMap{k} = idxMap{k}(sel);
         if ~isempty(sel)
             

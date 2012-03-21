@@ -131,9 +131,9 @@ v = mean([res.trackClassStats{:}],2);
 v_std = std([res.trackClassStats{:}],[],2);
 
 % meanHist_Iab =  mean(vertcat(res.lftHist_Iab{:}),1);
-meanHist_Ia =  mean(vertcat(res.lftHist_Ia{:}),1);
-meanHist_Ib =  mean(vertcat(res.lftHist_Ib{:}),1);
-meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
+res.meanHist_Ia =  mean(vertcat(res.lftHist_Ia{:}),1);
+res.meanHist_Ib =  mean(vertcat(res.lftHist_Ib{:}),1);
+res.meanHist_IIa = mean(vertcat(res.lftHist_IIa{:}),1);
 
 
 
@@ -153,9 +153,9 @@ if strcmpi(ip.Results.Display, 'on')
     % mean histograms (main classes)
     hf(2) = figure;
     hold on;
-    hp(3) = plot(t_hist, meanHist_IIa, '.-', 'Color', 0.6*[1 1 1], 'LineWidth', 2, 'MarkerSize', 16);
-    hp(2) = plot(t_hist, meanHist_Ib, '.-', 'Color', hsv2rgb([0 1 0.8]), 'LineWidth', 2, 'MarkerSize', 16);
-    hp(1) = plot(t_hist, meanHist_Ia, '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 16);
+    hp(3) = plot(t_hist, res.meanHist_IIa, '.-', 'Color', 0.6*[1 1 1], 'LineWidth', 2, 'MarkerSize', 16);
+    hp(2) = plot(t_hist, res.meanHist_Ib, '.-', 'Color', hsv2rgb([0 1 0.8]), 'LineWidth', 2, 'MarkerSize', 16);
+    hp(1) = plot(t_hist, res.meanHist_Ia, '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 16);
     axis([0 min(120, t_hist(end)) 0 0.05]);
     set(gca, 'LineWidth', 2, fset.sfont{:}, 'Layer', 'top');
     xlabel('Lifetime (s)', fset.lfont{:});
