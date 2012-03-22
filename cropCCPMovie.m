@@ -3,7 +3,11 @@
 
 % Francois Aguet, 06/27/2011
 
-function cropCCPMovie(data)
+function cropCCPMovie(data, ext)
+
+if nargin<2
+    ext = '';
+end
 
 nCh = length(data.channels);
 
@@ -28,7 +32,7 @@ drawnow;
 fprintf('Movie crop: writing files...');
 for c = 1:nCh
     chDir = data.channels{c};
-    chDir = [chDir(1:end-1) '_crop' filesep];
+    chDir = [chDir(1:end-1) '_crop' ext filesep];
     [~,~] = mkdir(chDir);
     parfor f = 1:data.movieLength
         frame = imread(data.framePaths{c}{f});
