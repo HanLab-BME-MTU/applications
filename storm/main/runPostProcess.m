@@ -16,32 +16,7 @@ dis.models
 % dis.maxGaps
 % dis.nullCluster
 % dis.clusters
-
-disp('------------------------------------------------');
-
-%% DISPLAY CLUSTER INITIALIZATION
-
-% myCropper.display(im);
-% myCropper.displayWithColor(im);
-myOrientationDetector.display(im,cfg.filterLengthVisualization);
-% myOrientationDetector.displayVariableLength(im,cfg.filterLengthVisualization);
-myGeometricMatcher.displayMatchedEdgesFromData(im);
-% myGeometricMatcher.displayClustersFromData(im);
-
-disp('------------------------------------------------');
-
-%% DISPLAY CLUSTERS
-
-myModel.displayClusters(im);
-% myModel.displayClustersAsChains(im);
-% myModel.displayProjections(im);
-% myModel.displayResiduals(im);
-
-disp('------------------------------------------------');
-
-%% DISPLAY TRUTH
-
-mySimulator.displayTruth(im);
+% dis.modelGroundTruth
 
 disp('------------------------------------------------');
 
