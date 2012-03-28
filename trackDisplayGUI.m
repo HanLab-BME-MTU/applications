@@ -16,20 +16,19 @@ handles.data = data;
 % detect number of channels (up to 4)
 nCh = length(data.channels);
 handles.nCh = nCh;
-% exclude master from list of channels
+% master channel index
 handles.mCh = find(strcmp(data.source, data.channels));
 
+% set defaults
 if nargin<2
     tracks = [];
     handles.tracks = cell(1,nCh);
 end
 
-
-
+% input checks
 if nCh>4
     error('Only data with up to 4 channels are supported.');
 end
-
 
 
 if ~isempty(tracks)
@@ -97,10 +96,12 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
     'Position', [50 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
 % Frame slider
-handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
-    'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-    'Position', [20 60 width 20], 'Callback', {@frameSlider_Callback, hfig});
-
+if data.movieLength>1
+    handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
+        'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
+        'Position', [20 60 width 20], 'Callback', {@frameSlider_Callback, hfig});
+end
+    
 % Main control panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 700 70]);
 
@@ -254,7 +255,6 @@ end
 %=================================================
 % Generate axes
 %=================================================
-% hFig = findall(0, '-regexp', 'Name', 'trackDisplayGUI')
 
 % track panels: 20 spacer, 110 bottom, 30 top
 h_tot = pos(4) - 140;
@@ -287,26 +287,27 @@ xlabel('Time (s)');
 % vertical
 handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
 
-setappdata(hfig, 'handles', handles);%%%%%%%%%
+
+set(hfig, 'ResizeFcn', @figResize);
+
+% save XLim diff. for zoom reference
+handles.refXLimDiff = data.imagesize(2)-1;
+
+setappdata(hfig, 'handles', handles); % write 'handles' to hfig
 handles = setupFrameAxes(hfig);
 
 
 %===========================
 % initialize figures/plots
 %===========================
-for c = 1:nCh
-    set(handles.fAxes(c), 'XLim', [0.5 data.imagesize(2)+0.5], 'YLim', [0.5 data.imagesize(1)+0.5]);
-end
-linkaxes(handles.tAxes, 'x');
-axis(handles.fAxes, 'image');
 
-% save XLim diff. for zoom reference
-handles.refXLimDiff = data.imagesize(2)-1;
+linkaxes(handles.tAxes, 'x'); % calls resize??
 
-%set(handles.figure1,'KeyPressFcn',@myFunction)
+
+
 set(hfig, 'KeyPressFcn', @keyListener);
 
-setappdata(hfig, 'handles', handles);
+
 refreshFrameDisplay(hfig);
 refreshTrackDisplay(hfig);
 
@@ -314,7 +315,7 @@ setColorbar(hfig, handles.trackMode);
 
 set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 
-set(hfig, 'ResizeFcn', @figResize);
+
 
 
 % UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
@@ -395,8 +396,8 @@ switch nx
     case 4        
         set(handles.tAxes(1), 'Position', [dx 110+(h_tot-h) w h]);
         set(handles.tAxes(2), 'Position', [dx 110+(h_tot-2*h-20) w h]);
-        set(handles.tAxes(3), 'Position', [dx 110+(h_tot-2*h-40) w h]);
-        set(handles.tAxes(4), 'Position', [dx 110+(h_tot-2*h-60) w h]);
+        set(handles.tAxes(3), 'Position', [dx 110+(h_tot-3*h-40) w h]);
+        set(handles.tAxes(4), 'Position', [dx 110+(h_tot-4*h-60) w h]);
 end
 
 set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
@@ -404,7 +405,9 @@ set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
 % frames
 width = pos(3) - 350-50-100-50 -50;
 set(handles.frameLabel, 'Position', [50 pos(4)-20, 100 15]);
-set(handles.frameSlider, 'Position', [50 75 width 20]);
+if isfield(handles, 'frameSlider')
+    set(handles.frameSlider, 'Position', [50 75 width 20]);
+end
 
 dx = 50;
 dy = 120; % bottom spacer
@@ -422,24 +425,26 @@ switch numel(handles.fAxes)
             set(handles.fAxes(1), 'Position', [dx dy+20+height width height]);
             set(handles.fAxes(2), 'Position', [dx dy width height]);
         end
-%     case 3
-%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%     case 4
-%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%         handles.fAxes(4) = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+    case 3
+        width = (width-20)/2;
+        height = (height-20)/2;
+        set(handles.fAxes(1), 'Position', [dx dy+20+height width height]); % top left
+        set(handles.fAxes(2), 'Position', [dx+width+20 dy+20+height width height]); % top right
+        set(handles.fAxes(3), 'Position', [dx dy width height]); % bottom left
+    case 4
+        width = (width-20)/2;
+        height = (height-20)/2;
+        set(handles.fAxes(1), 'Position', [dx dy+20+height width height]);
+        set(handles.fAxes(2), 'Position', [dx+width+20 dy+20+height width height]);
+        set(handles.fAxes(3), 'Position', [dx dy width height]);
+        set(handles.fAxes(4), 'Position', [dx+width+20 dy width height]);
 end
 
 
 
 
-
-
-
 function handles = setupFrameAxes(hfig, N)
+% function setupFrameAxes(hfig, N)
 
 handles = getappdata(hfig, 'handles');
 
@@ -452,11 +457,12 @@ pos = get(gcf, 'Position');
 
 dy = 120; % bottom spacer
 dx = 50;
-width = pos(3) - 350-50-100-50 -50;
+width = pos(3) - 350-50-100-50 -50; % track width: 350, colorbar: 100
 height = pos(4) - dy-30;
 
+% reset axes etc.
 if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
-    cellfun(@(x) delete(x), handles.fAxes);
+    delete(handles.fAxes);
 end
 handles.fAxes = zeros(1,N);
 opts = {'Parent', gcf, 'Units', 'pixels'};
@@ -468,21 +474,30 @@ switch N
             width = (width-20)/2;
             handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy width height]);
             handles.fAxes(2) = axes(opts{:}, 'Position', [dx+width+20 dy width height], 'YTick', []);
-        else
+        else % vertical
             height = (height-20)/2;
             handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy+20+height width height], 'XTick', []);
             handles.fAxes(2) = axes(opts{:}, 'Position', [dx dy width height]);
         end
-%     case 3
-%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%     case 4
-%         handles.fAxes(1) = axes(opts{:}, 'Position', [dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(2) = axes(opts{:}, 'Position', [8*dx 7*dy 6*dx 4*dy]);
-%         handles.fAxes(3) = axes(opts{:}, 'Position', [dx 2*dy 6*dx 4*dy]);
-%         handles.fAxes(4) = axes(opts{:}, 'Position', [8*dx 2*dy 6*dx 4*dy]);
+    case 3
+        width = (width-20)/2;
+        height = (height-20)/2;
+        handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy+20+height width height]); % top left
+        handles.fAxes(2) = axes(opts{:}, 'Position', [dx+width+20 dy+20+height width height]); % top right
+        handles.fAxes(3) = axes(opts{:}, 'Position', [dx dy width height]); % bottom left
+    case 4
+        width = (width-20)/2;
+        height = (height-20)/2;
+        handles.fAxes(1) = axes(opts{:}, 'Position', [dx dy+20+height width height]);
+        handles.fAxes(2) = axes(opts{:}, 'Position', [dx+width+20 dy+20+height width height]);
+        handles.fAxes(3) = axes(opts{:}, 'Position', [dx dy width height]);
+        handles.fAxes(4) = axes(opts{:}, 'Position', [dx+width+20 dy width height]);
 end
+for c = 1:N
+    set(handles.fAxes(c), 'XLim', [0.5 handles.data.imagesize(2)+0.5], 'YLim', [0.5 handles.data.imagesize(1)+0.5]);
+end
+axis(handles.fAxes, 'image');
+
 setappdata(hfig, 'handles', handles);
 if N>1
     linkaxes(handles.fAxes);
@@ -505,6 +520,8 @@ end
 % Plot frames with overlaid tracks
 %===================================
 function handles = refreshFrameDisplay(hfig)
+
+
 
 handles = getappdata(hfig, 'handles');
 settings = getappdata(hfig, 'settings');
@@ -987,16 +1004,14 @@ function printButton_Callback(~, ~, hfig)
 % handles    structure with handles and user data (see GUIDATA)
 
 fprintf('Printing...');
+
 handles = getappdata(hfig, 'handles');
 
+selMask = ~isnan(handles.selectedTrack);
+sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
 for ch = 1:handles.nCh
-    if ~isempty(handles.tracks{ch})
-        tracks = handles.tracks{ch};
-    else
-        tracks = handles.tracks{handles.mCh};
-    end
-    plotTrack(handles.data, tracks(handles.selectedTrack(ch)), ch,...
-        'FileName', ['track_' num2str(handles.selectedTrack(ch)) '_ch' num2str(ch) '.eps'],...
+    plotTrack(handles.data, sTrack, ch,...
+        'FileName', ['track_' num2str(handles.selectedTrack(selMask)) '_ch' num2str(ch) '.eps'],...
         'Visible', 'off', 'DisplayMode', 'Print');
 end
 

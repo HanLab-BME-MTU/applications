@@ -82,11 +82,16 @@ end
 % Setup figure window
 if ~isempty(ip.Results.Handle)
     ha = ip.Results.Handle;
+    tickLength = [0.01 0.025];
 else
-    hfig = figure('Visible', ip.Results.Visible, 'Position', [440 378 85+w*u+20 400], 'PaperPositionMode', 'auto');
-    ha = axes('Units', 'pixels', 'Position', [85 70 w*u 300]);
+    pos0 = get(0, 'DefaultFigurePosition');
+    screenSize = get(0, 'ScreenSize');
+    aw = min(screenSize(3)-105, w*u); % axes width
+    % tick length: percentage of axes width
+    tickLength = pos0(3)/aw*[0.01 0.025];
+    hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 85+aw+20 400], 'PaperPositionMode', 'auto');
+    ha = axes('Units', 'pixels', 'Position', [85 70 aw 300]);
 end
-
 
 % Color definitions
 trackColor = hsv2rgb([hues(ch) 1 0.8]);
@@ -215,6 +220,7 @@ if hasEndBuffer
     end
 end
 
+set(ha, 'TickLength', tickLength);
 
 
 
