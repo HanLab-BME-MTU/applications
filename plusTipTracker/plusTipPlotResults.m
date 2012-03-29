@@ -92,6 +92,7 @@ end
 trackType=allData(:,5);
 trackStarts=allData(:,2);
 trackEnds=allData(:,3);
+% convert to each subtrack
 [xMat,yMat]=plusTipGetSubtrackCoords(projData,[],1);
 
 
@@ -130,6 +131,7 @@ figPos=[round(screenW*(1-movieW/screenW)/2) round(screenL*(1-movieL/screenL)/2) 
 
 overlayFig = figure;
 imshow(img,[]);
+
 set(gca,'Position',[0 0 1 .95]);
 hold on
 
@@ -165,14 +167,14 @@ for i=1:3
         figure(overlayFig);
         delete(findobj(overlayFig,'Type','line'));
         for k=1:cMapLength
-            plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:));
+            plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:),'lineWidth',1);
         end
         title([type{j} ' map of ' event{i} ', max ' type{j}...
             ' ' num2str(dataRange) ' ' typeUnits{j}]);
         
         saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} '.fig'])
-        saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} fileExt])
-
+        %saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} filext])
+        saveas(gcf,[saveDir filesep 'overlay_' event{i} '_' type{j} '.eps'],'psc2'); 
         if ishandle(wtBar)
             waitbar(((i-1)*3+ j)/18,wtBar,'Creating overlay maps');
         end
@@ -180,8 +182,114 @@ for i=1:3
     end
 end
 delete(findobj(overlayFig,'Type','line'));
+%%
+
+
+%% Plot only Coord in Region 
+
+
+
+if isfield(projData, 'xCoordInAllTracks')
+    dataIn(:,1) = projData.speedInMicPerMinAllTracks; 
+dataIn(:,2) = projData.insideSecAllTracks; 
+roiMask = double(imread([projData.anDir filesep 'roiMask.tif'])); 
+maskImg = img.*roiMask; 
+%[y1,x1] = ind2sub(size(roiMask),find(roiMask,1)); 
+
+allBCoordsYX = bwboundaries(roiMask); 
+
+% always use all for now 
+    maskFig = figure; 
+    imshow(maskImg,[]); 
+    hold on; 
+    
+    set(gca,'Position',[0 0 1 .95]);
+hold on
+    for j = 1:2 
+        xMat = projData.xCoordInAllTracks; 
+yMat = projData.yCoordInAllTracks; 
+
+ x=xMat(:,1:end-1)';
+    y=yMat(:,1:end-1)';
+      data = dataIn(:,j); 
+      dataRange = ceil(typeLim{j}); 
+      
+data(data>dataRange)=dataRange;
+        mapper=linspace(0,dataRange,cMapLength)';
+        
+        % get closest colormap index for each feature
+        D=createDistanceMatrix(data,mapper);
+        [sD,idx]=sort(abs(D),2);
+        
+        % make the plot
+        figure(maskFig);
+        delete(findobj(maskFig,'Type','line'));
+        for k=1:cMapLength
+            plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:),'lineWidth',1);
+        end
+        
+        if j == 1
+            hold on
+            dataOut = projData.speedOutMicPerMinAllTracks; 
+           % dataOut = dataOut(~isnan(dataOut)); 
+            dataOut(dataOut>dataRange) = dataRange; 
+            
+             mapper=linspace(0,dataRange,cMapLength)';
+        
+        % get closest colormap index for each feature
+        D=createDistanceMatrix(dataOut,mapper);
+        [sD,idx]=sort(abs(D),2);
+            
+            
+            xMat = projData.xCoordOutAllTracks; 
+            yMat = projData.yCoordOutAllTracks; 
+            x = xMat(:,1:end-1)'; 
+            y = yMat(:,1:end-1)'; 
+            
+            
+            for k=1:cMapLength
+            plot(x(:,idx(:,1)==k),y(:,idx(:,1)==k),'color',cMap(k,:),'lineWidth',1);
+            end
+        else 
+            hold on 
+            x = projData.xCoordOutAllTracks; 
+            y = projData.yCoordOutAllTracks; 
+            
+            plot(x',y','w'); 
+            
+            
+            
+            
+            
+        end 
+    for i = 1:numel(allBCoordsYX) 
+        roiYX = allBCoordsYX{i};
+    plot(roiYX(:,2),roiYX(:,1),'color','w','linewidth', 1);
+    end 
+    title([type{j} ' of growth calculated specifically in region: Max ' type{j}...
+            ' ' num2str(dataRange) ' ' typeUnits{j}]);
+        
+        saveas(maskFig,[saveDir filesep 'overlay_growth_tracks_' type{j} 'calculated_specifically_in_ROI.fig'])     
+          saveas(maskFig,[saveDir filesep 'overlay_growth_tracks_' type{j} 'calculated_specifically_in_ROI.eps'],'psc2'); 
+    end 
+    
+    
+close(maskFig); 
+end
+
+
+
+
+
+
+
+
+
+
+
 
 %% STACKED HISTOGRAMS
+[xMat,yMat]=plusTipGetSubtrackCoords(projData,[],1);
 
 [dummy,speedLifeDispMat]=plusTipDynamParam(allData,[],1,0);
 
@@ -217,7 +325,17 @@ for j=1:3
     end
 end
 
+
+        
+    
+
+
+
 %% RESCUE FROM PAUSE AND SHRINKAGE PLOTS
+overlayFig = figure; 
+imshow(img,[]); 
+set(gca,'Position',[0 0 1 .95]);
+hold on
 
 % pause info
 nFgaps=length(fIdx);
@@ -255,7 +373,7 @@ if ishandle(wtBar),  waitbar(.75,wtBar,'Creating sites plots'); end
 
 % make the pause/shrink initiation plots
 figure(overlayFig);
-
+  delete(findobj(overlayFig,'Type','line'));
 h=scatter(xCatPause,yCatPause,'y','filled');
 title('pause initiation sites (growth to pause)')
 saveas(gcf,[saveDir filesep 'pause initiation sites (growth to pause)' '.fig'])
@@ -291,7 +409,32 @@ h(2) = scatter(xResPause,yResPause,'y','filled');
 title('pause (yellow) and shrinkage (red) termination sites')    
 saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' '.fig'])
 saveas(gcf,[saveDir filesep 'pause and shrinkage termination sites' fileExt])
+
+delete(h);
+p = [1 0 1]; 
+% h = scatter(xResShrink,yResShrink,'b','filled'); 
+% h(2) = scatter(xCatPause,yCatPause,'c','filled'); 
+% h(3) = scatter(xCatShrink,yCatShrink,'y','filled'); 
+%  plotScaleBar(100,2,'Label','10 um','Location','NorthEast','FontSize',14),
+% saveas(gcf,[saveDir filesep 'for_paper.eps'],'psc2'); 
+
 close(gcf)
 
+function [img2show]=addMaskInColor(img,roiMask,c)
+%subfunction to add new polygon outline to composite image - this is needed
+%because you can't pass vector graphics info to roipoly function, and we
+%want to be able to visualize the regions that have already been selected.
+temp=double(bwmorph(roiMask,'remove'));
+borderIdx=find(temp);
+nPix=numel(roiMask);
 
+img2show=img;
+img2show(borderIdx)=c(1);
+img2show(borderIdx+nPix)=c(2);
+img2show(borderIdx+2*nPix)=c(3);
+
+end
+
+close all
 if ishandle(wtBar), close(wtBar); end
+end
