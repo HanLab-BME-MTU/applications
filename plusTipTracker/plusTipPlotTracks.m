@@ -165,7 +165,27 @@ idxAll=[];
 for i=1:dim
     idxAll=[idxAll; idx+(i-1)*(imL*imW)];
 end
+
+
+%img = double(img); 
+%img = img.*roiMask;
+
+
+[~,up1] = getFilenameBody(projData.anDir);
+if strcmpi(up1,'sub_') % if subRoi plot mask of subRoi
+ 
+ roiMask = double(imread([projData.anDir filesep 'roiMask.tif']));
+ subRoi = 1; 
+ roiMask = reshape(roiMask(idxAll),maxY-minY+1,maxX-minX+1,[]); 
+ 
+ %[y1,x1] = ind2sub(size(roiMask),find(roiMask,1)); 
+allBCoordsYX  = bwboundaries(roiMask); 
+else subRoi =0;
+
+end
+
 img=reshape(img(idxAll),maxY-minY+1,maxX-minX+1,[]);
+
 %img=img(minY:maxY,minX:maxX);
 
 if rawToo==1
@@ -212,7 +232,13 @@ set(ah,'visible','on');
 %label axes
 xlabel('x-coordinate (pixels)');
 ylabel('y-coordinate (pixels)');
-
+if subRoi == 1
+    hold on
+    for i = 1:numel(allBCoordsYX) 
+        roiYX = allBCoordsYX{i};
+    plot(roiYX(:,2),roiYX(:,1),'color','w','linewidth', 1);
+    end 
+end
 if isempty(xMat)
     return
 end
@@ -237,6 +263,7 @@ if rawToo==1
     xMat=xMat+length(img(1,:,1))/2;
     % y values don't change
 end
+
 
 %hold on figure
 hold on
@@ -272,6 +299,8 @@ for iColor=1:8
 
     plot(xMat(trackType==iColor,timeRange(1):timeRange(2))',...
         yMat(trackType==iColor,timeRange(1):timeRange(2))',c1,'LineWidth',3)
+    
+    
 
     % plot big circle around transition events (red circle when start of
     % growth, yellow circle when start of shrinkage, etc.)
@@ -286,6 +315,8 @@ for iColor=1:8
 
 end
 
+
+ 
 
 % if movieInfo given then ALL detected features will be shown with jet
 % colormap (not just the ones selected by the tracking)
