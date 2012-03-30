@@ -115,7 +115,7 @@ nx = ip.Results.FramesPerRow;
 
 
 
-hf = figure('Visible', 'off', 'PaperPositionMode', 'auto', 'Position', [50, 200, width, height]);
+hf = figure('Visible', 'off', 'PaperPositionMode', 'auto', 'Position', [50, 200, width, height], 'Color', 'w');
 ha = axes('Position', [0 0 1 1], 'XLim', [0 width], 'YLim', [0 height]);
 set(hf, 'Units', 'pixels');
 
@@ -135,78 +135,103 @@ else
 end
 delete(ha);
 
-dt = track.lifetime_s/(track.end-track.start+1);
-gapIdx = round((track.t+dt)/dt);
-gapIdx = gapIdx(track.gapVect==1) - track.start + 1;
+% dt = track.lifetime_s/(track.end-track.start+1);
+% gapIdx = round((track.t+dt)/dt);
+% gapIdx = gapIdx(track.gapVect==1) - track.start + 1;
 
 ha = zeros(nc,nf);
-set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible, 'ResizeFcn', {@resizeCallback});
-for rowi = 1:nr
+set(hf, 'Position', [50, 100, width+offset, height], 'Visible', ip.Results.Visible);%, 'ResizeFcn', {@resizeCallback});
+
+% stack index si: x + (rowi-1)*nc*nx + (c-1)*nx
+for si = 1:nf
+    x = rem(si-1,nx)+1;
+    rowi = ceil(si/nx); % each row contains all channels
+    
     for c = 1:nc
-        for x = 1:nx
-            fi = x+(rowi-1)*nx;
-            if fi<=nf
-                ha(c,fi) = axes('Units', 'pixels',...
-                    'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
-                    'XLim', [0 wxi], 'YLim', [0 wxi]);
-                imagesc(xa{fi}, ya{fi}, trackStack{c, fi}); axis image off; caxis(dRange(c,:));            
-                hold on;
-                if ip.Results.ShowDetection && fi>sb && fi<=(track.end-track.start+1)+sb && c==1
-                    if track.gapVect(fi-sb)
-                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 1 1], 'MarkerSize', 16);
-                    elseif track.isPSF(c,fi-sb)
-                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [0 1 0], 'MarkerSize', 16);
-                    else
-                        plot(track.x(c,fi-sb), track.y(c,fi-sb), 'o', 'Color', [1 0 0], 'MarkerSize', 16);
-                    end                    
-                end
-                if ip.Results.ShowMarkers && c==1 && fi>sb && fi<=(track.end-track.start+1)+sb
-                    if fi==sb+1
-                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
-                    end
-                    if ismember(fi-sb, gapIdx)
-                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 10, 'MarkerFaceColor', [0.8 0 0]);
-                    end
-                    if fi==(track.end-track.start+1)+sb
-                        plot(mean(xa{fi}([1 end])), ya{fi}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
-                    end
-                end
-                
-                if x==1 && rowi==1 && ~isempty(labels)
-                    ht(c) = text(-dci, wxi/2, labels{c}, 'Units', 'pixels',...
-                        'HorizontalAlignment', 'right', 'VerticalAlignment', 'baseline',...
-                        'FontUnits', 'pixels', 'FontName', ip.Results.FontName, 'FontSize', wxi/2.5, 'Color', rgbColors{c});
+        ha(c,si) = axes('Units', 'pixels',...
+            'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi],...
+            'XLim', [0 wxi], 'YLim', [0 wxi]);
+        imagesc(xa{si}, ya{si}, trackStack{c, si}); axis image off; caxis(dRange(c,:));
+        hold on;
+        
+        % frame index, relative to movie
+        fi = si-sb+track.start-1;
+        
+        if ip.Results.ShowDetection && track.start<=fi && fi<=track.end% && fi>sb && fi<=(track.end-track.start+1)+sb && c==1
+            idx = find(track.f==fi);
+            for i = idx
+                %if track.gapVect(i)==1
+                    %plot(track.x(c,i), track.y(c,i), 'o', 'Color', [1 1 1], 'MarkerSize', 12);
+                %else
+                if ~isnan(track.isPSF(c,i)) && track.isPSF(c,i)
+                    plot(track.x(c,i), track.y(c,i), 'o', 'Color', [0 1 0], 'MarkerSize', 12);
+                else
+                    plot(track.x(c,i), track.y(c,i), 'o', 'Color', [1 0 0], 'MarkerSize', 12);
                 end
             end
+        end
+        
+        if ip.Results.ShowMarkers && track.start<=fi && fi<=track.end
+            % start marker
+            if fi==track.start
+                if c==1
+                    plot(mean(xa{si}([1 end])), ya{si}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                end
+                if c==nc && nc>1
+                    plot(mean(xa{si}([1 end])), ya{si}(end), '^', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                end
+            end
+            
+            % gaps
+            if any(track.gapVect(track.f==fi)==1) && c==1
+                plot(mean(xa{si}([1 end])), ya{si}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 10, 'MarkerFaceColor', [0.8 0 0]);
+            end
+            
+            % end marker
+            if fi==track.end
+                if c==1
+                    plot(mean(xa{si}([1 end])), ya{si}(1), 'v', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                end
+                if c==nc && nc>1
+                    plot(mean(xa{si}([1 end])), ya{si}(end), '^', 'MarkerEdgeColor', 'none', 'Markersize', 8, 'MarkerFaceColor', [0 0 0]);
+                end
+            end
+        end
+        
+        % Channel labels
+        if x==1 && rowi==1 && ~isempty(labels)
+            ht(c) = text(-dci, wxi/2, labels{c}, 'Units', 'pixels',...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'baseline',...
+                'FontUnits', 'pixels', 'FontName', ip.Results.FontName, 'FontSize', wxi/2.5, 'Color', rgbColors{c});
         end
     end
 end
 colormap(gray(256));
 
-    function resizeCallback(src, ~)
-        [nc,nf] = size(trackStack);
-        pos = get(src, 'Position');
-        width = pos(3)-offset;
-        height = pos(4);
-        
-        %[wxi, dxi, dci, nx, nr] = getProportions(width-offset, height, nf, nc);
-        [wxi, dxi, dci, nr] = getProportions(width, nx, nf, nc);
-        
-        for rowi = 1:nr
-            for c = 1:nc
-                for x = 1:nx
-                    fi = x+(rowi-1)*nx;
-                    if fi<=nf
-                        set(ha(c, fi),...
-                            'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi]);
-                    end
-                end
-                if x==1 && rowi==1 && ~isempty(labels)
-                    set(ht(c), 'Position', [-dci, wxi/2], 'FontSize', wxi/2.5);
-                end
-            end
-        end
-    end
+%     function resizeCallback(src, ~)
+%         [nc,nf] = size(trackStack);
+%         pos = get(src, 'Position');
+%         width = pos(3)-offset;
+%         height = pos(4);
+%
+%         %[wxi, dxi, dci, nx, nr] = getProportions(width-offset, height, nf, nc);
+%         [wxi, dxi, dci, nr] = getProportions(width, nx, nf, nc);
+%
+%         for rowi = 1:nr
+%             for c = 1:nc
+%                 for x = 1:nx
+%                     fi = x+(rowi-1)*nx;
+%                     if fi<=nf
+%                         set(ha(c, fi),...
+%                             'Position', [offset+(x-1)*(wxi+dxi) height-wxi-((rowi-1)*(nc*wxi+(nc-1)*dxi+dci)+(c-1)*(wxi+dxi)) wxi wxi]);
+%                     end
+%                 end
+%                 if x==1 && rowi==1 && ~isempty(labels)
+%                     set(ht(c), 'Position', [-dci, wxi/2], 'FontSize', wxi/2.5);
+%                 end
+%             end
+%         end
+%     end
 
 if ~isempty(ip.Results.epsPath)
     print(hf, '-depsc2', ip.Results.epsPath);
