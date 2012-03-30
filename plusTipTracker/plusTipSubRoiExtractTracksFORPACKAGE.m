@@ -1,4 +1,4 @@
-function [projData,M]=plusTipSubRoiExtractTracksUpdate3(subRoiDir,varargin)
+function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,varargin)
 % this fn is called by plusTipSubRoiTool
 %
 % NOTE: This Function was MODIFIED from the 1st release of
@@ -10,9 +10,12 @@ function [projData,M]=plusTipSubRoiExtractTracksUpdate3(subRoiDir,varargin)
 % 
 % Furthermore, it has internal option to partition subtracks based on if
 % their start site (onlyInitiate option) or end site (onlyTarget)
-% is located within the region of interest
+% is located within the region of interest, or those tracks specifically 
+% crossing over the borders of the region of interest 
+% 
 % Maria Bagonis (MB) 03/27/11
-% Maria Bagonis (MB) 03/15/12
+% Maria Bagonis (MB) 03/15/12 : Bugs fixes and more extensive options for 
+% subtrack extraction. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -108,7 +111,7 @@ ip.addParamValue('timeValShrink',1',@isscalar);
 
 % Extract types (DEFAULT is nonDirectional any point within region)
 ip.addParamValue('extractType','nonDirectional',@ischar)
-ip.addParamValue('remBegEnd', 1, @islogical); 
+ip.addParamValue('remBegEnd', 1, @isscalar); 
 ip.addParamValue('turnFiguresOn',1,@isscalar); 
 ip.addParamValue('collectPlots',0,@isscalar); 
 ip.addParamValue('turnHistOn',1,@isscalar); 
@@ -216,11 +219,11 @@ roiMask = roiMask.*~excludeMask;
 collectedDataPath = [collectedDataPath filesep 'collectedSubRoiPlots'];
 roi = [roi numSub];
 name = [folder numProj];
-projName = [name roi];
+projName = [name ' ' roi];
 projNameTitle = regexprep(projName,'_',' ');
 
 % delete old figures
-delete([subRoiDir filesep '*.fig']); 
+delete([subRoiDir filesep '*.fig']);
 delete([subRoiDir filesep '*.eps']); 
 
 % make directories if they don't exist 
@@ -253,26 +256,6 @@ dataMatMerge=dataMatMergeAll(idx,:); % just growth subtracks
 % 1 indicates that it will use merged data
 [xMat,yMat]=plusTipGetSubtrackCoords(sourceProjData,idx,1);
 
-% %%
-% %%%%%%%%%%%%%%%%%%%%%EXCLUDE REGION CHECK%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% % get which tracks have their first point NOT in the exclude region
-% %firstPtFrIdx gives the start frame for each growth subtrack
-% firstPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'first'),1:length(idx))';
-% 
-% %Extract the Coordinates Corresponding to the first particle of
-% % each subtrack
-% x=ceil(arrayfun(@(i) xMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
-% y=ceil(arrayfun(@(i) yMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
-% 
-% %Convert from xy coordinate to pixel index
-% pixIdx=sub2ind([imL,imW],y,x); % pixel index of all the starts
-% %Get List of those start sites in the larger region of interest
-% 
-% % Use this index to make sure if the user excluded any region
-% % that these tracks will not be considered (in the case of no selection
-% % the exclude mask will be outside of the ROI)
-% inIncludeRegion=find(~excludeMask(pixIdx));
 %%
 %%%% DIVIDE GROWTH SUBTRACK COORDINATES TO SUBROI AND NON-SUBROI %%%%%%%%%%
 
@@ -295,9 +278,7 @@ roiMask(1,1)=0; % anything not in track will automatically equal zero
 % roiMask and zero where it is not
 % will later truncate this based on partitioning of data
 
-IN=roiMask(pixIdx); % if roiMask = 0 at pixelCoord places a 1, 
-                    % places a zero. maintain the structure of pixIdx
-                    % here is where you would need to apply a different 
+IN=roiMask(pixIdx); % here is where you would need to apply a different 
                     % mask if you were going to update frame-to-frame
                     % could do pixIdx each frame/roiMask each frame then 
                     % segregate
@@ -308,14 +289,20 @@ lifeSec=dataMatMerge(:,6); % track lifetimes, seconds
 % criteria below
 %inside the ROI is just the sum of each row (sum in the 2nd D)-1
 insideSec=sourceProjData.secPerFrame.*(sum(IN,2)-1); %
+
 IN=swapMaskValues(IN,0,NaN); % 1 for the sections of the tracks inside the sub-roi
+
 if ~isempty(IN(~isnan(IN)))  == 1 
 OUT=swapMaskValues(IN); % exchange 1 and NaN 
 else 
     
     OUT = ones(size(IN));
 end 
+
+
+
 %% START PARTITIONING TRACKS BASED ON USER SPECIFICATION   %%%%%%
+
 
 %%% GET DIRECTIONAL INFORMATION %%%% 
 
@@ -323,6 +310,7 @@ end
     %Find tracks targeted to sub region of interest
     lastPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'last'),1:length(idx))';
     firstPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'first'),1:length(idx))';
+    
     
     %Extract the Coordinates Corresponding to the Last/First particle
     % of each track
@@ -332,6 +320,8 @@ end
     xFirst=ceil(arrayfun(@(i) xMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
     yFirst=ceil(arrayfun(@(i) yMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
     
+    
+    
     %Convert from xy coordinate to pixel index
     pixIdxLast=sub2ind([imL,imW],yLast,xLast);% pixel index of all last points
     % of track
@@ -339,12 +329,11 @@ end
     pixIdxFirst=sub2ind([imL,imW],yFirst,xFirst);
     
     %find which tracks have their last point within the subregion of interest
-    % idx based on dataMatMerge
+    % idx based on dataMatMerge will be a one if in region zero if not 
+    % want to find those with a 1 
     inIncludeRegionLast=find(roiMask(pixIdxLast));
     inIncludeRegionFirst=find(roiMask(pixIdxFirst));
-    inIncludeRegionNoDir = union(inIncludeRegionLast, inIncludeRegionFirst); 
-    
-    
+   
     % if nucleation only: just make the first subtrack specification
     % more specific (ie not a start linked to an fgap or bgap)
     if onlyNuc == 1
@@ -360,12 +349,10 @@ end
     % are not useful for stats.
     
     % Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
-    if ~isempty(strcmpi(timeUnitsGrowth,'fraction'))
+    if  strcmpi(timeUnitsGrowth,'fraction') ==1
         trckIdxInFirst=intersect(find(insideSec./lifeSec>=timeValGrowth),inIncludeRegionFirst);
-        %trckIdxOutPause=intersect(find(insideSecPause./lifeSecPause<timeVal & insideSecPause > 0),inIncludeRegionPause);
     else
         trckIdxInFirst=intersect(find(insideSec>=timeValGrowth),inIncludeRegionFirst);
-        %trckIdxOutPause=intersect(find(insideSecPause<timeVal & insideSecPause > 0),inIncludeRegion);
     end
 
     
@@ -383,12 +370,11 @@ end
     yMatLast = yMat(trckIdxInLast,:);
     
     if strcmpi(timeUnitsGrowth,'fraction') == 1 
-        trckIdxNonDir = intersect(find(insideSec./lifeSec>=timeValGrowth), inIncludeRegionNoDir); 
+        trckIdxNonDir = find(insideSec./lifeSec>=timeValGrowth); 
     else 
-        trckIdxNonDir = intersect(find(insideSec>=timeValGrowth), inIncludeRegionNoDir); 
+        trckIdxNonDir = find(insideSec>=timeValGrowth); 
     end 
     
-  
     
     % find those that start and end in the same region
     trckIdxInRegion = intersect(trckIdxInFirst,trckIdxInLast);
@@ -408,15 +394,37 @@ end
     yMat3 = yMatInRegion;
 
 
+    
+%%
+                         %%%%%% PLOTS %%%%%%
 
-%%%%% ALLOCATE THE SUBTRACKS FOR ANALYSIS BASED ON USER CRITERIA %%%%%%
- 
+% First Make an Overview Plot of All Tracks in Region So User Can Determine
+% the Tracks of Interest
+
+figure('Visible',visible); 
+imshow(roiMask); 
+hold on; 
+plot(xMatBoundCrossIn',yMatBoundCrossIn','b');
+plot(xMatBoundCrossOut',yMatBoundCrossOut','g'); 
+plot(xMatInRegion',yMatInRegion,'m'); 
+ forTitle1 = 'Blue: Growth SubTracks Crossing Into SubRoi ';
+ forTitle2 = 'Green: Growth SubTracks Crossing Out of SubRoi';
+ forTitle3 = 'Magenta: Growth SubTracks Initiated AND Terminated In SubRoi';
+
+title({'All GrowthSubTracks In Region (Pre-Filtering) ColorCoded by Direction of Growth';...
+    forTitle1; forTitle2; forTitle3}); 
+filename = 'growthSubTrack_RegionOverview';
+saveas(gcf,[subRoiDir filesep filename '.eps'],'psc2');
+close(gcf)
+
+
+%%%% Make plots of tracks after user specified filtering %%%% 
    if strcmpi(timeUnitsGrowth,'fraction'); 
             x = '';
         else 
             x = ' sec'; 
    end 
-    forTitleTime = ['TIME CRITERIA: ' upper(timeUnitsGrowth) ' GREATER OR EQUAL TO ' num2str(timeValGrowth) x]; 
+    forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsGrowth) ' GREATER OR EQUAL TO ' num2str(timeValGrowth) x]; 
   
 if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered together
     % their output plots are designed similarly
@@ -424,22 +432,19 @@ if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered
     % TARGETING AND INITIATION
     if  onlyTarget == 1  % include those tracks with subTrack end sites in analysis
         trckIdxIn = trckIdxInLast;
-        xMat1 = xMatFirst;
-        yMat1 = yMatFirst;
+        
         xMatIn = xMatLast;
         yMatIn = yMatLast;
         
        
-        forTitle1 = 'subTracks Terminated In SubRoi: Included in Analyis (Red and Pink)';
-        forTitle2 = 'subTracks Terminated In Other Regions: Not Included in Analysis (Green) ';
-        forTitle3 = 'subTracks Initiated AND Terminated In SubRoi: Included in Analysis (Pink)';
+        forTitle1 = 'Growth SubTracks Terminated In SubRoi (Red)';
       
-        filename = 'subTracksTargetedToSubRoiRedAndPink_plusSubTracksLeavingRegionGreen';
+      
+        filename = 'forAnalysis_GrowthSubTracksTerminatingInSubRoi';
         
     elseif onlyInitiate == 1 % include those tracks with subtrack initiation sites in analysis
         trckIdxIn = trckIdxInFirst;
-        xMat1 = xMatLast;
-        yMat1 = yMatLast;
+       
         xMatIn = xMatFirst;
         yMatIn = yMatFirst;
         
@@ -448,34 +453,29 @@ if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered
         % needs different labels
         if onlyNuc ==1
             x = ' Nucleated ';
-            y = ' Nucleated in Other Regions OR Not a Nucleation Event ';
+           
         else
             x = ' Initiated ';
-            y = ' Initiated in Other Regions ';
+         
         end
         
-        forTitle1 = ['subTracks', x,  'In SubRoi: Included in Analyis (Red and Pink)'];
-        forTitle2 = ['subTracks', y, ':Not Included in Analysis (Green) '];
-        forTitle3 = ['subTracks', x,  'AND Terminated In SubRoi: Included in Analysis (Pink)'];
-        filename = 'subTracksInitiatedInSubRoiRedAndPink_plusSubTracksInitiatedInOtherRegionsGreen';
+        forTitle1 = ['Growth SubTracks', x,  'In SubRoi (Red)'];
+        filename = 'forAnalysis_GrowthSubTracksInitiatedInSubRoi';
+        
     end % if only target
     
     % MAKE PLOTS
     % plot all member tracks in red on top of the mask
     figure('Visible',visible);
     imshow(roiMask);
-    hold on;
-    plot(xMat1',yMat1','g'); % plot all tracks targeted/initiated in region
-    
+   
     hold on;
     plot(xMatIn',yMatIn','r') %  plot all tracks targeted/initiate in region- those
     % that are both will be overwritten in red.
-    hold on;
-    plot(xMat3',yMat3','m')
-    
-    title({projNameTitle; forTitle1; forTitle2; forTitle3; forTitleTime});
-    % saveas(gcf,[subRoiDir filesep title fileExt])
+   
+    title({projNameTitle; forTitle1; forTitleTime});
     saveas(gcf,[subRoiDir filesep filename '.eps'],'psc2');
+    close(gcf)
     
     
     % BOUNDARY CROSSING ONLY
@@ -487,9 +487,10 @@ elseif boundCrossIn == 1 % boundary crossing in
     figure('Visible',visible);
     imshow(roiMask);
     hold on;
-    plot(xMatIn',yMatIn','r')
-    title({projNameTitle; 'Tracks Crossing Into Region (red): Included in Analysis'; forTitleTime});
-    saveas(gcf,[subRoiDir filesep 'tracksCrossingIntoRegion.eps'],'psc2');
+    plot(xMatIn',yMatIn','r') 
+    title({projNameTitle; 'Growth SubTracks Crossing Into Region (red): Included in Analysis'; forTitleTime});
+    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksCrossingIntoRegion.eps'],'psc2');
+    close(gcf)
     
 elseif boundCrossOut == 1
     trckIdxIn = trckIdxBoundCrossOut; 
@@ -500,9 +501,11 @@ elseif boundCrossOut == 1
     imshow(roiMask); 
     hold on; 
     plot(xMatIn',yMatIn','r'); 
-    title({projNameTitle; 'Tracks Crossing Out of Region (red): Included In Analysis';forTitleTime}); 
-    saveas(gcf,[subRoiDir filesep 'tracksCrossingOutOfRegion.eps'],'psc2'); 
-    
+   
+    title({projNameTitle; 'Growth SubTracks Crossing Out of Region (red): Included In Analysis';...
+    forTitleTime}); 
+    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksCrossingOutOfRegion.eps'],'psc2'); 
+    close(gcf)
     % NONDIRECTIONAL
 else % criteria non-directional but has a time constraint
     
@@ -522,9 +525,9 @@ else % criteria non-directional but has a time constraint
     imshow(roiMask);
     hold on;
     plot(xMatIn',yMatIn','r')
-    title({projNameTitle; 'Tracks Included in SubRoi Regional Analysis (Red): NonDirectional';forTitleTime})
+    title({projNameTitle; 'Growth SubTracks Included in SubRoi Regional Analysis (Red): No Direction Criteria';forTitleTime})
     %saveas(gcf,[subRoiDir filesep 'tracksInSubRoi' fileExt])
-    saveas(gcf,[subRoiDir filesep 'tracksInSubRoi.eps'],'psc2');
+    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksInSubRoi.eps'],'psc2');
     close(gcf)
     
     %plot all tracks excluded from analysis
@@ -597,7 +600,7 @@ roiMask(1,1)=0;
 
 INPause=roiMask(pixIdxPause);
 lifeSecPause=dataMatMergePause(:,6); % track lifetimes, seconds
-%the lifetieme(ie number of frames)
+%the lifetime(ie number of frames)
 %inside the ROI is just the sum of each row (sum in the 2nd D)-1
 insideSecPause =sourceProjData.secPerFrame.*(sum(INPause,2)-1);
 
@@ -617,20 +620,13 @@ xMatPause=xMatPause(trckIdxInPause,:);
 yMatPause=yMatPause(trckIdxInPause,:);
 
 
-%INPause=INPause(trckIdxInPause,:);
-% Just exchange zero values for NaN, again IN is a matrix of the same
-%form as xMat and yMat only replaced by 1 where the tracked coordinate should be
-%be maintained in the subROI calc
-%INPause=swapMaskValues(INPause,0,NaN); % 1 for the sections of the tracks inside the sub-roi
-%OUTPause=swapMaskValues(INPause); % 1 for the sections of the track outside the sub-roi
-
 % plot all member tracks in red on top of the mask
 figure('Visible',visible);
 imshow(roiMask);
 hold on;
 plot(xMatPause',yMatPause','b')
-title({projNameTitle; 'Pauses In SubRoi'});
-%saveas(gcf,[subRoiDir filesep 'PausesInSubRoi' fileExt])
+forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsPause) ' GREATER OR EQUAL TO ' num2str(timeValPause) x];   
+title({forTitleTime; projNameTitle; 'Pauses In SubRoi'});
 saveas(gcf,[subRoiDir filesep 'PausesInSubRoi.eps'],'psc2')
 close(gcf)
 
@@ -677,28 +673,28 @@ insideSecShrink =sourceProjData.secPerFrame.*(sum(INShrink,2)-1);
 % Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
 if ~isempty(strcmpi(timeUnitsShrink,'fraction'))
     trckIdxInShrink=intersect(find(insideSecShrink./lifeSecShrink>=timeValShrink),inIncludeRegionShrink);
-    %trckIdxOutShrink=intersect(find(insideSecShrink./lifeSecShrink<timeVal & insideSecShrink > 0),inIncludeRegionShrink);
 else
     trckIdxInShrink=intersect(find(insideSecShrink>=timeValShrink),inIncludeRegionShrink);
-    %trckIdxOutShrink = intersect(find(insideSecShrink<timeVal & insideSecShrink > 0),inIncludeRegion);
+    
 end
 
 % limit data to these tracks
 xMatShrink=xMatShrink(trckIdxInShrink,:);
 yMatShrink=yMatShrink(trckIdxInShrink,:);
-%INShrink=INShrink(trckIdxInShrink,:);
-% Just exchange zero values for NaN, again IN is a matrix of the same
-%form as xMat and yMat only replaced by 1 where the tracked coordinate should be
-%be maintained in the subROI calc
-%INShrink=swapMaskValues(INShrink,0,NaN); % 1 for the sections of the tracks inside the sub-roi
-%OUTShrink=swapMaskValues(INShrink); % 1 for the sections of the track outside the sub-roi
 
-% plot all member tracks in red on top of the mask
+
+% plot all member tracks in black on top of the mask
 figure('Visible',visible);
 imshow(roiMask);
 hold on;
 plot(xMatShrink',yMatShrink','k')
-title({projNameTitle;'Shrinkages In SubRoi'})
+ if strcmpi(timeUnitsShrink,'fraction'); 
+            x = '';
+        else 
+            x = ' sec'; 
+ end 
+forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsShrink) ' GREATER OR EQUAL TO ' num2str(timeValShrink) x]; 
+  title({projNameTitle;'Shrinkages In SubRoi';forTitleTime})
 %saveas(gcf,[subRoiDir filesep 'ShrinkagesInSubRoi' fileExt])
 saveas(gcf,[subRoiDir filesep 'ShrinkagesInSubRoi.eps'],'psc2');
 close(gcf)
@@ -727,6 +723,16 @@ projData.yCoordInAllTracks = yCoordIn;
 
 projData.xCoordOutAllTracks= xCoordOut ;
 projData.yCoordOutAllTracks = yCoordOut;
+
+% TEST 
+figure('Visible',visible)
+imshow(roiMask)
+hold on 
+plot(xCoordIn',yCoordIn','r');
+plot(xCoordOut',yCoordOut','b');
+save(gcf,[subRoiDir filesep 'Internal_Test.eps'],'psc2'); 
+close(gcf); 
+
 
 
 if ~isempty(trckIdxIn)
@@ -848,8 +854,7 @@ projData.pair2pairDiffMicPerMinStd=std(pixPerFrame2umPerMin(projData.pair2pairDi
     projData.secPerFrame,projData.pixSizeNm));
 
 
-%%
-% Create a DataMat of just SubRoi Tracks for Stats
+%% Create a DataMat of just SubRoi Tracks for Stats
 
 dataGrowthROI = dataMatMerge(trckIdxIn,:);
 dataPauseROI = dataMatMergePause(trckIdxInPause,:);
@@ -881,8 +886,7 @@ projData.mergedDataMatAllSubTracksConverted = dataTotROI;
 % to Collect Stats
 
 % Include only those tracks in region that have been specified by partitioning
-lifeSec = lifeSec(trckIdxIn); % NOTE TO ME : CHECK TO MAKE SURE THE INDEXING IS CORRECT HERE
-insideSec= insideSec(trckIdxIn);
+lifeSec = lifeSec(trckIdxIn);  
 
 projData.insideSecAllTracks = insideSec; % save these values before removing subtracks
 % at the beginning or end of movie (for plotting)
@@ -928,16 +932,13 @@ if remBegEnd== 1
     IN = IN(~projData.startOrEnd,:);
     OUT = OUT(~projData.startOrEnd,:);
     %
-    speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
-    speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
+%     speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
+%     speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
     
-    speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
-    speedOutMicPerMin=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm);
-    
-    
-    
-    
-    
+%     speedInMicPerMin=pixPerFrame2umPerMin(speedIn,projData.secPerFrame,projData.pixSizeNm);
+%     speedOutMicPerMin=pixPerFrame2umPerMin(speedOut,projData.secPerFrame,projData.pixSizeNm);
+    speedInMicPerMin = projData.speedInMicPerMinAllTracks(~projData.startOrEnd);
+    speedOutMicPerMin = projData.speedOutMicPerMinAllTracks(~projData.startOrEnd); 
     
 else
     if isfield(projData,'dataMatCropped_MicPerMin_Sec_Mic')== 1;
@@ -969,35 +970,57 @@ if projData.nTracks~=0
     % will calculate two local parameters(speed and growth lifetime)
     % within this region)
     
-    projData.lifeSec=lifeSec; % total lifetime (seconds) % only those cacluated in stats
-    projData.insideSec=insideSec; % lifetime within sub-roi (seconds)
-    projData.percentLifeInside=100*(projData.insideSec./projData.lifeSec); % percent time within sub-roi
-    projData.speedInMicPerMin = speedInMicPerMin;
-    projData.speedOutMicPerMin = speedOutMicPerMin; 
-    
-    numInsideWholeLife = length(find(projData.percentLifeInside == 100));
+%     projData.lifeSec=lifeSec; % total lifetime (seconds) % only those cacluated in stats
+%     projData.insideSec=insideSec; % lifetime within sub-roi (seconds)
+    percentLifeInside=100*(insideSec./lifeSec); % percent time within sub-roi
+%     projData.speedInMicPerMin = speedInMicPerMin;
+%     projData.speedOutMicPerMin = speedOutMicPerMin; 
+%     
+    numInsideWholeLife = length(find(percentLifeInside == 100));
     
     projData.stats.percentTracksStartAndEndInRegion = (numInsideWholeLife/...
-        length(projData.percentLifeInside))*100;
+        length(percentLifeInside))*100;
+    
+    % format a table for regional output 
+    titles = cell(1,6); 
+    titles{1} = 'ID of CompoundTrack to Which SubTrack Belongs';
+    titles{2} = 'Percent Time of Growth SubTrack Inside Region';
+    titles{3} = 'Lifetime of Growth SubTrack Inside Region (s)'; 
+    titles{4} = 'Total Lifetime of SubTrack (s)';
+    titles{5} = 'Averge Frame-to-Frame Velocity of Growth SubTrack In Region (um/min)'; 
+    titles{6} = 'Average Frame-to-Frame Velocity of Growth SubTrack Out of Region (um/min)';
+    titles{7} = 'Ratio: Speed IN / Speed OUT';
+    
+    ratio = speedInMicPerMin./speedOutMicPerMin; 
+    idxGrowth = dataTotROI(dataTotROI(:,5) == 1,1); 
+    inRegionValues= [idxGrowth percentLifeInside insideSec lifeSec speedInMicPerMin speedOutMicPerMin ratio];
+    
+    
+    
+    inRegionValues = num2cell(inRegionValues); 
+    projData.dataMatSubRoi_CompareGrowthInToOut = [titles ; inRegionValues]; 
+    
     
     % record the median and mean values of the lifetime of the
     % the subdivided growth events
     
-    projData.stats.growth_lifetime_median_INSIDE_REGION = median(projData.insideSec);
-    projData.stats.growth_lifetime_mean_INSIDE_REGION = mean(projData.insideSec);
+    projData.stats.growth_lifetime_median_INSIDE_REGION = median(insideSec);
+    projData.stats.growth_lifetime_mean_INSIDE_REGION = mean(insideSec);
     
-    projData.stats.growth_speed_median_INSIDE_REGION = nanmedian(projData.speedInMicPerMin);
-    projData.stats.growth_speed_mean_INSIDE_REGION = nanmean(projData.speedInMicPerMin);
+    projData.stats.growth_speed_median_INSIDE_REGION = nanmedian(speedInMicPerMin);
+    projData.stats.growth_speed_mean_INSIDE_REGION = nanmean(speedInMicPerMin);
+    
+  
     
 else % output if no tracks
     
-    projData.lifeSec=NaN;
-    projData.insideSec=NaN;
-    projData.percentLifeInside=NaN;
-    
-    projData.speedInMicPerMin=NaN;
-    projData.speedOutMicPerMin=NaN;
-    
+%     projData.lifeSec=NaN;
+%     projData.insideSec=NaN;
+%     projData.percentLifeInside=NaN;
+%     
+%     projData.speedInMicPerMin=NaN;
+%     projData.speedOutMicPerMin=NaN;
+%     
     
     projData.startOrEnd=NaN;
     projData.percentGrowthAtStartOrEnd=NaN;
@@ -1009,165 +1032,26 @@ else % output if no tracks
     
 end
 
-
-%% Get Angular Info (uses projData.xCoord/projData.yCoord)
-if ~isempty(xMatIn)
-% for all angles assigned to subRegion
-xCoord = xMatIn;
-yCoord = yMatIn;
-
-[anglesFinal,subTrackAnglesIndMean, subTrackAnglesIndStd] = plusTipPlotTrackAngles2(xCoord,yCoord);
-
-projNameTit = regexprep(projName,'_',' ');
-
-projData.subTrackAnglesIndMean = [dataTotROI(dataTotROI(:,5)==1,1), subTrackAnglesIndMean];
-projData.subTrackAnglesIndStd = [dataTotROI(dataTotROI(:,5)==1,1),subTrackAnglesIndStd];
-
-projData.stats.polarCoordMeanOfAllSubtracks = nanmean(projData.subTrackAnglesIndMean(:,2));
-projData.stats.polarCoordMedianOfAllSubtracks = nanmedian(projData.subTrackAnglesIndMean(:,2));
-projData.stats.polarCoordStdOfAllSubtracks = nanstd(projData.subTrackAnglesIndMean(:,2));
-
-% for angles only locally in subRegion
-xCoordInside = xMatIn.*IN;
-yCoordInside = yMatIn.*IN;
-
-xCoordOutside = xMatIn.*OUT;
-yCoordOutside = yMatIn.*OUT;
-
-
-
-[anglesFinalInside,subTrackAnglesIndMeanInside] = plusTipPlotTrackAngles2(xCoordInside,yCoordInside);
-
-
-
-projData.subTrackAnglesIndMean_INSIDE_REGION = [dataTotROI(dataTotROI(:,5)==1,1),subTrackAnglesIndMeanInside];
-
-projData.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION= nanmean(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2));
-projData.stats.polarCoordMedianOfAllSubtracks_INSIDE_REGION = nanmedian(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2));
-projData.stats.polarCoordStdOfAllSubtracks = nanstd(projData.subTrackAnglesIndMean_INSIDE_REGION(:,2));
-
-else 
-    
-    
-        projData.subTrackAnglesIndMean = [NaN,NaN] ;
-        projData.subTrackAnglesIndStd = [NaN, NaN];
-
-        projData.stats.polarCoordMeanOfAllSubtracks = NaN;
-        projData.stats.polarCoordMedianOfAllSubtracks = NaN;
-        projData.stats.polarCoordStdOfAllSubtracks = NaN;
-
-
-
-        projData.subTrackAnglesIndMean_INSIDE_REGION = [NaN,NaN]; 
-        projData.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION = NaN; 
-        projData.stats.polarCoordMedianOfAllSubtracks_INSIDE_REGION = NaN; 
-        projData.stats.polarCoordStdOfAllSubtracks = NaN; 
-    
-end 
-
-%% Calculate the angle that MT hit the cell boundary
-% load([up2 filesep 'contour_normal.mat']);
-% projData.contourYX = contourYX;
-% projData.normalYX = normalYX;
-% clear('contourYX','normalYX');
-%
-% projData=plusTipIncidence(projData,xCoord,yCoord);
-
-
 %% Calculate the stats
 % Note the index of one at the end tells the program it is calling this function
 % from subRoiAnalysis and to not calculate certain params that require
 % intact compound tracks
 
-
-[projData,M,idxPer,idxPar]=plusTipDynamParam(dataTotROI,projData,0,1);
+[projData,M]=plusTipDynamParam(dataTotROI,projData,0,1);
+%[projData,M,idxPer,idxPar]=plusTipDynamParam(dataTotROI,projData,0,1);
 
 % update saved M
 projData.M = M;
 
-% Note: plusTipDynam Param will return the idxPer and idxPar values now
-% for subRois and calculate values corresponding to these parameters
-% useful for micropattern work
-
-%% Check Indices: with fig Useful for a quick extraction of growth subtracks
-% % perpendicular and parallel to x axis. (for micropattern work~)
-% 
-% if ~isnan(idxPer) 
-% checkAngleExtract = 1;
-% if checkAngleExtract == 1;
-%     test = figure('Visible',visible);
-%     imshow(roiMask);
-%     hold on;
-%     xPer= xCoordInside(idxPer,:);
-%     yPer = yCoordInside(idxPer,:);
-%     
-%     plot(xPer',yPer','r');
-%     xPar = xCoordInside(idxPar,:);
-%     yPar = yCoordInside(idxPar,:);
-%     plot(xPar',yPar','g');
-%     
-%     saveas(test,[subRoiDir filesep 'Per_(Red)_vs_Par_(Green)_Tracks.eps'],'psc2');
-%     close(test);
-% end
-% end 
 %% Make Plots
 
 if turnHistOn == 1
     
     % Make Histograms % make option to turn these on
     if projData.nTracks ~= 0
-        plusTipMakeHistograms(M,[subRoiDir filesep 'meta' filesep 'histograms']);
-%         
-%         % polarity histograms
-%         saveFig1 =figure('Visible',visible);
-%         rose(anglesFinal); % based on all frame to frame angles
-%         projData.anglesFrame2Frame = anglesFinal;
-%         
-%         title({projNameTit; 'Rose Plot of All Frame-to-Frame Growth Displacement (Converted to Theta)'});
-%         saveas(saveFig1,[subRoiDir filesep 'meta' filesep 'histograms' filesep 'angles_histogram.eps'], 'psc2');
-%         
-%         saveFig2 = figure('Visible',visible);
-%         rose(anglesFinalInside);
-%         projData.anglesFrame2Frame_INSIDE_REGION = anglesFinalInside;
-%         title({projNameTit ; 'Rose Plot of All Frame-to-Frame Growth Displacement (Converted to Theta): INSIDE SubRoi Only'});
-%         saveas(saveFig2,[subRoiDir filesep 'meta' filesep 'histograms' filesep 'angles_histogramInside.eps'], 'psc2');
-%         collectedDataPathPolarity = [collectedDataPath filesep 'sub' filesep 'Polarity'];
-% %         
-%         if collectPlots == 1
-%             if ~exist(collectedDataPathPolarity,'dir')==1;
-%                 mkdir(collectedDataPathPolarity);
-%             end
-%             
-%             if ~exist([collectedDataPathPolarity filesep 'tifs'],'dir') == 1
-%                 mkdir([collectedDataPathPolarity filesep 'tifs']);
-%             end
-%             saveFig1 =figure('Visible',visible);
-%             
-%             if ~exist([collectedDataPathPolarity filesep 'eps'],'dir') == 1
-%                 
-%                 mkdir([collectedDataPathPolarity filesep 'eps']);
-%             end
-%             saveas(saveFig1,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogram.tif']);
-%             saveas(saveFig2,[collectedDataPathPolarity filesep 'tifs' filesep projName 'angles_histogrameInside.tif']);
-%             saveas(saveFig1,[collectedDataPathPolarity filesep 'eps' filesep projName 'angles_histogram.eps'], 'psc2');
-%             saveas(saveFig2,[collectedDataPathPolarity filesep 'eps' filesep projName 'angles_histogramInside.eps'], 'psc2');
-%         end
-%         close(saveFig1)
-%         close(saveFig2)
-%         
+        plusTipMakeHistograms(M,[subRoiDir filesep 'meta' filesep 'histograms']);    
     end
     
-    
-    
-end
-if ~isempty(trckIdxIn) 
-test = figure;
-imshow(roiMask);
-hold on;
-plot(xCoordInside',yCoordInside','r'); % plot all tracks targeted/initiated in region
-% saveas(test,[collectedDataPath filesep sub filesep 'Polarity' filesep projName 'Inside.eps'], 'psc2');
-close(test)
-end
 %%
 % Now write the interpolated coordinates corresponding to pause (necessary
 % for plotting functions)
@@ -1194,13 +1078,20 @@ for iSub=1:length(trckIdxInShrink)
     
     projData.xCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.xCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
     projData.yCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.yCoord(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-    %
-    %     projData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featArea(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-    %     projData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3))=sourceProjData.featInt(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3));
-    %
+    
+   
     projData.frame2frameVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1)=sourceProjData.frame2frameVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1);
     projData.segGapAvgVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1)=sourceProjData.segGapAvgVel_micPerMin(dataMatMergeShrink(k,1),dataMatMergeShrink(k,2):dataMatMergeShrink(k,3)-1);
 end
+
+%% Record SubRoi Extraction Parameters 
+projData.subRoiParams.extractTypeGrowth = extractType; 
+projData.subRoiParams.timeUnitsGrowth = timeUnitsGrowth; 
+projData.subRoiParams.timeValGrowth = timeValGrowth; 
+projData.subRoiParams.timeUnitsPause = timeUnitsPause; 
+projData.subRoiParams.timeValPause = timeValPause; 
+projData.subRoiParams.timeUnitsShrink = timeUnitsShrink; 
+projData.subRoiParams.timeValShrink = timeValShrink; 
 
 %% SAVE
 % save projData in meta folder
