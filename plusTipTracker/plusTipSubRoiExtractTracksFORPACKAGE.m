@@ -390,13 +390,19 @@ end
     xMatInRegion = xMat(trckIdxInRegion,:);
     yMatInRegion = yMat(trckIdxInRegion,:);
     
-    xMat3 = xMatInRegion;
-    yMat3 = yMatInRegion;
-
+    
 
     
 %%
                          %%%%%% PLOTS %%%%%%
+                         
+  if strcmpi(timeUnitsGrowth,'fraction'); 
+            x = '';
+        else 
+            x = ' sec'; 
+  end 
+    forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsGrowth) ' GREATER OR EQUAL TO ' num2str(timeValGrowth) x]; 
+  
 
 % First Make an Overview Plot of All Tracks in Region So User Can Determine
 % the Tracks of Interest
@@ -406,25 +412,19 @@ imshow(roiMask);
 hold on; 
 plot(xMatBoundCrossIn',yMatBoundCrossIn','b');
 plot(xMatBoundCrossOut',yMatBoundCrossOut','g'); 
-plot(xMatInRegion',yMatInRegion,'m'); 
+plot(xMatInRegion',yMatInRegion','m'); 
  forTitle1 = 'Blue: Growth SubTracks Crossing Into SubRoi ';
  forTitle2 = 'Green: Growth SubTracks Crossing Out of SubRoi';
  forTitle3 = 'Magenta: Growth SubTracks Initiated AND Terminated In SubRoi';
 
-title({'All GrowthSubTracks In Region (Pre-Filtering) ColorCoded by Direction of Growth';...
-    forTitle1; forTitle2; forTitle3}); 
+title({'All GrowthSubTracks In Region ColorCoded by Direction of Growth';...
+    forTitle1; forTitle2; forTitle3; forTitleTime}); 
 filename = 'growthSubTrack_RegionOverview';
 saveas(gcf,[subRoiDir filesep filename '.eps'],'psc2');
 close(gcf)
 
 
 %%%% Make plots of tracks after user specified filtering %%%% 
-   if strcmpi(timeUnitsGrowth,'fraction'); 
-            x = '';
-        else 
-            x = ' sec'; 
-   end 
-    forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsGrowth) ' GREATER OR EQUAL TO ' num2str(timeValGrowth) x]; 
   
 if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered together
     % their output plots are designed similarly
@@ -730,7 +730,7 @@ imshow(roiMask)
 hold on 
 plot(xCoordIn',yCoordIn','r');
 plot(xCoordOut',yCoordOut','b');
-save(gcf,[subRoiDir filesep 'Internal_Test.eps'],'psc2'); 
+saveas(gcf,[subRoiDir filesep 'Internal_Test.eps'],'psc2'); 
 close(gcf); 
 
 
@@ -887,7 +887,7 @@ projData.mergedDataMatAllSubTracksConverted = dataTotROI;
 
 % Include only those tracks in region that have been specified by partitioning
 lifeSec = lifeSec(trckIdxIn);  
-
+insideSec = insideSec(trckIdxIn); 
 projData.insideSecAllTracks = insideSec; % save these values before removing subtracks
 % at the beginning or end of movie (for plotting)
 
