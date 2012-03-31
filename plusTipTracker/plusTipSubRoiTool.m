@@ -114,15 +114,8 @@ if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
 %% Body
-collectPlots = 1;
+
 nProj=length(projList);
-if collectPlots == 1
-    up1 = getFilenameBody(projList(1,1).anDir);
-    collectedDataPath = getFileNameBody(up1);
-    if (exist([collectedDataPath filesep 'collectedSubRoiPlots'],'dir')==0)
-        mkdir([collectedDataPath filesep 'collectedSubRoiPlots'])
-    end
-end
 
 for iProj=1:nProj
 
