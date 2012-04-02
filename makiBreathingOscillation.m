@@ -372,7 +372,7 @@ for iLabel = goodLabel
         %**if before is +1 and after is +2, the point in between with
         %  maximum value is taken as the divider: intervals before it are
         %  assigned +1 and intervals after it are assigned +2;
-        %**if before is +2 and after is -2, the point in between with
+        %**if before is +2 and after is +1, the point in between with
         %  minimum value is taken as the divider: intervals before it are
         %  assigned +2 and intervals after it are assigned +1;
 

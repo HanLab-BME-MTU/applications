@@ -136,6 +136,8 @@ switch serverType
     case 'MADDOX'
         pathList = {'$MADDOX','G:\PMaddox\imageData',...
             sprintf('%s/serv02/Groupe/PMaddox/imageData',homeUser)};
+    case 'WITTMANN'
+        pathList = {'$WITTMANN','O:',''};
     otherwise
         error('serverType %s could not be resolved.',serverType)
 end
