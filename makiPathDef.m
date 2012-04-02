@@ -124,7 +124,7 @@ switch serverType
     case 'HERCULES'
         pathList = {'$HERCULES','O:','/hercules'};
     case 'DANUSER' %We need two DANUSER identifiers for now, since accessing the data is different between orchestra and the desktop
-        pathList = {'$DANUSER','O:','/orchestra/groups/lccb-maki'};
+        pathList = {'$DANUSER','Y:\maki','/orchestra/groups/lccb-maki'};
     case 'DANUSER2' %We need two DANUSER identifiers for now, since accessing the data is different between orchestra and the desktop
         pathList = {'$DANUSER2','O:','/groups/lccb-maki'};
     case 'MERALDI'
