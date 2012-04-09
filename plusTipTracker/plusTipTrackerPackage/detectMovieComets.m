@@ -128,35 +128,36 @@ for iChan= p.ChannelIndex
         end
         
         % SB: copied and pasted from plusTipCometDetector
-      
-        % create kernels for gauss filtering
-        blurKernelLow  = fspecial('gaussian', 21, p.sigma1);
-        blurKernelHigh = fspecial('gaussian', 21, p.sigma2);
-        
-        Wlow = imfilter(double(mask), blurKernelLow);
-        Whigh = imfilter(double(mask), blurKernelHigh);
-        
-        % use subfunction that calls imfilter to take care of edge effects
-        % for now don't apply roiMask
-        im(~mask)=0;
-        lowPass = imfilter(im, blurKernelLow)./Wlow;
-        lowPass(~mask)=NaN;
-        highPass = imfilter(im, blurKernelHigh)./Whigh;
-        highPass(~mask)=NaN;
-        filterDiff=lowPass-highPass;
+%       
+%         % create kernels for gauss filtering
+%         blurKernelLow  = fspecial('gaussian', 21, p.sigma1);
+%         blurKernelHigh = fspecial('gaussian', 21, p.sigma2);
+%         
+%         Wlow = imfilter(double(mask), blurKernelLow);
+%         Whigh = imfilter(double(mask), blurKernelHigh);
+%         
+%         % use subfunction that calls imfilter to take care of edge effects
+%         % for now don't apply roiMask
+%         im(~mask)=0;
+%         lowPass = imfilter(im, blurKernelLow)./Wlow;
+%         lowPass(~mask)=NaN;
+%         highPass = imfilter(im, blurKernelHigh)./Whigh;
+%         highPass(~mask)=NaN;
+%         filterDiff=lowPass-highPass;
 
+        % Difference of Gaussians
+        filterDiff=filterGauss2D(im,p.sigma1)-filterGauss2D(im,p.sigma2);
+        filterDiff(~mask)=NaN;
+        
         % Save filtered images on disk (avoid memory errors)
         save(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']),'filterDiff');
 
-        % SB: Think we could use filterGauss2D and improve the std of the cell
-        % background using blobSegmentThreshold
-        % filterDiff=filterGauss2D(im,p.sigma1)-filterGauss2D(im,p.sigma2);
-        % filterDiff(~mask)=NaN;
-        % enanchedFilterDiff = ordfilt2d(filterDiff,9,ones(3,3));
-        % threshold = thresholdOtsu(enhancedFilterDiff)/3 + ...
-        % thresholdRosin(enhancedFilterDiff)*2/3 + ...
-        % stdList(i)=nanstd(filterDiff(enhancedFilterDiff>threshold));
-        stdList(i)=nanstd(filterDiff(:));
+        % Perform maximum filter and mask out significant pixels
+        thFilterDiff = ordfilt2(filterDiff,9,ones(3,3));
+        threshold = thresholdOtsu(thFilterDiff)/3 + ...
+            thresholdRosin(thFilterDiff)*2/3;
+        stdList(i)=nanstd(filterDiff(thFilterDiff<threshold));
+%         stdList(i)=nanstd(filterDiff(:));
 
         % Update progress status
         frac = (i-p.firstFrame+1)/(p.lastFrame-p.firstFrame+1);
@@ -172,7 +173,7 @@ for iChan= p.ChannelIndex
     progressText(0,logMsg);
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
     for i = p.firstFrame:p.lastFrame
-        % Reload band-pass images
+        % Reload band-pass filtered images
         s=load(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']));
         filterDiff=s.filterDiff;
         stepSize=p.multFactorStepSize*meanStd(i);
