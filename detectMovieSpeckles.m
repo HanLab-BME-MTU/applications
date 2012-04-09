@@ -162,7 +162,7 @@ for i = 1:numel(p.ChannelIndex)
     nSignCands=0;
     for j= 1:nFrames
         % Load the current image, scale it and apply Gaussian filter
-        currImage = movieData.channels_(iChan).loadImage(j)/maxIntensity; 
+        currImage = double(movieData.channels_(iChan).loadImage(j))/maxIntensity; 
         currMask = maskProc.loadChannelOutput(iChan,j).*roiMask(:,:,j);
         if p.filterSigma(iChan)>0
             currImage = filterGauss2D(currImage,p.filterSigma(iChan));
