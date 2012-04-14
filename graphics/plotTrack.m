@@ -89,8 +89,10 @@ else
     aw = min(screenSize(3)-105, w*u); % axes width
     % tick length: percentage of axes width
     tickLength = pos0(3)/aw*[0.01 0.025];
-    hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 85+aw+20 400], 'PaperPositionMode', 'auto');
-    ha = axes('Units', 'pixels', 'Position', [85 70 aw 300]);
+    % left border
+    dleft = floor(log10(max(track.A(ch,:))))*45;
+    hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 dleft+aw+20 400], 'PaperPositionMode', 'auto');
+    ha = axes('Units', 'pixels', 'Position', [dleft 70 aw 300]);
 end
 
 % Color definitions

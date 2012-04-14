@@ -10,8 +10,8 @@ ip.addRequired('v');
 ip.addOptional('v_std', []);
 ip.addParamValue('Handle', []);
 ip.addParamValue('YLim', [0 0.8]);
-ip.addParamValue('FaceColor', fset.cfB);
-ip.addParamValue('EdgeColor', fset.ceB);
+ip.addParamValue('FaceColor', fset.cfTrackClasses);
+ip.addParamValue('EdgeColor', fset.ceTrackClasses);
 ip.parse(v, varargin{:});
 
 xlabels = {'single tracks', 'single tracks, rej. gaps', 'single tracks, cut', 'single tracks, persistent',...
@@ -35,5 +35,5 @@ end
 
 barplot2(v, v_std, 'Handle', ha, 'BarWidth', 1.5, 'GroupDistance', 1,...
     'FaceColor', ip.Results.FaceColor, 'EdgeColor', ip.Results.EdgeColor,...
-    'XLabels', xlabels, 'YTick', 0:0.1:0.8, 'YLim', ip.Results.YLim, 'YLabel', '% tracks');
+    'XLabels', xlabels, 'YTick', 0:0.1:1, 'YLim', ip.Results.YLim, 'YLabel', '% tracks');
 set(ha, 'LineWidth', 2);
