@@ -8,15 +8,14 @@
 % Outputs
 %
 %           nSeg : number of segments; 1: regular, 2 or more: merging/splitting
-%         status : 1) complete track, 2) incomplete (cut off), 3) persistent
+%     visibility : 1) complete track, 2) incomplete (cut off), 3) persistent
 %      gapStatus : 4) valid gap, 5) invalid gap
-%          valid : '1' if status == 1 and all gaps have status 4;
 %
 % Usage example: runTrackAnalysis(data, 'Buffer', 3);
 %
 % Notes: The buffer size influences the number of visible tracks
 %
-% Francois Aguet, November 2010 (last modified 02/10/2012)
+% Francois Aguet, November 2010 (last modified 04/14/2012)
 
 function runTrackAnalysis(data, varargin)
 
@@ -98,9 +97,9 @@ r = sqrt(x.^2+y.^2);
 annularMask = zeros(size(r));
 annularMask(r<=w4 & r>=w3) = 1;
 
-%=================================
+%======================================================================
 % Read and convert tracker output
-%=================================
+%======================================================================
 tPath = [data.source 'Tracking' filesep trackerOutput];
 if exist(tPath, 'file')==2
     trackinfo = load(tPath);
@@ -109,11 +108,118 @@ if exist(tPath, 'file')==2
 elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
     % (for old tracker. oldest version: trackInfo.mat)
     trackinfo = load([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat']);
-    %trackedFeatureNum = trackinfo.trackedFeatureNum;
     trackinfo = trackinfo.trackedFeatureInfo;
     nTracks = size(trackinfo, 1);
 else
     error('No valid tracker output found.');
+end
+
+
+%======================================================================
+% Preprocessing: remove single-frame tracks
+%======================================================================
+if preprocess
+bounds = arrayfun(@(i) i.seqOfEvents([1 end],1), trackinfo, 'UniformOutput', false);
+rmIdx = diff(horzcat(bounds{:}), [], 1)==0;
+trackinfo(rmIdx) = [];
+nTracks = size(trackinfo, 1);
+
+%======================================================================
+% Preprocessing: merge compound tracks with overlapping ends/starts
+%======================================================================
+for i = 1:nTracks
+    nSeg = size(trackinfo(i).tracksFeatIndxCG,1);
+    if nSeg > 1
+        seqOfEvents = trackinfo(i).seqOfEvents;
+        tracksCoordAmpCG = trackinfo(i).tracksCoordAmpCG;
+        tracksFeatIndxCG = trackinfo(i).tracksFeatIndxCG;
+        
+        rmIdx = [];
+        for s = 1:nSeg
+            iEvent = seqOfEvents(seqOfEvents(:,3)==s,:);
+            parentSeg = iEvent(2,4);
+            parentStartIdx = seqOfEvents(seqOfEvents(:,2)==1 & seqOfEvents(:,3)==parentSeg,1);
+            
+            % conditions for merging:
+            % -current segment merges at end
+            % -overlap between current segment and 'parent' it merges into: 1 frame
+            if ~isnan(iEvent(2,4)) &&...
+                    iEvent(2,1)-1==parentStartIdx
+   
+                % replace start index of parent with start index of current segment
+                seqOfEvents(seqOfEvents(:,3)==parentSeg & seqOfEvents(:,2)==1,1) = iEvent(1,1);
+                % remove current segment
+                seqOfEvents(seqOfEvents(:,3)==s,:) = [];
+                % assign segments that merge/split from current to parent
+                seqOfEvents(seqOfEvents(:,4)==s,4) = parentSeg;
+                
+                % use distance of points at overlap to assign
+                xMat = tracksCoordAmpCG(:,1:8:end);
+                yMat = tracksCoordAmpCG(:,2:8:end);
+                overlapIdx = parentStartIdx - seqOfEvents(1,1)+1; % relative index: single frame overlap (extend?)
+                
+                % indexes in the 8-step matrices
+                iMat = repmat(1:size(xMat,2), [nSeg 1]).*~isnan(xMat);
+                
+                if overlapIdx(1)>1 && overlapIdx(end)<seqOfEvents(end,1) && overlapIdx(1)~=(iEvent(1,1)-seqOfEvents(1,1)+1)
+                    xRef = interp1([overlapIdx(1)-1 overlapIdx(end)+1], [xMat(s,overlapIdx(1)-1) xMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                    yRef = interp1([overlapIdx(1)-1 overlapIdx(end)+1], [yMat(s,overlapIdx(1)-1) yMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                elseif overlapIdx(1)==1 || overlapIdx(1)==(iEvent(1,1)-seqOfEvents(1,1)+1)
+                    xRef = interp1([overlapIdx(1) overlapIdx(end)+1], [xMat(s,overlapIdx(1)) xMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                    yRef = interp1([overlapIdx(1) overlapIdx(end)+1], [yMat(s,overlapIdx(1)) yMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                else
+                    xRef = interp1([overlapIdx(1)-1 overlapIdx(end)], [xMat(s,overlapIdx(1)-1) xMat(parentSeg,overlapIdx(end))], overlapIdx);
+                    yRef = interp1([overlapIdx(1)-1 overlapIdx(end)], [yMat(s,overlapIdx(1)-1) yMat(parentSeg,overlapIdx(end))], overlapIdx);
+                end
+                
+                d = sqrt((xMat([s parentSeg],overlapIdx)-xRef).^2 + (yMat([s parentSeg],overlapIdx)-yRef).^2);
+                % remove overlap
+                rm = [s parentSeg];
+                rm = rm(d~=min(d));
+                iMat(rm,overlapIdx) = 0;
+                tracksCoordAmpCG(rm,(overlapIdx-1)*8+(1:8)) = NaN;
+                tracksFeatIndxCG(rm,overlapIdx) = 0;
+                tracksFeatIndxCG(parentSeg,iMat(s,:)~=0) = tracksFeatIndxCG(s,iMat(s,:)~=0);
+                
+                % concatenate segments
+                range8 = iMat(s,:);
+                range8(range8==0) = [];
+                range8 = (range8(1)-1)*8+1:range8(end)*8;
+                tracksCoordAmpCG(parentSeg, range8) = tracksCoordAmpCG(s, range8);
+                
+                rmIdx = [rmIdx s]; %#ok<AGROW>
+            end % segment loop
+        end
+        rmIdx = unique(rmIdx);
+        tracksFeatIndxCG(rmIdx,:) = [];
+        tracksCoordAmpCG(rmIdx,:) = [];
+        
+        % re-order seqOfEvents
+        [~,ridx] = sort(seqOfEvents(:,1));
+        %[~,lidx] = sort(ridx);
+        seqOfEvents = seqOfEvents(ridx,:);
+        
+        % indexes in seqOfEvents must be in order of segment appearance
+        % replace with unique(seqOfEvents(:,3), 'stable') in future versions (>= 2012a)
+        oldIdx = seqOfEvents(:,3);
+        [~, m] = unique(oldIdx, 'first');
+        % mapping: oldIdx(sort(m)) -> 1:nSeg
+        idxMap = oldIdx(sort(m));
+        [~,newIdx] = ismember(oldIdx, idxMap);
+        seqOfEvents(:,3) = newIdx;
+        % replace parent indexes
+        [~,newIdx] = ismember(seqOfEvents(:,4), idxMap);
+        seqOfEvents(:,4) = newIdx;
+        seqOfEvents(seqOfEvents(:,4)==0,4) = NaN;
+        
+        % re-assign to trackinfo, re-arrange with new index
+        [~,ridx] = sort(idxMap);
+        [~,lidx] = sort(ridx);
+        trackinfo(i).seqOfEvents = seqOfEvents;
+        trackinfo(i).tracksCoordAmpCG = tracksCoordAmpCG(lidx,:);
+        trackinfo(i).tracksFeatIndxCG = tracksFeatIndxCG(lidx,:);
+    end
+end
 end
 
 tracks(1:nTracks) = struct('t', [], 'f', [],...
@@ -159,21 +265,23 @@ for k = 1:nTracks
         end
         segLengths(s) = bounds(2)-bounds(1)+1;
         
-        % determine whether segment has merged and split from same master, if length < 4
-        msIdx(s) = segLengths(s)==1 || (diff(ievents(:,4))==0 && segLengths(s)<4) ||...
-            (segLengths(s)<4 && isnan(ievents(1,4)) && ~isnan(ievents(2,4)) && ievents(1,1)>seqOfEvents(1,1)) ||...
-            (segLengths(s)<4 && isnan(ievents(2,4)) && ~isnan(ievents(1,4)) && ievents(2,1)<seqOfEvents(end,1));
+        % remove short (<4 frames) merging/splitting branches if:
+        % -the segment length is a single frame
+        % -the segment is splitting and merging from/to the same parent
+        % -short segment merges, segment starts after track start
+        % -short segment splits, segment ends before track end
+        msIdx(s) = segLengths(s)==1 || (segLengths(s)<4 && ( diff(ievents(:,4))==0 ||...
+            (isnan(ievents(1,4)) && ~isnan(ievents(2,4)) && ievents(1,1)>seqOfEvents(1,1)) ||...
+            (isnan(ievents(2,4)) && ~isnan(ievents(1,4)) && ievents(2,1)<seqOfEvents(end,1)) ));
     end
     if preprocess
         if nSeg>1
-            segIdx = find(msIdx==0);
-            nSeg = numel(segIdx);
+            segIdx = find(msIdx==0); % segments to retain
+            nSeg = numel(segIdx); % update segment #
             msIdx = find(msIdx);
             if ~isempty(msIdx)
                 tracksFeatIndxCG(msIdx,:) = [];
-                for i = 1:numel(msIdx)
-                    seqOfEvents(seqOfEvents(:,3)==msIdx(i),:) = [];
-                end
+                seqOfEvents(ismember(seqOfEvents(:,3), msIdx),:) = [];
             end
             segLengths = segLengths(segIdx);
         else
@@ -272,12 +380,6 @@ maxy = round(arrayfun(@(t) max(t.y(:)), tracks));
 
 idx = minx<=w4 | miny<=w4 | maxx>nx-w4 | maxy>ny-w4;
 tracks(idx) = [];
-
-% remove single-frame tracks, store coordinates
-singletons = [tracks.start]==[tracks.end];
-% singleFrameTracks = tracks(singletons);
-tracks(singletons) = [];
-
 nTracks = numel(tracks);
 
 %=======================================
@@ -299,8 +401,6 @@ for k = 1:nTracks
     gapStarts = find(gapCombIdx==1)+1;
     gapEnds = find(gapCombIdx==-1);
     gapLengths = gapEnds-gapStarts+1;
-    
-    
     
     segmentIdx = diff([0 ~(gapVect | sepIdx) 0]); % these variables refer to segments between gaps
     segmentStarts = find(segmentIdx==1);
@@ -344,12 +444,7 @@ fprintf('\n');
 %====================================================================================
 % Generate buffers before and after track, estimate gap values
 %====================================================================================
-%hasValidGaps = arrayfun(@(t) max([t.gapStatus 4])==4, tracks);
-%singleTrackIdx = find([tracks.nSeg]==1 & hasValidGaps);
-% singleTrackIdx = 1:numel(tracks);
-
 % Gap map for fast indexing
-%gapMap = zeros(numel(singleTrackIdx), data.movieLength);
 gapMap = zeros(nTracks, data.movieLength);
 for k = 1:nTracks
     gapMap(k, tracks(k).f(tracks(k).gapVect==1)) = 1;
@@ -550,11 +645,8 @@ for f = 1:data.movieLength
     end
 end
 fprintf('\n');
-%
-% % sort tracks by type
-% % idx = find([tracks.type]==1);
-% % tracks = tracks([idx setdiff(1:nTracks, idx)]);
-%
+
+
 % %==========================================
 % % Compute displacements
 % %==========================================
