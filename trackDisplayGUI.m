@@ -533,16 +533,13 @@ YLim = get(handles.fAxes(1), 'YLim');
 % zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
-
-mc = handles.mCh;
-
 isRGB = strcmpi(handles.displayType, 'RGB');
 
 if isRGB
     if length(handles.fAxes)>1
         handles = setupFrameAxes(hfig, 1);
     end
-    cvec = mc;
+    cvec = handles.mCh;
     
 else 
     if length(handles.fAxes)~=handles.nCh
@@ -569,7 +566,7 @@ for k = 1:nAxes
     if ~isempty(handles.tracks{k})
         chIdx = k;
     else
-        chIdx = mc;
+        chIdx = handles.mCh;
     end
     
     if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
@@ -1016,29 +1013,42 @@ for ch = 1:handles.nCh
 end
 
 
-% if strcmp(handles.displayType, 'RGB')
-% %     plotFrame(handles.data, handles.tracks{handles.mCh}, handles.f, 1:min(handles.nCh,3),...
-% %         'iRange', handles.dRange, 'Mode', handles.displayType,...
-% %         'ShowDetection', get(handles.('detectionCheckbox'), 'Value')==1,...
-% %         'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-% %         'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
-% %         'Print', 'on', 'Visible', 'off');
-% else
-%     for c = 1:handles.nCh
-%         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
-%             detection = handles.detection{k}(f);
-%         else
-%             detection = [];
-%         end
-%         idx = [handles.tracks{cvec(k)}.start]<=f & f<=[handles.tracks{cvec(k)}.end];
-%         plotFrame(handles.data, handles.tracks{cvec(k)}(idx), f, cidx,...
-%             'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
-%             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
-%             'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-%             'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
-%             'Colormap', handles.colorMap{cvec(k)}(idx,:), 'Print', 'on', 'Visible', 'off');
-%     end
+
+% if isRGB
+%     cvec = handles.mCh;
+% else 
+%     cvec = 1:handles.nCh;
 % end
+
+
+
+if strcmp(handles.displayType, 'RGB')
+    plotFrame(handles.data, handles.tracks{handles.mCh}, handles.f, 1:min(handles.nCh,3),...
+        'iRange', handles.dRange, 'Mode', handles.displayType,...
+        'ShowDetection', get(handles.('detectionCheckbox'), 'Value')==1,...
+        'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+        'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
+        'Print', 'on', 'Visible', 'off');
+else
+    for c = 1:handles.nCh
+        if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
+            detection = handles.detection{k}(f);
+        else
+            detection = [];
+        end
+        if ~isempty(handles.tracks(c))
+            idx = [handles.tracks{c}.start]<=handles.f & handles.f<=[handles.tracks{c}.end];
+            plotFrame(handles.data, handles.tracks{c}(idx), handles.f, c,...
+                'iRange', handles.dRange,...
+                'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
+                'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+                'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
+                'Colormap', handles.colorMap{c}(idx,:), 'Print', 'on', 'Visible', 'off');
+        else
+            
+        end
+    end
+end
 
 
 if get(handles.montageAlignCheckbox, 'Value')
