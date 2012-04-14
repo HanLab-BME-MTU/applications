@@ -246,7 +246,13 @@ if strcmpi(ip.Results.Print, 'on')
         mkdir(fpath);
     end
     axis(ha, 'off');
-    print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) '_ch' num2str(ch) '.eps']);   
+    if strcmpi(ip.Results.Mode, 'RGB')==1
+        chLabel = '_RGB';
+    else
+        chLabel = ['_ch' num2str(ch)];
+    end
+    
+    print(h, '-depsc2', '-loose', [fpath 'frame_' num2str(frameIdx) chLabel '_' ip.Results.DisplayType '.eps']);   
 end
 
 if strcmp(ip.Results.Visible, 'off')

@@ -1013,22 +1013,18 @@ for ch = 1:handles.nCh
 end
 
 
-
-% if isRGB
-%     cvec = handles.mCh;
-% else 
-%     cvec = 1:handles.nCh;
-% end
-
-
-
 if strcmp(handles.displayType, 'RGB')
-    plotFrame(handles.data, handles.tracks{handles.mCh}, handles.f, 1:min(handles.nCh,3),...
-        'iRange', handles.dRange, 'Mode', handles.displayType,...
-        'ShowDetection', get(handles.('detectionCheckbox'), 'Value')==1,...
+    if ~isempty(handles.tracks{handles.mCh}) && get(handles.('trackCheckbox'), 'Value')
+        idx = [handles.tracks{handles.mCh}.start]<=handles.f & handles.f<=[handles.tracks{handles.mCh}.end];
+    else
+        idx = [];
+    end
+    plotFrame(handles.data, handles.tracks{handles.mCh}(idx), handles.f, 1:min(handles.nCh,3),...
+        'iRange', handles.dRange,...
+        'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
         'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
         'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
-        'Print', 'on', 'Visible', 'off');
+        'Colormap', handles.colorMap{handles.mCh}(idx,:), 'Print', 'on', 'Visible', 'off');
 else
     for c = 1:handles.nCh
         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
@@ -1036,7 +1032,7 @@ else
         else
             detection = [];
         end
-        if ~isempty(handles.tracks(c))
+        if ~isempty(handles.tracks{c})
             idx = [handles.tracks{c}.start]<=handles.f & handles.f<=[handles.tracks{c}.end];
             plotFrame(handles.data, handles.tracks{c}(idx), handles.f, c,...
                 'iRange', handles.dRange,...
@@ -1045,7 +1041,12 @@ else
                 'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
                 'Colormap', handles.colorMap{c}(idx,:), 'Print', 'on', 'Visible', 'off');
         else
-            
+            plotFrame(handles.data, [], handles.f, c,...
+                'iRange', handles.dRange,...
+                'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
+                'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+                'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
+                'Print', 'on', 'Visible', 'off');
         end
     end
 end
