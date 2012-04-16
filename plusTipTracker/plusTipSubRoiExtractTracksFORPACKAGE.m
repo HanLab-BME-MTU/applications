@@ -1,10 +1,10 @@
 function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,varargin)
 % this fn is called by plusTipSubRoiTool
 %
-% NOTE: This Function was MODIFIED from the 1st release of
+% UPDATES 03/2011: This Function was MODIFIED from the 1st release of
 % plusTipTracker.  
 % Now partitions pause and shrinkage information from the
-% given subRegions.  Also fixes small bug in original code where the
+% given subRegions.  Also fixes small bug in very code where the
 % Fraction option was ALWAYS bi-passed, even if it was
 % selected in the GUI, due to a small capitalization error.
 % 
@@ -12,10 +12,11 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,varargin)
 % their start site (onlyInitiate option) or end site (onlyTarget)
 % is located within the region of interest, or those tracks specifically 
 % crossing over the borders of the region of interest 
-% 
-% Maria Bagonis (MB) 03/27/11
-% Maria Bagonis (MB) 03/15/12 : Bugs fixes and more extensive options for 
+%  Maria Bagonis (MB) 
+%
+% UPDATES 04/2012 Bugs fixes and more extensive options for 
 % subtrack extraction. 
+% Maria Bagonis (MB) 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,7 +50,7 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,varargin)
 %
 %                %% BELOW NOT YET OPTIONS IN GUI %% 
 % You can filter the inferred pause subtracks via a time requirement
-% (though this is not really necessary, pauses do not typically span a region)
+% (though this is not really necessary, especially for pauses, as these events do not typically span a region)
 %
 % Default = 100 % of the total lifetime of the subtrack needs to be in the
 % subregion to be included in the statistics
@@ -303,14 +304,11 @@ end
 
 %% START PARTITIONING TRACKS BASED ON USER SPECIFICATION   %%%%%%
 
-
-%%% GET DIRECTIONAL INFORMATION %%%% 
-
+    %%% GET DIRECTIONAL INFORMATION %%%% 
     
     %Find tracks targeted to sub region of interest
     lastPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'last'),1:length(idx))';
     firstPtFrIdx=arrayfun(@(i) find(~isnan(xMat(i,:)),1,'first'),1:length(idx))';
-    
     
     %Extract the Coordinates Corresponding to the Last/First particle
     % of each track
@@ -319,8 +317,6 @@ end
     
     xFirst=ceil(arrayfun(@(i) xMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
     yFirst=ceil(arrayfun(@(i) yMat(i,firstPtFrIdx(i)),1:length(idx))'-.5);
-    
-    
     
     %Convert from xy coordinate to pixel index
     pixIdxLast=sub2ind([imL,imW],yLast,xLast);% pixel index of all last points
@@ -336,29 +332,38 @@ end
    
     % if nucleation only: just make the first subtrack specification
     % more specific (ie not a start linked to an fgap or bgap)
+    % a mark of 1 in the 8th column of dataMatMerge indicates that the growth subtrack 
+    % was a nucleation event
     if onlyNuc == 1
         nucIdx = find(dataMatMerge(:,8) == 1);
         inIncludeRegionFirst = intersect(inIncludeRegionFirst,nucIdx);
     end
     
-   
-    %PARTITION GROWTH SUBTRACKS BASED ON DIRECTIONAL INFORMATION
-    % apply the time requirement 
-    % Note inside sec have to be greater than 0 because can potentially
-    % have only 1-coordinate in region: we would like to exclude these as they
-    % are not useful for stats.
     
-    % Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
+    trckIdxInRegionPreTempFilt = intersect(inIncludeRegionFirst,inIncludeRegionLast);
+    trckIdxBoundCrossInPreTempFilt = setdiff(inIncludeRegionLast,trckIdxInRegionPreTempFilt);
+    trckIdxBoundCrossOutPreTempFilt = setdiff(inIncludeRegionFirst,trckIdxInRegionPreTempFilt);
+    
+    xMatBoundCrossInPreTempFilt = xMat(trckIdxBoundCrossInPreTempFilt,:); 
+    yMatBoundCrossInPreTempFilt = yMat(trckIdxBoundCrossInPreTempFilt,:); 
+    
+    xMatBoundCrossOutPreTempFilt = xMat(trckIdxBoundCrossOutPreTempFilt,:); 
+    yMatBoundCrossOutPreTempFilt = yMat(trckIdxBoundCrossOutPreTempFilt,:); 
+    
+    xMatInRegionPreTempFilt = xMat(trckIdxInRegionPreTempFilt,:); 
+    yMatInRegionPreTempFilt = yMat(trckIdxInRegionPreTempFilt,:); 
+    
+   
+    %%% APPLY TEMPORAL FILTERS TO GROWTH SUBTRACKS %%%
+    
     if  strcmpi(timeUnitsGrowth,'fraction') ==1
         trckIdxInFirst=intersect(find(insideSec./lifeSec>=timeValGrowth),inIncludeRegionFirst);
     else
         trckIdxInFirst=intersect(find(insideSec>=timeValGrowth),inIncludeRegionFirst);
     end
 
-    
     xMatFirst = xMat(trckIdxInFirst,:);
     yMatFirst = yMat(trckIdxInFirst,:);
-    
     
     if strcmpi(timeUnitsGrowth,'fraction') == 1
         trckIdxInLast= intersect(find(insideSec./lifeSec>= timeValGrowth),inIncludeRegionLast);
@@ -375,8 +380,7 @@ end
         trckIdxNonDir = find(insideSec>=timeValGrowth); 
     end 
     
-    
-    % find those that start and end in the same region
+    %%% DIVIDE BORDER CROSSING SUBTRACKS THAT STAY IN REGION
     trckIdxInRegion = intersect(trckIdxInFirst,trckIdxInLast);
     trckIdxBoundCrossIn = setdiff(trckIdxInLast,trckIdxInRegion);
     trckIdxBoundCrossOut = setdiff(trckIdxInFirst,trckIdxInRegion);
@@ -393,8 +397,7 @@ end
     
 
     
-%%
-                         %%%%%% PLOTS %%%%%%
+%% PLOTS %%%%
                          
   if strcmpi(timeUnitsGrowth,'fraction'); 
             x = '';
@@ -407,25 +410,28 @@ end
 % First Make an Overview Plot of All Tracks in Region So User Can Determine
 % the Tracks of Interest
 
-figure('Visible',visible); 
-imshow(roiMask); 
+figure('Visible',visible);
+colormap('gray'); 
+imagesc(roiMask); 
+axis 'off'; 
 hold on; 
-plot(xMatBoundCrossIn',yMatBoundCrossIn','b');
-plot(xMatBoundCrossOut',yMatBoundCrossOut','g'); 
-plot(xMatInRegion',yMatInRegion','m'); 
+plot(xMatBoundCrossInPreTempFilt',yMatBoundCrossInPreTempFilt','b');
+plot(xMatBoundCrossOutPreTempFilt',yMatBoundCrossOutPreTempFilt','g'); 
+plot(xMatInRegionPreTempFilt',yMatInRegionPreTempFilt','m'); 
  forTitle1 = 'Blue: Growth SubTracks Crossing Into SubRoi ';
  forTitle2 = 'Green: Growth SubTracks Crossing Out of SubRoi';
  forTitle3 = 'Magenta: Growth SubTracks Initiated AND Terminated In SubRoi';
 
-title({'All GrowthSubTracks In Region ColorCoded by Direction of Growth';...
-    forTitle1; forTitle2; forTitle3; forTitleTime}); 
-filename = 'growthSubTrack_RegionOverview';
+title({'All GrowthSubTracks In Region (Before Temporal Filtering) ColorCoded by Direction of Growth';...
+    forTitle1; forTitle2; forTitle3}); 
+filename = 'growthSubTrack_RegionOverview_BeforeTemporalFiltering';
 saveas(gcf,[subRoiDir filesep filename '.eps'],'psc2');
 close(gcf)
 
 
 %%%% Make plots of tracks after user specified filtering %%%% 
-  
+forTitle2 = 'Note: Includes tracks starting/ending at first/last frame'; 
+
 if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered together
     % their output plots are designed similarly
     
@@ -440,7 +446,7 @@ if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered
         forTitle1 = 'Growth SubTracks Terminated In SubRoi (Red)';
       
       
-        filename = 'forAnalysis_GrowthSubTracksTerminatingInSubRoi';
+        filename = 'PartitionOption_GrowthSubTracksTerminatingInSubRoi';
         
     elseif onlyInitiate == 1 % include those tracks with subtrack initiation sites in analysis
         trckIdxIn = trckIdxInFirst;
@@ -460,15 +466,16 @@ if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered
         end
         
         forTitle1 = ['Growth SubTracks', x,  'In SubRoi (Red)'];
-        filename = 'forAnalysis_GrowthSubTracksInitiatedInSubRoi';
+        filename = 'PartitionOption_GrowthSubTracksInitiatedInSubRoi';
         
     end % if only target
     
     % MAKE PLOTS
     % plot all member tracks in red on top of the mask
     figure('Visible',visible);
-    imshow(roiMask);
-   
+    imagesc(roiMask);
+    colormap('gray'); 
+    axis off; 
     hold on;
     plot(xMatIn',yMatIn','r') %  plot all tracks targeted/initiate in region- those
     % that are both will be overwritten in red.
@@ -485,11 +492,13 @@ elseif boundCrossIn == 1 % boundary crossing in
     yMatIn = yMatBoundCrossIn;
     
     figure('Visible',visible);
-    imshow(roiMask);
+    imagesc(roiMask);
+    axis off; 
+    colormap('gray'); 
     hold on;
     plot(xMatIn',yMatIn','r') 
     title({projNameTitle; 'Growth SubTracks Crossing Into Region (red): Included in Analysis'; forTitleTime});
-    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksCrossingIntoRegion.eps'],'psc2');
+    saveas(gcf,[subRoiDir filesep 'PartitionOption_GrowthSubTracksCrossingIntoRegion.eps'],'psc2');
     close(gcf)
     
 elseif boundCrossOut == 1
@@ -504,7 +513,7 @@ elseif boundCrossOut == 1
    
     title({projNameTitle; 'Growth SubTracks Crossing Out of Region (red): Included In Analysis';...
     forTitleTime}); 
-    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksCrossingOutOfRegion.eps'],'psc2'); 
+    saveas(gcf,[subRoiDir filesep 'PartitionOption_GrowthSubTracksCrossingOutOfRegion.eps'],'psc2'); 
     close(gcf)
     % NONDIRECTIONAL
 else % criteria non-directional but has a time constraint
@@ -522,12 +531,14 @@ else % criteria non-directional but has a time constraint
     
     % plot all member tracks in red on top of the mask
     figure('Visible',visible);
-    imshow(roiMask);
+    imagesc(roiMask);
+    colormap('gray');
+    axis off; 
     hold on;
     plot(xMatIn',yMatIn','r')
     title({projNameTitle; 'Growth SubTracks Included in SubRoi Regional Analysis (Red): No Direction Criteria';forTitleTime})
     %saveas(gcf,[subRoiDir filesep 'tracksInSubRoi' fileExt])
-    saveas(gcf,[subRoiDir filesep 'forAnalysis_GrowthSubTracksInSubRoi.eps'],'psc2');
+    saveas(gcf,[subRoiDir filesep 'PartitionOption_GrowthSubTracksInSubRoi.eps'],'psc2');
     close(gcf)
     
     %plot all tracks excluded from analysis
@@ -622,7 +633,9 @@ yMatPause=yMatPause(trckIdxInPause,:);
 
 % plot all member tracks in red on top of the mask
 figure('Visible',visible);
-imshow(roiMask);
+imagesc(roiMask);
+colormap 'gray'; 
+axis off
 hold on;
 plot(xMatPause',yMatPause','b')
 forTitleTime = ['LIFETIME CRITERIA: ' upper(timeUnitsPause) ' GREATER OR EQUAL TO ' num2str(timeValPause) x];   
@@ -685,7 +698,9 @@ yMatShrink=yMatShrink(trckIdxInShrink,:);
 
 % plot all member tracks in black on top of the mask
 figure('Visible',visible);
-imshow(roiMask);
+imagesc(roiMask);
+colormap 'gray'
+axis off
 hold on;
 plot(xMatShrink',yMatShrink','k')
  if strcmpi(timeUnitsShrink,'fraction'); 
@@ -724,14 +739,19 @@ projData.yCoordInAllTracks = yCoordIn;
 projData.xCoordOutAllTracks= xCoordOut ;
 projData.yCoordOutAllTracks = yCoordOut;
 
+
+
 % TEST 
-figure('Visible',visible)
-imshow(roiMask)
-hold on 
-plot(xCoordIn',yCoordIn','r');
-plot(xCoordOut',yCoordOut','b');
-saveas(gcf,[subRoiDir filesep 'Internal_Test.eps'],'psc2'); 
-close(gcf); 
+% figure('Visible',visible)
+% imagesc(roiMask)
+% axis off
+% hold on 
+% plot(xCoordIn',yCoordIn','r');
+% plot(xCoordOut',yCoordOut','b');
+% saveas(gcf,[subRoiDir filesep 'Internal_Test.eps'],'psc2'); 
+% close(gcf); 
+
+
 
 
 
@@ -902,7 +922,7 @@ projData.speedOutMicPerMinAllTracks=pixPerFrame2umPerMin(speedOut,projData.secPe
 % these values will be used for plotting
 
 %%
-% Remove Growth SubTracks (and any preceding fgap/bgap) that begin in frame
+% Remove Growth SubTracks that begin in frame
 % first frame or end in last frame if user specifies
 % Adjust lifeSec and insideSec column to include only those sub-tracks included
 % in stats
@@ -916,8 +936,9 @@ if remBegEnd== 1
     projData.startOrEnd=~isnan(xMatIn(:,1)) | ~isnan(xMatIn(:,end));
     %projData.percentGrowthAtStartOrEnd=sum(projData.startOrEnd)./projData.stats.nGrowths*100;
     
+    xMatInAll = xMatIn;
+    yMatInAll = yMatIn; 
     % modify lifeSec and insideLifeSec to only include those included in stats
-    
     
     lifeSec = lifeSec(~projData.startOrEnd); % remove subtracks at the beg or end of  movie for stats
     insideSec = insideSec(~projData.startOrEnd);
@@ -931,6 +952,24 @@ if remBegEnd== 1
     yMatIn = yMatIn(~projData.startOrEnd,:);
     IN = IN(~projData.startOrEnd,:);
     OUT = OUT(~projData.startOrEnd,:);
+    
+    % plot so user knows all tracks in the beginning or end of movie that
+    % have been removed
+    figure('Visible',visible)
+    imagesc(roiMask)
+    colormap('gray')
+    axis off
+    hold on 
+    plot(xMatInAll',yMatInAll','k');
+    plot(xMatIn',yMatIn','r');
+    title({'Note: You have chosen to remove subtracks that start in first frame and end in last frame';...
+        'Black: Growth Subtracks Removed From Analysis Based on This Criteria';'Red: Growth Subtracks That Meet This Criteria- Final For Analysis'})
+    saveas(gcf,[subRoiDir filesep 'removeBegEndPlot.eps'],'psc2'); 
+    close(gcf); 
+    
+    
+    
+    
     %
 %     speedIn=nanmean(sqrt(diff(xMatIn.*IN,[],2).^2+diff(yMatIn.*IN,[],2).^2),2);
 %     speedOut=nanmean(sqrt(diff(xMatIn.*OUT,[],2).^2+diff(yMatIn.*OUT,[],2).^2),2);
