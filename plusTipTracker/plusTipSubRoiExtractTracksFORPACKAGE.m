@@ -573,9 +573,10 @@ if collectPlots == 1
         mkdir(collectedDataPathTracks);
     end
     
-    if exist([collectedDataPath filesep 'tifs'],'dir') == 0
-        mkdir([collectedDataPath filesep 'tifs']);
-        mkdir([collectedDataPath filesep 'eps']);
+    if exist([collectedDataPathTracks filesep 'tifs'],'dir') == 0
+        mkdir([collectedDataPathTracks filesep 'tifs']);
+        mkdir([collectedDataPathTracks
+            filesep 'eps']);
     end
     projName = [name roi];
     saveas(gcf,[collectedDataPathTracks filesep 'tifs' filesep projName '.tif']);
