@@ -330,14 +330,7 @@ end
     inIncludeRegionLast=find(roiMask(pixIdxLast));
     inIncludeRegionFirst=find(roiMask(pixIdxFirst));
    
-    % if nucleation only: just make the first subtrack specification
-    % more specific (ie not a start linked to an fgap or bgap)
-    % a mark of 1 in the 8th column of dataMatMerge indicates that the growth subtrack 
-    % was a nucleation event
-    if onlyNuc == 1
-        nucIdx = find(dataMatMerge(:,8) == 1);
-        inIncludeRegionFirst = intersect(inIncludeRegionFirst,nucIdx);
-    end
+   
     
     
     trckIdxInRegionPreTempFilt = intersect(inIncludeRegionFirst,inIncludeRegionLast);
@@ -353,6 +346,15 @@ end
     xMatInRegionPreTempFilt = xMat(trckIdxInRegionPreTempFilt,:); 
     yMatInRegionPreTempFilt = yMat(trckIdxInRegionPreTempFilt,:); 
     
+     % if nucleation only: just make the first subtrack specification
+    % more specific (ie not a start linked to an fgap or bgap)
+    % a mark of 1 in the 8th column of dataMatMerge indicates that the growth subtrack 
+    % was a nucleation event
+    if onlyNuc == 1
+        nucIdx = find(dataMatMerge(:,8) == 1);
+        inIncludeRegionFirst = intersect(inIncludeRegionFirst,nucIdx);
+       
+    end
    
     %%% APPLY TEMPORAL FILTERS TO GROWTH SUBTRACKS %%%
     
@@ -430,7 +432,7 @@ close(gcf)
 
 
 %%%% Make plots of tracks after user specified filtering %%%% 
-forTitle2 = 'Note: Includes tracks starting/ending at first/last frame'; 
+
 
 if( onlyTarget==1 || onlyInitiate ==1)  % historical reasons these are clustered together
     % their output plots are designed similarly
@@ -492,9 +494,9 @@ elseif boundCrossIn == 1 % boundary crossing in
     yMatIn = yMatBoundCrossIn;
     
     figure('Visible',visible);
+    colormap('gray'); 
     imagesc(roiMask);
     axis off; 
-    colormap('gray'); 
     hold on;
     plot(xMatIn',yMatIn','r') 
     title({projNameTitle; 'Growth SubTracks Crossing Into Region (red): Included in Analysis'; forTitleTime});
@@ -507,7 +509,9 @@ elseif boundCrossOut == 1
     yMatIn = yMatBoundCrossOut; 
     
     figure('Visible',visible); 
-    imshow(roiMask); 
+    colormap('gray') 
+    imagesc(roiMask);
+    axis off;
     hold on; 
     plot(xMatIn',yMatIn','r'); 
    
@@ -960,10 +964,10 @@ if remBegEnd== 1
     colormap('gray')
     axis off
     hold on 
-    plot(xMatInAll',yMatInAll','k');
+    plot(xMatInAll',yMatInAll','y');
     plot(xMatIn',yMatIn','r');
     title({'Note: You have chosen to remove subtracks that start in first frame and end in last frame';...
-        'Black: Growth Subtracks Removed From Analysis Based on This Criteria';'Red: Growth Subtracks That Meet This Criteria- Final For Analysis'})
+        'Yellow: Growth Subtracks Removed From Analysis Based on This Criteria';'Red: Growth Subtracks That Meet This Criteria- Final For Analysis'})
     saveas(gcf,[subRoiDir filesep 'removeBegEndPlot.eps'],'psc2'); 
     close(gcf); 
     
