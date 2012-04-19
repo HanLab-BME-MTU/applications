@@ -104,6 +104,8 @@ if isempty(iProc)
     movieData.addProcess(TransformationProcess(movieData,movieData.outputDirectory_));                                                                                                 
 end
 
+transfProc = movieData.processes_{iProc};
+
 p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 %Make sure the movie has been background-subtracted
@@ -133,16 +135,20 @@ end
 
 nChanCorr = length(p.ChannelIndex);
 
+% Reinitialize inFilePaths and outFilePaths
+transfProc.setInFilePaths(cell(1,numel(movieData.channels_)));
+transfProc.setOutFilePaths(cell(1,numel(movieData.channels_)));
+
 %Set up the input /output directories for each channel
 for j = 1:nChanCorr
     
     if hasBTC(p.ChannelIndex(j))
         %If available, use the bleed-through corrected images
-        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+        transfProc.setInImagePath(p.ChannelIndex(j),...
             movieData.processes_{iBTCProc}.outFilePaths_{1,p.ChannelIndex(j)});
     else
         %Otherwise, use background subtracted
-        movieData.processes_{iProc}.setInImagePath(p.ChannelIndex(j),...
+        transfProc.setInImagePath(p.ChannelIndex(j),...
             movieData.processes_{iBSProc}.outFilePaths_{1,p.ChannelIndex(j)});
     end
     
@@ -152,7 +158,7 @@ for j = 1:nChanCorr
     %Check/set up directory
     mkClrDir(currDir);
     
-    movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex(j),currDir);                    
+    transfProc.setOutImagePath(p.ChannelIndex(j),currDir);                    
 end
 
 %Check if transform files have been specified, and if not, get them
@@ -174,8 +180,7 @@ for j = 1:nChanCorr
         p.TransformFilePaths{p.ChannelIndex(j)} = [currPath currFile];                    
     end
     %This method will check validity of file....
-    movieData.processes_{iProc}.setTransformFilePath(p.ChannelIndex(j),...
-                                                p.TransformFilePaths{p.ChannelIndex(j)});        
+    transfProc.setTransformFilePath(p.ChannelIndex(j),p.TransformFilePaths{p.ChannelIndex(j)});        
 end
 
 
@@ -188,8 +193,8 @@ disp('Loading transformation...')
 
 
 %Get the actual transformations for each channel
-xForms = movieData.processes_{iProc}.getTransformation(p.ChannelIndex);
-inNames = movieData.processes_{iProc}.getInImageFileNames(p.ChannelIndex);
+xForms = transfProc.getTransformation(p.ChannelIndex);
+inNames = transfProc.getInImageFileNames(p.ChannelIndex);
 
 %Get original image size. Image pixels that are transformed out of this
 %area will be omitted to preserve this size
@@ -214,8 +219,8 @@ nImTot = nImages * nChanCorr;
 for iChan = 1:nChanCorr
     
     %Get directories for readability
-    inDir  = movieData.processes_{iProc}.inFilePaths_{1,p.ChannelIndex(iChan)};    
-    outDir = movieData.processes_{iProc}.outFilePaths_{1,p.ChannelIndex(iChan)};    
+    inDir  = transfProc.inFilePaths_{1,p.ChannelIndex(iChan)};    
+    outDir = transfProc.outFilePaths_{1,p.ChannelIndex(iChan)};    
     
     disp(['Transforming images for channel ' num2str(p.ChannelIndex(iChan))])
     disp(['Transforming images from ' inDir ', results will be stored in ' outDir]);     
@@ -284,7 +289,7 @@ end
 
 %Store parameters/settings in movieData structure
 
-movieData.processes_{iProc}.setDateTime;
+transfProc.setDateTime;
 movieData.save; %Save the new movieData to disk
 
 disp('Finished!')

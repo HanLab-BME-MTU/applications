@@ -172,12 +172,13 @@ classdef BiosensorsPackage < Package
                 
                 % Set the process index of bleedthrough correction
                 if i == 8 
-                    if ~isempty(obj.processes_{7})
-                        processIndex=obj.owner_.getProcessIndex(obj.processes_{7});
-                    elseif ~isempty(obj.processes_{6})
-                        processIndex=obj.owner_.getProcessIndex(obj.processes_{6});
-                    else
-                        processIndex=[];                 
+                    processIndex=[];
+                    for parentProcId = [6 7]
+                        parentProc= obj.processes_{parentProcId};
+                        if ~isempty(parentProc)
+                            processIndex=horzcat(processIndex,...
+                                obj.owner_.getProcessIndex(parentProc)); %#ok<AGROW>
+                        end
                     end
                     parseProcessParams(obj.processes_{i},struct('ProcessIndex',processIndex));
                 end                
