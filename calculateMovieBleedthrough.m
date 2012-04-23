@@ -124,7 +124,7 @@ end
 iXFProc = movieData.getProcessIndex('TransformationProcess',1,1);
 if ~isempty(iXFProc)
     %Check which channels have been transformed
-    hasXF = movieData.processes_{iBSProc}.checkChannelOutput(iChans);       
+    hasXF = movieData.processes_{iXFProc}.checkChannelOutput(iChans);       
 else
     hasXF = false(1,2);
 end
