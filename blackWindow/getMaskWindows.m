@@ -866,6 +866,24 @@ for j = 1:(nStrips+1)
                     curBordInd = [ceil(iBordIntCur):nBordPts 1:floor(iBordIntPrev)];
                 end
                 
+                %Pad the border coordinates with an extra pixel as a
+                %workaround for the near-misses between contours and
+                %gradient ascents due to numerical differences in starting
+                %and termination criteria
+                if curBordInd(1) > 1
+                    curBordInd = [curBordInd(1)-1 curBordInd];
+                else
+                    %If the first point is at the origin, we add the last
+                    %point
+                    curBordInd = [nBordPts curBordInd];
+                end
+                if curBordInd(end) < nBordPts
+                    curBordInd = [curBordInd curBordInd(end)+1];
+                else
+                    curBordInd = [curBordInd 1];
+                end
+                
+                
                 %Determine if this border section contains a corner, and if
                 %so sample its distance transform value. This will be
                 %needed later
@@ -874,7 +892,7 @@ for j = 1:(nStrips+1)
                 %Find the maximum distance value this strip contains by
                 %sampling the distance transform along the image border
                 maxStripDist = max(arrayfun(@(x)(distX(...
-                    borderCoord(2,curBordInd(x)),borderCoord(1,curBordInd(x)))),1:numel(curBordInd)));
+                    borderCoord(2,curBordInd(x)),borderCoord(1,curBordInd(x)))),2:(numel(curBordInd)-1)));
                 
                 %Determine the number of additional bands needed to reach
                 %the image border, making sure these bands will be at least
@@ -892,10 +910,10 @@ for j = 1:(nStrips+1)
                     %Find those which intersect the current border region,
                     %using rounded coordinates to avoid near misses.
                     iExtraContours = iExtraContours(cellfun(@(x)(any(...
-                        borderCoord(1,curBordInd) == round(x(1,end)) & ...
-                        borderCoord(2,curBordInd) == round(x(2,end))) | ...
-                        any(borderCoord(1,curBordInd) == round(x(1,1)) & ...
-                        borderCoord(2,curBordInd) == round(x(2,1)))),contours(iExtraContours)));
+                        borderCoord(1,curBordInd(2:end-1)) == round(x(1,end)) & ...
+                        borderCoord(2,curBordInd(2:end-1)) == round(x(2,end))) | ...
+                        any(borderCoord(1,curBordInd(2:end-1)) == round(x(1,1)) & ...
+                        borderCoord(2,curBordInd(2:end-1)) == round(x(2,1)))),contours(iExtraContours)));
                     %The "extra" contours are the ones that do not also
                     %intersect a contour
                     if ~isempty(iExtraContours)                                     
