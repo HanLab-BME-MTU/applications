@@ -14,7 +14,7 @@ function [projData,M]=plusTipSubRoiExtractTracks(subRoiDir,varargin)
 % crossing over the borders of the region of interest 
 %  Maria Bagonis (MB) 
 %
-% UPDATES 04/2012 Bugs fixes and more extensive options for 
+% UPDATES 04/2012 Bugs fixes/cleaning and more extensive options for 
 % subtrack extraction. 
 % Maria Bagonis (MB) 
 
@@ -424,9 +424,9 @@ plot(xMatInRegionPreTempFilt',yMatInRegionPreTempFilt','m');
  forTitle2 = 'Green: Growth SubTracks Crossing Out of SubRoi';
  forTitle3 = 'Magenta: Growth SubTracks Initiated AND Terminated In SubRoi';
 
-title({'All GrowthSubTracks In Region (Before Temporal Filtering) ColorCoded by Direction of Growth';...
+title({'All GrowthSubTracks In Region (Before Temporal/Directional Filtering) ColorCoded by Direction of Growth';...
     forTitle1; forTitle2; forTitle3}); 
-filename = 'growthSubTrack_RegionOverview_BeforeTemporalFiltering';
+filename = 'growthSubTrack_RegionOverview_BeforeTemporalAndDirectionalFiltering';
 saveas(gcf,[subRoiDir filesep filename '.eps'],'psc2');
 close(gcf)
 
@@ -968,7 +968,7 @@ if remBegEnd== 1
     plot(xMatInAll',yMatInAll','y');
     plot(xMatIn',yMatIn','r');
     title({'Note: You have chosen to remove subtracks that start in first frame and end in last frame';...
-        'Yellow: Growth Subtracks Removed From Analysis Based on This Criteria';'Red: Growth Subtracks That Meet This Criteria- Final For Analysis'})
+        'Yellow: Removed Growth Subtracks (Subtracks That Start In First Frame or End in Last Frame )';'Red: Maintained Growth Subtracks- Final For Analysis'})
     saveas(gcf,[subRoiDir filesep 'removeBegEndPlot.eps'],'psc2'); 
     close(gcf); 
     
