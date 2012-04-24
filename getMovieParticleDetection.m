@@ -1,16 +1,19 @@
-function movieData = getMovieParticleDetection(varargin)
+function movieData = getMovieParticleDetection(movieData, iChannel, sigmaPSF, varargin)
 
-% Input must be:
-% varargin{1}: the movie data
-movieData = varargin{1};
-% varargin{2}: the channel index where the detection needs to be performed
-iChannel = varargin{2};
-% varargin{3}: the detection function handler
-detectFunc = varargin{3};
-% varargin{4:end-1}: argument of the detection function, except the ima and
-% the mask
-% varargin{end}: batch mode
-batchMode = varargin{end};
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addRequired('movieData');
+ip.addRequired('iChannel', @isscalar);
+ip.addRequired('sigmaPSF', @isscalar);
+ip.addParamValue('batchMode', true, @islogical);
+
+ip.parse(movieData, iChannel, sigmaPSF, varargin{:});
+batchMode = ip.Results.batchMode;
+unmatched = ip.Unmatched;
+unmatched = cellfun(@(field) {field, unmatched.(field)}, ...
+    fieldnames(unmatched), 'UniformOutput', false);
+unmatched = horzcat(unmatched{:});
 
 %Indicate that particleDetection was started
 movieData.particleDetection.status = 0;
@@ -50,8 +53,8 @@ featuresInfo(1:nFrames) = struct(...
     'xCoord',[],...
     'yCoord',[],...
     'amp',[],...
-    'stdAlong',[],...
-    'stdAside',[],...
+    'sigmaX',[],...
+    'sigmaY',[],...
     'theta',[],...
     'bkg',[]);
 
@@ -66,10 +69,10 @@ for iFrame = 1:nFrames
         mask = true(size(ima));
     end
     
-    featuresInfo(iFrame) = detectFunc(ima, mask, varargin{4:end-1});
+    featuresInfo(iFrame) = cometDetection(ima, mask, sigmaPSF, unmatched{:});
         
     if ~batchMode && ishandle(h)
-        waitbar(iFrame/nFrames, h)
+        waitbar(iFrame / nFrames, h);
     end    
 end
 

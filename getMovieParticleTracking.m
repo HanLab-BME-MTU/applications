@@ -1,10 +1,16 @@
-function movieData = getMovieParticleTracking(movieData,searchRadius,batchMode)
-
-% Check that particleDetection has been processed
-assert(checkMovieParticleDetection(movieData));
+function movieData = getMovieParticleTracking(movieData,searchRadius,varargin)
 
 %Indicate that particleTracking was started
 movieData.particleTracking.status = 0;
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('movieData', @checkMovieParticleDetection);
+ip.addRequired('searchRadius', @isscalar);
+ip.addParamValue('batchMode', true, @islogical);
+
+ip.parse(movieData, searchRadius, varargin{:});
+batchMode = ip.Results.batchMode;
 
 movieData.particleTracking.directory = [movieData.analysisDirectory filesep 'particleTracking'];
 movieData.particleTracking.filename = 'tracks.mat';
@@ -156,7 +162,7 @@ probDim = 2;
 verbose = ~batchMode;
 
 % Run the tracking
-[tracks,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
+[tracks,kalmanInfoLink] = trackCloseGapsKalmanSparse(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
 
 movieData.particleTracking.dateTime = datestr(now);
