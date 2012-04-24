@@ -18,19 +18,27 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 %             bgap displacement (bd).
 
 % Maria Bagonis, April 2011
-% Sebastien Besson, Seb 2011
+% Sebastien Besson, Apr 2011
 
 %Input check
 ip = inputParser;
-ip.addRequired('groupList',@(x)iscell(x) || isempty(x));
+isML = @(x) isvector(x) && all(arrayfun(@(y) isa(y,'MovieList'),x));
+ip.addRequired('groupList',@(x)iscell(x) || isML(x) || isempty(x));
 ip.addOptional('remBegEnd',1,@isscalar);
 ip.parse(groupList,varargin{:})
 remBegEnd=ip.Results.remBegEnd;
 if isempty(groupList), groupList=combineGroupListFiles; end
 
+if isML(groupList)
+    projGroupName=cell(numel(groupList),1);
+    for i=1:numel(groupList)
+        [~,projGroupName{i}] = fileparts(groupList(i).getPath);
+    end
+else
+    projGroupName=groupList(:,1);
+    projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'UniformOutput',0);
 
-projGroupName=groupList(:,1);
-projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'UniformOutput',0);
+end
 
 % fix the names if there are spaces or hyphens and append prefix 'grp'
 projGroupName=cellfun(@(x) ['grp_' regexprep(x,'[ -]','_')],...
@@ -48,25 +56,48 @@ Sgroup=cell(1,length(btwGrpNames));
 D=cell(1,length(btwGrpNames));
 dataByProject=cell(1,length(btwGrpNames));
 for iGroup = 1:length(btwGrpNames)
-    
-    % indices of projects in iGroup
-    projIndx=find(strcmp(btwGrpNames(iGroup),projGroupName));
+    if ~isML(groupList);
+        % indices of projects in iGroup
+        projIndx=find(strcmp(btwGrpNames(iGroup),projGroupName));
+        nProj =length(projIndx);
+    else
+        nProj = numel(groupList(iGroup).getMovies);
+    end
     
     trkCount=1;
-    for i = 1:length(projIndx)
-        iProj = projIndx(i);
+    for i = 1:nProj
         
-        % Read detection info
-        s = load([projGroupDir{iProj} filesep 'feat' filesep 'movieInfo']);
-        D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),s.movieInfo);
         
-        % Read post-tracking info 
-        s = load([projGroupDir{iProj} filesep 'meta' filesep 'projData']);
+        if isML(groupList)
+            movie = groupList(iGroup).getMovies{i};
+            
+            % Read detection info
+            iProc = movie.getProcessIndex('CometDetectionProcess',1,0);
+            detProc = movie.processes_{iProc};
+            iChan = find(detProc.checkChannelOutput,1);
+            movieInfo= detProc.loadChannelOutput(iChan);
+            
+            % Read post-tracking info
+            iProc = movie.getProcessIndex('CometPostTrackingProcess',1,0);
+            postProc = movie.processes_{iProc};
+            iChan = find(postProc.checkChannelOutput,1);
+            projData= postProc.loadChannelOutput(iChan,'output','projData');
+        else
+            iProj = projIndx(i);
+            % Read detection info
+            s = load([projGroupDir{iProj} filesep 'feat' filesep 'movieInfo']);
+            movieInfo = s.movieInfo;
+            
+            % Read post-tracking info 
+            s = load([projGroupDir{iProj} filesep 'meta' filesep 'projData']);
+            projData=s.projData;
+        end
         
-        %
-        dataMat = s.projData.mergedDataMatAllSubTracksConverted;
+        D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
+
+        dataMat = projData.mergedDataMatAllSubTracksConverted;
         if remBegEnd==1
-            dataMat = plusTipRemBegEnd(dataMat,s.projData); 
+            dataMat = plusTipRemBegEnd(dataMat,projData); 
             % this output has data at beginning/end removed and units
             
             % already converted
@@ -86,9 +117,9 @@ for iGroup = 1:length(btwGrpNames)
         
         % assign matrix to cell array
         dataByProject{iGroup}{i}=dataMat;
-        [S{iGroup}{i},M{iGroup}{i}]= plusTipDynamParam(dataMat,s.projData,1,0);
+        [S{iGroup}{i},M{iGroup}{i}]= plusTipDynamParam(dataMat,projData,1,0);
     end
-    [Sgroup{iGroup}]= plusTipDynamParam(vertcat(dataByProject{iGroup}{:}),s.projData,1,0);
+    [Sgroup{iGroup}]= plusTipDynamParam(vertcat(dataByProject{iGroup}{:}),projData,1,0);
     
 end
 groupData.pooledStats = cellfun(@(x) x.stats,Sgroup,'UniformOutput',0);

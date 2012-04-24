@@ -2,7 +2,7 @@ classdef CometPostTrackingProcess < DataProcessingProcess
     % A concrete class for classifying comet tracks
     %
     % Sebastien Besson, March 2012
-
+    
     methods (Access = public)
         function obj = CometPostTrackingProcess(owner, varargin)
             % Constructor of the CometDetectionProcess
@@ -25,7 +25,7 @@ classdef CometPostTrackingProcess < DataProcessingProcess
                 if isempty(funParams)  % Default funParams
                     funParams = CometPostTrackingProcess.getDefaultParams(owner,outputDir);
                 end
-                super_args{4} = funParams;  
+                super_args{4} = funParams;
             end
             
             obj = obj@DataProcessingProcess(super_args{:});
@@ -45,27 +45,29 @@ classdef CometPostTrackingProcess < DataProcessingProcess
             
             % Data loading
             s = load(obj.outFilePaths_{1,iChan},'projData');
-            if isequal(output,'projData')
-                varargout{1}=s.(output);
-            else
-                
-                trackData=s.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
-                fullIdx=trackData(:,1);
-                trackType=trackData(:,5);
-                sF=trackData(:,2);
-                [xMat,yMat]=plusTipGetSubtrackCoords(s.projData,[]);
-
-                correspFullIdx=fullIdx(~isnan(xMat(:,iFrame)));
-                if ~isempty(correspFullIdx) && iFrame>1
-                    subtracks2keep=find(ismember(fullIdx,correspFullIdx));
-                    varargout{1}.x=xMat(subtracks2keep,1:iFrame);
-                    varargout{1}.y=yMat(subtracks2keep,1:iFrame);
-                    varargout{1}.fullIdx=fullIdx(subtracks2keep);
-                    varargout{1}.trackType=trackType(subtracks2keep);
-                    varargout{1}.sF=sF(subtracks2keep);
+            for j=1:numel(output)
+                if isequal(output{j},'projData')
+                    varargout{1}=s.(output{j});
                 else
-                    varargout{1}.x=[];
-                    varargout{1}.y=[];
+                    
+                    trackData=s.projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix;
+                    fullIdx=trackData(:,1);
+                    trackType=trackData(:,5);
+                    sF=trackData(:,2);
+                    [xMat,yMat]=plusTipGetSubtrackCoords(s.projData,[]);
+                    
+                    correspFullIdx=fullIdx(~isnan(xMat(:,iFrame)));
+                    if ~isempty(correspFullIdx) && iFrame>1
+                        subtracks2keep=find(ismember(fullIdx,correspFullIdx));
+                        varargout{1}.x=xMat(subtracks2keep,1:iFrame);
+                        varargout{1}.y=yMat(subtracks2keep,1:iFrame);
+                        varargout{1}.fullIdx=fullIdx(subtracks2keep);
+                        varargout{1}.trackType=trackType(subtracks2keep);
+                        varargout{1}.sF=sF(subtracks2keep);
+                    else
+                        varargout{1}.x=[];
+                        varargout{1}.y=[];
+                    end
                 end
             end
         end
@@ -100,5 +102,5 @@ classdef CometPostTrackingProcess < DataProcessingProcess
             funParams.makeHist = true;
             funParams.remBegEnd = true;
         end
-    end    
+    end
 end
