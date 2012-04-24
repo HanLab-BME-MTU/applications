@@ -2,12 +2,6 @@ function batchProcessMyMovies(params)
 
 nProcesses = length(params.procNames);
 
-checkFunc = @(procName, movieData) ...
-    eval(['checkMovie' upper(procName(1)) procName(2:end) '(movieData)']);
-
-procFunc = @(procName, paramFunc) ...
-    eval(['getMovie' upper(procName(1)) procName(2:end) '(paramFunc{:})']);
-
 %
 % CHECK INPUT ARGUMENTS
 %
@@ -88,28 +82,38 @@ for iMovie = 1:nMovies
     for iProc = 1:nProcesses
         procName = params.procNames{iProc};
         
-        if  params.runSteps(iProc) == 1 || (~checkFunc(procName, currMovie) && params.runSteps(iProc) == 0)
+        checkFunc = str2func(['checkMovie' upper(procName(1)) procName(2:end)]);
+        
+        if  params.runSteps(iProc) == 1 || (~checkFunc(currMovie) && params.runSteps(iProc) == 0)
             
             disp([movieName ': running process ' procName]);
             
             try
-                procParams = struct2cell(eval(['params.' procName]));
+                requiredParams = struct2cell(params.(procName).required);
+                
+                optionalParams = cellfun(@(field) {field, params.(procName).optional.(field)}, ...
+                    fieldnames(params.(procName).optional), 'UniformOutput', false);
+                
+                optionalParams = horzcat(optionalParams{:}, {'batchMode', params.batchMode});
 
                 % save input parameters into the movieData
-                eval(['currMovie.' procName '.params = params.' procName ';']);
+                currMovie.(procName).params = params.(procName);
                 
-                currMovie = procFunc(procName, vertcat({currMovie}, procParams, params.batchMode));
+                procFunc = str2func(['getMovie' upper(procName(1)) procName(2:end)]);
+                
+                currMovie = procFunc(currMovie, requiredParams{:}, optionalParams{:});
 
-                if isfield(eval(['currMovie.' procName]),'error')                
-                    eval(['currMovie.' procName ' = rmfield(currMovie.' procName ',''error'');']);
+                if isfield(currMovie.(procName), 'error')
+                    currMovie.(procName) = rmfield(currMovie.(procName), 'error');
                 end
  
             catch errMess
                 disp(['Error in ' movieName ': ' errMess.stack(1).name ':' ...
                     num2str(errMess.stack(1).line) ' : ' errMess.message]);
-                
-                eval(['currMovie.' procName '.error = errMess;']);
-                eval(['currMovie.' procName '.status = 0;']);
+
+                currMovie.(procName).error = errMess;
+                currMovie.(procName).status = 0;
+
                 continue;
             end
         else
