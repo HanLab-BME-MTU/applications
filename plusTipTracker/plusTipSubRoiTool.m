@@ -113,6 +113,8 @@ end
 if ~isempty(strmatch(lower(timeUnits),'fraction')) && ~(timeVal>0 && timeVal<=1)
     error('plusTipSubRoiTool: timeUnits is fraction, timeVal must be in 0-1')
 end
+
+roiYXAll = [];
 %% Body
 
 nProj=length(projList);
@@ -209,10 +211,17 @@ for iProj=1:nProj
                 c=1;
                 while isempty(roiMask)
                     try
-                        [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat');
-                        p=load([PathName FileName]);
-                        roiYX=p.roiYX;
-                        roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
+                        [FileName,PathName] = uigetfile({'*.*'},'Select roiYX.mat or roiMask.tif');
+                        if strcmp(FileName,'roiMask.tif');
+                            roiMask  =  imread([PathName filesep FileName]);
+                            roiYXAll = bwboundaries(roiMask);
+                            roiYX  = roiYXAll{1};
+                        else
+                            p=load([PathName FileName]);
+                            
+                            roiYX=p.roiYX;
+                            roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
+                        end
                     catch
                         h=msgbox('Please try again.','help');
                         uiwait(h);
@@ -224,9 +233,10 @@ for iProj=1:nProj
                 end
             end
             else
-                p = load([anDir filesep 'roiYX.mat']); % load the roiYX file in the anDir
+                p = load([anDir  filesep 'roiYX.mat']); % load the roiYX file in the anDir
                 roiYX=p.roiYX;
                 roiMask=roipoly(img,roiYX(:,2),roiYX(:,1));
+                
             end
         end 
     end 
@@ -552,6 +562,10 @@ for iProj=1:nProj
             imshow(repmat(roiMask,[1 1 3]).*img)
             hold on
             plot(roiYX(:,2),roiYX(:,1),'w');
+            if ~isempty(roiYXAll) 
+                roiYX2 = roiYXAll{2}; 
+                plot(roiYX2(:,2),roiYX2(:,1),'w'); 
+            end 
         end
 
         % load iRoi outline coordinates and mask
@@ -601,7 +615,7 @@ progressText(0,'Extracting tracks from Sub-ROIs');
 for iProj=1:nProj
     % create new projData from original data and save it in new meta folder
     currentRoiAnDir=projCell{iProj,1};
-    plusTipSubRoiExtractTracks(currentRoiAnDir,timeUnits,timeVal);
+    plusTipSubRoiExtractTracksFORPACKAGE(currentRoiAnDir,timeUnits,timeVal);
     progressText(iProj/nProj,'Extracting tracks from Sub-ROIs');
 end
 
