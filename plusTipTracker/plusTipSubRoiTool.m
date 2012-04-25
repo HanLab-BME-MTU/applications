@@ -295,13 +295,14 @@ for iProj=1:nProj
             imshow(roiMask.*img1,[]);
             hold on
             axis equal
-            h=msgbox('Draw an ellipse over the area to exclude and double-click when finished','help');
+            h=msgbox('Draw an ROI over the area to exclude: Right Click On Last Point When Finished and Click Create Mask','help');
             uiwait(h);
-            h=imellipse;
-            vert=wait(h);
+            %h=imellipse;
+            %vert=wait(h);
+            excludeMask = roipoly(img); % option for roipoly instead
             close(gcf)
-            excludeMask=excludeMask | roipoly(img,vert(:,1),vert(:,2));
-            close(gcf)
+          %  excludeMask=excludeMask | roipoly(img,vert(:,1),vert(:,2));
+           % close(gcf)
 
             reply = questdlg('Do you want to exclude another region?');
             if strcmpi(reply,'yes')
@@ -552,7 +553,11 @@ for iProj=1:nProj
             % get whole cell mask
             roiMask=imread([subanDir filesep 'roiMask.tif']);
             roiYX=load([subanDir filesep 'roiYX.mat'],'roiYX'); roiYX=roiYX.roiYX;
-
+            if exist('excludeMask','var') 
+               roiMask = roiMask-excludeMask;
+               roiMask(roiMask<0)=0; 
+            end 
+            
             % initialize mask to store accumulated subs for this
             % iteration
             subMask=zeros(size(roiMask));
