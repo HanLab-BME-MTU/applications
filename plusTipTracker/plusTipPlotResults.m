@@ -182,6 +182,8 @@ for i=1:3
     end
 end
 delete(findobj(overlayFig,'Type','line'));
+close(overlayFig);
+
 %%
 
 
@@ -310,7 +312,7 @@ for j=1:3
     M(1:length(x3),3)=x3;
 
     % make the plot
-    figure
+    histFig = figure;
     bar(n,M,'stack')
     colormap([1 0 0; 0 0 1; 0 1 0])
     legend('growth','fgap','bgap','Location','best')
@@ -319,7 +321,7 @@ for j=1:3
     
     saveas(gcf,[saveDir filesep 'histogram_' type{j} '.fig'])
     saveas(gcf,[saveDir filesep 'histogram_' type{j} fileExt])
-    close(gcf)
+    close(histFig)
     if ishandle(wtBar)
         waitbar(.5+j/12,wtBar,'Creating stacked histograms');
     end
@@ -435,6 +437,5 @@ img2show(borderIdx+2*nPix)=c(3);
 
 end
 
-close all
 if ishandle(wtBar), close(wtBar); end
 end

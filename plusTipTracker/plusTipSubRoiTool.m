@@ -620,7 +620,7 @@ progressText(0,'Extracting tracks from Sub-ROIs');
 for iProj=1:nProj
     % create new projData from original data and save it in new meta folder
     currentRoiAnDir=projCell{iProj,1};
-    plusTipSubRoiExtractTracksFORPACKAGE(currentRoiAnDir,timeUnits,timeVal);
+    plusTipSubRoiExtractTracks(currentRoiAnDir,timeUnits,timeVal);
     progressText(iProj/nProj,'Extracting tracks from Sub-ROIs');
 end
 
