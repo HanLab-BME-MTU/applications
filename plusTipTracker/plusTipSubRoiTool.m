@@ -310,7 +310,7 @@ for iProj=1:nProj
             else
                 pickExclude=0; % assume no; we're done
             end
-
+        [img2show] = addMaskInColor(img2show,excludeMask,[1 1 1]); 
         elseif ~isempty(strmatch(choice,'Load a mask from file'))
             c=1;
             while pickExclude==1
