@@ -46,8 +46,10 @@ edgeApp = [1 1 .1 0];%Raw skel edge appaerance
 vertAppP = [1 .1 .1 0];%Pruned skel vertex appearance
 branchEdgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
 bodyEdgeAppP = [.1 .1 1 0];%Pruned skel edge appaerance
+bodyCenterAppP = [.1 .1 1 0];%Pruned skel edge appaerance
+bodyCenterSize = 6;%Radius of body-center spot in voxels
 msApp = [.2 .2 .2 .5];%Mask surface appearance
-nSteps = 4;%Total number of processing steps which can be displayed
+nSteps = 5;%Total number of processing steps which can be displayed
 iProcChan = 1;%The convention is to associate the processing steps which are not channel-specific with the first channel.
 
 
@@ -513,4 +515,24 @@ if showSteps(4) && ~isempty(iPruneProc) && movieData3D.processes_{iPruneProc}.ch
     
 end
 
+%Display the cell-centroid tracking
+iObjTrackProc = movieData3D.getProcessIndex('MaskObjectTrackingProcess',1,1);
+if showSteps(5) && ~isempty(iObjTrackProc) && movieData3D.processes_{iObjTrackProc}.checkChannelOutput(iProcChan)        
+
+    disp('Object centroid tracking found, displaying.')        
+    
+    %Load the tracks, eliminating extra dimension which is there for historical reasons    
+    objTracks = squeeze(movieData3D.processes_{iObjTrackProc}.loadChannelOutput(iProcChan)) .* pixXY;
+    objTracks = objTracks(:,[2 1 3]);%The object tracks are in XYZ... Was I drunk when I wrote that? 
+    
+    %Create spots object for centroid tracks
+    imarisCentroidSpots = imarisApp.mFactory.CreateSpots;
+    imarisCentroidSpots.mName = 'Mask Centermost Point';
+    imarisCentroidSpots.SetColor(bodyCenterAppP(1),bodyCenterAppP(2),bodyCenterAppP(3),bodyCenterAppP(4));
+    %Add the vertices to the scene as spots
+    imarisCentroidSpots.Set(objTracks,(0:nImages-1)',bodyCenterSize*pixXY*ones(nImages,1));
+    imarisCentroidSpots.SetTrackEdges([(0:nImages-2)' (1:nImages-1)']);
+    imarisApp.mSurpassScene.AddChild(imarisCentroidSpots);
+    
+end
 
