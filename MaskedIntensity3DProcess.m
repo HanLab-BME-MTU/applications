@@ -44,7 +44,7 @@ classdef MaskedIntensity3DProcess < ImageAnalysisProcess
                    ~all(obj.checkChanNum(iChan));
                error('You must specify a valid channel number!')
            end
-           OK =  arrayfun(@(x)(exist(obj.outFilePaths_{x},'file')));
+           OK =  arrayfun(@(x)(exist(obj.outFilePaths_{x},'file')),iChan);
         end
         
         
@@ -91,6 +91,7 @@ classdef MaskedIntensity3DProcess < ImageAnalysisProcess
                     funParams.ChannelIndex = 1:numel(owner.channels_);                                        
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'masked_intensity_analysis'];
+                    funParams.CurvSampRad = 3;%Completely arbitrary.. should be justified at some point!
                     funParams.BatchMode = false;                                                   
         end
     end            

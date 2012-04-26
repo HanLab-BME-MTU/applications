@@ -28,8 +28,8 @@ nPix = cellfun(@numel,nmLabel.PixelIdxList);
 nucMask = false(size(mask));
 nucMask(nmLabel.PixelIdxList{iBySize(1)}) = true;
 
-%Sort of half-assed reverse the effects of the dilation by dilating the
-%mask
+%Sort of half-assed reverse the effects of the image dilation by dilating
+%the mask
 nucMask = imdilate(nucMask,strel('disk',dRad,0));
 
 if showPlots

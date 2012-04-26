@@ -23,7 +23,7 @@ function postProcess3DMovieArrayMaskGeometry(MA,varargin)
 %% ------------- Parameters -------------- %%
 
 binSz = 1/1e4;%Bin size for curvature histograms, in 1/nm
-gcBinSz = binSz^2; %Gaussian curvature is product of principle curvatures
+gcBinSz = binSz^2*10; %Gaussian curvature is product of principle curvatures
 nPixMaxCurv = 2;%Radius in pixels of the maximum-curvature-radius to set histogram limits at
 
 perMovDirName = 'mask geometry post processing';%Directory for saving individual move results in movie output directory
@@ -105,12 +105,22 @@ for iMov = 1:nMovies
         %Set up the curvature histogram bins for this movie based on the
         %pixel size - no object can have higher curvature than a single
         %pixel.
-        histBinsPerMov{iMov} = -1/(pixSizePerMov(iMov)*nPixMaxCurv):binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
+        %%% TEMP !!!!!!!!!!!!!!!!
+%         histBinsPerMov{iMov} = -1/(pixSizePerMov(iMov)*nPixMaxCurv):binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
+%         nBinsPerMov(iMov) = numel(histBinsPerMov{iMov});
+%         gcHistBinsPerMov{iMov} = -(1/pixSizePerMov(iMov)/nPixMaxCurv)^2:gcBinSz:(1/pixSizePerMov(iMov)/nPixMaxCurv)^2;
+%         ngcBinsPerMov(iMov) = numel(gcHistBinsPerMov{iMov});
+%         dpcHistBinsPerMov{iMov} = 0:binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
+%         ndpcBinsPerMov(iMov) = numel(dpcHistBinsPerMov{iMov});
+        
+        histBinsPerMov{iMov} = -2e-3:binSz:2e-3;
         nBinsPerMov(iMov) = numel(histBinsPerMov{iMov});
-        gcHistBinsPerMov{iMov} = -(1/pixSizePerMov(iMov)/nPixMaxCurv)^2:gcBinSz:(1/pixSizePerMov(iMov)/nPixMaxCurv)^2;
+        gcHistBinsPerMov{iMov} = -2e-6:gcBinSz:2e-6;
         ngcBinsPerMov(iMov) = numel(gcHistBinsPerMov{iMov});
-        dpcHistBinsPerMov{iMov} = 0:binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
+        dpcHistBinsPerMov{iMov} = 0:binSz:2e-3;
         ndpcBinsPerMov(iMov) = numel(dpcHistBinsPerMov{iMov});
+        
+        
         
         gcHistPerMov{iMov} = nan(nFramesPerMov(iMov),ngcBinsPerMov(iMov));
         mcHistPerMov{iMov} = nan(nFramesPerMov(iMov),nBinsPerMov(iMov));           
@@ -228,18 +238,105 @@ compFig = figure;
 hold on
 movColors = jet(nMovies);
 %TEMP - fix this shit you lazy bastard!!
-useFrames = 1:nanmin(10,nFramesPerMov);
+useFrames = 1:nanmin([10 nFramesPerMov']);
 
 for iMov = 1:nMovies
-
-    meanDiffHist = nanmean(dpcHistPerMov{iMov}(useFrames,:),1);
-    stdDiffHist = nanstd(dpcHistPerMov{iMov}(useFrames,:),[],1);    
     
-    plotTransparent(dpcHistBinsPerMov{iMov},meanDiffHist,stdDiffHist,movColors(iMov,:),.5,0);
+    figure
+
+    meanDiffHist(iMov,:) = nanmean(dpcHistPerMov{iMov}(useFrames,:),1);
+    stdDiffHist(iMov,:) = nanstd(dpcHistPerMov{iMov}(useFrames,:),[],1);    
+    
+    plotTransparent(dpcHistBinsPerMov{iMov},meanDiffHist(iMov,:),stdDiffHist(iMov,:),movColors(iMov,:),.5,0);        
+    hold on
+    plot(dpcHistBinsPerMov{iMov},meanDiffHist(iMov,:),'color',movColors(iMov,:))
+    xlim([1e-4 1.9e-3])
+    xlabel('Difference of Principle Curvatures, 1/nm')
+    ylabel('Probability')
+    title('Diff. of Principle Curvatures Distribution Averaged Over All Frames')
+    currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
+    saveThatShit([currOutDir filesep 'Averaged Difference of Principle Curvature Distribution'],currOutDir);
+    
+    figure
+    
+    meanMeanHist(iMov,:) = nanmean(mcHistPerMov{iMov}(useFrames,:),1);
+    stdMeanHist(iMov,:) = nanstd(mcHistPerMov{iMov}(useFrames,:),[],1);    
+    
+    plotTransparent(histBinsPerMov{iMov},meanMeanHist(iMov,:),stdMeanHist(iMov,:),movColors(iMov,:),.5,0);        
+    hold on
+    plot(histBinsPerMov{iMov},meanMeanHist(iMov,:),'color',movColors(iMov,:))
+    xlim([-2e-3 2e-3])
+    xlabel('Mean Curvature, 1/nm')
+    ylabel('Probability')
+    title('Mean Curvature Distribution Averaged Over All Frames')
+    currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
+    saveThatShit([currOutDir filesep 'Averaged Mean Curvature Distribution'],currOutDir);
+    
+    figure
+    
+    meanGaussHist(iMov,:) = nanmean(gcHistPerMov{iMov}(useFrames,:),1);
+    stdGaussHist(iMov,:) = nanstd(gcHistPerMov{iMov}(useFrames,:),[],1);    
+    
+    plotTransparent(gcHistBinsPerMov{iMov},meanGaussHist(iMov,:),stdGaussHist(iMov,:),movColors(iMov,:),.5,0);        
+    hold on
+    plot(gcHistBinsPerMov{iMov},meanGaussHist(iMov,:),'color',movColors(iMov,:));        
+    xlim([-2e-6 2e-6])
+    xlabel('Gaussian Curvature, 1/nm^2')
+    ylabel('Probability')
+    title('Gaussian Curvature Distribution Averaged Over All Frames')
+    currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
+    saveThatShit([currOutDir filesep 'Averaged Gaussian Curvature Distribution'],currOutDir);
+    
     
     
 end
 
+%--------- All Movie Averages -------- %
 
+figure
+
+combOutDir = p.OutputDirectory;
+combMeanHist = mean(meanMeanHist,1);
+combMeanHistSTD = std(meanMeanHist,[],1);
+%TEEEEMMP TEMP TEMP !!! FUCKING THESIS !!!
+plotTransparent(histBinsPerMov{1},combMeanHist,combMeanHistSTD,[0 0 1],.5,0);        
+hold on
+plot(histBinsPerMov{1},combMeanHist)
+xlim([-2e-3 2e-3])
+xlabel('Mean Curvature, 1/nm')
+ylabel('Probability')
+title(['Mean Curvature Distribution Averaged Over All Movies, n =' num2str(nMovies)])
+saveThatShit(['Combined Mean Curvature Distribution'],combOutDir);
+
+figure
+
+combGaussHist = mean(meanGaussHist,1);
+combGaussHistSTD = std(meanGaussHist,[],1);
+
+plotTransparent(gcHistBinsPerMov{1},combGaussHist,combGaussHistSTD,[0 0 1],.5,0);        
+hold on
+plot(gcHistBinsPerMov{1},combGaussHist)
+xlim([-2e-6 2e-6])
+xlabel('Gaussian Curvature, 1/nm^2')
+ylabel('Probability')
+title(['Gaussian Curvature Distribution Averaged Over All Movies, n =' num2str(nMovies)])
+saveThatShit(['Combined Gaussian Curvature Distribution'],combOutDir);
+
+figure
+
+combDiffHist = mean(meanDiffHist,1);
+combDiffHistSTD = std(meanDiffHist,[],1);
+
+plotTransparent(dpcHistBinsPerMov{1},combDiffHist,combDiffHistSTD,[0 0 1],.5,0);        
+hold on
+plot(dpcHistBinsPerMov{1},combDiffHist)
+xlim([1e-4 1.9e-3])
+xlabel('Difference of Principle Curvatures, 1/nm')
+ylabel('Probability')
+title(['Difference of Principle Curvatures Distribution Averaged Over All Movies, n =' num2str(nMovies)])
+saveThatShit(['Combined Difference of Principle Curvatures Distribution'],combOutDir);
+
+save([combOutDir filesep 'combined histograms all movies.mat'],'combMeanHist','combMeanHistSTD','histBinsPerMov','combGaussHist','combGaussHistSTD','gcHistBinsPerMov','combDiffHist','combDiffHistSTD','dpcHistBinsPerMov')
 jkl=1;
+
 

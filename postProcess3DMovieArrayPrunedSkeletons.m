@@ -6,9 +6,10 @@ function postProcess3DMovieArrayPrunedSkeletons(MA,varargin)
 % 
 % 
 % 
+%TEMP - ADD SOME FUCKING DOCUMENTATION!!! 
 % 
-% 
-% 
+%TEMP - separate single-cell analysis to it's own function? Or at least
+%save to each movies directory so other functions can use it!!!
 % 
 % 
 % 
@@ -28,7 +29,8 @@ perMovDirName = 'pruned skeleton post processing';%Directory for saving individu
 pOpt = {'-r300',...% dpi = 300
         '-depsc2'};% use eps format
 pOptTIFF = {'-r100','-dtiff'};%150 dpi for TIF format since this is usally just used for emailing to Bob!
-    
+   
+iProcChan = 1;
     
 %% ------------- Input ------------ %%
 
@@ -50,6 +52,8 @@ if isempty(p.OutputDirectory)
         error('You must select an output directory!')
     end
 end
+
+mkClrDir(p.OutputDirectory);
 
 %% ------------ Init --------------- %%
 
@@ -88,6 +92,11 @@ thetaBins = linspace(-pi,pi,nAngBins);
 allTipPathLen = cell(nMovies,1);
 allTipPathN = cell(nMovies,1);
 tipPathBinSz = 5;
+hasMG = false(nMovies,1);
+
+branchRad = cell(nMovies,1);
+branchDists = cell(nMovies,1);
+hasDist = cell(nMovies,1);
 
 %% ---------------- Per-Movie Processing ---------------- %%
 
@@ -95,6 +104,10 @@ tipPathBinSz = 5;
 for iMov = 1:nMovies
     
     iSkProc = MA(iMov).getProcessIndex('SkeletonPruningProcess',1,~p.BatchMode);
+    iMgProc = MA(iMov).getProcessIndex('MaskGeometry3DProcess',1,~p.BatchMode);
+    if ~isempty(iMgProc) && MA(iMov).processes_{iMgProc}.checkChannelOutput(iProcChan)
+            hasMG(iMov) = true;
+    end
     
     if ~isempty(iSkProc) && MA(iMov).processes_{iSkProc}.checkChannelOutput(p.ChannelIndex);
     
@@ -114,11 +127,18 @@ for iMov = 1:nMovies
         branchAng{iMov} = cell(nFramesPerMov(iMov),1);
         tipPathLen{iMov} = cell(nFramesPerMov(iMov),1);
         tipPathN{iMov} = cell(nFramesPerMov(iMov),1);
+        branchRad{iMov} = cell(nFramesPerMov(iMov),1);
+        branchDists{iMov} = cell(nFramesPerMov(iMov),1);
+        hasDist{iMov} = cell(nFramesPerMov(iMov),1);
         
         for iFrame = 1:nFramesPerMov(iMov);
         
             currSkel = MA(iMov).processes_{iSkProc}.loadChannelOutput(p.ChannelIndex,iFrame);
-            
+            if hasMG(iMov)
+                currMaskProp = MA(iMov).processes_{iMgProc}.loadChannelOutput(iProcChan,iFrame);
+                branchRad{iMov}{iFrame} = branchRadii(currSkel,currMaskProp);
+                branchRad{iMov}{iFrame} = cellfun(@(x)(x .* MA(iMov).pixelSize_),branchRad{iMov}{iFrame},'Unif',0);%Convert to nm
+            end
             
             % ----- Vertex Degree Analysis ----- %
             
@@ -134,9 +154,22 @@ for iMov = 1:nMovies
             % ----- Tip Path Length Analysis ---- %
                         
             [tmp1,tmp2] = analyzeSkeletonTipPaths(currSkel.vertices,currSkel.edges,currSkel.edgePaths,currSkel.edgeLabels);
+            %Convert to nm, workaround for occasional errors in skeleton
+            %graphs
             tipPathLen{iMov}{iFrame} = tmp1(~isnan(tmp1) & ~isinf(tmp1)) .* MA(iMov).pixelSize_ / 1e3;
             tipPathN{iMov}{iFrame} = cellfun(@numel,tmp2(~isnan(tmp1) & ~isinf(tmp1)));                        
             
+            %----- Distance From Centermost Point Analysis ---- %
+            branchDists{iMov}{iFrame} = analyzeSkeletonDistanceFromPoint(currSkel.vertices,...
+                                                                         currSkel.edges,...
+                                                                         currSkel.edgePaths,...
+                                                                         mean(currMaskProp.CenterMost(:,[2 1 3]),1));%Centermost is in XYZ, and may not be unique so we take mean                                                                                 
+            %Longest edges in loops currently have undefined distance..
+            %keep track of these
+            hasDist{iMov}{iFrame} = ~cellfun(@isempty,branchDists{iMov}{iFrame});
+            
+            %Convert to nm
+            branchDists{iMov}{iFrame}(hasDist{iMov}{iFrame}) = cellfun(@(x)(x .* MA(iMov).pixelSize_),branchDists{iMov}{iFrame}(hasDist{iMov}{iFrame}),'Unif',0);
         end        
         
         % ----- All-frame mean calcs per movie --------- %
@@ -284,6 +317,49 @@ for iMov = 1:nMovies
         print(pOptTIFF{:},[figName '.tif']);
         hgsave([figName '.fig'])
         
+        % ----- Radius vs. Distance from Centermost Figure ---- %
+        if p.BatchMode
+            drFigPM(iMov) = figure('Visible','off');
+        else
+            drFigPM(iMov) = figure;                       
+        end
+        subplot(2,1,1)
+        hold on
+        currAllDists = vertcat(branchDists{iMov}{:});
+        currHasDists = vertcat(hasDist{iMov}{:});
+        currAllDists = vertcat(currAllDists{:});        
+        currAllRad = vertcat(branchRad{iMov}{:});
+        currAllRad = vertcat(currAllRad{currHasDists});
+        [N,C] = hist3([currAllDists currAllRad],[20 20]);
+        imagesc(C{1},C{2},log(N')),axis xy        
+        xlim([min(C{1}) max(C{1})])
+        ylim([min(C{2}) max(C{2})])
+        title({'Distance along skeleton from centermost point',...
+                'vs. radius, Log10 of histogram',...
+                'all frames'});
+        xlabel('Distance, nm')
+        ylabel('Radius, nm')        
+        
+        subplot(2,1,2)
+        hold on
+        for j = 1:nFramesPerMov(iMov)                        
+            plot(vertcat(branchDists{iMov}{j}{hasDist{iMov}{j}}),vertcat(branchRad{iMov}{j}{hasDist{iMov}{j}}),'.','color',frameCols(j,:))
+        end
+        title({'Distance along skeleton from centermost point',...
+                'vs. radius, per frame',...
+                'Blue=1st frame, Red=Last'});
+        xlabel('Distance, nm')
+        ylabel('Radius, nm')
+        
+        
+        figName = [currOutDir filesep 'radius vs distance from centermost point'];
+        print(pOpt{:},[figName '.eps']);
+        print(pOptTIFF{:},[figName '.tif']);
+        hgsave([figName '.fig'])
+        
+        
+        
+        %TEMP - Save results to individual movie output folders also!!!!
         
     
     else
@@ -293,8 +369,14 @@ for iMov = 1:nMovies
     
     if ~p.BatchMode        
         waitbar(iMov/nMovies,wtBar)
+    else
+        close all
     end
         
+end
+
+if nnz(hasMG) ~=nMovies
+    warning('Some movies did not have valid mask geometry analysis!!!');
 end
 
 close(wtBar);
@@ -413,9 +495,43 @@ print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
+% -------------- Combined Radius Vs. Distance Data --------------- %
+
+figure
+
+allDists = cell(nMovies,1);
+allHasDists = cell(nMovies,1);
+allRad = cell(nMovies,1);
 
 
+for iMov = 1:nMovies
+    allDists{iMov} = vertcat(branchDists{iMov}{:});
+    allHasDists{iMov} = vertcat(hasDist{iMov}{:});
+    allDists{iMov} = vertcat(allDists{iMov}{:});        
+    allRad{iMov} = vertcat(branchRad{iMov}{:});
+    allRad{iMov} = vertcat(allRad{iMov}{allHasDists{iMov}});
+end
 
-%TEMP - in batch mode, go through and close all the figures when you're
-%done!!!!
+allDists = vertcat(allDists{:});
+allRad = vertcat(allRad{:});
+
+[N,C] = hist3([allDists allRad],[50 50]);
+                
+imagesc(C{1},C{2},log(N')),axis xy        
+xlim([min(C{1}) max(C{1})])
+ylim([min(C{2}) max(C{2})])
+title({'Distance along skeleton from centermost point',...
+        'vs. radius, Log10 of histogram',...
+        ['all cells, n=' num2str(nMovies)]});
+xlabel('Distance, nm')
+ylabel('Radius, nm')        
+figName = [p.OutputDirectory filesep 'Combined Distance vs Radius Distribution'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
+
+
+if p.BatchMode
+    close all
+end
 

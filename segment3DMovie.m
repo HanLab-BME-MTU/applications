@@ -163,8 +163,8 @@ end
 
 if p.PostProcess
     %create a directory for tracking the effects of post-processing
-    postDir = [p.OutputDirectory filesep pName];
-    movieData.processes_{iSegProc}.setOutMaskPath(ppChan,postDir);
+    postDir = [p.OutputDirectory filesep pName];    
+    p.postProcessLogMasksDir = postDir;
     mkClrDir(postDir);
 end
 
@@ -333,6 +333,7 @@ end
 
 
 movieData.processes_{iSegProc}.setDateTime;
+movieData.processes_{iSegProc}.setPara(p);%Log the PP output directory etc.
 movieData.save; %Save the new movieData to disk
 
 disp('Finished thresholding!')

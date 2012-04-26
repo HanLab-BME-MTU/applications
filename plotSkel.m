@@ -30,12 +30,16 @@ for j = 1:numel(edgePaths)
         else
             plot3(edgePaths{j}(:,2),edgePaths{j}(:,1),edgePaths{j}(:,3),'--','color',edgeCols(j,:),'LineWidth',4);
         end
-        text(mean(edgePaths{j}(:,2)),mean(edgePaths{j}(:,1)),mean(edgePaths{j}(:,3)),num2str(j),'color',edgeCols(j,:));
+        text(mean(edgePaths{j}(:,2)),mean(edgePaths{j}(:,1)),mean(edgePaths{j}(:,3)),num2str(j),'color',edgeCols(j,:),'FontSize',12);
     end
 end
 
 view(3);
 axis equal
+
+if nargin < 4    
+    set(gca,'Color',[.6 .6 .6]);
+end
 
 if nargout > 0
     varargout{1} = figHan;

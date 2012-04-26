@@ -23,12 +23,10 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
-                    %----Defaults----%      
-                                        
-                    funParams.ChannelIndex = 1;
-                    funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'object_tracking'];
-                    funParams.BatchMode = false;                                                      
+                    
+                    funParams = MaskObjectTrackingProcess.getDefaultParams(owner);
+                    
+                    
                                     
                 end
                 
@@ -67,12 +65,33 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
         function sanityCheck(obj)
             
         end
-           
-        function getName
-        end                                                    
+                                   
         
     end
     
+    
+    methods (Static)
+           
+        function getName
+        end                         
+        function h = GUI()   
+            h = [];
+        end
+        function procClasses = getConcreteClasses()
+            procClasses = [];
+        end        
+
+        function funParams = getDefaultParams(owner)
+            %----Defaults----%
+                                        
+            funParams.ChannelIndex = 1;
+            funParams.OutputDirectory = ...
+                [owner.outputDirectory_  filesep 'object_tracking'];
+            funParams.BatchMode = false;                                                      
+
+        end
+    
+    end
 end
         
     

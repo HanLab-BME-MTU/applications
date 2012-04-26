@@ -42,7 +42,7 @@ function analyze3DMovieMaskedIntensities(movieData,paramsIn)
 %% ------------------- Parameters ---------------- %%
 
 iProcChan = 1;%Hard-coded channels for non-channel specific mask and post-processing association. Yeah I know this is a stupid way to do it, but who fucking cares.
-iPostProcChan = 2;
+%iPostProcChan = 2;
 fName = 'intensity_analysis';%File name for output
 %Figure saving parameters
 pOpt = {'-r300',...% dpi = 300
@@ -87,9 +87,9 @@ end
 %Get mask file names and directory
 maskDir = movieData.processes_{iSegProc}.outFilePaths_{1,iProcChan};
 maskNames = movieData.processes_{iSegProc}.getOutMaskFileNames(iProcChan);
-%And the post-process added pixel directory and file-names
-ppDir = movieData.processes_{iSegProc}.outFilePaths_{1,iPostProcChan};
-ppNames = movieData.processes_{iSegProc}.getOutMaskFileNames(iPostProcChan);
+% %And the post-process added pixel directory and file-names
+% ppDir = movieData.processes_{iSegProc}.outFilePaths_{1,iPostProcChan};
+% ppNames = movieData.processes_{iSegProc}.getOutMaskFileNames(iPostProcChan);
 
 %Get image locations and info
 imDir = movieData.getChannelPaths(p.ChannelIndex);
@@ -127,10 +127,13 @@ elseif movieData.processes_{iMgProc}.funParams_.PhysicalUnits
 end
 
 outDir = p.OutputDirectory;
-mkdir(outDir);
-%mkClrDir(outDir);
+mkClrDir(outDir);
 
 disp('Starting masked intensity analysis...')
+
+
+%TEMP - NEED TO INCORPORATE NUCLEAR SEGMENTATION!!!
+
 
 
 %% --------------- Processing ----------------- %%
@@ -139,9 +142,9 @@ for iFrame = 1:nFrames
     
     %Load the mask and post processed pixels and make the voxels symmetric to get the stretched size
     currMask = tif3Dread([maskDir filesep maskNames{1}{iFrame}]);
-    currPP = tif3Dread([ppDir filesep ppNames{1}{iFrame}]);
+    %currPP = tif3Dread([ppDir filesep ppNames{1}{iFrame}]);
     currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);
-    currPP = make3DImageVoxelsSymmetric(currPP,pixXY,pixZ);
+    %currPP = make3DImageVoxelsSymmetric(currPP,pixXY,pixZ);
     
     for iChan = 1:nChan    
         if iChan == 1
@@ -149,22 +152,12 @@ for iFrame = 1:nFrames
         end
         currIm(:,:,:,iChan) = make3DImageVoxelsSymmetric(stackRead([imDir{iChan} filesep imNames{iChan}{iFrame}]),pixXY,pixZ);                                    
     end         
-    
-    %TEMP - for testing for biases in sampling
-    %currIm(:,:,:,end) = bwdist(~currMask);
-    
+        
     currMaskProp = movieData.processes_{iMgProc}.loadChannelOutput(iProcChan,iFrame);
     currSkelGraph = movieData.processes_{iPruneProc}.loadChannelOutput(iProcChan,iFrame);
+        
+    branchProfiles(iFrame) = analyze3DImageMaskedIntensities(currIm,currMask,currSkelGraph,currMaskProp,p.CurvSampRad);
     
-    %branchProfiles(iFrame) = analyze3DImageMaskedIntensities(currIm,currMask,currSkelGraph,currMaskProp,currPP);
-    
-%TEMP TEMP TEEEEMMMPPP!!
-branchProfiles = load('L:\nih\4D gfpMIIB fix and stain\temp distNorm branch profiles for debug.mat');
-branchProfiles = branchProfiles.bp2Norm;
-% 
-% branchProfiles = load('L:\nih\4D gfpMIIB fix and stain\temp branch profiles for debug.mat');
-% branchProfiles = branchProfiles.bp;
-
 end
 
 
@@ -176,11 +169,6 @@ else
     figArgs = {};
 end    
 chanNames = cellfun(@(x)(x(max(strfind(x,filesep))+1:end)),imDir,'Unif',0);
-
-%TEMP - for testing for biases in sampling
-%chanNames{end} = 'DistX';
-chanNames{end} = 'Depth-Normalized 488';
-chanNames{2} = 'Depth-Normalized 560';
 
 %We assume the channels are in order of wavelength, so reverse the colors
 if nChan <= 3
@@ -204,13 +192,14 @@ for k = 1:nChan
 end    
 legend(chanNames);
 
-%SOOOO LAZY AND TIRED RIGHT NOW - DO IT THIS WAY SO LEGEND MAKES SENSE
-for k = 1:nChan
-    tmp = branchProfiles.wholeMaskMeanVsDist(k,:) - nanmin(branchProfiles.wholeMaskMeanVsDist(k,:));            
-    tmp2 = branchProfiles.wholeMaskSTDVsDist(k,:) / nanmax(tmp);
-    tmp = tmp ./ nanmax(tmp);        
-    plotTransparent(branchProfiles.wholeMaskDists * movieData.pixelSize_,tmp,tmp2,chanCols(k,:),.3,0);        
-end        
+%Transparency crashes orchestra, so I disabled this for now.
+% %SOOOO LAZY AND TIRED RIGHT NOW - DO IT THIS WAY SO LEGEND MAKES SENSE
+% for k = 1:nChan
+%     tmp = branchProfiles.wholeMaskMeanVsDist(k,:) - nanmin(branchProfiles.wholeMaskMeanVsDist(k,:));            
+%     tmp2 = branchProfiles.wholeMaskSTDVsDist(k,:) / nanmax(tmp);
+%     tmp = tmp ./ nanmax(tmp);        
+%     plotTransparent(branchProfiles.wholeMaskDists * movieData.pixelSize_,tmp,tmp2,chanCols(k,:),.3,0);        
+% end        
 
 xlabel(dLabel)
 ylabel('Normalized Average Fluoresence, a.u.')
@@ -271,39 +260,27 @@ for k = 1:nChan
 end
 
 
-% ----------- Intensity vs. Curvature Figures ------------- %
+%% ----------- Intensity vs. Curvature Figures ------------- %
 
 
 %TEMP - convert to physical units!!!
 
 %Field names for different curvature measures
-curvTypes = {'gaussCurvSampMean',...
-             'gaussCurvSampSTD',...
-             'meanCurvSampMean',...
-             'meanCurvSampSTD',...
-             'PC1CurvSampMean',...
-             'PC1CurvSampSTD',...
-             'PC2CurvSampMean',...
-             'PC2CurvSampSTD',...             
-             'MaxAbsPCCurvSampMean',...
-             'MaxAbsPCCurvSampSTD'};
+curvTypes = {'gaussCurvSampMean',...             
+             'meanCurvSampMean',...             
+             'PC1CurvSampMean',...             
+             'PC2CurvSampMean',...                         
+             'MaxAbsPCCurvSampMean'};
          
 %And intuitive names for them...
-curvNames = {'Gaussian Curvature',...
-             'STD of Gaussian Curvature',...
-             'Mean Curvature',...
-             'STD of Mean Curvature',...             
-             'k1',...
-             'STD of k1',...
-             'k2',...
-             'STD of k2',...
-             'Max Absolute Curvature',...
-             'STD of Max Absolute Curvature'};
+curvNames = {'Gaussian Curvature',...             
+             'Mean Curvature',...             
+             'k1',...             
+             'k2',...             
+             'Max Absolute Curvature'};
 
-nCurvTypes = numel(curvTypes);         
-
-nCurvSamp = numel(branchProfiles.gaussCurvSampMean);
-nCurvBins = 100;    
+nCurvTypes = numel(curvTypes); 
+nCurvBins = 100;%It's just for display so arbitrarily use 100
 
 for l = 1:nCurvTypes
     
@@ -315,34 +292,44 @@ for l = 1:nCurvTypes
         
         
         %currInt = branchProfiles.intForCurvSampMean(:,k);
-        currMaxInt = branchProfiles.intForCurvSampMax(:,k);        
+        currMaxInt = branchProfiles.intForCurvSampMax(:,k);
+        currMaxIntDN = branchProfiles.intForCurvSampMaxDepthNorm(:,k);                        
             
+        % --- Intensity - vs - Curvature PDF -- %
+        
         figure(figArgs{:})
         subplot(2,1,1)
-        hold on        
-        N = hist3([currMaxInt currCurv],{branchProfiles.wholeMaskIntHistBins(k,:), curvBins});
-        imagesc(branchProfiles.wholeMaskIntHistBins(k,:),curvBins,N');
-        colorbar
-        caxis([0 prctile(N(:),95)])
-        xlim(branchProfiles.wholeMaskIntHistBins(k,[1 end]))
-        ylim(curvBins([1 end]))
-        xlabel('Intensity, a.u.')
-        ylabel(curvNames{l})
-        title({['2D Histogram of ' curvNames{l} ' vs. Max Local intensity in Channel ' chanNames{k}],...                
-                'Color indicates pixel count'})        
-        subplot(2,1,2)
         hold on
+        N = hist3([currMaxInt currCurv],{branchProfiles.wholeMaskIntHistBins(k,:), curvBins});
         for m = 1:size(N,1)
             N(m,:) = N(m,:) ./ sum(N(m,:));
-        end
-        imagesc(branchProfiles.wholeMaskIntHistBins(k,:),curvBins,N');
+        end       
+        imagesc(branchProfiles.wholeMaskIntHistBins(k,:),curvBins,log10(N'));
         colorbar
-        caxis([0 prctile(N(:),95)])
+        %caxis([0 prctile(N(:),95)])
+        xlim(branchProfiles.wholeMaskIntHistBins(k,[1 end]))
+        ylim(curvBins([1 end]))
         xlabel('Intensity, a.u.')
+        ylabel(curvNames{l})
+        title({['2D PDF of ' curvNames{l} ' vs. Max Local intensity in ' chanNames{k}],...
+                'Color indicates log10(probability)'})        
+                        
+        % --- Depth-Normalized Intensity - vs - Curvature PDF -- %
+        
+        subplot(2,1,2)
+        hold on
+        N = hist3([currMaxIntDN currCurv],{branchProfiles.wholeMaskIntHistBins(k,:), curvBins});
+        for m = 1:size(N,1)
+            N(m,:) = N(m,:) ./ sum(N(m,:));
+        end       
+        imagesc(branchProfiles.wholeMaskIntHistBins(k,:),curvBins,log10(N'));
+        colorbar
+        %caxis([0 prctile(N(:),95)])
+        xlabel('Depth-Normalized Intensity, a.u.')
         ylabel(curvNames{l})
         xlim(branchProfiles.wholeMaskIntHistBins(k,[1 end]))
         ylim(curvBins([1 end]))
-        title({['2D PDF of ' curvNames{l} ' vs. Max Local Intensity in Channel ' chanNames{k}],...            
+        title({['2D PDF of ' curvNames{l} ' vs. Depth-Normalized Max Local Intensity in Channel ' chanNames{k}],...            
             'Color indicates probability'})   
         figName = ['max local intensity in ' chanNames{k} ' vs ' curvNames{l} ' histogram and PDF '];
         print(pOpt{:},[outDir filesep figName '.eps']);
@@ -354,12 +341,22 @@ for l = 1:nCurvTypes
         stdCurvVsInt = nan(1,nBinsCur-1);
         semCurvVsInt = nan(1,nBinsCur-1);
         nCurvVsInt = nan(1,nBinsCur-1);
+        avgCurvVsIntDN = nan(1,nBinsCur-1);
+        stdCurvVsIntDN = nan(1,nBinsCur-1);
+        semCurvVsIntDN = nan(1,nBinsCur-1);
+        nCurvVsIntDN = nan(1,nBinsCur-1);
         for i = 1:nBinsCur-1
             currCurrVals = currMaxInt >= branchProfiles.wholeMaskIntHistBins(k,i) & currMaxInt < branchProfiles.wholeMaskIntHistBins(k,i+1);
             avgCurvVsInt(i) = mean(currCurv(currCurrVals));
             stdCurvVsInt(i) = std(currCurv(currCurrVals));
             nCurvVsInt(i) = nnz(currCurrVals);
             semCurvVsInt(i) = stdCurvVsInt(i) / sqrt(nCurvVsInt(i));            
+            
+            currCurrVals = currMaxIntDN >= branchProfiles.wholeMaskIntHistBins(k,i) & currMaxIntDN < branchProfiles.wholeMaskIntHistBins(k,i+1);
+            avgCurvVsIntDN(i) = mean(currCurv(currCurrVals));
+            stdCurvVsIntDN(i) = std(currCurv(currCurrVals));
+            nCurvVsIntDN(i) = nnz(currCurrVals);
+            semCurvVsIntDN(i) = stdCurvVsIntDN(i) / sqrt(nCurvVsIntDN(i));            
         end
 
         figure(figArgs{:});
@@ -367,18 +364,23 @@ for l = 1:nCurvTypes
         hold on
         title(['Average ' curvNames{l} ' vs. Max Local Intensity in Channel ' chanNames{k}])                    
         plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsInt)
+        plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsIntDN,'r')
         plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsInt + 1.96*semCurvVsInt,'--')
         plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsInt - 1.96*semCurvVsInt,'--')
+        plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsIntDN + 1.96*semCurvVsIntDN,'--r')
+        plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),avgCurvVsIntDN - 1.96*semCurvVsIntDN,'--r')
         xlabel('Intensity, a.u.')
         ylabel(['Average ' curvNames{l}])
-        legend('Average','+/- 1.96SEM')
+        legend('Average Intensity','Average Depth-Normalized Intensiyt','+/- 1.96SEM')
 
         subplot(2,1,2)
         hold on
-        title(['STD of ' curvNames{l} ' vs. Max Local Intensity in Channel ' chanNames{k}])                         
+        title(['Local STD of ' curvNames{l} ' vs. Max Local Intensity in Channel ' chanNames{k}])                         
         plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),stdCurvVsInt)
+        plot(branchProfiles.wholeMaskIntHistBins(k,1:end-1),stdCurvVsIntDN)
         xlabel('Intensity, a.u.')
-        ylabel(['STD of ' curvNames{l}])                                               
+        ylabel(['STD of ' curvNames{l}])                                  
+        legend('Average Intensity','Average Depth-Normalized Intensiyt')
 
         figName = ['average and STD of ' curvNames{l} ' vs max local intensity in ' chanNames{k}];
         print(pOpt{:},[outDir filesep figName '.eps']);

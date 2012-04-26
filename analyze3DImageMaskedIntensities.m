@@ -1,4 +1,4 @@
-function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp,curvSampRad,nucMask,distX,distL,distXout,distOutL)
+function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp,curvSampRad,nucMask)
 %ANALYZE3DIMAGEMASKEDINTENSITIES calculates several statistics regarding the spatial variation of the image intensities within the input mask 
 % 
 % bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp)
@@ -22,6 +22,10 @@ function bp = analyze3DImageMaskedIntensities(images,mask,skelGraph,maskProp,cur
 % 
 %   maskPP - MxNxP logical matrix containing true values corresponding to
 %   pixels in the mask which were added by post-processing.
+%
+%   curvSampRad - The radius, in pixels, to use when sampling the local
+%   intensity and surface curvature.
+%   Optional. Default is sqrt(2) which gives a 18-connected neighborhood.
 %
 % Output:
 % 
@@ -51,31 +55,44 @@ if nargin < 5 || isempty(curvSampRad)
 end
 
 if nargin < 6 || isempty(nucMask)
-    nucMask = true(size(mask));
+    nucMask = false(size(mask));
 end
 
 [M,N,P,nChan] = size(images);
 
+%TEMP - the rest of this could be optimized for speed some more...!!
+
 %--Get distance transform of mask and background and combine them--%
 
-% if numel(mask) < 2^24
-%     [distX distL] = bwdist(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
-%     [distXOut distOutL] = bwdist(mask);%Background pixel distance transform - distance FROM mask    
-% else    
-%     %SHHHIIIITTTT!!! Due to a bug in bwdist which causes an incorrect label
-%     %matrix to be returned when image has more than 2^24 elements (which in our
-%     %data is invariably the case), we are forced to use the old version of
-%     %bwdist which is SLOOWW. This is a known issue:
-%     %http://www.mathworks.com/support/bugreports/737384 but currently there is
-%     %not a fix and this is the workaround they suggest... !!
-%     [distX distL] = bwdist_old(~mask);%Internal mask distance transform (distance FROM background) and labelling by closest pixel
-%     [distXOut distOutL] = bwdist_old(mask);%Background pixel distance transform - distance FROM mask
-%     distX(~mask) = -distXOut(~mask);%Combine, inverting so that distances outside the mask are negative
-% end
-% distX(~mask) = -distXOut(~mask);%Combine, inverting so that distances outside the mask are negative
+distXIn = bwdist(~mask);
+distXOut = bwdist(mask);
+distX = distXIn;%Combine, inverting so that distances outside the mask are negative
+distX(~mask) = -distXOut(~mask);
 
 %% -------------- Whole-Mask Curvature vs. Intensity Analysis ----------- %%
 
+%First we create the depht-normalized forms of the images. Due to the
+%sampling method, the variation with distance from the membrane will allow
+%the local geometry to affect the intensity sampling. These allow us to
+%separate the effects of depth variation from variation across the cell
+%surface.
+depthNormImages = zeros(size(images));
+for j = 1:nChan
+    
+    %This seems really dumb but I guess its the most practical way to be
+    %able to use the mask to index this...
+    tmp = images(:,:,:,j);
+    maskedMin = min(tmp(mask(:)));
+    maskedMax = max(tmp(mask(:)));
+    
+    %Normalize the intensity with respect to depth
+    tmp = depthNormalizeImage(tmp,distXIn,nucMask);
+    %And then restore the original masked intensity ranges, to ease
+    %comparison later on and allow us to use the same histogram bins
+    tmp(mask(:)) = scaleContrast(tmp(mask(:)),[],double([maskedMin maskedMax]));
+    
+    depthNormImages(:,:,:,j) = tmp;
+end
 
 nSurfFaces = size(maskProp.SmoothedSurface.faces,1);
 
@@ -105,12 +122,12 @@ end
 [closestSurfFaceIdxs,closestSurfFaceDist] = KDTreeClosestPoint(faceCenters,surfPixXYZ);
 %Now we find the mesh surface faces within the sampling radius of this
 %closest point
-[surfFaceIdxs,surfFaceDist] = KDTreeBallQuery(faceCenters,faceCenters(closestSurfFaceIdxs,:),curvSampRad);
+surfFaceIdxs = KDTreeBallQuery(faceCenters,faceCenters(closestSurfFaceIdxs,:),curvSampRad);
 %For the image sampling, we use the actual surface voxel and find voxels
 %within the specified distance. The local geometry will still affect the
 %size of the sample (nPixels), but at least not the depth within the cell
 %we are sampling, so this should still be unbiased
-[samplePixIdxs,samplePixDist] = KDTreeBallQuery(bodyPixXYZ,surfPixXYZ,curvSampRad);
+samplePixIdxs = KDTreeBallQuery(bodyPixXYZ,surfPixXYZ,curvSampRad);
 
 bp.nPixPerCurvSamp = nan(nSurfPix,1);
 bp.nFacesPerCurvSamp = nan(nSurfPix,1);
@@ -132,6 +149,11 @@ bp.intForCurvSampMean = nan(nSurfPix,nChan);
 bp.intForCurvSampSTD = nan(nSurfPix,nChan);
 bp.intForCurvSampMin = nan(nSurfPix,nChan);
 bp.intForCurvSampMax = nan(nSurfPix,nChan);
+bp.intForCurvSampMeanDepthNorm = nan(nSurfPix,nChan);
+bp.intForCurvSampSTDDepthNorm = nan(nSurfPix,nChan);
+bp.intForCurvSampMinDepthNorm = nan(nSurfPix,nChan);
+bp.intForCurvSampMaxDepthNorm = nan(nSurfPix,nChan);
+
 
 nMaskPix = numel(mask);%Needed later for indexing
 
@@ -166,18 +188,11 @@ for j = 1:nSurfPix
         bp.intForCurvSampSTD(j,k) = std(double(images(currInd + ((k-1)*nMaskPix))));
         bp.intForCurvSampMin(j,k) = min(double(images(currInd + ((k-1)*nMaskPix))));
         bp.intForCurvSampMax(j,k) = max(double(images(currInd + ((k-1)*nMaskPix))));
+        bp.intForCurvSampMeanDepthNorm(j,k) = mean(double(depthNormImages(currInd + ((k-1)*nMaskPix))));
+        bp.intForCurvSampSTDDepthNorm(j,k) = std(double(depthNormImages(currInd + ((k-1)*nMaskPix))));
+        bp.intForCurvSampMinDepthNorm(j,k) = min(double(depthNormImages(currInd + ((k-1)*nMaskPix))));
+        bp.intForCurvSampMaxDepthNorm(j,k) = max(double(depthNormImages(currInd + ((k-1)*nMaskPix))));
     end      
-%     %TEMP - for debugging
-%     if mod(j,10000) == 0
-%         tmpMask = false(size(mask));
-%         tmpMask(currInd) = true;        
-%         imarisShowArray(cat(5,images(:,:,:,1),double(mask),double(tmpMask)))
-%         figure
-%         spy3d(mask,'.k'),hold on
-%         plot3(faceCenters(surfFaceIdxs{j},1),faceCenters(surfFaceIdxs{j},2),faceCenters(surfFaceIdxs{j},3),'rx')
-%         plot3(bodyPixXYZ(samplePixIdxs{j},1),bodyPixXYZ(samplePixIdxs{j},2),bodyPixXYZ(samplePixIdxs{j},3),'gx')
-%         plot3(surfPixXYZ(j,1),surfPixXYZ(j,2),surfPixXYZ(j,3),'mo','MarkerSize',10)        
-%     end
 end
 
 %% ------------ Whole-Mask Intensity Vs Distance Analysis -------------- %%
@@ -195,7 +210,8 @@ bp.wholeMaskIntHistVsDist = nan(nChan,nDistBins,nIntBins);%Histograms of intensi
 bp.wholeMaskNormIntHistVsDist = nan(nChan,nDistBins,nIntBins);%Histograms of intensity at each distance, normalized at each distance to account for the varying # pixels there
 bp.wholeMaskIntHistBins = nan(nChan,nIntBins);%Bins for these histograms
 
-%TEMP - this can be sped up a bit...
+%TEMP - this can be sped up a bit - convert to index-arithmetic based
+%sampling (and with branch sampling below!)
 for j = 1:nDistBins                                            
     
     %Find the pixels for the current distance bin
@@ -234,17 +250,18 @@ nTips = numel(iTipVert);
 
 bp.branchTipPixelLenVsDepth = cell(nTips,1);%length vs. depth data for each pixel in each branch tip
 bp.branchTipPixelInt = cell(nTips,1);%Intensity in each channel for each pixel in each branch tip
+bp.branchTipPixelIntDepthNorm = cell(nTips,1);%Depth-normalized Intensity in each channel for each pixel in each branch tip
+
+%Find the closest mask surface pixel to the branch tips, because some of these are
+%non-integer valued, and if we just round them we end up outside the mask
+%occasionally
+surfIndForTips = KDTreeClosestPoint(surfPixXYZ,skelGraph.vertices(iTipVert,[2 1 3]));
+surfIndForTips = surfPixI(surfIndForTips);
 
 for j = 1:nTips
-            
-    tipSub = round(skelGraph.vertices(iTipVert(j),:));%Get closes subscripts for non-integer tip location
-    if ~mask(tipSub(1),tipSub(2),tipSub(3));
-        %If not, use the background distance
-        %labelling to find the closest mask surface pixel        
-        [tipSub(1) tipSub(2) tipSub(3)] = ind2sub([M N P],distOutL(currPt));        
-    end
+                
     %Get the geodesic distance in the mask from this branch tip
-    currGDist = bwdistgeodesic(mask,sub2ind([M N P],tipSub(1),tipSub(2),tipSub(3)),'quasi-euclidean');
+    currGDist = bwdistgeodesic(mask,surfIndForTips(j),'quasi-euclidean');
     %And find the geodesic distance to its base
     iBaseVert = skelGraph.edges(iTipEdge(j),:);
     iBaseVert = iBaseVert(iBaseVert ~= iTipVert(j));
@@ -264,7 +281,12 @@ for j = 1:nTips
     for k = 1:nChan                
         tmpIm = images(:,:,:,k);%Seriously, there has to be a better way to do the logical indexing given the differing dimensionality here?? Right??
         bp.branchTipPixelInt{j}(:,k) = tmpIm(currBranchPix(:));
+        tmpIm = depthNormImages(:,:,:,k);
+        bp.branchTipPixelIntDepthNorm{j}(:,k) = tmpIm(currBranchPix(:));
     end                
+    
+%     %TMP - for testing and debug
+%     imarisShowArray(cat(5,images(:,:,:,1),images(:,:,:,2),images(:,:,:,3),double(currGDist),double(currBranchPix)*100));    
     
 end
 

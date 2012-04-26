@@ -19,6 +19,7 @@ function showMaskSurfaceProp(maskProp,dispType)
 %       'pc2' - color codes by smalles principle component of curvature
 %       'curv' - color codes by maximum absolute value ofcurvature component
 %       'wire' - Simple wireframe surface only
+%       'surf' - Simple surface only
 %
 %   Shows the 3D smoothed surface with the Gaussian curvature overlain on
 %   it
@@ -63,6 +64,10 @@ switch dispType
     case 'wire'
         
         patch(maskProp.SmoothedSurface,'FaceColor','none','EdgeColor','k')
+        
+    case 'surf'
+        
+        patch(maskProp.SmoothedSurface,'FaceColor','k','EdgeColor','none','FaceAlpha',.2)
         
     otherwise
         error(['"' dispType '" is not a supported display type!'])
