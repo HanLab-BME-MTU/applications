@@ -116,17 +116,18 @@ end
 
 
 %======================================================================
-% Preprocessing: remove single-frame tracks
+% Preprocessing
 %======================================================================
 if preprocess
+% Remove single-frame tracks    
 bounds = arrayfun(@(i) i.seqOfEvents([1 end],1), trackinfo, 'UniformOutput', false);
 rmIdx = diff(horzcat(bounds{:}), [], 1)==0;
 trackinfo(rmIdx) = [];
 nTracks = size(trackinfo, 1);
 
-%======================================================================
-% Preprocessing: merge compound tracks with overlapping ends/starts
-%======================================================================
+%----------------------------------------------------------------------
+% Merge compound tracks with overlapping ends/starts
+%----------------------------------------------------------------------
 for i = 1:nTracks
     nSeg = size(trackinfo(i).tracksFeatIndxCG,1);
     if nSeg > 1
@@ -221,13 +222,16 @@ for i = 1:nTracks
     end
 end
 end
+%======================================================================
+
+
 
 tracks(1:nTracks) = struct('t', [], 'f', [],...
     'x', [], 'y', [], 'A', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
     'sigma_r', [], 'SE_sigma_r', [],...
     'pval_Ar', [], 'pval_KS', [], 'isPSF', [],...
-    'tracksFeatIndxCG', [], 'gapVect', [], 'gapStatus', [], 'seqOfEvents', [],...
+    'tracksFeatIndxCG', [], 'gapVect', [], 'gapStatus', [], 'gapIdx', [], 'seqOfEvents', [],...
     'nSeg', [], 'visibility', [], 'lifetime_s', [], 'start', [], 'end', [],...
     'startBuffer', [], 'endBuffer', [], 'MotionParameters', []);
 %    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
@@ -436,6 +440,7 @@ for k = 1:nTracks
             end
         end
         tracks(k).gapStatus = gapStatus;
+        tracks(k).gapIdx = arrayfun(@(i) gapStarts(i):gapEnds(i), 1:nGaps, 'UniformOutput', false);
     end
     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
 end
