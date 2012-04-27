@@ -22,6 +22,7 @@ fset.cf0 = hsv2rgb([0 0 0.7]);
 fset.ce0 = hsv2rgb([0 0 0.3]);
 
 
+fset.ifont = {'FontName', 'Helvetica', 'FontSize', 12};
 fset.tfont = {'FontName', 'Helvetica', 'FontSize', 16};
 fset.sfont = {'FontName', 'Helvetica', 'FontSize', 20};
 fset.lfont = {'FontName', 'Helvetica', 'FontSize', 24};
