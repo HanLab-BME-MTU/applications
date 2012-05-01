@@ -21,8 +21,12 @@ while strcmp(userEntry,'Yes')
     if fileName==0
         return
     end
-    load([pathName filesep fileName]);
-    temp=[temp; groupList];
+    s=load([pathName filesep fileName]);
+    if isfield(s,'groupList')
+        temp=[temp; s.groupList];
+    else
+        temp(end+1)=MovieList.load([pathName filesep fileName]);
+    end
     disp(['Selected: ' pathName fileName])
     userEntry = questdlg('Select another groupList.mat file?');
 end
@@ -31,6 +35,7 @@ groupList=temp;
 
 % format path for current OS
 nProj=length(groupList);
+if isa(groupList,'MovieList'), return; end
 curDir=pwd;
 groupList(:,2)=cellfun(@(x) formatPath(groupList{x,2}),mat2cell([1:nProj]',ones(nProj,1),1),'uniformOutput',0);
 cd(curDir)
