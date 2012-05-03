@@ -82,31 +82,27 @@ figName = 'photobleach correction fit.fig'; %Name for saving figure to file
 
 
 %Check that input object is a valid moviedata
-if ~isa(movieData,'MovieData')
-    error('The first input argument must be a valid MovieData object!')
-end
-
-nImages = movieData.nFrames_;
+assert(isa(movieData,'MovieData'),...
+    'The first input argument must be a valid MovieData object!')
 
 %Make sure there are enough frames
-if nImages <= 4
-    error('Input movie must have AT LEAST 5 timepoints for photobleach correction!!!')    
-end
+nImages = movieData.nFrames_;
+assert(nImages > 4,...
+    'Input movie must have AT LEAST 5 timepoints for photobleach correction!!!')    
 
 if nargin < 2
     paramsIn = [];
 end
 
 %Make sure the movie has been ratioed
-iRProc = find(cellfun(@(x)(isa(x,'RatioProcess')),movieData.processes_),1);                          
+iRProc = movieData.getProcessIndex('RatioProcess',1,false);
 
-if isempty(iRProc)
-    error('The input movie has not been ratioed! Please perform ratioing prior to photobleach correction!')
-end
+assert(~isempty(iRProc),'The input movie has not been ratioed! Please perform ratioing prior to outputing ratio images!');
+ratProc = movieData.processes_{iRProc};
 
 %Get the indices of any previous photbleach correction processes from this
 %function
-iProc = find(cellfun(@(x)(isa(x,'PhotobleachCorrectionProcess')),movieData.processes_),1);                          
+iProc = movieData.getProcessIndex('PhotobleachCorrectionProcess',1,false);
 
 %If the process doesn't exist, create it with default settings.
 if isempty(iProc)
@@ -128,9 +124,7 @@ if isempty(p.ChannelIndex)
     end
 end
 
-if length(p.ChannelIndex) ~=1
-    error('You can only photobleach-correct one ratio channel at a time!')
-end
+assert(length(p.ChannelIndex) == 1,'You can only photobleach-correct one ratio channel at a time!');
 
 if p.ChannelIndex > nChan || p.ChannelIndex < 1 || ~isequal(round(p.ChannelIndex),p.ChannelIndex)
     error('Invalid channel number specified! Check ChannelIndex input!!')
@@ -142,20 +136,27 @@ end
 disp('Starting photobleach correction...')
 
 %Get input directories/image names
+inFilePaths=cell(1,numel(movieData.channels_));
+iNum = ratProc.funParams_.ChannelIndex(1);
 
-iNum = movieData.processes_{iRProc}.funParams_.ChannelIndex(1);
-iDenom = movieData.processes_{iRProc}.funParams_.ChannelIndex(2);
+ratDir = ratProc.outFilePaths_{1,iNum};
+inFilePaths{1,iNum}=ratDir;
 
-numDir = movieData.processes_{iRProc}.inFilePaths_{1,iNum};
-numFileNames = movieData.processes_{iRProc}.getInImageFileNames(iNum);
+if any(strcmp(p.CorrectionType,{'RatioOfAverages', 'RatioOfTotals'}))
+    
+    % Get numerator input directory
+    numDir = ratProc.inFilePaths_{1,iNum};
+    numFileNames = ratProc.getInImageFileNames(iNum);
+    inFilePaths{2,iNum}=numDir;
+    
+    % Get denumerator input directory
+    iDenom = ratProc.funParams_.ChannelIndex(2);
+    denomDir = ratProc.inFilePaths_{1,iDenom};
+    denomFileNames = ratProc.getInImageFileNames(iDenom);
+    inFilePaths{2,iDenom}=denomDir;
+end
 
-denomDir = movieData.processes_{iRProc}. ...
-    inFilePaths_{1,movieData.processes_{iRProc}.funParams_.ChannelIndex(2)};
-denomFileNames = movieData.processes_{iRProc}.getInImageFileNames(iDenom);
-
-ratDir = movieData.processes_{iRProc}. ...
-    outFilePaths_{1,movieData.processes_{iRProc}.funParams_.ChannelIndex(1)};
-ratioFileNames = movieData.processes_{iRProc}.getOutImageFileNames(iNum);
+movieData.processes_{iProc}.setInFilePaths(inFilePaths);
 
 %Set-up output directory
 outDir = [p.OutputDirectory filesep dName num2str(p.ChannelIndex)];
@@ -170,11 +171,13 @@ nImTot = nImages*2;
 %% ------- Calculate Intensity Vs. Time ----- %%
 %Calculate the movie intensity vs. time in the needed channels
 
-meanNum = zeros(1,nImages);
-meanDenom = zeros(1,nImages);
 meanRat = zeros(1,nImages);
-totalNum = zeros(1,nImages);
-totalDenom = zeros(1,nImages);
+if any(strcmp(p.CorrectionType,{'RatioOfAverages', 'RatioOfTotals'}))
+    meanNum = zeros(1,nImages);
+    meanDenom = zeros(1,nImages);
+    totalNum = zeros(1,nImages);
+    totalDenom = zeros(1,nImages);
+end
 
 disp('Calculating average intensities...')
 
@@ -185,17 +188,17 @@ end
 
 
 for iImage = 1:nImages
+    currRat = ratProc.loadChannelOutput(iNum,iImage);
+    meanRat(iImage) = mean(currRat(currRat(:) > 0));
+    if any(strcmp(p.CorrectionType,{'RatioOfAverages', 'RatioOfTotals'}))
+        currNum = double(imread([numDir filesep numFileNames{1}{iImage}]));
+        meanNum(iImage) = mean(currNum(:));
+        totalNum(iImage) = sum(currNum(:));
+        currDenom = double(imread([denomDir filesep denomFileNames{1}{iImage}]));
+        meanDenom(iImage) = mean(currDenom(:));
+        totalDenom(iImage) = sum(currDenom(:));
+    end
     
-    currNum = double(imread([numDir filesep numFileNames{1}{iImage}]));
-    meanNum(iImage) = mean(currNum(:));
-    totalNum(iImage) = sum(currNum(:));
-    currDenom = double(imread([denomDir filesep denomFileNames{1}{iImage}]));
-    meanDenom(iImage) = mean(currDenom(:));
-    totalDenom(iImage) = sum(currDenom(:));
-    currRat = load([ratDir filesep ratioFileNames{1}{iImage}]);
-    currRat = currRat.currRatio;
-    meanRat(iImage) = mean(currRat(currRat(:) > 0));        
-
     if ~p.BatchMode && mod(iImage,5)
         %Update the waitbar occasionally to minimize slowdown
         waitbar(iImage / nImTot,wtBar)
@@ -276,8 +279,7 @@ numStr = @(frame) num2str(frame,fString);
 for iImage = 1:nImages
    
     %Load the image
-    currRat = load([ratDir filesep ratioFileNames{1}{iImage}]);
-    currRat = currRat.currRatio;
+    currRat = ratProc.loadChannelOutput(iNum,iImage);
     
     %Correct the image. We multiply by the average of the first ratio to
     %prevent normalization.

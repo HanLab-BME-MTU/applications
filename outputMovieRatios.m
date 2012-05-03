@@ -69,14 +69,12 @@ if nargin < 2
 end
 
 %Make sure the movie has been ratioed
-iRProc = find(cellfun(@(x)(isa(x,'RatioProcess')),movieData.processes_),1);                          
+iRProc = movieData.getProcessIndex('RatioProcess',1,false);
 
-if isempty(iRProc)
-    error('The input movie has not been ratioed! Please perform ratioing prior to outputing ratio images!')
-end
+assert(~isempty(iRProc),'The input movie has not been ratioed! Please perform ratioing prior to outputing ratio images!');
 
 %Look for previous output processes
-iProc = find(cellfun(@(x)(isa(x,'OutputRatioProcess')),movieData.processes_),1);
+iProc = movieData.getProcessIndex('OutputRatioProcess',1,false);
 
 %If the process doesn't exist, create it with default settings.
 if isempty(iProc)
@@ -98,7 +96,7 @@ if isempty(p.ChannelIndex)
 end
 
 %Check if the movie has a photbleach correction processes 
-iPBProc = find(cellfun(@(x)(isa(x,'PhotobleachCorrectionProcess')),movieData.processes_),1);                          
+iPBProc = movieData.getProcessIndex('PhotobleachCorrectionProcess',1,false);
 
 if isempty(iPBProc)
     hasPB = false;
@@ -106,9 +104,8 @@ else
     hasPB = movieData.processes_{iPBProc}.checkChannelOutput(p.ChannelIndex);
 end
 
-if length(p.ChannelIndex) ~=1
-    error('You can only output one ratio channel at a time!')
-end
+assert(length(p.ChannelIndex) == 1,'You can only output one ratio channel at a time!')
+
 %% -------- Init -------- %%
 
 disp('Starting ratio output ...')
@@ -116,13 +113,19 @@ disp('Starting ratio output ...')
 
 %Set up input and output directories
 if hasPB
-    inDir = movieData.processes_{iPBProc}.outFilePaths_{1,p.ChannelIndex};
-    inNames = movieData.processes_{iPBProc}.getOutImageFileNames(p.ChannelIndex);
+    inProc = movieData.processes_{iPBProc};
 else
-    inDir = movieData.processes_{iRProc}.outFilePaths_{1,p.ChannelIndex};
-    inNames = movieData.processes_{iRProc}.getOutImageFileNames(p.ChannelIndex);        
+    inProc = movieData.processes_{iRProc};
 end
 
+% Log input directory
+inDir = inProc.outFilePaths_{1,p.ChannelIndex};
+inNames = inProc.getOutImageFileNames(p.ChannelIndex);
+inFilePaths = cell(1,numel(movieData.channels_));
+inFilePaths{p.ChannelIndex}=inDir;
+movieData.processes_{iProc}.setInFilePaths(inFilePaths);
+
+% Log output directory
 outDir = p.OutputDirectory;
 mkClrDir(outDir);
 movieData.processes_{iProc}.setOutImagePath(p.ChannelIndex,outDir);
@@ -148,9 +151,7 @@ end
 for iImage = 1:nImages
    
     %Load the image
-    currRat = load([inDir filesep inNames{1}{iImage}]);   
-    fNames = fieldnames(currRat);
-    currRat = currRat.(fNames{1});
+    currRat= inProc.loadChannelOutput(p.ChannelIndex,iImage);
     
     %Scale the image
     currRat = currRat .* p.ScaleFactor;
