@@ -33,14 +33,19 @@ lifetimes_s = [tracks.lifetime_s];
 % IIb) Compound tracks with invalid gaps
 % IIc) Compound tracks cut at beginning or end
 % IId) Compound tracks, persistent
-validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
-singleIdx = [tracks.nSeg]==1;
-vis = [tracks.visibility];
-
-idx_Ia = singleIdx & validGaps & vis==1;
-idx_Ib = singleIdx & ~validGaps & vis==1;
-idx_IIa = ~singleIdx & validGaps & vis==1;
-
+if isfield(tracks, 'catIdx')
+    idx_Ia = [tracks.catIdx]==1;
+    idx_Ib = [tracks.catIdx]==2;
+    idx_IIa = [tracks.catIdx]==5;
+else
+    validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
+    singleIdx = [tracks.nSeg]==1;
+    vis = [tracks.visibility];
+    
+    idx_Ia = singleIdx & validGaps & vis==1;
+    idx_Ib = singleIdx & ~validGaps & vis==1;
+    idx_IIa = ~singleIdx & validGaps & vis==1;
+end
 
 
 % longest observable lifetime (in frames): N = movieLength-2*buffer
