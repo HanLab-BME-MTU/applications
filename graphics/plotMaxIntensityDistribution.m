@@ -1,10 +1,22 @@
-function plotMaxIntensityDistribution(data, varargin)
+function plotMaxIntensityDistribution(data, res, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
+ip.addParamValue('HistT', false);
+ip.addParamValue('XTicks', 0:40:360);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
+
+xa = ip.Results.XTicks;
+
+if ip.Results.HistT
+    intVect = 'maxA4';
+    intHist = 'ni4';
+else
+    intVect = 'maxA';
+    intHist = 'ni';
+end
 
 [~, figPath] = getCellDir(data(1));
 figPath = [figPath 'Figures' filesep];
@@ -15,13 +27,21 @@ figPath = [figPath 'Figures' filesep];
 lb = [3:10 11 16 21 41 61 81 101 141];
 ub = [3:10 15 20 40 60 80 100 140 200]; 
 
-dxi = 5;
-xi = 0:dxi:400;
+da = xa(2)-xa(1);
+
+% dxi = 5;
+dxi = da/8;
+% xi = 0:dxi:400;
+xi = 0:dxi:xa(end)+da;
+
+% ya = 0:0.01:0.05;
+% ya = 0:0.05:0.25;
+ya = 0:0.1:0.5;
 
 %%
 % res = getMaxIntensityDistributions(data, lb, ub);
 % load('dataOXmaxInt_Ia.mat');
-load('dataOXmaxInt_allTracks.mat');
+% load('dataOXmaxInt_allTracks.mat');
 % res = res([1:3 5:6 8:10]); % remove outliers
 
 [a medIdx] = rescaleEDFs({res.maxA_all}, 'Display', false);
@@ -125,22 +145,20 @@ for k = 1:numel(lb)
     hold on;
     box off;
     set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
-    xa = 0:40:360;
-    pct = prctile(pres(k).maxA, [5 50 95]);
+    pct = prctile(pres(k).(intVect), [5 50 95]);
     
     %[kGamma(k), nGamma(k), x, f, a, kappa(k)] = fitGammaDist(pres(k).maxA);
     if strcmpi(mode, 'pdf')
-        bar(xi, pres(k).ni, 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
+        bar(xi, pres(k).(intHist), 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
         %plot(xVec, fVec{k-ny}, 'r', 'LineWidth', 1.5);
         
         if ub(k)<10
-            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, pres(k).ni);
+            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, pres(k).(intHist));
             plot(xg, g, 'g', 'LineWidth', 1.5);
-            plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 0.03], 'g--', 'LineWidth', 1.5);
+            plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
         end
         
-        ya = 0:0.01:0.05;
-        plot(repmat(pct, [2 1]), repmat([0 0.03]', [1 numel(pct)]), 'r--', 'LineWidth', 1.5);
+        plot(repmat(pct, [2 1]), repmat([0 3/5*ya(end)]', [1 numel(pct)]), 'r--', 'LineWidth', 1.5);
         axis([xa(1) xa(end) ya(1) ya(end)]);
         
         if lb(k)==ub(k)
@@ -185,24 +203,24 @@ for k = 1:numel(lb)
        ylabel('Frequency', lfont{:}); 
     end
     
-    if k>1
-        [pval hval] = ranksum(pres(k-1).maxA, pres(k).maxA);
-        %[hval pval] = kstest2(pres(k-1).maxA, pres(k).maxA);
-        if hval==0 % indicate that the distributions are the same
-            
-            %80+floor((k-1)/7)*(125+115) (7-mod(k-1,7)-1)*100+70 aw 80
-            % x: after box:
-            x0 = 80+floor((k-1)/7)*(125+115) + aw + 10;
-            y0 = (7-mod(k-1,7)-1)*100+70 + 50;
-            %y0 = 70;
-            %plot(hbg, [x0 x0], [0 200], 'm');
-            plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
-            plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
-            plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
-            text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')
-            
-        end
-    end
+%     if k>1
+%         [pval hval] = ranksum(pres(k-1).maxA, pres(k).maxA);
+%         %[hval pval] = kstest2(pres(k-1).maxA, pres(k).maxA);
+%         if hval==0 % indicate that the distributions are the same
+%             
+%             %80+floor((k-1)/7)*(125+115) (7-mod(k-1,7)-1)*100+70 aw 80
+%             % x: after box:
+%             x0 = 80+floor((k-1)/7)*(125+115) + aw + 10;
+%             y0 = (7-mod(k-1,7)-1)*100+70 + 50;
+%             %y0 = 70;
+%             %plot(hbg, [x0 x0], [0 200], 'm');
+%             plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
+%             plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
+%             plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
+%             text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')
+%             
+%         end
+%     end
     
 end
 
@@ -223,6 +241,7 @@ else
 end
 % print('-depsc2', '-loose', [figPath 'maxIntensityDist' filename '.eps']);
 %%
+return
 % set threshold, plot lifetime distributions for the two resulting classes
 
 T_int = norminv(0.95, mu_g(2), sigma_g(2));
@@ -292,7 +311,7 @@ legend(['% tracks: ' num2str(mean(pctOut)*100, '%.1f') ' ± ' num2str(std(pctOut)
 % print('-depsc2', '-loose', [figPath 'lftSep_T=' num2str(T, '%.1f') '.eps']);
 
 %%
-% Figure with split for a range of thresholds, shown in color gradient plots
+% Figure with split for a range of thresholds
 
 T_lft = 4;
 
@@ -351,22 +370,44 @@ for ti = 1:numel(tvec);
 %     [mu, mu_std, a_exp] = fitExpPDF([lftOut{:}]);
 %     expFit(ti,:) = 1/mu*exp(-1/mu*xh) / a_exp;
 end
+%%
 
 figure;
 hold on;
-plot(xh, meanHistAll, 'k');
-plot(xh, meanHistOut, 'r');
+% plot(xh, meanHistAll, 'k', 'LineWidth', 2);
+tt = plot(xh, meanHistOut, 'r', 'LineWidth', 2);
+hp(2) = tt(1);
 
-plot(xh, expfitOut, 'c');
+tt = plot(xh, expfitOut, 'b', 'LineWidth', 1.5);
+hp(3) = tt(1);
 
-plot(xh, meanHistIn, 'g');
-plot(xh, meanHistAll, 'k');
-% plot(xh, expFit, 'b');
+tt = plot(xh, meanHistIn, 'g', 'LineWidth', 2);
+hp(1) = tt(1);
+
+tt = plot(xh, meanHistAll, 'k--', 'LineWidth', 2);
+hp(4) = tt(1);
 
 % plot(xh, meanHistIn+meanHistOut, 'm--');
 set(gca, 'XLim', [0 40]);
 set(gca, 'YLim', [0 0.1]);
 % axis([0 80 0 0.4]);
+set(gca, 'LineWidth', 2, 'TickDir', 'out', 'Layer', 'top', 'FontSize', 16);
+hl = legend(hp, 'Above threshold', 'Below threshold', 'Exp fit', 'All tracks');
+set(hl, 'Box', 'off');
+xlabel('Lifetime (s)', lfont{:})
+ylabel('Frequency', lfont{:})
+
+%%
+
+% fit exponential to determine threshold
+
+
+
+
+
+
+return
+
 %%
 
 % figure;

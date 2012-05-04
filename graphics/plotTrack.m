@@ -90,7 +90,11 @@ else
     % tick length: percentage of axes width
     tickLength = pos0(3)/aw*[0.01 0.025];
     % left border
-    dleft = floor(log10(max(track.A(ch,:))))*45;
+    if isempty(ip.Results.YTick)
+        dleft = floor(log10(max(track.A(ch,:))))*45;
+    else
+        dleft = floor(log10(ip.Results.YTick(end)))*45;
+    end
     hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 dleft+aw+20 400], 'PaperPositionMode', 'auto');
     ha = axes('Units', 'pixels', 'Position', [dleft 70 aw 300]);
 end
