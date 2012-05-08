@@ -29,12 +29,14 @@ ip.addRequired('img',@isnumeric);
 ip.addRequired('sigma',@isscalar);
 ip.addParamValue('alpha',0.01,@isscalar);
 ip.addParamValue('pMask',0.05,@isscalar);
-ip.addParamValue('mask',[],@isnumeric);
+ip.addParamValue('mask',true(size(img)),@islogical);
 
 ip.parse(img,sigma,varargin{:});
 alpha=ip.Results.alpha;
 pMask=ip.Results.pMask;
-cellMask=ones(256,256);
+
+cellMask=ip.Results.mask;
+
 
 sizeX=size(img,1);
 sizeY=size(img,2);

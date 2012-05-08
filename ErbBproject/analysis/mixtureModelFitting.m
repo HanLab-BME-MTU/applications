@@ -31,16 +31,20 @@ ip.StructExpand=true;
 ip.addRequired('img',@isnumeric);
 ip.addRequired('localMaxima',@isstruct);
 ip.addRequired('sigma',@isscalar);
-ip.addParamValue('alphaA',0.001,@isscalar);
+ip.addParamValue('alphaA',0.05,@isscalar);
 ip.addParamValue('alphaD',0.05,@isscalar);
-ip.addParamValue('alphaF',0.01,@isscalar);
-ip.addParamValue('alphaR',0.01,@isscalar);
+ip.addParamValue('alphaF',0.05,@isscalar);
+ip.addParamValue('alphaR',0.05,@isscalar);
+
+ip.addOptional('doMMF',false,@islogical);
 
 ip.parse(img,localMaxima,sigma,varargin{:});
 alphaA=ip.Results.alphaA;
 alphaD=ip.Results.alphaD;
 alphaF=ip.Results.alphaF;
 alphaR=ip.Results.alphaR;
+
+doMMF=ip.Results.doMMF;
 
 Q=struct('alphaA',alphaA,'alphaD',alphaD','alphaF',alphaF,'alphaR',alphaR);
 
@@ -109,7 +113,7 @@ for kClust=1:numSingles
     
     prmVec=[0 0 A0 sigma bg];
     [prmVec prmStd C res J status]=...
-        doRepetitiveMMF(clusterRegion,prmVec,Q);
+        doRepetitiveMMF(clusterRegion,prmVec,Q,'doMMF',doMMF);
     
     if status
         prmVec(:,1)=prmVec(:,1)+x0;
@@ -176,10 +180,10 @@ for kClust=numSingles+1:nClust
     end
     
     prmVec=[allPrm sigmaAndBG];
-    [prmVec prmStd C res J status]=doRepetitiveMMF(data,prmVec);
+    [prmVec prmStd C res J status]=doRepetitiveMMF(data,prmVec,'doMMF',doMMF);
         
     % transform fitted positions back to real image coordinates
-    % save sub-pixel position, amplitude and width in array 'features'
+    % save sub-pixel position amplitude and width in array 'features'
     
     %if res.pval > alphaR
     if status

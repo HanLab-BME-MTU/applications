@@ -33,11 +33,14 @@ ip.CaseSensitive=false;
 ip.StructExpand=true;
 ip.addRequired('img',@isnumeric);
 ip.addRequired('prmVec0',@isnumeric);
+
 ip.addParamValue('mode','xyAc',@ischar);
-ip.addParamValue('alphaA',0.001,@isscalar);
+ip.addParamValue('alphaA',0.05,@isscalar);
 ip.addParamValue('alphaD',0.05,@isscalar);
-ip.addParamValue('alphaF',0.01,@isscalar);
-ip.addParamValue('alphaR',0.01,@isscalar);
+ip.addParamValue('alphaF',0.05,@isscalar);
+ip.addParamValue('alphaR',0.05,@isscalar);
+
+ip.addOptional('doMMF',false,@islogical);
 
 ip.parse(img,prmVec0,varargin{:});
 mode=ip.Results.mode;
@@ -45,6 +48,8 @@ alphaA=ip.Results.alphaA;
 alphaD=ip.Results.alphaD;
 alphaF=ip.Results.alphaF;
 alphaR=ip.Results.alphaR;
+
+doMMF=ip.Results.doMMF;
 
 % which parameters are present?
 estIdx=regexpi('xyAsc', ['[' mode ']']);
@@ -71,7 +76,7 @@ epsRel=1e-6;
 fitOptions=[maxIter epsAbs epsRel];
 
 % should a maxima been added to the current fit?
-addP=true;
+addP=doMMF;
 
 prmVecOld=prmVec0;
 % first fit with all maxima, isolated signals first
@@ -201,6 +206,16 @@ else
     allStd(estIdx)=prmStdOld;
 end
 
+% does fitted maxima lie in image region?
+imgSizeX=size(img,1)/2.0;
+imgSizeY=size(img,2)/2.0;
+
+idX=allPrm(:,1) > -imgSizeX & allPrm(:,1) < imgSizeX;
+idY=allPrm(:,2) > -imgSizeY & allPrm(:,2) < imgSizeY;
+
+id=idX & idY;
+allPrm=allPrm(id,:);
+
 % remove all maxima with negative amplitude
 idAmp=allPrm(:,3) > 0.0;
 allPrm=allPrm(idAmp,:);
@@ -224,11 +239,14 @@ T=(A-resOld.std*kLevel)./scomb;
 pval_A=1.0-tcdf(T,df2);
 hval_A=pval_A < alphaA;
 
+%  results of Anderson-Darling test on resiudals
+hval_AD=resOld.hAD;
+
 rssVec=zeros(nMaxVal,7);
 rssVec(:,1)=resOld.RSS;
 rssVec(:,2)=sigma_r;
 rssVec(:,3)=SE_sigma_r;
-%rssVec(:,4)=hval_AD;
+rssVec(:,4)=hval_AD;
 rssVec(:,5)=pval_A;
 rssVec(:,6)=hval_A;
 rssVec(:,7)=nMaxVal;
