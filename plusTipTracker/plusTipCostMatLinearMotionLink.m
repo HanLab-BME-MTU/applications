@@ -326,17 +326,24 @@ costMat(isnan(costMat)) = nonlinkMarker;
 %% Histogram of linking distances
 
 %get current frame
-currentFrame = size(prevCost,2);
-
+if isstruct(prevCost)
+    currentFrame = size(prevCost.all,2);
+else
+    currentFrame = size(prevCost,2);
+end
 %check whether current frame matches any of the diagnostics frames
 if currentFrame ~= 1 && any(diagnostics == currentFrame)
     
     %get linking distances
-    prevCostNoCol1 = prevCost(:,2:end);
+    if isstruct(prevCost)
+        prevCostNoCol1 = prevCost.all(:,2:end);
+    else
+        prevCostNoCol1 = prevCost(:,2:end);
+    end
     linkingDistances = sqrt(prevCostNoCol1(~isnan(prevCostNoCol1)));
     
     %plot histogram
-    figure('Visible','off','Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
+    figure('Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
     try
         %         % create bins
         %         n=1:20;
