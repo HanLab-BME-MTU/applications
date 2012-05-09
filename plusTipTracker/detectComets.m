@@ -28,8 +28,12 @@ function movieInfo = detectComets(I,stepSize,thresh)
 nSteps = round((nanmax(I(:))-thresh)/(stepSize));
 threshList = linspace(nanmax(I(:)),thresh,nSteps);
 
+movieInfo=struct('xCoord',[],'yCoord',[],'amp',[],'int',[],'ecc',[]);
+if nSteps<1,return; end
+
 % Handle case where nSteps==1
 if nSteps==1, slice2 = I>threshList(1); end
+
 
 % compare features in z-slices startest from the highest one
 for j = 1:length(threshList)-1
@@ -81,43 +85,36 @@ featureMap(vertcat(featProp2(goodFeatIdx,1).PixelIdxList)) = 1;
 featPropFinal = regionprops(featMapFinal,I,'PixelIdxList',...
     'Area','WeightedCentroid','MeanIntensity','MaxIntensity','Eccentricity','PixelValues'); %'Extrema'
 
-if nFeats==0
-    yCoord = [];
-    xCoord = [];
-    amp = [];
-    featE = [];
-    featI=[];
+if nFeats==0, return; end
+
+% centroid coordinates with 0.5 uncertainties for Khuloud's tracker
+yCoord = 0.5*ones(nFeats,2);
+xCoord = 0.5*ones(nFeats,2);
+temp = vertcat(featPropFinal.WeightedCentroid);
+yCoord(:,1) = temp(:,2);
+xCoord(:,1) = temp(:,1);
+
+% SB: shoudl we use meanIntensity instead>>>
+% area
+featArea = vertcat(featPropFinal(:,1).Area);
+amp = zeros(nFeats,2);
+amp(:,1) = featArea;
+
+% intensity
+featInt = vertcat(featPropFinal(:,1).MaxIntensity);
+featI = zeros(nFeats,2);
+featI(:,1) = featInt;
+
+verDate=version('-date');
+
+if str2double(verDate(end-3:end))>=2008 % can only calculate eccentricity
+    % if using version of matlab older than 2008
     
-else
-    % centroid coordinates with 0.5 uncertainties for Khuloud's tracker
-    yCoord = 0.5*ones(nFeats,2);
-    xCoord = 0.5*ones(nFeats,2);
-    temp = vertcat(featPropFinal.WeightedCentroid);
-    yCoord(:,1) = temp(:,2);
-    xCoord(:,1) = temp(:,1);
+    %eccentricity
+    featEcc = vertcat(featPropFinal(:,1).Eccentricity);
+    featE = zeros(nFeats,2);
+    featE(:,1) = featEcc;
     
-    % SB: shoudl we use meanIntensity instead>>>
-    % area
-    featArea = vertcat(featPropFinal(:,1).Area);
-    amp = zeros(nFeats,2);
-    amp(:,1) = featArea;
-    
-    % intensity
-    featInt = vertcat(featPropFinal(:,1).MaxIntensity);
-    featI = zeros(nFeats,2);
-    featI(:,1) = featInt;
-    
-    verDate=version('-date');
-    
-    if str2double(verDate(end-3:end))>=2008 % can only calculate eccentricity
-        % if using version of matlab older than 2008
-        
-        %eccentricity
-        featEcc = vertcat(featPropFinal(:,1).Eccentricity);
-        featE = zeros(nFeats,2);
-        featE(:,1) = featEcc;
-        
-    end
 end
 
 % make structure compatible with Khuloud's tracker
