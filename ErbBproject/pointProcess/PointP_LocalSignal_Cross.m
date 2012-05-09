@@ -13,7 +13,7 @@ function [out]=PointP_LocalSignal_Cross(posA,posB,rA,rB)
 %two measures around each point in posA: the number of posB less than rB
 %from posA(i) and the number of other posA less than rA from posA(i)
 %both processes are assumed to fill the retangular area defined by the
-%maxium and minimum points in the 
+%maxium and minimum points in the combined position lists. 
 
 
 %edge = 1-(4/(3*pi))*((r/L)+(r/W))+((11/(3*pi))-1)*(r^2/(L*W));
@@ -47,17 +47,20 @@ dis = squareform(pdist(pos));
 out = NaN(n,2);
 
 %c
-for i=ind
+for i=ind'
     %selects one point in a
     tempA = dis(i,1:n);
     tempB = dis(i,n+1:end);
     
-    %applies the local conditions
+    %applies the local conditions note that it specifically removes the
+    %zero point to exclude it from the count
     tempA = tempA<rA & tempA>0;
     tempB = tempB<rB & tempB>0;
     
-    out(i,1)= sum(tempB(i,:))/(edge*pi*rB^2);
-    out(i,2)= sum(tempA(i,:))/(edge*pi*rA^2);
+    %out(i,1)= sum(tempB)/(edge*pi*rB^2);
+    %out(i,2)= sum(tempA)/(edge*pi*rA^2);
+    out(i,1)= sum(tempB)/(edge);
+    out(i,2)= sum(tempA)/(edge);
 end
 
 end
