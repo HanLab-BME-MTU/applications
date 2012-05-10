@@ -14,10 +14,9 @@ ip.parse(data, varargin{:});
 nd = numel(data);
 mask = cell(1,nd);
 for i = 1:nd
-    
     aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
     if ~(exist(aipPath, 'file')==2)
-        df = floor(data(i).movieLength/50);
+        df = floor(data(i).movieLength/min(data(i).movieLength,50));
         fv = 1:df:data(i).movieLength;
         nf = numel(fv);
         aip = zeros(data(i).imagesize);
@@ -85,7 +84,7 @@ f_ecdf = f_ecdf(2:end)';
 x1 = interp1(f_ecdf, x_ecdf, 0.99);
 v(v>x1) = [];
 
-[f,xi] = ksdensity(v, 'npoints', 100); 
+[f,xi] = ksdensity(v, 'npoints', 100);
 
 % local max/min
 lmax = locmax1d(f, 3);
@@ -110,7 +109,7 @@ else
 end
 
 nx = data.imagesize(2);
-ny = data.imagesize(1); 
+ny = data.imagesize(1);
 borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
 
 % retain largest connected component
@@ -154,25 +153,25 @@ end
 % % vector bounds for projection line
 % x0 = [interp1(f_ecdf, x_ecdf, 0.01) 0.01]';
 % xN = [interp1(f_ecdf, x_ecdf, 0.99) 0.99]';
-% 
+%
 % p = xN; % proj. vector
 % p = p/norm(p);
-% 
+%
 % N = 1e4;
-% 
+%
 % xv = linspace(x0(1), xN(1), N);
 % yv = interp1(x_ecdf, f_ecdf, xv);
-% 
+%
 % X = [xv; yv];
-% 
+%
 % xnorm = sqrt(sum(X.^2,1));
 % theta = atan2(X(2,:),X(1,:)) - atan2(p(2),p(1));
 % ynorm = sin(theta).*xnorm;
-% 
+%
 % T = X(1,find(ynorm==min(ynorm), 1, 'first'));
-% 
+%
 % mask = bf>T;
-% 
+%
 % % close with PSF
 % mCh = strcmpi(data.source, data.channels);
 % if isempty(sigma)
@@ -181,7 +180,7 @@ end
 % w = ceil(4*sigma);
 % se = strel('disk', w, 0);
 % mask = imclose(mask, se);
-% 
+%
 % % retain largest connected component
 % CC = bwconncomp(mask, 8);
 % compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
@@ -193,43 +192,43 @@ end
 % load([data.source 'Detection' filesep 'detection_v2.mat']);
 % ny = data.imagesize(1);
 % nx = data.imagesize(2);
-% 
-% 
-% 
-% 
+%
+%
+%
+%
 % % concatenate all positions
 % X = [frameInfo.x];
 % X = X(mCh,:);
 % Y = [frameInfo.y];
 % Y = Y(mCh,:);
-% 
+%
 % mask = zeros(data.imagesize);
 % mask(sub2ind(data.imagesize, round(Y), round(X))) = 1;
-% 
+%
 % se = strel('disk', w, 0);
 % mask = imclose(mask, se);
 % mask = bwmorph(mask, 'clean');
 % mask = imdilate(mask, se);
-% 
-% 
+%
+%
 % % retain largest connected component
 % CC = bwconncomp(mask, 8);
 % compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
 % mask = zeros(ny,nx);
 % mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
-% 
+%
 % % add border within 'w'
 % [yi,xi] = ind2sub([ny nx], find(mask==1));
 % [yb,xb] = ind2sub([ny nx], borderIdx);
 % idx = KDTreeBallQuery([xi yi], [xb' yb'], w);
 % mask(borderIdx(cellfun(@(x) ~isempty(x), idx))) = 1;
-% 
+%
 % mask = imclose(mask, se);
-% 
+%
 % % fill holes
 % CC = bwconncomp(~mask, 8);
 % M = labelmatrix(CC);
-% 
+%
 % % hole labels in image border
 % borderLabels = unique(M(borderIdx));
 % labels = setdiff(1:CC.NumObjects, borderLabels);
