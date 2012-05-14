@@ -690,7 +690,11 @@ insideSecShrink =sourceProjData.secPerFrame.*(sum(INShrink,2)-1);
 
 % Get Track IDs for those Growth Sub-Tracks in the Sub-ROI of Interest
 if ~isempty(strcmpi(timeUnitsShrink,'fraction'))
-    trckIdxInShrink=intersect(find(insideSecShrink./lifeSecShrink>=timeValShrink),inIncludeRegionShrink);
+    if isempty(lifeSecShrink)
+        trckIdxInShrink=[];
+    else
+        trckIdxInShrink=intersect(find(insideSecShrink./lifeSecShrink>=timeValShrink),inIncludeRegionShrink);
+    end
 else
     trckIdxInShrink=intersect(find(insideSecShrink>=timeValShrink),inIncludeRegionShrink);
     
