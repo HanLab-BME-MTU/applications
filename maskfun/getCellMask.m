@@ -9,6 +9,7 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Connect', true, @islogical);
 ip.addParamValue('Display', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('ShowHistogram', false, @islogical);
+ip.addParamValue('modeRatio', 0.6, @isscalar);
 ip.parse(data, varargin{:});
 
 nd = numel(data);
@@ -32,7 +33,7 @@ for i = 1:nd
     
     maskPath = [data(i).source 'Detection' filesep 'cellmask.tif'];
     if ~(exist(maskPath, 'file') == 2) || ip.Results.Overwrite
-        mask{i} = computeMask(data(i), aip, ip.Results.Connect, ip.Results.ShowHistogram);
+        mask{i} = computeMask(data(i), aip, ip.Results.Connect, ip.Results.ShowHistogram, ip.Results.modeRatio);
         % save
         imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
     else
@@ -70,7 +71,7 @@ end
 
 
 
-function mask = computeMask(data, aip, connect, showHist)
+function mask = computeMask(data, aip, connect, showHist,modeRatio)
 
 aip = scaleContrast(aip, [], [0 1]);
 g = filterGauss2D(aip, 5);
@@ -97,7 +98,7 @@ dxi = xi(2)-xi(1);
 % identify min after first mode
 if ~isempty(lmin)
     idx = find(lmin>lmax(1), 1, 'first');
-    if ~isempty(idx) && sum(f(1:lmin(idx(1))))*dxi < 0.6
+    if ~isempty(idx) && sum(f(1:lmin(idx(1))))*dxi < modeRatio
         min0 = lmin(idx);
         T = xi(min0);
         mask = g>T;
