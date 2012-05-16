@@ -89,6 +89,7 @@ classdef Data < handle & matlab.mixin.Copyable
         
         display(obj);
         save(obj,fullPath);
+        mergeWith(obj,dataToMerge);
 
         function value = get.nPoints(obj)
             value = size(obj.points,1);

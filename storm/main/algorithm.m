@@ -85,7 +85,7 @@ if isempty(dataName) % No *.i.dat file present
             return;
         end
         
-        pro.centerData();
+        % pro.centerData();
         dis.points();
         im.fitAndSaveCamera();
         im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============

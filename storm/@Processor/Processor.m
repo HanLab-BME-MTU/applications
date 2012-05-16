@@ -29,6 +29,7 @@ classdef Processor < handle
         setErrorArray(obj,errorX,errorY,errorZ);
         cropData(obj,roiPosRel,roiSize);
         centerData(obj);
+        centerDataRevert(obj,cfg);
         subsamplePoints(obj,limit);
         densityFilter(obj,nNeighborsThreshold,ballRadius);
         nearestNeighborClutterRemoval(obj,k,mode);

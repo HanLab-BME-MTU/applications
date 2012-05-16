@@ -22,4 +22,7 @@ center = (max(obj.data.points,[],1)+min(obj.data.points,[],1))/2;
 
 % Translate all the points
 obj.data.points = obj.data.points+repmat(-center,size(obj.data.points,1),1);
+
+disp('Process: Data centered!');
+
 end

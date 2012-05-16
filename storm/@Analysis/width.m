@@ -1,14 +1,14 @@
 function meanSigmaDist = width(obj,display)
 
 % Compute the width of all the clusters
-fun = @(a,b) sqrt(1/numel(a)*sum(sum((b./obj.data.error(a,:)).^2)));
+fun = @(a,b) sqrt(1/numel(a)*sum(sum((b./obj.data.error(a,:)).^2)))    / sqrt(2)*9;
 sigmaClusters = cellfun(fun,obj.data.clusters,obj.data.modelRes); % RMS of the distances
 
 if numel(sigmaClusters) > 1
     % Compute the weighted histogram
     % sigmaClusterHistogramWeigths = obj.data.modelLength;
     sigmaClusterHistogramWeigths = cellfun(@numel,obj.data.clusters);
-    nBins = ceil(sqrt(numel(sigmaClusters)))*4;
+    nBins = ceil(sqrt(numel(sigmaClusters)))*10;
     binSize = (max(sigmaClusters)-min(sigmaClusters))/nBins;
     histEdges = min(sigmaClusters):binSize:max(sigmaClusters);
     histValues = zeros(1,nBins);
@@ -32,8 +32,8 @@ if numel(sigmaClusters) > 1
         end
     else
         bar(binCenters,histValues,1);
-        xlim([0,3]);
-        ylim([0,4000]);
+%         xlim([0,3]);
+%         ylim([0,4000]);
         xlabel('RMS of the normalized distances');
         ylabel('Number of points');
     end
