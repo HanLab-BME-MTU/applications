@@ -1,4 +1,4 @@
-function varargout=plotWindows(windowIn,stringIn,showNum)
+function varargout=plotWindows(windowIn,varargin)
 %PLOTWINDOWS plots the input windows on the current axes
 % 
 % plotWindows(windowIn)
@@ -33,6 +33,14 @@ function varargout=plotWindows(windowIn,stringIn,showNum)
 %   windows, the numbering will start at (1,1) at the beginning of this
 %   subset.
 %
+%   Optional parameters in param/value pairs
+%
+%   bandMin - Integer. The value of first band to be displayed.
+%   Default: 1.
+%
+%   bandMax - Integer. The value of the last band to be displayed. 
+%   Default: Inf.
+%
 % Output:
 %   
 %   h - array of handles to the patch graphic objects and text objects if
@@ -48,15 +56,18 @@ if nargin < 1 || isempty(windowIn)
     error('Come on, you have to at least input the window cell-array!')
 end
 
-if nargin < 2 || isempty(stringIn)
-    stringIn = {'r','FaceAlpha',.2};
-elseif ~iscell(stringIn)
-    stringIn = {stringIn};
-end
+% Input check
+ip = inputParser;
+ip.addOptional('stringIn',{'r','FaceAlpha',.2},@(x)iscell(x) || ...
+    (ischar(x) && ~ismember(x,{'bandMin','bandMax'})));
+ip.addOptional('showNum',0,@isscalar)
+ip.addParamValue('bandMin',1,@isscalar);
+ip.addParamValue('bandMax',Inf,@isscalar);
+ip.parse(varargin{:});
 
-if nargin < 3 || isempty(showNum)
-    showNum = 0;
-end
+stringIn = ip.Results.stringIn;
+if ~iscell(stringIn), stringIn = {stringIn}; end
+showNum = ip.Results.showNum;
 
 %Check the cell array to see if a sub-set of windows were passed
 if iscell(windowIn)
@@ -115,7 +126,8 @@ switch cellDepth
     case 3
         
         for j = 1:numel(windowIn)        
-            for k = 1:numel(windowIn{j})        
+            
+            for k = max(1,ip.Results.bandMin):min(numel(windowIn{j}),ip.Results.bandMax)        
                 if ~isempty(windowIn{j}{k})                
                     currWin = [windowIn{j}{k}{:}];
                     if ~isempty(currWin)
