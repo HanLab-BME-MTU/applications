@@ -323,13 +323,13 @@ for iImage = 1:nImages
    if p.ApplyMasks 
        %If masks are to be applied, don't include the masked values      
        intMask = imread([maskDir filesep maskNames{1}{iImage}]);
-       currRatio(~intMask(:)) = 0;  
+       currRatio(~intMask(:)) = NaN;  
     end    
     
     %Remove any infinities from division-by-zero (this shouldn't happen if
     %the masks are applied and all the images and corrections are good, but
     %let's be realistic here .... )
-    currRatio(~isfinite(currRatio(:))) = 0; %#ok<NASGU>
+    currRatio(~isfinite(currRatio(:))) = NaN; %#ok<NASGU>
   
     %Save the ratio in double-precision floating point to avoid rounding
     %error
