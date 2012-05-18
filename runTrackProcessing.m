@@ -42,9 +42,6 @@ sigma = ip.Results.Sigma;
 preprocess = ip.Results.Preprocess;
 postprocess = ip.Results.Postprocess;
 cohortBounds = ip.Results.CohortBounds_s;
-minLft = ip.Results.Cutoff_f*data.framerate;
-cohortBounds(cohortBounds<=minLft) = [];
-cohortBounds = [minLft cohortBounds data.movieLength*data.framerate];
 
 for i = 1:length(data)
     data(i).tracks = [];
@@ -61,6 +58,10 @@ end
 
 
 function [data] = main(data, buffer, trackerOutput, filename, frameIdx, sigmaV, preprocess, postprocess, cohortBounds)
+cutoff_f = 2;
+minLft = cutoff_f*data.framerate;
+cohortBounds(cohortBounds<=minLft) = [];
+cohortBounds = [minLft cohortBounds data.movieLength*data.framerate];
 
 detection = load([data.source 'Detection' filesep 'detection_v2.mat']);
 frameInfo = detection.frameInfo;
@@ -967,7 +968,7 @@ trackLengths = [tracks.end]-[tracks.start]+1;
 % v = v/numel(tracks);
 % plotTrackClasses(v');
 
-fprintf('Track processing for %s complete. Valid/total tracks: %d/%d (%.1f%%).\n',...
+fprintf('Processing for %s complete - valid/total tracks: %d/%d (%.1f%%).\n',...
     getShortPath(data), sum([tracks.catIdx]==1), numel(tracks), sum([tracks.catIdx]==1)/numel(tracks)*100);
 
 end % postprocessing
