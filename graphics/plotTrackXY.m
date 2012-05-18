@@ -65,51 +65,50 @@ end
 
 if ~isempty(ip.Results.splitIdx)
     splitIdx = ip.Results.splitIdx;
-
-    plot(x(splitIdx), y(splitIdx), 'o', 'Color', cmap(splitIdx,:), 'MarkerFaceColor', [0 0 0], 'LineWidth', 1.5);
-
-    x1 = x(mCh, 1:splitIdx-1);
-    y1 = y(mCh, 1:splitIdx-1);
-    x2 = x(mCh, splitIdx+1:end);
-    y2 = y(mCh, splitIdx+1:end);
-    mux1 = median(x1);
-    muy1 = median(y1);
-    mux2 = median(x2);
-    muy2 = median(y2);
     
-    % projections
-    v = [mux2-mux1 muy2-muy1];
-    %v(2) = v(1); % test final projection
-    v = v/norm(v);
-    
-    % scalar products
-    sp1 = sum(repmat(v', [1 numel(x1)]) .* [x1; y1], 1);
-    sp2 = sum(repmat(v', [1 numel(x2)]) .* [x2; y2], 1);
-    
-    x1proj = v(1)*sp1;
-    y1proj = v(2)*sp1;
-    
-    x2proj = v(1)*sp2;
-    y2proj = v(2)*sp2;
-   
-    
-    plot(x1proj, y1proj, 'r.');
-    plot(x2proj, y2proj, 'b.');
-    
-    plot(mux1, muy1, 'rx', 'MarkerSize', 20, 'LineWidth', 2);
-    plot(mux2, muy2, 'bx', 'MarkerSize', 20, 'LineWidth', 2);
-    
-    % vectors on connecting line
-    V1 = [x1proj-mux1; y1proj-muy1];
-    % sign: scalar product with 'v'
-    N1 = sqrt(sum(V1.^2,1));
-    d1 = mux1 - N1 .* sum(V1./repmat(N1,[2 1]) .* repmat(v', [1 numel(x1)]), 1);
-
-    V2 = [x2proj-mux2; y2proj-muy2];
-    N2 = sqrt(sum(V2.^2,1));
-    d2 = mux2 - N2 .* sum(V2./repmat(N2,[2 1]) .* repmat(v', [1 numel(x2)]), 1);
-
-    plot(d1, zeros(size(d1)), 'm.');
-    plot(d2, zeros(size(d2)), 'c.');
+    for i = 1:numel(splitIdx)
+        plot(x(splitIdx(i)), y(splitIdx(i)), 'o', 'Color', cmap(splitIdx(i),:), 'MarkerFaceColor', [0 0 0], 'LineWidth', 1.5);
+        
+        x1 = x(mCh, 1:splitIdx(i)-1);
+        y1 = y(mCh, 1:splitIdx(i)-1);
+        x2 = x(mCh, splitIdx(i)+1:end);
+        y2 = y(mCh, splitIdx(i)+1:end);
+        
+        mux1 = median(x1);
+        muy1 = median(y1);
+        mux2 = median(x2);
+        muy2 = median(y2);
+        
+        % projections
+        v = [mux2-mux1; muy2-muy1];
+        %v(2) = v(1); % test final projection
+        v = v/norm(v);
+        
+        
+        % x1 in mux1 reference
+        X1 = [x1-mux1; y1-muy1];
+        sp1 = sum(repmat(v, [1 numel(x1)]).*X1,1);
+        
+        % x2 in mux1 reference
+        X2 = [x2-mux1; y2-muy1];
+        sp2 = sum(repmat(v, [1 numel(x2)]).*X2,1);
+        
+        % projection line
+        plot(mux1+[-20*v(1) 20*v(1)], muy1+[-20*v(2) 20*v(2)], 'b');
+        
+        x1proj = mux1 + sp1*v(1);
+        y1proj = muy1 + sp1*v(2);
+        x2proj = mux1 + sp2*v(1);
+        y2proj = muy1 + sp2*v(2);
+        
+        plot(x1proj, y1proj, 'r.');
+        plot(x2proj, y2proj, 'b.');
+        plot(mux1, muy1, 'rx', 'MarkerSize', 20, 'LineWidth', 2);
+        plot(mux2, muy2, 'bx', 'MarkerSize', 20, 'LineWidth', 2);
+        
+        % projection on horizontal axis (test performed on sp1 vs. sp2)
+        %plot(sp1, zeros(size(x1)), 'm.');
+        %plot(sp2, zeros(size(x2)), 'c.');
+    end
 end
 
