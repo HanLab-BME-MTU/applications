@@ -25,11 +25,10 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) & numel(x)==1);
 ip.addParamValue('Mask', true, @islogical);
-ip.addParamValue('FileName', 'trackAnalysis.mat', @ischar); 
-ip.addParamValue('Cutoff', 4, @isscalar);
+ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar); 
+ip.addParamValue('Cutoff_f', 4, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
-% ip.addParamValue('PostProc', [], @isscalar);
-ip.addParamValue('Category', 'all');
+ip.addParamValue('Category', 'Ia');
 ip.parse(data, varargin{:});
 category = ip.Results.Category;
 if ~iscell(category)
@@ -39,9 +38,8 @@ if ~all(arrayfun(@(i) any(strcmpi(i, catValues)), category))
     error('Unknown ''Category''.');
 end
 
-
-
-cutoff_s = ip.Results.Cutoff * data.framerate;
+mCh = strcmp(data.source, data.channels);
+cutoff_s = ip.Results.Cutoff_f * data.framerate;
 
 load([data.source 'Tracking' filesep ip.Results.FileName]);
 
@@ -56,8 +54,8 @@ mpath = [data.source 'Detection' filesep 'cellmask.tif'];
 if ip.Results.Mask && (exist(mpath, 'file')==2)
     mask = logical(imread(mpath));
     
-    x = round(arrayfun(@(tr) nanmean(tr.x(1,:)), tracks));
-    y = round(arrayfun(@(tr) nanmean(tr.y(1,:)), tracks));
+    x = round(arrayfun(@(tr) nanmean(tr.x(mCh,:)), tracks));
+    y = round(arrayfun(@(tr) nanmean(tr.y(mCh,:)), tracks));
 
     % exclude tracks in background
     [ny,nx] = size(mask);
@@ -65,29 +63,26 @@ if ip.Results.Mask && (exist(mpath, 'file')==2)
     tracks = tracks(mask(idx)==1);
 end
 
-singleIdx = [tracks.nSeg]==1;
-validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
-vis = [tracks.visibility];
 
-idx = false(1,numel(singleIdx));
+idx = false(1,numel(tracks));
 for k = 1:numel(category);
     switch category{k}
         case 'Ia'
-            idx0 = singleIdx & validGaps & vis==1;
+            idx0 = [tracks.catIdx]==1;
         case 'Ib'
-            idx0 = singleIdx & ~validGaps & vis==1;
+            idx0 = [tracks.catIdx]==2;
         case 'Ic'
-            idx0 = singleIdx & vis==2;
+            idx0 = [tracks.catIdx]==3;
         case 'Id'
-            idx0 = singleIdx & vis==3;
+            idx0 = [tracks.catIdx]==4;
         case 'IIa'
-            idx0 = ~singleIdx & validGaps & vis==1;
+            idx0 = [tracks.catIdx]==5;
         case 'IIb'
-            idx0 = ~singleIdx & ~validGaps & vis==1;
+            idx0 = [tracks.catIdx]==6;
         case 'IIc'
-            idx0 = ~singleIdx & vis==2;
+            idx0 = [tracks.catIdx]==7;
         case 'IId'
-            idx0 = ~singleIdx & vis==3;
+            idx0 = [tracks.catIdx]==8;
         case 'all'
             idx0 = 1:numel(tracks);
     end
@@ -95,13 +90,3 @@ for k = 1:numel(category);
 end
 idx = idx & [tracks.lifetime_s] >= cutoff_s;
 tracks = tracks(idx);
-    
-%     if ~isempty(ip.Results.PostProc)
-%         kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
-%         sb = arrayfun(@(t) sum(sum(t.startBuffer.A(1,:) > t.startBuffer.sigma_r(1,:)*kLevel))>1, tracks);
-%         eb = arrayfun(@(t) sum(sum(t.endBuffer.A(1,:) > t.endBuffer.sigma_r(1,:)*kLevel))>1, tracks);
-%         tracks(sb | eb) = [];
-%         % threshold max intensity
-%         maxRatio = arrayfun(@(t) max(t.A(1,:) ./ (t.sigma_r(1,:)*kLevel)), tracks);
-%         tracks(maxRatio < ip.Results.PostProc) = [];
-%     end
