@@ -881,25 +881,9 @@ if ~isempty(handles.tracks{handles.mCh})
     % IIb) Compound tracks with invalid gaps
     % IIc) Compound tracks cut at beginning or end
     % IId) Compound tracks, persistent
-    validGaps = arrayfun(@(t) max([t.gapStatus 4]), handles.tracks{handles.mCh})==4;
-    singleIdx = [handles.tracks{handles.mCh}.nSeg]==1;
-    vis = [handles.tracks{handles.mCh}.visibility];
-    
-    idx_Ia = singleIdx & validGaps & vis==1;
-    idx_Ib = singleIdx & ~validGaps & vis==1;
-    idx_IIa = ~singleIdx & validGaps & vis==1;
-    
-    v = [sum(idx_Ia);
-        sum(idx_Ib);
-        sum(singleIdx & vis==2);
-        sum(singleIdx & vis==3);
-        sum(idx_IIa);
-        sum(~singleIdx & ~validGaps & vis==1);
-        sum(~singleIdx & vis==2);
-        sum(~singleIdx & vis==3)];
+    v = hist([handles.tracks{handles.mCh}.catIdx], 1:8);
     v = v/numel(handles.tracks{handles.mCh});
-    
-    plotTrackClasses(v, 'YLim', [0 max(0.8, max(v))]);
+    plotTrackClasses(v', 'YLim', [0 max(0.8, max(v))]);
 end
 
 
