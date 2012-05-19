@@ -838,8 +838,8 @@ for k = 1:numel(idx_Ia)
     i = idx_Ia(k);
     
     % H0: A = background (p-value >= 0.05) 
-    if sum(tracks(i).startBuffer.pval_Ar>=0.05) < Tbuffer ||...
-            sum(tracks(i).endBuffer.pval_Ar>=0.05) < Tbuffer
+    if sum(tracks(i).startBuffer.pval_Ar(mCh,:)>=0.05) < Tbuffer ||...
+            sum(tracks(i).endBuffer.pval_Ar(mCh,:)>=0.05) < Tbuffer
         tracks(i).catIdx = 2;
     end
 end
@@ -867,7 +867,7 @@ for i = 1:numel(splitCand);
     gapIdx = [tracks(k).gapIdx{:}];
     
     % # residual points
-    npx = round((tracks(k).sigma_r ./ tracks(k).SE_sigma_r).^2/2+1);
+    npx = round((tracks(k).sigma_r(mCh,:) ./ tracks(k).SE_sigma_r(mCh,:)).^2/2+1);
     npx = npx(gapIdx);
     
     % perform t-test on all gaps

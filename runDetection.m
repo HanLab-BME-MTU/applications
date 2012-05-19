@@ -57,7 +57,7 @@ lfields = {'hval_Ar', 'hval_AD', 'isPSF'};
 % slave channel fields
 sfields = [dfields {'hval_Ar', 'hval_AD'}]; % 'isPSF' is added later
 
-rmfields = [dfields lfields {'x_init', 'y_init', 'maskA', 'maskN'}];
+rmfields = [dfields lfields {'x_init', 'y_init', 'maskA', 'maskN', 'mask_Ar'}];
 
 parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k})); %#ok<PFBNS>
