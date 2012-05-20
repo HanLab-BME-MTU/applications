@@ -1,4 +1,4 @@
-function [ forFigure ] = micropatternGetRegionalColorMaps(micropatternOutput,poolSubTracks,fieldnames )
+function [ forFigure ] = micropatternGetRegionalColorMaps(micropatternOutput,poolSubTracks,useDefaultFieldnames )
 %CREATE HeatMaps for Micropattern Data H pattern data using the output from
 % micropatternOutput
 %
@@ -32,7 +32,11 @@ if nargin<1 || isempty(micropatternOutput)
     
 end
 
-if isempty(fieldnames) % set up default fieldnames but eventually choose from a user list
+
+
+if useDefaultFieldnames ==1 
+    
+ 
     
     
     fieldnames{1} = 'growth_lifetime_mean_INSIDE_REGION';  % keep all local
@@ -44,6 +48,12 @@ if isempty(fieldnames) % set up default fieldnames but eventually choose from a 
     
     fieldnames{5} = 'bgap_speed_mean';
     fieldnames{6} = 'bgap_lifetime_mean';
+else 
+  x =   fieldnames(micropatternOutput{1}.groupData{1}{1}{1}.stats{1}{1});
+  y = listSelectGUI(x); 
+  for i = 1: length(y)
+      fieldnames{i} = x(y(i)); 
+  end 
 end
 
 
@@ -65,6 +75,7 @@ subtrackType{2} = {'nFgaps'};
 subtrackType{3} = {'nBgaps'};
 
 %% START MASK LOOP%%
+
 
 for iMask = 1:numMasksToAnalyze
     
@@ -96,7 +107,7 @@ for iMask = 1:numMasksToAnalyze
                 
                 %Collect Statistic of interest for each region and calculate difference
                 % between conditions
-                
+                zoneCount =1 ; % reset zone count
                 % Loop through each region type (adhesion, nonadhesion,etc)
                 for iRegion = 1:3
                     
@@ -108,20 +119,32 @@ for iMask = 1:numMasksToAnalyze
                         
                         groupData = groupData{iExtract}{iRegion}{iWindow};
                         
+                       
                         if poolSubTracks ~=1
                             
                             distControl = arrayfun(@(x) groupData.stats{1}{x}.(paramName),1:numel(groupData.stats{1}),'uniformOutput',0);
                             meanControlPop = nanmean(cell2mat(distControl));
+                            values(1,zoneCount) = nanmean(cell2mat(distControl)); % first value of dataset array is meanControlPop; 
+                            
+                            
                             
                             distExp = arrayfun(@(x) groupData.stats{2}{x}.(paramName), 1:numel(groupData.stats{2}),'uniformOutput',0);
                             
                             meanExpPop = nanmean(cell2mat(distExp));
+                            values(2,zoneCount) = nanmean(cell2mat(distExp)); % 2 value is mean Experimental population
                             
                             diffValue = (meanExpPop-meanControlPop)/meanControlPop*100;
                             if isnan(diffValue)
                                 diffValue = 0; 
                             end 
                             diffValueAll{iRegion,iWindow} = diffValue;
+                          
+                            values(3,zoneCount) = diffValue; % 3 is the difference value 
+                            
+                          
+                            
+                           
+                           
                             
                             
                             loadDir = statDirInd{iExtract}{iRegion}{iWindow};
@@ -131,7 +154,7 @@ for iMask = 1:numMasksToAnalyze
                             pValueOutput{iRegion,iWindow} = cell2mat(discrimMat(3,2)); % for now just use the t-test as I know there is
                             % bug in the values if there is an NaN.
                             
-                            
+                            values(4,zoneCount) = cell2mat(discrimMat(3,2)); % 4 is the p-value
                             
                             
                         else % pooled
@@ -141,8 +164,12 @@ for iMask = 1:numMasksToAnalyze
                         
                         if iParam ==1
                             NControl{iRegion,iWindow} = numel(groupData.stats{1});
-                            NExp{iRegion,iWindow} = numel(groupData.stats{1});
+                            NExp{iRegion,iWindow} = numel(groupData.stats{2});
                             
+                            values(5,zoneCount) = numel(groupData.stats{1}); % 5 is the number of cells control
+                            values(6,zoneCount) = numel(groupData.stats{2}); % 6 is the number of cells exp
+                          
+                         
                             
                             for iType = 1:3
                                 
@@ -152,13 +179,22 @@ for iMask = 1:numMasksToAnalyze
                                 numSubtrackControlTot{iRegion,iWindow,iType} = groupData.pooledStats{1}.(char(subtrackType{iType}));
                                 numSubtrackExpTot{iRegion,iWindow,iType} = groupData.pooledStats{2}.(char(subtrackType{iType}));
                                 
+                               
+                                
                                 avgNumPerCellControl{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{1}{x}.(char(subtrackType{iType})),1:NControl{iRegion,iWindow},'uniformOutput',0);
                                 avgNumPerCellExp{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{2}{x}.(char(subtrackType{iType})),1:NExp{iRegion,iWindow},'uniformOutput',0);
                                 
                                 
                             end
                             
-                            
+                             values(7,zoneCount) = groupData.pooledStats{1}.nGrowths; 
+                             values(8,zoneCount) = groupData.pooledStats{2}.nGrowths; 
+                             values(9,zoneCount) = groupData.pooledStats{1}.nFgaps; 
+                             values(10,zoneCount) = groupData.pooledStats{2}.nFgaps; 
+                             values(11,zoneCount) = groupData.pooledStats{1}.nBgaps; 
+                             values(12,zoneCount) = groupData.pooledStats{2}.nBgaps; 
+                             
+                             
                             
                             
                             
@@ -200,12 +236,13 @@ for iMask = 1:numMasksToAnalyze
                         
                         
                         
-                        
+                        zoneCount = zoneCount +1; 
                         % make map
                     end
+                    
                 end
                 
-                %% Output
+                
                 
                 %%  Make Figure
                 figure1 = figure;
@@ -226,6 +263,11 @@ for iMask = 1:numMasksToAnalyze
                 windows{1,numWindows+1} = ['Greater Than ' num2str(numWindows*windowSize) 'uM From the Cell Edge'];
                 
                 statDir = micropatternOutput{iMask}.primaryStatDir ;
+                
+                
+                statDir = strrep(statDir, 'nucleation',maskCurrent.extractType{iExtract});  
+                
+                
                 
                 saveDir = [statDir filesep 'ColorMaps' filesep paramName] ;
                 if ~isdir(saveDir);
@@ -323,14 +365,58 @@ for iMask = 1:numMasksToAnalyze
                 
                 close(figure1)
                 
+ %%          Make Dataset array for given parameter     
+              
+                % get region names
+count = 1; 
+for iRegion = 1:3
+    for iWindow = 1:numWindows+1
+       
+zone{count,1} = [regionTypes{iRegion} names{iWindow+1}];  
+count = count +1;
+    end 
+end
+
+           
+%  set obs names 
+varNames{1,1} = 'Mean Of Control Population- Calculated From Average Of Individual Project Values'; 
+varNames{2,1} = 'Mean Of Experimental Population- Calculated From Average of Individual Project Values';
+varNames{3,1} = 'Percent Difference in Mean of Experimental Relative to Control (Average Project Values)'; 
+varNames{4,1} = 'pValue t-test of the Means (Distributions = Project Values)'; 
+varNames{5,1} = 'Number of Control Projects'; 
+varNames{6,1} = 'Number of Experimental Projects'; 
+varNames{7,1} = 'Number of Growth Subtracks Sampled: Pooled Control Population'; 
+varNames{8,1} = 'Number of Growth Subtracks Sampled: Pooled Experimental Population'; 
+varNames{9,1} = 'Number of Fgap Subtracks Sampled: Pooled Control Population'; 
+varNames{10,1} = 'Number of Fgap Subtracks Sampled: Pooled Experimental Population'; 
+varNames{11,1} = 'Number of Bgap Subtracks Sampled: Pooled Control Population';
+varNames{12,1} = 'Number of Bgap Subtracks Sampled: Pooled Experimental Population'; 
+
+
+if exist([saveDir filesep 'colorMap_DataSet' paramTitle])~=0;
+    delete([saveDir filesep 'colorMap_DataSet' paramTitle]);
+end 
+    
+ colorMapDataSet  = dataset({values(:,:),zone{:}},'ObsNames',varNames);                
+                
+ export(colorMapDataSet,'file',[saveDir filesep 'colorMap_DataSet_' paramTitle]);  
+  
                 
                 
                 
                 
-            end
-        end
+                
+                
+                
+            end %for iParam
+       
+     
+        
+        
+        
+        
         % create the N-output : I also need to think about putting into text
-        % likely a more clever way to do this
+        % like a more clever way to do this
         % but good enough for now.
         names{1,1} = 'nGrowths';
         outputN.TotalSubTrackControlGrowth = [regionTypes numSubtrackControlTot(:,:,1)];
@@ -355,8 +441,11 @@ for iMask = 1:numMasksToAnalyze
         outputN.TotalSubTrackExpBgap = [names;outputN.TotalSubTrackExpBgap];
         
         save([statDir filesep 'Colormaps' filesep 'outputN'],'outputN');
-        
+        end 
         
     end
 end
+
+
+
 end

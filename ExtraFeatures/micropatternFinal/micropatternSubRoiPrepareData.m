@@ -220,7 +220,7 @@ for iMask =  1:numel(maskParams)
                 for iSubDir = 1:numel(subRoiDirs)
                     subRoiDir = char(subRoiDirs(iSubDir)) ;
                     
-                    plusTipSubRoiExtractTracksUpdate(subRoiDir,'fraction',0.10,char(toExtract)); % NEED TO fix not ideal input
+                    plusTipSubRoiExtractTracksFORPACKAGE(subRoiDir,'fraction', 0.01, 'extractType', char(toExtract),'turnFiguresOn',0,'collectPlots',1,'mkPolPlot',1); % NEED TO fix not ideal input
                 end
             end %
             
