@@ -30,8 +30,8 @@ for iRegion = 1:3
             
             values(1,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.growth_speed_mean_INSIDE_REGION;
             values(2,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.bgap_speed_mean;
-            values(3,zoneCount,iGroup) = (1/s.groupDataCurrent.pooledStats{iGroup}.growth_lifetime_mean_INSIDE_REGION);
-            values(4,zoneCount,iGroup) = (1/s.groupDataCurrent.pooledStats{iGroup}.bgap_lifetime_mean);
+            values(3,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.growth_lifetime_mean_INSIDE_REGION;
+            values(4,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.bgap_lifetime_mean;
             
  
             
