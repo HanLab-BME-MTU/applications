@@ -84,7 +84,7 @@ for i = 1:nd
     mask = logical(imread(mpath));
     res(i).cellArea = sum(mask(:)) * px^2 / 1e-12; % in µm^2
     
-    % in µm min^-1
+    % in µm^-2 min^-1
     res(i).initDensity = [median(startsPerFrame_allTracks); madFactor*mad(startsPerFrame_allTracks, 1)]/data(i).framerate*60/res(i).cellArea;
     
     
@@ -121,6 +121,13 @@ for i = 1:nd
 fprintf('\b\b\b\b%3d%%', round(100*i/nd));
 end
 fprintf('\n');
+
+for i = 1:nd
+    fprintf('Initiation density (%s): %f ± %f [µm^-2 min^-1]\n', getCellDir(data(i)), res(i).initDensity(1), res(i).initDensity(2));
+end
+D = [res.initDensity];
+% fprintf('Initiation density, SEM: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:))/sqrt(nd));
+fprintf('Initiation density, average: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:)));
 
 %====================
 % Threshold
