@@ -382,7 +382,7 @@ for k = 1:nTracks
     end
     %tracks(k).pval_Ar = 1-tracks(k).pval_Ar; % bug fix for detection
     
-    fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
+    fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
 end
 fprintf('\n');
 
@@ -452,7 +452,7 @@ for k = 1:nTracks
         tracks(k).gapStatus = gapStatus;
         tracks(k).gapIdx = arrayfun(@(i) gapStarts(i):gapEnds(i), 1:nGaps, 'UniformOutput', false);
     end
-    fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
+    fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
 end
 fprintf('\n');
 
@@ -702,7 +702,7 @@ fprintf('\n');
 %         %b = size(tracks(k).endBuffer.x,2);
 %         %tracks(k).endBuffer.t = (tracks(k).segmentEnds(s) + (1:b)-1) * data.framerate;
 %     end
-%     fprintf('\b\b\b\b%3d%%', round(100*k/(nTracks)));
+%     fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
 % end
 % fprintf('\n');
 

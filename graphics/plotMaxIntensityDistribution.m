@@ -1,21 +1,25 @@
-function plotMaxIntensityDistribution(data, res, varargin)
+function plotMaxIntensityDistribution(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
+ip.addOptional('maxIntDistCat', [], @isstruct);
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
-ip.addParamValue('HistT', false);
+% ip.addParamValue('HistT', false);
 ip.addParamValue('XTicks', 0:40:360);
+ip.addParamValue('FirstNFrames', []);
 ip.parse(varargin{:});
-mode = ip.Results.Mode;
 
+maxIntDistCat = ip.Results.maxIntDistCat;
+mode = ip.Results.Mode;
 xa = ip.Results.XTicks;
 
-if ip.Results.HistT
-    intVect = 'maxA4';
-    intHist = 'ni4';
-else
+% if ip.Results.HistT
+if isempty(ip.Results.FirstNFrames)
     intVect = 'maxA';
     intHist = 'ni';
+else
+    intVect = ['maxA_f' num2str(ip.Results.FirstNFrames)];
+    intHist = ['ni_f' num2str(ip.Results.FirstNFrames)];
 end
 
 [~, figPath] = getCellDir(data(1));
@@ -23,7 +27,7 @@ figPath = [figPath 'Figures' filesep];
 [~,~] = mkdir(figPath);
 
 
-% cohorts: 4, 5, 6, 7, 8, 9, 10, 11-20, 21-40, 41-60 etc.
+% cohorts: 3, 4, 5, 6, 7, 8, 9, 10, 11-20, 21-40, 41-60 etc.
 lb = [3:10 11 16 21 41 61 81 101 141];
 ub = [3:10 15 20 40 60 80 100 140 200]; 
 
@@ -34,57 +38,17 @@ dxi = da/8;
 % xi = 0:dxi:400;
 xi = 0:dxi:xa(end)+da;
 
-% ya = 0:0.01:0.05;
+ya = 0:0.01:0.05;
 % ya = 0:0.05:0.25;
-ya = 0:0.1:0.5;
+% ya = 0:0.1:0.5;
 
 %%
-% res = getMaxIntensityDistributions(data, lb, ub);
-% load('dataOXmaxInt_Ia.mat');
-% load('dataOXmaxInt_allTracks.mat');
-% res = res([1:3 5:6 8:10]); % remove outliers
-
-[a medIdx] = rescaleEDFs({res.maxA_all}, 'Display', false);
-
-
-for i=1:numel(res)
-    res(i).maxA = cellfun(@(x) x*a(i), res(i).maxA, 'UniformOutput', false);
-    res(i).maxA4 = cellfun(@(x) x*a(i), res(i).maxA4, 'UniformOutput', false);
-    %res(i).maxA_all = res(i).maxA_all*a(i);
+if isempty(maxIntDistCat)
+    [~, maxIntDistCat] = getMaxIntensityDistributions(data, lb, ub);
 end
 
-%%
-pres = struct([]);
-for k = 1:numel(lb)
-    tmp = vertcat(res.maxA);
-    pres(k).maxA = horzcat(tmp{:,k});
-    
-    tmp = vertcat(res.maxA4);
-    pres(k).maxA4 = horzcat(tmp{:,k});
-    
-    ni = hist(pres(k).maxA, xi);
-    pres(k).ni = ni/sum(ni)/dxi;
-    ni4 = hist(pres(k).maxA4, xi);
-    pres(k).ni4 = ni4/sum(ni4)/dxi;
-    
-    tmp = vertcat(res.lft);
-    pres(k).lft = horzcat(tmp{:,k});
-    
-    %mu = mean(pres(k).maxA);
-    %mu3 = mean((maxA-mu).^3);
-    %mu4 = mean((maxA-mu).^4);
-    %sigma = std(pres(k).maxA);
-    %pres(k).skew = mu3/sigma^3;
-    %pres(k).kurt = mu4/sigma^4-3;
-    
-    if lb(k)==ub(k)
-        pres(k).cohortLabel = num2str(lb(k));
-    else
-        pres(k).cohortLabel = [num2str(lb(k)) ' - ' num2str(ub(k))];
-    end
-end
 
-% [k0, nVec, xVec, fVec, FVec, aVec] = fitGammaDistN({pres(:).maxA});
+% [k0, nVec, xVec, fVec, FVec, aVec] = fitGammaDistN({maxIntDistCat(:).maxA});
 % aVec = [ones(1,7) aVec];
 
 
@@ -107,24 +71,11 @@ end
 %     plot(xi, ni, 'k.-', 'LineWidth', 2);
 % end
 
-%%
-
-% estimate Gaussian convolution that mediates transition from one cohort to the next
-
-% for k = 1:numel(lb)-1
-%     p = getGaussianConvPrms(xi, pres(k).ni, pres(k+1).ni);
-%     mu(k) = p(1);
-%     sigma(k) = p(2);
-% end
-% % meanLft = mean([lb; ub],1);
-% dt = ub-lb+1;
-% figure; plot(lb(1:end-1), sigma, '.-');
-% figure; plot(lb(1:end-1), sigma./dt(1:end-1), '.-');
-% % figure; plot(lb(1:end-1), mu, '.-');
 
 
 %%
-cb = [0 0.8 0];
+% cb = [0 0.8 0];
+cb = [0 0 0];
 cf3 = [1 1 1]*0.6;
 ce3 = [1 1 1]*0.3;
 tfont = {'FontName', 'Helvetica', 'FontSize', 14};
@@ -145,15 +96,15 @@ for k = 1:numel(lb)
     hold on;
     box off;
     set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
-    pct = prctile(pres(k).(intVect), [5 50 95]);
+    pct = prctile(maxIntDistCat(k).(intVect), [5 50 95]);
     
-    %[kGamma(k), nGamma(k), x, f, a, kappa(k)] = fitGammaDist(pres(k).maxA);
+    %[kGamma(k), nGamma(k), x, f, a, kappa(k)] = fitGammaDist(maxIntDistCat(k).maxA);
     if strcmpi(mode, 'pdf')
-        bar(xi, pres(k).(intHist), 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
+        bar(xi, maxIntDistCat(k).(intHist), 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
         %plot(xVec, fVec{k-ny}, 'r', 'LineWidth', 1.5);
         
         if ub(k)<10
-            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, pres(k).(intHist));
+            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, maxIntDistCat(k).(intHist));
             plot(xg, g, 'g', 'LineWidth', 1.5);
             plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
         end
@@ -169,8 +120,17 @@ for k = 1:numel(lb)
                 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', sfont{:});
         end
         
+        if isempty(ip.Results.FirstNFrames) && k>1
+            [p, y] = getGaussianConvPrms(xi, maxIntDistCat(k-1).ni, maxIntDistCat(k).ni);
+            mu(k-1) = p(1);
+            sigma(k-1) = p(2);
+            %stairsXT(xi, maxIntDistCat(k-1).ni, 'c');
+            plot(xi, maxIntDistCat(k-1).ni, 'c');
+            plot(xi, y, 'b');
+        end
+        
     else
-        [f_ecdf, t_ecdf] = ecdf(pres(k).maxA);
+        [f_ecdf, t_ecdf] = ecdf(maxIntDistCat(k).maxA);
         %plot(t_ecdf, f_ecdf*aVec(k)+1-aVec(k), 'k', 'LineWidth', 1.5);
         plot(t_ecdf, f_ecdf, 'k', 'LineWidth', 1.5);
         ya = 0:0.2:1;
@@ -203,25 +163,23 @@ for k = 1:numel(lb)
        ylabel('Frequency', lfont{:}); 
     end
     
-%     if k>1
-%         [pval hval] = ranksum(pres(k-1).maxA, pres(k).maxA);
-%         %[hval pval] = kstest2(pres(k-1).maxA, pres(k).maxA);
-%         if hval==0 % indicate that the distributions are the same
-%             
-%             %80+floor((k-1)/7)*(125+115) (7-mod(k-1,7)-1)*100+70 aw 80
-%             % x: after box:
-%             x0 = 80+floor((k-1)/7)*(125+115) + aw + 10;
-%             y0 = (7-mod(k-1,7)-1)*100+70 + 50;
-%             %y0 = 70;
-%             %plot(hbg, [x0 x0], [0 200], 'm');
-%             plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
-%             plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
-%             plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
-%             text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')
-%             
-%         end
-%     end
-    
+    if k>1
+        %[pval hval] = ranksum(maxIntDistCat(k-1).maxA, maxIntDistCat(k).maxA);
+        [hval pval] = kstest2(maxIntDistCat(k-1).(intVect), maxIntDistCat(k).(intVect));
+        %pval
+        if hval==0 % indicate that the distributions are the same
+            
+            %pos = [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80]
+            % x: after box:
+            x0 = 80+floor((k-1)/ny)*(170+115) + aw + 10;
+            y0 = (ny-mod(k-1,ny)-1)*100+70 + 50;
+
+            plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
+            plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
+            plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
+            text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')            
+        end
+    end
 end
 
 % bring background axes to front
@@ -235,11 +193,25 @@ axis(hbg, 'off');
 
 
 if numel(data)==1
-c    filename = ['_' getCellDir(data)];
+    filename = ['_' getCellDir(data)];
 else
     filename = '_pooled';
 end
 % print('-depsc2', '-loose', [figPath 'maxIntensityDist' filename '.eps']);
+
+%%
+% plot result of Gaussian convolutions
+% estimate Gaussian convolution that mediates transition from one cohort to the next
+
+% meanLft = mean([lb; ub],1);
+% cohortMean = (lb+ub)/2;
+% cohortLength = ub-lb+1;
+% figure; plot(lb(1:end-1), sigma, '.-'); xlabel('Previous cohort lower bound'); ylabel('sigma');
+% figure; plot(lb(1:end-1), sigma./cohortLength(1:end-1), '.-'); ylabel('sigma/\Delta');
+% figure; plot(lb(1:end-1), mu./cohortLength(1:end-1), '.-'); ylabel('mu');
+
+
+
 %%
 return
 % set threshold, plot lifetime distributions for the two resulting classes
@@ -497,7 +469,7 @@ end
 % % axes('Units', 'Pixels', 'Position', [80 80 300 200]);
 % plot(meanLft, nVec, 'k.-', 'LineWidth', 2, 'MarkerSize', 16);
 % set(gca, 'Box', 'off', sfont{:}, 'LineWidth', 2, 'TickDir', 'out');
-% % set(gca, 'XTick', meanLft, 'XTickLabel', {pres.cohortLabel});
+% % set(gca, 'XTick', meanLft, 'XTickLabel', {maxIntDistCat.cohortLabel});
 % xlabel('Lifetime (s)', tfont{:});
 % ylabel('n', tfont{:});
 % 
@@ -510,7 +482,7 @@ end
 % axes('Units', 'Pixels', 'Position', [80 80 300 200]);
 % plot(meanLft, 1./kGamma, 'k.-', 'LineWidth', 2, 'MarkerSize', 16);
 % set(gca, 'Box', 'off', sfont{:}, 'LineWidth', 2, 'TickDir', 'out');
-% % set(gca, 'XTick', meanLft, 'XTickLabel', {pres.cohortLabel});
+% % set(gca, 'XTick', meanLft, 'XTickLabel', {maxIntDistCat.cohortLabel});
 % xlabel('Lifetime (s)', tfont{:});
 % ylabel('k (s^{-1})', tfont{:});
 % 

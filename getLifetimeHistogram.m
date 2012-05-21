@@ -11,7 +11,7 @@ buffer = ip.Results.Buffer;
 cutoff_f = ip.Results.Cutoff_f;
 
 if isempty(tracks)
-    load([data.source 'Tracking' filesep 'trackAnalysis.mat']);
+    load([data.source 'Tracking' filesep 'ProcessedTracks.mat']);
 end
 
 % Apply cut-off

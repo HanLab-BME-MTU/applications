@@ -51,8 +51,12 @@ end
 
 % load cell mask, discard tracks that fall into background
 mpath = [data.source 'Detection' filesep 'cellmask.tif'];
-if ip.Results.Mask && (exist(mpath, 'file')==2)
-    mask = logical(imread(mpath));
+if ip.Results.Mask 
+    if (exist(mpath, 'file')==2)
+        mask = logical(imread(mpath));
+    else
+        mask = logical(getCellMask(data));
+    end
     
     x = round(arrayfun(@(tr) nanmean(tr.x(mCh,:)), tracks));
     y = round(arrayfun(@(tr) nanmean(tr.y(mCh,:)), tracks));
