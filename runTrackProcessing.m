@@ -47,7 +47,7 @@ for i = 1:length(data)
     data(i).tracks = [];
     data(i).smTracks = [];
 end
-parfor i = 1:length(data)
+for i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
         data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, sigma, preprocess, postprocess, cohortBounds);
     else
@@ -171,17 +171,27 @@ for i = 1:nTracks
                 iMat = repmat(1:size(xMat,2), [nSeg 1]).*~isnan(xMat);
                 
                 overlapIdx = setdiff(intersect(iMat(parentSeg,:), iMat(s,:)), 0);
-                
                 if overlapIdx(1)>1 && overlapIdx(end)<seqOfEvents(end,1) && overlapIdx(1)~=(iEvent(1,1)-seqOfEvents(1,1)+1)
-                    xRef = interp1([overlapIdx(1)-1 overlapIdx(end)+1], [xMat(s,overlapIdx(1)-1) xMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
-                    yRef = interp1([overlapIdx(1)-1 overlapIdx(end)+1], [yMat(s,overlapIdx(1)-1) yMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                    idx = [overlapIdx(1)-1 overlapIdx(end)+1];
+                    if isnan(xMat(s,idx(1)))
+                        idx(1) = overlapIdx(1);
+                    end
+                    if isnan(xMat(parentSeg,idx(2)))
+                        idx(2) = overlapIdx(end);
+                    end
                 elseif overlapIdx(1)==1 || overlapIdx(1)==(iEvent(1,1)-seqOfEvents(1,1)+1)
-                    xRef = interp1([overlapIdx(1) overlapIdx(end)+1], [xMat(s,overlapIdx(1)) xMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
-                    yRef = interp1([overlapIdx(1) overlapIdx(end)+1], [yMat(s,overlapIdx(1)) yMat(parentSeg,overlapIdx(end)+1)], overlapIdx);
+                    idx = [overlapIdx(1) overlapIdx(end)+1];
+                    if isnan(xMat(parentSeg,idx(2)))
+                        idx(2) = overlapIdx(end);
+                    end
                 else
-                    xRef = interp1([overlapIdx(1)-1 overlapIdx(end)], [xMat(s,overlapIdx(1)-1) xMat(parentSeg,overlapIdx(end))], overlapIdx);
-                    yRef = interp1([overlapIdx(1)-1 overlapIdx(end)], [yMat(s,overlapIdx(1)-1) yMat(parentSeg,overlapIdx(end))], overlapIdx);
+                    idx = [overlapIdx(1)-1 overlapIdx(end)];
+                    if isnan(xMat(s,idx(1)))
+                        idx(1) = overlapIdx(1);
+                    end
                 end
+                xRef = interp1(idx, [xMat(s,idx(1)) xMat(parentSeg,idx(2))], overlapIdx);
+                yRef = interp1(idx, [yMat(s,idx(1)) yMat(parentSeg,idx(2))], overlapIdx);
                 
                 d = sqrt((xMat([s parentSeg],overlapIdx)-xRef).^2 + (yMat([s parentSeg],overlapIdx)-yRef).^2);
                 % remove overlap
