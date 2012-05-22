@@ -982,9 +982,11 @@ if ~(exist([data.source 'Tracking'], 'dir')==7)
 end
 if isunix
     cmd = ['svn info ' mfilename('fullpath') '.m | grep "Last Changed Rev"'];
-    [~,rev] = system(cmd);
-    rev = regexp(rev, '\d+', 'match');
-    processingInfo.revision = rev{1};
+    [status,rev] = system(cmd);
+    if status==0
+        rev = regexp(rev, '\d+', 'match');
+        processingInfo.revision = rev{1};
+    end
 end
 processingInfo.procFlag = [preprocess postprocess];
 
