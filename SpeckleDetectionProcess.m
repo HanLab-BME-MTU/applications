@@ -110,5 +110,10 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
             end
         end
         
+        function y =formatOutput(x)
+            x= x([x.status]==1);
+            y=vertcat(x.Lmax);
+            y=y(2:-1:1);
+        end
     end
 end
