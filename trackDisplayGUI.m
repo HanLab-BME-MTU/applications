@@ -118,7 +118,7 @@ handles.trackCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Tracks:', 
     'Position', [200 25 80 15], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
 handles.trackChoice = uicontrol('Style', 'popup',...
-    'String', {'Lifetime', 'Category', 'Random'},...
+    'String', {'Category', 'Lifetime', 'Object Type', 'Random'},...
     'Position', [280 28 100 20], 'Callback', {@trackChoice_Callback, hfig});
 
 
@@ -227,7 +227,7 @@ end
 
 
 % initialize handles
-handles.trackMode = 'Lifetime';
+handles.trackMode = 'Category';
 handles.hues = getFluorophoreHues(data.markers);
 handles.rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
@@ -694,6 +694,13 @@ if ~isempty(handles.tracks{handles.mCh})
             %rotateXTickLabels(handles.cAxes, 'Angle', 45, 'AdjustFigure', false);
             %text(2.5, 2.5, 'Single tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
             %text(6.5, 2.5, 'Compound tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
+        case 'Object Type'
+            cmap = [0 0.8 0; 0.8 0 0];
+            imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
+            set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                'YTick', 1:8, 'YTickLabel', [], 'TickLength', [0 0]);
+            text(-.5, 1, 'CCP', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
+            text(-.5, 2, 'Other', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
         otherwise
             set(handles.cAxes, 'Visible', 'off');
             cla(handles.cAxes);

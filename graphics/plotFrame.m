@@ -42,7 +42,7 @@ ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,numel(data.channels)), @(x) iscell(x));
-ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'lifetime', 'category', 'random'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'category', 'lifetime', 'object type', 'random'})));
 ip.addParamValue('ShowEvents', false, @islogical);
 % ip.addParamValue('ShowDetection', false, @islogical); % add optional load fct?
 ip.addParamValue('Detection', []);
@@ -172,26 +172,23 @@ if ~isempty(tracks)
                
             case 'category'
                 % Categories
-                % Ia)  Single tracks with valid gaps
-                % Ib)  Single tracks with invalid gaps
+                % Ia)  Single tracks
+                % Ib)  Single tracks, rejected
                 % Ic)  Single tracks cut at beginning or end
                 % Id)  Single tracks, persistent
                 % IIa) Compound tracks with valid gaps
                 % IIb) Compound tracks with invalid gaps
                 % IIc) Compound tracks cut at beginning or end
                 % IId) Compound tracks, persistent
-                singleIdx = [tracks.nSeg]==1;
-                validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracks)==4;
-                vis = [tracks.visibility];
-                
-                idx_Ia = singleIdx & validGaps & vis==1;
-                idx_Ib = singleIdx & ~validGaps & vis==1;
-                idx_Ic = singleIdx & vis==2;
-                idx_Id = singleIdx & vis==3;
-                idx_IIa = ~singleIdx & validGaps & vis==1;
-                idx_IIb = ~singleIdx & ~validGaps & vis==1;
-                idx_IIc = ~singleIdx & vis==2;
-                idx_IId = ~singleIdx & vis==3;
+
+                idx_Ia = [tracks.catIdx]==1;
+                idx_Ib = [tracks.catIdx]==2;
+                idx_Ic = [tracks.catIdx]==3;
+                idx_Id = [tracks.catIdx]==4;
+                idx_IIa = [tracks.catIdx]==5;
+                idx_IIb = [tracks.catIdx]==6;
+                idx_IIc = [tracks.catIdx]==7;
+                idx_IId = [tracks.catIdx]==8;
                 
                 plot(ha, X(:,idx_Ia), Y(:,idx_Ia), 'Color', [0 1 0]);
                 plot(ha, X(:,idx_Ib), Y(:,idx_Ib), 'Color', [1 1 0]);
@@ -201,7 +198,10 @@ if ~isempty(tracks)
                 plot(ha, X(:,idx_IIb), Y(:,idx_IIb), 'Color', [0 0.5 1]);
                 plot(ha, X(:,idx_IIc), Y(:,idx_IIc), 'Color', [0 0 1]);
                 plot(ha, X(:,idx_IId), Y(:,idx_IId), 'Color', [0.5 0 1]);
-                
+            case 'object type'    
+                isCCP = [tracks.isCCP];
+                plot(ha, X(:,isCCP), Y(:,isCCP), 'Color', [0 0.8 0]);
+                plot(ha, X(:,~isCCP), Y(:,~isCCP), 'Color', [0.8 0 0]);
             case 'random'
                 set(ha, 'ColorOrder', ip.Results.Colormap(idx,:));
                 plot(ha, X, Y);
