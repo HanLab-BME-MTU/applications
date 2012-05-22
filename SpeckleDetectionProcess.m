@@ -111,9 +111,10 @@ classdef SpeckleDetectionProcess < ImageAnalysisProcess
         end
         
         function y =formatOutput(x)
+            % Format speckles in xy coordinate systems
             x= x([x.status]==1);
             y=vertcat(x.Lmax);
-            y=y(2:-1:1);
+            y=y(:,2:-1:1);
         end
     end
 end
