@@ -12,6 +12,7 @@ ip.addParamValue('Cutoff_f', 4, @isscalar);
 ip.addParamValue('Print', false, @islogical);
 ip.addParamValue('Buffer', 5);
 ip.addParamValue('MaxIntensityThreshold', []);
+ip.addParamValue('Overwrite', false, @islogical);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -32,14 +33,15 @@ firstN = 3:20;
 
 % loop through data sets, load tracks, store max. intensities and lifetimes
 res = struct([]);
-lftRes = struct([]);
+% lftRes = struct([]);
+
 
 % fprintf('Lifetime analysis (%s) - loading tracks:     ', getShortPath(data));
 lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'};
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - loading tracks:   0%%');
 for i = 1:nd
-    lftData = getLifetimeData(data(i));
+    lftData = getLifetimeData(data(i), 'Overwrite', ip.Results.Overwrite);
     
     % apply frames cutoff for short tracks
     lftData.intMat_Ia(lftData.trackLengths(lftData.catIdx==1)<cutoff_f,:) = [];
@@ -55,7 +57,7 @@ for i = 1:nd
     idx_IIa = [lftData.catIdx]==5;
     v = hist([lftData.catIdx], 1:8);
     v = v/numel(lifetime_s);
-    lftRes(i).trackClassStats = v;
+    lftRes.trackClassStats(i,:) = v;
     
     % raw histograms
     N = data(i).movieLength-2*buffer;
@@ -95,12 +97,11 @@ for i = 1:nd
     px = data(i).pixelSize / data(i).M; % pixels size in object space
     mpath = [data(i).source 'Detection' filesep 'cellmask.tif'];
     mask = logical(imread(mpath));
-    lftRes(i).cellArea = sum(mask(:)) * px^2 / 1e-12; % in µm^2
+    lftRes.cellArea(i) = sum(mask(:)) * px^2 / 1e-12; % in µm^2
     
     % in µm^-2 min^-1
-    lftRes(i).initDensity_all = [median(startsPerFrame_all); madFactor*mad(startsPerFrame_all, 1)]/data(i).framerate*60/lftRes(i).cellArea;
-    lftRes(i).initDensity_Ia = [median(startsPerFrame_Ia); madFactor*mad(startsPerFrame_Ia, 1)]/data(i).framerate*60/lftRes(i).cellArea;
-    
+    lftRes.initDensity_all(i,:) = [median(startsPerFrame_all); madFactor*mad(startsPerFrame_all, 1)]/data(i).framerate*60/lftRes.cellArea(i);
+    lftRes.initDensity_Ia(i,:) = [median(startsPerFrame_Ia); madFactor*mad(startsPerFrame_Ia, 1)]/data(i).framerate*60/lftRes.cellArea(i);
     
     %-------------------------------------------------------------
     % Max. intensity distribution for cat. Ia CCP tracks
@@ -134,18 +135,16 @@ fprintf('\n');
 %====================
 fprintf(2, 'Initiation density, all tracks:\n');
 for i = 1:nd
-    fprintf('%s: %f ± %f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes(i).initDensity_all(1), lftRes(i).initDensity_all(2));
+    fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_all(i,1), lftRes.initDensity_all(i,2));
 end
-D = [lftRes.initDensity_all];
 % fprintf('Initiation density, SEM: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:))/sqrt(nd));
-fprintf(2, 'Average: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:)));
+fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensity_all(:,1)), std(lftRes.initDensity_all(:,1)));
 fprintf('-------------------------------------------------\n');
 fprintf(2, 'Initiation density, valid tracks only:\n');
 for i = 1:nd
-    fprintf('%s: %f ± %f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes(i).initDensity_Ia(1), lftRes(i).initDensity_Ia(2));
+    fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_Ia(i,1), lftRes.initDensity_Ia(i,2));
 end
-D = [lftRes.initDensity_Ia];
-fprintf(2, 'Average: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:)));
+fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensity_Ia(:,1)), std(lftRes.initDensity_Ia(:,1)));
 fprintf('-------------------------------------------------\n');
 
 
@@ -192,12 +191,15 @@ for i = 1:nd
     idx = res(i).maxA_all >= T;
     res(i).lftAboveT = res(i).lft_all(idx);
     res(i).lftBelowT = res(i).lft_all(~idx);
-    lftRes(i).pctAbove = sum(idx)/numel(idx);
+    lftRes.pctAbove(i) = sum(idx)/numel(idx);
     
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
+    %t = (1:N)*framerate;
     lftHist_A = hist(res(i).lftAboveT, t);
     lftHist_B = hist(res(i).lftBelowT, t);
+    %lftHist_A(1:cutoff_f-1) = [];
+    %lftHist_B(1:cutoff_f-1) = [];
     
     % apply correction
     % relative probabilities:
@@ -210,29 +212,16 @@ for i = 1:nd
     lftHist_B =  [lftHist_B.*w  pad0];
     
     % Normalization
-    lftRes(i).lftHist_A = lftHist_A / sum(lftHist_A) / framerate;
-    lftRes(i).lftHist_B = lftHist_B / sum(lftHist_B) / framerate;
+    lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
+    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
 end
-pctAbove = [lftRes.pctAbove];
 
-t_hist = (cutoff_f:Nmax)*framerate;
-meanHist_A =  mean(vertcat(lftRes.lftHist_A),1);
-meanHist_B =  mean(vertcat(lftRes.lftHist_B),1);
+lftRes.t_hist = (cutoff_f:Nmax)*framerate;
+lftRes.meanLftHist_A =  mean(lftRes.lftHist_A,1);
+lftRes.meanLftHist_B =  mean(lftRes.lftHist_B,1);
+lftRes.data = data;
 
-fset = loadFigureSettings();
-hf(1) = figure;
-hold on;
-hp(2) = plot(t_hist, meanHist_B, '.-', 'Color', 0.6*[1 1 1], 'LineWidth', 2, 'MarkerSize', 16);
-hp(1) = plot(t_hist, meanHist_A, '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 16);
-axis([0 min(120, t_hist(end)) 0 0.05]);
-set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
-xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Frequency', fset.lfont{:});
-hl = legend(hp, ['Above threshold (' num2str(mean(pctAbove)*100,'%.1f') ' ± ' num2str(std(pctAbove)*100,'%.1f') ' %)'],...
-    ['Below threshold (' num2str(mean(1-pctAbove)*100,'%.1f') ' ± ' num2str(std(pctAbove)*100,'%.1f') ' %)'], 'Location', 'NorthEast');
-set(hl, 'Box', 'off', fset.tfont{:});
-
-
+plotLifetimes(lftRes);
 
 return
     %====================
@@ -241,17 +230,10 @@ return
 %     lftHist = getLifetimeHistogram(data(k), tracks, Nmax, 'Cutoff_f', ip.Results.Cutoff_f, 'Buffer', ip.Results.Buffer);
 %     res.lftHist_Ia{k} = lftHist.Ia;
 %     res.lftHist_Ib{k} = lftHist.Ib;
-%     res.lftHist_IIa{k} = lftHist.IIa;
-%     
-   
-    
-
-    
-  
+%     res.lftHist_IIa{k} = lftHist.IIa;    
     %====================
     % Gap statistics
-    %====================
-    
+    %==================== 
 %     binEdges = [0:20:120 data(k).movieLength-data(k).framerate];
 %     nb = length(binEdges)-1;
 %     gapsPerTrack_Ia = zeros(1,nb);
@@ -268,18 +250,9 @@ return
 %     res.gapsPerTrack_IIa{k} = gapsPerTrack_IIa;
 
 
-
-
 %-------------------------
 % Mean histogram
 %-------------------------
-t_hist = (cutoff_f:Nmax)*framerate;
-
-% Class percentages
-C = vertcat(lftRes.trackClassStats);
-v = mean(C,1);
-v_std = std(C,[],1);
-
 meanHist_Ia =  mean(vertcat(res.lftHist_Ia),1);
 meanHist_Ib =  mean(vertcat(res.lftHist_Ib),1);
 meanHist_IIa = mean(vertcat(res.lftHist_IIa),1);
