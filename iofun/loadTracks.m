@@ -58,10 +58,15 @@ if ip.Results.Mask
         mask = logical(getCellMask(data));
     end
     
-    x = round(arrayfun(@(tr) nanmean(tr.x(mCh,:)), tracks));
-    y = round(arrayfun(@(tr) nanmean(tr.y(mCh,:)), tracks));
-
-    % exclude tracks in background
+    nt = numel(tracks);
+    x = NaN(1,nt);
+    y = NaN(1,nt);
+    for k = 1:nt
+        x(k) = round(nanmean(tracks(k).x(mCh,:)));
+        y(k) = round(nanmean(tracks(k).y(mCh,:)));
+    end
+    
+    % remove tracks outside of mask
     [ny,nx] = size(mask);
     idx = sub2ind([ny nx], y, x);
     tracks = tracks(mask(idx)==1);

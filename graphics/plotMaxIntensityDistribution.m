@@ -2,30 +2,17 @@ function plotMaxIntensityDistribution(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addOptional('maxIntDistCat', [], @isstruct);
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
-% ip.addParamValue('HistT', false);
 ip.addParamValue('XTicks', 0:40:360);
 ip.addParamValue('FirstNFrames', []);
 ip.parse(varargin{:});
 
-maxIntDistCat = ip.Results.maxIntDistCat;
 mode = ip.Results.Mode;
 xa = ip.Results.XTicks;
-
-% if ip.Results.HistT
-if isempty(ip.Results.FirstNFrames)
-    intVect = 'maxA';
-    intHist = 'ni';
-else
-    intVect = ['maxA_f' num2str(ip.Results.FirstNFrames)];
-    intHist = ['ni_f' num2str(ip.Results.FirstNFrames)];
-end
 
 [~, figPath] = getCellDir(data(1));
 figPath = [figPath 'Figures' filesep];
 [~,~] = mkdir(figPath);
-
 
 % cohorts: 3, 4, 5, 6, 7, 8, 9, 10, 11-20, 21-40, 41-60 etc.
 lb = [3:10 11 16 21 41 61 81 101 141];
@@ -42,10 +29,29 @@ ya = 0:0.01:0.05;
 % ya = 0:0.05:0.25;
 % ya = 0:0.1:0.5;
 
-%%
-if isempty(maxIntDistCat)
-    [~, maxIntDistCat] = getMaxIntensityDistributions(data, lb, ub);
+
+lftData = getLifetimeData(data);
+maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2), lftData, 'UniformOutput', false);
+
+% Rescale EDFs (correction for FP-fusion expression level)
+a = rescaleEDFs(maxA_all, 'Display', false);
+
+% apply scaling
+for i = 1:numel(data)
+    lftData(i).intMat_Ia = a(i) * lftData(i).intMat_Ia;
+    maxA_all{i} = a(i) * maxA_all{i};
 end
+
+% Concatenate data
+if isempty(ip.Results.FirstNFrames) % full distribution
+    maxA = vertcat(maxA_all{:});
+else
+    f = ip.Results.FirstNFrames;
+    maxA = arrayfun(@(i) nanmax(i.intMat(:,1:f),[],2), lftData, 'UniformOutput', false);
+    maxA = vertcat(maxA{:});
+end
+lifetime_s = arrayfun(@(i) i.lifetime_s([i.catIdx]==1), lftData, 'UniformOutput', false);
+lifetime_s = [lifetime_s{:}];
 
 
 % [k0, nVec, xVec, fVec, FVec, aVec] = fitGammaDistN({maxIntDistCat(:).maxA});
@@ -90,21 +96,30 @@ figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 hbg = axes('Units', 'pixels', 'Position', [0 0 pos(3:4)]);
 % axis(hbg, [0 0 pos(3:4)])
 hold(hbg, 'on');
+
+
+nc = numel(lb);
+ni = cell(1,nc);
+maxAcohort = cell(1,nc);
 for k = 1:numel(lb)
     aw = 6*40;
     hi = axes('Units', 'pixels', 'Position', [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80]);
     hold on;
     box off;
     set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
-    pct = prctile(maxIntDistCat(k).(intVect), [5 50 95]);
+    maxAcohort{k} = maxA(lb(k)<=lifetime_s & lifetime_s<=ub(k));
+    pct = prctile(maxAcohort{k}, [5 50 95]);
     
     %[kGamma(k), nGamma(k), x, f, a, kappa(k)] = fitGammaDist(maxIntDistCat(k).maxA);
     if strcmpi(mode, 'pdf')
-        bar(xi, maxIntDistCat(k).(intHist), 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
-        %plot(xVec, fVec{k-ny}, 'r', 'LineWidth', 1.5);
+        ni0 = hist(maxAcohort{k}, xi);
+        ni{k} = ni0/sum(ni0)/dxi;
+        
+        bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
+        %stairsXT(xi, ni{k}, 'FaceColor', cf3, 'EdgeColor', ce3, 'LineWidth', 1);
         
         if ub(k)<10
-            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, maxIntDistCat(k).(intHist));
+            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, ni{k});
             plot(xg, g, 'g', 'LineWidth', 1.5);
             plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
         end
@@ -120,14 +135,13 @@ for k = 1:numel(lb)
                 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', sfont{:});
         end
         
-        if isempty(ip.Results.FirstNFrames) && k>1
-            [p, y] = getGaussianConvPrms(xi, maxIntDistCat(k-1).ni, maxIntDistCat(k).ni);
-            mu(k-1) = p(1);
-            sigma(k-1) = p(2);
-            %stairsXT(xi, maxIntDistCat(k-1).ni, 'c');
-            plot(xi, maxIntDistCat(k-1).ni, 'c');
-            plot(xi, y, 'b');
-        end
+%         if isempty(ip.Results.FirstNFrames) && k>1
+%             [p, y] = getGaussianConvPrms(xi, ni{k-1}, ni{k});
+%             mu(k-1) = p(1);
+%             sigma(k-1) = p(2);
+%             stairsXT(xi, ni{k-1}, 'EdgeColor', 0.2*[1 1 1]);
+%             plot(xi, y, 'b');
+%         end
         
     else
         [f_ecdf, t_ecdf] = ecdf(maxIntDistCat(k).maxA);
@@ -165,7 +179,7 @@ for k = 1:numel(lb)
     
     if k>1
         %[pval hval] = ranksum(maxIntDistCat(k-1).maxA, maxIntDistCat(k).maxA);
-        [hval pval] = kstest2(maxIntDistCat(k-1).(intVect), maxIntDistCat(k).(intVect));
+        [hval pval] = kstest2(maxAcohort{k-1}, maxAcohort{k});
         %pval
         if hval==0 % indicate that the distributions are the same
             
