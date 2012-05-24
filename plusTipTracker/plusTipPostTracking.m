@@ -519,10 +519,13 @@ aT(:,7)=aT(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
    singleDataMat = aT;
    singleDataMat(compIdx,:) = [];
    
+   
    % remove uIdx 
    uIdxSingleMat = find(singleDataMat(:,5) == 4);
+   
    toRemove = sort([uIdxSingleMat;uIdxSingleMat+1;uIdxSingleMat-1]); 
-   singleDataMat(toRemove,:) = []; 
+   
+   singleDataMat(toRemove(toRemove~=0),:) = []; 
    
 
    if remBegEnd == 1 
