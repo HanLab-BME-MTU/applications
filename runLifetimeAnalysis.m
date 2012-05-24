@@ -168,18 +168,12 @@ end
 if isempty(ip.Results.MaxIntensityThreshold)
     % lifetime cohort: [5..10] seconds
     % combine first 5 frames from all cohorts
-    xa = 0:40:360;
-    da = xa(2)-xa(1);
-    dxi = da/8;
-    xi = 0:dxi:xa(end)+da;
     
     maxIntDistCat_f5 = horzcat(res.maxA_f5);
     maxIntDistCat_f5 = vertcat(maxIntDistCat_f5{:});
     
-    ni = hist(maxIntDistCat_f5, xi);
-    ni = ni/sum(ni)/dxi;
-    
-    [mu_g sigma_g xg g] = fitGaussianModeToHist(xi, ni);
+    %[mu_g sigma_g] = fitGaussianModeToPDF(maxIntDistCat_f5);
+    [mu_g sigma_g] = fitGaussianModeToCDF(maxIntDistCat_f5);
     T = norminv(0.99, mu_g, sigma_g);
     fprintf('Max. intensity threshold: %.2f\n', T);
 else
