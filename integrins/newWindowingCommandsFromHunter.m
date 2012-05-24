@@ -3,10 +3,16 @@ movieSelectorGUI
 load movieData.mat
 
 %get cell mask
-% threshParam.MaxJump = [];
+%Rosin
+threshParam.MaxJump = 1.5;
 threshParam.GaussFilterSigma = 0.5;
+threshParam.MethodIndx = 3;
 MD = thresholdMovie(MD,threshParam);
-% MD = thresholdMovie(MD);
+%MinMax
+threshParam.MaxJump = 1.1;
+threshParam.GaussFilterSigma = 0.5;
+threshParam.MethodIndx = 1;
+MD = thresholdMovie(MD,threshParam);
 
 %refine cell mask
 % refinementParam.MaxEdgeAdjust = 50;
@@ -50,7 +56,7 @@ makeMovieMovie(MD,'Overlay','Protrusion','SegProcessIndex',2,'FileName','moviePr
 %divide mask into windows
 windowParam.MethodName = 'ProtrusionBased';
 windowParam.ParaSize = 5;
-windowParam.PerpSize = 5;
+windowParam.PerpSize = 10;
 windowParam.SegProcessIndex = 2;
 MD = getMovieWindows(MD,windowParam);
 

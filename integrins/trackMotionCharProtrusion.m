@@ -58,37 +58,40 @@ for iTrack = 1 : numTracks
     %go over segments in track
     for iSegment = indxGood'
         
-        %calculate segment's motion direction using the position covariance matrix
+        %get frame-to-frame displacements along x and y
+        trackDisp = [xCoordDelta(iSegment,:); yCoordDelta(iSegment,:)]';
+        numEntries = size(trackDisp,1);
+        
+        %decompose segment's motion to estimate its asymmetry
         posCov = nancov([xCoord(iSegment,:); yCoord(iSegment,:)]');
         [eigVec,eigVal] = eig(posCov);
         eigVal = diag(eigVal);
         eigVal(eigVal<eps) = eps;
         eigValMax = max(eigVal);
-        eigVecMax(iSegment,:) = eigVec(:,eigVal==eigValMax)'; %tentative motion direction (sign not determined yet, see below)
+        eigValRatio(iSegment) = eigValMax / min(eigVal); %eigenvalue ratio as measure of asymmetry
         
-        %also calculate ratio of eigenvalues as a measure of asymmetry
-        eigValRatio(iSegment) = eigValMax / min(eigVal);
-        
-        %get frame-to-frame displacements along x and y
-        trackDisp = [xCoordDelta(iSegment,:); yCoordDelta(iSegment,:)]';
-        numEntries = size(trackDisp,1);
-        
+        %get motion direction as eigenvector corresponding to the maximum
+        %eigenvalue
+        %the direction has to be such that the net displacement along
+        %direction of motion is positive
+        paraDir = eigVec(:,eigVal==eigValMax)';
+        paraTrackDisp = dot(trackDisp,repmat(paraDir,numEntries,1),2); %displacement
+        netDispPara = nansum(paraTrackDisp); %net displacement
+        eigVecMax(iSegment,:) = sign(netDispPara) * paraDir;
+                
         %decompose displacement relative to direction of motion
         paraDir = eigVecMax(iSegment,:);
         perpDir = [-paraDir(2) paraDir(1)];
         paraTrackDisp = dot(trackDisp,repmat(paraDir,numEntries,1),2);
         perpTrackDisp = dot(trackDisp,repmat(perpDir,numEntries,1),2);
-        paraDirDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
-            nanmean(abs(paraTrackDisp))],eps);
+        paraDirDispCurrent(iSegment,:) = [nanmean(paraTrackDisp) ...
+            nanmean(abs(paraTrackDisp))];
+        paraDirDispCurrent(iSegment,paraDirDispCurrent(iSegment,:)==0) = eps;
+        %         paraDirDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
+        %             nanmean(abs(paraTrackDisp))],eps);
         perpDirDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
             nanmean(abs(perpTrackDisp))],eps);
                 
-        %flip motion direction if necessary
-        %the condition used is that the net displacement along direction of
-        %motion should be positive
-        netDispPara = nansum(paraTrackDisp);
-        eigVecMax(iSegment,:) = sign(netDispPara) * eigVecMax(iSegment,:);
-        
         %find which window this track falls in
         bigIndx = trackStartRow(iTrack) + iSegment - 1;
         iPara = trackWindowAssign(bigIndx,2);
@@ -107,8 +110,11 @@ for iTrack = 1 : numTracks
             %decompose displacement relative to protrusion vector
             paraTrackDisp = dot(trackDisp,repmat(protParaDir,numEntries,1),2);
             perpTrackDisp = dot(trackDisp,repmat(protPerpDir,numEntries,1),2);
-            paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
-                nanmean(abs(paraTrackDisp))],eps);
+            paraProtDispCurrent(iSegment,:) = [nanmean(paraTrackDisp) ...
+                nanmean(abs(paraTrackDisp))];
+            paraProtDispCurrent(iSegment,paraProtDispCurrent(iSegment,:)==0) = eps;
+            %             paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
+            %                 nanmean(abs(paraTrackDisp))],eps);
             perpProtDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
                 nanmean(abs(perpTrackDisp))],eps);
             
@@ -129,5 +135,7 @@ for iTrack = 1 : numTracks
     iSeg = iSeg + numSeg;
     
 end
+
+disp('')
 
 %% ~~~ the end ~~~

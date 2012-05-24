@@ -19,10 +19,13 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag] ...
 %           labelRatio      : Receptor labeling ratio.
 %           intensityQuantum: Row vector with 2 values, the mean and std of
 %                             receptor labeling intensities.
+%           initPositions   : Receptor initial positions. If supplied, they
+%                             will be used. If not, random positions will
+%                             be chosen.
 %       simParam: Structure with the fields:
 %           dimension       : System dimensionality (1, 2 or 3). Default: 2.
 %           observeSideLen  : Observation side length (microns). Either one
-%                             value, used for all dimensions, or a row0.1
+%                             value, used for all dimensions, or a row
 %                             vector with a value for each dimension.
 %                             Default: 1 in all dimensions.
 %           timeStep        : Simulation time step (s).
@@ -122,6 +125,13 @@ if isfield(modelParam,'labelRatio')
 else
     disp('--receptorAggregationSimple: Please supply labeling ratio');
     errFlag = 1;
+end
+
+%receptor initial positions
+if isfield(modelParam,'initPositions')
+    initPositions = modelParam.initPositions;
+else
+    initPositions = [];
 end
 
 %intensity quantum
@@ -231,11 +241,20 @@ rng(randNumGenSeeds(1),'twister')
 %calculate observation region size
 obsRegionSize = prod(observeSideLen);
 
-%calculate number of receptors
-numReceptors = round(obsRegionSize * receptorDensity);
-
-%initialize receptor positions
-initPositions = rand(numReceptors,dimension) .* repmat(observeSideLen,numReceptors,1);
+if isempty(initPositions)
+    
+    %calculate number of receptors
+    numReceptors = round(obsRegionSize * receptorDensity);
+    
+    %initialize receptor positions
+    initPositions = rand(numReceptors,dimension) .* repmat(observeSideLen,numReceptors,1);
+    
+else
+    
+    %get number of receptors
+    numReceptors = size(initPositions,1);
+    
+end
 
 %based on these positions, cluster receptors (and modify their positions)
 aggregationProbVec = aggregationProb*ones(numReceptors,1);
@@ -255,9 +274,11 @@ receptorTraj(:,:,1) = initPositions;
 recept2clustAssign(:,1) = receptor2cluster;
 clust2receptAssign(1:numClusters,1:maxClustSize,1) = cluster2receptor;
 
+progressText(0,'Simulation');
+
 %iterate in time
 for iIter = 2 : numIterations
-
+    
     %allow receptors in clusters to dissociate in current time point
     [cluster2receptor,~,clusterSize] = receptorDissociationAlg(...
         cluster2receptor,receptor2cluster,clusterSize,dissociationProb);
@@ -300,7 +321,7 @@ for iIter = 2 : numIterations
     positionsNew = positionsNew - 2 * correctionBoundaryUp;
 
     %for receptors that were clustered from before, make their aggregation
-    %probability is equal to 1, since they should stay clustered at this
+    %probability equal to 1, since they should stay clustered at this
     %point in the simulation
     aggregationProbVec = aggregationProb*ones(numReceptors,1);
     clusteredReceptorIndx = cluster2receptor(clustersBig,:);
@@ -317,6 +338,8 @@ for iIter = 2 : numIterations
     recept2clustAssign(:,iIter) = receptor2cluster;
     clust2receptAssign(1:numClusters,1:maxClustSize,iIter) = cluster2receptor;
 
+    progressText((iIter-1)/(numIterations-1),'Simulation');
+    
 end %(for iIter = 2 : numIterations)
 
 %remove empty rows and columns from clust2receptAssign

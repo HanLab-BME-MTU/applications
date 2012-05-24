@@ -16,9 +16,9 @@ function particleBehaviorVsEdgeMotion(protPerWindow,sptPropInWindow,...
 %                        run parallel to the cell edge. Band #1 is at the
 %                        cell edge.
 %                        Optional. Default: 1.
-%      window2analyze  : Vector indicating which windows to analyze. 
+%       window2analyze : Vector indicating which windows to analyze. 
 %                        Optional. Default: all windows.
-%      frameRange      : Row vector with first and last frame to include
+%       frameRange     : Row vector with first and last frame to include
 %                        in analysis.
 %                        Optional. Default: all frames.
 %
@@ -84,6 +84,7 @@ close
 
 %classify edge motion activity per window
 windowMotionType = classifyEdgeMotion(protPerWindow);
+windowMotionType = windowMotionType(:,1:end-1);
 
 %get the indices of windows with the different motion types
 indxProtrude = find(windowMotionType==1);
@@ -99,12 +100,18 @@ for iProp = 1 : numProp2analyze
     %get current particle property
     eval(['propCurrent = sptPropInWindow.' propName '.values;']);
     
-    %make a scatter plot of property vs. protrusion normal
-    %color coding: green = protrusion, red = retraction, blue = pause
-    figure, hold on
-    plot(protNormVecMag(indxProtrude),propCurrent(indxProtrude),'g+')
-    plot(protNormVecMag(indxRetract),propCurrent(indxRetract),'rx')
-    plot(protNormVecMag(indxPause),propCurrent(indxPause),'b.')
+    for iBand = band2analyze
+        
+        propCurrentBand = squeeze(propCurrent(iBand,:,:));
+        
+        %make a scatter plot of property vs. protrusion normal
+        %color coding: green = protrusion, red = retraction, blue = pause
+        figure, hold on
+        plot(protNormVecMag(indxProtrude),propCurrentBand(indxProtrude),'g+')
+        plot(protNormVecMag(indxRetract),propCurrentBand(indxRetract),'rx')
+        plot(protNormVecMag(indxPause),propCurrentBand(indxPause),'b.')
+        
+    end
     
 end %(for iProp = 1 : numProp2analyze)
 
