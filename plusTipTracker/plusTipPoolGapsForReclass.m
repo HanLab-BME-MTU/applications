@@ -27,7 +27,11 @@ function [projData ] = plusTipPoolGapsForReclass( groupList, varargin)
 
 ip = inputParser;
 ip.addRequired('groupList',@(x)iscell(x) || isempty(x));
-
+if nargin<1 || isempty(groupList)
+    [file2load dir] = uigetfile(pwd, 'Please Choose a groupList file to Load');
+    s = load([dir filesep file2load]); 
+    groupList= s.groupList;
+end 
 
 ip.addOptional('groupListForThresh',groupList,@iscell);
 ip.addOptional('meta2Use','meta',@ischar);
@@ -52,8 +56,6 @@ mkHistGaps = ip.Results.mkHistGaps;
 useFirstInList = ip.Results.useFirstInList;
 mkHist = ip.Results.mkHist;
 remBegEnd = ip.Results.remBegEnd; 
-
-
 
 
 
@@ -189,7 +191,10 @@ for iGroup = 1:length(btwGrpNames)
             x = ones(1,max(n)+10+1); 
             x = x*cutOffValueFGap_VelMicPerMin; 
             y= (0:max(n)+10); 
+            xzeros = zeros(1,max(n)+10+1);
             plot(x,y,'r'); 
+            plot(xzeros,y,'r'); 
+            
             forPlotNames = cellfun(@(x) strrep(x,'_',''),btwGrpNames(:,1),'uniformoutput',0); 
             title([forPlotNames(iGroup,1),'Velocity All Gaps']); 
             xlabel('Gap Velocity (um*min-1)');
