@@ -1,4 +1,4 @@
-function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupData,subRoiAnalysis)
+function [projData,M,idxPer,idxPar]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupData,subRoiAnalysis)
 % plusTipDynamParam: generic function for calculating dynamics parameters
 %
 % SYNOPSIS: [projData.stats,M]=plusTipDynamParam(dataMatCrpSecMic)
@@ -25,12 +25,36 @@ function [projData,M]=plusTipDynamParam(dataMatCrpSecMic,projData,fromPoolGroupD
 % functions that call this one:
 % plusTipPostTracking
 % plusTipPoolGroupData
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
+
+
 
 % Put a Copy of the Data Mat Used to Calcualte All Stats in the projData
 
 projData.dataMat_FOR_STATS = dataMatCrpSecMic;  
 
 
+ 
+
+    
 
 % growth speed, lifetime, displacement
 gIdx=find(dataMatCrpSecMic(:,5)==1);
@@ -50,8 +74,90 @@ bs=dataMatCrpSecMic(bIdx,4);
 bl=dataMatCrpSecMic(bIdx,6);
 bd=dataMatCrpSecMic(bIdx,7);
 
+
 % put populations into a matrix backfilled with NaNs
-M=nan(max([length(gs) length(fs) length(bs)]),9);
+if isfield(projData , 'nTracksSubRoi') 
+  
+        
+          
+   
+    
+ x = 11;
+  
+   if projData.nTracksSubRoi == 0
+        M = nan(max([length(gs) length(fs) length(bs)]),x); 
+   else 
+       
+       
+       
+       
+    speedIn =cell2mat(projData.dataMatSubRoi_CompareGrowthInToOut(2:end,5)) ; 
+    lifeSecIn = cell2mat(projData.dataMatSubRoi_CompareGrowthInToOut(2:end,3));
+%     subTrackAngles = projData.subTrackAnglesIndMean(:,2); 
+%     subTrackAnglesInside = projData.subTrackAnglesIndMean_INSIDE_REGION(:,2); 
+%     
+
+        M = nan(max([length(gs) length(fs) length(bs) length(speedIn)...
+        length(lifeSecIn)]),x);
+    
+%     M = nan(max([length(gs) length(fs) length(bs) length(speedIn)...
+%         length(lifeSecIn) length(subTrackAngles) length(subTrackAnglesInside)]),x);
+    
+    M(1:length(speedIn),10) = speedIn; 
+    M(1:length(lifeSecIn),11) = lifeSecIn; 
+%     M(1:length(subTrackAngles),12) = subTrackAngles; 
+%     M(1:length(subTrackAnglesInside),13) = subTrackAnglesInside;
+%     
+%     % per and par
+%     idxPer = find(abs(subTrackAnglesInside) > 45 & abs(subTrackAnglesInside) < 135);  
+%     idxPar = setdiff((1:length(subTrackAngles)),idxPer); 
+%     
+%     M(1:length(idxPer),14) = speedIn(idxPer,:); 
+%     M(1:length(idxPar),15) = speedIn(idxPar,:); 
+%     
+%     M(1:length(idxPer),16) = lifeSecIn(idxPer,:); 
+%     M(1:length(idxPar),17) = lifeSecIn(idxPar,:);
+%     
+%     projData.stats.mean_growth_speed_Per_INSIDE_REGION = nanmean(M(:,14)); 
+%     projData.stats.mean_growth_speed_Par_INSIDE_REGION = nanmean(M(:,15));
+%     projData.stats.mean_growth_lifetime_Per_INSIDE_REGION = nanmean(M(:,16)); 
+%     projData.stats.mean_growth_lifetime_Par_INSIDE_REGION = nanmean(M(:,17)); 
+%     
+%     
+    
+    
+    
+   
+        
+    % recalculate these stats for pooled dataMat
+   % projData.stats.growth_speed_median_INSIDE_REGION = nanmean(speedIn(:)); 
+    %projData.stats.growth_speed_mean_INSIDE_REGION = nanmedian(speedIn(:));
+
+    %projData.stats.growth_lifetime_mean_INSIDE_REGION = nanmean(lifeSecIn(:)); 
+    %projData.stats.growth_lifetime_median_INSIDE_REGION = nanmedian(lifeSecIn(:)); 
+    
+    
+    %projData.stats.polarCoordMeanOfAllSubtracks = mean(subTrackAngles); 
+    %projData.stats.polarCoordMedianOfAllSubtracks = median(subTrackAngles); 
+    %projData.stats.polarCoordStdOfAllSubtracks = std(subTrackAngles); 
+    %projData.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION = mean(subTrackAnglesInside);
+    %projData.stats.polarCoordMedianOfAllSubtracks_INSIDE_REGION = median(subTrackAnglesInside);
+    
+   end
+    
+    
+    
+else 
+    x =9 ;
+    M = nan(max([length(gs) length(fs) length(bs)]),x); 
+%     idxPer = NaN; 
+%     idxPar = NaN; 
+   
+end 
+
+
+if ~isempty(dataMatCrpSecMic)
+
 M(1:length(gs),1)=gs;
 M(1:length(fs),2)=fs;
 M(1:length(bs),3)=bs;
@@ -61,6 +167,18 @@ M(1:length(bl),6)=bl;
 M(1:length(gd),7)=gd;
 M(1:length(fd),8)=fd;
 M(1:length(bd),9)=bd;
+
+% add these columns to M dataMat so have subtracks to read into the
+% testdistrib 
+
+    
+else 
+    M = nan(1,x); % just to keep matrices of the same size when combining
+    % multiple groups
+    
+end
+    
+ 
 
 %% PARAMETERS RELATED TO COMET DENSITY 
 % already calculated just move over into stats
@@ -72,12 +190,24 @@ if (isfield(projData,'medNNdistWithinFramePix') == 1 && fromPoolGroupData ~=1 ..
 else 
 end
 
-% field not relevent for pooled data
-%if fromPoolGroupData == 1
- %   if isfield(projData.stats,'medNNdistWithinFrameMic') ==1 ; 
- % projData.stats =  rmfield(projData.stats,'medNNdistWithinFrameMic'); 
-  %  end 
-%end 
+% some fields may not be relevant for a pulled group dataset for instance
+% comet density was calculated previously not from the pooled data
+% structure here. Therefore we need to remove this param in the pooled
+% stats: However, if remove completly f's up the alignment for the 
+% text files. therefore just set to NaN
+
+if fromPoolGroupData == 1
+ if isfield(projData.stats,'percentTracksStartAndEndInRegion'); 
+    %projData.stats = rmfield(projData.stats, 'percentTracksStartAndEndInRegion'); 
+    projData.stats.percentTracksStartEndInRegion = NaN; 
+ end 
+    projData.stats.medNNdistWithinFrameMic = NaN; 
+   
+    %projData.stats = rmfield(projData.stats, 'medNNdistWithinFrameMic'); 
+    
+ end 
+ 
+
 
 
 %% PARAMETERS RELATED TO GROWTH
@@ -126,9 +256,11 @@ end
 
 % this is just an old field in an older version: simply remove it so it
 % will not give an error
-if isfield(projData.stats,'percentFgapsReclass')==1; 
+if isfield(projData.stats,'percentFgapsReclass'); 
 projData.stats = rmfield(projData.stats,'percentFgapsReclass'); 
-else 
+end
+if isfield(projData.stats,'nucleationDensity')
+    projData.stats = rmfield(projData.stats,'nucleationDensity'); 
 end 
 %% PARAMETERS RELATED TO FGAPS 
 
@@ -329,13 +461,13 @@ end % isempty
       projData.stats.GrowthLengthBeforeTermEvent_Mic_SE = NaN;
       projData.stats.term_freq_time_mean =NaN;
       projData.stats.term_freq_time_SE = NaN;
-       projData.stats.term_freq_length_mean = NaN;
-       projData.stats.term_freq_length_SE = NaN; 
-      
+      projData.stats.term_freq_length_mean = NaN;
+      projData.stats.term_freq_length_SE = NaN; 
+      projData.stats.nGrowthTermEvents = NaN; 
       
   else 
       
-      
+    projData.stats.nGrowthTermEvents = length(beforeTermIdx);   
     % collect the parameter under question for all subtracks
     velocityBeforeTermEvent = dataMatCrpSecMic(beforeTermIdx,4);
     lifetimeBeforeTermEvent = dataMatCrpSecMic(beforeTermIdx,6);
@@ -495,9 +627,17 @@ end
       tracksWithBgap=unique(dataMatCrpSecMic(bIdx,1));
       tracksWithGap = unique(dataMatCrpSecMic([fIdx ;bIdx],1));
       
+      
+      
       projData.stats.NumTracksWithfGap2TotalTracks_Per = length(tracksWithFgap)/numTracksTotal*100;
       projData.stats.NumTracksWithbGap2TotalTracks_Per = length(tracksWithBgap)/numTracksTotal*100;
       projData.stats.NumTracksWithGap2TotalTracks_Per =  length(tracksWithGap)/numTracksTotal*100;     
+      
+      
+      
+      
+      
+      
       
    %load compound track data before remove any data
    compDataMat = projData.compDataMat; 
@@ -547,18 +687,36 @@ end
     idx=unique(tracksWithFgap);
     if isempty(idx)
         projData.stats.avgIndivPercentTimeFgap=NaN;
+       % projData.stats.meanNumFgapsInMultTrackTraj = NaN; 
+        projData.stats.meanGrowthSpeedIncludingPause = NaN; 
+        projData.stats.meanGrowthLifetimeIncludingPause = NaN; 
     else
         idxCell=mat2cell(idx,ones(length(idx),1),1);
         % sub track indices of the full tracks
         subIdxAll=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x),idxCell,'uniformoutput',0);
         % full track lifetimes and displacements
         ltfAll=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxAll,'uniformoutput',0));
-
+      
+        
+        
         % sub track indices of the fgaps
         subIdxFgaps=cellfun(@(x) find(dataMatCrpSecMic(:,1)==x & dataMatCrpSecMic(:,5)==2),idxCell,'uniformoutput',0);
         % fgap lifetimes and displacements
         ltfFgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxFgaps,'uniformoutput',0));
-
+        
+       
+        
+           
+   
+        
+        
+        % subtrack indices of the fgaps 
+        numberFgaps  = cellfun(@(x) length(x),subIdxFgaps,'uniformoutput',0); 
+        projData.stats.meanNumFgapsInMultTrackTraj = mean(cell2mat(numberFgaps));
+        
+        
+        
+        
         % average percent of time spent in fgap for individual MT
         projData.stats.avgIndivPercentTimeFgap=100*mean(ltfFgaps./ltfAll);
 
@@ -569,6 +727,7 @@ end
     idx=unique(tracksWithBgap);
     if isempty(idx)
         projData.stats.avgIndivPercentTimeBgap=NaN;
+        projData.stats.meanNumBgapsInMultTrackTraj = NaN; 
     else
 
         idxCell=mat2cell(idx,ones(length(idx),1),1);
@@ -582,12 +741,72 @@ end
         % bgap lifetimes and displacements
         ltfBgaps=cell2mat(cellfun(@(x) sum(dataMatCrpSecMic(x,6)),subIdxBgaps,'uniformoutput',0));
 
+        numberBgaps = cellfun(@(x) length(x), subIdxBgaps,'uniformoutput',0); 
+        projData.stats.meanNumBgapsInMultTrackTraj = mean(cell2mat(numberBgaps));  
+        
+        
         % average percent of time spent in bgap for individual MT
         projData.stats.avgIndivPercentTimeBgap=100*mean(ltfBgaps./ltfAll);
 
         clear idx idxCell subIdxAll
     end      
 
+%% Include all fgaps as growths
+    
+    % Include all pausing in the growth calculations
+    dataMatCompleteReclass = dataMatCrpSecMic; 
+    dataMatCompleteReclass(dataMatCompleteReclass(:,5)==2,5) = 5; 
+    growthFgapIdx = find(dataMatCompleteReclass(:,5)==5) ; 
+    
+    % these are the affected track numbers for growth fgaps
+    tracks2check=unique(dataMatCompleteReclass(growthFgapIdx,1));
+    rows2remove=[];
+    % Merge % should make this a subFunction 
+    for i=1:length(tracks2check)
+    % rows of dataMat corresponding to i track
+    subIdx=find(dataMatCompleteReclass(:,1)==tracks2check(i));
+    % rows of dataMat corresponding to fgaps in track to consolidate
+    fgap2remIdx=intersect(growthFgapIdx,subIdx);
+    % rows of dataMat corresonding to bgaps or real pauses in track
+    sepIdx=union(subIdx(dataMatCompleteReclass(subIdx,5)==3),setdiff(intersect(subIdx,growthFgapIdx),fgap2remIdx))';
+    % split the track based on bgaps, so that all fgaps that
+    % should be consolidated together can be done dataMat the same time
+    sIdx=[subIdx(1); sepIdx(:)];
+    eIdx=[sepIdx(:); subIdx(end)];
+    % loop through groups of subtracks (split by bgaps)
+    for j=1:length(sIdx)
+        % pTemp contains the ones to consolidate in this section
+        pTemp=intersect(fgap2remIdx,sIdx(j):eIdx(j));
+        if ~isempty(pTemp)
+            fIdx=min(pTemp)-1; % first row - prior to first fgap
+            lIdx=max(pTemp)+1; % last row - after final fgap
+
+            dataMatCompleteReclass(fIdx,3)=dataMatCompleteReclass(lIdx,3); % change end frame
+            dataMatCompleteReclass(fIdx,6)=sum(dataMatCompleteReclass(fIdx:lIdx,6)); % sum lifetimes
+            dataMatCompleteReclass(fIdx,7)=sum(dataMatCompleteReclass(fIdx:lIdx,7)); % sum total displacements
+            dataMatCompleteReclass(fIdx,4)= mean(dataMatCompleteReclass(fIdx:lIdx,4)); % find new average velocity
+
+            % keep track of which are the extra rows
+            rows2remove=[rows2remove fIdx+1:lIdx];
+        end
+    end
+    end
+    % remove the extra rows
+    dataMatCompleteReclass(rows2remove,:)=[];
+    growthWithFgapsIdx = dataMatCompleteReclass(:,5) == 1;
+    projData.stats.growth_speed_mean_IncludeAllPause = mean(dataMatCompleteReclass(growthWithFgapsIdx,4)); 
+    projData.stats.growth_speed_median_IncludeAllPause = median(dataMatCompleteReclass(growthWithFgapsIdx,4)); 
+    projData.stats.growth_lifetime_mean_IncludeAllPause = mean(dataMatCompleteReclass(growthWithFgapsIdx,6));
+    projData.stats.growth_lifetime_median_IncludeAllPause= median(dataMatCompleteReclass(growthWithFgapsIdx,6)); 
+       
+    
+    
+    
+    
+    
+    
+    
+    
     %% Dynamicity
     % calculate dynamicity (mic/min)
     idx=unique([tracksWithFgap; tracksWithBgap]);
@@ -604,28 +823,52 @@ end
         % collective displacement of all gap-containing MTs over their collective lifetime
         projData.stats.dynamicity=sum(disp)/(sum(ltf)/60);
     end
+    
+% 
+
+    
+    
 
    end % if subRoiAnalysis
        
 %% Comet Latency Parameters
 
 projData.stats.avgComLatSec = projData.stats.fgap_length_mean/projData.stats.growth_speed_mean*60;
-
 %% Growth, fgap, bgap events density
- if isfield(projData,'roiArea') == 1 || isfield(projData,'subRoiArea')
-    if subRoiAnalysis == 1
-    area = projData.subRoiAreaSqMic;
-    else 
-    area=projData.roiArea*(projData.pixSizeNm/1e3)^2; % area in microns
-    end 
-    time= projData.nFrames*projData.secPerFrame; % time in seconds
+
+if subRoiAnalysis == 1
+    if isfield(projData,'subRoiAreaSqMic') == 1
+        area = projData.subRoiAreaSqMic;
+    else
+        area = NaN;
+    end
+else
+    if isfield(projData,'roiArea')==1;
+        area=projData.roiArea*(projData.pixSizeNm/1e3)^2; % area in microns
+    else
+        area = NaN;
+    end
+end
+time= projData.nFrames*projData.secPerFrame; % time in seconds
+
+numNucEvents = sum(dataMatCrpSecMic(:,8));
+projData.stats.numNucleationEvents = numNucEvents;
+if fromPoolGroupData == 1
+    % from the pooled data structure these values are meaningless as the
+    % area doesn't correspond
+    projData.stats.fgap_density = NaN;
+    projData.stats.bgap_density = NaN;
+    projData.stats.nucleationDensity = NaN;
+    projData.stats.growth_density = NaN;
+else
+    
     projData.stats.growth_density=projData.stats.nGrowths/area/time;
-    numNucEvents = sum(dataMatCrpSecMic(:,8)); 
-    projData.stats.numNucleationEvents = numNucEvents; 
-    projData.stats.nucleationDensity = numNucEvents/area/time; 
+    projData.stats.nucleationDensity = numNucEvents/area/time;
     projData.stats.fgap_density=projData.stats.nFgaps/area/time;
     projData.stats.bgap_density=projData.stats.nBgaps/area/time;
- end 
+    
+end
+  
 
 end
 
