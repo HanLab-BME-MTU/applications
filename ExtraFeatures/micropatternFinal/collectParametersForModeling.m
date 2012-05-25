@@ -26,13 +26,13 @@ for iRegion = 1:3
       s= load([dir filesep 'nonDirectional' filesep 'SubRegions' filesep regionTypes{iRegion,1} filesep windows{iWindow} filesep 'groupData']);
         
     
-        for iGroup = 1:2
+        for iGroup = 1:numel(micropatternOutput{1}.groupData)
             
             values(1,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.growth_speed_mean_INSIDE_REGION;
             values(2,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.bgap_speed_mean;
             values(3,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.growth_lifetime_mean_INSIDE_REGION;
             values(4,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.bgap_lifetime_mean;
-            
+        
  
             
             %     params{iGroup}.growthVel = growthVel;
@@ -58,10 +58,29 @@ for iRegion = 1:3
       s= load([dir filesep 'subTrackEnd' filesep 'SubRegions' filesep regionTypes{iRegion,1} filesep windows{iWindow} filesep 'groupData']);
         
     
-        for iGroup = 1:2
+        for iGroup = 1:numel(micropatternOutput{1}.groupData)
             
-            values(5,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.nGrowths;
-            values(6,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.nGrowthTermEvents; 
+            if (iWindow ==1 && iRegion == 1)
+                regions = numel(s.groupDataCurrent.stats{iGroup});
+                numCells(iGroup) = regions./2;
+            end
+            
+             %norm by region number 
+            if (iWindow == 1 || iWindow ==2) 
+                mult = 2; % two regions ad or non ad regions
+            else 
+                mult = 4; % 4 ending in ad corn regions
+            end
+            
+            values(5,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.nGrowths;%/numCells(iGroup);;
+            values(6,zoneCount,iGroup) = s.groupDataCurrent.pooledStats{iGroup}.nGrowthTermEvents;%/numCells(iGroup); 
+            
+            
+            
+            subTrackDist = arrayfun(@(x) s.groupDataCurrent.stats{iGroup}{x}.percentWholeCellTracksTermInSubRegion,1:numel(s.groupDataCurrent.stats{iGroup}),'uniformOutput',0);
+            
+            values(7,zoneCount,iGroup) = mult*nanmean(cell2mat(subTrackDist)); 
+            
         end 
           
             
@@ -87,9 +106,26 @@ for iRegion = 1:3
       s= load([dir filesep 'nucleation' filesep 'SubRegions' filesep regionTypes{iRegion,1} filesep windows{iWindow} filesep 'groupData']);
         
     
-        for iGroup = 1:2
+        for iGroup = 1:numel(micropatternOutput{1}.groupData)
             
-            values(7,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.numNucleationEvents;
+            values(8,zoneCount,iGroup) =  s.groupDataCurrent.pooledStats{iGroup}.numNucleationEvents/numCells(iGroup);
+            
+            nucDensityDist = arrayfun(@(x) s.groupDataCurrent.stats{iGroup}{x}.nucleationDensity,1:numel(s.groupDataCurrent.stats{iGroup}),'uniformOutput',0);
+            
+            values(9,zoneCount,iGroup) = nanmean(cell2mat(nucDensityDist)); 
+            
+            
+            %norm by region number 
+            if (iWindow == 1 || iWindow ==2) 
+                mult = 2; % two regions ad or non ad regions
+            else 
+                mult = 4; % 4 ending in ad corn regions
+            end
+            ratioTracksNucDist = arrayfun(@(x) s.groupDataCurrent.stats{iGroup}{x}.percentWholeCellTracksNucInSubRegion,1:numel(s.groupDataCurrent.stats{iGroup}),'uniformOutput',0); 
+            
+            values(10,zoneCount,iGroup) = mult*nanmean(cell2mat(ratioTracksNucDist)); 
+            
+            
             
         end 
           
@@ -120,12 +156,15 @@ end
 
 %  set variable names 
 varNames{1,1} = 'Growth Velocity (um per min)'; 
-varNames{2,1} = 'Bgap Velocity (um per min)'; 
+varNames{2,1} = 'Bgap (Shrinkage) Velocity (um per min)'; 
 varNames{3,1} = 'Catastrophe Freq (Inverse Sec)';
 varNames{4,1} = 'Rescue Frequency (Inverse Sec) '; 
-varNames{5,1} = 'Number Of Growth Subtracks Ending In Region (Total Per Movie)'; 
-varNames{6,1} = 'Number Of Compound Tracks Ending In Region (ie Terminal Catastrophes) (Total Per Movie)'; 
-varNames{7,1} = 'Number Of Nucleation Events In Region (Total Per Movie) '; 
+varNames{5,1} = 'Number Of Growth Subtracks Ending In Region (Number per Cell) '; 
+varNames{6,1} = 'Number Of Microtubule Trajectories Terminally Ending In Region (ie Terminal Catastrophes) (Number per Cell)'; 
+varNames{7,1} = 'Ratio of Microtubule Trajectories Ending in Region to Total Microtubule Trajectories Observed In Whole Cell ';
+varNames{8,1} = 'Number Of Nucleation Events (Microtubule Trajectory Initiation Sites) In Region Per Cell (Number Per Cell)';
+varNames{9,1} = 'Nucleation Density (Number of Nucleation Events per um^2 per Sec)';
+varNames{10,1} = 'Ratio of Microtubule Trajectories in Region to Total Microtubule Trajectories Observed In Whole Cell'; 
 
 % get groupNames
  s= load([dir filesep 'nonDirectional' filesep 'SubRegions' filesep regionTypes{1,1} filesep windows{1,1} filesep 'groupData']);
@@ -135,7 +174,7 @@ idxSort = [6,9,3,5,8,2,4,7,1]';
 zone = zone(idxSort); 
 values = values(:,idxSort,:); 
 
-for iGroup = 1:2
+for iGroup = 1:numel(micropatternOutput{1}.groupData)
   
 groupName = strrep(groupNames{iGroup},'NonAdhesion_3uM','');    
 modelParams  = dataset({values(:,:,iGroup),zone{:}},'ObsNames',varNames); 
