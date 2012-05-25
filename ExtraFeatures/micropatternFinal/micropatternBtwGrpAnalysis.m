@@ -2,6 +2,13 @@ function [ micropatternOutput ] = micropatternBtwGrpAnalysis(micropatternOutput,
 %perfrom the between group comparisons for each mask type and extract type
 %and save.
 
+% Adds extra fields to micropatternOutput 
+% micropatternOutput{iMask}.groupData{iExtract}{iRegion}{iWindow} if
+% subregions 
+% or 
+% micropatternOutput{iMask}.groupData{iExtract}{iWindow} if no subregions; 
+
+% order for subRegions is 1 = NonAd, 2 = Ad, 3 = Ad_Corn 
 if nargin<1 || isempty(micropatternOutput)
     
     [file ,Path] =  uigetfile(pwd, 'Please Select MicropatternOutput File to Analysize')  ;
