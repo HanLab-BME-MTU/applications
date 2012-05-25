@@ -1,26 +1,63 @@
-function [ forFigure ] = micropatternGetRegionalColorMaps(micropatternOutput,poolSubTracks,useDefaultFieldnames )
+function [ forFigure ] = micropatternGetRegionalColorMaps(micropatternOutput,varargin)
 %CREATE HeatMaps for Micropattern Data H pattern data using the output from
-% micropatternOutput
-%
+% 
+% REQUIRED INPUT ; 
+% micropatternOutput 
 % micropatternOutput: output of micropatternSubRoiPrepareData and appended
 % by micropatternBtwCompare to including the stat directory name
 % the output will automatically be saved in the same file
 %
-% fieldnames: the name of the fields you would like to generate heatmaps
-% for: currently if [] will default to
-%
-% confValues: will grab the conf values (currently use
-% eventually have option to pool subtracks and use permTest
+% PARAMETERS : 
+% 'useDefaultFieldnames': 1 to use (Default 0); list of all parameter
+%  values should pull down and you can choose from them. 
+% 'refCondNum' : iGroup you want to use as your reference (Default 1);
+% 'expCondNum' : iGroup you want to use as your experimental (Default 2);
+% 'pValueCutOff1': cut off p-Value for * (Default = 0.05);
+% 'pValueCutOff2' : cut off p-value for ** (Default = 0.01)
+% 'pValueCutOff3': cut off p-value for ***(Default = 0.001); 
+%% parse input 
+
+
+%%Input check
+ip = inputParser;
+ip.addRequired('micropatternOutput',@(x)isempty(x) || iscell(x));
+
+% make time requirements optional for now so don't have to change the
+% input structure: 
+ip.addParamValue('poolSubTracks',0,@isscalar); % didn't implement the pooled stats yet
+ip.addParamValue('useDefaultFieldnames',0,@isscalar); % type 1 if you want to use the default fieldnames
+ip.addParamValue('refCondNum',1,@isscalar); % you can compare different 
+ip.addParamValue('expCondNum',2,@isscalar); 
+ip.addParamValue('fontSizeTextBox',12,@isscalar); 
+ip.addParamValue('fontSizeTitle',12,@isscalar); 
+ip.addParamValue('pValueCutOff1',0.05,@isscalar); 
+ip.addParamValue('pValueCutOff2',0.01,@isscalar);
+ip.addParamValue('pValueCutOff3',0.001,@isscalar); 
+ip.addParamValue('colorText','k',@ischar); 
+ip.parse(micropatternOutput,varargin{:});
+
+poolSubTracks = ip.Results.poolSubTracks; 
+useDefaultFieldnames = ip.Results.useDefaultFieldnames; 
+refCondNum = ip.Results.refCondNum; 
+expCondNum = ip.Results.expCondNum; 
+fontSizeTextBox = ip.Results.fontSizeTextBox; 
+fontSizeTitle = ip.Results.fontSizeTitle; 
+pValueCutOff1 = ip.Results.pValueCutOff1;
+pValueCutOff2= ip.Results.pValueCutOff2; 
+pValueCutOff3 = ip.Results.pValueCutOff3; 
+colorText = ip.Results.colorText; 
+
+
+
 %% some extra params
-colorText = 'k' ; % black = k white = w
-
-fontSizeTextBox = 12;
-fontSizeTitle = 12;
-
-pValueCutOff1 = 0.05;
-pValueCutOff2 = 0.01;
-pValueCutOff3 = 0.001;
-
+% colorText = 'k' ; % black = k white = w
+% 
+% fontSizeTextBox = 12;
+% fontSizeTitle = 12;
+% 
+% pValueCutOff1 = 0.05;
+% pValueCutOff2 = 0.01;
+% pValueCutOff3 = 0.001;
 
 %% Check AND Set-up Parameters
 if nargin<1 || isempty(micropatternOutput)
@@ -39,20 +76,20 @@ if useDefaultFieldnames ==1
  
     
     
-    fieldnames{1} = 'growth_lifetime_mean_INSIDE_REGION';  % keep all local
-    fieldnames{2} = 'growth_speed_mean_INSIDE_REGION'; %
+    params{1} = 'growth_lifetime_mean_INSIDE_REGION';  % keep all local
+    params{2} = 'growth_speed_mean_INSIDE_REGION'; %
     
     
-    fieldnames{3} = 'fgap_lifetime_mean';
-    fieldnames{4} = 'fgap_speed_mean';
+    params{3} = 'fgap_lifetime_mean';
+    params{4} = 'fgap_speed_mean';
     
-    fieldnames{5} = 'bgap_speed_mean';
-    fieldnames{6} = 'bgap_lifetime_mean';
+    params{5} = 'bgap_speed_mean';
+    params{6} = 'bgap_lifetime_mean';
 else 
   x =   fieldnames(micropatternOutput{1}.groupData{1}{1}{1}.stats{1}{1});
   y = listSelectGUI(x); 
   for i = 1: length(y)
-      fieldnames{i} = x(y(i)); 
+      params{i} = x(y(i)); 
   end 
 end
 
@@ -93,8 +130,8 @@ for iMask = 1:numMasksToAnalyze
         names = cell(1,numWindows+2  );
         for iExtract = 1:numel(maskCurrent.extractType)
             
-            for iParam = 1:length(fieldnames)
-                paramName = fieldnames{iParam};
+            for iParam = 1:length(params)
+                paramName = char(params{iParam});
                 
                 
                 names{1,1} = paramName;
@@ -122,13 +159,13 @@ for iMask = 1:numMasksToAnalyze
                        
                         if poolSubTracks ~=1
                             
-                            distControl = arrayfun(@(x) groupData.stats{1}{x}.(paramName),1:numel(groupData.stats{1}),'uniformOutput',0);
+                            distControl = arrayfun(@(x) groupData.stats{refCondNum}{x}.(paramName),1:numel(groupData.stats{refCondNum}),'uniformOutput',0);
                             meanControlPop = nanmean(cell2mat(distControl));
                             values(1,zoneCount) = nanmean(cell2mat(distControl)); % first value of dataset array is meanControlPop; 
                             
                             
                             
-                            distExp = arrayfun(@(x) groupData.stats{2}{x}.(paramName), 1:numel(groupData.stats{2}),'uniformOutput',0);
+                            distExp = arrayfun(@(x) groupData.stats{expCondNum}{x}.(paramName), 1:numel(groupData.stats{expCondNum}),'uniformOutput',0);
                             
                             meanExpPop = nanmean(cell2mat(distExp));
                             values(2,zoneCount) = nanmean(cell2mat(distExp)); % 2 value is mean Experimental population
@@ -151,10 +188,10 @@ for iMask = 1:numMasksToAnalyze
                             s = load([loadDir filesep 'perCell' filesep 'discrimMat_PerCell.mat']);
                             discrimMat = s.pValues.(paramName);
                             
-                            pValueOutput{iRegion,iWindow} = cell2mat(discrimMat(3,2)); % for now just use the t-test as I know there is
+                            pValueOutput{iRegion,iWindow} = cell2mat(discrimMat(expCondNum+1,refCondNum+1)); % for now just use the t-test as I know there is
                             % bug in the values if there is an NaN.
                             
-                            values(4,zoneCount) = cell2mat(discrimMat(3,2)); % 4 is the p-value
+                            values(4,zoneCount) = cell2mat(discrimMat(expCondNum+1,refCondNum+1)); % 4 is the p-value
                             
                             
                         else % pooled
@@ -163,11 +200,11 @@ for iMask = 1:numMasksToAnalyze
                         
                         
                         if iParam ==1
-                            NControl{iRegion,iWindow} = numel(groupData.stats{1});
-                            NExp{iRegion,iWindow} = numel(groupData.stats{2});
+                            NControl{iRegion,iWindow} = numel(groupData.stats{refCondNum});
+                            NExp{iRegion,iWindow} = numel(groupData.stats{expCondNum});
                             
-                            values(5,zoneCount) = numel(groupData.stats{1}); % 5 is the number of cells control
-                            values(6,zoneCount) = numel(groupData.stats{2}); % 6 is the number of cells exp
+                            values(5,zoneCount) = numel(groupData.stats{refCondNum}); % 5 is the number of cells control
+                            values(6,zoneCount) = numel(groupData.stats{expCondNum}); % 6 is the number of cells exp
                           
                          
                             
@@ -176,23 +213,23 @@ for iMask = 1:numMasksToAnalyze
                                 % always get the total number of subtracks collected and the
                                 % average per region
                                 
-                                numSubtrackControlTot{iRegion,iWindow,iType} = groupData.pooledStats{1}.(char(subtrackType{iType}));
-                                numSubtrackExpTot{iRegion,iWindow,iType} = groupData.pooledStats{2}.(char(subtrackType{iType}));
+                                numSubtrackControlTot{iRegion,iWindow,iType} = groupData.pooledStats{refCondNum}.(char(subtrackType{iType}));
+                                numSubtrackExpTot{iRegion,iWindow,iType} = groupData.pooledStats{expCondNum}.(char(subtrackType{iType}));
                                 
                                
                                 
-                                avgNumPerCellControl{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{1}{x}.(char(subtrackType{iType})),1:NControl{iRegion,iWindow},'uniformOutput',0);
-                                avgNumPerCellExp{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{2}{x}.(char(subtrackType{iType})),1:NExp{iRegion,iWindow},'uniformOutput',0);
+                                avgNumPerCellControl{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{refCondNum}{x}.(char(subtrackType{iType})),1:NControl{iRegion,iWindow},'uniformOutput',0);
+                                avgNumPerCellExp{iRegion,iWindow,iType} = arrayfun(@(x) groupData.stats{expCondNum}{x}.(char(subtrackType{iType})),1:NExp{iRegion,iWindow},'uniformOutput',0);
                                 
                                 
                             end
                             
-                             values(7,zoneCount) = groupData.pooledStats{1}.nGrowths; 
-                             values(8,zoneCount) = groupData.pooledStats{2}.nGrowths; 
-                             values(9,zoneCount) = groupData.pooledStats{1}.nFgaps; 
-                             values(10,zoneCount) = groupData.pooledStats{2}.nFgaps; 
-                             values(11,zoneCount) = groupData.pooledStats{1}.nBgaps; 
-                             values(12,zoneCount) = groupData.pooledStats{2}.nBgaps; 
+                             values(7,zoneCount) = groupData.pooledStats{refCondNum}.nGrowths; 
+                             values(8,zoneCount) = groupData.pooledStats{expCondNum}.nGrowths; 
+                             values(9,zoneCount) = groupData.pooledStats{refCondNum}.nFgaps; 
+                             values(10,zoneCount) = groupData.pooledStats{expCondNum}.nFgaps; 
+                             values(11,zoneCount) = groupData.pooledStats{refCondNum}.nBgaps; 
+                             values(12,zoneCount) = groupData.pooledStats{expCondNum}.nBgaps; 
                              
                              
                             
@@ -327,8 +364,8 @@ for iMask = 1:numMasksToAnalyze
                     
                 end
                 
-                refCond = groupData.names{1};
-                expCond = groupData.names{2};
+                refCond = groupData.names{refCondNum};
+                expCond = groupData.names{expCondNum};
                 
                 toremove = ['AdhesionCorn_GreaterThan_' num2str(numWindows*windowSize) 'uM'];
                 
