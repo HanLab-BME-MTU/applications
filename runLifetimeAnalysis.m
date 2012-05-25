@@ -217,6 +217,16 @@ lftRes.data = data;
 
 plotLifetimes(lftRes);
 
+
+%=====================================================================
+% Fit lifetime histogram with Weibull-distributed populations
+%=====================================================================
+fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
+fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
+
+plotLifetimeDistWeibullModel(lftRes, fitResCDF);
+plotLifetimeDistWeibullModel(lftRes, fitResPDF);
+
 return
     %====================
     % Histogram etc.
