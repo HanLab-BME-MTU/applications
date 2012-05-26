@@ -124,7 +124,7 @@ for iMask = 1:numel(micropatternOutput)
                     % perform the analysis
                     
                     % collect groupData
-                    groupDataCurrent = plusTipExtractGroupData(groupList);
+                    groupDataCurrent = plusTipExtractGroupData_workingMB(groupList);
                     save([dir2 filesep 'groupData'],'groupDataCurrent');
                     micropatternOutput{iMask}.groupData{iExtract}{iReg}{iWind} = groupDataCurrent;
                     micropatternOutput{iMask}.statDirInd{iExtract}{iReg}{iWind} = dir2; 
@@ -166,7 +166,7 @@ for iMask = 1:numel(micropatternOutput)
                 
                  
                 % collect and save groupData 
-                groupDataCurrent = plusTipExtractGroupData(groupList); % extact groupData
+                groupDataCurrent = plusTipExtractGroupData_workingMB(groupList); % extact groupData
                 save([dir2 filesep 'groupData'],'groupDataCurrent');
                 micropatternOutput{iMask}.groupData{iExtract}{iSubRoi} = groupDataCurrent; % saveGroupData in Micropattern Output
                 micropatternOutput{iMask}.statDir{iExtract}{iSubRoi} = dir2;
