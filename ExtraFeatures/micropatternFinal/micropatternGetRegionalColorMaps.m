@@ -305,8 +305,16 @@ for iMask = 1:numMasksToAnalyze
                 statDir = strrep(statDir, 'nucleation',maskCurrent.extractType{iExtract});  
                 
                 
+                expCondDir = groupData.names{expCondNum};
+                   
+                toremove = ['AdhesionCorn_GreaterThan_' num2str(numWindows*windowSize) 'uM'];
                 
-                saveDir = [statDir filesep 'ColorMaps' filesep paramName] ;
+                expCondDir = strrep(expCondDir,toremove,'');
+                
+                expCondDir = strrep(expCondDir,'grp','');
+                
+                saveDir = [statDir filesep 'ColorMaps_' expCondDir filesep paramName ] ;
+                
                 if ~isdir(saveDir);
                     mkdir(saveDir)
                 end
@@ -477,7 +485,7 @@ end
         outputN.TotalSubTrackExpBgap = [regionTypes numSubtrackExpTot(:,:,3)];
         outputN.TotalSubTrackExpBgap = [names;outputN.TotalSubTrackExpBgap];
         
-        save([statDir filesep 'Colormaps' filesep 'outputN'],'outputN');
+        save([statDir filesep 'Colormaps_' expCondDir filesep 'outputN'],'outputN');
         end 
         
     end
