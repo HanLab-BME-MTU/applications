@@ -66,7 +66,7 @@ for iRegion = 1:3
             end
             
              %norm by region number 
-            if (iWindow == 1 || iWindow ==2) 
+            if (iRegion == 1 || iRegion ==2) 
                 mult = 2; % two regions ad or non ad regions
             else 
                 mult = 4; % 4 ending in ad corn regions
@@ -116,7 +116,7 @@ for iRegion = 1:3
             
             
             %norm by region number 
-            if (iWindow == 1 || iWindow ==2) 
+            if (iRegion == 1 || iRegion ==2) 
                 mult = 2; % two regions ad or non ad regions
             else 
                 mult = 4; % 4 ending in ad corn regions
