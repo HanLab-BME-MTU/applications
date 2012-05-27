@@ -34,7 +34,7 @@ else
     [fu, idx] = unique(cumsum(f)*(x(2)-x(1)), 'first');
 end
 % Mean of the Weibull distribution: lambda*gamma(1+1/k)
-mu0 = interpn(fu, x(idx), (1:N)/(N+1));
+mu0 = interp1(fu, x(idx), (1:N)/(N+1));
 
 
 % initialize with shape parameters 1,2,..,2
