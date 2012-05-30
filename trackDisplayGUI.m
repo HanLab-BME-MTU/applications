@@ -724,7 +724,7 @@ if ~isempty(handles.selectedTrack)
         hold(h, 'off');
         selMask = ~isnan(handles.selectedTrack);
         sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
-
+        
 %         if ~isempty(handles.tracks{ci})
 %             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
 %         else
@@ -760,8 +760,8 @@ if ~isempty(handles.selectedTrack)
         %pos = get(handles.
         %aspectRatio = 
         dx = 0.03;
-        if isfield(handles.tracks{1}, 'significantSignal')
-            s = handles.tracks{1}(handles.selectedTrack).significantSignal;
+        if isfield(sTrack, 'significantSignal')
+            s = sTrack.significantSignal;
             if s(ci)==1
                 slabel = 'yes';
                 scolor = [0 0.8 0];
@@ -775,6 +775,25 @@ if ~isempty(handles.selectedTrack)
                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
                 'Parent', handles.tAxes(ci));
         end
+        
+        if isfield(sTrack, 'corrDisappearance') && ci~= handles.mCh
+            
+            if sTrack.corrDisappearance
+                slabel = 'yes';
+                scolor = [0 0.8 0];
+            else
+                slabel = 'no';
+                scolor = [0.8 0 0];
+            end
+            
+            text(1-dx, 1-4*dx,...
+                ['Corr. disappearance: ' slabel],...
+                'Color', scolor, 'Units', 'normalized',...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+                'Parent', handles.tAxes(ci));
+            
+        end
+        
         
         %     if ~isRGB && get(handles.('labelCheckbox'), 'Value')
         %         dx = 0.03;
