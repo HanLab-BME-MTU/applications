@@ -489,6 +489,8 @@ if isempty(paraSize) && nStartPts > 1
         nStart = nStart - nnz(noPoints);
         nStartPerCont(noPoints) = [];
         iPerpStart(noPoints) = [];        
+        spArray = spArray(~noPoints);
+        distAlong = distAlong(~noPoints);
         
     else
         spArray = {startPoint};
