@@ -97,7 +97,11 @@ classdef ProtrusionProcess < ImageAnalysisProcess
                     end
                 end
             else
-                varargout{1} = [s.smoothedEdge{iFrame} s.smoothedEdge{iFrame}+s.protrusion{iFrame}];
+                if numel(s.protrusion)>iFrame
+                    varargout{1} = [s.smoothedEdge{iFrame} s.smoothedEdge{iFrame}+s.protrusion{iFrame}];
+                else
+                    varargout{1} = zeros(0,4);
+                end
             end
             
         end
