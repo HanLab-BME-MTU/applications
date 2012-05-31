@@ -1,3 +1,5 @@
+% Francois Aguet, 05/30/2012
+
 function plotIntensityCohorts(data, varargin)
 
 ip = inputParser;
@@ -8,19 +10,20 @@ ip.addParamValue('Overwrite', false, @islogical);
 % ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowSEM', true, @islogical);
-ip.addParamValue('ScaleChannels', false, @islogical);
+ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 
 
 % if no specific channel is selected, all channels are shown
 ch = ip.Results.ch;
-mCh = strcmp(data(1).source, data(1).channels);
+mCh = find(strcmp(data(1).source, data(1).channels));
 
 
 nd = numel(data);
 nCh = numel(data(1).channels);
 nc = numel(cohortBounds)-1;
+sCh = setdiff(1:nCh,mCh);
 b = 5;
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('cMean', [], 'cSEM', []);
@@ -29,16 +32,26 @@ for i = 1:nd
     lifetime_s = lftData.lifetime_s([lftData.catIdx]==1);
     trackLengths = lftData.trackLengths([lftData.catIdx]==1);
     
+    if ip.Results.ScaleChannels
+        % scaling of slave channels relative to master: median of end buffer, median of max. intensity
+        medianEndBuffer = squeeze(mean(mean(lftData.([ip.Results.ScaleChannels 'Buffer_Ia']),2),1));
+        medianMax = squeeze(mean(max(lftData.intMat_Ia,[],2),1));
+        for c = sCh
+            lftData.intMat_Ia(:,:,c) = (lftData.intMat_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+            lftData.startBuffer_Ia(:,:,c) = (lftData.startBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+            lftData.endBuffer_Ia(:,:,c) = (lftData.endBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+        end
+    end
     
     cT = cell(1,nc);
     res(i).cMean = cell(nCh,nc);
     res(i).cSEM = cell(nCh,nc);
     for ch = 1:nCh % channels
+        % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
-            % current cohort
+            % tracks in current cohort
             cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1));
             nt = numel(cidx);
-            % interpolate tracks to mean cohort length
             
             % # data points in cohort (with buffer frames)
             iLength = floor(mean(cohortBounds([c c+1]))/data(i).framerate) + 2*b;
@@ -76,6 +89,10 @@ if nCh==1
     cv = rgb2hsv(cmap);
     cv(:,2) = 0.2;
     cv = hsv2rgb(cv);
+    %cmap = ones(nc,3);
+    %cmap(:,1) = (nc:-1:1)/nc;  
+    %cmap = hsv2rgb(cmap);
+    
     for c = nc:-1:1
         if nd>1
             A = arrayfun(@(x) x.cMean{ch,c}, res, 'UniformOutput', false);
@@ -108,9 +125,6 @@ else
                 A = res(1).cMean{ch,c};
                 SEM = res(1).cSEM{ch,c};
             end
-            
-            %A = cMean{ch,c};%/max(cMean{ch,c})*max(cMean{mCh,c});
-            %fill([cT{c} cT{c}(end:-1:1)], [A-cSEM{ch,c} A(end:-1:1)+cSEM{ch,c}(end:-1:1)], fillLight, 'EdgeColor', trackColor);
             if ip.Results.ShowSEM
                 fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], fillLight, 'EdgeColor', trackColor);
             end
@@ -121,51 +135,3 @@ end
 set(gca, fset.axOpts{:}, 'XLim', [-b*data(1).framerate cohortBounds(end)]);
 xlabel('Time (s)', fset.lfont{:});
 ylabel('Intensity (A.U.)', fset.lfont{:});
-
-
-return
-
-
-
-
-
-
-
-
-
-
-
-
-nMovies = length(data);
-nCohorts = length(intRes);
-
-colorV = ones(nCohorts,3);
-colorV(:,1) = (nCohorts:-1:1)/nCohorts;
-colorV = hsv2rgb(colorV);
-
-figure;
-for i = 1:nMovies;
-    for c = 1:nCohorts
-        % errorbars: standard error of the mean (SEM)
-        errorbar(intRes(c).t(1,:), intRes(c).cIntensity(i,:), intRes(c).cIntensityStd(i,:)/sqrt(intRes(c).cohortSize(i)), 'Color', colorV(c,:));
-        hold on;
-    end
-end
-set(gca, 'FontName', 'Helvetica', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('time [s]', 'FontName', 'Helvetica', 'FontSize', 14);
-ylabel('intensity (above background) [A.U.]', 'FontName', 'Helvetica', 'FontSize', 14);
-% title(['Cohorts for all movies' condition], 'FontName', 'Helvetica', 'FontSize', 14);
-
-
-% plot mean w/ standard error of mean for all movies combined
-figure;
-for c = 1:nCohorts
-    h = errorbar(intRes(c).framerate*intRes(c).tvec, intRes(c).intensityMean, intRes(c).intensitySEM, 'k-');
-    h = get(h, 'Children');
-    set(h(1), 'LineWidth', 2, 'Color', colorV(c,:));
-    hold on;
-end
-set(gca, 'FontName', 'Helvetica', 'FontSize', 12, 'LineWidth', 1.5);
-xlabel('Time (s)', 'FontName', 'Helvetica', 'FontSize', 14);
-ylabel('Intensity (A.U.)', 'FontName', 'Helvetica', 'FontSize', 14);
-title(['Averaged cohorts' condition], 'FontName', 'Helvetica', 'FontSize', 14);
