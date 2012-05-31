@@ -1,3 +1,5 @@
+% Francois Aguet, 05/2012
+
 function lftData = getLifetimeData(data, varargin)
 
 ip = inputParser;
@@ -6,12 +8,14 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.parse(varargin{:});
 
 nd = numel(data);
-lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [], 'intMat_Ia', []);
+lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
+    'intMat_Ia', [], 'startBuffer_Ia', [], 'endBuffer_Ia', []);
 for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep 'lifetimeData.mat'];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
         tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0);
+        nCh = size(tracks(1).A,1);
         
         % concatenate amplitudes of master channel into matrix
         lifetime_s = [tracks.lifetime_s];
@@ -19,25 +23,34 @@ for i = 1:nd
         start = [tracks.start];
         catIdx = [tracks.catIdx];
         
+        lftData(i).lifetime_s = lifetime_s;
+        lftData(i).trackLengths = trackLengths;
+        lftData(i).start = start;
+        lftData(i).catIdx = catIdx;
+        
         % store intensities of cat. Ia tracks
         idx_Ia = find([tracks.catIdx]==1);
         tracks = tracks(idx_Ia);
         
         nt = numel(tracks);
-        intMat_Ia = NaN(nt, data(i).movieLength);
-        mCh = strcmp(data(i).source, data(i).channels);
+        b = numel(tracks(1).startBuffer.t);
+        
+        % store intensity matrices
+        intMat_Ia = NaN(nt,data(i).movieLength,nCh);
+        startBuffer_Ia = NaN(nt,b,nCh);
+        endBuffer_Ia = NaN(nt,b,nCh);
         for k = 1:nt
-            intMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).A(mCh,:);
+            intMat_Ia(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).A';
+            startBuffer_Ia(k,:,:) = tracks(k).startBuffer.A';
+            endBuffer_Ia(k,:,:) = tracks(k).endBuffer.A';
         end
         
-        lftData(i).lifetime_s = lifetime_s;
-        lftData(i).trackLengths = trackLengths;
-        lftData(i).start = start;
-        lftData(i).catIdx = catIdx;
         lftData(i).intMat_Ia = intMat_Ia;
-       
+        lftData(i).startBuffer_Ia = startBuffer_Ia;
+        lftData(i).endBuffer_Ia = endBuffer_Ia;
+        
         [~,~] = mkdir([data(i).source 'Analysis']);
-        save(fpath, 'lifetime_s', 'trackLengths', 'start', 'catIdx', 'intMat_Ia');
+        save(fpath, '-struct', 'lftData');
     else
         lftData(i) = load(fpath);
     end
