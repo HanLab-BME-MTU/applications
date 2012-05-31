@@ -8,8 +8,8 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.parse(varargin{:});
 
 nd = numel(data);
-lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
-    'intMat_Ia', [], 'startBuffer_Ia', [], 'endBuffer_Ia', []);
+% lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
+%     'intMat_Ia', [], 'startBuffer_Ia', [], 'endBuffer_Ia', []);
 for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep 'lifetimeData.mat'];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
@@ -18,15 +18,15 @@ for i = 1:nd
         nCh = size(tracks(1).A,1);
         
         % concatenate amplitudes of master channel into matrix
-        lifetime_s = [tracks.lifetime_s];
         trackLengths = [tracks.end]-[tracks.start]+1;
-        start = [tracks.start];
-        catIdx = [tracks.catIdx];
         
-        lftData(i).lifetime_s = lifetime_s;
+        lftData(i).lifetime_s = [tracks.lifetime_s];
         lftData(i).trackLengths = trackLengths;
-        lftData(i).start = start;
-        lftData(i).catIdx = catIdx;
+        lftData(i).start = [tracks.start];
+        lftData(i).catIdx = [tracks.catIdx];
+        if isfield(tracks, 'significantSignal')
+            lftData(i).significantSignal = [tracks.significantSignal];
+        end
         
         % store intensities of cat. Ia tracks
         idx_Ia = find([tracks.catIdx]==1);
@@ -50,7 +50,8 @@ for i = 1:nd
         lftData(i).endBuffer_Ia = endBuffer_Ia;
         
         [~,~] = mkdir([data(i).source 'Analysis']);
-        save(fpath, '-struct', 'lftData');
+        iData = lftData(i);
+        save(fpath, '-struct', 'iData');
     else
         lftData(i) = load(fpath);
     end
