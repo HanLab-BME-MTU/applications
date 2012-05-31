@@ -13,6 +13,7 @@ ip.addParamValue('Print', false, @islogical);
 ip.addParamValue('Buffer', 5);
 ip.addParamValue('MaxIntensityThreshold', []);
 ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('ClassificationSelector', 'significantSignal');
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -115,7 +116,7 @@ for i = 1:nd
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
         res(i).maxA{k} = nanmax(M(cidx,:),[],2);
         for n = firstN
-            res(i).(['maxA_f' num2str(n)]){k} = nanmax(M(cidx,1:n),[],2);
+           res(i).(['maxA_f' num2str(n)]){k} = nanmax(M(cidx,1:n),[],2);
         end
         
         % lifetimes for given cohort
@@ -123,7 +124,10 @@ for i = 1:nd
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(M,[],2);
+    res(i).maxA_all = nanmax(M,[],2)';
+    if isfield(lftData, 'significantSignal')
+        res(i).significantSignal = lftData.significantSignal(:,idx_Ia);
+    end
     res(i).firstN = firstN;
     
 fprintf('\b\b\b\b%3d%%', round(100*i/nd));
@@ -160,8 +164,8 @@ for i = 1:nd
     res(i).maxA_all = a(i) * res(i).maxA_all;
     res(i).maxA = cellfun(@(x) a(i)*x, res(i).maxA, 'UniformOutput', false);
     for n = firstN
-        fname = ['maxA_f' num2str(n)];
-        res(i).(fname) = cellfun(@(x) a(i)*x, res(i).(fname), 'UniformOutput', false);
+       fname = ['maxA_f' num2str(n)];
+       res(i).(fname) = cellfun(@(x) a(i)*x, res(i).(fname), 'UniformOutput', false);
     end
 end
 
@@ -192,6 +196,7 @@ for i = 1:nd
     %t = (1:N)*framerate;
     lftHist_A = hist(res(i).lftAboveT, t);
     lftHist_B = hist(res(i).lftBelowT, t);
+    
     %lftHist_A(1:cutoff_f-1) = [];
     %lftHist_B(1:cutoff_f-1) = [];
     
@@ -206,8 +211,33 @@ for i = 1:nd
     lftHist_B =  [lftHist_B.*w  pad0];
     
     % Normalization
+    %normA = sum(lftHist_A);
+    %normB = sum(lftHist_B);
     lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
     lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+    
+    if isfield(res, 'significantSignal')
+        lftHist_Apos = hist(res(i).lft_all(idx & res(i).significantSignal(2,:)), t);
+        lftHist_Aneg = hist(res(i).lft_all(idx & ~res(i).significantSignal(2,:)), t);
+        lftHist_Bpos = hist(res(i).lft_all(~idx & res(i).significantSignal(2,:)), t);
+        lftHist_Bneg = hist(res(i).lft_all(~idx & ~res(i).significantSignal(2,:)), t);
+        lftHist_Apos =  [lftHist_Apos.*w  pad0];
+        lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
+        lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
+        lftHist_Bneg =  [lftHist_Bneg.*w  pad0];
+        lftRes.lftHist_Apos(i,:) = lftHist_Apos / sum(lftHist_Apos) / framerate;
+        lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg) / framerate;
+        lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos) / framerate;
+        lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg) / framerate;
+        %lftRes.lftHist_Apos(i,:) = lftHist_Apos / normA / framerate;
+        %lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / normA / framerate;
+        %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB / framerate;
+        %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB / framerate;
+        
+        lftRes.pctAboveSignificant(i) = sum(idx & res(i).significantSignal(2,:))/numel(idx);
+        lftRes.pctAboveNS(i) = sum(idx & ~res(i).significantSignal(2,:))/numel(idx);
+        lftRes.pctBelowSignificant(i) = sum(~idx & res(i).significantSignal(2,:))/numel(idx);
+    end
 end
 
 lftRes.t_hist = (cutoff_f:Nmax)*framerate;
@@ -217,7 +247,7 @@ lftRes.data = data;
 
 plotLifetimes(lftRes);
 
-
+return
 %=====================================================================
 % Fit lifetime histogram with Weibull-distributed populations
 %=====================================================================
