@@ -2,12 +2,12 @@
 
 function [prmVect, a, BIC] = fitGammaMixture(x, f, varargin)
 
-opts = optimset('Jacobian', 'off', ...
+opts = optimset('Jacobian', 'on', ...
     'MaxFunEvals', 1e5, ...
     'MaxIter', 1e5, ...
     'Display', 'off', ...
-    'TolX', 1e-6, ...
-    'Tolfun', 1e-6,...
+    'TolX', 1e-12, ...
+    'Tolfun', 1e-12,...
     'Algorithm', 'active-set');
 
 ip = inputParser;
@@ -30,6 +30,7 @@ estIdx = [estIdx{:}];
 % transform into EDF format for interpolation
 if strcmpi(ip.Results.FitMode, 'CDF')
     [fu, idx] = unique(f, 'first');
+    opts = optimset(opts, 'Jacobian', 'off');
 else
     [fu, idx] = unique(cumsum(f)*(x(2)-x(1)), 'first');
 end
@@ -44,8 +45,8 @@ k0 = n0./mu0;
 A0 = ones(1,N)/N;
 
 prmVect = reshape([k0; n0; A0], [3*N 1])';
-lb = zeros(1,3*N);
-ub = repmat([Inf Inf 1] , [1 N]);
+lb = repmat([0 1 0], [1 N]);
+ub = repmat([Inf Inf 1], [1 N]);
 
 % [p,RSS,~,~,~,~,J] = lsqnonlin(@cost, prmVect(estIdx), lb(estIdx), ub(estIdx), opts, x, f, prmVect, estIdx, ip.Results.FitMode);
 A = repmat([0 0 1], [1 N]); % equality constraint
@@ -79,12 +80,19 @@ a = gammaMixture(x(1), prmVect, 'Mode', 'CDF');
 
 
 
-function v = costPDF(p, x, f, prmVect, estIdx)
+function [v J] = costPDF(p, x, f, prmVect, estIdx)
 prmVect(estIdx) = p;
+% round shape parameters
+% n = prmVect(2:3:end);
+% n = round(n);
+% n(n<1) = 1;
+% prmVect(2:3:end) = n;
+
 % missing data:
 a = gammaMixture(x(1), prmVect, 'Mode', 'CDF');
 
-w = gammaMixture(x, prmVect, 'Mode', 'PDF');
+
+[w,~,J] = gammaMixture(x, prmVect, 'Mode', 'PDF');
 v = sum((w - (1-a)*f).^2);
 
 

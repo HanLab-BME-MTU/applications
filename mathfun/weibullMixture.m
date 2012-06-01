@@ -6,7 +6,7 @@
 %
 % Mean: lambda*Gamma(1+1/k)
 
-function [w W] = weibullMixture(x, prmVect, varargin)
+function [w W J] = weibullMixture(x, prmVect, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -23,15 +23,23 @@ A = prmVect(3:3:end);
 
 
 W = zeros(N,numel(x));
+J = zeros(numel(x), numel(prmVect));
 switch ip.Results.Mode
     case 'PDF'
-        for n = 1:N
-            xl = x/lambda(n);
-            W(n,:) = A(n) * k(n)/lambda(n) * xl.^(k(n)-1).*exp(-xl.^k(n));
+        for i = 1:N
+            xl = x/lambda(i);
+            W(i,:) = A(i) * k(i)/lambda(i) * xl.^(k(i)-1).*exp(-xl.^k(i));
+            J(:,3*(i-1)+1) = A(i) * exp(-xl.^k(i))*k(i)^2.*(-1+xl.^k(i)).*xl.^(k(i)-1)/lambda(i)^2;
+            J(:,3*(i-1)+2) = A(i) * exp(-xl.^k(i)).*xl.^k(i).*(1-k(i)*(-1+xl.^k(i)).*log(xl))./x;
+            J(:,3*(i-1)+3) = k(i)/lambda(i) * xl.^(k(i)-1).*exp(-xl.^k(i));
         end
     case 'CDF'
-        for n = 1:N
-            W(n,:) = A(n) * (1 - exp(-(x/lambda(n)).^k(n)));
+        for i = 1:N
+            xl = x/lambda(i);
+            W(i,:) = A(i) * (1 - exp(-xl.^k(i)));
+            J(:,3*(i-1)+1) = A(i) * exp(-xl.^k(i))*k(i).*xl.^k(i)/lambda(i);
+            J(:,3*(i-1)+2) = A(i) * exp(-xl.^k(i)).*xl.^k(i).*log(x./lambda(i));
+            J(:,3*(i-1)+3) = (1 - exp(-(x/lambda(i)).^k(i)));
         end
 end
 
