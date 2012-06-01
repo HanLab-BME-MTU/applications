@@ -14,6 +14,7 @@ ip.addParamValue('Buffer', 5);
 ip.addParamValue('MaxIntensityThreshold', []);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('ClassificationSelector', 'significantSignal');
+ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -241,11 +242,77 @@ for i = 1:nd
 end
 
 lftRes.t_hist = (cutoff_f:Nmax)*framerate;
-lftRes.meanLftHist_A =  mean(lftRes.lftHist_A,1);
-lftRes.meanLftHist_B =  mean(lftRes.lftHist_B,1);
+lftRes.meanLftHist_A = mean(lftRes.lftHist_A,1);
+lftRes.meanLftHist_B = mean(lftRes.lftHist_B,1);
 lftRes.data = data;
 
 plotLifetimes(lftRes);
+
+% Display histogram for range of thresholds
+if ip.Results.ShowThresholdRange
+    Trange = 40:10:200;
+    for ti = 1:numel(Trange)
+        T = Trange(ti);
+        
+        for i = 1:nd
+            idx = res(i).maxA_all >= T;
+            lftAboveT = res(i).lft_all(idx);
+            lftBelowT = res(i).lft_all(~idx);
+            tmp.pctAbove(i) = sum(idx)/numel(idx);
+            
+            N = data(i).movieLength-2*buffer;
+            t = (cutoff_f:N)*framerate;
+            lftHist_A = hist(lftAboveT, t);
+            lftHist_B = hist(lftBelowT, t);
+            
+            % apply correction
+            w = N./(N-cutoff_f+1:-1:1);
+            pad0 = zeros(1,Nmax-N);
+            lftHist_A =  [lftHist_A.*w  pad0];
+            lftHist_B =  [lftHist_B.*w  pad0];
+            
+            % Normalization
+            tmp.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
+            tmp.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+            
+        end
+        tComp(ti).meanLftHist_A = mean(tmp.lftHist_A,1);
+        tComp(ti).meanLftHist_B = mean(tmp.lftHist_B,1);
+        tComp(ti).t_hist = (cutoff_f:Nmax)*framerate;
+        tComp(ti).pctAbove = mean(tmp.pctAbove);
+    end
+
+    opts = {'.-', 'LineWidth', 2, 'MarkerSize', 16};
+    fset = loadFigureSettings();
+    cmap = jet(numel(Trange));
+    cv = rgb2hsv(cmap);
+    cv(:,2) = 0.2;
+    cv = hsv2rgb(cv);
+    
+    figure;
+    hold on;
+    for ti = 1:numel(Trange)
+        
+        plot(tComp(ti).t_hist, tComp(ti).meanLftHist_B, opts{:}, 'Color', cv(ti,:));
+        hp(ti) = plot(tComp(ti).t_hist, tComp(ti).meanLftHist_A, opts{:}, 'Color', cmap(ti,:));
+        
+        %legendText = {['Above threshold (' num2str(mean(lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)'],...
+        %    ['Below threshold (' num2str(mean(1-lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)']};
+    end
+    axis([0 min(120, lftRes.t_hist(end)) 0 0.05]);
+    set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
+    xlabel('Lifetime (s)', fset.lfont{:});
+    ylabel('Frequency', fset.lfont{:});
+    
+    hl = legend(hp, arrayfun(@(x) num2str(x, '%.2f'), [tComp.pctAbove], 'UniformOutput', false), 'Location', 'NorthEast');
+    set(hl, 'Box', 'off', fset.ifont{:});
+    
+end
+
+
+
+
+
 
 %=====================================================================
 % Fit lifetime histogram with Weibull-distributed populations
