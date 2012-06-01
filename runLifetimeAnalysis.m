@@ -317,14 +317,14 @@ end
 %=====================================================================
 % Fit lifetime histogram with Weibull-distributed populations
 %=====================================================================
-fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
-plotLifetimeDistModel(lftRes, fitResCDF);
+% fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
+% plotLifetimeDistModel(lftRes, fitResCDF);
 
 fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
 plotLifetimeDistModel(lftRes, fitResPDF);
 
-fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
-plotLifetimeDistModel(lftRes, fitResCDF);
+% fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
+% plotLifetimeDistModel(lftRes, fitResCDF);
 
 fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF');
 plotLifetimeDistModel(lftRes, fitResPDF);
