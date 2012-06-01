@@ -23,7 +23,7 @@
 
 % Francois Aguet (last modified 01/23/2012)
 
-function res = fitLifetimeDistWeibullModel(lftRes, varargin)
+function res = fitLifetimeDistGammaModel(lftRes, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -76,7 +76,7 @@ Nmax = 3;
 prmVect = cell(1,Nmax);
 BIC = zeros(1,Nmax);
 for N = 1:Nmax
-    [prmVect{N} a(N) BIC(N)] = fitWeibullMixture(t, f, 'al', 'N', N, 'FitMode', ip.Results.Mode);
+    [prmVect{N} a(N) BIC(N)] = fitGammaMixture(t, f, 'kna', 'N', N, 'FitMode', ip.Results.Mode);
 end
 
 N0 = find(BIC==min(BIC), 1, 'first');
@@ -84,17 +84,25 @@ prmVect = prmVect{N0};
 BIC = BIC(N0);
 a = a(N0);
 
+% means
+mu = prmVect(2:3:end)./prmVect(1:3:end);
+[~,idx] = sort(mu);
+
+% sort parameter vector: increasing means
+I = reshape(1:3*N0, [3 N0]);
+idx = reshape(I(:,idx), [1 3*N0]);
+prmVect = prmVect(idx);
+
 dti = dt/10;
 t = 0:dti:t(end);
 res.t = t;
-[res.CDF res.popCDF] = weibullMixture(t, prmVect, 'Mode', 'CDF');
-[res.PDF res.popPDF] = weibullMixture(t, prmVect, 'Mode', 'PDF');
+[res.CDF res.popCDF] = gammaMixture(t, prmVect, 'Mode', 'CDF');
+[res.PDF res.popPDF] = gammaMixture(t, prmVect, 'Mode', 'PDF');
 res.BIC = BIC;
 res.N = N0;
 res.a = a;
-res.lambda = prmVect(1:3:end);
-res.k = prmVect(2:3:end);
+res.k = prmVect(1:3:end);
+res.n = prmVect(2:3:end);
 res.A = prmVect(3:3:end);
 res.FitMode = ip.Results.Mode;
-res.ModelType = 'Weibull';
-
+res.ModelType = 'Gamma';

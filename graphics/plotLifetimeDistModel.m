@@ -1,5 +1,6 @@
+% Francois Aguet (last modified 06/01/2012)
 
-function plotLifetimeDistWeibullModel(lftData, fitRes, varargin)
+function plotLifetimeDistModel(lftData, fitRes, varargin)
 
 % ip = inputParser;
 % ip.CaseSensitive = false;
@@ -45,13 +46,13 @@ set(gca, 'ColorOrder', colorOrder);
 hold on;
 %hp(1) = plot(lftData.t_hist, lftData.meanLftHist_A*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
 hp(1) = plot(lftData.t_hist, lftData.meanLftHist_A*(1-a), '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 18);
-
+YLim = get(gca, 'YLim');
 hi = plot(fitRes.t, fitRes.popPDF, 'LineWidth', 2);
 hp(2) = hi(1);
 hp(3) = plot(fitRes.t, fitRes.PDF, '--', 'Color', fset.ceB, 'LineWidth', 4);
 
 %axis([0 100 0 fYLim]);
-set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:}, 'XLim', [0 120]);
+set(gca, 'LineWidth', 2, 'Layer', 'top', fset.sfont{:}, 'XLim', [0 120], 'YLim', YLim);
 xlabel('Lifetime (s)', fset.lfont{:});
 ylabel('Frequency', fset.lfont{:});
 
