@@ -4,12 +4,12 @@ load movieData.mat
 
 %get cell mask
 %Rosin
-threshParam.MaxJump = 1.5;
-threshParam.GaussFilterSigma = 0.5;
+threshParam.MaxJump = 1.2;
+threshParam.GaussFilterSigma = 1;
 threshParam.MethodIndx = 3;
 MD = thresholdMovie(MD,threshParam);
 %MinMax
-threshParam.MaxJump = 1.1;
+threshParam.MaxJump = 1.2;
 threshParam.GaussFilterSigma = 0.5;
 threshParam.MethodIndx = 1;
 MD = thresholdMovie(MD,threshParam);
@@ -20,8 +20,8 @@ MD = thresholdMovie(MD,threshParam);
 % refinementParam.PreEdgeGrow = 0;
 % refinementParam.EdgeRefinement = 1;
 % refinementParam.EdgeRefinement = 0;
-% refinementParam.ClosureRadius = 0;
-% MD = refineMovieMasks(MD,refinementParam);
+refinementParam.ClosureRadius = 0;
+MD = refineMovieMasks(MD,refinementParam);
 MD = refineMovieMasks(MD);
 
 %make movie of mask
@@ -64,6 +64,11 @@ MD = getMovieWindows(MD,windowParam);
 figure('units','normalized','position',[0 0 1 1])
 axHandle = gca;
 makeMovieMovie(MD,'Overlay','Windows','SegProcessIndex',2,'FileName','movieWindows','AxesHandle',axHandle)
+
+%make movie of windows + protrusion vectors
+figure('units','normalized','position',[0 0 1 1])
+axHandle = gca;
+makeMovieMovie(MD,'Overlay','Windows+Protrusion','SegProcessIndex',2,'FileName','movieWindowsProtrusion','AxesHandle',axHandle)
 
 %sample protrusion vectors
 MD = sampleMovieProtrusion(MD);
