@@ -36,7 +36,7 @@ colorOrderFill = hsv2rgb(colorOrderFill);
 
 
 
-figure('Name', ['Weibull distribution fit (to ' fitRes.FitMode ')'])%('Position', [240 378 850 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
+figure('Name', [fitRes.ModelType ' distribution fit (to ' fitRes.FitMode ')'])%('Position', [240 378 850 360], 'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off');
 %---------------------------------
 % Lifetime histogram
 %---------------------------------
