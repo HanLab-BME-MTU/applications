@@ -146,7 +146,8 @@ if ~p.BatchMode
     wtBar = waitbar(0,'Please wait, writing ratios to .tif images...');
 end        
 
-
+ratMax = 0;
+ratMin = Inf;
 %Go through all the images and correct them
 for iImage = 1:nImages
    
@@ -155,6 +156,9 @@ for iImage = 1:nImages
     
     %Scale the image
     currRat = currRat .* p.ScaleFactor;
+    
+    ratMax = max(ratMax,nanmax(currRat(:)));
+    ratMin = min(ratMin,nanmin(currRat(:)));
     
     %Write it back to file.    
     imwrite(uint16(currRat),[outDir filesep inNames{1}{iImage}(1:end-4) '.tif'],...
@@ -166,6 +170,11 @@ for iImage = 1:nImages
     end                        
 
 end
+
+% Save ratio limits
+intensityLimits=cell(1,numel(movieData.channels_));
+intensityLimits{p.ChannelIndex(1)}=[ratMin ratMax];
+movieData.processes_{iProc}.setIntensityLimits(intensityLimits);
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)

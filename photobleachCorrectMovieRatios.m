@@ -275,6 +275,9 @@ end
 fString = ['%0' num2str(floor(log10(nImages))+1) '.f'];
 numStr = @(frame) num2str(frame,fString);
 
+ratMax = 0;
+ratMin = Inf;
+
 %Go through all the images and correct them
 for iImage = 1:nImages
    
@@ -283,7 +286,10 @@ for iImage = 1:nImages
     
     %Correct the image. We multiply by the average of the first ratio to
     %prevent normalization.
-    currRat = currRat ./ fitValues(iImage) .* meanRat(1); %#ok<NASGU>
+    currRat = currRat ./ fitValues(iImage) .* meanRat(1);
+    
+    ratMax = max(ratMax,nanmax(currRat(:)));
+    ratMin = min(ratMin,nanmin(currRat(:)));
     
     %Write it back to file.    
     save([outDir filesep pString numStr(iImage)],'currRat');
@@ -294,6 +300,12 @@ for iImage = 1:nImages
     end                        
 
 end
+
+% Save ratio limits
+intensityLimits=cell(1,numel(movieData.channels_));
+intensityLimits{p.ChannelIndex(1)}=[ratMin ratMax];
+movieData.processes_{iProc}.setIntensityLimits(intensityLimits);
+
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)

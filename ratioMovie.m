@@ -305,6 +305,8 @@ if ~p.BatchMode
         num2str(p.ChannelIndex(1)) ' to channel ' num2str(p.ChannelIndex(2)) '...']);        
 end        
 
+ratMax = 0;
+ratMin = Inf;
 
 for iImage = 1:nImages
     
@@ -329,12 +331,13 @@ for iImage = 1:nImages
     %Remove any infinities from division-by-zero (this shouldn't happen if
     %the masks are applied and all the images and corrections are good, but
     %let's be realistic here .... )
-    currRatio(~isfinite(currRatio(:))) = NaN; %#ok<NASGU>
+    currRatio(~isfinite(currRatio(:))) = NaN;
   
+    ratMax = max(ratMax,nanmax(currRatio(:)));
+    ratMin = min(ratMin,nanmin(currRatio(:)));
+
     %Save the ratio in double-precision floating point to avoid rounding
     %error
-    
-  
     save([outDir filesep pString numImNames{1}{iImage}(1:end-4) ...
         '_to_' denomImNames{1}{iImage}(1:end-4) '_' numStr ...
         '.mat'],'currRatio')
@@ -346,6 +349,10 @@ for iImage = 1:nImages
     
 end
 
+% Save ratio limits
+intensityLimits=cell(1,numel(movieData.channels_));
+intensityLimits{p.ChannelIndex(1)}=[ratMin ratMax];
+movieData.processes_{iProc}.setIntensityLimits(intensityLimits);
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)
