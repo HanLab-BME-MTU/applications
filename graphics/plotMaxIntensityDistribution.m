@@ -47,7 +47,7 @@ if isempty(ip.Results.FirstNFrames) % full distribution
     maxA = vertcat(maxA_all{:});
 else
     f = ip.Results.FirstNFrames;
-    maxA = arrayfun(@(i) nanmax(i.intMat(:,1:f),[],2), lftData, 'UniformOutput', false);
+    maxA = arrayfun(@(i) nanmax(i.intMat_Ia(:,1:f),[],2), lftData, 'UniformOutput', false);
     maxA = vertcat(maxA{:});
 end
 lifetime_s = arrayfun(@(i) i.lifetime_s([i.catIdx]==1), lftData, 'UniformOutput', false);
