@@ -146,40 +146,14 @@ classdef MovieData3D < MovieData
         % moved, and stores imaging parameters if not already present.     
                        
             % Ask user by default for relocation
-            if nargin < 4, askUser = true; end
+            if nargin < 4, askUser = false; end
             if nargin < 5, preBinPixSizeXY = []; end
             
-            % Check if the path and filename stored in the movieData are the same
-            % as the ones provided in argument. They can differ if the movieData
-            % MAT file has been renamed, move or copy to another location.
-            if nargin > 1 && ~isempty(movieDataPath) && ~isempty(movieDataFileName)
-                
-                %Remove ending file separators if any
-                endingFilesepToken = [regexptranslate('escape',filesep) '$'];
-                path1 = regexprep(obj.movieDataPath_,endingFilesepToken,'');
-                path2 = regexprep(movieDataPath,endingFilesepToken,'');
-                if  ~strcmp(path1, path2)
-                    
-                    if askUser
-                        relocateMsg=sprintf(['The movie data located in \n%s\n has been relocated to \n%s.\n'...
-                            'Should I try to relocate the components of the movie data as well?'],path1,path2);
-                        confirmRelocate = questdlg(relocateMsg,'Movie Data','Yes','No','Yes');
-                    else
-                        confirmRelocate = 'Yes';
-                    end
-                    
-                    if strcmp(confirmRelocate,'Yes')
-                        obj.relocate(movieDataPath); 
-                    else
-                        obj.setMovieDataPath(newMovieDataPath);
-                    end
-                end
-            
-                if  ~strcmp(obj.movieDataFileName_, movieDataFileName)
-                    obj.movieDataFileName_ = movieDataFileName; 
-                end
-            
+            %Call the MovieObject sanity check (superclass)
+            if nargin > 1
+                sanityCheck@MovieObject(obj,movieDataPath,movieDataFileName,askUser);
             end
+                
             nChan = numel(obj.channels_);
             width = zeros(1,nChan);
             height = zeros(1,nChan);

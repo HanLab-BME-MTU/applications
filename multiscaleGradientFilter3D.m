@@ -1,4 +1,4 @@
-function [maxResp,dX,dY,dZ,maxRespScale] = multiscaleSurfaceFilter3D(imageIn)
+function [maxResp,dX,dY,dZ,maxRespScale] = multiscaleGradientFilter3D(imageIn)
 
 sMin = 1;
 sMax = 3;

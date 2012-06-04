@@ -312,7 +312,12 @@ for iImage = 1:nImages
 
     % ---- Post-Processing if Requested ----- %
 
-    if p.PostProcess     
+    if p.PostProcess 
+        
+        %TEMP - needs to be made a separate option, or just fucking removed
+        %once bobs scope is fixed.
+        currMask = removeInvisibleWallArtifact(currMask,movieData.binning_(1));
+        
         ppMask = postProcess3DMask(currMask,p);
         %Write the pixels ADDED due to post-processing to a separate file
         %so these may be excluded from later analysis when necessary.
