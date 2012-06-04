@@ -517,7 +517,7 @@ end
 
 %Display the cell-centroid tracking
 iObjTrackProc = movieData3D.getProcessIndex('MaskObjectTrackingProcess',1,1);
-if showSteps(5) && ~isempty(iObjTrackProc) && movieData3D.processes_{iObjTrackProc}.checkChannelOutput(iProcChan)        
+if showSteps(5) && nImages > 1 && ~isempty(iObjTrackProc) && movieData3D.processes_{iObjTrackProc}.checkChannelOutput(iProcChan)        
 
     disp('Object centroid tracking found, displaying.')        
     
