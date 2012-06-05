@@ -16,6 +16,25 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 %             (bs), growth lifetime (gl), fgap lifetime (fl), bgap lifetime
 %             (bl), growth displacement (gd), fgap displacement (fd), and
 %             bgap displacement (bd).
+%
+% Copyright (C) 2011 LCCB 
+%
+% This file is part of plusTipTracker.
+% 
+% plusTipTracker is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% plusTipTracker is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
+% 
+% 
 
 % Maria Bagonis, April 2011
 % Sebastien Besson, Apr 2011
@@ -53,6 +72,7 @@ groupData.names = btwGrpNames';
 M=cell(1,length(btwGrpNames));
 S=cell(1,length(btwGrpNames));
 Sgroup=cell(1,length(btwGrpNames));
+Mgroup = cell(1,length(btwGrpNames)); 
 D=cell(1,length(btwGrpNames));
 dataByProject=cell(1,length(btwGrpNames));
 for iGroup = 1:length(btwGrpNames)
@@ -93,9 +113,20 @@ for iGroup = 1:length(btwGrpNames)
             projData=s.projData;
         end
         
+%<<<<<<< .mine
+     
+        
+        %
+        if isfield(projData,'dataMatAllSubTracksConverted')
+ 
         D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
 
         dataMat = projData.mergedDataMatAllSubTracksConverted;
+%>>>>>>> .r8720
+        else 
+            dataMat = projData.dataMat_FOR_STATS;
+        end 
+        
         if remBegEnd==1
             dataMat = plusTipRemBegEnd(dataMat,projData); 
             % this output has data at beginning/end removed and units
@@ -110,6 +141,8 @@ for iGroup = 1:length(btwGrpNames)
             %dataMat(:,7)=dataMat(:,7).*(s.projData.pixSizeNm/1000); % convert displacements to microns
         end
         
+        dirByProj{iGroup}{i} = projData.anDir; 
+        
         % reassign the track numbers so when combined from multiple projects they don't repeat
         trkIdx=unique(dataMat(:,1));
         dataMat(:,1)=swapMaskValues(dataMat(:,1),trkIdx,trkCount:trkCount+length(trkIdx)-1);
@@ -117,13 +150,39 @@ for iGroup = 1:length(btwGrpNames)
         
         % assign matrix to cell array
         dataByProject{iGroup}{i}=dataMat;
+
+
         [S{iGroup}{i},M{iGroup}{i}]= plusTipDynamParam(dataMat,projData,1,0);
+
     end
     [Sgroup{iGroup}]= plusTipDynamParam(vertcat(dataByProject{iGroup}{:}),projData,1,0);
+    Mgroup{iGroup}= vertcat(M{iGroup}{:});  
+    if isfield(Sgroup{iGroup},'nTracksSubRoi')
+        
+    % for now just recalculate pooled stats quick fix  
+    Sgroup{iGroup}.stats.growth_speed_mean_INSIDE_REGION = nanmean(Mgroup{iGroup}(:,10)); 
+    Sgroup{iGroup}.stats.growth_speed_median_INSIDE_REGION = nanmedian(Mgroup{iGroup}(:,10)); 
+    Sgroup{iGroup}.stats.growth_lifetime_mean_INSIDE_REGION = nanmean(Mgroup{iGroup}(:,11)); 
+    Sgroup{iGroup}.stats.growth_lifetime_median_INSIDE_REGION = nanmedian(Mgroup{iGroup}(:,11)); 
+%     Sgroup{iGroup}.stats.polarCoordMeanOfAllSubtracks = nanmean(Mgroup{iGroup}(:,12)); 
+%     Sgroup{iGroup}.stats.polarCoordMedianOfAllSubtracks = nanmedian(Mgroup{iGroup}(:,12)); 
+%     Sgroup{iGroup}.stats.polarCoordMeanOfAllSubtracks_INSIDE_REGION = nanmean(Mgroup{iGroup}(:,13)); 
+%     Sgroup{iGroup}.stats.polarCoordMedianOfAllSubtracks_INSIDE_REGION = nanmedian(Mgroup{iGroup}(:,13)); 
+%   
     
+    %also quickly sort by angle 
+%     Sgroup{iGroup}.stats.perpAngleMeanGrowthSpeed = nanmean(Mgroup{iGroup}(:,14)); 
+%     Sgroup{iGroup}.stats.parAngleMeanGrowthSpeed = nanmean(Mgroup{iGroup}(:,15)); 
+%     
+    
+    
+    end 
 end
 groupData.pooledStats = cellfun(@(x) x.stats,Sgroup,'UniformOutput',0);
+groupData.pooledM = Mgroup;  
 groupData.stats = cellfun(@(x) cellfun(@(y) y.stats,x,'Unif',0),S,'Unif',0);
 groupData.dataMat=dataByProject;
 groupData.M = M;
 groupData.detection = D;
+groupData.dirByProj = dirByProj; 
+%save('groupData','groupData'); 
