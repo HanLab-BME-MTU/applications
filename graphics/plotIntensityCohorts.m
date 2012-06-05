@@ -11,6 +11,7 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowSEM', true, @islogical);
 ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
+ip.addParamValue('MaxIntensityThreshold', 0);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 
@@ -43,14 +44,17 @@ for i = 1:nd
         end
     end
     
+    % for intensity threshold in master channel
+    maxA = max(lftData.intMat_Ia(:,:,mCh), [], 2)';
+    
     cT = cell(1,nc);
     res(i).cMean = cell(nCh,nc);
     res(i).cSEM = cell(nCh,nc);
     for ch = 1:nCh % channels
         % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
-            % tracks in current cohort
-            cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1));
+            % tracks in current cohort (above threshold)
+            cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1) & maxA > ip.Results.MaxIntensityThreshold);
             nt = numel(cidx);
             
             % # data points in cohort (with buffer frames)
@@ -108,7 +112,7 @@ if nCh==1
         end
         plot(cT{c}, A, 'Color', cmap(c,:), 'LineWidth', 1.5);
     end
-else
+else % multiple channels
     hues = getFluorophoreHues(data(1).markers);
     
     for ch = nCh:-1:1
