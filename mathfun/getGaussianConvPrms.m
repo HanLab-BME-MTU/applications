@@ -37,7 +37,7 @@ mu0 = sum((pdf2-pdf1).*x);
 
 lb = [0 0.5]; % lower limits on mu, sigma
 ub = [Inf Inf];
-[p,resnorm,~,~,~,~,J] = lsqnonlin(@costX, [mu0 2], lb, ub, opts, x, pdf1, pdf2);
+[p,resnorm,~,~,~,~,J] = lsqnonlin(@costX, [mu0 2], lb, ub, opts, pdf1, pdf2);
 
 y = filterX(p(1), p(2), pdf1);
 p = p*dx;
@@ -54,7 +54,7 @@ if ip.Results.Display
 end
 
 
-function v = costX(p, x, pdf1, pdf2)
+function v = costX(p, pdf1, pdf2)
 y = filterX(p(1), p(2), pdf1);
 v = y - pdf2;
 

@@ -45,7 +45,7 @@ figure('Name', [fitRes.ModelType ' distribution fit (to ' fitRes.FitMode ')'])%(
 set(gca, 'ColorOrder', colorOrder);
 hold on;
 %hp(1) = plot(lftData.t_hist, lftData.meanLftHist_A*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
-hp(1) = plot(lftData.t_hist, lftData.meanLftHist_A*(1-a), '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 18);
+hp(1) = plot(lftData.t, lftData.meanLftHist_A*(1-a), '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 18);
 YLim = get(gca, 'YLim');
 hi = plot(fitRes.t, fitRes.popPDF, 'LineWidth', 2);
 hp(2) = hi(1);

@@ -84,7 +84,8 @@ for i = 1:nd
     res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
     res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
     res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
-   
+    res(i).nSamples_Ia = sum(idx_Ia);
+    
     % birth/death statistics
     startsPerFrame_all = hist(lftData.start, 1:data(i).movieLength);
     startsPerFrame_all = startsPerFrame_all(6:end-2);
@@ -217,6 +218,7 @@ for i = 1:nd
     lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
     lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
     
+    % Multi-channel data
     if isfield(res, 'significantSignal')
         lftHist_Apos = hist(res(i).lft_all(idx & res(i).significantSignal(2,:)), t);
         lftHist_Aneg = hist(res(i).lft_all(idx & ~res(i).significantSignal(2,:)), t);
@@ -241,14 +243,20 @@ for i = 1:nd
     end
 end
 
-lftRes.t_hist = (cutoff_f:Nmax)*framerate;
+lftRes.t = (cutoff_f:Nmax)*framerate;
 lftRes.meanLftHist_A = mean(lftRes.lftHist_A,1);
 lftRes.meanLftHist_B = mean(lftRes.lftHist_B,1);
+% lftRes.meanLftHist_Ia = mean(vertcat(res.lftHist_Ia),1);
+lftRes.lftHist_Ia = vertcat(res.lftHist_Ia);
+lftRes.nSamples_Ia = [res.nSamples_Ia];
 lftRes.data = data;
 
 plotLifetimes(lftRes);
 
+
+%=====================================================================
 % Display histogram for range of thresholds
+%=====================================================================
 if ip.Results.ShowThresholdRange
     Trange = 40:10:200;
     for ti = 1:numel(Trange)
@@ -299,7 +307,7 @@ if ip.Results.ShowThresholdRange
         %legendText = {['Above threshold (' num2str(mean(lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)'],...
         %    ['Below threshold (' num2str(mean(1-lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)']};
     end
-    axis([0 min(120, lftRes.t_hist(end)) 0 0.05]);
+    axis([0 min(120, lftRes.t(end)) 0 0.05]);
     set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
@@ -332,13 +340,7 @@ plotLifetimeDistModel(lftRes, fitResPDF);
 
 
 return
-    %====================
-    % Histogram etc.
-    %====================
-%     lftHist = getLifetimeHistogram(data(k), tracks, Nmax, 'Cutoff_f', ip.Results.Cutoff_f, 'Buffer', ip.Results.Buffer);
-%     res.lftHist_Ia{k} = lftHist.Ia;
-%     res.lftHist_Ib{k} = lftHist.Ib;
-%     res.lftHist_IIa{k} = lftHist.IIa;    
+  
     %====================
     % Gap statistics
     %==================== 
@@ -358,45 +360,7 @@ return
 %     res.gapsPerTrack_IIa{k} = gapsPerTrack_IIa;
 
 
-%-------------------------
-% Mean histogram
-%-------------------------
-meanHist_Ia =  mean(vertcat(res.lftHist_Ia),1);
-meanHist_Ib =  mean(vertcat(res.lftHist_Ib),1);
-meanHist_IIa = mean(vertcat(res.lftHist_IIa),1);
-
-
-
-%-------------------------
-% Assign output
-%-------------------------
-% res.t = t_hist;
-% res.meanHist_Ia = meanHist_Ia;
-% res.source = {data.source};
-
 if strcmpi(ip.Results.Display, 'on')
-    fset = loadFigureSettings();
-    
-   
-    % mean histograms (main classes)
-    hf(1) = figure;
-    hold on;
-    hp(3) = plot(t_hist, meanHist_IIa, '.-', 'Color', 0.6*[1 1 1], 'LineWidth', 2, 'MarkerSize', 16);
-    hp(2) = plot(t_hist, meanHist_Ib, '.-', 'Color', hsv2rgb([0 1 0.8]), 'LineWidth', 2, 'MarkerSize', 16);
-    hp(1) = plot(t_hist, meanHist_Ia, '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 16);
-    axis([0 min(120, t_hist(end)) 0 0.05]);
-    set(gca, 'LineWidth', 2, fset.sfont{:}, 'Layer', 'top');
-    xlabel('Lifetime (s)', fset.lfont{:});
-    ylabel('Frequency', fset.lfont{:});
-    hl = legend(hp, 'Single tracks, valid', 'Single tracks, rejected', 'Compound tracks', 'Location', 'NorthEast');
-    set(hl, 'Box', 'off', fset.tfont{:});
-    
-    
-    
-     % classes
-%     hf(2) = plotTrackClasses(v', v_std', 'FaceColor', fset.cfTrackClasses, 'EdgeColor', fset.ceTrackClasses);
-    
-    
     
     % gap statistics
 %     ce = fset.ceTrackClasses([1 2 5],:);

@@ -20,14 +20,17 @@ ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(lftData, varargin{:});
 endIdx = ip.Results.EndIdx;
 
-N = numel(lftData.lftHist);
-histMat = vertcat(lftData.lftHist{:});
-if ~isfield(lftData, 'meanHist')
-    lftData.meanHist = mean(histMat,1);
-end
+%N = numel(lftData.lftHist);
+histMat = lftData.lftHist_Ia;
+N = size(histMat,1);
+% histMat = vertcat(lftData.lftHist{:});
+% if ~isfield(lftData, 'meanHist')
+%     lftData.meanHist = mean(histMat,1);
+% end
+meanHist = mean(histMat,1);
 
 if isempty(endIdx)
-    endIdx = find(lftData.meanHist~=0, 1, 'last');    
+    endIdx = find(meanHist~=0, 1, 'last');    
 end
 
 ecdfMat = cumsum(histMat, 2);
@@ -76,7 +79,7 @@ end
 %     k = 1;
 % end
 
-ns = sqrt(mean(lftData.nSamples)/2);
+ns = sqrt(mean(lftData.nSamples_Ia)/2);
 k = 0;
 isnormal = 0;
 while k<=2 && ~all(isnormal)
@@ -122,7 +125,7 @@ if ~all(isnormal)
 end
 
 
-
+% assign distribution indexes for two distinct sets
 if k == 2
     [idx ctr] = kmeans(D, k, 'replicates', 20);
     
@@ -162,7 +165,12 @@ inlierIdx = cell(1,nset);
 for k = 1:nset
     N = numel(sets{k});
     
-    medianECDF{k} = median(ecdfMat(sets{k},:), 1);
+    %medianECDF{k} = median(ecdfMat(sets{k},:), 1);
+    % median ECDF: majority of median indexes
+    v = sum(repmat(median(ecdfMat(sets{k},:), 1), [3 1])==ecdfMat,2);
+    medianIdx = find(v==max(v), 1, 'first');
+    medianECDF{k} = ecdfMat(medianIdx,:);
+    
     sigma{k} = 1/norminv(0.75) * mad(ecdfMat(sets{k},:), 1, 1);
     %sigma{k} = std(ecdfMat(sets{k},:), [], 1);
     
@@ -171,7 +179,7 @@ for k = 1:nset
     
     x = 1:numel(t);
     chub = convhull(x, ub{k});
-    chub = interp1(x(chub(2:end)), ub{k}(chub(2:end)), x, 'spline');
+    chub = interp1(x(chub(2:end)), ub{k}(chub(2:end)), x, 'cubic');
     %chlb = convhull(x, lb{k});
     %chlb = interp1(x(chlb(2:end)), lb{k}(chlb(2:end)), x, 'spline');
     
@@ -230,6 +238,7 @@ if ip.Results.Display
         end
         hx = plot(t, ecdfMat(sets{k}(inlierIdx{k}),:), 'Color', [0 1 0], 'LineWidth', 2);
         hp(1) = hx(1);
+        
         hp(3) = plot(t, medianECDF{k}, 'k--', 'LineWidth', 1.5);
     end
     axis([0 100 0 1.01]);
@@ -273,24 +282,32 @@ if ip.Results.Display
     set(hl, fset.tfont{:}, 'Box', 'off');
 end
 
-
+inlierIdx{1} = [1 2];
+outlierIdx{1} = 3;
 %============================================
 % Create output structures
 %============================================
 lftDataOut = struct([]);
-%lftDataOut(1:nset) = struct('source', [], 't', [], 'lftHist', [], 'meanHist', []);
 fnames = fieldnames(lftData);
-idx = find(structfun(@(i) iscell(i), lftData));
 for k = 1:nset
-    lftDataOut(k).t = lftData.t;
-    for fi = 1:numel(idx) % loop through cell fields
-        f = idx(fi);
-        lftDataOut(k).(fnames{f}) = lftData.(fnames{f})(inlierIdx{k});
+    % if first dimension==N, select with in/outlier index
+    for f = 1:numel(fnames)
+        if size(lftData.(fnames{f}),1)==N
+            lftDataOut(k).(fnames{f}) = lftData.(fnames{f})(inlierIdx{k},:);
+        elseif numel(lftData.(fnames{f}))==N
+            lftDataOut(k).(fnames{f}) = lftData.(fnames{f})(inlierIdx{k});
+        else
+            lftDataOut(k).(fnames{f}) = lftData.(fnames{f});
+        end
+            
         if ~isempty(outlierIdx{k})
-            lftDataOut(k).outliers.(fnames{f}) = lftData.(fnames{f})(outlierIdx{k});
+            if size(lftData.(fnames{f}),1)==N
+                lftDataOut(k).outliers.(fnames{f}) = lftData.(fnames{f})(outlierIdx{k},:);
+            elseif numel(lftData.(fnames{f}))==N
+                lftDataOut(k).outliers.(fnames{f}) = lftData.(fnames{f})(outlierIdx{k});
+            end
         end
     end
-    lftDataOut(k).meanHist = mean(vertcat(lftDataOut(k).lftHist{:}),1);
 end
 
 

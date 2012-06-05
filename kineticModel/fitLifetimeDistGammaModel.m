@@ -55,7 +55,7 @@ if isempty(endIdx)
     endIdx = find(meanHist~=0, 1, 'last');
 end
 
-t = lftRes.t_hist(1:endIdx);
+t = lftRes.t(1:endIdx);
 dt = t(2)-t(1);
 
 lftEDF = cumsum(meanHist)*dt;

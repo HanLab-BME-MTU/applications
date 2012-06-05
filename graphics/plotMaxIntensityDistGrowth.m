@@ -4,10 +4,10 @@ function plotMaxIntensityDistGrowth(data)
 
 lftData = getLifetimeData(data);
 % cohorts
-% lb = 5:120;
-% ub = lb; 
-lb = 5:5:120;
-ub = lb+4;
+lb = 5:120;
+ub = lb; 
+% lb = 5:5:120;
+% ub = lb+4;
 nc = numel(lb);
 
 maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2), lftData, 'UniformOutput', false);
@@ -59,9 +59,39 @@ for c = 1:nc-1
     sigma(c) = p(2);
 end
 
-
+%%
 figure;
 hold on;
-plot(lb(2:end), mu, 'r')
-plot(lb(2:end), sigma)
+xa = lb(2:end);
+
+plot(xa, mu, 'r')
+plot(xa, sigma)
 legend('\mu', '\sigma', 'Location', 'NorthWest');
+
+
+opts = optimset('Jacobian', 'off', ...
+    'MaxFunEvals', 1e4, ...
+    'MaxIter', 1e4, ...
+    'Display', 'off', ...
+    'TolX', 1e-6, ...
+    'Tolfun', 1e-6);
+
+
+fx = inline('x(1).*xdata.^x(2)','x','xdata');
+x = lsqcurvefit(fx, [1 1], xa, mu, [], [], opts);
+x(2)
+xfine = 0:0.1:xa(end);
+plot(xfine, x(1)*xfine.^x(2), 'k--');
+
+x = lsqcurvefit(fx, [1 1], xa, sigma, [], [], opts);
+x(2)
+plot(xfine, x(1)*xfine.^x(2), 'k--');
+
+% linear fit
+T = find(xa>40, 1, 'first');
+a = sum(xa(1:T).*mu(1:T))/sum(xa(1:T).^2);
+plot(xfine, a*xfine, 'c');
+
+xlabel('Lifetime (s)');
+
+
