@@ -10,8 +10,11 @@ ip.addParamValue('Overwrite', false, @islogical);
 % ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowSEM', true, @islogical);
+ip.addParamValue('ShowBackground', false, @islogical);
+ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
 ip.addParamValue('MaxIntensityThreshold', 0);
+
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 
@@ -26,26 +29,43 @@ nCh = numel(data(1).channels);
 nc = numel(cohortBounds)-1;
 sCh = setdiff(1:nCh,mCh);
 b = 5;
+
+
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
+
+% Scale max. intensity distributions
+if ip.Results.Rescale
+    maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2), lftData, 'UniformOutput', false);
+    a = rescaleEDFs(maxA_all, 'Display', true);
+    
+    % apply scaling
+    for i = 1:numel(data)
+        lftData(i).intMat_Ia(:,:,mCh) = a(i) * lftData(i).intMat_Ia(:,:,mCh);
+        lftData(i).sigma_r_Ia(:,:,mCh) = a(i) * lftData(i).sigma_r_Ia(:,:,mCh);
+    end
+end
+
+
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('cMean', [], 'cSEM', []);
 for i = 1:nd
-    lftData = getLifetimeData(data(i), 'Overwrite', ip.Results.Overwrite);
-    lifetime_s = lftData.lifetime_s([lftData.catIdx]==1);
-    trackLengths = lftData.trackLengths([lftData.catIdx]==1);
+    lifetime_s = lftData(i).lifetime_s([lftData(i).catIdx]==1);
+    trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
     
+    % scale slave channels relative to master (for visualization only)
     if ip.Results.ScaleChannels
         % scaling of slave channels relative to master: median of end buffer, median of max. intensity
-        medianEndBuffer = squeeze(mean(mean(lftData.([ip.Results.ScaleChannels 'Buffer_Ia']),2),1));
-        medianMax = squeeze(mean(max(lftData.intMat_Ia,[],2),1));
+        medianEndBuffer = squeeze(mean(mean(lftData(i).([ip.Results.ScaleChannels 'Buffer_Ia']),2),1));
+        medianMax = squeeze(mean(max(lftData(i).intMat_Ia,[],2),1));
         for c = sCh
-            lftData.intMat_Ia(:,:,c) = (lftData.intMat_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
-            lftData.startBuffer_Ia(:,:,c) = (lftData.startBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
-            lftData.endBuffer_Ia(:,:,c) = (lftData.endBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+            lftData(i).intMat_Ia(:,:,c) = (lftData(i).intMat_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+            lftData(i).startBuffer_Ia(:,:,c) = (lftData(i).startBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
+            lftData(i).endBuffer_Ia(:,:,c) = (lftData(i).endBuffer_Ia(:,:,c)-medianEndBuffer(c))/medianMax(c)*medianMax(mCh)+medianEndBuffer(mCh);
         end
     end
     
     % for intensity threshold in master channel
-    maxA = max(lftData.intMat_Ia(:,:,mCh), [], 2)';
+    maxA = max(lftData(i).intMat_Ia(:,:,mCh), [], 2)';
     
     cT = cell(1,nc);
     res(i).cMean = cell(nCh,nc);
@@ -61,18 +81,23 @@ for i = 1:nd
             iLength = floor(mean(cohortBounds([c c+1]))/data(i).framerate) + 2*b;
             
             interpTracks = zeros(nt,iLength);
+            sigma_r_Ia = zeros(nt,iLength);
             cLengths = trackLengths(cidx);
             % loop through track lengths within cohort
             for t = 1:nt
-                A = [lftData.startBuffer_Ia(cidx(t),:,ch) lftData.intMat_Ia(cidx(t),1:cLengths(t),ch) lftData.endBuffer_Ia(cidx(t),:,ch)];
-                interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A,...
-                    linspace(1,cLengths(t)+2*b, iLength), 'cubic');
+                A = [lftData(i).startBuffer_Ia(cidx(t),:,ch) lftData(i).intMat_Ia(cidx(t),1:cLengths(t),ch) lftData(i).endBuffer_Ia(cidx(t),:,ch)];
+                interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength), 'cubic');
                 %interpTracks(t,:) = binterp(A, linspace(1,cLengths(t)+2*b, iLength));
+                
+                bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
+                sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength), 'cubic');
             end
             
             cT{c} = (-b:iLength-b-1)*data(i).framerate;
             res(i).cMean{ch,c} = mean(interpTracks,1);
             res(i).cSEM{ch,c} = std(interpTracks,[],1)/sqrt(nt);
+            res(i).sigma_r{ch,c} = mean(sigma_r_Ia,1);
+            res(i).sigma_rSEM{ch,c} = std(sigma_r_Ia,[],1)/sqrt(nt);
         end
     end
 end
@@ -92,7 +117,11 @@ if nCh==1
     cmap = jet(nc);
     cv = rgb2hsv(cmap);
     cv(:,2) = 0.2;
+    cvB = cv;
     cv = hsv2rgb(cv);
+    cvB(:,3) = 0.9;
+    cvB = hsv2rgb(cvB);
+    
     %cmap = ones(nc,3);
     %cmap(:,1) = (nc:-1:1)/nc;  
     %cmap = hsv2rgb(cmap);
@@ -103,9 +132,24 @@ if nCh==1
             A = vertcat(A{:});
             SEM = std(A,[],1)/sqrt(nd);
             A = mean(A,1);
+            kLevel = norminv(1-0.05/2, 0, 1);
+            sigma_r = arrayfun(@(x) x.sigma_r{ch,c}, res, 'UniformOutput', false);
+            sigma_r = kLevel*vertcat(sigma_r{:});
+            sigma_rSEM = std(sigma_r,[],1)/sqrt(nd);            
+            sigma_r = mean(sigma_r,1);
         else
             A = res(1).cMean{ch,c};
             SEM = res(1).cSEM{ch,c};
+        end
+        if ip.Results.ShowBackground
+            % full background
+            %np = numel(sigma_r)-2*b;
+            %fill([cT{c} cT{c}(end:-1:1)], [sigma_r zeros(1,np+2*b)], cvB(c,:), 'EdgeColor', 'none');
+            %fill([cT{c}(1+b:end-b) cT{c}(end-b:-1:1+b)], [sigma_r(1+b:end-b) zeros(1,np)], cv(c,:), 'EdgeColor', 'none');
+            % background ± SEM
+            fill([cT{c} cT{c}(end:-1:1)], [sigma_r+sigma_rSEM sigma_r(end:-1:1)-sigma_rSEM(end:-1:1)], cvB(c,:), 'EdgeColor', 'none');
+            fill([cT{c}(1+b:end-b) cT{c}(end-b:-1:1+b)], [sigma_r(1+b:end-b)+sigma_rSEM(1+b:end-b) sigma_r(end-b:-1:1+b)-sigma_rSEM(end-b:-1:1+b)], cv(c,:), 'EdgeColor', 'none');
+            plot(cT{c}, sigma_r, 'Color', cmap(c,:), 'LineWidth', 1);
         end
         if ip.Results.ShowSEM
             fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], cv(c,:), 'EdgeColor', cmap(c,:));

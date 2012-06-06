@@ -39,16 +39,19 @@ for i = 1:nd
         intMat_Ia = NaN(nt,data(i).movieLength,nCh);
         startBuffer_Ia = NaN(nt,b,nCh);
         endBuffer_Ia = NaN(nt,b,nCh);
+        sigma_r_Ia = NaN(nt,data(i).movieLength+2*b,nCh);
         for k = 1:nt
             intMat_Ia(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).A';
             startBuffer_Ia(k,:,:) = tracks(k).startBuffer.A';
             endBuffer_Ia(k,:,:) = tracks(k).endBuffer.A';
+            sigma_r_Ia(k,1:trackLengths(idx_Ia(k))+2*b,:) = [tracks(k).startBuffer.sigma_r'; tracks(k).sigma_r'; tracks(k).endBuffer.sigma_r'];            
         end
         
         lftData(i).intMat_Ia = intMat_Ia;
         lftData(i).startBuffer_Ia = startBuffer_Ia;
         lftData(i).endBuffer_Ia = endBuffer_Ia;
-        
+        lftData(i).sigma_r_Ia = sigma_r_Ia;
+
         [~,~] = mkdir([data(i).source 'Analysis']);
         iData = lftData(i);
         save(fpath, '-struct', 'iData');
