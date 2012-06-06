@@ -46,7 +46,8 @@ else
     % scale to reference distribution, with offset for missing data
     switch ip.Results.Reference
         case 'max' % highest-valued (highest mean) distribution
-            mu = cellfun(@(i) mean(i), samples);
+            %mu = cellfun(@(i) mean(i), samples);
+            mu = cellfun(@(i) median(i), samples);
             refIdx = find(mu==max(mu),1,'first');
         case 'med' % median distribution
             M = vertcat(f{:});
@@ -118,11 +119,11 @@ else
             [ni,xi] = ksdensity(samples{idx(i)}, 'npoints', 1000);
             plot(xi, ni, 'k-', 'LineWidth', 1);
         end
-        axis([0 T99 0 0.02]);
-        set(gca, fset.axOpts{:}, 'LineWidth', 2, fset.tfont{:});
+        set(gca, fset.axOpts{:}, 'LineWidth', 2, fset.tfont{:}, 'XLim', [0 T99]);
         xlabel('Max. fluo. intensity (A.U.)', fset.sfont{:});
         ylabel('P(X \leq x)', fset.sfont{:});
         title('Raw kernel density', fset.sfont{:});
+        YLim = get(gca, 'YLim');
         
         axes('Units', 'pixels', 'Position', [440 80 300 280]);
         hold on;
@@ -139,7 +140,7 @@ else
             ni = ni*(1-c(idx(i)));
             plot(xi, ni, 'k-', 'LineWidth', 1);
         end
-        axis([0 T99 0 0.02]);
+        axis([0 T99 YLim]);
         set(gca, fset.axOpts{:}, 'LineWidth', 2, fset.tfont{:}, 'YTick', [], 'YColor', 'w');
         xlabel('Max. fluo. intensity (A.U.)', fset.sfont{:});
         title('Scaled kernel density', fset.sfont{:});

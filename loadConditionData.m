@@ -46,7 +46,13 @@ parameters = ip.Results.Parameters;
 movieSelector = ip.Results.MovieSelector;
 
 if isempty(condDir)
-    condDir = [uigetdir(pwd, 'Select the ''condition'' folder:') filesep];
+    condDir = uigetdir(pwd, 'Select the ''condition'' folder:');
+    if condDir==0
+        data = [];
+        return
+    else
+        condDir = [condDir filesep];
+    end
 end
 if ~strcmp(condDir(end), filesep)
     condDir = [condDir filesep];
@@ -92,10 +98,22 @@ data(1:nCells) = struct('source', [], 'channels', [], 'date', [], 'framerate', [
 if nargin<2
     nCh = input('Enter the number of channels: ');
     chNames = cell(1,nCh);
-    chPath = [uigetdir(cellPath{1}, 'Select first (master) channel:') filesep];
+    chPath = uigetdir(cellPath{1}, 'Select first (master) channel:');
+    if chPath==0
+        fprintf(2, 'LoadConditionData: cancelled.\n');
+        return
+    else
+        chPath = [chPath filesep];
+    end
     chNames{1} = chPath(length(cellPath{1})+1:end-1);
     for c = 2:nCh
-        chPath = [uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']) filesep];
+        chPath = uigetdir(cellPath{1}, ['Select channel #' num2str(c) ':']);
+        if chPath==0
+            fprintf(2, 'LoadConditionData: cancelled.\n');
+            return
+        else
+            chPath = [chPath filesep]; %#ok<AGROW>
+        end
         chNames{c} = chPath(length(cellPath{1})+1:end-1);
     end
     for c = 1:nCh
@@ -142,7 +160,13 @@ for k = 1:nCells
             channels{c} = cellPath{k};
         end
         if ~(exist(channels{c}, 'dir')==7)
-            channels{c} = [uigetdir(cellPath{k}, ['Select channel #' num2str(c) ':']) filesep];
+            channels{c} = uigetdir(cellPath{k}, ['Select channel #' num2str(c) ':']);
+            if channels{c}==0
+                fprintf(2, 'LoadConditionData: cancelled.\n');
+                return
+            else
+                channels{c} = [channels{c} filesep];
+            end
         end
         framePaths{c} = arrayfun(@(x) [channels{c} x.name], [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])], 'UniformOutput', false);
     end
