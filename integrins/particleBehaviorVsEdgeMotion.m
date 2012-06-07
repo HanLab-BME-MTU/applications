@@ -24,6 +24,8 @@ function particleBehaviorVsEdgeMotion(protPerWindow,sptPropInWindow,...
 %
 %OUTPUT
 %
+%REMARKS NEEDS UPDATING because of classifyEdgeMotion
+%
 %
 %Khuloud Jaqaman, September 2010
 

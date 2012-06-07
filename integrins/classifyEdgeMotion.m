@@ -137,19 +137,23 @@ for iWin = 1 : numWindows
         %sub-divide each classification based on what's before it and
         %what's after it, also based on its duration and the duration of
         %what's before it and what's after it
-        classAft(periodStart(1):periodEnd(1)) = periodClass(2);
-        durCurr(periodStart(1):periodEnd(1)) = periodDuration(1);
-        durAft(periodStart(1):periodEnd(1)) = periodDuration(2);
-        for iPeriod = 2 : numPeriod-1
-            classBef(periodStart(iPeriod):periodEnd(iPeriod)) = periodClass(iPeriod-1);
-            classAft(periodStart(iPeriod):periodEnd(iPeriod)) = periodClass(iPeriod+1);
-            durCurr(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod);
-            durBef(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod-1);
-            durAft(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod+1);
+        if numPeriod == 1
+            durCurr(periodStart(1):periodEnd(1)) = periodDuration(1);
+        else
+            classAft(periodStart(1):periodEnd(1)) = periodClass(2);
+            durCurr(periodStart(1):periodEnd(1)) = periodDuration(1);
+            durAft(periodStart(1):periodEnd(1)) = periodDuration(2);
+            for iPeriod = 2 : numPeriod-1
+                classBef(periodStart(iPeriod):periodEnd(iPeriod)) = periodClass(iPeriod-1);
+                classAft(periodStart(iPeriod):periodEnd(iPeriod)) = periodClass(iPeriod+1);
+                durCurr(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod);
+                durBef(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod-1);
+                durAft(periodStart(iPeriod):periodEnd(iPeriod)) = periodDuration(iPeriod+1);
+            end
+            classBef(periodStart(end):periodEnd(end)) = periodClass(end-1);
+            durCurr(periodStart(end):periodEnd(end)) = periodDuration(end);
+            durBef(periodStart(end):periodEnd(end)) = periodDuration(end-1);
         end
-        classBef(periodStart(end):periodEnd(end)) = periodClass(end-1);
-        durCurr(periodStart(end):periodEnd(end)) = periodDuration(end);
-        durBef(periodStart(end):periodEnd(end)) = periodDuration(end-1);
         
         %save in output variable
         windowMotionType(iWin,1:end-1,1) = classCurr;
