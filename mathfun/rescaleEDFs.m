@@ -12,7 +12,7 @@ function [a c refIdx] = rescaleEDFs(samples, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Display', false, @islogical);
-ip.addParamValue('Reference', 'max', @(x) any(strcmpi(x, {'max', 'med'})));
+ip.addParamValue('Reference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.parse(varargin{:});
 
 nd = numel(samples);
@@ -57,10 +57,12 @@ else
     end
     idx = setdiff(1:nd, refIdx);
     
+    x0 = linspace(0,max(vertcat(samples{:})),1000);
+
     a = ones(1,nd);
     c = zeros(1,nd);
     for i = 1:nd-1
-        p = lsqnonlin(@cost, [1 0], [0 0], [Inf 1], opts, samples{idx(i)}, samples{refIdx});
+        p = lsqnonlin(@cost, [1 0], [0 -1], [Inf 1], opts, samples{idx(i)}, samples{refIdx}, x0);
         a(idx(i)) = p(1);
         c(idx(i)) = p(2);
     end
@@ -68,15 +70,16 @@ else
     if ip.Results.Display
         fset = loadFigureSettings();
         T99 = prctile(samples{refIdx}, 99.9);
+        lw = 3;
 
         pos = get(0, 'DefaultFigurePosition');
         pos(3) = 800;
         pos(4) = 400;
         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w');
         
-        axes('Units', 'pixels', 'Position', [80 80 300 280]);
+        axes('Units', 'pixels', 'Position', [100 80 300 280]);
         hold on;
-        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', 1.5);
+        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         for i = 1:nd-1
             plot(x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 1);
         end
@@ -88,7 +91,7 @@ else
         
         axes('Units', 'pixels', 'Position', [440 80 300 280]);
         hold on;
-        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', 1.5);
+        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         for i = 1:nd-1
             ci = c(idx(i));
             %plot(p(i)*x_edf{idx(i)}, f_edf{idx(i)}, 'k', 'LineWidth', 1);
@@ -102,8 +105,7 @@ else
         
         % Histograms
         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w');
-        
-        axes('Units', 'pixels', 'Position', [80 80 300 280]);
+        axes('Units', 'pixels', 'Position', [100 80 300 280]);
         hold on;
         
         %dx = 10;
@@ -112,7 +114,7 @@ else
         %ni = ni/sum(ni)/dx;
         [ni,xi] = ksdensity(samples{refIdx}, 'npoints', 1000);
         %sum(ni)
-        plot(xi, ni, 'r-', 'LineWidth', 1.5);
+        plot(xi, ni, 'r-', 'LineWidth', lw);
         for i = 1:nd-1
             %ni = hist(samples{idx(i)}, xi);
             %ni = ni/sum(ni)/dx;
@@ -132,7 +134,7 @@ else
         %ni = hist(samples{refIdx}, xi);
         %ni = ni/sum(ni)/dx;
         [ni,xi] = ksdensity(samples{refIdx}, 'npoints', 1000);
-        plot(xi, ni, 'r-', 'LineWidth', 1.5);
+        plot(xi, ni, 'r-', 'LineWidth', lw);
         for i = 1:nd-1
             %ni = hist(samples{idx(i)}*a(idx(i)), xi);
             %ni = ni/sum(ni)/dx * (1-c(idx(i))); 
@@ -149,46 +151,15 @@ else
 end
 
 
-
-function v = cost(p, samples, refSamples)
+function v = cost(p, samples, refSamples, x0)
 a = p(1);
 c = p(2);
-
-x0 = linspace(0,max(refSamples),1000);
 
 refEDF = interpEDF(refSamples, x0);
 
 f_i = interpEDF(samples, x0/a);
 v = c+(1-c)*f_i - refEDF;
-v(f_i==0 | f_i==1) = 0;
-
-
-
-% function v = cost(p, samples, refSamples)
-% nd = numel(samples);
-% a = p(1:2:end);
-% c = p(2:2:end);
-% 
-% x0 = linspace(0,max(refSamples),1000);
-% 
-% refEDF = interpEDF(refSamples, x0);
-% 
-% % a = p(1);
-% % c = p(2);
-% % % f_i = interpEDF(samples{1}, x0/a);
-% % v = c+(1-c)*f_i - refEDF;
-% % v(f_i==0 | f_i==1) = 0;
-% 
-% v = cell(1,nd);
-% for i = 1:nd
-%     iSamples = samples{i};
-%     f_i = interpEDF(iSamples, x0/a(i));
-%     
-%     v{i} = c(i)+(1-c(i))*f_i - refEDF;
-%     v{i}(f_i==0 | f_i==1) = 0;
-% end    
-% v = vertcat(v{:});
-% v(isnan(v)) = [];
+v(f_i==0 | f_i==1 | refEDF==0 | refEDF==1) = 0;
 
 
 function f = interpEDF(samples, x)
@@ -197,7 +168,3 @@ f = interp1(xEDF(2:end), fEDF(2:end), x(2:end), 'linear');
 f(1:find(~isnan(f),1,'first')-1) = 0;
 f(find(isnan(f),1,'first'):end) = 1;
 f = [0 f];
-
-
-
-

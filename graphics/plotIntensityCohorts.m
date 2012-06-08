@@ -12,7 +12,7 @@ ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowSEM', true, @islogical);
 ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
-ip.addParamValue('RescalingReference', 'max', @(x) any(strcmpi(x, {'max', 'med'})));
+ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
 ip.addParamValue('MaxIntensityThreshold', 0);
 
@@ -36,15 +36,28 @@ lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
 
 % Scale max. intensity distributions
 if ip.Results.Rescale
-    maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2), lftData, 'UniformOutput', false);
-    a = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference);
-    
-    % apply scaling
-    for i = 1:numel(data)
-        lftData(i).intMat_Ia(:,:,mCh) = a(i) * lftData(i).intMat_Ia(:,:,mCh);
-        lftData(i).sigma_r_Ia(:,:,mCh) = a(i) * lftData(i).sigma_r_Ia(:,:,mCh);
+    for c = 1:nCh
+        maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
+        a = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference);
+        
+        % apply scaling
+        for i = 1:numel(data)
+            lftData(i).intMat_Ia(:,:,c) = a(i) * lftData(i).intMat_Ia(:,:,c);
+            lftData(i).sigma_r_Ia(:,:,c) = a(i) * lftData(i).sigma_r_Ia(:,:,c);
+        end
     end
 end
+
+% test for outliers
+maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2), lftData, 'UniformOutput', false);
+outlierIdx = detectEDFOutliers(maxA_all);
+if ~isempty(outlierIdx)
+    fprintf('Outlier data sets:\n');
+    for i = 1:numel(outlierIdx)
+        fprintf('%s\n', getShortPath(data(outlierIdx(i))));
+    end
+end
+
 
 
 % loop through data sets, generate cohorts for each
