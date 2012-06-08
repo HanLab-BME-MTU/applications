@@ -16,6 +16,7 @@ ip.addParamValue('Reference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.parse(varargin{:});
 
 nd = numel(samples);
+samples = cellfun(@(i) i(:), samples, 'UniformOutput', false);
 
 if nd==1
     a = 1;
