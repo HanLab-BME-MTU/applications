@@ -80,7 +80,7 @@ supermap(1,:) = get(hObject,'color');
 userData.colormap = supermap;
 
 axes(handles.axes_help);
-Img = image(questIconData);
+Img = image(userData.questIconData);
 set(hObject,'colormap',supermap);
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off');
