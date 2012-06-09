@@ -13,6 +13,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('Reference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
+ip.addParamValue('FigureName', '');
 ip.parse(varargin{:});
 
 nd = numel(samples);
@@ -76,7 +77,7 @@ else
         pos = get(0, 'DefaultFigurePosition');
         pos(3) = 800;
         pos(4) = 400;
-        figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w');
+        figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
         
         axes('Units', 'pixels', 'Position', [100 80 300 280]);
         hold on;
@@ -105,7 +106,7 @@ else
         
         
         % Histograms
-        figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w');
+        figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
         axes('Units', 'pixels', 'Position', [100 80 300 280]);
         hold on;
         

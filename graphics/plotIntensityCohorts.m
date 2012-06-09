@@ -22,26 +22,28 @@ cohortBounds = ip.Results.CohortBounds_s;
 
 % if no specific channel is selected, all channels are shown
 ch = ip.Results.ch;
-mCh = find(strcmp(data(1).source, data(1).channels));
 
+nCh = numel(data(1).channels);
+mCh = find(strcmp(data(1).source, data(1).channels));
+sCh = setdiff(1:nCh, mCh);
 
 nd = numel(data);
-nCh = numel(data(1).channels);
-nc = numel(cohortBounds)-1;
-sCh = setdiff(1:nCh,mCh);
-b = 5;
 
+nc = numel(cohortBounds)-1;
+b = 5;
+framerate = data(1).framerate;
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
 
 % Scale max. intensity distributions
+offset = zeros(nCh,nd);
 if ip.Results.Rescale
     for c = 1:nCh
         maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
-        a = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference);
+        [a offset(c,:)] = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference, 'FigureName', ['Channel ' num2str(c)]);
         
         % apply scaling
-        for i = 1:numel(data)
+        for i = 1:nd
             lftData(i).intMat_Ia(:,:,c) = a(i) * lftData(i).intMat_Ia(:,:,c);
             lftData(i).sigma_r_Ia(:,:,c) = a(i) * lftData(i).sigma_r_Ia(:,:,c);
         end
@@ -49,20 +51,35 @@ if ip.Results.Rescale
 end
 
 % test for outliers
-maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2), lftData, 'UniformOutput', false);
-outlierIdx = detectEDFOutliers(maxA_all);
-if ~isempty(outlierIdx)
-    fprintf('Outlier data sets:\n');
-    for i = 1:numel(outlierIdx)
-        fprintf('%s\n', getShortPath(data(outlierIdx(i))));
+outlierIdx = [];
+for c = 1:nCh
+    maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
+    cOut = detectEDFOutliers(maxA_all, offset(c,:), 'FigureName', ['Outliers, channel ' num2str(c)]);
+    outlierIdx = [outlierIdx cOut]; %#ok<AGROW>
+    if ~isempty(outlierIdx)
+        fprintf('Outlier data sets for channel %d:\n', c);
+        for i = 1:numel(cOut)
+            fprintf('%s\n', getShortPath(data(cOut(i))));
+        end
     end
 end
 
-
+if ~isempty(outlierIdx)
+    data(outlierIdx) = [];
+    lftData(outlierIdx) = [];
+    nd = numel(data);
+    fprintf('Outliers excluded from intensity cohorts.\n');
+end
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('cMean', [], 'cSEM', []);
-for i = 1:nd
+
+% average frames per cohort
+iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
+% time vectors for cohorts
+cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
+
+parfor i = 1:nd
     lifetime_s = lftData(i).lifetime_s([lftData(i).catIdx]==1);
     trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
     
@@ -81,7 +98,6 @@ for i = 1:nd
     % for intensity threshold in master channel
     maxA = max(lftData(i).intMat_Ia(:,:,mCh), [], 2)';
     
-    cT = cell(1,nc);
     res(i).cMean = cell(nCh,nc);
     res(i).cSEM = cell(nCh,nc);
     for ch = 1:nCh % channels
@@ -92,22 +108,21 @@ for i = 1:nd
             nt = numel(cidx);
             
             % # data points in cohort (with buffer frames)
-            iLength = floor(mean(cohortBounds([c c+1]))/data(i).framerate) + 2*b;
+            %iLength = floor(mean(cohortBounds([c c+1]))/framerate) + 2*b;
             
-            interpTracks = zeros(nt,iLength);
-            sigma_r_Ia = zeros(nt,iLength);
+            interpTracks = zeros(nt,iLength(c));
+            sigma_r_Ia = zeros(nt,iLength(c));
             cLengths = trackLengths(cidx);
             % loop through track lengths within cohort
             for t = 1:nt
                 A = [lftData(i).startBuffer_Ia(cidx(t),:,ch) lftData(i).intMat_Ia(cidx(t),1:cLengths(t),ch) lftData(i).endBuffer_Ia(cidx(t),:,ch)];
-                interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength), 'cubic');
+                interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
                 %interpTracks(t,:) = binterp(A, linspace(1,cLengths(t)+2*b, iLength));
                 
                 bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
-                sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength), 'cubic');
+                sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
             end
-            
-            cT{c} = (-b:iLength-b-1)*data(i).framerate;
+
             res(i).cMean{ch,c} = mean(interpTracks,1);
             res(i).cSEM{ch,c} = std(interpTracks,[],1)/sqrt(nt);
             res(i).sigma_r{ch,c} = mean(sigma_r_Ia,1);
@@ -142,18 +157,18 @@ if nCh==1
     
     for c = nc:-1:1
         if nd>1
-            A = arrayfun(@(x) x.cMean{ch,c}, res, 'UniformOutput', false);
+            A = arrayfun(@(x) x.cMean{1,c}, res, 'UniformOutput', false);
             A = vertcat(A{:});
             SEM = std(A,[],1)/sqrt(nd);
             A = mean(A,1);
             kLevel = norminv(1-0.05/2, 0, 1);
-            sigma_r = arrayfun(@(x) x.sigma_r{ch,c}, res, 'UniformOutput', false);
+            sigma_r = arrayfun(@(x) x.sigma_r{1,c}, res, 'UniformOutput', false);
             sigma_r = kLevel*vertcat(sigma_r{:});
             sigma_rSEM = std(sigma_r,[],1)/sqrt(nd);            
             sigma_r = mean(sigma_r,1);
         else
-            A = res(1).cMean{ch,c};
-            SEM = res(1).cSEM{ch,c};
+            A = res(1).cMean{1,c};
+            SEM = res(1).cSEM{1,c};
         end
         if ip.Results.ShowBackground
             % full background
@@ -194,6 +209,6 @@ else % multiple channels
         end
     end
 end
-set(gca, fset.axOpts{:}, 'XLim', [-b*data(1).framerate cohortBounds(end)]);
+set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
 xlabel('Time (s)', fset.lfont{:});
 ylabel('Intensity (A.U.)', fset.lfont{:});
