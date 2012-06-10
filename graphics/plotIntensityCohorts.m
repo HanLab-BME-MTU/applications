@@ -76,12 +76,12 @@ end
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('cMean', [], 'cSEM', []);
 
-% average frames per cohort
+% # data points in cohort (including buffer frames)
 iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
 % time vectors for cohorts
 cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
 
-parfor i = 1:nd
+for i = 1:nd
     lifetime_s = lftData(i).lifetime_s([lftData(i).catIdx]==1);
     trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
     
@@ -108,10 +108,7 @@ parfor i = 1:nd
             % tracks in current cohort (above threshold)
             cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1) & maxA > ip.Results.MaxIntensityThreshold);
             nt = numel(cidx);
-            
-            % # data points in cohort (with buffer frames)
-            %iLength = floor(mean(cohortBounds([c c+1]))/framerate) + 2*b;
-            
+
             interpTracks = zeros(nt,iLength(c));
             sigma_r_Ia = zeros(nt,iLength(c));
             cLengths = trackLengths(cidx);
@@ -120,7 +117,6 @@ parfor i = 1:nd
                 A = [lftData(i).startBuffer_Ia(cidx(t),:,ch) lftData(i).intMat_Ia(cidx(t),1:cLengths(t),ch) lftData(i).endBuffer_Ia(cidx(t),:,ch)];
                 interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
                 %interpTracks(t,:) = binterp(A, linspace(1,cLengths(t)+2*b, iLength));
-                
                 bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
                 sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
             end
@@ -129,6 +125,19 @@ parfor i = 1:nd
             res(i).cSEM{ch,c} = std(interpTracks,[],1)/sqrt(nt);
             res(i).sigma_r{ch,c} = mean(sigma_r_Ia,1);
             res(i).sigma_rSEM{ch,c} = std(sigma_r_Ia,[],1)/sqrt(nt);
+            % split as a function of slave channel signal
+            if isfield(lftData(i), 'significantSignal')
+                sigIdx = lftData(i).significantSignal(2,lftData(i).catIdx==1);
+                sigIdx = sigIdx(cidx);
+                res(i).cMeanPos{ch,c} = mean(interpTracks(sigIdx==1,:),1);
+                res(i).cMeanNeg{ch,c} = mean(interpTracks(sigIdx==0,:),1);
+                res(i).cSEMPos{ch,c} = std(interpTracks(sigIdx==1,:),[],1)/sqrt(nt);
+                res(i).cSEMNeg{ch,c} = std(interpTracks(sigIdx==0,:),[],1)/sqrt(nt);
+                res(i).sigma_rPos{ch,c} = mean(sigma_r_Ia(sigIdx==1,:),1);
+                res(i).sigma_rNeg{ch,c} = mean(sigma_r_Ia(sigIdx==0,:),1);
+                res(i).sigma_rSEMPos{ch,c} = std(sigma_r_Ia(sigIdx==1,:),[],1)/sqrt(nt);
+                res(i).sigma_rSEMNeg{ch,c} = std(sigma_r_Ia(sigIdx==0,:),[],1)/sqrt(nt);
+            end
         end
     end
 end
@@ -141,10 +150,11 @@ end
 fset = loadFigureSettings();
 
 
-figure;
-hold on;
+
 
 if nCh==1
+    figure;
+    hold on;
     cmap = jet(nc);
     cv = rgb2hsv(cmap);
     cv(:,2) = 0.2;
@@ -187,9 +197,15 @@ if nCh==1
         end
         plot(cT{c}, A, 'Color', cmap(c,:), 'LineWidth', 1.5);
     end
+    set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
+    xlabel('Time (s)', fset.lfont{:});
+    ylabel('Intensity (A.U.)', fset.lfont{:});
+
 else % multiple channels
     hues = getFluorophoreHues(data(1).markers);
     
+    figure('Name', 'Intensity cohorts, all valid tracks');
+    hold on;
     for ch = nCh:-1:1
         trackColor = hsv2rgb([hues(ch) 1 0.8]);
         fillLight = hsv2rgb([hues(ch) 0.4 1]);
@@ -210,7 +226,62 @@ else % multiple channels
             plot(cT{c}, A, 'Color', trackColor, 'LineWidth', 1.5);
         end
     end
+    set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
+    xlabel('Time (s)', fset.lfont{:});
+    ylabel('Intensity (A.U.)', fset.lfont{:});
+    
+    if isfield(res(1), 'cMeanPos')
+        figure('Name', 'Intensity cohorts, cargo-positive tracks');
+        hold on;
+        for ch = nCh:-1:1
+            trackColor = hsv2rgb([hues(ch) 1 0.8]);
+            fillLight = hsv2rgb([hues(ch) 0.4 1]);
+            
+            for c = nc:-1:1
+                if nd>1
+                    A = arrayfun(@(x) x.cMeanPos{ch,c}, res, 'UniformOutput', false);
+                    A = vertcat(A{:});
+                    SEM = std(A,[],1)/sqrt(nd);
+                    A = mean(A,1);
+                else
+                    A = res(1).cMeanPos{ch,c};
+                    SEM = res(1).cSEMPos{ch,c};
+                end
+                if ip.Results.ShowSEM
+                    fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], fillLight, 'EdgeColor', trackColor);
+                end
+                plot(cT{c}, A, 'Color', trackColor, 'LineWidth', 1.5);
+            end
+        end
+        set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
+        xlabel('Time (s)', fset.lfont{:});
+        ylabel('Intensity (A.U.)', fset.lfont{:});
+        YLim = get(gca, 'Ylim');
+        
+        figure('Name', 'Intensity cohorts, cargo-negative tracks');
+        hold on;
+        for ch = nCh:-1:1
+            trackColor = hsv2rgb([hues(ch) 1 0.8]);
+            fillLight = hsv2rgb([hues(ch) 0.4 1]);
+            
+            for c = nc:-1:1
+                if nd>1
+                    A = arrayfun(@(x) x.cMeanNeg{ch,c}, res, 'UniformOutput', false);
+                    A = vertcat(A{:});
+                    SEM = std(A,[],1)/sqrt(nd);
+                    A = mean(A,1);
+                else
+                    A = res(1).cMeanNeg{ch,c};
+                    SEM = res(1).cSEMNeg{ch,c};
+                end
+                if ip.Results.ShowSEM
+                    fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], fillLight, 'EdgeColor', trackColor);
+                end
+                plot(cT{c}, A, 'Color', trackColor, 'LineWidth', 1.5);
+            end
+        end
+        set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)], 'YLim', YLim);
+        xlabel('Time (s)', fset.lfont{:});
+        ylabel('Intensity (A.U.)', fset.lfont{:});
+    end
 end
-set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
-xlabel('Time (s)', fset.lfont{:});
-ylabel('Intensity (A.U.)', fset.lfont{:});
