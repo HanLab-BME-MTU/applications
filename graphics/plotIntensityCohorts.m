@@ -13,7 +13,8 @@ ip.addParamValue('ShowSEM', true, @islogical);
 ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
-ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
+%ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
+ip.addParamValue('ScaleChannels', false, @islogical);
 ip.addParamValue('MaxIntensityThreshold', 0);
 
 ip.parse(data, varargin{:});
@@ -51,24 +52,25 @@ if ip.Results.Rescale
 end
 
 % test for outliers
-outlierIdx = [];
-for c = 1:nCh
-    maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
-    cOut = detectEDFOutliers(maxA_all, offset(c,:), 'FigureName', ['Outliers, channel ' num2str(c)]);
-    outlierIdx = [outlierIdx cOut]; %#ok<AGROW>
-    if ~isempty(outlierIdx)
-        fprintf('Outlier data sets for channel %d:\n', c);
-        for i = 1:numel(cOut)
-            fprintf('%s\n', getShortPath(data(cOut(i))));
+if nd>3
+    outlierIdx = [];
+    for c = 1:nCh
+        maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
+        cOut = detectEDFOutliers(maxA_all, offset(c,:), 'FigureName', ['Outliers, channel ' num2str(c)]);
+        outlierIdx = [outlierIdx cOut]; %#ok<AGROW>
+        if ~isempty(outlierIdx)
+            fprintf('Outlier data sets for channel %d:\n', c);
+            for i = 1:numel(cOut)
+                fprintf('%s\n', getShortPath(data(cOut(i))));
+            end
         end
     end
-end
-
-if ~isempty(outlierIdx)
-    data(outlierIdx) = [];
-    lftData(outlierIdx) = [];
-    nd = numel(data);
-    fprintf('Outliers excluded from intensity cohorts.\n');
+    if ~isempty(outlierIdx)
+        data(outlierIdx) = [];
+        lftData(outlierIdx) = [];
+        nd = numel(data);
+        fprintf('Outliers excluded from intensity cohorts.\n');
+    end
 end
 
 % loop through data sets, generate cohorts for each
