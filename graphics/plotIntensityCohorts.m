@@ -22,7 +22,7 @@ cohortBounds = ip.Results.CohortBounds_s;
 
 
 % if no specific channel is selected, all channels are shown
-ch = ip.Results.ch;
+% ch = ip.Results.ch;
 
 nCh = numel(data(1).channels);
 mCh = find(strcmp(data(1).source, data(1).channels));
@@ -52,26 +52,28 @@ if ip.Results.Rescale
 end
 
 % test for outliers
-if nd>3
+if nd>4
     outlierIdx = [];
     for c = 1:nCh
         maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
         cOut = detectEDFOutliers(maxA_all, offset(c,:), 'FigureName', ['Outliers, channel ' num2str(c)]);
         outlierIdx = [outlierIdx cOut]; %#ok<AGROW>
-        if ~isempty(outlierIdx)
+        if ~isempty(cOut)
             fprintf('Outlier data sets for channel %d:\n', c);
             for i = 1:numel(cOut)
                 fprintf('%s\n', getShortPath(data(cOut(i))));
             end
         end
     end
+    outlierIdx = unique(outlierIdx);
     if ~isempty(outlierIdx)
         data(outlierIdx) = [];
         lftData(outlierIdx) = [];
         nd = numel(data);
-        fprintf('Outliers excluded from intensity cohorts.\n');
+        fprintf('Outliers excluded from intensity cohorts. Indexes: %s\n', num2str(outlierIdx));
     end
 end
+
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('cMean', [], 'cSEM', []);

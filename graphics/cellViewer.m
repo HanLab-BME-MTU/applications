@@ -48,17 +48,7 @@ for k = 1:N
     frame = scaleContrast(sqrt(frame));
     if strcmpi(ip.Results.Mode, 'mask')
         mask = double(imread([data(k).source 'Detection' filesep 'cellmask.tif']));
-        
-        B = bwboundaries(mask);
-        B = sub2ind(size(mask), B{1}(:,1), B{1}(:,2));
-        mask = zeros(size(mask));
-        mask(B) = 1;
-        mask = bwmorph(mask, 'dilate');
-
-        frame(mask==1) = 0;
-        overlay = frame;
-        overlay(mask==1) = 255;
-        frame = uint8(cat(3, overlay, frame, frame));
+        frame = uint8(rgbOverlay(frame, max(mask(:))-mask, [1 0 0]));
     end
     
     imagesc(frame, 'Parent', ha);

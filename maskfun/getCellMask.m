@@ -78,12 +78,13 @@ g = filterGauss2D(aip, 5);
 
 v = aip(:);
 
-[f_ecdf, x_ecdf] = ecdf(v);
-x_ecdf = x_ecdf(2:end)';
-f_ecdf = f_ecdf(2:end)';
+% [f_ecdf, x_ecdf] = ecdf(v);
+% x_ecdf = x_ecdf(2:end)';
+% f_ecdf = f_ecdf(2:end)';
 
-x1 = interp1(f_ecdf, x_ecdf, 0.99);
-v(v>x1) = [];
+% x1 = interp1(f_ecdf, x_ecdf, 0.99);
+pct = prctile(v, [1 99]);
+v(v<pct(1) | pct(2)<v) = [];
 
 [f,xi] = ksdensity(v, 'npoints', 100);
 
@@ -133,7 +134,7 @@ CC = bwconncomp(1-boundary, 4);
 % mask indexes
 labels = double(labelmatrix(CC));
 idx = unique(mask.*labels);
-mask = boundary | labels==idx(2);
+mask = boundary | ismember(labels, idx(2:end));%labels==idx(2);
 
 
 if showHist
