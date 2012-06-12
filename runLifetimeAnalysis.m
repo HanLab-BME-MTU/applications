@@ -111,14 +111,14 @@ for i = 1:nd
     %-------------------------------------------------------------
     lifetime_s = lifetime_s(idx_Ia);
     
-    M = lftData.intMat_Ia;
-    res(i).M = M;
+    intMat_Ia = lftData.intMat_Ia;
+    res(i).intMat_Ia = intMat_Ia;
     for k = 1:nc
         % indexes within cohorts
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
-        res(i).maxA{k} = nanmax(M(cidx,:),[],2);
+        res(i).maxA{k} = nanmax(intMat_Ia(cidx,:),[],2);
         for n = firstN
-           res(i).(['maxA_f' num2str(n)]){k} = nanmax(M(cidx,1:n),[],2);
+           res(i).(['maxA_f' num2str(n)]){k} = nanmax(intMat_Ia(cidx,1:n),[],2);
         end
         
         % lifetimes for given cohort
@@ -126,7 +126,7 @@ for i = 1:nd
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(M,[],2)';
+    res(i).maxA_all = nanmax(intMat_Ia,[],2)';
     if isfield(lftData, 'significantSignal')
         res(i).significantSignal = lftData.significantSignal(:,idx_Ia);
     end
@@ -163,6 +163,7 @@ a = rescaleEDFs({res.maxA_all}, 'Display', false);
 
 % apply scaling
 for i = 1:nd
+    res(i).intMat_Ia = a(i) * res(i).intMat_Ia;
     res(i).maxA_all = a(i) * res(i).maxA_all;
     res(i).maxA = cellfun(@(x) a(i)*x, res(i).maxA, 'UniformOutput', false);
     for n = firstN
@@ -186,12 +187,30 @@ else
     T = ip.Results.MaxIntensityThreshold;
 end
 
+intMat_Ia_all = vertcat(res.intMat_Ia);
+lifetime_s_all = [res.lft_all];
+
+tx = 15;
+
+% 95th percentile of the reference (above threshold) distribution
+pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,2:4), 95, 1);
+
 % loop through data sets, apply max. intensity threshold
 for i = 1:nd
-    idx = res(i).maxA_all >= T;
-    res(i).lftAboveT = res(i).lft_all(idx);
-    res(i).lftBelowT = res(i).lft_all(~idx);
-    lftRes.pctAbove(i) = sum(idx)/numel(idx);
+    
+    % Selection indexes for each data set
+    % 1) Intensity threshold based on maximum intensity distribution
+    idxMI = res(i).maxA_all >= T;
+    
+    % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
+    idxLft = sum(res(i).intMat_Ia(:,2:4)>repmat(pRef, [size(res(i).intMat_Ia,1) 1]),2)>0 & res(i).lft_all'<tx;
+    
+    % combined index
+    idxMI = idxMI & ~idxLft';
+    
+    res(i).lftAboveT = res(i).lft_all(idxMI);
+    res(i).lftBelowT = res(i).lft_all(~idxMI);
+    lftRes.pctAbove(i) = sum(idxMI)/numel(idxMI);
     
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
@@ -220,10 +239,10 @@ for i = 1:nd
     
     % Multi-channel data
     if isfield(res, 'significantSignal')
-        lftHist_Apos = hist(res(i).lft_all(idx & res(i).significantSignal(2,:)), t);
-        lftHist_Aneg = hist(res(i).lft_all(idx & ~res(i).significantSignal(2,:)), t);
-        lftHist_Bpos = hist(res(i).lft_all(~idx & res(i).significantSignal(2,:)), t);
-        lftHist_Bneg = hist(res(i).lft_all(~idx & ~res(i).significantSignal(2,:)), t);
+        lftHist_Apos = hist(res(i).lft_all(idxMI & res(i).significantSignal(2,:)), t);
+        lftHist_Aneg = hist(res(i).lft_all(idxMI & ~res(i).significantSignal(2,:)), t);
+        lftHist_Bpos = hist(res(i).lft_all(~idxMI & res(i).significantSignal(2,:)), t);
+        lftHist_Bneg = hist(res(i).lft_all(~idxMI & ~res(i).significantSignal(2,:)), t);
         lftHist_Apos =  [lftHist_Apos.*w  pad0];
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
@@ -237,9 +256,9 @@ for i = 1:nd
         %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB / framerate;
         %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB / framerate;
         
-        lftRes.pctAboveSignificant(i) = sum(idx & res(i).significantSignal(2,:))/numel(idx);
-        lftRes.pctAboveNS(i) = sum(idx & ~res(i).significantSignal(2,:))/numel(idx);
-        lftRes.pctBelowSignificant(i) = sum(~idx & res(i).significantSignal(2,:))/numel(idx);
+        lftRes.pctAboveSignificant(i) = sum(idxMI & res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctAboveNS(i) = sum(idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctBelowSignificant(i) = sum(~idxMI & res(i).significantSignal(2,:))/numel(idxMI);
     end
 end
 
@@ -325,17 +344,17 @@ end
 %=====================================================================
 % Fit lifetime histogram with Weibull-distributed populations
 %=====================================================================
-fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
-plotLifetimeDistModel(lftRes, fitResCDF);
+% fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
+% plotLifetimeDistModel(lftRes, fitResCDF);
 
-fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
-plotLifetimeDistModel(lftRes, fitResPDF);
+% fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
+% plotLifetimeDistModel(lftRes, fitResPDF);
 
-fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
-plotLifetimeDistModel(lftRes, fitResCDF);
+% fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
+% plotLifetimeDistModel(lftRes, fitResCDF);
 
-fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF');
-plotLifetimeDistModel(lftRes, fitResPDF);
+% fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF');
+% plotLifetimeDistModel(lftRes, fitResPDF);
 
 
 
