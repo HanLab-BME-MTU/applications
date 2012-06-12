@@ -46,6 +46,8 @@ if ip.Results.Rescale
         % apply scaling
         for i = 1:nd
             lftData(i).intMat_Ia(:,:,c) = a(i) * lftData(i).intMat_Ia(:,:,c);
+            lftData(i).startBuffer_Ia(:,:,c) = a(i) * lftData(i).startBuffer_Ia(:,:,c);
+            lftData(i).endBuffer_Ia(:,:,c) = a(i) * lftData(i).endBuffer_Ia(:,:,c);
             lftData(i).sigma_r_Ia(:,:,c) = a(i) * lftData(i).sigma_r_Ia(:,:,c);
         end
     end

@@ -8,11 +8,12 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('samples', @iscell);
 ip.addOptional('offset', zeros(1,ns));
+ip.addOptional('refIdx', []);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('FigureName', '');
 ip.parse(samples, varargin{:});
 offset = ip.Results.offset;
-
+medIdx = ip.Results.refIdx;
 xEDF = cell(1,ns);
 fEDF = cell(1,ns);
 for i = 1:ns
@@ -34,8 +35,10 @@ M = vertcat(fEDF{:});
 % medIdx = sum(repmat(median(M,1), [ns 1])==M,2);
 % medIdx = find(medIdx==max(medIdx),1,'first');
 medianEDF = median(M,1);
-J = nansum((M-repmat(medianEDF, [ns 1])).^2, 2);
-medIdx = find(J==min(J),1,'first');
+if isempty(medIdx)
+    J = nansum((M-repmat(medianEDF, [ns 1])).^2, 2);
+    medIdx = find(J==min(J),1,'first');
+end
 medEDF = M(medIdx,:);
 
 % MAD: median(abs(X-median(X)))

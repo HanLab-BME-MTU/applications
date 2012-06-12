@@ -20,6 +20,7 @@ lb = ip.Results.lb;
 ub = ip.Results.ub;
 nd = length(data);
 nc = numel(lb); % # cohorts
+mCh = find(strcmp(data(1).source, data(1).channels));
 
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
@@ -33,31 +34,62 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
+
 % loop through data sets, load tracks, store max. intensities and lifetimes
 res = struct([]);
 % lftRes = struct([]);
 
+%==============================================================
+% Outlier detection (based on max. intensity distribution)
+%==============================================================
+maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2)', lftData, 'UniformOutput', false);
 
-% fprintf('Lifetime analysis (%s) - loading tracks:     ', getShortPath(data));
+% Rescale EDFs (correction for FP-fusion expression level)
+[a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
+% figure; plot(ones(1,numel(a)), sort(a), 'k.')
+% adtest(a)
+
+% apply scaling
+for i = 1:nd
+    maxA_all{i} = a(i) * maxA_all{i};
+    lftData(i).intMat_Ia(:,:,mCh) = a(i) * lftData(i).intMat_Ia(:,:,mCh);
+    lftData(i).startBuffer_Ia(:,:,mCh) = a(i) * lftData(i).startBuffer_Ia(:,:,mCh);
+    lftData(i).endBuffer_Ia(:,:,mCh) = a(i) * lftData(i).endBuffer_Ia(:,:,mCh);
+    lftData(i).sigma_r_Ia(:,:,mCh) = a(i) * lftData(i).sigma_r_Ia(:,:,mCh);
+end
+
+outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
+fprintf('Outlier data sets:\n');
+for i = 1:numel(outlierIdx)
+    fprintf('%s\n', getShortPath(data(outlierIdx(i))));
+end
+
+lftData(outlierIdx) = [];
+data(outlierIdx) = [];
+nd = numel(data);
+clear a outlierIdx maxA_all;
+
+
 lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'};
 fprintf('=================================================\n');
-fprintf('Lifetime analysis - loading tracks:   0%%');
+fprintf('Lifetime analysis - processing:   0%%');
+lftRes.cellArea = zeros(nd,1);
 for i = 1:nd
-    lftData = getLifetimeData(data(i), 'Overwrite', ip.Results.Overwrite);
     
     % apply frames cutoff for short tracks
-    lftData.intMat_Ia(lftData.trackLengths(lftData.catIdx==1)<cutoff_f,:) = [];
-    idx = lftData.trackLengths < cutoff_f;
+    lftData(i).intMat_Ia(lftData(i).trackLengths(lftData(i).catIdx==1)<cutoff_f,:) = [];
+    idx = lftData(i).trackLengths < cutoff_f;
     for f = 1:numel(lftFields)
-        lftData.(lftFields{f})(idx) = [];
+        lftData(i).(lftFields{f})(idx) = [];
     end
-    lifetime_s = lftData.lifetime_s;
+    lifetime_s = lftData(i).lifetime_s;
     
     % Category statistics
-    idx_Ia = [lftData.catIdx]==1;
-    idx_Ib = [lftData.catIdx]==2;
-    idx_IIa = [lftData.catIdx]==5;
-    v = hist([lftData.catIdx], 1:8);
+    idx_Ia = [lftData(i).catIdx]==1;
+    idx_Ib = [lftData(i).catIdx]==2;
+    idx_IIa = [lftData(i).catIdx]==5;
+    v = hist([lftData(i).catIdx], 1:8);
     v = v/numel(lifetime_s);
     lftRes.trackClassStats(i,:) = v;
     
@@ -87,9 +119,9 @@ for i = 1:nd
     res(i).nSamples_Ia = sum(idx_Ia);
     
     % birth/death statistics
-    startsPerFrame_all = hist(lftData.start, 1:data(i).movieLength);
+    startsPerFrame_all = hist(lftData(i).start, 1:data(i).movieLength);
     startsPerFrame_all = startsPerFrame_all(6:end-2);
-    startsPerFrame_Ia = hist(lftData.start(idx_Ia), 1:data(i).movieLength);
+    startsPerFrame_Ia = hist(lftData(i).start(idx_Ia), 1:data(i).movieLength);
     startsPerFrame_Ia = startsPerFrame_Ia(6:end-2);
     
     %-------------------------------------------------------------
@@ -111,14 +143,12 @@ for i = 1:nd
     %-------------------------------------------------------------
     lifetime_s = lifetime_s(idx_Ia);
     
-    intMat_Ia = lftData.intMat_Ia;
-    res(i).intMat_Ia = intMat_Ia;
     for k = 1:nc
         % indexes within cohorts
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
-        res(i).maxA{k} = nanmax(intMat_Ia(cidx,:),[],2);
+        res(i).maxA{k} = nanmax(lftData(i).intMat_Ia(cidx,:),[],2);
         for n = firstN
-           res(i).(['maxA_f' num2str(n)]){k} = nanmax(intMat_Ia(cidx,1:n),[],2);
+           res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).intMat_Ia(cidx,1:n),[],2);
         end
         
         % lifetimes for given cohort
@@ -126,9 +156,9 @@ for i = 1:nd
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(intMat_Ia,[],2)';
+    res(i).maxA_all = nanmax(lftData(i).intMat_Ia,[],2)';
     if isfield(lftData, 'significantSignal')
-        res(i).significantSignal = lftData.significantSignal(:,idx_Ia);
+        res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
     end
     res(i).firstN = firstN;
     
@@ -158,20 +188,6 @@ fprintf('-------------------------------------------------\n');
 %====================
 % Threshold
 %====================
-% Rescale EDFs (correction for FP-fusion expression level)
-a = rescaleEDFs({res.maxA_all}, 'Display', false);
-
-% apply scaling
-for i = 1:nd
-    res(i).intMat_Ia = a(i) * res(i).intMat_Ia;
-    res(i).maxA_all = a(i) * res(i).maxA_all;
-    res(i).maxA = cellfun(@(x) a(i)*x, res(i).maxA, 'UniformOutput', false);
-    for n = firstN
-       fname = ['maxA_f' num2str(n)];
-       res(i).(fname) = cellfun(@(x) a(i)*x, res(i).(fname), 'UniformOutput', false);
-    end
-end
-
 if isempty(ip.Results.MaxIntensityThreshold)
     % lifetime cohort: [5..10] seconds
     % combine first 5 frames from all cohorts
@@ -187,10 +203,10 @@ else
     T = ip.Results.MaxIntensityThreshold;
 end
 
-intMat_Ia_all = vertcat(res.intMat_Ia);
+intMat_Ia_all = vertcat(lftData.intMat_Ia);
 lifetime_s_all = [res.lft_all];
 
-tx = 15;
+tx = 40;
 
 % 95th percentile of the reference (above threshold) distribution
 pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,2:4), 95, 1);
@@ -203,7 +219,7 @@ for i = 1:nd
     idxMI = res(i).maxA_all >= T;
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
-    idxLft = sum(res(i).intMat_Ia(:,2:4)>repmat(pRef, [size(res(i).intMat_Ia,1) 1]),2)>0 & res(i).lft_all'<tx;
+    idxLft = sum(lftData(i).intMat_Ia(:,2:4)>repmat(pRef, [size(lftData(i).intMat_Ia,1) 1]),2)>0 & res(i).lft_all'<tx;
     
     % combined index
     idxMI = idxMI & ~idxLft';
@@ -228,8 +244,8 @@ for i = 1:nd
     % => weighting:
     w = N./(N-cutoff_f+1:-1:1);
     pad0 = zeros(1,Nmax-N);
-    lftHist_A =  [lftHist_A.*w  pad0];
-    lftHist_B =  [lftHist_B.*w  pad0];
+    lftHist_A = [lftHist_A.*w pad0];
+    lftHist_B = [lftHist_B.*w pad0];
     
     % Normalization
     %normA = sum(lftHist_A);
