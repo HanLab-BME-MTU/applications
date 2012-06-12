@@ -38,7 +38,8 @@ mu0 = interp1(fu, x(idx), (1:N)/(N+1));
 
 
 % initialize with shape parameters 1,2,..,2
-k0 = [1 2*ones(1,N-1)];
+% k0 = [1 2*ones(1,N-1)];
+k0 = 2*ones(1,N);
 lambda0 = mu0./gamma(1+1./k0);
 A0 = ones(1,N)/N;
 
