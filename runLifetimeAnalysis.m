@@ -211,7 +211,7 @@ intMat_Ia_all = arrayfun(@(i) i.intMat_Ia(:,1:minLength), lftData, 'UniformOutpu
 intMat_Ia_all = vertcat(intMat_Ia_all{:});
 lifetime_s_all = [res.lft_all];
 
-tx = 40;
+tx = 30;
 
 % 95th percentile of the reference (above threshold) distribution
 pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,2:4), 95, 1);
