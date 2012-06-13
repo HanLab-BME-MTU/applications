@@ -1,6 +1,6 @@
 % Francois Aguet, 05/30/2012
 
-function plotIntensityCohorts(data, varargin)
+function [cohorts res] = plotIntensityCohorts(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -200,6 +200,9 @@ if nCh==1
             fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], cv(c,:), 'EdgeColor', cmap(c,:));
         end
         plot(cT{c}, A, 'Color', cmap(c,:), 'LineWidth', 1.5);
+        cohorts.t{c} = cT{c};
+        cohorts.A{c} = A;
+        cohorts.SEM{c} = SEM;
     end
     set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
     xlabel('Time (s)', fset.lfont{:});
@@ -229,6 +232,9 @@ else % multiple channels
             end
             plot(cT{c}, A, 'Color', trackColor, 'LineWidth', 1.5);
         end
+        %cohorts.t{c} = cT{c};
+        %cohorts.A{ch,c} = A;
+        %cohorts.SEM{ch,c} = SEM;
     end
     set(gca, fset.axOpts{:}, 'XLim', [-b*framerate cohortBounds(end)]);
     xlabel('Time (s)', fset.lfont{:});
