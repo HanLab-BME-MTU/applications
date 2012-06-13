@@ -29,7 +29,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('lftData');
 ip.addParamValue('Mode', 'CDF', @(x) any(strcmpi(x, {'PDF', 'CDF'})));
-ip.addParamValue('NumP', 3, @(x) all(ismember(x, 1:4)));
+ip.addParamValue('MaxP', 3, @(x) all(ismember(x, 1:4)));
 ip.addParamValue('ConstrainBIC', true, @islogical);
 ip.addParamValue('AlphaBIC', 0.95);
 ip.addParamValue('PlotAll', false, @islogical);
@@ -72,10 +72,10 @@ else
     f = lftHist;
 end
 
-Nmax = 3;
-prmVect = cell(1,Nmax);
-BIC = zeros(1,Nmax);
-for N = 1:Nmax
+maxP = ip.Results.MaxP;
+prmVect = cell(1,maxP);
+BIC = zeros(1,maxP);
+for N = 1:maxP
     [prmVect{N} a(N) BIC(N)] = fitWeibullMixture(t, f, 'al', 'N', N, 'FitMode', ip.Results.Mode);
 end
 
@@ -95,6 +95,7 @@ res.a = a;
 res.lambda = prmVect(1:3:end);
 res.k = prmVect(2:3:end);
 res.A = prmVect(3:3:end);
+res.percentiles = getCDFPercentiles(res.t, res.popCDF, [0.025 0.5 0.975]);
 res.FitMode = ip.Results.Mode;
 res.ModelType = 'Weibull';
 

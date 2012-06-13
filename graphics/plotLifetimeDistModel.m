@@ -2,15 +2,17 @@
 
 function plotLifetimeDistModel(lftData, fitRes, varargin)
 
-% ip = inputParser;
-% ip.CaseSensitive = false;
-% ip.addRequired('lftFit');
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('lftData');
+ip.addRequired('fitRes');
 % ip.addParamValue('PlotAll', false, @islogical);
 % ip.addParamValue('PlotCDF', false, @islogical);
 % ip.addParamValue('fYLim', []);
-% ip.addParamValue('rYLim', []);
+ip.addParamValue('YLim', []);
 % % ip.addParamValue('ShowInset', false, @islogical);
-% ip.parse(lftFit, varargin{:});
+ip.parse(lftData, fitRes, varargin{:});
+YLim = ip.Results.YLim;
 
 np = fitRes.N;
 a = fitRes.a;
@@ -46,7 +48,12 @@ set(gca, 'ColorOrder', colorOrder);
 hold on;
 %hp(1) = plot(lftData.t_hist, lftData.meanLftHist_A*(1-a), '.', 'MarkerSize', 20, 'Color', [0 0 0]);
 hp(1) = plot(lftData.t, lftData.meanLftHist_A*(1-a), '.-', 'Color', 'k', 'LineWidth', 2, 'MarkerSize', 18);
-YLim = get(gca, 'YLim');
+if isempty(YLim)
+    YLim = get(gca, 'YLim');
+end
+for k = 1:size(fitRes.popPDF,1)
+    fitRes.popPDF(k,:) = fitRes.A(k) * fitRes.popPDF(k,:);
+end
 hi = plot(fitRes.t, fitRes.popPDF, 'LineWidth', 2);
 hp(2) = hi(1);
 hp(3) = plot(fitRes.t, fitRes.PDF, '--', 'Color', fset.ceB, 'LineWidth', 4);

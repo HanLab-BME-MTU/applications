@@ -1,4 +1,4 @@
-function lftRes = runLifetimeAnalysis(data, varargin)
+function [lftRes fitRes] = runLifetimeAnalysis(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -15,6 +15,8 @@ ip.addParamValue('MaxIntensityThreshold', []);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('ClassificationSelector', 'significantSignal');
 ip.addParamValue('ShowThresholdRange', false, @islogical);
+ip.addParamValue('MaxP', 3);
+ip.addParamValue('YLim', []);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -366,8 +368,10 @@ end
 % fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
 % plotLifetimeDistModel(lftRes, fitResCDF);
 
-fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
-plotLifetimeDistModel(lftRes, fitResPDF);
+fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF', 'MaxP', ip.Results.MaxP);
+plotLifetimeDistModel(lftRes, fitResPDF, 'YLim', ip.Results.YLim);
+
+fitRes = fitResPDF;
 
 % fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
 % plotLifetimeDistModel(lftRes, fitResCDF);

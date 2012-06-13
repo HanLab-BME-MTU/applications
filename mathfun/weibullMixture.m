@@ -28,7 +28,7 @@ switch ip.Results.Mode
     case 'PDF'
         for i = 1:N
             xl = x/lambda(i);
-            W(i,:) = A(i) * k(i)/lambda(i) * xl.^(k(i)-1).*exp(-xl.^k(i));
+            W(i,:) = k(i)/lambda(i) * xl.^(k(i)-1).*exp(-xl.^k(i)); % *A(i)
             J(:,3*(i-1)+1) = A(i) * exp(-xl.^k(i))*k(i)^2.*(-1+xl.^k(i)).*xl.^(k(i)-1)/lambda(i)^2;
             J(:,3*(i-1)+2) = A(i) * exp(-xl.^k(i)).*xl.^k(i).*(1-k(i)*(-1+xl.^k(i)).*log(xl))./x;
             J(:,3*(i-1)+3) = k(i)/lambda(i) * xl.^(k(i)-1).*exp(-xl.^k(i));
@@ -36,11 +36,11 @@ switch ip.Results.Mode
     case 'CDF'
         for i = 1:N
             xl = x/lambda(i);
-            W(i,:) = A(i) * (1 - exp(-xl.^k(i)));
+            W(i,:) = (1 - exp(-xl.^k(i))); % * A(i)
             J(:,3*(i-1)+1) = A(i) * exp(-xl.^k(i))*k(i).*xl.^k(i)/lambda(i);
             J(:,3*(i-1)+2) = A(i) * exp(-xl.^k(i)).*xl.^k(i).*log(x./lambda(i));
             J(:,3*(i-1)+3) = (1 - exp(-(x/lambda(i)).^k(i)));
         end
 end
 
-w = sum(W, 1);
+w = A*W;
