@@ -203,7 +203,10 @@ else
     T = ip.Results.MaxIntensityThreshold;
 end
 
-intMat_Ia_all = vertcat(lftData.intMat_Ia);
+% intMat_Ia_all = vertcat(lftData.intMat_Ia);
+minLength = min([data.movieLength]);
+intMat_Ia_all = arrayfun(@(i) i.intMat_Ia(:,1:minLength), lftData, 'UniformOutput', false);
+intMat_Ia_all = vertcat(intMat_Ia_all{:});
 lifetime_s_all = [res.lft_all];
 
 tx = 40;
@@ -363,8 +366,8 @@ end
 % fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
 % plotLifetimeDistModel(lftRes, fitResCDF);
 
-% fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
-% plotLifetimeDistModel(lftRes, fitResPDF);
+fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF');
+plotLifetimeDistModel(lftRes, fitResPDF);
 
 % fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
 % plotLifetimeDistModel(lftRes, fitResCDF);
