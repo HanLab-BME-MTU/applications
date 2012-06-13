@@ -119,9 +119,16 @@ for i = 1:nd
             % loop through track lengths within cohort
             for t = 1:nt
                 A = [lftData(i).startBuffer_Ia(cidx(t),:,ch) lftData(i).intMat_Ia(cidx(t),1:cLengths(t),ch) lftData(i).endBuffer_Ia(cidx(t),:,ch)];
+                bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
+                
+                % align to track start
+                %w = min(numel(A),iLength);
+                %interpTracks(t,1:w) = A(1:w);
+                %sigma_r_Ia(t,1:w) = bgr(1:w);
+                
+                % interpolate to mean length
                 interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
                 %interpTracks(t,:) = binterp(A, linspace(1,cLengths(t)+2*b, iLength));
-                bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
                 sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
             end
 
