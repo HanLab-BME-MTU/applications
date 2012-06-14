@@ -45,7 +45,7 @@ res = struct([]);
 %==============================================================
 % Outlier detection (based on max. intensity distribution)
 %==============================================================
-maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2)', lftData, 'UniformOutput', false);
+maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
 
 % Rescale EDFs (correction for FP-fusion expression level)
 [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
