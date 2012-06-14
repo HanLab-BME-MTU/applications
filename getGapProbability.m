@@ -42,7 +42,7 @@ for i = 1:nd
         % loop through tracks within cohort
         for t = 1:nt
             gaps = double(lftData(i).gapMat_Ia(cidx(t),1:cLengths(t)));
-            xi = linspace(1,cLengths(t), iLength(c));
+            xi = linspace(2,cLengths(t)-1, iLength(c));
             interpGaps(t,:) = binterp(gaps, xi);
         end
         interpGaps = sum(interpGaps,1);
