@@ -125,7 +125,7 @@ else
         YLim = get(gca, 'YLim');
         YLim(1) = 0;
         axis([-0.5 0.5 YLim]);
-        set(gca, fset.axOpts{:}, 'XTick', []);
+        set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', 0:0.2:YLim(2)+0.2);
         ylabel('Relative scale', fset.sfont{:});
         
 
