@@ -27,7 +27,7 @@ switch ip.Results.Mode
     case 'PDF'
         J = zeros(numel(x), numel(prmVect));
         for i = 1:N
-            W(i,:) = A(i) * k(i)^n(i)*x.^(n(i)-1).*exp(-k(i)*x)/gamma(n(i));
+            W(i,:) = k(i)^n(i)*x.^(n(i)-1).*exp(-k(i)*x)/gamma(n(i));
             J(:,3*(i-1)+1) = A(i) * k(i)^(n(i)-1)*x.^(n(i)-1).*exp(-k(i)*x)/gamma(n(i)).*(n(i)-k(i)*x);
             J(:,3*(i-1)+2) = W(i,:)*(log(k(i))+log(n(i))-psi(n(i)));
             J(:,3*(i-1)+3) = k(i)^n(i)*x.^(n(i)-1).*exp(-k(i)*x)/gamma(n(i));
@@ -35,11 +35,11 @@ switch ip.Results.Mode
     case 'CDF'
         J = [];
         for i = 1:N
-            W(i,:) = A(i) * gammainc(k(i)*x, n(i), 'lower');
+            W(i,:) = gammainc(k(i)*x, n(i), 'lower');
             %J(:,3*(i-1)+1) = 
             %J(:,3*(i-1)+2) = 
             %J(:,3*(i-1)+3) = gammainc(k(i)*x, n(i), 'lower');
         end
 end
 
-w = sum(W, 1);
+w = A*W;
