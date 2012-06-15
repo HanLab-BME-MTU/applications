@@ -38,7 +38,7 @@ lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
 
 % Scale max. intensity distributions
 offset = zeros(nCh,nd);
-if ip.Results.Rescale
+if ip.Results.Rescale && ~isfield(lftData, 'a');
     for c = 1:nCh
         maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
         [a offset(c,:)] = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference, 'FigureName', ['Channel ' num2str(c)]);
@@ -127,9 +127,11 @@ for i = 1:nd
                 %sigma_r_Ia(t,1:w) = bgr(1:w);
                 
                 % interpolate to mean length
-                interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
-                %interpTracks(t,:) = binterp(A, linspace(1,cLengths(t)+2*b, iLength));
-                sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, linspace(1,cLengths(t)+2*b, iLength(c)), 'cubic');
+                xi = linspace(1,cLengths(t)+2*b, iLength(c));
+                %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
+                interpTracks(t,:) = binterp(A, xi);
+                %sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
+                sigma_r_Ia(t,:) = binterp(bgr, xi);
             end
 
             res(i).cMean{ch,c} = mean(interpTracks,1);
