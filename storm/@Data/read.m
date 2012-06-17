@@ -35,6 +35,39 @@ end
 
 
 % ---
+% --- Read z-scaling factor from *.opt file if it exists
+% ---
+
+optFilePath = fullPath;
+optFilePath = [optFilePath(1:end-3) 'opt'];
+scalingZ = [];
+defaultScalingZ = 1;
+if exist(optFilePath,'file')
+    disp('Data: Reading z-scaling factor from opt-file!');
+    
+    fid = fopen(optFilePath,'r');
+    while ~feof(fid)
+        line = fgetl(fid);
+        if strcmp(line(1:min(10,end)),'z-scaling=')
+            scalingZ = str2double(line(11:end));
+            fprintf('Data: The z-scaling is: %.2f\n',scalingZ);
+            break;
+        end
+        
+    end
+    fclose(fid);
+    
+    if isempty(scalingZ)
+        disp('Data: Could not read z-scaling: Using default instead!');
+        scalingZ = defaultScalingZ;
+    end
+else
+    disp('Data: Using default z-scaling: 1!');
+    scalingZ = defaultScalingZ;
+end
+
+
+% ---
 % --- Open File
 % ---
 
@@ -103,8 +136,10 @@ f.frame = tmp.frame(validMol);
 f.length = tmp.length(validMol);
 f.cat = tmp.cat(validMol);
 
-f.x = f.x .* pixelSize; % Convert unit to nm
-f.y = f.y .* pixelSize; % Convert unit to nm
+f.x = f.x * pixelSize; % Convert unit to nm
+f.y = f.y * pixelSize; % Convert unit to nm
+
+f.z = f.z * scalingZ;
 
 obj = Data();
 obj.points = [f.x f.y f.z];
