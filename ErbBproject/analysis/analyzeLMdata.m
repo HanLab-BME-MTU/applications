@@ -48,7 +48,7 @@ if dataDirectory(end) == filesep
 end
 
 % get list of experiment files
-fileList=dir([dataDirectory filesep '*.dv']);
+fileList=dir([dataDirectory filesep '*TRITC*.dv']);
 nFiles=numel(fileList);
 
 wavelength=ip.Results.wavelength;
@@ -57,7 +57,7 @@ psfSigmaTheo=ones(size(wavelength));
 psfSigmaInt=ones(size(wavelength));
 
 
-for iFile=5:6
+for iFile=1:nFiles
     % load movie data and set output directory
     movieFile=[dataDirectory filesep fileList(iFile).name];
     outputDir=[dataDirectory filesep];
@@ -105,8 +105,8 @@ for iFile=5:6
     
     features=cell(nFrames,1);
 
-    iFrame=100;
-    shift=10;
+    iFrame=0;
+    %shift=10;
     fprintf(1,'movie being analyzed: %s\n',fileList(iFile).name);
     while iFrame < nFrames
  
@@ -114,7 +114,7 @@ for iFile=5:6
         sigma=psfSigmaInt(k+1);
         
         img=double(MD.channels_(1).loadImage(iFrame+1));
-        locMax=findLocalMaxima(img,sigma,'alpha',1e-6,'mask',mask);
+        locMax=findLocalMaxima(img,sigma,'alpha',1e-3,'mask',mask);
         
         if ~numel(locMax.x)
             iFrame=iFrame+1;
