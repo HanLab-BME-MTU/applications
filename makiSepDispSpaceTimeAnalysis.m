@@ -225,8 +225,10 @@ for iMovie = 1 : numMovies
             %find feature indices making up sisters
             sisterIndx1 = NaN(numFrames,1);
             sisterIndx2 = NaN(numFrames,1);
-            sisterIndx1(goodFrames) = tracks(tracksIndx(1)).tracksFeatIndxCG(goodFrames-trackStart(1)+1);
-            sisterIndx2(goodFrames) = tracks(tracksIndx(2)).tracksFeatIndxCG(goodFrames-trackStart(2)+1);
+            sisterIndx1(goodFrames) = tracks(tracksIndx(1))...
+                .tracksFeatIndxCG(goodFrames-trackStart(1)+1);
+            sisterIndx2(goodFrames) = tracks(tracksIndx(2))...
+                .tracksFeatIndxCG(goodFrames-trackStart(2)+1);
             
             %if we are looking at unaligned or lagging pairs, keep only
             %those frames where they really are unaligned or lagging

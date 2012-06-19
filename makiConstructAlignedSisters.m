@@ -1,5 +1,5 @@
 function sisterList = makiConstructAlignedSisters(dataStruct,removeNetDisp,...
-    randomize)
+    randomize,correctStd,chooseLeftRight,verbose)
 %MAKICONSTRUCTALIGNEDSISTERS extracts aligned coordinates of sister pairs
 %
 %SYNOPSIS sisterList = makiConstructAlignedSisters(dataStruct,removeNetDisp,...
@@ -12,7 +12,12 @@ function sisterList = makiConstructAlignedSisters(dataStruct,removeNetDisp,...
 %                      Optional. Default: 0.
 %       randomize: 1 - Randomize sister pairing, 0 otherwise.
 %                  Optional. Default: 0.
-%
+%       correctStd: 1 to correct stds (because they are underestimated in
+%                   initCoord), 0 otherwise. Optional. Default: 0.
+%       chooseLeftRight: 1 to make sister 1 always sister on the left, 0
+%                   to keep things not ordered. Optional. Default: 0.
+%       verbose: 1 to make plots, 0 otherwise. Optional. Default: 0.
+%       
 %OUTPUT sisterList: Same as input (dataStruct.sisterList) but with
 %                   additional fields (.coords1Aligned, .coords2Aligned 
 %                   and .distanceAligned) that contain the aligned
@@ -30,11 +35,23 @@ if nargin < 3 || isempty(randomize)
     randomize = 0;
 end
 
+if nargin < 4 || isempty(correctStd)
+    correctStd = 0;
+end
+
+if nargin < 5 || isempty(chooseLeftRight)
+    chooseLeftRight = 0;
+end
+
+if nargin < 6 || isempty(verbose)
+    verbose = 0;
+end
+
 %copy fields out of dataStruct
 sisterList = dataStruct.sisterList;
 tracks = dataStruct.tracks;
 frameAlignment = dataStruct.frameAlignment;
-initCoord = dataStruct.initCoord;
+% initCoord = dataStruct.initCoord;
 
 %get number of sisters
 numSisters = length(sisterList);
@@ -71,7 +88,31 @@ for iSister = 1 : numSisters
         coords1(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx1(iFrame),:);
         coords2(iFrame,:) = frameAlignment(iFrame).alignedCoord(sisterIndx2(iFrame),:);
     end
-
+    
+    %correct position standard deviation if necessary
+    if correctStd
+        coords1(:,4:6) = coords1(:,4:6) * 1.5;
+        coords2(:,4:6) = coords2(:,4:6) * 1.5;
+    end
+    
+    %sort sisters to left and right
+    if chooseLeftRight
+        
+        %calculate the average coordinate of each sister along the normal
+        %to the metaphase plate
+        meanCoord1Normal = nanmean(coords1(:,1));
+        meanCoord2Normal = nanmean(coords2(:,1));
+        
+        %put the sister with the smaller average coordinate on the "left"
+        %negative is smaller than positive, no matter the magnitude
+        if meanCoord2Normal < meanCoord1Normal
+            tmp = coords2;
+            coords2 = coords1;
+            coords1 = tmp;
+        end
+    
+    end
+    
     %store aligned coordinates in sisterList
     sisterList(iSister).coords1Aligned = coords1;
     sisterList(iSister).coords2Aligned = coords2;
@@ -207,6 +248,72 @@ if randomize
 
     end
 
+end %(if randomize)
+
+%% plots
+
+if verbose
+    
+    %get project name
+    fileName = dataStruct.projectName;
+    
+    %get number of frames and time lapse
+    numFrames = dataStruct.dataProperties.movieSize(end);
+    timeLapse = dataStruct.dataProperties.timeLapse;
+    
+    for iSister = 1 : numSisters
+        
+        %open figure and write title
+        figFileName = [fileName ' - Sister Pair ' num2str(iSister)];
+        figHandle = figure('Name',figFileName,'NumberTitle','off');
+        
+        %get sister coordinates along normal to metaphase plate
+        coord1 = sisterList(iSister).coords1Aligned(:,[1 4]);
+        coord2 = sisterList(iSister).coords2Aligned(:,[1 4]);
+        
+        %calculate center position along normal
+        coordMean = mean([coord1(:,1) coord2(:,1)],2);
+        coordMean(:,2) = 0.5 * sqrt( coord1(:,2).^2 + coord2(:,2).^2 );
+        
+        %calculate sister separation as projected on normal
+        coordDiff = coord2(:,1) - coord1(:,1);
+        coordDiff(:,2) = sqrt( coord1(:,2).^2 + coord2(:,2).^2 );
+        
+        %calculate full sister separation
+        sisterVec = sisterList(iSister).coords1Aligned(:,1:3) - ...
+            sisterList(iSister).coords2Aligned(:,1:3);
+        sisterVecVar = sisterList(iSister).coords1Aligned(:,4:6).^2 + ...
+            sisterList(iSister).coords2Aligned(:,4:6).^2;
+        sisterDist = sqrt(sum(sisterVec.^2,2));
+        sisterDistStd = sqrt( sum( sisterVecVar .* sisterVec.^2 ,2) ) ...
+            ./ sisterDist;
+        
+        %plot positions
+        subplot(2,1,1)
+        hold on
+        plot((0:numFrames-1)*timeLapse,coord1(:,1),'r')
+        myErrorbar((0:numFrames-1)*timeLapse,coord1(:,1),coord1(:,2))
+        plot((0:numFrames-1)*timeLapse,coord2(:,1),'g')
+        myErrorbar((0:numFrames-1)*timeLapse,coord2(:,1),coord2(:,2))
+        plot((0:numFrames-1)*timeLapse,coordMean(:,1),'k')
+        myErrorbar((0:numFrames-1)*timeLapse,coordMean(:,1),coordMean(:,2))
+        legend({'Left sister','Right sister','Center'})
+        xlabel('Time (s)')
+        ylabel('Position along normal (um)')
+        
+        %plot sister separation
+        subplot(2,1,2)
+        hold on
+        plot((0:numFrames-1)*timeLapse,sisterDist,'b')
+        myErrorbar((0:numFrames-1)*timeLapse,sisterDist,sisterDistStd)
+        plot((0:numFrames-1)*timeLapse,coordDiff(:,1),'m')
+        myErrorbar((0:numFrames-1)*timeLapse,coordDiff(:,1),coordDiff(:,2))
+        legend({'Full','Projection'})
+        xlabel('Time (s)')
+        ylabel('Sister separation (um)')
+        
+    end
+    
 end
 
 %% ~~~ the end ~~~
