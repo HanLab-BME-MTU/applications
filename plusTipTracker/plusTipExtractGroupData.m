@@ -115,11 +115,11 @@ for iGroup = 1:length(btwGrpNames)
         
 %<<<<<<< .mine
      
-        
+          D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
         %
-        if isfield(projData,'dataMatAllSubTracksConverted')
+        if isfield(projData,'mergedDataMatAllSubTracksConverted')
  
-        D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
+      
 
         dataMat = projData.mergedDataMatAllSubTracksConverted;
 %>>>>>>> .r8720
