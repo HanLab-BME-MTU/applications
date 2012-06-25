@@ -105,7 +105,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             end
             
             % Delegate to the corresponding method
-            tag = [obj.getName '_output' num2str(iOutput)];
+            tag = ['process' num2str(obj.getIndex) '_output' num2str(iOutput)];
             drawArgs=reshape([fieldnames(ip.Unmatched) struct2cell(ip.Unmatched)]',...
                 2*numel(fieldnames(ip.Unmatched)),1);
             h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
