@@ -1,4 +1,4 @@
-function  getMoviePairTracks1(featuresInfo, trackFinal, sigmaPSF, kSigma, nFrames,imSize,pixelSize, distTransPath, outputPath, varargin)
+function  getMoviePairTracks(featuresInfo, trackFinal, sigmaPSF, kSigma, nFrames,imSize,pixelSize, distTransPath, outputPath, varargin)
 
 % minLifetime:     is the minimal number of frames every tracks must last.
 %
@@ -69,7 +69,7 @@ alpha       = ip.Results.alpha;
 
 
 % Get all track parameters
-[tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures1(featuresInfo,trackFinal, minLifetime); %#ok<ASGLU>
+[tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures(featuresInfo,trackFinal, minLifetime); %#ok<ASGLU>
 %tracksFinal is updated in this function
 %
 
@@ -82,7 +82,7 @@ pLast = cumsum(lifetime);
 pFirst = pLast-lifetime+1;
 
 % Get initial pair track candidates
-E = getInitialPairTracks1(nFrames,imSize,pixelSize, distTransPath, allFeatures, tFirst, lifetime, ...
+E = getInitialPairTracks(nFrames,imSize,pixelSize, distTransPath, allFeatures, tFirst, lifetime, ...
     maxDistance, minOverlap, bandWidth, minDistance);
 
 % Define the set of connected components
@@ -215,7 +215,7 @@ while size(E,1)
 end
 
 % Clean up CC
-[CC allFeatures] = cleanUpCC1(nFrames,imSize,pixelSize,distTransPath, CC, allFeatures, tFirst, tLast, ...
+[CC allFeatures] = cleanUpCC(nFrames,imSize,pixelSize,distTransPath, CC, allFeatures, tFirst, tLast, ...
     pFirst, bandWidth, alpha);
 nCC = numel(CC);
 
@@ -230,4 +230,4 @@ save(filename, 'tracksFinal', 'trackLabels');
 
 % Save the segment models
 filename = fullfile(outputPath, 'ClassifiedSegments.mat');
-saveCCTracks1(nFrames, CC, allFeatures, tFirst, tLast, pFirst, filename);
+saveCCTracks(nFrames, CC, allFeatures, tFirst, tLast, pFirst, filename);

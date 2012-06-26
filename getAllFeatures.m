@@ -1,9 +1,9 @@
-function [tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures1(featuresInfo, tracksFinal, minLifetime)
+function [tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures(featuresInfo, tracksFinal, minLifetime)
 %This function formats information from the tracker: Tracks starting point,
 %ending point and lifetime.
 %
 %Usage: 
-%      [tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures1(featuresInfo, trackPath, minLifetime)
+%      [tracksFinal, allFeatures, tFirst, lifetime] = getAllFeatures(featuresInfo, trackPath, minLifetime)
 %
 % Input:
 %       featuresInfo - structure

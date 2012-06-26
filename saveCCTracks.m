@@ -1,4 +1,4 @@
-function saveCCTracks1(nFrames,  CC, allFeatures, tFirst, tLast, pFirst, filename)
+function saveCCTracks(nFrames,  CC, allFeatures, tFirst, tLast, pFirst, filename)
 
 
 nCC = numel(CC);
