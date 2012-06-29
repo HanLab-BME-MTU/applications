@@ -4,9 +4,10 @@ function [sptPropInWindow,windowTrackAssign,trackWindowAssign,windowSize,analysi
     windowTrackAssign,trackWindowAssign)
 %particleBehaviorRelToActivityOnset calculates single particle behavior in windows grouped based on edge activity
 %
-%SYNOPSIS[sptPropInWindow,windowTrackAssign,trackWindowAssign,windowSize,analysisParam] = ...
+%SYNOPSIS [sptPropInWindow,windowTrackAssign,trackWindowAssign,windowSize,analysisParam] = ...
 %    particleBehaviorRelToActivityOnset(tracksFinal,winPositions,winFrames,...
-%    protSamples,diffAnalysisRes,minLength,bandRange,windowRange,frameRange)
+%    protSamples,diffAnalysisRes,minLength,bandRange,windowRange,frameRange,...
+%    windowTrackAssign,trackWindowAssign)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -472,7 +473,8 @@ analysisParam.frameRange = frameRange;
 analysisParam.minTrackLen = minLength;
 
 
-%% Subfunction 1
+
+%% Subfunction 1 "getWindowGroupChar"
 
 function [spDensity,fracNetDispNeg,...
     ...
@@ -735,7 +737,7 @@ end %(if numTracksCurrent == 0)
 
 
 
-%% Subfunction 2
+%% Subfunction 2 "putTrackCharTogether"
 
 function [angleProt,f2fDispMag2D,f2fDispSignParaDir,f2fDispSignPerpDir,...
     f2fDispMagParaDir,f2fDispMagPerpDir,f2fDispSignParaProt,f2fDispSignPerpProt,...

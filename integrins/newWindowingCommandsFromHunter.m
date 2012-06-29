@@ -5,7 +5,7 @@ load movieData.mat
 %get cell mask
 %Rosin
 threshParam.MaxJump = 1.2;
-threshParam.GaussFilterSigma = 1;
+threshParam.GaussFilterSigma = 0.5;
 threshParam.MethodIndx = 3;
 MD = thresholdMovie(MD,threshParam);
 %MinMax
@@ -20,8 +20,8 @@ MD = thresholdMovie(MD,threshParam);
 % refinementParam.PreEdgeGrow = 0;
 % refinementParam.EdgeRefinement = 1;
 % refinementParam.EdgeRefinement = 0;
-refinementParam.ClosureRadius = 0;
-MD = refineMovieMasks(MD,refinementParam);
+% refinementParam.ClosureRadius = 0;
+% MD = refineMovieMasks(MD,refinementParam);
 MD = refineMovieMasks(MD);
 
 %make movie of mask

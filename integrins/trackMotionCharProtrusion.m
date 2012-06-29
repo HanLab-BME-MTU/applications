@@ -1,5 +1,5 @@
 function [motionDir,angleWithProt,f2fDisp,paraDirDisp,perpDirDisp,...
-    paraProtDisp,perpProtDisp,asymParam] = trackMotionCharProtrusion(...
+    paraProtDisp,perpProtDisp,asymParam,f2fDispRMS] = trackMotionCharProtrusion(...
     tracksFinal,protVecUnit,trackWindowAssign,minLength)
 
 %get number of tracks
@@ -18,7 +18,7 @@ trackStartRow = 1 + trackStartRow(1:end-1);
 numSegments = sum(numSegPerTrack);
 
 %reserve memory for output parameters
-[f2fDisp,angleWithProt,asymParam] = deal(NaN(numSegments,1));
+[f2fDisp,f2fDispRMS,angleWithProt,asymParam] = deal(NaN(numSegments,1));
 [motionDir,paraDirDisp,perpDirDisp,paraProtDisp,perpProtDisp] ...
     = deal(NaN(numSegments,2));
 
@@ -49,6 +49,11 @@ for iTrack = 1 : numTracks
     f2fDispCurrent = nanmean( sqrt( xCoordDelta.^2 + yCoordDelta.^2 ) ,2);
     f2fDispCurrent(indxBad) = NaN;
     f2fDisp(iSeg+1:iSeg+numSeg) = f2fDispCurrent;
+    
+    %calculate root mean square frame-to-frame displacement
+    f2fDispRMSCurrent = sqrt( nanmean(xCoordDelta.^2+yCoordDelta.^2,2) );
+    f2fDispRMSCurrent(indxBad) = NaN;
+    f2fDispRMS(iSeg+1:iSeg+numSeg) = f2fDispRMSCurrent;
     
     %reserve memory for this track
     [eigValRatio,angleWithProtCurrent] = deal(NaN(numSeg,1));

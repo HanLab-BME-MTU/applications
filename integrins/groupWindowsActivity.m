@@ -30,7 +30,7 @@ function windowGroup = groupWindowsActivity(protSamples,doPlot,...
 %                    (6) Protrusion after long pause (>=2 frames), where pause is after protrusion.
 %                    (7) Protrusion after long pause (>=2 frames), where pause is after retraction.
 %                    (8) Protrusion after long pause (>=2 frames), where pause is after unknown.
-%                    (9) Protrusion after anything, i.e. (1)-(8), except for (2) and (3).
+%                    (9) Protrusion after anything, i.e. (1)-(8).
 %                    Retraction ...
 %                   (10) Retraction after protrusion.
 %                   (11) Retraction after unknown.
@@ -40,7 +40,7 @@ function windowGroup = groupWindowsActivity(protSamples,doPlot,...
 %                   (15) Retraction after long pause (>=2 frames), where pause is after protrusion.
 %                   (16) Retraction after long pause (>=2 frames), where pause is after retraction.
 %                   (17) Retraction after long pause (>=2 frames), where pause is after unknown.
-%                   (18) Retraction after antyhing, i.e. (10)-(17), except for (11) and (13).
+%                   (18) Retraction after antyhing, i.e. (10)-(17).
 %                    Pause ...
 %                   (19) Pause after protrusion and before protrusion.
 %                   (20) Pause after protrusion and before retraction.
