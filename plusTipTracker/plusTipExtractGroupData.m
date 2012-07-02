@@ -152,11 +152,21 @@ for iGroup = 1:length(btwGrpNames)
         dataByProject{iGroup}{i}=dataMat;
 
 
-        [S{iGroup}{i},M{iGroup}{i}]= plusTipDynamParam(dataMat,projData,1,0);
+        [S{iGroup}{i},M{iGroup}{i}]= plusTipDynamParam(dataMat,projData,0,0);% 
+        % Note here want to NOT remove any fields as just storing the
+        % individual data and we will want to test this in plusTipGetHits, 
+        % therefore the fromPoolGroupData is set to 0
+        % M output will be the same: it only includes subtrack specific
+        % info: growth/bgap/fgap velocity/lifetime/disp
 
     end
-    [Sgroup{iGroup}]= plusTipDynamParam(vertcat(dataByProject{iGroup}{:}),projData,1,0);
+    
+    [Sgroup{iGroup}]= plusTipDynamParam(vertcat(dataByProject{iGroup}{:}),projData,1,0); % recalculate collected stats
+    % here we want to remove some fields from the calculation because the
+    % would be nonsensical in terms of a 'pooled' dataMat therefore set
+    % fromPoolGroupData = 1 to set this flag. 
     Mgroup{iGroup}= vertcat(M{iGroup}{:});  
+  
     if isfield(Sgroup{iGroup},'nTracksSubRoi')
         
     % for now just recalculate pooled stats quick fix  
