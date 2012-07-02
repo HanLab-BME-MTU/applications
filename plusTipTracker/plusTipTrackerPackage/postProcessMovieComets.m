@@ -33,7 +33,6 @@ assert(~isempty(movieData.pixelSize_));
 
 % Check detection process first
 iTrackProc =movieData.getProcessIndex('TrackingProcess',1,1);
-
 assert(~isempty(iTrackProc),['Tracking has not been run! '...
     'Please run tracking prior to post-processing!'])
 trackProc = movieData.processes_{iTrackProc};
@@ -42,7 +41,8 @@ assert(all(trackProc.checkChannelOutput(p.ChannelIndex)),...
     ['Missing tracking output ! Please apply tracking before ' ...
     'running  post-processing!'])
 
-iDetProc =movieData.getProcessIndex('CometDetectionProcess',1,1);
+iDetProc =movieData.getProcessIndex('DetectionProcess',1,1);
+assert(~isempty(iDetProc),'Please run detection first');
 detProc=movieData.processes_{iDetProc};
 
 assert(all(detProc.checkChannelOutput(p.ChannelIndex)),...

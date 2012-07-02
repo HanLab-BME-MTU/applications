@@ -98,7 +98,7 @@ classdef CometPostTrackingProcess < DataProcessingProcess
             
             % Set default parameters
             funParams.ChannelIndex = 1 : numel(owner.channels_);
-            funParams.OutputDirectory = [outputDir  filesep 'meta'];
+            funParams.OutputDirectory = [outputDir  filesep 'mtTracks'];
             funParams.makeHist = true;
             funParams.remBegEnd = true;
         end
