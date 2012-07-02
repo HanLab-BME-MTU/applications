@@ -47,8 +47,27 @@ function [projData,M,idxPer,idxPar]=plusTipDynamParam(dataMatCrpSecMic,projData,
 
 
 
-% Put a Copy of the Data Mat Used to Calcualte All Stats in the projData
+% If want to prune tracks post 
 
+%%find full trajectories shorter than 5 sec 
+%%
+%%dataMatCrpSecMic((dataMatCrpSecMic(:,6)./projData.secPerFrame <6 & dataMatCrpSecMic(:,10) ==0),:)=[]; % remove single subtracks less than 6 sec
+ % filter by 
+ 
+% Put a Copy of the Data Mat Used to Calcualte All Stats in the projData
+% 
+% [trajIdx] = unique(dataMatCrpSecMic(:,1)) ; 
+% 
+% trajLifetimes = arrayfun(@(x) sum(dataMatCrpSecMic(dataMatCrpSecMic(:,1)==x,6)),trajIdx);
+% 
+% 
+% 
+% trajToRemove = trajIdx(trajLifetimes<20);
+% trajToRemove = mat2cell(trajToRemove,ones(length(trajToRemove),1));
+%   idx2Remove  =   cellfun(@(x)  find(dataMatCrpSecMic(:,1)==x),trajToRemove,'uniformoutput',0); 
+% %idx2Remove = cell2mat(idx2Keep); 
+%  idx2Remove = vertcat(idx2Remove{:}); 
+%  dataMatCrpSecMic(idx2Remove,:) = []; 
 projData.dataMat_FOR_STATS = dataMatCrpSecMic;  
 
 
@@ -687,7 +706,7 @@ end
     idx=unique(tracksWithFgap);
     if isempty(idx)
         projData.stats.avgIndivPercentTimeFgap=NaN;
-       % projData.stats.meanNumFgapsInMultTrackTraj = NaN; 
+        projData.stats.meanNumFgapsInMultTrackTraj = NaN; 
         projData.stats.meanGrowthSpeedIncludingPause = NaN; 
         projData.stats.meanGrowthLifetimeIncludingPause = NaN; 
     else
