@@ -48,7 +48,6 @@ for iFrame=1:numTimePoints
     end
 end
 
-% 
 % projData.trackingParameters.maxGapLength=gapCloseParam.timeWindow;
 % projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
 % projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
@@ -57,7 +56,6 @@ end
 % projData.trackingParameters.maxBackwardAngle=costMatrices(1,2).parameters.maxBAngle;
 % projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
 % projData.trackingParameters.fluctRadius=costMatrices(1,2).parameters.fluctRad;
-
 
 projData.nTracks = nTracks;
 projData.nFrames = numTimePoints;
@@ -239,10 +237,13 @@ aT(:,7)=aT(:,7).*(projData.pixSizeNm/1000); % convert displacements to microns
    singleDataMat = aT;
    singleDataMat(compIdx,:) = [];
    
+   
    % remove uIdx 
    uIdxSingleMat = find(singleDataMat(:,5) == 4);
+   
    toRemove = sort([uIdxSingleMat;uIdxSingleMat+1;uIdxSingleMat-1]); 
-   singleDataMat(toRemove,:) = []; 
+   
+   singleDataMat(toRemove(toRemove~=0),:) = []; 
    
 
    if remBegEnd == 1 
