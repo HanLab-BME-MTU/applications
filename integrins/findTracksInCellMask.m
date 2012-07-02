@@ -1,14 +1,14 @@
-function [indxTracksInCellMask] = findTracksInCellMask(...
-    tracksFinal,firstMaskFile,maskFrames,assignSegments)
+function [indxTracksInCellMask] = findTracksInCellMask(tracksFinal,...
+    firstMaskFile,maskFrames,assignSegments)
 %ASSIGNTRACKS2WINDOWS groups tracks into spatial and temporal windows derived from the cell edge
 %
-%SYNOPSIS [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
-%    tracksFinal,winPositions,winFrames,assignSegments)
+%SYNOPSIS [indxTracksInCellMask] = findTracksInCellMask(tracksFinal,...
+%    firstMaskFile,maskFrames,assignSegments)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
 %                        format (e.g. output of trackWithGapClosing).
-%       firstMaskFile  : Full path & file name of first mask file.
+%       firstMaskFile  : Name of first mask file, including full path.
 %       maskFrames     : The frames at which there are masks.
 %       assignSegments : Relevant only for tracks in structure format.
 %                        1 to assign track segments, 0 to assign compound
@@ -104,11 +104,11 @@ end
 
 %% Track classification inside and outside of cell masks
 
-%go over all mask frames
+%go over all mask frames - 1
 indxKeep = repmat(struct('values',[]),numMaskFrames,1);
 for iMaskFrame = 1 : numMaskFrames - 1
     
-    %read current mask
+    %read current mask and next mask
     mask1 = imread(outFileList{iMaskFrame});
     mask2 = imread(outFileList{iMaskFrame+1});
     mask = mask1 | mask2;
@@ -133,3 +133,6 @@ for iMaskFrame = 1 : numMaskFrames - 1
 end
 
 indxTracksInCellMask = vertcat(indxKeep.values);
+
+%% ~~~ the end ~~~
+
