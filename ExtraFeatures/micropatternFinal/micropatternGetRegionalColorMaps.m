@@ -85,6 +85,10 @@ if useDefaultFieldnames ==1
     
     params{5} = 'bgap_speed_mean';
     params{6} = 'bgap_lifetime_mean';
+    params{7} = 'nucleationDensity'; 
+    params{8} = 'nGrowthTermEvents'; 
+    params{9} = 'nGrowths'; 
+    params{10} = 'CometDensityPerFrame_mean'; 
 else 
   x =   fieldnames(micropatternOutput{1}.groupData{1}{1}{1}.stats{1}{1});
   y = listSelectGUI(x); 
@@ -282,7 +286,7 @@ for iMask = 1:numMasksToAnalyze
                 
                 
                 %%  Make Figure
-                figure1 = figure;
+                figure1 = figure('Visible', 'off');
                 imagesc(forFigure);
                 hold all
                 plot(roiYX(:,2),roiYX(:,1),'w');
@@ -406,6 +410,7 @@ for iMask = 1:numMasksToAnalyze
                 
                 
                 saveas(figure1,[saveDir filesep 'heatMap' paramTitle '.eps'],'psc2')
+                print(figure1,'-dtiff', '-r300',[saveDir filesep 'heatMap' paramTitle '.tif']); 
                 save([saveDir filesep 'colorMapOutput'],'output');
                 
                 close(figure1)
@@ -422,10 +427,13 @@ count = count +1;
     end 
 end
 
+idxSort = [6,9,3,5,8,2,4,7,1]'; 
+zone = zone(idxSort); 
+values = values(:,idxSort);
            
 %  set obs names 
-varNames{1,1} = 'Mean Of Control Population- Calculated From Average Of Individual Project Values'; 
-varNames{2,1} = 'Mean Of Experimental Population- Calculated From Average of Individual Project Values';
+varNames{1,1} = 'Mean Of Control Population Calculated From Average Of Individual Project Values'; 
+varNames{2,1} = 'Mean Of Experimental Population Calculated From Average of Individual Project Values';
 varNames{3,1} = 'Percent Difference in Mean of Experimental Relative to Control (Average Project Values)'; 
 varNames{4,1} = 'pValue t-test of the Means (Distributions = Project Values)'; 
 varNames{5,1} = 'Number of Control Projects'; 
@@ -442,13 +450,226 @@ if exist([saveDir filesep 'colorMap_DataSet' paramTitle])~=0;
     delete([saveDir filesep 'colorMap_DataSet' paramTitle]);
 end 
     
- colorMapDataSet  = dataset({values(:,:),zone{:}},'ObsNames',varNames);                
+ colorMapDataSetForText  = dataset({values(:,:),zone{:}},'ObsNames',varNames);                
                 
- export(colorMapDataSet,'file',[saveDir filesep 'colorMap_DataSet_' paramTitle]);  
+ export(colorMapDataSetForText,'file',[saveDir filesep 'colorMap_DataSet_' paramTitle]);  
   
+%% Make bar plots 
+
+
+% First truncate var names
+varNames  = cellfun(@(x) strrep(x,' ',''),varNames,'uniformoutput',0);
+varNames{1,1} = 'Control'; 
+varNames{2,1} = 'Experimental'; 
+
+
+
+% Plot
+colorMapDataSetForBarPlots = dataset({values(:,:)',varNames{:}},'ObsNames',zone); 
+
+forbar = ([colorMapDataSetForBarPlots.Control colorMapDataSetForBarPlots.Experimental]); 
+figure1 = figure('Visible','off'); 
+axes1 = axes('Parent',figure1,'XTick',1:length(colorMapDataSetForBarPlots.Control)); 
+hold(axes1,'all'); 
+forbar = abs(forbar); 
+bar1 = bar(forbar,'Parent',axes1);
+set(bar1(1),'DisplayName',refCond); 
+set(bar1(2),'DisplayName',expCond); 
+xlabel({'Region Number'},'FontSize',14); 
+paramName = strrep(paramName,'_',' '); 
+ylabel({['Mean of Cellular Population for ' paramName]},'FontSize',14); 
+
+    
+
+
+% Create legend
+legend1 = legend(axes1,'show');
+set(legend1,...
+    'Position',[0.818146417445483 0.822383720930233 0.175233644859813 0.0921511627906977]);
+
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.784475336182471 0.973949101023715 0.001 0.001],'String',{'Periphery'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off');
+
+% Create textarrow
+annotation(figure1,'textarrow',[0.134384735202492 0.903426791277259],...
+    [0.986596899224806 0.986046511627907],'TextEdgeColor','none');
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.188176082906746 0.868546640667566 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create line
+annotation(figure1,'line',[0.194790150127585 0.297507788161994],...
+    [0.86033685085883 0.86046511627907]);
+
+% Create line
+annotation(figure1,'line',[0.425845426509496 0.529798525336966],...
+    [0.874300088893987 0.87433831330829]);
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.412163308755617 0.897415392997447 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.66430532725935 0.884704699911106 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create line
+annotation(figure1,'line',[0.683497863147514 0.787551464487547],...
+    [0.863493447652912 0.863802942104206]);
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.121628391177069 0.991742236113899 0.001 0.001],...
+    'String',{'Central Region'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FontName','Arial',...
+    'FitBoxToText','off');
+
+%
+
+print(figure1,'-dtiff', '-r300',[saveDir filesep 'values.tif']); 
+ %know there is a way to save some of this info but can't quite get it
+ %right so just close and start over
+close(figure1); 
+ 
+ control = colorMapDataSetForBarPlots.Control; 
+ exp = colorMapDataSetForBarPlots.Experimental; 
+% make second figure
+forbar2 = zeros(9,2);
+count = 1;
+for j = 3:3:9
+for i = j-2:j
+forbar2(count,1) = (control(i)-control(j))/control(j); 
+count = count +1; 
+end
+end
+
+count = 1; 
+for j = 3:3:9
+    for i = j-2:j
+        forbar2(count,2) = (exp(i)-exp(j))/exp(j); 
+        count = count +1; 
+    end 
+end 
+
+forbar2 = forbar2*100; 
+
+figure2 = figure('Visible','off'); 
+axes1 = axes('Parent',figure2,'XTick',1:length(colorMapDataSetForBarPlots.Control)); 
+hold(axes1,'all'); 
+ 
+ 
+
+ bar2 = bar(forbar2,'Parent',axes1);
+ set(bar2(1),'DisplayName',refCond); 
+ set(bar2(2),'DisplayName',expCond); 
+    ylabel({['Mean of Cellular Population for ' paramName]},'FontSize',14); 
+
+if (max(forbar2(:))<100 || min(forbar2(:))>-100) 
+ axis([0 10 -100 100])
+end 
+
+
+xlabel({'Region Number'},'FontSize',14); 
+
+ylabel({['Percent Change ' paramName 'Relative To'] ; 'Non-Adhesion Region '},'FontSize',14); 
+
+    
+
+
+% Create legend
+legend1 = legend(axes1,'show');
+set(legend1,...
+    'Position',[0.818146417445483 0.822383720930233 0.175233644859813 0.0921511627906977]);
+
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.784475336182471 0.973949101023715 0.001 0.001],'String',{'Periphery'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off');
+
+% Create textarrow
+annotation(figure1,'textarrow',[0.134384735202492 0.903426791277259],...
+    [0.986596899224806 0.986046511627907],'TextEdgeColor','none');
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.188176082906746 0.868546640667566 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create line
+annotation(figure1,'line',[0.194790150127585 0.297507788161994],...
+    [0.86033685085883 0.86046511627907]);
+
+% Create line
+annotation(figure1,'line',[0.425845426509496 0.529798525336966],...
+    [0.874300088893987 0.87433831330829]);
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.412163308755617 0.897415392997447 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.66430532725935 0.884704699911106 0.0879396984924623 0.0394574599260173],...
+    'String',{'Adhesion'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FitBoxToText','off',...
+    'LineStyle','none');
+
+% Create line
+annotation(figure1,'line',[0.683497863147514 0.787551464487547],...
+    [0.863493447652912 0.863802942104206]);
+
+% Create textbox
+annotation(figure1,'textbox',...
+    [0.121628391177069 0.991742236113899 0.001 0.001],...
+    'String',{'Central Region'},...
+    'FontWeight','bold',...
+    'FontSize',14,...
+    'FontName','Arial',...
+    'FitBoxToText','off');
+
+
+ 
                 
+print(figure2,'-dtiff', '-r300',[saveDir filesep 'PercentChangeAdVsNon.tif']); 
                 
-                
+            close(figure2);     
                 
                 
                 
@@ -486,10 +707,9 @@ end
         outputN.TotalSubTrackExpBgap = [names;outputN.TotalSubTrackExpBgap];
         
         save([statDir filesep 'Colormaps_' expCondDir filesep 'outputN'],'outputN');
-        end 
-        
-    end
-end
+       end 
+         end
+            end 
 
 
 
