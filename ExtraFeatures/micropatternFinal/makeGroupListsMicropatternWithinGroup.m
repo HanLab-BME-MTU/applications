@@ -26,8 +26,15 @@ function [output] = makeGroupListsMicropatternWithinGroup(projList,maskParams,ex
          mkdir(groupListDir)
      end 
      
+     % This Does NOT Include Numbers in the Name
+     %[~, groupName]= getFilenameBody(upTwo); 
+     [~,groupName] = fileparts(upTwo);  % this one should include the name
+     % note this is NOT grouping them based on previous grouping  
+     % but on how the original files were set up : likely not a smart way
+     % to do it....as this caused problems when the input and this result 
+     % deviated...should fix? 
      
-     [~, groupName]= getFilenameBody(upTwo); 
+     
   
       numWindows = maskParams.numWindows;
       windowSize = maskParams.windowSize; 
