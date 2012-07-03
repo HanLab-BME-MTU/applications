@@ -67,6 +67,7 @@ save([path filesep 'roi_1' filesep 'roiYXSeg.mat'],'roiYX');
 
 imwrite(roiMaskAvg,[path filesep 'roi_1' filesep 'roiMaskSeg.tif']);
 
+close(gcf)
 %for i = 1:2
 %stats = regionprops(bwlabel(roiMask(:,:,i)),'centroid');
 %centerRoiXCoord(i,1) = stats.Centroid(1,1);
