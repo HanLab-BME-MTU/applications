@@ -37,26 +37,30 @@ prel=-ones(ntMax,numel(F));
 % initialize point relations with first non-empty data set
 pos1=F{1};
 if ~isempty(pos1)
-    id1=pos1(:,14) == 0 & pos1(:,16) == 1;
+    id1=pos1(:,14) == 1 & pos1(:,16) == 0;
     pos1=pos1(id1,:);
 end
-k=1;
+k=0;
 while isempty(pos1)
     k=k+1;
     pos1=F{k};
     if ~isempty(pos1)
-        id1=pos1(:,14) == 0 & pos1(:,16) == 1;
+        id1=pos1(:,14) == 1 & pos1(:,16) == 0;
         pos1=pos1(id1,:);
     end
 end
 
-id1=pos1(:,14) == 0 & pos1(:,16) == 1;
+if k == 0
+    k=1;
+end
+
+id1=pos1(:,14) == 1 & pos1(:,16) == 0;
 for n=1:sum(id1)
     prel(n,k)=n;
 end
 
 % initial number of tracks is given by number of initially detected signals
-nTracks=0;
+nTracks=sum(id1);
 
 for n=1:numel(F)
     
@@ -87,31 +91,32 @@ for n=1:numel(F)
         % create distance matrix between points in pos1 and pos2
         d12=distMat2(pos1(:,1:2),pos2(:,1:2));
         % all distances larger critical radius are marked illegal
-        d12( d12 > 100.0 )=-1;
+        d12( d12 > 1.0 )=-1;
         trackIndex=prel(1:nTracks,n);
         try
             [link12,link21]=lap(d12,-1,0,1);
             link12=link12(1:np1);
             link21=link21(1:np2);
-            
-            for kk=1:np1
-                nextp=link12(kk);
-                tIndex=find( trackIndex == kk );
-                if nextp <= np2
-                    prel(tIndex,n+1)=nextp;
-                end
-            end
-            
-            for kk=1:np2
-                prevp=link21(kk);
-                % no link exists -> begin new track
-                if prevp > np1
-                    nTracks=nTracks+1;
-                    prel(nTracks,n+1)=kk;
-                end
-            end
         catch
             continue;
+        end
+        
+        for kk=1:np1
+            nextp=link12(kk);
+            %tIndex=find( trackIndex == kk );
+            if nextp <= np2
+                tIndex=find( trackIndex == kk);
+                prel(tIndex,n+1)=nextp;
+            end
+        end
+        
+        for kk=1:np2
+            prevp=link21(kk);
+            % no link exists -> begin new track
+            if prevp > np1
+                nTracks=nTracks+1;
+                prel(nTracks,n+1)=kk;
+            end
         end
     end             
 end
@@ -139,7 +144,7 @@ for k=1:nTracks
             shortPath(k).length(2)=i;
         end
     end
-    shortPath(k).CoM=mean(shortPath(k).pos(:,1:2));
+    shortPath(k).CoM=mean(shortPath(k).pos(:,1:2),1);
     shortPath(k).length(3)=size(shortPath(k).pos,1);
 end
             
@@ -161,6 +166,7 @@ tracks.shortPath=shortPath;
 %tracks.startEnd=startEnd;
 %tracks.normPath=normPath;
 tracks.nTracks=nTracks;
+tracks.prel=prel;
 
 end
 % translate particle tracks to real world coordinates 
