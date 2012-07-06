@@ -82,16 +82,24 @@ set(handles.edit_2_3, 'String', get(userData.handles_main.edit_detect_3, 'String
 
 set(handles.uipanel_3, 'SelectionChangeFcn', @uipanel_3_SelectionChangeFcn);
 
+userData.bitDepth = str2double(get(userData.handles_main.bitDepth,'String'));
+if mod(userData.bitDepth,2)~=0, 
+    errordlg('Invalid bit depth first');
+    delete(handles.figure1);
+end
+plusTipTroubleShootDetect(userData.projData, userData.default_scales, ...
+    userData.bitDepth, userData.useLastImg, userData.default_mulfac, 0, 1, hObject, handles.axes_1_1);
 
-plusTipTroubleShootDetect(userData.projData, userData.default_scales, 12, userData.useLastImg, userData.default_mulfac, 0, 1, hObject, handles.axes_1_1);
-
-plusTipTroubleShootDetect(userData.projData, userData.default_scales, 12, userData.useLastImg, userData.default_mulfac, 0, 0, hObject, handles.axes_1_2);
+plusTipTroubleShootDetect(userData.projData, userData.default_scales, ...
+    userData.bitDepth, userData.useLastImg, userData.default_mulfac, 0, 0, hObject, handles.axes_1_2);
 
 scales = [get(handles.slider_2_1, 'Value') get(handles.slider_2_2, 'Value')];
 mulfac = get(handles.slider_2_3, 'Value');
 
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, hObject, handles.axes_2_1);
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, hObject, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales,...
+    userData.bitDepth, userData.useLastImg, mulfac, 0, 1, hObject, handles.axes_2_1);
+plusTipTroubleShootDetect(userData.projData, scales, ...
+    userData.bitDepth, userData.useLastImg, mulfac, 0, 0, hObject, handles.axes_2_2);
 
 % Set zoom callbacks
 axesList={'axes_1_1' 'axes_1_2' 'axes_2_1' 'axes_2_2'};
@@ -184,7 +192,7 @@ set(handles.slider_1_3, 'Value', value);
 % Recalculate
 userData = get(handles.figure1, 'UserData');
 scales = userData.default_scales;
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
 
 
 
@@ -214,7 +222,7 @@ set(handles.edit_1_3, 'String', num2str(value))
 % Recalculate
 userData = get(handles.figure1, 'UserData');
 scales = userData.default_scales;
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -286,8 +294,8 @@ scales = [value get(handles.slider_2_2, 'Value')];
 mulfac = get( handles.slider_2_3, 'Value');
 
 
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
 
 % --- Executes during object creation, after setting all properties.
 function edit_2_1_CreateFcn(hObject, eventdata, handles)
@@ -330,8 +338,8 @@ set(handles.slider_2_2, 'Value', value)
 scales = [get(handles.slider_2_1, 'Value') value];
 mulfac = get( handles.slider_2_3, 'Value');
 
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -368,7 +376,7 @@ set(handles.slider_2_3, 'Value', value);
 
 % Recalculate
 scales = [get(handles.slider_2_1, 'Value') get(handles.slider_2_2, 'Value')];
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_2_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -407,8 +415,8 @@ scales = [value get(handles.slider_2_2, 'Value')];
 mulfac = get( handles.slider_2_3, 'Value');
 
 
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -445,8 +453,8 @@ set(handles.edit_2_2, 'String', num2str(value))
 scales = [get(handles.slider_2_1, 'Value') value];
 mulfac = get( handles.slider_2_3, 'Value');
 
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -476,7 +484,7 @@ set(handles.edit_2_3, 'String', num2str(value))
 % Recalculate
 
 scales = [get(handles.slider_2_1, 'Value') get(handles.slider_2_2, 'Value')];
-plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_2_2);
+plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_2_2);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -516,16 +524,16 @@ if isequal(userData.useLastImg, get(handles.radiobutton_1, 'Value'))
     end
     
 
-    plusTipTroubleShootDetect(userData.projData, userData.default_scales, 12, userData.useLastImg, userData.default_mulfac, 0, 1, handles.figure1, handles.axes_1_1);
+    plusTipTroubleShootDetect(userData.projData, userData.default_scales, userData.bitDepth, userData.useLastImg, userData.default_mulfac, 0, 1, handles.figure1, handles.axes_1_1);
 
-    plusTipTroubleShootDetect(userData.projData, userData.default_scales, 12, userData.useLastImg, userData.default_mulfac, 0, 0, handles.figure1, handles.axes_1_2);
+    plusTipTroubleShootDetect(userData.projData, userData.default_scales, userData.bitDepth, userData.useLastImg, userData.default_mulfac, 0, 0, handles.figure1, handles.axes_1_2);
 
     scales = [get(handles.slider_2_1, 'Value') get(handles.slider_2_2, 'Value')];
     mulfac = get(handles.slider_2_3, 'Value');
 
-    plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
+    plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 1, handles.figure1, handles.axes_2_1);
 
-    plusTipTroubleShootDetect(userData.projData, scales, 12, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
+    plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, mulfac, 0, 0, handles.figure1, handles.axes_2_2);
     
 end
 
