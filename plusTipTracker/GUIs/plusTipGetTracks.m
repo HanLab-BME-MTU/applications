@@ -338,6 +338,14 @@ userData= get(handles.figure1,'UserData');
 if ~isempty(userData.previewGUI) && ishandle(userData.previewGUI)
    delete(userData.previewGUI) 
 end
+
+bitDepth = str2double(get(handles.bitDepth,'String'));
+if mod(bitDepth,2)~=0, 
+    h = errordlg('Enter a valid value for the camera bit depth.','Input Error','modal');
+    uiwait(h);
+    return
+end
+
 userData.previewGUI = detectionPreviewGUI ('mainFig', handles.figure1);
 set(handles.figure1,'UserData',userData)
 
