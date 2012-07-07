@@ -84,7 +84,7 @@ set(handles.uipanel_3, 'SelectionChangeFcn', @uipanel_3_SelectionChangeFcn);
 
 userData.bitDepth = str2double(get(userData.handles_main.bitDepth,'String'));
 if mod(userData.bitDepth,2)~=0, 
-    errordlg('Invalid bit depth first');
+    errordlg('Enter a valid value for the camera bit depth.');
     delete(handles.figure1);
 end
 plusTipTroubleShootDetect(userData.projData, userData.default_scales, ...
