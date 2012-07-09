@@ -1,44 +1,19 @@
 classdef PlusTipTrackerPackage < TrackingPackage
-    % A concrete package for tracking microtubules (with pre-set constructors)
+    % A concrete package for tracking microtubules
     
     methods (Access = public)
-        function obj = PlusTipTrackerPackage (owner,varargin)
-            if nargin == 0
-                super_args = {};
-            else
-                % Check input
-                ip =inputParser;
-                ip.addRequired('owner',@(x) isa(x,'MovieObject'));
-                ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
-                ip.parse(owner,varargin{:});
-                outputDir = ip.Results.outputDir;
-                
-                super_args{1} = owner;
-                super_args{2} = [outputDir  filesep 'PlusTipTrackerPackage'];
-            end
+        function obj = PlusTipTrackerPackage (varargin)
+
             % Call the superclass constructor
-            obj = obj@TrackingPackage(super_args{:});        
+            obj = obj@TrackingPackage(varargin{:});        
         end
     end
     methods (Static)
-        
-        function name = getName()
-            name = 'plusTipTracker';
-        end
-        
+   
         function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = plusTipTrackerPackageGUI(varargin{:});
         end
-        
-        function classes = getProcessClassNames(index)
-            classes = TrackingPackage.getProcessClassNames;
-            classes{3}='CometPostTrackingProcess';
-            
-            if nargin==0, index=1:numel(classes); end
-            classes=classes(index);
-        end
-        
         
         function procConstr = getDefaultProcessConstructors(index)
             procConstr = {

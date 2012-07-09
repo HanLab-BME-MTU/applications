@@ -1,4 +1,4 @@
-classdef CometPostTrackingProcess < DataProcessingProcess
+classdef CometPostTrackingProcess < PostTrackingProcess
     % A concrete class for classifying comet tracks
     %
     % Sebastien Besson, March 2012
@@ -28,7 +28,7 @@ classdef CometPostTrackingProcess < DataProcessingProcess
                 super_args{4} = funParams;
             end
             
-            obj = obj@DataProcessingProcess(super_args{:});
+            obj = obj@PostTrackingProcess(super_args{:});
         end
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
@@ -82,7 +82,7 @@ classdef CometPostTrackingProcess < DataProcessingProcess
         end
         
         function name = getName()
-            name = 'Comet classification';
+            name = 'Microtubule dynamics classification';
         end
         function h = GUI()
             h = @cometPostTrackingProcessGUI;
