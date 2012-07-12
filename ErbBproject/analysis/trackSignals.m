@@ -128,6 +128,7 @@ for i=1:nTracks
 end
 
 shortPath=repmat(struct('pos',[],'CoM',[],'length',[-1 -1 -1]),nTracks,1);
+longPath=repmat(struct('pos',[],'length',[]),nTracks,1);
 
 for k=1:nTracks
     for i=1:numel(F)
@@ -138,17 +139,48 @@ for k=1:nTracks
         end
         if j ~= -1
             shortPath(k).pos=vertcat(shortPath(k).pos,pos(j,:));
+            longPath(k).pos=vertcat(longPath(k).pos,pos(j,1:2));
             if shortPath(k).length(1) < 0
                 shortPath(k).length(1)=i;
             end
             shortPath(k).length(2)=i;
+        else
+            longPath(k).pos=vertcat(longPath(k).pos,[NaN NaN]);
         end
     end
     shortPath(k).CoM=mean(shortPath(k).pos(:,1:2),1);
     shortPath(k).length(3)=size(shortPath(k).pos,1);
+    longPath(k).length=shortPath(k).length;
 end
-            
-% create normalized paths, i.e. start at origin
+
+% filter paths that are short than 2
+id=false(nTracks,1);
+for k=1:nTracks
+    if shortPath(k).length(3) > 1
+        id(k)=true;
+    end
+end
+
+normPath=longPath(id);
+for k=1:sum(id);
+    start=normPath(k).length(1);
+    len=normPath(k).length(3);
+    % shift all positions by first position
+    shift=normPath(k).pos(start,:);
+    normPath(k).pos(start,:)=[NaN NaN];
+    for kk=1:len-1
+        normPath(k).pos(start+kk,:)=normPath(k).pos(start+kk,:)-shift;
+    end    
+end
+
+allNormPaths=zeros(sum(id),numel(F),2);
+for k=1:sum(id)
+    allNormPaths(k,:,:)=normPath(k).pos;
+end
+
+shift=nanmean(allNormPaths);
+shift=squeeze(shift);
+    
 % normPath=cell(nTracks,1);
 % for k=1:nTracks
 %     p=shortPath{k};
@@ -163,204 +195,11 @@ end
 % end
 
 tracks.shortPath=shortPath;
+tracks.longPath=longPath;
 %tracks.startEnd=startEnd;
 %tracks.normPath=normPath;
 tracks.nTracks=nTracks;
 tracks.prel=prel;
+tracks.shift=shift;
 
 end
-% translate particle tracks to real world coordinates 
-% shortPath=cell(nTracks,1);
-% startEnd=-ones(nTracks,2);
-% 
-% for k=1:nTracks
-%     for i=1:numel(F)
-%         j=prel(k,i);
-%         pos=F{i};
-%         if isempty(pos)
-%             continue;
-%         end
-%         %id=pos(:,14) == 0 & pos(:,16) == 1;
-%         %pos=pos(id,:);
-%         if j ~= -1
-%             shortPath{k}=vertcat(shortPath{k},pos(j,:));
-%             % set start & end frame
-%             if startEnd(k,1) < 0
-%                 startEnd(k,1)=i;
-%             end
-%             startEnd(k,2)=i;
-%         end
-%     end
-% end
-
-%    pos1=F{n};
-%    pos2=[];
-%    if n < numel(F)
-%      pos2=F{n+1};
-%    end
-%    
-%    if ~isempty(pos1) && isempty(pos2)
-%        id1=pos1(:,14) == 0 & pos1(:,16) == 1;
-%        pos1=pos1(id1,:);
-%        if isempty(pos1)
-%            continue;
-%        else
-%            pos3=[];
-%            if n > 1
-%                pos3=F{n-1};
-%            end
-%            % frame between two empty frames: tracks only one frame long
-%            if isempty(pos3)
-%                np1=size(pos1,1);
-%                for kk=1:np1
-%                    nTracks=nTracks+1;
-%                    prel(nTracks,n)=kk;
-%                end
-%            end
-%        end
-%        continue;
-%    end
-%    
-%    if isempty(pos1) && ~isempty(pos2)
-%        id2=pos2(:,14) == 0 & pos2(:,16) == 1;
-%        pos2=pos2(id2,:);
-%        
-%        if isempty(pos2)
-%            continue;
-%        end
-%        np2=size(pos2,1);
-%        for kk=1:np2
-%            nTracks=nTracks+1;
-%            prel(nTracks,n+1)=kk;
-%        end
-%        continue;
-%    end
-%    
-%    if ~isempty(pos1) && ~isempty(pos2)
-%        id1=pos1(:,14) == 0 & pos1(:,16) == 1;
-%        pos1=pos1(id1,:);
-%        id2=pos2(:,14) == 0 & pos2(:,16) == 1;
-%        pos2=pos2(id2,:);
-%        
-%        if isempty(pos1) && isempty(pos2)
-%            continue;
-%        end
-%        
-%        np1=size(pos1,1);
-%        np2=size(pos2,1);
-%        % create distance matrix between points in pos1 and pos2
-%        d12=distMat2(pos1(:,1:2),pos2(:,1:2));
-%        % all distances larger than one pixel are marked illegal
-%        d12( d12 > 100.0 )=-1;
-%        try
-%            [link12 link21]=lap(d12,-1,0,1);
-%            
-%            link12=link12(1:np1);
-%            link21=link21(1:np2);
-%            
-%            for kk=1:np1
-%                nextp=link12(kk);
-%                tIndex=find( trackIndex == kk );
-%                if nextp <= np2
-%                    prel(tIndex,n+1)=nextp;
-%                end
-%            end
-%            
-%            for kk=1:np2
-%                % get previous particle (if any)
-%                prevp=link21(kk);
-%                % new particle ? => create new path
-%                if prevp > np1
-%                    nTracks=nTracks+1;
-%                    prel(nTracks,n+1)=kk;
-%                end
-%            end
-%            trackIndex=prel(1:nTracks,n+1);
-%        catch
-%            continue;
-%        end
-%    end
-%     pos1=F{n};
-%     pos2=F{n+1};
-%     
-%     if isempty(pos1)
-%         continue;
-%     end
-%     if isempty(pos2)
-%         if isempty(pos3)
-%             id1=pos1(:,14) == 0 & pos1(:,16) == 1;
-%             pos1=pos1(id1,:);
-%             if ~isempty(pos1);
-%                 np1=size(pos1,1);
-%                 for kk=1:np1
-%                     nTracks=nTracks+1;
-%                     prel(nTracks,n)=kk;
-%                 end
-%             end
-%             pos3=pos1;
-%         end
-%         continue;
-%     end
-%     
-%     id1=pos1(:,14) == 0 & pos1(:,16) == 1;
-%     id2=pos2(:,14) == 0 & pos2(:,16) == 1;
-%     pos1=pos1(id1,:);
-%     pos2=pos2(id2,:);
-%     
-%     if isempty(pos1)
-%         continue;
-%     end
-%     if isempty(pos2)
-%         id1=pos1(:,14) == 0 & pos1(:,16) == 1;
-%         pos1=pos1(id1,:);
-%         if ~isempty(pos1);
-%             np1=size(pos1,1);
-%             for kk=1:np1
-%                 nTracks=nTracks+1;
-%                 prel(nTracks,n)=kk;
-%             end
-%         end
-%         continue;
-%     end
-%     
-%     if ~isempty(pos1) && ~isempty(pos2)
-%         np1=size(pos1,1);
-%         np2=size(pos2,1);
-%         % create distance matrix between points in pos1 and pos2
-%         d12=distMat2(pos1(:,1:2),pos2(:,1:2));
-%         % all distances larger than one pixel are marked illegal
-%         d12( d12 > 100.0 )=-1;
-%         try
-%             [link12 link21]=lap(d12,-1,0,1);
-%             
-%             link12=link12(1:np1);
-%             link21=link21(1:np2);
-%             
-%             for kk=1:np1
-%                 nextp=link12(kk);
-%                 tIndex=find( trackIndex == kk );
-%                 if nextp <= np2
-%                     prel(tIndex,n+1)=nextp;
-%                 end
-%             end
-%             
-%             for kk=1:np2
-%                 % get previous particle (if any)
-%                 prevp=link21(kk);
-%                 % new particle ? => create new path
-%                 if prevp > np1
-%                     nTracks=nTracks+1;
-%                     prel(nTracks,n+1)=kk;
-%                 end
-%             end
-%             
-%             % update trackIndex
-%             trackIndex=prel(1:nTracks,n+1);
-%             
-%         catch
-%             continue;
-%         end
-%     else
-%         continue;
-%     end
-%end
