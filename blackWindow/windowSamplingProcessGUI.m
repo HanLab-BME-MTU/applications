@@ -106,14 +106,15 @@ P=vertcat(a{:});
 panelSize = [max(P(:,1)+P(:,3))+10 max(P(:,2)+P(:,4))+20];
 pos = get(handles.uipanel_samplableInput,'Position');
 dh= panelSize(2) - pos(2);
-set(handles.figure1,'Position',get(handles.figure1,'Position')+[0 -dh 0 dh]);
-set(handles.uipanel_samplableInput,'Position',get(handles.uipanel_samplableInput,'Position')+[0 0 0 dh]);
+dL = max(0, panelSize(1) - pos(3));
+set(handles.figure1,'Position',get(handles.figure1,'Position')+[0 -dh dL dh]);
+set(handles.uipanel_samplableInput,'Position',get(handles.uipanel_samplableInput,'Position')+[0 0 dL dh]);
 
-uicontrols = {'axes_help','text_processName','text_copyright'};
-for i=1:numel(uicontrols)
-    set(handles.(uicontrols{i}),'Position',get(handles.(uicontrols{i}),'Position')+[0 dh 0 0]);
-end
-   
+% Move various graphic elements
+set(handles.axes_help,'Position',get(handles.axes_help,'Position')+[dL dh 0 0]);
+set(handles.text_processName,'Position',get(handles.text_processName,'Position')+[0 dh 0 0]);
+set(handles.text_copyright,'Position',get(handles.text_copyright,'Position')+[0 dh 0 0]);
+
 % Update handles structure and attach it to the main figure
 handles = guihandles(handles.figure1);
 guidata(handles.figure1, handles); 
