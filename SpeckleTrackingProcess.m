@@ -156,10 +156,18 @@ end
 end
 
 
-function fdata=formatTracks(data)
-trackStart=arrayfun(@(x) find(data(x,:)==0,1,'last')+1,1:size(data,1),'UniformOutput',false);
+function tracks=formatTracks(data)
+nTracks = size(data,1);
+
+% Find track starts
+trackStart=arrayfun(@(x) find(data(x,:)==0,1,'last')+1,1:nTracks,'UniformOutput',false);
 trackStart(cellfun(@isempty,trackStart))={1};
 trackStart = [trackStart{:}];
-fdata.x=arrayfun(@(x,y)data(x,y+1:2:end),1:size(data,1),trackStart,'UniformOutput',false);
-fdata.y=arrayfun(@(x,y)data(x,y:2:end),1:size(data,1),trackStart,'UniformOutput',false);
+
+% Create a tracks array of structures with 2 fields xCoord and yCoord
+tracks(nTracks, 1) =struct('xCoord',[],'yCoord',[]);
+for i=1:nTracks
+    tracks(i).xCoord = data(i,trackStart(i)+1:2:end);
+    tracks(i).yCoord = data(i,trackStart(i):2:end);
+end
 end
