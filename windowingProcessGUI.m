@@ -370,7 +370,9 @@ else
     
     imHandle = findobj(userData.previewFig,'Type','image');
     if isempty(imHandle)
-        imHandle=userData.MD.channels_.draw(1);
+        selectedChannels = get(handles.listbox_selectedChannels,'UserData');
+        selectedChannels(4:end)=[];
+        imHandle=userData.MD.channels_(selectedChannels).draw(1);
     end
 
     
