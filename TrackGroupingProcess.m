@@ -80,7 +80,7 @@ classdef TrackGroupingProcess < DataProcessingProcess
             colors = hsv(numel(obj.owner_.channels_));
             output(1).name='Classified tracks';
             output(1).var='tracks';
-            output(1).formatData=[];
+            output(1).formatData=@TrackingProcess.formatTracks;
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x)TracksDisplay('Color',hsv(64));
             output(2).name='Classified segments';
