@@ -22,7 +22,7 @@ function varargout = cometPostTrackingProcessGUI(varargin)
 
 % Edit the above text to modify the response to help cometPostTrackingProcessGUI
 
-% Last Modified by GUIDE v2.5 29-Feb-2012 14:46:15
+% Last Modified by GUIDE v2.5 16-Jul-2012 12:30:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,6 +54,14 @@ funParams = userData.crtProc.funParams_;
 
 set(handles.checkbox_makeHist,'Value',funParams.makeHist);
 set(handles.checkbox_remBegEnd,'Value',funParams.remBegEnd);
+
+% Initialize pop-up menus for reclassification schemes
+set(handles.popupmenu_fgapReclassScheme,'String',...
+    CometPostTrackingProcess.getFgapReclassificationSchemes, 'Value',...
+    funParams.fgapReclassScheme);
+set(handles.popupmenu_bgapReclassScheme,'String',...
+    CometPostTrackingProcess.getBgapReclassificationSchemes, 'Value',...
+    funParams.bgapReclassScheme);
 
 % Choose default command line output for cometPostTrackingProcessGUI
 handles.output = hObject;
@@ -116,6 +124,8 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels,'UserData');
 funParams.makeHist=get(handles.checkbox_makeHist,'Value');
 funParams.remBegEnd=get(handles.checkbox_remBegEnd,'Value');
 
+funParams.fgapReclassScheme=get(handles.popupmenu_fgapReclassScheme,'Value');
+funParams.bgapReclassScheme=get(handles.popupmenu_bgapReclassScheme,'Value');
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);

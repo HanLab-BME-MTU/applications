@@ -101,6 +101,24 @@ classdef CometPostTrackingProcess < PostTrackingProcess
             funParams.OutputDirectory = [outputDir  filesep 'mtTracks'];
             funParams.makeHist = true;
             funParams.remBegEnd = true;
+            funParams.fgapReclassScheme = 1;
+            funParams.bgapReclassScheme = 1;
         end
+        
+        function schemes = getFgapReclassificationSchemes()
+            
+            schemes{1} = 'Local scheme: 2-3 frames before pause';
+            schemes{2} = 'Local scheme: FullGrowth Subtrack Velocity';
+            schemes{3} = 'Unimodal Thresholding';
+            schemes{4} = 'No reclassification';            
+        end
+        
+        function schemes = getBgapReclassificationSchemes()
+            schemes{1} = 'bGapThresh = 95th Percentile of fGapVel';
+            schemes{2} = 'Unimodal Fgap Thresh: No Correct';
+            schemes{3} = 'Unimodal Fgap Thresh: Correct For Comet Latency';
+            schemes{4} = 'Fluctuation Radius Displacement Cut-off';
+        end
+        
     end
 end
