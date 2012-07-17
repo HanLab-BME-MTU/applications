@@ -80,11 +80,25 @@ for i = p.ChannelIndex
     % figure out which frames were used in detection
     detExists=find(arrayfun(@(x) ~isempty(x.xCoord),movieInfo));
     sF=min(detExists); eF=max(detExists);
-    
-    % frame ranges for each step
     projData.detectionFrameRange=[sF eF];
     
-    [projData,M]=postProcessMTTracks(projData,tracksFinal,movieInfo,[]);
+    % Read tracking parameters
+    gapCloseParam = trackProc.funParams_.gapCloseParam;
+    costMatrices = trackProc.funParams_.costMatrices;
+    projData.trackingParameters.maxGapLength=gapCloseParam.timeWindow;
+    projData.trackingParameters.minTrackLen=gapCloseParam.minTrackLen;
+    projData.trackingParameters.minSearchRadius=costMatrices(1,1).parameters.minSearchRadius;
+    projData.trackingParameters.maxSearchRadius=costMatrices(1,1).parameters.maxSearchRadius;
+    projData.trackingParameters.maxForwardAngle=costMatrices(1,2).parameters.maxFAngle;
+    projData.trackingParameters.maxBackwardAngle=costMatrices(1,2).parameters.maxBAngle;
+    projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
+    projData.trackingParameters.fluctRadius=costMatrices(1,2).parameters.fluctRad;
+
+    % Call main post-processing function
+    [projData,M]=postProcessMTTracks(projData, tracksFinal, movieInfo,...
+        [1 movieData.nFrames_],p.remBegEnd,...
+        'fgapReclassScheme',p.fgapReclassScheme,...
+        'bgapReclassScheme',p.bgapReclassScheme);
     
     % save each projData in its own directory
     save(outFilePaths{1,i},'projData')

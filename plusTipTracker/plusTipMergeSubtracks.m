@@ -1,4 +1,4 @@
-function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,dataMat)
+function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSubtracks(projData,dataMat,varargin)
 % plusTipMergeSubtracks merges growth fgaps with the flanking growth phases
 %
 %
@@ -7,13 +7,29 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSub
 %                   plusTipMergeSubtracks(projData,dataMat)
 %
 % INPUT
-% projData  : structure containing frame rate, pix size info, etc. 
+% projData  : structure containing frame rate, pix size info, etc.
 %             if dataMatrix isn't given, then projData should have the
 %             field nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix
 %             which contains reclassified fgaps and bgaps.
 % dataMat   : mainly to be used in plusTipPostTracking, where it is the
 %             data matrix prior to reclassification.
-%             
+%
+% fgapReclassScheme : a scalar specifyinh the scheme for reclassifying
+%                      fgaps into undetected growth
+%                      1 - using growth velocity of the last 2-3 frames
+%                      before
+%                      2 - using full growth subtrack velocity
+%                      3 - unimodal reclassification of fgaps per project
+%                      4 - skip reclassification
+%
+% bgapReclassScheme : a scalar specifying the scheme for reclassifying
+%                      fgaps into undetected growth
+%                      1 - if speed is lower than the 95th percentile of fgap speeds
+%                      2 - using unimodal fgap thresholding
+%                      3 - using unimodal fgap thresholding corrected for 
+%                      comet latency
+%                      4 - using the fluctuation radius
+%
 % OUTPUT
 % dataMatMerge        : matrix where fgaps that should be reclassified (as
 %                       growth, because their speeds are
@@ -47,13 +63,20 @@ function [dataMatMerge,dataMatReclass,dataMatCrpSecMic,projData]=plusTipMergeSub
 % plusTipGetSubtrackCoords
 % plusTipSpeedMovie
 
+% Check input
+ip = inputParser;
+ip.addOptional('fgapReclassScheme', 1, @(x) ismember(x,1:4));
+ip.addOptional('bgapReclassScheme', 1, @(x) ismember(x,1:4));
+ip.parse(varargin{:});
+fgapReclassScheme = ip.Results.fgapReclassScheme;
+bgapReclassScheme = ip.Results.bgapReclassScheme;
+
 %% Specify Reclassification Schemes (eventually put into input of function)
 % could make this a switch instead of binary and if statements
-mergeTracks = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % OPTIONS FOR FGAP --> UNDETECTED GROWTH RECLASSIFICATION
 
-localFramesBeforeGap = 1; 
+localFramesBeforeGap = (fgapReclassScheme == 1); 
 % Kathyryn's original scheme: Compares gap 
 % velocity to the velocity of the last 2-3 frames of the growth just before
 % Problem with this scheme is that 
@@ -68,32 +91,32 @@ localFramesBeforeGap = 1;
     % reclassified. (MB: 03/11)
 
 
-localFullGrowthSubtrack = 0; 
+localFullGrowthSubtrack = (fgapReclassScheme == 2); 
 % easiest without artifacts to just use full 
 % growth subtrack for now, in the end would like to eliminate the last 2-3 frames 
 % before the pause event (the latency time associated with dissociation of
 % the comet)
 
-unimodalReclassSingleProj = 0;  % if 1, perform unimodalReclassification 
+unimodalReclassSingleProj = (fgapReclassScheme == 3);  % if 1, perform unimodalReclassification 
 % of fgaps per Project
 
 
-unimodalReclassPool = 0; % if 1, skip reclassification step entirely until 
+unimodalReclassPool = (fgapReclassScheme == 4); % if 1, skip reclassification step entirely until 
 % have proceeded with the tracking of all projects. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % OPTIONS FOR BGAP-->PAUSE RECLASSIFICATION
 
-bgap95thPercFGapSpeeds = 1; % old reclassification scheme
+bgap95thPercFGapSpeeds = (bgapReclassScheme == 1); % old reclassification scheme
 
-bgapUniModeThreshCorrect = 0; % if 1 will correct for comet latency 
+bgapUniModeThreshCorrect = (bgapReclassScheme == 2); % if 1 will correct for comet latency 
 % typically more shrinkage events are maintained 
 
-bgapUniModeThreshNoCorrect = 0; % use the unimodal thresh as the thresh 
+bgapUniModeThreshNoCorrect = (bgapReclassScheme == 3); % use the unimodal thresh as the thresh 
 % for the bgap reclass 
 
-bgapFluctRadius = 0; % base the bgap based on the fluct radius (get from 
+bgapFluctRadius = (bgapReclassScheme == 4); % base the bgap based on the fluct radius (get from 
 % estimate of fgap displacement) used 2um(could use max value from pause
 % data)
 

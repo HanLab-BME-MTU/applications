@@ -1,5 +1,14 @@
-function [projData,M]=postProcessMTTracks(projData,tracksFinal,movieInfo,timeRange)
-remBegEnd = 1; % Flag to turn on or off the remove beginning and end 
+function [projData,M]=postProcessMTTracks(projData,tracksFinal,movieInfo,timeRange,varargin)
+
+% Check additional input
+ip =inputParser;
+ip.addOptional('remBegEnd',true,@isscalar);
+ip.addParamValue('fgapReclassScheme',1,@isscalar);
+ip.addParamValue('bgapReclassScheme',1,@isscalar);
+ip.parse(varargin{:})
+remBegEnd = ip.Results.remBegEnd; % Flag to turn on or off the remove beginning and end 
+fgapReclassScheme = ip.Results.fgapReclassScheme;
+bgapReclassScheme = ip.Results.bgapReclassScheme;
 
 % get interpolated positions for gaps and calculate velocities
 [trackedFeatureInfo,trackedFeatureInfoInterp,trackInfo,trackVelocities,timeRange]=...
@@ -164,7 +173,8 @@ aT=[aT lifeTimes totalDispPix];
 % aT will now contain consolidated rows (we will further use this one to 
 % calculate the stats), while aTreclass will be stored in projData.
 
-[aT,aTreclass,dummy,projData]=plusTipMergeSubtracks(projData,aT);
+[aT,aTreclass,dummy,projData]=plusTipMergeSubtracks(projData,aT, ...
+    fgapReclassScheme, bgapReclassScheme);
 
 % assign the matrix retaining where growth fgaps are indicated with
 % trackType=5 (This structure will be read into plotting functions so one
