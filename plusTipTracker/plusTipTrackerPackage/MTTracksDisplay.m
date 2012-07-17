@@ -3,7 +3,8 @@ classdef MTTracksDisplay < MovieDataDisplay
     properties
         Events={'Growth','Pause','Shrinkage','Unclassified',...
             'Growth reclass','Pause reclass'};
-        Linestyle='-:::-:';
+        LineStyle='-:::-:';
+        LineWidth=1.5;
         Color='rcymgb';  
         dragtailLength=Inf;
     end
@@ -25,17 +26,18 @@ classdef MTTracksDisplay < MovieDataDisplay
                 index=data.trackType==uniqueTypes(i);
                 h(index) = plot(data.x(index,max(1,end-obj.dragtailLength):end)',...
                     data.y(index,max(1,end-obj.dragtailLength):end)',...
-                    'Color',obj.Color(uniqueTypes(i)),'Linestyle',obj.Linestyle(uniqueTypes(i)),'LineWidth',1.5);
+                    'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)),...
+                    'LineWidth',obj.LineWidth);
             end
 %             for i=1:size(data.x,1), set(h(data.trackType==i),...
 %                     
 %                 set(h(data.trackType==i),...
-% %                     'Color',obj.Color(i),'Linestyle',obj.Linestyle(i));
+% %                     'Color',obj.Color(i),'LineStyle',obj.LineStyle(i));
 %
 %             h = plot(data.x(:,max(1,end-obj.dragtailLength):end)',...
 %                     data.y(:,max(1,end-obj.dragtailLength):end)','LineWidth',1.5);
 %             for i=1:numel(obj.Events), set(h(data.trackType==i),...
-%                     'Color',obj.Color(i),'Linestyle',obj.Linestyle(i));
+%                     'Color',obj.Color(i),'LineStyle',obj.LineStyle(i));
 %             for iColor=1:8
 %                 switch iColor
 %                     case 1 % growth
@@ -104,13 +106,13 @@ classdef MTTracksDisplay < MovieDataDisplay
                     
                     set(h(j),'XData',data.x(j,max(1,end-obj.dragtailLength):end),...
                         'YData',data.y(j,max(1,end-obj.dragtailLength):end)',...
-                        'Color',obj.Color(uniqueTypes(i)),'Linestyle',obj.Linestyle(uniqueTypes(i)));
+                        'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)));
                 end
                 
                 index2= index & ~existingTracks;
                 h(index2) = plot(data.x(index2,max(1,end-obj.dragtailLength):end)',...
                     data.y(index2,max(1,end-obj.dragtailLength):end)',...
-                    'Color',obj.Color(uniqueTypes(i)),'Linestyle',obj.Linestyle(uniqueTypes(i)),'LineWidth',1.5);
+                    'Color',obj.Color(uniqueTypes(i)),'LineStyle',obj.LineStyle(uniqueTypes(i)),'LineWidth',obj.LineWidth);
             end
             
             % Set tag
@@ -122,12 +124,14 @@ classdef MTTracksDisplay < MovieDataDisplay
         function params=getParamValidators()
             params(1).name='Color';
             params(1).validator=@ischar;
-            params(2).name='Linestyle';
+            params(2).name='LineStyle';
             params(2).validator=@ischar;
-            params(3).name='Events';
-            params(3).validator=@iscell;
-            params(4).name='dragtailLength';
-            params(4).validator=@isscalar;
+            params(3).name='LineWidth';
+            params(3).validator=@isscalar;
+            params(4).name='Events';
+            params(4).validator=@iscell;
+            params(5).name='dragtailLength';
+            params(5).validator=@isscalar;
         end
 
         function f=getDataValidator() 
