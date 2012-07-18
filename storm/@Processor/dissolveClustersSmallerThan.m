@@ -12,7 +12,7 @@ obj.data.clusters = obj.data.clusters(isBigCluster);
 obj.removeModels(~isBigCluster);
 
 % Update null cluster
-unclustered = permute(horzcat(shortClusters{:}),[2 1]);
+unclustered = horzcat(shortClusters{:})';
 obj.data.nullCluster = [obj.data.nullCluster;unclustered];
 
 disp('Process: Small clusters dissolved!');

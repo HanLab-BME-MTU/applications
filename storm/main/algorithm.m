@@ -17,6 +17,9 @@ nBins = 4; minBinResponse = 1;
 % Update edges anisotropic
 dRef = 40; alpha = 0.25; samplePeriod = 10; dMaxAlong = 160; dMinAway = 20;
  
+% Geometric clustering
+nSigmaGeomClusterTH = 3;
+
 % INIT DATA
 disp('-- INIT ----------------------------------------');
 stormTimer__.start('Read Configuration');
@@ -163,7 +166,21 @@ if isempty(dataName) % No *.i.dat file present
         im.takeSnapshotAndResetScene(); % ========== SNAPSHOT ============
     end
     stormTimer__.stop('Geometric Matching');
-
+    
+    % If *.g.dat file exists then filter the geometric clusters
+    filterDataName = [];
+    for i=1:numel(list)
+        if strcmp(list(i).name(end-5:end),'.g.dat')
+            filterDataName = list(i).name;
+            break;
+        end
+    end
+    
+    if ~isempty(filterDataName) % A *.g.dat file is present
+        filterData = Data.load([dirPath filterDataName]);
+        pro.filterGeomClusters(filterData,nSigmaGeomClusterTH);
+    end
+    
     data.save([dirPath cfg.configName '.i.dat']);
     
 else % Load *.i.dat file

@@ -57,6 +57,7 @@ classdef Processor < handle
         saveModelsToHistory(obj);
         saveEdgesToHistory(obj);
         idxPointsEdge = dissolveClustersCloseToEdge(obj,edgeDepth);
+        filterGeomClusters(obj,filterData,nSigmaDist);
        
     end
     
