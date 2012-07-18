@@ -22,7 +22,7 @@ function runTrackProcessing(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Buffer', 5, @isscalar);
+ip.addParamValue('Buffer', [5 5], @(x) numel(x)==2);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
@@ -326,7 +326,7 @@ for k = 1:nTracks
     tracks(k).seqOfEvents = seqOfEvents;
     tracks(k).tracksFeatIndxCG = tracksFeatIndxCG; % index of the feature in each frame
     
-    if (buffer<tracks(k).start) && (tracks(k).end<=nFrames-buffer) % complete tracks
+    if (buffer(1)<tracks(k).start) && (tracks(k).end<=nFrames-buffer(2)) % complete tracks
         tracks(k).visibility = 1;
     elseif tracks(k).start==1 && tracks(k).end==nFrames % persistent tracks
         tracks(k).visibility = 3;
@@ -349,8 +349,8 @@ for k = 1:nTracks
     if fieldLength>1
         
         % start buffer size for this track
-        sb = firstIdx - max(1, firstIdx-buffer);
-        eb = min(lastIdx+buffer, data.movieLength)-lastIdx;
+        sb = firstIdx - max(1, firstIdx-buffer(1));
+        eb = min(lastIdx+buffer(2), data.movieLength)-lastIdx;
         
         if sb>0 && tracks(k).visibility==1
             for f = 1:length(bufferFieldNames)
@@ -557,7 +557,7 @@ for f = 1:data.movieLength
         % start buffer
         %------------------------
         % tracks with start buffers in this frame
-        cand = max(1, trackStarts-buffer)<=f & f<trackStarts;
+        cand = max(1, trackStarts-buffer(1))<=f & f<trackStarts;
         % corresponding tracks, only if status = 1
         currentBufferIdx = find(cand & fullTracks);
         
@@ -580,7 +580,7 @@ for f = 1:data.movieLength
             y0 = tracks(k).y(1)-yi;
             
             [prm,prmStd,~,res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'xyAc');
-            bi = f - max(1, tracks(k).start-buffer) + 1;
+            bi = f - max(1, tracks(k).start-buffer(1)) + 1;
             dx = prm(1);
             dy = prm(2);
             if sqrt((dx-x0)^2+(dy-y0)^2) < w2
@@ -614,7 +614,7 @@ for f = 1:data.movieLength
         % end buffer
         %------------------------
         % segments with end buffers in this frame
-        cand = trackEnds<f & f<=min(data.movieLength, trackEnds+buffer);
+        cand = trackEnds<f & f<=min(data.movieLength, trackEnds+buffer(2));
         % corresponding tracks
         currentBufferIdx = find(cand & fullTracks);
         

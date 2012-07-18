@@ -2,7 +2,6 @@
 
 function tracks = cutTrack(track, cutIdx)
 
-nb = numel(track.startBuffer.t);
 np = numel(track.t);
 ns = numel(cutIdx)+1;
 
@@ -35,15 +34,24 @@ for s = 1:ns
     if s==1
         tracks(s).startBuffer = track.startBuffer;
     else
+        nb = numel(track.startBuffer.t);
         tracks(s).startBuffer.t = tracks(s).t(1) + (-nb:-1)*framerate;
         for f = 1:numel(bnames)
-            tracks(s).startBuffer.(bnames{f}) = track.(bnames{f})(:,cutIdx(s-1)-(nb-1:-1:0));
+            % within track
+            nbIn = min(cutIdx(s-1),nb);
+            nbOut = nb-nbIn;
+            tracks(s).startBuffer.(bnames{f})(nbOut+1:nb) = track.(bnames{f})(:,cutIdx(s-1)-(nbIn-1:-1:0));
+            % within parent start buffer
+            if nbOut>0
+                tracks(s).startBuffer.(bnames{f})(1:nbOut) = track.startBuffer.(bnames{f})(:,end-nbOut+1:end);
+            end
         end
     end
     
     if s==ns
         tracks(s).endBuffer = track.endBuffer;
     else
+        nb = numel(track.endBuffer.t);
         tracks(s).endBuffer.t = tracks(s).t(end) + (1:nb)*framerate;
         for f = 1:numel(bnames)
             tracks(s).endBuffer.(bnames{f}) = track.(bnames{f})(:,cutIdx(s)+(0:nb-1));
