@@ -417,20 +417,20 @@ for iFrame = 1:nFrames
         case 'ConstantWidth'                
 
             windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false);
+                p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,'DoChecks',false);
 
         case 'ConstantNumber'
             
             if iFrame == 1
                 %Create windows based on size in frame 1
                 windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false);
+                    p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,'DoChecks',false);
                 %Preserve this number throughout movie.
                 nWinPara = numel(windows);                
             else
                 windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    [],'StartPoint',p.StartPoint,'NumParallel',nWinPara,...
-                    'DoChecks',false);                
+                    [],'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+                    'NumParallel',nWinPara,'DoChecks',false);                
             end
             
         case 'ProtrusionBased'
@@ -462,7 +462,8 @@ for iFrame = 1:nFrames
             if iFrame == 1 || mod(iFrame,p.ReInit) < 1
                 %(Re) Initialize the windows to this frame
                 windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    p.ParaSize,'StartPoint',p.StartPoint,'DoChecks',false);
+                    p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+                    'DoChecks',false);
                 
             else
             

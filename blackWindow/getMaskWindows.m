@@ -724,7 +724,7 @@ for j = 1:(nStrips+1)
         %intersect the same contour, and the rest are handled as special
         %cases later                
         minIntCur = min(nBandCur,nBandPrev)+1;%Minimum number of intersections
-        minBandsCur = find(~vertcat(iContIntCur(1:minIntCur) == iContIntPrev(1:minIntCur),false),1,'first')-2;%Determine number of "regular" bands by finding first isocontour where slices intersect different contours
+        minBandsCur = find(~vertcat(iContIntCur(1:minIntCur) == iContIntPrev(1:minIntCur),false),1,'first')-2;%Determine number of "regular" bands by finding first isocontour where slices intersect different contours, and handle the case where no intersections are common.
         windows{j-1} = cell(1,minBandsCur);
         
         for k = 1:minBandsCur
@@ -845,7 +845,7 @@ for j = 1:(nStrips+1)
             
         %If both of the slices terminate at the image border, we may need
         %to add additional windows. This can only happen if zero-contour is open        
-        elseif ~isClosed(iZeroCont) && ~isCollapsed                        
+        elseif ~isClosed(iZeroCont) && ~isCollapsed && minBandsCur > -1 %the minBandCur > -1 is a workaround for an issue with gradient ascent termination at image border, especially when startContour > 2
             
             %Find where these slices hit the image border, if at all
             [~,~,~,iBordIntCur] = intersectionsHLE(slices{j}(1,max(end-1,1):end),slices{j}(2,max(end-1,1):end),...
