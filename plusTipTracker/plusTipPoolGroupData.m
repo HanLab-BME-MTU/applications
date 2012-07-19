@@ -65,17 +65,23 @@ if doWtn
         
         % Write stats results into a text file
         statsFile = [wtnDir filesep 'Stats.txt'];
-        statsNames = fieldnames(groupData.stats{1}{1});
+        statsNames = fieldnames(groupData.stats{iGroup}{1});
         statsData= cellfun(@struct2cell,groupData.stats{iGroup},'Unif',false);
         statsData =horzcat(statsData{:});
-        pooledDataStats = struct2cell(groupData.pooledStats{iGroup});
+        
+        pooledStatsNames = fieldnames(groupData.pooledStats{iGroup});
+        pooledStatsData = struct2cell(groupData.pooledStats{iGroup});
+        assert(all(ismember(pooledStatsNames, statsNames)));
+        
+        % Save pooled stats
         fid=fopen(statsFile,'w+');
         fprintf(fid,'\t%s',wtnGrpNames{:});
         fprintf(fid,'\tPooled Data');
-        for i=1:numel(statsNames)
-            fprintf(fid,'\n%s\t',statsNames{i});
-            fprintf(fid,'%g\t',statsData{i,:});
-            fprintf(fid,'%g',pooledDataStats{i});
+        for i=1:numel(pooledStatsNames)
+            iStat = find(strcmp(pooledStatsNames{i},statsNames),1); 
+            fprintf(fid,'\n%s\t',statsNames{iStat});
+            fprintf(fid,'%g\t',statsData{iStat,:});
+            fprintf(fid,'%g',pooledStatsData{i});
         end
         fclose(fid);
         
