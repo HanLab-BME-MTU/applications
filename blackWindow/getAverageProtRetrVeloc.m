@@ -81,8 +81,9 @@ if adtest(ProtVeloc) %If the distribution is not Gaussian
     
 else
     meanVeloc(1) = mean(ProtVeloc);
-    confI(1,1) = meanVeloc(1) + std(ProtVeloc)*1.96/sqrt(length(ProtVeloc));
-    confI(2,1) = meanVeloc(1) - std(ProtVeloc)*1.96/sqrt(length(ProtVeloc));
+    quant        = norminv(1-(alpha/2),0,1);
+    confI(1,1) = meanVeloc(1) + std(ProtVeloc)*quant/sqrt(length(ProtVeloc));
+    confI(2,1) = meanVeloc(1) - std(ProtVeloc)*quant/sqrt(length(ProtVeloc));
 end
 
 if adtest(RetrVeloc)
