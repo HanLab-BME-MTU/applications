@@ -40,10 +40,10 @@ for s = 1:ns
             % within track
             nbIn = min(cutIdx(s-1),nb);
             nbOut = nb-nbIn;
-            tracks(s).startBuffer.(bnames{f})(nbOut+1:nb) = track.(bnames{f})(:,cutIdx(s-1)-(nbIn-1:-1:0));
+            tracks(s).startBuffer.(bnames{f})(:,nbOut+1:nb) = track.(bnames{f})(:,cutIdx(s-1)-(nbIn-1:-1:0));
             % within parent start buffer
             if nbOut>0
-                tracks(s).startBuffer.(bnames{f})(1:nbOut) = track.startBuffer.(bnames{f})(:,end-nbOut+1:end);
+                tracks(s).startBuffer.(bnames{f})(:,1:nbOut) = track.startBuffer.(bnames{f})(:,end-nbOut+1:end);
             end
         end
     end
