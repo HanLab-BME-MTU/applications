@@ -136,8 +136,16 @@ for k=1:9
     yLim = get(gca,'YLim');
     set(gca,'YLim',[0 yLim(2)]);
     if nGroups>1, legend(h,strrep(labels,'_',' ')); end
-    saveas(saveFig,[saveDir filesep 'histogram_' dataType(i).name '_'...
-        eventType(j).name '.tif'])
+    
+    % Save histogram
+    filename = ['histogram_' dataType(i).name '_' eventType(j).name '.tif'];
+    if numel(fullfile(saveDir,filename)) > 128
+        print(saveFig, '-dtiff',filename);
+        movefile(filename, saveDir ,'f');
+    else
+        print(saveFig, '-dtiff',fullfile(saveDir,filename))
+    end
+     
     close(saveFig)
 
 end
