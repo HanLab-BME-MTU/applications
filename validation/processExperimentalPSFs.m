@@ -13,10 +13,18 @@ showPlots = true;
 nSigOutlier = 3;%Sigma for detecting outliers in gaussian fits
 
 
+%Relevant Imaging Parameters
+pixXY = 353.1e-9;%Final image pixel size in XY
+pixZ = 500e-9;%Z - spacing
+binning = 3;
+
+
+
 %% ------------ Load Data ------------- %%
 
 %Parent Directory with separate folders for each PSF image set.
-projDir = '/home/he19/files/LCCB/nih/PSFs/Cropped from Cell Images With Beads';
+projDir = '/home/he19/files/LCCB/nih/PSFs/Cropped from Cell Images With Beads/binning_3x3_500nm_z';
+
 subDirs = dir(projDir);
 subDirs = subDirs(3:end);%Get rid of . and .. 
 
@@ -25,12 +33,12 @@ nSub = numel(subDirs);
 %Load all the images
 for j = 1:nSub    
     imDirs{j} = subDirs(j).name;
-    tmp = imDir(imDirs{j});    
+    tmp = imDir([projDir filesep imDirs{j}]);    
     imNames{j} = arrayfun(@(x)(x.name),tmp,'Unif',false);        
     nImages(j) = numel(imNames{j});
     for k = 1:nImages(j)
         
-        images{j}{k} = tif3Dread([imDirs{j} filesep imNames{j}{k}]);        
+        images{j}{k} = tif3Dread([projDir filesep imDirs{j} filesep imNames{j}{k}]);        
         
     end
     
@@ -163,9 +171,10 @@ end
 
 %% ----------- Alignment and Interp ---------- %%
 
-
-wxy = -7:.25:7;
-wz = -7:.25:7;
+%We over-sample the PSFs to the original un-binned resolution to take
+%advantage of the averaging.
+wxy = -7:(1/binning):7;
+wz = -7:(1/binning):7;
 
 [xS,yS,zS] = meshgrid(wxy,wxy,wz);%Relative coordinates for interpolation around each PSF
 
@@ -201,10 +210,14 @@ allPSFs = cat(4,allPSFs{~shittySpot});%Average only those which weren't consider
 
 avgPSF = nanmean(allPSFs,4);
 stdPSF = nanstd(allPSFs,[],4);
+varPSF = nanvar(allPSFs,[],4);
 
+fracErr = varPSF ./ avgPSF;%Relative error - variance should scale with intensity, so we adjust for this
 
 isoFrac = logspace(log10(.01),log10(.99),10);
 nIso = numel(isoFrac);
+
+
 
 if showPlots
     
@@ -220,17 +233,38 @@ if showPlots
     subplot(2,2,3)
     %imagesc(squeeze(log(max(avgPSF,[],1)))')
     imagesc(squeeze(max(avgPSF,[],1))')
+
+%     figure
+%     subplot(2,2,1)    
+%     imagesc(squeeze(max(allPSFs(:,:,:,j),[],3)))
+%     
+%     subplot(2,2,2)    
+%     imagesc(squeeze(max(allPSFs(:,:,:,j),[],2)))
+%     
+%     subplot(2,2,3)    
+%     imagesc(squeeze(max(allPSFs(:,:,:,j),[],1))')
+    
+    
+%     figure
+%     subplot(2,2,1)
+%     imagesc(squeeze(max(stdPSF,[],3)))
+%     
+%     subplot(2,2,2)
+%     imagesc(squeeze(max(stdPSF,[],2)))
+%     
+%     subplot(2,2,3)
+%     imagesc(squeeze(max(stdPSF,[],1))')
     
     figure
     subplot(2,2,1)
-    imagesc(squeeze(max(stdPSF,[],3)))
+    imagesc(squeeze(max(fracErr,[],3)))    
     
     subplot(2,2,2)
-    imagesc(squeeze(max(stdPSF,[],2)))
+    imagesc(squeeze(max(fracErr,[],2)))
     
     subplot(2,2,3)
-    imagesc(squeeze(max(stdPSF,[],1))')
-    
+    imagesc(squeeze(max(fracErr,[],1))')
+
     
     figure
     hold on
@@ -247,9 +281,56 @@ if showPlots
     
 end
 
+%% ------------- Comparison with Theoretical ------------ %%
+
+%PSF Parameters
+psfProp.Ti0= 2.7000e-4;
+psfProp.Ni0= 1.3300;
+psfProp.Ni= 1.3300;
+psfProp.Tg0= 1.7000e-4;
+psfProp.Tg= 1.7000e-4;
+psfProp.Ng0= 1.5150;
+psfProp.Ng= 1.5150;
+psfProp.Ns= 1.4300;
+psfProp.lambda= 581e-9;%Lambda max for tdTomato FP
+psfProp.M= 60;
+psfProp.NA= 1.2000;
+psfProp.alpha= 1.1250;
+%psfProp.pixelSize= 6.4000e-06;
+psfProp.pixelSize = 117.7e-9*60;%We adjust the pixel size based on bob's measured value to account for the effective magnification of the confocal head.
+
+p.DistFromCoverslip = 100e-6;
+p.ZSpacing = pixZ / binning;%We adjust for the over-sampling above to ease comparison
+p.PsfKernelSize = 21;%To match experimental - way more than necessary.
+
+zPlanePos = p.DistFromCoverslip - ((p.PsfKernelSize-1) * p.ZSpacing) : p.ZSpacing : p.DistFromCoverslip + ((p.PsfKernelSize-1) * p.ZSpacing) - p.ZSpacing * 15;%Add an offset to keep it approximately centered
+
+psfEmit = vectorialPSF(0,0,p.DistFromCoverslip,zPlanePos,p.PsfKernelSize,psfProp);
+%Now get the excitation PSF
+psfProp.lambda = 560e-9;%Laser line bob uses for illumination. Lambda max excitation is 554nm.
+psfExci = vectorialPSF(0,0,p.DistFromCoverslip,zPlanePos,p.PsfKernelSize,psfProp);
+
+%Combine emission and excitation PSFs to get effective confocal PSF
+simPSF = psfEmit .* psfExci;
+simPSF = simPSF ./ sum(simPSF(:));%Normalize
 
 
 
+if showPlots
+    
+    figure
+    subplot(2,2,1)
+    %imagesc(squeeze(log(max(avgPSF,[],3))))
+    imagesc(squeeze(max(simPSF,[],3)))
+    
+    subplot(2,2,2)
+    %imagesc(squeeze(log(max(avgPSF,[],2))))
+    imagesc(squeeze(max(simPSF,[],2)))
+    
+    subplot(2,2,3)
+    %imagesc(squeeze(log(max(avgPSF,[],1)))')
+    imagesc(squeeze(max(simPSF,[],1))')
 
-
-
+    
+    
+end
