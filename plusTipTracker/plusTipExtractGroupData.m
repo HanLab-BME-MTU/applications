@@ -16,25 +16,6 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 %             (bs), growth lifetime (gl), fgap lifetime (fl), bgap lifetime
 %             (bl), growth displacement (gd), fgap displacement (fd), and
 %             bgap displacement (bd).
-%
-% Copyright (C) 2011 LCCB 
-%
-% This file is part of plusTipTracker.
-% 
-% plusTipTracker is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% plusTipTracker is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with plusTipTracker.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
 
 % Maria Bagonis, April 2011
 % Sebastien Besson, Apr 2011
@@ -75,6 +56,8 @@ Sgroup=cell(1,length(btwGrpNames));
 Mgroup = cell(1,length(btwGrpNames)); 
 D=cell(1,length(btwGrpNames));
 dataByProject=cell(1,length(btwGrpNames));
+dirByProj = cell(1,length(btwGrpNames));
+
 for iGroup = 1:length(btwGrpNames)
     if ~isML(groupList);
         % indices of projects in iGroup
@@ -102,6 +85,8 @@ for iGroup = 1:length(btwGrpNames)
             postProc = movie.processes_{iProc};
             iChan = find(postProc.checkChannelOutput,1);
             projData= postProc.loadChannelOutput(iChan,'output','projData');
+            
+            dirByProj{iGroup}{i} = movie.outputDirectory_;
         else
             iProj = projIndx(i);
             % Read detection info
@@ -111,19 +96,16 @@ for iGroup = 1:length(btwGrpNames)
             % Read post-tracking info 
             s = load([projGroupDir{iProj} filesep 'meta' filesep 'projData']);
             projData=s.projData;
+            
+            dirByProj{iGroup}{i} = projData.anDir;
         end
         
-%<<<<<<< .mine
-     
-          D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
+        
+        D{iGroup}{i,1}=arrayfun(@(x) size(x.xCoord,1),movieInfo);
         %
-        if isfield(projData,'mergedDataMatAllSubTracksConverted')
- 
-      
-
-        dataMat = projData.mergedDataMatAllSubTracksConverted;
-%>>>>>>> .r8720
-        else 
+        if isfield(projData,'mergedDataMatAllSubTracksConverted')            
+            dataMat = projData.mergedDataMatAllSubTracksConverted;
+        else
             dataMat = projData.dataMat_FOR_STATS;
         end 
         
@@ -141,7 +123,6 @@ for iGroup = 1:length(btwGrpNames)
             %dataMat(:,7)=dataMat(:,7).*(s.projData.pixSizeNm/1000); % convert displacements to microns
         end
         
-        dirByProj{iGroup}{i} = projData.anDir; 
         
         % reassign the track numbers so when combined from multiple projects they don't repeat
         trkIdx=unique(dataMat(:,1));
