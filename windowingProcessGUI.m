@@ -84,20 +84,6 @@ methodValue = find(strcmpi(funParams.MethodName,{methods.name}));
 set(handles.popupmenu_MethodName,'String',{methods.description},...
     'UserData',{methods.name},'Value',methodValue);
 
-% Set-up pde parameters
-pdeString ={'Select a model';'Viscous';'Viscous-convective';'Visco-elastic'};
-pdeData ={'';'Viscous';'ViscousConvective';'ViscoElastic'};
-if ~isempty(funParams.PDEPar)
-    PDEValue = find(strcmpi(funParams.PDEPar,pdeData));
-else
-    PDEValue =1;
-end
-set(handles.popupmenu_PDEPar,'Value',PDEValue);
-set(handles.edit_MeshQuality,'String',funParams.MeshQuality);
-value=strcmpi(funParams.NonLinearSolver,'on');
-set(handles.checkbox_NonLinearSolver,'Value',value);
-set(handles.popupmenu_PDEPar,'String',pdeString,'UserData',pdeData);
-
 % Update reinitialization parameters
 if isinf(funParams.ReInit)
     set(handles.checkbox_doReInit,'Value',0);
@@ -119,9 +105,6 @@ end
 
 userData.previewFig=-1;
 userData.imPointHandle.isvalid=0;
-
-% Update PDE panel
-popupmenu_MethodName_Callback(hObject, eventdata, handles)
 
 % Update channels listboxes depending on the selected process
 popupmenu_SegProcessIndex_Callback(hObject, eventdata, handles)
@@ -175,19 +158,6 @@ function figure1_KeyPressFcn(~, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
-% --- Executes on selection change in popupmenu_MethodName.
-function popupmenu_MethodName_Callback(hObject, eventdata, handles)
-
-props=get(handles.popupmenu_MethodName,{'UserData','Value'});
-methodName=props{1}{props{2}};
-
-if strcmpi(methodName,'PDEBased')
-    enableState='on';
-else
-    enableState='off';
-end
-set(get(handles.uipanel_pdeParameters,'Children'),'Enable',enableState);
 
 
 % --- Executes on selection change in popupmenu_SegProcessIndex.
@@ -295,27 +265,6 @@ end
 % Retrieve windowing method
 props=get(handles.popupmenu_MethodName,{'UserData','Value'});
 funParams.MethodName=props{1}{props{2}};
-
-if strcmpi(funParams.MethodName,'pdebased');
-    meshQuality = get(handles.edit_MeshQuality,'String');
-    if isempty(meshQuality)
-        errordlg('Please enter a valid value for the Quality of the triangular mesh.','Setting Error','modal');
-        return;
-    end
-    funParams.MeshQuality=str2double(meshQuality);       
-    props = get(handles.popupmenu_PDEPar,{'UserData','Value'});
-    if props{2}==1
-        errordlg('Select a valid window propagation method.','Setting Error','modal');
-        return;
-    end
-    funParams.PDEPar=props{1}{props{2}};
-    nonLinearSolver=get(handles.checkbox_NonLinearSolver,'Value');
-    if nonLinearSolver
-        funParams.NonLinearSolver='on';
-    else
-        funParams.NonLinearSolver='off';
-    end
-end
 
 if get(handles.checkbox_doReInit,'Value')
     reInit = str2double(get(handles.edit_ReInit,'String'));

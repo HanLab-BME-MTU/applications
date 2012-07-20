@@ -153,8 +153,6 @@ classdef WindowingProcess < ImageAnalysisProcess
             methods(2).name = 'ConstantWidth';
             methods(3).description = 'Protrusion based';
             methods(3).name = 'ProtrusionBased';
-            methods(4).description = 'PDE based';
-            methods(4).name = 'PDEBased';
         end
 
         function output = getDrawableOutput()
