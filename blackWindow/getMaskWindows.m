@@ -382,6 +382,10 @@ contours(~isClockwise) = cellfun(@(x)(x(:,end:-1:1)),contours(~isClockwise),'Uni
 
 
 %Find the contours which have the start isocontour value
+if startContour > numel(distXvals)
+    error(['The specified StartContour is greater than the total number of contours in the mask ( ' ...
+        num2str(numel(distXvals)) ')! Please decrease StartContour value!'])
+end
 iPerpStart = find(contourValues == distXvals(startContour));
 nStart = numel(iPerpStart);
 
