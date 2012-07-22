@@ -57,8 +57,7 @@ userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
 userData.numParams = {'firstImage','lastImage','timeWindow','timeStepSize',...
-  'minCorLength','maxCorLength','minFeatureSize',...
-  'edgeErodeWidth','maxFlowSpeed'};
+  'minCorLength','maxCorLength','edgeErodeWidth','maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),userData.numParams);
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
