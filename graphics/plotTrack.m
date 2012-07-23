@@ -36,6 +36,7 @@ ip.addParamValue('XLim', []);
 % ip.addParamValue('Scale', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('DisplayMode', 'Screen', @(x) any(strcmpi(x, {'Print', 'Screen'})));
 ip.addParamValue('OverlayBackground', false, @islogical);
+ip.addParamValue('MarkerSizes', [21 7 2]);
 ip.parse(data, track, varargin{:});
 
 hues = ip.Results.Hues;
@@ -279,18 +280,18 @@ end
 if strcmpi(ip.Results.DisplayMode, 'Print')
     for k = lh([3 4 6 7:10 13:15])
         if ~isnan(k)
-            set(k, 'LineWidth', 2);
+            set(k, 'LineWidth', ip.Results.MarkerSizes(3));
         end
     end
     
     for k = lh([3 7 9])
         if ~isnan(k)
-            set(k, 'MarkerSize', 21);
+            set(k, 'MarkerSize', ip.Results.MarkerSizes(1));
         end
     end
     
-    if ~isnan(lh(5))
-        set(lh(5), 'MarkerSize', 7, 'LineWidth', 2);
+    if ~isnan(lh(5)) % gaps
+        set(lh(5), 'MarkerSize', ip.Results.MarkerSizes(2), 'LineWidth', ip.Results.MarkerSizes(3));
     end
 end
     
