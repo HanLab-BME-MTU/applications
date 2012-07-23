@@ -53,7 +53,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
-userData.numParams ={'ParaSize','PerpSize','MinSize'};
+userData.numParams ={'ParaSize','PerpSize','MinSize','StartContour'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
 editSize(hObject,eventdata,handles);
@@ -244,14 +244,14 @@ else
     funParams.ChannelIndex = channelIndex;
 end
 
-for i=1:numel(userData.numParams)  
-    value = get(handles.(['edit_' userData.numParams{i}]),'String');
-    if isempty(value)
+for i=1:numel(userData.numParams)
+    value = str2double(get(handles.(['edit_' userData.numParams{i}]),'String'));
+    if ~isposint(value)
         errordlg(['Please enter a valid value for the '...
             get(handles.(['text_' userData.numParams{i}]),'String') '.'],'Setting Error','modal');
         return;
     end
-    funParams.(userData.numParams{i})=str2double(value); 
+    funParams.(userData.numParams{i}) = value; 
 end
 
 % Retrieve mask process index and class (for propagation)
