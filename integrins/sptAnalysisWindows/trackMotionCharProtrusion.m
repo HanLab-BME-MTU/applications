@@ -1,72 +1,111 @@
-function [motionDir,angleWithProt,f2fDisp,paraDirDisp,perpDirDisp,...
-    paraProtDisp,perpProtDisp,asymParam,f2fDispRMS] = trackMotionCharProtrusion(...
-    tracksFinal,protVecUnit,trackWindowAssign,minLength)
+function trackChar = trackMotionCharProtrusion(tracksFinal,protSamples,...
+    trackWindowAssignComp,minLength)
+%TRACKMOTIONCHARPROTRUSION calculate various trajectory motion characteristics, also relative to cell protrusion vector
+%
+%SYNOPSIS trackChar = trackMotionCharProtrusion(tracksFinal,protSamples,...
+%    trackWindowAssignComp,minLength)
+%
+%INPUT  tracksFinal    : The tracks as output by trackCloseGapsKalman.
+%       protSamples    : The protrusion samples as output by the windowing
+%                        software.
+%                        Optional. If not input, characteristics relative
+%                        to protrusion vector are not calculated.
+%       trackWindowAssignComp: Structure array indicating the window
+%                        assignment of each track.
+%                        Optional. If not input, characteristics relative
+%                        to protrusion vector are not calculated.
+%       minLength      : Minimum length of a trajectory to include in
+%                        analysis.
+%                        Optional. Default: 5.
+%
+%OUTPUT trackChar      : Structure array of the same length as tracksFinal.
+%                        Contains the following fields:
+%           .motionDir     : Track's direction of motion.
+%           .angleWithProt : Angle between track's direction of motion and
+%                            cell protrusion vector.
+%           .f2fDisp       : Average frame-to-frame displacement.
+%           .paraDirDisp   : Average displacement parallel to track
+%                            direction of motion.
+%           .perpDirDisp   : Average displacement perpendicular to track
+%                            direction of motion.
+%           .paraProtDisp  : Average displacement parallel to cell
+%                            protrusion vector.
+%           .perpProtDisp  : Average displacement perpendicult to cell
+%                            protrusion vector.
+%           .asymParam     : Measure of track asymmetry.
+%           .f2fDispRMS    : Root-mean-square frame-to-frame displacement.
+%
+%Khuloud Jaqaman, January 2012
+
+%% Input
+
+if nargin < 2 || isempty(protSamples) || nargin < 3 || isempty(trackWindowAssignComp)
+    charProt = 0;
+else
+    charProt = 1;
+end
+
+if nargin < 4 || isempty(minLength)
+    minLength = 5;
+end
+
+%calculate unit protrusion vectors
+protVec = protSamples.avgVector;
+protVecMag = sqrt(sum(protVec.^2,3));
+protVecUnit = protVec ./ repmat(protVecMag,[1 1 2]);
+
+%% Track characteristics
 
 %get number of tracks
 numTracks = length(tracksFinal);
 
-%get number of segments making each track and the row of the first
-%segment of each track if all track segments were put together
-numSegPerTrack = zeros(numTracks,1);
-for iTrack = 1 : numTracks
-    numSegPerTrack(iTrack) = size(tracksFinal(iTrack).tracksCoordAmpCG,1);
-end
-trackStartRow = [0; cumsum(numSegPerTrack)];
-trackStartRow = 1 + trackStartRow(1:end-1);
-
-%get total number of segments
-numSegments = sum(numSegPerTrack);
-
 %reserve memory for output parameters
-[f2fDisp,f2fDispRMS,angleWithProt,asymParam] = deal(NaN(numSegments,1));
-[motionDir,paraDirDisp,perpDirDisp,paraProtDisp,perpProtDisp] ...
-    = deal(NaN(numSegments,2));
-
-%initialize global segment index
-iSeg = 0;
+trackChar = repmat(struct('motionDir',[],'angleWithProt',[],'f2fDisp',[],...
+    'paraDirDisp',[],'perpDirDisp',[],'paraProtDisp',[],'perpProtDisp',[],...
+    'asymParam',[],'f2fDispRMS',[]),numTracks,1);
 
 %go over all compound tracks
 for iTrack = 1 : numTracks
-    
+
     %get current track's coordinates
     trackCoordCurrent = tracksFinal(iTrack).tracksCoordAmpCG;
     xCoord = trackCoordCurrent(:,1:8:end);
     yCoord = trackCoordCurrent(:,2:8:end);
-    
+
     %calculate current track's displacements along x and y
     xCoordDelta = diff(xCoord,[],2);
     yCoordDelta = diff(yCoord,[],2);
-    
+
     %get number of segments in this compound track
-    numSeg = numSegPerTrack(iTrack);
-    
+    numSeg = size(xCoord,1);
+
     %determine which segments are of sufficient length
     segLft = getTrackSEL(trackCoordCurrent);
     indxGood = find(segLft(:,3) >= minLength);
     indxBad  = setdiff(1:numSeg,indxGood);
-    
+
     %calculate average frame-to-frame displacement
     f2fDispCurrent = nanmean( sqrt( xCoordDelta.^2 + yCoordDelta.^2 ) ,2);
     f2fDispCurrent(indxBad) = NaN;
-    f2fDisp(iSeg+1:iSeg+numSeg) = f2fDispCurrent;
-    
+    trackChar(iTrack).f2fDisp = f2fDispCurrent;
+
     %calculate root mean square frame-to-frame displacement
     f2fDispRMSCurrent = sqrt( nanmean(xCoordDelta.^2+yCoordDelta.^2,2) );
     f2fDispRMSCurrent(indxBad) = NaN;
-    f2fDispRMS(iSeg+1:iSeg+numSeg) = f2fDispRMSCurrent;
-    
+    trackChar(iTrack).f2fDispRMS = f2fDispRMSCurrent;
+
     %reserve memory for this track
     [eigValRatio,angleWithProtCurrent] = deal(NaN(numSeg,1));
     [eigVecMax,paraDirDispCurrent,perpDirDispCurrent,paraProtDispCurrent,...
         perpProtDispCurrent] = deal(NaN(numSeg,2));
-    
+
     %go over segments in track
     for iSegment = indxGood'
-        
+
         %get frame-to-frame displacements along x and y
         trackDisp = [xCoordDelta(iSegment,:); yCoordDelta(iSegment,:)]';
         numEntries = size(trackDisp,1);
-        
+
         %decompose segment's motion to estimate its asymmetry
         posCov = nancov([xCoord(iSegment,:); yCoord(iSegment,:)]');
         [eigVec,eigVal] = eig(posCov);
@@ -74,7 +113,7 @@ for iTrack = 1 : numTracks
         eigVal(eigVal<eps) = eps;
         eigValMax = max(eigVal);
         eigValRatio(iSegment) = eigValMax / min(eigVal); %eigenvalue ratio as measure of asymmetry
-        
+
         %get motion direction as eigenvector corresponding to the maximum
         %eigenvalue
         %the direction has to be such that the net displacement along
@@ -83,7 +122,7 @@ for iTrack = 1 : numTracks
         paraTrackDisp = dot(trackDisp,repmat(paraDir,numEntries,1),2); %displacement
         netDispPara = nansum(paraTrackDisp); %net displacement
         eigVecMax(iSegment,:) = sign(netDispPara) * paraDir;
-                
+
         %decompose displacement relative to direction of motion
         paraDir = eigVecMax(iSegment,:);
         perpDir = [-paraDir(2) paraDir(1)];
@@ -96,51 +135,49 @@ for iTrack = 1 : numTracks
         %             nanmean(abs(paraTrackDisp))],eps);
         perpDirDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
             nanmean(abs(perpTrackDisp))],eps);
+
+        if charProt
+            
+            %find which window this track falls in
+            iPara = trackWindowAssignComp(iTrack).assignment(iSegment,2);
+            iFrame = trackWindowAssignComp(iTrack).assignment(iSegment,3);
+            
+            %if this track falls into some window
+            if ~isnan(iPara) && ~isnan(iFrame)
                 
-        %find which window this track falls in
-        bigIndx = trackStartRow(iTrack) + iSegment - 1;
-        iPara = trackWindowAssign(bigIndx,2);
-        iFrame = trackWindowAssign(bigIndx,3);
-        
-        %if this track falls into some window
-        if ~isnan(iPara) && ~isnan(iFrame)
-            
-            %get protrusion vector
-            protParaDir = squeeze(protVecUnit(iPara,iFrame,:))';
-            protPerpDir = [-protParaDir(2) protParaDir(1)];
-            
-            %calculate angle with protrusion vector
-            angleWithProtCurrent(iSegment) = acos(dot(eigVecMax(iSegment,:),protParaDir)) * 180 / pi;
-            
-            %decompose displacement relative to protrusion vector
-            paraTrackDisp = dot(trackDisp,repmat(protParaDir,numEntries,1),2);
-            perpTrackDisp = dot(trackDisp,repmat(protPerpDir,numEntries,1),2);
-            paraProtDispCurrent(iSegment,:) = [nanmean(paraTrackDisp) ...
-                nanmean(abs(paraTrackDisp))];
-            paraProtDispCurrent(iSegment,paraProtDispCurrent(iSegment,:)==0) = eps;
-            %             paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
-            %                 nanmean(abs(paraTrackDisp))],eps);
-            perpProtDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
-                nanmean(abs(perpTrackDisp))],eps);
+                %get protrusion vector
+                protParaDir = squeeze(protVecUnit(iPara,iFrame,:))';
+                protPerpDir = [-protParaDir(2) protParaDir(1)];
+                
+                %calculate angle with protrusion vector
+                angleWithProtCurrent(iSegment) = acos(dot(eigVecMax(iSegment,:),protParaDir)) * 180 / pi;
+                
+                %decompose displacement relative to protrusion vector
+                paraTrackDisp = dot(trackDisp,repmat(protParaDir,numEntries,1),2);
+                perpTrackDisp = dot(trackDisp,repmat(protPerpDir,numEntries,1),2);
+                paraProtDispCurrent(iSegment,:) = [nanmean(paraTrackDisp) ...
+                    nanmean(abs(paraTrackDisp))];
+                paraProtDispCurrent(iSegment,paraProtDispCurrent(iSegment,:)==0) = eps;
+                %             paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
+                %                 nanmean(abs(paraTrackDisp))],eps);
+                perpProtDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
+                    nanmean(abs(perpTrackDisp))],eps);
+                
+            end
             
         end
-        
-    end
-    
-    %store values in output variables
-    angleWithProt(iSeg+1:iSeg+numSeg) = angleWithProtCurrent;
-    asymParam(iSeg+1:iSeg+numSeg) = eigValRatio;
-    motionDir(iSeg+1:iSeg+numSeg,:) = eigVecMax;
-    paraDirDisp(iSeg+1:iSeg+numSeg,:) = paraDirDispCurrent;
-    perpDirDisp(iSeg+1:iSeg+numSeg,:) = perpDirDispCurrent;
-    paraProtDisp(iSeg+1:iSeg+numSeg,:) = paraProtDispCurrent;
-    perpProtDisp(iSeg+1:iSeg+numSeg,:) = perpProtDispCurrent;
-    
-    %update global segment index
-    iSeg = iSeg + numSeg;
-    
-end
 
-disp('')
+    end
+
+    %store values in output variables
+    trackChar(iTrack).angleWithProt = angleWithProtCurrent;
+    trackChar(iTrack).asymParam = eigValRatio;
+    trackChar(iTrack).motionDir = eigVecMax;
+    trackChar(iTrack).paraDirDisp = paraDirDispCurrent;
+    trackChar(iTrack).perpDirDisp = perpDirDispCurrent;
+    trackChar(iTrack).paraProtDisp = paraProtDispCurrent;
+    trackChar(iTrack).perpProtDisp = perpProtDispCurrent;
+
+end
 
 %% ~~~ the end ~~~

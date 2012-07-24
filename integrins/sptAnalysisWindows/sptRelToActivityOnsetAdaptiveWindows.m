@@ -1,11 +1,13 @@
-function [sptPropInWindow,windowTrackAssign,windowSize,analysisParam] = ...
-    particleBehaviorRelToActivityOnset(tracksFinal,diffAnalysisRes,diffModeAnRes,directTrackChar,...
-    winPositions,winFrames,protSamples,minLength,bandRange,indxWindows,frameRange,windowTrackAssign)
-%particleBehaviorRelToActivityOnset calculates single particle behavior in windows grouped based on edge activity
+function [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
+    sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
+    diffModeAnRes,directTrackChar,winPositions,winFrames,protSamples,...
+    minLength,bandRange,indxSlices,frameRange,windowTrackAssignExt,firstMaskFile)
+%sptRelToActivityOnsetAdaptiveWindows calculates single particle behavior in adaptive windows grouped based on edge activity
 %
-%SYNOPSIS [sptPropInWindow,windowTrackAssign,windowSize,analysisParam] = ...
-%    particleBehaviorRelToActivityOnset(tracksFinal,diffAnalysisRes,diffModeAnRes,directTrackChar,...
-%    winPositions,winFrames,protSamples,minLength,bandRange,indxWindows,frameRange,windowTrackAssign)
+%SYNOPSIS [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
+%    sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
+%    diffModeAnRes,directTrackChar,winPositions,winFrames,protSamples,...
+%    minLength,bandRange,indxSlices,frameRange,windowTrackAssignExt,firstMaskFile)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -32,14 +34,16 @@ function [sptPropInWindow,windowTrackAssign,windowSize,analysisParam] = ...
 %                        analysis. Each row indicates bands that will be
 %                        grouped together.
 %                        Optional. Default: [1 2; 3 4; 5 6; 7 8; 9 10].
-%       indxWindows    : Vector with indices of windows (i.e. window number 
+%       indxSlices     : Vector with indices of slices (i.e. window number 
 %                        along cell edge) to include in analysis.
 %                        Optional. Default: all windows.
 %       frameRange     : Vector with 2 entries indicating range of window
 %                        frames to include in analysis.
 %                        Optional. Default: all frames.
-%       windowTrackAssign: Output of assignTracks2Windows.
+%       windowTrackAssignExt: Output of assignTracks2Windows.
 %                        Optional. If not input, will be calculated.
+%       firstMaskFile  : Name (including full path) of first mask file.
+%                        Optional. If not input, will be asked for.
 %
 %OUTPUT sptPropInWindow: Structure array with N entries (N from bandRange)
 %                        storing various single particle properties, with
@@ -124,7 +128,7 @@ function [sptPropInWindow,windowTrackAssign,windowSize,analysisParam] = ...
 %                        groupWindowsActivity.
 %                        The columns refer to increment from activity
 %                        onset, starting with -3.
-%       windowTrackAssign: Output of assignTracks2Windows.
+%       windowTrackAssignExt: Output of assignTracks2Windows.
 %                        If input, same as input.
 %       windowSize     : 3-D matrix of dimensions (number of bands) x (number
 %                        of slices) x (number of window frames - 1)
@@ -149,7 +153,7 @@ function [sptPropInWindow,windowTrackAssign,windowSize,analysisParam] = ...
 %% Input
 
 if nargin < 7
-    disp('--particleBehaviorRelToActivityOnset: Missing input arguments!');
+    disp('--sptRelToActivityOnsetAdaptiveWindows: Missing input arguments!');
     return
 end
 
@@ -176,16 +180,16 @@ if nargin < 9 || isempty(bandRange)
 end
 numBandRange = size(bandRange,1);
 
-if nargin < 10 || isempty(indxWindows)
-    indxWindows = (1:numWinPara)';
+if nargin < 10 || isempty(indxSlices)
+    indxSlices = (1:numWinPara)';
 end
 
 if nargin < 11 || isempty(frameRange)
     frameRange = [1 numWinFrames];
 end
 
-if nargin < 12 || isempty(windowTrackAssign)
-    windowTrackAssign = [];
+if nargin < 12 || isempty(windowTrackAssignExt)
+    windowTrackAssignExt = [];
 end
 
 %% Trajectory pre-processing
@@ -199,8 +203,9 @@ diffModeAnRes = diffModeAnRes(indx);
 directTrackChar = directTrackChar(indx);
 
 %divide trajectories among windows
-if isempty(windowTrackAssign)
-    windowTrackAssign = assignTracks2Windows(tracksFinal,winPositions,winFrames,1);
+if isempty(windowTrackAssignExt)
+    [~,~,~,windowTrackAssignExt] = assignTracks2Windows(...
+        tracksFinal,winPositions,winFrames,1);
 end
 
 %% Window pre-processing
@@ -237,8 +242,17 @@ winSize(winSize==0) = NaN;
 windowSize = winSize;
 windowSize(isnan(windowSize)) = 0;
 
-%group windows based on activity type
-windowGroup = groupWindowsActivity(protSamples,0,indxWindows,frameRange);
+%group window slices based on activity type
+sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,frameRange);
+
+%generate adaptive window combinations to measure particle behavior
+%relative to protrusion onset
+protrusionCombinedWindows = combineWindowsProtrusion(sliceActivityGroup,...
+    winPositions,firstMaskFile);
+
+%put together the tracks that belong to each window combination
+protrusionCombinedTracks = combineTracksManyWindows(protrusionCombinedWindows,...
+    windowTrackAssignExt);
 
 %% Particle behavior pre-processing
 
@@ -257,7 +271,7 @@ trajClassAsym = trajClassDiff(:,1); %asymmetry classification
 trajClassDiff = trajClassDiff(:,2); %diffusion classification
 
 %WARNING
-%MAKE tracjClassAsym ALL NaN, SO THAT THERE IS NO ASYMMETRY CLASSIFICATION
+%MAKE trajClassAsym ALL NaN, SO THAT THERE IS NO ASYMMETRY CLASSIFICATION
 trajClassAsym(:) = NaN;
 
 %process classifications to make categories
@@ -293,9 +307,6 @@ numDiffMode = max(trajDiffMode);
 
 %get direction of motion, angle with protrusion vector and various
 %frame-to-frame displacement measures
-% [~,angleWithProtTmp,f2fDispTmp,paraDirDispTmp,perpDirDispTmp,...
-%     paraProtDispTmp,perpProtDispTmp,asymParamTmp] = ...
-%     trackMotionCharProtrusion(tracksFinal,protVecUnit,trackWindowAssign,minLength);
 angleWithProtTmp = vertcat(directTrackChar.angleWithProt);
 f2fDispTmp       = vertcat(directTrackChar.f2fDisp);
 paraDirDispTmp   = vertcat(directTrackChar.paraDirDisp);
@@ -314,7 +325,7 @@ ratioDispProtTmp = abs( paraProtDispTmp ./ perpProtDispTmp );
 minInc = -3;
 
 %number of activity types
-numTypes = length(windowGroup);
+numTypes = length(sliceActivityGroup);
 
 %initialize output variable
 sptPropInWindow = repmat(struct('directAll',[],'directPos',[],...
@@ -363,7 +374,7 @@ for iBandRange = 1 : numBandRange
     for iType = 1 : numTypes
         
         %get the events corresponding to this activity type
-        windowClassInfo = windowGroup(iType).edgeClassInfo;
+        windowClassInfo = sliceActivityGroup(iType).edgeClassInfo;
         
         %go over each frame increment
         for iInc = minInc : numWinFrames-2
@@ -400,10 +411,10 @@ for iBandRange = 1 : numBandRange
                     diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
                     fracMode,diffCoefModeInd,diffCoefModeAll] = ...
                     ...
-                    getWindowGroupChar...
+                    getsliceActivityGroupChar...
                     ...
                     (frameWinIndxAll,iInc,minInc,iType,bandsCurrent,numSPTFrames,numWinPerp,...
-                    numWinPara,numWinFrames,windowTrackAssign,winSize,trajClass,trackLft,...
+                    numWinPara,numWinFrames,windowTrackAssignExt,winSize,trajClass,trackLft,...
                     diffCoefGen,confRadAll,angleWithProtTmp,asymParamTmp,f2fDispTmp,...
                     paraDirDispTmp,perpDirDispTmp,paraProtDispTmp,perpProtDispTmp,...
                     ratioDispDirTmp,ratioDispProtTmp,trajDiffMode,trajDiffCoef2,...
@@ -480,12 +491,12 @@ end %(for iBandRange = 1 : numBandRange)
 
 %store analysis parameters in output structure for documentation
 analysisParam.bandRange = bandRange;
-analysisParam.indxWindows = indxWindows;
+analysisParam.indxSlices = indxSlices;
 analysisParam.frameRange = frameRange;
 analysisParam.minTrackLen = minLength;
 
 
-%% Subfunction 1 "getWindowGroupChar"
+%% Subfunction 1 "getsliceActivityGroupChar"
 
 function [spDensity,fracNetDispNeg,...
     ...
@@ -508,10 +519,10 @@ function [spDensity,fracNetDispNeg,...
     diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
     fracMode,diffCoefModeInd,diffCoefModeAll] = ...
     ...
-    getWindowGroupChar...
+    getsliceActivityGroupChar...
     ...
     (frameWinIndx,iInc,minInc,iType,bandsCurrent,numSPTFrames,numWinPerp,...
-    numWinPara,numWinFrames,windowTrackAssign,winSize,trajClass,trackLft,...
+    numWinPara,numWinFrames,windowTrackAssignExt,winSize,trajClass,trackLft,...
     diffCoefGen,confRadAll,angleWithProtTmp,asymParamTmp,f2fDispTmp,...
     paraDirDispTmp,perpDirDispTmp,paraProtDispTmp,perpProtDispTmp,...
     ratioDispDirTmp,ratioDispProtTmp,trajDiffMode,trajDiffCoef2,...
@@ -551,12 +562,12 @@ bandVec = bandVec(:);
 winVec = repmat(frameWinIndx(:,2),length(bandsCurrent),1);
 frameVec = repmat(frameWinIndx(:,1)+iInc,length(bandsCurrent),1);
 linearInd = sub2ind([numWinPerp numWinPara numWinFrames-1],bandVec,winVec,frameVec);
-tracksCurrent = vertcat(windowTrackAssign{linearInd});
+tracksCurrent = vertcat(windowTrackAssignExt{linearInd});
 numTracksCurrent = length(tracksCurrent);
 
 %calculate the sum of all window sizes in order to calculate
 %particle density later
-windowGroupSize = nansum(winSize(linearInd));
+sliceActivityGroupSize = nansum(winSize(linearInd));
 
 if numTracksCurrent == 0 %if there are no tracks in this window ...
     
@@ -564,14 +575,14 @@ if numTracksCurrent == 0 %if there are no tracks in this window ...
     %note that here particle density is not automatically 0
     %because it can be that the window size is 0 (stored as
     %NaN), in which case the density will be NaN
-    spDensity.mean(iType,iIncShifted) = 0 / windowGroupSize;
+    spDensity.mean(iType,iIncShifted) = 0 / sliceActivityGroupSize;
     spDensity.numPoints(iType,iIncShifted) = numTracksCurrent;
     
 else %if there are tracks in this window ...
     
     %calculate particle density
     spDensity.mean(iType,iIncShifted) = sum(trackLft(tracksCurrent)) / ...
-        windowGroupSize / numSPTFrames;
+        sliceActivityGroupSize / numSPTFrames;
     spDensity.numPoints(iType,iIncShifted) = numTracksCurrent;
     
     %estimate density standard deviation from a bootstrap sample
@@ -580,7 +591,7 @@ else %if there are tracks in this window ...
         indxBoot = randsample(numTracksCurrent,numTracksCurrent,true);
         tracksBoot = tracksCurrent(indxBoot);
         densityBoot(iBoot) = sum(trackLft(tracksBoot)) / ...
-        windowGroupSize / numSPTFrames;
+        sliceActivityGroupSize / numSPTFrames;
     end
     spDensity.std(iType,iIncShifted) = std(densityBoot) * sqrt(numTracksCurrent);
     

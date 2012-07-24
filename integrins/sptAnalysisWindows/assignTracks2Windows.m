@@ -1,9 +1,11 @@
-function [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
-    tracksFinal,winPositions,winFrames,assignSegments)
+function [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,...
+    windowTrackAssignExt] = assignTracks2Windows(tracksFinal,winPositions,...
+    winFrames,assignSegments)
 %ASSIGNTRACKS2WINDOWS groups tracks into spatial and temporal windows derived from the cell edge
 %
-%SYNOPSIS [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
-%    tracksFinal,winPositions,winFrames,assignSegments)
+%SYNOPSIS [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,...
+%    windowTrackAssignExt] = assignTracks2Windows(tracksFinal,winPositions,...
+%    winFrames,assignSegments)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -22,15 +24,28 @@ function [windowTrackAssign,trackWindowAssign] = assignTracks2Windows(...
 %                        tracks as is.
 %                        Optional. Default: 0.
 %
-%OUTPUT windowTrackAssign: Cell array of dimensions (number of bands) x
+%OUTPUT windowTrackAssign: 3D Cell array of dimensions (number of bands) x
 %                          (number of slices) x (number of window frames-1)
 %                          storing for each window in each frame the track
 %                          indices that fall in it.
-%       trackWindowAssign: (Number of tracks) x 3 array storing for each
-%                          track the window it falls in, indicated by
-%                          band number, slice number and frame.
-%                          trackWindowAssign and windowTrackAssign are
-%                          essentially the inverse of each other.
+%       trackWindowAssign: (Number of tracks/track segments) x 3 array
+%                          storing for each track/track segment the window
+%                          it falls in, indicated by band number, slice
+%                          number and frame. trackWindowAssign and
+%                          windowTrackAssign are essentially the inverse of
+%                          each other.
+%       trackWindowAssignComp: Structure array with field "assignment"
+%                          storing for each compound track its window
+%                          assignment, equivalent to trackWindowAssign. A
+%                          "vertcat" of the field "assignment" gives an
+%                          array = trackWindowAssign.
+%       windowTrackAssignExt: 4D Cell array of dimensions (number of bands) x
+%                          (number of slices) x (number of window frames-1)
+%                          x (number of window frames-1) storing for each
+%                          window in each frame the track indices that fall
+%                          in it, not only in its proper frame range but
+%                          throughout all frame ranges, as indicated by
+%                          the 4th dimension.
 %
 %REMARKS This code is designed for experiments where the particle
 %        trajectories are sampled much more frequently than the cell edge.
@@ -123,61 +138,102 @@ end
 
 %% Track assignment into windows
 
-%initialize cell array storing the grouping of tracks into windows for
-%each frame range
+%initialize cell arrays storing the grouping of tracks into windows for
+%each window frame range
 windowTrackAssign = cell(numWinPerp,numWinPara,numWinFrames-1);
+windowTrackAssignExt = cell(numWinPerp,numWinPara,numWinFrames-1,numWinFrames-1);
 
 %also initialize numTracks x 3 array storing for each track its window
 %assignment
 trackWindowAssign = NaN(numTracks,3);
 
-%go over all window frames
-for iWinFrame = 1 : numWinFrames - 1
-    
-    %get current frame number and next frame number
+%first group tracks based on what window frame range they fall into
+trackGroup = repmat(struct('indx',[]),numWinFrames-1,1);
+for iWinFrame = 1 : numWinFrames -1 
+   
+    %get current spt frame number and next spt frame number
     minFrame = winFrames(iWinFrame);
     maxFrame = winFrames(iWinFrame + 1);
-    
-    %find tracks whose "average" time is in this frame range
+        
+    %find tracks whose "average" time is between minFrame and maxFrame
     indxFrameRange = find(trackTimeMean>=minFrame & trackTimeMean<maxFrame);
+
+    %store this information for later use
+    trackGroup(iWinFrame).indx = indxFrameRange;
+    
+end
+
+%then assign tracks to windows in their proper frame range (windowTrackAssign)
+%also assign them to windows in other frame ranges (windowTrackAssignExt)
+for iWinFrameExt = 1 : numWinFrames - 1 %this loops over window frames to fetch tracks
+    
+    %find tracks in this time window
+    indxFrameRange = trackGroup(iWinFrameExt).indx;
     
     %get the mean positions of these tracks
     xCoordMeanFR = xCoordMean(indxFrameRange);
     yCoordMeanFR = yCoordMean(indxFrameRange);
     
-    %go over the windows in this frame
-    for iPara = 1 : numWinPara
-        for iPerp = 1 : nBands(iWinFrame,iPara)
-            
-            %if this window has a finite size
-            if ~isempty(winPositions{iWinFrame,iPara}{iPerp})
+    for iWinFrame = 1 : numWinFrames - 1 %this loops over window frames to fetch windows
+        
+        %go over windows in this frame
+        for iPara = 1 : numWinPara %slices
+            for iPerp = 1 : nBands(iWinFrame,iPara) %bands
                 
-                %get the window boundaries
-                windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];
-                winX = windowsPoly(1,:);
-                winY = windowsPoly(2,:);
+                %if the window in this frame has a finite size
+                if ~isempty(winPositions{iWinFrame,iPara}{iPerp})
+                    
+                    %get the window boundaries
+                    windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];
+                    winX = windowsPoly(1,:);
+                    winY = windowsPoly(2,:);
+                    
+                    %find the tracks whose "average" position lies in this
+                    %window
+                    indxWin = inpolygon(xCoordMeanFR,yCoordMeanFR,winX,winY);
+                    
+                    %map back to original track indices
+                    indxWin = indxFrameRangeMin(indxWin);
+                    
+                else %if window is collapsed, then there are no tracks in it
+                    indxWin = [];
+                end
                 
-                %find the tracks whose "average" position lies in this window
-                indxWin = inpolygon(xCoordMeanFR,yCoordMeanFR,winX,winY);
+                %store direct assignment
+                if iWinFrame == iWinFrameExt
+                    
+                    %store track indices in cell array
+                    windowTrackAssign{iPerp,iPara,iWinFrame} = indxWin;
+                    
+                    %store window indices for each track
+                    trackWindowAssign(indxWin,1) = iPerp;
+                    trackWindowAssign(indxWin,2) = iPara;
+                    trackWindowAssign(indxWin,3) = iWinFrame;
+                    
+                end
                 
-                %map back to original track indices
-                indxWin = indxFrameRange(indxWin);
-                
-                %store track indices in cell array
-                windowTrackAssign{iPerp,iPara,iWinFrame} = indxWin;
-                
-                %store window indices for each track
-                trackWindowAssign(indxWin,1) = iPerp;
-                trackWindowAssign(indxWin,2) = iPara;
-                trackWindowAssign(indxWin,3) = iWinFrame;
-                
-            else %if this window is collapsed, then there are no tracks in it
-                
-                windowTrackAssign{iPerp,iPara,iWinFrame} = [];
+                %store extended assignment
+                windowTrackAssignExt{iPerp,iPara,iWinFrame,iWinFrameExt} = indxWin;   
                 
             end
-            
         end
-    end
+        
+    end %(for iWinFrame = 1 : numWinFrames - 1)
     
+end %(for iWinFrameExt = 1 : numWinFrames - 1)
+
+%store results in form of compound tracks structure
+trackWindowAssignComp = repmat(struct('assignment',[]),numTracksCompound,1);
+if assignSegments
+    iSeg = 0;
+    for iTrack = 1 : numTracksCompound
+        numSeg = size(tracksFinal(iTrack).tracksCoordAmpCG,1);
+        trackWindowAssignComp(iTrack).assignment = trackWindowAssign(iSeg+1:iSeg+numSeg,:);
+        iSeg = iSeg + numSeg;
+    end
+else
+    for iTrack = 1 : numTracks
+        trackWindowAssignComp(iTrack).assignment = trackWindowAssign(iTrack,:);
+    end
 end
+

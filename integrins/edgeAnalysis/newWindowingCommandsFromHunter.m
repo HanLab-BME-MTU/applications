@@ -54,11 +54,13 @@ axHandle = gca;
 makeMovieMovie(MD,'Overlay','Protrusion','SegProcessIndex',2,'FileName','movieProtrusion','AxesHandle',axHandle)
 
 %divide mask into windows
+tic
 windowParam.MethodName = 'ProtrusionBased';
-windowParam.ParaSize = 5;
-windowParam.PerpSize = 10;
+windowParam.ParaSize = 2;
+windowParam.PerpSize = 2;
 windowParam.SegProcessIndex = 2;
 MD = getMovieWindows(MD,windowParam);
+toc
 
 %make movie of windows
 figure('units','normalized','position',[0 0 1 1])
@@ -66,9 +68,11 @@ axHandle = gca;
 makeMovieMovie(MD,'Overlay','Windows','SegProcessIndex',2,'FileName','movieWindows','AxesHandle',axHandle)
 
 %make movie of windows + protrusion vectors
+tic
 figure('units','normalized','position',[0 0 1 1])
 axHandle = gca;
 makeMovieMovie(MD,'Overlay','Windows+Protrusion','SegProcessIndex',2,'FileName','movieWindowsProtrusion','AxesHandle',axHandle)
+toc
 
 %sample protrusion vectors
 MD = sampleMovieProtrusion(MD);
