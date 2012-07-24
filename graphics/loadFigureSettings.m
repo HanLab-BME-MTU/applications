@@ -1,4 +1,4 @@
-function fset = loadFigureSettings()
+function fset = loadFigureSettings(mode)
 
 % light blue
 fset.cfB = hsv2rgb([5/9 0.3 1]);
@@ -23,13 +23,21 @@ fset.ce0 = hsv2rgb([0 0 0.3]);
 
 
 fset.fontName = {'FontName', 'Helvetica'};
-fset.ifont = [fset.fontName, 'FontSize', 12];
-fset.tfont = [fset.fontName, 'FontSize', 16];
-fset.sfont = [fset.fontName, 'FontSize', 20];
-fset.lfont = [fset.fontName, 'FontSize', 24];
 
-fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
-
+switch mode
+    case 'print'
+        fset.ifont = [fset.fontName, 'FontSize', 7];
+        fset.tfont = [fset.fontName, 'FontSize', 8];
+        fset.sfont = [fset.fontName, 'FontSize', 10];
+        fset.lfont = [fset.fontName, 'FontSize', 12];
+        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1.5, fset.sfont];
+    otherwise
+        fset.ifont = [fset.fontName, 'FontSize', 12];
+        fset.tfont = [fset.fontName, 'FontSize', 16];
+        fset.sfont = [fset.fontName, 'FontSize', 20];
+        fset.lfont = [fset.fontName, 'FontSize', 24];
+        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
+end
 
 ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
 % ce = [0 1 0; 1 0 0; 1 0.5 0; 1 1 0; 0 1 1; 0.5 0 1; 0 0 1; 0 0.5 1];
