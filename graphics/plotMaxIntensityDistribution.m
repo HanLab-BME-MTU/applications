@@ -5,11 +5,15 @@ ip.CaseSensitive = false;
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
 ip.addParamValue('XTick', []);
 ip.addParamValue('FirstNFrames', 5);
-ip.addParamValue('CohortLB', [1  11 21 31 41 61 81 101]);
-ip.addParamValue('CohortUB', [10 20 30 40 60 80 100 120]);
+% ip.addParamValue('CohortLB', [1  11 21 31 41 61]);
+% ip.addParamValue('CohortUB', [10 20 30 40 60 120]);
+ip.addParamValue('CohortLB', [1  11 21 41 61 81]);
+ip.addParamValue('CohortUB', [10 20 40 60 80 120]);
+ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
 ip.parse(varargin{:});
-
 mode = ip.Results.Mode;
+isprint = strcmpi(ip.Results.DisplayMode, 'print');
+
 
 [~, figPath] = getCellDir(data(1));
 figPath = [figPath 'Figures' filesep];
@@ -23,7 +27,8 @@ lb = ip.Results.CohortLB;
 ub = ip.Results.CohortUB;
 nc = numel(lb);
 
-ny = min(4, ceil(nc/2)); % # axes in y
+% ny = min(6, ceil(nc/2)); % # axes in y
+ny = 6;
 
 lftData = getLifetimeData(data);
 maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2), lftData, 'UniformOutput', false);
@@ -32,7 +37,8 @@ maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2), lftData, 'UniformOutput', fal
 a = rescaleEDFs(maxA_all, 'Display', false);
 
 % apply scaling
-for i = 1:numel(data)
+nd = numel(data);
+for i = 1:nd
     lftData(i).intMat_Ia = a(i) * lftData(i).intMat_Ia;
     maxA_all{i} = a(i) * maxA_all{i};
 end
@@ -89,8 +95,9 @@ maxAcohortFirstN = cell(1,nc);
 ni = cell(1,nc);
 niFirstN = cell(1,nc);
 for k = 1:numel(lb)
-    maxAcohort{k} = maxA(lb(k)<=lifetime_s & lifetime_s<=ub(k));
-    maxAcohortFirstN{k} = maxAFirstN(lb(k)<=lifetime_s & lifetime_s<=ub(k));
+    cidx = lb(k)<=lifetime_s & lifetime_s<ub(k);
+    maxAcohort{k} = maxA(cidx);
+    maxAcohortFirstN{k} = maxAFirstN(cidx);
 
     ni0 = hist(maxAcohort{k}, xi);
     ni{k} = ni0/sum(ni0);
@@ -107,52 +114,70 @@ ya = (0:5)*dy;
 cb = [0 0 0];
 cf0 = [1 1 1]*0.6;
 ce0 = [1 1 1]*0.3;
-fset = loadFigureSettings();
+fset = loadFigureSettings('print');
 
 
 pos = get(0, 'DefaultFigurePosition');
-pos(3:4) = [920 480];
+pos(3:4) = [550 700];
+aw = 300;
+ah = 80;
+xo = 80;
+yo = 70;
+sh = 20;
+
+% settings for print
+if isprint
+    b = 0.65;
+    aw = b*aw;
+    ah = b*ah;
+    xo = 80;
+    yo = 70;
+    sh = b*sh;
+    pos(3:4) = [450 500];
+end
+
+
 figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 hbg = axes('Units', 'pixels', 'Position', [0 0 pos(3:4)]);
 hold(hbg, 'on');
-
-
 for k = 1:numel(lb)
-    aw = 6*40;
     
-    hi = axes('Units', 'pixels', 'Position', [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80],...
+    % plot grid below data
+    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
         'XLim', [xa(1) xa(end)], 'XTick', xa, 'XTickLabel', [], 'YLim', [ya(1) ya(end)], 'YTickLabel', [],...
         'TickLength', [0 0], 'Color', 'none');
     set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
     
-    hi = axes('Units', 'pixels', 'Position', [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80],...
+    % data axes
+    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
         'Color', 'none');
     hold on;
     box off;
     
-    pct = prctile(maxAcohort{k}, [5 50 95]);
+    %pct = prctile(maxAcohort{k}, [5 50 95]);
     
     if strcmpi(mode, 'pdf')
         
-        bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
-        bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
-        stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 1);
+        bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.5);
+        bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.5);
+        stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.5);
         
-        if ub(k)<10
-            [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, ni{k});
-            plot(xg, g, 'g', 'LineWidth', 1.5);
-            plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
-        end
+        %if ub(k)<10
+        %    [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, ni{k});
+        %    plot(xg, g, 'g', 'LineWidth', 1.5);
+        %    plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
+        %end
         
         %plot(repmat(pct, [2 1]), repmat([0 3/5*ya(end)]', [1 numel(pct)]), 'r--', 'LineWidth', 1.5);
         axis([xa(1) xa(end) ya(1) ya(end)]);
         
+        % cohort label
         if lb(k)==ub(k)
             text(xa(end), ya(end), ['t_L = ' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1],...
-                'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.ifont{:});
+                'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
         else
             text(xa(end), ya(end), ['t_L \in [' num2str(lb(k)) '...' num2str(ub(k)) '] s'],...
-                'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.ifont{:},...
+                'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:},...
                 'BackgroundColor', [1 1 1]);
         end
         
@@ -166,22 +191,27 @@ for k = 1:numel(lb)
         
         if lb(k)==ub(k)
             text(xa(end), ya(1), ['t_L = ' num2str(lb(k))],...
-                'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', fset.ifont{:});
+                'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', fset.sfont{:});
         else
             text(xa(end), ya(1), ['t_L \in [' num2str(lb(k)) '...' num2str(ub(k)) ']'],...
-                'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', fset.ifont{:});
+                'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', fset.sfont{:});
         end
         
     end
-    set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.ifont{:}, 'Layer', 'top', 'TickDir', 'out',...
-        'TickLength', [0.02 0], 'XTick', xa, 'XTickLabel', []);
+    if k==1
+        text(xa(end), ya(end)*1.35, 'Lifetime cohort',...
+            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.lfont{:});
+    end
+    set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
+        'TickLength', [0.015 0], 'XTick', xa, 'XTickLabel', []);
     
     
+    % plot vertical axis label (once)
     ncol = ceil(numel(lb)/ny);
     if mod(k,ny)==0
-        set(hi, 'TickLength', [0.02 0], 'XTickLabel', xa);
+        set(hi, 'TickLength', [0.015 0], 'XTickLabel', xa);
         if floor(k/ny)==floor(ncol/2)+1
-            hx = xlabel('Max. fluo. intensity (A.U.)', fset.tfont{:});
+            hx = xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
             if mod(ncol,2)==0
                 xpos = get(hx, 'Position');
                 xpos(1) = xa(1);
@@ -195,7 +225,7 @@ for k = 1:numel(lb)
     end
     
     if k==ceil(ny/2)
-        hy = ylabel('Frequency', fset.tfont{:});
+        hy = ylabel('Frequency', fset.lfont{:});
         if mod(ny,2)==0
             ypos = get(hy, 'Position');
             ypos(2) = 0;
@@ -224,15 +254,16 @@ for k = 1:numel(lb)
 end
 
 % extra axes for outside legend
-hi = axes('Units', 'pixels', 'Position', [50+floor((k)/ny)*(170+115) (ny-mod(k,ny)-1)*100+70 aw 80]);%'Color', 'none', 'XTick', [], 'YTick', []);
-hold on;
-bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
-bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
-axis([2 3 2 3]);
-hl = legend('Full lifetime', ['First ' num2str(ip.Results.FirstNFrames*data(1).framerate) ' s of lifetime'], 'Location', 'NorthWest');
-set(hl, 'Box', 'off');
-set(gca, 'Visible', 'off');
-
+if ~isprint
+    hi = axes('Units', 'pixels', 'Position', [xo+aw (ny-mod(k,ny)-1)*(ah+sh)+yo aw ah]);%'Color', 'none', 'XTick', [], 'YTick', []);
+    hold on;
+    bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
+    bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
+    axis([2 3 2 3]);
+    hl = legend('Full lifetime', ['First ' num2str(ip.Results.FirstNFrames*data(1).framerate) ' s of lifetime'], 'Location', 'NorthWest');
+    set(hl, 'Box', 'off');
+    set(gca, 'Visible', 'off');
+end
 
 
 % bring background axes to front
@@ -256,50 +287,71 @@ end
 %========================================================
 % Time until max. intensity is reached, per cohort
 %========================================================
+xa = 0:20:120;
+
+timeUntilMaxInt = cell(1,nd);
+for i = 1:nd
+    nt = size(lftData(i).intMat_Ia,2);
+    mask = lftData(i).intMat_Ia==repmat(max(lftData(i).intMat_Ia, [], 2), [1 nt]);
+    tmp = repmat((0:nt-1)*data(1).framerate, [size(lftData(i).intMat_Ia,1) 1]);
+    timeUntilMaxInt{i} = sum(tmp.*mask,2);
+end
+timeUntilMaxInt = vertcat(timeUntilMaxInt{:});
+
 
 figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 
 for k = 1:numel(lb)
-    aw = 6*40;
     
-    hi = axes('Units', 'pixels', 'Position', [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80],...
+    % plot grid below data
+    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
         'XLim', [xa(1) xa(end)], 'XTick', xa, 'XTickLabel', [], 'YLim', [ya(1) ya(end)], 'YTickLabel', [],...
         'TickLength', [0 0], 'Color', 'none');
     set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
     
-    hi = axes('Units', 'pixels', 'Position', [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80],...
+    % data axes
+    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
         'Color', 'none');
     hold on;
     box off;
     
-    pct = prctile(maxAcohort{k}, [5 50 95]);
+    cidx = lb(k)<=lifetime_s & lifetime_s<ub(k);
+    ctime = timeUntilMaxInt(cidx);
+    ti = (0:200)*data(1).framerate;
+    ni = hist(ctime, ti);
+    ni = ni/sum(ni);
+    bar(ti, ni, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.5);
     
-    bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
-    bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
-    stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 1);
+    %bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
+    %bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
+    %stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 1);
     
     
     %plot(repmat(pct, [2 1]), repmat([0 3/5*ya(end)]', [1 numel(pct)]), 'r--', 'LineWidth', 1.5);
-    axis([xa(1) xa(end) ya(1) ya(end)]);
+    axis([0 120 ya(1) ya(end)]);
     
     if lb(k)==ub(k)
         text(xa(end), ya(end), ['t_L = ' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1],...
-            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.ifont{:});
+            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     else
         text(xa(end), ya(end), ['t_L \in [' num2str(lb(k)) '...' num2str(ub(k)) '] s'],...
-            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.ifont{:},...
+            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:},...
             'BackgroundColor', [1 1 1]);
     end
+    if k==1
+        text(xa(end), ya(end)*1.35, 'Lifetime cohort',...
+            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.lfont{:});
+    end
     
-    set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.ifont{:}, 'Layer', 'top', 'TickDir', 'out',...
-        'TickLength', [0.02 0], 'XTick', xa, 'XTickLabel', []);
+    set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
+        'TickLength', [0.015 0], 'XTick', xa, 'XTickLabel', []);
     
     
     ncol = ceil(numel(lb)/ny);
     if mod(k,ny)==0
-        set(hi, 'TickLength', [0.02 0], 'XTickLabel', xa);
+        set(hi, 'TickLength', [0.015 0], 'XTickLabel', xa);
         if floor(k/ny)==floor(ncol/2)+1
-            hx = xlabel('Max. fluo. intensity (A.U.)', fset.tfont{:});
+            hx = xlabel('Time (s)', fset.lfont{:});
             if mod(ncol,2)==0
                 xpos = get(hx, 'Position');
                 xpos(1) = xa(1);
@@ -313,7 +365,7 @@ for k = 1:numel(lb)
     end
     
     if k==ceil(ny/2)
-        hy = ylabel('Frequency', fset.tfont{:});
+        hy = ylabel('Frequency', fset.lfont{:});
         if mod(ny,2)==0
             ypos = get(hy, 'Position');
             ypos(2) = 0;
@@ -321,41 +373,25 @@ for k = 1:numel(lb)
             set(hy, 'Position', ypos);
         end
     end
+end    
     
-%     if k>1
-%         %[pval hval] = ranksum(maxIntDistCat(k-1).maxA, maxIntDistCat(k).maxA);
-%         [hval pval] = kstest2(maxAcohortFirstN{k-1}, maxAcohortFirstN{k});
-%         %pval
-%         if hval==0 % indicate that the distributions are the same
-%             
-%             %pos = [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80]
-%             % x: after box:
-%             x0 = 80+floor((k-1)/ny)*(170+115) + aw + 10;
-%             y0 = (ny-mod(k-1,ny)-1)*100+70 + 50;
-% 
-%             plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
-%             plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
-%             plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
-%             text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')            
-%         end
-%     end
+% extra axes for outside legend
+if ~isprint
+    hi = axes('Units', 'pixels', 'Position', [50+floor((k)/ny)*(170+115) (ny-mod(k,ny)-1)*100+70 aw 80]);%'Color', 'none', 'XTick', [], 'YTick', []);
+    hold on;
+    bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
+    % bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
+    axis([2 3 2 3]);
+    hl = legend('Time until max. intensity', 'Location', 'NorthWest');
+    set(hl, 'Box', 'off');
+    set(gca, 'Visible', 'off');
 end
 
-% extra axes for outside legend
-hi = axes('Units', 'pixels', 'Position', [50+floor((k)/ny)*(170+115) (ny-mod(k,ny)-1)*100+70 aw 80]);%'Color', 'none', 'XTick', [], 'YTick', []);
-hold on;
-bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
-bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
-axis([2 3 2 3]);
-hl = legend('Full lifetime', ['First ' num2str(ip.Results.FirstNFrames*data(1).framerate) ' s of lifetime'], 'Location', 'NorthWest');
-set(hl, 'Box', 'off');
-set(gca, 'Visible', 'off');
 
-
+%%
 
 return
 
-%%
 M = arrayfun(@(i) i.intMat_Ia(:,1:f), lftData, 'UniformOutput', false);
 M = vertcat(M{:});
 
