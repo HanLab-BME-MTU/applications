@@ -10,6 +10,7 @@ ip.addParamValue('FirstNFrames', 5);
 ip.addParamValue('CohortLB', [1  11 21 41 61 81]);
 ip.addParamValue('CohortUB', [10 20 40 60 80 120]);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
+ip.addParamValue('ShowSignificance', true, @islogical);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
 isprint = strcmpi(ip.Results.DisplayMode, 'print');
@@ -146,7 +147,7 @@ for k = 1:numel(lb)
     hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
         'XLim', [xa(1) xa(end)], 'XTick', xa, 'XTickLabel', [], 'YLim', [ya(1) ya(end)], 'YTickLabel', [],...
         'TickLength', [0 0], 'Color', 'none');
-    set(hi, 'XGrid', 'on', 'GridLineStyle', ':');
+    set(hi, 'XGrid', 'on', 'GridLineStyle', ':', 'LineWidth', 1.5);
     
     % data axes
     hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
@@ -158,9 +159,9 @@ for k = 1:numel(lb)
     
     if strcmpi(mode, 'pdf')
         
-        bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.5);
-        bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.5);
-        stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.5);
+        bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.75);
+        bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.75);
+        stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
         
         %if ub(k)<10
         %    [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, ni{k});
@@ -173,10 +174,10 @@ for k = 1:numel(lb)
         
         % cohort label
         if lb(k)==ub(k)
-            text(xa(end), ya(end), ['t_L = ' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1],...
+            text(xa(end), ya(end), ['' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1],...
                 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
         else
-            text(xa(end), ya(end), ['t_L \in [' num2str(lb(k)) '...' num2str(ub(k)) '] s'],...
+            text(xa(end), ya(end), ['[' num2str(lb(k)) '...' num2str(ub(k)) '] s'],...
                 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:},...
                 'BackgroundColor', [1 1 1]);
         end
@@ -234,23 +235,19 @@ for k = 1:numel(lb)
         end
     end
     
-%     if k>1
-%         %[pval hval] = ranksum(maxIntDistCat(k-1).maxA, maxIntDistCat(k).maxA);
-%         [hval pval] = kstest2(maxAcohortFirstN{k-1}, maxAcohortFirstN{k});
-%         %pval
-%         if hval==0 % indicate that the distributions are the same
-%             
-%             %pos = [80+floor((k-1)/ny)*(170+115) (ny-mod(k-1,ny)-1)*100+70 aw 80]
-%             % x: after box:
-%             x0 = 80+floor((k-1)/ny)*(170+115) + aw + 10;
-%             y0 = (ny-mod(k-1,ny)-1)*100+70 + 50;
-% 
-%             plot(hbg, [x0 x0], [y0 y0+80], 'Color', cb, 'LineWidth', 2); % height: 80, spacer: 20
-%             plot(hbg, [x0-3 x0], [y0 y0]+80-1, 'Color', cb, 'LineWidth', 2);
-%             plot(hbg, [x0-3 x0], [y0 y0]+1, 'Color', cb, 'LineWidth', 2);
-%             text(x0+3, y0+36, '*', lfont{:}, 'Parent', hbg, 'VerticalAlignment', 'middle')            
-%         end
-%     end
+    if k>1
+        [hval pval] = kstest2(maxAcohortFirstN{k-1}, maxAcohortFirstN{k});
+        if hval==0 && ip.Results.ShowSignificance % indicate that the distributions are the same
+            % x: after box:
+            x0 = xo + aw + 10;
+            y0 = (ny-mod(k-1,ny)-1)*(ah+sh) + yo + (ah+sh/2)/2;
+
+            plot(hbg, [x0 x0], y0+[0 ah+sh/2], 'Color', ce0, 'LineWidth', 1.5);
+            plot(hbg, [x0-3 x0], [y0 y0]+ah+sh/2-0.75, 'Color', ce0, 'LineWidth', 1.5);
+            plot(hbg, [x0-3 x0], [y0 y0]+0.75, 'Color', ce0, 'LineWidth', 1.5);
+            text(x0+3, y0+(ah+sh/2)/2-2, '*', fset.lfont{:}, 'Color', ce0, 'Parent', hbg, 'VerticalAlignment', 'middle')            
+        end
+    end
 end
 
 % extra axes for outside legend
@@ -282,7 +279,7 @@ else
     filename = '_pooled';
 end
 % print('-depsc2', '-loose', [figPath 'maxIntensityDist' filename '.eps']);
-
+return
 %%
 %========================================================
 % Time until max. intensity is reached, per cohort
@@ -391,7 +388,7 @@ end
 %%
 
 return
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 M = arrayfun(@(i) i.intMat_Ia(:,1:f), lftData, 'UniformOutput', false);
 M = vertcat(M{:});
 
