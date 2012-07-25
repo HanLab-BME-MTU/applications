@@ -45,32 +45,42 @@ res = struct([]);
 %==============================================================
 % Outlier detection (based on max. intensity distribution)
 %==============================================================
-maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
+maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
 
 % Rescale EDFs (correction for FP-fusion expression level)
 [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
 % figure; plot(ones(1,numel(a)), sort(a), 'k.')
 % adtest(a)
 
-% apply scaling
+% apply intensity scaling
 for i = 1:nd
     maxA_all{i} = a(i) * maxA_all{i};
-    lftData(i).intMat_Ia(:,:,mCh) = a(i) * lftData(i).intMat_Ia(:,:,mCh);
-    lftData(i).startBuffer_Ia(:,:,mCh) = a(i) * lftData(i).startBuffer_Ia(:,:,mCh);
-    lftData(i).endBuffer_Ia(:,:,mCh) = a(i) * lftData(i).endBuffer_Ia(:,:,mCh);
-    lftData(i).sigma_r_Ia(:,:,mCh) = a(i) * lftData(i).sigma_r_Ia(:,:,mCh);
+    lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
+    lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
+    lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
+    lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
 end
 
-outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
-fprintf('Outlier data sets:\n');
-for i = 1:numel(outlierIdx)
-    fprintf('%s\n', getShortPath(data(outlierIdx(i))));
-end
+% outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
+% fprintf('Outlier data sets:\n');
+% for i = 1:numel(outlierIdx)
+%     fprintf('%s\n', getShortPath(data(outlierIdx(i))));
+% end
+% 
+% lftData(outlierIdx) = [];
+% data(outlierIdx) = [];
+% nd = numel(data);
+% clear a outlierIdx maxA_all;
 
-lftData(outlierIdx) = [];
-data(outlierIdx) = [];
-nd = numel(data);
-clear a outlierIdx maxA_all;
+% apply lifetime scaling (based on intensity scaling)
+% reference: lowest-intensity scale
+relativeScale = a/min(a);
+% for each dataset, loop through tracks, divide amplitude by relative scale, calc. new lifetime
+% and #frames lost at beginning and end => statistics
+for i = 1:nd
+    
+    
+end
 
 
 lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'};
@@ -80,7 +90,7 @@ lftRes.cellArea = zeros(nd,1);
 for i = 1:nd
     
     % apply frames cutoff for short tracks
-    lftData(i).intMat_Ia(lftData(i).trackLengths(lftData(i).catIdx==1)<cutoff_f,:) = [];
+    lftData(i).A(lftData(i).trackLengths(lftData(i).catIdx==1)<cutoff_f,:) = [];
     idx = lftData(i).trackLengths < cutoff_f;
     for f = 1:numel(lftFields)
         lftData(i).(lftFields{f})(idx) = [];
@@ -148,9 +158,9 @@ for i = 1:nd
     for k = 1:nc
         % indexes within cohorts
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
-        res(i).maxA{k} = nanmax(lftData(i).intMat_Ia(cidx,:),[],2);
+        res(i).maxA{k} = nanmax(lftData(i).A(cidx,:),[],2);
         for n = firstN
-           res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).intMat_Ia(cidx,1:n),[],2);
+           res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).A(cidx,1:n),[],2);
         end
         
         % lifetimes for given cohort
@@ -158,7 +168,7 @@ for i = 1:nd
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(lftData(i).intMat_Ia,[],2)';
+    res(i).maxA_all = nanmax(lftData(i).A,[],2)';
     if isfield(lftData, 'significantSignal')
         res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
     end
@@ -207,7 +217,7 @@ end
 
 % intMat_Ia_all = vertcat(lftData.intMat_Ia);
 minLength = min([data.movieLength]);
-intMat_Ia_all = arrayfun(@(i) i.intMat_Ia(:,1:minLength), lftData, 'UniformOutput', false);
+intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength), lftData, 'UniformOutput', false);
 intMat_Ia_all = vertcat(intMat_Ia_all{:});
 lifetime_s_all = [res.lft_all];
 
@@ -224,7 +234,7 @@ for i = 1:nd
     idxMI = res(i).maxA_all >= T;
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
-    idxLft = sum(lftData(i).intMat_Ia(:,2:4)>repmat(pRef, [size(lftData(i).intMat_Ia,1) 1]),2)>0 & res(i).lft_all'<tx;
+    idxLft = sum(lftData(i).A(:,2:4)>repmat(pRef, [size(lftData(i).A,1) 1]),2)>0 & res(i).lft_all'<tx;
     
     % combined index
     idxMI = idxMI & ~idxLft';
@@ -376,7 +386,7 @@ fitRes = fitResPDF;
 % fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
 % plotLifetimeDistModel(lftRes, fitResCDF);
 
-% fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF');
+% fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF', 'MaxP', ip.Results.MaxP);
 % plotLifetimeDistModel(lftRes, fitResPDF);
 
 

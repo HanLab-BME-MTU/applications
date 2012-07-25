@@ -7,13 +7,11 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('ch', []);
 ip.addParamValue('Overwrite', false, @islogical);
-% ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowSEM', true, @islogical);
 ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
-%ip.addParamValue('ScaleChannels', 'end', @(x) isempty(x) || any(strcmpi(x, {'start', 'end'})));
 ip.addParamValue('ScaleChannels', false, @islogical);
 ip.addParamValue('MaxIntensityThreshold', 0);
 
@@ -40,15 +38,15 @@ lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
 offset = zeros(nCh,nd);
 if ip.Results.Rescale && ~isfield(lftData, 'a');
     for c = 1:nCh
-        maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia(:,:,c),[],2), lftData, 'UniformOutput', false);
+        maxA_all = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
         [a offset(c,:)] = rescaleEDFs(maxA_all, 'Display', true, 'Reference', ip.Results.RescalingReference, 'FigureName', ['Channel ' num2str(c)]);
         
         % apply scaling
         for i = 1:nd
-            lftData(i).intMat_Ia(:,:,c) = a(i) * lftData(i).intMat_Ia(:,:,c);
-            lftData(i).startBuffer_Ia(:,:,c) = a(i) * lftData(i).startBuffer_Ia(:,:,c);
-            lftData(i).endBuffer_Ia(:,:,c) = a(i) * lftData(i).endBuffer_Ia(:,:,c);
-            lftData(i).sigma_r_Ia(:,:,c) = a(i) * lftData(i).sigma_r_Ia(:,:,c);
+            lftData(i).A(:,:,c) = a(i) * lftData(i).A(:,:,c);
+            lftData(i).sbA(:,:,c) = a(i) * lftData(i).sbA(:,:,c);
+            lftData(i).ebA(:,:,c) = a(i) * lftData(i).ebA(:,:,c);
+            lftData(i).sigma_r(:,:,c) = a(i) * lftData(i).sigma_r(:,:,c);
         end
     end
 end
@@ -78,7 +76,7 @@ end
 
 
 % loop through data sets, generate cohorts for each
-res(1:nd) = struct('cMean', [], 'cSEM', []);
+res(1:nd) = struct('cMean', [], 'cStd', []);
 
 % # data points in cohort (including buffer frames)
 iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
@@ -102,10 +100,10 @@ for i = 1:nd
     end
     
     % for intensity threshold in master channel
-    maxA = max(lftData(i).intMat_Ia(:,:,mCh), [], 2)';
+    maxA = max(lftData(i).A(:,:,mCh), [], 2)';
     
     res(i).cMean = cell(nCh,nc);
-    res(i).cSEM = cell(nCh,nc);
+    res(i).cStd = cell(nCh,nc);
     for ch = 1:nCh % channels
         % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
@@ -114,12 +112,12 @@ for i = 1:nd
             nt = numel(cidx);
 
             interpTracks = zeros(nt,iLength(c));
-            sigma_r_Ia = zeros(nt,iLength(c));
+            sigma_rMat = zeros(nt,iLength(c));
             cLengths = trackLengths(cidx);
             % loop through track lengths within cohort
             for t = 1:nt
-                A = [lftData(i).startBuffer_Ia(cidx(t),:,ch) lftData(i).intMat_Ia(cidx(t),1:cLengths(t),ch) lftData(i).endBuffer_Ia(cidx(t),:,ch)];
-                bgr = lftData(i).sigma_r_Ia(cidx(t),1:cLengths(t)+2*b,ch);
+                A = [lftData(i).sbA(cidx(t),:,ch) lftData(i).A(cidx(t),1:cLengths(t),ch) lftData(i).ebA(cidx(t),:,ch)];
+                bgr = [lftData(i).sbSigma_r(cidx(t),:,ch) lftData(i).sigma_r(cidx(t),1:cLengths(t),ch) lftData(i).ebSigma_r(cidx(t),:,ch)];
                 
                 % align to track start
                 %w = min(numel(A),iLength);
@@ -131,13 +129,13 @@ for i = 1:nd
                 %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
                 interpTracks(t,:) = binterp(A, xi);
                 %sigma_r_Ia(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
-                sigma_r_Ia(t,:) = binterp(bgr, xi);
+                sigma_rMat(t,:) = binterp(bgr, xi);
             end
 
             res(i).cMean{ch,c} = mean(interpTracks,1);
-            res(i).cSEM{ch,c} = std(interpTracks,[],1)/sqrt(nt);
-            res(i).sigma_r{ch,c} = mean(sigma_r_Ia,1);
-            res(i).sigma_rSEM{ch,c} = std(sigma_r_Ia,[],1)/sqrt(nt);
+            res(i).cStd{ch,c} = std(interpTracks,[],1);
+            res(i).sigma_r{ch,c} = mean(sigma_rMat,1);
+            res(i).sigma_rSEM{ch,c} = std(sigma_rMat,[],1)/sqrt(nt);
             % split as a function of slave channel signal
             if isfield(lftData(i), 'significantSignal')
                 sigIdx = lftData(i).significantSignal(2,lftData(i).catIdx==1);
@@ -146,10 +144,10 @@ for i = 1:nd
                 res(i).cMeanNeg{ch,c} = mean(interpTracks(sigIdx==0,:),1);
                 res(i).cSEMPos{ch,c} = std(interpTracks(sigIdx==1,:),[],1)/sqrt(nt);
                 res(i).cSEMNeg{ch,c} = std(interpTracks(sigIdx==0,:),[],1)/sqrt(nt);
-                res(i).sigma_rPos{ch,c} = mean(sigma_r_Ia(sigIdx==1,:),1);
-                res(i).sigma_rNeg{ch,c} = mean(sigma_r_Ia(sigIdx==0,:),1);
-                res(i).sigma_rSEMPos{ch,c} = std(sigma_r_Ia(sigIdx==1,:),[],1)/sqrt(nt);
-                res(i).sigma_rSEMNeg{ch,c} = std(sigma_r_Ia(sigIdx==0,:),[],1)/sqrt(nt);
+                res(i).sigma_rPos{ch,c} = mean(sigma_rMat(sigIdx==1,:),1);
+                res(i).sigma_rNeg{ch,c} = mean(sigma_rMat(sigIdx==0,:),1);
+                res(i).sigma_rSEMPos{ch,c} = std(sigma_rMat(sigIdx==1,:),[],1)/sqrt(nt);
+                res(i).sigma_rSEMNeg{ch,c} = std(sigma_rMat(sigIdx==0,:),[],1)/sqrt(nt);
             end
         end
     end
@@ -187,13 +185,13 @@ if nCh==1
             SEM = std(A,[],1)/sqrt(nd);
             A = mean(A,1);
             kLevel = norminv(1-0.05/2, 0, 1);
-            sigma_r = arrayfun(@(x) x.sigma_r{1,c}, res, 'UniformOutput', false);
-            sigma_r = kLevel*vertcat(sigma_r{:});
-            sigma_rSEM = std(sigma_r,[],1)/sqrt(nd);            
-            sigma_r = mean(sigma_r,1);
+            sigma_rMat = arrayfun(@(x) x.sigma_r{1,c}, res, 'UniformOutput', false);
+            sigma_rMat = kLevel*vertcat(sigma_rMat{:});
+            sigma_rSEM = std(sigma_rMat,[],1)/sqrt(nd);            
+            sigma_rMat = mean(sigma_rMat,1);
         else
             A = res(1).cMean{1,c};
-            SEM = res(1).cSEM{1,c};
+            SEM = res(1).cStd{1,c};
         end
         if ip.Results.ShowBackground
             % full background
@@ -201,9 +199,9 @@ if nCh==1
             %fill([cT{c} cT{c}(end:-1:1)], [sigma_r zeros(1,np+2*b)], cvB(c,:), 'EdgeColor', 'none');
             %fill([cT{c}(1+b:end-b) cT{c}(end-b:-1:1+b)], [sigma_r(1+b:end-b) zeros(1,np)], cv(c,:), 'EdgeColor', 'none');
             % background ± SEM
-            fill([cT{c} cT{c}(end:-1:1)], [sigma_r+sigma_rSEM sigma_r(end:-1:1)-sigma_rSEM(end:-1:1)], cvB(c,:), 'EdgeColor', 'none');
-            fill([cT{c}(1+b:end-b) cT{c}(end-b:-1:1+b)], [sigma_r(1+b:end-b)+sigma_rSEM(1+b:end-b) sigma_r(end-b:-1:1+b)-sigma_rSEM(end-b:-1:1+b)], cv(c,:), 'EdgeColor', 'none');
-            plot(cT{c}, sigma_r, 'Color', cmap(c,:), 'LineWidth', 1);
+            fill([cT{c} cT{c}(end:-1:1)], [sigma_rMat+sigma_rSEM sigma_rMat(end:-1:1)-sigma_rSEM(end:-1:1)], cvB(c,:), 'EdgeColor', 'none');
+            fill([cT{c}(1+b:end-b) cT{c}(end-b:-1:1+b)], [sigma_rMat(1+b:end-b)+sigma_rSEM(1+b:end-b) sigma_rMat(end-b:-1:1+b)-sigma_rSEM(end-b:-1:1+b)], cv(c,:), 'EdgeColor', 'none');
+            plot(cT{c}, sigma_rMat, 'Color', cmap(c,:), 'LineWidth', 1);
         end
         if ip.Results.ShowSEM
             fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], cv(c,:), 'EdgeColor', cmap(c,:));
@@ -234,7 +232,7 @@ else % multiple channels
                 A = mean(A,1);
             else
                 A = res(1).cMean{ch,c};
-                SEM = res(1).cSEM{ch,c};
+                SEM = res(1).cStd{ch,c};
             end
             if ip.Results.ShowSEM
                 fill([cT{c} cT{c}(end:-1:1)], [A-SEM A(end:-1:1)+SEM(end:-1:1)], fillLight, 'EdgeColor', trackColor);

@@ -36,23 +36,44 @@ for i = 1:nd
         b = numel(tracks(1).startBuffer.t);
         
         % store intensity matrices
-        intMat_Ia = NaN(nt,data(i).movieLength,nCh);
-        startBuffer_Ia = NaN(nt,b,nCh);
-        endBuffer_Ia = NaN(nt,b,nCh);
-        sigma_r_Ia = NaN(nt,data(i).movieLength+2*b,nCh);
-        gapMat_Ia = false(nt,data(i).movieLength);
+        nf = data(i).movieLength;
+        A = NaN(nt,nf,nCh);
+        A_pstd = NaN(nt,nf);
+        %xMat_Ia = NaN(nt,data(i).movieLength);
+        %yMat_Ia = NaN(nt,data(i).movieLength);
+        sbA = NaN(nt,b,nCh);
+        ebA = NaN(nt,b,nCh);
+        sbSigma_r = NaN(nt,b,nCh);
+        ebSigma_r = NaN(nt,b,nCh);
+        sigma_r = NaN(nt,nf,nCh);
+        SE_sigma_r = NaN(nt,nf);
+        gapMat_Ia = false(nt,nf);
         for k = 1:nt
-            intMat_Ia(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).A';
-            startBuffer_Ia(k,:,:) = tracks(k).startBuffer.A';
-            endBuffer_Ia(k,:,:) = tracks(k).endBuffer.A';
-            sigma_r_Ia(k,1:trackLengths(idx_Ia(k))+2*b,:) = [tracks(k).startBuffer.sigma_r'; tracks(k).sigma_r'; tracks(k).endBuffer.sigma_r'];            
+            A(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).A';
+            A_pstd(k,1:trackLengths(idx_Ia(k))) = tracks(k).A_pstd(1,:);
+            %xMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).x(1,:)';
+            %yMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).y(1,:)';
+            %sigma_r(k,1:trackLengths(idx_Ia(k))+2*b,:) = [tracks(k).startBuffer.sigma_r'; tracks(k).sigma_r'; tracks(k).endBuffer.sigma_r'];
+            sigma_r(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).sigma_r';
+            SE_sigma_r(k,1:trackLengths(idx_Ia(k))) = tracks(k).SE_sigma_r(1,:);
+            sbA(k,:,:) = tracks(k).startBuffer.A';
+            ebA(k,:,:) = tracks(k).endBuffer.A';
+            sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
+            ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
             gapMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).gapVect';
         end
         
-        lftData(i).intMat_Ia = intMat_Ia;
-        lftData(i).startBuffer_Ia = startBuffer_Ia;
-        lftData(i).endBuffer_Ia = endBuffer_Ia;
-        lftData(i).sigma_r_Ia = sigma_r_Ia;
+        lftData(i).A = A;
+        %lftData(i).xMat_Ia = xMat_Ia;
+        %lftData(i).yMat_Ia = yMat_Ia;
+        lftData(i).A_pstd = A_pstd;
+        lftData(i).sigma_r = sigma_r;
+        lftData(i).SE_sigma_r = SE_sigma_r;
+
+        lftData(i).sbA = sbA;
+        lftData(i).ebA = ebA;
+        lftData(i).sbSigma_r = sbSigma_r;
+        lftData(i).ebSigma_r = ebSigma_r;
         lftData(i).gapMat_Ia = gapMat_Ia;
 
         [~,~] = mkdir([data(i).source 'Analysis']);
