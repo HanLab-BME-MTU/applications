@@ -97,29 +97,41 @@ else
         aw = 160;
         dx = 20;
         
+        if isunix && ~ismac
+            b = 1.25;
+            y0 = b*y0;
+            x0 = b*x0;
+            ah = b*ah;
+            aw = b*aw;
+            dx = b*dx;
+            pos(3:4) = b*pos(3:4);
+        end
+            
+            
         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
         
         axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
         hold on;
-        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         for i = 1:nd-1
             plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', 1);
         end
+        hp = plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
+
         axis([0 T99 0 1.01]);
         set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('P(X < x)', fset.lfont{:});
         title('Raw EDF', fset.lfont{:});
-        hl = legend('Median distr.', 'Location', 'SouthEast');
+        hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:});
         
         axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
         hold on;
-        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         for i = 1:nd-1
             ci = c(idx(i));
             plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', 1);
         end
+        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
         set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
@@ -131,14 +143,11 @@ else
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         setErrorbarStyle(he, 0.15);
-        YLim = get(gca, 'YLim');
-        YLim(1) = 0;
-        axis([-0.5 0.5 YLim]);
-        ya = 0:0.2:YLim(2)+0.2;
+        ymax = ceil(max(a)/0.2)*0.2;
+        axis([-0.5 0.5 0 ymax]);
+        ya = 0:0.2:ymax;
         set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
         ylabel('Relative scale', fset.lfont{:});
-        
-
         
 %         % Histograms
 %         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
