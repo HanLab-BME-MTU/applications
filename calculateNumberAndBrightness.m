@@ -15,13 +15,13 @@ ip.CaseSensitive = false;
 ip.addRequired('imageStack', @isnumeric);
 ip.addRequired('background', @isnumeric);
 ip.addRequired('backgroundVariance', @isnumeric);
-ip.addParamValue('segmentLength', [], @isscalar);
+ip.addParamValue('segmentLength', 0, @isscalar);
 ip.addParamValue('segmentSpacing', 1, @isscalar);
 ip.parse(imageStack,background,backgroundVariance,varargin{:});
 segmentSpacing = ip.Results.segmentSpacing;
 
 segmentLength = ip.Results.segmentLength;
-if isempty(segmentLength)
+if segmentLength == 0
     segmentLength = size(imageStack,3);
 end
 %make vector of segment starts
