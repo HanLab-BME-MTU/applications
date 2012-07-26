@@ -49,9 +49,8 @@ for iType = 1 : numTypeProt
     numEvents = size(protEvents,1);
     
     %initialize structure array for output
-    eventInfo = repmat(struct('indxWindowAssignOnset',[],...
-        'indxWindowAssignBefStatic',[],'indxWindowAssignBefDynamic',[],...
-        'indxWindowAssignAftStatic',[],'indxWindowAssignAftDynamic',[]),numEvents,1);
+    eventInfo = repmat(struct('onset',[],'befStatic',[],'befDynamic',[],...
+        'aftStatic',[],'aftDynamic',[]),numEvents,1);
     
     %go over each protrusion event and assemble its window time series
     %before and after protrusion onset
@@ -154,11 +153,11 @@ for iType = 1 : numTypeProt
         end %(for iInc = 1 : eventDur - 1)
         
         %store information for output
-        eventInfo(iEvent).indxWindowAssignOnset = indxWindowsOnset;
-        eventInfo(iEvent).indxWindowAssignBefStatic = indxWindowsBefStatic;
-        eventInfo(iEvent).indxWindowAssignBefDynamic = indxWindowsBefDynamic;
-        eventInfo(iEvent).indxWindowAssignAftStatic = indxWindowsAftStatic;
-        eventInfo(iEvent).indxWindowAssignAftDynamic = indxWindowsAftDynamic;
+        eventInfo(iEvent).onset = indxWindowsOnset;
+        eventInfo(iEvent).befStatic = indxWindowsBefStatic;
+        eventInfo(iEvent).befDynamic = indxWindowsBefDynamic;
+        eventInfo(iEvent).aftStatic = indxWindowsAftStatic;
+        eventInfo(iEvent).aftDynamic = indxWindowsAftDynamic;
         
     end %(for iEvent = 1 : numEvents)
     

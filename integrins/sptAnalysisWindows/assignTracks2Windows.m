@@ -147,9 +147,9 @@ windowTrackAssignExt = cell(numWinPerp,numWinPara,numWinFrames-1,numWinFrames-1)
 %assignment
 trackWindowAssign = NaN(numTracks,3);
 
-%first group tracks based on what window frame range they fall into
+%group tracks based on what window frame range they fall into
 trackGroup = repmat(struct('indx',[]),numWinFrames-1,1);
-for iWinFrame = 1 : numWinFrames -1 
+for iWinFrame = 1 : numWinFrames - 1
    
     %get current spt frame number and next spt frame number
     minFrame = winFrames(iWinFrame);
@@ -163,7 +163,7 @@ for iWinFrame = 1 : numWinFrames -1
     
 end
 
-%then assign tracks to windows in their proper frame range (windowTrackAssign)
+%assign tracks to windows in their proper frame range (windowTrackAssign)
 %also assign them to windows in other frame ranges (windowTrackAssignExt)
 for iWinFrameExt = 1 : numWinFrames - 1 %this loops over window frames to fetch tracks
     
@@ -193,7 +193,7 @@ for iWinFrameExt = 1 : numWinFrames - 1 %this loops over window frames to fetch 
                     indxWin = inpolygon(xCoordMeanFR,yCoordMeanFR,winX,winY);
                     
                     %map back to original track indices
-                    indxWin = indxFrameRangeMin(indxWin);
+                    indxWin = indxFrameRange(indxWin);
                     
                 else %if window is collapsed, then there are no tracks in it
                     indxWin = [];
