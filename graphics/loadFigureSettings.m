@@ -1,5 +1,9 @@
 function fset = loadFigureSettings(mode)
 
+if nargin<1
+    mode = '';
+end
+
 % light blue
 fset.cfB = hsv2rgb([5/9 0.3 1]);
 fset.ceB = hsv2rgb([5/9 1 1]);
