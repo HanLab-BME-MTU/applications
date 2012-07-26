@@ -32,7 +32,7 @@ nc = numel(lb);
 ny = 6;
 
 lftData = getLifetimeData(data);
-maxA_all = arrayfun(@(i) nanmax(i.intMat_Ia,[],2), lftData, 'UniformOutput', false);
+maxA_all = arrayfun(@(i) nanmax(i.A,[],2), lftData, 'UniformOutput', false);
 
 % Rescale EDFs (correction for FP-fusion expression level)
 a = rescaleEDFs(maxA_all, 'Display', false);
@@ -40,7 +40,7 @@ a = rescaleEDFs(maxA_all, 'Display', false);
 % apply scaling
 nd = numel(data);
 for i = 1:nd
-    lftData(i).intMat_Ia = a(i) * lftData(i).intMat_Ia;
+    lftData(i).A = a(i) * lftData(i).A;
     maxA_all{i} = a(i) * maxA_all{i};
 end
 
@@ -48,7 +48,7 @@ end
 maxA = vertcat(maxA_all{:});
 
 f = ip.Results.FirstNFrames;
-maxAFirstN = arrayfun(@(i) nanmax(i.intMat_Ia(:,1:f),[],2), lftData, 'UniformOutput', false);
+maxAFirstN = arrayfun(@(i) nanmax(i.A(:,1:f),[],2), lftData, 'UniformOutput', false);
 maxAFirstN = vertcat(maxAFirstN{:});
 
 lifetime_s = arrayfun(@(i) i.lifetime_s([i.catIdx]==1), lftData, 'UniformOutput', false);
@@ -120,7 +120,7 @@ fset = loadFigureSettings('print');
 
 pos = get(0, 'DefaultFigurePosition');
 pos(3:4) = [550 700];
-aw = 300;
+aw = 260;
 ah = 80;
 xo = 80;
 yo = 70;
@@ -129,12 +129,17 @@ sh = 20;
 % settings for print
 if isprint
     b = 0.65;
+    pos(3:4) = [450 500];
+    if isunix && ~ismac
+        pos(3:4) = 1.25*pos(3:4);
+        b = 1.25*b;
+    end
     aw = b*aw;
     ah = b*ah;
     xo = 80;
     yo = 70;
     sh = b*sh;
-    pos(3:4) = [450 500];
+    
 end
 
 
@@ -200,8 +205,8 @@ for k = 1:numel(lb)
         
     end
     if k==1
-        text(xa(end), ya(end)*1.35, 'Lifetime cohort',...
-            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.lfont{:});
+        text(xa(end), ya(end)*1.3, 'Lifetime cohort',...
+            'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     end
     set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
         'TickLength', [0.015 0], 'XTick', xa, 'XTickLabel', []);
@@ -288,9 +293,9 @@ xa = 0:20:120;
 
 timeUntilMaxInt = cell(1,nd);
 for i = 1:nd
-    nt = size(lftData(i).intMat_Ia,2);
-    mask = lftData(i).intMat_Ia==repmat(max(lftData(i).intMat_Ia, [], 2), [1 nt]);
-    tmp = repmat((0:nt-1)*data(1).framerate, [size(lftData(i).intMat_Ia,1) 1]);
+    nt = size(lftData(i).A,2);
+    mask = lftData(i).A==repmat(max(lftData(i).A, [], 2), [1 nt]);
+    tmp = repmat((0:nt-1)*data(1).framerate, [size(lftData(i).A,1) 1]);
     timeUntilMaxInt{i} = sum(tmp.*mask,2);
 end
 timeUntilMaxInt = vertcat(timeUntilMaxInt{:});
@@ -389,7 +394,7 @@ end
 
 return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-M = arrayfun(@(i) i.intMat_Ia(:,1:f), lftData, 'UniformOutput', false);
+M = arrayfun(@(i) i.A(:,1:f), lftData, 'UniformOutput', false);
 M = vertcat(M{:});
 
 % Growth in the first 4 frames
