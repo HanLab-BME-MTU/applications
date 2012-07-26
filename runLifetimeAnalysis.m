@@ -49,17 +49,15 @@ maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', f
 
 % Rescale EDFs (correction for FP-fusion expression level)
 [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
-% figure; plot(ones(1,numel(a)), sort(a), 'k.')
-% adtest(a)
 
 % apply intensity scaling
-for i = 1:nd
-    maxA_all{i} = a(i) * maxA_all{i};
-    lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
-    lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
-    lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
-    lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
-end
+% for i = 1:nd
+%     maxA_all{i} = a(i) * maxA_all{i};
+%     lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
+%     lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
+%     lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
+%     lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
+% end
 
 % outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
 % fprintf('Outlier data sets:\n');
@@ -74,12 +72,49 @@ end
 
 % apply lifetime scaling (based on intensity scaling)
 % reference: lowest-intensity scale
-relativeScale = a/min(a);
+relativeScale = min(a)./a;
+alpha = 0.05;
+kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
+
 % for each dataset, loop through tracks, divide amplitude by relative scale, calc. new lifetime
 % and #frames lost at beginning and end => statistics
 for i = 1:nd
-    
-    
+    % loop through 'Ia' tracks only
+    aMat = relativeScale(i) * lftData(i).A(:,:,mCh);
+    aStdMat = relativeScale(i) * lftData(i).A_pstd(:,:,mCh);
+    % background level remains the same!
+    sMat = kLevel * lftData(i).sigma_r(:,:,mCh);
+    sStdMat = kLevel * lftData(i).SE_sigma_r(:,:,mCh);
+    lifetime_s = lftData(i).lifetime_s(lftData(i).catIdx==1);
+    trackLengths = lftData(i).trackLengths(lftData(i).catIdx==1);
+    nt = numel(trackLengths);
+    deltaS = NaN(1,nt);
+    deltaE = NaN(1,nt);
+    lifetimeScaled = NaN(1,nt);
+    for k = 1:nt
+        A = aMat(k,1:trackLengths(k));
+        sigma_r = sMat(k,1:trackLengths(k));
+        A_pstd = aStdMat(k,1:trackLengths(k));
+        SE_sigma_r = sStdMat(k,1:trackLengths(k));
+        npx = round((sigma_r./SE_sigma_r).^2/2+1);
+        df2 = (npx-1) .* (A_pstd.^2 + SE_sigma_r.^2).^2 ./ (A_pstd.^4 + SE_sigma_r.^4);
+        scomb = sqrt((A_pstd.^2 + SE_sigma_r.^2)./npx);
+        T = (A - sigma_r) ./ scomb;
+        pval_Ar_scaled = tcdf(-T, df2);
+        %pval_Ar_scaled
+        %lftData(i).pvalMat(k,1:trackLengths(k))
+        %hvalRef = lftData(i).pvalMat(k,1:trackLengths(k))<0.05;
+
+        % binary mask of the track
+        hval_Ar_scaled = pval_Ar_scaled<0.05;
+        if sum(hval_Ar_scaled)~=0
+            deltaS(k) = find(hval_Ar_scaled==1, 1, 'first')-1;
+            deltaE(k) = trackLengths(k) - find(hval_Ar_scaled==1, 1, 'last');
+            lifetimeScaled(k) = lifetime_s(k) - (deltaS(k)+deltaE(k))*framerate;
+        end
+        % rough estimate: first and last points detected are limits
+    end
+    lftData(i).lifetimeScaled = lifetimeScaled;
 end
 
 
@@ -91,11 +126,13 @@ for i = 1:nd
     
     % apply frames cutoff for short tracks
     lftData(i).A(lftData(i).trackLengths(lftData(i).catIdx==1)<cutoff_f,:) = [];
-    idx = lftData(i).trackLengths < cutoff_f;
+    idx = lftData(i).trackLengths(lftData(i).catIdx==1) < cutoff_f;
     for f = 1:numel(lftFields)
+        lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
         lftData(i).(lftFields{f})(idx) = [];
     end
     lifetime_s = lftData(i).lifetime_s;
+    lftData(i).lifetimeScaled = lftData(i).lifetimeScaled(lftData(i).lifetimeScaled>=cutoff_f);
     
     % Category statistics
     idx_Ia = [lftData(i).catIdx]==1;
@@ -111,6 +148,7 @@ for i = 1:nd
     lftHist_Ia = hist(lifetime_s(idx_Ia), t);
     lftHist_Ib = hist(lifetime_s(idx_Ib), t);
     lftHist_IIa = hist(lifetime_s(idx_IIa), t);
+    lftHist_scaled = hist(lftData(i).lifetimeScaled, t);
     
     % apply correction
     % relative probabilities:
@@ -122,12 +160,14 @@ for i = 1:nd
     lftHist_Ia =  [lftHist_Ia.*w  pad0];
     lftHist_Ib =  [lftHist_Ib.*w  pad0];
     lftHist_IIa = [lftHist_IIa.*w pad0];
+    lftHist_scaled = [lftHist_scaled.*w pad0];
     res(i).t = (cutoff_f:Nmax)*framerate;
     
     % Normalization
     res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
     res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
     res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
+    res(i).lftHist_scaled = lftHist_scaled / sum(lftHist_scaled) / framerate;
     res(i).nSamples_Ia = sum(idx_Ia);
     
     % birth/death statistics
@@ -177,6 +217,15 @@ for i = 1:nd
 fprintf('\b\b\b\b%3d%%', round(100*i/nd));
 end
 fprintf('\n');
+
+% Plot raw and scaled lifetime histograms
+figure;
+hold on;
+for i = 1:nd
+    plot(res(i).t, res(i).lftHist_Ia, 'k');    
+    plot(res(i).t, res(i).lftHist_scaled, 'r--');
+end
+
 
 %====================
 % Initiation density
