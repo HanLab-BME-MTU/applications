@@ -8,7 +8,7 @@ ip.addOptional('ub', [3:10 15 20 40 60 80 100 140 200]);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
-ip.addParamValue('Cutoff_f', 4, @isscalar);
+ip.addParamValue('Cutoff_f', 5, @isscalar);
 ip.addParamValue('Print', false, @islogical);
 ip.addParamValue('Buffer', 5);
 ip.addParamValue('MaxIntensityThreshold', []);
@@ -115,6 +115,8 @@ for i = 1:nd
         % rough estimate: first and last points detected are limits
     end
     lftData(i).lifetimeScaled = lifetimeScaled;
+    lftData(i).deltaS = deltaS;
+    lftData(i).deltaE = deltaE;
 end
 
 
@@ -226,6 +228,25 @@ for i = 1:nd
     plot(res(i).t, res(i).lftHist_scaled, 'r--');
 end
 
+tmp = mean(vertcat(res.lftHist_scaled),1);
+medIdx = find(a==1);
+D1 = hist(lftData(medIdx).deltaS, 0:25);
+D1 = D1/sum(D1);
+D2 = hist(lftData(medIdx).deltaE, 0:25);
+D2 = D2/sum(D2);
+D = conv(D1,D2(end:-1:1));
+D = D(numel(D2):end);
+D = D/sum(D);
+
+figure;
+hold on;
+% plot(res(i).t, mean(vertcat(res.lftHist_Ia),1), 'k');
+% plot(res(i).t, tmp, 'r--');
+plot(mean(vertcat(res.lftHist_Ia),1), 'k');
+plot(tmp, 'r--');
+tt = conv(tmp, D(end:-1:1));
+tt = tt(numel(D):end);
+plot(tt, 'c');
 
 %====================
 % Initiation density
