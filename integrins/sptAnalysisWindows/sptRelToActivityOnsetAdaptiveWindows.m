@@ -371,7 +371,8 @@ for iType = 1 : numTypes
             fracMode.(eventField{iField}).mean = nanTmp;
             fracMode.(eventField{iField}).std = nanTmp;
             fracMode.(eventField{iField}).numPoints = nanTmp;
-        end        
+        end
+        modeDensity = fracMode;
         
         for iField = 1 : numFields
             nanTmp = NaN([size(activityCurrent.(eventField{iField})) numDiffMode]);
@@ -428,7 +429,7 @@ for iType = 1 : numTypes
                             ...
                             fracUnclass,fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
                             diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
-                            fracMode,diffCoefModeInd,diffCoefModeAll] = ...
+                            modeDensity,fracMode,diffCoefModeInd,diffCoefModeAll] = ...
                             ...
                             getSliceActivityGroupChar...
                             ...
@@ -457,7 +458,7 @@ for iType = 1 : numTypes
                             ...
                             fracUnclass,fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
                             diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
-                            fracMode,diffCoefModeInd,diffCoefModeAll);
+                            modeDensity,fracMode,diffCoefModeInd,diffCoefModeAll);
                         
                     end %(if numTracksCurrent > 0)
                     
@@ -497,8 +498,8 @@ for iType = 1 : numTypes
             'diffCoefAll',diffCoefAll,'diffCoefConf',diffCoefConf,'diffCoefBrown',diffCoefBrown,...
             'confRad',confRad);
         
-        modeAnalysis = struct('fracMode',fracMode,'diffCoefModeInd',diffCoefModeInd,...
-            'diffCoefModeAll',diffCoefModeAll);
+        modeAnalysis = struct('modeDensity',modeDensity,'fracMode',fracMode,...
+            'diffCoefModeInd',diffCoefModeInd,'diffCoefModeAll',diffCoefModeAll);
         
         sptPropInWindow(iType).directAll = directAll;
         sptPropInWindow(iType).directPos = directPos;
@@ -537,7 +538,7 @@ function [spDensity,fracNetDispNeg,...
     ...
     fracUnclass,fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
     diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
-    fracMode,diffCoefModeInd,diffCoefModeAll] = ...
+    modeDensity,fracMode,diffCoefModeInd,diffCoefModeAll] = ...
     ...
     getSliceActivityGroupChar...
     ...
@@ -566,45 +567,36 @@ function [spDensity,fracNetDispNeg,...
     ...
     fracUnclass,fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
     diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
-    fracMode,diffCoefModeInd,diffCoefModeAll)
+    modeDensity,fracMode,diffCoefModeInd,diffCoefModeAll)
 
 %get number of tracks
 numTracksCurrent = length(tracksCurrent);
 
-%calculate the sum of all window sizes in order to calculate
-%particle density later
+%calculate the sum of all window sizes in this window group
 [numWinPerp,numWinPara,numWinFramesM1] = size(winSize);
 linearInd = sub2ind([numWinPerp numWinPara numWinFramesM1],...
     windowListCurrent(:,1),windowListCurrent(:,2),windowListCurrent(:,3));
-sliceActivityGroupSize = nansum(winSize(linearInd));
+windowGroupSize = nansum(winSize(linearInd));
 
 if numTracksCurrent == 0 %if there are no tracks in this window ...
     
     %calculate particle density
     %note that here particle density is not automatically 0
-    %because it can be that the window size is 0 (stored as
+    %because it can be that the windows are collapsed (stored as
     %NaN), in which case the density will be NaN
-    spDensity.(eventField).mean(iInc,iCol) = 0 / sliceActivityGroupSize;
+    spDensity.(eventField).mean(iInc,iCol) = 0 / windowGroupSize;
     spDensity.(eventField).numPoints(iInc,iCol) = numTracksCurrent;
     
 else %if there are tracks in this window ...
     
-    %calculate particle density
-    spDensity.(eventField).mean(iInc,iCol) = sum(trackLft(tracksCurrent)) / ...
-        sliceActivityGroupSize / numSPTFrames;
-    spDensity.(eventField).numPoints(iInc,iCol) = numTracksCurrent;
-    
-    %estimate density standard deviation from a bootstrap sample
-    densityBoot = NaN(200,1);
-    for iBoot = 1 : 200
-        indxBoot = randsample(numTracksCurrent,numTracksCurrent,true);
-        tracksBoot = tracksCurrent(indxBoot);
-        densityBoot(iBoot) = sum(trackLft(tracksBoot)) / ...
-        sliceActivityGroupSize / numSPTFrames;
-    end
-    spDensity.(eventField).std(iInc,iCol) = std(densityBoot) * sqrt(numTracksCurrent);
-    
     % FROM THE TRACKS DIRECTLY ...
+    
+    %calculate overall particle density
+    %(the density standard deviation will be calculated later in combination
+    %with the mode density standard deviation)
+    spDensity.(eventField).mean(iInc,iCol) = sum(trackLft(tracksCurrent)) / ...
+        windowGroupSize / numSPTFrames;
+    spDensity.(eventField).numPoints(iInc,iCol) = numTracksCurrent;
     
     %characteristics of all current tracks together
     [angleProtAll,f2fDispMag2DAll,...
@@ -781,67 +773,121 @@ else %if there are tracks in this window ...
     %get number of modes
     numDiffMode = size(fracMode.(eventField).mean,3) - 1;
     
+    %get diffusion coefficient and diffusion mode of all tracks
+    trajModeCurrent = trajDiffMode(tracksCurrent);
+    trajModeCurrent(isnan(trajModeCurrent)) = numDiffMode + 1;
+    trajD2Current = trajDiffCoef2(tracksCurrent);
+    
     %calculate the average diffusion coefficient for all tracks
     %regardless of their mode
-    tmpVec = trajDiffCoef2(tracksCurrent);
-    tmpVec = tmpVec(~isnan(tmpVec));
+    tmpVec = trajD2Current(~isnan(trajD2Current));
     if ~isempty(tmpVec)
         diffCoefModeAll.(eventField).mean(iInc,iCol) = mean(tmpVec);
         diffCoefModeAll.(eventField).std(iInc,iCol) = std(tmpVec);
         diffCoefModeAll.(eventField).numPoints(iInc,iCol) = length(tmpVec);
     end
     
-    %calculate the fraction of tracks in each diffusion mode
-    %also calculate the average diffusion coefficient per mode
-    
-    %first completely unclassified tracks
-    trajModeCurrent = trajDiffMode(tracksCurrent);
-    fracMode.(eventField).mean(iInc,iCol,end) = ...
-        length(find(isnan(trajModeCurrent)))/numTracksCurrent;
-    fracMode.(eventField).numPoints(iInc,iCol,end) = numTracksCurrent;
-    
-    %then classified tracks
-    tracksCurrentModeClass = tracksCurrent(~isnan(trajModeCurrent));
-    numTracksModeClass = length(tracksCurrentModeClass);
-
-    if numTracksModeClass > 0
-        
-        %extract diffusion mode and diffusion coefficient for relevant
-        %tracks
-        tmpVecMode = trajDiffMode(tracksCurrentModeClass);
-        tmpVecCoef = trajDiffCoef2(tracksCurrentModeClass);
-        
-        %generate a bootstrap sample to calculate standard deviation of
-        %fractions
-        modeVecBoot = NaN(numTracksModeClass,200);
-        for iBoot = 1 : 200
-            indxBoot = randsample(numTracksModeClass,numTracksModeClass,true);
-            modeVecBoot(:,iBoot) = tmpVecMode(indxBoot);
+    %calculate the average diffusion coefficient per mode
+    for iMode = 1 : numDiffMode
+        tmpVec = trajD2Current(trajModeCurrent==iMode);
+        if ~isempty(tmpVec)
+            diffCoefModeInd.(eventField).mean(iInc,iCol,iMode) = mean(tmpVec);
+            diffCoefModeInd.(eventField).std(iInc,iCol,iMode) = std(tmpVec);
+            diffCoefModeInd.(eventField).numPoints(iInc,iCol,iMode) = length(tmpVec);
         end
-        
-        %calculate fraction of tracks in each mode
-        n = hist(tmpVecMode,1:numDiffMode);
-        fracMode.(eventField).mean(iInc,iCol,1:end-1) = n/numTracksModeClass;
-        fracMode.(eventField).numPoints(iInc,iCol,1:end-1) = numTracksModeClass;
-        
-        %get standard deviations from bootstrap sample
-        n = hist(modeVecBoot,1:numDiffMode)';
-        fracBoot = n/numTracksModeClass;
-        fracMode.(eventField).std(iInc,iCol,1:end-1) = ...
-            std(fracBoot) * sqrt(numTracksModeClass);
-        
-        %calculate the diffusion coefficient of each mode
-        for iMode = 1 : numDiffMode
-            tmpTmpVec = tmpVecCoef(tmpVecMode==iMode);
-            diffCoefModeInd.(eventField).mean(iInc,iCol,iMode) = mean(tmpTmpVec);
-            diffCoefModeInd.(eventField).std(iInc,iCol,iMode) = std(tmpTmpVec);
-            diffCoefModeInd.(eventField).numPoints(iInc,iCol,iMode) = length(tmpTmpVec);
+    end
+    
+    %calculate the density of particles in each diffusion mode
+    %also calculate the fraction of particles in each mode
+    for iMode = 1 : numDiffMode+1
+        tracksMode = tracksCurrent(trajModeCurrent==iMode);
+        if isempty(tracksMode)
+            modeDensity.(eventField).mean(iInc,iCol,iMode) = 0 / windowGroupSize;
+            modeDensity.(eventField).numPoints(iInc,iCol,iMode) = numTracksCurrent;
+        else
+            modeDensity.(eventField).mean(iInc,iCol,iMode) = ...
+                sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+            modeDensity.(eventField).numPoints(iInc,iCol,iMode) = numTracksCurrent;
         end
+        fracMode.(eventField).mean(iInc,iCol,iMode) = ...
+            modeDensity.(eventField).mean(iInc,iCol,iMode) / spDensity.(eventField).mean(iInc,iCol);
+        fracMode.(eventField).numPoints(iInc,iCol,iMode) = numTracksCurrent;
+    end
+    
+    %estimate the standard deviations of overall density, mode density and
+    %mode fraction from a bootstrap sample
+    densityBoot = NaN(200,numDiffMode+1);
+    for iBoot = 1 : 200
+        indxBoot = randsample(numTracksCurrent,numTracksCurrent,true);
+        tracksBoot = tracksCurrent(indxBoot);
+        modeBoot = trajModeCurrent(indxBoot);
+        for iMode = 1 : numDiffMode+1
+            tracksMode = tracksBoot(modeBoot==iMode);
+            if isempty(tracksMode)
+                densityBoot(iBoot,iMode) = 0 / windowGroupSize;
+            else
+                densityBoot(iBoot,iMode) = ...
+                    sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+            end
+        end
+    end
+    spDensityBoot = sum(densityBoot,2);
+    fracModeBoot = densityBoot ./ repmat(spDensityBoot,1,numDiffMode+1);
+    modeDensity.(eventField).std(iInc,iCol,:) = std(densityBoot) * sqrt(numTracksCurrent);
+    fracMode.(eventField).std(iInc,iCol,:) = std(fracModeBoot) * sqrt(numTracksCurrent);    
+    spDensity.(eventField).std(iInc,iCol) = std(spDensityBoot) * sqrt(numTracksCurrent);
+    
         
-    end %(if numTracksModeClass > 0)
+    %     %calculate the fraction of tracks in each diffusion mode
+    %     %also calculate the average diffusion coefficient per mode
+    %
+    %     %first completely unclassified tracks
+    %     trajModeCurrent = trajDiffMode(tracksCurrent);
+    %     fracMode.(eventField).mean(iInc,iCol,end) = ...
+    %         length(find(isnan(trajModeCurrent)))/numTracksCurrent;
+    %     fracMode.(eventField).numPoints(iInc,iCol,end) = numTracksCurrent;
+    %
+    %     %then classified tracks
+    %     tracksCurrentModeClass = tracksCurrent(~isnan(trajModeCurrent));
+    %     numTracksModeClass = length(tracksCurrentModeClass);
+    %
+    %     if numTracksModeClass > 0
+    %
+    %         %extract diffusion mode and diffusion coefficient for relevant
+    %         %tracks
+    %         tmpVecMode = trajDiffMode(tracksCurrentModeClass);
+    %         tmpVecCoef = trajDiffCoef2(tracksCurrentModeClass);
+    %
+    %         %generate a bootstrap sample to calculate standard deviation of
+    %         %fractions
+    %         modeVecBoot = NaN(numTracksModeClass,200);
+    %         for iBoot = 1 : 200
+    %             indxBoot = randsample(numTracksModeClass,numTracksModeClass,true);
+    %             modeVecBoot(:,iBoot) = tmpVecMode(indxBoot);
+    %         end
+    %
+    %         %calculate fraction of tracks in each mode
+    %         n = hist(tmpVecMode,1:numDiffMode);
+    %         fracMode.(eventField).mean(iInc,iCol,1:end-1) = n/numTracksModeClass;
+    %         fracMode.(eventField).numPoints(iInc,iCol,1:end-1) = numTracksModeClass;
+    %
+    %         %get standard deviations from bootstrap sample
+    %         n = hist(modeVecBoot,1:numDiffMode)';
+    %         fracBoot = n/numTracksModeClass;
+    %         fracMode.(eventField).std(iInc,iCol,1:end-1) = ...
+    %             std(fracBoot) * sqrt(numTracksModeClass);
+    %
+    %         %calculate the diffusion coefficient of each mode
+    %         for iMode = 1 : numDiffMode
+    %             tmpTmpVec = tmpVecCoef(tmpVecMode==iMode);
+    %             diffCoefModeInd.(eventField).mean(iInc,iCol,iMode) = mean(tmpTmpVec);
+    %             diffCoefModeInd.(eventField).std(iInc,iCol,iMode) = std(tmpTmpVec);
+    %             diffCoefModeInd.(eventField).numPoints(iInc,iCol,iMode) = length(tmpTmpVec);
+    %         end
+    %
+    %     end %(if numTracksModeClass > 0)
     
 end %(if numTracksCurrent == 0)
-
 
 
 %% Subfunction 2 "putTrackCharTogether"

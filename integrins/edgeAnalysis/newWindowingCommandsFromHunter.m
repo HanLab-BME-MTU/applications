@@ -56,7 +56,7 @@ makeMovieMovie(MD,'Overlay','Protrusion','SegProcessIndex',2,'FileName','moviePr
 %divide mask into windows
 tic
 windowParam.MethodName = 'ProtrusionBased';
-windowParam.ParaSize = 5;
+windowParam.ParaSize = 2;
 windowParam.PerpSize = 2;
 windowParam.SegProcessIndex = 2;
 MD = getMovieWindows(MD,windowParam);
