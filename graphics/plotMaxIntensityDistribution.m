@@ -106,10 +106,11 @@ for k = 1:numel(lb)
     niFirstN{k} = ni0/sum(ni0);
 end
 
+di = 3;
 ymax = max(cellfun(@(i) max(i), niFirstN));
-mag = 10^floor(log10(ymax/5));
-dy = ceil(ymax/mag/5)*mag;
-ya = (0:5)*dy;
+mag = 10^floor(log10(ymax/di));
+dy = ceil(ymax/mag/di)*mag;
+ya = (0:di)*dy;
 
 %%
 cb = [0 0 0];
@@ -120,8 +121,8 @@ fset = loadFigureSettings('print');
 
 pos = get(0, 'DefaultFigurePosition');
 pos(3:4) = [550 700];
-aw = 260;
-ah = 80;
+aw = 26*numel(xa);
+ah = 50;
 xo = 80;
 yo = 70;
 sh = 20;
@@ -205,10 +206,11 @@ for k = 1:numel(lb)
         
     end
     if k==1
-        text(xa(end), ya(end)*1.3, 'Lifetime cohort',...
+        text(xa(end), ya(end)*1.35, 'Lifetime cohort',...
             'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     end
-    set(hi, 'YTick', ya, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
+    yal = [0 arrayfun(@(i) num2str(i, '%.2f'), ya(2:end), 'UniformOutput', false)];
+    set(hi, 'YTick', ya, 'YTickLabel', yal, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
         'TickLength', [0.015 0], 'XTick', xa, 'XTickLabel', []);
     
     

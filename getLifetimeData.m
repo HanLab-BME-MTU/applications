@@ -5,6 +5,7 @@ function lftData = getLifetimeData(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar); 
 ip.parse(varargin{:});
 
 nd = numel(data);
@@ -14,7 +15,7 @@ for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep 'lifetimeData.mat'];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
-        tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0);
+        tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.FileName);
         nCh = size(tracks(1).A,1);
         
         % concatenate amplitudes of master channel into matrix
