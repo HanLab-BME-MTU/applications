@@ -152,12 +152,23 @@ for iType = 1 : numTypeProt
             
         end %(for iInc = 1 : eventDur - 1)
         
+        %combine all new cell area events into one series with the events
+        %aligned by their start frames
+        indxWindowsAftDynamicComb = cell(maxPosInc,1);
+        for iInc = 1 : eventDur - 1
+            colIndx = (1 : eventDur-iInc)';
+            rowIndx = colIndx + iInc - 1;
+            linIndx = sub2ind([maxPosInc maxPosInc],rowIndx,colIndx);
+            indxWindowsAftDynamicComb{iInc} = vertcat(indxWindowsAftDynamic{linIndx});
+        end
+        
         %store information for output
         eventInfo(iEvent).onset = indxWindowsOnset;
         eventInfo(iEvent).befStatic = indxWindowsBefStatic;
         eventInfo(iEvent).befDynamic = indxWindowsBefDynamic;
         eventInfo(iEvent).aftStatic = indxWindowsAftStatic;
         eventInfo(iEvent).aftDynamic = indxWindowsAftDynamic;
+        eventInfo(iEvent).aftDynamicComb = indxWindowsAftDynamicComb;
         
     end %(for iEvent = 1 : numEvents)
     

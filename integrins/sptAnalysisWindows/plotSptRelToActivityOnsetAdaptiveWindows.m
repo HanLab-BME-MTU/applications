@@ -1,14 +1,15 @@
-function plotSptRelToActivityOnsetAdaptiveWindows(particleBehavior,minNP,figureName,saveLoc)
+function plotSptRelToActivityOnsetAdaptiveWindows(particleBehavior,...
+    mode2plot,minNP,figureName,saveLoc)
 
-if nargin < 2 || isempty(minNP)
+if nargin < 3 || isempty(minNP)
     minNP = 20;
 end
 
-if nargin < 3 || isempty(figureName)
+if nargin < 4 || isempty(figureName)
     figureName = 'test';
 end
 
-if nargin < 4 || isempty(saveLoc)
+if nargin < 5 || isempty(saveLoc)
     saveLoc = [];
 end
 
@@ -29,6 +30,13 @@ staticSeriesNP = [particleBehavior.befStatic.numPoints(end:-1:1,:,:); ...
 %get number of modes
 numMode = size(staticSeriesMean,3);
 
+%define which modes to plot
+if nargin < 2 || isempty(mode2plot)
+    mode2plot = 1 : numMode;
+end
+mode2plot = mode2plot(:)';
+numMode2plot = length(mode2plot);
+    
 %dynamic series before
 dynamicSeriesBefMean = [particleBehavior.befDynamic.mean(end:-1:1,:,:); ...
     particleBehavior.onset.mean; NaN(maxInc,1,numMode)];
@@ -42,32 +50,46 @@ dynamicSeriesAftMean = [NaN(-minInc+1,maxInc,numMode); particleBehavior.aftDynam
 dynamicSeriesAftStd = [NaN(-minInc+1,maxInc,numMode); particleBehavior.aftDynamic.std];
 dynamicSeriesAftNP = [ones(-minInc+1,maxInc,numMode); particleBehavior.aftDynamic.numPoints];
 
-%remove measurement with less than minNP points
+%combined dynamic series after
+combDynamicSeriesAftMean = [NaN(-minInc,1,numMode); particleBehavior.aftDynamicComb.mean; NaN(1,1,numMode)];
+combDynamicSeriesAftStd = [NaN(-minInc,1,numMode); particleBehavior.aftDynamicComb.std; NaN(1,1,numMode)];
+combDynamicSeriesAftNP = [ones(-minInc,1,numMode); particleBehavior.aftDynamicComb.numPoints; ones(1,1,numMode)];
+
+%remove measurements with less than minNP points
 staticSeriesMean(staticSeriesNP<minNP) = NaN;
 staticSeriesStd(staticSeriesNP<minNP) = NaN;
 dynamicSeriesBefMean(dynamicSeriesBefNP<minNP) = NaN;
 dynamicSeriesBefStd(dynamicSeriesBefNP<minNP) = NaN;
 dynamicSeriesAftMean(dynamicSeriesAftNP<minNP) = NaN;
 dynamicSeriesAftStd(dynamicSeriesAftNP<minNP) = NaN;
+combDynamicSeriesAftMean(combDynamicSeriesAftNP<minNP) = NaN;
+combDynamicSeriesAftStd(combDynamicSeriesAftNP<minNP) = NaN;
 
 %define color vector for plotting
-incColor = [1 0 0; 0 1 0; 1 0 1; 0 1 1; 1 1 0; 0.5 0.5 0.5];
+incColor = [1 0 0; 0 1 0; 1 0 1; 0 1 1; 1 1 0; 0.7 0.7 0.7];
 
 %open figure
 hFig = figure('Name',figureName);
 hold on
 
 %plot for each mode
-for iMode = 1 : numMode
+for jMode = 1 : numMode2plot
     
-    subplot(numMode,1,iMode), hold on
+    %specify subplot
+    subplot(numMode2plot,1,jMode), hold on
     
+    %get mode to plot
+    iMode = mode2plot(jMode);
+    
+    %before dynamic
     plot(minInc:maxInc,dynamicSeriesBefMean(:,1,iMode),'b','Marker','.')
     myErrorbar(minInc:maxInc,dynamicSeriesBefMean(:,1,iMode),dynamicSeriesBefStd(:,1,iMode)./sqrt(dynamicSeriesBefNP(:,1,iMode)))
     
-    plot(minInc:maxInc,staticSeriesMean(:,1,iMode),'k','Marker','.')
+    %static series
+    plot(minInc:maxInc,staticSeriesMean(:,1,iMode),'k','Marker','.','LineWidth',2)
     myErrorbar(minInc:maxInc,staticSeriesMean(:,1,iMode),staticSeriesStd(:,1,iMode)./sqrt(staticSeriesNP(:,1,iMode)))
     
+    %after dynamic
     legendEntries = cell(1,6);
     for iInc = 1 : 6
         plot(minInc:maxInc,dynamicSeriesAftMean(:,iInc,iMode),'color',incColor(iInc,:),'Marker','.')
@@ -75,7 +97,11 @@ for iMode = 1 : numMode
         legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
     end
     
-    legendEntries = [{'Dynamic before'} {'Static'} legendEntries]; %#ok<AGROW>
+    %after dynamic combined
+    plot(minInc:maxInc,combDynamicSeriesAftMean(:,1,iMode),'b','Marker','.','LineWidth',2)
+    myErrorbar(minInc:maxInc,combDynamicSeriesAftMean(:,1,iMode),combDynamicSeriesAftStd(:,1,iMode)./sqrt(combDynamicSeriesAftNP(:,1,iMode)))    
+    
+    legendEntries = [{'Dynamic before'} {'Static'} legendEntries {'Dynamic after aligned & combined'}]; %#ok<AGROW>
     legend(legendEntries);
     
 end
