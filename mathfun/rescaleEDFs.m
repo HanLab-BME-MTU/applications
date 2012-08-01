@@ -89,13 +89,13 @@ else
         lw = 1;
 
         pos = get(0, 'DefaultFigurePosition');
-        pos(3) = 540;
-        pos(4) = 200;
+        pos(3) = 260;
+        pos(4) = 340;
         x0 = 60;
         y0 = 60;
         ah = 100;
         aw = 160;
-        dx = 20;
+        dx = 30;
         
         if isunix && ~ismac
             b = 1.25;
@@ -110,7 +110,8 @@ else
             
         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
         
-        axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+        %axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+        axes('Units', 'pixels', 'Position', [x0 y0+ah+dx aw ah]);
         hold on;
         for i = 1:nd-1
             plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', 1);
@@ -118,14 +119,16 @@ else
         hp = plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
 
         axis([0 T99 0 1.01]);
-        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
-        xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
+        %set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
+        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
+        %xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('P(X < x)', fset.lfont{:});
-        title('Raw EDF', fset.lfont{:});
+        text(0, 1.1, 'Raw EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
         hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:});
         
-        axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
+        %axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
+        axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
         hold on;
         for i = 1:nd-1
             ci = c(idx(i));
@@ -133,11 +136,14 @@ else
         end
         plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
-        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
+        %set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
+        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-        title('Scaled EDF', fset.lfont{:});
-        
-        axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
+        ylabel('P(X < x)', fset.lfont{:});
+        text(0, 1.1, 'Scaled EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
+         
+        %axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
+        axes('Units', 'pixels', 'Position', [x0+aw-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
         hold on;
         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 5);
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
