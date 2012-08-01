@@ -7,8 +7,10 @@ ip.addParamValue('XTick', []);
 ip.addParamValue('FirstNFrames', 5);
 % ip.addParamValue('CohortLB', [1  11 21 31 41 61]);
 % ip.addParamValue('CohortUB', [10 20 30 40 60 120]);
-ip.addParamValue('CohortLB', [1  11 21 41 61 81]);
-ip.addParamValue('CohortUB', [10 20 40 60 80 120]);
+% ip.addParamValue('CohortLB', [1  11 21 41 61 81]);
+% ip.addParamValue('CohortUB', [10 20 40 60 80 120]);
+ip.addParamValue('CohortLB', [1  11 16 21 41 61 81]);
+ip.addParamValue('CohortUB', [10 15 20 40 60 80 120]);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
 ip.addParamValue('ShowSignificance', true, @islogical);
 ip.parse(varargin{:});
@@ -29,7 +31,7 @@ ub = ip.Results.CohortUB;
 nc = numel(lb);
 
 % ny = min(6, ceil(nc/2)); % # axes in y
-ny = 6;
+ny = nc;
 
 lftData = getLifetimeData(data);
 maxA_all = arrayfun(@(i) nanmax(i.A,[],2), lftData, 'UniformOutput', false);
@@ -234,12 +236,12 @@ for k = 1:numel(lb)
     
     if k==ceil(ny/2)
         hy = ylabel('Frequency', fset.lfont{:});
+        ypos = get(hy, 'Position');
         if mod(ny,2)==0
-            ypos = get(hy, 'Position');
             ypos(2) = 0;
-            ypos(1) = 1.2*ypos(1);
-            set(hy, 'Position', ypos);
         end
+        ypos(1) = 1.2*ypos(1);
+        set(hy, 'Position', ypos);
     end
     
     if k>1
