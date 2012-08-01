@@ -13,7 +13,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('Reference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
-ip.addParamValue('FigureName', '');
+ip.addParamValue('FigureName', 'EDF scaling');
 ip.parse(varargin{:});
 
 nd = numel(samples);
@@ -137,7 +137,7 @@ else
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         title('Scaled EDF', fset.lfont{:});
         
-        axes('Units', 'pixels', 'Position', [x0+2*aw+4*dx y0 aw/4 ah]);
+        axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
         hold on;
         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 5);
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
@@ -148,6 +148,33 @@ else
         ya = 0:0.2:ymax;
         set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
         ylabel('Relative scale', fset.lfont{:});
+        
+%         axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
+%         hold on;
+%         for i = 1:nd-1
+%             ci = c(idx(i));
+%             plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', 1);
+%         end
+%         plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
+%         axis([0 T99 0 1.01]);
+%         set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
+%         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
+%         title('Scaled EDF', fset.lfont{:});
+%         
+%         axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
+%         hold on;
+%         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 5);
+%         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
+%         plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
+%         setErrorbarStyle(he, 0.15);
+%         ymax = ceil(max(a)/0.2)*0.2;
+%         axis([-0.5 0.5 0 ymax]);
+%         ya = 0:0.2:ymax;
+%         set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
+%         ylabel('Relative scale', fset.lfont{:});
+        
+        
+        
         
 %         % Histograms
 %         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);

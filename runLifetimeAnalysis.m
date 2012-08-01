@@ -36,7 +36,7 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'FileName', ip.Results.FileName);
 
 % loop through data sets, load tracks, store max. intensities and lifetimes
 res = struct([]);
@@ -221,32 +221,32 @@ end
 fprintf('\n');
 
 % Plot raw and scaled lifetime histograms
-figure;
-hold on;
-for i = 1:nd
-    plot(res(i).t, res(i).lftHist_Ia, 'k');    
-    plot(res(i).t, res(i).lftHist_scaled, 'r--');
-end
+% figure;
+% hold on;
+% for i = 1:nd
+%     plot(res(i).t, res(i).lftHist_Ia, 'k');    
+%     plot(res(i).t, res(i).lftHist_scaled, 'r--');
+% end
 
-tmp = mean(vertcat(res.lftHist_scaled),1);
-medIdx = find(a==1);
-D1 = hist(lftData(medIdx).deltaS, 0:25);
-D1 = D1/sum(D1);
-D2 = hist(lftData(medIdx).deltaE, 0:25);
-D2 = D2/sum(D2);
-D = conv(D1,D2(end:-1:1));
-D = D(numel(D2):end);
-D = D/sum(D);
-
-figure;
-hold on;
-% plot(res(i).t, mean(vertcat(res.lftHist_Ia),1), 'k');
-% plot(res(i).t, tmp, 'r--');
-plot(mean(vertcat(res.lftHist_Ia),1), 'k');
-plot(tmp, 'r--');
-tt = conv(tmp, D(end:-1:1));
-tt = tt(numel(D):end);
-plot(tt, 'c');
+% tmp = mean(vertcat(res.lftHist_scaled),1);
+% medIdx = find(a==1);
+% D1 = hist(lftData(medIdx).deltaS, 0:25);
+% D1 = D1/sum(D1);
+% D2 = hist(lftData(medIdx).deltaE, 0:25);
+% D2 = D2/sum(D2);
+% D = conv(D1,D2(end:-1:1));
+% D = D(numel(D2):end);
+% D = D/sum(D);
+% 
+% figure;
+% hold on;
+% % plot(res(i).t, mean(vertcat(res.lftHist_Ia),1), 'k');
+% % plot(res(i).t, tmp, 'r--');
+% plot(mean(vertcat(res.lftHist_Ia),1), 'k');
+% plot(tmp, 'r--');
+% tt = conv(tmp, D(end:-1:1));
+% tt = tt(numel(D):end);
+% plot(tt, 'c');
 
 %====================
 % Initiation density
@@ -370,6 +370,95 @@ lftRes.meanLftHist_B = mean(lftRes.lftHist_B,1);
 lftRes.lftHist_Ia = vertcat(res.lftHist_Ia);
 lftRes.nSamples_Ia = [res.nSamples_Ia];
 lftRes.data = data;
+
+
+
+
+%%
+%---------------------------------------
+% Raw lifetime distributions + average
+%---------------------------------------
+colorV = hsv(nd);
+[~,idxa] = sort(a);
+% [~,idxa] = sort(idxa);
+colorV = colorV(idxa,:);
+fset = loadFigureSettings('print');
+fset.axOpts = [fset.axOpts, {'TickLength', [0.015 0]}];
+lw = 1;
+
+pos = get(0, 'DefaultFigurePosition');
+pos(3) = 300;
+pos(4) = 200;
+x0 = 60;
+y0 = 60;
+ah = 100;
+aw = 180;
+ahi = 60;
+awi = 108;
+
+if isunix && ~ismac
+    b = 1.25;
+    y0 = b*y0;
+    x0 = b*x0;
+    ah = b*ah;
+    aw = b*aw;
+    ahi = b*ahi;
+    awi = b*awi;
+    pos(3:4) = b*pos(3:4);
+end
+
+figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', 'Lifetime histograms (raw)');
+
+axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+hold on;
+for i = 1:nd
+    plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
+end
+hp = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
+
+% ya = 0:0.01:0.05;
+ya = 0:0.02:0.1;
+axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+xlabel('Lifetime (s)', fset.lfont{:});
+ylabel('Frequency', fset.lfont{:});
+
+axes('Units', 'pixels', 'Position', [x0+aw-awi y0+ah-ahi awi ahi]);
+hold on;
+hold on;
+for i = 1:nd
+    plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
+end
+hp = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
+axis([0 60 0 0.035]);
+ya = 0:0.01:0.04;
+set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+% print('-depsc2', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
+
+%%
+%---------------------------------------
+% CDF plot of the raw lifetimes
+%---------------------------------------
+lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1));
+[uCDF idx] = unique(lftCDF);
+lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
+
+figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', 'Cumulative lifetime distribution (raw)');
+axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+hold on;
+idx = find(lftRes.t==round(lft50/framerate));
+fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
+plot(lftRes.t, cumsum(mean(vertcat(lftRes.lftHist_Ia), 1)), 'k', 'LineWidth', 2);
+
+ya = 0:0.2:1;
+axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+xlabel('Lifetime (s)', fset.lfont{:});
+ylabel('Cumulative frequency', fset.lfont{:});
+% print('-depsc2', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
+
+%%
+
 
 plotLifetimes(lftRes);
 
