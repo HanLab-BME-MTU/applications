@@ -1,24 +1,24 @@
 clear all
 close all
 
-windowRange = [];
-% windowRange = (1:135)';
+% windowRange = [];
+windowRange = (1:125)';
 frameRange = [];
 
-% windowsAll = putWindowsTogether;
-% load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
+windowsAll = putWindowsTogether;
+load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
 
 load ../tracksDiffusionLength5InMask.mat
 
 seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
 maxFrame = max(seqOfEvents(:,1));
 
-% [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
-%     assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
-% save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
-%     'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
+[windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
+    assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
+save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
+    'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
 
-load windowsActivityTracks.mat
+% load windowsActivityTracks.mat
 
 load ../diffusionModeClassification.mat
 load ../directTrackChar.mat
