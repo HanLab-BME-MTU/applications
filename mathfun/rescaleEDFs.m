@@ -88,144 +88,55 @@ else
         T99 = prctile(samples{refIdx}, 99.9);
         lw = 1;
 
-        pos = get(0, 'DefaultFigurePosition');
-        pos(3) = 260;
-        pos(4) = 340;
-        x0 = 60;
-        y0 = 60;
-        ah = 100;
-        aw = 160;
-        dx = 30;
+        %figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
+        figure;
+        axPos = fset.axPos;
+        dx = 0.3*fset.axPos(4);
+        axPos(2) = axPos(2)+dx+axPos(4);
         
-        if isunix && ~ismac
-            b = 1.25;
-            y0 = b*y0;
-            x0 = b*x0;
-            ah = b*ah;
-            aw = b*aw;
-            dx = b*dx;
-            pos(3:4) = b*pos(3:4);
-        end
-            
-            
-        figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
         
-        %axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
-        axes('Units', 'pixels', 'Position', [x0 y0+ah+dx aw ah]);
+        axes(fset.axSet{:}, 'Position', axPos);
         hold on;
         for i = 1:nd-1
-            plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', 1);
+            plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', lw);
         end
         hp = plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
 
         axis([0 T99 0 1.01]);
-        %set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
-        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
-        %xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-        ylabel('P(X < x)', fset.lfont{:});
+        set(gca, fset.axOpts{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
+        ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Raw EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
         hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:});
         
-        %axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
-        axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+        
+        axes(fset.axSet{:});
         hold on;
         for i = 1:nd-1
             ci = c(idx(i));
-            plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', 1);
+            plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', lw);
         end
         plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
-        %set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
-        set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
+        set(gca, fset.axOpts{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-        ylabel('P(X < x)', fset.lfont{:});
+        ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Scaled EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
          
-        %axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
-        axes('Units', 'pixels', 'Position', [x0+aw-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
+        
+        % Plot inset with scales
+        axPos = fset.axPos;
+        axes(fset.axSet{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.2*axPos(2) axPos(3)/8 axPos(4)*0.75]);
         hold on;
-        plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 5);
+        plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         setErrorbarStyle(he, 0.15);
         ymax = ceil(max(a)/0.2)*0.2;
         axis([-0.5 0.5 0 ymax]);
         ya = 0:0.2:ymax;
-        set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
-        ylabel('Relative scale', fset.lfont{:});
-        
-%         axes('Units', 'pixels', 'Position', [x0+aw+dx y0 aw ah]);
-%         hold on;
-%         for i = 1:nd-1
-%             ci = c(idx(i));
-%             plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', 1);
-%         end
-%         plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
-%         axis([0 T99 0 1.01]);
-%         set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'YTick', [], 'YColor', 'w');
-%         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-%         title('Scaled EDF', fset.lfont{:});
-%         
-%         axes('Units', 'pixels', 'Position', [x0+2*aw+dx-1.15*aw/6 1.15*y0 aw/6 ah*0.75]);
-%         hold on;
-%         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1.5, 'MarkerSize', 5);
-%         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
-%         plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
-%         setErrorbarStyle(he, 0.15);
-%         ymax = ceil(max(a)/0.2)*0.2;
-%         axis([-0.5 0.5 0 ymax]);
-%         ya = 0:0.2:ymax;
-%         set(gca, fset.axOpts{:}, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
-%         ylabel('Relative scale', fset.lfont{:});
-        
-        
-        
-        
-%         % Histograms
-%         figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
-%         axes('Units', 'pixels', 'Position', [100 80 300 280]);
-%         hold on;
-%         
-%         %dx = 10;
-%         %xi = 0:dx:x_edf{refIdx}(end);
-%         %ni = hist(samples{refIdx}, xi);
-%         %ni = ni/sum(ni)/dx;
-%         [ni,xi] = ksdensity(samples{refIdx}, 'npoints', 1000);
-%         %sum(ni)
-%         plot(xi, ni, 'r-', 'LineWidth', lw);
-%         for i = 1:nd-1
-%             %ni = hist(samples{idx(i)}, xi);
-%             %ni = ni/sum(ni)/dx;
-%             [ni,xi] = ksdensity(samples{idx(i)}, 'npoints', 1000);
-%             plot(xi, ni, '-', 'Color', colorV(i,:), 'LineWidth', 1);
-%         end
-%         set(gca, fset.axOpts{:}, 'LineWidth', 2, fset.tfont{:}, 'XLim', [0 T99]);
-%         xlabel('Max. fluo. intensity (A.U.)', fset.sfont{:});
-%         ylabel('P(X \leq x)', fset.sfont{:});
-%         title('Raw kernel density', fset.sfont{:});
-%         YLim = get(gca, 'YLim');
-%         
-%         axes('Units', 'pixels', 'Position', [440 80 300 280]);
-%         hold on;
-%         %dx = 10;
-%         %xi = 0:dx:x_edf{refIdx}(end);
-%         %ni = hist(samples{refIdx}, xi);
-%         %ni = ni/sum(ni)/dx;
-%         [ni,xi] = ksdensity(samples{refIdx}, 'npoints', 1000);
-%         plot(xi, ni, 'r-', 'LineWidth', lw);
-%         for i = 1:nd-1
-%             %ni = hist(samples{idx(i)}*a(idx(i)), xi);
-%             %ni = ni/sum(ni)/dx * (1-c(idx(i))); 
-%             [ni,xi] = ksdensity(samples{idx(i)}*a(idx(i)), 'npoints', 1000);
-%             ni = ni*(1-c(idx(i)));
-%             plot(xi, ni, '-', 'Color', colorV(i,:), 'LineWidth', 1);
-%         end
-%         axis([0 T99 YLim]);
-%         set(gca, fset.axOpts{:}, 'LineWidth', 2, fset.tfont{:}, 'YTick', [], 'YColor', 'w');
-%         xlabel('Max. fluo. intensity (A.U.)', fset.sfont{:});
-%         title('Scaled kernel density', fset.sfont{:});
-        
+        set(gca, fset.axOpts{:}, 'TickLength', fset.TickLength/0.75, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
+        ylabel('Relative scale', fset.sfont{:});
     end
 end
 
