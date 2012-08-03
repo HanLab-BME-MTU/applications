@@ -30,12 +30,18 @@ fset.fontName = {'FontName', 'Helvetica'};
 
 switch mode
     case 'print'
-        fset.ifont = [fset.fontName, 'FontSize', 7];
-        fset.tfont = [fset.fontName, 'FontSize', 8];
-        fset.sfont = [fset.fontName, 'FontSize', 10];
-        fset.lfont = [fset.fontName, 'FontSize', 12];
-        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1.5, fset.sfont];
+        fset.units = 'centimeters';
+        %fset.aw = 5.5;
+        %fset.ah = 3.4;
+        fset.aw = 6;
+        fset.ah = 3.5;
+        fset.ifont = [fset.fontName, 'FontSize', 5];
+        fset.tfont = [fset.fontName, 'FontSize', 7];
+        fset.sfont = [fset.fontName, 'FontSize', 8];
+        fset.lfont = [fset.fontName, 'FontSize', 10];
+        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', [0.015 0.025]];
     otherwise
+        fset.units = 'pixels';
         fset.ifont = [fset.fontName, 'FontSize', 12];
         fset.tfont = [fset.fontName, 'FontSize', 16];
         fset.sfont = [fset.fontName, 'FontSize', 20];
