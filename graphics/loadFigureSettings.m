@@ -37,7 +37,8 @@ switch mode
         fset.tfont = [fset.fontName, 'FontSize', 7];
         fset.sfont = [fset.fontName, 'FontSize', 8];
         fset.lfont = [fset.fontName, 'FontSize', 10];
-        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', [0.015 0.025]];
+        fset.TickLength = [0.015 0.025];
+        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', fset.TickLength];
     otherwise
         fset.units = 'normalized';
         fset.axPos = get(0, 'DefaultAxesPosition');
@@ -45,6 +46,7 @@ switch mode
         fset.tfont = [fset.fontName, 'FontSize', 16];
         fset.sfont = [fset.fontName, 'FontSize', 20];
         fset.lfont = [fset.fontName, 'FontSize', 24];
+        fset.TickLength = [0.01 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
 end
 fset.axSet = {'Units', fset.units, 'Position', fset.axPos};
