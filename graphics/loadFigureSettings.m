@@ -31,23 +31,23 @@ fset.fontName = {'FontName', 'Helvetica'};
 switch mode
     case 'print'
         fset.units = 'centimeters';
-        %fset.aw = 5.5;
-        %fset.ah = 3.4;
-        fset.aw = 6;
-        fset.ah = 3.5;
+        %fset.axPos = [2 2 5.5 3.4];
+        fset.axPos = [2 2 6 3.5];
         fset.ifont = [fset.fontName, 'FontSize', 5];
         fset.tfont = [fset.fontName, 'FontSize', 7];
         fset.sfont = [fset.fontName, 'FontSize', 8];
         fset.lfont = [fset.fontName, 'FontSize', 10];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', [0.015 0.025]];
     otherwise
-        fset.units = 'pixels';
+        fset.units = 'normalized';
+        fset.axPos = get(0, 'DefaultAxesPosition');
         fset.ifont = [fset.fontName, 'FontSize', 12];
         fset.tfont = [fset.fontName, 'FontSize', 16];
         fset.sfont = [fset.fontName, 'FontSize', 20];
         fset.lfont = [fset.fontName, 'FontSize', 24];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
 end
+fset.axSet = {'Units', fset.units, 'Position', fset.axPos};
 
 ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
 % ce = [0 1 0; 1 0 0; 1 0.5 0; 1 1 0; 0 1 1; 0.5 0 1; 0 0 1; 0 0.5 1];
