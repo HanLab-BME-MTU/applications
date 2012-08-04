@@ -5,32 +5,21 @@ ip.CaseSensitive = false;
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
 ip.addParamValue('XTick', []);
 ip.addParamValue('FirstNFrames', 5);
-% ip.addParamValue('CohortLB', [1  11 21 31 41 61]);
-% ip.addParamValue('CohortUB', [10 20 30 40 60 120]);
-% ip.addParamValue('CohortLB', [1  11 21 41 61 81]);
-% ip.addParamValue('CohortUB', [10 20 40 60 80 120]);
 ip.addParamValue('CohortLB', [1  11 16 21 41 61 81]);
 ip.addParamValue('CohortUB', [10 15 20 40 60 80 120]);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
 ip.addParamValue('ShowSignificance', true, @islogical);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
-isprint = strcmpi(ip.Results.DisplayMode, 'print');
-
 
 [~, figPath] = getCellDir(data(1));
 figPath = [figPath 'Figures' filesep];
 [~,~] = mkdir(figPath);
 
-% cohorts: 3, 4, 5, 6, 7, 8, 9, 10, 11-20, 21-40, 41-60 etc.
-% lb = [3:10 11 16 21 41 61 81 101 141];
-% ub = [3:10 15 20 40 60 80 100 140 200]; 
-
 lb = ip.Results.CohortLB;
 ub = ip.Results.CohortUB;
 nc = numel(lb);
 
-% ny = min(6, ceil(nc/2)); % # axes in y
 ny = nc;
 
 lftData = getLifetimeData(data);
@@ -115,50 +104,35 @@ dy = ceil(ymax/mag/di)*mag;
 ya = (0:di)*dy;
 
 %%
-cb = [0 0 0];
 cf0 = [1 1 1]*0.6;
 ce0 = [1 1 1]*0.3;
 fset = loadFigureSettings('print');
 
-
 pos = get(0, 'DefaultFigurePosition');
 pos(3:4) = [550 700];
-aw = 26*numel(xa);
-ah = 50;
-xo = 80;
-yo = 70;
-sh = 20;
 
-% settings for print
-if isprint
-    b = 0.65;
-    pos(3:4) = [450 500];
-    if isunix && ~ismac
-        pos(3:4) = 1.25*pos(3:4);
-        b = 1.25*b;
-    end
-    aw = b*aw;
-    ah = b*ah;
-    xo = 80;
-    yo = 70;
-    sh = b*sh;
-    
-end
-
+axPos = fset.axPos;
+aw = axPos(3);
+ah = 0.2*aw;
+xo = 2;
+yo = 2;
+sh = ah/3;
 
 figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
-hbg = axes('Units', 'pixels', 'Position', [0 0 pos(3:4)]);
+hbg = axes('Units', 'centimeters', 'Position', [0 0 2*xo+aw+2 2*yo+ny*ah+(ny-1)*sh]);
 hold(hbg, 'on');
+axis(hbg, [0 2*xo+aw+2 0 2*yo+ny*ah+(ny-1)*sh]);
 for k = 1:numel(lb)
     
+    iPos = [xo yo+(ny-k)*(ah+sh) aw ah];
     % plot grid below data
-    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
+    hi = axes(fset.axOpts{:}, 'Position', iPos,...
         'XLim', [xa(1) xa(end)], 'XTick', xa, 'XTickLabel', [], 'YLim', [ya(1) ya(end)], 'YTickLabel', [],...
         'TickLength', [0 0], 'Color', 'none');
-    set(hi, 'XGrid', 'on', 'GridLineStyle', ':', 'LineWidth', 1.5);
+    set(hi, 'XGrid', 'on', 'GridLineStyle', ':', 'LineWidth', 1);
     
     % data axes
-    hi = axes('Units', 'pixels', 'Position', [xo yo+(ny-mod(k-1,ny)-1)*(ah+sh) aw ah],...
+    hi = axes(fset.axOpts{:}, 'Position', iPos,...
         'Color', 'none');
     hold on;
     box off;
@@ -212,8 +186,7 @@ for k = 1:numel(lb)
             'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     end
     yal = [0 arrayfun(@(i) num2str(i, '%.2f'), ya(2:end), 'UniformOutput', false)];
-    set(hi, 'YTick', ya, 'YTickLabel', yal, 'LineWidth', 1.5, fset.sfont{:}, 'Layer', 'top', 'TickDir', 'out',...
-        'TickLength', [0.015 0], 'XTick', xa, 'XTickLabel', []);
+    set(hi, 'YTick', ya, 'YTickLabel', yal, 'XTick', xa, 'XTickLabel', []);
     
     
     % plot vertical axis label (once)
@@ -240,7 +213,7 @@ for k = 1:numel(lb)
         if mod(ny,2)==0
             ypos(2) = 0;
         end
-        ypos(1) = 1.2*ypos(1);
+        %ypos(1) = 1.1*ypos(1);
         set(hy, 'Position', ypos);
     end
     
@@ -248,37 +221,35 @@ for k = 1:numel(lb)
         [hval pval] = kstest2(maxAcohortFirstN{k-1}, maxAcohortFirstN{k});
         if hval==0 && ip.Results.ShowSignificance % indicate that the distributions are the same
             % x: after box:
-            x0 = xo + aw + 10;
-            y0 = (ny-mod(k-1,ny)-1)*(ah+sh) + yo + (ah+sh/2)/2;
-
-            plot(hbg, [x0 x0], y0+[0 ah+sh/2], 'Color', ce0, 'LineWidth', 1.5);
-            plot(hbg, [x0-3 x0], [y0 y0]+ah+sh/2-0.75, 'Color', ce0, 'LineWidth', 1.5);
-            plot(hbg, [x0-3 x0], [y0 y0]+0.75, 'Color', ce0, 'LineWidth', 1.5);
-            text(x0+3, y0+(ah+sh/2)/2-2, '*', fset.lfont{:}, 'Color', ce0, 'Parent', hbg, 'VerticalAlignment', 'middle')            
+            x0 = xo + aw + 0.5;
+            y0 = (ny-k)*(ah+sh) + yo + (ah+sh/2)/2;
+            % line width in cm
+            lw = 1/(72/2.54);
+            plot(hbg, [x0 x0], y0+[0 ah+sh/2], 'Color', ce0, 'LineWidth', 1);
+            plot(hbg, [x0-0.1 x0], [y0 y0]+ah+sh/2-lw/2, 'Color', ce0, 'LineWidth', 1);
+            plot(hbg, [x0-0.1 x0], [y0 y0]+lw/2, 'Color', ce0, 'LineWidth', 1);
+            text(x0+0.1, y0+(ah+sh/2)/2-0.1, '*', fset.lfont{:}, 'Color', ce0, 'Parent', hbg, 'VerticalAlignment', 'middle')            
         end
     end
 end
 
 % extra axes for outside legend
-if ~isprint
-    hi = axes('Units', 'pixels', 'Position', [xo+aw (ny-mod(k,ny)-1)*(ah+sh)+yo aw ah]);%'Color', 'none', 'XTick', [], 'YTick', []);
-    hold on;
-    bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
-    bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
-    axis([2 3 2 3]);
-    hl = legend('Full lifetime', ['First ' num2str(ip.Results.FirstNFrames*data(1).framerate) ' s of lifetime'], 'Location', 'NorthWest');
-    set(hl, 'Box', 'off');
-    set(gca, 'Visible', 'off');
-end
+% if ~isprint
+%     hi = axes('Units', 'pixels', 'Position', [xo+aw (ny-mod(k,ny)-1)*(ah+sh)+yo aw ah]);%'Color', 'none', 'XTick', [], 'YTick', []);
+%     hold on;
+%     bar(0, 1, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 1);
+%     bar(0, 1, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 1);
+%     axis([2 3 2 3]);
+%     hl = legend('Full lifetime', ['First ' num2str(ip.Results.FirstNFrames*data(1).framerate) ' s of lifetime'], 'Location', 'NorthWest');
+%     set(hl, 'Box', 'off');
+%     set(gca, 'Visible', 'off');
+% end
 
 
 % bring background axes to front
 % ch = get(gcf, 'Children');
 % set(gcf, 'Children', [hbg; setdiff(ch, hbg)]);
 
-
-% plot(hbg, rand(1,10))
-set(hbg, 'Color', 'none', 'XLim', [0 pos(3)], 'YLim', [0 pos(4)]);
 axis(hbg, 'off');
 
 
@@ -288,8 +259,9 @@ else
     filename = '_pooled';
 end
 % print('-depsc2', '-loose', [figPath 'maxIntensityDist' filename '.eps']);
-return
+
 %%
+return
 %========================================================
 % Time until max. intensity is reached, per cohort
 %========================================================
