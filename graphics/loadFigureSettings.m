@@ -49,7 +49,7 @@ switch mode
         fset.TickLength = [0.01 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
 end
-fset.axSet = {'Units', fset.units, 'Position', fset.axPos};
+fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
 
 ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
 % ce = [0 1 0; 1 0 0; 1 0.5 0; 1 1 0; 0 1 1; 0.5 0 1; 0 0 1; 0 0.5 1];
