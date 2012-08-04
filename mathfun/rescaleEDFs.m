@@ -95,7 +95,7 @@ else
         axPos(2) = axPos(2)+dx+axPos(4);
         
         
-        axes(fset.axSet{:}, 'Position', axPos);
+        axes(fset.axOpts{:}, 'Position', axPos);
         hold on;
         for i = 1:nd-1
             plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', lw);
@@ -103,14 +103,14 @@ else
         hp = plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
 
         axis([0 T99 0 1.01]);
-        set(gca, fset.axOpts{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
+        set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
         ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Raw EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
         hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:});
         
         
-        axes(fset.axSet{:});
+        axes(fset.axOpts{:});
         hold on;
         for i = 1:nd-1
             ci = c(idx(i));
@@ -118,7 +118,7 @@ else
         end
         plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
-        set(gca, fset.axOpts{:}, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
+        set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Scaled EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
@@ -126,7 +126,7 @@ else
         
         % Plot inset with scales
         axPos = fset.axPos;
-        axes(fset.axSet{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.2*axPos(2) axPos(3)/8 axPos(4)*0.75]);
+        axes(fset.axOpts{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.2*axPos(2) axPos(3)/8 axPos(4)*0.75]);
         hold on;
         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
@@ -135,7 +135,7 @@ else
         ymax = ceil(max(a)/0.2)*0.2;
         axis([-0.5 0.5 0 ymax]);
         ya = 0:0.2:ymax;
-        set(gca, fset.axOpts{:}, 'TickLength', fset.TickLength/0.75, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
+        set(gca, 'TickLength', fset.TickLength/0.75, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
         ylabel('Relative scale', fset.sfont{:});
     end
 end

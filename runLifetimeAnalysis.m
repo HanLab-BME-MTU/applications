@@ -17,6 +17,7 @@ ip.addParamValue('ClassificationSelector', 'significantSignal');
 ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
+ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -304,10 +305,11 @@ for i = 1:nd
     idxMI = res(i).maxA_all >= T;
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
-    idxLft = sum(lftData(i).A(:,2:4)>repmat(pRef, [size(lftData(i).A,1) 1]),2)>0 & res(i).lft_all'<tx;
-    
-    % combined index
-    idxMI = idxMI & ~idxLft';
+    if ip.Results.ExcludeVisitors
+        idxLft = sum(lftData(i).A(:,2:4)>repmat(pRef, [size(lftData(i).A,1) 1]),2)>0 & res(i).lft_all'<tx;
+        % combined index
+        idxMI = idxMI & ~idxLft';
+    end
     
     res(i).lftAboveT = res(i).lft_all(idxMI);
     res(i).lftBelowT = res(i).lft_all(~idxMI);
@@ -383,48 +385,25 @@ colorV = hsv(nd);
 % [~,idxa] = sort(idxa);
 colorV = colorV(idxa,:);
 fset = loadFigureSettings('print');
-fset.axOpts = [fset.axOpts, {'TickLength', [0.015 0]}];
-lw = 1;
 
-pos = get(0, 'DefaultFigurePosition');
-pos(3) = 300;
-pos(4) = 200;
-x0 = 60;
-y0 = 60;
-ah = 100;
-aw = 180;
-ahi = 60;
-awi = 108;
-
-if isunix && ~ismac
-    b = 1.25;
-    y0 = b*y0;
-    x0 = b*x0;
-    ah = b*ah;
-    aw = b*aw;
-    ahi = b*ahi;
-    awi = b*awi;
-    pos(3:4) = b*pos(3:4);
-end
-
-figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', 'Lifetime histograms (raw)');
-
-axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+figure;
+axes(fset.axOpts{:});
 hold on;
 for i = 1:nd
     plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
 end
-hp = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
-
-% ya = 0:0.01:0.05;
+plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
 ya = 0:0.02:0.1;
 axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
 xlabel('Lifetime (s)', fset.lfont{:});
 ylabel('Frequency', fset.lfont{:});
 
-axes('Units', 'pixels', 'Position', [x0+aw-awi y0+ah-ahi awi ahi]);
-hold on;
+% Inset with zoom
+zf = 0.6;
+aw = fset.axPos(3);
+ah = fset.axPos(4);
+axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
 hold on;
 for i = 1:nd
     plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
@@ -432,7 +411,8 @@ end
 hp = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
 axis([0 60 0 0.035]);
 ya = 0:0.01:0.04;
-set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+set(gca, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+
 % print('-depsc2', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
 %%
@@ -443,8 +423,8 @@ lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1));
 [uCDF idx] = unique(lftCDF);
 lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
 
-figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', 'Cumulative lifetime distribution (raw)');
-axes('Units', 'pixels', 'Position', [x0 y0 aw ah]);
+figure;
+axes(fset.axOpts{:});
 hold on;
 idx = find(lftRes.t==round(lft50/framerate));
 fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
@@ -452,7 +432,7 @@ plot(lftRes.t, cumsum(mean(vertcat(lftRes.lftHist_Ia), 1)), 'k', 'LineWidth', 2)
 
 ya = 0:0.2:1;
 axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-set(gca, fset.axOpts{:}, 'LineWidth', 1.5, fset.sfont{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
 xlabel('Lifetime (s)', fset.lfont{:});
 ylabel('Cumulative frequency', fset.lfont{:});
 % print('-depsc2', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
