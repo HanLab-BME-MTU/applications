@@ -386,7 +386,7 @@ colorV = hsv(nd);
 colorV = colorV(idxa,:);
 fset = loadFigureSettings('print');
 
-figure;
+figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
 axes(fset.axOpts{:});
 hold on;
 for i = 1:nd
@@ -423,7 +423,7 @@ lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1));
 [uCDF idx] = unique(lftCDF);
 lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
 
-figure;
+figure(fset.fOpts{:}, 'Name', 'Cumulative lifetime distribution');
 axes(fset.axOpts{:});
 hold on;
 idx = find(lftRes.t==round(lft50/framerate));

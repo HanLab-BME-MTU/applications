@@ -84,16 +84,13 @@ else
         colorV = zeros(nd,3);
         
         fset = loadFigureSettings('print');
-        fset.axOpts = [fset.axOpts, {'TickLength', [0.015 0]}];
         T99 = prctile(samples{refIdx}, 99.9);
         lw = 1;
-
-        %figure('Position', pos, 'PaperPositionMode', 'auto', 'Color', 'w', 'Name', ip.Results.FigureName);
-        figure;
+        
         axPos = fset.axPos;
         dx = 0.3*fset.axPos(4);
+        figure(fset.fOpts{:}, 'Position', [5 5 8.5 1.5+axPos(4)*2+dx+1], 'Color', 'w', 'Name', ip.Results.FigureName);
         axPos(2) = axPos(2)+dx+axPos(4);
-        
         
         axes(fset.axOpts{:}, 'Position', axPos);
         hold on;
