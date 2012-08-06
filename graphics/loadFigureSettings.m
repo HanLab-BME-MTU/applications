@@ -31,14 +31,14 @@ fset.fontName = {'FontName', 'Helvetica'};
 switch mode
     case 'print'
         fset.units = 'centimeters';
-        %fset.axPos = [2 2 5.5 3.4];
-        fset.axPos = [2 2 6 3.5];
+        fset.axPos = [1.5 1.5 6 3.5];
         fset.ifont = [fset.fontName, 'FontSize', 5];
-        fset.tfont = [fset.fontName, 'FontSize', 7];
+        fset.tfont = [fset.fontName, 'FontSize', 6];
         fset.sfont = [fset.fontName, 'FontSize', 8];
         fset.lfont = [fset.fontName, 'FontSize', 10];
         fset.TickLength = [0.015 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', fset.TickLength];
+        fset.fOpts = {'Units', fset.units, 'Position', [2 2 sum(fset.axPos([1 3]))+1 sum(fset.axPos([2 4]))+1], 'PaperPositionMode', 'auto'};
     otherwise
         fset.units = 'normalized';
         fset.axPos = get(0, 'DefaultAxesPosition');
@@ -48,8 +48,11 @@ switch mode
         fset.lfont = [fset.fontName, 'FontSize', 24];
         fset.TickLength = [0.01 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
+        fset.fOpts = {'Position', get(0, 'DefaultFigurePosition')};
 end
 fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
+
+
 
 ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
 % ce = [0 1 0; 1 0 0; 1 0.5 0; 1 1 0; 0 1 1; 0.5 0 1; 0 0 1; 0 0.5 1];
