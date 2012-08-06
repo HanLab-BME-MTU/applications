@@ -28,8 +28,10 @@ p = parseProcessParams(postProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 
-assert(~isempty(movieData.timeInterval_));
-assert(~isempty(movieData.pixelSize_));
+errorMsg = @(metadata) ['Missing ' metadata '. Please in the movie''s '...
+    metadata ' before  post-processing the tracks.'];
+assert(~isempty(movieData.timeInterval_), errorMsg('time interval'));
+assert(~isempty(movieData.pixelSize_), errorMsg('pixels size'));
 
 % Check detection process first
 iTrackProc =movieData.getProcessIndex('TrackingProcess',1,1);
