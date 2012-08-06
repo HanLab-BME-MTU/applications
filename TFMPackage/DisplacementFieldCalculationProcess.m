@@ -123,9 +123,6 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             funParams.ChannelIndex = 1;
             funParams.OutputDirectory = [outputDir  filesep 'displacementField'];
             funParams.referenceFramePath='';
-            funParams.I0=[];
-            funParams.sDN=[];
-            funParams.GaussRatio=[];
             funParams.alpha=.05;
             funParams.minCorLength = 21;
             funParams.maxFlowSpeed =20;

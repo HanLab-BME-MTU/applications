@@ -123,10 +123,7 @@ classdef StageDriftCorrectionProcess < ImageProcessingProcess
             funParams.referenceFramePath = '';
             funParams.minCorLength = 51;
             funParams.maxFlowSpeed =5;
-            funParams.I0=[];
-            funParams.sDN=[];
-            funParams.GaussRatio=[];
-            funParams.alpha=.05;
+            funParams.alpha = .05;
             funParams.cropROI=[1 1 owner.imSize_(end:-1:1)];
             funParams.doPreReg=1;
         end

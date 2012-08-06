@@ -56,7 +56,7 @@ funParams = userData.crtProc.funParams_;
 
 set(handles.edit_referenceFramePath,'String',funParams.referenceFramePath);
 
-userData.numParams = {'I0','sDN','GaussRatio','alpha','minCorLength','maxFlowSpeed'};
+userData.numParams = {'alpha','minCorLength','maxFlowSpeed'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),userData.numParams);
 set(handles.checkbox_doPreReg,'Value',funParams.doPreReg);
 set(handles.edit_maxFlowSpeedNmMin,'String',...
@@ -223,6 +223,7 @@ if get(handles.checkbox_crop,'Value')
     if ~isfield(userData, 'previewFig') || ~ishandle(userData.previewFig)
         userData.previewFig = figure('Name','Select the region to crop',...
             'DeleteFcn',@close_previewFig,'UserData',handles.figure1);
+        axes('Position',[.05 .05 .9 .9]);
         userData.newFigure = 1;
     else
         figure(userData.previewFig);
@@ -292,29 +293,6 @@ set(handles.edit_frameNumber,'String',frameNumber);
 set(handles.figure1, 'UserData', userData);
 guidata(hObject, handles);
 update_data(hObject,eventdata,handles);
-
-
-% --- Executes on button press in pushbutton_loadNoiseParameters.
-function pushbutton_loadNoiseParameters_Callback(hObject, eventdata, handles)
-[file path]=uigetfile({'*.mat;*.MAT',...
-    'Mat files (*.mat)'},...
-    'Select the file containing the noise model parameters');
-if ~isequal(file,0) && ~isequal(path,0)
-    noiseParams={'I0','sDN','GaussRatio'};
-    vars=whos(noiseParams{:},'-file',[path file]);
-    if numel(vars)~=numel(noiseParams),
-        errordlg('Please select a file containing valid noise model parameters');
-        return 
-    end
-    
-    s=load([path file],noiseParams{:});
-    for i=1:numel(noiseParams)
-        set(handles.(['edit_' noiseParams{i}]),'String',s.(noiseParams{i}),...
-            'Enable','on');
-        
-    end
-end
-
 
 function edit_maxFlowSpeed_Callback(hObject, eventdata, handles)
 userData=get(handles.figure1,'UserData');

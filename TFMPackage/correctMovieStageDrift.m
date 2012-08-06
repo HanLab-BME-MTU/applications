@@ -49,9 +49,7 @@ end
 % Reading various constants
 imDirs  = movieData.getChannelPaths;
 imageFileNames = movieData.getImageFileNames;
-bitDepth = movieData.camBitdepth_;
 nFrames = movieData.nFrames_;
-maxIntensity =(2^bitDepth-1);
 
 % Set up the input directories (input images)
 inFilePaths = cell(3,numel(movieData.channels_));
@@ -77,35 +75,31 @@ displFieldProc.setOutFilePaths(outFilePaths);
 
 disp('Starting correcting stage drift...')
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 outFile=@(chan,frame) [outFilePaths{1,chan} filesep imageFileNames{chan}{frame}];
 
 % Loading reference channel images and cropping reference frame
 refFrame = double(imread(p.referenceFramePath));
 croppedRefFrame = imcrop(refFrame,p.cropROI);
-stack = zeros([movieData.imSize_ nFrames]);
-disp('Loading stack...');
-for j = 1:nFrames, stack(:,:,j) = double(imread(inImage(p.ChannelIndex(1),j))); end
 
 % Detect beads in reference frame
 disp('Detecting beads in the reference frame...')
-filteredRefFrame = filterGauss2D(croppedRefFrame/maxIntensity,...
-    movieData.channels_(p.ChannelIndex(1)).psfSigma_);
-k = fzero(@(x)diff(normcdf([-Inf,x]))-1+p.alpha,1);
-noiseParam = [k/p.GaussRatio p.sDN 0 p.I0];
-cands = detectSpeckles(filteredRefFrame,noiseParam,[1 0]);
-
-% Exclude insignificant candidates and transform beads into xy coordinate system
-M = vertcat(cands([cands.status]==1).Lmax);
-beads = M(:,2:-1:1);
+sigmaPSF = movieData.channels_(1).psfSigma_;
+pstruct = pointSourceDetection(croppedRefFrame, sigmaPSF, 'alpha', p.alpha);
+beads = [pstruct.x' pstruct.y'];
 
 % Select only beads  which are minCorLength away from the border of the
 % cropped reference frame
-beadsMask = true(size(filteredRefFrame));
+beadsMask = true(size(croppedRefFrame));
 erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-indx=beadsMask(sub2ind(size(beadsMask),beads(:,2),beads(:,1)));
+indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
+assert(size(beads,1)>=50, 'Insufficient number of detected beads (less than 50)');
+
+stack = zeros([movieData.imSize_ nFrames]);
+disp('Loading stack...');
+for j = 1:nFrames, stack(:,:,j) = double(movieData.channels_(1).loadImage(j)); end
+
 
 if p.doPreReg % Perform pixel-wise registration by auto-correlation
     % Initialize subpixel transformation array
@@ -238,7 +232,7 @@ for i = 1:numel(p.ChannelIndex)
              % Apply subpixel-wise registration to other channels
              Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(j, :)) 1]);
          end
-        I = padarray(double(imread(inImage(iChan,j))), [maxY, maxX]);
+        I = padarray(double(movieData.channels_(iChan).loadImage(j)), [maxY, maxX]);
         I2 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
           
         % Statistically test the local maxima to extract (significant) speckles
