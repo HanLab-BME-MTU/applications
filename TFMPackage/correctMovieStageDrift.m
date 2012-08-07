@@ -83,8 +83,12 @@ croppedRefFrame = imcrop(refFrame,p.cropROI);
 
 % Detect beads in reference frame
 disp('Detecting beads in the reference frame...')
-sigmaPSF = movieData.channels_(1).psfSigma_;
-pstruct = pointSourceDetection(croppedRefFrame, sigmaPSF, 'alpha', p.alpha);
+beadsChannel = movieData.channels_(p.ChannelIndex(1));
+psfSigma = beadsChannel.psfSigma_;
+assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
+    'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
+    'as well as the pixel size and numerical aperture of the movie']);
+pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 
 % Select only beads  which are minCorLength away from the border of the
@@ -98,7 +102,7 @@ assert(size(beads,1)>=50, 'Insufficient number of detected beads (less than 50)'
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
-for j = 1:nFrames, stack(:,:,j) = double(movieData.channels_(1).loadImage(j)); end
+for j = 1:nFrames, stack(:,:,j) = double(beadsChannel.loadImage(j)); end
 
 
 if p.doPreReg % Perform pixel-wise registration by auto-correlation
