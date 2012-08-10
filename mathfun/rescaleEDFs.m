@@ -102,7 +102,7 @@ else
         axis([0 T99 0 1.01]);
         set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
         ylabel('Cumulative frequency', fset.lfont{:});
-        text(0, 1.1, 'Raw EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
+        text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
         hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:});
         
@@ -118,7 +118,7 @@ else
         set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('Cumulative frequency', fset.lfont{:});
-        text(0, 1.1, 'Scaled EDF', 'HorizontalAlignment', 'left', fset.lfont{:});
+        text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
          
         
         % Plot inset with scales
