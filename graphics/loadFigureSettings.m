@@ -38,7 +38,8 @@ switch mode
         fset.lfont = [fset.fontName, 'FontSize', 10];
         fset.TickLength = [0.015 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', fset.TickLength];
-        fset.fOpts = {'Units', fset.units, 'Position', [2 2 sum(fset.axPos([1 3]))+1 sum(fset.axPos([2 4]))+1], 'PaperPositionMode', 'auto'};
+        fset.fOpts = {'Units', fset.units, 'Position', [2 2 sum(fset.axPos([1 3]))+0.5 sum(fset.axPos([2 4]))+0.5],...
+            'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off'};
     otherwise
         fset.units = 'normalized';
         fset.axPos = get(0, 'DefaultAxesPosition');
