@@ -369,7 +369,6 @@ for i = 1:nd
         res(i).lftBelowT = res(i).lft_all(~idxMI);
         lftRes.pctAbove(i) = sum(idxMI)/numel(idxMI);
     end
-    
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
     %t = (1:N)*framerate;
@@ -394,6 +393,7 @@ for i = 1:nd
     %normB = sum(lftHist_B);
     lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
     lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+    lftRes.visitIdx{i} = idxLft;
     
     if ip.Results.ExcludeVisitors
         lftHist_V = hist(res(i).lftVisitors, t);
