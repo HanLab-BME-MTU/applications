@@ -5,10 +5,12 @@ ip.CaseSensitive = false;
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
 ip.addParamValue('XTick', []);
 ip.addParamValue('FirstNFrames', 5);
-ip.addParamValue('CohortLB', [1  11 16 21 41 61 81]);
+ip.addParamValue('CohortLB', [5  11 16 21 41 61 81]);
 ip.addParamValue('CohortUB', [10 15 20 40 60 80 120]);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
-ip.addParamValue('ShowSignificance', true, @islogical);
+ip.addParamValue('ShowSignificance', false, @islogical);
+ip.addParamValue('ShowGaussians', false, @islogical);
+ip.addParamValue('Cutoff_f', 5);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
 
@@ -23,7 +25,8 @@ nc = numel(lb);
 ny = nc;
 
 lftData = getLifetimeData(data);
-maxA_all = arrayfun(@(i) nanmax(i.A,[],2), lftData, 'UniformOutput', false);
+A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:), lftData, 'UniformOutput', false);
+maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
 
 % Rescale EDFs (correction for FP-fusion expression level)
 a = rescaleEDFs(maxA_all, 'Display', false);
@@ -31,19 +34,20 @@ a = rescaleEDFs(maxA_all, 'Display', false);
 % apply scaling
 nd = numel(data);
 for i = 1:nd
-    lftData(i).A = a(i) * lftData(i).A;
     maxA_all{i} = a(i) * maxA_all{i};
+    A{i} = a(i)*A{i};
 end
 
+
 % Concatenate maximum intensity and lifetime data
-maxA = vertcat(maxA_all{:});
-
+maxA = [maxA_all{:}];
+A = vertcat(A{:});
 f = ip.Results.FirstNFrames;
-maxAFirstN = arrayfun(@(i) nanmax(i.A(:,1:f),[],2), lftData, 'UniformOutput', false);
-maxAFirstN = vertcat(maxAFirstN{:});
 
-lifetime_s = arrayfun(@(i) i.lifetime_s([i.catIdx]==1), lftData, 'UniformOutput', false);
-lifetime_s = [lifetime_s{:}];
+maxAFirstN = nanmax(A(:,1:f), [], 2);
+
+lifetime_s = [lftData.lifetime_s];
+lifetime_s = lifetime_s([lftData.trackLengths]>=ip.Results.Cutoff_f & [lftData.catIdx]==1);
 
 % x-axis
 xa = ip.Results.XTick;
@@ -118,12 +122,14 @@ xo = 1.5;
 yo = 1.5;
 sh = ah/3;
 
+cmap = jet(nc);
+
 % figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 figure('Units', 'centimeters', 'Position', [5 5 8.5 ny*ah+(ny-1)*sh+2.5], 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 hbg = axes('Units', 'centimeters', 'Position', [0 0 2*xo+aw+2 2*yo+ny*ah+(ny-1)*sh]);
 hold(hbg, 'on');
 axis(hbg, [0 2*xo+aw+2 0 2*yo+ny*ah+(ny-1)*sh]);
-for k = 1:numel(lb)
+for k = 1:nc
     
     iPos = [xo yo+(ny-k)*(ah+sh) aw ah];
     % plot grid below data
@@ -138,19 +144,18 @@ for k = 1:numel(lb)
     hold on;
     box off;
     
-    %pct = prctile(maxAcohort{k}, [5 50 95]);
-    
     if strcmpi(mode, 'pdf')
         
         bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.75);
         bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.75);
         stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
         
-        %if ub(k)<10
-        %    [mu_g(k) sigma_g(k) xg g] = fitGaussianModeToHist(xi, ni{k});
-        %    plot(xg, g, 'g', 'LineWidth', 1.5);
-        %    plot(norminv(0.95, mu_g(k), sigma_g(k))*[1 1], [0 3/5*ya(end)], 'g--', 'LineWidth', 1.5);
-        %end
+        if ip.Results.ShowGaussians
+            [mu_g,sigma_g,xg,g] = fitGaussianModeToHist(xi, niFirstN{k}/dxi);
+            %[mu_g,sigma_g,xg,g] = fitGaussianModeToCDF(maxAcohortFirstN{k});
+            plot(xg, g*dxi, 'Color', cmap(k,:), 'LineWidth', 1);
+            plot(norminv(0.99, mu_g, sigma_g)*[1 1], [0 0.15], '--', 'Color', cmap(k,:), 'LineWidth', 1);
+        end
         
         %plot(repmat(pct, [2 1]), repmat([0 3/5*ya(end)]', [1 numel(pct)]), 'r--', 'LineWidth', 1.5);
         axis([xa(1) xa(end) ya(1) ya(end)]);

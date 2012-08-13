@@ -18,12 +18,14 @@ ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
+ip.addParamValue('FirstNFrames', []);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
 nd = length(data);
 nc = numel(lb); % # cohorts
 mCh = find(strcmp(data(1).source, data(1).channels));
+FirstNFrames = ip.Results.FirstNFrames;
 
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
@@ -133,11 +135,12 @@ lftRes.cellArea = zeros(nd,1);
 for i = 1:nd
     
     % apply frames cutoff for short tracks
-    lftData(i).A(lftData(i).trackLengths(lftData(i).catIdx==1)<cutoff_f,:) = [];
-    idx = lftData(i).trackLengths(lftData(i).catIdx==1) < cutoff_f;
+    rmIdx = lftData(i).trackLengths(lftData(i).catIdx==1) < cutoff_f;
+    lftData(i).A(rmIdx,:) = [];
+    lftData(i).sbA(rmIdx,:) = [];
     for f = 1:numel(lftFields)
         lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
-        lftData(i).(lftFields{f})(idx) = [];
+        lftData(i).(lftFields{f})(rmIdx) = [];
     end
     lifetime_s = lftData(i).lifetime_s;
     %lftData(i).lifetimeScaled = lftData(i).lifetimeScaled(lftData(i).lifetimeScaled>=cutoff_f);
@@ -207,10 +210,7 @@ for i = 1:nd
         % indexes within cohorts
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
         res(i).maxA{k} = nanmax(lftData(i).A(cidx,:),[],2);
-        for n = firstN
-           res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).A(cidx,1:n),[],2);
-        end
-        
+
         % lifetimes for given cohort
         res(i).lft{k} = lifetime_s(cidx);
     end
@@ -277,16 +277,44 @@ fprintf('-------------------------------------------------\n');
 % Threshold
 %====================
 if isempty(ip.Results.MaxIntensityThreshold)
+    A = arrayfun(@(i) i.A, lftData, 'UniformOutput', false);
+    A = vertcat(A{:});
+    lft = [lftData.lifetime_s];
+    
+    lb = [1  11 16 21 41 61];
+    ub = [10 15 20 40 60 120];
+    nc = numel(lb);
+    
+    if isempty(FirstNFrames)
+        frameRange = 3:12;
+        hval = zeros(1,frameRange(end));
+        for ni = 1:numel(frameRange)
+            M = max(A(:,1:frameRange(ni)),[],2);
+            
+            muC = zeros(1,nc);
+            sC = zeros(1,nc);
+            for c = 1:nc
+                cidx = lb(c)<=lft & lft<=ub(c);
+                [muC(c) sC(c)] = fitGaussianModeToCDF(M(cidx,:));
+            end
+            hval(frameRange(ni)) = adtest(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
+        end
+        FirstNFrames = find(hval==1, 1, 'first')-1;
+    end
+    
+    M = max(A(:,1:FirstNFrames),[],2);
+    [mu_g sigma_g] = fitGaussianModeToCDF(M);
+    T = norminv(0.99, mu_g, sigma_g);
     % lifetime cohort: [5..10] seconds
     % combine first 5 frames from all cohorts
     
-    maxIntDistCat_f5 = horzcat(res.maxA_f5);
-    maxIntDistCat_f5 = vertcat(maxIntDistCat_f5{:});
+    %maxIntDistCat_f5 = horzcat(res.maxA_f5);
+    %maxIntDistCat_f5 = vertcat(maxIntDistCat_f5{:});
     
     %[mu_g sigma_g] = fitGaussianModeToPDF(maxIntDistCat_f5);
-    [mu_g sigma_g] = fitGaussianModeToCDF(maxIntDistCat_f5);
-    T = norminv(0.99, mu_g, sigma_g);
-    fprintf('Max. intensity threshold: %.2f\n', T);
+    %[mu_g sigma_g] = fitGaussianModeToCDF(maxIntDistCat_f5);
+    %T = norminv(0.99, mu_g, sigma_g)
+    fprintf('Max. intensity threshold on first %d frames: %.2f\n', FirstNFrames, T);
 else
     T = ip.Results.MaxIntensityThreshold;
 end
@@ -297,11 +325,20 @@ intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength), lftData, 'UniformOutput', fals
 intMat_Ia_all = vertcat(intMat_Ia_all{:});
 lifetime_s_all = [res.lft_all];
 
+startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
+startBufferA = vertcat(startBufferA{:});
+
 tx = 30;
 
 % 95th percentile of the reference (above threshold) distribution
 pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
 
+pAbove = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
+% pBelow = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 2.5, 1);
+
+pBuffer = prctile(startBufferA(lifetime_s_all>=tx,:), 5);
+
+% tx = 20;
 % loop through data sets, apply max. intensity threshold
 for i = 1:nd
     
@@ -311,14 +348,27 @@ for i = 1:nd
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
     if ip.Results.ExcludeVisitors
-        idxLft = sum(lftData(i).A(:,1:3)>repmat(pRef, [size(lftData(i).A,1) 1]),2)>0 & res(i).lft_all'<tx;
-        % combined index
-        idxMI = idxMI & ~idxLft';
+        idxLft = sum(lftData(i).A(:,1:3)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & res(i).lft_all<tx;
+        
+        %idxLft = (lftData(i).sbA(:,3)<pBuffer(3) | lftData(i).sbA(:,4)<pBuffer(4) | lftData(i).sbA(:,5)<pBuffer(5))' &...
+        %    (lftData(i).A(:,1)>pAbove(1) | lftData(i).A(:,2)>pAbove(2) | lftData(i).A(:,3)>pAbove(3))';
+        
+%         idxLft = (lftData(i).sbA(:,4)<pBuffer(4) & lftData(i).sbA(:,5)<pBuffer(5))';
+        
+%         idxLft = sum(lftData(i).A(:,1:3)>repmat(pAbove, [size(lftData(i).A,1) 1]) |...
+%             lftData(i).A(:,1:3)<repmat(pBelow, [size(lftData(i).A,1) 1]),2)'>=1 & res(i).lft_all<tx;
+        
+        res(i).lftVisitors = res(i).lft_all(idxLft);
+        res(i).lftAboveT = res(i).lft_all(~idxLft & idxMI);
+        res(i).lftBelowT = res(i).lft_all(~idxLft & ~idxMI);
+        lftRes.pctAbove(i) = numel(res(i).lftAboveT)/numel(idxMI);
+        lftRes.pctBelow(i) = numel(res(i).lftBelowT)/numel(idxMI);
+        lftRes.pctVisit(i) = numel(res(i).lftVisitors) / numel(idxMI);
+    else
+        res(i).lftAboveT = res(i).lft_all(idxMI);
+        res(i).lftBelowT = res(i).lft_all(~idxMI);
+        lftRes.pctAbove(i) = sum(idxMI)/numel(idxMI);
     end
-    
-    res(i).lftAboveT = res(i).lft_all(idxMI);
-    res(i).lftBelowT = res(i).lft_all(~idxMI);
-    lftRes.pctAbove(i) = sum(idxMI)/numel(idxMI);
     
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
@@ -344,6 +394,12 @@ for i = 1:nd
     %normB = sum(lftHist_B);
     lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
     lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+    
+    if ip.Results.ExcludeVisitors
+        lftHist_V = hist(res(i).lftVisitors, t);
+        lftHist_V = [lftHist_V.*w pad0];
+        lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V) / framerate;
+    end
     
     % Multi-channel data
     if isfield(res, 'significantSignal')
@@ -378,6 +434,9 @@ lftRes.lftHist_Ia = vertcat(res.lftHist_Ia);
 lftRes.nSamples_Ia = [res.nSamples_Ia];
 lftRes.data = data;
 
+if ip.Results.ExcludeVisitors
+    lftRes.meanLftHist_V = mean(lftRes.lftHist_V(i,:),1);
+end
 
 
 
@@ -418,34 +477,36 @@ axis([0 60 0 0.035]);
 ya = 0:0.01:0.04;
 set(gca, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
 
-% print('-depsc2', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
+% print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
 %%
 %---------------------------------------
 % CDF plot of the raw lifetimes
 %---------------------------------------
-lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1));
-[uCDF idx] = unique(lftCDF);
-lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
-
-figure(fset.fOpts{:}, 'Name', 'Cumulative lifetime distribution');
-axes(fset.axOpts{:});
-hold on;
-idx = find(lftRes.t==round(lft50/framerate));
-fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
-plot(lftRes.t, cumsum(mean(vertcat(lftRes.lftHist_Ia), 1)), 'k', 'LineWidth', 2);
-
-ya = 0:0.2:1;
-axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Cumulative frequency', fset.lfont{:});
-% print('-depsc2', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
+% lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
+% [uCDF idx] = unique(lftCDF);
+% lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
+% 
+% figure(fset.fOpts{:}, 'Name', 'Cumulative lifetime distribution');
+% axes(fset.axOpts{:});
+% hold on;
+% idx = find(lftRes.t==round(lft50/framerate)*framerate);
+% fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
+% plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
+% plot([0 lft50], [0.5 0.5], 'k--');
+% 
+% ya = 0:0.25:1;
+% axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+% set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+% xlabel('Lifetime (s)', fset.lfont{:});
+% ylabel('Cumulative frequency', fset.lfont{:});
+% % print('-depsc2', '-loose', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
 %%
-
-
 plotLifetimes(lftRes);
+
+return
+
 
 
 %=====================================================================

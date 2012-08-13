@@ -12,7 +12,7 @@ function [a c refIdx] = rescaleEDFs(samples, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Display', false, @islogical);
-ip.addParamValue('Reference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
+ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('FigureName', 'EDF scaling');
 ip.parse(varargin{:});
 
@@ -56,6 +56,8 @@ else
             medianEDF = median(M,1);
             J = nansum((M-repmat(medianEDF, [nd 1])).^2, 2);
             refIdx = find(J==min(J),1,'first');
+        otherwise
+            refIdx = ip.Results.Reference;
     end
     idx = setdiff(1:nd, refIdx);
     

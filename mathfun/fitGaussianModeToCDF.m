@@ -1,4 +1,4 @@
-function [mu sigma x g] = fitGaussianModeToCDF(samples, varargin)
+function [mu sigma xi g] = fitGaussianModeToCDF(samples, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -31,12 +31,13 @@ g = exp(-(xi-mu).^2/(2*sigma^2)) / sqrt(2*pi)/sigma;
 % adjust A for density plot
 T = find(xi>mu, 1, 'first')-1;
 A = sum(f(1:T).*g(1:T)) / sum(g(1:T).^2);
+g = A*g;
 
 if ip.Results.Display
     figure;
     hold on;
     plot(xi, f, 'k-');
-    plot(xi, A*g, 'r');
+    plot(xi, g, 'r');
 end
 
 

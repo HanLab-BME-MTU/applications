@@ -40,9 +40,10 @@ switch mode
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', fset.TickLength];
         fset.fOpts = {'Units', fset.units, 'Position', [2 2 sum(fset.axPos([1 3]))+0.5 sum(fset.axPos([2 4]))+0.5],...
             'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off'};
+        fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
     otherwise
         fset.units = 'normalized';
-        fset.axPos = get(0, 'DefaultAxesPosition');
+        %fset.axPos = [];%get(0, 'DefaultAxesPosition');
         fset.ifont = [fset.fontName, 'FontSize', 12];
         fset.tfont = [fset.fontName, 'FontSize', 16];
         fset.sfont = [fset.fontName, 'FontSize', 20];
@@ -51,7 +52,6 @@ switch mode
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
         fset.fOpts = {'Position', get(0, 'DefaultFigurePosition')};
 end
-fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
 
 
 
