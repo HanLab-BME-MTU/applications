@@ -821,7 +821,7 @@ for j = 1:(nStrips+1)
         %areas inside the innermost contours
         if nBandCur > 0 && nBandCur == nBandPrev && ...
                 sqrt(sum(diff([slices{j-1}(:,end) slices{j}(:,end)],1,2).^2)) <=1 ...
-                    && ~isCollapsed
+                    && ~isCollapsed && minBandsCur > 0
 
             %Corner where slices hit local maxima of distance transform
             e = slices{j-1}(:,end); %Should we instead use the first point where they overlap?
@@ -830,7 +830,7 @@ for j = 1:(nStrips+1)
             be = slices{j-1}(:,ceil(iSintPrev(iContIntPrev(nBandCur+1))):end);
             %Side from intersection back to previous windows c corner               
             ec = slices{j}(:,end:-1:ceil(iSintCur(iContIntCur(nBandCur+1))));  
-            %Previous windows cb side               
+            %Previous windows cb side
             cb = contours{iContIntPrev(nBandCur+1)}(:,floor(iCintCur(iContIntCur(nBandCur+1))):-1:ceil(iCintPrev(iContIntPrev(nBandCur+1))));    
 
             windows{j-1}{nBandCur+1} = {[b be],[e ec],[c cb]};
