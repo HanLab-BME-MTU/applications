@@ -50,7 +50,7 @@ switch mode
         fset.lfont = [fset.fontName, 'FontSize', 24];
         fset.TickLength = [0.01 0.025];
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
-        fset.fOpts = {'Position', get(0, 'DefaultFigurePosition')};
+        fset.fOpts = {'Position', get(0, 'DefaultFigurePosition'), 'Color', 'w'};
 end
 
 
