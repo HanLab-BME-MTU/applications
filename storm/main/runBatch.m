@@ -63,8 +63,8 @@ if ~isempty(dirName)
     jm = findResource('scheduler','type','lsf');
     set(jm,'ClusterMatlabRoot','/opt/matlab');
     set(jm, 'DataLocation','~/jobs');
-    set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=4000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_7d']);
-    % set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=4000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_7d -m ' hostlist]);
+    %set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=4000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_7d']);
+    set(jm, 'SubmitArguments', ['-n ' num2str(nCoresMin) ' -R "rusage[mem=4000:matlab_dc_lic=1] && span[hosts=1]" -q danuser_7d -m "' hostlist '"']);
     
     % Process all the inputs
     job = cell(numel(dirName),1);
