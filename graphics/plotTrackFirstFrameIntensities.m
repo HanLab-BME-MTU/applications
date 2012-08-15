@@ -32,16 +32,18 @@ kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
 
 YLim = ip.Results.YLim;
 
+% pctVal = [50 25 75 2.5 97.5];
+pctVal = [50 25 75 5 95];
 
 %----------------------------------------------------
 % Start buffer, all tracks
 %----------------------------------------------------
 nb = 5;
-pct1 = kLevel*prctile(lftData.sigma_r_Ia(:,1:nb+1,mCh), [50 25 75 2.5 97.5], 1);
-pct2 = prctile([lftData.startBuffer_Ia(:,:,mCh) lftData.intMat_Ia(:,1,mCh)], [50 25 75 2.5 97.5], 1);
+pct1 = kLevel*prctile([lftData.sbSigma_r(:,:,mCh) lftData.sigma_r(:,1,mCh)], pctVal, 1);
+pct2 = prctile([lftData.sbA(:,:,mCh) lftData.A(:,1,mCh)], pctVal, 1);
 
 xlabels = [arrayfun(@(i) [num2str(i*data.framerate) ' s'], -nb:-1, 'UniformOutput', false) {'First frame'}];
-figure;
+figure('Name', 'Start buffer intensities');
 plot([0 4*nb], [0 0], 'k--', 'HandleVisibility', 'off');
 boxplot2({pct1, pct2}, ...
     'FaceColor', [0.8 0.8 0.8; 0.7 0.9 1], 'EdgeColor', [0.6 0.6 0.6; 0 0.7 1],...
@@ -59,18 +61,21 @@ end
 %----------------------------------------------------
 % End buffer, all tracks
 %----------------------------------------------------
-nt = size(lftData.intMat_Ia,1);
+nt = size(lftData.A,1);
 M = zeros(nt,nb+1);
-endVal = zeros(nt,1);
+endVal_A = zeros(nt,1);
+endVal_s = zeros(nt,1);
 for k = 1:nt
-    M(k,:) = lftData.sigma_r_Ia(k,trackLengths_f(k)+(0:nb),mCh);
-    endVal(k) = lftData.intMat_Ia(k,trackLengths_f(k),mCh);
+    %M(k,:) = lftData.sigma_r_Ia(k,trackLengths_f(k)+(0:nb),mCh);
+    endVal_A(k) = lftData.A(k,trackLengths_f(k),mCh);
+    endVal_s(k) = lftData.sigma_r(k,trackLengths_f(k),mCh);
 end
-pct1 = kLevel*prctile(M, [50 25 75 2.5 97.5], 1);
-pct2 = prctile([endVal lftData.endBuffer_Ia(:,:,mCh)], [50 25 75 2.5 97.5], 1);
+%pct1 = kLevel*prctile(M, pctVal, 1);
+pct1 = prctile([endVal_s lftData.ebSigma_r(:,:,mCh)], pctVal, 1);
+pct2 = prctile([endVal_A lftData.ebA(:,:,mCh)], pctVal, 1);
 
 xlabels = [{'Last frame'} arrayfun(@(i) ['+' num2str(i*data.framerate) ' s'], 1:5, 'UniformOutput', false)];
-figure;
+figure('Name', 'End buffer intensities');
 plot([0 4*nb], [0 0], 'k--', 'HandleVisibility', 'off');
 boxplot2({pct1, pct2}, ...
     'FaceColor', [0.8 0.8 0.8; 0.7 0.9 1], 'EdgeColor', [0.6 0.6 0.6; 0 0.7 1],...
@@ -89,25 +94,31 @@ cPctBG = zeros(5,nc);
 bPct = zeros(5,nc);
 bPctBG = zeros(5,nc);
 intRatioPercentiles = zeros(5,nc);
+diffPct = zeros(5,nc);
+diffPctBG = zeros(5,nc);
+
 for k = 1:nc
     cIdx = cohortBounds(k)<=trackLengths_f & trackLengths_f<cohortBounds(k+1);
     
     %A0 = arrayfun(@(t) t.A(mCh,1), tracks(cIdx));
-    A0 = lftData.intMat_Ia(cIdx,1,mCh);
+    A0 = lftData.A(cIdx,1,mCh);
     
     %maxInts = arrayfun(@(t) max(t.A(mCh,:)), tracks(cIdx));
-    maxInts = nanmax(lftData.intMat_Ia(cIdx,:),[],2);
+    maxInts = nanmax(lftData.A(cIdx,:),[],2);
     % percentiles of the max. int. to 1st frame int. ratio
-    intRatioPercentiles(:,k) = prctile(maxInts ./ A0, [50 25 75 2.5 97.5]);
+    intRatioPercentiles(:,k) = prctile(maxInts ./ A0, pctVal);
     
-    bPct(:,k) = prctile(lftData.startBuffer_Ia(cIdx,end,mCh), [50 25 75 2.5 97.5]);
-    bPctBG(:,k) = kLevel*prctile(lftData.sigma_r_Ia(cIdx,nb+1,mCh), [50 25 75 2.5 97.5]);
+    bPct(:,k) = prctile(lftData.sbA(cIdx,end,mCh), pctVal);
+    bPctBG(:,k) = kLevel*prctile(lftData.sigma_r(cIdx,1,mCh), pctVal);
     
-    cPct(:,k) = prctile(lftData.intMat_Ia(cIdx,1,mCh), [50 25 75 2.5 97.5]);
-    cPctBG(:,k) = kLevel*prctile(lftData.sigma_r_Ia(cIdx,nb+1,mCh), [50 25 75 2.5 97.5]);
+    cPct(:,k) = prctile(lftData.A(cIdx,1,mCh), pctVal);
+    cPctBG(:,k) = kLevel*prctile(lftData.sigma_r(cIdx,1,mCh), pctVal);
+
+    diffPct(:,k) = prctile(lftData.A(cIdx,1,mCh) - lftData.sbA(cIdx,end,mCh), pctVal);
+    diffPctBG(:,k) = kLevel*prctile(lftData.sigma_r(cIdx,1,mCh) - lftData.sbSigma_r(cIdx,end,mCh), pctVal);
 end
 
-figure;
+figure('Name', '1st frame intensities');
 boxplot2({cPctBG, cPct}, ...
     'FaceColor', [0.8 0.8 0.8; 0.7 0.9 1], 'EdgeColor', [0.6 0.6 0.6; 0 0.7 1],...
     'GroupDistance', 1, 'BarWidth', 1,...
@@ -120,7 +131,7 @@ if ip.Results.Print
 end
 
 
-figure;
+figure('Name', 'Last buffer frame intensities');
 boxplot2({bPctBG, bPct}, ...
     'FaceColor', [0.8 0.8 0.8; 0.7 0.9 1], 'EdgeColor', [0.6 0.6 0.6; 0 0.7 1],...
     'GroupDistance', 1, 'BarWidth', 1,...
@@ -130,6 +141,18 @@ hl = legend('Background noise threshold', 'Intensity', 'Location', 'North');
 set(hl, 'Box', 'off');
 if ip.Results.Print 
     print('-depsc2', 'LastBufferFrameIntensityPerCohort.eps');
+end
+
+figure('Name', 'Difference btw. first frame and buffer');
+boxplot2({diffPctBG, diffPct}, ...
+    'FaceColor', [0.8 0.8 0.8; 0.7 0.9 1], 'EdgeColor', [0.6 0.6 0.6; 0 0.7 1],...
+    'GroupDistance', 1, 'BarWidth', 1,...
+    'XLabels', cohortLabels,...
+    'YLabel', 'Intensity (A.U.)');
+hl = legend('Background noise threshold', 'Intensity', 'Location', 'North');
+set(hl, 'Box', 'off');
+if ip.Results.Print 
+    print('-depsc2', '1stFrameIntensitiesPerCohort.eps');
 end
 
 
