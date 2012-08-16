@@ -88,9 +88,14 @@ for iType = 1 : numType
     
     %this is a quick hack to fix the number of events count
     if ~iscell(eventNumContributions(iType).onset)
+        eventNumContributions(iType).onset(:) = eventNumContributions(iType).onset(1);
+        eventNumContributions(iType).befStatic = repmat(eventNumContributions(iType).befStatic(:,1),...
+            1,size(eventNumContributions(iType).befStatic,2));
         eventNumContributions(iType).befDynamic = eventNumContributions(iType).befStatic;
+        eventNumContributions(iType).aftStatic = repmat(eventNumContributions(iType).aftStatic(:,1),...
+            1,size(eventNumContributions(iType).aftStatic,2));
         maxInc = length(eventNumContributions(iType).aftDynamicComb);
-        tmp = repmat(eventNumContributions(iType).aftStatic,1,size(eventNumContributions(iType).aftDynamic,2));
+        tmp = repmat(eventNumContributions(iType).aftStatic(:,1),1,size(eventNumContributions(iType).aftDynamic,2));
         for iInc = 1 : maxInc
             tmp(iInc,iInc+1:end) = 0;
         end

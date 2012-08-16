@@ -31,10 +31,11 @@ pixelCoordY = repmat((1:imageSizeY),imageSizeX,1);
 pixelCoordY = pixelCoordY(:);
 
 %hard-coded numbers
-numTypeProt = 9;
-numBands1um = 5;
-maxNegInc = 3;
-maxPosInc = numFrames - 1;
+numTypeProt = 9; %number of protrusion types, classified based on the events before protrusion
+numBands1um = 5; %number of bands making ~1 um, based on the fact that 1 pixel = 111 nm and each band is ~2 pixels deep
+numBandsOfBands = 10; %number of bands of bands to look inside the cell; 10 "bands of bands" looks into ~10 um from cell edge
+maxNegInc = 3; %number of time points to look before protrusion onset
+maxPosInc = numFrames - 1; %number of time points to look after protrusion onset (i.e. during protrusion)
 
 %% Combine windows
 
@@ -63,33 +64,53 @@ for iType = 1 : numTypeProt
         prevEventDur = protEvents(iEvent,4);
         prevEventDur(isnan(prevEventDur)) = 0;
         
-        %put together windows upto ~1 um from cell edge at protrusion onset
+        %put together windows at protrusion onset in ~1 um segments from cell edge
+        indxWindowsOnset = cell(1,numBandsOfBands);
         nBands = length(winPositions{onsetFrame,sliceIndx});
-        nBands = min(nBands,numBands1um);
-        indxWindowsOnset = {[(1:nBands)' repmat([sliceIndx onsetFrame onsetFrame],nBands,1)]};
+        for iBigBand = 1 : numBandsOfBands
+            bandStartCurrent = (iBigBand-1)*numBands1um + 1;
+            bandEndCurrent = iBigBand*numBands1um;
+            if bandStartCurrent <= nBands
+                bandEndCurrent = min(nBands,bandEndCurrent);
+                indxWindowsOnset{iBigBand} = [(bandStartCurrent:bandEndCurrent)' ...
+                    repmat([sliceIndx onsetFrame onsetFrame],bandEndCurrent-bandStartCurrent+1,1)];
+            end
+        end
         
         %put together windows before protrusion onset
-        indxWindowsBefDynamic = cell(maxNegInc,1);
-        indxWindowsBefStatic = cell(maxNegInc,1);
+        indxWindowsBefDynamic = cell(maxNegInc,numBandsOfBands);
+        indxWindowsBefStatic = cell(maxNegInc,numBandsOfBands);
         for iInc = 1 : min(prevEventDur,maxNegInc)
             
             %specify current frame
             frameCurrent = onsetFrame - iInc;
-
-            %dynamic windows that move with the cell edge
-            nBands = length(winPositions{frameCurrent,sliceIndx});
-            nBands = min(nBands,numBands1um);
-            indxWindowsBefDynamic{iInc} = [(1:nBands)' repmat([sliceIndx frameCurrent frameCurrent],nBands,1)];
             
-            %static windows fixed at location of protrusion onset
-            tmp = indxWindowsOnset{1};
-            tmp(:,4) = frameCurrent;
-            indxWindowsBefStatic{iInc} = tmp;
+            %put together windows in ~1 um segments from cell edge
+            nBands = length(winPositions{frameCurrent,sliceIndx});
+            for iBigBand = 1 : numBandsOfBands
+                
+                %dynamic windows that move with the cell edge
+                bandStartCurrent = (iBigBand-1)*numBands1um + 1;
+                bandEndCurrent = iBigBand*numBands1um;
+                if bandStartCurrent <= nBands
+                    bandEndCurrent = min(nBands,bandEndCurrent);
+                    indxWindowsBefDynamic{iInc,iBigBand} = [(bandStartCurrent:bandEndCurrent)' ...
+                        repmat([sliceIndx frameCurrent frameCurrent],bandEndCurrent-bandStartCurrent+1,1)];
+                end
+                
+                %static windows fixed at location of protrusion onset
+                tmp = indxWindowsOnset{iBigBand};
+                if ~isempty(tmp)
+                    tmp(:,4) = frameCurrent;
+                    indxWindowsBefStatic{iInc,iBigBand} = tmp;
+                end
+                
+            end
             
         end
         
         %put together windows after protrusion onset
-        indxWindowsAftStatic = cell(maxPosInc,1);
+        indxWindowsAftStatic = cell(maxPosInc,numBandsOfBands);
         indxWindowsAftDynamic = cell(maxPosInc);
         for iInc = 1 : eventDur - 1
             
@@ -97,9 +118,13 @@ for iType = 1 : numTypeProt
             frameCurrent = onsetFrame + iInc;
 
             %fixed location of protrusion onset
-            tmp = indxWindowsOnset{1};
-            tmp(:,4) = frameCurrent;
-            indxWindowsAftStatic{iInc} = tmp;
+            for iBigBand = 1 : numBandsOfBands
+                tmp = indxWindowsOnset{iBigBand};
+                if ~isempty(tmp)
+                    tmp(:,4) = frameCurrent;
+                    indxWindowsAftStatic{iInc,iBigBand} = tmp;
+                end
+            end
             
             %previous "new" cell-ECM contact areas
             for iNew = 1 : iInc - 1

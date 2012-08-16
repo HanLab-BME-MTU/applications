@@ -1,13 +1,15 @@
 function [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
     sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
     diffModeAnRes,directTrackChar,winPositions,winFrames,protSamples,...
-    minLength,indxSlices,frameRange,windowTrackAssignExt,firstMaskFile)
+    windowMSAssignExt,lengthMinMax,indxSlices,frameRange,windowTrackAssignExt,...
+    firstMaskFile)
 %sptRelToActivityOnsetAdaptiveWindows calculates single particle behavior in adaptive windows grouped based on edge activity
 %
 %SYNOPSIS [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
 %    sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
 %    diffModeAnRes,directTrackChar,winPositions,winFrames,protSamples,...
-%    minLength,indxSlices,frameRange,windowTrackAssignExt,firstMaskFile)
+%    windowMSAssignExt,lengthMinMax,indxSlices,frameRange,windowTrackAssignExt,...
+%    firstMaskFile)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -26,9 +28,11 @@ function [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
 %       winFrames      : The frames at which there are windows.
 %       protSamples    : The protrusion samples as output by the windowing
 %                        software.
-%       minLength      : Minimum length of a trajectory to include in
+%       windowMSAssignExt: Output of assignMergesSplits2Windows.
+%       lengthMinMax   : Row vector with 2 entries indicating minimum and
+%                        maximum length of a trajectory to include in
 %                        analysis.
-%                        Optional. Default: 5.
+%                        Optional. Default: [5 99].
 %       indxSlices     : Vector with indices of slices (i.e. window number 
 %                        along cell edge) to include in analysis.
 %                        Optional. Default: all windows.
@@ -150,13 +154,13 @@ function [sptPropInWindow,windowTrackAssignExt,windowSize,analysisParam] = ...
 
 %% Input
 
-if nargin < 7
+if nargin < 8
     disp('--sptRelToActivityOnsetAdaptiveWindows: Missing input arguments!');
     return
 end
 
-if nargin < 8 || isempty(minLength)
-    minLength = 5;
+if nargin < 9 || isempty(lengthMinMax)
+    lengthMinMax = [5 99];
 end
 
 %get number of frames that have windows and number of windows parallel to
@@ -170,32 +174,24 @@ numWinPerp = max(nBands(:));
 %determine the number of SPT frames between window frames
 numSPTFrames = winFrames(2) - winFrames(1);
 
-if nargin < 9 || isempty(indxSlices)
+if nargin < 10 || isempty(indxSlices)
     indxSlices = (1:numWinPara)';
 end
 
-if nargin < 10 || isempty(frameRange)
+if nargin < 11 || isempty(frameRange)
     frameRange = [1 numWinFrames];
 end
 
-if nargin < 11 || isempty(windowTrackAssignExt)
+if nargin < 12 || isempty(windowTrackAssignExt)
     windowTrackAssignExt = [];
 end
 
-if nargin < 12 || iesmpty(firstMaskFile)
+if nargin < 13 || iesmpty(firstMaskFile)
     [fName,dirName] = uigetfile('*.tif','specify first cell mask file to use in analysis.');
     firstMaskFile = fullfile(dirName,fName);
 end
 
-%% Trajectory pre-processing
-
-%keep only trajectories longer than minLength
-criteria.lifeTime.min = minLength;
-indx = chooseTracks(tracksFinal,criteria);
-tracksFinal = tracksFinal(indx,:);
-diffAnalysisRes = diffAnalysisRes(indx);
-diffModeAnRes = diffModeAnRes(indx);
-directTrackChar = directTrackChar(indx);
+%% Pre-processing
 
 %divide trajectories among windows
 if isempty(windowTrackAssignExt)
@@ -203,12 +199,8 @@ if isempty(windowTrackAssignExt)
         tracksFinal,winPositions,winFrames,1);
 end
 
-%% Window pre-processing
-
-%initialize array storing window sizes
-winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
-
 %go over all windows and get their sizes
+winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
 for iFrame = 1 : numWinFrames-1
     for iPara = 1 : numWinPara
         for iPerp = 1 : nBands(iFrame,iPara)
@@ -229,11 +221,9 @@ for iFrame = 1 : numWinFrames-1
         end
     end
 end
-%make sure that there are no zeros
 winSize(winSize==0) = NaN;
 
 %copy winSize into the output variable windowSize and convert NaNs to zeros
-%in windowSize
 windowSize = winSize;
 windowSize(isnan(windowSize)) = 0;
 
@@ -248,70 +238,13 @@ protrusionCombinedWindows = combineWindowsProtrusion(sliceActivityGroup,...
 [eventCombinedTracks,eventWindowsList,eventNumContributions] = ...
     combineTracksManyWindows(protrusionCombinedWindows,windowTrackAssignExt);
 
-%% Particle behavior pre-processing
-
-%get the lifetime of each track segment
-trackLft = getTrackSEL(tracksFinal,1);
-trackLft = trackLft(:,3);
-
-%get the number of track segments
-numSegments = length(trackLft);
-
-% FROM ASYMMETRY AND DIFFUSION ANALYSIS ...
-
-%get trajectory classifications
-trajClassDiff = vertcat(diffAnalysisRes.classification);
-trajClassAsym = trajClassDiff(:,1); %asymmetry classification
-trajClassDiff = trajClassDiff(:,2); %diffusion classification
-
-%WARNING
-%MAKE trajClassAsym ALL NaN, SO THAT THERE IS NO ASYMMETRY CLASSIFICATION
-trajClassAsym(:) = NaN;
-
-%process classifications to make categories
-if all(isnan(trajClassAsym))
-    trajClass = trajClassDiff;
-else
-    trajClass = NaN(numSegments,1);
-    trajClass(trajClassAsym==0&trajClassDiff==1) = 1; %isotropic+confined
-    trajClass(trajClassAsym==0&trajClassDiff==2) = 2; %isotropic+free
-    trajClass(trajClassAsym==0&trajClassDiff==3) = 3; %isotropic+directed
-    trajClass(trajClassAsym==0&isnan(trajClassDiff)) = 4; %isotropic+undetermined
-    trajClass(trajClassAsym==1) = 5; %linear+anything
-end
-
-%get diffusion coefficients
-diffCoefGen = catStruct(1,'diffAnalysisRes.fullDim.genDiffCoef(:,3)');
-
-%get confinement radii
-confRadAll = catStruct(1,'diffAnalysisRes.confRadInfo.confRadius(:,1)');
-
-% FROM DIFFUSION MODE ANALYSIS ...
-
-%get trajectory diffusion modes
-trajDiffMode = vertcat(diffModeAnRes.diffMode);
-
-%get trajectory diffusion coefficient
-trajDiffCoef2 = vertcat(diffModeAnRes.diffCoef);
-
-%get number of diffusion modes
-numDiffMode = max(trajDiffMode);
-
-% FROM TRACKS DIRECTLY ...
-
-%get direction of motion, angle with protrusion vector and various
-%frame-to-frame displacement measures
-angleWithProtTmp = vertcat(directTrackChar.angleWithProt);
-f2fDispTmp       = vertcat(directTrackChar.f2fDisp);
-paraDirDispTmp   = vertcat(directTrackChar.paraDirDisp);
-perpDirDispTmp   = vertcat(directTrackChar.perpDirDisp);
-paraProtDispTmp  = vertcat(directTrackChar.paraProtDisp);
-perpProtDispTmp  = vertcat(directTrackChar.perpProtDisp);
-asymParamTmp     = vertcat(directTrackChar.asymParam);
-
-%calculate ratio of parallel to perpendicular displacements
-ratioDispDirTmp = abs( paraDirDispTmp ./ perpDirDispTmp );
-ratioDispProtTmp = abs( paraProtDispTmp ./ perpProtDispTmp );
+%collect particle behavior for all tracks/track segments
+[trackLft,trajClass,diffCoefGen,confRadAll,...
+    trajDiffMode,trajDiffCoef2,numDiffMode,...
+    angleWithProtTmp,f2fDispTmp,paraDirDispTmp,...
+    perpDirDispTmp,paraProtDispTmp,perpProtDispTmp,asymParamTmp,...
+    ratioDispDirTmp,ratioDispProtTmp] = ...
+    collectParticleBehavior(tracksFinal,diffAnalysisRes,diffModeAnRes,directTrackChar);
 
 %% Calculate property values per window group
 
@@ -324,7 +257,8 @@ numFields = length(eventField);
 
 %initialize output variable
 sptPropInWindow = repmat(struct('directAll',[],'directPos',[],...
-    'directNeg',[],'diffMSSAnalysis',[],'diffModeAnalysis',[]),numTypes,1);
+    'directNeg',[],'diffMSSAnalysis',[],'diffModeAnalysis',[],...
+    'mergesSplits',[]),numTypes,1);
 
 %go over activity types
 for iType = 1 : numTypes
@@ -332,9 +266,9 @@ for iType = 1 : numTypes
     %get current activity
     activityCurrent = eventCombinedTracks(iType);
     
-    %check whether there are any events in this activity
+    %check whether there are any events in this activity category
     tmp = activityCurrent.(eventField{1});
-    eventsExist = ~isempty(tmp{:});
+    eventsExist = ~isempty(tmp{1});
     
     %if there are events
     if eventsExist
@@ -363,7 +297,7 @@ for iType = 1 : numTypes
             f2fDispMagParaProtNeg,f2fDispMagPerpProtNeg,f2fDispSignParaProtNeg,f2fDispSignPerpProtNeg,...
             ratioDispMagDirNeg,ratioDispSignDirNeg,ratioDispMagProtNeg,ratioDispSignProtNeg,...
             ...
-            fracNetDispNeg,cellArea,...
+            densityMerge,densitySplit,probMerge,probSplit,fracNetDispNeg,cellArea,...
             fracUnclass,fracLin,fracIso,fracIsoUnclass,fracConf,fracBrown,fracDir,...
             diffCoefAll,diffCoefConf,diffCoefBrown,confRad,diffCoefModeAll] = ...
             ...
@@ -394,10 +328,11 @@ for iType = 1 : numTypes
             %get the windows they belong to
             windowListCurrentAll = eventWindowsList(iType).(eventField{iField});
             
-            %get teh number of distinct activities they come from
+            %get the number of distinct activities they come from
             numActivityOnsetsAll = eventNumContributions(iType).(eventField{iField});
             
-            %extract maximum increment (whether positive or negative)
+            %extract maximum increment (whether positive or negative) and
+            %number of columns
             [maxInc,numCol] = size(tracksCurrentAll);
             
             %go over the increments and calculate particle properties in
@@ -406,8 +341,11 @@ for iType = 1 : numTypes
                 for iInc = 1 : maxInc
                     
                     %get tracks
+                    %keep only those with lifetime in the proper range
                     tracksCurrent = tracksCurrentAll{iInc,iCol};
-                    numTracksCurrent = length(tracksCurrent);
+                    trackLftCurrent = trackLft(tracksCurrent);
+                    tracksCurrent = tracksCurrent(trackLftCurrent>=lengthMinMax(1) & ...
+                        trackLftCurrent<=lengthMinMax(2));
                     
                     %get windows
                     windowListCurrent = windowListCurrentAll{iInc,iCol};
@@ -416,10 +354,11 @@ for iType = 1 : numTypes
                     numActivityOnsets = numActivityOnsetsAll(iInc,iCol);
                     
                     %if there are tracks
-                    if numTracksCurrent > 0
+                    if ~isempty(windowListCurrent)
                         
                         %get particle behavior
                         [spDensity,fracNetDispNeg,cellArea,...
+                            densityMerge,densitySplit,probMerge,probSplit,...
                             ...
                             angleProtAll,asymParamAll,f2fDispMag2DAll,...
                             f2fDispSignParaDirAll,f2fDispSignPerpDirAll,f2fDispMagParaDirAll,f2fDispMagPerpDirAll,...
@@ -443,12 +382,13 @@ for iType = 1 : numTypes
                             getSliceActivityGroupChar...
                             ...
                             (eventField{iField},iInc,iCol,numSPTFrames,numActivityOnsets,...
-                            winSize,windowListCurrent,tracksCurrent,trackLft,...
+                            winSize,windowMSAssignExt,windowListCurrent,tracksCurrent,trackLft,...
                             trajClass,diffCoefGen,confRadAll,angleWithProtTmp,asymParamTmp,f2fDispTmp,...
                             paraDirDispTmp,perpDirDispTmp,paraProtDispTmp,perpProtDispTmp,...
                             ratioDispDirTmp,ratioDispProtTmp,trajDiffMode,trajDiffCoef2,...
                             ...
                             spDensity,fracNetDispNeg,cellArea,...
+                            densityMerge,densitySplit,probMerge,probSplit,...
                             ...
                             angleProtAll,asymParamAll,f2fDispMag2DAll,...
                             f2fDispSignParaDirAll,f2fDispSignPerpDirAll,f2fDispMagParaDirAll,f2fDispMagPerpDirAll,...
@@ -469,7 +409,7 @@ for iType = 1 : numTypes
                             diffCoefAll,diffCoefConf,diffCoefBrown,confRad,...
                             modeDensity,fracMode,diffCoefModeInd,diffCoefModeAll);
                         
-                    end %(if numTracksCurrent > 0)
+                    end %(if ~isempty(windowListCurrent))
                     
                 end %(for iInc = 1 : maxInc)
             end %(for iCol = 1 : numCol)
@@ -510,11 +450,16 @@ for iType = 1 : numTypes
         modeAnalysis = struct('modeDensity',modeDensity,'fracMode',fracMode,...
             'diffCoefModeInd',diffCoefModeInd,'diffCoefModeAll',diffCoefModeAll);
         
+        mergesSplits = struct('densityMerge',densityMerge,...
+            'densitySplit',densitySplit,'probMerge',probMerge,...
+            'probSplit',probSplit);
+        
         sptPropInWindow(iType).directAll = directAll;
         sptPropInWindow(iType).directPos = directPos;
         sptPropInWindow(iType).directNeg = directNeg;
         sptPropInWindow(iType).diffMSSAnalysis = diffAnalysis;
         sptPropInWindow(iType).diffModeAnalysis = modeAnalysis;
+        sptPropInWindow(iType).mergesSplits = mergesSplits;
         
     end %(if eventsExist)
     
@@ -523,12 +468,13 @@ end %(for iType = 1 : numTypes)
 %store analysis parameters in output structure for documentation
 analysisParam.indxSlices = indxSlices;
 analysisParam.frameRange = frameRange;
-analysisParam.minTrackLen = minLength;
+analysisParam.trackLengthRange = lengthMinMax;
 
 
 %% Subfunction 1 "getsliceActivityGroupChar"
 
 function [spDensity,fracNetDispNeg,cellArea,...
+    densityMerge,densitySplit,probMerge,probSplit,...
     ...
     angleProtAll,asymParamAll,f2fDispMag2DAll,...
     f2fDispSignParaDirAll,f2fDispSignPerpDirAll,f2fDispMagParaDirAll,f2fDispMagPerpDirAll,...
@@ -552,12 +498,13 @@ function [spDensity,fracNetDispNeg,cellArea,...
     getSliceActivityGroupChar...
     ...
     (eventField,iInc,iCol,numSPTFrames,numActivityOnsets,...
-    winSize,windowListCurrent,tracksCurrent,trackLft,...
+    winSize,windowMSAssignExt,windowListCurrent,tracksCurrent,trackLft,...
     trajClass,diffCoefGen,confRadAll,angleWithProtTmp,asymParamTmp,f2fDispTmp,...
     paraDirDispTmp,perpDirDispTmp,paraProtDispTmp,perpProtDispTmp,...
     ratioDispDirTmp,ratioDispProtTmp,trajDiffMode,trajDiffCoef2,...
     ...
     spDensity,fracNetDispNeg,cellArea,...
+    densityMerge,densitySplit,probMerge,probSplit,...
     ...
     angleProtAll,asymParamAll,f2fDispMag2DAll,...
     f2fDispSignParaDirAll,f2fDispSignPerpDirAll,f2fDispMagParaDirAll,f2fDispMagPerpDirAll,...
@@ -582,12 +529,35 @@ function [spDensity,fracNetDispNeg,cellArea,...
 [numWinPerp,numWinPara,numWinFramesM1] = size(winSize);
 linearInd = sub2ind([numWinPerp numWinPara numWinFramesM1],...
     windowListCurrent(:,1),windowListCurrent(:,2),windowListCurrent(:,3));
-windowGroupSize = nansum(winSize(linearInd));
+windowSizeInd = winSize(linearInd);
+windowGroupSize = nansum(windowSizeInd);
 
 %store cell area per activity onset for this group
 %also store number of activity onsets
 cellArea.(eventField).mean(iInc,iCol) = windowGroupSize / numActivityOnsets;
 cellArea.(eventField).numPoints(iInc,iCol) = numActivityOnsets;
+
+%get the merging and splitting information for this window group
+linearInd = sub2ind([numWinPerp numWinPara numWinFramesM1 numWinFramesM1 2],...
+    windowListCurrent(:,1),windowListCurrent(:,2),windowListCurrent(:,3),...
+    windowListCurrent(:,4),ones(size(windowListCurrent,1),1));
+mergesCurrent = windowMSAssignExt(linearInd);
+linearInd = sub2ind([numWinPerp numWinPara numWinFramesM1 numWinFramesM1 2],...
+    windowListCurrent(:,1),windowListCurrent(:,2),windowListCurrent(:,3),...
+    windowListCurrent(:,4),2*ones(size(windowListCurrent,1),1));
+splitsCurrent = windowMSAssignExt(linearInd);
+densityMergeCurrent = mergesCurrent ./ windowSizeInd;
+densitySplitCurrent = splitsCurrent ./ windowSizeInd;
+densityMergeCurrent = densityMergeCurrent(~isnan(densityMergeCurrent));
+densitySplitCurrent = densitySplitCurrent(~isnan(densitySplitCurrent));
+
+%store the density of merges and splits
+densityMerge.(eventField).mean(iInc,iCol) = mean(densityMergeCurrent);
+densityMerge.(eventField).std(iInc,iCol) = std(densityMergeCurrent);
+densityMerge.(eventField).numPoints(iInc,iCol) = length(densityMergeCurrent);
+densitySplit.(eventField).mean(iInc,iCol) = mean(densitySplitCurrent);
+densitySplit.(eventField).std(iInc,iCol) = std(densitySplitCurrent);
+densitySplit.(eventField).numPoints(iInc,iCol) = length(densitySplitCurrent);
 
 %get number of tracks
 numTracksCurrent = length(tracksCurrent);
@@ -598,7 +568,7 @@ if numTracksCurrent == 0 %if there are no tracks in this window ...
     %note that here particle density is not automatically 0
     %because it can be that the windows are collapsed (stored as
     %NaN), in which case the density will be NaN
-    spDensity.(eventField).mean(iInc,iCol) = 0 / windowGroupSize;
+    spDensity.(eventField).mean(iInc,iCol) = numTracksCurrent / windowGroupSize;
     spDensity.(eventField).numPoints(iInc,iCol) = numTracksCurrent;
     
 else %if there are tracks in this window ...
@@ -608,8 +578,9 @@ else %if there are tracks in this window ...
     %calculate overall particle density
     %(the density standard deviation will be calculated later in combination
     %with the mode density standard deviation)
-    spDensity.(eventField).mean(iInc,iCol) = sum(trackLft(tracksCurrent)) / ...
-        windowGroupSize / numSPTFrames;
+    %     spDensity.(eventField).mean(iInc,iCol) = sum(trackLft(tracksCurrent)) / ...
+    %         windowGroupSize / numSPTFrames;
+    spDensity.(eventField).mean(iInc,iCol) = numTracksCurrent / windowGroupSize;
     spDensity.(eventField).numPoints(iInc,iCol) = numTracksCurrent;
     
     %characteristics of all current tracks together
@@ -819,8 +790,9 @@ else %if there are tracks in this window ...
             modeDensity.(eventField).mean(iInc,iCol,iMode) = 0 / windowGroupSize;
             modeDensity.(eventField).numPoints(iInc,iCol,iMode) = numTracksCurrent;
         else
-            modeDensity.(eventField).mean(iInc,iCol,iMode) = ...
-                sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+            %             modeDensity.(eventField).mean(iInc,iCol,iMode) = ...
+            %                 sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+            modeDensity.(eventField).mean(iInc,iCol,iMode) = length(tracksMode) / windowGroupSize;
             modeDensity.(eventField).numPoints(iInc,iCol,iMode) = numTracksCurrent;
         end
         fracMode.(eventField).mean(iInc,iCol,iMode) = ...
@@ -840,8 +812,9 @@ else %if there are tracks in this window ...
             if isempty(tracksMode)
                 densityBoot(iBoot,iMode) = 0 / windowGroupSize;
             else
-                densityBoot(iBoot,iMode) = ...
-                    sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+                %                 densityBoot(iBoot,iMode) = ...
+                %                     sum(trackLft(tracksMode)) / windowGroupSize / numSPTFrames;
+                densityBoot(iBoot,iMode) = length(tracksMode) / windowGroupSize;
             end
         end
     end
@@ -851,6 +824,20 @@ else %if there are tracks in this window ...
     fracMode.(eventField).std(iInc,iCol,:) = std(fracModeBoot) * sqrt(numTracksCurrent);    
     spDensity.(eventField).std(iInc,iCol) = std(spDensityBoot) * sqrt(numTracksCurrent);
     
+    % MERGING AND SPLITTING ...
+
+    %calculate probabilities of merging and splitting per particle
+    probMerge.(eventField).mean(iInc,iCol) = densityMerge.(eventField).mean(iInc,iCol) / ...
+        spDensity.(eventField).mean(iInc,iCol);
+    probMerge.(eventField).std(iInc,iCol) = densityMerge.(eventField).std(iInc,iCol) / ...
+        spDensity.(eventField).mean(iInc,iCol);
+    probMerge.(eventField).numPoints(iInc,iCol) = densityMerge.(eventField).numPoints(iInc,iCol);
+    probSplit.(eventField).mean(iInc,iCol) = densitySplit.(eventField).mean(iInc,iCol) / ...
+        spDensity.(eventField).mean(iInc,iCol);
+    probSplit.(eventField).std(iInc,iCol) = densitySplit.(eventField).std(iInc,iCol) / ...
+        spDensity.(eventField).mean(iInc,iCol);
+    probSplit.(eventField).numPoints(iInc,iCol) = densitySplit.(eventField).numPoints(iInc,iCol);
+
 end %(if numTracksCurrent == 0)
 
 

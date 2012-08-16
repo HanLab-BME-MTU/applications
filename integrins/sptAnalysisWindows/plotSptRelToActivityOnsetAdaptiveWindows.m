@@ -28,7 +28,7 @@ staticSeriesNP = [particleBehavior.befStatic.numPoints(end:-1:1,:,:); ...
     particleBehavior.onset.numPoints; particleBehavior.aftStatic.numPoints];
 
 %get number of modes
-numMode = size(staticSeriesMean,3);
+[numRow,numBand,numMode] = size(staticSeriesMean);
 
 %define which modes to plot
 if nargin < 2 || isempty(mode2plot)
@@ -39,11 +39,11 @@ numMode2plot = length(mode2plot);
     
 %dynamic series before
 dynamicSeriesBefMean = [particleBehavior.befDynamic.mean(end:-1:1,:,:); ...
-    particleBehavior.onset.mean; NaN(maxInc,1,numMode)];
+    particleBehavior.onset.mean; NaN(maxInc,numBand,numMode)];
 dynamicSeriesBefStd = [particleBehavior.befDynamic.std(end:-1:1,:,:); ...
-    particleBehavior.onset.std; NaN(maxInc,1,numMode)];
+    particleBehavior.onset.std; NaN(maxInc,numBand,numMode)];
 dynamicSeriesBefNP = [particleBehavior.befDynamic.numPoints(end:-1:1,:,:); ...
-    particleBehavior.onset.numPoints; ones(maxInc,1,numMode)];
+    particleBehavior.onset.numPoints; ones(maxInc,numBand,numMode)];
 
 %dynamic series after
 dynamicSeriesAftMean = [NaN(-minInc+1,maxInc,numMode); particleBehavior.aftDynamic.mean];
@@ -65,8 +65,9 @@ dynamicSeriesAftStd(dynamicSeriesAftNP<minNP) = NaN;
 combDynamicSeriesAftMean(combDynamicSeriesAftNP<minNP) = NaN;
 combDynamicSeriesAftStd(combDynamicSeriesAftNP<minNP) = NaN;
 
-%define color vector for plotting
+%define color vectors for plotting
 incColor = [1 0 0; 0 1 0; 1 0 1; 0 1 1; 1 1 0; 0.7 0.7 0.7];
+bandColor = [0 0 0; 0 0 1; incColor];
 
 %open figure
 hFig = figure('Name',figureName);
@@ -75,34 +76,78 @@ hold on
 %plot for each mode
 for jMode = 1 : numMode2plot
     
-    %specify subplot
-    subplot(numMode2plot,1,jMode), hold on
-    
-    %get mode to plot
+    %extract mode information
     iMode = mode2plot(jMode);
+    dynamicSeriesBefMeanMode = dynamicSeriesBefMean(:,:,iMode);
+    dynamicSeriesBefSemMode = dynamicSeriesBefStd(:,:,iMode)./sqrt(dynamicSeriesBefNP(:,:,iMode));
+    staticSeriesMeanMode = staticSeriesMean(:,:,iMode);
+    staticSeriesSemMode = staticSeriesStd(:,:,iMode)./sqrt(staticSeriesNP(:,:,iMode));
+    dynamicSeriesAftMeanMode = dynamicSeriesAftMean(:,:,iMode);
+    dynamicSeriesAftSemMode = dynamicSeriesAftStd(:,:,iMode)./sqrt(dynamicSeriesAftNP(:,:,iMode));
+    combDynamicSeriesAftMeanMode = combDynamicSeriesAftMean(:,:,iMode);
+    combDynamicSeriesAftSemMode = combDynamicSeriesAftStd(:,:,iMode)./sqrt(combDynamicSeriesAftNP(:,:,iMode));
+    
+    %determine y-axis limits
+    yMax = max([dynamicSeriesBefMeanMode(:)+dynamicSeriesBefSemMode(:); ...
+        staticSeriesMeanMode(:)+staticSeriesSemMode(:); ...
+        dynamicSeriesAftMeanMode(:)+dynamicSeriesAftSemMode(:); ...
+        combDynamicSeriesAftMeanMode(:)+combDynamicSeriesAftSemMode(:)]);
+    yMin = min([dynamicSeriesBefMeanMode(:)-dynamicSeriesBefSemMode(:); ...
+        staticSeriesMeanMode(:)-staticSeriesSemMode(:); ...
+        dynamicSeriesAftMeanMode(:)-dynamicSeriesAftSemMode(:); ...
+        combDynamicSeriesAftMeanMode(:)-combDynamicSeriesAftSemMode(:)]);
+    
+    %first plot
+    subplot(numMode2plot,2,(jMode-1)*2+1), hold on
     
     %before dynamic
-    plot(minInc:maxInc,dynamicSeriesBefMean(:,1,iMode),'b','Marker','.')
-    myErrorbar(minInc:maxInc,dynamicSeriesBefMean(:,1,iMode),dynamicSeriesBefStd(:,1,iMode)./sqrt(dynamicSeriesBefNP(:,1,iMode)))
+    plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),'k--','Marker','.')
+    myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),dynamicSeriesBefSemMode(:,1))
     
     %static series
-    plot(minInc:maxInc,staticSeriesMean(:,1,iMode),'k','Marker','.','LineWidth',2)
-    myErrorbar(minInc:maxInc,staticSeriesMean(:,1,iMode),staticSeriesStd(:,1,iMode)./sqrt(staticSeriesNP(:,1,iMode)))
+    plot(minInc:maxInc,staticSeriesMeanMode(:,1),'k','Marker','.','LineWidth',2)
+    myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,1),staticSeriesSemMode(:,1))
     
     %after dynamic
     legendEntries = cell(1,6);
     for iInc = 1 : 6
-        plot(minInc:maxInc,dynamicSeriesAftMean(:,iInc,iMode),'color',incColor(iInc,:),'Marker','.')
-        myErrorbar(minInc:maxInc,dynamicSeriesAftMean(:,iInc,iMode),dynamicSeriesAftStd(:,iInc,iMode)./sqrt(dynamicSeriesAftNP(:,iInc,iMode)))
+        plot(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),'color',incColor(iInc,:),'Marker','.')
+        myErrorbar(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),dynamicSeriesAftSemMode(:,iInc))
         legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
     end
     
     %after dynamic combined
-    plot(minInc:maxInc,combDynamicSeriesAftMean(:,1,iMode),'b','Marker','.','LineWidth',2)
-    myErrorbar(minInc:maxInc,combDynamicSeriesAftMean(:,1,iMode),combDynamicSeriesAftStd(:,1,iMode)./sqrt(combDynamicSeriesAftNP(:,1,iMode)))    
+    plot(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),'b','Marker','.','LineWidth',2)
+    myErrorbar(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),combDynamicSeriesAftSemMode(:,1))
+    
+    axis([minInc maxInc yMin yMax]);
+    xlabel('Time from protruion onset (frames)')
     
     legendEntries = [{'Dynamic before'} {'Static'} legendEntries {'Dynamic after aligned & combined'}]; %#ok<AGROW>
     legend(legendEntries);
+    
+    %second plot
+    subplot(numMode2plot,2,jMode*2), hold on
+    
+    %bands
+    legendEntries = cell(1,8);
+    for iBand = 1 : 2
+        plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineWidth',2)
+        myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
+        legendEntries{iBand} = ['Band ' num2str(iBand)];
+    end
+    for iBand = 3 : min(numBand,8)
+        plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.')
+        myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
+        legendEntries{iBand} = ['Band ' num2str(iBand)];
+    end
+    axis([minInc maxInc yMin yMax]);
+    xlabel('Time from protruion onset (frames)')
+    legend(legendEntries);
+    for iBand = 1 : min(numBand,8)
+        plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineStyle','--')
+        myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),dynamicSeriesBefSemMode(:,iBand))
+    end
     
 end
 
