@@ -52,10 +52,10 @@ for s = 1:nSet
     lifetime_s = [lftData.lifetime_s];
     lifetime_s = lifetime_s([lftData.trackLengths]>=ip.Results.Cutoff_f & [lftData.catIdx]==1);
     
-    %ratio = nanmax(A,[],2) ./ A(:,1);
+    ratio = nanmax(A,[],2) ./ A(:,1);
     %ratio = nanmax(A,[],2) ./ sbA(:,end);
     %ratio = prctile(A,95,2) ./ sbA(:,end);
-    ratio = prctile(A,95,2) ./ A(:,1);
+    %ratio = prctile(A,95,2) ./ A(:,1);
     
     pct{s} = zeros(5,nc);
     for c = 1:nc
