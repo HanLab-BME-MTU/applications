@@ -10,6 +10,7 @@ ip.addParamValue('CohortUB', [10 15 20 40 60 80 120]);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
 ip.addParamValue('ShowSignificance', false, @islogical);
 ip.addParamValue('ShowGaussians', false, @islogical);
+ip.addParamValue('ShowFirstFrame', false, @islogical);
 ip.addParamValue('Cutoff_f', 5);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
@@ -88,17 +89,22 @@ xi = 0:dxi:xa(end)+da;
 %========================================
 maxAcohort = cell(1,nc);
 maxAcohortFirstN = cell(1,nc);
+A0cohort = cell(1,nc);
 ni = cell(1,nc);
 niFirstN = cell(1,nc);
+niFirst = cell(1,nc);
 for k = 1:numel(lb)
     cidx = lb(k)<=lifetime_s & lifetime_s<ub(k);
     maxAcohort{k} = maxA(cidx);
     maxAcohortFirstN{k} = maxAFirstN(cidx);
+    A0cohort{k} = A(cidx,1);
 
     ni0 = hist(maxAcohort{k}, xi);
     ni{k} = ni0/sum(ni0);
     ni0 = hist(maxAcohortFirstN{k}, xi);
     niFirstN{k} = ni0/sum(ni0);
+    ni0 = hist(A0cohort{k}, xi);
+    niFirst{k} = ni0/sum(ni0);
 end
 
 di = 3;
@@ -146,9 +152,15 @@ for k = 1:nc
     
     if strcmpi(mode, 'pdf')
         
+        if ip.Results.ShowFirstFrame
+            bar(xi, niFirst{k}, 'BarWidth', 1, 'FaceColor', 0.9*[1 1 1], 'EdgeColor', 0.45*[1 1 1], 'LineWidth', 0.75);
+        end
         bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.75);
         bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.75);
         stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
+        if ip.Results.ShowFirstFrame
+            stairsXT(xi, niFirst{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
+        end
         
         if ip.Results.ShowGaussians
             [mu_g,sigma_g,xg,g] = fitGaussianModeToHist(xi, niFirstN{k}/dxi);

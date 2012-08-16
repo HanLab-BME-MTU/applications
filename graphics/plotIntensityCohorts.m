@@ -208,8 +208,8 @@ for ch = chVec
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
-            A{ch,c} = mean(AMat,1);
-            SEM = std(AMat,[],1)/sqrt(nd);
+            A{ch,c} = nanmean(AMat,1);
+            SEM = nanstd(AMat,[],1)/sqrt(nd);
             Amin = A{ch,c} - SEM;
             Aplus = A{ch,c} + SEM;
         else
@@ -237,9 +237,9 @@ for ch = chVec
         % Background level: median of all detections
         if nd>1
             % median background level per cohort for each data set
-            medM = arrayfun(@(i) cellfun(@(x) median(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
+            medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
             medM = vertcat(medM{:});
-            plot([-10 120], mean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
+            plot([-10 120], nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
         else
             % median background level per cohort
             medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));

@@ -14,7 +14,11 @@ ip.parse(varargin{:});
 cfM = ip.Results.FaceColor;
 cfE = ip.Results.EdgeColor;
 if isempty(cfM)
-    hv = (0:nSet-1)/max(nSet,3);
+    if nSet==1
+        hv = 1/3;
+    else
+        hv = (0:nSet-1)/max(nSet,3);
+    end
     cfM = hsv2rgb([hv(end:-1:1)' 0.3*ones(nSet,1) ones(nSet,1)]);
 end
 if isempty(cfE)
@@ -35,18 +39,23 @@ for s = 1:nSet
     nd = numel(data);
     lftData = getLifetimeData(data);
     A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:), lftData, 'UniformOutput', false);
+    sbA = arrayfun(@(i) i.sbA(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:), lftData, 'UniformOutput', false);
     maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
     a = rescaleEDFs(maxA_all, 'Display', false);
     % apply scaling
     for i = 1:nd
-        maxA_all{i} = a(i) * maxA_all{i};
         A{i} = a(i)*A{i};
+        sbA{i} = a(i)*sbA{i};
     end
     A = vertcat(A{:});
+    sbA = vertcat(sbA{:});
     lifetime_s = [lftData.lifetime_s];
     lifetime_s = lifetime_s([lftData.trackLengths]>=ip.Results.Cutoff_f & [lftData.catIdx]==1);
     
-    ratio = nanmax(A,[],2) ./ A(:,1);
+    %ratio = nanmax(A,[],2) ./ A(:,1);
+    %ratio = nanmax(A,[],2) ./ sbA(:,end);
+    %ratio = prctile(A,95,2) ./ sbA(:,end);
+    ratio = prctile(A,95,2) ./ A(:,1);
     
     pct{s} = zeros(5,nc);
     for c = 1:nc
