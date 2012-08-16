@@ -42,7 +42,7 @@ ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('iRange', cell(1,numel(data.channels)), @(x) iscell(x));
-ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'category', 'lifetime', 'object type', 'random'})));
+ip.addParamValue('DisplayType', 'lifetime', @(x) any(strcmpi(x, {'category', 'lifetime', 'object type', 'random', 'projection'})));
 ip.addParamValue('ShowEvents', false, @islogical);
 % ip.addParamValue('ShowDetection', false, @islogical); % add optional load fct?
 ip.addParamValue('Detection', []);
@@ -133,7 +133,11 @@ if ~isempty(tracks)
     trackEnds = [tracks.end];
     
     % visible in current frame
-    idx = [tracks.start]<=frameIdx & frameIdx<=[tracks.end];
+    if strcmpi(ip.Results.DisplayType, 'projection')
+        idx = 1:numel(tracks);
+    else
+        idx = [tracks.start]<=frameIdx & frameIdx<=[tracks.end];
+    end
     if sum(idx)>0
         
         np = arrayfun(@(i) numel(i.t), tracks); % points in each track
@@ -153,8 +157,10 @@ if ~isempty(tracks)
             G(i,k) = tracks(k).gapVect;
         end
         
-        X(F>frameIdx) = NaN;
-        Y(F>frameIdx) = NaN;
+        if ~strcmpi(ip.Results.DisplayType, 'projection')
+            X(F>frameIdx) = NaN;
+            Y(F>frameIdx) = NaN;
+        end
         
         hold(ha, 'on');
         switch lower(ip.Results.DisplayType)
@@ -205,6 +211,18 @@ if ~isempty(tracks)
             case 'random'
                 set(ha, 'ColorOrder', ip.Results.Colormap(idx,:));
                 plot(ha, X, Y);
+            case 'projection'
+                
+                
+                lifetimes_f = round([tracks.lifetime_s]/data.framerate);
+                df = data.movieLength-round(120/data.framerate);
+                dcoord = 0.25/df;
+                cmap = [jet(round(120/data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
+                
+                M = cmap(lifetimes_f(idx),:);
+                set(ha, 'ColorOrder', M);
+                plot(ha, X, Y);
+                
         end
         if ip.Results.ShowEvents
             
