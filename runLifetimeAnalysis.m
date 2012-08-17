@@ -3,8 +3,10 @@ function [lftRes res] = runLifetimeAnalysis(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
-ip.addOptional('lb', [3:10 11 16 21 41 61 81 101 141]);
-ip.addOptional('ub', [3:10 15 20 40 60 80 100 140 200]);
+% ip.addOptional('lb', [3:10 11 16 21 41 61 81 101 141]);
+% ip.addOptional('ub', [3:10 15 20 40 60 80 100 140 200]);
+ip.addOptional('lb', [1  11 16 21 41 61]);
+ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
@@ -19,6 +21,7 @@ ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
+ip.addParamValue('TrackIndex', []);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -35,11 +38,32 @@ Nmax = max([data.movieLength])-2;
 buffer = ip.Results.Buffer;
 cutoff_f = ip.Results.Cutoff_f;
 
+movieLength = min([data.movieLength]);
 framerate = data(1).framerate;
 
 firstN = 3:20;
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'FileName', ip.Results.FileName);
+lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'}; % catIdx must be last!
+
+if ~isempty(ip.Results.TrackIndex)
+    for i = 1:nd
+        % remove all non-Ia tracks
+        for f = 1:numel(lftFields)
+            lftData(i).(lftFields{f})(lftData(i).catIdx~=1) = [];
+        end
+        
+        idx = ip.Results.TrackIndex{i};
+        for f = 1:numel(lftFields)
+            lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(idx);
+        end
+        lftData(i).A = lftData(i).A(idx,:,:);
+        lftData(i).sbA = lftData(i).sbA(idx,:,:);
+        lftData(i).ebA = lftData(i).ebA(idx,:,:);
+        lftData(i).sigma_r = lftData(i).sigma_r(idx,:,:);
+    end
+end
+
 
 % loop through data sets, load tracks, store max. intensities and lifetimes
 res = struct([]);
@@ -54,6 +78,7 @@ a = rescaleEDFs(maxA_all, 'Display', true);
 
 % apply intensity scaling
 for i = 1:nd
+    lftData(i).A = lftData(i).A(:,1:movieLength,:);
     maxA_all{i} = a(i) * maxA_all{i};
     lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
     lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
@@ -61,7 +86,7 @@ for i = 1:nd
     lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
 end
 
-
+disp('');
 %==============================================================
 % Outlier detection (after max. intensity distribution rescaling)
 %==============================================================
@@ -128,7 +153,6 @@ end
 % end
 
 
-lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'};
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 lftRes.cellArea = zeros(nd,1);
@@ -136,8 +160,8 @@ for i = 1:nd
     
     % apply frames cutoff for short tracks
     rmIdx = lftData(i).trackLengths(lftData(i).catIdx==1) < cutoff_f;
-    lftData(i).A(rmIdx,:) = [];
-    lftData(i).sbA(rmIdx,:) = [];
+    lftData(i).A(rmIdx,:,:) = [];
+    lftData(i).sbA(rmIdx,:,:) = [];
     for f = 1:numel(lftFields)
         lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
         lftData(i).(lftFields{f})(rmIdx) = [];
@@ -209,14 +233,17 @@ for i = 1:nd
     for k = 1:nc
         % indexes within cohorts
         cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
-        res(i).maxA{k} = nanmax(lftData(i).A(cidx,:),[],2);
-
+        res(i).maxA{k} = nanmax(lftData(i).A(cidx,:,mCh),[],2);
+        %for n = firstN
+        %   res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).A(cidx,1:n,mCh),[],2);
+        %end
+        
         % lifetimes for given cohort
         res(i).lft{k} = lifetime_s(cidx);
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(lftData(i).A,[],2)';
+    res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2)';
     if isfield(lftData, 'significantSignal')
         res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
     end
@@ -273,11 +300,19 @@ fprintf('-------------------------------------------------\n');
 
 
 
+
+
+
+    
+
+
+
+
 %====================
 % Threshold
 %====================
 if isempty(ip.Results.MaxIntensityThreshold)
-    A = arrayfun(@(i) i.A, lftData, 'UniformOutput', false);
+    A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'UniformOutput', false);
     A = vertcat(A{:});
     lft = [lftData.lifetime_s];
     
@@ -302,20 +337,27 @@ if isempty(ip.Results.MaxIntensityThreshold)
         FirstNFrames = find(hval==1, 1, 'first')-1;
     end
     
-    M = max(A(:,1:FirstNFrames),[],2);
+    M = nanmax(A(:,1:FirstNFrames,mCh),[],2);
+    
     [mu_g sigma_g] = fitGaussianModeToCDF(M);
+    %[mu_g sigma_g] = fitGaussianModeToPDF(M);
     T = norminv(0.99, mu_g, sigma_g);
 
+    % 95th percentile of first frame intensity distribution
+    T95 = prctile(A(:,1,mCh), 95);
+    
     fprintf('Max. intensity threshold on first %d frames: %.2f\n', FirstNFrames, T);
+    fprintf('95th percentile of 1st frame distribution: %.2f\n', T95);
 else
     T = ip.Results.MaxIntensityThreshold;
 end
 
-% intMat_Ia_all = vertcat(lftData.intMat_Ia);
 minLength = min([data.movieLength]);
-intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength), lftData, 'UniformOutput', false);
+intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength,mCh), lftData, 'UniformOutput', false);
 intMat_Ia_all = vertcat(intMat_Ia_all{:});
 lifetime_s_all = [res.lft_all];
+
+
 
 startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
 startBufferA = vertcat(startBufferA{:});
@@ -330,25 +372,35 @@ pAbove = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
 
 pBuffer = prctile(startBufferA(lifetime_s_all>=tx,:), 5);
 
-% tx = 20;
+
+% 95th percentile of the reference (above threshold) distribution
+pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
+
 % loop through data sets, apply max. intensity threshold
 for i = 1:nd
     
     % Selection indexes for each data set
     % 1) Intensity threshold based on maximum intensity distribution
     idxMI = res(i).maxA_all >= T;
+    %idxMI = nanmax(lftData(i).A(:,FirstNFrames:end),[],2)' >= T;
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
     if ip.Results.ExcludeVisitors
-        idxLft = sum(lftData(i).A(:,1:3)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & res(i).lft_all<tx;
+        idxLft = sum(lftData(i).A(:,1:3,mCh)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & res(i).lft_all<tx;
+        
+        %maxStart = nanmax(lftData(i).A(:,1:5,mCh),[],2);
+        %maxEnd = arrayfun(@(k) max(lftData(i).A(k,lftData(i).trackLengths(k)+(-4:0))), 1:size(lftData(i).A,1))';
+        
+        %diffIdx = maxStart>maxEnd;
+        %idxLft = idxLft & diffIdx';
         
         %idxLft = (lftData(i).sbA(:,3)<pBuffer(3) | lftData(i).sbA(:,4)<pBuffer(4) | lftData(i).sbA(:,5)<pBuffer(5))' &...
         %    (lftData(i).A(:,1)>pAbove(1) | lftData(i).A(:,2)>pAbove(2) | lftData(i).A(:,3)>pAbove(3))';
         
-%         idxLft = (lftData(i).sbA(:,4)<pBuffer(4) & lftData(i).sbA(:,5)<pBuffer(5))';
+        %idxLft = (lftData(i).sbA(:,4)<pBuffer(4) & lftData(i).sbA(:,5)<pBuffer(5))';
         
-%         idxLft = sum(lftData(i).A(:,1:3)>repmat(pAbove, [size(lftData(i).A,1) 1]) |...
-%             lftData(i).A(:,1:3)<repmat(pBelow, [size(lftData(i).A,1) 1]),2)'>=1 & res(i).lft_all<tx;
+        %idxLft = sum(lftData(i).A(:,1:3)>repmat(pAbove, [size(lftData(i).A,1) 1]) |...
+        %    lftData(i).A(:,1:3)<repmat(pBelow, [size(lftData(i).A,1) 1]),2)'>=1 & res(i).lft_all<tx;
         
         res(i).lftVisitors = res(i).lft_all(idxLft);
         res(i).lftAboveT = res(i).lft_all(~idxLft & idxMI);
@@ -358,10 +410,10 @@ for i = 1:nd
     else
         res(i).lftAboveT = res(i).lft_all(idxMI);
         res(i).lftBelowT = res(i).lft_all(~idxMI);
-        %lftRes.pctAbove(i) = sum(idxMI)/numel(idxMI);
     end
     lftRes.pctAbove(i) = numel(res(i).lftAboveT)/numel(idxMI);
     lftRes.pctBelow(i) = numel(res(i).lftBelowT)/numel(idxMI);
+  
         
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
