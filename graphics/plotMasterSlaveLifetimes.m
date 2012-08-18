@@ -11,6 +11,9 @@ ip.addParamValue('ChannelNames', {'Master', 'Slave'});
 ip.parse(dataMaster, dataSlave, varargin{:});
 chNames = ip.Results.ChannelNames;
 
+% Extend all to max. movie length, in case of mismatch
+Nmax = max([dataMaster.movieLength])-2;
+
 % add input checks to verify that all members are equal
 
 
@@ -29,16 +32,16 @@ for k = 1:nd
     notmappedTracksM = tracksM(unassignedMasterIdx);
     notmappedTracksS = tracksS(unassignedSlaveIdx);
     
-    tmp = getLifetimeHistogram(dataMaster(k), mappedTracksM);
+    tmp = getLifetimeHistogram(dataMaster(k), mappedTracksM, Nmax);
     res.lftHistM_mapped_Ia{k} = tmp.Ia;
     
-    tmp = getLifetimeHistogram(dataSlave(k), mappedTracksS);
+    tmp = getLifetimeHistogram(dataSlave(k), mappedTracksS, Nmax);
     res.lftHistS_mapped_Ia{k} = tmp.Ia;
     
-    tmp = getLifetimeHistogram(dataMaster(k), notmappedTracksM);
+    tmp = getLifetimeHistogram(dataMaster(k), notmappedTracksM, Nmax);
     res.lftHistM_notmapped_Ia{k} = tmp.Ia;
     
-    tmp = getLifetimeHistogram(dataSlave(k), notmappedTracksS);
+    tmp = getLifetimeHistogram(dataSlave(k), notmappedTracksS, Nmax);
     res.lftHistS_notmapped_Ia{k} = tmp.Ia;
     
     res.pctMappedM(k) = numel(mappedTracksM)/numel(tracksM);
@@ -64,12 +67,12 @@ for k = 1:nd
     
     % Ia histograms for master and slave
     idxIa = validGaps & [tracksM.nSeg]==1 & [tracksM.visibility]==1;
-    tmp = getLifetimeHistogram(dataMaster(k), tracksM(idxIa));
+    tmp = getLifetimeHistogram(dataMaster(k), tracksM(idxIa), Nmax);
     res.lftHistM_Ia{k} = tmp.Ia;
     
     validGaps = arrayfun(@(t) max([t.gapStatus 4]), tracksS)==4;
     idxIa = validGaps & [tracksS.nSeg]==1 & [tracksS.visibility]==1;
-    tmp = getLifetimeHistogram(dataSlave(k), tracksS(idxIa));
+    tmp = getLifetimeHistogram(dataSlave(k), tracksS(idxIa), Nmax);
     res.lftHistS_Ia{k} = tmp.Ia;
     
     fprintf('\b\b\b\b%3d%%', round(100*k/nd));
@@ -107,6 +110,16 @@ res.t = tmp.t;
 
 
 
+fpath = cell(1,nd);
+for k = 1:nd
+    [~,fpath{k}] = getCellDir(dataMaster(k));
+end
+fpath = unique(fpath);
+fpath = [fpath{1} 'Figures' filesep];
+[~,~] = mkdir(fpath);
+
+
+
 
 hueMaster = getFluorophoreHues(dataMaster(1).markers{1});
 hueSlave = getFluorophoreHues(dataSlave(1).markers{1});
@@ -136,6 +149,28 @@ xlabel('Lifetime (s)', lfont{:});
 ylabel('Frequency', lfont{:});
 hl = legend(hp, chNames);
 set(hl, 'Box', 'off');
+title('Mapped tracks');
+print('-depsc2', [fpath 'MasterSlaveLifetimes_mapped.eps']);
+
+
+figure('Position', [440 378 560 360], 'PaperPositionMode', 'auto');
+hold on;
+% fill([res.t res.t(end:-1:1)], [res.histSlave_Mean+res.histSlave_SEM res.histSlave_Mean(end:-1:1)-res.histSlave_SEM(end:-1:1)],...
+%     slaveFillColor, 'EdgeColor', 'none');
+hp(2) = plot(res.t, res.meanLftHistS_mapped, '.-', 'Color', slaveColor, 'LineWidth', 3, 'MarkerSize', 20);
+% fill([res.t res.t(end:-1:1)], [res.histMaster_Mean+res.histMaster_SEM res.histMaster_Mean(end:-1:1)-res.histMaster_SEM(end:-1:1)],...
+%     masterFillColor, 'EdgeColor', 'none');
+hp(1) = plot(res.t, res.meanLftHistM_Ia, '.-', 'Color', masterColor, 'LineWidth', 3, 'MarkerSize', 20);
+axis([0 140 0 0.05]);
+set(gca, 'LineWidth', 2, 'YTick', 0:0.01:0.05, 'XTick', 0:20:140, 'Layer', 'top', sfont{:}, 'TickDir', 'out');
+xlabel('Lifetime (s)', lfont{:});
+ylabel('Frequency', lfont{:});
+hl = legend(hp, chNames);
+set(hl, 'Box', 'off');
+title('All master, mapped slave');
+print('-depsc2', [fpath 'MasterSlaveLifetimes_allMasterMappedSlave.eps']);
+
+
 
 
 
@@ -153,7 +188,8 @@ xlabel('Lifetime (s)', lfont{:});
 ylabel('Frequency', lfont{:});
 hl = legend(hp, chNames);
 set(hl, 'Box', 'off');
-
+title('Unmapped tracks');
+print('-depsc2', [fpath 'MasterSlaveLifetimes_unmapped.eps']);
 
 
 % All Ia tracks, independent
@@ -171,6 +207,8 @@ xlabel('Lifetime (s)', lfont{:});
 ylabel('Frequency', lfont{:});
 hl = legend(hp, chNames);
 set(hl, 'Box', 'off');
+title('All tracks');
+print('-depsc2', [fpath 'MasterSlaveLifetimes_all.eps']);
 
 
 
