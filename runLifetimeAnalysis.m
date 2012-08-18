@@ -521,7 +521,7 @@ end
 plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
 axis([0 60 0 0.035]);
 ya = 0:0.01:0.04;
-set(gca, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
 
 % print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
@@ -543,7 +543,8 @@ xlabel('Lifetime (s)', fset.lfont{:});
 ylabel('Frequency', fset.lfont{:});
 [mu,~,Aexp] = fitExpToHist(lftRes.t, meanHist);
 % plot(lftRes.t, expF, 'r--', 'LineWidth', 1);
-plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
+ti = 0:0.1:120;
+plot(ti, Aexp/mu*exp(-1/mu*ti), 'r--', 'LineWidth', 1)
 
 % Inset with zoom
 zf = 0.6;
@@ -556,10 +557,10 @@ fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ce
 plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
 plot([0 lft50], [0.5 0.5], 'k--', 'LineWidth', 1);
 ya = 0:0.25:1;
-set(gca, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
 axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Cumul. freq.', fset.lfont{:});
+% xlabel('Lifetime (s)', fset.lfont{:});
+ylabel('Cumulative freq.', fset.sfont{:});
 
 % print('-depsc2', '-loose', ['LftMean+CDF_dataOX_10_cut' num2str(cutoff_f) '_mu=' num2str(mu, '%.2f') '.eps']);
 

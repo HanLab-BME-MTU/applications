@@ -131,7 +131,7 @@ sh = ah/3;
 cmap = jet(nc);
 
 % figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
-figure('Units', 'centimeters', 'Position', [5 5 8.5 ny*ah+(ny-1)*sh+2.5], 'Color', [1 1 1], 'PaperPositionMode', 'auto');
+figure('Units', 'centimeters', 'Position', [5 5 8 ny*ah+(ny-1)*sh+2.5], 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 hbg = axes('Units', 'centimeters', 'Position', [0 0 2*xo+aw+2 2*yo+ny*ah+(ny-1)*sh]);
 hold(hbg, 'on');
 axis(hbg, [0 2*xo+aw+2 0 2*yo+ny*ah+(ny-1)*sh]);

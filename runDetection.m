@@ -129,9 +129,9 @@ parfor k = 1:data.movieLength
         end
         
         % add fields for tracker
-        pstruct.xCoord = [pstruct.x(mCh,:)' zeros(np,1)];
-        pstruct.yCoord = [pstruct.y(mCh,:)' zeros(np,1)];
-        pstruct.amp = [pstruct.A(mCh,:)' zeros(np,1)];
+        pstruct.xCoord = [pstruct.x(mCh,:)' pstruct.x_pstd(mCh,:)'];
+        pstruct.yCoord = [pstruct.y(mCh,:)' pstruct.y_pstd(mCh,:)'];
+        pstruct.amp =    [pstruct.A(mCh,:)' pstruct.A_pstd(mCh,:)'];
         frameInfo(k) = orderfields(pstruct, fieldnames(frameInfo(k))); %#ok<PFOUS>
     else
         frameInfo(k).dRange{mCh} = [min(img(:)) max(img(:))];
