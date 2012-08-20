@@ -96,63 +96,78 @@ for jMode = 1 : numMode2plot
         staticSeriesMeanMode(:)-staticSeriesSemMode(:); ...
         dynamicSeriesAftMeanMode(:)-dynamicSeriesAftSemMode(:); ...
         combDynamicSeriesAftMeanMode(:)-combDynamicSeriesAftSemMode(:)]);
-    
-    %first plot
-    subplot(numMode2plot,2,(jMode-1)*2+1), hold on
-    
-    %before dynamic
-    plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),'k--','Marker','.')
-    myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),dynamicSeriesBefSemMode(:,1))
-    
-    %static series
-    plot(minInc:maxInc,staticSeriesMeanMode(:,1),'k','Marker','.','LineWidth',2)
-    myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,1),staticSeriesSemMode(:,1))
-    
-    %after dynamic
-    legendEntries = cell(1,6);
-    for iInc = 1 : 6
-        plot(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),'color',incColor(iInc,:),'Marker','.')
-        myErrorbar(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),dynamicSeriesAftSemMode(:,iInc))
-        legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
+    if isnan(yMax)
+        yMax = max([dynamicSeriesBefMeanMode(:); ...
+            staticSeriesMeanMode(:); ...
+            dynamicSeriesAftMeanMode(:); ...
+            combDynamicSeriesAftMeanMode(:)]);
+        yMin = min([dynamicSeriesBefMeanMode(:); ...
+            staticSeriesMeanMode(:); ...
+            dynamicSeriesAftMeanMode(:); ...
+            combDynamicSeriesAftMeanMode(:)]);
+    end
+    if yMax==yMin
+        yMax = yMin*1.01 + eps;
     end
     
-    %after dynamic combined
-    plot(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),'b','Marker','.','LineWidth',2)
-    myErrorbar(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),combDynamicSeriesAftSemMode(:,1))
+    if ~isnan(yMax)
+        
+        %first plot
+        subplot(numMode2plot,2,(jMode-1)*2+1), hold on
+        
+        %before dynamic
+        plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),'k--','Marker','.')
+        myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,1),dynamicSeriesBefSemMode(:,1))
+        
+        %static series
+        plot(minInc:maxInc,staticSeriesMeanMode(:,1),'k','Marker','.','LineWidth',2)
+        myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,1),staticSeriesSemMode(:,1))
+        
+        %after dynamic
+        legendEntries = cell(1,6);
+        for iInc = 1 : 6
+            plot(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),'color',incColor(iInc,:),'Marker','.')
+            myErrorbar(minInc:maxInc,dynamicSeriesAftMeanMode(:,iInc),dynamicSeriesAftSemMode(:,iInc))
+            legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
+        end
+        
+        %after dynamic combined
+        plot(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),'b','Marker','.','LineWidth',2)
+        myErrorbar(minInc:maxInc,combDynamicSeriesAftMeanMode(:,1),combDynamicSeriesAftSemMode(:,1))
+        
+        axis([minInc maxInc yMin yMax]);
+        xlabel('Time from protruion onset (frames)')
+        
+        legendEntries = [{'Dynamic before'} {'Static'} legendEntries {'Dynamic after aligned & combined'}]; %#ok<AGROW>
+        legend(legendEntries);
+        
+        %second plot
+        subplot(numMode2plot,2,jMode*2), hold on
+        
+        %bands
+        legendEntries = cell(1,8);
+        for iBand = 1 : 2
+            plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineWidth',2)
+            myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
+            legendEntries{iBand} = ['Band ' num2str(iBand)];
+        end
+        for iBand = 3 : min(numBand,8)
+            plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.')
+            myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
+            legendEntries{iBand} = ['Band ' num2str(iBand)];
+        end
+        axis([minInc maxInc yMin yMax]);
+        xlabel('Time from protruion onset (frames)')
+        legend(legendEntries);
+        for iBand = 1 : min(numBand,8)
+            plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineStyle','--')
+            myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),dynamicSeriesBefSemMode(:,iBand))
+        end
+        
+    end %(if ~isnan(yMax))
     
-    axis([minInc maxInc yMin yMax]);
-    xlabel('Time from protruion onset (frames)')
-    
-    legendEntries = [{'Dynamic before'} {'Static'} legendEntries {'Dynamic after aligned & combined'}]; %#ok<AGROW>
-    legend(legendEntries);
-    
-    %second plot
-    subplot(numMode2plot,2,jMode*2), hold on
-    
-    %bands
-    legendEntries = cell(1,8);
-    for iBand = 1 : 2
-        plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineWidth',2)
-        myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
-        legendEntries{iBand} = ['Band ' num2str(iBand)];
-    end
-    for iBand = 3 : min(numBand,8)
-        plot(minInc:maxInc,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.')
-        myErrorbar(minInc:maxInc,staticSeriesMeanMode(:,iBand),staticSeriesSemMode(:,iBand))
-        legendEntries{iBand} = ['Band ' num2str(iBand)];
-    end
-    axis([minInc maxInc yMin yMax]);
-    xlabel('Time from protruion onset (frames)')
-    legend(legendEntries);
-    for iBand = 1 : min(numBand,8)
-        plot(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineStyle','--')
-        myErrorbar(minInc:maxInc,dynamicSeriesBefMeanMode(:,iBand),dynamicSeriesBefSemMode(:,iBand))
-    end
-    
-end
+end %(for jMode = 1 : numMode2plot)
 
 if ~isempty(saveLoc)
     saveas(hFig,saveLoc)
 end
-
-

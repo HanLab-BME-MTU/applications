@@ -1,9 +1,10 @@
 clear all
 close all
 
-% windowRange = [];
-windowRange = (1:135)';
+sliceRange = [];
+% sliceRange = (15:156)';
 frameRange = [];
+lengthMinMax = [5 99];
 
 % windowsAll = putWindowsTogether;
 % load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
@@ -40,13 +41,20 @@ catch
     clear windowTrackAssignExt1 windowTrackAssignExt2
 end
 
-
 load ../diffusionModeClassification.mat
 load ../directTrackChar.mat
 
+windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
+    diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
+    windowTrackAssignExt,lengthMinMax);
+
+save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
+
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/talinAndCellEdge/110916_Cs1C3_Talin/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_110916_Cs1C3_CHOmEosTalin_6minEdgeStack_00001.tif';
+
 [sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
     tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
-    1:400:maxFrame+1,protSamples,windowMSAssignExt,[5 99],windowRange,frameRange,...
-    windowTrackAssignExt);
+    protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
+    lengthMinMax,sliceRange,frameRange,firstMaskFile);
 
-% save('particleBehaviorAdaptiveWindows2','sptPropInWindow','analysisParam');
+save('particleBehaviorAdaptiveWindows120817','sptPropInWindow','analysisParam');

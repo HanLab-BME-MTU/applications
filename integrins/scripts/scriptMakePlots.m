@@ -1,14 +1,15 @@
 clear all
 close all
-load particleBehaviorAdaptiveWindows.mat
-cd figuresSptVsWindows
+load particleBehaviorAdaptiveWindows120817.mat
+mkdir figuresSptVsWindows120817
+cd figuresSptVsWindows120817
 
-movieName = 'Talin 120516 Cs2C3';
+movieName = 'Talin 110916 Cs1C3';
 
 for iType = [1 2 9]
     
     %particle density
-    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.spDensity,...
+    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.densityParticles,...
         1,20,[movieName ', Overall particle density, protType ' num2str(iType)],...
         ['densityOverall_protType' num2str(iType) '.fig']);
     
@@ -29,14 +30,14 @@ for iType = [1 2 9]
     
     %fraction in each diffusion mode
     for iMode = 1 : 3
-        plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.fracMode,...
+        plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
             iMode,20,[movieName ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['fractionMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
     end
     
     %density of each diffusion mode
     for iMode = 1 : 3
-        plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.modeDensity,...
+        plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
             iMode,20,[movieName ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['densityMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
     end
@@ -47,6 +48,16 @@ for iType = [1 2 9]
             iMode,20,[movieName ', Diff. coef. Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['diffCoefMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
     end
+    
+    %fraction of merges
+    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracMerge,...
+        1,20,[movieName ', Fraction merges, protType ' num2str(iType)],...
+        ['fracMerge_protType' num2str(iType) '.fig']);
+    
+    %fraction of splits
+    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracSplit,...
+        1,20,[movieName ', Fraction splits, protType ' num2str(iType)],...
+        ['fracSplit_protType' num2str(iType) '.fig']);
     
 end
 
