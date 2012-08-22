@@ -34,6 +34,7 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('FileName', 'trackedFeatures', @ischar); % default of the tracker
 ip.addParamValue('Frames', [], @isvector);
 ip.addParamValue('DownsamplingFactor', [], @isscalar);
+ip.addParamValue('DetectionFile', 'detection_v2.mat');
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
@@ -80,7 +81,7 @@ if isfield(data, 'detection') && ~isempty(data.detection)
     movieInfo = data.detection;
 else
     %loadfile = load([data.source 'Detection' filesep 'detectionResults.mat']);
-    loadfile = load([data.source 'Detection' filesep 'detection_v2.mat']);
+    loadfile = load([data.source 'Detection' filesep ip.Results.DetectionFile]);
     if isfield(loadfile, 'frameInfo')
         movieInfo = loadfile.frameInfo;
         if ~isempty(frames)
