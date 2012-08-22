@@ -116,6 +116,18 @@ sigmaPSF = movieData.channels_(1).psfSigma_;
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 
+% Subsample detected beads ensuring beads are separated by at least half of
+% the correlation length
+disp('Subsampling detected beads...')
+idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
+valid = true(numel(idx),1);
+for i = 1:numel(idx)
+    if ~valid(i), continue; end
+    neighbors = idx{i}(idx{i}~=i);
+    valid(neighbors) = false;
+end
+beads = beads(valid, :);
+
 % Select only beads which are minCorLength away from the border of the
 % reference frame 
 beadsMask = true(size(refFrame));
