@@ -28,18 +28,20 @@ classdef QFSMPackage < Package
         function [status processExceptions] = sanityCheck(obj,varargin) 
             
             % Check that the channels have a value for the spsf sigma
-            psfSigmaCheck =arrayfun(@(x)isempty(x.psfSigma_),obj.owner_.channels_);
-            if any(psfSigmaCheck)
-                error(['Missing standard deviation of the theoretical point-spread function! '...
-                    'Please fill the numerical aperture, pixel size and'...
-                    ' emission wavelengths!']);            
-            end
+            psfSigmaCheck =arrayfun(@(x) isempty(x.psfSigma_),obj.owner_.channels_);
+            assert(~any(psfSigmaCheck),...
+                ['Missing standard deviation of the theoretical point-spread function! '...
+                'Please fill the numerical aperture, pixel size and'...
+                ' emission wavelengths of all channels!']);
             
             % Check that the time interval is correctly setup
-            if isempty(obj.owner_.timeInterval_)
-                error('Missing frame rate! Please fill the time interval!');            
-            end
+            assert(~isempty(obj.owner_.timeInterval_),...
+                'Missing frame rate! Please fill the time interval!');
             
+            % Check that the camera bit depth is correctly setup
+            assert(~isempty(obj.owner_.camBitdepth_),...
+                'Missing camera bit depth! Please fill the camera bit depth!');
+
             % Input check
             nProc = length(obj.getProcessClassNames);
             ip = inputParser;
