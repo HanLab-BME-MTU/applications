@@ -115,7 +115,15 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output.var = 'avgNormal';
             output.name = 'Protrusion';
         end
-        
+        function output = getDrawableOutput(obj)
+            output(1).name='Protrusion map';
+            output(1).var='avgNormal';
+            output(1).formatData=[];
+            output(1).type='movieGraph';
+            units = ['Edge velocity (' obj.funParams_.Units ')'];
+            output(1).defaultDisplayMethod = @(x)ScalarMapDisplay('Colormap',jet(2^8),...
+                'Units',units,'Labels',{'Frame number','Window number'});
+        end
     end
     methods (Static)
         function name =getName()
@@ -124,14 +132,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
         function name =GUI()
             name =@protrusionSamplingProcessGUI;
         end
-        function output = getDrawableOutput()
-            output(1).name='Protrusion map';
-            output(1).var='avgNormal';
-            output(1).formatData=[];
-            output(1).type='movieGraph';
-            output(1).defaultDisplayMethod=@(x)ScalarMapDisplay('Colormap',jet(2^8),...
-                'Units','pixels/frame','Labels',{'Frame number','Window number'});
-        end
+
         function funParams = getDefaultParams(owner,varargin)
             % Input check
             ip=inputParser;
@@ -142,7 +143,16 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             
             % Set default parameters
             funParams.OutputDirectory = [outputDir  filesep 'protrusion_samples'];
+            funParams.Units = ProtrusionSamplingProcess.getUnits{1};
             funParams.BatchMode = false;
+        end
+        function units = getUnits()
+            units = {
+                'pixels/frame';...
+                'microns/min';...
+                'microns/s';...
+                'nm/min',...
+                'nm/s'};
         end
     end
 end
