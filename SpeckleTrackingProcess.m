@@ -54,7 +54,11 @@ classdef SpeckleTrackingProcess < DataProcessingProcess
                  for i=1:numel(output)
                      switch output{i}
                          case 'M'
-                             varargout{i}=varargout{i}(:,:,iFrame);
+                             if size(varargout{i}, 3) < iFrame,
+                                 varargout{i} = zeros(1,4);
+                             else
+                                 varargout{i}=varargout{i}(:,:,iFrame);
+                             end
                          case 'MPM'
                              index = all(varargout{i}(:,2*iFrame-1:2*iFrame),2)~=0;
                              varargout{i}=varargout{i}(index,1:2*iFrame);    
