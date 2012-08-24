@@ -2,7 +2,7 @@ clear all
 close all
 
 sliceRange = [];
-% sliceRange = (15:156)';
+% sliceRange = (15:187)';
 frameRange = [];
 lengthMinMax = [5 99];
 
@@ -50,7 +50,7 @@ windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
 
 save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
 
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/talinAndCellEdge/110916_Cs1C3_Talin/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_110916_Cs1C3_CHOmEosTalin_6minEdgeStack_00001.tif';
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncAndCellEdge/120517_Cs2C1_Av717Trunc/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120517_Cs2C1_Av717Trunc_6minEdgeStack_00001.tif';
 
 [sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
     tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...

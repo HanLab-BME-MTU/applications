@@ -4,7 +4,9 @@ load particleBehaviorAdaptiveWindows120817.mat
 mkdir figuresSptVsWindows120817
 cd figuresSptVsWindows120817
 
-movieName = 'Talin 110916 Cs1C3';
+movieName = 'Talin 120524 Cs1C2';
+
+numMode = 3;
 
 for iType = [1 2 9]
     
@@ -29,21 +31,21 @@ for iType = [1 2 9]
         ['diffCoefOverall_protType' num2str(iType) '.fig']);
     
     %fraction in each diffusion mode
-    for iMode = 1 : 3
+    for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
             iMode,20,[movieName ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['fractionMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
     end
     
     %density of each diffusion mode
-    for iMode = 1 : 3
+    for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
             iMode,20,[movieName ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['densityMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
     end
     
     %diffusion coefficient in each diffusion mode
-    for iMode = 1 : 3
+    for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeInd,...
             iMode,20,[movieName ', Diff. coef. Mode ' num2str(iMode) ', protType ' num2str(iType)],...
             ['diffCoefMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
