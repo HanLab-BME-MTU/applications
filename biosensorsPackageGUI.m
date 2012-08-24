@@ -9,10 +9,10 @@ function varargout = biosensorsPackageGUI(varargin)
 
 
 if nargin>0 && isa(varargin{1},'MovieList')
-    varargout{1} = packageGUI(@BiosensorsPackage,...
+    varargout{1} = packageGUI('BiosensorsPackage',...
         [varargin{1}.getMovies{:}],varargin{2:end},'ML',varargin{1});
 else
-    varargout{1} = packageGUI(@BiosensorsPackage,varargin{:});
+    varargout{1} = packageGUI('BiosensorsPackage',varargin{:});
 end
 
 end
