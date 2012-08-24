@@ -8,9 +8,9 @@ function varargout = windowingPackageGUI(varargin)
 % Sebastien Besson, July 2011
 
 if nargin>0 && isa(varargin{1},'MovieList')
-    varargout{1} = packageGUI(@WindowingPackage,...
+    varargout{1} = packageGUI('WindowingPackage',...
         [varargin{1}.getMovies{:}],'ML',varargin{1},varargin{2:end});
 else
-    varargout{1} = packageGUI(@WindowingPackage,varargin{:});
+    varargout{1} = packageGUI('WindowingPackage',varargin{:});
 end
 end
