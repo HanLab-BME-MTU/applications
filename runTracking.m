@@ -40,6 +40,7 @@ overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
 frames = ip.Results.Frames;
 dsfactor = ip.Results.DownsamplingFactor;
+detectionFile = ip.Results.DetectionFile;
 
 % Determine file name
 if ~isempty(frames)
@@ -64,7 +65,7 @@ end
 parfor i = 1:length(data)
     if ~(exist([data(i).source 'Tracking'], 'dir')==7) || overwrite
         fprintf('Running tracker on %s\n', getShortPath(data(i)));
-        main(data(i), settings, fileName, frames);
+        main(data(i), settings, fileName, detectionFile, frames);
     else
         fprintf('Tracking has already been run for %s\n', getShortPath(data(i)));
     end
@@ -72,7 +73,7 @@ end
 
 
 
-function [data] = main(data, settings, fileName, frames)
+function [data] = main(data, settings, fileName, detectionFile, frames)
 
 % now we're missing the variable movieInfo, which is the detection
 % data. If a valid detection structure is a field in data, read it,
@@ -81,7 +82,7 @@ if isfield(data, 'detection') && ~isempty(data.detection)
     movieInfo = data.detection;
 else
     %loadfile = load([data.source 'Detection' filesep 'detectionResults.mat']);
-    loadfile = load([data.source 'Detection' filesep ip.Results.DetectionFile]);
+    loadfile = load([data.source 'Detection' filesep detectionFile]);
     if isfield(loadfile, 'frameInfo')
         movieInfo = loadfile.frameInfo;
         if ~isempty(frames)
