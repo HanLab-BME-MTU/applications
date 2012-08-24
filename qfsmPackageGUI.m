@@ -9,7 +9,8 @@ function varargout = qfsmPackageGUI(varargin)
 %
 
 if nargin>0 && isa(varargin{1},'MovieList')
-    varargout{1} = packageGUI(@QFSMPackage,[varargin{1}.getMovies{:}],varargin{2:end});
+    varargout{1} = packageGUI(@QFSMPackage,...
+        [varargin{1}.getMovies{:}],varargin{2:end},'ML',varargin{1});
 else
     varargout{1} = packageGUI(@QFSMPackage,varargin{:});
 end
