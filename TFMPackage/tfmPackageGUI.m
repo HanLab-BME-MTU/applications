@@ -9,10 +9,10 @@ function varargout = tfmPackageGUI(varargin)
 %
 
 if nargin>0 && isa(varargin{1},'MovieList')
-    varargout{1} = packageGUI(@TFMPackage,...
+    varargout{1} = packageGUI('TFMPackage',...
         [varargin{1}.getMovies{:}],varargin{2:end},'ML',varargin{1});
 else
-    varargout{1} = packageGUI(@TFMPackage,varargin{:});
+    varargout{1} = packageGUI('TFMPackage', varargin{:});
 end
 
 end
