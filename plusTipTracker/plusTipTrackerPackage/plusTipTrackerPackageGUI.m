@@ -11,7 +11,7 @@ function varargout = plusTipTrackerPackageGUI(varargin)
 options = {'packageName', 'TrackingPackage'};
 if nargin>0 && isa(varargin{1},'MovieList')  
     varargout{1} = packageGUI(@PlusTipTrackerPackage,...
-        [varargin{1}.getMovies{:}],varargin{2:end},options{:});
+        [varargin{1}.getMovies{:}],varargin{2:end},options{:},'ML',varargin{1});
 else
     varargout{1} = packageGUI(@PlusTipTrackerPackage,varargin{:},options{:});
 end
