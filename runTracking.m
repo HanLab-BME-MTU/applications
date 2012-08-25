@@ -38,6 +38,10 @@ ip.addParamValue('DetectionFile', 'detection_v2.mat');
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
+idx = regexpi(fileName, '.mat');
+if ~isempty(idx)
+    fileName = fileName(1:idx-1);
+end
 frames = ip.Results.Frames;
 dsfactor = ip.Results.DownsamplingFactor;
 detectionFile = ip.Results.DetectionFile;
