@@ -1,12 +1,12 @@
-function [numPers]=numPersistentField(data, threshold)
-% calculate the number of objects that have a lifetime 
+function [numPers] = numPersistentField(data, threshold)
+% calculate the number of objects that have a lifetime
 % exceeding a specified threshold value, so-called 'persistent' objects
 % INPUT: data      = experiment structure field
 %        threshold  = threshold in seconds
 % OUTPUT: numPers     = fraction of long-lived objects in every frame
-%         
+%
 % NOTE: only movies with framerate 2 are used for this analysis
-% NOTE: in a previous version of this function, the fraction of persistent 
+% NOTE: in a previous version of this function, the fraction of persistent
 % objects in each frame was calculated, this function looks for the
 % fraction of the whole pool of objects - because of the higher frequency
 % of short-lived objects, the contribution of persistent objects per whole
@@ -15,13 +15,13 @@ function [numPers]=numPersistentField(data, threshold)
 % last modified : July 11, 2007 (Dinah)
 % Last modified: Francois Aguet, 02/18/2010
 
-numPers = [];
-    
+numPers = 0;
+
 % proceed if the movie is long enough for the specified threshold
 % and has specified framerate
 % AND to prevent multiple copies of resampled movies skewing the
 % results, use only one of multiple resample copies
-if ((data.framerate*data.movieLength)>min(threshold)) %& (data.framerate>=2)   
+if ((data.framerate*data.movieLength)>min(threshold)) %& (data.framerate>=2)
     
     if isfield(data, 'lftInfo') && ~isempty(data.lftInfo)
         lftInfo = data.lftInfo;
@@ -31,22 +31,21 @@ if ((data.framerate*data.movieLength)>min(threshold)) %& (data.framerate>=2)
             load(lftPath);
         end
     end;
-
+    
     if ~isempty(lftInfo)
         % convert the threshold (which is in seconds) into number of frames,
         % which depends on the framerate of this movies
         thresh_frames = round(threshold/data.framerate);
-         
-        if ( data.framerate*data.movieLength>threshold )
+        
+        if data.framerate*data.movieLength > threshold
             numPers = numAboveThresh(lftInfo, thresh_frames);
         end
     end
 end
-end
 
 
 
-function [numPers]=numAboveThresh(lftInfo, threshold)
+function [numPers] = numAboveThresh(lftInfo, threshold)
 
 numPers = zeros(1,length(threshold));
 
@@ -103,5 +102,4 @@ for t = 1:length(threshold)
     end
     % calculate fraction of category 1 out of the 'usable' trajectories
     numPers(t) = numCat(1,t);
-end
 end
