@@ -40,7 +40,8 @@ parfor f = 1:nf
 
     frame = double(imread(data.framePaths{1}{f})); %#ok<PFBNS>
 
-    [iFrameInfo mask] = main283AUTO_standalone(frame, postProcLevel);
+    %[iFrameInfo mask] = main283AUTO_standalone(frame, postProcLevel);
+    [iFrameInfo mask] = detectSpotsWT(frame, postProcLevel);
     Z = zeros(iFrameInfo.num,1);
     iFrameInfo.xCoord = [iFrameInfo.xav Z];
     iFrameInfo.yCoord = [iFrameInfo.yav Z];
