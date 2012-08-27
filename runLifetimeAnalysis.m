@@ -388,8 +388,13 @@ for i = 1:nd
     if ip.Results.ExcludeVisitors
         idxLft = sum(lftData(i).A(:,1:3,mCh)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & res(i).lft_all<tx;
         
+        % median of first three frames larger than median of last three frames
+        %medStart = median(lftData(i).A(:,1:5),2);
+        %medEnd = arrayfun(@(k) median(lftData(i).A(k,lftData(i).trackLengths(k)+(-2:0))), 1:size(lftData(i).A,1))';
+        
         %maxStart = nanmax(lftData(i).A(:,1:5,mCh),[],2);
-        %maxEnd = arrayfun(@(k) max(lftData(i).A(k,lftData(i).trackLengths(k)+(-4:0))), 1:size(lftData(i).A,1))';
+        %maxEnd = arrayfun(@(k) max(lftData(i).A(k,lftData(i).trackLengths(k)+(-4:0),mCh)), 1:size(lftData(i).A,1))';
+        %maxEnd = nanmax(lftData(i).A(:,6:end),[],2);
         
         %diffIdx = maxStart>maxEnd;
         %idxLft = idxLft & diffIdx';
