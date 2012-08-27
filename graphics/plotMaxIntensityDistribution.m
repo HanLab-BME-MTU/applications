@@ -19,6 +19,8 @@ mode = ip.Results.Mode;
 figPath = [figPath 'Figures' filesep];
 [~,~] = mkdir(figPath);
 
+mCh = strcmp(data(1).source, data(1).channels);
+
 lb = ip.Results.CohortLB;
 ub = ip.Results.CohortUB;
 nc = numel(lb);
@@ -26,7 +28,7 @@ nc = numel(lb);
 ny = nc;
 
 lftData = getLifetimeData(data);
-A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:), lftData, 'UniformOutput', false);
+A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:,mCh), lftData, 'UniformOutput', false);
 maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
 
 % Rescale EDFs (correction for FP-fusion expression level)
@@ -235,9 +237,9 @@ for k = 1:nc
         set(hy, 'Position', ypos);
     end
     
-    if k>1
+    if k>1 && ip.Results.ShowSignificance % indicate that the distributions are the same
         [hval pval] = kstest2(maxAcohortFirstN{k-1}, maxAcohortFirstN{k});
-        if hval==0 && ip.Results.ShowSignificance % indicate that the distributions are the same
+        if hval==0 
             % x: after box:
             x0 = xo + aw + 0.5;
             y0 = (ny-k)*(ah+sh) + yo + (ah+sh/2)/2;
