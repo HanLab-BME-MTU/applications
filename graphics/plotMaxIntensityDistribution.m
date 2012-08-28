@@ -4,6 +4,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Mode', 'pdf', @(x) any(strcmpi(x, {'pdf', 'cdf'})));
 ip.addParamValue('XTick', []);
+ip.addParamValue('YTick', []);
 ip.addParamValue('FirstNFrames', 5);
 ip.addParamValue('CohortLB', [5  11 16 21 41 61 81]);
 ip.addParamValue('CohortUB', [10 15 20 40 60 80 120]);
@@ -109,11 +110,15 @@ for k = 1:numel(lb)
     niFirst{k} = ni0/sum(ni0);
 end
 
-di = 3;
-ymax = max(cellfun(@(i) max(i), niFirstN));
-mag = 10^floor(log10(ymax/di));
-dy = ceil(ymax/mag/di)*mag;
-ya = (0:di)*dy;
+if isempty(ip.Results.YTick)
+    di = 3;
+    ymax = max(cellfun(@(i) max(i), niFirstN));
+    mag = 10^floor(log10(ymax/di));
+    dy = ceil(ymax/mag/di)*mag;
+    ya = (0:di)*dy;
+else
+    ya = ip.Results.YTick;
+end
 
 %%
 cf0 = [1 1 1]*0.6;

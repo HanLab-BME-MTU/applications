@@ -156,6 +156,7 @@ disp('');
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 lftRes.cellArea = zeros(nd,1);
+lftFields = {'lifetime_s', 'trackLengths', 'catIdx'}; % catIdx must be last!
 for i = 1:nd
     
     % apply frames cutoff for short tracks
@@ -478,8 +479,8 @@ for i = 1:nd
 end
 
 lftRes.t = (cutoff_f:Nmax)*framerate;
-lftRes.meanLftHist_A = mean(lftRes.lftHist_A,1);
-lftRes.meanLftHist_B = mean(lftRes.lftHist_B,1);
+lftRes.meanLftHist_A = nanmean(lftRes.lftHist_A,1);
+lftRes.meanLftHist_B = nanmean(lftRes.lftHist_B,1);
 % lftRes.meanLftHist_Ia = mean(vertcat(res.lftHist_Ia),1);
 lftRes.lftHist_Ia = vertcat(res.lftHist_Ia);
 lftRes.nSamples_Ia = [res.nSamples_Ia];
