@@ -6,6 +6,7 @@ ip.addParamValue('XTick', []);
 ip.addParamValue('CohortLB', [1 11 16 21 41 61]);
 ip.addParamValue('CohortUB', [10 15 20 40 60 120]);
 ip.addParamValue('ShowPct', false, @islogical);
+ip.addParamValue('FigureName', '');
 ip.parse(varargin{:});
 lb = ip.Results.CohortLB;
 ub = ip.Results.CohortUB;
@@ -29,12 +30,12 @@ ivec = 0:3:150;
 tvec = 0:10;
 
 fset = loadFigureSettings('print');
-figure(fset.fOpts{:});
+figure(fset.fOpts{:}, 'Name', ip.Results.FigureName);
 iset = [fset.axOpts, 'XTick', 0:5:20, 'XLim', [tvec(1)-0.5 tvec(end)+0.5], 'YLim', [ivec(1) ivec(end)], 'TickLength', fset.TickLength*6/1.8];
 
 wx = 1.8;
 wy = 1.6;
-d0 = 0.3; 
+d0 = 0.3;
 c = 1;
 
 for i = 2:-1:1
@@ -42,7 +43,12 @@ for i = 2:-1:1
         axes(iset{:}, 'Position', [1.5+(j-1)*(wx+d0) 1.5+(i-1)*(wy+d0) wx wy]); hold on;
         M = A(lb(c)<=lft&lft<=ub(c),1:numel(tvec));
         T = repmat(tvec, [size(M,1),1]);
-        hm = hist3([M(:) T(:)], {ivec, tvec});
+        mv = M(:);
+        tv = T(:);
+        rmIdx = mv>ivec(end);
+        mv(rmIdx) = [];
+        tv(rmIdx) = [];
+        hm = hist3([mv tv], {ivec, tvec});
         % hm = hm./repmat(sum(hm,1), [numel(ivec) 1]);
         imagesc(tvec, ivec, hm);
         if ip.Results.ShowPct
