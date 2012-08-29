@@ -1,9 +1,9 @@
 clear all
 close all
 
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/talinAndCellEdge/120607_Cs2C2_Talin/analysisCellEdgeMod/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120607_Cs2C2_Talin_6minEdgeStack_00001.tif';
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120224/120224_Cs3C1_LifeAct/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120224_Cs3C1_CHO_mEos2LifeAct25ms_GFPfill5ms_6minEdgeStack_00001.tif';
 
-cd ../../../analysisTalin/tracks/
+cd ../../../analysisLifeact/tracks/
 load tracks1AllFrames.mat
 cd ../diffusion/
 load diffAnalysis1AllFrames.mat
@@ -22,9 +22,3 @@ diffAnalysisRes = diffAnalysisRes(indxMask);
 
 save('tracksDiffusionLength5InMask','tracksFinal','diffAnalysisRes','indx5','indxMask');
 
-% [modeParam,expParam] = getDiffModes(tracksFinal,5,0.001,1,10,2,'test');
-% modeParam
-% 
-% save('diffusionModeAnalysis','modeParam','expParam');
-% 
-% plotPropertySpatialMap2D(tracksFinal,'test',1,5,1,[],[],diffAnalysisRes);

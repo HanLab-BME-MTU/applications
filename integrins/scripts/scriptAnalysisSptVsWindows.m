@@ -1,8 +1,8 @@
 clear all
 close all
 
-sliceRange = [];
-% sliceRange = (15:187)';
+% sliceRange = [];
+sliceRange = (15:150)';
 frameRange = [];
 lengthMinMax = [5 99];
 
@@ -16,7 +16,7 @@ maxFrame = max(seqOfEvents(:,1));
 
 % [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
 %     assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
-
+% 
 % save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
 %     'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
 
@@ -42,7 +42,7 @@ catch
 end
 
 load ../diffusionModeClassification.mat
-load ../directTrackChar.mat
+load directTrackChar.mat
 
 windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
     diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
@@ -50,7 +50,7 @@ windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
 
 save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
 
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncAndCellEdge/120517_Cs2C1_Av717Trunc/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120517_Cs2C1_Av717Trunc_6minEdgeStack_00001.tif';
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120213/120213_Cs2C2A_Lifeact/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120213_Cs2C2_CHO_mEosLifeAct_17minEdgeStack_00001.tif';
 
 [sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
     tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
@@ -58,3 +58,4 @@ firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncA
     lengthMinMax,sliceRange,frameRange,firstMaskFile);
 
 save('particleBehaviorAdaptiveWindows120817','sptPropInWindow','analysisParam');
+
