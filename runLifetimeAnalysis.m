@@ -455,6 +455,14 @@ for i = 1:nd
     
     % Multi-channel data
     if isfield(res, 'significantSignal')
+        
+        lftHist_pos = hist(res(i).lft_all(res(i).significantSignal(2,:)==1), t);
+        lftHist_neg = hist(res(i).lft_all(res(i).significantSignal(2,:)==0), t);
+        lftHist_pos =  [lftHist_pos.*w  pad0];
+        lftHist_neg =  [lftHist_neg.*w  pad0];
+        lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
+        lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
+        
         lftHist_Apos = hist(res(i).lft_all(idxMI & res(i).significantSignal(2,:)), t);
         lftHist_Aneg = hist(res(i).lft_all(idxMI & ~res(i).significantSignal(2,:)), t);
         lftHist_Bpos = hist(res(i).lft_all(~idxMI & res(i).significantSignal(2,:)), t);
@@ -467,14 +475,16 @@ for i = 1:nd
         lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg) / framerate;
         lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos) / framerate;
         lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg) / framerate;
+        
         %lftRes.lftHist_Apos(i,:) = lftHist_Apos / normA / framerate;
         %lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / normA / framerate;
         %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB / framerate;
         %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB / framerate;
         
         lftRes.pctAboveSignificant(i) = sum(idxMI & res(i).significantSignal(2,:))/numel(idxMI);
-        lftRes.pctAboveNS(i) = sum(idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctAboveNotSignificant(i) = sum(idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
         lftRes.pctBelowSignificant(i) = sum(~idxMI & res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctBelowNotSignificant(i) = sum(~idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
     end
 end
 

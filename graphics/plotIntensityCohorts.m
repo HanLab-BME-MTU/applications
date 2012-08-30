@@ -24,6 +24,7 @@ ip.addParamValue('DisplayMode', '');
 ip.addParamValue('TrackIndex', []);
 ip.addParamValue('Cutoff_f', 5);
 ip.addParamValue('Alpha', 0.05);
+ip.addParamValue('YTick', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
@@ -248,12 +249,14 @@ for ch = chVec
     end
 end
 set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
-% set(gca, 'YLim', [-20 175], 'YTick', 0:25:500);
+if ~isempty(ip.Results.YTick)
+    set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
+end
 xlabel('Time (s)', fset.lfont{:});
 ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
 
 
-
+%%
 % indiv. figures for cargo+ / cargo-: split based on significance of slave channel
 if isfield(res(1), 'sigIdx') && nCh==2
     figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-positive tracks');
@@ -266,6 +269,7 @@ if isfield(res(1), 'sigIdx') && nCh==2
         if nd > 1
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
+            %AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(:,:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
             A{ch,c} = mean(AMat,1);
             SEM = std(AMat,[],1)/sqrt(nd);
@@ -311,12 +315,14 @@ if isfield(res(1), 'sigIdx') && nCh==2
         end
     end
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
-    % set(gca, 'YLim', [-20 175], 'YTick', 0:25:500);
+    if ~isempty(ip.Results.YTick)
+        set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
+    end
     xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
     
     
-    
+    %%
     figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-negative tracks');
     axes(fset.axOpts{:})
     hold on;
@@ -372,7 +378,9 @@ if isfield(res(1), 'sigIdx') && nCh==2
         end
     end
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
-    % set(gca, 'YLim', [-20 175], 'YTick', 0:25:500);
+    if ~isempty(ip.Results.YTick)
+        set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
+    end
     xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
 end

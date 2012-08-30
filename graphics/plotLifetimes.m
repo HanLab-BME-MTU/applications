@@ -4,6 +4,8 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
+ip.addParamValue('ShowCargoDependent', false, @islogical);
+ip.addParamValue('CargoName', 'cargo');
 ip.parse(varargin{:});
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
@@ -52,37 +54,49 @@ if isstruct(lftRes)
     if strcmpi(ip.Results.DisplayMode, 'print')
         set(hl, 'Position', [4 4 1.75 1]); 
     end
-    
-%     h = figure;
-%     hold on;
-%     opts = {'.-', 'LineWidth', 2, 'MarkerSize', 16};
-%     hp(2) = plot(lftRes.t, lftRes.meanLftHist_B, opts{:}, 'Color', 0.5*[1 1 1]);
-%     hp(1) = plot(lftRes.t, lftRes.meanLftHist_A, opts{:}, 'Color', 'k');
-% 
-%     legendText = {['Above threshold (' num2str(mean(lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)'],...
-%         ['Below threshold (' num2str(mean(1-lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)']};
-%     
-%     if isfield(lftRes, 'lftHist_Apos')
-%         hp(6) = plot(lftRes.t, mean(lftRes.lftHist_Bneg,1), opts{:}, 'Color', hsv2rgb([0   0.4 0.9]));
-%         hp(5) = plot(lftRes.t, mean(lftRes.lftHist_Bpos,1), opts{:}, 'Color', hsv2rgb([1/3 0.4 0.9]));
-%         hp(4) = plot(lftRes.t, mean(lftRes.lftHist_Aneg,1), opts{:}, 'Color', hsv2rgb([0   1 0.9]));
-%         hp(3) = plot(lftRes.t, mean(lftRes.lftHist_Apos,1), opts{:}, 'Color', hsv2rgb([1/3 1 0.9]));
-%         legendText = [legendText ['Above, sign. (' num2str(mean(lftRes.pctAboveSignificant)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAboveSignificant)*100,'%.1f') ' %)'],...
-%             ['Above, not sign. (' num2str(mean(lftRes.pctAbove-lftRes.pctAboveSignificant)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAboveSignificant)*100,'%.1f') ' %)'],...
-%             ['Below, sign. (' num2str(mean(lftRes.pctBelowSignificant)*100,'%.1f') ' ± ' num2str(std(lftRes.pctBelowSignificant)*100,'%.1f') ' %)'],...
-%             ['Below, not sign. (' num2str(mean(1-lftRes.pctAbove-lftRes.pctBelowSignificant)*100,'%.1f') ' ± ' num2str(std(lftRes.pctBelowSignificant)*100,'%.1f') ' %)']];
-%     end
-%     
-%     axis([0 min(120, lftRes.t(end)) 0 0.05]);
-%     set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
-%     xlabel('Lifetime (s)', fset.lfont{:});
-%     ylabel('Frequency', fset.lfont{:});
-%     
-%     
-%     
-%     
-%     hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
-%     set(hl, 'Box', 'off', fset.ifont{:});
+    %%
+    if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHist_Apos')
+        
+        figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
+        axes(fset.axOpts{:});
+        hold on;
+        
+        pAS = mean(lftRes.pctAboveSignificant);
+        pANS = mean(lftRes.pctAboveNotSignificant);
+        pBS = mean(lftRes.pctBelowSignificant);
+        pBNS = mean(lftRes.pctBelowNotSignificant);
+                
+        hp = zeros(1,7);
+        % total distr
+        hp(1) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', 0.6*[1 1 1], 'LineWidth', 2);
+        
+        % Cargo-negative distributions
+        hp(5) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_neg), 1), 'Color', [1 0 0], 'LineWidth', 2);
+        hp(7) = plot(lftRes.t, pBNS/(pANS+pBNS)*mean(lftRes.lftHist_Bneg,1), '--', 'Color', hsv2rgb([0   0.4 0.9]), 'LineWidth', 2);
+        hp(6) = plot(lftRes.t, pANS/(pANS+pBNS)*mean(lftRes.lftHist_Aneg,1), '--', 'Color', hsv2rgb([0   1 0.9]), 'LineWidth', 2);
+        
+        % Cargo-positive distributions
+        hp(2) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_pos), 1), 'Color', [0 1 0], 'LineWidth', 2);
+        hp(4) = plot(lftRes.t, pBS/(pAS+pBS)*mean(lftRes.lftHist_Bpos,1), 'Color', hsv2rgb([1/3 0.4 0.9]), 'LineWidth', 2);
+        hp(3) = plot(lftRes.t, pBS/(pAS+pBS)*mean(lftRes.lftHist_Apos,1), 'Color', hsv2rgb([1/3 1 0.9]), 'LineWidth', 2);
+        
+        % All, above/below threshold
+        %hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([2/3 0.3 0.9]), 'LineWidth', 2);
+        %hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([2/3 1 0.9]), 'LineWidth', 2);
+        cargo = ip.Results.CargoName;
+        fmt = '%.1f';
+        legendText = {'All', ['w/ ' cargo '(' num2str((pAS+pBS)*100, fmt) '%)'], ['w/ ' cargo ', above (' num2str(pAS*100, fmt) '%)'],...
+            ['w/ ' cargo ', below (' num2str(pBS*100, fmt) '%)'], ['w/o ' cargo '(' num2str((pANS+pBNS)*100, fmt) '%)'],...
+            ['w/o ' cargo ', above (' num2str(pANS*100, fmt) '%)'], ['w/o ' cargo, ', below (' num2str(pBNS*100, fmt) '%)']};
+        
+        axis([0 min(120, lftRes.t(end)) 0 0.05]);
+        set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
+        xlabel('Lifetime (s)', fset.lfont{:});
+        ylabel('Frequency', fset.lfont{:});
+        
+        hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
+        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [4 3 2.5 2]);
+    end
 elseif iscell(lftRes)
     if nargin<2
         colorA = hsv2rgb([0.6 1 1;
