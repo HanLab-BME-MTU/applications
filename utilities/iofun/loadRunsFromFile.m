@@ -388,6 +388,10 @@ for iRun = 1:nRuns
             if addIdlist
                 data(dataCt).idlist = idlist2use;
             end
+            
+            %KJ: add tag names in order to keep track
+            data(dataCt).tags{1} = tag1;
+            data(dataCt).tags{2} = tag2;
 
             %remember fileName
             fileNameList{dataCt} = fileList(iFile).file;

@@ -1,16 +1,23 @@
-function saveTxtFile = makeMteFile
+function saveTxtFile = makeMteFile(allDistanceFlag)
 %MAKEMTEFILE is a utility to collect files for trajectoryAnalysis
 %
 % The function will collect all the -data- files under a top-directory
 %
 % SYNOPSIS makeMteFile
 %
-% INPUT -
+% INPUT  allDistanceFlag: 1 to spell out all inter-tag distances, 0 to only
+%                         have SPB1-CEN1 and SBP2-CEN2.
+%                         Optional. Default: 0. --KJ
 %
 % OUTPUT saveTxtFile : filename of the mte file
 %
 % c: jonas. Help added: 01/06
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%check input
+if nargin < 1 || isempty(allDistanceFlag)
+    allDistanceFlag = 0;
+end
 
 % buld identifier cell
 identifierCell = cell(3,3);
@@ -169,12 +176,16 @@ for iFile = 1:size(fileNameList,1)
         % we can do saving. Check whether 1 or 2 entries should be made
         % if 0, 1, 5 etc tags: error
         switch nTags
+            
             case 2
+                
                 % 2 tags. SPB, CEN
                 %now write everything to file
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
                     identifier, labelcolor{1}, labelcolor{2}, restOfFileName);
+                
             case 3
+                
                 % calculate 2 trajectories, anyway
                 spbIdx = strmatch('spb',labelcolor);
                 cenIdx = strmatch('cen',labelcolor);
@@ -193,7 +204,15 @@ for iFile = 1:size(fileNameList,1)
                     identifier, labelcolor{spbIdx(si(1))}, labelcolor{cenIdx}, restOfFileName);
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
                     identifier, labelcolor{spbIdx(si(2))}, labelcolor{cenIdx}, restOfFileName);
+                
+                % 1 more trajectory: spb1-spb2
+                if allDistanceFlag
+                    fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+                        identifier, labelcolor{spbIdx(si(1))}, labelcolor{spbIdx(si(2))}, restOfFileName);
+                end
+                
             case 4
+                
                 % 2 trajectories. Spb1-cen1, spb2-cen2
                 spb1Idx = strmatch('spb1',labelcolor);
                 cen1Idx = strmatch('cen1',labelcolor);
@@ -203,12 +222,27 @@ for iFile = 1:size(fileNameList,1)
                     identifier, labelcolor{spb1Idx}, labelcolor{cen1Idx}, restOfFileName);
                 fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
                     identifier, labelcolor{spb2Idx}, labelcolor{cen2Idx}, restOfFileName);
-
+                
+                % 4 more trajectories: spb1-spb2, cen1-cen2, spb1-cen2, spb2-cen1
+                if allDistanceFlag
+                    fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+                        identifier, labelcolor{spb1Idx}, labelcolor{spb2Idx}, restOfFileName);
+                    fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+                        identifier, labelcolor{cen1Idx}, labelcolor{cen2Idx}, restOfFileName);
+                    fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+                        identifier, labelcolor{spb1Idx}, labelcolor{cen2Idx}, restOfFileName);
+                    fprintf(fidTxt,['%s#%s#%s',separationString,'%s\n'],...
+                        identifier, labelcolor{spb2Idx}, labelcolor{cen1Idx}, restOfFileName);
+                end
+                
             otherwise
+                
                 % error
                 disp(sprintf('Could not use %s - tag number is odd (%i)',...
                     fileNameList{iFile,1},nTags));
+                
         end % switch nTags
+        
     end % if any entry in labelcolor is '?'
 
 
