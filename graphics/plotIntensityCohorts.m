@@ -43,6 +43,7 @@ kLevel = norminv(1-ip.Results.Alpha/2, 0, 1);
 nc = numel(cohortBounds)-1;
 b = 5;
 framerate = data(1).framerate;
+cohortBounds(end) = cohortBounds(end)+framerate;
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
 
@@ -394,6 +395,6 @@ if isfield(res(1), 'sigIdx') && nCh==2
     if ip.Results.ShowLegend
         cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'UniformOutput', false);
         hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
-        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [8 1.5 1.5 3.5]);
+        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [7.65 1.5 1.25 3.5]);
     end
 end
