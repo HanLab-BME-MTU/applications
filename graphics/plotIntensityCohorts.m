@@ -26,6 +26,7 @@ ip.addParamValue('Cutoff_f', 5);
 ip.addParamValue('Alpha', 0.05);
 ip.addParamValue('YTick', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
+ip.addParamValue('ShowLegend', false, @islogical);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 
@@ -324,7 +325,12 @@ if isfield(res(1), 'sigIdx') && nCh==2
     
     %%
     figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-negative tracks');
-    axes(fset.axOpts{:})
+    if ip.Results.ShowLegend
+        pos = get(gcf, 'Position');
+        pos(3) = 10;
+        set(gcf, 'Position', pos);
+    end
+    axes(fset.axOpts{:});
     hold on;
     A = cell(1,nc);
     % plot slave channel first
@@ -346,7 +352,7 @@ if isfield(res(1), 'sigIdx') && nCh==2
             Aplus = M(3,:);
         end
         if ip.Results.ShowVariation
-            fill([cT{c} cT{c}(end:-1:1)], sf(mCh)/sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
+            fill([cT{c} cT{c}(end:-1:1)], sf(mCh)/sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:), 'HandleVisibility', 'off');
         end
     end
     % plot master channel
@@ -368,13 +374,14 @@ if isfield(res(1), 'sigIdx') && nCh==2
             Aplus = M(3,:);
         end
         if ip.Results.ShowVariation
-            fill([cT{c} cT{c}(end:-1:1)], sf(mCh)/sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
+            fill([cT{c} cT{c}(end:-1:1)], sf(mCh)/sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:), 'HandleVisibility', 'off');
         end
     end
-    % Plot mean/median in front    
+    % Plot mean/median in front   
+    hp = zeros(1,2*nc);
     for ch = [2 1]
         for c = nc:-1:1
-            plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+            hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
         end
     end
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
@@ -383,4 +390,10 @@ if isfield(res(1), 'sigIdx') && nCh==2
     end
     xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
+    
+    if ip.Results.ShowLegend
+        cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'UniformOutput', false);
+        hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
+        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [8 1.5 1.5 3.5]);
+    end
 end
