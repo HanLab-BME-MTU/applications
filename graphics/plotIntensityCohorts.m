@@ -226,6 +226,8 @@ for ch = chVec
             fill([cT{c} cT{c}(end:-1:1)], sf(mCh)/sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
         end
         cohorts.t{c} = cT{c};
+        cohorts.Amin{ch,c} = Amin;
+        cohorts.Aplus{ch,c} = Aplus;
     end
 end
 cohorts.A = A;
