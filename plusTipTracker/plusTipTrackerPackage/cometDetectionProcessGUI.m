@@ -133,7 +133,7 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 % Get frame range
 userData=get(handles.figure1,'UserData');
 firstFrame = str2double(get(handles.edit_firstFrame,'String'));
-if isnan(firstFrame) || firstFrame < 0
+if ~userData.crtProc.checkFrameNum(firstFrame)
     errordlg(['Please enter a valid ' get(handles.text_frameRange,'String') '.'],...
         'Setting Error','modal')
     return;
@@ -142,12 +142,12 @@ funParams.firstFrame=firstFrame;
 
 % Get last range
 lastFrame = str2double(get(handles.edit_lastFrame,'String'));
-if isnan(lastFrame) || lastFrame > userData.MD.nFrames_ || firstFrame>lastFrame
+if ~userData.crtProc.checkFrameNum(lastFrame) || firstFrame > lastFrame
     errordlg(['Please enter a valid ' get(handles.text_frameRange,'String') '.'],...
         'Setting Error','modal')
     return;
 end
-if userData.crtProc.funParams_.lastFrame~=lastFrame, funParams.lastFrame=lastFrame;end
+funParams.lastFrame=lastFrame;
 
 % Retrieve detection parameters
 for i=1:numel(userData.numParams)  
@@ -185,5 +185,13 @@ end
 % Set parameters
 setMaskProcess = @(x) parseProcessParams(x, struct('MaskProcessIndex',...
     x.owner_.getProcessIndex(maskProcessClass,1,false)));
+settingFcn = {setMaskProcess};
 
-processGUI_ApplyFcn(hObject, eventdata, handles,funParams,'settingFcn',{setMaskProcess});
+% Handle multiple movies last frame setting
+if  lastFrame == userData.MD.nFrames_
+    setLastFrame =@(x) parseProcessParams(x,struct('lastFrame',...
+        min(x.owner_.nFrames_)));
+    settingFcn = {setMaskProcess, setLastFrame};
+end
+
+processGUI_ApplyFcn(hObject, eventdata, handles,funParams,settingFcn);
