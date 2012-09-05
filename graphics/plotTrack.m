@@ -25,11 +25,10 @@ ip.addParamValue('Visible', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('FileName', [], @ischar);
 ip.addParamValue('Handle', []);
 ip.addParamValue('Legend', 'hide', @(x) any(strcmpi(x, {'show','hide'})));
-ip.addParamValue('Segment', 1, @isscalar);
 ip.addParamValue('Background', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('BackgroundValue', 'zero', @(x) any(strcmpi(x, {'zero', 'data'})));
 ip.addParamValue('Hues', []);
-ip.addParamValue('Time', 'Track', @(x) any(strcmpi(x, {'Movie', 'Track'})));
+ip.addParamValue('Time', 'Track', @(x) any(strcmpi(x, {'Movie', 'Track'})) || isscalar(x));
 ip.addParamValue('XTick', []);
 ip.addParamValue('YTick', []);
 ip.addParamValue('XLim', []);
@@ -37,7 +36,10 @@ ip.addParamValue('XLim', []);
 ip.addParamValue('DisplayMode', 'Screen', @(x) any(strcmpi(x, {'Print', 'Screen'})));
 ip.addParamValue('OverlayBackground', false, @islogical);
 ip.addParamValue('MarkerSizes', [21 7 2]);
+ip.addParamValue('PlotBuffers', true, @islogical);
+ip.addParamValue('LineWidth', 1);
 ip.parse(data, track, varargin{:});
+
 
 hues = ip.Results.Hues;
 if isempty(hues)
@@ -52,8 +54,10 @@ end
 
 if strcmpi(ip.Results.Time, 'Track')
     dt = track.t(1); % first segment always contains first time point
-else
+elseif strcmpi(ip.Results.Time, 'Movie')
     dt = 0;
+else
+    dt = ip.Results.Time;
 end
 
 % Flags
@@ -83,7 +87,6 @@ end
 % Setup figure window
 if ~isempty(ip.Results.Handle)
     ha = ip.Results.Handle;
-    tickLength = [0.01 0.025];
 else
     pos0 = get(0, 'DefaultFigurePosition');
     screenSize = get(0, 'ScreenSize');
@@ -97,7 +100,7 @@ else
         dleft = floor(log10(ip.Results.YTick(end)))*45;
     end
     hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 dleft+aw+20 400], 'PaperPositionMode', 'auto');
-    ha = axes('Units', 'pixels', 'Position', [dleft 70 aw 300]);
+    ha = axes('Units', 'pixels', 'Position', [dleft 70 aw 300], 'TickLength', tickLength);
 end
 
 % Color definitions
@@ -151,16 +154,16 @@ for s = 1:track.nSeg
     if ch==mCh
         ampl(gapIdx) = NaN;
     end
-    lh(3) = plot(ha, t, ampl, '.-', 'Color', trackColor, 'LineWidth', 1);
+    lh(3) = plot(ha, t, ampl, '.-', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
     
     % plot gaps separately
     if ch==mCh
         ampl = A+c;
         if ~isempty(gapIdx)
             % dashed line everywhere
-            lh(4) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', 1);
+            lh(4) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
             % plot gaps as white disks
-            lh(5) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', 1);
+            lh(5) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', ip.Results.LineWidth);
         end
     end
     
@@ -174,7 +177,7 @@ for s = 1:track.nSeg
 end
 
 % Plot start buffer
-if hasStartBuffer
+if hasStartBuffer && ip.Results.PlotBuffers
     A = [track.startBuffer.A(ch,:) track.A(ch,1)];
     c = [track.startBuffer.c(ch,:) track.c(ch,1)]-bgcorr;
     
@@ -191,7 +194,7 @@ if hasStartBuffer
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
-    lh(7) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
+    lh(7) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
     if strcmpi(ip.Results.Background, 'on')
         lh(8) = plot(ha, t, c, '--', 'Color', trackColor);
     end
@@ -201,7 +204,7 @@ if hasStartBuffer
 end
 
 % Plot end buffer
-if hasEndBuffer
+if hasEndBuffer && ip.Results.PlotBuffers
     A = [track.A(ch,end) track.endBuffer.A(ch,:)];
     c = [track.c(ch,end) track.endBuffer.c(ch,:)]-bgcorr;
     
@@ -218,7 +221,7 @@ if hasEndBuffer
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
-    lh(9) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', 1);
+    lh(9) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
     if strcmpi(ip.Results.Background, 'on')
         lh(10) = plot(ha, t, c, '--', 'Color', trackColor);
     end
@@ -227,14 +230,10 @@ if hasEndBuffer
     end
 end
 
-set(ha, 'TickLength', tickLength);
-
-
-
 
 % legend
 if strcmpi(ip.Results.Legend, 'show')
-    lh(11) = plot(-20:-10, rand(1,11), 'o--', 'MarkerSize', 7, 'LineWidth', 2, 'Color', trackColor, 'MarkerFaceColor', 'w');
+    lh(11) = plot(-20:-10, rand(1,11), 'o--', 'MarkerSize', 7, 'LineWidth', ip.Results.LineWidth, 'Color', trackColor, 'MarkerFaceColor', 'w');
     l = legend(lh([3 2 11 6 1 12 8]), 'Intensity', 'Intensity uncertainty', 'Gap', 'Background intensity', 'Significance level (\alpha = 0.95)', 'Buffer', 'Buffer intensity', 'Location', 'NorthEast');
 end
 

@@ -1,113 +1,97 @@
-function plotMatchedTracks(data, masterTrack, slaveTracks)
+function ha = plotMatchedTracks(data, masterTrack, slaveTracks, varargin)
 
-
-hues = getFluorophoreHues(data.markers);
-trackColor = hsv2rgb([hues(2) 1 0.8]);
-fillLight = hsv2rgb([hues(2) 0.4 1]);
-fillDark = hsv2rgb([hues(2) 0.2 1]);
-
-fillLightBuffer = hsv2rgb([hues(2) 0.4 0.85]);
-fillDarkBuffer = hsv2rgb([hues(2) 0.2 0.85]);
-kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
-
-
-% pos = get(0, 'DefaultFigurePosition');
-% ssize = get(0, 'ScreenSize');
-% b = min(ssize(4)-pos(4), 400);
-% pos(2) = pos(2) - b;
-% pos(4) = pos(4) + b;
-% figure('Position', pos, 'PaperPositionMode', 'auto');
-
-figure('Position', [440 378 560 720], 'PaperPositionMode', 'auto');
-
-ha(1) = axes('Position', [0.15 0.72 0.8 0.27]);
-hold on;
-plotTrack(data, masterTrack, 1, 'Handle', ha(1), 'DisplayMode', 'print', 'Time', 'Track');
-YLim{1} = get(ha(1), 'YLim');
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParamValue('MarkerSizes', [6 1.5 0.5]);
+ip.addParamValue('YTick',[]);
+ip.addParamValue('YLim', []);
+ip.addParamValue('XTick',[]);
+ip.addParamValue('XLim',[]);
+ip.parse(varargin{:});
+markerSizes = ip.Results.MarkerSizes;
+lineWidth = 0.5;
+YLim = ip.Results.YLim;
+XLim = ip.Results.XLim;
+YTick = ip.Results.YTick;
+XTick = ip.Results.XTick;
 
 dt = data.framerate;
-XLim = [-10*dt masterTrack.t{1}(end)-masterTrack.t{1}(1)+10*dt];
-XTick = 0:20:data.movieLength*dt+20;
+if isempty(XTick)
+    XTick = 0:20:data.movieLength*dt+20;
+end
 
+fset = loadFigureSettings(ip.Results.DisplayMode);
+hues = getFluorophoreHues(data.markers);
 
-ha(2) = axes('Position', [0.15 0.42 0.8 0.27]);
-hold on;
-plotTrack(data, masterTrack, 2, 'Handle', ha(2), 'DisplayMode', 'print', 'Time', 'Track');
-YLim{2} = get(ha(2), 'YLim');
-
-
-% plot track fragments
-ha(3) = axes('Position', [0.15 0.08 0.8 0.27]);
-hold(ha(3), 'on');
-dt = masterTrack.t{1}(1);
-for k = 1:length(slaveTracks)
-    
-    A = slaveTracks(k).A{1}(1,:);
-    c = slaveTracks(k).c{1}(1,:);
-    bgcorr = nanmean(c);
-    c = c-bgcorr;
-    sigma_r = slaveTracks(k).sigma_r{1}(1,:);
-    t = (slaveTracks(k).start-1:slaveTracks(k).end-1)*data.framerate - dt;
-    
-    % alpha = 0.05 level
-    fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
-        fillDark, 'EdgeColor', 'none', 'Parent', ha(3));
-    
-
-    gapIdx = arrayfun(@(x,y) x:y, slaveTracks(k).gapStarts{1}, slaveTracks(k).gapEnds{1}, 'UniformOutput', false);
-    gapIdx = [gapIdx{:}];
-    
-    % plot amplitude std.
-    sigma_a = slaveTracks(k).A_pstd{1}(1,:);
-    
-    rev = c+A-sigma_a;
-    fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
-        fillLight, 'EdgeColor', 'none', 'Parent', ha(3));
-    
-    % plot track
-    ampl = A+c;
-    ampl(gapIdx) = NaN;
-    plot(ha(3), t, ampl, '.-', 'Color', trackColor, 'LineWidth', 2, 'MarkerSize', 21);
-    
-    ampl = A+c;
-    ampl(setdiff(gapIdx, 1:length(ampl))) = NaN;
-    if ~isempty(gapIdx)
-        lh(3) = plot(ha(3), t, ampl, '--', 'Color', trackColor, 'LineWidth', 2);
-        lh(4) = plot(ha(3), t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor,...
-            'MarkerFaceColor', 'w', 'LineWidth', 2, 'MarkerSize', 7);
+ah = 1.5;
+aw = 3;
+if isempty(XLim)
+    XLim = [-7*dt masterTrack.t(end)-masterTrack.t(1)+7*dt];
+else
+    wref = fset.axPos(3); % reference
+    width = masterTrack.t(end)-masterTrack.t(1) +7*dt + 7*dt;
+    xscale = width/diff(XLim);
+    aw = aw*xscale;
+    if aw>2
+        tickLength = fset.TickLength*wref/aw;
+    else
+        tickLength = fset.TickLength*wref/2;
     end
-    
-    % plot background level
-    plot(ha(3), t, c, '-', 'Color', trackColor, 'LineWidth', 2);
+    fset.axOpts = [fset.axOpts, 'TickLength', tickLength];
+    XLim = [-7*dt masterTrack.t(end)-masterTrack.t(1)+7*dt];
+end
+
+
+
+figure(fset.fOpts{:}, 'Position', [6 6 8 10]);
+
+% Plot 'master'
+ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 5 aw ah]);
+hold on;
+plotTrack(data, masterTrack, 1, 'Handle', ha(1), 'DisplayMode', 'print', 'MarkerSizes', markerSizes, 'LineWidth', lineWidth);
+
+
+
+% Plot 'slave' (2nd channel)
+ha(2) = axes(fset.axOpts{:}, 'Position', [1.5 3.25 aw ah]);
+hold on;
+plotTrack(data, masterTrack, 2, 'Handle', ha(2), 'DisplayMode', 'print', 'MarkerSizes', markerSizes, 'LineWidth', lineWidth);
+
+if isempty(YLim)
+    YLim{1} = get(ha(1), 'YLim');
+    YLim{2} = get(ha(2), 'YLim');
+end
+
+% plot slaveTracks fragments
+ha(3) = axes(fset.axOpts{:}, 'Position', [1.5 1.5 aw ah]);
+hold(ha(3), 'on');
+for k = 1:length(slaveTracks)
+    plotTrack(data, slaveTracks(k), 1, 'Handle', ha(3), 'DisplayMode', 'print',...
+        'Time', masterTrack.t(1), 'PlotBuffers', false, 'Hues', hues(2), 'MarkerSizes', markerSizes, 'LineWidth', lineWidth);
 end
 
 set(ha(1:2), 'XTickLabel', []);
-set(ha, 'FontName', 'Helvetica', 'FontSize', 20, 'LineWidth', 2,...
-    'TickDir', 'out', 'XLim', XLim, 'XTick', XTick);
+set(ha, 'XLim', XLim, 'XTick', XTick);
+% xlabel('Time (s)');
 
-xlabel('Time (s)');
-hy = arrayfun(@(x) ylabel(x, 'Intensity (A.U.)'), ha);
+set(ha(1), 'YLim', YLim{1}, 'YTick', YTick{1});
+set(ha(2), 'YLim', YLim{2}, 'YTick', YTick{2});
+set(ha(3), 'XLim', XLim, 'YLim', YLim{2},...
+    'YTick', YTick{2}, 'Box', 'off');
 
-set(ha(1), 'YLim', YLim{1});
-set(ha(2), 'YLim', YLim{2});
+% hy(2) = ylabel(ha(2), 'Intensity (A.U.)', fset.lfont{:});
+% hy([1 3]) = arrayfun(@(x) ylabel(x, ''), ha([1 3]));
+% hy = arrayfun(@(x) ylabel(x, 'Intensity (A.U.)'), ha);
 
-set(ha(3), 'XLim', get(ha(2), 'XLim'), 'YLim', get(ha(2), 'YLim'),...
-    'YTick', get(ha(2), 'YTick'), 'Box', 'off');
-
-
-xpos = zeros(1,3);
-for k = 1:3
-    pos = get(hy(k), 'Position');
-    xpos(k) = pos(1);
-end
-xpos = min(xpos);
-for k = 1:3
-    pos = get(hy(k), 'Position');
-    pos(1) = xpos;
-    set(hy(k), 'Position', pos);
-end
-
-
-
-
-
+% xpos = zeros(1,3);
+% for k = 1:3
+%     pos = get(hy(k), 'Position');
+%     xpos(k) = pos(1);
+% end
+% xpos = min(xpos);
+% for k = 1:3
+%     pos = get(hy(k), 'Position');
+%     pos(1) = xpos;
+%     set(hy(k), 'Position', pos);
+% end
