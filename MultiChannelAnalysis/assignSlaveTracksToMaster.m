@@ -7,10 +7,16 @@ ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('MaxDistance', 5, @isscalar);
 ip.addParamValue('MinOverlap', 1, @isscalar);
 ip.addParamValue('MaxSlaveDelta_f', 10, @isscalar);
+ip.addParamValue('InputMode', 'tracks', @(x) any(strcmpi(x, {'tracks', 'data'})));
 ip.parse(varargin{:});
 minOverlap = ip.Results.MinOverlap;
+mode = ip.Results.InputMode;
 
-nd = numel(dataMaster);
+if strcmpi(mode, 'data')
+    nd = numel(dataMaster);
+else
+    nd = 1;
+end
 map = cell(1,nd);
 masterIdx = cell(1,nd);
 slaveIdx = cell(1,nd);
@@ -21,10 +27,14 @@ fprintf('Slave/master assignment: processing track set ');
 for i = 1:nd
     fprintf('%d/%d', i, nd);
     % load tracks
-    %(category Ia only, to match the index in lftData loaded by runLifetimeAnalysis())
-    masterTracks = loadTracks(dataMaster(i), 'Mask', true, 'Category', 'Ia', 'Cutoff_f', 0, 'FileName', ip.Results.FileName);
-    slaveTracks = loadTracks(dataSlave(i), 'Mask', true, 'Category', 'Ia', 'Cutoff_f', 0, 'FileName', ip.Results.FileName);
-    
+    if strcmpi(mode, 'data')
+        % category Ia only, to match the index in lftData loaded by runLifetimeAnalysis()
+        masterTracks = loadTracks(dataMaster(i), 'Mask', true, 'Category', 'Ia', 'Cutoff_f', 0, 'FileName', ip.Results.FileName);
+        slaveTracks = loadTracks(dataSlave(i), 'Mask', true, 'Category', 'Ia', 'Cutoff_f', 0, 'FileName', ip.Results.FileName);
+    else
+        masterTracks = dataMaster;
+        slaveTracks = dataSlave;
+    end    
     % mean positions
     mMeans = arrayfun(@(t) [nanmean(t.x(1,:)) nanmean(t.y(1,:))], masterTracks, 'UniformOutput', false);
     mMeans = vertcat(mMeans{:});
