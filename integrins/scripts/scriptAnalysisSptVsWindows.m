@@ -1,24 +1,27 @@
 clear all
 close all
 
+mkdir adaptiveWindows
+cd adaptiveWindows
+
 % sliceRange = [];
-sliceRange = (15:150)';
+sliceRange = (141:201)';
 frameRange = [];
 lengthMinMax = [5 99];
 
-% windowsAll = putWindowsTogether;
-% load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
+windowsAll = putWindowsTogether;
+load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
 
 load ../tracksDiffusionLength5InMask.mat
 
 seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
 maxFrame = max(seqOfEvents(:,1));
 
-% [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
-%     assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
-% 
-% save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
-%     'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
+[windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
+    assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
+
+save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
+    'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
 
 % save('windowsActivityTracks1','protSamples','windowsAll')
 % save('windowsActivityTracks2','trackWindowAssign','trackWindowAssignComp','windowTrackAssign')
@@ -30,32 +33,32 @@ maxFrame = max(seqOfEvents(:,1));
 % save('windowsActivityTracks4','windowTrackAssignExt2')
 % clear windowTrackAssignExt1 windowTrackAssignExt2
 
-try
-    load windowsActivityTracks.mat
-catch
-    load windowsActivityTracks1.mat
-    load windowsActivityTracks2.mat
-    load windowsActivityTracks3.mat
-    load windowsActivityTracks4.mat
-    windowTrackAssignExt = cat(4,windowTrackAssignExt1,windowTrackAssignExt2);
-    clear windowTrackAssignExt1 windowTrackAssignExt2
-end
-
-load ../diffusionModeClassification.mat
-load directTrackChar.mat
-
-windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
-    diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
-    windowTrackAssignExt,lengthMinMax);
-
-save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
-
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120213/120213_Cs2C2A_Lifeact/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120213_Cs2C2_CHO_mEosLifeAct_17minEdgeStack_00001.tif';
-
-[sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
-    tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
-    protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
-    lengthMinMax,sliceRange,frameRange,firstMaskFile);
-
-save('particleBehaviorAdaptiveWindows120817','sptPropInWindow','analysisParam');
+% try
+%     load windowsActivityTracks.mat
+% catch
+%     load windowsActivityTracks1.mat
+%     load windowsActivityTracks2.mat
+%     load windowsActivityTracks3.mat
+%     load windowsActivityTracks4.mat
+%     windowTrackAssignExt = cat(4,windowTrackAssignExt1,windowTrackAssignExt2);
+%     clear windowTrackAssignExt1 windowTrackAssignExt2
+% end
+% 
+% load ../diffusionModeClassification.mat
+% load directTrackChar.mat
+% 
+% windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
+%     diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
+%     windowTrackAssignExt,lengthMinMax);
+% 
+% save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
+% 
+% firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120213/120213_Cs2C2A_Lifeact/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120213_Cs2C2_CHO_mEosLifeAct_17minEdgeStack_00001.tif';
+% 
+% [sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
+%     tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
+%     protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
+%     lengthMinMax,sliceRange,frameRange,firstMaskFile);
+% 
+% save('particleBehaviorAdaptiveWindows120817','sptPropInWindow','analysisParam');
 

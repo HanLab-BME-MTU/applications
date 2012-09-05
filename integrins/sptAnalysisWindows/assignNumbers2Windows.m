@@ -1,6 +1,6 @@
 function windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,...
     diffAnalysisRes,diffModeAnRes,directTrackChar,winPositions,winFrames,...
-    windowTrackAssignExt,lengthMinMax)
+    windowTrackAssignExt,lengthMinMax,prop2calc,windowNumbersAssignExtIn)
 %assignNumbers2Windows calculates various particle properties within spatial and temporal windows derived from the cell edge
 %
 %SYNOPSIS [windowNumbersAssignExt] = assignNumbers2Windows(tracksFinal,...
@@ -27,8 +27,21 @@ function windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,...
 %                        maximum length of a trajectory to include in
 %                        analysis.
 %                        Optional. Default: [5 99].
+%       prop2calc      : Vector of flags indicating which properties to
+%                        calculate.
+%                        1 = MSS diffusion analysis.
+%                        2 = diffusion mode analysis.
+%                        3 = direct track properties.
+%                        4 = merging and splitting properties.
+%                        To calculate all, enter [1 2 3 4].
+%                        Optional. Default: [1 2 3 4].
+%       windowNumbersAssignExtIn: Output of this code, from a previous run,
+%                        in the case when an update is desired instead of a
+%                        full calculate from scratch.
 %
-%OUTPUT windowNumbersAssignExt: 5D array of dimensions (number of bands) x
+%OUTPUT windowNumbersAssignExt: 
+%                          *** FIX ***
+%                          5D array of dimensions (number of bands) x
 %                          (number of slices) x (number of window frames-1)
 %                          x (number of window frames-1) x 2 storing for
 %                          each window in each frame the number of merges
@@ -49,6 +62,14 @@ end
 
 if nargin < 8 || isempty(lengthMinMax)
     lengthMinMax = [5 99];
+end
+
+if nargin < 9 || isempty(prop2calc);
+    prop2calc = [1 2 3 4];
+end
+
+if nargin < 10 || isempty(windowNumbersAssignExtIn)
+    windowNumbersAssignExtIn = [];
 end
 
 %generate winFrameMin and winFramesMax for parfor loop
@@ -168,45 +189,55 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
                         trackLftCurrent<=lengthMinMax(2));
                     numTracksCurrent = length(tracksCurrent);
                     
-                    %total number of particles
-                    numTotalTmp(iPerp,iPara,iWinFrame) = numTracksCurrent;
-                    
-                    %number of particles with net displacement parallel or
-                    %anti-parallel to protrusion vector
-                    paraProtDispCurrent = paraProtDispTmp(tracksCurrent,1);
-                    tracksPos = tracksCurrent(paraProtDispCurrent >= 0);
-                    tracksNeg = tracksCurrent(paraProtDispCurrent < 0);
-                    numNetDispPosTmp(iPerp,iPara,iWinFrame) = length(tracksPos);
-                    numNetDispNegTmp(iPerp,iPara,iWinFrame) = length(tracksNeg);
+                    if any(prop2calc==3)
+                        
+                        %total number of particles
+                        numTotalTmp(iPerp,iPara,iWinFrame) = numTracksCurrent;
+                        
+                        %number of particles with net displacement parallel or
+                        %anti-parallel to protrusion vector
+                        paraProtDispCurrent = paraProtDispTmp(tracksCurrent,1);
+                        tracksPos = tracksCurrent(paraProtDispCurrent >= 0);
+                        tracksNeg = tracksCurrent(paraProtDispCurrent < 0);
+                        numNetDispPosTmp(iPerp,iPara,iWinFrame) = length(tracksPos);
+                        numNetDispNegTmp(iPerp,iPara,iWinFrame) = length(tracksNeg);
+                        
+                    end
                     
                     %asym+MSS analysis classification
-                    trajClassCurrent = trajClass(tracksCurrent);
-                    n = hist(trajClassCurrent,1:5);
-                    numUnclassTmp(iPerp,iPara,iWinFrame) = numTracksCurrent - sum(n);
-                    numLinTmp(iPerp,iPara,iWinFrame) = n(5);
-                    numIsoTmp(iPerp,iPara,iWinFrame) = sum(n(1:4));
-                    numIsoUnclassTmp(iPerp,iPara,iWinFrame) = n(4);
-                    numConfTmp(iPerp,iPara,iWinFrame) = n(1);
-                    numBrownTmp(iPerp,iPara,iWinFrame) = n(2);
-                    numDirTmp(iPerp,iPara,iWinFrame) = n(3);
+                    if any(prop2calc==1)
+                        trajClassCurrent = trajClass(tracksCurrent);
+                        n = hist(trajClassCurrent,1:5);
+                        numUnclassTmp(iPerp,iPara,iWinFrame) = numTracksCurrent - sum(n);
+                        numLinTmp(iPerp,iPara,iWinFrame) = n(5);
+                        numIsoTmp(iPerp,iPara,iWinFrame) = sum(n(1:4));
+                        numIsoUnclassTmp(iPerp,iPara,iWinFrame) = n(4);
+                        numConfTmp(iPerp,iPara,iWinFrame) = n(1);
+                        numBrownTmp(iPerp,iPara,iWinFrame) = n(2);
+                        numDirTmp(iPerp,iPara,iWinFrame) = n(3);
+                    end
                     
                     %mode analysis classification
-                    trajModeCurrent = trajDiffMode(tracksCurrent);
-                    trajModeCurrent(isnan(trajModeCurrent)) = numDiffMode+1;
-                    numModeTmp(iPerp,iPara,iWinFrame,:) = hist(trajModeCurrent,1:numDiffMode+1);
+                    if any(prop2calc==2)
+                        trajModeCurrent = trajDiffMode(tracksCurrent);
+                        trajModeCurrent(isnan(trajModeCurrent)) = numDiffMode+1;
+                        numModeTmp(iPerp,iPara,iWinFrame,:) = hist(trajModeCurrent,1:numDiffMode+1);
+                    end
                     
                     %get the window boundaries
-                    windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];
-                    winX = windowsPoly(1,:);
-                    winY = windowsPoly(2,:);
-                    
-                    %find the merges whose position lies in this window
-                    indxWin = inpolygon(xCoordMergeFR,yCoordMergeFR,winX,winY);
-                    numMergeTmp(iPerp,iPara,iWinFrame) = length(find(indxWin));
-                    
-                    %find the splits whose position lies in this window
-                    indxWin = inpolygon(xCoordSplitFR,yCoordSplitFR,winX,winY);
-                    numSplitTmp(iPerp,iPara,iWinFrame) = length(find(indxWin));
+                    if any(prop2calc==4)
+                        windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];
+                        winX = windowsPoly(1,:);
+                        winY = windowsPoly(2,:);
+                        
+                        %find the merges whose position lies in this window
+                        indxWin = inpolygon(xCoordMergeFR,yCoordMergeFR,winX,winY);
+                        numMergeTmp(iPerp,iPara,iWinFrame) = length(find(indxWin));
+                        
+                        %find the splits whose position lies in this window
+                        indxWin = inpolygon(xCoordSplitFR,yCoordSplitFR,winX,winY);
+                        numSplitTmp(iPerp,iPara,iWinFrame) = length(find(indxWin));
+                    end
 
                 end %(if ~isempty(winPositions{iWinFrame,iPara}{iPerp}))
                 
@@ -232,12 +263,41 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
 end %(parfor iWinFrameExt = 1 : numWinFramesM1)
 
 %put in structure for output
-windowNumbersAssignExt = struct('Particles',numTotalPerWindow,...
-    'NetDispPos',numNetDispPosPerWindow,'NetDispNeg',numNetDispNegPerWindow,...
-    'Unclass',numUnclassPerWindow,'Lin',numLinPerWindow,'Iso',numIsoPerWindow,...
-    'IsoUnclass',numIsoUnclassPerWindow,'Conf',numConfPerWindow,...
-    'Brown',numBrownPerWindow,'Dir',numDirPerWindow,'ModeClass',numModePerWindow,...
-    'Merge',numMergePerWindow,'Split',numSplitPerWindow);
+if isempty(windowNumbersAssignExtIn) %make brand new structure
+    
+    windowNumbersAssignExt = struct('Particles',numTotalPerWindow,...
+        'NetDispPos',numNetDispPosPerWindow,'NetDispNeg',numNetDispNegPerWindow,...
+        'Unclass',numUnclassPerWindow,'Lin',numLinPerWindow,'Iso',numIsoPerWindow,...
+        'IsoUnclass',numIsoUnclassPerWindow,'Conf',numConfPerWindow,...
+        'Brown',numBrownPerWindow,'Dir',numDirPerWindow,'ModeClass',numModePerWindow,...
+        'Merge',numMergePerWindow,'Split',numSplitPerWindow);
+    
+else %update input structure
+    
+    windowNumbersAssignExt = windowNumbersAssignExtIn;
+    if any(prop2calc==1)
+        windowNumbersAssignExt.Unclass = numUnclassPerWindow;
+        windowNumbersAssignExt.Lin = numLinPerWindow;
+        windowNumbersAssignExt.Iso = numIsoPerWindow;
+        windowNumbersAssignExt.IsoUnclass = numIsoUnclassPerWindow;
+        windowNumbersAssignExt.Conf = numConfPerWindow;
+        windowNumbersAssignExt.Brown = numBrownPerWindow;
+        windowNumbersAssignExt.Dir = numDirPerWindow;
+    end
+    if any(prop2calc==2)
+        windowNumbersAssignExt.ModeClass = numModePerWindow;
+    end
+    if any(prop2calc==3)
+        windowNumbersAssignExt.Particles = numTotalPerWindow;
+        windowNumbersAssignExt.NetDispPos = numNetDispPosPerWindow;
+        windowNumbersAssignExt.NetDispNeg = numNetDispNegPerWindow;
+    end
+    if any(prop2calc==4)
+        windowNumbersAssignExt.Merge = numMergePerWindow;
+        windowNumbersAssignExt.Split = numSplitPerWindow;
+    end
+    
+end
 
 %% ~~~ the end ~~~
 

@@ -1,5 +1,5 @@
 
-for i = 1 : length(analysisAlphaVInd);
+for i = 19 : length(analysisAlphaVInd);
     
     tmp = analysisAlphaVInd(i).fileName;
     cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
@@ -18,19 +18,19 @@ for i = 1 : length(analysisAlphaVInd);
     %     analysisAlphaVInd(i).diffModeParam3_1 = modeParam3;
     %     analysisAlphaVInd(i).diffModeParam4_1 = modeParam4;
     
-    [modeParam0,numMode0,modeParamControl0,numModeControl0] = getDiffModes(tracksFinal,5,0.01,0,10,2,'test',100000);
-%     modeParam3 = getDiffModes(tracksFinal,5,1,0,3,2,'test');
-%     modeParam4 = getDiffModes(tracksFinal,5,1,0,4,2,'test');
-%     
-%     save('diffusionModeAnalysis34_2New','modeParam0','numMode0','modeParam3',...
-%         'modeParam4','modeParamControl0','numModeControl0');
-%     
-%     analysisAlphaVInd(i).diffModeParam0_2New = modeParam0;
-%     analysisAlphaVInd(i).diffModeNum_2New = numMode0;
-%     analysisAlphaVInd(i).diffModeParam3_2New = modeParam3;
-%     analysisAlphaVInd(i).diffModeParam4_2New = modeParam4;
-%     analysisAlphaVInd(i).diffModeParamControl0_2New = modeParamControl0;
-%     analysisAlphaVInd(i).diffModeNumControl_2New = numModeControl0;
+    [modeParam0,numMode0,modeParamControl,numModeControl] = getDiffModes(tracksFinal,5,0.01,0,10,2,'test'); %,100000);
+    modeParam3 = getDiffModes(tracksFinal,5,1,0,3,2,'test',[],0);
+    modeParam4 = getDiffModes(tracksFinal,5,1,0,4,2,'test',[],0);
+    
+    save('diffusionModeAnalysis34_2New','modeParam0','numMode0','modeParam3',...
+        'modeParam4','modeParamControl','numModeControl');
+    
+    analysisAlphaVInd(i).diffModeAnalysis2.paramFree = modeParam0;
+    analysisAlphaVInd(i).diffModeAnalysis2.numMode = numMode0;
+    analysisAlphaVInd(i).diffModeAnalysis2.paramForced3 = modeParam3;
+    analysisAlphaVInd(i).diffModeAnalysis2.paramForced4 = modeParam4;
+    analysisAlphaVInd(i).diffModeAnalysis2.paramControlFree = modeParamControl;
+    analysisAlphaVInd(i).diffModeAnalysis2.numModeControl = numModeControl;
     
 end
 

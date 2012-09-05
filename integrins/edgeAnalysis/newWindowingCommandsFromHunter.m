@@ -3,15 +3,31 @@ movieSelectorGUI
 load movieData.mat
 
 %get cell mask
-%Rosin
-threshParam.MaxJump = 1.2;
-threshParam.GaussFilterSigma = 0.5;
-threshParam.MethodIndx = 3;
-MD = thresholdMovie(MD,threshParam);
 %MinMax
-threshParam.MaxJump = 1.05;
+threshParam.MaxJump = 1.2;
 threshParam.GaussFilterSigma = 1;
 threshParam.MethodIndx = 1;
+MD = thresholdMovie(MD,threshParam);
+%Otsu
+threshParam.MaxJump = 1.2;
+threshParam.GaussFilterSigma = 1;
+threshParam.MethodIndx = 2;
+MD = thresholdMovie(MD,threshParam);
+%Rosin
+threshParam.MaxJump = 1.2;
+threshParam.GaussFilterSigma = 1;
+threshParam.MethodIndx = 3;
+MD = thresholdMovie(MD,threshParam);
+%Gradient
+threshParam.MaxJump = [];
+threshParam.GaussFilterSigma = [];
+threshParam.MethodIndx = 4;
+MD = thresholdMovie(MD,threshParam);
+%Fixed threshold
+threshParam.MaxJump = [];
+threshParam.MethodIndx = 1;
+threshParam.GaussFilterSigma = 0.5;
+threshParam.ThresholdValue = 390;
 MD = thresholdMovie(MD,threshParam);
 
 %refine cell mask
