@@ -19,6 +19,7 @@ ip.addParamValue('ClassificationSelector', 'significantSignal');
 ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
+ip.addParamValue('RemoveOutliers', true, @islogical);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
 ip.addParamValue('TrackIndex', []);
@@ -74,7 +75,7 @@ res = struct([]);
 maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
 
 % Rescale EDFs (correction for expression level)
-a = rescaleEDFs(maxA_all, 'Display', true);
+[a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
 
 % apply intensity scaling
 for i = 1:nd
@@ -86,20 +87,26 @@ for i = 1:nd
     lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
 end
 
-disp('');
 %==============================================================
 % Outlier detection (after max. intensity distribution rescaling)
 %==============================================================
-% outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
-% fprintf('Outlier data sets:\n');
-% for i = 1:numel(outlierIdx)
-%     fprintf('%s\n', getShortPath(data(outlierIdx(i))));
-% end
-% lftData(outlierIdx) = [];
-% data(outlierIdx) = [];
-% nd = numel(data);
-% clear a outlierIdx maxA_all;
-
+if ip.Results.RemoveOutliers && nd>=5
+    outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
+    if ~isempty(outlierIdx)
+        fprintf('Outlier data sets:\n');
+        for i = 1:numel(outlierIdx)
+            fprintf('Index %d: %s\n', outlierIdx(i), getShortPath(data(outlierIdx(i))));
+        end
+        rmv = input('Remove outliers? (y/n) ', 's');
+        if strcmpi(rmv, 'y') || isempty(rmv)
+            lftData(outlierIdx) = [];
+            data(outlierIdx) = [];
+            nd = numel(data);
+            a(outlierIdx) = [];
+            clear outlierIdx maxA_all;
+        end
+    end
+end
 
 %--------------------------------------------------------------------------
 % apply lifetime scaling (based on intensity scaling)
@@ -200,10 +207,10 @@ for i = 1:nd
     res(i).t = (cutoff_f:Nmax)*framerate;
     
     % Normalization
-    res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
-    res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
-    res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
-    %res(i).lftHist_scaled = lftHist_scaled / sum(lftHist_scaled) / framerate;
+    res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia);
+    res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib);
+    res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa);
+    %res(i).lftHist_scaled = lftHist_scaled / sum(lftHist_scaled);
     res(i).nSamples_Ia = sum(idx_Ia);
     
     % birth/death statistics
@@ -286,16 +293,16 @@ fprintf('\n');
 % Initiation density
 %====================
 fprintf(2, 'Initiation density, all tracks:\n');
-for i = 1:nd
-    fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_all(i,1), lftRes.initDensity_all(i,2));
-end
+% for i = 1:nd
+%     fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_all(i,1), lftRes.initDensity_all(i,2));
+% end
 % fprintf('Initiation density, SEM: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:))/sqrt(nd));
 fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensity_all(:,1)), std(lftRes.initDensity_all(:,1)));
 fprintf('-------------------------------------------------\n');
 fprintf(2, 'Initiation density, valid tracks only:\n');
-for i = 1:nd
-    fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_Ia(i,1), lftRes.initDensity_Ia(i,2));
-end
+% for i = 1:nd
+%     fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_Ia(i,1), lftRes.initDensity_Ia(i,2));
+% end
 fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensity_Ia(:,1)), std(lftRes.initDensity_Ia(:,1)));
 fprintf('-------------------------------------------------\n');
 
@@ -440,17 +447,17 @@ for i = 1:nd
     lftHist_A = [lftHist_A.*w pad0];
     lftHist_B = [lftHist_B.*w pad0];
     
-    % Normalization
+    % Normalization (histograms sum to 1; integral==framerate)
     %normA = sum(lftHist_A);
     %normB = sum(lftHist_B);
-    lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
-    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+    lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A);
+    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B);
     
     if ip.Results.ExcludeVisitors
         lftRes.visitIdx{i} = idxLft;
         lftHist_V = hist(res(i).lftVisitors, t);
         lftHist_V = [lftHist_V.*w pad0];
-        lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V) / framerate;
+        lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V);
     end
     
     % Multi-channel data
@@ -460,8 +467,8 @@ for i = 1:nd
         lftHist_neg = hist(res(i).lft_all(res(i).significantSignal(2,:)==0), t);
         lftHist_pos =  [lftHist_pos.*w  pad0];
         lftHist_neg =  [lftHist_neg.*w  pad0];
-        lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
-        lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
+        lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos);
+        lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg);
         
         lftHist_Apos = hist(res(i).lft_all(idxMI & res(i).significantSignal(2,:)), t);
         lftHist_Aneg = hist(res(i).lft_all(idxMI & ~res(i).significantSignal(2,:)), t);
@@ -471,15 +478,15 @@ for i = 1:nd
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
         lftHist_Bneg =  [lftHist_Bneg.*w  pad0];
-        lftRes.lftHist_Apos(i,:) = lftHist_Apos / sum(lftHist_Apos) / framerate;
-        lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg) / framerate;
-        lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos) / framerate;
-        lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg) / framerate;
+        lftRes.lftHist_Apos(i,:) = lftHist_Apos / sum(lftHist_Apos);
+        lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg);
+        lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos);
+        lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg);
         
-        %lftRes.lftHist_Apos(i,:) = lftHist_Apos / normA / framerate;
-        %lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / normA / framerate;
-        %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB / framerate;
-        %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB / framerate;
+        %lftRes.lftHist_Apos(i,:) = lftHist_Apos / normA;
+        %lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / normA;
+        %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB;
+        %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB;
         
         lftRes.pctAboveSignificant(i) = sum(idxMI & res(i).significantSignal(2,:))/numel(idxMI);
         lftRes.pctAboveNotSignificant(i) = sum(idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
@@ -634,8 +641,8 @@ if ip.Results.ShowThresholdRange
             lftHist_B =  [lftHist_B.*w  pad0];
             
             % Normalization
-            tmp.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
-            tmp.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
+            tmp.lftHist_A(i,:) = lftHist_A / sum(lftHist_A);
+            tmp.lftHist_B(i,:) = lftHist_B / sum(lftHist_B);
             
         end
         tComp(ti).meanLftHist_A = mean(tmp.lftHist_A,1);

@@ -33,22 +33,25 @@ else
         'Tolfun', 1e-6);
     
     % Generate EDF for each set of samples
-    f_edf = cell(1,nd);
-    x_edf = cell(1,nd);
-    f = cell(1,nd);
+    fEDF = cell(1,nd);
+    xEDF = cell(1,nd);
     
-    x = 0:0.001:1;
     for i = 1:nd
-        [f_edf{i}, x_edf{i}] = ecdf(samples{i});
-        f_edf{i} = f_edf{i}(2:end);
-        x_edf{i} = x_edf{i}(2:end);
-        f{i} = interp1(f_edf{i}, x_edf{i}, x);
+        [fEDF{i}, xEDF{i}] = ecdf(samples{i});
+%         fEDF{i} = fEDF{i}(2:end);
+%         xEDF{i} = xEDF{i}(2:end);
+    end
+    
+    % Now, interpolate on f(x)
+    fi = 0:0.001:1;
+    f = cell(1,nd);
+    for i = 1:nd
+        f{i} = interp1(fEDF{i}, xEDF{i}, fi);
     end
     
     % scale to reference distribution, with offset for missing data
     switch ip.Results.Reference
-        case 'max' % highest-valued (highest mean) distribution
-            %mu = cellfun(@(i) mean(i), samples);
+        case 'max' % highest-valued (highest median) distribution
             mu = cellfun(@(i) median(i), samples);
             refIdx = find(mu==max(mu),1,'first');
         case 'med' % median distribution
@@ -61,19 +64,24 @@ else
     end
     idx = setdiff(1:nd, refIdx);
     
-    x0 = linspace(0,max(vertcat(samples{:})),1000);
+    %x0 = linspace(0,max(vertcat(samples{:})),1000);
+    %x0 = linspace(min(samples{refIdx}),max(samples{refIdx}),1000); % robust
+    x0 = linspace(prctile(vertcat(samples{:}),1), prctile(vertcat(samples{:}),99), 1000);
     
-    % Generate EDFs
-    fEDF = cell(1,nd);
-    xEDF = cell(1,nd);
-    for i = 1:nd
-        [fEDF{i}, xEDF{i}] = ecdf(samples{i});
-    end
+%     % Generate EDFs
+%     fEDF = cell(1,nd);
+%     xEDF = cell(1,nd);
+%     for i = 1:nd
+%         [fEDF{i}, xEDF{i}] = ecdf(samples{i});
+%         %fEDF{i} = fEDF{i}(2:end);
+%         %xEDF{i} = xEDF{i}(2:end);
+%     end
     
     
     a = ones(1,nd);
     c = zeros(1,nd);
     refEDF = interpEDF(xEDF{refIdx}, fEDF{refIdx}, x0);
+    %refEDF = interpEDF(x, medEDF, x0);
     for i = 1:nd-1
         p = lsqnonlin(@cost, [1 0], [0 -1], [Inf 1], opts, xEDF{idx(i)}, fEDF{idx(i)}, refEDF, x0);
         a(idx(i)) = p(1);
@@ -97,9 +105,10 @@ else
         axes(fset.axOpts{:}, 'Position', axPos);
         hold on;
         for i = 1:nd-1
-            plot(x_edf{idx(i)}, f_edf{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', lw);
+            plot(xEDF{idx(i)}, fEDF{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', lw);
         end
-        hp = plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
+        hp = plot(xEDF{refIdx}, fEDF{refIdx}, 'r', 'LineWidth', lw);
+        %hp = plot(x0, refEDF, 'r', 'LineWidth', lw);
 
         axis([0 T99 0 1.01]);
         set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
@@ -113,9 +122,9 @@ else
         hold on;
         for i = 1:nd-1
             ci = c(idx(i));
-            plot(x_edf{idx(i)}*a(idx(i)), ci+(1-ci)*f_edf{idx(i)}, 'Color', colorV(i,:), 'LineWidth', lw);
+            plot(xEDF{idx(i)}*a(idx(i)), ci+(1-ci)*fEDF{idx(i)}, 'Color', colorV(i,:), 'LineWidth', lw);
         end
-        plot(x_edf{refIdx}, f_edf{refIdx}, 'r', 'LineWidth', lw);
+        plot(xEDF{refIdx}, fEDF{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
         set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
@@ -149,7 +158,6 @@ v = c+(1-c)*f_i - refEDF;
 v(f_i==0 | f_i==1 | refEDF==0 | refEDF==1) = 0;
 
 
-%function f = interpEDF(samples, x)
 function f = interpEDF(xEDF, fEDF, x)
 f = interp1(xEDF(2:end), fEDF(2:end), x(2:end), 'linear');
 f(1:find(~isnan(f),1,'first')-1) = 0;

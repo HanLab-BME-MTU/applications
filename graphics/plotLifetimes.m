@@ -78,19 +78,22 @@ if isstruct(lftRes)
         hp(1) = plot(lftRes.t, mu, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
         
         % Cargo-negative distributions
-        hue = 0.6;
-        hp(5) = plot(lftRes.t, (pANS+pBNS)*mean(vertcat(lftRes.lftHist_neg), 1), 'Color', hsv2rgb([hue 0.7 1]), 'LineWidth', lw);
-        hp(7) = plot(lftRes.t, pBNS*mean(lftRes.lftHist_Bneg,1), '-', 'Color', hsv2rgb([hue-0.1 0.7 0.9]), 'LineWidth', lw);
+        hueCN = 0.6;
+        hp(5) = plot(lftRes.t, (pANS+pBNS)*mean(vertcat(lftRes.lftHist_neg), 1), 'Color', hsv2rgb([hueCN 0.7 1]), 'LineWidth', lw);
+        hp(7) = plot(lftRes.t, pBNS*mean(lftRes.lftHist_Bneg,1), '-', 'Color', hsv2rgb([hueCN-0.1 0.7 0.9]), 'LineWidth', lw);
         mu = mean(lftRes.lftHist_Aneg,1);
         %bAll = 1.96*getSE(lftRes, 'lftHist_Aneg');
         %fill([lftRes.t lftRes.t(end:-1:1)], pANS*[mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
-        hp(6) = plot(lftRes.t, pANS*mu, '-', 'Color', hsv2rgb([hue 1 0.9]), 'LineWidth', lw+1);
+        
         
         % Cargo-positive distributions
-        hue = 0.33;
-        hp(2) = plot(lftRes.t, (pAS+pBS)*mean(vertcat(lftRes.lftHist_pos), 1), 'Color', hsv2rgb([hue 0.7 1]), 'LineWidth', lw);
-        hp(4) = plot(lftRes.t, pBS*mean(lftRes.lftHist_Bpos,1), '-',  'Color', hsv2rgb([hue-0.1 0.7 0.9]), 'LineWidth', lw);
-        hp(3) = plot(lftRes.t, pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hue 1 0.9]), 'LineWidth', lw+1);
+        hueCP = 0.33;
+        hp(2) = plot(lftRes.t, (pAS+pBS)*mean(vertcat(lftRes.lftHist_pos), 1), 'Color', hsv2rgb([hueCP 0.7 1]), 'LineWidth', lw);
+        hp(4) = plot(lftRes.t, pBS*mean(lftRes.lftHist_Bpos,1), '-',  'Color', hsv2rgb([hueCP-0.1 0.7 0.9]), 'LineWidth', lw);
+        
+        
+        hp(6) = plot(lftRes.t, pANS*mu, '-', 'Color', hsv2rgb([hueCN 1 0.9]), 'LineWidth', lw+1);
+        hp(3) = plot(lftRes.t, pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCP 1 0.9]), 'LineWidth', lw+1);
         
         % All, above/below threshold
         %hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([2/3 0.3 0.9]), 'LineWidth', 2);
