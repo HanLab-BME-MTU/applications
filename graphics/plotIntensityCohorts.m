@@ -252,7 +252,7 @@ for ch = chVec
         end
     end
 end
-set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
+set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)-framerate], 'XTick', 0:20:200);
 if ~isempty(ip.Results.YTick)
     set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
 end
