@@ -1,5 +1,6 @@
-function [eventCombinedTracks,eventWindowsList,eventNumContributions] = ...
-    combineTracksManyWindows(eventCombinedWindows,windowTrackAssignExt)
+function [eventCombinedTracks,eventWindowsList,eventNumContributions,...
+    eventWindowDistCellEdge] = combineTracksManyWindows(eventCombinedWindows,...
+    windowTrackAssignExt,posInfoCombinedWindows)
 
 
 %Khuloud Jaqaman, July 2011
@@ -19,15 +20,16 @@ for iField = 1 : numFields
     eventCombinedTracks.(eventField{iField}) = {[]};
 end
 eventCombinedTracks = repmat(eventCombinedTracks,numType,1);
-[eventWindowsList,eventNumContributions] = deal(eventCombinedTracks);
+[eventWindowsList,eventNumContributions,eventWindowDistCellEdge] = deal(eventCombinedTracks);
 
 %go over activity types
 for iType = 1 : numType
     
     %get event information
     eventInfo = eventCombinedWindows(iType).eventInfo;
+    posInfo = posInfoCombinedWindows(iType).posInfo;
     
-    %go over all fields in eventCombinedWindows (indicating various
+    %go over all fields in eventInfo (indicating various
     %series relative to activity onset)
     if ~isempty(eventInfo)
         for iField = 1 : numFields
@@ -40,9 +42,11 @@ for iType = 1 : numType
             tracksCurrent = cell(maxInc,numCol);
             windowsListCurrent = tracksCurrent;
             numEventsContr = NaN(maxInc,numCol);
+            windowDistCellEdge = NaN(maxInc,numCol,2,2);
             
             %get all relevant windows at all increments
             windowTrackFrameIndxAll = vertcat(eventInfo.(eventField{iField}));
+            windowPosAll = vertcat(posInfo.(eventField{iField}));
             
             %go over all increments
             for iCol = 1 : numCol
@@ -50,6 +54,7 @@ for iType = 1 : numType
                     
                     %get windows relevant to this increment
                     windowTrackFrameIndx = windowTrackFrameIndxAll(iInc:maxInc:end,iCol);
+                    windowPosCurrentInc = windowPosAll(iInc:maxInc:end,iCol,:);
                     
                     %get number of activity onsets that contribute to this
                     %increment
@@ -58,6 +63,11 @@ for iType = 1 : numType
                         winContributes(iWin) = ~isempty(windowTrackFrameIndx{iWin});
                     end
                     numEventsContr(iInc,iCol) = sum(winContributes);
+                    
+                    %get average distance from cell edge of windows
+                    %contributing to this event
+                    windowDistCellEdge(iInc,iCol,:,1) = nanmean(windowPosCurrentInc);
+                    windowDistCellEdge(iInc,iCol,:,2) = nanstd(windowPosCurrentInc);
                     
                     %put window information into an array form
                     windowTrackFrameIndx = vertcat(windowTrackFrameIndx{:});
@@ -82,6 +92,7 @@ for iType = 1 : numType
             eventCombinedTracks(iType).(eventField{iField}) = tracksCurrent;
             eventWindowsList(iType).(eventField{iField}) = windowsListCurrent;
             eventNumContributions(iType).(eventField{iField}) = numEventsContr;
+            eventWindowDistCellEdge(iType).(eventField{iField}) = windowDistCellEdge;
             
         end %(for iField = 1 : numFields)
     end %(if ~isempty(eventInfo))

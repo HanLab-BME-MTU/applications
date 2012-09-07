@@ -1,38 +1,13 @@
-clear all
-close all
 
-mkdir adaptiveWindows
-cd adaptiveWindows
 
-% sliceRange = [];
-sliceRange = (141:201)';
+
+sliceRange = [];
+% sliceRange = (141:201)';
 frameRange = [];
 lengthMinMax = [5 99];
 
-windowsAll = putWindowsTogether;
-load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
-
-load ../tracksDiffusionLength5InMask.mat
-
-seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
-maxFrame = max(seqOfEvents(:,1));
-
-[windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
-    assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
-
-save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
-    'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
-
-% save('windowsActivityTracks1','protSamples','windowsAll')
-% save('windowsActivityTracks2','trackWindowAssign','trackWindowAssignComp','windowTrackAssign')
-% size1 = size(windowTrackAssignExt,4);
-% size1 = floor(size1/2);
-% windowTrackAssignExt1 = windowTrackAssignExt(:,:,:,1:size1);
-% windowTrackAssignExt2 = windowTrackAssignExt(:,:,:,size1+1:end);
-% save('windowsActivityTracks3','windowTrackAssignExt1')
-% save('windowsActivityTracks4','windowTrackAssignExt2')
-% clear windowTrackAssignExt1 windowTrackAssignExt2
-
+% load ../tracksDiffusionLength5InMask.mat
+% 
 % try
 %     load windowsActivityTracks.mat
 % catch
@@ -47,18 +22,18 @@ save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
 % load ../diffusionModeClassification.mat
 % load directTrackChar.mat
 % 
-% windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
-%     diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
-%     windowTrackAssignExt,lengthMinMax);
-% 
-% save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
-% 
-% firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120213/120213_Cs2C2A_Lifeact/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_120213_Cs2C2_CHO_mEosLifeAct_17minEdgeStack_00001.tif';
-% 
-% [sptPropInWindow,~,~,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
-%     tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
-%     protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
-%     lengthMinMax,sliceRange,frameRange,firstMaskFile);
-% 
-% save('particleBehaviorAdaptiveWindows120817','sptPropInWindow','analysisParam');
+% load windowNumbersAssignExt.mat
+
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/110114/Cs1_CHO03/Cs1_CHO03A/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/refined_mask_mod_110114_Cs1_CHO03A_new_0001.tif';
+
+seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
+maxFrame = max(seqOfEvents(:,1));
+
+[sptPropInWindow,windowDistFromEdge,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
+    tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
+    protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
+    lengthMinMax,sliceRange,frameRange,firstMaskFile);
+
+Sn save('particleBehaviorAdaptiveWindows120907','sptPropInWindow',...
+    'windowDistFromEdge','analysisParam');
 

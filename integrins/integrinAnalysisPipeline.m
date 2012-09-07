@@ -33,6 +33,8 @@
 % 3.3 get edge motion characteristics
 %     use: classifyEdgeMotion(protSamples,-1,?,?,1)
 
+% 3.4 add movie to list of movies in analysis/120907_MovieInfoStructures
+
 %% Single molecule Part 2
 
 % 4.1 retain tracks >= 5 frames and in cell mask
@@ -40,8 +42,7 @@
 
 % 4.2 run diffusion mode decomposition
 %     use: scriptDiffModeAnalysis34
-%     for this make first a structure array with all movie names and where
-%     results will be stored (see analysis/120702_diffusionModeAnalysis)
+%     for this add movie to analysisStruct's in analysis/120702_diffusionModeAnalysis
 %     then use: estimDiffModeDividers
 %     store results in analysis/120702_diffusionModeAnalysis
 %     also generate diffusion mode dividers for classification, as stored
@@ -64,6 +65,12 @@
 
 % 5.3 collect particle numbers in small windows
 %     use: scriptAssignNumbersWindows which calls assignNumbers2Windows
+
+% 5.4 collect single molecule behavior relative to cell edge activity
+%     use: scriptAnalysisSptVsWindows which calls sptRelToActivityOnsetAdaptiveWindows
+
+% 5.5 plot single molecule behavior relative to cell edge activity
+%     use: scriptMakePlots which calls plotSptRelToActivityOnsetAdaptiveWindows
 
 
 

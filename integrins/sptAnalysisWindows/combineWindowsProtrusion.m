@@ -1,5 +1,6 @@
-function protrusionCombinedWindows = combineWindowsProtrusion(sliceActivityGroup,...
-    winPositions,firstMaskFile)
+function [protrusionCombinedWindows,posInfoCombinedWindows] = ...
+    combineWindowsProtrusion(sliceActivityGroup,winPositions,...
+    firstMaskFile,protSamples)
 
 
 %REMARKS There are various hard-coded numbers in the function. Should
@@ -22,6 +23,9 @@ for iFile = 2 : numFiles
 end
 maskImage = double(maskImage);
 
+%get protrusion normals
+avgNormal = protSamples.avgNormal;
+
 %determine image size and number of frames
 [imageSizeX,imageSizeY,numFrames] = size(maskImage);
 
@@ -32,6 +36,7 @@ pixelCoordY = pixelCoordY(:);
 
 %hard-coded numbers
 numTypeProt = 9; %number of protrusion types, classified based on the events before protrusion
+numPixInBand = 2; %number of pixels in each band, as used throughout the analysis
 numBands1um = 5; %number of bands making ~1 um, based on the fact that 1 pixel = 111 nm and each band is ~2 pixels deep
 numBandsOfBands = 10; %number of bands of bands to look inside the cell; 10 "bands of bands" looks into ~10 um from cell edge
 maxNegInc = 3; %number of time points to look before protrusion onset
@@ -41,6 +46,7 @@ maxPosInc = numFrames - 1; %number of time points to look after protrusion onset
 
 %initialize output
 protrusionCombinedWindows = repmat(struct('eventInfo',[]),numTypeProt,1);
+posInfoCombinedWindows = repmat(struct('posInfo',[]),numTypeProt,1);
 
 %go over all protrusion types
 for iType = 1 : numTypeProt
@@ -51,6 +57,8 @@ for iType = 1 : numTypeProt
     
     %initialize structure array for output
     eventInfo = repmat(struct('onset',[],'befStatic',[],'befDynamic',[],...
+        'aftStatic',[],'aftDynamic',[]),numEvents,1);
+    posInfo = repmat(struct('onset',[],'befStatic',[],'befDynamic',[],...
         'aftStatic',[],'aftDynamic',[]),numEvents,1);
     
     %go over each protrusion event and assemble its window time series
@@ -66,6 +74,7 @@ for iType = 1 : numTypeProt
         
         %put together windows at protrusion onset in ~1 um segments from cell edge
         indxWindowsOnset = cell(1,numBandsOfBands);
+        posWindowsOnset = NaN(1,numBandsOfBands,2);
         nBands = length(winPositions{onsetFrame,sliceIndx});
         for iBigBand = 1 : numBandsOfBands
             bandStartCurrent = (iBigBand-1)*numBands1um + 1;
@@ -74,12 +83,15 @@ for iType = 1 : numTypeProt
                 bandEndCurrent = min(nBands,bandEndCurrent);
                 indxWindowsOnset{iBigBand} = [(bandStartCurrent:bandEndCurrent)' ...
                     repmat([sliceIndx onsetFrame onsetFrame],bandEndCurrent-bandStartCurrent+1,1)];
+                posWindowsOnset(1,iBigBand,:) = [(bandStartCurrent-1) bandEndCurrent]*numPixInBand;
             end
         end
         
         %put together windows before protrusion onset
         indxWindowsBefDynamic = cell(maxNegInc,numBandsOfBands);
         indxWindowsBefStatic = cell(maxNegInc,numBandsOfBands);
+        posWindowsBefDynamic = NaN(maxNegInc,numBandsOfBands,2);
+        posWindowsBefStatic = NaN(maxNegInc,numBandsOfBands,2);
         for iInc = 1 : min(prevEventDur,maxNegInc)
             
             %specify current frame
@@ -96,6 +108,7 @@ for iType = 1 : numTypeProt
                     bandEndCurrent = min(nBands,bandEndCurrent);
                     indxWindowsBefDynamic{iInc,iBigBand} = [(bandStartCurrent:bandEndCurrent)' ...
                         repmat([sliceIndx frameCurrent frameCurrent],bandEndCurrent-bandStartCurrent+1,1)];
+                    posWindowsBefDynamic(iInc,iBigBand,:) = [(bandStartCurrent-1) bandEndCurrent]*numPixInBand;
                 end
                 
                 %static windows fixed at location of protrusion onset
@@ -103,6 +116,7 @@ for iType = 1 : numTypeProt
                 if ~isempty(tmp)
                     tmp(:,4) = frameCurrent;
                     indxWindowsBefStatic{iInc,iBigBand} = tmp;
+                    posWindowsBefStatic(iInc,iBigBand,:) = posWindowsOnset(1,iBigBand,:) - sum(avgNormal(sliceIndx,frameCurrent:onsetFrame-1));
                 end
                 
             end
@@ -112,6 +126,8 @@ for iType = 1 : numTypeProt
         %put together windows after protrusion onset
         indxWindowsAftStatic = cell(maxPosInc,numBandsOfBands);
         indxWindowsAftDynamic = cell(maxPosInc);
+        posWindowsAftStatic = NaN(maxPosInc,numBandsOfBands,2);
+        posWindowsAftDynamic = NaN(maxPosInc,maxPosInc,2);
         for iInc = 1 : eventDur - 1
             
             %specify current frame
@@ -123,6 +139,7 @@ for iType = 1 : numTypeProt
                 if ~isempty(tmp)
                     tmp(:,4) = frameCurrent;
                     indxWindowsAftStatic{iInc,iBigBand} = tmp;
+                    posWindowsAftStatic(iInc,iBigBand,:) = posWindowsOnset(1,iBigBand,:) + sum(avgNormal(sliceIndx,onsetFrame:frameCurrent-1));
                 end
             end
             
@@ -132,6 +149,7 @@ for iType = 1 : numTypeProt
                 if ~isempty(tmp)
                     tmp(:,4) = frameCurrent;
                     indxWindowsAftDynamic{iInc,iNew} = tmp;
+                    posWindowsAftDynamic(iInc,iNew,:) = posWindowsAftDynamic(iNew,iNew,:) + sum(avgNormal(sliceIndx,onsetFrame+iNew:frameCurrent-1));
                 end
             end
             
@@ -173,6 +191,7 @@ for iType = 1 : numTypeProt
             if maxBand >= 1
                 indxWindowsAftDynamic{iInc,iInc} = [(1:maxBand)' ...
                     repmat([sliceIndx frameCurrent frameCurrent],maxBand,1)];
+                posWindowsAftDynamic(iInc,iInc,:) = [0 avgNormal(sliceIndx,frameCurrent-1)];
             end
             
         end %(for iInc = 1 : eventDur - 1)
@@ -180,12 +199,20 @@ for iType = 1 : numTypeProt
         %combine all new cell area events into one series with the events
         %aligned by their start frames
         indxWindowsAftDynamicComb = cell(maxPosInc,1);
+        posWindowsAftDynamicComb = NaN(maxPosInc,1,2);
         for iInc = 1 : eventDur - 1
             colIndx = (1 : eventDur-iInc)';
             rowIndx = colIndx + iInc - 1;
             linIndx = sub2ind([maxPosInc maxPosInc],rowIndx,colIndx);
             indxWindowsAftDynamicComb{iInc} = vertcat(indxWindowsAftDynamic{linIndx});
+            tmp = posWindowsAftDynamic(:,:,1);
+            posWindowsAftDynamicComb(iInc,1,1) = mean(tmp(linIndx));
+            tmp = posWindowsAftDynamic(:,:,2);
+            posWindowsAftDynamicComb(iInc,1,2) = mean(tmp(linIndx));
         end
+        tmp = mean([posWindowsAftDynamicComb(2:eventDur-1,1,1) posWindowsAftDynamicComb(1:eventDur-2,1,2)],2);
+        posWindowsAftDynamicComb(2:eventDur-1,1,1) = tmp;
+        posWindowsAftDynamicComb(1:eventDur-2,1,2) = tmp;
         
         %store information for output
         eventInfo(iEvent).onset = indxWindowsOnset;
@@ -194,11 +221,18 @@ for iType = 1 : numTypeProt
         eventInfo(iEvent).aftStatic = indxWindowsAftStatic;
         eventInfo(iEvent).aftDynamic = indxWindowsAftDynamic;
         eventInfo(iEvent).aftDynamicComb = indxWindowsAftDynamicComb;
+        posInfo(iEvent).onset = posWindowsOnset;
+        posInfo(iEvent).befStatic = posWindowsBefStatic;
+        posInfo(iEvent).befDynamic = posWindowsBefDynamic;
+        posInfo(iEvent).aftStatic = posWindowsAftStatic;
+        posInfo(iEvent).aftDynamic = posWindowsAftDynamic;
+        posInfo(iEvent).aftDynamicComb = posWindowsAftDynamicComb;
         
     end %(for iEvent = 1 : numEvents)
     
     %final output
     protrusionCombinedWindows(iType).eventInfo = eventInfo;
+    posInfoCombinedWindows(iType).posInfo = posInfo;
     
 end %(for iType = 1 : numTypeProt)
 

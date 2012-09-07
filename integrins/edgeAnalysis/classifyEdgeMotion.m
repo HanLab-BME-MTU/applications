@@ -5,7 +5,7 @@ function [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
 %SYNPOSIS [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
 %    protSamples,doPlot,indxWindows,frameRange,scheme,savePlotDir)
 %
-%INPUT  protSample      : The protrusion samples as output by the windowing
+%INPUT  protSamples     : The protrusion samples as output by the windowing
 %                         software.
 %       doPlot          : Flag with values from -1 to 2:
 %                         0 : plot nothing.
