@@ -153,6 +153,9 @@ for jMode = 1 : numMode2plot
         %plot 1 - values at the edge
         subplot(numMode2plot+1,2,(jMode-1)*2+1), hold on
         
+        %line indicating activity onset
+        plot([0 0],[yMin yMax],'k--')
+        
         %before dynamic
         plot((minInc:maxInc)*convFactTime,dynamicSeriesBefMeanMode(:,1),'k--','Marker','.')
         myErrorbar((minInc:maxInc)*convFactTime,dynamicSeriesBefMeanMode(:,1),dynamicSeriesBefSemMode(:,1))
@@ -184,6 +187,9 @@ for jMode = 1 : numMode2plot
         %plot 2 - values in bands
         subplot(numMode2plot+1,2,jMode*2), hold on
         
+        %line indicating activity onset
+        plot([0 0],[yMin yMax],'k--')
+        
         legendEntries = cell(1,8);
         for iBand = 1 : 2
             plot((minInc:maxInc)*convFactTime,staticSeriesMeanMode(:,iBand),'Color',bandColor(iBand,:),'Marker','.','LineWidth',2)
@@ -211,6 +217,12 @@ end %(for jMode = 1 : numMode2plot)
 %plot 3 - distances at the edge
 subplot(numMode2plot+1,2,numMode2plot*2+1,'YDir','reverse'), hold on
 
+yMin = 0;
+yMax = 30*convFactDist;
+
+%line indicating activity onset
+plot([0 0],[yMin yMax],'k--')
+
 %static series
 plot((minInc:maxInc)*convFactTime,staticSeriesDist(:,1,1),'k','LineStyle','none')
 myErrorbar((minInc:maxInc)*convFactTime,staticSeriesDist(:,1,1),staticSeriesDist(:,1,2))
@@ -225,19 +237,25 @@ end
 %         plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftDist(:,1,1),'b','LineStyle','none')
 %         myErrorbar((minInc:maxInc)*convFactTime,combDynamicSeriesAftDist(:,1,1),combDynamicSeriesAftDist(:,1,2))
 
-axis([minInc*convFactTime maxInc*convFactTime 0 30*convFactDist]);
+axis([minInc*convFactTime maxInc*convFactTime yMin yMax]);
 xlabel('Time from protruion onset (s)')
 ylabel('Window distance from cell edge (um)')
 
 %plot 4 - distances in bands
 subplot(numMode2plot+1,2,numMode2plot*2+2,'YDir','reverse'), hold on
 
+yMin = 0;
+yMax = 100*convFactDist;
+
+%line indicating activity onset
+plot([0 0],[yMin yMax],'k--')
+
 for iBand = 1 : min(numBand,8)
     plot((minInc:maxInc)*convFactTime,staticSeriesDist(:,iBand,1),'Color',bandColor(iBand,:),'LineStyle','none')
     myErrorbar((minInc:maxInc)*convFactTime,staticSeriesDist(:,iBand,1),staticSeriesDist(:,iBand,2))
 end
 
-axis([minInc*convFactTime maxInc*convFactTime 0 100*convFactDist]);
+axis([minInc*convFactTime maxInc*convFactTime yMin yMax]);
 xlabel('Time from protruion onset (s)')
 ylabel('Window distance from cell edge (um)')
 

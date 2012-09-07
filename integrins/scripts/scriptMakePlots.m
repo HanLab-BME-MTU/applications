@@ -1,65 +1,65 @@
 clear all
 close all
-load particleBehaviorAdaptiveWindows120817.mat
-mkdir figuresSptVsWindows120817
-cd figuresSptVsWindows120817
+load particleBehaviorAdaptiveWindows120907.mat
+mkdir figuresSptVsWindows120907
+cd figuresSptVsWindows120907
 
-movieName = 'Talin 120524 Cs1C2';
+movieName = 'AlphaV 110114 Cs1C2A';
 
-numMode = 3;
+numMode = 4;
 
-for iType = [1 2 9]
+for iType = [1 2]
     
     %particle density
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.densityParticles,...
-        1,20,[movieName ', Overall particle density, protType ' num2str(iType)],...
-        ['densityOverall_protType' num2str(iType) '.fig']);
-    
-    %cell area
-    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.cellArea,...
-        1,20,[movieName ', Contributing cell area per event, protType ' num2str(iType)],...
-        ['cellArea_protType' num2str(iType) '.fig']);
-    
-    %frame-to-frame displacement
-    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.f2fDispMag2D,...
-        1,20,[movieName ', Frame-to-frame disp., protType ' num2str(iType)],...
-        ['f2fDisp_protType' num2str(iType) '.fig']);
+        windowDistFromEdge(iType),1,20,[movieName ', Particle density overall, protType ' num2str(iType)],...
+        [movieName 'densityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],'Density overall (um^-2)');
     
     %overall diffusion coefficient
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeAll,...
-        1,20,[movieName ', Overall diff. coef., protType ' num2str(iType)],...
-        ['diffCoefOverall_protType' num2str(iType) '.fig']);
+        windowDistFromEdge(iType),1,20,[movieName ', Diff. coef. overall, protType ' num2str(iType)],...
+        [movieName 'diffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],'Diff. coef. overall (um^2/s)');
     
     %fraction in each diffusion mode
     for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
-            iMode,20,[movieName ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-            ['fractionMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
+            windowDistFromEdge(iType),iMode,20,[movieName ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
+            [movieName 'fractionMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],['Fraction Mode ' num2str(iMode)]);
     end
     
     %density of each diffusion mode
     for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
-            iMode,20,[movieName ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-            ['densityMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
+            windowDistFromEdge(iType),iMode,20,[movieName ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
+            [movieName 'densityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],['Density Mode ' num2str(iMode) ' (um^-2) ']);
     end
-    
-    %diffusion coefficient in each diffusion mode
-    for iMode = 1 : numMode
-        plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeInd,...
-            iMode,20,[movieName ', Diff. coef. Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-            ['diffCoefMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
-    end
-    
-    %fraction of merges
-    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracMerge,...
-        1,20,[movieName ', Fraction merges, protType ' num2str(iType)],...
-        ['fracMerge_protType' num2str(iType) '.fig']);
-    
-    %fraction of splits
-    plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracSplit,...
-        1,20,[movieName ', Fraction splits, protType ' num2str(iType)],...
-        ['fracSplit_protType' num2str(iType) '.fig']);
     
 end
+
+%     %cell area
+%     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.cellArea,...
+%         1,20,[movieName ', Contributing cell area per event, protType ' num2str(iType)],...
+%         ['cellArea_protType' num2str(iType) '.fig']);
+
+%     %frame-to-frame displacement
+%     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.f2fDispMag2D,...
+%         1,20,[movieName ', Frame-to-frame disp., protType ' num2str(iType)],...
+%         ['f2fDisp_protType' num2str(iType) '.fig']);
+
+%     %diffusion coefficient in each diffusion mode
+%     for iMode = 1 : numMode
+%         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeInd,...
+%             iMode,20,[movieName ', Diff. coef. Mode ' num2str(iMode) ', protType ' num2str(iType)],...
+%             ['diffCoefMode' num2str(iMode) '_protType' num2str(iType) '.fig']);
+%     end
+
+%     %fraction of merges
+%     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracMerge,...
+%         1,20,[movieName ', Fraction merges, protType ' num2str(iType)],...
+%         ['fracMerge_protType' num2str(iType) '.fig']);
+
+%     %fraction of splits
+%     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).mergesSplits.fracSplit,...
+%         1,20,[movieName ', Fraction splits, protType ' num2str(iType)],...
+%         ['fracSplit_protType' num2str(iType) '.fig']);
 
