@@ -6,9 +6,10 @@ ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
 ip.addParamValue('ShowCargoDependent', false, @islogical);
 ip.addParamValue('CargoName', 'cargo');
-ip.addParamValue('YTick', 0:0.01:0.05);
+ip.addParamValue('YTick', 0:0.01:0.04);
 ip.parse(varargin{:});
 ya = ip.Results.YTick;
+lw = 1;
 
 fmt = ['%.' num2str(ceil(abs(log10(ya(2))))) 'f'];
 yal = ['0' arrayfun(@(x) num2str(x, fmt), ya(2:end), 'UniformOutput', false)];
@@ -21,10 +22,10 @@ if isstruct(lftRes)
     axes(fset.axOpts{:});
     hold on;
     if isfield(lftRes, 'pctVisit')
-        hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHist_V, '-', 'Color', fset.cfB, 'LineWidth', 2);
+        hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHist_V, '-', 'Color', fset.cfB, 'LineWidth', lw);
     end
-    hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', 0.6*[1 1 1], 'LineWidth', 2);
-    hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', 2);
+    hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', 0.6*[1 1 1], 'LineWidth', lw);
+    hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', lw);
     
     if ip.Results.ShowExpFits
         ff = mean(lftRes.pctBelow)*lftRes.meanLftHist_B;
@@ -38,7 +39,7 @@ if isstruct(lftRes)
         %[mu,~,Aexp,expF] = fitExpToHist(lftRes.t, ff);
         %plot(tx, Aexp/mu*exp(-1/mu*tx), 'm--', 'LineWidth', 1)
     end
-    hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([1/3 1 0.9]), 'LineWidth', 2);
+    hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([1/3 1 0.9]), 'LineWidth', lw+1);
 
     
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
@@ -46,21 +47,22 @@ if isstruct(lftRes)
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
     
-    ltext = {['Above threshold: ' num2str(mean(lftRes.pctAbove)*100, '%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100, '%.1f') ' %'],...
-        ['Below threshold: ' num2str(mean(lftRes.pctBelow)*100, '%.1f') ' ± ' num2str(std(lftRes.pctBelow)*100, '%.1f') ' %'],...
-        'Raw distribution'};
+    ltext = {[' Above threshold: ' num2str(mean(lftRes.pctAbove)*100, '%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100, '%.1f') ' %'],...
+        [' Below threshold: ' num2str(mean(lftRes.pctBelow)*100, '%.1f') ' ± ' num2str(std(lftRes.pctBelow)*100, '%.1f') ' %'],...
+        ' Raw distribution'};
+    lheight = 1;
     if isfield(lftRes, 'pctVisit')
-        ltext = [ltext(1:2) ['Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
+        ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
         hp = hp([1 2 4 3]);
+        lheight = 1.25;
     end
     hl = legend(hp, ltext{:});
     set(hl, 'Box', 'off', fset.tfont{:});
     if strcmpi(ip.Results.DisplayMode, 'print')
-        set(hl, 'Position', [4 4 1.75 1]); 
+        set(hl, 'Position', [4 5-lheight 1.75 lheight]); 
     end
     %%
     if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHist_Apos')
-        lw = 1;
         figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
         axes(fset.axOpts{:});
         hold on;
