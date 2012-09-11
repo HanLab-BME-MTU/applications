@@ -1,8 +1,8 @@
-function figHan = makeColoredEdgeOverlayFigure(MD,iFrame,iChan,colorMap)
+function varargout = makeColoredEdgeOverlayFigure(MD,iFrame,iEdgeFrames,iChan,colorMap)
 %MAKECOLOREDEDGEOVERLAYFIGURE makes the figure with color-coded edge timelapse overlaid on a single image
 % 
 % makeColoredEdgeOverlayFigure;
-% makeColoredEdgeOverlayFigure(movieData,frameNumber,channelNumber,@colorMap);
+% figHa = makeColoredEdgeOverlayFigure(movieData,imageFrameNumber,channelNumber,@colorMap);
 % 
 % Displays one image from the input movie with the edge outlines from every
 % frame of the movie overlaid on this image, color-coded for time.
@@ -13,8 +13,11 @@ function figHan = makeColoredEdgeOverlayFigure(MD,iFrame,iChan,colorMap)
 %                   Optional. If not input, user will be asked to select
 %                   a movieData file.
 %
-%      frameNubmer: Frame number to display image from.
+% imageFrameNumber: Frame number to display IMAGE from.
 %                   Optional. If not input, user will be asked.
+%
+% edgeFrameNumbers: Frame number(s) to overlay EDGES from.
+%                   Optional. IF not input, user will be asked.
 %
 %    channelNumber: Channel number to display image from.
 %                   Optional. If not input, user will be asked.
@@ -47,27 +50,42 @@ if isempty(iProt)
 end
 
 if nargin < 2 || isempty(iFrame);    
-    iFrame = str2double(inputdlg('Input a frame number to overlay edges on:','Frame Number'));
+    iFrame = str2double(inputdlg('Enter frame number for the image to overlay edges on:','Image Frame Number'));
+end
+
+if isempty(iFrame)
+    return
 end
 
 nFrames = MD.nFrames_;
-if isempty(iFrame) || iFrame > nFrames || iFrame <= 0
+if iFrame > nFrames || iFrame <= 0 || isnan(iFrame)
     error(['You must select a valid frame number to confinue!! Frame number must be between 1 and ' num2str(MD.nFrames_) '!!'])
 end
+
+if nargin < 3 || isempty(iEdgeFrames)
+    [iEdgeFrames,OK] = listdlg('ListString',arrayfun(@num2str,1:nFrames,'Unif',false), ...
+        'PromptString','Select edge frame(s) to overlay:','ListSize',[300 400]);   
+
+    if ~OK
+        return
+    end
+end
+
+
 
 nChan = numel(MD.channels_);
 if nChan == 1
     iChan = 1;
     OK = true;
-elseif nargin < 3 || isempty(iChan)
-    [iChan OK] = listdlg('ListString',cellfun(@num2str,1:nChan),'SelectionMode','single',...
-        'PromptString','Select a channel to overlay edges on:');
+elseif nargin < 4 || isempty(iChan)
+    [iChan OK] = listdlg('ListString',arrayfun(@num2str,1:nChan,'Unif',false),'SelectionMode','single',...
+        'PromptString','Select a channel to display image from:','ListSize',[300 400]);
 end
 if ~OK
     return
 end
 
-if nargin < 4 || isempty(colorMap)
+if nargin < 5 || isempty(colorMap)
     colorMap = @jet;
 end
 
@@ -76,23 +94,23 @@ end
 
 imNames = MD.getImageFileNames(iChan);
 imDir = MD.getChannelPaths(iChan);
-
 im = imread([imDir{1} filesep imNames{1}{iFrame}]);
-
 prot = MD.processes_{iProt}.loadChannelOutput;
-
 
 
 %% ----- Figure Making ------ %%
 
+figHan = figure;
 imshow(im,[]);
-figHan = gcf;
 hold on
-
-frameCols = colorMap(nFrames);
-
-for j = 1:nFrames
-   plot(prot.smoothedEdge{j}(:,1),prot.smoothedEdge{j}(:,2),'Color',frameCols(j,:));
+nFramesSel = numel(iEdgeFrames);
+frameCols = colorMap(nFramesSel);
+for j = 1:nFramesSel
+   plot(prot.smoothedEdge{iEdgeFrames(j)}(:,1),prot.smoothedEdge{iEdgeFrames(j)}(:,2),'Color',frameCols(j,:));
 end
 
+
+if nargout > 0
+    varargout{1} = figHan;
+end
 
