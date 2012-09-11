@@ -52,15 +52,6 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 userData = get(handles.figure1, 'UserData');
 funParams = userData.crtProc.funParams_;
 
-allUnits = ProtrusionSamplingProcess.getUnits();
-if isempty(userData.MD.pixelSize_) && isempty(userData.MD.timeInterval_),
-    set(handles.popupmenu_Units, 'String', allUnits{1}, 'Value', 1);
-else
-    i = find(strcmp(funParams.Units, allUnits), 1);
-    if isempty(i), i = 1; end
-    set(handles.popupmenu_Units, 'String', allUnits, 'Value', i);
-end
-
 
 % Choose default command line output for protrusionSamplingProcessGUI
 handles.output = hObject;
@@ -124,8 +115,7 @@ catch ME
     return;
 end
 
-props = get(handles.popupmenu_Units, {'String','Value'});
-funParams.Units = props{1}{props{2}};
+funParams = userData.crtProc.funParams_;
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);

@@ -129,34 +129,6 @@ end
 
 %% -------- Sampling -------- %%
 
-if strcmp(p.Units, 'pixels/frame'),
-    scaling = 1;
-else
-    units = regexp(p.Units, '(\w+)/(\w+)', 'tokens');
-    assert(~isempty(units), 'Unrecognized units');
-    assert(~isempty(movieData.pixelSize_), 'Missing pixel size');
-    assert(~isempty(movieData.timeInterval_), 'Missing time interval');
-    
-    switch units{1}{1}
-        case 'mm'
-            scaling = movieData.pixelSize_/1e6;
-        case 'microns'
-            scaling = movieData.pixelSize_/1e3;
-        case 'nm'
-            scaling = movieData.pixelSize_;
-        otherwise
-            error('Unrecognized space unit');
-    end
-    
-        switch units{1}{2}
-        case 's'
-            scaling = scaling/movieData.timeInterval_;
-        case 'min'
-            scaling = scaling/movieData.timeInterval_*60;
-        otherwise
-            error('Unrecognized time unit');
-        end
-end
 
 disp('Starting protrusion sampling...')
 
@@ -172,9 +144,9 @@ for iFrame = 1:(nFrames-1)
     normals{iFrame} = normals{iFrame} ./ repmat(magNorm,1,2);    
     
     %Get the normal component of the protrusion vectors for this frame
-    protNorm = dot(protrusion{iFrame}',normals{iFrame}')' * scaling;
+    protNorm = dot(protrusion{iFrame}',normals{iFrame}')';
     %And the magnitude of the protrusion vectors
-    protMag = sqrt(dot(protrusion{iFrame}',protrusion{iFrame}'))' * scaling;
+    protMag = sqrt(dot(protrusion{iFrame}',protrusion{iFrame}'))';
     
     for iSlice = 1:numel(windows)
         
@@ -194,7 +166,7 @@ for iFrame = 1:(nFrames-1)
             protSamples.medMagnitude(iSlice,iFrame) = median(protMag(iProts));
             protSamples.minMagnitude(iSlice,iFrame) = min(protMag(iProts));
             protSamples.maxMagnitude(iSlice,iFrame) = max(protMag(iProts));
-            protSamples.avgVector(iSlice,iFrame,:) = mean(protrusion{iFrame}(iProts,:) * scaling);
+            protSamples.avgVector(iSlice,iFrame,:) = mean(protrusion{iFrame}(iProts,:));
             
             if showPlots%For debugging/testing
                 
@@ -220,8 +192,8 @@ for iFrame = 1:(nFrames-1)
                 
                 iMid = min(iProts);
                 quiver(smoothedEdge{iFrame}(iMid,1),smoothedEdge{iFrame}(iMid,2),...
-                        protSamples.avgVector(iSlice,iFrame,1)/scaling,...
-                    protSamples.avgVector(iSlice,iFrame,2)/scaling,0,'Color','k','LineWidth',2);
+                        protSamples.avgVector(iSlice,iFrame,1),...
+                    protSamples.avgVector(iSlice,iFrame,2),0,'Color','k','LineWidth',2);
                 
                 if iSlice == numel(windows)
                     edgePlotted = false;
@@ -247,14 +219,15 @@ end
 
 
 % Create process report
+[units, scaling] = movieData.processes_{iProc}.getUnits();
 procLog= sprintf([...
     'Protrusion sampling summary\n\n',...
     'Mean protrusion\t: %0.3f %s +/- %0.3f %s\n'...
     'Mean retraction\t: %0.3f %s +/- %0.3f %s\n'],...
-    nanmean(protSamples.avgNormal(protSamples.avgNormal>0)),p.Units,...
-    nanstd(protSamples.avgNormal(protSamples.avgNormal>0)),p.Units,...
-    nanmean(protSamples.avgNormal(protSamples.avgNormal<0)),p.Units,...
-    nanstd(protSamples.avgNormal(protSamples.avgNormal<0)),p.Units);
+    nanmean(protSamples.avgNormal(protSamples.avgNormal>0)) * scaling, units,...
+    nanstd(protSamples.avgNormal(protSamples.avgNormal>0)) * scaling, units,...
+    nanmean(protSamples.avgNormal(protSamples.avgNormal<0)) * scaling, units,...
+    nanstd(protSamples.avgNormal(protSamples.avgNormal<0)) * scaling, units);
 disp(procLog);
 fid=fopen([p.OutputDirectory filesep 'ProtrusionSamplingSummary.txt'],'wt');
 fprintf(fid,procLog);
