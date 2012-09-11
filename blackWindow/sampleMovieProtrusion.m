@@ -167,6 +167,7 @@ for iFrame = 1:(nFrames-1)
             protSamples.minMagnitude(iSlice,iFrame) = min(protMag(iProts));
             protSamples.maxMagnitude(iSlice,iFrame) = max(protMag(iProts));
             protSamples.avgVector(iSlice,iFrame,:) = mean(protrusion{iFrame}(iProts,:));
+            protSamples.avgNormalVector(iSlice,iFrame,:) = mean(normals{iFrame}(iProts,:));
             
             if showPlots%For debugging/testing
                 
