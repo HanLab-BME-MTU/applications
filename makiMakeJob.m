@@ -689,6 +689,7 @@ function dataStruct = getPlaneFitInput(dataStruct,ask4input)
 
 %define default values
 use2D_def = 0;
+assumeMeta_def = 0;
 
 %assign defaults
 dataPropertiesTmp = dataStruct.dataProperties;
@@ -699,25 +700,34 @@ if isfield(dataPropertiesTmp,'planeFitParam') %if detectionParam have been assig
     else
         use2DTmp = use2D_def;
     end
+    if isfield(planeFitParamTmp,'assumeMeta')
+        assumeMetaTmp = planeFitParamTmp.assumeMeta;
+    else
+        assumeMetaTmp = assumeMeta_def;
+    end
 else
     use2DTmp = use2D_def;
+    assumeMetaTmp = assumeMeta_def;
 end
 
 %ask for user input
 if ask4input
     planeFitParamIn = inputdlg(...
-        {'Enter 1 to use 2D-projection to help with metaphase plate fit, 0 otherwise'},...
+        {'Enter 1 to use 2D-projection to help with metaphase plate fit, 0 otherwise',...
+        'Enter 1 to assume that kinetochores have a metaphase/prometaphase configuration (and not anaphase), 0 otherwise'},...
         sprintf(['Plane fit parameters for ' dataStruct.projectName]),1,...
-        {num2str(use2DTmp)},'on');
+        {num2str(use2DTmp),num2str(assumeMetaTmp)},'on');
     if isempty(planeFitParamIn)
         error('input aborted')
     else
         use2DTmp = str2double(planeFitParamIn{1});
+        assumeMetaTmp = str2double(planeFitParamIn{2});
     end
 end
 
 %save detection parameters in dataStruct
 planeFitParam.use2D = use2DTmp;
+planeFitParam.assumeMeta = assumeMetaTmp;
 dataStruct.dataProperties.planeFitParam = planeFitParam;
     
     

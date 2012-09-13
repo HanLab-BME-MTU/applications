@@ -57,6 +57,7 @@ end
 metaPlateOrigin = repmat(struct('observations',[]),numMovies,1);
 metaPlateNormal = repmat(struct('observations',[]),numMovies,1);
 kinetScatterStd = repmat(struct('observations',[]),numMovies,1);
+plateNormalAngle = repmat(struct('observations',[]),numMovies,1);
 
 %go over all movies
 for iMovie = 1 : numMovies
@@ -75,6 +76,7 @@ for iMovie = 1 : numMovies
     %go over frames with plane and collect information
     planeOrigin = NaN(numFrames,3);
     planeNormal = NaN(numFrames,3);
+    normalAngle = NaN(numFrames,1);
     kinetStd = NaN(numFrames,1);
     for iFrame = framesWithPlane'
         
@@ -83,6 +85,9 @@ for iMovie = 1 : numMovies
         
         %get vector normal to plane
         planeNormal(iFrame,:) = planeFit(iFrame).planeVectors(:,1)';
+        
+        %calculate angle of normal with z
+        normalAngle(iFrame) = acos(abs(planeNormal(iFrame,3))) * 180 / pi;
         
         %get coordinates of inlier kinetochores
         inlierIndx = updatedClass(iFrame).inlierIdx;
@@ -95,6 +100,7 @@ for iMovie = 1 : numMovies
     metaPlateOrigin(iMovie).observations = planeOrigin;
     metaPlateNormal(iMovie).observations = planeNormal;
     kinetScatterStd(iMovie).observations = kinetStd;
+    plateNormalAngle(iMovie).observations = normalAngle;
     
 end
     
@@ -271,10 +277,12 @@ meanStdMin25P50P75PMax.indcell = struct('originDispMag',originDispMagIndParam,..
     'normalDirChange',normalDirChangeIndParam,...
     'kinetScatterStd',kinetScatterStdIndParam);
 autocorr = struct('originDispAlongNorm',originDispAlongNormAutocorr);
+indCellTimeSeries = struct('plateAngleWithFloor',plateNormalAngle,...
+    'kinetScatterStd',kinetScatterStd);
 
 metaPlate = struct('distribution',distribution,...
     'meanStdMin25P50P75PMax',meanStdMin25P50P75PMax,...
-    'autocorr',autocorr);
+    'autocorr',autocorr,'indCellTimeSeries',indCellTimeSeries);
 
 %check whether current analysisStruct already has the matePlate field
 fieldExists = isfield(analysisStruct,'metaPlate');
@@ -297,112 +305,173 @@ save(fullfile(dir2SaveRes,fileName),'analysisStruct');
 %% plots
 
 if verbose
-
+    
     %get time between frames
     timeLapse = round(2*dataStruct(1).dataProperties.timeLapse)/2;
-
+    
     %get number of frames in each movie
     numFrames = NaN(numMovies,1);
+    legendNames = cell(numMovies,1);
     for iMovie = 1 : numMovies
         numFrames(iMovie) = dataStruct(iMovie).dataProperties.movieSize(end);
+        legendNames{iMovie} = ['Movie ' num2str(iMovie)];
     end
-    numFrames = min(numFrames)-1;
-
+    numFramesMax = max(numFrames);
+    
     %open figure and write title
     figFileName = [fileName(1:end-4) '-PlateDisplacement'];
     figHandle = figure('Name',figFileName,'NumberTitle','off');
-
-        %create subplot 1
-        subplot(2,2,1);
-        hold on
-
-        %put all displacement magnitudes together in one matrix
-        dispMat = [];
-        for iMovie = 1 : numMovies
-            dispMat = [dispMat originDispMag(iMovie).observations(1:numFrames,1)];
-        end
-
-        %plot distance over time for all movies
-        plot((0:numFrames-1)*timeLapse,dispMat);
-
-        %set axes limit
-        axis([0 (numFrames-1)*timeLapse 0 max(dispMat(:))+1]);
-
-        %write axes labels
-        xlabel('Time (s)');
-        ylabel('Plate displacement magnitude (\mum)');
-
-        %hold off subplot 1
-        hold off
-
-        %create subplot 2
-        subplot(2,2,2);
-        hold on
-
-        %put all displacements along normal together in one matrix
-        dispMat = [];
-        for iMovie = 1 : numMovies
-            dispMat = [dispMat originDispAlongNorm(iMovie).observations(1:numFrames,1)];
-        end
-
-        %plot distance over time for all movies
-        plot((0:numFrames-1)*timeLapse,dispMat);
-
-        %set axes limit
-        axis([0 (numFrames-1)*timeLapse min(dispMat(:))-1 max(dispMat(:))+1]);
-
-        %write axes labels
-        xlabel('Time (s)');
-        ylabel('Plate displacement along normal (\mum)');
-
-        %hold off subplot 2
-        hold off
-
-        %create subplot 3
-        subplot(2,2,3);
-        hold on
-
-        %put all normal direction changes together in one matrix
-        dispMat = [];
-        for iMovie = 1 : numMovies
-            dispMat = [dispMat normalDirChange(iMovie).observations(1:numFrames,1)];
-        end
-
-        %plot distance over time for all movies
-        plot((0:numFrames-1)*timeLapse,dispMat);
-
-        %set axes limit
-        axis([0 (numFrames-1)*timeLapse 0 max(dispMat(:))+1]);
-
-        %write axes labels
-        xlabel('Time (s)');
-        ylabel('Plate normal direction change (degrees)');
-
-        %hold off subplot 3
-        hold off
-
-        %create subplot 4
-        subplot(2,2,4);
-        hold on
-
-        %plot displacement along normal autocorrelation
-        if ~isempty(originDispAlongNormAutocorr)
-            plot((0:maxLag)*timeLapse,originDispAlongNormAutocorr(:,1));
-
-            %set axes limit
-            axis([0 (maxLag)*timeLapse min(0,1.1*min(originDispAlongNormAutocorr(:,1))) 1.1]);
-
-            %write axes labels
-            xlabel('Time (s)');
-            ylabel('Autocorrelation of plate displacement along normal');
-        end
+    
+    %create subplot 1
+    subplot(2,2,1);
+    hold on
+    
+    %put all displacement magnitudes together in one matrix
+    dispMat = NaN(numFramesMax,numMovies);
+    for iMovie = 1 : numMovies
+        dispMat(1:numFrames(iMovie)-1,iMovie) = originDispMag(iMovie).observations(:,1);
+    end
+    
+    %plot
+    plot((0:numFramesMax-1)*timeLapse,dispMat);
+    
+    %set axes limit
+    axis([0 (numFramesMax-1)*timeLapse min(dispMat(:))*0.95 max(dispMat(:))*1.05]);
+    
+    %add legend
+    legend(legendNames)
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Plate displacement magnitude (\mum)');
+    
+    %hold off subplot 1
+    hold off
+    
+    %create subplot 2
+    subplot(2,2,2);
+    hold on
+    
+    %put all displacements along normal together in one matrix
+    dispMat = NaN(numFramesMax,numMovies);
+    for iMovie = 1 : numMovies
+        dispMat(1:numFrames(iMovie)-1,iMovie) = originDispAlongNorm(iMovie).observations(:,1);
+    end
+    
+    %plot
+    plot((0:numFramesMax-1)*timeLapse,dispMat);
+    
+    %set axes limit
+    axis([0 (numFramesMax-1)*timeLapse min(dispMat(:))*1.05 max(dispMat(:))*1.05]);
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Plate displacement along normal (\mum)');
+    
+    %hold off subplot 2
+    hold off
+    
+    %create subplot 3
+    subplot(2,2,3);
+    hold on
+    
+    %put all normal direction changes together in one matrix
+    dispMat = NaN(numFramesMax,numMovies);
+    for iMovie = 1 : numMovies
+        dispMat(1:numFrames(iMovie)-1,iMovie) = normalDirChange(iMovie).observations(:,1);
+    end
+    
+    %plot distance over time for all movies
+    plot((0:numFramesMax-1)*timeLapse,dispMat);
+    
+    %set axes limit
+    axis([0 (numFramesMax-1)*timeLapse min(dispMat(:))*0.95 max(dispMat(:))*1.05]);
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Plate normal direction change (degrees)');
+    
+    %hold off subplot 3
+    hold off
+    
+    %create subplot 4
+    subplot(2,2,4);
+    hold on
+    
+    %plot displacement along normal autocorrelation
+    if ~isempty(originDispAlongNormAutocorr)
+        plot((0:maxLag)*timeLapse,originDispAlongNormAutocorr(:,1));
         
-        %hold off subplot 4
-        hold off
-
-        %save figure in file
-        saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
-
+        %set axes limit
+        axis([0 (maxLag)*timeLapse min(0,1.1*min(originDispAlongNormAutocorr(:,1))) 1.1]);
+        
+        %write axes labels
+        xlabel('Time (s)');
+        ylabel('Autocorrelation of plate displacement along normal');
+    end
+    
+    %hold off subplot 4
+    hold off
+    
+    %save figure in file
+    saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+    
+    %open figure and write title
+    figFileName = [fileName(1:end-4) '-PlateWidthAngle'];
+    figHandle = figure('Name',figFileName,'NumberTitle','off');
+    
+    %create subplot 1
+    subplot(2,1,1);
+    hold on
+    
+    %put all kinetochore scatter stds together in one matrix
+    dispMat = NaN(numFramesMax,numMovies);
+    for iMovie = 1 : numMovies
+        dispMat(1:numFrames(iMovie),iMovie) = kinetScatterStd(iMovie).observations(:,1);
+    end
+    
+    %plot scatter over time for all movies
+    plot((0:numFramesMax-1)*timeLapse,dispMat);
+    
+    %set axes limit
+    axis([0 (numFramesMax-1)*timeLapse min(dispMat(:))*0.95 max(dispMat(:))*1.05]);
+    
+    %add legend
+    legend(legendNames)
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Kinetochore scatter about metaphase plate (\mum)');
+    
+    %hold off subplot 1
+    hold off
+    
+    %create subplot 2
+    subplot(2,1,2);
+    hold on
+    
+    %put all plate angles together in one matrix
+    dispMat = NaN(numFramesMax,numMovies);
+    for iMovie = 1 : numMovies
+        dispMat(1:numFrames(iMovie),iMovie) = plateNormalAngle(iMovie).observations(:,1);
+    end
+    
+    %plot scatter over time for all movies
+    plot((0:numFramesMax-1)*timeLapse,dispMat);
+    
+    %set axes limit
+    axis([0 (numFramesMax-1)*timeLapse min(dispMat(:))*0.95 max(dispMat(:))*1.05]);
+    
+    %write axes labels
+    xlabel('Time (s)');
+    ylabel('Plate angle with floor (\mum)');
+    
+    %hold off subplot 2
+    hold off
+    
+    %save figure in file
+    saveas(figHandle,fullfile(dir2SaveRes,figFileName),'fig');
+    
 end
 
 %% ~~~ the end ~~~ %%

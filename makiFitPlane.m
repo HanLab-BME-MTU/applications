@@ -97,11 +97,15 @@ end
 
 %determine whether to use 2D projection instead of 3D
 %the 2D approximation only works in late prometaphase and metaphase
+%also determine whether to assume a metaphase configuration in the case of
+%3D
 dataProperties = dataStruct.dataProperties;
 if ~isfield(dataProperties,'planeFitParam')
     use2D = 0;
+    assumeMeta = 0;
 else
     use2D = dataProperties.planeFitParam.use2D;
+    assumeMeta = dataProperties.planeFitParam.assumeMeta;
 end
 
 % check whether analysis has been done
@@ -239,14 +243,24 @@ if nConsecFrames >= minConsecFrames
             geomDist(1,t) = sqrt(diffs(1)*diffs(2));
             geomDist(2,t) = sqrt(diffs(1)*diffs(3));
             geomDist(3,t) = sqrt(diffs(2)*diffs(3));
-
-            % score : minimize the rotation of the normal and maximize the geometric
-            % mean distance of the eigenvalue associated with the normal to the two
-            % in plane eignevalues.
-            % on average: eigenvectors associated with the plane normal have a
-            % large geometric mean difference to inplane eigenvectors, and inplane
-            % eigenvectors tend to rotate more
-            evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
+            
+            if ~assumeMeta
+                
+                % score : minimize the rotation of the normal and maximize the geometric
+                % mean distance of the eigenvalue associated with the normal to the two
+                % in plane eignevalues.
+                % on average: eigenvectors associated with the plane normal have a
+                % large geometric mean difference to inplane eigenvectors, and inplane
+                % eigenvectors tend to rotate more
+                evecScore(:) = evecScore(:) + eigenVectorRotation(:,t)./geomDist(eigenVecAssign(:,t),t);
+                
+            else
+                
+                %in this case, look for the eigenvector with the overall
+                %smallest eigenvalue - KJ
+                evecScore(:) = evecScore(:) + eigenValues(goodFrames(t),eigenVecAssign(:,t))';
+                                
+            end
 
         end
 
