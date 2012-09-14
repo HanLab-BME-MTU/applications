@@ -306,7 +306,7 @@ userData=get(handles.figure1,'UserData');
 if ~get(handles.checkbox_selectStartPoint,'Value')
     if userData.imPointHandle.isvalid,
         userData.StartPoint=ceil(getPosition(userData.imPointHandle));
-        userData.StartPoint=userData.StartPoint(2:-1:1);
+        userData.StartPoint=userData.StartPoint;
     end
     if ishandle(userData.previewFig), delete(userData.previewFig); end
 else
