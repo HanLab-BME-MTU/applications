@@ -121,7 +121,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output(1).var='avgNormal';
             output(1).formatData=@(x) x*scaling;
             output(1).type='movieGraph';
-            unitsLabel = ['Edge velocity (' units ')'];
+            unitsLabel = ['Edge velocity (' units ') '];
             output(1).defaultDisplayMethod = @(x)ScalarMapDisplay('Colormap',jet(2^8),...
                 'Units',unitsLabel,'Labels',{'Frame number','Window number'});
         end
