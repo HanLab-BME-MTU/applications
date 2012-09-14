@@ -1,7 +1,8 @@
-%newDetection(data) detects CCPs using a combination of model-based (PSF) fitting and statistical tests
+%runDetection(data) detects CCPs using a combination of model-based (PSF) fitting and statistical tests
 %
 % Inputs:      data : data/movie structure
-%     {'overwrite'} : true | {false}
+%         {'Sigma'} : standard deviation of the Gaussian used for fitting
+%     {'Overwrite'} : true | {false}
 
 % Francois Aguet, April 2011 (last modified 05/24/2011)
 
