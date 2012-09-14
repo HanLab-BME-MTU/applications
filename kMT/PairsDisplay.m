@@ -25,11 +25,11 @@ classdef PairsDisplay < MovieDataDisplay
                     'Color',obj.Color,'Linestyle',obj.Linestyle);
                 if isfield(data(i),'kMTcoords1') && ~isnan(data(i).kMTcoords1(1))
                    h(i,2) =plot3(data(i).kMTcoords1(1,1),data(i).kMTcoords1(1,2),0,'o',...
-                    'Color','r','MarkerSize',ceil(data(i).kMTamp1(1)*10^3));
+                    'Color','r','MarkerSize',ceil(data(i).kMTamp1(1)*10^4));
                 end
                 if isfield(data(i),'kMTcoords2') && ~isnan(data(i).kMTcoords2(1))
                    h(i,3) =plot3(data(i).kMTcoords2(1,1),data(i).kMTcoords2(1,2),0,'o',...
-                    'Color','r','MarkerSize',ceil(data(i).kMTamp2(1)*10^3));
+                    'Color','r','MarkerSize',ceil(data(i).kMTamp2(1)*10^4));
                 end
             end
             set(h(ishandle(h)),'Tag',tag);            
