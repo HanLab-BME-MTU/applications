@@ -2,63 +2,78 @@
 movieSelectorGUI
 load movieData.mat
 
+%determine threshold
+thresholdValue = getSegThreshFromFullMovie(MD,0.5,0.1,1);
+close all
+
 %get cell mask
-%MinMax
-threshParam.MaxJump = 1.2;
-threshParam.GaussFilterSigma = 1;
-threshParam.MethodIndx = 1;
-MD = thresholdMovie(MD,threshParam);
-%Otsu
-threshParam.MaxJump = 1.2;
-threshParam.GaussFilterSigma = 1;
-threshParam.MethodIndx = 2;
-MD = thresholdMovie(MD,threshParam);
-%Rosin
-threshParam.MaxJump = 1.2;
-threshParam.GaussFilterSigma = 1;
-threshParam.MethodIndx = 3;
-MD = thresholdMovie(MD,threshParam);
-%Gradient
-threshParam.MaxJump = [];
-threshParam.GaussFilterSigma = [];
-threshParam.MethodIndx = 4;
-MD = thresholdMovie(MD,threshParam);
+% %MinMax
+% threshParam.MaxJump = 1.2;
+% threshParam.GaussFilterSigma = 1;
+% threshParam.MethodIndx = 1;
+% MD = thresholdMovie(MD,threshParam);
+% %Otsu
+% threshParam.MaxJump = 1.2;
+% threshParam.GaussFilterSigma = 1;
+% threshParam.MethodIndx = 2;
+% MD = thresholdMovie(MD,threshParam);
+% %Rosin
+% threshParam.MaxJump = 1.2;
+% threshParam.GaussFilterSigma = 1;
+% threshParam.MethodIndx = 3;
+% MD = thresholdMovie(MD,threshParam);
+% %Gradient
+% threshParam.MaxJump = [];
+% threshParam.GaussFilterSigma = [];
+% threshParam.MethodIndx = 4;
+% MD = thresholdMovie(MD,threshParam);
 %Fixed threshold
-threshParam.MaxJump = [];
+% threshParam.MaxJump = [];
+% threshParam.GaussFilterSigma = 0.5;
 threshParam.MethodIndx = 1;
-threshParam.GaussFilterSigma = 0.5;
-threshParam.ThresholdValue = 390;
+threshParam.ThresholdValue = thresholdValue;
 MD = thresholdMovie(MD,threshParam);
 
 %refine cell mask
-% refinementParam.MaxEdgeAdjust = 50;
 % refinementParam.MaxEdgeGap = 20;
 % refinementParam.PreEdgeGrow = 0;
+% refinementParam.MaxEdgeAdjust = 20;
 % refinementParam.EdgeRefinement = 1;
-% refinementParam.EdgeRefinement = 0;
-% refinementParam.ClosureRadius = 0;
-% MD = refineMovieMasks(MD,refinementParam);
-MD = refineMovieMasks(MD);
+refinementParam.ClusureRadius = 0;
+refinementParam.OpeningRadius = 2;
+MD = refineMovieMasks(MD,refinementParam);
+% MD = refineMovieMasks(MD);
 
 %make movie of mask
 figure('units','normalized','position',[0 0 1 1])
 axHandle = gca;
 makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskOriginal','AxesHandle',axHandle)
 
+%make movie of mask on top of particle detections
+%LOAD MOVIEINFO!
+movieMasksParticles(movieInfo,400,[],[],1,'movieMasksParticlesOriginal',MD.movieDataPath_,[],1);
+
 %refine masks using gradient information
-refineMovieEdgeWithSteerableFilter(MD,1)
+highLowFactor = [1.2 0.5];
+closureRadius = 5;
+refineMovieEdgeWithSteerableFilter(MD,0,[],highLowFactor,closureRadius);
+save('paramSteerableFilter','highLowFactor','closureRadius');
 
 imtool close all
 
 %refine cell mask again with Hunter's code to get back on track
-% refinementParam.ClosureRadius = 5;
-% MD = refineMovieMasks(MD,refinementParam);
-MD = refineMovieMasks(MD);
+refinementParam2.ClosureRadius = 0;
+refinementParam2.OpeningRadius = 0;
+MD = refineMovieMasks(MD,refinementParam2);
 
 %make movie of final mask
 figure('units','normalized','position',[0 0 1 1])
 axHandle = gca;
 makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskFinal','AxesHandle',axHandle)
+
+%make movie of mask on top of particle detections
+%LOAD MOVIEINFO!
+movieMasksParticles(movieInfo,400,[],[],1,'movieMasksParticlesFinal',MD.movieDataPath_,[],1);
 
 %calculate protrusion vectors
 protrusionParam.SegProcessIndex = 2;

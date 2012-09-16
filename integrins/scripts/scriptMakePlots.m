@@ -4,34 +4,34 @@ load particleBehaviorAdaptiveWindows120907.mat
 mkdir figuresSptVsWindows120907
 cd figuresSptVsWindows120907
 
-movieName = 'AlphaV 110114 Cs1C2A';
+movieName = 'Lifeact 120224 Cs3C1';
 
-numMode = 4;
+numMode = 3;
 
 for iType = [1 2]
     
     %particle density
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.densityParticles,...
         windowDistFromEdge(iType),1,20,[movieName ', Particle density overall, protType ' num2str(iType)],...
-        [movieName 'densityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],'Density overall (um^-2)');
+        [movieName ' DensityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],'Density overall (um^-^2)');
     
     %overall diffusion coefficient
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeAll,...
-        windowDistFromEdge(iType),1,20,[movieName ', Diff. coef. overall, protType ' num2str(iType)],...
-        [movieName 'diffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],'Diff. coef. overall (um^2/s)');
+        windowDistFromEdge(iType),1,20,[movieName ', Diffusion coefficient overall, protType ' num2str(iType)],...
+        [movieName ' DiffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],'Diffusion coefficient overall (um^2/s)');
     
     %fraction in each diffusion mode
     for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
             windowDistFromEdge(iType),iMode,20,[movieName ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-            [movieName 'fractionMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],['Fraction Mode ' num2str(iMode)]);
+            [movieName ' FractionMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],['Fraction Mode ' num2str(iMode)]);
     end
     
     %density of each diffusion mode
     for iMode = 1 : numMode
         plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
             windowDistFromEdge(iType),iMode,20,[movieName ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-            [movieName 'densityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],['Density Mode ' num2str(iMode) ' (um^-2) ']);
+            [movieName ' DensityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],['Density Mode ' num2str(iMode) ' (um^-^2) ']);
     end
     
 end

@@ -1,8 +1,10 @@
-function refineMovieEdgeWithSteerableFilter(MD,doPlot)
+function refineMovieEdgeWithSteerableFilter(MD,doPlot,nmsThresh,...
+    highLowFactor,closureRadius)
 % function refineMovieEdgeWithSteerableFilter(imageDir,analysisDir,doPlot)
 %REFINEMOVIEEDGEWITHSTEERABLEFILTER replaces simple masks with masks refined using steerable line filtering
 %
-%SYNOPSIS refineMovieEdgeWithSteerableFilter(imageDir,analysisDir)
+%SYNOPSIS refineMovieEdgeWithSteerableFilter(MD,doPlot,nmsThresh,...
+%    highLowFactor,closureRadius)
 %
 %INPUT  MD    : The movieData object as output by the cell masking and
 %               windowing software. Before calling this code,
@@ -23,9 +25,26 @@ function refineMovieEdgeWithSteerableFilter(MD,doPlot)
 
 %% Input/Output
 
-if nargin ~= 2
+if nargin < 1
     error('refineMovieEdgeWithSteerableFilter: Wrong number of input arguments');
 end
+
+if nargin < 2 || isempty(doPlot)
+    doPlot = 0;
+end
+
+if nargin < 3 || isempty(nmsThresh)
+    nmsThresh = [];
+end
+
+if nargin < 4 || isempty(highLowFactor)
+    highLowFactor = [1.2 0.6];
+end
+
+if nargin < 5 || isempty(closureRadius)
+    closureRadius = 15;
+end
+
 
 %get image and analysis directories
 imageDir = MD.channels_.channelPath_;
@@ -66,7 +85,8 @@ for iFile = 1 : numFiles
     mask0 = double(imread(fullfile(refinedMasksDirFull,refinedMaskFileListing(iFile).name)));
     
     %call refinement function
-    mask = refineEdgeWithSteerableFilter(mask0,image,doPlot);
+    [mask,nmsThresh] = refineEdgeWithSteerableFilter(mask0,image,doPlot,...
+        nmsThresh,highLowFactor,closureRadius);
     
     %store new mask
     imwrite(mask,fullfile(masksDirFull,maskFileListing(iFile).name),'tif');
