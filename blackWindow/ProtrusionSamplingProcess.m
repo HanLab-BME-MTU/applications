@@ -116,17 +116,25 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             output.name = 'Protrusion';
         end
         function output = getDrawableOutput(obj)
-            [units, scaling] = obj.getUnits();
+            [units, scaling timeInterval] = obj.getUnits();
             output(1).name='Protrusion map';
             output(1).var='avgNormal';
-            output(1).formatData=@(x) x*scaling;
+            output(1).formatData=[];
             output(1).type='movieGraph';
             unitsLabel = ['Edge velocity (' units ') '];
+            if ~isempty(timeInterval)
+                yxScaling = [1 timeInterval scaling];
+                xlabel = 'Time (s)';
+            else
+                yxScaling = [1 1 1];
+                xlabel = 'Frame number';
+            end
             output(1).defaultDisplayMethod = @(x)ScalarMapDisplay('Colormap',jet(2^8),...
-                'Units',unitsLabel,'Labels',{'Frame number','Window number'});
+                'Units', unitsLabel, 'Labels', {xlabel, 'Window number'},...
+                'Scaling', yxScaling);
         end
 
-        function [units scaling] = getUnits(obj)
+        function [units scaling timeInterval] = getUnits(obj)
             pixelSize = obj.owner_.pixelSize_;
             timeInterval = obj.owner_.timeInterval_;
             if isempty(pixelSize) || isempty(timeInterval),

@@ -146,17 +146,33 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
             outputName = obj.funParams_.OutputName;
             if ~iscell(processIndex), processIndex={processIndex}; end
             if ~iscell(outputName), outputName={outputName}; end
+            
+            % Initialize drawable output array
             nOutput = numel(processIndex);
             drawableOutput(nOutput,1)=struct();
+            
+            timeInterval = obj.owner_.timeInterval_;
+            if ~isempty(timeInterval)
+                scaling = [1 timeInterval 1];
+                xlabel = 'Time (s)';
+            else
+                scaling = [1 1 1];
+                xlabel = 'Frame number';
+            end
+            
             for i=1:nOutput
                 procId = processIndex{i};
                 if isempty(procId)
-                    drawableOutput(i).name='Raw images';
+                    % No procId - sampled raw images 
+                    drawableOutput(i).name = 'Raw images';
                 else
+                    % Read output name from parent process & ouput variable
                     parentOutput = obj.owner_.processes_{procId}.getDrawableOutput;
                     iOutput = strcmp(outputName{i},{parentOutput.var});
                     drawableOutput(i).name=parentOutput(iOutput).name;
                 end
+                
+                %
                 drawableOutput(i).var='avg';
                 drawableOutput(i).formatData=@(x) permute(x,[1 3 2]);
                 drawableOutput(i).type='sampledGraph';
@@ -173,9 +189,10 @@ classdef WindowSamplingProcess < ImageAnalysisProcess
                     units=@(i)obj.owner_.processes_{procId}.getUnits(i);
                 end
                 
-                drawableOutput(i).defaultDisplayMethod=@(x) ScalarMapDisplay('Colormap',cmap(x,i),...
-                    'CLim',obj.getIntensityLimits(x,i),'Units',units(i),...
-                    'Labels',{'Frame number','Window depth','Window number'});
+                drawableOutput(i).defaultDisplayMethod = @(x) ScalarMapDisplay(...
+                    'Colormap', cmap(x,i), 'Units', units(i),...
+                    'CLim', obj.getIntensityLimits(x,i), 'Scaling', scaling,...
+                    'Labels', {xlabel, 'Window depth', 'Window number'});
             end
         end
         
