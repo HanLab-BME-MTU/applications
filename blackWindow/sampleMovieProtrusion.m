@@ -119,6 +119,7 @@ protSamples.medMagnitude = protSamples.avgNormal;
 protSamples.minMagnitude = protSamples.avgNormal;
 protSamples.maxMagnitude = protSamples.avgNormal;
 protSamples.avgVector = nan(movieData.processes_{iWinProc}.nSliceMax_,nFrames,2);
+protSamples.avgNormalVector = nan(movieData.processes_{iWinProc}.nSliceMax_,nFrames,2);
 protSamples.n = protSamples.avgNormal;
 
 
@@ -156,18 +157,18 @@ for iFrame = 1:(nFrames-1)
             iProts = unique(correspondingIndices(windows{iSlice}{1}{end},smoothedEdge{iFrame}'));
             
             protSamples.n(iSlice,iFrame) = numel(iProts);%Number of prot vecs for this window
-            protSamples.avgNormal(iSlice,iFrame) = mean(protNorm(iProts));
-            protSamples.stdNormal(iSlice,iFrame) = std(protNorm(iProts));
-            protSamples.medNormal(iSlice,iFrame) = median(protNorm(iProts));
-            protSamples.minNormal(iSlice,iFrame) = min(protNorm(iProts));
-            protSamples.maxNormal(iSlice,iFrame) = max(protNorm(iProts));
-            protSamples.avgMagnitude(iSlice,iFrame) = mean(protMag(iProts));
-            protSamples.stdMagnitude(iSlice,iFrame) = std(protMag(iProts));
-            protSamples.medMagnitude(iSlice,iFrame) = median(protMag(iProts));
-            protSamples.minMagnitude(iSlice,iFrame) = min(protMag(iProts));
-            protSamples.maxMagnitude(iSlice,iFrame) = max(protMag(iProts));
-            protSamples.avgVector(iSlice,iFrame,:) = mean(protrusion{iFrame}(iProts,:));
-            protSamples.avgNormalVector(iSlice,iFrame,:) = mean(normals{iFrame}(iProts,:));
+            protSamples.avgNormal(iSlice,iFrame) = mean(protNorm(iProts),1);
+            protSamples.stdNormal(iSlice,iFrame) = std(protNorm(iProts),[],1);
+            protSamples.medNormal(iSlice,iFrame) = median(protNorm(iProts),1);
+            protSamples.minNormal(iSlice,iFrame) = min(protNorm(iProts),[],1);
+            protSamples.maxNormal(iSlice,iFrame) = max(protNorm(iProts),[],1);
+            protSamples.avgMagnitude(iSlice,iFrame) = mean(protMag(iProts),1);
+            protSamples.stdMagnitude(iSlice,iFrame) = std(protMag(iProts),[],1);
+            protSamples.medMagnitude(iSlice,iFrame) = median(protMag(iProts),1);
+            protSamples.minMagnitude(iSlice,iFrame) = min(protMag(iProts),[],1);
+            protSamples.maxMagnitude(iSlice,iFrame) = max(protMag(iProts),[],1);
+            protSamples.avgVector(iSlice,iFrame,:) = mean(protrusion{iFrame}(iProts,:),1);
+            protSamples.avgNormalVector(iSlice,iFrame,:) = mean(normals{iFrame}(iProts,:),1);
             
             if showPlots%For debugging/testing
                 
