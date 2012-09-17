@@ -1,10 +1,10 @@
-function refineMovieEdgeWithSteerableFilter(MD,doPlot,nmsThresh,...
-    highLowFactor,closureRadius)
+function [cutThresh] = refineMovieEdgeWithSteerableFilter(MD,doPlot,...
+    closureRadius)
 % function refineMovieEdgeWithSteerableFilter(imageDir,analysisDir,doPlot)
 %REFINEMOVIEEDGEWITHSTEERABLEFILTER replaces simple masks with masks refined using steerable line filtering
 %
-%SYNOPSIS refineMovieEdgeWithSteerableFilter(MD,doPlot,nmsThresh,...
-%    highLowFactor,closureRadius)
+%SYNOPSIS [cutThresh] = refineMovieEdgeWithSteerableFilter(MD,doPlot,...
+%    closureRadius)
 %
 %INPUT  MD    : The movieData object as output by the cell masking and
 %               windowing software. Before calling this code,
@@ -33,16 +33,8 @@ if nargin < 2 || isempty(doPlot)
     doPlot = 0;
 end
 
-if nargin < 3 || isempty(nmsThresh)
-    nmsThresh = [];
-end
-
-if nargin < 4 || isempty(highLowFactor)
-    highLowFactor = [1.2 0.6];
-end
-
 if nargin < 5 || isempty(closureRadius)
-    closureRadius = 15;
+    closureRadius = 5;
 end
 
 
@@ -77,6 +69,8 @@ numFiles = length(imageFileListing);
 
 %% Mask refinement
 
+cutThresh = NaN(numFiles,2);
+
 %refine masks using steerable line filter
 for iFile = 1 : numFiles
     
@@ -85,11 +79,15 @@ for iFile = 1 : numFiles
     mask0 = double(imread(fullfile(refinedMasksDirFull,refinedMaskFileListing(iFile).name)));
     
     %call refinement function
-    [mask,nmsThresh] = refineEdgeWithSteerableFilter(mask0,image,doPlot,...
-        nmsThresh,highLowFactor,closureRadius);
+    [mask,cutThresh(iFile,:)] = refineEdgeWithSteerableFilter(mask0,image,doPlot,...
+        closureRadius);
     
     %store new mask
     imwrite(mask,fullfile(masksDirFull,maskFileListing(iFile).name),'tif');
+    
+    if max(mask(:)) == 0
+        disp(['bad mask Image ' num2str(iFile)]);
+    end
     
 end
 
@@ -107,8 +105,6 @@ for iFile = 1 : numFiles
     end
 end
 fileListing = fileListing(goodFile==1);
-
-
 
 
 %% ~~~ the end ~~~

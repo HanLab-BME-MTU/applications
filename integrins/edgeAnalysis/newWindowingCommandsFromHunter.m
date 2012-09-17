@@ -3,7 +3,7 @@ movieSelectorGUI
 load movieData.mat
 
 %determine threshold
-thresholdValue = getSegThreshFromFullMovie(MD,0.5,0.1,1);
+thresholdValue = getSegThreshFromFullMovie(MD,0.5,0.2,1);
 close all
 
 %get cell mask
@@ -29,7 +29,7 @@ close all
 % MD = thresholdMovie(MD,threshParam);
 %Fixed threshold
 % threshParam.MaxJump = [];
-% threshParam.GaussFilterSigma = 0.5;
+threshParam.GaussFilterSigma = 0.5;
 threshParam.MethodIndx = 1;
 threshParam.ThresholdValue = thresholdValue;
 MD = thresholdMovie(MD,threshParam);
@@ -54,10 +54,9 @@ makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskOrig
 movieMasksParticles(movieInfo,400,[],[],1,'movieMasksParticlesOriginal',MD.movieDataPath_,[],1);
 
 %refine masks using gradient information
-highLowFactor = [1.2 0.5];
 closureRadius = 5;
-refineMovieEdgeWithSteerableFilter(MD,0,[],highLowFactor,closureRadius);
-save('paramSteerableFilter','highLowFactor','closureRadius');
+edgeThresh = refineMovieEdgeWithSteerableFilter(MD,1,closureRadius);
+save('paramSteerableFilter','closureRadius','edgeThresh');
 
 imtool close all
 
