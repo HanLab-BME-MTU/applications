@@ -5,12 +5,13 @@ mkdir adaptiveWindows
 cd adaptiveWindows
 
 % sliceRange = [];
-sliceRange = (141:201)';
+sliceRange = (40:170)';
 frameRange = [];
 lengthMinMax = [5 99];
 
 windowsAll = putWindowsTogether;
-load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
+% load ../../../analysisCellEdgeModSmall/protrusion_samples/protrusion_samples.mat
+load ../../../analysisCellEdgeSmall2/protrusion_samples/protrusion_samples.mat
 
 load ../tracksDiffusionLength5InMask.mat
 
