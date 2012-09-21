@@ -8,7 +8,7 @@ else
         [fpath,fname,fno,fext] = getFilenameBody(firstWindowFile{1});
         dirName = [fpath,filesep];
         fName = [fname,fno,fext];
-    elseif ischar(firstImageFile)
+    elseif ischar(firstWindowFile)
         [fpath,fname,fno,fext] = getFilenameBody(firstWindowFile);
         dirName = [fpath,filesep];
         fName = [fname,fno,fext];

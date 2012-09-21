@@ -43,7 +43,7 @@ function [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
 %                        Optional. If not input, will be asked for.
 %       protWinParam   : Structure with parameters to be used by the
 %                        function "combineWindowsProtrusion." See function
-%                        for detais.
+%                        for details.
 %
 %OUTPUT 
 %   WRONG DESCRIPTION - START
@@ -605,13 +605,10 @@ analysisParam.indxSlices = indxSlices;
 analysisParam.frameRange = frameRange;
 analysisParam.trackLengthRange = lengthMinMax;
 analysisParam.cellMaskFile1 = firstMaskFile;
+analysisParam.protWinParam = protWinParam;
 
 
-%% Subfunction 1 "getsliceActivityGroupChar"
-
-
-
-%% Subfunction 2 "putTrackCharTogether"
+%% Subfunction "putTrackCharTogether"
 
 function [angleProt,f2fDispMag2D,f2fDispSignParaDir,f2fDispSignPerpDir,...
     f2fDispMagParaDir,f2fDispMagPerpDir,f2fDispSignParaProt,f2fDispSignPerpProt,...

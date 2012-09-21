@@ -1,14 +1,14 @@
 
-for i = 1 : length(analysisLifeactInd);
+for i = 1 : length(movieStructAlphaV);
     
     disp(num2str(i))
     
-    tmp = analysisLifeactInd(i).fileName;
-    cd([tmp{1} '/analysisLifeact/furtherAnalysis'])
+    topDir = movieStructAlphaV(i).fileName{1};
+    cd([topDir '/analysisAlphaV/furtherAnalysis'])
     
-    delete directTrackChar.mat
+    %     delete directTrackChar.mat
     
-    activityLevel = analysisLifeactInd(i).activityLevel;
+    activityLevel = movieStructAlphaV(i).activityLevel;
     
     if activityLevel > 1
         

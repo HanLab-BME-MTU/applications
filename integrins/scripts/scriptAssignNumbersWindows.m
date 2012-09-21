@@ -1,17 +1,17 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(analysisLifeactInd);
+for i = 1 : length(movieStructAlphaV);
     
     disp(num2str(i))
     
-    activityLevel = analysisLifeactInd(i).activityLevel;
+    activityLevel = movieStructAlphaV(i).activityLevel;
     
     if activityLevel > 1
         
-        tmp = analysisLifeactInd(i).fileName{1};
-        tmp = tmp(11:end);
-        cd([tmp '/analysisLifeact/furtherAnalysis/adaptiveWindows'])
+        tmp = movieStructAlphaV(i).fileName{1};
+        %         tmp = tmp(11:end);
+        cd([tmp '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
@@ -32,22 +32,22 @@ for i = 1 : length(analysisLifeactInd);
         
         load directTrackChar.mat
         
-        try
-            
-            load windowNumbersAssignExt.mat
-            windowNumbersAssignExtIn = windowNumbersAssignExt;
-            
-            windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
-                diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
-                windowTrackAssignExt,lengthMinMax,[2 3],windowNumbersAssignExtIn);
-            
-        catch
-            
-            windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
-                diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
-                windowTrackAssignExt,lengthMinMax);
-            
-        end
+        %         try
+        %
+        %             load windowNumbersAssignExt.mat
+        %             windowNumbersAssignExtIn = windowNumbersAssignExt;
+        %
+        %             windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
+        %                 diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
+        %                 windowTrackAssignExt,lengthMinMax,[2 3],windowNumbersAssignExtIn);
+        %
+        %         catch
+        
+        windowNumbersAssignExt = assignNumbers2Windows(tracksFinal,diffAnalysisRes,...
+            diffModeAnalysisRes,trackChar,windowsAll,1:400:maxFrame+1,...
+            windowTrackAssignExt,lengthMinMax);
+        
+        %         end
         
         save('windowNumbersAssignExt','windowNumbersAssignExt','-v7.3')
         

@@ -1,24 +1,17 @@
-function movieMasksParticles(movieInfo,numFramesSPT,firstMaskFile,...
-    firstImageFile,saveMovie,movieName,dir2saveMovie,movieType,plotFullScreen)
+function movieMasksParticles(MD,movieInfo,numFramesSPT,saveMovie,movieName,...
+    movieType,plotFullScreen)
 %MOVIEMASKSPARTICLES makes a movie of cell masks and detected particles
 %
-%SYNPOSIS makeMovieMasksParticles(movieInfo,firstMaskFile,saveMovie,movieName,...
+%SYNPOSIS movieMasksParticles(MD,movieInfo,numFramesSPT,saveMovie,movieName,...
 %    movieType,plotFullScreen)
 %
-%INPUT  movieInfo   : Output of detectSubResFeatures2D_StandAlone.
+%INPUT  MD          : movieData with cell mask.
+%       movieInfo   : Output of detectSubResFeatures2D_StandAlone.
 %       numFramesSPT: Number of particle frames between mask frames.
-%       firstMaskFile: Name, including full path, of the first mask file.
-%                     Optional. Default: [].
-%       firstImageFile: Name, including full path, of the first image file.
-%                     Optional. Default: [].
 %       saveMovie   : 1 to save movie, 0 otherwise.
 %                     Optional. Default: 0
 %       movieName   : filename for saving movie.
 %                     Optional. Default: masksParticles (if saveMovie = 1).
-%       dir2saveMovie: Directory where to save output movie.
-%                     If not input, movie will be saved in directory where
-%                     masks are located.
-%                     Optional. Default: [].
 %       movieType   : 'mov' to make a Quicktime movie using MakeQTMovie,
 %                     'avi' to make AVI movie using Matlab's movie2avi,
 %                     'mp4_unix', 'avi_unix' to make an MP4 or AVI movie
@@ -33,103 +26,56 @@ function movieMasksParticles(movieInfo,numFramesSPT,firstMaskFile,...
 %
 %Khuloud Jaqaman, September 2012
 
-%% input - basic
+%% input
 
 %check whether correct number of input arguments was used
-if nargin < 2
+if nargin < 3
     disp('--movieMasksParticles: Incorrect number of input arguments!');
     return
 end
 
-%ask user for masks
-if nargin < 3 || isempty(firstMaskFile)
-    [fName,dirName] = uigetfile('*.tif','Specify first mask file');
-else
-    if iscell(firstMaskFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstMaskFile{1});
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    elseif ischar(firstMaskFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstMaskFile);
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    end
-end
-
-%if input is valid ...
-if(isa(fName,'char') && isa(dirName,'char'))
-    
-    %get all file names in stack
-    outFileList = getFileStackNames([dirName,fName]);
-    numFramesMovie = length(outFileList);
-    
-    %read first mask to get mask size
-    currentImage = imread(outFileList{1});
-    [isx,isy] = size(currentImage);
-    
-else %else, exit
-    
-    disp('--movieMasksParticles: Bad file selection');
-    return
-    
-end
-
-imageRange = [1 isx; 1 isy];
-
-%ask user for images
-if nargin < 4 || isempty(firstImageFile)
-    [fName,dirName] = uigetfile('*.tif','Specify first image file');
-else
-    if iscell(firstImageFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImageFile{1});
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    elseif ischar(firstImageFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImageFile);
-        dirName=[fpath,filesep];
-        fName=[fname,fno,fext];
-    end
-end
-
-%if input is valid ...
-if(isa(fName,'char') && isa(dirName,'char'))
-    
-    %get all file names in stack
-    outFileListImages = getFileStackNames([dirName,fName]);
-    
-else %else, exit
-    
-    disp('--movieMasksParticles: Bad file selection');
-    return
-    
-end
-
-%% input - additional parameters
-
 %check whether to save movie
-if nargin < 5 || isempty(saveMovie)
+if nargin < 4 || isempty(saveMovie)
     saveMovie = 0;
 end
 
 %check name for saving movie
-if saveMovie && (nargin < 6 || isempty(movieName))
+if saveMovie && (nargin < 5 || isempty(movieName))
     movieName = 'masksParticles';
 end
 
-%check where to save resulting movie
-if saveMovie && (nargin < 7|| isempty(dir2saveMovie))
-    dir2saveMovie = dirName;
-end
-
 %decide on movie type
-if nargin < 8 || isempty(movieType)
+if nargin < 6 || isempty(movieType)
     movieType = 'mov';
 end
 
 %check whether to use full screen for plotting
-if nargin < 9 || isempty(plotFullScreen)
+if nargin < 7 || isempty(plotFullScreen)
     plotFullScreen = 0;
 end
+
+%% preamble
+
+%get images
+imageDir = MD.channels_.channelPath_;
+imageFileListing = dir(imageDir);
+imageFileListing = keepOnlyTiffFiles(imageFileListing);
+
+%get masks
+maskDir = [MD.movieDataPath_ filesep 'refined_masks' filesep 'refined_masks_for_channel_1'];
+maskFileListing = dir(maskDir);
+maskFileListing = keepOnlyTiffFiles(maskFileListing);
+
+%get number of frames
+numFramesMovie = length(imageFileListing);
+
+%read first image to get image size
+currentImage = imread(fullfile(imageDir,imageFileListing(1).name));
+[isx,isy] = size(currentImage);
+imageRange = [1 isx; 1 isy];
+
+%determine where to save movie
+dir2saveMovie = MD.movieDataPath_;
 
 %% make movie
 
@@ -151,9 +97,9 @@ end
 for iFrame = 1 : numFramesMovie - 1
     
     %read image + masks
-    imageStack = imread(outFileListImages{iFrame});
-    imageStack1 = imread(outFileList{iFrame});
-    imageStack2 = imread(outFileList{iFrame+1});
+    imageStack = imread(fullfile(imageDir,imageFileListing(iFrame).name));
+    maskStack1 = imread(fullfile(maskDir,maskFileListing(iFrame).name));
+    maskStack2 = imread(fullfile(maskDir,maskFileListing(iFrame+1).name));
     
     %collect particle positions
     xCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).xCoord);
@@ -165,7 +111,7 @@ for iFrame = 1 : numFramesMovie - 1
     axes('Position',[0 0 0.495 1]);
     imshow(imageStack,[]);
     hold on;
-    maskBounds = bwboundaries(imageStack1);
+    maskBounds = bwboundaries(maskStack1);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
     textDeltaCoord = min(diff(imageRange,[],2))/20;
     text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
@@ -182,9 +128,9 @@ for iFrame = 1 : numFramesMovie - 1
     end
     
     %overlay masks
-    maskBounds = bwboundaries(imageStack1);
+    maskBounds = bwboundaries(maskStack1);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
-    maskBounds = bwboundaries(imageStack2);
+    maskBounds = bwboundaries(maskStack2);
     cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',2)),maskBounds);
     
     %add frame to movie if movie is saved
@@ -203,6 +149,21 @@ if saveMovie
     movieInfrastructure('finalize',movieType,dir2saveMovie,...
         movieName,numFramesMovie,movieVar,[]);
 end
+
+%% Sub-function
+
+function fileListing = keepOnlyTiffFiles(fileListing)
+
+numFiles = length(fileListing);
+goodFile = zeros(numFiles,1);
+for iFile = 1 : numFiles
+    fileName = fileListing(iFile).name;
+    if (length(fileName) > 4) && ((strcmp(fileName(end-2:end),'tif')) || ...
+            (strcmp(fileName(end-3:end),'tiff')))
+        goodFile(iFile) = 1;
+    end
+end
+fileListing = fileListing(goodFile==1);
 
 %% ~~~ end ~~~
 

@@ -1,20 +1,20 @@
 
 lengthMinMax = [5 99];
 
-for i = 5 : length(movieStructAlphaV717Trunc)
+for i = 1 : length(movieStructAlphaV)
     
     disp(num2str(i))
     
-    activityLevel = movieStructAlphaV717Trunc(i).activityLevel;
+    activityLevel = movieStructAlphaV(i).activityLevel;
     
     if activityLevel > 1
         
-        tmp = movieStructAlphaV717Trunc(i).fileName{1};
-        tmp = tmp(11:end);
-        cd([tmp '/analysisAlphaV717Trunc/furtherAnalysis/adaptiveWindows'])
+        topDir = movieStructAlphaV(i).fileName{1};
+        %         topDir = topDir(11:end);
+        cd([topDir '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
         
-        sliceRange = movieStructAlphaV717Trunc(i).sliceRange;
-        frameRange = movieStructAlphaV717Trunc(i).frameRange;
+        sliceRange = movieStructAlphaV(i).sliceRange;
+        frameRange = movieStructAlphaV(i).frameRange;
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
@@ -37,16 +37,23 @@ for i = 5 : length(movieStructAlphaV717Trunc)
         
         load windowNumbersAssignExt.mat
         
-        maskDir = [tmp '/analysisCellEdgeModSmall/refined_masks/refined_masks_for_channel_1/'];
+        maskDir = [topDir '/analysisCellEdgeSmall2/refined_masks/refined_masks_for_channel_1/'];
         tmp = dir([maskDir '*.tif']);
         firstMaskFile = [maskDir tmp(1).name];
+        
+        protWinParam = struct('numTypeProt',9,...
+            'numPixInBand',2,...
+            'numSmallBandsInBigBand',3,...
+            'numBigBands',10,...
+            'maxNegInc',10,...
+            'maxPosInc',length(tmp)-1);
         
         [sptPropInWindow,windowDistFromEdge,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
             tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
-            lengthMinMax,sliceRange,frameRange,firstMaskFile);
+            lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam);
         
-        save('particleBehaviorAdaptiveWindows120907','sptPropInWindow',...
+        save('particleBehaviorAdaptiveWindows120921','sptPropInWindow',...
             'windowDistFromEdge','analysisParam');
         
     end
