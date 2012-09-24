@@ -115,7 +115,7 @@ catch ME
     return;
 end
 
-funParams = userData.crtProc.funParams_;
+funParams = [];
 
 % Set parameters
 processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
