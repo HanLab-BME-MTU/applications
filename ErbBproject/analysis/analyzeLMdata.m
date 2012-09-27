@@ -30,7 +30,6 @@ ip.addOptional('NA',1.49,@isscalar);
 ip.addOptional('MAG',100,@isscalar);
 ip.addOptional('rep',10,@isnumeric);
 ip.addOptional('createMask',false,@islogical);
-
 ip.addOptional('doMMF',false,@islogical);
 
 ip.parse(dataDirectory,wavelength,varargin{:});
@@ -39,7 +38,6 @@ NA=ip.Results.NA;
 MAG=ip.Results.MAG;
 rep=ip.Results.rep;
 createMask=ip.Results.createMask;
-
 doMMF=ip.Results.doMMF;
 
 % remove trailing '/' from dataDirectory string
@@ -48,7 +46,7 @@ if dataDirectory(end) == filesep
 end
 
 % get list of experiment files
-fileList=dir([dataDirectory filesep '*TRITC*.dv']);
+fileList=dir([dataDirectory filesep '*.dv']);
 nFiles=numel(fileList);
 
 wavelength=ip.Results.wavelength;
@@ -88,7 +86,7 @@ for iFile=1:nFiles
         MD.rois_(1).setPath(maskPath);
         MD.rois_(1).save();
     else
-        mask=true(MD.imSize_);
+        mask=ones(MD.imSize_);
     end
     
     MD.save();
@@ -111,28 +109,13 @@ for iFile=1:nFiles
     while iFrame < nFrames
  
         k=mod(floor(iFrame/rep),nChannels);
-        sigma=psfSigmaInt(k+1);
+        sigma=psfSigmaTheo(k+1);
         
         img=double(MD.channels_(1).loadImage(iFrame+1));
-        locMax=findLocalMaxima(img,sigma,'alpha',1e-3,'mask',mask);
-        
-        if ~numel(locMax.x)
-            iFrame=iFrame+1;
-            continue;
-        end
-        
-        sigma=psfSigmaTheo(k+1);
-        f=mixtureModelFitting(img,locMax,sigma,'doMMF',doMMF);
-        
-        features{iFrame+1}=f;
+        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-3,...
+            'mask',mask,'FitMixtures',doMMF);
         
         iFrame=iFrame+1;
-        
-        
-        %if( iFrame == shift )
-        %    iFrame=iFrame+10;
-        %    shift=shift+20;
-        %end
         
         progressText(iFrame/nFrames,'All work and no play makes Jack a dull boy');
     end
