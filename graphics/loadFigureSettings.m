@@ -44,12 +44,12 @@ switch mode
     otherwise
         fset.units = 'normalized';
         %fset.axPos = [];%get(0, 'DefaultAxesPosition');
-        fset.ifont = [fset.fontName, 'FontSize', 12];
-        fset.tfont = [fset.fontName, 'FontSize', 16];
-        fset.sfont = [fset.fontName, 'FontSize', 20];
-        fset.lfont = [fset.fontName, 'FontSize', 24];
+        fset.ifont = [fset.fontName, 'FontSize', 10];
+        fset.tfont = [fset.fontName, 'FontSize', 12];
+        fset.sfont = [fset.fontName, 'FontSize', 12];
+        fset.lfont = [fset.fontName, 'FontSize', 16];
         fset.TickLength = [0.01 0.025];
-        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 2, fset.sfont];
+        fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont];
         fset.fOpts = {'Position', get(0, 'DefaultFigurePosition'), 'Color', 'w'};
 end
 
