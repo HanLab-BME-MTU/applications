@@ -80,7 +80,8 @@ if isempty(cellPath)
 end
 
 % check whether directory names contain 'cell'
-valid = cellfun(@(x) ~isempty(regexpi(getDirFromPath(x), movieSelector, 'once')), cellPath);
+val = @(x) ~isempty(x) && x==1;
+valid = cellfun(@(x) val(regexpi(getDirFromPath(x), movieSelector, 'once')), cellPath);
 cellPath = cellPath(valid==1);
 nCells = length(cellPath);
 
