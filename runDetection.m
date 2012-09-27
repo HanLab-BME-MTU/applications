@@ -13,13 +13,18 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
 ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('Master', []);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
+mCh = ip.Results.Master;
+if isempty(mCh)
+    mCh = strcmp(data.channels, data.source);
+end
 
 for i = 1:length(data)
-    if ~(exist([data(i).source 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
+    if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
-        main(data(i), ip.Results.Sigma);
+        main(data(i), ip.Results.Sigma, mCh);
         fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
@@ -28,10 +33,9 @@ end
 
 
 
-function main(data, sigma)
+function main(data, sigma, mCh)
 
 % master channel
-mCh = strcmp(data.channels, data.source);
 nCh = length(data.channels);
 
 if isempty(sigma)
@@ -48,8 +52,8 @@ nx = data.imagesize(2);
 ny = data.imagesize(1);
 
 fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
-[~,~] = mkdir([data.source 'Detection']);
-[~,~] = mkdir([data.source 'Detection' filesep 'Masks']);
+[~,~] = mkdir([data.channels{mCh} 'Detection']);
+[~,~] = mkdir([data.channels{mCh} 'Detection' filesep 'Masks']);
 
 % double fields, multi-channel
 dfields = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
@@ -142,8 +146,8 @@ parfor k = 1:data.movieLength
         end
     end
     
-    maskPath = [data.source 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
+    maskPath = [data.channels{mCh} 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
     imwrite(uint8(255*mask), maskPath, 'tif', 'compression' , 'lzw');
 end
 
-save([data.source 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
+save([data.channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
