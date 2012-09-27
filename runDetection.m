@@ -13,7 +13,7 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('Master', []);
+ip.addParamValue('Master', [], @isnumeric);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 mCh = ip.Results.Master;
