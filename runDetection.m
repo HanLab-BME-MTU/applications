@@ -18,7 +18,10 @@ ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 mCh = ip.Results.Master;
 if isempty(mCh)
-    mCh = strcmp(data.channels, data.source);
+    mCh = unique(arrayfun(@(i) find(strcmpi(i.channels, i.source)), data));
+    if numel(mCh)>1
+        error('Master channel index is inconsistent accross data sets.');
+    end
 end
 
 for i = 1:length(data)
