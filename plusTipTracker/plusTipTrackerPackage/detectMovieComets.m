@@ -88,14 +88,14 @@ for j = p.ChannelIndex,  inFilePaths{1,j} = imDirs{j}; end
 cometDetProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
-outFilePaths = cell(2,nChan);
+outFilePaths = cell(1,nChan);
 mkClrDir(p.OutputDirectory);
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
-    outFilePaths{2,i} = [p.OutputDirectory filesep 'filtered_images_for_channel_' num2str(i)];
-    mkClrDir(outFilePaths{2,i});
 end
+filteredImagesDirectory = [p.OutputDirectory filesep 'filtered_images'];
+mkClrDir(filteredImagesDirectory);
 cometDetProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Comet detection ---------------%%% 
@@ -150,7 +150,7 @@ for iChan= p.ChannelIndex
         filterDiff(~mask)=NaN;
         
         % Save filtered images on disk (avoid memory errors)
-        save(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']),'filterDiff');
+        save(fullfile(filteredImagesDirectory,['filterDiff_' num2str(i) '.mat']),'filterDiff');
 
         % Perform maximum filter and mask out significant pixels
         thFilterDiff = ordfilt2(filterDiff,9,ones(3,3));
@@ -174,7 +174,7 @@ for iChan= p.ChannelIndex
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
     for i = p.firstFrame:p.lastFrame
         % Reload band-pass filtered images
-        s=load(fullfile(outFilePaths{2,iChan},['filterDiff_' num2str(i) '.mat']));
+        s=load(fullfile(filteredImagesDirectory, ['filterDiff_' num2str(i) '.mat']));
         filterDiff=s.filterDiff;
         stepSize=p.multFactorStepSize*meanStd(i);
         thresh= p.multFactorThresh*meanStd(i);
@@ -188,8 +188,12 @@ for iChan= p.ChannelIndex
         if ishandle(wtBar) && mod(i,5)==0, waitbar(frac,wtBar,logMsg); end
     end
     
-    movieInfo=allMovieInfo(:,iChan); %#ok<NASGU>
+    rmdir(filteredImagesDirectory,'s')
+    movieInfo=allMovieInfo(:,iChan);
     save(outFilePaths{1,iChan} ,'movieInfo','stdList');
+    
+    % Export as omero ROI if applicable
+    if movieData.isOmero(), omeroExportDetection(movieData,movieInfo); end
 end
 
 if ishandle(wtBar), close(wtBar); end
