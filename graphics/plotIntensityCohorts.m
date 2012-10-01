@@ -18,6 +18,7 @@ ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('ScaleSlaveChannel', true, @islogical);
+ip.addParamValue('ScalingFactor', ones(1,nCh));
 ip.addParamValue('MaxIntensityThreshold', 0);
 ip.addParamValue('LineStyle', '-');
 ip.addParamValue('DisplayMode', '');
@@ -29,7 +30,7 @@ ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('ShowLegend', false, @islogical);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
-
+sf = ip.Results.ScalingFactor;
 
 % if no specific channel is selected, all channels are shown
 chVec = ip.Results.ch;
@@ -185,7 +186,6 @@ else
 end
 
 % scale slave channels relative to master (for visualization only)
-sf = ones(1,nCh);
 if ip.Results.ScaleSlaveChannel% && nd > 1
     for ch = 1:nCh
         iSF = zeros(1,nc);

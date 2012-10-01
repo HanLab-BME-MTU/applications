@@ -7,7 +7,7 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 % ip.addOptional('ub', [3:10 15 20 40 60 80 100 140 200]);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
-ip.addParamValue('Display', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
+ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff_f', 5, @isscalar);
@@ -30,6 +30,9 @@ nd = length(data);
 nc = numel(lb); % # cohorts
 mCh = find(strcmp(data(1).source, data(1).channels));
 FirstNFrames = ip.Results.FirstNFrames;
+
+printPath = [getExpDir(data) 'Figures' filesep];
+[~,~] = mkdir(printPath);
 
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
@@ -76,6 +79,7 @@ maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', f
 
 % Rescale EDFs (correction for expression level)
 [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
+print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
 
 % apply intensity scaling
 for i = 1:nd
@@ -511,80 +515,80 @@ end
 %---------------------------------------
 % Raw lifetime distributions + average
 %---------------------------------------
-colorV = hsv(nd);
-[~,idxa] = sort(a);
-% [~,idxa] = sort(idxa);
-colorV = colorV(idxa,:);
-fset = loadFigureSettings('print');
-
-figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
-axes(fset.axOpts{:});
-hold on;
-for i = 1:nd
-    plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
+if strcmpi(ip.Results.Display, 'all')
+    colorV = hsv(nd);
+    [~,idxa] = sort(a);
+    % [~,idxa] = sort(idxa);
+    colorV = colorV(idxa,:);
+    fset = loadFigureSettings('print');
+    
+    figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
+    axes(fset.axOpts{:});
+    hold on;
+    for i = 1:nd
+        plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
+    end
+    plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
+    ya = 0:0.02:0.1;
+    axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+    set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    xlabel('Lifetime (s)', fset.lfont{:});
+    ylabel('Frequency', fset.lfont{:});
+    
+    % Inset with zoom
+    zf = 0.6;
+    aw = fset.axPos(3);
+    ah = fset.axPos(4);
+    axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
+    hold on;
+    for i = 1:nd
+        plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
+    end
+    plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
+    axis([0 60 0 0.035]);
+    ya = 0:0.01:0.04;
+    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    
+    % print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
+    
+    lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
+    [uCDF idx] = unique(lftCDF);
+    lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
+    
+    
+    figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
+    axes(fset.axOpts{:});
+    hold on;
+    meanHist = mean(vertcat(lftRes.lftHist_Ia), 1);
+    plot(lftRes.t, meanHist, 'k', 'LineWidth', 2);
+    ya = 0:0.02:0.1;
+    axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+    set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    xlabel('Lifetime (s)', fset.lfont{:});
+    ylabel('Frequency', fset.lfont{:});
+    [mu,~,Aexp] = fitExpToHist(lftRes.t, meanHist);
+    % plot(lftRes.t, expF, 'r--', 'LineWidth', 1);
+    ti = 0:0.1:120;
+    plot(ti, Aexp/mu*exp(-1/mu*ti), 'r--', 'LineWidth', 1)
+    
+    % Inset with zoom
+    zf = 0.6;
+    aw = fset.axPos(3);
+    ah = fset.axPos(4);
+    axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
+    hold on;
+    idx = find(lftRes.t==round(lft50/framerate)*framerate);
+    fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
+    plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
+    plot([0 lft50], [0.5 0.5], 'k--', 'LineWidth', 1);
+    ya = 0:0.25:1;
+    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
+    % xlabel('Lifetime (s)', fset.lfont{:});
+    ylabel('Cumulative freq.', fset.sfont{:});
+    
+    % print('-depsc2', '-loose', ['LftMean+CDF_dataOX_10_cut' num2str(cutoff_f) '_mu=' num2str(mu, '%.2f') '.eps']);
 end
-plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
-ya = 0:0.02:0.1;
-axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Frequency', fset.lfont{:});
-
-% Inset with zoom
-zf = 0.6;
-aw = fset.axPos(3);
-ah = fset.axPos(4);
-axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
-hold on;
-for i = 1:nd
-    plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
-end
-plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
-axis([0 60 0 0.035]);
-ya = 0:0.01:0.04;
-set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-
-% print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
-
-%%
-lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
-[uCDF idx] = unique(lftCDF);
-lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
-
-
-figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
-axes(fset.axOpts{:});
-hold on;
-meanHist = mean(vertcat(lftRes.lftHist_Ia), 1);
-plot(lftRes.t, meanHist, 'k', 'LineWidth', 2);
-ya = 0:0.02:0.1;
-axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Frequency', fset.lfont{:});
-[mu,~,Aexp] = fitExpToHist(lftRes.t, meanHist);
-% plot(lftRes.t, expF, 'r--', 'LineWidth', 1);
-ti = 0:0.1:120;
-plot(ti, Aexp/mu*exp(-1/mu*ti), 'r--', 'LineWidth', 1)
-
-% Inset with zoom
-zf = 0.6;
-aw = fset.axPos(3);
-ah = fset.axPos(4);
-axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
-hold on;
-idx = find(lftRes.t==round(lft50/framerate)*framerate);
-fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
-plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
-plot([0 lft50], [0.5 0.5], 'k--', 'LineWidth', 1);
-ya = 0:0.25:1;
-set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-% xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Cumulative freq.', fset.sfont{:});
-
-% print('-depsc2', '-loose', ['LftMean+CDF_dataOX_10_cut' num2str(cutoff_f) '_mu=' num2str(mu, '%.2f') '.eps']);
-
 
 %%
 %---------------------------------------
@@ -608,6 +612,8 @@ ylabel('Cumulative freq.', fset.sfont{:});
 
 %%
 plotLifetimes(lftRes);
+print('-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
+
 
 return
 
