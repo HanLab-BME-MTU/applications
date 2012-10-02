@@ -23,6 +23,7 @@ ip.addParamValue('RemoveOutliers', true, @islogical);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
 ip.addParamValue('TrackIndex', []);
+ip.addParamValue('ShowStatistics', false, @islogical);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -496,7 +497,6 @@ fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensity_Ia(:
 fprintf('-------------------------------------------------\n');
 
 
-
 lftRes.t = (cutoff_f:Nmax)*framerate;
 lftRes.meanLftHist_A = nanmean(lftRes.lftHist_A,1);
 lftRes.meanLftHist_B = nanmean(lftRes.lftHist_B,1);
@@ -509,6 +509,16 @@ if ip.Results.ExcludeVisitors
     lftRes.meanLftHist_V = mean(lftRes.lftHist_V(i,:),1);
 end
 
+pctV = [50 25 75 5 95]';
+pAll = arrayfun(@(i) prctile(i.lft_all,pctV), res, 'UniformOutput', false);
+pA = arrayfun(@(i) prctile(i.lftAboveT,pctV), res, 'UniformOutput', false);
+pB = arrayfun(@(i) prctile(i.lftBelowT,pctV), res, 'UniformOutput', false);
+lftRes.stats = [mean([pAll{:}],2) mean([pB{:}],2) mean([pA{:}],2)];
+%lftRes.stats = [prctile([res.lft_all],pctV) prctile([res.lftBelowT],pctV) prctile([res.lftAboveT],pctV)]
+
+% stats = [prctile([res.lft_all], [50 25 75])' prctile([res.lftBelowT], [50 25 75])' prctile([res.lftAboveT], [50 25 75])' ];
+% w = 1.5*(stats(3,:)-stats(2,:));
+% lftRes.stats = [stats; stats(2,:)-w; stats(3,:)+w];
 
 
 %%
@@ -611,10 +621,11 @@ end
 % % print('-depsc2', '-loose', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
 %%
-plotLifetimes(lftRes);
-print('-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
-
-
+h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
+print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
+if ip.Results.ShowStatistics
+    print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
+end
 return
 
 

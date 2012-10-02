@@ -4,28 +4,34 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
+ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('ShowCargoDependent', false, @islogical);
 ip.addParamValue('CargoName', 'cargo');
 ip.addParamValue('YTick', 0:0.01:0.04);
 ip.parse(varargin{:});
 ya = ip.Results.YTick;
 lw = 1;
+h = [];
 
 fmt = ['%.' num2str(ceil(abs(log10(ya(2))))) 'f'];
 yal = ['0' arrayfun(@(x) num2str(x, fmt), ya(2:end), 'UniformOutput', false)];
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
+ce = [0 0 0.6;
+    1/3 0.3 0.9;
+    1/3 1 0.9];
+ce = hsv2rgb(ce);
 
 if isstruct(lftRes)
     
-    figure(fset.fOpts{:}, 'Name', 'Lifetime dist. (intensity threshold)');
+    h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime dist. (intensity threshold)');
     axes(fset.axOpts{:});
     hold on;
     if isfield(lftRes, 'pctVisit')
         hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHist_V, '-', 'Color', fset.cfB, 'LineWidth', lw);
     end
-    hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', 0.6*[1 1 1], 'LineWidth', lw);
-    hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', lw);
+    hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
+    hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', ce(2,:), 'LineWidth', lw);
     
     if ip.Results.ShowExpFits
         ff = mean(lftRes.pctBelow)*lftRes.meanLftHist_B;
@@ -39,7 +45,7 @@ if isstruct(lftRes)
         %[mu,~,Aexp,expF] = fitExpToHist(lftRes.t, ff);
         %plot(tx, Aexp/mu*exp(-1/mu*tx), 'm--', 'LineWidth', 1)
     end
-    hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([1/3 1 0.9]), 'LineWidth', lw+1);
+    hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', ce(3,:), 'LineWidth', lw+1);
 
     
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
@@ -61,6 +67,16 @@ if isstruct(lftRes)
     if strcmpi(ip.Results.DisplayMode, 'print')
         set(hl, 'Position', [4 5-lheight 1.75 lheight]); 
     end
+    %%
+    if ip.Results.ShowStatistics
+        fs = loadFigureSettings('print');
+        h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
+        axes(fs.axOpts{:}, 'Position', [1.5 2 3 4]);
+        boxplot2(lftRes.stats, 'AdjustFigure', false, 'XLabels', {'Raw', 'Below thresh', 'Above thresh'},...
+            'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
+        ylabel('Lifetime (s)', fset.sfont{:});
+    end
+
     %%
     if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHist_Apos')
         figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
