@@ -45,8 +45,7 @@ end
 for i=1:nMovies
     
     % Set parameters for the Gaussian mixture-model fitting
-    iProc=MD(i).getProcessIndex('SubResolutionProcess',1,false);
-    funParams = MD(i).processes_{iProc}.funParams_;
+    funParams = MD(i).processes_{1}.funParams_;
     funParams.ChannelIndex=2; % Detect mCherry-CENPA objects
     funParams.detectionParam.psfSigma=1.5; % Set the psfSigma
     parseProcessParams(MD(i).processes_{1},funParams);

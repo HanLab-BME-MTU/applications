@@ -61,8 +61,9 @@ disp('Starting grouping sisters...')
 for i = p.ChannelIndex    
     tracks = trackProc.loadChannelOutput(i);
     
-    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,0); %#ok<ASGLU,NASGU>
-   
+    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,0,...
+        'maxAngle', p.maxAngle, 'maxDist', p.maxDist,...
+        'minOverlap', p.minOverlap, 'robust', p.robust);   %#ok<NASGU,ASGLU>
     
     % save each projData in its own directory
     save(outFilePaths{1,i},'sisterList','trackPairs')
