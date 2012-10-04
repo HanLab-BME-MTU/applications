@@ -54,7 +54,7 @@ frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 
-fmt = ['%.' num2str(ceil(log10(data.movieLength))) 'd'];
+fmt = ['%.' num2str(ceil(log10(data.movieLength+1))) 'd'];
 [~,~] = mkdir([data.channels{mCh} 'Detection']);
 [~,~] = mkdir([data.channels{mCh} 'Detection' filesep 'Masks']);
 
