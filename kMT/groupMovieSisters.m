@@ -1,5 +1,5 @@
 function groupMovieSisters(movieData,varargin)
-% Track features in a movie which has been processed by a detection method
+%GROUPMOVIESISTERS groups sisters in a movie which has been processed by a tracking method
 %
 % Sebastien Besson, 5/2011
 
@@ -28,8 +28,8 @@ p = parseProcessParams(groupProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 
-% Check detection process first
-iTrackProc =movieData.getProcessIndex('TrackingProcess',1,1);
+% Check tracking process first
+iTrackProc = movieData.getProcessIndex('TrackingProcess',1,1);
 
 assert(~isempty(iTrackProc),['Tracking has not been run! '...
     'Please run tracking prior to sister grouping!'])
@@ -38,11 +38,29 @@ trackProc = movieData.processes_{iTrackProc};
 assert(all(trackProc.checkChannelOutput(p.ChannelIndex)),...
     ['Missing tracking output ! Please apply tracking before ' ...
     'running  sister grouping!']);
+
+% Check spindle axis process if necessary
+if p.useAlignment
     
-% Set up the input directories (input images)
-inFilePaths = cell(1,numel(movieData.channels_));
+    iAxisProc = movieData.getProcessIndex('SpindleAxisEBProcess',1,1);
+    
+    assert(~isempty(iAxisProc),['Spindle axis has not been estimated! '...
+        'Please run spindle axis estimation prior to sister grouping!'])
+    axisProc = movieData.processes_{iAxisProc};
+    
+    assert(all(axisProc.checkChannelOutput(setdiff([1 2],p.ChannelIndex))),...
+        ['Missing spindle axis output ! Please estimate spindle axis before ' ...
+        'running  sister grouping!']);
+    
+end
+
+% Set up the input directories (tracks+spindle axis)
+inFilePaths = cell(1+p.useAlignment,numel(movieData.channels_));
 for i = p.ChannelIndex
     inFilePaths{1,i} = trackProc.outFilePaths_{1,i};
+    if p.useAlignment
+        inFilePaths{2,i} = axisProc.outFilePaths_{1,setdiff([1 2],i)};
+    end
 end
 groupProc.setInFilePaths(inFilePaths);
     
@@ -54,16 +72,23 @@ end
 mkClrDir(p.OutputDirectory);
 groupProc.setOutFilePaths(outFilePaths);
 
-%% --------------- Displacement field calculation ---------------%%% 
+%% --------------- Sister grouping ---------------%%% 
 
 disp('Starting grouping sisters...')
 
 for i = p.ChannelIndex    
-    tracks = trackProc.loadChannelOutput(i);
     
-    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,0,...
+    tracks = trackProc.loadChannelOutput(i);
+    if p.useAlignment
+        spindleAxisVec = axisProc.loadChannelOutput(setdiff([1 2],i));
+    else
+        spindleAxisVec = [];
+    end
+    
+    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,spindleAxisVec,0,...
         'maxAngle', p.maxAngle, 'maxDist', p.maxDist,...
-        'minOverlap', p.minOverlap, 'robust', p.robust);   %#ok<NASGU,ASGLU>
+        'minOverlap', p.minOverlap, 'useAlignment', p.useAlignment, ...
+        'robust', p.robust);   %#ok<NASGU,ASGLU>
     
     % save each projData in its own directory
     save(outFilePaths{1,i},'sisterList','trackPairs')

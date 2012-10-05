@@ -1,11 +1,11 @@
-classdef SisterGroupingProcess < DataProcessingProcess
-    % A concrete class associated to the grouping of sister tracks
+classdef SpindleAxisEBProcess < DataProcessingProcess
+    % A concrete class associated to the estimation of spindle axis from EB images
     %
-    % Sebastien Besson, March 2012
+    % Khuloud Jaqaman, October 2012
     
     methods (Access = public)
         
-        function obj = SisterGroupingProcess(owner, varargin)
+        function obj = SpindleAxisEBProcess(owner, varargin)
             if nargin == 0
                 super_args = {};
             else
@@ -19,10 +19,10 @@ classdef SisterGroupingProcess < DataProcessingProcess
                 funParams = ip.Results.funParams;
                 
                 super_args{1} = owner;
-                super_args{2} = SisterGroupingProcess.getName;
-                super_args{3} = @groupMovieSisters;
+                super_args{2} = SpindleAxisEBProcess.getName;
+                super_args{3} = @getMovieSpindleAxisEB;
                 if isempty(funParams)  % Default funParams
-                    funParams = SisterGroupingProcess.getDefaultParams(owner,outputDir);
+                    funParams = SpindleAxisEBProcess.getDefaultParams(owner,outputDir);
                 end
                 super_args{4} = funParams;
             end
@@ -33,7 +33,7 @@ classdef SisterGroupingProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'sisterList','trackPairs'};
+            outputList = {'spindleAxisVec'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -45,34 +45,29 @@ classdef SisterGroupingProcess < DataProcessingProcess
             
             % Data loading
             s = load(obj.outFilePaths_{1,iChan},output{:});
-            if ~isempty(iFrame) && isfield(s,'sisterList'),
-                fields = fieldnames(s.sisterList(1));
-                for i=1:numel(s.sisterList)
-                    for j=1:numel(fields);
-                        s.sisterList(i).(fields{j})= s.sisterList(i).(fields{j})(iFrame,:);
-                    end
-                end
+            if ~isempty(iFrame) && isfield(s,'spindleAxisVec'),
+                s.spindleAxisVec = s.spindleAxisVec(iFrame,:);
             end
             
             for i=1:numel(output),varargout{i}=s.(output{i}); end
             
         end
         
-        function output = getDrawableOutput(obj)
-            colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Sister pairs';
-            output(1).var='sisterList';
-            output(1).formatData=[];
-            output(1).type='overlay';
-            output(1).defaultDisplayMethod=@(x)PairsDisplay('Color',colors(x,:));
-        end
+        %          function output = getDrawableOutput(obj)
+        %             colors = hsv(numel(obj.owner_.channels_));
+        %             output(1).name='Sister pairs';
+        %             output(1).var='sisterList';
+        %             output(1).formatData=[];
+        %             output(1).type='overlay';
+        %             output(1).defaultDisplayMethod=@(x)PairsDisplay('Color',colors(x,:));
+        %         end
         
     end
     
     methods (Static)
         
         function name = getName()
-            name = 'Sister Grouping';
+            name = 'Spindle Axis';
         end
         
         function funParams = getDefaultParams(owner,varargin)
@@ -85,15 +80,10 @@ classdef SisterGroupingProcess < DataProcessingProcess
             
             % Set default parameters
             funParams.ChannelIndex = 1 : numel(owner.channels_);
-            funParams.OutputDirectory = [outputDir  filesep 'SisterGrouping'];
-            funParams.maxAngle = 30 * pi / 180;
-            funParams.maxDist = 40;
-            funParams.minOverlap = 10;
-            funParams.useAlignment = 1;
-            funParams.robust=0;
+            funParams.OutputDirectory = [outputDir  filesep 'SpindleAxisEB'];
+            funParams.doPlot = 1;
         end
         
     end
     
 end
-

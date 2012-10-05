@@ -1,4 +1,4 @@
-function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,varargin)
+function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,spindleAxisVec,varargin)
 %MAKIGROUPSISTERS groups sister tracks using maximum weigthed matching
 %
 % SYNOPSIS: [sisterList,trackPairs] = groupSisters(tracks,nTimerpoints)
@@ -7,7 +7,9 @@ function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,varargin)
 %                   the fields: "dataProperties", "initCoord", "planeFit" &
 %                   "tracks". Field "planeFit" can be empty.
 %       nTimepoint: a scalar giving the total number of timepoints in the
-%                   movie
+%                   movie.
+%       spindleAxisVec: nTimepoint-by-2 array indicating spdinel axis per
+%                       frame. Needed only if useAlignment = 1.
 %       verbose (opt) : 0 - no plotting (default)
 %                       1 - plot 4 frames with sister assignment
 %                       2 - 1 & plot all tracks
@@ -47,6 +49,7 @@ function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,varargin)
 %
 % created by: Jonas Dorn, Khuloud Jaqaman
 % last modified: Sebastien Besson (May 2012)
+% further modified: Khuloud Jaqaman (October 2012)
 
 %% TEST INPUT & READ PARAMETERS
 
@@ -63,11 +66,15 @@ ip.parse(varargin{:});
 
 % Get optional parameters
 verbose=ip.Results.verbose;
-useAlignment = ip.Results.useAlignment;
 maxAngle = ip.Results.maxAngle;
 maxDist = ip.Results.maxDist;
 minOverlap = ip.Results.minOverlap;
+useAlignment = ip.Results.useAlignment;
 robust = ip.Results.robust;
+
+if useAlignment
+    assert(ismatrix(spindleAxisVec))
+end
 
 % select tracks whose length is larger than the minimum overlap
 tracksSEL=getTrackSEL(tracks);
@@ -79,13 +86,7 @@ nGoodTracks = length(goodTracks);
 % preassign matrices
 [variances,distances,alignment,overlapCost, pairCands] = deal([]);
 
-% loop through the good tracks, calculate for every pair mean distance
-% and variance
-
-
-% read track coordinates etc. (one could get the coordinate stds as
-% well, but for now no need here - KJ)
-% coordinates are in metaphase plane rotated frame of reference
+% read track coordinates etc.
 coords = cell(nGoodTracks,1);
 time = cell(nGoodTracks,1);
 idx = cell(nGoodTracks,1);
@@ -94,8 +95,11 @@ for i=1:nGoodTracks
     [coords{i},time{i},idx{i},coordsStd{i}] = getTrackData(tracks(goodTracks(i)));
 end
 
+% loop through the good tracks, calculate for every pair mean distance
+% and variance
 iPair=0;
 for jTrack = 1:nGoodTracks % loop cols
+    
     % plot individual tracks
     if verbose == 2
         plot(coords{jTrack}(:,1),coords{jTrack}(:,2),'Color',extendedColors(jTrack))
@@ -112,26 +116,29 @@ for jTrack = 1:nGoodTracks % loop cols
         %them -1 in linkTracks)
         if numOverlapFrames < minOverlap, continue; end
         
-        
-        % calculate distance (microns)
+        % calculate distance
         distanceVector = coords{jTrack}(idx{jTrack}(ctColIdx),:) -...
             coords{iTrack}(idx{iTrack}(ctRowIdx),:);
+        [distance,distanceVectorN] = normList(distanceVector);
         
-        %get the angle between distance vector and normal
-        distance=sqrt(sum(distanceVector.^2,2));
-        distanceVectorN = distanceVector./repmat(distance,1,3);
-        % [distance,distanceVectorN] = normList(distanceVector);
-        alpha = acos(abs(distanceVectorN(:,1)));
-        
-        % average alpha, rather than tan to be nice to pairs that will
-        % align eventually. Potentially this can be put under the control
-        % of the "robust" switch, too
-        %average alpha only over frames where there is a plane (the
-        %rest are NaN). If none of the frames have a plane, the average
-        %will be NaN.
-        %also get the standard deviation of alpha
-        meanAlpha = nanmean(alpha);
-        stdAlpha = nanstd(alpha);
+        if useAlignment
+            
+            %get the angle between distance vector and spindle axis
+            numDim = size(spindleAxisVec,2);
+            distanceDotAxis = sum(distanceVectorN(:,1:numDim) .* spindleAxisVec(commonTime,:),2);
+            alpha = acos(abs(distanceDotAxis));
+            
+            % average alpha, rather than tan to be nice to pairs that will
+            % align eventually. Potentially this can be put under the control
+            % of the "robust" switch, too
+            %average alpha only over frames where there is a plane (the
+            %rest are NaN). If none of the frames have a plane, the average
+            %will be NaN.
+            %also get the standard deviation of alpha
+            meanAlpha = nanmean(alpha);
+            stdAlpha = nanstd(alpha);
+            
+        end
         
         if useAlignment && meanAlpha > maxAngle, continue; end
         
@@ -177,9 +184,6 @@ if useAlignment
     costMat = costMat.*alignment;
 end
 m=maxWeightedMatching(nGoodTracks,pairCands,1./costMat);
-% [r2c,c2r,costMat,linkedIdx] = ...
-%     linkTracks(distances,variances,alignment,overlapCost,...
-%     nGoodTracks,maxDist,useAlignment);
 
 if ~any(m)
     sisterList = struct('coords1',[],...
@@ -188,24 +192,23 @@ if ~any(m)
     return;
 end
 
-%find pairs that get a unique assignment
-% goodPairIdxL = r2c==c2r;
+%get the median sister distance in order to recalculate the costs and make
+%a new assignment in which, instead of favoring the smallest distance, one
+%favors the distances closest to the average distance
+sisterDistAve = median(distances(m));
 
-% if verbose
-%     % plot for 4 frames (that's about how many can be properly displayed)
-%     deltaT = max(1,floor(nTimepoints/4));
-%     tOffset = max(1,ceil(deltaT/2));
-%     t=tOffset:deltaT:nTimepoints;
-%     % highlight polygons
-%     r2cTmp = r2c;
-%     r2cTmp(~goodPairIdxL) = -r2cTmp(~goodPairIdxL);
-%     figure;
-%     hold on;
-%     plotGroupResults(t,r2cTmp,nGoodTracks,...
-%         goodTracks,tracks,distances,maxDist,...
-%         sprintf('Initial grouping for G/B-Cutoff=distance'))
-% end
+costMat = max(abs(distances-sisterDistAve),eps).*variances.*overlapCost;
+if useAlignment
+    costMat = costMat.*alignment;
+end
+m=maxWeightedMatching(nGoodTracks,pairCands,1./costMat);
 
+if ~any(m)
+    sisterList = struct('coords1',[],...
+        'coords2',[],'sisterVectors',[],'distances',[]);
+    trackPairs=[];
+    return;
+end
 
 %% assemble sister information
 
@@ -215,7 +218,6 @@ end
 %   .sisterVectors
 %   .distances
 
-% linkedIdx=sub2ind([nGoodTracks nGoodTracks],pairCands(m,1),pairCands(:,2));
 nGoodPairs = sum(m);
 sisterList(1:nGoodPairs,1) = ...
     struct('coords1',NaN(nTimepoints,6),...
@@ -278,27 +280,30 @@ end % loop goodPairs
 
 %% remove extra large distances from sister pairing
 
-%put all sister distances in one vector
-% NB: the original makiGroupSisters was slicing the distances using
-% lastFramenotAna. Maybe this can be passed as a param/value pair
-sisterDist=arrayfun(@(x) x.distances(:,1),sisterList,'Unif',false);
-sisterDist = vertcat(sisterDist{:});
+%KJ: This part seems to be not doing any good for the 2D data
 
-% Detect outlier
-outlierIndx = detectOutliers(sisterDist,2.5);
-[iTime,iPair]=ind2sub([nTimepoints nGoodPairs],outlierIndx);
-
-%remove all distances larger than this maximum distance
-for i = 1 : numel(iTime)
-    
-    
-    %remove those timepoints from the sister information
-    sisterList(iPair(i)).coords1(iTime(i),:) = NaN;
-    sisterList(iPair(i)).coords2(iTime(i),:) = NaN;
-    sisterList(iPair(i)).sisterVectors(iTime(i),:) = NaN;
-    sisterList(iPair(i)).distances(iTime(i),:) = NaN;
-    
-end %(for iPair = 1 : nGoodPairs/2)
+% %put all sister distances in one vector
+% % NB: the original makiGroupSisters was slicing the distances using
+% % lastFramenotAna. Maybe this can be passed as a param/value pair
+% sisterDist=arrayfun(@(x) x.distances(:,1),sisterList,'Unif',false);
+% sisterDist = vertcat(sisterDist{:});
+% 
+% % Detect outlier
+% % outlierIndx = detectOutliers(sisterDist,2.5);
+% outlierIndx = detectOutliers(sisterDist,3);
+% [iTime,iPair]=ind2sub([nTimepoints nGoodPairs],outlierIndx);
+% 
+% %remove all distances larger than this maximum distance
+% for i = 1 : numel(iTime)
+%     
+%     
+%     %remove those timepoints from the sister information
+%     sisterList(iPair(i)).coords1(iTime(i),:) = NaN;
+%     sisterList(iPair(i)).coords2(iTime(i),:) = NaN;
+%     sisterList(iPair(i)).sisterVectors(iTime(i),:) = NaN;
+%     sisterList(iPair(i)).distances(iTime(i),:) = NaN;
+%     
+% end %(for iPair = 1 : nGoodPairs/2)
 
 
 %% read track coordinates
