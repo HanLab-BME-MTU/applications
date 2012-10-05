@@ -389,14 +389,21 @@ for iType = 1 : numTypes
                                 eval(['num' propName{iProp} 'Ind = num' propName{iProp} 'Ind(indxKeep,:);'])
                             end
                             
-                            %calculate the different fractions (relative to
-                            %number of particles)
+                            %calculate the different fractions relative to
+                            %number of particles
+                            %use weighted averaging to account for the
+                            %different number of particles per window
                             for iProp = 2 : length(propName)
                                 eval(['fracVec = num' propName{iProp} 'Ind;'])
-                                fracVec = fracVec ./ repmat(numParticlesInd,1,size(fracVec,2));
-                                eval(['frac' propName{iProp} '.(eventField{iField}).mean(iInc,iCol,:) = mean(fracVec);'])
-                                eval(['frac' propName{iProp} '.(eventField{iField}).std(iInc,iCol,:) = std(fracVec);'])
-                                eval(['frac' propName{iProp} '.(eventField{iField}).numPoints(iInc,iCol,:) = length(fracVec);'])
+                                dim2 = size(fracVec,2);
+                                fracVec = fracVec ./ repmat(numParticlesInd,1,dim2);
+                                numPartTot = sum(numParticlesInd); %#ok<NASGU>
+                                for iDim = 1 : dim2
+                                    [weightedMean,~,weightedStd] = weightedStats(fracVec(:,iDim),numParticlesInd,'w'); %#ok<NASGU,ASGLU>
+                                    eval(['frac' propName{iProp} '.(eventField{iField}).mean(iInc,iCol,iDim) = weightedMean;'])
+                                    eval(['frac' propName{iProp} '.(eventField{iField}).std(iInc,iCol,iDim) = weightedStd;'])
+                                    eval(['frac' propName{iProp} '.(eventField{iField}).numPoints(iInc,iCol,iDim) = numPartTot;'])
+                                end
                             end
                             
                             %direct: all tracks together

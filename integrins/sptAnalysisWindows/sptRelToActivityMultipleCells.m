@@ -171,43 +171,60 @@ for iType = 1 : numType
                     %cell edge as the reference value for all measurements
                     if strcmp(timePosField{iTimePosField},'onset')
                         refValPerCell = indCellMean0(1,1,:,:);
-                        sptPropActivityOnset(iType).(globalField{iGlobalField}).(localField{iLocalField}) = squeeze(refValPerCell);
+                        tmp4output = squeeze(refValPerCell);
+                        if size(tmp4output,2) > 1
+                            tmp4output = tmp4output';
+                        end
+                        sptPropActivityOnset(iType).(globalField{iGlobalField}).(localField{iLocalField}) = tmp4output;
                     end
                     
                     %transform the mean in various ways
                     refValMat = repmat(refValPerCell,[maxSize(1) maxSize(2) 1 1]);
                     indCellMeanModDiff = indCellMean0 - refValMat; %#ok<NASGU> %difference
-                    indCellMeanModRatio = indCellMean0 ./ refValMat; %#ok<NASGU> %ratio
-                    indCellMeanModDiffRatio = (indCellMean0 - refValMat) ./ refValMat; %#ok<NASGU> %difference+ratio
+                    indCellMeanModRatio = indCellMean0 ./ refValMat; %ratio
+                    indCellMeanModRatio(isinf(indCellMeanModRatio)) = NaN; %#ok<NASGU>
+                    indCellMeanModDiffRatio = (indCellMean0 - refValMat) ./ refValMat; %difference+ratio
+                    indCellMeanModDiffRatio(isinf(indCellMeanModDiffRatio)) = NaN; %#ok<NASGU>
                     
-                    %get the number of cells contributing to each measurement
-                    tmp = ~isnan(indCellNP);
-                    combCellNP = nansum(tmp,4);
-                    combCellNP(combCellNP==0) = NaN;
+                    %                     %get the number of cells contributing to each measurement
+                    %                     tmp = ~isnan(indCellNP);
+                    %                     combCellNP = nansum(tmp,4);
+                    %                     combCellNP(combCellNP==0) = NaN;
                     
                     %go over all modification types and combine
                     %measurements
                     modType = {'0','ModDiff','ModRatio','ModDiffRatio'};
                     for iMod = 1 : length(modType)
                         
+                        %multiply each measurement by its weight
+                        %this is used to calculate weighted average and to
+                        %count number of cells contributing to weighted
+                        %average measurement
+                        eval(['vecMeanTimesWeight = indCellWeight.*indCellMean' modType{iMod} ';'])
+                        
                         %calculate the weighted average of each measurement
-                        eval(['combCellMean = nansum(indCellWeight.*indCellMean' modType{iMod} ',4);'])
+                        combCellMean = nansum(vecMeanTimesWeight,4);
+                        
+                        %get number of cells contributing to the weighted
+                        %average
+                        combCellNP2 = ~isnan(vecMeanTimesWeight);
+                        combCellNP2 = sum(combCellNP2,4);
+                        combCellNP2(combCellNP2==0) = NaN;
                         
                         %calculate the weighted std of each measurement
-                        %direct
                         eval(['sumSqDiff = nansum( indCellWeight .* (indCellMean' ...
                             modType{iMod} '-repmat(combCellMean,[1 1 1 numCell])).^2,4 );'])
                         denominator = (numCell-1) / numCell;
                         combCellStd = sqrt( sumSqDiff / denominator );
                         
                         %make all measurements with number of cells = 0 as NaN
-                        combCellMean(isnan(combCellNP)) = NaN;
-                        combCellStd(isnan(combCellNP)) = NaN;
+                        combCellMean(isnan(combCellNP2)) = NaN;
+                        combCellStd(isnan(combCellNP2)) = NaN;
                         
                         %save results in output structure
                         tmp2.mean = combCellMean;
                         tmp2.std = combCellStd;
-                        tmp2.numPoints = combCellNP;
+                        tmp2.numPoints = combCellNP2;
                         eval(['sptPropInWindowComb' modType{iMod} ...
                             '(iType).(globalField{iGlobalField}).(localField{iLocalField}).(timePosField{iTimePosField}) = tmp2;'])
                         

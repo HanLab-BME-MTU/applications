@@ -3,11 +3,11 @@ movieSelectorGUI
 load movieData.mat
 
 %determine threshold
-thresholdValue = getSegThreshFromFullMovie(MD,0.5,0.45,1);
+thresholdValue = getSegThreshFromFullMovie(MD,1,0.3,1);
 close all
 
 %get cell mask
-threshParam.GaussFilterSigma = 0.5;
+threshParam.GaussFilterSigma = 1;
 threshParam.MethodIndx = 1;
 threshParam.ThresholdValue = thresholdValue;
 MD = thresholdMovie(MD,threshParam);
@@ -21,6 +21,22 @@ MD = refineMovieMasks(MD,refinementParam);
 %make movie of mask on top of particle detections
 %LOAD MOVIEINFO!
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesOriginal',[],1);
+
+%refine masks using gradient information
+closureRadius = 1;
+edgeThresh = refineMovieEdgeWithSteerableFilter(MD,1,closureRadius);
+save('paramSteerableFilter','closureRadius','edgeThresh');
+
+imtool close all
+
+%refine cell mask again with Hunter's code to get back on track
+refinementParam2.ClosureRadius = 0;
+refinementParam2.OpeningRadius = 0;
+MD = refineMovieMasks(MD,refinementParam2);
+
+%make movie of mask on top of particle detections
+%LOAD MOVIEINFO!
+movieMasksParticles(movieInfo,400,[],[],1,'movieMasksParticlesFinal',MD.movieDataPath_,[],1);
 
 %calculate protrusion vectors
 protrusionParam.SegProcessIndex = 2;

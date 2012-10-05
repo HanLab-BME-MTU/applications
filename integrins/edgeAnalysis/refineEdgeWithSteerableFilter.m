@@ -30,45 +30,51 @@ end
 
 %% Pre-processing
 
-%range of image pixels to consider
-rangeVal = 25;
-D1 = ~mask0 & (bwdist(mask0) <= rangeVal);
-D2 = mask0 & (bwdist(~mask0) <= rangeVal);
-maskInRange = D1 | D2;
-
 %run steerable filter to enhance edges
 [res,theta] = steerableDetector(image, 3, 1.5);
 
+%run Gaussian filter to smoothen noise
+imageF = filterGauss2D(image,1.5);
+
 %divide gradient by intensity value to enhance the real cell edge
-resOverImage = res./image;
+resOverImage = res./imageF;
 
 %get the non-maximum suppression image to get edge candidates
 nmsResOverImage = nonMaximumSuppression(resOverImage,theta);
 
-%keep only values in the correct image range
-% resOverImage(~maskInRange) = 0;
-nmsResOverImage(~maskInRange) = 0;
+%extract some connected componenet properties in the nms image
+nmsBW = (nmsResOverImage > 0);
+[nmsL,numL] = bwlabel(nmsBW,4);
+[candLength,candMeanGradient,candVarTheta] = deal(NaN(numL,1));
+[nmsMeanGrad,nmsVarTheta] = deal(zeros(size(nmsResOverImage)));
+for iL = 1 : numL
+    %pixels
+    pixL = find(nmsL==iL);
+    %properties
+    candLength(iL) = length(pixL);
+    candMeanGradient(iL) = mean(nmsResOverImage(pixL));
+    candVarTheta(iL) = var(theta(pixL));
+    %mean gradiant and variance of theta "images"
+    nmsMeanGrad(pixL) = candMeanGradient(iL);
+    nmsVarTheta(pixL) = candVarTheta(iL);
+end
 
-%determine upper threshold for edge segmentation
-% valVec = resOverImage(resOverImage~=0);
-valVec = nmsResOverImage(nmsResOverImage~=0);
-[~,cutThresh] = cutFirstHistMode(valVec,0);
-cutThresh = min(cutThresh,prctile(valVec,75));
-cutThreshHigh = cutThresh;
+%determine the upper threshold for edge segmentation
+cutThreshGrad = prctile(candMeanGradient,95);
+% cutThreshTheta = prctile(candVarTheta,85);
+cutThreshHigh = cutThreshGrad;
 
 %define range of lower threshold for edge segmentation
-cutThreshLow = (1:-0.1:0.3)'*cutThresh;
+cutThreshLow = (1:-0.1:0.3)'*cutThreshGrad;
 
-%add the edges at image boundary of original mask
+%get the edges at image boundary of original mask
+rangeVal = 25;
 maskTmp = bwdist(mask0) <= rangeVal;
 mask2 = zeros(size(mask0)+2);
 mask2(2:end-1,2:end-1) = maskTmp;
 mask2Bound = mask2-imerode(mask2,strel('square',3));
 mask0Bound = mask2Bound(2:end-1,2:end-1);
 mask0Bound(2:end-1,2:end-1) = 0;
-mask0Bound = mask0Bound*cutThreshHigh*1.1;
-% resOverImage = resOverImage + mask0Bound;
-nmsResOverImage = nmsResOverImage + mask0Bound;
 
 %% Thresholding + post-processing
 
@@ -76,22 +82,13 @@ segmentOK = 0;
 jIter = 1;
 while ~segmentOK && jIter <= length(cutThreshLow)
     
-    %     %apply threshold to get cell edge
-    %     edgeMaskTmp = hysteresisThreshold(resOverImage,cutThreshHigh,cutThreshLow(jIter));
-    %
-    %     %do non maximum suppression to make the cell edge a one-pixel curve
-    %     %first remove the image boundary-related edges
-    %     resOverImageTmp = zeros(size(resOverImage));
-    %     resOverImageTmp(2:end-1,2:end-1) = resOverImage(2:end-1,2:end-1);
-    %     resOverImageTmp(~edgeMaskTmp) = 0;
-    %     nmsTmp = nonMaximumSuppression(resOverImageTmp,theta);
-    %
-    %     %convert the nms image to 0/1 and add back image boundary-related edge
-    %     edgeMask = (nmsTmp > 0 ) | (mask0Bound > 0);
+    %apply gradient threshold to get edge mask
+    edgeMask = hysteresisThreshold(nmsMeanGrad,cutThreshHigh,cutThreshLow(jIter));
     
-    %apply threshold to get cell edge
-    edgeMask = hysteresisThreshold(nmsResOverImage,cutThreshHigh,cutThreshLow(jIter));
-    
+    %     %also apply angle threshold
+    %     edgeMask2 = (nmsVarTheta > 0) & (nmsVarTheta < cutThreshTheta);
+    %     edgeMask = edgeMask & edgeMask2;
+        
     %bridge gaps in edge mask
     edgeMask = bwmorph(edgeMask,'bridge');
     
@@ -112,7 +109,7 @@ while ~segmentOK && jIter <= length(cutThreshLow)
     edgeMask = bwmorph(edgeMask,'skel',Inf);
     
     %make the mask by filling holes
-    %first add image boundary-related edge again just in case
+    %first add image boundary-related edge
     edgeMask = edgeMask | mask0Bound;
     mask = imfill(edgeMask,'holes');
     

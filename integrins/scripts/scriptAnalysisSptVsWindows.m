@@ -1,7 +1,8 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructAlphaV)
+% for i = 1 : length(movieStructAlphaV)
+for i = 8 : 8
     
     disp(num2str(i))
     
@@ -53,8 +54,8 @@ for i = 1 : length(movieStructAlphaV)
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
             lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam);
         
-        save('particleBehaviorAdaptiveWindows120921','sptPropInWindow',...
-            'windowDistFromEdge','analysisParam');
+%         save('particleBehaviorAdaptiveWindows121002','sptPropInWindow',...
+%             'windowDistFromEdge','analysisParam');
         
     end
     

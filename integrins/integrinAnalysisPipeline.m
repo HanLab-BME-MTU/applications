@@ -6,6 +6,7 @@
 % 1.2 convert edge stack to a tif series
 
 % 1.3 remove cell fill frames from single molecule series
+%     use: removeSubsetOfFiles
 
 %% 2 Single molecule Part A
 
@@ -75,7 +76,7 @@
 %% 6 Single molecule Part D
 
 % 6.1 combine single cell measurements for all cells of same condition
-%     use: scriptSptVsWindowsCombinedCells & sptRelToActivityMultipleCells
+%     use: scriptSptVsWindowsCombineCells & sptRelToActivityMultipleCells
 
 % 6.2 plot collective cell behavior
 %     use: scriptMakeCombPlots which calls plotSptRelToActivityOnsetAdaptiveWindows

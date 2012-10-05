@@ -1,21 +1,21 @@
 
 j = 0;
 
-for i = 1 : length(movieStructTalin)
+for i = 1 : length(movieStructAlphaV)
     
-    activityLevel = movieStructTalin(i).activityLevel;
+    activityLevel = movieStructAlphaV(i).activityLevel;
     
     if activityLevel > 1
         
         j = j + 1;
         
-        tmp = movieStructTalin(i).fileName{1};
+        tmp = movieStructAlphaV(i).fileName{1};
         %         tmp = tmp(11:end);
-        cd([tmp '/analysisTalin/furtherAnalysis/adaptiveWindows'])
+        cd([tmp '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
         
-        load particleBehaviorAdaptiveWindows120907.mat
-        sptPropInWindowIndTalin(:,j) = sptPropInWindow;
-        windowDistFromEdgeIndTalin(:,j) = windowDistFromEdge;
+        load particleBehaviorAdaptiveWindows121002.mat
+        sptPropInWindowAlphaVInd(:,j) = sptPropInWindow;
+        windowDistFromEdgeAlphaVInd(:,j) = windowDistFromEdge;
         
     end
     

@@ -4,7 +4,7 @@ load particleBehaviorAdaptiveWindows120921.mat
 mkdir figuresSptVsWindows120921
 cd figuresSptVsWindows120921
 
-movieName = 'AlphaV 110909 Cs2C1';
+movieName = 'AlphaV 120828 Cs3C3';
 
 numMode = 4;
 
