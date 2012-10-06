@@ -153,3 +153,11 @@ end
 for i=1:nMovies
     cellfun(@run,MD(i).processes_);
 end
+
+%% Set default visualization options
+for i=1:nMovies
+    % Get default display class for sister grouping
+    pairDisplayMethod = MD.processes_{4}.getDrawableOutput.defaultDisplayMethod(2);
+    pairDisplayMethod.Color = [1 1 0]; % Set color to yellow
+    MD.processes_{4}.setDisplayMethod(1, 2, pairDisplayMethod);
+end
