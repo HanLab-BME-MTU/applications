@@ -1,5 +1,10 @@
 % List all TIFF files in the main folder
-mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/testMovie15';
+if strcmp(getenv('USER'),'kj35')
+    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/testMovie15';
+elseif strcmp(getenv('USER'),'sebastien')
+    mainFolder = fullfile(getenv('HOME'),'Documents','Julie','testMovie15');
+end
+
 tiffFiles = dir(fullfile(mainFolder,'*.tif'));
 nMovies = numel(tiffFiles);
 
