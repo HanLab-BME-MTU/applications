@@ -39,8 +39,8 @@ if resetAnalysis
         % Create UTrackPackage and its first 2 processes (detection &
         % tracking)
         MD(i).addPackage(UTrackPackage(MD(i)));
-        MD(i).packages_{1}.createDefaultProcess(1);
-        MD(i).packages_{1}.createDefaultProcess(2);
+        MD(i).getPackage(1).createDefaultProcess(1);
+        MD(i).getPackage(1).createDefaultProcess(2);
         
         % Create spindle axis and sister grouping processes
         MD(i).addProcess(SpindleAxisEBProcess(MD(i)));
@@ -62,7 +62,7 @@ for i=1:nMovies
     
     % Gaussian mixture-model fitting
     %general
-    funParams = MD(i).processes_{1}.funParams_;
+    funParams = MD(i).getProcess(1).funParams_;
     funParams.ChannelIndex=2; % Detect mCherry-CENPA objects
     %function-specific
     funParams.detectionParam.psfSigma = 1.9;
@@ -75,11 +75,11 @@ for i=1:nMovies
     funParams.detectionParam.visual = 0;
     funParams.detectionParam.background = [];
     %general
-    parseProcessParams(MD(i).processes_{1},funParams);
+    parseProcessParams(MD(i).getProcess(1),funParams);
     
     % Tracking
     %general
-    funParams = MD(i).processes_{2}.funParams_;
+    funParams = MD(i).getProcess(2).funParams_;
     funParams.ChannelIndex=2; % Track mCherry-CENPA objects
     %function-specific
     %gap closing
@@ -114,20 +114,20 @@ for i=1:nMovies
     funParams.costMatrices(2).parameters.gapPenalty = 1.5;
     funParams.costMatrices(2).parameters.resLimit = [];
     %general
-    parseProcessParams(MD(i).processes_{2},funParams);
+    parseProcessParams(MD(i).getProcess(2),funParams);
     
     % Spindle axis
     %general
-    funParams = MD(i).processes_{3}.funParams_;
+    funParams = MD(i).getProcess(3).funParams_;
     funParams.ChannelIndex=1; % Derive spindle axis from EB images
     %function-specific
     funParams.doPlot = 1;    
     %general
-    parseProcessParams(MD(i).processes_{3}, funParams);
+    parseProcessParams(MD(i).getProcess(3), funParams);
     
     % Sister pairing
     %general
-    funParams = MD(i).processes_{4}.funParams_;
+    funParams = MD(i).getProcess(4).funParams_;
     funParams.ChannelIndex=2; % Group mCherry-CENPA tracks
     %function-specific
     funParams.maxAngle = 45*pi/180; %radians
@@ -136,16 +136,16 @@ for i=1:nMovies
     funParams.useAlignment = 1;
     funParams.robust = 1;
     %general
-    parseProcessParams(MD(i).processes_{4}, funParams);
+    parseProcessParams(MD(i).getProcess(4), funParams);
     
     %     % kMT detection
     %     %general
-    %     funParams = MD(i).processes_{5}.funParams_;
+    %     funParams = MD(i).getProcess(5).funParams_;
     %     funParams.ChannelIndex=1; % Detect gfp-EB3 comets
     %     %function-specific
     %     %...
     %     %general
-    %     parseProcessParams(MD(i).processes_{5}, funParams);
+    %     parseProcessParams(MD(i).getProcess(5), funParams);
 
 end
 
@@ -157,7 +157,7 @@ end
 %% Set default visualization options
 for i=1:nMovies
     % Get default display class for sister grouping
-    pairDisplayMethod = MD.processes_{4}.getDrawableOutput.defaultDisplayMethod(2);
+    pairDisplayMethod = MD.getProcess(4).getDrawableOutput.defaultDisplayMethod(2);
     pairDisplayMethod.Color = [1 1 0]; % Set color to yellow
-    MD.processes_{4}.setDisplayMethod(1, 2, pairDisplayMethod);
+    MD.getProcess(4).setDisplayMethod(1, 2, pairDisplayMethod);
 end
