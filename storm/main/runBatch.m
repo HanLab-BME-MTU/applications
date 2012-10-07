@@ -23,7 +23,7 @@ hostlist = ['clarinet001-032.orchestra ' ...
 
 % Parameters
 if ~nargin
-    nCoresMin = 8;
+    nCoresMin = 6;
     nCoresMax = 12;
 else
     nCoresMin = nCores;
