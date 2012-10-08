@@ -56,7 +56,7 @@ end
 %% Set analysis parameters
 
 %NOTE: space units = pixels
-%      time units = frames
+%       time units = frames
 
 for i=1:nMovies
     
@@ -86,7 +86,7 @@ for i=1:nMovies
     funParams.gapCloseParam.timeWindow = 4;
     funParams.gapCloseParam.mergeSplit = 0;
     funParams.gapCloseParam.minTrackLen = 1;
-    funParams.gapCloseParam.diagnostics = 1;
+    funParams.gapCloseParam.diagnostics = [];
     %cost matrix 1
     funParams.costMatrices(1).parameters.linearMotion = 0;
     funParams.costMatrices(1).parameters.minSearchRadius = 2;
@@ -95,7 +95,7 @@ for i=1:nMovies
     funParams.costMatrices(1).parameters.useLocalDensity = 1;
     funParams.costMatrices(1).parameters.nnWindow = funParams.gapCloseParam.timeWindow;
     funParams.costMatrices(1).parameters.kalmanInitParam = [];
-    %     funParams.costMatrices(1).parameters.diagnostics = [];
+    funParams.costMatrices(1).parameters.diagnostics = [];
     %cost matrix 2
     funParams.costMatrices(2).parameters.linearMotion = 0;
     funParams.costMatrices(2).parameters.minSearchRadius = 2;
