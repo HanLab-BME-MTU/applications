@@ -145,9 +145,15 @@ fileExt='.tif';
 
 
 % get the group names
-[grpNames,b,m]=unique(groupList(:,1));
-[b,idx]=sort(b);
-grpNames=grpNames(idx);
+isML = isa(groupList,'MovieList');
+if isML
+    [~,grpNames] = arrayfun(@(x) fileparts(x.getFilename()), groupList,...
+        'Unif', false);
+else
+    [grpNames,b,m]=unique(groupList(:,1));
+    [b,idx]=sort(b);
+    grpNames=grpNames(idx);
+end
 
 btwGrpQuadStats.grpPopRYGB=zeros(length(grpNames),4);
 btwGrpQuadStats.grpPrctRYGB=zeros(length(grpNames),4);
@@ -178,36 +184,68 @@ for iGroup=1:nGrps
     grpDir=[pVSpDir filesep 'grp' groupNum '_' grpNames{iGroup}];
     mkdir(grpDir)
 
-    grpIdx=find(cellfun(@(x) ~isempty(strmatch(x,grpNames{iGroup},'exact')),groupList(:,1)));
+    if ~isML
+        % indices of projects in iGroup
+        grpIdx=find(cellfun(@(x) ~isempty(strmatch(x,grpNames{iGroup},'exact')),groupList(:,1)));
+        nProj =length(grpIdx);
+    else
+        nProj = numel(groupList(iGroup).getMovies());
+    end
+    
 
     % initialize percentile, threshold, and population arrays
-    quadStats.splitPrctlX=zeros(length(grpIdx),1);
-    quadStats.splitValueX=zeros(length(grpIdx),1);
-    quadStats.splitPrctlY=zeros(length(grpIdx),1);
-    quadStats.splitValueY=zeros(length(grpIdx),1);
-    quadStats.grpPopRYGB=zeros(length(grpIdx),4);
-    quadStats.grpPrctRYGB=zeros(length(grpIdx),4);
+    quadStats.splitPrctlX=zeros(nProj, 1);
+    quadStats.splitValueX=zeros(nProj, 1);
+    quadStats.splitPrctlY=zeros(nProj, 1);
+    quadStats.splitValueY=zeros(nProj, 1);
+    quadStats.grpPopRYGB=zeros(nProj, 4);
+    quadStats.grpPrctRYGB=zeros(nProj, 4);
 
     data1grp=[];
     data2grp=[];
     % load data and make plots for each project iSub in group iGroup
-    for iSub=1:length(grpIdx)
+    for iSub=1:nProj
 
         % load data for iSub
-        projDir=groupList{grpIdx(iSub),2};
-        load([projDir filesep 'meta' filesep 'projData'])
+        if ~isML
+            projDir=groupList{grpIdx(iSub),2};
+            load([projDir filesep 'meta' filesep 'projData'])
+            
+            % find actual frame range for this movie (smaller if range input)
+            tempTimeRange=timeRange;
+            tempTimeRange(1)=max([tempTimeRange(1);projData.detectionFrameRange(1);...
+                projData.trackingFrameRange(1);projData.postTrackFrameRange(1)]);
+            tempTimeRange(2)=min([tempTimeRange(2);projData.detectionFrameRange(2);...
+                projData.trackingFrameRange(2);projData.postTrackFrameRange(2)]);
+            
+            % get first image from imDir
+            [listOfImages] = searchFiles('.tif',[],formatPath(projData.imDir),0);
+            img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
+        else
+            movie = groupList(iGroup).getMovies{iSub};
+            
+            iDetProc = movie.getProcessIndex('DetectionTrackingProcess',1,0);
+            detProc = movie.getProcess(iDetProc);
+            if isa(detProc, 'CometDetectionProcess');
+                detectionRange = [detProc.funParams_.firstFrame detProc.funParams_.lastFrame];
+            else
+                detectionRange = [1 movie.nFrames_];
+            end
+            tempTimeRange(1)=max([timeRange(1); detectionRange(1)]);
+            tempTimeRange(2)=min([timeRange(2); detectionRange(2)]);
+            
+            % Read post-tracking info
+            iPostProc = movie.getProcessIndex('CometPostTrackingProcess',1,0);
+            postProc = movie.getProcess(iPostProc);
+            iChan = find(postProc.checkChannelOutput,1);
+            projData= postProc.loadChannelOutput(iChan,'output','projData');
+            
+            % Read first image
+            img = movie.channels_(iChan).loadImage(1);
+        end
 
-        % find actual frame range for this movie (smaller if range input)
-        tempTimeRange=timeRange;
-        tempTimeRange(1)=max([tempTimeRange(1);projData.detectionFrameRange(1);...
-            projData.trackingFrameRange(1);projData.postTrackFrameRange(1)]);
-        tempTimeRange(2)=min([tempTimeRange(2);projData.detectionFrameRange(2);...
-            projData.trackingFrameRange(2);projData.postTrackFrameRange(2)]);
 
 
-        % get first image from imDir
-        [listOfImages] = searchFiles('.tif',[],formatPath(projData.imDir),0);
-        img = double(imread([listOfImages{1,2} filesep listOfImages{1,1}]));
 
         % get size of the figures
         minY=1; maxY=size(img,1);
@@ -400,8 +438,12 @@ for iGroup=1:nGrps
             h(7)=gcf;
             xlabel(['Percents: red=' num2str(prctRYGB(1)) ', yellow=' ...
                 num2str(prctRYGB(2)) ', green=' num2str(prctRYGB(3)) ', blue=' num2str(prctRYGB(4))])
-
-            projNum = sprintf(iPrjStr,grpIdx(iSub));
+            
+            if ~isML
+                projNum = sprintf(iPrjStr,grpIdx(iSub));
+            else
+                projNum = sprintf(iPrjStr,iSub);
+            end
             tempStr=[grpDir filesep 'groupListIdx_' projNum];
 
             %saveas(h(6),[tempStr '_1_scatter' '.fig'])
@@ -443,7 +485,12 @@ for iGroup=1:nGrps
     if nProj>1
         % make the percentage bar for all iGroup projects in the same plot
         plusTipQuadColorbar(quadStats.grpPopRYGB);
-        titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
+        if ~isML
+            titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
+        else
+            titleStr=strrep([grpNames{iGroup} '_' num2str(iSub)],'_','-');
+        end
+            
         title(titleStr)
         %saveas(gcf,[pVSpDir '_prctBarAll' '.fig'])
         saveas(gcf,[grpDir filesep 'prctBarAll' fileExt])
@@ -458,8 +505,8 @@ for iGroup=1:nGrps
 
         btwGrpQuadStats.grpPopRYGB(iGroup,:)=merPop;
 
-        titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
-        title([titleStr ', N=' num2str(length(grpIdx))])
+%         titleStr=strrep(groupList{grpIdx(iSub),1},'_','-');
+        title([titleStr ', N=' num2str(nProj)])
         %saveas(gcf,[pVSpDir '_prctBarAll_Merged' '.fig'])
         saveas(gcf,[grpDir filesep 'prctBarAll_Merged' fileExt])
         close(gcf)

@@ -22,14 +22,14 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 
 %Input check
 ip = inputParser;
-isML = @(x) isvector(x) && all(arrayfun(@(y) isa(y,'MovieList'),x));
-ip.addRequired('groupList',@(x)iscell(x) || isML(x) || isempty(x));
-ip.addOptional('remBegEnd',1,@isscalar);
-ip.parse(groupList,varargin{:})
+isML = isa(groupList, 'MovieList');
+ip.addRequired('groupList', @(x)iscell(x) || isML(x) || isempty(x));
+ip.addOptional('remBegEnd', 1, @isscalar);
+ip.parse(groupList, varargin{:})
 remBegEnd=ip.Results.remBegEnd;
 if isempty(groupList), groupList=combineGroupListFiles; end
 
-if isML(groupList)
+if isML
     projGroupName=cell(numel(groupList),1);
     for i=1:numel(groupList)
         [~,projGroupName{i}] = fileparts(groupList(i).getPath);
@@ -59,7 +59,7 @@ dataByProject=cell(1,length(btwGrpNames));
 dirByProj = cell(1,length(btwGrpNames));
 
 for iGroup = 1:length(btwGrpNames)
-    if ~isML(groupList);
+    if ~isML
         % indices of projects in iGroup
         projIndx=find(strcmp(btwGrpNames(iGroup),projGroupName));
         nProj =length(projIndx);
@@ -71,7 +71,7 @@ for iGroup = 1:length(btwGrpNames)
     for i = 1:nProj
         
         
-        if isML(groupList)
+        if isML
             movie = groupList(iGroup).getMovies{i};
             
             % Read detection info
