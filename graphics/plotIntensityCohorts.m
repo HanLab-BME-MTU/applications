@@ -20,6 +20,7 @@ ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'}
 ip.addParamValue('ScaleSlaveChannel', true, @islogical);
 ip.addParamValue('ScalingFactor', ones(1,nCh));
 ip.addParamValue('MaxIntensityThreshold', 0);
+ip.addParamValue('SlaveName', [], @ischar);
 ip.addParamValue('LineStyle', '-');
 ip.addParamValue('DisplayMode', '');
 ip.addParamValue('TrackIndex', []);
@@ -53,7 +54,8 @@ lftFields = {'A', 'sbA', 'ebA', 'sigma_r', 'sbSigma_r', 'ebSigma_r'};
 offset = zeros(nCh,nd);
 if ip.Results.Rescale && ~isfield(lftData, 'a');
     for c = 1:nCh
-        A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:), lftData, 'UniformOutput', false);
+        A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:,c), lftData, 'UniformOutput', false);
+        %A = arrayfun(@(i) i.A(:,:,c), lftData, 'UniformOutput', false);
         maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
 
         %maxA_all = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
@@ -263,7 +265,7 @@ ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
 %%
 % indiv. figures for cargo+ / cargo-: split based on significance of slave channel
 if isfield(res(1), 'sigIdx') && nCh==2
-    figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-positive tracks');
+    figure(fset.fOpts{:}, 'Position', [2 2 15 5.5], 'Name', 'Intensity cohorts, cargo-positive tracks');
     axes(fset.axOpts{:})
     hold on;
     A = cell(1,nc);
@@ -324,16 +326,20 @@ if isfield(res(1), 'sigIdx') && nCh==2
     end
     xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
+    XLim = get(gca, 'XLim');
+    YLim = get(gca, 'YLim');
+    if ~isempty(ip.Results.SlaveName)
+        text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos.'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
+    end
     
-    
-    %%
-    figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-negative tracks');
+
+    %figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-negative tracks');
     if ip.Results.ShowLegend
         pos = get(gcf, 'Position');
-        pos(3) = 10;
+        pos(3) = 17;
         set(gcf, 'Position', pos);
     end
-    axes(fset.axOpts{:});
+    axes(fset.axOpts{:}, 'Position', [8.25 1.5 6 3.5]);
     hold on;
     A = cell(1,nc);
     % plot slave channel first
@@ -389,14 +395,20 @@ if isfield(res(1), 'sigIdx') && nCh==2
     end
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
     if ~isempty(ip.Results.YTick)
-        set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
+      set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
     end
+    %set(gca, 'YTick', [], 'YColor', 'w');
+    set(gca, 'YTickLabel', []);
     xlabel('Time (s)', fset.lfont{:});
-    ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
+    %ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
+    
+    if ~isempty(ip.Results.SlaveName)
+        text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' neg.'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
+    end
     
     if ip.Results.ShowLegend
         cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'UniformOutput', false);
         hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
-        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [7.65 1.5 1.25 3.5]);
+        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [6.75+7.65 1.5 1.25 3.5]);
     end
 end
