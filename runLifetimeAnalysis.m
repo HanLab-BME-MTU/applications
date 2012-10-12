@@ -49,15 +49,20 @@ framerate = data(1).framerate;
 firstN = 3:20;
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'FileName', ip.Results.FileName);
-lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'}; % catIdx must be last!
+if isfield(lftData, 'significantSignal')
+    lftFields = {'lifetime_s', 'trackLengths', 'start', 'significantSignal', 'catIdx'}; % catIdx must be last!
+else
+    lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'}; % catIdx must be last!
+end
 
 if ~isempty(ip.Results.TrackIndex)
     for i = 1:nd
         % remove all non-Ia tracks
         for f = 1:numel(lftFields)
-            lftData(i).(lftFields{f})(lftData(i).catIdx~=1) = [];
+            lftData(i).(lftFields{f})(:,lftData(i).catIdx~=1) = [];
         end
         
+        % subset of tracks selected in input
         idx = ip.Results.TrackIndex{i};
         for f = 1:numel(lftFields)
             lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(idx);
@@ -113,58 +118,6 @@ if ip.Results.RemoveOutliers && nd>=5
     end
 end
 
-%--------------------------------------------------------------------------
-% apply lifetime scaling (based on intensity scaling)
-%--------------------------------------------------------------------------
-% % reference: lowest-intensity scale
-% relativeScale = min(a)./a;
-% alpha = 0.05;
-% kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
-% 
-% % for each dataset, loop through tracks, divide amplitude by relative scale, calc. new lifetime
-% % and #frames lost at beginning and end => statistics
-% for i = 1:nd
-%     % loop through 'Ia' tracks only
-%     aMat = relativeScale(i) * lftData(i).A(:,:,mCh);
-%     aStdMat = relativeScale(i) * lftData(i).A_pstd(:,:,mCh);
-%     % background level remains the same!
-%     sMat = kLevel * lftData(i).sigma_r(:,:,mCh);
-%     sStdMat = kLevel * lftData(i).SE_sigma_r(:,:,mCh);
-%     lifetime_s = lftData(i).lifetime_s(lftData(i).catIdx==1);
-%     trackLengths = lftData(i).trackLengths(lftData(i).catIdx==1);
-%     nt = numel(trackLengths);
-%     deltaS = NaN(1,nt);
-%     deltaE = NaN(1,nt);
-%     lifetimeScaled = NaN(1,nt);
-%     for k = 1:nt
-%         A = aMat(k,1:trackLengths(k));
-%         sigma_r = sMat(k,1:trackLengths(k));
-%         A_pstd = aStdMat(k,1:trackLengths(k));
-%         SE_sigma_r = sStdMat(k,1:trackLengths(k));
-%         npx = round((sigma_r./SE_sigma_r).^2/2+1);
-%         df2 = (npx-1) .* (A_pstd.^2 + SE_sigma_r.^2).^2 ./ (A_pstd.^4 + SE_sigma_r.^4);
-%         scomb = sqrt((A_pstd.^2 + SE_sigma_r.^2)./npx);
-%         T = (A - sigma_r) ./ scomb;
-%         pval_Ar_scaled = tcdf(-T, df2);
-%         %pval_Ar_scaled
-%         %lftData(i).pvalMat(k,1:trackLengths(k))
-%         %hvalRef = lftData(i).pvalMat(k,1:trackLengths(k))<0.05;
-% 
-%         % binary mask of the track
-%         hval_Ar_scaled = pval_Ar_scaled<0.05;
-%         if sum(hval_Ar_scaled)~=0
-%             deltaS(k) = find(hval_Ar_scaled==1, 1, 'first')-1;
-%             deltaE(k) = trackLengths(k) - find(hval_Ar_scaled==1, 1, 'last');
-%             lifetimeScaled(k) = lifetime_s(k) - (deltaS(k)+deltaE(k))*framerate;
-%         end
-%         % rough estimate: first and last points detected are limits
-%     end
-%     lftData(i).lifetimeScaled = lifetimeScaled;
-%     lftData(i).deltaS = deltaS;
-%     lftData(i).deltaE = deltaE;
-% end
-
-
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 lftRes.cellArea = zeros(nd,1);
@@ -177,8 +130,8 @@ for i = 1:nd
     lftData(i).sbA(rmIdx,:,:) = [];
     lftData(i).startsAll = lftData(i).start;
     for f = 1:numel(lftFields)
-        lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
-        lftData(i).(lftFields{f})(rmIdx) = [];
+        lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(:,lftData(i).catIdx==1);
+        lftData(i).(lftFields{f})(:,rmIdx) = [];
     end
     lifetime_s = lftData(i).lifetime_s;
     %lftData(i).lifetimeScaled = lftData(i).lifetimeScaled(lftData(i).lifetimeScaled>=cutoff_f);
@@ -239,7 +192,8 @@ for i = 1:nd
     res(i).lft_all = lifetime_s;
     res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2)';
     if isfield(lftData, 'significantSignal')
-        res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
+        %res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
+        res(i).significantSignal = lftData(i).significantSignal;
     end
     res(i).firstN = firstN;
     
