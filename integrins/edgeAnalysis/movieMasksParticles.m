@@ -116,6 +116,8 @@ for iFrame = 1 : numFramesMovie - 1
     textDeltaCoord = min(diff(imageRange,[],2))/20;
     text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
         textDeltaCoord,num2str(iFrame),'Color','white');
+    %     text(imageRange(1,1)+textDeltaCoord-1,imageRange(2,1)+...
+    %         textDeltaCoord+2,[num2str((iFrame-1)*10) ' s'],'Color','white','FontSize',30);
     
     %plot particles + mask
     axes('Position',[0.505 0 0.495 1]);
