@@ -46,8 +46,8 @@ if resetAnalysis
         MD(i).addProcess(SpindleAxisEBProcess(MD(i)));
         MD(i).addProcess(SisterGroupingProcess(MD(i)));
         
-        % Create kMT detection processes
-        %         MD(i).addProcess(KMTDetectionProcess(MD(i)));
+        % Create k-EB detection processes
+        MD(i).addProcess(KEBDetectionProcess(MD(i)));
         
     end
     
@@ -71,7 +71,7 @@ for i=1:nMovies
     funParams.detectionParam.integWindow = 0;
     funParams.detectionParam.doMMF = 1;
     funParams.detectionParam.testAlpha = struct('alphaR',0.0001,'alphaA',0.05,'alphaD',0.05,'alphaF',0);
-    funParams.detectionParam.numSigmaIter = 10;
+    funParams.detectionParam.numSigmaIter = 0;
     funParams.detectionParam.visual = 0;
     funParams.detectionParam.background = [];
     %general
@@ -119,9 +119,9 @@ for i=1:nMovies
     % Spindle axis
     %general
     funParams = MD(i).getProcess(3).funParams_;
-    funParams.ChannelIndex=1; % Derive spindle axis from EB images
+    funParams.ChannelIndex=1; % Derive spindle axis from GFP-EB3 images
     %function-specific
-    funParams.doPlot = 1;    
+    funParams.doPlot = 0;    
     %general
     parseProcessParams(MD(i).getProcess(3), funParams);
     
@@ -138,14 +138,14 @@ for i=1:nMovies
     %general
     parseProcessParams(MD(i).getProcess(4), funParams);
     
-    %     % kMT detection
-    %     %general
-    %     funParams = MD(i).getProcess(5).funParams_;
-    %     funParams.ChannelIndex=1; % Detect gfp-EB3 comets
-    %     %function-specific
-    %     %...
-    %     %general
-    %     parseProcessParams(MD(i).getProcess(5), funParams);
+    % k-EB detection
+    %general
+    funParams = MD(i).getProcess(5).funParams_;
+    funParams.ChannelIndex=1; % Detect GFP-EB3 signal
+    %function-specific
+    funParams.radiusEB = 7; %pixels
+    %general
+    parseProcessParams(MD(i).getProcess(5), funParams);
 
 end
 
@@ -157,7 +157,7 @@ end
 %% Set default visualization options
 for i=1:nMovies
     % Get default display class for sister grouping
-    pairDisplayMethod = MD.getProcess(4).getDrawableOutput.defaultDisplayMethod(2);
+    pairDisplayMethod = MD(i).getProcess(4).getDrawableOutput.defaultDisplayMethod(2);
     pairDisplayMethod.Color = [1 1 0]; % Set color to yellow
-    MD.getProcess(4).setDisplayMethod(1, 2, pairDisplayMethod);
+    MD(i).getProcess(4).setDisplayMethod(1, 2, pairDisplayMethod);
 end

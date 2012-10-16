@@ -30,14 +30,14 @@ classdef PairsDisplay < MovieDataDisplay
                 h(i,1)=plot3(coords(:,1),coords(:,2),coords(:,3),'-',...
                     'Color',obj.Color,'Linestyle',obj.Linestyle);
                 
-                % Draw kinetochore intensities as circles
-                if isfield(data(i),'kMTcoords1') && ~isnan(data(i).kMTcoords1(1))
-                    h(i,2) =plot3(data(i).kMTcoords1(1,1),data(i).kMTcoords1(1,2),0,'o',...
-                        'Color','r','MarkerSize',ceil(data(i).kMTamp1(1)*10^4));
+                % Draw EB intensities as circles
+                if isfield(data(i),'kEBcoords1') && ~isnan(data(i).kEBcoords1(1))
+                    h(i,2) =plot3(data(i).kEBcoords1(1,1),data(i).kEBcoords1(1,2),0,'o',...
+                        'Color','r','MarkerSize',ceil(data(i).kEBamp1(1)*0.1));
                 end
-                if isfield(data(i),'kMTcoords2') && ~isnan(data(i).kMTcoords2(1))
-                    h(i,3) =plot3(data(i).kMTcoords2(1,1),data(i).kMTcoords2(1,2),0,'o',...
-                        'Color','r','MarkerSize',ceil(data(i).kMTamp2(1)*10^4));
+                if isfield(data(i),'kEBcoords2') && ~isnan(data(i).kEBcoords2(1))
+                    h(i,3) =plot3(data(i).kEBcoords2(1,1),data(i).kEBcoords2(1,2),0,'o',...
+                        'Color','r','MarkerSize',ceil(data(i).kEBamp2(1)*0.1));
                 end
                 
                 % Display pair numbers if option is selected

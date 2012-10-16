@@ -4,6 +4,7 @@ function groupMovieSisters(movieData,varargin)
 % Sebastien Besson, 5/2011
 
 %% Input
+
 %Check input
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -12,15 +13,13 @@ ip.addOptional('paramsIn',[], @isstruct);
 ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
 
-%Get the indices of any previous tracking processes from this function                                                                              
-iProc = movieData.getProcessIndex('SisterGroupingProcess',1,0);
-
+%Get the indices of any previous sister grouping processes                                                                         
 %If the process doesn't exist, create it
+iProc = movieData.getProcessIndex('SisterGroupingProcess',1,0);
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
     movieData.addProcess(SisterGroupingProcess(movieData));
 end
-
 groupProc = movieData.processes_{iProc};
 
 %Parse input, store in parameter structure
@@ -92,7 +91,7 @@ for i = p.ChannelIndex
     
     % save each projData in its own directory
     save(outFilePaths{1,i},'sisterList','trackPairs')
+    
 end
-
 
 disp('Finished grouping sisters!')

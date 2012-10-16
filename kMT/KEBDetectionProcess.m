@@ -1,11 +1,9 @@
-classdef SisterGroupingProcess < DataProcessingProcess
-    % A concrete class associated to the grouping of sister tracks
-    %
-    % Sebastien Besson, March 2012
-    
-    methods (Access = public)
+classdef KEBDetectionProcess < DataProcessingProcess
+    %Class definition for detection kMT comets
         
-        function obj = SisterGroupingProcess(owner, varargin)
+    methods(Access = public)   
+        
+        function obj = KEBDetectionProcess(owner,varargin)
             
             if nargin == 0
                 super_args = {};
@@ -19,23 +17,23 @@ classdef SisterGroupingProcess < DataProcessingProcess
                 outputDir = ip.Results.outputDir;
                 funParams = ip.Results.funParams;
                 
+                % Define arguments for superclass constructor
                 super_args{1} = owner;
-                super_args{2} = SisterGroupingProcess.getName;
-                super_args{3} = @groupMovieSisters;
-                if isempty(funParams)  % Default funParams
-                    funParams = SisterGroupingProcess.getDefaultParams(owner,outputDir);
+                super_args{2} = KEBDetectionProcess.getName;
+                super_args{3} = @detectMoviekEBs;                               
+                if isempty(funParams)                                       
+                    funParams = KEBDetectionProcess.getDefaultParams(owner,outputDir);                               
                 end
-                super_args{4} = funParams;
+                super_args{4} = funParams;                    
             end
             
             obj = obj@DataProcessingProcess(super_args{:});
-            
-        end
+        end        
         
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'sisterList','trackPairs'};
+            outputList = {'sisterListEB','stdList'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -47,24 +45,24 @@ classdef SisterGroupingProcess < DataProcessingProcess
             
             % Data loading
             s = load(obj.outFilePaths_{1,iChan},output{:});
-            if ~isempty(iFrame) && isfield(s,'sisterList'),
-                fields = fieldnames(s.sisterList(1));
-                for i=1:numel(s.sisterList)
+            if ~isempty(iFrame) && isfield(s,'sisterListEB'),
+                fields = fieldnames(s.sisterListEB(1));
+                for i=1:numel(s.sisterListEB)
                     for j=1:numel(fields);
-                        s.sisterList(i).(fields{j})= s.sisterList(i).(fields{j})(iFrame,:);
+                        s.sisterListEB(i).(fields{j})= s.sisterListEB(i).(fields{j})(iFrame,:);                        
                     end
                 end
             end
             
             for i=1:numel(output),varargout{i}=s.(output{i}); end
-            
-        end
-        
+
+        end       
+
         function output = getDrawableOutput(obj)
             
             colors = hsv(numel(obj.owner_.channels_));
-            output(1).name='Sister pairs';
-            output(1).var='sisterList';
+            output(1).name='Sister pairs EB';
+            output(1).var='sisterListEB';
             output(1).formatData=[];
             output(1).type='overlay';
             output(1).defaultDisplayMethod=@(x)PairsDisplay('Color',colors(x,:));
@@ -73,29 +71,26 @@ classdef SisterGroupingProcess < DataProcessingProcess
         
     end
     
-    methods (Static)
+    methods(Static)
         
-        function name = getName()
-            name = 'Sister Grouping';
+        function name =getName()
+            name = 'Kinetochore EB detection';
         end
-        
+
         function funParams = getDefaultParams(owner,varargin)
             
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
             ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
-            ip.parse(owner, varargin{:})
+            ip.parse(owner, varargin{:});
             outputDir=ip.Results.outputDir;
             
-            % Set default parameters
-            funParams.ChannelIndex = 1 : numel(owner.channels_);
-            funParams.OutputDirectory = [outputDir  filesep 'SisterGrouping'];
-            funParams.maxAngle = 30 * pi / 180;
-            funParams.maxDist = 40;
-            funParams.minOverlap = 10;
-            funParams.useAlignment = 1;
-            funParams.robust=0;
+            % Define default process parameters
+            funParams=CometDetectionProcess.getDefaultParams(owner,outputDir);
+            funParams.OutputDirectory = [outputDir  filesep 'KinetochoreEB'];
+            funParams.sigma = 1.5;
+            funParams.radiusEB = 7;
             
         end
         
