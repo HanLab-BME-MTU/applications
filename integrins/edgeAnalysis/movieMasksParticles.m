@@ -58,13 +58,17 @@ end
 
 %get images
 imageDir = MD.channels_.channelPath_;
-imageFileListing = dir(imageDir);
-imageFileListing = keepOnlyTiffFiles(imageFileListing);
+imageFileListing = dir([imageDir filesep '*.tif']);
+if isempty(imageFileListing)
+    imageFileListing = dir([imageDir filesep '*.tiff']);
+end
 
 %get masks
 maskDir = [MD.movieDataPath_ filesep 'refined_masks' filesep 'refined_masks_for_channel_1'];
-maskFileListing = dir(maskDir);
-maskFileListing = keepOnlyTiffFiles(maskFileListing);
+maskFileListing = dir([maskDir filesep '*.tif']);
+if isempty(maskFileListing)
+    maskFileListing = dir([maskDir filesep '*.tiff']);
+end
 
 %get number of frames
 numFramesMovie = length(imageFileListing);
@@ -94,18 +98,13 @@ if plotFullScreen
 else
     figure
 end
-for iFrame = 1 : numFramesMovie - 1
-    
-    %read image + masks
-    imageStack = imread(fullfile(imageDir,imageFileListing(iFrame).name));
-    maskStack1 = imread(fullfile(maskDir,maskFileListing(iFrame).name));
-    maskStack2 = imread(fullfile(maskDir,maskFileListing(iFrame+1).name));
-    
-    %collect particle positions
-    xCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).xCoord);
-    yCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).yCoord);
+for iFrame = 1 : numFramesMovie
     
     clf;
+    
+    %read image + mask
+    imageStack = imread(fullfile(imageDir,imageFileListing(iFrame).name));
+    maskStack1 = imread(fullfile(maskDir,maskFileListing(iFrame).name));
     
     %plot cell image + mask
     axes('Position',[0 0 0.495 1]);
@@ -119,22 +118,33 @@ for iFrame = 1 : numFramesMovie - 1
     %     text(imageRange(1,1)+textDeltaCoord-1,imageRange(2,1)+...
     %         textDeltaCoord+2,[num2str((iFrame-1)*10) ' s'],'Color','white','FontSize',30);
     
-    %plot particles + mask
+    %make space for plotting particles + mask
     axes('Position',[0.505 0 0.495 1]);
     imshow(ones(isx,isy));
-    hold on    
+    hold on
     
-    %plot particles
-    if ~isempty(xCoordRange)
-        plot(xCoordRange(:,1),yCoordRange(:,1),'.');
+    if iFrame < numFramesMovie
+        
+        %read mask of next image
+        maskStack2 = imread(fullfile(maskDir,maskFileListing(iFrame+1).name));
+        
+        %collect particle positions
+        xCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).xCoord);
+        yCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).yCoord);
+        
+        %plot particles
+        if ~isempty(xCoordRange)
+            plot(xCoordRange(:,1),yCoordRange(:,1),'.');
+        end
+        
+        %overlay masks
+        maskBounds = bwboundaries(maskStack1);
+        cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
+        maskBounds = bwboundaries(maskStack2);
+        cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',2)),maskBounds);
+        
     end
-    
-    %overlay masks
-    maskBounds = bwboundaries(maskStack1);
-    cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
-    maskBounds = bwboundaries(maskStack2);
-    cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',2)),maskBounds);
-    
+        
     %add frame to movie if movie is saved
     if saveMovie
         movieVar = movieInfrastructure('addFrame',movieType,dir2saveMovie,...
@@ -151,21 +161,6 @@ if saveMovie
     movieInfrastructure('finalize',movieType,dir2saveMovie,...
         movieName,numFramesMovie,movieVar,[]);
 end
-
-%% Sub-function
-
-function fileListing = keepOnlyTiffFiles(fileListing)
-
-numFiles = length(fileListing);
-goodFile = zeros(numFiles,1);
-for iFile = 1 : numFiles
-    fileName = fileListing(iFile).name;
-    if (length(fileName) > 4) && ((strcmp(fileName(end-2:end),'tif')) || ...
-            (strcmp(fileName(end-3:end),'tiff')))
-        goodFile(iFile) = 1;
-    end
-end
-fileListing = fileListing(goodFile==1);
 
 %% ~~~ end ~~~
 

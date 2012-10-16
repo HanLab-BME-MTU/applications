@@ -1,24 +1,24 @@
 clear all
 close all
-load particleBehaviorAdaptiveWindows120921.mat
-mkdir figuresSptVsWindows120921
-cd figuresSptVsWindows120921
+load particleBehaviorAdaptiveWindows121002.mat
+mkdir figuresSptVsWindows121002
+cd figuresSptVsWindows121002
 
-movieName = 'AlphaV 120828 Cs3C3';
+movieName = 'AlphaV 120114 Cs1C3A';
 
 numMode = 4;
 
-for iType = [1 2]
+for iType = 1
     
     %particle density
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).directAll.densityParticles,...
-        windowDistFromEdge(iType),1,20,[movieName ', Particle density overall, protType ' num2str(iType)],...
-        [movieName ' DensityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],'Density overall (um^-^2)');
+        windowDistFromEdge(iType),1,20,[movieName ', Molecule density, protType ' num2str(iType)],...
+        [movieName ' DensityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],'Molecule density (per um^2)');
     
     %overall diffusion coefficient
     plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeAll,...
-        windowDistFromEdge(iType),1,20,[movieName ', Diffusion coefficient overall, protType ' num2str(iType)],...
-        [movieName ' DiffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],'Diffusion coefficient overall (um^2/s)');
+        windowDistFromEdge(iType),1,20,[movieName ', Diffusion coefficient, protType ' num2str(iType)],...
+        [movieName ' DiffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],'Diffusion coefficient (um^2/s)');
     
     %fraction in each diffusion mode
     for iMode = 1 : numMode
