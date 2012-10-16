@@ -42,7 +42,7 @@ classdef PairsDisplay < MovieDataDisplay
                 
                 % Display pair numbers if option is selected
                 if obj.showLabel
-                    h(i,3) = text(mean(coords(:,1)) + delta, mean(coords(:,2)) + delta, ...
+                    h(i,4) = text(mean(coords(:,1)) + delta, mean(coords(:,2)) + delta, ...
                         mean(coords(:,3)) + delta, num2str(i), 'Color', obj.Color);
                 end
             end
