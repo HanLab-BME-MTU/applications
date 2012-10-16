@@ -44,7 +44,9 @@ mCh = find(strcmp(data(1).source, data(1).channels));
 % sCh = setdiff(1:nCh, mCh);
 
 nd = numel(data);
-kLevel = norminv(1-ip.Results.Alpha/2, 0, 1);
+kLevel = norminv(1-ip.Results.Alpha/2.0, 0, 1);
+% kLevel = norminv(1-ip.Results.Alpha, 0, 1);
+
 
 nc = numel(cohortBounds)-1;
 b = 5;
@@ -335,12 +337,29 @@ else
         end
         plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
     end
-    % Plot mean/median in front    
-%     for ch = [2 1]
-%         for c = nc:-1:1
-%             plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
-%         end
-%     end
+    
+    for ch = chVec
+        % Plot mean/median in front
+        %for c = nc:-1:1
+        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        %end
+        
+        % Plot signifcance threshold in front
+        if ip.Results.ShowBackground && ch~=mCh
+            % Background level: median of all detections
+            if nd>1
+                % median background level per cohort for each data set
+                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
+                medM = vertcat(medM{:});
+                plot([-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
+            else
+                % median background level per cohort
+                medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
+                plot([-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
+            end
+        end
+    end
+
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
     if ~isempty(ip.Results.YTick)
         set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
