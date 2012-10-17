@@ -58,7 +58,7 @@ axisProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Spindle axis estimation ---------------%%% 
 
-disp('Starting spindle axis estimation ...')
+disp('Estimating spindle axis...')
 
 %get image size and number of images
 nImages = movieData.nFrames_;   
@@ -73,11 +73,11 @@ for i = p.ChannelIndex
     end
     
     %call function to estimate spindle axis
-    spindleAxisVec = getSpindleAxisEB(imageEB,'doPlot',p.doPlot); %#ok<NASGU>
+    [spindleAxisVec,poleInfo] = getSpindleAxisEB(imageEB,'doPlot',p.doPlot); %#ok<ASGLU,NASGU>
     
     %save each projData in its own directory
-    save(outFilePaths{1,i},'spindleAxisVec')
+    save(outFilePaths{1,i},'spindleAxisVec','poleInfo')
     
 end
 
-disp('Finished spindle axis estimation!')
+disp('Done')

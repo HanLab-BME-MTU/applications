@@ -84,19 +84,15 @@ nGoodTracks = length(goodTracks);
 %% READ TRACK INFORMATION
 
 % preassign matrices
-[variances,distances,alignment,overlapCost, pairCands] = deal([]);
+[variances,distances,alignment,overlapCost,pairCands] = deal([]);
 
 % read track coordinates etc.
-coords = cell(nGoodTracks,1);
-time = cell(nGoodTracks,1);
-idx = cell(nGoodTracks,1);
-coordsStd = cell(nGoodTracks,1);
+[coords,coordsStd,amp,ampStd,time,idx] = deal(cell(nGoodTracks,1));
 for i=1:nGoodTracks
-    [coords{i},time{i},idx{i},coordsStd{i}] = getTrackData(tracks(goodTracks(i)));
+    [coords{i},coordsStd{i},amp{i},ampStd{i},time{i},idx{i}] = getTrackData(tracks(goodTracks(i)));
 end
 
-% loop through the good tracks, calculate for every pair mean distance
-% and variance
+%loop through the good tracks and calculate grouping cost elements
 iPair=0;
 for jTrack = 1:nGoodTracks % loop cols
     
@@ -175,6 +171,7 @@ for jTrack = 1:nGoodTracks % loop cols
         overlapCost(iPair,1) = sqrt( 10 / numOverlapFrames );
         
     end %(for iTrack = jTrack+1:nGoodTracks)
+    
 end %(for jTrack = 1:nGoodTracks)
 
 %% CREATE COST MATRIX & GROUP
@@ -212,17 +209,11 @@ end
 
 %% assemble sister information
 
-% sisterList:
-%   .coords1
-%   .coords2
-%   .sisterVectors
-%   .distances
-
 nGoodPairs = sum(m);
 sisterList(1:nGoodPairs,1) = ...
-    struct('coords1',NaN(nTimepoints,6),...
-    'coords2',NaN(nTimepoints,6),'sisterVectors',NaN(nTimepoints,6),...
-    'distances',NaN(nTimepoints,2));
+    struct('coords1',NaN(nTimepoints,6),'coords2',NaN(nTimepoints,6),...
+    'sisterVectors',NaN(nTimepoints,6),'distances',NaN(nTimepoints,2),...
+    'amp1',NaN(nTimepoints,2),'amp2',NaN(nTimepoints,2));
 
 % write trackPairs. Store: pair1,pair2,cost,dist,var,alignment
 trackPairs = ...
@@ -230,14 +221,7 @@ trackPairs = ...
     costMat(m),distances(m),variances(m),alignment(m)];
 trackPairs(isnan(trackPairs(:,6)),6) = 0;
 
-% % remove redundancy
-% trackPairs(:,1:2) = sort(trackPairs(:,1:2),2);
-% trackPairs = unique(trackPairs,'rows');
-
-% sort according to cost
-% trackPairs = sortrows(trackPairs,3);
-
-% loop over trackPairs to get their coordinates and distances
+% loop over trackPairs to get sister information
 validPairs= find(m);
 for i=1:numel(validPairs)
     iPair = validPairs(i);
@@ -247,30 +231,38 @@ for i=1:numel(validPairs)
     rowCoordsStd = coordsStd{pairCands(iPair,1)};
     rowTime  = time{pairCands(iPair,1)};
     rowIdx = idx{pairCands(iPair,1)};
+    rowAmp = amp{pairCands(iPair,1)};
+    rowAmpStd = ampStd{pairCands(iPair,1)};
     
     %get information for second sister
     colCoords = coords{pairCands(iPair,2)};
     colCoordsStd = coordsStd{pairCands(iPair,2)};
     colTime  = time{pairCands(iPair,2)};
     colIdx = idx{pairCands(iPair,2)};
+    colAmp = amp{pairCands(iPair,2)};
+    colAmpStd = ampStd{pairCands(iPair,2)};
     
     %find common time between them
     [commonTime,ctColIdx,ctRowIdx] = intersect(colTime,rowTime);
     
-    %store the coordinates of the first sister
+    %store first sister information
     sisterList(i).coords1(commonTime,:) = ...
         [rowCoords(rowIdx(ctRowIdx),:) rowCoordsStd(rowIdx(ctRowIdx),:)];
+    sisterList(i).amp1(commonTime,:) = ...
+        [rowAmp(rowIdx(ctRowIdx),:) rowAmpStd(rowIdx(ctRowIdx),:)];
     
-    %store the coordinates of the second sister
-    sisterList(i).coords2(commonTime,:) = [colCoords(colIdx(ctColIdx),:) ...
-        colCoordsStd(colIdx(ctColIdx),:)];
+    %store second sister information
+    sisterList(i).coords2(commonTime,:) = ...
+        [colCoords(colIdx(ctColIdx),:) colCoordsStd(colIdx(ctColIdx),:)];
+    sisterList(i).amp2(commonTime,:) = ...
+        [colAmp(colIdx(ctColIdx),:) colAmpStd(colIdx(ctColIdx),:)];
     
-    %calculate the vector connecting the two sisters and its std (microns)
+    %calculate the vector connecting the two sisters and its std
     sisterVectors = [colCoords(colIdx(ctColIdx),:) - rowCoords(rowIdx(ctRowIdx),:) ...
         sqrt(colCoordsStd(colIdx(ctColIdx),:).^2 + rowCoordsStd(rowIdx(ctRowIdx),:).^2)];
     sisterList(i).sisterVectors(commonTime,:) = sisterVectors;
     
-    %calculate the distance between the two sisters and its std (microns)
+    %calculate the distance between the two sisters and its std
     sisterDist = sqrt(sum(sisterVectors(:,1:3).^2,2));
     sisterDistStd = sqrt(sum((sisterVectors(:,1:3)./repmat(sisterDist,1,3)).^2 .* ...
         sisterVectors(:,4:6).^2,2));
@@ -307,19 +299,20 @@ end % loop goodPairs
 
 
 %% read track coordinates
-function [coords,time,coordIdx,coordsStd] = getTrackData(track)
-
-%get indices of feature making track
-% featIndx = track.tracksFeatIndxCG;
+function [coords,coordsStd,amp,ampStd,time,coordIdx] = getTrackData(track)
 
 %get start time and end time of track
 startTime = track.seqOfEvents(1,1);
 endTime = track.seqOfEvents(2,1);
 lifeTime = endTime - startTime + 1;
 
-
+%get coordinates and their standard deviation
 coords = [track.tracksCoordAmpCG(1:8:end)' track.tracksCoordAmpCG(2:8:end)'  track.tracksCoordAmpCG(3:8:end)'];
 coordsStd = [track.tracksCoordAmpCG(5:8:end)' track.tracksCoordAmpCG(6:8:end)'  track.tracksCoordAmpCG(7:8:end)'];
+
+%get amplitudes and their standard deviation
+amp = track.tracksCoordAmpCG(4:8:end)';
+ampStd = track.tracksCoordAmpCG(8:8:end)';
 
 % remove gaps
 time = startTime:endTime;

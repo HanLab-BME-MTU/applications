@@ -1,13 +1,16 @@
 function sisterListEB = detectkEBs(sisterList,sisTrackPairs,tracks,imagesEB,varargin)
 %KMTEBSIGNAL measures EB signal at plus-ends of kinetochore microtubules
 %
-% SYNOPSIS: ebSignalSeries = kmtEBsignal(sisterList,imageEB,varargin)
+% SYNOPSIS: sisterListEB = detectkEBs(sisterList,sisTrackPairs,tracks,imagesEB,varargin)
 %
 % INPUT sisterList   : Output of groupSisters.
 %       sisTrackPairs: Output of groupSisters.
 %       tracks       : Output of trackCloseGapsKalmanSparse, in structure
 %                      format.
 %       imagesEB     : Stack of EB images.
+%       varargin     : Optional input variables in the form of variable
+%                      name/value pairs. Currently this includes:
+%                           -'radiusEB' [Default: 7].
 %
 % OUTPUT sisterListEB: Same as input sisterList, but with additional fields
 %                      with EB signal information.
@@ -37,11 +40,55 @@ indxKeep = setdiff(1:numTracks,sisTrackPairs(:));
 tracks = tracks(indxKeep);
 numTracks = length(tracks);
 
-%number of frames
+%image size and number of frames
 imagesEB = double(imagesEB);
 [imSize1,imSize2,numFrames] = size(imagesEB);
 
-%% MEASURE EB SIGNAL
+%% ESTIMATE EB BACKGROUND SIGNAL - SAME AS IN getSpindleAxisEB
+
+%get average EB image
+meanImageEB = mean(imagesEB,3);
+
+%find bright spindle pole
+prctVal = 100 * (1 - 100/numel(meanImageEB));
+threshPole = prctile(meanImageEB(:),prctVal);
+maskPole = meanImageEB >= threshPole;
+
+%get the location of the bright spindle pole as the centroid of its mask
+%in case there are more than one connected region in the mask, take the
+%largest one
+stats = regionprops(maskPole,'Area','Centroid');
+maskArea = vertcat(stats.Area);
+maskCentroid = vertcat(stats.Centroid);
+pole1Pos = round(maskCentroid(maskArea==max(maskArea),:)); %image coordinates
+maskPole(:) = 0;
+maskPole(pole1Pos(2),pole1Pos(1)) = 1;
+
+%calculate the distance of each pixel from the bright spindle pole
+distFromPole = bwdist(maskPole);
+
+%determine mask for whole spindle
+threshSpindle = prctile(meanImageEB(distFromPole<50),40);
+maskSpindle = meanImageEB >= threshSpindle;
+maskSpindle = imfill(maskSpindle,'holes');
+
+%if there is more than one connected region, keep the largest
+stats = regionprops(maskSpindle,'Area','PixelIdxList');
+maskArea = vertcat(stats.Area);
+if length(maskArea) > 1
+    maskSpindle(:) = 0;
+    maskSpindle(stats(maskArea==max(maskArea)).PixelIdxList) = 1;
+end
+
+%estimate the average background intensity
+SE = strel('square',5);
+mask2 = imdilate(maskSpindle,SE);
+mask2 = double(mask2) - double(maskSpindle);
+mask2(mask2==0) = NaN;
+tmp = mask2 .* meanImageEB;
+bkgSignal = nanmean(tmp(:));
+
+%% MEASURE KINETOCHORE EB SIGNAL
 
 %output
 sisterListEB = sisterList;
@@ -83,24 +130,29 @@ for iSis = 1 : numSisters
             imageTimesMask = imagesEB(:,:,iFrame) .* maskEB;
             signalEB(iFrame,2) = nanmean(imageTimesMask(:));
             
-            %output
-            sisterListEB(iSis).kEBcoords1 = coords1;
-            sisterListEB(iSis).kEBcoords2 = coords2;
-            sisterListEB(iSis).kEBamp1 = [signalEB(:,1) NaN(numFrames,2)];
-            sisterListEB(iSis).kEBamp2 = [signalEB(:,2) NaN(numFrames,2)];
-            
         end
         
     end
     
-end
-
-%subtract minimum signal as representative of background
-ampMin = vertcat([sisterListEB.kEBamp1; sisterListEB.kEBamp2]);
-ampMin = min(ampMin(:))-10;
-for iSis = 1 : numSisters
-    sisterListEB(iSis).kEBamp1 = sisterListEB(iSis).kEBamp1 - ampMin;
-    sisterListEB(iSis).kEBamp2 = sisterListEB(iSis).kEBamp2 - ampMin;
+    %subtract background from EB signal
+    signalEB = signalEB - bkgSignal;
+    
+    %if the signal after background subtraction is negative, this means
+    %there is no comet
+    %indicate that with NaN
+    indxNoComet = find(signalEB(:,1)<=0);
+    signalEB(indxNoComet,1) = NaN;
+    coords1(indxNoComet,:) = NaN;
+    indxNoComet = find(signalEB(:,2)<=0);
+    signalEB(indxNoComet,2) = NaN;
+    coords2(indxNoComet,:) = NaN;
+    
+    %output
+    sisterListEB(iSis).kEBcoords1 = coords1;
+    sisterListEB(iSis).kEBcoords2 = coords2;
+    sisterListEB(iSis).kEBamp1 = [signalEB(:,1) NaN(numFrames,2)];
+    sisterListEB(iSis).kEBamp2 = [signalEB(:,2) NaN(numFrames,2)];
+    
 end
 
 %% OUTPUT

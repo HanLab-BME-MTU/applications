@@ -70,7 +70,7 @@ detProc.setOutFilePaths(outFilePaths);
 
 %% --------------- k-EB detection ---------------%%%
 
-disp('Starting detecting k-EB signal ...');
+disp('Detecting k-EB signals...');
 
 %get image size and number of images
 nImages = movieData.nFrames_;   
@@ -96,5 +96,5 @@ for i = p.ChannelIndex
     
 end
 
-disp('Finished detecting k-EB signal!');
+disp('Done');
 

@@ -33,7 +33,7 @@ classdef SpindleAxisEBProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'spindleAxisVec'};
+            outputList = {'spindleAxisVec','poleInfo'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -48,19 +48,25 @@ classdef SpindleAxisEBProcess < DataProcessingProcess
             if ~isempty(iFrame) && isfield(s,'spindleAxisVec'),
                 s.spindleAxisVec = s.spindleAxisVec(iFrame,:);
             end
+            if ~isempty(iFrame) && isfield(s,'poleInfo'),
+                s.poleInfo = s.poleInfo(iFrame);
+            end
             
             for i=1:numel(output),varargout{i}=s.(output{i}); end
             
         end
         
-        %          function output = getDrawableOutput(obj)
-        %             colors = hsv(numel(obj.owner_.channels_));
-        %             output(1).name='Sister pairs';
-        %             output(1).var='sisterList';
-        %             output(1).formatData=[];
-        %             output(1).type='overlay';
-        %             output(1).defaultDisplayMethod=@(x)PairsDisplay('Color',colors(x,:));
-        %         end
+        function output = getDrawableOutput(obj)
+            
+            colors = hsv(numel(obj.owner_.channels_));
+            output(1).name='Spindle Poles';
+            output(1).var='poleInfo';
+            output(1).formatData=@SpindleAxisEBProcess.formatOutput;
+            output(1).type='overlay';
+            output(1).defaultDisplayMethod=@(x) LineDisplay('Marker','o',...
+                'LineStyle','none','Color',colors(x,:));
+            
+        end
         
     end
     
@@ -71,6 +77,7 @@ classdef SpindleAxisEBProcess < DataProcessingProcess
         end
         
         function funParams = getDefaultParams(owner,varargin)
+            
             % Input check
             ip=inputParser;
             ip.addRequired('owner',@(x) isa(x,'MovieData'));
@@ -82,6 +89,18 @@ classdef SpindleAxisEBProcess < DataProcessingProcess
             funParams.ChannelIndex = 1 : numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'SpindleAxisEB'];
             funParams.doPlot = 1;
+            
+        end
+        
+        function y = formatOutput(x)
+            
+            % Format output in xy coordinate system
+            if isempty(x.xCoord)
+                y = NaN(1,2);
+            else
+                y = horzcat(x.xCoord(:,1),x.yCoord(:,1));
+            end
+            
         end
         
     end

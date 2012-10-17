@@ -73,7 +73,7 @@ groupProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Sister grouping ---------------%%% 
 
-disp('Starting grouping sisters...')
+disp('Grouping sisters...')
 
 for i = p.ChannelIndex    
     
@@ -94,4 +94,4 @@ for i = p.ChannelIndex
     
 end
 
-disp('Finished grouping sisters!')
+disp('Done')

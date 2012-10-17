@@ -1,6 +1,6 @@
 % List all TIFF files in the main folder
 if strcmp(getenv('USER'),'kj35')
-    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/testMovie15';
+    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/metaMoviesNewAnalysis';
 elseif strcmp(getenv('USER'),'sebastien')
     mainFolder = fullfile(getenv('HOME'),'Documents','Julie','testMovie15');
 end
@@ -65,6 +65,7 @@ for i=1:nMovies
     funParams = MD(i).getProcess(1).funParams_;
     funParams.ChannelIndex=2; % Detect mCherry-CENPA objects
     %function-specific
+    funParams.verbose = 0;
     funParams.detectionParam.psfSigma = 1.9;
     funParams.detectionParam.bitDepth = 16;
     funParams.detectionParam.alphaLocMax = 0.05;
@@ -82,6 +83,7 @@ for i=1:nMovies
     funParams = MD(i).getProcess(2).funParams_;
     funParams.ChannelIndex=2; % Track mCherry-CENPA objects
     %function-specific
+    funParams.verbose = 0;
     %gap closing
     funParams.gapCloseParam.timeWindow = 4;
     funParams.gapCloseParam.mergeSplit = 0;
@@ -121,7 +123,7 @@ for i=1:nMovies
     funParams = MD(i).getProcess(3).funParams_;
     funParams.ChannelIndex=1; % Derive spindle axis from GFP-EB3 images
     %function-specific
-    funParams.doPlot = 0;    
+    funParams.doPlot = 1;    
     %general
     parseProcessParams(MD(i).getProcess(3), funParams);
     
@@ -154,8 +156,12 @@ for i=1:nMovies
     cellfun(@run,MD(i).processes_);
 end
 
-%% Set default visualization options
+%% Set visualization options
 for i=1:nMovies
+    % Get default display class for spindle axis/spindle poles
+    poleDisplayMethod = MD(i).getProcess(3).getDrawableOutput.defaultDisplayMethod(1);
+    poleDisplayMethod.Color = [1 1 0]; % Set color to yellow
+    MD(i).getProcess(3).setDisplayMethod(1, 1, poleDisplayMethod);
     % Get default display class for sister grouping
     pairDisplayMethod = MD(i).getProcess(4).getDrawableOutput.defaultDisplayMethod(2);
     pairDisplayMethod.Color = [1 1 0]; % Set color to yellow

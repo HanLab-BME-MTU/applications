@@ -33,11 +33,11 @@ classdef PairsDisplay < MovieDataDisplay
                 % Draw EB intensities as circles
                 if isfield(data(i),'kEBcoords1') && ~isnan(data(i).kEBcoords1(1))
                     h(i,2) =plot3(data(i).kEBcoords1(1,1),data(i).kEBcoords1(1,2),0,'o',...
-                        'Color','r','MarkerSize',ceil(data(i).kEBamp1(1)*0.1));
+                        'Color','r','MarkerSize',ceil(data(i).kEBamp1(1)*0.3));
                 end
                 if isfield(data(i),'kEBcoords2') && ~isnan(data(i).kEBcoords2(1))
                     h(i,3) =plot3(data(i).kEBcoords2(1,1),data(i).kEBcoords2(1,2),0,'o',...
-                        'Color','r','MarkerSize',ceil(data(i).kEBamp2(1)*0.1));
+                        'Color','r','MarkerSize',ceil(data(i).kEBamp2(1)*0.3));
                 end
                 
                 % Display pair numbers if option is selected
