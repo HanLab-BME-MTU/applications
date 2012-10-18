@@ -27,7 +27,7 @@ p = parseProcessParams(groupProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 
-% Check tracking process first
+% Check tracking process
 iTrackProc = movieData.getProcessIndex('TrackingProcess',1,1);
 
 assert(~isempty(iTrackProc),['Tracking has not been run! '...
@@ -38,27 +38,27 @@ assert(all(trackProc.checkChannelOutput(p.ChannelIndex)),...
     ['Missing tracking output ! Please apply tracking before ' ...
     'running  sister grouping!']);
 
-% Check spindle axis process if necessary
-if p.useAlignment
+% Check spindle pole process if necessary
+if p.useAlignment || p.associateSis2Pole
     
-    iAxisProc = movieData.getProcessIndex('SpindleAxisEBProcess',1,1);
+    iPoleProc = movieData.getProcessIndex('SpindlePolesEBProcess',1,1);
     
-    assert(~isempty(iAxisProc),['Spindle axis has not been estimated! '...
-        'Please run spindle axis estimation prior to sister grouping!'])
-    axisProc = movieData.processes_{iAxisProc};
+    assert(~isempty(iPoleProc),['Spindle poles have not been detected! '...
+        'Please run spindle pole detection prior to sister grouping!'])
+    poleProc = movieData.processes_{iPoleProc};
     
-    assert(all(axisProc.checkChannelOutput(setdiff([1 2],p.ChannelIndex))),...
-        ['Missing spindle axis output ! Please estimate spindle axis before ' ...
-        'running  sister grouping!']);
+    assert(all(poleProc.checkChannelOutput(setdiff([1 2],p.ChannelIndex))),...
+        ['Missing spindle pole output! Please detect spindle poles before ' ...
+        'running sister grouping!']);
     
 end
 
-% Set up the input directories (tracks+spindle axis)
-inFilePaths = cell(1+p.useAlignment,numel(movieData.channels_));
+% Set up the input directories (tracks+spindle poles)
+inFilePaths = cell(1+(p.useAlignment||p.associateSis2Pole),numel(movieData.channels_));
 for i = p.ChannelIndex
     inFilePaths{1,i} = trackProc.outFilePaths_{1,i};
-    if p.useAlignment
-        inFilePaths{2,i} = axisProc.outFilePaths_{1,setdiff([1 2],i)};
+    if p.useAlignment || p.associateSis2Pole
+        inFilePaths{2,i} = poleProc.outFilePaths_{1,setdiff([1 2],i)};
     end
 end
 groupProc.setInFilePaths(inFilePaths);
@@ -78,16 +78,16 @@ disp('Grouping sisters...')
 for i = p.ChannelIndex    
     
     tracks = trackProc.loadChannelOutput(i);
-    if p.useAlignment
-        spindleAxisVec = axisProc.loadChannelOutput(setdiff([1 2],i));
+    if p.useAlignment || p.associateSis2Pole
+        poleInfo = poleProc.loadChannelOutput(setdiff([1 2],i));
     else
-        spindleAxisVec = [];
+        poleInfo = [];
     end
     
-    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,spindleAxisVec,0,...
+    [sisterList,trackPairs] = groupSisters(tracks,movieData.nFrames_,poleInfo,0,...
         'maxAngle', p.maxAngle, 'maxDist', p.maxDist,...
         'minOverlap', p.minOverlap, 'useAlignment', p.useAlignment, ...
-        'robust', p.robust);   %#ok<NASGU,ASGLU>
+        'robust', p.robust,'associateSis2Pole',p.associateSis2Pole);   %#ok<NASGU,ASGLU>
     
     % save each projData in its own directory
     save(outFilePaths{1,i},'sisterList','trackPairs')

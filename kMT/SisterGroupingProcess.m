@@ -95,7 +95,8 @@ classdef SisterGroupingProcess < DataProcessingProcess
             funParams.maxDist = 40;
             funParams.minOverlap = 10;
             funParams.useAlignment = 1;
-            funParams.robust=0;
+            funParams.robust = 0;
+            funParams.associateSis2Pole = 1;
             
         end
         

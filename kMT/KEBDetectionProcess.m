@@ -33,7 +33,7 @@ classdef KEBDetectionProcess < DataProcessingProcess
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
             % Input check
-            outputList = {'sisterListEB','stdList'};
+            outputList = {'sisterListEB'};
             ip =inputParser;
             ip.addRequired('iChan',@(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
@@ -89,8 +89,8 @@ classdef KEBDetectionProcess < DataProcessingProcess
             % Define default process parameters
             funParams=CometDetectionProcess.getDefaultParams(owner,outputDir);
             funParams.OutputDirectory = [outputDir  filesep 'KinetochoreEB'];
-            funParams.sigma = 1.5;
-            funParams.radiusEB = 7;
+            funParams.radiusEB = 5;
+            funParams.lengthAlongMT = 10;
             
         end
         

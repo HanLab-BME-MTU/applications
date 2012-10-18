@@ -59,12 +59,10 @@ end
 detProc.setInFilePaths(inFilePaths);
 
 % Set up the output file
-outFilePaths = cell(2,numel(movieData.channels_));
+outFilePaths = cell(1,numel(movieData.channels_));
 mkClrDir(p.OutputDirectory)
 for i = p.ChannelIndex;
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
-    outFilePaths{2,i} = [p.OutputDirectory filesep 'filtered_images_for_channel_' num2str(i)];
-    mkClrDir(outFilePaths{2,i})
 end
 detProc.setOutFilePaths(outFilePaths);
 
@@ -89,10 +87,9 @@ for i = p.ChannelIndex
     %call function to detect kinetochore-EB signal
     sisterListEB = detectkEBs(sisterList,trackPairs,tracks,imageEB,...
         'radiusEB',p.radiusEB);
-    stdList = NaN(nImages,1);
         
     %save output
-    save(outFilePaths{1,i} ,'sisterListEB','stdList');
+    save(outFilePaths{1,i} ,'sisterListEB');
     
 end
 

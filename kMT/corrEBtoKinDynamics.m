@@ -1,4 +1,4 @@
-function [ratioEBAwayToward,crossCorrDispEB] = corrEBtoKinDynamics(sisterListEB,poleInfo,varargin)
+function measurementsEB = corrEBtoKinDynamics(sisterListEB,poleInfo,varargin)
 %CORREBTOKINDYNAMICS correlates EB signal at kinetochores to kinetochore dynamics
 %
 % SYNOPSIS: corrEBtoKinDynamics(sisterListEB,poleInfo,spindleAxis,varargin)
@@ -7,7 +7,7 @@ function [ratioEBAwayToward,crossCorrDispEB] = corrEBtoKinDynamics(sisterListEB,
 %       poleInfo: Structure array in the form of movieInfo (output of
 %                 detectSubResFeatures2D_StandAlone) with spindle pole
 %                 position and amplitude information. Currently, output of
-%                 getSpindleAxisEB, but that is not essential.
+%                 getSpindlePolesEB.
 %       varargin     : Optional input variables in the form of variable
 %                      name/value pairs. Currently this includes:
 %                           ...
@@ -45,47 +45,13 @@ tmp = cat(2,poleInfo.yCoord);
 coordPole(:,2,:) = tmp(:,1:2:end)';
 if isfield(poleInfo,'zCoord')
     tmp = cat(2,poleInfo.zCoord);
-    coordPole(:,3,:) = tmp(:,1:2:end)';
-end 
+    coordPole(:,3,:) = tmp(:,1:2:end)'; %#ok<NASGU>
+end
 
-%determine which spindle pole each kinetochore in a sister pair is attached to
-%this assignment will depend on the spindle geometry (number of poles)
-%currently code handles only bipolar spindles and a simplified monopolar
-%case where all attachments are monotelic
-%this assignment is simplistic, it could make use of the EB signal to make
-%a more sophisticated assignment, even in bipolar spindles
-%but this definitely works in cases of sisters aligned at the metaphase
-%plate
-sisterPoleAssign = NaN(numSister,2); %NaN will remain to mean not attached to any spindle pole
-switch numPole
-    
-    case 1 %monopolar spindle
-        
-        for iSis = 1 : numSister
-            distSis1 = nanmean(normList(sisterListEB(iSis).coords1(:,1:3)-coordPole(:,:,1)));
-            distSis2 = nanmean(normList(sisterListEB(iSis).coords2(:,1:3)-coordPole(:,:,1)));
-            if distSis2 < distSis1
-                sisterPoleAssign(iSis,2) = 1;
-            else
-                sisterPoleAssign(iSis,1) = 1;
-            end
-                
-        end
-        
-    case 2 %bipolar spindle
-        
-        for iSis = 1 : numSister
-            distSis1 = nanmean(normList(sisterListEB(iSis).coords1(:,1:3)-coordPole(:,:,1)));
-            distSis2 = nanmean(normList(sisterListEB(iSis).coords2(:,1:3)-coordPole(:,:,1)));
-            if distSis2 < distSis1
-                sisterPoleAssign(iSis,:) = [2 1];
-            else
-                sisterPoleAssign(iSis,:) = [1 2];
-            end
-        end
-        
-    otherwise %multipolar spindle
-        
+%retrieve which pole each kinetochore is attached to
+sisterPoleAssign = NaN(numFrame,2,numSister);
+for iSis = 1 : numSister
+    sisterPoleAssign(:,:,iSis) = sisterListEB(iSis).poleAssign12;
 end
 
 %various measurements characterising kinetochore dynamics
@@ -96,13 +62,10 @@ distSisPair = NaN(numFrame,2,numSister); %magnitude of above vector
 dispProjSisPair = NaN(numFrame-1,2,numSister); %projection of frame-to-frame displacement onto vector connecting kinetochore to pole
 for iSis = 1 : numSister
     for j = 1 : 2
-        poleSisJ = sisterPoleAssign(iSis,j);
         eval(['coordsSisJ = sisterListEB(iSis).coords' num2str(j) '(:,1:3);'])
         dispSisPair(:,:,j,iSis) = diff(coordsSisJ,[],1);
         dispMagSisPair(:,j,iSis) = normList(dispSisPair(:,:,j,iSis));
-        if ~isnan(poleSisJ)
-            vecSisPair(:,:,j,iSis) = coordsSisJ - coordPole(:,:,poleSisJ);
-        end
+        eval(['vecSisPair(:,:,j,iSis) = sisterListEB(iSis).vecFromPole' num2str(j) '(:,1:3);'])
         distSisPair(:,j,iSis) = normList(vecSisPair(:,:,j,iSis));
         dispProjSisPair(:,j,iSis) = sum(dispSisPair(:,:,j,iSis) .* vecSisPair(1:end-1,:,j,iSis),2) ./ distSisPair(1:end-1,j,iSis);
     end
@@ -118,36 +81,57 @@ end
 
 %% CORRELATE EB SIGNAL TO KINETOCHORE DYNAMICS
 
-%average EB signal ratio between moving away from and moving toward the pole
+minDisp = 0.5;
+minDispAway = minDisp;
+minDispToward = -minDisp;
 
 %get EB signals away and toward
+ebSignalForDisp = ebSignalPair(1:end-1,:,:);
 [ebSignalAway,ebSignalToward] = deal(NaN(numFrame-1,2,numSister));
-ebSignalTmp = ebSignalPair(1:end-1,:,:);
-ebSignalAway(dispProjSisPair>0) = ebSignalTmp(dispProjSisPair>0);
-ebSignalToward(dispProjSisPair<0) = ebSignalTmp(dispProjSisPair<0);
+ebSignalAway(dispProjSisPair>minDispAway) = ebSignalForDisp(dispProjSisPair>minDispAway);
+ebSignalToward(dispProjSisPair<minDispToward) = ebSignalForDisp(dispProjSisPair<minDispToward);
 
-%calculate average signal per kinetochore
+%probability of having an EB comet if moving away from or toward pole, per
+%kinetochore
+
+numCometAway = squeeze(sum(ebSignalAway>0,1));
+numCometToward = squeeze(sum(ebSignalToward>0,1));
+numTimesMoveAway = squeeze(sum(dispProjSisPair>minDispAway,1));
+numTimesMoveToward = squeeze(sum(dispProjSisPair<minDispToward,1));
+
+probEBCometAway = numCometAway ./ numTimesMoveAway;
+probEBCometToward = numCometToward ./ numTimesMoveToward;
+
+%EB ratio within each kinetochore between moving away from and moving
+%toward pole
+
 meanEBSignalAway = squeeze(nanmean(ebSignalAway,1));
 meanEBSignalToward = squeeze(nanmean(ebSignalToward,1));
 
-%calculate ratio per kinetochore
 ratioEBAwayToward = meanEBSignalAway ./ meanEBSignalToward;
 
-%cross-correlation between kinetochore displacement and EB signal
-
-%collect time series in the appropriate format
-dispStruct = repmat(struct('observations',[]),2,numSister);
-ebStruct = repmat(struct('observations',[]),2,numSister);
-for iSis = 1 : numSister
-    for j = 1 : 2
-        dispStruct(j,iSis).observations = dispProjSisPair(:,j,iSis);
-        ebStruct(j,iSis).observations = ebSignalTmp(:,j,iSis);
-    end
-end
-dispStruct = dispStruct(:);
-ebStruct = ebStruct(:);
-
-crossCorrDispEB = crossCorr(dispStruct,ebStruct,20,1);
+% %cross-correlation between kinetochore displacement and EB signal
+% 
+% %collect time series in the appropriate format
+% dispStruct = repmat(struct('observations',[]),2,numSister);
+% ebStruct = repmat(struct('observations',[]),2,numSister);
+% for iSis = 1 : numSister
+%     for j = 1 : 2
+%         dispStruct(j,iSis).observations = dispProjSisPair(:,j,iSis);
+%         ebStruct(j,iSis).observations = ebSignalForDisp(:,j,iSis);
+%     end
+% end
+% dispStruct = dispStruct(:);
+% ebStruct = ebStruct(:);
+% 
+% crossCorrDispEB = crossCorr(dispStruct,ebStruct,20,1);
 
 %% OUTPUT
+
+measurementsEB.numTimesKinMoveAway = numTimesMoveAway;
+measurementsEB.numTimesKinMoveToward = numTimesMoveToward;
+measurementsEB.probEBCometAway = probEBCometAway;
+measurementsEB.probEBCometToward = probEBCometToward;
+measurementsEB.ratioEBSignalAwayToward = ratioEBAwayToward;
+
 

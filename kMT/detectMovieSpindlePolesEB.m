@@ -1,5 +1,5 @@
-function getMovieSpindleAxisEB(movieData,varargin)
-%GETMOVIESPINDLEAXISEB determines spindle axis from EB images
+function detectMovieSpindlePolesEB(movieData,varargin)
+%DETECTMOVIESPINDLEPOLESEB detects the spindle poles from EB images by calling detectSpindlePolesEB
 %
 %Khuloud Jaqaman, 10/2012
 
@@ -12,13 +12,13 @@ ip.addOptional('paramsIn',[], @isstruct);
 ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
 
-%Get the indices of any previous spindle axis processes from this function                                                                              
-iProc = movieData.getProcessIndex('SpindleAxisEBProcess',1,0);
+%Get the indices of any previous spindle pole processes from this function                                                                              
+iProc = movieData.getProcessIndex('SpindlePolesEBProcess',1,0);
 
 %If the process doesn't exist, create it
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(SpindleAxisEBProcess(movieData));
+    movieData.addProcess(SpindlePolesEBProcess(movieData));
 end
 
 axisProc = movieData.processes_{iProc};
@@ -28,19 +28,6 @@ p = parseProcessParams(axisProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 
-%MAYBE NEEDED IN THE FUTURE
-%
-% % Check detection process first
-% iDetProc = movieData.getProcessIndex('DetectionProcess',1,1);
-% 
-% assert(~isempty(iDetProc),['Detection has not been run! '...
-%     'Please run detection prior to spindle axis estimation!'])
-% detProc = movieData.processes_{iDetProc};
-% 
-% assert(all(detProc.checkChannelOutput(p.ChannelIndex)),...
-%     ['Missing detection output ! Please apply detection before ' ...
-%     'running spindle axis estimation!']);
-    
 % Set up the input directories (EB images)
 inFilePaths = cell(1,numel(movieData.channels_));
 for i = p.ChannelIndex
@@ -56,9 +43,9 @@ end
 mkClrDir(p.OutputDirectory);
 axisProc.setOutFilePaths(outFilePaths);
 
-%% --------------- Spindle axis estimation ---------------%%% 
+%% --------------- Spindle pole detection ---------------%%% 
 
-disp('Estimating spindle axis...')
+disp('Detecting spindle poles...')
 
 %get image size and number of images
 nImages = movieData.nFrames_;   
@@ -72,11 +59,11 @@ for i = p.ChannelIndex
         imageEB(:,:,iImage) = movieData.channels_(i).loadImage(iImage);
     end
     
-    %call function to estimate spindle axis
-    [spindleAxisVec,poleInfo] = getSpindleAxisEB(imageEB,'doPlot',p.doPlot); %#ok<ASGLU,NASGU>
+    %call function to detect spindle poles
+    poleInfo = detectSpindlePolesEB(imageEB,'doPlot',p.doPlot,'numPoles',p.numPoles); %#ok<NASGU>
     
     %save each projData in its own directory
-    save(outFilePaths{1,i},'spindleAxisVec','poleInfo')
+    save(outFilePaths{1,i},'poleInfo')
     
 end
 

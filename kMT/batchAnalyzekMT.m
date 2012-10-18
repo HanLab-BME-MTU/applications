@@ -1,6 +1,6 @@
 % List all TIFF files in the main folder
 if strcmp(getenv('USER'),'kj35')
-    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/metaMoviesNewAnalysis';
+    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/testMovie15';
 elseif strcmp(getenv('USER'),'sebastien')
     mainFolder = fullfile(getenv('HOME'),'Documents','Julie','testMovie15');
 end
@@ -43,7 +43,7 @@ if resetAnalysis
         MD(i).getPackage(1).createDefaultProcess(2);
         
         % Create spindle axis and sister grouping processes
-        MD(i).addProcess(SpindleAxisEBProcess(MD(i)));
+        MD(i).addProcess(SpindlePolesEBProcess(MD(i)));
         MD(i).addProcess(SisterGroupingProcess(MD(i)));
         
         % Create k-EB detection processes
@@ -118,12 +118,13 @@ for i=1:nMovies
     %general
     parseProcessParams(MD(i).getProcess(2),funParams);
     
-    % Spindle axis
+    % Spindle poles
     %general
     funParams = MD(i).getProcess(3).funParams_;
     funParams.ChannelIndex=1; % Derive spindle axis from GFP-EB3 images
     %function-specific
-    funParams.doPlot = 1;    
+    funParams.doPlot = 0;  
+    funParams.numPoles = 2;
     %general
     parseProcessParams(MD(i).getProcess(3), funParams);
     
@@ -136,7 +137,8 @@ for i=1:nMovies
     funParams.maxDist = 20; %pixels
     funParams.minOverlap = 10; %frames
     funParams.useAlignment = 1;
-    funParams.robust = 1;
+    funParams.robust = 0;
+    funParams.associateSis2Pole = 1;
     %general
     parseProcessParams(MD(i).getProcess(4), funParams);
     

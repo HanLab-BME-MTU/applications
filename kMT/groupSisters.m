@@ -1,4 +1,4 @@
-function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,spindleAxisVec,varargin)
+function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,poleInfo,varargin)
 %MAKIGROUPSISTERS groups sister tracks using maximum weigthed matching
 %
 % SYNOPSIS: [sisterList,trackPairs] = groupSisters(tracks,nTimerpoints)
@@ -8,8 +8,8 @@ function [sisterList,trackPairs] = groupSisters(tracks,nTimepoints,spindleAxisVe
 %                   "tracks". Field "planeFit" can be empty.
 %       nTimepoint: a scalar giving the total number of timepoints in the
 %                   movie.
-%       spindleAxisVec: nTimepoint-by-2 array indicating spdinel axis per
-%                       frame. Needed only if useAlignment = 1.
+%       poleInfo  : pole information, in the form of movieInfo. Needed only
+%                   if useAlignment = 1 or associateSis2Pole = 1.
 %       verbose (opt) : 0 - no plotting (default)
 %                       1 - plot 4 frames with sister assignment
 %                       2 - 1 & plot all tracks
@@ -62,6 +62,7 @@ ip.addParamValue('maxDist',20,@isscalar);
 ip.addParamValue('minOverlap',10,@isscalar);
 ip.addParamValue('useAlignment',0,@isscalar);
 ip.addParamValue('robust',0,@isscalar);
+ip.addParamValue('associateSis2Pole',1,@isscalar);
 ip.parse(varargin{:});
 
 % Get optional parameters
@@ -71,15 +72,43 @@ maxDist = ip.Results.maxDist;
 minOverlap = ip.Results.minOverlap;
 useAlignment = ip.Results.useAlignment;
 robust = ip.Results.robust;
+associateSis2Pole = ip.Results.associateSis2Pole;
 
-if useAlignment
-    assert(ismatrix(spindleAxisVec))
+if useAlignment || associateSis2Pole
+    assert(~isempty(poleInfo))
 end
 
 % select tracks whose length is larger than the minimum overlap
 tracksSEL=getTrackSEL(tracks);
 goodTracks = find(tracksSEL(:,3)>=minOverlap);
 nGoodTracks = length(goodTracks);
+
+%get number of poles in spindle and their coordinates
+if useAlignment || associateSis2Pole
+    numPole = size(poleInfo(1).xCoord,1);
+    poleCoord = zeros(nTimepoints,3,numPole);
+    poleCoordTmp = zeros(numPole*nTimepoints,6);
+    poleCoordTmp(:,1:2) = vertcat(poleInfo.xCoord);
+    poleCoordTmp(:,3:4) = vertcat(poleInfo.yCoord);
+    if isfield(poleInfo,'zCoord')
+        poleCoordTmp(:,5:6) = vertcat(poleInfo.zCoord);
+    end
+    poleCoordTmp = poleCoordTmp(:,1:2:end);
+    for iPole = 1 : numPole
+        poleCoord(:,:,iPole) = poleCoordTmp(iPole:numPole:end,:);
+    end
+end
+
+%get spindle axis vector
+if useAlignment && numPole == 2
+    spindleAxisVec = poleCoord(:,:,2) - poleCoord(:,:,1);
+    spindleAxisMag = normList(spindleAxisVec);
+    spindleAxisVec = spindleAxisVec ./ repmat(spindleAxisMag,1,3);
+else
+    spindleAxisVec = [];
+    useAlignment = 0;
+    disp('NOTE: useAlignment disabled because not requested and/or spindle not bipolar')
+end
 
 %% READ TRACK INFORMATION
 
@@ -132,7 +161,7 @@ for jTrack = 1:nGoodTracks % loop cols
             %will be NaN.
             %also get the standard deviation of alpha
             meanAlpha = nanmean(alpha);
-            stdAlpha = nanstd(alpha);
+            stdAlpha = nanstd(alpha); %#ok<NASGU>
             
         end
         
@@ -207,13 +236,15 @@ if ~any(m)
     return;
 end
 
-%% assemble sister information
+%% ASSEMBLE SISTER INFORMATION
 
 nGoodPairs = sum(m);
 sisterList(1:nGoodPairs,1) = ...
     struct('coords1',NaN(nTimepoints,6),'coords2',NaN(nTimepoints,6),...
     'sisterVectors',NaN(nTimepoints,6),'distances',NaN(nTimepoints,2),...
-    'amp1',NaN(nTimepoints,2),'amp2',NaN(nTimepoints,2));
+    'amp1',NaN(nTimepoints,2),'amp2',NaN(nTimepoints,2),...
+    'poleAssign12',NaN(nTimepoints,2),...
+    'vecFromPole1',NaN(nTimepoints,6),'vecFromPole2',NaN(nTimepoints,6));
 
 % write trackPairs. Store: pair1,pair2,cost,dist,var,alignment
 trackPairs = ...
@@ -270,41 +301,96 @@ for i=1:numel(validPairs)
     
 end % loop goodPairs
 
-%% remove extra large distances from sister pairing
+%% ASSOCIATE SISTERS WITH POLES
 
-%KJ: This part seems to be not doing any good for the 2D data
+if associateSis2Pole
+    
+    %assign sisters to poles
+    switch numPole
+        
+        case 1 %monopolar spindle
+            %assume monotelic attachment
+            
+            for iSis = 1 : nGoodPairs
+                
+                %find distance between kinetochores and pole 1
+                distSis1 = nanmean(normList(sisterList(iSis).coords1(:,1:3)-poleCoord(:,:,1)));
+                distSis2 = nanmean(normList(sisterList(iSis).coords2(:,1:3)-poleCoord(:,:,1)));
+                
+                %switch sisters if sister 2 is closer
+                if distSis2 < distSis1
+                    tmp = sisterList(iSis).coords1;
+                    sisterList(iSis).coords1 = sisterList(iSis).coords2;
+                    sisterList(iSis).coords2 = tmp;
+                    sisterList(iSis).sisterVectors = -sisterList(iSis).sisterVectors;
+                    tmp = sisterList(iSis).amp1;
+                    sisterList(iSis).amp1 = sisterList(iSis).amp2;
+                    sisterList(iSis).amp2 = tmp;
+                    trackPairs(iSis,[1 2]) = trackPairs(iSis,[2 1]);
+                end
+                
+                %make assignment
+                sisterList(iSis).poleAssign12(:,1) = 1;
+                
+            end
+            
+        case 2 %bipolar spindle
+            %assume amphitelic attachment
+            
+            for iSis = 1 : nGoodPairs
+                
+                %find distance between kinetochores and pole 1
+                distSis1 = nanmean(normList(sisterList(iSis).coords1(:,1:3)-poleCoord(:,:,1)));
+                distSis2 = nanmean(normList(sisterList(iSis).coords2(:,1:3)-poleCoord(:,:,1)));
+                
+                %switch sisters if sister 2 is closer
+                if distSis2 < distSis1
+                    tmp = sisterList(iSis).coords1;
+                    sisterList(iSis).coords1 = sisterList(iSis).coords2;
+                    sisterList(iSis).coords2 = tmp;
+                    sisterList(iSis).sisterVectors = -sisterList(iSis).sisterVectors;
+                    tmp = sisterList(iSis).amp1;
+                    sisterList(iSis).amp1 = sisterList(iSis).amp2;
+                    sisterList(iSis).amp2 = tmp;
+                    trackPairs(iSis,[1 2]) = trackPairs(iSis,[2 1]);
+                end
+                
+                %make assignment
+                sisterList(iSis).poleAssign12(:,1) = 1;
+                sisterList(iSis).poleAssign12(:,2) = 2;
+                
+            end
+            
+        otherwise %multipolar spindle
+            
+    end
+    
+    %calculate vector connecting each kinetochore to its pole
+    for iSis = 1 : nGoodPairs
+        for iKin = 1 : 2
+            jPole = sisterList(iSis).poleAssign12(:,iKin);
+            poleCoordTmp = NaN(nTimepoints,3);
+            for iPole = 1 : numPole
+                iGood = find(jPole==iPole);
+                poleCoordTmp(iGood,:) = poleCoord(iGood,:,iPole);
+            end
+            eval(['vecTmp = sisterList(iSis).coords' num2str(iKin) '(:,1:3) - poleCoordTmp;'])
+            eval(['vecTmp = [vecTmp sisterList(iSis).coords' num2str(iKin) '(:,4:6)];'])
+            vecTmp(isnan(vecTmp(:,1)),:) = NaN; %#ok<AGROW>
+            eval(['sisterList(iSis).vecFromPole' num2str(iKin) ' = vecTmp;'])
+        end
+    end
+    
+end
 
-% %put all sister distances in one vector
-% % NB: the original makiGroupSisters was slicing the distances using
-% % lastFramenotAna. Maybe this can be passed as a param/value pair
-% sisterDist=arrayfun(@(x) x.distances(:,1),sisterList,'Unif',false);
-% sisterDist = vertcat(sisterDist{:});
-% 
-% % Detect outlier
-% % outlierIndx = detectOutliers(sisterDist,2.5);
-% outlierIndx = detectOutliers(sisterDist,3);
-% [iTime,iPair]=ind2sub([nTimepoints nGoodPairs],outlierIndx);
-% 
-% %remove all distances larger than this maximum distance
-% for i = 1 : numel(iTime)
-%     
-%     
-%     %remove those timepoints from the sister information
-%     sisterList(iPair(i)).coords1(iTime(i),:) = NaN;
-%     sisterList(iPair(i)).coords2(iTime(i),:) = NaN;
-%     sisterList(iPair(i)).sisterVectors(iTime(i),:) = NaN;
-%     sisterList(iPair(i)).distances(iTime(i),:) = NaN;
-%     
-% end %(for iPair = 1 : nGoodPairs/2)
+%% SUB-FUNCTION: READ TRACK INFORMATION
 
-
-%% read track coordinates
 function [coords,coordsStd,amp,ampStd,time,coordIdx] = getTrackData(track)
 
 %get start time and end time of track
 startTime = track.seqOfEvents(1,1);
 endTime = track.seqOfEvents(2,1);
-lifeTime = endTime - startTime + 1;
+lifeTime = endTime - startTime + 1; %#ok<NASGU>
 
 %get coordinates and their standard deviation
 coords = [track.tracksCoordAmpCG(1:8:end)' track.tracksCoordAmpCG(2:8:end)'  track.tracksCoordAmpCG(3:8:end)'];
