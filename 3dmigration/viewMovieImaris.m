@@ -23,6 +23,9 @@ function imarisApp = viewMovieImaris(movieData3D,iChannel,showSteps)
 %       2 - Skeletons (unpruned)
 %       3 - Smoothed Mask surface (mask geometry)
 %       4 - Pruned Skeletons
+%       5 - Cell centermost poitn tracking
+%       6 - Skeleton Tracking
+%
 %   Optional. Default is to display all available steps.
 %
 % Output:
@@ -48,8 +51,10 @@ branchEdgeAppP = [.1 1 .1 0];%Pruned skel edge appaerance
 bodyEdgeAppP = [.1 .1 1 0];%Pruned skel edge appaerance
 bodyCenterAppP = [.1 .1 1 0];%Pruned skel edge appaerance
 bodyCenterSize = 6;%Radius of body-center spot in voxels
+skelTrackApp = [.1 1 1 0];%Skeleton tracks appearance
+skelTrackSize = vertSize+1;%Skeleton tracks spot size
 msApp = [.2 .2 .2 .5];%Mask surface appearance
-nSteps = 5;%Total number of processing steps which can be displayed
+nSteps = 6;%Total number of processing steps which can be displayed
 iProcChan = 1;%The convention is to associate the processing steps which are not channel-specific with the first channel.
 
 
@@ -68,7 +73,10 @@ end
 
 if nargin < 3 || isempty(showSteps)
     showSteps = true(nSteps,1);
+elseif numel(showSteps) ~= 6;
+    error(['"showSteps" must be a ' num2str(nSteps) ' element logical vector!'])
 end
+
 
 %% -------- Init ------ %%
 
@@ -535,4 +543,29 @@ if showSteps(5) && nImages > 1 && ~isempty(iObjTrackProc) && movieData3D.process
     imarisApp.mSurpassScene.AddChild(imarisCentroidSpots);
     
 end
+
+%Display the skeleton tracking
+iSkelTrackProc = movieData3D.getProcessIndex('SkeletonTrackingProcess',1,1);
+if showSteps(6) && nImages > 1 && ~isempty(iSkelTrackProc) && movieData3D.processes_{iSkelTrackProc}.checkChannelOutput(iProcChan)        
+
+    disp('Skeleton tracking found, displaying.')       
+    
+    skelTracks = movieData3D.processes_{iSkelTrackProc}.loadChannelOutput(iProcChan);
+               
+    %Create spots object for skeleton edges
+    imarisSkelTrackSpots = imarisApp.mFactory.CreateSpots;
+    imarisSkelTrackSpots.mName = 'Skeleton Tracking';        
+    imarisSkelTrackSpots.SetColor(skelTrackApp(1),skelTrackApp(2),skelTrackApp(3),skelTrackApp(4));
+    %Add the tracks to the scene as spots with edges
+    nTrackSpots = size(skelTracks.XYZ,1);
+    skelTrackRad = repmat(skelTrackSize,nTrackSpots,1);
+    
+    imarisSkelTrackSpots.Set(skelTracks.XYZ .* pixXY,skelTracks.T-1,skelTrackRad*pixXY);
+    imarisSkelTrackSpots.SetTrackEdges(skelTracks.tEdges-1);
+    imarisApp.mSurpassScene.AddChild(imarisSkelTrackSpots);            
+    
+end
+
+
+
 
