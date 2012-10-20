@@ -168,6 +168,11 @@ if p.PostProcess
     mkClrDir(postDir);
 end
 
+%Check if this movie is an ROI, and if so load the ROI mask.
+if ~isempty(movieData.parent_)
+    roiMask = movieData.getROIMask;
+end
+
 %% ---------- Segmentation ----------%%
 %Go through each image in each channel and create a mask
 
@@ -309,9 +314,20 @@ for iImage = 1:nImages
         currThresh = p.ThresholdValue;
     end
 
+    % ---- ROI Selection ------ %
+    
+    
+    %Check for an ROI...
+    if ~isempty(movieData.parent_)
+        %Remove mask voxels outside of it the specified ROIO                                
+        currMask = currMask & roiMask;
+        
+    end
+    
+    
 
     % ---- Post-Processing if Requested ----- %
-
+           
     if p.PostProcess 
         
         %TEMP - needs to be made a separate option, or just fucking removed

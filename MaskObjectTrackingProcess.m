@@ -55,16 +55,13 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
            if nargin < 2 || isempty(iChan)
                iChan = 1:nChanTot;
            end
-           %Makes sure there's at least one .mat file in the speified
+           %Makes sure there's at least one .mat file in the specified
            %directory
            OK =  arrayfun(@(x)(x <= nChanTot && ...
                              x > 0 && isequal(round(x),x) && ...
                              exist(obj.outFilePaths_{x},'file')),iChan);
                              
-        end
-        function sanityCheck(obj)
-            
-        end
+        end        
                                    
         
     end
@@ -85,6 +82,8 @@ classdef MaskObjectTrackingProcess < ImageAnalysisProcess
             %----Defaults----%
                                         
             funParams.ChannelIndex = 1;
+            funParams.CenterMostPointParams = '';%For storing and passing parameters for centermost point calculation            
+            funParams.MinSize = 50;%Minimum size in voxels of objects to track. Basically useless now since we are restricing everything to singel=cell
             funParams.OutputDirectory = ...
                 [owner.outputDirectory_  filesep 'object_tracking'];
             funParams.BatchMode = false;                                                      

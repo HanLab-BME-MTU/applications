@@ -24,16 +24,13 @@ classdef Channel3D < Channel
         
         %Overloads the default to make sure the owner is 3D
         function setOwner(obj,owner)
-            if isempty(obj.owner_)
-                if isa(owner,'MovieData3D')
+            %TEMP - check that owner is either the object owner or its
+            %parent (for ROIs)
+            if isa(owner,'MovieData3D')
                     obj.owner_ = owner;
-                else
-                    error('The Channel can only be owned by a MovieData3D object!')
-                end
-
             else
-                error('This channel already has an owner, and this property cannot be changed!');
-            end
+                error('The Channel can only be owned by a MovieData3D object!')
+            end            
         end
         
         %---- Sanity Check ----%

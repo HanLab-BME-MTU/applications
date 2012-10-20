@@ -1,9 +1,12 @@
 function batchSub3DMigration(n)
 
-projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/Low_mag_data/test_set_5_10_2012/movieListAll.mat';
+%projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/Low_mag_data/test_set_5_10_2012/movieListAll.mat';
 %projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/CK_and_FH2_data/movieListAll.mat';
 %projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/4D gfpMIIB fix and stain/movieListAll.mat';
 %projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/3Dfixset2-2/movieList.mat';
+%projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/Low_mag_data/4D Low mag1/movieList.mat';
+%projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/Low_mag_data/New data set3_10min 09_2012/movieList.mat';
+projPath = '/files/.retain-snapshots.d7d-w0d/LCCB/nih/Low_mag_data/movieListROIsandUncropped.mat';
 
 ML = MovieList.load(projPath,0);
 

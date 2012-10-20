@@ -10,8 +10,7 @@ classdef MovieData3D < MovieData
         %Image Parameters
                 
         nSlices_                % Number of Z-Slices in a stack.
-        zSpacing_               % Spacing between z-slices, nm
-        
+        zSpacing_               % Spacing between z-slices, nm               
     
     end
     
@@ -65,7 +64,8 @@ classdef MovieData3D < MovieData
             % 4/2011
             %
             
-            mdFileName = 'movieData.mat'; %Name for saving MovieData3d object to disk
+            
+            mdFileName = 'movieData.mat'; %Name for saving MovieData3d object to disk            
                                 
             if nargin < 1 || isempty(channels)
                 channels = Channel3D;
@@ -242,6 +242,27 @@ classdef MovieData3D < MovieData
 
         end
         
+        function addROI(obj,roiMaskPath,outputDirectory,copyProc)
+            % Create a new object using the movie's channels
+            assert(exist(roiMaskPath,'file')==2,'The path to the roi mask does not exist');            
+            roiMovie = MovieData3D(obj.channels_,outputDirectory,obj.pixelSize_ / obj.binning_(1));            
+            copyfields = {'pixelSize_','timeInterval_','numAperture_',...
+                'camBitdepth_','packages_','nFrames_','imSize_',...
+                'nSlices_','zSpacing_','binning_'};
+            if copyProc
+                copyfields{end+1} = 'processes_';
+            end
+            set(roiMovie,copyfields,get(obj,copyfields));
+            
+            % Set toi properties
+            roiMovie.roiMaskPath_=roiMaskPath;
+            roiMovie.parent_=obj;
+            if isempty(obj.rois_)
+                obj.rois_ = roiMovie;
+            else
+                obj.rois_(end+1)=roiMovie;
+            end
+        end
         
         % ------ Set / Get Methods ----- %
         
@@ -256,6 +277,25 @@ classdef MovieData3D < MovieData
                 error('Invalid z-spacing specification. The value must be a positive scalar specifying the z-spacing in nm!')
             end            
             obj.zSpacing_ = zSpacing;
+        end
+        
+        function roiMask=getROIMask(obj)
+            
+            if isempty(obj.roiMaskPath_) || ~exist(obj.roiMaskPath_,'file')
+                error('Invalid or nonexistant ROI for child movieData!!')                
+            end
+           
+            %Since we only allow static rectangular crops currently we
+            %store them as XYZ ranges. Load these and covert to binary
+            %mask.
+            roiMaskCoord = load([obj.roiMaskPath_]);                                    
+            roiMask = false([obj.imSize_ obj.nSlices_]);
+            %Imaris uses X for 1st matrix dimension
+            roiMask(roiMaskCoord.cropX(1):roiMaskCoord.cropX(2),...
+                    roiMaskCoord.cropY(1):roiMaskCoord.cropY(2),...
+                    roiMaskCoord.cropZ(1):roiMaskCoord.cropZ(2)) = true;
+            
+            
         end
         
     end

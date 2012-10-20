@@ -1,4 +1,12 @@
 function [iTipVert,iTipEdge] = findTips(edges,nVerts)
+%FINDTIPS returns the indices of the skeletal elements which are tips (deg=1)
+%
+% [iTipVert,iTipEdge] = findTips(edges,nVerts)
+%
+%Hunter Elliott
+%Sometime between 2009 and 2011...
+%
+
 
 %First, get the degree of each vertex and find tips (deg = 1)
 vDegree = graphVertDegree(edges,nVerts);

@@ -181,6 +181,11 @@ end
 %either case, these are meaningless and problematic.
 [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
 
+%If we're down to only one edge, just stop here
+if size(edges,1) == 1
+    edgeLabels = 2;
+    return
+end
 
 %% -------- Minimum - Length Pruning ------- %%
 %Removes terminal edges (tips) which are shorter than the minimum length
@@ -218,6 +223,12 @@ end
 %This may have introduced degree=2 vertices, so once again we need to
 %remove these
 [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p);
+
+%If we're down to only one edge, just stop here
+if size(edges,1) == 1
+    edgeLabels = 2;
+    return
+end
 
 
 %% --------------- Image - Edge Pruning -------------- %%
@@ -257,6 +268,12 @@ end
 
 %Remove any vertices which are now isolated (not connected by any edge)
 [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
+
+%If we're down to only one edge, just stop here
+if size(edges,1) == 1
+    edgeLabels = 2;
+    return
+end
 
 
 %% ---------------- Surface Curvature Pruning ------------------ %%
@@ -298,6 +315,12 @@ end
 
 %Remove any vertices which are now isolated (not connected by any edge)
 [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
+
+%If we're down to only one edge, just stop here
+if size(edges,1) == 1
+    edgeLabels = 2;
+    return
+end
 
 
 %% ----------- Aspect Ratio Pruningx ------------ %%
@@ -410,6 +433,12 @@ end
 %Remove any vertices which are now isolated (not connected by any edge)
 [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
 
+%If we're down to only one edge, just stop here
+if size(edges,1) == 1
+    edgeLabels = 2;
+    return
+end
+
 
 %% --------------------- Branch / Body Assignment ---------------------- %%
 %Assigns core skeleton elements to the cell body, and the rest as branches.
@@ -481,6 +510,16 @@ nVerts = size(vertices,1);
 
 
 function [vertices,edges,edgePaths,nEdges,nVerts] = removeDegree2Vert(vertices,edges,edgePaths,p)
+
+%If we've pruned the entire skeleton away...
+if isempty(edges)
+    vertices = [];
+    edgePaths = [];
+    nEdges = 0;
+    nVerts = 0;
+    return
+end
+
 
 %First calcualte the degree of each vertex
 vDeg = graphVertDegree(edges,size(vertices,1));
@@ -587,6 +626,11 @@ end
 % end
 
 function [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges)
+
+if isempty(edges) || isempty(vertices)
+    nVert = 0;
+    return
+end
 
 %Remove any vertices which no longer connect to any edges due to pruning
 nVert = size(vertices,1);

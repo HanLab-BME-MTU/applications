@@ -668,6 +668,10 @@ plot(xlim,ones(1,2)*+1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
 xlabel('Time Delay, s')
 ylabel('Autocorrelation')
 
+figName = [p.OutputDirectory filesep 'instantaneous velocity autocorrelation'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])    
 
 
 

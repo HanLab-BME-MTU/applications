@@ -9,7 +9,7 @@ function movieData = track3DMaskObjects(movieData,paramsIn)
 % the objects in the masks for the input movie. This is designed to track
 % small numbers of sparsely distributed objects which have already been
 % segmented. This is VERY simple tracking, and requires that the number of
-% objects in each mask be constant.
+% objects in each currMask be constant.
 % 
 % Input:
 % 
@@ -56,7 +56,7 @@ fName = 'object_tracks'; %String for naming result file
 
 showPlots = false; %Show plots for debugging
 
-minSize = 50;%Minimum object size to track.
+
 
 %% ---- Input ---- %%
 
@@ -77,7 +77,7 @@ if nargin < 2
 end
 
 %Resolve input and default parameters
-p = parseProcessParams(movieData.processes_{iProc},paramsIn);
+[p,cenPtPar] = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 if numel(p.ChannelIndex)>1
     error('This function only supports single-channel tracking!')
@@ -105,7 +105,11 @@ nFrames = movieData.nFrames_;
 mkClrDir(p.OutputDirectory)
 
 %Get pixel aspect ratio for distance calculations
-pixAspect = movieData.zSpacing_ / movieData.pixelSize_;
+pixXY = movieData.pixelSize_;
+pixZ = movieData.zSpacing_;
+pixAspect = pixZ / pixXY;
+
+
 
 %% ----- Detection & Tracking ----- %%
 
@@ -118,14 +122,18 @@ end
 
 for iFrame = 1:nFrames
     
-    mask = tif3Dread([maskDir filesep maskNames{1}{iFrame}]);
+    currMask = tif3Dread([maskDir filesep maskNames{1}{iFrame}]);
     
-    mask = bwareaopen(mask,minSize);
+    currMask = bwareaopen(currMask,p.MinSize);
+    
+    %This makes sure we correctly calculate location given non-cuboidal
+    %voxels
+    currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);
             
     %Since we expect sparse objects, label them using maximal connectivity
     %(which is default).
     if iFrame == 1
-        [labelMask,nObj] = bwlabeln(mask);
+        [labelMask,nObj] = bwlabeln(currMask);
         objTracks = zeros(nFrames,nObj,3);  
         
         if showPlots
@@ -133,28 +141,23 @@ for iFrame = 1:nFrames
             objCols = lines(nObj);
             figure
             hold on    
-            xlim([0 size(mask,2)]);
-            ylim([0 size(mask,1)]);
-            zlim([0 size(mask,3)]);                      
+            xlim([0 size(currMask,2)]);
+            ylim([0 size(currMask,1)]);
+            zlim([0 size(currMask,3)]);                      
             light
             view(-20,60)
         end
         
     else
-        [labelMask,nObjCurr] = bwlabeln(mask);
+        [labelMask,nObjCurr] = bwlabeln(currMask);
         if nObjCurr ~= nObj
-            error(['This function requires that the number of objects in each mask be constant! Different object number found in frame ' num2str(iFrame) ]);            
+            error(['This function requires that the number of objects in each currMask be constant! Different object number found in frame ' num2str(iFrame) ]);            
         end
     end
-            
-    
-    %Get distance transform of mask to find "innermost" point of each
-    %object. Remove mask pixels that touch the image boundary first.
-    mask([1 end],:,:) = false;
-    mask(:,[1 end],:) = false;
-    mask(:,:,[1 end]) = false;    
-    
-    distX = bwdist(~mask);
+                    
+    %Get whole-mask distance transform (all objects) then we will extract
+    %individual objects for centermost point calc
+    distX = bwdist(~currMask);
             
     %Go through each object and find the point furthest from the perimiter,
     %called the "InnerMostPoint" This is used instead of the centroid
@@ -165,17 +168,14 @@ for iFrame = 1:nFrames
         
         %This is the lazy way of having the indices come out right when
         %using max - get the distance transform of only this object
-        tmp = zeros(size(mask));
-        tmp(labelMask == j) = distX(labelMask == j);
+        tmpMask = false(size(currMask));
+        tmpMask(labelMask == j) = true;        
+        tmpDist = zeros(size(currMask));
+        tmpDist(labelMask == j) = distX(labelMask == j);
         
-        [~,iInnermost] = max(tmp(:));
-                
-        [y,x,z] = ind2sub(size(mask),iInnermost);
+        %Find the centermost point
+        objTracks(iFrame,j,:) = centerMostPoint3D(tmpMask,tmpDist,cenPtPar);
         
-        %Scale the z coordinate based on the pixel aspect ratio
-        z = z * pixAspect;
-        
-        objTracks(iFrame,j,:) = [x y z];                
         
         if showPlots
            plot3(x,y,z,'.','MarkerSize',10,'Color',objCols(j,:))         
@@ -220,6 +220,7 @@ if ~p.BatchMode && ishandle(wtBar)
 end
 
 
+movieData.processes_{iProc}.setPara(p);
 outName = [p.OutputDirectory filesep fName '.mat'];
 save([p.OutputDirectory filesep fName '.mat'],'objTracks');
 movieData.processes_{iProc}.setOutFilePath(p.ChannelIndex,outName);

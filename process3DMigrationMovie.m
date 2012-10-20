@@ -154,9 +154,11 @@ runStep = true(1,nSteps);
 
 for iStep = 1:nSteps
     
+    %Check if this step has been successfully run previously
+    iCurrProc = movieData.getProcessIndex(processNames{iStep},1,~p.BatchMode);      
+        
     if p.ForceRun(iStep) == 0
-        %Check if this step has been successfully run previously
-        iCurrProc = movieData.getProcessIndex(processNames{iStep},1,~p.BatchMode);      
+        
         if ~isempty(iCurrProc) && movieData.processes_{iCurrProc}.checkChannelOutput(p.ChannelIndex)
 
             %If different parameters have been specified, run it anyways
@@ -165,7 +167,12 @@ for iStep = 1:nSteps
         end
     elseif p.ForceRun(iStep) == 1
         runStep(iStep) = true;    
-    end
+    end        
+    
+    %Run the process sanity check.
+    if runStep(iStep) == true && ~isempty(iCurrProc)
+        movieData.processes_{iCurrProc}.sanityCheck
+    end    
     
 end
 

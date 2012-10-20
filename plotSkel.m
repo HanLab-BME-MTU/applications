@@ -1,4 +1,17 @@
-function varargout = plotSkel(vertices,edgePaths,edgeLabels,mask)
+function varargout = plotSkel(vertOrStruct,edgePaths,edgeLabels,mask,edgeCols)
+
+%Um... add some documentation... sometime, like when you have some free
+%time and would rather add documentation to your functions than do
+%something fun or relaxing. Yeah, that would be a good time. Then.
+
+
+if isstruct(vertOrStruct)
+    vertices = vertOrStruct.vertices;
+    edgePaths = vertOrStruct.edgePaths;
+    edgeLabels = vertOrStruct.edgeLabels;
+else
+    vertices = vertOrStruct;
+end
 
 
 if nargout > 0
@@ -9,19 +22,30 @@ if nargin > 3 && ~isempty(mask)
     show3DMask(mask);
 end
 
+nEdges = numel(edgePaths);
+if nargin < 3 || isempty(edgeLabels)
+    edgeLabels = ones(nEdges,1);
+end
+
+if nargin < 5 || isempty(edgeCols)
+    edgeCols = jet(nEdges);
+    singleCol = false;
+elseif size(edgeCols,1) == 1
+    singleCol = true;
+    edgeCols = repmat(edgeCols,nEdges,1);
+end
+
 for j = 1:size(vertices,1)    
-    text(vertices(j,2),vertices(j,1),vertices(j,3),num2str(j),'Color','k')
+    if ~singleCol
+        text(vertices(j,2),vertices(j,1),vertices(j,3),num2str(j),'Color','k')
+    else
+        text(vertices(j,2),vertices(j,1),vertices(j,3),num2str(j),'Color',edgeCols(1,:))
+    end
     if j == 1
         hold on
     end
 end
 
-nEdges = numel(edgePaths);
-edgeCols = jet(nEdges);
-
-if nargin < 3 || isempty(edgeLabels)
-    edgeLabels = ones(nEdges,1);
-end
 
 for j = 1:numel(edgePaths)
     if ~isempty(edgePaths{j})

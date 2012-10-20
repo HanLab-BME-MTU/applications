@@ -25,12 +25,19 @@ function postProcess3DMovieArrayPrunedSkeletons(MA,varargin)
 
 perMovDirName = 'pruned skeleton post processing';%Directory for saving individual move results in movie output directory
 
+outFileName = 'pruned skeleton post processing.mat';%For saving results that are calculated here
+outVars = {};
+
 %Print options for saving figures to disk
 pOpt = {'-r300',...% dpi = 300
         '-depsc2'};% use eps format
 pOptTIFF = {'-r100','-dtiff'};%150 dpi for TIF format since this is usally just used for emailing to Bob!
    
+
 iProcChan = 1;
+
+nBins2D = 50; %Number of bins for 2D histogram/pdfs
+pct2D = 67.5; %Percentile to outline in 2D hist plots. This is ~ STD
     
 %% ------------- Input ------------ %%
 
@@ -398,21 +405,21 @@ end
 subplot(2,1,1)
 bar(combMean)
 hold on
-errorbar(combMean,combSTD,'.r')
+errorbar(combMean,combSTD * 1.96 ./ sqrt(nMovies),'.r')
 set(gca,'XTickLabel',histBins)
 xlabel('Branch Point Degree')
 ylabel('Average Count Per Frame')
-title('Branch point degree distribution, average per-frame')
+title('Branch point degree distribution, average per-frame and ~95% C.I.')
 subplot(2,1,2)
 combProbDist = nanmean(meanHist ./ repmat(sum(meanHist,2),[1 numel(histBins)]),1);
 combProbSTD = nanstd(meanHist ./ repmat(sum(meanHist,2),[1 numel(histBins)]),[],1);
 bar(combProbDist)
 hold on
-errorbar(combProbDist,combProbSTD,'.r')
+errorbar(combProbDist,combProbSTD * 1.96 ./ sqrt(nMovies),'.r')
 set(gca,'XTickLabel',histBins)
 xlabel('Branch Point Degree')
 ylabel('Average Probability')
-title({'Branch point degree probability distribution, all movies',['n=' num2str(nMovies)]})
+title({'Branch point degree probability distribution, all movies & ~95% C.I.',['n=' num2str(nMovies)]})
 
 
 figName = [p.OutputDirectory filesep 'Combined Branch Degree Distribution'];
@@ -477,7 +484,7 @@ figure
 subplot(2,1,1)
 bar(combPathLenBins,mean(combPathHist,1))
 hold on
-%errorbar(combPathLenBins,mean(combPathHist,1),std(combPathHist,[],1),'.r')
+errorbar(combPathLenBins,mean(combPathHist,1),std(combPathHist,[],1)*1.96 / sqrt(nMovies),'.r')
 title({'Combined Tip-To-Body Path-Length Probability Distribution, All Movies',['n=' num2str(nMovies)]})
 xlabel('Path Length, microns')
 ylabel('Average Probability')
@@ -485,7 +492,7 @@ ylabel('Average Probability')
 subplot(2,1,2)
 bar(combPathNBins,mean(combPathNHist,1))
 hold on
-%errorbar(combPathNBins,mean(combPathNHist,1),std(combPathNHist,[],1),'.r')
+errorbar(combPathNBins,mean(combPathNHist,1),std(combPathNHist,[],1) * 1.96 / sqrt(nMovies),'.r')
 title('Combined Tip-To-Body Path Complexity Probability Distribution, All Movies')
 xlabel('Path Complexity, # of Vertices')
 ylabel('Average Probability')
@@ -495,10 +502,13 @@ print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
-% -------------- Combined Radius Vs. Distance Data --------------- %
+
+outVars = [outVars{:} {'combPathLenBins','combPathHist','combPathNBins','combPathNHist','combPathHist','combPathNHist'}];
+
+%% -------------- Combined Radius Vs. Distance Data --------------- %
 
 figure
-
+hold on
 allDists = cell(nMovies,1);
 allHasDists = cell(nMovies,1);
 allRad = cell(nMovies,1);
@@ -515,16 +525,35 @@ end
 allDists = vertcat(allDists{:});
 allRad = vertcat(allRad{:});
 
-[N,C] = hist3([allDists allRad],[50 50]);
+histEdgesDist = linspace(min(allDists(:)),max(allDists(:))+eps,nBins2D+1);
+histEdgesRad = linspace(min(allRad(:)),max(allRad(:))+eps,nBins2D+1);
+
+[distRad2DHist,distRad2DBins] = hist3([allDists allRad],'Edges',{histEdgesDist histEdgesRad});
+
+meanAllRadPerDist = nan(nBins2D,1);
+rangeAllRadPerDist = nan(nBins2D,2);
+for j = 1:nBins2D
+    
+    meanAllRadPerDist(j) = nanmean(allRad(allDists >= histEdgesDist(j) & allDists < histEdgesDist(j+1)));
+    rangeAllRadPerDist(j,:) = prctile(allRad(allDists >= histEdgesDist(j) & allDists < histEdgesDist(j+1)),[(100-pct2D)/2  100-(100-pct2D)/2]);
+    
+end
                 
-imagesc(C{1},C{2},log(N')),axis xy        
-xlim([min(C{1}) max(C{1})])
-ylim([min(C{2}) max(C{2})])
+imagesc(distRad2DBins{1},distRad2DBins{2},log(distRad2DHist')),axis xy
+xlim([min(distRad2DBins{1}) max(distRad2DBins{1})])
+ylim([min(distRad2DBins{2}) max(distRad2DBins{2})])
 title({'Distance along skeleton from centermost point',...
         'vs. radius, Log10 of histogram',...
         ['all cells, n=' num2str(nMovies)]});
 xlabel('Distance, nm')
 ylabel('Radius, nm')        
+colormap gray
+hold on
+plot(distRad2DBins{1}(1:end-1),meanAllRadPerDist,'r');
+plot(distRad2DBins{1}(1:end-1),rangeAllRadPerDist(:,1),'--r');
+legend('Mean',['Center ' num2str(pct2D) '%']);
+plot(distRad2DBins{1}(1:end-1),rangeAllRadPerDist(:,2),'--r');
+
 figName = [p.OutputDirectory filesep 'Combined Distance vs Radius Distribution'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
@@ -534,4 +563,15 @@ hgsave([figName '.fig'])
 if p.BatchMode
     close all
 end
+
+%% ---------- Save Output ------ %%
+
+outFile = [p.OutputDirectory filesep outFileName];
+
+outVars = [outVars{:} {'distRad2DHist','distRad2DBins','meanAllRadPerDist','rangeAllRadPerDist','pct2D','histEdgesDist','histEdgesRad'}];
+
+save(outFile,outVars{:});
+
+
+
 
