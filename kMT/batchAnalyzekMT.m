@@ -147,7 +147,8 @@ for i=1:nMovies
     funParams = MD(i).getProcess(5).funParams_;
     funParams.ChannelIndex=1; % Detect GFP-EB3 signal
     %function-specific
-    funParams.radiusEB = 7; %pixels
+    funParams.radiusEB = 5; %pixels
+    funParams.lengthAlongMT = 10;
     %general
     parseProcessParams(MD(i).getProcess(5), funParams);
 

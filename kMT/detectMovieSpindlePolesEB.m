@@ -21,10 +21,10 @@ if isempty(iProc)
     movieData.addProcess(SpindlePolesEBProcess(movieData));
 end
 
-axisProc = movieData.processes_{iProc};
+poleProc = movieData.processes_{iProc};
 
 %Parse input, store in parameter structure
-p = parseProcessParams(axisProc,paramsIn);
+p = parseProcessParams(poleProc,paramsIn);
 
 %% --------------- Initialization ---------------%%
 
@@ -33,7 +33,7 @@ inFilePaths = cell(1,numel(movieData.channels_));
 for i = p.ChannelIndex
     inFilePaths{1,i} = movieData.getChannelPaths{i};
 end
-axisProc.setInFilePaths(inFilePaths);
+poleProc.setInFilePaths(inFilePaths);
 
 % Set up the output file
 outFilePaths = cell(1,numel(movieData.channels_));
@@ -41,7 +41,7 @@ for i = p.ChannelIndex
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
 end
 mkClrDir(p.OutputDirectory);
-axisProc.setOutFilePaths(outFilePaths);
+poleProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Spindle pole detection ---------------%%% 
 
