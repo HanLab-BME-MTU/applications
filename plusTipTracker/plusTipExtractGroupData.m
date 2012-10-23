@@ -23,7 +23,7 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 %Input check
 ip = inputParser;
 isML = isa(groupList, 'MovieList');
-ip.addRequired('groupList', @(x)iscell(x) || isML(x) || isempty(x));
+ip.addRequired('groupList', @(x) iscell(x) || isML || isempty(x));
 ip.addOptional('remBegEnd', 1, @isscalar);
 ip.parse(groupList, varargin{:})
 remBegEnd=ip.Results.remBegEnd;

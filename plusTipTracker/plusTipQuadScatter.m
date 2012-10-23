@@ -224,7 +224,7 @@ for iGroup=1:nGrps
         else
             movie = groupList(iGroup).getMovies{iSub};
             
-            iDetProc = movie.getProcessIndex('DetectionTrackingProcess',1,0);
+            iDetProc = movie.getProcessIndex('DetectionProcess',1,0);
             detProc = movie.getProcess(iDetProc);
             if isa(detProc, 'CometDetectionProcess');
                 detectionRange = [detProc.funParams_.firstFrame detProc.funParams_.lastFrame];
