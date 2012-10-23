@@ -1,4 +1,4 @@
-function corrMoviesEBtoKinDynamics(movieDataOrList,varargin)
+function corrMoviesEBtoKinDynamics(movieObject,varargin)
 %CORRMOVIESEBTOKINDYNAMICS correlates EB signal at kinetochores to kinetochore dynamics
 %
 %Khuloud Jaqaman, 10/2012
@@ -7,15 +7,15 @@ function corrMoviesEBtoKinDynamics(movieDataOrList,varargin)
 %Check input
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('movieDataOrList', @(x) (isa(x,'MovieData')||isa(x,'MovieList')));
+ip.addRequired('movieObject', @(x) isa(x,'MovieObject'));
 ip.addOptional('paramsIn',[], @isstruct);
-ip.parse(movieDataOrList,varargin{:});
+ip.parse(movieObject,varargin{:});
 paramsIn=ip.Results.paramsIn;
 
 %determine whether what is input is of type MovieData or MovieList
-if isa(movieDataOrList,'MovieList')
+if isa(movieObject,'MovieList')
     inputList = 1;
-    numCell = length(movieDataOrList.movieDataFile_);
+    numCell = length(movieObject.movieDataFile_);
 else
     inputList = 0;
     numCell = 1;
@@ -23,12 +23,12 @@ end
 
 %Get the indices of any previous EB-kin correlation processes
 %If the process doesn't exist, create it
-iProc = movieDataOrList.getProcessIndex('CorrEBtoKinDynamicsProcess',1,0);
+iProc = movieObject.getProcessIndex('CorrEBtoKinDynamicsProcess',1,0);
 if isempty(iProc)
-    iProc = numel(movieDataOrList.processes_)+1;
-    movieDataOrList.addProcess(CorrEBtoKinDynamicsProcess(movieDataOrList));
+    iProc = numel(movieObject.processes_)+1;
+    movieObject.addProcess(CorrEBtoKinDynamicsProcess(movieObject));
 end
-corrProc = movieDataOrList.processes_{iProc};
+corrProc = movieObject.processes_{iProc};
 
 %Parse input, store in parameter structure
 p = parseProcessParams(corrProc,paramsIn);
@@ -46,7 +46,7 @@ if inputList
     
     for iCell = 1 : numCell
         
-        movieData = MovieData.load(movieDataOrList.movieDataFile_{iCell});
+        movieData = movieObject.getMovies{iCell};
         
         %EB detection
         iEBDetProc = movieData.getProcessIndex('KEBDetectionProcess',1,1);
@@ -83,11 +83,11 @@ if inputList
 else
     
     %EB detection
-    iEBDetProc = movieDataOrList.getProcessIndex('KEBDetectionProcess',1,1);
+    iEBDetProc = movieObject.getProcessIndex('KEBDetectionProcess',1,1);
     
     assert(~isempty(iEBDetProc),['EB detection has not been run! '...
         'Please run EB detection prior to correlating it with kinetochore dynamics!'])
-    ebDetProc = movieDataOrList.processes_{iEBDetProc};
+    ebDetProc = movieObject.processes_{iEBDetProc};
     
     ebChan = find(ebDetProc.checkChannelOutput);
     
@@ -99,11 +99,11 @@ else
     inFilePaths{1,1} = ebDetProc.outFilePaths_{1,ebChan};
     
     %spindle pole
-    iPoleProc = movieDataOrList.getProcessIndex('SpindlePolesEBProcess',1,1);
+    iPoleProc = movieObject.getProcessIndex('SpindlePolesEBProcess',1,1);
     
     assert(~isempty(iPoleProc),['Spindle poles have not been detected! '...
         'Please run spindle pole detection prior to correlating EB signal with kinetochore dynamics!'])
-    poleProc = movieDataOrList.processes_{iPoleProc};
+    poleProc = movieObject.processes_{iPoleProc};
     
     assert(all(poleProc.checkChannelOutput(ebChan)),...
         ['Missing spindle pole output! Please detect spindle poles before ' ...
