@@ -20,10 +20,9 @@ end
 %NOTE: space units = pixels
 %       time units = frames
 
-% kEB-kin dynamics correlation
+% kEB-kDynamics correlation
 %general
 funParams = ML.getProcess(1).funParams_;
-funParams.ChannelIndex=1; % Detect GFP-EB3 signal
 %function-specific
 funParams.minDisp = 0.5; %pixels
 %general
