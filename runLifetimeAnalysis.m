@@ -83,10 +83,14 @@ res = struct([]);
 %==============================================================
 maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
 
-% Rescale EDFs (correction for expression level)
-[a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
-print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
-
+if nd>1
+    % Rescale EDFs (correction for expression level)
+    [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
+    print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
+else
+    a = 1;
+end
+    
 % apply intensity scaling
 for i = 1:nd
     lftData(i).A = lftData(i).A(:,1:movieLength,:);
