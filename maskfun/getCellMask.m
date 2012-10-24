@@ -130,6 +130,8 @@ boundary = zeros(data.imagesize);
 boundary(sub2ind(data.imagesize, B(:,1), B(:,2))) = 1;
 % boundary(borderIdx) = 1;
 CC = bwconncomp(1-boundary, 4);
+mask(CC.PixelIdxList{1}) = mode(double(mask(CC.PixelIdxList{1})));
+mask(CC.PixelIdxList{2}) = mode(double(mask(CC.PixelIdxList{2})));
 
 % mask indexes
 labels = double(labelmatrix(CC));
