@@ -103,41 +103,41 @@ if ~isempty(lmin)
         min0 = lmin(idx);
         T = xi(min0);
         mask = g>T;
+        
+        nx = data.imagesize(2);
+        ny = data.imagesize(1);
+        borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
+        
+        % retain largest connected component
+        if connect
+            CC = bwconncomp(mask, 8);
+            compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
+            mask = zeros(data.imagesize);
+            mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
+        end
+        
+%         % fill holes (retain largest boundary)
+%         B = bwboundaries(mask);
+%         nb = cellfun(@(i) numel(i), B);
+%         B = B{nb==max(nb)};
+%         boundary = zeros(data.imagesize);
+%         boundary(sub2ind(data.imagesize, B(:,1), B(:,2))) = 1;
+%         % boundary(borderIdx) = 1;
+%         CC = bwconncomp(1-boundary, 4);
+%         mask(CC.PixelIdxList{1}) = mode(double(mask(CC.PixelIdxList{1})));
+%         mask(CC.PixelIdxList{2}) = mode(double(mask(CC.PixelIdxList{2})));
+%         
+%         % mask indexes
+%         labels = double(labelmatrix(CC));
+%         idx = unique(mask.*labels);
+%         mask = boundary | ismember(labels, idx(2:end));%labels==idx(2);
+           
     else
         mask = ones(data.imagesize);
     end
 else
     mask = ones(data.imagesize);
 end
-
-nx = data.imagesize(2);
-ny = data.imagesize(1);
-borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
-
-% retain largest connected component
-if connect
-    CC = bwconncomp(mask, 8);
-    compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
-    mask = zeros(data.imagesize);
-    mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
-end
-
-% fill holes (retain largest boundary)
-B = bwboundaries(mask);
-nb = cellfun(@(i) numel(i), B);
-B = B{nb==max(nb)};
-boundary = zeros(data.imagesize);
-boundary(sub2ind(data.imagesize, B(:,1), B(:,2))) = 1;
-% boundary(borderIdx) = 1;
-CC = bwconncomp(1-boundary, 4);
-mask(CC.PixelIdxList{1}) = mode(double(mask(CC.PixelIdxList{1})));
-mask(CC.PixelIdxList{2}) = mode(double(mask(CC.PixelIdxList{2})));
-
-% mask indexes
-labels = double(labelmatrix(CC));
-idx = unique(mask.*labels);
-mask = boundary | ismember(labels, idx(2:end));%labels==idx(2);
-
 
 if showHist
     dx = xi(2)-xi(1);
