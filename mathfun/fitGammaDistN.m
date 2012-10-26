@@ -2,7 +2,7 @@
 % Implements the form corresponding to convolution of 'n' steps with rate 'k'
 
 % samples is a cell array
-function [k, n, x, f, a] = fitGammaDistN(samples)
+function [k, n, x, f, F, a] = fitGammaDistN(samples)
 
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e4, ...
@@ -37,11 +37,13 @@ n = p(2:end);
 x = linspace(0, x_ecdf{nd}(end), 1000);
 a = ones(1,nd);
 f = cell(1,nd);
+F = cell(1,nd);
 for i = 1:nd
     % area corresponding to data
     a(i) = 1-gammainc(k*x_ecdf{i}(1),n(i), 'lower');
     % pdf
     f{i} = k^n(i)*x.^(n(i)-1).*exp(-k*x)/gamma(n(i));
+    F{i} = gammainc(k*x,n(i), 'lower');
 end
 
 
@@ -55,8 +57,8 @@ v = cell(1,nd);
 for i = 1:nd
     cdf = gammainc(k*x_ecdf{i},n(i), 'lower');
     % normalization for missing data
-    T = cdf(1);
-    cdf = (cdf-T)/(1-T);
+%     T = cdf(1);
+%     cdf = (cdf-T)/(1-T);
     v{i} = cdf - f_ecdf{i};
 end
 v = vertcat(v{:});
