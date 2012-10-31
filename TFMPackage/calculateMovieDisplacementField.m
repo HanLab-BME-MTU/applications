@@ -114,7 +114,7 @@ disp('Starting calculating displacement field...')
 disp('Detecting beads in the reference frame...')
 sigmaPSF = movieData.channels_(1).psfSigma_;
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha);
-beads = [pstruct.x' pstruct.y'];
+beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
 % Subsample detected beads ensuring beads are separated by at least half of
 % the correlation length
