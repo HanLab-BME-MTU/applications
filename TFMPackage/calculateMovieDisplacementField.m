@@ -149,7 +149,7 @@ for j= firstFrame:nFrames
     if ~isempty(iSDCProc)
         currImage = double(SDCProc.loadChannelOutput(p.ChannelIndex(1),j));
     else
-        currImage = double(movieData.channel_(p.ChannelIndex(1)).loadImage(j));
+        currImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(j));
     end
     % Exclude all beads which are less  than half the correlation length 
     % away from the padded border. By default, no centered template should 

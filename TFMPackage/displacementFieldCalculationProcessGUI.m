@@ -137,7 +137,7 @@ else
 end
 
 % Retrieve reference frame path
-if strcmpi(get(handles.edit_referenceFramePath,'String'),'on')
+if strcmpi(get(handles.edit_referenceFramePath,'Enable'),'on')
     funParams.referenceFramePath=get(handles.edit_referenceFramePath,'String');
     if isempty(funParams.referenceFramePath)
         errordlg('Please select a reference frame.','Setting Error','modal')
