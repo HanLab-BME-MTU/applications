@@ -63,7 +63,11 @@ classdef KineticAnalysisProcess < DataProcessingProcess
                 s = load(kineticMapFile);
                 for j=1:numel(output)
                     if strcmp(output{j},'netMap')
-                        varargout{j}{i} = s.polyMap+s.depolyMap;
+                        pIndex = isnan(s.polyMap);
+                        dIndex = isnan(s.depolyMap);
+                        varargout{j}{i} = s.polyMap + s.depolyMap;
+                        varargout{j}{i}(~pIndex & dIndex) =  s.polyMap(~pIndex & dIndex);
+                        varargout{j}{i}(pIndex & ~dIndex) =  s.depolyMap(pIndex & ~dIndex);
                     else
                         varargout{j}{i} = s.(output{j});
                     end

@@ -84,6 +84,10 @@ for i=1:nMaps
     kinMap2C{i}(:,:,1)=polyMap{i}/mx;
     kinMap2C{i}(:,:,2)=abs(depolyMap{i})/mx;
     
+    % Use NaN in mpas for undetected events
+    polyMap{i}(polyMap{i} == 0) = NaN;
+    depolyMap{i}(depolyMap{i} == 0) = NaN;
+    
     % Update waitbar if applicable
     if mod(i,round(nMaps/20))==1 && ishandle(wtBar),
         waitbar(i/nMaps,wtBar); 
