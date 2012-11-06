@@ -64,7 +64,7 @@ if isempty(imageFileListing)
 end
 
 %get masks
-maskDir = [MD.movieDataPath_ filesep 'refined_masks' filesep 'refined_masks_for_channel_1'];
+maskDir = MD.processes_{2}.outFilePaths_{1};
 maskFileListing = dir([maskDir filesep '*.tif']);
 if isempty(maskFileListing)
     maskFileListing = dir([maskDir filesep '*.tiff']);
@@ -108,7 +108,7 @@ for iFrame = 1 : numFramesMovie
     
     %plot cell image + mask
     axes('Position',[0 0 0.495 1]);
-    imshow(imageStack,[]);
+    imshow(imageStack,[prctile(imageStack(:),5) prctile(imageStack(:),95)]);
     hold on;
     maskBounds = bwboundaries(maskStack1);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);

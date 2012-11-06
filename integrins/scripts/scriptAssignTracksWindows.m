@@ -3,7 +3,7 @@ for i = 21 : length(movieStructAlphaV);
     
     disp(num2str(i))
     
-    if movieStructAlphaV(i).activityLevel > 1
+    if movieStructAlphaV(i).activityLevel > 1 && i ~= 16
         
         topDir = movieStructAlphaV(i).fileName{1};
         cd([topDir '/analysisAlphaV/furtherAnalysis'])
@@ -17,7 +17,7 @@ for i = 21 : length(movieStructAlphaV);
         
         firstWindowFile = [topDir '/analysisCellEdgeSmall2/windows/windows_frame__frame_01.mat'];
         windowsAll = putWindowsTogether(firstWindowFile);
-        load ../../../analysisCellEdgeSmall2/protrusion_samples/protrusion_samples.mat
+        load ../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
         
         load ../tracksDiffusionLength5InMask.mat
         

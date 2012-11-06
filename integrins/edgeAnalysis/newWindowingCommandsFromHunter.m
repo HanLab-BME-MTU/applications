@@ -1,6 +1,9 @@
-%setup movieData object
-movieSelectorGUI
-movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120828_Cs1C4/analysisCellEdgeSmall3';
+%setup movieData object and fake-analyze to set up the results paths
+%correctly
+segmentationPackageGUI
+
+%load movieData object
+movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncAndCellEdge/121011_Cs3C2_Av717Trunc/analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
@@ -9,37 +12,41 @@ close all
 
 %get cell mask
 threshParam = struct(...
-    'GaussFilterSigma',0,...
+    'GaussFilterSigma',1,...
     'MethodIndx',1,...
-    'ThresholdValue',1200);
+    'ThresholdValue',thresholdValue);
 MD = thresholdMovie(MD,threshParam);
 
 %refine cell mask
 refinementParam = struct(...
-    'ClusureRadius',0,...
-    'OpeningRadius',0,...
-    'ObjectNumber',Inf);
+    'ClusureRadius',5,...
+    'OpeningRadius',3);
 MD = refineMovieMasks(MD,refinementParam);
-% MD = refineMovieMasks(MD);
+
+%load detection results
+load ../analysisAlphaV717Trunc/tracks/detectionAll1.mat
 
 %make movie of mask on top of particle detections
-%LOAD MOVIEINFO!
-movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesOriginal',[],1);
+movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
+
+%make images from single molecule signal to enhance edge detection
+mkdir imagesSM4Edge
+singleMolSignal4Edges('/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesCellEdge/120907_Cs1C2_CHO_mEos2Av_5minEdgeStack_0001.tif','/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesAlphaV/120907_Cs1C2_CHO_mEos2Av_00002.tif','/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesSM4Edge',400,40)
 
 %refine masks using gradient information
 threshParamEdge = struct(...
     'filterSigma',1.5,...
-    'gradPrctile',[90 85 80],...
+    'gradPrctile',[95 90 85 80],...
     'bandWidth',-1);
 gapCloseParamEdge = struct(...
-    'maxEdgePairDist',9,...
+    'maxEdgePairDist',5,...
     'factorContr',[0 0 0 1],...
     'edgeType',0,...
     'fracImageCell',0.2);
-meanBkg = 250;
-% prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,1,movieInfo,400,meanBkg);
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,[],[],meanBkg);
-save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
+meanBkg = 130;
+smDir = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV724TruncAndCellEdge/120928/120928_Cs2C1/imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,1); %,meanBkg,smDir);
+save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed'); %,'meanBkg');
 
 imtool close all
 
@@ -58,14 +65,31 @@ save('paramSteerableFilterRescue','threshParamEdgeRescue','gapCloseParamEdgeResc
 
 imtool close all
 
-%refine cell mask again with Hunter's code to get back on track
+%run mask refinement to get back on track
 refinementParam2 = struct(...
     'ClosureRadius',0,...
     'OpeningRadius',0);
 MD = refineMovieMasks(MD,refinementParam2);
 
 %make movie of mask on top of particle detections
-%LOAD MOVIEINFO!
+movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesSteerable',[],1);
+
+%fix edges that need fixing manually
+hackathonManualSegmentationGUI
+
+%load movieData object again
+MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
+
+%copy final masks to refined_masks directory
+copyHandMasks2Masks(MD)
+
+%run mask refinement to get back on track
+refinementParam2 = struct(...
+    'ClosureRadius',0,...
+    'OpeningRadius',0);
+MD = refineMovieMasks(MD,refinementParam2);
+
+%make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesFinal',[],1);
 
 %calculate protrusion vectors
