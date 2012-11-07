@@ -72,8 +72,12 @@ userData.previewFig=-1;
 props = get(handles.listbox_selectedChannels, {'UserData','Value'});
 userData.chanIndx = props{1}(props{2});
 set(handles.edit_frameNumber,'String',1);
-set(handles.slider_frameNumber,'Min',1,'Value',1,'Max',userData.nFrames,...
-    'SliderStep',[1/double(userData.nFrames-1)  10/double(userData.nFrames-1)]);
+if userData.nFrames > 1
+    set(handles.slider_frameNumber,'Min',1,'Value',1,'Max',userData.nFrames,...
+        'SliderStep',[1/double(userData.nFrames-1)  10/double(userData.nFrames-1)]);
+else
+    set(handles.slider_frameNumber,'Min',1,'Value',1,'Max',2, 'Enable','off');
+end
 userData.imIndx=1;
 userData.imData=userData.MD.channels_(userData.chanIndx).loadImage(userData.imIndx);
     
