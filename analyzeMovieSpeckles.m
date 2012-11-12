@@ -119,7 +119,6 @@ disp('Starting analyzing speckles...')
 fString = ['%0' num2str(floor(log10(nFrames))+1) '.f'];
 numStr = @(frame) num2str(frame,fString);
 % Anonymous functions for reading input/output
-inImage=@(chan,frame) [imDirs{chan} filesep imageFileNames{chan}{frame}];
 logMsg = @(chan) ['Please wait, analyzing speckles for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'kineticMaps_' numStr(frame) '.mat'];
 
@@ -138,7 +137,7 @@ for i = 1:numel(p.ChannelIndex);
     filteredImages = cell(1,nFrames);
     for j= 1:nFrames        
         %Load the current image and apply Gaussian filter
-        filteredImages{j} = double(imread(inImage(iChan,j)))/maxIntensity;
+        filteredImages{j} = double(movieData.channels_(iChan).loadImage(j))/maxIntensity;
         filterSigma = specDetProc.funParams_.filterSigma(iChan);
         if filterSigma>0
             filteredImages{j} = filterGauss2D(filteredImages{j},filterSigma);
