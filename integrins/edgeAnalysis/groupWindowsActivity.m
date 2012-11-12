@@ -1,9 +1,9 @@
 function sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
-    indxSlices,frameRange)
+    indxSlices,indxFrames)
 %GROUPWINDOWSACTIVITY groups windows based on activity categories
 %
 %SYNPOSIS sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
-%    indxSlices,frameRange)
+%    indxSlices,indxFrames)
 %
 %INPUT  protSample : The protrusion samples as output by the windowing
 %                    software.
@@ -12,8 +12,7 @@ function sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
 %       indxSlices : Vector with indices of windows (i.e. window number 
 %                    along cell edge) to include in analysis.
 %                    Optional. Default: all windows ([]).
-%       frameRange : 2-row vector indicating range of window frames
-%                    to include in analysis.
+%       indxFrames : Vector with indices of frames to include in analysis.
 %                    Optional. Default: all frames ([]).
 %OUTPUT sliceActivityGroup: 27-by-1 structure array with field:
 %            .edgeClassInfo: (number of events)-by-4 array. The 4
@@ -68,16 +67,16 @@ if nargin < 3 || isempty(indxSlices)
     indxSlices = [];
 end
 
-if nargin < 4 || isempty(frameRange)
-    frameRange = [];
+if nargin < 4 || isempty(indxFrames)
+    indxFrames = [];
 end
 
 %% Grouping
 
 %classify the activity of each window at each interval
-sliceMotionTypePause = classifyEdgeMotion(protSamples,doPlot,indxSlices,frameRange,1);
-sliceMotionTypeProt = classifyEdgeMotion(protSamples,doPlot,indxSlices,frameRange,2);
-sliceMotionTypeRetr = classifyEdgeMotion(protSamples,doPlot,indxSlices,frameRange,3);
+sliceMotionTypePause = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,1);
+sliceMotionTypeProt = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,2);
+sliceMotionTypeRetr = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,3);
 
 %get number of window slices
 numSlices = size(sliceMotionTypePause,1);

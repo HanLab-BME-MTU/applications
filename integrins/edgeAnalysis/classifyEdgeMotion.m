@@ -1,9 +1,9 @@
 function [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
-    protSamples,doPlot,indxWindows,frameRange,scheme,savePlotDir)
+    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir)
 %CLASSIFYEDGEMOTION classifies edge motion in each window based on protrusion vector samples
 %
 %SYNPOSIS [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
-%    protSamples,doPlot,indxWindows,frameRange,scheme,savePlotDir)
+%    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir)
 %
 %INPUT  protSamples     : The protrusion samples as output by the windowing
 %                         software.
@@ -15,10 +15,9 @@ function [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
 %                         Optional. Default: 0.
 %       indxWindows     : Vector with indices of windows (i.e. window number 
 %                         along cell edge) to include in analysis.
-%                         Optional. Default: [1 (last window)].
-%       frameRange      : 2-row vector indicating range of window frames
-%                         to include in analysis.
-%                         Optional. Default: [1 (last frame)].
+%                         Optional. Default: all windows.
+%       indxFrames      : Vector with indices of frames to include in analysis.
+%                         Optional. Default: all frames.
 %       scheme          : Classification scheme:
 %                         ** 0 : most detailed, with all pauses retained.
 %                         ** 1 : a bit less detailed, where pauses
@@ -102,8 +101,8 @@ if nargin < 3 || isempty(indxWindows)
     indxWindows = (1:numWindows)';
 end
 
-if nargin < 4 || isempty(frameRange)
-    frameRange = [1 numFrames];
+if nargin < 4 || isempty(indxFrames)
+    indxFrames = (1:numFrames)';
 end
 
 if nargin < 5 || isempty(scheme)
@@ -120,8 +119,8 @@ end
 %to NaN
 indxWinRemove = setdiff((1:numWindows)',indxWindows);
 avgNormal(indxWinRemove,:,:) = NaN;
-avgNormal(:,1:frameRange(1)-1,:) = NaN;
-avgNormal(:,frameRange(2):end,:) = NaN;
+indxFrameRemove = setdiff((1:numFrames)',indxFrames);
+avgNormal(:,indxFrameRemove,:) = NaN;
 
 %assign edge position and protrusion vector standard deviations
 edgePosStd = 1; %in pixels

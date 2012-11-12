@@ -11,8 +11,6 @@ for i = 21 : length(movieStructAlphaV);
         mkdir adaptiveWindows
         cd adaptiveWindows
         
-        sliceRange = movieStructAlphaV(i).sliceRange;
-        frameRange = movieStructAlphaV(i).frameRange;
         lengthMinMax = [5 99];
         
         firstWindowFile = [topDir '/analysisCellEdgeSmall2/windows/windows_frame__frame_01.mat'];

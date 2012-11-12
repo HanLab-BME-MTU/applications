@@ -2,14 +2,14 @@ function [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
     sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
     diffModeAnRes,directTrackChar,winPositions,protSamples,...
     windowTrackAssignExt,windowNumbersAssignExt,lengthMinMax,indxSlices,...
-    frameRange,firstMaskFile,protWinParam)
+    indxFrames,firstMaskFile,protWinParam)
 %sptRelToActivityOnsetAdaptiveWindows calculates single particle behavior in adaptive windows grouped based on edge activity
 %
 %SYNOPSIS [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
 %    sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
 %    diffModeAnRes,directTrackChar,winPositions,protSamples,...
 %    windowTrackAssignExt,windowNumbersAssignExt,lengthMinMax,indxSlices,...
-%    frameRange,firstMaskFile,protWinParam)
+%    indxFrames,firstMaskFile,protWinParam)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -36,8 +36,7 @@ function [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
 %       indxSlices     : Vector with indices of slices (i.e. window number 
 %                        along cell edge) to include in analysis.
 %                        Optional. Default: all windows.
-%       frameRange     : Vector with 2 entries indicating range of window
-%                        frames to include in analysis.
+%       indxFrames     : Vector with indices of frame to include in analysis.
 %                        Optional. Default: all frames.
 %       firstMaskFile  : Name (including full path) of first mask file.
 %                        Optional. If not input, will be asked for.
@@ -174,8 +173,8 @@ if nargin < 10 || isempty(indxSlices)
     indxSlices = (1:numWinPara)';
 end
 
-if nargin < 11 || isempty(frameRange)
-    frameRange = [1 numWinFrames];
+if nargin < 11 || isempty(indxFrames)
+    indxFrames = (1:numWinFrames)';
 end
 
 if nargin < 12 || isempty(firstMaskFile)
@@ -210,7 +209,7 @@ end
 winSize(winSize==0) = NaN;
 
 %group window slices based on activity type
-sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,frameRange);
+sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,indxFrames);
 
 %generate adaptive window combinations
 [protrusionCombinedWindows,posInfoCombinedWindows] = ...
@@ -609,7 +608,7 @@ end %(for iType = 1 : numTypes)
 
 %store analysis parameters in output structure for documentation
 analysisParam.indxSlices = indxSlices;
-analysisParam.frameRange = frameRange;
+analysisParam.indxFrames = indxFrames;
 analysisParam.trackLengthRange = lengthMinMax;
 analysisParam.cellMaskFile1 = firstMaskFile;
 analysisParam.protWinParam = protWinParam;
