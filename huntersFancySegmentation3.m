@@ -1,5 +1,13 @@
-function mask = huntersFancySegmentation3(imageIn,maxResp)
+function mask = huntersFancySegmentation3(imageIn,varargin)
 %THE FINAL CHAPTER!!! THE BEST OF BOTH WORLDS!! PREPARE TO BE AMAZED!!!
+
+ip = inputParser;
+ip.addParamValue('SigmasXY',[1 2 4],@(x)(all(x>=1)));
+ip.addParamValue('SigmasZ',[1 2 4],@(x)(all(x>=1)));
+ip.addParamValue('WeightZ',2,@(x)(numel(x) == 1 && x > 0));
+ip.parse(varargin{:});
+p = ip.Results;
+
 
 
 nSTDintensity = 3;
@@ -8,9 +16,7 @@ nSTDsurface = 2;
 
 showImarisPlots = false;
 
-if nargin < 2 || isempty(maxResp)    
-    maxResp = multiscaleSurfaceFilter3D(imageIn);
-end
+maxResp = multiscaleSurfaceFilter3D(imageIn,p);
 
 [backMean,backSTD] = robustMean(double(imageIn(:)),[],2);
 

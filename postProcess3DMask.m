@@ -1,16 +1,30 @@
-function currMask = postProcess3DMask(currMask,p)
+function currMask = postProcess3DMask(currMask,varargin)
+
+%A bunch of arbitrary, bullshit magical parameter values... that work. Fuck it.
+ip = inputParser;
+ip.addParamValue('MinVolume',25,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('ClosureRadius',2,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('FillDilateDiam',5,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('FillHoles',2,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('FuzzyFillThresh',60,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('CylinderFillDiam',12,@(x)(isposint(x) && numel(x) == 1));
+ip.addParamValue('CylinderFillHt',30,@(x)(isposint(x) && numel(x) == 1));
+ip.parse(varargin{:})
+
+p = ip.Results;
 
 
 %if nargin < 2 || isempty(p)
 %TEMP TEMP TEMP TEMP TEMP dda da da ddddaaa ddddddaaaahahahah!!!     
-p.MinVolume = 10;
-p.ClosureRadius = 3;
-p.FillHoles = 2;
+%p.MinVolume = 10;
+% p.ClosureRadius = 2; %Was default 3 in here but 2 in process. Changed to
+% agree with process
+%p.FillHoles = 2;
 p.NumObjects = 1;
-p.FillDilateDiam = 5;
-p.FuzzyFillThresh = 60;
-p.CylinderFillDiam = 12;
-p.CylinderFillHt = 30;
+%p.FillDilateDiam = 5;
+%p.FuzzyFillThresh = 60;
+%p.CylinderFillDiam = 12;
+%p.CylinderFillHt = 30;
 p.SuppressWalls = 6;
 p.SuppressFloor = 3;
 
@@ -84,7 +98,7 @@ if p.FillHoles
         currMask = double(mFill1)+double(mFill2)+double(mFill3) >= p.FillHoles;                
         
         
-        %TEMP - Cheating - the holes are almost always in the z direction, so we
+        %TEMP - Cheating - the holes are almost always in the zdirection, so we
         %bias the hole filling in this direction
         %currMask = double(mFill1)+double(mFill2)+2*double(mFill3) >= p.FillHoles;                
 

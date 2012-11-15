@@ -49,5 +49,6 @@ for m = 1:M
 end
 
 %FASTER WAY TO DO THIS????
-% maxMat = cat(4,ones(size(mask))*M,ones(size(mask))*M,ones(size(mask))*N,ones(size(mask))*N,ones(size(mask))*P,ones(size(mask))*P);
-% distMat(distMat > maxMat) = maxMat(distMat > maxMat);
+maxMat = cat(4,ones(size(mask))*M,ones(size(mask))*M,ones(size(mask))*N,ones(size(mask))*N,ones(size(mask))*P,ones(size(mask))*P);
+largeNum = sum([M N P])+1;
+distMat(distMat >= maxMat) = largeNum;
