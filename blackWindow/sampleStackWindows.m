@@ -123,11 +123,11 @@ for iSlice = 1:nSlices
                     currSamp = im(winMask(:));
                     
                     %Calculate statistics of this sample
-                    samples(nz).avg(iSlice,iBand) = mean(currSamp);
-                    samples(nz).med(iSlice,iBand) = median(currSamp);
-                    samples(nz).std(iSlice,iBand) = std(currSamp);
-                    samples(nz).min(iSlice,iBand) = min(currSamp);
-                    samples(nz).max(iSlice,iBand) = max(currSamp);
+                    samples(nz).avg(iSlice,iBand) = nanmean(currSamp);
+                    samples(nz).med(iSlice,iBand) = nanmedian(currSamp);
+                    samples(nz).std(iSlice,iBand) = nanstd(currSamp);
+                    samples(nz).min(iSlice,iBand) = nanmin(currSamp);
+                    samples(nz).max(iSlice,iBand) = nanmax(currSamp);
                     samples(nz).n(iSlice,iBand) = numel(currSamp);
                 end
             end            
