@@ -88,7 +88,6 @@ else
         c(idx(i)) = p(2);
     end
 
-
     if ip.Results.Display
         %colorV = rand(nd,3);
         colorV = zeros(nd,3);
@@ -134,16 +133,17 @@ else
         
         % Plot inset with scales
         axPos = fset.axPos;
-        axes(fset.axOpts{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.2*axPos(2) axPos(3)/8 axPos(4)*0.75]);
+        axes(fset.axOpts{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
         hold on;
         plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
         he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
         setErrorbarStyle(he, 0.15);
-        ymax = ceil(max(a)/0.2)*0.2;
-        axis([-0.5 0.5 0 ymax]);
-        ya = 0:0.2:ymax;
-        set(gca, 'TickLength', fset.TickLength/0.75, 'XTick', [], 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), ya(2:end), 'UniformOutput', false)]);
+        ylim = [floor(min(a)/0.2) ceil(max(a)/0.2)]*0.2;
+        axis([-0.5 0.5 ylim]);
+        ya = linspace(ylim(1), ylim(2), 5);
+        set(gca, 'TickLength', fset.TickLength*3, 'XTick', [], 'YTick', ya, 'XColor', 'w',...
+            'YTickLabel', arrayfun(@(x) num2str(x, '%.1f'), ya, 'UniformOutput', false));
         ylabel('Relative scale', fset.sfont{:});
     end
 end
