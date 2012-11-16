@@ -150,6 +150,9 @@ for s = 1:track.nSeg
     lh(2) = fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLight, 'EdgeColor', 'none', 'Parent', ha);
     
+    % plot background s.d.
+    %plot(ha, t, c+track.c_pstd(ch,:), 'k--');
+    
     % plot track
     ampl = A+c;
     if ch==mCh
