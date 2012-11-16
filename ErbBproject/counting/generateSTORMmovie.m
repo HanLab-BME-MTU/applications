@@ -23,6 +23,7 @@ function [stack,emState,settings]=generateSTORMmovie(lambda,kon,koff,kb,varargin
 %   output:
 %         stack -> imSize-by-imSize-by-nCycles*nRep image array
 %       emState -> matrix monitoring emitter state over time
+%      settings -> paramter settings for later analysis
 %
 %   US 2012/11/14
 %
@@ -78,18 +79,35 @@ if kon*tAct >= 1.0 || koff*tExp >= 1.0 || tExp*kb >= 1.0
     error(emsg);
 end
 
+% sigma of PSF: sigma=FWHM*2*sqrt[2*ln(2)]
+sigmaPSF=(lambda/2)/2.35482;
+
+% patch size of Gaussian spot
+sigmaPX=sigmaPSF/pxSize;
+w=4*floor(sigmaPX);
+wg=-w:w;
+[xg,yg]=meshgrid(wg,wg);
+
 % how many emitters??
 if nEmi == 0
     if isempty(pos)
-        nEmi=floor(imSize^2*(pxSize/1000)^2);
-        pos=rand(nEmi,2)*imSize;
+        % if nothing is specified, one emitter per square micron
+        % remote from the border of the image
+        nEmi=floor((imSize-2*(w+1))^2*(pxSize/1000)^2);
+        pos=rand(nEmi,2)*(imSize-2*(w+1))+w+1;
+    else
+        nEmi=numel(pos(:,1));
     end
 else
     if isempty(pos)
-        pos=rand(nEmi,2)*imSize;
+        pos=rand(nEmi,2)*(imSize-2*(w+1))+w+1;
+    else
+        if nEmi ~= numel(pos(:,1))
+            nEmi=min(nEmi,numel(pos(:,1)));
+            pos=pos(1:nEmi,:);
+        end
     end
 end
-
 
 % thermal activation rate is much smaller than the UV induced rate
 kth=kon/1000;
@@ -100,9 +118,7 @@ stack=zeros(imSize,imSize,nCycles*nRep);
 % vector for monitoring state of emitters (OFF=0, ON=1, BLEACHED=2)
 emState=zeros(nEmi,1);
 
-% sigma of PSF: sigma=FWHM*2*sqrt[2*ln(2)]
-sigmaPSF=(lambda/2)/2.35482;
-
+% average amplitude from ngamma photons
 aveAmp=gain*ngamma/(2*pi*(sigmaPSF/pxSize)^2);
 
 % save settings as return variable
@@ -121,12 +137,7 @@ for ne=1:nEmi
     end
 end
 
-% patch size of Gaussian spot
-w=4*floor(sigmaPSF/pxSize);
-wg=-w:w;
-[xg,yg]=meshgrid(wg,wg);
-
-% matrix monitoring state of emitters over time
+% matrix monitoring state of emitters over time, will be returned
 emStateM=NaN(nEmi,nCycles*nRep);
 
 % begin imaging
@@ -151,6 +162,15 @@ for nc=1:nCycles
         emStateM(:,nFrame)=emState;
         
         frame=zeros(imSize,imSize);
+        
+%         idp= emState == 1;
+%         px=pos(idp,1);
+%         py=pos(idp,2);
+%         
+%         np=sum(idp);
+%         amp=aveAmp+sqrt(aveAmp)*randn(np,1);
+%         
+%         frame=simGaussianSpots(imSize,imSize,sigmaPX,'x',px,'y',py,'A',amp,'Border','truncated');
         for ne=1:nEmi
             switch( emState(ne) )
                 % emitter is in ON state
@@ -160,16 +180,29 @@ for nc=1:nCycles
                     yi=round(pos(ne,2));
                     x=pos(ne,1)-xi;
                     y=pos(ne,2)-yi;
+                    % lower/upper bounds in x and y
+                    lbx=max(xi-w,1);
+                    ubx=min(imSize,xi+w);
+                    lby=max(yi-w,1);
+                    uby=min(imSize,yi+w);
                     
-                    xa=max(1,xi-w):min(imSize,xi+w);
-                    ya=max(1,yi-w):min(imSize,yi+w);
+                    % xa=max(1,xi-w):min(imSize,xi+w);
+                    % ya=max(1,yi-w):min(imSize,yi+w);
                     
-                    xaa=xa-xa(1)+1;
-                    yaa=ya-ya(1)+1;
+                    % xaa=xa-xa(1)+1;
+                    % yaa=ya-ya(1)+1;
+                    
+                    wx=(lbx:ubx)-xi;
+                    wy=(lby:uby)-yi;
+                    
+                    [xg,yg]=meshgrid(wx,wy);
                     
                     amp=aveAmp+sqrt(aveAmp)*randn();
-                    g=amp*exp(-((xg-x).^2+(yg-y).^2)/(2*(sigmaPSF/pxSize)^2));
-                    frame(xa,ya)=frame(xa,ya)+g(xaa,yaa);
+                    g = amp*exp(-((xg-x).^2+(yg-y).^2) / (2*sigmaPX^2));
+                    
+                    xa = lbx:ubx;
+                    ya = lby:uby;
+                    frame(ya,xa) = frame(ya,xa) + g;
                     
                     % does emitter turn off or bleach?
                     eta=rand();
@@ -189,6 +222,7 @@ for nc=1:nCycles
                     end
             end
         end
+        % add background and noise
         frame=frame+bg;
         frame=poissrnd(frame);
         stack(:,:,nFrame)=frame;

@@ -16,6 +16,8 @@ function features = analyzeSTORMmovie(stack,settings,varargin)
 %   US 2012/11/15
 %
 
+%warning off;
+
 ip=inputParser;
 ip.CaseSensitive=false;
 ip.StructExpand=false;
@@ -41,7 +43,7 @@ doMMF=ip.Results.doMMF;
 %kon=settings.kon;
 %koff=settings.koff;
 %kb=settings.kb;
-%imSize=settings.imSize;
+imSize=settings.imSize;
 pxSize=settings.pxSize;
 %nEmi=settings.nEmi;
 pos=settings.pos;
@@ -74,11 +76,13 @@ fprintf(1,'\n');
 % display results and compare with true values
 if display
     
+    % p: estimated localizations
     p=extractF(features);
     p=p(:,1:2);
-    
-    plot(pos(:,2),pos(:,1),'ro',p(:,1),p(:,2),'kx');
+    % pos: true localizations
+    plot(pos(:,1),pos(:,2),'ro',p(:,1),p(:,2),'kx');
     set(gca,'DataAspectRatio',[1 1 1]);
+    set(gca,'XLim',[0 imSize],'YLim',[0 imSize]);
 end
 
 end
