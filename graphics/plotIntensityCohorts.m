@@ -210,6 +210,9 @@ if ip.Results.ScaleSlaveChannel
     sf = sf(mCh)./sf;
 end
 
+%output
+cohorts.bounds = cohortBounds;
+
 
 %%
 %==================================================
@@ -217,8 +220,8 @@ end
 %==================================================
 if ~(isfield(res(1), 'sigIdx') && nCh==2)
     
-    figure(fset.fOpts{:}, 'Name', 'Intensity cohorts');
-    axes(fset.axOpts{:});
+    figure(fset.fOpts{:}, 'Name', 'Intensity cohorts', 'Position', [2 2 8 6]);
+    axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
     hold on;
     A = cell(1,nc);
     hp = zeros(1,nc*nCh);
@@ -242,7 +245,7 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
             if ip.Results.ShowVariation
                 hp(c + nc*(ch-1)) = fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
             end
-            plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+            plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
             cohorts.t{c} = cT{c};
             cohorts.Amin{ch,c} = Amin;
             cohorts.Aplus{ch,c} = Aplus;
@@ -252,7 +255,7 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
     for ch = chVec
         % Plot mean/median in front
         %for c = nc:-1:1
-        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
         %end
         
         % Plot signifcance threshold in front
@@ -276,7 +279,7 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
     end
     if ~isempty(ip.Results.ChannelNames)
         hl = legend(hp(floor(nc/2):nc:end), ip.Results.ChannelNames{:});
-        set(hl, 'Box', 'off', 'Position', [6 4.2 1 0.8]);
+        set(hl, 'Box', 'off', 'Position', [6 4.75 1 0.8]);
     end
     xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
@@ -287,7 +290,7 @@ else
     figure(fset.fOpts{:}, 'Position', [2 2 15 5.5], 'Name', 'Intensity cohorts, cargo-positive tracks');
     axes(fset.axOpts{:})
     hold on;
-    A = cell(1,nc);
+    A = cell(nCh,nc);
     % plot slave channel first
     
     for c = nc:-1:1
@@ -311,12 +314,15 @@ else
         if ip.Results.ShowVariation
             fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
         end
-        plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
-
-    %end
-    % plot master channel
-    ch = chVec(1);
-    %for c = nc:-1:1
+        plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+        cohorts.t{c} = cT{c};
+        cohorts.Amin{ch,c} = Amin;
+        cohorts.Aplus{ch,c} = Aplus;
+        cohorts.A{ch,c} = A{ch,c};
+        %end
+        % plot master channel
+        ch = chVec(1);
+        %for c = nc:-1:1
         if nd > 1
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
@@ -335,13 +341,17 @@ else
         if ip.Results.ShowVariation
             fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
         end
-        plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+        cohorts.t{c} = cT{c};
+        cohorts.Amin{ch,c} = Amin;
+        cohorts.Aplus{ch,c} = Aplus;
+        cohorts.A{ch,c} = A{ch,c};
     end
     
     for ch = chVec
         % Plot mean/median in front
         %for c = nc:-1:1
-        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
         %end
         
         % Plot signifcance threshold in front
@@ -404,7 +414,7 @@ else
         if ip.Results.ShowVariation
             fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:), 'HandleVisibility', 'off');
         end
-        hp(c + nc*(ch-1)) = plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        hp(c + nc*(ch-1)) = plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
     end
     % plot master channel
     
@@ -428,13 +438,13 @@ else
         if ip.Results.ShowVariation
             fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:), 'HandleVisibility', 'off');
         end
-        hp(c + nc*(ch-1)) = plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+        hp(c + nc*(ch-1)) = plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
     end
     % Plot mean/median in front   
     %hp = zeros(1,2*nc);
 %     for ch = [2 1]
 %         for c = nc:-1:1
-%             hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1.5);
+%             hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
 %         end
 %     end
     set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);

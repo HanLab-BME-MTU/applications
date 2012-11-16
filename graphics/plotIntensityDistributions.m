@@ -26,12 +26,13 @@ lft = [lft{:}];
 lft(lft<5) = [];
 A = vertcat(A{:});
 
-ivec = 0:3:150;
+%%
+ivec = 0:3:120;
 tvec = 0:10;
 
 fset = loadFigureSettings('print');
 figure(fset.fOpts{:}, 'Name', ip.Results.FigureName);
-iset = [fset.axOpts, 'XTick', 0:5:20, 'XLim', [tvec(1)-0.5 tvec(end)+0.5], 'YLim', [ivec(1) ivec(end)], 'TickLength', fset.TickLength*6/1.8];
+iset = [fset.axOpts, 'XTick', 0:5:20, 'YTick', 0:40:120, 'XLim', [tvec(1)-0.5 tvec(end)+0.5], 'YLim', [ivec(1) ivec(end)], 'TickLength', fset.TickLength*6/1.8];
 
 wx = 1.8;
 wy = 1.6;
@@ -51,13 +52,16 @@ for i = 2:-1:1
         hm = hist3([mv tv], {ivec, tvec});
         % hm = hm./repmat(sum(hm,1), [numel(ivec) 1]);
         imagesc(tvec, ivec, hm);
+        %box on;
         if ip.Results.ShowPct
             hold on;
             stairsXT(tvec, prctile(M,95,1), 'bounds', 'open', 'EdgeColor', 'r');
             stairsXT(tvec, prctile(M,50,1), 'bounds', 'open', 'EdgeColor', 'r');
             stairsXT(tvec, prctile(M,5,1), 'bounds', 'open', 'EdgeColor', 'r');
         end
-        text(tvec(end), ivec(end), ['[' num2str(lb(c)) '...' num2str(ub(c)) '] s'], 'Color', 'w', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', fset.tfont{:})
+        text(tvec(end), 0.975*ivec(end), ['[' num2str(lb(c)) '...' num2str(ub(c)) '] s'],...
+            'Color', 'w', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+            fset.tfont{:}, 'FontWeight', 'bold')
         
         if c==1
             text(tvec(end), 1.2*ivec(end), 'Lifetime cohort', 'Color', 'k', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', fset.tfont{:})
@@ -71,12 +75,17 @@ for i = 2:-1:1
         if i==1 && j==1
             yp = ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
             ypos = get(yp, 'Position');
-            ypos(2) = 170;
+            ypos(2) = 140;
             set(yp, 'Position', ypos);
         end
         if i==1 && j==2
             xlabel('Time (s)', fset.lfont{:});
         end
+        
+        axes(iset{:}, 'Position', [1.5+(j-1)*(wx+d0) 1.5+(i-1)*(wy+d0) wx wy],...
+            'XTick', [], 'YTick', [], 'Color', 'none');
+        box on;
+        
         
         c = c+1;
     end

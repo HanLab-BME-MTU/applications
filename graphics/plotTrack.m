@@ -28,6 +28,7 @@ ip.addParamValue('Legend', 'hide', @(x) any(strcmpi(x, {'show','hide'})));
 ip.addParamValue('Background', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('BackgroundValue', 'zero', @(x) any(strcmpi(x, {'zero', 'data'})));
 ip.addParamValue('Hues', []);
+ip.addParamValue('TrackColor', []);
 ip.addParamValue('Time', 'Track', @(x) any(strcmpi(x, {'Movie', 'Track'})) || isscalar(x));
 ip.addParamValue('XTick', []);
 ip.addParamValue('YTick', []);
@@ -45,6 +46,7 @@ hues = ip.Results.Hues;
 if isempty(hues)
     hues = getFluorophoreHues(data.markers);
 end
+trackColor = ip.Results.TrackColor;
 
 mCh = find(strcmp(data.channels, data.source));
 ch = ip.Results.ch;
@@ -61,11 +63,8 @@ else
 end
 
 % Flags
-% hasStartBuffer = isfield(track, 'startBuffer') && ~isempty(track.startBuffer.A);
-% hasEndBuffer = isfield(track, 'endBuffer') && ~isempty(track.endBuffer.A);
 hasStartBuffer = ~isempty(track.startBuffer);
 hasEndBuffer = ~isempty(track.endBuffer);
-
 
 XLim = ip.Results.XLim;
 
@@ -104,7 +103,9 @@ else
 end
 
 % Color definitions
-trackColor = hsv2rgb([hues(ch) 1 0.8]);
+if isempty(trackColor)
+    trackColor = hsv2rgb([hues(ch) 1 0.8]);
+end
 fillLight = hsv2rgb([hues(ch) 0.4 1]);
 fillDark = hsv2rgb([hues(ch) 0.2 1]);
 fillLightBuffer = hsv2rgb([hues(ch) 0.4 0.85]);
