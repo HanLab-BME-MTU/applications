@@ -39,6 +39,7 @@ ip.addParamValue('OverlayBackground', false, @islogical);
 ip.addParamValue('MarkerSizes', [21 7 2]);
 ip.addParamValue('PlotBuffers', true, @islogical);
 ip.addParamValue('LineWidth', 1);
+ip.addParamValue('BackgroundConfidence', [], @isscalar);
 ip.parse(data, track, varargin{:});
 
 
@@ -234,6 +235,11 @@ if hasEndBuffer && ip.Results.PlotBuffers
     end
 end
 
+if ~isempty(ip.Results.BackgroundConfidence)
+    c = [track.startBuffer.c(ch,:) track.c(ch,:) track.endBuffer.c(ch,:)]-mean(track.c(ch,:));
+    t = [track.startBuffer.t track.t track.endBuffer.t]-track.t(1);
+    plot(t, c+ip.Results.BackgroundConfidence, 'k-');
+end
 
 % legend
 if strcmpi(ip.Results.Legend, 'show')
