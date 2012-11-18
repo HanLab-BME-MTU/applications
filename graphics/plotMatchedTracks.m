@@ -8,6 +8,7 @@ ip.addParamValue('YTick',[]);
 ip.addParamValue('YLim', []);
 ip.addParamValue('XTick',[]);
 ip.addParamValue('XLim',[]);
+ip.addParamValue('Hues', []);
 ip.parse(varargin{:});
 markerSizes = ip.Results.MarkerSizes;
 lineWidth = 0.5;
@@ -15,14 +16,18 @@ YLim = ip.Results.YLim;
 XLim = ip.Results.XLim;
 YTick = ip.Results.YTick;
 XTick = ip.Results.XTick;
+hues = ip.Results.Hues;
+fset = loadFigureSettings(ip.Results.DisplayMode);
 
 dt = data.framerate;
 if isempty(XTick)
     XTick = 0:20:data.movieLength*dt+20;
 end
 
-fset = loadFigureSettings(ip.Results.DisplayMode);
-hues = getFluorophoreHues(data.markers);
+if isempty(hues)
+    hues = getFluorophoreHues(data.markers);
+    hues = [hues hues(2)];
+end
 
 ah = 1.5;
 aw = 3;
@@ -33,10 +38,10 @@ else
     width = masterTrack.t(end)-masterTrack.t(1) +7*dt + 7*dt;
     xscale = width/diff(XLim);
     aw = aw*xscale;
-    if aw>2
+    if aw>ah
         tickLength = fset.TickLength*wref/aw;
     else
-        tickLength = fset.TickLength*wref/2;
+        tickLength = fset.TickLength*wref/ah;
     end
     fset.axOpts = [fset.axOpts, 'TickLength', tickLength];
     XLim = [-7*dt masterTrack.t(end)-masterTrack.t(1)+7*dt];
@@ -68,7 +73,7 @@ ha(3) = axes(fset.axOpts{:}, 'Position', [1.5 1.5 aw ah]);
 hold(ha(3), 'on');
 for k = 1:length(slaveTracks)
     plotTrack(data, slaveTracks(k), 1, 'Handle', ha(3), 'DisplayMode', 'print',...
-        'Time', masterTrack.t(1), 'PlotBuffers', false, 'Hues', hues(2), 'MarkerSizes', markerSizes, 'LineWidth', lineWidth);
+        'Time', masterTrack.t(1), 'PlotBuffers', false, 'Hues', hues(3), 'TrackColor', hsv2rgb([hues(3) 1 1]), 'MarkerSizes', markerSizes, 'LineWidth', lineWidth);
 end
 
 set(ha(1:2), 'XTickLabel', []);
