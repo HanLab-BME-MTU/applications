@@ -2,7 +2,7 @@
 lengthMinMax = [5 99];
 
 % for i = 1 : length(movieStructAlphaV)
-for i = 8 : 8
+for i = 1 : 1
     
     disp(num2str(i))
     
@@ -38,7 +38,7 @@ for i = 8 : 8
         
         load windowNumbersAssignExt.mat
         
-        maskDir = [topDir '/analysisCellEdgeSmall2/refined_masks/refined_masks_for_channel_1/'];
+        maskDir = [topDir '/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/'];
         tmp = dir([maskDir '*.tif']);
         firstMaskFile = [maskDir tmp(1).name];
         
@@ -49,10 +49,12 @@ for i = 8 : 8
             'maxNegInc',10,...
             'maxPosInc',length(tmp)-1);
         
+        edgePosStd = 2;
+        
         [sptPropInWindow,windowDistFromEdge,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
             tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
-            lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam);
+            lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam,edgePosStd);
         
 %         save('particleBehaviorAdaptiveWindows121002','sptPropInWindow',...
 %             'windowDistFromEdge','analysisParam');

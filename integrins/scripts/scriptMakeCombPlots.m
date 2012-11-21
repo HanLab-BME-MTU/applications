@@ -1,6 +1,6 @@
-condName = {'AlphaV'}; %,'AlphaV717Trunc','AlphaV724Trunc','Talin','Lifeact'};
-numMode = [4 4 4 4 3];
-minNP = [5 5 5 5 4];
+condName = {'AlphaV717Trunc'};
+numMode = 4;
+minNP = 4;
 
 for iCond = 1 : length(condName);
     
@@ -34,7 +34,7 @@ for iCond = 1 : length(condName);
             plotSptRelToActivityOnsetAdaptiveWindows(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
                 windowDistFromEdge(iType),iMode,minNP(iCond),[condName{iCond} ', Density Mode ' num2str(iMode) ', protType ' num2str(iType)],...
                 [condName{iCond} ' DensityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],...
-                ['Density Mode ' num2str(iMode) ' (um^-^2) ']); %,[-30 100 0 10]);
+                ['Density Mode ' num2str(iMode) ' (ratio to onset)']); %,[-30 100 0 10]);
         end
         
     end

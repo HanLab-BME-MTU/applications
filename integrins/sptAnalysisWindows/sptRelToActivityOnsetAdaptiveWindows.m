@@ -2,14 +2,14 @@ function [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
     sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
     diffModeAnRes,directTrackChar,winPositions,protSamples,...
     windowTrackAssignExt,windowNumbersAssignExt,lengthMinMax,indxSlices,...
-    indxFrames,firstMaskFile,protWinParam)
+    indxFrames,firstMaskFile,protWinParam,edgePosStd)
 %sptRelToActivityOnsetAdaptiveWindows calculates single particle behavior in adaptive windows grouped based on edge activity
 %
 %SYNOPSIS [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
 %    sptRelToActivityOnsetAdaptiveWindows(tracksFinal,diffAnalysisRes,...
 %    diffModeAnRes,directTrackChar,winPositions,protSamples,...
 %    windowTrackAssignExt,windowNumbersAssignExt,lengthMinMax,indxSlices,...
-%    indxFrames,firstMaskFile,protWinParam)
+%    indxFrames,firstMaskFile,protWinParam,edgePosStd)
 %
 %INPUT  tracksFinal    : The tracks, either in structure format (e.g.
 %                        output of trackCloseGapsKalman) or in matrix
@@ -43,6 +43,8 @@ function [sptPropInWindow,windowDistFromEdge,analysisParam] = ...
 %       protWinParam   : Structure with parameters to be used by the
 %                        function "combineWindowsProtrusion." See function
 %                        for details.
+%       edgePosStd     : Standard deviation of edge position.
+%                        Optional. Default: 1.
 %
 %OUTPUT 
 %   WRONG DESCRIPTION - START
@@ -182,6 +184,10 @@ if nargin < 12 || isempty(firstMaskFile)
     firstMaskFile = fullfile(dirName,fName);
 end
 
+if nargin < 14 || isempty(edgePosStd)
+    edgePosStd = 1;
+end
+
 %% Pre-processing
 
 %go over all windows and get their sizes
@@ -209,7 +215,7 @@ end
 winSize(winSize==0) = NaN;
 
 %group window slices based on activity type
-sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,indxFrames);
+sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,indxFrames,edgePosStd);
 
 %generate adaptive window combinations
 [protrusionCombinedWindows,posInfoCombinedWindows] = ...
@@ -612,6 +618,7 @@ analysisParam.indxFrames = indxFrames;
 analysisParam.trackLengthRange = lengthMinMax;
 analysisParam.cellMaskFile1 = firstMaskFile;
 analysisParam.protWinParam = protWinParam;
+analysisParam.edgePosStd = edgePosStd;
 
 
 %% Subfunction "putTrackCharTogether"

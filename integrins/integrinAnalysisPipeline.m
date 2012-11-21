@@ -42,19 +42,22 @@
 %     use: scriptRetainTracksCellMask
 
 % 4.2 run diffusion mode decomposition
-%     use: scriptDiffModeAnalysis34
-%     for this add movie to analysisStruct's in analysis/120702_diffusionModeAnalysis
-%     then use: estimDiffModeDividers
-%     store results in analysis/120702_diffusionModeAnalysis
-%     also generate diffusion mode dividers for classification, as stored
-%     in analysis/120702_diffusionModeAnalysis/figuresResults120830/
+%     if condition is analyzed for 1st time, assemble its movieStruct as
+%     stored in analysis/120907_MovieInfoStructures.
+%     if there is an existing movieStruct for condition, add movie(s) to
+%     it.
+%     then use: scriptDiffModeAnalysis34 which stores results in individual
+%     directories and collectively in
+%     analysis/120702_diffusionModeAnalysis.
+%     then use scriptGetDiffModeDividers
+%     also generate diffusion mode dividers for classification
 %     if new movies are of a molecule imaged and analyzed previously, then
 %     run diffusion mode decomposition to verify that it has the same modes
 %     as the other movies of that molecule, then use the existing diffusion
 %     mode dividers.
 
 % 4.3 run diffusion mode classification
-%     use: scriptDiffModeClassification
+%     use: scriptDiffModeClassification which calls trackDiffModeAnalysis
 
 %% 5 Single molecule Part C
 

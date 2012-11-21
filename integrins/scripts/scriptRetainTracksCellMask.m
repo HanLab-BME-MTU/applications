@@ -1,9 +1,9 @@
 clear all
 close all
 
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs2C3/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/refined_mask_120907_Cs2C3_CHO_mEos2Av_6minEdgeStack_0001.tif';
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncAndCellEdge/121011_Cs3C2_Av717Trunc/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/refined_mask_121011_Cs3C2_CHO_mEos2Av717Trunc_6minEdgeStack_0001.tif';
 
-cd ../../../../analysisAlphaV/tracks/
+cd ../../../../analysisAlphaV717Trunc/tracks/
 load tracks1AllFrames.mat
 cd ../diffusion/
 load diffAnalysis1AllFrames.mat

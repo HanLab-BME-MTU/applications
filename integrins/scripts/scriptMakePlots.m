@@ -1,10 +1,10 @@
-clear all
-close all
-load particleBehaviorAdaptiveWindows121002.mat
-mkdir figuresSptVsWindows121002
-cd figuresSptVsWindows121002
+% clear all
+% close all
+% load particleBehaviorAdaptiveWindows121112.mat
+% mkdir figuresSptVsWindows121112
+% cd figuresSptVsWindows121112
 
-movieName = 'AlphaV 120114 Cs1C3A';
+movieName = 'test';
 
 numMode = 4;
 

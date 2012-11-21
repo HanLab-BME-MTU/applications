@@ -109,6 +109,7 @@ for iFrame = 1 : numFramesMovie
     %plot cell image + mask
     axes('Position',[0 0 0.495 1]);
     imshow(imageStack,[prctile(imageStack(:),5) prctile(imageStack(:),95)]);
+    %     imshow(imageStack,[prctile(imageStack(:),25) prctile(imageStack(:),75)]);
     hold on;
     maskBounds = bwboundaries(maskStack1);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);

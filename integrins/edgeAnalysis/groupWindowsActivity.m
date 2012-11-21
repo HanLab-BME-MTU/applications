@@ -1,5 +1,5 @@
 function sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
-    indxSlices,indxFrames)
+    indxSlices,indxFrames,edgePosStd)
 %GROUPWINDOWSACTIVITY groups windows based on activity categories
 %
 %SYNPOSIS sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
@@ -14,6 +14,8 @@ function sliceActivityGroup = groupWindowsActivity(protSamples,doPlot,...
 %                    Optional. Default: all windows ([]).
 %       indxFrames : Vector with indices of frames to include in analysis.
 %                    Optional. Default: all frames ([]).
+%       edgePosStd : Standard deviation of edge position.
+%                    Optional. Default: 1.
 %OUTPUT sliceActivityGroup: 27-by-1 structure array with field:
 %            .edgeClassInfo: (number of events)-by-4 array. The 4
 %                            columns store the frame index, slice index,
@@ -71,12 +73,16 @@ if nargin < 4 || isempty(indxFrames)
     indxFrames = [];
 end
 
+if nargin < 5 || isempty(edgePosStd)
+    edgePosStd = 1;
+end
+
 %% Grouping
 
 %classify the activity of each window at each interval
-sliceMotionTypePause = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,1);
-sliceMotionTypeProt = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,2);
-sliceMotionTypeRetr = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,3);
+sliceMotionTypePause = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,1,[],edgePosStd);
+sliceMotionTypeProt = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,2,[],edgePosStd);
+sliceMotionTypeRetr = classifyEdgeMotion(protSamples,doPlot,indxSlices,indxFrames,3,[],edgePosStd);
 
 %get number of window slices
 numSlices = size(sliceMotionTypePause,1);

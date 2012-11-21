@@ -1,9 +1,9 @@
 function [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
-    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir)
+    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir,edgePosStd)
 %CLASSIFYEDGEMOTION classifies edge motion in each window based on protrusion vector samples
 %
 %SYNPOSIS [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
-%    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir)
+%    protSamples,doPlot,indxWindows,indxFrames,scheme,savePlotDir,edgePosStd)
 %
 %INPUT  protSamples     : The protrusion samples as output by the windowing
 %                         software.
@@ -35,6 +35,8 @@ function [windowMotionType,windowMotionChar] = classifyEdgeMotion(...
 %                         saved.
 %                         Optional. If not supplied, plots will not be
 %                         saved.
+%       edgePosStd      : Standard deviation of edge position.
+%                         Optional. Default: 1.
 %OUTPUT windowMotionType: Size(protSamples.avgNormal)-by-6 array
 %                         indicating motion classification, where 1 means
 %                         protrusion, 2 means retraction, 3 means pause,
@@ -113,6 +115,10 @@ if nargin < 6 || isempty(savePlotDir)
     savePlotDir = [];
 end
 
+if nargin < 7 || isempty(edgePosStd)
+    edgePosStd = 1;
+end
+
 %% Classification
 
 %for windows/frames outside of the range of interest, convert their values
@@ -122,9 +128,8 @@ avgNormal(indxWinRemove,:,:) = NaN;
 indxFrameRemove = setdiff((1:numFrames)',indxFrames);
 avgNormal(:,indxFrameRemove,:) = NaN;
 
-%assign edge position and protrusion vector standard deviations
-edgePosStd = 1; %in pixels
-protVecStd = sqrt(2*edgePosStd);
+%assign protrusion vector standard deviation
+protVecStd = sqrt(2)*edgePosStd;
 
 %initialize output
 windowMotionType = NaN([size(avgNormal) 6]);
