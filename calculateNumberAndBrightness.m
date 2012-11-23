@@ -30,7 +30,7 @@ segmentStarts = 1:segmentLength+segmentSpacing-1:size(imageStack,3);
 segmentStarts = segmentStarts(find(segmentStarts <= size(imageStack,3)-segmentLength+1));
 display(num2str(segmentStarts))
 
-number = nan(size(imageStack,1),size(imageStack,2),floor(size(imageStack,3)/segmentLength));
+number = nan(size(imageStack,1),size(imageStack,2),length(segmentStarts));
 brightness = number;
 for isegment = 1:length(segmentStarts)
     segmentImages = imageStack(:,:,segmentStarts(isegment):segmentStarts(isegment)+segmentLength-1);
