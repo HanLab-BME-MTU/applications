@@ -51,12 +51,7 @@ for k=1:nFrames
     end
 end
 
-for k=1:imSize/da
-    for l=1:imSize/da
-        if size(binList{k,l},1) < 5                    
-            binList{k,l} = [];
-        end
-    end
-end
+% check neighboring bins, pool localizations if necessary
+nblist=constructNeighborList(imSize,false);
 
 end

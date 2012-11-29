@@ -1,5 +1,8 @@
 function [stack,emState,settings]=generateSTORMmovie(lambda,kon,koff,kb,varargin)
 %GENERATESTORMMOVIE creates an artificial STORM experiment
+%   This function use the function simulateSTORMmovie coded as a mex file
+%   to do the number crunching. Do NOT change the call of this particular 
+%   function, unless you really know what you are doing.
 %   
 %   required input arguments:
 %       lambda -> emission wavelength in nanometer
@@ -23,7 +26,7 @@ function [stack,emState,settings]=generateSTORMmovie(lambda,kon,koff,kb,varargin
 %   output:
 %         stack -> imSize-by-imSize-by-nCycles*nRep image array
 %       emState -> matrix monitoring emitter state over time
-%      settings -> paramter settings for later analysis
+%      settings -> parameter settings for later analysis
 %
 %   US 2012/11/14
 %
@@ -85,8 +88,6 @@ sigmaPSF=(lambda/2)/2.35482;
 % patch size of Gaussian spot
 sigmaPX=sigmaPSF/pxSize;
 w=4*floor(sigmaPX);
-wg=-w:w;
-[xg,yg]=meshgrid(wg,wg);
 
 % how many emitters??
 if nEmi == 0
@@ -94,13 +95,13 @@ if nEmi == 0
         % if nothing is specified, one emitter per square micron
         % remote from the border of the image
         nEmi=floor((imSize-2*(w+1))^2*(pxSize/1000)^2);
-        pos=rand(nEmi,2)*(imSize-2*(w+1))+w+1;
+        pos=rand(nEmi,2)*imSize;
     else
         nEmi=numel(pos(:,1));
     end
 else
     if isempty(pos)
-        pos=rand(nEmi,2)*(imSize-2*(w+1))+w+1;
+        pos=rand(nEmi,2)*imSize;
     else
         if nEmi ~= numel(pos(:,1))
             nEmi=min(nEmi,numel(pos(:,1)));
@@ -112,14 +113,8 @@ end
 % thermal activation rate is much smaller than the UV induced rate
 kth=kon/1000;
 
-% 3D array for movie output
-stack=zeros(imSize,imSize,nCycles*nRep);
-
-% vector for monitoring state of emitters (OFF=0, ON=1, BLEACHED=2)
-emState=zeros(nEmi,1);
-
 % average amplitude from ngamma photons
-aveAmp=gain*ngamma/(2*pi*(sigmaPSF/pxSize)^2);
+aveAmp=gain*ngamma/(2*pi*sigmaPX^2);
 
 % save settings as return variable
 settings=ip.Results;
@@ -129,109 +124,114 @@ settings.kth=kth;
 settings.sigmaPSF=sigmaPSF;
 settings.aveAmp=aveAmp;
 
-% randomize initial state of emitters (this can of course be altered)
-for ne=1:nEmi
-    eta=rand();
-    if eta < 0.01
-        emState(ne)=1;
-    end
+% simulateSTORMmovie is coded by a mex file
+[stack,emState]=simulateSTORMmovie(settings);
+
 end
 
-% matrix monitoring state of emitters over time, will be returned
-emStateM=NaN(nEmi,nCycles*nRep);
-
-% begin imaging
-nFrame=1;
-for nc=1:nCycles
-    
-    % activation pulse
-    for ne=1:nEmi
-        switch( emState(ne) )
-            % emitter is in OFF state
-            case 0
-                eta=rand();
-                if eta < kon*tAct
-                    emState(ne)=1;
-                end
-        end
-    end
-    
-    % step through imaging cycle
-    for nr=1:nRep
-        
-        emStateM(:,nFrame)=emState;
-        
-        frame=zeros(imSize,imSize);
-        
-%         idp= emState == 1;
-%         px=pos(idp,1);
-%         py=pos(idp,2);
+% % randomize initial state of emitters (this can of course be altered)
+% for ne=1:nEmi
+%     eta=rand();
+%     if eta < 0.01
+%         emState(ne)=1;
+%     end
+% end
+% 
+% % matrix monitoring state of emitters over time, will be returned
+% emStateM=NaN(nEmi,nCycles*nRep);
+% 
+% % begin imaging
+% nFrame=1;
+% for nc=1:nCycles
+%     
+%     % activation pulse
+%     for ne=1:nEmi
+%         switch( emState(ne) )
+%             % emitter is in OFF state
+%             case 0
+%                 eta=rand();
+%                 if eta < kon*tAct
+%                     emState(ne)=1;
+%                 end
+%         end
+%     end
+%     
+%     % step through imaging cycle
+%     for nr=1:nRep
 %         
-%         np=sum(idp);
-%         amp=aveAmp+sqrt(aveAmp)*randn(np,1);
+%         emStateM(:,nFrame)=emState;
 %         
-%         frame=simGaussianSpots(imSize,imSize,sigmaPX,'x',px,'y',py,'A',amp,'Border','truncated');
-        for ne=1:nEmi
-            switch( emState(ne) )
-                % emitter is in ON state
-                case 1
-                    % create Gaussian spot at emitter position
-                    xi=round(pos(ne,1));
-                    yi=round(pos(ne,2));
-                    x=pos(ne,1)-xi;
-                    y=pos(ne,2)-yi;
-                    % lower/upper bounds in x and y
-                    lbx=max(xi-w,1);
-                    ubx=min(imSize,xi+w);
-                    lby=max(yi-w,1);
-                    uby=min(imSize,yi+w);
-                    
-                    % xa=max(1,xi-w):min(imSize,xi+w);
-                    % ya=max(1,yi-w):min(imSize,yi+w);
-                    
-                    % xaa=xa-xa(1)+1;
-                    % yaa=ya-ya(1)+1;
-                    
-                    wx=(lbx:ubx)-xi;
-                    wy=(lby:uby)-yi;
-                    
-                    [xg,yg]=meshgrid(wx,wy);
-                    
-                    amp=aveAmp+sqrt(aveAmp)*randn();
-                    g = amp*exp(-((xg-x).^2+(yg-y).^2) / (2*sigmaPX^2));
-                    
-                    xa = lbx:ubx;
-                    ya = lby:uby;
-                    frame(ya,xa) = frame(ya,xa) + g;
-                    
-                    % does emitter turn off or bleach?
-                    eta=rand();
-                    if eta < tExp*(koff+kb)
-                        zeta=rand();
-                        if zeta < koff/(koff+kb)
-                            emState(ne)=0;
-                        else
-                            emState(ne)=2;
-                        end
-                    end
-                % thermal activation from OFF state???
-                case 0
-                    eta=rand();
-                    if eta < tExp*kth
-                        emState(ne)=1;
-                    end
-            end
-        end
-        % add background and noise
-        frame=frame+bg;
-        frame=poissrnd(frame);
-        stack(:,:,nFrame)=frame;
-        nFrame=nFrame+1;
-    end        
-end
-
-emState=emStateM;
-stack=uint16(stack);
-
-end
+%         frame=zeros(imSize,imSize);
+%         
+% %         idp= emState == 1;
+% %         px=pos(idp,1);
+% %         py=pos(idp,2);
+% %         
+% %         np=sum(idp);
+% %         amp=aveAmp+sqrt(aveAmp)*randn(np,1);
+% %         
+% %         frame=simGaussianSpots(imSize,imSize,sigmaPX,'x',px,'y',py,'A',amp,'Border','truncated');
+%         for ne=1:nEmi
+%             switch( emState(ne) )
+%                 % emitter is in ON state
+%                 case 1
+%                     % create Gaussian spot at emitter position
+%                     xi=round(pos(ne,1));
+%                     yi=round(pos(ne,2));
+%                     x=pos(ne,1)-xi;
+%                     y=pos(ne,2)-yi;
+%                     % lower/upper bounds in x and y
+%                     lbx=max(xi-w,1);
+%                     ubx=min(imSize,xi+w);
+%                     lby=max(yi-w,1);
+%                     uby=min(imSize,yi+w);
+%                     
+%                     % xa=max(1,xi-w):min(imSize,xi+w);
+%                     % ya=max(1,yi-w):min(imSize,yi+w);
+%                     
+%                     % xaa=xa-xa(1)+1;
+%                     % yaa=ya-ya(1)+1;
+%                     
+%                     wx=(lbx:ubx)-xi;
+%                     wy=(lby:uby)-yi;
+%                     
+%                     [xg,yg]=meshgrid(wx,wy);
+%                     
+%                     amp=aveAmp+sqrt(aveAmp)*randn();
+%                     g = amp*exp(-((xg-x).^2+(yg-y).^2) / (2*sigmaPX^2));
+%                     
+%                     xa = lbx:ubx;
+%                     ya = lby:uby;
+%                     frame(ya,xa) = frame(ya,xa) + g;
+%                     
+%                     % does emitter turn off or bleach?
+%                     eta=rand();
+%                     if eta < tExp*(koff+kb)
+%                         zeta=rand();
+%                         if zeta < koff/(koff+kb)
+%                             emState(ne)=0;
+%                         else
+%                             emState(ne)=2;
+%                         end
+%                     end
+%                 % thermal activation from OFF state???
+%                 case 0
+%                     eta=rand();
+%                     if eta < tExp*kth
+%                         emState(ne)=1;
+%                     end
+%             end
+%         end
+%         % add background and noise
+%         frame=frame+bg;
+%         frame=poissrnd(frame);
+%         stack(:,:,nFrame)=frame;
+%         nFrame=nFrame+1;
+%     end        
+% end
+% 
+% emState=emStateM;
+% stack=uint16(stack);
+% 
+% end
 
