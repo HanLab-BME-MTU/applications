@@ -45,13 +45,15 @@ fullTraces=zeros(np,nFrames);
 
 for k=1:np
     info=pList{k};
-    xx=ceil(info(1,2));
-    yy=ceil(info(1,1));
-    last=size(info,2);
-    ff=info(:,last);
-    traces{k}=squeeze(stack(xx,yy,:));
-    
-    fullTraces(k,ff)=1;
+    if ~isempty(info)
+        xx=ceil(info(1,2));
+        yy=ceil(info(1,1));
+        last=size(info,2);
+        ff=info(:,last);
+        traces{k}=squeeze(stack(xx,yy,:));
+        
+        fullTraces(k,ff)=1;
+    end
 end
 
 % calculate number of blinking events, and ON, OFF and BLEACH time
@@ -81,6 +83,11 @@ for k=1:np
             count=count+1;
             if t+count <= nFrames
                 on=fullTraces(k,t+count);
+                if mod(t+count,nRep) == 1
+                    estat(k).nAct=estat(k).nAct-1;
+                    id= find(estat(k).tAct == t+count);
+                    estat(k).nAct(id)=[];
+                end
             else
                 on=0;
             end
