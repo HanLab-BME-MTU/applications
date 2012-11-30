@@ -1,12 +1,12 @@
 
-for i = 1 : length(movieStructAlphaV724Trunc);
+for i = 1 : length(movieStructAlphaVPax);
     
     disp(num2str(i))
     
-    if movieStructAlphaV724Trunc(i).activityLevel > 0
+    if movieStructAlphaVPax(i).activityLevel > 0
         
-        tmp = movieStructAlphaV724Trunc(i).fileName;
-        cd([tmp{1} '/analysisAlphaV724Trunc/furtherAnalysis'])
+        tmp = movieStructAlphaVPax(i).fileName;
+        cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
         diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructIntegrin);

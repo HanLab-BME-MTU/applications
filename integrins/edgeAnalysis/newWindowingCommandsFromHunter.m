@@ -3,7 +3,7 @@
 segmentationPackageGUI
 
 %load movieData object
-movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandPax/121023_Cs1C2_AlphaVPax/analysisCellEdgeSmall';
+movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120224/120224_Cs1C1_LifeAct/120224_Cs1C1a_LifeAct/analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
@@ -24,7 +24,7 @@ refinementParam = struct(...
 MD = refineMovieMasks(MD,refinementParam);
 
 %load detection results
-load ../analysisAlphaV/tracks/detectionAll1.mat
+load ../analysisLifeact/tracks/detectionAll1.mat
 
 %make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
@@ -40,11 +40,11 @@ threshParamEdge = struct(...
     'bandHalfWidth',-1);
 gapCloseParamEdge = struct(...
     'maxEdgePairDist',9,...
-    'factorContr',[0 0 0 1]);
-meanBkg = 140;
-smDir = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV717TruncAndCellEdge/121011_Cs2C3_Av717Trunc/imagesSM4Edge';
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,1); %,meanBkg,smDir);
-save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed'); %,'meanBkg');
+    'factorContr',[1 1 1 1]);
+meanBkg = 110;
+smDir = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120224/120224_Cs1C1_LifeAct/120224_Cs1C1a_LifeAct/imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,1,meanBkg,smDir);
+save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
 
 imtool close all
 

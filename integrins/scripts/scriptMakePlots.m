@@ -1,12 +1,12 @@
-% clear all
-% close all
-% load particleBehaviorAdaptiveWindows121112.mat
-% mkdir figuresSptVsWindows121112
-% cd figuresSptVsWindows121112
+clear all
+close all
+load particleBehaviorAdaptiveWindows121112.mat
+mkdir figuresSptVsWindows121112
+cd figuresSptVsWindows121112
 
-movieName = 'test';
+movieName = 'Lifeact 121015 Cs1C1';
 
-numMode = 4;
+numMode = 2;
 
 for iType = 1
     

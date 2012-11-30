@@ -1,6 +1,6 @@
-condName = {'AlphaV717Trunc'};
-numMode = 4;
-minNP = 4;
+condName = {'AlphaV724Trunc'};
+numMode = [4];
+minNP = [5];
 
 for iCond = 1 : length(condName);
     
