@@ -165,31 +165,42 @@ for iType = 1 : numType
                     
                     %normalize the weights so that their sum = 1
                     sumIndCellWeight = nansum(indCellWeight,4);
-                    indCellWeight = indCellWeight ./ repmat(sumIndCellWeight,[1 1 1 numCell]); %#ok<NASGU>
+                    indCellWeight = indCellWeight ./ repmat(sumIndCellWeight,[1 1 1 numCell]);
                     
                     %get property value at protrusion onset just behind the
                     %cell edge as the reference value for all measurements
                     if strcmp(timePosField{iTimePosField},'onset')
+                        
                         refValPerCell = indCellMean0(1,1,:,:);
                         tmp4output = squeeze(refValPerCell);
                         if size(tmp4output,2) > 1
                             tmp4output = tmp4output';
                         end
                         sptPropActivityOnset(iType).(globalField{iGlobalField}).(localField{iLocalField}) = tmp4output;
+                        
+                        %calculate mean and std of reference value for
+                        %later use
+                        refValTimesWeight = indCellWeight(1,1,:,:).*refValPerCell;
+                        refValOnsetMean = nansum(refValTimesWeight,4);
+                        combCellNP = ~isnan(refValTimesWeight);
+                        combCellNP = sum(combCellNP,4);
+                        combCellNP(combCellNP==0) = NaN;
+                        sumSqDiff = nansum( indCellWeight(1,1,:,:) .* (refValPerCell ...
+                            - repmat(refValOnsetMean,[1 1 1 numCell])).^2,4 );
+                        denominator = (numCell-1) / numCell;
+                        refValOnsetStd = sqrt( sumSqDiff / denominator );
+                        refValOnsetMean(isnan(combCellNP)) = NaN;
+                        refValOnsetStd(isnan(combCellNP)) = NaN;
+                        
                     end
                     
-                    %transform the mean in various ways
+                    %transform the measurements in various ways
                     refValMat = repmat(refValPerCell,[maxSize(1) maxSize(2) 1 1]);
                     indCellMeanModDiff = indCellMean0 - refValMat; %#ok<NASGU> %difference
                     indCellMeanModRatio = indCellMean0 ./ refValMat; %ratio
                     indCellMeanModRatio(isinf(indCellMeanModRatio)) = NaN; %#ok<NASGU>
                     indCellMeanModDiffRatio = (indCellMean0 - refValMat) ./ refValMat; %difference+ratio
                     indCellMeanModDiffRatio(isinf(indCellMeanModDiffRatio)) = NaN; %#ok<NASGU>
-                    
-                    %                     %get the number of cells contributing to each measurement
-                    %                     tmp = ~isnan(indCellNP);
-                    %                     combCellNP = nansum(tmp,4);
-                    %                     combCellNP(combCellNP==0) = NaN;
                     
                     %go over all modification types and combine
                     %measurements
@@ -220,6 +231,24 @@ for iType = 1 : numType
                         %make all measurements with number of cells = 0 as NaN
                         combCellMean(isnan(combCellNP2)) = NaN;
                         combCellStd(isnan(combCellNP2)) = NaN;
+                        
+                        %shift the means and stds back using the average
+                        %reference value
+                        switch modType{iMod}
+                            case 'ModDiff'
+                                combCellMean = combCellMean + repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                                combCellStd(1,1,:) = refValOnsetStd;
+                            case 'ModRatio'
+                                combCellMean = combCellMean .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                                combCellStd = combCellStd .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                            case 'ModDiffRatio'
+                                combCellMean = (combCellMean .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1])) ...
+                                    + repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                                combCellStd = combCellStd .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                        end
+                        if strcmp(timePosField{iTimePosField},'onset')
+                            combCellStd(1,1,:) = refValOnsetStd;
+                        end
                         
                         %save results in output structure
                         tmp2.mean = combCellMean;
