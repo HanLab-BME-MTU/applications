@@ -76,7 +76,7 @@ function movieData = darkCurrentCorrectMovie(movieData,paramsIn)
 %% ------ Parameters ------- %%
 
 
-pString = 'dcc_'; %The string to prepend before the dark-corrected image directory & channel name
+pString = 'dark_current_corrected_'; %The string to prepend before the dark-corrected image directory & channel name
 saveName = 'dark_current_correction_image_for_channel_'; %File name for saving processed/avged dark current images. Actual file name will have channel number appended.
 dName = 'dark_current_corrected_images_for_channel_';%String for naming the directories for each corrected channel
 
@@ -192,8 +192,6 @@ disp('Starting dark current correction...')
 
 %Get image file names for needed channels - this correction is always applied
 %to raw data.
-imNames = movieData.getImageFileNames(p.ChannelIndex);
-imDir  = movieData.getChannelPaths(p.ChannelIndex);
 
 nImages = movieData.nFrames_;
 nImTot = nImages * nChanCorr;
@@ -270,13 +268,14 @@ for iChan = 1:nChanCorr
     
     disp(['Dark-current correcting channel ' num2str(p.ChannelIndex(iChan)) '...'])
     disp(['Using correction images in ' corrDir])
-    disp(['Correcting images from ' imDir{iChan} ', resulting images will be stored in ' outDir])    
+    disp(['Correcting images from channel ' num2str(p.ChannelIndex(iChan)) ', resulting images will be stored in ' outDir])    
     
     
     for iImage = 1:nImages
     
-        %Load the image to be corrected
-        currIm = imread([imDir{iChan} filesep imNames{iChan}{iImage}]);
+        %Load the image to be corrected        
+        currIm = movieData.channels_(p.ChannelIndex(iChan)).loadImage(iImage);
+        
         %Check it's class
         ogClass = class(currIm);
     
@@ -293,7 +292,7 @@ for iChan = 1:nChanCorr
         currIm = cast(currIm,ogClass);
                         
         %Write it to disk        
-        imwrite(currIm,[outDir filesep pString imNames{iChan}{iImage}]);                
+        imwrite(currIm,[outDir filesep pString num2str(iImage,['%0' num2str(floor(log10(nImages))+1) '.f']) '.tif' ]);
         
         if ~p.BatchMode && mod(iImage,5)
             %Update the waitbar occasionally to minimize slowdown
