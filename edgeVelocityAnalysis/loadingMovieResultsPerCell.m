@@ -1,0 +1,19 @@
+function  out = loadingMovieResultsPerCell(ML)
+%Loading edge velocity analysis for each cell in the MovieList
+
+nCell = numel(ML.movies_);
+cF    = 1;
+
+for iCell = 1:nCell
+
+    currMD = ML.movies_{iCell};
+     %Saving results for each cell
+    edgePath = [currMD.outputDirectory_ filesep 'EdgeVelocityAnalysis'];
+    if isdir(edgePath)
+        filePath = [edgePath filesep 'edgeVelocity.mat'];
+        aux      = load(filePath);
+        out(cF)  = aux.edgeVelocity;
+        cF       = cF + 1;
+    end
+        
+end
