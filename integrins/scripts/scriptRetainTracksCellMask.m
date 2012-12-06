@@ -1,7 +1,7 @@
 clear all
 close all
 
-firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandPax/121023_Cs1C2_AlphaVPax/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/refined_mask_121023_Cs1C2_CHO_mEos2Av_6minPaxStack_0001.tif';
+firstMaskFile = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV/091012_CHO08lofix_mEosAV_2400_25/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/refined_mask_MAX_imagesAlphaV_0001.tif';
 
 cd ../../../../analysisAlphaV/tracks/
 load tracks1AllFrames.mat
@@ -16,8 +16,8 @@ diffAnalysisRes = diffAnalysisRes(indx5);
 
 seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
 maxFrame = max(seqOfEvents(:,1));
-indxMask = findTracksInCellMask(tracksFinal,firstMaskFile,1:400:maxFrame+1);
-% indxMask = findTracksInCellMask(tracksFinal,firstMaskFile,1:maxFrame:maxFrame+1);
+% indxMask = findTracksInCellMask(tracksFinal,firstMaskFile,1:400:maxFrame+1);
+indxMask = findTracksInCellMask(tracksFinal,firstMaskFile,1:maxFrame:maxFrame+1);
 tracksFinal = tracksFinal(indxMask);
 diffAnalysisRes = diffAnalysisRes(indxMask);
 

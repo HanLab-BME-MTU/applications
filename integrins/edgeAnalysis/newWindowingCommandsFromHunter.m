@@ -3,7 +3,7 @@
 segmentationPackageGUI
 
 %load movieData object
-movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120224/120224_Cs1C1_LifeAct/120224_Cs1C1a_LifeAct/analysisCellEdgeSmall';
+movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV/091012_CHO08lofix_mEosAV_2400_25/analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
@@ -24,7 +24,7 @@ refinementParam = struct(...
 MD = refineMovieMasks(MD,refinementParam);
 
 %load detection results
-load ../analysisLifeact/tracks/detectionAll1.mat
+load ../analysisAlphaV/tracks/detection1AllFrames.mat
 
 %make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);

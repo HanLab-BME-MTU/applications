@@ -1,11 +1,11 @@
 
-for i = 1 : length(movieStructAlphaVPax);
+for i = 1 : length(movieStructAlphaVFixed);
     
     disp(num2str(i))
     
-    if movieStructAlphaVPax(i).activityLevel > 0
+    if movieStructAlphaVFixed(i).activityLevel > 0
         
-        tmp = movieStructAlphaVPax(i).fileName;
+        tmp = movieStructAlphaVFixed(i).fileName;
         cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat

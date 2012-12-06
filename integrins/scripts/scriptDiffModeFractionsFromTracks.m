@@ -1,19 +1,25 @@
 
 numMode = 2;
-fracModeLifeact = NaN(numMode,length(analysisLifeactInd));
+fracModeLifeactFixed = NaN(length(movieStructLifeactFixed),numMode);
 
-for i = 1 : length(analysisLifeactInd)
+for i = 1 : length(movieStructLifeactFixed)
     
-    tmp = analysisLifeactInd(i).fileName;
-    cd([tmp{1} '/analysisLifeact/furtherAnalysis'])
+    activityLevel = movieStructLifeactFixed(i).activityLevel;
     
-    load diffusionModeClassification
-    
-    diffMode = vertcat(diffModeAnalysisRes.diffMode);
-    
-    n = hist(diffMode,1:numMode);
-    
-    fracModeLifeact(:,i) = n / sum(n);
+    if activityLevel > 0
+        
+        tmp = movieStructLifeactFixed(i).fileName;
+        cd([tmp{1} '/analysisLifeact/furtherAnalysis'])
+        
+        load diffusionModeClassification
+        
+        diffMode = vertcat(diffModeAnalysisRes.diffMode);
+        
+        n = hist(diffMode,1:numMode);
+        
+        fracModeLifeactFixed(i,:) = n / sum(n);
+        
+    end
     
     
 end

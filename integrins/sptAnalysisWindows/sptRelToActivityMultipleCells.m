@@ -178,7 +178,7 @@ for iType = 1 : numType
                         end
                         sptPropActivityOnset(iType).(globalField{iGlobalField}).(localField{iLocalField}) = tmp4output;
                         
-                        %calculate mean and std of reference value for
+                        %calculate mean and std of cell reference values for
                         %later use
                         refValTimesWeight = indCellWeight(1,1,:,:).*refValPerCell;
                         refValOnsetMean = nansum(refValTimesWeight,4);
@@ -194,7 +194,8 @@ for iType = 1 : numType
                         
                     end
                     
-                    %transform the measurements in various ways
+                    %transform the measurements in various ways using the
+                    %cell reference values
                     refValMat = repmat(refValPerCell,[maxSize(1) maxSize(2) 1 1]);
                     indCellMeanModDiff = indCellMean0 - refValMat; %#ok<NASGU> %difference
                     indCellMeanModRatio = indCellMean0 ./ refValMat; %ratio
@@ -237,17 +238,17 @@ for iType = 1 : numType
                         switch modType{iMod}
                             case 'ModDiff'
                                 combCellMean = combCellMean + repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
-                                combCellStd(1,1,:) = refValOnsetStd;
+                                combCellStd = sqrt( combCellStd.^2 ...
+                                    + repmat(refValOnsetStd.^2,[maxSize(1) maxSize(2) 1]) );
                             case 'ModRatio'
                                 combCellMean = combCellMean .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
-                                combCellStd = combCellStd .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
+                                combCellStd = sqrt( repmat(refValOnsetMean.^2,[maxSize(1) maxSize(2) 1]) .* (combCellStd.^2) ...
+                                    + (combCellMean.^2) .* repmat(refValOnsetStd.^2,[maxSize(1) maxSize(2) 1]) );
                             case 'ModDiffRatio'
                                 combCellMean = (combCellMean .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1])) ...
                                     + repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
-                                combCellStd = combCellStd .* repmat(refValOnsetMean,[maxSize(1) maxSize(2) 1]);
-                        end
-                        if strcmp(timePosField{iTimePosField},'onset')
-                            combCellStd(1,1,:) = refValOnsetStd;
+                                combCellStd = sqrt( repmat(refValOnsetMean.^2,[maxSize(1) maxSize(2) 1]) .* (combCellStd.^2) ...
+                                    + ((combCellMean+1).^2) .* repmat(refValOnsetStd.^2,[maxSize(1) maxSize(2) 1]) );
                         end
                         
                         %save results in output structure
