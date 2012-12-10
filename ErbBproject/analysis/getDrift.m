@@ -6,6 +6,8 @@ function [ drift, frameIndex] = getDrift(features,varargin)
 %       features  -> cell array as obtained from analyzeLMdata
 %   optional:
 %       cutoff  -> maximum shift in pixels between two frames (default: 1)
+%       amp     -> Sets a min amplitue for spots used in drift correction
+%       (default = 0)
 %   
 %   OUTPUT:
 %       drift  -> array with xy drift between frames
@@ -21,13 +23,20 @@ ip.StructExpand=true;
 ip.addRequired('features',@iscell);
 
 ip.addOptional('cutoff',1.0,@isscalar);
+ip.addOptional('amp',0.0,@isscalar);
 
 ip.parse(features,varargin{:});
 
 F=ip.Results.features;
 rc=ip.Results.cutoff;
+amp=ip.Results.amp;
 
 nFrames=numel(F);
+
+%applies amplitude criteria. If F.Amp <amp exclude points
+if amp >0.0
+    F = cellfun(@(x) ampSelector(x,amp),F);
+end
 
 drift=zeros(nFrames,2);
 frameIndex=true(nFrames,1);
@@ -82,4 +91,20 @@ for i=1:nFrames-1
 end
 
 end
+
+
+%subbordinate function that processes the cell array to remove points with
+%amplitudes larger than parameter amp
+
+function [out]=ampSelector(c,amp)
+    index=c.A > amp;
+    out= {structfun(@(x)logicalSelector(x,index),c,'UniformOutput',false)};
+end
+
+function [out]=logicalSelector(S,index)
+    S(index==0)=[];
+    out = S;
+end
+
+
 
