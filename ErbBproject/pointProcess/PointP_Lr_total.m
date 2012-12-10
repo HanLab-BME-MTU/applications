@@ -1,3 +1,10 @@
+function [kr,lr]=PointP_Lr_total(pos,r)
+%PointP_Lr calculates Besags L(r) statistic with Ward & Ferandino's edge
+%correction method (1999) that is global and thus fast.
+%Ward, J. S. and Ferrandino, F. J. 1999. New derivation reduces bias and
+%increases power of Ripley’s L index. / Ecol. Modell. 116: 225/236.
+%r is a range
+%
 %Calculates L(r) second order statistic for a range of r for all
 %points 
 %
@@ -5,16 +12,6 @@
 %Harvard Medical School
 %
 %Last Update: 9/6/2011
-%
-%
-%
-
-function [kr,lr]=PointP_Lr_total(pos,r)
-%PointP_Lr calculates Besags L(r) statistic with Ward & Ferandino's edge
-%correction method (1999) that is global and thus fast.
-%Ward, J. S. and Ferrandino, F. J. 1999. New derivation reduces bias and
-%increases power of Ripley’s L index. / Ecol. Modell. 116: 225/236.
-%r is a range
 
 W = max(pos(:,1))-min(pos(:,1));
 L = max(pos(:,2))-min(pos(:,2));

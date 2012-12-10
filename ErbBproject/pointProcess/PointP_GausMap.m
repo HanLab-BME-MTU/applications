@@ -1,17 +1,14 @@
+function [map]=PointP_GausMap(pos,thres)
+%PointP_GausMap generates a Gaus Lab style heat map of the point process P
+%this means calculating the l(r)-r where r is the thres (distance) which is
+%interpolated into a surfacemap.
+%
 %Creates a Gaus style heat map from a point process
 %
 %Jeffrey L. Werbin
 %Harvard Medical School
 %
 %Last Update: 9/6/2011
-%
-%
-%
-
-function [map]=PointP_GausMap(pos,thres)
-%PointP_GausMap generates a Gaus Lab style heat map of the point process P
-%this means calculating the l(r)-r where r is the thres (distance) which is
-%interpolated into a surfacemap.
 
 lr = PointP_Lr(pos,thres)-thres;
 

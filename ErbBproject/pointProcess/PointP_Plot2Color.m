@@ -1,12 +1,3 @@
-% Plots Point Process
-%
-%Jeffrey L. Werbin
-%Harvard Medical School
-%
-%Last Update: 9/6/2011
-%
-%(posA,posB,sf,A,FN)
-%
 
 function PointP_Plot2Color(posA,posB,sf,A,FN)
 %PointP_Plot2color takes two lists of corrdinates (x,y) with their corresponding
@@ -16,6 +7,14 @@ function PointP_Plot2Color(posA,posB,sf,A,FN)
 %factor; 10x is a good starting point. A is the gaussian amp, FN is the
 %filename to be saved. sub is an optional parameter [xMin,xMax,yMin,yMax]
 %that uses a sub section of the points
+%
+%Jeffrey L. Werbin
+%Harvard Medical School
+%
+%Last Update: 12/10/2012
+%
+%
+
 
 %posA is displayed as Green, posB is red
 

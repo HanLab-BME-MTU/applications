@@ -1,3 +1,10 @@
+function [out]=PointP_LocalSignal_Cross(posA,posB,rA,rB)
+%PointP_LocalSignal_Cross takes two related point processes and evaulates
+%two measures around each point in posA: the number of posB less than rB
+%from posA(i) and the number of other posA less than rA from posA(i)
+%both processes are assumed to fill the retangular area defined by the
+%maxium and minimum points in the combined position lists.
+%
 %Calculates local signal in point point process in a second point process
 %
 %Jeffrey L. Werbin
@@ -5,16 +12,6 @@
 %
 %Last Update: 12/20/2011
 %
-%
-%
-
-function [out]=PointP_LocalSignal_Cross(posA,posB,rA,rB)
-%PointP_LocalSignal_Cross takes two related point processes and evaulates
-%two measures around each point in posA: the number of posB less than rB
-%from posA(i) and the number of other posA less than rA from posA(i)
-%both processes are assumed to fill the retangular area defined by the
-%maxium and minimum points in the combined position lists. 
-
 
 %edge = 1-(4/(3*pi))*((r/L)+(r/W))+((11/(3*pi))-1)*(r^2/(L*W));
 edge=1;

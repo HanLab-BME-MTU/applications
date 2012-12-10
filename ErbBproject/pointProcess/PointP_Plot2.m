@@ -16,6 +16,15 @@ function [img]=PointP_Plot2(pos,ImgSize,sf,A,FN,pixNum,subA)
 %factor; 10x is a good starting point. A is the gaussian amp, FN is the
 %filename to be saved. sub is an optional parameter [xMin,xMax,yMin,yMax]
 %that uses a sub section of the points
+%
+% Plots Point Process
+%
+%Jeffrey L. Werbin
+%Harvard Medical School
+%
+%Last Update: 9/6/2011
+%
+%(pos,ImgSize,sf,A,FN,subA)
 
 %Adjust pos values if a sub
 if nargin > 6

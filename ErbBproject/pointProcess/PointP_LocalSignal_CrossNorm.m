@@ -1,3 +1,11 @@
+function [out]=PointP_LocalSignal_CrossNorm(posA,posB,rA,rB)
+%PointP_LocalSignal_CrossNorm takes two related point processes and evaulates
+%two measures around each point in posA: the number of posB less than rB
+%from posA(i) and the number of other posA less than rA from posA(i)
+%both processes are assumed to fill the retangular area defined by the
+%maxium and minimum points in the combined position lists. 
+%This version of the code normalizes 
+%
 %Calculates local signal in point point process in a second point process
 %Where the points in posB is normalized by the number of posA point that
 %will count them.
@@ -7,17 +15,6 @@
 %Harvard Medical School
 %
 %Last Update: 1/13/2012
-%
-%
-%
-
-function [out]=PointP_LocalSignal_CrossNorm(posA,posB,rA,rB)
-%PointP_LocalSignal_CrossNorm takes two related point processes and evaulates
-%two measures around each point in posA: the number of posB less than rB
-%from posA(i) and the number of other posA less than rA from posA(i)
-%both processes are assumed to fill the retangular area defined by the
-%maxium and minimum points in the combined position lists. 
-%This version of the code normalizes 
 
 
 %edge = 1-(4/(3*pi))*((r/L)+(r/W))+((11/(3*pi))-1)*(r^2/(L*W));

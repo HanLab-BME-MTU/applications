@@ -1,22 +1,13 @@
-% Spatial sampling functions
-%
-% Jeffrey L. Werbin 
-% Harvard Medical School
-%
-% Last update: 7/7/2011
-%
-% This file includes several functions for artifically resampling point
-% process data. 
-%
-% All the functions take the point process as a list of points of 2D
-% positions and return a list in the same format.
-%
-
 function [list]=PointP_AntibodySimple(StartList,dist, prob)
 %PointP_Antibody applies a resampling that mimics antibody staining. This 
 %consists of merging points within a certain distance of each other with a
 %certain probability. This function is simple because it assumes 100% of
 %the protein is bound to an antibody.
+%
+% Jeffrey L. Werbin 
+% Harvard Medical School
+%
+% Last update: 7/7/2011
 
 %This method is biased. Elements at the begining of the list are more
 %likely to be paired then later. Not a problem if point order is not

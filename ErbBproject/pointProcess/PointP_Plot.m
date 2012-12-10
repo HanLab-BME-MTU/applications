@@ -1,4 +1,10 @@
-% Plots Point Process
+function PointP_Plot(pos,ImgSize,sf,A,FN,subA)
+%%PointP_Plot takes a list of corrdinates (x,y) with their corresponding
+%uncertainies (dx,dy) and displays them in an image. Each point is represented as
+%an ellipse centered at (x,y) with major and minor axes of (dx,dy).
+%ImgSize is the size of the original image. sf is a multipicitive scaling
+%factor; 10x is a good starting point. A is the gaussian amp, FN is the
+%filename to be saved. sub is an optional parameter [xMin,xMax,yMin,yMax] 
 %
 %Jeffrey L. Werbin
 %Harvard Medical School
@@ -8,14 +14,6 @@
 %
 %
 
-function PointP_Plot(pos,ImgSize,sf,A,FN,subA)
-%PointP_Plot takes a list of corrdinates (x,y) with their corresponding
-%uncertainies (dx,dy) and displays them in an image. Each point is represented as
-%an ellipse centered at (x,y) with major and minor axes of (dx,dy).
-%ImgSize is the size of the original image. sf is a multipicitive scaling
-%factor; 10x is a good starting point. A is the gaussian amp, FN is the
-%filename to be saved. sub is an optional parameter [xMin,xMax,yMin,yMax]
-%that uses a sub section of the points
 
 %Adjust pos values if a sub
 if nargin > 5
