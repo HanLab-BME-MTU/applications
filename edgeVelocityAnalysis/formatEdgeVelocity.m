@@ -65,19 +65,20 @@ for iCell = 1:nCell
 
     
     %Converting the edge velocity in pixel/frame into nanometers/seconds
-    protSamples                        = currMD.processes_{edgeProcIdx}.loadChannelOutput;
-    cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal*scaling;
+    protSamples = currMD.processes_{edgeProcIdx}.loadChannelOutput;
     
-   
+    
+    if scale
+        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal*(currMD.pixelSize_/currMD.timeInterval_);
+    else
+        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
+    end
+    
     tRawP = cellData(iCell).data.rawEdgeMotion;
     
     %Extracting outliers
     tRawP(detectOutliers(tRawP,outLevel)) = NaN;
     
-    %Extracting pre-selected windows*****************************************
-    
-    tRawP(excludeWin,:) = [];
-        
     %***************************************************************
     %Removing NaN and closing 1 frame gaps
     [tPaux{iCell},~,~,~,excludeVar]     = removeMeanTrendNaN(tRawP','trendType',trend,'minLength',minLen);
