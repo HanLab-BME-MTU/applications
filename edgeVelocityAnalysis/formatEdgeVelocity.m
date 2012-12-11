@@ -31,12 +31,14 @@ ip.addParamValue('excludeWin', [],@isvector);
 ip.addParamValue('outLevel',7,@isscalar);
 ip.addParamValue('trend',   -1,@isscalar);
 ip.addParamValue('minLen',  30,@isscalar);
+ip.addParamValue('scale', false,@islogical);
 
 ip.parse(movieObj,varargin{:});
 excludeWin = ip.Results.excludeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLen;
 trend      = ip.Results.trend;
+scale      = ip.Results.scale;
 
 if isa(movieObj,'MovieData')
     
