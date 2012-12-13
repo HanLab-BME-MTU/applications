@@ -244,8 +244,7 @@ end
 end
 %======================================================================
 
-
-
+% Set up track structure
 tracks(1:nTracks) = struct('t', [], 'f', [],...
     'x', [], 'y', [], 'A', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
@@ -253,8 +252,7 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
     'pval_Ar', [], 'isPSF', [],...
     'tracksFeatIndxCG', [], 'gapVect', [], 'gapStatus', [], 'gapIdx', [], 'seqOfEvents', [],...
     'nSeg', [], 'visibility', [], 'lifetime_s', [], 'start', [], 'end', [],...
-    'startBuffer', [], 'endBuffer', [], 'MotionParameters', []);
-%    'alphaMSD', [], 'MSD', [], 'MSDstd', [], 'totalDisplacement', [], 'D', [], ...
+    'startBuffer', [], 'endBuffer', [], 'MotionAnalysis', []);
 
 % track field names
 idx = structfun(@(i) size(i,2)==size(frameInfo(1).x,2), frameInfo(1));
@@ -278,7 +276,7 @@ for k = 1:nTracks
     
     segLengths = NaN(1,nSeg);
     
-    % discarding rules: single frame segments w/ merge/split. ADD: longer segments with merge & split
+    % Remove short merging/splitting branches
     msIdx = NaN(1,nSeg);
     for s = 1:nSeg
         idx = seqOfEvents(:,3)==s;
@@ -298,23 +296,19 @@ for k = 1:nTracks
             (isnan(ievents(1,4)) && ~isnan(ievents(2,4)) && ievents(1,1)>seqOfEvents(1,1)) ||...
             (isnan(ievents(2,4)) && ~isnan(ievents(1,4)) && ievents(2,1)<seqOfEvents(end,1)) ));
     end
-    if preprocess
-        if nSeg>1
-            segIdx = find(msIdx==0); % segments to retain
-            nSeg = numel(segIdx); % update segment #
-            msIdx = find(msIdx);
-            if ~isempty(msIdx)
-                tracksFeatIndxCG(msIdx,:) = [];
-                seqOfEvents(ismember(seqOfEvents(:,3), msIdx),:) = [];
-            end
-            segLengths = segLengths(segIdx);
-        else
-            segIdx = 1;
+    if preprocess && nSeg>1
+        segIdx = find(msIdx==0); % index segments to retain (avoids re-indexing segments)
+        nSeg = numel(segIdx); % update segment #
+        msIdx = find(msIdx);
+        if ~isempty(msIdx)
+            tracksFeatIndxCG(msIdx,:) = [];
+            seqOfEvents(ismember(seqOfEvents(:,3), msIdx),:) = [];
         end
+        segLengths = segLengths(segIdx);
     else
         segIdx = 1:nSeg;
     end
-            
+    
     tracks(k).nSeg = nSeg;
     firstIdx = trackinfo(k).seqOfEvents(1,1);
     lastIdx = trackinfo(k).seqOfEvents(end,1);
@@ -390,7 +384,6 @@ for k = 1:nTracks
         tracks(k).t(delta(s)+(1:nf)) = (bounds(1)-1:bounds(2)-1)*data.framerate;
         tracks(k).f(delta(s)+(1:nf)) = frameRange;
     end
-    %tracks(k).pval_Ar = 1-tracks(k).pval_Ar; % bug fix for detection
     
     fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
 end
@@ -430,12 +423,7 @@ for k = 1:nTracks
     segmentStarts = find(segmentIdx==1);
     segmentEnds = find(segmentIdx==-1)-1;
     segmentLengths = segmentEnds-segmentStarts+1;
-    
-    % loop through track segments with gaps
-    %if nanIdx{s}(1)==1 || nanIdx{s}(end)==1 % temporary fix for segments that begin or end with gap
-    %    tracks(k).gapStatus{s} = 5;
-    %else
-    
+
     % loop over gaps
     nGaps = numel(gapLengths);
     if nGaps>0
@@ -670,52 +658,9 @@ for f = 1:data.movieLength
 end
 fprintf('\n');
 
-
-% %==========================================
-% % Compute displacements
-% %==========================================
-% % Only on tracks with no/valid gaps
-% trackIdx = find(arrayfun(@(t) isempty([t.gapStatus{:}]) || max([t.gapStatus{:} 4])==4, tracks));
-% fprintf('TrackProcessing - Properties:     ');
-% for ki = 1:length(trackIdx)
-%     k = trackIdx(ki);
-%     ns = numel(tracks(k).x);
-%     msdVect = cell(1,ns);
-%     msdStdVect = cell(1,ns);
-%     for s = 1:ns
-%
-%         x = tracks(k).x{s}(mCh,:);
-%         y = tracks(k).y{s}(mCh,:);
-%         tracks(k).totalDisplacement{s} = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);
-%         % MSD
-%         L = 10;
-%         msdVect{s} = NaN(1,L);
-%         msdStdVect{s} = NaN(1,L);
-%         for l = 1:min(L, numel(x)-1)
-%             tmp = (x(1+l:end)-x(1:end-l)).^2 + (y(1+l:end)-y(1:end-l)).^2;
-%             msdVect{s}(l) = mean(tmp);
-%             msdStdVect{s}(l) = std(tmp);
-%         end
-%         tracks(k).MSD = msdVect;
-%         tracks(k).MSDstd = msdStdVect;
-%
-%         %if L > 1 % min 2 points to fit
-%         %    [D c alpha] = fitMSD(MSDvect(1:L), [MSDvect(L)/(4*L) 0 1], 'Dc');
-%         %    tracks(k).D = D;
-%         %    tracks(k).c = c;
-%         %    tracks(k).alpha = alpha;
-%         %end
-%
-%         % add buffer time vectors
-%         %b = size(tracks(k).startBuffer.x,2);
-%         %tracks(k).startBuffer.t = ((-b:-1) + tracks(k).segmentStarts(s)-1) * data.framerate;
-%         %b = size(tracks(k).endBuffer.x,2);
-%         %tracks(k).endBuffer.t = (tracks(k).segmentEnds(s) + (1:b)-1) * data.framerate;
-%     end
-%     fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
-% end
-% fprintf('\n');
-
+%----------------------------------
+% Add time vectors to buffers
+%----------------------------------
 for k = 1:nTracks
     % add buffer time vectors
     if ~isempty(tracks(k).startBuffer)
@@ -727,9 +672,6 @@ for k = 1:nTracks
         tracks(k).endBuffer.t = (tracks(k).end + (1:b)-1) * data.framerate;
     end
 end
-
-% save([data.source 'Tracking' filesep 'tracksTMP.mat'], 'tracks');
-% load([data.source 'Tracking' filesep 'tracksTMP.mat']);
 
 
 %============================================================================
@@ -792,7 +734,7 @@ isCCP = [isCCP{:}];
 % meanMaskAreaNotCCP = arrayfun(@(i) nanmean(i.maskN), tracks(~isCCP));
 
 %----------------------------------------------------------------------------
-% III. Map gaps
+% III. Process 'Ib' tracks: 
 %----------------------------------------------------------------------------
 % Reference distribution: class Ia tracks
 % Determine critical max. intensity values from class Ia tracks, per lifetime cohort
@@ -838,21 +780,30 @@ processingInfo.lftHists.after = getLifetimeHistogram(data, tracks);
 %----------------------------------------------------------------------------
 % IV. Apply threshold on buffer intensities
 %----------------------------------------------------------------------------
-% Condition: at least 2 frames must be below background noise level in both start and end buffer
+% Conditions: 
+% - the amplitude in at least 2 consecutive frames must be within background in each buffer
+% - the maximum buffer amplitude must be smaller than the maximum track amplitude
 Tbuffer = 2;
-
 
 % loop through cat. Ia tracks
 idx_Ia = find([tracks.catIdx]==1);
 for k = 1:numel(idx_Ia)
     i = idx_Ia(k);
     
-    % H0: A = background (p-value >= 0.05) 
-    if sum(tracks(i).startBuffer.pval_Ar(mCh,:)>=0.05) < Tbuffer ||...
-            sum(tracks(i).endBuffer.pval_Ar(mCh,:)>=0.05) < Tbuffer
+    % H0: A = background (p-value >= 0.05)
+    sbin = tracks(i).startBuffer.pval_Ar(mCh,:) < 0.05; % positions with signif. signal
+    ebin = tracks(i).endBuffer.pval_Ar(mCh,:) < 0.05;
+    [sl, sv] = binarySegmentLengths(sbin);
+    [el, ev] = binarySegmentLengths(ebin);
+    if ~any(sl(sv==0)>=Tbuffer) || ~any(el(ev==0)>=Tbuffer) ||...
+            max([tracks(i).startBuffer.A(mCh,:)+tracks(i).startBuffer.c(mCh,:)...
+                 tracks(i).endBuffer.A(mCh,:)+tracks(i).endBuffer.c(mCh,:)]) >...
+            max(tracks(i).A(mCh,:)+tracks(i).c(mCh,:))
         tracks(i).catIdx = 2;
     end
 end
+
+%%
 % v = hist([tracks.catIdx], 1:8);
 % v = v/numel(tracks);
 % plotTrackClasses(v');
@@ -955,11 +906,12 @@ for i = 1:numel(splitCand);
     gapIdx = gapIdx(splitIdx==1);
     
     if ~isempty(gapIdx)
-        rmIdx = [rmIdx k]; % store index of parent track, to be removed at end
+        % store index of parent track, to be removed at end
+        rmIdx = [rmIdx k]; %#ok<AGROW> 
 
         % new tracks
         splitTracks = cutTrack(tracks(k), gapIdx);
-        newTracks = [newTracks splitTracks];
+        newTracks = [newTracks splitTracks]; %#ok<AGROW>
     end
 end
 % final assignment
@@ -973,6 +925,61 @@ trackLengths = [tracks.end]-[tracks.start]+1;
 
 % fprintf('# tracks with >50%% gaps: %d\n', sum(nGaps./trackLengths>=0.5));
 [tracks(nGaps./trackLengths>=0.5).catIdx] = deal(2);
+
+
+% Displacement statistics: remove tracks with >4 large frame-to-frame displacements
+nt = numel(tracks);
+dists = cell(1,nt);
+medianDist = zeros(1,nt);
+for i = 1:nt
+    dists{i} = sqrt((tracks(i).x(mCh,2:end) - tracks(i).x(mCh,1:end-1)).^2 +...
+        (tracks(i).y(mCh,2:end) - tracks(i).y(mCh,1:end-1)).^2);
+    medianDist(i) = nanmedian(dists{i});
+end
+p95 = prctile(medianDist, 95);
+%cs = zeros(1,nt);
+for i = 1:nt
+    if sum(dists{i}>p95)>4 && tracks(i).catIdx==1
+        tracks(i).catIdx=2;
+        %cs(i) = 1;
+    end
+end
+
+
+%==========================================
+% Compute displacement statistics
+%==========================================
+% Only on valid tracks (Cat. Ia)
+trackIdx = find([tracks.catIdx]==1);
+fprintf('Processing tracks (%s) - calculating statistics:     ', getShortPath(data));
+for ki = 1:numel(trackIdx)
+    k = trackIdx(ki);
+    x = tracks(k).x(mCh,:);
+    y = tracks(k).y(mCh,:);
+    tracks(k).MotionAnalysis.totalDisplacement = sqrt((x(end)-x(1))^2 + (y(end)-y(1))^2);
+    % calculate MSD
+    L = 10;
+    msdVect = NaN(1,L);
+    msdStdVect = NaN(1,L);
+    for l = 1:min(L, numel(x)-1)
+        tmp = (x(1+l:end)-x(1:end-l)).^2 + (y(1+l:end)-y(1:end-l)).^2;
+        msdVect(l) = mean(tmp);
+        msdStdVect(l) = std(tmp);
+    end
+    tracks(k).MotionAnalysis.MSD = msdVect;
+    tracks(k).MotionAnalysis.MSDstd = msdStdVect;
+    %if L > 1 % min 2 points to fit
+    %    [D c alpha] = fitMSD(MSDvect(1:L), [MSDvect(L)/(4*L) 0 1], 'Dc');
+    %    tracks(k).D = D;
+    %    tracks(k).c = c;
+    %    tracks(k).alpha = alpha;
+    %end
+    fprintf('\b\b\b\b%3d%%', round(100*ki/numel(trackIdx)));
+end
+fprintf('\n');
+
+
+% Visitors
 
 % v = hist([tracks.catIdx], 1:8);
 % v = v/numel(tracks);
