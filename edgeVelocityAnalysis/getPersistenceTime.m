@@ -38,7 +38,7 @@ ip.parse(TS,deltaT,varargin{:});
 nStd    = ip.Results.nStd;
 plotYes = ip.Results.plotYes;
 TS      = TS(:);
-nPoint  = length(TS);
+
 %**************************************************************************
 %%
 %Block of real numbers isolated by NaN
