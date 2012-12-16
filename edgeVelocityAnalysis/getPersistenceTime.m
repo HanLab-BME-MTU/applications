@@ -2,6 +2,9 @@ function [Protrusion,Retraction] = getPersistenceTime(TS,deltaT,varargin)
 %This function calculate the threshold to define a protrusion or retraction
 %and uses it to estimate the time of protrusion and retraction for each
 %event in TS
+%
+%IMPORTANT: This function has no time series pre-processing
+%
 %Usage:
 %       [Protrusion,Retraction,Up,Dw] = getPersistenceTime(TS,deltaT,varargin)
 %
@@ -9,7 +12,7 @@ function [Protrusion,Retraction] = getPersistenceTime(TS,deltaT,varargin)
 %       TS     - vector - Time series
 %       deltaT - scalar - sampling rate (in seconds, every deltaT seconds)
 %       Optional:
-%               per - number of standard deviations used to calculate the
+%               nStd - number of standard deviations used to calculate the
 %               threshold
 %
 % Output:
@@ -28,22 +31,35 @@ function [Protrusion,Retraction] = getPersistenceTime(TS,deltaT,varargin)
 ip = inputParser;
 ip.addRequired('TS',@isvector);
 ip.addRequired('deltaT',@isscalar);
-ip.addOptional('per',1,@isscalar);
+ip.addOptional('nStd',1,@isscalar);
+ip.addOptional('plotYes',false,@islogical);
 
 ip.parse(TS,deltaT,varargin{:});
-per  = ip.Results.per;
+nStd    = ip.Results.nStd;
+plotYes = ip.Results.plotYes;
+TS      = TS(:);
+nPoint  = length(TS);
 %**************************************************************************
 %%
+%Block of real numbers isolated by NaN
+realBlock = findBlock(find(isfinite(TS)),5);% The constant 5 here defines the minimal number of points. This number is defined by the EMD algorithm. For more see  G. Rilling, P. Flandrin and P. Gonçalves"On Empirical Mode Decomposition and its algorithms",
 
-imf       = emd(TS);
-Mu        = mean(imf(1,:));
-nPoint    = length(TS);
-[~,noise] = testImf(imf);
-sdtError  = std(noise); 
+
+gImf   = [];    
+gNoise = [];
+for iB   = 1:numel(realBlock)
+    imfs = emd(TS(realBlock{iB}));
+    gImf = [gImf imfs(1,:)];
+    
+    [~,noise] = testImf(imfs);
+    gNoise    = [gNoise;noise];
+end
+Mu       = mean(gImf);
+sdtError = std(gNoise); 
 
 %Defining the lower and upper noise confidence bands
-Protrusion.limit  = Mu + sdtError*per; 
-Retraction.limit  = Mu - sdtError*per;
+Protrusion.limit  = Mu + sdtError*nStd; 
+Retraction.limit  = Mu - sdtError*nStd;
 %*************************
  
 
@@ -53,11 +69,28 @@ TSretr  = NaN(size(TS));
 TSprot(TS > Protrusion.limit) = TS(TS > Protrusion.limit);
 TSretr(TS < Retraction.limit) = TS(TS < Retraction.limit);
 
-ProtBlock = findBlock( setdiff(1:nPoint,find(isnan(TSprot))),1 );
-RetrBlock = findBlock( setdiff(1:nPoint,find(isnan(TSretr))),1 );
+ProtBlock = findBlock(find(isfinite(TSprot)),1 );
+RetrBlock = findBlock(find(isfinite(TSretr)),1 );
 
 Protrusion = getStuff(Protrusion,ProtBlock,TS,deltaT);
 Retraction = getStuff(Retraction,RetrBlock,-TS,deltaT);
+
+if plotYes
+    
+    figure
+    plot(TS)
+    hold on
+    nProtB = numel(Protrusion.blockOut);
+    nRetrB = numel(Retraction.blockOut);
+    
+    for i = 1:nProtB
+        plot(Protrusion.blockOut{i},TS(Protrusion.blockOut{i}),'g','LineWidth',2)
+    end
+    for i = 1:nRetrB
+        plot(Retraction.blockOut{i},TS(Retraction.blockOut{i}),'r','LineWidth',2)
+    end
+    
+end
 
 end%End of main function
 

@@ -81,13 +81,13 @@ end%End of main function
 %%
 function [deltaTr,newBlock] = rightBorder(TS,newBlock,deltaT,nPoint)
 
-endPoint = find( TS(newBlock(end)+1:end) < 0 );%finding the zero-crossing point
+endPoint = find( or( TS(newBlock(end)+1:end) < 0, isnan(TS(newBlock(end)+1:end))) );%finding the zero-crossing point
 
 if ~isempty(endPoint)
     rZeroC2  = endPoint(1) + newBlock(end);
     rZeroC1  = rZeroC2  - 1;
     newBlock = [newBlock;[newBlock(end)+1:rZeroC1]'];
-    deltaTr  = deltaT*TS(rZeroC1)/abs( diff( TS(rZeroC1:rZeroC2) ) );
+    deltaTr  = deltaT*TS(rZeroC1)/abs( max([diff( TS(rZeroC1:rZeroC2) ) TS(rZeroC1)]) );
 else
     newBlock = [newBlock;(newBlock(end)+1:nPoint)'];
     deltaTr  = 0;
@@ -98,13 +98,13 @@ end
 %%
 function [deltaTl,newBlock] = leftBorder(TS,newBlock,deltaT)
 
-ftPoint  = find( TS(1:newBlock(1)) < 0 );%finding the zero-crossing point
+ftPoint  = find( or(TS(1:newBlock(1)) < 0,isnan(TS(1:newBlock(1))) ) );%finding the zero-crossing point
 
 if ~isempty(ftPoint)
     lZeroC1  = ftPoint(end) ;
     lZeroC2  = lZeroC1  + 1;
     newBlock = [[lZeroC2:newBlock(1)]';newBlock(2:end)];
-    deltaTl  = deltaT*TS(lZeroC2)/abs( diff( TS(lZeroC1:lZeroC2) ) );
+    deltaTl  = deltaT*TS(lZeroC2)/abs( max([diff( TS(lZeroC1:lZeroC2) ) TS(lZeroC2)]) );
 else
     newBlock = [(1:newBlock(1)-1)';newBlock];
     deltaTl  = 0;
