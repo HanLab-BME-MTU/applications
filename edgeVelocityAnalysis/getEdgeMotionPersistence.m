@@ -61,24 +61,26 @@ nWin       = length(TS);
 Retraction = setupEdgeVelocityStructure(nWin);        
 Protrusion = setupEdgeVelocityStructure(nWin);
 
-auxP = struct('persTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
-auxR = struct('persTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
+auxP = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
+auxR = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 
 for iWin = 1:nWin
     
     [Protrusion.windows(iWin),Retraction.windows(iWin)] = getPersistenceTime(TS{iWin},deltaT);
     %believe it or not, this is the fastest way to do it
     auxP.persTime  = [auxP.persTime;Protrusion.windows(iWin).persTime];
+    auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).totalTime)];
     auxP.maxVeloc  = [auxP.maxVeloc;Protrusion.windows(iWin).maxVeloc];
     auxP.Veloc     = [auxP.Veloc;Protrusion.windows(iWin).Veloc];
     auxP.minVeloc  = [auxP.minVeloc;Protrusion.windows(iWin).minVeloc];
     auxP.mednVeloc = [auxP.mednVeloc;Protrusion.windows(iWin).mednVeloc];
     
-    auxR.persTime  = [auxR.persTime;Protrusion.windows(iWin).persTime];
-    auxR.maxVeloc  = [auxR.maxVeloc;Protrusion.windows(iWin).maxVeloc];
-    auxR.Veloc     = [auxR.Veloc;Protrusion.windows(iWin).Veloc];
-    auxR.minVeloc  = [auxR.minVeloc;Protrusion.windows(iWin).minVeloc];
-    auxR.mednVeloc = [auxR.mednVeloc;Protrusion.windows(iWin).mednVeloc];
+    auxR.persTime  = [auxR.persTime;Retraction.windows(iWin).persTime];
+    auxR.totalTime = [auxR.totalTime;nansum(Retraction.windows(iWin).totalTime)];
+    auxR.maxVeloc  = [auxR.maxVeloc;Retraction.windows(iWin).maxVeloc];
+    auxR.Veloc     = [auxR.Veloc;Retraction.windows(iWin).Veloc];
+    auxR.minVeloc  = [auxR.minVeloc;Retraction.windows(iWin).minVeloc];
+    auxR.mednVeloc = [auxR.mednVeloc;Retraction.windows(iWin).mednVeloc];
     
 end
 
@@ -87,6 +89,9 @@ end
 %Bootstrapping the average and CI
 [Protrusion.CI,Protrusion.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxP,'Unif',0);
 [Retraction.CI,Retraction.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxR,'Unif',0);
+
+Protrusion.total.time = nansum(auxP.persTime);
+Retraction.total.time = nansum(auxR.persTime);
 
 if cluster
     
