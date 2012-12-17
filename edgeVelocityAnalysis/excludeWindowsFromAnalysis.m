@@ -58,7 +58,8 @@ for iCell = 1:nCell
         cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin exclude{iCell}]);        
     end
     
-    cellData(iCell).data.procEdgeMotion(cellData(iCell).data.excludeWin) = [];
+    cellData(iCell).data.excProcEdgeMotion                                  = cellData(iCell).data.procEdgeMotion;
+    cellData(iCell).data.excProcEdgeMotion(cellData(iCell).data.excludeWin) = [];
 
 end
 

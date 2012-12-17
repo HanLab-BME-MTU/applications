@@ -106,16 +106,16 @@ commonGround = @(x) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'
 if isempty(interval{1})
     
     [protrusionA,retractionA] ...
-                 = arrayfun(@(x) commonGround(x.data.procEdgeMotion),cellData,'Unif',0);
+                = arrayfun(@(x) commonGround(x.data.excProcEdgeMotion),cellData,'Unif',0);
      protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
      retraction = cellfun(@(x) {x},retractionA,'Unif',0);
 else
     
-    firstLevel   = @(x,y) commonGround( cellfun(@(w) w(x),y,'Unif',0));
-    secondLevel  = @(x,y) cellfun(@(w) firstLevel(w,y),x,'Unif',0);
+    firstLevel  = @(x,y) commonGround( cellfun(@(w) w(x),y,'Unif',0));
+    secondLevel = @(x,y) cellfun(@(w) firstLevel(w,y),x,'Unif',0);
     
     [protrusion,retraction] ...
-                 = arrayfun(@(x) secondLevel(interval,x.data.procEdgeMotion),cellData,'Unif',0);
+                = arrayfun(@(x) secondLevel(interval,x.data.excProcEdgeMotion),cellData,'Unif',0);
     
 end
 

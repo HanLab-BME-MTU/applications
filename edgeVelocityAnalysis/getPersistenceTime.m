@@ -74,6 +74,7 @@ RetrBlock = findBlock(find(isfinite(TSretr)),1 );
 
 Protrusion = getStuff(Protrusion,ProtBlock,TS,deltaT);
 Retraction = getStuff(Retraction,RetrBlock,-TS,deltaT);
+motionState = sum([TS > Protrusion.limit -(TS < Protrusion.limit) ],2);
 
 if plotYes
     

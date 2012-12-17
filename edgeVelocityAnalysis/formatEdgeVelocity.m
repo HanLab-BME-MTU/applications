@@ -78,7 +78,7 @@ for iCell = 1:nCell
     
     %Extracting outliers
     %Removing NaN and closing 1 frame gaps
-    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',gapSize,'outLevel',outLevel,'minLength',minLen);    
+    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',1,'outLevel',outLevel,'minLength',minLen);    
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
