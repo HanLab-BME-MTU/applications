@@ -69,14 +69,14 @@ for iWin = 1:nWin
     [Protrusion.windows(iWin),Retraction.windows(iWin)] = getPersistenceTime(TS{iWin},deltaT);
     %believe it or not, this is the fastest way to do it
     auxP.persTime  = [auxP.persTime;Protrusion.windows(iWin).persTime];
-    auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).totalTime)];
+    auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).persTime)];
     auxP.maxVeloc  = [auxP.maxVeloc;Protrusion.windows(iWin).maxVeloc];
     auxP.Veloc     = [auxP.Veloc;Protrusion.windows(iWin).Veloc];
     auxP.minVeloc  = [auxP.minVeloc;Protrusion.windows(iWin).minVeloc];
     auxP.mednVeloc = [auxP.mednVeloc;Protrusion.windows(iWin).mednVeloc];
     
     auxR.persTime  = [auxR.persTime;Retraction.windows(iWin).persTime];
-    auxR.totalTime = [auxR.totalTime;nansum(Retraction.windows(iWin).totalTime)];
+    auxR.totalTime = [auxR.totalTime;nansum(Retraction.windows(iWin).persTime)];
     auxR.maxVeloc  = [auxR.maxVeloc;Retraction.windows(iWin).maxVeloc];
     auxR.Veloc     = [auxR.Veloc;Retraction.windows(iWin).Veloc];
     auxR.minVeloc  = [auxR.minVeloc;Retraction.windows(iWin).minVeloc];
