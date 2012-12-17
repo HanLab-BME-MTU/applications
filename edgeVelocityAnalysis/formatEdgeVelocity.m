@@ -76,17 +76,10 @@ for iCell = 1:nCell
         cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
     end
     
-    tRawP = cellData(iCell).data.rawEdgeMotion;
-    
     %Extracting outliers
-    tRawP(detectOutliers(tRawP,outLevel)) = NaN;
-    
-    %***************************************************************
     %Removing NaN and closing 1 frame gaps
-    [tPaux{iCell},~,~,~,excludeVar]     = removeMeanTrendNaN(tRawP','trendType',trend,'minLength',minLen);
-        
-    cellData(iCell).data.procEdgeMotion = tPaux{iCell};
-    cellData(iCell).data.excludeWin     = unique([cellData(iCell).data.excludeWin excludeVar]);
+    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',gapSize,'outLevel',outLevel,'minLength',minLen);    
+    cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
 %% Saving results per cell
