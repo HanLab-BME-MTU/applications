@@ -1,4 +1,4 @@
-function [Protrusion,Retraction] = getPersistenceTime(TS,deltaT,varargin)
+function [Protrusion,Retraction,motionState] = getPersistenceTime(TS,deltaT,varargin)
 %This function calculate the threshold to define a protrusion or retraction
 %and uses it to estimate the time of protrusion and retraction for each
 %event in TS
@@ -74,7 +74,7 @@ RetrBlock = findBlock(find(isfinite(TSretr)),1 );
 
 Protrusion = getStuff(Protrusion,ProtBlock,TS,deltaT);
 Retraction = getStuff(Retraction,RetrBlock,-TS,deltaT);
-motionState = sum([TS > Protrusion.limit -(TS < Protrusion.limit) ],2);
+motionState = sum([TS > Protrusion.limit -(TS < Retraction.limit) ],2);
 
 if plotYes
     

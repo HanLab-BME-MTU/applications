@@ -57,16 +57,17 @@ nCluster = ip.Results.nCluster;
 
 
 %%
-nWin       = length(TS);
-Retraction = setupEdgeVelocityStructure(nWin);        
-Protrusion = setupEdgeVelocityStructure(nWin);
+nWin        = length(TS);
+Retraction  = setupEdgeVelocityStructure(nWin);        
+Protrusion  = setupEdgeVelocityStructure(nWin);
+motionState = NaN(numel(TS{1}),nWin);
 
 auxP = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 auxR = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 
 for iWin = 1:nWin
     
-    [Protrusion.windows(iWin),Retraction.windows(iWin)] = getPersistenceTime(TS{iWin},deltaT);
+    [Protrusion.windows(iWin),Retraction.windows(iWin),motionState(:,iWin)] = getPersistenceTime(TS{iWin},deltaT);
     %believe it or not, this is the fastest way to do it
     auxP.persTime  = [auxP.persTime; Protrusion.windows(iWin).persTime];
     auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).persTime)];
@@ -93,6 +94,8 @@ end
 Protrusion.total.time = nansum(auxP.persTime);
 Retraction.total.time = nansum(auxR.persTime);
 
+Protrusion.total.percentage = sum(motionStation > 0)/nWin;
+Retraction.total.percentage = sum(motionStation < 0)/nWin;
 if cluster
     
     [Protrusion.CI.cluster,Protrusion.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),auxP,'Unif',0);
