@@ -31,8 +31,8 @@ function [Protrusion,Retraction,motionState] = getPersistenceTime(TS,deltaT,vara
 ip = inputParser;
 ip.addRequired('TS',@isvector);
 ip.addRequired('deltaT',@isscalar);
-ip.addOptional('nStd',1,@isscalar);
-ip.addOptional('plotYes',false,@islogical);
+ip.addParamValue('nStd',1,@isscalar);
+ip.addParamValue('plotYes',false,@islogical);
 
 ip.parse(TS,deltaT,varargin{:});
 nStd    = ip.Results.nStd;
@@ -72,8 +72,8 @@ TSretr(TS < Retraction.limit) = TS(TS < Retraction.limit);
 ProtBlock = findBlock(find(isfinite(TSprot)),1 );
 RetrBlock = findBlock(find(isfinite(TSretr)),1 );
 
-Protrusion = getStuff(Protrusion,ProtBlock,TS,deltaT);
-Retraction = getStuff(Retraction,RetrBlock,-TS,deltaT);
+Protrusion  = getStuff(Protrusion,ProtBlock,TS,deltaT);
+Retraction  = getStuff(Retraction,RetrBlock,-TS,deltaT);
 motionState = sum([TS > Protrusion.limit -(TS < Retraction.limit) ],2);
 
 if plotYes

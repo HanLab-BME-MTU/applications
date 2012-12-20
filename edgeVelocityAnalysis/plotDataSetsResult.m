@@ -6,7 +6,7 @@ end
 
 nSet      = numel(dataSet);
 condition = fieldnames(dataSet(1).CI);
-nCond     = numel(condition);
+nCond     = numel(dataSet(1).CI.(condition{1}));
 variable  = fieldnames( dataSet(1).CI.(condition{1}) );
 nVar      = numel(variable);
 
@@ -16,9 +16,9 @@ for iVar = 1:nVar
         
         for iCond = 1:nCond
             
-            meanDisp(iSet,iCond,iVar) = dataSet(iSet).meanValue.(condition{iCond}).(variable{iVar});
-            UpCI(iSet,iCond,iVar)     = dataSet(iSet).CI.(condition{iCond}).(variable{iVar})(2);
-            LwCI(iSet,iCond,iVar)     = dataSet(iSet).CI.(condition{iCond}).(variable{iVar})(1);
+            meanDisp(iSet,iCond,iVar) = dataSet(iSet).meanValue.(condition{1})(iCond).(variable{iVar});
+            UpCI(iSet,iCond,iVar)     = dataSet(iSet).CI.(condition{1})(iCond).(variable{iVar})(2);
+            LwCI(iSet,iCond,iVar)     = dataSet(iSet).CI.(condition{1})(iCond).(variable{iVar})(1);
             UpCI(iSet,iCond,iVar)     = UpCI(iSet,iCond,iVar) - meanDisp(iSet,iCond,iVar);
             LwCI(iSet,iCond,iVar)     = meanDisp(iSet,iCond,iVar) - LwCI(iSet,iCond,iVar);
             

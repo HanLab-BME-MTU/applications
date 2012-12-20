@@ -40,11 +40,11 @@ function [Protrusion,Retraction] = getEdgeMotionPersistence(TS,varargin)
 %% Parsing the input ******************************************************
 ip = inputParser;
 ip.addRequired('TS',@(x) iscell(x));
-ip.addOptional('nBoot',1e3,@isscalar);
-ip.addOptional('alpha',.05,@isscalar);
-ip.addOptional('deltaT',1,@isscalar);
-ip.addOptional('cluster',false,@islogical);
-ip.addOptional('nCluster',2,@isscalar);
+ip.addParamValue('nBoot',1e3,@isscalar);
+ip.addParamValue('alpha',.05,@isscalar);
+ip.addParamValue('deltaT',1,@isscalar);
+ip.addParamValue('cluster',false,@islogical);
+ip.addParamValue('nCluster',2,@isscalar);
 ip.parse(TS,varargin{:});
 
 nBoot    = ip.Results.nBoot;
@@ -94,8 +94,9 @@ end
 Protrusion.total.time = nansum(auxP.persTime);
 Retraction.total.time = nansum(auxR.persTime);
 
-Protrusion.total.percentage = sum(motionStation > 0)/nWin;
-Retraction.total.percentage = sum(motionStation < 0)/nWin;
+Protrusion.total.percentage = sum(motionState > 0,2)/nWin;
+Retraction.total.percentage = sum(motionState < 0,2)/nWin;
+
 if cluster
     
     [Protrusion.CI.cluster,Protrusion.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),auxP,'Unif',0);
