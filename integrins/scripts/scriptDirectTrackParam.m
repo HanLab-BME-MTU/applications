@@ -1,16 +1,15 @@
 
-for i = 1 : length(movieStructAlphaV);
+for i = 1 : length(movieStructLifeact)
     
     disp(num2str(i))
     
-    topDir = movieStructAlphaV(i).fileName{1};
-    cd([topDir '/analysisAlphaV/furtherAnalysis'])
-    
-    %     delete directTrackChar.mat
-    
-    activityLevel = movieStructAlphaV(i).activityLevel;
+    activityLevel = movieStructLifeact(i).activityLevel;
     
     if activityLevel > 1
+        
+        topDir = movieStructLifeact(i).fileName{1};
+        topDir = topDir(11:end);
+        cd([topDir '/analysisLifeact/furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
         

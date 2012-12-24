@@ -9,8 +9,8 @@ for i = 1 : length(movieStructAlphaVFixed);
         cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
-        diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructIntegrin);
-        save('diffusionModeClassification','diffModeAnalysisRes','diffModeDividerStructIntegrin');
+        diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructActin);
+        save('diffusionModeClassification','diffModeAnalysisRes','diffModeDividerStructActin');
         
     end
     

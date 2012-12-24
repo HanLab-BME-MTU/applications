@@ -1,21 +1,20 @@
 
 lengthMinMax = [5 99];
 
-% for i = 1 : length(movieStructAlphaV)
-for i = 1 : 1
+for i = 1 : length(movieStructLifeact)
     
     disp(num2str(i))
     
-    activityLevel = movieStructAlphaV(i).activityLevel;
+    activityLevel = movieStructLifeact(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructAlphaV(i).fileName{1};
-        %         topDir = topDir(11:end);
-        cd([topDir '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
+        topDir = movieStructLifeact(i).fileName{1};
+        topDir = topDir(11:end);
+        cd([topDir '/analysisLifeact/furtherAnalysis/adaptiveWindows'])
         
-        sliceRange = movieStructAlphaV(i).sliceRange;
-        frameRange = movieStructAlphaV(i).frameRange;
+        sliceRange = movieStructLifeact(i).sliceRange;
+        frameRange = movieStructLifeact(i).frameRange;
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
@@ -49,15 +48,15 @@ for i = 1 : 1
             'maxNegInc',10,...
             'maxPosInc',length(tmp)-1);
         
-        edgePosStd = 2;
+        edgePosStd = 1;
         
         [sptPropInWindow,windowDistFromEdge,analysisParam] = sptRelToActivityOnsetAdaptiveWindows(...
             tracksFinal,diffAnalysisRes,diffModeAnalysisRes,trackChar,windowsAll,...
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
             lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam,edgePosStd);
         
-%         save('particleBehaviorAdaptiveWindows121002','sptPropInWindow',...
-%             'windowDistFromEdge','analysisParam');
+        save('particleBehaviorAdaptiveWindows121112','sptPropInWindow',...
+            'windowDistFromEdge','analysisParam');
         
     end
     

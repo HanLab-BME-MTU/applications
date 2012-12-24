@@ -1,17 +1,17 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructAlphaV);
+for i = 1 : length(movieStructLifeact)
     
     disp(num2str(i))
     
-    activityLevel = movieStructAlphaV(i).activityLevel;
+    activityLevel = movieStructLifeact(i).activityLevel;
     
-    if activityLevel > 1
+    if activityLevel > 1 && i ~= 6
         
-        tmp = movieStructAlphaV(i).fileName{1};
-        %         tmp = tmp(11:end);
-        cd([tmp '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
+        tmp = movieStructLifeact(i).fileName{1};
+        tmp = tmp(11:end);
+        cd([tmp '/analysisLifeact/furtherAnalysis/adaptiveWindows'])
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
