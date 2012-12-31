@@ -15,6 +15,10 @@ function [ drift, frameIndex] = getDrift(features,varargin)
 %
 % US, 2012/10/25
 %
+% Update 2012/12/31 JLW:
+%        added amp feature
+%        fixed a bug when there is only onetracking features in a frame
+%         the code would set dx and dy equal to each other
 
 ip=inputParser;
 ip.CaseSensitive=false;
@@ -87,7 +91,11 @@ for i=1:nFrames-1
         end
     end
     
-    drift(i+1,1:2)=mean(shift);
+    if isempty(shift)
+        shift = NaN;
+    end
+    
+    drift(i+1,1:2)=mean(shift,1);
 end
 
 end
