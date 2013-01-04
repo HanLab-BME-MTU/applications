@@ -112,7 +112,7 @@ for iFile=1:nFiles
         sigma=psfSigmaTheo(k+1);
         
         img=double(MD.channels_(1).loadImage(iFrame+1));
-        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-3,...
+        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-9,...
             'mask',mask,'FitMixtures',doMMF);
         
         iFrame=iFrame+1;

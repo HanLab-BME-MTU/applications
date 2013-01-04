@@ -1,5 +1,5 @@
 
-function PointP_Plot2Color(posA,posB,sf,A,FN)
+function img=PointP_Plot2Color(posA,posB,sf,A,FN)
 %PointP_Plot2color takes two lists of corrdinates (x,y) with their corresponding
 %uncertainies (dx,dy) and displays them in an image. Each point is represented as
 %an ellipse centered at (x,y) with major and minor axes of (dx,dy).
@@ -24,6 +24,7 @@ function PointP_Plot2Color(posA,posB,sf,A,FN)
  Low = [ min(min(pos(:,1))), min(min(pos(:,2)))];
  High = [max(max(pos(:,1))),max(max(pos(:,2)))];
  ImgSize = ceil([High(1)-Low(1),High(2)-Low(2)]);
+ Size = ImgSize;
  
  pixNum=ceil(max(max(pos(:,3:4)))*5);
  if ~mod(pixNum,2)
@@ -43,13 +44,18 @@ function PointP_Plot2Color(posA,posB,sf,A,FN)
  
  IA = PointP_Plot2(posA,ImgSize,sf,A,FN,pixNum); 
  IB = PointP_Plot2(posB,ImgSize,sf,A,FN,pixNum); 
+ 
+ %removes border
+ IA = IA(pixNum:pixNum+Size(1),pixNum:pixNum+Size(2),:);
+ IB = IB(pixNum:pixNum+Size(1),pixNum:pixNum+Size(2),:);
+ 
 
  img = IA;
  img(:,:,1)=IB(:,:,2);
  img(:,:,3)=img(:,:,3)+IB(:,:,3);
 
- imwrite(img,FN,'TIFF');
- hImage = imshow(img);
+ %imwrite(img,FN,'TIFF');
+ %hImage = imshow(img);
     
 end
 
