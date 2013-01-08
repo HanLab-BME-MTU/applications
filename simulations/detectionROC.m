@@ -112,30 +112,47 @@ F = [sum(dx0(:).^2) 0 0 0;
      0 0 sum(dA(:).^2) sum(dA(:).*dc(:));
      0 0 sum(dA(:).*dc(:)) sum(dc(:).^2)];
 
-CRB = sigma_n*sqrt(diag(inv(F)));
+ 
+crbV = sqrt(diag(inv(F)));
 
 
 %%
 g = simGaussianSpots(21, 21, sigma, 'x', 11, 'y', 11);
 
 A = 1;
-PSNR = 20;
-sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(PSNR/10));
-
 N = 1e3;
-A_est = zeros(N,1);
-A_pstd = zeros(N,1);
-x_pstd = zeros(N,1);
-parfor i = 1:N
-    gn = g + sigma_n*randn(21,21);
-    pstruct = fitGaussians2D(gn, 11, 11, 1, sigma, 0);
-    A_est(i) = pstruct.A;
-    A_pstd(i) = pstruct.A_pstd;
-    x_pstd(i) = pstruct.x_pstd;
+
+psnrV = 1:30;
+ns = numel(psnrV);
+A_crb = zeros(ns,1);
+A_std = zeros(ns,1);
+A_stdP = zeros(ns,1);
+for k = 1:ns
+
+    sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(psnrV(k)/10));
+
+    A_est = NaN(N,1);
+    A_pstd = NaN(N,1);
+    x_pstd = NaN(N,1);
+    for i = 1:N
+        gn = g + sigma_n*randn(21,21);
+        %pstruct = fitGaussians2D(gn, 11, 11, 1, sigma, 0);
+        pstruct = pointSourceDetection(gn, sigma);
+        if ~isempty(pstruct)
+            A_est(i) = pstruct.A;
+            A_pstd(i) = pstruct.A_pstd;
+            x_pstd(i) = pstruct.x_pstd;
+        end
+    end
+    A_crb(k) = sigma_n*crbV(3);
+    A_std(k) = nanstd(A_est);
+    A_stdP(k) = nanmean(A_pstd);
 end
-    
-    
-% figure; imagesc(gn); colormap(gray(256)); axis image;
 
-
-
+figure;
+hold on;
+plot(psnrV, A_crb, 'k-');
+plot(psnrV, A_std, 'r--');
+plot(psnrV, A_stdP, 'g--');
+xlabel('PSNR [dB]');
+legend('CRB', 'Measured s.d.', 'Propagated s.d.');
