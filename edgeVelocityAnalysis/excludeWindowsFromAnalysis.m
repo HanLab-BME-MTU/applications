@@ -54,9 +54,10 @@ for iCell = 1:nCell
         nWin   = size( cellData(iCell).data.rawEdgeMotion,1 );
         border = [1:excBorder nWin-(excBorder-1):nWin];
         cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin border]);
-        %Excluding pre-selected windows
-        cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin exclude{iCell}]);        
     end
+    
+     %Excluding pre-selected windows
+    cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin exclude{iCell}]);  
     
     cellData(iCell).data.excProcEdgeMotion                                  = cellData(iCell).data.procEdgeMotion;
     cellData(iCell).data.excProcEdgeMotion(cellData(iCell).data.excludeWin) = [];
