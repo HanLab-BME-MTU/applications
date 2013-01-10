@@ -3,7 +3,7 @@ function cellData = excludeWindowsFromAnalysis(movieObj,varargin)
 %
 %Input:
 %       movieObj - movie data or movie list object
-%       excBoder - if only a region of the cell is windowed, this option
+%       excBorder - if only a region of the cell is windowed, this option
 %                 allows the user to exclude the border windows
 %                 - scalar that defines the number of windows in both
 %                 borders (default = 0)
