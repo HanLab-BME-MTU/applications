@@ -1,13 +1,13 @@
 
+% Image parameters
 
-
-
-nx = 500;
-ny = 500;
+nx = 1000;
+ny = 1000;
 sigma = 1.4;
 w = ceil(4*sigma);
+ni = 2*w+1; % width of PSF support
 
-np = 1000;
+np = 3000; % # points
 
 x = [];
 y = [];
@@ -25,33 +25,134 @@ y = y(1:np);
 
 % generate point source image
 A = 1;
-ni = 2*w+1; % width of PSF support
 img = simGaussianSpots(nx, ny, sigma, 'x', x, 'y', y);
 
 figure;
 imagesc(img); colormap(gray(256)); axis image;
 hold on;
-plot(x, y, 'ro');
+% plot(x, y, 'ro');
 %%
 
 % loop through PSNR values
 psnrV = 0:1:25;
-N = numel(psnrV);
+ns = numel(psnrV);
 
-psnrV = 15;
-i = 1;
+alphaV = [0.05 0.10 0.2 0.5 1];
+na = numel(alphaV);
 
-sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(psnrV(i)/10));
-img_n = img + sigma_n*randn(ny,nx);
+nTP = NaN(ns,na);
+nFP = NaN(ns,na);
+nTN = NaN(ns,na);
+nFN = NaN(ns,na);
 
-[pstruct, mask, imgLM, imgLoG] = pointSourceDetection(img_n, sigma, 'Alpha', 0.2);
-[ly,lx] = find(imgLM~=0);
+for ai = 3%:na
+    parfor k = 1:ns % need to change to smaller image and noise iterations
+        sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(psnrV(k)/10));
 
+        img_n = img + sigma_n*randn(ny,nx);
 
-figure;
-imagesc(img_n); colormap(gray(256)); axis image;
+        [pstruct, ~, imgLM] = pointSourceDetection(img_n, sigma, 'Alpha', alphaV(ai));
+        [ly,lx] = find(imgLM~=0);
+        % remove loc. max. within image border
+        rmIdx = lx<=w | ly<=w | lx>nx-w | ly>ny-w;
+        lx(rmIdx) = [];
+        ly(rmIdx) = [];
+        
+        % match local maxima to closest true position
+        D = createSparseDistanceMatrix([lx ly], [x y], 10);
+        [linkMax2In, ~] = lap(D, [], [], 1);
+        linkMax2In = double(linkMax2In(1:numel(lx)));
+        linkMax2In(linkMax2In>numel(x)) = NaN;
+        
+        % classify loc. max. wrt input
+        tfidx = ~isnan(linkMax2In);
+        
+        % match detections to closest local maximum
+        D = createSparseDistanceMatrix([pstruct.x' pstruct.y'], [lx ly], 10);
+        [linkDet2Max, ~] = lap(D, [], [], 1);
+        linkDet2Max = double(linkDet2Max(1:numel(pstruct.x)));
+        didx = tfidx(linkDet2Max);
+        didx2 = false(size(tfidx));
+        didx2(linkDet2Max) = true;
+        
+        
+        % display match
+%         lxi = [lx(tfidx) x(linkMax2In(tfidx))];
+%         lyi = [ly(tfidx) y(linkMax2In(tfidx))];
+%         dxi = [lx(linkDet2Max(didx)) pstruct.x(didx)'];
+%         dyi = [ly(linkDet2Max(didx)) pstruct.y(didx)'];
+%         
+%         figure;
+%         imagesc(img_n); colormap(gray(256)); axis image;
+%         hold on;
+%         plot(lxi', lyi', 'r');
+%         plot(dxi', dyi', 'm');
+%         plot(lx, ly, 'wo');
+%         plot(x, y, 'go');
+%         plot(pstruct.x, pstruct.y, 'ys');
+        
+
+        tp = didx2 & tfidx;
+        fp = didx2 & ~tfidx;
+        tn = ~didx2 & ~tfidx;
+        fn = ~didx2 & tfidx;
+        
+        nTP(k,ai) = sum(tp);
+        nFP(k,ai) = sum(fp);
+        nTN(k,ai) = sum(tn);
+        nFN(k,ai) = sum(fn);
+    end
+end
+%%
+% figure;
+% hold on;
+% plot(psnrV, nTP, 'g');
+% plot(psnrV, nFP, 'r');
+% plot(psnrV, nTN, 'k');
+% plot(psnrV, nFN, 'b');
+% legend('TP', 'FP', 'TN', 'FN');
+
+%%
+cmap = jet(ns);
+fset = loadFigureSettings();
+
+cv = jet(na);
+
+figure(fset.fOpts{:});
+axes(fset.axOpts{:});
+colormap(cmap);
 hold on;
-plot(x, y, 'go');
+for ai = 3%:na
+
+    tpr = nTP(:,ai) ./ (nTP(:,ai)+nFN(:,ai));
+    fpr = nFP(:,ai) ./ (nFP(:,ai)+nTN(:,ai));
+
+    %mesh([fpr fpr], [tpr tpr], zeros(ns,2), repmat((1:ns)', [1 2]),...
+    %    'EdgeColor', 'interp', 'FaceColor', 'none', 'LineWidth', 1.5);
+    
+    plot(fpr, tpr, 'Color', cv(ai,:));
+    
+%     set(gca, 'ColorOrder', cmap);
+%     plot([fpr fpr]', [tpr tpr]', 'o');
+end
+axis([0 1 0 1]);
+axis square;
+xlabel('False positive rate', fset.lfont{:});
+ylabel('True positive rate', fset.lfont{:});
+
+% figure; hold on; plot(psnrV, tpr, 'g'); plot(psnrV, fpr, 'r');
+
+%%
+% figure;
+% imagesc(img_n); colormap(gray(256)); axis image;
+% hold on;
+% plot(x, y, 'go');
+% plot(lx(tp), ly(tp), 'yx');
+% plot(lx(fp), ly(fp), 'rx');
+% plot(lx(tn), ly(tn), 'wx');
+% plot(lx(fn), ly(fn), 'cx');
+% 
+% plot(pstruct.x(unmatchedIdx), pstruct.y(unmatchedIdx), 'ms');
 
 %%
 
@@ -92,67 +193,180 @@ if ~isempty(pstruct)
     plot(pstruct.x, pstruct.y, 'rx');
 end
 
-%%
-% Fisher information matrix (parameters: x,y,A,c)
-A = 1;
-c = 0;
 
-[x,y] = meshgrid(-w:w);
+
+%%
+%========================================================
+% CRB comparison: A vs. sigma_x
+%========================================================
 x0 = 0;
 y0 = 0;
+w = 6;
+sigma = 1.4;
 c = 0;
+
+ni = (2*ceil(4*sigma)+1)^2; % support of the fit
+
+[x,y] = meshgrid(-w:w);
 g = exp(-((x-x0).^2+(y-y0).^2)/(2*sigma^2));
-dA = g;
-dc = ones(size(g));
-dx0 = (x-x0)/sigma^2*A.*g; 
-dy0 = (y-y0)/sigma^2*A.*g;
-
-F = [sum(dx0(:).^2) 0 0 0;
-     0 sum(dy0(:).^2) 0 0;
-     0 0 sum(dA(:).^2) sum(dA(:).*dc(:));
-     0 0 sum(dA(:).*dc(:)) sum(dc(:).^2)];
-
- 
-crbV = sqrt(diag(inv(F)));
 
 
-%%
-g = simGaussianSpots(21, 21, sigma, 'x', 11, 'y', 11);
+% Gaussian noise std
+sigma_n = 3;
 
-A = 1;
+% lowest amplitude: PSNR = 1
+psnr0 = 1;
+psnrN = 30;
+a0 = sigma_n*sqrt(10^(psnr0/10)*(ni-1)/ni);
+aN = sigma_n*sqrt(10^(psnrN/10)*(ni-1)/ni);
+na = 50;
+% amplitude vector
+av = linspace(a0, aN, na);
+psnrG = 10*log10(av.^2/sigma_n^2*ni/(ni-1));
+
+% expected PSNR for Poisson noise
+psnrP = 10*log10(av.^2 ./ (av*mean(g(:))+c));
+
+% ai = 40;
+% gnG = av(ai)*g+c + sigma_n*randn(size(g));
+% gnP = poissrnd((av(ai)*g+c));
+% figure;
+% colormap(gray(256));
+% subplot(1,3,1); imagesc(av(ai)*g+c); axis image; colorbar;
+% subplot(1,3,2); imagesc(gnG); axis image; colorbar;
+% subplot(1,3,3); imagesc(gnP); axis image; colorbar;
+
+
+crbG = sigma_n*sqrt(2/pi)./av;
+% crbP = 1./sqrt(av*2*pi); % when c=0
+crbP = sqrt(arrayfun(@(i) 1/sum(sum( ((x-x0)./sigma^2*i.*g).^2 ./ (i*g+c))), av) );
+
+meanxpstdG = zeros(na,1);
+meanxpstdP = zeros(na,1);
+psnrEstG = zeros(na,1);
+psnrEstP = zeros(na,1);
+xestG = zeros(na,1);
+xestP = zeros(na,1);
 N = 1e3;
 
-psnrV = 1:30;
-ns = numel(psnrV);
-A_crb = zeros(ns,1);
-A_std = zeros(ns,1);
-A_stdP = zeros(ns,1);
-for k = 1:ns
-
-    sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(psnrV(k)/10));
-
-    A_est = NaN(N,1);
-    A_pstd = NaN(N,1);
-    x_pstd = NaN(N,1);
-    for i = 1:N
-        gn = g + sigma_n*randn(21,21);
-        %pstruct = fitGaussians2D(gn, 11, 11, 1, sigma, 0);
-        pstruct = pointSourceDetection(gn, sigma);
-        if ~isempty(pstruct)
-            A_est(i) = pstruct.A;
-            A_pstd(i) = pstruct.A_pstd;
-            x_pstd(i) = pstruct.x_pstd;
-        end
+for ai = 1:na
+    % Gaussian
+    ixestG = NaN(N,1);
+    ixpstdG = NaN(N,1);
+    ipsnr = NaN(N,1);
+    parfor i = 1:N
+        gn = av(ai)*g+c + sigma_n*randn(size(g));
+        pstruct = fitGaussians2D(gn, w+1, w+1, av(ai), sigma, c);
+        ixestG(i) = pstruct.x;
+        ixpstdG(i) = pstruct.x_pstd;
+        ipsnr(i) = 10*log10(pstruct.A^2*ni/pstruct.RSS);
     end
-    A_crb(k) = sigma_n*crbV(3);
-    A_std(k) = nanstd(A_est);
-    A_stdP(k) = nanmean(A_pstd);
+    xestG(ai) = nanmean(ixestG);
+    xstdG(ai) = nanstd(ixestG);
+    meanxpstdG(ai) = nanmean(ixpstdG);
+    psnrEstG(ai) = nanmean(ipsnr);
+    
+    % Poisson
+    ixestP = NaN(N,1);
+    ixpstdP = NaN(N,1);
+    ipsnr = NaN(N,1);
+    parfor i = 1:N
+        gn = poissrnd(av(ai)*g+c);
+        pstruct = fitGaussians2D(gn, w+1, w+1, av(ai), sigma, c);
+        ixestP(i) = pstruct.x;
+        ixpstdP(i) = pstruct.x_pstd;
+        ipsnr(i) = 10*log10(pstruct.A^2/mean(gn(:)));
+    end
+    xestP(ai) = nanmean(ixestP);
+    xstdP(ai) = nanstd(ixestP);
+    meanxpstdP(ai) = nanmean(ixpstdP);
+    psnrEstP(ai) = nanmean(ipsnr);
 end
 
 figure;
 hold on;
-plot(psnrV, A_crb, 'k-');
-plot(psnrV, A_std, 'r--');
-plot(psnrV, A_stdP, 'g--');
-xlabel('PSNR [dB]');
-legend('CRB', 'Measured s.d.', 'Propagated s.d.');
+plot(av, crbG, 'k');
+plot(av, xstdG, 'k.');
+plot(av, meanxpstdG, 'ko');
+plot(av, crbP, 'b');
+plot(av, xstdP, 'b.');
+plot(av, meanxpstdP, 'bo');
+axis([0 70 0 0.8])
+legend('CRB(x) Gaussian noise', '\sigma_x', '\sigma_x (propagated)',...
+    'CRB(x) Poisson noise', '\sigma_x', '\sigma_x (propagated)');
+xlabel('A');
+ylabel('\sigma_x');
+
+figure;
+hold on;
+plot([0 30], [0 30], 'k--');
+plot(psnrG, psnrEstG, 'r.-');
+plot(psnrP, psnrEstP, 'g.-');
+axis([0 30 0 30]); axis square;
+
+
+%%
+%========================================================
+% PSNR estimation with Gaussian and Poisson noise
+%========================================================
+x0 = 0;
+y0 = 0;
+sigma = 1.4;
+c = 10;
+
+w = ceil(5*sigma);
+[x,y] = meshgrid(-w:w);
+
+g = exp(-((x-x0).^2+(y-y0).^2)/(2*sigma^2));
+ni = (2*ceil(4*sigma)+1)^2;
+
+sigma_n = 3;
+
+psnr0 = 1;
+psnrN = 30;
+a0 = sqrt(sigma_n^2 * 10^(psnr0/10) * (ni-1)/ni);
+aN = sqrt(sigma_n^2 * 10^(psnrN/10) * (ni-1)/ni);
+np = 30;
+av = linspace(a0, aN, np);
+
+% reference PSNR for Gaussian noise
+psnrG = 10*log10(av.^2/sigma_n^2*ni/(ni-1));
+
+% expected PSNR for Poisson noise
+psnrP = 10*log10(av.^2 ./ (av*mean(g(:))+c));
+
+N = 1e2;
+
+psnrEstG = NaN(np,1);
+psnrEstP = NaN(np,1);
+for k = 1:np
+    % Gaussian
+    iPSNR = NaN(N,1);
+    parfor i = 1:N
+        gn = av(k)*g + c + sigma_n*randn(2*w+1,2*w+1);
+        pstruct = fitGaussians2D(gn, w+1, w+1, av(k), sigma, c);
+        iPSNR(i) = 10*log10(pstruct.A^2*ni/pstruct.RSS);
+    end
+    psnrEstG(k) = nanmean(iPSNR);
+    
+    % Poisson
+    iPSNR = NaN(N,1);
+    parfor i = 1:N
+        gn = poissrnd(av(k)*g + c);
+        pstruct = fitGaussians2D(gn, w+1, w+1, av(k), sigma, c);
+        iPSNR(i) = 10*log10(pstruct.A^2/(mean(gn(:))));
+    end
+    psnrEstP(k) = nanmean(iPSNR);
+end
+
+figure;
+hold on;
+plot([0 30], [0 30], 'k--', 'HandleVisibility', 'off');
+plot(psnrG, psnrEstG, 'r.-');
+plot(psnrP, psnrEstP, 'g.-');
+axis([0 30 0 30]);
+axis square;
+xlabel('PSNR')
+ylabel('Estimated PSNR');
+legend('Gaussian noise', 'Poisson noise', 'Location', 'SouthEast');
+
