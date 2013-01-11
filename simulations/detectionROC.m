@@ -1,13 +1,13 @@
 
 % Image parameters
 
-nx = 1000;
-ny = 1000;
+nx = 200;
+ny = 200;
 sigma = 1.4;
 w = ceil(4*sigma);
 ni = 2*w+1; % width of PSF support
 
-np = 3000; % # points
+np = 120; % # points
 
 x = [];
 y = [];
@@ -40,67 +40,84 @@ ns = numel(psnrV);
 alphaV = [0.05 0.10 0.2 0.5 1];
 na = numel(alphaV);
 
-nTP = NaN(ns,na);
-nFP = NaN(ns,na);
-nTN = NaN(ns,na);
-nFN = NaN(ns,na);
+% nTP = NaN(ns,na);
+% nFP = NaN(ns,na);
+% nTN = NaN(ns,na);
+% nFN = NaN(ns,na);
+tpr = NaN(ns,na);
+fpr = NaN(ns,na);
+
+N = 10;
 
 for ai = 3%:na
-    parfor k = 1:ns % need to change to smaller image and noise iterations
+    for k = 1:ns % need to change to smaller image and noise iterations
         sigma_n = sqrt(A^2 * ni / (ni-1) / 10^(psnrV(k)/10));
 
-        img_n = img + sigma_n*randn(ny,nx);
+        itpr = NaN(N,1);
+        ifpr = NaN(N,1);
+        for i = 1:N
+        
+            img_n = img + sigma_n*randn(ny,nx);
+            
+            [pstruct, ~, imgLM] = pointSourceDetection(img_n, sigma, 'Alpha', alphaV(ai));
+            [ly,lx] = find(imgLM~=0);
+            % remove loc. max. within image border
+            rmIdx = lx<=w | ly<=w | lx>nx-w | ly>ny-w;
+            lx(rmIdx) = [];
+            ly(rmIdx) = [];
+            
+            % match local maxima to closest true position
+            D = createSparseDistanceMatrix([lx ly], [x y], 10);
+            [linkMax2In, ~] = lap(D, [], [], 1);
+            linkMax2In = double(linkMax2In(1:numel(lx)));
+            linkMax2In(linkMax2In>numel(x)) = NaN;
+            
+            % classify loc. max. wrt input
+            tfidx = ~isnan(linkMax2In);
+            
+            % match detections to closest local maximum
+            D = createSparseDistanceMatrix([pstruct.x' pstruct.y'], [lx ly], 10);
+            [linkDet2Max, ~] = lap(D, [], [], 1);
+            linkDet2Max = double(linkDet2Max(1:numel(pstruct.x)));
+            didx = tfidx(linkDet2Max);
+            didx2 = false(size(tfidx));
+            didx2(linkDet2Max) = true;
+            
+            
+            % display match
+            %         lxi = [lx(tfidx) x(linkMax2In(tfidx))];
+            %         lyi = [ly(tfidx) y(linkMax2In(tfidx))];
+            %         dxi = [lx(linkDet2Max(didx)) pstruct.x(didx)'];
+            %         dyi = [ly(linkDet2Max(didx)) pstruct.y(didx)'];
+            %
+            %         figure;
+            %         imagesc(img_n); colormap(gray(256)); axis image;
+            %         hold on;
+            %         plot(lxi', lyi', 'r');
+            %         plot(dxi', dyi', 'm');
+            %         plot(lx, ly, 'wo');
+            %         plot(x, y, 'go');
+            %         plot(pstruct.x, pstruct.y, 'ys');
+        
 
-        [pstruct, ~, imgLM] = pointSourceDetection(img_n, sigma, 'Alpha', alphaV(ai));
-        [ly,lx] = find(imgLM~=0);
-        % remove loc. max. within image border
-        rmIdx = lx<=w | ly<=w | lx>nx-w | ly>ny-w;
-        lx(rmIdx) = [];
-        ly(rmIdx) = [];
-        
-        % match local maxima to closest true position
-        D = createSparseDistanceMatrix([lx ly], [x y], 10);
-        [linkMax2In, ~] = lap(D, [], [], 1);
-        linkMax2In = double(linkMax2In(1:numel(lx)));
-        linkMax2In(linkMax2In>numel(x)) = NaN;
-        
-        % classify loc. max. wrt input
-        tfidx = ~isnan(linkMax2In);
-        
-        % match detections to closest local maximum
-        D = createSparseDistanceMatrix([pstruct.x' pstruct.y'], [lx ly], 10);
-        [linkDet2Max, ~] = lap(D, [], [], 1);
-        linkDet2Max = double(linkDet2Max(1:numel(pstruct.x)));
-        didx = tfidx(linkDet2Max);
-        didx2 = false(size(tfidx));
-        didx2(linkDet2Max) = true;
-        
-        
-        % display match
-%         lxi = [lx(tfidx) x(linkMax2In(tfidx))];
-%         lyi = [ly(tfidx) y(linkMax2In(tfidx))];
-%         dxi = [lx(linkDet2Max(didx)) pstruct.x(didx)'];
-%         dyi = [ly(linkDet2Max(didx)) pstruct.y(didx)'];
-%         
-%         figure;
-%         imagesc(img_n); colormap(gray(256)); axis image;
-%         hold on;
-%         plot(lxi', lyi', 'r');
-%         plot(dxi', dyi', 'm');
-%         plot(lx, ly, 'wo');
-%         plot(x, y, 'go');
-%         plot(pstruct.x, pstruct.y, 'ys');
-        
-
-        tp = didx2 & tfidx;
-        fp = didx2 & ~tfidx;
-        tn = ~didx2 & ~tfidx;
-        fn = ~didx2 & tfidx;
-        
-        nTP(k,ai) = sum(tp);
-        nFP(k,ai) = sum(fp);
-        nTN(k,ai) = sum(tn);
-        nFN(k,ai) = sum(fn);
+            tp = didx2 & tfidx;
+            fp = didx2 & ~tfidx;
+            tn = ~didx2 & ~tfidx;
+            fn = ~didx2 & tfidx;
+            ntp = sum(tp);
+            nfp = sum(fp);
+            ntn = sum(tn);
+            nfn = sum(fn);
+            
+            itpr(i) = ntp/(ntp+nfn);
+            ifpr(i) = nfp/(nfp+ntn);
+        end
+        tpr(k,ai) = nanmedian(itpr);
+        fpr(k,ai) = nanmedian(ifpr);
+            %nTP(k,ai) = sum(tp);
+            %nFP(k,ai) = sum(fp);
+            %nTN(k,ai) = sum(tn);
+            %FN(k,ai) = sum(fn);
     end
 end
 %%
@@ -124,13 +141,13 @@ colormap(cmap);
 hold on;
 for ai = 3%:na
 
-    tpr = nTP(:,ai) ./ (nTP(:,ai)+nFN(:,ai));
-    fpr = nFP(:,ai) ./ (nFP(:,ai)+nTN(:,ai));
+    %tpr = nTP(:,ai) ./ (nTP(:,ai)+nFN(:,ai));
+    %fpr = nFP(:,ai) ./ (nFP(:,ai)+nTN(:,ai));
 
     %mesh([fpr fpr], [tpr tpr], zeros(ns,2), repmat((1:ns)', [1 2]),...
     %    'EdgeColor', 'interp', 'FaceColor', 'none', 'LineWidth', 1.5);
     
-    plot(fpr, tpr, 'Color', cv(ai,:));
+    plot(fpr(:,ai), tpr(:,ai), 'Color', cv(ai,:));
     
 %     set(gca, 'ColorOrder', cmap);
 %     plot([fpr fpr]', [tpr tpr]', 'o');
