@@ -71,12 +71,11 @@ inc2 = 1/(2*sf);
 for k=1:CC.NumObjects
     %finds the rectange that incloses the object plus a buffer around it
     [i,j] = ind2sub(size(f2),CC.PixelIdxList{k});
-    
+    ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[]);
     %sets a minimum size for reconstruction
-    if numel(i) < 3 
-        ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[]);
-        continue;        
-    end
+%     if numel(i) < 3 
+%         continue;        
+%     else
     
     xmin = edge{1}(min(i))-0.7;
     xmax = edge{1}(max(i))+0.7;
@@ -92,7 +91,10 @@ for k=1:CC.NumObjects
     Pnts = list2(inWindow,1:2);
     %[cnt,bn]=hist3(Pnts,[ ceil((xmax-xmin)*sf*2),ceil((ymax-ymin)*sf*2)]);
     [cnt,bn]=hist3(Pnts,edge2);
-    ObjectRecon{k} = struct('counts',cnt,'bins',edge2,'PntListIdx',inWindow);
+    ObjectRecon{k}.counts = cnt;
+    ObjectRecon{k}.bins = edge2;
+    ObjectRecon{k}.PntListIdx = inWindow;
+%    end
 end
 
 CC.ObjectRecon=ObjectRecon;
