@@ -7,11 +7,12 @@ function trackSettings = loadTrackSettings(varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Radius', [5 10]);
+ip.addParamValue('MaxGapLength', 2);
 ip.parse(varargin{:});
 radius = ip.Results.Radius;
 
 
-gapCloseParam.timeWindow = 3;  % maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
+gapCloseParam.timeWindow = ip.Results.MaxGapLength+1;  % maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
 gapCloseParam.mergeSplit = 1;  % 1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
 gapCloseParam.minTrackLen = 1; % minimum length of track segments from linking to be used in gap closing.
 gapCloseParam.diagnostics = 0; % 1 to plot a histogram of gap lengths in the end; 0 or empty otherwise.
