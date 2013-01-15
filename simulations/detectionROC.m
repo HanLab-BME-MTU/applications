@@ -1,13 +1,13 @@
 
 % Image parameters
 
-nx = 400;
-ny = 400;
+nx = 500;
+ny = 500;
 sigma = 1.4;
 w = ceil(4*sigma);
 ni = 2*w+1; % width of PSF support
 
-np = 500; % # points
+np = 800; % # points
 
 x = [];
 y = [];
@@ -37,13 +37,9 @@ hold on;
 psnrV = 0:1:25;
 ns = numel(psnrV);
 
-alphaV = [0.05 0.10 0.2 0.5 1];
+alphaV = [0.05 0.1 0.2 0.3 0.4 0.5];
 na = numel(alphaV);
 
-% nTP = NaN(ns,na);
-% nFP = NaN(ns,na);
-% nTN = NaN(ns,na);
-% nFN = NaN(ns,na);
 tpr = NaN(ns,na);
 fpr = NaN(ns,na);
 
@@ -59,20 +55,13 @@ for ai = 1:na
         
             img_n = img + sigma_n*randn(ny,nx);
             
-            [pstruct, ~, imgLM] = pointSourceDetection(img_n, sigma, 'Alpha', alphaV(ai));
+            [pstruct, ~, imgLM] = pointSourceDetection(img_n, sigma, 'Alpha', alphaV(ai)*2);
             if ~isempty(pstruct)
                 [ly,lx] = find(imgLM~=0);
                 % remove loc. max. within image border
                 rmIdx = lx<=w | ly<=w | lx>nx-w | ly>ny-w;
                 lx(rmIdx) = [];
                 ly(rmIdx) = [];
-                
-%                 figure; imagesc(img_n); colormap(gray(256)); colorbar; axis image;
-%                 hold on; 
-%                 plot(x, y, 'go');
-%                 %plot(lx, ly, 'ws'); 
-%                 plot(pstruct.x, pstruct.y, 'rx');
-                
                 
                 % match local maxima to closest true position
                 D = createSparseDistanceMatrix([lx ly], [x y], 10);
@@ -130,7 +119,7 @@ for ai = 1:na
     end
 end
 
-save roc
+save roc800_2
 %%
 % figure;
 % hold on;
@@ -142,12 +131,12 @@ save roc
 
 %%
 cmap = jet(ns);
-fset = loadFigureSettings();
+fset = loadFigureSettings('print');
 
 cv = jet(na);
 
-figure(fset.fOpts{:});
-axes(fset.axOpts{:});
+figure(fset.fOpts{:}, 'Position', [5 5 8 8]);
+axes(fset.axOpts{:}, 'Position', [1.5 1.5 6 6]);
 colormap(cmap);
 hold on;
 for ai = 1:na
@@ -157,17 +146,35 @@ for ai = 1:na
 
     %mesh([fpr fpr], [tpr tpr], zeros(ns,2), repmat((1:ns)', [1 2]),...
     %    'EdgeColor', 'interp', 'FaceColor', 'none', 'LineWidth', 1.5);
-    
+    idx = find(tpr==1, 1, 'first');
+    %plot(fpr(1:idx,ai), tpr(1:idx,ai), 'Color', cv(ai,:), 'LineWidth', 2);
     plot(fpr(:,ai), tpr(:,ai), 'Color', cv(ai,:), 'LineWidth', 2);
-    text(fpr(1,ai)+0.02, tpr(1,ai), num2str(alphaV(ai)))
+    text(fpr(1,ai)+0.02, tpr(1,ai), num2str(alphaV(ai)), fset.sfont{:})
     
 %     set(gca, 'ColorOrder', cmap);
 %     plot([fpr fpr]', [tpr tpr]', 'o');
 end
+set(gca, 'XTick', 0:0.2:1, 'YTick', 0:0.2:1);
 axis([0 1 0 1]);
 axis square;
 xlabel('False positive rate', fset.lfont{:});
 ylabel('True positive rate', fset.lfont{:});
+
+
+% Inset
+axes(fset.axOpts{:}, 'Position', [4 2.5 3.5 2.5], fset.sfont{:});
+hold on;
+for ai = 1:na
+    x0 = norminv(1-alphaV(ai));
+    y0 = normpdf(norminv(1-alphaV(ai),0,1),0,1);
+    plot(x0*[1 1], [0 y0], 'Color', cv(ai,:), 'LineWidth', 2.5);
+    text(x0+0.1,y0+0.025, ['\alpha = ' num2str(alphaV(ai))], fset.sfont{:})
+end
+xi = 0:0.01:4;
+plot(xi, exp(-xi.^2/2)/sqrt(2*pi), 'k', 'LineWidth', 1);
+axis([0 3 0 0.41]);
+xlabel('S.D. of noise', fset.sfont{:});
+set(gca, 'YTick', 0:0.1:0.4, 'YTickLabel', []);
 
 % print('-depsc2', 'detectionROC.eps');
 
