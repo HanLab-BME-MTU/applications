@@ -1,4 +1,4 @@
-function [lftRes res] = runLifetimeAnalysis(data, varargin)
+function [lftRes, res] = runLifetimeAnalysis(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -36,7 +36,7 @@ printPath = [getExpDir(data) 'Figures' filesep];
 [~,~] = mkdir(printPath);
 
 % median absolute deviation -> standard deviation
-madFactor = 1/norminv(0.75, 0, 1);
+% madFactor = 1/norminv(0.75, 0, 1);
 
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
@@ -85,7 +85,7 @@ maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', f
 
 if nd>1
     % Rescale EDFs (correction for expression level)
-    [a offset refIdx] = rescaleEDFs(maxA_all, 'Display', true);
+    [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', true);
     print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
 else
     a = 1;
@@ -138,7 +138,6 @@ for i = 1:nd
         lftData(i).(lftFields{f})(:,rmIdx) = [];
     end
     lifetime_s = lftData(i).lifetime_s;
-    %lftData(i).lifetimeScaled = lftData(i).lifetimeScaled(lftData(i).lifetimeScaled>=cutoff_f);
     
     % Category statistics
     idx_Ia = [lftData(i).catIdx]==1;
@@ -154,7 +153,6 @@ for i = 1:nd
     lftHist_Ia = hist(lifetime_s(idx_Ia), t);
     lftHist_Ib = hist(lifetime_s(idx_Ib), t);
     lftHist_IIa = hist(lifetime_s(idx_IIa), t);
-    %lftHist_scaled = hist(lftData(i).lifetimeScaled, t);
     
     % apply correction
     % relative probabilities:
@@ -166,14 +164,12 @@ for i = 1:nd
     lftHist_Ia =  [lftHist_Ia.*w  pad0];
     lftHist_Ib =  [lftHist_Ib.*w  pad0];
     lftHist_IIa = [lftHist_IIa.*w pad0];
-    %lftHist_scaled = [lftHist_scaled.*w pad0];
     res(i).t = (cutoff_f:Nmax)*framerate;
     
     % Normalization
-    res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia);
-    res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib);
-    res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa);
-    %res(i).lftHist_scaled = lftHist_scaled / sum(lftHist_scaled);
+    res(i).lftHist_Ia = lftHist_Ia / sum(lftHist_Ia) / framerate;
+    res(i).lftHist_Ib = lftHist_Ib / sum(lftHist_Ib) / framerate;
+    res(i).lftHist_IIa = lftHist_IIa / sum(lftHist_IIa) / framerate;
     res(i).nSamples_Ia = sum(idx_Ia);
     
     %-------------------------------------------------------------
@@ -255,7 +251,7 @@ if isempty(ip.Results.MaxIntensityThreshold)
             sC = zeros(1,nc);
             for c = 1:nc
                 cidx = lb(c)<=lft & lft<=ub(c);
-                [muC(c) sC(c)] = fitGaussianModeToCDF(M(cidx,:));
+                [muC(c), sC(c)] = fitGaussianModeToCDF(M(cidx,:));
             end
             hval(frameRange(ni)) = adtest(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
         end
@@ -264,7 +260,7 @@ if isempty(ip.Results.MaxIntensityThreshold)
     
     M = nanmax(A(:,1:FirstNFrames,mCh),[],2);
     
-    [mu_g sigma_g] = fitGaussianModeToCDF(M);
+    [mu_g, sigma_g] = fitGaussianModeToCDF(M);
     %[mu_g sigma_g] = fitGaussianModeToPDF(M);
     T = norminv(0.99, mu_g, sigma_g);
 
@@ -335,6 +331,8 @@ for i = 1:nd
         res(i).lftVisitors = res(i).lft_all(visitIdx);
         res(i).lftAboveT = res(i).lft_all(~visitIdx & idxMI);
         res(i).lftBelowT = res(i).lft_all(~visitIdx & ~idxMI);
+        res(i).maxAAboveT = res(i).maxA_all(~visitIdx & idxMI);
+        res(i).AaboveT = lftData(i).A(~visitIdx & idxMI,:,:);
         
         lftRes.pctVisit(i) = numel(res(i).lftVisitors) / numel(idxMI);
     else
@@ -364,17 +362,17 @@ for i = 1:nd
     lftHist_A = [lftHist_A.*w pad0];
     lftHist_B = [lftHist_B.*w pad0];
     
-    % Normalization (histograms sum to 1; integral==framerate)
+    % Normalization
     %normA = sum(lftHist_A);
     %normB = sum(lftHist_B);
-    lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A);
-    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B);
+    lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
+    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
     
     if ip.Results.ExcludeVisitors
         lftRes.visitIdx{i} = visitIdx;
         lftHist_V = hist(res(i).lftVisitors, t);
         lftHist_V = [lftHist_V.*w pad0];
-        lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V);
+        lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V) / framerate;
     else
         visitIdx = zeros(size(idxMI)); % assume no visitors
     end
@@ -386,8 +384,8 @@ for i = 1:nd
         lftHist_neg = hist(res(i).lft_all(res(i).significantSignal(2,:)==0), t);
         lftHist_pos =  [lftHist_pos.*w  pad0];
         lftHist_neg =  [lftHist_neg.*w  pad0];
-        lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos);
-        lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg);
+        lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
+        lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
         
         lftHist_Apos = hist(res(i).lft_all(~visitIdx & idxMI & res(i).significantSignal(2,:)), t);
         lftHist_Aneg = hist(res(i).lft_all(~visitIdx & idxMI & ~res(i).significantSignal(2,:)), t);
@@ -397,10 +395,10 @@ for i = 1:nd
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
         lftHist_Bneg =  [lftHist_Bneg.*w  pad0];
-        lftRes.lftHist_Apos(i,:) = lftHist_Apos / sum(lftHist_Apos);
-        lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg);
-        lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos);
-        lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg);
+        lftRes.lftHist_Apos(i,:) = lftHist_Apos / sum(lftHist_Apos) / framerate;
+        lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / sum(lftHist_Aneg) / framerate;
+        lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / sum(lftHist_Bpos) / framerate;
+        lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / sum(lftHist_Bneg) / framerate;
         
         %lftRes.lftHist_Apos(i,:) = lftHist_Apos / normA;
         %lftRes.lftHist_Aneg(i,:) = lftHist_Aneg / normA;
@@ -486,14 +484,14 @@ lftRes.stats = [mean([pAll{:}],2) mean([pB{:}],2) mean([pA{:}],2)];
 if strcmpi(ip.Results.Display, 'all')
     colorV = hsv(nd);
     [~,idxa] = sort(a);
-    % [~,idxa] = sort(idxa);
+    [~,idxa] = sort(idxa);
     colorV = colorV(idxa,:);
     fset = loadFigureSettings('print');
     
     figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
     axes(fset.axOpts{:});
     hold on;
-    for i = 1:nd
+    for i = nd:-1:1
         plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
     end
     plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
@@ -509,7 +507,7 @@ if strcmpi(ip.Results.Display, 'all')
     ah = fset.axPos(4);
     axes(fset.axOpts{:}, 'Units', fset.units, 'Position', [fset.axPos(1)+(1-zf)*aw fset.axPos(2)+(1-zf)*ah zf*aw zf*ah]);
     hold on;
-    for i = 1:nd
+    for i = nd:-1:1
         plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
     end
     plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
@@ -520,7 +518,7 @@ if strcmpi(ip.Results.Display, 'all')
     % print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
     
     lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
-    [uCDF idx] = unique(lftCDF);
+    [uCDF, idx] = unique(lftCDF);
     lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
     
     
@@ -528,7 +526,7 @@ if strcmpi(ip.Results.Display, 'all')
     axes(fset.axOpts{:});
     hold on;
     meanHist = mean(vertcat(lftRes.lftHist_Ia), 1);
-    plot(lftRes.t, meanHist, 'k', 'LineWidth', 2);
+    plot(lftRes.t, meanHist, 'k', 'LineWidth', 1.5, 'HandleVisibility', 'off');
     ya = 0:0.02:0.1;
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
     set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
@@ -537,7 +535,10 @@ if strcmpi(ip.Results.Display, 'all')
     [mu,~,Aexp] = fitExpToHist(lftRes.t, meanHist);
     % plot(lftRes.t, expF, 'r--', 'LineWidth', 1);
     ti = 0:0.1:120;
-    plot(ti, Aexp/mu*exp(-1/mu*ti), 'r--', 'LineWidth', 1)
+    %plot(ti, Aexp/mu*exp(-1/mu*ti), 'r--', 'LineWidth', 1);
+    plot(lftRes.t, Aexp/mu*exp(-1/mu*lftRes.t), 'r-', 'LineWidth', 1);
+    %hl = legend(' Best exponential fit', 'Location', 'SouthEast');
+    %set(hl, 'Box', 'off', 'Position', [4.5 1.5 2 1]);
     
     % Inset with zoom
     zf = 0.6;
@@ -547,7 +548,7 @@ if strcmpi(ip.Results.Display, 'all')
     hold on;
     idx = find(lftRes.t==round(lft50/framerate)*framerate);
     fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
-    plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
+    plot(lftRes.t, lftCDF, 'k', 'LineWidth', 1.5);
     plot([0 lft50], [0.5 0.5], 'k--', 'LineWidth', 1);
     ya = 0:0.25:1;
     set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);

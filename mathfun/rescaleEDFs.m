@@ -7,13 +7,14 @@
 
 % Francois Aguet, 03/06/2012
 
-function [a c refIdx] = rescaleEDFs(samples, varargin)
+function [a, c, refIdx] = rescaleEDFs(samples, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('FigureName', 'EDF scaling');
+ip.addParamValue('XTick', []);
 ip.parse(varargin{:});
 
 nd = numel(samples);
@@ -38,8 +39,8 @@ else
     
     for i = 1:nd
         [fEDF{i}, xEDF{i}] = ecdf(samples{i});
-%         fEDF{i} = fEDF{i}(2:end);
-%         xEDF{i} = xEDF{i}(2:end);
+        %fEDF{i} = fEDF{i}(2:end);
+        %xEDF{i} = xEDF{i}(2:end);
     end
     
     % Now, interpolate on f(x)
@@ -68,14 +69,14 @@ else
     %x0 = linspace(min(samples{refIdx}),max(samples{refIdx}),1000); % robust
     x0 = linspace(prctile(vertcat(samples{:}),1), prctile(vertcat(samples{:}),99), 1000);
     
-%     % Generate EDFs
-%     fEDF = cell(1,nd);
-%     xEDF = cell(1,nd);
-%     for i = 1:nd
-%         [fEDF{i}, xEDF{i}] = ecdf(samples{i});
-%         %fEDF{i} = fEDF{i}(2:end);
-%         %xEDF{i} = xEDF{i}(2:end);
-%     end
+    %     % Generate EDFs
+    %     fEDF = cell(1,nd);
+    %     xEDF = cell(1,nd);
+    %     for i = 1:nd
+    %         [fEDF{i}, xEDF{i}] = ecdf(samples{i});
+    %         %fEDF{i} = fEDF{i}(2:end);
+    %         %xEDF{i} = xEDF{i}(2:end);
+    %     end
     
     
     a = ones(1,nd);
@@ -87,49 +88,55 @@ else
         a(idx(i)) = p(1);
         c(idx(i)) = p(2);
     end
+    
+    [~,idxa] = sort(a);
+    [~,idxa] = sort(idxa);
+    idxa(refIdx) = []; % reference shown in black
 
     if ip.Results.Display
-        %colorV = rand(nd,3);
-        colorV = zeros(nd,3);
-        
+        colorV = hsv(nd);
         fset = loadFigureSettings('print');
-        T99 = prctile(samples{refIdx}, 99.9);
+        if isempty(ip.Results.XTick)
+            T99 = prctile(samples{refIdx}, 99.9);
+            xa = 0:50:T99;
+        else
+            xa = ip.Results.XTick;
+            T99 = xa(end);
+        end
         lw = 1;
-        
         axPos = fset.axPos;
         dx = 0.3*fset.axPos(4);
+        
         figure(fset.fOpts{:}, 'Position', [5 5 8 1.5+axPos(4)*2+dx+1], 'Color', 'w', 'Name', ip.Results.FigureName);
         axPos(2) = axPos(2)+dx+axPos(4);
-        
         axes(fset.axOpts{:}, 'Position', axPos);
         hold on;
-        for i = 1:nd-1
-            plot(xEDF{idx(i)}, fEDF{idx(i)}, '-', 'Color', colorV(i,:), 'LineWidth', lw);
+        for i = nd-1:-1:1
+            plot(xEDF{idx(i)}, fEDF{idx(i)}, '-', 'Color', colorV(idxa(i),:), 'LineWidth', lw);
         end
-        hp = plot(xEDF{refIdx}, fEDF{refIdx}, 'r', 'LineWidth', lw);
-        %hp = plot(x0, refEDF, 'r', 'LineWidth', lw);
-
+        hp = plot(xEDF{refIdx}, fEDF{refIdx}, 'k', 'LineWidth', lw+0.5);
         axis([0 T99 0 1.01]);
-        set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)], 'XTickLabel', []);
+        set(gca, 'YTick', 0:0.2:1, 'XTick', xa, 'XTickLabel', []);
+        formatTickLabels(gca);
         ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
-        hl = legend(hp, 'Median distr.', 'Location', 'SouthEast');
-        set(hl, 'Box', 'off', fset.sfont{:});
-        
+        hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
+        set(hl, 'Box', 'off', fset.sfont{:}, 'Position', [5 6 1.5 1]);
         
         axes(fset.axOpts{:});
         hold on;
-        for i = 1:nd-1
+        plot(xEDF{refIdx}, fEDF{refIdx}, 'k', 'LineWidth', lw+0.5);
+        for i = nd-1:-1:1
             ci = c(idx(i));
-            plot(xEDF{idx(i)}*a(idx(i)), ci+(1-ci)*fEDF{idx(i)}, 'Color', colorV(i,:), 'LineWidth', lw);
+            plot(xEDF{idx(i)}*a(idx(i)), ci+(1-ci)*fEDF{idx(i)}, 'Color', colorV(idxa(i),:), 'LineWidth', lw);
         end
-        plot(xEDF{refIdx}, fEDF{refIdx}, 'r', 'LineWidth', lw);
         axis([0 T99 0 1.01]);
-        set(gca, 'YTick', 0:0.2:1, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.1f'), 0.2:0.2:1, 'UniformOutput', false)]);
+        set(gca, 'YTick', 0:0.2:1, 'XTick', xa);
+        formatTickLabels(gca);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
-         
+        
         
         % Plot inset with scales
         axPos = fset.axPos;
@@ -142,8 +149,8 @@ else
         ylim = [floor(min(a)/0.2) ceil(max(a)/0.2)]*0.2;
         axis([-0.5 0.5 ylim]);
         ya = linspace(ylim(1), ylim(2), 5);
-        set(gca, 'TickLength', fset.TickLength*3, 'XTick', [], 'YTick', ya, 'XColor', 'w',...
-            'YTickLabel', arrayfun(@(x) num2str(x, '%.1f'), ya, 'UniformOutput', false));
+        set(gca, 'TickLength', fset.TickLength*3, 'XTick', [], 'YTick', ya, 'XColor', 'w');
+        formatTickLabels(gca);
         ylabel('Relative scale', fset.sfont{:});
     end
 end
