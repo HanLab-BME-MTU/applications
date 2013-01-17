@@ -4,12 +4,12 @@
 
 %load(file);
 list = extractF(features);
-drift = getDrift(features,'amp',2500);
+drift = getDrift(features,'amp',2000);
 fcorr = correctDrift(features,drift);
 list2 = extractF(fcorr);
 
 %removes points used for drift correction
-list2(list2(:,3)>2500,:)=[];
+list2(list2(:,3)>2000,:)=[];
 
 n = numel(list2(:,1));
 
@@ -61,15 +61,15 @@ CC = bwconncomp(f2>0);
 ObjectRecon = cell([CC.NumObjects,1]);
 Area = zeros([CC.NumObjects,1]);
 inc2 = 1/(2*sf);
+tbd = Area;
 
 for k=1:CC.NumObjects
     %finds the rectange that incloses the object plus a buffer around it
     [i,j] = ind2sub(size(f2),CC.PixelIdxList{k});
-    
+    ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[]);
     %sets a minimum size for reconstruction
     if numel(i) < 3 
-        ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[]);
-        continue;        
+        tbd(k)=1;
     end
     
     xmin = edge{1}(min(i))-0.7;
@@ -86,8 +86,11 @@ for k=1:CC.NumObjects
     Pnts = list2(inWindow,1:2);
     %[cnt,bn]=hist3(Pnts,[ ceil((xmax-xmin)*sf*2),ceil((ymax-ymin)*sf*2)]);
     [cnt,bn]=hist3(Pnts,edge2);
-    ObjectRecon{k} = struct('counts',cnt,'bins',edge2,'PntListIdx',inWindow);
+    ObjectRecon{k}.counts = cnt;
+    ObjectRecon{k}.bins = edge2;
+    ObjectRecon{k}.PntListIdx = inWindow;
 end
 
 CC.ObjectRecon=ObjectRecon;
 CC.Area = Area;
+ObjectRecon(logical(tbd))=[];
