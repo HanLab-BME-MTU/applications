@@ -67,6 +67,7 @@ CC = bwconncomp(f2>0);
 ObjectRecon = cell([CC.NumObjects,1]);
 Area = zeros([CC.NumObjects,1]);
 inc2 = 1/(2*sf);
+tbd = Area;
 
 for k=1:CC.NumObjects
     %finds the rectange that incloses the object plus a buffer around it
@@ -76,7 +77,11 @@ for k=1:CC.NumObjects
 %     if numel(i) < 3 
 %         continue;        
 %     else
-    
+
+    if numel(i) < 3 
+        tbd(k)=1;
+    end
+
     xmin = edge{1}(min(i))-0.7;
     xmax = edge{1}(max(i))+0.7;
     ymin = edge{2}(min(j))-0.7;
@@ -99,3 +104,4 @@ end
 
 CC.ObjectRecon=ObjectRecon;
 CC.Area = Area;
+ObjectRecon(logical(tbd))=[];
