@@ -130,53 +130,60 @@ save roc800_2
 % legend('TP', 'FP', 'TN', 'FN');
 
 %%
+
 cmap = jet(ns);
 fset = loadFigureSettings('print');
 
-cv = jet(na);
+hues = [0.55 0.33 0.15 0 0 0];
+cv = hsv2rgb([hues' ones(na,2)]);
 
-figure(fset.fOpts{:}, 'Position', [5 5 8 8]);
-axes(fset.axOpts{:}, 'Position', [1.5 1.5 6 6]);
+figure(fset.fOpts{:}, 'Position', [5 5 7 7]);
+% grid below data
+axes(fset.axOpts{:}, 'Position', [1.5 1.5 5 5]);
+grid on;
+set(gca, 'GridLineStyle', '-', 'XTickLabel', [], 'YTickLabel', [], 'XTick', 0:0.2:1, 'YTick', 0:0.2:1,...
+    'XColor', 0.75*[1 1 1], 'YColor', 0.75*[1 1 1]);
+
+
+axes(fset.axOpts{:}, 'Position', [1.5 1.5 5 5], 'Color', 'none',...
+    'TickLength', fset.TickLength*6/5, 'Layer', 'bottom');
+set(gca, 'XTick', 0:0.2:1, 'YTick', 0:0.2:1);
+axis([0 1 0 1]);
+xlabel('False positive rate', fset.lfont{:});
+ylabel('True positive rate', fset.lfont{:});
+
+axes(fset.axOpts{:}, 'Position', [1.5 1.5 5 5],  'Color', 'none',...
+    'XTick', [], 'YTick', [], 'Box', 'on', 'Layer', 'bottom');
+axis([0 1 0 1]);
+
 colormap(cmap);
 hold on;
-for ai = 1:na
-
-    %tpr = nTP(:,ai) ./ (nTP(:,ai)+nFN(:,ai));
-    %fpr = nFP(:,ai) ./ (nFP(:,ai)+nTN(:,ai));
+for ai = [1 2 3 6]
 
     %mesh([fpr fpr], [tpr tpr], zeros(ns,2), repmat((1:ns)', [1 2]),...
     %    'EdgeColor', 'interp', 'FaceColor', 'none', 'LineWidth', 1.5);
     idx = find(tpr==1, 1, 'first');
-    %plot(fpr(1:idx,ai), tpr(1:idx,ai), 'Color', cv(ai,:), 'LineWidth', 2);
-    plot(fpr(:,ai), tpr(:,ai), 'Color', cv(ai,:), 'LineWidth', 2);
-    text(fpr(1,ai)+0.02, tpr(1,ai), num2str(alphaV(ai)), fset.sfont{:})
-    
-%     set(gca, 'ColorOrder', cmap);
-%     plot([fpr fpr]', [tpr tpr]', 'o');
+    plot(fpr(1:idx,ai), tpr(1:idx,ai), 'Color', cv(ai,:), 'LineWidth', 2);
+    %plot(fpr(:,ai), tpr(:,ai), 'Color', cv(ai,:), 'LineWidth', 2);
+    text(fpr(1,ai)+0.03, tpr(1,ai)+0.01, ['\alpha = ' num2str(alphaV(ai))], fset.sfont{:}, 'BackgroundColor', 'w');
 end
-set(gca, 'XTick', 0:0.2:1, 'YTick', 0:0.2:1);
-axis([0 1 0 1]);
-axis square;
-xlabel('False positive rate', fset.lfont{:});
-ylabel('True positive rate', fset.lfont{:});
-
 
 % Inset
-axes(fset.axOpts{:}, 'Position', [4 2.5 3.5 2.5], fset.sfont{:});
-hold on;
-for ai = 1:na
-    x0 = norminv(1-alphaV(ai));
-    y0 = normpdf(norminv(1-alphaV(ai),0,1),0,1);
-    plot(x0*[1 1], [0 y0], 'Color', cv(ai,:), 'LineWidth', 2.5);
-    text(x0+0.1,y0+0.025, ['\alpha = ' num2str(alphaV(ai))], fset.sfont{:})
-end
-xi = 0:0.01:4;
-plot(xi, exp(-xi.^2/2)/sqrt(2*pi), 'k', 'LineWidth', 1);
-axis([0 3 0 0.41]);
-xlabel('S.D. of noise', fset.sfont{:});
-set(gca, 'YTick', 0:0.1:0.4, 'YTickLabel', []);
+% axes(fset.axOpts{:}, 'Position', [4 2.5 3.5 2.5], fset.sfont{:});
+% hold on;
+% for ai = 1:na
+%     x0 = norminv(1-alphaV(ai));
+%     y0 = normpdf(norminv(1-alphaV(ai),0,1),0,1);
+%     plot(x0*[1 1], [0 y0], 'Color', cv(ai,:), 'LineWidth', 2.5);
+%     text(x0+0.1,y0+0.025, ['\alpha = ' num2str(alphaV(ai))], fset.sfont{:})
+% end
+% xi = 0:0.01:4;
+% plot(xi, exp(-xi.^2/2)/sqrt(2*pi), 'k', 'LineWidth', 1);
+% axis([0 3 0 0.41]);
+% xlabel('S.D. of noise', fset.sfont{:});
+% set(gca, 'YTick', 0:0.1:0.4, 'YTickLabel', []);
 
-% print('-depsc2', 'detectionROC.eps');
+print('-depsc2', '-loose', 'detectionROC.eps');
 
 % figure; hold on; plot(psnrV, tpr, 'g'); plot(psnrV, fpr, 'r');
 
