@@ -32,19 +32,25 @@ tvec = 0:10;
 
 fset = loadFigureSettings('print');
 figure(fset.fOpts{:}, 'Name', ip.Results.FigureName);
+if ip.Results.ShowPct
+    set(gcf, 'Position', [5 5 10.5 5.5]);
+end
 iset = [fset.axOpts, 'XTick', 0:5:20, 'YTick', 0:40:120, 'XLim', [tvec(1)-0.5 tvec(end)+0.5], 'YLim', [ivec(1) ivec(end)], 'TickLength', fset.TickLength*6/1.8];
-
+colormap(jet(256));
 wx = 1.8;
 wy = 1.6;
 d0 = 0.3;
 c = 1;
 
+nc = numel(lb);
+cv = jet(nc);
+M = cell(1,nc);
 for i = 2:-1:1
     for j = 1:3
         axes(iset{:}, 'Position', [1.5+(j-1)*(wx+d0) 1.5+(i-1)*(wy+d0) wx wy]); hold on;
-        M = A(lb(c)<=lft&lft<=ub(c),1:numel(tvec));
-        T = repmat(tvec, [size(M,1),1]);
-        mv = M(:);
+        M{c} = A(lb(c)<=lft&lft<=ub(c),1:numel(tvec));
+        T = repmat(tvec, [size(M{c},1),1]);
+        mv = M{c}(:);
         tv = T(:);
         rmIdx = mv>ivec(end);
         mv(rmIdx) = [];
@@ -52,12 +58,11 @@ for i = 2:-1:1
         hm = hist3([mv tv], {ivec, tvec});
         % hm = hm./repmat(sum(hm,1), [numel(ivec) 1]);
         imagesc(tvec, ivec, hm);
-        %box on;
         if ip.Results.ShowPct
             hold on;
-            stairsXT(tvec, prctile(M,95,1), 'bounds', 'open', 'EdgeColor', 'r');
-            stairsXT(tvec, prctile(M,50,1), 'bounds', 'open', 'EdgeColor', 'r');
-            stairsXT(tvec, prctile(M,5,1), 'bounds', 'open', 'EdgeColor', 'r');
+            stairsXT(tvec, prctile(M{c},95,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
+            stairsXT(tvec, prctile(M{c},50,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
+            stairsXT(tvec, prctile(M{c},5,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
         end
         text(tvec(end), 0.975*ivec(end), ['[' num2str(lb(c)) '...' num2str(ub(c)) '] s'],...
             'Color', 'w', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
@@ -89,4 +94,19 @@ for i = 2:-1:1
         
         c = c+1;
     end
+end
+
+if ip.Results.ShowPct
+    j  = j+1;
+    axes(iset{:}, 'Position', [1.5+(j-1)*(wx+d0)+d0 1.5+(wy+d0) wx wy]);
+    hold on;
+    for c = 1:nc
+        if ip.Results.ShowPct
+            hold on;
+            stairsXT(tvec, prctile(M{c},95,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
+            stairsXT(tvec, prctile(M{c},50,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
+            stairsXT(tvec, prctile(M{c},5,1), 'bounds', 'open', 'EdgeColor', cv(c,:));
+        end
+    end
+    set(gca, 'YTickLabel', []);
 end
