@@ -105,3 +105,4 @@ end
 CC.ObjectRecon=ObjectRecon;
 CC.Area = Area;
 ObjectRecon(logical(tbd))=[];
+h = ObjectReconViewer(ObjectRecon);
