@@ -45,41 +45,61 @@ end
 % distribute remaining tracks
 while( true )
     
+    % information of trajectory to be distributed
+    currentPath=tracks(k).trajectory;
+    idx=~isnan(currentPath(:,1));
+    currentInterval=currentPath(:,end);
+    
+    [currentMean,currentStd]=weigthedStats(currentPath(idx,1:2),currentPath(idx,5:6));
+    currentDelta=sum(currentStd.^2);
+    
+    % check temporal overlap
+    allIntervals=vertcat(tracksCombined.info);
+    idxInterval=tempOverlap(currentInterval,allIntervals);
+    
+    % check spatial proximity
+    allMeans=vertcat(tracksCombined.center);
+    delta=allMeans(:,end);
+    delta=delta*delta;
+    allMeans=allMeans(:,1:2);
+    squaredDistances=distance(allMeans',currentMean');
+    idxDist=squaredDistances < delta+currentDelta;
+    
     % path holds current trajectory
-    path=tracks(k).trajectory;
-    idx=~isnan(path(:,1));
-    [wm,ws]=weigthedStats(path(idx,1:2),path(idx,5:6));
-    delta=sqrt(sum(ws.^2));
+    %path=tracks(k).trajectory;
+    %idx=~isnan(path(:,1));
+    %[wm,ws]=weigthedStats(path(idx,1:2),path(idx,5:6));
+    %delta=sqrt(sum(ws.^2));
     % centers obtained so far
-    centers=vertcat(tracksCombined.center);
-    delta=delta+centers(:,end);
-    centers=centers(:,1:2);
+    %centers=vertcat(tracksCombined.center);
+    %delta=delta+centers(:,end);
+    %centers=centers(:,1:2);
     % squared distance between current centers and present mean
-    distM=distance(centers',wm');
-    idxDist=distM < delta*delta;
+    %distM=distance(centers',wm');
+    %idxDist=distM < delta*delta;
     
     
     % temporal overlap of trajectories
-    startEnd=path(:,end);
-    allStartEnd=vertcat(tracksCombined.info);
-    idxFrame=tempOverlap(startEnd,allStartEnd);
+    %startEnd=path(:,end);
+    %allStartEnd=vertcat(tracksCombined.info);
+    %idxFrame=tempOverlap(startEnd,allStartEnd);
     
-    idx=idxDist & idxFrame;
+    %idx=idxDist & idxFrame;
     
-    if( sum(idx) == 0 )
-        tracksCombined(k).path=path;
-        tracksCombined(k).center=[wm,ws,sqrt(sum(ws.^2))];
-        nCombTracks=nCombTracks+1;
-        k=k+1;
-        continue;
-    elseif( sum(idx) == 1 )
-        l=find(idx == 1);
-        tmp=tracksCombined(l);
-        tmp=vertcat(tmp,path);
-        tracksCombined(l).path=tmp;
-        [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,5:6));
-        tracksCombined(l).center=[wm,ws,sqrt(ws.^2)];
-    end
+%     if( sum(idx) == 0 )
+%         tracksCombined(k).path=path;
+%         tracksCombined(k).center=[wm,ws,sqrt(sum(ws.^2))];
+%         nCombTracks=nCombTracks+1;
+%         k=k+1;
+%         continue;
+%     elseif( sum(idx) == 1 )
+%         l=find(idx == 1);
+%         tmp=tracksCombined(l);
+%         tmp=vertcat(tmp,path);
+%         tracksCombined(l).path=tmp;
+%         [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,5:6));
+%         tracksCombined(l).center=[wm,ws,sqrt(ws.^2)];
+%     end
     
     
 end
