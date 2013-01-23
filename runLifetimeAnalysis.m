@@ -335,13 +335,15 @@ for i = 1:nd
         res(i).AaboveT = lftData(i).A(~visitIdx & idxMI,:,:);
         
         lftRes.pctVisit(i) = numel(res(i).lftVisitors) / numel(idxMI);
+        res(i).nSamplesAboveT = sum(~visitIdx & idxMI);
     else
         res(i).lftAboveT = res(i).lft_all(idxMI);
         res(i).lftBelowT = res(i).lft_all(~idxMI);
+        res(i).nSamplesAboveT = sum(idxMI);
     end
     lftRes.pctAbove(i) = numel(res(i).lftAboveT)/numel(idxMI);
     lftRes.pctBelow(i) = numel(res(i).lftBelowT)/numel(idxMI);
-  
+    
         
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
@@ -459,6 +461,7 @@ lftRes.meanLftHist_B = nanmean(lftRes.lftHist_B,1);
 % lftRes.meanLftHist_Ia = mean(vertcat(res.lftHist_Ia),1);
 lftRes.lftHist_Ia = vertcat(res.lftHist_Ia);
 lftRes.nSamples_Ia = [res.nSamples_Ia];
+lftRes.nSamplesAboveT = [res.nSamplesAboveT];
 lftRes.data = data;
 
 if ip.Results.ExcludeVisitors
