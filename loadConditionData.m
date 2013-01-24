@@ -80,7 +80,7 @@ if isempty(cellPath)
 end
 
 % check whether directory names contain 'cell'
-val = @(x) ~isempty(x) && x==1;
+val = @(x) ~isempty(x);% && x==1;
 valid = cellfun(@(x) val(regexpi(getDirFromPath(x), movieSelector, 'once')), cellPath);
 cellPath = cellPath(valid==1);
 nCells = length(cellPath);
@@ -170,6 +170,10 @@ for k = 1:nCells
             end
         end
         framePaths{c} = arrayfun(@(x) [channels{c} x.name], [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])], 'UniformOutput', false);
+        % sort files in case leading zeros are missing
+        idx = cellfun(@(x) str2double(regexp(x,'\d+(?=\.)', 'match')), framePaths{c});
+        [~,idx] = sort(idx);
+        framePaths{c} = framePaths{c}(idx);
     end
     data(k).channels = channels;
     data(k).source = channels{1}; % master channel default
