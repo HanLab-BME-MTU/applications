@@ -74,6 +74,7 @@ else
     handles.f = 1;
 end
 handles.displayType = 'raw';
+handles.pUnitType = 's';
     
 
 hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7], 'PaperPositionMode', 'auto',...
@@ -103,7 +104,7 @@ if data.movieLength>1
 end
     
 % Main control panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 700 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70]);
 
 uicontrol(ph, 'Style', 'text', 'String', 'Display: ',...
     'Position', [5 40 60 20], 'HorizontalAlignment', 'left');
@@ -138,10 +139,10 @@ handles.labelCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Channel la
 
 
 handles.trackButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Select track',...
-    'Position', [590 40 100 20], 'HorizontalAlignment', 'left',...
+    'Position', [540 40 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@trackButton_Callback, hfig});
 handles.statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
-    'Position', [590 10 100 20], 'HorizontalAlignment', 'left',...
+    'Position', [540 10 100 20], 'HorizontalAlignment', 'left',...
     'Callback', {@statsButton_Callback, hfig});
 
 
@@ -157,10 +158,23 @@ handles.trackSlider = uicontrol('Style', 'slider',...
     'Position', [pos(3)-35 110 20 pos(4)-130],...
     'Callback', {@trackSlider_Callback, hfig});
 
+% Track plot panel
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-540 5 160 70]);
+
+uicontrol(ph, 'Style', 'text', 'String', 'Units: ',...
+    'Position', [5 35 60 20], 'HorizontalAlignment', 'left');
+handles.tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
+    'String', {'Seconds', 'Frames'},...
+    'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
+handles.tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
+    'Position', [5 20 120 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', {@refreshTracks_Callback, hfig});
+handles.tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
+    'Position', [5 5 120 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', {@refreshTracks_Callback, hfig});
+handles.tplotPanel = ph;
+
 
 % Montage panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-400 5 200 70]);
-
 handles.montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
     'Position', [5 35 120 15], 'HorizontalAlignment', 'left', 'Value', true);
 handles.montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
@@ -376,8 +390,8 @@ handles = getappdata(src, 'handles');
 % tracks
 set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
 set(handles.trackSlider, 'Position', [pos(3)-35 110 20 pos(4)-140]);
-set(handles.outputPanel, 'Position', [pos(3)-180 5 140 70]);
-set(handles.montagePanel, 'Position', [pos(3)-400 5 200 70]);
+set(handles.outputPanel, 'Position', [pos(3)-160 5 140 70]);
+set(handles.montagePanel, 'Position', [pos(3)-370 5 200 70]);
 
 h_tot = pos(4) - 140;
 nx = numel(handles.tAxes);
@@ -737,7 +751,20 @@ if ~isempty(handles.selectedTrack)
             cx = ci;
         end
         
-        plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci));
+        if get(handles.tplotBackgroundCheckbox, 'Value')
+            bgMode = 'zero';
+        else
+            bgMode = 'data';
+        end
+        if strcmpi(handles.pUnitType, 'f')
+            sTrack.t = sTrack.f;
+        end
+        if get(handles.tplotScaleCheckbox, 'Value')
+            plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode,...
+                'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci));
+        else
+            plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode);
+        end
         box on;
         %l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
         %set(l, 'FontSize', 7);
@@ -807,7 +834,7 @@ if ~isempty(handles.selectedTrack)
         
     end
     
-    xlabel(h, 'Time (s)');
+    xlabel(h, ['Time (' handles.pUnitType ')']);
 end
 setappdata(hfig, 'handles', handles);
 
@@ -818,6 +845,9 @@ setappdata(hfig, 'handles', handles);
 
 function refresh_Callback(~,~,hfig)
 refreshFrameDisplay(hfig);
+
+function refreshTracks_Callback(~,~,hfig)
+refreshTrackDisplay(hfig);
 
 
 
@@ -961,6 +991,21 @@ switch contents{get(hObject,'Value')}
 end
 setappdata(hfig, 'handles', handles);
 refreshFrameDisplay(hfig);
+
+
+
+function unitChoice_Callback(hObject, ~, hfig)
+handles = getappdata(hfig, 'handles');
+
+contents = cellstr(get(hObject,'String'));
+switch contents{get(hObject,'Value')}
+    case 'Seconds'
+        handles.pUnitType = 's';
+    case 'Frames'
+        handles.pUnitType = 'f';
+end
+setappdata(hfig, 'handles', handles);
+refreshTrackDisplay(hfig);
 
 
 
