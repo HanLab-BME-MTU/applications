@@ -24,7 +24,9 @@ texp=ip.Results.texp;
 nTracks=numel(tracksFinal);
 
 tracks=repmat(...
-    struct('trajectory',[],'driftCorrected',[],'info',NaN(1,3),'fromUV',false,'gapClosed',false),nTracks,1);
+    struct('trajectory',[],'driftCorrected',[],'centerOfMass',[],...
+           'frameInfo',NaN(1,3),'fromUV',false,'gapClosed',false),nTracks,1);
+       
 trackLengths=zeros(nTracks,2);
 
 for i=1:nTracks
@@ -34,9 +36,9 @@ for i=1:nTracks
     startFrame=min(seqOfEvents(:,1));
     endFrame=max(seqOfEvents(:,1));
     
-    tracks(i).info(1)=startFrame;
-    tracks(i).info(2)=endFrame;
-    tracks(i).info(3)=endFrame-startFrame+1;
+    tracks(i).frameInfo(1)=startFrame;
+    tracks(i).frameInfo(2)=endFrame;
+    tracks(i).frameInfo(3)=endFrame-startFrame+1;
     
     trackLengths(i,:)=[endFrame-startFrame+1,startFrame];
     
@@ -50,6 +52,16 @@ for i=1:nTracks
     tmp=reshape(p,8,ncols/8)';
     tmp(:,end+1)=startFrame:endFrame;
     tracks(i).trajectory=tmp;
+    
+    idx=~isnan(tmp(:,1));
+    tmp=tmp(idx,:);
+    [nrows,ncols]=size(tmp);
+    if( nrows > 1 )
+        [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,5:6));
+        tracks(i).centerOfMass=[wm,ws,sqrt(sum(ws.^2))];
+    else
+        tracks(i).centerOfMass=[tmp(1:2), tmp(5:6), sqrt(sum(tmp(5:6).^2))];
+    end
     
     % mark tracks with gap closing
     if( any(isnan(tmp(:))) )
@@ -138,16 +150,16 @@ konTH=size(lengthNonUV,1)/(texp*(nFrames-nFrames/rep));
 % konTH=size(lengthNonUV,1)/(texp*nFrames);
 
 % fit track length distributions to single exponential
-fitHistTot=fit(xTotLen(1:rep)',log(histTotLen(1:rep))','poly1');
-fitHistUV=fit(xUV(1:rep)',log(histLenUV(1:rep))','poly1');
-fitHistNonUV=fit(xNonUV(1:rep)',log(histLenNonUV(1:rep))','poly1');
+%fitHistTot=fit(xTotLen(2:rep)',log(histTotLen(2:rep))','poly1');
+%fitHistUV=fit(xUV(1:rep)',log(histLenUV(1:rep))','poly1');
+%fitHistNonUV=fit(xNonUV(2:rep)',log(histLenNonUV(1:rep))','poly1');
 
 % calculate frame-to-frame drift
 shiftMatrix=NaN(nTracks,nFrames,2);
 for k=1:nTracks
     shift=tracks(k).trajectory(:,1:2);
-    startFrame=tracks(k).info(1);
-    endFrame=tracks(k).info(2);
+    startFrame=tracks(k).frameInfo(1);
+    endFrame=tracks(k).frameInfo(2);
     tmp=[shift(1,1:2);shift(1:end-1,:)];
     shiftMatrix(k,startFrame:endFrame,:)=shift-tmp;
 end
@@ -159,9 +171,8 @@ shift(idx,:)=0.0;
 % correct for drift
 drift=cumsum(shift);
 for k=1:nTracks
-    startFrame=tracks(k).info(1);
-    endFrame=tracks(k).info(2);
-    tracks(k).info(2);
+    startFrame=tracks(k).frameInfo(1);
+    endFrame=tracks(k).frameInfo(2);
     t=tracks(k).trajectory;
     t(:,1:2)=t(:,1:2)-drift(startFrame:endFrame,:);
     tracks(k).driftCorrected=t;
@@ -178,6 +189,6 @@ results.aveLengthUV=aveLengthUV;
 results.aveLengthNonUV=aveLengthNonUV;
 results.konUV=konUV;
 results.konTH=konTH;
-results.fitHistTot=fitHistTot;
-results.fitHistUV=fitHistUV;
-results.fitHistNonUV=fitHistNonUV;
+%results.fitHistTot=fitHistTot;
+%results.fitHistUV=fitHistUV;
+%results.fitHistNonUV=fitHistNonUV;
