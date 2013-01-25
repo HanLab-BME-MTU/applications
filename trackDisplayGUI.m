@@ -390,6 +390,7 @@ handles = getappdata(src, 'handles');
 % tracks
 set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
 set(handles.trackSlider, 'Position', [pos(3)-35 110 20 pos(4)-140]);
+set(handles.tplotPanel, 'Position', [pos(3)-540 5 160 70]);
 set(handles.outputPanel, 'Position', [pos(3)-160 5 140 70]);
 set(handles.montagePanel, 'Position', [pos(3)-370 5 200 70]);
 
