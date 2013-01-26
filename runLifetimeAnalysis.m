@@ -87,7 +87,9 @@ maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', f
 if nd>1
     % Rescale EDFs (correction for expression level)
     [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', strcmpi(ip.Results.Display, 'on'));
-    print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
+    if strcmpi(ip.Results.Display, 'on')
+        print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
+    end
 else
     a = 1;
 end
