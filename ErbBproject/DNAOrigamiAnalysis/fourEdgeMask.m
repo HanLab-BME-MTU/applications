@@ -10,7 +10,7 @@ function [Masks]=fourEdgeMask(pixsiz, sigma)
 % last update: 12/13/12
 
  Masks = cell([18,1]);
- pad = 3; % size of 'log' mask
+ pad = 5; % size of 'log' mask
  s = fix(pad/2);%shifting to center of log
  
  % list of dye positions in nm delta X = 62.4 delta Y = 41.6

@@ -18,9 +18,10 @@ ip.CaseSensitive=false;
 ip.StructExpand=true;
 
 ip.addRequired('ReconObject',@iscell);
-%ip.addOptional('NA',1.49,@isscalar);
+ip.addOptional('field','counts',@ischar);
 ip.parse(ReconObject,varargin{:});
 
+field = ip.Results.field;
 
 % makes object for figure
 f = figure;
@@ -37,13 +38,14 @@ state = 1; %starting position for display
 silder = struct('a',a,'t',t,'i',state);
 silder.data = ReconObject;
 setappdata(s,'slider',silder);
+setappdata(s,'field',field);
 
 %creates output structure;
 handles = struct('figure', f,'axes',a,'slider',s, 'text',t);
 
 %itialize plot
-axes(a);
-imshow(ReconObject{state}.counts,[0,8]);
+figure(f);
+imshow(ReconObject{state}.(field),[0,8]);
 colormap('hot');
 end
 
@@ -51,11 +53,19 @@ end
 function slideradjust(hObject, eventData, handles)
     %get data stored in slider
     st = getappdata(hObject,'slider'); 
+    field = getappdata(hObject,'field');
     st.i = fix(get(hObject,'Value'));
     axes(st.a);
-    imshow(st.data{st.i}.counts,[0,8]);
-    colormap('hot');
+    
+    if strcmp(field,'img')
+        imshow(st.data{st.i}.(field));
+    else
+        imshow(st.data{st.i}.(field),[0,8]);
+        colormap('hot');
+    end
+    
     set(st.t,'String',['N = ',num2str(st.i,'%u')]);
+    
     %update data stored in slider
     setappdata(hObject,'silder',st);
 end

@@ -1,26 +1,21 @@
-%Script for applying line filter to origami images
+%Script for applying 4Edge filter
 %
 %
 
 %load(file);
+driftCutOff = 2000;
 list = extractF(features);
-drift = getDrift(features,'amp',2500);
+drift = getDrift(features,'amp',driftCutOff);
 fcorr = correctDrift(features,drift);
 list2 = extractF(fcorr);
 
-%length of line in nm 78 for 10 nm pattern, 67 for 20 nm and 30 nm patterns,
-len = 67; 
-
 %removes points used for drift correction
-list2(list2(:,3)>2500,:)=[];
-
-%removes noisy points
-list2(list2(:,3) <250,:)=[];
+list2(list2(:,3)>2000,:)=[];
 
 n = numel(list2(:,1));
 
 %representive sigma in nanometers
-sig = 10.0;
+sig = 10.0*3;
 
 %nanometers per pixel
 npp = 128.0;
@@ -44,8 +39,11 @@ img = zeros([size(counts),3]);
 img(:,:,2)=counts;
 
 %makes and applies masks
-m = dnaOrigamiLineFilter(len, 36, npp/sf,10);
-f = filterMany(img(:,:,2),m);
+m = fourEdgeMask(npp/sf,sig/npp);
+
+% finds object in a 2d hist with an upper limit on counts to help prevent
+% biasing
+f = filterMany(min(counts,30),m);
 f2=f;
 
 n = sum(sum(f > 0));
@@ -55,9 +53,9 @@ n = sum(sum(f > 0));
 % retain only the top 1% of values
 f2(idx(ceil(n*0.01):end)) = 0.0;
 
-img(:,:,1)=f2;
+f2 = imopen(f2,strel('diamond',1));
 
-imshow(img);
+img(:,:,1)=f2;
 
 CC = bwconncomp(f2>0);
 
@@ -68,20 +66,17 @@ ObjectRecon = cell([CC.NumObjects,1]);
 Area = zeros([CC.NumObjects,1]);
 inc2 = 1/(2*sf);
 tbd = Area;
+fitR = struct('k',[],'pp',[],'mu',[],'cov',[],'dl',[],'countf',[]);
 
 for k=1:CC.NumObjects
     %finds the rectange that incloses the object plus a buffer around it
     [i,j] = ind2sub(size(f2),CC.PixelIdxList{k});
-    ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[]);
+    ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[],'fit',[],'img',[]);
     %sets a minimum size for reconstruction
-%     if numel(i) < 3 
-%         continue;        
-%     else
-
     if numel(i) < 3 
         tbd(k)=1;
     end
-
+    
     xmin = edge{1}(min(i))-0.7;
     xmax = edge{1}(max(i))+0.7;
     ymin = edge{2}(min(j))-0.7;
@@ -99,10 +94,21 @@ for k=1:CC.NumObjects
     ObjectRecon{k}.counts = cnt;
     ObjectRecon{k}.bins = edge2;
     ObjectRecon{k}.PntListIdx = inWindow;
-%    end
+    
+    [fitR.k,fitR.pp,fitR.mu,fitR.cov,fitR.dl,fitR.countf] = mixtures4(Pnts',1,50,1,0.0001,3);
+    [cnt2,bn]=hist3(fitR.mu',edge2);
+    
+    img2 = zeros([size(cnt2),3]);
+    img2(:,:,2)=cnt;
+    img2(:,:,1)=cnt2;
+    
+    ObjectRecon{k}.fit=fitR;
+    ObjectRecon{k}.img=img2;
+    
 end
 
 CC.ObjectRecon=ObjectRecon;
 CC.Area = Area;
 ObjectRecon(logical(tbd))=[];
 figure,h = ObjectReconViewer(ObjectRecon);
+figure,imshow(img);

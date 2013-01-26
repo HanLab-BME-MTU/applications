@@ -3,8 +3,9 @@
 %
 
 %load(file);
+driftCutOff = 2000;
 list = extractF(features);
-drift = getDrift(features,'amp',2000);
+drift = getDrift(features,'amp',driftCutOff);
 fcorr = correctDrift(features,drift);
 list2 = extractF(fcorr);
 
@@ -14,7 +15,7 @@ list2(list2(:,3)>2000,:)=[];
 n = numel(list2(:,1));
 
 %representive sigma in nanometers
-sig = 10.0*2;
+sig = 10.0*3;
 
 %nanometers per pixel
 npp = 128.0;
@@ -39,7 +40,10 @@ img(:,:,2)=counts;
 
 %makes and applies masks
 m = fourEdgeMask(npp/sf,sig/npp);
-f = filterMany(img(:,:,2),m);
+
+% finds object in a 2d hist with an upper limit on counts to help prevent
+% biasing
+f = filterMany(min(counts,30),m);
 f2=f;
 
 n = sum(sum(f > 0));
@@ -49,9 +53,9 @@ n = sum(sum(f > 0));
 % retain only the top 1% of values
 f2(idx(ceil(n*0.01):end)) = 0.0;
 
-img(:,:,1)=f2;
+f2 = imopen(f2,strel('diamond',1));
 
-imshow(img);
+img(:,:,1)=f2;
 
 CC = bwconncomp(f2>0);
 
@@ -94,4 +98,5 @@ end
 CC.ObjectRecon=ObjectRecon;
 CC.Area = Area;
 ObjectRecon(logical(tbd))=[];
-h = ObjectReconViewer(ObjectRecon);
+figure,h = ObjectReconViewer(ObjectRecon);
+figure,imshow(img);
