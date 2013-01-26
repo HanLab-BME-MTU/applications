@@ -8,7 +8,8 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
-ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
+ip.addParamValue('InputName', 'ProcessedTracks.mat', @ischar);
+ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff_f', 5, @isscalar);
 ip.addParamValue('Print', false, @islogical);
@@ -48,7 +49,7 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'FileName', ip.Results.FileName);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'OutputName', ip.Results.LifetimeData);
 if isfield(lftData, 'significantSignal')
     lftFields = {'lifetime_s', 'trackLengths', 'start', 'significantSignal', 'catIdx'}; % catIdx must be last!
 else
@@ -85,7 +86,7 @@ maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', f
 
 if nd>1
     % Rescale EDFs (correction for expression level)
-    [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', true);
+    [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', strcmpi(ip.Results.Display, 'on'));
     print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
 else
     a = 1;
