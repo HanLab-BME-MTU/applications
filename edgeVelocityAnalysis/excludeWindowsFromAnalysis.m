@@ -59,7 +59,7 @@ for iCell = 1:nCell
      %Excluding pre-selected windows
     cellData(iCell).data.excludeWin = unique([cellData(iCell).data.excludeWin exclude{iCell}]);  
     
-    cellData(iCell).data.excProcEdgeMotion                                  = cellData(iCell).data.procEdgeMotion;
+    cellData(iCell).data.excProcEdgeMotion                                  = num2cell(cellData(iCell).data.procEdgeMotion,2);
     cellData(iCell).data.excProcEdgeMotion(cellData(iCell).data.excludeWin) = [];
 
 end

@@ -32,15 +32,14 @@ ip.addParamValue('outLevel',7,@isscalar);
 ip.addParamValue('trend',   -1,@isscalar);
 ip.addParamValue('minLength',  30,@isscalar);
 ip.addParamValue('scale', false,@islogical);
-ip.addParamValue('missingObs',0,@isscalar);
+
 
 ip.parse(movieObj,varargin{:});
 excludeWin = ip.Results.excludeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
-trend      = ip.Results.trend;
 scale      = ip.Results.scale;
-missObs    = ip.Results.missingObs;
+trend      = ip.Results.trend;
 
 if isa(movieObj,'MovieData')
     
@@ -80,7 +79,7 @@ for iCell = 1:nCell
     
     %Extracting outliers
     %Removing NaN and closing 1 frame gaps
-    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',1,'outLevel',outLevel,'minLength',minLen,'missingObs',missObs);    
+    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',1,'outLevel',outLevel,'minLength',minLen,'trendType',trend);    
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
