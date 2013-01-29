@@ -32,6 +32,7 @@ ip.addParamValue('Alpha', 0.05);
 ip.addParamValue('YTick', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('ShowLegend', false, @islogical);
+ip.addParamValue('LftDataName', 'lifetimeData.mat');
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 sf = ip.Results.ScalingFactor;
@@ -53,7 +54,7 @@ b = 5;
 framerate = data(1).framerate;
 cohortBounds(end) = cohortBounds(end)+framerate;
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'OutputName', ip.Results.LftDataName);
 
 % Scale max. intensity distributions
 lftFields = {'A', 'sbA', 'ebA', 'sigma_r', 'sbSigma_r', 'ebSigma_r'};
