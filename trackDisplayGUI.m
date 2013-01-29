@@ -759,6 +759,10 @@ if ~isempty(handles.selectedTrack)
         end
         if strcmpi(handles.pUnitType, 'f')
             sTrack.t = sTrack.f;
+            if ~isempty(sTrack.startBuffer)
+                sTrack.startBuffer.t = sTrack.f(1) - (numel(sTrack.startBuffer.t):-1:1);
+                sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
+            end
         end
         if get(handles.tplotScaleCheckbox, 'Value')
             plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode,...
