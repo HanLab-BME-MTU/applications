@@ -1,4 +1,5 @@
-
+%[tracks] = cutTrack(track, cutIdx) splits a track at the specified indexes
+% The index positions are excluded from the resulting segments
 
 function tracks = cutTrack(track, cutIdx)
 
@@ -10,11 +11,10 @@ cutGaps = cellfun(@(i) any(ismember(i, cutIdx)), track.gapIdx);
 ub = [cellfun(@(i) i(1)-1, track.gapIdx(cutGaps)) np];
 lb = [1 cellfun(@(i) i(end)+1, track.gapIdx(cutGaps))];
 
-
-fnames = {'t', 'f', 'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd',...
-    'sigma_r', 'SE_sigma_r', 'pval_Ar', 'isPSF', 'tracksFeatIndxCG', 'gapVect',...
-    'maskA', 'maskN', 'mask_Ar', 'hval_Ar', 'hval_AD'};
-
+% fields with track-length content
+fieldNames = fieldnames(track);
+idx = structfun(@(i) size(i,2), track)==np;
+fnames = fieldNames(idx);
 bnames = {'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
 
 framerate = track.t(2)-track.t(1);
@@ -30,7 +30,6 @@ for s = 1:ns
     tracks(s).lifetime_s = (tracks(s).end-tracks(s).start+1)*framerate;
     tracks(s).seqOfEvents = [tracks(s).start 1 1 NaN; tracks(s).end 2 1 NaN];
 
-    
     if s==1
         tracks(s).startBuffer = track.startBuffer;
     else

@@ -32,32 +32,33 @@ ip.addParamValue('Preprocess', true, @islogical);
 ip.addParamValue('Postprocess', true, @islogical);
 ip.addParamValue('Cutoff_f', 2, @isscalar);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]); % used in post-proc
+ip.addParamValue('ForceDiffractionLimited', true, @islogical);
 ip.parse(data, varargin{:});
-filename = ip.Results.FileName;
 overwrite = ip.Results.Overwrite;
-buffer = ip.Results.Buffer;
-trackerOutput = ip.Results.TrackerOutput;
 frameIdx = ip.Results.FrameIndexes;
-sigma = ip.Results.Sigma;
-preprocess = ip.Results.Preprocess;
-postprocess = ip.Results.Postprocess;
-cohortBounds = ip.Results.CohortBounds_s;
 
 for i = 1:length(data)
     data(i).tracks = [];
     data(i).smTracks = [];
 end
 parfor i = 1:length(data)
-    if ~(exist([data(i).source filesep 'Tracking' filesep filename],'file')==2) || overwrite
-        data(i) = main(data(i), buffer, trackerOutput, filename, frameIdx{i}, sigma, preprocess, postprocess, cohortBounds);
+    if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite
+        data(i) = main(data(i), frameIdx{i}, ip.Results);
     else
         fprintf('Tracks from %s have already been processed.\n', getShortPath(data(i)));
     end
 end
 
+function [data] = main(data, frameIdx, opts)
+filename = opts.FileName;
+buffer = opts.Buffer;
+trackerOutput = opts.TrackerOutput;
+sigmaV = opts.Sigma;
+preprocess = opts.Preprocess;
+postprocess = opts.Postprocess;
+cohortBounds = opts.CohortBounds_s;
 
 
-function [data] = main(data, buffer, trackerOutput, filename, frameIdx, sigmaV, preprocess, postprocess, cohortBounds)
 cutoff_f = 2;
 minLft = cutoff_f*data.framerate;
 cohortBounds(cohortBounds<=minLft) = [];
@@ -725,7 +726,6 @@ C = num2cell(sum(C,1));
 
 % # diffraction-limited points per track (can be different from track length for compound tracks!)
 nPl = arrayfun(@(i) nansum(i.hval_AD(mCh,:) .* ~i.gapVect), tracks);
-
 isCCP = num2cell(nPl==0);
 [tracks.isCCP] = deal(isCCP{:});
 isCCP = [isCCP{:}];
@@ -812,7 +812,9 @@ end
 %----------------------------------------------------------------------------
 % V. Assign Cat. Ib to tracks that are not diffraction-limited CCPs
 %----------------------------------------------------------------------------
-[tracks([tracks.catIdx]==1 & ~isCCP).catIdx] = deal(2);
+if opts.ForceDiffractionLimited
+    [tracks([tracks.catIdx]==1 & ~isCCP).catIdx] = deal(2);
+end
 
 %----------------------------------------------------------------------------
 % VI. Cut tracks with sequential events (hotspots) into individual tracks
