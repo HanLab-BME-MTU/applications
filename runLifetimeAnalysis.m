@@ -239,11 +239,7 @@ if isempty(ip.Results.MaxIntensityThreshold)
     A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'UniformOutput', false);
     A = vertcat(A{:});
     lft = [lftData.lifetime_s];
-    
-    lb = [1  11 16 21 41 61];
-    ub = [10 15 20 40 60 120];
-    nc = numel(lb);
-    
+   
     if isempty(FirstNFrames)
         frameRange = 3:12;
         hval = zeros(1,frameRange(end));
