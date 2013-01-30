@@ -257,10 +257,11 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
 % track field names
 idx = structfun(@(i) size(i,2)==size(frameInfo(1).x,2), frameInfo(1));
 mcFieldNames = fieldnames(frameInfo);
-mcFieldNames = mcFieldNames(idx);
 [~,loc] = ismember({'x_init', 'y_init', 'RSS'}, mcFieldNames);
-mcFieldNames(loc) = [];
-
+idx(loc(loc~=0)) = false;
+mcFieldNames = mcFieldNames(idx);
+mcFieldSizes = structfun(@(i) size(i,1), frameInfo(1));
+mcFieldSizes = mcFieldSizes(idx);
 bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
 
 %==============================
@@ -335,7 +336,7 @@ for k = 1:nTracks
     % Segments are concatenated into single arrays, separated by NaNs.
     fieldLength = sum(segLengths)+nSeg-1;
     for f = 1:length(mcFieldNames)
-        tracks(k).(mcFieldNames{f}) = NaN(nCh, fieldLength);
+        tracks(k).(mcFieldNames{f}) = NaN(mcFieldSizes(f), fieldLength);
     end
     tracks(k).t = NaN(1, fieldLength);
     tracks(k).f = NaN(1, fieldLength);
