@@ -69,6 +69,7 @@ tbd = Area;
 fitR = struct('k',[],'pp',[],'mu',[],'cov',[],'dl',[],'countf',[]);
 
 for k=1:CC.NumObjects
+    tic;
     %finds the rectange that incloses the object plus a buffer around it
     [i,j] = ind2sub(size(f2),CC.PixelIdxList{k});
     ObjectRecon{k} = struct('counts',[],'bins',[],'PntListIdx',[],'fit',[],'img',[]);
@@ -95,7 +96,7 @@ for k=1:CC.NumObjects
     ObjectRecon{k}.bins = edge2;
     ObjectRecon{k}.PntListIdx = inWindow;
     
-    [fitR.k,fitR.pp,fitR.mu,fitR.cov,fitR.dl,fitR.countf] = mixtures4(Pnts',1,50,1,0.0001,3);
+    [fitR.k,fitR.pp,fitR.mu,fitR.cov,fitR.dl,fitR.countf] = mixtures4_fixedSigma(Pnts',1,50,1,0.0001,(10/npp)^2);
     [cnt2,bn]=hist3(fitR.mu',edge2);
     
     img2 = zeros([size(cnt2),3]);
@@ -104,7 +105,7 @@ for k=1:CC.NumObjects
     
     ObjectRecon{k}.fit=fitR;
     ObjectRecon{k}.img=img2;
-    
+    toc
 end
 
 CC.ObjectRecon=ObjectRecon;

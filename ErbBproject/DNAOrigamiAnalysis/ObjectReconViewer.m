@@ -25,19 +25,20 @@ field = ip.Results.field;
 
 % makes object for figure
 f = figure;
-a = axes;
+a = axes('DataAspectRatio',[1,1,1]);
 a = get(f,'Children');
 s = uicontrol('Style','slider','Min',1,'Max',numel(ReconObject), ...
-              'Value',1,'Position',[10,10,80,30],'Callback',{@slideradjust});
+              'Value',1,'Position',[10,10,150,30], ...
+              'Callback',{@slideradjust}, 'SliderStep',[1/numel(ReconObject),10/numel(ReconObject)]);
 t = uicontrol('Style','text','Position',[10,40,80,20],'String', 'N = 1');
 
 %set state variables
 state = 1; %starting position for display
 
 %set gui data for object usage
-silder = struct('a',a,'t',t,'i',state);
-silder.data = ReconObject;
-setappdata(s,'slider',silder);
+slider = struct('a',a,'t',t,'i',state);
+slider.data = ReconObject;
+setappdata(s,'slider',slider);
 setappdata(s,'field',field);
 
 %creates output structure;
@@ -45,8 +46,14 @@ handles = struct('figure', f,'axes',a,'slider',s, 'text',t);
 
 %itialize plot
 figure(f);
-imshow(ReconObject{state}.(field),[0,8]);
-colormap('hot');
+    if strcmp(field,'img')
+        imagesc(slider.data{state}.(field)(:,:,2),[0,8]);
+        colormap('pink');
+        imOverlayPointMap(slider.data{state}.(field)(:,:,1),'g+');
+    else
+        imshow(slider.data{state}.(field),[0,8]);
+        colormap('hot');
+    end
 end
 
 
@@ -58,7 +65,9 @@ function slideradjust(hObject, eventData, handles)
     axes(st.a);
     
     if strcmp(field,'img')
-        imshow(st.data{st.i}.(field));
+        imagesc(st.data{st.i}.(field)(:,:,2),[0,8]);
+        colormap('pink');
+        imOverlayPointMap(st.data{st.i}.(field)(:,:,1),'g+');
     else
         imshow(st.data{st.i}.(field),[0,8]);
         colormap('hot');
@@ -67,5 +76,5 @@ function slideradjust(hObject, eventData, handles)
     set(st.t,'String',['N = ',num2str(st.i,'%u')]);
     
     %update data stored in slider
-    setappdata(hObject,'silder',st);
+    setappdata(hObject,'slider',st);
 end
