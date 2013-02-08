@@ -70,19 +70,16 @@ if ~isempty(regexpi(getDirFromPath(condDir), movieSelector, 'once'))
     % if expDir are 'cell' directories
 elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), movieSelector, 'once')))
     cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
+    cellPath = sortStringsByToken(cellPath, movieSelector, 'post');
 else
     cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
+    cellPath = cellfun(@(x) sortStringsByToken(x, movieSelector, 'post'), cellPath, 'UniformOutput', false);
     cellPath = vertcat(cellPath{:});
 end
 
 if isempty(cellPath)
     error(['No valid movies found in: ' condDir]);
 end
-
-% check whether directory names contain 'cell'
-val = @(x) ~isempty(x);% && x==1;
-valid = cellfun(@(x) val(regexpi(getDirFromPath(x), movieSelector, 'once')), cellPath);
-cellPath = cellPath(valid==1);
 nCells = length(cellPath);
 
 % no 'cell' folders are found
@@ -171,7 +168,8 @@ for k = 1:nCells
         end
         framePaths{c} = arrayfun(@(x) [channels{c} x.name], [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])], 'UniformOutput', false);
         % sort files in case leading zeros are missing
-        idx = cellfun(@(x) str2double(regexp(x,'\d+(?=\.)', 'match')), framePaths{c});
+        idx = cellfun(@(x) regexp(x,'\d+(?=\.)', 'match'), framePaths{c});
+        idx = str2double(idx);
         [~,idx] = sort(idx);
         framePaths{c} = framePaths{c}(idx);
     end
@@ -192,11 +190,14 @@ for k = 1:nCells
         end
     end
     
+    % generate mask paths
     maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
-    if (exist(maskPath, 'dir')==7)
-        data(k).maskPaths = arrayfun(@(x) [maskPath x.name], [dir([maskPath '*.tif']) dir([maskPath '*.TIF'])], 'UniformOutput', false);
-    end
-    
+    nf = data(k).movieLength;
+    tmp = num2str((1:nf)');
+    tmp(tmp==' ') = '0';
+    tmp = [repmat([maskPath 'dmask_'], [nf 1]) tmp repmat('.tif', [nf 1])]; %#ok<AGROW>
+    data(k).maskPaths = mat2cell(tmp, ones(1,nf), size(tmp,2));
+
     data(k).markers = markers;
     data(k).NA = parameters(1);
     data(k).M = parameters(2);
