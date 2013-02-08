@@ -166,12 +166,18 @@ for k = 1:nCells
                 channels{c} = [channels{c} filesep];
             end
         end
-        framePaths{c} = arrayfun(@(x) [channels{c} x.name], [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])], 'UniformOutput', false);
+ 
+        tmp = [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])];
+        tmp = {tmp.name};
         % sort files in case leading zeros are missing
-        idx = cellfun(@(x) regexp(x,'\d+(?=\.)', 'match'), framePaths{c});
-        idx = str2double(idx);
-        [~,idx] = sort(idx);
-        framePaths{c} = framePaths{c}(idx);
+        idx = regexp(tmp','\d+(?=\.)', 'match', 'once');
+        if numel(unique(cellfun(@numel, idx)))~=1
+            idx = str2double(idx);
+            [~,idx] = sort(idx);
+            tmp = tmp(idx);
+        end
+        framePaths{c} = strcat(channels{c}, tmp);
+ 
     end
     data(k).channels = channels;
     data(k).source = channels{1}; % master channel default
