@@ -648,7 +648,7 @@ function dist = PoisDt(lamda,tmax)
 % Calculates probabibilty that the next event happens between time t and
 % t+1 using formula from integral(Pois(lamda,t|k=1), t,t+1)
 % = e^(-lt)*( t + 1/l - e^(-l)*(t+1+1/l)
-    ti = 1:tmax;
+    ti = 0:tmax;
     l = lamda;
     dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
     dist = dist/sum(dist);
