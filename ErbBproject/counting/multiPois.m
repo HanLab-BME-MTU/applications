@@ -15,12 +15,12 @@ end
 
 %computs delta t
 dt = repmat(t,[npoints,1])-repmat(t',[1,npoints]);
-Norm = dt <= 0;
+Norm = dt > 0;
 dt(dt <= 0)=1;
 
 % Norm term removes any terms with t <=0
-% Pois terms gives the likelihood that i is the next event of j
-% repmat(indic) term mutliples each pois by the probabilities  that point j
+% Pois terms gives the likelihood that i is the next event of model j
+% repmat(indic) term mutliples each pois by the probabilities  that point i
 % is from that model
 y = Norm.*Pois(dt).*repmat(indic',[1,npoints]);
 y = sum(y); %sums over one dimension
