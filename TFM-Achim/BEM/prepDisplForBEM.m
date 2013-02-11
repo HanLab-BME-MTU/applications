@@ -12,14 +12,15 @@ function [displFieldNew]=prepDisplForBEM(displField,opt)
 % not be interpolated and yield NaNs. Those are interpolated by nearest
 % neighbor interpolations.
        
-
+% This function also kills all points that have NaN at any of the frames
+% for correct BEM performance - Sangyoon Han Nov 2012.
 
 % all position entries in one column:
 pos=vertcat(displField.pos);
 maxX=max(pos(:,1));
 maxY=max(pos(:,2));
 
-% transform to linear indices
+% transform to linear indices (spatial map of indices in x-y position)
 ind=sub2ind([maxY maxX],pos(:,2),pos(:,1));
 
 % count multiple indices. Optimal would be that each index appears the same
@@ -38,7 +39,7 @@ end
 maxOcc=max(counts);
 
 if maxOcc>length(displField)
-    erorr('The cut off level can (should) be the number of entries (frames) in the displField!!!')
+    error('The cut off level can (should) be the number of entries (frames) in the displField!!!')
 end
 
 % Find the positions with full/not-full occurance:
@@ -114,6 +115,8 @@ else
            % Perform the interpolation:
            ux(bdPts)=ux_intp(xpos(bdPts),ypos(bdPts));
            uy(bdPts)=uy_intp(xpos(bdPts),ypos(bdPts));
+           
+           bdPts=find(isnan(ux));
        end
        
        % add those values to the matrix above:
@@ -138,7 +141,21 @@ else
        display(['Pts intp in frame ',num2str(iframe),': ',num2str(length(missPts))]);
     end
 end
-    
+
+
+% kill any points that have NaNs in vec --- 
+nFrames = length(displFieldNew);
+indvec = [];
+for iframe=1:nFrames
+    ind = find(isnan(displFieldNew(iframe).vec(:,2)));
+    indvec = [indvec; ind];
+end
+indvec = unique(indvec);
+for iframe=1:nFrames
+    displFieldNew(iframe).pos(indvec,:) = [];
+    displFieldNew(iframe).vec(indvec,:) = [];
+end
+
 
 return;
 % to compare the results:
