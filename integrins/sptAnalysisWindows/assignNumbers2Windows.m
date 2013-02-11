@@ -168,25 +168,25 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
     indxFrameRangeS = msGroup(iWinFrameExt).indxS;
     
     %get the positions of these merges and splits
-    xCoordMergeFR = mergesInfoSpaceX(indxFrameRangeM);
-    yCoordMergeFR = mergesInfoSpaceY(indxFrameRangeM);
-    xCoordSplitFR = splitsInfoSpaceX(indxFrameRangeS);
-    yCoordSplitFR = splitsInfoSpaceY(indxFrameRangeS);
+    xCoordMergeFR = mergesInfoSpaceX(indxFrameRangeM); %#ok<PFBNS>
+    yCoordMergeFR = mergesInfoSpaceY(indxFrameRangeM); %#ok<PFBNS>
+    xCoordSplitFR = splitsInfoSpaceX(indxFrameRangeS); %#ok<PFBNS>
+    yCoordSplitFR = splitsInfoSpaceY(indxFrameRangeS); %#ok<PFBNS>
 
     for iWinFrame = 1 : numWinFramesM1 %window frames to fetch windows
         for iPara = 1 : numWinPara %slices
-            for iPerp = 1 : nBands(iWinFrame,iPara) %bands
+            for iPerp = 1 : nBands(iWinFrame,iPara) %#ok<PFBNS> %bands
                 
                 %if the window in this frame has a finite size
-                if ~isempty(winPositions{iWinFrame,iPara}{iPerp})
+                if ~isempty(winPositions{iWinFrame,iPara}{iPerp}) %#ok<PFBNS>
                     
                     %get current tracks
                     tracksCurrent = windowTrackAssignExt{iPerp,iPara,iWinFrame,iWinFrameExt};
                     
                     %keep only tracks whose length is within the required range
-                    trackLftCurrent = trackLft(tracksCurrent);
+                    trackLftCurrent = trackLft(tracksCurrent); %#ok<PFBNS>
                     tracksCurrent = tracksCurrent(trackLftCurrent>=lengthMinMax(1) & ...
-                        trackLftCurrent<=lengthMinMax(2));
+                        trackLftCurrent<=lengthMinMax(2)); %#ok<PFBNS>
                     numTracksCurrent = length(tracksCurrent);
                     
                     if any(prop2calc==3)
@@ -196,7 +196,7 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
                         
                         %number of particles with net displacement parallel or
                         %anti-parallel to protrusion vector
-                        paraProtDispCurrent = paraProtDispTmp(tracksCurrent,1);
+                        paraProtDispCurrent = paraProtDispTmp(tracksCurrent,1); %#ok<PFBNS>
                         tracksPos = tracksCurrent(paraProtDispCurrent >= 0);
                         tracksNeg = tracksCurrent(paraProtDispCurrent < 0);
                         numNetDispPosTmp(iPerp,iPara,iWinFrame) = length(tracksPos);
@@ -206,7 +206,7 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
                     
                     %asym+MSS analysis classification
                     if any(prop2calc==1)
-                        trajClassCurrent = trajClass(tracksCurrent);
+                        trajClassCurrent = trajClass(tracksCurrent); %#ok<PFBNS>
                         n = hist(trajClassCurrent,1:5);
                         numUnclassTmp(iPerp,iPara,iWinFrame) = numTracksCurrent - sum(n);
                         numLinTmp(iPerp,iPara,iWinFrame) = n(5);
@@ -219,7 +219,7 @@ parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
                     
                     %mode analysis classification
                     if any(prop2calc==2)
-                        trajModeCurrent = trajDiffMode(tracksCurrent);
+                        trajModeCurrent = trajDiffMode(tracksCurrent); %#ok<PFBNS>
                         trajModeCurrent(isnan(trajModeCurrent)) = numDiffMode+1;
                         numModeTmp(iPerp,iPara,iWinFrame,:) = hist(trajModeCurrent,1:numDiffMode+1);
                     end

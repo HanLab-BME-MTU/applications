@@ -1,26 +1,37 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructLifeact)
+% for i = 1 : length(movieStructAlphaV)
+for i = 1 : 1
     
     disp(num2str(i))
     
-    activityLevel = movieStructLifeact(i).activityLevel;
+    activityLevel = movieStructAlphaV(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructLifeact(i).fileName{1};
-        topDir = topDir(11:end);
-        cd([topDir '/analysisLifeact/furtherAnalysis/adaptiveWindows'])
+        topDir = movieStructAlphaV(i).fileName{1};
+        %         topDir = topDir(11:end);
+        %         cd([topDir '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
+        tmp = regexprep(topDir,'/','\');
+        topDir = ['C:\kjData\' tmp(33:end)];
+        %         cd([topDir '\analysisAlphaV\furtherAnalysis\adaptiveWindows'])
         
-        sliceRange = movieStructLifeact(i).sliceRange;
-        frameRange = movieStructLifeact(i).frameRange;
+        %%% for randomization test
+        cd([topDir '\analysisAlphaV\furtherAnalysis\randomizationTest\adaptiveWindows'])
+        %%% for randomization test
         
-        load ../tracksDiffusionLength5InMask.mat
-        load ../diffusionModeClassification.mat
+        sliceRange = movieStructAlphaV(i).sliceRange;
+        frameRange = movieStructAlphaV(i).frameRange;
         
-        seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
-        maxFrame = max(seqOfEvents(:,1));
+        %         load ../tracksDiffusionLength5InMask.mat
+        %         load ../diffusionModeClassification.mat
+        
+        %%% for randomization test
+        load ../../tracksDiffusionLength5InMask.mat
+        load ../tracksLength5InMaskRandom.mat
+        load ../../diffusionModeClassification.mat
+        %%% for randomization test
         
         try
             load windowsActivityTracks.mat
@@ -33,11 +44,14 @@ for i = 1 : length(movieStructLifeact)
             clear windowTrackAssignExt1 windowTrackAssignExt2
         end
         
+        maxFrame = (size(windowsAll,1)-1)*400;
+
         load directTrackChar.mat
         
         load windowNumbersAssignExt.mat
         
-        maskDir = [topDir '/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/'];
+        %         maskDir = [topDir '/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/'];
+        maskDir = [topDir '\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\'];
         tmp = dir([maskDir '*.tif']);
         firstMaskFile = [maskDir tmp(1).name];
         
@@ -55,7 +69,7 @@ for i = 1 : length(movieStructLifeact)
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
             lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam,edgePosStd);
         
-        save('particleBehaviorAdaptiveWindows121112','sptPropInWindow',...
+        save('particleBehaviorAdaptiveWindowsRandom130210','sptPropInWindow',...
             'windowDistFromEdge','analysisParam');
         
     end

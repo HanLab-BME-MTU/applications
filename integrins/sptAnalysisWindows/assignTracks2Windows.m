@@ -175,18 +175,18 @@ parfor iWinFrameExt = 1 : numWinFrames - 1 %this loops over window frames to fet
     indxFrameRange = trackGroup(iWinFrameExt).indx;
     
     %get the mean positions of these tracks
-    xCoordMeanFR = xCoordMean(indxFrameRange);
-    yCoordMeanFR = yCoordMean(indxFrameRange);
+    xCoordMeanFR = xCoordMean(indxFrameRange); %#ok<PFBNS>
+    yCoordMeanFR = yCoordMean(indxFrameRange); %#ok<PFBNS>
     
     assignMatTmp = cell(numWinPerp,numWinPara,numWinFrames-1);
     for iWinFrame = 1 : numWinFrames - 1 %this loops over window frames to fetch windows
         
         %go over windows in this frame
         for iPara = 1 : numWinPara %slices
-            for iPerp = 1 : nBands(iWinFrame,iPara) %bands
+            for iPerp = 1 : nBands(iWinFrame,iPara) %#ok<PFBNS> %bands
                 
                 %if the window in this frame has a finite size
-                if ~isempty(winPositions{iWinFrame,iPara}{iPerp})
+                if ~isempty(winPositions{iWinFrame,iPara}{iPerp}) %#ok<PFBNS>
                     
                     %get the window boundaries
                     windowsPoly = [winPositions{iWinFrame,iPara}{iPerp}{:}];

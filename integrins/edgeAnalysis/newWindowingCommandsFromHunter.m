@@ -1,9 +1,9 @@
 %setup movieData object and fake-analyze to set up the results paths
 %correctly
-segmentationPackageGUI
+segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = '/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaV/091012_CHO08lofix_mEosAV_2400_25/analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\alphaVandCellEdge\110908_Cs1C3a_CHO_AV\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold

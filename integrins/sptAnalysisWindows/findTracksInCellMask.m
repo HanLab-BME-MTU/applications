@@ -1,6 +1,6 @@
 function [indxTracksInCellMask] = findTracksInCellMask(tracksFinal,...
     firstMaskFile,maskFrames,assignSegments)
-%ASSIGNTRACKS2WINDOWS groups tracks into spatial and temporal windows derived from the cell edge
+%FINDTRACKSINCELLMASK returns the indices of tracks within the boundaries of the cell mask
 %
 %SYNOPSIS [indxTracksInCellMask] = findTracksInCellMask(tracksFinal,...
 %    firstMaskFile,maskFrames,assignSegments)
@@ -21,13 +21,6 @@ function [indxTracksInCellMask] = findTracksInCellMask(tracksFinal,...
 %        trajectories are sampled much more frequently than the cell edge.
 %        It assumes that particle lifetimes are much shorter than the time
 %        between cell edge frames.
-%
-%        For a different scenario where particle lifetimes are longer than
-%        the time between cell edge frames, the tracks should not be
-%        grouped like this. Rather, each track should get divided into
-%        several segments corresponding to the times between cell edge
-%        frames and each track segment should be analyzed separately.
-%        Something like that.
 %
 %Khuloud Jaqaman, June 2012
 

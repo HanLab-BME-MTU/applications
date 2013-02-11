@@ -1,17 +1,28 @@
 
-for i = 1 : length(movieStructLifeact)
-    
+for i = 1 : length(movieStructFarn)
+
     disp(num2str(i))
     
-    activityLevel = movieStructLifeact(i).activityLevel;
+    activityLevel = movieStructFarn(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructLifeact(i).fileName{1};
-        topDir = topDir(11:end);
-        cd([topDir '/analysisLifeact/furtherAnalysis'])
+        topDir = movieStructFarn(i).fileName{1};
+        %         topDir = topDir(11:end);
+        %         cd([topDir '/analysisFarn/furtherAnalysis'])
+        tmp = regexprep(topDir,'/','\');
+        topDir = ['C:\kjData\' tmp(33:end)];
+        %         cd([topDir '\analysisFarn\furtherAnalysis'])
         
-        load tracksDiffusionLength5InMask.mat
+        %%% for randomization test
+        cd([topDir '\analysisFarn\furtherAnalysis\randomizationTest'])
+        %%% for randomization test
+                
+        %         load tracksDiffusionLength5InMask.mat
+        
+        %%% for randomization test
+        load tracksLength5InMaskRandom.mat
+        %%% for randomization test
         
         cd adaptiveWindows
         try

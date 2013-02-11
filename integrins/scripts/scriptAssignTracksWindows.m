@@ -1,27 +1,40 @@
 
-for i = 1 : length(movieStructLifeact)
+for i = 1 : length(movieStructAlphaV)
     
     disp(num2str(i))
     
-    if movieStructLifeact(i).activityLevel > 1
+    if movieStructAlphaV(i).activityLevel > 1 && i == 16
         
-        topDir = movieStructLifeact(i).fileName{1};
-        topDir = topDir(11:end);
-        cd([topDir '/analysisLifeact/furtherAnalysis'])
+        topDir = movieStructAlphaV(i).fileName{1};
+        %         topDir = topDir(11:end);
+        %         cd([topDir '/analysisAlphaV/furtherAnalysis'])
+        tmp = regexprep(topDir,'/','\');
+        topDir = ['C:\kjData\' tmp(33:end)];
+        %         cd([topDir '\analysisAlphaV\furtherAnalysis'])
+        
+        %%% for randomization test
+        cd([topDir '\analysisAlphaV\furtherAnalysis\randomizationTest'])
+        %%% for randomization test
         
         mkdir adaptiveWindows
         cd adaptiveWindows
         
         lengthMinMax = [5 99];
         
-        firstWindowFile = [topDir '/analysisCellEdgeSmall/windows/windows_frame__frame_01.mat'];
+        %         firstWindowFile = [topDir '/analysisCellEdgeSmall/windows/windows_frame__frame_01.mat'];
+        firstWindowFile = [topDir '\analysisCellEdgeSmall\windows\windows_frame__frame_01.mat'];
         windowsAll = putWindowsTogether(firstWindowFile);
-        load ../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
+        %         load ../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
+        %%% for randomization test
+        load ../../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
+        %%% for randomization test
         
-        load ../tracksDiffusionLength5InMask.mat
+        %         load ../tracksDiffusionLength5InMask.mat
+        %%% for randomization test
+        load ../tracksLength5InMaskRandom.mat
+        %%% for randomization test
         
-        seqOfEvents = vertcat(tracksFinal(end-10:end).seqOfEvents);
-        maxFrame = max(seqOfEvents(:,1));
+        maxFrame = (size(windowsAll,1)-1)*400;
         
         [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
             assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
