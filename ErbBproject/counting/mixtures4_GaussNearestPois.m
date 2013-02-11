@@ -197,9 +197,14 @@ ind = sub2ind(size(normindic),ind,1:npoints);
 hardIndic = false(size(normindic));
 hardIndic(ind)=true;
 
+time_indic = zeros(size(semi_indic));
 for i=1:k
     if sum(hardIndic(i,:)) > 0
-    time_indic(i,:) = singlePoisHard(t,hardIndic(i,:),Pois);
+    try
+        time_indic(i,:) = singlePoisHard(t,hardIndic(i,:),Pois);
+    catch
+        k
+    end
     else
         time_indic(i,:)=0;
     end
@@ -647,9 +652,10 @@ end
 function dist = PoisDt(lamda,tmax)
 % Calculates probabibilty that the next event happens between time t and
 % t+1 using formula from integral(Pois(lamda,t|k=1), t,t+1)
-% = e^(-lt)*( t + 1/l - e^(-l)*(t+1+1/l)
+% = e^(-lt)*( t + 1/l - e^(-l)*(t+1+1/l) )
     ti = 0:tmax;
     l = lamda;
     dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
     dist = dist/sum(dist);
+    dist = [0,dist];
 end
