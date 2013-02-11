@@ -97,8 +97,10 @@ else
         colorV = hsv(nd);
         fset = loadFigureSettings('print');
         if isempty(ip.Results.XTick)
-            T99 = prctile(samples{refIdx}, 99.9);
-            xa = 0:50:T99;
+            %T99 = prctile(samples{refIdx}, 99.9);
+            %T99 = prctile(vertcat(samples{:}), 99.9);
+            T99 = prctile(samples{a==1.00}, 99.5);
+            %xa = 0:50:T99;
         else
             xa = ip.Results.XTick;
             T99 = xa(end);
@@ -116,7 +118,7 @@ else
         end
         hp = plot(xEDF{refIdx}, fEDF{refIdx}, 'k', 'LineWidth', lw+0.5);
         axis([0 T99 0 1.01]);
-        set(gca, 'YTick', 0:0.2:1, 'XTick', xa, 'XTickLabel', []);
+        set(gca, 'YTick', 0:0.2:1, 'XLim', [0 T99], 'XTickLabel', []);
         formatTickLabels(gca);
         ylabel('Cumulative frequency', fset.lfont{:});
         text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
@@ -131,7 +133,7 @@ else
             plot(xEDF{idx(i)}*a(idx(i)), ci+(1-ci)*fEDF{idx(i)}, 'Color', colorV(idxa(i),:), 'LineWidth', lw);
         end
         axis([0 T99 0 1.01]);
-        set(gca, 'YTick', 0:0.2:1, 'XTick', xa);
+        set(gca, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
         formatTickLabels(gca);
         xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
         ylabel('Cumulative frequency', fset.lfont{:});
