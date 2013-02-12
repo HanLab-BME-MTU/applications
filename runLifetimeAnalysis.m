@@ -49,7 +49,7 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'OutputName', ip.Results.LifetimeData);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
 if isfield(lftData, 'significantSignal')
     lftFields = {'lifetime_s', 'trackLengths', 'start', 'significantSignal', 'catIdx'}; % catIdx must be last!
 else
@@ -272,30 +272,7 @@ else
     T = ip.Results.MaxIntensityThreshold;
 end
 
-minLength = min([data.movieLength]);
-intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength,mCh), lftData, 'UniformOutput', false);
-intMat_Ia_all = vertcat(intMat_Ia_all{:});
-lifetime_s_all = [res.lft_all];
-
-
-
-startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
-startBufferA = vertcat(startBufferA{:});
-
-tx = 30;
-
-% 95th percentile of the reference (above threshold) distribution
-pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
-
-pAbove = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
-% pBelow = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 2.5, 1);
-
-pBuffer = prctile(startBufferA(lifetime_s_all>=tx,:), 5);
-
-
-% 95th percentile of the reference (above threshold) distribution
-pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
-
+vidx = getVisitorIndex(lftData);
 % loop through data sets, apply max. intensity threshold
 for i = 1:nd
     
@@ -306,35 +283,14 @@ for i = 1:nd
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
     if ip.Results.ExcludeVisitors
-        visitIdx = sum(lftData(i).A(:,1:3,mCh)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & res(i).lft_all<tx;
-        
-        % median of first three frames larger than median of last three frames
-        %medStart = median(lftData(i).A(:,1:5),2);
-        %medEnd = arrayfun(@(k) median(lftData(i).A(k,lftData(i).trackLengths(k)+(-2:0))), 1:size(lftData(i).A,1))';
-        
-        %maxStart = nanmax(lftData(i).A(:,1:5,mCh),[],2);
-        %maxEnd = arrayfun(@(k) max(lftData(i).A(k,lftData(i).trackLengths(k)+(-4:0),mCh)), 1:size(lftData(i).A,1))';
-        %maxEnd = nanmax(lftData(i).A(:,6:end),[],2);
-        
-        %diffIdx = maxStart>maxEnd;
-        %idxLft = idxLft & diffIdx';
-        
-        %idxLft = (lftData(i).sbA(:,3)<pBuffer(3) | lftData(i).sbA(:,4)<pBuffer(4) | lftData(i).sbA(:,5)<pBuffer(5))' &...
-        %    (lftData(i).A(:,1)>pAbove(1) | lftData(i).A(:,2)>pAbove(2) | lftData(i).A(:,3)>pAbove(3))';
-        
-        %idxLft = (lftData(i).sbA(:,4)<pBuffer(4) & lftData(i).sbA(:,5)<pBuffer(5))';
-        
-        %idxLft = sum(lftData(i).A(:,1:3)>repmat(pAbove, [size(lftData(i).A,1) 1]) |...
-        %    lftData(i).A(:,1:3)<repmat(pBelow, [size(lftData(i).A,1) 1]),2)'>=1 & res(i).lft_all<tx;
-        
-        res(i).lftVisitors = res(i).lft_all(visitIdx);
-        res(i).lftAboveT = res(i).lft_all(~visitIdx & idxMI);
-        res(i).lftBelowT = res(i).lft_all(~visitIdx & ~idxMI);
-        res(i).maxAAboveT = res(i).maxA_all(~visitIdx & idxMI);
-        res(i).AaboveT = lftData(i).A(~visitIdx & idxMI,:,:);
+        res(i).lftVisitors = res(i).lft_all(vidx{i});
+        res(i).lftAboveT = res(i).lft_all(~vidx{i} & idxMI);
+        res(i).lftBelowT = res(i).lft_all(~vidx{i} & ~idxMI);
+        res(i).maxAAboveT = res(i).maxA_all(~vidx{i} & idxMI);
+        res(i).AaboveT = lftData(i).A(~vidx{i} & idxMI,:,:);
         
         lftRes.pctVisit(i) = numel(res(i).lftVisitors) / numel(idxMI);
-        res(i).nSamplesAboveT = sum(~visitIdx & idxMI);
+        res(i).nSamplesAboveT = sum(~vidx{i} & idxMI);
     else
         res(i).lftAboveT = res(i).lft_all(idxMI);
         res(i).lftBelowT = res(i).lft_all(~idxMI);
@@ -370,12 +326,12 @@ for i = 1:nd
     lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
     
     if ip.Results.ExcludeVisitors
-        lftRes.visitIdx{i} = visitIdx;
+        lftRes.visitIdx{i} = vidx{i};
         lftHist_V = hist(res(i).lftVisitors, t);
         lftHist_V = [lftHist_V.*w pad0];
         lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V) / framerate;
     else
-        visitIdx = zeros(size(idxMI)); % assume no visitors
+        vidx{i} = zeros(size(idxMI)); % assume no visitors
     end
     
     % Multi-channel data
@@ -388,10 +344,10 @@ for i = 1:nd
         lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
         lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
         
-        lftHist_Apos = hist(res(i).lft_all(~visitIdx & idxMI & res(i).significantSignal(2,:)), t);
-        lftHist_Aneg = hist(res(i).lft_all(~visitIdx & idxMI & ~res(i).significantSignal(2,:)), t);
-        lftHist_Bpos = hist(res(i).lft_all(~visitIdx & ~idxMI & res(i).significantSignal(2,:)), t);
-        lftHist_Bneg = hist(res(i).lft_all(~visitIdx & ~idxMI & ~res(i).significantSignal(2,:)), t);
+        lftHist_Apos = hist(res(i).lft_all(~vidx{i} & idxMI & res(i).significantSignal(2,:)), t);
+        lftHist_Aneg = hist(res(i).lft_all(~vidx{i} & idxMI & ~res(i).significantSignal(2,:)), t);
+        lftHist_Bpos = hist(res(i).lft_all(~vidx{i} & ~idxMI & res(i).significantSignal(2,:)), t);
+        lftHist_Bneg = hist(res(i).lft_all(~vidx{i} & ~idxMI & ~res(i).significantSignal(2,:)), t);
         lftHist_Apos =  [lftHist_Apos.*w  pad0];
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
@@ -406,10 +362,10 @@ for i = 1:nd
         %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB;
         %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB;
         
-        lftRes.pctAboveSignificant(i) =    sum(~visitIdx & idxMI & res(i).significantSignal(2,:))/numel(idxMI);
-        lftRes.pctAboveNotSignificant(i) = sum(~visitIdx & idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
-        lftRes.pctBelowSignificant(i) =    sum(~visitIdx & ~idxMI & res(i).significantSignal(2,:))/numel(idxMI);
-        lftRes.pctBelowNotSignificant(i) = sum(~visitIdx & ~idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctAboveSignificant(i) =    sum(~vidx{i} & idxMI & res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctAboveNotSignificant(i) = sum(~vidx{i} & idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctBelowSignificant(i) =    sum(~vidx{i} & ~idxMI & res(i).significantSignal(2,:))/numel(idxMI);
+        lftRes.pctBelowNotSignificant(i) = sum(~vidx{i} & ~idxMI & ~res(i).significantSignal(2,:))/numel(idxMI);
     end
     %-----------------------------------
     % Initiation density
@@ -419,7 +375,7 @@ for i = 1:nd
     startsPerFrame_all = startsPerFrame_all(6:end-2);
     startsPerFrame_Ia = hist(lftData(i).start, 1:data(i).movieLength);
     startsPerFrame_Ia = startsPerFrame_Ia(6:end-2);
-    startsPerFrameAbove = hist(lftData(i).start(idxMI & ~visitIdx), 1:data(i).movieLength);
+    startsPerFrameAbove = hist(lftData(i).start(idxMI & ~vidx{i}), 1:data(i).movieLength);
     startsPerFrameAbove = startsPerFrameAbove(6:end-2);
     
     % Cell area
@@ -582,12 +538,15 @@ end
 % % print('-depsc2', '-loose', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
 %%
-h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
-print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
-if ip.Results.ShowStatistics
-    print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
+if strcmpi(ip.Results.Display, 'on')
+    h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
+    print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
+    if ip.Results.ShowStatistics
+        print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
+    end
 end
 return
+
 
 
 

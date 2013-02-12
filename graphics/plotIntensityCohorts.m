@@ -14,12 +14,14 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowVariation', true, @islogical);
 ip.addParamValue('Mode', 'percentiles', @(x) any(strcmpi(x, {'SEM', 'percentiles'})));
+ip.addParamValue('FrontLayer', false, @islogical);
 ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('ScaleSlaveChannel', true, @islogical);
 ip.addParamValue('ScalingFactor', ones(1,nCh));
 ip.addParamValue('MaxIntensityThreshold', 0);
+ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('SlaveName', [], @ischar);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('LineStyle', '-');
@@ -30,8 +32,10 @@ ip.addParamValue('TrackIndex', []);
 ip.addParamValue('Cutoff_f', 5);
 ip.addParamValue('Alpha', 0.05);
 ip.addParamValue('YTick', []);
+ip.addParamValue('YLim', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('ShowLegend', false, @islogical);
+ip.addParamValue('ShowPct', true, @islogical);
 ip.addParamValue('LftDataName', 'lifetimeData.mat');
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
@@ -53,6 +57,11 @@ nc = numel(cohortBounds)-1;
 b = 5;
 framerate = data(1).framerate;
 cohortBounds(end) = cohortBounds(end)+framerate;
+XLim = [-b*framerate-5 cohortBounds(end)-framerate];
+YLim = ip.Results.YLim;
+if isempty(YLim) && ~isempty(ip.Results.YTick)
+   YLim = ip.Results.YTick([1 end]); 
+end
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'OutputName', ip.Results.LftDataName);
 
@@ -122,6 +131,11 @@ iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc
 % time vectors for cohorts
 cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
 
+if ip.Results.ExcludeVisitors
+    vidx = getVisitorIndex(lftData);
+else
+    vidx = arrayfun(@(i) false(1,size(i.A,1)), lftData, 'unif', 0);
+end
 for i = 1:nd
     lifetime_s = lftData(i).lifetime_s([lftData(i).catIdx]==1);
     trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
@@ -133,7 +147,8 @@ for i = 1:nd
         % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
             % tracks in current cohort (above threshold)
-            cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1) & maxA > ip.Results.MaxIntensityThreshold);
+            cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1) &...
+                maxA > ip.Results.MaxIntensityThreshold & ~vidx{i});
             nt = numel(cidx);
 
             interpTracks = zeros(nt,iLength(c));
@@ -219,10 +234,13 @@ cohorts.bounds = cohortBounds;
 %==================================================
 % Plot cohorts
 %==================================================
+XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
+cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-2) 's'], 1:6, 'UniformOutput', false);
+
 if ~(isfield(res(1), 'sigIdx') && nCh==2)
     
     figure(fset.fOpts{:}, 'Name', 'Intensity cohorts', 'Position', [2 2 8 6]);
-    axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
+    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
     hold on;
     A = cell(1,nc);
     hp = zeros(1,nc*nCh);
@@ -246,7 +264,9 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
             if ip.Results.ShowVariation
                 hp(c + nc*(ch-1)) = fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
             end
-            plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+            if ~ip.Results.FrontLayer
+                plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+            end
             cohorts.t{c} = cT{c};
             cohorts.Amin{ch,c} = Amin;
             cohorts.Aplus{ch,c} = Aplus;
@@ -255,9 +275,11 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
     cohorts.A = A;
     for ch = chVec
         % Plot mean/median in front
-        %for c = nc:-1:1
-        %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-        %end
+        if ip.Results.FrontLayer
+            for c = nc:-1:1
+                plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+            end
+        end
         
         % Plot signifcance threshold in front
         if ip.Results.ShowBackground && ch==mCh
@@ -274,22 +296,19 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
             end
         end
     end
-    set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)-framerate], 'XTick', 0:20:200);
-    if ~isempty(ip.Results.YTick)
-        set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
-    end
+    
     if ~isempty(ip.Results.ChannelNames)
         hl = legend(hp(floor(nc/2):nc:end), ip.Results.ChannelNames{:});
         set(hl, 'Box', 'off', 'Position', [6 4.75 1 0.8]);
     end
-    xlabel('Time (s)', fset.lfont{:});
+    %xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
     
 %%
 % indiv. figures for cargo+ / cargo-: split based on significance of slave channel
 else
-    figure(fset.fOpts{:}, 'Position', [2 2 15 5.5], 'Name', 'Intensity cohorts, cargo-positive tracks');
-    axes(fset.axOpts{:})
+    figure(fset.fOpts{:}, 'Position', [2 2 15 6], 'Name', 'Intensity cohorts, cargo-positive tracks');
+    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
     hold on;
     A = cell(nCh,nc);
     % plot slave channel first
@@ -301,8 +320,8 @@ else
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
             %AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(:,:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
-            A{ch,c} = mean(AMat,1);
-            SEM = std(AMat,[],1)/sqrt(nd);
+            A{ch,c} = nanmean(AMat,1);
+            SEM = nanstd(AMat,[],1)/sqrt(nd);
             Amin = A{ch,c} - SEM;
             Aplus = A{ch,c} + SEM;
         else
@@ -328,8 +347,8 @@ else
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
-            A{ch,c} = mean(AMat,1);
-            SEM = std(AMat,[],1)/sqrt(nd);
+            A{ch,c} = nanmean(AMat,1);
+            SEM = nanstd(AMat,[],1)/sqrt(nd);
             Amin = A{ch,c} - SEM;
             Aplus = A{ch,c} + SEM;
         else
@@ -370,27 +389,37 @@ else
             end
         end
     end
-
-    set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
-    if ~isempty(ip.Results.YTick)
-        set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
+    if isempty(YLim)
+        YLim = get(gca, 'YLim');
     end
-    xlabel('Time (s)', fset.lfont{:});
-    ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
-    XLim = get(gca, 'XLim');
-    YLim = get(gca, 'YLim');
+   
+    % pct pos CCPs/cohort
+    M = arrayfun(@(r) cellfun(@(i) sum(i)/numel(i)*100, r.sigIdx(2,:)), res, 'unif', 0);
+    % pct of all CCPs
+    %M = arrayfun(@(r) cellfun(@(i) sum(i)/numel([r.sigIdx{2,:}])*100, r.sigIdx(2,:)), res, 'unif', 0);
+    M = vertcat(M{:});
+   
     if ~isempty(ip.Results.SlaveName)
-        text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos.'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
+        sv = arrayfun(@(i) 100*sum([i.sigIdx{2,:}])/numel([i.sigIdx{2,:}]), res);
+        text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos. ('  num2str(mean(sv), '%.1f') ' ± ' num2str(std(sv), '%.1f') '% of CCPs)'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
     end
     
 
-    %figure(fset.fOpts{:}, 'Name', 'Intensity cohorts, cargo-negative tracks');
     if ip.Results.ShowLegend
         pos = get(gcf, 'Position');
         pos(3) = 17;
         set(gcf, 'Position', pos);
+    else
+        
     end
-    axes(fset.axOpts{:}, 'Position', [8.25 1.5 6 3.5]);
+    
+    if ip.Results.ShowPct
+        pos = get(gcf, 'Position');
+        pos(3) = 19;
+        set(gcf, 'Position', pos);
+    end
+    
+    ha(2) = axes(fset.axOpts{:}, 'Position', [8.25 2 6 3.5]);
     hold on;
     A = cell(1,nc);
     % plot slave channel first
@@ -401,8 +430,8 @@ else
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
-            A{ch,c} = mean(AMat,1);
-            SEM = std(AMat,[],1)/sqrt(nd);
+            A{ch,c} = nanmean(AMat,1);
+            SEM = nanstd(AMat,[],1)/sqrt(nd);
             Amin = A{ch,c} - SEM;
             Aplus = A{ch,c} + SEM;
         else
@@ -425,8 +454,8 @@ else
             % means for each data set
             AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
-            A{ch,c} = mean(AMat,1);
-            SEM = std(AMat,[],1)/sqrt(nd);
+            A{ch,c} = nanmean(AMat,1);
+            SEM = nanstd(AMat,[],1)/sqrt(nd);
             Amin = A{ch,c} - SEM;
             Aplus = A{ch,c} + SEM;
         else
@@ -448,14 +477,10 @@ else
 %             hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
 %         end
 %     end
-    set(gca, 'XLim', [-b*framerate-5 cohortBounds(end)], 'XTick', 0:20:200);
-    if ~isempty(ip.Results.YTick)
-      set(gca, 'YTick', ip.Results.YTick, 'YLim', ip.Results.YTick([1 end]));
-    end
+    
     %set(gca, 'YTick', [], 'YColor', 'w');
     set(gca, 'YTickLabel', []);
-    xlabel('Time (s)', fset.lfont{:});
-    %ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
+    
     
     if ~isempty(ip.Results.SlaveName)
         text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' neg.'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
@@ -466,4 +491,37 @@ else
         hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [6.75+7.65 1.5 1.25 3.5]);
     end
+    
+    if ip.Results.ShowPct
+        axes(fset.axOpts{:}, 'Position', [15.5 2 3 2.5], 'TickLength', fset.TickLength*6/3);
+        barplot2(mean(M,1)', std(M,[],1)', 'Angle', 0, 'BarWidth', 1, 'GroupDistance', 1,...
+            'FaceColor', 0.8*[1 1 1], 'EdgeColor', 0.4*[1 1 1], 'AxisFontSize', 8,...
+            'YLim', [0 100], 'LineWidth', 1);
+        
+        h = title(['% ' ip.Results.SlaveName ' pos. CCPs'], fset.sfont{:});
+        %h = ylabel('% CCPs/cohort', fset.lfont{:});
+        pos = get(h, 'Position');
+        %pos(1) = 0.8*pos(1);
+        pos(2) = 1.1*pos(2);
+        set(h, 'Position', pos);
+        set(gca, 'YTick', 0:20:100, 'XTickLabel', cohortLabels);
+        rotateXTickLabels(gca, 'AdjustFigure', false);
+        xlabel('Lifetime cohort', fset.lfont{:});
+    end
+    
+    set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim,...
+        'XTickLabel', cohortLabels);
+    rotateXTickLabels(ha(1), 'AdjustFigure', false);
+    rotateXTickLabels(ha(2), 'AdjustFigure', false);
+    xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
+    xlabel(ha(2), 'Lifetime cohort', fset.lfont{:});
+    ylabel(ha(1), 'Fluo. intensity (A.U.)', fset.lfont{:});
+    
 end
+
+set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim);
+if ~isempty(ip.Results.YTick)
+    set(ha, 'YTick', ip.Results.YTick);
+end
+
+
