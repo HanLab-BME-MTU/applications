@@ -236,6 +236,7 @@ bestindic = normindic;
 k_cont = 1;    % auxiliary variable for the outer loop
 while(k_cont)  % the outer loop will take us down from kmax to kmin components
     cont=1;        % auxiliary variable of the inner loop
+    conv_cont=50;   % an extra counter to avoid infinite cycling
     while(cont)    % this inner loop is the component-wise EM algorithm with the
         % modified M-step that can kill components
         if any(verbose == 2)
@@ -300,7 +301,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             
             % this is the special part of the M step that is able to
             % kill components
-            estpp(comp) = max(sum(normindic(comp,:))-realmin,0)/npoints;
+            estpp(comp) = max(sum(normindic(comp,:))-nparsover2,0)/npoints;
             estpp = estpp/sum(estpp);
             
             % this is an auxiliary variable that will be used the 
@@ -407,8 +408,9 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         deltlike = loglike(countf) - loglike(countf-1);
         if any(verbose == 2)
             disp(sprintf('deltaloglike/th = %0.7g', abs(deltlike/loglike(countf-1))/th));
-        end      
-        if (abs(deltlike/loglike(countf-1)) < th) | isnan(deltlike)
+        end
+        conv_cont = conv_cont-1;
+        if (abs(deltlike/loglike(countf-1)) < th) | isnan(deltlike) | conv_cont == 0
             % if the relative change in loglikelihood is below the threshold, we stop CEM2
             % & we want to stop if deltlike became nan, because otherwise
             % we have an infinite loop.

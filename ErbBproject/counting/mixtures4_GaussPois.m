@@ -85,7 +85,7 @@ y = y(1:dimens-1,:);
 
 dimens = dimens -1; %separate the time from the spatial dimensions
 
-npars = dimens+1; %includes time in the N for the kiling step     
+npars = dimens; %only 2 parameters per model Mux and Muy
 nparsover2 = npars / 2;
 
 %Determine the distribution in time
@@ -93,7 +93,7 @@ Pois = PoisDt(lambda,max(t));
 
 % make verbose optional 
 if nargin < 9 | isempty(verbose)
-    verbose = 0;
+    verbose = [0];
 end
 
 
@@ -190,7 +190,7 @@ end
 %possible models
 normindic = indic./(realmin+kron(ones(k,1),sum(indic,1)));
 for i=1:k
-    time_indic(i,:) = multiPois(t,indic(i,:),Pois);
+    time_indic(i,:) = multiPois(t,normindic(i,:),Pois,k);
     indic(i,:) = time_indic(i,:).*indic(i,:);
 end
 
@@ -252,7 +252,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             clear indic
             clear temp
             for i=1:k
-                temp = multiPois(t,normindic(i,:),Pois);
+                temp = multiPois(t,normindic(i,:),Pois,k);
                 %temp is recalculated at each step because the time comp is
                 %dependent on normindic
                 indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
@@ -278,7 +278,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             
             % this is the special part of the M step that is able to
             % kill components
-            estpp(comp) = max(sum(normindic(comp,:))-realmin,0)/npoints;
+            estpp(comp) = max(sum(normindic(comp,:))-nparsover2,0)/npoints;
             estpp = estpp/sum(estpp);
             
             % this is an auxiliary variable that will be used the 
@@ -288,7 +288,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             % we now have to do some book-keeping if the current component was killed
             % that is, we have to rearrange the vectors and matrices that store the
             % parameter estimates
-            if estpp(comp)==0
+            if estpp(comp)<1e-12
                 killed = 1;
                 % we also register that at the current iteration a component was killed
                 transitions1 = [transitions1 countf];
@@ -351,7 +351,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         clear semi_indic
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPois(t,normindic(i,:),Pois);
+            temp = multiPois(t,normindic(i,:),Pois,k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -491,7 +491,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         clear semi_indic
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPois(t,normindic(i,:),Pois);
+            temp = multiPois(t,normindic(i,:),Pois,k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -517,6 +517,10 @@ end % this is the end of the outer loop "while(k_cont)"
 lastpp = estpp;
 lastmu = estmu;
 lastcov = estcov;
+
+if bestk > 10
+    k
+end
 
 % finally, we plot the results
 if any(verbose == 1)

@@ -25,7 +25,14 @@ dt(dt <= 0)=1;
 % repmat(indic) term mutliples each pois by the probabilities  that point j
 % is from that model
 y = Norm.*Pois(dt).*repmat(indic',[1,npoints]);
-y = sum(y); %sums over one dimension
+y = sum(y);%sums over one dimension
+N = sum(indic); 
+
+if N > 0
+    y=y/N;
+else
+    y=zeros(size(y));
+end
 
 %special case first point, penalizes being the first point in the cluster
 %your probability will always be zero, if a point that has a y of 0 and an
