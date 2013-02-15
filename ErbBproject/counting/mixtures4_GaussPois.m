@@ -247,6 +247,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             disp(sprintf('k = %2d,  minestpp = %0.5g', k, min(estpp)));
         end   
         
+        
         % we begin at component 1
         comp = 1;
         % ...and can only go to the last component, k. 
@@ -298,7 +299,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             % we now have to do some book-keeping if the current component was killed
             % that is, we have to rearrange the vectors and matrices that store the
             % parameter estimates
-            if estpp(comp)<1e-12
+            if estpp(comp)==0
                 killed = 1;
                 % we also register that at the current iteration a component was killed
                 transitions1 = [transitions1 countf];
@@ -331,6 +332,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
                     end
                 end
                 
+                
                 % since we've just killed a component, k must decrease
                 k=k-1; 
                 % dividing by the sum of all possible models
@@ -353,6 +355,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             
         end % this is the end of the innermost "while comp <= k" loop 
         % which cycles through the components
+                  
         
         % increment the iterations counter            
         countf = countf + 1;
@@ -404,6 +407,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         end      
                 
     end % this end is of the inner loop: "while(cont)"
+              
     
     if any(verbose==4)
         figure 
@@ -624,7 +628,13 @@ function y= multiPoisVec(Pois,indic,k)
 % Pois is an npoint x npoint vector and indic is a 1xnpoint vector
 
 [n,numpnts]=size(Pois);
-y = sum(Pois.*repmat(indic',[1,numpnts]))/sum(indic);
+y = sum(Pois.*repmat(indic',[1,numpnts]));
+N=sum(indic);
+if N > 0
+    y=y/N;
+else
+    y=zeros(size(y));
+end
 
 %special case first point, penalizes being the first point in the cluster
 %your probability will always be zero, if a point that has a y of 0 and an
