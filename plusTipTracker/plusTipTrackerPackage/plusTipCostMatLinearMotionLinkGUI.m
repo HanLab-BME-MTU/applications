@@ -22,7 +22,7 @@ function varargout = plusTipCostMatLinearMotionLinkGUI(varargin)
 
 % Edit the above text to modify the response to help plusTipCostMatLinearMotionLinkGUI
 
-% Last Modified by GUIDE v2.5 09-Feb-2012 16:27:48
+% Last Modified by GUIDE v2.5 14-Feb-2013 17:00:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,34 +46,9 @@ end
 
 % --- Executes just before plusTipCostMatLinearMotionLinkGUI is made visible.
 function plusTipCostMatLinearMotionLinkGUI_OpeningFcn(hObject, eventdata, handles, varargin)
-% userData.linkingFig = plusTipCostMatLinearMotionLinkGUI{procID}('mainFig',
-% handles.figure1, procID);
-%
-% userData.mainFig
-% userData.procID
-% userData.handles_main
-% userData.userData_main
-% userData.crtProc
-% userData.parameters
 
-
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
-
-
+costMat_OpeningFcn(hObject, eventdata, handles, varargin{:})
 userData = get(handles.figure1, 'UserData');
-handles.output = hObject;
-
-% Get main figure handle and process id
-t = find(strcmp(varargin,'mainFig'));
-userData.mainFig = varargin{t+1};
-userData.procID = varargin{t+2};
-userData.handles_main = guidata(userData.mainFig);
-userData.userData_main = get(userData.handles_main.figure1, 'UserData');
-userData.crtProc = userData.userData_main.crtProc;
-
-u = get(userData.handles_main.popupmenu_linking, 'UserData');
-userData.parameters = u{userData.procID};
 parameters = userData.parameters;
 
 % Parameter Setup
@@ -94,33 +69,9 @@ else
     end
 end
 
-
-% Get icon infomation
-userData.questIconData = userData.userData_main.questIconData;
-userData.colormap = userData.userData_main.colormap;
-
-% ----------------------Set up help icon------------------------
-
-% Set up help icon
-set(hObject,'colormap',userData.colormap);
-% Set up package help. Package icon is tagged as '0'
-set(handles.figure1,'CurrentAxes',handles.axes_help);
-Img = image(userData.questIconData); 
-set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
-    'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class', mfilename))
-else
-    set(Img, 'UserData', 'Please refer to help file.')
-end
-
-
-set(handles.figure1, 'UserData', userData)
 % Update handles structure
+handles.output = hObject;
 guidata(hObject, handles);
-
-
 
 % UIWAIT makes plusTipCostMatLinearMotionLinkGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -240,4 +191,3 @@ function figure1_KeyPressFcn(hObject, eventdata, handles)
 if strcmp(eventdata.Key, 'return')
     pushbutton_done_Callback(handles.pushbutton_done, [], handles);
 end
-
