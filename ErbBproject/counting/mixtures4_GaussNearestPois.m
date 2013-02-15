@@ -434,6 +434,18 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             % we have an infinite loop.
             cont=0;
         end
+      
+        % now check if the latest description length is the best; 
+        % if it is, we store its value and the corresponding estimates 
+        if dl(countf) < mindl
+            bestpp = estpp;
+            bestmu = estmu;
+            bestcov = estcov;
+            bestk = k;
+            mindl = dl(countf);
+            bestindic = normindic;
+        end
+
         
     end % this end is of the inner loop: "while(cont)"
     

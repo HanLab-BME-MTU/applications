@@ -71,6 +71,8 @@ function [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPois
 %   of Poissonians in time
 %
 %
+%  2013-02-14
+%  vectorized Pois calculation for speed
 
 
 bins = 40; % number of bins for the univariate data histograms for visualization
@@ -90,6 +92,14 @@ nparsover2 = npars / 2;
 
 %Determine the distribution in time
 Pois = PoisDt(lambda,max(t));
+
+%Precalculate all Pois(ti-tj)
+%Improves computation speed inexchange for memory usage. Scales better with
+%numpoints
+dt = repmat(t,[npoints,1])-repmat(t',[1,npoints]);
+Norm = dt > 0;
+dt(dt <= 0)=1;
+TimeP = Norm.*Pois(dt);
 
 % make verbose optional 
 if nargin < 9 | isempty(verbose)
@@ -190,7 +200,7 @@ end
 %possible models
 normindic = indic./(realmin+kron(ones(k,1),sum(indic,1)));
 for i=1:k
-    time_indic(i,:) = multiPois(t,normindic(i,:),Pois,k);
+    time_indic(i,:) = multiPoisVec(TimeP,normindic(i,:),k);
     indic(i,:) = time_indic(i,:).*indic(i,:);
 end
 
@@ -252,7 +262,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             clear indic
             clear temp
             for i=1:k
-                temp = multiPois(t,normindic(i,:),Pois,k);
+                temp = multiPoisVec(TimeP,normindic(i,:),k);
                 %temp is recalculated at each step because the time comp is
                 %dependent on normindic
                 indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
@@ -351,7 +361,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         clear semi_indic
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPois(t,normindic(i,:),Pois,k);
+            temp = multiPoisVec(TimeP,normindic(i,:),k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -382,6 +392,17 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             cont=0;
         end
         
+        % now check if the latest description length is the best;
+        % if it is, we store its value and the corresponding estimates 
+        if dl(countf) < mindl
+            bestpp = estpp;
+            bestmu = estmu;
+            bestcov = estcov;
+            bestk = k;
+            mindl = dl(countf);
+            bestindic = normindic;
+        end      
+                
     end % this end is of the inner loop: "while(cont)"
     
     if any(verbose==4)
@@ -491,7 +512,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         clear semi_indic
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPois(t,normindic(i,:),Pois,k);
+            temp = multiPoisVec(TimeP,normindic(i,:),k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -594,4 +615,21 @@ function dist = PoisDt(lamda,tmax)
     l = lamda;
     dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
     dist = dist/sum(dist);
+end
+
+
+
+function y= multiPoisVec(Pois,indic,k)
+%calculates Pois sum given indic
+% Pois is an npoint x npoint vector and indic is a 1xnpoint vector
+
+[n,numpnts]=size(Pois);
+y = sum(Pois.*repmat(indic',[1,numpnts]))/sum(indic);
+
+%special case first point, penalizes being the first point in the cluster
+%your probability will always be zero, if a point that has a y of 0 and an
+%indic of > 0.3 (meaning a strong association with a model) y is set to 1
+
+y(y==0 & indic>=1/k)=1;
+
 end

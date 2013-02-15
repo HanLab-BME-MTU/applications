@@ -93,6 +93,14 @@ nparsover2 = npars / 2;
 %Determine the distribution in time
 Pois = PoisDt(lambda,max(t));
 
+%Precalculate all Pois(ti-tj)
+%Improves computation speed inexchange for memory usage. Scales better with
+%numpoints
+dt = repmat(t,[npoints,1])-repmat(t',[1,npoints]);
+Norm = dt > 0;
+dt(dt <= 0)=1;
+TimeP = Norm.*Pois(dt);
+
 % make verbose optional 
 if nargin < 9 | isempty(verbose)
     verbose = 0;
@@ -198,7 +206,7 @@ hardIndic = zeros(size(normindic));
 hardIndic(ind)=1;
 
 for i=1:k
-    time_indic(i,:) = multiPoisHard(t,hardIndic(i,:),normindic(i,:),Pois);
+    time_indic(i,:) = multiPoisHardVec(TimeP,hardIndic(i,:),normindic(i,:),k);
     indic(i,:) = time_indic(i,:).*indic(i,:);
 end
 
@@ -275,7 +283,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
 
             
             for i=1:k
-                temp = multiPoisHard(t,hardIndic(i,:),normindic(i,:),Pois);
+                temp = multiPoisHardVec(TimeP,hardIndic(i,:),normindic(i,:),k);
                 %temp is recalculated at each step because the time comp is
                 %dependent on normindic
                 indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
@@ -385,7 +393,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPoisHard(t,hardIndic(i,:),normindic(i,:),Pois);
+            temp = multiPoisHardVec(TimeP,hardIndic(i,:),normindic(i,:),k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -417,6 +425,17 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             cont=0;
         end
         
+        % now check if the latest description length is the best; 
+        % if it is, we store its value and the corresponding estimates 
+        if dl(countf) < mindl
+            bestpp = estpp;
+            bestmu = estmu;
+            bestcov = estcov;
+            bestk = k;
+            mindl = dl(countf);
+            bestindic = normindic;
+        end
+
     end % this end is of the inner loop: "while(cont)"
     
     if any(verbose==4)
@@ -538,7 +557,7 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPoisHard(t,hardIndic(i,:),normindic(i,:),Pois);
+            temp = multiPoisHardVec(TimeP,hardIndic(i,:),normindic(i,:),k);
             indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
         end
         
@@ -638,3 +657,28 @@ function dist = PoisDt(lamda,tmax)
     dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
     dist = dist/sum(dist);
 end
+
+
+function y= multiPoisHardVec(Pois,indic,fuzzy,k)
+%calculates Pois sum given indic
+% Pois is an npoint x npoint vector and indic is a 1xnpoint vector
+
+[numpnts,numpnts2]=size(Pois);
+y = sum(Pois.*repmat(indic',[1,numpnts]));
+N = sum(indic);
+
+if N > 0
+    y = y/N;
+else
+    y = zeros(size(y));
+end
+
+
+%special case first point, penalizes being the first point in the cluster
+%your probability will always be zero, if a point that has a y of 0 and an
+%indic of > 1/k (meaning a strong association with a model) y is set to 1
+
+y(y==0 & fuzzy>=1/k & N>0)=1;
+
+end
+
