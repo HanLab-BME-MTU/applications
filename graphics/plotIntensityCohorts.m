@@ -63,7 +63,9 @@ if isempty(YLim) && ~isempty(ip.Results.YTick)
    YLim = ip.Results.YTick([1 end]); 
 end
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'OutputName', ip.Results.LftDataName);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
+    'OutputName', ip.Results.LftDataName, 'ReturnValidOnly', false, 'ExcludeVisitors', false);
+% TEMP FIX, correct code below
 
 % Scale max. intensity distributions
 lftFields = {'A', 'sbA', 'ebA', 'sigma_r', 'sbSigma_r', 'ebSigma_r'};
@@ -141,7 +143,7 @@ for i = 1:nd
     trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
     
     % for intensity threshold in master channel
-    maxA = max(lftData(i).A(:,:,mCh), [], 2)';
+    maxA = max(lftData(i).A(:,:,mCh), [], 2);
     
     for ch = 1:nCh % channels
         % interpolate tracks to mean cohort length
