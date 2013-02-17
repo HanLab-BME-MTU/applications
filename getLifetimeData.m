@@ -6,12 +6,17 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('InputName', 'ProcessedTracks.mat', @ischar);
-ip.addParamValue('OutputName', 'lifetimeData.mat', @ischar); 
+ip.addParamValue('OutputName', 'lifetimeData.mat', @ischar);
+ip.addParamValue('ReturnValidOnly', true, @islogical);
+ip.addParamValue('Cutoff_f', [], @isscalar);
+ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.parse(varargin{:});
 
 nd = numel(data);
-% lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
-%     'intMat_Ia', [], 'startBuffer_Ia', [], 'endBuffer_Ia', []);
+lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
+    'A', [], 'A_pstd', [], 'sigma_r', [], 'SE_sigma_r', [],...
+    'sbA', [], 'ebA', [], 'sbSigma_r', [], 'ebSigma_r', [], 'gapMat_Ia', []);
+fnames = fieldnames(lftData);
 for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
@@ -22,12 +27,12 @@ for i = 1:nd
         % concatenate amplitudes of master channel into matrix
         trackLengths = [tracks.end]-[tracks.start]+1;
         
-        lftData(i).lifetime_s = [tracks.lifetime_s];
-        lftData(i).trackLengths = trackLengths;
-        lftData(i).start = [tracks.start];
-        lftData(i).catIdx = [tracks.catIdx];
+        lftData(i).lifetime_s = [tracks.lifetime_s]';
+        lftData(i).trackLengths = trackLengths';
+        lftData(i).start = [tracks.start]';
+        lftData(i).catIdx = [tracks.catIdx]';
         if isfield(tracks, 'significantSignal')
-            lftData(i).significantSignal = [tracks.significantSignal];
+            lftData(i).significantSignal = [tracks.significantSignal]';
         end
         
         % store intensities of cat. Ia tracks
@@ -41,8 +46,6 @@ for i = 1:nd
         nf = data(i).movieLength;
         A = NaN(nt,nf,nCh);
         A_pstd = NaN(nt,nf);
-        %xMat_Ia = NaN(nt,data(i).movieLength);
-        %yMat_Ia = NaN(nt,data(i).movieLength);
         sbA = NaN(nt,b,nCh);
         ebA = NaN(nt,b,nCh);
         sbSigma_r = NaN(nt,b,nCh);
@@ -51,23 +54,19 @@ for i = 1:nd
         SE_sigma_r = NaN(nt,nf);
         gapMat_Ia = false(nt,nf);
         for k = 1:nt
-            A(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).A';
-            A_pstd(k,1:trackLengths(idx_Ia(k))) = tracks(k).A_pstd(1,:);
-            %xMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).x(1,:)';
-            %yMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).y(1,:)';
-            %sigma_r(k,1:trackLengths(idx_Ia(k))+2*b,:) = [tracks(k).startBuffer.sigma_r'; tracks(k).sigma_r'; tracks(k).endBuffer.sigma_r'];
-            sigma_r(k,1:trackLengths(idx_Ia(k)),:) = tracks(k).sigma_r';
-            SE_sigma_r(k,1:trackLengths(idx_Ia(k))) = tracks(k).SE_sigma_r(1,:);
+            range = 1:trackLengths(idx_Ia(k));
+            A(k,range,:) = tracks(k).A';
+            A_pstd(k,range) = tracks(k).A_pstd(1,:);
+            sigma_r(k,range,:) = tracks(k).sigma_r';
+            SE_sigma_r(k,range) = tracks(k).SE_sigma_r(1,:);
             sbA(k,:,:) = tracks(k).startBuffer.A';
             ebA(k,:,:) = tracks(k).endBuffer.A';
             sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
             ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
-            gapMat_Ia(k,1:trackLengths(idx_Ia(k))) = tracks(k).gapVect';
+            gapMat_Ia(k,range) = tracks(k).gapVect';
         end
         
         lftData(i).A = A;
-        %lftData(i).xMat_Ia = xMat_Ia;
-        %lftData(i).yMat_Ia = yMat_Ia;
         lftData(i).A_pstd = A_pstd;
         lftData(i).sigma_r = sigma_r;
         lftData(i).SE_sigma_r = SE_sigma_r;
@@ -82,6 +81,34 @@ for i = 1:nd
         iData = lftData(i);
         save(fpath, '-struct', 'iData');
     else
-        lftData(i) = load(fpath);
+        tmp = load(fpath);
+        if isfield(tmp, 'significantSignal')
+            lftData(i).significantSignal = [];
+        end
+        lftData(i) = tmp;
+    end
+    if ip.Results.ReturnValidOnly
+        lftData(i).lifetime_s = lftData(i).lifetime_s(lftData(i).catIdx==1);
+        lftData(i).trackLengths = lftData(i).trackLengths(lftData(i).catIdx==1);
+        lftData(i).start = lftData(i).start(lftData(i).catIdx==1);
+        lftData(i).catIdx = lftData(i).catIdx(lftData(i).catIdx==1);
+        if isfield(lftData(i), 'significantSignal')
+            lftData(i).significantSignal = lftData(i).significantSignal(lftData(i).catIdx==1);
+        end
+        
+        idx = true(numel(lftData(i).lifetime_s),1);
+        if ip.Results.ExcludeVisitors
+            vidx = getVisitorIndex(lftData(i));
+            idx = idx & ~vidx{1};
+        end
+        if ~isempty(ip.Results.Cutoff_f)
+            idx = idx & lftData(i).trackLengths>=ip.Results.Cutoff_f;
+        end
+        for f = 1:numel(fnames)
+            lftData(i).(fnames{f}) = lftData(i).(fnames{f})(idx,:,:);
+        end
+        if isfield(lftData(i), 'significantSignal')
+            lftData(i).significantSignal = lftData(i).significantSignal(idx);
+        end
     end
 end

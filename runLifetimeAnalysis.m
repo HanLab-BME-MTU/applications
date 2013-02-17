@@ -3,8 +3,6 @@ function [lftRes, res] = runLifetimeAnalysis(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
-% ip.addOptional('lb', [3:10 11 16 21 41 61 81 101 141]);
-% ip.addOptional('ub', [3:10 15 20 40 60 80 100 140 200]);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
@@ -20,11 +18,13 @@ ip.addParamValue('ClassificationSelector', 'significantSignal');
 ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
+ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RemoveOutliers', true, @islogical);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
 ip.addParamValue('TrackIndex', []);
 ip.addParamValue('ShowStatistics', false, @islogical);
+ip.addParamValue('SelectIndex', [], @iscell);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -49,7 +49,9 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite, 'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
+    'ReturnValidOnly', false, 'ExcludeVisitors', false,...
+    'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
 if isfield(lftData, 'significantSignal')
     lftFields = {'lifetime_s', 'trackLengths', 'start', 'significantSignal', 'catIdx'}; % catIdx must be last!
 else
@@ -83,7 +85,7 @@ res = struct([]);
 % Rescale data sets based on maximum intensity distribution
 %==============================================================
 maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
-
+if ip.Results.Rescale
 if nd>1
     % Rescale EDFs (correction for expression level)
     [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', strcmpi(ip.Results.Display, 'on'));
@@ -103,7 +105,7 @@ for i = 1:nd
     lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
     lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
 end
-
+end
 %==============================================================
 % Outlier detection (after max. intensity distribution rescaling)
 %==============================================================
@@ -137,8 +139,8 @@ for i = 1:nd
     lftData(i).sbA(rmIdx,:,:) = [];
     lftData(i).startsAll = lftData(i).start;
     for f = 1:numel(lftFields)
-        lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(:,lftData(i).catIdx==1);
-        lftData(i).(lftFields{f})(:,rmIdx) = [];
+        lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
+        lftData(i).(lftFields{f})(rmIdx) = [];
     end
     lifetime_s = lftData(i).lifetime_s;
     
@@ -193,7 +195,7 @@ for i = 1:nd
     end
     
     res(i).lft_all = lifetime_s;
-    res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2)';
+    res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2);
     if isfield(lftData, 'significantSignal')
         %res(i).significantSignal = lftData(i).significantSignal(:,idx_Ia);
         res(i).significantSignal = lftData(i).significantSignal;
@@ -280,6 +282,9 @@ for i = 1:nd
     % 1) Intensity threshold based on maximum intensity distribution
     idxMI = res(i).maxA_all >= T;
     %idxMI = nanmax(lftData(i).A(:,FirstNFrames:end),[],2)' >= T;
+    if ~isempty(ip.Results.SelectIndex)
+        idxMI = idxMI & ip.Results.SelectIndex{i};
+    end
     
     % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
     if ip.Results.ExcludeVisitors

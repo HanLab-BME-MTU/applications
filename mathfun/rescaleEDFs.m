@@ -33,20 +33,13 @@ else
         'TolX', 1e-6, ...
         'Tolfun', 1e-6);
     
-    % Generate EDF for each set of samples
+    % Generate EDF for each set of samples and interpolate
     fEDF = cell(1,nd);
     xEDF = cell(1,nd);
-    
-    for i = 1:nd
-        [fEDF{i}, xEDF{i}] = ecdf(samples{i});
-        %fEDF{i} = fEDF{i}(2:end);
-        %xEDF{i} = xEDF{i}(2:end);
-    end
-    
-    % Now, interpolate on f(x)
     fi = 0:0.001:1;
     f = cell(1,nd);
     for i = 1:nd
+        [fEDF{i}, xEDF{i}] = ecdf(samples{i});
         f{i} = interp1(fEDF{i}, xEDF{i}, fi);
     end
     
@@ -69,16 +62,6 @@ else
     %x0 = linspace(min(samples{refIdx}),max(samples{refIdx}),1000); % robust
     x0 = linspace(prctile(vertcat(samples{:}),1), prctile(vertcat(samples{:}),99), 1000);
     
-    %     % Generate EDFs
-    %     fEDF = cell(1,nd);
-    %     xEDF = cell(1,nd);
-    %     for i = 1:nd
-    %         [fEDF{i}, xEDF{i}] = ecdf(samples{i});
-    %         %fEDF{i} = fEDF{i}(2:end);
-    %         %xEDF{i} = xEDF{i}(2:end);
-    %     end
-    
-    
     a = ones(1,nd);
     c = zeros(1,nd);
     refEDF = interpEDF(xEDF{refIdx}, fEDF{refIdx}, x0);
@@ -92,7 +75,7 @@ else
     [~,idxa] = sort(a);
     [~,idxa] = sort(idxa);
     idxa(refIdx) = []; % reference shown in black
-
+    
     if ip.Results.Display
         colorV = hsv(nd);
         fset = loadFigureSettings('print');

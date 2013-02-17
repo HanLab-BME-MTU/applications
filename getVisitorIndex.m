@@ -10,7 +10,7 @@ intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength,mCh), lftData, 'UniformOutput', 
 intMat_Ia_all = vertcat(intMat_Ia_all{:});
 %lifetime_s_all =  [lftData.lifetime_s];
 lftV = arrayfun(@(i) i.lifetime_s(i.catIdx==1), lftData, 'unif', 0);
-lifetime_s_all = [lftV{:}];
+lifetime_s_all = vertcat(lftV{:});
 
 startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
 startBufferA = vertcat(startBufferA{:});
@@ -32,7 +32,7 @@ pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
 nd = numel(lftData);
 vidx = cell(1,nd);
 for i = 1:nd
-    vidx{i} = sum(lftData(i).A(:,1:3,mCh)>repmat(pRef, [size(lftData(i).A,1) 1]),2)'>0 & lftV{i}<tx;
+    vidx{i} = sum(lftData(i).A(:,1:3,mCh)>repmat(pRef, [size(lftData(i).A,1) 1]),2)>0 & lftV{i}<tx;
     
     % median of first three frames larger than median of last three frames
     %medStart = median(lftData(i).A(:,1:5),2);
