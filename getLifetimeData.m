@@ -10,13 +10,18 @@ ip.addParamValue('OutputName', 'lifetimeData.mat', @ischar);
 ip.addParamValue('ReturnValidOnly', true, @islogical);
 ip.addParamValue('Cutoff_f', [], @isscalar);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
+ip.addParamValue('Rescale', false, @islogical);
+ip.addParamValue('DisplayRescaling', false, @islogical);
 ip.parse(varargin{:});
+
+mCh = find(strcmp(data(1).source, data(1).channels));
 
 nd = numel(data);
 lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
     'A', [], 'A_pstd', [], 'sigma_r', [], 'SE_sigma_r', [],...
     'sbA', [], 'ebA', [], 'sbSigma_r', [], 'ebSigma_r', [], 'gapMat_Ia', []);
 fnames = fieldnames(lftData);
+maxA = cell(1,nd);
 for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
@@ -70,13 +75,13 @@ for i = 1:nd
         lftData(i).A_pstd = A_pstd;
         lftData(i).sigma_r = sigma_r;
         lftData(i).SE_sigma_r = SE_sigma_r;
-
+        
         lftData(i).sbA = sbA;
         lftData(i).ebA = ebA;
         lftData(i).sbSigma_r = sbSigma_r;
         lftData(i).ebSigma_r = ebSigma_r;
         lftData(i).gapMat_Ia = gapMat_Ia;
-
+        
         [~,~] = mkdir([data(i).source 'Analysis']);
         iData = lftData(i);
         save(fpath, '-struct', 'iData');
@@ -87,6 +92,11 @@ for i = 1:nd
         end
         lftData(i) = tmp;
     end
+    
+    if ip.Results.Rescale
+        maxA{i} = nanmax(lftData(i).A(:,:,mCh),[],2);
+    end
+    
     if ip.Results.ReturnValidOnly
         lftData(i).lifetime_s = lftData(i).lifetime_s(lftData(i).catIdx==1);
         lftData(i).trackLengths = lftData(i).trackLengths(lftData(i).catIdx==1);
@@ -112,3 +122,44 @@ for i = 1:nd
         end
     end
 end
+
+if ip.Results.Rescale
+    % compare with above
+    %maxA = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2), lftData, 'UniformOutput', false);
+    [a, offset, refIdx] = rescaleEDFs(maxA, 'Display', ip.Results.DisplayRescaling);
+    
+    movieLength = min([data.movieLength]);
+    for i = 1:nd
+        lftData(i).A = lftData(i).A(:,1:movieLength,:);
+        maxA{i} = a(i) * maxA{i};
+        lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
+        lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
+        lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
+        % Standard deviations are not scaled
+        %lftData(i).A_pstd
+        %lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
+        %lftData(i).SE_sigma_r
+        %lftData(i).sbSigma_r
+        %lftData(i).ebSigma_r
+    end
+    
+    if ip.Results.RemoveOutliers && nd>=5
+        outlierIdx = detectEDFOutliers(maxA, offset, refIdx);
+        if ~isempty(outlierIdx)
+            fprintf('Outlier data sets:\n');
+            for i = 1:numel(outlierIdx)
+                fprintf('Index %d: %s\n', outlierIdx(i), getShortPath(data(outlierIdx(i))));
+            end
+            rmv = input('Remove outliers? (y/n) ', 's');
+            if strcmpi(rmv, 'y') || isempty(rmv)
+                lftData(outlierIdx) = [];
+                a(outlierIdx) = [];
+                %clear outlierIdx maxA_all;
+            end
+        end
+    end
+    a = num2cell(a);
+    [lftData.a] = deal(a{:});
+end
+
+
