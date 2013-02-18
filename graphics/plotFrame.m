@@ -67,6 +67,11 @@ else
     set(h,'DefaultLineLineSmoothing', 'on'); % points are not rendered !!
     set(h,'DefaultPatchLineSmoothing', 'on');
 end
+if ~isfield(data, 'projPaths')
+    framePaths = 'framePaths';
+else
+    framePaths = 'projPaths';
+end
 
 %======================================
 % Plot frame
@@ -79,7 +84,7 @@ switch ip.Results.Mode
         frame = zeros(ny,nx,3);
         idxRGB = getRGBindex(data.markers);
         for c = 1:nCh
-            frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.framePaths{c}{frameIdx})), ip.Results.iRange{c});
+            frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.(framePaths){c}{frameIdx})), ip.Results.iRange{c});
         end
         frame = uint8(frame);
         % set channel index to master
@@ -90,18 +95,18 @@ switch ip.Results.Mode
         end
         % Display mask only where available
         if ch==mCh && (exist(data.maskPaths{frameIdx}, 'file')==2)
-            frame = double(imread(data.framePaths{ch}{frameIdx}));
+            frame = double(imread(data.(framePaths){ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
             frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
         else
-            frame = imread(data.framePaths{ch}{frameIdx});
+            frame = imread(data.(framePaths){ch}{frameIdx});
             colormap(gray(256));
         end
     otherwise % grayscale frame
         if nCh>1
             error('Grayscale mode only supports 1 channel.');
         end
-        frame = imread(data.framePaths{ch}{frameIdx});
+        frame = imread(data.(framePaths){ch}{frameIdx});
         colormap(gray(256));
 end
 
