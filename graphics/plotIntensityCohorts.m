@@ -44,86 +44,34 @@ hues = ip.Results.Hues;
 
 % if no specific channel is selected, all channels are shown
 chVec = ip.Results.ch;
-
 mCh = find(strcmp(data(1).source, data(1).channels));
-% sCh = setdiff(1:nCh, mCh);
 
 nd = numel(data);
 kLevel = norminv(1-ip.Results.Alpha/2.0, 0, 1);
-% kLevel = norminv(1-ip.Results.Alpha, 0, 1);
-
 
 nc = numel(cohortBounds)-1;
 b = 5;
 framerate = data(1).framerate;
 cohortBounds(end) = cohortBounds(end)+framerate;
-XLim = [-b*framerate-5 cohortBounds(end)-framerate];
+XLim = [-b*framerate-5 cohortBounds(end)];
 YLim = ip.Results.YLim;
 if isempty(YLim) && ~isempty(ip.Results.YTick)
    YLim = ip.Results.YTick([1 end]); 
 end
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-    'OutputName', ip.Results.LftDataName, 'ReturnValidOnly', false, 'ExcludeVisitors', false);
-% TEMP FIX, correct code below
+    'OutputName', ip.Results.LftDataName, 'Rescale', true, 'Cutoff_f', 5,...
+    'ReturnValidOnly', true, 'ExcludeVisitors', ip.Results.ExcludeVisitors);
 
-% Scale max. intensity distributions
-lftFields = {'A', 'sbA', 'ebA', 'sigma_r', 'sbSigma_r', 'ebSigma_r'};
-offset = zeros(nCh,nd);
-if ip.Results.Rescale && ~isfield(lftData, 'a');
-    for c = 1:nCh
-        A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:,c), lftData, 'UniformOutput', false);
-        %A = arrayfun(@(i) i.A(:,:,c), lftData, 'UniformOutput', false);
-        maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
-
-        %maxA_all = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
-        [a, offset(c,:)] = rescaleEDFs(maxA_all, 'Display', ip.Results.DisplayAll, 'Reference', ip.Results.RescalingReference, 'FigureName', ['Channel ' num2str(c)]);
-        
-        % apply scaling
-        for i = 1:nd
-            for f = 1:numel(lftFields)
-                lftData(i).(lftFields{f})(:,:,c) = a(i) * lftData(i).(lftFields{f})(:,:,c);
-            end
-        end
-    end
-end
-% no need to exclude tracks < cutoff, smallest cohort is [10..19]
-if ~isempty(ip.Results.TrackIndex)
-    for i = 1:nd
-        for f = 1:numel(lftFields)
-            lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(ip.Results.TrackIndex{i},:,:);
-        end
-        lftData(i).lifetime_s([lftData(i).catIdx]~=1) = [];
-        lftData(i).lifetime_s = lftData(i).lifetime_s(ip.Results.TrackIndex{i});
-        lftData(i).trackLengths([lftData(i).catIdx]~=1) = [];
-        lftData(i).trackLengths = lftData(i).trackLengths(ip.Results.TrackIndex{i});
-        lftData(i).catIdx = ones(size(lftData(i).lifetime_s));
-    end
-end
-
-% test for outliers
-if nd>4 && ip.Results.RemoveOutliers
-    outlierIdx = [];
-    for c = 1:nCh
-        maxA_all = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
-        cOut = detectEDFOutliers(maxA_all, offset(c,:), 'FigureName', ['Outliers, channel ' num2str(c)]);
-        outlierIdx = [outlierIdx cOut]; %#ok<AGROW>
-        if ~isempty(cOut)
-            fprintf('Outlier data sets for channel %d:\n', c);
-            for i = 1:numel(cOut)
-                fprintf('%s\n', getShortPath(data(cOut(i))));
-            end
-        end
-    end
-    outlierIdx = unique(outlierIdx);
-    if ~isempty(outlierIdx)
-        data(outlierIdx) = [];
-        lftData(outlierIdx) = [];
-        nd = numel(data);
-        fprintf('Outliers excluded from intensity cohorts. Indexes: %s\n', num2str(outlierIdx));
-    end
-end
-
+% if ~isempty(ip.Results.TrackIndex)
+%     for i = 1:nd
+%         for f = 1:numel(lftFields)
+%             lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(ip.Results.TrackIndex{i},:,:);
+%         end
+%         lftData(i).lifetime_s = lftData(i).lifetime_s(ip.Results.TrackIndex{i});
+%         lftData(i).trackLengths = lftData(i).trackLengths(ip.Results.TrackIndex{i});
+%     end
+% end
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('interpTracks', [], 'interpSigLevel', []);
@@ -133,14 +81,7 @@ iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc
 % time vectors for cohorts
 cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
 
-if ip.Results.ExcludeVisitors
-    vidx = getVisitorIndex(lftData);
-else
-    vidx = arrayfun(@(i) false(1,size(i.A,1)), lftData, 'unif', 0);
-end
 for i = 1:nd
-    lifetime_s = lftData(i).lifetime_s([lftData(i).catIdx]==1);
-    trackLengths = lftData(i).trackLengths([lftData(i).catIdx]==1);
     
     % for intensity threshold in master channel
     maxA = max(lftData(i).A(:,:,mCh), [], 2);
@@ -149,13 +90,13 @@ for i = 1:nd
         % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
             % tracks in current cohort (above threshold)
-            cidx = find(cohortBounds(c)<=lifetime_s & lifetime_s<cohortBounds(c+1) &...
-                maxA > ip.Results.MaxIntensityThreshold & ~vidx{i});
+            cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<cohortBounds(c+1) &...
+                maxA > ip.Results.MaxIntensityThreshold);
             nt = numel(cidx);
 
             interpTracks = zeros(nt,iLength(c));
             sigma_rMat = zeros(nt,iLength(c));
-            cLengths = trackLengths(cidx);
+            cLengths = lftData(i).trackLengths(cidx);
             % loop through track lengths within cohort
             for t = 1:nt
                 A = [lftData(i).sbA(cidx(t),:,ch) lftData(i).A(cidx(t),1:cLengths(t),ch) lftData(i).ebA(cidx(t),:,ch)];
@@ -179,7 +120,7 @@ for i = 1:nd
          
             % split as a function of slave channel signal
             if isfield(lftData(i), 'significantSignal')
-                sigIdx = lftData(i).significantSignal(ch,lftData(i).catIdx==1)==1;
+                sigIdx = lftData(i).significantSignal(:,ch)==1;
                 res(i).sigIdx{ch,c} = sigIdx(cidx); 
             end
         end
@@ -228,7 +169,7 @@ if ip.Results.ScaleSlaveChannel
     sf = sf(mCh)./sf;
 end
 
-%output
+% output
 cohorts.bounds = cohortBounds;
 
 
@@ -309,8 +250,8 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
 %%
 % indiv. figures for cargo+ / cargo-: split based on significance of slave channel
 else
-    figure(fset.fOpts{:}, 'Position', [2 2 15 6], 'Name', 'Intensity cohorts, cargo-positive tracks');
-    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
+    figure(fset.fOpts{:}, 'Position', [2 2 15 5.5], 'Name', 'Intensity cohorts, cargo-positive tracks');
+    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 1.5 6 3.5]);
     hold on;
     A = cell(nCh,nc);
     % plot slave channel first
@@ -402,7 +343,7 @@ else
     M = vertcat(M{:});
    
     if ~isempty(ip.Results.SlaveName)
-        sv = arrayfun(@(i) 100*sum([i.sigIdx{2,:}])/numel([i.sigIdx{2,:}]), res);
+        sv = arrayfun(@(i) 100*sum(vertcat(i.sigIdx{2,:}))/numel(vertcat(i.sigIdx{2,:})), res);
         text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos. ('  num2str(mean(sv), '%.1f') ' ± ' num2str(std(sv), '%.1f') '% of CCPs)'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
     end
     
@@ -421,7 +362,7 @@ else
         set(gcf, 'Position', pos);
     end
     
-    ha(2) = axes(fset.axOpts{:}, 'Position', [8.25 2 6 3.5]);
+    ha(2) = axes(fset.axOpts{:}, 'Position', [8.25 1.5 6 3.5]);
     hold on;
     A = cell(1,nc);
     % plot slave channel first

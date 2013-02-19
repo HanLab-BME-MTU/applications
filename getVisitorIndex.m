@@ -1,3 +1,5 @@
+% TO DO: change to cell-specific calculation
+
 function vidx = getVisitorIndex(lftData, mCh)
 
 if nargin<2
@@ -6,28 +8,27 @@ end
 
 minLength = min(arrayfun(@(i) size(i.gapMat_Ia,2), lftData));
 
-intMat_Ia_all = arrayfun(@(i) i.A(:,1:minLength,mCh), lftData, 'UniformOutput', false);
-intMat_Ia_all = vertcat(intMat_Ia_all{:});
-%lifetime_s_all =  [lftData.lifetime_s];
+A = arrayfun(@(i) i.A(:,1:minLength,mCh), lftData, 'UniformOutput', false);
+A = vertcat(A{:});
 lftV = arrayfun(@(i) i.lifetime_s(i.catIdx==1), lftData, 'unif', 0);
 lifetime_s_all = vertcat(lftV{:});
 
-startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
-startBufferA = vertcat(startBufferA{:});
+% startBufferA = arrayfun(@(i) i.sbA(:,:,mCh), lftData, 'UniformOutput', false);
+% startBufferA = vertcat(startBufferA{:});
 
 tx = 30;
 
 % 95th percentile of the reference (above threshold) distribution
-pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
+% pRef = prctile(A(lifetime_s_all>=tx,1:3), 95, 1);
 
-pAbove = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
+% pAbove = prctile(A(lifetime_s_all>=tx,1:3), 95, 1);
 % pBelow = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 2.5, 1);
 
-pBuffer = prctile(startBufferA(lifetime_s_all>=tx,:), 5);
+% pBuffer = prctile(startBufferA(lifetime_s_all>=tx,:), 5);
 
 
 % 95th percentile of the reference (above threshold) distribution
-pRef = prctile(intMat_Ia_all(lifetime_s_all>=tx,1:3), 95, 1);
+pRef = prctile(A(lifetime_s_all>=tx,1:3,mCh), 95, 1);
 
 nd = numel(lftData);
 vidx = cell(1,nd);

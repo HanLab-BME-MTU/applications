@@ -12,16 +12,19 @@ ip.addParamValue('Cutoff_f', [], @isscalar);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('Rescale', false, @islogical);
 ip.addParamValue('DisplayRescaling', false, @islogical);
+ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.parse(varargin{:});
 
-mCh = find(strcmp(data(1).source, data(1).channels));
+nCh = numel(data(1).channels);
 
 nd = numel(data);
-lftData(1:nd) = struct('lifetime_s', [], 'trackLengths', [], 'start', [], 'catIdx', [],...
-    'A', [], 'A_pstd', [], 'sigma_r', [], 'SE_sigma_r', [],...
-    'sbA', [], 'ebA', [], 'sbSigma_r', [], 'ebSigma_r', [], 'gapMat_Ia', []);
-fnames = fieldnames(lftData);
-maxA = cell(1,nd);
+fnames = {'lifetime_s', 'trackLengths', 'start', 'catIdx', 'A', 'A_pstd',...
+    'sigma_r', 'SE_sigma_r', 'sbA', 'ebA', 'sbSigma_r', 'ebSigma_r', 'gapMat_Ia'};
+lftData(1:nd) = cell2struct(cell(size(fnames)), fnames, 2);
+vnames = fnames(1:4);
+mnames = fnames(5:end);
+
+maxA = cell(nCh,nd);
 for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
@@ -92,55 +95,69 @@ for i = 1:nd
         end
         lftData(i) = tmp;
     end
+end
+if isfield(lftData(1), 'significantSignal')
+    vnames = [vnames 'significantSignal'];
+    fnames = [vnames mnames];
+end
+for i = 1:nd
     
-    if ip.Results.Rescale
-        maxA{i} = nanmax(lftData(i).A(:,:,mCh),[],2);
-    end
-    
-    if ip.Results.ReturnValidOnly
-        lftData(i).lifetime_s = lftData(i).lifetime_s(lftData(i).catIdx==1);
-        lftData(i).trackLengths = lftData(i).trackLengths(lftData(i).catIdx==1);
-        lftData(i).start = lftData(i).start(lftData(i).catIdx==1);
-        lftData(i).catIdx = lftData(i).catIdx(lftData(i).catIdx==1);
-        if isfield(lftData(i), 'significantSignal')
-            lftData(i).significantSignal = lftData(i).significantSignal(lftData(i).catIdx==1);
+    % apply frame cutoff to all fields
+    if ~isempty(ip.Results.Cutoff_f)
+        idx = lftData(i).trackLengths(lftData(i).catIdx==1)>=ip.Results.Cutoff_f;
+        for f = 1:numel(mnames)
+            lftData(i).(mnames{f}) = lftData(i).(mnames{f})(idx,:,:);
         end
         
-        idx = true(numel(lftData(i).lifetime_s),1);
+        idx = lftData(i).trackLengths>=ip.Results.Cutoff_f;
+        for f = 1:numel(vnames)
+            lftData(i).(vnames{f}) = lftData(i).(vnames{f})(idx,:);
+        end
+    end
+    
+    %if ip.Results.Rescale
+    %    for c = 1:nCh
+    %        maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
+    %    end
+    %end
+    
+    if ip.Results.ReturnValidOnly
+        % remaining fields: retain category==1
+        idx = lftData(i).catIdx==1;
+        for f = 1:numel(vnames)
+            lftData(i).(vnames{f}) = lftData(i).(vnames{f})(idx,:);
+        end
+        
+        % remove visitors
         if ip.Results.ExcludeVisitors
             vidx = getVisitorIndex(lftData(i));
-            idx = idx & ~vidx{1};
-        end
-        if ~isempty(ip.Results.Cutoff_f)
-            idx = idx & lftData(i).trackLengths>=ip.Results.Cutoff_f;
-        end
-        for f = 1:numel(fnames)
-            lftData(i).(fnames{f}) = lftData(i).(fnames{f})(idx,:,:);
-        end
-        if isfield(lftData(i), 'significantSignal')
-            lftData(i).significantSignal = lftData(i).significantSignal(idx);
+            for f = 1:numel(fnames)
+                lftData(i).(fnames{f}) = lftData(i).(fnames{f})(~vidx{1},:,:);
+            end
         end
     end
 end
 
 if ip.Results.Rescale
     % compare with above
-    %maxA = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2), lftData, 'UniformOutput', false);
-    [a, offset, refIdx] = rescaleEDFs(maxA, 'Display', ip.Results.DisplayRescaling);
-    
-    movieLength = min([data.movieLength]);
-    for i = 1:nd
-        lftData(i).A = lftData(i).A(:,1:movieLength,:);
-        maxA{i} = a(i) * maxA{i};
-        lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
-        lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
-        lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
-        % Standard deviations are not scaled
-        %lftData(i).A_pstd
-        %lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
-        %lftData(i).SE_sigma_r
-        %lftData(i).sbSigma_r
-        %lftData(i).ebSigma_r
+    for c = 1:nCh
+        maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
+        [a, offset, refIdx] = rescaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayRescaling);
+        
+        movieLength = min([data.movieLength]);
+        for i = 1:nd
+            lftData(i).A = lftData(i).A(:,1:movieLength,:);
+            maxA{c,i} = a(i) * maxA{c,i};
+            lftData(i).A(:,:,c) = a(i) * lftData(i).A(:,:,c);
+            lftData(i).sbA(:,:,c) = a(i) * lftData(i).sbA(:,:,c);
+            lftData(i).ebA(:,:,c) = a(i) * lftData(i).ebA(:,:,c);
+            % Standard deviations are not scaled
+            %lftData(i).A_pstd
+            %lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
+            %lftData(i).SE_sigma_r
+            %lftData(i).sbSigma_r
+            %lftData(i).ebSigma_r
+        end
     end
     
     if ip.Results.RemoveOutliers && nd>=5
@@ -154,7 +171,6 @@ if ip.Results.Rescale
             if strcmpi(rmv, 'y') || isempty(rmv)
                 lftData(outlierIdx) = [];
                 a(outlierIdx) = [];
-                %clear outlierIdx maxA_all;
             end
         end
     end
