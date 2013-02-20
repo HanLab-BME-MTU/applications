@@ -118,7 +118,7 @@ for iChan= p.ChannelIndex
     if ishandle(wtBar), waitbar(0,wtBar,logMsg); end  
     for i = p.firstFrame:p.lastFrame
         % Loading image
-        im = movieData.channels_(iChan).loadImage(i)/maxIntensity;
+        im = double(movieData.channels_(iChan).loadImage(i))/maxIntensity;
         
         % Combine region of interest with preselected segmentation output
         if ~isempty(p.MaskProcessIndex)
