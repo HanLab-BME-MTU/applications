@@ -106,6 +106,12 @@ if isfield(lftData(1), 'significantSignal')
 end
 for i = 1:nd
     
+    %if ip.Results.Rescale
+    %    for c = 1:nCh
+    %        maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
+    %    end
+    %end
+    
     % apply frame cutoff to all fields
     if ~isempty(ip.Results.Cutoff_f)
         idx = lftData(i).trackLengths(lftData(i).catIdx==1)>=ip.Results.Cutoff_f;
@@ -118,12 +124,6 @@ for i = 1:nd
             lftData(i).(vnames{f}) = lftData(i).(vnames{f})(idx,:);
         end
     end
-    
-    %if ip.Results.Rescale
-    %    for c = 1:nCh
-    %        maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
-    %    end
-    %end
     
     if ip.Results.ReturnValidOnly
         % remaining fields: retain category==1
@@ -181,6 +181,6 @@ for c = 1:nCh
 end
 if rescale(1)
     a = mat2cell(av,nCh,ones(1,nd));
-    [lftData.a] = deal(a{:});
+    [lftData.a] = deal(a{:});    
+    [lftData.maxA] = deal(maxA{:});
 end
-

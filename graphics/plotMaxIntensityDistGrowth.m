@@ -76,21 +76,22 @@ opts = optimset('Jacobian', 'off', ...
     'TolX', 1e-6, ...
     'Tolfun', 1e-6);
 
-
-fx = inline('x(1).*xdata.^x(2)','x','xdata');
-x = lsqcurvefit(fx, [1 1], xa, mu, [], [], opts);
+fx = inline('x(1).*(xdata-x(3)).^x(2) .*double((xdata-x(3))>=0)','x','xdata');
+x = lsqcurvefit(fx, [1 1 0], xa, mu, [], [], opts);
 x(2)
 xfine = 0:0.1:xa(end);
-plot(xfine, x(1)*xfine.^x(2), 'k--');
+plot(xfine, fx(x, xfine), 'k--');
 
-x = lsqcurvefit(fx, [1 1], xa, sigma, [], [], opts);
+x = lsqcurvefit(fx, [1 1 0], xa, sigma, [], [], opts);
 x(2)
-plot(xfine, x(1)*xfine.^x(2), 'k--');
+plot(xfine, fx(x, xfine), 'k--');
 
 % linear fit
+flin = inline('x(1) + x(2)*xdata','x','xdata');
 T = find(xa>40, 1, 'first');
 a = sum(xa(1:T).*mu(1:T))/sum(xa(1:T).^2);
-plot(xfine, a*xfine, 'c');
+x = lsqcurvefit(flin, [0 1], xa(1:T), mu(1:T), [], [], opts);
+plot(xfine, flin(x, xfine), 'c');
 
 xlabel('Lifetime (s)');
 

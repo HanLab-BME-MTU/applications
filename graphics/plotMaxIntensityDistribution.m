@@ -28,30 +28,16 @@ nc = numel(lb);
 
 ny = nc;
 
-lftData = getLifetimeData(data);
-A = arrayfun(@(i) i.A(i.lifetime_s(i.catIdx==1)>=ip.Results.Cutoff_f,:,mCh), lftData, 'UniformOutput', false);
-maxA_all = cellfun(@(i) nanmax(i,[],2)', A, 'UniformOutput', false);
-
-% Rescale EDFs (correction for FP-fusion expression level)
-a = rescaleEDFs(maxA_all, 'Display', false);
-
-% apply scaling
-nd = numel(data);
-for i = 1:nd
-    maxA_all{i} = a(i) * maxA_all{i};
-    A{i} = a(i)*A{i};
-end
-
-
-% Concatenate maximum intensity and lifetime data
-maxA = [maxA_all{:}];
+lftData = getLifetimeData(data, 'ReturnValidOnly', true, 'Rescale', true,...
+    'Cutoff_f', 5, 'ExcludeVisitors', false);
+A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'unif', 0);
 A = vertcat(A{:});
+maxA = vertcat(lftData.maxA);
 f = ip.Results.FirstNFrames;
 
 maxAFirstN = nanmax(A(:,1:f), [], 2);
 
-lifetime_s = [lftData.lifetime_s];
-lifetime_s = lifetime_s([lftData.trackLengths]>=ip.Results.Cutoff_f & [lftData.catIdx]==1);
+lifetime_s = vertcat(lftData.lifetime_s);
 
 % x-axis
 xa = ip.Results.XTick;
