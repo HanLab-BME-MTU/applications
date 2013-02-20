@@ -55,8 +55,7 @@ function calculateBleedthroughGUI_OpeningFcn(hObject, eventdata, handles, vararg
 %       userData.colormap - color map information
 %
 
-[copyright openHelpFile] = userfcn_softwareConfig(handles);
-set(handles.text_copyright, 'String', copyright)
+set(handles.text_copyright, 'String', getLCCBCopyright())
 
 userData = get(handles.figure1, 'UserData');
 handles.output = hObject;
@@ -90,10 +89,8 @@ axes(handles.axes_help);
 Img = image(userData.questIconData); 
 set(gca, 'XLim',get(Img,'XData'),'YLim',get(Img,'YData'),...
     'visible','off','YDir','reverse');
-set(Img,'ButtonDownFcn',@icon_ButtonDownFcn);
-if openHelpFile
-    set(Img, 'UserData', struct('class',mfilename))
-end
+set(Img,'ButtonDownFcn',@icon_ButtonDownFcn,...
+    'UserData', struct('class',mfilename))
 
 % ----------------------------------------------------------------
 
