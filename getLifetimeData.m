@@ -16,8 +16,12 @@ ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
-
 nd = numel(data);
+rescale = ip.Results.Rescale;
+if numel(rescale)==1 && nd>1
+    rescale = repmat(rescale, [nd 1]);
+end
+
 fnames = {'lifetime_s', 'trackLengths', 'start', 'catIdx', 'A', 'A_pstd',...
     'sigma_r', 'SE_sigma_r', 'sbA', 'ebA', 'sbSigma_r', 'ebSigma_r', 'gapMat_Ia'};
 lftData(1:nd) = cell2struct(cell(size(fnames)), fnames, 2);
@@ -138,12 +142,12 @@ for i = 1:nd
     end
 end
 
-if ip.Results.Rescale
-    % compare with above
-    for c = 1:nCh
+av = zeros(nCh,nd);
+for c = 1:nCh
+    if rescale(c)
         maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
         [a, offset, refIdx] = rescaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayRescaling);
-        
+        av(c,:) = a;
         movieLength = min([data.movieLength]);
         for i = 1:nd
             lftData(i).A = lftData(i).A(:,1:movieLength,:);
@@ -161,7 +165,7 @@ if ip.Results.Rescale
     end
     
     if ip.Results.RemoveOutliers && nd>=5
-        outlierIdx = detectEDFOutliers(maxA, offset, refIdx);
+        outlierIdx = detectEDFOutliers(maxA(c,:), offset, refIdx);
         if ~isempty(outlierIdx)
             fprintf('Outlier data sets:\n');
             for i = 1:numel(outlierIdx)
@@ -170,12 +174,13 @@ if ip.Results.Rescale
             rmv = input('Remove outliers? (y/n) ', 's');
             if strcmpi(rmv, 'y') || isempty(rmv)
                 lftData(outlierIdx) = [];
-                a(outlierIdx) = [];
+                a(c,outlierIdx) = [];
             end
         end
     end
-    a = num2cell(a);
+end
+if rescale(1)
+    a = mat2cell(av,nCh,ones(1,nd));
     [lftData.a] = deal(a{:});
 end
-
 

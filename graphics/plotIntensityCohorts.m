@@ -250,8 +250,15 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
 %%
 % indiv. figures for cargo+ / cargo-: split based on significance of slave channel
 else
-    figure(fset.fOpts{:}, 'Position', [2 2 15 5.5], 'Name', 'Intensity cohorts, cargo-positive tracks');
-    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 1.5 6 3.5]);
+    if ip.Results.ShowLegend
+        fpos = [2 2 17 5.5];
+        aposy = 1.5;
+    else
+        fpos = [2 2 15 6];
+        aposy = 2;
+    end    
+    figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts, cargo-positive tracks');
+    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 aposy 6 3.5]);
     hold on;
     A = cell(nCh,nc);
     % plot slave channel first
@@ -348,21 +355,13 @@ else
     end
     
 
-    if ip.Results.ShowLegend
-        pos = get(gcf, 'Position');
-        pos(3) = 17;
-        set(gcf, 'Position', pos);
-    else
-        
-    end
-    
-    if ip.Results.ShowPct
+   if ip.Results.ShowPct
         pos = get(gcf, 'Position');
         pos(3) = 19;
         set(gcf, 'Position', pos);
     end
     
-    ha(2) = axes(fset.axOpts{:}, 'Position', [8.25 1.5 6 3.5]);
+    ha(2) = axes(fset.axOpts{:}, 'Position', [8.25 aposy 6 3.5]);
     hold on;
     A = cell(1,nc);
     % plot slave channel first
@@ -415,14 +414,14 @@ else
     end
     % Plot mean/median in front   
     %hp = zeros(1,2*nc);
-%     for ch = [2 1]
-%         for c = nc:-1:1
-%             hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-%         end
-%     end
+    %     for ch = [2 1]
+    %         for c = nc:-1:1
+    %             hp(c + nc*(ch-1)) = plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+    %         end
+    %     end
     
     %set(gca, 'YTick', [], 'YColor', 'w');
-    set(gca, 'YTickLabel', []);
+    set(ha(2), 'YTickLabel', []);
     
     
     if ~isempty(ip.Results.SlaveName)
@@ -452,14 +451,18 @@ else
         xlabel('Lifetime cohort', fset.lfont{:});
     end
     
-    set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim,...
-        'XTickLabel', cohortLabels);
-    rotateXTickLabels(ha(1), 'AdjustFigure', false);
-    rotateXTickLabels(ha(2), 'AdjustFigure', false);
-    xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
-    xlabel(ha(2), 'Lifetime cohort', fset.lfont{:});
-    ylabel(ha(1), 'Fluo. intensity (A.U.)', fset.lfont{:});
-    
+    if ip.Results.ShowLegend
+        xlabel(ha(1), 'Time (s)', fset.lfont{:});
+        xlabel(ha(2), 'Time (s)', fset.lfont{:});
+        XTick = 0:20:200;
+    else
+        set(ha, 'XTick', XTick, 'XTickLabel', cohortLabels);
+        rotateXTickLabels(ha(1), 'AdjustFigure', false);
+        rotateXTickLabels(ha(2), 'AdjustFigure', false);
+        xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
+        xlabel(ha(2), 'Lifetime cohort', fset.lfont{:});
+    end
+    ylabel(ha(1), 'Fluo. intensity (A.U.)', fset.lfont{:}); 
 end
 
 set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim);
