@@ -1,4 +1,4 @@
-function [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin)
+function [fx, fy, x_out, y_out, M, pos_u, u, sol_coef, sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin)
 % Synopsis  [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol,solMethodBEM)
 %
 % Input :  x,y,ux,uy have to be in the same units, namely
@@ -25,7 +25,7 @@ ip.addRequired('E',@isscalar);
 ip.addRequired('L',@isscalar);
 ip.addRequired('x_out',@(x)isscalar(x)||isempty(x));
 ip.addRequired('y_out',@(x)isscalar(x)||isempty(x));
-ip.addRequired('method',@ischar);
+ip.addRequired('method',@(x)ischar(x)||isempty(x)); % updated in case for BEM
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
@@ -63,7 +63,8 @@ if nargin >= 10 && strcmp(method,'fast')
     M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
         'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);    
 else
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, meshPtsFwdSol);
+    span = 1:length(forceMesh.bounds);
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol);
 end
 toc;
 display('Done: forward map!');
@@ -126,7 +127,16 @@ if nargin >= 10 && strcmp(method,'fast')
         % operator was: 2.0057e-06 for a mean force magnitude of
         % 85.7. Thus they seem to be numerical identical!
         [Q,R] = qr((L*eyeWeights+ M'*M));
-        sol_coef=R\(Q'*(M'*u));
+        % Sangyoon Han: found that a few NaNs in u makes M'*u all NaNs
+        % which makes sol_coef all NaNs. To fix this, I made a u_sol that
+        % has zero in the places of NaNs. However, probably making all NaNs
+        % to zeros can make another source of error for constructing
+        % forces. Maybe the code needs to eliminate
+        u_sol = u;
+%         ind = find(~isnan(u_sol));
+%         u_sol = u_sol(ind,:);
+%         u_sol(find(isnan(u)))=0;
+        sol_coef=R\(Q'*(M'*u_sol));
         sol_mats.Q=Q;
         sol_mats.R=R;
         sol_mats.L=L;
@@ -172,6 +182,8 @@ tic;
 if nargin >= 10 && strcmp(method,'fast')
     [fx fy x_out y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
 else
+    fx = zeros(size(x_out));
+    fy = zeros(size(y_out));
     for j=1:2*forceMesh.numNodes
         fx = fx+sol_coef(j)*forceMesh.base(j).f_intp_x(x_out,y_out);
         fy = fy+sol_coef(j)*forceMesh.base(j).f_intp_y(x_out,y_out);

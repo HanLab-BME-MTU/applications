@@ -1,6 +1,6 @@
 function [force]=assumedForce(j,x,y)
-xshift=1;
-yshift=2;
+xshift=7;
+yshift=7;
 if j==1
     force=x*0;
 else

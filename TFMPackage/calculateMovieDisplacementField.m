@@ -112,12 +112,12 @@ disp('Starting calculating displacement field...')
 
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
-sigmaPSF = movieData.channels_(1).psfSigma_;
+sigmaPSF = movieData.channels_(1).psfSigma_; %*4/7 scale down for finer detection SH012913
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha);
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
 % Subsample detected beads ensuring beads are separated by at least half of
-% the correlation length
+% the correlation length - commented out to get more beads
 disp('Subsampling detected beads...')
 idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
 valid = true(numel(idx),1);

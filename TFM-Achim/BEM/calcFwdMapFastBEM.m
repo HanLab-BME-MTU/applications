@@ -289,6 +289,8 @@ if doPlot==1
         ymin=min(y_vec_u);
         xmax=max(x_vec_u);
         ymax=max(y_vec_u);
+        ux = basisClassTbl(end).uSol.comp(oneORtwo).ux;
+        uy = basisClassTbl(end).uSol.comp(oneORtwo).uy;
         figure(11)
         quiver(x_vec_u,y_vec_u,ux(:,ind),uy(:,ind))
         hold on

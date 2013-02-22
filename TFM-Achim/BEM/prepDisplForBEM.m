@@ -39,12 +39,16 @@ end
 maxOcc=max(counts);
 
 if maxOcc>length(displField)
-    error('The cut off level can (should) be the number of entries (frames) in the displField!!!')
+    if mod(maxOcc,length(displField))==0 % there are some redundant points
+        % Find the positions with full/not-full occurance:
+        checkVec=(counts==maxOcc)|(counts==length(displField));
+    else
+        error('The cut off level can (should) be the number of entries (frames) in the displField!!!')
+    end
+else
+    % Find the positions with full/not-full occurance:
+    checkVec=(counts==maxOcc);
 end
-
-% Find the positions with full/not-full occurance:
-checkVec=(counts==maxOcc);
-
 % the list of permanent points:
 permPts=allPts(checkVec);
 

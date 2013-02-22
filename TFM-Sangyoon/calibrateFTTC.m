@@ -34,12 +34,12 @@ y_vec_u=reshape(y_mat_u,[],1);
 
 % I need force distribution with multiple sources including one at the
 % boundary to see the boundary effect from FTTC vs. BEM -Sangyoon 013113
-force_x1 = assumedForceShifted(1,x_mat_u,y_mat_u,65,65,7.5,-7.5);
-force_y1 = assumedForceShifted(2,x_mat_u,y_mat_u,65,65,7.5,-7.5);
-force_x2 = assumedForceShifted(1,x_mat_u,y_mat_u,15,10,10,1);
-force_y2 = assumedForceShifted(2,x_mat_u,y_mat_u,15,10,10,1);
-force_x3 = assumedForceShifted(1,x_mat_u,y_mat_u,87,90,1,-10);
-force_y3 = assumedForceShifted(2,x_mat_u,y_mat_u,87,90,1,-10);
+force_x1 = assumedForceShifted(1,x_mat_u,y_mat_u,65,65,1.4,-1.4);
+force_y1 = assumedForceShifted(2,x_mat_u,y_mat_u,65,65,1.4,-1.4);
+force_x2 = assumedForceShifted(1,x_mat_u,y_mat_u,15,10,2,0.1);
+force_y2 = assumedForceShifted(2,x_mat_u,y_mat_u,15,10,2,0.1);
+force_x3 = assumedForceShifted(1,x_mat_u,y_mat_u,87,90,0.1,-2);
+force_y3 = assumedForceShifted(2,x_mat_u,y_mat_u,87,90,0.1,-2);
 
 force_x = force_x1+force_x2+force_x3;
 force_y = force_y1+force_y2+force_y3;
@@ -48,12 +48,12 @@ quiver(x_mat_u,y_mat_u,force_x,force_y);
 
 %% Forward solution
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-    @(x,y) assumedForceShifted(1,x,y,65,65,7.5,-7.5)+...
-    assumedForceShifted(1,x,y,15,10,10,1)+...
-    assumedForceShifted(1,x,y,87,90,1,-10),...
-    @(x,y) assumedForceShifted(2,x,y,65,65,7.5,-7.5)+...
-    assumedForceShifted(2,x,y,15,10,10,1)+...
-    assumedForceShifted(2,x,y,87,90,1,-10),'fft',[],meshPtsFwdSol);
+    @(x,y) assumedForceShifted(1,x,y,65,65,1.4,-1.4)+...
+    assumedForceShifted(1,x,y,15,10,2,0.1)+...
+    assumedForceShifted(1,x,y,87,90,0.1,-2),...
+    @(x,y) assumedForceShifted(2,x,y,65,65,1.4,-1.4)+...
+    assumedForceShifted(2,x,y,15,10,2,0.1)+...
+    assumedForceShifted(2,x,y,87,90,0.1,-2),'fft',[],meshPtsFwdSol);
 % [ux uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,@(x,y) assumedForce(2,x,y),@(x,y) assumedForce(2,x,y),'fft',[],meshPtsFwdSol);
 
 if addNoise==1

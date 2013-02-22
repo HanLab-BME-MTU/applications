@@ -83,9 +83,13 @@ tic;
 % Perform vector field outlier detection
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
 for j= 1:nFrames
-
     % Outlier detection
     dispMat = [displField(j).pos displField(j).vec];
+    % Take out duplicate points (Sangyoon)
+    [dispMat,idata,iudata] = unique(dispMat,'rows'); %dispMat2 = dispMat(idata,:),dispMat = dispMat2(iudata,:)
+    displField(j).pos=dispMat(:,1:2);
+    displField(j).vec=dispMat(:,3:4);
+
     if ~isempty(p.outlierThreshold)
         outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,1);
         displField(j).pos(outlierIndex,:)=[];

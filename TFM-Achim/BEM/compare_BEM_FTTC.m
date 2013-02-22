@@ -56,7 +56,7 @@ u=vertcat(ux_vec,uy_vec);
 figure(2)
 quiver(x_mat_u,y_mat_u,ux,uy);
 
-%***************** here starts the BEM-reconstruction *********************
+%***************** here starts the FastBEM-reconstruction *********************
 if FastBEM==1;
     
     % ['expected computation time:',num2str(numPoints_u^2*numPoints_f^2*27.6*10^(-3)),'s these are:',num2str(numPoints_u^2*numPoints_f^2*27.6*10^(-3)/3600),'h']

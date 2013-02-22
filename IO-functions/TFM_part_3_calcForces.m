@@ -8,8 +8,8 @@ function [forceField]=TFM_part_3_calcForces(method,xrange,yrange,doShift,doRotRe
 %            Pass area=[] to manually draw a region of interest
 
 if nargin < 1 || isempty(method)
-    method ='FastBEM';
-    %method='FTTC';
+%     method ='FastBEM';
+    method='FTTC';
 end
 
 if nargin <2 || isempty(xrange) || isempty(yrange)
