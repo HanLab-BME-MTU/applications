@@ -234,7 +234,7 @@ parfor k = 1:nPoints
                     [score2] = calScore(kym,centerI,ceil(1.25*corL),...
                         vP,vF,'bAreaThreshold',bAreaThreshold,...
                         'kymMask',kymMask,'kymAvgImg',kymAvgImg);
-                    [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.6);
+                    [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
                     if pass2 == 1
                         % SB: here Jin Li was using a spline to refine the
                         % velocity estimation. This creates a bottleneck in
