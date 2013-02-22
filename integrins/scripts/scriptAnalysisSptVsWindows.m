@@ -1,37 +1,36 @@
 
 lengthMinMax = [5 99];
 
-% for i = 1 : length(movieStructAlphaV)
-for i = 1 : 1
+for i = 1 : length(movieStructFarnSim20p5)
     
     disp(num2str(i))
     
-    activityLevel = movieStructAlphaV(i).activityLevel;
+    activityLevel = movieStructFarnSim20p5(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructAlphaV(i).fileName{1};
+        topDir = movieStructFarnSim20p5(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisAlphaV/furtherAnalysis/adaptiveWindows'])
+        %         cd([topDir '/analysisFarnSim20p5/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        %         cd([topDir '\analysisAlphaV\furtherAnalysis\adaptiveWindows'])
+        cd([topDir '\analysisFarnSim20p5\furtherAnalysis\adaptiveWindowsSym'])
         
-        %%% for randomization test
-        cd([topDir '\analysisAlphaV\furtherAnalysis\randomizationTest\adaptiveWindows'])
-        %%% for randomization test
+        %         %% for randomization test
+        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest\adaptiveWindows'])
+        %         %% for randomization test
         
-        sliceRange = movieStructAlphaV(i).sliceRange;
-        frameRange = movieStructAlphaV(i).frameRange;
+        sliceRange = movieStructFarnSim20p5(i).sliceRange;
+        frameRange = movieStructFarnSim20p5(i).frameRange;
         
-        %         load ../tracksDiffusionLength5InMask.mat
-        %         load ../diffusionModeClassification.mat
+        load ../tracksDiffusionLength5InMask.mat
+        load ../diffusionModeClassification.mat
         
-        %%% for randomization test
-        load ../../tracksDiffusionLength5InMask.mat
-        load ../tracksLength5InMaskRandom.mat
-        load ../../diffusionModeClassification.mat
-        %%% for randomization test
+        %         %%% for randomization test
+        %         load ../../tracksDiffusionLength5InMask.mat
+        %         load ../tracksLength5InMaskRandom.mat
+        %         load ../../diffusionModeClassification.mat
+        %         %%% for randomization test
         
         try
             load windowsActivityTracks.mat
@@ -48,7 +47,36 @@ for i = 1 : 1
 
         load directTrackChar.mat
         
-        load windowNumbersAssignExt.mat
+        try
+            load windowNumbersAssignExt.mat
+        catch
+            load windowNumbersAssignExt_Particles.mat
+            windowNumbersAssignExt.Particles = Particles;
+            load windowNumbersAssignExt_NetDispPos.mat
+            windowNumbersAssignExt.NetDispPos = NetDispPos;
+            load windowNumbersAssignExt_NetDispNeg.mat
+            windowNumbersAssignExt.NetDispNeg = NetDispNeg;
+            load windowNumbersAssignExt_Unclass.mat
+            windowNumbersAssignExt.Unclass = Unclass;
+            load windowNumbersAssignExt_Lin.mat
+            windowNumbersAssignExt.Lin = Lin;
+            load windowNumbersAssignExt_Iso.mat
+            windowNumbersAssignExt.Iso = Iso;
+            load windowNumbersAssignExt_IsoUnclass.mat
+            windowNumbersAssignExt.IsoUnclass = IsoUnclass;
+            load windowNumbersAssignExt_Conf.mat
+            windowNumbersAssignExt.Conf = Conf;
+            load windowNumbersAssignExt_Brown.mat
+            windowNumbersAssignExt.Brown = Brown;
+            load windowNumbersAssignExt_Dir.mat
+            windowNumbersAssignExt.Dir = Dir;
+            load windowNumbersAssignExt_ModeClass.mat
+            windowNumbersAssignExt.ModeClass = ModeClass;
+            load windowNumbersAssignExt_Merge.mat
+            windowNumbersAssignExt.Merge = Merge;
+            load windowNumbersAssignExt_Split.mat
+            windowNumbersAssignExt.Split = Split;
+        end
         
         %         maskDir = [topDir '/analysisCellEdgeSmall/SegmentationPackage/refined_masks/refined_masks_for_channel_1/'];
         maskDir = [topDir '\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\'];
@@ -69,7 +97,7 @@ for i = 1 : 1
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
             lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam,edgePosStd);
         
-        save('particleBehaviorAdaptiveWindowsRandom130210','sptPropInWindow',...
+        save('particleBehaviorAdaptiveWindows130219','sptPropInWindow',...
             'windowDistFromEdge','analysisParam');
         
     end

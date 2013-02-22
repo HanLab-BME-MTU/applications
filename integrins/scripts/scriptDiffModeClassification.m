@@ -1,16 +1,19 @@
 
-for i = 1 : length(movieStructAlphaVFixed);
+for i = 1 : length(movieStructFarnSim20p5);
     
     disp(num2str(i))
     
-    if movieStructAlphaVFixed(i).activityLevel > 0
+    if movieStructFarnSim20p5(i).activityLevel > 0
         
-        tmp = movieStructAlphaVFixed(i).fileName;
-        cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
+        tmp = movieStructFarnSim20p5(i).fileName{1};
+        %         cd([tmp '/analysisAlphaV/furtherAnalysis'])
+        tmp = regexprep(tmp,'/','\');
+        topDir = ['C:\kjData\' tmp(33:end)];
+        cd([topDir '\analysisFarnSim20p5\furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
-        diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructActin);
-        save('diffusionModeClassification','diffModeAnalysisRes','diffModeDividerStructActin');
+        diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructIntegrin);
+        save('diffusionModeClassification','diffModeAnalysisRes','diffModeDividerStructIntegrin');
         
     end
     

@@ -1,38 +1,38 @@
 
-for i = 1 : length(movieStructAlphaV)
+for i = 1 : length(movieStructFarnSim20p5)
     
     disp(num2str(i))
     
-    if movieStructAlphaV(i).activityLevel > 1 && i == 16
+    if movieStructFarnSim20p5(i).activityLevel > 1
         
-        topDir = movieStructAlphaV(i).fileName{1};
+        topDir = movieStructFarnSim20p5(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisAlphaV/furtherAnalysis'])
+        %         cd([topDir '/analysisFarnSim20p5/furtherAnalysis'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        %         cd([topDir '\analysisAlphaV\furtherAnalysis'])
+        cd([topDir '\analysisFarnSim20p5\furtherAnalysis'])
         
-        %%% for randomization test
-        cd([topDir '\analysisAlphaV\furtherAnalysis\randomizationTest'])
-        %%% for randomization test
+        %         %%% for randomization test
+        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest'])
+        %         %%% for randomization test
         
-        mkdir adaptiveWindows
-        cd adaptiveWindows
+        mkdir adaptiveWindowsSym
+        cd adaptiveWindowsSym
         
         lengthMinMax = [5 99];
         
         %         firstWindowFile = [topDir '/analysisCellEdgeSmall/windows/windows_frame__frame_01.mat'];
         firstWindowFile = [topDir '\analysisCellEdgeSmall\windows\windows_frame__frame_01.mat'];
         windowsAll = putWindowsTogether(firstWindowFile);
-        %         load ../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
-        %%% for randomization test
-        load ../../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
-        %%% for randomization test
+        load ../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
+        %         %%% for randomization test
+        %         load ../../../../analysisCellEdgeSmall/protrusion_samples/protrusion_samples.mat
+        %         %%% for randomization test
         
-        %         load ../tracksDiffusionLength5InMask.mat
-        %%% for randomization test
-        load ../tracksLength5InMaskRandom.mat
-        %%% for randomization test
+        load ../tracksDiffusionLength5InMask.mat
+        %         %%% for randomization test
+        %         load ../tracksLength5InMaskRandom.mat
+        %         %%% for randomization test
         
         maxFrame = (size(windowsAll,1)-1)*400;
         

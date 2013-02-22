@@ -65,7 +65,7 @@ trackChar = repmat(struct('motionDir',[],'angleWithProt',[],'f2fDisp',[],...
     'asymParam',[],'f2fDispRMS',[]),numTracks,1);
 
 %go over all compound tracks
-for iTrack = 1 : numTracks
+parfor iTrack = 1 : numTracks
 
     %get current track's coordinates
     trackCoordCurrent = tracksFinal(iTrack).tracksCoordAmpCG;
@@ -158,10 +158,9 @@ for iTrack = 1 : numTracks
                 paraProtDispCurrent(iSegment,:) = [nanmean(paraTrackDisp) ...
                     nanmean(abs(paraTrackDisp))];
                 paraProtDispCurrent(iSegment,paraProtDispCurrent(iSegment,:)==0) = eps;
-                %             paraProtDispCurrent(iSegment,:) = max([abs(nanmean(paraTrackDisp)) ...
-                %                 nanmean(abs(paraTrackDisp))],eps);
-                perpProtDispCurrent(iSegment,:) = max([abs(nanmean(perpTrackDisp)) ...
-                    nanmean(abs(perpTrackDisp))],eps);
+                perpProtDispCurrent(iSegment,:) = [abs(nanmean(perpTrackDisp)) ...
+                    nanmean(abs(perpTrackDisp))];
+                perpProtDispCurrent(iSegment,perpProtDispCurrent(iSegment,:)==0) = eps;
                 
             end
             

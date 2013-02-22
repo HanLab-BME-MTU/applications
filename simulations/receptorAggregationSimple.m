@@ -7,7 +7,7 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag] ...
 %
 %INPUT  modelParam: Structure with the fields:
 %           diffCoef        : Diffusion coefficient (microns^2/s).
-%           receptorDensity : Receptor density (#/microns^dimension).
+%           receptorDensity : Receptor density (#/microns^probDim).
 %           aggregationProb : Probability of aggregation if a receptor
 %                             bumps into another receptor or receptor
 %                             complex.
@@ -23,11 +23,11 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag] ...
 %                             will be used. If not, random positions will
 %                             be chosen.
 %       simParam: Structure with the fields:
-%           dimension       : System dimensionality (1, 2 or 3). Default: 2.
+%           probDim         : System dimensionality (1, 2 or 3). Default: 2.
 %           observeSideLen  : Observation side length (microns). Either one
-%                             value, used for all dimensions, or a row
-%                             vector with a value for each dimension.
-%                             Default: 1 in all dimensions.
+%                             value, used for all probDims, or a row
+%                             vector with a value for each probDim.
+%                             Default: 1 in all probDims.
 %           timeStep        : Simulation time step (s).
 %                             Default: 0.01/max(diffCoef,dissociationRate).
 %           totalTime       : Total time of simulation (s).
@@ -38,7 +38,7 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag] ...
 %                 Whole structure optional. Individual fields also optional.
 %
 %OUTPUT receptorInfoAll     : Structure with fields:
-%           .receptorTraj        : (Number of receptors) - by - (dimension)
+%           .receptorTraj        : (Number of receptors) - by - (probDim)
 %                                  - by - (number of iterations) array storing
 %                                  receptor positions.
 %           .recept2clustAssign  : (Number of receptors) - by - (number of
@@ -169,29 +169,29 @@ end
 %if simParam wasn't supplied at all
 if nargin < 2 || isempty(simParam)
 
-    dimension = 2;
-    observeSideLen = ones(1,dimension);
+    probDim = 2;
+    observeSideLen = ones(1,probDim);
     timeStep = 0.01 / max(diffCoef,dissociationRate);
     totalTime = 100 * timeStep;
     randNumGenSeeds = [100 100];
 
 else
 
-    %system dimensionality
-    if isfield(simParam,'dimension')
-        dimension = simParam.dimension;
+    %system probDimality
+    if isfield(simParam,'probDim')
+        probDim = simParam.probDim;
     else
-        dimension = 2;
+        probDim = 2;
     end
 
     %observation side length
     if isfield(simParam,'observeSideLen')
         observeSideLen = simParam.observeSideLen;
         if length(observeSideLen) == 1
-            observeSideLen = observeSideLen * ones(1,dimension);
+            observeSideLen = observeSideLen * ones(1,probDim);
         end
     else
-        observeSideLen = ones(1,dimension);
+        observeSideLen = ones(1,probDim);
     end
 
     %time step
@@ -228,6 +228,10 @@ timeIterArray = (0 : numIterations - 1)' * timeStep;
 %coefficient
 stepStd = sqrt( 2 * diffCoef * timeStep );
 
+%adjust aggregationDist to account for the finite simulation time step and
+%the expected receptor displacement in that time step
+aggregationDist = max(aggregationDist,sqrt(probDim)*stepStd/2);
+
 %calculate dissociation probability
 dissociationProb = dissociationRate * timeStep;
 
@@ -247,7 +251,7 @@ if isempty(initPositions)
     numReceptors = round(obsRegionSize * receptorDensity);
     
     %initialize receptor positions
-    initPositions = rand(numReceptors,dimension) .* repmat(observeSideLen,numReceptors,1);
+    initPositions = rand(numReceptors,probDim) .* repmat(observeSideLen,numReceptors,1);
     
 else
     
@@ -265,7 +269,7 @@ aggregationProbVec = aggregationProb*ones(numReceptors,1);
 %% Trajectory generation
 
 %reserve memory for output vectors
-receptorTraj = zeros(numReceptors,dimension,numIterations);
+receptorTraj = zeros(numReceptors,probDim,numIterations);
 recept2clustAssign = zeros(numReceptors,numIterations);
 clust2receptAssign = zeros(numReceptors,maxClustSize,numIterations);
 
@@ -290,9 +294,9 @@ for iIter = 2 : numIterations
     positionsOld = receptorTraj(:,:,iIter-1);
     
     %generate receptor displacements
-    receptorDisp = stepStd*randn(numReceptors,dimension);
-    %     receptorDisp = randn(numReceptors,dimension) .* ...
-    %         repmat(stepStd*(1.5-(abs(positionsOld(:,2)-0.1))/0.1),1,dimension);
+    receptorDisp = stepStd*randn(numReceptors,probDim);
+    %     receptorDisp = randn(numReceptors,probDim) .* ...
+    %         repmat(stepStd*(1.5-(abs(positionsOld(:,2)-0.1))/0.1),1,probDim);
 
     %assign receptors in a cluster the displacement of the receptor with
     %the smallest index

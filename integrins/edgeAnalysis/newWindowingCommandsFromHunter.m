@@ -3,7 +3,7 @@
 segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = 'C:\kjData\Galbraiths\data\alphaVandCellEdge\110908_Cs1C3a_CHO_AV\analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\simulations\mimicFarn\exampleProt2Retr0p5_05\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold

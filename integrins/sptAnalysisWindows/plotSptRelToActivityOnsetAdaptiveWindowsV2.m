@@ -1,6 +1,6 @@
     function plotSptRelToActivityOnsetAdaptiveWindowsV2(particleBehavior,...
     windowDistFromEdge,mode2plot,minNP,figureName,saveLoc,convFact,...
-    yAxisLabel,axisLimits,plotWinDist,winFigName,winFigLoc)
+    yAxisLabel,axisLimits,plotWinDist,winFigName,winFigLoc,compArea)
 
 if nargin < 4 || isempty(minNP)
     minNP = 20;
@@ -39,6 +39,10 @@ end
 
 if nargin < 12 || isempty(winFigLoc)
     winFigLoc = [];
+end
+
+if nargin < 13 || isempty(compArea)
+    compArea = 0;
 end
 
 %get increment range
@@ -161,6 +165,21 @@ combDynamicSeriesAftMean(combDynamicSeriesAftNP<minNP) = NaN;
 combDynamicSeriesAftStd(combDynamicSeriesAftNP<minNP) = NaN;
 combDynamicSeriesAftDistMid(combDynamicSeriesAftNP<minNP) = NaN;
 combDynamicSeriesAftDistHR(combDynamicSeriesAftNP<minNP) = NaN;
+
+%get edge position over time
+edgePos = staticSeriesDistMid(:,1) - staticSeriesDistHR(:,1);
+
+%compensate for window area over-estimation if requested
+if compArea
+    edgeDispBef = abs(nanmean(diff(edgePos(1:-minInc+1))));
+    edgeDispAft = nanmean(diff(edgePos(-minInc+1:end)));
+    winLengthBef = 2 * nanmean(edgeSeriesDistHR(1:-minInc+1));
+    winLengthAft = 2 * nanmean(edgeSeriesDistHR(-minInc+2:end));
+    factorBef = 1 - edgeDispBef/winLengthBef/8;
+    factorAft = 1 - edgeDispAft/winLengthAft/8;
+    edgeSeriesMean = edgeSeriesMean ./ [factorBef*ones(-minInc,1); 1; factorAft*ones(maxInc,1)];
+    edgeSeriesStd = edgeSeriesStd ./ [factorBef*ones(-minInc,1); 1; factorAft*ones(maxInc,1)];
+end
 
 %define color vectors for plotting
 %green to magenta in 11 steps
@@ -356,9 +375,6 @@ if ~isnan(yMax)
         %open figure
         hFig2 = figure('Name',winFigName);
         hold on
-        
-        %get edge position over time
-        edgePos = staticSeriesDistMid(:,1) - staticSeriesDistHR(:,1);
         
         %shift window positions to follow moving edge instead of the
         %original assumption that edge position is always at zero

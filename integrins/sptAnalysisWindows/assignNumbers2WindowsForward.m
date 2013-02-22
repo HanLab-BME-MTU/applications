@@ -73,16 +73,15 @@ if nargin < 10 || isempty(windowNumbersAssignExtIn)
 end
 
 %generate winFrameMin and winFramesMax for parfor loop
-winFramesMid = floor((winFrames(1:end-1) + winFrames(2:end))/2);
-winFramesMin = [1 winFramesMid];
-winFramesMax = [winFramesMid winFrames(end)+1];
+winFramesMin = winFrames(1:end-1);
+winFramesMax = winFrames(2:end);
 
 %% Pre-processing
 
 %get number of frames that have windows and number of windows parallel to
 %the edge
-[numWinFrames,numWinPara] = size(winPositions);
-% numWinFramesM1 = numWinFrames - 1;
+[numWinFramesM1,numWinPara] = size(winPositions);
+numWinFramesM1 = numWinFramesM1 - 1;
 
 %find number of windows perpendicular to the edge
 nBands = cellfun(@(x)(numel(x)),winPositions);
@@ -130,8 +129,8 @@ splitsInfoSpaceY = splitsInfoSpaceY(indxKeep);
 %% Number of particles in various categories, and merges and splits
 
 %group merges and splits based on what window frame range they fall into
-msGroup = repmat(struct('indxM',[],'indxS',[]),numWinFrames,1);
-parfor iWinFrame = 1 : numWinFrames
+msGroup = repmat(struct('indxM',[],'indxS',[]),numWinFramesM1,1);
+parfor iWinFrame = 1 : numWinFramesM1
     
     %get current spt frame number and next spt frame number
     minFrame = winFramesMin(iWinFrame);
@@ -152,17 +151,17 @@ end
     numUnclassPerWindow,numLinPerWindow,numIsoPerWindow,...
     numIsoUnclassPerWindow,numConfPerWindow,numBrownPerWindow,numDirPerWindow,...
     numMergePerWindow,numSplitPerWindow] = ...
-    deal(NaN(numWinPerp,numWinPara,numWinFrames,numWinFrames));
-numModePerWindow = NaN(numWinPerp,numWinPara,numWinFrames,...
-    numDiffMode+1,numWinFrames);
+    deal(NaN(numWinPerp,numWinPara,numWinFramesM1,numWinFramesM1));
+numModePerWindow = NaN(numWinPerp,numWinPara,numWinFramesM1,...
+    numDiffMode+1,numWinFramesM1);
 
-parfor iWinFrameExt = 1 : numWinFrames %window frames to fetch tracks
+parfor iWinFrameExt = 1 : numWinFramesM1 %window frames to fetch tracks
     
     %initialize temporary matrices
     [numTotalTmp,numNetDispPosTmp,numNetDispNegTmp,numUnclassTmp,numLinTmp,...
         numIsoTmp,numIsoUnclassTmp,numConfTmp,numBrownTmp,numDirTmp,...
-        numMergeTmp,numSplitTmp] = deal(zeros(numWinPerp,numWinPara,numWinFrames));
-    numModeTmp = zeros(numWinPerp,numWinPara,numWinFrames,numDiffMode+1);
+        numMergeTmp,numSplitTmp] = deal(zeros(numWinPerp,numWinPara,numWinFramesM1));
+    numModeTmp = zeros(numWinPerp,numWinPara,numWinFramesM1,numDiffMode+1);
     
     %find merges and splits in this time window
     indxFrameRangeM = msGroup(iWinFrameExt).indxM;
@@ -174,7 +173,7 @@ parfor iWinFrameExt = 1 : numWinFrames %window frames to fetch tracks
     xCoordSplitFR = splitsInfoSpaceX(indxFrameRangeS); %#ok<PFBNS>
     yCoordSplitFR = splitsInfoSpaceY(indxFrameRangeS); %#ok<PFBNS>
 
-    for iWinFrame = 1 : numWinFrames %window frames to fetch windows
+    for iWinFrame = 1 : numWinFramesM1 %window frames to fetch windows
         for iPara = 1 : numWinPara %slices
             for iPerp = 1 : nBands(iWinFrame,iPara) %#ok<PFBNS> %bands
                 
@@ -247,39 +246,21 @@ parfor iWinFrameExt = 1 : numWinFrames %window frames to fetch tracks
     end
     
     %store extended assignment in overall matrix
-    %if this is the first or last frame, multiple numbers by 2 to
-    %compensate for the 1-sided nature of their track assignment
-    if iWinFrameExt == 1 || iWinFrameExt == numWinFrames
-        numTotalPerWindow(:,:,:,iWinFrameExt) = numTotalTmp*2;
-        numNetDispPosPerWindow(:,:,:,iWinFrameExt) = numNetDispPosTmp*2;
-        numNetDispNegPerWindow(:,:,:,iWinFrameExt) = numNetDispNegTmp*2;
-        numUnclassPerWindow(:,:,:,iWinFrameExt) = numUnclassTmp*2;
-        numLinPerWindow(:,:,:,iWinFrameExt) = numLinTmp*2;
-        numIsoPerWindow(:,:,:,iWinFrameExt) = numIsoTmp*2;
-        numIsoUnclassPerWindow(:,:,:,iWinFrameExt) = numIsoUnclassTmp*2;
-        numConfPerWindow(:,:,:,iWinFrameExt) = numConfTmp*2;
-        numBrownPerWindow(:,:,:,iWinFrameExt) = numBrownTmp*2;
-        numDirPerWindow(:,:,:,iWinFrameExt) = numDirTmp*2;
-        numModePerWindow(:,:,:,:,iWinFrameExt) = numModeTmp*2;
-        numMergePerWindow(:,:,:,iWinFrameExt) = numMergeTmp*2;
-        numSplitPerWindow(:,:,:,iWinFrameExt) = numSplitTmp*2;
-    else
-        numTotalPerWindow(:,:,:,iWinFrameExt) = numTotalTmp;
-        numNetDispPosPerWindow(:,:,:,iWinFrameExt) = numNetDispPosTmp;
-        numNetDispNegPerWindow(:,:,:,iWinFrameExt) = numNetDispNegTmp;
-        numUnclassPerWindow(:,:,:,iWinFrameExt) = numUnclassTmp;
-        numLinPerWindow(:,:,:,iWinFrameExt) = numLinTmp;
-        numIsoPerWindow(:,:,:,iWinFrameExt) = numIsoTmp;
-        numIsoUnclassPerWindow(:,:,:,iWinFrameExt) = numIsoUnclassTmp;
-        numConfPerWindow(:,:,:,iWinFrameExt) = numConfTmp;
-        numBrownPerWindow(:,:,:,iWinFrameExt) = numBrownTmp;
-        numDirPerWindow(:,:,:,iWinFrameExt) = numDirTmp;
-        numModePerWindow(:,:,:,:,iWinFrameExt) = numModeTmp;
-        numMergePerWindow(:,:,:,iWinFrameExt) = numMergeTmp;
-        numSplitPerWindow(:,:,:,iWinFrameExt) = numSplitTmp;
-    end
+    numTotalPerWindow(:,:,:,iWinFrameExt) = numTotalTmp;
+    numNetDispPosPerWindow(:,:,:,iWinFrameExt) = numNetDispPosTmp;
+    numNetDispNegPerWindow(:,:,:,iWinFrameExt) = numNetDispNegTmp;
+    numUnclassPerWindow(:,:,:,iWinFrameExt) = numUnclassTmp;
+    numLinPerWindow(:,:,:,iWinFrameExt) = numLinTmp;
+    numIsoPerWindow(:,:,:,iWinFrameExt) = numIsoTmp;
+    numIsoUnclassPerWindow(:,:,:,iWinFrameExt) = numIsoUnclassTmp;
+    numConfPerWindow(:,:,:,iWinFrameExt) = numConfTmp;
+    numBrownPerWindow(:,:,:,iWinFrameExt) = numBrownTmp;
+    numDirPerWindow(:,:,:,iWinFrameExt) = numDirTmp;
+    numModePerWindow(:,:,:,:,iWinFrameExt) = numModeTmp;
+    numMergePerWindow(:,:,:,iWinFrameExt) = numMergeTmp;
+    numSplitPerWindow(:,:,:,iWinFrameExt) = numSplitTmp;
     
-end %(parfor iWinFrameExt = 1 : numWinFrames)
+end %(parfor iWinFrameExt = 1 : numWinFramesM1)
 
 %put in structure for output
 if isempty(windowNumbersAssignExtIn) %make brand new structure

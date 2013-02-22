@@ -191,8 +191,8 @@ end
 %% Pre-processing
 
 %go over all windows and get their sizes
-winSize = NaN(numWinPerp,numWinPara,numWinFrames);
-for iFrame = 1 : numWinFrames
+winSize = NaN(numWinPerp,numWinPara,numWinFrames-1);
+for iFrame = 1 : numWinFrames-1
     for iPara = 1 : numWinPara
         for iPerp = 1 : nBands(iFrame,iPara)
             
@@ -347,7 +347,7 @@ for iType = 1 : numTypes
                     if ~isempty(windowListCurrent)
                         
                         %get window sizes in this window group
-                        linearInd = sub2ind([numWinPerp numWinPara numWinFrames],...
+                        linearInd = sub2ind([numWinPerp numWinPara numWinFrames-1],...
                             windowListCurrent(:,1),windowListCurrent(:,2),windowListCurrent(:,3));
                         windowSizeInd = winSize(linearInd);
                         
@@ -358,7 +358,7 @@ for iType = 1 : numTypes
                         
                         %convert the 4D indices referring to elements in the
                         %extended number matrices to a linear index
-                        linearInd = sub2ind([numWinPerp numWinPara numWinFrames numWinFrames],...
+                        linearInd = sub2ind([numWinPerp numWinPara numWinFrames-1 numWinFrames-1],...
                             windowListCurrent(:,1),windowListCurrent(:,2),...
                             windowListCurrent(:,3),windowListCurrent(:,4));
                         

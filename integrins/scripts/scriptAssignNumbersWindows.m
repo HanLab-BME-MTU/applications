@@ -1,33 +1,33 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructFarn)
+for i = 1 : length(movieStructFarnSim20p5)
     
     disp(num2str(i))
     
-    activityLevel = movieStructFarn(i).activityLevel;
+    activityLevel = movieStructFarnSim20p5(i).activityLevel;
     
     if activityLevel > 1
         
-        tmp = movieStructFarn(i).fileName{1};
+        tmp = movieStructFarnSim20p5(i).fileName{1};
         %         tmp = tmp(11:end);
-        %         cd([tmp '/analysisFarn/furtherAnalysis/adaptiveWindows'])
+        %         cd([tmp '/analysisFarnSim20p5/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(tmp,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        %         cd([topDir '\analysisFarn\furtherAnalysis\adaptiveWindows'])
+        cd([topDir '\analysisFarnSim20p5\furtherAnalysis\adaptiveWindowsSym'])
         
-        %%% for randomization test
-        cd([topDir '\analysisFarn\furtherAnalysis\randomizationTest\adaptiveWindows'])
-        %%% for randomization test
+        %         %%% for randomization test
+        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest\adaptiveWindows'])
+        %         %%% for randomization test
         
-        %         load ../tracksDiffusionLength5InMask.mat
-        %         load ../diffusionModeClassification.mat
+        load ../tracksDiffusionLength5InMask.mat
+        load ../diffusionModeClassification.mat
         
-        %%% for randomization test
-        load ../../tracksDiffusionLength5InMask.mat
-        load ../tracksLength5InMaskRandom.mat
-        load ../../diffusionModeClassification.mat
-        %%% for randomization test
+        %         %%% for randomization test
+        %         load ../../tracksDiffusionLength5InMask.mat
+        %         load ../tracksLength5InMaskRandom.mat
+        %         load ../../diffusionModeClassification.mat
+        %         %%% for randomization test
         
         try
             load windowsActivityTracks.mat

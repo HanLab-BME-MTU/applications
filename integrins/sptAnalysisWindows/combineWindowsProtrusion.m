@@ -2,10 +2,6 @@ function [protrusionCombinedWindows,posInfoCombinedWindows] = ...
     combineWindowsProtrusion(sliceActivityGroup,winPositions,...
     firstMaskFile,protSamples,funcParam)
 
-
-%REMARKS There are various hard-coded numbers in the function. Should
-%        modify for better programming practice.
-%
 %Khuloud Jaqaman, July 2012
 
 %% Input
@@ -34,7 +30,7 @@ pixelCoordX = repmat((1:imageSizeX)',imageSizeY,1);
 pixelCoordY = repmat((1:imageSizeY),imageSizeX,1);
 pixelCoordY = pixelCoordY(:);
 
-%hard-coded numbers
+%various parameters
 numTypeProt = funcParam.numTypeProt; %9; %number of protrusion types, classified based on the events before protrusion
 numPixInBand = funcParam.numPixInBand; %2; %number of pixels in each band, as used throughout the analysis
 numSmallBandsInBigBand = funcParam.numSmallBandsInBigBand; %5; %number of bands making ~1 um, based on the fact that 1 pixel = 111 nm and each band is ~2 pixels deep

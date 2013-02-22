@@ -1,30 +1,30 @@
 
-for i = 1 : length(movieStructFarn)
+for i = 1 : length(movieStructFarnSim20p5)
 
     disp(num2str(i))
     
-    activityLevel = movieStructFarn(i).activityLevel;
+    activityLevel = movieStructFarnSim20p5(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructFarn(i).fileName{1};
+        topDir = movieStructFarnSim20p5(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisFarn/furtherAnalysis'])
+        %         cd([topDir '/analysisFarnSim20p5/furtherAnalysis'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        %         cd([topDir '\analysisFarn\furtherAnalysis'])
+        cd([topDir '\analysisFarnSim20p5\furtherAnalysis'])
         
-        %%% for randomization test
-        cd([topDir '\analysisFarn\furtherAnalysis\randomizationTest'])
-        %%% for randomization test
+        %         %%% for randomization test
+        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest'])
+        %         %%% for randomization test
                 
-        %         load tracksDiffusionLength5InMask.mat
+        load tracksDiffusionLength5InMask.mat
         
-        %%% for randomization test
-        load tracksLength5InMaskRandom.mat
-        %%% for randomization test
+        %         %%% for randomization test
+        %         load tracksLength5InMaskRandom.mat
+        %         %%% for randomization test
         
-        cd adaptiveWindows
+        cd adaptiveWindowsSym
         try
             load windowsActivityTracks.mat
         catch

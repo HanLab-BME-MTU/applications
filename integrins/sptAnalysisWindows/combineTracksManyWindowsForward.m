@@ -13,8 +13,7 @@ eventField = fieldnames(eventCombinedWindows(1).eventInfo(1));
 numFields = length(eventField);
 
 %get size of window track assignment matrix
-% [numBands,numSlices,~,numFramesMinus1] = size(windowTrackAssignExt);
-[numBands,numSlices,~,numFrames] = size(windowTrackAssignExt);
+[numBands,numSlices,~,numFramesMinus1] = size(windowTrackAssignExt);
 
 %reserve memory for output
 for iField = 1 : numFields
@@ -78,7 +77,7 @@ for iType = 1 : numType
                         tracksCurrent{iInc,iCol} = [];
                         windowsListCurrent{iInc,iCol} = [];
                     else
-                        linearInd = sub2ind([numBands numSlices numFrames numFrames],...
+                        linearInd = sub2ind([numBands numSlices numFramesMinus1 numFramesMinus1],...
                             windowTrackFrameIndx(:,1),windowTrackFrameIndx(:,2),...
                             windowTrackFrameIndx(:,3),windowTrackFrameIndx(:,4));
                         assignmentTmp = windowTrackAssignExt(linearInd);

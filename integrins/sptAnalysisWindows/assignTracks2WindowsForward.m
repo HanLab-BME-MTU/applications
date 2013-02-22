@@ -25,7 +25,7 @@ function [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,...
 %                        Optional. Default: 0.
 %
 %OUTPUT windowTrackAssign: 3D Cell array of dimensions (number of bands) x
-%                          (number of slices) x (number of window frames)
+%                          (number of slices) x (number of window frames-1)
 %                          storing for each window in each frame the track
 %                          indices that fall in it.
 %       trackWindowAssign: (Number of tracks/track segments) x 3 array
@@ -40,8 +40,8 @@ function [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,...
 %                          "vertcat" of the field "assignment" gives an
 %                          array = trackWindowAssign.
 %       windowTrackAssignExt: 4D Cell array of dimensions (number of bands) x
-%                          (number of slices) x (number of window frames)
-%                          x (number of window frames) storing for each
+%                          (number of slices) x (number of window frames-1)
+%                          x (number of window frames-1) storing for each
 %                          window in each frame the track indices that fall
 %                          in it, not only in its proper frame range but
 %                          throughout all frame ranges, as indicated by
@@ -76,9 +76,8 @@ if assignSegments == 1 && ~isstruct(tracksFinal)
 end
 
 %generate winFrameMin and winFramesMax for parfor loop
-winFramesMid = floor((winFrames(1:end-1) + winFrames(2:end))/2);
-winFramesMin = [1 winFramesMid];
-winFramesMax = [winFramesMid winFrames(end)+1];
+winFramesMin = winFrames(1:end-1);
+winFramesMax = winFrames(2:end);
 
 %% Pre-processing
 
@@ -145,17 +144,17 @@ end
 
 %initialize cell arrays storing the grouping of tracks into windows for
 %each window frame range
-windowTrackAssign = cell(numWinPerp,numWinPara,numWinFrames);
-windowTrackAssignExt = cell(numWinPerp,numWinPara,numWinFrames,numWinFrames);
+windowTrackAssign = cell(numWinPerp,numWinPara,numWinFrames-1);
+windowTrackAssignExt = cell(numWinPerp,numWinPara,numWinFrames-1,numWinFrames-1);
 
 %also initialize numTracks x 3 array storing for each track its window
 %assignment
 trackWindowAssign = NaN(numTracks,3);
 
 %group tracks based on what window frame range they fall into
-trackGroup = repmat(struct('indx',[]),numWinFrames,1);
-parfor iWinFrame = 1 : numWinFrames
-  
+trackGroup = repmat(struct('indx',[]),numWinFrames-1,1);
+parfor iWinFrame = 1 : numWinFrames - 1
+   
     %get current spt frame number and next spt frame number
     minFrame = winFramesMin(iWinFrame);
     maxFrame = winFramesMax(iWinFrame);
@@ -169,8 +168,8 @@ parfor iWinFrame = 1 : numWinFrames
 end
 
 %assign tracks to windows
-%this is the extended assignement over all frame ranges
-parfor iWinFrameExt = 1 : numWinFrames %this loops over window frames to fetch tracks
+%this is the extended assignement over all frames ranges
+parfor iWinFrameExt = 1 : numWinFrames - 1 %this loops over window frames to fetch tracks
     
     %find tracks in this time window
     indxFrameRange = trackGroup(iWinFrameExt).indx;
@@ -179,8 +178,8 @@ parfor iWinFrameExt = 1 : numWinFrames %this loops over window frames to fetch t
     xCoordMeanFR = xCoordMean(indxFrameRange); %#ok<PFBNS>
     yCoordMeanFR = yCoordMean(indxFrameRange); %#ok<PFBNS>
     
-    assignMatTmp = cell(numWinPerp,numWinPara,numWinFrames);
-    for iWinFrame = 1 : numWinFrames %this loops over window frames to fetch windows
+    assignMatTmp = cell(numWinPerp,numWinPara,numWinFrames-1);
+    for iWinFrame = 1 : numWinFrames - 1 %this loops over window frames to fetch windows
         
         %go over windows in this frame
         for iPara = 1 : numWinPara %slices
@@ -211,15 +210,15 @@ parfor iWinFrameExt = 1 : numWinFrames %this loops over window frames to fetch t
             end
         end
         
-    end %(for iWinFrame = 1 : numWinFrames)
+    end %(for iWinFrame = 1 : numWinFrames - 1)
     
     %store extended assignment in output matrix
     windowTrackAssignExt(:,:,:,iWinFrameExt) = assignMatTmp;
     
-end %(for iWinFrameExt = 1 : numWinFrames)
+end %(for iWinFrameExt = 1 : numWinFrames - 1)
 
 %assign tracks to windows in their proper frame range
-for iWinFrame = 1 : numWinFrames
+for iWinFrame = 1 : numWinFrames - 1
     
     %store track indices in window cell array
     windowTrackAssign(:,:,iWinFrame) = windowTrackAssignExt(:,:,iWinFrame,iWinFrame);
