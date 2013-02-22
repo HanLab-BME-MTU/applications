@@ -23,18 +23,22 @@ ip.addRequired('uy',@isnumeric);
 ip.addRequired('forceMesh',@isstruct);
 ip.addRequired('E',@isscalar);
 ip.addRequired('L',@isscalar);
-ip.addRequired('x_out',@(x)isscalar(x)||isempty(x));
-ip.addRequired('y_out',@(x)isscalar(x)||isempty(x));
+ip.addRequired('x_out',@isnumeric);%@(x)isscalar(x)||isempty(x));
+ip.addRequired('y_out',@isnumeric);%@(x)isscalar(x)||isempty(x));
 ip.addRequired('method',@(x)ischar(x)||isempty(x)); % updated in case for BEM
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('wtBar',-1,@isscalar);
+ip.addParamValue('imgRows',[],@isscalar);
+ip.addParamValue('imgCols',[],@isscalar);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
 wtBar=ip.Results.wtBar;
+imgRows = ip.Results.imgRows;
+imgCols = ip.Results.imgCols;
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -60,8 +64,14 @@ pos_u=horzcat(x_vec,y_vec);
 display('2.) Building up forward map:...');
 tic;
 if nargin >= 10 && strcmp(method,'fast')
-    M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-        'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);    
+    if nargin >= 15
+        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols);    
+    else
+        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);
+    end
+        
 else
     span = 1:length(forceMesh.bounds);
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol);
@@ -74,6 +84,34 @@ display('Done: forward map!');
 % x = A\B is the solution to the equation Ax = B. The equation we have to
 % solve is:
 % (L*eyeWeights+ MpM)*sol_coef=(M'*u);
+
+% For L-curve
+% [~,n] = size(M);
+% 
+% B0 = M'*M;
+% b  = M'*u;
+% 
+% bfSigmaRange2 = L*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
+% bfSigmaRange1 = bfSigmaRange2/5;
+% bfSigmaRange3 = bfSigmaRange2*5;
+% bfSigmaCandidate = [bfSigmaRange1 bfSigmaRange2 bfSigmaRange3];
+% bfSigmaCandidate = sort(bfSigmaCandidate);
+% coefNorm    = zeros(1,length(bfSigmaCandidate));
+% residueNorm = zeros(1,length(bfSigmaCandidate));
+% for kk = 1:length(bfSigmaCandidate)
+%  B_i = B0 + bfSigmaCandidate(kk)*eye(n);
+%  coef_i = B_i\b;
+%  coefNorm(kk)    = sqrt(sum(coef_i.^2));
+%  residueNorm(kk) = sqrt(sum((M*coef_i-u).^2));
+% end
+% 
+% %Plot the L-curve.
+% figure; hold on;
+% plot(coefNorm,residueNorm,'.');
+% for kk = 1:length(bfSigmaCandidate)
+%  text(coefNorm(kk),residueNorm(kk),num2str(bfSigmaCandidate(kk)));
+% end
+      
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
@@ -126,16 +164,14 @@ if nargin >= 10 && strcmp(method,'fast')
         % between the QR-sol and the sol obtained from the backslash
         % operator was: 2.0057e-06 for a mean force magnitude of
         % 85.7. Thus they seem to be numerical identical!
-        [Q,R] = qr((L*eyeWeights+ M'*M));
-        % Sangyoon Han: found that a few NaNs in u makes M'*u all NaNs
-        % which makes sol_coef all NaNs. To fix this, I made a u_sol that
-        % has zero in the places of NaNs. However, probably making all NaNs
-        % to zeros can make another source of error for constructing
-        % forces. Maybe the code needs to eliminate
+        % accounting for badly scaled linear system - Sangyoon 02/20/13
+        % sol_coef = (M'*M+L*D^2)\(M'*u_sol); where D = scaling matrix
+        % reference: p11 in Neumaier, Solving ill-conditioned and singular
+        % linear systems: a tutorial on regularization
+        MpM=M'*M;
+        D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
+        [Q,R] = qr((MpM+L*D^2));
         u_sol = u;
-%         ind = find(~isnan(u_sol));
-%         u_sol = u_sol(ind,:);
-%         u_sol(find(isnan(u)))=0;
         sol_coef=R\(Q'*(M'*u_sol));
         sol_mats.Q=Q;
         sol_mats.R=R;

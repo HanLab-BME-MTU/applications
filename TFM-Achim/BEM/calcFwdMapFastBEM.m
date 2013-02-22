@@ -10,11 +10,16 @@ ip.addOptional('meshPtsFwdSol',[],@isscalar);
 ip.addOptional('doPlot',0,@isscalar);
 ip.addParamValue('basisClassTblPath','basisClassTbl.mat',@ischar);
 ip.addParamValue('wtBar',-1,@isscalar);
+ip.addParamValue('imgRows',1024,@isscalar);
+ip.addParamValue('imgCols',1334,@isscalar);
 ip.parse(x_vec_u, y_vec_u, forceMesh, E,varargin{:})
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 doPlot=ip.Results.doPlot;
 basisClassTblPath=ip.Results.basisClassTblPath;
 wtBar=ip.Results.wtBar;
+imgRows = ip.Results.imgRows;
+imgCols = ip.Results.imgCols;
+    
 
 % try to load the lookup table:
 try
@@ -33,8 +38,8 @@ end
 % that actually 2^11 points are fine for calculating the basis solutions
 % for such a configuration. 2^12 should be fine for sure!
 forceSpan=1;
-imgRows=1024;
-imgCols=1344;
+% imgRows=1024;
+% imgCols=1344;
     
 
 % transform to column vectors:
