@@ -12,7 +12,7 @@
 % imSize  ->  image size in pixel
 %    rep  ->  number of frames in activation cycle
 tExp=0.05;
-imSize=[128,128];
+imSize=[256,256];
 rep=10;
 
 nTracks=numel(tracksFinal);
@@ -96,13 +96,13 @@ yONcdf=cumsum(yON)*tExp/area;
 
 ft=fittype(@(kc,x) 1.0-exp(-kc*x));
 pini=( yONcdf(2)-yONcdf(1) )/( xON(2)-xON(1) );
-tonFit=fit(xON',yONcdf',ft,'StartPoint',pini);
+tonFit=fit(xON(3:end)',yONcdf(3:end)',ft,'StartPoint',pini);
 
 %% continue with distribution of blinks
 
 % group center of mass of tracks via mean-shift clustering
 allCom=vertcat(track.com);
-[clusterInfo,clusterMap]=MeanShiftClustering(allCom(:,1:2),1,'kernel','flat');
+[clusterInfo,clusterMap]=MeanShiftClustering(allCom(:,1:2),0.25,'kernel','flat');
 
 for i=1:numel(clusterInfo)
     numPts=clusterInfo(i).numPoints;
@@ -116,8 +116,12 @@ for i=1:numel(clusterInfo)
     clusterInfo(i).data=tmp;
     clusterInfo(i).time=tmp2;
     
-    [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,3:4),'s');
-    clusterInfo(i).ptClusterCenter=[wm,ws,sqrt(sum(ws.^2))];
+    if size(tmp,1) > 1
+        [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,3:4),'s');
+        clusterInfo(i).ptClusterCenter=[wm,ws,sqrt(sum(ws.^2))];
+    else
+        clusterInfo(i).ptClusterCenter=[tmp(1:4),sqrt(sum(tmp(3:4).^2))];
+    end
 end
 
 %% number of blinks, fit to CDF of geometric distribution
@@ -171,4 +175,4 @@ toffFit=fit(xOFF',yOFFcdf',ft,'StartPoint',pini);
 %% clear unused variables
 clear startF stopF idx tmp i;
 clear p nrows ncols nTracks;
-claer tmp1 tmp2;
+clear tmp1 tmp2;
