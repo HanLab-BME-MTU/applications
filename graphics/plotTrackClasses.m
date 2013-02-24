@@ -9,7 +9,7 @@ ip.CaseSensitive = false;
 ip.addRequired('v');
 ip.addOptional('c', []);
 ip.addParamValue('Handle', []);
-ip.addParamValue('YLim', [0 0.8]);
+ip.addParamValue('YLim', []);
 ip.addParamValue('YTick', 0:0.1:1);
 ip.addParamValue('FaceColor', fset.cfTrackClasses);
 ip.addParamValue('EdgeColor', fset.ceTrackClasses);
@@ -34,14 +34,25 @@ if iscell(v)
     vneg = cellfun(@(i,j) i(j==0), v, c, 'unif', 0);
     v = arrayfun(@(i) hist(vpos{i}, 1:8)/numel(v{i}), 1:numel(v), 'unif', 0);
     v = vertcat(v{:});
+    mu = mean(v,1);
+    sigma = std(v,[],1);
+else
+    mu = hist(v, 1:8)/numel(v);
+    sigma = [];
 end
 
-mu = mean(v,1);
-sigma = std(v,[],1);
+YLim = ip.Results.YLim;
+if isempty(YLim)
+    tmp = mu;
+    if ~isempty(sigma)
+        tmp = tmp+sigma;
+    end
+    YLim = [0 ceil(max(tmp)/0.2)*0.2];
+end
 
 barplot2(mu, sigma, 'Handle', ha, 'BarWidth', 0.6, 'GroupDistance', 0.8,...
     'FaceColor', ip.Results.FaceColor, 'EdgeColor', ip.Results.EdgeColor,...
-    'XLabels', xlabels, 'YTick', 0:0.2:1, 'YLim', ip.Results.YLim);
+    'XLabels', xlabels, 'YTick', 0:0.2:1, 'YLim', YLim);
 ylabel('% tracks', fset.lfont{:});
 
 % inset

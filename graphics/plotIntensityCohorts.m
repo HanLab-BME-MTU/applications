@@ -60,18 +60,17 @@ if isempty(YLim) && ~isempty(ip.Results.YTick)
 end
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-    'OutputName', ip.Results.LftDataName, 'Rescale', true, 'Cutoff_f', 5,...
+    'OutputName', ip.Results.LftDataName, 'Rescale', ip.Results.Rescale, 'Cutoff_f', 5,...
     'ReturnValidOnly', true, 'ExcludeVisitors', ip.Results.ExcludeVisitors);
 
-% if ~isempty(ip.Results.TrackIndex)
-%     for i = 1:nd
-%         for f = 1:numel(lftFields)
-%             lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(ip.Results.TrackIndex{i},:,:);
-%         end
-%         lftData(i).lifetime_s = lftData(i).lifetime_s(ip.Results.TrackIndex{i});
-%         lftData(i).trackLengths = lftData(i).trackLengths(ip.Results.TrackIndex{i});
-%     end
-% end
+if ~isempty(ip.Results.TrackIndex)
+    lftFields = fieldnames(lftData);
+    for i = 1:nd
+        for f = 1:numel(lftFields)
+            lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(ip.Results.TrackIndex{i},:,:);
+        end
+    end
+end
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('interpTracks', [], 'interpSigLevel', []);
