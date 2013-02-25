@@ -627,7 +627,7 @@ if any(verbose == 1)
     % now, we plot the evolution of the description length
     % and signal where components where killed
     figure
-    plot(dl,'LineWidth',2)
+    subplot(2,1,1),plot(dl,'LineWidth',2)
     title('Description Length')
     ax = axis;
     for i=1:length(transitions1)
@@ -636,6 +636,11 @@ if any(verbose == 1)
     for i=1:length(transitions2)
         line([transitions2(i) transitions2(i)],[ax(3) ax(4)],'LineStyle',':')
     end
+    hold on
+    plot(find(dl == mindl),mindl,'ro');
+    hold off
+    
+    subplot(2,1,2), plot(kappas,'-r*');
     figure(thefig)
 end
 

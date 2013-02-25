@@ -1,7 +1,7 @@
-function [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPois(y,kmin,kmax,lambda,th,globcov,pp,mu,verbose)
+function [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPoisCDFpenalty(y,kmin,kmax,lambda,penalty_sigma,th,globcov,pp,mu,verbose)
 %
 % Syntax:
-% [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4(y,kmin,kmax,regularize,th,covoption,pp,mu,verbose)
+% [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPoisCDFpenalty(y,kmin,kmax,lambda,th,globcov,pp,mu,verbose)
 %
 % Inputs:
 %
@@ -15,6 +15,10 @@ function [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPois
 %
 %
 % "lambda" is the reappreance rate per frame of a dye
+%
+% "penalty_sigma" is the sigma of the density penalty gaussian. It is
+%                 treated as a precentage of lambda,i.e. used as
+%                 penalty_sigma*lambda.
 %
 % "th" is a stopping threshold (checks for relative change in the log-likelihood)
 %
@@ -57,22 +61,13 @@ function [bestk,bestpp,bestmu,bestcov,bestindic,dl,countf] = mixtures4_GaussPois
 %
 %   2000, 2001, 2002
 %
-% Edited by:
-%   Jeffrey Werbin
-%   Harvard Medical School
-%   2013
-%   to allow for fixed gobal variance.
 %
 % Edited by:
 %   Jeffrey Werbin
 %   Harvard Medical School
-%   2013-02-03
-%   Now can use a modeling consisting of a 2D spatial guassian times a sum
-%   of Poissonians in time
+%   2013-02-20
+%   
 %
-%
-%  2013-02-14
-%  vectorized Pois calculation for speed
 
 
 bins = 40; % number of bins for the univariate data histograms for visualization
@@ -87,23 +82,31 @@ y = y(1:dimens-1,:);
 
 dimens = dimens -1; %separate the time from the spatial dimensions
 
-npars = dimens; %only 2 parameters per model Mux and Muy
+npars = dimens+1; %includes time in the N for the kiling step     
 nparsover2 = npars / 2;
 
 %Determine the distribution in time
-Pois = PoisDt(lambda,max(t));
+tmax =max(t);
+Pois = PoisCDF(lambda,tmax);
 
 %Precalculate all Pois(ti-tj)
 %Improves computation speed inexchange for memory usage. Scales better with
 %numpoints
 dt = repmat(t,[npoints,1])-repmat(t',[1,npoints]);
-Norm = dt > 0;
-dt(dt <= 0)=1;
-TimeP = Norm.*Pois(dt);
+dt(dt < 0)=tmax;
+dt = dt+1; % offsets by one for the purpose of indexing
+TimeP = Pois(dt);
+
+%As it is the probability of point i being the next occurance of point i is
+%exactly 0 but the probabilty of point i being assigned to a cluster that
+%it is already assigned to should not be zero. So set the probabilities
+%along the diagnol equal to 1. 
+diagnol = sub2ind(size(TimeP),1:npoints,1:npoints);
+TimeP(diagnol) = 1; 
 
 % make verbose optional 
-if nargin < 9 | isempty(verbose)
-    verbose = [0];
+if nargin < 10 | isempty(verbose)
+    verbose = 0;
 end
 
 
@@ -120,7 +123,7 @@ k = kmax;
 % the mixture components, as result of the E-step
 indic = zeros(k,npoints);
 
-if nargin < 8 | isempty(mu)
+if nargin < 9 | isempty(mu)
     % Initialization: we will initialize the means of the k components 
     % with k randomly chosen data points. Randperm(n) is a MATLAB function
     % that generates random permutations of the integers from 1 to n.
@@ -130,7 +133,7 @@ if nargin < 8 | isempty(mu)
 else
     estmu=mu;
 end
-if nargin < 7 | isempty(pp)    
+if nargin < 8 | isempty(pp)    
     % the initial estimates of the mixing probabilities are set to 1/k
     estpp = (1/k)*ones(1,k);
 else
@@ -199,9 +202,28 @@ end
 %normalize before computing the time component by dividing by sum of all
 %possible models
 normindic = indic./(realmin+kron(ones(k,1),sum(indic,1)));
+%makes best guess assignments of points to models
+[c,ind]=max(normindic); %finds the most probable model assignment
+ind = sub2ind(size(normindic),ind,1:npoints);
+hardIndic = zeros(size(normindic));
+hardIndic(ind)=1;
+
 for i=1:k
-    time_indic(i,:) = multiPoisVec(TimeP,normindic(i,:),k);
-    indic(i,:) = time_indic(i,:).*indic(i,:);
+    time_indic(i,:) = multiPoisCDFVec(TimeP,hardIndic(i,:));
+    hardpnts = t(logical(hardIndic(i,:)));
+    mi = min(hardpnts);
+    ma = max(hardpnts);
+    if isempty(ma)
+        modelFactor = 0;
+    else
+        modelDensity = sum(hardpnts)/(ma-mi);
+        %model factor is a penalty term for each model j based on how close its
+        %density is to ideal it is a gaussian of (1/modelDensity - 1/lambda)^2
+        %the terms are inverted to make the term more strongly penalize
+        %low density models. Sigma of the form 1/(penalty_sigma*lambda)
+        modelFactor = exp( -0.5*((1/modelDensity - 1/lambda)*(penalty_sigma*lambda))^2);
+    end
+    indic(i,:) = time_indic(i,:).*indic(i,:)*modelFactor;
 end
 
 %renormalize after including the time term
@@ -238,6 +260,7 @@ bestindic = normindic;
 k_cont = 1;    % auxiliary variable for the outer loop
 while(k_cont)  % the outer loop will take us down from kmax to kmin components
     cont=1;        % auxiliary variable of the inner loop
+    conv_cont=50;   % an extra counter to avoid infinite cycling
     while(cont)    % this inner loop is the component-wise EM algorithm with the
         % modified M-step that can kill components
         if any(verbose == 2)
@@ -247,7 +270,6 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             disp(sprintf('k = %2d,  minestpp = %0.5g', k, min(estpp)));
         end   
         
-        
         % we begin at component 1
         comp = 1;
         % ...and can only go to the last component, k. 
@@ -256,17 +278,44 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             % we start with the M step
             % first, we compute a normalized indicator function
             
-             if sum(sum(isnan(estmu))) | sum(isnan(estpp)) | sum(sum(isnan(indic)))
-                 k
-             end
+%             if sum(sum(isnan(estmu))) | sum(isnan(estpp)) | sum(sum(isnan(indic)))
+%                 k
+%             end
             
             clear indic
             clear temp
+
+            if k > 1
+              %makes best guess assignments of points to models
+              [c,ind]=max(normindic); %finds the most probable model assignment
+              ind = sub2ind(size(normindic),ind,1:npoints);
+              hardIndic = zeros(size(normindic));
+              hardIndic(ind)=1;
+            else 
+              hardIndic = normindic;
+            end
+
+
+
+            
             for i=1:k
-                temp = multiPoisVec(TimeP,normindic(i,:),k);
+                temp = multiPoisCDFVec(TimeP,hardIndic(i,:));
                 %temp is recalculated at each step because the time comp is
                 %dependent on normindic
-                indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
+                hardpnts = t(logical(hardIndic(i,:)));
+                mi = min(hardpnts);
+                ma = max(hardpnts);
+                if isempty(ma)
+                    modelFactor = 0;
+                else
+                    modelDensity = sum(hardpnts)/(ma-mi);
+                    %model factor is a penalty term for each model j based on how close its
+                    %density is to ideal it is a gaussian of (1/modelDensity - 1/lambda)^2
+                    %the terms are inverted to make the term more strongly penalize
+                    %low density models. Sigma of the form 1/(penalty_sigma*lambda)
+                    modelFactor = exp( -0.5*((1/modelDensity - 1/lambda)*(penalty_sigma*lambda))^2);
+                end
+                indic(i,:) = semi_indic(i,:)*estpp(i).*temp*modelFactor;
             end
             % dividing by the sum of all possible models
             normindic = indic./(realmin+kron(ones(k,1),sum(indic,1)));
@@ -332,7 +381,6 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
                     end
                 end
                 
-                
                 % since we've just killed a component, k must decrease
                 k=k-1; 
                 % dividing by the sum of all possible models
@@ -355,17 +403,40 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             
         end % this is the end of the innermost "while comp <= k" loop 
         % which cycles through the components
-                  
         
         % increment the iterations counter            
         countf = countf + 1;
         
         clear indic
         clear semi_indic
+
+        if k > 1
+            %makes best guess assignments of points to models
+            [c,ind]=max(normindic); %finds the most probable model assignment
+            ind = sub2ind(size(normindic),ind,1:npoints);
+            hardIndic = zeros(size(normindic));
+            hardIndic(ind)=1;
+        else 
+            hardIndic = normindic;
+        end
+        
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPoisVec(TimeP,normindic(i,:),k);
-            indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
+            temp = multiPoisCDFVec(TimeP,hardIndic(i,:));
+            hardpnts = t(logical(hardIndic(i,:)));
+            mi = min(hardpnts);
+            ma = max(hardpnts);
+            if isempty(ma)
+                modelFactor = 0;
+            else
+                modelDensity = sum(hardpnts)/(ma-mi);
+                %model factor is a penalty term for each model j based on how close its
+                %density is to ideal it is a gaussian of (1/modelDensity - 1/lambda)^2
+                %the terms are inverted to make the term more strongly penalize
+                %low density models. Sigma of the form 1/(penalty_sigma*lambda)
+                modelFactor = exp( -0.5*((1/modelDensity - 1/lambda)*(penalty_sigma*lambda))^2);
+            end                        
+            indic(i,:) = semi_indic(i,:)*estpp(i).*temp*modelFactor;
         end
         
         if k~=1
@@ -387,15 +458,16 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         deltlike = loglike(countf) - loglike(countf-1);
         if any(verbose == 2)
             disp(sprintf('deltaloglike/th = %0.7g', abs(deltlike/loglike(countf-1))/th));
-        end      
-        if (abs(deltlike/loglike(countf-1)) < th) | isnan(deltlike)
+        end
+        conv_cont = conv_cont-1;
+        if (abs(deltlike/loglike(countf-1)) < th) | isnan(deltlike) | conv_cont == 0
             % if the relative change in loglikelihood is below the threshold, we stop CEM2
             % & we want to stop if deltlike became nan, because otherwise
             % we have an infinite loop.
             cont=0;
         end
         
-        % now check if the latest description length is the best;
+        % now check if the latest description length is the best; 
         % if it is, we store its value and the corresponding estimates 
         if dl(countf) < mindl
             bestpp = estpp;
@@ -404,13 +476,9 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
             bestk = k;
             mindl = dl(countf);
             bestindic = normindic;
-        end      
-                
+        end
+
     end % this end is of the inner loop: "while(cont)"
-    
-    if sum(sum(isnan(estmu))) | sum(isnan(estpp)) | sum(sum(isnan(indic)))
-         k
-    end
     
     if any(verbose==4)
         figure 
@@ -517,10 +585,35 @@ while(k_cont)  % the outer loop will take us down from kmax to kmin components
         % ...and compute the loglikelihhod function and the description length
         clear indic
         clear semi_indic
+        
+        
+        if k > 1
+            %makes best guess assignments of points to models
+            [c,ind]=max(normindic); %finds the most probable model assignment
+            ind = sub2ind(size(normindic),ind,1:npoints);
+            hardIndic = zeros(size(normindic));
+            hardIndic(ind)=1;
+        else 
+            hardIndic = normindic;
+        end
+        
         for i=1:k
             semi_indic(i,:) = multinorm(y,estmu(:,i),estcov(:,:,i));
-            temp = multiPoisVec(TimeP,normindic(i,:),k);
-            indic(i,:) = semi_indic(i,:)*estpp(i).*temp;
+            temp = multiPoisCDFVec(TimeP,hardIndic(i,:));
+            hardpnts = t(logical(hardIndic(i,:)));
+            mi = min(hardpnts);
+            ma = max(hardpnts);
+            if isempty(ma)
+                modelFactor = 0;
+            else
+                modelDensity = sum(hardpnts)/(ma-mi);
+                %model factor is a penalty term for each model j based on how close its
+                %density is to ideal it is a gaussian of (1/modelDensity - 1/lambda)^2
+                %the terms are inverted to make the term more strongly penalize
+                %low density models. Sigma of the form 1/(penalty_sigma*lambda)
+                modelFactor = exp( -0.5*((1/modelDensity - 1/lambda)*(penalty_sigma*lambda))^2);
+            end                  
+            indic(i,:) = semi_indic(i,:)*estpp(i).*temp*modelFactor;
         end
         
         
@@ -545,10 +638,6 @@ end % this is the end of the outer loop "while(k_cont)"
 lastpp = estpp;
 lastmu = estmu;
 lastcov = estcov;
-
-if bestk > 10
-    k
-end
 
 % finally, we plot the results
 if any(verbose == 1)
@@ -594,7 +683,7 @@ if any(verbose == 1)
     % now, we plot the evolution of the description length
     % and signal where components where killed
     figure
-    plot(dl,'LineWidth',2)
+    subplot(2,1,1),plot(dl,'LineWidth',2)
     title('Description Length')
     ax = axis;
     for i=1:length(transitions1)
@@ -603,6 +692,10 @@ if any(verbose == 1)
     for i=1:length(transitions2)
         line([transitions2(i) transitions2(i)],[ax(3) ax(4)],'LineStyle',':')
     end
+    hold on
+    subplot(2,1,1), plot(find(dl == mindl),mindl,'ro');
+    hold off
+    subplot(2,1,2), plot(kappas,'-r*');
     figure(thefig)
 end
 
@@ -614,36 +707,22 @@ end
 %Slave function for calculating Poission probability of re-appearing
 %   between t and t+1 where t is given in #frames
 
-function dist = PoisDt(lamda,tmax)
-% Calculates probabibilty that the next event happens between time t and
-% t+1 using formula from integral(Pois(lamda,t|k=1), t,t+1)
-% = e^(-lt)*( t + 1/l - e^(-l)*(t+1+1/l)
+function dist = PoisCDF(lamda,tmax)
+% Calculates probabibilty that the next event following ti has already
+% occured. It penalizes points that are temporally too close
+% 
     ti = 0:tmax; % Calculation from 0 so that if you consider something at t=1 it refects the probability of arriving between t=0 and t =1
     l = lamda;
-    dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
-    %dist = l*ti.*exp(-l*ti);
-    dist = dist/sum(dist);
+    dist = 1-exp(-l*ti);
 end
 
 
-
-function y= multiPoisVec(Pois,indic,k)
+function y= multiPoisCDFVec(Pois,indic)
 %calculates Pois sum given indic
 % Pois is an npoint x npoint vector and indic is a 1xnpoint vector
 
-[n,numpnts]=size(Pois);
-y = sum(Pois.*repmat(indic',[1,numpnts]));
-N=sum(indic);
-if N > 0
-    y=y/N;
-else
-    y=zeros(size(y));
-end
-
-%special case first point, penalizes being the first point in the cluster
-%your probability will always be zero, if a point that has a y of 0 and an
-%indic of > 0.3 (meaning a strong association with a model) y is set to 1
-
-y(y==0 & indic>=1/k)=1;
+[numpnts,numpnts2]=size(Pois);
+y = prod(Pois(logical(indic),:),1);
 
 end
+
