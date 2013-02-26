@@ -170,6 +170,8 @@ if nargin >= 10 && strcmp(method,'fast')
         % linear systems: a tutorial on regularization
         MpM=M'*M;
         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
+        %normalizing the scaling matrix
+        D = D./normest(D);
         [Q,R] = qr((MpM+L*D^2));
         u_sol = u;
         sol_coef=R\(Q'*(M'*u_sol));
