@@ -622,7 +622,7 @@ function dist = PoisDt(lamda,tmax)
     l = lamda;
     dist = exp(-l*ti).*((ti+1/l*(ones(size(ti))))-exp(-l).*(ti+(1+1/l)*ones(size(ti))));
     %dist = l*ti.*exp(-l*ti);
-    dist = dist/sum(dist);
+    %dist = dist/sum(dist);
 end
 
 
