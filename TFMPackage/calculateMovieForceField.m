@@ -81,7 +81,7 @@ end
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
 
-%% --------------- Displacement field calculation ---------------%%% 
+%% --------------- Force field calculation ---------------%%% 
 
 disp('Starting calculating force  field...')
 displField=displFieldProc.loadChannelOutput;
@@ -126,7 +126,8 @@ for i=1:nFrames
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:});
+                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2));
             display('The total time for calculating the FastBEM solution: ')
             
             % The following values should/could be stored for the BEM-method.
