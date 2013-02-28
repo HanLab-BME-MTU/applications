@@ -32,6 +32,7 @@ ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
+ip.addOptional('fwdMap',[],@isnumeric);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -39,6 +40,7 @@ basisClassTblPath=ip.Results.basisClassTblPath;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
+M = ip.Results.fwdMap;
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -63,7 +65,7 @@ pos_u=horzcat(x_vec,y_vec);
 
 display('2.) Building up forward map:...');
 tic;
-if nargin >= 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     if nargin >= 15
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols);    
@@ -71,10 +73,11 @@ if nargin >= 10 && strcmp(method,'fast')
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);
     end
-        
-else
+elseif isempty(M)
     span = 1:length(forceMesh.bounds);
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol);
+else
+    display('Using input Forward Map');
 end
 toc;
 display('Done: forward map!');
@@ -111,7 +114,7 @@ display('Done: forward map!');
 % for kk = 1:length(bfSigmaCandidate)
 %  text(coefNorm(kk),residueNorm(kk),num2str(bfSigmaCandidate(kk)));
 % end
-      
+     
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
@@ -169,8 +172,23 @@ if nargin >= 10 && strcmp(method,'fast')
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
         MpM=M'*M;
+%         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
+%         [Q,R] = qr((MpM+L*D^2));
+        [Q,R] = qr((MpM+L*eyeWeights));
+        u_sol = u;
+        sol_coef=R\(Q'*(M'*u_sol));
+        sol_mats.Q=Q;
+        sol_mats.R=R;
+        sol_mats.L=L;
+        sol_mats.nW=normWeights;        
+        sol_mats.tool='QR';
+    elseif strcmpi(solMethodBEM,'QRscaled')
+        % accounting for badly scaled linear system - Sangyoon 02/20/13
+        % sol_coef = (M'*M+L*D^2)\(M'*u_sol); where D = scaling matrix
+        % reference: p11 in Neumaier, Solving ill-conditioned and singular
+        % linear systems: a tutorial on regularization
+        MpM=M'*M;
         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
-        %normalizing the scaling matrix
         D = D./normest(D);
         [Q,R] = qr((MpM+L*D^2));
         u_sol = u;
@@ -179,7 +197,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.R=R;
         sol_mats.L=L;
         sol_mats.nW=normWeights;        
-        sol_mats.tool='QR';
+        sol_mats.tool='QRscaled';
     elseif strcmpi(solMethodBEM,'backslash') || strcmpi(solMethodBEM,'\')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
