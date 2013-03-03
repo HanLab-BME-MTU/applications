@@ -13,7 +13,7 @@ ip.addOptional('ch', nCh:-1:1);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 120]);
 ip.addParamValue('ShowVariation', true, @islogical);
-ip.addParamValue('Mode', 'percentiles', @(x) any(strcmpi(x, {'SEM', 'percentiles'})));
+ip.addParamValue('FillMode', 'SEM', @(x) any(strcmpi(x, {'SEM', 'pct'})));
 ip.addParamValue('FrontLayer', false, @islogical);
 ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
@@ -52,7 +52,12 @@ kLevel = norminv(1-ip.Results.Alpha/2.0, 0, 1);
 nc = numel(cohortBounds)-1;
 b = 5;
 framerate = data(1).framerate;
-cohortBounds(end) = cohortBounds(end)+framerate;
+
+% # data points in cohort (including buffer frames)
+iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
+% time vectors for cohorts
+cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
+
 XLim = [-b*framerate-5 cohortBounds(end)];
 YLim = ip.Results.YLim;
 if isempty(YLim) && ~isempty(ip.Results.YTick)
@@ -65,6 +70,8 @@ lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
 
 if ~isempty(ip.Results.TrackIndex)
     lftFields = fieldnames(lftData);
+    i = cellfun(@(f) size(lftData(1).(f),1)==numel(lftData(1).lifetime_s), lftFields);
+    lftFields = lftFields(i);
     for i = 1:nd
         for f = 1:numel(lftFields)
             lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(ip.Results.TrackIndex{i},:,:);
@@ -74,12 +81,7 @@ end
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('interpTracks', [], 'interpSigLevel', []);
-
-% # data points in cohort (including buffer frames)
-iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
-% time vectors for cohorts
-cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
-
+cohortBounds(end) = cohortBounds(end)+framerate;
 for i = 1:nd
     
     % for intensity threshold in master channel
@@ -125,6 +127,8 @@ for i = 1:nd
         end
     end
 end
+cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) 's'], 1:nc-1, 'Unif', 0);
+XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
 
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
@@ -176,8 +180,6 @@ cohorts.bounds = cohortBounds;
 %==================================================
 % Plot cohorts
 %==================================================
-XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
-cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-2) 's'], 1:6, 'UniformOutput', false);
 
 if ~(isfield(res(1), 'sigIdx') && nCh==2)
     
@@ -190,12 +192,32 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
         for ch = chVec
             if nd > 1
                 % means for each data set
-                AMat = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
-                AMat = vertcat(AMat{:});
-                A{ch,c} = nanmean(AMat,1);
-                SEM = nanstd(AMat,[],1)/sqrt(nd);
-                Amin = A{ch,c} - SEM;
-                Aplus = A{ch,c} + SEM;
+                if strcmpi(ip.Results.FillMode, 'SEM')
+                    AMat = arrayfun(@(x) nanmean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
+                    AMat = vertcat(AMat{:});
+                    A{ch,c} = nanmean(AMat,1);
+                    SEM = nanstd(AMat,[],1)/sqrt(nd);
+                    Amin = A{ch,c} - SEM;
+                    Aplus = A{ch,c} + SEM;
+                else
+                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},50,1), res, 'Unif', 0);
+                    %AMat = vertcat(AMat{:});
+                    %A{ch,c} = mean(AMat,1);
+                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},25,1), res, 'Unif', 0);
+                    %AMat = vertcat(AMat{:});
+                    %Amin = mean(AMat,1);
+                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},75,1), res, 'Unif', 0);
+                    %AMat = vertcat(AMat{:});
+                    %Aplus = mean(AMat,1);
+                    
+                    %AMat = arrayfun(@(x) nanmedian(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
+                    %AMat = vertcat(AMat{:});
+                    %A{ch,c} = nanmean(AMat,1);
+                    
+                    %Amin = prctile(AMat,25,1);
+                    %Aplus = prctile(AMat,75,1);
+                end
+                
             else
                 % if input is a single data set, show median + percentiles
                 M = prctile(res(1).interpTracks{ch,c}, [25 50 75], 1);

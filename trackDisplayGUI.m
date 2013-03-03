@@ -942,9 +942,8 @@ if ~isempty(handles.tracks{handles.mCh})
     % IIb) Compound tracks with invalid gaps
     % IIc) Compound tracks cut at beginning or end
     % IId) Compound tracks, persistent
-    v = hist([handles.tracks{handles.mCh}.catIdx], 1:8);
-    v = v/numel(handles.tracks{handles.mCh});
-    plotTrackClasses(v', 'YLim', [0 max(0.8, max(v))]);
+    v = [handles.tracks{handles.mCh}.catIdx];
+    plotTrackClasses(v);
 end
 
 

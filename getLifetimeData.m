@@ -1,6 +1,6 @@
 % Francois Aguet, 05/2012
 
-function lftData = getLifetimeData(data, varargin)
+function [lftData, rmIdx] = getLifetimeData(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -18,8 +18,8 @@ ip.parse(varargin{:});
 nCh = numel(data(1).channels);
 nd = numel(data);
 rescale = ip.Results.Rescale;
-if numel(rescale)==1 && nd>1
-    rescale = repmat(rescale, [nd 1]);
+if numel(rescale)==1
+    rescale = repmat(rescale, [nCh 1]);
 end
 
 fnames = {'lifetime_s', 'trackLengths', 'start', 'catIdx', 'A', 'A_pstd',...
@@ -29,12 +29,11 @@ vnames = fnames(1:4);
 mnames = fnames(5:end);
 
 maxA = cell(nCh,nd);
-for i = 1:nd
+parfor i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
         tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.InputName);
-        nCh = size(tracks(1).A,1);
         
         % concatenate amplitudes of master channel into matrix
         trackLengths = [tracks.end]-[tracks.start]+1;
@@ -90,8 +89,8 @@ for i = 1:nd
         lftData(i).gapMat_Ia = gapMat_Ia;
         
         [~,~] = mkdir([data(i).source 'Analysis']);
-        iData = lftData(i);
-        save(fpath, '-struct', 'iData');
+        %iData = lftData(i);
+        %save(fpath, '-struct', 'iData');
     else
         tmp = load(fpath);
         if isfield(tmp, 'significantSignal')
@@ -100,6 +99,14 @@ for i = 1:nd
         lftData(i) = tmp;
     end
 end
+for i = 1:nd
+    fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
+    if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
+        iData = lftData(i);
+        save(fpath, '-struct', 'iData');
+    end
+end
+
 if isfield(lftData(1), 'significantSignal')
     vnames = [vnames 'significantSignal'];
     fnames = [vnames mnames];
@@ -125,24 +132,30 @@ for i = 1:nd
         end
     end
     
-    if ip.Results.ReturnValidOnly
-        % remaining fields: retain category==1
-        idx = lftData(i).catIdx==1;
+    if ~ip.Results.ReturnValidOnly
         for f = 1:numel(vnames)
-            lftData(i).(vnames{f}) = lftData(i).(vnames{f})(idx,:);
+            lftData(i).([vnames{f} '_all']) = lftData(i).(vnames{f});
         end
-        
-        % remove visitors
-        if ip.Results.ExcludeVisitors
-            vidx = getVisitorIndex(lftData(i));
-            for f = 1:numel(fnames)
-                lftData(i).(fnames{f}) = lftData(i).(fnames{f})(~vidx{1},:,:);
-            end
+    end
+    
+    % remaining fields: retain category==1
+    idx = lftData(i).catIdx==1;
+    for f = 1:numel(vnames)
+        lftData(i).(vnames{f}) = lftData(i).(vnames{f})(idx,:);
+    end
+    
+    % remove visitors
+    if ip.Results.ExcludeVisitors
+        vidx = getVisitorIndex(lftData(i));
+        for f = 1:numel(fnames)
+            lftData(i).visitors.(fnames{f}) = lftData(i).(fnames{f})(vidx{1},:,:);
+            lftData(i).(fnames{f}) = lftData(i).(fnames{f})(~vidx{1},:,:);
         end
     end
 end
 
 av = zeros(nCh,nd);
+rmIdx = [];
 for c = 1:nCh
     if rescale(c)
         maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
@@ -173,14 +186,19 @@ for c = 1:nCh
             end
             rmv = input('Remove outliers? (y/n) ', 's');
             if strcmpi(rmv, 'y') || isempty(rmv)
-                lftData(outlierIdx) = [];
-                a(c,outlierIdx) = [];
+                rmIdx = [rmIdx outlierIdx]; %#ok<AGROW>
             end
         end
     end
 end
+if ~isempty(rmIdx)
+    lftData(rmIdx) = [];
+    av(:,rmIdx) = [];
+    maxA(:,rmIdx) = [];
+end
+
 if rescale(1)
-    a = mat2cell(av,nCh,ones(1,nd));
+    a = mat2cell(av,nCh,ones(1,numel(lftData)));
     [lftData.a] = deal(a{:});    
-    [lftData.maxA] = deal(maxA{:});
+    %[lftData.maxA] = deal(maxA{:});
 end

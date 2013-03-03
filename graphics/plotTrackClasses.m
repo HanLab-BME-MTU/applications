@@ -30,11 +30,13 @@ else
 end
 
 if iscell(v)
-    vpos = cellfun(@(i,j) i(j==1), v, c, 'unif', 0);
-    vneg = cellfun(@(i,j) i(j==0), v, c, 'unif', 0);
-    v = arrayfun(@(i) hist(vpos{i}, 1:8)/numel(v{i}), 1:numel(v), 'unif', 0);
+    %vpos = cellfun(@(i,j) i(j==1), v, c, 'unif', 0);
+    %vneg = cellfun(@(i,j) i(j==0), v, c, 'unif', 0);
+    v = arrayfun(@(i) hist(v{i}, 1:8)/numel(v{i}), 1:numel(v), 'unif', 0);
     v = vertcat(v{:});
     mu = mean(v,1);
+    %rstd = @(x) 1/norminv(0.75, 0, 1) * mad(x, 1, 1);
+    %sigma = rstd(v);
     sigma = std(v,[],1);
 else
     mu = hist(v, 1:8)/numel(v);
@@ -52,7 +54,7 @@ end
 
 barplot2(mu, sigma, 'Handle', ha, 'BarWidth', 0.6, 'GroupDistance', 0.8,...
     'FaceColor', ip.Results.FaceColor, 'EdgeColor', ip.Results.EdgeColor,...
-    'XLabels', xlabels, 'YTick', 0:0.2:1, 'YLim', YLim);
+    'XTickLabel', xlabels, 'YTick', 0:0.2:1, 'YLim', YLim);
 ylabel('% tracks', fset.lfont{:});
 
 % inset

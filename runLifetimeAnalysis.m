@@ -22,16 +22,16 @@ ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RemoveOutliers', true, @islogical);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
-ip.addParamValue('TrackIndex', []);
+%ip.addParamValue('TrackIndex', []);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('SelectIndex', [], @iscell);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
-nd = length(data);
 nc = numel(lb); % # cohorts
 mCh = find(strcmp(data(1).source, data(1).channels));
 FirstNFrames = ip.Results.FirstNFrames;
+selIdx = ip.Results.SelectIndex;
 
 printPath = [getExpDir(data) 'Figures' filesep];
 [~,~] = mkdir(printPath);
@@ -49,124 +49,34 @@ framerate = data(1).framerate;
 
 firstN = 3:20;
 
-% lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-%     'ReturnValidOnly', false, 'ExcludeVisitors', false,...
-%     'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
-% if isfield(lftData, 'significantSignal')
-%     lftFields = {'lifetime_s', 'trackLengths', 'start', 'significantSignal', 'catIdx'}; % catIdx must be last!
-% else
-%     lftFields = {'lifetime_s', 'trackLengths', 'start', 'catIdx'}; % catIdx must be last!
-% end
-% 
-% if ~isempty(ip.Results.TrackIndex)
-%     for i = 1:nd
-%         % remove all non-Ia tracks
-%         for f = 1:numel(lftFields)
-%             lftData(i).(lftFields{f})(:,lftData(i).catIdx~=1) = [];
-%         end
-%         
-%         % subset of tracks selected in input
-%         idx = ip.Results.TrackIndex{i};
-%         for f = 1:numel(lftFields)
-%             lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(idx);
-%         end
-%         lftData(i).A = lftData(i).A(idx,:,:);
-%         lftData(i).sbA = lftData(i).sbA(idx,:,:);
-%         lftData(i).ebA = lftData(i).ebA(idx,:,:);
-%         lftData(i).sigma_r = lftData(i).sigma_r(idx,:,:);
-%     end
-% end
-
-
 % loop through data sets, load tracks, store max. intensities and lifetimes
 res = struct([]);
 
-%==============================================================
-% Rescale data sets based on maximum intensity distribution
-%==============================================================
-% maxA_all = arrayfun(@(i) nanmax(i.A(:,:,mCh),[],2)', lftData, 'UniformOutput', false);
-% if ip.Results.Rescale
-% if nd>1
-%     % Rescale EDFs (correction for expression level)
-%     [a, offset, refIdx] = rescaleEDFs(maxA_all, 'Display', strcmpi(ip.Results.Display, 'on'));
-%     if strcmpi(ip.Results.Display, 'on')
-%         print('-depsc2', '-loose', [printPath 'maxIntensityScaling.eps']);
-%     end
-% else
-%     a = 1;
-% end
-%     
-% % apply intensity scaling
-% for i = 1:nd
-%     lftData(i).A = lftData(i).A(:,1:movieLength,:);
-%     maxA_all{i} = a(i) * maxA_all{i};
-%     lftData(i).A(:,:,mCh) = a(i) * lftData(i).A(:,:,mCh);
-%     lftData(i).sbA(:,:,mCh) = a(i) * lftData(i).sbA(:,:,mCh);
-%     lftData(i).ebA(:,:,mCh) = a(i) * lftData(i).ebA(:,:,mCh);
-%     lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
-% end
-% end
-%==============================================================
-% Outlier detection (after max. intensity distribution rescaling)
-%==============================================================
-% if ip.Results.RemoveOutliers && nd>=5
-%     outlierIdx = detectEDFOutliers(maxA_all, offset, refIdx);
-%     if ~isempty(outlierIdx)
-%         fprintf('Outlier data sets:\n');
-%         for i = 1:numel(outlierIdx)
-%             fprintf('Index %d: %s\n', outlierIdx(i), getShortPath(data(outlierIdx(i))));
-%         end
-%         rmv = input('Remove outliers? (y/n) ', 's');
-%         if strcmpi(rmv, 'y') || isempty(rmv)
-%             lftData(outlierIdx) = [];
-%             data(outlierIdx) = [];
-%             nd = numel(data);
-%             a(outlierIdx) = [];
-%             clear outlierIdx maxA_all;
-%         end
-%     end
-% end
-
-% for i = 1:nd
-%     % apply frames cutoff for short tracks, keep only cat. Ia
-%     rmIdx = lftData(i).trackLengths(lftData(i).catIdx==1) < cutoff_f;
-%     lftData(i).A(rmIdx,:,:) = [];
-%     lftData(i).sbA(rmIdx,:,:) = [];
-%     lftData(i).startsAll = lftData(i).start;
-%     for f = 1:numel(lftFields)
-%         lftData(i).(lftFields{f}) = lftData(i).(lftFields{f})(lftData(i).catIdx==1);
-%         lftData(i).(lftFields{f})(rmIdx) = [];
-%     end
-% end
-
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-    'ReturnValidOnly', false, 'ExcludeVisitors', false, 'Cutoff_f', 5,...
+[lftData, outlierIdx] = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
+    'ReturnValidOnly', false, 'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Cutoff_f', cutoff_f,...
     'Rescale', ip.Results.Rescale, 'DisplayRescaling', strcmpi(ip.Results.Display, 'on'),...
-    'ReturnValidOnly', false, 'RemoveOutliers', ip.Results.RemoveOutliers,...
+    'RemoveOutliers', ip.Results.RemoveOutliers,...
     'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
-
+selIdx(outlierIdx) = [];
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
+nd = numel(lftData);
+
 lftRes.cellArea = zeros(nd,1);
 % lftFields = {'lifetime_s', 'trackLengths', 'catIdx'}; % catIdx must be last!
 for i = 1:nd
     
-    lifetime_s = lftData(i).lifetime_s;
-    
     % Category statistics
-    idx_Ia = [lftData(i).catIdx]==1;
-    idx_Ib = [lftData(i).catIdx]==2;
-    idx_IIa = [lftData(i).catIdx]==5;
-    %v = hist([lftData(i).catIdx], 1:8);
-    %v = v/numel(lifetime_s);
-    %lftRes.trackClassStats(i,:) = v;
+    idx_Ia = [lftData(i).catIdx_all]==1;
+    idx_Ib = [lftData(i).catIdx_all]==2;
+    idx_IIa = [lftData(i).catIdx_all]==5;
     
     % raw histograms
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
-    lftHist_Ia = hist(lifetime_s(idx_Ia), t);
-    lftHist_Ib = hist(lifetime_s(idx_Ib), t);
-    lftHist_IIa = hist(lifetime_s(idx_IIa), t);
+    lftHist_Ia =  hist(lftData(i).lifetime_s_all(idx_Ia), t);
+    lftHist_Ib =  hist(lftData(i).lifetime_s_all(idx_Ib), t);
+    lftHist_IIa = hist(lftData(i).lifetime_s_all(idx_IIa), t);
     
     % apply correction
     % relative probabilities:
@@ -189,59 +99,29 @@ for i = 1:nd
     %-------------------------------------------------------------
     % Max. intensity distribution for cat. Ia CCP tracks
     %-------------------------------------------------------------
-    lifetime_s = lifetime_s(idx_Ia);
     
     for k = 1:nc
         % indexes within cohorts
-        cidx = lb(k)<=lifetime_s & lifetime_s<=ub(k);
+        cidx = lb(k)<=lftData(i).lifetime_s & lftData(i).lifetime_s<=ub(k);
         res(i).maxA{k} = nanmax(lftData(i).A(cidx,:,mCh),[],2);
         %for n = firstN
         %   res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).A(cidx,1:n,mCh),[],2);
         %end
         
         % lifetimes for given cohort
-        res(i).lft{k} = lifetime_s(cidx);
+        res(i).lft{k} = lftData(i).lifetime_s(cidx);
     end
     
-    res(i).lft_all = lifetime_s;
     res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2);
     if isfield(lftData, 'significantSignal')
-        res(i).significantSignal = lftData(i).significantSignal(idx_Ia,:);
-%         res(i).significantSignal = lftData(i).significantSignal;
+       res(i).significantSignal = lftData(i).significantSignal;
     end
     res(i).firstN = firstN;
-    
+        
 fprintf('\b\b\b\b%3d%%', round(100*i/nd));
 end
 fprintf('\n');
 
-% Plot raw and scaled lifetime histograms
-% figure;
-% hold on;
-% for i = 1:nd
-%     plot(res(i).t, res(i).lftHist_Ia, 'k');    
-%     plot(res(i).t, res(i).lftHist_scaled, 'r--');
-% end
-
-% tmp = mean(vertcat(res.lftHist_scaled),1);
-% medIdx = find(a==1);
-% D1 = hist(lftData(medIdx).deltaS, 0:25);
-% D1 = D1/sum(D1);
-% D2 = hist(lftData(medIdx).deltaE, 0:25);
-% D2 = D2/sum(D2);
-% D = conv(D1,D2(end:-1:1));
-% D = D(numel(D2):end);
-% D = D/sum(D);
-% 
-% figure;
-% hold on;
-% % plot(res(i).t, mean(vertcat(res.lftHist_Ia),1), 'k');
-% % plot(res(i).t, tmp, 'r--');
-% plot(mean(vertcat(res.lftHist_Ia),1), 'k');
-% plot(tmp, 'r--');
-% tt = conv(tmp, D(end:-1:1));
-% tt = tt(numel(D):end);
-% plot(tt, 'c');
 
 %====================
 % Threshold
@@ -249,7 +129,7 @@ fprintf('\n');
 if isempty(ip.Results.MaxIntensityThreshold)
     A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'UniformOutput', false);
     A = vertcat(A{:});
-    lft = [lftData.lifetime_s];
+    lft = vertcat(lftData.lifetime_s);
    
     if isempty(FirstNFrames)
         frameRange = 3:12;
@@ -283,7 +163,6 @@ else
     T = ip.Results.MaxIntensityThreshold;
 end
 
-vidx = getVisitorIndex(lftData);
 % loop through data sets, apply max. intensity threshold
 for i = 1:nd
     
@@ -291,38 +170,34 @@ for i = 1:nd
     % 1) Intensity threshold based on maximum intensity distribution
     idxMI = res(i).maxA_all >= T;
     %idxMI = nanmax(lftData(i).A(:,FirstNFrames:end),[],2)' >= T;
-    if ~isempty(ip.Results.SelectIndex)
-        idxMI = idxMI & ip.Results.SelectIndex{i};
+    
+    if ~isempty(selIdx)
+        idxMI = idxMI & selIdx{i};
     end
     
-    % 2) Lifetime threshold for objects with a faster-than-tolerated* growth rate
+    % 2) Remove non-endocytic structures (i.e., endosomal CCSs)
     if ip.Results.ExcludeVisitors
-        res(i).lftVisitors = res(i).lft_all(vidx{i});
-        res(i).lftAboveT = res(i).lft_all(~vidx{i} & idxMI);
-        res(i).lftBelowT = res(i).lft_all(~vidx{i} & ~idxMI);
-        res(i).maxAAboveT = res(i).maxA_all(~vidx{i} & idxMI);
-        res(i).AaboveT = lftData(i).A(~vidx{i} & idxMI,:,:);
-        
-        lftRes.pctVisit(i) = numel(res(i).lftVisitors) / numel(idxMI);
-        res(i).nSamplesAboveT = sum(~vidx{i} & idxMI);
+        res(i).lftVisitors = lftData(i).visitors.lifetime_s;
+        nCS = numel(lftData(i).lifetime_s) + numel(lftData(i).visitors.lifetime_s);
+        lftRes.pctVisit(i) = numel(res(i).lftVisitors) / nCS;
     else
-        res(i).lftAboveT = res(i).lft_all(idxMI);
-        res(i).lftBelowT = res(i).lft_all(~idxMI);
-        res(i).nSamplesAboveT = sum(idxMI);
+        nCS = numel(lftData(i).lifetime_s);
     end
-    lftRes.pctAbove(i) = numel(res(i).lftAboveT)/numel(idxMI);
-    lftRes.pctBelow(i) = numel(res(i).lftBelowT)/numel(idxMI);
+    res(i).lftAboveT = lftData(i).lifetime_s(idxMI);
+    res(i).lftBelowT = lftData(i).lifetime_s(~idxMI);
+    res(i).nSamplesAboveT = sum(idxMI);
     
-        
+    %res(i).maxAAboveT = res(i).maxA_all(idxMI);
+    %res(i).AaboveT = lftData(i).A(idxMI,:,:);
+    lftRes.pctAbove(i) = numel(res(i).lftAboveT)/nCS;
+    lftRes.pctBelow(i) = numel(res(i).lftBelowT)/nCS;
+            
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
     %t = (1:N)*framerate;
     lftHist_A = hist(res(i).lftAboveT, t);
     lftHist_B = hist(res(i).lftBelowT, t);
-    
-    %lftHist_A(1:cutoff_f-1) = [];
-    %lftHist_B(1:cutoff_f-1) = [];
-    
+
     % apply correction
     % relative probabilities:
     % P(obs. lifetime==1) = N
@@ -337,31 +212,27 @@ for i = 1:nd
     %normA = sum(lftHist_A);
     %normB = sum(lftHist_B);
     lftRes.lftHist_A(i,:) = lftHist_A / sum(lftHist_A) / framerate;
-    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;
-    
+    lftRes.lftHist_B(i,:) = lftHist_B / sum(lftHist_B) / framerate;    
     if ip.Results.ExcludeVisitors
-        lftRes.visitIdx{i} = vidx{i};
         lftHist_V = hist(res(i).lftVisitors, t);
         lftHist_V = [lftHist_V.*w pad0];
         lftRes.lftHist_V(i,:) = lftHist_V / sum(lftHist_V) / framerate;
-    else
-        vidx{i} = zeros(size(idxMI)); % assume no visitors
     end
     
     % Multi-channel data
     if isfield(res, 'significantSignal')
         
-        lftHist_pos = hist(res(i).lft_all(res(i).significantSignal(2,:)==1), t);
-        lftHist_neg = hist(res(i).lft_all(res(i).significantSignal(2,:)==0), t);
+        lftHist_pos = hist(lftData(i).lifetime_s(res(i).significantSignal(2,:)==1), t);
+        lftHist_neg = hist(lftData(i).lifetime_s(res(i).significantSignal(2,:)==0), t);
         lftHist_pos =  [lftHist_pos.*w  pad0];
         lftHist_neg =  [lftHist_neg.*w  pad0];
         lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
         lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
         
-        lftHist_Apos = hist(res(i).lft_all(~vidx{i} & idxMI & res(i).significantSignal(:,2)), t);
-        lftHist_Aneg = hist(res(i).lft_all(~vidx{i} & idxMI & ~res(i).significantSignal(:,2)), t);
-        lftHist_Bpos = hist(res(i).lft_all(~vidx{i} & ~idxMI & res(i).significantSignal(:,2)), t);
-        lftHist_Bneg = hist(res(i).lft_all(~vidx{i} & ~idxMI & ~res(i).significantSignal(:,2)), t);
+        lftHist_Apos = hist(lftData(i).lifetime_s(idxMI & res(i).significantSignal(:,2)), t);
+        lftHist_Aneg = hist(lftData(i).lifetime_s(idxMI & ~res(i).significantSignal(:,2)), t);
+        lftHist_Bpos = hist(lftData(i).lifetime_s(~idxMI & res(i).significantSignal(:,2)), t);
+        lftHist_Bneg = hist(lftData(i).lifetime_s(~idxMI & ~res(i).significantSignal(:,2)), t);
         lftHist_Apos =  [lftHist_Apos.*w  pad0];
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
@@ -376,20 +247,20 @@ for i = 1:nd
         %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB;
         %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB;
         
-        lftRes.pctAboveSignificant(i) =    sum(~vidx{i} & idxMI & res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctAboveNotSignificant(i) = sum(~vidx{i} & idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctBelowSignificant(i) =    sum(~vidx{i} & ~idxMI & res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctBelowNotSignificant(i) = sum(~vidx{i} & ~idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
+        lftRes.pctAboveSignificant(i) =    sum(idxMI & res(i).significantSignal(:,2))/numel(idxMI);
+        lftRes.pctAboveNotSignificant(i) = sum(idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
+        lftRes.pctBelowSignificant(i) =    sum(~idxMI & res(i).significantSignal(:,2))/numel(idxMI);
+        lftRes.pctBelowNotSignificant(i) = sum(~idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
     end
     %-----------------------------------
     % Initiation density
     %-----------------------------------
     % birth/death statistics
-    startsPerFrame_all = hist(lftData(i).start, 1:data(i).movieLength);
+    startsPerFrame_all = hist(lftData(i).start_all, 1:data(i).movieLength);
     startsPerFrame_all = startsPerFrame_all(6:end-2);
     startsPerFrame_Ia = hist(lftData(i).start(lftData(i).catIdx==1), 1:data(i).movieLength);
     startsPerFrame_Ia = startsPerFrame_Ia(6:end-2);
-    startsPerFrameAbove = hist(lftData(i).start(idxMI & ~vidx{i}), 1:data(i).movieLength);
+    startsPerFrameAbove = hist(lftData(i).start(idxMI), 1:data(i).movieLength);
     startsPerFrameAbove = startsPerFrameAbove(6:end-2);
     
     % Cell area
@@ -438,22 +309,22 @@ if ip.Results.ExcludeVisitors
 end
 
 pctV = [50 25 75 5 95]';
-pAll = arrayfun(@(i) prctile(i.lft_all,pctV), res, 'UniformOutput', false);
+pAll = arrayfun(@(i) prctile(i.lifetime_s,pctV), lftData, 'UniformOutput', false);
 pA = arrayfun(@(i) prctile(i.lftAboveT,pctV), res, 'UniformOutput', false);
 pB = arrayfun(@(i) prctile(i.lftBelowT,pctV), res, 'UniformOutput', false);
 lftRes.stats = [mean([pAll{:}],2) mean([pB{:}],2) mean([pA{:}],2)];
-%lftRes.stats = [prctile([res.lft_all],pctV) prctile([res.lftBelowT],pctV) prctile([res.lftAboveT],pctV)]
+%lftRes.stats = [prctile([lftData.lifetime_s],pctV) prctile([res.lftBelowT],pctV) prctile([res.lftAboveT],pctV)]
 
-% stats = [prctile([res.lft_all], [50 25 75])' prctile([res.lftBelowT], [50 25 75])' prctile([res.lftAboveT], [50 25 75])' ];
+% stats = [prctile([lftData.lifetime_s], [50 25 75])' prctile([res.lftBelowT], [50 25 75])' prctile([res.lftAboveT], [50 25 75])' ];
 % w = 1.5*(stats(3,:)-stats(2,:));
 % lftRes.stats = [stats; stats(2,:)-w; stats(3,:)+w];
 
 
-%%
 %---------------------------------------
 % Raw lifetime distributions + average
 %---------------------------------------
 if strcmpi(ip.Results.Display, 'all')
+    a = [lftData.a];
     colorV = hsv(nd);
     [~,idxa] = sort(a);
     [~,idxa] = sort(idxa);
@@ -531,7 +402,6 @@ if strcmpi(ip.Results.Display, 'all')
     % print('-depsc2', '-loose', ['LftMean+CDF_dataOX_10_cut' num2str(cutoff_f) '_mu=' num2str(mu, '%.2f') '.eps']);
 end
 
-%%
 %---------------------------------------
 % CDF plot of the raw lifetimes
 %---------------------------------------
@@ -551,7 +421,7 @@ end
 % ylabel('Cumulative frequency', fset.lfont{:});
 % % print('-depsc2', '-loose', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
 
-%%
+
 if strcmpi(ip.Results.Display, 'on')
     h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
     print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
@@ -560,8 +430,6 @@ if strcmpi(ip.Results.Display, 'on')
     end
 end
 return
-
-
 
 
 %=====================================================================
@@ -574,8 +442,8 @@ if ip.Results.ShowThresholdRange
         
         for i = 1:nd
             idx = res(i).maxA_all >= T;
-            lftAboveT = res(i).lft_all(idx);
-            lftBelowT = res(i).lft_all(~idx);
+            lftAboveT = lftData(i).lifetime_s(idx);
+            lftBelowT = lftData(i).lifetime_s(~idx);
             tmp.pctAbove(i) = sum(idx)/numel(idx);
             
             N = data(i).movieLength-2*buffer;

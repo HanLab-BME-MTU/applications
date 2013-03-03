@@ -95,8 +95,12 @@ for i = 1:nd
         end
     end
     map{i} = candIdx;
-    masterIdx{i} = find(cellfun(@(x) ~isempty(x), candIdx));
-    slaveIdx{i} = unique(vertcat(candIdx{:}));
+    %masterIdx{i} = find(cellfun(@(x) ~isempty(x), candIdx));
+    masterIdx{i} = cellfun(@(x) ~isempty(x), candIdx);
+    %slaveIdx{i} = unique(vertcat(candIdx{:}));
+    tmp = false(numel(slaveTracks),1);
+    tmp(unique(vertcat(candIdx{:}))) = true;
+    slaveIdx{i} = tmp;
     unassignedMasterIdx{i} = setdiff(1:numel(masterTracks), masterIdx{i});
     unassignedSlaveIdx{i} = setdiff(1:numel(slaveTracks), slaveIdx{i});
 end

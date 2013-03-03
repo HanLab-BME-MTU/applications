@@ -6,7 +6,10 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('frameIdx', [], @isnumeric);
+ip.addParamValue('Channel', 1);
+ip.addParamValue('OutputMode', [], @(x) strcmpi(x, 'dB'));
 ip.parse(data, varargin{:});
+ch = ip.Results.Channel;
 
 frameIdx = ip.Results.frameIdx;
 if isempty(frameIdx)
@@ -22,10 +25,11 @@ nf = numel(frameIdx);
 psnr = cell(1,nf);
 
 
-for k = 1:nf
+parfor k = 1:nf
     f = frameIdx(k);
-    
-    psnr{k} = 10*log10(frameInfo(f).A(1,:).^2*ni ./ frameInfo(f).RSS);
-    
+    psnr{k} = frameInfo(f).A(ch,:).^2*ni ./ frameInfo(f).RSS(ch,:);
 end
 psnr = [psnr{:}];
+if strcmpi(ip.Results.OutputMode, 'dB')
+    psnr = 10*log10(psnr);
+end
