@@ -89,8 +89,8 @@ x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
-initMaxFlowSpd = 5;
-initMaxPerpSpd = 5;
+initMaxFlowSpd = 10;
+initMaxPerpSpd = 10;
 closenessThreshold = 0.25;
 
 %For isotropic correlation.
@@ -234,7 +234,15 @@ parfor k = 1:nPoints
                     [score2] = calScore(kym,centerI,ceil(1.25*corL),...
                         vP,vF,'bAreaThreshold',bAreaThreshold,...
                         'kymMask',kymMask,'kymAvgImg',kymAvgImg);
-                    [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
+                    if max(length(vF),length(vP))>160 %applying more generous threshold for higher velocity
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.7);
+                    elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
+                    elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.58);
+                    else
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
+                    end
                     if pass2 == 1
                         % SB: here Jin Li was using a spline to refine the
                         % velocity estimation. This creates a bottleneck in
@@ -269,12 +277,11 @@ parfor k = 1:nPoints
                             sub_score1D = reshape(sub_score,[],1);
 
                             % starting point estimation SH based on discretized maxV (-b/2a =
-                            % maxV(2)) in quadratical expression to avoid the random starting point warning SH
-                            maxV  = [vP(maxI2(1)) vF(maxI2(2))];
+                            % maxVorg(2)) in quadratical expression to avoid the random starting point warning SH
                             asp = -0.026; %decided empirically
-                            bsp = -2*asp*maxV(2);
+                            bsp = -2*asp*maxVorg(2);
                             csp = asp;
-                            dsp = -2*csp*maxV(1);
+                            dsp = -2*csp*maxVorg(1);
                             esp = -0.5; %arbitrary number
                             s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
                             f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
@@ -282,7 +289,8 @@ parfor k = 1:nPoints
 
                             px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
                             maxV2 = [roots(polyder(py)) roots(polyder(px)) ];
-                        end
+                            bPolyTracked = 1;
+                       end
 
                         if ~bPolyTracked||norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
                             subv = 4; % expanding region to fit
@@ -303,13 +311,14 @@ parfor k = 1:nPoints
                                 [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
                                 options,sp,dsp1,dsp2);            
                         end
-                        locMaxV = zeros(size(locMaxI,1),2);
+                        %locMaxV = zeros(size(locMaxI,1),2);
+                        locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
                         for j = 1:size(locMaxI,1)
                             % subset of score around the maxV
                             subv = 1; % radius of subgroup for subscore
                             bPolyTracked = 0;
-                            maxVorg  = [vP(locMaxI(j,1)) vF(locMaxI(j,2))];
+                            maxVorg  = locMaxV(j,:);%[vP(locMaxI(j,1)) vF(locMaxI(j,2))];
                             if (locMaxI(j,1)-subv)>=1 && (locMaxI(j,1)+subv)<=size(score,1)...
                                && (locMaxI(j,2)-subv)>=1 && (locMaxI(j,2)+subv)<=size(score,2)
                                 sub_score = score(max(1,locMaxI(j,1)-subv):min(size(score,1),locMaxI(j,1)+subv),...
@@ -336,6 +345,7 @@ parfor k = 1:nPoints
 
                                 px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
                                 maxV = [roots(polyder(py)) roots(polyder(px)) ];
+                                bPolyTracked = 1;
                             end
                             if ~bPolyTracked||norm(maxVorg-maxV,2)>1 %checking for proximity of the fitted point to the original discrete point
                                 subv = 4; % expanding region to fit
@@ -726,7 +736,15 @@ for k = 1:length(ind1)-1
             xOffset = maxI(2)-1:maxI(2)+1;
         end
         if maxS >= max(max(score(yOffset,xOffset)))
-            maxS = sum(sum(score(yOffset,xOffset)))/9;
+            %maxS = sum(sum(score(yOffset,xOffset)))/9; %This caused flow
+            %underestimation. We should use a single maximum value at the
+            %maximum velocity position rather than averaging with neiboring
+            %points. This can prevent a value at the border of the score
+            %from not being captured as a miximum, which will lead to
+            %expansion of correlation length. BTW, what was the reason of
+            %averaging maximum score with neighboring scores? To prevent
+            %very narrow peak from being true maximum? I don't think
+            %that'll happen. - Sangyoon 3/2/2013
             
             %The following 'avgMinS' is used in the calibration of the
             % 'baseS' below. It is the averge of scores around the local
@@ -850,11 +868,11 @@ elseif length(locMaxS) > 1
     return;
 end
 
-% if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
-%         maxI(2) < n/4 || maxI(2) > 3*n/4
-%     pass = 0;
-%     return;
-% end
+if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
+        maxI(2) < n/4 || maxI(2) > 3*n/4
+    pass = 0;
+    return;
+end
 
 pass = 1;
 
