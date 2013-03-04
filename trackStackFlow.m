@@ -58,7 +58,7 @@ function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
 % Lin Ji, 2005
 % Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from imFlowTrack.m
-% Sangyoon Han, October 2012 (last modified Nov 2012)
+% Sangyoon Han, October 2012 (last modified Mar 2013)
 
 % Input check
 ip= inputParser;
@@ -235,7 +235,7 @@ parfor k = 1:nPoints
                         vP,vF,'bAreaThreshold',bAreaThreshold,...
                         'kymMask',kymMask,'kymAvgImg',kymAvgImg);
                     if max(length(vF),length(vP))>160 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.7);
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.8);
                     elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
                     elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
@@ -244,128 +244,13 @@ parfor k = 1:nPoints
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
                     end
                     if pass2 == 1
-                        % SB: here Jin Li was using a spline to refine the
-                        % velocity estimation. This creates a bottleneck in
-                        % terms of speed execution.
-                        % Maybe looking at the local neighborhood and
-                        % fitting a 2D parabola to extract sub-pixel
-                        % maximum would be a good idea in future
-                        % development of the function
-                        
-                        % SH: I made a change for this refining process to
-                        % use parabola approximation. Once parabola fit is
-                        % too much apart from integer maxV (maxVorg), I
-                        % started to use the fmincon again for more correct refining process.
-
-                        % parabola approximation
-                        subv = 1; % radius of subgroup for subscore
-                        maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
-
-                        bPolyTracked = 0;
-                        if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
-                           && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
-                            subv = 1; % radius of subgroup for subscore
-                            sub_score = score2(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
-                                                max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
-                            % my field of interest
-                            subvP = vP(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv));
-                            subvF = vF(max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
-
-                            [subvFG,subvPG]=meshgrid(subvF,subvP);
-                            subvF1D = reshape(subvFG,[],1);
-                            subvP1D = reshape(subvPG,[],1);
-                            sub_score1D = reshape(sub_score,[],1);
-
-                            % starting point estimation SH based on discretized maxV (-b/2a =
-                            % maxVorg(2)) in quadratical expression to avoid the random starting point warning SH
-                            asp = -0.026; %decided empirically
-                            bsp = -2*asp*maxVorg(2);
-                            csp = asp;
-                            dsp = -2*csp*maxVorg(1);
-                            esp = -0.5; %arbitrary number
-                            s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
-                            f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
-                            sf = fit( [subvF1D, subvP1D], sub_score1D, f);
-
-                            px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
-                            maxV2 = [roots(polyder(py)) roots(polyder(px)) ];
-                            bPolyTracked = 1;
-                       end
-
-                        if ~bPolyTracked||norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
-                            subv = 4; % expanding region to fit
-                            sub_score = score2(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
-                                                max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
-                            % my field of interest
-                            subvP = vP(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv));
-                            subvF = vF(max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
-
-                            sp   = csape({subvP,subvF},sub_score);
-                            dsp1 = fnder(sp,[1,0]);
-                            dsp2 = fnder(sp,[0,1]);
-                            options = optimset('Algorithm','interior-point'); % this generates an warning
-                %             options = optimset('Algorithm','sqp');% this too
-
-                            maxV2 = fmincon(@vFun,maxVorg,[],[],[],[], ...
-                                [max(subvP(1),maxVorg(1)-2) max(subvF(1),maxVorg(2)-2)], ...
-                                [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
-                                options,sp,dsp1,dsp2);            
-                        end
+                        maxV2 = maxInterpfromScore(maxI2,score2,vP,vF);
                         %locMaxV = zeros(size(locMaxI,1),2);
                         locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
                         for j = 1:size(locMaxI,1)
-                            % subset of score around the maxV
-                            subv = 1; % radius of subgroup for subscore
-                            bPolyTracked = 0;
-                            maxVorg  = locMaxV(j,:);%[vP(locMaxI(j,1)) vF(locMaxI(j,2))];
-                            if (locMaxI(j,1)-subv)>=1 && (locMaxI(j,1)+subv)<=size(score,1)...
-                               && (locMaxI(j,2)-subv)>=1 && (locMaxI(j,2)+subv)<=size(score,2)
-                                sub_score = score(max(1,locMaxI(j,1)-subv):min(size(score,1),locMaxI(j,1)+subv),...
-                                                    max(1,locMaxI(j,2)-subv):min(size(score,2),locMaxI(j,2)+subv));
-                                % my field of interest
-                                subvP = vP(max(1,locMaxI(j,1)-subv):min(size(score,1),locMaxI(j,1)+subv));
-                                subvF = vF(max(1,locMaxI(j,2)-subv):min(size(score,2),locMaxI(j,2)+subv));
-
-                                % subset of score around the maxV
-                                [subvFG,subvPG]=meshgrid(subvF,subvP);
-                                subvF1D = reshape(subvFG,[],1);
-                                subvP1D = reshape(subvPG,[],1);
-                                sub_score1D = reshape(sub_score,[],1);
-                                % starting point estimation SH based on discretized maxV (-b/2a =
-                                % maxV(2)) in quadratical expression to avoid the random starting point warning SH
-                                asp = -0.026; %decided empirically
-                                bsp = -2*asp*maxVorg(2);
-                                csp = asp;
-                                dsp = -2*csp*maxVorg(1);
-                                esp = -0.5; %arbitrary number
-                                s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
-                                f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
-                                sf = fit( [subvF1D, subvP1D], sub_score1D, f);
-
-                                px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
-                                maxV = [roots(polyder(py)) roots(polyder(px)) ];
-                                bPolyTracked = 1;
-                            end
-                            if ~bPolyTracked||norm(maxVorg-maxV,2)>1 %checking for proximity of the fitted point to the original discrete point
-                                subv = 4; % expanding region to fit
-                                sub_score = score(max(1,locMaxI(j,1)-subv):min(size(score,1),locMaxI(j,1)+subv),...
-                                                    max(1,locMaxI(j,2)-subv):min(size(score,2),locMaxI(j,2)+subv));
-                                % my field of interest
-                                subvP = vP(max(1,locMaxI(j,1)-subv):min(size(score,1),locMaxI(j,1)+subv));
-                                subvF = vF(max(1,locMaxI(j,2)-subv):min(size(score,2),locMaxI(j,2)+subv));
-
-                                sp   = csape({subvP,subvF},sub_score);
-                                dsp1 = fnder(sp,[1,0]);
-                                dsp2 = fnder(sp,[0,1]);
-                                options = optimset('Algorithm','interior-point'); % this generates an warning
-                    %             options = optimset('Algorithm','sqp');% this, and active-set too
-
-                                maxV = fmincon(@vFun,maxVorg,[],[],[],[], ...
-                                    [max(subvP(1),maxVorg(1)-2) max(subvF(1),maxVorg(2)-2)], ...
-                                    [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
-                                    options,sp,dsp1,dsp2);            
-                            end                            
+                            maxIc = locMaxI(j,:);
+                            maxV = maxInterpfromScore(maxIc,score,vP,vF);
                             locMaxV(j,:) = maxV;
                         end
                         
@@ -404,59 +289,7 @@ parfor k = 1:nPoints
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
-        % parabola approximation
-        subv = 1; % radius of subgroup for subscore
-        maxVorg  = [vP(maxI(1)) vF(maxI(2))];
-        
-        bPolyTracked = 0;
-        if (maxI(1)-subv)>=1 && (maxI(1)+subv)<=size(score,1)...
-           && (maxI(2)-subv)>=1 && (maxI(2)+subv)<=size(score,2)
-            sub_score = score(max(1,maxI(1)-subv):min(size(score,1),maxI(1)+subv),...
-                                max(1,maxI(2)-subv):min(size(score,2),maxI(2)+subv));
-            % my field of interest
-            subvP = vP(max(1,maxI(1)-subv):min(size(score,1),maxI(1)+subv));
-            subvF = vF(max(1,maxI(2)-subv):min(size(score,2),maxI(2)+subv));
-
-            [subvFG,subvPG]=meshgrid(subvF,subvP);
-            subvF1D = reshape(subvFG,[],1);
-            subvP1D = reshape(subvPG,[],1);
-            sub_score1D = reshape(sub_score,[],1);
-
-            % starting point estimation SH based on discretized maxV (-b/2a =
-            % maxV(2)) in quadratical expression to avoid the random starting point warning SH
-            asp = -0.026; %decided empirically
-            bsp = -2*asp*maxVorg(2);
-            csp = asp;
-            dsp = -2*csp*maxVorg(1);
-            esp = -0.5; %arbitrary number
-            s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
-            f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
-            sf = fit( [subvF1D, subvP1D], sub_score1D, f);
-
-            px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
-            maxV = [roots(polyder(py)) roots(polyder(px))];
-            bPolyTracked = 1;
-        end
-        
-        if ~bPolyTracked||norm(maxVorg-maxV,2)>1 %checking for proximity of the fitted point to the original discrete point
-            subv = 4; % expanding region to fit
-            sub_score = score(max(1,maxI(1)-subv):min(size(score,1),maxI(1)+subv),...
-                                max(1,maxI(2)-subv):min(size(score,2),maxI(2)+subv));
-            % my field of interest
-            subvP = vP(max(1,maxI(1)-subv):min(size(score,1),maxI(1)+subv));
-            subvF = vF(max(1,maxI(2)-subv):min(size(score,2),maxI(2)+subv));
-
-            sp   = csape({subvP,subvF},sub_score);
-            dsp1 = fnder(sp,[1,0]);
-            dsp2 = fnder(sp,[0,1]);
-            options = optimset('Algorithm','interior-point'); % this generates an warning
-%             options = optimset('Algorithm','sqp');% this too
-            
-            maxV = fmincon(@vFun,maxVorg,[],[],[],[], ...
-                [max(subvP(1),maxVorg(1)-2) max(subvF(1),maxVorg(2)-2)], ...
-                [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
-                options,sp,dsp1,dsp2);            
-        end
+        maxV = maxInterpfromScore(maxI,score,vP,vF);
     end
     
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
@@ -875,4 +708,69 @@ if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
 end
 
 pass = 1;
+
+function maxV2 = maxInterpfromScore(maxI2,score,vP,vF)
+% Sangyoon: I made a change for this refining process to
+% use parabola approximation. Once parabola fit is
+% too much apart from integer maxV (maxVorg), I
+% started to use the fmincon again for more correct refining process.
+% parabola approximation
+% input:    maxI2       :index for maxV in score
+%           score       :score
+%           vP,vF       :velocity range
+% output:   maxV2       :refined velocity
+
+subv = 1; % radius of subgroup for subscore
+maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
+
+bPolyTracked = 0;
+if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
+   && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
+    subv = 1; % radius of subgroup for subscore
+    sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
+                        max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+    % my field of interest
+    subvP = vP(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv));
+    subvF = vF(max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+
+    [subvFG,subvPG]=meshgrid(subvF,subvP);
+    subvF1D = reshape(subvFG,[],1);
+    subvP1D = reshape(subvPG,[],1);
+    sub_score1D = reshape(sub_score,[],1);
+
+    % starting point estimation SH based on discretized maxV (-b/2a =
+    % maxVorg(2)) in quadratical expression to avoid the random starting point warning SH
+    asp = -0.026; %decided empirically
+    bsp = -2*asp*maxVorg(2);
+    csp = asp;
+    dsp = -2*csp*maxVorg(1);
+    esp = -0.5; %arbitrary number
+    s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
+    f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
+    sf = fit( [subvF1D, subvP1D], sub_score1D, f);
+
+    px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
+    maxV2 = [roots(polyder(py)) roots(polyder(px)) ];
+    bPolyTracked = 1;
+end
+
+if ~bPolyTracked||norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
+    subv = 4; % expanding region to fit
+    sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
+                        max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+    % my field of interest
+    subvP = vP(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv));
+    subvF = vF(max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+
+    sp   = csape({subvP,subvF},sub_score);
+    dsp1 = fnder(sp,[1,0]);
+    dsp2 = fnder(sp,[0,1]);
+    options = optimset('Algorithm','interior-point'); % this generates an warning
+%             options = optimset('Algorithm','sqp');% this too
+
+    maxV2 = fmincon(@vFun,maxVorg,[],[],[],[], ...
+        [max(subvP(1),maxVorg(1)-2) max(subvF(1),maxVorg(2)-2)], ...
+        [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
+        options,sp,dsp1,dsp2);            
+end
 
