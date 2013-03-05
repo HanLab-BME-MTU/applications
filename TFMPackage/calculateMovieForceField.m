@@ -133,7 +133,7 @@ for i=1:nFrames
             % The following values should/could be stored for the BEM-method.
             % In most cases, except the sol_coef this has to be stored only
             % once for all frames!
-            save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u');
+            save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
             
             % Calculate L-curve
             if ~strcmp(p.solMethodBEM,'QR')

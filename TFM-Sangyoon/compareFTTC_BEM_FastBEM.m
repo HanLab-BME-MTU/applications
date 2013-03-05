@@ -11,7 +11,7 @@
 
 %% parameter setup
 E=1000;  %Young's modulus
-addNoise=1;
+addNoise=0;
 percentNoise=10/100;
 doSave=0;
 savePath = 'xy0150fastBEM_10pNoise.mat';
