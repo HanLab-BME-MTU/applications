@@ -259,7 +259,9 @@ template = GaussMask2D(1,medianSize,[0 0]);
 templateSize = (size(template,1) - 1) / 2;
 
 %initialize conventional image
-imageConv = zeros(numPixelsXY(1),numPixelsXY(2));
+if showConv
+    imageConv = zeros(numPixelsXY(1),numPixelsXY(2));
+end
 
 %initialize super-resolution image
 imageSupRes = spalloc(numPixelsNewXY(1),numPixelsNewXY(2),...
