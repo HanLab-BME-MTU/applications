@@ -344,33 +344,73 @@ kymAvgImg=ip.Results.kymAvgImg;
 bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
 bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
 
+bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
+bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
+m = length(bI1e);%length(vP);
+n = length(bI2e);%length(vF);
+mi = length(vP);
+ni = length(vF);
+
 %Find the part of the image block that is outside the cropped image and cut it off from the template.
 bI1(bI1<1 | bI1>kymWidth) = [];
 bI2(bI2<1 | bI2>kymLen) = [];
+bI1e(bI1e<1 | bI1e>kymWidth) = [];
+bI2e(bI2e<1 | bI2e>kymLen) = [];
 
 score = zeros(length(vP),length(vF));
 if min(min(kymMask(:,:,1))) == 1
     %Background intensities are set to be zero. So, if there is no zero intensities, there is no
     % background.
-    kymP2 = kym.*kym;
+%     kymP2 = kym.*kym;
     
-    %The norm of the kymographed image band at each frame.
-    bNorm1 = sqrt(sum(sum(sum(kymP2(bI1,bI2,1:numFrames-1)))));
+%     %The norm of the kymographed image band at each frame.
+%     bNorm1 = sqrt(sum(sum(sum(kymP2(bI1,bI2,1:numFrames-1)))));
     
-    for j1 = 1:length(vP)
-        v1 = vP(j1);
-        for j2 = 1:length(vF)
-            v2 = vF(j2);
-            corrM = kym(bI1,bI2,1:numFrames-1).* ...
-                kym(bI1+v1,bI2+v2,2:numFrames);
-            
-            %The norm of the shifted image band at each frame.
-            bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
-            
-            %Normalize the correlation coefficients.
-            score(j1,j2) = sum(corrM(:))/bNorm1/bNorm2;
-        end
-    end
+%     % fft-based cross-correlation. This can reduce computation time 
+%     % especially for large velocity range - Sangyoon
+    K1 = length(bI1); K2 = length(bI2);
+    N1 = length(bI1e); N2 = length(bI2e);
+%     LEN1 = 2^nextpow2(K1+N1-1);
+%     LEN2 = 2^nextpow2(K2+N2-1);
+%     ref_stack = zeros(K1+(N1-1),K2+(N2-1),numFrames-1); %zero padding is needed
+%     ref_stack(N1:N1+K1-1,N2:N2+K2-1,:) = kym(bI1,bI2,1:numFrames-1);
+%     cur_stack = zeros(K1+(N1-1),K2+(N2-1),numFrames-1); %zero padding is needed
+%     cur_stack(1:N1,1:N2) = kym(bI1e,bI2e,2:numFrames);
+%     
+%     tic;
+%     score_ffte = real(ifft2( fft2(ref_stack,LEN1,LEN2).*...
+%         conj(fft2(cur_stack,LEN1,LEN2)) ));
+%     % normalize
+%     bNorm2 = ifft2((fft2(cur_stack)).*conj(fft2(cur_stack)));
+%     
+%     score_fft = score_ffte(1:K1+N1-1,1:K2+N2-1);
+%     score_fft = score_fft/bNorm1./sqrt(bNorm2);
+%     score_un = score_fft(K1:N1,K2:N2); % un-normalized
+%     score_n = score_un(length(vP):-1:1,length(vF):-1:1); %counterindexing
+%     toc;
+
+    score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
+    score = score_nxc2(K1:N1,K2:N2); % normalized
+
+%     Old code: direct sliding inner product
+%     tic;        
+%     for j1 = 1:length(vP)
+%         v1 = vP(j1);
+%         for j2 = 1:length(vF)
+%             v2 = vF(j2);
+%             corrM = kym(bI1,bI2,1:numFrames-1).* ...
+%                 kym(bI1+v1,bI2+v2,2:numFrames);
+%             
+%             %The norm of the shifted image band at each frame.
+%             bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
+%             
+%             %Normalize the correlation coefficients.
+%             score(j1,j2) = sum(corrM(:))/bNorm1/bNorm2;
+%         end
+%     end
+%     toc;
+%     figure;subplot(1,3,1),surf(score_n),subplot(1,3,2),surf(score_nnxc);
+%     subplot(1,3,3),surf(score);
 else
     kym       = reshape(kym,kymLen*kymWidth,numFrames);
     kymMask   = reshape(kymMask,kymLen*kymWidth,numFrames);
