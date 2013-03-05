@@ -107,17 +107,17 @@ classdef CometPostTrackingProcess < PostTrackingProcess
         
         function schemes = getFgapReclassificationSchemes()
             
-            schemes{1} = 'Local scheme: 2-3 frames before pause';
-            schemes{2} = 'Local scheme: FullGrowth Subtrack Velocity';
-            schemes{3} = 'Unimodal Thresholding';
+            schemes{1} = 'Using 2-3 frames before forward gap (local)';
+            schemes{2} = 'Using full growth subtrack velocity (local)';
+            schemes{3} = 'Unimodal thresholding';
             schemes{4} = 'No reclassification';            
         end
         
         function schemes = getBgapReclassificationSchemes()
-            schemes{1} = 'bGapThresh = 95th Percentile of fGapVel';
-            schemes{2} = 'Unimodal Fgap Thresh: No Correct';
-            schemes{3} = 'Unimodal Fgap Thresh: Correct For Comet Latency';
-            schemes{4} = 'Fluctuation Radius Displacement Cut-off';
+            schemes{1} = '95th percentile of forward gap speed distribution';
+            schemes{2} = 'Unimodal thresholding with comet latency correction';
+            schemes{3} = 'Unimodal thresholding without comet latency correction';
+            schemes{4} = 'Using fluctuation radius';
         end
         
     end
