@@ -1,11 +1,11 @@
 function [imageSupRes,factorSub,imageConv] = reconstructImageSR(movieInfo,...
     factorSub,useMedianStd,showConv,startend,cropImage,dir2saveRes,...
-    firstImgFile,makeMovie,movieName,movieType)
+    firstImgFileOrSize,makeMovie,movieName,movieType)
 %RECONSTRUCTIMAGESR reconstructs a "super-resolution" image from single molecule coordinates
 %
 %SYNPOSIS [imageSupRes,factorSub,imageConv] = reconstructImageSR(movieInfo,...
 %    factorSub,useMedianStd,showConv,startend,cropImage,dir2saveRes,...
-%    firstImgFile,makeMovie,movieName,movieType)
+%    firstImgFileOrSize,makeMovie,movieName,movieType)
 %
 %INPUT  movieInfo   : Output of detectSubResFeatures2D_StandAlone.
 %       factorSub   : Factor by which to sub-sample original pixels in
@@ -26,10 +26,14 @@ function [imageSupRes,factorSub,imageConv] = reconstructImageSR(movieInfo,...
 %                     Optional. Default: 0.
 %       dir2saveRes : Directory where to save output.
 %                     Optional. Default: Directory where images are located.
-%       firstImgFile: Name (including full path) of the first image file
+%       firstImgFileOrSize: 
+%                     *** Either ***
+%                     Name (including full path) of the first image file
 %                     in the image series. The file has to be the first 
 %                     image that has been analyzed even if not used for
-%                     reconstruction. 
+%                     reconstruction.
+%                     *** OR ***
+%                     Size of original image (number of pixels in X and Y).
 %                     Optional. Default: User is prompted to select the
 %                     first image.
 %       makeMovie   : 1 to make and save a movie of the reconstruction, 0
@@ -94,44 +98,64 @@ if nargin < 7
     dir2saveRes = [];
 end
 
-if nargin < 8 || isempty(firstImgFile)
+if nargin < 8 || isempty(firstImgFileOrSize)
     [fName,dirName] = uigetfile('*.tif','specify first image in the stack - specify very first image, even if not to be used');
+    actualImage = 1;
 else
-    if iscell(firstImgFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImgFile{1});
+    if iscell(firstImgFileOrSize)
+        [fpath,fname,fno,fext]=getFilenameBody(firstImgFileOrSize{1});
         dirName=[fpath,filesep];
         fName=[fname,fno,fext];
-    elseif ischar(firstImgFile)
-        [fpath,fname,fno,fext]=getFilenameBody(firstImgFile);
+        actualImage = 1;
+    elseif ischar(firstImgFileOrSize)
+        [fpath,fname,fno,fext]=getFilenameBody(firstImgFileOrSize);
         dirName=[fpath,filesep];
         fName=[fname,fno,fext];
+        actualImage = 1;
+    else
+        actualImage = 0;
     end
 end
 
-if(isa(fName,'char') && isa(dirName,'char'))
+if actualImage
     
-    %get all file names in stack
-    outFileList = getFileStackNames([dirName,fName]);
-    numFiles = length(outFileList);
-    
-    %determine which frames the files correspond to, and generate the inverse map
-    %indicate missing frames with a zero
-    frame2fileMap = zeros(numFiles,1);
-    for iFile = 1 : numFiles
-        [~,~,frameNumStr] = getFilenameBody(outFileList{iFile});
-        frameNum = str2double(frameNumStr);
-        frame2fileMap(frameNum) = iFile;
+    if (isa(fName,'char') && isa(dirName,'char'))
+        
+        %get all file names in stack
+        outFileList = getFileStackNames([dirName,fName]);
+        numFiles = length(outFileList);
+        
+        %determine which frames the files correspond to, and generate the inverse map
+        %indicate missing frames with a zero
+        frame2fileMap = zeros(numFiles,1);
+        for iFile = 1 : numFiles
+            [~,~,frameNumStr] = getFilenameBody(outFileList{iFile});
+            frameNum = str2double(frameNumStr);
+            frame2fileMap(frameNum) = iFile;
+        end
+        
+    else %exit if there are problems
+        
+        disp('--reconstructImageSR: Bad file selection');
+        return
+        
     end
     
-else %exit if there are problems
+else
     
-    disp('--reconstructImageSR: Bad file selection');
-    return
+    if showConv
+        disp('--reconstructImageSR: Cannot show conventional image without actual images');
+        return
+    end
     
 end
 
 if isempty(dir2saveRes)
-    dir2saveRes = dirName;
+    if actualImage
+        dir2saveRes = dirName;
+    else
+        dir2saveRes = pwd;
+    end
 end
 
 if nargin < 9 || isempty(makeMovie)
@@ -149,10 +173,12 @@ end
 %% Pre-processing
 
 %keep only the frames of interest
-outFileList = outFileList(frame2fileMap(startend(1)):frame2fileMap(startend(2)));
-frame2fileMap = frame2fileMap(startend(1):startend(2));
-indxNotZero = find(frame2fileMap~=0);
-frame2fileMap(indxNotZero) = frame2fileMap(indxNotZero) - frame2fileMap(indxNotZero(1)) + 1;
+if actualImage
+    outFileList = outFileList(frame2fileMap(startend(1)):frame2fileMap(startend(2)));
+    frame2fileMap = frame2fileMap(startend(1):startend(2));
+    indxNotZero = find(frame2fileMap~=0);
+    frame2fileMap(indxNotZero) = frame2fileMap(indxNotZero) - frame2fileMap(indxNotZero(1)) + 1;
+end
 
 %retain only the movieInfo of the frames of interest
 movieInfo = movieInfo(startend(1):startend(2));
@@ -162,18 +188,22 @@ numFramesMovie = diff(startend) + 1;
 
 %read first image, crop if requested and get image range
 %image range is in normal spatial coordinates (i.e. not image coordinates)
-currentImage = double(imread(outFileList{1}));
-if cropImage
-    currentImage = (currentImage-min(currentImage(:)))/(max(currentImage(:))-min(currentImage(:)));
-    [~,rect] = imcrop(currentImage);
-    close all
-    rect = round(rect);
-    %     figure, imshow(imageCropped)
-    imageRange = [rect(2) rect(2)+rect(4); rect(1) rect(1)+rect(3)];
-    %     figure, imshow(currentImage(imageRange(1,1):imageRange(1,2),imageRange(2,1):imageRange(2,2)))
+if actualImage
+    currentImage = double(imread(outFileList{1}));
+    if cropImage
+        currentImage = (currentImage-min(currentImage(:)))/(max(currentImage(:))-min(currentImage(:)));
+        [~,rect] = imcrop(currentImage);
+        close all
+        rect = round(rect);
+        %     figure, imshow(imageCropped)
+        imageRange = [rect(2) rect(2)+rect(4); rect(1) rect(1)+rect(3)];
+        %     figure, imshow(currentImage(imageRange(1,1):imageRange(1,2),imageRange(2,1):imageRange(2,2)))
+    else
+        [isx,isy] = size(currentImage);
+        imageRange = [1 isx; 1 isy];
+    end
 else
-    [isx,isy] = size(currentImage);
-    imageRange = [1 isx; 1 isy];
+    imageRange = [1 firstImgFileOrSize(1); 1 firstImgFileOrSize(2)];
 end
 
 %save image size in normal coordinates
