@@ -3,6 +3,7 @@
 % 
 % supplied input variables on workspace
 %   -> tracksFinal as output from uTrack package
+%   -> MD is the movie data file that is input into uTrack
 %   
 % US, 2013/01/30
 %
@@ -15,6 +16,7 @@ tExp=0.05;
 imSize=[256,256];
 rep=10;
 
+movieLength = MD.nFrames_;
 nTracks=numel(tracksFinal);
 
 %
@@ -31,6 +33,9 @@ track=repmat(...
 
 % index of UV induced tracks
 idxUV=false(nTracks,1);
+
+% an index of which tracks span the whole movie
+isDrift = false(nTracks,1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%                                             
@@ -51,6 +56,11 @@ for i=1:nTracks
     if mod(startF,rep) == 1
         track(i).fromUV=true;
         idxUV(i)=true;
+    end
+    
+    %mark tracks if they span the whole movie
+    if track(i).timeInfo(3) == movieLength
+        isDrift(i)=true;
     end
     
     % coordinates, amplitudes and corresponding errors
@@ -74,6 +84,46 @@ for i=1:nTracks
     if any( isnan(tmp(:)) )
         track(i).gapClosed=true;
     end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Drift correct the tracks
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ind = find(isDrift);
+
+drift = zeros(movieLength,2);
+
+if ~isempty(ind)
+    for i = 1:numel(ind)
+        x = track(ind(i)).coord(:,1);
+        y = track(ind(i)).coord(:,2);
+        drift(2:end,:) = drift(2:end,:) + [diff(x),diff(y)];
+    end
+    
+    drift = drift/numel(ind);
+    drift = cumsum(drift);
+end
+
+for i =1:nTracks
+    frames = track(i).amp(:,end);
+    coord =track(i).coord;
+    coord(:,[1,2]) = coord(:,[1,2]) + drift(frames,:);
+    track(i).coord = coord;
+    
+    % Recaculate center of mass calculated as a weigthed mean
+    idx=~isnan(tmp(:,1));
+    tmp = coord;
+    [nrows,ncols]=size(tmp);
+    if( nrows > 1 )
+        [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,3:4),'s');
+        track(i).com=[wm,ws,sqrt(sum(ws.^2))];
+    else
+        track(i).com=[tmp(1:2), tmp(3:4), sqrt(sum(tmp(3:4).^2))];
+    end
+    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -176,3 +226,4 @@ toffFit=fit(xOFF',yOFFcdf',ft,'StartPoint',pini);
 clear startF stopF idx tmp i;
 clear p nrows ncols nTracks;
 clear tmp1 tmp2;
+
