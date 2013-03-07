@@ -258,7 +258,7 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
 % track field names
 idx = structfun(@(i) size(i,2)==size(frameInfo(1).x,2), frameInfo(1));
 mcFieldNames = fieldnames(frameInfo);
-[~,loc] = ismember({'x_init', 'y_init', 'RSS'}, mcFieldNames);
+[~,loc] = ismember({'x_init', 'y_init'}, mcFieldNames);
 idx(loc(loc~=0)) = false;
 mcFieldNames = mcFieldNames(idx);
 mcFieldSizes = structfun(@(i) size(i,1), frameInfo(1));
