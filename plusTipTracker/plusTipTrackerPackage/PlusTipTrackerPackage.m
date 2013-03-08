@@ -3,13 +3,26 @@ classdef PlusTipTrackerPackage < TrackingPackage
     
     methods (Access = public)
         function obj = PlusTipTrackerPackage (varargin)
-
+            
             % Call the superclass constructor
-            obj = obj@TrackingPackage(varargin{:});        
+            obj = obj@TrackingPackage(varargin{:});
+        end
+        
+        function [status, processExceptions] = sanityCheck(obj,varargin)
+            
+            % Check that the time interval is correctly setup
+            missingMetadataMsg = ['Missing %s! The %s is necessary to analyze '...
+                'microtubule plus-end tracks. Please edit the movie and fill the %s.'];
+            errorMsg = @(x) sprintf(missingMetadataMsg, x, x, x);
+            
+            assert(~isempty(obj.owner_.pixelSize_), errorMsg('pixel size'));
+            assert(~isempty(obj.owner_.timeInterval_), errorMsg('time interval'));
+            
+            [status, processExceptions] = sanityCheck@Package(obj, varargin);
         end
     end
     methods (Static)
-   
+        
         function varargout = GUI(varargin)
             % Start the package GUI
             varargout{1} = plusTipTrackerPackageGUI(varargin{:});
@@ -33,7 +46,7 @@ classdef PlusTipTrackerPackage < TrackingPackage
             fields = fieldnames(kalmanFunctions);
             validFields = {'reserveMem','initialize','calcGain','timeReverse'};
             kalmanFunctions = rmfield(kalmanFunctions,fields(~ismember(fields,validFields)));
-            funParams.kalmanFunctions = kalmanFunctions;            
+            funParams.kalmanFunctions = kalmanFunctions;
             % Set default cost matrices
             funParams.costMatrices(1) = TrackingProcess.getDefaultLinkingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
             funParams.costMatrices(2) = TrackingProcess.getDefaultGapClosingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
