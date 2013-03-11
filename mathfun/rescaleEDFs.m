@@ -94,7 +94,7 @@ else
         
         figure(fset.fOpts{:}, 'Position', [5 5 8 1.5+axPos(4)*2+dx+1], 'Color', 'w', 'Name', ip.Results.FigureName);
         axPos(2) = axPos(2)+dx+axPos(4);
-        axes(fset.axOpts{:}, 'Position', axPos);
+        ha(1) = axes(fset.axOpts{:}, 'Position', axPos);
         hold on;
         for i = nd-1:-1:1
             plot(xEDF{idx(i)}, fEDF{idx(i)}, '-', 'Color', colorV(idxa(i),:), 'LineWidth', lw);
@@ -108,7 +108,7 @@ else
         hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
         set(hl, 'Box', 'off', fset.sfont{:}, 'Position', [5 6 1.5 1]);
         
-        axes(fset.axOpts{:});
+        ha(2) = axes(fset.axOpts{:});
         hold on;
         plot(xEDF{refIdx}, fEDF{refIdx}, 'k', 'LineWidth', lw+0.5);
         for i = nd-1:-1:1
@@ -137,6 +137,9 @@ else
         set(gca, 'TickLength', fset.TickLength*3, 'XTick', [], 'YTick', ya, 'XColor', 'w');
         formatTickLabels(gca);
         ylabel('Relative scale', fset.sfont{:});
+        if ~isempty(ip.Results.XTick)
+            set(ha, 'XTick', ip.Results.XTick);
+        end
     end
 end
 
