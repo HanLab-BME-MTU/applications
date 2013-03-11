@@ -14,7 +14,7 @@ E=1000;  %Young's modulus
 addNoise=0;
 percentNoise=10/100;
 doSave=0;
-savePath = 'xy0150fastBEM_10pNoise.mat';
+savePath = 'xy0150fastBEM_10pNoNoise.mat';
 
 s=0.5;  %Poisson's ratio, only needed for FTTC
 
@@ -131,7 +131,7 @@ tic
 L=0; %regularization factor
 [fx_BEM, fy_BEM, x_out, y_out, M, pos_u_M, u_M] = ...
     BEM_force_reconstruction(x_mat_u,y_mat_u,ux,uy,forceMesh,E,L,[],[],[],...
-    meshPtsFwdSol);
+    meshPtsFwdSol,'fwdMap',M);
 toc
 
 rec_force_BEM(:,:,1)=fx_BEM;
@@ -147,7 +147,7 @@ forceMeshFastBEM=createMeshAndBasisFastBEM(x_vec_f,y_vec_f,true,[],1);
 % forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 tic
 L = 0;
-basisClassTablePath = '/home/sh268/Documents/TFM-simulation/basisFunction5050.mat';
+basisClassTablePath = '/home/sh268/orchestra/home/Documents/TFM-simulation/basisFunction5050.mat';
 [fx_FastBEM fy_FastBEM x_out y_out M_FastBEM pos_u_M_FastBEM u_M_FastBEM] ...
     = BEM_force_reconstruction(x_mat_u,y_mat_u,ux,uy,forceMeshFastBEM,...
     E,L,x_out,y_out,'fast',meshPtsFwdSol,...
@@ -170,7 +170,8 @@ L = 0.00001; %same regularization factor
 [fx_FastBEMregsc fy_FastBEMregsc x_outregsc y_outregsc M_FastBEMsc pos_u_M_FastBEMregsc u_M_FastBEMregsc]...
     = BEM_force_reconstruction(x_mat_u,y_mat_u,ux,uy,forceMeshFastBEM,...
     E,L,x_out,y_out,'fast',meshPtsFwdSol,...
-    'QRscaled','basisClassTblPath',basisClassTablePath,'imgRows',49,'imgCols',49);
+    'QRscaled','basisClassTblPath',basisClassTablePath,'imgRows',49,'imgCols',49,...
+    'fwdMap',M_FastBEM);
 toc
 rec_force_FastBEMregsc(:,:,1)=fx_FastBEMregsc;
 rec_force_FastBEMregsc(:,:,2)=fy_FastBEMregsc;
