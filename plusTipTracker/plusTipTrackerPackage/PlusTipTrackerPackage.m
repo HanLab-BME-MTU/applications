@@ -37,6 +37,10 @@ classdef PlusTipTrackerPackage < TrackingPackage
             procConstr=procConstr(index);
         end
         
+        function procConstr = getAlternateDetector()
+            procConstr = @AnisoGaussianDetectionProcess;
+        end
+        
         function funParams = getDefaultTrackingParams(owner,outputDir)
             funParams = TrackingProcess.getDefaultParams(owner,outputDir);
             % Set default minimum track length
