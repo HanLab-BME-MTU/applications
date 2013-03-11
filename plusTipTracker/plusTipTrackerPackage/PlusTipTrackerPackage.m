@@ -18,7 +18,7 @@ classdef PlusTipTrackerPackage < TrackingPackage
             assert(~isempty(obj.owner_.pixelSize_), errorMsg('pixel size'));
             assert(~isempty(obj.owner_.timeInterval_), errorMsg('time interval'));
             
-            [status, processExceptions] = sanityCheck@Package(obj, varargin);
+            [status, processExceptions] = sanityCheck@Package(obj, varargin{:});
         end
     end
     methods (Static)
