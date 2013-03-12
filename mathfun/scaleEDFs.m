@@ -5,7 +5,7 @@
 %          c : estimated fraction of missing data
 %
 
-% Francois Aguet, 03/06/2012
+% Francois Aguet, 03/06/2012 (last modified 03/12/2013)
 
 function [a, c, refIdx] = scaleEDFs(samples, varargin)
 
@@ -26,14 +26,13 @@ else
 end
 nd = numel(samples);
 
-
 if nd==1 && isempty(refSamples)
     a = 1;
     c = 0;
     refIdx = 1;
     return
 end
-    
+
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e4, ...
     'MaxIter', 1e4, ...
@@ -50,15 +49,18 @@ for i = 1:nd
     [F{i}, x{i}] = ecdf(samples{i});
 end
 
+%x0 = linspace(0,max(vertcat(samples{:})),1000);
+%x0 = linspace(min(samples{refIdx}),max(samples{refIdx}),1000); % robust
+x0 = linspace(prctile(vertcat(samples{:}),1), prctile(vertcat(samples{:}),99), 1000);
+
 if isempty(refSamples)
-    
+
     % scale to reference distribution, with offset for missing data
     switch ip.Results.Reference
         case 'max' % highest-valued (highest median) distribution
             mu = cellfun(@(i) median(i), samples);
             refIdx = find(mu==max(mu),1,'first');
         case 'med' % median distribution
-            % interpolate EDFs to common y-axis
             f = cell(1,nd);
             for i = 1:nd
                 f{i} = interp1(F{i}, x{i}, fi);
@@ -70,7 +72,7 @@ if isempty(refSamples)
         otherwise
             refIdx = ip.Results.Reference;
     end
-    %refSamples = samples(refIdx);
+    T99 = prctile(samples{refIdx}, 99.5);
     samples(refIdx) = [];
     xRef = x{refIdx};
     FRef = F{refIdx};
@@ -79,13 +81,10 @@ if isempty(refSamples)
 else
     [FRef, xRef] = ecdf(refSamples);
     refIdx = [];
+    T99 = prctile(refSamples, 99.5);
 end
 nd = numel(samples);
-
-%x0 = linspace(0,max(vertcat(samples{:})),1000);
-%x0 = linspace(min(samples{refIdx}),max(samples{refIdx}),1000); % robust
-x0 = linspace(prctile(vertcat(samples{:}),1), prctile(vertcat(samples{:}),99), 1000);
-
+    
 % scale each distribution to the reference
 a = ones(1,nd);
 c = zeros(1,nd);
@@ -102,12 +101,7 @@ end
 if ip.Results.Display
     colorV = hsv(nd);
     fset = loadFigureSettings('print');
-    if isempty(ip.Results.XTick)
-        %T99 = prctile(samples{refIdx}, 99.9);
-        %T99 = prctile(vertcat(samples{:}), 99.9);
-        T99 = prctile(refSamples, 99.5);
-        %xa = 0:50:T99;
-    else
+    if ~isempty(ip.Results.XTick)
         xa = ip.Results.XTick;
         T99 = xa(end);
     end
@@ -151,11 +145,12 @@ if ip.Results.Display
     axPos = fset.axPos;
     axes(fset.axOpts{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
     hold on;
-    plot(zeros(numel(a)), a, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
-    he = errorbar(0, mean(a), std(a), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
-    plot(0.1*[-1 1], mean(a)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
+    av = [a 1];
+    plot(zeros(numel(av)), av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
+    he = errorbar(0, mean(av), std(av), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
+    plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
     setErrorbarStyle(he, 0.15);
-    ylim = max(ceil([1-min(a) max(a)-1]/0.2));
+    ylim = max(ceil([1-min(av) max(av)-1]/0.2));
     ylim = 1+[-ylim ylim]*0.2;
     axis([-0.5 0.5 ylim]);
     ya = linspace(ylim(1), ylim(2), 5);
@@ -169,7 +164,7 @@ end
 
 if isempty(refSamples)
     a = [a(1:refIdx-1) 1 a(refIdx:end)];
-    c = [c(1:refIdx-1) 1 c(refIdx:end)];
+    c = [c(1:refIdx-1) 0 c(refIdx:end)];
 end
 
 
