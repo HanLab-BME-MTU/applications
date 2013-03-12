@@ -65,7 +65,7 @@ if isempty(YLim) && ~isempty(ip.Results.YTick)
 end
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-    'OutputName', ip.Results.LftDataName, 'Rescale', ip.Results.Rescale, 'Cutoff_f', 5,...
+    'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale, 'Cutoff_f', 5,...
     'ReturnValidOnly', true, 'ExcludeVisitors', ip.Results.ExcludeVisitors);
 
 if ~isempty(ip.Results.TrackIndex)
@@ -127,9 +127,8 @@ for i = 1:nd
         end
     end
 end
-cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) 's'], 1:nc-1, 'Unif', 0);
+cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) 's'], 1:nc, 'Unif', 0);
 XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
-
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
 
@@ -371,7 +370,8 @@ else
     M = vertcat(M{:});
    
     if ~isempty(ip.Results.SlaveName)
-        sv = arrayfun(@(i) 100*sum(vertcat(i.sigIdx{2,:}))/numel(vertcat(i.sigIdx{2,:})), res);
+        sv = arrayfun(@(i) 100*sum(i.significantSignal(:,2)==1 & max(i.A(:,:,1),[],2)>ip.Results.MaxIntensityThreshold)...
+            /sum(max(i.A(:,:,1),[],2)>ip.Results.MaxIntensityThreshold), lftData);
         text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos. ('  num2str(mean(sv), '%.1f') ' ± ' num2str(std(sv), '%.1f') '% of CCPs)'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
     end
     
@@ -458,8 +458,9 @@ else
     if ip.Results.ShowPct
         axes(fset.axOpts{:}, 'Position', [15.5 2 3 2.5], 'TickLength', fset.TickLength*6/3);
         barplot2(mean(M,1)', std(M,[],1)', 'Angle', 0, 'BarWidth', 1, 'GroupDistance', 1,...
-            'FaceColor', 0.8*[1 1 1], 'EdgeColor', 0.4*[1 1 1], 'AxisFontSize', 8,...
+            'FaceColor', 0.8*[1 1 1], 'EdgeColor', 0.4*[1 1 1],...
             'YLim', [0 100], 'LineWidth', 1);
+        set(gca, 'FontSize', 8);
         
         h = title(['% ' ip.Results.SlaveName ' pos. CCPs'], fset.sfont{:});
         %h = ylabel('% CCPs/cohort', fset.lfont{:});

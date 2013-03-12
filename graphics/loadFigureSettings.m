@@ -32,8 +32,8 @@ switch mode
     case 'print'
         fset.units = 'centimeters';
         fset.axPos = [1.5 1.5 6 3.5];
-        fset.ifont = [fset.fontName, 'FontSize', 5];
-        fset.tfont = [fset.fontName, 'FontSize', 6];
+        fset.ifont = [fset.fontName, 'FontSize', 6];
+        fset.tfont = [fset.fontName, 'FontSize', 7];
         fset.sfont = [fset.fontName, 'FontSize', 8];
         fset.lfont = [fset.fontName, 'FontSize', 10];
         fset.TickLength = [0.015 0.025];

@@ -20,6 +20,9 @@ fset = loadFigureSettings(ip.Results.DisplayMode);
 ce = [0 0 0.6;
     1/3 0.3 0.9;
     1/3 1 0.9];
+% ce = [0 0 0;
+%       0 0 0.6;
+%       1/3 1 0.9];
 ce = hsv2rgb(ce);
 
 if isstruct(lftRes)
@@ -51,11 +54,11 @@ if isstruct(lftRes)
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
     set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', yal);
     xlabel('Lifetime (s)', fset.lfont{:});
-    ylabel('Frequency', fset.lfont{:});
+    ylabel('Relative frequency', fset.lfont{:});
     
     ltext = {[' CCPs: ' num2str(mean(lftRes.pctAbove)*100, '%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100, '%.1f') ' %'],...
              [' CSs: ' num2str(mean(lftRes.pctBelow)*100, '%.1f') ' ± ' num2str(std(lftRes.pctBelow)*100, '%.1f') ' %'],...
-              ' All detected structures'};
+              ' All structures'};
     lheight = 1.25;
     if isfield(lftRes, 'pctVisit')
         ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];

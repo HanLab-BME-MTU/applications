@@ -12,6 +12,7 @@ ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'
 ip.addParamValue('ShowSignificance', false, @islogical);
 ip.addParamValue('ShowGaussians', false, @islogical);
 ip.addParamValue('ShowFirstFrame', false, @islogical);
+ip.addParamValue('LifetimeData', 'lifetimeData.mat');
 ip.addParamValue('Cutoff_f', 5);
 ip.parse(varargin{:});
 mode = ip.Results.Mode;
@@ -29,10 +30,11 @@ nc = numel(lb);
 ny = nc;
 
 lftData = getLifetimeData(data, 'ReturnValidOnly', true, 'Rescale', true,...
-    'Cutoff_f', 5, 'ExcludeVisitors', false);
+    'Cutoff_f', 5, 'ExcludeVisitors', false, 'LifetimeData', ip.Results.LifetimeData);
 A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'unif', 0);
 A = vertcat(A{:});
-maxA = vertcat(lftData.maxA);
+% maxA = vertcat(lftData.maxA);
+maxA = nanmax(A,[],2);
 f = ip.Results.FirstNFrames;
 
 maxAFirstN = nanmax(A(:,1:f), [], 2);
@@ -121,7 +123,8 @@ xo = 1.5;
 yo = 1.5;
 sh = ah/3;
 
-cmap = jet(nc);
+% cmap = jet(nc);
+cmap = repmat(hsv2rgb([0 1 0.9]), [nc 1]);
 
 % figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
 figure('Units', 'centimeters', 'Position', [5 5 8 ny*ah+(ny-1)*sh+2.5], 'Color', [1 1 1], 'PaperPositionMode', 'auto');
