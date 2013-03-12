@@ -165,7 +165,7 @@ for iChan= p.ChannelIndex
         if ishandle(wtBar) && mod(i,5)==0, waitbar(frac,wtBar,logMsg);  end  
     end
     
-    meanStd = arrayfun(@(x) mean(stdList(max(1,x-1):min(nFrames,x+1))),1:nFrames);
+    meanStd = arrayfun(@(x) nanmean(stdList(max(1,x-1):min(nFrames,x+1))),1:nFrames);
     % meanStd = smooth(stdList,3); % Discrepancy for endpoint
     
     % loop thru frames and detect
