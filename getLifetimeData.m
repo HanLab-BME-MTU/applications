@@ -5,19 +5,19 @@ function [lftData, rmIdx] = getLifetimeData(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('InputName', 'ProcessedTracks.mat', @ischar);
-ip.addParamValue('OutputName', 'lifetimeData.mat', @ischar);
+ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
+ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('ReturnValidOnly', true, @islogical);
 ip.addParamValue('Cutoff_f', [], @isscalar);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
-ip.addParamValue('Rescale', false, @islogical);
-ip.addParamValue('DisplayRescaling', false, @islogical);
+ip.addParamValue('Scale', false, @islogical);
+ip.addParamValue('DisplayScaling', false, @islogical);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
 nd = numel(data);
-rescale = ip.Results.Rescale;
+rescale = ip.Results.Scale;
 if numel(rescale)==1
     rescale = repmat(rescale, [nCh 1]);
 end
@@ -30,10 +30,10 @@ mnames = fnames(5:end);
 
 maxA = cell(nCh,nd);
 parfor i = 1:nd
-    fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
+    fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
-        tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.InputName);
+        tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.ProcessedTracks);
         
         % concatenate amplitudes of master channel into matrix
         trackLengths = [tracks.end]-[tracks.start]+1;
@@ -55,42 +55,30 @@ parfor i = 1:nd
         
         % store intensity matrices
         nf = data(i).movieLength;
-        A = NaN(nt,nf,nCh);
-        A_pstd = NaN(nt,nf);
-        sbA = NaN(nt,b,nCh);
-        ebA = NaN(nt,b,nCh);
-        sbSigma_r = NaN(nt,b,nCh);
-        ebSigma_r = NaN(nt,b,nCh);
-        sigma_r = NaN(nt,nf,nCh);
-        SE_sigma_r = NaN(nt,nf);
-        gapMat_Ia = false(nt,nf);
+        lftData(i).A = NaN(nt,nf,nCh);
+        lftData(i).A_pstd = NaN(nt,nf);
+        lftData(i).sigma_r = NaN(nt,nf,nCh);
+        lftData(i).SE_sigma_r = NaN(nt,nf);
+
+        lftData(i).sbA = NaN(nt,b,nCh);
+        lftData(i).ebA = NaN(nt,b,nCh);
+        lftData(i).sbSigma_r = NaN(nt,b,nCh);
+        lftData(i).ebSigma_r = NaN(nt,b,nCh);
+        %lftData(i).RSS = NaN(nt,nf,nCh);
+        lftData(i).gapMat_Ia = false(nt,nf);
         for k = 1:nt
             range = 1:trackLengths(idx_Ia(k));
-            A(k,range,:) = tracks(k).A';
-            A_pstd(k,range) = tracks(k).A_pstd(1,:);
-            sigma_r(k,range,:) = tracks(k).sigma_r';
-            SE_sigma_r(k,range) = tracks(k).SE_sigma_r(1,:);
-            sbA(k,:,:) = tracks(k).startBuffer.A';
-            ebA(k,:,:) = tracks(k).endBuffer.A';
-            sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
-            ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
-            gapMat_Ia(k,range) = tracks(k).gapVect';
+            lftData(i).A(k,range,:) = tracks(k).A';
+            lftData(i).A_pstd(k,range) = tracks(k).A_pstd(1,:);
+            lftData(i).sigma_r(k,range,:) = tracks(k).sigma_r';
+            lftData(i).SE_sigma_r(k,range) = tracks(k).SE_sigma_r(1,:);
+            lftData(i).sbA(k,:,:) = tracks(k).startBuffer.A';
+            lftData(i).ebA(k,:,:) = tracks(k).endBuffer.A';
+            lftData(i).sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
+            lftData(i).ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
+            %lftData(i).RSS(k,range,:) = tracks(k).RSS';
+            lftData(i).gapMat_Ia(k,range) = tracks(k).gapVect';
         end
-        
-        lftData(i).A = A;
-        lftData(i).A_pstd = A_pstd;
-        lftData(i).sigma_r = sigma_r;
-        lftData(i).SE_sigma_r = SE_sigma_r;
-        
-        lftData(i).sbA = sbA;
-        lftData(i).ebA = ebA;
-        lftData(i).sbSigma_r = sbSigma_r;
-        lftData(i).ebSigma_r = ebSigma_r;
-        lftData(i).gapMat_Ia = gapMat_Ia;
-        
-        [~,~] = mkdir([data(i).source 'Analysis']);
-        %iData = lftData(i);
-        %save(fpath, '-struct', 'iData');
     else
         tmp = load(fpath);
         if isfield(tmp, 'significantSignal')
@@ -99,10 +87,12 @@ parfor i = 1:nd
         lftData(i) = tmp;
     end
 end
+% save outside of parfor
 for i = 1:nd
-    fpath = [data(i).source 'Analysis' filesep ip.Results.OutputName];
+    [~,~] = mkdir([data(i).source 'Analysis']);
+    fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
-        iData = lftData(i);
+        iData = lftData(i); %#ok<NASGU>
         save(fpath, '-struct', 'iData');
     end
 end
@@ -113,11 +103,11 @@ if isfield(lftData(1), 'significantSignal')
 end
 for i = 1:nd
     
-    %if ip.Results.Rescale
-    %    for c = 1:nCh
-    %        maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
-    %    end
-    %end
+    if rescale
+       for c = 1:nCh
+           maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
+       end
+    end
     
     % apply frame cutoff to all fields
     if ~isempty(ip.Results.Cutoff_f)
@@ -158,8 +148,8 @@ av = zeros(nCh,nd);
 rmIdx = [];
 for c = 1:nCh
     if rescale(c)
-        maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
-        [a, offset, refIdx] = rescaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayRescaling);
+        %maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
+        [a, offset, refIdx] = scaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayScaling);
         av(c,:) = a;
         movieLength = min([data.movieLength]);
         for i = 1:nd
