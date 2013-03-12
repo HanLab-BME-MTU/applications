@@ -1,6 +1,5 @@
 function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
 %trackStackFlow: Calculate the flow velocity from a stack of movie images.
-%
 % SYNOPSIS :
 %    v = trackStackFlow(stack,points,minCorL)
 %    [v,corLen] = trackStackFlow(stack,points,minCorL,maxCorL,varargin)
@@ -66,20 +65,22 @@ ip.addRequired('stack',@(x) isnumeric(x) && size(x,3)>=2);
 ip.addRequired('points',@(x) isnumeric(x) && size(x,2)==2);
 ip.addRequired('minCorL',@isscalar);
 ip.addOptional('maxCorL',minCorL,@isscalar);
-ip.addParamValue('maxSpd',10,@isscalar);
+ip.addParamValue('maxSpd',40,@isscalar);
 ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
 ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
+ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate'}));
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
 minFeatureSize=ip.Results.minFeatureSize;
 bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
+mode=ip.Results.mode;
 
 % SH: Poly-fit version
 
-%We automatically update the speed search radius until a high limit is
+% We automatically update the speed search radius until a high limit is
 % reached. If no significant maximum is detected, it means either the image
 % quality is bad or the flow velocity is even higher than this limit.
 maxSpdLimit = 2*maxSpd;
@@ -129,7 +130,7 @@ backSpc =repmat('\b',1,L);
 % each point.
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
-parfor k = 1:nPoints
+for k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -244,20 +245,41 @@ parfor k = 1:nPoints
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
                     end
                     if pass2 == 1
-                        maxV2 = maxInterpfromScore(maxI2,score2,vP,vF);
-                        %locMaxV = zeros(size(locMaxI,1),2);
-                        locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+                        % This part can be really costly. We can directly
+                        % compare locMaxV and choose the index that gives
+                        % maximum score and then subpixel interpolate
+                        % it, or just use digitized maxV info to find an
+                        % index, then subpixel interpolate it. -SH
+                        % max score comparison
+%                         indLocMaxI = sub2ind(size(score), locMaxI)
+% 
+%                         max(score(sub2ind(size(score), [locMaxI(:,1) locMaxI(:,2)])))%1),locMaxI(:,2)))
+                        
+%                         maxV2 = maxInterpfromScore(maxI2,score2,vP,vF);
+%                         locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
-                        for j = 1:size(locMaxI,1)
-                            maxIc = locMaxI(j,:);
-                            maxV = maxInterpfromScore(maxIc,score,vP,vF);
-                            locMaxV(j,:) = maxV;
-                        end
+%                         for j = 1:size(locMaxI,1)
+%                             maxIc = locMaxI(j,:);
+%                             maxV = maxInterpfromScore(maxIc,score,vP,vF);
+%                             locMaxV(j,:) = maxV;
+%                         end
+                        
+%                         distToMaxV2 = sqrt(sum((locMaxV- ...
+%                             ones(size(locMaxV,1),1)*maxV2).^2,2));
+%                         
+%                         [minD,ind] = min(distToMaxV2);
+                        
+%                         maxV = locMaxV(ind,:);
+                        
+                        maxV2 = [vP(maxI2(1)) vF(maxI2(2))];
+                        locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
                         
                         distToMaxV2 = sqrt(sum((locMaxV- ...
                             ones(size(locMaxV,1),1)*maxV2).^2,2));
+                        
                         [minD,ind] = min(distToMaxV2);
-                        maxV = locMaxV(ind,:);
+                        maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
+
                         maxVNorm = max(norm(maxV2),norm(maxV));
                         if maxVNorm == 0 || ...
                                 (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
@@ -289,7 +311,7 @@ parfor k = 1:nPoints
         maxV = [NaN NaN];
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
-        maxV = maxInterpfromScore(maxI,score,vP,vF);
+        maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end
     
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
@@ -346,10 +368,10 @@ bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
 
 bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
 bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
-m = length(bI1e);%length(vP);
-n = length(bI2e);%length(vF);
-mi = length(vP);
-ni = length(vF);
+% m = length(bI1e);%length(vP);
+% n = length(bI2e);%length(vF);
+% mi = length(vP);
+% ni = length(vF);
 
 %Find the part of the image block that is outside the cropped image and cut it off from the template.
 bI1(bI1<1 | bI1>kymWidth) = [];
@@ -361,10 +383,10 @@ score = zeros(length(vP),length(vF));
 if min(min(kymMask(:,:,1))) == 1
     %Background intensities are set to be zero. So, if there is no zero intensities, there is no
     % background.
-%     kymP2 = kym.*kym;
+    kymP2 = kym.*kym;
     
-%     %The norm of the kymographed image band at each frame.
-%     bNorm1 = sqrt(sum(sum(sum(kymP2(bI1,bI2,1:numFrames-1)))));
+    %The norm of the kymographed image band at each frame.
+    bNorm1 = sqrt(sum(sum(sum(kymP2(bI1,bI2,1:numFrames-1)))));
     
 %     % fft-based cross-correlation. This can reduce computation time 
 %     % especially for large velocity range - Sangyoon
@@ -389,28 +411,25 @@ if min(min(kymMask(:,:,1))) == 1
 %     score_n = score_un(length(vP):-1:1,length(vF):-1:1); %counterindexing
 %     toc;
 
-    score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
-    score = score_nxc2(K1:N1,K2:N2); % normalized
+    if numFrames == 2 % For image stack of 2, fft-based crosscorrelation is faster.
+        score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
+        score = score_nxc2(K1:N1,K2:N2); % normalized
+    else
+        for j1 = 1:length(vP)
+            v1 = vP(j1);
+            for j2 = 1:length(vF)
+                v2 = vF(j2);
+                corrM = kym(bI1,bI2,1:numFrames-1).* ...
+                    kym(bI1+v1,bI2+v2,2:numFrames);
 
-%     Old code: direct sliding inner product
-%     tic;        
-%     for j1 = 1:length(vP)
-%         v1 = vP(j1);
-%         for j2 = 1:length(vF)
-%             v2 = vF(j2);
-%             corrM = kym(bI1,bI2,1:numFrames-1).* ...
-%                 kym(bI1+v1,bI2+v2,2:numFrames);
-%             
-%             %The norm of the shifted image band at each frame.
-%             bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
-%             
-%             %Normalize the correlation coefficients.
-%             score(j1,j2) = sum(corrM(:))/bNorm1/bNorm2;
-%         end
-%     end
-%     toc;
-%     figure;subplot(1,3,1),surf(score_n),subplot(1,3,2),surf(score_nnxc);
-%     subplot(1,3,3),surf(score);
+                %The norm of the shifted image band at each frame.
+                bNorm2 = sqrt(sum(sum(sum(kymP2(bI1+v1,bI2+v2,2:numFrames)))));
+
+                %Normalize the correlation coefficients.
+                score(j1,j2) = sum(corrM(:))/bNorm1/bNorm2;
+            end
+        end
+    end
 else
     kym       = reshape(kym,kymLen*kymWidth,numFrames);
     kymMask   = reshape(kymMask,kymLen*kymWidth,numFrames);
@@ -749,7 +768,7 @@ end
 
 pass = 1;
 
-function maxV2 = maxInterpfromScore(maxI2,score,vP,vF)
+function maxV2 = maxInterpfromScore(maxI2,score,vP,vF,mode)
 % Sangyoon: I made a change for this refining process to
 % use parabola approximation. Once parabola fit is
 % too much apart from integer maxV (maxVorg), I
@@ -764,7 +783,7 @@ subv = 1; % radius of subgroup for subscore
 maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
 
 bPolyTracked = 0;
-if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
+if strcmp(mode, 'fast') && (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
    && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
     subv = 1; % radius of subgroup for subscore
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
@@ -794,7 +813,7 @@ if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
     bPolyTracked = 1;
 end
 
-if ~bPolyTracked||norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
+if strcmp(mode, 'accurate') || ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
     subv = 4; % expanding region to fit
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
                         max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
@@ -813,4 +832,3 @@ if ~bPolyTracked||norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted 
         [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
         options,sp,dsp1,dsp2);            
 end
-
