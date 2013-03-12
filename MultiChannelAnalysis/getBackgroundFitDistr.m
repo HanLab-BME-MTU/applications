@@ -7,22 +7,27 @@ function A = getBackgroundFitDistr(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('np', 10000);
+ip.addOptional('ch', []);
+ip.addParamValue('np', 1000);
 ip.addParamValue('ccpMask', 'on', @(x) any(strcmpi(x, {'on','off'})));
 ip.parse(data, varargin{:});
-
-% load cell mask
-cellmask = logical(getCellMask(data));
-[ny,nx] = size(cellmask);
+chIdx = ip.Results.ch;
 
 % Determine master/slave channels
 nCh = length(data.channels); % number of channels
 mCh = strcmp(data.source, data.channels);
 
+if isempty(chIdx)
+    chIdx = 1:nCh;
+end
+
+% load cell mask
+cellmask = logical(getCellMask(data));
+[ny,nx] = size(cellmask);
+
 sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
 % used for boundary and initializations only, take largest sigma
 w = ceil(4*max(sigma));
-
 
 frameIdx = round(linspace(1, data.movieLength, 12));
 nf = numel(frameIdx);
@@ -68,15 +73,17 @@ parfor i = 1:nf
     linIdx = linIdx(1:N);
     
     % estimate amplitude in each channel
-    A{i} = zeros(nCh,N);
-    for c = 1:nCh
-        frame = double(imread(data.framePaths{c}{k}));
+    
+    nc = numel(chIdx);
+    A{i} = zeros(nc,N);
+    for c = 1:nc
+        frame = double(imread(data.framePaths{chIdx(c)}{k}));
         
         % get local min & max for initial c and A
         ww = 2*w+1;
         maxF = ordfilt2(frame, ww^2, true(ww));
         minF = ordfilt2(frame, 1, true(ww));
-        pStruct = fitGaussians2D(frame, x, y, maxF(linIdx), sigma, minF(linIdx), 'Ac');
+        pStruct = fitGaussians2D(frame, x, y, maxF(linIdx), sigma(chIdx(c)), minF(linIdx), 'Ac');
         A{i}(c,:) = pStruct.A;
     end
 end
