@@ -953,7 +953,7 @@ end
 % Compute displacement statistics
 %==========================================
 % Only on valid tracks (Cat. Ia)
-trackIdx = find([tracks.catIdx]==1);
+trackIdx = find([tracks.catIdx]<5);
 fprintf('Processing tracks (%s) - calculating statistics:     ', getShortPath(data));
 for ki = 1:numel(trackIdx)
     k = trackIdx(ki);
