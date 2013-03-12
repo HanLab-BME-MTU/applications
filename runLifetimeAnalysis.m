@@ -6,7 +6,7 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
-ip.addParamValue('InputName', 'ProcessedTracks.mat', @ischar);
+ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
 ip.addParamValue('Cutoff_f', 5, @isscalar);
@@ -54,10 +54,12 @@ res = struct([]);
 
 [lftData, outlierIdx] = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
     'ReturnValidOnly', false, 'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Cutoff_f', cutoff_f,...
-    'Rescale', ip.Results.Rescale, 'DisplayRescaling', strcmpi(ip.Results.Display, 'on'),...
+    'Scale', ip.Results.Rescale, 'DisplayScaling', strcmpi(ip.Results.Display, 'on'),...
     'RemoveOutliers', ip.Results.RemoveOutliers,...
-    'InputName', ip.Results.InputName, 'OutputName', ip.Results.LifetimeData);
-selIdx(outlierIdx) = [];
+    'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData);
+if ~isempty(selIdx)
+    selIdx(outlierIdx) = [];
+end
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 nd = numel(lftData);
