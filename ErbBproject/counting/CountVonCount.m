@@ -12,7 +12,7 @@
 %   tExp  ->  exposure time in seconds
 % imSize  ->  image size in pixel
 %    rep  ->  number of frames in activation cycle
-tExp=0.05;
+tExp=0.1;
 imSize=[256,256];
 rep=10;
 
