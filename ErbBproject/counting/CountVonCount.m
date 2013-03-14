@@ -12,7 +12,7 @@
 %   tExp  ->  exposure time in seconds
 % imSize  ->  image size in pixel
 %    rep  ->  number of frames in activation cycle
-tExp=0.1;
+tExp=0.1165;
 imSize=[256,256];
 rep=10;
 
@@ -37,6 +37,9 @@ idxUV=false(nTracks,1);
 % an index of which tracks span the whole movie
 isDrift = false(nTracks,1);
 
+% an index of which tracks have more than one point
+isMany = false(nTracks,1);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%                                             
 %%%  bring tracksFinal in human-readable form
@@ -51,6 +54,10 @@ for i=1:nTracks
     track(i).timeInfo(1)=startF;
     track(i).timeInfo(2)=stopF;
     track(i).timeInfo(3)=stopF-startF+1;
+    track(i).timeInfo(4)=double(MD.getReader().getMetadataStore().getPlaneDeltaT(0, startF-1));
+    track(i).timeInfo(5)=double(MD.getReader().getMetadataStore().getPlaneDeltaT(0, stopF-1));
+        
+    
     
     % mark tracks right after UV activation
     if mod(startF,rep) == 1
@@ -59,7 +66,7 @@ for i=1:nTracks
     end
     
     %mark tracks if they span the whole movie
-    if track(i).timeInfo(3) == movieLength
+    if track(i).timeInfo(3) >= 100
         isDrift(i)=true;
     end
     
@@ -77,6 +84,7 @@ for i=1:nTracks
     if( nrows > 1 )
         [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,5:6),'s');
         track(i).com=[wm,ws,sqrt(sum(ws.^2))];
+        isMany(i) = true;
     else
         track(i).com=[tmp(1:2), tmp(5:6), sqrt(sum(tmp(5:6).^2))];
     end
@@ -92,25 +100,59 @@ end
 %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% %Only for perfect tracking of drift markers
+% ind = find(isDrift);
+% 
+% drift = zeros(movieLength,2);
+% trackUnCorrected = track;
+% 
+% if ~isempty(ind)
+%     for i = 1:numel(ind)
+%         x = track(ind(i)).coord(:,1);
+%         y = track(ind(i)).coord(:,2);
+%         drift(2:end,:) = drift(2:end,:) + [diff(x),diff(y)];
+%     end
+%     
+%     drift = drift/numel(ind);
+%     drift = cumsum(drift);
+% end
+
 ind = find(isDrift);
 
 drift = zeros(movieLength,2);
+trackUnCorrected = track;
+
 
 if ~isempty(ind)
+    numpnts = drift;
+    
     for i = 1:numel(ind)
         x = track(ind(i)).coord(:,1);
         y = track(ind(i)).coord(:,2);
-        drift(2:end,:) = drift(2:end,:) + [diff(x),diff(y)];
+        t = track(ind(i)).timeInfo(1:2); %time range in frames
+        drift(t(1)+1:t(2),:) = drift(t(1)+1:t(2),:) + [diff(x),diff(y)];
+        numpnts(t(1)+1:t(2),:) = numpnts(t(1)+1:t(2),:) + ones(size(numpnts(t(1)+1:t(2),:)));
     end
     
-    drift = drift/numel(ind);
+    %makes sure that the first point is not neglected
+    numpnts(1,:)=1;
+    
+    % finds points with no data to avoid divide by zero
+    DriftMiss = find(numpnts(:,1) == 0);
+    numpnts(DriftMiss,:)=1;
+    
+    if ~isempty(DriftMiss)
+       ['We have a few (',num2str(numel(DriftMiss)),') missed frames of correction']
+    end
+    
+    drift = drift./numpnts;
     drift = cumsum(drift);
 end
 
 for i =1:nTracks
     frames = track(i).amp(:,end);
     coord =track(i).coord;
-    coord(:,[1,2]) = coord(:,[1,2]) + drift(frames,:);
+    coord(:,[1,2]) = coord(:,[1,2]) - drift(frames,:);
     track(i).coord = coord;
     
     % Recaculate center of mass calculated as a weigthed mean
@@ -128,6 +170,18 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
+%%%  Removes points that appear in only 1 frame
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% trackCorrect = track; %saves drift corrected
+% 
+% track = track(isMany);
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
 %%%  determine rates of the underlying photo-kinetics
 %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -135,7 +189,8 @@ end
 
 %% start with distribution of ON times
 timeON=vertcat(track.timeInfo);
-timeON=timeON(:,3)*tExp;
+%timeON=timeON(:,3)*tExp;
+timeON = timeON(:,5)-timeON(:,4);
 bins=0:tExp:max(timeON);
 [yON,xON]=hist(timeON,bins);
 
@@ -154,8 +209,13 @@ tonFit=fit(xON(3:end)',yONcdf(3:end)',ft,'StartPoint',pini);
 allCom=vertcat(track.com);
 [clusterInfo,clusterMap]=MeanShiftClustering(allCom(:,1:2),0.25,'kernel','flat');
 
+doesBlink = false(numel(clusterInfo),1);
+
 for i=1:numel(clusterInfo)
     numPts=clusterInfo(i).numPoints;
+    if numPts > 1
+        doesBlink(i) = true;
+    end
     tmp=[];
     tmp2=[];
     for k=1:numPts
@@ -173,6 +233,13 @@ for i=1:numel(clusterInfo)
         clusterInfo(i).ptClusterCenter=[tmp(1:4),sqrt(sum(tmp(3:4).^2))];
     end
 end
+
+%removes clusters composed of only 1 track
+% should remove noise
+
+clusterInfoBack = clusterInfo;
+clusterInfo = clusterInfo(doesBlink);
+
 
 %% number of blinks, fit to CDF of geometric distribution
 nBlinks=vertcat(clusterInfo.numPoints);
@@ -205,19 +272,62 @@ kbleach_err=sqrt( koff_err^2 + kc_err^2 );
 
 %% continue with distribution of OFF times
 toff=[];
-for k=1:numel(clusterInfo)
-    timeInfo=clusterInfo(k).time;
-    toff=vertcat(toff,timeInfo(2:end,1)-timeInfo(1:end-1,2));
-    toff=vertcat(toff,timeInfo(1,1));
-end
+tfirst=[];
+twait=[];
+% for k=1:numel(clusterInfo)
+%     timeInfo=clusterInfo(k).time;
+%     toff=vertcat(toff,timeInfo(2:end,1)-timeInfo(1:end-1,2));
+%     toff=vertcat(toff,timeInfo(1,1));
+% end
 
-toff=toff*tExp;
+ for k=1:numel(clusterInfo)
+     timeInfo=clusterInfo(k).time;
+     twait=vertcat(toff,timeInfo(2:end,4)-timeInfo(1:end-1,5));
+     toff=vertcat(toff,timeInfo(2:end,4)-timeInfo(1:end-1,5));
+     toff=vertcat(toff,timeInfo(1,4));
+     tfirst=vertcat(tfirst,timeInfo(1,4));
+ end
+
+
+
+%toff=toff*tExp;
 [yOFF,xOFF]=hist(toff,0:tExp:max(toff));
 yOFFcdf=cumsum(yOFF)/sum(yOFF);
 
-ft=fittype(@(k1,x) 1.0-exp(-k1*x));
+%fit wait times to a distribution that reflects Uv and Thermal
+%reactivation
 pini=( yOFFcdf(2)-yOFFcdf(1) )/( xOFF(2)-xOFF(1) );
-toffFit=fit(xOFF',yOFFcdf',ft,'StartPoint',pini);
+
+opt = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1],'StartPoint',[pini,pini,0.5000]);
+ft=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opt);
+
+%ft=fittype(@(k1,x) 1.0-exp(-k1*x));
+pini=( yOFFcdf(2)-yOFFcdf(1) )/( xOFF(2)-xOFF(1) );
+toffFit=fit(xOFF',yOFFcdf',ft);
+
+%now calculate the rate of first appearance
+[yFirst,xFirst]=hist(tfirst,0:tExp:max(tfirst));
+yFirstcdf=cumsum(yFirst)/sum(yFirst);
+
+pini2=( yFirstcdf(2)-yFirstcdf(1) )/( xFirst(2)-xFirst(1) );
+tfirstFit = fit(xFirst',yFirstcdf',ft,'StartPoint',[pini2,pini2,0.5]);
+
+%now calculate wait times without first appearances
+
+[yWait,xWait]=hist(twait,0:tExp:max(twait));
+yWaitcdf=cumsum(yWait)/sum(yWait);
+
+pini3=( yWaitcdf(2)-yWaitcdf(1) )/( xWait(2)-xWait(1) );
+tWaitFit=fit(xWait',yWaitcdf',ft,'StartPoint',[pini3,pini3,0.5]);
+
+
+
+%% Gets general time info for the movie
+
+for i=0:movieLength-1
+time(i+1)=double(MD.getReader().getMetadataStore().getPlaneDeltaT(0, i));
+end
+
 
 %% temporal dissection of clusters found via mean-shift
 
