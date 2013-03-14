@@ -21,7 +21,7 @@ gapM = arrayfun(@(i) i.gapMat_Ia(:,1:w,mCh), lftData, 'UniformOutput', false);
 gapM = vertcat(gapM{:});
 
 trackLengths = arrayfun(@(i) i.trackLengths(i.catIdx==1), lftData, 'UniformOutput', false);
-trackLengths = [trackLengths{:}]';
+trackLengths = vertcat(trackLengths{:});
 
 Pstart = sum(gapM(trackLengths>=40,:),1) / size(gapM(trackLengths>=40,:),1);
 
