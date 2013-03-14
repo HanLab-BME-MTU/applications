@@ -29,7 +29,7 @@ vnames = fnames(1:4);
 mnames = fnames(5:end);
 
 maxA = cell(nCh,nd);
-parfor i = 1:nd
+for i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData];
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
@@ -83,6 +83,9 @@ parfor i = 1:nd
         tmp = load(fpath);
         if isfield(tmp, 'significantSignal')
             lftData(i).significantSignal = [];
+        end
+        if isfield(tmp, 'RSS')
+            tmp = rmfield(tmp, 'RSS');
         end
         lftData(i) = tmp;
     end
