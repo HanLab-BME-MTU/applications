@@ -35,7 +35,7 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
 ip.addParamValue('excludeWin', [],@isvector);
-ip.addParamValue('outLevel',7,@isscalar);
+ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trend',   -1,@isscalar);
 ip.addParamValue('minLength',  30,@isscalar);
 ip.addParamValue('scale', false,@islogical);
@@ -58,12 +58,9 @@ else
     
 end
 
-nCell = numel(ML.movies_);
-cellData(1:nCell).data.excludeWin     = [];
-cellData(1:nCell).data.pixelSize      = [];
-cellData(1:nCell).data.frameRate      = [];
-cellData(1:nCell).data.rawEdgeMotion  = [];
-cellData(1:nCell).data.procEdgeMotion = [];
+nCell    = numel(ML.movies_);
+dataS    = struct('excludeWin',[],'pixelSize',[],'frameRate',[],'rawEdgeMotion',[],'procEdgeMotion',[]);
+cellData = struct('data',repmat({dataS},1,nCell)) ;
 
 for iCell = 1:nCell
     
@@ -86,7 +83,7 @@ for iCell = 1:nCell
     
     %Extracting outliers
     %Removing NaN and closing 1 frame gaps
-    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'gapSize',1,'outLevel',outLevel,'minLength',minLen,'trendType',trend);    
+    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'outLevel',outLevel,'minLength',minLen,'trendType',trend);    
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
