@@ -21,9 +21,16 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 %       minLength  - minimal length accepted. Any window that has a TS with less than
 %                    minLength points will be discarded. (Default = 30)
 %
+%       scale      - convert velocity from pixel/frame into nm/sec
 %
+%Output:
+%       cellData - structure for each cell with the TS operation results
+%                   
+%       This function creates a folder (EdgeVelocityAnalysis) and writes a file edgeVelocity.mat
+%
+%See also: exludeWindowsFromAnalysis, edgeVelocityQuantification
 %Marco Vilela, 2012
-%UnderConstruction
+
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
@@ -52,7 +59,11 @@ else
 end
 
 nCell = numel(ML.movies_);
-tPaux = cell(nCell,1);
+cellData(1:nCell).data.excludeWin     = [];
+cellData(1:nCell).data.pixelSize      = [];
+cellData(1:nCell).data.frameRate      = [];
+cellData(1:nCell).data.rawEdgeMotion  = [];
+cellData(1:nCell).data.procEdgeMotion = [];
 
 for iCell = 1:nCell
     
@@ -64,13 +75,9 @@ for iCell = 1:nCell
 
     
     edgeProcIdx = currMD.getProcessIndex('ProtrusionSamplingProcess');
-    scaling     = currMD.pixelSize_/currMD.timeInterval_;
-
-    
-    %Converting the edge velocity in pixel/frame into nanometers/seconds
     protSamples = currMD.processes_{edgeProcIdx}.loadChannelOutput;
     
-    
+    %Converting the edge velocity in pixel/frame into nanometers/seconds
     if scale
         cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal*(currMD.pixelSize_/currMD.timeInterval_);
     else
