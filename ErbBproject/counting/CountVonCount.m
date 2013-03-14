@@ -129,6 +129,12 @@ if ~isempty(ind)
     for i = 1:numel(ind)
         x = track(ind(i)).coord(:,1);
         y = track(ind(i)).coord(:,2);
+        
+        if sum(isnan(x)) > 0
+            x = gapInterpolation(x,3)';
+            y = gapInterpolation(y,3)';
+        end            
+        
         t = track(ind(i)).timeInfo(1:2); %time range in frames
         drift(t(1)+1:t(2),:) = drift(t(1)+1:t(2),:) + [diff(x),diff(y)];
         numpnts(t(1)+1:t(2),:) = numpnts(t(1)+1:t(2),:) + ones(size(numpnts(t(1)+1:t(2),:)));
@@ -175,8 +181,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % trackCorrect = track; %saves drift corrected
-% 
-% track = track(isMany);
+ 
+%track = track(isMany);
 
 
 
@@ -207,9 +213,12 @@ tonFit=fit(xON(3:end)',yONcdf(3:end)',ft,'StartPoint',pini);
 
 % group center of mass of tracks via mean-shift clustering
 allCom=vertcat(track.com);
-[clusterInfo,clusterMap]=MeanShiftClustering(allCom(:,1:2),0.25,'kernel','flat');
+[clusterInfo,clusterMap]=MeanShiftClustering(allCom(:,1:2),0.5,'kernel','flat');
 
 doesBlink = false(numel(clusterInfo),1);
+
+lengthBlink=[];
+lengthUnBlink=[];
 
 for i=1:numel(clusterInfo)
     numPts=clusterInfo(i).numPoints;
@@ -220,8 +229,15 @@ for i=1:numel(clusterInfo)
     tmp2=[];
     for k=1:numPts
         ptID=clusterInfo(i).ptIdData(k);
-        tmp=vertcat(tmp,[track(ptID).coord track(ptID).amp]);
+        placeHolder =[track(ptID).coord track(ptID).amp];
+        [row,col]=size(placeHolder);
+        tmp=vertcat(tmp,placeHolder);
         tmp2=vertcat(tmp2,track(ptID).timeInfo);
+        if doesBlink(i)
+            lengthBlink = [lengthBlink,row];
+        else
+            lengthUnBlink = [lengthUnBlink,row];
+        end
     end
     clusterInfo(i).data=tmp;
     clusterInfo(i).time=tmp2;
@@ -234,11 +250,20 @@ for i=1:numel(clusterInfo)
     end
 end
 
+figure, hist(lengthBlink,1:max(lengthBlink));
+title('Length of tracks of blinking dyes');
+xlim([0,50]);
+
+figure, hist(lengthUnBlink,1:max(lengthUnBlink));
+title('Length of tracks of "non-blinking dyes"');
+xlim([0,50]);
+
+
 %removes clusters composed of only 1 track
 % should remove noise
 
-clusterInfoBack = clusterInfo;
-clusterInfo = clusterInfo(doesBlink);
+ clusterInfoBack = clusterInfo;
+ clusterInfo = clusterInfo(doesBlink);
 
 
 %% number of blinks, fit to CDF of geometric distribution
@@ -303,14 +328,30 @@ ft=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opt);
 
 %ft=fittype(@(k1,x) 1.0-exp(-k1*x));
 pini=( yOFFcdf(2)-yOFFcdf(1) )/( xOFF(2)-xOFF(1) );
-toffFit=fit(xOFF',yOFFcdf',ft);
+[toffFit,goodnessOFF]=fit(xOFF',yOFFcdf',ft);
+
+figure,subplot(2,1,1),bar(xOFF,yOFFcdf);
+xlim([0,max(xOFF)]);
+hold
+plot(toffFit,'predobs');
+title('CDF of wait times');
+hold;
+subplot(2,1,2),plot(toffFit,xOFF',yOFFcdf','residuals');
 
 %now calculate the rate of first appearance
 [yFirst,xFirst]=hist(tfirst,0:tExp:max(tfirst));
 yFirstcdf=cumsum(yFirst)/sum(yFirst);
 
 pini2=( yFirstcdf(2)-yFirstcdf(1) )/( xFirst(2)-xFirst(1) );
-tfirstFit = fit(xFirst',yFirstcdf',ft,'StartPoint',[pini2,pini2,0.5]);
+[tfirstFit,goodnessFirst] = fit(xFirst',yFirstcdf',ft,'StartPoint',[pini2,pini2,0.5]);
+
+figure,subplot(2,1,1),bar(xFirst,yFirstcdf);
+xlim([0,max(xFirst)]);
+hold
+plot(tfirstFit,'predobs');
+title('CDF of time to first appearance');
+hold;
+subplot(2,1,2),plot(tfirstFit,xFirst',yFirstcdf','residuals');
 
 %now calculate wait times without first appearances
 
@@ -318,7 +359,7 @@ tfirstFit = fit(xFirst',yFirstcdf',ft,'StartPoint',[pini2,pini2,0.5]);
 yWaitcdf=cumsum(yWait)/sum(yWait);
 
 pini3=( yWaitcdf(2)-yWaitcdf(1) )/( xWait(2)-xWait(1) );
-tWaitFit=fit(xWait',yWaitcdf',ft,'StartPoint',[pini3,pini3,0.5]);
+[tWaitFit,goodnessWait]=fit(xWait',yWaitcdf',ft,'StartPoint',[pini3,pini3,0.5]);
 
 
 
