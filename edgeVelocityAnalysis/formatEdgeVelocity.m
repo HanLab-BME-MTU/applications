@@ -13,10 +13,13 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 %       outLevel  - # of sigmas considered for outlier removal (see detectOutliers)
 %
 %       trendType - optional: a scalar giving the type of trend to remove
-%                  -1 : no trend removal (default)
-%                   0 : remove only sample means (see dtrend.m)
-%                   1 : remove linear trend (see dtrend.m)
-%                   2 : remove all deterministic trend
+%                    0 - remove only the mean value
+%                    1 - remove linear trend
+%                    2 - remove exponential trend
+%                    3 - remove double exponential trend
+%                    4 - remove nonlinear local trend (trendFilteringEMD)
+%                    5 - remove all determinitic component and spits out a stationary signal 
+%                        the trend in this case is a smoothed version of the input signal
 %
 %       minLength  - minimal length accepted. Any window that has a TS with less than
 %                    minLength points will be discarded. (Default = 30)
@@ -28,7 +31,7 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 %                   
 %       This function creates a folder (EdgeVelocityAnalysis) and writes a file edgeVelocity.mat
 %
-%See also: exludeWindowsFromAnalysis, edgeVelocityQuantification
+%See also: excludeWindowsFromAnalysis, edgeVelocityQuantification
 %Marco Vilela, 2012
 
 
