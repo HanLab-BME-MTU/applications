@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 03-Oct-2011 14:17:00
+% Last Modified by GUIDE v2.5 17-Mar-2013 14:46:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -73,12 +73,23 @@ if ~isempty(stageDriftCorrProc)
     end
 end
 
+% Override default channels callback function
+set(handles.checkbox_all,'Callback',@(hObject,eventdata)...
+    checkallChannels(hObject,eventdata,guidata(hObject)));
+set(handles.pushbutton_select,'Callback',@(hObject,eventdata)...
+    selectChannel(hObject,eventdata,guidata(hObject)));
+set(handles.pushbutton_delete,'Callback',@(hObject,eventdata)...
+    deleteChannel(hObject,eventdata,guidata(hObject)));
+
 % Choose default command line output for displacementFieldCalculationProcessGUI
 handles.output = hObject;
 
 % Update user data and GUI data
 set(hObject, 'UserData', userData);
 guidata(hObject, handles);
+
+% Update value of psf sigma
+update_psfSigma(handles);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -187,3 +198,30 @@ userData=get(handles.figure1,'UserData');
 value=str2double(get(handles.edit_maxFlowSpeed,'String'));
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     value*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+
+function selectChannel(hObject, eventdata, handles)
+
+selectChannel_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+
+
+function deleteChannel(hObject, eventdata, handles)
+
+deleteChannel_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+
+function checkallChannels(hObject, eventdata, handles)
+
+checkallChannels_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+
+function update_psfSigma(handles)
+
+userData = get(handles.figure1, 'UserData');
+selectedChannels = get(handles.listbox_selectedChannels,'UserData');
+if ~isempty(selectedChannels)
+    psfSigma = userData.MD.channels_(selectedChannels(1)).psfSigma_;
+else
+    psfSigma = '';
+end
+set(handles.edit_psfSigma, 'String', psfSigma);

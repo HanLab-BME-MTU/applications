@@ -83,12 +83,23 @@ userData.imData=userData.MD.channels_(userData.chanIndx).loadImage(userData.imIn
     
 set(handles.listbox_selectedChannels,'Callback',@(h,event) update_data(h,event,guidata(h)));
     
+% Override default channels callback function
+set(handles.checkbox_all,'Callback',@(hObject,eventdata)...
+    checkallChannels(hObject,eventdata,guidata(hObject)));
+set(handles.pushbutton_select,'Callback',@(hObject,eventdata)...
+    selectChannel(hObject,eventdata,guidata(hObject)));
+set(handles.pushbutton_delete,'Callback',@(hObject,eventdata)...
+    deleteChannel(hObject,eventdata,guidata(hObject)));
+
 % Choose default command line output for stageDriftCorrectionProcessGUI
 handles.output = hObject;
 
 % Update user data and GUI data
 set(hObject, 'UserData', userData);
 guidata(hObject, handles);
+
+% Update value of psf sigma
+update_psfSigma(handles);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -202,6 +213,7 @@ userData = get(handles.figure1, 'UserData');
 
 % Retrieve the channel index
 props=get(handles.listbox_selectedChannels,{'UserData','Value'});
+if isempty(props{1}), return; end
 chanIndx = props{1}(props{2});
 imIndx = get(handles.slider_frameNumber,'Value');
 
@@ -303,3 +315,33 @@ userData=get(handles.figure1,'UserData');
 value=str2double(get(handles.edit_maxFlowSpeed,'String'));
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     value*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
+
+
+function selectChannel(hObject, eventdata, handles)
+
+selectChannel_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+update_data(hObject, eventdata, handles);
+
+function deleteChannel(hObject, eventdata, handles)
+
+deleteChannel_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+update_data(hObject, eventdata, handles);
+
+function checkallChannels(hObject, eventdata, handles)
+
+checkallChannels_Callback(hObject, eventdata, handles);
+update_psfSigma(handles);
+update_data(hObject, eventdata, handles);
+
+function update_psfSigma(handles)
+
+userData = get(handles.figure1, 'UserData');
+selectedChannels = get(handles.listbox_selectedChannels,'UserData');
+if ~isempty(selectedChannels)
+    psfSigma = userData.MD.channels_(selectedChannels(1)).psfSigma_;
+else
+    psfSigma = '';
+end
+set(handles.edit_psfSigma, 'String', psfSigma);
