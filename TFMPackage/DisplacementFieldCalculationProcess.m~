@@ -40,11 +40,11 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             sanityCheck@ImageAnalysisProcess(obj);
             channelIndex = obj.funParams_.ChannelIndex;
             assert(isscalar(channelIndex), 'lccb:Process:sanityCheck',...
-                'A single bead channel must be selected to run this process');
-            psfSigma = obj.owner_.channels_(channelIndex).psfSigma_;
-            assert(~isempty(psfSigma), 'lccb:Process:sanityCheck',...
-                ['The beads channel does not have a valid '...
-                'standard deviation of the Gaussian point-spread function.']);
+                'A single bead channel must be selected');
+            psfSigma = obj.owner_.channels_(channelIndex).psfSigma);
+            assert(~isempty(psfSigma), 'Beads channel does not have a valid '...
+                'standard deviation of the Gaussian po
+            
         end
         
         function varargout = loadChannelOutput(obj,varargin)
