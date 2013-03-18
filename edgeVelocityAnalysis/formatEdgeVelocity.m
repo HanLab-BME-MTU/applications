@@ -26,6 +26,8 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 %
 %       scale      - convert velocity from pixel/frame into nm/sec
 %
+%       excBorder  - exclude border windows. This parameter is actually the length of the border
+%
 %Output:
 %       cellData - structure for each cell with the TS operation results
 %                   
@@ -38,6 +40,7 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
 ip.addParamValue('excludeWin', [],@isvector);
+ip.addParamValue('excBorder',0,@isscalar);
 ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trend',   -1,@isscalar);
 ip.addParamValue('minLength',  30,@isscalar);
@@ -50,6 +53,7 @@ outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
 scale      = ip.Results.scale;
 trend      = ip.Results.trend;
+border     = ip.Results.excBorder;
 
 if isa(movieObj,'MovieData')
     
@@ -90,6 +94,9 @@ for iCell = 1:nCell
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
+%% Performing windowing exclusion
+cellData = excludeWindowsFromAnalysis(ML,'excBorder',border);
+
 %% Saving results per cell
 savingMovieResultsPerCell(ML,cellData)
 
