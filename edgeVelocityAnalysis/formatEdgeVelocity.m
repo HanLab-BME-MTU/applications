@@ -73,7 +73,7 @@ for iCell = 1:nCell
     
     currMD = ML.movies_{iCell};
     
-    cellData(iCell).data.excludeWin = excludeWin;
+    cellData(iCell).data.excludeWin = excludeWin{iCell};
     cellData(iCell).data.pixelSize  = currMD.pixelSize_;
     cellData(iCell).data.frameRate  = currMD.timeInterval_;
 
@@ -95,7 +95,7 @@ for iCell = 1:nCell
     
 end
 %% Performing windowing exclusion
-cellData = excludeWindowsFromAnalysis(ML,'excBorder',border);
+cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData);
 
 %% Saving results per cell
 savingMovieResultsPerCell(ML,cellData)
