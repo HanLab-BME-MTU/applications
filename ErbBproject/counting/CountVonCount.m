@@ -19,6 +19,8 @@ rep=10;
 movieLength = MD.nFrames_;
 nTracks=numel(tracksFinal);
 
+maxGap = 10;
+
 %
 % new struct 'track' with the following members:
 %
@@ -56,6 +58,7 @@ for i=1:nTracks
     track(i).timeInfo(3)=stopF-startF+1;
     track(i).timeInfo(4)=double(MD.getReader().getMetadataStore().getPlaneDeltaT(0, startF-1));
     track(i).timeInfo(5)=double(MD.getReader().getMetadataStore().getPlaneDeltaT(0, stopF-1));
+    track(i).timeInfo(6)=floor(startF/10)+1; %number of uv activations it has been exposed to
         
     
     
@@ -131,8 +134,8 @@ if ~isempty(ind)
         y = track(ind(i)).coord(:,2);
         
         if sum(isnan(x)) > 0
-            x = gapInterpolation(x,3)';
-            y = gapInterpolation(y,3)';
+            x = gapInterpolation(x,maxGap)';
+            y = gapInterpolation(y,maxGap)';
         end            
         
         t = track(ind(i)).timeInfo(1:2); %time range in frames
@@ -163,7 +166,7 @@ for i =1:nTracks
     
     % Recaculate center of mass calculated as a weigthed mean
     idx=~isnan(tmp(:,1));
-    tmp = coord;
+    tmp = coord(idx,:);
     [nrows,ncols]=size(tmp);
     if( nrows > 1 )
         [wm,ws]=weightedStats(tmp(:,1:2),tmp(:,3:4),'s');
@@ -185,6 +188,16 @@ end
 %track = track(isMany);
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  Removes tracks that don't start imediately after activation
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+
+track = track(idxUV);
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
@@ -196,18 +209,18 @@ end
 %% start with distribution of ON times
 timeON=vertcat(track.timeInfo);
 %timeON=timeON(:,3)*tExp;
-timeON = timeON(:,5)-timeON(:,4);
-bins=0:tExp:max(timeON);
-[yON,xON]=hist(timeON,bins);
-
-% create and fit CDF of ON times: 1-exp(-kc*x)
-% kc is the sum of the OFF and bleaching rate
-area=tExp*sum(yON);
-yONcdf=cumsum(yON)*tExp/area;
-
-ft=fittype(@(kc,x) 1.0-exp(-kc*x));
-pini=( yONcdf(2)-yONcdf(1) )/( xON(2)-xON(1) );
-tonFit=fit(xON(3:end)',yONcdf(3:end)',ft,'StartPoint',pini);
+% timeON = timeON(:,5)-timeON(:,4);
+% bins=0:tExp:max(timeON);
+% [yON,xON]=hist(timeON,bins);
+% 
+% % create and fit CDF of ON times: 1-exp(-kc*x)
+% % kc is the sum of the OFF and bleaching rate
+% area=tExp*sum(yON);
+% yONcdf=cumsum(yON)*tExp/area;
+% 
+% ft=fittype(@(kc,x) 1.0-exp(-kc*x));
+% pini=( yONcdf(2)-yONcdf(1) )/( xON(2)-xON(1) );
+% tonFit=fit(xON(3:end)',yONcdf(3:end)',ft,'StartPoint',pini);
 
 %% continue with distribution of blinks
 
@@ -233,6 +246,7 @@ for i=1:numel(clusterInfo)
         [row,col]=size(placeHolder);
         tmp=vertcat(tmp,placeHolder);
         tmp2=vertcat(tmp2,track(ptID).timeInfo);
+        
         if doesBlink(i)
             lengthBlink = [lengthBlink,row];
         else
@@ -262,8 +276,8 @@ xlim([0,50]);
 %removes clusters composed of only 1 track
 % should remove noise
 
- clusterInfoBack = clusterInfo;
- clusterInfo = clusterInfo(doesBlink);
+   clusterInfoBack = clusterInfo;
+   clusterInfo = clusterInfo(doesBlink);
 
 
 %% number of blinks, fit to CDF of geometric distribution
@@ -280,25 +294,28 @@ pini=0.5;
 blinkFit=fit(xBl',yBlcdf',ft,'StartPoint',pini);
 
 %% calculate koff and kbleach from q and kc
-q=blinkFit.q;
-kc=tonFit.kc;
-
-koff=q*kc;
-kbleach=kc-koff;
-
-% error propagation
-tmp1=confint(blinkFit);
-q_err=q-tmp1(1);
-tmp2=confint(tonFit);
-kc_err=kc-tmp2(1);
-koff_err=sqrt( (kc*q_err)^2 + (q*kc_err)^2 );
-kbleach_err=sqrt( koff_err^2 + kc_err^2 );
+% q=blinkFit.q;
+% kc=tonFit.kc;
+% 
+% koff=q*kc;
+% kbleach=kc-koff;
+% 
+% % error propagation
+% tmp1=confint(blinkFit);
+% q_err=q-tmp1(1);
+% tmp2=confint(tonFit);
+% kc_err=kc-tmp2(1);
+% koff_err=sqrt( (kc*q_err)^2 + (q*kc_err)^2 );
+% kbleach_err=sqrt( koff_err^2 + kc_err^2 );
 
 
 %% continue with distribution of OFF times
 toff=[];
 tfirst=[];
 twait=[];
+toffuv=[];
+tfirstuv=[];
+twaituv=[];
 % for k=1:numel(clusterInfo)
 %     timeInfo=clusterInfo(k).time;
 %     toff=vertcat(toff,timeInfo(2:end,1)-timeInfo(1:end-1,2));
@@ -307,10 +324,17 @@ twait=[];
 
  for k=1:numel(clusterInfo)
      timeInfo=clusterInfo(k).time;
-     twait=vertcat(toff,timeInfo(2:end,4)-timeInfo(1:end-1,5));
+     twait=vertcat(twait,timeInfo(2:end,4)-timeInfo(1:end-1,5));
      toff=vertcat(toff,timeInfo(2:end,4)-timeInfo(1:end-1,5));
      toff=vertcat(toff,timeInfo(1,4));
      tfirst=vertcat(tfirst,timeInfo(1,4));
+     
+     %same but in the difference of number of UV pulses experienced
+     twaituv=vertcat(twaituv,timeInfo(2:end,6)-timeInfo(1:end-1,6));
+     toffuv=vertcat(toffuv,timeInfo(2:end,6)-timeInfo(1:end-1,6));
+     toffuv=vertcat(toffuv,timeInfo(1,6));
+     tfirstuv=vertcat(tfirstuv,timeInfo(1,6));
+     
  end
 
 
@@ -327,7 +351,6 @@ opt = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1
 ft=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opt);
 
 %ft=fittype(@(k1,x) 1.0-exp(-k1*x));
-pini=( yOFFcdf(2)-yOFFcdf(1) )/( xOFF(2)-xOFF(1) );
 [toffFit,goodnessOFF]=fit(xOFF',yOFFcdf',ft);
 
 figure,subplot(2,1,1),bar(xOFF,yOFFcdf);
@@ -360,6 +383,56 @@ yWaitcdf=cumsum(yWait)/sum(yWait);
 
 pini3=( yWaitcdf(2)-yWaitcdf(1) )/( xWait(2)-xWait(1) );
 [tWaitFit,goodnessWait]=fit(xWait',yWaitcdf',ft,'StartPoint',[pini3,pini3,0.5]);
+
+
+%repeat above but in terms of number of uv activations
+%
+%
+%
+
+[yOFFuv,xOFFuv]=hist(toffuv,0:max(toffuv));
+yOFFuvcdf=cumsum(yOFFuv)/sum(yOFFuv);
+
+%fit wait times to a distribution that reflects Uv and Thermal
+%reactivation
+piniuv=( yOFFuvcdf(2)-yOFFuvcdf(1) )/( xOFFuv(2)-xOFFuv(1) );
+
+opt2 = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[inf,inf,1],'StartPoint',[piniuv,piniuv,0.5000]);
+ft2=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opt2);
+
+%ft=fittype(@(k1,x) 1.0-exp(-k1*x));
+[toffuvFit,goodnessOFFuv]=fit(xOFFuv',yOFFuvcdf',ft2);
+
+figure,subplot(2,1,1),bar(xOFFuv,yOFFuvcdf);
+xlim([0,max(xOFFuv)]);
+hold
+plot(toffuvFit,'predobs');
+title('CDF of wait times in uv activations');
+hold;
+subplot(2,1,2),plot(toffuvFit,xOFFuv',yOFFuvcdf','residuals');
+
+%now calculate the rate of first appearance
+[yFirstuv,xFirstuv]=hist(tfirstuv,0:max(tfirstuv));
+yFirstuvcdf=cumsum(yFirstuv)/sum(yFirstuv);
+
+pini2uv=( yFirstuvcdf(2)-yFirstuvcdf(1) )/( xFirstuv(2)-xFirstuv(1) );
+[tfirstuvFit,goodnessFirstuv] = fit(xFirstuv',yFirstuvcdf',ft2,'StartPoint',[pini2uv,pini2uv,0.5]);
+
+figure,subplot(2,1,1),bar(xFirstuv,yFirstuvcdf);
+xlim([0,max(xFirstuv)]);
+hold
+plot(tfirstuvFit,'predobs');
+title('CDF of time to first appearance in uv activations');
+hold;
+subplot(2,1,2),plot(tfirstuvFit,xFirstuv',yFirstuvcdf','residuals');
+
+%now calculate wait times without first appearances
+
+[yWaituv,xWaituv]=hist(twaituv,0:max(twaituv));
+yWaituvcdf=cumsum(yWaituv)/sum(yWaituv);
+
+pini3uv=( yWaituvcdf(2)-yWaituvcdf(1) )/( xWaituv(2)-xWaituv(1) );
+[tWaituvFit,goodnessWaituv]=fit(xWaituv',yWaituvcdf',ft2,'StartPoint',[pini3uv,pini3uv,0.5]);
 
 
 
