@@ -61,7 +61,21 @@ end
 
 % check whether we have to start a new imaris
 if nargin < 2 || isempty(imaApp)
-    imaApp = imarisStartNew(assigninBase);
+    try
+        imaApp = imarisStartNew(assigninBase);
+        is7pt5orLater = false;
+    catch err        
+        if strcmp(err.identifier,'MATLAB:COM:InvalidProgid')
+            %If we need the newer version, use the IceImarisConnector
+            is7pt5orLater = true;
+            iceConn = IceImarisConnector;            
+            iceConn.startImaris;
+            imaApp = iceConn.mImarisApplication;
+        else
+            throw(err)
+        end
+    end
+        
 else
     % make sure user did not accidentially close the window
     imaApp.mVisible = 1;
@@ -148,43 +162,88 @@ end
 % DISPLAY DATA
 %===============
 
-% create data set
-imaDataSet = imaApp.mFactory.CreateDataSet;
+if ~is7pt5orLater
 
-% store matlab data
-imaDataSet.SetData(single(array));
+    % create data set
+    imaDataSet = imaApp.mFactory.CreateDataSet;
 
-% set xyz-coordinates from 1:n or pixelSize:n*pixelSize
-imaDataSet.mExtendMinX = pixelSize(1);
-imaDataSet.mExtendMinY = pixelSize(2);
-imaDataSet.mExtendMinZ = pixelSize(3);
-imaDataSet.mExtendMaxX = sizeArray(1) * pixelSize(1);
-imaDataSet.mExtendMaxY = sizeArray(2) * pixelSize(2);
-imaDataSet.mExtendMaxZ = sizeArray(3) * pixelSize(3);
+    % store matlab data
+    imaDataSet.SetData(single(array));
 
-% do not set color table - is buggy
+    % set xyz-coordinates from 1:n or pixelSize:n*pixelSize
+    imaDataSet.mExtendMinX = pixelSize(1);
+    imaDataSet.mExtendMinY = pixelSize(2);
+    imaDataSet.mExtendMinZ = pixelSize(3);
+    imaDataSet.mExtendMaxX = sizeArray(1) * pixelSize(1);
+    imaDataSet.mExtendMaxY = sizeArray(2) * pixelSize(2);
+    imaDataSet.mExtendMaxZ = sizeArray(3) * pixelSize(3);
 
-% adjust color range to min/max
-minArray = nanmin(array(:));
-maxArray = nanmax(array(:));
+    % do not set color table - is buggy
 
-for ch = 0:size(array,4)-1
-    imaDataSet.SetChannelColor(ch,chanCols(ch+1,1),chanCols(ch+1,2),chanCols(ch+1,3),0);
-    imaDataSet.SetChannelRange(ch,minArray,maxArray);
-    imaDataSet.SetChannelName(ch,num2str(ch+1));
+    % adjust color range to min/max
+    minArray = nanmin(array(:));
+    maxArray = nanmax(array(:));
+
+    for ch = 0:size(array,4)-1
+        imaDataSet.SetChannelColor(ch,chanCols(ch+1,1),chanCols(ch+1,2),chanCols(ch+1,3),0);
+        imaDataSet.SetChannelRange(ch,minArray,maxArray);
+        imaDataSet.SetChannelName(ch,num2str(ch+1));
+    end
+
+    % show in imaris
+    imaApp.mDataSet = imaDataSet;
+
+    % set view to projections
+    imaApp.mViewer = 'eViewerSection';
+
+    % name the imaris session
+    imaApp.mDataSet.SetParameter('Image', 'Name', varName);
+
+    %========================
+else
+    %For newer imaris versions using the IceConnector, the commands are
+    %(annoyingly) slightly different
+    
+    % create data set
+    imaDataSet = imaApp.GetFactory.CreateDataSet;
+    classDataSet=Imaris.tType.eTypeFloat;
+    imaDataSet.Create(classDataSet ,sizeArray(1),sizeArray(2),sizeArray(3),sizeArray(4),sizeArray(5)); 
+    imaApp.SetDataSet(imaDataSet);
+
+    % store matlab data
+    for ch = 1:size(array,4)
+        for  t = 1:size(array,5)            
+            iceConn.setDataVolume(single(array(:,:,:,t,ch)),ch-1,t-1);
+        end
+    end    
+
+    % set xyz-coordinates from 1:n or pixelSize:n*pixelSize
+    imaDataSet.SetExtendMinX(pixelSize(1));
+    imaDataSet.SetExtendMinY(pixelSize(2));
+    imaDataSet.SetExtendMinZ(pixelSize(3));
+    imaDataSet.SetExtendMaxX(sizeArray(1) * pixelSize(1));
+    imaDataSet.SetExtendMaxY(sizeArray(2) * pixelSize(2));
+    imaDataSet.SetExtendMaxZ(sizeArray(3) * pixelSize(3));
+    
+    % do not set color table - is buggy
+
+    % adjust color range to min/max
+    minArray = nanmin(array(:));
+    maxArray = nanmax(array(:));
+
+    for ch = 0:size(array,4)-1
+        imaDataSet.SetChannelColorRGBA(ch,iceConn.mapRgbaVectorToScalar([chanCols(ch+1,:),0]));
+        imaDataSet.SetChannelRange(ch,minArray,maxArray);
+        imaDataSet.SetChannelName(ch,num2str(ch+1));
+    end
+        
+    % name the imaris session
+    imaDataSet.SetParameter('Image', 'Name', varName);
+
+    %Adjust the view
+    imaApp.GetSurpassCamera.Fit;    
+    
 end
-
-% show in imaris
-imaApp.mDataSet = imaDataSet;
-
-% set view to projections
-imaApp.mViewer = 'eViewerSection';
-
-% name the imaris session
-imaApp.mDataSet.SetParameter('Image', 'Name', varName);
-
-%========================
-
 
 %================
 % ASSIGN OUTPUT
