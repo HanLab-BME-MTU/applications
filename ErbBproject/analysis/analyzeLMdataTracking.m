@@ -127,7 +127,7 @@ for iFile=1:nFiles
     if createMask
         % create ROI and store in MD
         img=double(MD.channels_(1).loadImage(1));
-        mask=roipoly(img/max(img(:)));
+        mask=double(roipoly(img/max(img(:))));
         close all;
         maskFile=MD.getFilename();
         maskFile(end-2:end)='tif';
