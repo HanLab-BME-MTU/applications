@@ -1,4 +1,4 @@
-classdef TrackGroupingProcess < DataProcessingProcess
+classdef TrackGroupingProcess < PostTrackingProcess
     % A concrete class associated to the grouping of sister tracks
     %
     % Sebastien Besson, March 2012
@@ -26,7 +26,7 @@ classdef TrackGroupingProcess < DataProcessingProcess
                 super_args{4} = funParams;  
             end
             
-            obj = obj@DataProcessingProcess(super_args{:});
+            obj = obj@PostTrackingProcess(super_args{:});
         end
         function varargout = loadChannelOutput(obj,iChan,varargin)
             
@@ -96,6 +96,10 @@ classdef TrackGroupingProcess < DataProcessingProcess
         function name = getName()
             name = 'Track Grouping';
         end
+        
+        function h = GUI()
+            h = @trackGroupingProcessGUI;
+        end                
         
         function funParams = getDefaultParams(owner,varargin)
             % Input check

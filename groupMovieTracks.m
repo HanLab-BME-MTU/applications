@@ -86,7 +86,7 @@ for i = p.ChannelIndex;
 end
 groupProc.setOutFilePaths(outFilePaths);
 
-%% --------------- Sub-resolution object detection ---------------%%% 
+%% --------------- Track Grouping ---------------%%% 
 disp('Starting grouping tracks...')
 
 detParams = detProc.funParams_;
@@ -116,7 +116,7 @@ for i = p.ChannelIndex
         p.alpha)
 end
 
-disp('Finished detecting objects...')
+disp('Finished grouping tracks!')
 
 movieData.save;
 
