@@ -41,7 +41,7 @@ p = parseProcessParams(groupProc,paramsIn);
 
 
 %Get the detection process 
-if ~isempty(p.DetProcessIndex)
+if isempty(p.DetProcessIndex)
     iDetProc = movieData.getProcessIndex('AnisoGaussianDetectionProcess',1,0);
     assert(~isempty(iDetProc),'Detection must be run prior to track grouping');
     p.DetProcessIndex = iDetProc;
@@ -49,12 +49,19 @@ end
 detProc = movieData.processes_{p.DetProcessIndex};
 
 %Get the tracking process                                                                    
-if ~isempty(p.TrackProcessIndex)
+if isempty(p.TrackProcessIndex)
     iTrackProc = movieData.getProcessIndex('TrackingProcess',1,0);
     assert(~isempty(iTrackProc),'Tracking must be run prior to track grouping');
     p.TrackProcessIndex = iTrackProc;
 end
 trackProc = movieData.processes_{p.TrackProcessIndex};
+
+%Get the segmentation process
+if isempty(p.MaskProcessIndex)
+    iSegProc = movieData.getProcessIndex('SegmentationProcess',1,1);
+    assert(~isempty(iTrackProc),'Segmentation must be run prior to track grouping');
+    p.MaskProcessIndex = iSegProc;
+end
 
 nChan=numel(movieData.channels_);
 % Set up the input directories
@@ -110,4 +117,8 @@ for i = p.ChannelIndex
 end
 
 disp('Finished detecting objects...')
+
+movieData.save;
+
+
 

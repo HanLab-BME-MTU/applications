@@ -110,6 +110,7 @@ classdef TrackGroupingProcess < DataProcessingProcess
             funParams.OutputDirectory = [outputDir  filesep 'groupedTracks'];
             funParams.DetProcessIndex = [];
             funParams.TrackProcessIndex = [];
+            funParams.MaskProcessIndex = [];
 
             funParams.minLifetime = 1;
             funParams.maxDistance = 2000;
