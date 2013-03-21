@@ -39,39 +39,41 @@ classdef FocalAdhesionPackage < Package
             procID = ip.Results.procID;
             if strcmp(procID,'all'), procID = 1:nProcesses;end
             
-            [status processExceptions] = sanityCheck@Package(obj,full,procID);
+            [status, processExceptions] = sanityCheck@Package(obj,full,procID);
             
             if ~full, return; end
             
             validProc = procID(~cellfun(@isempty,obj.processes_(procID)));
-
+            maskProc = obj.processes_{2};
+            detProc = obj.processes_{3};
+            trackProc = obj.processes_{4};
+            groupProc = obj.processes_{5};
+            
             % Set the MaskProcessIndex of the detection
-            if ismember(3,validProc) &&  ~isempty(obj.processes_{2})
-                maskProcIndex = find(cellfun(@(x)isequal(x, obj.processes_{2}), obj.owner_.processes_));
-                assert(numel(maskProcIndex)== 1,'User-defined: More than one identical process exists in movie data''s process list.');
+            if all(ismember([2 3], validProc))
+                maskProcIndex = maskProc.getIndex();
                 funParams.MaskProcessIndex = maskProcIndex;
-                parseProcessParams(obj.processes_{3},funParams);
+                funParams.MaskChannelIndex = maskProc.funParams_.ChannelIndex;
+                parseProcessParams(detProc, funParams);
             end
             
-            % Set detection process index
-            if ~isempty(obj.processes_{3})
-                detProcIndex = find(cellfun(@(x)isequal(x, obj.processes_{3}), obj.owner_.processes_));
-                assert(numel(detProcIndex)== 1,'User-defined: More than one identical process exists in movie data''s process list.');
+            % Set detection process index for tracking and track grouping
+            if ~isempty(detProc),
+                detProcIndex = detProc.getIndex();
                 funParams.DetProcessIndex = detProcIndex;
                 if ismember(4,validProc)
-                    parseProcessParams(obj.processes_{4},funParams);
+                    parseProcessParams(trackProc, funParams);
                 end  
                 if ismember(5,validProc)
-                    parseProcessParams(obj.processes_{5},funParams);
+                    parseProcessParams(groupProc, funParams);
                 end  
             end
             
-            % Set the MaskProcessIndex of the detection
-            if ismember(5,validProc) &&  ~isempty(obj.processes_{4})
-                trackProcIndex = find(cellfun(@(x)isequal(x, obj.processes_{4}), obj.owner_.processes_));
-                assert(numel(trackProcIndex)== 1,'User-defined: More than one identical process exists in movie data''s process list.');
+            % Set the tracking process index of the track grouping
+            if all(ismember([4 5], validProc))
+                trackProcIndex = trackProc.getIndex();
                 funParams.TrackProcessIndex = trackProcIndex;
-                parseProcessParams(obj.processes_{5},funParams);
+                parseProcessParams(groupProc, funParams);
             end
         end
         
