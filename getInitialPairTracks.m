@@ -29,7 +29,7 @@ for iFrame = 1:nFrames
     X = allFeatures(indP, 1);
     Y = allFeatures(indP, 2);
 
-    [indTrack1 dist] = KDTreeBallQuery([X,Y],[X,Y], repmat(maxDistance, numel(X),1));
+    [indTrack1, dist] = KDTreeBallQuery([X,Y],[X,Y], repmat(maxDistance, numel(X),1));
     
     % remove self references (d == 0 which is always the first element)
     indTrack1 = cellfun(@(c) indTrackInFrame(c(2:end)), ...
@@ -100,8 +100,8 @@ for iFrame = 1:nFrames
     isTrackInFrame = iFrame >= tFirst & iFrame <= tLast;
     
     indP = pFirst(isTrackInFrame) + iFrame - tFirst(isTrackInFrame);
-    X    = max(1,min(round(allFeatures(indP, 1)),imSize(1)));
-    Y    = max(1,min(round(allFeatures(indP, 2)),imSize(2)));
+    X    = max(1,min(round(allFeatures(indP, 1)),imSize(2)));
+    Y    = max(1,min(round(allFeatures(indP, 2)),imSize(1)));
     ind  = sub2ind(imSize,Y, X);
         
     isTrackInBand(isTrackInFrame) = isTrackInBand(isTrackInFrame) | ...
