@@ -30,8 +30,11 @@ function [receptorInfoAll,receptorInfoLabeled,timeIterArray,errFlag] ...
 %                             Default: 1 in all probDims.
 %           timeStep        : Simulation time step (s).
 %                             Default: 0.01/max(diffCoef,dissociationRate).
-%           totalTime       : Total time of simulation (s).
-%                             Default:  100 * timeStep.
+%           simTime         : Total time of simulation (s).
+%                             Default: 100 * timeStep.
+%           initTime        : Initialization time, to remove any
+%                             initialization artifacts.
+%                             Default: 100 * timeStep.
 %           randNumGenSeeds : Row vector storing the seeds for the "rand"
 %                             and "randn" random number generators.
 %                             Default: [100 100].
@@ -172,7 +175,8 @@ if nargin < 2 || isempty(simParam)
     probDim = 2;
     observeSideLen = ones(1,probDim);
     timeStep = 0.01 / max(diffCoef,dissociationRate);
-    totalTime = 100 * timeStep;
+    simTime = 100 * timeStep;
+    initTime = 100 * timeStep;
     randNumGenSeeds = [100 100];
 
 else
@@ -201,11 +205,18 @@ else
         timeStep = 0.01 / max(diffCoef,dissociationRate);
     end
 
-    %total simulation time
-    if isfield(simParam,'totalTime')
-        totalTime = simParam.totalTime;
+    %simulation time
+    if isfield(simParam,'simTime')
+        simTime = simParam.simTime;
     else
-        totalTime = 100 * timeStep;
+        simTime = 100 * timeStep;
+    end
+
+    %initialization time
+    if isfield(simParam,'initTime')
+        initTime = simParam.initTime;
+    else
+        initTime = 100 * timeStep;
     end
 
     %random number generator seeds
@@ -218,10 +229,13 @@ else
 end
 
 %determine number of iterations to perform
-numIterations = ceil( totalTime / timeStep ) + 1;
+totalTime = simTime + initTime;
+numIterSim = ceil( simTime / timeStep ) + 1;
+numIterInit = ceil( initTime / timeStep );
+numIterations = numIterSim + numIterInit;
 
 %store time correponding to each iteration
-timeIterArray = (0 : numIterations - 1)' * timeStep;
+timeIterArray = (0 : numIterSim - 1)' * timeStep;
 
 %assuming that the displacement taken in a timeStep is normally distributed
 %with mean zero, get standard deviation of step distribution from diffusion
@@ -346,6 +360,11 @@ for iIter = 2 : numIterations
     
 end %(for iIter = 2 : numIterations)
 
+%remove the initialization period from simulation
+receptorTraj = receptorTraj(:,:,numIterInit+1:end);
+recept2clustAssign = recept2clustAssign(:,numIterInit+1:end);
+clust2receptAssign = clust2receptAssign(:,:,numIterInit+1:end);
+
 %remove empty rows and columns from clust2receptAssign
 cluster2receptor = max(clust2receptAssign,[],3);
 columnSum = sum(cluster2receptor);
@@ -378,7 +397,7 @@ if labelRatio < 1
     
     %assign the intensities of the labeled receptors
     receptorIntensityLabeled = intensityQuantum(1) + ...
-        randn(length(indxLabeled),numIterations) * intensityQuantum(2);
+        randn(length(indxLabeled),numIterSim) * intensityQuantum(2);
     
     %extract the cluster assignments of the labeled receptors
     recept2clustAssignLabeled = recept2clustAssign(indxLabeled,:);
@@ -399,7 +418,7 @@ if labelRatio < 1
     
     %remove empty clusters (which include unlabeled receptors)
     %modify receptor-to-cluster assignments accordingly
-    for iIter = 1 : numIterations
+    for iIter = 1 : numIterSim
         clustSize = sum(clust2receptAssignLabeled(:,:,iIter)~=0,2);
         indxFull = find(clustSize~=0);
         indxEmpty = find(clustSize==0);
@@ -436,7 +455,7 @@ else %if all receptors are labeled
 
     %assign receptor intensities
     receptorIntensity = intensityQuantum(1) + ...
-        randn(numReceptors,numIterations) * intensityQuantum(2);
+        randn(numReceptors,numIterSim) * intensityQuantum(2);
     
     %put labeled receptor trajectories and clusters into the format of the
     %output of trackCloseGapsKalman
