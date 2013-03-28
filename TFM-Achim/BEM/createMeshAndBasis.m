@@ -51,7 +51,7 @@ for j=1:myMesh.numNodes
 end
 
 % plot an example to see if it works correctly
-ind=10;
+ind=80;
 if length(x_vec)>ind-1
     xmin=min(x_vec);
     ymin=min(y_vec);

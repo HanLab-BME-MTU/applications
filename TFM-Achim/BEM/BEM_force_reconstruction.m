@@ -88,33 +88,6 @@ display('Done: forward map!');
 % solve is:
 % (L*eyeWeights+ MpM)*sol_coef=(M'*u);
 
-% For L-curve
-% [~,n] = size(M);
-% 
-% B0 = M'*M;
-% b  = M'*u;
-% 
-% bfSigmaRange2 = L*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
-% bfSigmaRange1 = bfSigmaRange2/5;
-% bfSigmaRange3 = bfSigmaRange2*5;
-% bfSigmaCandidate = [bfSigmaRange1 bfSigmaRange2 bfSigmaRange3];
-% bfSigmaCandidate = sort(bfSigmaCandidate);
-% coefNorm    = zeros(1,length(bfSigmaCandidate));
-% residueNorm = zeros(1,length(bfSigmaCandidate));
-% for kk = 1:length(bfSigmaCandidate)
-%  B_i = B0 + bfSigmaCandidate(kk)*eye(n);
-%  coef_i = B_i\b;
-%  coefNorm(kk)    = sqrt(sum(coef_i.^2));
-%  residueNorm(kk) = sqrt(sum((M*coef_i-u).^2));
-% end
-% 
-% %Plot the L-curve.
-% figure; hold on;
-% plot(coefNorm,residueNorm,'.');
-% for kk = 1:length(bfSigmaCandidate)
-%  text(coefNorm(kk),residueNorm(kk),num2str(bfSigmaCandidate(kk)));
-% end
-     
 tic;
 display('3.) Solve for coefficients, this is memory intensive [~5min]:... ')
 if nargin >= 10 && strcmp(method,'fast')
@@ -174,9 +147,9 @@ if nargin >= 10 && strcmp(method,'fast')
         MpM=M'*M;
 %         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
 %         [Q,R] = qr((MpM+L*D^2));
+%         L = chooseRegParamFromLCurve(M,MpM,u,L,eyeWeights);
         [Q,R] = qr((MpM+L*eyeWeights));
-        u_sol = u;
-        sol_coef=R\(Q'*(M'*u_sol));
+        sol_coef=R\(Q'*(M'*u));
         sol_mats.Q=Q;
         sol_mats.R=R;
         sol_mats.L=L;
@@ -189,15 +162,146 @@ if nargin >= 10 && strcmp(method,'fast')
         % linear systems: a tutorial on regularization
         MpM=M'*M;
         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
-        D = D./normest(D);
+%         D = D./normest(D);
+        % For L-curve
+%         L = chooseRegParamFromLCurve(M,MpM,u,L,D);
+
         [Q,R] = qr((MpM+L*D^2));
-        u_sol = u;
-        sol_coef=R\(Q'*(M'*u_sol));
+        sol_coef=R\(Q'*(M'*u));
         sol_mats.Q=Q;
         sol_mats.R=R;
         sol_mats.L=L;
         sol_mats.nW=normWeights;        
         sol_mats.tool='QRscaled';
+    elseif strcmpi(solMethodBEM,'LaplacianRegularization')
+        % second order tikhonov regularization (including diagonal)
+        % make Lap matrix
+%         nBeads = round(size(M,1)/2);
+        nBasisx = size(unique(forceMesh.p(:,1)),1);
+        nBasisy = size(unique(forceMesh.p(:,2)),1);
+        nBasis = nBasisx*nBasisy;
+        k=1;
+        % this is for assuring the boundary to be considered for being
+        % penalized for regularization
+        display('Building Laplacian Map...')
+        tic;
+        Lap = zeros(nBasis,2*nBasis);
+        for ii=1:nBasisx
+            tempLapx = zeros(nBasisy,nBasis); %for parfor constraints
+            tempLapy = zeros(nBasisy,nBasis); %for parfor constraints
+            parfor jj=1:nBasisy
+                Lap2D = zeros(nBasisy,nBasisx);
+                if ii==1 || jj==1 || ii==nBasisx || jj==nBasisy
+%                     Lap2D(ii,jj)=1; % 0th order regularization. Potentially 
+%                     % this can be improved with basis function convolution
+                    if ii==1 
+                        if jj==1
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii+1,jj)=1;
+                            Lap2D(ii,jj+1)=1;
+                        elseif jj==nBasisy
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii+1,jj)=1;
+                            Lap2D(ii,jj-1)=1;
+                        else
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii+1,jj)=1;
+                            Lap2D(ii,jj+1)=1;
+                        end
+                    elseif ii==nBasisx
+                        if jj==1
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii-1,jj)=1;
+                            Lap2D(ii,jj+1)=1;
+                        elseif jj==nBasisy
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii-1,jj)=1;
+                            Lap2D(ii,jj-1)=1;
+                        else
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii-1,jj)=1;
+                            Lap2D(ii,jj-1)=1;
+                        end
+                    elseif jj==1
+                        if ii~=nBasisx && ii~=1
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii+1,jj)=1;
+                            Lap2D(ii,jj+1)=1;
+                        end
+                    elseif jj==nBasisy                        
+                        if ii~=nBasisx && ii~=1
+                            Lap2D(ii,jj)=-2;
+                            Lap2D(ii+1,jj)=1;
+                            Lap2D(ii,jj-1)=1;
+                        end
+                    end                        
+                else
+                    % diagonal laplacian
+                    Lap2D(ii,jj) = -6;
+                    Lap2D(ii,jj+1) = 1;
+                    Lap2D(ii,jj-1) = 1;
+                    Lap2D(ii+1,jj) = 1;
+                    Lap2D(ii-1,jj) = 1;
+                    Lap2D(ii+1,jj+1) = 0.5;
+                    Lap2D(ii-1,jj+1) = 0.5;
+                    Lap2D(ii+1,jj-1) = 0.5;
+                    Lap2D(ii-1,jj-1) = 0.5;
+    %                 % orthogonal laplacian
+    %                 Lap2D(ii,jj) = -4;
+    %                 Lap2D(ii,jj+1) = 1;
+    %                 Lap2D(ii,jj-1) = 1;
+    %                 Lap2D(ii+1,jj) = 1;
+    %                 Lap2D(ii-1,jj) = 1;
+                end
+                tempLapx(jj,:) = reshape(Lap2D,nBasis,1)';
+%                 Lap(k,nBasis+1:2*nBasis) = reshape(Lap2D,nBasis,1)';
+%                 Lap(k+(nBasisx-2)*(nBasisy-2),1:nBasis) = reshape(Lap2D,nBasis,1)';
+                tempLapy(jj,:) = reshape(Lap2D,nBasis,1)';
+            end
+            Lap((ii-1)*nBasisy+1:(ii-1)*nBasisy+nBasisx,1:nBasis) = tempLapx;
+            Lap((ii-1)*nBasisy+nBasis+1:(ii-1)*nBasisy+nBasis+nBasisx,nBasis+1:2*nBasis) = ...
+                tempLapy;
+        end
+        toc
+%         Lap = zeros((nBasisx-2)*(nBasisy-2)*2,2*nBeads);
+%         for ii=2:nBasisx-1
+%             for jj=2:nBasisy-1
+%                 Lap2D = zeros(nBasisy,nBasisx);
+%                 % diagonal laplacian
+%                 Lap2D(ii,jj) = -6;
+%                 Lap2D(ii,jj+1) = 1;
+%                 Lap2D(ii,jj-1) = 1;
+%                 Lap2D(ii+1,jj) = 1;
+%                 Lap2D(ii-1,jj) = 1;
+%                 Lap2D(ii+1,jj+1) = 0.5;
+%                 Lap2D(ii-1,jj+1) = 0.5;
+%                 Lap2D(ii+1,jj-1) = 0.5;
+%                 Lap2D(ii-1,jj-1) = 0.5;
+% %                 % orthogonal laplacian
+% %                 Lap2D(ii,jj) = -4;
+% %                 Lap2D(ii,jj+1) = 1;
+% %                 Lap2D(ii,jj-1) = 1;
+% %                 Lap2D(ii+1,jj) = 1;
+% %                 Lap2D(ii-1,jj) = 1;
+%                 Lap(k,1:nBasis) = reshape(Lap2D,nBasis,1)';
+% %                 Lap(k,nBasis+1:2*nBasis) = reshape(Lap2D,nBasis,1)';
+% %                 Lap(k+(nBasisx-2)*(nBasisy-2),1:nBasis) = reshape(Lap2D,nBasis,1)';
+%                 Lap(k+(nBasisx-2)*(nBasisy-2),nBasis+1:2*nBasis) = reshape(Lap2D,nBasis,1)';
+%                 k=k+1;
+%             end
+%         end
+        MpM=M'*M;
+
+        % For L-curve
+%         L = chooseRegParamFromLCurve(M,MpM,u,L,Lap);
+        
+        [Q,R] = qr((MpM+L*(Lap'*Lap)));
+        sol_coef=R\(Q'*(M'*u));
+        sol_mats.Q=Q;
+        sol_mats.R=R;
+        sol_mats.L=L;
+        sol_mats.nW=normWeights;
+        sol_mats.tool='LaplacianRegularization';
     elseif strcmpi(solMethodBEM,'backslash') || strcmpi(solMethodBEM,'\')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
@@ -215,8 +319,12 @@ if nargin >= 10 && strcmp(method,'fast')
 else
     % normalization of basis function will be important when taking the norm!!!
     % This has not been considered yet!
+%     [normWeights,~]=getNormWeights(forceMesh);
+%     eyeWeights =diag(normWeights);
+
     MpM=M'*M;
     sol_coef=(L*eye(2*forceMesh.numNodes)+MpM)\(M'*u);
+%     sol_coef=(L*eyeWeights+MpM)\(M'*u);
     % store these matrices for next frames:
     sol_mats.MpM=MpM;
     sol_mats.tool='backslash';
@@ -236,7 +344,7 @@ end
 display('4.) Evaluate solution:... ')
 tic;
 if nargin >= 10 && strcmp(method,'fast')
-    [fx fy x_out y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
+    [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
 else
     fx = zeros(size(x_out));
     fy = zeros(size(y_out));
@@ -247,3 +355,34 @@ else
 end
 toc;
 display('Done: solution!')
+
+function Lout = chooseRegParamFromLCurve(M,MpM,u,L,Lap)
+display('Calculating L-curve ...')
+b  = M'*u;
+bfSigmaRange2 = L*[1e-5 1e-4 1e-3 1e-2 1e-1 1 1e1 1e2 1e3 1e4 1e5];
+bfSigmaRange1 = bfSigmaRange2/5;
+bfSigmaRange3 = bfSigmaRange2*5;
+bfSigmaCandidate = [bfSigmaRange1 bfSigmaRange2 bfSigmaRange3];
+bfSigmaCandidate = sort(bfSigmaCandidate);
+coefNorm    = zeros(1,length(bfSigmaCandidate));
+residueNorm = zeros(1,length(bfSigmaCandidate));
+Lap2 = Lap'*Lap;
+for kk = 1:length(bfSigmaCandidate)
+ B_i = MpM + bfSigmaCandidate(kk)*Lap2;
+ coef_i = B_i\b;
+ coefNorm(kk)    = sqrt(sum((Lap*coef_i).^2)); % Solution norm ||Lm||
+ residueNorm(kk) = sqrt(sum((M*coef_i-u).^2)); % Residual norm ||Gm-d||
+end
+
+%Plot the L-curve.
+figure; hold on;
+plot(residueNorm,coefNorm,'.'); xlabel('Residual norm ||M*coef-u||'); 
+ylabel('Solution seminorm ||L*coef||');
+for kk = 1:length(bfSigmaCandidate)
+ text(residueNorm(kk),coefNorm(kk),num2str(bfSigmaCandidate(kk)));
+end
+
+options.WindowStyle='normal';
+answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
+Lout = str2double(answer{1});
+
