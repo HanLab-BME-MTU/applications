@@ -15,11 +15,11 @@ function force = assumedForceShifted(j,x,y,xshift,yshift,wx,wy,forceType,FAsize)
 %              
 % Sangyoon Han Jan 2013
 if strcmp(FAsize,'largeFA')
-    std = 15;
-    adh_r = 15.1; % adhesion diameter in pixel
+    std = 6;
+    adh_r = 7.1; % adhesion diameter in pixel
 else
-    std = 4;
-    adh_r = 3.1;
+    std = 1.5;
+    adh_r = 2.1;
 end
 if j==1
     switch(forceType)

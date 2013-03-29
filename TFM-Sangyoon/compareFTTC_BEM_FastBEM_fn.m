@@ -70,177 +70,73 @@ y_vec_u=reshape(y_mat_u,[],1); % fine mesh for original force
 %                                     large FA, small force (500-1000 Pa) - group2
 %                                     small FA (5 pix), large force - group3
 %                                     small FA, small force - group4)
-display('constructing original force field...')
-tic;
-fpos = [10*10,10*10;
-        15*10,25*10;
-        25*10,34*10;
-        37*10,42*10;
-        22*10,15*10;
-        286,343;
-        41*10,38*10;
-        38*10,123;
-        386,130;
-        12*10,20*10;
-        18*10,28*10;
-        25*10,37*10;
-        23*10,31*10;
-        414,106];
-fvec = [2000,-200;
-        1600,-800;
-        1200,-1400;
-        300,-800;
-        900,-300;
-        700,-500;
-        450,-1800;
-        -1600,800;
-        -900,1500;
-        600,-480;
-        800,-530;
-        490,-700;
-        1200,-1400;
-        -1600,800];
-
-force_x1 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(1,1),fpos(1,2),fvec(1,1),fvec(1,2),forceType,'largeFA');
-force_y1 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(1,1),fpos(1,2),fvec(1,1),fvec(1,2),forceType,'largeFA'); %group1
-force_x2 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(2,1),fpos(2,2),fvec(2,1),fvec(2,2),forceType,'largeFA');
-force_y2 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(2,1),fpos(2,2),fvec(2,1),fvec(2,2),forceType,'largeFA'); %group1
-force_x3 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(3,1),fpos(3,2),fvec(3,1),fvec(3,2),forceType,'largeFA');
-force_y3 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(3,1),fpos(3,2),fvec(3,1),fvec(3,2),forceType,'largeFA'); %group1
-force_x13 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(13,1),fpos(13,2),fvec(13,1),fvec(13,2),forceType,'largeFA');
-force_y13 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(13,1),fpos(13,2),fvec(13,1),fvec(13,2),forceType,'largeFA'); %group1
-force_x14 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(14,1),fpos(14,2),fvec(14,1),fvec(14,2),forceType,'largeFA');
-force_y14 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(14,1),fpos(14,2),fvec(14,1),fvec(14,2),forceType,'largeFA'); %group1
-force_x4 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(4,1),fpos(4,2),fvec(4,1),fvec(4,2),forceType,'largeFA');
-force_y4 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(4,1),fpos(4,2),fvec(4,1),fvec(4,2),forceType,'largeFA'); %group2
-force_x5 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(5,1),fpos(5,2),fvec(5,1),fvec(5,2),forceType,'largeFA');
-force_y5 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(5,1),fpos(5,2),fvec(5,1),fvec(5,2),forceType,'largeFA'); %group2
-force_x6 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(6,1),fpos(6,2),fvec(6,1),fvec(6,2),forceType,'largeFA');
-force_y6 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(6,1),fpos(6,2),fvec(6,1),fvec(6,2),forceType,'largeFA'); %group2
-force_x7 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(7,1),fpos(7,2),fvec(7,1),fvec(7,2),forceType,'smallFA');
-force_y7 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(7,1),fpos(7,2),fvec(7,1),fvec(7,2),forceType,'smallFA'); %group3
-force_x8 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(8,1),fpos(8,2),fvec(8,1),fvec(8,2),forceType,'smallFA');
-force_y8 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(8,1),fpos(8,2),fvec(8,1),fvec(8,2),forceType,'smallFA'); %group3
-force_x9 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(9,1),fpos(9,2),fvec(9,1),fvec(9,2),forceType,'smallFA');
-force_y9 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(9,1),fpos(9,2),fvec(9,1),fvec(9,2),forceType,'smallFA'); %group3
-force_x10 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(10,1),fpos(10,2),fvec(10,1),fvec(10,2),forceType,'smallFA');
-force_y10 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(10,1),fpos(10,2),fvec(10,1),fvec(10,2),forceType,'smallFA'); %group4
-force_x11 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(11,1),fpos(11,2),fvec(11,1),fvec(11,2),forceType,'smallFA');
-force_y11 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(11,1),fpos(11,2),fvec(11,1),fvec(11,2),forceType,'smallFA'); %group4
-force_x12 = assumedForceShifted(1,x_mat_u,y_mat_u,fpos(12,1),fpos(12,2),fvec(12,1),fvec(12,2),forceType,'smallFA');
-force_y12 = assumedForceShifted(2,x_mat_u,y_mat_u,fpos(12,1),fpos(12,2),fvec(12,1),fvec(12,2),forceType,'smallFA'); %group4
+force_x1 = assumedForceShifted(1,x_mat_u,y_mat_u,10,10,2000,-200,forceType,'largeFA');
+force_y1 = assumedForceShifted(2,x_mat_u,y_mat_u,10,10,2000,-200,forceType,'largeFA'); %group1
+force_x2 = assumedForceShifted(1,x_mat_u,y_mat_u,15,25,1600,-800,forceType,'largeFA');
+force_y2 = assumedForceShifted(2,x_mat_u,y_mat_u,15,25,1600,-800,forceType,'largeFA'); %group1
+force_x3 = assumedForceShifted(1,x_mat_u,y_mat_u,25,34,1200,-1400,forceType,'largeFA');
+force_y3 = assumedForceShifted(2,x_mat_u,y_mat_u,25,34,1200,-1400,forceType,'largeFA'); %group1
+force_x4 = assumedForceShifted(1,x_mat_u,y_mat_u,37,45,300,-800,forceType,'largeFA');
+force_y4 = assumedForceShifted(2,x_mat_u,y_mat_u,37,45,300,-800,forceType,'largeFA'); %group2
+force_x5 = assumedForceShifted(1,x_mat_u,y_mat_u,22,15,900,-300,forceType,'largeFA');
+force_y5 = assumedForceShifted(2,x_mat_u,y_mat_u,22,15,900,-300,forceType,'largeFA'); %group2
+force_x6 = assumedForceShifted(1,x_mat_u,y_mat_u,31,27,700,-500,forceType,'largeFA');
+force_y6 = assumedForceShifted(2,x_mat_u,y_mat_u,31,27,700,-500,forceType,'largeFA'); %group2
+force_x7 = assumedForceShifted(1,x_mat_u,y_mat_u,41,38,450,-1800,forceType,'smallFA');
+force_y7 = assumedForceShifted(2,x_mat_u,y_mat_u,41,38,450,-1800,forceType,'smallFA'); %group3
+force_x8 = assumedForceShifted(1,x_mat_u,y_mat_u,38,8,-1400,800,forceType,'smallFA');
+force_y8 = assumedForceShifted(2,x_mat_u,y_mat_u,38,8,-1400,800,forceType,'smallFA'); %group3
+force_x9 = assumedForceShifted(1,x_mat_u,y_mat_u,42,18,-900,1200,forceType,'smallFA');
+force_y9 = assumedForceShifted(2,x_mat_u,y_mat_u,42,18,-900,1200,forceType,'smallFA'); %group3
+force_x10 = assumedForceShifted(1,x_mat_u,y_mat_u,12,20,600,-480,forceType,'smallFA');
+force_y10 = assumedForceShifted(2,x_mat_u,y_mat_u,12,20,600,-480,forceType,'smallFA'); %group4
+force_x11 = assumedForceShifted(1,x_mat_u,y_mat_u,18,28,800,-530,forceType,'smallFA');
+force_y11 = assumedForceShifted(2,x_mat_u,y_mat_u,18,28,800,-530,forceType,'smallFA'); %group4
+force_x12 = assumedForceShifted(1,x_mat_u,y_mat_u,29,38,490,-700,forceType,'smallFA');
+force_y12 = assumedForceShifted(2,x_mat_u,y_mat_u,29,38,490,-700,forceType,'smallFA'); %group4
 
 force_x = force_x1+force_x2+force_x3+force_x4+force_x5+force_x6+...
-        force_x7+force_x8+force_x9+force_x10+force_x11+force_x12+force_x13+force_x14;
+        force_x7+force_x8+force_x9+force_x10+force_x11+force_x12;
 force_y = force_y1+force_y2+force_y3+force_y4+force_y5+force_y6+...
-        force_y7+force_y8+force_y9+force_y10+force_y11+force_y12+force_y13+force_y14;
-toc
+        force_y7+force_y8+force_y9+force_y10+force_y11+force_y12;
+
 %% Forward solution
-display('forward solugion for fine solution...')
-tic
-fpos = [10*10,10*10;
-        15*10,25*10;
-        25*10,34*10;
-        37*10,42*10;
-        22*10,15*10;
-        286,343;
-        41*10,38*10;
-        38*10,123;
-        386,130;
-        12*10,20*10;
-        18*10,28*10;
-        25*10,37*10;
-        23*10,31*10;
-        414,106];
-fvec = [2000,-200;
-        1600,-800;
-        1200,-1400;
-        300,-800;
-        900,-300;
-        700,-500;
-        450,-1800;
-        -1600,800;
-        -900,1500;
-        600,-480;
-        800,-530;
-        490,-700;
-        1200,-1400;
-        -1600,800];
+[x_mat_fsample, y_mat_fsample]=meshgrid(linspace(xmin,xmaxf,numPoints_f) , linspace(ymin,ymaxf,numPoints_f));
 
-[ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,[],[],[],[],...
-    @(x,y) assumedForceShifted(1,x,y,10*10,10*10,2000,-200,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,15*10,25*10,1600,-800,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,25*10,34*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,37*10,42*10,300,-800,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,22*10,15*10,900,-300,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,286,343,700,-500,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,41*10,38*10,450,-1800,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,38*10,123,-1600,800,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,386,130,-900,1500,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,12*10,20*10,600,-480,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,18*10,28*10,800,-530,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,25*10,37*10,490,-700,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,23*10,31*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,414,106,-1600,800,forceType,'largeFA'),...
-    @(x,y) assumedForceShifted(2,x,y,10*10,10*10,2000,-200,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,15*10,25*10,1600,-800,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,25*10,34*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,37*10,42*10,300,-800,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,22*10,15*10,900,-300,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,286,343,700,-500,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,41*10,38*10,450,-1800,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,38*10,123,-1600,800,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,386,130,-900,1500,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,12*10,20*10,600,-480,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,18*10,28*10,800,-530,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,25*10,37*10,490,-700,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,23*10,31*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,414,106,-1600,800,forceType,'largeFA'),'fft',[],meshPtsFwdSol);
-toc
-
-display('forward solugion for sparse solution...')
-tic
-% for sparse sampling
-[x_mat_f, y_mat_f]=meshgrid(linspace(xmin,xmaxf,numPoints_f) , linspace(ymin,ymaxf,numPoints_f));
-
-[ux_f, uy_f]=fwdSolution(x_mat_f,y_mat_f,E,[],[],[],[],...
-    @(x,y) assumedForceShifted(1,x,y,10*10,10*10,2000,-200,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,15*10,25*10,1600,-800,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,25*10,34*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,37*10,42*10,300,-800,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,22*10,15*10,900,-300,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,286,343,700,-500,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,41*10,38*10,450,-1800,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,38*10,123,-1600,800,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,386,130,-900,1500,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,12*10,20*10,600,-480,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,18*10,28*10,800,-530,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,25*10,37*10,490,-700,forceType,'smallFA')+...
-    assumedForceShifted(1,x,y,23*10,31*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(1,x,y,414,106,-1600,800,forceType,'largeFA'),...
-    @(x,y) assumedForceShifted(2,x,y,10*10,10*10,2000,-200,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,15*10,25*10,1600,-800,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,25*10,34*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,37*10,42*10,300,-800,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,22*10,15*10,900,-300,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,286,343,700,-500,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,41*10,38*10,450,-1800,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,38*10,123,-1600,800,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,386,130,-900,1500,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,12*10,20*10,600,-480,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,18*10,28*10,800,-530,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,25*10,37*10,490,-700,forceType,'smallFA')+...
-    assumedForceShifted(2,x,y,23*10,31*10,1200,-1400,forceType,'largeFA')+...
-    assumedForceShifted(2,x,y,414,106,-1600,800,forceType,'largeFA'),'fft',[],meshPtsFwdSol);
+[ux, uy]=fwdSolution(x_mat_fsample,y_mat_fsample,E,xmin,xmax,ymin,ymax,...
+    @(x,y) assumedForceShifted(1,x,y,10,10,2000,-200,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,15,25,1600,-800,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,25,34,1200,-1400,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,37,45,300,-800,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,22,15,900,-300,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,31,27,700,-500,forceType,'largeFA')+...
+    assumedForceShifted(1,x,y,41,38,450,-1800,forceType,'smallFA')+...
+    assumedForceShifted(1,x,y,38,8,-1400,800,forceType,'smallFA')+...
+    assumedForceShifted(1,x,y,42,18,-900,1200,forceType,'smallFA')+...
+    assumedForceShifted(1,x,y,12,20,600,-480,forceType,'smallFA')+...
+    assumedForceShifted(1,x,y,18,28,800,-530,forceType,'smallFA')+...
+    assumedForceShifted(1,x,y,29,38,490,-700,forceType,'smallFA'),...
+    @(x,y) assumedForceShifted(2,x,y,10,10,2000,-200,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,15,25,1600,-800,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,25,34,1200,-1400,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,37,45,300,-800,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,22,15,900,-300,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,31,27,700,-500,forceType,'largeFA')+...
+    assumedForceShifted(2,x,y,41,38,450,-1800,forceType,'smallFA')+...
+    assumedForceShifted(2,x,y,38,8,-1400,800,forceType,'smallFA')+...
+    assumedForceShifted(2,x,y,42,18,-900,1200,forceType,'smallFA')+...
+    assumedForceShifted(2,x,y,12,20,600,-480,forceType,'smallFA')+...
+    assumedForceShifted(2,x,y,18,28,800,-530,forceType,'smallFA')+...
+    assumedForceShifted(2,x,y,29,38,490,-700,forceType,'smallFA'),'fft',[],meshPtsFwdSol);
 % [ux uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,@(x,y) assumedForce(2,x,y),@(x,y) assumedForce(2,x,y),'fft',[],meshPtsFwdSol);
 toc
 display(['adding noise (' num2str(percentNoise*100) '%) ...'])
 if addNoise==1
-    max_u=max([max(max(ux_f)) max(max(uy_f))]); 
+    max_u=max([max(max(ux)) max(max(uy))]); 
     noise_x=normrnd(0,percentNoise*max_u,numPoints_f,numPoints_f);
     noise_y=normrnd(0,percentNoise*max_u,numPoints_f,numPoints_f);
-    ux_f=ux_f+noise_x;
-    uy_f=uy_f+noise_y;
+    ux=ux+noise_x;
+    uy=uy+noise_y;
 end
 
 u_mat_f(:,:,1)=ux_f;
@@ -268,6 +164,7 @@ pix_durch_my=1; %seem to be important only for the energy
 % rec_force_FTTC(:,:,1)=reshape(force_FTTC(:,1),i_max,j_max);
 % rec_force_FTTC(:,:,2)=reshape(force_FTTC(:,2),i_max,j_max);
 %% Mesh creation
+[x_mat_f, y_mat_f]=meshgrid(linspace(xmin,xmaxf,numPoints_f) , linspace(ymin,ymaxf,numPoints_f));
 x_vec_f=reshape(x_mat_f,[],1);
 y_vec_f=reshape(y_mat_f,[],1);
 if isempty(forceMeshFastBEM)
@@ -282,9 +179,9 @@ L = 2e-6;
 display(['FastBEM (' num2str(L) ')...'])
 
 tic
-
+L = 0.00001;
 [fx_FastBEMreg,fy_FastBEMreg,x_out,y_out,M_FastBEM,~,~,~,sol_mats_reg]...
-    = BEM_force_reconstruction(x_mat_f,y_mat_f,ux_f,uy_f,forceMeshFastBEM,...
+    = BEM_force_reconstruction(x_mat_u,y_mat_u,ux,uy,forceMeshFastBEM,...
     E,L,[],[],'fast',meshPtsFwdSol,...
     'QR','basisClassTblPath',basisClassTablePath,'imgRows',500,'imgCols',500,'fwdMap',M_FastBEM);
 toc
@@ -292,9 +189,7 @@ rec_force_FastBEMreg(:,:,1)=fx_FastBEMreg;
 rec_force_FastBEMreg(:,:,2)=fy_FastBEMreg;
 % save(strcat(dataPath,'FastBEMreg.mat'),'rec_force_FastBEMreg','sol_mats_reg'); % sol_mats_reg.L: regularization parameter
 %% FastBEM-reconstruction with laplacian regularization
-L = 2e-6; %sol_mats_reg.L;
-display(['FastBEM with 2nd order regularization (' num2str(L) ')...'])
-tic
+L = sol_mats_reg.L; % I need to test this parameter.
 [fx_FastBEMreg2,fy_FastBEMreg2,~,~,~,~,~,~,sol_mats_reg2]...
     = BEM_force_reconstruction(x_mat_f,y_mat_f,ux_f,uy_f,forceMeshFastBEM,...
     E,L,[],[],'fast',meshPtsFwdSol,...
@@ -304,23 +199,23 @@ toc
 rec_force_FastBEMreg2(:,:,1)=fx_FastBEMreg2;
 rec_force_FastBEMreg2(:,:,2)=fy_FastBEMreg2;
 
+save(strcat(dataPath,'FastBEMreg2.mat'),'rec_force_FastBEMreg2','sol_mats_reg2'); % sol_mats_reg2.L: regularization parameter
+
 %% FTTC-reconstruction with regularization 
 L=sol_mats_reg.L;
-grid_mat_f(:,:,1)=x_mat_f;
-grid_mat_f(:,:,2)=y_mat_f;
-i_max = size(grid_mat_f,1);
-j_max = size(grid_mat_f,2);
-cluster_size = grid_mat_f(1,1,1) - grid_mat_f(2,2,1);
-[~,~,force_FTTC, ~] = reg_fourier_TFM(grid_mat_f,u_mat_f,E,s, pix_durch_my, cluster_size, i_max, j_max, L);  
+[~,~,force_FTTC, ~] = reg_fourier_TFM(grid_mat_u,u_mat,E,s, pix_durch_my, cluster_size, i_max, j_max, L);  
 
 rec_force_FTTCreg(:,:,1)=reshape(force_FTTC(:,1),i_max,j_max);
 rec_force_FTTCreg(:,:,2)=reshape(force_FTTC(:,2),i_max,j_max);
 
 %% Quiver plots of BEM results compared to original, FTTC, regularized FTTC 
 h5 = figure;
-forceScale=.1*sqrt(max(max(force_x1.^2+force_y1.^2)));
+forceScale=.5*sqrt(max(max(assumedForceShifted(1,x_mat_u,y_mat_u,10,10,2000,-200,forceType).^2+assumedForceShifted(2,x_mat_u,y_mat_u,10,10,2000,-200,forceType).^2)));
 hold on
 quiver(x_mat_u,y_mat_u,force_x/forceScale,force_y/forceScale,0,'k');
+quiver(grid_mat_u(:,:,1),grid_mat_u(:,:,2),rec_force_FTTCreg(:,:,1)/forceScale,rec_force_FTTCreg(:,:,2)/forceScale,0,'g');
+quiver(x_out,y_out,rec_force_FastBEMreg(:,:,1)/forceScale,rec_force_FastBEMreg(:,:,2)/forceScale,0,'b');
+quiver(x_out,y_out,rec_force_FastBEMreg2(:,:,1)/forceScale,rec_force_FastBEMreg2(:,:,2)/forceScale,0,'r');
 quiver(grid_mat_f(:,:,1),grid_mat_f(:,:,2),rec_force_FTTCreg(:,:,1)/forceScale,rec_force_FTTCreg(:,:,2)/forceScale,0,'g');
 quiver(x_out,y_out,rec_force_FastBEMreg(:,:,1)/forceScale,rec_force_FastBEMreg(:,:,2)/forceScale,0,'b');
 quiver(x_out,y_out,rec_force_FastBEMreg2(:,:,1)/forceScale,rec_force_FastBEMreg2(:,:,2)/forceScale,0,'r');
@@ -329,9 +224,9 @@ hold off
 xlim([xmin-1 xmax+1])
 ylim([ymin-1 ymax+1])
 % Make the text of the legend italic and color it brown
-hleg = legend('Org Force','Regularized FTTC',...
-    'FastBEMreg','FastBEM laplacian',...
-              'Location','NorthWest');
+hleg = legend('Regularized FTTC',...
+    'FastBEMreg','FastBEM laplacian','Org Force',...
+              'Location','NorthEastOutside');
 set(hleg,'FontAngle','italic','TextColor',[.3,.2,.1])
 title('reconstructed forces')
 % We see that non-regularized force has 1) incorrect directions on some
@@ -435,16 +330,36 @@ fnorm_FastBEMreg2 = (fmat_FastBEMreg2(:,:,1).^2 + fmat_FastBEMreg2(:,:,2).^2).^0
 % 
 % subplot(3,3,6), caxis([tmin-0.01 tmax+0.01]), axis off; colorbar('West')
 %% Total residual
-% tot_res(1) = sum((rec_force_org_vec(:,1)-rec_force_FTTCreg_vec(:,1)).^2+...
-%     (rec_force_org_vec(:,2)-rec_force_FTTCreg_vec(:,2)).^2)^.5;
-% tot_res(2) = sum((rec_force_org_vec(:,1)-rec_force_FastBEMreg_vec(:,1)).^2+...
-%     (rec_force_org_vec(:,2)-rec_force_FastBEMreg_vec(:,2)).^2)^.5;
-% tot_res(3) = sum((rec_force_org_vec(:,1)-rec_force_FastBEMreg2_vec(:,1)).^2+...
-%     (rec_force_org_vec(:,2)-rec_force_FastBEMreg2_vec(:,2)).^2)^.5;
+tot_res(1) = sum((rec_force_org_vec(:,1)-rec_force_FTTCreg_vec(:,1)).^2+...
+    (rec_force_org_vec(:,2)-rec_force_FTTCreg_vec(:,2)).^2)^.5;
+tot_res(2) = sum((rec_force_org_vec(:,1)-rec_force_FastBEMreg_vec(:,1)).^2+...
+    (rec_force_org_vec(:,2)-rec_force_FastBEMreg_vec(:,2)).^2)^.5;
+tot_res(3) = sum((rec_force_org_vec(:,1)-rec_force_FastBEMreg2_vec(:,1)).^2+...
+    (rec_force_org_vec(:,2)-rec_force_FastBEMreg2_vec(:,2)).^2)^.5;
 % first one is fttc without regularization, second bar is total residual
 % in regularized fttc. Total residual is lower in regularized fttc.
 
-%% Force at cross-sectional line at y=10 for large FA, high peak
+%% Force at cross-sectional line at y=15 for low peak
+tnorm1D_FastBEMregy15 = tnorm_FastBEMreg(15,:);
+tnorm1D_FTTCregy15 = tnorm_fttcreg(15,:);
+tnorm1D_FastBEMreg2y15 = tnorm_FastBEMreg2(15,:);
+tnorm1D_orgy15 = tnorm_org(15,:);
+x1Dy15 = grid_mat(15,:,1);
+%% Force at cross-sectional line at y=10 for high peak
+tnorm1D_FastBEMregy10 = tnorm_FastBEMreg(10,:);
+tnorm1D_FTTCregy10 = tnorm_fttcreg(10,:);
+tnorm1D_FastBEMreg2y10 = tnorm_FastBEMreg2(10,:);
+tnorm1D_orgy10 = tnorm_org(10,:);
+x1Dy10 = grid_mat(10,:,1);
+% %% Boundary cutting for FastBEM
+% tnorm_FastBEMregsc(1,:)=0;
+% tnorm_FastBEMregsc(:,1)=0;
+% tnorm_FastBEMregsc(end,:)=0;
+% tnorm_FastBEMregsc(:,end)=0;
+% tnorm_FastBEMreg2(1,:)=0;
+% tnorm_FastBEMreg2(:,1)=0;
+% tnorm_FastBEMreg2(end,:)=0;
+% tnorm_FastBEMreg2(:,end)=0;
 
 % force_x1 = assumedForceShifted(1,x_mat_u,y_mat_u,10*10,10*10,2000,-200,forceType,'largeFA');
 % force_y1 = assumedForceShifted(2,x_mat_u,y_mat_u,10*10,10*10,2000,-200,forceType,'largeFA'); %group1
@@ -508,15 +423,15 @@ x1Du_g4 = grid_mat_u(20*10,12*10-50:12*10+50,1);
 % tnorm_FastBEMreg2(:,end)=0;
 
 %% Precision in locating peak force
-tnorm(:,:,1) = fnorm_fttcreg;
-tnorm(:,:,2) = fnorm_FastBEMreg;
-tnorm(:,:,3) = fnorm_FastBEMreg2;
-
-% zeroI = [1 1]; %index of zero coordinates
-% [~,locMaxI,~] = findMaxScoreI(tnorm_org,zeroI,1,0); %from dense data
-locMaxI = fpos(:,2:-1:1);
+tnorm(:,:,1) = tnorm_org;
+tnorm(:,:,2) = tnorm_fttcreg;
+tnorm(:,:,3) = tnorm_FastBEMreg;
+tnorm(:,:,4) = tnorm_FastBEMreg2;
+zeroI = [-4 -4]; %index of zero coordinates
+jj=1;
+[~,locMaxI,~] = findMaxScoreI(tnorm(:,:,jj),zeroI,3,0.5);
 nPeaks = size(locMaxI,1);
-nMethods = 3;
+nMethods = 4;
 flocMax = zeros(nPeaks, nMethods);
 flocMaxRatio = zeros(nPeaks, nMethods);
 flocMaxAngle = zeros(nPeaks, nMethods);
@@ -544,31 +459,10 @@ backgroundMask = sqrt((x_mat_f-(locMaxI(1,1)/5+1)).^2+(y_mat_f-(locMaxI(1,2)/5+1
                     & sqrt((x_mat_f-(locMaxI(14,1)/5+1)).^2+(y_mat_f-(locMaxI(14,2)/5+1)).^2)>20;
 for jj=1:nMethods
     for k=1:nPeaks
-        flocMax(k,jj) = tnorm(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,jj);
-        flocMaxRatio(k,jj) = flocMax(k,jj)/fnorm_org(locMaxI(k,1),locMaxI(k,2)); % ratio based on original force norm (0~1)
-        if jj==1
-            recF_vec = [rec_force_FTTCreg(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,1),...
-                rec_force_FTTCreg(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,2)];
-        elseif jj==2
-            recF_vec = [fmat_FastBEMreg(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,1),...
-                fmat_FastBEMreg(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,2)];
-        elseif jj==3
-            recF_vec = [fmat_FastBEMreg2(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,1),...
-                fmat_FastBEMreg2(round(locMaxI(k,1)/5)+1,round(locMaxI(k,2)/5)+1,2)];
-        end
-        orgF_vec = [tmat_org(locMaxI(k,1),locMaxI(k,2),1),...
-                    tmat_org(locMaxI(k,1),locMaxI(k,2),2)];
-
-        flocMaxAngle(k,jj) = acosd(recF_vec*orgF_vec'/...
-            (norm(recF_vec)*norm(orgF_vec))); % in degree
-        %indices for surroundings (2 um radius)
-        ringMask = sqrt((x_mat_f-(locMaxI(k,1)/5+1)).^2+(y_mat_f-(locMaxI(k,2)/5+1)).^2)>20 ...
-                    & sqrt((x_mat_f-(locMaxI(k,1)/5+1)).^2+(y_mat_f-(locMaxI(k,2)/5+1)).^2)<=25 ...
-                    & backgroundMask;
-        neighborTnorm = ringMask.*tnorm(:,:,jj);
-        meanNeiTnorm = sum(sum(neighborTnorm))/sum(sum(ringMask));
-        flocMaxDTMS(k,jj) = meanNeiTnorm/flocMax(k,jj);
-        % Peak force localization(position) match - skipped for now.
+        flocMax(k,jj) = tnorm(locMaxI(k,1),locMaxI(k,2),jj);
+        flocMaxRatio(k,jj) = flocMax(k,jj)/flocMax(k,1); % ratio based on original force norm (0~1)
+        flocMaxDecreased(k,jj) = flocMax(k,jj)-flocMax(k,1); % actual reduced force magnitude amount (kPa)
+        % Peak force localization match - skipped for now.
     end
     % statistic of flocMaxRatio
     pSR(jj) = mean(flocMaxRatio(:,jj));
@@ -584,47 +478,14 @@ hold off
 set(h1, 'Position', [100 300 1200 1200])
 %% original force
 subplot(4,4,1)
-force_x1 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(1,1),fpos(1,2),fvec(1,1),fvec(1,2),forceType,'largeFA');
-force_y1 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(1,1),fpos(1,2),fvec(1,1),fvec(1,2),forceType,'largeFA'); %group1
-force_x2 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(2,1),fpos(2,2),fvec(2,1),fvec(2,2),forceType,'largeFA');
-force_y2 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(2,1),fpos(2,2),fvec(2,1),fvec(2,2),forceType,'largeFA'); %group1
-force_x3 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(3,1),fpos(3,2),fvec(3,1),fvec(3,2),forceType,'largeFA');
-force_y3 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(3,1),fpos(3,2),fvec(3,1),fvec(3,2),forceType,'largeFA'); %group1
-force_x13 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(13,1),fpos(13,2),fvec(13,1),fvec(13,2),forceType,'largeFA');
-force_y13 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(13,1),fpos(13,2),fvec(13,1),fvec(13,2),forceType,'largeFA'); %group1
-force_x14 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(14,1),fpos(14,2),fvec(14,1),fvec(14,2),forceType,'largeFA');
-force_y14 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(14,1),fpos(14,2),fvec(14,1),fvec(14,2),forceType,'largeFA'); %group1
-force_x4 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(4,1),fpos(4,2),fvec(4,1),fvec(4,2),forceType,'largeFA');
-force_y4 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(4,1),fpos(4,2),fvec(4,1),fvec(4,2),forceType,'largeFA'); %group2
-force_x5 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(5,1),fpos(5,2),fvec(5,1),fvec(5,2),forceType,'largeFA');
-force_y5 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(5,1),fpos(5,2),fvec(5,1),fvec(5,2),forceType,'largeFA'); %group2
-force_x6 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(6,1),fpos(6,2),fvec(6,1),fvec(6,2),forceType,'largeFA');
-force_y6 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(6,1),fpos(6,2),fvec(6,1),fvec(6,2),forceType,'largeFA'); %group2
-force_x7 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(7,1),fpos(7,2),fvec(7,1),fvec(7,2),forceType,'smallFA');
-force_y7 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(7,1),fpos(7,2),fvec(7,1),fvec(7,2),forceType,'smallFA'); %group3
-force_x8 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(8,1),fpos(8,2),fvec(8,1),fvec(8,2),forceType,'smallFA');
-force_y8 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(8,1),fpos(8,2),fvec(8,1),fvec(8,2),forceType,'smallFA'); %group3
-force_x9 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(9,1),fpos(9,2),fvec(9,1),fvec(9,2),forceType,'smallFA');
-force_y9 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(9,1),fpos(9,2),fvec(9,1),fvec(9,2),forceType,'smallFA'); %group3
-force_x10 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(10,1),fpos(10,2),fvec(10,1),fvec(10,2),forceType,'smallFA');
-force_y10 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(10,1),fpos(10,2),fvec(10,1),fvec(10,2),forceType,'smallFA'); %group4
-force_x11 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(11,1),fpos(11,2),fvec(11,1),fvec(11,2),forceType,'smallFA');
-force_y11 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(11,1),fpos(11,2),fvec(11,1),fvec(11,2),forceType,'smallFA'); %group4
-force_x12 = assumedForceShifted(1,x_mat_f,y_mat_f,fpos(12,1),fpos(12,2),fvec(12,1),fvec(12,2),forceType,'smallFA');
-force_y12 = assumedForceShifted(2,x_mat_f,y_mat_f,fpos(12,1),fpos(12,2),fvec(12,1),fvec(12,2),forceType,'smallFA'); %group4
-
-force_x = force_x1+force_x2+force_x3+force_x4+force_x5+force_x6+...
-        force_x7+force_x8+force_x9+force_x10+force_x11+force_x12+force_x13+force_x14;
-force_y = force_y1+force_y2+force_y3+force_y4+force_y5+force_y6+...
-        force_y7+force_y8+force_y9+force_y10+force_y11+force_y12+force_y13+force_y14;
-
-quiver(x_mat_f,y_mat_f,force_x/forceScale,force_y/forceScale,0); hold on
+quiver(x_mat_u,y_mat_u,force_x/forceScale,force_y/forceScale,0); hold on
 quiver(0.5,0.5,1000/forceScale,0,0,'k','LineWidth',2); % scale = 1 kPa
 title('original force vector field')
 %% displacement field
 subplot(4,4,2)
-dispScale=0.1*sqrt(max(max(ux_f.^2+uy_f.^2)));
-quiver(x_mat_f,y_mat_f,ux_f/dispScale,uy_f/dispScale,0)%,0); hold on
+dispScale=0.5*sqrt(max(max(ux.^2+uy.^2)));
+
+quiver(x_mat_u,y_mat_u,ux/dispScale,uy/dispScale,0)%,0); hold on
 hold on
 quiver(0.5,0.5,1/dispScale,0,0,'k','LineWidth',2); % scale = 1 um
 xlim([xmin-1 xmax+1])
@@ -638,125 +499,124 @@ subplot(4,4,3), surf(grid_mat_u(:,:,1), grid_mat_u(:,:,2), tnorm_org,'FaceColor'
 	'EdgeColor','none', 'FaceLighting','phong'), zlim([tmin-1 tmax+1]), ...
     view(0,90), title('Original force')
 caxis([tmin-0.01 tmax+0.01]),set(gca, 'DataAspectRatio', [1,1,1]);
-% hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
+hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
 xlim([xmin xmax])
 ylim([ymin ymax])
 
 subplot(4,4,5), surf(grid_mat(:,:,1), grid_mat(:,:,2), tnorm_fttcreg), zlim([tmin-1 tmax+1]), view(0,90), shading interp; title('FTTC regularization')
 caxis([tmin-0.01 tmax+0.01]),set(gca, 'DataAspectRatio', [1,1,1]);
-% hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
+hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
 xlim([xmin xmax])
 ylim([ymin ymax])
 
 subplot(4,4,6), surf(grid_mat(:,:,1), grid_mat(:,:,2), tnorm_FastBEMreg), zlim([tmin-1 tmax+1]), view(0,90), shading interp; title('FastBEM regularization')
 caxis([tmin-0.01 tmax+0.01]),set(gca, 'DataAspectRatio', [1,1,1]);
-% hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
+hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
 xlim([xmin xmax])
 ylim([ymin ymax])
 
 subplot(4,4,7), surf(grid_mat(:,:,1), grid_mat(:,:,2), tnorm_FastBEMreg2), zlim([tmin-1 tmax+1])
 view(0,90), shading interp; title('FastBEM 2nd order regularization')
 set(gca, 'DataAspectRatio', [1,1,1]);
-% hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
+hold on, line([4 16],[10 10],[tmax+1 tmax+1],'Color','y'), line([16 28],[15 15],[tmax+1 tmax+1],'Color','c')
 xlim([xmin xmax])
 ylim([ymin ymax])
 caxis([tmin-0.01 tmax+0.01]);
 
-subplot(4,4,4), caxis([tmin-0.01 tmax+0.01]), axis off; colorbar('West')
+subplot(4,4,8), caxis([tmin-0.01 tmax+0.01]), axis off; colorbar('West')
 %% profile plot
 subplot(4,4,9), %for high peak
-plot(x1Du_g1,tnorm1D_org_g1,'k','Linewidth',2)
+plot(x1Dy10(1:19),tnorm1D_orgy10(1:19),'k','Linewidth',2)
 hold on
-plot(x1D_g1,tnorm1D_FTTCreg_g1,'g')
-plot(x1D_g1,tnorm1D_FastBEMreg_g1,'b')
-plot(x1D_g1,tnorm1D_FastBEMreg2_g1,'r')
+plot(x1Dy10(1:19),tnorm1D_FastBEMregy10(1:19),'r')
+plot(x1Dy10(1:19),tnorm1D_FastBEMreg2y10(1:19),'b')
+plot(x1Dy10(1:19),tnorm1D_FTTCregy10(1:19),'g')
 xlabel('x')
-ylabel('Traction Stress (Pa)')
-ymax1 = max(tnorm1D_org_g1)*1.5;
-ylim([0 ymax1]);
-title({'1D stress profile for','large FA, high peak'})
+ylabel('Traction Stress at y=10')
+ymax = max(tnorm1D_orgy10(1:19))*1.1;
+ylim([0 ymax]);
+title('1D stress profile for high peak')
 
 subplot(4,4,10), %for high peak
-plot(x1Du_g2,tnorm1D_org_g2,'k','Linewidth',2)
+plot(x1Dy15(13:31),tnorm1D_orgy15(13:31),'k','Linewidth',2)
 hold on
-plot(x1D_g2,tnorm1D_FTTCreg_g2,'g')
-plot(x1D_g2,tnorm1D_FastBEMreg_g2,'b')
-plot(x1D_g2,tnorm1D_FastBEMreg2_g2,'r')
+plot(x1Dy15(13:31),tnorm1D_FastBEMregy15(13:31),'r')
+plot(x1Dy15(13:31),tnorm1D_FastBEMreg2y15(13:31),'b')
+plot(x1Dy15(13:31),tnorm1D_FTTCregy15(13:31),'g')
 xlabel('x')
-ylabel('Traction Stress (Pa)')
-ylim([0 ymax1]);
-title({'1D stress profile for','large FA, low peak'})
+ylabel('Traction Stress at y=15')
+ylim([0 ymax]);
+title('1D stress profile for low peak')
 
-subplot(4,4,11), %for high peak
-plot(x1Du_g3,tnorm1D_org_g3,'k','Linewidth',2)
+subplot(4,4,11),
+h1D_org = plot(x1Dy15,tnorm1D_orgy15,'k','Linewidth',2);
 hold on
-plot(x1D_g3,tnorm1D_FTTCreg_g3,'g')
-plot(x1D_g3,tnorm1D_FastBEMreg_g3,'b')
-plot(x1D_g3,tnorm1D_FastBEMreg2_g3,'r')
-xlabel('x')
-ylabel('Traction Stress (Pa)')
-ylim([0 ymax1]);
-title({'1D stress profile for','small FA, high peak'})
+h1D_reg = plot(x1Dy15(13:31),tnorm1D_FastBEMregy15(13:31),'r');
+h1D_reg2 = plot(x1Dy15(13:31),tnorm1D_FastBEMreg2y15(13:31),'b');
+h1D_fttc = plot(x1Dy15(13:31),tnorm1D_FTTCregy15(13:31),'g');
+axis off;
+hleg = legend('Original Stress','FastBEMreg','FastBEM laplacian','FTTC reg','Location','West');
+set([h1D_org h1D_reg h1D_reg2 h1D_fttc],'Visible','off')
+set(hleg,'FontAngle','italic','TextColor',[.3,.2,.1])
+%% Mean Squared Deviation
+subplot(4,4,12), bar(tot_res)
+ylim([4000 max(tot_res(1))*1.1]);
 
-subplot(4,4,12), %for high peak
-plot(x1Du_g4,tnorm1D_org_g4,'k','Linewidth',2)
-hold on
-plot(x1D_g4,tnorm1D_FTTCreg_g4,'g')
-plot(x1D_g4,tnorm1D_FastBEMreg_g4,'b')
-plot(x1D_g4,tnorm1D_FastBEMreg2_g4,'r')
-xlabel('x')
-ylabel('Traction Stress (Pa)')
-ylim([0 ymax1]);
-title({'1D stress profile for','small FA, low peak'})
-hleg = legend('Original Stress','FTTC reg','FastBEM reg','FastBEM laplacian','Location','North');
-set(hleg,'FontAngle','italic','TextColor',[.3,.2,.1],'FontSize',7)
+title('mean squared deviation')
+xlabel({'FTTC reg vs.','vs. FastBEM reg ',' vs. FastBEM 2nd reg'});
+%% Peak underestimation
+subplot(4,4,13),
+bar(meanfMR)
+title('Peak force ratio')
+xlabel({'original, FTTC reg vs. ',' FastBEM reg vs. ',' FastBEM 2nd reg'});
+% peak is overestimated in FTTC, but underestimated a lot in regularized FTTC.
 
-% subplot(4,4,8),
-% h1D_org = plot(x1Du_g4,tnorm1D_org_g4,'k','Linewidth',2);
-% hold on
-% h1D_fttc = plot(x1D_g4,tnorm1D_FTTCreg_g4,'g');
-% h1D_reg = plot(x1D_g4,tnorm1D_FastBEMreg_g4,'b');
-% h1D_reg2 = plot(x1D_g4,tnorm1D_FastBEMreg2_g4,'r');
-% axis off;
-% hleg = legend('Original Stress','FTTC reg','FastBEM reg','FastBEM laplacian','Location','South');
-% set([h1D_org h1D_reg h1D_reg2 h1D_fttc],'Visible','off')
-% set(hleg,'FontAngle','italic','TextColor',[.3,.2,.1],'FontSize',7)
+subplot(4,4,14)
+% hold all
+% for jj=1:nMethods
+%     plot(flocMax(:,jj),flocMaxRatio(:,jj),'.');
+% end
+% hold off
+% ax1 = gca;
+% ax2 = axes('Position',get(ax1,'Position'),...
+%            'XAxisLocation','bottom',...
+%            'YAxisLocation','right',...
+%            'Color','none',...
+%            'XColor','r','YColor','r');
+% for jj=1:nMethods
+%     plot(ax2, flocMax(:,jj),flocMaxDecreased(:,jj),'o');
+%     if jj==1
+%         hold all
+%     end
+% end
+% set(get(ax1,'Ylabel'),'String','Peak Force Magnitude Ratio')
+% set(get(ax2,'Ylabel'),'String','Absolute Decrease in Peak Force Magnitude')
 
-% %% Mean Squared Deviation
-% subplot(4,4,12), bar(tot_res)
-% ylim([4000 max(tot_res(1))*1.1]);
-% 
-% title('mean squared deviation')
-% xlabel({'FTTC reg vs.','vs. FastBEM reg ',' vs. FastBEM 2nd reg'});
-%% Peak plot
-subplot(4,4,13)
-plot(flocMaxOrg/1000,flocMax(:,1)/1000,'g.'), hold on
-plot(flocMaxOrg/1000,flocMax(:,2)/1000,'b.'), 
-plot(flocMaxOrg/1000,flocMax(:,3)/1000,'r.'), 
-plot(0:.1:3.2,0:.1:3.2,'k--'),hold off
-xlim([0 2.7]),ylim([0 3.3]);
+% % For only FastBEM laplacian regularization
+% [AX,H1,H2] = plotyy(flocMax(:,nMethods),flocMaxRatio(:,nMethods),flocMax(:,nMethods),flocMaxDecreased(:,nMethods),'plot');
+% set(get(AX(1),'Ylabel'),'String','Peak Stress Ratio')
+% set(get(AX(1),'Ylimit'),[0 max(flocMaxRatio(:,nMethods))*1.1)
+% set(get(AX(2),'Ylabel'),'String','Stress Mag Decrease')
+% xlabel('Peak Stress Magnitude (kPa)')
+% title({'Peak Stress Underestimation',' (2nd order Regularization)','w.r.t. Peak Stress Magnitude'})
+% set(H1,'LineStyle','o')
+% set(H2,'LineStyle','.')
+plot(flocMax(:,1)/1000,flocMax(:,3)/1000,'.'), hold on
+plot(flocMax(:,1)/1000,flocMax(:,4)/1000,'r.'), 
+plot(0:.1:2.2,0:.1:2.2,'k--'),hold off
+xlim([0 2.3]),ylim([0 2.3]);
 xlabel('Original Peak Stress (kPa)')
 ylabel('Reconstructed Peak Stress (kPa)')
-title({'Reconstructed Peak Stress','w.r.t. Original Peak Stress'})
-legend('FTTC','0th','2nd','1:1','Location','NorthWest')
-%% Peak Magnitude Ratio
-subplot(4,4,14),
-bar(pSR), hold on
-errorbar(pSR,pSRerr)
-title('Peak Stress ratio')
-xlabel({'FTTC reg vs. ',' FastBEM reg vs. ',' FastBEM 2nd reg'});
-%% Deviation of traction angle (DTA)
-subplot(4,4,15),
-bar(DTA), hold on
-errorbar(DTA,DTAerr)
-title('Deviation of Traction Angle')
-xlabel({'FTTC reg vs. ',' FastBEM reg vs. ',' FastBEM 2nd reg'});
-%% Deviation of traction magnitude surroundings (DTMS)
-subplot(4,4,16),
-bar(DTMS), hold on
-errorbar(DTMS,DTMSerr)
-title('Deviation of Traction Magnitude from Surroundings')
-xlabel({'FTTC reg vs. ',' FastBEM reg vs. ',' FastBEM 2nd reg'});
+title({'Peak Stress Underestimation','w.r.t. Peak Stress Magnitude'})
+
+
+subplot(4,4,15)
+hfFr=plot(flocMax(:,1)/1000,flocMax(:,3)/1000,'.'); hold on
+hfFr2=plot(flocMax(:,1)/1000,flocMax(:,4)/1000,'r.'); 
+h1o1=plot(0:2200,0:2200,'g--');hold off
+legend('0th Regularization','2nd Regularization','1:1 linear line','West')
+axis off
+set([hfFr hfFr2 h1o1],'Visible','off')
 
 % hold all
 % for jj=1:nMethods
@@ -825,5 +685,4 @@ hgexport(h1,strcat(imgPath,'fig2 accuracy of all force methods'),hgexport('facto
 hgsave(h1,strcat(imgPath,'fig2 accuracy of all force methods'),'-v7.3')
 % delete(h1)
 
-save([dataPath '/all data.mat'],'M_FastBEM','forceMeshFastBEM','DTMS','DTMSerr','DTA','DTAerr','pSR','pSRerr','flocMax','-v7.3');
-
+save([dataPath '/all data.mat'],'M_FastBEM','forceMeshFastBEM','tot_res','flocMax','-v7.3');
