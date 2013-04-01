@@ -182,6 +182,8 @@ for i =1:nTracks
     
 end
 
+track = track(~isDrift);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 %%%  Removes points that appear in only 1 frame
@@ -353,7 +355,7 @@ twaituv=[];
 
 
 %toff=toff*tExp;
-[yOFF,xOFF]=hist(toff,0:tExp:max(toff));
+[yOFF,xOFF]=hist(toff,tExp/2:tExp:max(toff)-tExp/2);
 yOFFcdf=cumsum(yOFF)/sum(yOFF);
 
 %fit wait times to a distribution that reflects Uv and Thermal
@@ -362,9 +364,11 @@ yOFFcdf=cumsum(yOFF)/sum(yOFF);
 pini = mean( diff(yOFFcdf(1:30))./diff(xOFF(1:30)));
 
 opte = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1],'StartPoint',[pini,pini,0.5000]);
-opt = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[Inf,Inf,1],'StartPoint',[pini,pini/10,0.5000]);
+%opt = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[Inf,Inf,1],'StartPoint',[pini,1/max(xOFF),0.5000]);
+opt = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0],'Upper',[Inf,1],'StartPoint',[pini,0.5000]);
 et=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opte);
-ft=fittype(@(k1,k2,A,x) A*(1.0-exp(-k1*x))+k2*x,'options',opt);
+%ft=fittype(@(k1,k2,A,x) A*(1.0-exp(-k1*x))+(1-A)*k2*x,'options',opt);
+ft=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xOFF),'options',opt);
 
 %ft=fittype(@(k1,x) 1.0-exp(-k1*x));
 [toffFit,goodnessOFF]=fit(xOFF',yOFFcdf',ft);
@@ -384,12 +388,13 @@ xlim([0,max(xOFF)]);
 hold;
 
 %now calculate the rate of first appearance
-[yFirst,xFirst]=hist(tfirst,0:tExp:max(tfirst));
+[yFirst,xFirst]=hist(tfirst,tExp/2:tExp:max(tfirst)-tExp/2);
 yFirstcdf=cumsum(yFirst)/sum(yFirst);
 
 %pini2=( yFirstcdf(2)-yFirstcdf(1) )/( xFirst(2)-xFirst(1) );
 pini2 = mean( diff(yFirstcdf(1:30))./diff(xFirst(1:30)));
-[tfirstFit,goodnessFirst] = fit(xFirst',yFirstcdf',ft,'StartPoint',[toffFit.k1,toffFit.k2,0.5]);
+ft=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xFirst),'options',opt);
+[tfirstFit,goodnessFirst] = fit(xFirst',yFirstcdf',ft,'StartPoint',[toffFit.k1,0.5]);
 [tfirstFitE,goodnessFirst] = fit(xFirst',yFirstcdf',et,'StartPoint',[pini2,pini2,0.5]);
 
 figure,subplot(2,1,1),bar(xFirst,yFirstcdf);
@@ -407,12 +412,13 @@ hold;
 
 %now calculate wait times without first appearances
 
-[yWait,xWait]=hist(twait,0:tExp:max(twait));
+[yWait,xWait]=hist(twait,tExp/2:tExp:max(twait)-tExp/2);
 yWaitcdf=cumsum(yWait)/sum(yWait);
 
 %pini3=( yWaitcdf(2)-yWaitcdf(1) )/( xWait(2)-xWait(1) );
 pini3 = mean( diff(yWaitcdf(1:30))./diff(xWait(1:30)));
-[tWaitFit,goodnessWait]=fit(xWait',yWaitcdf',ft,'StartPoint',[toffFit.k1,toffFit.k2,0.5]);
+ft=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xWait),'options',opt);
+[tWaitFit,goodnessWait]=fit(xWait',yWaitcdf',ft,'StartPoint',[toffFit.k1,0.5]);
 [tWaitFit,goodnessWait]=fit(xWait',yWaitcdf',et,'StartPoint',[pini3,pini3,0.5]);
 
 %repeat above but in terms of number of uv activations
@@ -420,17 +426,19 @@ pini3 = mean( diff(yWaitcdf(1:30))./diff(xWait(1:30)));
 %
 %
 
-[yOFFuv,xOFFuv]=hist(toffuv,0:max(toffuv));
+[yOFFuv,xOFFuv]=hist(toffuv,1:max(toffuv));
 yOFFuvcdf=cumsum(yOFFuv)/sum(yOFFuv);
 
 %fit wait times to a distribution that reflects Uv and Thermal
 %reactivation
 piniuv=( yOFFuvcdf(2)-yOFFuvcdf(1) )/( xOFFuv(2)-xOFFuv(1) );
 
-opt2 = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1],'StartPoint',[piniuv,piniuv/10,0.5000]);
-opt2e = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1],'StartPoint',[piniuv,piniuv,0.5000]);
+%opt2 = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[1,1,1],'StartPoint',[piniuv,piniuv/10,0.5000]);
+opt2 = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0],'Upper',[Inf,1],'StartPoint',[piniuv,0.5000]);
+opt2e = fitoptions('Method','NonLinearLeastSquares','Lower',[0,0,0],'Upper',[Inf,Inf,1],'StartPoint',[piniuv,piniuv,0.5000]);
 et2=fittype(@(k1,k2,A,x) 1.0-A*exp(-k1*x)-(1-A)*exp(-k2*x),'options',opt2e);
-ft2=fittype(@(k1,k2,A,x) A*(1.0-exp(-k1*x))+k2*x,'options',opt2);
+%ft2=fittype(@(k1,k2,A,x) A*(1.0-exp(-k1*x))+k2*x,'options',opt2);
+ft2=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xOFFuv),'options',opt2);
 
 
 %ft=fittype(@(k1,x) 1.0-exp(-k1*x));
@@ -451,11 +459,12 @@ xlim([0,max(xOFFuv)]);
 hold;
 
 %now calculate the rate of first appearance
-[yFirstuv,xFirstuv]=hist(tfirstuv,0:max(tfirstuv));
+[yFirstuv,xFirstuv]=hist(tfirstuv,1:max(tfirstuv));
 yFirstuvcdf=cumsum(yFirstuv)/sum(yFirstuv);
 
 pini2uv=( yFirstuvcdf(2)-yFirstuvcdf(1) )/( xFirstuv(2)-xFirstuv(1) );
-[tfirstuvFit,goodnessFirstuv] = fit(xFirstuv',yFirstuvcdf',ft2,'StartPoint',[toffuvFit.k1,toffuvFit.k2,0.5]);
+ft2=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xFirstuv),'options',opt2);
+[tfirstuvFit,goodnessFirstuv] = fit(xFirstuv',yFirstuvcdf',ft2,'StartPoint',[toffuvFit.k1,0.5]);
 [tfirstuvFitE,goodnessFirstuvE] = fit(xFirstuv',yFirstuvcdf',et2,'StartPoint',[pini2uv,pini2uv,0.5]);
 
 figure,subplot(2,1,1),bar(xFirstuv,yFirstuvcdf);
@@ -473,11 +482,12 @@ hold;
 
 %now calculate wait times without first appearances
 
-[yWaituv,xWaituv]=hist(twaituv,0:max(twaituv));
+[yWaituv,xWaituv]=hist(twaituv,1:max(twaituv));
 yWaituvcdf=cumsum(yWaituv)/sum(yWaituv);
 
 pini3uv=( yWaituvcdf(2)-yWaituvcdf(1) )/( xWaituv(2)-xWaituv(1) );
-[tWaituvFit,goodnessWaituv]=fit(xWaituv',yWaituvcdf',ft2,'StartPoint',[toffuvFit.k1,toffuvFit.k2,0.5]);
+ft2=fittype(@(k1,A,x) A*(1.0-exp(-k1*x))+(1-A)*x/max(xWaituv),'options',opt2);
+[tWaituvFit,goodnessWaituv]=fit(xWaituv',yWaituvcdf',ft2,'StartPoint',[toffuvFit.k1,0.5]);
 [tWaituvFitE,goodnessWaituvE]=fit(xWaituv',yWaituvcdf',et2,'StartPoint',[pini3uv,pini3uv,0.5]);
 
 
