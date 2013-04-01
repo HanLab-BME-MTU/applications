@@ -186,6 +186,7 @@ classdef WindowingProcess < ImageAnalysisProcess
             funParams.StartContour = 2;%Use getMaskWindows default.
             funParams.MinSize = 10; %Minimum number of pixels a mask object must have to be windowed.
             funParams.BatchMode = false;
+            funParams.StartPointPropag = true;%Propagates the first window starting point from one frame to the next
         end
     end
 end
