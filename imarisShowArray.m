@@ -213,7 +213,8 @@ else
     % store matlab data
     for ch = 1:size(array,4)
         for  t = 1:size(array,5)            
-            iceConn.setDataVolume(single(array(:,:,:,t,ch)),ch-1,t-1);
+            iceConn.setDataVolume(single(array(:,:,:,ch,t)),ch-1,t-1);
+            pause(.5);%For whatever reason if you add the next channel too quickly there are some weird glitches. Stupid temporary fix.
         end
     end    
 
