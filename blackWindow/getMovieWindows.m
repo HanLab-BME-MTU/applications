@@ -223,7 +223,7 @@ if ~all(hasMasks)
     error('The movie could not be windowed, because some of the channels which were selected to use masks from did not have valid masks!');
 end
 
-if strcmp(p.MethodName,'PDEBased') || strcmp(p.MethodName,'ProtrusionBased')
+if strcmp(p.MethodName,'PDEBased') || strcmp(p.MethodName,'ProtrusionBased') || p.StartPointPropag
     usesProt = true;
     %These methods need protrusion vectors - make sure that the protrusion
     %vectors are available and load them    
@@ -400,13 +400,14 @@ if usesProt
     protrusion = protrusion.protrusion;
 end
 
-nBandMax = 0;
+nBandMax  = 0;
 nSliceMax = 0;
 
 
 %% --------- Windowing -------- %%
 
 
+startingPoint = p.StartPoint;
 
 for iFrame = 1:nFrames
 
@@ -415,9 +416,10 @@ for iFrame = 1:nFrames
     switch p.MethodName
 
         case 'ConstantWidth'                
-
-            windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,'DoChecks',false);
+            
+            startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
+            windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                            p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
 
         case 'ConstantNumber'
             
@@ -428,9 +430,12 @@ for iFrame = 1:nFrames
                 %Preserve this number throughout movie.
                 nWinPara = numel(windows);                
             else
-                windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
-                    [],'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
-                    'NumParallel',nWinPara,'DoChecks',false);                
+                
+                startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
+                windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                                [],'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
+                                'NumParallel',nWinPara,'DoChecks',false);                
+                            
             end
             
         case 'ProtrusionBased'
@@ -562,4 +567,21 @@ movieData.save; %Save the new movieData to disk
 
 disp('Finished windowing!')
 
+end
+
+function newPoint = startPointPropagation(startP,frame,protrusion,smoothedEdge)
+%This function propagates the first window initial point using the closest protrusion vector
+
+if frame ~= 1
+    
+    [~,idxP] = pdist2(smoothedEdge{frame-1},startP,'euclidean','Smallest',1);
+    newPoint = startP + protrusion{frame-1}(idxP,:);
+    
+else
+    
+    newPoint = startP;
+    
+end
+
+end
 
