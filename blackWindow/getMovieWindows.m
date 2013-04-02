@@ -417,10 +417,19 @@ for iFrame = 1:nFrames
 
         case 'ConstantWidth'                
             
-            startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
-            windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+            if iFrame == 1
+                
+                windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                             p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
 
+                startingPoint = windows{1}{1}{end}(:,1)';
+            else
+                
+                startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
+                windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
+                                    p.ParaSize,'StartPoint',startingPoint,'StartContour',p.StartContour,'DoChecks',false);
+            end
+            
         case 'ConstantNumber'
             
             if iFrame == 1
@@ -428,7 +437,8 @@ for iFrame = 1:nFrames
                 windows = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                     p.ParaSize,'StartPoint',p.StartPoint,'StartContour',p.StartContour,'DoChecks',false);
                 %Preserve this number throughout movie.
-                nWinPara = numel(windows);                
+                nWinPara      = numel(windows);                
+                startingPoint = windows{1}{1}{end}(:,1)';
             else
                 
                 startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
@@ -572,16 +582,8 @@ end
 function newPoint = startPointPropagation(startP,frame,protrusion,smoothedEdge)
 %This function propagates the first window initial point using the closest protrusion vector
 
-if frame ~= 1
-    
-    [~,idxP] = pdist2(smoothedEdge{frame-1},startP,'euclidean','Smallest',1);
-    newPoint = startP + protrusion{frame-1}(idxP,:);
-    
-else
-    
-    newPoint = startP;
-    
-end
+[~,idxP] = pdist2(smoothedEdge{frame-1},startP,'euclidean','Smallest',1);
+newPoint = startP + protrusion{frame-1}(idxP,:);
 
 end
 
