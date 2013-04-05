@@ -21,7 +21,7 @@ function success=analyzeLMdataTracking(dataDirectory,wavelength,varargin)
 %         success  ->  1/0: analysis was successful/unsuccessful
 %
 % Ulrich Schmidt, March 13, 2012
-%
+% Jeffrey Werbin, March 2013
 
 success=1;
 
@@ -170,7 +170,7 @@ for iFile=1:nFiles
         sigma=psfSigmaTheo(k+1);
         
         img=double(MD.channels_(1).loadImage(iFrame+1));
-        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-9,...
+        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-12,...
             'mask',mask,'FitMixtures',doMMF);
         
        if ~isempty(features{iFrame+1})
@@ -201,7 +201,7 @@ for iFile=1:nFiles
     if ~exist(outputDir,'dir');
         mkdir(outputDir);
     end
-    outputFile=[MD.movieDataFileName_(1:end-7) '.mat'];
+    outputFile=[MD.movieDataFileName_(1:end-7) '_tracking.mat'];
     save([outputDir filesep outputFile],'features','tracksFinal','GapLen','Radius');
         
 end
