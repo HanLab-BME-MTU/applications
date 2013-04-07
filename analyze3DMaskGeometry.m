@@ -1,4 +1,4 @@
-function maskProp = analyze3DMaskGeometry(maskIn,smoothIter)
+function maskProp = analyze3DMaskGeometry(maskIn,smoothIter,roiInf,avgRad)
 %ANALYZE3DMASKGEOMETRY calculates varios properties of the geometry of the objects in the input 3D mask
 % 
 % maskProp = analyze3DMaskGeometry(maskIn)
@@ -74,6 +74,15 @@ elseif numel(smoothIter)> 1 || round(abs(smoothIter)) ~= smoothIter
     error('The smoothIter parameter must be a postive integer scalar!')
 end
 
+if nargin < 2 || isempty(roiInf)
+    isROI = false;
+else    
+    isROI = true;
+end
+
+if nargin < 3 || isempty(avgRad)
+    avgRad = 2;
+end
 
 %% --------------------------- Init ---------------------------- &&
 
@@ -95,6 +104,7 @@ maskProp(1:nObj) = struct('SmoothedSurface',[],...
                           'CenterMostDist',[],...
                           'CenterMost',[]);
 
+[M,N,P] = size(maskIn);                      
 
 %% -------------- Property Calculation ------------------------- %%
 
@@ -107,9 +117,22 @@ for iObj = 1:nObj
         
         %Smooth the mask
         maskSmooth = fastGauss3D(labelMask == objInd(iObj),1,[5 5 5],2);
-        %Ge the isosurface and normals                
-        maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,.25);
-        maskProp(iObj).SurfaceNorms = isonormals(maskSmooth,maskProp(iObj).SmoothedSurface.vertices);        
+        
+        
+        if isROI
+            %If this is an ROI, we do it this way so the cooridantes are still
+            %correct in the full image, and so the surface will be properly
+            %truncated by the boundaries of the ROI.
+            [X,Y,Z] = meshgrid(roiInf.cropY(1):roiInf.cropY(2),roiInf.cropX(1):roiInf.cropX(2),roiInf.cropZ(1):roiInf.cropZ(2));
+            maskProp(iObj).SmoothedSurface = isosurface(X,Y,Z,maskSmooth(roiInf.cropX(1):roiInf.cropX(2),roiInf.cropY(1):roiInf.cropY(2),roiInf.cropZ(1):roiInf.cropZ(2)),.25);
+            maskProp(iObj).SurfaceNorms = isonormals(X,Y,Z,maskSmooth(roiInf.cropX(1):roiInf.cropX(2),roiInf.cropY(1):roiInf.cropY(2),roiInf.cropZ(1):roiInf.cropZ(2)),maskProp(iObj).SmoothedSurface.vertices);
+        else
+            %Ge the isosurface and normals                
+            maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,.25);
+            maskProp(iObj).SurfaceNorms = isonormals(maskSmooth,maskProp(iObj).SmoothedSurface.vertices);        
+            
+        end
+        
         
     else
         
@@ -136,6 +159,9 @@ for iObj = 1:nObj
         sqrt(maskProp(iObj).MeanCurvature .^2 - maskProp(iObj).GaussianCurvature);
     maskProp(iObj).CurvaturePC2 = maskProp(iObj).MeanCurvature - ...
         sqrt(maskProp(iObj).MeanCurvature .^2 - maskProp(iObj).GaussianCurvature);
+    
+    %Calculate locally-averaged curvature data
+    maskProp(iObj).locAvgCurv = calcLocalAvgCurvatures(maskProp,avgRad,1,1);
 
     %Get distance transform of interior of this object
     distX = bwdist(~(labelMask==objInd(iObj)));

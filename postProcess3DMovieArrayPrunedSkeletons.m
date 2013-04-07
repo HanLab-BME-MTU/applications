@@ -37,8 +37,9 @@ pOptTIFF = {'-r100','-dtiff'};%150 dpi for TIF format since this is usally just 
 iProcChan = 1;
 
 nBins2D = 50; %Number of bins for 2D histogram/pdfs
-pct2D = 67.5; %Percentile to outline in 2D hist plots. This is ~ STD
-    
+pct2D = 67.5; %Percentile to outline in 2D hist plots. This is ~ 1 STD   
+
+
 %% ------------- Input ------------ %%
 
 
@@ -47,6 +48,7 @@ ip = inputParser;
 ip.FunctionName = mfilename;
 ip.addRequired('MA',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('ChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
+ip.addParamValue('TipRadiusRange',[500 Inf],@(x)(numel(x) == 2 && diff(x) > 0));%Tip radius range to include in the simplifying "branch count" figure. This weeds out filopoida and also false-positives which are almost universally small.
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
 ip.addParamValue('OutputDirectory',[],@ischar);%Directory will be created if it doesn't exist
 ip.parse(MA,varargin{:});
@@ -98,7 +100,11 @@ thetaBins = linspace(-pi,pi,nAngBins);
 
 allTipPathLen = cell(nMovies,1);
 allTipPathN = cell(nMovies,1);
-tipPathBinSz = 5;
+
+%Fix these so we have common value across movies/cond
+tipPathBinSz = 5;%in microns
+tipRadBinSz = 250;%in nanometers
+
 hasMG = false(nMovies,1);
 
 branchRad = cell(nMovies,1);
@@ -145,7 +151,19 @@ for iMov = 1:nMovies
                 currMaskProp = MA(iMov).processes_{iMgProc}.loadChannelOutput(iProcChan,iFrame);
                 branchRad{iMov}{iFrame} = branchRadii(currSkel,currMaskProp);
                 branchRad{iMov}{iFrame} = cellfun(@(x)(x .* MA(iMov).pixelSize_),branchRad{iMov}{iFrame},'Unif',0);%Convert to nm
+                [iTipVert{iMov}{iFrame},iTipsEdge{iMov}{iFrame}] = findTips(currSkel.edges,size(currSkel.vertices,1));
+                meanBranchRad{iMov}{iFrame} = cellfun(@(x)(mean(x)),branchRad{iMov}{iFrame});
+                tipRad{iMov}{iFrame} = branchRad{iMov}{iFrame}(iTipsEdge{iMov}{iFrame});
+                meanTipRad{iMov}{iFrame} = meanBranchRad{iMov}{iFrame}(iTipsEdge{iMov}{iFrame});
             end
+            
+            % ---- Simplified "branch count" Analysis ---- %
+            
+            %Get the simplified thresholded branch count which excludes
+            %small structures which are presumably filopodia or false
+            %positives
+            nTipsPerFrameThresh{iMov}(iFrame) = numel(meanTipRad{iMov}{iFrame} >= p.TipRadiusRange(1) & meanTipRad{iMov}{iFrame} <= p.TipRadiusRange(2));            
+            
             
             % ----- Vertex Degree Analysis ----- %
             
@@ -161,7 +179,7 @@ for iMov = 1:nMovies
             % ----- Tip Path Length Analysis ---- %
                         
             [tmp1,tmp2] = analyzeSkeletonTipPaths(currSkel.vertices,currSkel.edges,currSkel.edgePaths,currSkel.edgeLabels);
-            %Convert to nm, workaround for occasional errors in skeleton
+            %Convert to microns, workaround for occasional errors in skeleton
             %graphs
             tipPathLen{iMov}{iFrame} = tmp1(~isnan(tmp1) & ~isinf(tmp1)) .* MA(iMov).pixelSize_ / 1e3;
             tipPathN{iMov}{iFrame} = cellfun(@numel,tmp2(~isnan(tmp1) & ~isinf(tmp1)));                        
@@ -208,10 +226,16 @@ for iMov = 1:nMovies
         allTipLenBins{iMov} = 0:tipPathBinSz:max(allTipPathLen{iMov});
         tipLenHist{iMov} = histc(allTipPathLen{iMov},allTipLenBins{iMov});
         allTipNBins{iMov} = 0:max(allTipPathN{iMov});
-        tipNHist{iMov} = histc(allTipPathN{iMov},allTipNBins{iMov});
+        tipNHist{iMov} = histc(allTipPathN{iMov},allTipNBins{iMov});        
         
+        %Branch & Tip Radii
+        allMeanTipRad{iMov} = vertcat(meanTipRad{iMov}{:});
+        tipRadBins{iMov} = 0:tipRadBinSz:max(allMeanTipRad{iMov});
         
-        
+        %Thresholded tip count
+        nTipsMeanPerMovThresh(iMov) = mean(nTipsPerFrameThresh{iMov});
+        nTipsSTDPerMovThresh(iMov) = std(nTipsPerFrameThresh{iMov});        
+                
         % Per-Movie Figures
         
         % ---- Vertex Degree Figure ----- %
@@ -365,7 +389,44 @@ for iMov = 1:nMovies
         hgsave([figName '.fig'])
         
         
+        % ----- Branch tip radius histogram ---- %
+        if p.BatchMode
+            trFigPM(iMov) = figure('Visible','off');
+        else
+            trFigPM(iMov) = figure;                       
+        end
         
+        tipRadHistMeanPerFramePerMov{iMov} = histc(allMeanTipRad{iMov},tipRadBins{iMov});
+        tipRadHistMeanPerFramePerMov{iMov} = tipRadHistMeanPerFramePerMov{iMov} ./ nFramesPerMov(iMov);
+        bar(tipRadBins{iMov},tipRadHistMeanPerFramePerMov{iMov})
+        xlabel('Tip Radius, nm')
+        ylabel('Mean Count, Per Frame')
+        title('Mean Tip Radius Histogram, Per Frame')
+        
+        figName = [currOutDir filesep 'tip radius histogram'];
+        print(pOpt{:},[figName '.eps']);
+        print(pOptTIFF{:},[figName '.tif']);
+        hgsave([figName '.fig'])
+        
+        
+        if nFramesPerMov(iMov) > 1 
+            if p.BatchMode
+                ttcFigPM(iMov) = figure('Visible','off');
+            else
+                ttcFigPM(iMov) = figure;                       
+            end
+            hold on
+            title({'Thresholded Tip Count vs. Time',['Tip Radii ' num2str(p.TipRadiusRange(1)) ' < x < ' num2str(p.TipRadiusRange(2)) ' nm'],...
+                ['Mean, all frames: ' num2str(nTipsMeanPerMovThresh(iMov)) ', STD = ' num2str(nTipsSTDPerMovThresh(iMov))]})
+            plot(0:MA(iMov).timeInterval_:(MA(iMov).timeInterval_*(nFramesPerMov(iMov)-1)),nTipsPerFrameThresh{iMov},'.-')
+            xlabel('Time, Seconds')
+            ylabel('Thresholded Tip Count')
+
+            figName = [currOutDir filesep 'tip count thresholded vs time'];
+            print(pOpt{:},[figName '.eps']);
+            print(pOptTIFF{:},[figName '.tif']);
+            hgsave([figName '.fig'])
+        end
         %TEMP - Save results to individual movie output folders also!!!!
         
     
@@ -461,7 +522,62 @@ hgsave([figName '.fig'])
 
 
 
-% --------------------- Combined Tip-Path Data ------------------- %
+%% --------------------- Combined Tip-Path Data ------------------- %
+
+
+% --- PDFs ---- %
+
+combPathLenBins = 0:tipPathBinSz:max(cellfun(@max,allTipLenBins));
+combPathPDF = zeros(nMovies,numel(combPathLenBins));
+
+combPathNBins = 0:max(cellfun(@max,allTipNBins));
+combPathNPDF = zeros(nMovies,numel(combPathNBins));
+
+
+for iMov = 1:nMovies
+    
+    nCur = numel(tipLenHist{iMov});    
+    combPathPDF(iMov,1:nCur) = combPathPDF(iMov,1:nCur) + (tipLenHist{iMov} ./ sum(tipLenHist{iMov}))';
+
+    nCur=  numel(tipNHist{iMov});
+    combPathNPDF(iMov,1:nCur) = combPathNPDF(iMov,1:nCur) + (tipNHist{iMov} ./ sum(tipNHist{iMov}))';
+    
+end
+
+figure
+subplot(2,1,1)
+bar(combPathLenBins,mean(combPathPDF,1))
+hold on
+errorbar(combPathLenBins,mean(combPathPDF,1),std(combPathPDF,[],1)*1.96 / sqrt(nMovies),'.r')
+maxBin = max(combPathLenBins);
+xlim([-tipPathBinSz/2 maxBin + tipPathBinSz/2])
+yMax = max(ylim);
+ylim([0 yMax])
+title({'Combined Tip-To-Body Path-Length Probability Distribution, All Movies',['n=' num2str(nMovies)]})
+xlabel('Path Length, microns')
+ylabel('Average Probability')
+
+subplot(2,1,2)
+bar(combPathNBins,mean(combPathNPDF,1))
+hold on
+errorbar(combPathNBins,mean(combPathNPDF,1),std(combPathNPDF,[],1) * 1.96 / sqrt(nMovies),'.r')
+maxBin = max(combPathNBins);
+xlim([1.5 maxBin + 1/2])
+yMax = max(ylim);
+ylim([0 yMax])
+title('Combined Tip-To-Body Path Complexity Probability Distribution, All Movies')
+xlabel('Path Complexity, # of Vertices')
+ylabel('Average Probability')
+
+figName = [p.OutputDirectory filesep 'Combined Tip Path Distributions'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
+
+
+outVars = [outVars{:} {'combPathLenBins','combPathPDF','combPathNBins','combPathNPDF','combPathHist','combPathNHist'}];
+
+%% --- Avg Per Mov Path Length Histograms --- %%
 
 combPathLenBins = 0:tipPathBinSz:max(cellfun(@max,allTipLenBins));
 combPathHist = zeros(nMovies,numel(combPathLenBins));
@@ -473,10 +589,10 @@ combPathNHist = zeros(nMovies,numel(combPathNBins));
 for iMov = 1:nMovies
     
     nCur = numel(tipLenHist{iMov});    
-    combPathHist(iMov,1:nCur) = combPathHist(iMov,1:nCur) + (tipLenHist{iMov} ./ sum(tipLenHist{iMov}))';
+    combPathHist(iMov,1:nCur) = combPathHist(iMov,1:nCur) + (tipLenHist{iMov} ./ nFramesPerMov(iMov))';
 
     nCur=  numel(tipNHist{iMov});
-    combPathNHist(iMov,1:nCur) = combPathNHist(iMov,1:nCur) + (tipNHist{iMov} ./ sum(tipNHist{iMov}))';
+    combPathNHist(iMov,1:nCur) = combPathNHist(iMov,1:nCur) + (tipNHist{iMov} ./ nFramesPerMov(iMov))';
     
 end
 
@@ -485,19 +601,19 @@ subplot(2,1,1)
 bar(combPathLenBins,mean(combPathHist,1))
 hold on
 errorbar(combPathLenBins,mean(combPathHist,1),std(combPathHist,[],1)*1.96 / sqrt(nMovies),'.r')
-title({'Combined Tip-To-Body Path-Length Probability Distribution, All Movies',['n=' num2str(nMovies)]})
+title({'Combined Tip-To-Body Path-Length Mean Per-Frame Histogram, All Movies',['n=' num2str(nMovies)]})
 xlabel('Path Length, microns')
-ylabel('Average Probability')
+ylabel('Average Count Per-Frame')
 
 subplot(2,1,2)
 bar(combPathNBins,mean(combPathNHist,1))
 hold on
 errorbar(combPathNBins,mean(combPathNHist,1),std(combPathNHist,[],1) * 1.96 / sqrt(nMovies),'.r')
-title('Combined Tip-To-Body Path Complexity Probability Distribution, All Movies')
+title('Combined Tip-To-Body Path Complexity Mean Per-Frame Histogram, All Movies')
 xlabel('Path Complexity, # of Vertices')
-ylabel('Average Probability')
+ylabel('Average Count Per-Frame')
 
-figName = [p.OutputDirectory filesep 'Combined Tip Path Distributions'];
+figName = [p.OutputDirectory filesep 'Combined Tip Path Histograms'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
@@ -505,7 +621,42 @@ hgsave([figName '.fig'])
 
 outVars = [outVars{:} {'combPathLenBins','combPathHist','combPathNBins','combPathNHist','combPathHist','combPathNHist'}];
 
+
+% --------------------- Combined Tip Radius Data ------------------- %
+
+combTipRadBins =  0:tipRadBinSz:max(cellfun(@max,allMeanTipRad));
+combTipRadHist = zeros(nMovies,numel(combTipRadBins));
+
+
+for iMov = 1:nMovies
+    
+    nCur = numel(tipRadHistMeanPerFramePerMov{iMov});    
+    combTipRadHist(iMov,1:nCur) = tipRadHistMeanPerFramePerMov{iMov};
+    
+end
+
+figure
+bar(combTipRadBins,mean(combTipRadHist,1))
+hold on
+errorbar(combTipRadBins,mean(combTipRadHist,1),std(combTipRadHist,[],1)*1.96 / sqrt(nMovies),'.r')
+title({'Combined Tip Radius Mean Per-Frame Histogram, All Movies',['n=' num2str(nMovies)]})
+xlabel('Tip Radius, nm')
+ylabel('Average Count Per-Frame')
+
+figName = [p.OutputDirectory filesep 'Combined Tip Radius Histogram'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
+
+
+outVars = [outVars{:} {'combTipRadBins','combTipRadHist'}];
+
+
+
 %% -------------- Combined Radius Vs. Distance Data --------------- %
+
+
+% ------ Radius Vs. Dist Hist ----- %
 
 figure
 hold on
@@ -554,17 +705,73 @@ plot(distRad2DBins{1}(1:end-1),rangeAllRadPerDist(:,1),'--r');
 legend('Mean',['Center ' num2str(pct2D) '%']);
 plot(distRad2DBins{1}(1:end-1),rangeAllRadPerDist(:,2),'--r');
 
-figName = [p.OutputDirectory filesep 'Combined Distance vs Radius Distribution'];
+figName = [p.OutputDirectory filesep 'Combined Distance vs Radius Log Histogram'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
+
+% ------ Radius Vs. Dist PDF and Isovals ----- %
+pPDF.xy = vertcat(distRad2DBins{:});
+distRad2Dpdf = gkde2([allDists allRad],pPDF);
+
+figure
+hold on
+imagesc(distRad2DBins{1},distRad2DBins{2},distRad2Dpdf.pdf)
+xlim([min(distRad2DBins{1}) max(distRad2DBins{1})])
+ylim([min(distRad2DBins{2}) max(distRad2DBins{2})])
+title({'Distance along skeleton from centermost point',...
+        'vs. radius, 2D PDF Estimate',...
+        ['all cells, n=' num2str(nMovies)]});
+xlabel('Distance, nm')
+ylabel('Radius, nm')        
+colormap gray
+hold on
+colorbar
+%Numerically find an isovalue which contains 95% of the distribution
+isoVal = .90;
+tryIsoVals = linspace(min(distRad2Dpdf.pdf(:)),max(distRad2Dpdf.pdf(:)),1e3);
+cumProbPerVal = arrayfun(@(x)(sum(distRad2Dpdf.pdf(distRad2Dpdf.pdf(:)>x))),tryIsoVals);
+[minErr,iBestIso] = min(abs(sum(distRad2Dpdf.pdf(:)) * isoVal -  cumProbPerVal));
+distRad2Dpdf.isoValPct = isoVal;
+distRad2Dpdf.isoValProb = tryIsoVals(iBestIso);
+distRad2Dpdf.isoCont = separateContours(contourc(distRad2DBins{1}(1:end-1),distRad2DBins{2}(1:end-1),distRad2Dpdf.pdf,distRad2Dpdf.isoValProb*ones(1,2)));
+cellfun(@(x)(plot(x(1,:),x(2,:),'r')),distRad2Dpdf.isoCont);
+legend([num2str(isoVal*100) '% Isocontour'])
+outVars = [outVars{:} {'distRad2Dpdf'}];
+
+figName = [p.OutputDirectory filesep 'Combined Distance vs Radius PDF'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
 
+%% ------ The over-simplifying "number of branches per cell" figure ------ %%
+
+
+figure
+hold on
+hist(nTipsMeanPerMovThresh)
+xlabel('Thresholded Branch Tip Number')
+ylabel('Count, Mean Per Frame all Movies')
+title({['Thresholded Mean Per-Frame Branch Tip Count, All Movies n=' num2str(nMovies)],...
+        ['Tip Radii ' num2str(p.TipRadiusRange(1)) ' < x < ' num2str(p.TipRadiusRange(2)) ' nm'],...
+        ['Combined mean = ' num2str(mean(nTipsMeanPerMovThresh)) ', STD = ' num2str(std(nTipsMeanPerMovThresh))]});    
+
+outVars = [outVars{:} {'nTipsMeanPerMovThresh','nTipsSTDPerMovThresh'}];
+    
+figName = [p.OutputDirectory filesep 'Combined Tip Count Thresholded'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])
+
+
+
+%% ---------- Save Output ------ %%
+
 if p.BatchMode
     close all
 end
 
-%% ---------- Save Output ------ %%
 
 outFile = [p.OutputDirectory filesep outFileName];
 

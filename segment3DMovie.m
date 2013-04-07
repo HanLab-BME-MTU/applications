@@ -345,7 +345,7 @@ for iImage = 1:nImages
     stackWrite(currMask,[maskDir filesep 'mask_' num2str(iImage) '.tif'],'ccitt')    
 
     if ~p.BatchMode
-        waitbar(iImage+nImages,wtBar)
+        waitbar(iImage/nImages,wtBar)
     end
 end
 

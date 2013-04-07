@@ -40,6 +40,7 @@ ip = inputParser;
 ip.FunctionName = mfilename;
 ip.addRequired('MA',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('ChannelIndex',1,@(x)(numel(x) == 1 && isposint(x)));
+ip.addParamValue('SampRad',2e3,@(x)(numel(x) == 1 && x > 0));
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
 ip.addParamValue('OutputDirectory',[],(@(x)(exist(x,'dir'))));
 ip.parse(MA,varargin{:});
@@ -64,12 +65,15 @@ pixSizePerMov = nan(nMovies,1);
 histBinsPerMov = cell(nMovies,1);
 gcHistBinsPerMov = cell(nMovies,1);
 dpcHistBinsPerMov = cell(nMovies,1);
+mapcHistBinsPerMov = cell(nMovies,1);
 gcHistPerMov = cell(nMovies,1);%Gauss curv hist
 mcHistPerMov = cell(nMovies,1);%mean curv hist
 dpcHistPerMov = cell(nMovies,1);%Diff of principle curv hist
+mapcHistPerMov = cell(nMovies,1);%Maximum absolute principle curv hist
 nBinsPerMov = nan(nMovies,1);
 ngcBinsPerMov = nan(nMovies,1);
 ndpcBinsPerMov = nan(nMovies,1);
+nmapcBinsPerMov = nan(nMovies,1);
 
 physUnits = false(nMovies,1);
 %timIntPerMov = nan(nMovies,1);
@@ -97,34 +101,41 @@ for iMov = 1:nMovies
                         
         
         iMGProc(iMov) = tmp;
-        hasMG(iMov) = true;
-        nFramesPerMov(iMov) = MA(iMov).nFrames_;                
+        hasMG(iMov) = true;        
+        if isempty(MA(iMov).eventTimes_)
+            nFramesPerMov(iMov) = MA(iMov).nFrames_;
+        else
+            %TEMP - this doesn't currently support a start frame > 1!!!
+            nFramesPerMov(iMov) = MA(iMov).eventTimes_(2);
+        end        
         pixSizePerMov(iMov) = MA(iMov).pixelSize_;
         %timeIntPerMov(iMov) = MA(iMov).timeInterval_;
         
         %Set up the curvature histogram bins for this movie based on the
         %pixel size - no object can have higher curvature than a single
         %pixel.
-        %%% TEMP !!!!!!!!!!!!!!!!
+        %%% TEMP !!!!!!!!!!!!!!!! 
 %         histBinsPerMov{iMov} = -1/(pixSizePerMov(iMov)*nPixMaxCurv):binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
 %         nBinsPerMov(iMov) = numel(histBinsPerMov{iMov});
 %         gcHistBinsPerMov{iMov} = -(1/pixSizePerMov(iMov)/nPixMaxCurv)^2:gcBinSz:(1/pixSizePerMov(iMov)/nPixMaxCurv)^2;
 %         ngcBinsPerMov(iMov) = numel(gcHistBinsPerMov{iMov});
 %         dpcHistBinsPerMov{iMov} = 0:binSz:1/(pixSizePerMov(iMov)*nPixMaxCurv);
 %         ndpcBinsPerMov(iMov) = numel(dpcHistBinsPerMov{iMov});
-        
+        %Use hard-coded bins so we can easily
+        %compare across movies/conditions etc..... i know, i know...
         histBinsPerMov{iMov} = -2e-3:binSz:2e-3;
         nBinsPerMov(iMov) = numel(histBinsPerMov{iMov});
         gcHistBinsPerMov{iMov} = -2e-6:gcBinSz:2e-6;
         ngcBinsPerMov(iMov) = numel(gcHistBinsPerMov{iMov});
         dpcHistBinsPerMov{iMov} = 0:binSz:2e-3;
         ndpcBinsPerMov(iMov) = numel(dpcHistBinsPerMov{iMov});
-        
-        
+        mapcHistBinsPerMov{iMov} = 0:binSz:5e-3;
+        nmapcBinsPerMov(iMov) = numel(mapcHistBinsPerMov{iMov});
         
         gcHistPerMov{iMov} = nan(nFramesPerMov(iMov),ngcBinsPerMov(iMov));
         mcHistPerMov{iMov} = nan(nFramesPerMov(iMov),nBinsPerMov(iMov));           
-        dpcHistPerMov{iMov} = nan(nFramesPerMov(iMov),ndpcBinsPerMov(iMov));           
+        dpcHistPerMov{iMov} = nan(nFramesPerMov(iMov),ndpcBinsPerMov(iMov));
+        mapcHistPerMov{iMov} = nan(nFramesPerMov(iMov),nmapcBinsPerMov(iMov));       
         
         currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
         mkClrDir(currOutDir);
@@ -145,13 +156,41 @@ for iMov = 1:nMovies
                 currMaskGeo.CurvaturePC1 = currMaskGeo.CurvaturePC1 ./ pixSizePerMov(iMov);
                 currMaskGeo.CurvaturePC2 = currMaskGeo.CurvaturePC2 ./ pixSizePerMov(iMov);
             end
+            
+            %Perform local averaging on curvature data to reduce noise and
+            %match with image sampling data. 
+            %Even though the curv data has been converted to physical units
+            %the 3d mesh is still in pixel coord so we convert the sampling
+            %radius here.
+            locAvgMaskGeo = calcLocalAvgCurvatures(currMaskGeo,p.SampRad / pixSizePerMov(iMov),1,1);
+            
+            
             %Get normalized curvature histograms
-            gcHistPerMov{iMov}(iFrame,:) = histc(currMaskGeo.GaussianCurvature,gcHistBinsPerMov{iMov});
+            gcHistPerMov{iMov}(iFrame,:) = histc(locAvgMaskGeo.LocMeanGaussianCurvature,gcHistBinsPerMov{iMov});
             gcHistPerMov{iMov}(iFrame,:) = gcHistPerMov{iMov}(iFrame,:) ./ sum(gcHistPerMov{iMov}(iFrame,:));
-            mcHistPerMov{iMov}(iFrame,:) = histc(currMaskGeo.MeanCurvature,histBinsPerMov{iMov});
+            mcHistPerMov{iMov}(iFrame,:) = histc(locAvgMaskGeo.LocMeanMeanCurvature,histBinsPerMov{iMov});
             mcHistPerMov{iMov}(iFrame,:) = mcHistPerMov{iMov}(iFrame,:) ./ sum(mcHistPerMov{iMov}(iFrame,:));
-            dpcHistPerMov{iMov}(iFrame,:) = histc(real(currMaskGeo.CurvaturePC1) - real(currMaskGeo.CurvaturePC2),dpcHistBinsPerMov{iMov});
-            dpcHistPerMov{iMov}(iFrame,:) = dpcHistPerMov{iMov}(iFrame,:) ./ sum(dpcHistPerMov{iMov}(iFrame,:));        
+            dpcHistPerMov{iMov}(iFrame,:) = histc(real(locAvgMaskGeo.LocMeanCurvaturePC1) - real(locAvgMaskGeo.LocMeanCurvaturePC2),dpcHistBinsPerMov{iMov});
+            dpcHistPerMov{iMov}(iFrame,:) = dpcHistPerMov{iMov}(iFrame,:) ./ sum(dpcHistPerMov{iMov}(iFrame,:));                    
+            mapcHistPerMov{iMov}(iFrame,:) = histc(locAvgMaskGeo.LocMeanMaxAbsCurvature,mapcHistBinsPerMov{iMov});
+            mapcHistPerMov{iMov}(iFrame,:) = mapcHistPerMov{iMov}(iFrame,:) ./ sum(mapcHistPerMov{iMov}(iFrame,:));
+            
+            %Get per-frame simple stats. TEMP - preallocate arrays!
+            gcMeanPerMov{iMov}(iFrame) = mean(locAvgMaskGeo.LocMeanGaussianCurvature);
+            gcMedPerMov{iMov}(iFrame) = median(locAvgMaskGeo.LocMeanGaussianCurvature);
+            gcVarPerMov{iMov}(iFrame) = var(locAvgMaskGeo.LocMeanGaussianCurvature);
+            mcMeanPerMov{iMov}(iFrame) = mean(locAvgMaskGeo.LocMeanMeanCurvature);
+            mcMedPerMov{iMov}(iFrame) = median(locAvgMaskGeo.LocMeanMeanCurvature);
+            mcVarPerMov{iMov}(iFrame) = var(locAvgMaskGeo.LocMeanMeanCurvature);
+            mapcMeanPerMov{iMov}(iFrame) = mean(locAvgMaskGeo.LocMeanMaxAbsCurvature);
+            mapcMedPerMov{iMov}(iFrame) = median(locAvgMaskGeo.LocMeanMaxAbsCurvature);
+            mapcVarPerMov{iMov}(iFrame) = var(locAvgMaskGeo.LocMeanMaxAbsCurvature);
+            [~,iMode] = max(mapcHistPerMov{iMov}(iFrame,:));%This is a sloppy as hell way to do this, but quick and dirty will have to do.
+            mapcHistModePerMov{iMov}(iFrame) = mapcHistBinsPerMov{iMov}(iMode);
+            
+            %Store number of curv points
+            nCurvPtsPerMov{iMov}(iFrame) = numel(locAvgMaskGeo.LocMeanGaussianCurvature);            
+            
         end
                 
         
@@ -205,6 +244,21 @@ for iMov = 1:nMovies
         title('Diff. of Principle Curvatures Distribution Over Time (blue=first frame,red=last frame)')
         print(pOpt{:},[currOutDir filesep 'Difference of Principle Curvature Distribution.eps']);
         
+         % ---- Max Abs PC Figure ---- %%
+        
+        if p.BatchMode
+            mapcFigPM(iMov) = figure('Visible','off');
+        else
+            mapcFigPM(iMov) = figure;
+        end
+        set(mapcFigPM(iMov),'DefaultAxesColorOrder',jet(nFramesPerMov(iMov)));
+        %frameTimes = 0:timeIntPerMov(iMov):(timeIntPerMov(iMov)*(nFramesPerMov(iMov)-1));
+        %imagesc(gcHistBinsPerMov{iMov},frameTimes,gcHistPerMov{iMov})
+        plot(repmat(mapcHistBinsPerMov{iMov},nFramesPerMov(iMov),1)',mapcHistPerMov{iMov}')
+        xlabel('Max Absolute Principle Curvature, 1/nm')
+        ylabel('Normalized Histogram')
+        title('Max Absolute Principle Curvature Distribution Over Time (blue=first frame,red=last frame)')
+        print(pOpt{:},[currOutDir filesep 'Max Absolute Principle Curvature Distribution.eps']);
         
         if p.BatchMode
             close(mcFigPM(iMov));
@@ -237,15 +291,13 @@ end
 compFig = figure;
 hold on
 movColors = jet(nMovies);
-%TEMP - fix this shit you lazy bastard!!
-useFrames = 1:nanmin([10 nFramesPerMov']);
 
 for iMov = 1:nMovies
     
     figure
 
-    meanDiffHist(iMov,:) = nanmean(dpcHistPerMov{iMov}(useFrames,:),1);
-    stdDiffHist(iMov,:) = nanstd(dpcHistPerMov{iMov}(useFrames,:),[],1);    
+    meanDiffHist(iMov,:) = nanmean(dpcHistPerMov{iMov},1);
+    stdDiffHist(iMov,:) = nanstd(dpcHistPerMov{iMov},[],1);    
     
     plotTransparent(dpcHistBinsPerMov{iMov},meanDiffHist(iMov,:),stdDiffHist(iMov,:),movColors(iMov,:),.5,0);        
     hold on
@@ -259,8 +311,8 @@ for iMov = 1:nMovies
     
     figure
     
-    meanMeanHist(iMov,:) = nanmean(mcHistPerMov{iMov}(useFrames,:),1);
-    stdMeanHist(iMov,:) = nanstd(mcHistPerMov{iMov}(useFrames,:),[],1);    
+    meanMeanHist(iMov,:) = nanmean(mcHistPerMov{iMov},1);
+    stdMeanHist(iMov,:) = nanstd(mcHistPerMov{iMov},[],1);    
     
     plotTransparent(histBinsPerMov{iMov},meanMeanHist(iMov,:),stdMeanHist(iMov,:),movColors(iMov,:),.5,0);        
     hold on
@@ -274,8 +326,8 @@ for iMov = 1:nMovies
     
     figure
     
-    meanGaussHist(iMov,:) = nanmean(gcHistPerMov{iMov}(useFrames,:),1);
-    stdGaussHist(iMov,:) = nanstd(gcHistPerMov{iMov}(useFrames,:),[],1);    
+    meanGaussHist(iMov,:) = nanmean(gcHistPerMov{iMov},1);
+    stdGaussHist(iMov,:) = nanstd(gcHistPerMov{iMov},[],1);    
     
     plotTransparent(gcHistBinsPerMov{iMov},meanGaussHist(iMov,:),stdGaussHist(iMov,:),movColors(iMov,:),.5,0);        
     hold on
@@ -288,10 +340,25 @@ for iMov = 1:nMovies
     saveThatShit([currOutDir filesep 'Averaged Gaussian Curvature Distribution'],currOutDir);
     
     
+    figure
+    
+    meanMAPCHist(iMov,:) = nanmean(mapcHistPerMov{iMov},1);
+    stdMAPCHist(iMov,:) = nanstd(mapcHistPerMov{iMov},[],1);    
+    
+    plotTransparent(mapcHistBinsPerMov{iMov},meanMAPCHist(iMov,:),stdMAPCHist(iMov,:),movColors(iMov,:),.5,0);        
+    hold on
+    plot(mapcHistBinsPerMov{iMov},meanMAPCHist(iMov,:),'color',movColors(iMov,:));        
+    xlim([0 5e-3])
+    xlabel('Max. Abs. Curvature Cmponent, 1/nm')
+    ylabel('Probability')
+    title('Maximum Absolute Curvature Component Distribution Averaged Over All Frames')
+    currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
+    saveThatShit([currOutDir filesep 'Averaged Max Abs Curv Component Distribution'],currOutDir);    
+    
     
 end
 
-%--------- All Movie Averages -------- %
+%--------- All Movie Distribution Averages -------- %
 
 figure
 
@@ -336,7 +403,90 @@ ylabel('Probability')
 title(['Difference of Principle Curvatures Distribution Averaged Over All Movies, n =' num2str(nMovies)])
 saveThatShit(['Combined Difference of Principle Curvatures Distribution'],combOutDir);
 
-save([combOutDir filesep 'combined histograms all movies.mat'],'combMeanHist','combMeanHistSTD','histBinsPerMov','combGaussHist','combGaussHistSTD','gcHistBinsPerMov','combDiffHist','combDiffHistSTD','dpcHistBinsPerMov')
-jkl=1;
+figure
+
+combMAPCHist = mean(meanMAPCHist,1);
+combMAPCHistSTD = std(meanMAPCHist,[],1);
+
+plotTransparent(mapcHistBinsPerMov{1},combMAPCHist,combMAPCHistSTD,[0 0 1],.5,0);        
+hold on
+plot(mapcHistBinsPerMov{1},combMAPCHist)
+xlim([0 5e-3])
+xlabel('Maximum Absolute Principle Curvature, 1/nm')
+ylabel('Probability')
+title(['Maximum Absolute Principle Curvature Distribution Averaged Over All Movies, n =' num2str(nMovies)])
+saveThatShit(['Combined Max Absolute Principle Curvature Distribution'],combOutDir);
+
+%--------- All Frames All Movies Simple Stat Averages -------- %
+
+allStat = horzcat(mapcMedPerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
+currStat = 'Median of Maximum Absolute Curvature';
+meanAll = mean(allStat);
+stdAll = std(allStat);
+figure
+hist(allStat)
+xlabel(currStat)
+ylabel('Count, All Frames, All Movies')
+title({[currStat ', All Frames, All Movies'],...
+        ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
+saveThatShit([currStat ' all frames all movies'],combOutDir);
+
+allStat = horzcat(mapcHistModePerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
+currStat = 'Mode of Maximum Absolute Curvature';
+meanAll = mean(allStat);
+stdAll = std(allStat);
+figure
+hist(allStat)
+xlabel(currStat)
+ylabel('Count, All Frames, All Movies')
+title({[currStat ', All Frames, All Movies'],...
+        ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
+saveThatShit([currStat ' all frames all movies'],combOutDir);
+
+allStat = horzcat(mapcMeanPerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
+currStat = 'Mean of Maximum Absolute Curvature';
+meanAll = mean(allStat);
+stdAll = std(allStat);
+figure
+hist(allStat)
+xlabel(currStat)
+ylabel('Count, All Frames, All Movies')
+title({[currStat ', All Frames, All Movies'],...
+        ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
+saveThatShit([currStat ' all frames all movies'],combOutDir);
+
+allStat = horzcat(mcMeanPerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
+currStat = 'Mean of Mean Curvature';
+meanAll = mean(allStat);
+stdAll = std(allStat);
+figure
+hist(allStat)
+xlabel(currStat)
+ylabel('Count, All Frames, All Movies')
+title({[currStat ', All Frames, All Movies'],...
+        ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
+saveThatShit([currStat ' all frames all movies'],combOutDir);
+
+allStat = horzcat(mcMedPerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
+currStat = 'Median of Mean Curvature';
+meanAll = mean(allStat);
+stdAll = std(allStat);
+figure
+hist(allStat)
+xlabel(currStat)
+ylabel('Count, All Frames, All Movies')
+title({[currStat ', All Frames, All Movies'],...
+        ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
+saveThatShit([currStat ' all frames all movies'],combOutDir);
+
+
+save([combOutDir filesep 'combined stats and hists all movies.mat'],'combMeanHist','combMeanHistSTD','histBinsPerMov',...
+    'combGaussHist','combGaussHistSTD','gcHistBinsPerMov',...
+    'combDiffHist','combDiffHistSTD','dpcHistBinsPerMov',...
+    'combMAPCHist','combMAPCHistSTD','mapcHistBinsPerMov',...
+    'mapcMeanPerMov','mapcMedPerMov','mapcVarPerMov',...
+    'mcMeanPerMov','mcMedPerMov','mcVarPerMov',...
+    'nCurvPtsPerMov')
+
 
 

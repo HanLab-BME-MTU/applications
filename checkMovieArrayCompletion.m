@@ -5,7 +5,8 @@ processNames = {'SegmentationProcess3D',...             % 1
                 'MaskGeometry3DProcess',...             % 2
                 'SkeletonizationProcess',...            % 3
                 'SkeletonPruningProcess',...            % 4
-                'MaskObjectTrackingProcess'};           % 5
+                'MaskObjectTrackingProcess',...         % 5
+                'MaskedIntensity3DProcess'};            % 6
 
 
 iChan =1 ;
@@ -35,7 +36,7 @@ for j = 1:numel(MA)
             compMat(j,k) = MA(j).processes_{iProc}.checkChannelOutput(iChan);
             
             if compMat(j,k)                
-                compDate(j,k) = datenum(MA(j).processes_{iProc}.dateTime_);
+                compDate(j,k) = datenum(MA(j).processes_{iProc}.finishTime_);
             end
             
         end

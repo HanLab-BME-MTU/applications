@@ -23,7 +23,7 @@ if nargin > 3 && ~isempty(mask)
 end
 
 nEdges = numel(edgePaths);
-if nargin < 3 || isempty(edgeLabels)
+if ~exist('edgeLabels','var') || isempty(edgeLabels)
     edgeLabels = ones(nEdges,1);
 end
 

@@ -132,6 +132,21 @@ else
     hasSizes = false;
 end
 
+%Check if this movie is an ROI
+if ~isempty(movieData.parent_)
+    roiInf = load(movieData.roiMaskPath_);    
+    %Adjust the roi info to match the symmetric voxels. We use
+    %floor/ceil to be on the safe side
+    roiInf.cropZ = roiInf.cropZ * pixZ/pixXY;
+    roiInf.cropZ = [ceil(roiInf.cropZ(1)) floor(roiInf.cropZ(2))];
+    roiInf.origZ = floor(roiInf.cropZ * pixZ/pixXY);        
+    roiInf.origZ = [ceil(roiInf.origZ(1)) floor(roiInf.origZ(2))];
+else
+    roiInf = [];
+end
+
+%Convert the sampling radius to pixels
+sampRadPix = p.SampRad / pixXY;
 
 outDir = p.OutputDirectory;
 mkClrDir(outDir);
@@ -151,10 +166,10 @@ for iFrame = 1:nFrames
     
     if pixXY ~= pixZ
         %Scale the mask so that the voxel aspect ratio is taken into account
-        currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);
+        currMask = make3DImageVoxelsSymmetric(currMask,pixXY,pixZ);        
     end
     %Get the geometry properties
-    maskProp = analyze3DMaskGeometry(currMask,p.SmoothIter);                        
+    maskProp = analyze3DMaskGeometry(currMask,p.SmoothIter,roiInf,sampRadPix);                        
     
     if hasSizes && p.PhysicalUnits
         %Scale these properties so that they are in nm. We have scaled the

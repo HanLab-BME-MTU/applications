@@ -317,13 +317,13 @@ end
 [edges,vertices,nVert] = removeIsolatedVertices(vertices,edges);
 
 %If we're down to only one edge, just stop here
-if size(edges,1) == 1
-    edgeLabels = 2;
+if size(edges,1) <= 1    
+    edgeLabels = 2*ones(size(edges,1),1);
     return
 end
 
 
-%% ----------- Aspect Ratio Pruningx ------------ %%
+%% ----------- Aspect Ratio Pruning ------------ %%
 %Removes branch tips based on their aspect ratio
 
 %Yet again calculate the degree of each vertex
@@ -468,7 +468,7 @@ edgeLabels(avgEdDepth > depthThresh) = 2;
 %select the largest connected component of the body graph
 isBody = edgeLabels==2;
 %Convert edge list to adjacency matrix
-adjMat = sparse(vertcat(edges(isBody,1),edges(isBody,2)),vertcat(edges(isBody,2),edges(isBody,1)),1,nVert,nVert,2*nVert);
+adjMat = sparse(vertcat(edges(isBody,1),edges(isBody,2)),vertcat(edges(isBody,2),edges(isBody,1)),1,nVert,nVert,2*nnz(isBody));%Over-allocate
 %Find connected components, and find the component which contains the
 %deepest edge.
 [~,iComp] = graphconncomp(adjMat,'Directed',false);

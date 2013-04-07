@@ -7,6 +7,11 @@ function [iTipVert,iTipEdge] = findTips(edges,nVerts)
 %Sometime between 2009 and 2011...
 %
 
+if isempty(edges) || isempty(nVerts)
+    iTipVert = [];
+    iTipEdge = [];
+    return
+end
 
 %First, get the degree of each vertex and find tips (deg = 1)
 vDegree = graphVertDegree(edges,nVerts);

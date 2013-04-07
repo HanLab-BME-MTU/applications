@@ -1,10 +1,12 @@
-classdef MaskGeometry3DProcess < ImageAnalysisProcess
-%MASKGEOMETRY3DPROCESS process for analyzing 3D mask geometry with analyze3DMovieMaskGeometry.m
+classdef PhotoBleachCalcProcess3D < ImageAnalysisProcess
+%PHOTOBLEACHCALCPROCESS3D calculates photobleach correction curve for a 3D
+%movie, using only the intensities in the masked areas.
 %
 %
 % Hunter Elliott
-% 3/2011
+% 1/2013
 %
+
 
     properties (SetAccess = protected, GetAccess = public)
         
@@ -13,19 +15,19 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
     
     methods (Access = public)
         
-        function obj = MaskGeometry3DProcess(owner,funParams)
+        function obj = PhotoBleachCalcProcess3D(owner,funParams)
                                               
             if nargin == 0
                 super_args = {};
             else                                                
                 
                 super_args{1} = owner;
-                super_args{2} = 'MaskGeometry';
-                super_args{3} = @analyze3DMovieMaskGeometry;                               
+                super_args{2} = 'PhotoBleachCalc';
+                super_args{3} = @calc3DMoviePhotobleaching;                               
                 
                 if nargin < 2 || isempty(funParams)                                       
                     
-                    funParams = MaskGeometry3DProcess.getDefaultParams(owner);                 
+                    funParams = PhotoBleachCalcProcess3D.getDefaultParams(owner);                 
                                     
                 end
                 
@@ -42,36 +44,26 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
                    ~all(obj.checkChanNum(iChan));
                error('You must specify a valid channel number!')
            end
-           %Makes there are the right numbr of files in each output
-           %directory
-           OK =  arrayfun(@(x)(exist(obj.outFilePaths_{x},'dir') && ...
-                             numel(dir([obj.outFilePaths_{x} filesep '*.mat']))==obj.owner_.nFrames_),iChan);
+           OK =  arrayfun(@(x)(exist(obj.outFilePaths_{x},'file')),iChan);
         end
         
         
-        function mg = loadChannelOutput(obj,iChan,iFrame)
+        function mg = loadChannelOutput(obj,iChan)
             
-            if nargin < 3 || isempty(iFrame) || isempty(iChan)
-                error('You must input a frame number to load output for!')
-            elseif ~obj.checkChanNum(iChan) || numel(iChan) > 1
+            if ~obj.checkChanNum(iChan) || numel(iChan) > 1
                 error('You must specify a single, valid channel number!')
-            elseif iFrame < 1 || iFrame > obj.owner_.nFrames_
-                error('Invalid frame number!')
             elseif ~obj.checkChannelOutput(iChan)
-                error('Specified channel does not have valid mask geometry files!')
-            end
+                error('Specified channel does not have valid photbleaching calc files!')
+            end                        
             
-            fileNames = dir([obj.outFilePaths_{iChan} filesep '*.mat']);
-            
-            mg = load([obj.outFilePaths_{iChan} filesep fileNames(iFrame).name]);
+            mg = load(obj.outFilePaths_{iChan});
             
             fNames = fieldnames(mg);
             if numel(fNames) ~=1
-                error('Invalid mask geometry file!')
+                error('Invalid photo bleach calculation file!')
             end
             mg = mg.(fNames{1});
-        end
-                
+        end                
            
     end
     methods(Static)
@@ -86,12 +78,9 @@ classdef MaskGeometry3DProcess < ImageAnalysisProcess
         function funParams = getDefaultParams(owner)
               %----Defaults----%      
 
-                    funParams.ChannelIndex = 1;
-                    funParams.SmoothIter =[];%Use the analyze3DMaskGeometry.m defaults.                    
-                    funParams.PhysicalUnits = false;
-                    funParams.SampRad = 2e3;%Local averaging radius for curv data (nm).
+                    funParams.ChannelIndex = 1:numel(owner.channels_);                                        
                     funParams.OutputDirectory = ...
-                        [owner.outputDirectory_  filesep 'mask_geometry'];
+                        [owner.outputDirectory_  filesep 'photobleach_calc'];                    
                     funParams.BatchMode = false;                                                   
         end
     end            

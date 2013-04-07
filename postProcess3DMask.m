@@ -2,6 +2,7 @@ function currMask = postProcess3DMask(currMask,varargin)
 
 %A bunch of arbitrary, bullshit magical parameter values... that work. Fuck it.
 ip = inputParser;
+ip.KeepUnmatched = true;
 ip.addParamValue('MinVolume',25,@(x)(isposint(x) && numel(x) == 1));
 ip.addParamValue('ClosureRadius',2,@(x)(isposint(x) && numel(x) == 1));
 ip.addParamValue('FillDilateDiam',5,@(x)(isposint(x) && numel(x) == 1));
@@ -16,7 +17,7 @@ p = ip.Results;
 
 %if nargin < 2 || isempty(p)
 %TEMP TEMP TEMP TEMP TEMP dda da da ddddaaa ddddddaaaahahahah!!!     
-%p.MinVolume = 10;
+%p.MinVolume = 10; %Also changed default to agree with process
 % p.ClosureRadius = 2; %Was default 3 in here but 2 in process. Changed to
 % agree with process
 %p.FillHoles = 2;

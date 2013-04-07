@@ -4,7 +4,13 @@ function [branchDirVec,branchDirAng] = calcBranchTipDirections(edges,edgePaths,n
 %Find only those which are tips
 [~,iTipEdge] = findTips(edges,nVerts);
 
-nTips = numel(iTipEdge);
+if size(edges,1) > 1
+    nTips = numel(iTipEdge);
+else
+    %Handle the case where there's only one edge. This is bad but will be
+    %handled elsewhere.
+    nTips = 1;
+end
 branchDirVec = nan(nTips,3);
 
 for j = 1:nTips

@@ -1,17 +1,23 @@
-function varargout = create3DMovieROI(movieData,varargin)
+function varargout = create3DMovieROI(movieData,imApp,reCropROI)
 %UNDER CONSTRUCTION, OBVIOUSLY!
 
 dirName = 'ROI_';
 filName = 'ROI info.mat';
 
+
+if nargin < 3
+    reCropROI = [];
+end
+
 %TEEEMMPT TEMP TEMP TEMP
-showSteps = true(6,1);
+showSteps = false(6,1);
 clearProcesses = true;
 
 
-%Load the movie into imaris. 
-imApp = viewMovieImaris(movieData,[],showSteps);
-
+if nargin < 2 || isempty(imApp)
+    %Load the movie into imaris. 
+    imApp = viewMovieImaris(movieData,[],showSteps);
+end
 
 %Get the original image coordinates. Round to avoid numerical error, and
 %add one to first coordinate because imaris starts and ends its corodinates at
@@ -50,13 +56,19 @@ if imClosed || all([cropX cropY cropZ] == [origX origY,origZ])
     disp('No cropping performed, saving nothing.')
 else        
 
-    %Get number of current ROI
-    iROI = numel(movieData.rois_)+1;
+    if isempty(reCropROI)
+        %Get number of current ROI
+        iROI = numel(movieData.rois_)+1;
+    else
+        iROI = reCropROI;
+    end
     
     %Setup ROI directory
     outDir = [movieData.outputDirectory_ filesep dirName num2str(iROI)];
     if ~exist(outDir,'dir')
         mkdir(outDir);
+    elseif ~isempty(reCropROI)
+        mkClrDir(outDir);
     end
     
     %Save the ROI specification to file    

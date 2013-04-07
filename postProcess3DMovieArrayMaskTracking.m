@@ -26,6 +26,7 @@ ip = inputParser;
 ip.FunctionName = mfilename;
 ip.addRequired('MA',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
+ip.addParamValue('UseTimeInterval',[],(@(x)(numel(x)==1 && x > 0)));
 ip.addParamValue('OutputDirectory',[],@ischar);%Directory will be created if it doesn't exist
 ip.parse(MA,varargin{:});
 
@@ -80,6 +81,9 @@ nTips = cell(nMovies,1);
 iTips = cell(nMovies,1);
 
 branchRad = cell(nMovies,1);
+
+maxLag = 6;%TEMP Stupid hard-coded max lag becuase I need to get this done fast
+
 
 %% --------------- Per Movie Processing --------------- %%
 
@@ -299,8 +303,112 @@ for iMov = 1:nMovies
         tipLenHist{iMov} = histc(allTipPathLen{iMov},allTipLenBins{iMov});
         allTipNBins{iMov} = 0:max(allTipPathN{iMov});
         tipNHist{iMov} = histc(allTipPathN{iMov},allTipNBins{iMov});
+        tipNMean(iMov) = mean(allTipPathN{iMov});
+        tipNMed(iMov) = median(allTipPathN{iMov});
+        tipLenMean(iMov) = mean(allTipPathLen{iMov});
+        tipLenMed(iMov) = median(allTipPathLen{iMov});
         
-    
+        if nFramesPerMov(iMov) > 1
+        
+            vandbFig = figure(figArgs{:});                
+            subplot(2,1,1);
+            title('Per-Frame Velocity and Branch Number')
+            %We have displacements for n-1 frames, so we arbitratily leave of
+            %the last frame of branch number
+            [axHan,hY1,hY2] = plotyy(0:timeInt(iMov):(nFramesPerMov(iMov)-2)*timeInt(iMov),objVelPerFrame{iMov}',...
+                    0:timeInt(iMov):(nFramesPerMov(iMov)-2)*timeInt(iMov),nTips{iMov}(1:end-1));
+            xlabel('Time, s')    
+            set(get(axHan(1),'Ylabel'),'String','Instantaneous Velocity, nm/s') 
+            set(get(axHan(2),'Ylabel'),'String','Tip #') 
+            subplot(2,1,2);                
+            [axHan,hY1,hY2] = plotyy(0:timeInt(iMov):(nFramesPerMov(iMov)-2)*timeInt(iMov),objVelPerFrame{iMov}',...
+                    0:timeInt(iMov):(nFramesPerMov(iMov)-2)*timeInt(iMov),totalMeanTipRadPerFrameBranchWeighted{iMov}(1:end-1));
+            xlabel('Time, s')    
+            set(get(axHan(1),'Ylabel'),'String','Instantaneous Velocity, nm/s') 
+            set(get(axHan(2),'Ylabel'),'String','Radius Weighted Tip #') 
+
+            figName = [currOutDir filesep 'velocity and branch statistics time series'];
+            print(pOpt{:},[figName '.eps']);
+            print(pOptTIFF{:},[figName '.tif']);
+            hgsave([figName '.fig'])    
+        end
+        
+        % ---- Per-Movie Cross-Corr Figures ---- %%
+        
+        if nFramesPerMov(iMov) >= maxLag+1
+            tLags = -(maxLag*timeInt(iMov)):timeInt(iMov):(maxLag*timeInt(iMov));
+
+            [tmp,~,tmpB] = crosscorr(totalMeanTipRadPerFrameBranchWeighted{iMov}(1:end-1)',objVelPerFrame{iMov},maxLag);
+            figure;
+            plot(tLags,tmp)
+            hold on
+            plot(xlim,ones(1,2)*tmpB(1),'--r')
+            plot(xlim,ones(1,2)*tmpB(2),'--r')
+            plot([0 0 ],ylim,'--k')
+            plot(xlim,[0 0 ],'--k')
+            xlabel('Delay, seconds (Positive Meanse Velocity follows branching')
+            ylabel('Cross Correlation')
+            title('Cross-Corr, Radius-Weighted Branch Number and Instantaneous Velocity')
+
+            figName = [currOutDir filesep 'cross corr velocity and radius weighted branch number'];
+            print(pOpt{:},[figName '.eps']);
+            print(pOptTIFF{:},[figName '.tif']);
+            hgsave([figName '.fig'])    
+
+            ccPerCellRadWtVel(iMov,:) = tmp;
+            cbPerCellRadWtVel(iMov,:) = tmpB;
+        
+        else
+            ccPerCellRadWtVel(iMov,:) = NaN;
+            cbPerCellRadWtVel(iMov,:) = NaN;
+        end
+        if nFramesPerMov(iMov) >= maxLag+1
+
+            [tmp,~,tmpB] = crosscorr(nTips{iMov}(1:end-1),objVelPerFrame{iMov},maxLag);
+            figure;
+            plot(tLags,tmp(:,1))
+            hold on
+            plot(xlim,ones(1,2)*tmpB(1),'--r')
+            plot(xlim,ones(1,2)*tmpB(2),'--r')
+            plot([0 0 ],ylim,'--k')
+            plot(xlim,[0 0 ],'--k')
+            xlabel('Delay, seconds (Positive means velocity follows branching')
+            ylabel('Cross Correlation')
+            title('Cross-Corr, Thresholded Tip-Count and Instantaneous Velocity')
+
+            figName = [currOutDir filesep 'cross corr velocity and thresholded tip count'];
+            print(pOpt{:},[figName '.eps']);
+            print(pOptTIFF{:},[figName '.tif']);
+            hgsave([figName '.fig'])    
+
+            ccPerCellThreshTipVel(iMov,:) = tmp;
+            cbPerCellThreshTipVel(iMov,:) = tmpB;
+        else            
+            ccPerCellThreshTipVel(iMov,:) = NaN;
+            cbPerCellThreshTipVel(iMov,:) = NaN;            
+        end
+        
+%         [tmp,tmpA] = modifiedKendallCorr(nTips{iMov}(1:end-1),objVelPerFrame{iMov},maxLag-2,.05,true,maxLag);
+%         figure;
+%         plot(tLags,tmp)
+%         hold on
+%         %plot(xlim,1.96/sqrt(nFramesPerMov(iMov))*ones(1,2),'--r')
+%         %plot(xlim,-1.96/sqrt(nFramesPerMov(iMov))*ones(1,2),'--r')
+%         plot([0 0 ],ylim,'--k')
+%         plot(xlim,[0 0 ],'--k')
+%         xlabel('Delay, seconds (Positive means velocity follows branching')
+%         ylabel('Cross Correlation')
+%         title('Modified Kendall Corr, Thresholded Tip-Count and Instantaneous Velocity')
+%         
+%         kcPerCellThreshTipVel(iMov,:) = tmp;
+%         kcPerCellThreshTipVelA(iMov,:) = tmpA;
+%         figName = [currOutDir filesep 'kendall corr corr velocity and thresholded tip count'];
+%         print(pOpt{:},[figName '.eps']);
+%         print(pOptTIFF{:},[figName '.tif']);
+%         hgsave([figName '.fig'])    
+
+        
+            
     end
 
 end
@@ -369,13 +477,14 @@ hgsave([figName '.fig'])
 %% ------------ Velocity / Branch Structure All-Movie Correlation ------ %%
 
 
-% ------ Instantaneous Velocity vs. X Figures ----- %
+% ------ Instantaneous Velocity vs. X Figures - Single Corr ALl Cells ----- %
 
-%TEMP - for crossCOrr we are only using the 5-min movies for now to keep it
-%simple, and since this is the time interval we have the most data for
-%useTime = 120; %For C3 since I don't have any good 300s
-useTime = 300;%For all others
-
+if ~isempty(p.UseTimeInterval)
+    useTime  = p.UseTimeInterval;
+else
+    %Otherwise just use the most common time interval
+    useTime = mode(timeInt);
+end
 
 isCorrTimeInt = timeInt == useTime;
 
@@ -403,7 +512,7 @@ totMeanBranchWeightRadStruc = totMeanBranchWeightRadStruc(isCorrTimeInt);
 totMeanTipPointWeightRadStruc = totMeanTipPointWeightRadStruc(isCorrTimeInt);
 totMeanTipBranchWeightRadStruc = totMeanTipBranchWeightRadStruc(isCorrTimeInt);
 
-maxLag = 6;
+
 velTipXcorr = crossCorr(padVelStruc,nTipsStruc,maxLag);
 
 allPadVelPerFrame = vertcat(padVelPerFrame{:});
@@ -421,6 +530,8 @@ plot(-useTime*maxLag:useTime:useTime*maxLag,velTipXcorr(:,1),'.-')
 hold on
 plot(xlim,ones(1,2)*1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
 plot(xlim,ones(1,2)*-1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
+plot(xlim,[0 0],'--k')
+plot([0 0],ylim,'--k')
 title({'Cross Corr, Tip Count and Instantaneous Velocity',...
         'Positive Delay means nTips Follows Velocity',...
         [num2str(useTime) 's data only']})
@@ -487,8 +598,10 @@ plot(-useTime*maxLag:useTime:useTime*maxLag,velTipXcorr(:,1),'.-')
 hold on
 plot(-useTime*maxLag:useTime:useTime*maxLag,velTipXcorr(:,1) + velTipXcorr(:,2),'--')
 plot(-useTime*maxLag:useTime:useTime*maxLag,velTipXcorr(:,1) - velTipXcorr(:,2),'--')
-plot(xlim,ones(1,2)*-1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
-plot(xlim,ones(1,2)*1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
+plot(xlim,[0 0],'--k')
+plot([0 0],ylim,'--k')
+% plot(xlim,ones(1,2)*-1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
+% plot(xlim,ones(1,2)*1.96/sqrt(sum(nFramesPerMov(isCorrTimeInt))),'--')
 xlabel('time delay, s')
 ylabel('correlation')
 title({'Cross Corr, Radius-Weighted Tip Count and Instantaneous Velocity',...
@@ -520,7 +633,53 @@ print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
 
-% ------------ Mean  Velocity vs. X Figures ------------ %
+% ------ Instantaneous Velocity vs. X Figures - Average of Per-Cell Corrs ----- %
+
+
+
+[meanOfPerCellCCradWt,ciOfPerCellCCradWt] = correlationBootstrap(ccPerCellRadWtVel',cbPerCellRadWtVel(:,1)');
+
+figure
+plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCradWt)
+hold on
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCradWt(1,:),'--r')
+legend('Correlation','Boostrapped 95% C.I.')
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCradWt(2,:),'--r')
+plot(xlim,[ 0 0 ],'--k')
+plot([ 0 0 ],ylim,'--k')
+xlabel('Time Delay, s')
+ylabel('Correlation')
+title({'Radius Weighted Tip Count and Instantaneous Velocity',...
+    ['Average of Per-Cell Correlations, n=' num2str(nMovies)]})
+
+figName = [p.OutputDirectory filesep 'instantaneous velocity and weighted mean tip number avg of per-cell corr'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])    
+
+[meanOfPerCellCCThreshTip,ciOfPerCellCCThreshTip] = correlationBootstrap(ccPerCellThreshTipVel',cbPerCellThreshTipVel(:,1)');
+
+figure
+plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCThreshTip)
+hold on
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(1,:),'--r')
+legend('Correlation','Boostrapped 95% C.I.')
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(2,:),'--r')
+plot(xlim,[ 0 0 ],'--k')
+plot([ 0 0 ],ylim,'--k')
+xlabel('Time Delay, s')
+ylabel('Correlation')
+title({'Thresholded Tip Count and Instantaneous Velocity',...
+    ['Average of Per-Cell Correlations, n=' num2str(nMovies)]})
+
+figName = [p.OutputDirectory filesep 'instantaneous velocity and thresholded tip number avg of per-cell corr'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])    
+
+
+
+%% ------------ Mean  Velocity vs. X Figures ------------ %
 
 meanTipsPerMov = cellfun(@mean,nTips);
 stdTipsPerMov = cellfun(@std,nTips);
@@ -529,6 +688,9 @@ justTheTipFig = figure(figArgs{:});
 subplot(1,2,1);
 x = objVelPerFrameMean;
 y = meanTipsPerMov;
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
 plot(x,y,'.')
 hold on
 [fitObj,gofStats] = fit(x,y,'poly1');
@@ -565,6 +727,9 @@ figure(figArgs{:})
 subplot(1,2,1);
 x = objVelPerFrameMean;
 y = meanTotalRadPerMovBranchWeighted(:);
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
 plot(x,y,'.')
 hold on
 [fitObj,gofStats] = fit(x,y,'poly1');
@@ -596,6 +761,9 @@ figure(figArgs{:})
 subplot(1,2,1);
 x = objVelPerFrameMean;
 y = meanTotalRadPerMovPointWeighted(:);
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
 plot(x,y,'.')
 hold on
 [fitObj,gofStats] = fit(x,y,'poly1');
@@ -628,6 +796,9 @@ figure(figArgs{:})
 subplot(1,2,1);
 x = objVelPerFrameMean;
 y = meanTotalTipRadPerMovBranchWeighted(:);
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
 plot(x,y,'.')
 hold on
 [fitObj,gofStats] = fit(x,y,'poly1');
@@ -655,8 +826,80 @@ print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
 
+% ------ Tip Path Vs. Velocity ---- %%
 
+%Complexity
+figure(figArgs{:})
+subplot(1,2,1);
+x = objVelPerFrameMean;
+y = tipNMean(:);
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
+plot(x,y,'.')
+hold on
+[fitObj,gofStats] = fit(x,y,'poly1');
+yFit = feval(fitObj,x);
+fitCI = confint(fitObj);
+plot(x,yFit,'r')
+title(['m=' num2str(fitObj.p1) ', 95%CI= ' num2str(fitCI(1,1)) ' to ' num2str(fitCI(2,1))])
+xlabel('Mean Per-Frame Velocity, nm/s')
+ylabel('Mean Tip Path Complexity All Frames, # of Vertices')
+subplot(1,2,2);
+x = objVelStartEnd;
+y = tipNMean(:);
+plot(x,y,'.')
+hold on
+[fitObj,gofStats] = fit(x,y,'poly1');
+yFit = feval(fitObj,x);
+fitCI = confint(fitObj);
+plot(x,yFit,'r')
+title(['m=' num2str(fitObj.p1) ', 95%CI= ' num2str(fitCI(1,1)) ' to ' num2str(fitCI(2,1))])
+xlabel('Straight-Line Displacement/Time, nm/s')
+ylabel('Mean Tip Path Complexity All Frames, # of Vertices')
 
+figName = [p.OutputDirectory filesep 'mean velocity and mean tip path complexity'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])    
+
+%Length
+figure(figArgs{:})
+subplot(1,2,1);
+x = objVelPerFrameMean;
+y = tipLenMean(:);
+hasOb = ~(isnan(x) | isnan(y));
+x = x(hasOb);
+y = y(hasOb);
+plot(x,y,'.')
+hold on
+[fitObj,gofStats] = fit(x,y,'poly1');
+yFit = feval(fitObj,x);
+fitCI = confint(fitObj);
+plot(x,yFit,'r')
+title(['m=' num2str(fitObj.p1) ', 95%CI= ' num2str(fitCI(1,1)) ' to ' num2str(fitCI(2,1))])
+xlabel('Mean Per-Frame Velocity, nm/s')
+ylabel('Mean Tip Path Length All Frames, microns')
+subplot(1,2,2);
+x = objVelStartEnd;
+y = tipLenMean(:);
+plot(x,y,'.')
+hold on
+[fitObj,gofStats] = fit(x,y,'poly1');
+yFit = feval(fitObj,x);
+fitCI = confint(fitObj);
+plot(x,yFit,'r')
+title(['m=' num2str(fitObj.p1) ', 95%CI= ' num2str(fitCI(1,1)) ' to ' num2str(fitCI(2,1))])
+xlabel('Straight-Line Displacement/Time, nm/s')
+ylabel('Mean Tip Path Length All Frames, microns')
+
+figName = [p.OutputDirectory filesep 'mean velocity and mean tip path length'];
+print(pOpt{:},[figName '.eps']);
+print(pOptTIFF{:},[figName '.tif']);
+hgsave([figName '.fig'])    
+
+% ------ Velocity AutoCorr ---- %%
+ 
 ivAc = autoCorr(padVelStruc,maxLag);
 figure(figArgs{:})
 plot(0:useTime:useTime*maxLag,ivAc(:,1),'.-')
@@ -675,6 +918,8 @@ hgsave([figName '.fig'])
 
 
 
+
+jkl=1;
 
 
 

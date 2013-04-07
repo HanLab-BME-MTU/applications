@@ -69,6 +69,12 @@ switch dispType
         
         patch(maskProp.SmoothedSurface,'FaceColor','k','EdgeColor','none','FaceAlpha',.2)
         
+    case 'LAcurv'
+        
+        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanMaxAbsCurvature)
+        caxis([prctile(maskProp.locAvgCurv.LocMeanMaxAbsCurvature,5) prctile(maskProp.locAvgCurv.LocMeanMaxAbsCurvature,95)]) 
+        
+        
     otherwise
         error(['"' dispType '" is not a supported display type!'])
 end

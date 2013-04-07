@@ -2,9 +2,9 @@ function mask = huntersFancySegmentation3(imageIn,varargin)
 %THE FINAL CHAPTER!!! THE BEST OF BOTH WORLDS!! PREPARE TO BE AMAZED!!!
 
 ip = inputParser;
-ip.addParamValue('SigmasXY',[1 2 4],@(x)(all(x>=1)));
-ip.addParamValue('SigmasZ',[1 2 4],@(x)(all(x>=1)));
-ip.addParamValue('WeightZ',2,@(x)(numel(x) == 1 && x > 0));
+ip.addParamValue('SigmasXY',[1.5 2 4 6 ],@(x)(all(x>=1)));
+ip.addParamValue('SigmasZ',[1.5 2 4 6 ],@(x)(all(x>=1)));
+ip.addParamValue('WeightZ',1,@(x)(numel(x) == 1 && x > 0));
 ip.parse(varargin{:});
 p = ip.Results;
 

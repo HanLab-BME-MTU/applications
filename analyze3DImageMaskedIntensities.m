@@ -255,8 +255,12 @@ bp.branchTipPixelIntDepthNorm = cell(nTips,1);%Depth-normalized Intensity in eac
 %Find the closest mask surface pixel to the branch tips, because some of these are
 %non-integer valued, and if we just round them we end up outside the mask
 %occasionally
-surfIndForTips = KDTreeClosestPoint(surfPixXYZ,skelGraph.vertices(iTipVert,[2 1 3]));
-surfIndForTips = surfPixI(surfIndForTips);
+if ~isempty(iTipVert)
+    surfIndForTips = KDTreeClosestPoint(surfPixXYZ,skelGraph.vertices(iTipVert,[2 1 3]));
+    surfIndForTips = surfPixI(surfIndForTips);
+else
+    surfIndForTips = [];
+end
 
 for j = 1:nTips
                 

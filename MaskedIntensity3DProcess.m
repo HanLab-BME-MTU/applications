@@ -49,31 +49,10 @@ classdef MaskedIntensity3DProcess < ImageAnalysisProcess
         
         
         function mg = loadChannelOutput(obj,iChan,iFrame)
-            
-            if nargin < 3 || isempty(iFrame) || isempty(iChan)
-                error('You must input a frame number to load output for!')
-            elseif ~obj.checkChanNum(iChan) || numel(iChan) > 1
-                error('You must specify a single, valid channel number!')
-            elseif iFrame < 1 || iFrame > obj.owner_.nFrames_
-                error('Invalid frame number!')
-            elseif ~obj.checkChannelOutput(iChan)
-                error('Specified channel does not have valid mask intensity analysis files!')
-            end
-            
-            fileNames = dir([obj.outFilePaths_{iChan} filesep '*.mat']);
-            
-            mg = load([obj.outFilePaths_{iChan} filesep fileNames(iFrame).name]);
-            
-            fNames = fieldnames(mg);
-            if numel(fNames) ~=1
-                error('Invalid mask intensity analysis file!')
-            end
-            mg = mg.(fNames{1});
-        end
-        
-        function sanityCheck(obj)
-            
-        end
+                                   
+            mg = load(obj.outFilePaths_{1});
+                        
+        end               
            
     end
     methods(Static)
@@ -91,7 +70,9 @@ classdef MaskedIntensity3DProcess < ImageAnalysisProcess
                     funParams.ChannelIndex = 1:numel(owner.channels_);                                        
                     funParams.OutputDirectory = ...
                         [owner.outputDirectory_  filesep 'masked_intensity_analysis'];
-                    funParams.CurvSampRad = 3;%Completely arbitrary.. should be justified at some point!
+                    funParams.CurvSampRad = 1000;% In nanometers.
+                    funParams.PhotoBleachMeth = 'Self';%Default is to use the PB correct from the movie being processed                    
+                    funParams.TrendRemoval = 'Linear';
                     funParams.BatchMode = false;                                                   
         end
     end            

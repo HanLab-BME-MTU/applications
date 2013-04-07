@@ -297,7 +297,16 @@ classdef MovieData3D < MovieData
             
             
         end
-        
+        function chanNames = getChannelNames(obj,iChan)
+            if nargin < 2 || isempty(iChan)
+               iChan = 1:numel(obj.channels_);
+            end                
+            
+            %We just use the folder name...
+            chanPaths = obj.getChannelPaths(iChan);            
+            lastFS = cellfun(@(x)(max(strfind(x,filesep))),chanPaths);
+            chanNames = arrayfun(@(x)(chanPaths{x}(lastFS(x)+1:end)),1:numel(iChan),'Unif',0);            
+        end
     end
 end
                 
