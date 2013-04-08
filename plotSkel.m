@@ -8,7 +8,11 @@ function varargout = plotSkel(vertOrStruct,edgePaths,edgeLabels,mask,edgeCols)
 if isstruct(vertOrStruct)
     vertices = vertOrStruct.vertices;
     edgePaths = vertOrStruct.edgePaths;
-    edgeLabels = vertOrStruct.edgeLabels;
+    if isfield(vertOrStruct,'edgeLabels')
+        edgeLabels = vertOrStruct.edgeLabels;
+    else
+        edgeLabels = [];
+    end
 else
     vertices = vertOrStruct;
 end

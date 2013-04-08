@@ -73,10 +73,6 @@ pOptTif = {'-r100',...% dpi = 100
         '-dtiff'};% use tiff format
     
 
-%Branch profile fields and functions    
-[curvTypes,curvNames] = getCurveTypeFields;
-         
-nCurvTypes = numel(curvTypes); 
          
 %Intensity fields
 [intTypes,intNames] = getIntTypeFields;
@@ -161,6 +157,12 @@ end
 
 %Convert sample radius to pixels
 sampRadPix = p.CurvSampRad / pixXY;
+
+%Branch profile fields and functions    
+[curvTypes,curvNames,curvUnits,curvConv] = getCurveTypeFields(pixXY,false);
+         
+nCurvTypes = numel(curvTypes); 
+
 
 iPruneProc = movieData.getProcessIndex('SkeletonPruningProcess',1,~p.BatchMode);
 if isempty(iPruneProc) || ~movieData.processes_{iPruneProc}.checkChannelOutput(iProcChan)        
