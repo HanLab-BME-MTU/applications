@@ -1,4 +1,4 @@
-function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField)
+function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField,mag)
 % For Benedikt's software to work, the displacement field has to be
 % interpolated on a rectangular grid, with an even number of grid points
 % along each edge. Furthermore, one has to make sure that the noisy data 
@@ -7,7 +7,9 @@ function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField
 % (even number) the optimal gridspacing fits into each dimension, then 
 % place the regular grid centered to the orignal bounds. Thereby make sure 
 % that the edges have been eroded to a certain extend.
-
+if nargin < 2
+    mag=1;
+end
 % First get the corners (here we take field no.1 but that is arbitrary):
 LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
 RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
@@ -22,7 +24,7 @@ interBeadDist=sqrt(areaImg/numBeads);
 %interBeadDist=sqrt(2)*interBeadDist;
 
 % See how often the optimal grid spacing fits into the bounds:
-gridSpacing=ceil(interBeadDist);
+gridSpacing=ceil(interBeadDist/mag);
 numPieces=floor((RightLowerCorner-LeftUpperCorner)/gridSpacing);
 
 % Make sure that we get an odd Number of pieces which leads to an even 

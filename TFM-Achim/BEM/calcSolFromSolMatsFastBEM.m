@@ -38,6 +38,14 @@ elseif strcmp(sol_mats.tool,'QR')
     else
         error('Weights or regularization parameter have been changed. QR cannot be reused!')
     end
+elseif strcmp(sol_mats.tool,'1NormReg')
+    [normWeights]=getNormWeights(forceMesh);
+    eyeWeights =diag(normWeights);
+    MpM=sol_mats.MpM;
+    M=sol_mats.M;
+    L=sol_mats.L;
+    sol_coef=iterativeL1Regularization(M,MpM,u,eyeWeights,L,200,2e-2,1e-6); %400=maximum iteration number
+
 elseif strcmp(sol_mats.tool,'backslash')
     % This matrix multiplication takes most of the time. Therefore we
     % store it for later use:

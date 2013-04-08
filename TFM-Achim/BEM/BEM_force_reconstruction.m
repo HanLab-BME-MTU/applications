@@ -173,7 +173,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.L=L;
         sol_mats.nW=normWeights;        
         sol_mats.tool='QRscaled';
-    elseif strcmpi(solMethodBEM,'LaplacianRegularization')
+    elseif strcmpi(solMethodBEM,'LaplacianReg')
         % second order tikhonov regularization (including diagonal)
         % make Lap matrix
 %         nBeads = round(size(M,1)/2);
@@ -302,6 +302,19 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.L=L;
         sol_mats.nW=normWeights;
         sol_mats.tool='LaplacianRegularization';
+    elseif strcmpi(solMethodBEM,'1NormReg')
+        % Now, perform the sparse deconvolution.
+        disp('Performing sparse deconvolution; adoped from Aster et. al.')
+
+        % plot the solution for the corner
+        MpM=M'*M;
+        sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,200,2e-2,1e-6); %400=maximum iteration number
+        sol_mats.nW=normWeights;
+        sol_mats.L=L;
+        sol_mats.M = M;
+        sol_mats.MpM = MpM;
+        sol_mats.tool='1NormReg';
+
     elseif strcmpi(solMethodBEM,'backslash') || strcmpi(solMethodBEM,'\')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
