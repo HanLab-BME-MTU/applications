@@ -1,5 +1,5 @@
 %% compareFTTC_BEM_FastBEM
-function [pSR,pSRerr,regParams] = compareFTTC_BEM_FastBEM_fn(forceType,percentNoise,savePath,forceMesh,forceMeshFastBEM,M,M_FastBEM,basisClassTablePath)
+function [pSR,pSRerr,DTA,DTAerr,DTMS,DTMSerr] = compareFTTC_BEM_FastBEM_fn(forceType,percentNoise,savePath,forceMesh,forceMeshFastBEM,M,M_FastBEM,basisClassTablePath)
 % compareFTTC_BEM_FastBEM(forceType,percentNoise,savePath,forceMesh,M,M_FastBEM)
 % This function compares the accuracy and performance of each force
 % reconstruction technique using artificially given displacment with given
