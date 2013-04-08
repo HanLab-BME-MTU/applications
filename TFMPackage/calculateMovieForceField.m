@@ -84,7 +84,11 @@ forceFieldProc.setOutFilePaths(outputFile);
 %% --------------- Force field calculation ---------------%%% 
 
 disp('Starting calculating force  field...')
-displField=displFieldProc.loadChannelOutput;
+maskArray = movieData.getROIMask;
+% Use mask of first frame to filter displacementfield
+firstMask = maskArray(:,:,1);
+displFieldOriginal=displFieldProc.loadChannelOutput;
+displField = filterDisplacementField(displFieldOriginal,firstMask);
 
 % Prepare displacement field for BEM
 if strcmpi(p.method,'fastBEM')
@@ -102,7 +106,11 @@ end
 % place the regular grid centered to the orignal bounds. Thereby make sure 
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
-[reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField);
+if min(min(firstMask(:,:,1))) == 1
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1);
+else
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,2); %denser force mesh for ROI
+end
 
 forceField(nFrames)=struct('pos','','vec','','par','');
 
@@ -135,13 +143,13 @@ for i=1:nFrames
             % once for all frames!
             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
             
-            % Calculate L-curve
-            if ~strcmp(p.solMethodBEM,'QR')
-                hLcurve=plotLcurve(M,sol_mats,u,forceMesh,p.LcurveFactor,...
-                    'wtBar',wtBar);
-                saveas(hLcurve,outputFile{3});
-                close(hLcurve)
-            end
+%             % Calculate L-curve
+%             if ~strcmp(p.solMethodBEM,'QR')
+%                 hLcurve=plotLcurve(M,sol_mats,u,forceMesh,p.LcurveFactor,...
+%                     'wtBar',wtBar);
+%                 saveas(hLcurve,outputFile{3});
+%                 close(hLcurve)
+%             end
             
         else
             % since the displ field has been prepared such

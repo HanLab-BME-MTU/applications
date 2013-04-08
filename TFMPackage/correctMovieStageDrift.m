@@ -88,7 +88,7 @@ psfSigma = beadsChannel.psfSigma_;
 assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
     'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
     'as well as the pixel size and numerical aperture of the movie']);
-pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
+pstruct = pointSourceDetection(croppedRefFrame, 1.3, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 
 % Select only beads  which are minCorLength away from the border of the
