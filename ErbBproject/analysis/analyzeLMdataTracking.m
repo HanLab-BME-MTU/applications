@@ -120,9 +120,10 @@ for iFile=1:nFiles
     MD.numAperture_=NA;
     MD.magnification_=MAG;
     
-    %MD.sanityCheck();
+    MD.sanityCheck();
     % a DV file stores the pixelsize in nm
-    pixelSize=MD.pixelSize_;
+    %pixelSize=MD.pixelSize_;
+    pixelSize = 62.8100;
     
     if createMask
         % create ROI and store in MD
@@ -170,7 +171,7 @@ for iFile=1:nFiles
         sigma=psfSigmaTheo(k+1);
         
         img=double(MD.channels_(1).loadImage(iFrame+1));
-        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-12,...
+        features{iFrame+1}=pointSourceDetection(img,sigma,'alpha',1e-9,...
             'mask',mask,'FitMixtures',doMMF);
         
        if ~isempty(features{iFrame+1})
