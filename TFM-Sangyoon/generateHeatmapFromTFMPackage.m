@@ -51,8 +51,8 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         fnorm(:,1:1+round(band/2))=[];
         fnorm_vec = reshape(fnorm,[],1); 
 
-        tmax = max(tmax,nanmax(fnorm_vec));
-        tmin = min(tmin,nanmin(fnorm_vec));
+        tmax = max(tmax,max(fnorm_vec));
+        tmin = min(tmin,min(fnorm_vec));
     end
     tmax = 286;
 %     tmin = tmin-0.1;
@@ -67,6 +67,7 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
     set(h1, 'Position', [100 100 movieData.imSize_(2)*10/9 movieData.imSize_(1)])
     hc = []; %handle for colorbar
     iiformat = ['%.' '3' 'd'];
+    TSlevel = zeros(nFrames,1);
 
     for ii=1:nFrames
         [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
@@ -99,11 +100,21 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         shading interp
         caxis([tmin tmax])
         set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
-%         daspect([5 5 1])
 
 %         xlim([LeftUpperCorner(1) RightLowerCorner(1)])
 %         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
         axis tight
+        % pick a point
+        if ii==1
+            point = ginput(1);
+        end
+        % point = [357.7008  319.1465]
+        % grid_mat's sub for point
+        spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
+        indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
+                            & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
+        [xTS,yTS] = ind2sub(size(tnorm),indTS);
+        TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
         axis off
         
 
@@ -127,9 +138,13 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         hold off
         delete(hs)
     end
+    figure,plot(0:nFrames-1,TSlevel,'r')
 
 return;
 % to run the function:
-generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret-controlcell5/TFM/cell 5/c647_im',6);
-generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret-controlcell5/TFM/cell3/TFM',40);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell3/TFM',40);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/shared/X-change/forSangyoon/fromYoubean/130402 data/130110 Cell4',24);
+
+% desktop version
+generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
