@@ -1,19 +1,18 @@
 
-for i = 1 : length(movieStructFarnSim20p5)
+for i = 1 : length(movieStructAlphaVY773A)
     
     disp(num2str(i))
     
-    if movieStructFarnSim20p5(i).activityLevel > 1
+    if movieStructAlphaVY773A(i).activityLevel > 1
         
-        topDir = movieStructFarnSim20p5(i).fileName{1};
+        topDir = movieStructAlphaVY773A(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisFarnSim20p5/furtherAnalysis'])
+        %         cd([topDir '/analysisAlphaVY773A/furtherAnalysis'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisFarnSim20p5\furtherAnalysis'])
-        
+        cd([topDir '\analysisAlphaVY773A\furtherAnalysis'])
         %         %%% for randomization test
-        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest'])
+        %         cd([topDir '\analysisAlphaVY773A\furtherAnalysis\randomizationTest'])
         %         %%% for randomization test
         
         mkdir adaptiveWindowsSym
@@ -39,18 +38,24 @@ for i = 1 : length(movieStructFarnSim20p5)
         [windowTrackAssign,trackWindowAssign,trackWindowAssignComp,windowTrackAssignExt] = ...
             assignTracks2Windows(tracksFinal,windowsAll,1:400:maxFrame+1,1);
         
-        save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
-            'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
-        
-        %         save('windowsActivityTracks1','protSamples','windowsAll')
-        %         save('windowsActivityTracks2','trackWindowAssign','trackWindowAssignComp','windowTrackAssign')
-        %         size1 = size(windowTrackAssignExt,4);
-        %         size1 = floor(size1/2);
-        %         windowTrackAssignExt1 = windowTrackAssignExt(:,:,:,1:size1);
-        %         windowTrackAssignExt2 = windowTrackAssignExt(:,:,:,size1+1:end);
-        %         save('windowsActivityTracks3','windowTrackAssignExt1')
-        %         save('windowsActivityTracks4','windowTrackAssignExt2')
-        %         clear windowTrackAssignExt1 windowTrackAssignExt2
+        if i ~= 16
+            
+            save('windowsActivityTracks','protSamples','windowsAll','trackWindowAssign',...
+                'trackWindowAssignComp','windowTrackAssign','windowTrackAssignExt')
+            
+        else
+            
+            save('windowsActivityTracks1','protSamples','windowsAll')
+            save('windowsActivityTracks2','trackWindowAssign','trackWindowAssignComp','windowTrackAssign')
+            size1 = size(windowTrackAssignExt,4);
+            size1 = floor(size1/2);
+            windowTrackAssignExt1 = windowTrackAssignExt(:,:,:,1:size1);
+            windowTrackAssignExt2 = windowTrackAssignExt(:,:,:,size1+1:end);
+            save('windowsActivityTracks3','windowTrackAssignExt1')
+            save('windowsActivityTracks4','windowTrackAssignExt2')
+            clear windowTrackAssignExt1 windowTrackAssignExt2
+            
+        end
         
     end
     

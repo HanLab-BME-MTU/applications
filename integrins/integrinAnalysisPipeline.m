@@ -6,12 +6,12 @@
 % 1.2 convert edge stack to a tif series
 
 % 1.3 remove cell fill frames from single molecule series
-%     use: removeSubsetOfFiles
+%     use: moveSubsetOfFiles
 
 %% 2 Single molecule Part A
 
 % 2.1 crop background area out of single molecule series
-%     use: fsmCenter
+%     use: cropStack
 
 % 2.2 detect single molecules
 %     use: scriptDetectGeneral
@@ -48,8 +48,8 @@
 %     it.
 %     then use: scriptDiffModeAnalysis34 which stores results in individual
 %     directories and collectively in
-%     analysis/120702_diffusionModeAnalysis.
-%     then use scriptGetDiffModeDividers
+%     analysis/121129_diffModAnalysisFinalMasks.
+%     then use scriptGetDiffModeDividers if necessary.
 %     also generate diffusion mode dividers for classification
 %     if new movies are of a molecule imaged and analyzed previously, then
 %     run diffusion mode decomposition to verify that it has the same modes
@@ -74,13 +74,13 @@
 %     use: scriptAnalysisSptVsWindows which calls sptRelToActivityOnsetAdaptiveWindows
 
 % 5.5 plot single molecule behavior relative to cell edge activity
-%     use: scriptMakePlots which calls plotSptRelToActivityOnsetAdaptiveWindows
+%     use: scriptMakePlots which calls plotSptRelToActivityOnsetAdaptiveWindowsV2
 
 %% 6 Single molecule Part D
 
 % 6.1 combine single cell measurements for all cells of same condition
-%     use: scriptSptVsWindowsCombineCells & sptRelToActivityMultipleCells
+%     use: scriptSptVsWindowsCombineCells & scriptSptVsWindowsCombineCells2
 
 % 6.2 plot collective cell behavior
-%     use: scriptMakeCombPlots which calls plotSptRelToActivityOnsetAdaptiveWindows
+%     use: scriptMakeCombPlots which calls plotSptRelToActivityOnsetAdaptiveWindowsV2
 

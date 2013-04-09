@@ -1,9 +1,9 @@
 clear all
 close all
 
-firstMaskFile = 'C:\kjData\Galbraiths\data\simulations\mimicFarn\exampleProt2Retr0p5_05\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\refined_mask_imagesCellEdgeSim_new_00001.tif';
+firstMaskFile = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\refined_mask_121128_Cs2C1_Y773A_6minES_0001.tif';
 
-cd ../../../../analysisFarnSim/tracks/
+cd ../../../../analysisAlphaVY773A/tracks/
 load tracks1AllFrames.mat
 cd ../diffusion/
 load diffAnalysis1AllFrames.mat

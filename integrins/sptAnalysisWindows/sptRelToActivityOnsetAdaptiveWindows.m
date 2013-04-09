@@ -235,6 +235,49 @@ sliceActivityGroup = groupWindowsActivity(protSamples,0,indxSlices,indxFrames,ed
     ratioDispDirTmp,ratioDispProtTmp] = ...
     collectParticleBehavior(tracksFinal,diffAnalysisRes,diffModeAnRes,directTrackChar);
 
+%calculate average protrusion and retraction displacement per frame, as
+%well as average window lengths right behind edge
+%use these numbers to calculate area compensation factors in density
+%calculations
+
+%protrusion displacement
+valVec = [0; windowDistFromEdge(1).aftStatic(:,1,1,1)];
+valVec = abs(diff(valVec));
+nVec = eventNumContributions(1).aftStatic(:,1);
+indxKeep = find( ~isnan(valVec) & nVec ~= 0 );
+valVec = valVec(indxKeep);
+nVec = nVec(indxKeep);
+protDisp = (nVec' * valVec) / sum(nVec);
+
+%retraction displacement
+valVec = [0; windowDistFromEdge(1).befStatic(:,1,1,1)];
+valVec = abs(diff(valVec));
+nVec = eventNumContributions(1).befStatic(:,1);
+indxKeep = find( ~isnan(valVec) & nVec ~= 0 );
+valVec = valVec(indxKeep);
+nVec = nVec(indxKeep);
+retrDisp = (nVec' * valVec) / sum(nVec);
+
+%window length during protrusion
+valVec = diag(windowDistFromEdge(1).aftDynamic(:,:,2,1));
+nVec = diag(eventNumContributions(1).aftDynamic);
+indxKeep = find( ~isnan(valVec) & nVec ~= 0 );
+valVec = valVec(indxKeep);
+nVec = nVec(indxKeep);
+protWinL = (nVec' * valVec) / sum(nVec);
+
+%window length during retraction
+valVec = windowDistFromEdge(1).befDynamic(:,1,2,1);
+nVec = eventNumContributions(1).befDynamic(:,1);
+indxKeep = find( ~isnan(valVec) & nVec ~= 0 );
+valVec = valVec(indxKeep);
+nVec = nVec(indxKeep);
+retrWinL = (nVec' * valVec) / sum(nVec);
+
+%area compensation factor during protrusion
+protFactor = 1 - (protDisp/protWinL/8);
+retrFactor = 1 - (retrDisp/retrWinL/8);
+
 %% Calculate property values per window group
 
 %number of activity types
@@ -268,7 +311,7 @@ for iType = 1 : numTypes
             densityParticles.(eventField{iField}).mean = nanTmp;
             densityParticles.(eventField{iField}).std = nanTmp;
             densityParticles.(eventField{iField}).numPoints = nanTmp;
-        end        
+        end
         [...
             cellArea,f2fDispMag2DAll,angleProtAll,asymParamAll,...
             f2fDispMagParaDirAll,f2fDispMagPerpDirAll,f2fDispSignParaDirAll,f2fDispSignPerpDirAll,...
@@ -554,6 +597,20 @@ for iType = 1 : numTypes
             end %(for iCol = 1 : numCol)
             
         end %(for iField = 1 : numFields)
+        
+        %compensate for area over-estimation in the densities
+        %this applies only to windows right behind the edge
+        for iProp = 1 : numProp
+            %after
+            eval(['tmp = density' propName{iProp} '.aftDynamic.mean;'])
+            for iTmp = 1 : size(tmp,1)
+                tmp(iTmp,iTmp,:) = tmp(iTmp,iTmp,:) / protFactor;
+            end
+            eval(['density' propName{iProp} '.aftDynamic.mean = tmp;'])
+            %before
+            eval(['density' propName{iProp} '.befDynamic.mean(:,1,:) = density' ...
+                propName{iProp} '.befDynamic.mean(:,1,:) / retrFactor;'])
+        end
         
         %store all properties in output structure
         directAll = struct('densityParticles',densityParticles,'cellArea',cellArea,...

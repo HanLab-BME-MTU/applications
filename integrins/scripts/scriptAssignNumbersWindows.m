@@ -1,28 +1,26 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructFarnSim20p5)
+for i = 1 : length(movieStructAlphaVY773A)
     
     disp(num2str(i))
     
-    activityLevel = movieStructFarnSim20p5(i).activityLevel;
+    activityLevel = movieStructAlphaVY773A(i).activityLevel;
     
     if activityLevel > 1
         
-        tmp = movieStructFarnSim20p5(i).fileName{1};
+        tmp = movieStructAlphaVY773A(i).fileName{1};
         %         tmp = tmp(11:end);
-        %         cd([tmp '/analysisFarnSim20p5/furtherAnalysis/adaptiveWindows'])
+        %         cd([tmp '/analysisAlphaVY773A/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(tmp,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisFarnSim20p5\furtherAnalysis\adaptiveWindowsSym'])
-        
+        cd([topDir '\analysisAlphaVY773A\furtherAnalysis\adaptiveWindowsSym'])
         %         %%% for randomization test
-        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest\adaptiveWindows'])
+        %         cd([topDir '\analysisAlphaVY773A\furtherAnalysis\randomizationTest\adaptiveWindows'])
         %         %%% for randomization test
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
-        
         %         %%% for randomization test
         %         load ../../tracksDiffusionLength5InMask.mat
         %         load ../tracksLength5InMaskRandom.mat

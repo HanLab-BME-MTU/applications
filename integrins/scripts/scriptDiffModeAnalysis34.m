@@ -1,14 +1,17 @@
 
-for i = 1 : length(movieStructAlphaVFixed);
+for i = 1 : length(movieStructAlphaVY773A);
     
     disp(num2str(i));
     
-    activityLevel = movieStructAlphaVFixed(i).activityLevel;
+    activityLevel = movieStructAlphaVY773A(i).activityLevel;
     
     if activityLevel > 0
         
-        tmp = movieStructAlphaVFixed(i).fileName;
-        cd([tmp{1} '/analysisAlphaV/furtherAnalysis'])
+        tmp = movieStructAlphaVY773A(i).fileName{1};
+        %         cd([tmp '/analysisAlphaV/furtherAnalysis'])
+        tmp = regexprep(tmp,'/','\');
+        topDir = ['C:\kjData\' tmp(33:end)];
+        cd([topDir '\analysisAlphaVY773A\furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
         
@@ -23,12 +26,12 @@ for i = 1 : length(movieStructAlphaVFixed);
         
         %         load diffusionModeAnalysis34_2New
         
-        diffModeAnalysisAlphaVFixed(i).paramFree = modeParam0;
-        diffModeAnalysisAlphaVFixed(i).numMode = numMode0;
-        diffModeAnalysisAlphaVFixed(i).paramForced3 = modeParam3;
-        diffModeAnalysisAlphaVFixed(i).paramForced4 = modeParam4;
-        diffModeAnalysisAlphaVFixed(i).paramControlFree = modeParamControl;
-        diffModeAnalysisAlphaVFixed(i).numModeControl = numModeControl;
+        diffModeAnalysisAlphaVY773A(i).paramFree = modeParam0;
+        diffModeAnalysisAlphaVY773A(i).numMode = numMode0;
+        diffModeAnalysisAlphaVY773A(i).paramForced3 = modeParam3;
+        diffModeAnalysisAlphaVY773A(i).paramForced4 = modeParam4;
+        diffModeAnalysisAlphaVY773A(i).paramControlFree = modeParamControl;
+        diffModeAnalysisAlphaVY773A(i).numModeControl = numModeControl;
         
     end
     

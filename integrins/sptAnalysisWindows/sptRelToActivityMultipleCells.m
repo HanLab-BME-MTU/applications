@@ -1,7 +1,7 @@
 function [windowDistFromEdgeComb,sptPropInWindowComb0,...
     sptPropInWindowCombModDiff,sptPropInWindowCombModRatio,...
     sptPropInWindowCombModDiffRatio,sptPropActivityOnset] = ...
-    sptRelToActivityMultipleCells(sptPropInWindowInd,windowDistFromEdgeInd)
+    sptRelToActivityMultipleCells(sptPropInWindowInd,windowDistFromEdgeInd,minNP)
 
 %% Input
 
@@ -139,8 +139,7 @@ for iType = 1 : numType
                         indCellNP(1:sizeSubSub(iCell,1),1:sizeSubSub(iCell,2),1:sizeSubSub(iCell,3),iCell)   = propertyTimePos(iCell).numPoints;
                     end
                     
-                    %discard measurements with number of points < 20
-                    minNP = 20;
+                    %discard measurements with number of points < minNP
                     indCellMean0(indCellNP<minNP) = NaN;
                     indCellStd(indCellNP<minNP) = NaN;
                     indCellNP(indCellNP<minNP) = NaN;

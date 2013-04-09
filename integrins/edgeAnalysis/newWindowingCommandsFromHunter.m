@@ -3,7 +3,7 @@
 segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = 'C:\kjData\Galbraiths\data\simulations\mimicFarn\exampleProt2Retr0p5_05\analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
@@ -24,14 +24,14 @@ refinementParam = struct(...
 MD = refineMovieMasks(MD,refinementParam);
 
 %load detection results
-load ../analysisAlphaV/tracks/detection1AllFrames.mat
+load ../analysisAlphaVY773A/tracks/detectionAll1.mat
 
 %make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
 
 %make images from single molecule signal to enhance edge detection
 mkdir imagesSM4Edge
-singleMolSignal4Edges('/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesCellEdge/120907_Cs1C2_CHO_mEos2Av_5minEdgeStack_0001.tif','/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesAlphaV/120907_Cs1C2_CHO_mEos2Av_00002.tif','/home/kj35/files/LCCB/receptors/Galbraiths/data/alphaVandCellEdge/120907/120907_Cs1C2/imagesSM4Edge',400,40)
+singleMolSignal4Edges('C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesCellEdge\121128_Cs2C1_Y773A_6minES_0001.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesAlphaVY773A\121128_Cs2C1_CHO_mEos2AvBeta3Y773A_00002.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesSM4Edge',400,40);
 
 %refine masks using gradient information
 threshParamEdge = struct(...
@@ -41,9 +41,9 @@ threshParamEdge = struct(...
 gapCloseParamEdge = struct(...
     'maxEdgePairDist',9,...
     'factorContr',[1 1 1 1]);
-meanBkg = 110;
-smDir = '/home/kj35/files/LCCB/receptors/Galbraiths/data/lifeActAndCellEdge/120224/120224_Cs1C1_LifeAct/120224_Cs1C1a_LifeAct/imagesSM4Edge';
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,1,meanBkg,smDir);
+meanBkg = 115;
+smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,meanBkg,smDir);
 save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
 
 imtool close all
@@ -164,14 +164,14 @@ makeMovieMovie(MD,'Overlay','Mask','SegProcessIndex',2,'FileName','movieMaskFina
 % movieMasksParticles(movieInfo,400,[],[],1,'movieMasksParticlesFinal',MD.movieDataPath_,[],1);
 % 
 % %make movie of protrusion vectors
-% figure('units','normalized','position',[0 0 1 1])
-% axHandle = gca;
-% makeMovieMovie(MD,'Overlay','Protrusion','SegProcessIndex',2,'FileName','movieProtrusion','AxesHandle',axHandle)
+figure('units','normalized','position',[0 0 1 1])
+axHandle = gca;
+makeMovieMovie(MD,'Overlay','Protrusion','SegProcessIndex',2,'FileName','movieProtrusion','AxesHandle',axHandle)
 % 
-% %make movie of windows
-% figure('units','normalized','position',[0 0 1 1])
-% axHandle = gca;
-% makeMovieMovie(MD,'Overlay','Windows','SegProcessIndex',2,'FileName','movieWindows','AxesHandle',axHandle)
+%make movie of windows
+figure('units','normalized','position',[0 0 1 1])
+axHandle = gca;
+makeMovieMovie(MD,'Overlay','Windows','SegProcessIndex',2,'FileName','movieWindows','AxesHandle',axHandle)
 % 
 % % refinementParam.MaxEdgeGap = 20;
 % % refinementParam.PreEdgeGrow = 0;

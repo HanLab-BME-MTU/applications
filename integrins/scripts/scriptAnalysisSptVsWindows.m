@@ -1,31 +1,29 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructFarnSim20p5)
+for i = 1 : length(movieStructAlphaVY773A)
     
     disp(num2str(i))
     
-    activityLevel = movieStructFarnSim20p5(i).activityLevel;
+    activityLevel = movieStructAlphaVY773A(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructFarnSim20p5(i).fileName{1};
+        topDir = movieStructAlphaVY773A(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisFarnSim20p5/furtherAnalysis/adaptiveWindows'])
+        %         cd([topDir '/analysisAlphaVY773A/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisFarnSim20p5\furtherAnalysis\adaptiveWindowsSym'])
-        
+        cd([topDir '\analysisAlphaVY773A\furtherAnalysis\adaptiveWindowsSym'])
         %         %% for randomization test
-        %         cd([topDir '\analysisFarnSim20p5\furtherAnalysis\randomizationTest\adaptiveWindows'])
+        %         cd([topDir '\analysisAlphaVY773A\furtherAnalysis\randomizationTest\adaptiveWindowsSym'])
         %         %% for randomization test
         
-        sliceRange = movieStructFarnSim20p5(i).sliceRange;
-        frameRange = movieStructFarnSim20p5(i).frameRange;
+        sliceRange = movieStructAlphaVY773A(i).sliceRange;
+        frameRange = movieStructAlphaVY773A(i).frameRange;
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat
-        
         %         %%% for randomization test
         %         load ../../tracksDiffusionLength5InMask.mat
         %         load ../tracksLength5InMaskRandom.mat
@@ -97,7 +95,7 @@ for i = 1 : length(movieStructFarnSim20p5)
             protSamples,windowTrackAssignExt,windowNumbersAssignExt,...
             lengthMinMax,sliceRange,frameRange,firstMaskFile,protWinParam,edgePosStd);
         
-        save('particleBehaviorAdaptiveWindows130219','sptPropInWindow',...
+        save('particleBehaviorAdaptiveWindows130326','sptPropInWindow',...
             'windowDistFromEdge','analysisParam');
         
     end
