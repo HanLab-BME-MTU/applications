@@ -1,4 +1,4 @@
-function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,assigninBase)
+function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,assigninBase,is7pt5orLater)
 %IMARISSHOWARRAY loads a 3D array into Imaris
 %
 % SYNOPSIS  imaApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
@@ -7,14 +7,17 @@ function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,a
 %                It can be up to 5D - x,y,z,t,channel (this order).  
 %         imaApp (opt): handle to the imaris application into which the array
 %                       should be loaded. If no handle is given, Imaris
-%                       will open a new session.
-%         pixelSize (opt) : [x,y,z] of pixel lengths {[1,1,1]}
+%                       will open a new session.%         pixelSize (opt) : [x,y,z] of pixel lengths {[1,1,1]}
 %         equalizeTC (opt): [eqT, eqC] - switches indicating whether to
 %                           equalize values along the 4th and/or 5th
 %                           dimension. {[0,0]}
 %         assigninBase (opt): whether to assign an ImarisHandle in the base
 %                               workspace {1}
-%
+%   
+%         is7pt5orLater (opt) : Set to true if using imaris version 7.5 or
+%                               newer, false if using 7.4 or earlier.
+%                               {true}
+%               
 % OUTPUT  imarisApplication: Handle to the imaris Application
 %
 % REMARKS: (1) Imaris will close once all its handles are deleted. Even if
@@ -52,6 +55,10 @@ if nargin < 5 || isempty(assigninBase)
     assigninBase = def_assigninBase;
 end
 
+if nargin < 6 || isempty(is7pt5orLater)
+    is7pt5orLater = true;
+end
+
 %Setup colors for channels
 if sizeArray(4) <= 3
     chanCols = [ 1 0 0 ; 0 1 0 ; 0 0 1];
@@ -61,21 +68,14 @@ end
 
 % check whether we have to start a new imaris
 if nargin < 2 || isempty(imaApp)
-    try
-        imaApp = imarisStartNew(assigninBase);
-        is7pt5orLater = false;
-    catch err        
-        if strcmp(err.identifier,'MATLAB:COM:InvalidProgid')
-            %If we need the newer version, use the IceImarisConnector
-            is7pt5orLater = true;
-            iceConn = IceImarisConnector;            
-            iceConn.startImaris;
-            imaApp = iceConn.mImarisApplication;
-        else
-            throw(err)
-        end
-    end
-        
+    if ~is7pt5orLater        
+        imaApp = imarisStartNew(assigninBase);        
+    else
+        %If we need the newer version, use the IceImarisConnector        
+        iceConn = IceImarisConnector;            
+        iceConn.startImaris;
+        imaApp = iceConn.mImarisApplication;
+    end        
 else
     % make sure user did not accidentially close the window
     imaApp.mVisible = 1;
@@ -168,7 +168,7 @@ if ~is7pt5orLater
     imaDataSet = imaApp.mFactory.CreateDataSet;
 
     % store matlab data
-    imaDataSet.SetData(single(array));
+    imaDataSet.SetData(array);
 
     % set xyz-coordinates from 1:n or pixelSize:n*pixelSize
     imaDataSet.mExtendMinX = pixelSize(1);
@@ -204,16 +204,27 @@ else
     %For newer imaris versions using the IceConnector, the commands are
     %(annoyingly) slightly different
     
+    ogClass = class(array);
+    
+    %We cast doubles automatically. Rounding error shouldn't be a problem
+    %since we are just visualizing the data
+    if strcmp(ogClass,'double')
+        array = single(array);
+        ogClass = 'single';
+    end
+    
+    imClass = getImarisDataType(ogClass);
+    
     % create data set
     imaDataSet = imaApp.GetFactory.CreateDataSet;
-    classDataSet=Imaris.tType.eTypeFloat;
+    classDataSet=Imaris.tType.(imClass);
     imaDataSet.Create(classDataSet ,sizeArray(1),sizeArray(2),sizeArray(3),sizeArray(4),sizeArray(5)); 
     imaApp.SetDataSet(imaDataSet);
 
     % store matlab data
     for ch = 1:size(array,4)
         for  t = 1:size(array,5)            
-            iceConn.setDataVolume(single(array(:,:,:,ch,t)),ch-1,t-1);
+            iceConn.setDataVolume(array(:,:,:,ch,t),ch-1,t-1);
             pause(.5);%For whatever reason if you add the next channel too quickly there are some weird glitches. Stupid temporary fix.
         end
     end    
