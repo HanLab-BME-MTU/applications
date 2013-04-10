@@ -1,4 +1,32 @@
-function segmentFocalAdhesions(movieData,varargin)
+function segmentMovieFocalAdhesions(movieData,varargin)
+%SEGMENTFOCALADHESIONS segments and labels focal adhesions in the input movie
+%
+% segmentFocalAdhesions(movieData,varargin)
+%
+% This function uses blobSegmentThreshold to get an initial segmentation of
+% adhesions, and then refines this segmentation in two ways:
+%   
+%   Splitting of large groups of focal adhesions using steerable filtering:
+%       Closely spaced clusters of adhesions can be merged by blobSegment,
+%       so this splits these clusters into individual adhesions by
+%       identifying troughs in the intensity via steerable filtering.
+%
+%   Morphological post-processing and labelling:
+%       Removes adhesions which are either very small or persist for a very
+%       short duration by specifying a minimum area*volume for a  segmented
+%       adhesion. 
+%       Also minimizes spurious merging of closely apposed adhesions by
+%       performing a morphological opening in time and space, to remove
+%       connections between adhesions which are either very thin, very
+%       brief, or both.
+%       Finally, each adhesions which is contiguous in space & time (e.g.
+%       overlaps in each consecutive frame) is assigned a unique integer
+%       label.
+%
+
+
+%Hunter Elliott
+%April 2013
 
 
 %% --------------- Parameters ---------- %%
@@ -232,13 +260,6 @@ end
 if ishandle(wtBar)
     close(wtBar)
 end
-
-
-% if ishandle(wtBar) && mod(iImage,5)
-%     %Update the waitbar occasionally to minimize slowdown
-%     waitbar((iImage + (iChan-1)*nImages) / (nImTot,wtBar)
-% end
-
 
 
 
