@@ -67,6 +67,10 @@ classdef FocalAdhesionSegmentationProcess < SegmentationProcess
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'adhesion masks'];
+            funParams.SteerableFilterSigma = 250;%Sigma in nm of steerable filter to use in splitting adjacent adhesions
+            funParams.OpeningRadiusXY = 0; %Spatial radius in nm of structuring element used in opening.
+            funParams.OpeningHeightT = 50; %Temporal "height" in seconds of structuring element used in opening            
+            funParams.MinVolTime = 5; %Minimum spatiotemporal "Volume" in micron^2 * seconds of segmented adhesions to retain.
             %funParams.ProcessIndex = [];%Default is to use raw images
             funParams.BatchMode = false;
             %funParams.MethodIndx = 1;
