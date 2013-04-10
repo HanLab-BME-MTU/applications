@@ -16,18 +16,26 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
     % Load the displField
     iForceFieldProc = 3;
     displFieldProc=movieData.processes_{iForceFieldProc};
-    displField=displFieldProc.loadChannelOutput;
+    maskArray = movieData.getROIMask;
+    % Use mask of first frame to filter displacementfield
+    firstMask = maskArray(:,:,1);
+    displFieldOriginal=displFieldProc.loadChannelOutput;
+    displField = filterDisplacementField(displFieldOriginal,firstMask);
+
     % Load the forcefield
     iForceFieldProc = 4;
     forceFieldProc=movieData.processes_{iForceFieldProc};
     forceField=forceFieldProc.loadChannelOutput;
+    
+    % Load the Paxillin channel
+
     % Set up the output file path
     outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
-    epsPath = [outputFilePath filesep 'eps'];
+    paxPath = [pathForTheMovieDataFile filesep 'pax'];
     tifPath = [outputFilePath filesep 'tifs'];
     figPath = [outputFilePath filesep 'figs'];
-    if ~exist(epsPath,'dir')
-        mkdir(epsPath);
+    if ~exist(tifPath,'dir') || ~exist(paxPath,'dir')
+        mkdir(paxPath);
         mkdir(tifPath);
         mkdir(figPath);
     end
@@ -54,7 +62,7 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         tmax = max(tmax,max(fnorm_vec));
         tmin = min(tmin,min(fnorm_vec));
     end
-    tmax = 286;
+    tmax = 1286;
 %     tmin = tmin-0.1;
 %     tmax=tmax/5;
 %     LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
@@ -63,11 +71,15 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
     [reg_grid,~,~,~]=createRegGridFromDisplField(displField,3); %2=2 times fine interpolation
 
     h1 = figure;
+%     h2 = figure;
     hold off
-    set(h1, 'Position', [100 100 movieData.imSize_(2)*10/9 movieData.imSize_(1)])
+    [imSizeY,imSizeX]=size(firstMask);
+    set(h1, 'Position', [100 100 imSizeY*10/9 imSizeX])
+%     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
     hc = []; %handle for colorbar
     iiformat = ['%.' '3' 'd'];
     TSlevel = zeros(nFrames,1);
+%     paxLevel = zeros(nFrames,1);
 
     for ii=1:nFrames
         [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
@@ -126,10 +138,28 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
             hc = colorbar('West');
         end
         
+        paxImage=movieData.channels_(2).loadImage(ii);
+        [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
+        [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
+        paxImageCropped = paxImage(indULy:indBRy,indULx:indBRx);
+        
+%         %paxLevel
+%         indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
+%                             & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
+%         [xTS,yTS] = ind2sub(size(tnorm),indTS);
+%         pixX = grid_mat(xTS,yTS,1);
+%         pixY = grid_mat(xTS,yTS,2);
+%         paxImgSize = size(paxImageCropped);
+% 
+%         pixXpax = round(pixX/grid_mat(end,end,1)*paxImgSize(1));
+%         pixYpax = round(pixY/grid_mat(end,end,2)*paxImgSize(2));
+%         paxLevel(ii) = mean(mean(paxImageCropped(pixX-1:pixX+1,pixY-1:pixY+1)));
+        
         % saving
 
         I = getframe(h1);
         imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
+        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
 
 %         hgexport(h1,strcat(tifPath,'/stressMagTif',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')
@@ -138,13 +168,18 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         hold off
         delete(hs)
     end
-    figure,plot(0:nFrames-1,TSlevel,'r')
+    t = (0:nFrames-1)*movieData.timeInterval_;
+    figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
+    set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
+    set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
+    xlabel('Time (sec)') 
+    set(H1,'LineStyle','--')
 
 return;
 % to run the function:
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell3/TFM',40);
-generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/shared/X-change/forSangyoon/fromYoubean/130402 data/130110 Cell4',24);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Youbean/130110 cell 4 cropped',4);
 
 % desktop version
 generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
