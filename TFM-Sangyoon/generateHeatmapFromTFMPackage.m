@@ -1,12 +1,17 @@
-function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
+function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,pointTF )
 %generateHeatmapFromTFMPackage generates heatmap from forcefield stored in
 %movieData.
 % input:    pathForTheMovieDataFile:    path to the movieData file
 %           band:                       band width for cutting border
 %           (default=4)
+%           pointTF:                    true if you want to trace force at
+%           a certain point (default = false)
 % output:   images of heatmap stored in pathForTheMovieDataFile/heatmap
-    if nargin==1
+    if nargin < 2
         band = 4;
+        pointTF = false;
+    elseif nargin <3
+        pointTF = false;
     end
     % Load the MovieData
     movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
@@ -117,16 +122,18 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
 %         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
         axis tight
         % pick a point
-        if ii==1
+        if pointTF && ii==1
             point = ginput(1);
         end
         % point = [357.7008  319.1465]
         % grid_mat's sub for point
-        spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
-        indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
-                            & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
-        [xTS,yTS] = ind2sub(size(tnorm),indTS);
-        TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
+        if pointTF
+            spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
+            indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
+                                & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
+            [xTS,yTS] = ind2sub(size(tnorm),indTS);
+            TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
+        end
         axis off
         
 
@@ -168,18 +175,20 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band )
         hold off
         delete(hs)
     end
-    t = (0:nFrames-1)*movieData.timeInterval_;
-    figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
-    set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
-    set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
-    xlabel('Time (sec)') 
-    set(H1,'LineStyle','--')
-
+    if pointTF
+        t = (0:nFrames-1)*movieData.timeInterval_;
+        figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
+        set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
+        set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
+        xlabel('Time (sec)') 
+        set(H1,'LineStyle','--')
+    end
 return;
 % to run the function:
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell3/TFM',40);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Youbean/130110 cell 4 cropped',4);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/shared/X-change/forSangyoon/fromYoubean/130307 data/1301331 Cell3_pax TIRF',8);
 
 % desktop version
 generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
