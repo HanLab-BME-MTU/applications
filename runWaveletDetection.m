@@ -37,11 +37,11 @@ nf = data.movieLength;
 frameInfo(1:nf) = struct('ymax', [], 'xmax', [], 'inn', [], 'yav', [], 'xav', [], 'intot', [],...
     'csize', [], 'lxm', [], 'labl', [], 'num', [], 'nmax', [], 'xCoord', [], 'yCoord', [], 'amp', []);
 parfor f = 1:nf
-
     frame = double(imread(data.framePaths{1}{f})); %#ok<PFBNS>
 
     %[iFrameInfo mask] = main283AUTO_standalone(frame, postProcLevel);
-    [iFrameInfo mask] = detectSpotsWT(frame, postProcLevel);
+    % equivalent function, but much faster:
+    [iFrameInfo, mask] = detectSpotsWT(frame, postProcLevel, 'LegacyMode', true);
     Z = zeros(iFrameInfo.num,1);
     iFrameInfo.xCoord = [iFrameInfo.xav Z];
     iFrameInfo.yCoord = [iFrameInfo.yav Z];
