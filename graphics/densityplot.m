@@ -27,6 +27,7 @@ end
 xv = [xv(1)-dx xv xv(end)+dx];
 yv = [yv(1)-dy yv yv(end)+dy];
 M = hist3([y(:) x(:)], {yv, xv});
+% M = M(2:end-1,2:end-1);
 M = ip.Results.DisplayFunction(M/ip.Results.Div);
 imagesc(xv, yv, M, 'Parent', ha);
 dRange = [min(M(:)) max(M(:))];

@@ -157,12 +157,12 @@ else
 end
 
 % scale slave channels relative to master (for visualization only)
-if ip.Results.ScaleSlaveChannel
+if ip.Results.ScaleSlaveChannel && nCh>1
     for ch = 1:nCh
         iSF = zeros(1,nc);
         for c = 1:nc
             % find largest mean of all cohorts
-            M = arrayfun(@(x) mean(x.interpTracks{ch,c}), res, 'UniformOutput', false);
+            M = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
             M = mean(vertcat(M{:}), 1);
             iSF(c) = max(M);
         end

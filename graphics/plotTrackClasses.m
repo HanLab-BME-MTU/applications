@@ -14,7 +14,6 @@ ip.addParamValue('YTick', 0:0.1:1);
 ip.addParamValue('FaceColor', fset.cfTrackClasses);
 ip.addParamValue('EdgeColor', fset.ceTrackClasses);
 ip.parse(v, varargin{:});
-c = ip.Results.c;
 
 xlabels = {'single tracks', 'single tracks, rejected', 'single tracks, cut', 'single tracks, persistent',...
     'comp. tracks', 'comp. tracks, rejected', 'comp. tracks, cut', 'comp. tracks, persistent'};
@@ -27,11 +26,13 @@ if ~isempty(ip.Results.Handle)
 else
     hf = figure(fset.fOpts{:});
     ha = axes(fset.axOpts{:});
+    hold on;
 end
 
 if iscell(v)
-    %vpos = cellfun(@(i,j) i(j==1), v, c, 'unif', 0);
-    %vneg = cellfun(@(i,j) i(j==0), v, c, 'unif', 0);
+    %vpos = cellfun(@(i,j) i(j==1), v, ip.Results.c, 'unif', 0);
+    %vneg = cellfun(@(i,j) i(j==0), v, ip.Results.c, 'unif', 0);
+    %v = arrayfun(@(i) hist(vpos{i}, 1:8)/numel(v{i}), 1:numel(v), 'unif', 0);
     v = arrayfun(@(i) hist(v{i}, 1:8)/numel(v{i}), 1:numel(v), 'unif', 0);
     v = vertcat(v{:});
     mu = mean(v,1);
