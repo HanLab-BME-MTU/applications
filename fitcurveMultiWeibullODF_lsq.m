@@ -7,8 +7,6 @@ function [estimates, residuals, estimatesSigma, BICvalue] = fitcurveMultiWeibull
 % guessVec contains, in that order:
 % offset, a1, lambda1, k1, a2, lambda2, k2, ... and so forth
 
-start_point = guessVec;
-
 % number of Weibulls
 num = round((length(guessVec)-1)/3);
 
@@ -31,7 +29,7 @@ end
 
 options = optimset('Display','off');
 
-[estimates,renorm,residuals,exFlag,outP,lam,jacobian]= lsqnonlin(@multipleWeibullODFun, start_point,[],[],options);
+[estimates,~,residuals,~,~,~,jacobian]= lsqnonlin(@multipleWeibullODFun, guessVec, [], [], options);
 
 % user-defined function:
 % in lsqnonlin: instead of sse, output function value itself, since the
@@ -42,15 +40,11 @@ options = optimset('Display','off');
         % check if there's fixing, and if so reset parameters to the
         % appropriate values of the startvector
         if fixvar == 1
-            for f=1:length(fixvector)
-                if fixvector(f)==1
-                    params(f) = start_point(f);
-                end % of if
-            end % of for
-        end % of if
+            params(fixvector==1) = startpoint(fixvector==1);
+        end
         
         % set all parameters except offset to positive
-        params(2:length(params))=abs(params(2:length(params)));
+        params(2:end) = abs(params(2:end));
         
         
         %         offset = params(1);
@@ -71,7 +65,7 @@ options = optimset('Display','off');
         %         end
         %         FittedCurve = offset + sum(weibullMat,1);
         
-        [FittedCurve]=multiWeibullODF(t,params);
+        FittedCurve = multiWeibullODF(t,params);
         
         F = FittedCurve - data;
         
@@ -82,12 +76,12 @@ options = optimset('Display','off');
         plot(t,FittedCurve,'r-');
         hold off
         axis(v);
-        pause(0.01);
+        drawnow;
         
     end
 
 % set final result for estimate to positive
-estimates(2:length(estimates))=abs(estimates(2:length(estimates)));
+estimates(2:end) = abs(estimates(2:end));
 
 
 %=========================================================================
