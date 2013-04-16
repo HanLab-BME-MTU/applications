@@ -1,7 +1,7 @@
-function segmentMovieFocalAdhesions(movieData,varargin)
+function segmentMovieFocalAdhesions(movieData)
 %SEGMENTFOCALADHESIONS segments and labels focal adhesions in the input movie
 %
-% segmentFocalAdhesions(movieData,varargin)
+% segmentFocalAdhesions(movieData)
 %
 % This function uses blobSegmentThreshold to get an initial segmentation of
 % adhesions, and then refines this segmentation in two ways:
@@ -35,30 +35,28 @@ pString = 'mask_'; %Prefix for saving masks to file
 dName = 'channel ';%Sub-directory name for per-channel masks
 
 sfOrd = 2;%Order of steerable filters to use for splitting adjacent adhesions. MUST BE EVEN ORDER (2 or 4)
-connForLabel = 6;%Connectivity to use for labelling 3D mask. We use lowest to minimize unintentional merging.
+connNum = 6;%Connectivity to use for labelling 3D mask. We use lowest to minimize unintentional merging.
 
 %% ------------------ Input ---------------- %%
 
 ip = inputParser;
 ip.addRequired('movieData',@(x)(isa(x,'MovieData')));
-ip.addOptional('paramsIn',[],@isstruct);
-
-ip.parse(movieData,varargin{:});
-paramsIn=ip.Results.paramsIn;
+ip.parse(movieData);
 
 %Get the indices of any previous speckle detection processes                                                                     
 iProc = movieData.getProcessIndex('FocalAdhesionSegmentationProcess',1,0);
 
 %If the process doesn't exist, create it
 if isempty(iProc)
-    iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(FocalAdhesionSegmentationProcess(movieData,...
-        movieData.outputDirectory_));                                                                                                 
+    error('No FocalAdhesionSegmentationProcess in input movieData! please create the process and use the process.run method to run this function!')
+%     iProc = numel(movieData.processes_)+1;
+%     movieData.addProcess(FocalAdhesionSegmentationProcess(movieData,...
+%         movieData.outputDirectory_));                                                                                                 
 end
 
 adSegProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
-p = parseProcessParams(adSegProc,paramsIn);
+p = parseProcessParams(adSegProc);
 
 
 %% --------------- Init -------------- %%
@@ -182,8 +180,9 @@ if ishandle(wtBar)
     waitbar(0,wtBar,['Please wait, post-processing segmented adhesions in channel ' num2str(p.ChannelIndex(iChan)) ' ...']);        
 end    
     
+%HLE - this can be re-written to do all channels simultaneously. Might be
+%slightly faster, but might use more memory as well...
 
-    
 for iChan = 1:nChanSeg    
     
     if p.MinVolTime > 0
@@ -192,7 +191,7 @@ for iChan = 1:nChanSeg
         minSize = ceil(p.MinVolTime / ((movieData.pixelSize_/1e3)^2 * movieData.timeInterval_));
         
         %Remove the small and / or short lived objects
-        masks = bwareaopen(masks,minSize);        
+        masks(:,:,:,iChan) = bwareaopen(masks(:,:,:,iChan),minSize,connNum);        
         
     end
     
@@ -216,20 +215,24 @@ for iChan = 1:nChanSeg
         %thicker but that only persist for a short period of time.
         masks(:,:,:,iChan) = imopen(masks(:,:,:,iChan),nHoodOpen);
        
-    end            
+    end                    
+
     
-    if ishandle(wtBar)
-        %Update the waitbar occasionally to minimize slowdown
+    if ishandle(wtBar)        
         waitbar(iChan/nChanSeg,wtBar)
     end
     
 end
 
-%Label each contiguos object. This is the "tracking" step, and also allows
+%Label each contiguous object. This is the "tracking" step, and also allows
 %us to visualize which adhesions are merged. We do it the two-step way to
-%minimize memory usage with these potentially large matrices.
-cc = bwconncomp(masks,connForLabel);
+%minimize memory usage with these potentially large matrices. We also do
+%this on the full multi-channel matrix so that objects are labelled
+%uniquely between the channels (by specifying a 3D connectivity, objects in
+%diff channels are not considered adjacent)
+cc = bwconncomp(masks,connNum);
 masks = labelmatrix(cc);
+
 
 
 %% ------------- Output ----------------- %%
@@ -255,6 +258,9 @@ for iChan = 1:nChanSeg
 
     end
 end
+
+%Store the maximum number of objects in the process class
+adSegProc.setMaxIndex(cc.NumObjects);
 
 
 if ishandle(wtBar)

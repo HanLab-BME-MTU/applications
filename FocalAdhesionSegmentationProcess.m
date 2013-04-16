@@ -21,7 +21,7 @@ classdef FocalAdhesionSegmentationProcess < SegmentationProcess
                 % Define arguments for superclass constructor
                 super_args{1} = owner;
                 super_args{2} = FocalAdhesionSegmentationProcess.getName;
-                super_args{3} = @segmentFocalAdhesions;
+                super_args{3} = @segmentMovieFocalAdhesions;
                 if isempty(funParams)
                     funParams = FocalAdhesionSegmentationProcess.getDefaultParams(owner,outputDir);
                 end
