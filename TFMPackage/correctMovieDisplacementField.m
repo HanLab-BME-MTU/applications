@@ -109,7 +109,7 @@ for j= 1:nFrames
         dispMat = [dispMat(:,2:-1:1) dispMat(:,2:-1:1)+dispMat(:,4:-1:3)];
         intDisp = vectorFieldSparseInterp(dispMat,...
             displField(j).pos(:,2:-1:1),...
-            2*pd.minCorLength,pd.minCorLength,[]);
+            pd.minCorLength,pd.minCorLength,[],true);
         displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
     end
     
