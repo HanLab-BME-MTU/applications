@@ -7,149 +7,149 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,pointT
 %           pointTF:                    true if you want to trace force at
 %           a certain point (default = false)
 % output:   images of heatmap stored in pathForTheMovieDataFile/heatmap
-    if nargin < 2
-        band = 4;
-        pointTF = false;
-    elseif nargin <3
-        pointTF = false;
-    end
-    % Load the MovieData
-    movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
-    movieData = MovieData.load(movieDataPath);
-    % Get whole frame number
-    nFrames = movieData.nFrames_;
-    % Load the displField
-    iForceFieldProc = 3;
-    displFieldProc=movieData.processes_{iForceFieldProc};
-    maskArray = movieData.getROIMask;
-    % Use mask of first frame to filter displacementfield
-    firstMask = maskArray(:,:,1);
-    displFieldOriginal=displFieldProc.loadChannelOutput;
-    displField = filterDisplacementField(displFieldOriginal,firstMask);
+if nargin < 2
+    band = 4;
+    pointTF = false;
+elseif nargin <3
+    pointTF = false;
+end
+% Load the MovieData
+movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+movieData = MovieData.load(movieDataPath);
+% Get whole frame number
+nFrames = movieData.nFrames_;
+% Load the displField
+iForceFieldProc = 3;
+displFieldProc=movieData.processes_{iForceFieldProc};
+maskArray = movieData.getROIMask;
+% Use mask of first frame to filter displacementfield
+firstMask = maskArray(:,:,1);
+displFieldOriginal=displFieldProc.loadChannelOutput;
+displField = filterDisplacementField(displFieldOriginal,firstMask);
 
-    % Load the forcefield
-    iForceFieldProc = 4;
-    forceFieldProc=movieData.processes_{iForceFieldProc};
-    forceField=forceFieldProc.loadChannelOutput;
-    
-    % Load the Paxillin channel
+% Load the forcefield
+iForceFieldProc = 4;
+forceFieldProc=movieData.processes_{iForceFieldProc};
+forceField=forceFieldProc.loadChannelOutput;
 
-    % Set up the output file path
-    outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
-    paxPath = [pathForTheMovieDataFile filesep 'pax'];
-    tifPath = [outputFilePath filesep 'tifs'];
-    figPath = [outputFilePath filesep 'figs'];
-    if ~exist(tifPath,'dir') || ~exist(paxPath,'dir')
-        mkdir(paxPath);
-        mkdir(tifPath);
-        mkdir(figPath);
-    end
-    
-    %Find the maximum force.
-    tmax = 0;
-    tmin = 100000;
-    [reg_grid1,~,~,~]=createRegGridFromDisplField(displField,1); %2=2 times fine interpolation
+% Load the Paxillin channel
 
-    % band width for cutting border
+% Set up the output file path
+outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
+paxPath = [pathForTheMovieDataFile filesep 'pax'];
+tifPath = [outputFilePath filesep 'tifs'];
+figPath = [outputFilePath filesep 'figs'];
+if ~exist(tifPath,'dir') || ~exist(paxPath,'dir')
+    mkdir(paxPath);
+    mkdir(tifPath);
+    mkdir(figPath);
+end
+
+%Find the maximum force.
+tmax = 0;
+tmin = 100000;
+[reg_grid1,~,~,~]=createRegGridFromDisplField(displField,1); %2=2 times fine interpolation
+
+% band width for cutting border
 %     band=4;
 
-    for ii = 1:nFrames
-       %Load the saved body force map.
-        [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
-        fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
-        % Boundary cutting - I'll take care of this boundary effect later
-        fnorm(end-round(band/2):end,:)=[];
-        fnorm(:,end-round(band/2):end)=[];
-        fnorm(1:1+round(band/2),:)=[];
-        fnorm(:,1:1+round(band/2))=[];
-        fnorm_vec = reshape(fnorm,[],1); 
+for ii = 1:nFrames
+   %Load the saved body force map.
+    [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
+    fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
+    % Boundary cutting - I'll take care of this boundary effect later
+    fnorm(end-round(band/2):end,:)=[];
+    fnorm(:,end-round(band/2):end)=[];
+    fnorm(1:1+round(band/2),:)=[];
+    fnorm(:,1:1+round(band/2))=[];
+    fnorm_vec = reshape(fnorm,[],1); 
 
-        tmax = max(tmax,max(fnorm_vec));
-        tmin = min(tmin,min(fnorm_vec));
-    end
-    tmax = 1286;
+    tmax = max(tmax,max(fnorm_vec));
+    tmin = min(tmin,min(fnorm_vec));
+end
+%     tmax = 1286;
 %     tmin = tmin-0.1;
 %     tmax=tmax/5;
 %     LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
 %     RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
 
-    [reg_grid,~,~,~]=createRegGridFromDisplField(displField,3); %2=2 times fine interpolation
+[reg_grid,~,~,~]=createRegGridFromDisplField(displField,2); %2=2 times fine interpolation
 
-    h1 = figure;
+h1 = figure;
 %     h2 = figure;
-    hold off
-    [imSizeY,imSizeX]=size(firstMask);
-    set(h1, 'Position', [100 100 imSizeY*10/9 imSizeX])
+hold off
+[imSizeY,imSizeX]=size(firstMask);
+set(h1, 'Position', [100 100 imSizeX*10/9 imSizeY])
 %     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
-    hc = []; %handle for colorbar
-    iiformat = ['%.' '3' 'd'];
-    TSlevel = zeros(nFrames,1);
+hc = []; %handle for colorbar
+iiformat = ['%.' '3' 'd'];
+TSlevel = zeros(nFrames,1);
 %     paxLevel = zeros(nFrames,1);
 
-    for ii=1:nFrames
-        [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
-        pos = [reshape(grid_mat(:,:,1),[],1) reshape(grid_mat(:,:,2),[],1)]; %dense
-        disp_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
-        [~,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid);
-        force_vec = [reshape(if_mat(:,:,1),[],1) reshape(if_mat(:,:,2),[],1)]; 
+for ii=1:nFrames
+    [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
+    pos = [reshape(grid_mat(:,:,1),[],1) reshape(grid_mat(:,:,2),[],1)]; %dense
+    disp_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
+    [~,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid);
+    force_vec = [reshape(if_mat(:,:,1),[],1) reshape(if_mat(:,:,2),[],1)]; 
 
-        [~,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],grid_mat); %1:cluster size
-        tnorm = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
+    [~,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],grid_mat); %1:cluster size
+    tnorm = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
 
-        % Boundary cutting - I'll take care of this boundary effect later
-        tnorm(end-band:end,:)=[];
-        tnorm(:,end-band:end)=[];
-        tnorm(1:1+band,:)=[];
-        tnorm(:,1:1+band)=[];
-        grid_mat(end-band:end,:,:)=[];
-        grid_mat(:,end-band:end,:)=[];
-        grid_mat(1:1+band,:,:)=[];
-        grid_mat(:,1:1+band,:)=[];
+    % Boundary cutting - I'll take care of this boundary effect later
+    tnorm(end-band:end,:)=[];
+    tnorm(:,end-band:end)=[];
+    tnorm(1:1+band,:)=[];
+    tnorm(:,1:1+band)=[];
+    grid_mat(end-band:end,:,:)=[];
+    grid_mat(:,end-band:end,:)=[];
+    grid_mat(1:1+band,:,:)=[];
+    grid_mat(:,1:1+band,:)=[];
 
 
-        % drawing
-        subplot('Position',[0 0 0.9 1])
+    % drawing
+    subplot('Position',[0 0 0.9 1])
 %         hs = surf(grid_mat(:,:,1), grid_mat(:,:,2), tnorm,'FaceColor','interp',...
 %             'EdgeColor','none', 'FaceLighting','gouraud');%, 'FaceLighting','phong');
 %         zlim([tmin tmax]), view(0,90)
-        hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
-        colormap jet;
-        shading interp
-        caxis([tmin tmax])
-        set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
+    hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
+    colormap jet;
+    shading interp
+    caxis([tmin tmax])
+    set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
 
 %         xlim([LeftUpperCorner(1) RightLowerCorner(1)])
 %         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
-        axis tight
-        % pick a point
-        if pointTF && ii==1
-            point = ginput(1);
-        end
-        % point = [357.7008  319.1465]
-        % grid_mat's sub for point
-        if pointTF
-            spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
-            indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
-                                & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
-            [xTS,yTS] = ind2sub(size(tnorm),indTS);
-            TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
-        end
-        axis off
-        
+    axis tight
+    % pick a point
+    if pointTF && ii==1
+        point = ginput(1);
+    end
+    % point = [357.7008  319.1465]
+    % grid_mat's sub for point
+    if pointTF
+        spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
+        indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
+                            & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
+        [xTS,yTS] = ind2sub(size(tnorm),indTS);
+        TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
+    end
+    axis off
 
-        hold on
-        subplot('Position',[0.9 0.1 0.1 0.8])
-        axis tight
-        caxis([tmin tmax]), axis off
-        if isempty(hc)
-            hc = colorbar('West');
-        end
-        
-        paxImage=movieData.channels_(2).loadImage(ii);
-        [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
-        [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
-        paxImageCropped = paxImage(indULy:indBRy,indULx:indBRx);
-        
+
+    hold on
+    subplot('Position',[0.9 0.1 0.1 0.8])
+    axis tight
+    caxis([tmin tmax]), axis off
+    if isempty(hc)
+        hc = colorbar('West');
+    end
+
+    paxImage=movieData.channels_(2).loadImage(ii);
+    [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
+    [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
+    paxImageCropped = paxImage(indULy:indBRy,indULx:indBRx);
+
 %         %paxLevel
 %         indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
 %                             & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
@@ -161,28 +161,28 @@ function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,pointT
 %         pixXpax = round(pixX/grid_mat(end,end,1)*paxImgSize(1));
 %         pixYpax = round(pixY/grid_mat(end,end,2)*paxImgSize(2));
 %         paxLevel(ii) = mean(mean(paxImageCropped(pixX-1:pixX+1,pixY-1:pixY+1)));
-        
-        % saving
 
-        I = getframe(h1);
-        imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
-        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+    % saving
+
+    I = getframe(h1);
+    imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
+    imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
 
 %         hgexport(h1,strcat(tifPath,'/stressMagTif',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
-        hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')
+    hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')
 
 %         print(h1,strcat(epsPath,'/stressMagEps',num2str(ii,iiformat),'.eps'),'-depsc')
-        hold off
-        delete(hs)
-    end
-    if pointTF
-        t = (0:nFrames-1)*movieData.timeInterval_;
-        figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
-        set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
-        set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
-        xlabel('Time (sec)') 
-        set(H1,'LineStyle','--')
-    end
+    hold off
+    delete(hs)
+end
+if pointTF
+    t = (0:nFrames-1)*movieData.timeInterval_;
+    figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
+    set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
+    set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
+    xlabel('Time (sec)') 
+    set(H1,'LineStyle','--')
+end
 return;
 % to run the function:
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
@@ -192,3 +192,4 @@ generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/shared/X-ch
 
 % desktop version
 generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);
+generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/shared/X-change/forSangyoon/fromYoubean/120907 Cell5/',4);
