@@ -109,36 +109,43 @@ displFieldProc.setOutFilePaths(outputFile);
 %% --------------- Displacement field calculation ---------------%%% 
 
 disp('Starting calculating displacement field...')
-
+% Get the mask
+maskArray = movieData.getROIMask;
+% Use mask of first frame to filter bead detection
+firstMask = false(size(refFrame));
+tempMask = maskArray(:,:,1);
+firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
 sigmaPSF = movieData.channels_(1).psfSigma_*0.6; %*4/7 scale down for finer detection SH012913
-pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha);
+pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
-% % Subsample detected beads ensuring beads are separated by at least half of
-% % the correlation length - commented out to get more beads
-% disp('Subsampling detected beads...')
-% idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
-% valid = true(numel(idx),1);
-% for i = 1:numel(idx)
-%     if ~valid(i), continue; end
-%     neighbors = idx{i}(idx{i}~=i);
-%     valid(neighbors) = false;
-% end
-% beads = beads(valid, :);
-
-% To get high-resolution information, subsample detected beads ensuring 
-% beads are separated by 0.4 um the correlation length 
-disp('Subsampling detected beads...')
-idx = KDTreeBallQuery(beads, beads, floor(400/movieData.pixelSize_));
-valid = true(numel(idx),1);
-for i = 1:numel(idx)
-    if ~valid(i), continue; end
-    neighbors = idx{i}(idx{i}~=i);
-    valid(neighbors) = false;
+% Subsample detected beads ensuring beads are separated by at least half of
+% the correlation length - commented out to get more beads
+if min(min(firstMask(:,:,1))) == 1
+    disp('Subsampling detected beads...')
+    idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
+    valid = true(numel(idx),1);
+    for i = 1:numel(idx)
+        if ~valid(i), continue; end
+        neighbors = idx{i}(idx{i}~=i);
+        valid(neighbors) = false;
+    end
+    beads = beads(valid, :);
+else
+    % To get high-resolution information, subsample detected beads ensuring 
+    % beads are separated by 0.4 um the correlation length 
+    disp('Subsampling detected beads...')
+    idx = KDTreeBallQuery(beads, beads, floor(400/movieData.pixelSize_));
+    valid = true(numel(idx),1);
+    for i = 1:numel(idx)
+        if ~valid(i), continue; end
+        neighbors = idx{i}(idx{i}~=i);
+        valid(neighbors) = false;
+    end
+    beads = beads(valid, :);
 end
-beads = beads(valid, :);
 % Select only beads which are minCorLength away from the border of the
 % reference frame 
 beadsMask = true(size(refFrame));

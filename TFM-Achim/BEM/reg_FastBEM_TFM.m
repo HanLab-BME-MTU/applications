@@ -42,7 +42,7 @@ end
 
 display('1.) Creating mesh & basis [~5sec]:...');
 tic;
-keepBDPts=0;
+keepBDPts=true;
 doPlot=0;
 forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 toc;

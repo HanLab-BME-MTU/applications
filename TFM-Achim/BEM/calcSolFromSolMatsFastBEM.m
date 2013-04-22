@@ -39,13 +39,36 @@ elseif strcmp(sol_mats.tool,'QR')
         error('Weights or regularization parameter have been changed. QR cannot be reused!')
     end
 elseif strcmp(sol_mats.tool,'1NormReg')
-    [normWeights]=getNormWeights(forceMesh);
-    eyeWeights =diag(normWeights);
+    eyeWeights =diag(sol_mats.nW);
     MpM=sol_mats.MpM;
     M=sol_mats.M;
     L=sol_mats.L;
-    sol_coef=iterativeL1Regularization(M,MpM,u,eyeWeights,L,200,2e-2,1e-6); %400=maximum iteration number
-
+    maxIter = sol_mats.maxIter;
+    tolx = sol_mats.tolx;
+    tolr = sol_mats.tolr;
+    sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+elseif strcmpi(sol_mats.tool,'1NormRegLaplacian')
+    % Now, perform the sparse deconvolution.
+    Lap = sol_mats.Lap;
+    % plot the solution for the corner
+    MpM=sol_mats.MpM;
+    maxIter = sol_mats.maxIter ;
+    tolx = sol_mats.tolx;
+    tolr = sol_mats.tolr;
+    L=sol_mats.L;
+%         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
+    sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
+elseif strcmpi(sol_mats.tool,'LaplacianReg')
+    % second order tikhonov regularization (including diagonal)
+    % make Lap matrix
+%         nBeads = round(size(M,1)/2);
+    Lap = sol_mats.Lap;
+    MpM=sol_mats.MpM;
+    M=sol_mats.M;
+    L=sol_mats.L;
+    % For L-curve
+%         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,Lap,solMethodBEM);
+    sol_coef=(L*Lap+ MpM)\(M'*u);
 elseif strcmp(sol_mats.tool,'backslash')
     % This matrix multiplication takes most of the time. Therefore we
     % store it for later use:

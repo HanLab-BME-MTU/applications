@@ -9,13 +9,13 @@ function [displField] = filterDisplacementField( orgDisplacementField, mask)
 % Sangyoon Han April 2013
     % Get whole frame number
     nFrames = length(orgDisplacementField);
-    % filtering out the flow vectors outside the mask
-    idx = true(1,numel(orgDisplacementField(1).pos(:,1)))'; %index for filtering
-
-    outsideIdx = arrayfun(@(i,j) maskVectors(i,j,mask),orgDisplacementField(1).pos(:,1),orgDisplacementField(1).pos(:,2));
-    idx = idx & outsideIdx;
     displField(nFrames)=struct('pos','','vec','');
     for k=1:nFrames
+        % filtering out the flow vectors outside the mask
+        idx = true(1,numel(orgDisplacementField(k).pos(:,1)))'; %index for filtering
+
+        outsideIdx = arrayfun(@(i,j) maskVectors(i,j,mask),orgDisplacementField(k).pos(:,1),orgDisplacementField(k).pos(:,2));
+        idx = idx & outsideIdx;
         displField(k).pos = orgDisplacementField(k).pos(idx,:);
         displField(k).vec = orgDisplacementField(k).vec(idx,:);
     end

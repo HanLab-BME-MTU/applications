@@ -58,8 +58,8 @@ cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
 set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
 
 % Create pop-up menu for force reconstruction method
-solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg'};
-solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg'};
+solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
+solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
 solMethodBEMValue = find(strcmp(funParams.solMethodBEM,solMethodBEMData));
 set(handles.popupmenu_solMethodBEM,'String',solMethodBEMString,...
     'UserData',solMethodBEMData,'Value',solMethodBEMValue);

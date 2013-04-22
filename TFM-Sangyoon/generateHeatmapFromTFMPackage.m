@@ -18,9 +18,11 @@ movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
 movieData = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = movieData.nFrames_;
+% Get TFM package
+TFMPackage = movieData.getPackage(movieData.getPackageIndex('TFMPackage'));
 % Load the displField
-iForceFieldProc = 3;
-displFieldProc=movieData.processes_{iForceFieldProc};
+iDispFieldProc = 3;
+displFieldProc=TFMPackage.processes_{iDispFieldProc};
 maskArray = movieData.getROIMask;
 % Use mask of first frame to filter displacementfield
 firstMask = maskArray(:,:,1);
@@ -29,7 +31,7 @@ displField = filterDisplacementField(displFieldOriginal,firstMask);
 
 % Load the forcefield
 iForceFieldProc = 4;
-forceFieldProc=movieData.processes_{iForceFieldProc};
+forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceField=forceFieldProc.loadChannelOutput;
 
 % Load the Paxillin channel
@@ -67,21 +69,25 @@ for ii = 1:nFrames
     tmax = max(tmax,max(fnorm_vec));
     tmin = min(tmin,min(fnorm_vec));
 end
-%     tmax = 1286;
+    tmax = 2590;
 %     tmin = tmin-0.1;
 %     tmax=tmax/5;
 %     LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
 %     RightLowerCorner(1:2) = [max(displField(1).pos(:,1)), max(displField(1).pos(:,2))];
 
-[reg_grid,~,~,~]=createRegGridFromDisplField(displField,2); %2=2 times fine interpolation
+[reg_grid,~,~,spacing]=createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
 
 h1 = figure;
 %     h2 = figure;
 hold off
-[imSizeY,imSizeX]=size(firstMask);
-set(h1, 'Position', [100 100 imSizeX*10/9 imSizeY])
+[indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
+[indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
+imSizeX = indBRx-indULx-band*spacing;
+imSizeY = indBRy-indULy-band*spacing;
+set(h1, 'Position', [100 900 imSizeX*1.2 imSizeY])
 %     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
 hc = []; %handle for colorbar
+hl = []; %handle for scale bar
 iiformat = ['%.' '3' 'd'];
 TSlevel = zeros(nFrames,1);
 %     paxLevel = zeros(nFrames,1);
@@ -118,6 +124,11 @@ for ii=1:nFrames
     caxis([tmin tmax])
     set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
 
+    % Scale bar 2000nm
+    if isempty(hl)
+        hold on
+        hl = line([grid_mat(2,2,1),grid_mat(2,2,1)+2000/movieData.pixelSize_],[grid_mat(2,2,2),grid_mat(2,2,2)],'Color','w','Linewidth',2);
+    end
 %         xlim([LeftUpperCorner(1) RightLowerCorner(1)])
 %         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
     axis tight
@@ -127,8 +138,8 @@ for ii=1:nFrames
     end
     % point = [357.7008  319.1465]
     % grid_mat's sub for point
+%     spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
     if pointTF
-        spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
         indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
                             & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
         [xTS,yTS] = ind2sub(size(tnorm),indTS);
@@ -146,10 +157,11 @@ for ii=1:nFrames
     end
 
     paxImage=movieData.channels_(2).loadImage(ii);
-    [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
-    [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
-    paxImageCropped = paxImage(indULy:indBRy,indULx:indBRx);
-
+%     [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
+%     [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
+    paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
+    %Scale bar
+    paxImageCropped(10:11,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped));
 %         %paxLevel
 %         indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
 %                             & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
@@ -189,6 +201,8 @@ generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell3/TFM',40);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Youbean/130110 cell 4 cropped',4);
 generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/shared/X-change/forSangyoon/fromYoubean/130307 data/1301331 Cell3_pax TIRF',8);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Youbean/130131 cell3paxTIRF',4);
+generateHeatmapFromTFMPackage('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Youbean/130131 cell3paxTIRF only NA',4);
 
 % desktop version
 generateHeatmapFromTFMPackage('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/IntraVsExtraForce/Margaret/TFM/cell 5/c647_im',6);

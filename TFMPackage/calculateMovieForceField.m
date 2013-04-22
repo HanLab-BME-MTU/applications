@@ -85,11 +85,30 @@ forceFieldProc.setOutFilePaths(outputFile);
 
 disp('Starting calculating force  field...')
 maskArray = movieData.getROIMask;
-% Use mask of first frame to filter displacementfield
-firstMask = maskArray(:,:,1);
-displFieldOriginal=displFieldProc.loadChannelOutput;
-displField = filterDisplacementField(displFieldOriginal,firstMask);
+if min(min(maskArray(:,:,1))) == 0
+    iStep2Proc = movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
+    step2Proc = movieData.processes_{iStep2Proc};
+    pDisp = parseProcessParams(step2Proc,paramsIn);
 
+    % Use mask of first frame to filter displacementfield
+    iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+    SDCProc=movieData.processes_{iSDCProc};
+    if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
+        error(['The channel must have been corrected ! ' ...
+            'Please apply stage drift correction to all needed channels before '...
+            'running displacement field calclation tracking!'])
+    end
+    %Parse input, store in parameter structure
+    refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
+    firstMask = false(size(refFrame));
+    tempMask = maskArray(:,:,1);
+    firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+    displFieldOriginal=displFieldProc.loadChannelOutput;
+    displField = filterDisplacementField(displFieldOriginal,firstMask);
+else
+     displField=displFieldProc.loadChannelOutput;
+end
+   
 % Prepare displacement field for BEM
 if strcmpi(p.method,'fastBEM')
     displField(end).par=0; % for compatibility with Achim parameter saving
@@ -123,6 +142,17 @@ tic;
 for i=1:nFrames
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
+    if min(min(firstMask(:,:,1))) == 0 %when ROI was used, make a denser displacement field by interpolation
+        % vectorized position
+        posx=reshape(grid_mat(:,:,1),[],1);
+        posy=reshape(grid_mat(:,:,2),[],1);
+
+        dispMat = [displField(i).pos(:,2:-1:1) displField(i).pos(:,2:-1:1)+displField(i).vec(:,2:-1:1)];
+        intDisp = vectorFieldSparseInterp(dispMat,[posy posx],20,2,[]);
+        displField(i).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
+        displField(i).pos = [posx posy];
+    end
+
     if strcmpi(p.method,'FastBEM')
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
