@@ -90,8 +90,8 @@ x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
-initMaxFlowSpd = 10;
-initMaxPerpSpd = 10;
+initMaxFlowSpd = 20;
+initMaxPerpSpd = 20;
 closenessThreshold = 0.25;
 
 %For isotropic correlation.
@@ -130,7 +130,7 @@ backSpc =repmat('\b',1,L);
 % each point.
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
-for k = 1:nPoints
+parfor k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -235,12 +235,12 @@ for k = 1:nPoints
                     [score2] = calScore(kym,centerI,ceil(1.25*corL),...
                         vP,vF,'bAreaThreshold',bAreaThreshold,...
                         'kymMask',kymMask,'kymAvgImg',kymAvgImg);
-                    if max(length(vF),length(vP))>160 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.8);
-                    elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
+                    if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
+                    elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.75);
                     elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.58);
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.59);
                     else
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
                     end
@@ -278,13 +278,13 @@ for k = 1:nPoints
                             ones(size(locMaxV,1),1)*maxV2).^2,2));
                         
                         [minD,ind] = min(distToMaxV2);
-                        maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
 
-                        maxVNorm = max(norm(maxV2),norm(maxV));
+                        maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
                         if maxVNorm == 0 || ...
                                 (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
                                 (pass == 1 && maxVNorm < 0.5) || ...
                                 (pass == 0 && minD < closenessThreshold*maxVNorm)
+                            maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
                             pass = 2;
                         else
                             pass = 0;
@@ -760,8 +760,8 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < m/4 || maxI(1) > 3*m/4 || ...
-        maxI(2) < n/4 || maxI(2) > 3*n/4
+if maxI(1) < m/6 || maxI(1) > 5*m/6 || ...
+        maxI(2) < n/6 || maxI(2) > 5*n/6
     pass = 0;
     return;
 end
