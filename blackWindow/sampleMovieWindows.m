@@ -94,7 +94,7 @@ if ~any(strcmp('Process.run',{stack(:).name})); winSampProc.run(); return; end
 %% -------- Init ---------- %%
 if ~iscell(p.ProcessIndex), p.ProcessIndex={p.ProcessIndex}; end
 if ~iscell(p.ChannelIndex), p.ChannelIndex={p.ChannelIndex}; end
-if ~iscell(p.OutputName), p.ProcessIndex={p.OutputName}; end
+if ~iscell(p.OutputName), p.OutputName={p.OutputName}; end
 
 nFrames = movieData.nFrames_;
 imSize = movieData.imSize_;
