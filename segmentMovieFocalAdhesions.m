@@ -49,9 +49,6 @@ iProc = movieData.getProcessIndex('FocalAdhesionSegmentationProcess',1,0);
 %If the process doesn't exist, create it
 if isempty(iProc)
     error('No FocalAdhesionSegmentationProcess in input movieData! please create the process and use the process.run method to run this function!')
-%     iProc = numel(movieData.processes_)+1;
-%     movieData.addProcess(FocalAdhesionSegmentationProcess(movieData,...
-%         movieData.outputDirectory_));                                                                                                 
 end
 
 adSegProc = movieData.processes_{iProc};
@@ -183,7 +180,7 @@ end
 %HLE - this can be re-written to do all channels simultaneously. Might be
 %slightly faster, but might use more memory as well...
 
-for iChan = 1:nChanSeg    
+for iChan = 1:nChanSeg
     
     if p.MinVolTime > 0
         
