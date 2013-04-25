@@ -1,6 +1,13 @@
 % Francois Aguet, 101012
 
-function sortChannelsIntoFolders(rootDir, channelID, varargin)
+function sortChannelsIntoFolders(rootDir, channelID, channelDir)
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('condDir', @ischar);
+ip.addRequired('channelID');
+ip.addRequired('channelDir');
+ip.parse(rootDir, channelID, channelDir);
 
 % get tree of directories from rootDir
 dirlist = recursiveDir(rootDir);
@@ -8,23 +15,27 @@ nc = numel(channelID);
 
 % parse each dir for TIF files that contain channel IDs
 for i = 1:numel(dirlist)
-    %files = dir(dirlist{i});
     files = [dir([dirlist{i} '*.tif*']) dir([dirlist{i} '*.TIF*'])];
     if ~isempty(files)
         files = arrayfun(@(x) x.name, files, 'unif', 0);
         cfiles = cell(1,nc);
         for c = 1:nc
-            idx = regexpi(files, channelID{c});
-            idx = vertcat(idx{:});
+            idx = ~cellfun(@isempty, regexpi(files, channelID{c}));
             cfiles{c} = files(idx);
         end
         % if files found for all channels
         if ~any(cellfun(@isempty, cfiles))
-            dirlist{i}
+            for c = 1:nc
+                % create channel directory
+                dest = [dirlist{i} channelDir{c} filesep];
+                fprintf('Moving files to %s\n', dest);
+                [~,~] = mkdir(dest);
+                cfiles{c} = cellfun(@(x) [dirlist{i} x], cfiles{c}, 'unif', 0);
+                movefile([dirlist{i} '*' channelID{c} '*'], dest);
+            end
         end
     end
 end
-
 
 
 
