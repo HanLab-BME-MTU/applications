@@ -37,7 +37,7 @@ classdef FocalAdhesionSegmentationProcess < SegmentationProcess
             name = 'Focal Adhesion Segmentation';
         end
         function h = GUI()
-            h= @focalAdhesionSegmentationProcesGUI;
+            h= @focalAdhesionSegmentationProcessGUI;
         end
 %         function methods = getMethods(varargin)
 %             thresholdingMethods(1).name = 'MinMax';

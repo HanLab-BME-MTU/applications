@@ -1,11 +1,23 @@
 classdef FocalAdhesionPackage < Package
-    % The main class of the Integrator package
+    % The main class of the focal adhesion package
+    %
+    % NOTE: This is the package that is based on anisotropic spot detection,
+    %   tracking and track grouping.
+    %   This package is therefore better suited to detection of small
+    %   (though not truly nascent, as the detection assumes anisotropy) and
+    %   primarily fibrilar (linear) adhesions. It does not support sampling
+    %   of image intensities within focal adhesions. 
+    %   **For sampling of image intensities within adhesions, and for
+    %   support which includes larger non-fibrilar adhesions (but still
+    %   misses very small/dim nascent adhesions) see
+    %   FocalAdhesionSegmentationPackage 
+    %               - Hunter
     
     % Sebastien Besson, May 2011
     
     methods
         function obj = FocalAdhesionPackage(owner,varargin)
-            % Constructor of class QFSMPackage
+            % Constructor of class FocalAdhesionPackage
             
             if nargin == 0
                 super_args = {};
