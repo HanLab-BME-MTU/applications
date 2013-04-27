@@ -120,8 +120,10 @@ for i = 1:nd
             res(i).interpSigLevel{ch,c} = kLevel*sigma_rMat;
          
             % split as a function of slave channel signal
-            if isfield(lftData(i), 'significantSignal')
-                sigIdx = lftData(i).significantSignal(:,ch)==1;
+            if isfield(lftData(i), 'significantMaster')
+                sigIdx = lftData(i).significantMaster(:,ch)==1;
+                %sigIdx = lftData(i).significantSlave(:,ch)==1;
+                %sigIdx = lftData(i).significantMaster(:,ch)==0 & lftData(i).significantSlave(:,ch)==1;
                 res(i).sigIdx{ch,c} = sigIdx(cidx); 
             end
         end
@@ -136,19 +138,27 @@ fset = loadFigureSettings(ip.Results.DisplayMode);
 cmap = cell(1,nCh);
 cv = cell(1,nCh);
 if nCh==1
+    if isempty(hues)
+        hues = getFluorophoreHues(data(1).markers);
+    end
     %cmap = ones(nc,3);
     %cmap(:,1) = (nc:-1:1)/nc;
     %cmap = hsv2rgb(cmap);
-    cmap{1} = jet(nc);
-    cv{1} = rgb2hsv(cmap{1});
-    cv{1}(:,2) = 0.2;
-    cv{1} = hsv2rgb(cv{1});
+    v = mod(hues(ch)+linspace(-0.1, 0.1, nc)', 1);
+    cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
+    cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
+    
+%     cmap{1} = jet(nc);
+%     cv{1} = rgb2hsv(cmap{1});
+%     cv{1}(:,2) = 0.2;
+%     cv{1} = hsv2rgb(cv{1});
 else
     if isempty(hues)
         hues = getFluorophoreHues(data(1).markers);
     end
     for ch = 1:nCh
-        v = mod(hues(ch)+linspace(-0.1, 0.1, nc)', 1);
+        %v = mod(hues(ch)+linspace(-0.1, 0.1, nc)', 1);
+        v = mod(hues(ch)+linspace(-0.05, 0.05, nc)', 1);
         cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
         cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
         %cmap{ch} = repmat(hsv2rgb([hues(ch) 1 0.8]), [nc 1]);
@@ -180,7 +190,7 @@ cohorts.bounds = cohortBounds;
 % Plot cohorts
 %==================================================
 
-if ~(isfield(res(1), 'sigIdx') && nCh==2)
+if ~(isfield(res(1), 'sigIdx') && nCh>1)
     
     figure(fset.fOpts{:}, 'Name', 'Intensity cohorts', 'Position', [2 2 8 6]);
     ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
@@ -259,11 +269,26 @@ if ~(isfield(res(1), 'sigIdx') && nCh==2)
             end
         end
     end
+    if isempty(YLim)
+        YLim = get(gca, 'YLim');
+    end
     
     if ~isempty(ip.Results.ChannelNames)
         hl = legend(hp(floor(nc/2):nc:end), ip.Results.ChannelNames{:});
         set(hl, 'Box', 'off', 'Position', [6 4.75 1 0.8]);
     end
+    
+%     if ip.Results.ShowLegend
+%         %xlabel(ha(1), 'Time (s)', fset.lfont{:});
+%         %xlabel(ha(2), 'Time (s)', fset.lfont{:});
+%         %XTick = 0:20:200;
+%     else
+%         set(gca, 'XTick', XTick, 'XTickLabel', cohortLabels);
+%         rotateXTickLabels(gca, 'AdjustFigure', false);
+%         xlabel(gca, 'Lifetime cohort', fset.lfont{:});
+%     end
+    
+    
     %xlabel('Time (s)', fset.lfont{:});
     ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
     
@@ -287,8 +312,7 @@ else
         ch = chVec(2);
         if nd > 1
             % means for each data set
-            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
-            %AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(:,:),1), res, 'UniformOutput', false);
+            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{chVec(2),c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
             A{ch,c} = nanmean(AMat,1);
             SEM = nanstd(AMat,[],1)/sqrt(nd);
@@ -296,7 +320,7 @@ else
             Aplus = A{ch,c} + SEM;
         else
             % if input is a single data set, show median + percentiles
-            M = prctile(res(1).interpTracks{ch,c}(res(1).sigIdx{2,c},:), [25 50 75], 1);
+            M = prctile(res(1).interpTracks{ch,c}(res(1).sigIdx{chVec(2),c},:), [25 50 75], 1);
             A{ch,c} = M(2,:);
             Amin = M(1,:);
             Aplus = M(3,:);
@@ -315,7 +339,7 @@ else
         %for c = nc:-1:1
         if nd > 1
             % means for each data set
-            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
+            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(x.sigIdx{chVec(2),c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
             A{ch,c} = nanmean(AMat,1);
             SEM = nanstd(AMat,[],1)/sqrt(nd);
@@ -323,7 +347,7 @@ else
             Aplus = A{ch,c} + SEM;
         else
             % if input is a single data set, show median + percentiles
-            M = prctile(res(1).interpTracks{ch,c}(res(1).sigIdx{2,c},:), [25 50 75], 1);
+            M = prctile(res(1).interpTracks{ch,c}(res(1).sigIdx{chVec(2),c},:), [25 50 75], 1);
             A{ch,c} = M(2,:);
             Amin = M(1,:);
             Aplus = M(3,:);
@@ -364,7 +388,7 @@ else
     end
    
     % pct pos CCPs/cohort
-    M = arrayfun(@(r) cellfun(@(i) sum(i)/numel(i)*100, r.sigIdx(2,:)), res, 'unif', 0);
+    M = arrayfun(@(r) cellfun(@(i) sum(i)/numel(i)*100, r.sigIdx(chVec(2),:)), res, 'unif', 0);
     % pct of all CCPs
     %M = arrayfun(@(r) cellfun(@(i) sum(i)/numel([r.sigIdx{2,:}])*100, r.sigIdx(2,:)), res, 'unif', 0);
     M = vertcat(M{:});
@@ -391,7 +415,7 @@ else
         ch = chVec(2);
         if nd > 1
             % means for each data set
-            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
+            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{chVec(2),c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
             A{ch,c} = nanmean(AMat,1);
             SEM = nanstd(AMat,[],1)/sqrt(nd);
@@ -399,7 +423,7 @@ else
             Aplus = A{ch,c} + SEM;
         else
             % if input is a single data set, show median + percentiles
-            M = prctile(res(1).interpTracks{ch,c}(~res(1).sigIdx{2,c},:), [25 50 75], 1);
+            M = prctile(res(1).interpTracks{ch,c}(~res(1).sigIdx{chVec(2),c},:), [25 50 75], 1);
             A{ch,c} = M(2,:);
             Amin = M(1,:);
             Aplus = M(3,:);
@@ -415,7 +439,7 @@ else
         ch = chVec(1);
         if nd > 1
             % means for each data set
-            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{2,c},:),1), res, 'UniformOutput', false);
+            AMat = arrayfun(@(x) mean(x.interpTracks{ch,c}(~x.sigIdx{chVec(2),c},:),1), res, 'UniformOutput', false);
             AMat = vertcat(AMat{:});
             A{ch,c} = nanmean(AMat,1);
             SEM = nanstd(AMat,[],1)/sqrt(nd);
@@ -423,7 +447,7 @@ else
             Aplus = A{ch,c} + SEM;
         else
             % if input is a single data set, show median + percentiles
-            M = prctile(res(1).interpTracks{ch,c}(~res(1).sigIdx{2,c},:), [25 50 75], 1);
+            M = prctile(res(1).interpTracks{ch,c}(~res(1).sigIdx{chVec(2),c},:), [25 50 75], 1);
             A{ch,c} = M(2,:);
             Amin = M(1,:);
             Aplus = M(3,:);
@@ -473,17 +497,7 @@ else
         xlabel('Lifetime cohort', fset.lfont{:});
     end
     
-    if ip.Results.ShowLegend
-        xlabel(ha(1), 'Time (s)', fset.lfont{:});
-        xlabel(ha(2), 'Time (s)', fset.lfont{:});
-        XTick = 0:20:200;
-    else
-        set(ha, 'XTick', XTick, 'XTickLabel', cohortLabels);
-        rotateXTickLabels(ha(1), 'AdjustFigure', false);
-        rotateXTickLabels(ha(2), 'AdjustFigure', false);
-        xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
-        xlabel(ha(2), 'Lifetime cohort', fset.lfont{:});
-    end
+   
     ylabel(ha(1), 'Fluo. intensity (A.U.)', fset.lfont{:}); 
 end
 
@@ -491,5 +505,27 @@ set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim);
 if ~isempty(ip.Results.YTick)
     set(ha, 'YTick', ip.Results.YTick);
 end
+
+if ip.Results.ShowLegend
+    arrayfun(@(x) xlabel(x, 'Time (s)', fset.lfont{:}), ha);
+    %XTick = 0:20:200;
+else
+    set(ha, 'XTick', XTick, 'XTickLabel', cohortLabels);
+    for i = 1:numel(ha)
+        rotateXTickLabels(ha(i), 'AdjustFigure', false);
+        xlabel(ha(i), 'Lifetime cohort', fset.lfont{:});
+    end
+end
+
+
+% if ip.Results.ShowLegend
+%     %xlabel(ha(1), 'Time (s)', fset.lfont{:});
+%     %xlabel(ha(2), 'Time (s)', fset.lfont{:});
+%     %XTick = 0:20:200;
+% else
+%     set(ha(1), 'XTick', XTick, 'XTickLabel', cohortLabels);
+%     rotateXTickLabels(ha(1), 'AdjustFigure', false);
+%     xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
+% end
 
 
