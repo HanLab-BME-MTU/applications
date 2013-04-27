@@ -42,8 +42,11 @@ for i = 1:nd
         lftData(i).trackLengths = trackLengths';
         lftData(i).start = [tracks.start]';
         lftData(i).catIdx = [tracks.catIdx]';
-        if isfield(tracks, 'significantSignal')
-            lftData(i).significantSignal = [tracks.significantSignal]';
+        %if isfield(tracks, 'significantSignal')
+        if isfield(tracks, 'significantMaster')
+            %lftData(i).significantSignal = [tracks.significantSignal]';
+            lftData(i).significantMaster = [tracks.significantMaster]';
+            lftData(i).significantSlave = [tracks.significantSlave]';
         end
         
         % store intensities of cat. Ia tracks
@@ -81,11 +84,21 @@ for i = 1:nd
         end
     else
         tmp = load(fpath);
-        if isfield(tmp, 'significantSignal')
-            lftData(i).significantSignal = [];
+        %if isfield(tmp, 'significantSignal')
+        if isfield(tmp, 'significantMaster')
+            lftData(i).significantMaster = [];
+            lftData(i).significantSlave = [];
         end
         if isfield(tmp, 'RSS')
             tmp = rmfield(tmp, 'RSS');
+        end
+        if isfield(tmp, 'significantSignal')
+            tmp2 = tmp.significantSignal;
+            tmp = rmfield(tmp, 'significantSignal');
+            tmp.significantMaster = tmp2;
+            tmp.significantSlave = NaN(size(tmp2));
+            lftData(i).significantMaster = [];
+            lftData(i).significantSlave = [];
         end
         lftData(i) = tmp;
     end
@@ -100,8 +113,10 @@ for i = 1:nd
     end
 end
 
-if isfield(lftData(1), 'significantSignal')
-    vnames = [vnames 'significantSignal'];
+%if isfield(lftData(1), 'significantSignal')
+if isfield(lftData(1), 'significantMaster')
+    %vnames = [vnames 'significantSignal'];
+    vnames = [vnames 'significantMaster' 'significantSlave'];
     fnames = [vnames mnames];
 end
 for i = 1:nd
@@ -187,11 +202,12 @@ end
 if ~isempty(rmIdx)
     lftData(rmIdx) = [];
     av(:,rmIdx) = [];
-    maxA(:,rmIdx) = [];
 end
 
 if rescale(1)
     a = mat2cell(av,nCh,ones(1,numel(lftData)));
-    [lftData.a] = deal(a{:});    
-    %[lftData.maxA] = deal(maxA{:});
+    [lftData.a] = deal(a{:}); 
+    for i = 1:nd
+        lftData(i).maxA = squeeze(nanmax(lftData(i).A(:,:,:),[],2));
+    end
 end
