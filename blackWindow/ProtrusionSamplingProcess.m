@@ -151,7 +151,7 @@ classdef ProtrusionSamplingProcess < ImageAnalysisProcess
             name = 'Protrusion Sampling';
         end
         function name =GUI()
-            name =@protrusionSamplingProcessGUI;
+            name =@noSettingsProcessGUI;
         end
 
         function funParams = getDefaultParams(owner,varargin)
