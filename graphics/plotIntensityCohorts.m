@@ -387,12 +387,10 @@ else
                     % means for each data set
                     AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
                     AMat = vertcat(AMat{:});
-                    A{ch,c} = nanmean(AMat,1);
+                    A{ch,c} = nanmedian(AMat,1);
                     SEM = nanstd(AMat,[],1)/sqrt(nd);
                     Amin = A{ch,c} - SEM;
                     Aplus = A{ch,c} + SEM;
-                    
-                    
                 else
                     % if input is a single data set, show median + percentiles
                     M = prctile(res(1).interpTracks{ch,c}(res(1).sigComb{c},:), [25 50 75], 1);
