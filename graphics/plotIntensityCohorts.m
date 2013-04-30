@@ -36,6 +36,7 @@ ip.addParamValue('YLim', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('ShowLegend', false, @islogical);
 ip.addParamValue('ShowPct', true, @islogical);
+ip.addParamValue('AvgFun', @nanmean, @(x) isa(x, 'function_handle'));
 ip.addParamValue('LftDataName', 'lifetimeData.mat');
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
@@ -206,7 +207,7 @@ if ~(isfield(res(1), 'sigIdx') && nCh>1)
             if nd > 1
                 % means for each data set
                 if strcmpi(ip.Results.FillMode, 'SEM')
-                    AMat = arrayfun(@(x) nanmean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
+                    AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
                     AMat = vertcat(AMat{:});
                     A{ch,c} = nanmean(AMat,1);
                     SEM = nanstd(AMat,[],1)/sqrt(nd);
@@ -357,7 +358,6 @@ else
     end
     
     A = cell(nCh,nc);
-    chVec = nCh:-1:1;
     
     ha = zeros(na,1);
     figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts, cargo-positive tracks');
@@ -385,7 +385,7 @@ else
             for ch = chVec; % plot master channel last
                 if nd > 1
                     % means for each data set
-                    AMat = arrayfun(@(x) nanmedian(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
+                    AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
                     AMat = vertcat(AMat{:});
                     A{ch,c} = nanmean(AMat,1);
                     SEM = nanstd(AMat,[],1)/sqrt(nd);
