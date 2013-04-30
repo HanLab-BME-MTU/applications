@@ -1,6 +1,6 @@
 %[cohorts res] = plotIntensityCohorts(data, varargin) plot average intensities for a range of lifetime cohorts
 
-% Francois Aguet (last modified 08/14/2012)
+% Francois Aguet (last modified 04/30/2013)
 
 function [cohorts, res] = plotIntensityCohorts(data, varargin)
 
@@ -156,9 +156,13 @@ else
     if isempty(hues)
         hues = getFluorophoreHues(data(1).markers);
     end
+    if nCh==2
+        hb = 0.1;
+    else
+        hb = 0.05;
+    end
     for ch = 1:nCh
-        %v = mod(hues(ch)+linspace(-0.1, 0.1, nc)', 1);
-        v = mod(hues(ch)+linspace(-0.05, 0.05, nc)', 1);
+        v = mod(hues(ch)+linspace(-hb, hb, nc)', 1);
         cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
         cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
         %cmap{ch} = repmat(hsv2rgb([hues(ch) 1 0.8]), [nc 1]);
@@ -307,8 +311,8 @@ else
                 s =  lftData(i).significantMaster;
                 pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
             end
-            meanPct = mean(pct,1)*100;
-            stdPct = std(pct,[],1)*100;            
+            meanPct = mean(pct,1);
+            stdPct = std(pct,[],1);            
         case 3
             na = 4;
             ah = 2;
@@ -316,11 +320,13 @@ else
             
             pct = zeros(nd,4);
             for i = 1:nd
-                s =  lftData(i).significantMaster;
+                s = lftData(i).significantMaster;
+                vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
+                s = s(vidx,:);
                 pct(i,:) = sum([s(:,2)&s(:,3) s(:,2)&~s(:,3) ~s(:,2)&s(:,3) ~s(:,2)&~s(:,3)],1)/size(s,1);
             end
-            meanPct = mean(pct,1)*100;
-            stdPct = std(pct,[],1)*100;            
+            meanPct = mean(pct,1);
+            stdPct = std(pct,[],1);            
     end
     
     SlaveName = ip.Results.SlaveName;
@@ -334,12 +340,12 @@ else
     switch nCh
         case 2
             for a = 1:na
-                atext{a} = [SlaveName{1} tmp(a,1) ': ' num2str(meanPct(a), '%.1f') '±' num2str(stdPct(a), '%.1f') '%'];
+                atext{a} = [tmp(a,1) SlaveName{1} ': ' num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
             end
         case 3
             for a = 1:na
                 atext{a} = [SlaveName{1} tmp(a,1) ' / ' SlaveName{2} tmp(a,2) ': '...
-                    num2str(meanPct(a), '%.1f') '±' num2str(stdPct(a), '%.1f') '%'];
+                    num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
             end
     end
     if ip.Results.ShowLegend
@@ -428,7 +434,7 @@ else
         end
         
     end
-    %YLim = [-100 5000];
+    
     if isempty(YLim)
         YLim = get(ha, 'YLim');
         YLim = vertcat(YLim{:});
@@ -436,26 +442,20 @@ else
     end
     
     for a = 1:na
-        %sv = arrayfun(@(i) 100*sum(i.significantSignal(:,2)==1 & max(i.A(:,:,1),[],2)>ip.Results.MaxIntensityThreshold)...
-        %    /sum(max(i.A(:,:,1),[],2)>ip.Results.MaxIntensityThreshold), lftData);
-        %text(XLim(1)+0.025*diff(XLim), YLim(2), [ip.Results.SlaveName ' pos. ('  num2str(mean(sv), '%.1f') ' ± ' num2str(std(sv), '%.1f') '% of CCPs)'], fset.sfont{:}, 'VerticalAlignment', 'bottom');
         text(XLim(2), YLim(2), atext{a}, fset.sfont{:},...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', 'Parent', ha(a));
+            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', ha(a));
     end
-   
-%     
-%     % pct pos CCPs/cohort
-%     M = arrayfun(@(r) cellfun(@(i) sum(i)/numel(i)*100, r.sigIdx(chVec(2),:)), res, 'unif', 0);
-%     % pct of all CCPs
-%     %M = arrayfun(@(r) cellfun(@(i) sum(i)/numel([r.sigIdx{2,:}])*100, r.sigIdx(2,:)), res, 'unif', 0);
-%     M = vertcat(M{:});
-%    
  
-%     if ip.Results.ShowPct
-%         pos = get(gcf, 'Position');
-%         pos(3) = 19;
-%         set(gcf, 'Position', pos);
-%     end
+    if ip.Results.ShowPct && nCh>2
+        pos = get(gcf, 'Position');
+        pos(3) = pos(3)+3;
+        set(gcf, 'Position', pos);
+        dy = 0.75;
+        hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6]);
+        vennplot(meanPct(2), meanPct(3), meanPct(1), ip.Results.SlaveName,...
+            'Handle', hav, 'Font', fset.sfont);
+        axis off;
+    end
     
    
 %     if ip.Results.ShowLegend

@@ -23,6 +23,8 @@ if isempty(tfont)
         'FontSize', get(0, 'DefaultAxesFontSize')};
 end
 
+hold on;
+
 aw = sqrt(1/(2*pi))*2;
 ah = sqrt(1/pi);
 axis equal;
