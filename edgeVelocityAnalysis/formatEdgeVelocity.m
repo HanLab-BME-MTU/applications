@@ -65,8 +65,8 @@ else
     
 end
 
-if isempty(excludeWin)
-    excludeWin = cell(numel(ML.movies_),1);
+if numel(excludeWin) < numel(ML.movies_)
+    excludeWin(numel(excludeWin) - numel(ML.movies_)) = {[]};
 end
 
 nCell    = numel(ML.movies_);
