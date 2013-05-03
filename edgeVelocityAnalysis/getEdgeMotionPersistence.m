@@ -91,6 +91,9 @@ end
 [Protrusion.CI,Protrusion.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxP,'Unif',0);
 [Retraction.CI,Retraction.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxR,'Unif',0);
 
+Protrusion.total      = auxP;
+Retraction.total      = auxR;
+
 Protrusion.total.time = nansum(auxP.persTime);
 Retraction.total.time = nansum(auxR.persTime);
 

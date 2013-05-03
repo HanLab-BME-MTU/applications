@@ -28,8 +28,9 @@ for iVar = 1:nVar
     
     figure
     barplot2(meanDisp(:,:,iVar), UpCI(:,:,iVar), LwCI(:,:,iVar),'ErrorBarPosition', 'both',...
-      'BarWidth', 0.8, 'GroupDistance', 2,'Xlabels',label.dataSet,'YLabel', label.variable{iVar});
+      'BarWidth', 0.8, 'GroupDistance', 2,'XTickLabel',label.dataSet,'YLabel', label.variable{iVar});
     h1 = legend(label.condition);
     set(h1,'EdgeColor','w')
+   ylabel(label.variable{iVar})
    
 end

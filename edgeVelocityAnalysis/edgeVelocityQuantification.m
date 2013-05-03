@@ -70,7 +70,7 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %                                                                               .MednVeloc
 %
 %Marco Vilela, 2012
-%UnderConstruction
+
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
@@ -102,20 +102,20 @@ cellData = loadingMovieResultsPerCell(ML);
 
 %% Getting Average Velocities and Persistence Time per Cell
 
-commonGround = @(x) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot);
+commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z);
 if isempty(interval{1})
     
     [protrusionA,retractionA] ...
-                = arrayfun(@(x) commonGround(x.data.excProcEdgeMotion),cellData,'Unif',0);
+                = arrayfun(@(x) commonGround(x.data.excProcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
      protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
      retraction = cellfun(@(x) {x},retractionA,'Unif',0);
 else
     
-    firstLevel  = @(x,y) commonGround( cellfun(@(w) w(x),y,'Unif',0));
-    secondLevel = @(x,y) cellfun(@(w) firstLevel(w,y),x,'Unif',0);
+    firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z);
+    secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
     [protrusion,retraction] ...
-                = arrayfun(@(x) secondLevel(interval,x.data.excProcEdgeMotion),cellData,'Unif',0);
+                = arrayfun(@(x) secondLevel(interval,x.data.excProcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
     
 end
 
@@ -149,26 +149,26 @@ for iInt = 1:numel(interval)
         cellData(iCell).protrusionAnalysis(iInt) = protrusion{iCell}{iInt};
         cellData(iCell).retractionAnalysis(iInt) = retraction{iCell}{iInt};
         
-%        total.ProtrusionVeloc = [total.ProtrusionVeloc;cellData(iCell).protrusionAnalysis(iInt).allVelocityValues];
-        total.ProtPersTime    = [total.ProtPersTime;cat(1,cellData(iCell).protrusionAnalysis(iInt).windows(:).persTime)];
-        total.ProtMaxVeloc    = [total.ProtMaxVeloc;cat(1,cellData(iCell).protrusionAnalysis(iInt).windows(:).maxVeloc)];
-        total.ProtMinVeloc    = [total.ProtMinVeloc;cat(1,cellData(iCell).protrusionAnalysis(iInt).windows(:).minVeloc)];
-        total.ProtMeanVeloc   = [total.ProtMeanVeloc;cat(1,cellData(iCell).protrusionAnalysis(iInt).windows(:).Veloc)];
-        total.ProtMednVeloc   = [total.ProtMednVeloc;cat(1,cellData(iCell).protrusionAnalysis(iInt).windows(:).mednVeloc)];
+        timeScale             = cellData(iCell).data.frameRate;
         
-%        total.RetractionVeloc = [total.RetractionVeloc;cellData(iCell).retractionAnalysis(iInt).allVelocityValues];
-        total.RetrPersTime    = [total.RetrPersTime;cat(1,cellData(iCell).retractionAnalysis(iInt).windows(:).persTime)];
-        total.RetrMaxVeloc    = [total.RetrMaxVeloc;cat(1,cellData(iCell).retractionAnalysis(iInt).windows(:).maxVeloc)];
-        total.RetrMinVeloc    = [total.RetrMinVeloc;cat(1,cellData(iCell).retractionAnalysis(iInt).windows(:).minVeloc)];
-        total.RetrMeanVeloc   = [total.RetrMeanVeloc;cat(1,cellData(iCell).retractionAnalysis(iInt).windows(:).Veloc)];
-        total.RetrMednVeloc   = [total.RetrMednVeloc;cat(1,cellData(iCell).retractionAnalysis(iInt).windows(:).mednVeloc)];
+        total.ProtPersTime    = [total.ProtPersTime;cellData(iCell).protrusionAnalysis(iInt).total.persTime*timeScale];
+        total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData(iCell).protrusionAnalysis(iInt).total.maxVeloc];
+        total.ProtMinVeloc    = [total.ProtMinVeloc;cellData(iCell).protrusionAnalysis(iInt).total.minVeloc];
+        total.ProtMeanVeloc   = [total.ProtMeanVeloc;cellData(iCell).protrusionAnalysis(iInt).total.Veloc];
+        total.ProtMednVeloc   = [total.ProtMednVeloc;cellData(iCell).protrusionAnalysis(iInt).total.mednVeloc];
+        
+        total.RetrPersTime    = [total.RetrPersTime;cellData(iCell).retractionAnalysis(iInt).total.persTime*timeScale];
+        total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData(iCell).retractionAnalysis(iInt).total.maxVeloc];
+        total.RetrMinVeloc    = [total.RetrMinVeloc;cellData(iCell).retractionAnalysis(iInt).total.minVeloc];
+        total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData(iCell).retractionAnalysis(iInt).total.Veloc];
+        total.RetrMednVeloc   = [total.RetrMednVeloc;cellData(iCell).retractionAnalysis(iInt).total.mednVeloc];
         
     end
     
+    
     [dataSet.CI.cond(iInt),dataSet.meanValue.cond(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
-    
-    
-end
+    dataSet.total.cond(iInt) = total;
     
 end
-
+    
+end

@@ -65,6 +65,10 @@ else
     
 end
 
+if isempty(excludeWin)
+    excludeWin = cell(numel(ML.movies_),1);
+end
+
 nCell    = numel(ML.movies_);
 dataS    = struct('excludeWin',[],'pixelSize',[],'frameRate',[],'rawEdgeMotion',[],'procEdgeMotion',[]);
 cellData = struct('data',repmat({dataS},1,nCell)) ;
