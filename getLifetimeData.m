@@ -13,6 +13,7 @@ ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('Scale', false, @islogical);
 ip.addParamValue('DisplayScaling', false, @islogical);
 ip.addParamValue('RemoveOutliers', false, @islogical);
+ip.addParamValue('AmplitudeCorrectionFactor', []);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
@@ -29,8 +30,8 @@ vnames = fnames(1:4);
 mnames = fnames(5:end);
 
 maxA = cell(nCh,nd);
-for i = 1:nd
-    fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData];
+parfor i = 1:nd
+    fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData]; %#ok<PFBNS>
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
         tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.ProcessedTracks);
@@ -42,9 +43,7 @@ for i = 1:nd
         lftData(i).trackLengths = trackLengths';
         lftData(i).start = [tracks.start]';
         lftData(i).catIdx = [tracks.catIdx]';
-        %if isfield(tracks, 'significantSignal')
         if isfield(tracks, 'significantMaster')
-            %lftData(i).significantSignal = [tracks.significantSignal]';
             lftData(i).significantMaster = [tracks.significantMaster]';
             lftData(i).significantSlave = [tracks.significantSlave]';
         end
@@ -59,9 +58,9 @@ for i = 1:nd
         % store intensity matrices
         nf = data(i).movieLength;
         lftData(i).A = NaN(nt,nf,nCh);
-        lftData(i).A_pstd = NaN(nt,nf);
+        lftData(i).A_pstd = NaN(nt,nf,nCh);
         lftData(i).sigma_r = NaN(nt,nf,nCh);
-        lftData(i).SE_sigma_r = NaN(nt,nf);
+        lftData(i).SE_sigma_r = NaN(nt,nf,nCh);
 
         lftData(i).sbA = NaN(nt,b,nCh);
         lftData(i).ebA = NaN(nt,b,nCh);
@@ -72,9 +71,9 @@ for i = 1:nd
         for k = 1:nt
             range = 1:trackLengths(idx_Ia(k));
             lftData(i).A(k,range,:) = tracks(k).A';
-            lftData(i).A_pstd(k,range) = tracks(k).A_pstd(1,:);
+            lftData(i).A_pstd(k,range,:) = tracks(k).A_pstd';
             lftData(i).sigma_r(k,range,:) = tracks(k).sigma_r';
-            lftData(i).SE_sigma_r(k,range) = tracks(k).SE_sigma_r(1,:);
+            lftData(i).SE_sigma_r(k,range,:) = tracks(k).SE_sigma_r';
             lftData(i).sbA(k,:,:) = tracks(k).startBuffer.A';
             lftData(i).ebA(k,:,:) = tracks(k).endBuffer.A';
             lftData(i).sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
@@ -84,7 +83,6 @@ for i = 1:nd
         end
     else
         tmp = load(fpath);
-        %if isfield(tmp, 'significantSignal')
         if isfield(tmp, 'significantMaster')
             lftData(i).significantMaster = [];
             lftData(i).significantSlave = [];
@@ -103,6 +101,22 @@ for i = 1:nd
         lftData(i) = tmp;
     end
 end
+
+% amplitude fields
+afields = {'A', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'sbA', 'ebA', 'sbSigma_r', 'ebSigma_r'};
+
+% apply amplitude correction
+acorr = ip.Results.AmplitudeCorrectionFactor;
+if ~isempty(acorr)
+    for c = 1:nCh
+        for i = 1:nd
+            for f = 1:numel(afields)
+                lftData(i).(afields{f})(:,:,c) = acorr(i,c)*lftData(i).(afields{f})(:,:,c);
+            end
+        end
+    end
+end
+
 % save outside of parfor
 for i = 1:nd
     [~,~] = mkdir([data(i).source 'Analysis']);
@@ -113,9 +127,7 @@ for i = 1:nd
     end
 end
 
-%if isfield(lftData(1), 'significantSignal')
 if isfield(lftData(1), 'significantMaster')
-    %vnames = [vnames 'significantSignal'];
     vnames = [vnames 'significantMaster' 'significantSlave'];
     fnames = [vnames mnames];
 end
@@ -162,6 +174,7 @@ for i = 1:nd
     end
 end
 
+
 av = zeros(nCh,nd);
 rmIdx = [];
 for c = 1:nCh
@@ -173,9 +186,13 @@ for c = 1:nCh
         for i = 1:nd
             lftData(i).A = lftData(i).A(:,1:movieLength,:);
             maxA{c,i} = a(i) * maxA{c,i};
-            lftData(i).A(:,:,c) = a(i) * lftData(i).A(:,:,c);
-            lftData(i).sbA(:,:,c) = a(i) * lftData(i).sbA(:,:,c);
-            lftData(i).ebA(:,:,c) = a(i) * lftData(i).ebA(:,:,c);
+            for f = 1:numel(afields)
+                lftData(i).(afields{f})(:,:,c) = a(i)*lftData(i).(afields{f})(:,:,c);
+            end
+            %lftData(i).A(:,:,c) = a(i) * lftData(i).A(:,:,c);
+            %lftData(i).sbA(:,:,c) = a(i) * lftData(i).sbA(:,:,c);
+            %lftData(i).ebA(:,:,c) = a(i) * lftData(i).ebA(:,:,c);
+            
             % Standard deviations are not scaled
             %lftData(i).A_pstd
             %lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
