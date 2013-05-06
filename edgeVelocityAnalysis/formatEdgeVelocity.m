@@ -39,7 +39,7 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
-ip.addParamValue('excludeWin', [],@isvector);
+ip.addParamValue('excludeWin', {[]},@iscell);
 ip.addParamValue('excBorder',0,@isscalar);
 ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trend',   -1,@isscalar);
