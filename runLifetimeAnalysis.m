@@ -14,7 +14,7 @@ ip.addParamValue('Print', false, @islogical);
 ip.addParamValue('Buffer', 5);
 ip.addParamValue('MaxIntensityThreshold', []);
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('ClassificationSelector', 'significantSignal');
+ip.addParamValue('ClassificationSelector', 'significantMaster');
 ip.addParamValue('ShowThresholdRange', false, @islogical);
 ip.addParamValue('MaxP', 3);
 ip.addParamValue('YLim', []);
@@ -22,6 +22,7 @@ ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RemoveOutliers', true, @islogical);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('FirstNFrames', []);
+ip.addParamValue('PoolDatasets', false, @islogical);
 %ip.addParamValue('TrackIndex', []);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('SelectIndex', [], @iscell);
@@ -60,12 +61,25 @@ res = struct([]);
 if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
 end
+
+if ip.Results.PoolDatasets
+    pnames = {'lifetime_s', 'start', 'catIdx', 'A', 'lifetime_s_all', 'start_all', 'catIdx_all'};
+    if isfield(lftData, 'significantMaster')
+        pnames = [pnames 'significantMaster'];
+    end
+    for k = 1:numel(pnames)
+        tmp.(pnames{k}) = vertcat(lftData.(pnames{k}));
+    end
+    tmp2 = arrayfun(@(i) i.visitors.lifetime_s, lftData, 'unif', 0);
+    tmp.visitors.lifetime_s = vertcat(tmp2{:});
+    tmp.a = 1;
+    lftData = tmp;    
+end
 fprintf('=================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 nd = numel(lftData);
 
 lftRes.cellArea = zeros(nd,1);
-% lftFields = {'lifetime_s', 'trackLengths', 'catIdx'}; % catIdx must be last!
 for i = 1:nd
     
     % Category statistics
@@ -115,8 +129,8 @@ for i = 1:nd
     end
     
     res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2);
-    if isfield(lftData, 'significantSignal')
-       res(i).significantSignal = lftData(i).significantSignal;
+    if isfield(lftData, 'significantMaster')
+       res(i).significantMaster = lftData(i).significantMaster;
     end
     res(i).firstN = firstN;
         
@@ -145,7 +159,7 @@ if isempty(ip.Results.MaxIntensityThreshold)
                 cidx = lb(c)<=lft & lft<=ub(c);
                 [muC(c), sC(c)] = fitGaussianModeToCDF(M(cidx,:));
             end
-            hval(frameRange(ni)) = adtest(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
+            hval(frameRange(ni)) = adtest1(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
         end
         FirstNFrames = find(hval==1, 1, 'first')-1;
     end
@@ -222,19 +236,19 @@ for i = 1:nd
     end
     
     % Multi-channel data
-    if isfield(res, 'significantSignal')
+    if isfield(res, 'significantMaster')
         
-        lftHist_pos = hist(lftData(i).lifetime_s(res(i).significantSignal(2,:)==1), t);
-        lftHist_neg = hist(lftData(i).lifetime_s(res(i).significantSignal(2,:)==0), t);
+        lftHist_pos = hist(lftData(i).lifetime_s(res(i).significantMaster(:,2)==1), t);
+        lftHist_neg = hist(lftData(i).lifetime_s(res(i).significantMaster(:,2)==0), t);
         lftHist_pos =  [lftHist_pos.*w  pad0];
         lftHist_neg =  [lftHist_neg.*w  pad0];
         lftRes.lftHist_pos(i,:) = lftHist_pos / sum(lftHist_pos) / framerate;
         lftRes.lftHist_neg(i,:) = lftHist_neg / sum(lftHist_neg) / framerate;
         
-        lftHist_Apos = hist(lftData(i).lifetime_s(idxMI & res(i).significantSignal(:,2)), t);
-        lftHist_Aneg = hist(lftData(i).lifetime_s(idxMI & ~res(i).significantSignal(:,2)), t);
-        lftHist_Bpos = hist(lftData(i).lifetime_s(~idxMI & res(i).significantSignal(:,2)), t);
-        lftHist_Bneg = hist(lftData(i).lifetime_s(~idxMI & ~res(i).significantSignal(:,2)), t);
+        lftHist_Apos = hist(lftData(i).lifetime_s(idxMI & res(i).significantMaster(:,2)), t);
+        lftHist_Aneg = hist(lftData(i).lifetime_s(idxMI & ~res(i).significantMaster(:,2)), t);
+        lftHist_Bpos = hist(lftData(i).lifetime_s(~idxMI & res(i).significantMaster(:,2)), t);
+        lftHist_Bneg = hist(lftData(i).lifetime_s(~idxMI & ~res(i).significantMaster(:,2)), t);
         lftHist_Apos =  [lftHist_Apos.*w  pad0];
         lftHist_Aneg =  [lftHist_Aneg.*w  pad0];
         lftHist_Bpos =  [lftHist_Bpos.*w  pad0];
@@ -249,10 +263,10 @@ for i = 1:nd
         %lftRes.lftHist_Bpos(i,:) = lftHist_Bpos / normB;
         %lftRes.lftHist_Bneg(i,:) = lftHist_Bneg / normB;
         
-        lftRes.pctAboveSignificant(i) =    sum(idxMI & res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctAboveNotSignificant(i) = sum(idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctBelowSignificant(i) =    sum(~idxMI & res(i).significantSignal(:,2))/numel(idxMI);
-        lftRes.pctBelowNotSignificant(i) = sum(~idxMI & ~res(i).significantSignal(:,2))/numel(idxMI);
+        lftRes.pctAboveSignificant(i) =    sum(idxMI & res(i).significantMaster(:,2))/numel(idxMI);
+        lftRes.pctAboveNotSignificant(i) = sum(idxMI & ~res(i).significantMaster(:,2))/numel(idxMI);
+        lftRes.pctBelowSignificant(i) =    sum(~idxMI & res(i).significantMaster(:,2))/numel(idxMI);
+        lftRes.pctBelowNotSignificant(i) = sum(~idxMI & ~res(i).significantMaster(:,2))/numel(idxMI);
     end
     %-----------------------------------
     % Initiation density
