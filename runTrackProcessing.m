@@ -81,11 +81,10 @@ nCh = length(data.channels);
 mCh = strcmp(data.source, data.channels);
 
 if isempty(sigmaV)
-    sigmaV = zeros(nCh, 1);
-    for k = 1:nCh
-        sigmaV(k) = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k});
-        data.framePaths{k} = data.framePaths{k}(frameIdx);
-    end
+    sigmaV = cellfun(@(i) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, i), data.markers);
+end
+for k = 1:nCh
+    data.framePaths{k} = data.framePaths{k}(frameIdx);
 end
 
 if isempty(data.maskPaths)
