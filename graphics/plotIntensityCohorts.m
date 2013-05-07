@@ -62,7 +62,7 @@ cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
 XLim = [-b*framerate-5 cohortBounds(end)];
 YLim = ip.Results.YLim;
 if isempty(YLim) && ~isempty(ip.Results.YTick)
-   YLim = ip.Results.YTick([1 end]); 
+    YLim = ip.Results.YTick([1 end]);
 end
 
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
@@ -95,7 +95,7 @@ for i = 1:nd
             cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<cohortBounds(c+1) &...
                 maxA > ip.Results.MaxIntensityThreshold);
             nt = numel(cidx);
-
+            
             interpTracks = zeros(nt,iLength(c));
             sigma_rMat = zeros(nt,iLength(c));
             cLengths = lftData(i).trackLengths(cidx);
@@ -119,13 +119,14 @@ for i = 1:nd
 
             res(i).interpTracks{ch,c} = interpTracks;
             res(i).interpSigLevel{ch,c} = kLevel*sigma_rMat;
-         
             % split as a function of slave channel signal
             if isfield(lftData(i), 'significantMaster')
                 sigIdx = lftData(i).significantMaster(:,ch)==1;
                 %sigIdx = lftData(i).significantSlave(:,ch)==1;
                 %sigIdx = lftData(i).significantMaster(:,ch)==0 & lftData(i).significantSlave(:,ch)==1;
-                res(i).sigIdx{c}(:,ch) = sigIdx(cidx); 
+                res(i).sigIdx{c}(:,ch) = sigIdx(cidx);
+            else
+                res(i).sigIdx{c}(:,ch) = ones(numel(cidx),1);
             end
         end
     end
@@ -190,146 +191,44 @@ end
 cohorts.bounds = cohortBounds;
 
 
-%%
+
 %==================================================
 % Plot cohorts
 %==================================================
-
-if ~(isfield(res(1), 'sigIdx') && nCh>1)
-    
-    figure(fset.fOpts{:}, 'Name', 'Intensity cohorts', 'Position', [2 2 8 6]);
-    ha(1) = axes(fset.axOpts{:}, 'Position', [1.5 2 6 3.5]);
-    hold on;
-    A = cell(1,nc);
-    hp = zeros(1,nc*nCh);
-    for c = nc:-1:1
-        for ch = chVec
-            if nd > 1
-                % means for each data set
-                if strcmpi(ip.Results.FillMode, 'SEM')
-                    AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
-                    AMat = vertcat(AMat{:});
-                    A{ch,c} = nanmean(AMat,1);
-                    SEM = nanstd(AMat,[],1)/sqrt(nd);
-                    Amin = A{ch,c} - SEM;
-                    Aplus = A{ch,c} + SEM;
-                else
-                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},50,1), res, 'Unif', 0);
-                    %AMat = vertcat(AMat{:});
-                    %A{ch,c} = mean(AMat,1);
-                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},25,1), res, 'Unif', 0);
-                    %AMat = vertcat(AMat{:});
-                    %Amin = mean(AMat,1);
-                    %AMat = arrayfun(@(x) prctile(x.interpTracks{ch,c},75,1), res, 'Unif', 0);
-                    %AMat = vertcat(AMat{:});
-                    %Aplus = mean(AMat,1);
-                    
-                    %AMat = arrayfun(@(x) nanmedian(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
-                    %AMat = vertcat(AMat{:});
-                    %A{ch,c} = nanmean(AMat,1);
-                    
-                    %Amin = prctile(AMat,25,1);
-                    %Aplus = prctile(AMat,75,1);
-                end
-                
-            else
-                % if input is a single data set, show median + percentiles
-                M = prctile(res(1).interpTracks{ch,c}, [25 50 75], 1);
-                A{ch,c} = M(2,:);
-                Amin = M(1,:);
-                Aplus = M(3,:);
-            end
-            if ip.Results.ShowVariation
-                hp(c + nc*(ch-1)) = fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
-            end
-            if ~ip.Results.FrontLayer
-                plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-            end
-            cohorts.t{c} = cT{c};
-            cohorts.Amin{ch,c} = Amin;
-            cohorts.Aplus{ch,c} = Aplus;
-        end
-    end
-    cohorts.A = A;
-    for ch = chVec
-        % Plot mean/median in front
-        if ip.Results.FrontLayer
-            for c = nc:-1:1
-                plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-            end
-        end
+switch nCh
+    case 1
+        ah = 1;
+        na = 1;
+        sigCombIdx = [];
+    case 2
+        na = 2;
+        ah = 1;
+        sigCombIdx = [1 0]';
         
-        % Plot signifcance threshold in front
-        if ip.Results.ShowBackground && ch==mCh
-            % Background level: median of all detections
-            if nd>1
-                % median background level per cohort for each data set
-                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
-                medM = vertcat(medM{:});
-                plot([-10 120], nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
-            else
-                % median background level per cohort
-                medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
-                plot([-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
-            end
+        pct = zeros(nd,2);
+        for i = 1:nd
+            s =  lftData(i).significantMaster;
+            pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
         end
-    end
-    if isempty(YLim)
-        YLim = get(gca, 'YLim');
-    end
-    
-    if ~isempty(ip.Results.ChannelNames)
-        hl = legend(hp(floor(nc/2):nc:end), ip.Results.ChannelNames{:});
-        set(hl, 'Box', 'off', 'Position', [6 4.75 1 0.8]);
-    end
-    
-%     if ip.Results.ShowLegend
-%         %xlabel(ha(1), 'Time (s)', fset.lfont{:});
-%         %xlabel(ha(2), 'Time (s)', fset.lfont{:});
-%         %XTick = 0:20:200;
-%     else
-%         set(gca, 'XTick', XTick, 'XTickLabel', cohortLabels);
-%         rotateXTickLabels(gca, 'AdjustFigure', false);
-%         xlabel(gca, 'Lifetime cohort', fset.lfont{:});
-%     end
-    
-    
-    %xlabel('Time (s)', fset.lfont{:});
-    ylabel('Fluo. intensity (A.U.)', fset.lfont{:});
-    
-%%
-% indiv. figures for cargo+ / cargo-: split based on significance of slave channel
-else
-    
-    switch nCh
-        case 2
-            na = 2;
-            ah = 1;
-            sigCombIdx = [1 0]';
-            
-            pct = zeros(nd,2);
-            for i = 1:nd
-                s =  lftData(i).significantMaster;
-                pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
-            end
-            meanPct = mean(pct,1);
-            stdPct = std(pct,[],1);            
-        case 3
-            na = 4;
-            ah = 2;
-            sigCombIdx = [1 1; 1 0; 0 1; 0 0];
-            
-            pct = zeros(nd,4);
-            for i = 1:nd
-                s = lftData(i).significantMaster;
-                vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
-                s = s(vidx,:);
-                pct(i,:) = sum([s(:,2)&s(:,3) s(:,2)&~s(:,3) ~s(:,2)&s(:,3) ~s(:,2)&~s(:,3)],1)/size(s,1);
-            end
-            meanPct = mean(pct,1);
-            stdPct = std(pct,[],1);            
-    end
-    
+        meanPct = mean(pct,1);
+        stdPct = std(pct,[],1);
+    case 3
+        na = 4;
+        ah = 2;
+        sigCombIdx = [1 1; 1 0; 0 1; 0 0];
+        
+        pct = zeros(nd,4);
+        for i = 1:nd
+            s = lftData(i).significantMaster;
+            vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
+            s = s(vidx,:);
+            pct(i,:) = sum([s(:,2)&s(:,3) s(:,2)&~s(:,3) ~s(:,2)&s(:,3) ~s(:,2)&~s(:,3)],1)/size(s,1);
+        end
+        meanPct = mean(pct,1);
+        stdPct = std(pct,[],1);
+end
+
+if ~isempty(sigCombIdx)
     SlaveName = ip.Results.SlaveName;
     if isempty(SlaveName)
         SlaveName = arrayfun(@(i) ['Ch ' num2str(i)], 2:nCh, 'unif', 0);
@@ -349,111 +248,120 @@ else
                     num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
             end
     end
-    if ip.Results.ShowLegend
-        fpos = [2 2 17 5.5];
-        aposy = 1.5;
-    else
-        fpos = [2 2 15 6+4.5*(ah-1)];
-        aposy = 2;
-    end
+end
+if ip.Results.ShowLegend
+    fpos = [2 2 17 5.5];
+    aposy = 1.5;
+else
+    aw = ceil(na/ah);
+    fpos = [2 2 8+7*(aw-1) 6+4.5*(ah-1)];
+    aposy = 2;
+end
+
+A = cell(nCh,nc);
+
+ha = zeros(na,1);
+figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts, cargo-positive tracks');
+for a = 1:na
+    y0 = ceil(a/2);
+    x0 = 1-mod(a,2);
+    ha(a) = axes(fset.axOpts{:}, 'Position', [1.5+x0*6.75 aposy+(ah-y0)*4.25 6 3.5]); %#ok<LAXES>
+    hold on;
     
-    A = cell(nCh,nc);
-    
-    ha = zeros(na,1);
-    figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts, cargo-positive tracks');
-    for a = 1:na
-        y0 = ceil(a/2);
-        x0 = 1-mod(a,2);
-        ha(a) = axes(fset.axOpts{:}, 'Position', [1.5+x0*6.75 aposy+(ah-y0)*4.25 6 3.5]); %#ok<LAXES>
-        hold on;
-        
-        % combination for these axes: sigCombIdx(a)
-        for i = 1:nd
-            for c = 1:nc
-                switch nCh
-                    case 2
-                        res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1);
-                    case 3
-                        res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1) &...
-                            res(i).sigIdx{c}(:,3)==sigCombIdx(a,2);
-                end
+    % combination for these axes: sigCombIdx(a)
+    for i = 1:nd
+        for c = 1:nc
+            switch nCh
+                case 1
+                    res(i).sigComb{c} = res(i).sigIdx{c}==1;
+                case 2
+                    res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1);
+                case 3
+                    res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1) &...
+                        res(i).sigIdx{c}(:,3)==sigCombIdx(a,2);
             end
         end
-        
-        
-        for c = nc:-1:1
-            for ch = chVec; % plot master channel last
-                if nd > 1
-                    % means for each data set
-                    AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
-                    AMat = vertcat(AMat{:});
-                    A{ch,c} = nanmedian(AMat,1);
-                    SEM = nanstd(AMat,[],1)/sqrt(nd);
-                    Amin = A{ch,c} - SEM;
-                    Aplus = A{ch,c} + SEM;
-                else
-                    % if input is a single data set, show median + percentiles
-                    M = prctile(res(1).interpTracks{ch,c}(res(1).sigComb{c},:), [25 50 75], 1);
-                    A{ch,c} = M(2,:);
-                    Amin = M(1,:);
-                    Aplus = M(3,:);
-                end
-                if ip.Results.ShowVariation
-                    fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));                                   
-                end
+    end
+    
+    for c = nc:-1:1
+        for ch = chVec; % plot master channel last
+            if nd > 1
+                % means for each data set
+                AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
+                AMat = vertcat(AMat{:});
+                A{ch,c} = nanmean(AMat,1);
+                SEM = nanstd(AMat,[],1)/sqrt(nd);
+                Amin = A{ch,c} - SEM;
+                Aplus = A{ch,c} + SEM;
+            else
+                % if input is a single data set, show median + percentiles
+                M = prctile(res(1).interpTracks{ch,c}(res(1).sigComb{c},:), [25 50 75], 1);
+                A{ch,c} = M(2,:);
+                Amin = M(1,:);
+                Aplus = M(3,:);
+            end
+            if ip.Results.ShowVariation
+                fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
+            end
+            if ~ip.Results.FrontLayer
                 plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-                cohorts.t{c} = cT{c};
-                cohorts.Amin{ch,c} = Amin;
-                cohorts.Aplus{ch,c} = Aplus;
-                cohorts.A{ch,c} = A{ch,c};
+            end
+            cohorts.t{c} = cT{c};
+            cohorts.Amin{ch,c} = Amin;
+            cohorts.Aplus{ch,c} = Aplus;
+            cohorts.A{ch,c} = A{ch,c};
+        end
+    end
+    
+    for ch = chVec
+        % Plot mean/median in front
+        if ip.Results.FrontLayer
+            for c = nc:-1:1
+                plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
             end
         end
         
-        for ch = chVec
-            % Plot mean/median in front
-            %for c = nc:-1:1
-            %    plot(cT{c}, sf(mCh)/sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-            %end
-            
-            % Plot signifcance threshold in front
-            if ip.Results.ShowBackground && ch~=mCh
-                % Background level: median of all detections
-                if nd>1
-                    % median background level per cohort for each data set
-                    medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
-                    medM = vertcat(medM{:});
-                    plot([-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
-                else
-                    % median background level per cohort
-                    medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
-                    plot([-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
-                end
+        % Plot signifcance threshold in front
+        if ip.Results.ShowBackground && ch~=mCh
+            % Background level: median of all detections
+            if nd>1
+                % median background level per cohort for each data set
+                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
+                medM = vertcat(medM{:});
+                plot([-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
+            else
+                % median background level per cohort
+                medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
+                plot([-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
             end
         end
-        
     end
     
-    if isempty(YLim)
-        YLim = get(ha, 'YLim');
-        YLim = vertcat(YLim{:});
-        YLim = [min(YLim(:,1)) max(YLim(:,2))];
-    end
-    
+end
+
+if isempty(YLim)
+    YLim = get(ha, 'YLim');
+    YLim = vertcat(YLim{:});
+    YLim = [min(YLim(:,1)) max(YLim(:,2))];
+end
+
+if ~isempty(sigCombIdx)
     for a = 1:na
         text(XLim(2), YLim(2), atext{a}, fset.sfont{:},...
             'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom', 'Parent', ha(a));
     end
- 
-    if ip.Results.ShowPct && nCh>2
-        pos = get(gcf, 'Position');
-        pos(3) = pos(3)+3;
-        set(gcf, 'Position', pos);
-        dy = 0.75;
-        hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6]);
-        vennplot(meanPct(2), meanPct(3), meanPct(1), ip.Results.SlaveName,...
-            'Handle', hav, 'Font', fset.sfont);
-        axis off;
-    end
+end
+
+if ip.Results.ShowPct && nCh>2
+    pos = get(gcf, 'Position');
+    pos(3) = pos(3)+3;
+    set(gcf, 'Position', pos);
+    dy = 0.75;
+    hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6]);
+    vennplot(meanPct(2), meanPct(3), meanPct(1), ip.Results.SlaveName,...
+        'Handle', hav, 'Font', fset.sfont);
+    axis off;
+end
     
    
 %     if ip.Results.ShowLegend
@@ -482,7 +390,7 @@ else
     idx = 1-mod(1:na,2)~=0;
     set(ha(idx), 'YTickLabel', []);
     arrayfun(@(x) ylabel(x, 'Fluo. intensity (A.U.)', fset.lfont{:}), ha(~idx));
-end
+% end
 
 set(ha, 'XLim', XLim, 'XTick', XTick, 'YLim', YLim);
 if ~isempty(ip.Results.YTick)
@@ -491,11 +399,8 @@ end
 
 if ip.Results.ShowLegend
     arrayfun(@(x) xlabel(x, 'Time (s)', fset.lfont{:}), ha);
-    %XTick = 0:20:200;
 else
-    
     idx = ah-ceil((1:na)/2)>0;
-    
     set(ha, 'XTick', XTick, 'XTickLabel', cohortLabels);
     set(ha(idx), 'XTickLabel', []);
     for i = find(~idx)
