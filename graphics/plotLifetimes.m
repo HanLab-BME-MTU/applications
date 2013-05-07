@@ -20,9 +20,6 @@ fset = loadFigureSettings(ip.Results.DisplayMode);
 ce = [0 0 0.6;
     1/3 0.3 0.9;
     1/3 1 0.9];
-% ce = [0 0 0;
-%       0 0 0.6;
-%       1/3 1 0.9];
 ce = hsv2rgb(ce);
 
 if isstruct(lftRes)
@@ -70,7 +67,7 @@ if isstruct(lftRes)
     if strcmpi(ip.Results.DisplayMode, 'print')
         set(hl, 'Position', [4 5-lheight 1.75 lheight]); 
     end
-    %%
+    
     if ip.Results.ShowStatistics
         fs = loadFigureSettings('print');
         h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
@@ -129,13 +126,13 @@ if isstruct(lftRes)
         %hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([2/3 1 0.9]), 'LineWidth', 2);
         cargo = ip.Results.CargoName;
         fmt = '%.1f';
-        legendText = {' All',...
+        legendText = {' All structures',...
             [' + ' cargo ' (' num2str((pAS+pBS)*100, fmt) '%)'],...
-            [' + ' cargo ', max. int. > T (' num2str(pAS*100, fmt) '%)'],...
-            [' + ' cargo ', max. int. < T (' num2str(pBS*100, fmt) '%)'],...
+            [' + ' cargo ', CCPs (' num2str(pAS*100, fmt) '%)'],...
+            [' + ' cargo ', CSs (' num2str(pBS*100, fmt) '%)'],...
             [' - ' cargo ' (' num2str((pANS+pBNS)*100, fmt) '%)'],...
-            [' - ' cargo ', max. int. > T (' num2str(pANS*100, fmt) '%)'],...
-            [' - ' cargo, ', max. int. < T (' num2str(pBNS*100, fmt) '%)']};
+            [' - ' cargo ', CCPs (' num2str(pANS*100, fmt) '%)'],...
+            [' - ' cargo, ', CSs (' num2str(pBNS*100, fmt) '%)']};
         
         axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
         set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', yal);
@@ -144,7 +141,7 @@ if isstruct(lftRes)
         ylabel('Frequency', fset.lfont{:});
         
         hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
-        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [4 3 2.5 2]);
+        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [3.75 3.25 2 2]);
         
         % Simple plot
         pctCCPs=(pAS+pANS)/tmp;
