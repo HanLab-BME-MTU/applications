@@ -153,6 +153,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.solMethodBEM='QR';
             funParams.basisClassTblPath='';
             funParams.LcurveFactor=10;
+            funParams.thickness=32000;
         end
     end
 end

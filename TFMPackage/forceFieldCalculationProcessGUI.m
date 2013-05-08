@@ -56,6 +56,7 @@ userData.numParams ={'PoissonRatio','meshPtsFwdSol','regParam','LcurveFactor'};
 cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
     userData.numParams)
 set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
+set(handles.edit_thickness,'String',funParams.thickness/1000);
 
 % Create pop-up menu for force reconstruction method
 solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
@@ -153,6 +154,14 @@ if isempty(get(handles.edit_YoungModulus,'String'))
     return;
 end
 funParams.YoungModulus = str2double(get(handles.edit_YoungModulus,'String'))*1000;
+
+thickness = str2double(get(handles.edit_thickness,'String'));
+if isnan(thickness) || thickness <=0
+    errordlg(['Please enter a valid value for ' ...
+        get(handles.text_thickness,'String') '.'],'Setting Error','modal');
+    return;
+end
+funParams.thickness = thickness*1000;
 
 % Read reconstruction method
 props=get(handles.popupmenu_method,{'UserData','Value'});
