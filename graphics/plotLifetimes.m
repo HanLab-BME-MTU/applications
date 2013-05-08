@@ -6,12 +6,18 @@ ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('ShowCargoDependent', false, @islogical);
-ip.addParamValue('CargoName', 'cargo');
+ip.addParamValue('SlaveNames', []);
+ip.addParamValue('Hues', []);
+ip.addParamValue('XTick', 0:20:120);
 ip.addParamValue('YTick', 0:0.01:0.04);
 ip.parse(varargin{:});
 ya = ip.Results.YTick;
 lw = 0.75;
 h = [];
+chNames = ip.Results.SlaveNames;
+if ~iscell(chNames)
+    chNames = {chNames};
+end
 
 fmt = ['%.' num2str(ceil(abs(log10(ya(2))))) 'f'];
 yal = ['0' arrayfun(@(x) num2str(x, fmt), ya(2:end), 'UniformOutput', false)];
@@ -28,13 +34,13 @@ if isstruct(lftRes)
     axes(fset.axOpts{:});
     hold on;
     if isfield(lftRes, 'pctVisit')
-        hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHist_V, '-', 'Color', fset.cfB, 'LineWidth', lw);
+        hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
     end
     hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
-    hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', ce(2,:), 'LineWidth', lw);
+    hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
     
     if ip.Results.ShowExpFits
-        ff = mean(lftRes.pctBelow)*lftRes.meanLftHist_B;
+        ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
         %ff = mean(vertcat(lftRes.lftHist_Ia), 1);
         [mu,~,Aexp,expF] = fitExpToHist(lftRes.t(5:end), ff(5:end));
         tx = 0:0.1:lftRes.t(end);
@@ -45,16 +51,16 @@ if isstruct(lftRes)
         %[mu,~,Aexp,expF] = fitExpToHist(lftRes.t, ff);
         %plot(tx, Aexp/mu*exp(-1/mu*tx), 'm--', 'LineWidth', 1)
     end
-    hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+    hp(1) = plot(lftRes.t, mean(lftRes.pctCCP)*lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
 
     
-    axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-    set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', yal);
+    axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
+    set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Relative frequency', fset.lfont{:});
     
-    ltext = {[' CCPs: ' num2str(mean(lftRes.pctAbove)*100, '%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100, '%.1f') ' %'],...
-             [' CSs: ' num2str(mean(lftRes.pctBelow)*100, '%.1f') ' ± ' num2str(std(lftRes.pctBelow)*100, '%.1f') ' %'],...
+    ltext = {[' CCPs: ' num2str(mean(lftRes.pctCCP)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCCP)*100, '%.1f') ' %'],...
+             [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
               ' All structures'};
     lheight = 1.25;
     if isfield(lftRes, 'pctVisit')
@@ -76,122 +82,110 @@ if isstruct(lftRes)
             'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
         ylabel('Lifetime (s)', fset.sfont{:});
     end
-
     
-    if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHist_Apos')
+    if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHistSlaveCCP')
+        
+        % 1) plot all combinations
+        %framerate = lftRes.t(2)-lftRes.t(1);
+        framerate = 1; % TO DO: add normalization option
+        
         figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
         axes(fset.axOpts{:});
         hold on;
+        axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
         
-        pAS = mean(lftRes.pctAboveSignificant);
-        pANS = mean(lftRes.pctAboveNotSignificant);
-        pBS = mean(lftRes.pctBelowSignificant);
-        pBNS = mean(lftRes.pctBelowNotSignificant);
         
-        % normalize w/o visitors (temporary fix!)
-        tmp = pAS+pANS+pBS+pBNS;
+        ncomb = size(lftRes.slaveCombs,1);
+
+        % pct CCPs/CSs (above/below)
+        pctCCP = mean(lftRes.pctSlaveCCP,1);
+        pctCCPStd = std(lftRes.pctSlaveCCP, [], 1);
+        pctCS = mean(lftRes.pctSlaveCS,1);
         
-        pAS = pAS/tmp;
-        pANS = pANS/tmp;
-        pBS = pBS/tmp;
-        pBNS = pBNS/tmp;
-                
-        hp = zeros(1,7);
-        % total distr
-        mu = mean(vertcat(lftRes.lftHist_Ia), 1);
+        tmp = double(lftRes.slaveCombs);
+        tmp(tmp==1) = '+';
+        tmp(tmp==0) = '-';
+        labelsA = cell(1,ncomb);
+        labelsB = cell(1,ncomb);
+        labelsC = cell(1,ncomb);
+        for s = 1:ncomb
+            labelsA{s} = [' ' tmp(s,1) ' ' chNames{1}];
+            labelsB{s} = labelsA{s};
+            for c = 2:numel(chNames)
+                labelsA{s} = [labelsA{s} '/' tmp(s,c) ' ' chNames{c}];
+                labelsB{s} = [labelsB{s} '/' tmp(s,c) ' ' chNames{c}];
+            end
+            labelsC{s} = [labelsA{s} ' (' num2str(pctCCP(s)/sum(pctCCP)*100, '%.1f') '±' num2str(pctCCPStd(s)/sum(pctCCP)*100, '%.1f') '%)'];
+            labelsA{s} = [labelsA{s} ' CCPs (' num2str(pctCCP(s)*100, '%.1f') '%)'];
+            labelsB{s} = [labelsB{s} ' CSs (' num2str(pctCS(s)*100, '%.1f') '%)'];
+        end
+        
+        
+        switch ncomb
+            case 2
+                cmap = [0.33 1 0.9;
+                    0.6  1 0.9;
+                    0.23 0.7 0.9;
+                    0.5  0.7 0.9];
+            case 4
+                cmap = [0    1 0.9;
+                    0.33 1 0.9;
+                    0.55 1 0.9;
+                    0    0 0.6;
+                    0    0.7 0.9;
+                    0.28 0.7 0.9;
+                    0.5 0.7 0.9;
+                    0    0.7 0];
+        end
+        cmap = hsv2rgb(cmap);
+        
+        % distribution of all detected objects
+
+        hp = zeros(1+2*ncomb,1);
         %bAll = 1.96*getSE(lftRes, 'lftHist_Ia');
         %fill([lftRes.t lftRes.t(end:-1:1)], [mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
-        hp(1) = plot(lftRes.t, mu, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
+        hp(1) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1)*framerate, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
+        for s = ncomb:-1:1 % plot combinations in increasing order of association
+            hp(2*(s-1)+3) = plot(lftRes.t, pctCS(s)*mean(lftRes.lftHistSlaveCS{s},1)*framerate, 'Color', cmap(s+ncomb,:), 'LineWidth', lw);
+        end
+        for s = ncomb:-1:1 % plot combinations in increasing order of association
+            hp(2*(s-1)+2) = plot(lftRes.t, pctCCP(s)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
+            % missing: histograms of slave classification for all structures (lftRes.lftHistAll{s})
+        end
         
-        % Cargo-negative distributions
-        hueCN = 0.6;
-        hp(5) = plot(lftRes.t, (pANS+pBNS)*mean(vertcat(lftRes.lftHist_neg), 1), 'Color', hsv2rgb([hueCN 0.7 1]), 'LineWidth', lw);
-        hp(7) = plot(lftRes.t, pBNS*mean(lftRes.lftHist_Bneg,1), '-', 'Color', hsv2rgb([hueCN-0.1 0.7 0.9]), 'LineWidth', lw);
-        mu = mean(lftRes.lftHist_Aneg,1);
-        %bAll = 1.96*getSE(lftRes, 'lftHist_Aneg');
-        %fill([lftRes.t lftRes.t(end:-1:1)], pANS*[mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
-        
-        
-        % Cargo-positive distributions
-        hueCP = 0.33;
-        hp(2) = plot(lftRes.t, (pAS+pBS)*mean(vertcat(lftRes.lftHist_pos), 1), 'Color', hsv2rgb([hueCP 0.7 1]), 'LineWidth', lw);
-        hp(4) = plot(lftRes.t, pBS*mean(lftRes.lftHist_Bpos,1), '-',  'Color', hsv2rgb([hueCP-0.1 0.7 0.9]), 'LineWidth', lw);
-        
-        
-        hp(6) = plot(lftRes.t, pANS*mu, '-', 'Color', hsv2rgb([hueCN 1 0.9]), 'LineWidth', lw+0.5);
-        hp(3) = plot(lftRes.t, pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCP 1 0.9]), 'LineWidth', lw+0.5);
-        
-        % All, above/below threshold
-        %hp(2) = plot(lftRes.t, mean(lftRes.pctBelow)*lftRes.meanLftHist_B, '-', 'Color', hsv2rgb([2/3 0.3 0.9]), 'LineWidth', 2);
-        %hp(1) = plot(lftRes.t, mean(lftRes.pctAbove)*lftRes.meanLftHist_A, '-', 'Color', hsv2rgb([2/3 1 0.9]), 'LineWidth', 2);
-        cargo = ip.Results.CargoName;
-        fmt = '%.1f';
-        legendText = {' All structures',...
-            [' + ' cargo ' (' num2str((pAS+pBS)*100, fmt) '%)'],...
-            [' + ' cargo ', CCPs (' num2str(pAS*100, fmt) '%)'],...
-            [' + ' cargo ', CSs (' num2str(pBS*100, fmt) '%)'],...
-            [' - ' cargo ' (' num2str((pANS+pBNS)*100, fmt) '%)'],...
-            [' - ' cargo ', CCPs (' num2str(pANS*100, fmt) '%)'],...
-            [' - ' cargo, ', CSs (' num2str(pBNS*100, fmt) '%)']};
-        
-        axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-        set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', yal);
-        
+        set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
         xlabel('Lifetime (s)', fset.lfont{:});
         ylabel('Frequency', fset.lfont{:});
         
-        hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
-        set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [3.75 3.25 2 2]);
-        
-        % Simple plot
-        pctCCPs=(pAS+pANS)/tmp;
-        tmp = pAS+pANS;
-        pAS = pAS/tmp;
-        pANS = pANS/tmp;
-        
+        labels = [labelsA labelsB];
+        hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
+        set(hl, fset.tfont{:}, 'Box', 'off', 'Position', [3.75 3.25 2 2]);
+
+        %------------------------------------------------------------
+        % 2) Plot CCP lifetimes only; all combinations
+        %------------------------------------------------------------
+        %%
         figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
         axes(fset.axOpts{:});
         hold on;
     
-        hp = zeros(1,3);
-        % total distr
-        mu = mean(vertcat(lftRes.lftHist_Ia), 1);
-        %hp(1) = plot(lftRes.t, mu, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
-        %hp(2) = plot(lftRes.t, pANS*mean(lftRes.lftHist_Aneg,1)+pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCN 1 0]), 'LineWidth', lw);
-        %hp(4) = plot(lftRes.t, pANS*mean(lftRes.lftHist_Aneg,1), '-', 'Color', hsv2rgb([hueCN 1 0.9]), 'LineWidth', lw+0.5);
-        %hp(3) = plot(lftRes.t, pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCP 1 0.9]), 'LineWidth', lw+0.5);
-        hp(1) = plot(lftRes.t, pANS*mean(lftRes.lftHist_Aneg,1)+pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCN 1 0]), 'LineWidth', lw);
-        hp(3) = plot(lftRes.t, pANS*mean(lftRes.lftHist_Aneg,1), '-', 'Color', hsv2rgb([hueCN 1 0.9]), 'LineWidth', lw+0.5);
-        hp(2) = plot(lftRes.t, pAS*mean(lftRes.lftHist_Apos,1), '-', 'Color', hsv2rgb([hueCP 1 0.9]), 'LineWidth', lw+0.5);
-        %plot(lftRes.t, lftRes.meanLftHist_A, 'r--'); BUG!! (small difference)
-        % All, above/below threshold
-        cargo = ip.Results.CargoName;
-        fmt = '%.1f';
-        
-        %pAS = mean(lftRes.pctAboveSignificant);
-        %pANS = mean(lftRes.pctAboveNotSignificant);
-        
-        legendText = {...
-            [' All CCPs'],...
-            [' + ' cargo ' (' num2str(pAS*100, fmt) '±' num2str(std(lftRes.pctAboveSignificant)*100, fmt) '%)'],...
-            [' - ' cargo ' (' num2str(pANS*100, fmt) '±' num2str(std(lftRes.pctAboveNotSignificant)*100, fmt) '%)']};
-        %legendText = {...
-        %    [' All CCPs (' num2str((pctCCPs)*100, fmt) '% of CSs)'],...
-        %    [' + ' cargo ' (' num2str(pAS*100, fmt) '% CCPs)'],...
-        %    [' - ' cargo ' (' num2str(pANS*100, fmt) '% CCPs)']};
-        %legendText = {' All',...
-        %    [' Max. int. > T (' num2str((pAS+pANS)*100, fmt) '%)'],...
-        %    [' + ' cargo ', max. int. > T (' num2str(pAS*100, fmt) '%)'],...
-        %    [' - ' cargo ', max. int. > T (' num2str(pANS*100, fmt) '%)']};
-        
-        axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-        set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', yal);
+        hp = zeros(1,ncomb);
+        tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
+        tmp = cat(1,tmp{:});
+        hp(1) = plot(lftRes.t, sum(tmp,1), 'k', 'LineWidth', lw);
+        for s = ncomb:-1:1 % plot combinations in increasing order of association
+            hp(s+1) = plot(lftRes.t, pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
+        end
+        %plot(lftRes.t, lftRes.meanLftHistCCP, 'r--'); (small difference)
+        axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
+        set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
         
         xlabel('Lifetime (s)', fset.lfont{:});
         ylabel('Frequency', fset.lfont{:});
         
-        hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
-        set(hl, 'Box', 'off', 'Position', [3.2 4 2.5 1.2]);
+        hl = legend(hp, [' All CCPs' labelsC], 'Location', 'NorthEast');
+        lheight = ncomb+1;%1.5+3.5 = 5 -> 4+1.2
+        set(hl, 'Box', 'off', 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
 
     end
   
@@ -217,7 +211,7 @@ elseif iscell(lftRes)
         legendText{2*(i-1)+1} = [expName ', above threshold (' num2str(mean(lftRes{i}.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes{i}.pctAbove)*100,'%.1f') ' %)'];
         legendText{2*(i-1)+2} = [expName ', below threshold (' num2str(mean(1-lftRes{i}.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes{i}.pctAbove)*100,'%.1f') ' %)'];
     end
-    axis([0 min(120, lftRes{1}.t(end)) 0 ya(end)]);
+    axis([0 min(ip.Results.XTick(end), lftRes{1}.t(end)) 0 ya(end)]);
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
     hl = legend(hp, legendText{:}, 'Location', 'NorthEast');
