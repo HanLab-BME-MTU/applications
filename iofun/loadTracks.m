@@ -29,6 +29,7 @@ ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('Cutoff_f', 4, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
 ip.addParamValue('Category', 'Ia');
+ip.addParamValue('SignificantSlaveIndex', []);
 ip.parse(data, varargin{:});
 category = ip.Results.Category;
 if ~iscell(category)
@@ -99,3 +100,11 @@ for k = 1:numel(category);
 end
 idx = idx & [tracks.lifetime_s] >= cutoff_s;
 tracks = tracks(idx);
+
+if ~isempty(ip.Results.SignificantSlaveIndex)
+    significantMaster = [tracks.significantMaster]';
+    % slave channels
+    sCh = setdiff(1:numel(data.channels), mCh);
+    sIdx = all(bsxfun(@eq, significantMaster(:,sCh), ip.Results.SignificantSlaveIndex),2);
+    tracks = tracks(sIdx);
+end
