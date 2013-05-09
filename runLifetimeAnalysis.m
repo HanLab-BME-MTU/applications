@@ -260,21 +260,21 @@ for i = 1:nd
     lftRes.cellArea(i) = sum(mask(:)) * px^2 / 1e-12; % in µm^2
     
     % birth/death statistics
-    startsPerFrame_all = hist(lftData(i).start_all, 1:data(i).movieLength);
-    startsPerFrame_all = startsPerFrame_all(6:end-2);
-    startsPerFrame_Ia = hist(lftData(i).start(lftData(i).catIdx==1), 1:data(i).movieLength);
-    startsPerFrame_Ia = startsPerFrame_Ia(6:end-2);
-    startsPerFrameAbove = hist(lftData(i).start(idxMI), 1:data(i).movieLength);
-    startsPerFrameAbove = startsPerFrameAbove(6:end-2);
+    startsPerFrameAll = hist(lftData(i).start_all, 1:data(i).movieLength);
+    startsPerFrameAll = startsPerFrameAll(6:end-2);
+    startsPerFrameIa = hist(lftData(i).start(lftData(i).catIdx==1), 1:data(i).movieLength);
+    startsPerFrameIa = startsPerFrameIa(6:end-2);
+    startsPerFrameCCP = hist(lftData(i).start(idxMI), 1:data(i).movieLength);
+    startsPerFrameCCP = startsPerFrameCCP(6:end-2);
     
     % in µm^-2 min^-1
-    %lftRes.initDensity_all(i,:) = [median(startsPerFrame_all); madFactor*mad(startsPerFrame_all, 1)]/data(i).framerate*60/lftRes.cellArea(i);
-    %lftRes.initDensity_Ia(i,:) = [median(startsPerFrame_Ia); madFactor*mad(startsPerFrame_Ia, 1)]/data(i).framerate*60/lftRes.cellArea(i);
-    %lftRes.initDensity_above(i,:) = [median(startsPerFrameAbove); madFactor*mad(startsPerFrameAbove,1)]/data(i).framerate*60/lftRes.cellArea(i);
     dnorm = data(i).framerate*60/lftRes.cellArea(i);
-    lftRes.initDensityAll(i,:) = [mean(startsPerFrame_all); std(startsPerFrame_all)]/dnorm;
-    lftRes.initDensityIa(i,:) = [mean(startsPerFrame_Ia); std(startsPerFrame_Ia)]/dnorm;
-    lftRes.initDensityCCP(i,:) = [mean(startsPerFrameAbove); std(startsPerFrameAbove)]/dnorm;
+    lftRes.initDensity_all(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]/dnorm;
+    lftRes.initDensity_Ia(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]/dnorm;
+    lftRes.initDensity_above(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]/dnorm;
+    %lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]/dnorm;
+    %ftRes.initDensityIa(i,:) = [mean(startsPerFrameIa); std(startsPerFrameIa)]/dnorm;
+    %lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]/dnorm;
 end
 %====================
 % Initiation density
