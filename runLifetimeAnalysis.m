@@ -37,7 +37,7 @@ printPath = [getExpDir(data) 'Figures' filesep];
 [~,~] = mkdir(printPath);
 
 % median absolute deviation -> standard deviation
-% madFactor = 1/norminv(0.75, 0, 1);
+madFactor = 1/norminv(0.75, 0, 1);
 
 % Extend all to max. movie length, in case of mismatch
 Nmax = max([data.movieLength])-2;
@@ -269,9 +269,9 @@ for i = 1:nd
     
     % in µm^-2 min^-1
     dnorm = data(i).framerate*60/lftRes.cellArea(i);
-    lftRes.initDensity_all(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]/dnorm;
-    lftRes.initDensity_Ia(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]/dnorm;
-    lftRes.initDensity_above(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]/dnorm;
+    lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]/dnorm;
+    lftRes.initDensityIa(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]/dnorm;
+    lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]/dnorm;
     %lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]/dnorm;
     %ftRes.initDensityIa(i,:) = [mean(startsPerFrameIa); std(startsPerFrameIa)]/dnorm;
     %lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]/dnorm;
