@@ -17,8 +17,10 @@ ip.addRequired('background', @isnumeric);
 ip.addRequired('backgroundStd', @isnumeric);
 ip.addParamValue('segmentLength', 0, @isscalar);
 ip.addParamValue('segmentSpacing', 1, @isscalar);
+ip.addParamValue('S', 0, @isscalar);
 ip.parse(imageStack,background,backgroundStd,varargin{:});
 segmentSpacing = ip.Results.segmentSpacing;
+S = ip.Results.S;
 
 segmentLength = ip.Results.segmentLength;
 if segmentLength == 0
@@ -34,8 +36,14 @@ number = nan(size(imageStack,1),size(imageStack,2),length(segmentStarts));
 brightness = number;
 for isegment = 1:length(segmentStarts)
     segmentImages = imageStack(:,:,segmentStarts(isegment):segmentStarts(isegment)+segmentLength-1);
-    %calculate number
-    number(:,:,isegment) = (nanmean(segmentImages,3) - background).^2./(nanstd(segmentImages,0,3).^2-backgroundStd.^2);
     %calculate brightness
-    brightness(:,:,isegment)  = (nanstd(segmentImages,0,3).^2-backgroundStd.^2)./(nanmean(segmentImages,3) - background);
+    brightness(:,:,isegment)  = (nanstd(segmentImages,0,3).^2-backgroundStd.^2 - ...
+        S*(nanmean(segmentImages,3) - background))./(nanmean(segmentImages,3) - background);
+    
+    %calculate number
+    number(:,:,isegment) = (nanmean(segmentImages,3) - background)./brightness(:,:,isegment);
+    
+%     brightness(:,:,isegment)  = (nanstd(segmentImages,0,3).^2-backgroundStd.^2)./...
+%         (nanmean(segmentImages,3) - min(segmentImages,[],3)); % - background);
+
 end
