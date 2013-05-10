@@ -17,12 +17,14 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(var) isstruct(var)&numel(var) == 1);
 ip.addParamValue('mask', [], @isnumeric);
+ip.addParamValue('handMask', false, @islogical);
 ip.addParamValue('chooseImageToSegment', false, @islogical);
 ip.parse(data, varargin{:});
 %MAKE CELL MASK
 
 %BY HAND
-if isempty(ip.Results.mask)
+
+if ip.Results.handMask
     if ip.Results.chooseImageToSegment
         [filename, pathname] = uigetfile('.tif','choose image to segment by hand');
         image = imread([pathname filesep filename]);
@@ -40,6 +42,10 @@ if isempty(ip.Results.mask)
     areamask = getCellMask(data);
     mask = zeros(size(areamask));
     mask = areamask & maskHandCut;
+elseif isempty(ip.Results.mask)
+mask = getCellMask(data,'Display', 'off');
+mask = imfill(mask);
+mask = logical(mask);
 else
     image = double(imread(data.framePaths{1}{1}));
     mask = ip.Results.mask;
@@ -55,8 +61,8 @@ while ~goodWindows
     %visualize polygons
     handle  = imshow(image,[]);
     hold on
-        plotWindows(windowPolygons)
-  
+    plotWindows(windowPolygons)
+    
     
     goodWindows = input('Is the window size good (1 for yes 0 for no)?');
     if ~goodWindows
