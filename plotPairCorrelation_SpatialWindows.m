@@ -35,7 +35,7 @@ function [windowInfo] = plotPairCorrelation_SpatialWindows(experiment,dist,rest,
 %       calculatePitDenFromLR
 %       makeCorrFactorMatrix
 %
-% Daniel Nunez, updated May 05, 2009
+% Daniel Nunez, updated April 24, 2013
 
 %% EXPLANATION of restriction values:
 % rest = [stat da minfr minlft maxlft minint maxint minmot maxmot]
@@ -72,7 +72,7 @@ function [windowInfo] = plotPairCorrelation_SpatialWindows(experiment,dist,rest,
 %           rest2 = [1 0 4 8 25]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%
+
 %AREA MASK PARAMETERS
 closureRadius = 20;
 dilationRadius = 5;
@@ -93,96 +93,31 @@ if nargin < 5 || isempty(windowPolygons)
     windowPolygons = [];
 end
 
-%initiate
-borderInside = [];
+
 for iexp = 1:length(experiment)
     
-     % framerate
-    framerate = experiment(iexp).framerate;
-    % image size
-    imsize  = experiment(iexp).imagesize;
+    tracks = loadTracks(experiment(iexp));
+    imsizS = [experiment(iexp).imagesize(2) experiment(iexp).imagesize(1)];
     
-    %Load Lifetime Information
-    try load([experiment(iexp).source filesep 'Tracking' filesep 'trackAnalysis.mat'])
-        
-        %positions used to calculate mask
-        maskPositionsX = arrayfun(@(t) t.x(1),tracks)';
-        maskPositionsY = arrayfun(@(t) t.y(1),tracks)';
-        maskPositions = [maskPositionsX, maskPositionsY];
-        
-        %track.status == 1 means track is complete
-        tracks = tracks([tracks.status] == 1 & arrayfun(@(x)all(x.gapStatus~=5),tracks) == 1 &...
-            [tracks.lifetime_s] > rest(1,3)*framerate & ...
-            [tracks.lifetime_s] > rest(1,4) & [tracks.lifetime_s] < rest(1,5));
-        
-        %positions used to calculate pair correlation
-        pairPositionsX = arrayfun(@(t) t.x(1),tracks)';
-        pairPositionsY = arrayfun(@(t) t.y(1),tracks)';
-        mpm1 = [pairPositionsX pairPositionsY];
-        
-        %lifetimes
-        lifetimes = [tracks.lifetime_s];
-        
-    catch ME
-        
-        lftInfo = load([experiment(iexp).source filesep 'LifetimeInfo' filesep 'lftInfo']);
-        lftInfo = lftInfo.lftInfo;
-        % status matrix
-        statMat = lftInfo.Mat_status;
-        % lifetime matrix
-        lftMat = lftInfo.Mat_lifetime;
-        % x-coordinate matrix
-        matX = lftInfo.Mat_xcoord;
-        % y-coordinate matrix
-        matY = lftInfo.Mat_ycoord;
-        % disapp status matrix
-        daMat = lftInfo.Mat_disapp;
-        
-        %pit status
-        if isfield(experiment,'status')
-            if isrow(experiment(iexp).status)
-                status = experiment(iexp).status';
-            else
-                status = experiment(iexp).status;
-            end
-        else
-            status = ones(1,size(daMat,1));
-        end
-        
-        
-        %find all pits in movie that meet requirements specified by restriction
-        %vector
-        findPos = ((statMat==rest(1,1)) & (daMat==rest(1,2)) &...
-            (lftMat>rest(1,3)) & (lftMat>round(rest(1,4)/framerate)) & (lftMat<round(rest(1,5)/framerate)) &...
-            repmat(status',1,size(statMat,2)) == statusValue);
-        
-        %positions used to calculate pair correlation 
-        mpm1 = [full(matX(findPos)) full(matY(findPos))];
-        
-        %positions used to calculate mask
-        maskPositions = [matX(~isnan(matX)),matY(~isnan(matY))];
-        
-        %lifetimes
-        lifetimes = lftMat(findPos);
-        
-    end
     %count windows
     windowsPerSlice = cellfun(@(x)numel(x),windowPolygons);
-    numWindows  = sum(windowsPerSlice);
     
     %pick out pits that fall in windows
     for i = 1:length(windowsPerSlice)
         for j = 1:windowsPerSlice(i)
             
-            border = [windowPolygons{i}{j}{:}];
-            in  = inpolygon(mpm1(:,1),mpm1(:,2),border(1,:),border(2,:));
+            mpm = nan(length(tracks),2);
+            mpm(:,1) = cell2mat(arrayfun(@(var)var.x(1,1),tracks,'UniformOutput',false))';
+            mpm(:,2) = cell2mat(arrayfun(@(var)var.y(1,1),tracks,'UniformOutput',false))';
             
-            windowInfo(i,j).pits = mpm1(in,:);
+            border = [windowPolygons{i}{j}{:}];
+            in  = inpolygon(mpm(:,1),mpm(:,2),border(1,:),border(2,:));
+            
+            windowInfo(i,j).pits = mpm(in,:);
             
             if length(windowInfo(i,j).pits) >= 3
                 %MAKE MASK
-                imsizS = [imsize(2) imsize(1)];
-                [areamask] = makeCellMaskDetections(windowInfo(i,j).pits,closureRadius,dilationRadius,doFill,imsize,0,[]);
+                [areamask] = makeCellMaskDetections(windowInfo(i,j).pits,closureRadius,dilationRadius,doFill,experiment(iexp).imagesize,0,[]);
                 %CALCULATE NORMALIZED AREA FROM MASK
                 normArea = bwarea(areamask);
                 
@@ -190,13 +125,13 @@ for iexp = 1:length(experiment)
                 corrFacMat = makeCorrFactorMatrix(imsizS, dist, 10, areamask');
                 
                 %CALCULATE PIT DENSITY
-                [kr,lr]=RipleysKfunction(windowInfo(i,j).pits,windowInfo(i,j).pits,imsizS,dist,corrFacMat,normArea);
-                [currDen] = calculatePitDenFromLR(kr,dist);
+                [kr,lr,currDen]=RipleysKfunction(windowInfo(i,j).pits,windowInfo(i,j).pits,imsizS,dist,corrFacMat,normArea);
+                
                 
                 %calculate other good stuff
                 windowInfo(i,j).pairCorrelation = currDen;
                 windowInfo(i,j).nucDen = size(windowInfo(i,j).pits,1)/normArea;
-                windowInfo(i,j).lft = lftMat(findPos(in));
+                windowInfo(i,j).lft = [tracks(in).lifetime_s];
             else
                 windowInfo(i,j).pairCorrelation = [];
                 windowInfo(i,j).nucDen = [];
