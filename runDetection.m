@@ -14,6 +14,8 @@ ip.addRequired('data', @isstruct);
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Master', [], @isnumeric);
+ip.addParamValue('Alpha', 0.05, @isnumeric);
+ip.addParamValue('CellMask', [],  @isnumeric);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 mCh = ip.Results.Master;
@@ -27,7 +29,7 @@ end
 for i = 1:length(data)
     if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
-        main(data(i), ip.Results.Sigma, mCh);
+        main(data(i), ip.Results.Sigma, mCh, ip.Results.Alpha, ip.Results.CellMask);
         fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
@@ -36,7 +38,7 @@ end
 
 
 
-function main(data, sigma, mCh)
+function main(data, sigma, mCh, alpha, cellMask)
 
 % master channel
 nCh = length(data.channels);
@@ -70,7 +72,7 @@ rmfields = [dfields lfields {'x_init', 'y_init', 'maskA', 'maskN', 'mask_Ar'}];
 parfor k = 1:data.movieLength
     img = double(imread(data.framePaths{mCh}{k})); %#ok<PFBNS>
     
-    [pstruct, mask] = pointSourceDetection(img, sigma(mCh)); %#ok<PFBNS>
+    [pstruct, mask] = pointSourceDetection(img, sigma(mCh), 'Alpha', alpha, 'Mask', cellMask); %#ok<PFBNS>
     
     if ~isempty(pstruct)
         pstruct.s = sigma;
