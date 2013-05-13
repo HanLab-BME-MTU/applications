@@ -33,7 +33,7 @@ if isstruct(lftRes)
     h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime dist. (intensity threshold)');
     axes(fset.axOpts{:});
     hold on;
-    if isfield(lftRes, 'pctVisit')
+    if isfield(lftRes, 'meanLftHistVisit')
         hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
     end
     hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
@@ -63,7 +63,7 @@ if isstruct(lftRes)
              [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
               ' All structures'};
     lheight = 1.25;
-    if isfield(lftRes, 'pctVisit')
+    if isfield(lftRes, 'meanLftHistVisit')
         ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
         hp = hp([1 2 4 3]);
         lheight = 1.5;
