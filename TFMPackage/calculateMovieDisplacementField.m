@@ -146,10 +146,11 @@ else
     end
     beads = beads(valid, :);
 end
-% Select only beads which are minCorLength away from the border of the
+% Select only beads which are max velocity away from the border of the
 % reference frame 
 beadsMask = true(size(refFrame));
-erosionDist=p.minCorLength+1;
+erosionDist=p.maxFlowSpeed;
+% erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
