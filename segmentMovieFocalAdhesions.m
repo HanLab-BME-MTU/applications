@@ -93,8 +93,10 @@ fStr = ['%0' num2str(floor(log10(nImages))) + 1 '.0f'];%Format string for zero-p
 maskDirs  = adSegProc.outFilePaths_(p.ChannelIndex);
 
 %TEMP - check for and load thresholding/mask refinement 
-
 masks = false([imSize, nImages nChanSeg]);
+
+%Get the ROI mask (if not an ROI, this will be all true)
+roiMask = movieData.getROIMask;
 
 %% ------------ Segmentation -------------- %%
 
@@ -151,6 +153,7 @@ for iChan = 1:nChanSeg
             
         end
         
+        
         %Store this in the combined matrix at the end, to make indexing
         %operations above simpler
         masks(:,:,iImage,iChan) = currMask;
@@ -165,6 +168,13 @@ for iChan = 1:nChanSeg
     end    
    
     
+end
+
+%% ---------- ROI Selection ----------- %%
+%Applies ROI (if selected - the ROI mask is all 1s otherwise)
+
+for iChan = 1:nChanSeg
+    masks(:,:,:,iChan) = masks(:,:,:,iChan) & roiMask; 
 end
 
 

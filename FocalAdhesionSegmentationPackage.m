@@ -16,7 +16,7 @@ classdef FocalAdhesionSegmentationPackage < Package
             else
                 % Check input
                 ip =inputParser;
-                ip.addRequired('owner',@(x) isa(x,'MovieData'));
+                ip.addRequired('owner',@(x) isa(x,'MovieObject'));
                 ip.addOptional('outputDir',owner.outputDirectory_,@ischar);
                 ip.parse(owner,varargin{:});
                 outputDir = ip.Results.outputDir;

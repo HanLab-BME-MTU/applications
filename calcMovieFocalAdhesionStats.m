@@ -213,7 +213,7 @@ xlabel([tPropFields{iLife} ', ' tPropUnits{iLife}])
 ylabel('# of Adhesions') 
 title({['Lifetimes, n=' num2str(nComplete) ' complete adhesions'],'(Start and end within movie)'})
 
-if p.SaveFigures, mfFigureExport(cFig,'Lifetimes of complete adhesions');end
+if p.SaveFigures, mfFigureExport(cFig,[p.OutputDirectory filesep 'Lifetimes of complete adhesions']);end
 
 % ----- N over Time Figure ----- %
 
@@ -224,7 +224,7 @@ plot(tData,nAdhPerFrame)
 xlabel(['Time, ' tUnits])
 ylabel('Total # Adhesions')
 title({'Adhesion Count over Time',['Total of n=' num2str(nAdhesions) ' unique adhesions']})
-if p.SaveFigures, mfFigureExport(nVtFig,'Adhesion count vs time');end
+if p.SaveFigures, mfFigureExport(nVtFig,[p.OutputDirectory filesep 'Adhesion count vs time']);end
 
 
 %% ------------- Alignment --------- %%
