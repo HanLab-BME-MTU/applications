@@ -9,6 +9,7 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('ch', []);
 ip.addParamValue('np', 1000);
+ip.addParamValue('sigma', [],@isscalar);
 ip.addParamValue('ccpMask', 'on', @(x) any(strcmpi(x, {'on','off'})));
 ip.parse(data, varargin{:});
 chIdx = ip.Results.ch;
@@ -25,7 +26,11 @@ end
 cellmask = logical(getCellMask(data));
 [ny,nx] = size(cellmask);
 
-sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
+if ~isempty(ip.Results.sigma)
+    sigma = ip.Results.sigma;
+else
+    sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
+end
 % used for boundary and initializations only, take largest sigma
 w = ceil(4*max(sigma));
 
@@ -59,7 +64,7 @@ parfor i = 1:nf
         ycand = (ny-2*w-1)*rand(1,N)+w+1;
         xi = round(xcand);
         yi = round(ycand);
-    
+        
         % remove points outside of mask or within border
         linIdxCand = sub2ind([ny nx], yi, xi);
         %rmIdx = cellmask(linIdxCand)==0 | xi<=w | yi<=w | xi>nx-w | yi>ny-w;
