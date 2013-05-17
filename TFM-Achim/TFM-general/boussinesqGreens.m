@@ -12,7 +12,7 @@ elseif (i==1 && j==2) || (i==2 && j==1)
 elseif i==2 && j==2 
     G=preFactor.*((1-v).*r.^2+v.*y.^2);
 else
-    'something went wrong'
+    display('something went wrong')
 end
 
 %remove the NaN if the Greensfunction has been evaluated at zero.

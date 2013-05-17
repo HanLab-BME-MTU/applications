@@ -36,11 +36,11 @@ yNew=Y(:);
 indOld=sub2ind([maxYNorm maxXNorm],yvecNorm,xvecNorm);
 indNew=sub2ind([maxYNorm maxXNorm],yNew,xNew);
 
-matOld=zeros(maxYNorm,maxXNorm);
-matNew=zeros(maxYNorm,maxXNorm);
+matOld=zeros(round(maxYNorm),round(maxXNorm));
+matNew=zeros(round(maxYNorm),round(maxXNorm));
 
-matOld(indOld)=1;
-matNew(indNew)=1;
+matOld(round(indOld))=1;
+matNew(round(indNew))=1;
 
 matDif=matOld-matNew;
 isSq=~sum(matDif(:));

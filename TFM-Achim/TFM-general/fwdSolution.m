@@ -1,4 +1,4 @@
-function [ux uy x_grid y_grid meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol)
+function [ux uy x_grid y_grid meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h)
 % This forward solution is only valid for a Poisson's ratio v=0.5!
 % Input: No matter what the dimension of x0 and y0 is (pix, or um), the
 %        dimension of the surface stresses (force_x, force_y) must have the
@@ -85,14 +85,14 @@ elseif strcmpi(method,'fft')
     % calculated. This need not to be a power of 2 yet:
     xvec_F=linspace(leftUpperCorner(1),rightLowerCorner(1),Nx_F);
     yvec_F=linspace(leftUpperCorner(2),rightLowerCorner(2),Ny_F);
-    [xgrid_F ygrid_F]=meshgrid(xvec_F,yvec_F);
+    [xgrid_F,ygrid_F]=meshgrid(xvec_F,yvec_F);
     
     % create a mesh centered at zero with Nx_G*Ny_G meshpoints, where the
     % Greensfunctions are calculated.
     xvec_G=linspace(-xRange,xRange,Nx_G);
     yvec_G=linspace(-yRange,yRange,Ny_G);
     
-    [xgrid_G ygrid_G]=meshgrid(xvec_G,yvec_G);
+    [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
       
     %calculate the force values at the grid_F positions:
     discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
@@ -141,7 +141,7 @@ elseif strcmpi(method,'fft')
     
     % Plot the solution:
 %     figure(10)
-%     surf(ux_grid)
+%     imshow(ux_grid,[])
 %     
 %     figure(11)
 %     surf(uy_grid)
@@ -233,6 +233,173 @@ elseif strcmpi(method,'fft')
     end
     
         
+    % Now interpolate the displacement field from the regular grid to the irregular
+    % measured grid. Since we have the force field defined on a regular grid
+    % we can use the fast *option. 'linear' is about a factor of two faster than
+    % 'cubic'. Hard to tell if cubic performs better than linear.    
+    if nargin>10 && strcmp(opt,'noIntp')
+        ux = ux_grid;%'*cubic'
+        uy = uy_grid;%'*linear'
+        x_grid=xgrid_F;
+        y_grid=ygrid_F;
+    else
+        ux = interp2(xgrid_F,ygrid_F,ux_grid,x0,y0,'*cubic');%'*cubic'
+        uy = interp2(xgrid_F,ygrid_F,uy_grid,x0,y0,'*cubic');%'*linear'
+        x_grid=x0;
+        y_grid=y0;
+    end
+    
+    %toc;
+    
+    %x0_vec=reshape(x0,[],1);
+    %y0_vec=reshape(y0,[],1);
+
+    %x_vec=reshape(xgrid_F,[],1);
+    %y_vec=reshape(ygrid_F,[],1);
+    %ux_vec=reshape(ux_grid,[],1);
+    %uy_vec=reshape(uy_grid,[],1);
+
+
+    %tic;
+    %[~, ~, ux] = griddata(x_vec,y_vec,ux_vec,x0,y0,'cubic');
+    %[~, ~, uy] = griddata(x_vec,y_vec,uy_vec,x0,y0,'cubic');
+    %toc;
+elseif strcmpi(method,'fft_finite')
+    %display('Use fast convolution')    
+
+    % This determines the sampling of the force field:
+    if nargin < 12 || isempty(meshPtsFwdSol)
+        display('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
+        meshPtsFwdSol=2^10;
+    end
+        
+    Nx_F=meshPtsFwdSol; % 2^10 is the densest sampling possible.
+    Ny_F=Nx_F;
+    
+    % To account for dx*dy in the convolution integral one has to finally
+    % rescale the result by the following scaling factor:
+    xRange=(max(max(x0))-min(min(x0)));
+    yRange=(max(max(y0))-min(min(y0)));
+    scalingFactor=(xRange*yRange)/(Nx_F*Ny_F);
+    
+    % To cover the whole support of the force field, the domain over which
+    % the Greensfunctions have to be calculated need to be at least of size:
+    % (2Nx-1)x(2Ny-1).
+
+    Nx_G=2*Nx_F-1;
+    Ny_G=2*Ny_F-1;    
+    
+    % Subsequently, these have to be padded with zeros according to:
+    Nx_pad=Nx_F+Nx_G-1;
+    Ny_pad=Ny_F+Ny_G-1;
+    
+    % These might not be a power of 2, make sure that they are:
+    Nx_pad=pow2(nextpow2(Nx_pad));
+    Ny_pad=pow2(nextpow2(Ny_pad));
+
+    % First determine the boundaries of the mesh:
+    leftUpperCorner =[min(min(x0)) min(min(y0))];
+    rightLowerCorner=[max(max(x0)) max(max(y0))];
+
+    % create a regular mesh with Nx*Ny meshpoints where the force field is
+    % calculated. This need not to be a power of 2 yet:
+    xvec_F=linspace(leftUpperCorner(1),rightLowerCorner(1),Nx_F);
+    yvec_F=linspace(leftUpperCorner(2),rightLowerCorner(2),Ny_F);
+    [xgrid_F,ygrid_F]=meshgrid(xvec_F,yvec_F);
+    
+    % create a mesh centered at zero with Nx_G*Ny_G meshpoints, where the
+    % Greensfunctions are calculated.
+    xvec_G=linspace(-xRange,xRange,Nx_G);
+    yvec_G=linspace(-yRange,yRange,Ny_G);
+    
+    [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
+      
+    %calculate the force values at the grid_F positions:
+    discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
+    discrete_Force_y_unPadded=force_y(xgrid_F,ygrid_F);
+
+    % This part if what's different from 'fft' method that uses
+    % boussinesque greens function
+    discrete_boussinesqGreens11=finiteThicknessGreens(1,1,xgrid_G,ygrid_G,E,h);
+    discrete_boussinesqGreens12=finiteThicknessGreens(1,2,xgrid_G,ygrid_G,E,h);
+   %discrete_boussinesqGreens21=discrete_boussinesqGreens12;
+    discrete_boussinesqGreens22=finiteThicknessGreens(2,2,xgrid_G,ygrid_G,E,h);
+    
+    % Pad the calculated fields with zero to the next power larger than 
+    % (2*N-1), see above. For this setup, the FFT is fastest.
+    discrete_Force_x=padarray(discrete_Force_x_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');%'symmetric','post');
+    discrete_Force_y=padarray(discrete_Force_y_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');
+    
+    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+   %discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post'); 
+    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+    
+    % Now calculate the fourier transforms:
+    dFT_Force_x=fft2(discrete_Force_x);
+    clear discrete_Force_x;
+    dFT_Force_y=fft2(discrete_Force_y);
+    clear discrete_Force_y;
+    
+    % This has to be calculated only once for all basis functions!
+    dFT_boussinesqGreens11=fft2(discrete_boussinesqGreens11);
+    clear discrete_boussinesqGreens11;
+    dFT_boussinesqGreens12=fft2(discrete_boussinesqGreens12);
+    clear discrete_boussinesqGreens12;
+    dFT_boussinesqGreens21=dFT_boussinesqGreens12;
+    % nothing to clear here!
+    dFT_boussinesqGreens22=fft2(discrete_boussinesqGreens22);
+    clear discrete_boussinesqGreens22;
+    
+    % Now calculate the solution:                
+    ux_grid=ifft2(dFT_boussinesqGreens11.*dFT_Force_x+dFT_boussinesqGreens12.*dFT_Force_y);
+    clear dFT_boussinesqGreens11 dFT_boussinesqGreens12;
+    uy_grid=ifft2(dFT_boussinesqGreens21.*dFT_Force_x+dFT_boussinesqGreens22.*dFT_Force_y);
+    clear dFT_boussinesqGreens21 dFT_Force_x dFT_boussinesqGreens22 dFT_Force_y;
+    
+    % Now extract the essential part from the solution. It is located in
+    % the center of the padded field.    
+    % I really don't understand why to cut it out like this, but it works!
+    startIndex_x=abs(Nx_G-Nx_F)+1; % Or is it just: startIndex_x=Nx_F
+    startIndex_y=abs(Ny_G-Ny_F)+1;
+    
+    endIndex_x=startIndex_x+Nx_F-1;
+    endIndex_y=startIndex_y+Ny_F-1;
+    
+
+    % Remove imaginary part caused by round off errors:
+    ux_grid=real(ux_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
+    uy_grid=real(uy_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
+
+%     figure
+%     imshow(ux_grid,[])
+
+%!!! This could be improved by using the analytical solution for the Fourie
+%!!! Transform of the Greensfunction!
+    % Add the solution for G(0,0). This is a correction term which becomes
+    % irrelevant for very dense sampling. But for small Nx_F it is REALLY
+    % essential!
+    % Set the Poisson's ratio to 0.5:
+    v=0.5;
+    dx=abs(xvec_G(2)-xvec_G(1));
+    dy=abs(yvec_G(2)-yvec_G(1));
+    
+    int_x2_over_r3=2*dy*log((dy^2+2*dx*(dx+sqrt(dx^2+dy^2)))/(dy^2));    
+    int_y2_over_r3=2*dx*log((dx^2+2*dy*(dy+sqrt(dx^2+dy^2)))/(dx^2));    
+    int_1_over_r  =int_x2_over_r3 + int_y2_over_r3;
+        
+    corrTerm_11=(1+v)/(pi*E)*((1-v)*int_1_over_r+v*int_x2_over_r3);
+    corrTerm_22=(1+v)/(pi*E)*((1-v)*int_1_over_r+v*int_y2_over_r3);
+    
+    ux_grid=ux_grid+discrete_Force_x_unPadded*corrTerm_11;
+    clear discrete_Force_x_unPadded;
+    uy_grid=uy_grid+discrete_Force_y_unPadded*corrTerm_22;
+    clear discrete_Force_y_unPadded;
+    
+    % scale the solution appropriately!
+    ux_grid=scalingFactor*ux_grid;
+    uy_grid=scalingFactor*uy_grid;
+    
     % Now interpolate the displacement field from the regular grid to the irregular
     % measured grid. Since we have the force field defined on a regular grid
     % we can use the fast *option. 'linear' is about a factor of two faster than

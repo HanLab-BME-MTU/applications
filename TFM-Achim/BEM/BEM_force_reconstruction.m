@@ -35,6 +35,7 @@ ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
 ip.addOptional('fwdMap',[],@isnumeric);
+ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -43,6 +44,7 @@ wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 M = ip.Results.fwdMap;
+thickness = ip.Results.thickness;    
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -70,7 +72,7 @@ tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     if nargin >= 15
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols);    
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
     else
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);
@@ -99,16 +101,19 @@ if nargin >= 10 && strcmp(method,'fast')
     % class, then the weights are all one (e.g. square lattice where
     % boundary nodes are skipped) 
     % See refine_BEM_force_reconstruction for a nice explanation of the next
-    % steps:
+    % steps: <-Achim's comment
     
-    [normWeights,listNormWeights]=getNormWeights(forceMesh);
-    eyeWeights =diag(normWeights);
+    % It is more correct to consider the weight to be Cholesky factor of /int hi(x) hj(x) dx
     
-    if length(listNormWeights)==1
+%     [normWeights,listNormWeights]=getNormWeights(forceMesh);
+%     eyeWeights =diag(normWeights);
+    [eyeWeights,~] =getGramMatrix(forceMesh);
+    
+%     if length(listNormWeights)==1
         needGSVD =0;
-    else
-        needGSVD =1;
-    end
+%     else
+%         needGSVD =1;
+%     end
     % Checked (g)SVD against Matlab inversion! Found no advantage of
     % (g)SVD over Matlab inversion but (g)SVD is much slower. Differences
     % seem to arise only for irregular meshes or at mesh boundaries.
@@ -147,16 +152,14 @@ if nargin >= 10 && strcmp(method,'fast')
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
         MpM=M'*M;
-%         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
-%         [Q,R] = qr((MpM+L*D^2));
-%         L = calculateLfromLcurve(M,MpM,u,L,eyeWeights);
+%         [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
         
         [Q,R] = qr((MpM+L*eyeWeights));
         sol_coef=R\(Q'*(M'*u));
         sol_mats.Q=Q;
         sol_mats.R=R;
         sol_mats.L=L;
-        sol_mats.nW=normWeights;        
+%         sol_mats.eyeWeights=eyeWeights;        
         sol_mats.tool='QR';
     elseif strcmpi(solMethodBEM,'QRscaled')
         % accounting for badly scaled linear system - Sangyoon 02/20/13
@@ -189,7 +192,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.MpM=MpM;
         sol_mats.Lap=Lap;
         sol_mats.L=L;
-        sol_mats.nW=normWeights;
+        sol_mats.eyeWeights=eyeWeights;
         sol_mats.tool='LaplacianReg';
     elseif strcmpi(solMethodBEM,'1NormReg')
         % Now, perform the sparse deconvolution.
@@ -203,18 +206,14 @@ if nargin >= 10 && strcmp(method,'fast')
 %         disp('L-curve ...')
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
         sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
-        sol_mats.nW=normWeights;
+%         sol_mats.nW=normWeights;
+        sol_mats.eyeWeights=eyeWeights;
         sol_mats.L=L;
         sol_mats.M = M;
         sol_mats.MpM = MpM;
         sol_mats.maxIter = maxIter;
         sol_mats.tolx = tolx;
         sol_mats.tolr = tolr;
-
-        sol_mats.nW=normWeights;
-        sol_mats.L=L;
-        sol_mats.M = M;
-        sol_mats.MpM = MpM;
         sol_mats.tool='1NormReg';
     elseif strcmpi(solMethodBEM,'1NormRegLaplacian')
         % Now, perform the sparse deconvolution.
@@ -225,9 +224,8 @@ if nargin >= 10 && strcmp(method,'fast')
         % plot the solution for the corner
         MpM=M'*M;
 
-        disp('L-curve ...')
         maxIter = 100;
-        tolx = 1e-3;
+        tolx = 2e-2;
         tolr = 1e-7;
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
         sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
@@ -247,7 +245,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,'backslash');
         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         % store these matrices for next frames:
-        sol_mats.nW=normWeights;
+        sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;
         sol_mats.L=L;
         sol_mats.tool='backslash';
@@ -297,86 +295,6 @@ toc;
 display('Done: solution!')
 
 function Lap = buildLaplacian(forceMesh)
-%         nBasisx = size(unique(forceMesh.p(:,1)),1);
-%         nBasisy = size(unique(forceMesh.p(:,2)),1);
-%         nBasis = nBasisx*nBasisy;
-%         k=1;
-%         % this is for assuring the boundary to be considered for being
-%         % penalized for regularization
-%         display('Building Laplacian Map...')
-%         tic;
-%         Lap = zeros(nBasis,2*nBasis);
-%         for ii=1:nBasisx
-%             tempLapx = zeros(nBasisy,nBasis); %for parfor constraints
-%             tempLapy = zeros(nBasisy,nBasis); %for parfor constraints
-%             parfor jj=1:nBasisy
-%                 Lap2D = zeros(nBasisy,nBasisx);
-%                 if ii==1 || jj==1 || ii==nBasisx || jj==nBasisy
-% %                     Lap2D(ii,jj)=1; % 0th order regularization. Potentially 
-% %                     % this can be improved with basis function convolution
-%                     if ii==1 
-%                         if jj==1
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii+1,jj)=1;
-%                             Lap2D(ii,jj+1)=1;
-%                         elseif jj==nBasisy
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii+1,jj)=1;
-%                             Lap2D(ii,jj-1)=1;
-%                         else
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii+1,jj)=1;
-%                             Lap2D(ii,jj+1)=1;
-%                         end
-%                     elseif ii==nBasisx
-%                         if jj==1
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii-1,jj)=1;
-%                             Lap2D(ii,jj+1)=1;
-%                         elseif jj==nBasisy
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii-1,jj)=1;
-%                             Lap2D(ii,jj-1)=1;
-%                         else
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii-1,jj)=1;
-%                             Lap2D(ii,jj-1)=1;
-%                         end
-%                     elseif jj==1
-%                         if ii~=nBasisx && ii~=1
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii+1,jj)=1;
-%                             Lap2D(ii,jj+1)=1;
-%                         end
-%                     elseif jj==nBasisy                        
-%                         if ii~=nBasisx && ii~=1
-%                             Lap2D(ii,jj)=-2;
-%                             Lap2D(ii+1,jj)=1;
-%                             Lap2D(ii,jj-1)=1;
-%                         end
-%                     end                        
-%                 else
-%                     % diagonal laplacian
-%                     Lap2D(ii,jj) = -6;
-%                     Lap2D(ii,jj+1) = 1;
-%                     Lap2D(ii,jj-1) = 1;
-%                     Lap2D(ii+1,jj) = 1;
-%                     Lap2D(ii-1,jj) = 1;
-%                     Lap2D(ii+1,jj+1) = 0.5;
-%                     Lap2D(ii-1,jj+1) = 0.5;
-%                     Lap2D(ii+1,jj-1) = 0.5;
-%                     Lap2D(ii-1,jj-1) = 0.5;
-%                 end
-%                 tempLapx(jj,:) = reshape(Lap2D,nBasis,1)';
-% %                 Lap(k,nBasis+1:2*nBasis) = reshape(Lap2D,nBasis,1)';
-% %                 Lap(k+(nBasisx-2)*(nBasisy-2),1:nBasis) = reshape(Lap2D,nBasis,1)';
-%                 tempLapy(jj,:) = reshape(Lap2D,nBasis,1)';
-%             end
-%             Lap((ii-1)*nBasisy+1:(ii-1)*nBasisy+nBasisx,1:nBasis) = tempLapx;
-%             Lap((ii-1)*nBasisy+nBasis+1:(ii-1)*nBasisy+nBasis+nBasisx,nBasis+1:2*nBasis) = ...
-%                 tempLapy;
-%         end
-%     toc
 nBasis = forceMesh.numBasis;
 basisx=zeros(nBasis,1);
 basisy=zeros(nBasis,1);
@@ -466,9 +384,9 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights,nameSave)
+function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(-9.5:.125:-5);
+alphas=10.^(-11.5:.125:-5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
@@ -483,7 +401,7 @@ end
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
-set(hLcurve, 'Position', [50 50 100 100])
+set(hLcurve, 'Position', [50 300 200 200])
 
 loglog(rho,eta,'k-');
 xlabel('Residual Norm ||Gm-d||_{2}');
@@ -496,9 +414,9 @@ H=text(rho(ireg_corner),1.1*eta(ireg_corner),...
     ['    ',num2str(alphas(ireg_corner),'%5.1e')]);
 set(H,'Fontsize',7);
 % axis([1e-2 100 0.001 1e8])
-disp('Displaying L-curve')
+disp('Printing L-curve...')
 % print -deps2 nameSave
-print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
+print(hLcurve,'Lcurve.eps','-depsc')
 
 sol_coef = mtik(:,ireg_corner);
 
