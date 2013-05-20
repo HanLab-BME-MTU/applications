@@ -1,5 +1,5 @@
-function force = assumedForceShifted(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType)
-% This function assumedForceShifted takes grid x and y and make gaussian
+function force = assumedForceAniso2D(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType)
+% assumedForceAniso2D takes grid x and y and make anisotropic gaussian
 % distributed force field of which sources are xshift and yshift.
 % input     :   x           grid of x coordinates
 %               y           grid of y coordinates
@@ -28,45 +28,37 @@ function force = assumedForceShifted(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType)
 
 % orientation of force
 theta = atan2(wy,wx);
+% if theta > pi/2
 
-stdx = d1+0.5;
-stdy = d2+0.5;
-adh_rx = d1;
-adh_ry = d2;
-amp = sqrt(wx^2+wy^2);
+stdx = d1/2*1.1;
+stdy = d2/2*1.1;
+adh_rx = d1/2;
+adh_ry = d2/2;
 if j==1
     switch(forceType)
         case 'groupForce'
-            % force is generated first in reference frame
-%             x = u * cos(theta) + v * sin(theta);                    % u --> x
-%             y = u * sin(-theta) + v * cos(theta);                   % v --> y
-%             force = exp( - 0.5 * x^2 / (sigmaX^2) - 0.5 * y^2 / (sigmaY^2));
-
-            force = anisoGaussian2D(xshift, yshift, amp, stdx, stdy, theta, x(1,:), y(:,1)');
-            force = reshape(force,size(x));
-                % anisotropic Gaussian 2D model defined by 6 parameters:
-                %    xy      : position of the segment's center
-                %    amp     : mean amplitude along the segment
-                %    sigmaX  : dispersion along the main axis
-                %    sigmaY  : dispersion aside the main axis
-                %    theta   : orientation [-pi/2, pi/2)
-            
-%             force=wx*(heaviside(adh_r-sqrt((x-xshift).^2+(y-yshift).^2)).*...
-%                 (exp(-((x-xshift).^2+(y-yshift).^2)/(2*std^2))));
+            force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
+            % cutting out outside of area
+            force = wx*aniso2DMask(xshift, yshift, adh_ry, adh_rx, theta, x, y).*force;
         case 'pointForce'
             force=wx*(x==xshift || y==yshift);
         case 'smoothForce'
-            force=wx*(exp(-((x-xshift).^2+(y-yshift).^2)/(2*std^2)));
+            force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
+            % cutting out outside of area
+            force = wx*force;
     end
 elseif j==2
     switch(forceType)
         case 'groupForce'
-            force=wy*(heaviside(adh_r-sqrt((x-xshift).^2+(y-yshift).^2)).*...
-                (exp(-((x-xshift).^2+(y-yshift).^2)/(2*std^2))));
+            force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
+            % cutting out outside of area
+            force = wy*aniso2DMask(xshift, yshift, adh_ry, adh_rx, theta, x, y).*force;
         case 'pointForce'
             force=wy*(x==xshift || y==yshift);
         case 'smoothForce'
-            force=wy*(exp(-((x-xshift).^2+(y-yshift).^2)/(2*std^2)));
+            force = anisoGaussian2DMatrix(xshift, yshift, stdy, stdx, theta, x, y);
+            % cutting out outside of area
+            force = wy*force;
     end
 else
     error('please input 1 or 2 for j');
@@ -86,7 +78,7 @@ fd = w*heaviside(2.1-sqrt((x-xshift).^2)).*...
 figure,plot(x,fd)
      
 % test in 2D
-[x,y] = meshgrid(1:20,1:20);
+[x,y] = meshgrid(1:30,1:30);
 xshift = 7;
 yshift = 9;
 std1d = 2;
@@ -96,10 +88,6 @@ amp = (wx^2+wy^2)^.5;
 d1 = 2;
 d2 = 10;
 forceType = 'groupForce';
-force = assumedForceShifted(1,x,y,xshift,yshift,wx,wy,d1,d2,forceType);
+force = assumedForceAniso2D(1,x,y,xshift,yshift,wx,wy,d1,d2,forceType);
 
-force = anisoGaussian2D(xshift, yshift, amp, stdx, stdy, theta, x(1,:), y(:,1)');
-force = reshape(force,size(x));
-% fd = exp(-((x-xshift).^2)/(std^2));
-% fd = x==xshift;
-figure,plot(x,fd)
+
