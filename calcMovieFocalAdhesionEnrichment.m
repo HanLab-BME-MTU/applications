@@ -21,6 +21,7 @@ ip.addParamValue('SaveFigures',true,@(x)(islogical(x)));%Whether to save figures
 ip.addParamValue('ChannelIndex',1:nChanTot,@(x)(all(ismember(x,1:nChanTot))));
 ip.addParamValue('OutputDirectory',[movieData.outputDirectory_ filesep outDirName],@ischar);%Directory for saving figures, spreadsheets etc
 ip.addParamValue('MaskChannelIndex',[],@(x)(all(ismember(x,1:nChanTot))));
+ip.addParamValue('CellMaskChannelIndex',[],@(x)(all(ismember(x,1:nChanTot))));
 ip.addParamValue('ColorMap',@jet,@(x)(isa(x,'function_handle') || ischar(x)));%Colormap to use for per-adhesion matrices.
 ip.addParamValue('SatPercent',1,@(x)(x >=0 && x < 100));%Percent of pixels to saturate when displaying per-adhesion matrices
 ip.addParamValue('Alpha',.01,@(x)(x >=0 && x < 1));%Alpha value for statistical tests
@@ -105,6 +106,29 @@ end
 
 outVars = {'p'};
 
+%Check for cell segmentation, get the associated process
+iCellSegProc = movieData.getProcessIndex('ThresholdProcess',1,~p.BatchMode);
+assert(~isempty(iCellSegProc),'The movie adhesions must be segmented before calcualating adhesion stats!')
+cellSegProc = movieData.processes_{iCellSegProc};
+
+nAdhesions = cellSegProc.maxIndex_;%Total number of adhesions in movie
+
+if isempty(p.MaskChannelIndex)
+    iHasMasks = find(cellSegProc.checkChannelOutput(1:nChanTot));
+    if nnz(iHasMasks) > 1        
+        iSel = listdlg('ListString',arrayfun(@num2str,iHasMasks,'Unif',0),'SelectionMode','single',...
+            'Name','Mask Channel Selection','ListSize',[340 314],'PromptString',...
+            'Pick channel to use cell segmentation from:');
+        if isempty(iSel); return, end
+        p.MaskChannelIndex = iHasMasks(iSel);
+    else
+        p.MaskChannelIndex = iHasMasks;
+    end    
+else
+    assert(cellSegProc.checkChannelOutput(p.MaskChannelIndex),'No valid masks for selected segmentation process!');
+end
+
+
 %% ---------- Image and Mask Loading ------ %%
 
 
@@ -114,11 +138,12 @@ allFAMasks = false([M N P]);
 allFAColocMasks = false([M N P]);
 allIms = cell(nChan,1);%Makes logical indexing easier
 
-
+allCellMasks = false([M N P]);
 
 for iFrame = 1:nFrames
     
     allFAMasks(:,:,iFrame) = segProc.loadChannelOutput(p.MaskChannelIndex,iFrame); 
+    allCellMasks(:,:,iFrame) = cellSegProc.loadChannelOutput(p.MaskChannelIndex,iFrame); 
     
     if p.AdhesionColocRadius > 0
         allFAColocMasks(:,:,iFrame) = imdilate(allFAMasks(:,:,iFrame),dStrel);
@@ -139,10 +164,18 @@ for iFrame = 1:nFrames
     
 end
 
+allCellColocMasks = allCellMasks;
 
+allCellNoFAMasks  = allCellMasks;
+allCellNoFAMasks(allFAColocMasks(:)) = false;
 
+allColocMasks = {allFAColocMasks allCellColocMasks allCellNoFAMasks};
 
-%% ---------- In-Adhesion Per-Pixel Co-Localization ------ %%
+allColocNames = {'Intra-Adhesion','All-Cell','Extra-Adhesion'};
+
+nColoc = numel(allColocMasks);
+
+%% ---------- Per-Pixel Co-Localization ------ %%
 
 intBins = cell(nChan,1);
 binSz = 2;
@@ -150,42 +183,56 @@ for j = 1:nChan
     intBins{j} = min(allIms{j}(:)):binSz:max(allIms{j}(:));
 end
 
-intHist2D = hist3([allIms{indChan}(allFAColocMasks(:)) allIms{depChan}(allFAColocMasks(:))],intBins([indChan depChan]));
-[lineFit,gof,out] = fit(double(allIms{indChan}(allFAColocMasks(:))),double(allIms{depChan}(allFAColocMasks(:))),'poly1');
+for iColoc = 1:nColoc
 
-fitCoefCI = confint(lineFit,1-p.Alpha);
-fitPredCI = predint(lineFit,double(intBins{indChan}),1-p.Alpha);
+    intHist2D = hist3([allIms{indChan}(allColocMasks{iColoc}(:)) allIms{depChan}(allColocMasks{iColoc}(:))],intBins([indChan depChan]));
+    [lineFit,gof,out] = fit(double(allIms{indChan}(allColocMasks{iColoc}(:))),double(allIms{depChan}(allColocMasks{iColoc}(:))),'poly1');
 
-if ~p.BatchMode
-    
-    currFig = figure;
-    imagesc(intBins{indChan},intBins{depChan},log10(intHist2D'))
-    %imagesc(log10(intHist2D))
-    axis xy
-    saturateImageColormap([],1);
-    colormap gray
-    hold on    
-    y = feval(lineFit,double(intBins{indChan}));
-    plot(intBins{indChan},y,'-r','LineWidth',2)
-    plot(intBins{indChan},fitPredCI(:,1),'--r','LineWidth',2)
-    legend('Fit',['Fit ' num2str( (1-p.Alpha)*100) '% Prediction CI'])
-    plot(intBins{indChan},fitPredCI(:,2),'--r','LineWidth',2)
-    title({['y = ' num2str(lineFit.p1) '* X + ' num2str(lineFit.p2) ',   Slope ' num2str( (1-p.Alpha)*100) '% CI: ' num2str(fitCoefCI(1,1)) ' to ' num2str(fitCoefCI(2,1))],...
-           ['R^2 = ' num2str(gof.rsquare) ',   Mean ' num2str( (1-p.Alpha)*100) '% prediction CI width ' num2str(mean(diff(fitPredCI,1,2)))]})
-    xlabel(['Intra-Adhesion Intensity, Channel ' num2str(indChan) ,' a.u.'])
-    ylabel(['Intra-Adhesion Intensity, Channel ' num2str(depChan) ,' a.u.'])
-    
-    if p.SaveFigures
-        figName = [p.OutputDirectory filesep 'intra adhesion per pixel colocalization'];
-        mfFigureExport(currFig,figName);        
+    fitCoefCI = confint(lineFit,1-p.Alpha);
+    fitPredCI = predint(lineFit,double(intBins{indChan}),1-p.Alpha);
+
+    if ~p.BatchMode
+        
+        currFig = figure;
+        imH = imshow(allIms{indChan}(:,:,1),[]);
+        hold on
+        spy(allColocMasks{iColoc}(:,:,1))
+        legend(['Region for coloc, ' allColocNames{iColoc}])
+         if p.SaveFigures
+            figName = [p.OutputDirectory filesep allColocNames{iColoc} ' region illustration'];
+            mfFigureExport(currFig,figName);        
+        end
+        
+
+        currFig = figure;
+        imagesc(intBins{indChan},intBins{depChan},log10(intHist2D'))
+        %imagesc(log10(intHist2D))
+        axis xy
+        saturateImageColormap([],1);
+        colormap gray
+        hold on    
+        y = feval(lineFit,double(intBins{indChan}));
+        plot(intBins{indChan},y,'-r','LineWidth',2)
+        plot(intBins{indChan},fitPredCI(:,1),'--r','LineWidth',2)
+        legend('Fit',['Fit ' num2str( (1-p.Alpha)*100) '% Prediction CI'])
+        plot(intBins{indChan},fitPredCI(:,2),'--r','LineWidth',2)
+        title({['y = ' num2str(lineFit.p1) '* X + ' num2str(lineFit.p2) ',   Slope ' num2str( (1-p.Alpha)*100) '% CI: ' num2str(fitCoefCI(1,1)) ' to ' num2str(fitCoefCI(2,1))],...
+               ['R^2 = ' num2str(gof.rsquare) ',   Mean ' num2str( (1-p.Alpha)*100) '% prediction CI width ' num2str(mean(diff(fitPredCI,1,2)))]})
+        xlabel([allColocNames{iColoc} ' Intensity, Channel ' num2str(indChan) ,' a.u.'])
+        ylabel([allColocNames{iColoc} ' Intensity, Channel ' num2str(depChan) ,' a.u.'])
+
+        if p.SaveFigures
+            figName = [p.OutputDirectory filesep allColocNames{iColoc} ' per pixel colocalization'];
+            mfFigureExport(currFig,figName);        
+        end
     end
 end
 
-outVars = [outVars 'lineFit','gof','out','fitCoefCI','fitPredCI','intBins','intHist2D','indChan','depChan'];
+%outVars = [outVars 'lineFit','gof','out','fitCoefCI','fitPredCI','intBins','intHist2D','indChan','depChan'];
 
 
 %% ------------- Output --------------- %%
 
-save([p.OutputDirectory filesep outFileName '.mat'],outVars{:})
+%save([p.OutputDirectory filesep outFileName '.mat'],outVars{:})
 
 
