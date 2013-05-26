@@ -1,4 +1,4 @@
-function [v,corLength,sigtVal] = trackStackFlow(stack,points,minCorL,varargin)
+function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin)
 %trackStackFlow: Calculate the flow velocity from a stack of movie images.
 % SYNOPSIS :
 %    v = trackStackFlow(stack,points,minCorL)
@@ -85,14 +85,14 @@ mode=ip.Results.mode;
 % quality is bad or the flow velocity is even higher than this limit.
 maxSpdLimit = 2*maxSpd;
 
-[imgW imgL numFrames] = size(stack);
+[imgW,imgL,numFrames] = size(stack);
 x=points(:,1);
 y=points(:,2);
 
 %Initial maximum speed components in both direction.
 initMaxFlowSpd = 20;
 initMaxPerpSpd = 20;
-closenessThreshold = 0.25;
+closenessThreshold = 1; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 
 %For isotropic correlation.
 maxSpdLimit = max(maxSpdLimit,initMaxFlowSpd);
@@ -118,8 +118,8 @@ maxCorL = max(minCorL,maxCorL+(1-mod(maxCorL,2)));
 
 bAreaThreshold = min(0.95*minCorL^2,maxCorL^2*0.5);
 
-%Options for optimization.
-options = optimset('GradObj','on','Display','off');
+% %Options for optimization.
+% options = optimset('GradObj','on','Display','off');
 
 % Creates the format string for the numerical indexes
 L=length(num2str(nPoints));
@@ -130,14 +130,19 @@ backSpc =repmat('\b',1,L);
 % each point.
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
+
+if matlabpool('size')<2
+    matlabpool open
+end
+
 parfor k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
     
-    %Always get back the initial max speed for the new point.
-    maxFlowSpd = initMaxFlowSpd;
-    maxPerpSpd = initMaxPerpSpd;
+%     %Always get back the initial max speed for the new point.
+%     maxFlowSpd = initMaxFlowSpd;
+%     maxPerpSpd = initMaxPerpSpd;
     
     %Alway start with 'minCorL' for each new point.
     corL = minCorL;
@@ -238,7 +243,7 @@ parfor k = 1:nPoints
                     if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
                     elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.75);
+                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.8);
                     elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
                         [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.59);
                     else
@@ -283,7 +288,7 @@ parfor k = 1:nPoints
                         if maxVNorm == 0 || ...
                                 (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
                                 (pass == 1 && maxVNorm < 0.5) || ...
-                                (pass == 0 && minD < closenessThreshold*maxVNorm)
+                                (pass == 0 && minD <= closenessThreshold) %*maxVNorm
                             maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
                             pass = 2;
                         else
@@ -312,6 +317,40 @@ parfor k = 1:nPoints
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+        % subpixel continuous correlation score. This is more accurate than
+        % interpolation from discrete scores - Sangyoon
+%         if norm(maxV)<1 && norm(maxV)>1e-5
+            % new vF and vP (around maxV)
+            refineFactor = 100; % by this, the pixel value will be magnified.
+            refineRange = 0.5; % in pixel
+            newvP = round(maxV(1)*refineFactor) - refineRange*refineFactor:round(maxV(1)*refineFactor) + refineRange*refineFactor;
+            newvF = round(maxV(2)*refineFactor) - refineRange*refineFactor:round(maxV(2)*refineFactor) + refineRange*refineFactor;
+
+            newhCLL    = min(xI-1,corL)+max(-newvF(1)/refineFactor,0);
+            newhCLR    = min(imgL-xI,corL)+max(newvF(end)/refineFactor,0);
+            newhCWL    = min(yI-1,corL)+max(-newvP(1)/refineFactor,0);
+            newhCWR    = min(imgW-yI,corL)+max(newvP(end)/refineFactor,0);
+            newcropL   = newhCLL+newhCLR+1/refineFactor;
+            newcropW   = newhCWL+newhCWR+1/refineFactor;
+            fineKym     = zeros(floor(newcropW*refineFactor),floor(newcropL*refineFactor),numFrames);
+            % interpolate the stack images kym
+            [curXI,curYI] = meshgrid(xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,yI-floor(newhCWL)-1:yI+floor(newhCWR)+1);
+            [fineXI,fineYI] = meshgrid(xI-newhCLL:1/refineFactor:xI+newhCLR,yI-newhCWL:1/refineFactor:yI+newhCWR);
+
+            for k2 = 1:numFrames
+                fineKym(:,:,k2) = griddata(curXI,curYI,stack(yI-floor(newhCWL)-1:yI+floor(newhCWR)+1,xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,k2),fineXI,fineYI);
+            end
+            newcenterI = [newhCLL*refineFactor+1 newhCWL*refineFactor+1];
+            [score3] = calScore(fineKym,newcenterI,corL*refineFactor,newvP,newvF);
+            %The index of zero velocity.
+%             zeroI = [find(newvP==0) find(newvF==0)];
+%             [pass3,maxI3] = findMaxScoreI(score3,zeroI,1,0.5);
+            [~,maxI3ind] = max(score3(:));
+            [ind3x,ind3y] = ind2sub(size(score3),maxI3ind);
+            maxI3 = [ind3x,ind3y];
+            maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF,mode);
+            maxV = maxVmagnified/refineFactor;
+%         end
     end
     
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
@@ -380,7 +419,14 @@ bI1e(bI1e<1 | bI1e>kymWidth) = [];
 bI2e(bI2e<1 | bI2e>kymLen) = [];
 
 score = zeros(length(vP),length(vF));
-if min(min(kymMask(:,:,1))) == 1
+if isempty(kymMask)
+    % normalized cross-correlation. This can make the correlation less sensitive to bright region in template window - Sangyoon
+    K1 = length(bI1); K2 = length(bI2);
+    N1 = length(bI1e); N2 = length(bI2e);
+    score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
+    score = score_nxc2(K1:N1,K2:N2); % normalized
+    
+elseif min(min(kymMask(:,:,1))) == 1
     %Background intensities are set to be zero. So, if there is no zero intensities, there is no
     % background.
     kymP2 = kym.*kym;
@@ -811,6 +857,20 @@ if strcmp(mode, 'fast') && (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1).
     px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
     maxV2 = [roots(polyder(py)) roots(polyder(px)) ];
     bPolyTracked = 1;
+    
+%     %analytical parabolic fit
+%     bap = 0.5*(sub_score(2,3)-sub_score(2,1));
+%     cap = 0.5*(sub_score(3,2)-sub_score(1,2));
+%     dap = -sub_score(2,2)+0.5*(sub_score(2,3)+sub_score(2,1));
+%     eap = -sub_score(2,2)+0.5*(sub_score(3,2)+sub_score(1,2));
+%     maxV = [bap/(2*dap),cap/(2*eap)];
+%     
+%     %analytical cosinusoidal interpolation
+%     wx = acos((sub_score(2,2)-sub_score(2,1))/(2*sub_score(2,3)));
+%     thetax = atan2((sub_score(2,2)-sub_score(2,1)),(2*sub_score(2,3)*sin(wx)));
+%     wy = acos((sub_score(2,2)-sub_score(1,2))/(2*sub_score(3,2)));
+%     thetay = atan2((sub_score(2,2)-sub_score(1,2)),(2*sub_score(3,2)*sin(wx)));
+%     maxV = [-thetax/wx, -thetay/wy];
 end
 
 if strcmp(mode, 'accurate') || ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
