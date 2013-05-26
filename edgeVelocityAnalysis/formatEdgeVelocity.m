@@ -87,7 +87,10 @@ for iCell = 1:nCell
     
     %Converting the edge velocity in pixel/frame into nanometers/seconds
     if scale
-        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal*(currMD.pixelSize_/currMD.timeInterval_);
+        if isemtpy(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+            error('Pixel size and/or time interval are missing')
+        end
+        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal.*(currMD.pixelSize_/currMD.timeInterval_);
     else
         cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
     end
