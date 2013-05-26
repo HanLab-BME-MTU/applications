@@ -37,7 +37,8 @@ forceFieldProc = movieData.processes_{iProc};
 
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
-
+p.gelThickness = 34000; % (nm) this needs to be replaced by GUI input
+p.highRes = true;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows'),
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -92,19 +93,25 @@ if min(min(maskArray(:,:,1))) == 0
 
     % Use mask of first frame to filter displacementfield
     iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
-    SDCProc=movieData.processes_{iSDCProc};
-    if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
-        error(['The channel must have been corrected ! ' ...
-            'Please apply stage drift correction to all needed channels before '...
-            'running displacement field calclation tracking!'])
-    end
-    %Parse input, store in parameter structure
-    refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
-    firstMask = false(size(refFrame));
-    tempMask = maskArray(:,:,1);
-    firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
-    displFieldOriginal=displFieldProc.loadChannelOutput;
-    displField = filterDisplacementField(displFieldOriginal,firstMask);
+    if ~isempty(iSDCProc)
+        SDCProc=movieData.processes_{iSDCProc};
+        if ~SDCProc.checkChannelOutput(pDisp.ChannelIndex)
+            error(['The channel must have been corrected ! ' ...
+                'Please apply stage drift correction to all needed channels before '...
+                'running displacement field calclation tracking!'])
+        end
+        %Parse input, store in parameter structure
+        refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex}));
+        firstMask = false(size(refFrame));
+        tempMask = maskArray(:,:,1);
+        firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+        displFieldOriginal=displFieldProc.loadChannelOutput;
+        displField = filterDisplacementField(displFieldOriginal,firstMask);
+    else
+        firstMask = maskArray(:,:,1);
+        displFieldOriginal=displFieldProc.loadChannelOutput;
+        displField = filterDisplacementField(displFieldOriginal,firstMask);
+    end        
 else
      displField=displFieldProc.loadChannelOutput;
 end
@@ -125,10 +132,10 @@ end
 % place the regular grid centered to the orignal bounds. Thereby make sure 
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
-if min(min(firstMask(:,:,1))) == 1
+if ~p.highRes
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1);
 else
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,2); %denser force mesh for ROI
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5); %denser force mesh for ROI
 end
 
 forceField(nFrames)=struct('pos','','vec','','par','');
@@ -142,16 +149,20 @@ tic;
 for i=1:nFrames
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
-    if min(min(firstMask(:,:,1))) == 0 %when ROI was used, make a denser displacement field by interpolation
-        % vectorized position
-        posx=reshape(grid_mat(:,:,1),[],1);
-        posy=reshape(grid_mat(:,:,2),[],1);
-
-        dispMat = [displField(i).pos(:,2:-1:1) displField(i).pos(:,2:-1:1)+displField(i).vec(:,2:-1:1)];
-        intDisp = vectorFieldSparseInterp(dispMat,[posy posx],20,2,[]);
-        displField(i).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
-        displField(i).pos = [posx posy];
-    end
+%     if min(min(maskArray(:,:,1))) == 0 %when ROI was used, make a denser displacement field by interpolation
+%         % vectorized position
+%         posx=reshape(grid_mat(:,:,1),[],1);
+%         posy=reshape(grid_mat(:,:,2),[],1);
+% 
+%         dispMat = [displField(i).pos(:,2:-1:1) displField(i).pos(:,2:-1:1)+displField(i).vec(:,2:-1:1)];
+%         intDisp = vectorFieldSparseInterp(dispMat,[posy posx],20,20,[]);
+%         displField(i).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
+%         displField(i).pos = [posx posy];
+%         
+% %         vecx=reshape(iu_mat(:,:,1),[],1);
+% %         vecy=reshape(iu_mat(:,:,2),[],1);
+% %         displField(i).vec =  [vecx vecy];
+%     end
 
     if strcmpi(p.method,'FastBEM')
         % If grid_mat=[], then an optimal hexagonal force mesh is created
@@ -161,11 +172,18 @@ for i=1:nFrames
             if ishandle(wtBar)
                 waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
             end
-            [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+%             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+%                 reg_FastBEM_TFM(grid_mat, displField, i, ...
+%                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+%                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+%                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
+%                 % considering units
+%                 displField.vec = displField.vec*((movieData.pixelSize_/1000)^2); %this is temporary remedy.
+                [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2));
+                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
             display('The total time for calculating the FastBEM solution: ')
             
             % The following values should/could be stored for the BEM-method.

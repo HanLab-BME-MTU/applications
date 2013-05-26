@@ -138,7 +138,7 @@ for class=1:numClass
             % Here we use finite thickness for calculating Green's function
             [ux_model, uy_model, x_model, y_model]=fwdSolution(xrangeSol,yrangeSol,E,...
                 xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
-                'fft_finite','noIntp',meshPtsFwdSol,thickness); %'fft','noIntp',meshPtsFwdSol,thickness);
+                'fft','noIntp',meshPtsFwdSol,thickness); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
             % check if the sampling is fine enough for method 'direct':
             if strcmp(method,'direct')
                 % This works perfectly for all mesh types as long as the
@@ -278,8 +278,8 @@ for class=1:numClass
             % enter parameters:
             basisClassTbl(end).uSol.xrange       = xrangeSol;
             basisClassTbl(end).uSol.yrange       = yrangeSol;
-            basisClassTbl(end).uSol.E            = E; % this could be more general!
-            basisClassTbl(end).uSol.method       ='fft_finite';
+            basisClassTbl(end).uSol.E                = 1; % this could be more general!
+            basisClassTbl(end).uSol.method       ='fft';
             basisClassTbl(end).uSol.meshPtsFwdSol= meshPtsFwdSol;
             basisClassTbl(end).uSol.gelHeight   = thickness; % this could be more general!
             addAtLeastOneToTbl=1;

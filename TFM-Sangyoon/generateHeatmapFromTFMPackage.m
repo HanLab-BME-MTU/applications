@@ -47,10 +47,12 @@ outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
 paxPath = [pathForTheMovieDataFile filesep 'pax'];
 tifPath = [outputFilePath filesep 'tifs'];
 figPath = [outputFilePath filesep 'figs'];
-if ~exist(tifPath,'dir') || ~exist(paxPath,'dir')
+epsPath = [outputFilePath filesep 'eps'];
+if ~exist(tifPath,'dir') || ~exist(paxPath,'dir') || ~exist(epsPath,'dir')
     mkdir(paxPath);
     mkdir(tifPath);
     mkdir(figPath);
+    mkdir(epsPath);
 end
 
 %Find the maximum force.
@@ -150,12 +152,14 @@ for ii=1:nFrames
         set(h1, 'Position', [100 100 imSizeX*1.25 imSizeY])
     end
     subplot('Position',[0 0 0.8 1])
-%     [XI,YI]=meshgrid(grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX,grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY);
-    hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
-    colormap jet;
-    shading interp
-    caxis([tmin tmax])
-    set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
+%     hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
+%     colormap jet;
+%     shading interp
+%     caxis([tmin tmax])
+%     set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
+    [XI,YI]=meshgrid(grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX,grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY);
+    tsMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tnorm,XI,YI,'cubic');
+    imshow(tsMap,[tmin tmax]), colormap jet;
 
     % unit vector plot
     hold on
@@ -181,8 +185,9 @@ for ii=1:nFrames
     tmat_vecy = reshape(tmat_coarse(:,:,2),[],1);
     pos_vecx = reshape(grid_mat_coarse(:,:,1),[],1);
     pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
-    forceScale=0.25*sqrt(tmat_vecx.^2+tmat_vecy.^2);
-    hq = quiver(pos_vecx,pos_vecy, tmat_vecx./forceScale,tmat_vecy./forceScale,0,'k');
+    forceScale=0.25*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
+%     hq = quiver(pos_vecx,pos_vecy, tmat_vecx./forceScale,tmat_vecy./forceScale,0,'k');
+    hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), tmat_vecx./forceScale,tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
 
     % Scale bar 2000nm
     if isempty(hl)
@@ -217,35 +222,27 @@ for ii=1:nFrames
         set(hc,'Fontsize',18)
     end
 
-    paxImage=movieData.channels_(2).loadImage(ii);
-%     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
-    paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
-    %Scale bar
-    paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped));
-%         %paxLevel
-%         indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
-%                             & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
-%         [xTS,yTS] = ind2sub(size(tnorm),indTS);
-%         pixX = grid_mat(xTS,yTS,1);
-%         pixY = grid_mat(xTS,yTS,2);
-%         paxImgSize = size(paxImageCropped);
-% 
-%         pixXpax = round(pixX/grid_mat(end,end,1)*paxImgSize(1));
-%         pixYpax = round(pixY/grid_mat(end,end,2)*paxImgSize(2));
-%         paxLevel(ii) = mean(mean(paxImageCropped(pixX-1:pixX+1,pixY-1:pixY+1)));
+    if length(movieData.channels_)>1
+        paxImage=movieData.channels_(2).loadImage(ii);
+    %     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
+        paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        %Scale bar
+        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped));
+        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+    end
 
     % saving
-
     I = getframe(h1);
     imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
-    imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
 
 %         hgexport(h1,strcat(tifPath,'/stressMagTif',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
     hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')
 
-%         print(h1,strcat(epsPath,'/stressMagEps',num2str(ii,iiformat),'.eps'),'-depsc')
+%     set(h1,'Renderer','zbuffer')
+%     saveas(h1,strcat(epsPath,'/stressMagEps',num2str(ii,iiformat),'.eps'),'eps') 
+    print(h1,strcat(epsPath,'/stressMagEps',num2str(ii,iiformat),'.eps'),'-depsc2')
     hold off
-    delete(hs)
+%     delete(hs)
     delete(hq)
 end
 if pointTF

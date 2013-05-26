@@ -37,7 +37,7 @@ end
 displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
-
+p.highRes = true;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -117,14 +117,14 @@ tempMask = maskArray(:,:,1);
 firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
-sigmaPSF = movieData.channels_(1).psfSigma_*0.6; %*4/7 scale down for finer detection SH012913
+sigmaPSF = movieData.channels_(1).psfSigma_*0.5; %*4/7 scale down for finer detection SH012913
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
 % Subsample detected beads ensuring beads are separated by at least half of
 % the correlation length - commented out to get more beads
-if min(min(firstMask(:,:,1))) == 1
-    disp('Subsampling detected beads...')
+if ~p.highRes
+    disp('Subsampling detected beads (normal resolution)...')
     idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
     valid = true(numel(idx),1);
     for i = 1:numel(idx)
@@ -135,9 +135,9 @@ if min(min(firstMask(:,:,1))) == 1
     beads = beads(valid, :);
 else
     % To get high-resolution information, subsample detected beads ensuring 
-    % beads are separated by 0.4 um the correlation length 
-    disp('Subsampling detected beads...')
-    idx = KDTreeBallQuery(beads, beads, floor(400/movieData.pixelSize_));
+    % beads are separated by 0.1 um the correlation length 
+    disp('Subsampling detected beads (high resolution)...')
+    idx = KDTreeBallQuery(beads, beads, floor(100/movieData.pixelSize_));
     valid = true(numel(idx),1);
     for i = 1:numel(idx)
         if ~valid(i), continue; end
@@ -146,10 +146,10 @@ else
     end
     beads = beads(valid, :);
 end
-% Select only beads which are max velocity away from the border of the
+% Select only beads which are min correlation length away from the border of the
 % reference frame 
 beadsMask = true(size(refFrame));
-erosionDist=p.maxFlowSpeed;
+erosionDist=p.minCorLength;
 % erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));

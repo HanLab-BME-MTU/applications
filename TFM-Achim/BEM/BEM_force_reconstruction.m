@@ -107,7 +107,6 @@ if nargin >= 10 && strcmp(method,'fast')
     
 %     [normWeights,listNormWeights]=getNormWeights(forceMesh);
 %     eyeWeights =diag(normWeights);
-    [eyeWeights,~] =getGramMatrix(forceMesh);
     
 %     if length(listNormWeights)==1
         needGSVD =0;
@@ -151,6 +150,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % sol_coef = (M'*M+L*D^2)\(M'*u_sol); where D = scaling matrix
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
 %         [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
         
@@ -166,6 +166,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % sol_coef = (M'*M+L*D^2)\(M'*u_sol); where D = scaling matrix
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
         D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
 %         D = D./normest(D);
@@ -192,16 +193,16 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.MpM=MpM;
         sol_mats.Lap=Lap;
         sol_mats.L=L;
-        sol_mats.eyeWeights=eyeWeights;
         sol_mats.tool='LaplacianReg';
     elseif strcmpi(solMethodBEM,'1NormReg')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution; adoped from Aster et. al.')
 
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
         MpM=M'*M;
         maxIter = 100;
-        tolx = 1e-3;
+        tolx = 2e-2;
         tolr = 1e-7;
 %         disp('L-curve ...')
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
@@ -229,7 +230,6 @@ if nargin >= 10 && strcmp(method,'fast')
         tolr = 1e-7;
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
         sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
-        sol_mats.nW=normWeights;
         sol_mats.L=L;
         sol_mats.Lap = Lap;
         sol_mats.M = M;
@@ -241,6 +241,7 @@ if nargin >= 10 && strcmp(method,'fast')
     elseif strcmpi(solMethodBEM,'backslash') || strcmpi(solMethodBEM,'\')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
 %         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,'backslash');
         sol_coef=(L*eyeWeights+ MpM)\(M'*u);

@@ -196,6 +196,11 @@ switch ip.Results.Border
             % Here, we don't just add superimpose intensities but newly add
             % them on the location of the bead
             ge = exp(-((xg-dx(k)).^2+(yg-dy(k)).^2) / (2*sv(k)^2));
-            frame(ya,xa) = frame(ya,xa).*(ge<0.19) + g;% - 0.5*frame(ya,xa).*frame(ya,xa).*(g<0.0001).*(g>0);
+            beadMask = (ge>0.01);
+            beadNeigh = ~beadMask;
+            beadBoundary = bwperim(beadMask);
+            beadBoundary2 = (bwdist(beadNeigh)>0 &  bwdist(beadNeigh)<=3).*((4-bwdist(beadBoundary))/4);
+           
+            frame(ya,xa) = frame(ya,xa).*beadNeigh + frame(ya,xa).*beadBoundary2 + g;% - 0.5*frame(ya,xa).*frame(ya,xa).*(g<0.0001).*(g>0);
         end
 end

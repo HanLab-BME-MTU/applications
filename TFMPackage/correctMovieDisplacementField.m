@@ -121,7 +121,7 @@ for j= 1:nFrames
 end
 
 % Find rotational registration
-if p.doRotReg, displField=perfRotReg(displField,1); end %#ok<NASGU>
+if p.doRotReg, displField=perfRotReg(displField); end %#ok<NASGU>
 
 save([p.OutputDirectory filesep 'displField.mat'],'displField');
 
