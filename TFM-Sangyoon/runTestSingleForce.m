@@ -91,7 +91,8 @@ generateHeatmapFromField(displField,displPath,.71)
 %% Bead tracking test with identical image stack
 f=0; d=10; cL=21;
 dataPath=['/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
-testSingleForce(f,d,cL,dataPath); 
+dataPath=['/Users/joshua2/Documents/PostdocResearch/Traction Force/corrTrackContWind/f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
+[derr0f, ferr0f] = testSingleForce(f,d,cL,dataPath); 
 %% measured displacementfield for zero force
 % get the measured displacement field
 displPath = [dataPath filesep 'TFMPackage/displacementField'];

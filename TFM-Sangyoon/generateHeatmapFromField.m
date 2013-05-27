@@ -18,7 +18,7 @@ function generateHeatmapFromField(displField,dataPath,ummax)
     imshow(umMap,[ummin ummax]), colormap jet;
     %quiver plot
     hold on
-    dispScale=0.1*max(sqrt(displField.vec(:,1).^2+displField.vec(:,2).^2));
+    dispScale=0.1*ummax; %max(sqrt(displField.vec(:,1).^2+displField.vec(:,2).^2));
 
     hqm = quiver(displField.pos(:,1)-grid_mat(1,1,1),displField.pos(:,2)-grid_mat(1,1,2), displField.vec(:,1)./dispScale,displField.vec(:,2)./dispScale,0,'Color',[75/255 0/255 130/255]);
     
