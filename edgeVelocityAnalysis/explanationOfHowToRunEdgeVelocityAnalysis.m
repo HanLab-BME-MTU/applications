@@ -14,7 +14,7 @@ ML = MovieList.load(pathForTheMovieListFile);
 %           enforce units of nm/sec by setting scale to true
 
 %Read the function's help
-cellData = formatEdgeVelocity(ML,'minLength',minLen,'outLevel',outLevel,'scale',scale,'trendType',trendT);
+cellData = formatEdgeVelocity(ML,'minLength',minLen,'outLevel',outLevel,'scale',scale,'trend',trendT);
 
 %Again, read the edgeVelocityQuantification help
 [cellData,dataSet] = edgeVelocityQuantification(ML);

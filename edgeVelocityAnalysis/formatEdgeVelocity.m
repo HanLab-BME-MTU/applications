@@ -7,8 +7,8 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 % INPUTS:
 %       ML - movie list or movie data object  
 %
-%       excludeWin - indexes of the windows(variables) to be excluded
-%                    Ex: If #Windows = 100, Exclude border windows: [1 2 3 98 99 100];    
+%       includeWin - cell array with the same size as the ML. Each element has the indexes of the windows(variables) to be included for analysis;
+%                   All windows that are not in this array will be excluded. The default value is {inf}, which includes all windows.
 %
 %       outLevel  - # of sigmas considered for outlier removal (see detectOutliers)
 %
@@ -39,21 +39,6 @@ function cellData = formatEdgeVelocity(movieObj,varargin)
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
-ip.addParamValue('excludeWin', {[]},@iscell);
-ip.addParamValue('excBorder',0,@isscalar);
-ip.addParamValue('outLevel',0,@isscalar);
-ip.addParamValue('trend',   -1,@isscalar);
-ip.addParamValue('minLength',  30,@isscalar);
-ip.addParamValue('scale', false,@islogical);
-
-
-ip.parse(movieObj,varargin{:});
-excludeWin = ip.Results.excludeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-scale      = ip.Results.scale;
-trend      = ip.Results.trend;
-border     = ip.Results.excBorder;
 
 if isa(movieObj,'MovieData')
     
@@ -64,40 +49,44 @@ else
     ML = movieObj;
     
 end
+nCell = numel(ML.movies_);
 
-if numel(excludeWin) < numel(ML.movies_)
-    excludeWin(numel(excludeWin)+1:numel(ML.movies_) ) = {[]};
-end
+ip.addParamValue('includeWin', num2cell(inf(1,nCell)),@iscell);
+ip.addParamValue('excBorder',0,@isscalar);
+ip.addParamValue('outLevel',0,@isscalar);
+ip.addParamValue('trendType',   -1,@isscalar);
+ip.addParamValue('minLength',  30,@isscalar);
+ip.addParamValue('scale', false,@islogical);
+ip.addParamValue('gapSize',0,@isscalar);
 
-nCell    = numel(ML.movies_);
-dataS    = struct('excludeWin',[],'pixelSize',[],'frameRate',[],'rawEdgeMotion',[],'procEdgeMotion',[]);
+ip.parse(movieObj,varargin{:});
+includeWin = ip.Results.includeWin;
+outLevel   = ip.Results.outLevel;
+minLen     = ip.Results.minLength;
+scale      = ip.Results.scale;
+trend      = ip.Results.trend;
+gapSize    = ip.Results.gapSize;
+
+timeSeriesOperations = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize};
+
+
+dataS    = struct('includedWin',[],'excludedWin',[],'pixelSize',[],'frameRate',[],'rawEdgeMotion',[],'procEdgeMotion',[]);
 cellData = struct('data',repmat({dataS},1,nCell)) ;
 
 for iCell = 1:nCell
     
-    currMD = ML.movies_{iCell};
-    
-    cellData(iCell).data.excludeWin = excludeWin{iCell};
-    cellData(iCell).data.pixelSize  = currMD.pixelSize_;
-    cellData(iCell).data.frameRate  = currMD.timeInterval_;
-
+    currMD                             = ML.movies_{iCell};
+    cellData(iCell).data.includedWin   = includeWin{iCell};
+    cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
     
     edgeProcIdx = currMD.getProcessIndex('ProtrusionSamplingProcess');
     protSamples = currMD.processes_{edgeProcIdx}.loadChannelOutput;
     
-    %Converting the edge velocity in pixel/frame into nanometers/seconds
-    if scale
-        if isemtpy(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-            error('Pixel size and/or time interval are missing')
-        end
-        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal.*(currMD.pixelSize_/currMD.timeInterval_);
-    else
-        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
-    end
     
     %Extracting outliers
     %Removing NaN and closing 1 frame gaps
-    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,'outLevel',outLevel,'minLength',minLen,'trendType',trend);    
+    cellData(iCell).data.timeSeriesOperations        = timeSeriesOperations;
+    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,timeSeriesOperations{:});    
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end

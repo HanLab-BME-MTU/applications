@@ -25,6 +25,7 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %       interval - cell array with the time intervals in frames
 %                   Ex : interval = {[1:30],[20:40]} - Quantification will be done with velocities calculated at each element of the cell array
 %
+%       scale      - convert velocity from pixel/frame into nm/sec
 % Output:
 %       cellData - this is a long structure array cellData(for each cell) with the following fields:
 %                .data.excludeWin - indexes of windows that were excluded from analysis . Ex: border windows
@@ -86,6 +87,7 @@ alpha    = ip.Results.alpha;
 cluster  = ip.Results.cluster;
 nCluster = ip.Results.nCluster;
 interval = ip.Results.interval;
+scale    = ip.Results.scale;
 
 if isa(movieObj,'MovieData')
     
@@ -99,6 +101,24 @@ end
 
 
 cellData = loadingMovieResultsPerCell(ML);
+
+
+    cellData(iCell).data.pixelSize   = currMD.pixelSize_;
+    cellData(iCell).data.frameRate   = currMD.timeInterval_;
+    %Converting the edge velocity in pixel/frame into nanometers/seconds
+    if scale
+        if isemtpy(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+            error('Pixel size and/or time interval are missing')
+        end
+        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal.*(currMD.pixelSize_/currMD.timeInterval_);
+    else
+        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
+    end
+
+
+if isempty(cellData.data.frameRate)
+    cellData.data.frameRate = 1;
+end
 
 %% Getting Average Velocities and Persistence Time per Cell
 
