@@ -131,11 +131,11 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-if matlabpool('size')<2
-    matlabpool open
-end
+% if matlabpool('size')<2
+%     matlabpool open
+% end
 
-parfor k = 1:nPoints
+for k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -317,40 +317,41 @@ parfor k = 1:nPoints
         sigtVal = [NaN NaN NaN];
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
+    end
+    if pass
         % subpixel continuous correlation score. This is more accurate than
         % interpolation from discrete scores - Sangyoon
-%         if norm(maxV)<1 && norm(maxV)>1e-5
-            % new vF and vP (around maxV)
-            refineFactor = 100; % by this, the pixel value will be magnified.
-            refineRange = 0.5; % in pixel
-            newvP = round(maxV(1)*refineFactor) - refineRange*refineFactor:round(maxV(1)*refineFactor) + refineRange*refineFactor;
-            newvF = round(maxV(2)*refineFactor) - refineRange*refineFactor:round(maxV(2)*refineFactor) + refineRange*refineFactor;
+        %         if norm(maxV)<1 && norm(maxV)>1e-5
+        % new vF and vP (around maxV)
+        refineFactor = 10; % by this, the pixel value will be magnified.
+        refineRange = 0.5; % in pixel
+        newvP = round(maxV(1)*refineFactor) - refineRange*refineFactor:round(maxV(1)*refineFactor) + refineRange*refineFactor;
+        newvF = round(maxV(2)*refineFactor) - refineRange*refineFactor:round(maxV(2)*refineFactor) + refineRange*refineFactor;
 
-            newhCLL    = min(xI-1,corL)+max(-newvF(1)/refineFactor,0);
-            newhCLR    = min(imgL-xI,corL)+max(newvF(end)/refineFactor,0);
-            newhCWL    = min(yI-1,corL)+max(-newvP(1)/refineFactor,0);
-            newhCWR    = min(imgW-yI,corL)+max(newvP(end)/refineFactor,0);
-            newcropL   = newhCLL+newhCLR+1/refineFactor;
-            newcropW   = newhCWL+newhCWR+1/refineFactor;
-            fineKym     = zeros(floor(newcropW*refineFactor),floor(newcropL*refineFactor),numFrames);
-            % interpolate the stack images kym
-            [curXI,curYI] = meshgrid(xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,yI-floor(newhCWL)-1:yI+floor(newhCWR)+1);
-            [fineXI,fineYI] = meshgrid(xI-newhCLL:1/refineFactor:xI+newhCLR,yI-newhCWL:1/refineFactor:yI+newhCWR);
+        newhCLL    = min(xI-1,corL)+max(-newvF(1)/refineFactor,0);
+        newhCLR    = min(imgL-xI,corL)+max(newvF(end)/refineFactor,0);
+        newhCWL    = min(yI-1,corL)+max(-newvP(1)/refineFactor,0);
+        newhCWR    = min(imgW-yI,corL)+max(newvP(end)/refineFactor,0);
+        newcropL   = newhCLL+newhCLR+1/refineFactor;
+        newcropW   = newhCWL+newhCWR+1/refineFactor;
+        fineKym     = zeros(floor(newcropW*refineFactor),floor(newcropL*refineFactor),numFrames);
+        % interpolate the stack images kym
+        [curXI,curYI] = meshgrid(xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,yI-floor(newhCWL)-1:yI+floor(newhCWR)+1);
+        [fineXI,fineYI] = meshgrid(xI-newhCLL:1/refineFactor:xI+newhCLR,yI-newhCWL:1/refineFactor:yI+newhCWR);
 
-            for k2 = 1:numFrames
-                fineKym(:,:,k2) = griddata(curXI,curYI,stack(yI-floor(newhCWL)-1:yI+floor(newhCWR)+1,xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,k2),fineXI,fineYI);
-            end
-            newcenterI = [newhCLL*refineFactor+1 newhCWL*refineFactor+1];
-            [score3] = calScore(fineKym,newcenterI,corL*refineFactor,newvP,newvF);
-            %The index of zero velocity.
-%             zeroI = [find(newvP==0) find(newvF==0)];
-%             [pass3,maxI3] = findMaxScoreI(score3,zeroI,1,0.5);
-            [~,maxI3ind] = max(score3(:));
-            [ind3x,ind3y] = ind2sub(size(score3),maxI3ind);
-            maxI3 = [ind3x,ind3y];
-            maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF,mode);
-            maxV = maxVmagnified/refineFactor;
-%         end
+        for k2 = 1:numFrames
+            fineKym(:,:,k2) = griddata(curXI,curYI,stack(yI-floor(newhCWL)-1:yI+floor(newhCWR)+1,xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,k2),fineXI,fineYI);
+        end
+        newcenterI = [newhCLL*refineFactor+1 newhCWL*refineFactor+1];
+        [score3] = calScore(fineKym,newcenterI,corL*refineFactor,newvP,newvF);
+        %The index of zero velocity.
+        %             zeroI = [find(newvP==0) find(newvF==0)];
+        %             [pass3,maxI3] = findMaxScoreI(score3,zeroI,1,0.5);
+        [~,maxI3ind] = max(score3(:));
+        [ind3x,ind3y] = ind2sub(size(score3),maxI3ind);
+        maxI3 = [ind3x,ind3y];
+        maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF,mode);
+        maxV = maxVmagnified/refineFactor;
     end
     
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
