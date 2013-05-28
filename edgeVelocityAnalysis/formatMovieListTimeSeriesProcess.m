@@ -2,7 +2,7 @@ function cellData = formatMovieListTimeSeriesProcess(movieObj,processType,vararg
 %This function takes the output of the protrusion sampling process and formats each edge velocity time series
 %Format actually means TS pre-processing. It removes: outliers, mean, trend, NaN and close gaps 
 %
-% Usage: cellData = formatEdgeVelocity(ML,varargin)
+% Usage: cellData = formatMovieListTimeSeriesProcess(ML,varargin)
 %
 % INPUTS:
 %       ML - movie list or movie data object  
@@ -67,6 +67,7 @@ outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
 trend      = ip.Results.trend;
 gapSize    = ip.Results.gapSize;
+channel    = ip.Results.channel;
 
 timeSeriesOperations = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize};
 
@@ -78,16 +79,11 @@ for iCell = 1:nCell
     
     currMD                             = ML.movies_{iCell};
     cellData(iCell).data.includedWin   = includeWin{iCell};
-    cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
+    cellData(iCell).data.rawTimeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
     
-    edgeProcIdx = currMD.getProcessIndex('ProtrusionSamplingProcess');
-    protSamples = currMD.processes_{edgeProcIdx}.loadChannelOutput;
-    
-    
-    %Extracting outliers
-    %Removing NaN and closing 1 frame gaps
+    %Applying Time Series Operations
     cellData(iCell).data.timeSeriesOperations        = timeSeriesOperations;
-    [cellData(iCell).data.procEdgeMotion,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,timeSeriesOperations{:});    
+    [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,timeSeriesOperations{:});    
     cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
     
 end
@@ -96,5 +92,21 @@ cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData)
 
 %% Saving results per cell
 savingMovieResultsPerCell(ML,cellData)
+
+end
+
+function out = readingTimeSeries(currMD,forProc,processType,channel)
+
+procIdx = currMD.getProcessIndex(processType);
+
+if strcmp(processType,forProc{1})
+    
+    samples = currMD.processes_{procIdx}.loadChannelOutput;
+    
+elseif strcmp(processType,forProc{2})
+    
+    samples = currMD.processes_{procIdx}.loadChannelOutput(channel);
+    
+end
 
 end
