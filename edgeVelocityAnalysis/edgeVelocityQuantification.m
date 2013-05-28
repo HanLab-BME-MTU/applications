@@ -13,14 +13,14 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %Usage: [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %
 % Input:
-%       nBoot - # of boostrap samples to be used (default value 1000)  
+%       nBoot - # of boostrap samples to be used (default value 1000)
 %
 %       alpha - alpha used to generate the bootstrap confidence intervals
 %         (default value 0.05)
 %
-%       cluster - scalar "1" to perform cluster analysis; "0" otherwise       
+%       cluster - scalar "1" to perform cluster analysis; "0" otherwise
 %
-%       nCluster - number of cluster 
+%       nCluster - number of cluster
 %
 %       interval - cell array with the time intervals in frames
 %                   Ex : interval = {[1:30],[20:40]} - Quantification will be done with velocities calculated at each element of the cell array
@@ -30,7 +30,7 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %       cellData - this is a long structure array cellData(for each cell) with the following fields:
 %                .data.excludeWin - indexes of windows that were excluded from analysis . Ex: border windows
 %                     .rawEdgeMotion - raw edge velocity time series. Protrusion map. This is redundant.
-%                     .procEdgeMotion - pre-processed edge velocity time series. Ex: trend, mean and NaN removed. 
+%                     .procEdgeMotion - pre-processed edge velocity time series. Ex: trend, mean and NaN removed.
 %
 %                .protrusionAnalysis(for each interval).meanValue.persTime
 %                                                                .maxVeloc
@@ -43,8 +43,8 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %                                                                        .minVeloc
 %                                                                        .meanVeloc
 %                                                                        .mednVeloc
-%                                                                        .meanValue   
-%                                        
+%                                                                        .meanValue
+%
 %           The structure continues with the confidence interval for each of the measurement above
 %
 %                                                      CI.persTimeCI
@@ -58,7 +58,7 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %                                                                .minVeloc
 %                                                                .meanVeloc
 %                                                                .mednVeloc
-%                                                                .meanValue   
+%                                                                .meanValue
 %
 %                                                       Analysis at the individual time series level
 %
@@ -81,14 +81,6 @@ ip.addParamValue('cluster',false,@isscalar);
 ip.addParamValue('nCluster',2,@isscalar);
 ip.addParamValue('interval',{[]},@iscell);
 
-ip.parse(movieObj,varargin{:});
-nBoot    = ip.Results.nBoot;
-alpha    = ip.Results.alpha;
-cluster  = ip.Results.cluster;
-nCluster = ip.Results.nCluster;
-interval = ip.Results.interval;
-scale    = ip.Results.scale;
-
 if isa(movieObj,'MovieData')
     
     ML = movieData2movieList(movieObj);
@@ -99,26 +91,57 @@ else
     
 end
 
+nCell = numel(ML.movies_);
 
-cellData = loadingMovieResultsPerCell(ML);
+%% Time Series Pre-Processing operations
+ip.addParamValue('includeWin', num2cell(inf(1,nCell)),@iscell);
+ip.addParamValue('outLevel',0,@isscalar);
+ip.addParamValue('trendType',   -1,@isscalar);
+ip.addParamValue('minLength',  10,@isscalar);
+ip.addParamValue('scale',false,@islogical);
 
+ip.parse(movieObj,varargin{:});
+nBoot    = ip.Results.nBoot;
+alpha    = ip.Results.alpha;
+cluster  = ip.Results.cluster;
+nCluster = ip.Results.nCluster;
+interval = ip.Results.interval;
+scale    = ip.Results.scale;
 
-    cellData(iCell).data.pixelSize   = currMD.pixelSize_;
-    cellData(iCell).data.frameRate   = currMD.timeInterval_;
-    %Converting the edge velocity in pixel/frame into nanometers/seconds
+includeWin = ip.Results.includeWin;
+outLevel   = ip.Results.outLevel;
+minLen     = ip.Results.minLength;
+trend      = ip.Results.trendType;
+
+%% Formatting Time Series
+operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend};
+cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
+
+%% Converting the edge velocity in pixel/frame into nanometers/seconds
+
+for iCell = 1:nCell
+    
+    currMD = ML.movies_{iCell};
+    scaling = 1;
     if scale
-        if isemtpy(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-            error('Pixel size and/or time interval are missing')
+        
+        if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+            error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
         end
-        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal.*(currMD.pixelSize_/currMD.timeInterval_);
-    else
-        cellData(iCell).data.rawEdgeMotion = protSamples.avgNormal;
+        
+        scaling = (currMD.pixelSize_/currMD.timeInterval_);
+        
     end
-
-
-if isempty(cellData.data.frameRate)
-    cellData.data.frameRate = 1;
+    
+    cellData(iCell).data.pixelSize      = currMD.pixelSize_;
+    cellData(iCell).data.frameRate      = currMD.timeInterval_;
+    cellData(iCell).data.rawEdgeMotion  = cellData(iCell).data.rawTimeSeries.*scaling;
+    cellData(iCell).data.procEdgeMotion = num2cell( cellData(iCell).data.procTimeSeries.*scaling,2 );
+    
 end
+
+
+
 
 %% Getting Average Velocities and Persistence Time per Cell
 
@@ -126,24 +149,26 @@ commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster
 if isempty(interval{1})
     
     [protrusionA,retractionA] ...
-                = arrayfun(@(x) commonGround(x.data.excProcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
-     protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
-     retraction = cellfun(@(x) {x},retractionA,'Unif',0);
+        = arrayfun(@(x) commonGround(x.data.procEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+    protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
+    retraction = cellfun(@(x) {x},retractionA,'Unif',0);
+    
 else
     
     firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z);
     secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
     [protrusion,retraction] ...
-                = arrayfun(@(x) secondLevel(interval,x.data.excProcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+        = arrayfun(@(x) secondLevel(interval,x.data.procEdgeMotion,x.data.frameRate),cellData,'Unif',0);
     
 end
 
 [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot);
 
 %% Saving results
-savingMovieResultsPerCell(ML,cellData)
-savingMovieDataSetResults(ML,dataSet)
+
+savingMovieResultsPerCell(ML,cellData,'edgeVelocityQuantification')
+savingMovieDataSetResults(ML,dataSet,'EdgeVelocityQuantification')
 
 end%End of main function
 
@@ -151,7 +176,7 @@ function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,i
 %This function pull all the data from individual cells and calculates the dataSet mean value and CI
 %It also formats the data structure for plotting
 %Input:
-%       cellData   - structure created by the function "formatEdgeVelocity.m". 
+%       cellData   - structure created by the function "formatEdgeVelocity.m".
 %       interval   - Cell array containing the time intervals where the analysis is performed
 %       alpha      - confidence interval Ex: - 0.05 = 95 percent
 %       nBoot      - number of bootstrap samples
@@ -190,5 +215,5 @@ for iInt = 1:numel(interval)
     dataSet.total.cond(iInt) = total;
     
 end
-    
+
 end

@@ -37,10 +37,10 @@ function cellData = formatMovieListTimeSeriesProcess(movieObj,processType,vararg
 %Marco Vilela, 2012
 
 formattableProc = {'ProtrusionSamplingProcess','WindowSamplingProcess'};
-
+testInput       = @(y) any(cell2mat(cellfun(@(x) strcmp(y,x),formattableProc,'Unif',0)));
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
-ip.addRequired('processType',any(cell2mat(cellfun(@(x) strcmp(processType,x),formattableProc,'Unif',0))));
+ip.addRequired('processType',@(x) testInput(x));
 
     
 if isa(movieObj,'MovieData')
@@ -52,56 +52,64 @@ else
     ML = movieObj;
     
 end
+
 nCell = numel(ML.movies_);
 
-ip.addParamValue('channel',0,@isscalar);
-ip.addParamValue('includeWin', num2cell(inf(1,nCell)),@iscell);
-ip.addParamValue('outLevel',0,@isscalar);
-ip.addParamValue('trendType',   -1,@isscalar);
-ip.addParamValue('minLength',  30,@isscalar);
-ip.addParamValue('gapSize',0,@isscalar);
+ip.addParamValue('channel',   0,@isscalar);
+ip.addParamValue('includeWin',num2cell(inf(1,nCell)),@iscell);
+ip.addParamValue('outLevel',  0,@isscalar);
+ip.addParamValue('trendType',-1,@isscalar);
+ip.addParamValue('minLength', 30,@isscalar);
+ip.addParamValue('gapSize',   0,@isscalar);
+ip.addParamValue('saveOn',    false,@islogical);
 
-ip.parse(movieObj,varargin{:});
+ip.parse(movieObj,processType,varargin{:});
 includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
-trend      = ip.Results.trend;
+trend      = ip.Results.trendType;
 gapSize    = ip.Results.gapSize;
 channel    = ip.Results.channel;
+saveOn     = ip.Results.saveOn;
 
 timeSeriesOperations = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize};
 
 
-dataS    = struct('includedWin',[],'excludedWin',[],'pixelSize',[],'frameRate',[],'rawEdgeMotion',[],'procEdgeMotion',[]);
+dataS    = struct('includedWin',[],'excludedWin',[],'pixelSize',[],'frameRate',1,'rawTimeSeries',[],'procTimeSeries',[]);
 cellData = struct('data',repmat({dataS},1,nCell)) ;
 
 for iCell = 1:nCell
     
     currMD                             = ML.movies_{iCell};
-    cellData(iCell).data.includedWin   = includeWin{iCell};
     cellData(iCell).data.rawTimeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
-    
+    nWin                               = size(cellData(iCell).data.rawTimeSeries,1);
+  
     %Applying Time Series Operations
     cellData(iCell).data.timeSeriesOperations        = timeSeriesOperations;
-    [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawEdgeMotion,timeSeriesOperations{:});    
-    cellData(iCell).data.excludeWin                  = unique([cellData(iCell).data.excludeWin excludeVar]);
+    [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});    
+    cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+    cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
     
 end
-%% Performing windowing exclusion
-cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData);
+% Performing windowing exclusion
+%cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData);
 
 %% Saving results per cell
-savingMovieResultsPerCell(ML,cellData)
+if saveOn
+    
+    savingMovieResultsPerCell(ML,cellData)
+    
+end
 
 end
 
-function out = readingTimeSeries(currMD,forProc,processType,channel)
+function samples = readingTimeSeries(currMD,forProc,processType,channel)
 
 procIdx = currMD.getProcessIndex(processType);
 
 if strcmp(processType,forProc{1})
     
-    samples = currMD.processes_{procIdx}.loadChannelOutput;
+    samples = currMD.processes_{procIdx}.loadChannelOutput.avgNormal;
     
 elseif strcmp(processType,forProc{2})
     
