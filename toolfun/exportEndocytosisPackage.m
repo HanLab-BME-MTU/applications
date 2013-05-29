@@ -21,33 +21,7 @@ externName = {'kdtree'};
 % 1) Export pointSourceDetection.m separately
 %-----------------------------------------------------
 [fctList, toolboxList] = getFunDependencies('pointSourceDetection.m');
-[fpaths, fnames, fexts] = cellfun(@fileparts, fctList, 'unif', 0);
-% remove unneeded functions
-rmIdx = ismember(fnames, ignoreList);
-tmp = cellfun(@(i) regexpi(fpaths, i, 'once'), externList, 'unif', 0);
-tmp = horzcat(tmp{:});
-rmIdx = rmIdx | any(~cellfun(@(i) isempty(i), tmp),2);
-fpaths(rmIdx) = [];
-fnames(rmIdx) = [];
-fexts(rmIdx) = [];
-
-% Update ignore list for main package
-ignoreList = [ignoreList; fnames];
-
-mexExts = {'.mexmaci64'; '.mexa64'; '.mexw64'};
-mexIdx = find(ismember(fexts, mexExts));
-% Expand MEX list to all platforms
-mexNames = fnames(mexIdx);
-mexNames = arrayfun(@(i) cellfun(@(e) [mexNames{i} e], mexExts, 'unif', 0), 1:numel(mexNames), 'unif', 0);
-mexNames = vertcat(mexNames{:});
-mexPaths = fpaths(mexIdx);
-mexPaths = reshape(repmat(mexPaths', [numel(mexExts) 1]), [numel(mexExts)*numel(mexPaths) 1]);
-fpaths(mexIdx) = [];
-fnames(mexIdx) = [];
-fexts(mexIdx) = [];
-fnames = arrayfun(@(i) [fnames{i} fexts{i}], 1:numel(fnames), 'unif', 0)';
-
-
+[fnames, fpaths, mexNames, mexPaths, ignoreList] = parseFiles(fctList, ignoreList, externList);
 
 % copy core functions
 dest = [exportDir filesep 'PointSourceDetection' filesep];
@@ -81,14 +55,60 @@ system(cmd);
 %-----------------------------------------------------
 % 2) Export Endocytosis project
 %-----------------------------------------------------
-masterList = {'runDetection.m', 'runTracking.m'};
+masterList = {'loadConditionData.m', 'runDetection.m', 'runTracking.m', 'runTrackProcessing.m'};
 for i = 1:numel(masterList);
-    [fctList, toolboxList] = getFunDependencies(masterList{i});
-    fctList
+    [fctList{i}, toolboxList{i}] = getFunDependencies(masterList{i});
 end
-% [fpaths, fnames, fexts] = cellfun(@fileparts, fctList, 'unif', 0);
+fctList = unique(vertcat(fctList{:}));
+toolboxList = unique(vertcat(toolboxList{:}));
+[fnames, fpaths, mexNames, mexPaths, ~] = parseFiles(fctList, ignoreList, externList);
+
+% copy core functions
+dest = [exportDir filesep 'cmeAnalyzer' filesep];
+[~,~] = mkdir(dest);
+for i = 1:numel(fnames)
+    copyfile([fpaths{i} filesep fnames{i}], [dest fnames{i}]);
+end
+
+% copy MEX functions
+mdest = [dest filesep 'mex' filesep];
+[~,~] = mkdir(mdest);
+for i = 1:numel(mexNames)
+    copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
+end
+
+% set permissions
+cmd = ['chmod -R 755 ' dest];
+system(cmd);
+
+disp('The package uses the following toolboxes:')
+disp(toolboxList);
 
 
+function [fnames, fpaths, mexNames, mexPaths, ignoreList] = parseFiles(fctList, ignoreList, externList)
 
-% disp('The package uses the following toolboxes:')
-% disp(toolboxes)
+[fpaths, fnames, fexts] = cellfun(@fileparts, fctList, 'unif', 0);
+% remove unneeded functions
+rmIdx = ismember(fnames, ignoreList);
+tmp = cellfun(@(i) regexpi(fpaths, i, 'once'), externList, 'unif', 0);
+tmp = horzcat(tmp{:});
+rmIdx = rmIdx | any(~cellfun(@(i) isempty(i), tmp),2);
+fpaths(rmIdx) = [];
+fnames(rmIdx) = [];
+fexts(rmIdx) = [];
+
+% Update ignore list for main package
+ignoreList = [ignoreList; fnames];
+
+mexExts = {'.mexmaci64'; '.mexa64'; '.mexw64'};
+mexIdx = find(ismember(fexts, mexExts));
+% Expand MEX list to all platforms
+mexNames = fnames(mexIdx);
+mexNames = arrayfun(@(i) cellfun(@(e) [mexNames{i} e], mexExts, 'unif', 0), 1:numel(mexNames), 'unif', 0);
+mexNames = vertcat(mexNames{:});
+mexPaths = fpaths(mexIdx);
+mexPaths = reshape(repmat(mexPaths', [numel(mexExts) 1]), [numel(mexExts)*numel(mexPaths) 1]);
+fpaths(mexIdx) = [];
+fnames(mexIdx) = [];
+fexts(mexIdx) = [];
+fnames = arrayfun(@(i) [fnames{i} fexts{i}], 1:numel(fnames), 'unif', 0)';
