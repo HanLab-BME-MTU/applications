@@ -166,7 +166,7 @@ for s = 1:track.nSeg
         ampl = A+c;
         if ~isempty(gapIdx)
             % dashed line everywhere
-            lh(4) = plot(ha, t, ampl, '--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
+            lh(4) = plot(ha, t, ampl, '-', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
             % plot gaps as white disks
             lh(5) = plot(ha, t(gapIdx), A(gapIdx)+c(gapIdx), 'o', 'Color', trackColor, 'MarkerFaceColor', 'w', 'LineWidth', ip.Results.LineWidth);
         end
@@ -199,12 +199,12 @@ if hasStartBuffer && ip.Results.PlotBuffers
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
-    lh(7) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
+    lh(7) = plot(ha, t, A+c, '.-', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
     if strcmpi(ip.Results.Background, 'on')
-        lh(8) = plot(ha, t, c, '--', 'Color', trackColor);
+        lh(8) = plot(ha, t, c, '-', 'Color', trackColor);
     end
     if ip.Results.OverlayBackground
-        lh(14) = plot(ha, t, c+kLevel*sigma_r, '--', 'Color', trackColor);
+        lh(14) = plot(ha, t, c+kLevel*sigma_r, '-', 'Color', trackColor);
     end
 end
 
@@ -226,12 +226,12 @@ if hasEndBuffer && ip.Results.PlotBuffers
     fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLightBuffer, 'EdgeColor', 'none', 'Parent', ha);
     
-    lh(9) = plot(ha, t, A+c, '.--', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
+    lh(9) = plot(ha, t, A+c, '.-', 'Color', trackColor, 'LineWidth', ip.Results.LineWidth);
     if strcmpi(ip.Results.Background, 'on')
-        lh(10) = plot(ha, t, c, '--', 'Color', trackColor);
+        lh(10) = plot(ha, t, c, '-', 'Color', trackColor);
     end
     if ip.Results.OverlayBackground
-        lh(15) = plot(ha, t, c+kLevel*sigma_r, '--', 'Color', trackColor);
+        lh(15) = plot(ha, t, c+kLevel*sigma_r, '-', 'Color', trackColor);
     end
 end
 
@@ -281,7 +281,7 @@ if isempty(ip.Results.Handle)
         set(l, tfont{:});
     end
     
-    set(gca, 'LineWidth', 2, sfont{:}, 'TickDir', 'out');
+    set(gca, 'LineWidth', ip.Results.LineWidth, sfont{:}, 'TickDir', 'out');
     xlabel('Time (s)', lfont{:})
     ylabel('Intensity (A.U.)', lfont{:});
 end
