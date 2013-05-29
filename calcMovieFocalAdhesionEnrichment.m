@@ -113,19 +113,19 @@ cellSegProc = movieData.processes_{iCellSegProc};
 
 nAdhesions = cellSegProc.maxIndex_;%Total number of adhesions in movie
 
-if isempty(p.MaskChannelIndex)
+if isempty(p.CellMaskChannelIndex)
     iHasMasks = find(cellSegProc.checkChannelOutput(1:nChanTot));
     if nnz(iHasMasks) > 1        
         iSel = listdlg('ListString',arrayfun(@num2str,iHasMasks,'Unif',0),'SelectionMode','single',...
             'Name','Mask Channel Selection','ListSize',[340 314],'PromptString',...
             'Pick channel to use cell segmentation from:');
         if isempty(iSel); return, end
-        p.MaskChannelIndex = iHasMasks(iSel);
+        p.CellMaskChannelIndex = iHasMasks(iSel);
     else
-        p.MaskChannelIndex = iHasMasks;
+        p.CellMaskChannelIndex = iHasMasks;
     end    
 else
-    assert(cellSegProc.checkChannelOutput(p.MaskChannelIndex),'No valid masks for selected segmentation process!');
+    assert(cellSegProc.checkChannelOutput(p.CellMaskChannelIndex),'No valid masks for selected segmentation process!');
 end
 
 
@@ -143,7 +143,7 @@ allCellMasks = false([M N P]);
 for iFrame = 1:nFrames
     
     allFAMasks(:,:,iFrame) = segProc.loadChannelOutput(p.MaskChannelIndex,iFrame); 
-    allCellMasks(:,:,iFrame) = cellSegProc.loadChannelOutput(p.MaskChannelIndex,iFrame); 
+    allCellMasks(:,:,iFrame) = cellSegProc.loadChannelOutput(p.CellMaskChannelIndex,iFrame); 
     
     if p.AdhesionColocRadius > 0
         allFAColocMasks(:,:,iFrame) = imdilate(allFAMasks(:,:,iFrame),dStrel);
