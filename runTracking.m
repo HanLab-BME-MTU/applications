@@ -1,40 +1,34 @@
-function [] = runTracking(data, settings, varargin)
-% runTracking tracks movies under a given condition folder. This creates
-% the TrackInfo and lftInfo data structures necessary for lifetime
-% analysis.
+%runTracking(data, varargin) tracks CCPs in the movies passed with the 'data' structure.
+% This function generates a list of tracks in 'Tracking/trackedFeatures.mat' for each
+% data set.
 %
-% SYNOPSIS [data] = runTracking(data,tracksettings,overwrite)
+% Inputs   
+%                  data : list of movies, using the structure returned by loadConditionData.m
+%            {settings} : tracker settings. Default: 
+%                         loadTrackSettings('Radius', [3 6], 'MaxGapLength', 2);    
 %
-% INPUT     data(optional): structure containing the field source,
-%               which specifies the directory for each movie (default is to
-%               ask you to load them via gui)
-%           tracksettings(optional):
-%           overwrite(optional): 1 to overwrite to rerun tracking, 0 otherwise
-%               (default is 0)
-%
-%          {'Frames', f} : array of frame indexes to track
-%          {'DownsamplingFactor', d} : downsampling factor, must be an integer
-%
-% OUTPUT
-%
-% REMARKS   The function only performs the tracking for a given movie if
-%           the folder Detection is not already present in the
-%           specified directory; if you want a partial or faulty tracking
-%           to be replaced, you need to DELETE these folders first.
+% Options ('specifier', value)
+%           'Overwrite' : true|{false}. Overwrite previous tracking result.
+%              'Frames' : Index array of frames to track (i.e., for downsampling). Default: all frames. 
+%  'DownsamplingFactor' : Integer downsampling factor. Default: none.
 %
 %
-% Francois Aguet, May 2010 (last modified 05/13/2011)
+% Example: runTracking(data, loadTrackSettings('Radius', [3 6], 'MaxGapLength', 2), 'Overwrite', true) ;
+
+% Francois Aguet, May 2010 (last modified 05/28/2013)
+
+function [] = runTracking(data, varargin)
 
 % Parse inputs
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('settings', []);
+ip.addOptional('settings', [], @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('FileName', 'trackedFeatures', @ischar); % default of the tracker
 ip.addParamValue('Frames', [], @isvector);
 ip.addParamValue('DownsamplingFactor', [], @isscalar);
-ip.addParamValue('DetectionFile', 'detection_v2.mat');
+ip.addParamValue('DetectionFile', 'detection_v2.mat', @ischar);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 fileName = ip.Results.FileName;
@@ -57,12 +51,9 @@ end
 fileName = [fileName '.mat'];
 
 % Load tracker settings
+settings = ip.Results.settings;
 if isempty(settings)
-    %load track settings required for tracking
-    [fileName filePath] = uigetfile('.mat', 'Choose track settings mat file for tracking');
-    load([filePath fileName]);
-elseif ischar(settings)
-    load(settings);
+   settings = loadTrackSettings('Radius', [3 6], 'MaxGapLength', 2);
 end
 
 % Run tracker on each data set
@@ -76,25 +67,17 @@ parfor i = 1:length(data)
 end
 
 
+function main(data, settings, fileName, detectionFile, frames)
 
-function [data] = main(data, settings, fileName, detectionFile, frames)
-
-% now we're missing the variable movieInfo, which is the detection
-% data. If a valid detection structure is a field in data, read it,
-% else load the structure from the appropriate detection file
-if isfield(data, 'detection') && ~isempty(data.detection)
-    movieInfo = data.detection;
-else
-    %loadfile = load([data.source 'Detection' filesep 'detectionResults.mat']);
-    loadfile = load([data.source 'Detection' filesep detectionFile]);
-    if isfield(loadfile, 'frameInfo')
-        movieInfo = loadfile.frameInfo;
-        if ~isempty(frames)
-           movieInfo = movieInfo(frames); 
-        end
-    else
-        error('No detection data file of specified format found');
+dfile = [data.source 'Detection' filesep detectionFile];
+if exist(dfile, 'file')==2
+    movieInfo = loadfile.frameInfo;
+    if ~isempty(frames)
+        movieInfo = movieInfo(frames);
     end
+else
+    fprintf(['runTracking: no detection data found for ' getShortPath(data)]);
+    return;
 end
 
 [~,~] = mkdir([data.source 'Tracking']);
