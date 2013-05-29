@@ -113,7 +113,7 @@ if strcmp(processType,forProc{1})
     
 elseif strcmp(processType,forProc{2})
     
-    samples = currMD.processes_{procIdx}.loadChannelOutput(channel);
+    samples = currMD.processes_{procIdx}.loadChannelOutput(channel).avg;
     
 end
 
