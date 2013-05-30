@@ -8,7 +8,9 @@ function [data] = loadConditionData(varargin)
 % INPUT                   {condDir} : root directory where movies are located
 %                         {chNames} : cell array of channel names
 %                         {markers} : cell array of fluorescent markers
-%             {'Parameters', value} : vector of microscope parameters: [NA M pixelSize]
+%             {'Parameters', value} : vector of microscope parameters: [NA M PixelSize]
+%                                     NA: numerical aperture; M: magnification;
+%                                     PixelSize: camera pixel size. Default [1.49 100 6.7e-6]
 %          {'MovieSelector', value} : selector string for movie folders, i.e., 'cell'
 %     {'IgnoreEmptyFolders', value} : true | {false}; ignores cell folders that do not contain TIFF frames
 %
