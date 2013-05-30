@@ -27,12 +27,12 @@ end
 
 function main(data, opts)
 
-kLevel = norminv(1-opts.alpha/2.0, 0, 1); % ~2 std above background for 0.05
+kLevel = norminv(1-opts.Alpha/2.0, 0, 1); % ~2 std above background for 0.05
 
 % load tracks (all)
-ts = load([data.source 'Tracking' filesep opts.fileName]);
+ts = load([data.source 'Tracking' filesep opts.FileName]);
 
-if isfield(ts.tracks, 'significantSignal') && ~opts.overwrite
+if isfield(ts.tracks, 'significantSignal') && ~opts.Overwrite
     fprintf('Classification has already been run for %s\n', getShortPath(data));
     return
 end
@@ -45,7 +45,8 @@ nc = length(data.channels); % number of channels
 mCh = strcmp(data.source, data.channels);
 sCh = setdiff(1:nc, mCh);
 
-sigma = cellfun(@(i) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, i), data.markers);
+load([data.source 'Detection' filesep 'detection_v2.mat']);
+sigma = frameInfo(1).s;
 w = max(ceil(4*sigma(sCh)));
 
 frameIdx = round(linspace(1, data.movieLength, 16));
@@ -72,7 +73,7 @@ for f = 1:nf;
     %-----------------------------------------------
     % Probability of randomly occurring slave signal
     %-----------------------------------------------
-    switch opts.mode
+    switch opts.Mode
         case 'random'
             %=================================================================================
             % Approach 1: fit at random positions outside CCPs, build distribution of 'A'
@@ -278,7 +279,7 @@ for k = 1:nt
     end
 end
 
-idx = [ts.tracks.catIdx]==1 & [ts.tracks.lifetime_s]>=data.framerate*opts.cutoff_f;
+idx = [ts.tracks.catIdx]==1 & [ts.tracks.lifetime_s]>=data.framerate*opts.Cutoff_f;
 nPosM = sum([ts.tracks(idx).significantMaster],2);
 nPosS = sum([ts.tracks(idx).significantSlave],2);
 for c = sCh
@@ -313,7 +314,7 @@ end
 %     end
 % end
 
-save([data.source 'Tracking' filesep opts.fileName], '-struct', 'ts');
+save([data.source 'Tracking' filesep opts.FileName], '-struct', 'ts');
 
 % update lifetime data structures
 getLifetimeData(data, 'Overwrite', true);
