@@ -1,3 +1,5 @@
+% Francois Aguet (last mod. 05/29/2013)
+
 function [lftRes, res] = runLifetimeAnalysis(data, varargin)
 
 ip = inputParser;
@@ -116,9 +118,6 @@ for i = 1:nd
         % indexes within cohorts
         cidx = lb(k)<=lftData(i).lifetime_s & lftData(i).lifetime_s<=ub(k);
         res(i).maxA{k} = nanmax(lftData(i).A(cidx,:,mCh),[],2);
-        %for n = firstN
-        %   res(i).(['maxA_f' num2str(n)]){k} = nanmax(lftData(i).A(cidx,1:n,mCh),[],2);
-        %end
         
         % lifetimes for given cohort
         res(i).lft{k} = lftData(i).lifetime_s(cidx);
@@ -174,6 +173,7 @@ if isempty(ip.Results.MaxIntensityThreshold)
 else
     T = ip.Results.MaxIntensityThreshold;
 end
+lftRes.MaxIntensityThreshold = T;
 
 % loop through data sets, apply max. intensity threshold
 lftRes.pctCCP = zeros(nd,1);
@@ -279,19 +279,10 @@ end
 %====================
 % Initiation density
 %====================
-%REPLACE WITH PLOT
-fprintf(2, 'Initiation density, all tracks:\n');
-% for i = 1:nd
-%     fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_all(i,1), lftRes.initDensity_all(i,2));
-% end
-% fprintf('Initiation density, SEM: %f ± %f [µm^-2 min^-1]\n', mean(D(1,:)), std(D(1,:))/sqrt(nd));
-fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
-fprintf('-------------------------------------------------\n');
-fprintf(2, 'Initiation density, valid tracks only:\n');
-% for i = 1:nd
-%     fprintf('%s: %.3f ± %.3f [µm^-2 min^-1]\n', getCellDir(data(i)), lftRes.initDensity_Ia(i,1), lftRes.initDensity_Ia(i,2));
-% end
-fprintf(2, 'Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+fprintf('Initiation density, all tracks:\n');
+fprintf('Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
+fprintf('Initiation density, valid tracks only:\n');
+fprintf('Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
 fprintf('-------------------------------------------------\n');
 
 lftRes.meanLftHistCCP = nanmean(lftRes.lftHistCCP,1);
@@ -299,17 +290,6 @@ lftRes.meanLftHistCS = nanmean(lftRes.lftHistCS,1);
 if ip.Results.ExcludeVisitors
     lftRes.meanLftHistVisit = mean(lftRes.lftHistVisit,1);
 end
-
-%pctV = [50 25 75 5 95]';
-%pAll = arrayfun(@(i) prctile(i.lifetime_s,pctV), lftData, 'UniformOutput', false);
-%pA = arrayfun(@(i) prctile(i.lftAboveT,pctV), res, 'UniformOutput', false);
-%pB = arrayfun(@(i) prctile(i.lftBelowT,pctV), res, 'UniformOutput', false);
-%lftRes.stats = [mean([pAll{:}],2) mean([pB{:}],2) mean([pA{:}],2)];
-%lftRes.stats = [prctile([lftData.lifetime_s],pctV) prctile([res.lftBelowT],pctV) prctile([res.lftAboveT],pctV)]
-
-% stats = [prctile([lftData.lifetime_s], [50 25 75])' prctile([res.lftBelowT], [50 25 75])' prctile([res.lftAboveT], [50 25 75])' ];
-% w = 1.5*(stats(3,:)-stats(2,:));
-% lftRes.stats = [stats; stats(2,:)-w; stats(3,:)+w];
 
 
 %---------------------------------------
@@ -351,7 +331,6 @@ if strcmpi(ip.Results.Display, 'all')
     ya = 0:0.01:0.04;
     set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
     
-    % print('-depsc2', '-loose', ['LftRaw_dataOX_10_cut' num2str(cutoff_f) '.eps']);
     
     lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
     [uCDF, idx] = unique(lftCDF);
@@ -386,10 +365,7 @@ if strcmpi(ip.Results.Display, 'all')
     ya = 0:0.25:1;
     set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-    % xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Cumulative freq.', fset.sfont{:});
-    
-    % print('-depsc2', '-loose', ['LftMean+CDF_dataOX_10_cut' num2str(cutoff_f) '_mu=' num2str(mu, '%.2f') '.eps']);
 end
 
 %---------------------------------------

@@ -1,4 +1,5 @@
-
+%exportEndocytosisPackage(exportDir) exports the CME analysis software package to 'exportDir'
+%
 % Adapted from buildPackage.m
 
 % Francois Aguet, 05/28/2013
@@ -55,7 +56,7 @@ system(cmd);
 %-----------------------------------------------------
 % 2) Export Endocytosis project
 %-----------------------------------------------------
-masterList = {'loadConditionData.m', 'runDetection.m', 'runTracking.m', 'runTrackProcessing.m'};
+masterList = {'cmeAnalysis.m', 'cmeDataViewer.m'};
 for i = 1:numel(masterList);
     [fctList{i}, toolboxList{i}] = getFunDependencies(masterList{i});
 end
@@ -83,6 +84,8 @@ system(cmd);
 
 disp('The package uses the following toolboxes:')
 disp(toolboxList);
+
+
 
 
 function [fnames, fpaths, mexNames, mexPaths, ignoreList] = parseFiles(fctList, ignoreList, externList)
