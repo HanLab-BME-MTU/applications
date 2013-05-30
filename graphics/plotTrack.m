@@ -1,13 +1,13 @@
 % plotTrack(data, tracks, trackIdx, ch, varargin)
 %
-% INPUTS:   data : data structure
+% Inputs:   data : data structure
 %          track : track structure
-%        trackIdx : index of the track
-%             ch : channel #
-%     {varargin} : optional inputs:
-%                      'Visible' : {'on'} | 'off' toggles figure visibility
-%                      'Handle' : h, axis handle (for plotting from within GUI)
-%                      'Print' : 'on' | {'off'} generates an EPS in 'data.source/Figures/'
+%            {ch} : channel number. Default: 1
+%
+% Options
+%      'Visible' : {'on'} | 'off' toggles figure visibility
+%       'Handle' : axis handle (for plotting from within GUI)
+%  'DisplayMode' : {'screen'}|'print'
 
 % Francois Aguet, March 9 2011 (Last modified: 01/31/2012)
 
@@ -33,13 +33,13 @@ ip.addParamValue('Time', 'Track', @(x) any(strcmpi(x, {'Movie', 'Track'})) || is
 ip.addParamValue('XTick', []);
 ip.addParamValue('YTick', []);
 ip.addParamValue('XLim', []);
-% ip.addParamValue('Scale', 'on', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.addParamValue('DisplayMode', 'Screen', @(x) any(strcmpi(x, {'Print', 'Screen'})));
 ip.addParamValue('OverlayBackground', false, @islogical);
 ip.addParamValue('MarkerSizes', [21 7 2]);
 ip.addParamValue('PlotBuffers', true, @islogical);
 ip.addParamValue('LineWidth', 1);
 ip.addParamValue('BackgroundConfidence', [], @isscalar);
+ip.addParamValue('Alpha', 0.05, @isscalar);
 ip.parse(data, track, varargin{:});
 
 
@@ -112,16 +112,10 @@ fillDark = hsv2rgb([hues(ch) 0.2 1]);
 fillLightBuffer = hsv2rgb([hues(ch) 0.4 0.85]);
 fillDarkBuffer = hsv2rgb([hues(ch) 0.2 0.85]);
 
-% Significance thresholds
-% sigmaT = icdf('normal', 1-alpha/2, 0, 1);
-%sigmaL = icdf('normal', 0.95, 0, 1); % weaker, single-tailed
-%sigmaH = icdf('normal', 0.99, 0, 1);
-kLevel = norminv(1-0.05/2.0, 0, 1); % ~2 std above background
-
+kLevel = norminv(1-ip.Results.Alpha/2.0, 0, 1);
 
 % Plot track
 lh = NaN(1,15);
-
 for s = 1:track.nSeg
     
     A = track.A(ch,:);
@@ -150,9 +144,6 @@ for s = 1:track.nSeg
     rev = c+A-sigma_a;
     lh(2) = fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLight, 'EdgeColor', 'none', 'Parent', ha);
-    
-    % plot background s.d.
-    %plot(ha, t, c+track.c_pstd(ch,:), 'k--');
     
     % plot track
     ampl = A+c;
