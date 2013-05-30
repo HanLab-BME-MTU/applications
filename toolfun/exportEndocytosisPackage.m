@@ -86,7 +86,7 @@ disp('The package uses the following toolboxes:')
 disp(toolboxList);
 
 system('mv PointSourceDetection cmeAnalysisPackage/.');
-system('zip -r cmeAnalysisPackage.zip cmeAnalysisPackage');
+system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
 system('cp cmeAnalysisPackage.zip www/aguet/doc/.');
 %unzip cmeAnalysisPackage.zip
 
