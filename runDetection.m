@@ -3,8 +3,10 @@
 % Inputs:      data : data/movie structure
 %         {'Sigma'} : standard deviation of the Gaussian used for fitting
 %     {'Overwrite'} : true | {false}
+%
+% Notes: All input data sets must have the same channels.
 
-% Francois Aguet, April 2011 (last modified 05/24/2011)
+% Francois Aguet, April 2011 (last modified 05/28/2013)
 
 function runDetection(data, varargin)
 
@@ -12,6 +14,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
+ip.addParamValue('SigmaSource', 'model', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Master', [], @isnumeric);
 ip.addParamValue('Alpha', 0.05, @isnumeric);
@@ -26,10 +29,35 @@ if isempty(mCh)
     end
 end
 
-for i = 1:length(data)
+sigma = ip.Results.Sigma;
+if isempty(sigma)
+    % verify that all data sets have same channels
+    ch = arrayfun(@(i) cellfun(@getDirFromPath, i.channels', 'unif', 0), data, 'unif', 0);
+    ch = [ch{:}];
+    nCh = unique(arrayfun(@(i) numel(i.channels), data));
+    if numel(nCh)==1 && numel(unique(ch))==nCh
+        if strcmpi(ip.Results.SigmaSource, 'model')
+            sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers);
+        else
+            % evenly sample all data sets
+            sigma = zeros(1,nCh);
+            % use ~20 frames distributed accross data sets
+            nf = round(20/numel(data));
+            for c = 1:nCh
+                fpaths = arrayfun(@(i) i.framePaths{c}(round(linspace(1,i.movieLength,nf))), data, 'unif', 0);
+                sigma(c) = getGaussianPSFsigmaFromData([fpaths{:}], 'Display', false);
+            end
+        end
+    else
+        fprintf('runDetection: mismatch between the channels in ''data''.');
+        return;        
+    end
+end
+
+parfor i = 1:length(data)
     if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
-        main(data(i), ip.Results.Sigma, mCh, ip.Results.Alpha, ip.Results.CellMask);
+        main(data(i), sigma, mCh, ip.Results.Alpha, ip.Results.CellMask); %#ok<PFBNS>
         fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
@@ -42,10 +70,6 @@ function main(data, sigma, mCh, alpha, cellMask)
 
 % master channel
 nCh = length(data.channels);
-
-if isempty(sigma)
-    sigma = arrayfun(@(k) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{k}), 1:nCh);
-end
 
 frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', [],...
     'x_pstd', [], 'y_pstd', [], 'A_pstd', [], 'c_pstd', [],...
