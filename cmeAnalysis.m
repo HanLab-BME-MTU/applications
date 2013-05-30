@@ -29,7 +29,7 @@ opts = {'Overwrite', ip.Results.Overwrite};
 
 runDetection(data, opts{:});
 
-settingsloadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
+settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
 runTrackProcessing(data, opts{:});
 

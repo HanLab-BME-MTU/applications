@@ -32,7 +32,8 @@ function [data] = loadConditionData(varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.FunctionName = 'loadConditionData';
-ip.addOptional('condDir', [], @ischar);
+ip.addOptional('condDir', [], @(x) ischar(x) && ~any(strcmpi(x,...
+    {'Parameters', 'MovieSelector', 'IgnoreEmptyFolders', 'FrameRate'})));
 ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
 ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
@@ -95,7 +96,7 @@ data(1:nCells) = struct('source', [], 'channels', [], 'date', [], 'framerate', [
 
 
 % Load/determine channel names
-if nargin<2
+if isempty(chNames)
     nCh = input('Enter the number of channels: ');
     chNames = cell(1,nCh);
     chPath = uigetdir(cellPath{1}, 'Select first (master) channel:');
@@ -116,11 +117,14 @@ if nargin<2
         end
         chNames{c} = chPath(length(cellPath{1})+1:end-1);
     end
+else
+    nCh = length(chNames);
+end
+if isempty(markers)
+    markers = cell(1,nCh);
     for c = 1:nCh
         markers{c} = input(['Enter the fluorescent marker for channel ' num2str(c) ': '], 's');
     end
-else
-    nCh = length(chNames);
 end
 for c = 1:nCh
     fprintf('Channel %d name: "%s"\n', c, chNames{c});

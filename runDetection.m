@@ -32,7 +32,7 @@ end
 sigma = ip.Results.Sigma;
 if isempty(sigma)
     % verify that all data sets have same channels
-    ch = arrayfun(@(i) cellfun(@getDirFromPath, i.channels', 'unif', 0), data, 'unif', 0);
+    ch = arrayfun(@(d) cellfun(@(i) i(regexp(i, d.source, 'end')+1:end), d.channels, 'unif', 0), data, 'unif', 0);
     ch = [ch{:}];
     nCh = unique(arrayfun(@(i) numel(i.channels), data));
     if numel(nCh)==1 && numel(unique(ch))==nCh
@@ -54,10 +54,10 @@ if isempty(sigma)
     end
 end
 
-parfor i = 1:length(data)
+for i = 1:length(data)
     if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
-        main(data(i), sigma, mCh, ip.Results.Alpha, ip.Results.CellMask); %#ok<PFBNS>
+        main(data(i), sigma, mCh, ip.Results.Alpha, ip.Results.CellMask);
         fprintf(' done.\n');
     else
         fprintf('Detection has already been run for %s\n', getShortPath(data(i)));
