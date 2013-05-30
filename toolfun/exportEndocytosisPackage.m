@@ -65,7 +65,7 @@ toolboxList = unique(vertcat(toolboxList{:}));
 [fnames, fpaths, mexNames, mexPaths, ~] = parseFiles(fctList, ignoreList, externList);
 
 % copy core functions
-dest = [exportDir filesep 'cmeAnalyzer' filesep];
+dest = [exportDir filesep 'cmeAnalysisPackage' filesep];
 [~,~] = mkdir(dest);
 for i = 1:numel(fnames)
     copyfile([fpaths{i} filesep fnames{i}], [dest fnames{i}]);
@@ -85,7 +85,10 @@ system(cmd);
 disp('The package uses the following toolboxes:')
 disp(toolboxList);
 
-
+system('mv PointSourceDetection cmeAnalysisPackage/.');
+system('zip -r cmeAnalysisPackage.zip cmeAnalysisPackage');
+system('cp cmeAnalysisPackage.zip www/aguet/doc/.');
+%unzip cmeAnalysisPackage.zip
 
 
 function [fnames, fpaths, mexNames, mexPaths, ignoreList] = parseFiles(fctList, ignoreList, externList)
