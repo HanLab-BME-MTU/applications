@@ -32,11 +32,13 @@ runDetection(data, opts{:});
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
 runTrackProcessing(data, opts{:});
+runSlaveChannelClassification(data, opts{:}, 'np', 5000);
 
-runSlaveChannelClassification(data, opts{:});
+lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', 'off', opts{:});
 
-lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, opts{:});
+% Graphical output
+plotLifetimes(lftRes, 'DisplayMode', 'print', 'ShowCargoDependent', true);
 
-% Additional graphical output
-plotIntensityCohorts(data, 'MaxIntensityThreshold', lftRes.T, 'ShowBackground', false,...
-    'DisplayMode', 'print', 'ScaleSlaveChannel', false, 'ShowLegend', false, 'ShowPct', false);
+plotIntensityCohorts(data, 'MaxIntensityThreshold', lftRes.MaxIntensityThreshold,...
+    'ShowBackground', false, 'DisplayMode', 'print', 'ScaleSlaveChannel', false,...
+    'ShowLegend', false, 'ShowPct', false);

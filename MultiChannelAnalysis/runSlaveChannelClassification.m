@@ -19,9 +19,9 @@ ip.parse(data, varargin{:});
 rng('default');
 fprintf('Random number generator set to defaults by ''runSlaveClassification()''.\n');
 
-parfor i = 1:length(data)
+for i = 1:length(data)
     fprintf('Running slave ch. classification for %s\n', getShortPath(data(i)));
-    main(data(i), ip.Results); %#ok<PFBNS>
+    main(data(i), ip.Results);
 end
 
 
@@ -58,7 +58,7 @@ ny = data.imagesize(1);
 bgA = cell(1,nf);
 pSlaveSignal = cell(1,nf);
 
-for f = 1:nf;
+parfor f = 1:nf;
     k = frameIdx(f);
     
     %-----------------------------------------------
@@ -224,7 +224,7 @@ end
 pSlave = [pSlaveSignal{:}];
 pSlave = mean(pSlave,2);
 for c = sCh
-    fprintf('Ch. %d: P(random slave detection) = %.3f\n', c, pSlave(c));
+    fprintf('P(random detection in ch. %d) = %.3f\n', c, pSlave(c));
 end
 %=================================================================================
 % Classify tracks in slave channels
