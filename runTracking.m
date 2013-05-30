@@ -71,7 +71,8 @@ function main(data, settings, fileName, detectionFile, frames)
 
 dfile = [data.source 'Detection' filesep detectionFile];
 if exist(dfile, 'file')==2
-    movieInfo = loadfile.frameInfo;
+    dfile = load(dfile);
+    movieInfo = dfile.frameInfo;
     if ~isempty(frames)
         movieInfo = movieInfo(frames);
     end
