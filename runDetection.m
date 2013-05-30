@@ -32,7 +32,7 @@ end
 sigma = ip.Results.Sigma;
 if isempty(sigma)
     % verify that all data sets have same channels
-    ch = arrayfun(@(d) cellfun(@(i) i(regexp(i, d.source, 'end')+1:end), d.channels, 'unif', 0), data, 'unif', 0);
+    ch = arrayfun(@(d) cellfun(@(i) i(regexp(regexprep(i, '\', '/'), regexprep(d.source, '\', '/'), 'end')+1:end), d.channels, 'unif', 0), data, 'unif', 0);
     ch = [ch{:}];
     nCh = unique(arrayfun(@(i) numel(i.channels), data));
     if numel(nCh)==1 && numel(unique(ch))==nCh
