@@ -7,7 +7,7 @@
 
 % Handles/settings are stored in 'appdata' of the figure handle
 
-function hfig = trackDisplayGUI(data, tracks)
+function hfig = cmeDataViewer(data, tracks)
 
 
 
@@ -353,10 +353,6 @@ set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 %     set(himg(fi), 'uicontextmenu', handles.hcmenu);
 %     
 % end
-
-function contrastCallback()
-disp('test');
-
 
 %===================================
 % Automatic actions after zoom
