@@ -8,6 +8,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('data', [], @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
+ip.addParamValue('SigmaSource', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('TrackingRadius', [3 6], @(x) numel(x)==2);
 ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
@@ -27,7 +28,7 @@ end
 
 opts = {'Overwrite', ip.Results.Overwrite};
 
-runDetection(data, 'SigmaSource', 'data', opts{:});
+runDetection(data, 'SigmaSource', ip.Results.SigmaSource, opts{:});
 
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});

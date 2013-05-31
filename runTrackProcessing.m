@@ -118,11 +118,6 @@ if exist(tPath, 'file')==2
     trackinfo = load(tPath);
     trackinfo = trackinfo.tracksFinal;
     nTracks = length(trackinfo);
-elseif exist([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat'], 'file')==2
-    % (for old tracker. oldest version: trackInfo.mat)
-    trackinfo = load([data.source 'TrackInfoMatrices' filesep 'trackedFeatures.mat']);
-    trackinfo = trackinfo.trackedFeatureInfo;
-    nTracks = size(trackinfo, 1);
 else
     fprintf(['runTrackProcessing: no tracking data found for ' getShortPath(data)]);
     return;
