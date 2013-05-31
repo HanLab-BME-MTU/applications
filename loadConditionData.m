@@ -173,8 +173,10 @@ for k = 1:nCells
             end
         end
  
-        tmp = [dir([channels{c} '*.tif*']) dir([channels{c} '*.TIF*'])];
-        tmp = {tmp.name};
+        % list directory contents and select TIFFs
+        tmp = dir(channels{c});
+        tmp = arrayfun(@(i) i.name, tmp(~[tmp.isdir]), 'unif', 0);
+        tmp = tmp(~cellfun(@isempty, regexpi(tmp, '\.tif')));
         % sort files in case leading zeros are missing
         idx = regexp(tmp','\d+(?=\.)', 'match', 'once');
         if numel(unique(cellfun(@numel, idx)))~=1
@@ -183,13 +185,12 @@ for k = 1:nCells
             tmp = tmp(idx);
         end
         framePaths{c} = strcat(channels{c}, tmp);
- 
     end
     data(k).channels = channels;
     data(k).source = channels{1}; % master channel default
     
     % only store frame paths if frames for all channels are found
-    if all(cellfun(@(x) ~isempty(x), framePaths))
+    if all(~cellfun(@isempty, framePaths))
         data(k).framePaths = framePaths;
         data(k).imagesize = size(imread(framePaths{1}{1}));
         data(k).movieLength = length(framePaths{1});
