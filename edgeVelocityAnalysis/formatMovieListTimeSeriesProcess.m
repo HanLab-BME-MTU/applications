@@ -8,7 +8,7 @@ function cellData = formatMovieListTimeSeriesProcess(movieObj,processType,vararg
 %       ML - movie list or movie data object  
 %
 %       includeWin - cell array with the same size as the ML. Each element has the indexes of the windows(variables) to be included for analysis;
-%                   All windows that are not in this array will be excluded. The default value is {inf}, which includes all windows.
+%                   All windows that are not in this array will be excluded. The default value is {[]}, which includes all windows.
 %
 %       outLevel  - # of sigmas considered for outlier removal (see detectOutliers)
 %
@@ -24,9 +24,7 @@ function cellData = formatMovieListTimeSeriesProcess(movieObj,processType,vararg
 %       minLength  - minimal length accepted. Any window that has a TS with less than
 %                    minLength points will be discarded. (Default = 30)
 %
-
 %
-%       excBorder  - exclude border windows. This parameter is actually the length of the border
 %
 %Output:
 %       cellData - structure for each cell with the TS operation results
@@ -56,7 +54,7 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
-ip.addParamValue('includeWin',num2cell(inf(1,nCell)),@iscell);
+ip.addParamValue('includeWin',cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',  0,@isscalar);
 ip.addParamValue('trendType',-1,@isscalar);
 ip.addParamValue('minLength', 30,@isscalar);
@@ -83,8 +81,14 @@ for iCell = 1:nCell
     currMD     = ML.movies_{iCell};
     timeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
     nDim       = ndims(timeSeries);
-    nWin       = size(cellData(iCell).data.rawTimeSeries,1);
-  
+    nWin       = size(timeSeries,1);
+    
+    if isempty(includeWin{iCell})
+        
+        includeWin{iCell} = 1:nWin;
+        
+    end
+    
     %Applying Time Series Operations
     cellData(iCell).data.timeSeriesOperations = timeSeriesOperations;
     if nDim == 3
@@ -92,15 +96,17 @@ for iCell = 1:nCell
         for iLayer = 1:size(timeSeries,2)
             
             [cellData(iCell).data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
-            cellData(iCell).data.excludedWin                             = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-            cellData(iCell).data.includedWin                             = setdiff(includeWin{iCell},excludeVar);
+            cellData(iCell).data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+            cellData(iCell).data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
             
         end
+        
     else
-           [cellData(iCell).data.procTimeSeries,excludeVar]  = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
-            cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-            cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
-
+        cellData(iCell).data.rawTimeSeries               = timeSeries; 
+        [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
+        cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+        cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
+        
     end
     
 end

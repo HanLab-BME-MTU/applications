@@ -94,7 +94,7 @@ end
 nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
-ip.addParamValue('includeWin', num2cell(inf(1,nCell)),@iscell);
+ip.addParamValue('includeWin', cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trendType',   -1,@isscalar);
 ip.addParamValue('minLength',  10,@isscalar);
@@ -211,8 +211,8 @@ for iInt = 1:numel(interval)
     end
     
     
-    [dataSet.CI.cond(iInt),dataSet.meanValue.cond(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
-    dataSet.total.cond(iInt) = total;
+    [dataSet.CI.interval(iInt),dataSet.meanValue.interval(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
+    dataSet.total.interval(iInt) = total;
     
 end
 
