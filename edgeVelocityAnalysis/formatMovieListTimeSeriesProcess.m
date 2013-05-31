@@ -80,15 +80,28 @@ cellData = struct('data',repmat({dataS},1,nCell)) ;
 
 for iCell = 1:nCell
     
-    currMD                             = ML.movies_{iCell};
-    cellData(iCell).data.rawTimeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
-    nWin                               = size(cellData(iCell).data.rawTimeSeries,1);
+    currMD     = ML.movies_{iCell};
+    timeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
+    nDim       = ndims(timeSeries);
+    nWin       = size(cellData(iCell).data.rawTimeSeries,1);
   
     %Applying Time Series Operations
-    cellData(iCell).data.timeSeriesOperations        = timeSeriesOperations;
-    [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});    
-    cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-    cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
+    cellData(iCell).data.timeSeriesOperations = timeSeriesOperations;
+    if nDim == 3
+        
+        for iLayer = 1:size(timeSeries,2)
+            
+            [cellData(iCell).data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
+            cellData(iCell).data.excludedWin                             = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+            cellData(iCell).data.includedWin                             = setdiff(includeWin{iCell},excludeVar);
+            
+        end
+    else
+           [cellData(iCell).data.procTimeSeries,excludeVar]  = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
+            cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+            cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
+
+    end
     
 end
 % Performing windowing exclusion
