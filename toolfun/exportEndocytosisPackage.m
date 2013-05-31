@@ -56,7 +56,11 @@ system(cmd);
 %-----------------------------------------------------
 % 2) Export Endocytosis project
 %-----------------------------------------------------
-masterList = {'cmeAnalysis.m', 'cmeDataViewer.m'};
+ts = loadTrackSettings();
+masterList = {'cmeAnalysis.m', 'cmeDataViewer.m',...
+    ts.costMatrices(1).funcName, ts.costMatrices(2).funcName,...
+    ts.kalmanFunctions.reserveMem, ts.kalmanFunctions.initialize,...
+    ts.kalmanFunctions.calcGain, ts.kalmanFunctions.timeReverse};
 for i = 1:numel(masterList);
     [fctList{i}, toolboxList{i}] = getFunDependencies(masterList{i});
 end
