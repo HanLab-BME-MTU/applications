@@ -45,11 +45,14 @@ if isempty(sigma)
             nf = round(20/numel(data));
             for c = 1:nCh
                 fpaths = arrayfun(@(i) i.framePaths{c}(round(linspace(1,i.movieLength,nf))), data, 'unif', 0);
-                sigma(c) = getGaussianPSFsigmaFromData([fpaths{:}], 'Display', false);
+                sigma(c) = getGaussianPSFsigmaFromData(vertcat(fpaths{:}), 'Display', false);
             end
         end
+        fprintf('Gaussian PSF s.d. values: ');
+        fprintf(' %.2f', sigma);
+        fprintf('\n');            
     else
-        fprintf('runDetection: mismatch between the channels in ''data''.');
+        fprintf(2, 'runDetection: mismatch between the channels in ''data''.');
         return;        
     end
 end

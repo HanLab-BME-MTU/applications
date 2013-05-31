@@ -45,11 +45,13 @@ opts = statset('maxIter', 200);
 BIC = zeros(1,3);
 sigma = zeros(1,3);
 try
+    w = warning('off', 'stats:gmdistribution:FailedToConverge');
     for n = 1:3
         obj = gmdistribution.fit(svect', n, 'Options', opts);
         BIC(n) = obj.BIC;
         sigma(n) = obj.mu(obj.PComponents==max(obj.PComponents));
     end
+    warning(w);
     sigma = sigma(BIC==min(BIC));
     if ip.Results.Display
         ds = 0.2;

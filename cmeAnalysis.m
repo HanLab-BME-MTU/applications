@@ -27,7 +27,7 @@ end
 
 opts = {'Overwrite', ip.Results.Overwrite};
 
-runDetection(data, opts{:});
+runDetection(data, 'SigmaSource', 'data', opts{:});
 
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
