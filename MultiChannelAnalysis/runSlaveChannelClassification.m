@@ -20,8 +20,12 @@ rng('default');
 fprintf('Random number generator set to defaults by ''runSlaveClassification()''.\n');
 
 for i = 1:length(data)
-    fprintf('Running slave ch. classification for %s\n', getShortPath(data(i)));
-    main(data(i), ip.Results);
+    if numel(data(i).channels)>1
+        fprintf('Running slave ch. classification for %s\n', getShortPath(data(i)));
+        main(data(i), ip.Results);
+    else
+        fprintf(2, 'runSlaveChannelClassification: no slave channels present in :%s\n', getShortPath(data(i)));
+    end
 end
 
 
