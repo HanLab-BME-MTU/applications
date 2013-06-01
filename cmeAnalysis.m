@@ -28,7 +28,9 @@ end
 
 opts = {'Overwrite', ip.Results.Overwrite};
 
-runDetection(data, 'SigmaSource', ip.Results.SigmaSource, opts{:});
+% 'RemoveRedundant' inactivated on Windows as a temporary workaround for the problems with
+% the KDTree MEX files for windows.
+runDetection(data, 'SigmaSource', ip.Results.SigmaSource, 'RemoveRedundant', isunix, opts{:});
 
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
