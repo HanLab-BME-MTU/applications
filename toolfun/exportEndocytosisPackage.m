@@ -50,7 +50,7 @@ for i = 1:numel(externList)
 end
 
 % set permissions
-cmd = ['chmod -R 755 ' dest];
+cmd = ['chmod -R 777 ' dest];
 system(cmd);
 
 %-----------------------------------------------------
@@ -83,7 +83,7 @@ for i = 1:numel(mexNames)
 end
 
 % set permissions
-cmd = ['chmod -R 755 ' dest];
+cmd = ['chmod -R 777 ' dest];
 system(cmd);
 
 disp('The package uses the following toolboxes:')
