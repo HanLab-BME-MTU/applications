@@ -202,7 +202,7 @@ for c = 1:nCh
         end
     end
     
-    if ip.Results.RemoveOutliers && nd>=5
+    if ip.Results.RemoveOutliers && nd>5
         outlierIdx = detectEDFOutliers(maxA(c,:), offset, refIdx);
         if ~isempty(outlierIdx)
             fprintf('Outlier data sets:\n');

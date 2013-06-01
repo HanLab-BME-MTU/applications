@@ -341,8 +341,10 @@ end
 
 if isempty(YLim)
     YLim = get(ha, 'YLim');
-    YLim = vertcat(YLim{:});
-    YLim = [min(YLim(:,1)) max(YLim(:,2))];
+    if na>1
+        YLim = vertcat(YLim{:});
+        YLim = [min(YLim(:,1)) max(YLim(:,2))];
+    end
 end
 
 if ~isempty(sigCombIdx)
