@@ -35,9 +35,6 @@ mCh = find(strcmp(data(1).source, data(1).channels));
 FirstNFrames = ip.Results.FirstNFrames;
 selIdx = ip.Results.SelectIndex;
 
-printPath = [getExpDir(data) 'Figures' filesep];
-[~,~] = mkdir(printPath);
-
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
 
@@ -389,6 +386,8 @@ end
 
 
 if strcmpi(ip.Results.Display, 'on')
+    printPath = [getExpDir(data) 'Figures' filesep];
+    [~,~] = mkdir(printPath);
     h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
     print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
     if ip.Results.ShowStatistics

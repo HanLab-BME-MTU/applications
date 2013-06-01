@@ -8,7 +8,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('data', [], @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('SigmaSource', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
+ip.addParamValue('SigmaSource', 'model', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('TrackingRadius', [3 6], @(x) numel(x)==2);
 ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
@@ -35,7 +35,9 @@ runDetection(data, 'SigmaSource', ip.Results.SigmaSource, 'RemoveRedundant', isu
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
 runTrackProcessing(data, opts{:});
-runSlaveChannelClassification(data, opts{:}, 'np', 5000);
+if numel(data(1).channels)>1
+    runSlaveChannelClassification(data, opts{:}, 'np', 5000);
+end
 
 lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', 'off', opts{:});
 
