@@ -175,7 +175,7 @@ for k = 1:nCells
  
         % list directory contents and select TIFFs
         tmp = dir(channels{c});
-        tmp = arrayfun(@(i) i.name, tmp(~[tmp.isdir]), 'unif', 0);
+        tmp = {tmp(~[tmp.isdir]).name}';
         tmp = tmp(~cellfun(@isempty, regexpi(tmp, '\.tif')));
         % sort files in case leading zeros are missing
         idx = regexp(tmp','\d+(?=\.)', 'match', 'once');
