@@ -1,3 +1,7 @@
+%[psnr] = getPSNRDistribution(data, varargin) plots the PSNR distribution for the detections in 'data'.
+
+% Francois Aguet, 12/18/12
+
 function ha = plotPSNRDistribution(data, varargin)
 
 ip = inputParser;
