@@ -121,11 +121,19 @@ for f = ip.Results.FrameRange
     fprintf('\b\b\b\b%3d%%', round(100*f/(nf)));
 end
 fprintf('\n');
+fprintf(['Frames saved to ' getShortPath(data) filesep 'Movies' filesep 'Frames.\n']);
 close(h);
 
-% Generate movie
-fprintf('Generating movie... ');
-fr = num2str(ip.Results.FrameRate);
-cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -b 20000k ' mpath ip.Results.FileName '.mp4'];
-system(cmd);
-fprintf('done.\n');
+% Generate movie, if on a unix system with ffmpeg
+if isunix && ~system('which ffmpeg >/dev/null 2>&1')
+    fprintf('Generating movie ... ');
+    fr = num2str(ip.Results.FrameRate);
+    nx = 2*floor(nx/2);
+    ny = 2*floor(ny/2);
+    cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt ext ' -vf "scale=' num2str(nx) ':' num2str(ny)...
+            '" -c:v libx264 -crf 22 -pix_fmt yuv420p ' mpath ip.Results.FileName '.mp4'];
+    system(cmd);
+    fprintf(' done.\n');
+else
+    fprintf('A unix system with ffmpeg installed is required to generate movies automatically.\n');
+end

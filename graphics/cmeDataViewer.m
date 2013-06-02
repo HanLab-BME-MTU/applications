@@ -1,61 +1,59 @@
+%cmeDataViewer(data, varargin) displays movies with associated detection and tracking results.
 %
+% Inputs:    
+%             data : single movie structure returned by loadConditionData.m
+%    TrackCategory : optional input for selecting 'all' (default) or
+%                    'valid' tracks.
 %
-% Inputs:    data : 
-%          tracks : structure containing 'tracks'
-%
+% Notes: Only tracks with at least 5 frames are loaded and displayed.
 
+% Francois Aguet, 2011 (last modified 05/28/2013)
+
+function cmeDataViewer(data, varargin)
+
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addOptional('TrackCategory', 'all', @(x) isempty(x) || any(strcmpi(x, {'all', 'valid'})));
+ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
-
-function hfig = cmeDataViewer(data, tracks)
-
-
-
 handles.data = data;
 
 % detect number of channels (up to 4)
 nCh = length(data.channels);
+if nCh>4
+    error('Max. 4 channels supported.');
+end
 handles.nCh = nCh;
 % master channel index
 handles.mCh = find(strcmp(data.source, data.channels));
 
-% set defaults
-if nargin<2
-    tracks = [];
-    handles.tracks = cell(1,nCh);
-end
+%---------------------
+% Load tracks
+%---------------------
+handles.tracks = cell(1,nCh);
+handles.colorMap = cell(1,nCh);
+if ~isempty(ip.Results.TrackCategory)
 
-% input checks
-if nCh>4
-    error('Only data with up to 4 channels are supported.');
-end
-
-
-if ~isempty(tracks)
-    
-    if isstruct(tracks)
-        handles.tracks = cell(1,nCh);
-        handles.tracks{handles.mCh} = tracks;
+    % load tracks
+    if strcmpi(ip.Results.TrackCategory, 'valid');
+        c = 'Ia';
     else
-        handles.tracks = tracks;
+        c = 'all';
     end
+    handles.tracks{handles.mCh} = loadTracks(data, 'Category', c);
     
+    % random colormaps for track display
     for c = 1:nCh
         nt = numel(handles.tracks{c});
         handles.colorMap{c} = hsv2rgb([rand(nt,1) ones(nt,2)]);
     end    
     
-    if ~isempty(handles.tracks{handles.mCh})
-        handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
-    else
-        handles.maxLifetime_f = [];
-    end
-    
-    if ~all(cellfun(@(x) isempty(x), handles.tracks))
-        handles.selectedTrack = NaN(1,handles.nCh);
-        handles.selectedTrack(handles.mCh) = 1;
-        handles.f = handles.tracks{handles.mCh}(1).start;
-    end
+    handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
+    handles.selectedTrack = NaN(1,handles.nCh);
+    handles.selectedTrack(handles.mCh) = 1;
+    handles.f = handles.tracks{handles.mCh}(1).start;
     
     % min/max track intensities
     maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
@@ -70,6 +68,7 @@ if ~isempty(tracks)
     handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
     handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
 else
+    handles.maxLifetime_f = [];
     handles.selectedTrack = [];
     handles.f = 1;
 end
@@ -77,21 +76,24 @@ handles.displayType = 'raw';
 handles.pUnitType = 's';
     
 
-hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7], 'PaperPositionMode', 'auto',...
-    'Toolbar', 'figure',...
-    'Color', get(0,'defaultUicontrolBackgroundColor'));
+%---------------------
+% Setup main window
+%---------------------
+hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7],...
+    'PaperPositionMode', 'auto', 'Toolbar', 'figure',...
+    'Color', get(0,'defaultUicontrolBackgroundColor'),...
+    'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
 
-
-set(hfig, 'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
 pos = get(hfig, 'Position');
 
+% fixed width of the track plots, in pixels
 w = 350;
-dx = pos(3)-w-50;
+dx = pos(3)-w-50; % space available for frame display
 
 %---------------------
 % Frames
 %---------------------
-width = pos(3) - 350-50-100-50 -50;
+width = pos(3) - w-50-100-50 -50;
 
 handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
     'Position', [50 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
@@ -964,7 +966,7 @@ if ~isempty(handles.selectedTrack)
         'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
     fprintf(' done.\n');
 else
-    fprintf('Cannot create montage: no track selected.');
+    fprintf('Cannot create montage: no track selected.\n');
 end
 
 
@@ -1055,19 +1057,34 @@ function printButton_Callback(~, ~, hfig)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-fprintf('Printing...');
-
+fprintf('Printing figures ...');
 handles = getappdata(hfig, 'handles');
 
+% Tracks
 selMask = ~isnan(handles.selectedTrack);
-sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
-for ch = 1:handles.nCh
-    plotTrack(handles.data, sTrack, ch,...
-        'FileName', ['track_' num2str(handles.selectedTrack(selMask)) '_ch' num2str(ch) '.eps'],...
-        'Visible', 'off', 'DisplayMode', 'Print');
+if ~isempty(selMask) && ~isempty(handles.tracks{selMask})
+    sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
+    for ch = 1:handles.nCh
+        plotTrack(handles.data, sTrack, ch,...
+            'FileName', ['track_' num2str(handles.selectedTrack(selMask)) '_ch' num2str(ch) '.eps'],...
+            'Visible', 'off', 'DisplayMode', 'Print');
+    end
+    
+    if get(handles.montageAlignCheckbox, 'Value')
+        ref = 'Track';
+    else
+        ref = 'Frame';
+    end
+    itrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
+    [stack, xa, ya] = getTrackStack(handles.data, itrack, 'WindowWidth', 6, 'Reference', ref);
+    fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
+    plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers,...
+        'Visible', 'off', 'epsPath', fpath,...
+        'ShowMarkers', get(handles.montageMarkerCheckbox, 'Value')==1,...
+        'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
 end
 
-
+% Frames
 if strcmp(handles.displayType, 'RGB')
     if ~isempty(handles.tracks{handles.mCh}) && get(handles.('trackCheckbox'), 'Value')
         idx = [handles.tracks{handles.mCh}.start]<=handles.f & handles.f<=[handles.tracks{handles.mCh}.end];
@@ -1106,22 +1123,7 @@ else
     end
 end
 
-
-if get(handles.montageAlignCheckbox, 'Value')
-    ref = 'Track';
-else
-    ref = 'Frame';
-end
-itrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
-[stack, xa, ya] = getTrackStack(handles.data, itrack,...
-        'WindowWidth', 6, 'Reference', ref);
-fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
-plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers,...
-    'Visible', 'off', 'epsPath', fpath,...
-    'ShowMarkers', get(handles.montageMarkerCheckbox, 'Value')==1,...
-    'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
-
-fprintf(' done.\n');
+fprintf([' done. Figures saved in ' getShortPath(handles.data) filesep 'Figures.\n']);
 
 
 

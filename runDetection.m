@@ -57,6 +57,10 @@ if isempty(sigma)
         return;        
     end
 end
+if any(sigma<1.1)
+    fprintf(2, 'Sigma values < 1.1 were rounded to 1.1 to avoid poor localization performance.\n');
+    sigma(sigma<1.1) = 1.1;
+end
 
 for i = 1:length(data)
     if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite

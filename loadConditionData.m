@@ -126,10 +126,17 @@ if isempty(markers)
         markers{c} = input(['Enter the fluorescent marker for channel ' num2str(c) ': '], 's');
     end
 end
+% validate markers
+s = getFluorPropStruct();
+s = {s.name};
+for c = 1:nCh
+    if ~any(strcmpi(markers{c}, s));
+        markers{c} = 1e-9*input(['Marker ''' markers{c} ''' not recognized, enter max. emission wavelength in [nm]: ']);
+    end
+end
 for c = 1:nCh
     fprintf('Channel %d name: "%s"\n', c, chNames{c});
 end
-
 
 channels = cell(1,nCh);
 for k = 1:nCells
