@@ -261,7 +261,7 @@ end
 A = cell(nCh,nc);
 
 ha = zeros(na,1);
-figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts, cargo-positive tracks');
+figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts');
 for a = 1:na
     y0 = ceil(a/2);
     x0 = 1-mod(a,2);

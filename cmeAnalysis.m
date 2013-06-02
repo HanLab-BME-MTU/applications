@@ -1,8 +1,8 @@
-
+%[res, data] = cmeAnalysis(varargin)
 
 % Francois Aguet (last mod. 05/29/2013)
 
-function cmeAnalysis(varargin)
+function [res, data] = cmeAnalysis(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -12,6 +12,8 @@ ip.addParamValue('GaussianPSF', 'model', @(x) any(strcmpi(x, {'data', 'model'}))
 ip.addParamValue('TrackingRadius', [3 6], @(x) numel(x)==2);
 ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
+ip.addParamValue('ControlData', [], @isstruct);
+ip.addParamValue('PlotAll', false, @islogical);
 ip.parse(varargin{:});
 data = ip.Results.data;
 
@@ -39,11 +41,21 @@ if numel(data(1).channels)>1
     runSlaveChannelClassification(data, opts{:}, 'np', 5000);
 end
 
-lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', 'off', opts{:});
+if ip.Results.PlotAll
+    display = 'on';
+else
+    display = 'off';
+end
+if isempty(ip.Results.ControlData)
+    res.lftData = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:});
+else
+    res.lftData = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:},...
+        'MaxIntensityThreshold', ip.Results.ControlData.lftData.T);
+end
 
 % Graphical output
-plotLifetimes(lftRes, 'DisplayMode', 'print', 'ShowCargoDependent', true);
+plotLifetimes(res.lftData, 'DisplayMode', 'print', 'PlotAll', false);
 
-plotIntensityCohorts(data, 'MaxIntensityThreshold', lftRes.MaxIntensityThreshold,...
+res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftData.MaxIntensityThreshold,...
     'ShowBackground', false, 'DisplayMode', 'print', 'ScaleSlaveChannel', false,...
     'ShowLegend', false, 'ShowPct', false);

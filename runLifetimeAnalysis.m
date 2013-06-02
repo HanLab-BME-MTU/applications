@@ -1,3 +1,5 @@
+%[lftRes, res] = runLifetimeAnalysis(data, varargin)
+
 % Francois Aguet (last mod. 05/29/2013)
 
 function [lftRes, res] = runLifetimeAnalysis(data, varargin)
@@ -333,7 +335,6 @@ if strcmpi(ip.Results.Display, 'all')
     [uCDF, idx] = unique(lftCDF);
     lft50 = interp1(uCDF, lftRes.t(idx), 0.5);
     
-    
     figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
     axes(fset.axOpts{:});
     hold on;
@@ -365,168 +366,19 @@ if strcmpi(ip.Results.Display, 'all')
     ylabel('Cumulative freq.', fset.sfont{:});
 end
 
-%---------------------------------------
-% CDF plot of the raw lifetimes
-%---------------------------------------
-
-% figure(fset.fOpts{:}, 'Name', 'Cumulative lifetime distribution');
-% axes(fset.axOpts{:});
-% hold on;
-% idx = find(lftRes.t==round(lft50/framerate)*framerate);
-% fill([lftRes.t(1:idx) lftRes.t(idx:-1:1)], [lftCDF(1:idx) zeros(1,idx)], fset.ceB, 'EdgeColor', 'none');
-% plot(lftRes.t, lftCDF, 'k', 'LineWidth', 2);
-% plot([0 lft50], [0.5 0.5], 'k--');
-% 
-% ya = 0:0.25:1;
-% axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-% set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
-% xlabel('Lifetime (s)', fset.lfont{:});
-% ylabel('Cumulative frequency', fset.lfont{:});
-% % print('-depsc2', '-loose', ['LftRawCDF_dataOX_10_cut' num2str(cutoff_f) '.eps']);
-
 
 if strcmpi(ip.Results.Display, 'on')
     printPath = [getExpDir(data) 'Figures' filesep];
     [~,~] = mkdir(printPath);
-    h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics);
+    h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics,...
+        'DisplayMode', 'print', 'PlotAll', true);
     print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
     if ip.Results.ShowStatistics
         print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
     end
 end
-return
-
-
-%=====================================================================
-% Display histogram for range of thresholds
-%=====================================================================
-if ip.Results.ShowThresholdRange
-    Trange = 40:10:200;
-    for ti = 1:numel(Trange)
-        T = Trange(ti);
-        
-        for i = 1:nd
-            idx = res(i).maxA_all >= T;
-            lftAboveT = lftData(i).lifetime_s(idx);
-            lftBelowT = lftData(i).lifetime_s(~idx);
-            tmp.pctAbove(i) = sum(idx)/numel(idx);
-            
-            N = data(i).movieLength-2*buffer;
-            t = (cutoff_f:N)*framerate;
-            lftHist_A = hist(lftAboveT, t);
-            lftHist_B = hist(lftBelowT, t);
-            
-            % apply correction
-            w = N./(N-cutoff_f+1:-1:1);
-            pad0 = zeros(1,Nmax-N);
-            lftHist_A =  [lftHist_A.*w  pad0];
-            lftHist_B =  [lftHist_B.*w  pad0];
-            
-            % Normalization
-            tmp.lftHist_A(i,:) = lftHist_A / sum(lftHist_A);
-            tmp.lftHist_B(i,:) = lftHist_B / sum(lftHist_B);
-            
-        end
-        tComp(ti).meanLftHist_A = mean(tmp.lftHist_A,1);
-        tComp(ti).meanLftHist_B = mean(tmp.lftHist_B,1);
-        tComp(ti).t_hist = (cutoff_f:Nmax)*framerate;
-        tComp(ti).pctAbove = mean(tmp.pctAbove);
-    end
-
-    opts = {'.-', 'LineWidth', 2, 'MarkerSize', 16};
-    fset = loadFigureSettings();
-    cmap = jet(numel(Trange));
-    cv = rgb2hsv(cmap);
-    cv(:,2) = 0.2;
-    cv = hsv2rgb(cv);
-    
-    figure;
-    hold on;
-    for ti = 1:numel(Trange)
-        
-        plot(tComp(ti).t_hist, tComp(ti).meanLftHist_B, opts{:}, 'Color', cv(ti,:));
-        hp(ti) = plot(tComp(ti).t_hist, tComp(ti).meanLftHist_A, opts{:}, 'Color', cmap(ti,:));
-        
-        %legendText = {['Above threshold (' num2str(mean(lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)'],...
-        %    ['Below threshold (' num2str(mean(1-lftRes.pctAbove)*100,'%.1f') ' ± ' num2str(std(lftRes.pctAbove)*100,'%.1f') ' %)']};
-    end
-    axis([0 min(120, lftRes.t(end)) 0 0.05]);
-    set(gca, 'LineWidth', 2, fset.sfont{:}, fset.axOpts{:});
-    xlabel('Lifetime (s)', fset.lfont{:});
-    ylabel('Frequency', fset.lfont{:});
-    
-    hl = legend(hp, arrayfun(@(x) num2str(x, '%.2f'), [tComp.pctAbove], 'UniformOutput', false), 'Location', 'NorthEast');
-    set(hl, 'Box', 'off', fset.ifont{:});
-    
-end
-
-
-
-
-
-
-%=====================================================================
-% Fit lifetime histogram with Weibull-distributed populations
-%=====================================================================
-% fitResCDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'CDF');
-% plotLifetimeDistModel(lftRes, fitResCDF);
-
-fitResPDF = fitLifetimeDistWeibullModel(lftRes, 'Mode', 'PDF', 'MaxP', ip.Results.MaxP);
-plotLifetimeDistModel(lftRes, fitResPDF, 'YLim', ip.Results.YLim);
-
-fitRes = fitResPDF;
-
-% fitResCDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'CDF');
-% plotLifetimeDistModel(lftRes, fitResCDF);
-
-% fitResPDF = fitLifetimeDistGammaModel(lftRes, 'Mode', 'PDF', 'MaxP', ip.Results.MaxP);
-% plotLifetimeDistModel(lftRes, fitResPDF);
-
-
-
-return
-  
-    %====================
-    % Gap statistics
-    %==================== 
-%     binEdges = [0:20:120 data(k).movieLength-data(k).framerate];
-%     nb = length(binEdges)-1;
-%     gapsPerTrack_Ia = zeros(1,nb);
-%     gapsPerTrack_Ib = zeros(1,nb);
-%     gapsPerTrack_IIa = zeros(1,nb);
-%     for b = 1:nb
-%         tidx = binEdges(b)<=lifetimes_s & lifetimes_s<binEdges(b+1);
-%         gapsPerTrack_Ia(b) = mean(arrayfun(@(i) sum(i.gapVect), tracks(idx_Ia & tidx)));
-%         gapsPerTrack_Ib(b) = mean(arrayfun(@(i) sum(i.gapVect), tracks(idx_Ib & tidx)));
-%         gapsPerTrack_IIa(b) = mean(arrayfun(@(i) sum(i.gapVect), tracks(idx_IIa & tidx)));
-%     end
-%     res.gapsPerTrack_Ia{k} = gapsPerTrack_Ia;
-%     res.gapsPerTrack_Ib{k} = gapsPerTrack_Ib;
-%     res.gapsPerTrack_IIa{k} = gapsPerTrack_IIa;
-
-
-if strcmpi(ip.Results.Display, 'on')
-    
-    % gap statistics
-%     ce = fset.ceTrackClasses([1 2 5],:);
-%     cf = fset.cfTrackClasses([1 2 5],:);
-%     xlabels = arrayfun(@(b) [num2str(binEdges(b)) '-' num2str(binEdges(b+1)) ' s'], 1:numel(binEdges)-1, 'UniformOutput', false);
-    
-    
-%     M_Ia = vertcat(res.gapsPerTrack_Ia{:});
-%     M_Ib = vertcat(res.gapsPerTrack_Ib{:});
-%     M_IIa = vertcat(res.gapsPerTrack_IIa{:});
-%     
-%     M = [mean(M_Ia,1); mean(M_Ib,1); mean(M_IIa,1)]';
-%     S = [std(M_Ia,[],1); std(M_Ib,[],1); std(M_IIa,[],1)]';
-%     
-%     hf(3) = figure; barplot2(M, S, 'FaceColor', cf, 'EdgeColor', ce,...
-%         'XLabels', xlabels, 'XLabel', 'Lifetime cohort', 'YLabel', 'gaps/track');
-    
-end
 
 if ip.Results.Print
-    
     fpath = cell(1,nd);
     for k = 1:nd
         [~,fpath{k}] = getCellDir(data(k));

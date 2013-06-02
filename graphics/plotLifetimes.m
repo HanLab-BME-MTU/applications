@@ -5,8 +5,9 @@ ip.CaseSensitive = false;
 ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
-ip.addParamValue('ShowCargoDependent', false, @islogical);
+ip.addParamValue('ShowCargoDependent', true, @islogical);
 ip.addParamValue('SlaveNames', []);
+ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('Hues', []);
 ip.addParamValue('XTick', 0:20:120);
 ip.addParamValue('YTick', 0:0.01:0.04);
@@ -29,60 +30,65 @@ ce = [0 0 0.6;
 ce = hsv2rgb(ce);
 
 if isstruct(lftRes)
-    
-    h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime dist. (intensity threshold)');
+    %============================================================
+    % Single-channel data
+    %============================================================
+    h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime distr.');
     axes(fset.axOpts{:});
     hold on;
-    if isfield(lftRes, 'meanLftHistVisit')
-        hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
-    end
-    hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
-    hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
     
-    if ip.Results.ShowExpFits
-        ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
-        %ff = mean(vertcat(lftRes.lftHist_Ia), 1);
-        [mu,~,Aexp,expF] = fitExpToHist(lftRes.t(5:end), ff(5:end));
-        tx = 0:0.1:lftRes.t(end);
-        plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
+    if ip.Results.PlotAll
+        hp = zeros(4,1);
+        if isfield(lftRes, 'meanLftHistVisit')
+            hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
+        end
+        hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
+        hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
+        if ip.Results.ShowExpFits
+            ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
+            %ff = mean(vertcat(lftRes.lftHist_Ia), 1);
+            [mu,~,Aexp,~] = fitExpToHist(lftRes.t(5:end), ff(5:end));
+            tx = 0:0.1:lftRes.t(end);
+            plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
+        end
+        hp(1) = plot(lftRes.t, mean(lftRes.pctCCP)*lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
         
-        %ff = mean(lftRes.pctBelow)*lftRes.meanLftHist_B + mean(lftRes.pctVisit)*lftRes.meanLftHist_V;
-        %plot(lftRes.t, ff, '--', 'Color', 'k', 'LineWidth', 2);
-        %[mu,~,Aexp,expF] = fitExpToHist(lftRes.t, ff);
-        %plot(tx, Aexp/mu*exp(-1/mu*tx), 'm--', 'LineWidth', 1)
-    end
-    hp(1) = plot(lftRes.t, mean(lftRes.pctCCP)*lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
-
-    
+        % Legend:
+        ltext = {[' CCPs: ' num2str(mean(lftRes.pctCCP)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCCP)*100, '%.1f') ' %'],...
+            [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
+            ' All structures'};
+        lheight = 1.25;
+        if isfield(lftRes, 'meanLftHistVisit')
+            ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
+            hp = hp([1 2 4 3]);
+            lheight = 1.5;
+        end
+        hl = legend(hp, ltext{:});
+        set(hl, 'Box', 'off');
+        if strcmpi(ip.Results.DisplayMode, 'print')
+            set(hl, 'Position', [4 5-lheight 1.75 lheight]);
+        end
+        ylabel('Relative frequency', fset.lfont{:});
+    else
+        plot(lftRes.t, lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+        ylabel('Frequency', fset.lfont{:});
+    end        
     axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
     set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
     xlabel('Lifetime (s)', fset.lfont{:});
-    ylabel('Relative frequency', fset.lfont{:});
+
+    %if ip.Results.ShowStatistics
+    %    fs = loadFigureSettings('print');
+    %    h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
+    %    axes(fs.axOpts{:}, 'Position', [1.5 2 3 4]);
+    %    boxplot2(lftRes.stats, 'AdjustFigure', false, 'XLabels', {'Raw', 'Below thresh', 'Above thresh'},...
+    %        'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
+    %    ylabel('Lifetime (s)', fset.sfont{:});
+    %end
     
-    ltext = {[' CCPs: ' num2str(mean(lftRes.pctCCP)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCCP)*100, '%.1f') ' %'],...
-             [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
-              ' All structures'};
-    lheight = 1.25;
-    if isfield(lftRes, 'meanLftHistVisit')
-        ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
-        hp = hp([1 2 4 3]);
-        lheight = 1.5;
-    end
-    hl = legend(hp, ltext{:});
-    set(hl, 'Box', 'off');
-    if strcmpi(ip.Results.DisplayMode, 'print')
-        set(hl, 'Position', [4 5-lheight 1.75 lheight]); 
-    end
-    
-    if ip.Results.ShowStatistics
-        fs = loadFigureSettings('print');
-        h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
-        axes(fs.axOpts{:}, 'Position', [1.5 2 3 4]);
-        boxplot2(lftRes.stats, 'AdjustFigure', false, 'XLabels', {'Raw', 'Below thresh', 'Above thresh'},...
-            'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
-        ylabel('Lifetime (s)', fset.sfont{:});
-    end
-    
+    %============================================================
+    % Multi-channel data
+    %============================================================
     if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHistSlaveCCP')
         
         % 1) plot all combinations
@@ -96,7 +102,7 @@ if isstruct(lftRes)
         
         
         ncomb = size(lftRes.slaveCombs,1);
-
+        
         % pct CCPs/CSs (above/below)
         pctCCP = mean(lftRes.pctSlaveCCP,1);
         pctCCPStd = std(lftRes.pctSlaveCCP, [], 1);
@@ -120,7 +126,6 @@ if isstruct(lftRes)
             labelsB{s} = [labelsB{s} ' CSs (' num2str(pctCS(s)*100, '%.1f') '%)'];
         end
         
-        
         switch ncomb
             case 2
                 cmap = [0.33 1 0.9;
@@ -139,8 +144,9 @@ if isstruct(lftRes)
         end
         cmap = hsv2rgb(cmap);
         
-        % distribution of all detected objects
-
+        %------------------------------------------------------------
+        % 1) Lifetimes distributions for all detected objects
+        %------------------------------------------------------------
         hp = zeros(1+2*ncomb,1);
         %bAll = 1.96*getSE(lftRes, 'lftHist_Ia');
         %fill([lftRes.t lftRes.t(end:-1:1)], [mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
@@ -160,15 +166,14 @@ if isstruct(lftRes)
         labels = [labelsA labelsB];
         hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
         set(hl, fset.tfont{:}, 'Box', 'off', 'Position', [3.75 3.25 2 2]);
-
+        
         %------------------------------------------------------------
         % 2) Plot CCP lifetimes only; all combinations
         %------------------------------------------------------------
-        %%
         figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
         axes(fset.axOpts{:});
         hold on;
-    
+        
         hp = zeros(1,ncomb);
         tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
         tmp = cat(1,tmp{:});
@@ -186,9 +191,9 @@ if isstruct(lftRes)
         hl = legend(hp, [' All CCPs' labelsC], 'Location', 'NorthEast');
         lheight = ncomb+1;%1.5+3.5 = 5 -> 4+1.2
         set(hl, 'Box', 'off', 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
-
     end
-  
+    
+    % for comparisons between multiple conditions
 elseif iscell(lftRes)
     if nargin<2
         colorA = hsv2rgb([0.6 1 1;
@@ -220,7 +225,6 @@ elseif iscell(lftRes)
 else
     error('Incompatible input');
 end
-
 
 function SE = getSE(lftData, fieldName)
 M = lftData.(fieldName);

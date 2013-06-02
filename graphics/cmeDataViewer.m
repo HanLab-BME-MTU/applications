@@ -2,8 +2,8 @@
 %
 % Inputs:    
 %             data : single movie structure returned by loadConditionData.m
-%    TrackCategory : optional input for selecting 'all' (default) or
-%                    'valid' tracks.
+%     Trajectories : optional input for selecting 'all' (default) or
+%                    'valid' CCS trajectories.
 %
 % Notes: Only tracks with at least 5 frames are loaded and displayed.
 
@@ -14,7 +14,7 @@ function cmeDataViewer(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('TrackCategory', 'all', @(x) isempty(x) || any(strcmpi(x, {'all', 'valid'})));
+ip.addOptional('Trajectories', 'all', @(x) isempty(x) || any(strcmpi(x, {'all', 'valid'})));
 ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
@@ -34,10 +34,10 @@ handles.mCh = find(strcmp(data.source, data.channels));
 %---------------------
 handles.tracks = cell(1,nCh);
 handles.colorMap = cell(1,nCh);
-if ~isempty(ip.Results.TrackCategory)
+if ~isempty(ip.Results.Trajectories)
 
     % load tracks
-    if strcmpi(ip.Results.TrackCategory, 'valid');
+    if strcmpi(ip.Results.Trajectories, 'valid');
         c = 'Ia';
     else
         c = 'all';
