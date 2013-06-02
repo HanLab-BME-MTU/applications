@@ -8,7 +8,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('data', [], @isstruct);
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('SigmaSource', 'model', @(x) any(strcmpi(x, {'data', 'model'})));
+ip.addParamValue('GaussianPSF', 'model', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('TrackingRadius', [3 6], @(x) numel(x)==2);
 ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
@@ -30,7 +30,7 @@ opts = {'Overwrite', ip.Results.Overwrite};
 
 % 'RemoveRedundant' inactivated on Windows as a temporary workaround for the problems with
 % the KDTree MEX files for windows.
-runDetection(data, 'SigmaSource', ip.Results.SigmaSource, 'RemoveRedundant', isunix, opts{:});
+runDetection(data, 'SigmaSource', ip.Results.GaussianPSF, 'RemoveRedundant', isunix, opts{:});
 
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
