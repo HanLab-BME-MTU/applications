@@ -89,21 +89,23 @@ for iCell = 1:nCell
         
     end
     
+    cellData(iCell).data.rawTimeSeries = timeSeries; 
+    
     %Applying Time Series Operations
     cellData(iCell).data.timeSeriesOperations = timeSeriesOperations;
     if nDim == 3
         
         for iLayer = 1:size(timeSeries,2)
             
-            [cellData(iCell).data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
+            [cellData(iCell).data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(squeeze(timeSeries(:,iLayer,:)),timeSeriesOperations{:});
             cellData(iCell).data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
             cellData(iCell).data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
             
         end
         
     else
-        cellData(iCell).data.rawTimeSeries               = timeSeries; 
-        [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(cellData(iCell).data.rawTimeSeries,timeSeriesOperations{:});
+        
+        [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(timeSeries,timeSeriesOperations{:});
         cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
         cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
         
