@@ -224,7 +224,7 @@ end
 if rescale(1)
     a = mat2cell(av,nCh,ones(1,numel(lftData)));
     [lftData.a] = deal(a{:}); 
-    for i = 1:nd
+    for i = 1:numel(lftData)
         lftData(i).maxA = squeeze(nanmax(lftData(i).A(:,:,:),[],2));
     end
 end
