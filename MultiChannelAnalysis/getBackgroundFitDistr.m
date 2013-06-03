@@ -8,7 +8,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('ch', []);
-ip.addParamValue('np', 1000);
+ip.addParamValue('np', 5000);
 ip.addParamValue('sigma', [],@(t)isnumeric(t)&numel(t) ==2);
 ip.addParamValue('ccpMask', 'on', @(x) any(strcmpi(x, {'on','off'})));
 ip.parse(data, varargin{:});
