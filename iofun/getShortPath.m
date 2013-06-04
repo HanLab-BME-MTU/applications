@@ -13,5 +13,5 @@ if numel(data.channels)>1
 else
     spath = data.channels{1};
     idx = regexp(spath, filesep);
-    spath = spath(idx(end-3)+1:idx(end)-1);
+    spath = spath(idx(max(1,end-3))+1:idx(end)-1);
 end
