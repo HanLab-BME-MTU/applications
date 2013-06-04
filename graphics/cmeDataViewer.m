@@ -124,7 +124,6 @@ handles.trackChoice = uicontrol('Style', 'popup',...
     'String', {'Category', 'Lifetime', 'Object Type', 'Random'},...
     'Position', [280 28 100 20], 'Callback', {@trackChoice_Callback, hfig});
 
-
 handles.gapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Gaps',...
     'Position', [390 45 140 15], 'HorizontalAlignment', 'left',...
     'Callback', {@refresh_Callback, hfig});
@@ -151,7 +150,6 @@ handles.statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track stat
 %---------------------
 % Tracks
 %---------------------
-
 handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
     'Units', 'pixels', 'Position', [dx pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
@@ -230,7 +228,6 @@ if isfield(handles.detection{handles.mCh}, 'dRange')
         minp = interp1(f_ecdf, x_ecdf, 0.01);
         [f_ecdf, x_ecdf] = ecdf(M(:,2));
         maxp = interp1(f_ecdf, x_ecdf, 0.99);
-        %handles.dRange{c} = [min(M(:,1)) max(M(:,2))]; % change to percentiles
         handles.dRange{c} = [minp maxp];
     end
 else
@@ -271,11 +268,9 @@ end
 %=================================================
 % Generate axes
 %=================================================
-
 % track panels: 20 spacer, 110 bottom, 30 top
 h_tot = pos(4) - 140;
 h = min((h_tot-(nCh-1)*20)/nCh, 200);
-
 
 opts = {'Parent', gcf, 'Units', 'pixels', 'Box', 'on'};
 
@@ -297,12 +292,8 @@ switch nCh
 end
 xlabel('Time (s)');
 
-% Colorbar
-% horizontal
-%handles.cAxes = axes('Parent', gcf, 'Position', [10*dx 11.5*dy 4*dx dy/5], 'Visible', 'off');
-% vertical
+% Legend (track lifetime/category)
 handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
-
 
 set(hfig, 'ResizeFcn', @figResize);
 
@@ -316,13 +307,9 @@ handles = setupFrameAxes(hfig);
 %===========================
 % initialize figures/plots
 %===========================
-
 linkaxes(handles.tAxes, 'x'); % calls resize??
 
-
-
 set(hfig, 'KeyPressFcn', @keyListener);
-
 
 refreshFrameDisplay(hfig);
 refreshTrackDisplay(hfig);
@@ -331,30 +318,6 @@ setColorbar(hfig, handles.trackMode);
 
 set(zoom, 'ActionPostCallback', {@zoompostcallback, hfig});
 
-
-
-
-% UIWAIT makes trackDisplayGUI wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-%===================================
-% Context menu for each frame
-%===================================
-% for fi = 1:numel(handles.fAxes)
-%     handles.hcmenu(fi) = uicontextmenu;
-%     handles.himg(fi) = findall(handles.fAxes(fi),'Type','image');
-%     uimenu(handles.hcmenu(fi), 'Label', 'Adjust contrast', @contrastCallback);
-%     set(handles.himg(fi), 'uicontextmenu', handles.hcmenu(fi));
-% end
-% @(h,event) imcontrast(h)
-%{@imcontrast, handles.himg(fi)}
-
-% % Attach the context menu to axes
-% himg = findall(handles.fAxes,'Type','image');
-% for fi = 1:numel(himg)
-%     set(himg(fi), 'uicontextmenu', handles.hcmenu);
-%     
-% end
 
 %===================================
 % Automatic actions after zoom
@@ -374,9 +337,6 @@ if ismember(eventdata.Axes, handles.fAxes)
     end
     setappdata(hfig, 'settings', settings);
 end
-
-
-
 
 
 function figResize(src,~)
@@ -517,24 +477,10 @@ if N>1
 end
 
 
-% % --- Outputs from this function are returned to the command line.
-% function varargout = trackDisplayGUI_OutputFcn(~, ~, handles)
-% % varargout  cell array for returning output args (see VARARGOUT);
-% % hObject    handle to figure
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Get default command line output from handles structure
-% varargout{1} = handles.output;
-
-
-
 %===================================
 % Plot frames with overlaid tracks
 %===================================
 function handles = refreshFrameDisplay(hfig)
-
-
 
 handles = getappdata(hfig, 'handles');
 settings = getappdata(hfig, 'settings');
@@ -542,8 +488,6 @@ settings = getappdata(hfig, 'settings');
 % save zoom settings
 XLim = get(handles.fAxes(1), 'XLim');
 YLim = get(handles.fAxes(1), 'YLim');
-
-% zoomFactor = handles.refXLimDiff / diff(XLim);
 
 f = handles.f;
 isRGB = strcmpi(handles.displayType, 'RGB');
@@ -563,7 +507,6 @@ end
 nAxes = length(cvec);
 
 markerHandles = NaN(1, nAxes);
-% textHandles = NaN(1, nAxes);
 
 for k = 1:nAxes
     
@@ -612,13 +555,11 @@ for k = 1:nAxes
             xi = t.x(chIdx,fi);
             yi = t.y(chIdx,fi);
             markerHandles(k) = plot(handles.fAxes(k), xi, yi, 'ws', 'MarkerSize', 10*settings.zoom);
-            %textHandles(k) = text(xi+15, yi+10, num2str(handles.selectedTrack(k)), 'Color', 'w', 'Parent', handles.fAxes(k));            
         end
     end
     
     if ~isRGB && get(handles.('labelCheckbox'), 'Value')
         % plot channel name
-        %[getDirFromPath(handles.data.channels{k}) '-' handles.data.markers{k}],...
         dx = 0.03;
         text(1-dx*handles.fAspectRatio, dx,...
             handles.data.markers{k},...
@@ -651,7 +592,6 @@ for k = 1:nAxes
 end 
 
 settings.selectedTrackMarkerID = markerHandles;
-% settings.selectedTrackLabelID = textHandles;
 
 % write zoom level
 set(handles.fAxes(1), 'XLim', XLim);
@@ -671,8 +611,6 @@ sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
 if ~isempty(handles.tracks{handles.mCh})
     switch mode
         case 'Lifetime'
-            %maxLft_f = 160;
-            %df = maxLft_f-120;
             df = 40;
             dcoord = 0.25/df;
             cmap = [jet(120); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
@@ -681,12 +619,6 @@ if ~isempty(handles.tracks{handles.mCh})
                'YTick', [1 20:20:120 160],...
                'YTickLabel', [handles.data.framerate 20:20:120 handles.data.movieLength*handles.data.framerate], sfont{:});
             text(-0.5, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-            %imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
-            %axis(handles.cAxes, 'xy');
-            %set(handles.cAxes, 'Visible', 'on', 'YTick', [],...
-            %    'XTick', [1 20:20:120 maxLft_f]*handles.data.framerate,...
-            %    'XTickLabel', [1 20:20:120 handles.data.movieLength / handles.data.framerate]);
-            %text(80, 2.5, 'Lifetime (s)', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
         case 'Category'
             xlabels = {'valid', 'rej. gaps', 'cut', 'persistent',...
                 'valid', 'rej. gaps', 'cut', 'persistent'};
@@ -700,13 +632,6 @@ if ~isempty(handles.tracks{handles.mCh})
             for k = 1:8
                 text(1.6, k-0.1, xlabels{k}, 'Rotation', 45, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top', 'Parent', handles.cAxes, sfont{:});
             end
-            %imagesc(reshape(cmap, [1 size(cmap)]), 'Parent', handles.cAxes);
-            %axis(handles.cAxes, 'xy');
-            %set(handles.cAxes, 'Visible', 'on', 'YTick', [], 'XTick', 1:8, 'XTickLabel', xlabels,...
-            %    'TickLength', [0 0]);
-            %rotateXTickLabels(handles.cAxes, 'Angle', 45, 'AdjustFigure', false);
-            %text(2.5, 2.5, 'Single tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
-            %text(6.5, 2.5, 'Compound tracks', 'HorizontalAlignment', 'center', 'Parent', handles.cAxes);
         case 'Object Type'
             cmap = [0 0.8 0; 0.8 0 0];
             imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
@@ -733,17 +658,10 @@ if ~isempty(handles.selectedTrack)
     
     for ci = 1:handles.nCh
         h = handles.tAxes(ci);
-        %cla(h);
         hold(h, 'off');
         selMask = ~isnan(handles.selectedTrack);
         sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
-        
-%         if ~isempty(handles.tracks{ci})
-%             sTrack = handles.tracks{ci}(handles.selectedTrack(1));
-%         else
-%             sTrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
-%         end
-        
+                
         if size(sTrack.A, 1)==1
             cx = 1;
         else
@@ -769,26 +687,22 @@ if ~isempty(handles.selectedTrack)
             plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode);
         end
         box on;
-        %l = findobj(gcf, 'Type', 'axes', 'Tag', 'legend');
-        %set(l, 'FontSize', 7);
                      
         % plot current frame position
         ybounds = get(h, 'YLim');
         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
-        %axis(handles.tAxes(ci), [0 handles.data.movieLength ybounds]);
         hold(h, 'off');
         
         % display result of classification, if available
         %if isfield(handles.tracks{1}, 'cStatus')
         %    cStatus = handles.tracks{1}(handles.selectedTrack(1)).cStatus(2);
         %    if cStatus == 1
-        %        set(handles.statusLabel, 'String', 'Ch. 2: EAF+');
+        %        set(handles.statusLabel, 'String', 'Ch. 2: EAP+');
         %    else
-        %        set(handles.statusLabel, 'String', 'Ch. 2: EAF-');
+        %        set(handles.statusLabel, 'String', 'Ch. 2: EAP-');
         %    end
         %end
-        %pos = get(handles.
-        %aspectRatio = 
+
         dx = 0.03;
         if isfield(sTrack, 'significantSignal')
             s = sTrack.significantSignal;
