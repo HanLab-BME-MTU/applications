@@ -11,8 +11,8 @@ YTick = ip.Results.YTick;
 
 fset = loadFigureSettings('print');
 
-M_Ia = cellfun(@(i) i.initDensity_Ia(:,1), lftRes, 'UniformOutput', false);
-M_above = cellfun(@(i) i.initDensity_above(:,1), lftRes, 'UniformOutput', false);
+M_Ia = cellfun(@(i) i.initDensityIa(:,1), lftRes, 'UniformOutput', false);
+M_above = cellfun(@(i) i.initDensityCCP(:,1), lftRes, 'UniformOutput', false);
 
 
 figure(fset.fOpts{:}, 'Position', [10 10 7 7]);
