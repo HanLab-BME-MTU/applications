@@ -1,84 +1,78 @@
-function mask = cellMaskFromCCPDensity(frame, connect, showHist, modeRatio)
+%[mask, clusterID, nn] = cellMaskFromCCPDensity(data, varargin)
 
-g = filterGauss2D(frame, 5);
-[ny, nx] = size(frame);
+% Francois Aguet, May 2013
 
-% remove outliers
-v = frame(:);
-pct = prctile(v, [1 99]);
-v(v<pct(1) | pct(2)<v) = [];
-[f,xi] = ksdensity(v, 'npoints', 100, 'support', 'positive');
+function [mask, clusterID, nn] = cellMaskFromCCPDensity(data, varargin)%frame, connect, showHist, modeRatio)
 
-% local max/min
-lmax = locmax1d(f, 3);
-lmin = locmin1d(f, 3);
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addRequired('data', @isstruct);
+ip.addParamValue('Close', true, @islogical);
+ip.addParamValue('MinSize', 5);
+ip.addParamValue('Radius', []);
+ip.addParamValue('Display', false, @islogical);
+ip.parse(data, varargin{:});
+R = ip.Results.Radius;
 
-% max value
-% hmax = find(f==max(f), 1, 'first');
-dxi = xi(2)-xi(1);
+% if single input: data
+tracks = loadTracks(data, 'Category', 'all', 'Cutoff_f', 5);
+x = arrayfun(@(i) nanmean(i.x(1,:)), tracks);
+y = arrayfun(@(i) nanmean(i.y(1,:)), tracks);
 
-% identify min after first mode
-if ~isempty(lmin)
-    idx = find(lmin>lmax(1), 1, 'first');
-    if ~isempty(idx) && sum(f(1:lmin(idx(1))))*dxi < modeRatio
-        min0 = lmin(idx);
-        T = xi(min0);
-        mask = g>T;
-    else
-        mask = ones(ny,nx);
+X = [x' y'];
+
+if isempty(R)
+    kdtreeobj = KDTree(X);
+    np = size(X,1);
+    dist = zeros(np,1);
+    for i = 1:np
+        [~,idist] = kdtreeobj.knn(X(i,:),2);
+        dist(i) = idist(2);
     end
-else
-    mask = ones(ny,nx);
-end
+    [fEDF,xEDF] = ecdf(dist);
 
-borderIdx = [1:ny (nx-1)*ny+(1:ny) ny+1:ny:(nx-2)*ny+1 2*ny:ny:(nx-1)*ny];
-
-% retain largest connected component
-if connect
-    CC = bwconncomp(mask, 8);
-    compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
-    mask = zeros(ny,nx);
-    mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
-end
-
-% fill holes (retain largest boundary)
-B = bwboundaries(mask);
-nb = cellfun(@(i) numel(i), B);
-B = B{nb==max(nb)};
-boundary = zeros(ny,nx);
-boundary(sub2ind([ny nx], B(:,1), B(:,2))) = 1;
-% boundary(borderIdx) = 1;
-CC = bwconncomp(1-boundary, 4);
-
-% mask indexes
-labels = double(labelmatrix(CC));
-idx = unique(mask.*labels);
-boundaryLabel = unique(labels(boundary==1));
-% average intensities for each component
-compLabels = setdiff(idx, boundaryLabel);
-nLabels = numel(compLabels);
-if nLabels > 1
-    meanIntensity = zeros(1,nLabels);
-    for k = 1:nLabels
-        meanIntensity(k) = mean(frame(labels==compLabels(k)));
-    end
-    bgLabel = compLabels(find(meanIntensity==min(meanIntensity),1,'first'));
-    mask = ismember(labels, setdiff(idx, bgLabel)); % 3rd version
-else
-    mask = ismember(labels, compLabels) | boundary;
-end
-% mask = boundary | ismember(labels, idx(2:end)); % 2nd version
-% mask = boundary | labels==idx(2); % 1st version
-
-
-if showHist
-    dx = xi(2)-xi(1);
-    ni = hist(v, xi);
-    ni = ni/sum(ni)/dx;
+    opts = optimset('Jacobian', 'off', ...
+        'MaxFunEvals', 1e4, ...
+        'MaxIter', 1e4, ...
+        'Display', 'off', ...
+        'TolX', 1e-8, ...
+        'Tolfun', 1e-8);
     
-    figure;
-    hold on;
-    plot(xi, ni, 'k.-', 'LineWidth', 3, 'MarkerSize', 20);
-    plot(xi, f, 'r-', 'LineWidth', 1);
-    set(gca, 'LineWidth', 2, 'FontSize', 18);
+    p = lsqnonlin(@cost, [1 1], [0 0], [Inf Inf], opts, xEDF, fEDF);
+    %m = chiCDF(xEDF, p(1), p(2));
+    %figure; plot(xEDF,fEDF,'k');
+    %hold on; plot(xEDF,m,'r');
+    R = gammaincinv(0.95, p(1), 'lower')*p(2);
 end
+
+[clusterID, nn] = dbscan(X, ip.Results.MinSize, R);
+ny = data.imagesize(1);
+nx = data.imagesize(2);
+
+mask = zeros(ny,nx);
+mask(sub2ind([ny nx], round(y(clusterID~=0)), round(x(clusterID~=0)))) = 1;
+mask = imclose(mask, strel('disk',15));
+mask = imdilate(mask, strel('disk',5));
+
+if ip.Results.Close
+    mask = imfill(mask, 'holes');
+end
+
+if ip.Results.Display
+    figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
+    hold on;
+    nc = numel(unique(clusterID))-1;
+    plot(x(clusterID==0), y(clusterID==0), 'o', 'Color', 0.6*[1 1 1]);
+    for c = 1:nc
+        plot(x(clusterID==c), y(clusterID==c), 'o', 'Color', 'm');
+    end
+end
+
+
+
+function v = cost(p, x, f)
+v = chiCDF(x, p(1), p(2)) - f;
+
+function f = chiCDF(x, k, s)
+f = gammainc(0.5*x.^2/s^2, 0.5*k, 'lower');
+
