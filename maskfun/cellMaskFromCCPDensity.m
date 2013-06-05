@@ -2,7 +2,7 @@
 
 % Francois Aguet, May 2013
 
-function [mask, clusterID, nn] = cellMaskFromCCPDensity(data, varargin)%frame, connect, showHist, modeRatio)
+function [mask, clusterID, nn, R] = cellMaskFromCCPDensity(data, varargin)%frame, connect, showHist, modeRatio)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -44,15 +44,14 @@ if isempty(R)
     %hold on; plot(xEDF,m,'r');
     R = gammaincinv(0.95, p(1), 'lower')*p(2);
 end
-
 [clusterID, nn] = dbscan(X, ip.Results.MinSize, R);
 ny = data.imagesize(1);
 nx = data.imagesize(2);
 
 mask = zeros(ny,nx);
 mask(sub2ind([ny nx], round(y(clusterID~=0)), round(x(clusterID~=0)))) = 1;
-mask = imclose(mask, strel('disk',15));
-mask = imdilate(mask, strel('disk',5));
+mask = imclose(mask, strel('disk',round(R)));
+mask = imdilate(mask, strel('disk',round(R/2)));
 
 if ip.Results.Close
     mask = imfill(mask, 'holes');
@@ -61,7 +60,7 @@ end
 if ip.Results.Display
     figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
     hold on;
-    nc = numel(unique(clusterID))-1;
+    nc = numel(setdiff(unique(clusterID),0));
     plot(x(clusterID==0), y(clusterID==0), 'o', 'Color', 0.6*[1 1 1]);
     for c = 1:nc
         plot(x(clusterID==c), y(clusterID==c), 'o', 'Color', 'm');
