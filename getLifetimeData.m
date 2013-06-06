@@ -14,6 +14,7 @@ ip.addParamValue('Scale', false, @islogical);
 ip.addParamValue('DisplayScaling', false, @islogical);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('AmplitudeCorrectionFactor', []);
+ip.addParamValue('Mask', false, @islogical);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
@@ -34,7 +35,7 @@ parfor i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData]; %#ok<PFBNS>
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
-        tracks = loadTracks(data(i), 'Mask', true, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.ProcessedTracks);
+        tracks = loadTracks(data(i), 'Mask', ip.Results.Mask, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.ProcessedTracks);
         
         % concatenate amplitudes of master channel into matrix
         trackLengths = [tracks.end]-[tracks.start]+1;

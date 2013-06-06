@@ -15,7 +15,7 @@ ip.parse(data, varargin{:});
 R = ip.Results.Radius;
 
 % if single input: data
-tracks = loadTracks(data, 'Category', 'all', 'Cutoff_f', 5);
+tracks = loadTracks(data, 'Category', 'all', 'Cutoff_f', 5, 'Mask', false);
 x = arrayfun(@(i) nanmean(i.x(1,:)), tracks);
 y = arrayfun(@(i) nanmean(i.y(1,:)), tracks);
 
