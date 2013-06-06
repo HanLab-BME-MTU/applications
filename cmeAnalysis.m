@@ -12,7 +12,7 @@
 %     'TrackingRadius' : [minRadius maxRadius] search radii for frame-to-frame linking and gap closing. Default: [3 6]
 %
 % Outputs:
-%            res : analysis results. Lifetime analysis in 'lftData' field; intensity cohorts in 'cohorts' field
+%            res : analysis results. Lifetime analysis in 'lftRes' field; intensity cohorts in 'cohorts' field
 %           data : structure returned by loadConditionData()
 %
 % The function will ask for acquisition parameters and subsequently for the data location. The following acquisition
@@ -103,12 +103,12 @@ if isempty(ip.Results.ControlData)
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:});
 else
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:},...
-        'MaxIntensityThreshold', ip.Results.ControlData.lftData.T);
+        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.T);
 end
 
 % Graphical output
-plotLifetimes(res.lftData, 'DisplayMode', 'print', 'PlotAll', false);
+plotLifetimes(res.lftRes, 'DisplayMode', 'print', 'PlotAll', false);
 
-res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftData.MaxIntensityThreshold,...
+res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold,...
     'ShowBackground', false, 'DisplayMode', 'print', 'ScaleSlaveChannel', false,...
     'ShowLegend', false, 'ShowPct', false);
