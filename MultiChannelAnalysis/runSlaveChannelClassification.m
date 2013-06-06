@@ -36,7 +36,7 @@ kLevel = norminv(1-opts.Alpha/2.0, 0, 1); % ~2 std above background for 0.05
 % load tracks (all)
 ts = load([data.source 'Tracking' filesep opts.FileName]);
 
-if isfield(ts.tracks, 'significantSignal') && ~opts.Overwrite
+if isfield(ts.tracks, 'significantMaster') && ~opts.Overwrite
     fprintf('Classification has already been run for %s\n', getShortPath(data));
     return
 end
