@@ -33,10 +33,10 @@ end
 sigma = ip.Results.Sigma;
 if isempty(sigma)
     % verify that all data sets have same channels
-    ch = arrayfun(@(d) cellfun(@(i) i(regexp(regexprep(i, '\', '/'), regexprep(d.source, '\', '/'), 'end')+1:end), d.channels, 'unif', 0), data, 'unif', 0);
-    ch = [ch{:}];
     nCh = unique(arrayfun(@(i) numel(i.channels), data));
-    if numel(nCh)==1 && numel(unique(ch))==nCh
+    markers = arrayfun(@(c) unique(arrayfun(@(i) i.markers{c}, data, 'unif', 0)), 1:nCh, 'unif', 0);
+    markers = unique([markers{:}]);
+    if numel(nCh)==1 && numel(unique(markers))==nCh
         if strcmpi(ip.Results.SigmaSource, 'model')
             sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers);
         else
@@ -53,7 +53,7 @@ if isempty(sigma)
         fprintf(' %.2f', sigma);
         fprintf('\n');            
     else
-        fprintf(2, 'runDetection: mismatch between the channels in ''data''.');
+        fprintf(2, 'runDetection error: mismatch between the channel fluorophores in ''data''. Could not estimate ''sigma''.\n');
         return;        
     end
 end
