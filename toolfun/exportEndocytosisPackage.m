@@ -58,7 +58,9 @@ system(cmd);
 %-----------------------------------------------------
 ts = loadTrackSettings();
 masterList = {'cmeAnalysis.m', 'cmeDataViewer.m',...
-    'plotPSNRDistribution.m',...
+    'plotPSNRDistribution.m', 'plotLifetimeComparison.m',...
+    'stk2tiffDirs.m', 'selectConditionData.m',...
+    'listSelectGUI.m', ...
     ts.costMatrices(1).funcName, ts.costMatrices(2).funcName,...
     ts.kalmanFunctions.reserveMem, ts.kalmanFunctions.initialize,...
     ts.kalmanFunctions.calcGain, ts.kalmanFunctions.timeReverse};
@@ -76,6 +78,10 @@ for i = 1:numel(fnames)
     copyfile([fpaths{i} filesep fnames{i}], [dest fnames{i}]);
 end
 
+% copy GUIs (temp fix)
+copyfile('/home/fa48/matlab/SVN/common/iofun/GUI/listSelectGUI.fig',...
+    './cmeAnalysisPackage/listSelectGUI.fig');
+
 % copy MEX functions
 mdest = [dest filesep 'mex' filesep];
 [~,~] = mkdir(mdest);
@@ -92,7 +98,7 @@ disp(toolboxList);
 
 system('mv PointSourceDetection cmeAnalysisPackage/.');
 system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
-system('cp cmeAnalysisPackage.zip www/aguet/doc/.');
+system('cp cmeAnalysisPackage.zip www/doc/.');
 %unzip cmeAnalysisPackage.zip
 
 
