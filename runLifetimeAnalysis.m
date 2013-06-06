@@ -55,8 +55,8 @@ res = struct([]);
 
 [lftData, outlierIdx] = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
     'ReturnValidOnly', false, 'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Cutoff_f', cutoff_f,...
-    'Scale', ip.Results.Rescale, 'DisplayScaling', strcmpi(ip.Results.Display, 'on'),...
-    'RemoveOutliers', ip.Results.RemoveOutliers,...
+    'Scale', ip.Results.Rescale, 'DisplayScaling', any(strcmpi(ip.Results.Display, {'on','all'})),...
+    'RemoveOutliers', ip.Results.RemoveOutliers, 'Mask', true,...
     'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData);
 if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
@@ -294,7 +294,7 @@ end
 %---------------------------------------
 % Raw lifetime distributions + average
 %---------------------------------------
-if strcmpi(ip.Results.Display, 'all')
+if any(strcmpi(ip.Results.Display, {'all'}))
 
     a = [lftData.a];
     colorV = hsv(nd);
@@ -364,6 +364,8 @@ if strcmpi(ip.Results.Display, 'all')
     set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
     ylabel('Cumulative freq.', fset.sfont{:});
+    
+    plotMaxIntensityDistribution(data);
 end
 
 
