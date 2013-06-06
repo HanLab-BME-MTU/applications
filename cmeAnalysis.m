@@ -103,7 +103,7 @@ if isempty(ip.Results.ControlData)
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:});
 else
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:},...
-        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.T);
+        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
 end
 
 % Graphical output
