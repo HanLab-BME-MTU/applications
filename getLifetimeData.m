@@ -181,7 +181,8 @@ rmIdx = [];
 for c = 1:nCh
     if rescale(c)
         %maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
-        [a, offset, refIdx] = scaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayScaling);
+        [a, offset, refIdx] = scaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayScaling,...
+            'FigureName', ['Ch. ' num2str(c) ' scaling']);
         av(c,:) = a;
         movieLength = min([data.movieLength]);
         for i = 1:nd
