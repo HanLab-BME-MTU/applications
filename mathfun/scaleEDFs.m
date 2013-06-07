@@ -1,4 +1,4 @@
-%[a c medIdx] = rescaleEDFs(samples, varargin) computes the x-scaling factor between the EDFs of the input sample sets
+%[a c medIdx] = scaleEDFs(samples, varargin) computes the x-scaling factor between the EDFs of the input sample sets
 %
 % Outputs:
 %          a : scaling factor

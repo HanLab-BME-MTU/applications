@@ -1,3 +1,13 @@
+%plotLifetimes(lftRes, varargin) displays CCP lifetime distributions
+%
+% Input: 
+%         lftRes : structure returned by runLifetimeAnalysis()
+%
+% Options ('specifier', value):
+%      'PlotAll' : true|{false} detailed display, includes CCP, CS, and visitor distributions
+
+% Francois Aguet (last modified 05/13/2013)
+
 function h = plotLifetimes(lftRes, varargin)
 
 ip = inputParser;
