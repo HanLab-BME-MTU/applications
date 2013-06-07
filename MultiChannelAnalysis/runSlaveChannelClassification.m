@@ -1,6 +1,16 @@
-% Francois Aguet, October 2010 (last modified: 10/09/2012)
+%runSlaveChannelClassification(data, varargin) identifies trajectories with significant slave channel fluorescence
+%
+% Input:
+%          data : structure returned by loadConditionData()
+%
+% Options ('specifier', value):
+%          'np' : number of points to use for randomized detections
+%    'Cutoff_f' : minimum track length to consider for classification (in frames)
+%
+% Notes: This function modifies the output of runTrackProcessing(), 
+%        by default saved in Tracking/ProcessedTracks.mat
 
-% To do: apply clustering algorithm in place of global analysis
+% Francois Aguet, October 2010 (last modified: 10/09/2012)
 
 function runSlaveChannelClassification(data, varargin)
 
@@ -69,7 +79,7 @@ parfor f = 1:nf;
     % Generate masks
     %-----------------------------------------------
     % load CCP mask and dilate
-    ccpMask = double(imread(data.maskPaths{k}));
+    ccpMask = double(imread(data.maskPaths{k})); %#ok<PFBNS>
     ccpMask(ccpMask~=0) = 1;
     ccpMask = imdilate(ccpMask, strel('disk', 1*w));
     
@@ -77,7 +87,7 @@ parfor f = 1:nf;
     %-----------------------------------------------
     % Probability of randomly occurring slave signal
     %-----------------------------------------------
-    switch opts.Mode
+    switch opts.Mode %#ok<PFBNS>
         case 'random'
             %=================================================================================
             % Approach 1: fit at random positions outside CCPs, build distribution of 'A'
@@ -94,7 +104,7 @@ parfor f = 1:nf;
             
             % remove points outside of mask or within border
             linIdxA = sub2ind([ny nx], yi, xi);
-            rmIdx = cellmask(linIdxA)==0 | xi<=w | yi<=w | xi>nx-w | yi>ny-w;
+            rmIdx = cellmask(linIdxA)==0 | xi<=w | yi<=w | xi>nx-w | yi>ny-w; %#ok<PFBNS>
             xa(rmIdx) = [];
             ya(rmIdx) = [];
             linIdxA(rmIdx) = [];
@@ -132,7 +142,7 @@ parfor f = 1:nf;
                 frame = double(imread(data.framePaths{c}{k}));
                 
                 % get local min & max for initial c and A
-                ww = 2*ceil(4*sigma(c))+1;
+                ww = 2*ceil(4*sigma(c))+1; %#ok<PFBNS>
                 maxF = ordfilt2(frame, ww^2, true(ww));
                 minF = ordfilt2(frame, 1, true(ww));
                 
