@@ -6,10 +6,12 @@
 %           data : data structure returned by loadConditionData()
 %
 % Options:
-%            'PlotAll' : true|{false} displays intermediary processing steps
-%        'GaussianPSF' : {'model'}|'data' toggles between a model-based or data-based estimation of the Gaussian PSF s.d.
+%            'PlotAll' : true|[false] displays intermediary processing steps
+%        'GaussianPSF' : ['model']|'data' toggles between a model-based or data-based estimation of the Gaussian PSF s.d.
 %  'TrackingGapLength' : value defines the maximum number of consecutive missed frames in a trajectory. Default: 2
 %     'TrackingRadius' : [minRadius maxRadius] search radii for frame-to-frame linking and gap closing. Default: [3 6]
+%       'ChannelNames' : cell array of channel names (e.g., {'EGFP-CLCa'}). Default: fluorophore names
+%          'Overwrite' : true|[false] overwrites results of previous analyses. 
 %
 % Outputs:
 %            res : analysis results. Lifetime analysis in 'lftRes' field; intensity cohorts in 'cohorts' field
@@ -67,6 +69,7 @@ ip.addParamValue('TrackingGapLength', 2, @(x) numel(x)==1);
 ip.addParamValue('Parameters', [], @(x) numel(x)==3);
 ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
+ip.addParamValue('ChannelNames', []);
 ip.parse(varargin{:});
 data = ip.Results.data;
 
@@ -90,8 +93,14 @@ runDetection(data, 'SigmaSource', ip.Results.GaussianPSF, 'RemoveRedundant', isu
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
 runTrackProcessing(data, opts{:});
+
 if numel(data(1).channels)>1
     runSlaveChannelClassification(data, opts{:}, 'np', 5000);
+end
+
+chNames = ip.Results.ChannelNames;
+if isempty(chNames)
+    chNames = data(1).markers;
 end
 
 if ip.Results.PlotAll
@@ -100,15 +109,20 @@ else
     display = 'off';
 end
 if isempty(ip.Results.ControlData)
-    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:});
+    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
+        'Display', display, opts{:}, 'SlaveNames', chNames(2:end));
 else
-    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true, 'Display', display, opts{:},...
+    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
+        'Display', display, opts{:}, 'SlaveNames', chNames(2:end),...
         'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
 end
 
 % Graphical output
-plotLifetimes(res.lftRes, 'DisplayMode', 'print', 'PlotAll', false);
+if ~ip.Results.PlotAll % otherwise this is generated in runLifetimeAnalysis()
+    plotLifetimes(res.lftRes, 'DisplayMode', 'print', 'PlotAll', false,...
+        'SlaveNames', chNames(2:end));
+end
 
 res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold,...
     'ShowBackground', false, 'DisplayMode', 'print', 'ScaleSlaveChannel', false,...
-    'ShowLegend', false, 'ShowPct', false);
+    'ShowLegend', false, 'ShowPct', false, 'SlaveName', chNames(2:end));

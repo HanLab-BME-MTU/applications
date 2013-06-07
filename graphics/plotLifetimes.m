@@ -46,7 +46,6 @@ if isstruct(lftRes)
         hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
         if ip.Results.ShowExpFits
             ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
-            %ff = mean(vertcat(lftRes.lftHist_Ia), 1);
             [mu,~,Aexp,~] = fitExpToHist(lftRes.t(5:end), ff(5:end));
             tx = 0:0.1:lftRes.t(end);
             plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
@@ -71,6 +70,12 @@ if isstruct(lftRes)
         ylabel('Relative frequency', fset.lfont{:});
     else
         plot(lftRes.t, lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+        hl = legend(' All CCPs');
+        set(hl, 'Box', 'off');
+        if strcmpi(ip.Results.DisplayMode, 'print')
+            set(hl, 'Position', [5 4.25 1.75 0.75]);
+        end
+        
         ylabel('Frequency', fset.lfont{:});
     end        
     axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
@@ -99,7 +104,6 @@ if isstruct(lftRes)
         axes(fset.axOpts{:});
         hold on;
         axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
-        
         
         ncomb = size(lftRes.slaveCombs,1);
         
@@ -161,7 +165,7 @@ if isstruct(lftRes)
         
         set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
         xlabel('Lifetime (s)', fset.lfont{:});
-        ylabel('Frequency', fset.lfont{:});
+        ylabel('Relative frequency', fset.lfont{:});
         
         labels = [labelsA labelsB];
         hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
@@ -175,18 +179,18 @@ if isstruct(lftRes)
         hold on;
         
         hp = zeros(1,ncomb);
-        tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
-        tmp = cat(1,tmp{:});
-        hp(1) = plot(lftRes.t, sum(tmp,1), 'k', 'LineWidth', lw);
+        %tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
+        %tmp = cat(1,tmp{:});
+        %hp(1) = plot(lftRes.t, sum(tmp,1), 'k', 'LineWidth', lw);
+        hp(1) = plot(lftRes.t, lftRes.meanLftHistCCP, 'k', 'LineWidth', lw);
         for s = ncomb:-1:1 % plot combinations in increasing order of association
             hp(s+1) = plot(lftRes.t, pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
         end
-        %plot(lftRes.t, lftRes.meanLftHistCCP, 'r--'); (small difference)
         axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
         set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
         
         xlabel('Lifetime (s)', fset.lfont{:});
-        ylabel('Frequency', fset.lfont{:});
+        ylabel('Relative frequency', fset.lfont{:});
         
         hl = legend(hp, [' All CCPs' labelsC], 'Location', 'NorthEast');
         lheight = ncomb+1;%1.5+3.5 = 5 -> 4+1.2

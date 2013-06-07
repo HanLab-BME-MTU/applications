@@ -29,6 +29,7 @@ ip.addParamValue('FirstNFrames', []);
 ip.addParamValue('PoolDatasets', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('SelectIndex', [], @iscell);
+ip.addParamValue('SlaveNames', []);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -36,6 +37,10 @@ nc = numel(lb); % # cohorts
 mCh = find(strcmp(data(1).source, data(1).channels));
 FirstNFrames = ip.Results.FirstNFrames;
 selIdx = ip.Results.SelectIndex;
+slaveNames = ip.Results.SlaveNames;
+if isempty(slaveNames)
+    slaveNames = data(1).markers(setdiff(1:numel(data(1).channels),mCh));
+end
 
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
@@ -370,14 +375,14 @@ end
 
 
 if strcmpi(ip.Results.Display, 'on')
-    printPath = [getExpDir(data) 'Figures' filesep];
-    [~,~] = mkdir(printPath);
-    h = plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics,...
-        'DisplayMode', 'print', 'PlotAll', true);
-    print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
-    if ip.Results.ShowStatistics
-        print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
-    end
+    %printPath = [getExpDir(data) 'Figures' filesep];
+    %[~,~] = mkdir(printPath);
+    plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics,...
+        'DisplayMode', 'print', 'PlotAll', true, 'SlaveNames', slaveNames);
+    %print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
+    %if ip.Results.ShowStatistics
+    %    print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
+    %end
 end
 
 if ip.Results.Print

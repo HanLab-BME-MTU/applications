@@ -231,7 +231,7 @@ end
 if ~isempty(sigCombIdx)
     SlaveName = ip.Results.SlaveName;
     if isempty(SlaveName)
-        SlaveName = arrayfun(@(i) ['Ch ' num2str(i)], 2:nCh, 'unif', 0);
+        SlaveName = data(1).markers(2:nCh);
     end
     tmp = sigCombIdx;
     tmp(tmp==1) = '+';
