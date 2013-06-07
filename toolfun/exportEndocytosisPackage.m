@@ -96,8 +96,16 @@ system(cmd);
 disp('The package uses the following toolboxes:')
 disp(toolboxList);
 
+% Copy documentation and GPL
+copyfile('/home/fa48/matlab/SVN/endocytosis/doc/GPL-License.txt',...
+    './cmeAnalysisPackage/.');
+copyfile('/home/fa48/matlab/SVN/endocytosis/doc/CME Analysis Package Manual.pdf',...
+    '.');
+
 system('mv PointSourceDetection cmeAnalysisPackage/.');
-system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
+% system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
+system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage "CME Analysis Package Manual.pdf"');
+
 system('cp cmeAnalysisPackage.zip www/doc/.');
 %unzip cmeAnalysisPackage.zip
 
