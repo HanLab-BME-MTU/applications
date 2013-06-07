@@ -1,12 +1,12 @@
-%tracks = loadTracks(data, varargin)
+%tracks = loadTracks(data, varargin) returns the tracks detected in input data
 %
 % Inputs:
 %
-%  data      : data structure
+%  data      : data structure returned by loadConditionData()
 % 
 % Options:
 %
-% 'Category' : 'Ia'  Single tracks with valid gaps
+% 'Category' : 'Ia' or 'valid'  Single tracks with valid gaps
 %              'Ib'  Single tracks with invalid gaps
 %              'Ic'  Single tracks cut at beginning or end
 %              'Id'  Single tracks, persistent
@@ -19,7 +19,7 @@
 
 function tracks = loadTracks(data, varargin)
 
-catValues = {'all', 'Ia', 'Ib', 'Ic', 'Id', 'IIa', 'IIb', 'IIc', 'IId'};
+catValues = {'all', 'valid', 'Ia', 'Ib', 'Ic', 'Id', 'IIa', 'IIb', 'IIc', 'IId'};
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -77,7 +77,7 @@ end
 idx = false(1,numel(tracks));
 for k = 1:numel(category);
     switch category{k}
-        case 'Ia'
+        case {'Ia','valid'}
             idx0 = [tracks.catIdx]==1;
         case 'Ib'
             idx0 = [tracks.catIdx]==2;
