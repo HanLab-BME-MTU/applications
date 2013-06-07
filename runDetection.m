@@ -35,8 +35,7 @@ if isempty(sigma)
     % verify that all data sets have same channels
     nCh = unique(arrayfun(@(i) numel(i.channels), data));
     markers = arrayfun(@(c) unique(arrayfun(@(i) i.markers{c}, data, 'unif', 0)), 1:nCh, 'unif', 0);
-    markers = unique([markers{:}]);
-    if numel(nCh)==1 && numel(unique(markers))==nCh
+    if numel(nCh)==1 && all(cellfun(@(x) numel(x)==1, markers))
         if strcmpi(ip.Results.SigmaSource, 'model')
             sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers);
         else
