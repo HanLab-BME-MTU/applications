@@ -232,7 +232,7 @@ end
 
 
 tracks(1:nTracks) = struct('t', [], 'f', [],...
-    'x', [], 'y', [], 'A', [],...
+    'x', [], 'y', [], 'A', [], 'csize', [],...
     'tracksFeatIndxCG', [], 'gapVect', [], 'gapStatus', [], 'gapIdx', [], 'seqOfEvents', [],...
     'nSeg', [], 'visibility', [], 'lifetime_s', [], 'start', [], 'end', []);
 
@@ -315,6 +315,7 @@ for k = 1:nTracks
     tracks(k).x = NaN(1, fieldLength);
     tracks(k).y = NaN(1, fieldLength);
     tracks(k).A = NaN(1, fieldLength);
+    tracks(k).csize = NaN(1, fieldLength);
     tracks(k).t = NaN(1, fieldLength);
     tracks(k).f = NaN(1, fieldLength);
     
@@ -339,6 +340,7 @@ for k = 1:nTracks
                 tracks(k).x(:,i+delta(s)) = frameInfo(frameRange(i)).xCoord(idx,1);
                 tracks(k).y(:,i+delta(s)) = frameInfo(frameRange(i)).yCoord(idx,1);
                 tracks(k).A(:,i+delta(s)) = frameInfo(frameRange(i)).amp(idx,1);
+                tracks(k).csize(:,i+delta(s)) = frameInfo(frameRange(i)).csize(idx,1);
             end
         end
         tracks(k).t(delta(s)+(1:nf)) = (bounds(1)-1:bounds(2)-1)*data.framerate;
@@ -411,6 +413,7 @@ for k = 1:nTracks
                 tracks(k).x(c, gacombIdx) = interp1(borderIdx, tracks(k).x(c, borderIdx), gacombIdx);
                 tracks(k).y(c, gacombIdx) = interp1(borderIdx, tracks(k).y(c, borderIdx), gacombIdx);
                 tracks(k).A(c, gacombIdx) = interp1(borderIdx, tracks(k).A(c, borderIdx), gacombIdx);
+                tracks(k).csize(c, gacombIdx) = interp1(borderIdx, tracks(k).csize(c, borderIdx), gacombIdx);
             end
         end
         tracks(k).gapStatus = gapStatus;
