@@ -53,8 +53,7 @@ if isempty(sigma)
         fprintf(' %.2f', sigma);
         fprintf('\n');            
     else
-        fprintf(2, 'runDetection error: mismatch between the channel fluorophores in ''data''. Could not estimate ''sigma''.\n');
-        return;        
+        error('runDetection error: mismatch between the channel fluorophores in ''data''. Could not estimate ''sigma''.');
     end
 end
 if any(sigma<1.1)

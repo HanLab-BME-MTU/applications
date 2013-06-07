@@ -69,7 +69,7 @@ dfile = [data.source 'Detection' filesep opts.DetectionFile];
 if exist(dfile, 'file')==2
     detection = load([data.source 'Detection' filesep 'detection_v2.mat']);
 else
-    fprintf(['runTrackProcessing: no detection data found for ' getShortPath(data)]);
+    fprintf(['runTrackProcessing: no detection data found for ' getShortPath(data) '\n']);
     return;
 end
 frameInfo = detection.frameInfo;

@@ -77,7 +77,7 @@ if exist(dfile, 'file')==2
         movieInfo = movieInfo(frames);
     end
 else
-    fprintf(['runTracking: no detection data found for ' getShortPath(data)]);
+    fprintf(['runTracking: no detection data found for ' getShortPath(data) '\n']);
     return;
 end
 
