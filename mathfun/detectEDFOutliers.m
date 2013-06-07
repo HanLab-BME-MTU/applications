@@ -1,3 +1,15 @@
+%[outlierIdx] = detectEDFOutliers(samples, varargin) identifies outlier data sets based on their empirical distribution function
+%
+% Inputs:
+%         samples : cell array of sample vectors
+%
+% Options:
+%          offset : percent of missing data for each data set (vector of size numel(samples))
+%          refIdx : index of the reference data set
+%
+% Outputs:
+%      outlierIdx : index of outlier data sets
+
 % Francois Aguet, 06/08/2012 (modified on 09/05/2012)
 
 function outlierIdx = detectEDFOutliers(samples, varargin)
