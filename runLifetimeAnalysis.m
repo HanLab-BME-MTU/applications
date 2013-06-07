@@ -1,4 +1,14 @@
-%[lftRes, res] = runLifetimeAnalysis(data, varargin)
+%[lftRes] = runLifetimeAnalysis(data, varargin) computes the CCP lifetime distribution
+%
+% Inputs:
+%               data : structure returned by loadConditionData()
+%
+% Options ('specifier', value):
+%       'SlaveNames' : cell array of string(s) for plot legends
+%   'RemoveOutliers' : {true}|false toggles identification of data sets with outlier distributions
+%
+% Outputs:
+%             lftRes : structure containing lifetime distributions
 
 % Francois Aguet (last mod. 05/29/2013)
 
