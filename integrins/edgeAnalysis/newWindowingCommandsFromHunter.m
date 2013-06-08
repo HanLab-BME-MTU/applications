@@ -3,7 +3,7 @@
 segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\beta3andCellEdgeP2\130510_Cs2C4_Beta3\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
@@ -24,7 +24,7 @@ refinementParam = struct(...
 MD = refineMovieMasks(MD,refinementParam);
 
 %load detection results
-load ../analysisAlphaVY773A/tracks/detectionAll1.mat
+load ../analysisBeta3/tracks/detectionAll1.mat
 
 %make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
@@ -39,12 +39,12 @@ threshParamEdge = struct(...
     'prctile',[95 90 85 80],...
     'bandHalfWidth',-1);
 gapCloseParamEdge = struct(...
-    'maxEdgePairDist',9,...
+    'maxEdgePairDist',7,...
     'factorContr',[1 1 1 1]);
-meanBkg = 115;
-smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\imagesSM4Edge';
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,meanBkg,smDir);
-save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
+% meanBkg = 115;
+% smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0); %,meanBkg,smDir);
+save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed'); %,'meanBkg');
 
 imtool close all
 
@@ -102,6 +102,12 @@ windowParam = struct(...
     'PerpSize',2,...
     'SegProcessIndex',2);
 MD = getMovieWindows(MD,windowParam);
+% windowParam = struct(...
+%     'MethodName','ProtrusionBased',...
+%     'ParaSize',10,...
+%     'PerpSize',10,...
+%     'SegProcessIndex',2);
+% MD = getMovieWindows(MD,windowParam);
 
 %sample protrusion vectors
 MD = sampleMovieProtrusion(MD);

@@ -1,6 +1,6 @@
-condName = {'AlphaVY773A'}; %{'AlphaVRand','AlphaV717TruncRand','AlphaV724TruncRand','TalinRand','FarnRand','LifeactRand'};
+condName = {'Beta3'}; %{'AlphaVRand','AlphaV717TruncRand','AlphaV724TruncRand','TalinRand','FarnRand','LifeactRand'};
 numMode = [4 4 4 4 4 2];
-minNP = 4*ones(1,6);
+minNP = 5*ones(1,6);
 
 for iCond = 1 : length(condName);
     

@@ -1,26 +1,26 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructAlphaVY773A)
+for i = 1 : length(movieStructBeta3)
     
     disp(num2str(i))
     
-    activityLevel = movieStructAlphaVY773A(i).activityLevel;
+    activityLevel = movieStructBeta3(i).activityLevel;
     
     if activityLevel > 1
         
-        topDir = movieStructAlphaVY773A(i).fileName{1};
+        topDir = movieStructBeta3(i).fileName{1};
         %         topDir = topDir(11:end);
-        %         cd([topDir '/analysisAlphaVY773A/furtherAnalysis/adaptiveWindows'])
+        %         cd([topDir '/analysisBeta3/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(topDir,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisAlphaVY773A\furtherAnalysis\adaptiveWindowsSym'])
+        cd([topDir '\analysisBeta3\furtherAnalysis\adaptiveWindowsSym'])
         %         %% for randomization test
-        %         cd([topDir '\analysisAlphaVY773A\furtherAnalysis\randomizationTest\adaptiveWindowsSym'])
+        %         cd([topDir '\analysisBeta3\furtherAnalysis\randomizationTest\adaptiveWindowsSym'])
         %         %% for randomization test
         
-        sliceRange = movieStructAlphaVY773A(i).sliceRange;
-        frameRange = movieStructAlphaVY773A(i).frameRange;
+        sliceRange = movieStructBeta3(i).sliceRange;
+        frameRange = movieStructBeta3(i).frameRange;
         
         load ../tracksDiffusionLength5InMask.mat
         load ../diffusionModeClassification.mat

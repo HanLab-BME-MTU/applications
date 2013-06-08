@@ -1,27 +1,27 @@
 
 j = 0;
 
-for i = 1 : length(movieStructAlphaVY773A)
+for i = 1 : length(movieStructBeta3)
     
-    activityLevel = movieStructAlphaVY773A(i).activityLevel;
+    activityLevel = movieStructBeta3(i).activityLevel;
     
     if activityLevel > 1
         
         j = j + 1;
         
-        tmp = movieStructAlphaVY773A(i).fileName{1};
+        tmp = movieStructBeta3(i).fileName{1};
         %         tmp = tmp(11:end);
-        %         cd([tmp '/analysisAlphaVY773A/furtherAnalysis/adaptiveWindows'])
+        %         cd([tmp '/analysisBeta3/furtherAnalysis/adaptiveWindows'])
         tmp = regexprep(tmp,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisAlphaVY773A\furtherAnalysis\adaptiveWindowsSym'])
+        cd([topDir '\analysisBeta3\furtherAnalysis\adaptiveWindowsSym'])
         %         %%% for randomization test
-        %         cd([topDir '\analysisAlphaVY773A\furtherAnalysis\randomizationTest\adaptiveWindowsSym'])
+        %         cd([topDir '\analysisBeta3\furtherAnalysis\randomizationTest\adaptiveWindowsSym'])
         %         %%% for randomization test
                 
         load particleBehaviorAdaptiveWindows130326.mat
-        sptPropInWindowAlphaVY773AInd(:,j) = sptPropInWindow;
-        windowDistFromEdgeAlphaVY773AInd(:,j) = windowDistFromEdge;
+        sptPropInWindowBeta3Ind(:,j) = sptPropInWindow;
+        windowDistFromEdgeBeta3Ind(:,j) = windowDistFromEdge;
         
     end
     

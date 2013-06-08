@@ -1,15 +1,15 @@
 
-for i = 1 : length(movieStructAlphaVY773A);
+for i = 1 : length(movieStructBeta3);
     
     disp(num2str(i))
     
-    if movieStructAlphaVY773A(i).activityLevel > 0
+    if movieStructBeta3(i).activityLevel > 0
         
-        tmp = movieStructAlphaVY773A(i).fileName{1};
-        %         cd([tmp '/analysisAlphaV/furtherAnalysis'])
+        tmp = movieStructBeta3(i).fileName{1};
+        %         cd([tmp '/analysisBeta3/furtherAnalysis'])
         tmp = regexprep(tmp,'/','\');
         topDir = ['C:\kjData\' tmp(33:end)];
-        cd([topDir '\analysisAlphaVY773A\furtherAnalysis'])
+        cd([topDir '\analysisBeta3\furtherAnalysis'])
         
         load tracksDiffusionLength5InMask.mat
         diffModeAnalysisRes = trackDiffModeAnalysis(tracksFinal,diffModeDividerStructIntegrin);
