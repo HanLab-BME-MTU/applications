@@ -16,10 +16,8 @@ ip.parse(data, track, varargin{:});
 
 nc = length(data.channels);
 mCh = strcmp(data(1).source, data(1).channels);
-ny = data.imagesize(1);
-nx = data.imagesize(2);
 
-sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, name2wavelength(data.markers{mCh}));
+sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
 w = ceil(ip.Results.WindowWidth*sigma);
 
 % coordinate matrices
@@ -53,12 +51,12 @@ if track.nSeg==1 && strcmpi(ip.Results.Reference, 'track') % align frames to tra
     yi = round(yv(mCh,:));
     % ensure that window falls within frame bounds
     x0 = xi - min([xi-1 w]);
-    x1 = xi + min([nx-xi w]);
+    x1 = xi + min([data.imagesize(2)-xi w]);
     y0 = yi - min([yi-1 w]);
-    y1 = yi + min([ny-yi w]);
+    y1 = yi + min([data.imagesize(1)-yi w]);
     % axes for each frame
-    xa = arrayfun(@(i) x0(i):x1(i), 1:nf, 'UniformOutput', false);
-    ya = arrayfun(@(i) y0(i):y1(i), 1:nf, 'UniformOutput', false);
+    xa = arrayfun(@(i) x0(i):x1(i), 1:nf, 'unif', 0);
+    ya = arrayfun(@(i) y0(i):y1(i), 1:nf, 'unif', 0);
 else
     % window around track mean
     mu_x = round(nanmean(xv,2));
