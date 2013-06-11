@@ -37,7 +37,7 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('tracks');
 ip.addRequired('frameIdx');
-ip.addRequired('ch');
+ip.addRequired('ch', @(x) numel(x)<=3);
 ip.addParamValue('Visible', 'on', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
 ip.addParamValue('Mode', 'raw', @(x) strcmpi(x, 'raw') | strcmpi(x, 'rgb') | strcmpi(x, 'mask'));
 ip.addParamValue('Print', 'off', @(x) strcmpi(x, 'on') | strcmpi(x, 'off'));
@@ -67,10 +67,16 @@ else
     set(h,'DefaultLineLineSmoothing', 'on'); % points are not rendered !!
     set(h,'DefaultPatchLineSmoothing', 'on');
 end
-if ~isfield(data, 'projPaths')
-    framePaths = 'framePaths';
+
+frame = zeros(ny,nx,nCh,'uint16');
+if ~isfield(data, 'maxProj')
+    for c = 1:nCh
+        frame(:,:,c) = imread(data.framePaths{c}{frameIdx});
+    end
 else
-    framePaths = 'projPaths';
+    for c = 1:nCh
+        frame(:,:,c) = imread(data.maxProj{c}, 'Index', frameIdx);
+    end
 end
 
 %======================================
@@ -78,15 +84,12 @@ end
 %======================================
 switch ip.Results.Mode
     case 'RGB'
-        if nCh>3
-            error('Max. 3 channels in RGB mode.');
-        end
-        frame = zeros(ny,nx,3);
+        rframe = zeros(ny,nx,3,'uint8');
         idxRGB = getRGBindex(data.markers);
         for c = 1:nCh
-            frame(:,:,idxRGB(c)) = scaleContrast(double(imread(data.(framePaths){c}{frameIdx})), ip.Results.iRange{c});
+            rframe(:,:,idxRGB(c)) = uint8(scaleContrast(double(frame(:,:,c)), ip.Results.iRange{c}));
         end
-        frame = uint8(frame);
+        frame = rframe;
         % set channel index to master
         ch = mCh;        
     case 'mask'
@@ -95,18 +98,15 @@ switch ip.Results.Mode
         end
         % Display mask only where available
         if ch==mCh && (exist(data.maskPaths{frameIdx}, 'file')==2)
-            frame = double(imread(data.(framePaths){ch}{frameIdx}));
             mask = double(imread(data.maskPaths{frameIdx}));
-            frame = rgbOverlay(frame, mask, [1 0 0], ip.Results.iRange{ch});
+            frame = rgbOverlay(double(frame), mask, [1 0 0], ip.Results.iRange{ch});
         else
-            frame = imread(data.(framePaths){ch}{frameIdx});
             colormap(gray(256));
         end
     otherwise % grayscale frame
         if nCh>1
             error('Grayscale mode only supports 1 channel.');
         end
-        frame = imread(data.(framePaths){ch}{frameIdx});
         colormap(gray(256));
 end
 
