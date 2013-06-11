@@ -34,6 +34,9 @@ handles.mCh = find(strcmp(data.source, data.channels));
 %---------------------
 handles.tracks = cell(1,nCh);
 handles.colorMap = cell(1,nCh);
+handles.maxLifetime_f = [];
+handles.selectedTrack = [];
+handles.f = 1;
 if ~isempty(ip.Results.Trajectories)
 
     % load tracks
@@ -42,35 +45,34 @@ if ~isempty(ip.Results.Trajectories)
     else
         c = 'all';
     end
-    handles.tracks{handles.mCh} = loadTracks(data, 'Category', c);
-    
-    % random colormaps for track display
-    for c = 1:nCh
-        nt = numel(handles.tracks{c});
-        handles.colorMap{c} = hsv2rgb([rand(nt,1) ones(nt,2)]);
-    end    
-    
-    handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
-    handles.selectedTrack = NaN(1,handles.nCh);
-    handles.selectedTrack(handles.mCh) = 1;
-    handles.f = handles.tracks{handles.mCh}(1).start;
-    
-    % min/max track intensities
-    maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
-    maxA = [maxA{:}];
-    handles.maxA = zeros(1,nCh);
-    for c = 1:nCh
-        [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
-        handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
-    end
-    d = floor(log10(handles.maxA));
-    % y-axis unit
-    handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
-    handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
-else
-    handles.maxLifetime_f = [];
-    handles.selectedTrack = [];
-    handles.f = 1;
+    tracks = loadTracks(data, 'Category', c);
+    if ~isempty(tracks)
+        handles.tracks{handles.mCh} = tracks;
+        
+        % random colormaps for track display
+        for c = 1:nCh
+            nt = numel(handles.tracks{c});
+            handles.colorMap{c} = hsv2rgb([rand(nt,1) ones(nt,2)]);
+        end
+        
+        handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
+        handles.selectedTrack = NaN(1,handles.nCh);
+        handles.selectedTrack(handles.mCh) = 1;
+        handles.f = handles.tracks{handles.mCh}(1).start;
+        
+        % min/max track intensities
+        maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
+        maxA = [maxA{:}];
+        handles.maxA = zeros(1,nCh);
+        for c = 1:nCh
+            [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
+            handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
+        end
+        d = floor(log10(handles.maxA));
+        % y-axis unit
+        handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
+        handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
+    end   
 end
 handles.displayType = 'raw';
 handles.pUnitType = 's';
