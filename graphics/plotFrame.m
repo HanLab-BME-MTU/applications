@@ -71,11 +71,11 @@ end
 frame = zeros(ny,nx,nCh,'uint16');
 if ~isfield(data, 'maxProj')
     for c = 1:nCh
-        frame(:,:,c) = imread(data.framePaths{c}{frameIdx});
+        frame(:,:,c) = imread(data.framePaths{ch(c)}{frameIdx});
     end
 else
     for c = 1:nCh
-        frame(:,:,c) = imread(data.maxProj{c}, 'Index', frameIdx);
+        frame(:,:,c) = imread(data.maxProj{ch(c)}, 'Index', frameIdx);
     end
 end
 
