@@ -51,6 +51,12 @@ cohortBounds = ip.Results.CohortBounds_s;
 sf = ip.Results.ScalingFactor;
 hues = ip.Results.Hues;
 
+% load data
+lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
+    'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale,...
+    'Cutoff_f', ip.Results.Cutoff_f, 'ReturnValidOnly', true,...
+    'ExcludeVisitors', ip.Results.ExcludeVisitors);
+
 % if no specific channel is selected, all channels are shown
 chVec = ip.Results.ch;
 mCh = find(strcmp(data(1).source, data(1).channels));
@@ -59,7 +65,7 @@ nd = numel(data);
 kLevel = norminv(1-ip.Results.Alpha/2.0, 0, 1);
 
 nc = numel(cohortBounds)-1;
-b = 5;
+b = size(lftData(1).sbA,2);
 framerate = data(1).framerate;
 
 % # data points in cohort (including buffer frames)
@@ -67,15 +73,12 @@ iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc
 % time vectors for cohorts
 cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
 
-XLim = [-b*framerate-5 cohortBounds(end)];
+XLim = [cT{end}(1)-5 cT{end}(end)+5];
 YLim = ip.Results.YLim;
 if isempty(YLim) && ~isempty(ip.Results.YTick)
     YLim = ip.Results.YTick([1 end]);
 end
 
-lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
-    'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale, 'Cutoff_f', 5,...
-    'ReturnValidOnly', true, 'ExcludeVisitors', ip.Results.ExcludeVisitors);
 
 if ~isempty(ip.Results.TrackIndex)
     lftFields = fieldnames(lftData);
@@ -103,38 +106,43 @@ for i = 1:nd
             cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<cohortBounds(c+1) &...
                 maxA > ip.Results.MaxIntensityThreshold);
             nt = numel(cidx);
-            
-            interpTracks = zeros(nt,iLength(c));
-            sigma_rMat = zeros(nt,iLength(c));
-            cLengths = lftData(i).trackLengths(cidx);
-            % loop through track lengths within cohort
-            for t = 1:nt
-                A = [lftData(i).sbA(cidx(t),:,ch) lftData(i).A(cidx(t),1:cLengths(t),ch) lftData(i).ebA(cidx(t),:,ch)];
-                bgr = [lftData(i).sbSigma_r(cidx(t),:,ch) lftData(i).sigma_r(cidx(t),1:cLengths(t),ch) lftData(i).ebSigma_r(cidx(t),:,ch)];
+            if nt>0
+                interpTracks = zeros(nt,iLength(c));
+                sigma_rMat = zeros(nt,iLength(c));
+                cLengths = lftData(i).trackLengths(cidx);
+                % loop through track lengths within cohort
+                for t = 1:nt
+                    A = [lftData(i).sbA(cidx(t),:,ch) lftData(i).A(cidx(t),1:cLengths(t),ch) lftData(i).ebA(cidx(t),:,ch)];
+                    bgr = [lftData(i).sbSigma_r(cidx(t),:,ch) lftData(i).sigma_r(cidx(t),1:cLengths(t),ch) lftData(i).ebSigma_r(cidx(t),:,ch)];
+                    
+                    % align to track start
+                    %w = min(numel(A),iLength);
+                    %interpTracks(t,1:w) = A(1:w);
+                    %sigma_r_Ia(t,1:w) = bgr(1:w);
+                    
+                    % interpolate to mean length
+                    xi = linspace(1,cLengths(t)+2*b, iLength(c));
+                    %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
+                    interpTracks(t,:) = binterp(A, xi);
+                    %sigma_rMat(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
+                    sigma_rMat(t,:) = binterp(bgr, xi);
+                end
                 
-                % align to track start
-                %w = min(numel(A),iLength);
-                %interpTracks(t,1:w) = A(1:w);
-                %sigma_r_Ia(t,1:w) = bgr(1:w);
-                
-                % interpolate to mean length
-                xi = linspace(1,cLengths(t)+2*b, iLength(c));
-                %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
-                interpTracks(t,:) = binterp(A, xi);
-                %sigma_rMat(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
-                sigma_rMat(t,:) = binterp(bgr, xi);
-            end
-
-            res(i).interpTracks{ch,c} = interpTracks;
-            res(i).interpSigLevel{ch,c} = kLevel*sigma_rMat;
-            % split as a function of slave channel signal
-            if isfield(lftData(i), 'significantMaster')
-                sigIdx = lftData(i).significantMaster(:,ch)==1;
-                %sigIdx = lftData(i).significantSlave(:,ch)==1;
-                %sigIdx = lftData(i).significantMaster(:,ch)==0 & lftData(i).significantSlave(:,ch)==1;
-                res(i).sigIdx{c}(:,ch) = sigIdx(cidx);
+                res(i).interpTracks{ch,c} = interpTracks;
+                res(i).interpSigLevel{ch,c} = kLevel*sigma_rMat;
+                % split as a function of slave channel signal
+                if isfield(lftData(i), 'significantMaster')
+                    sigIdx = lftData(i).significantMaster(:,ch)==1;
+                    %sigIdx = lftData(i).significantSlave(:,ch)==1;
+                    %sigIdx = lftData(i).significantMaster(:,ch)==0 & lftData(i).significantSlave(:,ch)==1;
+                    res(i).sigIdx{c}(:,ch) = sigIdx(cidx);
+                else
+                    res(i).sigIdx{c}(:,ch) = ones(numel(cidx),1);
+                end
             else
-                res(i).sigIdx{c}(:,ch) = ones(numel(cidx),1);
+                res(i).interpTracks{ch,c} = NaN(1,iLength(c));
+                res(i).interpSigLevel{ch,c} = NaN(1,iLength(c));
+                res(i).sigIdx{c}(:,ch) = NaN;
             end
         end
     end
@@ -344,7 +352,6 @@ for a = 1:na
             end
         end
     end
-    
 end
 
 if isempty(YLim)
