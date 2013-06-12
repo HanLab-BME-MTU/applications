@@ -194,15 +194,14 @@ for iInt = 1:numel(interval)
         cellData(iCell).protrusionAnalysis(iInt) = protrusion{iCell}{iInt};
         cellData(iCell).retractionAnalysis(iInt) = retraction{iCell}{iInt};
         
-        timeScale             = cellData(iCell).data.frameRate;
-        
-        total.ProtPersTime    = [total.ProtPersTime;cellData(iCell).protrusionAnalysis(iInt).total.persTime*timeScale];
+                
+        total.ProtPersTime    = [total.ProtPersTime;cellData(iCell).protrusionAnalysis(iInt).total.persTime];
         total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData(iCell).protrusionAnalysis(iInt).total.maxVeloc];
         total.ProtMinVeloc    = [total.ProtMinVeloc;cellData(iCell).protrusionAnalysis(iInt).total.minVeloc];
         total.ProtMeanVeloc   = [total.ProtMeanVeloc;cellData(iCell).protrusionAnalysis(iInt).total.Veloc];
         total.ProtMednVeloc   = [total.ProtMednVeloc;cellData(iCell).protrusionAnalysis(iInt).total.mednVeloc];
         
-        total.RetrPersTime    = [total.RetrPersTime;cellData(iCell).retractionAnalysis(iInt).total.persTime*timeScale];
+        total.RetrPersTime    = [total.RetrPersTime;cellData(iCell).retractionAnalysis(iInt).total.persTime];
         total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData(iCell).retractionAnalysis(iInt).total.maxVeloc];
         total.RetrMinVeloc    = [total.RetrMinVeloc;cellData(iCell).retractionAnalysis(iInt).total.minVeloc];
         total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData(iCell).retractionAnalysis(iInt).total.Veloc];
