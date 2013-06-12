@@ -36,7 +36,7 @@ ip.addOptional('condDir', [], @(x) ischar(x) && ~any(strcmpi(x,...
     {'Parameters', 'MovieSelector', 'IgnoreEmptyFolders', 'FrameRate'})));
 ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
-ip.addParamValue('Parameters', [1.49 100 6.7e-6], @(x) numel(x)==3);
+ip.addParamValue('Parameters', [1.49 100 6.45e-6], @(x) numel(x)==3);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
 ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
 ip.addParamValue('FrameRate', [], @isscalar);
