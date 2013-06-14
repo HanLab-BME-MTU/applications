@@ -20,6 +20,7 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
+% ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
@@ -90,7 +91,7 @@ if ip.Results.PoolDatasets
     tmp.a = 1;
     lftData = tmp;    
 end
-fprintf('=================================================\n');
+fprintf('=============================================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
 nd = numel(lftData);
 
@@ -293,12 +294,21 @@ end
 %====================
 % Initiation density
 %====================
-fprintf('Initiation density, all tracks:\n');
-fprintf('Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
-fprintf('Initiation density, valid tracks only:\n');
-fprintf('Average: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-fprintf('-------------------------------------------------\n');
+fset = loadFigureSettings('');
+figure(fset.fOpts{:}, 'Name', 'Initiation density');
+axes(fset.axOpts{:});
+hold on;
+h = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
+    [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
+    'XTickLabel', arrayfun(@(i) getCellDir(i), data, 'unif', 0), 'Interpreter', 'none',...
+    'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2]);
+ylabel(['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
+hl = legend(h, 'All tracks', 'Valid tracks');
+set(hl, fset.tfont{:});
+fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
+fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
 
+% Mean distributions
 lftRes.meanLftHistCCP = nanmean(lftRes.lftHistCCP,1);
 lftRes.meanLftHistCS = nanmean(lftRes.lftHistCS,1);
 if ip.Results.ExcludeVisitors
@@ -316,7 +326,6 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     [~,idxa] = sort(a(1,:));
     [~,idxa] = sort(idxa);
     colorV = colorV(idxa,:);
-    fset = loadFigureSettings('print');
     
     figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
     axes(fset.axOpts{:});
