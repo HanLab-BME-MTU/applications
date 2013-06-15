@@ -38,7 +38,7 @@ ip.addParamValue('OverlayBackground', false, @islogical);
 ip.addParamValue('MarkerSizes', [21 7 2]);
 ip.addParamValue('PlotBuffers', true, @islogical);
 ip.addParamValue('LineWidth', 1);
-ip.addParamValue('BackgroundConfidence', [], @isscalar);
+ip.addParamValue('BackgroundConfidence', [], @isvector);
 ip.addParamValue('Alpha', 0.05, @isscalar);
 ip.parse(data, track, varargin{:});
 
@@ -227,9 +227,19 @@ if hasEndBuffer && ip.Results.PlotBuffers
 end
 
 if ~isempty(ip.Results.BackgroundConfidence)
-    c = [track.startBuffer.c(ch,:) track.c(ch,:) track.endBuffer.c(ch,:)]-mean(track.c(ch,:));
-    t = [track.startBuffer.t track.t track.endBuffer.t]-track.t(1);
-    plot(t, c+ip.Results.BackgroundConfidence, 'k-');
+    c = track.c(ch,:);
+    t = track.t;
+    if ~isempty(track.startBuffer)
+        c = [track.startBuffer.c(ch,:) c];
+        t = [track.startBuffer.t t];
+    end
+    if ~isempty(track.endBuffer)
+        c = [c track.endBuffer.c(ch,:)];
+        t = [t track.endBuffer.t];
+    end
+    c = c-mean(track.c(ch,:));
+    t = t-dt;%track.t(1)-dt;
+    plot(ha, t, c+ip.Results.BackgroundConfidence, 'k-');
 end
 
 % legend
