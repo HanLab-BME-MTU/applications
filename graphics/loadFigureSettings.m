@@ -43,7 +43,7 @@ switch mode
         fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
     otherwise
         fset.units = 'normalized';
-        %fset.axPos = [];%get(0, 'DefaultAxesPosition');
+        fset.axPos = get(0, 'DefaultAxesPosition');
         fset.ifont = [fset.fontName, 'FontSize', 10];
         fset.tfont = [fset.fontName, 'FontSize', 12];
         fset.sfont = [fset.fontName, 'FontSize', 12];
