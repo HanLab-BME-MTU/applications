@@ -138,6 +138,8 @@ for iCell = 1:nCell
     cellData(iCell).data.rawEdgeMotion  = cellData(iCell).data.rawTimeSeries.*scaling;
     cellData(iCell).data.procEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
     
+    cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+    
 end
 
 %% Getting Average Velocities and Persistence Time per Cell

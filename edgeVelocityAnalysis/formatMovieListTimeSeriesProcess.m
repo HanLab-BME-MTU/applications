@@ -117,8 +117,7 @@ for iCell = 1:nCell
     end
     
 end
-% Performing windowing exclusion
-%cellData = excludeWindowsFromAnalysis(ML,'excBorder',border,'cellData',cellData);
+
 
 %% Saving results per cell
 if saveOn
