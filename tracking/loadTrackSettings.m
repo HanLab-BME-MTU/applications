@@ -6,11 +6,18 @@ function trackSettings = loadTrackSettings(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addParamValue('Radius', [5 10]);
+ip.addParamValue('Radius', []);
+ip.addParamValue('GapRadius', [5 10]);
+ip.addParamValue('LinkRadius', [5 10]);
 ip.addParamValue('MaxGapLength', 2);
 ip.parse(varargin{:});
-radius = ip.Results.Radius;
 
+gapRadius = ip.Results.GapRadius;
+linkRadius = ip.Results.LinkRadius;
+if ~isempty(ip.Results.Radius)
+    gapRadius = ip.Results.Radius;
+    linkRadius = ip.Results.Radius;
+end
 
 gapCloseParam.timeWindow = ip.Results.MaxGapLength+1;  % maximum allowed time gap (in frames) between a track segment end and a track segment start that allows linking them.
 gapCloseParam.mergeSplit = 1;  % 1 if merging and splitting are to be considered, 2 if only merging is to be considered, 3 if only splitting is to be considered, 0 if no merging or splitting are to be considered.
@@ -21,8 +28,8 @@ gapCloseParam.diagnostics = 0; % 1 to plot a histogram of gap lengths in the end
 % cost matrix for frame-to-frame linking
 costMatrices(1).funcName = 'costMatLinearMotionLink2';
 costMatrices(1).parameters.linearMotion = 0;     % use linear motion Kalman filter.
-costMatrices(1).parameters.minSearchRadius = radius(1); % minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
-costMatrices(1).parameters.maxSearchRadius = radius(2); % maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
+costMatrices(1).parameters.minSearchRadius = linkRadius(1); % minimum allowed search radius. The search radius is calculated on the spot in the code given a feature's motion parameters. If it happens to be smaller than this minimum, it will be increased to the minimum.
+costMatrices(1).parameters.maxSearchRadius = linkRadius(2); % maximum allowed search radius. Again, if a feature's calculated search radius is larger than this maximum, it will be reduced to this maximum.
 costMatrices(1).parameters.brownStdMult = 3;     % multiplication factor to calculate search radius from standard deviation.
 
 costMatrices(1).parameters.useLocalDensity = 1;  % 1 if you want to expand the search radius of isolated features in the linking (initial tracking) step.
@@ -34,8 +41,8 @@ costMatrices(1).parameters.diagnostics = [];     % plot the histogram of linking
 % cost matrix for gap closing
 costMatrices(2).funcName = 'costMatLinearMotionCloseGaps2';
 costMatrices(2).parameters.linearMotion = 0; % 1: linear motion Kalman filter.
-costMatrices(2).parameters.minSearchRadius = radius(1); % minimum allowed search radius.
-costMatrices(2).parameters.maxSearchRadius = radius(2); % maximum allowed search radius.
+costMatrices(2).parameters.minSearchRadius = gapRadius(1); % minimum allowed search radius.
+costMatrices(2).parameters.maxSearchRadius = gapRadius(2); % maximum allowed search radius.
 costMatrices(2).parameters.brownStdMult = 3*ones(gapCloseParam.timeWindow,1); %multiplication factor to calculate Brownian search radius from standard deviation.
 costMatrices(2).parameters.brownScaling = [0.5 0.01];   % power for scaling the Brownian search radius with time, before and after timeReachConfB (next parameter).
 costMatrices(2).parameters.timeReachConfB = gapCloseParam.timeWindow; %in the code, the search radius expands with the time gap (since a particle is expected to move further away in a longer gap than in a shorter one). This parameter controls how fast the search radius grows with time. timeReachConfB stands for time to reach confinement for the Brownian part of the motion. So before timeReachConfB, the search radius grows with the square root of time, after that it grows very, very slowly (it's almost fixed).
