@@ -20,7 +20,7 @@ ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
 ip.addOptional('lb', [1  11 16 21 41 61]);
 ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
-% ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
+ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('Type', 'all', @ischar);
@@ -393,11 +393,11 @@ if any(strcmpi(ip.Results.Display, {'all'}))
 end
 
 
-if strcmpi(ip.Results.Display, 'on')
+if any(strcmpi(ip.Results.Display, {'on','all'}))
     %printPath = [getExpDir(data) 'Figures' filesep];
     %[~,~] = mkdir(printPath);
     plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics,...
-        'DisplayMode', 'print', 'PlotAll', true, 'SlaveNames', slaveNames);
+        'DisplayMode', ip.Results.DisplayMode, 'PlotAll', true, 'SlaveNames', slaveNames);
     %print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
     %if ip.Results.ShowStatistics
     %    print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
