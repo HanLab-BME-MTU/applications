@@ -70,6 +70,7 @@ ip.addParamValue('Parameters', [], @(x) numel(x)==3);
 ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ChannelNames', []);
+ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 data = ip.Results.data;
 
@@ -110,18 +111,18 @@ else
 end
 if isempty(ip.Results.ControlData)
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
-        'Display', display, opts{:}, 'SlaveNames', chNames(2:end));
+        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end));
 else
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
-        'Display', display, opts{:}, 'SlaveNames', chNames(2:end),...
+        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end),...
         'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
 end
 
 % Graphical output
-if ~ip.Results.PlotAll % otherwise this is generated in runLifetimeAnalysis()
-    plotLifetimes(res.lftRes, 'DisplayMode', 'print', 'PlotAll', false,...
+%if ~ip.Results.PlotAll % otherwise this is generated in runLifetimeAnalysis()
+    plotLifetimes(res.lftRes, 'DisplayMode', ip.Results.DisplayMode, 'PlotAll', false,...
         'SlaveNames', chNames(2:end));
-end
+%end
 
 res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold,...
     'ShowBackground', false, 'DisplayMode', 'print', 'ScaleSlaveChannel', false,...
