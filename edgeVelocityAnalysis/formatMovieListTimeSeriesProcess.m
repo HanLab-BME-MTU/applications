@@ -101,6 +101,8 @@ for iCell = 1:nCell
             cellData(iCell).data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
             cellData(iCell).data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
             
+            cellData(iCell).data.procTimeSeries(cellData(iCell).data.includedWin{iLayer},:,iLayer) = [];
+            
         end
         
     else
@@ -108,6 +110,8 @@ for iCell = 1:nCell
         [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(timeSeries,timeSeriesOperations{:});
         cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
         cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
+        
+        cellData(iCell).data.procExcTimeSeries(cellData(iCell).data.excludedWin) = [];
         
     end
     
