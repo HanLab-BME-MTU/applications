@@ -112,7 +112,7 @@ for iCell = 1:nCell
         cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
         
         cellData(iCell).data.procExcTimeSeries           = cellData(iCell).data.procTimeSeries;
-        cellData(iCell).data.procExcTimeSeries(cellData(iCell).data.excludedWin) = [];
+        cellData(iCell).data.procExcTimeSeries(cellData(iCell).data.excludedWin,:) = [];
         
     end
     
