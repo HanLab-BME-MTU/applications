@@ -30,19 +30,20 @@ fset.fontName = {'FontName', 'Helvetica'};
 
 switch mode
     case 'print'
-        fset.units = 'centimeters';
-        fset.axPos = [1.5 1.5 6 3.5];
+        fset.fPos = [10 10 8 5.5]; % centimeters
+        fset.axPos = [1.5/8 1.5/5.5 6/8 3.5/5.5]; %normalized
         fset.ifont = [fset.fontName, 'FontSize', 6];
         fset.tfont = [fset.fontName, 'FontSize', 7];
         fset.sfont = [fset.fontName, 'FontSize', 8];
         fset.lfont = [fset.fontName, 'FontSize', 10];
         fset.TickLength = [0.015 0.025];
+        fset.fOpts = {'Units', 'centimeters', 'Position', fset.fPos,...
+            'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off', 'Units', 'normalized'};
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont, 'TickLength', fset.TickLength];
-        fset.fOpts = {'Units', fset.units, 'Position', [10 10 sum(fset.axPos([1 3]))+0.5 sum(fset.axPos([2 4]))+0.5],...
-            'PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off'};
-        fset.axOpts = [fset.axOpts 'Units', fset.units, 'Position', fset.axPos];
+        fset.axOpts = [fset.axOpts 'Units', 'normalized', 'Position', fset.axPos];
     otherwise
         fset.units = 'normalized';
+        fset.fPos = get(0, 'DefaultFigurePosition');
         fset.axPos = get(0, 'DefaultAxesPosition');
         fset.ifont = [fset.fontName, 'FontSize', 10];
         fset.tfont = [fset.fontName, 'FontSize', 12];
@@ -52,7 +53,6 @@ switch mode
         fset.axOpts = ['Layer', 'top', 'TickDir', 'out', 'LineWidth', 1, fset.sfont];
         fset.fOpts = {'Position', get(0, 'DefaultFigurePosition'), 'Color', 'w'};
 end
-
 
 
 ce = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
