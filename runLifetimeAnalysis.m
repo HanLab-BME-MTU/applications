@@ -272,7 +272,7 @@ for i = 1:nd
     px = data(i).pixelSize / data(i).M; % pixels size in object space
     mpath = [data(i).source 'Detection' filesep 'cellmask.tif'];
     mask = logical(imread(mpath));
-    lftRes.cellArea(i) = sum(mask(:)) * px^2 / 1e-12; % in µm^2
+    lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
     
     % birth/death statistics
     startsPerFrameAll = hist(lftData(i).start_all, 1:data(i).movieLength);
@@ -283,13 +283,13 @@ for i = 1:nd
     startsPerFrameCCP = startsPerFrameCCP(6:end-2);
     
     % in µm^-2 min^-1
-    dnorm = data(i).framerate*60/lftRes.cellArea(i);
-    lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]/dnorm;
-    lftRes.initDensityIa(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]/dnorm;
-    lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]/dnorm;
-    %lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]/dnorm;
-    %ftRes.initDensityIa(i,:) = [mean(startsPerFrameIa); std(startsPerFrameIa)]/dnorm;
-    %lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]/dnorm;
+    dnorm = 60/data(i).framerate/lftRes.cellArea(i);
+    lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]*dnorm;
+    lftRes.initDensityIa(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]*dnorm;
+    lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
+    %lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]*dnorm;
+    %ftRes.initDensityIa(i,:) = [mean(startsPerFrameIa); std(startsPerFrameIa)]*dnorm;
+    %lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]*dnorm;
 end
 %====================
 % Initiation density
