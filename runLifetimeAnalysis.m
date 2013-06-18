@@ -287,26 +287,31 @@ for i = 1:nd
     lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]*dnorm;
     lftRes.initDensityIa(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]*dnorm;
     lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
-    %lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]*dnorm;
-    %ftRes.initDensityIa(i,:) = [mean(startsPerFrameIa); std(startsPerFrameIa)]*dnorm;
-    %lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]*dnorm;
 end
 %====================
 % Initiation density
 %====================
-fset = loadFigureSettings('');
-figure(fset.fOpts{:}, 'Name', 'Initiation density');
-axes(fset.axOpts{:});
-hold on;
-h = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
-    [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
-    'XTickLabel', arrayfun(@(i) getCellDir(i), data, 'unif', 0), 'Interpreter', 'none',...
-    'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2]);
-ylabel(['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
-hl = legend(h, 'All tracks', 'Valid tracks');
-set(hl, fset.tfont{:});
-fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
-fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+if any(strcmpi(ip.Results.Display, {'on','all'}))
+    ha = setupFigure(1,2, 'DisplayMode', 'screen', 'SameAxes', false);
+    fset = loadFigureSettings('');
+    %figure(fset.fOpts{:}, 'Name', 'Initiation density');
+    XTickLabel = arrayfun(@(i) getCellDir(i), data, 'unif', 0);
+    barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
+        [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
+        'XTickLabel', XTickLabel, 'Interpreter', 'none',...
+        'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2], 'Handle', ha(1), 'AdjustFigure', false);
+    ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
+    hl = legend(ha(1), 'All tracks', 'Valid tracks');
+    set(hl, fset.tfont{:});
+    plot(ha(2), lftRes.cellArea, 'k.');
+    ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
+    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel);
+    rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+    formatTickLabels(ha);
+    
+    fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
+    fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+end
 
 % Mean distributions
 lftRes.meanLftHistCCP = nanmean(lftRes.lftHistCCP,1);
