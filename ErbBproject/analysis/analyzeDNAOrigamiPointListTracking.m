@@ -141,6 +141,6 @@ probDim = 2;
     
     % save results
     d = cd()
-    save([d filesep name],'features','tracksFinal','GapLen','Radius');
+    save([d filesep name],'list','tracksFinal','GapLen','Radius');
         
 end
