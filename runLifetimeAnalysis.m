@@ -303,7 +303,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
     hl = legend(ha(1), 'All tracks', 'Valid tracks');
     set(hl, fset.tfont{:});
-    plot(ha(2), lftRes.cellArea, 'k.');
+    plot(ha(2), lftRes.cellArea, 'k.', 'MarkerSize', 10);
     ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
     set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel);
     rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
