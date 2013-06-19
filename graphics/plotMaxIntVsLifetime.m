@@ -8,6 +8,7 @@ ip.addOptional('ub', [10 15 20 40 60 120]);
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
 ip.addParamValue('ExcludeVisitors', false, @islogical);
 ip.addParamValue('Cutoff_f', 5, @isscalar);
+ip.addParamValue('FirstNFrames', [], @isposint);
 ip.parse(data, varargin{:});
 
 opts = {'Scale', true, 'ReturnValidOnly', true, 'Cutoff_f', ip.Results.Cutoff_f,...
@@ -18,13 +19,17 @@ lvec = 0:1:120;
 avec = 0:2:300;
 
 fset = loadFigureSettings('print');
-maxACtrl = vertcat(lftData.maxA);
-lftCtrl = vertcat(lftData.lifetime_s);
+A = vertcat(lftData.A);
+if ~isempty(ip.Results.FirstNFrames)
+    A = A(:,1:ip.Results.FirstNFrames);
+end
+maxA = max(A,[],2);
+lft = vertcat(lftData.lifetime_s);
 
 figure(fset.fOpts{:}, 'Position', [10 10 6.5 6.5]);
 axes(fset.axOpts{:}, 'Position', [1.5 1.5 4.5 4.5], 'TickLength', fset.TickLength/4.5*6);
 hold on;
-densityplot(lftCtrl, maxACtrl, lvec, avec, 'DisplayFunction', @log);
+densityplot(lft, maxA, lvec, avec, 'DisplayFunction', @log);
 ylabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
 xlabel('Lifetime (s)', fset.lfont{:});
 set(gca, 'XTick', 0:20:120);
