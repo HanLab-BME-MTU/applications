@@ -39,6 +39,7 @@ forceFieldProc = movieData.processes_{iProc};
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.gelThickness = 34000; % (nm) this needs to be replaced by GUI input
 p.highRes = true;
+p.usePaxImg = true;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows'),
     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -179,17 +180,29 @@ for i=1:nFrames
 %                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
 %                 % considering units
 %                 displField.vec = displField.vec*((movieData.pixelSize_/1000)^2); %this is temporary remedy.
-                [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-                reg_FastBEM_TFM(grid_mat, displField, i, ...
-                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
-            display('The total time for calculating the FastBEM solution: ')
+                if p.usePaxImg && length(movieData.channels_)>1
+                    paxImage=movieData.channels_(2).loadImage(i);
+                %             paxImageCropped = paxImage.*firstMask; %this mihgt not be needed
+
+                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                        reg_FastBEM_TFM(grid_mat, displField, i, ...
+                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                        'thickness',p.gelThickness/movieData.pixelSize_,'paxImg',paxImage);
+                else
+                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                        reg_FastBEM_TFM(grid_mat, displField, i, ...
+                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
+%             display('The total time for calculating the FastBEM solution: ')
             
             % The following values should/could be stored for the BEM-method.
             % In most cases, except the sol_coef this has to be stored only
             % once for all frames!
-            save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+%             disp(['saving forward map and force mesh at ' outputFile{2} '...'])
+%             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
             
 %             % Calculate L-curve
 %             if ~strcmp(p.solMethodBEM,'QR')
@@ -198,17 +211,24 @@ for i=1:nFrames
 %                 saveas(hLcurve,outputFile{3});
 %                 close(hLcurve)
 %             end
-            
+                end
         else
             % since the displ field has been prepared such
             % that the measurements in different frames are ordered in the
             % same way, we don't need the position information any
             % more. The displ. measurements are enough.
             display('5.) Re-evaluate the solution:... ')
-            % pull the new u-vector:
-            u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+%             % pull the new u-vector:
+%             u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
             % recalculate the solution for the new displacement vec:
-            [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,p.regParam,[],[]);
+            if p.usePaxImg && length(movieData.channels_)>1
+                paxImage=movieData.channels_(2).loadImage(i);
+                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], paxImage);
+            else
+                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[]);
+            end
             display(['Done: solution for frame: ',num2str(i)]);
         end
     else

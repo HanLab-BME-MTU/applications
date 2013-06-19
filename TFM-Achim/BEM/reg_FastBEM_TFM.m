@@ -16,6 +16,7 @@ ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('paxImg',[],@ismatrix);
 ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -24,7 +25,7 @@ wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 thickness = ip.Results.thickness;    
-
+paxImage = ip.Results.paxImg;
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
     % that will be centered in the field of view. Here, only the first
@@ -46,7 +47,11 @@ display('1.) Creating mesh & basis [~5sec]:...');
 tic;
 keepBDPts=false;
 doPlot=0;
-forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
+if isempty(paxImage)
+    forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
+else
+    forceMesh=createMeshAndBasisFromAdhesions(xvec,yvec,paxImage);
+end
 toc;
 display('Done: mesh & basis!');
 
@@ -54,7 +59,7 @@ display('Done: mesh & basis!');
     BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
     displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
     [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
-    'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);
+    'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'paxImg',paxImage);
 % The units of fx and fy are the same as the input E, that is ususally Pa!
 
 pos_f=horzcat(x_out,y_out);

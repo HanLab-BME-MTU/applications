@@ -153,7 +153,9 @@ for j=1:myMesh.numNodes
         basis(baseNo).numNeigh   = length(myMesh.neigh(j).cand);
         basis(baseNo).area       =  basisClass(basis(baseNo).class).area;
         basis(baseNo).unitVolume =  basisClass(basis(baseNo).class).unitVolume;  
+        myMesh.nodeIDtoBaseNo(j) = baseNo;
     else
+        myMesh.nodeIDtoBaseNo(j) = NaN;
         zeroNodes = vertcat(zeroNodes,myMesh.p(j,:));
     end
 end

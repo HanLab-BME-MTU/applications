@@ -151,6 +151,7 @@ for ii=1:nFrames
     if ii==1
         set(h1, 'Position', [100 100 imSizeX*1.25 imSizeY])
     end
+    subplot(1,1,1)
     subplot('Position',[0 0 0.8 1])
 %     hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
 %     colormap jet;
@@ -196,7 +197,6 @@ for ii=1:nFrames
     end
 %         xlim([LeftUpperCorner(1) RightLowerCorner(1)])
 %         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
-    axis tight
     % pick a point
     if pointTF && ii==1
         point = ginput(1);
@@ -217,10 +217,10 @@ for ii=1:nFrames
     subplot('Position',[0.8 0.1 0.1 0.8])
     axis tight
     caxis([tmin tmax]), axis off
-    if isempty(hc)
-        hc = colorbar('West');
-        set(hc,'Fontsize',18)
-    end
+%     if isempty(hc)
+    hc = colorbar('West');
+    set(hc,'Fontsize',18)
+%     end
 
     if length(movieData.channels_)>1
         paxImage=movieData.channels_(2).loadImage(ii);

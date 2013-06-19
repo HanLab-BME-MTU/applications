@@ -36,6 +36,7 @@ ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
 ip.addOptional('fwdMap',[],@isnumeric);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('paxImg',[],@ismatrix);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -45,6 +46,7 @@ imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 M = ip.Results.fwdMap;
 thickness = ip.Results.thickness;    
+paxImage = ip.Results.paxImg;
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -61,6 +63,8 @@ if cols>1
 else
     x_vec=x;
     y_vec=y;
+    ux_vec=ux;
+    uy_vec=uy;
     u=vertcat(ux,uy);
 end
 pos_u=horzcat(x_vec,y_vec);
@@ -151,14 +155,24 @@ if nargin >= 10 && strcmp(method,'fast')
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
         [eyeWeights,~] =getGramMatrix(forceMesh);
+        % make matrix with paxImage at the basis nodes
         MpM=M'*M;
 %         [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
+        if ~isempty(paxImage)
+
+            paxWeights = getPaxWeights(forceMesh,paxImage,x_vec,y_vec,ux_vec,uy_vec);
+            [Q,R] = qr((MpM+L*eyeWeights.*paxWeights));
+            sol_coef=R\(Q'*(M'*u));
+            sol_mats.eyeWeights=eyeWeights;
+            sol_mats.L=L;
+        else
+            [Q,R] = qr((MpM+L*eyeWeights));
+            sol_coef=R\(Q'*(M'*u));
+            sol_mats.Q=Q;
+            sol_mats.R=R;
+            sol_mats.L=L;
+        end            
         
-        [Q,R] = qr((MpM+L*eyeWeights));
-        sol_coef=R\(Q'*(M'*u));
-        sol_mats.Q=Q;
-        sol_mats.R=R;
-        sol_mats.L=L;
 %         sol_mats.eyeWeights=eyeWeights;        
         sol_mats.tool='QR';
     elseif strcmpi(solMethodBEM,'QRscaled')
@@ -201,7 +215,7 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
         MpM=M'*M;
-        maxIter = 100;
+        maxIter = 10;
         tolx = 2e-2;
         tolr = 1e-7;
 %         disp('L-curve ...')
@@ -225,7 +239,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % plot the solution for the corner
         MpM=M'*M;
 
-        maxIter = 100;
+        maxIter = 10;
         tolx = 2e-2;
         tolr = 1e-7;
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
@@ -243,8 +257,8 @@ if nargin >= 10 && strcmp(method,'fast')
         % store it for later use:
         [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
-%         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,'backslash');
-        sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+        [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
+%         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         % store these matrices for next frames:
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;
@@ -387,18 +401,19 @@ toc
 
 function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(-11.5:.125:-5);
+alphas=10.^(-9:.125:-4.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
 for i=1:length(alphas);
-  mtik(:,i)=(MpM+alphas(i)^2*eyeWeights)\(M'*u);
+  mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
   rho(i)=norm(M*mtik(:,i)-u);
   eta(i)=norm(mtik(:,i),1);
 end
 
 % Find the corner of the Tikhonov L-curve
-[reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
@@ -418,6 +433,7 @@ set(H,'Fontsize',7);
 disp('Printing L-curve...')
 % print -deps2 nameSave
 print(hLcurve,'Lcurve.eps','-depsc')
+save(['LcurveParameters.mat'],'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
 sol_coef = mtik(:,ireg_corner);
 

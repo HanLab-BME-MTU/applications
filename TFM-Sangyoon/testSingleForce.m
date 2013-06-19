@@ -1,4 +1,11 @@
-function [meanDispError,meanForceError,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av)
+function [meanDispError,dispDetec,meanForceError,peakForceRatio,forceDetec,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
+% Input check
+ip = inputParser;
+ip.CaseSensitive = false;
+ip.addOptional('solMethodBEM','LaplacianReg', @ischar);
+ip.parse(varargin{:});
+solMethodBEM = ip.Results.solMethodBEM;    
+
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
@@ -16,18 +23,27 @@ end
 %% reference image (300x200)
 xmax=200;
 ymax=300;
-nPoints = 2000;
-bead_r = 100; % nm
-pixSize = 108; % nm/pix 60x
-sigma = 2*bead_r/pixSize;
-if nargin ==7
+
+nPoints = 7000;
+% bead_r = 40; % nm
+% pixSize = 72e-9; % nm/pix 90x
+% NA = 1.49; %TIRF
+% lambda = 665e-9;
+% M = 1; %1 because I use alreay magnified pixSize.
+sigma = 1.68; % after getGaussianPSFsigma(NA,M,pixSize,lambda);
+if ~isempty(bead_x)
+%     refimg = simGaussianSpots(xmax,ymax,sigma, ...
+%         'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
     refimg = simGaussianBeads(xmax,ymax, sigma, ...
         'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
-elseif nargin<5
+else
+%     [refimg,bead_x, bead_y, ~, Av] = simGaussianSpots(xmax,ymax, sigma, ...
+%         'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
     [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
-        'npoints', nPoints, 'Border', 'truncated');
+        'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
 end
-
+%% Noise addition (5%)
+refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
 E=8000;  %Young's modulus, unit: Pa
 meshPtsFwdSol=2^10;
@@ -71,10 +87,14 @@ for k=1:nPoints
     end
 end
 
+% beadimg = simGaussianSpots(xmax,ymax, sigma, ...
+%     'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av,'Border', 'truncated');
 beadimg = simGaussianBeads(xmax,ymax, sigma, ...
     'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av,'Border', 'truncated');
 % figure, imshow(refimg,[])
 % figure, imshow(beadimg,[])
+%% Noise addition (5%)
+beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
 
 %% original force for comparison
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(100),150,0,f,d,d,forceType);
@@ -110,7 +130,7 @@ MD.numAperture_=1.49;
 MD.pixelSize_=108;
 MD.camBitdepth_=16;
 MD.timeInterval_ = 5;
-MD.notes_='Created for single force test purposes'; 
+MD.notes_=['Created for single force test purposes with f=' num2str(f) ' and d=' num2str(d)]; 
 
 % Run sanityCheck on MovieData. 
 % Check image size and number of frames are consistent. 
@@ -153,7 +173,7 @@ params = MD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 8000;
 params.regParam = 1e-6;
-params.solMethodBEM = 'QR';
+params.solMethodBEM = solMethodBEM;
 params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
@@ -163,6 +183,7 @@ MD.save;
 %% Postprocessing - saving and analyzing force field
 % Loading displacement field and force field
 % Load the displField
+disp('Calculating displacement errors and force errors...')
 displField=MD.getPackage(iPack).getProcess(3).loadChannelOutput;
 % finding displacement at bead location
 org_ux = zeros(size(displField(1).pos(:,1)));
@@ -188,9 +209,28 @@ for k=1:nmPoints
         org_uy(k) = uy(indrow_closest_y,indcol_closest_x);
     end
 end
-% errors in displacementfield
+%% errors in displacementfield
 displField.vec(isnan(displField.vec(:,1)),:) = 0;
-meanDispError= nansum(((org_ux-displField(1).vec(:,1)).^2+(org_uy-displField(1).vec(:,2)).^2).^.5); %is there a way to normalize this? by the number of beads?
+meanDispError= nansum(((org_ux-displField(1).vec(:,1)).^2+(org_uy-displField(1).vec(:,2)).^2).^.5)/(length(displField(1).vec(:,2))); %normalized by the number of beads
+% detectability (u at force application / u at background)
+maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=d/2*2;
+dispDetecIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
+if isempty(dispDetecIdx)
+    dispDetec = 0;
+else
+    displFieldForce = displField(1).vec(dispDetecIdx,:);
+    displFieldMag = (displFieldForce(:,1).^2+displFieldForce(:,2).^2).^0.5;
+    backgroundIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),~bwmorph(maskForce,'dilate',floor(d/2)));
+    displFieldBgd = displField(1).vec(backgroundIdx,:);
+    displFieldBgdMag = (displFieldBgd(:,1).^2+displFieldBgd(:,2).^2).^0.5;
+    if isempty(displFieldMag)
+        dispDetec = 0;
+    else
+        % sort and take top 10% mags
+        displFieldBgdMagsorted = sort(displFieldBgdMag);
+        dispDetec = mean(displFieldMag)/mean(displFieldBgdMagsorted(1:floor(0.1*length(displFieldBgdMagsorted))));%1:10));%f
+    end
+end
 
 % Load the forcefield
 forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
@@ -224,8 +264,39 @@ end
 meanForceError=nansum(((org_fx-forceField(1).vec(:,1)).^2+(org_fy-forceField(1).vec(:,2)).^2).^.5);
 % heatmap creation and saving - i'll do it later
 
-% 
+% force peak ratio
+maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=d/2;
+% forceForceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
+% make  a an interpolated TF image and get the peak force because force
+% mesh is sparse
+[fMap,XI,YI]=generateHeatmapFromField(forceField);
+%new mask with XI and YI
+maskForceXIYI = ((XI-100).^2+(YI-150).^2)<=d/2;
 
+% if isempty(forceForceIdx)
+%     peakForceRatio = 0;
+% else
+    x_vec = reshape(x_mat_u,[],1);
+    y_vec = reshape(y_mat_u,[],1);
+    force_x_vec = reshape(force_x,[],1);
+    force_y_vec = reshape(force_y,[],1);
+%     forceFieldForce = forceField(1).vec(forceForceIdx,:);
+%     forceFieldMag = (forceFieldForce(:,1).^2+forceFieldForce(:,2).^2).^0.5;
+    fMapFiltered = fMap.*maskForceXIYI;
+    forceFieldMag = fMapFiltered(fMapFiltered>0);
+    orgFieldForceIdx = maskVectors(x_vec,y_vec,maskForce);
+    orgFieldForceMag = (force_x_vec(orgFieldForceIdx).^2+force_y_vec(orgFieldForceIdx).^2).^0.5;
+    
+    backgroundIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),~bwmorph(maskForce,'dilate',10));
+    forceFieldBgd = forceField(1).vec(backgroundIdx,:);
+    forceFieldBgdMag = (forceFieldBgd(:,1).^2+forceFieldBgd(:,2).^2).^0.5;
+    if isempty(forceFieldMag)
+        peakForceRatio = 0;
+        forceDetec = 0;
+    else
+        peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
+        forceDetec = mean(forceFieldMag)/max(forceFieldBgdMag);
+    end
 return
 
 %% input parameters to be replaced with function inputs

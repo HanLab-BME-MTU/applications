@@ -1,5 +1,11 @@
-function [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh,L,x_out,y_out)
+function [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,x,y,ux,uy,forceMesh,L,x_out,y_out,paxImage)
 
+% ip =inputParser;
+% ip.addParamValue('paxImg',[],@ismatrix);
+% paxImage = ip.Results.paxImg;
+if nargin <11
+    paxImage =[];
+end
 % If M has size mxn then u is a column vector of length m. u is the 
 % displacement data on the mesh, that has been used to determine the
 % forward map M.
@@ -9,6 +15,22 @@ function [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,u,forceMesh
 if nargin<6 || isempty(x_out)
     x_out=forceMesh.p(:,1);
     y_out=forceMesh.p(:,2);
+end
+
+[~, cols]=size(x_out);
+
+if cols>1
+    x_vec=reshape(x,[],1);
+    y_vec=reshape(y,[],1);
+    ux_vec=reshape(ux,[],1);
+    uy_vec=reshape(uy,[],1);
+    u=vertcat(ux_vec,uy_vec);
+else
+    x_vec=x;
+    y_vec=y;
+    ux_vec=ux;
+    uy_vec=uy;
+    u=vertcat(ux_vec,uy_vec);
 end
 
 % See BEM_force_reconstruction for a nice explanation of the next
@@ -27,15 +49,23 @@ elseif strcmp(sol_mats.tool,'gsvd')
 elseif strcmp(sol_mats.tool,'QR')
 %     [normWeights]=getNormWeights(forceMesh);
 %     eyeWeights = sol_mats.eyeWeights;
-    sol_nW=sol_mats.nW;
     sol_L =sol_mats.L;
     % check that regularization parameter and weights have not changed
     % (since Q,R have been calculated for a certain set of reg. par. and
     % weights!). But this should always be the case:
     if sol_L==L %&& sum(sol_nW~=normWeights)==0
-        Q=sol_mats.Q;
-        R=sol_mats.R;
-        sol_coef=R\(Q'*(M'*u));
+        eyeWeights = sol_mats.eyeWeights;
+        L = sol_mats.L;
+        MpM = M'*M;
+        if ~isempty(paxImage)
+            paxWeights = getPaxWeights(forceMesh,paxImage,x_vec,y_vec,ux_vec,uy_vec);
+            [Q,R] = qr((MpM+L*eyeWeights.*paxWeights));
+            sol_coef=R\(Q'*(M'*u));
+        else
+            Q=sol_mats.Q;
+            R=sol_mats.R;
+            sol_coef=R\(Q'*(M'*u));
+        end            
     else
         error('Weights or regularization parameter have been changed. QR cannot be reused!')
     end

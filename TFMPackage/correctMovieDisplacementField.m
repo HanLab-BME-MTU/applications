@@ -80,8 +80,8 @@ logMsg = 'Please wait, detecting and filtering vector field outliers';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
-%Parse input, store in parameter structure
-pd = parseProcessParams(displFieldCalcProc,paramsIn);
+% %Parse input, store in parameter structure
+% pd = parseProcessParams(displFieldCalcProc,paramsIn);
 
 % Perform vector field outlier detection
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
@@ -100,17 +100,22 @@ for j= 1:nFrames
         dispMat(outlierIndex,:)=[];
         % Filter out NaN from the initial data (but keep the index for the
         % outliers)
-        ind=find(~isnan(dispMat(:,3)));
+        ind= ~isnan(dispMat(:,3));
         dispMat=dispMat(ind,:);
-        
-        % Filling all NaNs with interpolated displacement vectors -
-        % We also calculate the interpolated displacements with a bigger correlation length.
-        % They are considered smoothed displacements at the data points. Sangyoon
-        dispMat = [dispMat(:,2:-1:1) dispMat(:,2:-1:1)+dispMat(:,4:-1:3)];
-        intDisp = vectorFieldSparseInterp(dispMat,...
-            displField(j).pos(:,2:-1:1),...
-            pd.minCorLength,pd.minCorLength,[],true);
-        displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
+ 
+        displField(j).pos=dispMat(:,1:2);
+        displField(j).vec=dispMat(:,3:4);
+
+        % I deleted this part because artificially interpolated vector can
+        % cause more error or false force. - Sangyoon June 2013
+%         % Filling all NaNs with interpolated displacement vectors -
+%         % We also calculate the interpolated displacements with a bigger correlation length.
+%         % They are considered smoothed displacements at the data points. Sangyoon
+%         dispMat = [dispMat(:,2:-1:1) dispMat(:,2:-1:1)+dispMat(:,4:-1:3)];
+%         intDisp = vectorFieldSparseInterp(dispMat,...
+%             displField(j).pos(:,2:-1:1),...
+%             pd.minCorLength,pd.minCorLength,[],true);
+%         displField(j).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
     end
     
     % Update the waitbar
