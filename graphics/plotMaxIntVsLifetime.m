@@ -7,7 +7,8 @@
 %    
 %      'ExcludeVisitors' : true|{false}
 %             'Cutoff_f' : Minimum track length, in frames
-%         'FirstNFrames' : calculates max. intensity for the first N frames
+%         'FirstNFrames' : Calculates maximum intensity over the first N frames only.
+%                          If this is a vector, plots for the individual values are generated.
 
 % Francois Aguet, 2011 (last modified 06/20/2013)
 
