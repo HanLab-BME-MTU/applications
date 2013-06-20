@@ -303,14 +303,60 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
     hl = legend(ha(1), 'All tracks', 'Valid tracks');
     set(hl, fset.tfont{:});
+    
     plot(ha(2), lftRes.cellArea, 'k.', 'MarkerSize', 10);
     ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
-    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel);
+    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
     rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     formatTickLabels(ha);
     
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+
+    ha = setupFigure(1,1, 'DisplayMode', 'screen');
+    plot(lftRes.nSamples_Ia, 'k.', 'MarkerSize', 10);
+    ylabel('# valid tracks', fset.lfont{:});
+    set(ha, 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    rotateXTickLabels(ha, 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+    formatTickLabels();
+    fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
+    
+    % plot cumulative lifetime distributions
+    t = lftRes.t;
+    med = zeros(nd,1);
+    cvec = hsv(nd);
+    
+    ha = setupFigure(1,2, 'DisplayMode', 'screen', 'SameAxes', true);
+    hp = zeros(nd,1);
+    
+    % all structures
+    edf = cumsum(lftRes.lftHist_Ia,2);
+    % plot(ha(1), [0 200], 0.75*[1 1], 'k--');
+    for k = 1:nd
+        hp(k) = plot(ha(1), lftRes.t, edf(k,:), 'Color', cvec(k,:));
+        [~,idx] = unique(edf(k,:));
+        med(k) = interp1(edf(k,idx), t(idx), 0.75);
+    end
+    [~,idx] = sort(med);
+    hl = legend(hp(idx), XTickLabel(idx), 'Interpreter', 'none', 'Location', 'SouthEast');
+    set(hl, 'Box', 'off');
+    
+    % CCPs
+    edf = cumsum(lftRes.lftHistCCP,2);
+    for k = 1:nd
+        hp(k) = plot(ha(2), lftRes.t, edf(k,:), 'Color', cvec(k,:));
+        [~,idx] = unique(edf(k,:));
+        med(k) = interp1(edf(k,idx), t(idx), 0.75);
+    end
+    [~,idx] = sort(med);
+    hl = legend(hp(idx), XTickLabel(idx), 'Interpreter', 'none', 'Location', 'SouthEast');
+    set(hl, 'Box', 'off');
+    
+    axis(ha, [0 200 0 1]);
+    formatTickLabels(ha);
+    ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
+    xlabel(ha(1), 'Lifetime (s)', fset.lfont{:});
+    xlabel(ha(2), 'Lifetime (s)', fset.lfont{:});
 end
 
 % Mean distributions
