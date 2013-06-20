@@ -1,12 +1,13 @@
-function  savingMovieResultsPerCell(ML,results,analysis)
+function  savingMovieResultsPerCell(ML,results,analysis,fileName)
 %Saving edge velocity analysis for each cell in the MovieList
 %
 %USAGE:
-%       savingMovieResultsPerCell(ML,results,analysis)
+%       savingMovieResultsPerCell(ML,results,analysis,fileName)
 %Input:
 %       ML       - movieList object
 %       results  - strucutre array resulting from analysis: EdgeVelocityQuantification, sampledSignalQuantification or AssociationEstimation
 %       analysis - string with analysis type: edgeVelocity, sampledSignal or Associations
+%       fileName - guess!
 %
 %Marco Vilela, 2013
 
@@ -22,10 +23,10 @@ for iCell = 1:nCell
     end
     
     analysisResults = results(iCell);
-    filePath        = [edgePath filesep analysis '.mat'];
+    filePath        = [edgePath filesep fileName '.mat'];
     
     if exist(filePath,'file')
-        copyfile(filePath,[edgePath filesep analysis '.old'])
+        copyfile(filePath,[edgePath filesep fileName '.old'])
     end
     
     save(filePath,'analysisResults');

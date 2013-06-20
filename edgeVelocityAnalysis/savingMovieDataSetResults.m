@@ -1,4 +1,4 @@
-function  savingMovieDataSetResults(ML,results,analysis)
+function  savingMovieDataSetResults(ML,results,analysis,fileName)
 %Saving edge velocity analysis for each cell in the MovieList
 
 
@@ -7,10 +7,10 @@ if ~isdir(dataSetPath)
     mkdir(dataSetPath)
 end
 
-filePath = [dataSetPath filesep analysis '.mat'];
+filePath = [dataSetPath filesep fileName '.mat'];
 
 if exist(filePath,'file')
-    copyfile(filePath,[dataSetPath filesep analysis '.old'])
+    copyfile(filePath,[dataSetPath filesep fileName '.old'])
 end
 save(filePath,'results');
         
