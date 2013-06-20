@@ -99,14 +99,16 @@ ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trendType',   -1,@isscalar);
 ip.addParamValue('minLength',  10,@isscalar);
 ip.addParamValue('scale',false,@islogical);
+ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
 
 ip.parse(movieObj,varargin{:});
-nBoot    = ip.Results.nBoot;
-alpha    = ip.Results.alpha;
-cluster  = ip.Results.cluster;
-nCluster = ip.Results.nCluster;
-interval = ip.Results.interval;
-scale    = ip.Results.scale;
+nBoot      = ip.Results.nBoot;
+alpha      = ip.Results.alpha;
+cluster    = ip.Results.cluster;
+nCluster   = ip.Results.nCluster;
+interval   = ip.Results.interval;
+scale      = ip.Results.scale;
+outputPath = ip.Results.scale;
 
 includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
@@ -166,8 +168,8 @@ end
 
 %% Saving results
 
-savingMovieResultsPerCell(ML,cellData,'edgeVelocityQuantification')
-savingMovieDataSetResults(ML,dataSet,'EdgeVelocityQuantification')
+savingMovieResultsPerCell(ML,cellData,outputPath)
+savingMovieDataSetResults(ML,dataSet,outputPath)
 
 end%End of main function
 
