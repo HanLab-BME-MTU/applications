@@ -108,7 +108,7 @@ cluster    = ip.Results.cluster;
 nCluster   = ip.Results.nCluster;
 interval   = ip.Results.interval;
 scale      = ip.Results.scale;
-outputPath = ip.Results.scale;
+outputPath = ip.Results.outputPath;
 
 includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
