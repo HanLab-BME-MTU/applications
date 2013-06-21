@@ -312,7 +312,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-
+    
     ha = setupFigure(1,1, 'DisplayMode', 'screen');
     plot(lftRes.nSamples_Ia, 'k.', 'MarkerSize', 10);
     ylabel('# valid tracks', fset.lfont{:});
@@ -320,6 +320,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     rotateXTickLabels(ha, 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     formatTickLabels();
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
+    
     
     % plot cumulative lifetime distributions
     t = lftRes.t;
@@ -357,6 +358,8 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
     xlabel(ha(1), 'Lifetime (s)', fset.lfont{:});
     xlabel(ha(2), 'Lifetime (s)', fset.lfont{:});
+    title(ha(1), 'All valid trajectories', fset.lfont{:});
+    title(ha(2), 'CCPs', fset.lfont{:});
 end
 
 % Mean distributions
