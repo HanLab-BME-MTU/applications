@@ -137,10 +137,11 @@ for iCell = 1:nCell
         
     end
     
-    cellData(iCell).data.pixelSize      = currMD.pixelSize_;
-    cellData(iCell).data.frameRate      = currMD.timeInterval_;
-    cellData(iCell).data.rawEdgeMotion  = cellData(iCell).data.rawTimeSeries.*scaling;
-    cellData(iCell).data.procEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
+    cellData(iCell).data.pixelSize         = currMD.pixelSize_;
+    cellData(iCell).data.frameRate         = currMD.timeInterval_;
+    cellData(iCell).data.rawEdgeMotion     = cellData(iCell).data.rawTimeSeries.*scaling;
+    cellData(iCell).data.procEdgeMotion    = cellData(iCell).data.procTimeSeries.*scaling;
+    cellData(iCell).data.procExcEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
     
     cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
     
@@ -152,7 +153,7 @@ commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster
 if isempty(interval{1})
     
     [protrusionA,retractionA] ...
-        = arrayfun(@(x) commonGround(x.data.procEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+        = arrayfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
     protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
     retraction = cellfun(@(x) {x},retractionA,'Unif',0);
     
@@ -162,7 +163,7 @@ else
     secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
     [protrusion,retraction] ...
-        = arrayfun(@(x) secondLevel(interval,x.data.procEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+        = arrayfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
     
 end
 

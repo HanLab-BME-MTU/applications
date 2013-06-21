@@ -111,17 +111,17 @@ ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trendType',   -1,@isscalar);
 ip.addParamValue('minLength',  10,@isscalar);
 
+ip.addParamValue('outputPath','sampledSignalQuantification',@isstr);
+ip.addParamValue('fileName','sampledSignal',@isstr);
 
 ip.parse(movieObj,channel,varargin{:});
-nBoot    = ip.Results.nBoot;
-alpha    = ip.Results.alpha;
-interval = ip.Results.interval;
-
 
 includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
 trend      = ip.Results.trendType;
+outputPath = ip.Results.outputPath;
+fileName   = ip.Results.fileName;
 
 %% Formatting Time Series
 operations = {'channel',channel,'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend};
@@ -130,21 +130,22 @@ cellData   = formatMovieListTimeSeriesProcess(ML,'WindowSamplingProcess',operati
 
 for iCell = 1:nCell
     
-    currMD                          = ML.movies_{iCell};
-    cellData(iCell).data.pixelSize  = currMD.pixelSize_;
-    cellData(iCell).data.frameRate  = currMD.timeInterval_;
-    cellData(iCell).data.rawSignal  = cellData(iCell).data.rawTimeSeries;
-    cellData(iCell).data.procSignal = cellData(iCell).data.procTimeSeries;
-    cellData(iCell).data            = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries'});
+    currMD                             = ML.movies_{iCell};
+    cellData(iCell).data.pixelSize     = currMD.pixelSize_;
+    cellData(iCell).data.frameRate     = currMD.timeInterval_;
+    cellData(iCell).data.rawSignal     = cellData(iCell).data.rawTimeSeries;
+    cellData(iCell).data.procSignal    = cellData(iCell).data.procTimeSeries;
+    cellData(iCell).data.procExcSignal = cellData(iCell).data.procExcTimeSeries;
+    cellData(iCell).data               = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
     
     [nWin,~,nLayer] = size(cellData(iCell).data.procSignal);
     for iLayer = 1:nLayer
         
         windows = cellData(iCell).data.includedWin{iLayer};
-        signal  = squeeze( cellData(iCell).data.procSignal(:,:,iLayer) );
+        signal  = cellData(iCell).data.procExcSignal{iLayer};
         
         cellData(iCell).intensityOverTime(iLayer,:)       = nan(1,nWin);
-        cellData(iCell).intensityOverTime(iLayer,windows) = nanmean( signal(windows,:),2 );
+        cellData(iCell).intensityOverTime(iLayer,windows) = nanmean( signal,2 );
         cellData(iCell).intensityOverTimeSpace(iLayer)    = nanmean( cellData(iCell).intensityOverTime(iLayer,windows) );
     
     end
@@ -154,6 +155,6 @@ end
 
 %% Saving results
 
-savingMovieResultsPerCell(ML,cellData,'sampledSignalQuantification')
+savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
 
 end
