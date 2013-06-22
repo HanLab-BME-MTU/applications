@@ -1,4 +1,5 @@
-function [fx, fy, x_out, y_out, M, pos_u, u, sol_coef, sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin)
+function [fx, fy, x_out, y_out, M, pos_u, u, sol_coef, sol_mats] = ...
+    BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin)
 % Synopsis  [fx fy x_out y_out M pos_u u sol_coef sol_mats] = BEM_force_reconstruction(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,meshPtsFwdSol,solMethodBEM)
 %
 % Input :  x,y,ux,uy have to be in the same units, namely
@@ -83,7 +84,7 @@ if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol);
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol,'conv_free');
 else
     display('Using input Forward Map');
 end

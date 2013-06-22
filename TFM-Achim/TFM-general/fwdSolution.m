@@ -1,4 +1,4 @@
-function [ux uy x_grid y_grid meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h)
+function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h)
 % This forward solution is only valid for a Poisson's ratio v=0.5!
 % Input: No matter what the dimension of x0 and y0 is (pix, or um), the
 %        dimension of the surface stresses (force_x, force_y) must have the
@@ -7,10 +7,23 @@ function [ux uy x_grid y_grid meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,
 % Output: The calculated ux and uy have the same dimension as the input
 %         x0, y0.
 
-if nargin<10 || strcmpi(method,'conv')
+if strcmpi(method,'conv_free')
+    tic;
+    display('Calulate the convolution explicitely in free triangulated mesh')
+    [nRow,~]=size(x0);
+
+    for i=1:nRow
+        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
+        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
+
+        ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+        uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+    end
+    toc;
+elseif nargin<10 || strcmpi(method,'conv')
     tic;
     display('Calulate the convolution explicitely')
-    [nRow nCol]=size(x0);
+    [nRow,nCol]=size(x0);
 
     for i=1:nRow
         for j=1:nCol  

@@ -73,10 +73,11 @@ force_y9 = assumedForceShifted(2,x_mat_u,y_mat_u,42,18,-.6,.8,forceType);
 force_x = force_x1+force_x2+force_x3+force_x4+force_x5+force_x6+force_x7+force_x8+force_x9;
 force_y = force_y1+force_y2+force_y3+force_y4+force_y5+force_y6+force_y7+force_y8+force_y9;
 h1 = figure(1);
-quiver(x_mat_u,y_mat_u,force_x,force_y,0);
+quiver(x_mat_u,y_mat_u,force_x,force_y,0); hold on
 quiver(0.5,0.5,1,0,0,'k','LineWidth',2); % scale = 1 kPa
 
 drawnow
+%% save
 imgPath = [savePath '/img/'];
 dataPath = [savePath '/data/'];
 
@@ -108,8 +109,9 @@ delete(h1)
     assumedForceShifted(2,x,y,41,38,.6,-1.5,forceType)+...
     assumedForceShifted(2,x,y,38,8,-1.2,.3,forceType)+...
     assumedForceShifted(2,x,y,42,18,-.6,.8,forceType),'fft',[],meshPtsFwdSol);
-% [ux uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,@(x,y) assumedForce(2,x,y),@(x,y) assumedForce(2,x,y),'fft',[],meshPtsFwdSol);
-
+%% finding solution by direct convolution
+[ux,uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,@(x,y) assumedForceShifted(1,x,y,22,15,2,-.3,forceType),@(x,y) assumedForceShifted(2,x,y,22,15,2,-.3,forceType),'conv',[],meshPtsFwdSol);
+%% addnoise
 if addNoise==1
     max_u=max([max(max(ux)) max(max(uy))]); 
     noise_x=normrnd(0,percentNoise*max_u,numPoints_u,numPoints_u);

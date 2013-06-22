@@ -1,12 +1,14 @@
-function [M]=calcFwdMap(x_vec_u, y_vec_u, forceMesh, E,span,meshPtsFwdSol)
+function [M]=calcFwdMap(x_vec_u, y_vec_u, forceMesh, E,span,meshPtsFwdSol,method)
 if nargin<5
     baseSpan=1:forceMesh.numNodes;
+    method = 'fast';
 else
     baseSpan=span;
 end
 
 if nargin<6
     meshPtsFwdSol=[];
+    method = 'fast';
 end
 
 ux=zeros(length(x_vec_u),2*forceMesh.numNodes);
@@ -21,9 +23,14 @@ for j=baseSpan
     xmax=forceMesh.bounds(j).x(2);
     ymin=forceMesh.bounds(j).y(1);
     ymax=forceMesh.bounds(j).y(2);
-    
-    [ux(:,j) uy(:,j)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j).f_intp_x,forceMesh.base(j).f_intp_y,'fft',[],meshPtsFwdSol);
-    [ux(:,j+forceMesh.numNodes) uy(:,j+forceMesh.numNodes)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j+forceMesh.numNodes).f_intp_x,forceMesh.base(j+forceMesh.numNodes).f_intp_y,'fft',[],meshPtsFwdSol);
+
+    if strcmp(method,'fast')
+        [ux(:,j),uy(:,j)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j).f_intp_x,forceMesh.base(j).f_intp_y,'fft',[],meshPtsFwdSol);
+        [ux(:,j+forceMesh.numNodes),uy(:,j+forceMesh.numNodes)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j+forceMesh.numNodes).f_intp_x,forceMesh.base(j+forceMesh.numNodes).f_intp_y,'fft',[],meshPtsFwdSol);
+    elseif strcmp(method,'conv_free')
+        [ux(:,j),uy(:,j)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j).f_intp_x,forceMesh.base(j).f_intp_y,'conv_free',[],meshPtsFwdSol);
+        [ux(:,j+forceMesh.numNodes),uy(:,j+forceMesh.numNodes)]=fwdSolution(x_vec_u,y_vec_u,E,xmin,xmax,ymin,ymax,forceMesh.base(j+forceMesh.numNodes).f_intp_x,forceMesh.base(j+forceMesh.numNodes).f_intp_y,'conv_free',[],meshPtsFwdSol);
+    end
 end
 
 M=vertcat(ux,uy);
