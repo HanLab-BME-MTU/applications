@@ -31,6 +31,7 @@ if nChunk>1
     bwPI4 = labelPI == indCellArea;
 end
 % Get FA mask
+disp('detecting focal adhesions ...')
 minSize = round((1000/pixelSize)*(200/pixelSize)); %adhesion limit=1um*.5um
 maskFA = blobSegmentThreshold(paxImage,minSize,false,bwPI2);
 
@@ -87,6 +88,7 @@ bandMask = distFromEdge <= bandwidth_pix;
 bandMask = bandMask & bwPI4;
 band_FA = bandMask & ~maskFA;
 % find nascent adhesions from paxImage
+disp('detecting nascent adhesions ...')
 sigmaPSF_NA = 1.48;
 [pstruct_NA,mask] = pointSourceDetection(paxImage, sigmaPSF_NA,...
     'alpha', 0.05, 'mask', band_FA);
@@ -95,7 +97,6 @@ NANodeY = ceil(pstruct_NA.y');
 NAs = [NANodeX NANodeY];
 NAs = [NAs; bdNodesX bdNodesY];
 % NAs + boundaryNodes are separated by 5 pixel 
-disp('Subsampling detected NAs (high resolution)...')
 
 idx = KDTreeBallQuery(NAs, NAs, 5);
 valid = true(numel(idx),1);
@@ -186,6 +187,7 @@ yvec_d = allNodesY(idxROI);
 % we use deformed (more straight at the boundaries) points for mesh
 % generation to prevent many obtuse triangles.
 %delaunay_mesh=delaunay(x_vec,y_vec);
+disp('constructing mesh ...')
 xyvec = [xvec_d yvec_d];
 xyvec = unique(xyvec,'rows');
 xvec_d = xyvec(:,1);
@@ -196,6 +198,8 @@ delaunay_mesh=dt.Triangulation;
 % from dt.X, we get the undeformed position again
 allNodesX = dt.X(:,1);
 allNodesY = dt.X(:,2);
+undNodesX = zeros(size(allNodesX));
+undNodesY = zeros(size(allNodesY));
 for ii=1:length(allNodesX)
     distToNode = sqrt(sum(([displField.pos(:,1) displField.pos(:,2)]- ...
                             ones(length(displField.pos(:,1)),1)*[allNodesX(ii) allNodesY(ii)]).^2,2));
@@ -208,8 +212,7 @@ end
 
 xvec=undNodesX;
 yvec=undNodesY;
-k = convexHull(dt);
-
+% k = convexHull(dt);
 %for each node find all its neighbors:
 for n=1:length(xvec)
     candidates=[];
@@ -267,30 +270,35 @@ myMesh.neighbors=neighbors;
 myMesh.bounds=bounds;
 myMesh.numNodes=length(myMesh.p(:,1));
 
+base = struct('f_disc',zeros(myMesh.numNodes,2));
+base = repmat(base,2*myMesh.numNodes,1);
+
+meshBase = struct('f_intp_x',@(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(1).f_disc(:,1),'linear'),...
+                                    'f_intp_y',@(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+1).f_disc(:,1),'linear'));
+myMesh.base = repmat(meshBase, 2*myMesh.numNodes,1);                        
+% myMesh.base(2*myMesh.numNodes).f_intp_x = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes).f_disc(:,1),'linear'); 
+% myMesh.base(2*myMesh.numNodes).f_intp_y = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes*2).f_disc(:,1),'linear'); 
 %create the basis functions and interpolate them using the Delaunay Triangulation:
 for j=1:myMesh.numNodes
-    base(j).f_disc=zeros(myMesh.numNodes,2);
+    old_cputime = cputime;
     base(j).f_disc(j,1)=1;
-    
-    myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,1),'linear');
-    myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
-%     myMesh.base(j).f_intp_x= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,1),'linear');
-%     myMesh.base(j).f_intp_y= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
-        
-    base(myMesh.numNodes+j).f_disc=zeros(myMesh.numNodes,2);
     base(myMesh.numNodes+j).f_disc(j,2)=1;
     
+    disp(['Creating ' num2str(j) 'th basis function ... (' num2str(cputime-old_cputime) 'sec used)'])
+end
+myMeshHavard79
+
+    myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,1),'linear');
+    myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
     myMesh.base(myMesh.numNodes+j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,1),'linear'); % only zeros
     myMesh.base(myMesh.numNodes+j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,2),'linear'); 
-end
 
-
-function vOut=nan2zeroTriScatteredInterp(x,y,dtIn,vIn,method)
-    F=TriScatteredInterp(dtIn,vIn,method);
-    vOut=F(x,y);
-    checkVec=isnan(vOut);
-    vOut(checkVec)=0;
-end
+    function vOut=nan2zeroTriScatteredInterp(x,y,dtIn,vIn,method)
+        F=TriScatteredInterp(dtIn,vIn,method);
+        vOut=F(x,y);
+        checkVec=isnan(vOut);
+        vOut(checkVec)=0;
+    end
 end
 % % plot an example to see if it works correctly
 % ind=80;
