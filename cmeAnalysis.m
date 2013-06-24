@@ -87,9 +87,7 @@ end
 
 opts = {'Overwrite', ip.Results.Overwrite};
 
-% 'RemoveRedundant' inactivated on Windows as a temporary workaround for the problems with
-% the KDTree MEX files for windows.
-runDetection(data, 'SigmaSource', ip.Results.GaussianPSF, 'RemoveRedundant', isunix, opts{:});
+runDetection(data, 'SigmaSource', ip.Results.GaussianPSF, opts{:});
 
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
