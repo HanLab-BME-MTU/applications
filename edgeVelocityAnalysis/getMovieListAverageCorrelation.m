@@ -49,7 +49,7 @@ nCell = numel(ML.movies_);
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trendType',   -1,@isscalar);
-ip.addParamValue('minLength',  10,@isscalar);
+ip.addParamValue('minLength',  40,@isscalar);
 ip.addParamValue('scale',false,@islogical);
 ip.addParamValue('maxLag',0,@isscalar);
 ip.addParamValue('layer',1,@isscalar);
