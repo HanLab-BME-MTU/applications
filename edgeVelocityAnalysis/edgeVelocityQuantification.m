@@ -122,6 +122,7 @@ operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'tr
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
 
 %% Converting the edge velocity in pixel/frame into nanometers/seconds
+
 if isempty(cellData)
     for iCell = 1:nCell
         
@@ -146,34 +147,36 @@ if isempty(cellData)
         cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
     end
+    
+    
+    %% Getting Average Velocities and Persistence Time per Cell
+    
+    commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z);
+    if isempty(interval{1})
+        
+        [protrusionA,retractionA] ...
+            = arrayfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+        protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
+        retraction = cellfun(@(x) {x},retractionA,'Unif',0);
+        
+    else
+        
+        firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z);
+        secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
+        
+        [protrusion,retraction] ...
+            = arrayfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+        
+    end
+    
+    [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot);
+    
+    %% Saving results
+    
+    savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
+    savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+    
 end
-
-%% Getting Average Velocities and Persistence Time per Cell
-
-commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z);
-if isempty(interval{1})
-    
-    [protrusionA,retractionA] ...
-        = arrayfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
-    protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
-    retraction = cellfun(@(x) {x},retractionA,'Unif',0);
-    
-else
-    
-    firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z);
-    secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
-    
-    [protrusion,retraction] ...
-        = arrayfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
-    
-end
-
-[cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot);
-
-%% Saving results
-
-savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
-savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
 end%End of main function
 
