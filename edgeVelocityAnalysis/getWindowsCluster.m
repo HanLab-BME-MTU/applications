@@ -105,7 +105,7 @@ end
 
 
 %Save results
-
+savingMovieDataSetResults(ML,cellData,'clusterAnalysis','cluster')
 
 end
 
@@ -119,7 +119,7 @@ fixIdx = [0 totalWin(1:end-1)];
 
 for iCell = 1:numel(cellData)
     
-    cellData(iCell).cluster = cellfun(@(x,y) x(y == iCell)-fixIdx(iCell),out,testM,'Unif',0);
+    cellData(iCell).cluster = cellfun(@(x,y) x(y == iCell)-sum(fixIdx(1:iCell)),out,testM,'Unif',0);
     
 end
 
