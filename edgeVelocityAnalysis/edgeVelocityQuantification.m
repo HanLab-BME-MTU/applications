@@ -122,7 +122,7 @@ operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'tr
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
 
 %% Converting the edge velocity in pixel/frame into nanometers/seconds
-if ~isempty(cellData)
+if isempty(cellData)
     for iCell = 1:nCell
         
         currMD = ML.movies_{iCell};
