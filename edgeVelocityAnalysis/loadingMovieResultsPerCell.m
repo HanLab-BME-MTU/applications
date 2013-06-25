@@ -12,7 +12,7 @@ for iCell = 1:nCell
     if isdir(edgePath)
         filePath = [edgePath filesep 'edgeVelocity.mat'];
         aux      = load(filePath);
-        out(cF)  = aux.edgeVelocity;
+        out(cF)  = aux.analysisResults;
         cF       = cF + 1;
     end
         
