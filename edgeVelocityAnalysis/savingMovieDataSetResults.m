@@ -1,8 +1,8 @@
-function  savingMovieDataSetResults(ML,results,analysis,fileName)
+function  savingMovieDataSetResults(ML,results,analysisDir,fileName)
 %Saving edge velocity analysis for each cell in the MovieList
 
 
-dataSetPath = [ML.outputDirectory_ filesep ML.movieListFileName_(1:end-4) analysis];
+dataSetPath = [ML.outputDirectory_ filesep ML.movieListFileName_(1:end-4) analysisDir];
 if ~isdir(dataSetPath)
     mkdir(dataSetPath)
 end

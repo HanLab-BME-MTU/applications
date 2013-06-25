@@ -122,29 +122,30 @@ operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'tr
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
 
 %% Converting the edge velocity in pixel/frame into nanometers/seconds
-
-for iCell = 1:nCell
-    
-    currMD = ML.movies_{iCell};
-    scaling = 1;
-    if scale
+if ~isempty(cellData)
+    for iCell = 1:nCell
         
-        if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-            error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
+        currMD = ML.movies_{iCell};
+        scaling = 1;
+        if scale
+            
+            if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+                error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
+            end
+            
+            scaling = (currMD.pixelSize_/currMD.timeInterval_);
+            
         end
         
-        scaling = (currMD.pixelSize_/currMD.timeInterval_);
+        cellData(iCell).data.pixelSize         = currMD.pixelSize_;
+        cellData(iCell).data.frameRate         = currMD.timeInterval_;
+        cellData(iCell).data.rawEdgeMotion     = cellData(iCell).data.rawTimeSeries.*scaling;
+        cellData(iCell).data.procEdgeMotion    = cellData(iCell).data.procTimeSeries.*scaling;
+        cellData(iCell).data.procExcEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
+        
+        cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
     end
-    
-    cellData(iCell).data.pixelSize         = currMD.pixelSize_;
-    cellData(iCell).data.frameRate         = currMD.timeInterval_;
-    cellData(iCell).data.rawEdgeMotion     = cellData(iCell).data.rawTimeSeries.*scaling;
-    cellData(iCell).data.procEdgeMotion    = cellData(iCell).data.procTimeSeries.*scaling;
-    cellData(iCell).data.procExcEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
-    
-    cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
-    
 end
 
 %% Getting Average Velocities and Persistence Time per Cell
@@ -198,7 +199,7 @@ for iInt = 1:numel(interval)
         cellData(iCell).protrusionAnalysis(iInt) = protrusion{iCell}{iInt};
         cellData(iCell).retractionAnalysis(iInt) = retraction{iCell}{iInt};
         
-                
+        
         total.ProtPersTime    = [total.ProtPersTime;cellData(iCell).protrusionAnalysis(iInt).total.persTime];
         total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData(iCell).protrusionAnalysis(iInt).total.maxVeloc];
         total.ProtMinVeloc    = [total.ProtMinVeloc;cellData(iCell).protrusionAnalysis(iInt).total.minVeloc];
