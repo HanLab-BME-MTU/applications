@@ -86,7 +86,7 @@ for i = p.ChannelIndex
     
     %call function to detect kinetochore-EB signal
     sisterListEB = detectkEBs(sisterList,trackPairs,tracks,imageEB,...
-        'radiusEB',p.radiusEB);
+        'radiusEB',p.radiusEB,'lengthAlongMT',p.lengthAlongMT);
         
     %save output
     save(outFilePaths{1,i} ,'sisterListEB');

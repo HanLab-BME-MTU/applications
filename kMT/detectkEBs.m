@@ -158,7 +158,7 @@ for iSis = 1 : numSister
     
     %if the signal after background subtraction is negative, this means
     %there is no comet
-    %indicate that with 0 forthe intensity and NaN for the coordinates
+    %indicate that with 0 for the intensity and NaN for the coordinates
     for iKin = 1 : 2
         indxNoComet = find(signalEB(:,iKin)<=0);
         signalEB(indxNoComet,iKin) = 0;

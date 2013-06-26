@@ -1,5 +1,5 @@
 % Load movie list
-ML = MovieList.load('/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/metaMoviesNewAnalysis/kMTAnalysis/kMTList.mat');
+ML = MovieList.load('C:\kjData\maki\newUnarchived\JulieSebastien\1306_cambridgeData\metaMovies\kMTAnalysis\kMTList.mat');
 
 %% Recreate analysis processes
 

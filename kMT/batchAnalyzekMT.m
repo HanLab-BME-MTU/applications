@@ -1,11 +1,11 @@
 % List all TIFF files in the main folder
-if strcmp(getenv('USER'),'kj35')
-    mainFolder = '/home/kj35/files/LCCB/maki/newUnarchived/JulieSebastien/1209_initialData/testMovie15';
-elseif strcmp(getenv('USER'),'sebastien')
-    mainFolder = fullfile(getenv('HOME'),'Documents','Julie','testMovie15');
-end
+% if strcmp(getenv('USER'),'kj35')
+mainFolder = 'C:\kjData\maki\newUnarchived\JulieSebastien\1306_cambridgeData\metaMovies';
+% elseif strcmp(getenv('USER'),'sebastien')
+%     mainFolder = fullfile(getenv('HOME'),'Documents','Julie','testMovie15');
+% end
 
-tiffFiles = dir(fullfile(mainFolder,'*.tif'));
+tiffFiles = dir(fullfile(mainFolder,'*.tif*'));
 nMovies = numel(tiffFiles);
 
 % Create array of movies
@@ -68,10 +68,10 @@ for i=1:nMovies
     funParams.verbose = 0;
     funParams.detectionParam.psfSigma = 1.9;
     funParams.detectionParam.bitDepth = 16;
-    funParams.detectionParam.alphaLocMax = 0.05;
+    funParams.detectionParam.alphaLocMax = 0.1;
     funParams.detectionParam.integWindow = 0;
     funParams.detectionParam.doMMF = 1;
-    funParams.detectionParam.testAlpha = struct('alphaR',0.0001,'alphaA',0.05,'alphaD',0.05,'alphaF',0);
+    funParams.detectionParam.testAlpha = struct('alphaR',0.0001,'alphaA',0.1,'alphaD',0.05,'alphaF',0);
     funParams.detectionParam.numSigmaIter = 0;
     funParams.detectionParam.visual = 0;
     funParams.detectionParam.background = [];
@@ -85,14 +85,14 @@ for i=1:nMovies
     %function-specific
     funParams.verbose = 0;
     %gap closing
-    funParams.gapCloseParam.timeWindow = 4;
+    funParams.gapCloseParam.timeWindow = 6;
     funParams.gapCloseParam.mergeSplit = 0;
     funParams.gapCloseParam.minTrackLen = 1;
     funParams.gapCloseParam.diagnostics = [];
     %cost matrix 1
     funParams.costMatrices(1).parameters.linearMotion = 0;
     funParams.costMatrices(1).parameters.minSearchRadius = 2;
-    funParams.costMatrices(1).parameters.maxSearchRadius = 4;
+    funParams.costMatrices(1).parameters.maxSearchRadius = 5;
     funParams.costMatrices(1).parameters.brownStdMult = 3;
     funParams.costMatrices(1).parameters.useLocalDensity = 1;
     funParams.costMatrices(1).parameters.nnWindow = funParams.gapCloseParam.timeWindow;
@@ -101,7 +101,7 @@ for i=1:nMovies
     %cost matrix 2
     funParams.costMatrices(2).parameters.linearMotion = 0;
     funParams.costMatrices(2).parameters.minSearchRadius = 2;
-    funParams.costMatrices(2).parameters.maxSearchRadius = 4;
+    funParams.costMatrices(2).parameters.maxSearchRadius = 5;
     funParams.costMatrices(2).parameters.brownStdMult = 3*ones(funParams.gapCloseParam.timeWindow,1);
     funParams.costMatrices(2).parameters.brownScaling = [0.25 0.01];
     funParams.costMatrices(2).parameters.timeReachConfB = funParams.gapCloseParam.timeWindow;
@@ -147,8 +147,8 @@ for i=1:nMovies
     funParams = MD(i).getProcess(5).funParams_;
     funParams.ChannelIndex=1; % Detect GFP-EB3 signal
     %function-specific
-    funParams.radiusEB = 5; %pixels
-    funParams.lengthAlongMT = 10;
+    funParams.radiusEB = 3; %pixels
+    funParams.lengthAlongMT = 7;
     %general
     parseProcessParams(MD(i).getProcess(5), funParams);
 
