@@ -1,11 +1,13 @@
-function numNeighbors = numNeighborsTrack(tracksFinal,winFrames,nRadius)
+function numNeighbors = numNeighborsTrack(tracksFinal,spatialRadius,timeRadius)
 %NUMNEIGHBORSTRACK calculates number of neighbors for a molecule within a certain area
 %
-%SYNOPSIS numNeighbors = numNeighborsTrack(tracksFinal,nRadius)
+%SYNOPSIS numNeighbors = numNeighborsTrack(tracksFinal,spatialRadius)
 %
-%INPUT  tracksFinal : Output of trackCloseGapsKalman.
-%       winFrames   : The SPT frames at which there are windows.
-%       nRadius     : Radius to count number of neighbors.
+%INPUT  tracksFinal  : Output of trackCloseGapsKalman.
+%       spatialRadius: Spatial sadius to count number of neighbors.
+%                      Optional. Default: 5 [whatever units].
+%       timeRadius   : Time radius to count number of neighbors.
+%                      Optional. Default: 5 frames.
 %
 %OUTPUT numNeighbors: Structure array with the field "value" storing number
 %                     of neighbors per track segment.
@@ -14,20 +16,22 @@ function numNeighbors = numNeighborsTrack(tracksFinal,winFrames,nRadius)
 
 %% Input
 
-if nargin < 2
+if nargin < 1
     disp('--numNeighborsTrack: Incorrect number of input arguments!');
     return
 end
 
-if nargin < 3 || isempty(nRadius)
-    nRadius = 5;
+if nargin < 2 || isempty(spatialRadius)
+    spatialRadius = 5;
 end
 
-%generate winFrameMin and winFramesMax for for loop
-winFramesMid = floor((winFrames(1:end-1) + winFrames(2:end))/2);
-winFramesMin = [1 winFramesMid];
-winFramesMax = [winFramesMid winFrames(end)+1];
-numWinFrames = length(winFramesMin);
+if nargin < 3 || isempty(timeRadius)
+    timeRadius = 5;
+end
+
+%get number of frames in movie
+seqOfEvents = vertcat(tracksFinal.seqOfEvents);
+numFrames = max(seqOfEvents(:,1));
 
 %% Number of neighbors calculation
 
@@ -48,23 +52,7 @@ end
 meanCoordAll = vertcat(meanCoord.value);
 meanTimeAll = vertcat(meanTime.value);
 
-%group the track segments based on what window frame range they fall into
-trackGroup = repmat(struct('indx',[]),numWinFrames,1);
-for iWinFrame = 1 : numWinFrames
-  
-    %get current spt frame number and next spt frame number
-    minFrame = winFramesMin(iWinFrame);
-    maxFrame = winFramesMax(iWinFrame);
-        
-    %find track segments whose "average" time is between minFrame and maxFrame
-    indxFrameRange = find(meanTimeAll>=minFrame & meanTimeAll<maxFrame);
-
-    %store this information for later use
-    trackGroup(iWinFrame).indx = indxFrameRange;
-    
-end
-
-%calculate number of neighbors within nRadius
+%calculate number of neighbors within spatialRadius and timeRadius
 for iTrack = 1 : numTracks
     for iSeg = 1 : size(meanCoord(iTrack).value);
         
@@ -72,18 +60,19 @@ for iTrack = 1 : numTracks
         trackCoord = meanCoord(iTrack).value(iSeg,:);
         trackTime = meanTime(iTrack).value(iSeg);
         
-        %determine what tmie group it belongs to and get concurrent track
-        %segments
-        groupIndx = find(trackTime<winFramesMax,1,'first');
-        trackIndx = trackGroup(groupIndx).indx;
+        %determine the track segments that fall within timeRadius
+        trackIndx = find( abs(meanTimeAll-trackTime) <= timeRadius );
         
-        %calculate distance between track segments
-        distMat = createDistanceMatrix(trackCoord,meanCoordAll(trackIndx,:));
+        %calculate the distance between track segments
+        distMat = createDistanceMatrix(trackCoord,meanCoordAll(trackIndx,:)); %#ok<FNDSB>
         
-        %get number of neighbors within nRadius
-        tmpNN = length(find(distMat < nRadius)) - 1;
-        if groupIndx==1 || groupIndx == numWinFrames
-            tmpNN = tmpNN * 2;
+        %get number of neighbors within spatialRadius
+        tmpNN = length(find(distMat <= spatialRadius)) - 1;
+        
+        %compensate in case track segment is too close to movie start/end
+        timeFromStartEnd = min(trackTime-1,numFrames-trackTime);
+        if timeFromStartEnd < timeRadius
+            tmpNN = tmpNN * (2-timeFromStartEnd/timeRadius);
         end
         numNeighbors(iTrack).value(iSeg,1) = tmpNN;
         

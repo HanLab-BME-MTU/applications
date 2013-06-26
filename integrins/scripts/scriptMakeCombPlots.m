@@ -1,6 +1,7 @@
-condName = {'Beta3'}; %{'AlphaVRand','AlphaV717TruncRand','AlphaV724TruncRand','TalinRand','FarnRand','LifeactRand'};
-numMode = [4 4 4 4 4 2];
-minNP = 5*ones(1,6);
+condName = {'AlphaV','AlphaV717Trunc','AlphaV724Trunc','AlphaVY773A','Beta3','Farn','Talin','Lifeact'};
+condName = {'AlphaVY773A'};
+numMode  = [4 4 4 4 4 4 4 2];
+minNP    = [5 5 5 4 5 5 5 5];
 
 for iCond = 1 : length(condName);
     
@@ -22,21 +23,21 @@ for iCond = 1 : length(condName);
             [condName{iCond} ' DiffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],...
             'Diffusion coefficient (um^2/s)',[-100 150 0.085 0.22]);
         
-%         %fraction in each diffusion mode
-%         for iMode = 1 : numMode(iCond)
-%             plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
-%                 windowDistFromEdge(iType),iMode,minNP(iCond),[condName{iCond} ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
-%                 [condName{iCond} ' FractionMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],...
-%                 ['Fraction Mode ' num2str(iMode)],[-100 150 0 0.75]);
-%         end
-%         
-%         %density of each diffusion mode
-%         for iMode = 1 : numMode(iCond)
-%             plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
-%                 windowDistFromEdge(iType),iMode,minNP(iCond),[condName{iCond} ', Density Modes '  num2str(iMode) ', protType ' num2str(iType)],...
-%                 [condName{iCond} ' DensityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],...
-%                 ['Density Mode' num2str(iMode) ' (per um^2)'],[-100 150 0 6.5]);
-%         end
+        %         %fraction in each diffusion mode
+        %         for iMode = 1 : numMode(iCond)
+        %             plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).diffModeAnalysis.fracModeClass,...
+        %                 windowDistFromEdge(iType),iMode,minNP(iCond),[condName{iCond} ', Fraction Mode ' num2str(iMode) ', protType ' num2str(iType)],...
+        %                 [condName{iCond} ' FractionMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1],...
+        %                 ['Fraction Mode ' num2str(iMode)],[-100 150 0 1]);
+        %         end
+        %
+        %         %density of each diffusion mode
+        %         for iMode = 1 : numMode(iCond)
+        %             plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).diffModeAnalysis.densityModeClass,...
+        %                 windowDistFromEdge(iType),iMode,minNP(iCond),[condName{iCond} ', Density Modes '  num2str(iMode) ', protType ' num2str(iType)],...
+        %                 [condName{iCond} ' DensityMode' num2str(iMode) '_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],...
+        %                 ['Density Mode' num2str(iMode) ' (per um^2)'],[-100 150 0 6.5]);
+        %         end
         
     end
     
