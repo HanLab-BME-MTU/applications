@@ -38,6 +38,7 @@ ip.addOptional('chNames', [], @iscell);
 ip.addOptional('markers', [], @iscell);
 ip.addParamValue('Parameters', [1.49 100 6.45e-6], @(x) numel(x)==3);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
+ip.addParamValue('StrictSelector', false, @islogical);
 ip.addParamValue('IgnoreEmptyFolders', false, @islogical);
 ip.addParamValue('FrameRate', [], @isscalar);
 ip.parse(varargin{:});
@@ -67,12 +68,22 @@ fprintf('Root directory: %s\n', condDir);
 % list of experiments for this condition, each containing one or more 'cell' directories
 expDir = dirList(condDir);
 
+% remvove listings that do not contain 'movieSelector'
+matchIdx = regexpi({expDir.name}, movieSelector, 'once');
+[matchIdx{cellfun(@isempty, matchIdx)}] = deal(NaN);
+matchIdx = cell2mat(matchIdx);
+expDir(isnan(matchIdx)) = [];
+matchIdx(isnan(matchIdx)) = [];
+
 % if condDir is a 'cell' directory
 if ~isempty(regexpi(getDirFromPath(condDir), movieSelector, 'once'))
     cellPath{1} = condDir;
     % if expDir are 'cell' directories
-elseif ~isempty(cell2mat(regexpi(arrayfun(@(x) x.name, expDir, 'UniformOutput', false), movieSelector, 'once')))
+elseif ~isempty(expDir)
     cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
+    if ip.Results.StrictSelector
+        cellPath = cellPath(matchIdx==1);
+    end
     cellPath = sortStringsByToken(cellPath, movieSelector, 'post');
 else
     cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
