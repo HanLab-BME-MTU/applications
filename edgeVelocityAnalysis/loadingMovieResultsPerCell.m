@@ -14,6 +14,9 @@ for iCell = 1:nCell
         aux      = load(filePath);
         out(cF)  = aux.analysisResults;
         cF       = cF + 1;
+    else
+        out  = [];
+        break;
     end
         
 end

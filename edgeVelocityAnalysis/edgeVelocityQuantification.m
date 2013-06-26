@@ -123,7 +123,7 @@ cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',ope
 
 %% Converting the edge velocity in pixel/frame into nanometers/seconds
 
-if isempty(cellData)
+if ~isfield(cellData,'protrusionAnalysis')
     for iCell = 1:nCell
         
         currMD = ML.movies_{iCell};
@@ -143,19 +143,20 @@ if isempty(cellData)
         cellData(iCell).data.rawEdgeMotion     = cellData(iCell).data.rawTimeSeries.*scaling;
         cellData(iCell).data.procEdgeMotion    = cellData(iCell).data.procTimeSeries.*scaling;
         cellData(iCell).data.procExcEdgeMotion = num2cell( cellData(iCell).data.procExcTimeSeries.*scaling,2 );
-        
-        cellData(iCell).data = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+        cellData(iCell).data                   = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
     end
     
     
+    
     %% Getting Average Velocities and Persistence Time per Cell
+    
     
     commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z);
     if isempty(interval{1})
         
         [protrusionA,retractionA] ...
-            = arrayfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+                   = arrayfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
         protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
         retraction = cellfun(@(x) {x},retractionA,'Unif',0);
         
@@ -165,7 +166,7 @@ if isempty(cellData)
         secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
         
         [protrusion,retraction] ...
-            = arrayfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
+                    = arrayfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData,'Unif',0);
         
     end
     
@@ -201,7 +202,6 @@ for iInt = 1:numel(interval)
         
         cellData(iCell).protrusionAnalysis(iInt) = protrusion{iCell}{iInt};
         cellData(iCell).retractionAnalysis(iInt) = retraction{iCell}{iInt};
-        
         
         total.ProtPersTime    = [total.ProtPersTime;cellData(iCell).protrusionAnalysis(iInt).total.persTime];
         total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData(iCell).protrusionAnalysis(iInt).total.maxVeloc];

@@ -78,19 +78,20 @@ clusterSet = ip.Results.clusterSet;
 edgeInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'scale',scale};
 cellData       = edgeVelocityQuantification(ML,edgeInputParam{:});
 
-%% Features
+% State Features
 
 feature{1} = 'persTime';
 feature{2} = 'Veloc';
 feature{3} = 'maxVeloc';
 feature{4} = 'mednVeloc';
 
+%Edge States
 measures{1} = 'protrusionAnalysis';
 measures{2} = 'retractionAnalysis';
 
-aux1 = arrayfun(@(x) repmat(x,1,numel(edgeFeat)),measures(edgeState),'Unif',0);
-aux2 = repmat(feature(edgeFeat),1,numel(edgeState));
-aux3 = cellfun(@(z1,z2) arrayfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
+aux1         = arrayfun(@(x) repmat(x,1,numel(edgeFeat)),measures(edgeState),'Unif',0);
+aux2         = repmat(feature(edgeFeat),1,numel(edgeState));
+aux3         = cellfun(@(z1,z2) arrayfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
 featureSpace = cellfun(@(x) cat(2,x{:}),aux3,'Unif',0);
 
 statsVector(1:numel(edgeFeat)*numel(edgeState)) = {fVector};
@@ -103,14 +104,13 @@ for iCell = 1:nCell
          
 end
 
-
 %Save results
+savingMovieResultsPerCell(ML,cellData,'clusterAnalysis','cluster')
 savingMovieDataSetResults(ML,cellData,'clusterAnalysis','cluster')
 
 end
 
 function cellData = getCellIndex(cellData,out)
-
 
 totalWin = cell2mat( arrayfun(@(x) numel(x.data.procExcEdgeMotion),cellData,'Unif',0) );
 

@@ -54,16 +54,18 @@ ip.addParamValue('scale',false,@islogical);
 ip.addParamValue('maxLag',0,@isscalar);
 ip.addParamValue('layer',1,@isscalar);
 ip.addParamValue('signalChannel',1,@isscalar);
+ip.addParamValue('interval',{[]},@iscell);
 
 ip.parse(movieObj,varargin{:});
-scale      = ip.Results.scale;
-includeWin = ip.Results.includeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-trend      = ip.Results.trendType;
-maxLag     = ip.Results.maxLag;
-layer      = ip.Results.layer;
-channel    = ip.Results.signalChannel;
+scale            = ip.Results.scale;
+includeWin       = ip.Results.includeWin;
+outLevel         = ip.Results.outLevel;
+minLen           = ip.Results.minLength;
+trend            = ip.Results.trendType;
+maxLag           = ip.Results.maxLag;
+layer            = ip.Results.layer;
+channel          = ip.Results.signalChannel;
+interval         = ip.Results.interval;
 
 dataS            = struct('edgeAutoCorr',[],'signalAutoCorr',[],'crossCorr',[],'lag',[]);
 cellData         = struct('total',repmat({dataS},1,nCell),'meanValue',repmat({dataS},1,nCell),'CI',repmat({dataS},1,nCell)) ;
@@ -72,21 +74,19 @@ signalInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'in
 edge             = edgeVelocityQuantification(ML,edgeInputParam{:});
 signal           = sampledSignalQuantification(ML,channel,signalInputParam{:});
 
-totalEdgeACF   = [];
-totalSignalACF = [];
-totalCCF       = [];
+totalEdgeACF     = nan(2*maxLa,nCell);
+totalSignalACF   = nan(2*maxLa,nCell);
+totalCCF         = nan(2*maxLa,nCell);
 
 for iCell = 1:nCell
     
-    windows    = intersect(edge(iCell).data.includedWin,signal(iCell).data.includedWin{layer});
-    protrusion = edge(iCell).data.procEdgeMotion(windows,:);
-    activity   = squeeze(signal(iCell).data.procSignal(windows,:,layer));
-    
+    windows                                  = intersect(edge(iCell).data.includedWin,signal(iCell).data.includedWin{layer});
+    protrusion                               = edge(iCell).data.procEdgeMotion(windows,interval{iCell});
+    activity                                 = squeeze(signal(iCell).data.procSignal(windows,interval{iCell},layer));
     
     [muCcf,muCCci,~,xCorr]                   = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
     [muProtAcf,protCI,~,protAcf]             = getAverageCorrelation(protrusion,'maxLag',maxLag);
     [muSignAcf,signCI,lags,signAcf]          = getAverageCorrelation(activity,'maxLag',maxLag);
-    
     
     cellData(iCell).total.edgeAutoCorr       = protAcf;
     cellData(iCell).total.signalAutoCorr     = signAcf;
@@ -103,9 +103,9 @@ for iCell = 1:nCell
     cellData(iCell).CI.crossCorr             = muCCci;
     cellData(iCell).CI.lag                   = lags;
     
-    totalEdgeACF                             = [protAcf totalEdgeACF];
-    totalSignalACF                           = [signAcf totalSignalACF];
-    totalCCF                                 = [xCorr totalCCF];
+    totalEdgeACF(:,iCell)                    = [protAcf totalEdgeACF];
+    totalSignalACF(:,iCell)                  = [signAcf totalSignalACF];
+    totalCCF(:,iCell)                        = [xCorr totalCCF];
     
 end
 
