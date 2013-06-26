@@ -18,6 +18,7 @@ ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
+ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
 ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
@@ -29,6 +30,8 @@ imgCols = ip.Results.imgCols;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 pixelSize = ip.Results.pixelSize;
+forceMesh = ip.Results.forceMesh;
+
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
     % that will be centered in the field of view. Here, only the first
@@ -52,7 +55,7 @@ keepBDPts=false;
 doPlot=0;
 if isempty(paxImage)
     forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
-else
+elseif isempty(forceMesh)
     forceMesh=createMeshAndBasisFromAdhesions(xvec,yvec,paxImage,displField(frame),pixelSize);
 end
 toc;
