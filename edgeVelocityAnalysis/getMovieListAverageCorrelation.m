@@ -74,9 +74,9 @@ signalInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'in
 edge             = edgeVelocityQuantification(ML,edgeInputParam{:});
 signal           = sampledSignalQuantification(ML,channel,signalInputParam{:});
 
-totalEdgeACF     = nan(2*maxLa,nCell);
-totalSignalACF   = nan(2*maxLa,nCell);
-totalCCF         = nan(2*maxLa,nCell);
+totalEdgeACF     = [];
+totalSignalACF   = [];
+totalCCF         = [];
 
 for iCell = 1:nCell
     
@@ -103,9 +103,9 @@ for iCell = 1:nCell
     cellData(iCell).CI.crossCorr             = muCCci;
     cellData(iCell).CI.lag                   = lags;
     
-    totalEdgeACF(:,iCell)                    = [protAcf totalEdgeACF];
-    totalSignalACF(:,iCell)                  = [signAcf totalSignalACF];
-    totalCCF(:,iCell)                        = [xCorr totalCCF];
+    totalEdgeACF                             = cat(2,protAcf,totalEdgeACF);
+    totalSignalACF                           = cat(2,signAcf,totalSignalACF);
+    totalCCF                                 = cat(2,xCorr,totalCCF);
     
 end
 
