@@ -75,8 +75,10 @@ edge             = edgeVelocityQuantification(ML,edgeInputParam{:});
 signal           = sampledSignalQuantification(ML,channel,signalInputParam{:});
 nInterval        = arrayfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
 
-if ~isempty(interval)
-    for iInt = 1:numel(interval)
+
+    
+for iInt = 1:numel(interval)
+    if ~isempty(interval{iInt})
         nInterval{iInt} = interval{iInt};
     end
 end
