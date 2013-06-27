@@ -69,10 +69,17 @@ interval         = ip.Results.interval;
 
 dataS            = struct('edgeAutoCorr',[],'signalAutoCorr',[],'crossCorr',[],'lag',[]);
 cellData         = struct('total',repmat({dataS},1,nCell),'meanValue',repmat({dataS},1,nCell),'CI',repmat({dataS},1,nCell)) ;
-edgeInputParam   = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'scale',scale,'outputPath','correlationEstimation'};
-signalInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'outputPath','correlationEstimation'};
+edgeInputParam   = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',1,'scale',scale,'outputPath','correlationEstimation'};
+signalInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',1,'outputPath','correlationEstimation'};
 edge             = edgeVelocityQuantification(ML,edgeInputParam{:});
 signal           = sampledSignalQuantification(ML,channel,signalInputParam{:});
+nInterval        = arrayfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
+
+if ~isempty(interval)
+    for iInt = 1:numel(interval)
+        nInterval{iInt} = interval{iInt};
+    end
+end
 
 totalEdgeACF     = [];
 totalSignalACF   = [];
@@ -80,9 +87,10 @@ totalCCF         = [];
 
 for iCell = 1:nCell
     
+    
     windows                                  = intersect(edge(iCell).data.includedWin,signal(iCell).data.includedWin{layer});
-    protrusion                               = edge(iCell).data.procEdgeMotion(windows,interval{iCell});
-    activity                                 = squeeze(signal(iCell).data.procSignal(windows,interval{iCell},layer));
+    protrusion                               = edge(iCell).data.procEdgeMotion(windows,nInterval{iCell});
+    activity                                 = squeeze(signal(iCell).data.procSignal(windows,nInterval{iCell},layer));
     
     [muCcf,muCCci,~,xCorr]                   = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
     [muProtAcf,protCI,~,protAcf]             = getAverageCorrelation(protrusion,'maxLag',maxLag);

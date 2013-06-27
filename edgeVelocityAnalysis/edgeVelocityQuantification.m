@@ -98,6 +98,7 @@ ip.addParamValue('includeWin', cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',0,@isscalar);
 ip.addParamValue('trendType',   -1,@isscalar);
 ip.addParamValue('minLength',  10,@isscalar);
+ip.addParamValue('gapSize',   0,@isscalar);
 ip.addParamValue('scale',false,@islogical);
 ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
@@ -116,9 +117,10 @@ includeWin = ip.Results.includeWin;
 outLevel   = ip.Results.outLevel;
 minLen     = ip.Results.minLength;
 trend      = ip.Results.trendType;
+gapSize    = ip.Results.gapSize;
 
 %% Formatting Time Series
-operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend};
+operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',true,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
 
 %% Converting the edge velocity in pixel/frame into nanometers/seconds
