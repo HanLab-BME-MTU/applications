@@ -294,8 +294,8 @@ end
 if any(strcmpi(ip.Results.Display, {'on','all'}))
     ha = setupFigure(1,2, 'DisplayMode', 'screen', 'SameAxes', false);
     fset = loadFigureSettings('');
-    %figure(fset.fOpts{:}, 'Name', 'Initiation density');
     XTickLabel = arrayfun(@(i) getCellDir(i), data, 'unif', 0);
+    XTickLabel(outlierIdx) = [];
     barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
         [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
         'XTickLabel', XTickLabel, 'Interpreter', 'none',...
