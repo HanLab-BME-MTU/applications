@@ -108,6 +108,24 @@ nFiles=numel(fileList);
 
 
 for iFile=1:nFiles
+        %Sets wavelength informaion
+    
+    Fname = lower(fileList(iFile).name);
+    
+    if (~isempty(strfind(Fname, 'cy5')) || ~isempty(strfind(Fname, 'atto655')) || ~isempty(strfind(Fname, 'a647')) || ~isempty(strfind(Fname, 'egfr')) )
+        wavelength = 672;
+        MD.channels_.emissionWavelength_=672;
+        MD.channels_. excitationWavelength_=642;
+    elseif (~isempty(strfind(Fname, 'cy3')) || ~isempty(strfind(Fname, 'atto655')) || ~isempty(strfind(Fname, 'A647')) || ~isempty(strfind(Fname, 'erbb2')))
+        wavelength = 594;
+        MD.channels_.emissionWavelength_=594;
+        MD.channels_. excitationWavelength_=560;
+    else
+        ['something went wrong with ',Fname]
+        continue;
+    end
+    
+    
     % load movie data and set output directory
     movieFile=[dataDirectory filesep fileList(iFile).name];
     outputDir=[dataDirectory filesep fileList(iFile).name(1:end-3) filesep];
@@ -115,24 +133,7 @@ for iFile=1:nFiles
     % set numerical aperture and magnification manually
     MD.numAperture_=NA;
     MD.magnification_=MAG;
-    
-    
-    
-    %Sets wavelength informaion
-    
-    Fname = lower(fileList(iFiles).name);
-    
-    if (strfind(Fname, 'cy5') || strfind(Fname, 'atto655') || strfind(Fname, 'a647') || strfind(Fname, 'egfr'))
-        wavelength = 672;
-        MD.channels_.emissionWavelength_=672;
-        MD.channels_. excitationWavelength_=642;
-    elseif (strfind(Fname, 'cy3') || strfind(Fname, 'atto655') || strfind(Fname, 'A647') ||strfind(Fname, 'erbb2'))
-        wavelength = 594;
-        MD.channels_.emissionWavelength_=594;
-        MD.channels_. excitationWavelength_=560;
-    else
-        'something went wrong'
-    end
+         
         
     nChannels=numel(wavelength);
     psfSigmaTheo=ones(size(wavelength));
