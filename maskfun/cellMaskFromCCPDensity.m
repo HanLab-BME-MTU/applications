@@ -38,11 +38,16 @@ if isempty(R)
         'TolX', 1e-8, ...
         'Tolfun', 1e-8);
     
-    p = lsqnonlin(@cost, [1 1], [0 0], [Inf Inf], opts, xEDF, fEDF);
+    %p = lsqnonlin(@cost, [2 1], [0 0], [Inf Inf], opts, xEDF, fEDF);
     %m = chiCDF(xEDF, p(1), p(2));
-    %figure; plot(xEDF,fEDF,'k');
-    %hold on; plot(xEDF,m,'r');
-    R = gammaincinv(0.95, p(1), 'lower')*p(2);
+    % optimize only 'sigma'
+    p = lsqnonlin(@cost, 1, 0, Inf, opts, xEDF, fEDF, 2);
+    m = chiCDF(xEDF, 2, p(1));
+    if ip.Results.Display
+        figure; plot(xEDF,fEDF,'k');
+        hold on; plot(xEDF,m,'r');
+    end
+    R = gammaincinv(0.95, 2, 'lower')*p(1);
 end
 [clusterID, nn] = dbscan(X, ip.Results.MinSize, R);
 ny = data.imagesize(1);
@@ -58,7 +63,7 @@ if ip.Results.Close
 end
 
 if ip.Results.Display
-    figure; imagesc(mask); axis image; colormap(gray(256)); colorbar;
+    figure; imagesc(mask); axis image; colormap(gray(256));
     hold on;
     nc = numel(setdiff(unique(clusterID),0));
     plot(x(clusterID==0), y(clusterID==0), 'o', 'Color', 0.6*[1 1 1]);
@@ -68,9 +73,11 @@ if ip.Results.Display
 end
 
 
+function v = cost(p, x, f, k)
+v = chiCDF(x, k, p(1)) - f;
 
-function v = cost(p, x, f)
-v = chiCDF(x, p(1), p(2)) - f;
+% function v = cost(p, x, f)
+% v = chiCDF(x, p(1), p(2)) - f;
 
 function f = chiCDF(x, k, s)
 f = gammainc(0.5*x.^2/s^2, 0.5*k, 'lower');
