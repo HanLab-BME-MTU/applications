@@ -47,7 +47,6 @@ condDir = ip.Results.condDir;
 chNames = ip.Results.chNames;
 markers = ip.Results.markers;
 parameters = ip.Results.Parameters;
-movieSelector = ip.Results.MovieSelector;
 
 if isempty(condDir)
     condDir = uigetdir(pwd, 'Select the ''condition'' folder:');
@@ -64,42 +63,24 @@ end
 
 fprintf('Root directory: %s\n', condDir);
 
+cellPath = recursiveDir(condDir, 2);
 
-% list of experiments for this condition, each containing one or more 'cell' directories
-expDir = dirList(condDir);
-
-% remvove listings that do not contain 'movieSelector'
-matchIdx = regexpi({expDir.name}, movieSelector, 'once');
-[matchIdx{cellfun(@isempty, matchIdx)}] = deal(NaN);
-matchIdx = cell2mat(matchIdx);
-expDir(isnan(matchIdx)) = [];
-matchIdx(isnan(matchIdx)) = [];
-
-% if condDir is a 'cell' directory
-if ~isempty(regexpi(getDirFromPath(condDir), movieSelector, 'once'))
-    cellPath{1} = condDir;
-    % if expDir are 'cell' directories
-elseif ~isempty(expDir)
-    cellPath = arrayfun(@(x) [condDir x.name filesep], expDir, 'UniformOutput', false);
-    if ip.Results.StrictSelector
-        cellPath = cellPath(matchIdx==1);
-    end
-    cellPath = sortStringsByToken(cellPath, movieSelector, 'post');
-else
-    cellPath = arrayfun(@(x) arrayfun(@(y) [condDir x.name filesep y.name filesep], dirList([condDir x.name]), 'UniformOutput', false), expDir, 'UniformOutput', false);
-    cellPath = cellfun(@(x) sortStringsByToken(x, movieSelector, 'post'), cellPath, 'UniformOutput', false);
-    cellPath = vertcat(cellPath{:});
-end
+% cell directories:
+[cellDirs, cellPar] = cellfun(@(i) getDirFromPath(i), cellPath, 'unif', 0);
+idx = ~cellfun(@isempty, regexpi(cellDirs, ip.Results.MovieSelector, 'once'));
+cellPath = cellPath(idx);
 
 if isempty(cellPath)
-    error(['No valid movies found in: ' condDir]);
+    error(['No movies found in: ' condDir]);
 end
-nCells = length(cellPath);
 
-% no 'cell' folders are found
-if nCells == 0
-    error('No data found in directory.');
+% sort by cell number (for each experiment)
+[ui,~,ai] = unique(cellPar(idx));
+for k = 1:numel(ui)
+    cellPath(ai==k) = sortStringsByToken(cellPath(ai==k), ip.Results.MovieSelector, 'post');
 end
+
+nCells = length(cellPath);
 
 data(1:nCells) = struct('source', [], 'channels', [], 'date', [], 'framerate', [],...
     'imagesize', [], 'movieLength', [], 'markers', [],...
