@@ -67,7 +67,14 @@ cellPath = recursiveDir(condDir, 2);
 
 % cell directories:
 [cellDirs, cellPar] = cellfun(@(i) getDirFromPath(i), cellPath, 'unif', 0);
-idx = ~cellfun(@isempty, regexpi(cellDirs, ip.Results.MovieSelector, 'once'));
+
+idx = regexpi(cellDirs, ip.Results.MovieSelector, 'once');
+[idx{cellfun(@isempty, idx)}] = deal(NaN);
+idx = vertcat(idx{:});
+if ip.Results.StrictSelector
+    idx(idx~=1) = NaN;
+end
+idx = ~isnan(idx);
 cellPath = cellPath(idx);
 
 if isempty(cellPath)
