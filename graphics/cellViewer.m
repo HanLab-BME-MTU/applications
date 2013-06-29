@@ -20,10 +20,10 @@ nx = ceil(N/ny);
 
 if nx > 1
     dx = 0.05/(nx-1);
-    wx = 0.95/nx;    
+    wx = 0.95/nx;
 else
     dx = 0;
-    wx = 1;    
+    wx = 1;
 end
 if ny > 1
     dy = 0.05/(ny-1);
@@ -39,29 +39,29 @@ for k = 1:N
     y = ceil(k/nx);
     x = k-(y-1)*nx;
     ha = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
-
-    %frame = scaleContrast(double(imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame})));
-    %frame = double(imread([data(k).source 'Detection' filesep 'avgProj.tif']));
     
     tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
     frame = scaleContrast(tmp.aip);
     frame = scaleContrast(sqrt(frame));
-    if strcmpi(ip.Results.Mode, 'mask')
-        mask = double(imread([data(k).source 'Detection' filesep 'cellmask.tif']));
-        frame = uint8(rgbOverlay(frame, max(mask(:))-mask, [1 0 0]));
-    end
     
     imagesc(frame, 'Parent', ha);
+    if strcmpi(ip.Results.Mode, 'mask')
+        mask = double(imread([data(k).source 'Detection' filesep 'cellmask.tif']));
+        hold on;
+        B = bwboundaries(mask);
+        cellfun(@(i) plot(i(:,2),i(:,1), 'r'), B);
+    end
+    
     psize = data(k).pixelSize/data(k).M;
     plotScaleBar(5e-6/psize, 'Label', '5 µm');
-
+    
     axis image off;
     r = data(k).imagesize(2)/data(k).imagesize(1);
     d = 0.02;
     text(1-d, 1-d*r, getCellDir(data(k)), 'Color', 'w',...
-                'Units', 'normalized',...
-                'VerticalAlignment', 'Top',...
-                'HorizontalAlignment', 'Right',...
-                'FontName', ip.Results.FontName, 'FontSize', ip.Results.FontSize, 'interpreter', 'none');
-
+        'Units', 'normalized',...
+        'VerticalAlignment', 'Top',...
+        'HorizontalAlignment', 'Right',...
+        'FontName', ip.Results.FontName, 'FontSize', ip.Results.FontSize, 'interpreter', 'none');
+    
 end
