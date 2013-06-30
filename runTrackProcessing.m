@@ -45,8 +45,8 @@ if ~iscell(frameIdx)
     frameIdx = {frameIdx};
 end
 
-parfor i = 1:length(data)
-    if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite
+for i = 1:length(data)
+    if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite %#ok<PFBNS>
         data(i) = main(data(i), frameIdx{i}, ip.Results);
     else
         fprintf('Tracks from %s have already been processed.\n', getShortPath(data(i)));
@@ -89,9 +89,6 @@ kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 nCh = length(data.channels);
 mCh = strcmp(data.source, data.channels);
 
-if isempty(sigmaV)
-    sigmaV = cellfun(@(i) getGaussianPSFsigma(data.NA, data.M, data.pixelSize, i), data.markers);
-end
 for k = 1:nCh
     data.framePaths{k} = data.framePaths{k}(frameIdx);
 end
@@ -101,7 +98,7 @@ data.framerate = data.framerate*(frameIdx(2)-frameIdx(1));
 data.movieLength = length(data.framePaths{1});
 
 sigma = sigmaV(mCh);
-w2 = ceil(2*sigma);
+% w2 = ceil(2*sigma);
 w3 = ceil(3*sigma);
 w4 = ceil(4*sigma);
 
@@ -262,7 +259,7 @@ idx(loc(loc~=0)) = false;
 mcFieldNames = mcFieldNames(idx);
 mcFieldSizes = structfun(@(i) size(i,1), frameInfo(1));
 mcFieldSizes = mcFieldSizes(idx);
-bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
+bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
 
 %==============================
 % Loop through tracks
@@ -493,52 +490,8 @@ for f = 1:data.movieLength
             
             for l = 1:numel(idxList)
                 idx = idxList(l);
-                xi = round(tracks(k).x(ch,idx));
-                yi = round(tracks(k).y(ch,idx));
-                
-                % window/masks (see psfLocalization.m for details)
-                maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
-                maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-                
-                cmask = annularMask;
-                cmask(maskWindow~=0) = 0;
-                window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
-                
-                ci = mean(window(cmask==1));
-                window(maskWindow~=0) = NaN;
-                
-                x0 = tracks(k).x(ch,idx)-xi;
-                y0 = tracks(k).y(ch,idx)-yi;
-                npx = sum(isfinite(window(:)));
-                [prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'xyAc');
-                dx = prm(1);
-                dy = prm(2);
-                if (dx > -w2 && dx < w2 && dy > -w2 && dy < w2)
-                    tracks(k).x(ch,idx) = xi+dx;
-                    tracks(k).y(ch,idx) = yi+dy;
-                    tracks(k).A_pstd(ch,idx) = prmStd(3);
-                    tracks(k).c_pstd(ch,idx) = prmStd(4);
-                else
-                    [prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'Ac');
-                    tracks(k).A_pstd(ch,idx) = prmStd(1);
-                    tracks(k).c_pstd(ch,idx) = prmStd(2);
-                end
-                tracks(k).A(ch,idx) = prm(3);
-                tracks(k).c(ch,idx) = prm(5);
-                
-                tracks(k).sigma_r(ch,idx) = res.std;
-                tracks(k).SE_sigma_r(ch,idx) = res.std/sqrt(2*(npx-1));
-                
-                SE_r = tracks(k).SE_sigma_r(ch,idx) * kLevel;
-                
-                tracks(k).hval_AD(idx) = res.hAD;
-                
-                df2 = (npx-1) * (tracks(k).A_pstd(ch,idx).^2 + SE_r.^2).^2 ./...
-                    (tracks(k).A_pstd(ch,idx).^4 + SE_r.^4);
-                
-                scomb = sqrt((tracks(k).A_pstd(ch,idx).^2 + SE_r.^2)/npx);
-                T = (tracks(k).A(ch,idx) - res.std*kLevel) ./ scomb;
-                tracks(k).pval_Ar(ch,idx) = tcdf(-T, df2);
+                [t0] = interpTrack(tracks(k).x(ch,idx), tracks(k).y(ch,idx), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
+                tracks(k) = mergeStructs(tracks(k), ch, idx, t0);
             end
         end
         
@@ -553,50 +506,9 @@ for f = 1:data.movieLength
         for ki = 1:length(currentBufferIdx)
             k = currentBufferIdx(ki);
             
-            xi = round(tracks(k).x(ch,1));
-            yi = round(tracks(k).y(ch,1));
-            
-            % window/masks (see psfLocalization.m for details)
-            maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
-            maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-            cmask = annularMask;
-            cmask(maskWindow~=0) = 0;
-            window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
-            ci = mean(window(cmask==1));
-            window(maskWindow~=0) = NaN;
-            
-            x0 = tracks(k).x(1)-xi;
-            y0 = tracks(k).y(1)-yi;
-            
-            [prm,prmStd,~,res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'xyAc');
+            [t0] = interpTrack(tracks(k).x(ch,1), tracks(k).y(ch,1), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
             bi = f - max(1, tracks(k).start-buffer(1)) + 1;
-            dx = prm(1);
-            dy = prm(2);
-            if sqrt((dx-x0)^2+(dy-y0)^2) < w2
-                tracks(k).startBuffer.x(ch,bi) = xi+dx;
-                tracks(k).startBuffer.y(ch,bi) = yi+dy;
-                tracks(k).startBuffer.A_pstd(ch,bi) = prmStd(3);
-            else
-                [prm,prmStd,~,res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'Ac');
-                tracks(k).startBuffer.x(ch,bi) = tracks(k).x(ch,1);
-                tracks(k).startBuffer.y(ch,bi) = tracks(k).y(ch,1);
-                tracks(k).startBuffer.A_pstd(ch,bi) = prmStd(1);
-            end
-            tracks(k).startBuffer.A(ch,bi) = prm(3);
-            tracks(k).startBuffer.c(ch,bi) = prm(5);
-            tracks(k).startBuffer.sigma_r(ch,bi) = res.std;
-            
-            npx = sum(isfinite(window(:)));
-            
-            tracks(k).startBuffer.SE_sigma_r(ch,bi) = res.std/sqrt(2*(npx-1));
-            SE_r = tracks(k).startBuffer.SE_sigma_r(ch,bi) * kLevel;
-            
-            df2 = (npx-1) * (tracks(k).startBuffer.A_pstd(ch,bi).^2 + SE_r.^2).^2 ./...
-                (tracks(k).startBuffer.A_pstd(ch,bi).^4 + SE_r.^4);
-            
-            scomb = sqrt((tracks(k).startBuffer.A_pstd(ch,bi).^2 + SE_r.^2)/npx);
-            T = (tracks(k).startBuffer.A(ch,bi) - res.std*kLevel) ./ scomb;
-            tracks(k).startBuffer.pval_Ar(ch,bi) = tcdf(-T, df2);
+            tracks(k).startBuffer = mergeStructs(tracks(k).startBuffer, ch, bi, t0);
         end
         
         %------------------------
@@ -609,50 +521,10 @@ for f = 1:data.movieLength
         
         for ki = 1:length(currentBufferIdx)
             k = currentBufferIdx(ki);
-            xi = round(tracks(k).x(ch,end));
-            yi = round(tracks(k).y(ch,end));
             
-            % window/masks (see psfLocalization.m for details)
-            maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
-            maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
-            cmask = annularMask;
-            cmask(maskWindow~=0) = 0;
-            window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
-            ci = mean(window(cmask==1));
-            window(maskWindow~=0) = NaN;
-            
-            x0 = tracks(k).x(end)-xi;
-            y0 = tracks(k).y(end)-yi;
-            
-            [prm,prmStd,~,res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'xyAc');
+            [t0] = interpTrack(tracks(k).x(ch,end), tracks(k).y(ch,end), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
             bi = f - tracks(k).end;
-            dx = prm(1);
-            dy = prm(2);
-            if sqrt((dx-x0)^2+(dy-y0)^2) < w2
-                tracks(k).endBuffer.x(ch,bi) = xi+dx;
-                tracks(k).endBuffer.y(ch,bi) = yi+dy;
-                tracks(k).endBuffer.A_pstd(ch,bi) = prmStd(3);
-            else
-                [prm,prmStd,~,res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaV(ch) ci], 'Ac');
-                tracks(k).endBuffer.x(ch,bi) = tracks(k).x(ch,end);
-                tracks(k).endBuffer.y(ch,bi) = tracks(k).y(ch,end);
-                tracks(k).endBuffer.A_pstd(ch,bi) = prmStd(1);
-            end
-            tracks(k).endBuffer.A(ch,bi) = prm(3);
-            tracks(k).endBuffer.c(ch,bi) = prm(5);
-            tracks(k).endBuffer.sigma_r(ch,bi) = res.std;
-            
-            npx = sum(isfinite(window(:)));
-            
-            tracks(k).endBuffer.SE_sigma_r(ch,bi) = res.std/sqrt(2*(npx-1));
-            SE_r = tracks(k).endBuffer.SE_sigma_r(ch,bi) * kLevel;
-            
-            df2 = (npx-1) * (tracks(k).endBuffer.A_pstd(ch,bi).^2 + SE_r.^2).^2 ./...
-                (tracks(k).endBuffer.A_pstd(ch,bi).^4 + SE_r.^4);
-            
-            scomb = sqrt((tracks(k).endBuffer.A_pstd(ch,bi).^2 + SE_r.^2)/npx);
-            T = (tracks(k).endBuffer.A(ch,bi) - res.std*kLevel) ./ scomb;
-            tracks(k).endBuffer.pval_Ar(ch,bi) = tcdf(-T, df2);
+            tracks(k).endBuffer = mergeStructs(tracks(k).endBuffer, ch, bi, t0);
         end
         fprintf('\b\b\b\b%3d%%', round(100*(ch + (f-1)*nCh)/(nCh*data.movieLength)));
     end
@@ -965,3 +837,70 @@ end
 processingInfo.procFlag = [preprocess postprocess];
 
 save([data.source 'Tracking' filesep opts.FileName], 'tracks', 'processingInfo');
+
+
+
+% calculate track fields for gap or buffer position
+function [ps] = interpTrack(x, y, frame, labels, annularMask, sigma, sigmaCh, kLevel)
+
+xi = round(x);
+yi = round(y);
+
+w2 = ceil(2*sigma);
+w4 = ceil(4*sigma);
+% window/masks (see psfLocalization.m for details)
+maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
+maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
+
+cmask = annularMask;
+cmask(maskWindow~=0) = 0;
+window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
+
+ci = mean(window(cmask==1));
+window(maskWindow~=0) = NaN;
+
+x0 = x-xi;
+y0 = y-yi;
+npx = sum(isfinite(window(:)));
+[prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaCh ci], 'xyAc');
+dx = prm(1);
+dy = prm(2);
+if (dx > -w2 && dx < w2 && dy > -w2 && dy < w2)
+    ps.x = xi+dx;
+    ps.y = yi+dy;
+    ps.A_pstd = prmStd(3);
+    ps.c_pstd = prmStd(4);
+else
+    [prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaCh ci], 'Ac');
+    ps.x = x;
+    ps.y = y;
+    ps.A_pstd = prmStd(1);
+    ps.c_pstd = prmStd(2);
+end
+ps.A = prm(3);
+ps.c = prm(5);
+
+ps.sigma_r = res.std;
+ps.SE_sigma_r = res.std/sqrt(2*(npx-1));
+
+SE_r = ps.SE_sigma_r * kLevel;
+
+ps.hval_AD = res.hAD;
+
+df2 = (npx-1) * (ps.A_pstd.^2 + SE_r.^2).^2 ./...
+    (ps.A_pstd.^4 + SE_r.^4);
+
+scomb = sqrt((ps.A_pstd.^2 + SE_r.^2)/npx);
+T = (ps.A - res.std*kLevel) ./ scomb;
+ps.pval_Ar = tcdf(-T, df2);
+
+
+
+function ps = mergeStructs(ps, ch, idx, cs)
+
+cn = fieldnames(cs);
+for f = 1:numel(cn)
+    ps.(cn{f})(ch,idx) = cs.(cn{f});
+end
+
+
