@@ -27,7 +27,7 @@ if nargin==1
     
     C = resnorm/(numel(samples)-numel(p)-1)*inv(J'*J); %#ok<MINV>
     param_pstd = sqrt(diag(C))';
-    K = corrFromC(C)';
+    K = corrMatFromCov(C)';
     K = K(2,1);
     
     % area corresponding to missing data
@@ -77,18 +77,3 @@ cdf = gammainc(k*x,n, 'lower');
 T = cdf(1);
 cdf = (cdf-T)/(1-T);
 v = cdf - f_ecdf;
-
-
-
-function K = corrFromC(C)
-n = size(C,1);
-K = zeros(n,n);
-
-idx = pcombs(1:n);
-i = idx(:,1);
-j = idx(:,2);
-ij = i+n*(j-1);
-ii = i+n*(i-1);
-jj = j+n*(j-1);
-
-K(ij) = C(ij) ./ sqrt(C(ii).*C(jj));
