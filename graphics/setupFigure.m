@@ -6,29 +6,39 @@ ip.addRequired('nh', @isposint);
 ip.addRequired('nw', @isposint);
 ip.addOptional('na', nh*nw, @isposint);
 ip.addParamValue('SameAxes', false, @islogical);
-% ip.addParamValue('Units', 'pixels', @ischar);
+ip.addParamValue('AspectRatio', []);
+ip.addParamValue('AxesWidth', 6);
+ip.addParamValue('AxesHeight', 3.5);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(nh, nw, varargin{:});
 na = ip.Results.na;
 
-% default proportions:
-aw = 0.75;
-xl = 3/16; % left spacing (relative to single axes)
+ar = ip.Results.AspectRatio;
+if isempty(ar)
+    ar = ip.Results.AxesWidth/ip.Results.AxesHeight;
+end
+w0 = 8;
+h0 = 1.5+0.5+ar*6;
+
+
+% default proportions: left/bottom: 1.5, width: 6, height: 3.5, top/right: 0.5
+aw = 6/8;
+xl = 1.5/8; % left spacing (relative to single axes)
 if ip.Results.SameAxes
-    xc = 3/32;
+    xc = xl/2; % spacing btw axes
 else
     xc = xl;
 end
-xr = 1/16;
+xr = 0.5/8;
 
-ah = 7/11;
-yb = 3/11;
+ah = ar*6/h0;
+yb = 1.5/h0;
 if ip.Results.SameAxes
-    yc = 3/23;
+    yc = yb/2;
 else
     yc = yb;
 end
-yt = 1/11;
+yt = 0.5/h0;
 
 % width
 w = xl + nw*aw + (nw-1)*xc + xr;
@@ -46,7 +56,14 @@ yb = yb/h;
 yc = yc/h;
 
 % resize figure window
-% fpos = get(0, 'DefaultFigurePosition');
+fset = loadFigureSettings(ip.Results.DisplayMode);
+fpos = fset.fPos;
+% if w>h
+%     fpos(4) = fpos(3)*h/w;
+% else
+%     fpos(3) = fpos(4)*w/h;
+% end
+
 % f = 5.5/8;
 % if w/fpos(3) > h/fpos(4) % figure width limiting
 %     fpos(4) = fpos(3)*h/w*f;
@@ -54,10 +71,8 @@ yc = yc/h;
 %     fpos(3) = fpos(4)*w/h/f;
 % end
 
-fset = loadFigureSettings(ip.Results.DisplayMode);
-fpos = fset.fPos;
-fpos(3) = w*fpos(3);
-fpos(4) = h*fpos(4);
+fpos(3) = w*w0;
+fpos(4) = h*h0;
 if strcmpi(ip.Results.DisplayMode, 'print')
     units = 'centimeters';
 else
@@ -66,7 +81,6 @@ end
 
 hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',...
     'Units', units, 'Position', fpos);
-
 
 ha = zeros(na,1);
 x0 = zeros(na,1);
