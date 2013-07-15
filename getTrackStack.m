@@ -12,6 +12,7 @@ ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
 ip.addParamValue('Reference', 'track', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
 ip.addParamValue('WindowWidth', 5, @isscalar);
+ip.addParamValue('Source', 'frame', @(x) any(strcmpi(x, {'frame', 'mask'})));
 ip.parse(data, track, varargin{:});
 
 nc = length(data.channels);
@@ -44,7 +45,6 @@ end
 fi = track.start-sb:track.end+eb;
 nf = length(fi);
 
-stack = cell(nc,nf);
 
 if track.nSeg==1 && strcmpi(ip.Results.Reference, 'track') % align frames to track
     xi = round(xv(mCh,:));
@@ -70,9 +70,18 @@ else
 end
 
 % load all visible frames of this track and store
-for c = 1:nc
+if strcmpi(ip.Results.Source, 'frame')
+    stack = cell(nc,nf);
+    for c = 1:nc
+        for k = 1:nf
+            frame = imread(data.framePaths{c}{fi(k)});
+            stack{c,k} = frame(ya{k}, xa{k});
+        end
+    end
+else
+    stack = cell(1,nf);
     for k = 1:nf
-        frame = imread(data.framePaths{c}{fi(k)});
-        stack{c,k} = frame(ya{k}, xa{k});
+        frame = imread(data.maskPaths{fi(k)});
+        stack{k} = frame(ya{k}, xa{k});
     end
 end
