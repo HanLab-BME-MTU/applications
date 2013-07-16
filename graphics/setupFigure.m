@@ -83,7 +83,7 @@ ha = zeros(na,1);
 x0 = zeros(na,1);
 y0 = zeros(na,1);
 for i = 1:na
-    y0(i) = ceil(i/nw)-1;
+    y0(i) = nh-ceil(i/nw);
     x0(i) = mod(i-1,nw);
     ha(i) = axes('Position', [xl+x0(i)*(aw+xc) yb+y0(i)*(ah+yc) aw ah]); %#ok<LAXES>
     hold(ha(i), 'on');
