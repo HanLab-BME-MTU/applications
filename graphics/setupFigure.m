@@ -9,8 +9,8 @@ ip.addParamValue('SameAxes', false, @islogical);
 ip.addParamValue('AspectRatio', []);
 ip.addParamValue('AxesWidth', 6);
 ip.addParamValue('AxesHeight', 3.5);
-ip.addParamValue('XSpace', [1.5 0.5]);
-ip.addParamValue('YSpace', [1.5 0.5]);
+ip.addParamValue('XSpace', [1.5 0.75 0.5]);
+ip.addParamValue('YSpace', [1.5 0.75 0.5]);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(nh, nw, varargin{:});
 na = ip.Results.na;
@@ -27,20 +27,20 @@ end
 aw = ip.Results.AxesWidth/w0;
 xl = ip.Results.XSpace(1)/w0; % left spacing (relative to single axes)
 if ip.Results.SameAxes
-    xc = xl/2; % spacing btw axes
+    xc = ip.Results.XSpace(2)/w0;  % spacing btw axes
 else
     xc = xl;
 end
-xr = ip.Results.XSpace(2)/w0;
+xr = ip.Results.XSpace(3)/w0;
 
 ah = ah0/h0;
 yb = ip.Results.YSpace(1)/h0;
 if ip.Results.SameAxes
-    yc = yb/2;
+    yc = ip.Results.YSpace(2)/h0;
 else
     yc = yb;
 end
-yt = ip.Results.YSpace(2)/h0;
+yt = ip.Results.YSpace(3)/h0;
 
 % width (relative to normalized single axes)
 w = xl + nw*aw + (nw-1)*xc + xr;
