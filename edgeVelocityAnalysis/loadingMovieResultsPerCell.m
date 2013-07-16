@@ -1,5 +1,18 @@
 function  out = loadingMovieResultsPerCell(ML,analysisDir,fileName)
 %Loading edge velocity analysis for each cell in the MovieList
+%
+%Usage:
+%       out = loadingMovieResultsPerCell(ML,analysisDir,fileName)
+%       
+%Input:
+%       ML - movie list
+%       analysisDir - path for the specific analysis 
+%       fileName
+%
+%Output:
+%       structure array where each element comes from a cell. Fields are the analysis parameters
+%
+% Marco Vilela, 2013
 
 nCell = numel(ML.movies_);
 cF    = 1;
