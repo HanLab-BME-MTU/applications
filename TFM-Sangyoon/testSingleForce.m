@@ -1,8 +1,8 @@
-function [meanDispError,dispDetec,meanForceError,peakForceRatio,forceDetec,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
+function [meanDispError,dispDetec,meanForceError,peakForceRatio,forceDetec,beadsOnAdh,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
 % Input check
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addOptional('solMethodBEM','LaplacianReg', @ischar);
+ip.addOptional('solMethodBEM','QR', @ischar);
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
 
@@ -42,6 +42,8 @@ else
     [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
         'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
 end
+nPoints = length(bead_x);
+
 %% Noise addition (5%)
 refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
@@ -174,7 +176,8 @@ params = MD.getPackage(iPack).getProcess(4).funParams_;
 params.YoungModulus = 8000;
 params.regParam = 1e-6;
 params.solMethodBEM = solMethodBEM;
-params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
+params.basisClassTblPath = '/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 
@@ -231,7 +234,6 @@ else
         dispDetec = mean(displFieldMag)/mean(displFieldBgdMagsorted(1:floor(0.1*length(displFieldBgdMagsorted))));%1:10));%f
     end
 end
-
 % Load the forcefield
 forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
 
@@ -260,8 +262,6 @@ for k=1:nmfPoints
     end
 end
 
-% errors in force field
-meanForceError=nansum(((org_fx-forceField(1).vec(:,1)).^2+(org_fy-forceField(1).vec(:,2)).^2).^.5);
 % heatmap creation and saving - i'll do it later
 
 % force peak ratio
@@ -276,27 +276,39 @@ maskForceXIYI = ((XI-100).^2+(YI-150).^2)<=d/2;
 % if isempty(forceForceIdx)
 %     peakForceRatio = 0;
 % else
-    x_vec = reshape(x_mat_u,[],1);
-    y_vec = reshape(y_mat_u,[],1);
-    force_x_vec = reshape(force_x,[],1);
-    force_y_vec = reshape(force_y,[],1);
+x_vec = reshape(x_mat_u,[],1);
+y_vec = reshape(y_mat_u,[],1);
+force_x_vec = reshape(force_x,[],1);
+force_y_vec = reshape(force_y,[],1);
 %     forceFieldForce = forceField(1).vec(forceForceIdx,:);
 %     forceFieldMag = (forceFieldForce(:,1).^2+forceFieldForce(:,2).^2).^0.5;
-    fMapFiltered = fMap.*maskForceXIYI;
-    forceFieldMag = fMapFiltered(fMapFiltered>0);
-    orgFieldForceIdx = maskVectors(x_vec,y_vec,maskForce);
-    orgFieldForceMag = (force_x_vec(orgFieldForceIdx).^2+force_y_vec(orgFieldForceIdx).^2).^0.5;
-    
-    backgroundIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),~bwmorph(maskForce,'dilate',10));
-    forceFieldBgd = forceField(1).vec(backgroundIdx,:);
-    forceFieldBgdMag = (forceFieldBgd(:,1).^2+forceFieldBgd(:,2).^2).^0.5;
-    if isempty(forceFieldMag)
-        peakForceRatio = 0;
-        forceDetec = 0;
-    else
-        peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
-        forceDetec = mean(forceFieldMag)/max(forceFieldBgdMag);
-    end
+fMapFiltered = fMap.*maskForceXIYI;
+forceFieldMag = fMapFiltered(fMapFiltered>0);
+orgFieldForceIdx = maskVectors(x_vec,y_vec,maskForce);
+orgFieldForceMag = (force_x_vec(orgFieldForceIdx).^2+force_y_vec(orgFieldForceIdx).^2).^0.5;
+
+backgroundIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),~bwmorph(maskForce,'dilate',10));
+forceFieldBgd = forceField(1).vec(backgroundIdx,:);
+forceFieldBgdMag = (forceFieldBgd(:,1).^2+forceFieldBgd(:,2).^2).^0.5;
+if isempty(forceFieldMag)
+    peakForceRatio = 0;
+    forceDetec = 0;
+else
+    peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
+    forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
+    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+end
+%% errors in force field
+maskForce2 = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=20;
+forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce2);
+meanForceError=nansum(((org_fx(forceIdx)-forceField(1).vec(forceIdx,1)).^2+(org_fy(forceIdx)-forceField(1).vec(forceIdx,2)).^2).^.5);
+%% beadsOnAdh
+beadIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
+if sum(beadIdx)
+    beadsOnAdh = true;
+else
+    beadsOnAdh = false;
+end
 return
 
 %% input parameters to be replaced with function inputs

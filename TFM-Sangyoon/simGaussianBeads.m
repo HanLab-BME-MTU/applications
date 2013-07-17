@@ -1,11 +1,6 @@
 function [frame, xv, yv, sv, Av] = simGaussianBeads(nx, ny, sigma, varargin)
 % SIMGAUSSIANBEADS generates a given number of beads using 2D Gaussians in an image.
 % The generated Gaussian signals do not overlap with the image boundaries.
-% The difference from SIMGAUSSIANSPOTS are
-% 1) intensities do not superimpose when overlapped
-% 2) beads are created with variable amplitudes
-% 3) there are shadows around the new bead (intensity diminishes by 50% if
-% there is any positive pixel values
 %
 %   Usage: [frame,xv,yv,sv,Av]=simGaussianSpots(nx,ny,sigma,varargin)
 %   Input:
@@ -18,7 +13,10 @@ function [frame, xv, yv, sv, Av] = simGaussianBeads(nx, ny, sigma, varargin)
 %           'A': amplitudes of 2D Gaussians
 %           'npoints'   : number of 2D Gaussian to be generated
 %           'background': value of background
-%           'Border' : border conditions: 'padded' (default), 'periodic', or 'truncated'
+%           'pixelSize': pixel size in nm
+%           'beadDiameter': bead diameter in nm. Beads should be physically
+%           separated by the bead diameter.
+%           'Border' : border conditions: 'padded', 'periodic', or 'truncated' (default)
 %           'Normalization: {'on' | 'off' (default)} divides Gaussians by 2*pi*sigma^2 when 'on'
 %           'Verbose': {'on' | 'off' (default)}
 %   Output:
@@ -29,7 +27,7 @@ function [frame, xv, yv, sv, Av] = simGaussianBeads(nx, ny, sigma, varargin)
 %           Av:    vector of amplitudes
 %
 % Example:
-% img = simGaussianSpots(200, 100, 2, 'npoints', 50, 'Border', 'periodic');
+% img = simGaussianBeads(200, 100, 2, 'npoints', 50, 'Border', 'periodic');
 
 % Francois Aguet, last modified July 30, 2012
 
@@ -43,8 +41,10 @@ ip.addParamValue('y', []);
 ip.addParamValue('A', []);
 ip.addParamValue('npoints', 1);
 ip.addParamValue('background', 0);
+ip.addParamValue('pixelSize', 72);
+ip.addParamValue('beadDiameter', 40);
 ip.addParamValue('verbose', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
-ip.addParamValue('Border', 'padded', @(x) any(strcmpi(x, {'padded', 'periodic', 'truncated'})));
+ip.addParamValue('Border', 'truncated', @(x) any(strcmpi(x, {'padded', 'periodic', 'truncated'})));
 ip.addParamValue('Normalization', 'off', @(x) any(strcmpi(x, {'analytical', 'sum', 'off'})));
 ip.parse(nx, ny, sigma, varargin{:});
 
@@ -54,6 +54,8 @@ xv = ip.Results.x(:);
 yv = ip.Results.y(:);
 Av = ip.Results.A(:);
 sv = ip.Results.sigma(:);
+pixelSize = ip.Results.pixelSize;
+d = ip.Results.beadDiameter;
 
 if numel(xv) ~= numel(yv)
     error('''x'' and ''y'' must have the same size.');
@@ -108,6 +110,22 @@ else
     if isempty(xv)
         xv = nx*rand(np,1)+0.5;
         yv = ny*rand(np,1)+0.5;
+        % beads separation - beads should be separated by bead diameter physically
+        beads = [xv yv];
+        d_pix = d/pixelSize; % bead diameter in pixel
+        idxSep = KDTreeBallQuery(beads, beads, 6*d_pix);
+        valid = true(numel(idxSep),1);
+        for i = 1:numel(idxSep)
+            if ~valid(i), continue; end
+            neighbors_KD = idxSep{i}(idxSep{i}~=i);
+            valid(neighbors_KD) = false;
+        end
+        beads = beads(valid, :);
+        disp([num2str(sum(valid)) ' beads were created out of ' num2str(length(xv))])
+        xv = beads(:,1);
+        yv = beads(:,2);
+        Av = Av(valid);
+        wv = wv(valid);
     end
 end
 
@@ -180,7 +198,7 @@ switch ip.Results.Border
         lby = max(yi-wv,1);
         uby = min(yi+wv,ny);
         
-        for k = 1:np
+        for k = 1:length(xi)
             wx = (lbx(k):ubx(k)) - xi(k);
             wy = (lby(k):uby(k)) - yi(k);
             [xg,yg] = meshgrid(wx,wy);
@@ -197,6 +215,11 @@ switch ip.Results.Border
 end
 
 % old code - this is wrong
+% The difference from SIMGAUSSIANSPOTS are
+% 1) intensities do not superimpose when overlapped
+% 2) beads are created with variable amplitudes
+% 3) there are shadows around the new bead (intensity diminishes by 50% if
+% there is any positive pixel values
 % ip = inputParser;
 % ip.CaseSensitive = false;
 % ip.addRequired('nx',@isnumeric);
