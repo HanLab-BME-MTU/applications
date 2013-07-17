@@ -163,6 +163,11 @@ for j = 2:num
 
 end
 
+tmp = PointList{1}.pnts(:,1:2)
+PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
+[clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
+PointList{1}.clusterInfo = clusterInfo;
+PointList{1}.clusterMap = clusterMap;
 
 
 %Create and "Image" of the final merge
