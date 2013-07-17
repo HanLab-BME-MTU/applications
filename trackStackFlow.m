@@ -57,7 +57,7 @@ function [v,corLength,sigtValues] = trackStackFlow(stack,points,minCorL,varargin
 % Lin Ji, 2005
 % Sebastien Besson, May 2011 (last modified Nov 2011)
 % Adapted from imFlowTrack.m
-% Sangyoon Han, October 2012 (last modified Mar 2013)
+% Sangyoon Han, October 2012 (last modified July 2013)
 
 % Input check
 ip= inputParser;
@@ -69,7 +69,7 @@ ip.addParamValue('maxSpd',40,@isscalar);
 ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
 ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate'}));
+ip.addParamValue('mode','accurate',@(x) ismember(x,{'fast','accurate'}));
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
@@ -92,7 +92,8 @@ y=points(:,2);
 %Initial maximum speed components in both direction.
 initMaxFlowSpd = 20;
 initMaxPerpSpd = 20;
-closenessThreshold = 1; %changed from 0.25 to account for not-interpolated maxV from 0.25;
+closenessThreshold = 0.25; 
+closenessThresholdpix = 1; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 
 %For isotropic correlation.
 maxSpdLimit = max(maxSpdLimit,initMaxFlowSpd);
@@ -131,11 +132,11 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-% if matlabpool('size')<2
-%     matlabpool open
-% end
+if matlabpool('size')<2
+    matlabpool open
+end
 
-for k = 1:nPoints
+parfor k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -237,7 +238,7 @@ for k = 1:nPoints
                     % the ambiguity can be resovled. Also by comparing the two
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
-                    [score2] = calScore(kym,centerI,ceil(1.25*corL),...
+                    [score2] = calScore(kym,centerI,ceil(1.75*corL),...
                         vP,vF,'bAreaThreshold',bAreaThreshold,...
                         'kymMask',kymMask,'kymAvgImg',kymAvgImg);
                     if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
@@ -288,7 +289,8 @@ for k = 1:nPoints
                         if maxVNorm == 0 || ...
                                 (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
                                 (pass == 1 && maxVNorm < 0.5) || ...
-                                (pass == 0 && minD <= closenessThreshold) %*maxVNorm
+                                (pass == 0 && minD <= closenessThreshold*maxVNorm && maxVNorm>closenessThresholdpix) || ...
+                                (pass == 0 && minD <= closenessThresholdpix && maxVNorm<=closenessThresholdpix)
                             maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
                             pass = 2;
                         else
@@ -318,13 +320,13 @@ for k = 1:nPoints
     elseif pass == 1
         maxV = maxInterpfromScore(maxI,score,vP,vF,mode);
     end
-    if pass
+    if pass && strcmp(mode,'accurate')
         % subpixel continuous correlation score. This is more accurate than
         % interpolation from discrete scores - Sangyoon
         %         if norm(maxV)<1 && norm(maxV)>1e-5
         % new vF and vP (around maxV)
-        refineFactor = 10; % by this, the pixel value will be magnified.
-        refineRange = 0.5; % in pixel
+        refineFactor = 10;%round(10*20/corL); % by this, the pixel value will be magnified.
+        refineRange = 1.0; % in pixel
         newvP = round(maxV(1)*refineFactor) - refineRange*refineFactor:round(maxV(1)*refineFactor) + refineRange*refineFactor;
         newvF = round(maxV(2)*refineFactor) - refineRange*refineFactor:round(maxV(2)*refineFactor) + refineRange*refineFactor;
 
@@ -336,21 +338,30 @@ for k = 1:nPoints
         newcropW   = newhCWL+newhCWR+1/refineFactor;
         fineKym     = zeros(floor(newcropW*refineFactor),floor(newcropL*refineFactor),numFrames);
         % interpolate the stack images kym
-        [curXI,curYI] = meshgrid(xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,yI-floor(newhCWL)-1:yI+floor(newhCWR)+1);
+        curXL = max(xI-floor(newhCLL)-1,1);
+        curXR = min(xI+floor(newhCLR)+1,imgL);
+        curYL = max(yI-floor(newhCWL)-1,1);
+        curYR = min(yI+floor(newhCWR)+1,imgW);
+        [curXI,curYI] = meshgrid(curXL:curXR,curYL:curYR);
         [fineXI,fineYI] = meshgrid(xI-newhCLL:1/refineFactor:xI+newhCLR,yI-newhCWL:1/refineFactor:yI+newhCWR);
 
         for k2 = 1:numFrames
-            fineKym(:,:,k2) = griddata(curXI,curYI,stack(yI-floor(newhCWL)-1:yI+floor(newhCWR)+1,xI-floor(newhCLL)-1:xI+floor(newhCLR)+1,k2),fineXI,fineYI);
+            fineKym(:,:,k2) = griddata(curXI,curYI,stack(curYL:curYR,curXL:curXR,k2),fineXI,fineYI);
         end
-        newcenterI = [newhCLL*refineFactor+1 newhCWL*refineFactor+1];
+        newcenterI = [newhCWL*refineFactor+1 newhCLL*refineFactor+1];
+%         %-- absolute difference mode --
+%         [score3] = calScore(fineKym,newcenterI,corL*refineFactor,newvP,newvF,'mode','difference');
+%         [~,minI3ind] = min(score3(:));
+%         [ind3x,ind3y] = ind2sub(size(score3),minI3ind);
+%         maxI3 = [ind3x,ind3y];
+%         maxVmagnified = minInterpfromScore(maxI3,score3,newvP,newvF);
+        %-- cross-correlation mode --
         [score3] = calScore(fineKym,newcenterI,corL*refineFactor,newvP,newvF);
-        %The index of zero velocity.
-        %             zeroI = [find(newvP==0) find(newvF==0)];
-        %             [pass3,maxI3] = findMaxScoreI(score3,zeroI,1,0.5);
         [~,maxI3ind] = max(score3(:));
         [ind3x,ind3y] = ind2sub(size(score3),maxI3ind);
         maxI3 = [ind3x,ind3y];
-        maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF,mode);
+        maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF);
+        
         maxV = maxVmagnified/refineFactor;
     end
     
@@ -397,10 +408,12 @@ ip =inputParser;
 ip.addParamValue('bAreaThreshold',0.5*corL^2,@isscalar);
 ip.addParamValue('kymMask',[],@islogical)
 ip.addParamValue('kymAvgImg',zeros(size(kym)),@isnumeric)
+ip.addParamValue('mode','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.parse(varargin{:});
 bAreaThreshold=ip.Results.bAreaThreshold;
 kymMask=ip.Results.kymMask;
 kymAvgImg=ip.Results.kymAvgImg;
+mode = ip.Results.mode;
 
 %The index of the correlating image block in the big cropped image.
 bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
@@ -420,7 +433,19 @@ bI1e(bI1e<1 | bI1e>kymWidth) = [];
 bI2e(bI2e<1 | bI2e>kymLen) = [];
 
 score = zeros(length(vP),length(vF));
-if isempty(kymMask)
+if strcmp(mode,'difference')
+    for j1 = 1:length(vP)
+        v1 = vP(j1);
+        for j2 = 1:length(vF)
+            v2 = vF(j2);
+            corrM = abs(kym(bI1,bI2,1:numFrames-1)- ...
+                kym(bI1+v1,bI2+v2,2:numFrames));
+
+            %Normalize the correlation coefficients.
+            score(j1,j2) = sum(corrM(:));
+        end
+    end
+elseif isempty(kymMask)
     % normalized cross-correlation. This can make the correlation less sensitive to bright region in template window - Sangyoon
     K1 = length(bI1); K2 = length(bI2);
     N1 = length(bI1e); N2 = length(bI2e);
@@ -830,7 +855,7 @@ subv = 1; % radius of subgroup for subscore
 maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
 
 bPolyTracked = 0;
-if strcmp(mode, 'fast') && (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
+if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
    && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
     subv = 1; % radius of subgroup for subscore
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
@@ -859,6 +884,26 @@ if strcmp(mode, 'fast') && (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1).
     maxV2 = [roots(polyder(py)) roots(polyder(px)) ];
     bPolyTracked = 1;
     
+%     % for figure
+%     figure
+%     hDscore = mesh(subvF,subvP,sub_score);
+%     set(hDscore,'EdgeColor',[0 0 0])
+%     set(hDscore,'FaceAlpha',0.7)
+%     xlabel('displacement in x (pixel)')
+%     ylabel('displacement in y (pixel)')
+%     zlabel('cross correlation score')
+%     zlim([0.987 0.993])
+%     set(hDscore,'EdgeColor',[0.6 0.6 0.6])
+%     set(hDscore,'LineWidth',2)
+%     hold on
+%     subfinevF = vF(max(1,maxI2(2)-subv)):0.1:vF(min(size(score,2),maxI2(2)+subv));
+%     subfinevP = vP(max(1,maxI2(2)-subv)):0.1:vP(min(size(score,2),maxI2(2)+subv));
+%     [subfinevFG,subfinevPG] = meshgrid(subfinevP,subfinevF);
+%     hInterp = mesh(subfinevFG,subfinevPG,sf(subfinevFG,subfinevPG));
+%     plot3(maxV2(1),maxV2(2),sf(maxV2(1),maxV2(2)),'m.')
+%     view(gca,[48.5 10]);
+%     set(hInterp,'FaceAlpha',0.3)
+    
 %     %analytical parabolic fit
 %     bap = 0.5*(sub_score(2,3)-sub_score(2,1));
 %     cap = 0.5*(sub_score(3,2)-sub_score(1,2));
@@ -874,7 +919,7 @@ if strcmp(mode, 'fast') && (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1).
 %     maxV = [-thetax/wx, -thetay/wy];
 end
 
-if strcmp(mode, 'accurate') || ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point
+if ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point strcmp(mode, 'accurate') || 
     subv = 4; % expanding region to fit
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
                         max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
@@ -893,3 +938,47 @@ if strcmp(mode, 'accurate') || ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checkin
         [min(subvP(end),maxVorg(1)+2), min(subvF(end),maxVorg(2)+2)],[], ...
         options,sp,dsp1,dsp2);            
 end
+
+function minV = minInterpfromScore(maxI2,score,vP,vF)
+% Sangyoon: I made a change for this refining process to
+% use parabola approximation. Once parabola fit is
+% too much apart from integer maxV (maxVorg), I
+% started to use the fmincon again for more correct refining process.
+% parabola approximation
+% input:    maxI2       :index for maxV in score
+%           score       :score
+%           vP,vF       :velocity range
+% output:   maxV2       :refined velocity
+
+subv = 1; % radius of subgroup for subscore
+maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
+
+if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
+   && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
+    subv = 1; % radius of subgroup for subscore
+    sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
+                        max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+    % my field of interest
+    subvP = vP(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv));
+    subvF = vF(max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
+
+    [subvFG,subvPG]=meshgrid(subvF,subvP);
+    subvF1D = reshape(subvFG,[],1);
+    subvP1D = reshape(subvPG,[],1);
+    sub_score1D = reshape(sub_score,[],1);
+
+    % starting point estimation SH based on discretized maxV (-b/2a =
+    % maxVorg(2)) in quadratical expression to avoid the random starting point warning SH
+    asp = 4.9; %decided empirically
+    bsp = -2*asp*maxVorg(2);
+    csp = asp;
+    dsp = -2*csp*maxVorg(1);
+    esp = -6.7; %arbitrary number
+    s = fitoptions('Method','NonlinearLeastSquares','StartPoint', [asp,bsp,csp,dsp,esp]); 
+    f = fittype('a*x^2+b*x+c*y^2+d*y+e','independent', {'x', 'y'}, 'dependent', 'z','option',s);
+    sf = fit( [subvF1D, subvP1D], sub_score1D, f);
+
+    px = [sf.a sf.b sf.e]; py = [sf.c sf.d sf.e];
+    minV = [roots(polyder(py)) roots(polyder(px)) ];
+end
+
