@@ -1,3 +1,5 @@
+%[crbV] = gaussianFitCRB returns the Cramer-Rao bounds for the parameters of a 2D Gaussian fit
+
 function crbV = gaussianFitCRB(x, y, x0, y0, A, c, sigma, sigma_n, noiseDistr)
 
 if nargin<9
