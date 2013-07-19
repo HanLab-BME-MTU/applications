@@ -1,4 +1,4 @@
-function [meanDispError,dispDetec,meanForceError,peakForceRatio,forceDetec,beadsOnAdh,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
+function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh,bead_x, bead_y, Av] = testSingleForce(f,d,minCorLength,dataPath,bead_x, bead_y, Av,varargin)
 % Input check
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -44,8 +44,10 @@ else
 end
 nPoints = length(bead_x);
 
-%% Noise addition (5%)
-refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
+% %% Noise addition (5%)
+% refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
+%% Noise addition (10%)
+refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
 E=8000;  %Young's modulus, unit: Pa
 meshPtsFwdSol=2^10;
@@ -95,8 +97,10 @@ beadimg = simGaussianBeads(xmax,ymax, sigma, ...
     'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av,'Border', 'truncated');
 % figure, imshow(refimg,[])
 % figure, imshow(beadimg,[])
-%% Noise addition (5%)
-beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+% %% Noise addition (5%)
+% beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+%% Noise addition (10%)
+beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
 
 %% original force for comparison
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(100),150,0,f,d,d,forceType);
@@ -213,10 +217,14 @@ for k=1:nmPoints
     end
 end
 %% errors in displacementfield
-displField.vec(isnan(displField.vec(:,1)),:) = 0;
-meanDispError= nansum(((org_ux-displField(1).vec(:,1)).^2+(org_uy-displField(1).vec(:,2)).^2).^.5)/(length(displField(1).vec(:,2))); %normalized by the number of beads
+% displField.vec(isnan(displField.vec(:,1)),:) = 0;
+maskForce2 = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2*6;
+dispIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce2);
+
+meanDispErrorAdh= nansum(((org_ux(dispIdx)-displField(1).vec(dispIdx,1)).^2+(org_uy(dispIdx)-displField(1).vec(dispIdx,2)).^2).^.5)/sum(~isnan((displField(1).vec(dispIdx,2)))); %normalized by the number of beads
+meanDispErrorBG= nansum(((org_ux(~dispIdx)-displField(1).vec(~dispIdx,1)).^2+(org_uy(~dispIdx)-displField(1).vec(~dispIdx,2)).^2).^.5)/sum(~isnan((displField(1).vec(~dispIdx,2)))); %normalized by the number of beads
 % detectability (u at force application / u at background)
-maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=d/2*2;
+maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2*2;
 dispDetecIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
 if isempty(dispDetecIdx)
     dispDetec = 0;
@@ -265,13 +273,13 @@ end
 % heatmap creation and saving - i'll do it later
 
 % force peak ratio
-maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=d/2;
+maskForce = ((x_mat_u-100).^2+(y_mat_u-150).^2).^0.5<=d/2;
 % forceForceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
 % make  a an interpolated TF image and get the peak force because force
 % mesh is sparse
 [fMap,XI,YI]=generateHeatmapFromField(forceField);
 %new mask with XI and YI
-maskForceXIYI = ((XI-100).^2+(YI-150).^2)<=d/2;
+maskForceXIYI = ((XI-100).^2+(YI-150).^2).^0.5<=d/2;
 
 % if isempty(forceForceIdx)
 %     peakForceRatio = 0;
@@ -299,9 +307,9 @@ else
     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
 end
 %% errors in force field
-maskForce2 = ((x_mat_u-100).^2+(y_mat_u-150).^2)<=20;
-forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce2);
-meanForceError=nansum(((org_fx(forceIdx)-forceField(1).vec(forceIdx,1)).^2+(org_fy(forceIdx)-forceField(1).vec(forceIdx,2)).^2).^.5);
+forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
+meanForceErrorAdh=nansum(((org_fx(forceIdx)-forceField(1).vec(forceIdx,1)).^2+(org_fy(forceIdx)-forceField(1).vec(forceIdx,2)).^2).^.5)/sum(~isnan((forceField(1).vec(forceIdx,2))));
+meanForceErrorBG=nansum(((org_fx(backgroundIdx)-forceField(1).vec(backgroundIdx,1)).^2+(org_fy(backgroundIdx)-forceField(1).vec(backgroundIdx,2)).^2).^.5)/sum(~isnan((forceField(1).vec(backgroundIdx,2))));
 %% beadsOnAdh
 beadIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
 if sum(beadIdx)
