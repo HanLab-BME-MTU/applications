@@ -113,7 +113,7 @@ else
         % beads separation - beads should be separated by bead diameter physically
         beads = [xv yv];
         d_pix = d/pixelSize; % bead diameter in pixel
-        idxSep = KDTreeBallQuery(beads, beads, 6*d_pix);
+        idxSep = KDTreeBallQuery(beads, beads, 2*d_pix);
         valid = true(numel(idxSep),1);
         for i = 1:numel(idxSep)
             if ~valid(i), continue; end
