@@ -79,7 +79,7 @@ if nargin >=2
         end
     end
     
-    quiver(displField.pos(inIdx,1)-xmin,displField.pos(inIdx,2)-ymin, displField.vec(inIdx,1)./dispScale,displField.vec(inIdx,2)./dispScale,0,'Color',[75/255 0/255 130/255]);
+    quiver(displField.pos(inIdx,1)-xmin,displField.pos(inIdx,2)-ymin, displField.vec(inIdx,1)./dispScale,displField.vec(inIdx,2)./dispScale,0,'Color',[75/255 0/255 130/255],'LineWidth',0.5);
     
     subplot('Position',[0.8 0.1 0.1 0.8])
     axis tight
