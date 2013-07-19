@@ -132,7 +132,7 @@ figure, surf(x,y,mean(d_err(:,:,1:2),3)), title('displacement RMS error')
 figure, surf(x,y,mean(dispDetec(:,:,1:2),3)), title('detectability')
 
 %% template size on force error, using L2 0th with a new method
-nExp = 10;
+nExp = 5;
 f=2000;
 d=6;
 d_err_tsQRnew = zeros(19,nExp);
@@ -148,19 +148,111 @@ for epm=1:nExp
         [d_err_tsQRnew(p,epm),dispDetec_tsQRnew(p,epm),f_err_tsQRnew(p,epm),peakForceRatio_tsQRnew(p,epm),forceDetec_tsQRnew(p,epm),~,~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x{epm}, bead_y{epm}, Av{epm},'QR');
     end
 end
-% %% reanalyze for d_err
-% f=2000;
-% d=14;
-% p=0;
-% 
-% d_err_ts = zeros(17,1);
-% for cL = 9:2:41
-%     p=p+1;
-%     dataPath=['/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/cL_effect/simulations/f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
-%     [d_err_ts(p)]=analyzeSingleForceData(f,d,cL,dataPath);
-% end
-%% save
-save('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/cL_effect/data.mat')
+%% template size on force error, using L2 0th with a old method
+nExp = 5;
+f=2000;
+d=6;
+d_err_tsQRold = zeros(19,nExp);
+f_err_tsQRold = zeros(19,nExp);
+dispDetec_tsQRold = zeros(19,nExp);
+forceDetec_tsQRold = zeros(19,nExp);
+peakForceRatio_tsQRold = zeros(19,nExp);
+for epm=1:nExp
+    p=0;
+    for cL = 7:2:43
+        p=p+1;
+        dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) ' interp'];
+        [d_err_tsQRold(p,epm),dispDetec_tsQRold(p,epm),f_err_tsQRold(p,epm),peakForceRatio_tsQRold(p,epm),forceDetec_tsQRold(p,epm),~,~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x{epm}, bead_y{epm}, Av{epm},'QR');
+    end
+end
+%% reanalyze for cL effect with new tracking
+nExp = 5;
+f=2000;
+d=6;
+d_err_cLAdhnew1 = zeros(19,nExp);
+d_err_cLBGnew1 = zeros(19,nExp);
+f_err_cLAdhnew1 = zeros(19,nExp);
+f_err_cLBGnew1 = zeros(19,nExp);
+dispDetec_tsQRnew1 = zeros(19,nExp);
+forceDetec_tsQRnew1 = zeros(19,nExp);
+peakForceRatio_tsQRnew1 = zeros(19,nExp);
+for epm=1:nExp
+    p=0;
+    for cL = 7:2:43
+        p=p+1;
+        dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
+        [d_err_cLAdhnew1(p,epm),d_err_cLBGnew1(p,epm),dispDetec_tsQRnew1(p,epm),f_err_cLAdhnew1(p,epm),f_err_cLBGnew1(p,epm),peakForceRatio_tsQRnew1(p,epm),forceDetec_tsQRnew1(p,epm),~]=analyzeSingleForceData(d,dataPath);
+    end
+end
+%% just for peakForceRatio
+[d_err_atemp,d_err_btemp,dispDetec_temp,f_err_atemp,f_err_btemp,peakForceRatio_temp,forceDetec_temp,~]=analyzeSingleForceData(d,dataPath);
+%% reanalyze for cL effect with old tracking
+nExp = 5;
+f=2000;
+d=6;
+d_err_cLAdhold1 = zeros(19,nExp);
+d_err_cLBGold1 = zeros(19,nExp);
+f_err_cLAdhold1 = zeros(19,nExp);
+f_err_cLBGold1 = zeros(19,nExp);
+dispDetec_tsQRold1 = zeros(19,nExp);
+forceDetec_tsQRold1 = zeros(19,nExp);
+peakForceRatio_tsQRold1 = zeros(19,nExp);
+for epm=1:nExp
+    p=0;
+    for cL = 7:2:43
+        p=p+1;
+        dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) ' interp'];
+        [d_err_cLAdhold1(p,epm),d_err_cLBGold1(p,epm),dispDetec_tsQRold1(p,epm),f_err_cLAdhold1(p,epm),f_err_cLBGold1(p,epm),peakForceRatio_tsQRold1(p,epm),forceDetec_tsQRold1(p,epm),~]=analyzeSingleForceData(d,dataPath);
+    end
+end
+%% save the data
+save('/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/cLeffect.mat')
+%% template size on force error with 10% noise + less gap, using L2 0th with a old method
+nExp = 5;
+f=2000;
+d=6;
+d_err_cLAdhold10 = zeros(19,nExp);
+d_err_cLBGold10 = zeros(19,nExp);
+f_err_cLAdhold10 = zeros(19,nExp);
+f_err_cLBGold10 = zeros(19,nExp);
+dispDetec_tsQRold10 = zeros(19,nExp);
+forceDetec_tsQRold10 = zeros(19,nExp);
+peakForceRatio_tsQRold10 = zeros(19,nExp);
+for epm=1:nExp
+    p=0;
+    for cL = 7:2:43
+        p=p+1;
+        dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'n10 interp'];
+        if p==1
+            [d_err_cLAdhold10(p,epm),d_err_cLBGold10(p,epm),dispDetec_tsQRold10(p,epm),f_err_cLAdhold10(p,epm),f_err_cLBGold10(p,epm),peakForceRatio_tsQRold10(p,epm),forceDetec_tsQRold10(p,epm),beadsOnAdh(epm),bead_x10{epm}, bead_y10{epm}, Av10{epm}]= ...
+                testSingleForce(f,d,cL,dataPath,[],[],[],'QR');
+        else
+            [d_err_cLAdhold10(p,epm),d_err_cLBGold10(p,epm),dispDetec_tsQRold10(p,epm),f_err_cLAdhold10(p,epm),f_err_cLBGold10(p,epm),peakForceRatio_tsQRold10(p,epm),forceDetec_tsQRold10(p,epm),~,~,~,~]...
+                =testSingleForce(f,d,cL,dataPath,bead_x10{epm}, bead_y10{epm}, Av10{epm},'QR');
+        end
+    end
+end
+%% template size on force error with 10% noise + less gap, using L2 0th with a new method
+nExp = 5;
+f=2000;
+d=6;
+d_err_cLAdhnew10 = zeros(19,nExp);
+d_err_cLBGnew10 = zeros(19,nExp);
+f_err_cLAdhnew10 = zeros(19,nExp);
+f_err_cLBGnew10 = zeros(19,nExp);
+dispDetec_tsQRnew10 = zeros(19,nExp);
+forceDetec_tsQRnew10 = zeros(19,nExp);
+peakForceRatio_tsQRnew10 = zeros(19,nExp);
+for epm=1:nExp
+    p=0;
+    for cL = 7:2:43
+        p=p+1;
+        dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'n10'];
+
+        [d_err_cLAdhnew10(p,epm),d_err_cLBGnew10(p,epm),dispDetec_tsQRnew10(p,epm),f_err_cLAdhnew10(p,epm),f_err_cLBGnew10(p,epm),peakForceRatio_tsQRnew10(p,epm),forceDetec_tsQRnew10(p,epm),~,~,~,~]=...
+            testSingleForce(f,d,cL,dataPath,bead_x10{epm}, bead_y10{epm}, Av10{epm},'QR');
+    end
+end
 %% plotting cL vs. force error
 cL= 9:2:43;
 figure, plot(cL,f_err_tsQRnew)
@@ -221,13 +313,13 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
 displPath = [dataPath filesep 'TFMPackage/displacementField'];
 displFile = [dataPath filesep 'TFMPackage/displacementField/displField.mat'];
 load(displFile)
-generateHeatmapFromField(displField,displPath,0.2,'uDefinedRYG',140,220);
+generateHeatmapFromField(displField,displPath,0.6,'uDefinedRYG',140,220);
 % generateHeatmapFromField(displField,displPath,0.25,'cool');
 %% measured forcemap when d is small
 forcePath = [dataPath filesep 'TFMPackage/forceField'];
 forceFile = [dataPath filesep 'TFMPackage/forceField/forceField.mat'];
 load(forceFile)
-generateHeatmapFromField(forceField,forcePath,100,'jet',140,220);
+generateHeatmapFromField(forceField,forcePath,1000,'jet',140,220);
 
 %% original displacementfield when d is large
 epm=2; f=1000; d=20; cL=15;
