@@ -3,13 +3,17 @@
 % reconstruction.
 %% Simulations - initialization  for f and d
 nExp = 5;
-d_err = zeros(20,10,nExp);
-f_err = zeros(20,10,nExp);
-dispDetec = zeros(20,10,nExp);
-forceDetec = zeros(20,10,nExp);
-peakForceRatio = zeros(20,10,nExp);
+d_err_FDAdhL2old = zeros(20,10,nExp);
+d_err_FDBGL2old = zeros(20,10,nExp);
+f_err_FDADhL2old = zeros(20,10,nExp);
+f_err_FDBGL2old = zeros(20,10,nExp);
+dispDetec_FDL2old = zeros(20,10,nExp);
+forceDetec_FDL2old = zeros(20,10,nExp);
+pFR_FDL2old = zeros(20,10,nExp);
+beadsOnAdhold = zeros(nExp,1);
+cL = 15;%[9 15 21]
 % kk=0;
-%% simulation for f and d
+% simulation for f and d (L2 with 10% noise, old tracking)
 for epm=1:nExp
     p=0;
     ii=0;
@@ -19,18 +23,28 @@ for epm=1:nExp
         for d=2:2:20
             jj=jj+1;
     %         kk=0;
-            for cL = 15%[9 15 21]
-                p=p+1;
-    %             kk=kk+1;
-                dataPath=['/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
-                if p==1
-                    [d_err(ii,jj,epm),dispDetec(ii,jj,epm),f_err(ii,jj,epm),peakForceRatio(ii,jj,epm),forceDetec(ii,jj,epm),bead_x, bead_y, Av]=testSingleForce(f,d,cL,dataPath); 
-    %                 [d_err(ii,jj,kk),dispDetec(ii,jj,kk),f_err(ii,jj,kk),peakForceRatio(ii,jj,kk),bead_x, bead_y, Av]=testSingleForce(f,d,cL,dataPath); 
-                else
-                    [d_err(ii,jj,epm),dispDetec(ii,jj,epm),f_err(ii,jj,epm),peakForceRatio(ii,jj,epm),forceDetec(ii,jj,epm),~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x, bead_y, Av);
-    %                 [d_err(ii,jj,kk),dispDetec(ii,jj,kk),f_err(ii,jj,kk),peakForceRatio(ii,jj,kk),~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x, bead_y, Av);
-                end
+            p=p+1;
+%             kk=kk+1;
+            dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'L2'];
+            if p==1
+                [d_err_FDAdhL2old(ii,jj,epm),d_err_FDBGL2old(ii,jj,epm),dispDetec_FDL2old(ii,jj,epm),...
+                    f_err_FDADhL2old(ii,jj,epm),f_err_FDBGL2old(ii,jj,epm),pFR_FDL2old(ii,jj,epm),forceDetec_FDL2old(ii,jj,epm),...
+                    beadsOnAdhold(epm),bead_xL2{epm}, bead_yL2{epm}, AvL2{epm}]= ...
+                    testSingleForce(f,d,cL,dataPath,[],[],[],'QR');
+            else
+                [d_err_FDAdhL2old(ii,jj,epm),d_err_FDBGL2old(ii,jj,epm),dispDetec_FDL2old(ii,jj,epm),...
+                    f_err_FDADhL2old(ii,jj,epm),f_err_FDBGL2old(ii,jj,epm),pFR_FDL2old(ii,jj,epm),forceDetec_FDL2old(ii,jj,epm),...
+                    beadsOnAdhold(epm)]= ...
+                    testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'QR');
             end
+%                 dataPath=['/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL)];
+%                 if p==1
+%                     [d_err(ii,jj,epm),dispDetec(ii,jj,epm),f_err(ii,jj,epm),peakForceRatio(ii,jj,epm),forceDetec(ii,jj,epm),bead_x, bead_y, Av]=testSingleForce(f,d,cL,dataPath); 
+%     %                 [d_err(ii,jj,kk),dispDetec(ii,jj,kk),f_err(ii,jj,kk),peakForceRatio(ii,jj,kk),bead_x, bead_y, Av]=testSingleForce(f,d,cL,dataPath); 
+%                 else
+%                     [d_err(ii,jj,epm),dispDetec(ii,jj,epm),f_err(ii,jj,epm),peakForceRatio(ii,jj,epm),forceDetec(ii,jj,epm),~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x, bead_y, Av);
+%     %                 [d_err(ii,jj,kk),dispDetec(ii,jj,kk),f_err(ii,jj,kk),peakForceRatio(ii,jj,kk),~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x, bead_y, Av);
+%                 end
         end
     end
 end
@@ -76,7 +90,7 @@ f_err_old = zeros(10,nExp);
 dispDetec_old = zeros(10,nExp);
 forceDetec_old = zeros(10,nExp);
 peakForceRatio_old = zeros(10,nExp);
-beadsOnAdh = zeros(nExp,1);
+beadsOnAdhold = zeros(nExp,1);
 f=1000;
 cL = 15;
 for epm=1:nExp
@@ -89,7 +103,7 @@ for epm=1:nExp
 %         dataPath=['/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'interp'];
         dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'interp'];
         if p==1
-            [d_err_old(jj,epm),dispDetec_old(jj,epm),f_err_old(jj,epm),peakForceRatio_old(jj,epm),forceDetec_old(jj,epm),beadsOnAdh(epm),bead_x{epm}, bead_y{epm}, Av{epm}]= testSingleForce(f,d,cL,dataPath,[],[],[],'QR');
+            [d_err_old(jj,epm),dispDetec_old(jj,epm),f_err_old(jj,epm),peakForceRatio_old(jj,epm),forceDetec_old(jj,epm),beadsOnAdhold(epm),bead_x{epm}, bead_y{epm}, Av{epm}]= testSingleForce(f,d,cL,dataPath,[],[],[],'QR');
         else
             [d_err_old(jj,epm),dispDetec_old(jj,epm),f_err_old(jj,epm),peakForceRatio_old(jj,epm),forceDetec_old(jj,epm),~,~,~,~]=testSingleForce(f,d,cL,dataPath,bead_x{epm}, bead_y{epm}, Av{epm},'QR');
         end
@@ -224,7 +238,7 @@ for epm=1:nExp
         p=p+1;
         dataPath=['/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'n10 interp'];
         if p==1
-            [d_err_cLAdhold10(p,epm),d_err_cLBGold10(p,epm),dispDetec_tsQRold10(p,epm),f_err_cLAdhold10(p,epm),f_err_cLBGold10(p,epm),peakForceRatio_tsQRold10(p,epm),forceDetec_tsQRold10(p,epm),beadsOnAdh(epm),bead_x10{epm}, bead_y10{epm}, Av10{epm}]= ...
+            [d_err_cLAdhold10(p,epm),d_err_cLBGold10(p,epm),dispDetec_tsQRold10(p,epm),f_err_cLAdhold10(p,epm),f_err_cLBGold10(p,epm),peakForceRatio_tsQRold10(p,epm),forceDetec_tsQRold10(p,epm),beadsOnAdhold(epm),bead_x10{epm}, bead_y10{epm}, Av10{epm}]= ...
                 testSingleForce(f,d,cL,dataPath,[],[],[],'QR');
         else
             [d_err_cLAdhold10(p,epm),d_err_cLBGold10(p,epm),dispDetec_tsQRold10(p,epm),f_err_cLAdhold10(p,epm),f_err_cLBGold10(p,epm),peakForceRatio_tsQRold10(p,epm),forceDetec_tsQRold10(p,epm),~,~,~,~]...
@@ -359,3 +373,55 @@ displPath = [dataPath filesep 'TFMPackage/displacementField'];
 displFile = [dataPath filesep 'TFMPackage/displacementField/displField.mat'];
 load(displFile)
 generateHeatmapFromField(displField,displPath,.15)
+
+%% L-curve analysis for /home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp3f1000d4cL7
+dataPath = '/home/sh268/files/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/simulations/exp1f1000d4cL15';
+
+disp('calculating L-curve with L2 0th...')
+load([dataPath '/TFMPackage/forceField/BEMParams.mat']);
+MpM = M'*M;
+[eyeWeights,~] =getGramMatrix(forceMesh);
+% original force at force base nodes
+xminf = forceMesh.basis(1).node(1);
+yminf = forceMesh.basis(1).node(2);
+gridSpacingf = forceMesh.basis(2).node(2)-forceMesh.basis(1).node(2);
+xmaxf = forceMesh.basis(end).node(1);
+ymaxf = forceMesh.basis(end).node(2);
+
+force_x_f = force_x(yminf:gridSpacingf:ymaxf,xminf:gridSpacingf:xmaxf);
+force_y_f = force_y(yminf:gridSpacingf:ymaxf,xminf:gridSpacingf:xmaxf);
+
+force_x_vec_f=reshape(force_x_f,[],1);
+force_y_vec_f=reshape(force_y_f,[],1);
+force_0=vertcat(force_x_vec_f,force_y_vec_f);
+
+alphas=10.^(-9:0.125:-3);
+rho=zeros(length(alphas),1);
+eta=zeros(length(alphas),1);
+fErr=zeros(length(alphas),1);
+msparse=zeros(size(M,2),length(alphas));
+maxIter = 10;
+tolx = 2e-2;
+tolr = 1e-7;
+
+for i=1:length(alphas);
+  msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
+  rho(i)=norm(M*msparse(:,i)-u);
+  eta(i)=norm(msparse(:,i),1);
+  % force error
+  fErr(i)=norm(msparse(:,i)-force_0);
+  disp([num2str(i) ' out of ' num2str(length(alphas))]);
+end
+
+%% Find the corner of the Tikhonov L-curve
+[reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,alphas);
+[~,fminIdx]=min(fErr);
+
+save([dataPath '/LcurveL1-0th.mat'],'rho','eta','fErr','reg_corner','ireg_corner','alphas','msparse','fminIdx','-v7.3');
+%% ireg_corner
+[xgrid,ygrid]=meshgrid(xminf:gridSpacingf:xmaxf,yminf:gridSpacingf:ymaxf);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1forcemap at Lcorner'])
+%% fminIdx
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh, msparse(:,fminIdx),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1forcemap at fErr minimum'])
