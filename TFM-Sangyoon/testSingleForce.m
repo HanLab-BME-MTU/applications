@@ -44,10 +44,10 @@ else
 end
 nPoints = length(bead_x);
 
-% %% Noise addition (5%)
-% refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
-%% Noise addition (10%)
-refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
+%% Noise addition (5%)
+refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
+% %% Noise addition (10%)
+% refimg = refimg+0.10*rand(ymax,xmax)*max(refimg(:));
 %% Now displacement field from given force
 E=8000;  %Young's modulus, unit: Pa
 meshPtsFwdSol=2^10;
@@ -97,10 +97,10 @@ beadimg = simGaussianBeads(xmax,ymax, sigma, ...
     'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av,'Border', 'truncated');
 % figure, imshow(refimg,[])
 % figure, imshow(beadimg,[])
-% %% Noise addition (5%)
-% beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
-%% Noise addition (10%)
-beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
+%% Noise addition (5%)
+beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+% %% Noise addition (10%)
+% beadimg = beadimg+0.10*rand(ymax,xmax)*max(beadimg(:));
 
 %% original force for comparison
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,(100),150,0,f,d,d,forceType);
