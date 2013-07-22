@@ -3,7 +3,7 @@
 % Inputs:
 %
 %  data      : data structure returned by loadConditionData()
-% 
+%
 % Options:
 %
 % 'Category' : 'Ia' or 'valid'  Single tracks with valid gaps
@@ -25,11 +25,12 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) & numel(x)==1);
 ip.addParamValue('Mask', true, @islogical);
-ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar); 
+ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('Cutoff_f', 5, @isscalar);
 ip.addParamValue('Sort', true, @islogical);
 ip.addParamValue('Category', 'Ia');
 ip.addParamValue('SignificantSlaveIndex', []);
+ip.addParamValue('MaxIntensityThreshold', []);
 ip.parse(data, varargin{:});
 category = ip.Results.Category;
 if ~iscell(category)
@@ -52,7 +53,7 @@ end
 
 % load cell mask, discard tracks that fall into background
 mpath = [data.source 'Detection' filesep 'cellmask.tif'];
-if ip.Results.Mask 
+if ip.Results.Mask
     if (exist(mpath, 'file')==2)
         mask = logical(imread(mpath));
     else
@@ -100,6 +101,11 @@ for k = 1:numel(category);
 end
 idx = idx & [tracks.lifetime_s] >= cutoff_s;
 tracks = tracks(idx);
+
+if ~isempty(ip.Results.MaxIntensityThreshold)
+    maxA = arrayfun(@(i) max(i.A(mCh,:)), tracks);
+    tracks = tracks(maxA>=ip.Results.MaxIntensityThreshold);
+end
 
 if ~isempty(ip.Results.SignificantSlaveIndex)
     significantMaster = [tracks.significantMaster]';
