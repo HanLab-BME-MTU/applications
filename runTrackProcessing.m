@@ -45,7 +45,7 @@ if ~iscell(frameIdx)
     frameIdx = {frameIdx};
 end
 
-for i = 1:length(data)
+parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite %#ok<PFBNS>
         data(i) = main(data(i), frameIdx{i}, ip.Results);
     else
@@ -69,7 +69,7 @@ dfile = [data.source 'Detection' filesep opts.DetectionFile];
 if exist(dfile, 'file')==2
     detection = load([data.source 'Detection' filesep 'detection_v2.mat']);
 else
-    fprintf(['runTrackProcessing: no detection data found for ' getShortPath(data) '\n']);
+    fprintf('runTrackProcessing: no detection data found for %s\n', getShortPath(data));
     return;
 end
 frameInfo = detection.frameInfo;
@@ -116,7 +116,7 @@ if exist(tPath, 'file')==2
     trackinfo = trackinfo.tracksFinal;
     nTracks = length(trackinfo);
 else
-    fprintf(['runTrackProcessing: no tracking data found for ' getShortPath(data)]);
+    fprintf('runTrackProcessing: no tracking data found for %s\n', getShortPath(data));
     return;
 end
 
