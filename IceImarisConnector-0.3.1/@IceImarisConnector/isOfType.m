@@ -26,6 +26,7 @@ function b = isOfType(this, object, type)
 %               'Surfaces'
 %               'SurpassCamera'
 %               'Volume'
+%               'DataContainer' (folders)
 % 
 % OUTPUT
 % 
@@ -63,7 +64,7 @@ end
 % Check type
 typeValues = {'Cells', 'ClippingPlane', 'Dataset', 'Filaments', ...
     'Frame', 'LightSource', 'MeasurementPoints', 'Spots', ...
-    'Surfaces', 'SurpassCamera', 'Volume','Folders'};
+    'Surfaces', 'SurpassCamera', 'Volume','DataContainer'};
 if ~ismember(type, typeValues)
     error('Bad value for input parameter ''type''.');
 end
@@ -92,7 +93,7 @@ switch type
         b = this.mImarisApplication.GetFactory().IsSurpassCamera(object);
     case 'Volume',
         b = this.mImarisApplication.GetFactory().IsVolume(object);
-    case 'Folders',
+    case 'DataContainer',
         b = this.mImarisApplication.GetFactory().IsDataContainer(object);
         
     otherwise,
