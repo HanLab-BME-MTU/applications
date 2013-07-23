@@ -1,4 +1,4 @@
-function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,assigninBase,is7pt5orLater)
+function [imarisApplication, iceConn] = imarisShowArray(array,imaApp,pixelSize,equalizeTC,assigninBase,is7pt5orLater)
 %IMARISSHOWARRAY loads a 3D array into Imaris
 %
 % SYNOPSIS  imaApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC)
@@ -7,7 +7,8 @@ function imarisApplication = imarisShowArray(array,imaApp,pixelSize,equalizeTC,a
 %                It can be up to 5D - x,y,z,t,channel (this order).  
 %         imaApp (opt): handle to the imaris application into which the array
 %                       should be loaded. If no handle is given, Imaris
-%                       will open a new session.%         pixelSize (opt) : [x,y,z] of pixel lengths {[1,1,1]}
+%                       will open a new session.
+%         pixelSize (opt) : [x,y,z] of pixel lengths {[1,1,1]}
 %         equalizeTC (opt): [eqT, eqC] - switches indicating whether to
 %                           equalize values along the 4th and/or 5th
 %                           dimension. {[0,0]}
