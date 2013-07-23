@@ -25,7 +25,23 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %       interval - cell array with the time intervals in frames
 %                   Ex : interval = {[1:30],[20:40]} - Quantification will be done with velocities calculated at each element of the cell array
 %
-%       scale      - convert velocity from pixel/frame into nm/sec
+%       scale         - convert velocity from pixel/frame into nm/sec.Default:false
+%
+%       includeWin    - cell array. Each element is a vector with the window indexes to be used in the analysis. Enter [] to analize all windows.
+%
+%       outLevel      - scalar for outlier detection(see detectOutlier)
+%
+%       trendType     - scalar - algorihtm used to detrend the data(See getTimeSeriesTrend)
+%
+%       minLength     - scalar - mininum time serie length
+%
+%       gapSize       - scalar - length of the nan gap to be closed. Default:0
+%
+%
+%       outputPath    - string. Name of the output folder. Default: 'EdgeVelocityQuantification'
+%
+%       fileName      - string. Name of the output file. Default: 'edgeVelocity'
+%
 % Output:
 %       cellData - this is a long structure array cellData(for each cell) with the following fields:
 %                .data.excludeWin - indexes of windows that were excluded from analysis . Ex: border windows
@@ -100,7 +116,7 @@ ip.addParamValue('trendType',   -1,@isscalar);
 ip.addParamValue('minLength',  10,@isscalar);
 ip.addParamValue('gapSize',   0,@isscalar);
 ip.addParamValue('scale',false,@islogical);
-ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
+ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
 
 ip.parse(movieObj,varargin{:});
