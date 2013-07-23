@@ -63,7 +63,7 @@ end
 % Check type
 typeValues = {'Cells', 'ClippingPlane', 'Dataset', 'Filaments', ...
     'Frame', 'LightSource', 'MeasurementPoints', 'Spots', ...
-    'Surfaces', 'SurpassCamera', 'Volume'};
+    'Surfaces', 'SurpassCamera', 'Volume','Folders'};
 if ~ismember(type, typeValues)
     error('Bad value for input parameter ''type''.');
 end
@@ -92,6 +92,9 @@ switch type
         b = this.mImarisApplication.GetFactory().IsSurpassCamera(object);
     case 'Volume',
         b = this.mImarisApplication.GetFactory().IsVolume(object);
+    case 'Folders',
+        b = this.mImarisApplication.GetFactory().IsDataContainer(object);
+        
     otherwise,
         error('Bad value for ''type''.');
 end

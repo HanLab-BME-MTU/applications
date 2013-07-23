@@ -32,6 +32,7 @@ function children = getAllSurpassChildren(this, recursive, filter)
 %                           'Surfaces'
 %                           'SurpassCamera'
 %                           'Volume'
+%                           'Folders'
 % 
 % OUTPUT
 % 
