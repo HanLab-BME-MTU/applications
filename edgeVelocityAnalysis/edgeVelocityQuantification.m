@@ -18,10 +18,6 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %       alpha - alpha used to generate the bootstrap confidence intervals
 %         (default value 0.05)
 %
-%       cluster - scalar "1" to perform cluster analysis; "0" otherwise
-%
-%       nCluster - number of cluster
-%
 %       interval - cell array with the time intervals in frames
 %                   Ex : interval = {[1:30],[20:40]} - Quantification will be done with velocities calculated at each element of the cell array
 %
