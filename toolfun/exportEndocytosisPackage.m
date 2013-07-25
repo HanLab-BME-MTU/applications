@@ -17,9 +17,11 @@ exportDir = ip.Results.exportDir;
 ignoreList = {'consist'; 'knn'};
 
 % packages to include from extern
-externRoot = [getParentDir(mfilename('fullpath'),3) 'extern' filesep];
-externList = {'kdtree_andrea'};
-externName = {'kdtree'};
+% externRoot = [getParentDir(mfilename('fullpath'),3) 'extern' filesep];
+% externList = {'kdtree_andrea'};
+% externName = {'kdtree'};
+externList = {};
+externName = {};
 
 %-----------------------------------------------------
 % 1) Export pointSourceDetection.m separately
@@ -133,9 +135,11 @@ function [fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreLi
 [fpaths, fnames, fexts] = cellfun(@fileparts, fctList, 'unif', 0);
 % remove unneeded functions
 rmIdx = ismember(fnames, ignoreList);
-tmp = cellfun(@(i) regexpi(fpaths, i, 'once'), externList, 'unif', 0);
-tmp = horzcat(tmp{:});
-rmIdx = rmIdx | any(~cellfun(@(i) isempty(i), tmp),2);
+if ~isempty(externList)
+    tmp = cellfun(@(i) regexpi(fpaths, i, 'once'), externList, 'unif', 0);
+    tmp = horzcat(tmp{:});
+    rmIdx = rmIdx | any(~cellfun(@(i) isempty(i), tmp),2);
+end
 fpaths(rmIdx) = [];
 fnames(rmIdx) = [];
 fexts(rmIdx) = [];
@@ -155,7 +159,7 @@ sourceNames = cellfun(@dir, mexPaths, 'unif', 0);
 sourceNames = cellfun(@(i) {i(~cellfun(@isempty, regexpi({i.name}, '(\.c(pp)?|\.h(pp)?)$'))).name}, sourceNames, 'unif', 0);
 sourcePaths = arrayfun(@(i) repmat(mexPaths(i), [numel(sourceNames{i}) 1]), 1:numel(mexPaths), 'unif', 0);
 sourcePaths = vertcat(sourcePaths{:});
-sourceNames = vertcat(sourceNames{:});
+sourceNames = horzcat(sourceNames{:})';
 
 mexPaths = reshape(repmat(mexPaths', [numel(mexExts) 1]), [numel(mexExts)*numel(mexPaths) 1]);
 fpaths(mexIdx) = [];
