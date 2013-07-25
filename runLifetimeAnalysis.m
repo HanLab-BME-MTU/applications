@@ -292,7 +292,8 @@ end
 % Initiation density
 %====================
 if any(strcmpi(ip.Results.Display, {'on','all'}))
-    ha = setupFigure(1,2, 'DisplayMode', 'screen', 'SameAxes', false);
+    
+    ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 0.5], 'YSpace', [2 1 0.5]);
     fset = loadFigureSettings('');
     XTickLabel = arrayfun(@(i) getCellDir(i), data, 'unif', 0);
     XTickLabel(outlierIdx) = [];
@@ -313,7 +314,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     
-    ha = setupFigure(1,1, 'DisplayMode', 'screen');
+    ha = setupFigure(1,1, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 0.5], 'YSpace', [2 1 0.5]);
     plot(lftRes.nSamples_Ia, 'k.', 'MarkerSize', 10);
     ylabel('# valid tracks', fset.lfont{:});
     set(ha, 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
@@ -321,17 +322,17 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     formatTickLabels();
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
     
-    
+
     % plot cumulative lifetime distributions
     t = lftRes.t;
     med = zeros(nd,1);
     cvec = hsv(nd);
     
-    ha = setupFigure(1,2, 'DisplayMode', 'screen', 'SameAxes', true);
+    ha = setupFigure(1,2, 'SameAxes', true, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 1], 'YSpace', [2 1 1]);
     hp = zeros(nd,1);
     
     % all structures
-    edf = cumsum(lftRes.lftHist_Ia,2);
+    edf = cumsum(lftRes.lftHist_Ia,2)*framerate;
     % plot(ha(1), [0 200], 0.75*[1 1], 'k--');
     for k = 1:nd
         hp(k) = plot(ha(1), lftRes.t, edf(k,:), 'Color', cvec(k,:));
@@ -343,7 +344,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     set(hl, 'Box', 'off');
     
     % CCPs
-    edf = cumsum(lftRes.lftHistCCP,2);
+    edf = cumsum(lftRes.lftHistCCP,2)*framerate;
     for k = 1:nd
         hp(k) = plot(ha(2), lftRes.t, edf(k,:), 'Color', cvec(k,:));
         [~,idx] = unique(edf(k,:));
