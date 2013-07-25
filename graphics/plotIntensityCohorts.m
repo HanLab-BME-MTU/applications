@@ -159,17 +159,15 @@ if nCh==1
     if isempty(hues)
         hues = getFluorophoreHues(data(1).markers);
     end
-    %cmap = ones(nc,3);
-    %cmap(:,1) = (nc:-1:1)/nc;
-    %cmap = hsv2rgb(cmap);
-    v = mod(hues(ch)+linspace(-0.1, 0.1, nc)', 1);
-    cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
-    cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
+    v = mod(hues(1)+linspace(-0.1, 0.1, nc)', 1);
+    cmap{1} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
+    cv{1} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
     
-%     cmap{1} = jet(nc);
-%     cv{1} = rgb2hsv(cmap{1});
-%     cv{1}(:,2) = 0.2;
-%     cv{1} = hsv2rgb(cv{1});
+    % Jet colormap
+    %cmap{1} = jet(nc);
+    %cv{1} = rgb2hsv(cmap{1});
+    %cv{1}(:,2) = 0.2;
+    %cv{1} = hsv2rgb(cv{1});
 else
     if isempty(hues)
         hues = getFluorophoreHues(data(1).markers);
