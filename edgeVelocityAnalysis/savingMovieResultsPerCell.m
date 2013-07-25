@@ -22,7 +22,7 @@ for iCell = 1:nCell
         mkdir(edgePath)
     end
     
-    analysisResults = results(iCell);
+    analysisResults = results{iCell};
     filePath        = [edgePath filesep fileName '.mat'];
     
     if exist(filePath,'file')

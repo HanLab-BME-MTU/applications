@@ -47,9 +47,10 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('outLevel',0,@isscalar);
-ip.addParamValue('trendType',   -1,@isscalar);
-ip.addParamValue('minLength',  40,@isscalar);
+ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
+ip.addParamValue('trendType',-ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
+ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('scale',false,@islogical);
 ip.addParamValue('maxLag',0,@isscalar);
 ip.addParamValue('layer',1,@isscalar);
@@ -90,28 +91,28 @@ totalCCF         = [];
 for iCell = 1:nCell
     
     
-    windows                                  = intersect(edge(iCell).data.includedWin,signal(iCell).data.includedWin{layer});
-    protrusion                               = edge(iCell).data.procEdgeMotion(windows,nInterval{iCell});
-    activity                                 = squeeze(signal(iCell).data.procSignal(windows,nInterval{iCell},layer));
+    windows                                  = intersect(edge{iCell}.data.includedWin,signal{iCell}.data.includedWin{layer});
+    protrusion                               = edge{iCell}.data.procEdgeMotion(windows,nInterval{iCell});
+    activity                                 = squeeze(signal{iCell}.data.procSignal(windows,nInterval{iCell},layer));
     
     [muCcf,muCCci,~,xCorr]                   = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
     [muProtAcf,protCI,~,protAcf]             = getAverageCorrelation(protrusion,'maxLag',maxLag);
     [muSignAcf,signCI,lags,signAcf]          = getAverageCorrelation(activity,'maxLag',maxLag);
     
-    cellData(iCell).total.edgeAutoCorr       = protAcf;
-    cellData(iCell).total.signalAutoCorr     = signAcf;
-    cellData(iCell).total.crossCorr          = xCorr;
-    cellData(iCell).total.lag                = lags;
+    cellData{iCell}.total.edgeAutoCorr       = protAcf;
+    cellData{iCell}.total.signalAutoCorr     = signAcf;
+    cellData{iCell}.total.crossCorr          = xCorr;
+    cellData{iCell}.total.lag                = lags;
     
-    cellData(iCell).meanValue.edgeAutoCorr   = muProtAcf;
-    cellData(iCell).meanValue.signalAutoCorr = muSignAcf;
-    cellData(iCell).meanValue.crossCorr      = muCcf;
-    cellData(iCell).meanValue.lag            = lags;
+    cellData{iCell}.meanValue.edgeAutoCorr   = muProtAcf;
+    cellData{iCell}.meanValue.signalAutoCorr = muSignAcf;
+    cellData{iCell}.meanValue.crossCorr      = muCcf;
+    cellData{iCell}.meanValue.lag            = lags;
     
-    cellData(iCell).CI.edgeAutoCorr          = protCI;
-    cellData(iCell).CI.signalAutoCorr        = signCI;
-    cellData(iCell).CI.crossCorr             = muCCci;
-    cellData(iCell).CI.lag                   = lags;
+    cellData{iCell}.CI.edgeAutoCorr          = protCI;
+    cellData{iCell}.CI.signalAutoCorr        = signCI;
+    cellData{iCell}.CI.crossCorr             = muCCci;
+    cellData{iCell}.CI.lag                   = lags;
     
     totalEdgeACF                             = cat(2,protAcf,totalEdgeACF);
     totalSignalACF                           = cat(2,signAcf,totalSignalACF);

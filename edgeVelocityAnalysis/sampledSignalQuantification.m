@@ -132,22 +132,22 @@ if ~isfield(cellData,'intensityOverTime')
     for iCell = 1:nCell
         
         currMD                             = ML.movies_{iCell};
-        cellData(iCell).data.pixelSize     = currMD.pixelSize_;
-        cellData(iCell).data.frameRate     = currMD.timeInterval_;
-        cellData(iCell).data.rawSignal     = cellData(iCell).data.rawTimeSeries;
-        cellData(iCell).data.procSignal    = cellData(iCell).data.procTimeSeries;
-        cellData(iCell).data.procExcSignal = cellData(iCell).data.procExcTimeSeries;
-        cellData(iCell).data               = rmfield(cellData(iCell).data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+        cellData{iCell}.data.pixelSize     = currMD.pixelSize_;
+        cellData{iCell}.data.frameRate     = currMD.timeInterval_;
+        cellData{iCell}.data.rawSignal     = cellData{iCell}.data.rawTimeSeries;
+        cellData{iCell}.data.procSignal    = cellData{iCell}.data.procTimeSeries;
+        cellData{iCell}.data.procExcSignal = cellData{iCell}.data.procExcTimeSeries;
+        cellData{iCell}.data               = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
-        [nWin,~,nLayer] = size(cellData(iCell).data.procSignal);
+        [nWin,~,nLayer] = size(cellData{iCell}.data.procSignal);
         for iLayer = 1:nLayer
             
-            windows = cellData(iCell).data.includedWin{iLayer};
-            signal  = cellData(iCell).data.procExcSignal{iLayer};
+            windows = cellData{iCell}.data.includedWin{iLayer};
+            signal  = cellData{iCell}.data.procExcSignal{iLayer};
             
-            cellData(iCell).intensityOverTime(iLayer,:)       = nan(1,nWin);
-            cellData(iCell).intensityOverTime(iLayer,windows) = nanmean( signal,2 );
-            cellData(iCell).intensityOverTimeSpace(iLayer)    = nanmean( cellData(iCell).intensityOverTime(iLayer,windows) );
+            cellData{iCell}.intensityOverTime(iLayer,:)       = nan(1,nWin);
+            cellData{iCell}.intensityOverTime(iLayer,windows) = nanmean( signal,2 );
+            cellData{iCell}.intensityOverTimeSpace(iLayer)    = nanmean( cellData{iCell}.intensityOverTime(iLayer,windows) );
             
         end
         

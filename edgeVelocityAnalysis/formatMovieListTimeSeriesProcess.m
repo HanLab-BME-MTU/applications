@@ -1,4 +1,4 @@
-function cellData = formatMovieListTimeSeriesProcess(movieObj,processType,varargin)
+function [cellData,dataSet] = formatMovieListTimeSeriesProcess(movieObj,processType,varargin)
 %This function takes the output of the protrusion sampling process and formats each edge velocity time series
 %Format actually means TS pre-processing. It removes: outliers, mean, trend, NaN and close gaps
 %
@@ -54,11 +54,11 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
-ip.addParamValue('includeWin',cell(1,nCell),@iscell);
-ip.addParamValue('outLevel',  0,@isscalar);
-ip.addParamValue('trendType',-1,@isscalar);
-ip.addParamValue('minLength', 30,@isscalar);
-ip.addParamValue('gapSize',   0,@isscalar);
+ip.addParamValue('includeWin',cell(1,nCell), @iscell);
+ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
+ip.addParamValue('trendType',-ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
+ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('saveOn',    false,@islogical);
 ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
@@ -74,25 +74,27 @@ saveOn     = ip.Results.saveOn;
 outputPath = ip.Results.outputPath;
 fileName   = ip.Results.fileName;
 
-timeSeriesOperations = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize};
 
-cellData = loadingMovieResultsPerCell(ML,outputPath,fileName);
-inp2     = isempty(cellData);
 
-if ~inp2
-    inp1 = isequal(cellData(1).data.timeSeriesOperations,timeSeriesOperations);
-else
-    inp1 = false;
-end
+cellData{1,nCell} = [];
+oldCellData       = loadingMovieResultsPerCell(ML,outputPath,fileName);
+dataSet           = [];
 
-if ~( xor(inp1,inp2) && inp1) 
+timeSeriesOperations{1,nCell} = [];
+
+for iCell = 1:nCell
     
     
+    timeSeriesOperations{iCell} = {'outLevel',outLevel(iCell),'minLength',minLen(iCell),'trendType',trend(iCell),'gapSize',gapSize(iCell)};
     
-    dataS    = struct('includedWin',[],'excludedWin',[],'pixelSize',[],'frameRate',1,'rawTimeSeries',[],'procTimeSeries',[]);
-    cellData = struct('data',repmat({dataS},1,nCell)) ;
+    if ~isempty(oldCellData{iCell})
+        inp1 = isequal(oldCellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
+    else
+        inp1 = false;
+    end
     
-    for iCell = 1:nCell
+    
+    if ~inp1
         
         currMD     = ML.movies_{iCell};
         timeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
@@ -105,34 +107,40 @@ if ~( xor(inp1,inp2) && inp1)
             
         end
         
-        cellData(iCell).data.rawTimeSeries = timeSeries;
+        cellData{iCell}.data.rawTimeSeries = timeSeries;
         
         %Applying Time Series Operations
-        cellData(iCell).data.timeSeriesOperations = timeSeriesOperations;
+        cellData{iCell}.data.timeSeriesOperations = timeSeriesOperations{iCell};
+        
         if nDim == 3
             
             for iLayer = 1:size(timeSeries,2)
                 
-                [cellData(iCell).data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(squeeze(timeSeries(:,iLayer,:)),timeSeriesOperations{:});
-                cellData(iCell).data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-                cellData(iCell).data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
-                cellData(iCell).data.procExcTimeSeries{iLayer}               = cellData(iCell).data.procTimeSeries(cellData(iCell).data.includedWin{iLayer},:,iLayer);
+                [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(squeeze(timeSeries(:,iLayer,:)),timeSeriesOperations{iCell}{:});
+                cellData{iCell}.data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+                cellData{iCell}.data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
+                cellData{iCell}.data.procExcTimeSeries{iLayer}               = cellData{iCell}.data.procTimeSeries(cellData{iCell}.data.includedWin{iLayer},:,iLayer);
                 
             end
             
         else
             
-            [cellData(iCell).data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(timeSeries,timeSeriesOperations{:});
-            cellData(iCell).data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-            cellData(iCell).data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
-            cellData(iCell).data.procExcTimeSeries           = cellData(iCell).data.procTimeSeries(cellData(iCell).data.includedWin,:);
+            [cellData{iCell}.data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(timeSeries,timeSeriesOperations{iCell}{:});
+            cellData{iCell}.data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
+            cellData{iCell}.data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
+            cellData{iCell}.data.procExcTimeSeries           = cellData{iCell}.data.procTimeSeries(cellData{iCell}.data.includedWin,:);
             
             
         end
+    else
+        
+        cellData{iCell} = oldCellData{iCell};
         
     end
     
 end
+
+
 
 
 %% Saving results per cell
