@@ -62,7 +62,7 @@ parfor i = 1:nd
         lftData(i).A_pstd = NaN(nt,nf,nCh);
         lftData(i).sigma_r = NaN(nt,nf,nCh);
         lftData(i).SE_sigma_r = NaN(nt,nf,nCh);
-
+        
         lftData(i).sbA = NaN(nt,b,nCh);
         lftData(i).ebA = NaN(nt,b,nCh);
         lftData(i).sbSigma_r = NaN(nt,b,nCh);
@@ -112,7 +112,9 @@ if ~isempty(acorr)
     for c = 1:nCh
         for i = 1:nd
             for f = 1:numel(afields)
-                lftData(i).(afields{f})(:,:,c) = acorr(i,c)*lftData(i).(afields{f})(:,:,c);
+                if ~isempty(lftData(i).A)
+                    lftData(i).(afields{f})(:,:,c) = acorr(i,c)*lftData(i).(afields{f})(:,:,c);
+                end
             end
         end
     end
@@ -135,9 +137,9 @@ end
 for i = 1:nd
     
     if rescale
-       for c = 1:nCh
-           maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
-       end
+        for c = 1:nCh
+            maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
+        end
     end
     
     % apply frame cutoff to all fields
@@ -225,7 +227,7 @@ end
 
 if rescale(1)
     a = mat2cell(av,nCh,ones(1,numel(lftData)));
-    [lftData.a] = deal(a{:}); 
+    [lftData.a] = deal(a{:});
     for i = 1:numel(lftData)
         lftData(i).maxA = squeeze(nanmax(lftData(i).A(:,:,:),[],2));
     end
