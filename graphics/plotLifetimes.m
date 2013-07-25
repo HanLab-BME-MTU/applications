@@ -179,7 +179,10 @@ if isstruct(lftRes)
         
         labels = [labelsA labelsB];
         hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
-        set(hl, fset.tfont{:}, 'Box', 'off', 'Position', [3.75 3.25 2 2]);
+        set(hl, fset.tfont{:}, 'Box', 'off');
+        if strcmpi(ip.Results.DisplayMode, 'print');
+            set(hl, 'Position', [3.75 3.25 2 2]);
+        end
         
         %------------------------------------------------------------
         % 2) Plot CCP lifetimes only; all combinations
@@ -194,8 +197,9 @@ if isstruct(lftRes)
         %hp(1) = plot(lftRes.t, sum(tmp,1), 'k', 'LineWidth', lw);
         hp(1) = plot(lftRes.t, lftRes.meanLftHistCCP, 'k', 'LineWidth', lw);
         for s = ncomb:-1:1 % plot combinations in increasing order of association
-            hp(s+1) = plot(lftRes.t, pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
+            hp(s+1) = plot(lftRes.t, pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1), 'Color', cmap(s,:), 'LineWidth', lw+0.5);
         end
+        
         axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
         set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
         
@@ -204,7 +208,10 @@ if isstruct(lftRes)
         
         hl = legend(hp, [' All CCPs' labelsC], 'Location', 'NorthEast');
         lheight = ncomb+1;%1.5+3.5 = 5 -> 4+1.2
-        set(hl, 'Box', 'off', 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
+        set(hl, 'Box', 'off');
+        if strcmpi(ip.Results.DisplayMode, 'print');
+            set(hl, 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
+        end
     end
     
     % for comparisons between multiple conditions
