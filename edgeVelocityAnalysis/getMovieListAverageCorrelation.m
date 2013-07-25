@@ -68,13 +68,12 @@ layer            = ip.Results.layer;
 channel          = ip.Results.signalChannel;
 interval         = ip.Results.interval;
 
-dataS            = struct('edgeAutoCorr',[],'signalAutoCorr',[],'crossCorr',[],'lag',[]);
-cellData         = struct('total',repmat({dataS},1,nCell),'meanValue',repmat({dataS},1,nCell),'CI',repmat({dataS},1,nCell)) ;
-edgeInputParam   = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',1,'scale',scale,'outputPath','correlationEstimation'};
-signalInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',1,'outputPath','correlationEstimation'};
-edge             = edgeVelocityQuantification(ML,edgeInputParam{:});
-signal           = sampledSignalQuantification(ML,channel,signalInputParam{:});
-nInterval        = arrayfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
+cellData{1,nCell} = [];
+edgeInputParam    = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale,'outputPath','correlationEstimation'};
+signalInputParam  = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'outputPath','correlationEstimation'};
+edge              = edgeVelocityQuantification(ML,edgeInputParam{:});
+signal            = sampledSignalQuantification(ML,channel,signalInputParam{:});
+nInterval         = cellfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
 
 
     

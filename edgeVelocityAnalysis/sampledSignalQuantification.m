@@ -107,10 +107,10 @@ nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('outLevel',0,@isscalar);
-ip.addParamValue('trendType',   -1,@isscalar);
-ip.addParamValue('minLength',  10,@isscalar);
-ip.addParamValue('gapSize',   0,@isscalar);
+ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
+ip.addParamValue('trendType',-ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
+ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('outputPath','sampledSignalQuantification',@isstr);
 ip.addParamValue('fileName','sampledSignal',@isstr);
 
@@ -128,8 +128,9 @@ gapSize    = ip.Results.gapSize;
 operations = {'channel',channel,'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'WindowSamplingProcess',operations{:});
 
-if ~isfield(cellData,'intensityOverTime')
-    for iCell = 1:nCell
+for iCell = 1:nCell
+    
+    if ~isfield(cellData{iCell},'intensityOverTime')
         
         currMD                             = ML.movies_{iCell};
         cellData{iCell}.data.pixelSize     = currMD.pixelSize_;
@@ -153,11 +154,10 @@ if ~isfield(cellData,'intensityOverTime')
         
     end
     
-    
-    %% Saving results
-    
-    savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
-    
 end
+
+%% Saving results
+
+savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
 
 end

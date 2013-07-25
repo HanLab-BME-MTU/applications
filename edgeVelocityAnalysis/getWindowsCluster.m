@@ -52,9 +52,9 @@ nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('outLevel',0,@isscalar);
-ip.addParamValue('trendType',   -1,@isscalar);
-ip.addParamValue('minLength',  10,@isscalar);
+ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
+ip.addParamValue('trendType',-ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
 ip.addParamValue('scale',false,@islogical);
 ip.addParamValue('edgeState',1:2,@isvector);
 ip.addParamValue('stateFeature',1:4,@isvector);
@@ -91,7 +91,7 @@ measures{2} = 'retractionAnalysis';
 
 aux1         = arrayfun(@(x) repmat(x,1,numel(edgeFeat)),measures(edgeState),'Unif',0);
 aux2         = repmat(feature(edgeFeat),1,numel(edgeState));
-aux3         = cellfun(@(z1,z2) arrayfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
+aux3         = cellfun(@(z1,z2) cellfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
 featureSpace = cellfun(@(x) cat(2,x{:}),aux3,'Unif',0);
 
 statsVector(1:numel(edgeFeat)*numel(edgeState)) = {fVector};
@@ -100,7 +100,7 @@ cellData     = getCellIndex(cellData,out);
 
 for iCell = 1:nCell
 
-    cellData(iCell).cluster = arrayfun(@(x) cellData(iCell).data.includedWin(cellData(iCell).cluster{x}),1:numel(out),'Unif',0);
+    cellData{iCell}.cluster = arrayfun(@(x) cellData{iCell}.data.includedWin(cellData{iCell}.cluster{x}),1:numel(out),'Unif',0);
          
 end
 
@@ -112,14 +112,14 @@ end
 
 function cellData = getCellIndex(cellData,out)
 
-totalWin = cell2mat( arrayfun(@(x) numel(x.data.procExcEdgeMotion),cellData,'Unif',0) );
+totalWin = cell2mat( cellfun(@(x) numel(x.data.procExcEdgeMotion),cellData,'Unif',0) );
 
 testM  = cellfun(@(x) sum(x'*(1./cumsum(totalWin)) > 1,2)+1, out,'Unif',0 );
 fixIdx = [0 totalWin(1:end-1)];
 
 for iCell = 1:numel(cellData)
     
-    cellData(iCell).cluster = cellfun(@(x,y) x(y == iCell)-sum(fixIdx(1:iCell)),out,testM,'Unif',0);
+    cellData{iCell}.cluster = cellfun(@(x,y) x(y == iCell)-sum(fixIdx(1:iCell)),out,testM,'Unif',0);
     
 end
 
