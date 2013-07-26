@@ -13,7 +13,7 @@ function [cellData,dataSet] = getMovieListAverageCorrelation(movieObj,varargin)
 %       minLength     - scalar - mininum time serie length
 %       maxLag        - scalar - maximum cross/auto-correlation lag
 %       layer         - scalar - layer for the sampled signal
-%       signalChannel - scalar 
+%       signalChannel - scalar
 %
 %Output:
 %       cellData - structure array with all parameters for each cell
@@ -76,7 +76,7 @@ signal            = sampledSignalQuantification(ML,channel,signalInputParam{:});
 nInterval         = cellfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
 
 
-    
+
 for iInt = 1:numel(interval)
     if ~isempty(interval{iInt})
         nInterval{iInt} = interval{iInt};
@@ -86,45 +86,87 @@ end
 totalEdgeACF     = [];
 totalSignalACF   = [];
 totalCCF         = [];
+protrusionCCF    = [];
+retractionCCF    = [];
 
 for iCell = 1:nCell
     
     
-    windows                                  = intersect(edge{iCell}.data.includedWin,signal{iCell}.data.includedWin{layer});
-    protrusion                               = edge{iCell}.data.procEdgeMotion(windows,nInterval{iCell});
-    activity                                 = squeeze(signal{iCell}.data.procSignal(windows,nInterval{iCell},layer));
+    windows         = intersect(edge{iCell}.data.includedWin,signal{iCell}.data.includedWin{layer});
+    motionMap       = edge{iCell}.data.procEdgeMotion(windows,nInterval{iCell});
+    activity        = squeeze(signal{iCell}.data.procSignal(windows,nInterval{iCell},layer));
     
-    [muCcf,muCCci,~,xCorr]                   = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
-    [muProtAcf,protCI,~,protAcf]             = getAverageCorrelation(protrusion,'maxLag',maxLag);
-    [muSignAcf,signCI,lags,signAcf]          = getAverageCorrelation(activity,'maxLag',maxLag);
+    cellData{iCell} = internalGetCorrelation(motionMap,activity,maxLag,1);
     
-    cellData{iCell}.total.edgeAutoCorr       = protAcf;
-    cellData{iCell}.total.signalAutoCorr     = signAcf;
-    cellData{iCell}.total.crossCorr          = xCorr;
-    cellData{iCell}.total.lag                = lags;
+    totalEdgeACF    = cat(2,cellData{iCell}.total.edgeAutoCorr,totalEdgeACF);
+    totalSignalACF  = cat(2,cellData{iCell}.total.signalAutoCorr,totalSignalACF);
+    totalCCF        = cat(2,cellData{iCell}.total.crossCorr,totalCCF);
     
-    cellData{iCell}.meanValue.edgeAutoCorr   = muProtAcf;
-    cellData{iCell}.meanValue.signalAutoCorr = muSignAcf;
-    cellData{iCell}.meanValue.crossCorr      = muCcf;
-    cellData{iCell}.meanValue.lag            = lags;
+    protIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.protrusionAnalysis.windows(windows),'Unif',0);
+    retrIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.retractionAnalysis.windows(windows),'Unif',0);
     
-    cellData{iCell}.CI.edgeAutoCorr          = protCI;
-    cellData{iCell}.CI.signalAutoCorr        = signCI;
-    cellData{iCell}.CI.crossCorr             = muCCci;
-    cellData{iCell}.CI.lag                   = lags;
+    protMask        = nan(size(motionMap));
+    retrMask        = nan(size(motionMap));
     
-    totalEdgeACF                             = cat(2,protAcf,totalEdgeACF);
-    totalSignalACF                           = cat(2,signAcf,totalSignalACF);
-    totalCCF                                 = cat(2,xCorr,totalCCF);
+    for iWin = 1:numel(windows)
+        
+        protMask(iWin,protIdx{iWin}') = 1;
+        retrMask(iWin,retrIdx{iWin}') = 1;
+        
+    end
+    
+    protrusion = motionMap.*protMask;
+    retraction = motionMap.*retrMask;
+    
+    cellData{iCell}.total.protrusionSignal = nanmean(protrusion(:));
+    cellData{iCell}.total.protrusionSignal = nanmean(retraction(:));
+
+    cellData{iCell}.protrusionCorrelation  = internalGetCorrelation(protrusion,activity,maxLag,0);
+    cellData{iCell}.retractionCorrelation  = internalGetCorrelation(retraction,activity,maxLag,0);
+    protrusionCCF                          = cat(2,cellData{iCell}.protrusionCorrelation.total.crossCorr,protrusionCCF);
+    retractionCCF                          = cat(2,cellData{iCell}.retractionCorrelation.total.crossCorr,retractionCCF);
     
 end
 
-[dataSet.meanValue.crossCorr,dataSet.CI.crossCorr]           = correlationBootstrap(totalCCF, repmat( 2/sqrt(size(protrusion,2)), 1, size(totalCCF,2) ) );
-[dataSet.meanValue.edgeAutoCorr,dataSet.CI.edgeAutoCorr]     = correlationBootstrap(totalEdgeACF, repmat( 2/sqrt(size(protrusion,2)), 1, size(totalCCF,2) ) );
-[dataSet.meanValue.signalAutoCorr,dataSet.CI.signalAutoCorr] = correlationBootstrap(totalSignalACF, repmat( 2/sqrt(size(protrusion,2)), 1, size(totalCCF,2) ) );
-
+[dataSet.meanValue.crossCorr,dataSet.CI.crossCorr]                       = correlationBootstrap(totalCCF, repmat( 2/sqrt(size(motionMap,2)), 1, size(totalCCF,2) ) );
+[dataSet.meanValue.edgeAutoCorr,dataSet.CI.edgeAutoCorr]                 = correlationBootstrap(totalEdgeACF, repmat( 2/sqrt(size(motionMap,2)), 1, size(totalCCF,2) ) );
+[dataSet.meanValue.signalAutoCorr,dataSet.CI.signalAutoCorr]             = correlationBootstrap(totalSignalACF, repmat( 2/sqrt(size(motionMap,2)), 1, size(totalCCF,2) ) );
+[dataSet.protrusion.meanValue.crossCorr,dataSet.protrusion.CI.crossCorr] = correlationBootstrap(protrusionCCF, repmat( 2/sqrt(size(motionMap,2)), 1, size(totalCCF,2) ) );
+[dataSet.retraction.meanValue.crossCorr,dataSet.retraction.CI.crossCorr] = correlationBootstrap(retractionCCF, repmat( 2/sqrt(size(motionMap,2)), 1, size(totalCCF,2) ) );
 
 savingMovieResultsPerCell(ML,cellData,'correlationEstimation','correlation')
 savingMovieDataSetResults(ML,dataSet,'correlationEstimation','correlation')
+
+end
+
+
+function out = internalGetCorrelation(protrusion,activity,maxLag,acFlag)
+
+[muCcf,muCCci,lags,xCorr] = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
+
+out.total.crossCorr       = xCorr;
+out.total.lag             = lags;
+
+out.meanValue.crossCorr   = muCcf;
+out.meanValue.lag         = lags;
+
+out.CI.crossCorr          = muCCci;
+out.CI.lag                = lags;
+
+if acFlag
+    
+    [muProtAcf,protCI,~,protAcf] = getAverageCorrelation(protrusion,'maxLag',maxLag);
+    [muSignAcf,signCI,~,signAcf] = getAverageCorrelation(activity,'maxLag',maxLag);
+    
+    out.total.edgeAutoCorr       = protAcf;
+    out.total.signalAutoCorr     = signAcf;
+    
+    out.meanValue.edgeAutoCorr   = muProtAcf;
+    out.meanValue.signalAutoCorr = muSignAcf;
+    
+    out.CI.edgeAutoCorr          = protCI;
+    out.CI.signalAutoCorr        = signCI;
+    
+end
 
 end
