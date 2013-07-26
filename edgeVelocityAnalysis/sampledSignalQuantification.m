@@ -79,7 +79,7 @@ function cellData = sampledSignalQuantification(movieObj,channel,varargin)
 %                                                                               .MaxVeloc
 %                                                                               .MeanVeloc
 %                                                                               .MinVeloc
-%                                                                               .MednVeloc
+%                                                                               .MednV,'channel',1eloc
 %
 %Marco Vilela, 2012
 
