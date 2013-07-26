@@ -1,10 +1,10 @@
-function [ha, hf] = setupFigure(nh, nw, varargin)
+function [ha, hf] = setupFigure(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('nh', @isposint);
-ip.addRequired('nw', @isposint);
-ip.addOptional('na', nh*nw, @isposint);
+ip.addOptional('nh', 1, @isposint);
+ip.addOptional('nw', 1, @isposint);
+ip.addOptional('na', 1, @isposint);
 ip.addParamValue('SameAxes', false, @islogical);
 ip.addParamValue('AspectRatio', []);
 ip.addParamValue('AxesWidth', 6);
@@ -12,7 +12,9 @@ ip.addParamValue('AxesHeight', 3.5);
 ip.addParamValue('XSpace', [1.5 0.75 0.5]);
 ip.addParamValue('YSpace', [1.5 0.75 0.5]);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
-ip.parse(nh, nw, varargin{:});
+ip.parse(varargin{:});
+nh = ip.Results.nh;
+nw = ip.Results.nw;
 na = ip.Results.na;
 
 w0 = ip.Results.AxesWidth + sum(ip.Results.XSpace);

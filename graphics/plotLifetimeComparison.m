@@ -30,8 +30,7 @@ ip.parse(lftRes, varargin{:});
 fset = loadFigureSettings('print');
 
 % 1) Plot CCP distributions
-figure(fset.fOpts{:});
-axes(fset.axOpts{:});
+setupFigure;
 hold on;
 
 % normalization
@@ -69,8 +68,7 @@ ylabel('Frequency', fset.lfont{:});
 
 % 2) Optional: plot CCS distributions (all objects)
 if ip.Results.PlotAll
-    figure(fset.fOpts{:});
-    axes(fset.axOpts{:});
+    setupFigure;
     hold on;
     for i = ip.Results.PlotOrder
         hp(i) = plot(lftRes{i}.t, nanmean(lftRes{i}.lftHist_Ia,1), '-', 'LineWidth', 1, 'Color', cv(i,:));
