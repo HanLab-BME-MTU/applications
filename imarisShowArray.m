@@ -79,7 +79,12 @@ if nargin < 2 || isempty(imaApp)
     end        
 else
     % make sure user did not accidentially close the window
-    imaApp.mVisible = 1;
+    if is7pt5orLater
+        imaApp.SetVisible(1);
+        iceConn = IceImarisConnector(imaApp);
+    else
+        imaApp.Set= 1;
+    end
 end
 
 % test which pixelsize to use
