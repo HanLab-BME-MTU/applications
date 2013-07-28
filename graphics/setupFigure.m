@@ -4,7 +4,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('nh', 1, @isposint);
 ip.addOptional('nw', 1, @isposint);
-ip.addOptional('na', 1, @isposint);
+ip.addOptional('na', [], @isposint);
 ip.addParamValue('SameAxes', false, @islogical);
 ip.addParamValue('AspectRatio', []);
 ip.addParamValue('AxesWidth', 6);
@@ -16,6 +16,9 @@ ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
 na = ip.Results.na;
+if isempty(na)
+    na = nh*nw;
+end
 
 w0 = ip.Results.AxesWidth + sum(ip.Results.XSpace);
 
