@@ -1,3 +1,4 @@
+function finished = exchangePaintAlignment(list,name,varargin)
 % Exchange Paint Alignment
 %
 % This code takes analyzed and tracked data from a multicolor paint movie
@@ -5,17 +6,43 @@
 % through drift markers.
 %
 %
-% All the .mat files in the directory are assumed to be associated and
+% All the .mat files in the directory dir are assumed to be associated and
 % should contain tracksFinal and the associated MD
+%
+%Input: 
+%       list: list of full path of .mat files to be included is a cell
+%              array
+%       
+%       name: name to save the resulting analysis under
 %
 % 2013/07/15 Jeffrey Werbin
 % Harvard Medical School
 %
 
+finished = 1;
+
+ip=inputParser;
+ip.CaseSensitive=false;
+ip.StructExpand=true;
+
+ip.addRequired('dir',@iscell);
+ip.addRequired('name',@ischar);
+
+
+ip.addOptional('pixelSize',62.81,@isscalar);
+ip.addOptional('ImageDisp',false,@islogical);
+
+ip.parse(dataDirectory,varargin{:});
+
+pixelSize = ip.Results.pixelSize;
+ImageDisp = ip.Results.ImageDisp;
+
 %Get a list of the .mat files in current directory
 %We assume that all files
-L = what;
-list = L.mat;
+%L = what;
+%list = L.mat;
+
+
 
 maxGap =10;
 
@@ -117,7 +144,7 @@ end
 % uses the first movie as a reference
 
 ref = PointList{1}.dmark;
-s_ref = size(ref)
+s_ref = size(ref);
 PointList{1}.shift = struct('regParam',[],'Bfit',[],'ErrorStats',[],'trans',[0,0],'clusterInfo',[],'clusterMap',[])
 
 for j = 2:num
@@ -169,29 +196,38 @@ PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
 PointList{1}.clusterInfo = clusterInfo;
 PointList{1}.clusterMap = clusterMap;
 
+%save results
+
+save([dir,pathsep,name,'.mat'],'PointList','maxGap','MinTrackLen');
+
 
 %Create and "Image" of the final merge
 
 cmap = [{'g'},{'r'},{'b'},{'k'},{'m'}];
 
-%first just the aligned tracking markers pre and post
-figure;
-hold;
-for j=1:num
-    tmp=PointList{j}.dmark;
-    ntmp = numel(tmp(:,1));
-    scatter(tmp(:,1),tmp(:,2),[cmap{j},'x']);
-    scatter(tmp(:,1)+repmat(PointList{j}.shift.trans(1),[ntmp,1]),tmp(:,2)+repmat(PointList{j}.shift.trans(2),[ntmp,1]),[cmap{j},'s']);
-end
-title('Drift Markers only')
+if ImageDisp
 
-figure;
-hold;
-for j=1:num
-    tmp=PointList{j}.pnts;
-    scatter(tmp(:,1),tmp(:,2),[cmap{j},'.']);
-end
-title('5 receptor image') 
-legend('EGFR','ErbB2','ErbB3','IGF1R','Met')
+    %first just the aligned tracking markers pre and post
+    figure;
+    hold;
+    for j=1:num
+        tmp=PointList{j}.dmark;
+        ntmp = numel(tmp(:,1));
+        scatter(tmp(:,1),tmp(:,2),[cmap{j},'x']);
+        scatter(tmp(:,1)+repmat(PointList{j}.shift.trans(1),[ntmp,1]),tmp(:,2)+repmat(PointList{j}.shift.trans(2),[ntmp,1]),[cmap{j},'s']);
+    end
+    title('Drift Markers only')
 
-    
+    figure;
+    hold;
+    for j=1:num
+        tmp=PointList{j}.pnts;
+        scatter(tmp(:,1),tmp(:,2),[cmap{j},'.']);
+    end
+    title('5 receptor image') 
+    legend('EGFR','ErbB2','ErbB3','IGF1R','Met')
+
+end
+
+
+end
