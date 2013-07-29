@@ -223,9 +223,13 @@ for iInt = 1:numel(interval)
     for iCell = 1:nCell
         
         if ~isfield(cellData{iCell},'protrusionAnalysis')
-            cellData{iCell}.protrusionAnalysis(iInt) = protrusion{cc}{iInt};
-            cellData{iCell}.retractionAnalysis(iInt) = retraction{cc}{iInt};
+            
+            for iiInt = 1:numel(interval)
+                cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
+                cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
+            end
             cc = cc + 1;
+            
         end
         
         total.ProtPersTime    = [total.ProtPersTime;cellData{iCell}.protrusionAnalysis(iInt).total.persTime];
