@@ -115,11 +115,13 @@ for iCell = 1:nCell
         
     end
     
-    protrusion = motionMap.*protMask;
-    retraction = motionMap.*retrMask;
+    protrusion    = motionMap.*protMask;
+    retraction    = motionMap.*retrMask;
+    sigProtrusion = activity.*protMask;
+    sigRetraction = activity.*retrMask;
     
-    cellData{iCell}.total.protrusionSignal = nanmean(protrusion(:));
-    cellData{iCell}.total.protrusionSignal = nanmean(retraction(:));
+    cellData{iCell}.total.protrusionSignal = nanmean(sigProtrusion(:));
+    cellData{iCell}.total.protrusionSignal = nanmean(sigRetraction(:));
 
     cellData{iCell}.protrusionCorrelation  = internalGetCorrelation(protrusion,activity,maxLag,0);
     cellData{iCell}.retractionCorrelation  = internalGetCorrelation(retraction,activity,maxLag,0);
