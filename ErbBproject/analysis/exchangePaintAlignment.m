@@ -6,14 +6,34 @@ function finished = exchangePaintAlignment(list,name,varargin)
 % through drift markers.
 %
 %
-% All the .mat files in the directory dir are assumed to be associated and
-% should contain tracksFinal and the associated MD
+% All the .mat files 
+% should contain tracksFinal, features and the associated MD
 %
 %Input: 
 %       list: list of full path of .mat files to be included is a cell
 %              array
 %       
 %       name: name to save the resulting analysis under
+%
+%Optional: 
+%       pixelSize, defines the size in nanometers of a pixel
+%
+%       ImageDisp, if set to true displays the result of the alignment
+%
+%       dir, the directory to save the output file in. The default is the
+%            current directory
+%
+%Output:
+%       finished, returns 1 upon completion
+%
+%       (PointList), a Cell array of structures that is saved to the disk as name.mat
+%                  .pnts, list of pnts drift and shift corrected
+%                  .drift, a vector with the x,y shift from time zero at
+%                          each frame
+%                  .dmark, x,y corrodinates of the drift markers
+%                  .name, name of the analyzed file
+%                  .shift, x,y shift relative to the first in the series
+%
 %
 % 2013/07/15 Jeffrey Werbin
 % Harvard Medical School
@@ -31,6 +51,7 @@ ip.addRequired('name',@ischar);
 
 ip.addOptional('pixelSize',62.81,@isscalar);
 ip.addOptional('ImageDisp',false,@islogical);
+ip.addOptional('dir',cd(),@ischar);
 
 ip.parse(dataDirectory,varargin{:});
 
@@ -63,7 +84,8 @@ for j=1:num
     %Calculates average drift from all the drift markers
     ind = find(vertcat(track.isDrift));
     %MovieLength = MD.nFrames_;
-    MovieLength = 6000; %temporary measure
+    %MovieLength = 5000; %temporary measure
+    MovieLength = numel(features);
     drift = zeros([MovieLength,2]);
 
 
@@ -190,7 +212,7 @@ for j = 2:num
 
 end
 
-tmp = PointList{1}.pnts(:,1:2)
+tmp = PointList{1}.pnts(:,1:2);
 PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
 [clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
 PointList{1}.clusterInfo = clusterInfo;
