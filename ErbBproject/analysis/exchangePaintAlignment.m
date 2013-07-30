@@ -57,6 +57,7 @@ ip.parse(dataDirectory,varargin{:});
 
 pixelSize = ip.Results.pixelSize;
 ImageDisp = ip.Results.ImageDisp;
+dir = ip.Results.dir;
 
 %Get a list of the .mat files in current directory
 %We assume that all files
