@@ -106,44 +106,34 @@ if ip.Results.Display
         T99 = xa(end);
     end
     lw = 1;
-    axPos = fset.axPos;
-    dx = 0.3*fset.axPos(4);
     
     [~,idxa] = sort(a);
     [~,idxa] = sort(idxa);
-    
-    figure(fset.fOpts{:}, 'Position', [5 5 8 1.5+axPos(4)*2+dx+1], 'Color', 'w', 'Name', ip.Results.FigureName);
-    axPos(2) = axPos(2)+dx+axPos(4);
-    ha(1) = axes(fset.axOpts{:}, 'Position', axPos);
-    hold on;
+        
+    ha = setupFigure(2,1, 'SameAxes', true,'YSpace', [1.5 1.05 1]);
     for i = nd:-1:1
-        plot(x{i}, F{i}, '-', 'Color', colorV(idxa(i),:), 'LineWidth', lw);
+        plot(x{i}, F{i}, '-', 'Color', colorV(idxa(i),:), 'LineWidth', lw, 'Parent', ha(1));
     end
-    hp = plot(xRef, FRef, 'k', 'LineWidth', lw+0.5);
-    axis([0 T99 0 1.01]);
-    set(gca, 'YTick', 0:0.2:1, 'XLim', [0 T99], 'XTickLabel', []);
-    formatTickLabels(gca);
-    ylabel('Cumulative frequency', fset.lfont{:});
-    text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
+    hp = plot(xRef, FRef, 'k', 'LineWidth', lw+0.5, 'Parent', ha(1));
+    ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
+    text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
     hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
-    set(hl, 'Box', 'off', fset.sfont{:}, 'Position', [5 6 1.5 1]);
+    set(hl, 'Box', 'off', fset.sfont{:});%, 'Position', [5 6 1.5 1]);
     
-    ha(2) = axes(fset.axOpts{:});
-    hold on;
-    plot(xRef, FRef, 'k', 'LineWidth', lw+0.5);
+    plot(xRef, FRef, 'k', 'LineWidth', lw+0.5, 'Parent', ha(2));
     for i = nd:-1:1
-        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(idxa(i),:), 'LineWidth', lw);
+        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(idxa(i),:), 'LineWidth', lw, 'Parent', ha(2));
     end
-    axis([0 T99 0 1.01]);
-    set(gca, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
-    formatTickLabels(gca);
+    axis(ha, [0 T99 0 1.01]);
+    set(ha, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
+    formatTickLabels(ha);
     xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-    ylabel('Cumulative frequency', fset.lfont{:});
-    text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:});
+    ylabel(ha(2), 'Cumulative frequency', fset.lfont{:});
+    text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(2));
     
     % Plot inset with scales
-    axPos = fset.axPos;
-    axes(fset.axOpts{:}, 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
+    axPos = get(ha(2), 'Position');
+    axes(fset.axOpts{:}, 'Units', 'normalized', 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
     hold on;
     av = [a 1];
     plot(zeros(numel(av)), av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
