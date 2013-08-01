@@ -72,6 +72,7 @@ if isempty(refSamples)
         otherwise
             refIdx = ip.Results.Reference;
     end
+    refMedian = median(samples{refIdx});
     T99 = prctile(samples{refIdx}, 99.5);
     samples(refIdx) = [];
     xRef = x{refIdx};
@@ -80,17 +81,18 @@ if isempty(refSamples)
     F(refIdx) = [];
 else
     [FRef, xRef] = ecdf(refSamples);
+    refMedian = median(refSamples);
     refIdx = [];
     T99 = prctile(refSamples, 99.5);
 end
 nd = numel(samples);
     
 % scale each distribution to the reference
-a = ones(1,nd);
+a = refMedian./cellfun(@median, samples);
 c = zeros(1,nd);
 refEDF = interpEDF(xRef, FRef, x0);
 for i = 1:nd
-    p = lsqnonlin(@cost, [1 0], [0 -1], [Inf 1], opts, x{i}, F{i}, refEDF, x0);
+    p = lsqnonlin(@cost, [a(i) 0], [0 -1], [Inf 1], opts, x{i}, F{i}, refEDF, x0);
     a(i) = p(1);
     c(i) = p(2);
 end
@@ -120,6 +122,7 @@ if ip.Results.Display
     hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
     set(hl, 'Box', 'off', fset.sfont{:});%, 'Position', [5 6 1.5 1]);
     
+    % plot scaled distributions
     plot(xRef, FRef, 'k', 'LineWidth', lw+0.5, 'Parent', ha(2));
     for i = nd:-1:1
         plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(idxa(i),:), 'LineWidth', lw, 'Parent', ha(2));
@@ -136,7 +139,7 @@ if ip.Results.Display
     axes(fset.axOpts{:}, 'Units', 'normalized', 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
     hold on;
     av = [a 1];
-    plot(zeros(numel(av)), av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
+    plot(0, av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
     he = errorbar(0, mean(av), std(av), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
     plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
     setErrorbarStyle(he, 0.15);
