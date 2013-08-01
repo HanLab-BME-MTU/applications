@@ -319,7 +319,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     ylabel('# valid tracks', fset.lfont{:});
     set(ha, 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
     rotateXTickLabels(ha, 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
-    formatTickLabels();
+    %formatTickLabels();
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
     
 
