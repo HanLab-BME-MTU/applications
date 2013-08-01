@@ -1,4 +1,4 @@
-function finished = exchangePaintAlignment(list,name,varargin)
+function path = exchangePaintAlignment(list,name,varargin)
 % Exchange Paint Alignment
 %
 % This code takes analyzed and tracked data from a multicolor paint movie
@@ -24,7 +24,7 @@ function finished = exchangePaintAlignment(list,name,varargin)
 %            current directory
 %
 %Output:
-%       finished, returns 1 upon completion
+%       path, returns the fullpath to the saved .mat file
 %
 %       (PointList), a Cell array of structures that is saved to the disk as name.mat
 %                  .pnts, list of pnts drift and shift corrected
@@ -35,17 +35,18 @@ function finished = exchangePaintAlignment(list,name,varargin)
 %                  .shift, x,y shift relative to the first in the series
 %
 %
+%
+%
+%
 % 2013/07/15 Jeffrey Werbin
 % Harvard Medical School
 %
-
-finished = 1;
 
 ip=inputParser;
 ip.CaseSensitive=false;
 ip.StructExpand=true;
 
-ip.addRequired('dir',@iscell);
+ip.addRequired('list',@iscell);
 ip.addRequired('name',@ischar);
 
 
@@ -53,7 +54,7 @@ ip.addOptional('pixelSize',62.81,@isscalar);
 ip.addOptional('ImageDisp',false,@islogical);
 ip.addOptional('dir',cd(),@ischar);
 
-ip.parse(dataDirectory,varargin{:});
+ip.parse(list,name,varargin{:});
 
 pixelSize = ip.Results.pixelSize;
 ImageDisp = ip.Results.ImageDisp;
@@ -168,7 +169,7 @@ end
 
 ref = PointList{1}.dmark;
 s_ref = size(ref);
-PointList{1}.shift = struct('regParam',[],'Bfit',[],'ErrorStats',[],'trans',[0,0],'clusterInfo',[],'clusterMap',[])
+PointList{1}.shift = struct('regParam',[],'Bfit',[],'ErrorStats',[],'trans',[0,0],'clusterInfo',[],'clusterMap',[]);
 
 for j = 2:num
     test = PointList{j}.dmark;
@@ -187,13 +188,13 @@ for j = 2:num
        A = ref(tmp(tmp <= s_test(1)),:);
        B = test;
        [regParam,Bfit,ErrorStats]=absor(A',B');
-       shift = mean(A-B)
+       shift = mean(A-B);
     else
         tmp = TwoToOne(1:s_test(1));
         A= ref;
         B=test(tmp(tmp <= s_ref(1)),:);
        [regParam,Bfit,ErrorStats]=absor(A',B');
-       shift = mean(A-B)
+       shift = mean(A-B);
     end
     
     PointList{j}.shift = struct('regParam',regParam,'Bfit',Bfit,'ErrorStats',ErrorStats,'trans',shift);
@@ -204,24 +205,24 @@ for j = 2:num
     tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.pnts=tmp(~isnan(tmp(:,1)),:);
     
-    %Applies mean shift tracking to one type of receptor/protein
-    
-    [clusterInfo,clusterMap]=MeanShiftClustering(PointList{j}.pnts(:,1:2),0.5,'kernel','flat');
-    
-    PointList{j}.clusterInfo = clusterInfo;
-    PointList{j}.clusterMap = clusterMap;
+%     %Applies mean shift tracking to one type of receptor/protein
+%     
+%     [clusterInfo,clusterMap]=MeanShiftClustering(PointList{j}.pnts(:,1:2),0.5,'kernel','flat');
+%     
+%     PointList{j}.clusterInfo = clusterInfo;
+%     PointList{j}.clusterMap = clusterMap;
 
 end
 
-tmp = PointList{1}.pnts(:,1:2);
-PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
-[clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
-PointList{1}.clusterInfo = clusterInfo;
-PointList{1}.clusterMap = clusterMap;
+% tmp = PointList{1}.pnts(:,1:2);
+% PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
+% [clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
+% PointList{1}.clusterInfo = clusterInfo;
+% PointList{1}.clusterMap = clusterMap;
 
 %save results
-
-save([dir,pathsep,name,'.mat'],'PointList','maxGap','MinTrackLen');
+path =[dir,pathsep,name,'.mat']; 
+save(path,'PointList','maxGap','MinTrackLen');
 
 
 %Create and "Image" of the final merge
