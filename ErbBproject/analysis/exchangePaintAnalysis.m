@@ -37,7 +37,7 @@ index =false(size(list));
 for i=1:numel(list)
     load(list{i},'tracksFinal','features');
     list(i)   
-    trackPerFrame = numel(tracksFinal)/numel(features)
+    tracksPerFrame = numel(tracksFinal)/numel(features)
     
     %If this movie is a control movie it will have 'pbs' in its name
     index(i)=isempty(strfind(list{i},'*pbs*'));
