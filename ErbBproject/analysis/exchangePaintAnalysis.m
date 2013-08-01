@@ -106,7 +106,7 @@ for i=1:numel(clusterInfo)
 end
 
 %Appends the additional analysis to fullpath file
-    save(fullpath, 'clusterInfo','clusterMap','-append');
+    save(fullpath, 'clusterInfo','clusterMap','GeneralDiagnostic,'-append');
     
       
     
