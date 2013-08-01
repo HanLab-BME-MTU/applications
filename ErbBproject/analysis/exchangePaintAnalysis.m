@@ -37,12 +37,20 @@ index =false(size(list));
 for i=1:numel(list)
     load(list{i},'tracksFinal','features');
     list(i)   
+    
     tracksPerFrame = numel(tracksFinal)/numel(features)
+    
+    l=0;
+    for j=1:numel(features)
+       l = l+numel(features{j}.x); 
+    end
+    
+    localizationsPerFrame = l/numel(features)
     
     %If this movie is a control movie it will have 'pbs' in its name
     index(i)=isempty(strfind(list{i},'*pbs*'));
     
-    GeneralDiagnostic(i)={struct('name',list{i},'tracksPerFrame',tracksPerFrame)};
+    GeneralDiagnostic(i)={struct('name',list{i},'tracksPerFrame',tracksPerFrame,'localizationsPerFrame',localizationsPerFrame)};
 end
 
 %removes control files from the list
@@ -71,6 +79,7 @@ for i = 1:n
     TotalPnts = vertcat(TotalPnts,[PointList{i}.pnts,i*ones(size(PointList{i}.pnts))]);
 end
 
+TotalPnts=TotalPnts(~isnan(TotalPnts(:,1)),:);
 
 [clusterInfo,clusterMap]=MeanShiftClustering(TotalPnts(:,1:2),0.5,'kernel','flat');
 
