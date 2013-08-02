@@ -63,8 +63,11 @@ set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [4 5-N*0.3 2 N*0.3]);
 axis([0 120 0 0.05]);
 set(gca, 'YTick', 0:0.01:0.05);
 xlabel('Lifetime (s)', fset.lfont{:});
-ylabel('Frequency', fset.lfont{:});
-
+if strcmpi(ip.Results.Frequency, 'relative')
+    ylabel('Relative frequency', fset.lfont{:});
+else
+    ylabel('Frequency', fset.lfont{:});
+end
 
 % 2) Optional: plot CCS distributions (all objects)
 if ip.Results.PlotAll
