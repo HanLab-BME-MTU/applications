@@ -149,7 +149,7 @@ for ii=1:nFrames
     imSizeX = grid_mat(end,end,1)-grid_mat(1,1,1);
     imSizeY = grid_mat(end,end,2)-grid_mat(1,1,2);
     if ii==1
-        set(h1, 'Position', [100 100 imSizeX*1.25 imSizeY])
+        set(h1, 'Position', [100 100 (imSizeX+1)*1.25 imSizeY+1])
     end
     subplot(1,1,1)
     subplot('Position',[0 0 0.8 1])

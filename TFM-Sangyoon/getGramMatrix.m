@@ -12,7 +12,7 @@ gramItself=[];
 gramLateral = [];
 gramDiagonal = [];
 
-wtBar = waitbar(0,'Please wait, building Gram Matrix...');
+% wtBar = waitbar(0,'Please wait, building Gram Matrix...');
 for jj=1:forceMesh.numBasis
     plotClass=forceMesh.basis(jj).class;
     integrandx_jj = forceMesh.basisClass(plotClass).basisFunc(1).f_intp_x;% this is basically the same as integrandx_ii
@@ -87,12 +87,12 @@ for jj=1:forceMesh.numBasis
 % %            stick with discrete method.
 %         end
 %     end
-    % Update the waitbar
-    if ishandle(wtBar) && mod(jj,10)==0
-        waitbar(jj/forceMesh.numBasis,wtBar,['Please wait, building Gram Matrix...' num2str(jj)]);
-    end
+%     % Update the waitbar
+%     if ishandle(wtBar) && mod(jj,10)==0
+%         waitbar(jj/forceMesh.numBasis,wtBar,['Please wait, building Gram Matrix...' num2str(jj)]);
+%     end
 end
-close(wtBar)
+% close(wtBar)
 
 xH=xH/max(xH(:)); % normalize it with max value.
 H(1:forceMesh.numBasis,1:forceMesh.numBasis) = xH;

@@ -173,8 +173,8 @@ for class=1:numClass
         tic;
         if ishandle(wtBar)
             wtBar = waitbar(0,wtBar,logMsg);
-        elseif feature('ShowFigureWindows'),
-            wtBar = waitbar(0,logMsg);
+%         elseif feature('ShowFigureWindows'),
+%             wtBar = waitbar(0,logMsg);
         end
         
         for i=1:numel(toDoBasis)

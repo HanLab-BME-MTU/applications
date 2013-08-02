@@ -216,11 +216,12 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
         MpM=M'*M;
-        maxIter = 10;
-        tolx = 2e-2;
+        maxIter = 7;
+        tolx = 5e-2;
         tolr = 1e-7;
 %         disp('L-curve ...')
-%         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
+
+%         [~,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
         sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %         sol_mats.nW=normWeights;
         sol_mats.eyeWeights=eyeWeights;
@@ -470,7 +471,7 @@ sol_coef = mtik(:,ireg_corner);
 
 function [sol_coef,reg_corner] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(-8:.125:-4);
+alphas=10.^(-8:.125:-3);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
@@ -481,7 +482,8 @@ for i=1:length(alphas);
 end
 
 % Find the corner of the Tikhonov L-curve
-[reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
@@ -501,5 +503,6 @@ set(H,'Fontsize',7);
 disp('Displaying the 1-norm L-curve')
 % print -deps2 nameSave
 print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
+save(['LcurveParameters.mat'],'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
 
 sol_coef = msparse(:,ireg_corner);

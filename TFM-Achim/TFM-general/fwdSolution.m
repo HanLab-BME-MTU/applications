@@ -12,12 +12,14 @@ if strcmpi(method,'conv_free')
     display('Calulate the convolution explicitely in free triangulated mesh')
     [nRow,~]=size(x0);
 
+    ux = zeros(nRow,1);
+    uy = zeros(nRow,1);
     for i=1:nRow
         integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
         integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
 
-        ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
-        uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
+        ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
+        uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
     end
     toc;
 elseif nargin<10 || strcmpi(method,'conv')

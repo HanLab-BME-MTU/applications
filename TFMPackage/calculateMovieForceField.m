@@ -39,15 +39,15 @@ forceFieldProc = movieData.processes_{iProc};
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.gelThickness = 34000; % (nm) this needs to be replaced by GUI input
 p.highRes = true;
-p.usePaxImg = true;
+p.usePaxImg = false;
 %% --------------- Initialization ---------------%%
-if feature('ShowFigureWindows'),
-    wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
-    wtBarArgs={'wtBar',wtBar};
-else
+% if feature('ShowFigureWindows'),
+%     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
+%     wtBarArgs={'wtBar',wtBar};
+% else
     wtBar=-1;
     wtBarArgs={};
-end
+% end
 
 % Reading various constants
 nFrames = movieData.nFrames_;
@@ -165,74 +165,75 @@ for i=1:nFrames
 % %         displField(i).vec =  [vecx vecy];
 %     end
 
+%     posx=reshape(grid_mat(:,:,1),[],1);
+%     posy=reshape(grid_mat(:,:,2),[],1);
+%     displField(i).pos = [posx posy];
+%     vecx=reshape(iu_mat(:,:,1),[],1);
+%     vecy=reshape(iu_mat(:,:,2),[],1);
+%     displField(i).vec =  [vecx vecy];
+
     if strcmpi(p.method,'FastBEM')
         % If grid_mat=[], then an optimal hexagonal force mesh is created
         % given the bead locations defined in displField:
+        if p.usePaxImg && length(movieData.channels_)>1
+            paxImage=movieData.channels_(2).loadImage(i);
+            [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                reg_FastBEM_TFM(grid_mat, displField, i, ...
+                p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                'thickness',p.gelThickness/movieData.pixelSize_,'paxImg',paxImage,'pixelSize',movieData.pixelSize_);
+            
+            outputFile{3+i,1} = [p.OutputDirectory filesep 'BEMParams ' num2str(i) ' frame.mat'];
 
-        if i==1
-            if ishandle(wtBar)
-                waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
-            end
-%             [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-%                 reg_FastBEM_TFM(grid_mat, displField, i, ...
-%                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-%                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-%                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
-%                 % considering units
-%                 displField.vec = displField.vec*((movieData.pixelSize_/1000)^2); %this is temporary remedy.
+            disp(['saving forward map and custom force mesh at ' outputFile{3+i,1} '...'])
+            save(outputFile{3+i,1},'forceMesh','M','-v7.3');
+            display(['Done: solution for frame: ',num2str(i)]);
+            
+        else
+            if i==1
+%                 if ishandle(wtBar)
+%                     waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+%                 end
+                [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                    reg_FastBEM_TFM(grid_mat, displField, i, ...
+                    p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                    'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
+                %             display('The total time for calculating the FastBEM solution: ')
+                
+                % The following values should/could be stored for the BEM-method.
+                % In most cases, except the sol_coef this has to be stored only
+                % once for all frames!
+%                             disp(['saving forward map and force mesh at ' outputFile{2} '...'])
+%                             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+                
+                %             % Calculate L-curve
+                %             if ~strcmp(p.solMethodBEM,'QR')
+                %                 hLcurve=plotLcurve(M,sol_mats,u,forceMesh,p.LcurveFactor,...
+                %                     'wtBar',wtBar);
+                %                 saveas(hLcurve,outputFile{3});
+                %                 close(hLcurve)
+                %             end
+            else
+                % since the displ field has been prepared such
+                % that the measurements in different frames are ordered in the
+                % same way, we don't need the position information any
+                % more. The displ. measurements are enough.
+                display('5.) Re-evaluate the solution:... ')
+                %             % pull the new u-vector:
+                %             u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
+                % recalculate the solution for the new displacement vec:
                 if p.usePaxImg && length(movieData.channels_)>1
                     paxImage=movieData.channels_(2).loadImage(i);
-
-                    % run Focal Adhesion Package to get FA mask
-                    
-                %             paxImageCropped = paxImage.*firstMask; %this mihgt not be needed
-
-                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-                        reg_FastBEM_TFM(grid_mat, displField, i, ...
-                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                        'thickness',p.gelThickness/movieData.pixelSize_,'paxImg',paxImage,'pixelSize',movieData.pixelSize_);
+                    [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], paxImage);
                 else
-                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-                        reg_FastBEM_TFM(grid_mat, displField, i, ...
-                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
-%             display('The total time for calculating the FastBEM solution: ')
-            
-            % The following values should/could be stored for the BEM-method.
-            % In most cases, except the sol_coef this has to be stored only
-            % once for all frames!
-%             disp(['saving forward map and force mesh at ' outputFile{2} '...'])
-%             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
-            
-%             % Calculate L-curve
-%             if ~strcmp(p.solMethodBEM,'QR')
-%                 hLcurve=plotLcurve(M,sol_mats,u,forceMesh,p.LcurveFactor,...
-%                     'wtBar',wtBar);
-%                 saveas(hLcurve,outputFile{3});
-%                 close(hLcurve)
-%             end
+                    [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[]);
                 end
-        else
-            % since the displ field has been prepared such
-            % that the measurements in different frames are ordered in the
-            % same way, we don't need the position information any
-            % more. The displ. measurements are enough.
-            display('5.) Re-evaluate the solution:... ')
-%             % pull the new u-vector:
-%             u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
-            % recalculate the solution for the new displacement vec:
-            if p.usePaxImg && length(movieData.channels_)>1
-                paxImage=movieData.channels_(2).loadImage(i);
-                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], paxImage);
-            else
-                [pos_f,force,sol_coef]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[]);
+                display(['Done: solution for frame: ',num2str(i)]);
             end
-            display(['Done: solution for frame: ',num2str(i)]);
         end
     else
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
@@ -248,15 +249,15 @@ for i=1:nFrames
     clear iu_mat;
     
     % Update the waitbar
-    if mod(i,5)==1 && ishandle(wtBar)
-        ti=toc;
-        waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
-    end
+%     if mod(i,5)==1 && ishandle(wtBar)
+%         ti=toc;
+%         waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
+%     end
 end
 
 save(outputFile{1},'forceField');
 
 % Close waitbar
-if feature('ShowFigureWindows'), close(wtBar); end
+% if feature('ShowFigureWindows'), close(wtBar); end
 
 disp('Finished calculating force field!')

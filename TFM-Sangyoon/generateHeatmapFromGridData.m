@@ -15,7 +15,7 @@ ymax = centerY+h/2;
 
 % [XI,YI]=meshgrid(x_mat_u(1,1):x_mat_u(1,1,1)+imSizeX,y_mat_u(1,1):y_mat_u(1,1)+imSizeY);
 unorm = (ux.^2 + uy.^2).^0.5;
-uMap = griddata(x_mat_u,y_mat_u,unorm,XI,YI,'cubic');
+uMap = griddata(x_mat_u,y_mat_u,unorm,XI,YI,'linear');
 umin = min(min(unorm));
 if nargin<6
     umax = max(max(unorm));
@@ -29,7 +29,7 @@ imshow(uMap,[umin umax]), colormap jet;
 %quiver
 % unit vector plot
 hold on
-cfactor = 4;
+cfactor = 2;
 grid_mat(:,:,2) = y_mat_u;
 grid_mat(:,:,1) = x_mat_u;
 xmax = size(y_mat_u,1);%y_mat_u(end,end);
@@ -49,13 +49,13 @@ Npoints = length(umat_vecx);
 inIdx = false(Npoints,1);
 
 for ii=1:Npoints
-    if pos_vecx(ii)>xmin && pos_vecx(ii)<xmax ...
-            && pos_vecy(ii)>ymin && pos_vecy(ii)<ymax
+    if pos_vecx(ii)>xmin+1 && pos_vecx(ii)<xmax-1 ...
+            && pos_vecy(ii)>ymin+1 && pos_vecy(ii)<ymax-1
         inIdx(ii) = true;
     end
 end
 
-quiver(pos_vecx(inIdx)-xmin,pos_vecy(inIdx)-ymin,umat_vecx(inIdx)./dispScale,umat_vecy(inIdx)./dispScale,0,'Color',[75/255 0/255 130/255]);
+quiver(pos_vecx(inIdx)-xmin+1,pos_vecy(inIdx)-ymin+1,umat_vecx(inIdx)./dispScale,umat_vecy(inIdx)./dispScale,0,'Color',[75/255 0/255 130/255]);
 
 % quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), umat_vecx./dispScale,umat_vecy./dispScale,0,'Color',[75/255 0/255 130/255]);
 

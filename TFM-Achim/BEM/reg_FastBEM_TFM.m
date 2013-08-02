@@ -74,6 +74,9 @@ else
     ymin = min(forceMesh.p(:,2));
     ymax = max(forceMesh.p(:,2));
     [x_out,y_out] = meshgrid(xmin:xmax,ymin,ymax);
+    x_out = reshape(x_out,[],1);
+    y_out = reshape(y_out,[],1);
+    
     [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
