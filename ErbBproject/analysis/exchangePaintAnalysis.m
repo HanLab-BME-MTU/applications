@@ -48,7 +48,7 @@ for i=1:numel(list)
     localizationsPerFrame = l/numel(features)
     
     %If this movie is a control movie it will have 'pbs' in its name
-    index(i)=isempty(strfind(list{i},'*pbs*'));
+    index(i)=isempty(strfind(list{i},'pbs'));
     
     GeneralDiagnostic(i)={struct('name',list{i},'tracksPerFrame',tracksPerFrame,'localizationsPerFrame',localizationsPerFrame)};
 end
@@ -64,7 +64,21 @@ fullpath = exchangePaintAlignment(list,name);
 
 load(fullpath,'PointList');
 
+%Used in several places
+n = numel(PointList);
+
 %Make continous density estmates using pairwise L function
+
+ContinousAnalysis = cell(n);
+
+%This loop calculates all the pairwise L(r) functions
+%You have to do all as they are not symetric
+
+for i=1:n
+    for j =1:n
+        %ContinousAnalysis;
+    end
+end
 
 
 

@@ -124,6 +124,7 @@ for iFile=1:nFiles
     % a DV file stores the pixelsize in nm
     %pixelSize=MD.pixelSize_;
     pixelSize = 62.8100;
+    %pixelSize=108;
     
     if createMask
         % create ROI and store in MD
