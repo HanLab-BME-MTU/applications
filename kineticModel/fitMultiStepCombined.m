@@ -30,8 +30,10 @@ mu = sum(f{1}.*x*dx)/sum(f{1}*dx);
 n = sum(cellfun(@numel, f));
 
 % config structure: #common steps, total #step model 1, total #steps model 2
-config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 3], [1 3 4],...
-    [2 3 3], [2 3 4], [3 4 4], [3 4 5]};%, [2 4 5]};
+% config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 3], [1 3 4],...
+%     [2 3 3], [2 3 4], [3 4 4], [3 4 5]};%, [2 4 5]};
+
+config = {[2 3 4]};
 
 nc = numel(config);
 RSS = NaN(1,nc);
@@ -99,13 +101,14 @@ if ip.Results.Display
     ylabel('BIC', fset.sfont{:});
     
     % residuals
-    %setupFigure('AxesHeight', ah/3, 'AxesWidth', aw);
-    %set(gca, 'TickLength', fset.TickLength/2*2.5);
-    %plot([0 160], [0 0], 'k--')
-    %plot(x, f{1}-y1, 'Color', hsv2rgb([0.6 0.3 0.9]), 'LineWidth', 1);
-    %plot(x, f{2}-y2, 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', 1);
-    %axis([0 160 -0.008 0.008]);
-    
+%     %%
+%     setupFigure('AxesHeight', ah/3, 'AxesWidth', aw);
+%     set(gca, 'TickLength', fset.TickLength/2*2.5);
+%     plot([0 160], [0 0], 'k--')
+%     plot(x, f{1}-y1, 'Color', hsv2rgb([0.6 0.3 0.9]), 'LineWidth', 1);
+%     plot(x, f{2}-y2, 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', 1);
+%     axis([0 160 -0.008 0.008]);
+%     %%
     
     % 2) Correlation matrix
     klabel = arrayfun(@(i) ['k_' num2str(i)], 1:nk, 'unif', 0);
