@@ -17,6 +17,7 @@ end
 edge  =network.edge;
 node  =network.node;
 maxMag=network.stats.maxMag;
+maxMag=130
 
 if nargin < 4 || isempty(scale)
     scale=50/maxMag;
@@ -91,7 +92,8 @@ for k=1:length(node)
         if isnan(sumIntF)
             sizeCirc=10^(-5);
         else
-            sizeCirc=20*sumIntF/maxMag;
+            circScale=20;
+            sizeCirc=circScale*sumIntF/maxMag;
         end
         if isfield(node{k},'spec') && ~isempty(node{k}.spec) && node{k}.spec==1
             plot(node{k}.pos(:,1),node{k}.pos(:,2),['o',marker(mod(k,7)+1)],'MarkerFaceColor','r','MarkerSize',sizeCirc,'LineWidth',2)
@@ -110,11 +112,17 @@ for k=1:length(node)
 end
 % The scale bar for the stresses:
 if nargin > 1 && ~isempty(xLimVal) && ~isempty(yLimVal)
+    % vectors:
     fxScaleBar_nN=100;
     fyScaleBar_nN=0;
     dPixX=100;
     dPixY=20;
     textSpace=20;
+    
+    % circles:
+    sizeScaleCirc=circScale*fxScaleBar_nN/maxMag;
+    
+    
     % lower right corner:
     % quiver(xLimVal(2)-dPixX, yLimVal(2)-dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
     % text(  xLimVal(2)-dPixX, yLimVal(2)-dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
@@ -122,8 +130,9 @@ if nargin > 1 && ~isempty(xLimVal) && ~isempty(yLimVal)
     % quiver(xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
     % text(  xLimVal(2)-1.25*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
     % upper left corner:
-     quiver(xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
-     text(  xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
+    plot(xLimVal(1)+0.5*dPixX+sizeScaleCirc, yLimVal(1)+4*dPixY+sizeScaleCirc,'ok','MarkerFaceColor','w','MarkerSize',sizeScaleCirc,'LineWidth',2) 
+    quiver(xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY,scale*fxScaleBar_nN,scale*fyScaleBar_nN,0,'k','LineWidth',2,'MaxHeadSize',5)
+    text(  xLimVal(1)+0.5*dPixX, yLimVal(1)+4*dPixY-textSpace,[num2str(fxScaleBar_nN),' nN'],'HorizontalAlignment','left','color', 'k','FontSize',16)
 end
 if noTicks
     set(gca,'YDir','reverse','XTick',[],'YTick',[]);

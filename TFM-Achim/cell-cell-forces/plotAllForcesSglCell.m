@@ -1,6 +1,6 @@
 edgeId=4; %5
 cellId=6;
-plotAll=0;
+plotAll=1;
 
 close all
 
@@ -257,3 +257,37 @@ ylim([0 550])
 box on;
 set(gca,'fontsize',20,'LineWidth',2)
 hold off;
+
+trackedNet_cl1=groupedNetworks.cluster{1}.trackedNet;
+label=1;
+h=[];
+numEdges=length(trackedNet_cl1{end}.edge);
+numFrames=length(trackedNet_cl1);
+for iEdge=1:numEdges
+    for iFrame=1:numFrames
+        if length(trackedNet_cl1{iFrame}.edge)>=iEdge && ~isempty(trackedNet_cl1{iFrame}.edge{iEdge})
+            edgeID{iEdge}.fcmag(iFrame)=sqrt(sum(trackedNet_cl1{iFrame}.edge{iEdge}.fc.^2,2));
+        else
+            edgeID{iEdge}.fcmag(iFrame)=NaN;
+        end
+    end
+end
+
+figure()
+for iEdge=1:numEdges
+    currh=plot(tmin:tmax, edgeID{iEdge}.fcmag, marker(mod(iEdge,7)+1));
+    h=horzcat(h,currh(1)); % 1 for marker, 2 for colored line;
+    M{label}=['edgeId=',num2str(iEdge)];
+    label=label+1;
+    hold on;
+end
+plot([ 56  56],[0 1000],'--k');
+plot([150 150],[0 1000],'--k');
+title('cell-cell forces at all edges')
+xlim([0 numFrames])
+ylim([0 110])
+legend(h,M);
+box on;
+set(gca,'fontsize',20,'LineWidth',2)
+hold off
+clear M

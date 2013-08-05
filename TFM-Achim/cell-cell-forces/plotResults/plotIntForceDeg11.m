@@ -68,9 +68,16 @@ fc1_mag_tln_tln(end+1:maxLp1,1)=NaN;
 G1={'ctr-ctr-all'; 'ctr-ctr-tln'; 'ctr-myo'; 'ctr-tln'; 'myo-myo'; 'tln-tln'};
 G2={'8kPa'       ; '8kPa'   ; '8kPa'   ; '8kPa'   ; '8kPa'   ;   '8kPa'};
 %G2={'8kPa'   ; '35kPa'  ; '8kPa'   ; '35kPa'  ; '8kPa'   ; '35kPa'};
-boxplot([fc1_mag_ctr_ctr_4myo fc1_mag_ctr_ctr_4tln fc1_mag_ctr_myo fc1_mag_ctr_tln fc1_mag_myo_myo fc1_mag_tln_tln],{G1 G2},'factorgap',[20 0],'color','bg','notch','on','symbol','+')
+boxplot([fc1_mag_ctr_ctr_4myo fc1_mag_ctr_ctr_4tln fc1_mag_ctr_myo fc1_mag_ctr_tln fc1_mag_myo_myo fc1_mag_tln_tln],{G1 G2},'factorgap',[20 0],'color','bg','notch','on','symbol','.')
 title('Interface force for edges with connectivity 1-1')
 xlabel('Pair composition')
 ylabel('Interface force [nN]')
-%ylim([0 130])
+ylim([0 2.7])
 set(gca,'fontsize',16)
+
+display(['n_ctr_ctr_4myo= ',num2str(sum(~isnan(fc1_mag_ctr_ctr_4myo)))])
+display(['n_ctr_ctr_4tln= ',num2str(sum(~isnan(fc1_mag_ctr_ctr_4tln)))])
+display(['n_ctr_myo= ',num2str(sum(~isnan(fc1_mag_ctr_myo)))])
+display(['n_ctr_tln= ',num2str(sum(~isnan(fc1_mag_ctr_tln)))])
+display(['n_myo_myo= ',num2str(sum(~isnan(fc1_mag_myo_myo)))])
+display(['n_tln_tln= ',num2str(sum(~isnan(fc1_mag_tln_tln)))])

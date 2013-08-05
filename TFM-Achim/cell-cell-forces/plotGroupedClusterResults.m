@@ -1,10 +1,10 @@
-function []=plotGroupedClusterResults(groupedClusters)
+function []=plotGroupedClusterResults(groupedNetworks)
 doPrint=0;
-if nargin<1 || isempty(groupedClusters)
+if nargin<1 || isempty(groupedNetworks)
     try
-        load('groupedClusters.mat')
+        load('groupedNetworks.mat')
     catch
-        display('Couldn''t find any groupedClusters... and stoped!')
+        display('Couldn''t find any groupedNetworks... and stoped!')
         return;
     end    
 end
@@ -17,22 +17,29 @@ if ~onlyCorr
 %**************************************************************************
 % Error analysis:
 %**************************************************************************
-plotErrorAnalysisNetworks(groupedClusters);
+% plotErrorAnalysisNetworks(groupedNetworks);
 
 %**************************************************************************
 % Estimate improvement from substracting systematic error                 :
 %**************************************************************************
-%plotSysError(groupedClusters)
+%plotSysError(groupedNetworks)
 %end %if ~onlyCorr
 
 
 %**************************************************************************
 % plot elastic energy and residual force over the degree.
 %**************************************************************************
-% goodCellSet=findCells(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
-% goodCellSet=findCells(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[-1 0 1],'type',{'ctrl','ctr','myoIIB_hp103'},'errF',Inf,'errs',0);
-goodCellSet=findCells(groupedClusters,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
-[deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedClusters,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
+% goodCellSet=findCells(groupedNetworks,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
+% goodCellSet=findCells(groupedNetworks,'kPa',[35],'myo',[0],'myoGlb',[-1 0 1],'type',{'ctrl','ctr','myoIIB_hp103'},'errF',Inf,'errs',0);
+goodCellSet=findCells(groupedNetworks,'kPa',[35],'myo',[0],'myoGlb',[0],'errF',Inf,'errs',0);
+[deg_vals,elE_vals,sumFmag_vals,resF_vals,sumFi_vals,sumLi_vals]=collectCellValues(groupedNetworks,goodCellSet,'deg','elE','sumFmag','resF','sumFi','sumLi');
+
+
+figure()
+boxplot(sumFi_vals+sumFmag_vals,deg_vals,'notch','on')
+title(['Total force sum (Sum of interfacial forces + sum magnitude of traction forces) over connectivity: ',num2str(1:max(deg_vals))])
+xlabel('Deg of connectivity')
+ylabel('total force sum [nN]')
 
 
 figure()
@@ -132,16 +139,16 @@ ylabel('sum interf. forces [nN]')
 %**************************************************************************
 % Plot sumFi, resF, elE, fi for E=8,35kPa:                                *
 %**************************************************************************
-plotResultsForTwoStiff(groupedClusters);
+plotResultsForTwoStiff(groupedNetworks);
 
 
 %**************************************************************************
 % plot the interfacial force in depdence of pair degree of connectivity:
 %**************************************************************************
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
-[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedNetworks,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag    = sqrt(sum(fc1_vals.^2,2));
 intfStress = fc1_mag./lgth_vals;
@@ -235,12 +242,12 @@ clear M
 %**************************************************************************
 % plot the angle in depdence of pair degree of connectivity:
 %**************************************************************************
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',30,'errs',0);
-[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'deg','lgth','fc1','nVec');
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93'},'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[1],'type',{'myoIIA_hp93';'myoIIA_hp94';'myoIIB_hp103'},'errF',500,'errs',0);
+%goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myo',[0],'myoGlb',[0],'errF',30,'errs',0);
+[deg_vals,lgth_vals,fc1_vals,nVec_vals]=collectEdgeValues(groupedNetworks,goodEdgeSet,'deg','lgth','fc1','nVec');
 deg_vals_sorted=sort(deg_vals,2);
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 alpha_fc1_nVec= acosd(dot(fc1_vals,nVec_vals,2)./(fc1_mag));
@@ -288,20 +295,20 @@ clear M
 %**************************************************************************
 % Plot ctr-ctr, ctr-myo, myo-myo, for degree 1-1 interfaces for E=8,35kPa:*
 %**************************************************************************
-plotIntForceDeg11(groupedClusters);
+plotIntForceDeg11(groupedNetworks);
 
-%end %if ~onlyCorr
+end %if ~onlyCorr
 
 %**************************************************************************
 % correlate Ecad intensity and interfacial force:
 %**************************************************************************
 % ech single conditions works really well, but mixtures are a bit worse.
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[1],'errF',500,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myoGlb',[1],'errF',500,'errs',0);
+goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'myoGlb',[0],'errF',500,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'errF',500,'errs',0);
 
-[fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedClusters,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
+[fc1_vals,Itot_vals,Iavg_vals,SIcorr_vals]=collectEdgeValues(groupedNetworks,goodEdgeSet,'fc1','Itot','Iavg','SIcorr');
 fc1_mag = sqrt(sum(fc1_vals.^2,2));
 % bin the data
 edgesFBins=linspace(0,max(fc1_mag),20);
@@ -347,7 +354,7 @@ end
 % xlabel('Cell-cell force magnitude [nN]')
 % ylabel('Average Ecad intensity [a.u.]')
 
-pixSize_mu=groupedClusters.cluster{1}.trackedNet{1}.par.pixSize_mu;
+pixSize_mu=groupedNetworks.cluster{1}.trackedNet{1}.par.pixSize_mu;
 factor_S_to_nN_per_um=pixSize_mu*10^(-3); % See calcIntfacialStress to figure it out
 SIcorr_vals(:,1)=SIcorr_vals(:,1)*factor_S_to_nN_per_um;
 
@@ -416,26 +423,26 @@ relErrF_val_corr=Inf;
 %**************************************************************************
 % correlate forces for control cells:
 %**************************************************************************
-% goodCellSet   = findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[0],'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
-goodCellSet   = findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[0],'myoGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
-[corrSets]    = collectCellValues(groupedClusters,goodCellSet,'corr');
+% goodCellSet   = findCells(groupedNetworks,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[0],'divGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+goodCellSet   = findCells(groupedNetworks,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[0],'myoGlb',[-1 0 1],'relErrF',relErrF_val_corr,'errs',0);
+[corrSets]    = collectCellValues(groupedNetworks,goodCellSet,'corr');
 [corrResults] = calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
 
 
 %**************************************************************************
 % correlate forces for myosin cells:
 %**************************************************************************
-% goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
-% goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+% goodCellSet=findCells(groupedNetworks,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'relErrF',relErrF_val_corr,'errs',0);
+% goodCellSet=findCells(groupedNetworks,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
+goodCellSet=findCells(groupedNetworks,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'divGlb',[-1 0 1],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
 if ~isempty(goodCellSet) && ~isempty(goodCellSet(1).cellId)
-    [corrSets]=collectCellValues(groupedClusters,goodCellSet,'corr');
+    [corrSets]=collectCellValues(groupedNetworks,goodCellSet,'corr');
     [corrResults]=calCorrResults(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType);
 else
     display('No myosin cells of this type found!')
 end
 
-end %if ~onlyCorr
+%end %if ~onlyCorr
 %**************************************************************************
 % correlate forces and Ecad intensity:
 %**************************************************************************
@@ -448,16 +455,16 @@ aveType='nanmean'; % first checks 'none', 'nanmean', 'mean' makes little differe
 maxLag =round(3600/tBtwFrms); % round(7200/tBtwFrms) means a maxLag of 2h
 relErrF_val_corr=Inf;
 
-%goodCellSet=findCells(groupedClusters,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'errF',errF_val_corr,'errs',0);
-%goodCellSet=findCells(groupedClusters,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
-% goodEdgeSet=findEdges(groupedClusters,'myo',[1],'relErrF',relErrF_val_corr,'errs',0);
-goodEdgeSet=findEdges(groupedClusters,'myo',[0],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
-%goodEdgeSet=findEdges(groupedClusters,'relErrF',relErrF_val_corr,'errs',0,'dt',280);
+%goodCellSet=findCells(groupedNetworks,'kPa',[8],'deg',[2 3 4 5 6 7],'myo',[1],'type',{'tln1'},'errF',errF_val_corr,'errs',0);
+%goodCellSet=findCells(groupedNetworks,'kPa',35,'deg',[2 3 4 5 6 7],'myo',[1],'type',{'myoIIB_hp103'},'errF',errF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'asmbly',[1],'relErrF',relErrF_val_corr,'errs',0);
+% goodEdgeSet=findEdges(groupedNetworks,'myo',[1],'relErrF',relErrF_val_corr,'errs',0);
+goodEdgeSet=findEdges(groupedNetworks,'myo',[0],'type',{'myoIIA_hp93';'myoIIA_hp94'},'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedNetworks,'relErrF',relErrF_val_corr,'errs',0,'dt',280);
 if ~isempty(goodEdgeSet) && ~isempty(goodEdgeSet(1).edgeId)
-    [corrSets]=collectEdgeValues(groupedClusters,goodEdgeSet,'corr');
+    [corrSets]=collectEdgeValues(groupedNetworks,goodEdgeSet,'corr');
     %[corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useItot');
     [corrResults]=calCorrResultsInt(corrSets,maxLag,'usefm',normVar,tBtwFrms,aveType,'useItot');
 else
@@ -467,4 +474,4 @@ end
 %**************************************************************************
 % Plot the edges from above:
 %**************************************************************************
-%goodEdgeSet=findEdges(groupedClusters,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);
+%goodEdgeSet=findEdges(groupedNetworks,'kPa',[8],'asmbly',[-1],'relErrF',relErrF_val_corr,'errs',0);

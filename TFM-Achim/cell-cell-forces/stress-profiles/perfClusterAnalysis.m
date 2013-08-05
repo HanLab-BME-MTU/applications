@@ -106,8 +106,8 @@ for j=1:length(constrForceField{frame}.network.edge)
     % postProcSol and calcIntfacialStress.
     constrForceField{frame}.network.edge{j}.dPixIntf=dPixIntf; % the full length interface is found in .network.edge{j}.intf
     constrForceField{frame}.network.edge{j}.cntrs = center;   % Aufpunkte der Kraefte.
-    constrForceField{frame}.network.edge{j}.f_vec = horzcat(fx_sum,fy_sum);
-    constrForceField{frame}.network.edge{j}.s_vec = horzcat(sx_sum,sy_sum);
+    constrForceField{frame}.network.edge{j}.f_vec = horzcat(fx_sum,fy_sum); % f_vec has dimensions nN
+    constrForceField{frame}.network.edge{j}.s_vec = horzcat(sx_sum,sy_sum); % s_vec has dimensions Pa*pixel. Conversion to nN/um by multiplying with s_[nN/um]=s_[Pa*pix]*pixSize_mu*10^(-3);
     constrForceField{frame}.network.edge{j}.fc1   = fc1; % belongs to nodes(1)
     constrForceField{frame}.network.edge{j}.fc2   = fc2; % belongs to nodes(2)
     constrForceField{frame}.network.edge{j}.fc    = fc; % this value is obsolate!
@@ -119,8 +119,8 @@ for j=1:length(constrForceField{frame}.network.edge)
     % Do we need to store these values in here at all?
     constrForceField{frame}.clusterAnalysis.intf{j}.dPixIntf=dPixIntf; % the full length interface is found in .network.edge{j}.intf
     constrForceField{frame}.clusterAnalysis.intf{j}.cntrs  = center;   % Aufpunkte der Kraefte.
-    constrForceField{frame}.clusterAnalysis.intf{j}.f_vec  = horzcat(fx_sum,fy_sum);
-    constrForceField{frame}.clusterAnalysis.intf{j}.s_vec  = horzcat(sx_sum,sy_sum);
+    constrForceField{frame}.clusterAnalysis.intf{j}.f_vec  = horzcat(fx_sum,fy_sum); % f_vec has dimensions nN
+    constrForceField{frame}.clusterAnalysis.intf{j}.s_vec  = horzcat(sx_sum,sy_sum); % s_vec has dimensions Pa*pixel. Conversion to nN/um by multiplying with s_[nN/um]=s_[Pa*pix]*pixSize_mu*10^(-3);
     constrForceField{frame}.clusterAnalysis.intf{j}.fc     = fc; % same as: network.edge{j}.fc
     constrForceField{frame}.clusterAnalysis.intf{j}.n_Vec  = nVec_mean; % this is the mean of all normal vectors on the interface
     constrForceField{frame}.clusterAnalysis.intf{j}.edgeNum=j;

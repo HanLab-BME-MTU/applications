@@ -53,8 +53,8 @@ fx_sum=-(isxx.*nVec(:,1).*dl+isxy.*nVec(:,2).*dl);
 fy_sum=-(isxy.*nVec(:,1).*dl+isyy.*nVec(:,2).*dl); % using syx=sxy
 ftot_sum=[sum(fx_sum) sum(fy_sum)];
 % the stress (force normalized by the segment length) is:
-sx_sum=fx_sum./dl;
-sy_sum=fy_sum./dl;
+sx_sum=fx_sum./dl;  % sx has dimensions Pa*pixel, fx has dimensions Pa*pixel^2 
+sy_sum=fy_sum./dl;  % sy has dimensions Pa*pixel, fy has dimensions Pa*pixel^2
 
 % Check if the stress at the interface is tensile or compressive.
 % Calculate the orientation, weighted with the magnitude of the forces at
@@ -85,13 +85,13 @@ end
 
 % !!! The following has to be calculated after calculating sx_sum and sy_sum
 % in the line above!: 
-% fx_sum, fy_sum, ftot_sum have the dimension of a force, but still lack
-% the factor: 
+% fx_sum, fy_sum, ftot_sum have the dimension of a force (rather
+% Pa*pixel^2), but still lack the factor: 
 factor=pixSize_mu^2*10^(-3);
 % to bring them to the unit nN. That is done now:
-fx_sum=fx_sum*factor;
-fy_sum=fy_sum*factor;
-ftot_sum=ftot_sum*factor;
+fx_sum=fx_sum*factor;  % now [fx_sum]=nN
+fy_sum=fy_sum*factor;  % now [fy_sum]=nN
+ftot_sum=ftot_sum*factor; % now [ftot_sum]=nN
 
 % Instead of the linearization above we could also use quad to explicitely
 % calculate the integral:
