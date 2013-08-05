@@ -74,7 +74,7 @@ MinTrackLen = 2;
 num = numel(list);
 
 PointList = cell([num,1]);
-movieInfo = struct('pnts',[],'drift',[],'dmark',[],'name',[],'shift',[]);
+movieInfo = struct('pnts',[],'drift',[],'dmark',[],'name',[],'shift',[],'com',[]);
 
 for j=1:num
     PointList{j} = movieInfo;
@@ -149,6 +149,7 @@ for j=1:num
     end
         
     PointList{j}.pnts = vertcat(track(vertcat(track.num) > MinTrackLen).coord);
+    PointList{j}.com = vertcat(track(vertcat(track.num) > MinTrackLen).com);
     PointList{j}.drift = drift;
     
     %makes a list of drift markers intial points
@@ -204,6 +205,8 @@ for j = 2:num
     %just x,y translation for now
     tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.pnts=tmp(~isnan(tmp(:,1)),:);
+    tmp = PointList{j}.com(:,1:2)+repmat(shift,[numel(PointList{j}.com(:,1)),1]);
+    PointList{j}.com=tmp(~isnan(tmp(:,1)),:);
     
 %     %Applies mean shift tracking to one type of receptor/protein
 %     
@@ -214,8 +217,12 @@ for j = 2:num
 
 end
 
+ %Since all other Images are shifted to match this one, here only NaNs are
+ %removed
  tmp = PointList{1}.pnts(:,1:2);
  PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
+ tmp = PointList{1}.com(:,1:2);
+ PointList{1}.com=tmp(~isnan(tmp(:,1)),:);
 % [clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
 % PointList{1}.clusterInfo = clusterInfo;
 % PointList{1}.clusterMap = clusterMap;
@@ -245,7 +252,7 @@ if ImageDisp
     figure;
     hold;
     for j=1:num
-        tmp=PointList{j}.pnts;
+        tmp=PointList{j}.com;
         scatter(tmp(:,1),tmp(:,2),[cmap{j},'.']);
     end
     title('5 receptor image') 

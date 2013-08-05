@@ -86,11 +86,11 @@ end
 TotalClust = [];
 TotalPnts=[];
 
-%Combine all localizations, while keeping the identity of which channel
+%Combine all track COMs, while keeping the identity of which channel
 %they came from.
 n = numel(PointList);
 for i = 1:n
-    TotalPnts = vertcat(TotalPnts,[PointList{i}.pnts,i*ones(size(PointList{i}.pnts))]);
+    TotalPnts = vertcat(TotalPnts,[PointList{i}.com,i*ones(size(PointList{i}.com))]);
 end
 
 TotalPnts=TotalPnts(~isnan(TotalPnts(:,1)),:);
