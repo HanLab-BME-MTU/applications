@@ -234,7 +234,7 @@ save(path,'PointList','maxGap','MinTrackLen');
 
 %Create and "Image" of the final merge
 
-cmap = [{'g'},{'r'},{'b'},{'k'},{'m'}];
+cmap = [{'g'},{'r'},{'b'},{'c'},{'m'}];
 
 if ImageDisp
 
@@ -252,8 +252,10 @@ if ImageDisp
     figure;
     hold;
     for j=1:num
-        tmp=PointList{j}.com;
+        tmp=PointList{j}.pnts;
         scatter(tmp(:,1),tmp(:,2),[cmap{j},'.']);
+        tmp=PointList{j}.com;
+        scatter(tmp(:,1),tmp(:,2),'kx');
     end
     title('5 receptor image') 
     legend('EGFR','ErbB2','ErbB3','IGF1R','Met')

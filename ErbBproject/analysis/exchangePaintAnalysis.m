@@ -24,8 +24,13 @@ ip = inputParser;
 
 ip.addRequired('dir',@ischar);
 
+ip.addOptional('display',false,@islogical);
+ip.addOptional('pixelSize',62.81,@isnumeric);
+
 ip.parse(dir,varargin{:});
 
+display=ip.Results.display;
+pixelSize = ip.Results.pixelSize;
     
 list = findFilesInSubDirs(dir,'*tracking.mat');
 
@@ -60,7 +65,7 @@ f = strfind(dir,'/');
 
 name = [dir(f(end-1)+1:f(end)-1),'_',dir(f(end)+1:end)];
 
-fullpath = exchangePaintAlignment(list,name);
+fullpath = exchangePaintAlignment(list,name,'ImageDisp',display);
 
 load(fullpath,'PointList');
 
@@ -101,9 +106,14 @@ for i=1:numel(clusterInfo)
 
     pnts = TotalPnts(clusterInfo(i).ptIdData,:);
 
+    if numel(pnts(:,1)) > 2
     %finds convex hull and area
     [hull,area]= convhull(pnts(:,1:2));
-
+    else
+        hull =[]
+        area = NaN;
+    end
+    
     % n is the number of pnts that are merged. Here we store the
     % number of points in this merged cluster from each element of the
     % shift array
