@@ -1,22 +1,19 @@
-%[k, y, BIC] = fitMultiStep(x, f, varargin) implements a multi-step process of the form S1 --> S2 --> ... --> Sn
+%[k, y, BIC] = fitMultiStepCombined(x, f, varargin) implements a multi-step process
+% of the form S1 --> S2 --> ... --> Sn to two data sets representing distinct exit states
 %
 %    k1     k2      kn-1
 % S1 --> S2 --> ... --> Sn
 %
 % FFT-based implementation
 
+% Francois Aguet, 08/04/2013
 
-% Francois Aguet, 03/12/2013
-
-function [k, y, BIC, C] = fitMultiStepCombined(x, f, varargin)
+function [k, k_pstd, y, BIC, C] = fitMultiStepCombined(x, f, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-% ip.addParamValue('MaxSteps', 6);
 ip.addParamValue('Display', false, @islogical);
 ip.parse(varargin{:});
-% K = ip.Results.MaxSteps;
-
 
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e4, ...
@@ -29,21 +26,12 @@ dx = x(2)-x(1);
 % initial value
 mu = sum(f{1}.*x*dx)/sum(f{1}*dx);
 
-% % config = [2 3 4];
-% % config = [2 3 3];
-% % config = [1 3 4];
-% config = [1 2 3];
-
 % # data points
 n = sum(cellfun(@numel, f));
 
 % config structure: #common steps, total #step model 1, total #steps model 2
-
-% config = {[1 2 3], [1 2 4], [1 3 4], [1 3 3],...
-%     [2 3 3], [2 3 4], [3 4 4], [3 4 5]};
-
-config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 4], [1 3 3],...
-    [2 3 3], [2 3 4], [3 4 4], [3 4 5]};
+config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 3], [1 3 4],...
+    [2 3 3], [2 3 4], [3 4 4], [3 4 5]};%, [2 4 5]};
 
 nc = numel(config);
 RSS = NaN(1,nc);
@@ -57,16 +45,17 @@ for i = 1:nc
     % # rate params to estimate:
     nk = config{i}(2) + config{i}(3) - config{i}(1);
     k0 = nk/mu*ones(1,nk);
-
+    
     [k, RSS(i), ~, ~, ~, ~, J{i}] = lsqnonlin(@multistepCost, k0, zeros(1,nk), [], opts, config{i}, x, f);
     BIC(i) = n*log(RSS(i)/n) + numel(k)*log(n);
     kvec{i} = k;
 end
 
-%%
+
 % best fit
 [~,i] = min(BIC);
 k = kvec{i};
+nk = numel(k);
 k1 = k(1:config{i}(2));
 k2 = [k(1:config{i}(1)) k(config{i}(2)+1:end)];
 
@@ -82,47 +71,64 @@ k_pstd = sqrt(diag(C))';
 K = corrMatFromCov(C)';
 
 
-% J1 = J(1:120,1:3);
-% C1 = RSS(i)/(n-numel(k)-1)*inv(J1'*J1); %#ok<MINV>
-% k1_pstd = sqrt(diag(C1))';
-% 
-% J2 = J(121:end,[1 2 4 5]);
-% C2 = RSS(i)/(n-numel(k)-1)*inv(J2'*J2); %#ok<MINV>
-% k2_pstd = sqrt(diag(C2))';
-
-
-k
-k_pstd
-
-%%
 if ip.Results.Display
-    setupFigure();%'AxesHeight', 5.25, 'AxesWidth', 9);
+    % 1) Plot data w/ best model
+    ah = 3.5*1.5;
+    aw = 6*1.5;
+    setupFigure('AxesHeight', ah, 'AxesWidth', aw);
     fset = loadFigureSettings('print');
-    plot(x, f{1}, 'LineWidth', 1, 'Color', hsv2rgb([0.6 0.3 0.9]));
-    plot(x, y1, 'LineWidth', 1, 'Color', hsv2rgb([0.6 1 0.9]));
-    plot(x, f{2}, 'LineWidth', 1, 'Color', hsv2rgb([1/3 0.3 0.9]));
-    plot(x, y2, 'LineWidth', 1, 'Color', hsv2rgb([1/3 1 0.9]));
+    %figure(fset.fOpts{:});
+    %axes(fset.axOpts{:});
+    plot(x, f{1}, 'LineWidth', 1, 'Color', hsv2rgb([0.6 0.3 0.9]), 'LineWidth', 1);
+    plot(x, y1, 'LineWidth', 1, 'Color', hsv2rgb([0.6 1 0.9]), 'LineWidth', 1.25);
+    plot(x, f{2}, 'LineWidth', 1, 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', 1);
+    plot(x, y2, 'LineWidth', 1, 'Color', hsv2rgb([1/3 1 0.9]), 'LineWidth', 1.25);
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
-    axis([0 120 0 0.05]);
+    axis([0 160 0 0.05]);
+    set(gca, 'XTick', 0:20:160, 'TickLength', fset.TickLength/6*6);
     
     % BIC inset
-    axes(fset.axOpts{:}, 'Units', 'Normalized', 'Position', [5.5/8 3/5.5 2/8 2/5.5], 'TickLength', fset.TickLength/2*6);
+    axes(fset.axOpts{:}, 'Units', 'Normalized', 'Position', [4.5/8 3/5.5 3/8 2/5.5],...
+        'TickLength', fset.TickLength/3*6);
     hold on;
-    plot(1:nc, BIC, '.', 'Color', hsv2rgb([0 0.3 0.9]), 'MarkerSize', 9);
-    plot(i, BIC(i), '.', 'Color', hsv2rgb([0 1 0.9]), 'MarkerSize', 10);
+    plot(1:nc, BIC, '.', 'Color', hsv2rgb([0 0.3 0.9]), 'MarkerSize', 11);
+    plot(i, BIC(i), '.', 'Color', hsv2rgb([0 1 0.9]), 'MarkerSize', 12);
     set(gca, 'XLim', [0.5 nc+.5], 'XTick', 1:nc);
     xlabel('Model #', fset.sfont{:});
     ylabel('BIC', fset.sfont{:});
-   
     
-    plotCorrelationMatrix(K, 'TickLabels', arrayfun(@(i) ['k_' num2str(i)], 1:numel(k), 'unif', 0));
+    % residuals
+    %setupFigure('AxesHeight', ah/3, 'AxesWidth', aw);
+    %set(gca, 'TickLength', fset.TickLength/2*2.5);
+    %plot([0 160], [0 0], 'k--')
+    %plot(x, f{1}-y1, 'Color', hsv2rgb([0.6 0.3 0.9]), 'LineWidth', 1);
+    %plot(x, f{2}-y2, 'Color', hsv2rgb([1/3 0.3 0.9]), 'LineWidth', 1);
+    %axis([0 160 -0.008 0.008]);
     
+    
+    % 2) Correlation matrix
+    klabel = arrayfun(@(i) ['k_' num2str(i)], 1:nk, 'unif', 0);
+    plotCorrelationMatrix(K, 'TickLabels', klabel);
+    
+    
+    % 3) Rates +/- s.d.
+    xa = 1:nk;
     
     setupFigure();
-    plot(k, 'k.');
-    errorbar(k, k_pstd)
-
+    
+    he = errorbar(k, k_pstd, 'Color', 0.4*[1 1 1], 'LineStyle', 'none', 'LineWidth', 1);
+    setErrorbarStyle(he, 0.1);
+    plot(k, 'k.', 'MarkerSize', 12);
+    set(gca, 'XTick', xa, 'XTickLabel', ' ', 'YTick', 0:0.1:1, fset.sfont{:});
+    axis([0.5 nk+0.5 0 0.5]);
+    YLim = get(gca, 'YLim');
+    
+    arrayfun(@(i) text(xa(i), YLim(1)-0.05*diff(YLim), klabel(i), fset.sfont{:},...
+        'Units', 'data', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center',...
+        'Interpreter', 'TeX'), 1:nk, 'unif', 0);
+    xlabel('Rate constants (s^{-1})', fset.lfont{:});
+    %ylabel('k (s^{-1})', fset.lfont{:});
 end
 
 
