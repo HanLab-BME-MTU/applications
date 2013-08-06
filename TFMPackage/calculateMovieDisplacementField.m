@@ -117,7 +117,11 @@ tempMask = maskArray(:,:,1);
 firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
-sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for finer detection SH012913
+if ~strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
+    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*4/7 scale down for finer detection SH012913
+else
+    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for finer detection SH012913
+end
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
