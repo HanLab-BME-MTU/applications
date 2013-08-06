@@ -12,8 +12,11 @@ function [k, k_pstd, y, BIC, C] = fitMultiStepCombined(x, f, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
+ip.addRequired('x');
+ip.addRequired('f');
 ip.addParamValue('Display', false, @islogical);
-ip.parse(varargin{:});
+ip.addParamValue('Config', []);
+ip.parse(x, f, varargin{:});
 
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e4, ...
@@ -30,10 +33,13 @@ mu = sum(f{1}.*x*dx)/sum(f{1}*dx);
 n = sum(cellfun(@numel, f));
 
 % config structure: #common steps, total #step model 1, total #steps model 2
-% config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 3], [1 3 4],...
-%     [2 3 3], [2 3 4], [3 4 4], [3 4 5]};%, [2 4 5]};
-
-config = {[2 3 4]};
+config = ip.Results.Config;
+if isempty(config)
+    config = {[0 1 1], [1 2 2], [1 2 3], [1 2 4], [1 3 3], [1 3 4],...
+        [2 3 3], [2 3 4], [3 4 4], [3 4 5]};%, [2 4 5]};
+elseif ~iscell(config)
+    config = {config};
+end
 
 nc = numel(config);
 RSS = NaN(1,nc);

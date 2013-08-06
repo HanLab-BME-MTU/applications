@@ -7,6 +7,7 @@ ip.CaseSensitive = false;
 ip.addRequired('x');
 ip.addRequired('f');
 ip.addRequired('ns');
+ip.addOptional('SelV', []);
 ip.addParamValue('Display', false, @islogical);
 ip.parse(x, f, ns, varargin{:});
 
@@ -27,13 +28,16 @@ dxi = dx/10;
 f = f/sum(f)/dx;
 
 % configurations to test
-switch ns
-    case 2
-        selV = {[0 0], [1 0], [0 1], [1 1]};
-        %selV = {[0 0]};
-    case 3
-        selV = {[0 0 0], [1 0 0], [0 1 0], [0 0 1], [1 1 0], [0 1 1], [1 0 1], [1 1 1]};
-        %selV = {[1 1 0]};
+selV = ip.Results.SelV;
+if isempty(selV)
+    switch ns
+        case 2
+            selV = {[0 0], [1 0], [0 1], [1 1]};
+            %selV = {[0 0]};
+        case 3
+            selV = {[0 0 0], [1 0 0], [0 1 0], [0 0 1], [1 1 0], [0 1 1], [1 0 1], [1 1 1]};
+            %selV = {[1 1 0]};
+    end
 end
 
 nc = numel(selV);
