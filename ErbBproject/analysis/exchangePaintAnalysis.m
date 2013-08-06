@@ -79,9 +79,18 @@ ContinousAnalysis = cell(n);
 %This loop calculates all the pairwise L(r) functions
 %You have to do all as they are not symetric
 
+%these are the radii to use for L(r) cross statistics
+r = 0.2:0.2:5.6; 
+
 for i=1:n
     for j =1:n
-        %ContinousAnalysis;
+        %Computes Besag's L and then renormalizes it to the H statistic
+        tmp = PointP_Lr_Cross(PointList{i}.com,PointList{j}.com,r);
+        tmp2 = tmp./r';
+        % This is only a crude way to find the right normalization
+        Const = mean(tmp2(15:end));
+        ContinousAnalysis{i,j} = (tmp/const)-r';
+        
     end
 end
 
@@ -110,7 +119,7 @@ for i=1:numel(clusterInfo)
     %finds convex hull and area
     [hull,area]= convhull(pnts(:,1:2));
     else
-        hull =[]
+        hull =[];
         area = NaN;
     end
     
@@ -130,7 +139,7 @@ for i=1:numel(clusterInfo)
 end
 
 %Appends the additional analysis to fullpath file
-    save(fullpath, 'clusterInfo','clusterMap','GeneralDiagnostic,'-append');
+    save(fullpath, 'clusterInfo','clusterMap','GeneralDiagnostic','ContinousAnalysis','-append');
     
       
     
