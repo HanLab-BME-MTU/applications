@@ -1,4 +1,4 @@
-function [ha, hf] = setupFigure(varargin)
+function [ha, hi, hf] = setupFigure(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -12,6 +12,7 @@ ip.addParamValue('AxesHeight', 3.5);
 ip.addParamValue('XSpace', [1.5 0.75 0.5]);
 ip.addParamValue('YSpace', [1.5 0.75 0.5]);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
+ip.addParamValue('InsetPosition', []);
 ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
@@ -87,11 +88,23 @@ hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',.
 ha = zeros(na,1);
 x0 = zeros(na,1);
 y0 = zeros(na,1);
+hi = zeros(na,1);
+ipos = ip.Results.InsetPosition;
+if numel(ipos)==2
+    ipos = [ipos 0.95-ipos(1) 0.95-ipos(2)];
+end
 for i = 1:na
     y0(i) = nh-ceil(i/nw);
     x0(i) = mod(i-1,nw);
-    ha(i) = axes('Position', [xl+x0(i)*(aw+xc) yb+y0(i)*(ah+yc) aw ah]); %#ok<LAXES>
+    pos = [xl+x0(i)*(aw+xc) yb+y0(i)*(ah+yc) aw ah];
+    ha(i) = axes('Position', pos); %#ok<LAXES>
     hold(ha(i), 'on');
+    
+    if ~isempty(ipos);
+        hi(i) = axes('Position', [pos(1)+pos(3)*ipos(3) pos(2)+pos(4)*ipos(4)...
+            ipos(1)*pos(3) ipos(2)*pos(4)]); %#ok<LAXES>
+        hold(hi(i), 'on');
+    end
 end
 
 if ip.Results.SameAxes
@@ -99,4 +112,10 @@ if ip.Results.SameAxes
     set(ha(x0>0), 'YTickLabel', []);
 end
 
-set(ha, 'TickDir', 'out', 'TickLength', fset.TickLength*6/max(ip.Results.AxesWidth, ah0), 'LineWidth', 1);
+set(ha, 'TickDir', 'out', 'TickLength', fset.TickLength*6/max(ip.Results.AxesWidth, ah0),...
+    'LineWidth', 1, 'Layer', 'top');
+
+if ~isempty(ipos)
+    set(hi, 'TickDir', 'out', 'TickLength', fset.TickLength*max(aw,ah)/max(ipos(1)*pos(3), ipos(2)*pos(4)),...
+    'LineWidth', 1, 'Layer', 'top');
+end
