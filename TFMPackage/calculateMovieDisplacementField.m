@@ -37,7 +37,7 @@ end
 displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
-p.highRes = true;
+
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -123,6 +123,7 @@ else
     sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for finer detection SH012913
 end
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
+assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
 % Subsample detected beads ensuring beads are separated by at least half of
@@ -190,7 +191,8 @@ for j= firstFrame:nFrames
 
     % Track beads displacement in the xy coordinate system
     v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
+        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
+        'mode',p.mode);
     
     % Extract finite displacement and prepare displField structure in the xy
     % coordinate system
