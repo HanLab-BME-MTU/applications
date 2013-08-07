@@ -45,6 +45,13 @@ MD = MovieData.load(movieDataPath);
 nFrames = MD.nFrames_;
 % Get TFM package
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
+% Get FA package (actually NA package)
+NAPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
+% Load tracks
+iTracking = 4;
+trackNAProc = NAPackage.processes_{iTracking};
+
+% tracksNA = trackNAProc.loadChannelOutput;
 % Load the displField
 iDispFieldProc = 3;
 displFieldProc=TFMPackage.processes_{iDispFieldProc};
@@ -129,6 +136,34 @@ iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 % SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
 minSize = round((500/MD.pixelSize_)*(150/MD.pixelSize_)); %adhesion limit=1um*.5um
+% tracks
+iPaxChannel = 2; % this should be intentionally done in the analysis level
+tracksNA = trackNAProc.loadChannelOutput(iPaxChannel);
+%           .tracksCoordAmpCG: 
+%                              [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
+%                              NaN indicates frames where track segments do
+%                              not exist, like the zeros above.
+%           .seqOfEvents     : Matrix with number of rows equal to number
+%                              of events happening in a compound track and 4
+%                              columns:
+%                              1st: Frame where event happens;
+%                              2nd: 1 = start of track segment, 2 = end of track segment;
+%                              3rd: Index of track segment that ends or starts;
+%                              4th: NaN = start is a birth and end is a death,
+%                                   number = start is due to a split, end
+%                                   is due to a merge, number is the index
+%                                   of track segment for the merge/split.
+
+% filter out tracks that have lifetime less than 2 frames
+
+SEL = getTrackSEL(tracksNA); %SEL: StartEndLifetime
+minLifetime = 3;
+% Remove any less than 3-frame long track.
+isValid = SEL(:,3) >= minLifetime;
+tracksNA = tracksNA(isValid);
+
+% Build the interpolated TFM matrix first and then go through each track
+% ...
 
 for ii=1:nFrames
     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
