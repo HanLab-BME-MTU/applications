@@ -130,27 +130,23 @@ beads = [ceil(pstruct.x') ceil(pstruct.y')];
 % the correlation length - commented out to get more beads
 if ~p.highRes
     disp('Subsampling detected beads (normal resolution)...')
-    idx = KDTreeBallQuery(beads, beads, floor(p.minCorLength/2));
-    valid = true(numel(idx),1);
-    for i = 1:numel(idx)
-        if ~valid(i), continue; end
-        neighbors = idx{i}(idx{i}~=i);
-        valid(neighbors) = false;
-    end
-    beads = beads(valid, :);
+    max_beads_distance = floor(p.minCorLength/2);
 else
     % To get high-resolution information, subsample detected beads ensuring 
     % beads are separated by 0.1 um the correlation length 
     disp('Subsampling detected beads (high resolution)...')
-    idx = KDTreeBallQuery(beads, beads, floor(100/movieData.pixelSize_));
-    valid = true(numel(idx),1);
-    for i = 1:numel(idx)
-        if ~valid(i), continue; end
-        neighbors = idx{i}(idx{i}~=i);
-        valid(neighbors) = false;
-    end
-    beads = beads(valid, :);
+    max_beads_distance = floor(100/movieData.pixelSize_);
 end
+
+idx = KDTreeBallQuery(beads, beads, max_beads_distance);
+valid = true(numel(idx),1);
+for i = 1 : numel(idx)
+    if ~valid(i), continue; end
+    neighbors = idx{i}(idx{i} ~= i);
+    valid(neighbors) = false;
+end
+beads = beads(valid, :);
+
 % Select only beads which are min correlation length away from the border of the
 % reference frame 
 beadsMask = true(size(refFrame));
