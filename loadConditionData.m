@@ -198,7 +198,11 @@ for k = 1:nCells
     % only store frame paths if frames for all channels are found
     if all(~cellfun(@isempty, framePaths))
         data(k).framePaths = framePaths;
-        data(k).imagesize = size(imread(framePaths{1}{1}));
+        info = imfinfo(framePaths{1}{1});
+        data(k).imagesize = [info(1).Height info(1).Width];
+        if numel(info)>1
+            data(k).imagesize = [data(k).imagesize numel(info)];
+        end
         data(k).movieLength = length(framePaths{1});
     elseif exist([data(k).source 'Detection' filesep 'detection_v2.mat'], 'file')==2
         d = load([data(k).source 'Detection' filesep 'detection_v2.mat']);
