@@ -32,7 +32,7 @@ ip.parse(dir,varargin{:});
 
 display=ip.Results.display;
 pixelSize = ip.Results.pixelSize;
-DoContin = ip.Results.DoContinuous;
+doContin = ip.Results.DoContinuous;
     
 list = findFilesInSubDirs(dir,'*tracking.mat');
 
