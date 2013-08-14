@@ -49,7 +49,9 @@ for i=1:numel(list)
     
     l=0;
     for j=1:numel(features)
-       l = l+numel(features{j}.x); 
+       if ~isempty(features{j})
+        l = l+numel(features{j}.x); 
+       end
     end
     
     localizationsPerFrame = l/numel(features)
