@@ -195,7 +195,7 @@ for j = 2:num
         A= ref;
         B=test(tmp(tmp <= s_ref(1)),:);
        [regParam,Bfit,ErrorStats]=absor(A',B');
-       shift = mean(A-B);
+       shift = mean(A-B,1);
     end
     
     PointList{j}.shift = struct('regParam',regParam,'Bfit',Bfit,'ErrorStats',ErrorStats,'trans',shift);
