@@ -96,7 +96,7 @@ if doContin
             tmp2 = tmp./r';
             % This is only a crude way to find the right normalization
             Const = mean(tmp2(15:end));
-            ContinuousAnalysis{i,j} = (tmp/const)-r';
+            ContinuousAnalysis{i,j} = (tmp/Const)-r';
             
         end
     end
