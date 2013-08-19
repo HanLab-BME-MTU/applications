@@ -12,13 +12,14 @@ ip.addParamValue('Color', hsv2rgb([0.33 1 0.9]));
 ip.addParamValue('XLim', [1 300]);
 ip.addParamValue('Pool', true, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
+ip.addParamValue('Mode', 'all', @(x) any(strcmpi(x, {'all', 'max'})));
 ip.parse(data, varargin{:});
 ha = ip.Results.ha;
 
 nd = numel(data);
 psnr = cell(1,nd);
 parfor i = 1:nd
-    psnr{i} = getPSNRDistribution(data(i), 'Mode', 'all');
+    psnr{i} = getPSNRDistribution(data(i), 'Mode', ip.Results.Mode);
 end
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
