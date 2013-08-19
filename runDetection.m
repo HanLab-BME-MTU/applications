@@ -6,7 +6,7 @@
 %
 % Notes: All input data sets must have the same channels.
 
-% Francois Aguet, April 2011 (last modified 05/28/2013)
+% Francois Aguet, April 2011 (last modified 08/18/2013)
 
 function runDetection(data, varargin)
 
@@ -30,6 +30,7 @@ if isempty(mCh)
     end
 end
 
+nd = numel(data);
 sigma = ip.Results.Sigma;
 if isempty(sigma)
     % verify that all data sets have same channels
@@ -42,10 +43,18 @@ if isempty(sigma)
             % evenly sample all data sets
             sigma = zeros(1,nCh);
             % use ~20 frames distributed accross data sets
-            nf = round(20/numel(data));
+            nf = round(20/nd);
             for c = 1:nCh
-                fpaths = arrayfun(@(i) i.framePaths{c}(round(linspace(1,i.movieLength,nf))), data, 'unif', 0);
-                sigma(c) = getGaussianPSFsigmaFromData(vertcat(fpaths{:}), 'Display', false);
+                frames = cell(nd, nf);
+                for i = 1:nd
+                    fidx = round(linspace(1,data(i).movieLength,nf));
+                    if iscell(data(i).framePaths{c})
+                        frames(i,:) = arrayfun(@(f) double(imread(data(i).framePaths{c}{f})), fidx, 'unif', 0);
+                    else
+                        frames(i,:) = arrayfun(@(f) double(readtiff(data(i).framePaths{c}, f)), fidx', 'unif', 0); 
+                    end
+                end
+                sigma(c) = getGaussianPSFsigmaFromData(vertcat(frames(:)), 'Display', false);
             end
         end
         fprintf('Gaussian PSF s.d. values: ');
@@ -60,7 +69,7 @@ if any(sigma<1.1)
     sigma(sigma<1.1) = 1.1;
 end
 
-for i = 1:length(data)
+for i = 1:nd
     if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
         main(data(i), sigma, mCh, ip.Results);
@@ -83,12 +92,10 @@ frameInfo(1:data.movieLength) = struct('x', [], 'y', [], 'A', [], 's', [], 'c', 
     'sigma_r', [], 'SE_sigma_r', [], 'RSS', [], 'pval_Ar', [],  'mask_Ar', [], 'hval_Ar', [],  'hval_AD', [], 'isPSF', [],...
     'xCoord', [], 'yCoord', [], 'amp', [], 'dRange', []);
 
-nx = data.imagesize(2);
-ny = data.imagesize(1);
-
-fmt = ['%.' num2str(ceil(log10(data.movieLength+1))) 'd'];
 [~,~] = mkdir([data.channels{mCh} 'Detection']);
-[~,~] = mkdir([data.channels{mCh} 'Detection' filesep 'Masks']);
+if iscell(data.framePaths{mCh})
+    [~,~] = mkdir([data.channels{mCh} 'Detection' filesep 'Masks']);
+end
 
 % double fields, multi-channel
 dfields = {'x', 'y', 'A', 'c', 'x_pstd', 'y_pstd', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'RSS', 'pval_Ar'};
@@ -99,10 +106,16 @@ sfields = [dfields {'hval_Ar', 'hval_AD'}]; % 'isPSF' is added later
 
 rmfields = [dfields lfields {'x_init', 'y_init', 'maskA', 'maskN', 'mask_Ar'}];
 
+fmt = ['%.' num2str(ceil(log10(data.movieLength+1))) 'd'];
+mask = false([data.imagesize data.movieLength]);
 parfor k = 1:data.movieLength
-    img = double(imread(data.framePaths{mCh}{k})); %#ok<PFBNS>
+    if ~iscell(data.framePaths{mCh}) %#ok<PFBNS>
+        img = double(readtiff(data.framePaths{mCh}, k));
+    else
+        img = double(imread(data.framePaths{mCh}{k}));
+    end
     
-    [pstruct, mask] = pointSourceDetection(img, sigma(mCh), 'Alpha', opts.Alpha,...
+    [pstruct, mask(:,:,k)] = pointSourceDetection(img, sigma(mCh), 'Alpha', opts.Alpha,...
         'Mask', opts.CellMask, 'RemoveRedundant', opts.RemoveRedundant); %#ok<PFBNS>
     
     if ~isempty(pstruct)
@@ -124,29 +137,17 @@ parfor k = 1:data.movieLength
             pstruct.(lfields{f}) = tmp;
         end
         
-        % retain only mask regions containing localizations
-        CC = bwconncomp(mask);
-        labels = labelmatrix(CC);
-        loclabels = labels(sub2ind([ny nx], pstruct.y_init, pstruct.x_init));
-        idx = setdiff(1:CC.NumObjects, loclabels);
-        CC.PixelIdxList(idx) = [];
-        CC.NumObjects = length(CC.PixelIdxList);
-        
-        % clean mask
-        labels = labelmatrix(CC);
-        mask = labels~=0;
-        
-        % update labels
-        loclabels = labels(sub2ind([ny nx], pstruct.y_init, pstruct.x_init));
-        
         % get component size and intensity for each detection
-        compSize = cellfun(@(i) numel(i), CC.PixelIdxList);
-        pstruct.maskN = compSize(loclabels);
-        compInt = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
-        pstruct.maskA = compInt(loclabels);
+        CC = bwconncomp(mask(:,:,k));
+        pstruct.maskN = cellfun(@(i) numel(i), CC.PixelIdxList);
+        pstruct.maskA = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
         
         for ci = setdiff(1:nCh, mCh)
-            img = double(imread(data.framePaths{ci}{k}));
+            if ~iscell(data.framePaths{ci})
+                img = double(readtiff(data.framePaths{ci}, k));
+            else
+                img = double(imread(data.framePaths{ci}{k}));
+            end
             pstruct.dRange{ci} = [min(img(:)) max(img(:))];
             pstructSlave = fitGaussians2D(img, pstruct.x(mCh,:), pstruct.y(mCh,:), [], sigma(ci)*ones(1,np), [], 'Ac');
             
@@ -177,13 +178,26 @@ parfor k = 1:data.movieLength
     else
         frameInfo(k).dRange{mCh} = [min(img(:)) max(img(:))];
         for ci = setdiff(1:nCh, mCh)
-            img = double(imread(data.framePaths{ci}{k}));
+            if ~iscell(data.framePaths{ci})
+                img = double(readtiff(data.framePaths{ci}, k));
+            else
+                img = double(imread(data.framePaths{ci}{k}));
+            end
             frameInfo(k).dRange{ci} = [min(img(:)) max(img(:))];
         end
     end
-    
-    maskPath = [data.channels{mCh} 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
-    imwrite(uint8(255*mask), maskPath, 'tif', 'compression' , 'lzw');
+    if iscell(data.framePaths{1})
+        maskPath = [data.channels{mCh} 'Detection' filesep 'Masks' filesep 'dmask_' num2str(k, fmt) '.tif'];
+        imwrite(uint8(255*mask(:,:,k)), maskPath, 'tif', 'compression' , 'lzw');
+    end
+end
+
+% write masks
+if ~iscell(data.framePaths{1})
+    imwrite(uint8(255*mask(:,:,1)), data.maskPaths, 'tif', 'compression' , 'lzw');
+    for k = 2:data.movieLength
+        imwrite(uint8(255*mask(:,:,k)), data.maskPaths, 'tif', 'compression' , 'lzw', 'writemode', 'append');
+    end
 end
 
 save([data.channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'frameInfo');
