@@ -182,7 +182,7 @@ for k = 1:nCells
         % list directory contents and select TIFFs
         tmp = dir(channels{c});
         tmp = {tmp(~[tmp.isdir]).name}';
-        tmp = tmp(~cellfun(@isempty, regexpi(tmp, '\.tif')));
+        tmp = tmp(~cellfun(@isempty, regexpi(tmp, '\.tif|\.stk')));
         % sort files in case leading zeros are missing
         idx = regexp(tmp','\d+(?=\.)', 'match', 'once');
         if numel(unique(cellfun(@numel, idx)))~=1
@@ -197,13 +197,20 @@ for k = 1:nCells
     
     % only store frame paths if frames for all channels are found
     if all(~cellfun(@isempty, framePaths))
-        data(k).framePaths = framePaths;
-        info = imfinfo(framePaths{1}{1});
-        data(k).imagesize = [info(1).Height info(1).Width];
-        if numel(info)>1
-            data(k).imagesize = [data(k).imagesize numel(info)];
+        if numel(framePaths{1})==1
+            data(k).framePaths = cellfun(@(i) i{1}, framePaths, 'unif', 0);
+            info = imfinfo(data(k).framePaths{1});
+            data(k).imagesize = [info(1).Height info(1).Width];
+            data(k).movieLength = numel(info);
+        else
+            data(k).framePaths = framePaths;
+            info = imfinfo(framePaths{1}{1});
+            data(k).imagesize = [info(1).Height info(1).Width];
+            if numel(info)>1
+                data(k).imagesize = [data(k).imagesize numel(info)];
+            end
+            data(k).movieLength = length(framePaths{1});
         end
-        data(k).movieLength = length(framePaths{1});
     elseif exist([data(k).source 'Detection' filesep 'detection_v2.mat'], 'file')==2
         d = load([data(k).source 'Detection' filesep 'detection_v2.mat']);
         if isfield(d, 'data')
@@ -214,13 +221,18 @@ for k = 1:nCells
     end
     
     % generate mask paths
-    maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
-    nf = data(k).movieLength;
-    tmp = num2str((1:nf)');
-    tmp(tmp==' ') = '0';
-    tmp = [repmat([maskPath 'dmask_'], [nf 1]) tmp repmat('.tif', [nf 1])]; %#ok<AGROW>
-    data(k).maskPaths = mat2cell(tmp, ones(1,nf), size(tmp,2));
-
+    if iscell(data(k).framePaths{1})
+        maskPath = [data(k).source 'Detection' filesep 'Masks' filesep];
+        nf = data(k).movieLength;
+        tmp = num2str((1:nf)');
+        tmp(tmp==' ') = '0';
+        tmp = [repmat([maskPath 'dmask_'], [nf 1]) tmp repmat('.tif', [nf 1])]; %#ok<AGROW>
+        data(k).maskPaths = mat2cell(tmp, ones(1,nf), size(tmp,2));
+    else
+        % save masks as stack
+        data(k).maskPaths = [data(k).source 'Detection' filesep 'dmasks.tif'];
+    end    
+    
     data(k).markers = markers;
     data(k).NA = parameters(1);
     data(k).M = parameters(2);
