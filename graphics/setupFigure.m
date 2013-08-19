@@ -17,7 +17,7 @@ ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
 na = ip.Results.na;
-if isempty(na)
+if isempty(na) || na>nh*nw
     na = nh*nw;
 end
 
