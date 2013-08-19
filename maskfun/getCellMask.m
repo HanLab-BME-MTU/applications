@@ -14,6 +14,7 @@ ip.addParamValue('Connect', true, @islogical);
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('ShowHistogram', false, @islogical);
 ip.addParamValue('ModeRatio', 0.6, @isscalar);
+ip.addParamValue('Mode', 'intensity', @(x) any(strcmpi(x, {'intensity', 'density'})));
 ip.parse(data, varargin{:});
 
 nd = numel(data);
@@ -27,30 +28,41 @@ for i = 1:nd
     aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
     
     if ~(exist(maskPath, 'file')==2) || ip.Results.Overwrite
-        % load max. 100 frames
-        frameRange = unique(round(linspace(1, data(i).movieLength, 100)));
-        aip = zeros(data(i).imagesize);
-        mproj = zeros(data(i).imagesize);
         
-        parfor f = 1:numel(frameRange)
-            frame = double(imread(data(i).framePaths{ch}{frameRange(f)})); %#ok<PFBNS>
-            % load mask
-            dmask = 0~=double(imread(data(i).maskPaths{frameRange(f)}));
-            dmask = imdilate(dmask, se);
-            frame(dmask) = 0;
-            aip = aip + frame;
-            mproj = mproj + dmask;
-        end
-        aip = aip./(numel(frameRange)-mproj);
-        aip(isnan(aip)) = prctile(aip(:), 95);
-        save(aipPath, 'aip');
-        
-        mask{i} = maskFromFirstMode(aip, 'Connect', ip.Results.Connect,...
-            'Display', ip.Results.ShowHistogram, 'ModeRatio', ip.Results.ModeRatio);
-        
-        mask{i} = imfill(mask{i});
-        
-        imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
+        switch ip.Results.Mode
+            case 'intensity'
+                % load max. 100 frames
+                frameRange = unique(round(linspace(1, data(i).movieLength, 100)));
+                aip = zeros(data(i).imagesize);
+                mproj = zeros(data(i).imagesize);
+                
+                parfor f = 1:numel(frameRange)
+                    if iscell(data(i).framePaths{ch}) %#ok<PFBNS>
+                        frame = double(imread(data(i).framePaths{ch}{frameRange(f)}));
+                        dmask = 0~=double(imread(data(i).maskPaths{frameRange(f)}));
+                    else
+                        frame = double(readtiff(data(i).framePaths{ch}, frameRange(f)));
+                        dmask = 0~=double(readtiff(data(i).maskPaths, frameRange(f)));
+                    end
+                    dmask = imdilate(dmask, se);
+                    frame(dmask) = 0;
+                    aip = aip + frame;
+                    mproj = mproj + dmask;
+                end
+                aip = aip./(numel(frameRange)-mproj);
+                aip(isnan(aip)) = prctile(aip(:), 95);
+                save(aipPath, 'aip');
+                
+                mask{i} = maskFromFirstMode(aip, 'Connect', ip.Results.Connect,...
+                    'Display', ip.Results.ShowHistogram, 'ModeRatio', ip.Results.ModeRatio);
+                
+                mask{i} = imfill(mask{i});
+                
+                imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
+            case 'density'
+                
+    
+        end    
     else
         mask{i} = double(imread(maskPath));
     end
