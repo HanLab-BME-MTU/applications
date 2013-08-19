@@ -71,7 +71,11 @@ end
 frame = zeros(ny,nx,nCh,'uint16');
 if ~isfield(data, 'maxProj')
     for c = 1:nCh
-        frame(:,:,c) = imread(data.framePaths{ch(c)}{frameIdx});
+        if iscell(data.framePaths{1})
+            frame(:,:,c) = imread(data.framePaths{ch(c)}{frameIdx});
+        else
+            frame(:,:,c) = readtiff(data.framePaths{ch(c)}, frameIdx);
+        end
     end
 else
     for c = 1:nCh
@@ -97,8 +101,11 @@ switch ip.Results.Mode
             error('Mask overlay mode only supports 1 channel.');
         end
         % Display mask only where available
-        if ch==mCh && (exist(data.maskPaths{frameIdx}, 'file')==2)
+        if ch==mCh && iscell(data.maskPaths) && (exist(data.maskPaths{frameIdx}, 'file')==2)
             mask = double(imread(data.maskPaths{frameIdx}));
+            frame = rgbOverlay(double(frame), mask, [1 0 0], ip.Results.iRange{ch});
+        elseif ch==mCh && (exist(data.maskPaths, 'file')==2)
+            mask = double(readtiff(data.maskPaths, frameIdx));
             frame = rgbOverlay(double(frame), mask, [1 0 0], ip.Results.iRange{ch});
         else
             colormap(gray(256));

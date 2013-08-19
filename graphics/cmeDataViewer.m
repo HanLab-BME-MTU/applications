@@ -14,7 +14,7 @@ function cmeDataViewer(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('Trajectories', 'all', @(x) isempty(x) || any(strcmpi(x, {'all', 'valid'})));
+ip.addOptional('Trajectories', 'all', @(x) isempty(x) || isstruct(x) || any(strcmpi(x, {'all', 'valid'})));
 ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
@@ -40,14 +40,26 @@ handles.f = 1;
 if ~isempty(ip.Results.Trajectories)
 
     % load tracks
-    if strcmpi(ip.Results.Trajectories, 'valid');
-        c = 'Ia';
+    if ischar(ip.Results.Trajectories)
+        if strcmpi(ip.Results.Trajectories, 'valid');
+            c = 'Ia';
+        else
+            c = 'all';
+        end
+        tracks = loadTracks(data, 'Category', c);
     else
-        c = 'all';
+        tracks = ip.Results.Trajectories;
     end
-    tracks = loadTracks(data, 'Category', c);
+    
     if ~isempty(tracks)
         handles.tracks{handles.mCh} = tracks;
+        
+        if exist([data.source 'Analysis' filesep 'BackgroundFits.mat'],'file')==2
+            load([data.source 'Analysis' filesep 'BackgroundFits.mat']);
+            handles.bg95 = bg95;
+        else
+            handles.bg95 = [];
+        end
         
         % random colormaps for track display
         for c = 1:nCh
@@ -72,6 +84,10 @@ if ~isempty(ip.Results.Trajectories)
         % y-axis unit
         handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
         handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
+    else
+        handles.maxLifetime_f = [];
+        handles.selectedTrack = [];
+        handles.f = 1;
     end   
 end
 handles.displayType = 'raw';
@@ -84,7 +100,7 @@ handles.pUnitType = 's';
 hfig = figure('Units', 'normalized', 'Position', [0.1 0.2 0.85 0.7],...
     'PaperPositionMode', 'auto', 'Toolbar', 'figure',...
     'Color', get(0,'defaultUicontrolBackgroundColor'),...
-    'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels');
+    'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels', 'Name', getCellDir(data));
 
 pos = get(hfig, 'Position');
 
@@ -234,8 +250,13 @@ if isfield(handles.detection{handles.mCh}, 'dRange')
     end
 else
     for c = 1:nCh
-        frame1 = double(imread(data.framePaths{c}{1}));
-        frameN = double(imread(data.framePaths{c}{end}));
+        if iscell(data.framePaths{c})
+            frame1 = double(imread(data.framePaths{c}{1}));
+            frameN = double(imread(data.framePaths{c}{end}));
+        else
+            frame1 = double(readtiff(data.framePaths{c}, 1));
+            frameN = double(readtiff(data.framePaths{c}, data.movieLength));
+        end
         handles.dRange{c} = [min(min(frame1(:)), min(frameN(:))) max(max(frame1(:)), max(frameN(:)))];
     end    
 end
@@ -682,12 +703,21 @@ if ~isempty(handles.selectedTrack)
                 sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
             end
         end
+        topts = {'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode};
         if get(handles.tplotScaleCheckbox, 'Value')
-            plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode,...
-                'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci));
-        else
-            plotTrack(handles.data, sTrack, cx, 'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode);
+            topts = [topts, 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci)];
         end
+        if ~isempty(handles.bg95) && sTrack.catIdx<5
+            conf = handles.bg95(cx, sTrack.z(cx,:));
+            if ~isempty(sTrack.startBuffer)
+                conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
+            end
+            if ~isempty(sTrack.endBuffer)
+                conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
+            end
+            topts = [topts 'BackgroundConfidence', conf];
+        end
+        plotTrack(handles.data, sTrack, cx, topts{:});
         box on;
                      
         % plot current frame position

@@ -66,8 +66,13 @@ if isfield(frameInfo, 'dRange')
     end
 else
     for c = 1:nCh
-        firstFrame = double(imread(data.framePaths{c}{1}));
-        lastFrame = double(imread(data.framePaths{c}{data.movieLength}));
+        if iscell(data.framePaths{c})
+            firstFrame = double(imread(data.framePaths{c}{1}));
+            lastFrame = double(imread(data.framePaths{c}{data.movieLength}));
+        else
+            firstFrame = double(readtiff(data.framePaths{c}, 1));
+            lastFrame = double(readtiff(data.framePaths{c}, data.movieLength));
+        end
         dRange{c} = [min(min(firstFrame(:)),min(lastFrame(:))) max(max(firstFrame(:)),max(lastFrame(:)))];
     end
 end
