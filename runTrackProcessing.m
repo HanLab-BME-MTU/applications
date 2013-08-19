@@ -45,8 +45,7 @@ if ~iscell(frameIdx)
     frameIdx = {frameIdx};
 end
 
-% par
-for i = 1:length(data)
+parfor i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite %#ok<PFBNS>
         data(i) = main(data(i), frameIdx{i}, ip.Results);
     else
