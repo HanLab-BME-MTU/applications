@@ -74,14 +74,22 @@ if strcmpi(ip.Results.Source, 'frame')
     stack = cell(nc,nf);
     for c = 1:nc
         for k = 1:nf
-            frame = imread(data.framePaths{c}{fi(k)});
+            if iscell(data.framePaths{c})
+                frame = imread(data.framePaths{c}{fi(k)});
+            else
+                frame = readtiff(data.framePaths{c}, fi(k));
+            end
             stack{c,k} = frame(ya{k}, xa{k});
         end
     end
 else
     stack = cell(1,nf);
     for k = 1:nf
-        frame = imread(data.maskPaths{fi(k)});
+        if iscell(data.maskPaths)
+            frame = imread(data.maskPaths{fi(k)});
+        else
+            frame = readtiff(data.maskPaths, fi(k));
+        end
         stack{k} = frame(ya{k}, xa{k});
     end
 end
