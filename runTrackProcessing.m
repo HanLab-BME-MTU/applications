@@ -45,7 +45,8 @@ if ~iscell(frameIdx)
     frameIdx = {frameIdx};
 end
 
-parfor i = 1:length(data)
+% par
+for i = 1:length(data)
     if ~(exist([data(i).source filesep 'Tracking' filesep ip.Results.FileName],'file')==2) || overwrite %#ok<PFBNS>
         data(i) = main(data(i), frameIdx{i}, ip.Results);
     else
@@ -89,13 +90,13 @@ kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 nCh = length(data.channels);
 mCh = strcmp(data.source, data.channels);
 
-for k = 1:nCh
-    data.framePaths{k} = data.framePaths{k}(frameIdx);
-end
-
-data.maskPaths = data.maskPaths(frameIdx);
-data.framerate = data.framerate*(frameIdx(2)-frameIdx(1));
-data.movieLength = length(data.framePaths{1});
+% for k = 1:nCh
+%     data.framePaths{k} = data.framePaths{k}(frameIdx);
+% end
+% 
+% data.maskPaths = data.maskPaths(frameIdx);
+% data.framerate = data.framerate*(frameIdx(2)-frameIdx(1));
+% data.movieLength = length(data.framePaths{1});
 
 sigma = sigmaV(mCh);
 % w2 = ceil(2*sigma);
@@ -468,14 +469,22 @@ fullTracks = [tracks.visibility]==1;
 
 fprintf('Processing tracks (%s) - gap interpolation, buffer readout:     ', getShortPath(data));
 for f = 1:data.movieLength
+    if iscell(data.framePaths{mCh})
+        mask = double(imread(data.maskPaths{f}));
+    else
+        mask = double(readtiff(data.maskPaths, f));
+    end
     
-    mask = double(imread(data.maskPaths{f}));
     % binarize
     mask(mask~=0) = 1;
     labels = bwlabel(mask);
     
     for ch = 1:nCh
-        frame = double(imread(data.framePaths{ch}{f}));
+        if iscell(data.framePaths{mCh})
+            frame = double(imread(data.framePaths{ch}{f}));
+        else
+            frame = double(readtiff(data.framePaths{ch}, f));
+        end
         
         %------------------------
         % Gaps
