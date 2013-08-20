@@ -1,6 +1,6 @@
 % Francois Aguet, August 2010
 
-function R = scatterPlot(x, y, varargin)
+function R = scatterplot2(x, y, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
