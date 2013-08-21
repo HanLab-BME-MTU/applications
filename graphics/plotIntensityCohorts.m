@@ -264,24 +264,21 @@ if ~isempty(sigCombIdx)
     end
 end
 if ip.Results.ShowLegend
-    fpos = [2 2 17 5.5];
     aposy = 1.5;
 else
     aw = ceil(na/ah);
-    fpos = [2 2 8+7*(aw-1) 6+4.5*(ah-1)];
     aposy = 2;
 end
 
 A = cell(nCh,nc);
+if ip.Results.ShowPct && nCh>2
+    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.5 3.5], 'SameAxes', true);
+else
+    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.75 0.5], 'SameAxes', true);
+end
 
-ha = zeros(na,1);
-figure(fset.fOpts{:}, 'Position', fpos, 'Name', 'Intensity cohorts');
 for a = 1:na
-    y0 = ceil(a/2);
-    x0 = 1-mod(a,2);
-    ha(a) = axes(fset.axOpts{:}, 'Position', [1.5+x0*6.75 aposy+(ah-y0)*4.25 6 3.5]); %#ok<LAXES>
-    hold on;
-    
+
     % combination for these axes: sigCombIdx(a)
     for i = 1:nd
         for c = 1:nc
@@ -315,10 +312,12 @@ for a = 1:na
                 Aplus = M(3,:);
             end
             if ip.Results.ShowVariation
-                fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:), 'EdgeColor', cmap{ch}(c,:));
+                fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:),...
+                    'EdgeColor', cmap{ch}(c,:), 'Parent', ha(a));
             end
             if ~ip.Results.FrontLayer
-                plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+                plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:),...
+                    'LineWidth', 1);
             end
             cohorts.t{c} = cT{c};
             cohorts.Amin{ch,c} = Amin;
@@ -331,7 +330,7 @@ for a = 1:na
         % Plot mean/median in front
         if ip.Results.FrontLayer
             for c = nc:-1:1
-                plot(cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+                plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
             end
         end
         
@@ -342,11 +341,11 @@ for a = 1:na
                 % median background level per cohort for each data set
                 medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
                 medM = vertcat(medM{:});
-                plot([-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
+                plot(ha(a), [-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
             else
                 % median background level per cohort
                 medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
-                plot([-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
+                plot(ha(a), [-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
             end
         end
     end
@@ -368,11 +367,8 @@ if ~isempty(sigCombIdx)
 end
 
 if ip.Results.ShowPct && nCh>2
-    pos = get(gcf, 'Position');
-    pos(3) = pos(3)+3;
-    set(gcf, 'Position', pos);
     dy = 0.75;
-    hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6]);
+    hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6], 'Units', 'normalized');
     vennplot(meanPct(2), meanPct(3), meanPct(1), ip.Results.SlaveName,...
         'Handle', hav, 'Font', fset.sfont);
     axis off;
