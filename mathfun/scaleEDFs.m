@@ -13,9 +13,11 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('RefSamples', []);
 ip.addParamValue('Display', false, @islogical);
+ip.addParamValue('Color', []);
 ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('FigureName', 'EDF scaling');
 ip.addParamValue('XTick', []);
+ip.addParamValue('XLabel', 'Max. fluo. intensity (A.U.)', @ischar);
 ip.parse(varargin{:});
 refSamples = ip.Results.RefSamples;
 
@@ -101,7 +103,7 @@ end
 % Display
 %----------------------
 if ip.Results.Display
-    colorV = hsv(nd);
+    
     fset = loadFigureSettings('print');
     if ~isempty(ip.Results.XTick)
         xa = ip.Results.XTick;
@@ -111,26 +113,34 @@ if ip.Results.Display
     
     [~,idxa] = sort(a);
     [~,idxa] = sort(idxa);
+    
+    colorV = ip.Results.Color;
+    if isempty(colorV)
+        colorV = hsv(nd);
+        colorV = colorV(idxa,:);
+    end
         
     ha = setupFigure(2,1, 'SameAxes', true,'YSpace', [1.5 1.05 1]);
     for i = nd:-1:1
-        plot(x{i}, F{i}, '-', 'Color', colorV(idxa(i),:), 'LineWidth', lw, 'Parent', ha(1));
+        plot(x{i}, F{i}, '-', 'Color', colorV(i,:), 'LineWidth', lw, 'Parent', ha(1));
     end
-    hp = plot(xRef, FRef, 'k', 'LineWidth', lw+0.5, 'Parent', ha(1));
+    %hp = plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(1));
+    hp = plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(1));
     ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
     hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
     set(hl, 'Box', 'off', fset.sfont{:});%, 'Position', [5 6 1.5 1]);
     
     % plot scaled distributions
-    plot(xRef, FRef, 'k', 'LineWidth', lw+0.5, 'Parent', ha(2));
+    %plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(2));
+    plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(2));
     for i = nd:-1:1
-        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(idxa(i),:), 'LineWidth', lw, 'Parent', ha(2));
+        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(i,:), 'LineWidth', lw, 'Parent', ha(2));
     end
     axis(ha, [0 T99 0 1.01]);
     set(ha, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
     formatTickLabels(ha);
-    xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
+    xlabel(ip.Results.XLabel, fset.lfont{:});
     ylabel(ha(2), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(2));
     
@@ -140,8 +150,8 @@ if ip.Results.Display
     hold on;
     av = [a 1];
     plot(0, av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
-    he = errorbar(0, mean(av), std(av), 'Color', 0*[1 1 1], 'LineWidth', 1.5);
-    plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 0*[1 1 1], 'LineWidth', 1.5);
+    he = errorbar(0, mean(av), std(av), 'Color', 'k', 'LineWidth', 1);
+    plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 'k', 'LineWidth', 1);
     setErrorbarStyle(he, 0.15);
     ylim = max(ceil([1-min(av) max(av)-1]/0.2));
     ylim = 1+[-ylim ylim]*0.2;
