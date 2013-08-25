@@ -139,9 +139,14 @@ parfor k = 1:data.movieLength
         
         % get component size and intensity for each detection
         CC = bwconncomp(mask(:,:,k));
-        pstruct.maskN = cellfun(@(i) numel(i), CC.PixelIdxList);
-        pstruct.maskA = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
-        
+        labels = labelmatrix(CC);
+        % mask label for each detection
+        loclabels = labels(sub2ind(size(img), pstruct.y_init, pstruct.x_init));
+        compSize = cellfun(@(i) numel(i), CC.PixelIdxList);
+        pstruct.maskN = compSize(loclabels);
+        compInt = cellfun(@(i) sum(img(i))/numel(i), CC.PixelIdxList);
+        pstruct.maskA = compInt(loclabels);
+               
         for ci = setdiff(1:nCh, mCh)
             if ~iscell(data.framePaths{ci})
                 img = double(readtiff(data.framePaths{ci}, k));
