@@ -47,6 +47,7 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -56,10 +57,12 @@ ip.addParamValue('maxLag',0,@isscalar);
 ip.addParamValue('layer',1,@isscalar);
 ip.addParamValue('signalChannel',1,@isscalar);
 ip.addParamValue('interval',{[]},@iscell);
+ip.addParamValue('robust',false,@islogical);
 
 ip.parse(movieObj,varargin{:});
 scale            = ip.Results.scale;
 includeWin       = ip.Results.includeWin;
+winInterval      = ip.Results.winInterval;
 outLevel         = ip.Results.outLevel;
 minLen           = ip.Results.minLength;
 trend            = ip.Results.trendType;
@@ -67,10 +70,11 @@ maxLag           = ip.Results.maxLag;
 layer            = ip.Results.layer;
 channel          = ip.Results.signalChannel;
 interval         = ip.Results.interval;
+robust           = ip.Results.robust;
 
 cellData{1,nCell} = [];
-edgeInputParam    = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale,'outputPath','correlationEstimation'};
-signalInputParam  = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'outputPath','correlationEstimation'};
+edgeInputParam    = {'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale,'outputPath','correlationEstimation'};
+signalInputParam  = {'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'outputPath','correlationEstimation'};
 edge              = edgeVelocityQuantification(ML,edgeInputParam{:});
 signal            = sampledSignalQuantification(ML,channel,signalInputParam{:});
 nInterval         = cellfun(@(x) 1:size(x.data.procEdgeMotion,2),edge,'Unif',0);
@@ -83,6 +87,8 @@ for iInt = 1:numel(interval)
     end
 end
 
+
+
 totalEdgeACF     = [];
 totalSignalACF   = [];
 totalCCF         = [];
@@ -91,19 +97,26 @@ retractionCCF    = [];
 
 for iCell = 1:nCell
     
+    windows         = intersect(edge{iCell}.data.includedWin{1},signal{iCell}.data.includedWin{layer});
+    tsLengths       = cell2mat( cellfun(@(x) numel(x),winInterval{iCell},'Unif',0) );
     
-    windows         = intersect(edge{iCell}.data.includedWin,signal{iCell}.data.includedWin{layer});
-    motionMap       = edge{iCell}.data.procEdgeMotion(windows,nInterval{iCell});
-    activity        = squeeze(signal{iCell}.data.procSignal(windows,nInterval{iCell},layer));
+    nWin            = numel(windows);
+    motionMap       = nan(nWin,max(tsLengths));
+    activity        = motionMap;
     
-    cellData{iCell} = internalGetCorrelation(motionMap,activity,maxLag,1);
+    for iWin = 1:nWin
+        motionMap(iWin,1:tsLengths(iWin)) = edge{iCell}.data.procExcEdgeMotion{iWin};
+        activity(iWin,1:tsLengths(iWin))  = signal{iCell}.data.procExcSignal{layer}{iWin};
+    end
+    
+    cellData{iCell} = internalGetCorrelation(motionMap,activity,maxLag,1,robust);
     
     totalEdgeACF    = cat(2,cellData{iCell}.total.edgeAutoCorr,totalEdgeACF);
     totalSignalACF  = cat(2,cellData{iCell}.total.signalAutoCorr,totalSignalACF);
     totalCCF        = cat(2,cellData{iCell}.total.crossCorr,totalCCF);
     
-    protIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.protrusionAnalysis.windows(windows),'Unif',0);
-    retrIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.retractionAnalysis.windows(windows),'Unif',0);
+    protIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.protrusionAnalysis.windows,'Unif',0);
+    retrIdx         = arrayfun(@(x) cell2mat(x.blockOut(:)),edge{iCell}.retractionAnalysis.windows,'Unif',0);
     
     protMask        = nan(size(motionMap));
     retrMask        = nan(size(motionMap));
@@ -121,10 +134,10 @@ for iCell = 1:nCell
     sigRetraction = activity.*retrMask;
     
     cellData{iCell}.total.protrusionSignal = nanmean(sigProtrusion(:));
-    cellData{iCell}.total.protrusionSignal = nanmean(sigRetraction(:));
+    cellData{iCell}.total.retractionSignal = nanmean(sigRetraction(:));
 
-    cellData{iCell}.protrusionCorrelation  = internalGetCorrelation(protrusion,activity,maxLag,0);
-    cellData{iCell}.retractionCorrelation  = internalGetCorrelation(retraction,activity,maxLag,0);
+    cellData{iCell}.protrusionCorrelation  = internalGetCorrelation(protrusion,activity,maxLag,0,robust);
+    cellData{iCell}.retractionCorrelation  = internalGetCorrelation(retraction,activity,maxLag,0,robust);
     protrusionCCF                          = cat(2,cellData{iCell}.protrusionCorrelation.total.crossCorr,protrusionCCF);
     retractionCCF                          = cat(2,cellData{iCell}.retractionCorrelation.total.crossCorr,retractionCCF);
     
@@ -142,9 +155,9 @@ savingMovieDataSetResults(ML,dataSet,'correlationEstimation','correlation')
 end
 
 
-function out = internalGetCorrelation(protrusion,activity,maxLag,acFlag)
+function out = internalGetCorrelation(protrusion,activity,maxLag,acFlag,robust)
 
-[muCcf,muCCci,lags,xCorr] = getAverageCorrelation(protrusion,activity,'maxLag',maxLag);
+[muCcf,muCCci,lags,xCorr] = getAverageCorrelation(protrusion,activity,'maxLag',maxLag,'robust',robust);
 
 out.total.crossCorr       = xCorr;
 out.total.lag             = lags;
@@ -157,8 +170,8 @@ out.CI.lag                = lags;
 
 if acFlag
     
-    [muProtAcf,protCI,~,protAcf] = getAverageCorrelation(protrusion,'maxLag',maxLag);
-    [muSignAcf,signCI,~,signAcf] = getAverageCorrelation(activity,'maxLag',maxLag);
+    [muProtAcf,protCI,~,protAcf] = getAverageCorrelation(protrusion,'maxLag',maxLag,'robust',robust);
+    [muSignAcf,signCI,~,signAcf] = getAverageCorrelation(activity,'maxLag',maxLag,'robust',robust);
     
     out.total.edgeAutoCorr       = protAcf;
     out.total.signalAutoCorr     = signAcf;

@@ -107,6 +107,7 @@ nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -116,41 +117,37 @@ ip.addParamValue('fileName','sampledSignal',@isstr);
 
 ip.parse(movieObj,channel,varargin{:});
 
-includeWin = ip.Results.includeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-trend      = ip.Results.trendType;
-outputPath = ip.Results.outputPath;
-fileName   = ip.Results.fileName;
-gapSize    = ip.Results.gapSize;
+includeWin  = ip.Results.includeWin;
+outLevel    = ip.Results.outLevel;
+minLen      = ip.Results.minLength;
+trend       = ip.Results.trendType;
+outputPath  = ip.Results.outputPath;
+fileName    = ip.Results.fileName;
+gapSize     = ip.Results.gapSize;
+winInterval = ip.Results.winInterval;
 
 %% Formatting Time Series
-operations = {'channel',channel,'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
+operations = {'channel',channel,'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'WindowSamplingProcess',operations{:});
 
 for iCell = 1:nCell
     
-    if ~isfield(cellData{iCell},'intensityOverTime')
+    currMD                             = ML.movies_{iCell};
+    cellData{iCell}.data.pixelSize     = currMD.pixelSize_;
+    cellData{iCell}.data.frameRate     = currMD.timeInterval_;
+    cellData{iCell}.data.rawSignal     = cellData{iCell}.data.rawTimeSeries;
+    cellData{iCell}.data.procSignal    = cellData{iCell}.data.procTimeSeries;
+    cellData{iCell}.data.procExcSignal = cellData{iCell}.data.procExcTimeSeries;
+    cellData{iCell}.data               = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+    
+    nLayer = size(cellData{iCell}.data.procSignal,3);
+    for iLayer = 1:nLayer
         
-        currMD                             = ML.movies_{iCell};
-        cellData{iCell}.data.pixelSize     = currMD.pixelSize_;
-        cellData{iCell}.data.frameRate     = currMD.timeInterval_;
-        cellData{iCell}.data.rawSignal     = cellData{iCell}.data.rawTimeSeries;
-        cellData{iCell}.data.procSignal    = cellData{iCell}.data.procTimeSeries;
-        cellData{iCell}.data.procExcSignal = cellData{iCell}.data.procExcTimeSeries;
-        cellData{iCell}.data               = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+        windows = cellData{iCell}.data.includedWin{iLayer};
+        signal  = cellData{iCell}.data.procExcSignal{iLayer};
         
-        [nWin,~,nLayer] = size(cellData{iCell}.data.procSignal);
-        for iLayer = 1:nLayer
-            
-            windows = cellData{iCell}.data.includedWin{iLayer};
-            signal  = cellData{iCell}.data.procExcSignal{iLayer};
-            
-            cellData{iCell}.intensityOverTime(iLayer,:)       = nan(1,nWin);
-            cellData{iCell}.intensityOverTime(iLayer,windows) = nanmean( signal,2 );
-            cellData{iCell}.intensityOverTimeSpace(iLayer)    = nanmean( cellData{iCell}.intensityOverTime(iLayer,windows) );
-            
-        end
+        cellData{iCell}.intensityOverTime(1:numel(windows),iLayer) = cellfun(@(x) nanmean(x),signal);
+        cellData{iCell}.intensityOverTimeSpace(iLayer)             = nanmean( cellData{iCell}.intensityOverTime(:,iLayer) );
         
     end
     

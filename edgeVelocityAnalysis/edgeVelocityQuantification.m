@@ -91,7 +91,6 @@ ip.addParamValue('nBoot',1e3,@isscalar);
 ip.addParamValue('alpha',.05,@isscalar);
 ip.addParamValue('cluster',false,@isscalar);
 ip.addParamValue('nCluster',2,@isscalar);
-ip.addParamValue('interval',{[]},@iscell);
 
 if isa(movieObj,'MovieData')
     
@@ -106,95 +105,125 @@ end
 nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
-ip.addParamValue('includeWin', cell(1,nCell),@iscell);
+ip.addParamValue('includeWin',cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('scale',false,@islogical);
+ip.addParamValue('scale',     false,@islogical);
 ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
+ip.addParamValue('interval',{[]},@iscell);
 
 ip.parse(movieObj,varargin{:});
-nBoot      = ip.Results.nBoot;
-alpha      = ip.Results.alpha;
-cluster    = ip.Results.cluster;
-nCluster   = ip.Results.nCluster;
-interval   = ip.Results.interval;
-scale      = ip.Results.scale;
-outputPath = ip.Results.outputPath;
-fileName   = ip.Results.fileName;
+nBoot       = ip.Results.nBoot;
+alpha       = ip.Results.alpha;
+cluster     = ip.Results.cluster;
+nCluster    = ip.Results.nCluster;
+interval    = ip.Results.interval;
+scale       = ip.Results.scale;
+outputPath  = ip.Results.outputPath;
+fileName    = ip.Results.fileName;
 
-includeWin = ip.Results.includeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-trend      = ip.Results.trendType;
-gapSize    = ip.Results.gapSize;
+includeWin  = ip.Results.includeWin;
+outLevel    = ip.Results.outLevel;
+minLen      = ip.Results.minLength;
+trend       = ip.Results.trendType;
+gapSize     = ip.Results.gapSize;
+winInterval = ip.Results.winInterval;
+
+if ~isempty(interval{1})
+    if ~( ( numel(includeWin) == numel(interval) ) && (numel(interval) == nCell) )
+        error('Number of includeWin or interval does not match number of cells');
+    end
+end
 
 %% Formatting Time Series
-operations = {'includeWin',includeWin,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',true,'outputPath',outputPath,'fileName',fileName};
+operations = {'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',true,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
-
-newCC   = 1;
-scaling = 1;
+scaling    = 1;
 
 for iCell = 1:nCell
     
-    if ~isfield(cellData{iCell},'protrusionAnalysis')
+    
+    currMD  = ML.movies_{iCell};
+    
+    if scale
         
-        currMD  = ML.movies_{iCell};
-        
-        if scale
-            
-            if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-                error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
-            end
-            
-            scaling = (currMD.pixelSize_/currMD.timeInterval_);
-            
+        if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+            error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
         end
         
-        cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
-        cellData{iCell}.data.frameRate         = currMD.timeInterval_;
-        cellData{iCell}.data.rawEdgeMotion     = cellData{iCell}.data.rawTimeSeries.*scaling;
-        cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
-        cellData{iCell}.data.procExcEdgeMotion = num2cell( cellData{iCell}.data.procExcTimeSeries.*scaling,2 );
-        cellData{iCell}.data                   = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
+        scaling = (currMD.pixelSize_/currMD.timeInterval_);
         
-        auxCellData{newCC} = cellData{iCell};
-        newCC = newCC + 1;
+    end
+    
+    cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
+    cellData{iCell}.data.frameRate         = currMD.timeInterval_;
+    cellData{iCell}.data.rawEdgeMotion     = cellData{iCell}.data.rawTimeSeries.*scaling;
+    cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
+    cellData{iCell}.data.procExcEdgeMotion = cellfun(@(x) x*scaling, cellData{iCell}.data.procExcTimeSeries{1},'Unif',0);% 1 means first layer
+    
+    if ~isfield(cellData{iCell}.data,'interval')
+        
+        cellData{iCell}.data.interval = {[]};
+        
+    end
+    
+    if isfield(cellData{iCell}.data,'rawTimeSeries')
+        
+        cellData{iCell}.data = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
     end
     
 end
-        
+
+
 %% Getting Average Velocities and Persistence Time per Cell
-protrusion = [];
-retraction = [];
 
-if newCC > 1
+%indexes for non-processed cells
+flag1 = cellfun(@(x) isfield(x,'protrusionAnalysis'),cellData);
+flag2 = false(1,nCell);
+%If the interval is different
+if ~isempty(interval{1})
     
-    commonGround = @(x,z) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z);
-    if isempty(interval{1})
-
-        [protrusionA,retractionA] ...
-                   = cellfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.frameRate),auxCellData,'Unif',0);
-        protrusion = cellfun(@(x) {x},protrusionA,'Unif',0);
-        retraction = cellfun(@(x) {x},retractionA,'Unif',0);
-
-    else
-
-        firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z);
-        secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
-
-        [protrusion,retraction] ...
-                    = cellfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),auxCellData,'Unif',0);
-
-    end
-
+    diffInter             = false(1,numel(interval));
+    diffInter(flag1)      = cell2mat(cellfun(@(x) numel(x.protrusionAnalysis),cellData(flag1),'Unif',0)) ~= numel(interval);
+    %If the interval is different
+    dWinInter             = false(1,numel(interval));
+    dWinInter(~diffInter) = cell2mat(cellfun(@(x,y) isequaln(x.data.interval,y),cellData(~diffInter),interval(~diffInter),'Unif',0));
+    
+    flag2 = diffInter | ~dWinInter;
+    
 end
 
-[cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot);
+finalIdx           = ~flag1 | flag2;
+commonGround       = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
+protrusion         = [];
+retraction         = [];
+
+if sum(finalIdx) ~= 0
+    
+    if isempty(interval{1})
+        
+        [protrusion,retraction] ...
+            = cellfun(@(x,y) commonGround(x.data.procExcEdgeMotion,x.data.frameRate,y),cellData(finalIdx),winInterval(finalIdx),'Unif',0);
+        protrusion = num2cell(protrusion);
+        retraction = num2cell(retraction);
+        
+    else
+        
+        firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
+        secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
+        
+        [protrusion,retraction] ...
+                    = cellfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData(finalIdx),'Unif',0);
+        
+    end
+    
+end
+[cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,finalIdx);
 
 %% Saving results
 
@@ -203,7 +232,7 @@ savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
 end%End of main function
 
-function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot)
+function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,idx)
 %This function pull all the data from individual cells and calculates the dataSet mean value and CI
 %It also formats the data structure for plotting
 %Input:
@@ -213,24 +242,26 @@ function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,i
 %       nBoot      - number of bootstrap samples
 %
 %Output:
-%       dataSet         - averages and CI for the data set
+%       dataSet    - averages and CI for the data set
 %
 nCell = numel(cellData);
 total = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
 cc    = 1;
+
+for iCell = find(idx)
+    
+            
+        for iiInt = 1:numel(interval)
+            cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
+            cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
+        end
+        cc = cc + 1;
+        
+end
+
 for iInt = 1:numel(interval)
     
     for iCell = 1:nCell
-        
-        if ~isfield(cellData{iCell},'protrusionAnalysis')
-            
-            for iiInt = 1:numel(interval)
-                cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
-                cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
-            end
-            cc = cc + 1;
-            
-        end
         
         total.ProtPersTime    = [total.ProtPersTime;cellData{iCell}.protrusionAnalysis(iInt).total.persTime];
         total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.maxVeloc];
@@ -245,7 +276,7 @@ for iInt = 1:numel(interval)
         total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
         
     end
-        
+    
     [dataSet.CI.interval(iInt),dataSet.meanValue.interval(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
     dataSet.total.interval(iInt) = total;
     

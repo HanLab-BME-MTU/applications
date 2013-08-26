@@ -28,7 +28,9 @@ for iCell = 1:nCell
     if exist(filePath,'file')
         
         aux         = load(filePath);
-        out{iCell}     = aux.analysisResults;
+        if sum(isfield(aux.analysisResults.data,{'excludedWin','includedWin','winInterval'})) == 3
+            out{iCell}     = aux.analysisResults;
+        end
         
     end
         

@@ -45,29 +45,45 @@ ip.addParamValue('alpha',.05,@isscalar);
 ip.addParamValue('deltaT',1,@isscalar);
 ip.addParamValue('cluster',false,@islogical);
 ip.addParamValue('nCluster',2,@isscalar);
+ip.addParamValue('winInterval',{[]},@iscell);
+
 ip.parse(TS,varargin{:});
 
-nBoot    = ip.Results.nBoot;
-alpha    = ip.Results.alpha;
-deltaT   = ip.Results.deltaT;
-cluster  = ip.Results.cluster;
-nCluster = ip.Results.nCluster;
-
+nBoot       = ip.Results.nBoot;
+alpha       = ip.Results.alpha;
+deltaT      = ip.Results.deltaT;
+cluster     = ip.Results.cluster;
+nCluster    = ip.Results.nCluster;
+winInterval = ip.Results.winInterval;
 %**************************************************************************
+nWin = length(TS);
+
+if isempty(winInterval{1})
+    
+    winInterval = cellfun(@(x) 1:numel(x),TS,'Unif',0);
+    
+end
+
+
+firstP      = min(cell2mat(cellfun(@(x) x(1),winInterval,'Unif',0)));
+lastP       = max(cell2mat(cellfun(@(x) x(end),winInterval,'Unif',0)));
+motionState = nan(lastP-firstP+1,nWin);
+newInt      = cellfun(@(x) x-firstP+1,winInterval,'Unif',0);
+    
 
 
 %%
-nWin        = length(TS);
+
 Retraction  = setupEdgeVelocityStructure(nWin);        
 Protrusion  = setupEdgeVelocityStructure(nWin);
-motionState = NaN(numel(TS{1}),nWin);
+
 
 auxP = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 auxR = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 
 for iWin = 1:nWin
     
-    [Protrusion.windows(iWin),Retraction.windows(iWin),motionState(:,iWin)] = getPersistenceTime(TS{iWin},deltaT);
+    [Protrusion.windows(iWin),Retraction.windows(iWin),motionState(newInt{iWin},iWin)] = getPersistenceTime(TS{iWin},deltaT);
     %believe it or not, this is the fastest way to do it
     auxP.persTime  = [auxP.persTime; Protrusion.windows(iWin).persTime];
     auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).persTime)];
@@ -97,8 +113,8 @@ Retraction.total      = auxR;
 Protrusion.total.time = nansum(auxP.persTime);
 Retraction.total.time = nansum(auxR.persTime);
 
-Protrusion.total.percentage = sum(motionState > 0,2)/nWin;
-Retraction.total.percentage = sum(motionState < 0,2)/nWin;
+Protrusion.total.percentage = sum( motionState > 0, 2)./sum(isfinite(motionState),2);
+Retraction.total.percentage = sum( motionState < 0, 2)./sum(isfinite(motionState),2);
 
 if cluster
     

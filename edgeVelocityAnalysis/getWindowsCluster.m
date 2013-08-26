@@ -80,14 +80,14 @@ cellData       = edgeVelocityQuantification(ML,edgeInputParam{:});
 
 % State Features
 
-feature{1} = 'persTime';
-feature{2} = 'Veloc';
-feature{3} = 'maxVeloc';
-feature{4} = 'mednVeloc';
+feature{1}   = 'persTime';
+feature{2}   = 'Veloc';
+feature{3}   = 'maxVeloc';
+feature{4}   = 'mednVeloc';
 
 %Edge States
-measures{1} = 'protrusionAnalysis';
-measures{2} = 'retractionAnalysis';
+measures{1}  = 'protrusion';
+measures{2}  = 'retraction';
 
 aux1         = arrayfun(@(x) repmat(x,1,numel(edgeFeat)),measures(edgeState),'Unif',0);
 aux2         = repmat(feature(edgeFeat),1,numel(edgeState));
@@ -95,12 +95,15 @@ aux3         = cellfun(@(z1,z2) cellfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows
 featureSpace = cellfun(@(x) cat(2,x{:}),aux3,'Unif',0);
 
 statsVector(1:numel(edgeFeat)*numel(edgeState)) = {fVector};
-out          = findTimeSeriesCluster(featureSpace,statsVector,clusterM,'clusterSet',clusterSet);
-cellData     = getCellIndex(cellData,out);
 
+%Getting clusters
+[out,dataPoints] = findTimeSeriesCluster(featureSpace,statsVector,clusterM,'clusterSet',clusterSet);
+cellData         = getCellIndex(cellData,out,dataPoints,edgeFeat,edgeState,feature,measures);
+
+%recounting the window's index
 for iCell = 1:nCell
 
-    cellData{iCell}.cluster = arrayfun(@(x) cellData{iCell}.data.includedWin(cellData{iCell}.cluster{x}),1:numel(out),'Unif',0);
+    cellData{iCell}.clusterWin = arrayfun(@(x) cellData{iCell}.data.includedWin(cellData{iCell}.clusterWin{x}),1:numel(out),'Unif',0);
          
 end
 
@@ -110,7 +113,7 @@ savingMovieDataSetResults(ML,cellData,'clusterAnalysis','cluster')
 
 end
 
-function cellData = getCellIndex(cellData,out)
+function cellData = getCellIndex(cellData,out,dataPoints,edgeFeat,edgeState,feature,measures)
 
 totalWin = cell2mat( cellfun(@(x) numel(x.data.procExcEdgeMotion),cellData,'Unif',0) );
 
@@ -119,7 +122,17 @@ fixIdx = [0 totalWin(1:end-1)];
 
 for iCell = 1:numel(cellData)
     
-    cellData{iCell}.cluster = cellfun(@(x,y) x(y == iCell)-sum(fixIdx(1:iCell)),out,testM,'Unif',0);
+    cellData{iCell}.clusterWin = cellfun(@(x,y) x(y == iCell)-sum(fixIdx(1:iCell)),out,testM,'Unif',0);
+    
+    for iM = 1:numel(edgeState)
+        
+        for iF = 1:numel(edgeFeat)
+            
+            cellData{iCell}.clusterPoint.(measures{iM}).(feature{iF}) = cellfun(@(x) dataPoints{iM+iF-1}(x,:),cellData{iCell}.clusterWin,'Unif',0);
+    
+        end
+        
+    end
     
 end
 

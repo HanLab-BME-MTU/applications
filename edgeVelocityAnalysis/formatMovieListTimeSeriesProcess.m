@@ -55,6 +55,7 @@ nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
 ip.addParamValue('includeWin',cell(1,nCell), @iscell);
+ip.addParamValue('winInterval',cell(1,nCell),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -63,84 +64,145 @@ ip.addParamValue('saveOn',    false,@islogical);
 ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
 
+
 ip.parse(movieObj,processType,varargin{:});
-includeWin = ip.Results.includeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-trend      = ip.Results.trendType;
-gapSize    = ip.Results.gapSize;
-channel    = ip.Results.channel;
-saveOn     = ip.Results.saveOn;
-outputPath = ip.Results.outputPath;
-fileName   = ip.Results.fileName;
+includeWin  = ip.Results.includeWin;
+winInterval = ip.Results.winInterval;
+outLevel    = ip.Results.outLevel;
+minLen      = ip.Results.minLength;
+trend       = ip.Results.trendType;
+gapSize     = ip.Results.gapSize;
+channel     = ip.Results.channel;
+saveOn      = ip.Results.saveOn;
+outputPath  = ip.Results.outputPath;
+fileName    = ip.Results.fileName;
 
 
-
-cellData{1,nCell} = [];
-oldCellData       = loadingMovieResultsPerCell(ML,outputPath,fileName);
-dataSet           = [];
-
+dataSet                       = [];
 timeSeriesOperations{1,nCell} = [];
+cellData                      = loadingMovieResultsPerCell(ML,outputPath,fileName);
 
 for iCell = 1:nCell
     
     
     timeSeriesOperations{iCell} = {'outLevel',outLevel(iCell),'minLength',minLen(iCell),'trendType',trend(iCell),'gapSize',gapSize(iCell)};
     
-    if ~isempty(oldCellData{iCell})
-        inp1 = isequal(oldCellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
-    else
-        inp1 = false;
-    end
+    inp1 = isempty(cellData{iCell});
+    inp3 = false;
     
-    
-    if ~inp1
-        
+    if inp1
+       
         currMD     = ML.movies_{iCell};
         timeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
         nDim       = ndims(timeSeries);
-        nWin       = size(timeSeries,1);
         
-        if isempty(includeWin{iCell})
+        if nDim == 3
+            cellData{iCell}.data.rawTimeSeries = permute(timeSeries,[1 3 2]);%Reverting Hunter's retarded decision
+        else
+            cellData{iCell}.data.rawTimeSeries = timeSeries;
+        end
+
+    else
+        
+        inp3 = isequal(cellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
+        inp2 = false;
+        inp5 = false;
+        if ~isempty(winInterval{iCell}{1})
             
-            includeWin{iCell} = 1:nWin;
+            inp4 = sum(cellfun(@(x,y) numel(x)-numel(y),cellData{iCell}.data.winInterval,winInterval{iCell})) == 0;
+            
+            if inp4
+                inp2 = sum( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.winInterval,winInterval{iCell}) ) == numel(winInterval{iCell});
+            end
+        end
+        
+        if ~isempty(includeWin{iCell})
+        
+            inp5 = isequal(cellData{iCell}.data.includedWin{1},includeWin{iCell});
+        
+        end
+        
+        if isfield(cellData{iCell}.data,'rawEdgeMotion')
+            
+            cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawEdgeMotion;
+            cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procEdgeMotion;
+            
+            if ~( inp3 && inp2 && inp5)
+                cellData{iCell} = rmfield(cellData{iCell},{'protrusionAnalysis','retractionAnalysis'});
+            end
+            
+        elseif isfield(cellData{iCell}.data,'rawSignal')
+            
+            cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawSignal;
+            cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procSignal;
+            
+            if ~( inp3 && inp2 && inp5)
+                cellData{iCell} = rmfield(cellData{iCell},{'intensityOverTime','intensityOverTimeSpace'});
+            end
             
         end
         
-        cellData{iCell}.data.rawTimeSeries = timeSeries;
+    end
+    
+    
+    [nWin,nObs,nLayer] = size(cellData{iCell}.data.rawTimeSeries);
+    excludeVar         = cell(1,nLayer);
+    %%  If TS operations are different, process data with new settings
+    if inp1 || ~inp3
         
         %Applying Time Series Operations
         cellData{iCell}.data.timeSeriesOperations = timeSeriesOperations{iCell};
         
-        if nDim == 3
+        for iLayer = 1:nLayer
             
-            for iLayer = 1:size(timeSeries,2)
-                
-                [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar] = timeSeriesPreProcessing(squeeze(timeSeries(:,iLayer,:)),timeSeriesOperations{iCell}{:});
-                cellData{iCell}.data.excludedWin{iLayer}                     = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-                cellData{iCell}.data.includedWin{iLayer}                     = setdiff(includeWin{iCell},excludeVar);
-                cellData{iCell}.data.procExcTimeSeries{iLayer}               = cellData{iCell}.data.procTimeSeries(cellData{iCell}.data.includedWin{iLayer},:,iLayer);
-                
-            end
+            [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer)),timeSeriesOperations{iCell}{:});
+            
+        end
+        
+    end
+    
+    
+    if isempty(includeWin{iCell})%If includeWin is [], include all windows
+        
+        includeWin{iCell} = 1:nWin;
+        
+    end
+    
+    nWin = numel(includeWin{iCell});
+    if isempty(winInterval{iCell}{1})%If winInterval is [], include all time points for all windows
+        
+        cellData{iCell}.data.winInterval = num2cell(repmat(1:nObs,nWin,1),2);
+        
+    else
+        
+        if sum(cellfun(@(x,y) numel(x)-numel(y),winInterval,includeWin)) ~= 0
+            error('Number of windows does not match number of intervals')
+        end
+
+        cellData{iCell}.data.winInterval = winInterval{iCell};
+        
+    end
+    
+    
+    for iLayer = 1:nLayer
+        
+        cellData{iCell}.data.excludedWin{iLayer}       = unique([setdiff(1:size(cellData{iCell}.data.rawTimeSeries,2),includeWin{iCell}) excludeVar{iLayer}]);
+        cellData{iCell}.data.includedWin{iLayer}       = setdiff(includeWin{iCell},excludeVar{iLayer});
+        
+        if numel(cellData{iCell}.data.includedWin{iLayer}) ~= numel(cellData{iCell}.data.winInterval)
+            
+            cellData{iCell}.data.procExcTimeSeries{iLayer} = {[]};
             
         else
             
-            [cellData{iCell}.data.procTimeSeries,excludeVar] = timeSeriesPreProcessing(timeSeries,timeSeriesOperations{iCell}{:});
-            cellData{iCell}.data.excludedWin                 = unique([setdiff(1:nWin,includeWin{iCell}) excludeVar]);
-            cellData{iCell}.data.includedWin                 = setdiff(includeWin{iCell},excludeVar);
-            cellData{iCell}.data.procExcTimeSeries           = cellData{iCell}.data.procTimeSeries(cellData{iCell}.data.includedWin,:);
-            
-            
+            cellData{iCell}.data.procExcTimeSeries{iLayer} = cellfun(@(win,time) cellData{iCell}.data.procTimeSeries(win,time,iLayer),...
+                                                             num2cell(cellData{iCell}.data.includedWin{iLayer}(:)),cellData{iCell}.data.winInterval(:),'Unif',0);
         end
-    else
         
-        cellData{iCell} = oldCellData{iCell};
         
     end
     
 end
-
-
 
 
 %% Saving results per cell
@@ -151,8 +213,6 @@ if saveOn
 end
 
 end
-
-
 
 function samples = readingTimeSeries(currMD,forProc,processType,channel)
 
