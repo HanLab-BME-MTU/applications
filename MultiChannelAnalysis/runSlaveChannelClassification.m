@@ -79,7 +79,11 @@ parfor f = 1:nf;
     % Generate masks
     %-----------------------------------------------
     % load CCP mask and dilate
-    ccpMask = double(imread(data.maskPaths{k})); %#ok<PFBNS>
+    if iscell(data.framePaths{1}) %#ok<PFBNS>
+        ccpMask = double(imread(data.maskPaths{k}));
+    else
+        ccpMask = double(readtiff(data.maskPaths, k));
+    end
     ccpMask(ccpMask~=0) = 1;
     ccpMask = imdilate(ccpMask, strel('disk', 1*w));
     
@@ -139,7 +143,11 @@ parfor f = 1:nf;
             bgA{f} = NaN(nc,opts.np);
             pSlaveSignal{f} = NaN(nc,numel(xa));
             for c = sCh
-                frame = double(imread(data.framePaths{c}{k}));
+                if iscell(data.framePaths{1})
+                    frame = double(imread(data.framePaths{c}{k}));
+                else
+                    frame = double(readtiff(data.framePaths{c}, k));
+                end
                 
                 % get local min & max for initial c and A
                 ww = 2*ceil(4*sigma(c))+1; %#ok<PFBNS>
