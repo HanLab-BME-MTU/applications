@@ -183,10 +183,10 @@ flag2 = false(1,nCell);
 %If the interval is different
 if ~isempty(interval{1})
     
-    diffInter             = false(1,numel(interval));
+    diffInter             = false(1,nCell);
     diffInter(flag1)      = cell2mat(cellfun(@(x) numel(x.protrusionAnalysis),cellData(flag1),'Unif',0)) ~= numel(interval);
     %If the interval is different
-    dWinInter             = false(1,numel(interval));
+    dWinInter             = false(1,nCell);
     dWinInter(~diffInter) = cell2mat(cellfun(@(x,y) isequaln(x.data.interval,y),cellData(~diffInter),interval(~diffInter),'Unif',0));
     
     flag2 = diffInter | ~dWinInter;
