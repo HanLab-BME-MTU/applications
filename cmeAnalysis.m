@@ -70,6 +70,7 @@ ip.addParamValue('Parameters', [], @(x) numel(x)==3);
 ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ChannelNames', []);
+ip.addParamValue('FirstNFrames', [], @isposint);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 data = ip.Results.data;
@@ -109,11 +110,13 @@ else
 end
 if isempty(ip.Results.ControlData)
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
-        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end));
+        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end),...
+        'FirstNFrames', ip.Results.FirstNFrames);
 else
     res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
         'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end),...
-        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
+        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold,...
+        'FirstNFrames', ip.Results.FirstNFrames);
 end
 
 % Graphical output
