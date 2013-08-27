@@ -127,7 +127,7 @@ for iCell = 1:nCell
             cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawEdgeMotion;
             cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procEdgeMotion;
             
-            if ~( inp3 && inp2 && inp5)
+            if ~(inp3 || inp2 || inp5) &&  isfield(cellData{iCell}.data,'protrusionAnalysis')
                 cellData{iCell} = rmfield(cellData{iCell},{'protrusionAnalysis','retractionAnalysis'});
             end
             
