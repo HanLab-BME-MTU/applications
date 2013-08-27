@@ -3,8 +3,8 @@ function cellViewer(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Frame', 1, @isscalar);
-ip.addParamValue('Channel', strcmp(data(1).channels, data(1).source), @isscalar);
+ip.addParamValue('Frame', [], @isposint);
+ip.addParamValue('Channel', 1, @isscalar);
 ip.addParamValue('Scale', 5, @isscalar);
 ip.addParamValue('Units', 'µm', @ischar);
 ip.addParamValue('FontName', 'Helvetica', @ischar);
@@ -40,9 +40,13 @@ for k = 1:N
     x = k-(y-1)*nx;
     ha = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
     
-    tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
-    frame = scaleContrast(tmp.aip);
-    frame = scaleContrast(sqrt(frame));
+    if ~isempty(ip.Results.Frame)
+        frame = imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame});
+    else
+        tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
+        frame = scaleContrast(tmp.aip);
+        frame = scaleContrast(sqrt(frame));
+    end
     
     imagesc(frame, 'Parent', ha);
     if strcmpi(ip.Results.Mode, 'mask')
