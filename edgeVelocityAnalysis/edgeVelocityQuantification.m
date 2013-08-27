@@ -133,11 +133,6 @@ trend       = ip.Results.trendType;
 gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
 
-if ~isempty(interval{1})
-    if ~( ( numel(includeWin) == numel(interval) ) && (numel(interval) == nCell) )
-        error('Number of includeWin or interval does not match number of cells');
-    end
-end
 
 %% Formatting Time Series
 operations = {'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',true,'outputPath',outputPath,'fileName',fileName};
