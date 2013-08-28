@@ -33,8 +33,6 @@ handles.mCh = find(strcmp(data.source, data.channels));
 % Load movie
 %---------------------
 handles.stack = cell(1,nCh);
-% handles.stack{1} = rand(150,150,25);
-% handles.stack{2} = rand(150,150,25);
 if ~iscell(data.framePaths{1})
     for c = 1:nCh
         %stack{c} = readtiff(data.framePaths{c});
@@ -71,42 +69,42 @@ handles.f = 1;
 %---------------------
 % Load tracks
 %---------------------
-tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5);
-nt = numel(tracks);
-nseg = [tracks.nSeg];
-
-np = sum(nseg);
-X = NaN(nf, np);
-Y = NaN(nf, nt);
-% vector of start indexes since multiple segments/track
-tidx = cumsum([1 nseg(1:end-1)]);
-
-for t = 1:nt
-    if nseg(t)==1
-        X(tracks(t).f, tidx(t)) = tracks(t).x(1,:);
-        Y(tracks(t).f, tidx(t)) = tracks(t).y(1,:);
-    else
-        sep = find(isnan(tracks(t).t));
-        sep = [0 sep numel(tracks(t).f)+1]; %#ok<AGROW>
-        for s = 1:tracks(t).nSeg
-            sidx = sep(s)+1:sep(s+1)-1;
-            X(tracks(t).f(sidx), tidx(t)+s-1) = tracks(t).x(1,sidx);
-            Y(tracks(t).f(sidx), tidx(t)+s-1) = tracks(t).y(1,sidx);
-        end
-    end
-end
-
-tstruct.X = X;
-tstruct.Y = Y;
-% index 'label' mask
-% [1 1 2 3 4 4 ... ] first two cols are from same track
-idx = diff([tidx size(X,2)+1]);
-idx = arrayfun(@(i) i+zeros(1, idx(i)), 1:numel(idx), 'unif', 0);
-tstruct.idx = [idx{:}];
-tstruct.n = numel(tracks);
-
-hpt = []; % handles for track plot objects
-cmap = hsv2rgb([rand(tstruct.n,1) ones(tstruct.n,2)]);
+% tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5);
+% nt = numel(tracks);
+% nseg = [tracks.nSeg];
+% 
+% np = sum(nseg);
+% X = NaN(nf, np);
+% Y = NaN(nf, nt);
+% % vector of start indexes since multiple segments/track
+% tidx = cumsum([1 nseg(1:end-1)]);
+% 
+% for t = 1:nt
+%     if nseg(t)==1
+%         X(tracks(t).f, tidx(t)) = tracks(t).x(1,:);
+%         Y(tracks(t).f, tidx(t)) = tracks(t).y(1,:);
+%     else
+%         sep = find(isnan(tracks(t).t));
+%         sep = [0 sep numel(tracks(t).f)+1]; %#ok<AGROW>
+%         for s = 1:tracks(t).nSeg
+%             sidx = sep(s)+1:sep(s+1)-1;
+%             X(tracks(t).f(sidx), tidx(t)+s-1) = tracks(t).x(1,sidx);
+%             Y(tracks(t).f(sidx), tidx(t)+s-1) = tracks(t).y(1,sidx);
+%         end
+%     end
+% end
+% 
+% tstruct.X = X;
+% tstruct.Y = Y;
+% % index 'label' mask
+% % [1 1 2 3 4 4 ... ] first two cols are from same track
+% idx = diff([tidx size(X,2)+1]);
+% idx = arrayfun(@(i) i+zeros(1, idx(i)), 1:numel(idx), 'unif', 0);
+% tstruct.idx = [idx{:}];
+% tstruct.n = numel(tracks);
+% 
+% hpt = []; % handles for track plot objects
+% cmap = hsv2rgb([rand(tstruct.n,1) ones(tstruct.n,2)]);
 
 
 handles.tracks = cell(1,nCh);
@@ -193,11 +191,13 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
     'Position', [20 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
 % Frame slider
-% if data.movieLength>1
-%     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
-%         'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-%         'Position', [20 60 width 20], 'Callback', {@frameSlider_Callback, hfig});
-% end
+if data.movieLength>1
+    handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
+        'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
+        'Position', [20 80 pos(3)-400 10]);%, 'Callback', {@frameSlider_Callback, hfig});
+end
+addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callback);
+
     
 % Main control panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70]);
@@ -456,12 +456,14 @@ setappdata(hfig, 'handles', handles); % messy
             if hi.f < nf
                 hi.f = hi.f + 1;
                 setappdata(hfig, 'handles', hi);
+                set(handles.frameSlider, 'Value', hi.f);
                 updateSlice();
             end
         elseif eventdata.VerticalScrollCount > 0
             if hi.f > 1
                 hi.f = hi.f - 1;
                 setappdata(hfig, 'handles', hi);
+                set(handles.frameSlider, 'Value', hi.f);
                 updateSlice();
             end
         end
@@ -495,6 +497,8 @@ setappdata(hfig, 'handles', handles); % messy
         set(hl(:,3), 'XData', hi.f*[1 1]);
         set(hl(:,4), 'YData', hi.f*[1 1]);
         %set(ht, 'String', ['Slice ' num2str(slice)]);
+        
+        set(hi.frameLabel, 'String', ['Frame ' num2str(hi.f)]);
         
         if ~isempty(tstruct)
             vidx = ~isnan(tstruct.X(hi.f,:));
@@ -560,6 +564,16 @@ setappdata(hfig, 'handles', handles); % messy
             case 3
                 set(handles.fAxes(:,[1 3]), 'XLim', XLim);
         end
+    end
+
+    function frameSlider_Callback(~, eventdata)
+        obj = get(eventdata, 'AffectedObject'); % this contains the current, continuous value
+        f = round(get(obj, 'Value'));
+        hi = getappdata(hfig, 'handles');
+        hi.f = f;
+        setappdata(hfig, 'handles', hi);
+        updateSlice();
+        % refreshTrackDisplay(hfig);
     end
 
 
@@ -1036,19 +1050,10 @@ end
 % %     set(hObject,'BackgroundColor',[.9 .9 .9]);
 % % end
 % 
-% 
-% function frameSlider_Callback(hObject, ~, hfig)
-% f = round(get(hObject, 'value'));
-% set(hObject, 'Value', f);
-% handles = getappdata(hfig, 'handles');
-% set(handles.frameLabel, 'String', ['Frame ' num2str(f)]);
-% handles.f = f;
-% setappdata(hfig, 'handles', handles);
-% refreshFrameDisplay(hfig);
-% refreshTrackDisplay(hfig);
-% 
-% 
-% 
+
+
+
+
 % function trackButton_Callback(~, ~, hfig)
 % 
 % handles = getappdata(hfig, 'handles');
