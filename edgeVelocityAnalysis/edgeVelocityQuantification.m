@@ -185,13 +185,12 @@ flag2 = false(1,nCell);
 if ~isempty(interval{1})
     
     diffInter             = true(1,nCell);
-    diffInter(flag1)      = cell2mat(cellfun(@(x) numel(x.protrusionAnalysis),cellData(flag1),'Unif',0)) ~= numel(interval);
+    diffInter(flag1)      = cell2mat(cellfun(@(x,y) abs(numel(x.data.interval)-numel(y)),cellData(flag1),interval,'Unif',0)) ~= 0;
     %If the interval is different
     dWinInter             = true(1,nCell);
-    auxWinDiff            = arrayfun(@(y) cell2mat(cellfun(@(x) isequaln(x.data.interval,y),cellData(diffInter),'Unif',0)),interval,'Unif',0);
-    dWinInter(diffInter)  = sum(cell2mat(auxWinDiff(:)));
-    
-    flag2 = diffInter | ~dWinInter;
+    auxWinDiff            = cellfun(@(x,y)  cell2mat(cellfun(@(w,z) isequaln(w,z),x.data.interval,y,'Unif',0)),cellData(~diffInter),interval(~diffInter),'Unif',0);
+    dWinInter(~diffInter) = all(cell2mat(auxWinDiff(:)),1);
+    flag2                 = diffInter | ~dWinInter;
     
 end
 
@@ -215,14 +214,15 @@ if sum(finalIdx) ~= 0
         secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
         
         [protrusion,retraction] ...
-                    = cellfun(@(x) secondLevel(interval,x.data.procExcEdgeMotion,x.data.frameRate),cellData(finalIdx),'Unif',0);
+                    = cellfun(@(x,y) secondLevel(y,x.data.procExcEdgeMotion,x.data.frameRate),cellData(finalIdx),interval(finalIdx),'Unif',0);
         
     end
     
 end
+
 [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,finalIdx);
 
-for iCell = 1:nCell
+for iCell = find(finalIdx)
     
     if isempty(interval{1})
         cellData{iCell}.data.interval = {1:cellData{iCell}.data.nFrames};
