@@ -196,6 +196,7 @@ for iFile=1:nFiles
     [tracksFinal,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
     
+    clear movieInfo;
     
     % save results
     outputDir=MD.outputDirectory_;
