@@ -77,11 +77,12 @@ minFeatureSize=ip.Results.minFeatureSize;
 bgMask=ip.Results.bgMask;
 bgAvgImg=ip.Results.bgAvgImg;
 mode=ip.Results.mode;
+contWind = true;
 
 % SH: Poly-fit version
 
 % We automatically update the speed search radius until a high limit is
-% reached. If no significant maximum is detected, it means either the image
+% reached. If no significant maximum is dclosenessThreshold*maxVNormetected, it means either the image
 % quality is bad or the flow velocity is even higher than this limit.
 maxSpdLimit = 2*maxSpd;
 
@@ -92,8 +93,8 @@ y=points(:,2);
 %Initial maximum speed components in both direction.
 initMaxFlowSpd = 20;
 initMaxPerpSpd = 20;
-closenessThreshold = 0.25; 
-closenessThresholdpix = 1; %changed from 0.25 to account for not-interpolated maxV from 0.25;
+closenessThreshold = 0.5; 
+closenessThresholdpix = 2.5; %changed from 0.25 to account for not-interpolated maxV from 0.25;
 
 %For isotropic correlation.
 maxSpdLimit = max(maxSpdLimit,initMaxFlowSpd);
@@ -238,66 +239,111 @@ parfor k = 1:nPoints
                     % the ambiguity can be resovled. Also by comparing the two
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
-                    [score2] = calScore(kym,centerI,ceil(1.75*corL),...
-                        vP,vF,'bAreaThreshold',bAreaThreshold,...
-                        'kymMask',kymMask,'kymAvgImg',kymAvgImg);
-                    if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
-                    elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.8);
-                    elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.59);
+                    if max(length(vF),length(vP))>80
+                        incRange = [1.75 2.5 3.25 4];
                     else
-                        [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
+                        incRange = 1.25;
                     end
-                    if pass2 == 1
-                        % This part can be really costly. We can directly
-                        % compare locMaxV and choose the index that gives
-                        % maximum score and then subpixel interpolate
-                        % it, or just use digitized maxV info to find an
-                        % index, then subpixel interpolate it. -SH
-                        % max score comparison
-%                         indLocMaxI = sub2ind(size(score), locMaxI)
-% 
-%                         max(score(sub2ind(size(score), [locMaxI(:,1) locMaxI(:,2)])))%1),locMaxI(:,2)))
-                        
-%                         maxV2 = maxInterpfromScore(maxI2,score2,vP,vF);
-%                         locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+                    for incFactor = incRange
+                        [score2,~,vP2,vF2] = calScore(kym,centerI,ceil(incFactor*corL),...
+                            vP,vF,'bAreaThreshold',bAreaThreshold,...
+                            'kymMask',kymMask,'kymAvgImg',kymAvgImg);
+                        if length(vP)~=length(vP2) || length(vF)~=length(vF2)
+                            zeroI = [find(vP2==0) find(vF2==0)];
+                        end
+                        if max(length(vF),length(vP))>160 %applying more conservative threshold because it'll be highly likely won't find the valid maximum velocity
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
+                        elseif max(length(vF),length(vP))>80 %applying more generous threshold for higher velocity
+                            if corL<=11 && numFrames==2
+                                [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.9);
+                            else
+                                [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.65);
+                            end
+                        elseif max(length(vF),length(vP))>40 %applying more generous threshold for higher velocity
+                            if corL<=11 && numFrames==2
+                                [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.85);
+                            else
+                                [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.59);
+                            end
+                        else
+                            [pass2,maxI2] = findMaxScoreI(score2,zeroI,minFeatureSize,0.5);
+                        end
+                        if pass2 == 1
+                            % This part can be really costly. We can directly
+                            % compare locMaxV and choose the index that gives
+                            % maximum score and then subpixel interpolate
+                            % it, or just use digitized maxV info to find an
+                            % index, then subpixel interpolate it. -SH
+                            % max score comparison
+    %                         indLocMaxI = sub2ind(size(score), locMaxI)
+    %                         max(score(sub2ind(size(score), [locMaxI(:,1) locMaxI(:,2)])))%1),locMaxI(:,2)))
 
-%                         for j = 1:size(locMaxI,1)
-%                             maxIc = locMaxI(j,:);
-%                             maxV = maxInterpfromScore(maxIc,score,vP,vF);
-%                             locMaxV(j,:) = maxV;
-%                         end
-                        
-%                         distToMaxV2 = sqrt(sum((locMaxV- ...
-%                             ones(size(locMaxV,1),1)*maxV2).^2,2));
-%                         
-%                         [minD,ind] = min(distToMaxV2);
-                        
-%                         maxV = locMaxV(ind,:);
-                        
-                        maxV2 = [vP(maxI2(1)) vF(maxI2(2))];
-                        locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
-                        
-                        distToMaxV2 = sqrt(sum((locMaxV- ...
-                            ones(size(locMaxV,1),1)*maxV2).^2,2));
-                        
-                        [minD,ind] = min(distToMaxV2);
+    %                         maxV2 = maxInterpfromScore(maxI2,score2,vP,vF);
+    %                         locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
 
-                        maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
-                        if maxVNorm == 0 || ...
-                                (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
-                                (pass == 1 && maxVNorm < 0.5) || ...
-                                (pass == 0 && minD <= closenessThreshold*maxVNorm && maxVNorm>closenessThresholdpix) || ...
-                                (pass == 0 && minD <= closenessThresholdpix && maxVNorm<=closenessThresholdpix)
-                            maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
-                            pass = 2;
+    %                         for j = 1:size(locMaxI,1)
+    %                             maxIc = locMaxI(j,:);
+    %                             maxV = maxInterpfromScore(maxIc,score,vP,vF);
+    %                             locMaxV(j,:) = maxV;
+    %                         end
+
+    %                         distToMaxV2 = sqrt(sum((locMaxV- ...
+    %                             ones(size(locMaxV,1),1)*maxV2).^2,2));
+    %                         
+    %                         [minD,ind] = min(distToMaxV2);
+    %                         maxV = locMaxV(ind,:);
+
+                            maxV2 = [vP2(maxI2(1)) vF2(maxI2(2))];
+                            locMaxV = [vP(locMaxI(:,1)).' vF(locMaxI(:,2)).'];
+
+                            distToMaxV2 = sqrt(sum((locMaxV- ...
+                                ones(size(locMaxV,1),1)*maxV2).^2,2));
+                            
+%                             [minD,ind] = min(distToMaxV2);
+                            %added by SH
+                            % pick 3 smallest distances, and among them,
+                            % choose one with smallest angular distance
+                            [distSorted,indDist]=sort(distToMaxV2);
+                            %This part was commented because criteria with
+                            %only distance was enough. - SH 8/26/2013
+%                             indDistCand=[];
+%                             if distSorted(2)/distSorted(1)<1.5 && distSorted(3)/distSorted(2)<3
+%                                 indDistCand = indDist(1:3);
+%                             elseif distSorted(2)/distSorted(1)<1.8
+%                                 indDistCand = indDist(1:2);
+%                             else
+%                                 minD = distSorted(1);
+%                                 ind = indDist(1);
+%                             end
+%                             if ~isempty(indDistCand) && length(indDistCand)>1
+%                                 locMaxV3d=[locMaxV zeros(size(locMaxV,1),1)];
+%                                 maxV2_3d=ones(size(locMaxV,1),1)*[maxV2 0];
+%                                 angDistToMaxV2 = atan2(norm(cross(locMaxV3d,maxV2_3d)),dot(locMaxV3d,maxV2_3d,2)); 
+%                                 [~,indA] = min(angDistToMaxV2(indDistCand));
+%                                 ind = indDistCand(indA);
+%                                 minD = distSorted(ind);
+%                             end
+                            
+                            minD = distSorted(1);
+                            ind = indDist(1);
+
+                            maxVNorm = max(norm(maxV2));%,norm(maxV)); % For efficiency, I moved maxInterpfromScore into if statement
+                            if maxVNorm == 0 || ...
+                                    (pass == 1 && minD < 2*closenessThreshold*maxVNorm) || ...
+                                    (pass == 1 && maxVNorm < 0.5) || ...
+                                    (pass == 0 && minD <= closenessThreshold*maxVNorm && maxVNorm>closenessThresholdpix) || ...
+                                    (pass == 0 && minD <= closenessThresholdpix && maxVNorm<=closenessThresholdpix*4) || ...
+                                    (incFactor >= 2.5 && minD <= 20*closenessThreshold*maxVNorm)
+                                maxV = maxInterpfromScore(locMaxI(ind,:),score,vP,vF,mode);
+                                pass = 2;
+                                break
+                            else
+                                pass = 0;
+                                continue
+                            end
                         else
                             pass = 0;
                         end
-                    else
-                        pass = 0;
                     end
                 else
                     maxI = locMaxI;
@@ -330,13 +376,13 @@ parfor k = 1:nPoints
         newvP = round(maxV(1)*refineFactor) - refineRange*refineFactor:round(maxV(1)*refineFactor) + refineRange*refineFactor;
         newvF = round(maxV(2)*refineFactor) - refineRange*refineFactor:round(maxV(2)*refineFactor) + refineRange*refineFactor;
 
-        newhCLL    = min(xI-1,corL)+max(-newvF(1)/refineFactor,0);
-        newhCLR    = min(imgL-xI,corL)+max(newvF(end)/refineFactor,0);
-        newhCWL    = min(yI-1,corL)+max(-newvP(1)/refineFactor,0);
-        newhCWR    = min(imgW-yI,corL)+max(newvP(end)/refineFactor,0);
+        newhCLL    = min(xI-1,corL)+max(abs(newvF(1))/refineFactor,0);
+        newhCLR    = min(imgL-xI,corL)+max(abs(newvF(end))/refineFactor,0);
+        newhCWL    = min(yI-1,corL)+max(abs(newvP(1))/refineFactor,0);
+        newhCWR    = min(imgW-yI,corL)+max(abs(newvP(end))/refineFactor,0);
         newcropL   = newhCLL+newhCLR+1/refineFactor;
         newcropW   = newhCWL+newhCWR+1/refineFactor;
-        fineKym     = zeros(floor(newcropW*refineFactor),floor(newcropL*refineFactor),numFrames);
+        fineKym     = zeros(round(newcropW*refineFactor),round(newcropL*refineFactor),numFrames);
         % interpolate the stack images kym
         curXL = max(xI-floor(newhCLL)-1,1);
         curXR = min(xI+floor(newhCLR)+1,imgL);
@@ -363,8 +409,19 @@ parfor k = 1:nPoints
         maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF);
         
         maxV = maxVmagnified/refineFactor;
+%         refineRange = 1; % in pixel
+%         for k3 = 1:10
+%             oldmaxV = maxV;
+%             maxV = contWindShift(maxV,kym,centerI,corL,refineFactor,refineRange);
+%             if norm(maxV-oldmaxV)<1e-6
+%                 break
+%             else
+%                 prev_refineFactor=refineFactor;
+%                 refineFactor = prev_refineFactor *10;
+%                 refineRange = refineRange/prev_refineFactor; % in pixel
+%             end
+%         end
     end
-    
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
         rotv= maxV*[perpDir;bandDir];
         v(k,:) = [rotv(1) rotv(2)];
@@ -384,10 +441,17 @@ fprintf(1,'   Tracking is done in %f sec (%f sec per point).\n', ...
 fprintf(1,'   Total tracked points: %d (out of %d).\n', ...
     nPoints-length(nanInd),nPoints);
 
+function [maxV] = contWindShift(maxV,kym,centerI,corL,refineFactor,refineRange)
+newvP = round(maxV(1)*refineFactor)/refineFactor - refineRange:1/refineFactor:round(maxV(1)*refineFactor)/refineFactor + refineRange;
+newvF = round(maxV(2)*refineFactor)/refineFactor - refineRange:1/refineFactor:round(maxV(2)*refineFactor)/refineFactor + refineRange;
+[score4] = calScore(kym,centerI,corL,newvP,newvF,'Continuous',true);
+[~,maxI4ind] = max(score4(:));
+[ind4x,ind4y] = ind2sub(size(score4),maxI4ind);
+maxV = [newvP(ind4x),newvF(ind4y)];
 
 
 
-function [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF,varargin)
+function [score,blockIsTooSmall,vP,vF] = calScore(kym,centerI,corL,vP,vF,varargin)
 % centerI : The coordinate index of the image block center in the 'kym' image.
 % SH: this local function was updated for bead tracking instead of speckle
 % tracking. The first slice of kym contains the reference frame and the
@@ -407,18 +471,57 @@ kymWidth  = size(kym,1);
 ip =inputParser;
 ip.addParamValue('bAreaThreshold',0.5*corL^2,@isscalar);
 ip.addParamValue('kymMask',[],@islogical)
+ip.addParamValue('Continuous',false,@islogical)
 ip.addParamValue('kymAvgImg',zeros(size(kym)),@isnumeric)
 ip.addParamValue('mode','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.parse(varargin{:});
 bAreaThreshold=ip.Results.bAreaThreshold;
 kymMask=ip.Results.kymMask;
 kymAvgImg=ip.Results.kymAvgImg;
+bCont = ip.Results.Continuous;
 mode = ip.Results.mode;
 
-%The index of the correlating image block in the big cropped image.
+% score = zeros(length(vP),length(vF));
 bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
 bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
 
+% if bCont && (numFrames==2)
+%     % normalized cross-correlation with continuous window shift (by
+%     % interpolation)
+%     % Here vP and vF are decimal numbers. 
+%     g1 = kym(bI1,bI2,1:numFrames-1);
+%     g1m = mean(g1(:)); % mean g1
+%     g1n = g1-g1m; % normalized g1
+%     for j1 = 1:length(vP)
+%         v1 = vP(j1);
+%         for j2 = 1:length(vF)
+%             v2 = vF(j2);
+%             %integer part of v1 and v2
+%             v1i = floor(v1);
+%             v2i = floor(v2);
+%             % decimal parts of v1 and v2
+%             x = v1-v1i;
+%             y = v2-v2i;
+%             
+%             g2 = (1-x)*(1-y)*kym(bI1+v1i,bI2+v2i,numFrames)...
+%                 + x*(1-y)*kym(bI1+v1i+1,bI2+v2i,numFrames)...
+%                 + y*(1-x)*kym(bI1+v1i,bI2+v2i+1,numFrames)...
+%                 + x*y*kym(bI1+v1i+1,bI2+v2i+1,numFrames);
+%             g2m = mean(g2(:));
+%             g2n = g2 - g2m;
+%             corrM = g1n.* g2n;
+%             %Normalize the correlation coefficients.
+%             score(j1,j2) = sum(corrM(:));
+%         end
+%     end
+%     score = score/max(score(:));
+% elseif isempty(kymMask) && (numFrames==2)
+%     %The index of the correlating image block in the big cropped image.
+%     bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
+%     bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
+%     % fft-based cross-correlation. This can reduce computation time 
+%     % especially for large velocity range - Sangyoon
+% =======
 bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
 bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
 % m = length(bI1e);%length(vP);
@@ -429,6 +532,8 @@ bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
 %Find the part of the image block that is outside the cropped image and cut it off from the template.
 bI1(bI1<1 | bI1>kymWidth) = [];
 bI2(bI2<1 | bI2>kymLen) = [];
+vP([find(bI1e<1) find(bI1e>kymWidth)-corL+1])=[];
+vF([find(bI2e<1) find(bI2e>kymLen)-corL+1])=[];
 bI1e(bI1e<1 | bI1e>kymWidth) = [];
 bI2e(bI2e<1 | bI2e>kymLen) = [];
 
@@ -449,10 +554,25 @@ elseif isempty(kymMask)
     % normalized cross-correlation. This can make the correlation less sensitive to bright region in template window - Sangyoon
     K1 = length(bI1); K2 = length(bI2);
     N1 = length(bI1e); N2 = length(bI2e);
+    % the correlation less sensitive to bright region in template window - Sangyoon
     score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
     score = score_nxc2(K1:N1,K2:N2); % normalized
     
 elseif min(min(kymMask(:,:,1))) == 1
+    %The index of the correlating image block in the big cropped image.
+    bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
+    bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
+    % m = length(bI1e);%length(vP);
+    % n = length(bI2e);%length(vF);
+    % mi = length(vP);
+    % ni = length(vF);
+
+    %Find the part of the image block that is outside the cropped image and cut it off from the template.
+    bI1(bI1<1 | bI1>kymWidth) = [];
+    bI2(bI2<1 | bI2>kymLen) = [];
+    bI1e(bI1e<1 | bI1e>kymWidth) = [];
+    bI2e(bI2e<1 | bI2e>kymLen) = [];
+
     %Background intensities are set to be zero. So, if there is no zero intensities, there is no
     % background.
     kymP2 = kym.*kym;
@@ -483,7 +603,8 @@ elseif min(min(kymMask(:,:,1))) == 1
 %     score_n = score_un(length(vP):-1:1,length(vF):-1:1); %counterindexing
 %     toc;
 
-    if numFrames == 2 % For image stack of 2, fft-based crosscorrelation is faster.
+    if numFrames == 2 % For image stack of 2, fft-based crosscorrelation is faster and make 
+        % the correlation less sensitive to bright region in template window - Sangyoon
         score_nxc2 = normxcorr2(kym(bI1,bI2,1:numFrames-1),kym(bI1e,bI2e,2:numFrames));
         score = score_nxc2(K1:N1,K2:N2); % normalized
     else
@@ -609,7 +730,7 @@ else
     
     minusOnesI = find(score(:)==-1);
     nMOnesI    = (score(:)~=-1);
-    [minScore,minScoreI] = min(score(nMOnesI));
+    [~,minScoreI] = min(score(nMOnesI));
     ind = 1:length(score(:));
     ind([minusOnesI minScoreI]) = [];
     score([minusOnesI minScoreI]) = min(score(ind));
@@ -832,8 +953,8 @@ elseif length(locMaxS) > 1
     return;
 end
 
-if maxI(1) < m/6 || maxI(1) > 5*m/6 || ...
-        maxI(2) < n/6 || maxI(2) > 5*n/6
+if maxI(1) < m/40 || maxI(1) > 39*m/40 || ...
+        maxI(2) < n/40 || maxI(2) > 39*n/40
     pass = 0;
     return;
 end
