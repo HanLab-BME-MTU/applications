@@ -156,6 +156,7 @@ for iCell = 1:nCell
     
     cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
     cellData{iCell}.data.frameRate         = currMD.timeInterval_;
+    cellData{iCell}.data.nFrames           = currMD.nFrames_;
     cellData{iCell}.data.rawEdgeMotion     = cellData{iCell}.data.rawTimeSeries.*scaling;
     cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
     cellData{iCell}.data.procExcEdgeMotion = cellfun(@(x) x*scaling, cellData{iCell}.data.procExcTimeSeries{1},'Unif',0);% 1 means first layer
@@ -220,6 +221,16 @@ if sum(finalIdx) ~= 0
     
 end
 [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,finalIdx);
+
+for iCell = 1:nCell
+    
+    if isempty(interval{1})
+        cellData{iCell}.data.interval = {1:cellData{iCell}.data.nFrames};
+    else
+        cellData{iCell}.data.interval =interval{iCell};
+    end
+    
+end
 
 %% Saving results
 
