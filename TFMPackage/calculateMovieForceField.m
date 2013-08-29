@@ -38,7 +38,7 @@ forceFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.gelThickness = 34000; % (nm) this needs to be replaced by GUI input
-p.highRes = true;
+p.highRes = false;
 p.usePaxImg = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
@@ -134,9 +134,9 @@ end
 % that the edges have been eroded to a certain extend. This is performed by
 % the following function.
 if ~p.highRes
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1);
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1,0);
 else
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5); %denser force mesh for ROI
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5,0); %denser force mesh for ROI
 end
 
 forceField(nFrames)=struct('pos','','vec','','par','');
@@ -165,12 +165,12 @@ for i=1:nFrames
 % %         displField(i).vec =  [vecx vecy];
 %     end
 
-%     posx=reshape(grid_mat(:,:,1),[],1);
-%     posy=reshape(grid_mat(:,:,2),[],1);
-%     displField(i).pos = [posx posy];
-%     vecx=reshape(iu_mat(:,:,1),[],1);
-%     vecy=reshape(iu_mat(:,:,2),[],1);
-%     displField(i).vec =  [vecx vecy];
+    posx=reshape(grid_mat(:,:,1),[],1);
+    posy=reshape(grid_mat(:,:,2),[],1);
+    displField(i).pos = [posx posy];
+    vecx=reshape(iu_mat(:,:,1),[],1);
+    vecy=reshape(iu_mat(:,:,2),[],1);
+    displField(i).vec =  [vecx vecy];
 
     if strcmpi(p.method,'FastBEM')
         % If grid_mat=[], then an optimal hexagonal force mesh is created

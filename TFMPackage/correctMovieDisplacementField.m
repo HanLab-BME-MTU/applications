@@ -97,11 +97,13 @@ for j= 1:nFrames
         outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,1);
         %displField(j).pos(outlierIndex,:)=[];
         %displField(j).vec(outlierIndex,:)=[];
-        dispMat(outlierIndex,:)=[];
+        dispMat(outlierIndex,3:4)=NaN;
+        
+        % I deleted this part for later gap-closing
         % Filter out NaN from the initial data (but keep the index for the
         % outliers)
-        ind= ~isnan(dispMat(:,3));
-        dispMat=dispMat(ind,:);
+%         ind= ~isnan(dispMat(:,3));
+%         dispMat=dispMat(ind,:);
  
         displField(j).pos=dispMat(:,1:2);
         displField(j).vec=dispMat(:,3:4);
@@ -122,6 +124,37 @@ for j= 1:nFrames
     if mod(j,5)==1 && feature('ShowFigureWindows')
         tj=toc;
         waitbar(j/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-j)/j)]));
+    end
+end
+
+% Here, if nFrame>1, we do inter- and extrapolation of displacement vectors
+% to prevent sudden, wrong force field change.
+if nFrames>1
+    disp('Performing displacement vector gap closing ...')
+    % going through each point, see if there is NaN at each displacment
+    % history and fill the gap
+    logMsg = 'Performing displacement vector gap closing ...';
+
+    nPoints = length(displField(1).pos(:,1));
+    for k=1:nPoints
+        % build each disp vector history
+        curVecX = arrayfun(@(x) x.vec(k,1),displField);
+        curVecY = arrayfun(@(x) x.vec(k,2),displField);
+        if any(isnan(curVecX))
+            t = 1:length(curVecX);
+            t_nn = t(~isnan(curVecX));
+            curVecX2 = interp1(t_nn,curVecX(~isnan(curVecX)),t,'linear');
+            curVecY2 = interp1(t_nn,curVecY(~isnan(curVecX)),t,'linear');
+            for ii=find(isnan(curVecX))
+                displField(ii).vec(k,:) = [curVecX2(ii) curVecY2(ii)];
+            end
+        else
+            continue
+        end
+        if mod(k,5)==1 && feature('ShowFigureWindows')
+            tj=toc;
+            waitbar(k/nPoints,wtBar,sprintf([logMsg timeMsg(tj*(nPoints-k)/k)]));
+        end
     end
 end
 

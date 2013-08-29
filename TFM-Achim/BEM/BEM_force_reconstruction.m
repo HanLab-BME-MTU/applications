@@ -216,12 +216,12 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
         MpM=M'*M;
-        maxIter = 7;
-        tolx = 5e-2;
+        maxIter = 50;
+        tolx = 7e-3;
         tolr = 1e-7;
 %         disp('L-curve ...')
 
-%         [~,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
+%         [~,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
         sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %         sol_mats.nW=normWeights;
         sol_mats.eyeWeights=eyeWeights;
@@ -469,16 +469,17 @@ sol_coef = mtik(:,ireg_corner);
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave)
+function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(-8:.125:-3);
+alphas=10.^(log10(L)-2:0.125:log10(L)+1);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
 for i=1:length(alphas);
-  msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
-  rho(i)=norm(M*msparse(:,i)-u);
-  eta(i)=norm(msparse(:,i),1);
+    disp(['testing L = ' num2str(alphas(i)) '... '])
+    msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
+    rho(i)=norm(M*msparse(:,i)-u);
+    eta(i)=norm(msparse(:,i),1);
 end
 
 % Find the corner of the Tikhonov L-curve

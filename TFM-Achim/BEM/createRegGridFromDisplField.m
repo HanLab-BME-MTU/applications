@@ -1,4 +1,4 @@
-function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField,mag)
+function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField,mag,edgeErode)
 % For Benedikt's software to work, the displacement field has to be
 % interpolated on a rectangular grid, with an even number of grid points
 % along each edge. Furthermore, one has to make sure that the noisy data 
@@ -7,8 +7,11 @@ function [reg_grid,xvec,yvec,gridSpacing]=createRegGridFromDisplField(displField
 % (even number) the optimal gridspacing fits into each dimension, then 
 % place the regular grid centered to the orignal bounds. Thereby make sure 
 % that the edges have been eroded to a certain extend.
-if nargin < 2
+if nargin ==1
     mag=1;
+    edgeErode=1;
+elseif nargin == 2
+    edgeErode=1;
 end
 % First get the corners (here we take field no.1 but that is arbitrary):
 LeftUpperCorner(1:2) = [min(displField(1).pos(:,1)), min(displField(1).pos(:,2))];
@@ -37,7 +40,7 @@ newSize=numPieces*gridSpacing;
 % If there is not much difference to the old size, we need to further erode
 % the edges (this part is optional and could be skipped):
 
-edgeErode=1;
+% edgeErode=1;
 if edgeErode==1
     sizeDiff=oldSize-newSize;
     if sizeDiff(1)<gridSpacing

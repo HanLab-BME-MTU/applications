@@ -51,7 +51,7 @@ end
 
 display('1.) Creating mesh & basis [~5sec]:...');
 tic;
-keepBDPts=false;
+keepBDPts=true;
 doPlot=0;
 if isempty(paxImage)
     forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);

@@ -37,7 +37,7 @@ end
 displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
-
+p.useGrid = true;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -118,9 +118,9 @@ firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
 if ~strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
-    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*4/7 scale down for finer detection SH012913
+    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for confocal or widefield
 else
-    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for finer detection SH012913
+    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for TIRF finer detection SH012913
 end
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
@@ -155,6 +155,12 @@ erosionDist=p.minCorLength;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
+
+if p.useGrid && p.highRes
+    tempDisplField.pos = beads;
+    [~,xvec,yvec,~]=createRegGridFromDisplField(tempDisplField,1.5);
+    beads = [xvec yvec];
+end
 
 disp('Calculating displacement field...')
 logMsg = 'Please wait, calculating displacement field';
