@@ -398,9 +398,11 @@ handles = setupFrameAxes(hfig);
 
 % temp fix: set up stakviewer axes here
 handles.fAxes = zeros(nCh,3);
+hLegend = zeros(1,nCh);
 for c = 1:nCh   
-    handles.fAxes(c,:) = setupStackViewer(handles.fPanels(c), [nx ny min(nf,  max(nx,ny)/3)]); 
+    [handles.fAxes(c,:), hLegend(c)] = setupStackViewer(handles.fPanels(c), [nx ny min(nf,  max(nx,ny)/3)], c==1); 
 end
+hLegend = hLegend(1);
 colormap(gray(256));
 
 % populate with data, plotting functions are called only here, afterwards change data
@@ -637,7 +639,8 @@ setappdata(hfig, 'handles', handles); % messy
 
     function trackChoice_Callback(~,~)
         str = cellstr(get(trackChoice, 'String'));
-        switch str{get(trackChoice,'Value')}
+        str = str{get(trackChoice,'Value')};
+        switch str
             case 'Category'
                 cmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
                 cmap = cmap([tracks.catIdx],:);
@@ -662,6 +665,7 @@ setappdata(hfig, 'handles', handles); % messy
             case 'Random'
                 cmap = hsv2rgb([rand(tstruct.n,1) ones(tstruct.n,2)]);
         end
+        setColorbar(str);
         updateSlice();
     end
 
@@ -679,6 +683,52 @@ setappdata(hfig, 'handles', handles); % messy
             plotTrackClasses([tracks.catIdx]);
         end
     end
+
+
+    function setColorbar(mode)        
+        lfont = {'FontName', 'Helvetica', 'FontSize', 13};
+        sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
+        if ~isempty(tracks)
+            switch mode
+                case 'Lifetime'
+                    df = 40;
+                    dcoord = 0.25/df;
+                    lmap = [jet(120); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
+                    imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
+                    set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                        'YTick', [1 20:20:120 160],...
+                        'YTickLabel', [data.framerate 20:20:120 (nf-1)*data.framerate], sfont{:});
+                    text(-0.1, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
+                case 'Category'
+                    xlabels = {' valid', ' rej. gaps', ' cut', ' persistent',...
+                        ' valid', ' rej. gaps', ' cut', ' persistent'};
+                    lmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
+                    imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
+                    set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+                    text(-.1, 2.5, 'Single', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
+                    text(-.1, 6.5, 'Compound', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
+                case 'EAP Status'
+                    xlabels = {' N.S.', ' Sig. M/S', ' Sig. indep.'};
+                    lmap = hsv2rgb([0 0 0.8; 0.55 1 0.9; 0.33 1 0.9]); % ns, slave sig., master sig.
+                    imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
+                    set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+                case 'Object Type'
+                    xlabels = {' Diff. lim.', ' Other'};
+                    lmap = [0 0.8 0; 0.8 0 0];
+                    imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
+                    set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
+                        'YTick', 1:8, 'YTickLabel', xlabels, 'TickLength', [0 0]);
+                otherwise
+                    cla(hLegend);
+                    set(hLegend, 'Visible', 'off');
+            end
+        end
+    end
+
+
+
 
 end
 
@@ -854,35 +904,7 @@ function handles = refreshFrameDisplay(hfig)
 %         cidx = 1:min(handles.nCh,3);
 %     else
 %         cidx = cvec(k);
-%     end
-%     
-%     if ~isempty(handles.tracks{k})
-%         chIdx = k;
-%     else
-%         chIdx = handles.mCh;
-%     end
-%     
-%     if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
-%         detection = handles.detection{k}(f);
-%     else
-%         detection = [];
-%     end
-%     
-%     if get(handles.('trackCheckbox'), 'Value') && ~isempty(handles.tracks{cvec(k)})
-%         idx = [handles.tracks{cvec(k)}.start]<=f & f<=[handles.tracks{cvec(k)}.end];
-%         plotFrame(handles.data, handles.tracks{cvec(k)}(idx), f, cidx,...
-%             'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
-%             'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
-%             'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-%             'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection, 'Colormap', handles.colorMap{cvec(k)}(idx,:));
-%     else
-%         plotFrame(handles.data, [], f, cidx,...
-%             'Handle', handles.fAxes(cvec(k)), 'iRange', handles.dRange,...
-%             'Mode', handles.displayType, 'Detection', detection);
-%     end
-%     
-%     hold(handles.fAxes(k), 'on');
-%     
+%     end     
 %     % plot selected track marker
 %     if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value') 
 %         selMask = ~isnan(handles.selectedTrack);
@@ -926,58 +948,11 @@ function handles = refreshFrameDisplay(hfig)
 % end 
 % 
 % settings.selectedTrackMarkerID = markerHandles;
-% 
-% % write zoom level
-% set(handles.fAxes(1), 'XLim', XLim);
-% set(handles.fAxes(1), 'YLim', YLim);
-% 
-% setappdata(hfig, 'settings', settings);
-% setappdata(hfig, 'handles', handles);
 end
 
 
 
-% function setColorbar(hfig, mode)
-% handles = getappdata(hfig, 'handles');
-% 
-% lfont = {'FontName', 'Helvetica', 'FontSize', 13};
-% sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
-% if ~isempty(handles.tracks{handles.mCh})
-%     switch mode
-%         case 'Lifetime'
-%             df = 40;
-%             dcoord = 0.25/df;
-%             cmap = [jet(120); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
-%             imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
-%             set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-%                'YTick', [1 20:20:120 160],...
-%                'YTickLabel', [handles.data.framerate 20:20:120 handles.data.movieLength*handles.data.framerate], sfont{:});
-%             text(-0.5, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-%         case 'Category'
-%             xlabels = {'valid', 'rej. gaps', 'cut', 'persistent',...
-%                 'valid', 'rej. gaps', 'cut', 'persistent'};
-%             cmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
-%             imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
-%             set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-%                 'YTick', 1:8, 'YTickLabel', [], 'TickLength', [0 0]);
-%             text(-.5, 2.5, 'Single tracks', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-%             text(-.5, 6.5, 'Compound tracks', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-%             
-%             for k = 1:8
-%                 text(1.6, k-0.1, xlabels{k}, 'Rotation', 45, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top', 'Parent', handles.cAxes, sfont{:});
-%             end
-%         case 'Object Type'
-%             cmap = [0 0.8 0; 0.8 0 0];
-%             imagesc(reshape(cmap, [size(cmap,1) 1 3]), 'Parent', handles.cAxes);
-%             set(handles.cAxes, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
-%                 'YTick', 1:8, 'YTickLabel', [], 'TickLength', [0 0]);
-%             text(-.5, 1, 'CCP', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-%             text(-.5, 2, 'Other', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', handles.cAxes, lfont{:});
-%         otherwise
-%             set(handles.cAxes, 'Visible', 'off');
-%             cla(handles.cAxes);
-%     end
-% end
+
 
 
 
@@ -1394,7 +1369,11 @@ end
 % refreshFrameDisplay(src);
 % refreshTrackDisplay(src);
 
-function ha = setupStackViewer(hf, dims)
+function [ha, hl] = setupStackViewer(hf, dims, addLegend)
+if nargin<3
+    addLegend = false;
+end
+
 spc = 6; % spacer, fixed [pixels]
 
 nx = dims(1);
@@ -1416,14 +1395,23 @@ dx = spc/pos(3);
 dy = spc/pos(4);
 if rxy > w/h % figure is too wide
     f0 = w/h / rxy;
-    ha(1) = axes('Position', [(1-f0)/2+(f0*nz*f)/w+dx 0 f0*f*nx/w f*ny/h], 'Parent', hf);
-    ha(2) = axes('Position', [(1-f0)/2 0 f0*f*nz/w f*ny/h], 'Parent', hf);
-    ha(3) = axes('Position', [(1-f0)/2+(f0*nz*f)/w+dx (ny*f)/h+dy f0*f*nx/w f*nz/h], 'Parent', hf);
+    left = (1-f0)/2;
+    ha(1) = axes('Position', [left+(f0*nz*f)/w+dx 0 f0*f*nx/w f*ny/h], 'Parent', hf);
+    ha(2) = axes('Position', [left 0 f0*f*nz/w f*ny/h], 'Parent', hf); % bottom left
+    ha(3) = axes('Position', [left+(f0*nz*f)/w+dx (ny*f)/h+dy f0*f*nx/w f*nz/h], 'Parent', hf);
 else
     f0 = h/w * rxy;
+    left = 0;
     ha(1) = axes('Position', [(nz*f)/w+dx 1-f0 f*nx/w f0*f*ny/h], 'Parent', hf);
     ha(2) = axes('Position', [0 1-f0 f*nz/w f0*f*ny/h], 'Parent', hf);
     ha(3) = axes('Position', [(nz*f)/w+dx 1-f0+(f0*ny*f)/h+dy f*nx/w f0*f*nz/h], 'Parent', hf);
+end
+if addLegend
+    lpos = get(ha(3), 'Position');
+    lpos([1 3]) = [left 15/pos(3)];
+    hl = axes('Position', lpos, 'Parent', hf);
+else
+    hl = [];
 end
 
 set(hf, 'ResizeFcn', @pResize);
@@ -1435,14 +1423,19 @@ set(hf, 'ResizeFcn', @pResize);
         dy = spc/ipos(4);
         if rxy > w/h % figure is too wide
             f0 = w/h / rxy;
-            set(ha(1), 'Position', [(1-f0)/2+(f0*nz*f)/w+dx 0 f0*f*nx/w f*ny/h]);
-            set(ha(2), 'Position', [(1-f0)/2 0 f0*f*nz/w f*ny/h]);
-            set(ha(3), 'Position', [(1-f0)/2+(f0*nz*f)/w+dx (ny*f)/h+dy f0*f*nx/w f*nz/h]);
+            left = (1-f0)/2;
+            set(ha(1), 'Position', [left+(f0*nz*f)/w+dx 0 f0*f*nx/w f*ny/h]);
+            set(ha(2), 'Position', [left 0 f0*f*nz/w f*ny/h]);
+            set(ha(3), 'Position', [left+(f0*nz*f)/w+dx (ny*f)/h+dy f0*f*nx/w f*nz/h]);
         else
             f0 = h/w * rxy;
+            left = 0;
             set(ha(1), 'Position', [(nz*f)/w+dx 1-f0 f*nx/w f0*f*ny/h]);
             set(ha(2), 'Position', [0 1-f0 f*nz/w f0*f*ny/h]);
             set(ha(3), 'Position', [(nz*f)/w+dx 1-f0+(f0*ny*f)/h+dy f*nx/w f0*f*nz/h]);
         end
+        lpos = get(ha(3), 'Position');
+        lpos([1 3]) = [left 15/ipos(3)];
+        set(hl, 'Position', lpos);
     end
 end
