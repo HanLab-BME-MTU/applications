@@ -109,11 +109,12 @@ for iCell = 1:nCell
         inp5 = false;
         if ~isempty(winInterval{iCell}{1})
             
-            inp4 = sum(cellfun(@(x,y) numel(x)-numel(y),cellData{iCell}.data.winInterval,winInterval{iCell})) == 0;
-            
-            if inp4
-                inp2 = sum( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.winInterval,winInterval{iCell}) ) == numel(winInterval{iCell});
+            if numel(cellData{iCell}.data.winInterval) == numel(winInterval{iCell})%Same number of intervals
+              
+                inp2 = sum( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.winInterval(:),winInterval{iCell}(:)) ) == numel(winInterval{iCell});
+                
             end
+            
         end
         
         if ~isempty(includeWin{iCell})
@@ -127,7 +128,7 @@ for iCell = 1:nCell
             cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawEdgeMotion;
             cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procEdgeMotion;
             
-            if ~(inp3 || inp2 || inp5) &&  isfield(cellData{iCell}.data,'protrusionAnalysis')
+            if ~(inp3 && inp2 && inp5) && isfield(cellData{iCell},'protrusionAnalysis')
                 cellData{iCell} = rmfield(cellData{iCell},{'protrusionAnalysis','retractionAnalysis'});
             end
             

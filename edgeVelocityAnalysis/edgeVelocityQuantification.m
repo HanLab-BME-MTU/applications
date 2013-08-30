@@ -114,7 +114,7 @@ ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('scale',     false,@islogical);
 ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
 ip.addParamValue('fileName','edgeVelocity',@isstr);
-ip.addParamValue('interval',{[]},@iscell);
+ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -180,38 +180,50 @@ end
 
 %indexes for non-processed cells
 flag1 = cellfun(@(x) isfield(x,'protrusionAnalysis'),cellData);
-flag2 = false(1,nCell);
-%If the interval is different
-if ~isempty(interval{1})
+
+caseFlag = true;
+if isempty(winInterval{1}{1})
     
+    %If the interval is empty
+    empInterval           = cell2mat( cellfun(@(x) isempty(x{1}),interval,'Unif',0) );
+    interval(empInterval) = cellfun(@(x) {1:x.data.nFrames},cellData(empInterval),'Unif',0);
+  
+    %If number of the interval is different
     diffInter             = true(1,nCell);
-    diffInter(flag1)      = cell2mat(cellfun(@(x,y) abs(numel(x.data.interval)-numel(y)),cellData(flag1),interval,'Unif',0)) ~= 0;
-    %If the interval is different
+    diffInter(flag1)      = cell2mat(cellfun(@(x,y) abs(numel(x.data.interval)-numel(y)),cellData(flag1),interval(flag1),'Unif',0)) ~= 0;
+    %Same number of interval but the interval is different
     dWinInter             = true(1,nCell);
-    auxWinDiff            = cellfun(@(x,y)  cell2mat(cellfun(@(w,z) isequaln(w,z),x.data.interval,y,'Unif',0)),cellData(~diffInter),interval(~diffInter),'Unif',0);
-    dWinInter(~diffInter) = all(cell2mat(auxWinDiff(:)),1);
+    dWinInter(~diffInter) = cell2mat(cellfun(@(x,y)  all(cell2mat(cellfun(@(w,z) isequaln(w,z),x.data.interval,y,'Unif',0))),cellData(~diffInter),interval(~diffInter),'Unif',0));
     flag2                 = diffInter | ~dWinInter;
+    finalIdx              = ~flag1 | flag2;
+    caseFlag              = false;
+    
+else
+    
+    finalIdx = ~flag1;
     
 end
 
-finalIdx           = ~flag1 | flag2;
-commonGround       = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
-protrusion         = [];
-retraction         = [];
+
+commonGround = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
+protrusion   = [];
+retraction   = [];
 
 if sum(finalIdx) ~= 0
     
-    if isempty(interval{1})
+    
+    if caseFlag
         
         [protrusion,retraction] ...
-            = cellfun(@(x,y) commonGround(x.data.procExcEdgeMotion,x.data.frameRate,y),cellData(finalIdx),winInterval(finalIdx),'Unif',0);
+                   = cellfun(@(x,y) commonGround(x.data.procExcEdgeMotion,x.data.frameRate,y),cellData(finalIdx),winInterval(finalIdx),'Unif',0);
         protrusion = num2cell(protrusion);
         retraction = num2cell(retraction);
         
     else
-        
-        firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
-        secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
+        mIdx           = flag1 & flag2;
+        cellData(mIdx) = cellfun(@(x) rmfield(x,{'protrusionAnalysis','retractionAnalysis'}),cellData(mIdx),'Unif',0);
+        firstLevel     = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
+        secondLevel    = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
         
         [protrusion,retraction] ...
                     = cellfun(@(x,y) secondLevel(y,x.data.procExcEdgeMotion,x.data.frameRate),cellData(finalIdx),interval(finalIdx),'Unif',0);
@@ -219,6 +231,7 @@ if sum(finalIdx) ~= 0
     end
     
 end
+
 
 [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,finalIdx);
 
@@ -258,7 +271,7 @@ cc    = 1;
 for iCell = find(idx)
     
             
-        for iiInt = 1:numel(interval)
+        for iiInt = 1:numel(interval{iCell})
             cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
             cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
         end
@@ -266,26 +279,33 @@ for iCell = find(idx)
         
 end
 
-for iInt = 1:numel(interval)
+dataSet = [];
+nInter  = cellfun(@(x) numel(x),interval);
+
+if sum(rem(nInter,nInter(1))) == 0
     
-    for iCell = 1:nCell
+    for iInt = 1:numel(interval{1})
         
-        total.ProtPersTime    = [total.ProtPersTime;cellData{iCell}.protrusionAnalysis(iInt).total.persTime];
-        total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.maxVeloc];
-        total.ProtMinVeloc    = [total.ProtMinVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.minVeloc];
-        total.ProtMeanVeloc   = [total.ProtMeanVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.Veloc];
-        total.ProtMednVeloc   = [total.ProtMednVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.mednVeloc];
+        for iCell = 1:nCell
+            
+            total.ProtPersTime    = [total.ProtPersTime;cellData{iCell}.protrusionAnalysis(iInt).total.persTime];
+            total.ProtMaxVeloc    = [total.ProtMaxVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.maxVeloc];
+            total.ProtMinVeloc    = [total.ProtMinVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.minVeloc];
+            total.ProtMeanVeloc   = [total.ProtMeanVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.Veloc];
+            total.ProtMednVeloc   = [total.ProtMednVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.mednVeloc];
+            
+            total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
+            total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
+            total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
+            total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
+            total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
+            
+        end
         
-        total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
-        total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
-        total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
-        total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
-        total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
+        [dataSet.CI.interval(iInt),dataSet.meanValue.interval(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
+        dataSet.total.interval(iInt) = total;
         
     end
-    
-    [dataSet.CI.interval(iInt),dataSet.meanValue.interval(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
-    dataSet.total.interval(iInt) = total;
     
 end
 
