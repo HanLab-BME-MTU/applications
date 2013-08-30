@@ -133,15 +133,8 @@ if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2
     idx = arrayfun(@(i) i+zeros(1, idx(i)), 1:numel(idx), 'unif', 0);
     tstruct.idx = [idx{:}];
     tstruct.n = numel(tracks);
-    
-    hpt = []; % handles for track plot objects
-    hpd = [];
-    hpg = [];
-    hps = [];
-    cmap = hsv2rgb([rand(tstruct.n,1) ones(tstruct.n,2)]);
 end
 
-% handles.colorMap = cell(1,nCh);
 % handles.maxLifetime_f = [];
 % handles.selectedTrack = [];
 % if ~isempty(ip.Results.Trajectories)
@@ -240,9 +233,9 @@ ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 65
 
 uicontrol(ph, 'Style', 'text', 'String', 'Display: ',...
     'Position', [5 40 60 20], 'HorizontalAlignment', 'left');
-frameChoice = uicontrol(ph, 'Style', 'popup',...
+uicontrol(ph, 'Style', 'popup',...
     'String', {'Raw frames', 'Detection', 'RGB'},...
-    'Position', [65 42 120 20], 'Callback', {@frameChoice_Callback, hfig});
+    'Position', [65 42 120 20], 'Callback', @frameChoice_Callback);
 
 detectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Detections',...
     'Position', [200 45 100 15], 'HorizontalAlignment', 'left',...
@@ -269,12 +262,12 @@ labelCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Channel labels',..
     'Callback', @chlabel_Callback);
 
 
-trackButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Select track',...
+uicontrol(ph, 'Style', 'pushbutton', 'String', 'Select track',...
     'Position', [540 40 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@trackButton_Callback, hfig});
-statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
+    'Callback', @trackButton_Callback);
+uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
     'Position', [540 10 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', {@statsButton_Callback, hfig});
+    'Callback', @statsButton_Callback);
 
 
 %---------------------
@@ -338,11 +331,10 @@ setappdata(hfig, 'handles', handles);
 % dynamic range for each channel
 handles.dRange = cell(1,nCh);
 for c = 1:nCh
-    handles.dRange{c} = [min(stack{c}(:)) max(stack{c}(:))];
+    handles.dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
 end
 
 % initialize handles
-handles.trackMode = 'Category';
 handles.hues = getFluorophoreHues(data.markers);
 rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), handles.hues, 'UniformOutput', false);
 
@@ -392,7 +384,6 @@ end
 
 set(hfig, 'ResizeFcn', @figResize);
 
-
 setappdata(hfig, 'handles', handles); % write 'handles' to hfig
 handles = setupFrameAxes(hfig);
 
@@ -404,6 +395,21 @@ for c = 1:nCh
 end
 hLegend = hLegend(1);
 colormap(gray(256));
+
+
+hpt = []; % handles for track plot objects
+hpd = [];
+hpg = [];
+hps = [];
+
+cmap = [];
+setTrackColormap('Category');
+setColorbar('Category');
+displayType = 'raw';
+
+if nCh==1
+    set(eapCheckbox, 'Enable', 'off');
+end
 
 % populate with data, plotting functions are called only here, afterwards change data
 x = round(nx/2);
@@ -466,7 +472,6 @@ setappdata(hfig, 'handles', handles); % messy
 % initialize figures/plots
 %===========================
 % refreshTrackDisplay(hfig);
-% setColorbar(hfig, handles.trackMode);
 
     function click_Callback(varargin)
         updateProj(); % when clicking w/o dragging
@@ -524,9 +529,26 @@ setappdata(hfig, 'handles', handles); % messy
 
     function updateSlice(varargin)
         hi = getappdata(hfig, 'handles');
-        for c = 1:nCh
-            set(hxy(c), 'CData', stack{c}(:,:,hi.f));
+        
+        switch displayType
+            case 'raw'                
+                for c = 1:nCh
+                    set(hxy(c), 'CData', stack{c}(:,:,hi.f));
+                end
+            case 'mask'
+                set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,hi.f), dmask(:,:,hi.f), [1 0 0], handles.dRange{1}));
+                for c = 2:nCh
+                    set(hxy(c), 'CData', stack{c}(:,:,hi.f));
+                end
+            case 'RGB'
+                rframe = zeros(ny,nx,3,'uint8');
+                idxRGB = getRGBindex(data.markers);
+                for c = 1:nCh
+                    rframe(:,:,idxRGB(c)) = uint8(scaleContrast(double(stack{c}(:,:,hi.f)), handles.dRange{c}));
+                end
+                set(hxy(1), 'CData', rframe);
         end
+        
         set(hl(:,3), 'XData', hi.f*[1 1]);
         set(hl(:,4), 'YData', hi.f*[1 1]);        
         set(hi.frameLabel, 'String', ['Frame ' num2str(hi.f)]);
@@ -640,7 +662,14 @@ setappdata(hfig, 'handles', handles); % messy
     function trackChoice_Callback(~,~)
         str = cellstr(get(trackChoice, 'String'));
         str = str{get(trackChoice,'Value')};
-        switch str
+        setTrackColormap(str);
+        setColorbar(str);
+        updateSlice();
+    end
+
+
+    function setTrackColormap(mode)
+        switch mode
             case 'Category'
                 cmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
                 cmap = cmap([tracks.catIdx],:);
@@ -665,10 +694,9 @@ setappdata(hfig, 'handles', handles); % messy
             case 'Random'
                 cmap = hsv2rgb([rand(tstruct.n,1) ones(tstruct.n,2)]);
         end
-        setColorbar(str);
-        updateSlice();
     end
 
+        
     function chlabel_Callback(~,~)
         if get(labelCheckbox, 'Value') %&& ~isRGB
             set(hChLabel, 'Visible', 'on');
@@ -709,7 +737,7 @@ setappdata(hfig, 'handles', handles); % messy
                     text(-.1, 2.5, 'Single', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
                     text(-.1, 6.5, 'Compound', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
                 case 'EAP Status'
-                    xlabels = {' N.S.', ' Sig. M/S', ' Sig. indep.'};
+                    xlabels = {' N.S.', ' Signif. M/S', ' Signif. indep.'};
                     lmap = hsv2rgb([0 0 0.8; 0.55 1 0.9; 0.33 1 0.9]); % ns, slave sig., master sig.
                     imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
                     set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
@@ -728,7 +756,18 @@ setappdata(hfig, 'handles', handles); % messy
     end
 
 
-
+    function frameChoice_Callback(hObject,~)
+        contents = cellstr(get(hObject,'String'));
+        switch contents{get(hObject,'Value')}
+            case 'Raw frames'
+                displayType = 'raw';
+            case 'RGB'
+                displayType = 'RGB';
+            case 'Detection'
+                displayType = 'mask';
+        end
+        updateSlice();
+    end
 
 end
 
@@ -1151,29 +1190,6 @@ end
 
 end
 
-% % --- Executes on selection change in popupmenu1.
-% function frameChoice_Callback(hObject, ~, hfig)
-% % hObject    handle to popupmenu1 (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
-% %        contents{get(hObject,'Value')} returns selected item from popupmenu1
-% 
-% handles = getappdata(hfig, 'handles');
-% 
-% contents = cellstr(get(hObject,'String'));
-% switch contents{get(hObject,'Value')}
-%     case 'Raw frames'
-%         handles.displayType = 'raw';
-%     case 'RGB'
-%         handles.displayType = 'RGB';
-%     case 'Detection'
-%         handles.displayType = 'mask';
-% end
-% setappdata(hfig, 'handles', handles);
-% refreshFrameDisplay(hfig);
-
 
 
 function unitChoice_Callback(hObject, ~, hfig)
@@ -1411,7 +1427,7 @@ if addLegend
     lpos([1 3]) = [left 15/pos(3)];
     hl = axes('Position', lpos, 'Parent', hf);
 else
-    hl = [];
+    hl = NaN;
 end
 
 set(hf, 'ResizeFcn', @pResize);
