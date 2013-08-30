@@ -58,7 +58,7 @@ funParams = userData.crtProc.funParams_;
 set(handles.listbox_availableMaskChannels,'String',userData.MD.getChannelPaths(), ...
     'UserData',1:numel(userData.MD.channels_));
 
-maskChannelIndex = funParams.ChannelIndex;
+maskChannelIndex = funParams.MaskChannelIndex;
 
 % Find any parent process
 parentProc = userData.crtPackage.getParent(userData.procID);
