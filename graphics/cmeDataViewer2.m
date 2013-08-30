@@ -29,6 +29,7 @@ handles.nCh = nCh;
 % master channel index
 handles.mCh = find(strcmp(data.source, data.channels));
 handles.f = 1;
+handles.t = 1;
 
 %===============================================================================
 % Load movie and associated analysis results
@@ -161,16 +162,9 @@ end
 %             handles.bg95 = [];
 %         end
 %         
-%         % random colormaps for track display
-%         for c = 1:nCh
-%             nt = numel(handles.tracks{c});
-%             handles.colorMap{c} = hsv2rgb([rand(nt,1) ones(nt,2)]);
-%         end
-%         
 %         handles.maxLifetime_f = max([handles.tracks{handles.mCh}.end]-[handles.tracks{handles.mCh}.start]+1);
 %         handles.selectedTrack = NaN(1,handles.nCh);
 %         handles.selectedTrack(handles.mCh) = 1;
-%         handles.f = handles.tracks{handles.mCh}(1).start;
 %         
 %         % min/max track intensities
 %         maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'UniformOutput', false);
@@ -187,10 +181,8 @@ end
 %     else
 %         handles.maxLifetime_f = [];
 %         handles.selectedTrack = [];
-%         handles.f = 1;
 %     end   
 % end
-% handles.displayType = 'raw';
 % handles.pUnitType = 's';
     
 
@@ -205,14 +197,11 @@ hfig = figure('Units', 'normalized', 'Position', [0.05 0.2 0.9 0.8],...
 pos = get(hfig, 'Position'); % [pixels]
 
 % fixed width of the track plots, in pixels
-% w = 350;
-% dx = pos(3)-w-50; % space available for frame display
+w = 350;
 
 %---------------------
 % Frames
 %---------------------
-% width = pos(3) - w-50-100-50 -50;
-
 handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
     'Position', [20 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
@@ -276,10 +265,14 @@ uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
 handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
     'Units', 'pixels', 'Position', [pos(3)-400 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
-handles.trackSlider = uicontrol('Style', 'slider',...
-    'Value', 1, 'SliderStep', [1 1], 'Min', 1, 'Max', 100,...
-    'Position', [pos(3)-35 110 20 pos(4)-130],...
-    'Callback', {@trackSlider_Callback, hfig});
+if nt>1
+    handles.trackSlider = uicontrol('Style', 'slider',...
+        'Value', 1, 'SliderStep', [1 1], 'Min', 1, 'Max', nt,...
+        'Position', [pos(3)-35 110 20 pos(4)-130]);
+end
+% this definition (instead of regular callback) enable continuous sliding
+addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
+
 
 % Track plot panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-540 5 160 70]);
@@ -298,15 +291,15 @@ handles.tplotPanel = ph;
 
 % Montage panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage', 'Position', [pos(3)-400 5 200 70]);
-handles.montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
+montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
     'Position', [5 35 120 15], 'HorizontalAlignment', 'left', 'Value', true);
-handles.montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
+montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
     'Position', [5 20 120 15], 'HorizontalAlignment', 'left');
-handles.montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
+montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
     'Position', [5 5 120 15], 'HorizontalAlignment', 'left');
-handles.montageButton = uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
-    'Units', 'pixels', 'Position', [120 15 75 30],...%[.1 .55 .6 .4]
-    'Callback', {@montageButton_Callback, hfig});
+uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
+    'Units', 'pixels', 'Position', [120 15 75 30],...
+    'Callback', @montageButton_Callback);
 handles.montagePanel = ph;
 
 
@@ -350,44 +343,18 @@ if ~isempty(tracks)
 else
     set(handles.trackSlider, 'Visible', 'off');
 end
-
-
-% %=================================================
-% % Generate axes
-% %=================================================
-% % track panels: 20 spacer, 110 bottom, 30 top
-% h_tot = pos(4) - 140;
-% h = min((h_tot-(nCh-1)*20)/nCh, 200);
-% 
-% opts = {'Parent', gcf, 'Units', 'pixels', 'Box', 'on'};
-% 
-% switch nCh
-%     case 1
-%         handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-%     case 2
-%         handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-%         handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-%     case 3
-%         handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-%         handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-%         handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
-%     case 4        
-%         handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
-%         handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
-%         handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
-%         handles.tAxes(4) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
-% end
-% xlabel('Time (s)');
-% 
-% % Legend (track lifetime/category)
-% handles.cAxes = axes('Parent', gcf, 'Units', 'pixels', 'Position', [dx-100 pos(4)-230 15 200], 'Visible', 'on');
+if nCh==1
+    set(eapCheckbox, 'Enable', 'off');
+end
 
 set(hfig, 'ResizeFcn', @figResize);
 
 setappdata(hfig, 'handles', handles); % write 'handles' to hfig
-handles = setupFrameAxes(hfig);
 
-% temp fix: set up stakviewer axes here
+%===============================================================================
+% Set up frame display
+%===============================================================================
+handles = setupFrameAxes(hfig);
 handles.fAxes = zeros(nCh,3);
 hLegend = zeros(1,nCh);
 for c = 1:nCh   
@@ -395,7 +362,6 @@ for c = 1:nCh
 end
 hLegend = hLegend(1);
 colormap(gray(256));
-
 
 hpt = []; % handles for track plot objects
 hpd = [];
@@ -407,13 +373,15 @@ setTrackColormap('Category');
 setColorbar('Category');
 displayType = 'raw';
 
-if nCh==1
-    set(eapCheckbox, 'Enable', 'off');
-end
+
 
 % populate with data, plotting functions are called only here, afterwards change data
 x = round(nx/2);
 y = round(ny/2);
+hxy = zeros(1,nCh);
+hyz = zeros(1,nCh);
+hxz = zeros(1,nCh);
+hl = zeros(nCh,4);
 for c = 1:nCh
     % x,y view
     hxy(c) = imagesc(stack{c}(:,:,handles.f), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
@@ -439,9 +407,6 @@ end
 set(handles.fAxes, 'XTick', [], 'YTick', []);
 axis(handles.fAxes(:,1), 'equal');
 
-
-
-
 dx = 0.03;
 hChLabel = zeros(1,nCh);
 for c = 1:nCh
@@ -465,14 +430,52 @@ set(hpan,'ActionPreCallback',@panstart);
 set(hpan,'ActionPostCallback',@panstop);
 
 
+%===============================================================================
+% Set up track display
+%===============================================================================
+% track panels: 20 spacer, 110 bottom, 30 top
+if nt>0
+    h_tot = pos(4) - 130;
+    h = min((h_tot-(nCh-1)*20)/nCh, 200);
+    
+    opts = {'Parent', hfig, 'Units', 'pixels', 'Box', 'on'};
+    dx = pos(3)-w-40;
+    switch nCh
+        case 1
+            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+        case 2
+            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+        case 3
+            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+            handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-3*h-40) w h]);
+        case 4
+            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 110+(h_tot-h) w h]);
+            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-20) w h]);
+            handles.tAxes(3) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-40) w h]);
+            handles.tAxes(4) = axes(opts{:}, 'Position', [dx 110+(h_tot-2*h-60) w h]);
+    end
+    xlabel(handles.tAxes(end), 'Time (s)');
+    
+    % populate with data, plotting functions are called only here, afterwards change data
+    hf = zeros(nCh,1);
+    for c = 1:nCh
+        ybounds = get(handles.tAxes(c), 'YLim');
+        hf(c) = plot(handles.tAxes(c), ([handles.f handles.f]-1)*data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1]);
+    end
+
+    % plot "selected track" marker
+    hst = plot(handles.fAxes(c,1), X(fi, tstruct.idx==handles.t),...
+        Y(fi, tstruct.idx==handles.t), 'ws', 'MarkerSize', 10); %*settings.zoom
+
+end
 
 setappdata(hfig, 'handles', handles); % messy
 
-%===========================
-% initialize figures/plots
-%===========================
-% refreshTrackDisplay(hfig);
-
+%===============================================================================
+% Listener/display functions
+%===============================================================================
     function click_Callback(varargin)
         updateProj(); % when clicking w/o dragging
         set(gcf, 'WindowButtonMotionFcn', @drag, 'WindowButtonUpFcn', @stopDragging);
@@ -556,9 +559,11 @@ setappdata(hfig, 'handles', handles); % messy
         delete(hpt);
         delete(hpg);
         delete(hps);
+        delete(hst);
         hpt = [];
         hpg = [];
         hps = [];
+        hst = [];
         if ~isempty(tstruct) && hi.f~=1 && get(trackCheckbox, 'Value')
             vidx = ~isnan(tstruct.X(hi.f,:));
             delete(hpt);
@@ -581,6 +586,9 @@ setappdata(hfig, 'handles', handles); % messy
             if get(eapCheckbox, 'Value')
                 
             end
+            
+            hst = plot(hi.fAxes(c,1), X(hi.f, tstruct.idx==hi.t),...
+                Y(hi.f, tstruct.idx==hi.t), 'ws', 'MarkerSize', 10);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
         end
         
         delete(hpd); % clear previous plots
@@ -658,6 +666,94 @@ setappdata(hfig, 'handles', handles); % messy
         updateSlice();
         % refreshTrackDisplay(hfig);
     end
+
+
+    function trackSlider_Callback(~, eventdata)
+        obj = get(eventdata, 'AffectedObject');
+        t = round(get(obj, 'Value'));
+        hi = getappdata(hfig, 'handles');
+        hi.t = t;
+        setappdata(hfig, 'handles', hi);
+        set(hi.trackLabel, 'String', ['Track ' num2str(t)]);
+        
+        updateTrack();
+        
+        % if track not visible, jump to first frame
+        % t = handles.tracks{1}(t);
+        % if handles.f < t.start || handles.f > t.end
+        %     handles.f = t.start;
+        %     % set frame number
+        %     set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
+        %     % set frame slider
+        %     set(handles.frameSlider, 'Value', handles.f);
+        % end
+    end
+
+
+    function updateTrack()
+        
+        hi = getappdata(hfig, 'handles');
+        cla(handles.tAxes);
+
+        % if ~isempty(handles.selectedTrack)
+        for c = 1:nCh
+            if get(handles.tplotBackgroundCheckbox, 'Value')
+                bgMode = 'zero';
+            else
+                bgMode = 'data';
+            end
+            %         if strcmpi(handles.pUnitType, 'f')
+        %             sTrack.t = sTrack.f;
+        %             if ~isempty(sTrack.startBuffer)
+        %                 sTrack.startBuffer.t = sTrack.f(1) - (numel(sTrack.startBuffer.t):-1:1);
+        %                 sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
+        %             end
+        %         end
+                topts = {'Handle', handles.tAxes(c), 'Time', 'Movie', 'BackgroundValue', bgMode};
+        %         if get(handles.tplotScaleCheckbox, 'Value')
+        %             topts = [topts, 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci)];
+        %         end
+        %         if ~isempty(handles.bg95) && sTrack.catIdx<5
+        %             conf = handles.bg95(cx, sTrack.z(cx,:));
+        %             if ~isempty(sTrack.startBuffer)
+        %                 conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
+        %             end
+        %             if ~isempty(sTrack.endBuffer)
+        %                 conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
+        %             end
+        %             topts = [topts 'BackgroundConfidence', conf];
+        %         end
+                plotTrack(data, tracks(hi.t), c, topts{:});
+        %         box on;
+        %
+        %         % plot current frame position
+        %         ybounds = get(h, 'YLim');
+        %         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
+        %         hold(h, 'off');
+        %
+        %
+        %         dx = 0.03;
+        %         if isfield(sTrack, 'significantSignal')
+        %             s = sTrack.significantSignal;
+        %             if s(ci)==1
+        %                 slabel = 'yes';
+        %                 scolor = [0 0.8 0];
+        %             else
+        %                 slabel = 'no';
+        %                 scolor = [0.8 0 0];
+        %             end
+        %             text(1-dx, 1-dx,...
+        %                 ['Significant: ' slabel],...
+        %                 'Color', scolor, 'Units', 'normalized',...
+        %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+        %                 'Parent', handles.tAxes(ci));
+        %         end
+        end
+        %
+        %     xlabel(h, ['Time (' handles.pUnitType ')']);
+        % end
+    end
+
 
     function trackChoice_Callback(~,~)
         str = cellstr(get(trackChoice, 'String'));
@@ -769,12 +865,95 @@ setappdata(hfig, 'handles', handles); % messy
         updateSlice();
     end
 
+    function montageButton_Callback(varargin)
+        hi = getappdata(hfig, 'handles');
+        
+        % Creates a montage based on the master track
+        if ~isempty(hi.t)
+            fprintf('Generating montage...');
+            if get(montageAlignCheckbox, 'Value')
+                ref = 'Track';
+            else
+                ref = 'Frame';
+            end
+            [istack, xa, ya] = getTrackStack(hi.t, 6, ref);
+            plotTrackMontage(tracks(hi.t), istack, xa, ya, 'Labels', data.markers,...
+                'ShowMarkers', get(montageMarkerCheckbox, 'Value')==1,...
+                'ShowDetection', get(montageDetectionCheckbox, 'Value')==1);
+            fprintf(' done.\n');
+        else
+            fprintf('Cannot create montage: no track selected.\n');
+        end
+    end
+
+
+    function [tstack, xa, ya] = getTrackStack(t, w, reference)
+        
+        sigma = frameInfo(1).s;
+        w = ceil(w*sigma);
+        
+        % coordinate matrices
+        xv = tracks(t).x;
+        yv = tracks(t).y;
+        
+        % start and end buffer sizes
+        if ~isempty(tracks(t).startBuffer)
+            sb = numel(tracks(t).startBuffer.t);
+            xv = [tracks(t).startBuffer.x xv];
+            yv = [tracks(t).startBuffer.y yv];
+        else
+            sb = 0;
+        end
+        if ~isempty(tracks(t).endBuffer)
+            eb = numel(tracks(t).endBuffer.t);
+            xv = [xv tracks(t).endBuffer.x];
+            yv = [yv tracks(t).endBuffer.y];
+        else
+            eb = 0;
+        end
+        
+        % frame index
+        tfi = tracks(t).start-sb:tracks(t).end+eb;
+        tnf = length(tfi);
+        
+        
+        if tracks(t).nSeg==1 && strcmpi(reference, 'track') % align frames to track
+            xi = round(xv(handles.mCh,:));
+            yi = round(yv(handles.mCh,:));
+            % ensure that window falls within frame bounds
+            x0 = xi - min([xi-1 w]);
+            x1 = xi + min([nx-xi w]);
+            y0 = yi - min([yi-1 w]);
+            y1 = yi + min([ny-yi w]);
+            % axes for each frame
+            xa = arrayfun(@(i) x0(i):x1(i), 1:tnf, 'unif', 0);
+            ya = arrayfun(@(i) y0(i):y1(i), 1:tnf, 'unif', 0);
+        else
+            % window around track mean
+            mu_x = round(nanmean(xv,2));
+            mu_y = round(nanmean(yv,2));
+            x0 = max(1, min(mu_x)-w);
+            x1 = min(data.imagesize(2), max(mu_x)+w);
+            y0 = max(1, min(mu_y)-w);
+            y1 = min(data.imagesize(1), max(mu_y)+w);
+            xa = repmat({x0:x1}, [tnf 1]);
+            ya = repmat({y0:y1}, [tnf 1]);
+        end
+        
+        tstack = cell(nCh,tnf);
+        for c = 1:nCh
+            for k = 1:tnf
+                tstack{c,k} = stack{c}(ya{k}, xa{k}, tfi(k));
+            end
+        end
+    end
+
+
 end
 
 
 function figResize(src,~)
 pos = get(src, 'Position');
-%w = 350;
 w = 10;
 dx = pos(3)-w-50;
 handles = getappdata(src, 'handles');
@@ -783,7 +962,7 @@ set(handles.frameLabel, 'Position', [20 pos(4)-20, 100 15]);
 
 % tracks
 set(handles.trackLabel, 'Position', [dx pos(4)-20, 100 15]);
-set(handles.trackSlider, 'Position', [pos(3)-35 110 20 pos(4)-140]);
+set(handles.trackSlider, 'Position', [pos(3)-25 110 15 pos(4)-130]);
 set(handles.tplotPanel, 'Position', [pos(3)-540 5 160 70]);
 set(handles.outputPanel, 'Position', [pos(3)-160 5 140 70]);
 set(handles.montagePanel, 'Position', [pos(3)-370 5 200 70]);
@@ -792,7 +971,7 @@ set(handles.montagePanel, 'Position', [pos(3)-370 5 200 70]);
 tspace = 20;
 bspace = 100;
 lspace = 10;
-rspace = 20; %%%%%%%%%%%%%%
+rspace = 350; %%%%%%%%%%%%%%
 spacer = 10; % space between panels
 
 width = pos(3) - rspace - lspace;
@@ -824,7 +1003,6 @@ switch numel(handles.fPanels)
         set(handles.fPanels(3), 'Position', [lspace bspace width height]); % bottom left
         set(handles.fPanels(4), 'Position', [lspace+width+spacer bspace width height]); % bottom right
 end
-end
 
 % h_tot = pos(4) - 140;
 % nx = numel(handles.tAxes);
@@ -846,15 +1024,7 @@ end
 %         set(handles.tAxes(3), 'Position', [dx 110+(h_tot-3*h-40) w h]);
 %         set(handles.tAxes(4), 'Position', [dx 110+(h_tot-4*h-60) w h]);
 % end
-% 
-% set(handles.cAxes, 'Position', [dx-100 pos(4)-230 15 200]);
-% 
-% % frames
-% width = pos(3) - 350-50-100-50 -50;
-% set(handles.frameLabel, 'Position', [50 pos(4)-20, 100 15]);
-% if isfield(handles, 'frameSlider')
-%     set(handles.frameSlider, 'Position', [50 75 width 20]);
-% end
+end
 
 
 function handles = setupFrameAxes(hfig, N)
@@ -915,7 +1085,6 @@ end
 %===================================
 % Plot frames with overlaid tracks
 %===================================
-function handles = refreshFrameDisplay(hfig)
 % isRGB = strcmpi(handles.displayType, 'RGB');
 % 
 % if isRGB
@@ -935,191 +1104,24 @@ function handles = refreshFrameDisplay(hfig)
 % markerHandles = NaN(1, nAxes);
 % 
 % for k = 1:nAxes
-%     
-%     cla(handles.fAxes(k)); % clear axis content
-%     
 %     % channel index for RGB display
 %     if isRGB
 %         cidx = 1:min(handles.nCh,3);
 %     else
 %         cidx = cvec(k);
 %     end     
-%     % plot selected track marker
-%     if ~isempty(handles.selectedTrack) && get(handles.('trackCheckbox'), 'Value') 
-%         selMask = ~isnan(handles.selectedTrack);
-%         t = handles.tracks{selMask}(handles.selectedTrack(selMask));
-%         fi = f-t.start+1;
-%         if 1 <= fi && fi <= length(t.x)
-%             xi = t.x(chIdx,fi);
-%             yi = t.y(chIdx,fi);
-%             markerHandles(k) = plot(handles.fAxes(k), xi, yi, 'ws', 'MarkerSize', 10*settings.zoom);
-%         end
-%     end
-%     
+    
 
-
-
-
-
-
-
-%     % plot EAP status
-%     if ~isRGB && get(handles.('eapCheckbox'), 'Value') &&...
-%             isfield(handles.tracks{chIdx}, 'significantSignal') && cvec(k) ~= handles.mCh
-%         % all tracks
-%         tracks = handles.tracks{chIdx};
-%         % tracks visible in current frame
-%         idx = [tracks.start]<=f & f<=[tracks.end];
-%         tracks = tracks(idx);
-%         % EAP status
-%         eapIdx = [tracks.significantSignal];
-%         eapIdx = eapIdx(k,:);
-%         % relative position in track
-%         fIdx = f-[tracks.start]+1;
-%         x = arrayfun(@(i) tracks(i).x(k,fIdx(i)), 1:length(tracks));
-%         y = arrayfun(@(i) tracks(i).y(k,fIdx(i)), 1:length(tracks));
-%         
-%         plot(handles.fAxes(k), x(eapIdx==1), y(eapIdx==1), 'go', 'MarkerSize', 8);
-%         plot(handles.fAxes(k), x(eapIdx==0), y(eapIdx==0), 'ro', 'MarkerSize', 8);
-%     end
-%     
-%     hold(handles.fAxes(k), 'off');
-% end 
-% 
-% settings.selectedTrackMarkerID = markerHandles;
-end
-
-
-
-
-
-
-
-%=========================
-% Plot tracks
-%=========================
-% function refreshTrackDisplay(hfig)
-% 
-% handles = getappdata(hfig, 'handles');
-% 
-% if ~isempty(handles.selectedTrack)
-%     
-%     for ci = 1:handles.nCh
-%         h = handles.tAxes(ci);
-%         hold(h, 'off');
-%         selMask = ~isnan(handles.selectedTrack);
-%         sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
-%                 
-%         if size(sTrack.A, 1)==1
-%             cx = 1;
-%         else
-%             cx = ci;
-%         end
-%         
-%         if get(handles.tplotBackgroundCheckbox, 'Value')
-%             bgMode = 'zero';
-%         else
-%             bgMode = 'data';
-%         end
-%         if strcmpi(handles.pUnitType, 'f')
-%             sTrack.t = sTrack.f;
-%             if ~isempty(sTrack.startBuffer)
-%                 sTrack.startBuffer.t = sTrack.f(1) - (numel(sTrack.startBuffer.t):-1:1);
-%                 sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
-%             end
-%         end
-%         topts = {'Handle', h, 'Time', 'Movie', 'BackgroundValue', bgMode};
-%         if get(handles.tplotScaleCheckbox, 'Value')
-%             topts = [topts, 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci)];
-%         end
-%         if ~isempty(handles.bg95) && sTrack.catIdx<5
-%             conf = handles.bg95(cx, sTrack.z(cx,:));
-%             if ~isempty(sTrack.startBuffer)
-%                 conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
-%             end
-%             if ~isempty(sTrack.endBuffer)
-%                 conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
-%             end
-%             topts = [topts 'BackgroundConfidence', conf];
-%         end
-%         plotTrack(handles.data, sTrack, cx, topts{:});
-%         box on;
-%                      
-%         % plot current frame position
-%         ybounds = get(h, 'YLim');
-%         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
-%         hold(h, 'off');
-%         
-%         % display result of classification, if available
-%         %if isfield(handles.tracks{1}, 'cStatus')
-%         %    cStatus = handles.tracks{1}(handles.selectedTrack(1)).cStatus(2);
-%         %    if cStatus == 1
-%         %        set(handles.statusLabel, 'String', 'Ch. 2: EAP+');
-%         %    else
-%         %        set(handles.statusLabel, 'String', 'Ch. 2: EAP-');
-%         %    end
-%         %end
-% 
-%         dx = 0.03;
-%         if isfield(sTrack, 'significantSignal')
-%             s = sTrack.significantSignal;
-%             if s(ci)==1
-%                 slabel = 'yes';
-%                 scolor = [0 0.8 0];
-%             else
-%                 slabel = 'no';
-%                 scolor = [0.8 0 0];
-%             end
-%             text(1-dx, 1-dx,...
-%                 ['Significant: ' slabel],...
-%                 'Color', scolor, 'Units', 'normalized',...
-%                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-%                 'Parent', handles.tAxes(ci));
-%         end
-%         
-%         if isfield(sTrack, 'corrDisappearance') && ci~= handles.mCh
-%             
-%             if sTrack.corrDisappearance
-%                 slabel = 'yes';
-%                 scolor = [0 0.8 0];
-%             else
-%                 slabel = 'no';
-%                 scolor = [0.8 0 0];
-%             end
-%             
-%             text(1-dx, 1-4*dx,...
-%                 ['Corr. disappearance: ' slabel],...
-%                 'Color', scolor, 'Units', 'normalized',...
-%                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-%                 'Parent', handles.tAxes(ci));
-%             
-%         end
-%         
-%         
-
-%         
-%         
-%     end
-%     
-%     xlabel(h, ['Time (' handles.pUnitType ')']);
-% end
-% setappdata(hfig, 'handles', handles);
 
 
 %========================
 % Callback functions
 %========================
-% function refreshTracks_Callback(~,~,hfig)
-% refreshTrackDisplay(hfig);
-
 
 % function trackButton_Callback(~, ~, hfig)
 % 
 % handles = getappdata(hfig, 'handles');
 % 
-% % set focus for next input
-% %axes(handles.fAxes(1)); % linked to axes2, selection possible in both
-% % set(figure_handle,'CurrentAxes',handles.fAxes(1))
 % [x,y] = ginput(1);
 % chIdx = find(gca==handles.fAxes);
 % 
@@ -1131,19 +1133,6 @@ end
 %     if ~isempty(idx)
 %         np = arrayfun(@(i) numel(i.t), handles.tracks{chIdx}(idx)); % points in each track
 %         nt = numel(idx);
-%         
-%         maxn = max(np);
-%         X = NaN(maxn, nt);
-%         Y = NaN(maxn, nt);
-%         F = NaN(maxn, nt);
-%         
-%         for k = 1:nt
-%             i = 1:np(k);
-%             X(i,k) = handles.tracks{chIdx}(idx(k)).x(chIdx,:);
-%             Y(i,k) = handles.tracks{chIdx}(idx(k)).y(chIdx,:);
-%             F(i,k) = handles.tracks{chIdx}(idx(k)).f;
-%         end
-%         
 %         X(F~=f) = NaN;
 %         Y(F~=f) = NaN;
 %         mu_x = nanmean(X,1); % average position for compound tracks
@@ -1163,35 +1152,6 @@ end
 % end
 
 
-
-% --- Executes on button press in montageButton.
-function montageButton_Callback(~, ~, hfig)
-handles = getappdata(hfig, 'handles');
-
-% Creates a montage based on the master track
-if ~isempty(handles.selectedTrack)
-    fprintf('Generating montage...');
-    %options = get(handles.montageOptions, 'String');
-    if get(handles.montageAlignCheckbox, 'Value')
-        ref = 'Track';
-    else
-        ref = 'Frame';
-    end
-    itrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
-    [stack, xa, ya] = getTrackStack(handles.data, itrack,...
-        'WindowWidth', 6, 'Reference', ref);
-    plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers,...
-        'ShowMarkers', get(handles.montageMarkerCheckbox, 'Value')==1,...
-        'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
-    fprintf(' done.\n');
-else
-    fprintf('Cannot create montage: no track selected.\n');
-end
-
-end
-
-
-
 function unitChoice_Callback(hObject, ~, hfig)
 handles = getappdata(hfig, 'handles');
 
@@ -1206,38 +1166,6 @@ setappdata(hfig, 'handles', handles);
 refreshTrackDisplay(hfig);
 
 end
-
-
-
-
-
-
-% function trackSlider_Callback(hObject, ~, hfig)
-% handles = getappdata(hfig, 'handles');
-% 
-% t = round(get(hObject, 'value'));
-% set(hObject, 'Value', t);
-% set(handles.trackLabel, 'String', ['Track ' num2str(t)]);
-% 
-% selMask = ~isnan(handles.selectedTrack);
-% handles.selectedTrack(selMask) = t;
-% 
-% % if track not visible, jump to first frame
-% t = handles.tracks{1}(t);
-% if handles.f < t.start || handles.f > t.end
-%     handles.f = t.start;
-%     % set frame number
-%     set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
-%     % set frame slider
-%     set(handles.frameSlider, 'Value', handles.f);
-% end
-% 
-% setappdata(hfig, 'handles', handles);
-% 
-% refreshFrameDisplay(hfig);
-% refreshTrackDisplay(hfig);
-
-
 
 
 
@@ -1315,9 +1243,10 @@ end
 % end
 % 
 % fprintf([' done. Figures saved in ' getShortPath(handles.data) filesep 'Figures.\n']);
-% 
-% 
-% 
+
+
+
+
 % function movieButton_Callback(~, ~, hfig)
 % 
 % handles = getappdata(hfig, 'handles');
@@ -1333,8 +1262,10 @@ end
 %     'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
 %     'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
 %     'Displaytype', handles.trackMode, 'Colormap', handles.colorMap{handles.mCh});
-% 
-% 
+
+
+
+
 % function keyListener(src, evnt)
 % 
 % handles = getappdata(src, 'handles');
@@ -1379,11 +1310,8 @@ end
 % set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
 % % set frame slider
 % set(handles.frameSlider, 'Value', handles.f);
-% 
-% setappdata(src, 'handles', handles);
-% 
-% refreshFrameDisplay(src);
-% refreshTrackDisplay(src);
+
+
 
 function [ha, hl] = setupStackViewer(hf, dims, addLegend)
 if nargin<3
