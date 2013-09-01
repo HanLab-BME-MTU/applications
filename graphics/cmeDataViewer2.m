@@ -39,6 +39,8 @@ nx = data.imagesize(2);
 ny = data.imagesize(1);
 nf = data.movieLength;
 
+lcolor = hsv2rgb([0.55 0.5 0.8]);
+
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
@@ -319,6 +321,17 @@ if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && i
     X = NaN(nf, np);
     Y = NaN(nf, np);
     G = false(nf, np);
+    % for significance values, store vectors
+    mvec = [tracks.hval_Ar];
+    if isfield(tracks, 'significantVsBackground')
+        svec = [tracks.significantVsBackground];
+    else
+        svec = [];
+    end
+    fvec = [tracks.f];
+    xvec = [tracks.x];
+    yvec = [tracks.y];
+   
     % vector of start indexes since multiple segments/track
     tidx = cumsum([1 nseg(1:end-1)]);
     
@@ -333,7 +346,7 @@ if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && i
             Y(tracks(t).f, tidx(t)) = tracks(t).y(1,:);
             G(tracks(t).f, tidx(t)) = tracks(t).gapVect;
             mu_x(t) = nanmean(X(:,tidx(t)));
-            mu_y(t) = nanmean(Y(:,tidx(t)));
+            mu_y(t) = nanmean(Y(:,tidx(t)));           
         else
             sep = find(isnan(tracks(t).t));
             sep = [0 sep numel(tracks(t).f)+1]; %#ok<AGROW>
@@ -411,21 +424,21 @@ for c = 1:nCh
     hxy(c) = imagesc(stack{c}(:,:,handles.f), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
     hold(handles.fAxes(c,1), 'on');
     set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
-    hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'r', 'HitTest', 'off');
-    hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'r', 'HitTest', 'off');
+    hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
+    hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off');
     
     % y,z view
     hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
     hold(handles.fAxes(c,2), 'on');
     % line in y,z view
-    hl(c,3) = plot(handles.fAxes(c,2), handles.f*[1 1], [0.5 ny+0.5], 'r');
+    hl(c,3) = plot(handles.fAxes(c,2), handles.f*[1 1], [0.5 ny+0.5], 'Color', lcolor);
     hold(handles.fAxes(c,2), 'off');
     
     % x,z view
     hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
     hold(handles.fAxes(c,3), 'on');
     % line in x,z view
-    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], handles.f*[1 1], 'r');
+    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], handles.f*[1 1], 'Color', lcolor);
     hold(handles.fAxes(c,3), 'off');
     
     arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
@@ -495,10 +508,15 @@ end
 %===============================================================================
 set(hfig, 'WindowScrollWheelFcn', @scroll_Callback);
 set(hfig, 'KeyPressFcn', @key_Callback);
-set(zoom, 'ActionPostCallback', @czoom);
+
 hpan = pan;
 set(hpan,'ActionPreCallback',@panstart);
 set(hpan,'ActionPostCallback',@panstop);
+
+hz = zoom;
+set(hz, 'ActionPostCallback', @czoom);
+% setAxesZoomMotion(hz, handles.tAxes, 'horizontal');
+% linkaxes(handles.tAxes, 'x');
 
 
 %===============================================================================
@@ -563,19 +581,19 @@ set(hpan,'ActionPostCallback',@panstop);
         
         switch displayType
             case 'raw'                
-                for c = 1:nCh
-                    set(hxy(c), 'CData', stack{c}(:,:,hi.f));
+                for ci = 1:nCh
+                    set(hxy(ci), 'CData', stack{ci}(:,:,hi.f));
                 end
             case 'mask'
                 set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,hi.f), dmask(:,:,hi.f), [1 0 0], dRange{1}));
-                for c = 2:nCh
-                    set(hxy(c), 'CData', stack{c}(:,:,hi.f));
+                for ci = 2:nCh
+                    set(hxy(ci), 'CData', stack{ci}(:,:,hi.f));
                 end
             case 'RGB'
                 rframe = zeros(ny,nx,3,'uint8');
                 idxRGB = getRGBindex(data.markers);
-                for c = 1:nCh
-                    rframe(:,:,idxRGB(c)) = uint8(scaleContrast(double(stack{c}(:,:,hi.f)), dRange{c}));
+                for ci = 1:nCh
+                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,hi.f)), dRange{ci}));
                 end
                 set(hxy(1), 'CData', rframe);
         end
@@ -610,13 +628,20 @@ set(hpan,'ActionPostCallback',@panstop);
                 dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==hi.f), 'unif', 0);
                 dcoord = vertcat(dcoord{:});
                 hps = [hps; plot(hi.fAxes(1,1), dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1)];
+            end            
+            hst = plot(hi.fAxes(1,1), X(hi.f, tstruct.idx==hi.t),...
+                Y(hi.f, tstruct.idx==hi.t), 'ws', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+        end
+        if ~isempty(tracks) && get(eapCheckbox, 'Value')
+            for ci = 2:nCh
+                sel = fvec==hi.f & mvec(ci,:)==1;
+                hp1 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([1/3 1 0.9]), 'MarkerSize', 8);
+                sel = fvec==hi.f & mvec(ci,:)==0 & svec(ci,:)==1;
+                hp2 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([0.55 1 0.9]), 'MarkerSize', 8);
+                sel = fvec==hi.f & mvec(ci,:)==0 & svec(ci,:)==0;
+                hp3 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', 0.8*[1 1 1], 'MarkerSize', 8);
+                hps = [hps; hp1; hp2; hp3]; %#ok<AGROW>
             end
-            if get(eapCheckbox, 'Value')
-                
-            end
-            
-            hst = plot(hi.fAxes(c,1), X(hi.f, tstruct.idx==hi.t),...
-                Y(hi.f, tstruct.idx==hi.t), 'ws', 'MarkerSize', 10);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
         end
         
         delete(hpd); % clear previous plots
@@ -647,9 +672,9 @@ set(hpan,'ActionPostCallback',@panstop);
                 idxRGB = getRGBindex(data.markers);
                 tframe = zeros(nf,nx,3,'uint8');
                 lframe = zeros(ny,nf,3,'uint8');
-                for c = 1:nCh
-                    tframe(:,:,idxRGB(c)) = uint8(scaleContrast(double(squeeze(stack{c}(yi,:,:))'), dRange{c}));
-                    lframe(:,:,idxRGB(c)) = uint8(scaleContrast(double(squeeze(stack{c}(:,xi,:))), dRange{c}));
+                for ci = 1:nCh
+                    tframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(yi,:,:))'), dRange{ci}));
+                    lframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(:,xi,:))), dRange{ci}));
                 end
                 set(hxz(1), 'CData', tframe);
                 set(hyz(1), 'CData', lframe);
@@ -659,9 +684,9 @@ set(hpan,'ActionPostCallback',@panstop);
 %                     set(hxy(c), 'CData', stack{c}(:,:,hi.f));
 %                 end
             otherwise
-                for c = 1:nCh
-                    set(hyz(c), 'CData', squeeze(stack{c}(:,xi,:)));
-                    set(hxz(c), 'CData', squeeze(stack{c}(yi,:,:))');
+                for ci = 1:nCh
+                    set(hyz(ci), 'CData', squeeze(stack{ci}(:,xi,:)));
+                    set(hxz(ci), 'CData', squeeze(stack{ci}(yi,:,:))');
                 end
         end
     end
@@ -672,10 +697,11 @@ set(hpan,'ActionPostCallback',@panstop);
         if any(ci) %&& nCh>1 % x,y axes zoomed
             XLim = get(handles.fAxes(ci,1), 'XLim');
             YLim = get(handles.fAxes(ci,1), 'YLim');
-            set(handles.fAxes(~ci,1), 'XLim', XLim, 'YLim', YLim);
+            set(handles.fAxes(:,1), 'XLim', XLim, 'YLim', YLim);
             set(handles.fAxes(:,2), 'YLim', YLim);
             set(handles.fAxes(:,3), 'XLim', XLim);
         end
+        
     end
 
     % Pan functions
@@ -747,8 +773,8 @@ set(hpan,'ActionPostCallback',@panstop);
         
         
         % if ~isempty(handles.selectedTrack)
-        for c = 1:nCh
-            cla(handles.tAxes(c));
+        for ci = 1:nCh
+            cla(handles.tAxes(ci));
             if get(tplotBackgroundCheckbox, 'Value')
                 bgMode = 'zero';
             else
@@ -761,7 +787,7 @@ set(hpan,'ActionPostCallback',@panstop);
         %                 sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
         %             end
         %         end
-                topts = {'Handle', hi.tAxes(c), 'Time', 'Movie', 'BackgroundValue', bgMode};
+                topts = {'Handle', hi.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
         %         if get(handles.tplotScaleCheckbox, 'Value')
         %             topts = [topts, 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci)];
         %         end
@@ -776,7 +802,7 @@ set(hpan,'ActionPostCallback',@panstop);
         %             topts = [topts 'BackgroundConfidence', conf];
         %         end
 %                 ht = plot(hi.tAxes(c), rand(1,10));
-                plotTrack(data, tracks(hi.t), c, topts{:});
+                plotTrack(data, tracks(hi.t), ci, topts{:});
         %         box on;
         %
         %         % plot current frame position
@@ -947,21 +973,21 @@ set(hpan,'ActionPostCallback',@panstop);
         w = ceil(w*sigma);
         
         % coordinate matrices
-        xv = tracks(t).x;
-        yv = tracks(t).y;
+        x0 = tracks(t).x;
+        y0 = tracks(t).y;
         
         % start and end buffer sizes
         if ~isempty(tracks(t).startBuffer)
             sb = numel(tracks(t).startBuffer.t);
-            xv = [tracks(t).startBuffer.x xv];
-            yv = [tracks(t).startBuffer.y yv];
+            x0 = [tracks(t).startBuffer.x x0];
+            y0 = [tracks(t).startBuffer.y y0];
         else
             sb = 0;
         end
         if ~isempty(tracks(t).endBuffer)
             eb = numel(tracks(t).endBuffer.t);
-            xv = [xv tracks(t).endBuffer.x];
-            yv = [yv tracks(t).endBuffer.y];
+            x0 = [x0 tracks(t).endBuffer.x];
+            y0 = [y0 tracks(t).endBuffer.y];
         else
             eb = 0;
         end
@@ -972,8 +998,8 @@ set(hpan,'ActionPostCallback',@panstop);
         
         
         if tracks(t).nSeg==1 && strcmpi(reference, 'track') % align frames to track
-            xi = round(xv(handles.mCh,:));
-            yi = round(yv(handles.mCh,:));
+            xi = round(x0(handles.mCh,:));
+            yi = round(y0(handles.mCh,:));
             % ensure that window falls within frame bounds
             x0 = xi - min([xi-1 w]);
             x1 = xi + min([nx-xi w]);
@@ -984,8 +1010,8 @@ set(hpan,'ActionPostCallback',@panstop);
             ya = arrayfun(@(i) y0(i):y1(i), 1:tnf, 'unif', 0);
         else
             % window around track mean
-            mu_x = round(nanmean(xv,2));
-            mu_y = round(nanmean(yv,2));
+            mu_x = round(nanmean(x0,2));
+            mu_y = round(nanmean(y0,2));
             x0 = max(1, min(mu_x)-w);
             x1 = min(data.imagesize(2), max(mu_x)+w);
             y0 = max(1, min(mu_y)-w);
@@ -995,9 +1021,9 @@ set(hpan,'ActionPostCallback',@panstop);
         end
         
         tstack = cell(nCh,tnf);
-        for c = 1:nCh
+        for ci = 1:nCh
             for k = 1:tnf
-                tstack{c,k} = stack{c}(ya{k}, xa{k}, tfi(k));
+                tstack{ci,k} = stack{ci}(ya{k}, xa{k}, tfi(k));
             end
         end
     end
@@ -1394,7 +1420,7 @@ else
 end
 if addLegend
     lpos = get(ha(3), 'Position');
-    lpos([1 3]) = [left 15/pos(3)];
+    lpos([1 3]) = [left+15/pos(3) 15/pos(3)];
     hl = axes('Position', lpos, 'Parent', hf);
 else
     hl = NaN;
