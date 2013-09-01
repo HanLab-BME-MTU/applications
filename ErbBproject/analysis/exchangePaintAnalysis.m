@@ -1,5 +1,5 @@
 function [ fullpath ] = exchangePaintAnalysis( dir, varargin )
-%exchangePaintAnalysisWrapper
+%exchangePaintAnalysis
 %   Takes a base directory and creates a list of .mat files that are
 %   associate with a single exchangePaint image, then aligns them and
 %   preforms some data analysis
@@ -81,6 +81,7 @@ n = numel(PointList);
 if doContin
 
     ContinuousAnalysis = cell(n);
+    Lr = cell([n,1]);
     
     %This loop calculates all the pairwise L(r) functions then modifies it to
     %the H(r) function H(r) = L(r) - r
@@ -90,6 +91,8 @@ if doContin
     r = 0.2:0.2:5.6;
     
     for i=1:n
+        %calculate Lr (self not cross)
+        Lr{i} = PointP_Lr_total(PointList{i}.com,r);
         for j =1:n
             %Computes Besag's L and then renormalizes it to the H statistic
             tmp = PointP_Lr_Cross(PointList{i}.com,PointList{j}.com,r);
@@ -147,7 +150,7 @@ for i=1:numel(clusterInfo)
 end
 
 %Appends the additional analysis to fullpath file
-    save(fullpath, 'clusterInfo','clusterMap','GeneralDiagnostic','ContinuousAnalysis','-append');
+    save(fullpath, 'clusterInfo','clusterMap','GeneralDiagnostic','ContinuousAnalysis','Lr','r','-append');
     
       
     
