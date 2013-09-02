@@ -185,15 +185,15 @@ for j = 2:num
     tmp = TwoToOne(1:s_test(1));
     
     if s_ref(1) > s_test(1)
-       tmp = OneToTwo(1:s_ref(1));
-       A = ref(tmp(tmp <= s_test(1)),:);
+       tmp = TwoToOne(1:s_test(1));
+       A = ref(tmp,:);
        B = test;
        [regParam,Bfit,ErrorStats]=absor(A',B');
        shift = mean(A-B);
     else
-        tmp = TwoToOne(1:s_test(1));
+        tmp = OneToTwo(1:s_ref(1));
         A= ref;
-        B=test(tmp(tmp <= s_ref(1)),:);
+        B=test(tmp,:);
        [regParam,Bfit,ErrorStats]=absor(A',B');
        shift = mean(A-B,1);
     end
