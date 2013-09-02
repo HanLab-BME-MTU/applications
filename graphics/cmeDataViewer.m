@@ -9,7 +9,7 @@
 
 % Francois Aguet, 2011 (last modified 08/24/2013)
 
-function cmeDataViewer2(data, varargin)
+function cmeDataViewer(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -237,7 +237,7 @@ pUnitType = 's';
 % Load movie and associated analysis results
 %===============================================================================
 % readfct = @(path, i) imread(path, i);
-tic;
+fprintf('Loading frames ... ');
 stack = cell(1,nCh);
 if ~iscell(data.framePaths{1})
     for c = 1:nCh
@@ -255,12 +255,12 @@ else
         end
     end
 end
-toc;
+fprintf('done.\n');
 
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-tic;
+fprintf('Loading detection masks ... ');
 dpath = [data.source 'Detection' filesep 'detection_v2.mat'];
 if exist(dpath, 'file')==2
     dmask = zeros(ny,nx,nf, 'uint8');
@@ -276,7 +276,7 @@ if exist(dpath, 'file')==2
 else
     dmask = [];
 end
-toc;
+fprintf('done.\n');
 %-------------------------------------------------------------------------------
 % Load detection files
 %-------------------------------------------------------------------------------
@@ -293,6 +293,7 @@ end
 %-------------------------------------------------------------------------------
 % Load tracks
 %-------------------------------------------------------------------------------
+fprintf('Loading tracks ... ');
 tracks = [];
 if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && ip.Results.LoadTracks
     tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5);
@@ -359,7 +360,7 @@ if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && i
     yunit = round(maxA ./ 10.^da) .* 10.^(da-1);
     maxA = ceil(maxA./yunit) .* yunit;
 end
-
+fprintf('done.\n');
 
 % dynamic range for each channel
 dRange = cell(1,nCh);
