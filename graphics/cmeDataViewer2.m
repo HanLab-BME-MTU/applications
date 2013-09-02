@@ -47,12 +47,9 @@ lcolor = hsv2rgb([0.55 0.5 0.8]);
 hfig = figure('Units', 'normalized', 'Position', [0.025 0.2 0.95 0.8],...
     'PaperPositionMode', 'auto', 'Toolbar', 'figure',...
     'Color', get(0,'defaultUicontrolBackgroundColor'),...
-    'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels', 'Name', getCellDir(data));
+    'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels', 'Name', [getDirFromPath(getExpDir(data)) filesep getCellDir(data)]);
 
 pos = get(hfig, 'Position'); % [pixels]
-
-% fixed width of the track plots, in pixels
-w = 320;
 
 %-------------------------------------------------------------------------------
 % Control panels at bottom of GUI
@@ -108,9 +105,9 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Seconds', 'Frames'},...
     'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
-    'Position', [5 20 120 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', {@refreshTracks_Callback, hfig});
+    'Position', [5 20 120 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
-    'Position', [5 5 120 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', {@refreshTracks_Callback, hfig});
+    'Position', [5 5 120 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 handles.tplotPanel = ph;
 
 
@@ -146,6 +143,9 @@ setappdata(hfig, 'handles', handles); % write 'handles' to hfig
 %===============================================================================
 % Set up frame display
 %===============================================================================
+% fixed width of the track plots, in pixels
+w = 320;
+
 tspace = 20;
 bspace = 100;
 lspace = 10;
@@ -164,7 +164,6 @@ if data.movieLength>1
 end
 % this definition (instead of regular callback) enable continuous sliding
 addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callback);
-
 
 
 %===============================================================================
@@ -194,12 +193,7 @@ spacer = 15;
             handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
             handles.tAxes(4) = axes(opts{:}, 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
     end
-%     for c = 1:nCh
-%         hold(handles.tAxes(c), 'on');
-%     end
-    set(handles.tAxes(1:end-1), 'XTickLabel', []);
-    xlabel(handles.tAxes(end), 'Time (s)');
-    
+
     handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
         'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
     
@@ -209,19 +203,6 @@ spacer = 15;
     % this definition (instead of regular callback) enable continuous sliding
     addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
 % end
-
-
-
-%     % populate with data, plotting functions are called only here, afterwards change data
-%     hf = zeros(nCh,1);
-%     for c = 1:nCh
-%         ybounds = get(handles.tAxes(c), 'YLim');
-%         hf(c) = plot(handles.tAxes(c), ([handles.f handles.f]-1)*data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1]);
-%     end
-
-  % plot "selected track" marker
-%     hst = plot(handles.fAxes(c,1), X(fi, tstruct.idx==handles.t),...
-%         Y(fi, tstruct.idx==handles.t), 'ws', 'MarkerSize', 10);
 
 
 handles.fAxes = zeros(nCh,3);
@@ -244,11 +225,12 @@ hps = []; % starts/ends
 hst = []; % selected track marker
 
 % handles for track plots
-ht = [];
+% ht = [];
 
 cmap = [];
 
 displayType = 'raw';
+pUnitType = 's';
 
 
 %===============================================================================
@@ -361,12 +343,21 @@ if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && i
         end
     end
     
-    % index 'label' mask
-    % [1 1 2 3 4 4 ... ] first two cols are from same track
+    % segment index
+    % Example: [1 1 2 3 4 4 ... ] first two cols are from same track
     idx = diff([tidx size(X,2)+1]);
     idx = arrayfun(@(i) i+zeros(1, idx(i)), 1:numel(idx), 'unif', 0);
     tstruct.idx = [idx{:}];
     tstruct.n = numel(tracks);
+    
+    % min/max track intensities
+    maxA = arrayfun(@(t) max(t.A, [], 2), tracks, 'unif', 0);
+    maxA = [maxA{:}];
+    maxA = prctile(maxA, 99, 2);
+    da = floor(log10(maxA));
+    % y-axis unit
+    yunit = round(maxA ./ 10.^da) .* 10.^(da-1);
+    maxA = ceil(maxA./yunit) .* yunit;
 end
 
 
@@ -377,9 +368,6 @@ for c = 1:nCh
 end
 hues = getFluorophoreHues(data.markers);
 rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), hues, 'unif', 0);
-
-% setappdata(hfig, 'handles', handles);
-
 
 
 %===============================================================================
@@ -460,6 +448,16 @@ end
 
 if ~isempty(tracks)
     updateTrack();
+    
+    % plot current frame marker
+    hf = zeros(nCh,1);
+    hst = zeros(1,nCh);
+    for c = 1:nCh
+        hf(c) = plot(handles.tAxes(c), ([handles.f handles.f]-1)*data.framerate,...
+            get(handles.tAxes(c), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
+        hst(c) = plot(hi.fAxes(c,1), X(hi.f, tstruct.idx==hi.t),...
+                    Y(hi.f, tstruct.idx==hi.t), 'ws', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+    end
 end
 
 % if ~isempty(ip.Results.Trajectories)
@@ -485,23 +483,9 @@ end
 %         else
 %             handles.bg95 = [];
 %         end
-%         
 %
-%         % min/max track intensities
-%         maxA = arrayfun(@(t) max(t.A, [], 2), handles.tracks{1}, 'unif', 0);
-%         maxA = [maxA{:}];
-%         handles.maxA = zeros(1,nCh);
-%         for c = 1:nCh
-%             [f_ecdf, x_ecdf] = ecdf(maxA(c,:));
-%             handles.maxA(c) = interp1(f_ecdf, x_ecdf, 0.975);
-%         end
-%         d = floor(log10(handles.maxA));
-%         % y-axis unit
-%         handles.yunit = round(handles.maxA ./ 10.^d) .* 10.^(d-1);
-%         handles.maxA = ceil(handles.maxA ./ handles.yunit) .* handles.yunit;
 %     end
 % end
-% handles.pUnitType = 's';
 
 %===============================================================================
 % Set listeners
@@ -602,14 +586,22 @@ set(hz, 'ActionPostCallback', @czoom);
         set(hl(:,4), 'YData', hi.f*[1 1]);        
         set(hi.frameLabel, 'String', ['Frame ' num2str(hi.f)]);
         
+        if ~isempty(tracks)
+            % update current frame marker in track plots
+            for ci = 1:nCh
+                set(hf(ci), 'XData', ([hi.f hi.f]-1)*data.framerate,...
+                    'YData', get(handles.tAxes(ci), 'YLim'));
+            end
+        end
+        
         delete(hpt);
         delete(hpg);
         delete(hps);
-        delete(hst);
+        %delete(hst);
         hpt = [];
         hpg = [];
         hps = [];
-        hst = [];
+        %hst = [];
         if ~isempty(tracks) && hi.f~=1 && get(trackCheckbox, 'Value')
             vidx = ~isnan(X(hi.f,:));
             delete(hpt);
@@ -628,9 +620,10 @@ set(hz, 'ActionPostCallback', @czoom);
                 dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==hi.f), 'unif', 0);
                 dcoord = vertcat(dcoord{:});
                 hps = [hps; plot(hi.fAxes(1,1), dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1)];
-            end            
-            hst = plot(hi.fAxes(1,1), X(hi.f, tstruct.idx==hi.t),...
-                Y(hi.f, tstruct.idx==hi.t), 'ws', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+            end
+            for ci = 1:nCh
+                set(hst(ci), 'XData', X(hi.f, tstruct.idx==hi.t), 'YData', Y(hi.f, tstruct.idx==hi.t));
+            end
         end
         if ~isempty(tracks) && get(eapCheckbox, 'Value')
             for ci = 2:nCh
@@ -737,18 +730,19 @@ set(hz, 'ActionPostCallback', @czoom);
         hi.f = f;
         setappdata(hfig, 'handles', hi);
         updateSlice();
-        % refreshTrackDisplay(hfig);
     end
 
 
     function trackSlider_Callback(~, eventdata)
         obj = get(eventdata, 'AffectedObject');
-        t = round(get(obj, 'Value'));
+        t0 = round(get(obj, 'Value'));
         hi = getappdata(hfig, 'handles');
-        hi.t = t;
+        hi.t = t0;
         setappdata(hfig, 'handles', hi);
         set(hi.trackLabel, 'String', ['Track ' num2str(t)]);
         
+        set(hst, 'XData', X(hi.f, tstruct.idx==t0), 'YData', Y(hi.f, tstruct.idx==t0));
+
         updateTrack();
         
         % if track not visible, jump to first frame
@@ -763,76 +757,72 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
-    function updateTrack()
+    function updateTrack(varargin)
         
         hi = getappdata(hfig, 'handles');
-        %delete(ht);
-        %tmp = allchild(handles.tAxes);
-        %delete(vertcat(tmp{:})); % also deletes labels etc.
+        itrack = tracks(hi.t);
         
-        
-        
-        % if ~isempty(handles.selectedTrack)
         for ci = 1:nCh
-            cla(handles.tAxes(ci));
+            %cla(handles.tAxes(ci));
+            hold(handles.tAxes(ci), 'off');
             if get(tplotBackgroundCheckbox, 'Value')
                 bgMode = 'zero';
             else
                 bgMode = 'data';
             end
-        %         if strcmpi(handles.pUnitType, 'f')
-        %             sTrack.t = sTrack.f;
-        %             if ~isempty(sTrack.startBuffer)
-        %                 sTrack.startBuffer.t = sTrack.f(1) - (numel(sTrack.startBuffer.t):-1:1);
-        %                 sTrack.endBuffer.t = sTrack.f(end) + (1:numel(sTrack.startBuffer.t));
-        %             end
-        %         end
-                topts = {'Handle', hi.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
-        %         if get(handles.tplotScaleCheckbox, 'Value')
-        %             topts = [topts, 'YTick', -handles.yunit(ci):handles.yunit(ci):handles.maxA(ci)];
-        %         end
-        %         if ~isempty(handles.bg95) && sTrack.catIdx<5
-        %             conf = handles.bg95(cx, sTrack.z(cx,:));
-        %             if ~isempty(sTrack.startBuffer)
-        %                 conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
-        %             end
-        %             if ~isempty(sTrack.endBuffer)
-        %                 conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
-        %             end
-        %             topts = [topts 'BackgroundConfidence', conf];
-        %         end
-%                 ht = plot(hi.tAxes(c), rand(1,10));
-                plotTrack(data, tracks(hi.t), ci, topts{:});
-        %         box on;
-        %
-        %         % plot current frame position
-        %         ybounds = get(h, 'YLim');
-        %         plot(h, ([handles.f handles.f]-1)*handles.data.framerate, ybounds, '--', 'Color', 0.7*[1 1 1], 'HandleVisibility', 'off');
-        %         hold(h, 'off');
-        %
-        %
-        %         dx = 0.03;
-        %         if isfield(sTrack, 'significantSignal')
-        %             s = sTrack.significantSignal;
-        %             if s(ci)==1
-        %                 slabel = 'yes';
-        %                 scolor = [0 0.8 0];
-        %             else
-        %                 slabel = 'no';
-        %                 scolor = [0.8 0 0];
-        %             end
-        %             text(1-dx, 1-dx,...
-        %                 ['Significant: ' slabel],...
-        %                 'Color', scolor, 'Units', 'normalized',...
-        %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-        %                 'Parent', handles.tAxes(ci));
-        %         end
+            if strcmpi(pUnitType, 'f')
+                itrack.t = itrack.f;
+                if ~isempty(itrack.startBuffer)
+                    itrack.startBuffer.t = itrack.f(1) - (numel(itrack.startBuffer.t):-1:1);
+                    itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
+                end
+            end
+            topts = {'Handle', hi.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
+            if get(tplotScaleCheckbox, 'Value')
+                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxA(ci)]; %#ok<AGROW>
+            end
+            
+            %if ~isempty(handles.bg95) && sTrack.catIdx<5
+            %    conf = handles.bg95(cx, sTrack.z(cx,:));
+            %    if ~isempty(sTrack.startBuffer)
+            %        conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
+            %    end
+            %    if ~isempty(sTrack.endBuffer)
+            %        conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
+            %    end
+            %    topts = [topts 'BackgroundConfidence', conf];
+            %end
+            plotTrack(data, itrack, ci, topts{:});
+            hold(handles.tAxes(ci), 'on');
+            %         dx = 0.03;
+            %         if isfield(sTrack, 'significantSignal')
+            %             s = sTrack.significantSignal;
+            %             if s(ci)==1
+            %                 slabel = 'yes';
+            %                 scolor = [0 0.8 0];
+            %             else
+            %                 slabel = 'no';
+            %                 scolor = [0.8 0 0];
+            %             end
+            %             text(1-dx, 1-dx,...
+            %                 ['Significant: ' slabel],...
+            %                 'Color', scolor, 'Units', 'normalized',...
+            %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+            %                 'Parent', handles.tAxes(ci));
+            %         end
+            
+            hf(ci) = plot(handles.tAxes(ci), ([hi.f hi.f]-1)*data.framerate,...
+                get(handles.tAxes(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
+            
+            set(handles.tAxes(1:end-1), 'XTickLabel', []);
+            
+            if strcmpi(pUnitType, 's')
+                xlabel(handles.tAxes(end), 'Time (s)');
+            else
+                xlabel(handles.tAxes(end), 'Frames');
+            end
         end
-        %
-        %     xlabel(h, ['Time (' handles.pUnitType ')']);
-        % end        
     end
-
 
     function trackChoice_Callback(~,~)
         str = cellstr(get(trackChoice, 'String'));
@@ -840,6 +830,18 @@ set(hz, 'ActionPostCallback', @czoom);
         setTrackColormap(str);
         setColorbar(str);
         updateSlice();
+    end
+
+
+    function unitChoice_Callback(varargin)       
+        contents = cellstr(get(tplotUnitChoice,'String'));
+        switch contents{get(tplotUnitChoice,'Value')}
+            case 'Seconds'
+                pUnitType = 's';
+            case 'Frames'
+                pUnitType = 'f';
+        end
+        updateTrack();
     end
 
 
@@ -889,7 +891,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function setColorbar(mode)        
-        lfont = {'FontName', 'Helvetica', 'FontSize', 13};
+        lfont = {'FontName', 'Helvetica', 'FontSize', 12};
         sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
         if ~isempty(tracks)
             switch mode
@@ -1051,7 +1053,77 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
+    function printButton_Callback(varargin)
+        % hObject    handle to printButton (see GCBO)
+        % eventdata  reserved - to be defined in a future version of MATLAB
+        % handles    structure with handles and user data (see GUIDATA)
+        %
+        fprintf('Printing figures ...');
+        hi = getappdata(hfig, 'handles');
+        
+        % Tracks
+        if ~isempty(tracks)
+            for ch = 1:nCh
+                plotTrack(data, tracks(hi.t), ch,...
+                    'FileName', ['track_' num2str(hi.t) '_ch' num2str(ch) '.eps'],...
+                    'Visible', 'off', 'DisplayMode', 'Print');
+            end
+            
+            if get(montageAlignCheckbox, 'Value')
+                ref = 'Track';
+            else
+                ref = 'Frame';
+            end
+            [tstack, xa, ya] = getTrackStack(hi.t, 6, ref);
+            fpath = [data.source 'Figures' filesep 'track_' num2str(hi.t) '_montage.eps'];
+                plotTrackMontage(tracks(hi.t), tstack, xa, ya, 'Labels', data.markers,...
+                    'Visible', 'off', 'epsPath', fpath,...
+                    'ShowMarkers', get(montageMarkerCheckbox, 'Value')==1,...
+                    'ShowDetection', get(montageDetectionCheckbox, 'Value')==1);
+        end
+        
+        % Frames
+        if strcmp(displayType, 'RGB')
+        %     if ~isempty(handles.tracks{handles.mCh}) && get(handles.('trackCheckbox'), 'Value')
+        %         idx = [handles.tracks{handles.mCh}.start]<=handles.f & handles.f<=[handles.tracks{handles.mCh}.end];
+        %     else
+        %         idx = [];
+        %     end
+        %     plotFrame(handles.data, handles.tracks{handles.mCh}(idx), handles.f, 1:min(handles.nCh,3),...
+        %         'iRange', dRange,...
+        %         'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
+        %         'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+        %         'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
+        %         'Colormap', handles.colorMap{handles.mCh}(idx,:), 'Print', 'on', 'Visible', 'off');
+        else
+            for ci = 1:nCh
+        %         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
+        %             detection = handles.detection{k}(f);
+        %         else
+        %             detection = [];
+        %         end
+                if ~isempty(tracks)
+        %             idx = [handles.tracks{c}.start]<=handles.f & handles.f<=[handles.tracks{c}.end];
+        %             plotFrame(handles.data, handles.tracks{c}(idx), handles.f, c,...
+        %                 'iRange', handles.dRange,...
+        %                 'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
+        %                 'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+        %                 'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
+        %                 'Colormap', handles.colorMap{c}(idx,:), 'Print', 'on', 'Visible', 'off');
+                else
+        %             plotFrame(handles.data, [], handles.f, c,...
+        %                 'iRange', handles.dRange,...
+        %                 'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
+        %                 'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
+        %                 'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
+        %                 'Print', 'on', 'Visible', 'off');
+                end
+            end
+        end
+        fprintf([' done. Figures saved in ' getShortPath(data) filesep 'Figures.\n']);
+    end
 end
+
 
 
 function figResize(src,~)
@@ -1133,6 +1205,7 @@ set(handles.trackLabel, 'Position', [pos(3)-70 pos(4)-20, 100 15]);
 set(handles.trackSlider, 'Position', [pos(3)-15 120 10 h_tot]);
 
 end
+
 
 
 function handles = setupFrameAxes(hfig, spos, N)
@@ -1223,102 +1296,6 @@ end
 
 
 
-%========================
-% Callback functions
-%========================
-function unitChoice_Callback(hObject, ~, hfig)
-handles = getappdata(hfig, 'handles');
-
-contents = cellstr(get(hObject,'String'));
-switch contents{get(hObject,'Value')}
-    case 'Seconds'
-        handles.pUnitType = 's';
-    case 'Frames'
-        handles.pUnitType = 'f';
-end
-setappdata(hfig, 'handles', handles);
-refreshTrackDisplay(hfig);
-
-end
-
-
-
-
-% % --- Executes on button press in printButton.
-% function printButton_Callback(~, ~, hfig)
-% % hObject    handle to printButton (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% fprintf('Printing figures ...');
-% handles = getappdata(hfig, 'handles');
-% 
-% % Tracks
-% selMask = ~isnan(handles.selectedTrack);
-% if ~isempty(selMask) && ~isempty(handles.tracks{selMask})
-%     sTrack = handles.tracks{selMask}(handles.selectedTrack(selMask));
-%     for ch = 1:handles.nCh
-%         plotTrack(handles.data, sTrack, ch,...
-%             'FileName', ['track_' num2str(handles.selectedTrack(selMask)) '_ch' num2str(ch) '.eps'],...
-%             'Visible', 'off', 'DisplayMode', 'Print');
-%     end
-%     
-%     if get(handles.montageAlignCheckbox, 'Value')
-%         ref = 'Track';
-%     else
-%         ref = 'Frame';
-%     end
-%     itrack = handles.tracks{handles.mCh}(handles.selectedTrack(1));
-%     [stack, xa, ya] = getTrackStack(handles.data, itrack, 'WindowWidth', 6, 'Reference', ref);
-%     fpath = [handles.data.source 'Figures' filesep 'track_' num2str(handles.selectedTrack(1)) '_montage.eps'];
-%     plotTrackMontage(itrack, stack, xa, ya, 'Labels', handles.data.markers,...
-%         'Visible', 'off', 'epsPath', fpath,...
-%         'ShowMarkers', get(handles.montageMarkerCheckbox, 'Value')==1,...
-%         'ShowDetection', get(handles.montageDetectionCheckbox, 'Value')==1);
-% end
-% 
-% % Frames
-% if strcmp(handles.displayType, 'RGB')
-%     if ~isempty(handles.tracks{handles.mCh}) && get(handles.('trackCheckbox'), 'Value')
-%         idx = [handles.tracks{handles.mCh}.start]<=handles.f & handles.f<=[handles.tracks{handles.mCh}.end];
-%     else
-%         idx = [];
-%     end
-%     plotFrame(handles.data, handles.tracks{handles.mCh}(idx), handles.f, 1:min(handles.nCh,3),...
-%         'iRange', dRange,...
-%         'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
-%         'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-%         'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
-%         'Colormap', handles.colorMap{handles.mCh}(idx,:), 'Print', 'on', 'Visible', 'off');
-% else
-%     for c = 1:handles.nCh
-%         if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
-%             detection = handles.detection{k}(f);
-%         else
-%             detection = [];
-%         end
-%         if ~isempty(handles.tracks{c})
-%             idx = [handles.tracks{c}.start]<=handles.f & handles.f<=[handles.tracks{c}.end];
-%             plotFrame(handles.data, handles.tracks{c}(idx), handles.f, c,...
-%                 'iRange', handles.dRange,...
-%                 'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
-%                 'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-%                 'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
-%                 'Colormap', handles.colorMap{c}(idx,:), 'Print', 'on', 'Visible', 'off');
-%         else
-%             plotFrame(handles.data, [], handles.f, c,...
-%                 'iRange', handles.dRange,...
-%                 'Mode', handles.displayType, 'DisplayType', handles.trackMode,...
-%                 'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
-%                 'ShowGaps', get(handles.gapCheckbox, 'Value')==1, 'Detection', detection,...
-%                 'Print', 'on', 'Visible', 'off');
-%         end
-%     end
-% end
-% 
-% fprintf([' done. Figures saved in ' getShortPath(handles.data) filesep 'Figures.\n']);
-
-
 
 
 % function movieButton_Callback(~, ~, hfig)
@@ -1336,7 +1313,6 @@ end
 %     'ShowEvents', get(handles.trackEventCheckbox, 'Value')==1,...
 %     'ShowGaps', get(handles.gapCheckbox, 'Value')==1,...
 %     'Displaytype', handles.trackMode, 'Colormap', handles.colorMap{handles.mCh});
-
 
 
 
