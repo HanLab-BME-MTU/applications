@@ -1045,8 +1045,8 @@ if strcmp(handles.displayType, 'RGB')
         'Colormap', handles.colorMap{handles.mCh}(idx,:), 'Print', 'on', 'Visible', 'off');
 else
     for c = 1:handles.nCh
-        if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{k})
-            detection = handles.detection{k}(f);
+        if get(handles.('detectionCheckbox'), 'Value') && ~isempty(handles.detection{c})
+            detection = handles.detection{c}(handles.f);
         else
             detection = [];
         end
