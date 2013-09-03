@@ -88,16 +88,29 @@ end
 
 opts = {'Overwrite', ip.Results.Overwrite};
 
+%-------------------------------------------------------------------------------
+% 1) Detection
+%-------------------------------------------------------------------------------
 runDetection(data, 'SigmaSource', ip.Results.GaussianPSF, opts{:});
+cmap = plotPSNRDistribution(data, 'Pool', false);
 
+%-------------------------------------------------------------------------------
+% 2) Tracking
+%-------------------------------------------------------------------------------
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
-runTrackProcessing(data, opts{:});
 
+%-------------------------------------------------------------------------------
+% 3) Track processing
+%-------------------------------------------------------------------------------
+runTrackProcessing(data, opts{:});
 if numel(data(1).channels)>1
     runSlaveChannelClassification(data, opts{:}, 'np', 5000);
 end
 
+%-------------------------------------------------------------------------------
+% 4) Lifetime analysis
+%-------------------------------------------------------------------------------
 chNames = ip.Results.ChannelNames;
 if isempty(chNames)
     chNames = data(1).markers;
@@ -108,15 +121,13 @@ if ip.Results.PlotAll
 else
     display = 'off';
 end
+lopts = {'Display', display, 'RemoveOutliers', true, 'Colormap', cmap, 'DisplayMode', ip.Results.DisplayMode,...
+    'SlaveNames', chNames(2:end), 'FirstNFrames', ip.Results.FirstNFrames, 'Overwrite', ip.Results.Overwrite};
 if isempty(ip.Results.ControlData)
-    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
-        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end),...
-        'FirstNFrames', ip.Results.FirstNFrames);
+    res.lftRes = runLifetimeAnalysis(data, lopts{:});
 else
-    res.lftRes = runLifetimeAnalysis(data, 'RemoveOutliers', true,...
-        'Display', display, opts{:}, 'DisplayMode', ip.Results.DisplayMode, 'SlaveNames', chNames(2:end),...
-        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold,...
-        'FirstNFrames', ip.Results.FirstNFrames);
+    res.lftRes = runLifetimeAnalysis(data, lopts{:},...
+        'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
 end
 
 % Graphical output
