@@ -15,6 +15,7 @@ ip.addParamValue('DisplayScaling', false, @islogical);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('AmplitudeCorrectionFactor', []);
 ip.addParamValue('Mask', false, @islogical);
+ip.addParamValue('Colormap', []);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
@@ -184,7 +185,7 @@ for c = 1:nCh
     if rescale(c)
         %maxA(c,:) = arrayfun(@(i) nanmax(i.A(:,:,c),[],2), lftData, 'UniformOutput', false);
         [a, offset, refIdx] = scaleEDFs(maxA(c,:), 'Display', ip.Results.DisplayScaling,...
-            'FigureName', ['Ch. ' num2str(c) ' scaling']);
+            'FigureName', ['Ch. ' num2str(c) ' scaling'], 'Colormap', ip.Results.Colormap);
         av(c,:) = a;
         movieLength = min([data.movieLength]);
         for i = 1:nd
