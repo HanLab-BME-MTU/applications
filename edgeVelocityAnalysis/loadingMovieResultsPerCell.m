@@ -28,7 +28,7 @@ for iCell = 1:nCell
     if exist(filePath,'file')
         
         aux         = load(filePath);
-        if sum(isfield(aux.analysisResults.data,{'excludedWin','includedWin','winInterval'})) == 3
+        if sum(isfield(aux.analysisResults.data,{'excludedWin','includedWin','winInterval','scaling'})) == 4
             out{iCell}     = aux.analysisResults;
         end
         

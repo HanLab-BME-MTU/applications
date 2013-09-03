@@ -146,14 +146,27 @@ for iCell = 1:nCell
     
     
     currMD  = ML.movies_{iCell};
-    
-    if scale
+     
+    if ~isfield(cellData{iCell}.data,'scaling')
+        cellData{iCell}.data.scaling = false;
+    end
         
-        if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-            error(['Movie' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
+        
+    if xor(scale,cellData{iCell}.data.scaling)
+        
+        if scale
+            
+            if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+                error(['Movie ' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
+            end
+            
+            scaling = (currMD.pixelSize_/currMD.timeInterval_);
+        
+        else
+            
+            scaling = (currMD.timeInterval_/currMD.pixelSize_);
+            
         end
-        
-        scaling = (currMD.pixelSize_/currMD.timeInterval_);
         
     end
     
