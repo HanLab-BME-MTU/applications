@@ -13,6 +13,7 @@ ip.addParamValue('XSpace', [1.5 0.75 0.5]);
 ip.addParamValue('YSpace', [1.5 0.75 0.5]);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.addParamValue('InsetPosition', []);
+ip.addParamValue('Name', '');
 ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
@@ -83,7 +84,7 @@ if c<1
 end
 
 hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',...
-    'Units', units, 'Position', fpos, 'Units', 'pixels');
+    'Units', units, 'Position', fpos, 'Units', 'pixels', 'Name', ip.Results.Name);
 
 ha = zeros(na,1);
 x0 = zeros(na,1);
