@@ -268,7 +268,6 @@ function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,i
 %       dataSet    - averages and CI for the data set
 %
 nCell = numel(cellData);
-total = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
 cc    = 1;
 
 for iCell = find(idx)
@@ -288,6 +287,8 @@ nInter  = cellfun(@(x) numel(x),interval);
 if sum(rem(nInter,nInter(1))) == 0
     
     for iInt = 1:numel(interval{1})
+        
+        total = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
         
         for iCell = 1:nCell
             
