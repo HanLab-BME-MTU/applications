@@ -41,6 +41,7 @@ ip.addParamValue('PoolDatasets', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('SelectIndex', [], @iscell);
 ip.addParamValue('SlaveNames', []);
+ip.addParamValue('Colormap', jet(numel(data)));
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -52,6 +53,7 @@ slaveNames = ip.Results.SlaveNames;
 if isempty(slaveNames)
     slaveNames = data(1).markers(setdiff(1:numel(data(1).channels),mCh));
 end
+cmap = ip.Results.Colormap;
 
 % median absolute deviation -> standard deviation
 madFactor = 1/norminv(0.75, 0, 1);
@@ -72,10 +74,11 @@ res = struct([]);
 [lftData, outlierIdx] = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
     'ReturnValidOnly', false, 'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Cutoff_f', cutoff_f,...
     'Scale', ip.Results.Rescale, 'DisplayScaling', any(strcmpi(ip.Results.Display, {'on','all'})),...
-    'RemoveOutliers', ip.Results.RemoveOutliers, 'Mask', true,...
+    'RemoveOutliers', ip.Results.RemoveOutliers, 'Mask', true, 'Colormap', ip.Results.Colormap, ...
     'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData);
 if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
+    cmap(outlierIdx,:) = [];
 end
 
 if ip.Results.PoolDatasets
@@ -153,7 +156,7 @@ fprintf('\n');
 % Threshold
 %====================
 if isempty(ip.Results.MaxIntensityThreshold)
-    A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'UniformOutput', false);
+    A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'unif', 0);
     A = vertcat(A{:});
     lft = vertcat(lftData.lifetime_s);
    
@@ -293,9 +296,11 @@ end
 %====================
 if any(strcmpi(ip.Results.Display, {'on','all'}))
     
-    ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 0.5], 'YSpace', [2 1 0.5]);
+    ha = setupFigure(1,3, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
+        'XSpace', [3 0.5 0.5], 'YSpace', [4 1 0.5], 'Name', 'Density statistics');
     fset = loadFigureSettings('');
-    XTickLabel = arrayfun(@(i) getCellDir(i), data, 'unif', 0);
+    set(ha, 'FontSize', 12);
+    XTickLabel = arrayfun(@getMovieName, data, 'unif', 0);
     XTickLabel(outlierIdx) = [];
     barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
         [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
@@ -305,37 +310,36 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     hl = legend(ha(1), 'All tracks', 'Valid tracks');
     set(hl, fset.tfont{:});
     
-    plot(ha(2), lftRes.cellArea, 'k.', 'MarkerSize', 10);
+    scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
     ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
     set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
     rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
-    formatTickLabels(ha);
+    
+    scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
+    ylabel(ha(3), '# valid tracks', fset.lfont{:});
+    set(ha(3), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    rotateXTickLabels(ha(3), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+    
+    formatTickLabels(ha(1:2));
     
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-    
-    ha = setupFigure(1,1, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 0.5], 'YSpace', [2 1 0.5]);
-    plot(lftRes.nSamples_Ia, 'k.', 'MarkerSize', 10);
-    ylabel('# valid tracks', fset.lfont{:});
-    set(ha, 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
-    rotateXTickLabels(ha, 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
-    %formatTickLabels();
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
     
 
     % plot cumulative lifetime distributions
     t = lftRes.t;
     med = zeros(nd,1);
-    cvec = hsv(nd);
     
-    ha = setupFigure(1,2, 'SameAxes', true, 'AxesWidth', 10, 'AxesHeight', 7.5, 'XSpace', [2 1 1], 'YSpace', [2 1 1]);
+    ha = setupFigure(1,2, 'SameAxes', true, 'AxesWidth', 10, 'AxesHeight', 7.5,...
+        'XSpace', [2 1 1], 'YSpace', [2 1 1], 'Name', 'Cumulative lifetime distributions');
     hp = zeros(nd,1);
     
     % all structures
     edf = cumsum(lftRes.lftHist_Ia,2)*framerate;
     % plot(ha(1), [0 200], 0.75*[1 1], 'k--');
     for k = 1:nd
-        hp(k) = plot(ha(1), lftRes.t, edf(k,:), 'Color', cvec(k,:));
+        hp(k) = plot(ha(1), lftRes.t, edf(k,:), 'Color', cmap(k,:));
         [~,idx] = unique(edf(k,:));
         med(k) = interp1(edf(k,idx), t(idx), 0.75);
     end
@@ -346,7 +350,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     % CCPs
     edf = cumsum(lftRes.lftHistCCP,2)*framerate;
     for k = 1:nd
-        hp(k) = plot(ha(2), lftRes.t, edf(k,:), 'Color', cvec(k,:));
+        hp(k) = plot(ha(2), lftRes.t, edf(k,:), 'Color', cmap(k,:));
         [~,idx] = unique(edf(k,:));
         med(k) = interp1(edf(k,idx), t(idx), 0.75);
     end
@@ -391,7 +395,7 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
     ya = 0:0.02:0.1;
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-    set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    set(gca, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'unif', 0)]);
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
     
@@ -407,7 +411,7 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'k', 'LineWidth', 2);
     axis([0 60 0 0.035]);
     ya = 0:0.01:0.04;
-    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'unif', 0)]);
     
     
     lftCDF = cumsum(mean(vertcat(lftRes.lftHist_Ia),1))*framerate;
@@ -421,7 +425,7 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     plot(lftRes.t, meanHist, 'k', 'LineWidth', 1.5, 'HandleVisibility', 'off');
     ya = 0:0.02:0.1;
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
-    set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    set(gca, fset.axOpts{:}, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'unif', 0)]);
     xlabel('Lifetime (s)', fset.lfont{:});
     ylabel('Frequency', fset.lfont{:});
     [mu,~,Aexp] = fitExpToHist(lftRes.t, meanHist);
@@ -440,7 +444,7 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     plot(lftRes.t, lftCDF, 'k', 'LineWidth', 1.5);
     plot([0 lft50], [0.5 0.5], 'k--', 'LineWidth', 1);
     ya = 0:0.25:1;
-    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'UniformOutput', false)]);
+    set(gca, 'FontSize', 7, 'TickLength', fset.TickLength/zf, 'XTick', 0:20:200, 'YTick', ya, 'YTickLabel', ['0' arrayfun(@(x) num2str(x, '%.2f'), ya(2:end), 'unif', 0)]);
     axis([0 min(120, lftRes.t(end)) 0 ya(end)]);
     ylabel('Cumulative freq.', fset.sfont{:});
     
@@ -470,8 +474,8 @@ if ip.Results.Print
     else
         fpath = [fpath{1} 'Figures' filesep];
         [~,~] = mkdir(fpath);
-        print(hf(1), '-depsc2', [fpath 'trackClassDistribution.eps']);
-        print(hf(2), '-depsc2', [fpath 'meanLftHist_classes.eps']);
-        print(hf(3), '-depsc2', [fpath 'gapStatistics.eps']);
+        %print(hf(1), '-depsc2', [fpath 'trackClassDistribution.eps']);
+        %print(hf(2), '-depsc2', [fpath 'meanLftHist_classes.eps']);
+        %print(hf(3), '-depsc2', [fpath 'gapStatistics.eps']);
     end
 end
