@@ -13,7 +13,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('RefSamples', []);
 ip.addParamValue('Display', false, @islogical);
-ip.addParamValue('Color', []);
+ip.addParamValue('Colormap', []);
 ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('FigureName', 'EDF scaling');
 ip.addParamValue('XTick', []);
@@ -111,18 +111,19 @@ if ip.Results.Display
     end
     lw = 1;
     
-    [~,idxa] = sort(a);
-    [~,idxa] = sort(idxa);
-    
-    colorV = ip.Results.Color;
+    colorV = ip.Results.Colormap;
     if isempty(colorV)
-        colorV = hsv(nd);
+        colorV = jet(nd+1);
+        [~,idxa] = sort([a(1:refIdx-1) 1 a(refIdx:end)]);
+        [~,idxa] = sort(idxa);
         colorV = colorV(idxa,:);
     end
+    plotIdx = [1:refIdx-1 refIdx+1:nd+1];
         
-    ha = setupFigure(2,1, 'SameAxes', true,'YSpace', [1.5 1.05 1]);
+    [ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', 'print', 'YSpace', [1.5 1.05 1]);
+    set(hf, 'Name', ip.Results.FigureName);
     for i = nd:-1:1
-        plot(x{i}, F{i}, '-', 'Color', colorV(i,:), 'LineWidth', lw, 'Parent', ha(1));
+        plot(x{i}, F{i}, '-', 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(1));
     end
     %hp = plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(1));
     hp = plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(1));
@@ -135,7 +136,7 @@ if ip.Results.Display
     %plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(2));
     plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(2));
     for i = nd:-1:1
-        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(i,:), 'LineWidth', lw, 'Parent', ha(2));
+        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(2));
     end
     axis(ha, [0 T99 0 1.01]);
     set(ha, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
