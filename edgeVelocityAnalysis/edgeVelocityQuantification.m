@@ -133,6 +133,9 @@ trend       = ip.Results.trendType;
 gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
 
+if numel(interval) == 1
+   interval = repmat(interval,1,nCell);
+end
 
 %% Formatting Time Series
 operations = {'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',true,'outputPath',outputPath,'fileName',fileName};
