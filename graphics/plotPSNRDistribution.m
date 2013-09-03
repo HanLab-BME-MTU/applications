@@ -2,7 +2,7 @@
 
 % Francois Aguet, 12/18/12
 
-function ha = plotPSNRDistribution(data, varargin)
+function varargout = plotPSNRDistribution(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -19,29 +19,33 @@ ha = ip.Results.ha;
 nd = numel(data);
 psnr = cell(1,nd);
 parfor i = 1:nd
-    psnr{i} = getPSNRDistribution(data(i), 'Mode', ip.Results.Mode);
+    psnr{i} = getPSNRDistribution(data(i), 'Mode', ip.Results.Mode); %#ok<PFBNS>
 end
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
 if isempty(ha)
-    figure(fset.fOpts{:});
+    figure(fset.fOpts{:}, 'Name', 'PSNR distribution');
     ha = axes(fset.axOpts{:}, 'xscale', 'log');
     hold on;
 end
 % PSNR values, in [dB]
 dx = 0.2;
 xi = 10.^((0:dx:30)/10);
+
+cmap = jet(nd);
+[~,idx] = sort(cellfun(@median, psnr), 'ascend');
+cmap = cmap(idx,:);
+
 if ~ip.Results.Pool
-    cmap = jet(nd);
-    [~,idx] = sort(cellfun(@median, psnr));
+    
     hp = zeros(1,nd);
     for i = 1:numel(data)
         fi = hist(psnr{i}, xi)/numel(psnr{i});
         hp(i) = plot(xi, fi, '-', 'Color', cmap(i,:), 'LineWidth', 1);
     end
-    ltext = arrayfun(@(x) getCellDir(x), data, 'unif', 0);
+    ltext = arrayfun(@getMovieName, data, 'unif', 0);
     hl = legend(hp(idx), ltext(idx));
-    set(hl, 'Interpreter', 'none', fset.tfont{:}, 'Box', 'off')
+    set(hl, 'Interpreter', 'none', fset.tfont{:}, 'Box', 'on', 'EdgeColor', 'w');
 else
     psnr = [psnr{:}];
     fi = hist(psnr, xi)/numel(psnr);
@@ -53,3 +57,10 @@ set(ha, 'XLim', ip.Results.XLim, 'XTick', 10.^(0:2), 'XTickLabel', {'1', '10', '
 xlabel('PSNR', fset.sfont{:});
 ylabel('Frequency', fset.sfont{:});
 formatTickLabels();
+
+if nargout>0
+    varargout{1} = cmap;
+end
+if nargout>1
+    varargout{2} = ha;
+end
