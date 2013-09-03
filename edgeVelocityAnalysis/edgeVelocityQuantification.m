@@ -170,6 +170,7 @@ for iCell = 1:nCell
         
     end
     
+    cellData{iCell}.data.scaling           = scale;
     cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
     cellData{iCell}.data.frameRate         = currMD.timeInterval_;
     cellData{iCell}.data.nFrames           = currMD.nFrames_;
