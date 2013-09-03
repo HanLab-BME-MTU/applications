@@ -272,9 +272,11 @@ end
 
 A = cell(nCh,nc);
 if ip.Results.ShowPct && nCh>2
-    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.5 3.5], 'SameAxes', true);
+    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.5 3.5],...
+        'SameAxes', true, 'Name', 'Intensity cohorts');
 else
-    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.75 0.5], 'SameAxes', true);
+    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.75 0.5],...
+        'SameAxes', true, 'Name', 'Intensity cohorts');
 end
 
 for a = 1:na
