@@ -18,6 +18,7 @@ ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 
 ip.addParamValue('FigureName', 'EDF scaling');
 ip.addParamValue('XTick', []);
 ip.addParamValue('XLabel', 'Max. fluo. intensity (A.U.)', @ischar);
+ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 refSamples = ip.Results.RefSamples;
 
@@ -104,7 +105,7 @@ end
 %----------------------
 if ip.Results.Display
     
-    fset = loadFigureSettings('print');
+    fset = loadFigureSettings(ip.Results.DisplayMode);
     if ~isempty(ip.Results.XTick)
         xa = ip.Results.XTick;
         T99 = xa(end);
@@ -120,12 +121,12 @@ if ip.Results.Display
     end
     plotIdx = [1:refIdx-1 refIdx+1:nd+1];
         
-    [ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', 'print', 'YSpace', [1.5 1.05 1]);
+    %[ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', 'print', 'YSpace', [1.5 1.05 1]);
+    [ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', ip.Results.DisplayMode);
     set(hf, 'Name', ip.Results.FigureName);
     for i = nd:-1:1
         plot(x{i}, F{i}, '-', 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(1));
     end
-    %hp = plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(1));
     hp = plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(1));
     ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
@@ -133,7 +134,6 @@ if ip.Results.Display
     set(hl, 'Box', 'off', fset.sfont{:});%, 'Position', [5 6 1.5 1]);
     
     % plot scaled distributions
-    %plot(xRef, FRef, 'k', 'LineWidth', lw, 'Parent', ha(2));
     plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(2));
     for i = nd:-1:1
         plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(2));

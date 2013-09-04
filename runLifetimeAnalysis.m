@@ -296,8 +296,8 @@ end
 %====================
 if any(strcmpi(ip.Results.Display, {'on','all'}))
     
-    ha = setupFigure(1,3, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
-        'XSpace', [3 0.5 0.5], 'YSpace', [4 1 0.5], 'Name', 'Density statistics');
+    ha = setupFigure(2,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
+        'XSpace', [3 0.5 0.5], 'YSpace', [4 1 0.5], 'Name', 'Track statistics');
     fset = loadFigureSettings('');
     set(ha, 'FontSize', 12);
     XTickLabel = arrayfun(@getMovieName, data, 'unif', 0);
@@ -307,7 +307,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
         'XTickLabel', XTickLabel, 'Interpreter', 'none',...
         'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2], 'Handle', ha(1), 'AdjustFigure', false);
     ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
-    hl = legend(ha(1), 'All tracks', 'Valid tracks');
+    hl = legend(ha(1), ' All tracks', ' Valid tracks');
     set(hl, fset.tfont{:});
     
     scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
@@ -320,19 +320,87 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     set(ha(3), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
     rotateXTickLabels(ha(3), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
+    
+    scatter(ha(4), 1:nd, arrayfun(@(i) sum([i.catIdx_all]==4), lftData), 50, fset.ceTrackClasses(4,:), 'o', 'fill', 'MarkerEdgeColor', 'k');
+    scatter(ha(4), 1:nd, arrayfun(@(i) sum([i.catIdx_all]==8), lftData), 50, fset.ceTrackClasses(8,:), 'o', 'fill', 'MarkerEdgeColor', 'k');
+
+    ylabel(ha(4), '# persistent tracks', fset.lfont{:});
+    set(ha(4), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    hl = legend(ha(4), 'Single tracks', 'Compound tracks', 'Location', 'NorthWest');
+    set(hl, 'Box', 'off');
+    rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+        
+    
     formatTickLabels(ha(1:2));
     
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
     
+    
+    % gap statistics
+    ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
+        'XSpace', [3 0.5 0.5], 'YSpace', [2 1 0.5], 'Name', 'Gap statistics');
+    set(ha, 'FontSize', 12);
+    
+    % 1) #gaps/track
+    ngaps = cell(1,nd);
+    for k = 1:nd
+        ngaps{k} = sum(lftData(k).gapMat_Ia, 2);
+    end
+    maxGaps = max(vertcat(ngaps{:}));
+    xi = 1:maxGaps;
+    for k = 1:nd
+        %stairsXT(xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Parent', ha(1), 'EdgeColor', cmap(k,:));
+        plot(ha(1), xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Color', cmap(k,:));
+    end    
+    hl = legend(ha(1), XTickLabel, 'Interpreter', 'none', 'Location', 'NorthEast');
+    set(hl, 'Box', 'off');
+    
+    xlabel(ha(1), '# gaps', fset.lfont{:});
+    ylabel(ha(1), '% of tracks', fset.lfont{:});
+    
+    % 2) gap length
+    gapLengths = cell(1,nd);
+    for k = 1:nd
+        cg = cumsum(lftData(k).gapMat_Ia, 2);
+        dx = [diff(lftData(k).gapMat_Ia, [], 2)==-1 zeros(size(lftData(k).gapMat_Ia,1),1)];
+        M = cg .* dx;
+        tmp = arrayfun(@(i) M(i,M(i,:)~=0), 1:size(M,1), 'unif', 0);
+        tmp = cellfun(@(i) diff([0 i]), tmp, 'unif', 0);
+        gapLengths{k} = [tmp{:}];
+    end
+    maxg = max([gapLengths{:}]);
+    xi = 1:maxg+1;
+    
+    for k = 1:nd
+        plot(ha(2), xi, hist(gapLengths{k}, xi)/numel(gapLengths{k}), '.-', 'Color', cmap(k,:));
+    end
+    set(ha(2), 'XLim', [0.5 maxg+1.5], 'XTick', 1:maxg+1);
+    xlabel(ha(2), 'Gap length (frames)', fset.lfont{:});
+    ylabel(ha(2), '% of gaps', fset.lfont{:});
+    
+    formatTickLabels(ha(1))
+    
+    % 3) #gaps as % of track vs. lifetime
+    %for k = 1:nd
+    %    ngaps{k} = ngaps{k} ./ lftData(k).trackLengths;
+    %    scatter(ha(2), lftData(k).lifetime_s, ngaps{k}, 50, cmap(k,:), 'o', 'fill', 'MarkerEdgeColor', 'k');
+    %end
+    %xi = linspace(min(vertcat(ngaps{:})), max(vertcat(ngaps{:})), 10);
+    %for k = 1:nd
+    %    plot(ha(2), xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Color', cmap(k,:));    
+    %end
 
+    
+    
     % plot cumulative lifetime distributions
     t = lftRes.t;
     med = zeros(nd,1);
     
     ha = setupFigure(1,2, 'SameAxes', true, 'AxesWidth', 10, 'AxesHeight', 7.5,...
         'XSpace', [2 1 1], 'YSpace', [2 1 1], 'Name', 'Cumulative lifetime distributions');
+    set(ha, 'FontSize', 12);
     hp = zeros(nd,1);
     
     % all structures
