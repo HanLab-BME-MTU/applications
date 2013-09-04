@@ -34,7 +34,7 @@ ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('LineStyle', '-');
 ip.addParamValue('Hues', []);
-ip.addParamValue('DisplayMode', '');
+ip.addParamValue('DisplayMode', 'screen');
 ip.addParamValue('DisplayAll', false);
 ip.addParamValue('TrackIndex', []);
 ip.addParamValue('Cutoff_f', 5);
@@ -272,11 +272,11 @@ end
 
 A = cell(nCh,nc);
 if ip.Results.ShowPct && nCh>2
-    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.5 3.5],...
-        'SameAxes', true, 'Name', 'Intensity cohorts');
+    ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.5 3.5],...
+        'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
 else
-    ha = setupFigure(ah, aw, 'YSpace', [2 1 0.5], 'XSpace', [2 0.75 0.5],...
-        'SameAxes', true, 'Name', 'Intensity cohorts');
+    ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.75 0.5],...
+        'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
 end
 
 for a = 1:na

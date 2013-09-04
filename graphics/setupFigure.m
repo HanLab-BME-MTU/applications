@@ -7,10 +7,10 @@ ip.addOptional('nw', 1, @isposint);
 ip.addOptional('na', [], @isposint);
 ip.addParamValue('SameAxes', false, @islogical);
 ip.addParamValue('AspectRatio', []);
-ip.addParamValue('AxesWidth', 6);
-ip.addParamValue('AxesHeight', 3.5);
-ip.addParamValue('XSpace', [1.5 0.75 0.5]);
-ip.addParamValue('YSpace', [1.5 0.75 0.5]);
+ip.addParamValue('AxesWidth', []);
+ip.addParamValue('AxesHeight', []);
+ip.addParamValue('XSpace', []);
+ip.addParamValue('YSpace', []);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.addParamValue('InsetPosition', []);
 ip.addParamValue('Name', '');
@@ -22,32 +22,69 @@ if isempty(na) || na>nh*nw
     na = nh*nw;
 end
 
-w0 = ip.Results.AxesWidth + sum(ip.Results.XSpace);
-
+aw0 = ip.Results.AxesWidth;
 ah0 = ip.Results.AxesHeight;
-h0 = ah0 + sum(ip.Results.YSpace);
+XSpace = ip.Results.XSpace;
+YSpace = ip.Results.YSpace;
+
+switch ip.Results.DisplayMode
+    case 'print'
+        if isempty(aw0)
+            aw0 = 6;
+        end
+        if isempty(ah0)
+            ah0 = 3.5;
+        end
+        if isempty(XSpace)
+            XSpace = [1.5 0.75 0.5];
+        end
+        if isempty(YSpace)
+            YSpace = [1.5 0.75 0.5];
+        end
+        tickLength = [0.015 0.025];
+        axesFont = {'FontName', 'Helvetica', 'FontSize', 8};
+    case 'screen'
+        if isempty(aw0)
+            aw0 = 12;
+        end
+        if isempty(ah0)
+            ah0 = 7;
+        end
+        if isempty(XSpace)
+            XSpace = [2 1.5 1];
+        end
+        if isempty(YSpace)
+            YSpace = [2 1.5 1];
+        end
+        tickLength = [0.015 0.025]/2;
+        axesFont = {'FontName', 'Helvetica', 'FontSize', 12};
+end
+
+w0 = aw0 + sum(XSpace);
+
+h0 = ah0 + sum(YSpace);
 if ~isempty(ip.Results.AspectRatio)
-    ah0 = ip.Results.AspectRatio*ip.Results.AxesWidth;
+    ah0 = ip.Results.AspectRatio*aw0;
 end
 
 % default proportions: left/bottom: 1.5, width: 6, height: 3.5, top/right: 0.5
-aw = ip.Results.AxesWidth/w0;
-xl = ip.Results.XSpace(1)/w0; % left spacing (relative to single axes)
+aw = aw0/w0;
+xl = XSpace(1)/w0; % left spacing (relative to single axes)
 if ip.Results.SameAxes
-    xc = ip.Results.XSpace(2)/w0;  % spacing btw axes
+    xc = XSpace(2)/w0;  % spacing btw axes
 else
     xc = xl;
 end
-xr = ip.Results.XSpace(3)/w0;
+xr = XSpace(3)/w0;
 
 ah = ah0/h0;
-yb = ip.Results.YSpace(1)/h0;
+yb = YSpace(1)/h0;
 if ip.Results.SameAxes
-    yc = ip.Results.YSpace(2)/h0;
+    yc = YSpace(2)/h0;
 else
     yc = yb;
 end
-yt = ip.Results.YSpace(3)/h0;
+yt = YSpace(3)/h0;
 
 % width (relative to normalized single axes)
 w = xl + nw*aw + (nw-1)*xc + xr;
@@ -65,16 +102,9 @@ yb = yb/h;
 yc = yc/h;
 
 % resize figure window
-fset = loadFigureSettings(ip.Results.DisplayMode);
-fpos = fset.fPos;
-
+fpos = get(0, 'DefaultFigurePosition')/get(0,'ScreenPixelsPerInch')*2.54;
 fpos(3) = w*w0;
 fpos(4) = h*h0;
-if strcmpi(ip.Results.DisplayMode, 'print')
-    units = 'centimeters';
-else
-    units = 'pixels';
-end
 
 fposPx = fpos/2.54*get(0,'ScreenPixelsPerInch');
 fpos0 = get(0, 'ScreenSize');
@@ -84,7 +114,7 @@ if c<1
 end
 
 hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',...
-    'Units', units, 'Position', fpos, 'Units', 'pixels', 'Name', ip.Results.Name);
+    'Units', 'centimeters', 'Position', fpos, 'Units', 'pixels', 'Name', ip.Results.Name);
 
 ha = zeros(na,1);
 x0 = zeros(na,1);
@@ -92,7 +122,8 @@ y0 = zeros(na,1);
 hi = zeros(na,1);
 ipos = ip.Results.InsetPosition;
 if numel(ipos)==2
-    ipos = [ipos 0.95-ipos(1) 0.95-ipos(2)];
+    %ipos = [ipos 0.95-ipos(1) 0.95-ipos(2)];
+    ipos = [ipos 1-ipos(1) 1-ipos(2)];
 end
 for i = 1:na
     y0(i) = nh-ceil(i/nw);
@@ -113,10 +144,10 @@ if ip.Results.SameAxes
     set(ha(x0>0), 'YTickLabel', []);
 end
 
-set(ha, 'TickDir', 'out', 'TickLength', fset.TickLength*6/max(ip.Results.AxesWidth, ah0),...
-    'LineWidth', 1, 'Layer', 'top');
+set(ha, 'TickDir', 'out', 'TickLength', tickLength,...
+    'LineWidth', 1, 'Layer', 'top', axesFont{:});
 
 if ~isempty(ipos)
-    set(hi, 'TickDir', 'out', 'TickLength', fset.TickLength*max(aw,ah)/max(ipos(1)*pos(3), ipos(2)*pos(4)),...
+    set(hi, 'TickDir', 'out', 'TickLength', tickLength*max(aw,ah)/max(ipos(1)*pos(3), ipos(2)*pos(4)),...
     'LineWidth', 1, 'Layer', 'top');
 end
