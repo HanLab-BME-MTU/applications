@@ -23,6 +23,10 @@ function path = exchangePaintAlignment(list,name,varargin)
 %       dir, the directory to save the output file in. The default is the
 %            current directory
 %
+%       ImSize, image size in pixels used to center all data (384,384
+%               default). Warning if movie is not standard size this must
+%               be corrected for good results
+%
 %Output:
 %       path, returns the fullpath to the saved .mat file
 %
@@ -53,12 +57,14 @@ ip.addRequired('name',@ischar);
 ip.addOptional('pixelSize',62.81,@isscalar);
 ip.addOptional('ImageDisp',false,@islogical);
 ip.addOptional('dir',cd(),@ischar);
+ip.addOptional('ImSize',[384,384],@isnumeric);
 
 ip.parse(list,name,varargin{:});
 
 pixelSize = ip.Results.pixelSize;
 ImageDisp = ip.Results.ImageDisp;
 dir = ip.Results.dir;
+ImSize = ip.Results.ImSize;
 
 %Get a list of the .mat files in current directory
 %We assume that all files
@@ -82,7 +88,8 @@ for j=1:num
     load(list{j});
     
     track = reformTracksFinal(tracksFinal,500);
-        
+    
+    
     %Calculates average drift from all the drift markers
     ind = find(vertcat(track.isDrift));
     %MovieLength = MD.nFrames_;
@@ -148,66 +155,122 @@ for j=1:num
     
     end
         
+    %Creates a point list for each channel and shifts the center of the
+    %image to [0,0]
     PointList{j}.pnts = vertcat(track(vertcat(track.num) > MinTrackLen).coord);
+    PointList{j}.pnts(:,1:2) = PointList{j}.pnts(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.com = vertcat(track(vertcat(track.num) > MinTrackLen).com);
+    PointList{j}.com(:,1:2) = PointList{j}.com(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.com(:,1)),1]);
     PointList{j}.drift = drift;
     
     %makes a list of drift markers intial points
     dmark = zeros([numel(ind),2]);
     
     for i = 1:numel(ind)
-        dmark(i,:)=track(ind(i)).coord(1,1:2);
+        dmark(i,:)=track(ind(i)).coord(1,1:2) - (ImSize/2);
     end
     
+    %If drift markers at less than a pixel apart merge them
+    % in case gap closing doesn't handle them
+
+    merge = clusterdata(dmark,'cutoff',1,'criterion','distance');
+    
+    temp = [];
+    for l = unique(merge)'
+        li = find(merge == l);
+        temp = vertcat(temp,mean(dmark(li,:),1));
+    end
+    
+    
     %Stores drift mark intial positions after drift correcting
-    PointList{j}.dmark = dmark;
+    PointList{j}.dmark = temp;
 end    
 
 % Find the shift between movies using dmark
 % assumes x,y shifts only (no rotations or dialations)
 %
-% uses the first movie as a reference
+% uses the movie with most drift markers as a reference
 
-ref = PointList{1}.dmark;
-s_ref = size(ref);
-PointList{1}.shift = struct('regParam',[],'Bfit',[],'ErrorStats',[],'trans',[0,0],'clusterInfo',[],'clusterMap',[]);
-
-for j = 2:num
-    test = PointList{j}.dmark;
-    s_test = size(test);
-    dm = distMat2(ref,test);
-    
-    % Assigns drift markers in ref to markers in test
-    [OneToTwo,TwoToOne]=lap(dm,-1,0,1);
-    
-    %Finds the transform that reconciles the two sets of points
-    % is dependent on absor code
-    tmp = TwoToOne(1:s_test(1));
-    
-    if s_ref(1) > s_test(1)
-       tmp = TwoToOne(1:s_test(1));
-       A = ref(tmp,:);
-       B = test;
-       [regParam,Bfit,ErrorStats]=absor(A',B');
-       shift = mean(A-B);
-    else
-        tmp = OneToTwo(1:s_ref(1));
-        A= ref;
-        B=test(tmp,:);
-       [regParam,Bfit,ErrorStats]=absor(A',B');
-       shift = mean(A-B,1);
+k = 1:num;
+j_ref = 1;
+for j=k
+    if numel(PointList{j}.dmark(:,1)) > numel(PointList{j_ref}.dmark(:,1))
+        j_ref = j;
     end
+end
+
+k(j_ref)=[];
+
+ref = PointList{j_ref}.dmark;
+s_ref = size(ref);
+%PointList{j_ref}.shift = struct('regParam',struct('M',[1,0,0;0,1,0;0,0,1]),'Bfit',[],'ErrorStats',[],'trans',[0,0],'clusterInfo',[],'clusterMap',[]);
+PointList{j_ref}.shift = struct('transform',[],'preshift',[],'A',[],'B',[],'Postshift',ref);
+
+for j = k
+     test = PointList{j}.dmark;
+%     s_test = size(test);
+%     dm = distMat2(test,ref);
+%     
+%     % Assigns drift markers in ref to markers in test
+%     [OneToTwo,TwoToOne]=lap(dm,-1,0,1);
+%     
+%     %Finds the transform that reconciles the two sets of points
+%     % is dependent on absor code
+%     tmp = OneToTwo(1:s_test(1));
+%     A = ref(tmp,:);
+%     B = test;
+%     [regParam,Bfit,ErrorStats]=absor(A',B');
+%     shift = mean(A-B);
+%     
+
+%     if s_ref(1) > s_test(1)
+%        tmp = TwoToOne(1:s_test(1));
+%        A = ref(tmp,:);
+%        B = test;
+%        [regParam,Bfit,ErrorStats]=absor(A',B');
+%        shift = mean(A-B);
+%     else
+%         tmp = OneToTwo(1:s_ref(1));
+%         A= ref;
+%         B=test(tmp,:);
+%        [regParam,Bfit,ErrorStats]=absor(A',B');
+%        shift = mean(A-B,1);
+%     end
+
+    [shift,transform,A,B] = driftMarkerRegistration(test,ref,ImSize);
+    C = test*transform.T+transform.c;
+    PointList{j}.shift = struct('transform',transform,'preshift',shift,'A',A,'B',B,'Postshift',C);
     
-    PointList{j}.shift = struct('regParam',regParam,'Bfit',Bfit,'ErrorStats',ErrorStats,'trans',shift);
+    %PointList{j}.shift = struct('regParam',regParam,'Bfit',Bfit,'ErrorStats',ErrorStats,'trans',shift,'A',A,'B',B);
     
     %Applies Transform to the data
     
-    %just x,y translation for now
+    %only translation shifting first at the pixel resolution and then sub
+    %pixel
     tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
+    tmp = tmp - repmat(transform.trans,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.pnts=tmp(~isnan(tmp(:,1)),:);
     tmp = PointList{j}.com(:,1:2)+repmat(shift,[numel(PointList{j}.com(:,1)),1]);
+    tmp = tmp - repmat(transform.trans,[numel(PointList{j}.com(:,1)),1]);
     PointList{j}.com=tmp(~isnan(tmp(:,1)),:);
     
+    %x,y translation for now then general rotation + translation
+%     tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
+%     tmp = tmp*transform.T+repmat(transform.c(1,:),[numel(tmp(:,1)),1]);
+%     PointList{j}.pnts=tmp(~isnan(tmp(:,1)),:);
+%     tmp = PointList{j}.com(:,1:2)+repmat(shift,[numel(PointList{j}.com(:,1)),1]);
+%     tmp = tmp*transform.T+repmat(transform.c(1,:),[numel(tmp(:,1)),1]);
+%     PointList{j}.com=tmp(~isnan(tmp(:,1)),:);
+
+    %Rotation and translation using the Homogenous coordinate transform
+    %matrix produced by absor
+    
+%     tmp = (regParam.M*[PointList{j}.pnts(:,1:2),ones(size(PointList{j}.pnts(:,1)))]')';
+%     PointList{j}.pnts = [tmp(~isnan(tmp(:,1)),1:2), PointList{j}.pnts(~isnan(tmp(:,1)),3:end)];
+%     tmp = (regParam.M*[PointList{j}.com(:,1:2),ones(size(PointList{j}.com(:,1)))]')';
+%     PointList{j}.com=[tmp(~isnan(tmp(:,1)),1:2),PointList{j}.com(~isnan(tmp(:,1)),3:end)];
+
+
 %     %Applies mean shift tracking to one type of receptor/protein
 %     
 %     [clusterInfo,clusterMap]=MeanShiftClustering(PointList{j}.pnts(:,1:2),0.5,'kernel','flat');
@@ -219,10 +282,10 @@ end
 
  %Since all other Images are shifted to match this one, here only NaNs are
  %removed
- tmp = PointList{1}.pnts(:,1:2);
- PointList{1}.pnts=tmp(~isnan(tmp(:,1)),:);
- tmp = PointList{1}.com(:,1:2);
- PointList{1}.com=tmp(~isnan(tmp(:,1)),:);
+ tmp = PointList{j_ref}.pnts(:,1:2);
+ PointList{j_ref}.pnts=tmp(~isnan(tmp(:,1)),:);
+ tmp = PointList{j_ref}.com(:,1:2);
+ PointList{j_ref}.com=tmp(~isnan(tmp(:,1)),:);
 % [clusterInfo,clusterMap]=MeanShiftClustering(PointList{1}.pnts(:,1:2),0.5,'kernel','flat');
 % PointList{1}.clusterInfo = clusterInfo;
 % PointList{1}.clusterMap = clusterMap;
@@ -242,10 +305,14 @@ if ImageDisp
     figure;
     hold;
     for j=1:num
-        tmp=PointList{j}.dmark;
+        tmp = PointList{j}.dmark;
+        tmp2 = PointList{j}.shift.Postshift;
         ntmp = numel(tmp(:,1));
         scatter(tmp(:,1),tmp(:,2),[cmap{j},'x']);
-        scatter(tmp(:,1)+repmat(PointList{j}.shift.trans(1),[ntmp,1]),tmp(:,2)+repmat(PointList{j}.shift.trans(2),[ntmp,1]),[cmap{j},'s']);
+%         tmp2 = (PointList{j}.shift.regParam.M*[tmp(:,[2,1]),ones(size(tmp(:,1)))]')';
+%         scatter(tmp2(:,2),tmp2(:,1),[cmap{j},'s']);
+%        scatter(tmp(:,1)+repmat(PointList{j}.shift.trans(1),[ntmp,1]),tmp(:,2)+repmat(PointList{j}.shift.trans(2),[ntmp,1]),[cmap{j},'s']);
+        scatter(tmp2(:,2),tmp2(:,1),[cmap{j},'s']);
     end
     title('Drift Markers only')
 
