@@ -129,7 +129,9 @@ end
 s = getFluorPropStruct();
 s = {s.name};
 for c = 1:nCh
-    if ~any(strcmpi(markers{c}, s));
+    if isnumeric(markers{c}) && markers{c}>=350 && markers{c}<=750
+        markers{c} = 1e-9*markers{c};
+    elseif ~any(strcmpi(markers{c}, s));
         markers{c} = 1e-9*input(['Marker ''' markers{c} ''' not recognized, enter max. emission wavelength in [nm]: ']);
     end
 end
