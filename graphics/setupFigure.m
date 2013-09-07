@@ -1,3 +1,21 @@
+%[ha, hi, hf] = setupFigure(varargin) generates a multi-panel figure
+%
+% Optional inputs (first, second, third arguments):
+%      nh: number of rows
+%      nw: number of columns
+%      na: total number of axes
+%
+% Options (specifier, value pairs):
+%     SameAxes: true|{false} omits unnecessary tick labels if the data range
+%               is the same in all panels
+%    AxesWidth: width of each panel, in cm
+%   AxesHeight: height of each panel, in cm
+%
+% Example:
+% setupFigure(2,2,3) generates 3 panels in a 2x2 arrangement
+
+% Francois Aguet, 2013
+
 function [ha, hi, hf] = setupFigure(varargin)
 
 ip = inputParser;

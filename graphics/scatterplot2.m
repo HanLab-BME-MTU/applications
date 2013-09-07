@@ -1,3 +1,5 @@
+%scatterplot2(x, y, varargin) generates a scatter plot of inputs x and y and displays the correlation coefficient
+
 % Francois Aguet, August 2010
 
 function R = scatterplot2(x, y, varargin)

@@ -1,3 +1,13 @@
+%vennplot(a, b, ab) generates a Venn diagram for sets A and B
+%
+% Inputs: 
+%          a: A \ B
+%          b: B \ A
+%         ab: A n B
+%
+% Optional inputs:
+%     labels: cell array of labels for the two sets   
+
 % Francois Aguet, 04/28/2013
 
 function vennplot(a, b, ab, varargin)
@@ -7,10 +17,10 @@ ip.CaseSensitive = false;
 ip.addRequired('a');
 ip.addRequired('b');
 ip.addRequired('ab');
-ip.addOptional('labels', {'A', 'B'});
+ip.addOptional('labels', {'A', 'B'}, @(x) numel(x)==2);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Hues', [0.33 0.55]);
-ip.addParamValue('Handle', gca, @ishandle);
+ip.addParamValue('Parent', gca, @ishandle);
 ip.addParamValue('DisplayMode', '');
 ip.addParamValue('Font', []);
 ip.parse(a, b, ab, varargin{:});
@@ -76,7 +86,6 @@ function [r1, r2, d] = getVennParameters(a, b, ab)
 r1 = sqrt((a+ab)/pi);
 r2 = sqrt((b+ab)/pi);
 
-
 opts = optimset('Jacobian', 'off', ...
     'MaxFunEvals', 1e4, ...
     'MaxIter', 1e4, ...
@@ -93,4 +102,3 @@ a = r2^2*acos((d.^2+r2^2-r1^2)./(2*d*r2)) + r1^2*acos((d.^2+r1^2-r2^2)./(2*d*r1)
 
 function v = areaCost(d, r1, r2, a)
 v = abs(iArea(r1, r2, d) - a)/a;
-

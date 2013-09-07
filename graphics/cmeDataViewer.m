@@ -56,11 +56,15 @@ pos = get(hfig, 'Position'); % [pixels]
 %-------------------------------------------------------------------------------
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70]);
 
-uicontrol(ph, 'Style', 'text', 'String', 'Display: ',...
+uicontrol(ph, 'Style', 'text', 'String', 'Data display: ',...
     'Position', [5 40 60 20], 'HorizontalAlignment', 'left');
 frameChoice = uicontrol(ph, 'Style', 'popup',...
-    'String', {'Raw frames', 'Detection', 'RGB'},...
-    'Position', [65 42 120 20], 'Callback', @frameChoice_Callback);
+    'String', {'Raw', 'Detections', 'RGB'},...
+    'Position', [65 42 100 20], 'Callback', @frameChoice_Callback);
+
+maskCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Cell mask',...
+    'Position', [5 25 100 15], 'HorizontalAlignment', 'left',...
+    'Callback', @updateSlice);
 
 detectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Detections',...
     'Position', [200 45 100 15], 'HorizontalAlignment', 'left',...
@@ -721,11 +725,11 @@ set(hz, 'ActionPostCallback', @czoom);
     function frameChoice_Callback(varargin)
         contents = cellstr(get(frameChoice,'String'));
         switch contents{get(frameChoice,'Value')}
-            case 'Raw frames'
+            case 'Raw'
                 displayType = 'raw';
             case 'RGB'
                 displayType = 'RGB';
-            case 'Detection'
+            case 'Detections'
                 displayType = 'mask';
         end
         updateSlice();

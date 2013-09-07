@@ -1,3 +1,7 @@
+%plotTrackXY(data, track) generates a x-y plot for a given track, with time color-coded
+
+% Francois Aguet, 2012
+
 function plotTrackXY(data, track, varargin)
 
 ip = inputParser;
