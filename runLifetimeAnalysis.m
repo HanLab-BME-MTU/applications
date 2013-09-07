@@ -78,8 +78,9 @@ res = struct([]);
     'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData);
 if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
-    cmap(outlierIdx,:) = [];
 end
+cmap(outlierIdx,:) = [];
+
 
 if ip.Results.PoolDatasets
     pnames = {'lifetime_s', 'start', 'catIdx', 'A', 'lifetime_s_all', 'start_all', 'catIdx_all'};
@@ -297,17 +298,17 @@ end
 if any(strcmpi(ip.Results.Display, {'on','all'}))
     
     ha = setupFigure(2,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
-        'XSpace', [3 0.5 0.5], 'YSpace', [4 1 0.5], 'Name', 'Track statistics');
+        'XSpace', [3 3 0.5], 'YSpace', [4 1 1], 'Name', 'Track statistics');
     fset = loadFigureSettings('');
     set(ha, 'FontSize', 12);
     XTickLabel = arrayfun(@getMovieName, data, 'unif', 0);
     XTickLabel(outlierIdx) = [];
-    barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
+    hb = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
         [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
         'XTickLabel', XTickLabel, 'Interpreter', 'none',...
         'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2], 'Handle', ha(1), 'AdjustFigure', false);
     ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
-    hl = legend(ha(1), ' All tracks', ' Valid tracks');
+    hl = legend(ha(1), hb, ' All tracks', ' Valid tracks');
     set(hl, fset.tfont{:});
     
     scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
@@ -329,10 +330,8 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     hl = legend(ha(4), 'Single tracks', 'Compound tracks', 'Location', 'NorthWest');
     set(hl, 'Box', 'off');
     rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
-        
     
     formatTickLabels(ha(1:2));
-    
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
@@ -340,7 +339,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     
     % gap statistics
     ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
-        'XSpace', [3 0.5 0.5], 'YSpace', [2 1 0.5], 'Name', 'Gap statistics');
+        'XSpace', [3 3 0.5], 'YSpace', [2 1 0.5], 'Name', 'Gap statistics');
     set(ha, 'FontSize', 12);
     
     % 1) #gaps/track
@@ -351,12 +350,10 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     maxGaps = max(vertcat(ngaps{:}));
     xi = 1:maxGaps;
     for k = 1:nd
-        %stairsXT(xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Parent', ha(1), 'EdgeColor', cmap(k,:));
-        plot(ha(1), xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Color', cmap(k,:));
-    end    
+        plot(ha(1), xi, hist(ngaps{k}, xi)/numel(ngaps{k})*100, 'Color', cmap(k,:), 'LineWidth', 1);
+    end
     hl = legend(ha(1), XTickLabel, 'Interpreter', 'none', 'Location', 'NorthEast');
     set(hl, 'Box', 'off');
-    
     xlabel(ha(1), '# gaps', fset.lfont{:});
     ylabel(ha(1), '% of tracks', fset.lfont{:});
     
@@ -372,16 +369,14 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     end
     maxg = max([gapLengths{:}]);
     xi = 1:maxg+1;
-    
     for k = 1:nd
-        plot(ha(2), xi, hist(gapLengths{k}, xi)/numel(gapLengths{k}), '.-', 'Color', cmap(k,:));
+        plot(ha(2), xi, hist(gapLengths{k}, xi)/numel(gapLengths{k})*100, '.-',...
+            'Color', cmap(k,:), 'LineWidth', 1, 'MarkerSize', 12);
     end
     set(ha(2), 'XLim', [0.5 maxg+1.5], 'XTick', 1:maxg+1);
     xlabel(ha(2), 'Gap length (frames)', fset.lfont{:});
     ylabel(ha(2), '% of gaps', fset.lfont{:});
-    
-    formatTickLabels(ha(1))
-    
+        
     % 3) #gaps as % of track vs. lifetime
     %for k = 1:nd
     %    ngaps{k} = ngaps{k} ./ lftData(k).trackLengths;

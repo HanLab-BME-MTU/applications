@@ -41,8 +41,7 @@ switch ip.Results.DisplayMode
         if isempty(YSpace)
             YSpace = [1.5 0.75 0.5];
         end
-        tickLength = [0.015 0.025];
-        axesFont = {'FontName', 'Helvetica', 'FontSize', 8};
+        axesFont = {'FontName', 'Helvetica', 'FontSize', 10};
     case 'screen'
         if isempty(aw0)
             aw0 = 12;
@@ -56,9 +55,10 @@ switch ip.Results.DisplayMode
         if isempty(YSpace)
             YSpace = [2 1.5 1];
         end
-        tickLength = [0.015 0.025]/2;
         axesFont = {'FontName', 'Helvetica', 'FontSize', 12};
 end
+tickLength = [0.015 0.025]*6/aw0;
+
 
 w0 = aw0 + sum(XSpace);
 
@@ -70,10 +70,10 @@ end
 % default proportions: left/bottom: 1.5, width: 6, height: 3.5, top/right: 0.5
 aw = aw0/w0;
 xl = XSpace(1)/w0; % left spacing (relative to single axes)
-if ip.Results.SameAxes
-    xc = XSpace(2)/w0;  % spacing btw axes
-else
+if ~ip.Results.SameAxes && isempty(ip.Results.XSpace);
     xc = xl;
+else
+    xc = XSpace(2)/w0;  % spacing btw axes
 end
 xr = XSpace(3)/w0;
 
