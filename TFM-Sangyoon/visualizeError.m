@@ -1,4 +1,4 @@
-function []=visualizeError(f,d,dispDetec,imgPath,method)
+function []=visualizeError(f,d,dispDetec,imgPath,method,dispDetecMax)
 
 % make interpolated surface
 % dispDetec_interp   = csapi({f,d},mean(dispDetec,3));
@@ -25,12 +25,16 @@ elseif strcmp(method,'pcolor_with_level1line')
     shading interp
     hold on
     contour(d,f,meanDispDetec,[1 1],'LineWidth',3,'LineColor',[63/255,162/255,10/255]);
+    contour(d,f,meanDispDetec,[2 2],'LineWidth',3,'LineColor',[0/255,42/255,210/255]);
 elseif strcmp(method, 'contourf')
     contourf(d,f,meanDispDetec,0:0.1:1);%[1 1],'LineWidth',3,'LineColor',[63/255,162/255,10/255]);    
 else
     error('specify method with pcolor, pcolor_with_level1line or contourf')
 end
-dispDetecMax = max(meanDispDetec(:));
+
+if nargin<6
+    dispDetecMax = max(meanDispDetec(:));
+end
 caxis([0 dispDetecMax])
 colormap hot
 colorbar('location','eastoutside')

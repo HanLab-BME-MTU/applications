@@ -1,7 +1,11 @@
-function []=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,umax,w,h)
+function []=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,umax,quiverTrue,w,h)
 imSizeX = x_mat_u(end,end)-x_mat_u(1,1);
 imSizeY = y_mat_u(end,end)-y_mat_u(1,1);
 if nargin<7
+    quiverTrue=true;
+    w = imSizeX;
+    h = imSizeY;
+elseif nargin<8
     w = imSizeX;
     h = imSizeY;
 end
@@ -55,7 +59,9 @@ for ii=1:Npoints
     end
 end
 
-quiver(pos_vecx(inIdx)-xmin+1,pos_vecy(inIdx)-ymin+1,umat_vecx(inIdx)./dispScale,umat_vecy(inIdx)./dispScale,0,'Color',[75/255 0/255 130/255]);
+if quiverTrue
+    quiver(pos_vecx(inIdx)-xmin+1,pos_vecy(inIdx)-ymin+1,umat_vecx(inIdx)./dispScale,umat_vecy(inIdx)./dispScale,0,'Color',[75/255 0/255 130/255]);
+end
 
 % quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), umat_vecx./dispScale,umat_vecy./dispScale,0,'Color',[75/255 0/255 130/255]);
 

@@ -13,7 +13,7 @@ pFR_FDL1new = zeros(20,10,nExp);
 beadsOnAdhnew = zeros(nExp,1);
 cL = 15;%[9 15 21]
 % kk=0;
-% simulation for f and d (L2 with 10% noise, old tracking)
+% simulation for f and d (L1 with 10% noise, old tracking)
 for epm=1:nExp
     p=0;
     ii=0;
@@ -48,8 +48,10 @@ for epm=1:nExp
         end
     end
 end
-%% save
+%% save and plotting
 save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L1.mat')
+dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec';
+visualizeError(f,d,forceDetec_FDL1new,dataPath,'pcolor_with_level1line',10)
 %% Simulations - initialization  for f and d
 d_err_FDAdhL2new = zeros(20,10,nExp);
 d_err_FDBGL2new = zeros(20,10,nExp);
@@ -77,6 +79,42 @@ for epm=1:nExp
                     beadsOnAdhnew(epm)]= testSingleForceChange(d,dataPath,storagePath,'QR',1e-6);
         end
     end
+end
+%% save
+clear d_err_FDAdhL1new d_err_FDBGL1new f_err_FDADhL1new f_err_FDBGL1new dispDetec_FDL1new forceDetec_FDL1new pFR_FDL
+save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L2new.mat')
+%% reanalyze for L2
+d_err_FDAdhL2new = zeros(20,10,nExp);
+d_err_FDBGL2new = zeros(20,10,nExp);
+f_err_FDADhL2new = zeros(20,10,nExp);
+f_err_FDBGL2new = zeros(20,10,nExp);
+dispDetec_FDL2new = zeros(20,10,nExp);
+forceDetec_FDL2new = zeros(20,10,nExp);
+pFR_FDL2new = zeros(20,10,nExp);
+cL = 15;%[9 15 21]
+L=length(num2str(nExp));
+strg=sprintf('%%.%dd',L);
+backSpc =repmat('\b',1,L);
+% kk=0;
+% simulation for f and d (L2 with 10% noise, old tracking)
+for epm=1:nExp
+    fprintf(1,[strg ' ...'],epm);
+    p=0;
+    ii=0;
+    for f=200:200:4000 %Pa
+        ii=ii+1;
+        jj=0;
+        for d=2:2:20
+            jj=jj+1;
+            p=p+1;
+            dataPath=['/hms/scratch1/sh268/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'L1'];
+            storagePath=['/hms/scratch1/sh268/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'L2new'];
+            [d_err_FDAdhL2new(ii,jj,epm),d_err_FDBGL2new(ii,jj,epm),dispDetec_FDL2new(ii,jj,epm),...
+                    f_err_FDADhL2new(ii,jj,epm),f_err_FDBGL2new(ii,jj,epm),pFR_FDL2new(ii,jj,epm),forceDetec_FDL2new(ii,jj,epm),...
+                    beadsOnAdhnew(epm)]= analyzeSingleForceDataChange(d,dataPath,storagePath);
+        end
+    end
+    fprintf(1,[backSpc '\b\b\b\b']);
 end
 %% save
 clear d_err_FDAdhL1new d_err_FDBGL1new f_err_FDADhL1new f_err_FDBGL1new dispDetec_FDL1new forceDetec_FDL1new pFR_FDL
@@ -111,10 +149,11 @@ d=2:2:20;
 % dispDetec(:,:,1) = meshgrid(d,f);
 % dataPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/dispDetec';
 % visualizeError(f,d,dispDetec,dataPath)
-dataPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/forceDetec';
-visualizeError(f,d,forceDetec,dataPath,'pcolor_with_level1line')
-dataPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/f_vs_d/peakForceRatio';
-visualizeError(f,d,peakForceRatio,dataPath,'contourf')
+dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec';
+visualizeError(f,d,forceDetec_FDL1new,dataPath,'pcolor_with_level1line',100)
+
+dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/peakForceRatio';
+visualizeError(f,d,pFR_FDL1new,dataPath,'contourf')
 %% for old trackstackflow
 nExp = 10;
 d_err_old = zeros(10,nExp);

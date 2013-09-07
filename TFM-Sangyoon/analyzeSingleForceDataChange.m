@@ -1,34 +1,12 @@
-function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,peakForceRatio,forceDetec,beadsOnAdh] = analyzeSingleForceData(f,d,minCorLength,dataPath)
+function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForceErrorBG,...
+    peakForceRatio,forceDetec,beadsOnAdh] = analyzeSingleForceDataChange(d,dataPath,storagePath)
 %% single force experiment
 % input parameters to be replaced with function inputs
 % f=2000; %Pa
 % d=10;
 % minCorLength = 21;
-imgPath=[dataPath filesep 'Beads'];
-refPath=[dataPath filesep 'Reference'];
 orgPath=[dataPath filesep 'Original'];
 analysisFolder = dataPath;
-if ~exist(refPath,'dir') || ~exist(orgPath,'dir')
-    mkdir(imgPath);
-    mkdir(refPath);
-    mkdir(orgPath);
-end
-%% reference image (300x200)
-xmax=200;
-ymax=300;
-
-nPoints = 5000;
-% bead_r = 40; % nm
-% pixSize = 72e-9; % nm/pix 90x
-%% Now displacement field from given force
-E=8000;  %Young's modulus, unit: Pa
-meshPtsFwdSol=2^10;
-forceType = 'groupForce';
-
-gridSpacing = 1;
-xmin = gridSpacing;
-ymin = gridSpacing;
-
 %% loading original displacement field and force field
 load([orgPath filesep 'data.mat'],'ux','uy','x_mat_u','y_mat_u','bead_x','bead_ux','bead_y','bead_uy','force_x','force_y');
 
@@ -95,7 +73,8 @@ else
     end
 end
 % Load the forcefield
-forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
+% forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
+load([storagePath filesep 'TFMPackage/forceField/forcefield.mat'], 'forceField')
 
 % finding force at mesh location
 org_fx = zeros(size(forceField(1).pos(:,1)));

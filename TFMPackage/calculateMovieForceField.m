@@ -165,12 +165,12 @@ for i=1:nFrames
 % %         displField(i).vec =  [vecx vecy];
 %     end
 
-    posx=reshape(grid_mat(:,:,1),[],1);
-    posy=reshape(grid_mat(:,:,2),[],1);
-    displField(i).pos = [posx posy];
-    vecx=reshape(iu_mat(:,:,1),[],1);
-    vecy=reshape(iu_mat(:,:,2),[],1);
-    displField(i).vec =  [vecx vecy];
+%     posx=reshape(grid_mat(:,:,1),[],1);
+%     posy=reshape(grid_mat(:,:,2),[],1);
+%     displField(i).pos = [posx posy];
+%     vecx=reshape(iu_mat(:,:,1),[],1);
+%     vecy=reshape(iu_mat(:,:,2),[],1);
+%     displField(i).vec =  [vecx vecy];
 
     if strcmpi(p.method,'FastBEM')
         % If grid_mat=[], then an optimal hexagonal force mesh is created
@@ -205,8 +205,8 @@ for i=1:nFrames
                 % The following values should/could be stored for the BEM-method.
                 % In most cases, except the sol_coef this has to be stored only
                 % once for all frames!
-%                             disp(['saving forward map and force mesh at ' outputFile{2} '...'])
-%                             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+                    disp(['saving forward map and force mesh at ' outputFile{2} '...'])
+                    save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
                 
                 %             % Calculate L-curve
                 %             if ~strcmp(p.solMethodBEM,'QR')
