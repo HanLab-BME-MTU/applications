@@ -1,7 +1,13 @@
-% Montage of multichannel time-lapses with adjustable window size.
+% plotTrackMontage(track, stack) generates a montage of the individual frames of a track
 %
-% INPUT:   trackStack : cell array containing image frames
+% Inputs:   
+%    track : track data structure
+%    stack : cell array of image frames corresponding to the track
 %
+% Example:
+% [stack, xa, ya] = getTrackStack(data, track, 'WindowWidth', 6);
+% plotTrackMontage(track, stack, xa, ya, 'Labels', data.markers);
+
 % François Aguet (last modified 02/07/2012)
 
 function plotTrackMontage(track, trackStack, varargin)
