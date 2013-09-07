@@ -295,8 +295,25 @@ end
 %-------------------------------------------------------------------------------
 fprintf('Loading tracks ... ');
 tracks = [];
-if exist([data.source 'Tracking' filesep 'ProcessedTracks.mat'], 'file')==2 && ip.Results.LoadTracks
-    tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5);
+% identify track file
+fileList = dir([data.source 'Tracking' filesep 'ProcessedTracks*.mat']);
+fileList = {fileList.name};
+if numel(fileList)>1
+    idx = 0;
+    while ~(idx>=1 && idx<=numel(fileList) && round(idx)==idx)
+        fprintf('Tracking results found for this data set:\n');
+        for i = 1:numel(fileList)
+            fprintf('[%d] %s\n', i, fileList{i});
+        end
+        idx = str2double(input('Please enter the number of the set to load: ', 's'));
+    end
+    fileName = fileList{idx};
+else
+    fileName = fileList{1};
+end
+
+if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.LoadTracks
+    tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5, 'FileName', fileName);
     nt = numel(tracks);
     nseg = [tracks.nSeg];
     
@@ -1283,15 +1300,15 @@ switch numel(handles.fPanels)
     case 1
         set(handles.fPanels(1), 'Position', [lspace bspace width height]);
     case 2
-        if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
+        %if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-spacer)/2;
             set(handles.fPanels(1), 'Position', [lspace bspace width height]);
             set(handles.fPanels(2), 'Position', [lspace+width+spacer bspace width height]);
-        else % vertical
-            height = (height-spacer)/2;
-            set(handles.fPanels(1), 'Position', [lspace bspace+spacer+height width height]);
-            set(handles.fPanels(2), 'Position', [lspace bspace width height]);
-        end
+%         else % vertical
+%             height = (height-spacer)/2;
+%             set(handles.fPanels(1), 'Position', [lspace bspace+spacer+height width height]);
+%             set(handles.fPanels(2), 'Position', [lspace bspace width height]);
+%         end
     case 3
         width = (width-spacer)/2;
         height = (height-spacer)/2;
@@ -1365,15 +1382,15 @@ switch N
     case 1
         handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
     case 2
-        if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
+        %if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
             width = (width-spacer)/2;
             handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
             handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace+width+spacer bspace width height]);
-        else % vertical
-           height = (height-spacer)/2;
-           handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace+spacer+height width height]);
-           handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
-        end
+%         else % vertical
+%            height = (height-spacer)/2;
+%            handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace+spacer+height width height]);
+%            handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
+%         end
     case 3
         width = (width-spacer)/2;
         height = (height-spacer)/2;
