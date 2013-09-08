@@ -21,7 +21,8 @@ function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize
 %
 % Written by Jeffrey Werbin
 % HMS
-%           
+%   
+%
     
     s_d = size(drift);
     s_ref = size(drift_ref);
