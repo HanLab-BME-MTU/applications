@@ -24,7 +24,7 @@ ip = inputParser;
 
 ip.addRequired('dir',@ischar);
 
-ip.addOptional('display',false,@islogical);
+ip.addOptional('display',0,@isnumeric);
 ip.addOptional('pixelSize',62.81,@isnumeric);
 ip.addOptional('DoContinuous',true,@islogical);
 

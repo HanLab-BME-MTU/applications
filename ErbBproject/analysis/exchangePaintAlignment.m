@@ -55,9 +55,11 @@ ip.addRequired('name',@ischar);
 
 
 ip.addOptional('pixelSize',62.81,@isscalar);
-ip.addOptional('ImageDisp',false,@islogical);
+ip.addOptional('ImageDisp',0,@isnumeric);
 ip.addOptional('dir',cd(),@ischar);
 ip.addOptional('ImSize',[384,384],@isnumeric);
+ip.addOptional('Wavelenght',672,@isnumeric);
+ip.addOptional('NA',1.49,@isnumeric);
 
 ip.parse(list,name,varargin{:});
 
@@ -65,6 +67,11 @@ pixelSize = ip.Results.pixelSize;
 ImageDisp = ip.Results.ImageDisp;
 dir = ip.Results.dir;
 ImSize = ip.Results.ImSize;
+Wavelength = ip.Results.Wavelenght;
+NA = ip.Results.NA;
+
+%Calculate diffraction limit in pixels
+difLim = (Wavelength/(2*NA))/pixelSize;
 
 %Get a list of the .mat files in current directory
 %We assume that all files
@@ -170,10 +177,10 @@ for j=1:num
         dmark(i,:)=track(ind(i)).coord(1,1:2) - (ImSize/2);
     end
     
-    %If drift markers at less than a pixel apart merge them
+    %If drift markers at less than the diffraction limit apart merge them
     % in case gap closing doesn't handle them
 
-    merge = clusterdata(dmark,'cutoff',1,'criterion','distance');
+    merge = clusterdata(dmark,'cutoff',difLim,'criterion','distance');
     
     temp = [];
     for l = unique(merge)'
@@ -237,9 +244,11 @@ for j = k
 %        shift = mean(A-B,1);
 %     end
 
-    [shift,transform,A,B] = driftMarkerRegistration(test,ref,ImSize);
-    C = test*transform.T+transform.c;
-    PointList{j}.shift = struct('transform',transform,'preshift',shift,'A',A,'B',B,'Postshift',C);
+    [shift,transform,A,B] = driftMarkerRegistration(test,ref,ImSize,difLim);
+    TotalShift = shift + transform.trans;
+    C = test - repmat(TotalShift,[numel(test(:,1)),1]);
+    %C = test*transform.T+transform.c;    
+    PointList{j}.shift = struct('transform',transform,'preshift',shift,'A',A,'B',B,'Postshift',C,'TotalShift',TotalShift);
     
     %PointList{j}.shift = struct('regParam',regParam,'Bfit',Bfit,'ErrorStats',ErrorStats,'trans',shift,'A',A,'B',B);
     
@@ -299,7 +308,7 @@ save(path,'PointList','maxGap','MinTrackLen');
 
 cmap = [{'g'},{'r'},{'b'},{'c'},{'m'}];
 
-if ImageDisp
+if ImageDisp >0
 
     %first just the aligned tracking markers pre and post
     figure;
@@ -315,7 +324,8 @@ if ImageDisp
         scatter(tmp2(:,2),tmp2(:,1),[cmap{j},'s']);
     end
     title('Drift Markers only')
-
+  
+  if ImageDisp >1  
     figure;
     hold;
     for j=1:num
@@ -326,6 +336,7 @@ if ImageDisp
     end
     title('5 receptor image') 
     legend('EGFR','ErbB2','ErbB3','IGF1R','Met')
+  end
 
 end
 
