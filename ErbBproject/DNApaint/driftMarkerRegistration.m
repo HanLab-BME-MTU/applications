@@ -1,4 +1,4 @@
-function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize)
+function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize,difLim)
 % driftMarkerRegistration calculated interitively first through translation
 % only (image based) and then uses procrustus to determine the rotation and translational
 % shift. 
@@ -9,6 +9,9 @@ function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize
 %     drift_ref, m x 2 vector with drift marker locations in reference
 %                image with m >= n
 %        ImSize, image size of orginal image [npix,npix] must be square
+%
+%        difLim, The diffraction limit in pixels used to represent drift
+%                markers to accomidate minor alignment errors.
 %
 % Outputs:
 %         shift, the cumulative translation of points to be applied before
@@ -34,9 +37,10 @@ function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize
     bump= min(vertcat(drift,drift_ref),[],1);
     bump(bump > 0) = 0;
     
-    [img]=PointP_Plot2([drift-repmat(bump,[s_d(1),1]),ones(size(drift))],ImSize,1,10,'test',5);
+    % 2 times image size used to prevent problems from large shifts.
+    [img]=PointP_Plot2([drift-repmat(bump,[s_d(1),1]),difLim/2*ones(size(drift))],2*ImSize,1,10,'test',5);
     d_img = img(:,:,2);
-    [img]=PointP_Plot2([drift_ref-repmat(bump,[s_ref(1),1]),ones(size(drift_ref))],ImSize,1,10,'test',5);
+    [img]=PointP_Plot2([drift_ref-repmat(bump,[s_ref(1),1]),difLim/2*ones(size(drift_ref))],2*ImSize,1,10,'test',5);
     ref_img = img(:,:,2);
     
     C = xcorr2(d_img,ref_img);
