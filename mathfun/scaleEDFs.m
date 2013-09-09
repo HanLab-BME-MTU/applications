@@ -14,6 +14,7 @@ ip.CaseSensitive = false;
 ip.addOptional('RefSamples', []);
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('Colormap', []);
+ip.addParamValue('Legend', []);
 ip.addParamValue('Reference', 'med', @(x) isscalar(x) || any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('FigureName', 'EDF scaling');
 ip.addParamValue('XTick', []);
@@ -124,19 +125,25 @@ if ip.Results.Display
     %[ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', 'print', 'YSpace', [1.5 1.05 1]);
     [ha,~,hf] = setupFigure(2,1, 'SameAxes', true, 'DisplayMode', ip.Results.DisplayMode);
     set(hf, 'Name', ip.Results.FigureName);
+    hp = zeros(1,nd);
     for i = nd:-1:1
-        plot(x{i}, F{i}, '-', 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(1));
+        hp(plotIdx(i)) = plot(ha(1), x{i}, F{i}, '-', 'Color', colorV(plotIdx(i),:), 'LineWidth', lw);
     end
-    hp = plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(1));
+    hp(refIdx) = plot(ha(1), xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw);
     ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
-    hl = legend(hp, ' Median distr.', 'Location', 'SouthEast');
-    set(hl, 'Box', 'off', fset.sfont{:});%, 'Position', [5 6 1.5 1]);
-    
+    if ~isempty(ip.Results.Legend)
+        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none', 'hide');
+        legend(hl, 'hide');
+    else
+        hl = legend(hp(refIdx), ' Median distr.', 'Location', 'SouthEast');
+        set(hl, 'Box', 'off', fset.sfont{:});
+    end
+        
     % plot scaled distributions
-    plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(2));
+    hp(refIdx) = plot(xRef, FRef, 'Color', colorV(refIdx,:), 'LineWidth', lw, 'Parent', ha(2));
     for i = nd:-1:1
-        plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(2));
+        hp(plotIdx(i)) = plot(x{i}*a(i), c(i)+(1-c(i))*F{i}, 'Color', colorV(plotIdx(i),:), 'LineWidth', lw, 'Parent', ha(2));
     end
     axis(ha, [0 T99 0 1.01]);
     set(ha, 'YTick', 0:0.2:1, 'XLim', [0 T99]);
@@ -144,6 +151,10 @@ if ip.Results.Display
     xlabel(ip.Results.XLabel, fset.lfont{:});
     ylabel(ha(2), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(2));
+    if ~isempty(ip.Results.Legend)
+        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none', 'hide');
+        legend(hl, 'hide');
+    end
     
     % Plot inset with scales
     axPos = get(ha(2), 'Position');
