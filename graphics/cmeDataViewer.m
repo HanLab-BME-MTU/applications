@@ -586,24 +586,28 @@ set(hz, 'ActionPostCallback', @czoom);
                 if hi.f > 1
                     hi.f = hi.f - 1;
                     setappdata(hfig, 'handles', hi);
+                    set(hi.frameSlider, 'Value', hi.f);
                     updateSlice();
                 end
             case 'rightarrow'
                 if hi.f < nf
                     hi.f = hi.f + 1;
                     setappdata(hfig, 'handles', hi);
+                    set(hi.frameSlider, 'Value', hi.f);
                     updateSlice();
                 end
             case 'downarrow'
                 if hi.t > 1
                     hi.t = hi.t - 1;
                     setappdata(hfig, 'handles', hi);
+                    set(handles.trackSlider, 'Value', hi.t);
                     updateTrack();
                 end
             case 'uparrow'
                 if hi.t < nt
                     hi.t = hi.t + 1;
                     setappdata(hfig, 'handles', hi);
+                    set(handles.trackSlider, 'Value', hi.t);
                     updateTrack();
                 end                        
         end
