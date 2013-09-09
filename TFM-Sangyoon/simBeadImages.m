@@ -97,6 +97,7 @@ posFA = [   42.0000  323.0000
   383.0000  337.0000
   423.0000  352.0000
   432.0000  363.0000];
+%% displacement field
 
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
     @(x,y) assumedForceAniso2D(1,x,y,139,267,150,420,400/72,500/72,forceType)+...
@@ -462,18 +463,33 @@ posBG = [   42.0000  423.0000
   383+10.0000  337.0000
   423.0000  352+10.0000
   432+10.0000  363+10.0000];
+
+fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
+forground = fnorm_org>0;
+backgroundMaskfine = ~bwmorph(forground,'dilate',10);
+% tnormBG(:,:,jj) = tnormd(:,:,jj).*backgroundMaskfine(ygrid(1,1):ygrid(end,end),xgrid(1,1):xgrid(end,end));
+fErrBG=zeros(length(alphas),1);
+fErrFG=zeros(length(alphas),1);
+fErrBGmat = zeros(size(force_x,1),size(force_x,2),length(alphas));
+
 locMaxI_FA = posFA(:,2:-1:1);
 locMaxI_NA = posNA(:,2:-1:1);
 locMaxI_BG = posBG(:,2:-1:1);
 locMaxI_tot = [locMaxI_FA; locMaxI_NA; locMaxI_BG];
-%% merge them
+%% new force error calculation
 for i=1:length(alphas)
     [fx,fy,~,~]=calcForcesFromCoef(forceMesh,msparse(:,i),x_mat_u,y_mat_u,'new');
-    fErr(i)=sum(sqrt((diag(force_x(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
-        diag(fx(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2+...
-        (diag(force_y(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
-        diag(fy(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2));
-    disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErr(i))]);
+%     fErr(i)=sum(sqrt((diag(force_x(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
+%         diag(fx(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2+...
+%         (diag(force_y(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
+%         diag(fy(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2));
+    fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
+    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
+    fErrBGmat(:,:,i) = fErrBGmatTemp;
+    
+    fErrBG(i)=sum(fErrBGmatTemp(:));
+    fErrFG(i)=sum(fErrFGmatTemp(:));
+    disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
 end
 
 %% Find the corner of the Tikhonov L-curve for L1 0th
