@@ -228,6 +228,8 @@ hps = []; % starts/ends
 
 hst = []; % selected track marker
 
+hms = []; % cell mask
+
 % handles for track plots
 % ht = [];
 
@@ -280,6 +282,14 @@ if exist(dpath, 'file')==2
 else
     dmask = [];
 end
+
+if exist([data.source 'Detection' filesep 'cellmask.tif'], 'file')==2
+    cellMask = imread([data.source 'Detection' filesep 'cellmask.tif']);
+else
+    cellMask = [];
+end
+
+
 fprintf('done.\n');
 %-------------------------------------------------------------------------------
 % Load detection files
@@ -299,6 +309,7 @@ end
 %-------------------------------------------------------------------------------
 fprintf('Loading tracks ... ');
 tracks = [];
+bgA = [];
 % identify track file
 fileList = dir([data.source 'Tracking' filesep 'ProcessedTracks*.mat']);
 fileList = {fileList.name};
@@ -317,7 +328,19 @@ else
 end
 
 if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.LoadTracks
-    tracks = loadTracks(data, 'Category', 'all', 'Mask', false, 'Cutoff_f', 5, 'FileName', fileName);
+    tmp = load([data.source 'Tracking' filesep fileName]);
+    tracks = tmp.tracks;
+    if isfield(tmp, 'bgA')
+        bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA);
+    end
+    clear tmp;
+    cutoff_f = 5;
+    tracks = tracks([tracks.lifetime_s] >= data.framerate*cutoff_f);
+    [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
+    tracks = tracks(sortIdx);
+
+   % tracks = tracks([tracks.catIdx]==2);
+    
     nt = numel(tracks);
     nseg = [tracks.nSeg];
     
@@ -415,6 +438,9 @@ else
     set(hLegend, 'Visible', 'off');
     set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotScaleCheckbox], 'Enable', 'off');
 end
+if isempty(cellMask)
+    set(maskCheckbox, 'Enable', 'off');
+end
 
 if nCh==1
     set(eapCheckbox, 'Enable', 'off');
@@ -496,18 +522,6 @@ end
 %         tracks = loadTracks(data, 'Category', c);
 %     else
 %         tracks = ip.Results.Trajectories;
-%     end
-%     
-%     if ~isempty(tracks)
-%         handles.tracks{handles.mCh} = tracks;
-%         
-%         if exist([data.source 'Analysis' filesep 'BackgroundFits.mat'],'file')==2
-%             load([data.source 'Analysis' filesep 'BackgroundFits.mat']);
-%             handles.bg95 = bg95;
-%         else
-%             handles.bg95 = [];
-%         end
-%
 %     end
 % end
 
@@ -622,6 +636,13 @@ set(hz, 'ActionPostCallback', @czoom);
         set(hl(:,3), 'XData', hi.f*[1 1]);
         set(hl(:,4), 'YData', hi.f*[1 1]);        
         set(hi.frameLabel, 'String', ['Frame ' num2str(hi.f)]);
+        
+        delete(hms);
+        hms = [];
+        if ~isempty(cellMask) && get(maskCheckbox, 'Value')
+            B = bwboundaries(cellMask);
+            hms = cellfun(@(i) plot(handles.fAxes(1,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B);          
+        end
         
         if ~isempty(tracks)
             % update current frame marker in track plots
@@ -836,16 +857,16 @@ set(hz, 'ActionPostCallback', @czoom);
                 topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxA(ci)]; %#ok<AGROW>
             end
             
-            %if ~isempty(handles.bg95) && sTrack.catIdx<5
-            %    conf = handles.bg95(cx, sTrack.z(cx,:));
-            %    if ~isempty(sTrack.startBuffer)
-            %        conf = [handles.bg95(cx, sTrack.startBuffer.z(cx,:)) conf];
-            %    end
-            %    if ~isempty(sTrack.endBuffer)
-            %        conf = [conf handles.bg95(cx, sTrack.endBuffer.z(cx,:))];
-            %    end
-            %    topts = [topts 'BackgroundConfidence', conf];
-            %end
+            if ~isempty(bgA) && itrack.catIdx<5
+                conf = bgA(ci, itrack.f); 
+               if ~isempty(itrack.startBuffer)
+                   conf = [bgA(ci, itrack.startBuffer.f) conf]; %#ok<AGROW>
+               end
+               if ~isempty(itrack.endBuffer)
+                   conf = [conf bgA(ci, itrack.endBuffer.f)]; %#ok<AGROW>
+               end
+               topts = [topts 'BackgroundConfidence', conf]; %#ok<AGROW>
+            end
             plotTrack(data, itrack, ci, topts{:});
             hold(handles.tAxes(ci), 'on');
             %         dx = 0.03;
@@ -938,7 +959,6 @@ set(hz, 'ActionPostCallback', @czoom);
 
     function statsButton_Callback(varargin)
         if ~isempty(tracks)
-            %plotTrackClasses([tracks{mCh}.catIdx]);
             plotTrackClasses([tracks.catIdx]);
         end
     end
