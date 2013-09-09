@@ -1,9 +1,10 @@
-% Francois Aguet, 02/17/2012
-
+%[mask] = getCellMask(data, varargin)
+%
 % Notes: independent of the masking strategy, the detection must be run before
 
+% Francois Aguet, 02/17/2012
 
-function mask = getCellMask(data, varargin)
+function [mask] = getCellMask(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -13,7 +14,7 @@ ip.addParamValue('Channel', 1, @isposint);
 ip.addParamValue('Connect', true, @islogical);
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('ShowHistogram', false, @islogical);
-ip.addParamValue('ModeRatio', 0.6, @isscalar);
+ip.addParamValue('ModeRatio', 0.8, @isscalar);
 ip.addParamValue('Mode', 'intensity', @(x) any(strcmpi(x, {'intensity', 'density'})));
 ip.parse(data, varargin{:});
 
@@ -50,6 +51,7 @@ for i = 1:nd
                     mproj = mproj + dmask;
                 end
                 aip = aip./(numel(frameRange)-mproj);
+                % fill to enable filtering
                 aip(isnan(aip)) = prctile(aip(:), 95);
                 save(aipPath, 'aip');
                 
