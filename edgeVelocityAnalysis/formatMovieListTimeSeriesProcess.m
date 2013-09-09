@@ -105,7 +105,7 @@ for iCell = 1:nCell
     else
         
         inp3 = isequal(cellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
-        inp2 = false;
+        inp2 = true;
         inp5 = false;
         if ~isempty(winInterval{iCell}{1})
             
