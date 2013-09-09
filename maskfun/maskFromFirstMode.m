@@ -12,10 +12,9 @@ ip.parse(img, varargin{:});
 
 [ny,nx] = size(img);
 
-img = scaleContrast(img, [], [0 1]);
 g = filterGauss2D(img, 5);
 
-v = img(:);
+v = g(:);
 v(isnan(v)) = [];
 
 pct = prctile(v, [1 99]);
