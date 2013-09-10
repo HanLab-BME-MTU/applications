@@ -57,14 +57,15 @@ pos = get(hfig, 'Position'); % [pixels]
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70]);
 
 uicontrol(ph, 'Style', 'text', 'String', 'Data display: ',...
-    'Position', [5 40 60 20], 'HorizontalAlignment', 'left');
-frameChoice = uicontrol(ph, 'Style', 'popup',...
-    'String', {'Raw', 'Detections', 'RGB'},...
-    'Position', [65 42 100 20], 'Callback', @frameChoice_Callback);
+    'Position', [5 40 90 20], 'HorizontalAlignment', 'left');
 
 maskCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Cell mask',...
     'Position', [5 25 100 15], 'HorizontalAlignment', 'left',...
     'Callback', @updateSlice);
+
+frameChoice = uicontrol(ph, 'Style', 'popup',...
+    'String', {'Raw', 'Detections', 'RGB'},...
+    'Position', [95 42 100 20], 'Callback', @frameChoice_Callback);
 
 detectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Detections',...
     'Position', [200 45 100 15], 'HorizontalAlignment', 'left',...
@@ -102,27 +103,27 @@ statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',
 % Tracks
 %---------------------
 % Track plot panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-200-150-5-160 5 160 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-220-150-5-160 5 160 70]);
 tplotText = uicontrol(ph, 'Style', 'text', 'String', 'Units: ',...
     'Position', [5 35 60 20], 'HorizontalAlignment', 'left');
+
 tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Seconds', 'Frames'},...
     'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
-    'Position', [5 20 120 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
+    'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
     'Position', [5 5 120 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 handles.tplotPanel = ph;
 
-
 % Montage panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage plot', 'Position', [pos(3)-200-150 5 200 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage plot', 'Position', [pos(3)-220-150 5 220 70]);
 montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
-    'Position', [100 38 120 15], 'HorizontalAlignment', 'left', 'Value', true);
+    'Position', [90 38 120 15], 'HorizontalAlignment', 'left', 'Value', true);
 montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
-    'Position', [100 23 120 15], 'HorizontalAlignment', 'left');
+    'Position', [90 23 120 15], 'HorizontalAlignment', 'left');
 montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
-    'Position', [100 8 120 15], 'HorizontalAlignment', 'left');
+    'Position', [90 8 120 15], 'HorizontalAlignment', 'left');
 montageButton = uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
     'Units', 'pixels', 'Position', [5 20 80 20],...
     'Callback', @montageButton_Callback);
@@ -163,8 +164,8 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
 % Frame slider
 if data.movieLength>1
     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
-        'Value', handles.f, 'SliderStep', [1/(data.movieLength-1) 0.05], 'Min', 1, 'Max', data.movieLength,...
-        'Position', [lspace 85 pos(3)-rspace-lspace 10]);
+        'Value', handles.f, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
+        'Position', [lspace 80 pos(3)-rspace-lspace 18]);
 end
 % this definition (instead of regular callback) enable continuous sliding
 addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callback);
@@ -331,7 +332,8 @@ if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.Loa
     tmp = load([data.source 'Tracking' filesep fileName]);
     tracks = tmp.tracks;
     if isfield(tmp, 'bgA')
-        bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA);
+        bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA, 'unif', 0);
+        bgA = [bgA{:}];
     end
     clear tmp;
     cutoff_f = 5;
@@ -645,7 +647,9 @@ set(hz, 'ActionPostCallback', @czoom);
         hms = [];
         if ~isempty(cellMask) && get(maskCheckbox, 'Value')
             B = bwboundaries(cellMask);
-            hms = cellfun(@(i) plot(handles.fAxes(1,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B);          
+            for ci = 1:nCh
+                hms = [hms; cellfun(@(i) plot(handles.fAxes(ci,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B)]; %#ok<AGROW>
+            end
         end
         
         if ~isempty(tracks)
@@ -1308,9 +1312,9 @@ pos = get(src, 'Position');
 set(handles.frameLabel, 'Position', [20 pos(4)-20, 100 15]);
 
 % tracks
-set(handles.tplotPanel, 'Position', [pos(3)-515 5 160 70]);
+set(handles.tplotPanel, 'Position', [pos(3)-535 5 160 70]);
+set(handles.montagePanel, 'Position', [pos(3)-370 5 220 70]);
 set(handles.outputPanel, 'Position', [pos(3)-145 5 140 70]);
-set(handles.montagePanel, 'Position', [pos(3)-350 5 200 70]);
 
 % spacers:
 tspace = 20;
@@ -1322,7 +1326,7 @@ spacer = 10; % space between panels
 width = pos(3) - rspace - lspace;
 height = pos(4) - bspace - tspace;
 
-set(handles.frameSlider, 'Position', [lspace 85 pos(3)-rspace-lspace 10]);
+set(handles.frameSlider, 'Position', [lspace 80 pos(3)-rspace-lspace 18]);
 
 switch numel(handles.fPanels)
     case 1
@@ -1374,8 +1378,8 @@ switch nCh
         set(handles.tAxes(3), 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
         set(handles.tAxes(4), 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
 end
-set(handles.trackLabel, 'Position', [pos(3)-70 pos(4)-20, 100 15]);
-set(handles.trackSlider, 'Position', [pos(3)-15 120 10 h_tot]);
+set(handles.trackLabel, 'Position', [pos(3)-70 pos(4)-20 100 15]);
+set(handles.trackSlider, 'Position', [pos(3)-22 120 18 h_tot]);
 
 end
 
