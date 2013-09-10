@@ -17,10 +17,6 @@ ip.addParamValue('Mode', 'all', @(x) any(strcmpi(x, {'all', 'max'})));
 ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
 
-sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers{1});
-w = ceil(4*sigma);
-ni = (2*w+1)^2; % support used for PSF fit
-
 switch ip.Results.Mode
     case 'all'
         frameIdx = ip.Results.frameIdx;
@@ -29,6 +25,9 @@ switch ip.Results.Mode
         end
         
         load([data.source 'Detection' filesep 'detection_v2.mat']);
+        w = ceil(4*frameInfo(1).s(1));
+        ni = (2*w+1)^2; % support used for PSF fit
+        
         nf = numel(frameIdx);
         psnr = cell(1,nf);
         
@@ -41,6 +40,10 @@ switch ip.Results.Mode
             psnr = 10*log10(psnr);
         end
     case 'max'
+        sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers{1});
+        w = ceil(4*sigma);
+        ni = (2*w+1)^2; % support used for PSF fit
+
         lftData = getLifetimeData(data, 'Cutoff_f', ip.Results.Cutoff_f);
         nd = numel(data);
         
