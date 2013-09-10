@@ -311,22 +311,29 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     hl = legend(ha(1), hb, ' All tracks', ' Valid tracks');
     set(hl, fset.tfont{:});
     
+    % Cell area
     scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
     ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
-    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    YLim = get(ha(2), 'YLim');
+    YLim(1) = 0;
+    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
     rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
+    % # valid tracks
     scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
     ylabel(ha(3), '# valid tracks', fset.lfont{:});
-    set(ha(3), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    YLim = get(ha(3), 'YLim');
+    YLim(1) = 0;
+    set(ha(3), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
     rotateXTickLabels(ha(3), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
-    
+    % # persistent tracks
     scatter(ha(4), 1:nd, arrayfun(@(i) sum([i.catIdx_all]==4), lftData), 50, fset.ceTrackClasses(4,:), 'o', 'fill', 'MarkerEdgeColor', 'k');
     scatter(ha(4), 1:nd, arrayfun(@(i) sum([i.catIdx_all]==8), lftData), 50, fset.ceTrackClasses(8,:), 'o', 'fill', 'MarkerEdgeColor', 'k');
-
     ylabel(ha(4), '# persistent tracks', fset.lfont{:});
-    set(ha(4), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5]);
+    YLim = get(ha(4), 'YLim');
+    YLim(1) = 0;
+    set(ha(4), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
     hl = legend(ha(4), 'Single tracks', 'Compound tracks', 'Location', 'NorthWest');
     set(hl, 'Box', 'off');
     rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
