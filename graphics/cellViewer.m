@@ -1,3 +1,7 @@
+%
+
+% Francois Aguet, 2011
+
 function cellViewer(data, varargin)
 
 ip = inputParser;
@@ -41,7 +45,11 @@ for k = 1:N
     ha = axes('Position', [(dx+wx)*(x-1) 1-wy*y-(y-1)*dy wx wy]);
     
     if ~isempty(ip.Results.Frame)
-        frame = imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame});
+        if iscell(data(k).framePaths{ip.Results.Channel})
+            frame = imread(data(k).framePaths{ip.Results.Channel}{ip.Results.Frame});
+        else
+            frame = imread(data(k).framePaths{ip.Results.Channel}, ip.Results.Frame);
+        end
     else
         tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
         frame = scaleContrast(tmp.aip);
