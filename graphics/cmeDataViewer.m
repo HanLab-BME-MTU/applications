@@ -165,7 +165,7 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(hand
 if data.movieLength>1
     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
         'Value', handles.f, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
-        'Position', [lspace 80 pos(3)-rspace-lspace 18]);
+        'Position', [lspace 77 pos(3)-rspace-lspace 18]);
 end
 % this definition (instead of regular callback) enable continuous sliding
 addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callback);
@@ -204,7 +204,7 @@ spacer = 15;
     
     handles.trackSlider = uicontrol('Style', 'slider',...
         'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
-        'Position', [pos(3)-15 120 10 h_tot]);
+        'Position', [pos(3)-24 120 10 h_tot]);
     % this definition (instead of regular callback) enable continuous sliding
     addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
 % end
@@ -341,7 +341,7 @@ if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.Loa
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
     tracks = tracks(sortIdx);
 
-   % tracks = tracks([tracks.catIdx]==2);
+    %tracks = tracks([tracks.catIdx]==2);
     
     nt = numel(tracks);
     nseg = [tracks.nSeg];
@@ -987,8 +987,8 @@ set(hz, 'ActionPostCallback', @czoom);
                         'YTickLabel', [data.framerate 20:20:120 (nf-1)*data.framerate], sfont{:});
                     text(-0.1, 80, 'Lifetime (s)', 'Rotation', 90, 'HorizontalAlignment', 'center', 'Parent', hLegend, lfont{:});
                 case 'Category'
-                    xlabels = {' valid', ' rej. gaps', ' cut', ' persistent',...
-                        ' valid', ' rej. gaps', ' cut', ' persistent'};
+                    xlabels = {' valid', ' faulty', ' cut', ' persistent',...
+                        ' valid', ' faulty', ' cut', ' persistent'};
                     lmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
                     imagesc(reshape(lmap, [size(lmap,1) 1 3]), 'Parent', hLegend);
                     set(hLegend, 'Visible', 'on', 'YAxisLocation', 'right', 'XTick', [],...
@@ -1326,7 +1326,7 @@ spacer = 10; % space between panels
 width = pos(3) - rspace - lspace;
 height = pos(4) - bspace - tspace;
 
-set(handles.frameSlider, 'Position', [lspace 80 pos(3)-rspace-lspace 18]);
+set(handles.frameSlider, 'Position', [lspace 77 pos(3)-rspace-lspace 18]);
 
 switch numel(handles.fPanels)
     case 1
@@ -1379,7 +1379,7 @@ switch nCh
         set(handles.tAxes(4), 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
 end
 set(handles.trackLabel, 'Position', [pos(3)-70 pos(4)-20 100 15]);
-set(handles.trackSlider, 'Position', [pos(3)-22 120 18 h_tot]);
+set(handles.trackSlider, 'Position', [pos(3)-24 120 18 h_tot]);
 
 end
 
