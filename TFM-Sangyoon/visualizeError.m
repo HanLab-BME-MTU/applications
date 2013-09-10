@@ -28,6 +28,8 @@ elseif strcmp(method,'pcolor_with_level1line')
     contour(d,f,meanDispDetec,[2 2],'LineWidth',3,'LineColor',[0/255,42/255,210/255]);
 elseif strcmp(method, 'contourf')
     contourf(d,f,meanDispDetec,0:0.1:1);%[1 1],'LineWidth',3,'LineColor',[63/255,162/255,10/255]);    
+elseif strcmp(method, 'contourf_with_level1_2')
+    contourf(d,f,meanDispDetec,[1 1;2 2]);%[1 1],'LineWidth',3,'LineColor',[63/255,162/255,10/255]);    
 else
     error('specify method with pcolor, pcolor_with_level1line or contourf')
 end

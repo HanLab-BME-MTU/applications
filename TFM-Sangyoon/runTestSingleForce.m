@@ -50,8 +50,12 @@ for epm=1:nExp
 end
 %% save and plotting
 save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L1.mat')
-dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec';
-visualizeError(f,d,forceDetec_FDL1new,dataPath,'pcolor_with_level1line',10)
+% dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec';
+%% showing for L1 heatmap
+f=200:200:4000;
+d=2:2:12;
+dataPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/SingleForceTesting/forceDetec_L1';
+visualizeError(f,d,forceDetec_FDL1new(:,1:6,:),dataPath,'contourf_with_level1_2',3)
 %% Simulations - initialization  for f and d
 d_err_FDAdhL2new = zeros(20,10,nExp);
 d_err_FDBGL2new = zeros(20,10,nExp);
@@ -119,6 +123,12 @@ end
 %% save
 clear d_err_FDAdhL1new d_err_FDBGL1new f_err_FDADhL1new f_err_FDBGL1new dispDetec_FDL1new forceDetec_FDL1new pFR_FDL
 save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L2new.mat')
+%% show heatmap 
+f=200:200:4000;
+d=2:2:12;
+% dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec_L2new';
+dataPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/SingleForceTesting/forceDetec_L2new';
+visualizeError(f,d,forceDetec_FDL2new(:,1:6,:),dataPath,'contourf_with_level1_2',3)
 
 %% load
 load('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/data.mat')

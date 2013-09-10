@@ -1,4 +1,4 @@
-function [forceNA,forceFC,forceFA,pstruct_NAcell] = colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,pstruct_NAcell)
+function [tracksNA,forceFC,forceFA,forceBGband,forceBG] = colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,plotEachTrack)
 % colocalizationTFMwithFA runs colocalization between peaks in TFM maps and peaks in paxillin using movieData.
 % Basically this function make grayscale of TFM and pick up peaks of the
 % map and see if how many of them are colocalized with significant paxillin
@@ -24,19 +24,19 @@ function [forceNA,forceFC,forceFA,pstruct_NAcell] = colocalizationAdhesionsWithT
 if nargin < 3
     band = 16;
     tmax=[];
-    pstruct_NAcell=[];
+    plotEachTrack = false;
 elseif nargin <4
     tmax=[];
-    pstruct_NAcell=[];
+    plotEachTrack = false;
 elseif nargin<5
-    pstruct_NAcell=[];
+    plotEachTrack = false;
 end
-if isempty(pstruct_NAcell)
-    bFirst=true;
-else
-    bFirst=false;
-end
-bandwidth = 12; %um
+% if isempty(pstruct_NAcell)
+%     bFirst=true;
+% else
+%     bFirst=false;
+% end
+% bandwidth = 20; %um
 %% Data Set up
 % Load the MovieData
 movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
@@ -47,9 +47,16 @@ nFrames = MD.nFrames_;
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
 % Get FA package (actually NA package)
 NAPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
+% Get FA segmentation package 
+FASegPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionSegmentationPackage'));
 % Load tracks
 iTracking = 4;
 trackNAProc = NAPackage.processes_{iTracking};
+
+forceFC = zeros(nFrames,1);
+forceFA = zeros(nFrames,1);
+forceBGband(nFrames,1) = struct('mean',[],'err',[]);
+forceBG(nFrames,1) = struct('mean',[],'err',[]);
 
 % tracksNA = trackNAProc.loadChannelOutput;
 % Load the displField
@@ -130,72 +137,106 @@ end
 %     h2 = figure;
 hold off
 %     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
-hc = []; %handle for colorbar
-hl = []; %handle for scale bar
 iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 % SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
-minSize = round((500/MD.pixelSize_)*(150/MD.pixelSize_)); %adhesion limit=1um*.5um
+% minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
+minLifetime = 5;
+
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level
-tracksNA = trackNAProc.loadChannelOutput(iPaxChannel);
-%           .tracksCoordAmpCG: 
-%                              [x1 y1 z1 a1 dx1 dy1 dz1 da1 x2 y2 z2 a2 dx2 dy2 dz2 da2 ...]
-%                              NaN indicates frames where track segments do
-%                              not exist, like the zeros above.
-%           .seqOfEvents     : Matrix with number of rows equal to number
-%                              of events happening in a compound track and 4
-%                              columns:
-%                              1st: Frame where event happens;
-%                              2nd: 1 = start of track segment, 2 = end of track segment;
-%                              3rd: Index of track segment that ends or starts;
-%                              4th: NaN = start is a birth and end is a death,
-%                                   number = start is due to a split, end
-%                                   is due to a merge, number is the index
-%                                   of track segment for the merge/split.
 
 % filter out tracks that have lifetime less than 2 frames
-
-SEL = getTrackSEL(tracksNA); %SEL: StartEndLifetime
-minLifetime = 3;
-% Remove any less than 3-frame long track.
-isValid = SEL(:,3) >= minLifetime;
-tracksNA = tracksNA(isValid);
 
 % Build the interpolated TFM matrix first and then go through each track
 % ...
 
-for ii=1:nFrames
-    [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
-    [grid_mat,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid);
+% Find out force at each tracksNA at this frame
+% find first the index of relevant tracks from seqOfEvents
+% tracksNA = trackNAProc.loadChannelOutput(iPaxChannel,ii);
+disp('loading NA tracks...')
+tic
+tracksNAorg = trackNAProc.loadChannelOutput(iPaxChannel);
+toc
+% if ii>minLifetime
+SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
+% Remove any less than 3-frame long track.
+isValid = SEL(:,3) >= minLifetime;
+tracksNAorg = tracksNAorg(isValid);
+% end
+detectedNAProc = NAPackage.processes_{3};
+detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
-    % Boundary cutting - I'll take care of this boundary effect later
-    if_mat(end-band:end,:,:)=[];
-    if_mat(:,end-band:end,:)=[];
-    if_mat(1:1+band,:,:)=[];
-    if_mat(:,1:1+band,:)=[];
-    iu_mat(end-band:end,:,:)=[];
-    iu_mat(:,end-band:end,:)=[];
-    iu_mat(1:1+band,:,:)=[];
-    iu_mat(:,1:1+band,:)=[];
-    grid_mat(end-band:end,:,:)=[];
-    grid_mat(:,end-band:end,:)=[];
-    grid_mat(1:1+band,:,:)=[];
-    grid_mat(:,1:1+band,:)=[];
+% re-express tracksNA so that each track has information for every frame
+disp('reformating NA tracks...')
+tic
+tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
+toc
+
+% Filter out tracks that is out of XI and YI
+xmin = reg_grid(2+band,2+band,1);
+ymin = reg_grid(2+band,2+band,2);
+xmax = reg_grid(end-band-1,end-band-1,1);
+ymax = reg_grid(end-band-1,end-band-1,2);
+
+idxTracks = true(numel(tracksNA),1);
+disp('filtering with TFM boundary...')
+tic
+for ii=1:numel(tracksNA)
+%     for k=find(tracksNA(ii).presence)
+%         if tracksNA(ii).xCoord(k)<xmin || tracksNA(ii).xCoord(k)>xmax ...
+%                 || tracksNA(ii).yCoord(k)<ymin || tracksNA(ii).yCoord(k)>ymax
+%             idxTracks(ii) = false;
+%             continue;
+%         end
+%     end
+    if any(round(tracksNA(ii).xCoord)<=xmin | round(tracksNA(ii).xCoord)>=xmax ...
+            | round(tracksNA(ii).yCoord)<=ymin | round(tracksNA(ii).yCoord)>=ymax)
+        idxTracks(ii) = false;
+    end
+end
+
+toc
+tracksNA=tracksNA(idxTracks);
+trackIdx = true(numel(tracksNA),1);
+
+% disp('loading segmented FAs...')
+iFASeg = 6;
+FASegProc = FASegPackage.processes_{iFASeg};
+regSpacing = (reg_grid(2,1,1)-reg_grid(1,1,1));
+for ii=1:nFrames
+    [XI,YI]=meshgrid(reg_grid(1,1,1):reg_grid(end,end,1),reg_grid(1,1,2):reg_grid(end,end,2));
+    reg_gridFine(:,:,1) = XI;
+    reg_gridFine(:,:,2) = YI;
+    [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_gridFine);
+    [grid_mat,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_gridFine);
 
     pos = [reshape(grid_mat(:,:,1),[],1) reshape(grid_mat(:,:,2),[],1)]; %dense
     disp_vec = [reshape(iu_mat(:,:,1),[],1) reshape(iu_mat(:,:,2),[],1)]; 
     force_vec = [reshape(if_mat(:,:,1),[],1) reshape(if_mat(:,:,2),[],1)]; 
     [grid_mat,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],grid_mat); %1:cluster size
+        
     tnorm = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
 
+    % Boundary cutting - I'll take care of this boundary effect later
+    grid_mat(end-band*regSpacing:end,:,:)=[];
+    grid_mat(:,end-band*regSpacing:end,:)=[];
+    grid_mat(1:1+band*regSpacing,:,:)=[];
+    grid_mat(:,1:1+band*regSpacing,:)=[];
+    tnorm(end-band*regSpacing:end,:,:)=[];
+    tnorm(:,end-band*regSpacing:end,:)=[];
+    tnorm(1:1+band*regSpacing,:,:)=[];
+    tnorm(:,1:1+band*regSpacing,:)=[];
+    
     % size of the region of interest
     imSizeX = grid_mat(end,end,1)-grid_mat(1,1,1);
     imSizeY = grid_mat(end,end,2)-grid_mat(1,1,2);
 
     % Making traction stress map, tsMap
-    [XI,YI]=meshgrid(grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX,grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY);
-    tsMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tnorm,XI,YI,'linear');
+%     [XI,YI]=meshgrid(grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX,grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY);
+%     tsMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tnorm,XI,YI,'linear');
+    tsMap = tnorm;
+    
     % Cell Boundary Mask 
 %     maskProc = SegmentationPackage.processes_{2};
 %     mask = maskProc.loadChannelOutput(2,ii);
@@ -212,9 +253,9 @@ for ii=1:nFrames
                 'Please apply stage drift correction to all needed channels before '...
                 'running displacement field calclation tracking!'])
         end
-        paxImage=double(SDCProc.loadChannelOutput(2,ii)); %movieData.channels_(2).loadImage(ii);
+        paxImage=(SDCProc.loadChannelOutput(2,ii)); %movieData.channels_(2).loadImage(ii);
     else
-        paxImage=double(MD.channels_(2).loadImage(ii)); 
+        paxImage=(MD.channels_(2).loadImage(ii)); 
     end
     paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
 
@@ -223,9 +264,16 @@ for ii=1:nFrames
     % alpha = graythresh(pId);
     %estimate the intensity level to use for thresholding the image
     level1 = graythresh(pId); %Otsu
-    [~, level2] = cutFirstHistMode(pId,0); %Rosin
-%     alpha = 0.99*level2 + 0.01*level1;
-    alpha = 0.88*level2;
+%     [~, level2] = cutFirstHistMode(pId,0); %Rosin
+    alpha = 0.92*level1;
+%     alpha = 0.9*level2 + 0.87*level1;
+%     tempH = figure; subplot(2,1,1), imshow(paxImageCropped,[]), title('original image');
+%     subplot(2,2,3), imshow(im2bw(pId,level1)), title(['Otsu, alpha= ', num2str(level1)]);
+%     subplot(2,2,4), imshow(im2bw(pId,level2)), title(['Rosin, alpha= ', num2str(level2)]);
+%     
+%     alpha = input(['Type desired alpha: (recommended: ' num2str(0.9*level2) ') :']);
+%     close(tempH)
+%     clear tempH
 
     pId = double(paxImage)/max(double(paxImageCropped(:)));
     bwPI = im2bw(pId,alpha);
@@ -236,173 +284,285 @@ for ii=1:nFrames
     bwPI4 = bwmorph(bwPI4,'dilate',1);
     % bwPI5 = refineEdgeWithSteerableFilterGM(pId,bwPI4);
     % In case that there is still islands, pick only the largest chunk
-    [labelPI,nChunk] = bwlabel(bwPI4);
-    if nChunk>1
-        eachArea = zeros(nChunk,1);
-        for k=1:nChunk
-            currBWPI = labelPI==k;
-            eachArea(k) = sum(currBWPI(:));
-        end
-        [~,indCellArea] = max(eachArea);
-        bwPI4 = labelPI == indCellArea;
-    end
+%     [labelPI,nChunk] = bwlabel(bwPI4);
+%     if nChunk>1
+%         eachArea = zeros(nChunk,1);
+%         for k=1:nChunk
+%             currBWPI = labelPI==k;
+%             eachArea(k) = sum(currBWPI(:));
+%         end
+%         [~,indCellArea] = max(eachArea);
+%         bwPI4 = labelPI == indCellArea;
+%     end
     cropMask = bwPI4(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
-    B  = bwboundaries(cropMask,'noholes');
-    boundary = B{1};
+%     B  = bwboundaries(cropMask,'noholes');
+%     boundary = B{1};
 
     % mask for band from edge
     iMask = imcomplement(cropMask);
     distFromEdge = bwdist(iMask);
-    bandwidth_pix = round(bandwidth*1000/MD.pixelSize_);
-    bandMask = distFromEdge <= bandwidth_pix;
+%     bandwidth_pix = round(bandwidth*1000/MD.pixelSize_);
+%     bandMask = distFromEdge <= bandwidth_pix;
 
     % Get the mask for FAs
-    maskAdhesion = blobSegmentThreshold(paxImageCropped,minSize,false,bandMask & cropMask);
-    adhBound = bwboundaries(maskAdhesion,'noholes');
+%     maskAdhesion = blobSegmentThreshold(paxImageCropped,minSize,false,bandMask & cropMask);
+    maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
+    maskAdhesion = maskFAs>0;
+    maskAdhesion = maskAdhesion(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+%     maskFAs = maskFAs(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
     
-    % Nascent adhesion detection
-    sigmaPSF_NA = getGaussianPSFsigma(MD.numAperture_, 1, MD.pixelSize_*1e-9, 601*1e-9);
+%     % Nascent adhesion detection
+%     sigmaPSF_NA = getGaussianPSFsigma(MD.numAperture_, 1, MD.pixelSize_*1e-9, 601*1e-9);
 
-    bandwidth = 3.5; %um
-    bandwidth_pix = round(bandwidth*1000/MD.pixelSize_);
-    bandMask = distFromEdge <= bandwidth_pix;
+    bandwidthNA = 5; %um
+    bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
+    bandMask = distFromEdge <= bandwidthNA_pix;
 
-    naMask = bandMask & cropMask & ~maskAdhesion;
-   
-    % Get all nascent adhesions
-    if bFirst
-        pstruct_NA = pointSourceDetection(paxImageCropped, sigmaPSF_NA*1.3, 'alpha', 0.01,'Mask',naMask);
-
-        % Showing for debug
-        h0=figure; imshow(paxImageCropped,[])
-        hold on;
-        plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.25) % cell boundary
-        plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
-        for k = 1:length(adhBound)
-            adhBoundary = adhBound{k};
-            plot(adhBoundary(:,2), adhBoundary(:,1), 'w', 'LineWidth', 1) %adhesion boundary
-        end
-
-        % ginput test for not-detected adhesions
-        disp('Click nascent adhesions and press Enter when you are done with clicking');
-        NA_man_detected = ginput;
-        if ~isempty(NA_man_detected)
-            plot(NA_man_detected(:,1),NA_man_detected(:,2),'ro')
-            nPoints = length(pstruct_NA.A);
-            old_pstruct_NA = pstruct_NA;
-            pstruct_NA.x(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,1);
-            pstruct_NA.y(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,2);
-            % for amplitude
-            for k=1:size(NA_man_detected,1)
-                pstruct_NA.A(nPoints+k) = paxImageCropped(round(NA_man_detected(k,2)),round(NA_man_detected(k,1)));
+%     naMask = bandMask & cropMask & ~maskAdhesion;
+    maskOnlyBand = bandMask & cropMask;
+    
+    % filter tracks with naMasks
+    disp(['Processing ' num2str(ii) 'th frame out of ' num2str(nFrames) ' total frames...'])
+    % only deal with presence and status
+    for k=1:numel(tracksNA)
+        if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
+                ~maskOnlyBand(round(tracksNA(k).yCoord(ii))-grid_mat(1,1,2),round(tracksNA(k).xCoord(ii))-grid_mat(1,1,1))
+            tracksNA(k).state{ii} = 'Out_of_ROI';
+            tracksNA(k).presence(ii) = false;
+            if trackIdx(k)
+                trackIdx(k) = false;
             end
         end
-        pstruct_NAcell{ii} = pstruct_NA;
-    else
-        pstruct_NA = pstruct_NAcell{ii};
     end
+   
+%     % Get all nascent adhesions
+%     if bFirst
+%         pstruct_NA = pointSourceDetection(paxImageCropped, sigmaPSF_NA*1.3, 'alpha', 0.01,'Mask',naMask);
+% 
+%         % Showing for debug
+% %         h0=figure; imshow(paxImageCropped,[])
+% %         hold on;
+% %         plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.25) % cell boundary
+% %         plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
+% %         for k = 1:length(adhBound)
+% %             adhBoundary = adhBound{k};
+% %             plot(adhBoundary(:,2), adhBoundary(:,1), 'w', 'LineWidth', 1) %adhesion boundary
+% %         end
+% 
+% %         % ginput test for not-detected adhesions
+% %         disp('Click nascent adhesions and press Enter when you are done with clicking');
+% %         NA_man_detected = ginput;
+% %         if ~isempty(NA_man_detected)
+% %             plot(NA_man_detected(:,1),NA_man_detected(:,2),'ro')
+% %             nPoints = length(pstruct_NA.A);
+% %             old_pstruct_NA = pstruct_NA;
+% %             pstruct_NA.x(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,1);
+% %             pstruct_NA.y(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,2);
+% %             % for amplitude
+% %             for k=1:size(NA_man_detected,1)
+% %                 pstruct_NA.A(nPoints+k) = paxImageCropped(round(NA_man_detected(k,2)),round(NA_man_detected(k,1)));
+% %             end
+% %         end
+%         pstruct_NAcell{ii} = pstruct_NA;
+%     else
+%         pstruct_NA = pstruct_NAcell{ii};
+%     end
+    % focal contact (FC) analysis
+    Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
+    minFASize = round((2000/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
+    minFCSize = round((800/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
+
+    fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
+    FCs = Adhs(fcIdx);
+    FCForce = arrayfun(@(x) tsMap(x.PixelIdxList),FCs,'UniformOutput',false);
+    forceFC(ii) = mean(cell2mat(FCForce));
+    FCIdx = find(fcIdx);
+    adhBound = bwboundaries(maskAdhesion,'noholes');    
+    
+    % for larger adhesions
+    faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
+    FAs = Adhs(faIdx);
+    FAForce = arrayfun(@(x) tsMap(x.PixelIdxList),FAs,'UniformOutput',false);
+    forceFA(ii) = mean(cell2mat(FAForce));
+    FAIdx =  find(faIdx);
+    neighPix = 1;
+
+    % Reading traction force at each track location
+    for k=1:numel(tracksNA)
+        if tracksNA(k).presence(ii)
+            ynmin = max(1,round(tracksNA(k).yCoord(ii))-grid_mat(1,1,2)-neighPix);
+            ynmax = min(size(tsMap,1),round(tracksNA(k).yCoord(ii))-grid_mat(1,1,2)+neighPix);
+            xnmin = max(1,round(tracksNA(k).xCoord(ii))-grid_mat(1,1,1)-neighPix);
+            xnmax = min(size(tsMap,2),round(tracksNA(k).xCoord(ii))-grid_mat(1,1,1)+neighPix);
+            forceNeigh = tsMap(ynmin:ynmax,xnmin:xnmax);
+            tracksNA(k).forceMag(ii) = max(forceNeigh(:));    
+            if ~strcmp(tracksNA(k).state{ii} , 'NA')
+                tracksNA(k).state{ii} = tracksNA(k).state{ii-1};
+            end
+            % decide if each track is associated with FC or FA
+            p = 0;
+            for jj=FCIdx'
+                p=p+1;
+                if any(round(tracksNA(k).xCoord(ii))-grid_mat(1,1,1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-grid_mat(1,1,2)==Adhs(jj).PixelList(:,2))
+                    tracksNA(k).state{ii} = 'FC';
+%                     tracksNA(k).forceMag(ii) = forceFC(p);
+                    tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
+                    tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
+                    tracksNA(k).adhBoundary{ii} = adhBound{jj};
+                    tracksNA(k).faID(ii) = jj;
+                end
+            end
+            p = 0;
+            for jj=FAIdx'
+                p=p+1;
+                if any(round(tracksNA(k).xCoord(ii))-grid_mat(1,1,1)==Adhs(jj).PixelList(:,1) & round(tracksNA(k).yCoord(ii))-grid_mat(1,1,2)==Adhs(jj).PixelList(:,2))
+                    tracksNA(k).state{ii} = 'FA';
+%                     tracksNA(k).forceMag(ii) = forceFA(p);
+                    tracksNA(k).area(ii) = Adhs(jj).Area;% in pixel
+                    tracksNA(k).FApixelList{ii} = Adhs(jj).PixelList;
+                    tracksNA(k).adhBoundary{ii} = adhBound{jj};
+                    tracksNA(k).faID(ii) = jj;
+                end
+            end
+        else
+            tracksNA(k).forceMag(ii) = NaN;
+        end
+    end
+    % force at the background
+    % mask for band from edge
+    distOutEdge = bwdist(cropMask);
+    bandOut_pix = round(1*1000/MD.pixelSize_);
+    bandOutMask = distOutEdge <= bandOut_pix;
+    bandOutMask = bandOutMask & iMask;
+
+    bandOutForce = tsMap((bandOutMask(:)));
+    forceBGband(ii).mean = mean(bandOutForce);
+    forceBGband(ii).err = std(bandOutForce);
+    
+    BGForce = tsMap((iMask(:)));
+    forceBG(ii).mean = mean(BGForce);
+    forceBG(ii).err = std(BGForce);
     
     % Showing for debug (TFM)
-    h1 = figure('color','w');
-    set(h1, 'Position', [100 100 (imSizeX+1)*1.25 imSizeY+1])
-    subplot('Position',[0 0 0.8 1])
-    imshow(tsMap,[tmin tmax]), colormap jet;
-    hold on;
-%     plot(pstruct.x,pstruct.y,'mo') % all peaks
-%     plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
-    % unit vector plot
-    [reg_grid_coarse,~,~,~]=createRegGridFromDisplField(displField(ii),1); %2=2 times fine interpolation
-    [grid_mat_coarse,iu_mat_coarse,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid_coarse);
-    pos_coarse = [reshape(grid_mat_coarse(:,:,1),[],1) reshape(grid_mat_coarse(:,:,2),[],1)]; %dense
-    disp_vec_coarse = [reshape(iu_mat_coarse(:,:,1),[],1) reshape(iu_mat_coarse(:,:,2),[],1)]; 
-    [~,if_mat_coarse,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid_coarse);
-    force_vec_coarse = [reshape(if_mat_coarse(:,:,1),[],1) reshape(if_mat_coarse(:,:,2),[],1)]; 
+    if ~plotEachTrack
+        h1 = figure('color','w');
+        set(h1, 'Position', [100 50 (imSizeX+1)*1.25 imSizeY+1])
+        ax1 = subplot('Position',[0 0 0.8 1]);
+        imshow(tsMap,[tmin tmax]), colormap jet;
+        hold on;
+    %     plot(pstruct.x,pstruct.y,'mo') % all peaks
+    %     plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
+        % unit vector plot
+        [reg_grid_coarse,~,~,~]=createRegGridFromDisplField(displField(ii),1); %2=2 times fine interpolation
+        [grid_mat_coarse,iu_mat_coarse,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid_coarse);
+        pos_coarse = [reshape(grid_mat_coarse(:,:,1),[],1) reshape(grid_mat_coarse(:,:,2),[],1)]; %dense
+        disp_vec_coarse = [reshape(iu_mat_coarse(:,:,1),[],1) reshape(iu_mat_coarse(:,:,2),[],1)]; 
+        [~,if_mat_coarse,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid_coarse);
+        force_vec_coarse = [reshape(if_mat_coarse(:,:,1),[],1) reshape(if_mat_coarse(:,:,2),[],1)]; 
 
-    [~,tmat_coarse, ~, ~] = interp_vec2grid(pos_coarse+disp_vec_coarse, force_vec_coarse,[],grid_mat_coarse); %1:cluster size
+        [~,tmat_coarse, ~, ~] = interp_vec2grid(pos_coarse+disp_vec_coarse, force_vec_coarse,[],grid_mat_coarse); %1:cluster size
 
-    tmat_coarse(end-band/4-1:end,:,:)=[];
-    tmat_coarse(:,end-band/4-1:end,:)=[];
-    tmat_coarse(1:1+band/4+1,:,:)=[];
-    tmat_coarse(:,1:1+band/4+1,:)=[];
-    grid_mat_coarse(end-band/4-1:end,:,:)=[];
-    grid_mat_coarse(:,end-band/4-1:end,:)=[];
-    grid_mat_coarse(1:1+band/4+1,:,:)=[];
-    grid_mat_coarse(:,1:1+band/4+1,:)=[];
+        tmat_coarse(end-floor(band/4)-1:end,:,:)=[];
+        tmat_coarse(:,end-floor(band/4)-1:end,:)=[];
+        tmat_coarse(1:1+floor(band/4)+1,:,:)=[];
+        tmat_coarse(:,1:1+floor(band/4)+1,:)=[];
+        grid_mat_coarse(end-floor(band/4)-1:end,:,:)=[];
+        grid_mat_coarse(:,end-floor(band/4)-1:end,:)=[];
+        grid_mat_coarse(1:1+floor(band/4)+1,:,:)=[];
+        grid_mat_coarse(:,1:1+floor(band/4)+1,:)=[];
 
-    tmat_vecx = reshape(tmat_coarse(:,:,1),[],1);
-    tmat_vecy = reshape(tmat_coarse(:,:,2),[],1);
-    pos_vecx = reshape(grid_mat_coarse(:,:,1),[],1);
-    pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
-    forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
-    quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), tmat_vecx./forceScale,tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
+        tmat_vecx = reshape(tmat_coarse(:,:,1),[],1);
+        tmat_vecy = reshape(tmat_coarse(:,:,2),[],1);
+        pos_vecx = reshape(grid_mat_coarse(:,:,1),[],1);
+        pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
+        forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
+        quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), tmat_vecx./forceScale,tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
 
-    plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
-    
-    % Find detectable NAs from pstruct_NA
-    NAs = [grid_mat(1,1,1)+pstruct_NA.x' grid_mat(1,1,2)+pstruct_NA.y'];
-    deformedBeads = [displField(ii).pos(:,1)+displField(ii).vec(:,1) displField(ii).pos(:,2)+displField(ii).vec(:,2)];
-    idx = KDTreeBallQuery(deformedBeads,NAs, 3);
-    valid = ~cellfun(@isempty, idx);
-%     valid = (displField.vec(cell2mat(idx),1).^2+displField.vec(cell2mat(idx),2).^2).^0.5;
-    NAdetec = NAs(valid, :);
-    NAundetec = NAs(~valid, :);
+%         plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
+        for k = FCIdx'
+    %         eachFA = maskFAs==k;
+    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+    %         for kk=1:nEachFA
+    %             adhBoundary = adhBound{kk};
+    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+    %         end
+            adhBoundary = adhBound{k};
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+        end
 
-    plot(NAdetec(:,1)-grid_mat(1,1,1),NAdetec(:,2)-grid_mat(1,1,2),'ro')
-    plot(NAundetec(:,1)-grid_mat(1,1,1),NAundetec(:,2)-grid_mat(1,1,2),'ro')
-    forceNAdetec = zeros(length(NAdetec),1);
-    neighPix = 1;
-    for i=1:length(NAdetec)
-        curF_NAdetec = tsMap(round(NAdetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAdetec(i,2))-grid_mat(1,1,2)+neighPix,...
-            round(NAdetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAdetec(i,1))-grid_mat(1,1,1)+neighPix);
-        forceNAdetec(i) = max(curF_NAdetec(:));
-    end
-    forceNAund = zeros(length(NAundetec),1);
-    for i=1:length(NAundetec)
-        curF_NAund = tsMap(round(NAundetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAundetec(i,2))-grid_mat(1,1,2)+neighPix,...
-            round(NAundetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAundetec(i,1))-grid_mat(1,1,1)+neighPix);
-        forceNAund(i) = max(curF_NAund(:));
-    end
-    forceNA = [forceNAdetec; forceNAund];
+        for k = FAIdx'
+    %         eachFA = maskFAs==k;
+    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+    %         for kk=1:nEachFA
+    %             adhBoundary = adhBound{kk};
+    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+    %         end
+            adhBoundary = adhBound{k};
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+        end
+        for k=1:numel(tracksNA)
+            if tracksNA(k).presence(ii)
+                if strcmp(tracksNA(k).state{ii} , 'NA')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro')
+                elseif strcmp(tracksNA(k).state{ii} , 'FC')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'b')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'bo')
+                elseif strcmp(tracksNA(k).state{ii} , 'FA')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko')
+                end
+            end
+        end
+        % Scale bar 2000nm
+        subplot('Position',[0.8 0.1 0.1 0.8])
+        axis tight
+        caxis([tmin tmax]), axis off
+        hc = colorbar('West');
+        set(hc,'Fontsize',16)
+        hold on;
+
+        syFigureStyle(h1,ax1,2);
+        print('-dtiff', '-r300', strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat),'.tif'));
+    %     hgexport(h1,strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
+        hgsave(h1,strcat(figPath,'/forcePeakFig',num2str(ii,iiformat)),'-v7.3')
+        print('-depsc2', '-r300', strcat(epsPath,'/forcePeak',num2str(ii,iiformat),'.eps'));
+    end    
+%     % Find detectable NAs from pstruct_NA
+%     NAs = [grid_mat(1,1,1)+pstruct_NA.x' grid_mat(1,1,2)+pstruct_NA.y'];
+%     deformedBeads = [displField(ii).pos(:,1)+displField(ii).vec(:,1) displField(ii).pos(:,2)+displField(ii).vec(:,2)];
+%     idx = KDTreeBallQuery(deformedBeads,NAs, 3);
+%     valid = ~cellfun(@isempty, idx);
+% %     valid = (displField.vec(cell2mat(idx),1).^2+displField.vec(cell2mat(idx),2).^2).^0.5;
+%     NAdetec = NAs(valid, :);
+%     NAundetec = NAs(~valid, :);
+
+%     plot(NAdetec(:,1)-grid_mat(1,1,1),NAdetec(:,2)-grid_mat(1,1,2),'ro')
+%     plot(NAundetec(:,1)-grid_mat(1,1,1),NAundetec(:,2)-grid_mat(1,1,2),'ro')
+%     forceNAdetec = zeros(length(NAdetec),1);
+%     for i=1:size(NAdetec,1)
+%         curF_NAdetec = tsMap(round(NAdetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAdetec(i,2))-grid_mat(1,1,2)+neighPix,...
+%             round(NAdetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAdetec(i,1))-grid_mat(1,1,1)+neighPix);
+%         forceNAdetec(i) = max(curF_NAdetec(:));
+%     end
+%     forceNAund = zeros(length(NAundetec),1);
+%     for i=1:size(NAundetec,1)
+%         curF_NAund = tsMap(round(NAundetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAundetec(i,2))-grid_mat(1,1,2)+neighPix,...
+%             round(NAundetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAundetec(i,1))-grid_mat(1,1,1)+neighPix);
+%         forceNAund(i) = max(curF_NAund(:));
+%     end
+%     forceNA = [forceNAdetec; forceNAund];
 %     forceNAdetec = tsMap(round(NAdetec(:,2))-grid_mat(1,1,2),round(NAdetec(:,1))-grid_mat(1,1,1));
 %     plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
 %     plot(NA_man_detected(:,1),NA_man_detected(:,2),'m*')
+        
     
-    % focal contact (FC) analysis
-    Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList' );
-    minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
-
-    adhIdx = arrayfun(@(x) x.Area<minFASize & x.Eccentricity<0.95, Adhs);
-    FCs = Adhs(adhIdx);
-    forceFC = arrayfun(@(x) max(tsMap(x.PixelIdxList)),FCs,'UniformOutput',false);
-    forceFC = cell2mat(forceFC);
-    FCIdx = find(adhIdx);
-    for k = FCIdx'
-        adhBoundary = adhBound{k};
-        plot(adhBoundary(:,2), adhBoundary(:,1), 'y', 'LineWidth', 0.5) %adhesion boundary
-    end
-
-    % for larger adhesions
-    FAs = Adhs(~adhIdx);
-    forceFA = arrayfun(@(x) max(tsMap(x.PixelIdxList)),FAs,'UniformOutput',false);
-    forceFA = cell2mat(forceFA);
-    FAIdx =  find(~adhIdx);
-    for k = FAIdx'
-        adhBoundary = adhBound{k};
-        plot(adhBoundary(:,2), adhBoundary(:,1), 'c', 'LineWidth', 0.5) %adhesion boundary
-    end
+%     idxCurTracksNA = arrayfun(@(x) x.seqOfEvents(1,1)<=ii & x.seqOfEvents(2,1)>=ii,tracksNA); % may not need this
     
-    % Scale bar 2000nm
-    subplot('Position',[0.8 0.1 0.1 0.8])
-    axis tight
-    caxis([tmin tmax]), axis off
-    hc = colorbar('West');
-    set(hc,'Fontsize',16)
-    hold on;
-
-    print('-depsc2', '-r300', strcat(epsPath,'/forcePeakDistribution',num2str(ii,iiformat),'.eps'));
-    hgexport(h1,strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
-    hgsave(h1,strcat(figPath,'/forcePeakFig',num2str(ii,iiformat)),'-v7.3')
-
+    
 %     % Get magnitude of force and the curvature of the force at each (stored
 %     % in pstruct_NAwithForce.fmag and pstruct_NAwithForce.fcurvature)
 %     pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,5);
@@ -429,34 +589,457 @@ for ii=1:nFrames
 %     FAstruct.Finside = avgFprofile(end);
 %     FAstruct.FinsideErr = avgFprofileStd(end)/sqrt(max(nPts)); %SEM
 %     save(strcat(dataPath,'/FAstruct',num2str(ii,iiformat)),'FAstruct');
-    
-    h2=figure;
-    %Scale bar 2 um
-    paxImageCropped(15:16,10:10+round(2000/MD.pixelSize_))=max(max(paxImageCropped));
-    imshow(paxImageCropped,[]), hold on
-    plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
-    for k = 1:length(adhBound)
-        adhBoundary = adhBound{k};
-        plot(adhBoundary(:,2), adhBoundary(:,1), 'w', 'LineWidth', 0.5) %adhesion boundary
+    if ~plotEachTrack
+        h2=figure;
+        set(h2, 'Position', [100 50+round(1.4*imSizeY) (imSizeX+1) imSizeY+1])
+
+        %Scale bar 2 um
+    %     paxImageCropped(15:16,10:10+round(2000/MD.pixelSize_))=max(max(paxImageCropped));
+        line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
+
+        imshow(imcomplement(paxImageCropped),[]), hold on
+    %     plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
+        for k = FCIdx'
+    %         eachFA = maskFAs==k;
+    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+    %         for kk=1:nEachFA
+    %             adhBoundary = adhBound{kk};
+    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+    %         end
+            adhBoundary = adhBound{k};
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+        end
+        % for larger adhesions
+        for k = FAIdx'
+    %         eachFA = maskFAs==k;
+    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
+    %         for kk=1:nEachFA
+    %             adhBoundary = adhBound{kk};
+    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+    %         end
+            adhBoundary = adhBound{k};
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+        end
+        for k=1:numel(tracksNA)
+            if tracksNA(k).presence(ii)
+                if strcmp(tracksNA(k).state{ii} , 'NA')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro')
+                elseif strcmp(tracksNA(k).state{ii} , 'FC')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'b')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'bo')
+                elseif strcmp(tracksNA(k).state{ii} , 'FA')
+                    % drawing tracks
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k')
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko')
+                end
+            end
+        end
+        syFigureStyle(h2,gca,2);
+
+        print('-depsc2', '-r300', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
+        print('-dtiff', '-r300', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
+    %     hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
+        hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
+        close(h1)
+        clear h1
+        close(h2)
+        clear h2
     end
-    print('-depsc2', '-r300', strcat(epsPath,'/paxPeakDistribution',num2str(ii,iiformat),'.eps'));
-    hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
-    hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
-   
-%     close(h2)
-%     close(h1)
+    imwrite(uint16(round(tsMap*2^15/3500)),strcat(forcemapPath,'/force',num2str(ii,iiformat),'max',num2str(tmax),'.tif'));
+    imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
+end
+% get rid of tracks that have out of rois...
+tracksNA = tracksNA(trackIdx);
+if plotEachTrack
+    r1 = 30;
+    h2=figure;
+    for k=[127 129]%1:numel(tracksNA)
+        % try to crop window around the track
+        if isempty(tracksNA(k).startingFrame) 
+            continue
+        end
+        if strcmp(tracksNA(k).state{tracksNA(k).startingFrame},'FC') || strcmp(tracksNA(k).state{tracksNA(k).startingFrame},'FA')
+            continue
+        end
+        fstart = max(tracksNA(k).startingFrame-20,1);
+        fend = min(tracksNA(k).endingFrame,nFrames);
+        iSF = tracksNA(k).startingFrame;
+        wRoi = min(tracksNA(k).xCoord(iSF)-grid_mat(1,1,1),r1)...
+            +min(imSizeX+1-(tracksNA(k).xCoord(iSF)-grid_mat(1,1,1)),r1);
+        hRoi = min(tracksNA(k).yCoord(iSF)-grid_mat(1,1,2),r1)...
+            +min(imSizeY+1-(tracksNA(k).yCoord(iSF)-grid_mat(1,1,2)),r1);
+        set(h2,'Units','inches')
+        set(h2,'PaperPositionMode','auto')
+        set(h2, 'Position', [1,1,wRoi/(hRoi*2), 1])
+
+        eachPaxPath = [paxPath filesep '/track' num2str(k,iiformat)];
+        eachEpsPath = [epsPath filesep '/track' num2str(k,iiformat)];
+        if ~exist(eachPaxPath,'dir') || ~exist(eachEpsPath,'dir')
+            mkdir(eachPaxPath);
+            mkdir(eachEpsPath);
+        end
+        for j=fstart:fend
+            % show each track with paxillin images
+            tsMap = imread(strcat(forcemapPath,'/force',num2str(j,iiformat),'max',num2str(tmax),'.tif'));
+            tsMap = double(tsMap)*3500/(2^15); %converting to Pa
+            paxImageCropped = imread(strcat(paxPath,'/pax',num2str(j,iiformat),'.tif'));
+            xminROI = round(max(1,tracksNA(k).xCoord(iSF)-grid_mat(1,1,1)-(r1-1))); 
+            xmaxROI = round(min(imSizeX+1,tracksNA(k).xCoord(iSF)-grid_mat(1,1,1)+r1)); 
+            yminROI = round(max(1,tracksNA(k).yCoord(iSF)-grid_mat(1,1,2)-(r1-1)));
+            ymaxROI = round(min(imSizeY+1,tracksNA(k).yCoord(iSF)-grid_mat(1,1,2)+r1));
+            paxImageCropped2 = paxImageCropped(yminROI:ymaxROI,xminROI:xmaxROI);
+            tsMapCropped = tsMap(yminROI:ymaxROI,xminROI:xmaxROI);
+            
+            ha1 = subplot('position',[0  0.5  1  0.5]);
+            if j==fstart
+                invPaxImageCropped2 = imcomplement(paxImageCropped2);
+                lastPax = imread(strcat(paxPath,'/pax',num2str(nFrames,iiformat),'.tif'));
+                lastPaxCropped = lastPax(yminROI:ymaxROI,xminROI:xmaxROI);
+                invLastPaxCropped = imcomplement(lastPaxCropped);
+                pmax = max([invPaxImageCropped2(:); invLastPaxCropped(:)]);
+                pmin = min([invPaxImageCropped2(:); invLastPaxCropped(:)]);
+                if j~= iSF && strcmp(tracksNA(k).state{iSF} , 'NA') % remember the first NA's position
+                    xFirst = tracksNA(k).xCoord(iSF);
+                    yFirst = tracksNA(k).yCoord(iSF);
+                    bkgAmpFirst = tracksNA(k).bkgAmp(iSF);
+                end
+            end
+            imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1),colormap(ha1,'gray');freezeColors; hold(ha1,'on')
+            if strcmp(tracksNA(k).state{j} , 'BA')
+                % drawing tracks
+                plot(ha1,xFirst-grid_mat(1,1,1)-xminROI,yFirst-grid_mat(1,1,2)-yminROI,'g', 'LineWidth', 0.5)
+                % remembering adhesion intensity and TF
+                ynmin = max(1,round(yFirst)-grid_mat(1,1,2)-neighPix);
+                ynmax = min(size(tsMap,1),round(yFirst)-grid_mat(1,1,2)+neighPix);
+                xnmin = max(1,round(xFirst)-grid_mat(1,1,1)-neighPix);
+                xnmax = min(size(tsMap,2),round(xFirst)-grid_mat(1,1,1)+neighPix);
+                forceNeigh = tsMap(ynmin:ynmax,xnmin:xnmax);
+                tracksNA(k).forceMag(j) = max(forceNeigh(:));    
+                tracksNA(k).amp(j) = double(paxImageCropped(round(yFirst)-grid_mat(1,1,2),round(xFirst)-grid_mat(1,1,1)))-bkgAmpFirst;
+            elseif strcmp(tracksNA(k).state{j} , 'NA')
+                % drawing tracks
+                plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
+            elseif strcmp(tracksNA(k).state{j} , 'FC')
+                % drawing tracks
+                plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                adhBoundary = tracksNA(k).adhBoundary{j};
+                plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+            elseif strcmp(tracksNA(k).state{j} , 'FA')
+                % drawing tracks
+                plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
+                adhBoundary = tracksNA(k).adhBoundary{j};
+                plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'k', 'LineWidth', 0.5) %adhesion boundary
+            end
+            ha2 = subplot('position',[0  0  1 0.5]);
+            if j==fstart
+                tmax2 = max(min(2500,max(tsMapCropped(:))*0.9),tmax);
+                tmin2 = min(min(tsMapCropped(:)),100);
+            end
+            imshow(tsMapCropped,[tmin2 tmax2],'Parent', ha2), colormap(ha2,'jet');freezeColors; hold(ha2,'on')
+%             set(h2,'CurrentAxes',ha2)
+            
+            if strcmp(tracksNA(k).state{j}, 'NA')
+                % drawing tracks
+                plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
+            elseif strcmp(tracksNA(k).state{j}, 'FC')
+                if j==iSF
+                    continue
+                end
+                % drawing tracks
+                plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                adhBoundary = tracksNA(k).adhBoundary{j};
+                plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+            elseif strcmp(tracksNA(k).state{j}, 'FA')
+                if j==iSF
+                    continue
+                end
+                % drawing tracks
+                plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
+                adhBoundary = tracksNA(k).adhBoundary{j};
+                plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'k', 'LineWidth', 0.5) %adhesion boundary
+            end
+            if j==fend
+                cb = colorbar('location','East');
+                cbfreeze(cb)
+                line([3 3+round(2000/MD.pixelSize_)],[hRoi-3 hRoi-3],'LineWidth',2,'Color',[0,0,0])
+            end
+            curRenderer = get(h2,'Renderer');
+            if ~strcmp(curRenderer,'painters')
+                set(h2,'Renderer','painters')
+            end
+            print('-depsc2', '-r150', strcat(eachEpsPath,'/trackFrame',num2str(j,iiformat),'.eps'));
+%             print('-dtiff', '-r300', strcat(eachPaxPath,'/trackFrame',num2str(j,iiformat),'.tif'));
+            hold(ha1,'off')
+            hold(ha2,'off')
+        end
+        seeMore = input('Do you want to look at video until the end of the movie? (y/(n))','s');
+        if isempty(seeMore)
+            seeMore = 'n';
+        end
+        if strcmp(seeMore,'y')
+            if fend < nFrames
+                for j=fend+1:nFrames
+                    % show each track with paxillin images
+                    tsMap = imread(strcat(forcemapPath,'/force',num2str(j,iiformat),'max',num2str(tmax),'.tif'));
+                    tsMap = double(tsMap)*3500/(2^15); %converting to Pa
+                    
+                    %acquiring force
+                    ynmin = max(1,round(tracksNA(k).yCoord(fend))-grid_mat(1,1,2)-neighPix);
+                    ynmax = min(size(tsMap,1),round(tracksNA(k).yCoord(fend))-grid_mat(1,1,2)+neighPix);
+                    xnmin = max(1,round(tracksNA(k).xCoord(fend))-grid_mat(1,1,1)-neighPix);
+                    xnmax = min(size(tsMap,2),round(tracksNA(k).xCoord(fend))-grid_mat(1,1,1)+neighPix);
+                    forceNeigh = tsMap(ynmin:ynmax,xnmin:xnmax);
+                    tracksNA(k).forceMag(j) = max(forceNeigh(:));    
+                   
+                    paxImageCropped = imread(strcat(paxPath,'/pax',num2str(j,iiformat),'.tif'));
+                    xminROI = round(max(1,tracksNA(k).xCoord(iSF)-grid_mat(1,1,1)-(r1-1))); 
+                    xmaxROI = round(min(imSizeX+1,tracksNA(k).xCoord(iSF)-grid_mat(1,1,1)+r1)); 
+                    yminROI = round(max(1,tracksNA(k).yCoord(iSF)-grid_mat(1,1,2)-(r1-1)));
+                    ymaxROI = round(min(imSizeY+1,tracksNA(k).yCoord(iSF)-grid_mat(1,1,2)+r1));
+                    paxImageCropped2 = paxImageCropped(yminROI:ymaxROI,xminROI:xmaxROI);
+                    tsMapCropped = tsMap(yminROI:ymaxROI,xminROI:xmaxROI);
+                    ha1 = subplot('position',[0  0.5  1  0.5]);
+                    imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1),colormap(ha1,'gray');freezeColors; hold(ha1,'on')
+                    ha2 = subplot('position',[0  0  1 0.5]);
+                    imshow(tsMapCropped,[tmin2 tmax2],'Parent', ha2), colormap(ha2,'jet');freezeColors; hold(ha2,'on')
+                    if strcmp(tracksNA(k).state{fend} , 'NA')
+                        % drawing tracks
+                        plot(ha2,tracksNA(k).xCoord(1:fend)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:fend)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
+                    elseif strcmp(tracksNA(k).state{fend} , 'FC')
+                        % drawing tracks
+                        plot(ha2,tracksNA(k).xCoord(1:fend)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:fend)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                        adhBoundary = tracksNA(k).adhBoundary{fend};
+                        plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                    elseif strcmp(tracksNA(k).state{fend} , 'FA')
+                        % drawing tracks
+                        plot(ha2,tracksNA(k).xCoord(1:fend)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:fend)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
+                        adhBoundary = tracksNA(k).adhBoundary{fend};
+                        plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'k', 'LineWidth', 0.5) %adhesion boundary
+                    end
+                    curRenderer = get(h2,'Renderer');
+                    if ~strcmp(curRenderer,'painters')
+                        set(h2,'Renderer','painters')
+                    end
+                    print('-depsc2','-r150', strcat(eachEpsPath,'/trackFrame',num2str(j,iiformat),'.eps'));
+%                     print('-dtiff', '-r300', strcat(eachPaxPath,'/trackFrame',num2str(j,iiformat),'.tif'));
+                    hold(ha1,'off')
+                    hold(ha2,'off')
+               end
+            else
+                disp('It is already the end of movie!')
+            end
+        end
+        % inquire if the estimated state is right
+        disp(['The state of this adhesion is : track' num2str(k)])
+        disp([num2cell(tracksNA(k).iFrame(fstart:fend)') tracksNA(k).state(fstart:fend)'])
+        strFA = input('Is this state well describing what you see in the movie (no over-estimated FAs or noisy NAs)? ((y)/n)','s');
+        while strcmp(strFA,'n')
+            iFrames = input('Which frames do you want to change? n1:n2  ');
+            state = input('What is the state in those range? (e.g. BA, NA, FC, FA)  ','s');
+            for jj=iFrames
+                tracksNA(k).state{jj} = state;
+            end
+            disp(['Now, the state of this adhesion is :' num2str(k)])
+            disp([num2cell(tracksNA(k).iFrame(fstart:fend)') tracksNA(k).state(fstart:fend)'])
+            strFA = input('Is this state well describing what you see in the movie (no over-estimated FAs or noisy NAs)? ((y)/n)','s');
+        end
+        hold off
+    end
+end
+
+end
+function newTracks = formatTracks(tracks,detectedNAs,nFrames)
+% Format tracks structure into tracks with every frame
+
+newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFrame',[],'presence',[],'amp',[],'bkgAmp',[]);
+% BA: before adhesion, NA: nascent adh, FC: focal complex, FA: focal adh,
+% ANA: after NA (failed to be matured.
+for i = 1:numel(tracks)
+    % Get the x and y coordinate of all compound tracks
+    startNA=true;
+    endNA = true;
+    for  j = 1 : nFrames
+        newTracks(i).iFrame(j) = j;
+        if j<tracks(i).seqOfEvents(1,1)
+            newTracks(i).state{j} = 'BA';
+            newTracks(i).xCoord(j) = NaN;
+            newTracks(i).yCoord(j) = NaN;
+            newTracks(i).presence(j) = false;
+            newTracks(i).amp(j) = NaN;
+        elseif j>tracks(i).seqOfEvents(2,1)
+            newTracks(i).state{j} = 'ANA';
+            newTracks(i).xCoord(j) = NaN;
+            newTracks(i).yCoord(j) = NaN;
+            newTracks(i).amp(j) = NaN;
+            newTracks(i).presence(j) = false;
+            if endNA
+                newTracks(i).endingFrame = j-1;
+                endNA = false;
+            end
+        elseif j==tracks(i).seqOfEvents(2,1)
+            newTracks(i).state{j} = 'NA';
+            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
+            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
+                newTracks(i).bkgAmp(j) = NaN;
+            else
+                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
+            end
+            newTracks(i).presence(j) = true;
+            if endNA
+                newTracks(i).endingFrame = j;
+                endNA = false;
+            end
+        else
+            newTracks(i).state{j} = 'NA';
+            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
+            if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
+                newTracks(i).bkgAmp(j) = NaN;
+            else
+                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
+            end
+            newTracks(i).presence(j) = true;
+            if startNA
+                newTracks(i).startingFrame = j;
+                startNA = false;
+            end
+        end
+            
+        if isfield(tracks, 'label'),
+            newTracks(iTrack).label = tracks(i).label;
+        end
+    end
+    % go through frames again and fill NaNs with numbers at the gap
+    % position
+    for j=1:nFrames-1
+        if j<nFrames-9 && sum(newTracks(i).presence(j:j+9))==10 ...
+                && sum(isnan(newTracks(i).xCoord(j:j+9)))==10 
+            gap = 10;
+            for kk=1:gap
+                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+            end
+        elseif j<nFrames-8 && sum(newTracks(i).presence(j:j+8))==9 ...
+                && sum(isnan(newTracks(i).xCoord(j:j+8)))==9 
+            gap = 9;
+            for kk=1:gap
+                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+            end
+        elseif j<nFrames-7 && sum(newTracks(i).presence(j:j+7))==8 ...
+                && sum(isnan(newTracks(i).xCoord(j:j+7)))==8 
+            gap = 8;
+            for kk=1:gap
+                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+            end
+        elseif j<nFrames-6 && sum(newTracks(i).presence(j:j+6))==7 ...
+                && sum(isnan(newTracks(i).xCoord(j:j+6)))==7 
+            gap = 7;
+            for kk=1:gap
+                newTracks(i).xCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).xCoord(j-1)+kk*newTracks(i).xCoord(j+gap))/(gap+1);
+                newTracks(i).yCoord(j+kk-1) = ((gap+1-kk)*newTracks(i).yCoord(j-1)+kk*newTracks(i).yCoord(j+gap))/(gap+1);
+                newTracks(i).amp(j+kk-1) = ((gap+1-kk)*newTracks(i).amp(j-1)+kk*newTracks(i).amp(j+gap))/(gap+1);
+            end
+        elseif j<nFrames-5 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+               && newTracks(i).presence(j+4) && newTracks(i).presence(j+5) && isnan(newTracks(i).xCoord(j)) ...
+               && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))...
+               && isnan(newTracks(i).xCoord(j+4)) && isnan(newTracks(i).xCoord(j+5))
+            newTracks(i).xCoord(j) = (6*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j) = (6*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j) = (6*newTracks(i).amp(j-1)+newTracks(i).amp(j+6))/7;
+            newTracks(i).xCoord(j+1) = (5*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j+1) = (5*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j+1) = (5*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+6))/7;
+            newTracks(i).xCoord(j+2) = (4*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j+2) = (4*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j+2) = (4*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+6))/7;
+            newTracks(i).xCoord(j+3) = (3*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j+3) = (3*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j+3) = (3*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+6))/7;
+            newTracks(i).xCoord(j+4) = (2*newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j+4) = (2*newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j+4) = (2*newTracks(i).amp(j-1)+5*newTracks(i).amp(j+6))/7;
+            newTracks(i).xCoord(j+5) = (newTracks(i).xCoord(j-1)+6*newTracks(i).xCoord(j+6))/7;
+            newTracks(i).yCoord(j+5) = (newTracks(i).yCoord(j-1)+6*newTracks(i).yCoord(j+6))/7;
+            newTracks(i).amp(j+5) = (newTracks(i).amp(j-1)+6*newTracks(i).amp(j+6))/7;
+        elseif j<nFrames-4 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+                && newTracks(i).presence(j+4) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) ...
+                && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3)) && isnan(newTracks(i).xCoord(j+4))
+            newTracks(i).xCoord(j) = (5*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+5))/6;
+            newTracks(i).yCoord(j) = (5*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+5))/6;
+            newTracks(i).amp(j) = (5*newTracks(i).amp(j-1)+newTracks(i).amp(j+5))/6;
+            newTracks(i).xCoord(j+1) = (4*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+5))/6;
+            newTracks(i).yCoord(j+1) = (4*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+5))/6;
+            newTracks(i).amp(j+1) = (4*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+5))/6;
+            newTracks(i).xCoord(j+2) = (3*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+5))/6;
+            newTracks(i).yCoord(j+2) = (3*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+5))/6;
+            newTracks(i).amp(j+2) = (3*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+5))/6;
+            newTracks(i).xCoord(j+3) = (2*newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+5))/6;
+            newTracks(i).yCoord(j+3) = (2*newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+5))/6;
+            newTracks(i).amp(j+3) = (2*newTracks(i).amp(j-1)+4*newTracks(i).amp(j+5))/6;
+            newTracks(i).xCoord(j+4) = (newTracks(i).xCoord(j-1)+5*newTracks(i).xCoord(j+5))/6;
+            newTracks(i).yCoord(j+4) = (newTracks(i).yCoord(j-1)+5*newTracks(i).yCoord(j+5))/6;
+            newTracks(i).amp(j+4) = (newTracks(i).amp(j-1)+5*newTracks(i).amp(j+5))/6;
+        elseif j<nFrames-3 && newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) && newTracks(i).presence(j+3) ...
+                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2)) && isnan(newTracks(i).xCoord(j+3))
+            newTracks(i).xCoord(j) = (4*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+4))/5;
+            newTracks(i).yCoord(j) = (4*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+4))/5;
+            newTracks(i).amp(j) = (4*newTracks(i).amp(j-1)+newTracks(i).amp(j+4))/5;
+            newTracks(i).xCoord(j+1) = (3*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+4))/5;
+            newTracks(i).yCoord(j+1) = (3*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+4))/5;
+            newTracks(i).amp(j+1) = (3*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+4))/5;
+            newTracks(i).xCoord(j+2) = (2*newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+4))/5;
+            newTracks(i).yCoord(j+2) = (2*newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+4))/5;
+            newTracks(i).amp(j+2) = (2*newTracks(i).amp(j-1)+3*newTracks(i).amp(j+4))/5;
+            newTracks(i).xCoord(j+3) = (newTracks(i).xCoord(j-1)+4*newTracks(i).xCoord(j+4))/5;
+            newTracks(i).yCoord(j+3) = (newTracks(i).yCoord(j-1)+4*newTracks(i).yCoord(j+4))/5;
+            newTracks(i).amp(j+3) = (newTracks(i).amp(j-1)+4*newTracks(i).amp(j+4))/5;
+        elseif j<nFrames-2 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && newTracks(i).presence(j+2) ...
+                && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1)) && isnan(newTracks(i).xCoord(j+2))
+            newTracks(i).xCoord(j) = (3*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+3))/4;
+            newTracks(i).yCoord(j) = (3*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+3))/4;
+            newTracks(i).amp(j) = (3*newTracks(i).amp(j-1)+newTracks(i).amp(j+3))/4;
+            newTracks(i).xCoord(j+1) = (2*newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+3))/4;
+            newTracks(i).yCoord(j+1) = (2*newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+3))/4;
+            newTracks(i).amp(j+1) = (2*newTracks(i).amp(j-1)+2*newTracks(i).amp(j+3))/4;
+            newTracks(i).xCoord(j+2) = (newTracks(i).xCoord(j-1)+3*newTracks(i).xCoord(j+3))/4;
+            newTracks(i).yCoord(j+2) = (newTracks(i).yCoord(j-1)+3*newTracks(i).yCoord(j+3))/4;
+            newTracks(i).amp(j+2) = (newTracks(i).amp(j-1)+3*newTracks(i).amp(j+3))/4;
+        elseif j<nFrames-1 &&newTracks(i).presence(j) && newTracks(i).presence(j+1) && isnan(newTracks(i).xCoord(j)) && isnan(newTracks(i).xCoord(j+1))
+            newTracks(i).xCoord(j) = (2*newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+2))/3;
+            newTracks(i).yCoord(j) = (2*newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+2))/3;
+            newTracks(i).amp(j) = (2*newTracks(i).amp(j-1)+newTracks(i).amp(j+2))/3;
+            newTracks(i).xCoord(j+1) = (newTracks(i).xCoord(j-1)+2*newTracks(i).xCoord(j+2))/3;
+            newTracks(i).yCoord(j+1) = (newTracks(i).yCoord(j-1)+2*newTracks(i).yCoord(j+2))/3;
+            newTracks(i).amp(j+1) = (newTracks(i).amp(j-1)+2*newTracks(i).amp(j+2))/3;
+        elseif newTracks(i).presence(j) && isnan(newTracks(i).xCoord(j))
+            newTracks(i).xCoord(j) = (newTracks(i).xCoord(j-1)+newTracks(i).xCoord(j+1))/2;
+            newTracks(i).yCoord(j) = (newTracks(i).yCoord(j-1)+newTracks(i).yCoord(j+1))/2;
+            newTracks(i).amp(j) = (newTracks(i).amp(j-1)+newTracks(i).amp(j+1))/2;
+        end
+    end
 end
 end
 
-function pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,neighD)
-    nPoints = length(pstruct_NA.x);
-    pstruct_NAwithForce = pstruct_NA;
-    laplacian = [.5 1 .5; 1 -6 1; .5 1 .5];
-    for jj=1:nPoints
-        rowRange = round(pstruct_NA.y(jj))-neighD:round(pstruct_NA.y(jj))+neighD;
-        colRange = round(pstruct_NA.x(jj))-neighD:round(pstruct_NA.x(jj))+neighD;
-        pstruct_NAwithForce.fmag(jj) = max(max(tsMap(rowRange,colRange))); %force magnitude
-        pstruct_NAwithForce.fcurvature(jj) = sum(sum(tsMap(round(pstruct_NA.y(jj))-1:round(pstruct_NA.y(jj))+1,round(pstruct_NA.x(jj))-1:round(pstruct_NA.x(jj))+1)...
-                                                                            .* laplacian)); %force curvature
-    end
-end
+% function pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,neighD)
+%     nPoints = length(pstruct_NA.x);
+%     pstruct_NAwithForce = pstruct_NA;
+%     laplacian = [.5 1 .5; 1 -6 1; .5 1 .5];
+%     for jj=1:nPoints
+%         rowRange = round(pstruct_NA.y(jj))-neighD:round(pstruct_NA.y(jj))+neighD;
+%         colRange = round(pstruct_NA.x(jj))-neighD:round(pstruct_NA.x(jj))+neighD;
+%         pstruct_NAwithForce.fmag(jj) = max(max(tsMap(rowRange,colRange))); %force magnitude
+%         pstruct_NAwithForce.fcurvature(jj) = sum(sum(tsMap(round(pstruct_NA.y(jj))-1:round(pstruct_NA.y(jj))+1,round(pstruct_NA.x(jj))-1:round(pstruct_NA.x(jj))+1)...
+%                                                                             .* laplacian)); %force curvature
+%     end
+% end

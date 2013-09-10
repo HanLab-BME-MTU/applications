@@ -20,8 +20,7 @@ end
 % Load the MovieData
 movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
 % movieData = MovieData.load(movieDataPath);
-load(movieDataPath);
-movieData = MD;
+movieData = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = movieData.nFrames_;
 % Get TFM package

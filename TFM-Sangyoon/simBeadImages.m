@@ -496,25 +496,27 @@ end
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 % [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
-[~,fminIdx]=min(fErr);
+[~,fminFGIdx]=min(fErrFG);
+[~,fminBGIdx]=min(fErrBG);
 % [~,fminIdx]=min(fErr3);
 % save([dataPath '/LcurveL1-0th.mat'],'rho','eta','rho2','eta2','rho3','eta3','fErr3','reg_corner','ireg_corner','alphas','msparse','fminIdx','-v7.3');
-save([dataPath '/LcurveL1-0th.mat'],'forceMesh','rho','eta','fErr','reg_corner','ireg_corner','alphas','msparse','fminIdx','-v7.3');
+save('LcurveL1-0th FerrFG FerrBG.mat');
+% save([dataPath '/LcurveL1-0th FerrFG FerrBG.mat'],'forceMesh','rho','eta','fErrBG','reg_corner','ireg_corner',...
+%     'alphas','msparse','fminFGIdx','fminBGIdx','-v7.3');
 %% showing force for L1 0th
 load([dataPath '/LcurveL1-0th.mat']);
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),x_mat_u,y_mat_u,'new');
-% msparse_Lcorner 
-% forcePath = '/hms/scratch1/sh268/multiForceTesting2/TFMPackage/L1-0th forcemap at Lcorner';
-% forceField.pos=[reshape(x_out,[],1) reshape(y_out,[],1)];
-% forceField.vec=[reshape(fx,[],1) reshape(fy,[],1)];
-% 
-% generateHeatmapFromField(forceField,forcePath,3100);
-
 generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at Lcorner'],3100,false,460,460)
+
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ceil((fminIdx+ireg_corner)/2)),x_mat_u,y_mat_u,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fErr minimum'],3100,false,460,460);
 
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminBGIdx),x_mat_u,y_mat_u,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fBGmin'],3100,false,460,460);
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminFGIdx),x_mat_u,y_mat_u,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fFGmin'],3100,false,460,460);
  %% L-curve for L1 2nd
 MpM=M'*M;
 maxIter = 10;
