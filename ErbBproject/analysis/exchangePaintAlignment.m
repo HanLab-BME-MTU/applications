@@ -180,14 +180,17 @@ for j=1:num
     %If drift markers at less than the diffraction limit apart merge them
     % in case gap closing doesn't handle them
 
-    merge = clusterdata(dmark,'cutoff',difLim,'criterion','distance');
-    
-    temp = [];
-    for l = unique(merge)'
-        li = find(merge == l);
-        temp = vertcat(temp,mean(dmark(li,:),1));
+    if numel(ind) > 1
+        merge = clusterdata(dmark,'cutoff',difLim,'criterion','distance');
+        
+        temp = [];
+        for l = unique(merge)'
+            li = find(merge == l);
+            temp = vertcat(temp,mean(dmark(li,:),1));
+        end
+    else
+        temp = dmark;
     end
-    
     
     %Stores drift mark intial positions after drift correcting
     PointList{j}.dmark = temp;
@@ -321,7 +324,7 @@ if ImageDisp >0
 %         tmp2 = (PointList{j}.shift.regParam.M*[tmp(:,[2,1]),ones(size(tmp(:,1)))]')';
 %         scatter(tmp2(:,2),tmp2(:,1),[cmap{j},'s']);
 %        scatter(tmp(:,1)+repmat(PointList{j}.shift.trans(1),[ntmp,1]),tmp(:,2)+repmat(PointList{j}.shift.trans(2),[ntmp,1]),[cmap{j},'s']);
-        scatter(tmp2(:,2),tmp2(:,1),[cmap{j},'s']);
+        scatter(tmp2(:,1),tmp2(:,2),[cmap{j},'s']);
     end
     title('Drift Markers only')
   
