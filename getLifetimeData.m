@@ -1,3 +1,5 @@
+%[lftData, rmIdx] = getLifetimeData(data, varargin) returns track information in compact form for lifetime analysis
+
 % Francois Aguet, 05/2012
 
 function [lftData, rmIdx] = getLifetimeData(data, varargin)
@@ -5,7 +7,7 @@ function [lftData, rmIdx] = getLifetimeData(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Overwrite', false, @islogical);
-ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
+ip.addParamValue('ProcessedTracks', [], @ischar);
 ip.addParamValue('LifetimeData', 'lifetimeData.mat', @ischar);
 ip.addParamValue('ReturnValidOnly', true, @islogical);
 ip.addParamValue('Cutoff_f', [], @isscalar);
