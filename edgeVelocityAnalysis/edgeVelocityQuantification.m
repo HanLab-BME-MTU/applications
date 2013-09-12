@@ -8,18 +8,16 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 % All the above quantifications are done for each cell of the movieObj (movieList or movieData)
 % If the input 'interval' is set, all the described quantifications are calculated for each time interval
 %
-% IMPORTANT: This function requires to format the time series first. To do that, run the function "formatEdgeVelocity".
 %
 %Usage: [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %
 % Input:
-%       nBoot - # of boostrap samples to be used (default value 1000)
+%       nBoot         - # of boostrap samples to be used (default value 1000)
 %
-%       alpha - alpha used to generate the bootstrap confidence intervals
-%         (default value 0.05)
+%       alpha         - alpha used to generate the bootstrap confidence intervals
+%                       (default value 0.05)
 %
-%       interval - cell array with the time intervals in frames
-%                   Ex : interval = {[1:30],[20:40]} - Quantification will be done with velocities calculated at each element of the cell array
+%       includeWin - 
 %
 %       scale         - convert velocity from pixel/frame into nm/sec.Default:false
 %
@@ -109,7 +107,7 @@ ip.addParamValue('includeWin',cell(1,nCell),@iscell);
 ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('scale',     false,@islogical);
 ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);

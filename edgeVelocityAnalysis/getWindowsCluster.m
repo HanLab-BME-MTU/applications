@@ -52,6 +52,7 @@ nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -63,19 +64,20 @@ ip.addParamValue('clusterMethod',1,@isscalar);
 ip.addParamValue('clusterSet', {2,'Distance','sqEuclidean','Replicates',10}, @iscell);                 
 
 ip.parse(movieObj,varargin{:});
-scale      = ip.Results.scale;
-includeWin = ip.Results.includeWin;
-outLevel   = ip.Results.outLevel;
-minLen     = ip.Results.minLength;
-trend      = ip.Results.trendType;
-edgeState  = ip.Results.edgeState;
-edgeFeat   = ip.Results.stateFeature;
-fVector    = ip.Results.featureStats;
-clusterM   = ip.Results.clusterMethod;
-clusterSet = ip.Results.clusterSet;
+scale       = ip.Results.scale;
+includeWin  = ip.Results.includeWin;
+winInterval = ip.Results.winInterval;
+outLevel    = ip.Results.outLevel;
+minLen      = ip.Results.minLength;
+trend       = ip.Results.trendType;
+edgeState   = ip.Results.edgeState;
+edgeFeat    = ip.Results.stateFeature;
+fVector     = ip.Results.featureStats;
+clusterM    = ip.Results.clusterMethod;
+clusterSet  = ip.Results.clusterSet;
 
 %%
-edgeInputParam = {'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'scale',scale};
+edgeInputParam = {'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale};
 cellData       = edgeVelocityQuantification(ML,edgeInputParam{:});
 
 % State Features
@@ -91,7 +93,7 @@ measures{2}  = 'retraction';
 
 aux1         = arrayfun(@(x) repmat(x,1,numel(edgeFeat)),measures(edgeState),'Unif',0);
 aux2         = repmat(feature(edgeFeat),1,numel(edgeState));
-aux3         = cellfun(@(z1,z2) cellfun(@(y) arrayfun(@(x) x.(z1),y.(z2).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
+aux3         = cellfun(@(z1,z2) cellfun(@(y) arrayfun(@(x) x.(z1),y.([z2 'Analysis']).windows,'Unif',0),cellData,'Unif',0),aux2,cat(2,aux1{:}),'Unif',0);
 featureSpace = cellfun(@(x) cat(2,x{:}),aux3,'Unif',0);
 
 statsVector(1:numel(edgeFeat)*numel(edgeState)) = {fVector};
@@ -103,7 +105,7 @@ cellData         = getCellIndex(cellData,out,dataPoints,edgeFeat,edgeState,featu
 %recounting the window's index
 for iCell = 1:nCell
 
-    cellData{iCell}.clusterWin = arrayfun(@(x) cellData{iCell}.data.includedWin(cellData{iCell}.clusterWin{x}),1:numel(out),'Unif',0);
+    cellData{iCell}.clusterWin = arrayfun(@(x) cellData{iCell}.data.includedWin{1}(cellData{iCell}.clusterWin{x}),1:numel(out),'Unif',0);
          
 end
 
