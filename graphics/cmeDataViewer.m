@@ -32,7 +32,10 @@ handles.nCh = nCh;
 handles.mCh = find(strcmp(data.source, data.channels));
 
 
-handles.f = 1;
+fidx = 1;
+tidx = 1;
+
+% handles.f = 1;
 handles.t = 1;
 
 nx = data.imagesize(2);
@@ -164,13 +167,13 @@ rspace = w+30+50;
 spacer = 10; 
 handles = setupFrameAxes(hfig, [lspace bspace rspace tspace spacer]);
 
-handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(handles.f)], ...
+handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(fidx)], ...
     'Position', [10 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
 % Frame slider
 if data.movieLength>1
     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
-        'Value', handles.f, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
+        'Value', fidx, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
         'Position', [lspace 77 pos(3)-rspace-lspace 18]);
 end
 % this definition (instead of regular callback) enable continuous sliding
@@ -448,8 +451,8 @@ end
 %===============================================================================
 if ~isempty(tracks)
     set(handles.trackSlider, 'Min', 1);
-    set(handles.trackSlider, 'Max', tstruct.n);
-    set(handles.trackSlider, 'SliderStep', [1/(tstruct.n-1) 0.05]);
+    set(handles.trackSlider, 'Max', nt);
+    set(handles.trackSlider, 'SliderStep', [1/(nt-1) 0.05]);
     setTrackColormap('Category');
     setColorbar('Category');
 else
@@ -485,7 +488,7 @@ hxz = zeros(1,nCh);
 hl = zeros(nCh,4);
 for c = 1:nCh
     % x,y view
-    hxy(c) = imagesc(stack{c}(:,:,handles.f), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
+    hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
     hold(handles.fAxes(c,1), 'on');
     set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
     hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
@@ -495,21 +498,23 @@ for c = 1:nCh
     hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
     hold(handles.fAxes(c,2), 'on');
     % line in y,z view
-    hl(c,3) = plot(handles.fAxes(c,2), handles.f*[1 1], [0.5 ny+0.5], 'Color', lcolor);
+    hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor);
     hold(handles.fAxes(c,2), 'off');
     
     % x,z view
     hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
     hold(handles.fAxes(c,3), 'on');
     % line in x,z view
-    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], handles.f*[1 1], 'Color', lcolor);
+    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor);
     hold(handles.fAxes(c,3), 'off');
     
-%     set(hl, );
     arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
 end
 set(handles.fAxes, 'XTick', [], 'YTick', []);
 axis(handles.fAxes(:,1), 'equal');
+% this fixes a bug with axis 'equal' that allows panning beyond boundaries
+set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
+
 
 dx = 0.03;
 hChLabel = zeros(1,nCh);
@@ -529,10 +534,10 @@ if ~isempty(tracks)
     hf = zeros(nCh,1);
     hst = zeros(1,nCh);
     for c = 1:nCh
-        hf(c) = plot(handles.tAxes(c), ([handles.f handles.f]-1)*data.framerate,...
+        hf(c) = plot(handles.tAxes(c), ([fidx fidx]-1)*data.framerate,...
             get(handles.tAxes(c), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
-        hst(c) = plot(handles.fAxes(c,1), X(handles.f, tstruct.idx==handles.t),...
-                    Y(handles.f, tstruct.idx==handles.t), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+        hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==handles.t),...
+                    Y(fidx, tstruct.idx==handles.t), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
     end
     
     updateTrack();
@@ -590,17 +595,17 @@ set(hz, 'ActionPostCallback', @czoom);
     function scroll_Callback(src, eventdata)
         hi = getappdata(src, 'handles');
         if eventdata.VerticalScrollCount < 0
-            if hi.f < nf
-                hi.f = hi.f + 1;
+            if fidx < nf
+                fidx = fidx + 1;
                 setappdata(hfig, 'handles', hi);
-                set(handles.frameSlider, 'Value', hi.f);
+                set(handles.frameSlider, 'Value', fidx);
                 updateSlice();
             end
         elseif eventdata.VerticalScrollCount > 0
-            if hi.f > 1
-                hi.f = hi.f - 1;
+            if fidx > 1
+                fidx = fidx - 1;
                 setappdata(hfig, 'handles', hi);
-                set(handles.frameSlider, 'Value', hi.f);
+                set(handles.frameSlider, 'Value', fidx);
                 updateSlice();
             end
         end
@@ -611,17 +616,17 @@ set(hz, 'ActionPostCallback', @czoom);
         hi = getappdata(hfig, 'handles');
         switch eventdata.Key
             case 'leftarrow'
-                if hi.f > 1
-                    hi.f = hi.f - 1;
+                if fidx > 1
+                    fidx = fidx - 1;
                     setappdata(hfig, 'handles', hi);
-                    set(hi.frameSlider, 'Value', hi.f);
+                    set(hi.frameSlider, 'Value', fidx);
                     updateSlice();
                 end
             case 'rightarrow'
-                if hi.f < nf
-                    hi.f = hi.f + 1;
+                if fidx < nf
+                    fidx = fidx + 1;
                     setappdata(hfig, 'handles', hi);
-                    set(hi.frameSlider, 'Value', hi.f);
+                    set(hi.frameSlider, 'Value', fidx);
                     updateSlice();
                 end
             case 'downarrow'
@@ -649,25 +654,25 @@ set(hz, 'ActionPostCallback', @czoom);
         switch displayType
             case 'raw'                
                 for ci = 1:nCh
-                    set(hxy(ci), 'CData', stack{ci}(:,:,hi.f));
+                    set(hxy(ci), 'CData', stack{ci}(:,:,fidx));
                 end
             case 'mask'
-                set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,hi.f), dmask(:,:,hi.f), [1 0 0], dRange{1}));
+                set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,fidx), dmask(:,:,fidx), [1 0 0], dRange{1}));
                 for ci = 2:nCh
-                    set(hxy(ci), 'CData', stack{ci}(:,:,hi.f));
+                    set(hxy(ci), 'CData', stack{ci}(:,:,fidx));
                 end
             case 'RGB'
                 rframe = zeros(ny,nx,3,'uint8');
                 idxRGB = getRGBindex(data.markers);                
                 for ci = 1:nCh
-                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,hi.f)), dRange{ci}));
+                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,fidx)), dRange{ci}));
                 end
                 set(hxy(1), 'CData', rframe);
         end
         
-        set(hl(:,3), 'XData', hi.f*[1 1]);
-        set(hl(:,4), 'YData', hi.f*[1 1]);        
-        set(hi.frameLabel, 'String', ['Frame ' num2str(hi.f)]);
+        set(hl(:,3), 'XData', fidx*[1 1]);
+        set(hl(:,4), 'YData', fidx*[1 1]);        
+        set(hi.frameLabel, 'String', ['Frame ' num2str(fidx)]);
         
         delete(hms);
         hms = [];
@@ -681,7 +686,7 @@ set(hz, 'ActionPostCallback', @czoom);
         if ~isempty(tracks)
             % update current frame marker in track plots
             for ci = 1:nCh
-                set(hf(ci), 'XData', ([hi.f hi.f]-1)*data.framerate,...
+                set(hf(ci), 'XData', ([fidx fidx]-1)*data.framerate,...
                     'YData', get(handles.tAxes(ci), 'YLim'));
             end
         end
@@ -693,40 +698,40 @@ set(hz, 'ActionPostCallback', @czoom);
         hpg = [];
         hps = [];
 
-        if ~isempty(tracks) && hi.f~=1 && get(trackCheckbox, 'Value')
-            vidx = ~isnan(X(hi.f,:)) & selIndex(tstruct.idx);
+        if ~isempty(tracks) && fidx~=1 && get(trackCheckbox, 'Value')
+            vidx = ~isnan(X(fidx,:)) & selIndex(tstruct.idx);
             delete(hpt);
             set(hi.fAxes(1,1), 'ColorOrder', cmap(tstruct.idx(vidx),:));
-            hpt = plot(hi.fAxes(1,1), X(1:hi.f,vidx), Y(1:hi.f,vidx), 'HitTest', 'off');
+            hpt = plot(hi.fAxes(1,1), X(1:fidx,vidx), Y(1:fidx,vidx), 'HitTest', 'off');
             if get(gapCheckbox, 'Value')
-                hpg = plot(hi.fAxes(1,1), X(hi.f,vidx & G(hi.f,:)), Y(hi.f,vidx & G(hi.f,:)), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+                hpg = plot(hi.fAxes(1,1), X(fidx,vidx & G(fidx,:)), Y(fidx,vidx & G(fidx,:)), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
             end
             if get(trackEventCheckbox, 'Value')
                 % Births
-                bcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackStarts==hi.f & selIndex), 'unif', 0);
+                bcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackStarts==fidx & selIndex), 'unif', 0);
                 bcoord = vertcat(bcoord{:});
                 if~isempty(bcoord)
                     hps = plot(hi.fAxes(1,1), bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
                 end
                 
                 % Deaths
-                dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==hi.f & selIndex), 'unif', 0);
+                dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==fidx & selIndex), 'unif', 0);
                 dcoord = vertcat(dcoord{:});
                 if ~isempty(dcoord)
                     hps = [hps; plot(hi.fAxes(1,1), dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1)];
                 end
             end
             for ci = 1:nCh
-                set(hst(ci), 'XData', X(hi.f, tstruct.idx==hi.t), 'YData', Y(hi.f, tstruct.idx==hi.t));
+                set(hst(ci), 'XData', X(fidx, tstruct.idx==hi.t), 'YData', Y(fidx, tstruct.idx==hi.t));
             end
         end
         if ~isempty(tracks) && get(eapCheckbox, 'Value')
             for ci = 2:nCh
-                sel = fvec==hi.f & mvec(ci,:)==1;
+                sel = fvec==fidx & mvec(ci,:)==1;
                 hp1 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([1/3 1 0.9]), 'MarkerSize', 8);
-                sel = fvec==hi.f & mvec(ci,:)==0 & svec(ci,:)==1;
+                sel = fvec==fidx & mvec(ci,:)==0 & svec(ci,:)==1;
                 hp2 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([0.55 1 0.9]), 'MarkerSize', 8);
-                sel = fvec==hi.f & mvec(ci,:)==0 & svec(ci,:)==0;
+                sel = fvec==fidx & mvec(ci,:)==0 & svec(ci,:)==0;
                 hp3 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', 0.8*[1 1 1], 'MarkerSize', 8);
                 hps = [hps; hp1; hp2; hp3]; %#ok<AGROW>
             end
@@ -735,12 +740,12 @@ set(hz, 'ActionPostCallback', @czoom);
         delete(hpd); % clear previous plots
         hpd = [];
         if get(detectionCheckbox, 'Value') && ~isempty(frameInfo)
-            isPSF = frameInfo(hi.f).isPSF(1,:)==1;
+            isPSF = frameInfo(fidx).isPSF(1,:)==1;
             if any(isPSF)
-                hpd(1) = plot(hi.fAxes(1,1), frameInfo(hi.f).x(1,isPSF), frameInfo(hi.f).y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
+                hpd(1) = plot(hi.fAxes(1,1), frameInfo(fidx).x(1,isPSF), frameInfo(fidx).y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
             end
             if any(~isPSF)
-                hpd(2) = plot(hi.fAxes(1,1), frameInfo(hi.f).x(1,~isPSF), frameInfo(hi.f).y(1,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
+                hpd(2) = plot(hi.fAxes(1,1), frameInfo(fidx).x(1,~isPSF), frameInfo(fidx).y(1,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
             end
         end
     end
@@ -768,9 +773,9 @@ set(hz, 'ActionPostCallback', @czoom);
 %                 set(hxz(1), 'CData', tframe);
 %                 set(hyz(1), 'CData', lframe);
 %             %case 'mask'
-%             %    set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,hi.f), dmask(:,:,hi.f), [1 0 0], dRange{1}));
+%             %    set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,fidx), dmask(:,:,fidx), [1 0 0], dRange{1}));
 %             %    for ci = 2:nCh
-%             %        set(hxy(ci), 'CData', stack{ci}(:,:,hi.f));
+%             %        set(hxy(ci), 'CData', stack{ci}(:,:,fidx));
 %             %    end
 %             otherwise
                 for ci = 1:nCh
@@ -839,7 +844,7 @@ set(hz, 'ActionPostCallback', @czoom);
         obj = get(eventdata, 'AffectedObject'); % this contains the current, continuous value
         f = round(get(obj, 'Value'));
         hi = getappdata(hfig, 'handles');
-        hi.f = f;
+        fidx = f;
         setappdata(hfig, 'handles', hi);
         updateSlice();
     end
@@ -849,32 +854,32 @@ set(hz, 'ActionPostCallback', @czoom);
         obj = get(eventdata, 'AffectedObject');
         t0 = round(get(obj, 'Value'));
         hi = getappdata(hfig, 'handles');
-        hi.t = t0;
+        tmp = find(selIndex);
+        hi.t = tmp(t0);
         setappdata(hfig, 'handles', hi);
         updateTrack();
         
         % if track not visible, jump to first frame
         % t = handles.tracks{1}(t);
-        % if handles.f < t.start || handles.f > t.end
-        %     handles.f = t.start;
+        % if fidx < t.start || fidx > t.end
+        %     fidx = t.start;
         %     % set frame number
-        %     set(handles.frameLabel, 'String', ['Frame ' num2str(handles.f)]);
+        %     set(handles.frameLabel, 'String', ['Frame ' num2str(fidx)]);
         %     % set frame slider
-        %     set(handles.frameSlider, 'Value', handles.f);
+        %     set(handles.frameSlider, 'Value', fidx);
         % end
     end
 
 
     function updateTrack(varargin)
-        
         hi = getappdata(hfig, 'handles');
         
         set(hi.trackLabel, 'String', ['Track ' num2str(hi.t)]);
-        set(hst, 'XData', X(hi.f, tstruct.idx==hi.t), 'YData', Y(hi.f, tstruct.idx==hi.t));
+        % update selected track marker position
+        set(hst, 'XData', X(fidx, tstruct.idx==hi.t), 'YData', Y(fidx, tstruct.idx==hi.t));
 
         
         itrack = tracks(hi.t);
-        
         for ci = 1:nCh
             %cla(handles.tAxes(ci));
             hold(handles.tAxes(ci), 'off');
@@ -924,7 +929,7 @@ set(hz, 'ActionPostCallback', @czoom);
             %                 'Parent', handles.tAxes(ci));
             %         end
             
-            hf(ci) = plot(handles.tAxes(ci), ([hi.f hi.f]-1)*data.framerate,...
+            hf(ci) = plot(handles.tAxes(ci), ([fidx fidx]-1)*data.framerate,...
                 get(handles.tAxes(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
             
             set(handles.tAxes(1:end-1), 'XTickLabel', []);
@@ -1011,10 +1016,8 @@ set(hz, 'ActionPostCallback', @czoom);
             'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels',...
             'Name', 'Track display settings', 'NumberTitle', 'off');
         
-        b  = 155;
-
         % Lifetime selection sliders
-        
+        b  = 155;
         uicontrol(pht, 'Style', 'text', 'String', 'Lifetimes:',...
             'Position', [5 b+35 90 20], 'HorizontalAlignment', 'left');
         uicontrol(pht, 'Style', 'text', 'String', 'Min.:',...
@@ -1125,7 +1128,19 @@ set(hz, 'ActionPostCallback', @czoom);
                 ((eapCheckVal(1) & M(2,:)==1) | ...
                 (eapCheckVal(2) & M(2,:)==0 & S(2,:)==1) | ...
                 (eapCheckVal(3) & S(2,:)==0));
+            
+            % update track selection
+            hi = getappdata(hfig, 'handles');
+            hi.t = find(selIndex, 1, 'first');
+            setappdata(hfig, 'handles', hi);
+            
+            set(handles.trackSlider, 'Min', 1);
+            set(handles.trackSlider, 'Max', sum(selIndex));
+            set(handles.trackSlider, 'SliderStep', [1 1]/(sum(selIndex)-1));
+            set(handles.trackSlider, 'Value', 1);
+            
             updateSlice();
+            updateTrack();
             close(pht);
         end
         
@@ -1264,7 +1279,7 @@ set(hz, 'ActionPostCallback', @czoom);
         ci = find(hi.fAxes(:,1)==gca, 1);
         if ~isempty(ci) && ~isempty(tracks)
             % track segments visible in current frame
-            cidx = find([tracks.start]<=hi.f & hi.f<=[tracks.end]);
+            cidx = find([tracks.start]<=fidx & fidx<=[tracks.end]);
             if ~isempty(cidx)
                 % distance to mean of tracks
                 d = sqrt((x0-mu_x(cidx)).^2 + (y0-mu_y(cidx)).^2);
@@ -1330,8 +1345,8 @@ set(hz, 'ActionPostCallback', @czoom);
             set(hx, 'MarkerSize', 9, 'LineWidth', 1);
             
             set(h0, 'Position', [0 0 1 1]);
-            print(f0, '-depsc2', '-loose', [fpath 'frame_' num2str(hi.f) '_' chLabel{ci} '.eps']);
-            %print(f0, '-dpng', '-loose', [fpath 'frame_' num2str(hi.f) '_' chLabel{ci} '.png']);
+            print(f0, '-depsc2', '-loose', [fpath 'frame_' num2str(fidx) '_' chLabel{ci} '.eps']);
+            %print(f0, '-dpng', '-loose', [fpath 'frame_' num2str(fidx) '_' chLabel{ci} '.png']);
             delete(h0);
         end
         close(f0);
@@ -1367,7 +1382,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
         for ci = 1:maxCh
             fprintf('Generating movie frames:     ');
-            for fi = 1%:10%nf
+            for fi = 1:nf
                
                 switch displayType
                     case 'raw'
