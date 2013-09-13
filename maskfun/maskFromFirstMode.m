@@ -27,7 +27,7 @@ lmax = locmax1d(f, 3);
 lmin = locmin1d(f, 3);
 
 % max value
-% hmax = find(f==max(f), 1, 'first');
+% [~,hmax] = max(f);
 dxi = xi(2)-xi(1);
 
 % identify min after first mode
