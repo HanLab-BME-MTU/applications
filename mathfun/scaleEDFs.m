@@ -133,7 +133,7 @@ if ip.Results.Display
     ylabel(ha(1), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
     if ~isempty(ip.Results.Legend)
-        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none', 'hide');
+        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
         legend(hl, 'hide');
     else
         hl = legend(hp(refIdx), ' Median distr.', 'Location', 'SouthEast');
@@ -152,7 +152,7 @@ if ip.Results.Display
     ylabel(ha(2), 'Cumulative frequency', fset.lfont{:});
     text(0, 1.1, 'Scaled distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(2));
     if ~isempty(ip.Results.Legend)
-        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none', 'hide');
+        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
         legend(hl, 'hide');
     end
     
