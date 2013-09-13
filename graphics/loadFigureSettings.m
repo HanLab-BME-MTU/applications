@@ -25,6 +25,8 @@ fset.ceY = hsv2rgb([1/7 1 1]);
 fset.cf0 = hsv2rgb([0 0 0.7]);
 fset.ce0 = hsv2rgb([0 0 0.3]);
 
+fset.categories = {'valid', 'faulty', 'cut', 'persistent',...
+                        'valid', 'faulty', 'cut', 'persistent'};
 
 fset.fontName = {'FontName', 'Helvetica'};
 
