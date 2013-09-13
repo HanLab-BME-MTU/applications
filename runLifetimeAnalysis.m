@@ -222,8 +222,8 @@ for i = 1:nd
     
     %res(i).maxAAboveT = res(i).maxA_all(idxMI);
     %res(i).AaboveT = lftData(i).A(idxMI,:,:);
-    lftRes.pctCCP(i) = numel(res(i).lftAboveT)/nCS;
-    lftRes.pctCS(i) = numel(res(i).lftBelowT)/nCS;
+    lftRes.pctCCP(i) = sum(idxMI)/nCS;
+    lftRes.pctCS(i) = sum(~idxMI)/nCS;
             
     N = data(i).movieLength-2*buffer;
     t = (cutoff_f:N)*framerate;
@@ -269,6 +269,8 @@ for i = 1:nd
             lftRes.pctSlaveCS(i,s) = sum(~idxMI & sIdx)/numel(idxMI);
         end
     end
+    % Note: sum(pctSlaveCCP,2) differs from pctCCP because it excludes visitors
+    
     %-----------------------------------
     % Initiation density
     %-----------------------------------
@@ -285,7 +287,8 @@ for i = 1:nd
     startsPerFrameIa = startsPerFrameIa(6:end-2);
     startsPerFrameCCP = hist(lftData(i).start(idxMI), 1:data(i).movieLength);
     startsPerFrameCCP = startsPerFrameCCP(6:end-2);
-    
+    lftRes.startsPerFrameAll(i,:) = startsPerFrameAll;
+
     % in µm^-2 min^-1
     dnorm = 60/data(i).framerate/lftRes.cellArea(i);
     lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]*dnorm;
