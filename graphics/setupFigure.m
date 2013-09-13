@@ -130,7 +130,7 @@ c = min(0.8*fpos0(3:4)./fposPx(3:4));
 if c<1
     fpos(3:4) = c*fpos(3:4);
 end
-
+fpos(2) = 5;
 hf = figure('PaperPositionMode', 'auto', 'Color', 'w', 'InvertHardcopy', 'off',...
     'Units', 'centimeters', 'Position', fpos, 'Units', 'pixels', 'Name', ip.Results.Name);
 
