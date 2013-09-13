@@ -33,10 +33,7 @@ handles.mCh = find(strcmp(data.source, data.channels));
 
 
 fidx = 1;
-tidx = 1;
-
-% handles.f = 1;
-handles.t = 1;
+tcur = 1;
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
@@ -530,14 +527,15 @@ end
 
 if ~isempty(tracks)
     
+    
     % plot current frame marker
     hf = zeros(nCh,1);
     hst = zeros(1,nCh);
     for c = 1:nCh
         hf(c) = plot(handles.tAxes(c), ([fidx fidx]-1)*data.framerate,...
             get(handles.tAxes(c), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
-        hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==handles.t),...
-                    Y(fidx, tstruct.idx==handles.t), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+        hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==tcur),...
+                    Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
     end
     
     updateTrack();
@@ -592,19 +590,16 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     % scroll through stack slices
-    function scroll_Callback(src, eventdata)
-        hi = getappdata(src, 'handles');
+    function scroll_Callback(~, eventdata)
         if eventdata.VerticalScrollCount < 0
             if fidx < nf
                 fidx = fidx + 1;
-                setappdata(hfig, 'handles', hi);
                 set(handles.frameSlider, 'Value', fidx);
                 updateSlice();
             end
         elseif eventdata.VerticalScrollCount > 0
             if fidx > 1
                 fidx = fidx - 1;
-                setappdata(hfig, 'handles', hi);
                 set(handles.frameSlider, 'Value', fidx);
                 updateSlice();
             end
@@ -613,44 +608,34 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function key_Callback(~, eventdata)
-        hi = getappdata(hfig, 'handles');
         switch eventdata.Key
             case 'leftarrow'
                 if fidx > 1
                     fidx = fidx - 1;
-                    setappdata(hfig, 'handles', hi);
-                    set(hi.frameSlider, 'Value', fidx);
+                    set(handles.frameSlider, 'Value', fidx);
                     updateSlice();
                 end
             case 'rightarrow'
                 if fidx < nf
                     fidx = fidx + 1;
-                    setappdata(hfig, 'handles', hi);
-                    set(hi.frameSlider, 'Value', fidx);
+                    set(handles.frameSlider, 'Value', fidx);
                     updateSlice();
                 end
             case 'downarrow'
-                if hi.t > 1
-                    hi.t = hi.t - 1;
-                    setappdata(hfig, 'handles', hi);
-                    set(handles.trackSlider, 'Value', hi.t);
-                    updateTrack();
+                if tcur > find(selIndex, 1, 'first');
+                    % this invokes trackSlider_callback
+                    set(handles.trackSlider, 'Value', get(handles.trackSlider, 'Value')-1);
                 end
             case 'uparrow'
-                if hi.t < nt
-                    hi.t = hi.t + 1;
-                    setappdata(hfig, 'handles', hi);
-                    set(handles.trackSlider, 'Value', hi.t);
-                    updateTrack();
+                if tcur < find(selIndex, 1, 'last');
+                    set(handles.trackSlider, 'Value', get(handles.trackSlider, 'Value')+1);
                 end                        
         end
     end
 
 
 
-    function updateSlice(varargin)
-        hi = getappdata(hfig, 'handles');
-        
+    function updateSlice(varargin)       
         switch displayType
             case 'raw'                
                 for ci = 1:nCh
@@ -672,7 +657,7 @@ set(hz, 'ActionPostCallback', @czoom);
         
         set(hl(:,3), 'XData', fidx*[1 1]);
         set(hl(:,4), 'YData', fidx*[1 1]);        
-        set(hi.frameLabel, 'String', ['Frame ' num2str(fidx)]);
+        set(handles.frameLabel, 'String', ['Frame ' num2str(fidx)]);
         
         delete(hms);
         hms = [];
@@ -698,41 +683,41 @@ set(hz, 'ActionPostCallback', @czoom);
         hpg = [];
         hps = [];
 
-        if ~isempty(tracks) && fidx~=1 && get(trackCheckbox, 'Value')
+        if ~isempty(tracks) && fidx~=1 && get(trackCheckbox, 'Value') && any(~isnan(X(fidx,:)) & selIndex(tstruct.idx))
             vidx = ~isnan(X(fidx,:)) & selIndex(tstruct.idx);
             delete(hpt);
-            set(hi.fAxes(1,1), 'ColorOrder', cmap(tstruct.idx(vidx),:));
-            hpt = plot(hi.fAxes(1,1), X(1:fidx,vidx), Y(1:fidx,vidx), 'HitTest', 'off');
+            set(handles.fAxes(1,1), 'ColorOrder', cmap(tstruct.idx(vidx),:));
+            hpt = plot(handles.fAxes(1,1), X(1:fidx,vidx), Y(1:fidx,vidx), 'HitTest', 'off');
             if get(gapCheckbox, 'Value')
-                hpg = plot(hi.fAxes(1,1), X(fidx,vidx & G(fidx,:)), Y(fidx,vidx & G(fidx,:)), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
+                hpg = plot(handles.fAxes(1,1), X(fidx,vidx & G(fidx,:)), Y(fidx,vidx & G(fidx,:)), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
             end
             if get(trackEventCheckbox, 'Value')
                 % Births
                 bcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackStarts==fidx & selIndex), 'unif', 0);
                 bcoord = vertcat(bcoord{:});
                 if~isempty(bcoord)
-                    hps = plot(hi.fAxes(1,1), bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+                    hps = plot(handles.fAxes(1,1), bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
                 end
                 
                 % Deaths
                 dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==fidx & selIndex), 'unif', 0);
                 dcoord = vertcat(dcoord{:});
                 if ~isempty(dcoord)
-                    hps = [hps; plot(hi.fAxes(1,1), dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1)];
+                    hps = [hps; plot(handles.fAxes(1,1), dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1)];
                 end
             end
-            for ci = 1:nCh
-                set(hst(ci), 'XData', X(fidx, tstruct.idx==hi.t), 'YData', Y(fidx, tstruct.idx==hi.t));
-            end
+            set(hst, 'Visible', 'on', 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
+        else
+            set(hst, 'Visible', 'off');
         end
         if ~isempty(tracks) && get(eapCheckbox, 'Value')
             for ci = 2:nCh
                 sel = fvec==fidx & mvec(ci,:)==1;
-                hp1 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([1/3 1 0.9]), 'MarkerSize', 8);
+                hp1 = plot(handles.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([1/3 1 0.9]), 'MarkerSize', 8);
                 sel = fvec==fidx & mvec(ci,:)==0 & svec(ci,:)==1;
-                hp2 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([0.55 1 0.9]), 'MarkerSize', 8);
+                hp2 = plot(handles.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([0.55 1 0.9]), 'MarkerSize', 8);
                 sel = fvec==fidx & mvec(ci,:)==0 & svec(ci,:)==0;
-                hp3 = plot(hi.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', 0.8*[1 1 1], 'MarkerSize', 8);
+                hp3 = plot(handles.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', 0.8*[1 1 1], 'MarkerSize', 8);
                 hps = [hps; hp1; hp2; hp3]; %#ok<AGROW>
             end
         end
@@ -742,10 +727,10 @@ set(hz, 'ActionPostCallback', @czoom);
         if get(detectionCheckbox, 'Value') && ~isempty(frameInfo)
             isPSF = frameInfo(fidx).isPSF(1,:)==1;
             if any(isPSF)
-                hpd(1) = plot(hi.fAxes(1,1), frameInfo(fidx).x(1,isPSF), frameInfo(fidx).y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
+                hpd(1) = plot(handles.fAxes(1,1), frameInfo(fidx).x(1,isPSF), frameInfo(fidx).y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
             end
             if any(~isPSF)
-                hpd(2) = plot(hi.fAxes(1,1), frameInfo(fidx).x(1,~isPSF), frameInfo(fidx).y(1,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
+                hpd(2) = plot(handles.fAxes(1,1), frameInfo(fidx).x(1,~isPSF), frameInfo(fidx).y(1,~isPSF), 'o', 'Color', [0.6 0 0], 'MarkerSize', 8);
             end
         end
     end
@@ -840,12 +825,10 @@ set(hz, 'ActionPostCallback', @czoom);
         end
     end
 
+
     function frameSlider_Callback(~, eventdata)
         obj = get(eventdata, 'AffectedObject'); % this contains the current, continuous value
-        f = round(get(obj, 'Value'));
-        hi = getappdata(hfig, 'handles');
-        fidx = f;
-        setappdata(hfig, 'handles', hi);
+        fidx = round(get(obj, 'Value'));
         updateSlice();
     end
 
@@ -853,10 +836,8 @@ set(hz, 'ActionPostCallback', @czoom);
     function trackSlider_Callback(~, eventdata)
         obj = get(eventdata, 'AffectedObject');
         t0 = round(get(obj, 'Value'));
-        hi = getappdata(hfig, 'handles');
         tmp = find(selIndex);
-        hi.t = tmp(t0);
-        setappdata(hfig, 'handles', hi);
+        tcur = tmp(t0);
         updateTrack();
         
         % if track not visible, jump to first frame
@@ -872,14 +853,13 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function updateTrack(varargin)
-        hi = getappdata(hfig, 'handles');
         
-        set(hi.trackLabel, 'String', ['Track ' num2str(hi.t)]);
+        set(handles.trackLabel, 'String', ['Track ' num2str(tcur)]);
         % update selected track marker position
-        set(hst, 'XData', X(fidx, tstruct.idx==hi.t), 'YData', Y(fidx, tstruct.idx==hi.t));
+        set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
 
         
-        itrack = tracks(hi.t);
+        itrack = tracks(tcur);
         for ci = 1:nCh
             %cla(handles.tAxes(ci));
             hold(handles.tAxes(ci), 'off');
@@ -895,7 +875,7 @@ set(hz, 'ActionPostCallback', @czoom);
                     itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
                 end
             end
-            topts = {'Handle', hi.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
+            topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
             if get(tplotScaleCheckbox, 'Value')
                 topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxA(ci)]; %#ok<AGROW>
             end
@@ -1130,9 +1110,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 (eapCheckVal(3) & S(2,:)==0));
             
             % update track selection
-            hi = getappdata(hfig, 'handles');
-            hi.t = find(selIndex, 1, 'first');
-            setappdata(hfig, 'handles', hi);
+            tcur = find(selIndex, 1, 'first');
             
             set(handles.trackSlider, 'Min', 1);
             set(handles.trackSlider, 'Max', sum(selIndex));
@@ -1140,7 +1118,7 @@ set(hz, 'ActionPostCallback', @czoom);
             set(handles.trackSlider, 'Value', 1);
             
             updateSlice();
-            updateTrack();
+            %updateTrack();
             close(pht);
         end
         
@@ -1190,18 +1168,17 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function montageButton_Callback(varargin)
-        hi = getappdata(hfig, 'handles');
         
         % Creates a montage based on the master track
-        if ~isempty(hi.t)
+        if ~isempty(tcur)
             fprintf('Generating montage...');
             if get(montageAlignCheckbox, 'Value')
                 ref = 'Track';
             else
                 ref = 'Frame';
             end
-            [istack, xa, ya] = getTrackStack(hi.t, 6, ref);
-            plotTrackMontage(tracks(hi.t), istack, xa, ya, 'Labels', data.markers,...
+            [istack, xa, ya] = getTrackStack(tcur, 6, ref);
+            plotTrackMontage(tracks(tcur), istack, xa, ya, 'Labels', data.markers,...
                 'ShowMarkers', get(montageMarkerCheckbox, 'Value')==1,...
                 'ShowDetection', get(montageDetectionCheckbox, 'Value')==1);
             fprintf(' done.\n');
@@ -1274,35 +1251,30 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function trackButton_Callback(varargin)
-        hi = getappdata(hfig, 'handles');
         [x0,y0] = ginput(1);
-        ci = find(hi.fAxes(:,1)==gca, 1);
+        ci = find(handles.fAxes(:,1)==gca, 1);
         if ~isempty(ci) && ~isempty(tracks)
             % track segments visible in current frame
-            cidx = find([tracks.start]<=fidx & fidx<=[tracks.end]);
+            cidx = find([tracks.start]<=fidx & fidx<=[tracks.end] & selIndex);
             if ~isempty(cidx)
                 % distance to mean of tracks
                 d = sqrt((x0-mu_x(cidx)).^2 + (y0-mu_y(cidx)).^2);
                 [~,d] = nanmin(d);
-                hi.t = cidx(d);
-                set(handles.trackSlider, 'Value', hi.t);
-                setappdata(hfig, 'handles', hi);
-                updateTrack();
+                tcur = cidx(d);
+                set(handles.trackSlider, 'Value', find(find(selIndex)==tcur)); % calls updateTrack
             end
         end
     end
 
 
     function printButton_Callback(varargin)
-
         fprintf('Printing figures ...');
-        hi = getappdata(hfig, 'handles');
         
         % Tracks
         if ~isempty(tracks)
             for ch = 1:nCh
-                plotTrack(data, tracks(hi.t), ch,...
-                    'FileName', ['track_' num2str(hi.t) '_ch' num2str(ch) '.eps'],...
+                plotTrack(data, tracks(tcur), ch,...
+                    'FileName', ['track_' num2str(tcur) '_ch' num2str(ch) '.eps'],...
                     'Visible', 'off', 'DisplayMode', 'Print');
             end
             
@@ -1311,9 +1283,9 @@ set(hz, 'ActionPostCallback', @czoom);
             else
                 ref = 'Frame';
             end
-            [tstack, xa, ya] = getTrackStack(hi.t, 6, ref);
-            fpath = [data.source 'Figures' filesep 'track_' num2str(hi.t) '_montage.eps'];
-                plotTrackMontage(tracks(hi.t), tstack, xa, ya, 'Labels', data.markers,...
+            [tstack, xa, ya] = getTrackStack(tcur, 6, ref);
+            fpath = [data.source 'Figures' filesep 'track_' num2str(tcur) '_montage.eps'];
+                plotTrackMontage(tracks(tcur), tstack, xa, ya, 'Labels', data.markers,...
                     'Visible', 'off', 'epsPath', fpath,...
                     'ShowMarkers', get(montageMarkerCheckbox, 'Value')==1,...
                     'ShowDetection', get(montageDetectionCheckbox, 'Value')==1);
