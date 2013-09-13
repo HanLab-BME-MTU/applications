@@ -43,63 +43,65 @@ if isstruct(lftRes)
     %============================================================
     % Single-channel data
     %============================================================
-    h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime distr.');
-    axes(fset.axOpts{:});
-    hold on;
-    
-    if ip.Results.PlotAll
-        hp = zeros(4,1);
-        if isfield(lftRes, 'meanLftHistVisit')
-            hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
-        end
-        hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
-        hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
-        if ip.Results.ShowExpFits
-            ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
-            [mu,~,Aexp,~] = fitExpToHist(lftRes.t(5:end), ff(5:end));
-            tx = 0:0.1:lftRes.t(end);
-            plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
-        end
-        hp(1) = plot(lftRes.t, mean(lftRes.pctCCP)*lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+    if ~isfield(lftRes, 'lftHistSlaveCCP')
+        h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime distr.');
+        axes(fset.axOpts{:});
+        hold on;
         
-        % Legend:
-        ltext = {[' CCPs: ' num2str(mean(lftRes.pctCCP)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCCP)*100, '%.1f') ' %'],...
-            [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
-            ' All structures'};
-        lheight = 1.25;
-        if isfield(lftRes, 'meanLftHistVisit')
-            ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
-            hp = hp([1 2 4 3]);
-            lheight = 1.5;
+        if ip.Results.PlotAll
+            hp = zeros(4,1);
+            if isfield(lftRes, 'meanLftHistVisit')
+                hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
+            end
+            hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
+            hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
+            if ip.Results.ShowExpFits
+                ff = mean(lftRes.pctCS)*lftRes.meanLftHistCS;
+                [mu,~,Aexp,~] = fitExpToHist(lftRes.t(5:end), ff(5:end));
+                tx = 0:0.1:lftRes.t(end);
+                plot(tx, Aexp/mu*exp(-1/mu*tx), 'r--', 'LineWidth', 1)
+            end
+            hp(1) = plot(lftRes.t, mean(lftRes.pctCCP)*lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+            
+            % Legend:
+            ltext = {[' CCPs: ' num2str(mean(lftRes.pctCCP)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCCP)*100, '%.1f') ' %'],...
+                [' CSs: ' num2str(mean(lftRes.pctCS)*100, '%.1f') ' ± ' num2str(std(lftRes.pctCS)*100, '%.1f') ' %'],...
+                ' All structures'};
+            lheight = 1.25;
+            if isfield(lftRes, 'meanLftHistVisit')
+                ltext = [ltext(1:2) [' Visitors: ' num2str(mean(lftRes.pctVisit)*100, '%.1f') ' ± ' num2str(std(lftRes.pctVisit)*100, '%.1f') ' %'] ltext(3)];
+                hp = hp([1 2 4 3]);
+                lheight = 1.5;
+            end
+            hl = legend(hp, ltext{:});
+            set(hl, 'Box', 'off');
+            if strcmpi(ip.Results.DisplayMode, 'print')
+                set(hl, 'Position', [4 5-lheight 1.75 lheight]);
+            end
+            ylabel('Relative frequency', fset.lfont{:});
+        else
+            plot(lftRes.t, lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
+            hl = legend(' All CCPs');
+            set(hl, 'Box', 'off');
+            if strcmpi(ip.Results.DisplayMode, 'print')
+                set(hl, 'Position', [5 4.25 1.75 0.75]);
+            end
+            
+            ylabel('Frequency', fset.lfont{:});
         end
-        hl = legend(hp, ltext{:});
-        set(hl, 'Box', 'off');
-        if strcmpi(ip.Results.DisplayMode, 'print')
-            set(hl, 'Position', [4 5-lheight 1.75 lheight]);
-        end
-        ylabel('Relative frequency', fset.lfont{:});
-    else
-        plot(lftRes.t, lftRes.meanLftHistCCP, '-', 'Color', ce(3,:), 'LineWidth', lw+0.5);
-        hl = legend(' All CCPs');
-        set(hl, 'Box', 'off');
-        if strcmpi(ip.Results.DisplayMode, 'print')
-            set(hl, 'Position', [5 4.25 1.75 0.75]);
-        end
+        axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
+        set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
+        xlabel('Lifetime (s)', fset.lfont{:});
         
-        ylabel('Frequency', fset.lfont{:});
-    end        
-    axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
-    set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
-    xlabel('Lifetime (s)', fset.lfont{:});
-
-    %if ip.Results.ShowStatistics
-    %    fs = loadFigureSettings('print');
-    %    h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
-    %    axes(fs.axOpts{:}, 'Position', [1.5 2 3 4]);
-    %    boxplot2(lftRes.stats, 'AdjustFigure', false, 'XLabels', {'Raw', 'Below thresh', 'Above thresh'},...
-    %        'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
-    %    ylabel('Lifetime (s)', fset.sfont{:});
-    %end
+        %if ip.Results.ShowStatistics
+        %    fs = loadFigureSettings('print');
+        %    h(2) = figure(fs.fOpts{:}, 'Position', [5 5 5 6.5]);
+        %    axes(fs.axOpts{:}, 'Position', [1.5 2 3 4]);
+        %    boxplot2(lftRes.stats, 'AdjustFigure', false, 'XLabels', {'Raw', 'Below thresh', 'Above thresh'},...
+        %        'FaceColor', ce, 'BarWidth', 0.6, 'LineWidth', 1);
+        %    ylabel('Lifetime (s)', fset.sfont{:});
+        %end
+    end
     
     %============================================================
     % Multi-channel data
@@ -109,11 +111,6 @@ if isstruct(lftRes)
         % 1) plot all combinations
         %framerate = lftRes.t(2)-lftRes.t(1);
         framerate = 1; % TO DO: add normalization option
-        
-        figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
-        axes(fset.axOpts{:});
-        hold on;
-        axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
         
         ncomb = size(lftRes.slaveCombs,1);
         
@@ -161,27 +158,34 @@ if isstruct(lftRes)
         %------------------------------------------------------------
         % 1) Lifetimes distributions for all detected objects
         %------------------------------------------------------------
-        hp = zeros(1+2*ncomb,1);
-        %bAll = 1.96*getSE(lftRes, 'lftHist_Ia');
-        %fill([lftRes.t lftRes.t(end:-1:1)], [mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
-        hp(1) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1)*framerate, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
-        for s = ncomb:-1:1 % plot combinations in increasing order of association
-            hp(2*(s-1)+3) = plot(lftRes.t, pctCS(s)*mean(lftRes.lftHistSlaveCS{s},1)*framerate, 'Color', cmap(s+ncomb,:), 'LineWidth', lw);
-        end
-        for s = ncomb:-1:1 % plot combinations in increasing order of association
-            hp(2*(s-1)+2) = plot(lftRes.t, pctCCP(s)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
-            % missing: histograms of slave classification for all structures (lftRes.lftHistAll{s})
-        end
-        
-        set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
-        xlabel('Lifetime (s)', fset.lfont{:});
-        ylabel('Relative frequency', fset.lfont{:});
-        
-        labels = [labelsA labelsB];
-        hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
-        set(hl, fset.tfont{:}, 'Box', 'off');
-        if strcmpi(ip.Results.DisplayMode, 'print');
-            set(hl, 'Position', [3.75 3.25 2 2]);
+        if ip.Results.PlotAll
+            figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
+            axes(fset.axOpts{:});
+            hold on;
+            axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
+            
+            hp = zeros(1+2*ncomb,1);
+            %bAll = 1.96*getSE(lftRes, 'lftHist_Ia');
+            %fill([lftRes.t lftRes.t(end:-1:1)], [mu+bAll mu(end:-1:1)-bAll(end:-1:1)], 'r', 'EdgeColor', 'none');
+            hp(1) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1)*framerate, 'Color', 0.6*[1 1 1], 'LineWidth', lw);
+            for s = ncomb:-1:1 % plot combinations in increasing order of association
+                hp(2*(s-1)+3) = plot(lftRes.t, pctCS(s)*mean(lftRes.lftHistSlaveCS{s},1)*framerate, 'Color', cmap(s+ncomb,:), 'LineWidth', lw);
+            end
+            for s = ncomb:-1:1 % plot combinations in increasing order of association
+                hp(2*(s-1)+2) = plot(lftRes.t, pctCCP(s)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 'Color', cmap(s,:), 'LineWidth', lw+0.5);
+                % missing: histograms of slave classification for all structures (lftRes.lftHistAll{s})
+            end
+            
+            set(gca, 'XTick', ip.Results.XTick, 'YTick', ya, 'YTickLabel', yal);
+            xlabel('Lifetime (s)', fset.lfont{:});
+            ylabel('Relative frequency', fset.lfont{:});
+            
+            labels = [labelsA labelsB];
+            hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
+            set(hl, fset.tfont{:}, 'Box', 'off');
+            if strcmpi(ip.Results.DisplayMode, 'print');
+                set(hl, 'Position', [3.75 3.25 2 2]);
+            end
         end
         
         %------------------------------------------------------------
