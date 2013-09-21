@@ -330,9 +330,11 @@ if numel(fileList)>1
         idx = str2double(input('Please enter the number of the set to load: ', 's'));
     end
     fileName = fileList{idx};
-else
+elseif numel(fileList)==1
     fileName = fileList{1};
-end
+else
+    fileName = [];
+end   
 
 if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.LoadTracks
     tmp = load([data.source 'Tracking' filesep fileName]);
@@ -1000,11 +1002,12 @@ set(hz, 'ActionPostCallback', @czoom);
         b  = 155;
         uicontrol(pht, 'Style', 'text', 'String', 'Lifetimes:',...
             'Position', [5 b+35 90 20], 'HorizontalAlignment', 'left');
+        
         uicontrol(pht, 'Style', 'text', 'String', 'Min.:',...
             'Position', [5 b+18 30 20], 'HorizontalAlignment', 'left');
-        minLftSlider = uicontrol(pht, 'Style', 'slider', 'String', 'nnnh',...
+        minLftSlider = uicontrol(pht, 'Style', 'slider',...
             'Value', minVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-            'Position', [35 b+20 200 18]);
+            'Position', [40 b+20 200 18]);
         addlistener(handle(minLftSlider), 'Value', 'PostSet', @minSlider_Callback);
         minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minLft) ' s'],...
             'Position', [240 b+18 30 20], 'HorizontalAlignment', 'left');
@@ -1013,10 +1016,10 @@ set(hz, 'ActionPostCallback', @czoom);
             'Position', [5 b-2 30 20], 'HorizontalAlignment', 'left');
         maxLftSlider = uicontrol(pht, 'Style', 'slider',...
             'Value', maxVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-            'Position', [35 b 200 18]);
+            'Position', [40 b 200 18]);
+        addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
         maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxLft) ' s'],...
             'Position', [240 b-2 30 20], 'HorizontalAlignment', 'left');
-        addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
 
         
         % Category selection buttons
@@ -1031,7 +1034,7 @@ set(hz, 'ActionPostCallback', @czoom);
         catCheck(3) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Cut',...
             'Position', [125 b 80 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(3));
         catCheck(4) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Persistent',...
-            'Position', [185 b 80 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(4));
+            'Position', [185 b 90 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(4));
         
         b = 75;
         uicontrol(pht, 'Style', 'text', 'String', 'Compound tracks: ',...
@@ -1043,7 +1046,7 @@ set(hz, 'ActionPostCallback', @czoom);
         catCheck(7) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Cut',...
             'Position', [125 b 80 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(7));
         catCheck(8) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Persistent',...
-            'Position', [185 b 80 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(8));
+            'Position', [185 b 90 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(8));
         
         % EAP status selection buttons
         b = 35;
