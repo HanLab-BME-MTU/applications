@@ -471,6 +471,7 @@ backgroundMaskfine = ~bwmorph(forground,'dilate',10);
 fErrBG=zeros(length(alphas),1);
 fErrFG=zeros(length(alphas),1);
 fErrBGmat = zeros(size(force_x,1),size(force_x,2),length(alphas));
+[xgrid,ygrid]=meshgrid(xminf:gridSpacingf:xmaxf,yminf:gridSpacingf:ymaxf);
 
 locMaxI_FA = posFA(:,2:-1:1);
 locMaxI_NA = posNA(:,2:-1:1);
@@ -506,17 +507,17 @@ save('LcurveL1-0th FerrFG FerrBG.mat');
 %% showing force for L1 0th
 load([dataPath '/LcurveL1-0th.mat']);
 
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),x_mat_u,y_mat_u,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at Lcorner'],3100,false,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_corner)],3100,true,460,460)
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ceil((fminIdx+ireg_corner)/2)),x_mat_u,y_mat_u,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fErr minimum'],3100,false,460,460);
 
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminBGIdx),x_mat_u,y_mat_u,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fBGmin'],3100,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminBGIdx),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fBGmin'  num2str(alphas(fminBGIdx))],3100,true,460,460);
 
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminFGIdx),x_mat_u,y_mat_u,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fFGmin'],3100,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminFGIdx),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fFGmin'  num2str(alphas(fminFGIdx))],3100,true,460,460);
  %% L-curve for L1 2nd
 MpM=M'*M;
 maxIter = 10;
@@ -633,7 +634,6 @@ end
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 [~,fminIdx]=min(fErr);
-[xgrid,ygrid]=meshgrid(xminf:gridSpacingf:xmaxf,yminf:gridSpacingf:ymaxf);
 
 save([dataPath '/LcurveL1-2nd.mat'],'forceMesh','rho','eta','fErr','reg_corner','ireg_corner','alphas','msparse','fminIdx','xgrid','ygrid','-v7.3');
 %% showing force for L1 2nd
@@ -667,12 +667,25 @@ eta=zeros(length(lambda),1);
 fErr=zeros(length(lambda),1);
 fCoeff=zeros(size(M,2),length(lambda));
 for i=1:length(lambda);
-  fCoeff(:,i)=(MpM+lambda(i)*eyeWeights)\(M'*u);
-  rho(i)=norm(M*fCoeff(:,i)-u); %residual norm
-  eta(i)=norm(eyeWeights*fCoeff(:,i),1); % semi norm
-  % force error
-  fErr(i)=norm(fCoeff(:,i)-force_0);
-  disp([num2str(i) ' out of ' num2str(length(lambda))]);
+    fCoeff(:,i)=(MpM+lambda(i)*eyeWeights)\(M'*u);
+    rho(i)=norm(M*fCoeff(:,i)-u); %residual norm
+    eta(i)=norm(eyeWeights*fCoeff(:,i),1); % semi norm
+    % force error
+    fErr(i)=norm(fCoeff(:,i)-force_0);
+    disp([num2str(i) ' out of ' num2str(length(lambda))]);
+    
+    [fx,fy,~,~]=calcForcesFromCoef(forceMesh,msparse(:,i),x_mat_u,y_mat_u,'new');
+%     fErr(i)=sum(sqrt((diag(force_x(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
+%         diag(fx(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2+...
+%         (diag(force_y(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
+%         diag(fy(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2));
+    fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
+    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
+    fErrBGmat(:,:,i) = fErrBGmatTemp;
+    
+    fErrBG(i)=sum(fErrBGmatTemp(:));
+    fErrFG(i)=sum(fErrFGmatTemp(:));
+    disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
 end
 
 %% Find the corner of the Tikhonov L-curve
