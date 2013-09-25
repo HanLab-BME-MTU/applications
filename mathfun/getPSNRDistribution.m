@@ -24,7 +24,8 @@ switch ip.Results.Mode
             frameIdx = 1:data.movieLength;
         end
         
-        load([data.source 'Detection' filesep 'detection_v2.mat']);
+        tmp = load([data.source 'Detection' filesep 'detection_v2.mat']);
+        frameInfo = tmp.frameInfo;
         w = ceil(4*frameInfo(1).s(1));
         ni = (2*w+1)^2; % support used for PSF fit
         
