@@ -198,6 +198,7 @@ lftRes.MaxIntensityThreshold = T;
 lftRes.pctCCP = zeros(nd,1);
 lftRes.pctCS = zeros(nd,1);
 lftRes.pctVisit = zeros(nd,1);
+minMovieLength = min([data.movieLength]);
 for i = 1:nd
     
     % Selection indexes for each data set
@@ -281,11 +282,11 @@ for i = 1:nd
     lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
     
     % birth/death statistics
-    startsPerFrameAll = hist(lftData(i).start_all, 1:data(i).movieLength);
+    startsPerFrameAll = hist(lftData(i).start_all, 1:minMovieLength);
     startsPerFrameAll = startsPerFrameAll(6:end-2);
-    startsPerFrameIa = hist(lftData(i).start(lftData(i).catIdx==1), 1:data(i).movieLength);
+    startsPerFrameIa = hist(lftData(i).start(lftData(i).catIdx==1), 1:minMovieLength);
     startsPerFrameIa = startsPerFrameIa(6:end-2);
-    startsPerFrameCCP = hist(lftData(i).start(idxMI), 1:data(i).movieLength);
+    startsPerFrameCCP = hist(lftData(i).start(idxMI), 1:minMovieLength);
     startsPerFrameCCP = startsPerFrameCCP(6:end-2);
     lftRes.startsPerFrameAll(i,:) = startsPerFrameAll;
 
