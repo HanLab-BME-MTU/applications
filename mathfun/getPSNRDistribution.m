@@ -34,7 +34,7 @@ switch ip.Results.Mode
         
         parfor k = 1:nf
             f = frameIdx(k);
-            if ~isempty(frameInfo(f).A)
+            if ~isempty(frameInfo(f).A) %#ok<PFBNS>
                 psnr{k} = frameInfo(f).A(ch,:).^2*ni ./ frameInfo(f).RSS(ch,:);
             else
                 psnr{k} = 0;
