@@ -14,7 +14,7 @@ function postProcess3DMovieArrayMaskGeometry(MA,varargin)
 % 
 % 
 % 
-% UNDER CONSTRUCTION
+% UNDER CONSTRUCTION... FOREVER
 % 
 % 
 % 
@@ -31,6 +31,8 @@ perMovDirName = 'mask geometry post processing';%Directory for saving individual
 %Print options for saving figures to disk
 pOpt = {'-r300',...% dpi = 300
         '-depsc2'};% use eps format
+    
+pOptTIFF = {'-r300','-dtiff'};    
 
 %% ------------- Input ------------ %%
 
@@ -75,6 +77,8 @@ ngcBinsPerMov = nan(nMovies,1);
 ndpcBinsPerMov = nan(nMovies,1);
 nmapcBinsPerMov = nan(nMovies,1);
 
+
+
 physUnits = false(nMovies,1);
 %timIntPerMov = nan(nMovies,1);
 
@@ -109,8 +113,10 @@ for iMov = 1:nMovies
             nFramesPerMov(iMov) = MA(iMov).eventTimes_(2);
         end        
         pixSizePerMov(iMov) = MA(iMov).pixelSize_;
-        %timeIntPerMov(iMov) = MA(iMov).timeInterval_;
-        
+        if nFramesPerMov(iMov) > 1
+            timeIntPerMov(iMov) = MA(iMov).timeInterval_;
+            tDataPerMov{iMov} = 0:timeIntPerMov(iMov):(timeIntPerMov(iMov)*(nFramesPerMov(iMov)-1));
+        end
         %Set up the curvature histogram bins for this movie based on the
         %pixel size - no object can have higher curvature than a single
         %pixel.
@@ -191,7 +197,20 @@ for iMov = 1:nMovies
             %Store number of curv points
             nCurvPtsPerMov{iMov}(iFrame) = numel(locAvgMaskGeo.LocMeanGaussianCurvature);            
             
+            %Get volume
+            volPerMov{iMov}(iFrame) = currMaskGeo.Volume * pixSizePerMov(iMov)^3 / (1e3^3);
+            volUnits = 'um^3';
+            
+            %And surface area
+            surfAreaPerMov{iMov}(iFrame) = meshSurfaceArea(currMaskGeo.SmoothedSurface.faces,currMaskGeo.SmoothedSurface.vertices) * pixSizePerMov(iMov)^2 / (1e3)^2;
+            surfAreaUnits = 'um^2';
+            
+            %And ratio
+            saVolRatioPerMov{iMov}(iFrame) = surfAreaPerMov{iMov}(iFrame) / volPerMov{iMov}(iFrame);
+            saVolRatiuUnits = '1/um';
+            
         end
+        
                 
         
         % ---- Gauss Curv Figure ---- %%
@@ -208,8 +227,10 @@ for iMov = 1:nMovies
         xlabel('Gaussian Curvature, 1/nm^2')
         ylabel('Normalized Histogram')
         title('Gaussian Curvature Distribution Over Time (blue=first frame,red=last frame)')
-        print(pOpt{:},[currOutDir filesep 'Gaussian Curvature Distribution.eps']);
-        
+        figName = [currOutDir filesep 'Gaussian Curvature Distribution'];
+        print(pOptTIFF{:},[figName '.tif']);
+        print(pOpt{:},[figName '.eps']);        
+        hgsave([figName '.fig'])
         
         % ---- Mean Curv Figure ---- %%
         
@@ -225,7 +246,10 @@ for iMov = 1:nMovies
         xlabel('Mean Curvature, 1/nm')
         ylabel('Normalized Histogram')
         title('Mean Curvature Distribution Over Time (blue=first frame,red=last frame)')
-        print(pOpt{:},[currOutDir filesep 'Gaussian Curvature Distribution.eps']);
+        figName = [currOutDir filesep 'Gaussian Curvature Distribution'];
+        print(pOptTIFF{:},[figName '.tif']);
+        print(pOpt{:},[figName '.eps']);
+        hgsave([figName '.fig'])
         
         
         % ---- Diff of PC Figure ---- %%
@@ -242,7 +266,10 @@ for iMov = 1:nMovies
         xlabel('Difference of Principle Curvatures, 1/nm')
         ylabel('Normalized Histogram')
         title('Diff. of Principle Curvatures Distribution Over Time (blue=first frame,red=last frame)')
-        print(pOpt{:},[currOutDir filesep 'Difference of Principle Curvature Distribution.eps']);
+        figName = [currOutDir filesep 'Difference of Principle Curvature Distribution'];
+        print(pOptTIFF{:},[figName '.tif']);
+        print(pOpt{:},[figName '.eps']);
+        hgsave([figName '.fig'])
         
          % ---- Max Abs PC Figure ---- %%
         
@@ -258,12 +285,71 @@ for iMov = 1:nMovies
         xlabel('Max Absolute Principle Curvature, 1/nm')
         ylabel('Normalized Histogram')
         title('Max Absolute Principle Curvature Distribution Over Time (blue=first frame,red=last frame)')
-        print(pOpt{:},[currOutDir filesep 'Max Absolute Principle Curvature Distribution.eps']);
+        figName = [currOutDir filesep 'Max Absolute Principle Curvature Distribution'];
+        print(pOptTIFF{:},[figName '.tif']);
+        print(pOpt{:},[figName '.eps']);
+        hgsave([figName '.fig'])
         
         if p.BatchMode
             close(mcFigPM(iMov));
             close(gcFigPM(iMov));
         end
+        
+        
+        if nFramesPerMov(iMov) > 1
+            % ------- Volume vs Time Figure ------ %   
+            vFig = fsFigure(.5);
+            subplot(2,1,1);
+            [axHan,h1,h2] = plotyy(tDataPerMov{iMov},volPerMov{iMov},tDataPerMov{iMov},-mcMeanPerMov{iMov});
+            set(get(axHan(1),'Ylabel'),'String',['Volume, ' volUnits]) 
+            set(get(axHan(2),'Ylabel'),'String','Mean Mean Curvature, 1/nm')
+            xlabel('Time, s')
+            
+            subplot(2,1,2);
+            volPct = (volPerMov{iMov} - mean(volPerMov{iMov})) / mean(volPerMov{iMov}) * 100;
+            curvPct = (-mcMeanPerMov{iMov} - mean(-mcMeanPerMov{iMov})) / mean(-mcMeanPerMov{iMov}) * 100;
+            plot(tDataPerMov{iMov},volPct,tDataPerMov{iMov},curvPct);
+            ylabel('Deviation from Mean, %')
+            xlabel('Time, s')
+            legend('Volume, um^3','Mean Mean Curvature, 1/nm')
+            
+            figName = [currOutDir filesep 'Volume and Curvature over Time'];
+            print(pOptTIFF{:},[figName '.tif']);
+            print(pOpt{:},[figName '.eps']);
+            hgsave([figName '.fig'])
+            
+            % ------- And Surface Area / SA:Vol over time FIgures ----- %
+            
+            vFig = fsFigure(.5);
+            subplot(2,1,1);
+            [axHan,h1,h2] = plotyy(tDataPerMov{iMov},volPerMov{iMov},tDataPerMov{iMov},surfAreaPerMov{iMov});
+            set(get(axHan(1),'Ylabel'),'String',['Volume, ' volUnits]) 
+            set(get(axHan(2),'Ylabel'),'String',['Surface Area, ' surfAreaUnits])
+            xlabel('Time, s')
+            
+            subplot(2,1,2);            
+            plot(tDataPerMov{iMov},saVolRatioPerMov{iMov})
+            ylabel(['Surface Area : Volume Ratio, ' saVolRatiuUnits])
+            xlabel('Time, s')            
+            
+            figName = [currOutDir filesep 'Volume and Surface Area Over Time'];
+            print(pOptTIFF{:},[figName '.tif']);
+            print(pOpt{:},[figName '.eps']);
+            hgsave([figName '.fig'])
+            
+            vArtFig = fsFigure(.5);
+            plot(volPerMov{iMov},saVolRatioPerMov{iMov},'.')
+            ylabel(['Surface Area : Volume Ratio, ' saVolRatiuUnits])
+            xlabel(['Volume, ' volUnits]) 
+            title({'Volume vs Surface Area:Volume Ratio',['One cell, n = ' num2str(nFramesPerMov(iMov)) ' timepoints']} )
+            
+            figName = [currOutDir filesep 'Volume vs surface area to volume ratio'];
+            print(pOptTIFF{:},[figName '.tif']);
+            print(pOpt{:},[figName '.eps']);
+            hgsave([figName '.fig'])                        
+        
+        end
+        
                 
         
     else
@@ -293,6 +379,8 @@ hold on
 movColors = jet(nMovies);
 
 for iMov = 1:nMovies
+    
+    % ------- Curvature Distribution Figures ----- %
     
     figure
 
@@ -353,8 +441,7 @@ for iMov = 1:nMovies
     ylabel('Probability')
     title('Maximum Absolute Curvature Component Distribution Averaged Over All Frames')
     currOutDir = [MA(iMov).outputDirectory_ filesep perMovDirName];
-    saveThatShit([currOutDir filesep 'Averaged Max Abs Curv Component Distribution'],currOutDir);    
-    
+    saveThatShit([currOutDir filesep 'Averaged Max Abs Curv Component Distribution'],currOutDir);                
     
 end
 
@@ -417,7 +504,7 @@ ylabel('Probability')
 title(['Maximum Absolute Principle Curvature Distribution Averaged Over All Movies, n =' num2str(nMovies)])
 saveThatShit(['Combined Max Absolute Principle Curvature Distribution'],combOutDir);
 
-%--------- All Frames All Movies Simple Stat Averages -------- %
+%--------- All Frames All Movies Simple Curvature Stat Averages -------- %
 
 allStat = horzcat(mapcMedPerMov{:});%Do it this way so cut-paste is easier. Man I am a shitty programmer.
 currStat = 'Median of Maximum Absolute Curvature';
@@ -479,6 +566,10 @@ title({[currStat ', All Frames, All Movies'],...
         ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
 saveThatShit([currStat ' all frames all movies'],combOutDir);
 
+%--------- All Frames All Movies Volume and Area Stat Figures -------- %
+
+jkl=1;%TEMP - FINISH ADDING CELL VOLUME AND SURFACE AREA FIGURES!!
+
 
 save([combOutDir filesep 'combined stats and hists all movies.mat'],'combMeanHist','combMeanHistSTD','histBinsPerMov',...
     'combGaussHist','combGaussHistSTD','gcHistBinsPerMov',...
@@ -486,6 +577,7 @@ save([combOutDir filesep 'combined stats and hists all movies.mat'],'combMeanHis
     'combMAPCHist','combMAPCHistSTD','mapcHistBinsPerMov',...
     'mapcMeanPerMov','mapcMedPerMov','mapcVarPerMov',...
     'mcMeanPerMov','mcMedPerMov','mcVarPerMov',...
+    'gcMeanPerMov','gcMedPerMov','gcVarPerMov',...
     'nCurvPtsPerMov')
 
 

@@ -357,7 +357,7 @@ movieData.processes_{iSegProc}.setDateTime;
 movieData.processes_{iSegProc}.setPara(p);%Log the PP output directory etc.
 movieData.save; %Save the new movieData to disk
 
-disp('Finished thresholding!')
+disp('Finished segmentation!')
 
 if ~p.BatchMode && ishandle(wtBar)
     close(wtBar)

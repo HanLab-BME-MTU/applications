@@ -37,51 +37,62 @@ switch dispType
     
     case 'gauss'
 
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.GaussianCurvature)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.GaussianCurvature);
         caxis([prctile(maskProp.GaussianCurvature,5) prctile(maskProp.GaussianCurvature,95)]) 
 
     case 'mean'
 
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.MeanCurvature)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.MeanCurvature);
         caxis([prctile(maskProp.MeanCurvature,5) prctile(maskProp.MeanCurvature,95)])    
         
     case 'pc1'
 
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC1)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC1);
         caxis([prctile(maskProp.CurvaturePC1,5) prctile(maskProp.CurvaturePC1,95)]) 
         
      case 'pc2'
 
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC2)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.CurvaturePC2);
         caxis([prctile(maskProp.CurvaturePC2,95) prctile(maskProp.CurvaturePC2,5)]) 
         
      case 'curv'
         
         maxCurv = max(abs(real(maskProp.CurvaturePC1)),abs(real(maskProp.CurvaturePC2)));
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maxCurv)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maxCurv);
         caxis([prctile(maxCurv,5) prctile(maxCurv,95)]) 
         
     case 'wire'
         
-        patch(maskProp.SmoothedSurface,'FaceColor','none','EdgeColor','k')
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','none','EdgeColor','k');
         
     case 'surf'
         
-        patch(maskProp.SmoothedSurface,'FaceColor','k','EdgeColor','none','FaceAlpha',.2)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','k','EdgeColor','none','FaceAlpha',.2);
         
     case 'LAcurv'
         
-        patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanMaxAbsCurvature)
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanMaxAbsCurvature);
         caxis([prctile(maskProp.locAvgCurv.LocMeanMaxAbsCurvature,5) prctile(maskProp.locAvgCurv.LocMeanMaxAbsCurvature,95)]) 
         
+    case 'LAgauss'
+        
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanGaussianCurvature);
+        caxis([prctile(maskProp.locAvgCurv.LocMeanGaussianCurvature,5) prctile(maskProp.locAvgCurv.LocMeanGaussianCurvature,95)]) 
+        
+     case 'LAmean'
+        
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanMeanCurvature);
+        caxis([prctile(maskProp.locAvgCurv.LocMeanMeanCurvature,5) prctile(maskProp.locAvgCurv.LocMeanMeanCurvature,95)]) 
         
     otherwise
         error(['"' dispType '" is not a supported display type!'])
 end
 
+set(pHan,'VertexNormals',maskProp.SurfaceNorms(:,[2 1 3]));
 
 axis equal
 light
+lighting phong
 view(3)
 colorbar
 

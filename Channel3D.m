@@ -83,7 +83,12 @@ classdef Channel3D < Channel
                     %other values are due to numerical error.
                     timeStamp(iFrame,:) = round(datenum(imInfo.DateTime,...
                                     'yyyy:mm:dd  HH:MM:SS') * 86400);
-                    binning(iFrame,:) = imInfo.Binning;
+                    if isfield(imInfo,'Binning')
+                        binning(iFrame,:) = imInfo.Binning;
+                    else
+                        binning(iFrame,:) = [1 1];
+                        warning('CHANNEL3D:noBinning','WARNING!!!!!!!!! Could not read binning from image header, assuming un-binned!')
+                    end
                                         
                     
                 catch em

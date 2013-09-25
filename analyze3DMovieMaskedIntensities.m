@@ -290,7 +290,7 @@ for iFrame = 1:nFrames
     %TEMP- DOESN"T WORK FOR MULTICHANNEL YOU IDIOT!!!!
     for k = 1:nPfStat
         for j = 1:nCurvTypes
-            curvStats.([pfStr pfStatNames{k} curvTypes{j}])(iFrame,iChan) = pfStatFuns{k}(branchProfiles(iFrame).(curvTypes{j}));
+            curvStats.([pfStr pfStatNames{k} curvTypes{j}])(iFrame,iChan) = pfStatFuns{k}(branchProfiles(iFrame).(curvTypes{j}) .* curvConv(j) );
             
         end
         for j = 1:nIntTypes
@@ -593,7 +593,7 @@ iFrame = 1;%TEEEMMMPPP
 
 for l = 1:nCurvTypes
     
-    currCurv = real(branchProfiles(iFrame).(curvTypes{l}));
+    currCurv = real(branchProfiles(iFrame).(curvTypes{l})) .* curvConv(l);
     curvBins = linspace(prctile(currCurv,.5),prctile(currCurv,99.5),nCurvBins);
     curvBins = sort(curvBins);%For the strictly negative measures, we need to make sure these are increasing
     
@@ -712,7 +712,7 @@ if nFrames > 1
     for iIntType = 1
 
         for iCurvType = 1:nCurvTypes
-
+            currCurv = real(branchProfiles(iFrame).(curvTypes{iCurvType})) .* curvConv(iCurvType);
             for iChan = 1:nChan
 
 
@@ -728,7 +728,7 @@ if nFrames > 1
 
                     subplot(2,1,2)
                     hold on
-                    [intDist,xPos] = ksdensity(real(branchProfiles(iFrame).(curvTypes{iCurvType})));%Real is for k1 and k2
+                    [intDist,xPos] = ksdensity(currCurv);%Real is for k1 and k2
                     plot(xPos,intDist,'color',frameCols(iFrame,:))
 
 

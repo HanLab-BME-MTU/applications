@@ -69,9 +69,7 @@ if nargin < 1 || ~islogical(maskIn) || ndims(maskIn) ~= 3
 end
 
 if nargin < 2 || isempty(smoothIter)
-    smoothIter = 3;
-elseif numel(smoothIter)> 1 || round(abs(smoothIter)) ~= smoothIter
-    error('The smoothIter parameter must be a postive integer scalar!')
+    smoothIter = .25;%We use this for the isovalue when gaussian smoothing is used.
 end
 
 if nargin < 2 || isempty(roiInf)
@@ -124,11 +122,11 @@ for iObj = 1:nObj
             %correct in the full image, and so the surface will be properly
             %truncated by the boundaries of the ROI.
             [X,Y,Z] = meshgrid(roiInf.cropY(1):roiInf.cropY(2),roiInf.cropX(1):roiInf.cropX(2),roiInf.cropZ(1):roiInf.cropZ(2));
-            maskProp(iObj).SmoothedSurface = isosurface(X,Y,Z,maskSmooth(roiInf.cropX(1):roiInf.cropX(2),roiInf.cropY(1):roiInf.cropY(2),roiInf.cropZ(1):roiInf.cropZ(2)),.25);
+            maskProp(iObj).SmoothedSurface = isosurface(X,Y,Z,maskSmooth(roiInf.cropX(1):roiInf.cropX(2),roiInf.cropY(1):roiInf.cropY(2),roiInf.cropZ(1):roiInf.cropZ(2)),smoothIter);
             maskProp(iObj).SurfaceNorms = isonormals(X,Y,Z,maskSmooth(roiInf.cropX(1):roiInf.cropX(2),roiInf.cropY(1):roiInf.cropY(2),roiInf.cropZ(1):roiInf.cropZ(2)),maskProp(iObj).SmoothedSurface.vertices);
         else
             %Ge the isosurface and normals                
-            maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,.25);
+            maskProp(iObj).SmoothedSurface = isosurface(maskSmooth,smoothIter);
             maskProp(iObj).SurfaceNorms = isonormals(maskSmooth,maskProp(iObj).SmoothedSurface.vertices);        
             
         end

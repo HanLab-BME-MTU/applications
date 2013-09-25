@@ -95,9 +95,7 @@ for iMov = 1:nMovies
     pixXY(iMov) = MA(iMov).pixelSize_;%We only need the XY since the object tracks have been scaled to symmetric-voxel space
 
     %Check that the processing was completed successfully
-    iMTProc = MA(iMov).getProcessIndex('MaskObjectTrackingProcess',1,~p.BatchMode);
-    
-    
+    iMTProc = MA(iMov).getProcessIndex('MaskObjectTrackingProcess',1,~p.BatchMode);        
     
     if ~isempty(iMTProc) && MA(iMov).processes_{iMTProc}.checkChannelOutput(iProcChan);
         
@@ -107,6 +105,8 @@ for iMov = 1:nMovies
             nFramesPerMov(iMov) = MA(iMov).eventTimes_(2);
             hasET(iMov) = true;
         end                
+        
+        tData{iMov} = 0:timeInt(iMov):(nFramesPerMov(iMov)-1)*timeInt(iMov);
         
         %Load the object tracks and convert them to physical units so we can compare across movies
         objTracks{iMov} = squeeze(MA(iMov).processes_{iMTProc}.loadChannelOutput(iProcChan)) .* pixXY(iMov);
@@ -231,6 +231,12 @@ for iMov = 1:nMovies
             
             skelStats.vertexDegree = graphVertDegree(currSkel.edges,size(currSkel.vertices,1));             
             vdHists{iMov}(iFrame,:) = histc(skelStats.vertexDegree(skelStats.vertexDegree > 0),degHistBins);
+            vertDegreeMean{iMov}(iFrame) = mean(skelStats.vertexDegree);
+            vertDegreeMedian{iMov}(iFrame) = median(skelStats.vertexDegree);
+            vertBranchPointMean{iMov}(iFrame) = mean(skelStats.vertexDegree(skelStats.vertexDegree>2));
+            vertBranchPointTotal{iMov}(iFrame) = sum(skelStats.vertexDegree(skelStats.vertexDegree>2));
+
+            
             
             isBranch = currSkel.edgeLabels == 1;
             
@@ -261,7 +267,7 @@ for iMov = 1:nMovies
             tipPathN{iMov}{iFrame} = cellfun(@numel,tmp2(~isnan(tmp1) & ~isinf(tmp1)));                        
             
         end        
-        
+                                
         meanRadPerMovBranchWeighted(iMov) = mean(meanRadPerFrameBranchWeighted{iMov});
         meanRadPerMovPointWeighted(iMov) = mean(meanRadPerFramePointWeighted{iMov});
         meanTipRadPerMovBranchWeighted(iMov) = mean(meanTipRadPerFrameBranchWeighted{iMov});
@@ -271,6 +277,46 @@ for iMov = 1:nMovies
         meanTotalRadPerMovPointWeighted(iMov) = mean(totalMeanRadPerFramePointWeighted{iMov});
         meanTotalTipRadPerMovBranchWeighted(iMov) = mean(totalMeanTipRadPerFrameBranchWeighted{iMov});
         meanTotalTipRadPerMovPointWeighted(iMov) = mean(totalMeanTipRadPerFramePointWeighted{iMov});
+        
+        
+        % ---------- Vertex Degree vs. Motion Figures ---------- %
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        [ax,h1,h2] = plotyy(tData{iMov}(1:end-1),vertDegreeMean{iMov}(1:end-1),tData{iMov}(1:end-1),objVelPerFrame{iMov});
+        set(get(ax(1),'Ylabel'),'String','Mean Vertex Degree')
+        set(get(ax(2),'Ylabel'),'String','Velocity, nm/s')
+        xlabel('Time, Seconds')        
+        saveThatShit('mean vertex degree and centermost point displacement over time',currOutDir)
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        [ax,h1,h2] = plotyy(tData{iMov}(1:end-1),vertBranchPointMean{iMov}(1:end-1),tData{iMov}(1:end-1),objVelPerFrame{iMov});
+        set(get(ax(1),'Ylabel'),'String','Mean Branch Point Degree')
+        set(get(ax(2),'Ylabel'),'String','Velocity, nm/s')
+        xlabel('Time, Seconds')                                
+        saveThatShit('mean branch point degree and centermost point displacement over time',currOutDir)
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        [ax,h1,h2] = plotyy(tData{iMov}(1:end-1),vertBranchPointTotal{iMov}(1:end-1),tData{iMov}(1:end-1),objVelPerFrame{iMov});
+        set(get(ax(1),'Ylabel'),'String','Total Branch Point Degree')
+        set(get(ax(2),'Ylabel'),'String','Velocity, nm/s')
+        xlabel('Time, Seconds')        
+        
+        saveThatShit('total branch point degree and centermost point displacement over time',currOutDir)
         
         
         % ----- All-frame mean calcs per movie --------- %
@@ -362,9 +408,38 @@ for iMov = 1:nMovies
             ccPerCellRadWtVel(iMov,:) = NaN;
             cbPerCellRadWtVel(iMov,:) = NaN;
         end
+%         
+%         if nFramesPerMov(iMov) >= maxLag+1
+%             tLags = -(maxLag*timeInt(iMov)):timeInt(iMov):(maxLag*timeInt(iMov));
+% 
+%             [tmp,~,tmpB] = crosscorr(nTips{iMov}(1:end-1)',objVelPerFrame{iMov},maxLag);
+%             figure;
+%             plot(tLags,tmp)
+%             hold on
+%             plot(xlim,ones(1,2)*tmpB(1),'--r')
+%             plot(xlim,ones(1,2)*tmpB(2),'--r')
+%             plot([0 0 ],ylim,'--k')
+%             plot(xlim,[0 0 ],'--k')
+%             xlabel('Delay, seconds (Positive Meanse Velocity follows branching')
+%             ylabel('Cross Correlation')
+%             title('Cross-Corr, Radius-Weighted Branch Number and Instantaneous Velocity')
+% 
+%             figName = [currOutDir filesep 'cross corr velocity and radius weighted branch number'];
+%             print(pOpt{:},[figName '.eps']);
+%             print(pOptTIFF{:},[figName '.tif']);
+%             hgsave([figName '.fig'])    
+% 
+%             ccPerCellRadWtVel(iMov,:) = tmp;
+%             cbPerCellRadWtVel(iMov,:) = tmpB;
+%         
+%         else
+%             ccPerCellRadWtVel(iMov,:) = NaN;
+%             cbPerCellRadWtVel(iMov,:) = NaN;
+%         end                
+%         
         if nFramesPerMov(iMov) >= maxLag+1
 
-            [tmp,~,tmpB] = crosscorr(nTips{iMov}(1:end-1),objVelPerFrame{iMov},maxLag);
+            [tmp,~,tmpB] = crosscorr(vertBranchPointTotal{iMov}(1:end-1)',objVelPerFrame{iMov},maxLag);
             figure;
             plot(tLags,tmp(:,1))
             hold on
@@ -374,18 +449,44 @@ for iMov = 1:nMovies
             plot(xlim,[0 0 ],'--k')
             xlabel('Delay, seconds (Positive means velocity follows branching')
             ylabel('Cross Correlation')
-            title('Cross-Corr, Thresholded Tip-Count and Instantaneous Velocity')
+            title('Cross-Corr, Total Branch Point Degree and Instantaneous Velocity')
 
-            figName = [currOutDir filesep 'cross corr velocity and thresholded tip count'];
+            figName = [currOutDir filesep 'cross corr velocity and total branch point degree'];
             print(pOpt{:},[figName '.eps']);
             print(pOptTIFF{:},[figName '.tif']);
             hgsave([figName '.fig'])    
 
-            ccPerCellThreshTipVel(iMov,:) = tmp;
-            cbPerCellThreshTipVel(iMov,:) = tmpB;
+            ccPerCellBranchDegTot(iMov,:) = tmp;
+            cbPerCellBranchDegTot(iMov,:) = tmpB;
         else            
-            ccPerCellThreshTipVel(iMov,:) = NaN;
-            cbPerCellThreshTipVel(iMov,:) = NaN;            
+            ccPerCellBranchDegTot(iMov,:) = NaN;
+            cbPerCellBranchDegTot(iMov,:) = NaN;            
+        end
+        
+        if nFramesPerMov(iMov) >= maxLag+1
+
+            [tmp,~,tmpB] = crosscorr(vertDegreeMean{iMov}(1:end-1)',objVelPerFrame{iMov},maxLag);
+            figure;
+            plot(tLags,tmp(:,1))
+            hold on
+            plot(xlim,ones(1,2)*tmpB(1),'--r')
+            plot(xlim,ones(1,2)*tmpB(2),'--r')
+            plot([0 0 ],ylim,'--k')
+            plot(xlim,[0 0 ],'--k')
+            xlabel('Delay, seconds (Positive means velocity follows branching')
+            ylabel('Cross Correlation')
+            title('Cross-Corr, Vertex Degree Mean and Instantaneous Velocity')
+
+            figName = [currOutDir filesep 'cross corr velocity and vertex degree mean'];
+            print(pOpt{:},[figName '.eps']);
+            print(pOptTIFF{:},[figName '.tif']);
+            hgsave([figName '.fig'])    
+
+            ccPerCellVertDegMean(iMov,:) = tmp;
+            cbPerCellVertDegMean(iMov,:) = tmpB;
+        else            
+            ccPerCellVertDegMean(iMov,:) = NaN;
+            cbPerCellVertDegMean(iMov,:) = NaN;            
         end
         
 %         [tmp,tmpA] = modifiedKendallCorr(nTips{iMov}(1:end-1),objVelPerFrame{iMov},maxLag-2,.05,true,maxLag);
@@ -636,8 +737,8 @@ hgsave([figName '.fig'])
 % ------ Instantaneous Velocity vs. X Figures - Average of Per-Cell Corrs ----- %
 
 
-
-[meanOfPerCellCCradWt,ciOfPerCellCCradWt] = correlationBootstrap(ccPerCellRadWtVel',cbPerCellRadWtVel(:,1)');
+%Get combined corr, flip the delays to match with khulouds from above
+[meanOfPerCellCCradWt,ciOfPerCellCCradWt] = correlationBootstrap(ccPerCellRadWtVel(isCorrTimeInt,end:-1:1)',cbPerCellRadWtVel(isCorrTimeInt,1)');
 
 figure
 plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCradWt)
@@ -650,29 +751,51 @@ plot([ 0 0 ],ylim,'--k')
 xlabel('Time Delay, s')
 ylabel('Correlation')
 title({'Radius Weighted Tip Count and Instantaneous Velocity',...
-    ['Average of Per-Cell Correlations, n=' num2str(nMovies)]})
+    ['Average of Per-Cell Correlations, n=' num2str(nnz(isCorrTimeInt))]})
 
 figName = [p.OutputDirectory filesep 'instantaneous velocity and weighted mean tip number avg of per-cell corr'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
 
-[meanOfPerCellCCThreshTip,ciOfPerCellCCThreshTip] = correlationBootstrap(ccPerCellThreshTipVel',cbPerCellThreshTipVel(:,1)');
+% [meanOfPerCellCCThreshTip,ciOfPerCellCCThreshTip] = correlationBootstrap(ccPerCellThreshTipVel',cbPerCellThreshTipVel(:,1)');
+% 
+% figure
+% plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCThreshTip)
+% hold on
+% plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(1,:),'--r')
+% legend('Correlation','Boostrapped 95% C.I.')
+% plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(2,:),'--r')
+% plot(xlim,[ 0 0 ],'--k')
+% plot([ 0 0 ],ylim,'--k')
+% xlabel('Time Delay, s')
+% ylabel('Correlation')
+% title({'Thresholded Tip Count and Instantaneous Velocity',...
+%     ['Average of Per-Cell Correlations, n=' num2str(nMovies)]})
+% 
+% figName = [p.OutputDirectory filesep 'instantaneous velocity and thresholded tip number avg of per-cell corr'];
+% print(pOpt{:},[figName '.eps']);
+% print(pOptTIFF{:},[figName '.tif']);
+% hgsave([figName '.fig'])    
+
+%Get combined corr, flip the delays to match with khulouds from above
+[meanOfPerCellCCbranchDegTot,ciOfPerCellbranchDegTot] = correlationBootstrap(ccPerCellBranchDegTot(isCorrTimeInt,end:-1:1)',cbPerCellBranchDegTot(isCorrTimeInt,1)');
 
 figure
-plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCThreshTip)
+plot(-useTime*maxLag:useTime:useTime*maxLag,meanOfPerCellCCbranchDegTot)
 hold on
-plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(1,:),'--r')
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellbranchDegTot(1,:),'--r')
 legend('Correlation','Boostrapped 95% C.I.')
-plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellCCThreshTip(2,:),'--r')
+plot(-useTime*maxLag:useTime:useTime*maxLag,ciOfPerCellbranchDegTot(2,:),'--r')
 plot(xlim,[ 0 0 ],'--k')
 plot([ 0 0 ],ylim,'--k')
 xlabel('Time Delay, s')
 ylabel('Correlation')
-title({'Thresholded Tip Count and Instantaneous Velocity',...
-    ['Average of Per-Cell Correlations, n=' num2str(nMovies)]})
+title({'Total Branch Point Degree and Instantaneous Velocity',...
+        'Positive delay means branch degree follows velocity',...
+    ['Average of Per-Cell Correlations, n=' num2str(nnz(isCorrTimeInt))]})
 
-figName = [p.OutputDirectory filesep 'instantaneous velocity and thresholded tip number avg of per-cell corr'];
+figName = [p.OutputDirectory filesep 'instantaneous velocity and total branch point degree avg of per-cell corr'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
@@ -915,12 +1038,6 @@ figName = [p.OutputDirectory filesep 'instantaneous velocity autocorrelation'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
-
-
-
-
-jkl=1;
-
 
 
 

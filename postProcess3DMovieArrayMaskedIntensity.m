@@ -60,12 +60,12 @@ for iMov = 1:nMov
     nSurfPotsTot(iMov) = sum(nSurfPtsPerFrame{iMov});
     allCurvPerMov{iMov} = nan(nSurfPotsTot(iMov),nCurvTypes);    
     for j = 1:nCurvTypes
-        allCurvPerMov{iMov}(:,j) = [intAn{iMov}.branchProfiles(:).(curvTypes{j})] .* curvConv{iMov}(j);            
+        allCurvPerMov{iMov}(:,j) = vertcat( intAn{iMov}.branchProfiles(:).(curvTypes{j}) ) .* curvConv{iMov}(j);            
     end
     
     allIntPerMov{iMov} = nan(nSurfPotsTot(iMov),nIntTypes,nChanPer(iMov));    
     for j = 1:nIntTypes    
-        allIntPerMov{iMov}(:,j,:) = [intAn{iMov}.branchProfiles(:).(intTypes{j})];     
+        allIntPerMov{iMov}(:,j,:) = vertcat(intAn{iMov}.branchProfiles(:).(intTypes{j}));     
     end
     
     for iFrame = 1:nFramesPer(iMov)
@@ -77,9 +77,9 @@ for iMov = 1:nMov
         
         for k = 1:nChanPer(iMov);
             
-            avgBranchIntPerFrame{iMov}(:,k) = cellfun(@(x)(mean(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
-            maxBranchIntPerFrame{iMov}(:,k) = cellfun(@(x)(max(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
-            medBranchIntPerFrame{iMov}(:,k) = cellfun(@(x)(median(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
+            avgBranchIntPerFrame{iMov,iFrame}(:,k) = cellfun(@(x)(mean(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
+            maxBranchIntPerFrame{iMov,iFrame}(:,k) = cellfun(@(x)(max(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
+            medBranchIntPerFrame{iMov,iFrame}(:,k) = cellfun(@(x)(median(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
 
         end                
         branchLenPerFrame{iMov,iFrame} = cellfun(@(x)(max(x(:,1))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth(hasLvD)) .* MA(iMov).pixelSize_;

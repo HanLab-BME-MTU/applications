@@ -55,7 +55,8 @@ end
 %% ------------------------ Init ------------------------ %%
 
 if p.ExploreCorrelation && (numel(p.SampleChannelIndex)~= 1  || numel(p.CurveTypeIndex) ~= 1)
-    error('Correlation exploration can only be run with one intensity sample and one curvature type!')
+    warning('Correlation exploration can only be run with one intensity sample and one curvature type! Disabling exploration')
+    p.ExploreCorrelation = false;
 end
 
 if p.ExploreCorrelation
@@ -184,8 +185,9 @@ for iFrame = 1:nFrames
     
     %Create the synthetic images showing the various curvatures
     for j = 1:nCurvType
-        curvIm = zeros(imSize);
+        curvIm = ones(imSize) * (min(real(intAna.branchProfiles(iFrame).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j)))-1);%So we can easily remove these from the display
         curvIm(intAna.branchProfiles(iFrame).surfPixInd) = real(intAna.branchProfiles(iFrame).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j));
+        
         
         volData.SetDataVolumeAs1DArrayFloats(single(curvIm(:)),nChanShow+nSampShow+j-1,iFrame-1);
         

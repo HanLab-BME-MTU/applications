@@ -61,7 +61,7 @@ if isempty(p.OutputDirectory)
         error('You must select an output directory!')
     end
 end
-
+%Just increment if folder exists
 mkClrDir(p.OutputDirectory);
 
 %% ------------ Init --------------- %%
@@ -168,8 +168,12 @@ for iMov = 1:nMovies
             % ----- Vertex Degree Analysis ----- %
             
             %skelStats = skelGraphStats(currSkel.vertices,currSkel.edges,currSkel.edgePaths);
-            skelStats.vertexDegree = graphVertDegree(currSkel.edges,size(currSkel.vertices,1));             
+            skelStats.vertexDegree = graphVertDegree(currSkel.edges,size(currSkel.vertices,1));                         
             vdHists{iMov}(iFrame,:) = histc(skelStats.vertexDegree(skelStats.vertexDegree > 0),histBins);
+            vertDegreeMean{iMov}(iFrame) = mean(skelStats.vertexDegree);
+            vertDegreeMedian{iMov}(iFrame) = median(skelStats.vertexDegree);
+            vertBranchPointMean{iMov}(iFrame) = mean(skelStats.vertexDegree(skelStats.vertexDegree>2));
+            vertBranchPointTotal{iMov}(iFrame) = sum(skelStats.vertexDegree(skelStats.vertexDegree>2));
             
             % ----- Branch Direction Analysis ----- %
             
@@ -196,6 +200,8 @@ for iMov = 1:nMovies
             %Convert to nm
             branchDists{iMov}{iFrame}(hasDist{iMov}{iFrame}) = cellfun(@(x)(x .* MA(iMov).pixelSize_),branchDists{iMov}{iFrame}(hasDist{iMov}{iFrame}),'Unif',0);
         end        
+        
+        tData{iMov} = 0:MA(iMov).timeInterval_:(MA(iMov).timeInterval_*(nFramesPerMov(iMov)-1));
         
         % ----- All-frame mean calcs per movie --------- %
         
@@ -264,6 +270,43 @@ for iMov = 1:nMovies
         print(pOpt{:},[figName '.eps']);
         print(pOptTIFF{:},[figName '.tif']);
         hgsave([figName '.fig'])
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        plot(tData{iMov},vertDegreeMean{iMov})
+        xlabel('Time, Seconds')
+        ylabel('Mean Vertex Degree')
+        ylim(ylim .* [.95 1.05])
+        saveThatShit('mean vertex degree over time',currOutDir)
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        plot(tData{iMov},vertBranchPointMean{iMov})
+        xlabel('Time, Seconds')
+        ylabel('Mean Branch Point Degree')
+        ylim(ylim .* [.95 1.05])
+        saveThatShit('mean branch point degree over time',currOutDir)
+        
+        if p.BatchMode
+            vdotFigPM(iMov) = figure('Visible','off');
+        else
+            vdotFigPM(iMov) = figure;
+        end
+        
+        plot(tData{iMov},vertBranchPointTotal{iMov})
+        xlabel('Time, Seconds')
+        ylabel('Total Branch Point Degree')
+        ylim(ylim .* [.95 1.05])
+        saveThatShit('total branch point degree over time',currOutDir)
+                                            
         
         % -------- Branch Direction Figure ------ %
         
@@ -408,6 +451,7 @@ for iMov = 1:nMovies
         print(pOptTIFF{:},[figName '.tif']);
         hgsave([figName '.fig'])
         
+        % ----- Thresholded tip count figure ----- %
         
         if nFramesPerMov(iMov) > 1 
             if p.BatchMode
@@ -575,7 +619,7 @@ print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
 
-outVars = [outVars{:} {'combPathLenBins','combPathPDF','combPathNBins','combPathNPDF','combPathHist','combPathNHist'}];
+outVars = [outVars 'combPathLenBins','combPathPDF','combPathNBins','combPathNPDF','combPathHist','combPathNHist'];
 
 %% --- Avg Per Mov Path Length Histograms --- %%
 
@@ -619,7 +663,7 @@ print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
 
-outVars = [outVars{:} {'combPathLenBins','combPathHist','combPathNBins','combPathNHist','combPathHist','combPathNHist'}];
+outVars = [outVars 'combPathLenBins','combPathHist','combPathNBins','combPathNHist','combPathHist','combPathNHist'];
 
 
 % --------------------- Combined Tip Radius Data ------------------- %
@@ -649,7 +693,7 @@ print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
 
-outVars = [outVars{:} {'combTipRadBins','combTipRadHist'}];
+outVars = [outVars 'combTipRadBins','combTipRadHist'];
 
 
 
@@ -737,7 +781,7 @@ distRad2Dpdf.isoValProb = tryIsoVals(iBestIso);
 distRad2Dpdf.isoCont = separateContours(contourc(distRad2DBins{1}(1:end-1),distRad2DBins{2}(1:end-1),distRad2Dpdf.pdf,distRad2Dpdf.isoValProb*ones(1,2)));
 cellfun(@(x)(plot(x(1,:),x(2,:),'r')),distRad2Dpdf.isoCont);
 legend([num2str(isoVal*100) '% Isocontour'])
-outVars = [outVars{:} {'distRad2Dpdf'}];
+outVars = [outVars 'distRad2Dpdf'];
 
 figName = [p.OutputDirectory filesep 'Combined Distance vs Radius PDF'];
 print(pOpt{:},[figName '.eps']);
@@ -757,14 +801,78 @@ title({['Thresholded Mean Per-Frame Branch Tip Count, All Movies n=' num2str(nMo
         ['Tip Radii ' num2str(p.TipRadiusRange(1)) ' < x < ' num2str(p.TipRadiusRange(2)) ' nm'],...
         ['Combined mean = ' num2str(mean(nTipsMeanPerMovThresh)) ', STD = ' num2str(std(nTipsMeanPerMovThresh))]});    
 
-outVars = [outVars{:} {'nTipsMeanPerMovThresh','nTipsSTDPerMovThresh'}];
+outVars = [outVars 'nTipsMeanPerMovThresh','nTipsSTDPerMovThresh'];
     
 figName = [p.OutputDirectory filesep 'Combined Tip Count Thresholded'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])
 
+%% -------- Branch # Variability Per Cell vs. Mean Variability Accross Cells Figure ------ %%
 
+currFig = figure;
+
+%Get per-movie % coefficient of variation
+cvPctPerMovnTipsThresh = nTipsSTDPerMovThresh ./ nTipsMeanPerMovThresh * 100;
+meannTipsThreshAll = mean(nTipsMeanPerMovThresh);
+stdnTipsThreshAll = std(nTipsMeanPerMovThresh);
+cvPctAllMovnTipsThresh = stdnTipsThreshAll / meannTipsThreshAll * 100;
+
+hist(cvPctPerMovnTipsThresh)
+hold on
+xlabel('% Coefficient of Variation (STD/Mean)')
+ylabel('# Cells')
+title({'CV%, Thresholded Branch Tip #, per cell average/STD over all frames',...
+    ['n = ' num2str(nMovies) ' cells'],...
+    ['Mean = ' num2str(mean(cvPctPerMovnTipsThresh))],...
+    ['Population CV% of per-cell means = ' num2str(cvPctAllMovnTipsThresh) '%']});
+
+
+figName = [p.OutputDirectory filesep 'cv percent per cell and population thresholded tip count'];
+mfFigureExport(currFig,figName);
+
+outVars = [outVars 'cvPctPerMovnTipsThresh','cvPctAllMovnTipsThresh','meannTipsThreshAll','stdnTipsThreshAll'];
+
+%% -------- Branch # Variability over Time vs. Across Cells Figure ------ %%
+
+currFig = figure;
+hold on
+
+movColors = rand(nMovies,3);
+
+allTData = arrayfun(@(iMov)(0:MA(iMov).timeInterval_:(MA(iMov).timeInterval_*(nFramesPerMov(iMov)-1))),1:nMovies,'Unif',false);
+maxT = max(horzcat(allTData{:}));
+
+for iMov = 1:nMovies
+    %Do the mean/std bands per movie first so they're in the background
+    mP = nTipsMeanPerMovThresh(iMov) + nTipsSTDPerMovThresh(iMov);
+    mM = nTipsMeanPerMovThresh(iMov) - nTipsSTDPerMovThresh(iMov);
+    fill([0 maxT maxT 0],[mP mP mM mM],movColors(iMov,:),'FaceAlpha',.2,'EdgeColor','none');
+    
+end
+
+
+for iMov = 1:nMovies
+     
+     
+    plot(allTData{iMov},nTipsPerFrameThresh{iMov},'.-','Color',movColors(iMov,:))
+            
+    %nTipsMeanPerMovThresh(iMov) = mean(nTipsPerFrameThresh{iMov});
+    %nTipsSTDPerMovThresh(iMov) = std(nTipsPerFrameThresh{iMov});            
+    
+end
+
+
+
+
+xlabel('Time, Seconds')
+ylabel('Thresholded Tip Count')    
+
+title({'Thresholded Tip Count vs. Time',['Tip Radii ' num2str(p.TipRadiusRange(1)) ' < x < ' num2str(p.TipRadiusRange(2)) ' nm'],...
+        'Bands show mean + / - STD'});        
+mfFigureExport(currFig,[p.OutputDirectory filesep 'thresholded branch count all cell overlay with mean and std']);
+
+outVars = [outVars 'allTData' 'nTipsPerFrameThresh' 'nTipsSTDPerMovThresh','p'];
 
 %% ---------- Save Output ------ %%
 
@@ -775,7 +883,7 @@ end
 
 outFile = [p.OutputDirectory filesep outFileName];
 
-outVars = [outVars{:} {'distRad2DHist','distRad2DBins','meanAllRadPerDist','rangeAllRadPerDist','pct2D','histEdgesDist','histEdgesRad'}];
+outVars = [outVars {'distRad2DHist','distRad2DBins','meanAllRadPerDist','rangeAllRadPerDist','pct2D','histEdgesDist','histEdgesRad'}];
 
 save(outFile,outVars{:});
 
