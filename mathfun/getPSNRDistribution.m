@@ -37,7 +37,7 @@ switch ip.Results.Mode
             if ~isempty(frameInfo(f).A) %#ok<PFBNS>
                 psnr{k} = frameInfo(f).A(ch,:).^2*ni ./ frameInfo(f).RSS(ch,:);
             else
-                psnr{k} = 0;
+                psnr{k} = [];
             end
         end
         psnr = [psnr{:}];
