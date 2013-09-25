@@ -33,7 +33,11 @@ switch ip.Results.Mode
         
         parfor k = 1:nf
             f = frameIdx(k);
-            psnr{k} = frameInfo(f).A(ch,:).^2*ni ./ frameInfo(f).RSS(ch,:);
+            if ~isempty(frameInfo(f).A)
+                psnr{k} = frameInfo(f).A(ch,:).^2*ni ./ frameInfo(f).RSS(ch,:);
+            else
+                psnr{k} = 0;
+            end
         end
         psnr = [psnr{:}];
         if strcmpi(ip.Results.OutputMode, 'dB')
