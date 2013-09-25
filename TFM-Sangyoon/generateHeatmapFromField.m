@@ -89,7 +89,7 @@ if nargin >=2
     
     % saving
     % Set up the output file path
-    outputFilePath = [dataPath filesep 'displacementField measured'];
+    outputFilePath = [dataPath filesep 'heatMap'];
     tifPath = [outputFilePath filesep 'tifs'];
     figPath = [outputFilePath filesep 'figs'];
     epsPath = [outputFilePath filesep 'eps'];

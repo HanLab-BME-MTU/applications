@@ -217,7 +217,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % plot the solution for the corner
         MpM=M'*M;
         maxIter = 50;
-        tolx = 7e-3;
+        tolx = 1e-2;
         tolr = 1e-7;
 %         disp('L-curve ...')
 

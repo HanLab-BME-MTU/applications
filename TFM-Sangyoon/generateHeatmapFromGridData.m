@@ -21,7 +21,7 @@ ymax = centerY+h/2;
 unorm = (ux.^2 + uy.^2).^0.5;
 uMap = griddata(x_mat_u,y_mat_u,unorm,XI,YI,'linear');
 umin = min(min(unorm));
-if nargin<6
+if nargin<6 || isempty(umax)
     umax = max(max(unorm));
 end
 
