@@ -61,6 +61,7 @@ cellfun(@(x) set(handles.(['edit_' x]),'String',funParams.(x)),...
 set(handles.edit_maxFlowSpeedNmMin,'String',...
     funParams.maxFlowSpeed*userData.MD.pixelSize_/userData.MD.timeInterval_*60);
 set(handles.checkbox_highRes, 'Value', funParams.highRes);
+set(handles.checkbox_useGrid, 'Value', funParams.useGrid);
 set(handles.checkbox_mode, 'Value', strcmp(funParams.mode, 'accurate'));
 
 % Propagate stage drift correction parameters if no process and stage drift
@@ -170,6 +171,7 @@ for i = 1:numel(userData.numParams),
 end
 
 funParams.highRes = get(handles.checkbox_highRes, 'Value');
+funParams.useGrid = get(handles.checkbox_useGrid, 'Value');
 if get(handles.checkbox_mode, 'Value'),
     funParams.mode = 'accurate';
 else

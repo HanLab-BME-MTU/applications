@@ -37,7 +37,6 @@ end
 displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
-p.useGrid = false;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());

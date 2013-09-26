@@ -139,6 +139,7 @@ classdef DisplacementFieldCalculationProcess < ImageAnalysisProcess
             funParams.maxFlowSpeed =20;
             funParams.highRes = true;
             funParams.mode = 'fast';
+            funParams.useGrid = false;
         end
     end
 end
