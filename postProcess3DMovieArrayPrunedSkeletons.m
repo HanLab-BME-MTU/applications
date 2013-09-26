@@ -178,8 +178,11 @@ for iMov = 1:nMovies
             % ----- Branch Direction Analysis ----- %
             
             [branchDir{iMov}{iFrame},branchAng{iMov}{iFrame}] = calcBranchTipDirections(currSkel.edges,currSkel.edgePaths,size(currSkel.vertices,1));                                                                                                
+            %And get the mean direction in each frame
+            meanBranchDir{iMov}(iFrame,:) = nanmean(branchDir{iMov}{iFrame},1);
+            [meanBranchAng{iMov}(iFrame,1) meanBranchAng{iMov}(iFrame,2) ~] = cart2sph(meanBranchDir{iMov}(iFrame,1),meanBranchDir{iMov}(iFrame,2),meanBranchDir{iMov}(iFrame,3));
             
-            
+           
             % ----- Tip Path Length Analysis ---- %
                         
             [tmp1,tmp2] = analyzeSkeletonTipPaths(currSkel.vertices,currSkel.edges,currSkel.edgePaths,currSkel.edgeLabels);
@@ -363,6 +366,85 @@ for iMov = 1:nMovies
         print(pOpt{:},[figName '.eps']);
         print(pOptTIFF{:},[figName '.tif']);
         hgsave([figName '.fig'])
+        
+        if p.BatchMode
+            baFig(iMov) = figure('Visible','off');
+        else
+            baFig(iMov) = figure;
+        end
+        h = rose(allBranchAng{iMov}(:,1),thetaBins);
+        title('Absolute branch angle rose histogram over all frames')
+        figName = [currOutDir filesep 'Absolute branch angle roseplot'];
+        mfFigureExport(baFig(iMov),figName)
+        
+        if p.BatchMode
+            batFig(iMov) = figure('Visible','off');
+        else
+            batFig(iMov) = figure;
+        end
+        hold on
+        frameCols = jet(nFramesPerMov(iMov));
+        for j = 1:nFramesPerMov(iMov)
+            nBrCurr = size(branchDir{iMov}{j},1);
+            quiver3(zeros(nBrCurr,1),zeros(nBrCurr,1),zeros(nBrCurr,1),branchDir{iMov}{j}(:,1),branchDir{iMov}{j}(:,2),branchDir{iMov}{j}(:,3),0,'color',frameCols(j,:));
+        end
+        title({'All branch directions over time',...
+            'Color indicates frame time in seconds'})
+        if nFramesPerMov(iMov) > 1
+            colorbar
+            caxis([min(tData{iMov}) max(tData{iMov})])
+        end
+        view(3)
+        figName = [currOutDir filesep 'All branch directions over time 3D plot'];
+        mfFigureExport(baFig(iMov),figName) 
+        
+        if p.BatchMode
+            abdtFig(iMov) = figure('Visible','off');
+        else
+            abdtFig(iMov) = figure;
+        end
+        hold on
+        for j = 1:nFramesPerMov(iMov)
+        
+            quiver3(0,0,0,meanBranchDir{iMov}(j,1),meanBranchDir{iMov}(j,2),meanBranchDir{iMov}(j,3),0,'color',frameCols(j,:))
+            
+        end
+        view(3)
+        if nFramesPerMov(iMov) > 1
+            colorbar
+            caxis([min(tData{iMov}) max(tData{iMov})])
+        end
+        title({'Mean branch direction over time',...
+               'color indicates time, seconds'})
+        figName = [currOutDir filesep 'Mean branch direction over time 3D plot'];
+        mfFigureExport(baFig(iMov),figName)     
+        
+        if p.BatchMode
+            abatFig(iMov) = figure('Visible','off');
+        else
+            abatFig(iMov) = figure;
+        end
+        plot(tData{iMov},unwrap(meanBranchAng{iMov}(:,1)))        
+        xlabel('Time, Seconds')
+        ylabel('Unwrapped mean branch theta angle, radians')
+        title('Unwrapped mean branch theta over time')
+        figName = [currOutDir filesep 'Mean branch angle unwrapped over time 3D plot'];
+        mfFigureExport(baFig(iMov),figName)     
+        
+        if p.BatchMode
+            abatFig(iMov) = figure('Visible','off');
+        else
+            abatFig(iMov) = figure;
+        end
+        plot(tData{iMov},meanBranchAng{iMov}(:,1))        
+        xlabel('Time, Seconds')
+        ylabel('Mean branch theta angle, radians')
+        title('Mean branch theta over time')
+        hold on
+        plot(xlim,[pi pi],'--k')
+        plot(xlim,[-pi -pi],'--k')
+        figName = [currOutDir filesep 'Mean branch angle over time 3D plot'];
+        mfFigureExport(baFig(iMov),figName)     
         
         
         

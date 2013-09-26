@@ -21,8 +21,8 @@ curvTypes = {'gaussCurvSampMean',...
 %And intuitive names for them...
 curvNames = {'Gaussian Curvature',...             
              'Mean Curvature',...             
+             'k2',...             %Due to sign switch, we change the names here.
              'k1',...             
-             'k2',...             
              'Max Absolute Curvature'};
          
 if nargin < 2 || isempty(useMicrons)
@@ -43,14 +43,15 @@ if nargin > 0 && ~isempty(pixelSize)
     [curvUnits{2:end}] = deal(['1/' uStr '']);            
     curvConv = nan(numel(curvNames),1);
     curvConv(1) = 1/pixelSize^2;
-    curvConv(2) = -1/pixelSize;
-    curvConv(3:end) = 1/pixelSize;
+    curvConv(2:4) = -1/pixelSize;
+    curvConv(5) = 1/pixelSize;
 else
     curvUnits = cell(numel(curvNames),1);
     curvUnits{1} = '1/pixels^2';
     [curvUnits{2:end}] = deal('1/pixels');
     curvConv = nan(numel(curvNames),1);
     curvConv(1) = 1;
-    curvConv(2) = -1;
-    curvConv(3:end) = 1;
+    curvConv(2:4) = -1;    
+    curvConv(5) = 1;
+    
 end
