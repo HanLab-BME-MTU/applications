@@ -1,4 +1,4 @@
-function [mu sigma] = getLifetimeDistributionMean(lftRes, histName)
+function [mu, sigma] = getLifetimeDistributionMean(lftRes, histName)
 
 if nargin<2
     histName = 'lftHist_A';
