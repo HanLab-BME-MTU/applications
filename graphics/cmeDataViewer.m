@@ -4,7 +4,7 @@
 %             data : single movie structure returned by loadConditionData.m
 %     Trajectories : optional input for selecting 'all' (default) or
 %                    'valid' CCS trajectories.
-%
+%c
 % Notes: Only tracks with at least 5 frames are loaded and displayed.
 
 % Francois Aguet, 2011 (last modified 08/24/2013)
@@ -350,15 +350,17 @@ if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.Loa
     tracks = tracks(sortIdx);
     
     % apply cell mask
-    nt = numel(tracks);
-    x = NaN(1,nt);
-    y = NaN(1,nt);
-    for t = 1:nt
-        x(t) = round(nanmean(tracks(t).x(1,:)));
-        y(t) = round(nanmean(tracks(t).y(1,:)));
+    if ~isempty(cellMask)
+        nt = numel(tracks);
+        x = NaN(1,nt);
+        y = NaN(1,nt);
+        for t = 1:nt
+            x(t) = round(nanmean(tracks(t).x(1,:)));
+            y(t) = round(nanmean(tracks(t).y(1,:)));
+        end
+        idx = sub2ind([ny nx], y, x);
+        tracks = tracks(cellMask(idx)==1);
     end
-    idx = sub2ind([ny nx], y, x);
-    tracks = tracks(cellMask(idx)==1);    
     nt = numel(tracks);
     selIndex = true(1,nt);
 
@@ -431,6 +433,8 @@ dRange = cell(1,nCh);
 for c = 1:nCh
     dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
 end
+dRange{1} = prctile(double(stack{c}(:)), [1 99]);
+
 hues = getFluorophoreHues(data.markers);
 rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), hues, 'unif', 0);
 
@@ -1343,22 +1347,19 @@ set(hz, 'ActionPostCallback', @czoom);
             maxCh = nCh;
         end
         
-        f0 = figure(fopts{:});
-        colormap(gray(256));
-        ha = axes('Position', [0 0 1 1]);
-        
-        
         mpath = [data.source 'Movies' filesep];
         fpath = [mpath 'Frames' filesep];
         [~,~] = mkdir(mpath);
         [~,~] = mkdir(fpath);
         
         fmt = ['%0' num2str(ceil(log10(nf))) 'd'];
-
+        
+        f0 = figure(fopts{:});
+        colormap(gray(256));
+        ha = axes('Position', [0 0 1 1]);
         for ci = 1:maxCh
             fprintf('Generating movie frames:     ');
             for fi = 1:nf
-               
                 switch displayType
                     case 'raw'
                         imagesc(stack{ci}(:,:,fi), 'Parent', ha);
@@ -1432,20 +1433,35 @@ set(hz, 'ActionPostCallback', @czoom);
         fprintf(['Frames saved to ' getShortPath(data) 'Movies' filesep 'Frames.\n']);
         close(f0);
         
+        % side-by-side frame arrangement
+        for fi = 1:nf
+            % channel frames
+            cpath = arrayfun(@(ci) [fpath 'frame' num2str(fi, fmt) '_ch' num2str(ci) '.png '], 1:nCh, 'unif', 0);
+            fname = [fpath 'montage' num2str(fi, fmt) '.png'];
+            
+            cmd = ['export DYLD_LIBRARY_PATH=""; montage -geometry +3+3+0+0 -background "rgb(255,255,255)" '...
+                [cpath{:}] ' -compress lzw ' fname];
+            system(cmd);
+            cmd = ['export DYLD_LIBRARY_PATH=""; convert ' fname ' -shave 3x3 -depth 8 ' fname];
+            system(cmd);
+        end
+        
         % Generate movie, if on a unix system with ffmpeg
         if isunix && ~system('which ffmpeg >/dev/null 2>&1')
             fprintf('Generating movie ... ');
             %fr = num2str(framerate);
-            fr = num2str(15);            
-            cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt '_ch' num2str(1) '.png' ' -vf "scale=' num2str(2*floor(nx/2)) ':' num2str(2*floor(ny/2))...
-                '" -c:v libx264 -crf 22 -pix_fmt yuv420p ' mpath 'Movie_ch1.mp4'];
+            fr = num2str(15);           
+            
+            %cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'frame' fmt '_ch' num2str(1) '.png' ' -vf "scale=' num2str(2*floor(nx/2)) ':' num2str(2*floor(ny/2))...
+            %    '" -c:v libx264 -crf 22 -pix_fmt yuv420p ' mpath 'Movie_ch1.mp4'];
+            cmd = ['ffmpeg -y -r ' fr ' -i ' fpath 'montage' fmt '.png' ' -vf "scale=' num2str(2*floor((nCh*nx+(nCh-1)*6)/2)) ':' num2str(2*floor(ny/2))...
+                '" -c:v libx264 -crf 22 -pix_fmt yuv420p ' mpath getCellDir(data) '.mp4'];
             system(cmd);
             
             fprintf(' done.\n');
         else
             fprintf('A unix system with ffmpeg installed is required to generate movies automatically.\n');
         end
-        
     end
 
 end
