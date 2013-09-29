@@ -1,4 +1,4 @@
-function showMaskSurfaceProp(maskProp,dispType)
+function pHan = showMaskSurfaceProp(maskProp,dispType)
 %SHOWMASKSURFACEPROP displays the output of analyze3DMaskGeometry
 %
 % showMaskSurfaceProp(maskProp)
@@ -88,7 +88,7 @@ switch dispType
         error(['"' dispType '" is not a supported display type!'])
 end
 
-set(pHan,'VertexNormals',maskProp.SurfaceNorms(:,[2 1 3]));
+set(pHan,'VertexNormals',maskProp.SurfaceNorms(:,[1 2 3]));
 
 axis equal
 light

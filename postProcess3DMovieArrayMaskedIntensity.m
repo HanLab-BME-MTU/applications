@@ -23,6 +23,13 @@ pixelSizePer = nan(nMov,1);
 if ~isfield(p,'ChannelIndex')
     p.ChannelIndex = [];
 end
+if ~isfield(p,'NormalizeIntensities')
+    p.NormalizeIntensities = true;
+end
+
+
+%If we want to restrict analysis to first n frame to avoid differential
+%bleaching effects and give fair comparision with fixed cell data
 if ~isfield(p,'UseFrames')
     p.UseFrames = [];
 end
@@ -32,6 +39,12 @@ curvConv = cell(nMov,1);
 nIntTypes = numel(intTypes);
 
 iIntUse = [1 4 5 8];%Don't show all the intensities to keep things simple
+
+%Get limits and indices for curvature categories.
+[curvCatKLims,curvCatHLims,curvCatNames,curvCatColors] = getCurvCategories;
+
+nCurvCat = numel(curvCatNames);
+
 
 
 %% ------------- Per-Movie Loading and Processing --------------- %%
@@ -43,7 +56,11 @@ for iMov = 1:nMov
         nFramesPerMov(iMov) = MA(iMov).nFrames_;
     else
         nFramesPerMov(iMov) = MA(iMov).eventTimes_;
-    end        
+    end    
+    
+    if ~isempty(p.UseFrames)
+        nFramesPerMov(iMov) = min(nFramesPerMov(iMov),p.UseFrames);
+    end
     
     pixelSizePer(iMov) = MA(iMov).pixelSize_;
     
@@ -83,13 +100,13 @@ for iMov = 1:nMov
                 
     
     nSurfPtsPerFrame{iMov} = cellfun(@numel,{intAn{iMov}.branchProfiles(:).surfPixInd});
-    nSurfPotsTot(iMov) = sum(nSurfPtsPerFrame{iMov});
-    allCurvPerMov{iMov} = nan(nSurfPotsTot(iMov),nCurvTypes);    
+    nSurfPtsTot(iMov) = sum(nSurfPtsPerFrame{iMov});
+    allCurvPerMov{iMov} = nan(nSurfPtsTot(iMov),nCurvTypes);    
     for j = 1:nCurvTypes
         allCurvPerMov{iMov}(:,j) = vertcat( intAn{iMov}.branchProfiles(:).(curvTypes{j}) ) .* curvConv{iMov}(j);            
     end
     
-    allIntPerMov{iMov} = nan(nSurfPotsTot(iMov),nIntTypes,nChanPer(iMov));    
+    allIntPerMov{iMov} = nan(nSurfPtsTot(iMov),nIntTypes,nChanPer(iMov));    
     for j = 1:nIntTypes    
         if ~isempty(p.ChannelIndex)
             tmp = vertcat(intAn{iMov}.branchProfiles(:).(intTypes{j}));     
@@ -104,8 +121,7 @@ for iMov = 1:nMov
         nBranchPerFrame{iMov}(iFrame) = numel(intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth);            
         hasLvD = cellfun(@(x)(~isempty(x) && ~any(isnan(x(:)))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth);                        
         
-        avgBranchRadiusPerFrame{iMov,iFrame} = cellfun(@(x)(mean(x(:,2))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth(hasLvD)) .* MA(iMov).pixelSize_;        
-        
+        avgBranchRadiusPerFrame{iMov,iFrame} = cellfun(@(x)(mean(x(:,2))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth(hasLvD)) .* MA(iMov).pixelSize_;                                
         for k = 1:nChanPer(iMov);
             
             avgBranchIntPerFrame{iMov,iFrame}(:,k) = cellfun(@(x)(mean(x(:,k))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelInt(hasLvD));
@@ -114,13 +130,23 @@ for iMov = 1:nMov
 
         end                
         branchLenPerFrame{iMov,iFrame} = cellfun(@(x)(max(x(:,1))),intAn{iMov}.branchProfiles(iFrame).branchTipPixelLenVsDepth(hasLvD)) .* MA(iMov).pixelSize_;
+                        
+        %Get sampling statistics for estimating sample overlap
+        nFacesSampledPerFame{iMov}(iFrame) = sum(intAn{iMov}.branchProfiles(iFrame).nFacesPerCurvSamp);        
+        currMG = MA(iMov).processes_{MA(iMov).getProcessIndex('MaskGeometry3DProcess',1,0)}.loadChannelOutput(1,iFrame);
+        nFacesPerFrame{iMov}(iFrame) = size(currMG.SmoothedSurface.faces,1);
+        %Now get the average number of times each face was sampled
+        nResampFacesPerFrame{iMov}(iFrame) = nFacesSampledPerFame{iMov}(iFrame) / nFacesPerFrame{iMov}(iFrame);
+        
     end
       
 end
 
 assert(numel(unique(nChanPer))==1,'All movies must have the same number of channels!!')
 nChan = nChanPer(1);
-
+if isempty(p.ChannelIndex)
+    p.ChannelIndex = 1:nChan;
+end
 
 if numel(unique(tIntPer)) > 1 || numel(unique(nFramesPerMov)) > 1
     %Obviously this isn't strictly true, we're just using this constraint
@@ -182,6 +208,12 @@ end
 
 %% ----------- Per- Branch Analysis -------- %%
     
+%***********
+%NOTE / WARNING - PER-BRANCH ANALYSIS IS NOT CURRENTLY NORMALIZED!
+%....and hasn't been modified to suipport channel index input!!!!
+%***********
+
+
 allAvgInt = vertcat(avgBranchIntPerFrame{:});
 allMaxInt = vertcat(maxBranchIntPerFrame{:});
 allMedInt = vertcat(medBranchIntPerFrame{:});
@@ -233,24 +265,66 @@ end
    
 %% ------------- Intensity Distribution / Normalization Analysis --------------- %%
 
-movCols = rand(nMov,3);
-
+movCols = lines(nMov);
+minAll = Inf;
 for k = iIntUse
     
-    currFig = figure;
-    hold on
+    for l = 1:nChan
+    
+        currFig = fsFigure(.6);
+        hold on
 
-    
-    for j = 1:nMov
-    
-        [currN,currBin] = hist(allIntPerMov{j}(:,k),100);
-        currN = currN ./ sum(currN);
-        plot(currBin,currN,'color',movCols(j,:))
-        xlabel(intNames{k})
-        ylabel('Pixel Probability')
+        for j = 1:nMov
+
+            subplot(2,1,1)
+            hold on
+            [currN,currBin] = hist(allIntPerMov{j}(:,k,l),100);
+            currN = currN ./ sum(currN);
+            plot(currBin,currN,'color',movCols(j,:))
+            xlabel([intNames{k} ', Channel ' num2str(p.ChannelIndex(l))])
+            ylabel('Pixel Probability')
+            legStr{j} = ['Movie ' num2str(j)];
+            title(['Cortical ' intNames{k} ' sample distribution per-movie, Channel ' num2str(p.ChannelIndex(l))])    
+            
+            if p.NormalizeIntensities
+                %Normalize to equal mean and standard deviation
+                allIntPerMov{j}(:,k,l) = allIntPerMov{j}(:,k,l) - mean(allIntPerMov{j}(:,k,l));
+                allIntPerMov{j}(:,k,l) = allIntPerMov{j}(:,k,l) ./ std(allIntPerMov{j}(:,k,l));
+                minAll = min(min(allIntPerMov{j}(:,k,l)),minAll);
                 
+            end
+            
+        end
+        for j = 1:nMov
+                
+            if p.NormalizeIntensities
+                %Shift so that minimum of all movies is zero, because
+                %people get weirded out if they see negative intensities,
+                %even though they're fucking normalized
+                allIntPerMov{j}(:,k,l) = allIntPerMov{j}(:,k,l) - minAll;
+            
+                subplot(2,1,2)
+                hold on
+                [currN,currBin] = hist(allIntPerMov{j}(:,k,l),100);
+                currN = currN ./ sum(currN);
+                plot(currBin,currN,'color',movCols(j,:))
+                xlabel(['Normalized ' intNames{k} ', Channel ' num2str(p.ChannelIndex(l))])
+                ylabel('Pixel Probability')
+                title(['Normalized cortical ' intNames{k} ' sample distribution per-movie, Channel ' num2str(p.ChannelIndex(l))])    
+                
+            else
+                subplot(2,1,1)
+                hold on
+                title('Normalization Disabled')                
+                
+            end
+        end
+        legend(legStr{:})        
+        mfFigureExport(currFig,[p.OutputDirectory filesep 'Cortical ' intNames{k} ' sample distribution per-movie Channel ' num2str(p.ChannelIndex(l))])    
+        
+        
+        
     end
-    title('Cortical intensity distribution per-movie')    
 end
 
 %% ----------- Combined Intensity vs. Curvature Figures --------- %%
@@ -263,38 +337,109 @@ nIntBins = 100;
 allCurv = real(vertcat(allCurvPerMov{:}));
 allInt = vertcat(allIntPerMov{:});
 
+iGaussType = 1;
+iMeanType = 2;
+H = allCurv(:,iMeanType);
+K = allCurv(:,iGaussType);
+
+alpha = .05;
+nBoot = 5e3;
+bOpt.UseParallel = 'always';
+
+curvMean = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+curvSTD= nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+curvN = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+curvSEM= nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+curvBootCI= nan(nChan,nCurvTypes,numel(iIntUse),nIntBins,2);
+
+%Get the combined mean oversampling of the data
+allNResamp = vertcat(nResampFacesPerFrame{:});
+meanNResamp = mean(allNResamp);
+curvSubSampCI= nan(nChan,nCurvTypes,numel(iIntUse),nIntBins,2);
+
 for l = 1:nChan    
     
-    for k = 1:nCurvTypes
+    for j = iIntUse 
 
-        for j = iIntUse
+        for k = 1:nCurvTypes
             
             % ---------- Average Curv Binned by Vs. Int ----- %%
 
             
-            intBins(j,:) = linspace(min(allInt(:,j,l)),max(allInt(:,j,l))+eps,nIntBins+1);
-            for m = 1:nIntBins-1
+            %intBins(j,:) = linspace(min(allInt(:,j,l)),max(allInt(:,j,l))+eps,nIntBins+1);
+            pTiles(j,:) = linspace(0,100,nIntBins+1);
+            intBins(j,:) = prctile(allInt(:,j),pTiles(j,:));
+            ptCent(j,:) = pTiles(j,:) + [diff(pTiles(j,:)) / 2 0];%Percentiles centers for plotting
+            intCent(j,:) = intBins(j,:) + [diff(intBins(j,:)) / 2 0];%Bin centers for plotting
+            tic
+            
+            for m = 1:nIntBins
                 currPts = allInt(:,j,l) >= intBins(j,m) & allInt(:,j,l) < intBins(j,m+1);
                 currCurv = allCurv(currPts,k);
                 curvMean(l,k,j,m) = mean(currCurv);
                 curvSTD(l,k,j,m) = std(currCurv);
                 curvN(l,k,j,m) = numel(currCurv);
                 curvSEM(l,k,j,m) = curvSTD(l,k,j,m) / sqrt(curvN(l,k,j,m));
+                
+                %bsSamp = bootstrp(nBoot,@mean,currCurv,'Options' ,bOpt);
+                if numel(currCurv) > 1
+                    bsSamp = bootstrp(nBoot,@nanmean,currCurv);
+                    curvBootCI(l,k,j,m,:) = prctile(bsSamp,[alpha/2 1-alpha/2]*100);       
+                    ssSamp = subSampleBootStrap(nBoot,@nanmean,currCurv,round(numel(currCurv)/meanNResamp));
+                    curvSubSampCI(l,k,j,m,:) = prctile(ssSamp,[alpha/2 1-alpha/2]*100);       
+                end                                
+                
             end
+            toc
+            
+            % -------------- 2D Curve ----------- %
             
             currFig = figure;
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)))
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvMean(l,k,j,:)))
             hold on
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)) + 1.96*squeeze(curvSEM(l,k,j,:)),'--')
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,1)),'--')
             legend('Mean','95% C.I.')
             
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)) - 1.96*squeeze(curvSEM(l,k,j,:)),'--')
-            xlim(intBins(j,[1 end-2]))
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,2)),'--')
+            xlim(intBins(j,[1 end-1]))
             plot(xlim,[0 0],'--r')
             xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
             ylabel([curvNames{k} ', ' curvUnits{k}])
             figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' plot'];
             mfFigureExport(currFig,figName)
+            
+            % -------------- 2D Curve by Percentile Regular BootStrap ----------- %
+            
+            currFig = figure;
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvMean(l,k,j,:)))
+            hold on
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,1)),'--')
+            legend('Mean','95% C.I.')
+            
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,2)),'--')
+            xlim(ptCent(j,[1 end-1]))
+            plot(xlim,[0 0],'--r')
+            xlabel(['Percentile of ' intNames{j} ' in channel ' num2str(l) ', a.u.'])
+            ylabel([curvNames{k} ', ' curvUnits{k}])
+            figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' plot by percentile'];
+            mfFigureExport(currFig,figName)
+            
+            
+             % -------------- 2D Curve by Percentile Sub-Sampled BootStrap ----------- %
+            
+            currFig = figure;
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvMean(l,k,j,:)))
+            hold on
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvSubSampCI(l,k,j,:,1)),'--')
+            legend('Mean','95% C.I.')
+            
+            plot(squeeze(ptCent(j,1:end-1)),squeeze(curvSubSampCI(l,k,j,:,2)),'--')
+            xlim(ptCent(j,[1 end-1]))
+            plot(xlim,[0 0],'--r')
+            xlabel(['Percentile of ' intNames{j} ' in channel ' num2str(l) ', a.u.'])
+            ylabel([curvNames{k} ', ' curvUnits{k}])
+            figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' plot by percentile subsampled bootstrap'];
+            
                         
             % -------------- 2D Histogram ----------- %
             
@@ -302,11 +447,11 @@ for l = 1:nChan
             [N,C] = hist3([allInt(:,j,l),allCurv(:,k)],[200 200]);
             imagesc(C{1},C{2},log10(N')),axis xy
             hold on
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)))
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvMean(l,k,j,:)))
             hold on
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)) + 1.96*squeeze(curvSEM(l,k,j,:)),'--')
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,1)),'--')
             legend('Mean','95% C.I.')
-            plot(squeeze(intBins(j,1:end-2)),squeeze(curvMean(l,k,j,:)) - 1.96*squeeze(curvSEM(l,k,j,:)),'--')
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvBootCI(l,k,j,:,2)),'--')
             xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
             ylabel([curvNames{k} ', ' curvUnits{k}])
             plot(xlim,[0 0],'--r')
@@ -320,9 +465,83 @@ for l = 1:nChan
             colormap gray
             figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' 2D Histogram'];
             mfFigureExport(currFig,figName)
-                
+            
+        end
+        
+        % ------------- Curv Category Vs. Intensity ------- %
+        
+
+        nPerCat = zeros(nCurvCat,nIntBins-1);
+        
+        
+        for m = 1:nIntBins                        
+            currPts = allInt(:,j,l) >= intBins(j,m) & allInt(:,j,l) < intBins(j,m+1);            
+            for iCat = 1:nCurvCat
+                currPtsCat = (K > curvCatKLims(iCat,1) & K <= curvCatKLims(iCat,2) & H > curvCatHLims(iCat,1) & H <= curvCatHLims(iCat,2)) & currPts;                
+                nPerCat(iCat,m) = nnz(currPtsCat);                                        
+            end            
         end
 
+            
+        % --- Total Sample Count Per Category --- %
+    
+        currFig = figure;    
+        %bHan = bar(intCent(j,1:end-1),nPerCat',1,'stacked');
+        bHan = area(intCent(j,1:end-1),nPerCat');
+        xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
+        ylabel('Number of Surface Samples')
+        legend(curvCatNames,'Location','NorthEastOutside')
+        for iCat = 1:nCurvCat
+            set(bHan(iCat),'FaceColor',curvCatColors(iCat,:))
+            set(bHan(iCat),'EdgeColor',curvCatColors(iCat,:))
+        end
+        xlim([min(intCent(j,:)),max(intCent(j,1:end-1))])
+        figName = [p.OutputDirectory filesep 'Curvature Category Versus ' intNames{j} ' Channel ' num2str(l) ' sample count'];
+        mfFigureExport(currFig,figName)
+
+        % --- Fraction of Samples Per Category --- %
+
+        nTotInCat = sum(nPerCat,1);
+
+        fracPerCat = bsxfun(@rdivide,nPerCat,nTotInCat);
+        %fracPerCat = bsxfun(@divide nPerCat 
+
+        currFig = figure;    
+         %bHan = bar(intCent(j,1:end-1),fracPerCat',1,'stacked');
+        bHan = area(intCent(j,1:end-1),fracPerCat');
+        xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
+        ylabel('Fraction of Surface Samples')
+        legend(curvCatNames,'Location','NorthEastOutside')
+        for iCat = 1:nCurvCat
+            set(bHan(iCat),'FaceColor',curvCatColors(iCat,:))
+            set(bHan(iCat),'EdgeColor',curvCatColors(iCat,:))
+        end
+        xlim([min(intCent(j,:)),max(intCent(j,1:end-1))])
+        figName = [p.OutputDirectory filesep 'Curvature Category Versus ' intNames{j} ' Channel ' num2str(l) ' sample fraction'];
+        mfFigureExport(currFig,figName)    
+                    
+        % --- Fraction of Samples Per Category by Percentile --- %
+
+        nTotInCat = sum(nPerCat,1);
+
+        fracPerCat = bsxfun(@rdivide,nPerCat,nTotInCat);
+        %fracPerCat = bsxfun(@divide nPerCat 
+
+        currFig = figure;    
+         %bHan = bar(intCent(j,1:end-1),fracPerCat',1,'stacked');
+        bHan = area(ptCent(j,1:end-1),fracPerCat');
+        xlabel(['Percentile of ' intNames{j} ' in channel ' num2str(l) ', a.u.'])
+        ylabel('Fraction of Surface Samples')
+        legend(curvCatNames,'Location','NorthEastOutside')
+        for iCat = 1:nCurvCat
+            set(bHan(iCat),'FaceColor',curvCatColors(iCat,:))
+            set(bHan(iCat),'EdgeColor',curvCatColors(iCat,:))
+        end
+        xlim([min(ptCent(j,:)),max(ptCent(j,1:end-1))])
+        figName = [p.OutputDirectory filesep 'Curvature Category Versus ' intNames{j} ' Channel ' num2str(l) ' sample fraction percentile'];
+        mfFigureExport(currFig,figName)    
+
+        
     end
 end
 
@@ -330,7 +549,7 @@ end
 
 cellCols = rand(nMov,3);
 
-for l = 1:nChan    
+for l = 1:nChan
     
     for k = 1:nCurvTypes
 
@@ -340,28 +559,28 @@ for l = 1:nChan
             
             currFig = figure;
             hold on
-            for n = 1:nMov                                
+            for n = 1:nMov
                 
-                for m = 1:nIntBins-1
+                for m = 1:nIntBins
                     currPts = allIntPerMov{n}(:,j,l) >= intBins(j,m) & allIntPerMov{n}(:,j,l) < intBins(j,m+1);
-                    currCurv = allCurv(currPts,k);
+                    currCurv = real(allCurvPerMov{n}(currPts,k));
                     curvMeanPer(n,l,k,j,m) = mean(currCurv);
                     curvSTDPer(n,l,k,j,m) = std(currCurv);
                     curvNPer(n,l,k,j,m) = numel(currCurv);
                     curvSEMPer(n,l,k,j,m) = curvSTDPer(n,l,k,j,m) / sqrt(curvNPer(n,l,k,j,m));
                 end
 
-                plot(squeeze(intBins(j,1:end-2)),squeeze(curvMeanPer(n,l,k,j,:)),'color',cellCols(n,:))
+                plot(squeeze(intCent(j,1:end-1)),squeeze(curvMeanPer(n,l,k,j,:)),'color',cellCols(n,:))
 %Gets too confusing with uncertainties displayed                
                  %                 hold on
-%                 plot(squeeze(intBins(j,1:end-2)),squeeze(curvMeanPer(n,l,k,j,:)) + 1.96*squeeze(curvSEMPer(n,l,k,j,:)),'--','color',cellCols(n,:))
+%                 plot(squeeze(intCent(j,1:end-1)),squeeze(curvMeanPer(n,l,k,j,:)) + 1.96*squeeze(curvSEMPer(n,l,k,j,:)),'--','color',cellCols(n,:))
                 
-%                plot(squeeze(intBins(j,1:end-2)),squeeze(curvMeanPer(n,l,k,j,:)) - 1.96*squeeze(curvSEMPer(n,l,k,j,:)),'--','color',cellCols(n,:))
+%                plot(squeeze(intCent(j,1:end-1)),squeeze(curvMeanPer(n,l,k,j,:)) - 1.96*squeeze(curvSEMPer(n,l,k,j,:)),'--','color',cellCols(n,:))
                 
                 
             end
             legend(arrayfun(@num2str,1:nMov,'Unif',0))
-            xlim(intBins(j,[1 end-2]))
+            xlim(intBins(j,[1 end-1]))
             plot(xlim,[0 0],'--r')
             xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
             ylabel([curvNames{k} ', ' curvUnits{k}])
@@ -380,43 +599,87 @@ end
 %greater emphasis on cell-cell variability, weights equally per cell, but
 %can therefore give less weight per cortical area in larger cells.
 
-for l = 1:nChan    
-    
-    for k = 1:nCurvTypes
+%%NOTE PER CELL IS NOT BOOTSTRAPPED YET
 
-        for j = iIntUse
-                                    
-            curvMeanOfPerCell(l,k,j,:) = squeeze(nanmean(curvMeanPer(:,l,k,j,:),1));
-            curvSTDOfPerCell(l,k,j,:) = squeeze(nanstd(curvMeanPer(:,l,k,j,:),[],1));
-            curvNOfPerCell(l,k,j,:) = squeeze(sum(~isnan(curvMeanPer(:,l,k,j,:)),1));
-            curvSEMOfPerCell(l,k,j,:) = curvSTDOfPerCell(l,k,j,:) ./ sqrt(curvNOfPerCell(l,k,j,:));
-            
-            currFig = figure;
-            
-            plot(intBins(j,1:end-2),squeeze(curvMeanOfPerCell(l,k,j,:))')            
-            hold on
-            plot(intBins(j,1:end-2),squeeze(curvMeanOfPerCell(l,k,j,:))' + 1.96 * squeeze(curvSEMOfPerCell(l,k,j,:))','--')
-            legend('Mean','95% C.I.')
-            plot(intBins(j,1:end-2),squeeze(curvMeanOfPerCell(l,k,j,:))' - 1.96 * squeeze(curvSEMOfPerCell(l,k,j,:))','--')
-            xlim(intBins(j,[1 end-2]))
-            plot(xlim,[0 0],'--r')
-            xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
-            ylabel([curvNames{k} ', ' curvUnits{k}])
-            figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' average of per-cell curv correlations plot'];
-            title({'Average of per-cell correlations',...
-                ['n=' num2str(nMov) ' cells, ' num2str(sum(nFramesPerMov)) ' time points']})
-            mfFigureExport(currFig,figName)
-            
-            
+if nMov > 1
+    
+    curvMeanOfPerCell = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+    curvSTDOfPerCell = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+    curvNOfPerCell = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+    curvSEMOfPerCell = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins);
+    curvBootCIOfPerCell = nan(nChan,nCurvTypes,numel(iIntUse),nIntBins,2);
+
+    for l = 1:nChan    
+
+        for k = 1:nCurvTypes
+
+            for j = iIntUse
+
+                curvMeanOfPerCell(l,k,j,:) = squeeze(nanmean(curvMeanPer(:,l,k,j,:),1));
+                curvSTDOfPerCell(l,k,j,:) = squeeze(nanstd(curvMeanPer(:,l,k,j,:),[],1));
+                curvNOfPerCell(l,k,j,:) = squeeze(sum(~isnan(curvMeanPer(:,l,k,j,:)),1));
+                curvSEMOfPerCell(l,k,j,:) = curvSTDOfPerCell(l,k,j,:) ./ sqrt(curvNOfPerCell(l,k,j,:));
+
+    %             
+                for m = 1:nIntBins
+                    bsSamp = bootstrp(nBoot,@nanmean,squeeze(curvMeanPer(:,l,k,j,m)));
+                    curvBootCIOfPerCell(l,k,j,m,:) = prctile(bsSamp,[alpha/2 1-alpha/2]*100);       
+                end     
+
+    %             curvBootCIOfPerCell(l,k,j,:) = 
+    %             
+                % ---------- Average of Per-Cell Bootstrapped ----- %
+
+                currFig = figure;
+
+                plot(intCent(j,1:end-1),squeeze(curvMeanOfPerCell(l,k,j,:))')            
+                hold on
+                plot(intCent(j,1:end-1),squeeze(curvBootCIOfPerCell(l,k,j,:,1))','--')
+                legend('Mean','95% C.I.')
+                plot(intCent(j,1:end-1),squeeze(curvBootCIOfPerCell(l,k,j,:,2))','--')
+                xlim(intBins(j,[1 end-1]))
+                plot(xlim,[0 0],'--r')
+                xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
+                ylabel([curvNames{k} ', ' curvUnits{k}])
+                figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' average of per-cell curv correlations plot'];
+                title({'Average of per-cell correlations',...
+                    ['n=' num2str(nMov) ' cells, ' num2str(sum(nFramesPerMov)) ' time points']})
+                mfFigureExport(currFig,figName)
+
+                % ---------- Average of Per-Cell Bootstrapped and by percentile ----- %
+
+                currFig = figure;
+
+                plot(ptCent(j,1:end-1),squeeze(curvMeanOfPerCell(l,k,j,:))')            
+                hold on
+                plot(ptCent(j,1:end-1),squeeze(curvBootCIOfPerCell(l,k,j,:,1))','--')
+                legend('Mean','95% C.I.')
+                plot(ptCent(j,1:end-1),squeeze(curvBootCIOfPerCell(l,k,j,:,2))','--')
+                xlim(ptCent(j,[1 end-1]))
+                plot(xlim,[0 0],'--r')
+                xlabel(['Percentile of ' intNames{j} ' in channel ' num2str(l) ', a.u.'])
+                ylabel([curvNames{k} ', ' curvUnits{k}])
+                figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' average of per-cell curv correlations plot by percentile'];
+                title({'Average of per-cell correlations',...
+                    ['n=' num2str(nMov) ' cells, ' num2str(sum(nFramesPerMov)) ' time points']})
+                mfFigureExport(currFig,figName)
+
+            end
+
         end
-        
-    end
-    
-end
 
+    end
+else
+    curvMeanOfPerCell = nan;
+    curvSTDOfPerCell = nan;
+    curvNOfPerCell = nan;
+    curvSEMOfPerCell = nan;
+    curvBootCIOfPerCell = nan;
+end
 
 %% ------------------ Output ------------ %%
 
-outVars = {'curvMean','curvSTD','curvN','curvSEM','intTypes','intNames','iIntUse','chanPaths','curvMeanOfPerCell','curvSTDOfPerCell','curvNOfPerCell','curvSEMOfPerCell'};
+outVars = {'curvMean','curvSTD','curvN','curvSEM','intTypes','intNames','iIntUse','chanPaths','curvMeanOfPerCell','curvSTDOfPerCell','curvNOfPerCell','curvSEMOfPerCell',...
+           'nPerCat'};
 
 save([p.OutputDirectory filesep 'combined analysis.mat'],outVars{:})

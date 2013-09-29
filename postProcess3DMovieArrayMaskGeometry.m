@@ -90,6 +90,9 @@ if ~p.BatchMode
     wtBar = waitbar(0,'Please wait, performing post-processing on each movie...');
 end        
 
+%Get limits and indices for curvature categories.
+[curvCatKLims,curvCatHLims,curvCatNames,curvCatColors] = getCurvCategories;
+nCurvCat = numel(curvCatNames);
 
 %% -------------- Per-Movie Processing ----------------- %%
 
@@ -208,6 +211,15 @@ for iMov = 1:nMovies
             %And ratio
             saVolRatioPerMov{iMov}(iFrame) = surfAreaPerMov{iMov}(iFrame) / volPerMov{iMov}(iFrame);
             saVolRatiuUnits = '1/um';
+            
+            % ---- Curvature Categories ---- %
+            H = locAvgMaskGeo.LocMeanMeanCurvature * 1e3;%The category limits are in microns
+            K = locAvgMaskGeo.LocMeanGaussianCurvature * 1e3^2;
+            
+            for iCat = 1:nCurvCat
+                currPtsCat = K > curvCatKLims(iCat,1) & K <= curvCatKLims(iCat,2) & H > curvCatHLims(iCat,1) & H <= curvCatHLims(iCat,2);                
+                nPerCatPerMov{iMov}(iFrame,iCat) = nnz(currPtsCat);
+            end
             
         end
         
@@ -361,6 +373,7 @@ for iMov = 1:nMovies
         waitbar(iMov/nMovies,wtBar)
     end
     
+    close all
     
 end
     
@@ -445,7 +458,7 @@ for iMov = 1:nMovies
     
 end
 
-%--------- All Movie Distribution Averages -------- %
+%% --------- All Movie Distribution Averages -------- %
 
 figure
 
@@ -566,11 +579,37 @@ title({[currStat ', All Frames, All Movies'],...
         ['Mean: ' num2str(meanAll) ' +/- ' num2str(stdAll) ' STD']});
 saveThatShit([currStat ' all frames all movies'],combOutDir);
 
-%--------- All Frames All Movies Volume and Area Stat Figures -------- %
+%% ------- Combined Curvature Category Figures ------- %%
 
-jkl=1;%TEMP - FINISH ADDING CELL VOLUME AND SURFACE AREA FIGURES!!
+fracPerCatPerMov = cell(nMovies,1);
+meanFracPerMov = nan(nMovies,nCurvCat);
+stdFracPerMov = nan(nMovies,nCurvCat);
+for j = 1:nMovies
+    fracPerCatPerMov{j} = bsxfun(@rdivide,nPerCatPerMov{j},sum(nPerCatPerMov{j},2));
+    meanFracPerMov(j,:) = mean(fracPerCatPerMov{j},1);
+    stdFracPerMov(j,:) = std(fracPerCatPerMov{j},[],1);
+end
+
+meanFracAll = mean(meanFracPerMov,1);
+stdFracAll = std(meanFracPerMov,[],1);
 
 
+currFig = figure;
+hold on
+for j = 1:nCurvCat
+    bHan(j) = bar(j-1,meanFracAll(j),1); 
+    set(bHan(j),'FaceColor',curvCatColors(j,:))
+    
+end
+
+xlabel('Category #')
+ylabel('Mean Fraction of Surface')
+saveThatShit('Mean curvature category fraction',combOutDir)
+
+
+
+
+%%  ------------- Output ------------- %%
 save([combOutDir filesep 'combined stats and hists all movies.mat'],'combMeanHist','combMeanHistSTD','histBinsPerMov',...
     'combGaussHist','combGaussHistSTD','gcHistBinsPerMov',...
     'combDiffHist','combDiffHistSTD','dpcHistBinsPerMov',...
@@ -578,7 +617,8 @@ save([combOutDir filesep 'combined stats and hists all movies.mat'],'combMeanHis
     'mapcMeanPerMov','mapcMedPerMov','mapcVarPerMov',...
     'mcMeanPerMov','mcMedPerMov','mcVarPerMov',...
     'gcMeanPerMov','gcMedPerMov','gcVarPerMov',...
-    'nCurvPtsPerMov')
+    'nCurvPtsPerMov',...
+    'nPerCatPerMov','fracPerCatPerMov','meanFracPerMov','stdFracPerMov','meanFracAll','stdFracAll');
 
 
 

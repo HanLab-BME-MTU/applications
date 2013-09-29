@@ -16,7 +16,7 @@ distX = bwdist(~mask);
 
 centerMostPix = distX > prctile(distX(mask(:)),99);
 
-intThresh = mean(image(centerMostPix(:))) + 2*std(image(centerMostPix(:)));
+intThresh = mean(single(image(centerMostPix(:)))) + 2*std(single(image(centerMostPix(:))));
 
 
 tmpMask = dilIm < intThresh & mask & distX > safeZone;

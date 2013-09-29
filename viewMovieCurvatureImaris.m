@@ -78,11 +78,6 @@ imarisApp = iceConn.mImarisApplication;
 imarisScene = imarisApp.GetFactory.CreateDataContainer;
 imarisApp.SetSurpassScene(imarisScene)
 
-%Add lighting and frame objects to scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
-
-
 iMI = movieData.getProcessIndex('MaskedIntensity3DProcess',1,1);
 
 
@@ -213,6 +208,10 @@ imarisApp.SetDataSet(volData)
 volOb = imarisApp.GetFactory.CreateVolume;
 imarisApp.GetSurpassScene.AddChild(volOb,-1)
 imarisApp.GetSurpassCamera.Fit;
+
+%Add lighting and frame objects to scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
 
 
 %% ----------- Correlation Exploration -------- %%

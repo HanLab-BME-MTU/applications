@@ -147,11 +147,12 @@ for iMov = 1:nMovies
         for iFrame = 1:nFramesPerMov(iMov);
         
             currSkel = MA(iMov).processes_{iSkProc}.loadChannelOutput(p.ChannelIndex,iFrame);
+            [iTipVert{iMov}{iFrame},iTipsEdge{iMov}{iFrame}] = findTips(currSkel.edges,size(currSkel.vertices,1));
             if hasMG(iMov)
                 currMaskProp = MA(iMov).processes_{iMgProc}.loadChannelOutput(iProcChan,iFrame);
                 branchRad{iMov}{iFrame} = branchRadii(currSkel,currMaskProp);
                 branchRad{iMov}{iFrame} = cellfun(@(x)(x .* MA(iMov).pixelSize_),branchRad{iMov}{iFrame},'Unif',0);%Convert to nm
-                [iTipVert{iMov}{iFrame},iTipsEdge{iMov}{iFrame}] = findTips(currSkel.edges,size(currSkel.vertices,1));
+                
                 meanBranchRad{iMov}{iFrame} = cellfun(@(x)(mean(x)),branchRad{iMov}{iFrame});
                 tipRad{iMov}{iFrame} = branchRad{iMov}{iFrame}(iTipsEdge{iMov}{iFrame});
                 meanTipRad{iMov}{iFrame} = meanBranchRad{iMov}{iFrame}(iTipsEdge{iMov}{iFrame});
@@ -163,7 +164,7 @@ for iMov = 1:nMovies
             %small structures which are presumably filopodia or false
             %positives
             nTipsPerFrameThresh{iMov}(iFrame) = numel(meanTipRad{iMov}{iFrame} >= p.TipRadiusRange(1) & meanTipRad{iMov}{iFrame} <= p.TipRadiusRange(2));            
-            
+            nTipsPerFrame{iMov}(iFrame) = numel(iTipVert{iMov}{iFrame});
             
             % ----- Vertex Degree Analysis ----- %
             
@@ -396,7 +397,7 @@ for iMov = 1:nMovies
         end
         view(3)
         figName = [currOutDir filesep 'All branch directions over time 3D plot'];
-        mfFigureExport(baFig(iMov),figName) 
+        mfFigureExport(batFig(iMov),figName) 
         
         if p.BatchMode
             abdtFig(iMov) = figure('Visible','off');
@@ -417,7 +418,7 @@ for iMov = 1:nMovies
         title({'Mean branch direction over time',...
                'color indicates time, seconds'})
         figName = [currOutDir filesep 'Mean branch direction over time 3D plot'];
-        mfFigureExport(baFig(iMov),figName)     
+        mfFigureExport(abdtFig(iMov),figName)     
         
         if p.BatchMode
             abatFig(iMov) = figure('Visible','off');
@@ -429,7 +430,7 @@ for iMov = 1:nMovies
         ylabel('Unwrapped mean branch theta angle, radians')
         title('Unwrapped mean branch theta over time')
         figName = [currOutDir filesep 'Mean branch angle unwrapped over time 3D plot'];
-        mfFigureExport(baFig(iMov),figName)     
+        mfFigureExport(abatFig(iMov),figName)     
         
         if p.BatchMode
             abatFig(iMov) = figure('Visible','off');
@@ -444,7 +445,7 @@ for iMov = 1:nMovies
         plot(xlim,[pi pi],'--k')
         plot(xlim,[-pi -pi],'--k')
         figName = [currOutDir filesep 'Mean branch angle over time 3D plot'];
-        mfFigureExport(baFig(iMov),figName)     
+        mfFigureExport(abatFig(iMov),figName)     
         
         
         
@@ -561,19 +562,26 @@ for iMov = 1:nMovies
             ['Movie ' num2str(iMov) ' does not have valid skeleton pruning - not analyzing!']);
     end
     
-    if ~p.BatchMode        
-        waitbar(iMov/nMovies,wtBar)
+    if ~p.BatchMode    
+        if ishandle(wtBar)
+            waitbar(iMov/nMovies,wtBar)
+        end
+        close all
     else
         close all
     end
         
 end
 
+
+outVars = [outVars 'nTipsPerFrame'];
+
 if nnz(hasMG) ~=nMovies
     warning('Some movies did not have valid mask geometry analysis!!!');
 end
-
-close(wtBar);
+if ishandle(wtBar)
+    close(wtBar);
+end
 
 % ------ Combined (All-Movie) Branch-Point-Degree Data ------- %
 
