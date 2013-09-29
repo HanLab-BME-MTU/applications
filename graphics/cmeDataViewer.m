@@ -34,6 +34,8 @@ handles.mCh = find(strcmp(data.source, data.channels));
 
 fidx = 1;
 tcur = 1;
+xs = [];
+ys = [];
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
@@ -493,7 +495,7 @@ for c = 1:nCh
     % x,y view
     hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
     hold(handles.fAxes(c,1), 'on');
-    set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
+    %set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
     hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
     hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
     
@@ -518,6 +520,7 @@ axis(handles.fAxes(:,1), 'equal');
 % this fixes a bug with axis 'equal' that allows panning beyond boundaries
 set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
 
+set(handles.fAxes, 'ButtonDownFcn', @click_Callback);
 
 dx = 0.03;
 hChLabel = zeros(1,nCh);
@@ -582,12 +585,44 @@ set(hz, 'ActionPostCallback', @czoom);
 % Listener/display functions
 %===============================================================================
     function click_Callback(varargin)
-        updateProj(); % when clicking w/o dragging
-        set(gcf, 'WindowButtonMotionFcn', @drag, 'WindowButtonUpFcn', @stopDragging);
+%         gca
+        switch gca
+            case num2cell(handles.fAxes(:,1))
+                a = get(gca, 'CurrentPoint');
+                xs = round(a(1,1));
+                ys = round(a(1,2));
+                updateProj(); % required for clicking w/o dragging
+                set(gcf, 'WindowButtonMotionFcn', @dragProj, 'WindowButtonUpFcn', @stopDragging);
+            case num2cell(handles.fAxes(:,2))
+                a = get(gca,'CurrentPoint');
+                fidx = round(a(1,1));
+                updateSlice();
+                set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);
+            case num2cell(handles.fAxes(:,3))
+                a = get(gca,'CurrentPoint');
+                fidx = round(a(1,2));
+                updateSlice();
+                set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);                
+        end
     end
 
-    function drag(varargin)
+    function dragProj(varargin)
+        a = get(gca, 'CurrentPoint');
+        xs = round(a(1,1));
+        ys = round(a(1,2));
         updateProj();
+    end
+
+    function dragSlice(varargin)
+        a = get(gca, 'CurrentPoint');
+        switch gca
+            case num2cell(handles.fAxes(:,2))
+                fidx = min(max(1,round(a(1,1))),nf);
+            case num2cell(handles.fAxes(:,3))
+                fidx = min(max(1,round(a(1,2))),nf);
+        end
+        set(handles.frameSlider, 'Value', fidx);
+        updateSlice();
     end
 
     function stopDragging(varargin)
@@ -743,14 +778,13 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function updateProj()
-        a = get(gca,'CurrentPoint');
         % plot lines
-        set(hl(:,1), 'XData', a(1,1)*[1 1]);
-        set(hl(:,2), 'YData', a(1,2)*[1 1]);
+        set(hl(:,1), 'XData', xs*[1 1]);
+        set(hl(:,2), 'YData', ys*[1 1]);
         
         % update data
-        xi = min(max(round(a(1,1)),1), nx);
-        yi = min(max(round(a(1,2)),1), ny);
+        xi = min(max(xs,1), nx);
+        yi = min(max(ys,1), ny);
         
 %         switch displayType
 %             case 'RGB'
