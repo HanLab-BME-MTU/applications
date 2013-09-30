@@ -12,7 +12,7 @@ function [kr,lr]=PointP_Lr_total(pos,r)
 %Harvard Medical School
 %
 %Last Update: 9/6/2011
-
+tic
 W = max(pos(:,1))-min(pos(:,1));
 L = max(pos(:,2))-min(pos(:,2));
 A= W*L;
@@ -31,9 +31,9 @@ for i=1:k
     temp = dis<r(i) & dis>0;
     %Ward Ferrandino correction for rectangular sampling domain
     edge = 1-(4/(3*pi))*((r(i)/L)+(r(i)/W))+((11/(3*pi))-1)*(r(i)^2/(L*W));
-    kr(i) = sum(sum(temp))*((A)/((k^2)*edge));
+    kr(i) = sum(sum(temp))*((A)/((n-1)*n*edge));
     lr(i)= sqrt(kr(i)/pi)-r(i);
 end
-
+toc
 end
     

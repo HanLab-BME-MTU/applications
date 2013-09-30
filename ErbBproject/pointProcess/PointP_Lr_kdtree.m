@@ -1,4 +1,4 @@
-function [Lr]=PointP_Lr_Cross(posA,posB,r)
+function [Lr]=PointP_Lr_kdtree(pos,r)
 %PointP_Lr_Cross takes two related point processes and evaulates
 % the average number of points in posB that are with a distance of r(i) from a
 % point in posA.
@@ -15,17 +15,17 @@ function [Lr]=PointP_Lr_Cross(posA,posB,r)
 %Jeffrey L. Werbin
 %Harvard Medical School
 %
-%Last Update: 8/2/2013
+%Last Update: 9/30/2013
 %
 
 %edge = 1-(4/(3*pi))*((r/L)+(r/W))+((11/(3*pi))-1)*(r^2/(L*W));
 edge=1;
 
 %The number of total points
-n = size(posA,1);
-m = size(posB,1);
+%n = size(posA,1);
+%m = size(posB,1);
 
-pos = [posA ; posB]; %concatinating the two lists allows for processing with one dist matrix
+%pos = [posA ; posB]; %concatinating the two lists allows for processing with one dist matrix
 
 %find boundaries
 limX = [max(pos(:,1)), min(pos(:,1))];
@@ -37,8 +37,8 @@ L = limY(1)-limY(2);
 %removes edge effect problems
 
 Rmax = max(r);
-x = posA(:,1)-limX(2);
-y = posA(:,2)-limY(2);
+x = pos(:,1)-limX(2);
+y = pos(:,2)-limY(2);
 
 %Here we find all the points in pos A that are at least Rmax away from the
 %bounderies. To help prevent edge effects.
@@ -47,26 +47,26 @@ y = posA(:,2)-limY(2);
 ind = (x > Rmax) & (x < W -Rmax) & (y > Rmax) & (y < L-Rmax);
 clear x y;
 
-%keeps only points that meet this criteria
-posA= posA(ind,:);
+%keeps only points that meet this criteria as query points
+posA= pos(ind,:);
 
 %Uncomputed values are returned as NaNs
 Lr = NaN(numel(r),1);
 
-%Average density of posB within the total area considered
-lambda = numel(posB(:,1))/(W*L);
+%Average density within the total area considered
+lambda = numel(pos(:,1))/(W*L);
 
 %c
 tic
 for i=1:numel(r)
 
     %for each r it finds the inPnts that are <r(i) from each query point
-    [idx, dist] = KDTreeBallQuery(posB,posA,r(i));
+    [idx, dist] = KDTreeBallQuery(pos,posA,r(i));
     
     %idx is a cell array with indicies of all posB within r(i) of posA
     % we only need to know the number of points in idx for each point
     temp = cellfun(@numel,idx);
-    temp = sqrt(sum(temp)/(lambda*pi));
+    temp = sqrt(sum(temp)/(lambda*pi*(numel(temp)-1)));
     
     
     %out(i,1)= sum(tempB)/(edge*pi*rB^2);
