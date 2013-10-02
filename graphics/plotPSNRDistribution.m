@@ -13,13 +13,14 @@ ip.addParamValue('XLim', [1 300]);
 ip.addParamValue('Pool', true, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'screen', 'print'})));
 ip.addParamValue('Mode', 'all', @(x) any(strcmpi(x, {'all', 'max'})));
+ip.addParamValue('Channel', 1);
 ip.parse(data, varargin{:});
 ha = ip.Results.ha;
 
 nd = numel(data);
 psnr = cell(1,nd);
 parfor i = 1:nd
-    psnr{i} = getPSNRDistribution(data(i), 'Mode', ip.Results.Mode); %#ok<PFBNS>
+    psnr{i} = getPSNRDistribution(data(i), 'Mode', ip.Results.Mode, 'Channel', ip.Results.Channel); %#ok<PFBNS>
 end
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
