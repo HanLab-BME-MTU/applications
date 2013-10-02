@@ -42,6 +42,7 @@ ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('SelectIndex', [], @iscell);
 ip.addParamValue('SlaveNames', []);
 ip.addParamValue('Colormap', jet(numel(data)));
+ip.addParamValue('CorrectObservationBias', true, @islogical);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -117,7 +118,11 @@ for i = 1:nd
     % P(obs. lifetime==1) = N
     % P(obs. lifetime==N) = 1
     % => weighting:
-    w = N./(N-cutoff_f+1:-1:1);
+    if ip.Results.CorrectObservationBias
+        w = N./(N-cutoff_f+1:-1:1);
+    else
+        w = ones(1,N-cutoff_f+1);
+    end
     pad0 = zeros(1,Nmax-N);
     lftHist_Ia =  [hist(lftData(i).lifetime_s_all(idx_Ia), t).*w  pad0];
     lftHist_Ib =  [hist(lftData(i).lifetime_s_all(idx_Ib), t).*w  pad0];
@@ -234,7 +239,11 @@ for i = 1:nd
     % P(obs. lifetime==1) = N
     % P(obs. lifetime==N) = 1
     % => weighting:
-    w = N./(N-cutoff_f+1:-1:1);
+    if ip.Results.CorrectObservationBias
+        w = N./(N-cutoff_f+1:-1:1);
+    else
+        w = ones(1,N-cutoff_f+1);
+    end
     pad0 = zeros(1,Nmax-N);
     lftHistCCP = [hist(res(i).lftAboveT, t).*w pad0];
     lftHistCS = [hist(res(i).lftBelowT, t).*w pad0];
@@ -299,7 +308,7 @@ end
 %====================
 % Initiation density
 %====================
-if any(strcmpi(ip.Results.Display, {'on','all'}))
+if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     
     ha = setupFigure(2,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
         'XSpace', [3 3 0.5], 'YSpace', [4 1 1], 'Name', 'Track statistics');
