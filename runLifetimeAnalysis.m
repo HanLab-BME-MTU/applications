@@ -251,6 +251,10 @@ for i = 1:nd
     lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) / framerate;
     lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate;    
     
+    % Raw, unweighted histograms with counts/bin
+    lftRes.lftHistCCP_counts(i,:) = [hist(res(i).lftAboveT, t) pad0];
+    lftRes.lftHistCS_counts(i,:) = [hist(res(i).lftBelowT, t) pad0];
+    
     if ip.Results.ExcludeVisitors
         lftHistVisit = [hist(res(i).lftVisitors, t).*w pad0];
         lftRes.lftHistVisit(i,:) = lftHistVisit / sum(lftHistVisit) / framerate;
@@ -354,7 +358,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     formatTickLabels(ha(1:2));
     fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-    fprintf('Valid tracks/cell: %.1f ± %.1f\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia));
+    fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     
     % gap statistics
