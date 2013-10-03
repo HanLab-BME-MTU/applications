@@ -1,5 +1,5 @@
 function [umMap,XI,YI]=generateHeatmapFromField(displField,dataPath,ummax,cmapmode,w,h)
-if nargin <4
+if nargin <4 || isempty(cmapmode)
     cmapmode = 'jet';
 end
 [reg_grid,~,~,~]=createRegGridFromDisplField(displField,2); %2=2 times fine interpolation

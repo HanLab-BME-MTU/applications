@@ -37,8 +37,6 @@ forceFieldProc = movieData.processes_{iProc};
 
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
-p.gelThickness = 34000; % (nm) this needs to be replaced by GUI input
-p.highRes = false;
 p.usePaxImg = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
@@ -70,6 +68,16 @@ if ~displFieldProc.checkChannelOutput()
         'calculation/correction  before running force field calculation!'])
 end
 
+% define resolution depending on the grid information in displacementField
+% step
+iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);     
+displFieldCalProc=movieData.processes_{iDisplFieldCalProc};
+pDisp = parseProcessParams(displFieldCalProc);
+if pDisp.useGrid
+    p.highRes = false;
+else
+    p.highRes = true;
+end
 % Set up the input file
 inFilePaths{1} = displFieldProc.outFilePaths_{1};
 forceFieldProc.setInFilePaths(inFilePaths);
@@ -182,7 +190,7 @@ for i=1:nFrames
                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                'thickness',p.gelThickness/movieData.pixelSize_,'paxImg',paxImage,'pixelSize',movieData.pixelSize_);
+                'thickness',p.thickness/movieData.pixelSize_,'paxImg',paxImage,'pixelSize',movieData.pixelSize_);
             
             outputFile{3+i,1} = [p.OutputDirectory filesep 'BEMParams ' num2str(i) ' frame.mat'];
 
@@ -199,7 +207,7 @@ for i=1:nFrames
                     reg_FastBEM_TFM(grid_mat, displField, i, ...
                     p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                     'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.gelThickness/movieData.pixelSize_);
+                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.thickness/movieData.pixelSize_);
                 %             display('The total time for calculating the FastBEM solution: ')
                 
                 % The following values should/could be stored for the BEM-method.
