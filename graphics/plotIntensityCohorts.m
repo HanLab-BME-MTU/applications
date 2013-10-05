@@ -44,8 +44,10 @@ ip.addParamValue('YLim', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('ShowLegend', false, @islogical);
 ip.addParamValue('ShowPct', true, @islogical);
+ip.addParamValue('ShowStats', false, @islogical);
 ip.addParamValue('AvgFun', @nanmean, @(x) isa(x, 'function_handle'));
 ip.addParamValue('LftDataName', 'lifetimeData.mat');
+% ip.addParamValue('MinTracksPerCohort', 5);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
 sf = ip.Results.ScalingFactor;
@@ -192,7 +194,7 @@ if ip.Results.ScaleSlaveChannel && nCh>1
         iSF = zeros(1,nc);
         for c = 1:nc
             % find largest mean of all cohorts
-            M = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'UniformOutput', false);
+            M = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'unif', 0);
             M = mean(vertcat(M{:}), 1);
             iSF(c) = max(M);
         end
@@ -222,7 +224,9 @@ switch nCh
         pct = zeros(nd,2);
         for i = 1:nd
             s =  lftData(i).significantMaster;
-            pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
+            %pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
+            idx = lftData(i).maxA(:,1)>ip.Results.MaxIntensityThreshold;
+            pct(i,:) = sum([s(idx,2) ~s(idx,2)],1)/sum(idx);
         end
         meanPct = mean(pct,1);
         stdPct = std(pct,[],1);
@@ -279,6 +283,7 @@ else
         'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
 end
 
+% now plot cohorts for each combination
 for a = 1:na
 
     % combination for these axes: sigCombIdx(a)
@@ -286,11 +291,11 @@ for a = 1:na
         for c = 1:nc
             switch nCh
                 case 1
-                    res(i).sigComb{c} = res(i).sigIdx{c}==1;
+                    res(i).sigComb{a,c} = res(i).sigIdx{c}==1;
                 case 2
-                    res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1);
+                    res(i).sigComb{a,c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1);
                 case 3
-                    res(i).sigComb{c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1) &...
+                    res(i).sigComb{a,c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1) &...
                         res(i).sigIdx{c}(:,3)==sigCombIdx(a,2);
             end
         end
@@ -300,26 +305,32 @@ for a = 1:na
         for ch = chVec; % plot master channel last
             if nd > 1
                 % means for each data set
-                AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{c},:),1), res, 'UniformOutput', false);
+                AMat = arrayfun(@(x) ip.Results.AvgFun(x.interpTracks{ch,c}(x.sigComb{a,c},:),1), res, 'unif', 0);
                 AMat = vertcat(AMat{:});
-                A{ch,c} = nanmean(AMat,1);
+                % # of tracks from each data set in this cohort
+                ntCoSel = arrayfun(@(x) sum(x.sigComb{a,c}), res);
+                A{ch,c} = nanmedian(AMat,1);
                 SEM = nanstd(AMat,[],1)/sqrt(nd);
                 Amin = A{ch,c} - SEM;
                 Aplus = A{ch,c} + SEM;
             else
                 % if input is a single data set, show median + percentiles
-                M = prctile(res(1).interpTracks{ch,c}(res(1).sigComb{c},:), [25 50 75], 1);
+                M = prctile(res(1).interpTracks{ch,c}(res(1).sigComb{a,c},:), [25 50 75], 1);
+                ntCoSel = sum(res(1).sigComb{a,c});
                 A{ch,c} = M(2,:);
                 Amin = M(1,:);
                 Aplus = M(3,:);
             end
-            if ip.Results.ShowVariation
-                fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:),...
-                    'EdgeColor', cmap{ch}(c,:), 'Parent', ha(a));
-            end
-            if ~ip.Results.FrontLayer
-                plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:),...
-                    'LineWidth', 1);
+            % plot cohort only if at least half the data sets have tracks in this cohort
+            if sum(ntCoSel>0)/numel(ntCoSel) > 0.5
+                if ip.Results.ShowVariation
+                    fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:),...
+                        'EdgeColor', cmap{ch}(c,:), 'Parent', ha(a));
+                end
+                if ~ip.Results.FrontLayer
+                    plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:),...
+                        'LineWidth', 1);
+                end
             end
             cohorts.t{c} = cT{c};
             cohorts.Amin{ch,c} = Amin;
@@ -341,7 +352,7 @@ for a = 1:na
             % Background level: median of all detections
             if nd>1
                 % median background level per cohort for each data set
-                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'UniformOutput', false);
+                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'unif', 0);
                 medM = vertcat(medM{:});
                 plot(ha(a), [-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
             else
@@ -372,7 +383,7 @@ if ip.Results.ShowPct && nCh>2
     dy = 0.75;
     hav = axes(fset.axOpts{:}, 'Position', [1.5+ceil(na/ah)*6.75 aposy+ah*3.5+(ah-1)*dy-1.6 2.4 1.6], 'Units', 'normalized');
     vennplot(meanPct(2), meanPct(3), meanPct(1), ip.Results.SlaveName,...
-        'Handle', hav, 'Font', fset.sfont);
+        'Parent', hav, 'Font', fset.sfont);
     axis off;
 end
     
@@ -422,6 +433,21 @@ else
     end
 end
 
+if ip.Results.ShowStats
+    % tracks in each data set
+    % arrayfun(@(i) sum(i.maxA(:,1)>ip.Results.MaxIntensityThreshold), lftData);
+    
+    % plot total tracks in each cohort
+    for a = 1:na
+        for c = 1:nc
+            ntCoSel = arrayfun(@(x) sum(x.sigComb{a,c}), res);
+            if sum(ntCoSel>0)/numel(ntCoSel) > 0.5
+                text(XTick(c), YLim(end), num2str(sum(ntCoSel)), 'Parent',  ha(a), fset.sfont{:},...
+                    'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+            end
+        end
+    end
+end
 
 % if ip.Results.ShowLegend
 %     %xlabel(ha(1), 'Time (s)', fset.lfont{:});
