@@ -501,7 +501,7 @@ for c = 1:nCh
     % x,y view
     hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
     hold(handles.fAxes(c,1), 'on');
-    %set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
+    set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
     hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
     hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
     
@@ -509,14 +509,14 @@ for c = 1:nCh
     hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
     hold(handles.fAxes(c,2), 'on');
     % line in y,z view
-    hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor);
+    hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
     hold(handles.fAxes(c,2), 'off');
     
     % x,z view
     hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
     hold(handles.fAxes(c,3), 'on');
     % line in x,z view
-    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor);
+    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
     hold(handles.fAxes(c,3), 'off');
     
     arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
@@ -591,7 +591,6 @@ set(hz, 'ActionPostCallback', @czoom);
 % Listener/display functions
 %===============================================================================
     function click_Callback(varargin)
-%         gca
         switch gca
             case num2cell(handles.fAxes(:,1))
                 a = get(gca, 'CurrentPoint');
@@ -1110,7 +1109,6 @@ set(hz, 'ActionPostCallback', @czoom);
             'Position', [110 b 140 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(2));
         eapCheck(3) = uicontrol(pht, 'Style', 'checkbox', 'String', 'N.S.',...
             'Position', [165 b 80 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(3));
-        set(eapCheck, 'Value', true);
 
         
         uicontrol(pht, 'Style', 'pushbutton', 'String', 'Reset',...
