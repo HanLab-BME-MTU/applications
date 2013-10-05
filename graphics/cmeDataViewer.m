@@ -319,6 +319,7 @@ end
 fprintf('Loading tracks ... ');
 tracks = [];
 bgA = [];
+maxA = [];
 % identify track file
 fileList = dir([data.source 'Tracking' filesep 'ProcessedTracks*.mat']);
 fileList = {fileList.name};
@@ -346,7 +347,7 @@ if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.Loa
         bgA = [bgA{:}];
     end
     clear tmp;
-    cutoff_f = 5;
+    cutoff_f = 3; % by default; this is adjustable in the GUI
     tracks = tracks([tracks.lifetime_s] >= data.framerate*cutoff_f);
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
     tracks = tracks(sortIdx);
@@ -422,34 +423,39 @@ if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.Loa
     % min/max track intensities
     maxA = arrayfun(@(t) max(t.A, [], 2), tracks, 'unif', 0);
     maxA = [maxA{:}];
-    maxA = prctile(maxA, 99, 2);
-    da = floor(log10(maxA));
+    maxVal = prctile(maxA, 99, 2);
+    da = floor(log10(maxVal));
     % y-axis unit
-    yunit = round(maxA ./ 10.^da) .* 10.^(da-1);
-    maxA = ceil(maxA./yunit) .* yunit;
+    yunit = round(maxVal ./ 10.^da) .* 10.^(da-1);
+    maxVal = ceil(maxVal./yunit) .* yunit;
 end
 fprintf('done.\n');
+
+% Settings
+if ~isempty(tracks)
+    minLft = min([tracks.lifetime_s]); % 3 frames. Display tracks >= 5 framesby default
+    maxLft = max([tracks.lifetime_s]);
+    minVal = data.framerate*5;%minLft;
+    maxVal = maxLft;
+    catCheckVal = ones(1,8);
+    eapCheckVal = ones(1,3);
+    maxIntT = 0;
+end
+
+
+
+
 
 % dynamic range for each channel
 dRange = cell(1,nCh);
 for c = 1:nCh
     dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
 end
-dRange{1} = prctile(double(stack{c}(:)), [1 99]);
+% dRange{1} = prctile(double(stack{c}(:)), [1 99]);
 
 hues = getFluorophoreHues(data.markers);
 rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), hues, 'unif', 0);
 
-
-% Settings
-if ~isempty(tracks)
-    minLft = min([tracks.lifetime_s]);
-    maxLft = max([tracks.lifetime_s]);
-    minVal = minLft;
-    maxVal = maxLft;
-    catCheckVal = ones(1,8);
-    eapCheckVal = ones(1,3);
-end
 
 %===============================================================================
 % Set visibility for sliders and checkboxes
@@ -917,7 +923,7 @@ set(hz, 'ActionPostCallback', @czoom);
             end
             topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
             if get(tplotScaleCheckbox, 'Value')
-                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxA(ci)]; %#ok<AGROW>
+                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxVal(ci)]; %#ok<AGROW>
             end
             
             if ~isempty(bgA) && itrack.catIdx<5
@@ -1029,12 +1035,19 @@ set(hz, 'ActionPostCallback', @czoom);
     function trackSettings_Callback(varargin)
         % open window with settings panel
         tpos = get(hfig, 'Position');
-        tpos = [tpos(1)+tpos(3)/2-150 tpos(2)+tpos(4)/2-75 300 210];
+        tpos = [tpos(1)+tpos(3)/2-150 tpos(2)+tpos(4)/2-75 300 245];
         pht = figure('Units', 'pixels', 'Position', tpos,...
             'PaperPositionMode', 'auto', 'Menubar', 'none', 'Toolbar', 'none',...
             'Color', get(0,'defaultUicontrolBackgroundColor'),...
             'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels',...
             'Name', 'Track display settings', 'NumberTitle', 'off');
+        
+        
+        b = 215;
+        uicontrol(pht, 'Style', 'text', 'String', 'Max. intensity threshold:',...
+            'Position', [5 b 165 20], 'HorizontalAlignment', 'left');
+        mitText = uicontrol(pht, 'Style', 'edit', 'String', num2str(maxIntT),...
+            'Position', [170 b 60 20], 'HorizontalAlignment', 'right');
         
         % Lifetime selection sliders
         b  = 155;
@@ -1047,7 +1060,7 @@ set(hz, 'ActionPostCallback', @czoom);
             'Value', minVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
             'Position', [40 b+20 200 18]);
         addlistener(handle(minLftSlider), 'Value', 'PostSet', @minSlider_Callback);
-        minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minLft) ' s'],...
+        minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minVal) ' s'],...
             'Position', [240 b+18 30 20], 'HorizontalAlignment', 'left');
         
         uicontrol(pht, 'Style', 'text', 'String', 'Max.:',...
@@ -1076,7 +1089,7 @@ set(hz, 'ActionPostCallback', @czoom);
         
         b = 75;
         uicontrol(pht, 'Style', 'text', 'String', 'Compound tracks: ',...
-            'Position', [5 b+10 90 20], 'HorizontalAlignment', 'left');
+            'Position', [5 b+10 120 20], 'HorizontalAlignment', 'left');
         catCheck(5) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Valid',...
             'Position', [5 b 60 15], 'HorizontalAlignment', 'left', 'Value', catCheckVal(5));
         catCheck(6) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Faulty',...
@@ -1090,13 +1103,13 @@ set(hz, 'ActionPostCallback', @czoom);
         b = 35;
         eapCheck = zeros(1,3);
         uicontrol(pht, 'Style', 'text', 'String', 'EAP significance: ',...
-            'Position', [5 b+10 90 20], 'HorizontalAlignment', 'left');
+            'Position', [5 b+10 150 20], 'HorizontalAlignment', 'left');
         eapCheck(1) = uicontrol(pht, 'Style', 'checkbox', 'String', 'Independent',...
-            'Position', [5 b 90 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(1));
+            'Position', [5 b 110 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(1));
         eapCheck(2) = uicontrol(pht, 'Style', 'checkbox', 'String', 'M/S',...
-            'Position', [100 b 140 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(2));
+            'Position', [110 b 140 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(2));
         eapCheck(3) = uicontrol(pht, 'Style', 'checkbox', 'String', 'N.S.',...
-            'Position', [155 b 80 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(3));
+            'Position', [165 b 80 15], 'HorizontalAlignment', 'left', 'Value', eapCheckVal(3));
         set(eapCheck, 'Value', true);
 
         
@@ -1131,7 +1144,8 @@ set(hz, 'ActionPostCallback', @czoom);
         function resetButton_Callback(varargin)
             set([catCheck eapCheck], 'Value', true);
             maxVal = maxLft;
-            minVal = minLft;
+            minVal = data.framerate*5;%minLft;
+            set(mitText, 'String', '0');
             set(maxLftSlider, 'Value', maxVal);
             set(minLftSlider, 'Value', minVal);
         end
@@ -1140,6 +1154,7 @@ set(hz, 'ActionPostCallback', @czoom);
             % update track selection index
             catCheckVal = cell2mat(get(catCheck, 'Value'))==1;
             eapCheckVal = cell2mat(get(eapCheck, 'Value'))==1;
+            maxIntT = str2double(get(mitText, 'String'));
             
             S = [tracks.significantSlave];
             M = [tracks.significantMaster];
@@ -1148,7 +1163,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 minVal<=[tracks.lifetime_s] & [tracks.lifetime_s]<=maxVal & ...
                 ((eapCheckVal(1) & M(2,:)==1) | ...
                 (eapCheckVal(2) & M(2,:)==0 & S(2,:)==1) | ...
-                (eapCheckVal(3) & S(2,:)==0));
+                (eapCheckVal(3) & S(2,:)==0)) & maxA(1,:)>=maxIntT;
             
             % update track selection
             tcur = find(selIndex, 1, 'first');
@@ -1161,6 +1176,7 @@ set(hz, 'ActionPostCallback', @czoom);
             updateSlice();
             %updateTrack();
             close(pht);
+            fprintf('# tracks selected: %d\n', sum(selIndex));
         end
         
     end
