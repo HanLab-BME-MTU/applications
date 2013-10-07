@@ -57,7 +57,7 @@ gapCloseParam.mergeSplit = 0; %1 if merging and splitting are to be considered, 
 gapCloseParam.minTrackLen = 1; %minimum length of track segments from linking to be used in gap closing.
 
 %optional input:
-gapCloseParam.diagnostics = 1; %1 to plot a histogram of gap lengths in the end; 0 or empty otherwise.
+gapCloseParam.diagnostics = 0; %1 to plot a histogram of gap lengths in the end; 0 or empty otherwise.
 
 %% cost matrix for frame-to-frame linking
 
@@ -164,7 +164,7 @@ for iFile=1:nFiles
     iFrame=0;
     %shift=10;
     
-    
+    tic
     fprintf(1,'movie being analyzed: %s\n',fileList(iFile).name);
     parfor iFrame = 0:nFrames-1
  
@@ -191,6 +191,7 @@ for iFile=1:nFiles
     end
     
     fprintf(1,'\n');
+    toc
     
     %Apply tracking and Gap closing to localized data
     [tracksFinal,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...

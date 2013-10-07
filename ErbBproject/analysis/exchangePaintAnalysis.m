@@ -57,7 +57,9 @@ for i=1:numel(list)
     localizationsPerFrame = l/numel(features)
     
     %If this movie is a control movie it will have 'pbs' or 'pre' in its name
-    index(i)=isempty(strfind(list{i},'pbs')) & isempty(strfind(list{i},'pre'));
+    slash = strfind(list{i},filesep);
+    name = list{i}(slash(end)+1:end);
+    index(i)=isempty(strfind(name,'pbs')) & isempty(strfind(name,'pre'));
     
     GeneralDiagnostic(i)={struct('name',list{i},'tracksPerFrame',tracksPerFrame,'localizationsPerFrame',localizationsPerFrame)};
 end

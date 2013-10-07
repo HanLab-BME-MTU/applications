@@ -94,7 +94,7 @@ for j=1:num
     PointList{j}.name = list{j};
     load(list{j});
     
-    track = reformTracksFinal(tracksFinal,500);
+    track = reformTracksFinal(tracksFinal,1000);
     
     
     %Calculates average drift from all the drift markers
@@ -165,16 +165,16 @@ for j=1:num
     %Creates a point list for each channel and shifts the center of the
     %image to [0,0]
     PointList{j}.pnts = vertcat(track(vertcat(track.num) > MinTrackLen).coord);
-    PointList{j}.pnts(:,1:2) = PointList{j}.pnts(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.pnts(:,1)),1]);
+    %PointList{j}.pnts(:,1:2) = PointList{j}.pnts(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.com = vertcat(track(vertcat(track.num) > MinTrackLen).com);
-    PointList{j}.com(:,1:2) = PointList{j}.com(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.com(:,1)),1]);
+    %PointList{j}.com(:,1:2) = PointList{j}.com(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.com(:,1)),1]);
     PointList{j}.drift = drift;
     
     %makes a list of drift markers intial points
     dmark = zeros([numel(ind),2]);
     
     for i = 1:numel(ind)
-        dmark(i,:)=track(ind(i)).coord(1,1:2) - (ImSize/2);
+        dmark(i,:)=track(ind(i)).coord(1,1:2); % - (ImSize/2);
     end
     
     %If drift markers at less than the diffraction limit apart merge them
@@ -258,12 +258,14 @@ for j = k
     %Applies Transform to the data
     
     %only translation shifting first at the pixel resolution and then sub
-    %pixel
-    tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
-    tmp = tmp - repmat(transform.trans,[numel(PointList{j}.pnts(:,1)),1]);
+     %pixel
+%     tmp = PointList{j}.pnts(:,1:2)+repmat(shift,[numel(PointList{j}.pnts(:,1)),1]);
+%     tmp = tmp - repmat(transform.trans,[numel(PointList{j}.pnts(:,1)),1]);
+    tmp = PointList{j}.pnts(:,1:2)-repmat(TotalShift,[numel(PointList{j}.pnts(:,1)),1]);
     PointList{j}.pnts=tmp(~isnan(tmp(:,1)),:);
-    tmp = PointList{j}.com(:,1:2)+repmat(shift,[numel(PointList{j}.com(:,1)),1]);
-    tmp = tmp - repmat(transform.trans,[numel(PointList{j}.com(:,1)),1]);
+%     tmp = PointList{j}.com(:,1:2)+repmat(shift,[numel(PointList{j}.com(:,1)),1]);
+%     tmp = tmp - repmat(transform.trans,[numel(PointList{j}.com(:,1)),1]);
+    tmp = PointList{j}.com(:,1:2)-repmat(TotalShift,[numel(PointList{j}.com(:,1)),1]);
     PointList{j}.com=tmp(~isnan(tmp(:,1)),:);
     
     %x,y translation for now then general rotation + translation
