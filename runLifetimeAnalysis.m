@@ -329,7 +329,9 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     set(hl, fset.tfont{:});
     
     % Cell area
-    scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
+    colormap(cmap);
+    %scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
+    scatter(ha(2), 1:nd, lftRes.cellArea, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
     ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
     YLim = get(ha(2), 'YLim');
     YLim(1) = 0;
@@ -337,7 +339,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
     % # valid tracks
-    scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
+    scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
     ylabel(ha(3), '# valid tracks', fset.lfont{:});
     YLim = get(ha(3), 'YLim');
     YLim(1) = 0;
