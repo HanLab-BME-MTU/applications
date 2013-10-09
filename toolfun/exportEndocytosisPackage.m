@@ -13,6 +13,9 @@ ip.addParamValue('IncludeSources', true, @islogical);
 ip.parse(varargin{:});
 exportDir = ip.Results.exportDir;
 
+svnRoot = '/home/fa48/Documents/MATLAB/SVN/'; % desktop
+% svnRoot = '/home/fa48/matlab/SVN/'; % orchestra
+
 % list of variable names erroneously detected as functions
 ignoreList = {'consist'; 'knn'};
 
@@ -49,7 +52,7 @@ if ip.Results.IncludeSources
         copyfile([sourcePaths{i} filesep sourceNames{i}], [mdest sourceNames{i}]);
     end
     % for now, include 'stats.h' explicitly
-    copyfile('/home/fa48/matlab/SVN/common/mex/include/stats.h', [mdest 'stats.h']);
+    copyfile([svnRoot 'common/mex/include/stats.h'], [mdest 'stats.h']);
 end
 
 % copy external packages
@@ -68,9 +71,9 @@ cmd = ['chmod -R 777 ' dest];
 system(cmd);
 
 % Copy GPL and package
-copyfile('/home/fa48/matlab/SVN/endocytosis/doc/GPL-License.txt', './PointSourceDetection/.');
-system('zip -qr PointSourceDetection.zip PointSourceDetection');
-system('mv PointSourceDetection.zip www/aguet/doc/.');
+% copyfile([svnRoot 'endocytosis/doc/GPL-License.txt'], './PointSourceDetection/.');
+% system('zip -qr PointSourceDetection.zip PointSourceDetection');
+% system('mv PointSourceDetection.zip www/aguet/doc/.');
 
 
 %-----------------------------------------------------
@@ -99,7 +102,7 @@ for i = 1:numel(fnames)
 end
 
 % copy GUIs (temp fix)
-copyfile('/home/fa48/matlab/SVN/common/iofun/GUI/listSelectGUI.fig',...
+copyfile([svnRoot 'common/iofun/GUI/listSelectGUI.fig'],...
     './cmeAnalysisPackage/listSelectGUI.fig');
 
 % copy MEX functions
@@ -117,17 +120,23 @@ disp('The package uses the following toolboxes:')
 disp(toolboxList);
 
 % Copy documentation and GPL
-copyfile('/home/fa48/matlab/SVN/endocytosis/doc/GPL-License.txt',...
-    './cmeAnalysisPackage/.');
-copyfile('/home/fa48/matlab/SVN/endocytosis/doc/CME Analysis Package Manual.pdf',...
-    '.');
+copyfile([svnRoot 'endocytosis/doc/GPL-License.txt'], './cmeAnalysisPackage/.');
+copyfile([svnRoot 'endocytosis/doc/CME Analysis Package Manual.pdf'], '.');
 
 system('mv PointSourceDetection cmeAnalysisPackage/.');
 % system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
-system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage "CME Analysis Package Manual.pdf"');
+system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage ');
 
-system('cp cmeAnalysisPackage.zip www/doc/.');
+% system('cp cmeAnalysisPackage.zip www/doc/.');
 %unzip cmeAnalysisPackage.zip
+
+% Remove temporary files
+system('rm "CME Analysis Package Manual.pdf"');
+system('rm -r cmeAnalysisPackage');
+
+
+disp('Export complete.');
+
 
 
 function [fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreList] = parseFiles(fctList, ignoreList, externList)
