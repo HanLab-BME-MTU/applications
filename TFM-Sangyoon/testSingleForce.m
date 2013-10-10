@@ -178,7 +178,7 @@ MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 8000;
-params.regParam = 4.1e-4;
+params.regParam = 1e-6;
 params.solMethodBEM = solMethodBEM;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
 params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';

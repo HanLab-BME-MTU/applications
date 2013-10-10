@@ -38,6 +38,7 @@ forceFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.usePaxImg = false;
+p.saveBEMparams = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
 %     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -213,8 +214,10 @@ for i=1:nFrames
                 % The following values should/could be stored for the BEM-method.
                 % In most cases, except the sol_coef this has to be stored only
                 % once for all frames!
+                if p.saveBEMparams
                     disp(['saving forward map and force mesh at ' outputFile{2} '...'])
                     save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+                end
                 
                 %             % Calculate L-curve
                 %             if ~strcmp(p.solMethodBEM,'QR')

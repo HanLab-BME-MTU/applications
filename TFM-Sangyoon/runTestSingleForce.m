@@ -123,7 +123,36 @@ end
 %% save
 clear d_err_FDAdhL1new d_err_FDBGL1new f_err_FDADhL1new f_err_FDBGL1new dispDetec_FDL1new forceDetec_FDL1new pFR_FDL
 save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L2new.mat')
-%% show heatmap 
+%% Simulations - with pixel-wise tracking
+d_err_FDAdhL2old = zeros(20,10,nExp);
+d_err_FDBGL2old = zeros(20,10,nExp);
+f_err_FDADhL2old = zeros(20,10,nExp);
+f_err_FDBGL2old = zeros(20,10,nExp);
+dispDetec_FDL2old = zeros(20,10,nExp);
+forceDetec_FDL2old = zeros(20,10,nExp);
+pFR_FDL2old = zeros(20,10,nExp);
+cL = 15;%[9 15 21]
+% kk=0;
+% simulation for f and d (L2 with 10% noise, old tracking)
+for epm=1:nExp
+    p=0;
+    ii=0;
+    for f=200:200:4000 %Pa
+        ii=ii+1;
+        jj=0;
+        for d=2:2:20
+            jj=jj+1;
+            p=p+1;
+            dataPath=['/hms/scratch1/sh268/singleForceTesting/f_vs_d/simulations/exp' num2str(epm) 'f' num2str(f) 'd' num2str(d) 'cL' num2str(cL) 'L2old'];
+            [d_err_FDAdhL2old(ii,jj,epm),d_err_FDBGL2old(ii,jj,epm),dispDetec_FDL2old(ii,jj,epm),...
+                f_err_FDADhL2old(ii,jj,epm),f_err_FDBGL2old(ii,jj,epm),pFR_FDL2old(ii,jj,epm),forceDetec_FDL2old(ii,jj,epm),...
+                beadsOnAdhnew(epm)]= ...
+                testSingleForce(f,d,cL,dataPath,bead_xL2{epm}, bead_yL2{epm}, AvL2{epm},'QR');
+        end
+    end
+end
+save('/hms/scratch1/sh268/singleForceTesting/f_vs_d/FvsD_L2old.mat')
+    %% show heatmap
 f=200:200:4000;
 d=2:2:12;
 % dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec_L2new';

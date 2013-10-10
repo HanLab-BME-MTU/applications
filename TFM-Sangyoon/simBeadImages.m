@@ -752,13 +752,14 @@ flocMaxOrgNA = diag(fnorm_org(locMaxI_NA(:,1),locMaxI_NA(:,2)));
 forground = fnorm_org>0;
 backgroundMaskfine = ~bwmorph(forground,'dilate',5);
 [xgrid_fine,ygrid_fine] = meshgrid(xgrid(1,1):xgrid(end,end),ygrid(1,1):ygrid(end,end));
+%% force picking
 % for L2 Lcorner
 load('LcurveL2-0th.mat')
-[fx,fy]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_corner),xgrid,ygrid,'new');
+[fx,fy]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2),xgrid,ygrid,'new');
 fmag =  (fx.^2 + fy.^2).^0.5; 
 tnormd(:,:,1) = griddata(xgrid,ygrid,fmag,xgrid_fine,ygrid_fine,'linear');
 % for L2 optimal
-[fx,fy]=calcForcesFromCoef(forceMesh,fCoeff(:,fminIdx),xgrid,ygrid,'new');
+[fx,fy]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
 fmag =  (fx.^2 + fy.^2).^0.5; 
 tnormd(:,:,2) = griddata(xgrid,ygrid,fmag,xgrid_fine,ygrid_fine,'linear');
 % for L1 Lcorner
