@@ -146,7 +146,7 @@ iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 % SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
 % minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
-minLifetime = 5;
+minLifetime = 1;
 
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level

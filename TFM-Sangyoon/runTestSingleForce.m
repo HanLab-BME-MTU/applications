@@ -158,6 +158,12 @@ d=2:2:12;
 % dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec_L2new';
 dataPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/SingleForceTesting/forceDetec_L2new';
 visualizeError(f,d,forceDetec_FDL2new(:,1:6,:),dataPath,'contourf_with_level1_2',3)
+%% for L2 old
+f=200:200:4000;
+d=2:2:12;
+% dataPath = '/hms/scratch1/sh268/singleForceTesting/f_vs_d/forceDetec_L2new';
+dataPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/SingleForceTesting/forceDetec_L2old';
+visualizeError(f,d,forceDetec_FDL2old(:,1:6,:),dataPath,'contourf_with_level1_2',3)
 
 %% load
 load('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/Bead-tracking/singleForceTesting/data.mat')
@@ -248,7 +254,10 @@ d=2:2:20;
 figure, plot(d,mean(forceDetec(5,:,:),3)), hold on, plot(d,mean(forceDetec_old,2),'r')
 figure, plot(d,mean(f_err(5,:,:),3)), hold on, plot(d,mean(f_err_old,2),'r')
 figure, plot(d,mean(peakForceRatio(5,:,:),3)), hold on, plot(d,mean(peakForceRatio_old,2),'r')
-
+%% d vs forceDetec for f=1000Pa
+d=2:2:20;
+figure, plot(d,mean(forceDetec_FDL2old(5,:,:),3))
+figure, plot(d,mean(forceDetec_FDL2old(2,:,:),3))
 %% surf
 figure, surf(x,y,mean(peakForceRatio(:,:,1:2),3)), title('peak force ratio')
 figure, surf(x,y,mean(f_err(:,:,1:2),3)), title('force RMS error')
