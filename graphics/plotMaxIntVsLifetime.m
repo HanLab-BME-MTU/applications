@@ -12,46 +12,102 @@
 
 % Francois Aguet, 2011 (last modified 06/20/2013)
 
-function plotMaxIntVsLifetime(data, varargin)
+function ha = plotMaxIntVsLifetime(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
+ip.addRequired('data');
+ip.addOptional('xl', []);
+ip.addOptional('xa', []);
+ip.addParamValue('lftData', []); 
 ip.addParamValue('ExcludeVisitors', false, @islogical);
-ip.addParamValue('Cutoff_f', 5, @isscalar);
+ip.addParamValue('Cutoff_f', 1, @isscalar);
 ip.addParamValue('FirstNFrames', [], @isvector);
+ip.addParamValue('DisplayFunction', @sqrt);
+ip.addParamValue('Channel', 1, @isposint);
+ip.addParamValue('Legend', []);
+ip.addParamValue('Parent', []);
+ip.addParamValue('LifetimeData', 'LifetimeData.mat');
+ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat');
 ip.parse(data, varargin{:});
+ch = ip.Results.Channel;
+lftData = ip.Results.lftData;
 
-opts = {'Scale', true, 'ReturnValidOnly', true, 'Cutoff_f', ip.Results.Cutoff_f,...
-    'ExcludeVisitors', ip.Results.ExcludeVisitors};
-lftData = getLifetimeData(data, opts{:});
+if ~iscell(data)
+    data = {data};
+end
 
-lvec = 0:1:120;
-avec = 0:2:300;
+nd = numel(data);
 
-fset = loadFigureSettings('print');
-A = vertcat(lftData.A);
-lft = vertcat(lftData.lifetime_s);
-
-if isempty(ip.Results.FirstNFrames)
-    maxA = max(A,[],2);
-    
-    figure(fset.fOpts{:}, 'Position', [10 10 6.5 6.5]);
-    axes(fset.axOpts{:}, 'Position', [1.5 1.5 4.5 4.5], 'TickLength', fset.TickLength/4.5*6);
-    hold on;
-    densityplot(lft, maxA, lvec, avec, 'DisplayFunction', @log);
-    ylabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-    xlabel('Lifetime (s)', fset.lfont{:});
-    set(gca, 'XTick', 0:20:120);
-else
-    for i = 1:numel(ip.Results.FirstNFrames)
-        maxA = max(A(:,1:ip.Results.FirstNFrames(i)),[],2);
-        figure(fset.fOpts{:}, 'Position', [10 10 6.5 6.5]);
-        axes(fset.axOpts{:}, 'Position', [1.5 1.5 4.5 4.5], 'TickLength', fset.TickLength/4.5*6); %#ok<LAXES>
-        hold on;
-        densityplot(lft, maxA, lvec, avec, 'DisplayFunction', @log);
-        ylabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
-        xlabel('Lifetime (s)', fset.lfont{:});
-        set(gca, 'XTick', 0:20:120);
+% load lifetime data if not provided in input
+if isempty(lftData)
+    lftData = cell(1,nd);
+    for i = 1:nd
+        lftData{i} = getLifetimeData(data{i}, 'Overwrite', false, 'Mask', true,...
+            'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
+            'ReturnValidOnly', false);
     end
 end
+
+legendText = ip.Results.Legend;
+if isempty(legendText)
+    legendText =  cellfun(@(i) getDirFromPath(getExpDir(i)), data, 'unif', 0);
+end
+
+maxA = cell(nd,1);
+maxALft = cell(nd,1);
+lft = cell(nd,1);
+for k = 1:nd
+    na = numel(data{k});
+    
+    nCh = numel(data{k}(1).channels);
+    
+    lft{k} = cell(1,na);
+    for i = 1:na
+        lft{k}{i} = lftData{k}(i).lifetime_s;
+        % lifetime at intensity maximum
+        for c = 1:nCh
+            if ~isempty(ip.Results.FirstNFrames)
+                [tmp, maxIdx] = max(lftData{k}(i).A(:,ip.Results.Cutoff_f:ip.Results.FirstNFrames,c),[],2);
+            else
+                [tmp, maxIdx] = max(lftData{k}(i).A(:,ip.Results.Cutoff_f:end,c),[],2);
+            end
+            maxA{k}{i}(c,:) = tmp;
+            maxALft{k}{i}(c,:) = (maxIdx-1)*data{k}(i).framerate;
+        end
+    end
+end
+
+xa = ip.Results.xa;
+if isempty(xa)
+    tmp = cellfun(@(i) i(ch,:), [maxA{:}], 'unif', 0);
+    xa = linspace(0,prctile([tmp{:}],99.9),40);
+end
+xl = ip.Results.xl;
+if isempty(xl)
+    tmp = vertcat(lft{:}); tmp = vertcat(tmp{:});
+    xl = linspace(0,max(tmp),40);
+end
+
+ha = ip.Results.Parent;
+if isempty(ha)
+    ha = setupFigure(ceil(nd/4), 4, nd, 'SameAxes', true,...
+        'AxesWidth', 3, 'AxesHeight', 3, 'InsetPosition', [],...
+        'XSpace', [1.5 0.5 0.5], 'YSpace', [1.5 1 0.5]);
+end
+
+colormap(jet(256));
+for k = 1:nd
+    av = [maxA{k}{:}];
+    if size(av,1)>=ch
+        av = av(ch,:);
+        lv = lft{k};
+        lv = vertcat(lv{:});
+        %lv = [maxALft{k}{:}];
+        %lv = lv(ch,:);
+        
+        densityplot(lv, av, xl, xa, 'Handle', ha(k), 'DisplayFunction', ip.Results.DisplayFunction, 'NormX', true);
+        text(xl(end)/2, xa(end), legendText{k}, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'center', 'Parent', ha(k));
+    end
+end
+formatTickLabels(ha);
