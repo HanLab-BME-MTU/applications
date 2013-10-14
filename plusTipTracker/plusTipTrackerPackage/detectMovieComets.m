@@ -192,8 +192,6 @@ for iChan= p.ChannelIndex
     movieInfo=allMovieInfo(:,iChan);
     save(outFilePaths{1,iChan} ,'movieInfo','stdList');
     
-    % Export as omero ROI if applicable
-    if movieData.isOmero(), omeroExportDetection(movieData,movieInfo); end
 end
 
 if ishandle(wtBar), close(wtBar); end
