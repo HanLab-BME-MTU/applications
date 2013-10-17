@@ -26,7 +26,7 @@ for i = 1: numel(track2)
     track2(i).seqOfEvents(1:2,1) = track2(i).seqOfEvents(1:2,1) + sep;
 end
 
-lastFrame = vertcat(track2(i).seqOfEvents);
+lastFrame = vertcat(track2.seqOfEvents);
 lastFrame = max(lastFrame(:,1));
 
 % Identify tracks in both "movies" that should be considered for merging
@@ -42,11 +42,11 @@ track2 = track2(~ind2);
 % unravel tracks and make a new point list into movieInfo format
 
 movieInfo = struct('xCoord',[],'yCoord',[],'amp',[]);
-movieInfo = repmat(movieInfo,[LastFrame,1]);
+movieInfo = repmat(movieInfo,[lastFrame,1]);
 
 for i = 1:numel(savedTracks)
     temp = savedTracks(i);
-    index = [temp.seqOfEvents(1,1):temp.seqOfEvents(1,2)]; %all the frames in which this track appears
+    index = [temp.seqOfEvents(1,1):temp.seqOfEvents(2,1)]; %all the frames in which this track appears
     for j = 1: numel(index)
         movieInfo(index(j)).xCoord =  vertcat(movieInfo(index(j)).xCoord, ...
             [temp.tracksCoordAmpCG(8*(j-1)+1), temp.tracksCoordAmpCG(8*(j-1)+5)]);
