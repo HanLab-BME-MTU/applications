@@ -69,7 +69,7 @@ ip.addParamValue('maxSpd',40,@isscalar);
 ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
 ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.addParamValue('mode','accurate',@(x) ismember(x,{'fast','accurate'}));
+ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate'}));
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
