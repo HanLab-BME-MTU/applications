@@ -1,4 +1,6 @@
 %imxTimestamp() uses ImageMagick to add a time stamp to movie frames
+%
+% For supported 'color' values, see http://www.imagemagick.org/script/color.php 
 
 % Francois Aguet, 08/2013
 
@@ -12,6 +14,7 @@ ip.addParamValue('FontSize', 20);
 ip.addParamValue('Location', 'SouthWest');
 ip.addParamValue('Offsets', [100 20]);
 ip.addParamValue('Crop', []);
+ip.addParamValue('Color', 'white'); % see 
 ip.parse(paths, t, varargin{:});
 crop = ip.Results.Crop;
 
@@ -27,9 +30,15 @@ dx = ip.Results.Offsets(1);
 dy = ip.Results.Offsets(2);
 wx = 11;
 
+switch ip.Results.Color
+    case 'w'
+        
+    case 'k'
+        
+end
+
 for i = 1:numel(paths)
-    
-    str = num2str(t(i));
+    str = num2str(t(i), '%.0f');
     cmd = ['export DYLD_LIBRARY_PATH=""; convert ' paths{i} ...
         ' -fill black -gravity SouthEast -font Helvetica -pointsize '  num2str(ip.Results.FontSize)];
 
@@ -40,9 +49,9 @@ for i = 1:numel(paths)
         ny = round(ny*crop(4));
     end
 
-    cmd = [cmd ' -annotate +' num2str(nx-dx) '+' num2str(dy) ' "s" ']; %#ok<*AGROW>
+    cmd = [cmd ' -fill ' ip.Results.Color ' -annotate +' num2str(nx-dx) '+' num2str(dy) ' "s" ']; %#ok<*AGROW>
     for k = numel(str):-1:1
-        cmd = [cmd ' -annotate +' num2str(nx-dx+wx*(k)) '+' num2str(dy) ' "' str(numel(str)-k+1) '" '];
+        cmd = [cmd ' -fill ' ip.Results.Color ' -annotate +' num2str(nx-dx+wx*(k)) '+' num2str(dy) ' "' str(numel(str)-k+1) '" '];
     end
     cmd = [cmd paths{i}];
     system(cmd);
