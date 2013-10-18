@@ -47,7 +47,7 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('includeWin', cell(1,nCell),@iscell);
-ip.addParamValue('winInterval',cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('signalOutLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('edgeOutLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);

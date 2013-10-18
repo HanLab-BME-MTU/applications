@@ -55,7 +55,7 @@ nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
 ip.addParamValue('includeWin',cell(1,nCell), @iscell);
-ip.addParamValue('winInterval',cell(1,nCell),@iscell);
+ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -169,26 +169,28 @@ for iCell = 1:nCell
         
     end
     
-    nWin = numel(includeWin{iCell});
-    if isempty(winInterval{iCell}{1})%If winInterval is [], include all time points for all windows
-        
-        cellData{iCell}.data.winInterval = num2cell(repmat(1:nObs,nWin,1),2);
-        
-    else
-        
-        if sum(cellfun(@(x,y) numel(x)-numel(y),winInterval,includeWin)) ~= 0
-            error('Number of windows does not match number of intervals')
-        end
-
-        cellData{iCell}.data.winInterval = winInterval{iCell};
-        
-    end
+    
     
     
     for iLayer = 1:nLayer
         
-        cellData{iCell}.data.excludedWin{iLayer}       = unique([setdiff(1:size(cellData{iCell}.data.rawTimeSeries,2),includeWin{iCell}) excludeVar{iLayer}]);
-        cellData{iCell}.data.includedWin{iLayer}       = setdiff(includeWin{iCell},excludeVar{iLayer});
+        cellData{iCell}.data.excludedWin{iLayer} = unique([setdiff(1:size(cellData{iCell}.data.rawTimeSeries,1),includeWin{iCell}) excludeVar{iLayer}]);
+        cellData{iCell}.data.includedWin{iLayer} = setdiff(includeWin{iCell},excludeVar{iLayer});
+        nWin                                     = numel(cellData{iCell}.data.includedWin{iLayer});
+        
+        if isempty(winInterval{iCell}{1})%If winInterval is [], include all time points for all windows
+            
+            cellData{iCell}.data.winInterval = num2cell(repmat(1:nObs,nWin,1),2);
+            
+        else
+            
+            if sum(cellfun(@(x,y) numel(x)-numel(y),winInterval,includeWin)) ~= 0
+                error('Number of windows does not match number of intervals')
+            end
+            
+            cellData{iCell}.data.winInterval = winInterval{iCell};
+            
+        end
         
         if numel(cellData{iCell}.data.includedWin{iLayer}) ~= numel(cellData{iCell}.data.winInterval)
             

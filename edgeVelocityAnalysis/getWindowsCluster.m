@@ -36,7 +36,7 @@ ip.addParamValue('nBoot',1e3,@isscalar);
 ip.addParamValue('alpha',.05,@isscalar);
 ip.addParamValue('cluster',false,@isscalar);
 ip.addParamValue('nCluster',2,@isscalar);
-ip.addParamValue('interval',{[]},@iscell);
+
 
 if isa(movieObj,'MovieData')
     
@@ -62,11 +62,13 @@ ip.addParamValue('stateFeature',1:4,@isvector);
 ip.addParamValue('featureStats',@isvector );
 ip.addParamValue('clusterMethod',1,@isscalar);
 ip.addParamValue('clusterSet', {2,'Distance','sqEuclidean','Replicates',10}, @iscell);                 
+ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 
 ip.parse(movieObj,varargin{:});
 scale       = ip.Results.scale;
 includeWin  = ip.Results.includeWin;
 winInterval = ip.Results.winInterval;
+interval    = ip.Results.interval;
 outLevel    = ip.Results.outLevel;
 minLen      = ip.Results.minLength;
 trend       = ip.Results.trendType;
@@ -77,7 +79,7 @@ clusterM    = ip.Results.clusterMethod;
 clusterSet  = ip.Results.clusterSet;
 
 %%
-edgeInputParam = {'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale};
+edgeInputParam = {'interval',interval,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'includeWin',includeWin,'gapSize',ones(1,nCell),'scale',scale};
 cellData       = edgeVelocityQuantification(ML,edgeInputParam{:});
 
 % State Features

@@ -54,12 +54,12 @@ for iB   = 1:numel(realBlock)
     [~,noise] = testImf(imfs);
     gNoise    = [gNoise;noise];
 end
-Mu       = mean(gImf);
+%Mu       = mean(gImf);
 sdtError = std(gNoise); 
 
-%Defining the lower and upper noise confidence bands
-Protrusion.limit  = Mu + sdtError*nStd; 
-Retraction.limit  = Mu - sdtError*nStd;
+%Defining the lower and upper noise confidence bands centered on 0
+Protrusion.limit  =  sdtError*nStd; 
+Retraction.limit  = -sdtError*nStd;
 %*************************
  
 
