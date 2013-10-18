@@ -100,7 +100,7 @@ retractionCCF    = [];
 for iCell = 1:nCell
     
     windows         = intersect(edge{iCell}.data.includedWin{1},signal{iCell}.data.includedWin{layer});
-    tsLengths       = cell2mat( cellfun(@(x) numel(x),winInterval{iCell},'Unif',0) );
+    tsLengths       = cell2mat( cellfun(@(x) numel(x),edge{iCell}.data.winInterval,'Unif',0) );
     
     nWin            = numel(windows);
     motionMap       = nan(nWin,max(tsLengths));
