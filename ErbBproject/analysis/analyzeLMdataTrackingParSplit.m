@@ -197,14 +197,22 @@ for iFile=1:nFiles
     split = floor(nFrames/2);
     
     %Apply tracking and Gap closing to localized data
+    tic
     [tracksFinal1,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo(1:split),...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
+    timeElap = toc;
+    ['First Half ',num2str(timeElap)]
 
     [tracksFinal2,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo(split+1:end),...
     costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
+    timeElap = toc;
+    ['Second Half ',num2str(timeElap)]
 
-    [tracksFinal]= tracksFinalMerger(tracksFinal1,tracksFinal2,costMatrices,gapCloseParam,...
-        kalmanFunctions,probDim,saveResults,verbose);
+
+    [tracksFinal]= tracksFinalMerger(tracksFinal1,tracksFinal2,split,costMatrices,gapCloseParam,...
+        kalmanFunctions,probDim,saveResults,verbose);   
+    timeElap = toc;
+    ['Merge ',num2str(timeElap)]
 
     clear movieInfo;
     
