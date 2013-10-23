@@ -90,7 +90,7 @@ kalmanFunctions = [];
 saveResults = 0;
 
 %verbose
-verbose = 1;
+verbose = 0;
 
 %problem dimension
 probDim = 2;
@@ -187,10 +187,10 @@ for iFile=1:nFiles
            
         %iFrame=iFrame+1;
         
-        progressText(iFrame/nFrames,'All work and no play makes Jack a dull boy');
+        %progressText(iFrame/nFrames,'All work and no play makes Jack a dull boy');
     end
     
-    fprintf(1,'\n');
+    fprintf(1,'time to finish:');
     toc
 
     %split movie in half
