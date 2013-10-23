@@ -138,7 +138,7 @@ for j=1:num
         drift = drift./numpnts;
         drift = cumsum(drift);
     else
-        error('file %s is missing drift markers', PointList.name);
+        error('file %s is missing drift markers', PointList{j}.name);
     end
 
     %Here drift correction is applied to all points
