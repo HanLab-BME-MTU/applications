@@ -193,6 +193,16 @@ for iFile=1:nFiles
     fprintf(1,'time to finish:');
     toc
 
+    %saves localization in case of failure in tracking
+     
+    outputDir=MD.outputDirectory_;
+    outputDir=[outputDir filesep 'results'];
+    if ~exist(outputDir,'dir');
+        mkdir(outputDir);
+    end
+    outputFile=[MD.movieDataFileName_(1:end-7) '_tracking.mat'];
+    save([outputDir filesep outputFile],'features','GapLen','Radius');
+    
     %split movie in half
     split = floor(nFrames/2);
     
@@ -217,12 +227,6 @@ for iFile=1:nFiles
     clear movieInfo;
     
     % save results
-    outputDir=MD.outputDirectory_;
-    outputDir=[outputDir filesep 'results'];
-    if ~exist(outputDir,'dir');
-        mkdir(outputDir);
-    end
-    outputFile=[MD.movieDataFileName_(1:end-7) '_tracking.mat'];
     save([outputDir filesep outputFile],'features','tracksFinal','GapLen','Radius');
         
 end
