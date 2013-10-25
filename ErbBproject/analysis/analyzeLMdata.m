@@ -66,7 +66,7 @@ for iFile=1:nFiles
     
     %MD.sanityCheck();
     % a DV file stores the pixelsize in nm
-    pixelSize=MD.pixelSize_;
+    pixelSize=62.81;
     
     if createMask
         % create ROI and store in MD

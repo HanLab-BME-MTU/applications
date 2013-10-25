@@ -4,7 +4,7 @@ function [handle]=exchangePaintVisualizer(PL, varargin)
 %default labels
 labels = {'EGFR','ErbB2','ErbB3','IGF-1R','cMet'};
 
-cmap = {'r','g','b','c','m','y','k'};
+cmap = {'r','g','b','k','m','y','c'};
 
 
 ip=inputParser;

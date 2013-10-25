@@ -82,7 +82,7 @@ difLim = (Wavelength/(2*NA))/pixelSize;
 
 maxGap =10;
 
-MinTrackLen = 2;
+MinTrackLen = 1;
 
 num = numel(list);
 
@@ -248,7 +248,7 @@ for j = k
 %     end
 
     [shift,transform,A,B] = driftMarkerRegistration(test,ref,ImSize,difLim);
-    TotalShift = shift + transform.trans;
+    TotalShift = shift - transform.trans;
     C = test - repmat(TotalShift,[numel(test(:,1)),1]);
     %C = test*transform.T+transform.c;    
     PointList{j}.shift = struct('transform',transform,'preshift',shift,'A',A,'B',B,'Postshift',C,'TotalShift',TotalShift);

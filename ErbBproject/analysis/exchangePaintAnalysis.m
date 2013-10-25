@@ -80,8 +80,6 @@ n = numel(PointList);
 
 %Make continous density estmates using pairwise L function
 
-if doContin
-
     ContinuousAnalysis = cell(n);
     Lr = cell([n,1]);
     
@@ -91,6 +89,9 @@ if doContin
     
     %these are the radii to use for L(r) cross statistics
     r = 0.2:0.2:5.6;
+
+
+if doContin
     
     for i=1:n
         %calculate Lr (self not cross)
@@ -128,7 +129,7 @@ for i=1:numel(clusterInfo)
 
     pnts = TotalPnts(clusterInfo(i).ptIdData,:);
 
-    if numel(pnts(:,1)) > 2
+    if numel(unique(pnts(:,1))) > 2
     %finds convex hull and area
     [hull,area]= convhull(pnts(:,1:2));
     else
