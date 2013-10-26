@@ -49,9 +49,11 @@ if isstruct(lftRes)
         hold on;
         
         if ip.Results.PlotAll
-            hp = zeros(4,1);
             if isfield(lftRes, 'meanLftHistVisit')
+                hp = zeros(4,1);
                 hp(4) = plot(lftRes.t, mean(lftRes.pctVisit)*lftRes.meanLftHistVisit, '-', 'Color', fset.cfB, 'LineWidth', lw);
+            else
+                hp = zeros(3,1);
             end
             hp(3) = plot(lftRes.t, mean(vertcat(lftRes.lftHist_Ia), 1), 'Color', ce(1,:), 'LineWidth', lw);
             hp(2) = plot(lftRes.t, mean(lftRes.pctCS)*lftRes.meanLftHistCS, '-', 'Color', ce(2,:), 'LineWidth', lw);
