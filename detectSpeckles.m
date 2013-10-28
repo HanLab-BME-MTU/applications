@@ -122,10 +122,13 @@ function candsTot=removeSpeckleRepetitions(candsTot)
 % Sebastien Besson, June 2011
 % Adapted from fsmPrepCheckInfo
 
-% Construct kd-tree
 candsTotPos = vertcat(candsTot.Lmax);
-idx=KDTreeBallQuery(candsTotPos,candsTotPos,0);
-
+if ~isempty(candsTotPos),
+    % Construct kd-tree
+    idx=KDTreeBallQuery(candsTotPos,candsTotPos,0);
+else
+    idx = {};
+end
 % Find replicates and return if no duplicate found
 isReplicate = cellfun(@(x) length(x)>1,idx);
 if isempty(find(isReplicate,1)), return; end
