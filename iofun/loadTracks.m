@@ -31,6 +31,7 @@ ip.addParamValue('Sort', true, @islogical);
 ip.addParamValue('Category', 'Ia');
 ip.addParamValue('SignificantSlaveIndex', []);
 ip.addParamValue('MaxIntensityThreshold', []);
+ip.addParamValue('AnalysisPath', 'Tracking', @ischar);
 ip.parse(data, varargin{:});
 category = ip.Results.Category;
 if ~iscell(category)
@@ -45,7 +46,7 @@ cutoff_s = ip.Results.Cutoff_f * data.framerate;
 
 fileName = ip.Results.FileName;
 if isempty(fileName)
-    fileList = dir([data.source 'Tracking' filesep 'ProcessedTracks*.mat']);
+    fileList = dir([data.source ip.Results.AnalysisPath filesep 'ProcessedTracks*.mat']);
     fileList = {fileList.name};
     if numel(fileList)>1
         idx = 0;
@@ -61,7 +62,7 @@ if isempty(fileName)
         fileName = fileList{1};
     end
 end
-load([data.source 'Tracking' filesep fileName]);
+load([data.source ip.Results.AnalysisPath filesep fileName]);
 
 if ip.Results.Sort
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend'); %#ok<NODEF>
