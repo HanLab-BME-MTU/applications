@@ -18,6 +18,7 @@ ip.addParamValue('RemoveOutliers', false, @islogical);
 ip.addParamValue('AmplitudeCorrectionFactor', []);
 ip.addParamValue('Mask', false, @islogical);
 ip.addParamValue('Colormap', []);
+ip.addParamValue('AnalysisPath', 'Tracking', @ischar);
 ip.parse(varargin{:});
 
 nCh = numel(data(1).channels);
@@ -38,7 +39,8 @@ parfor i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData]; %#ok<PFBNS>
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
         
-        tracks = loadTracks(data(i), 'Mask', ip.Results.Mask, 'Category', 'all', 'Cutoff_f', 0, 'FileName', ip.Results.ProcessedTracks);
+        tracks = loadTracks(data(i), 'Mask', ip.Results.Mask, 'Category', 'all', 'Cutoff_f', 2,...
+            'AnalysisPath', ip.Results.AnalysisPath, 'FileName', ip.Results.ProcessedTracks);
         
         % concatenate amplitudes of master channel into matrix
         trackLengths = [tracks.end]-[tracks.start]+1;
@@ -57,7 +59,8 @@ parfor i = 1:nd
         tracks = tracks(idx_Ia);
         
         nt = numel(tracks);
-        b = numel(tracks(1).startBuffer.t);
+        nsb = numel(tracks(1).startBuffer.t);
+        neb = numel(tracks(1).endBuffer.t);
         
         % store intensity matrices
         nf = data(i).movieLength;
@@ -66,10 +69,10 @@ parfor i = 1:nd
         lftData(i).sigma_r = NaN(nt,nf,nCh);
         lftData(i).SE_sigma_r = NaN(nt,nf,nCh);
         
-        lftData(i).sbA = NaN(nt,b,nCh);
-        lftData(i).ebA = NaN(nt,b,nCh);
-        lftData(i).sbSigma_r = NaN(nt,b,nCh);
-        lftData(i).ebSigma_r = NaN(nt,b,nCh);
+        lftData(i).sbA = NaN(nt,nsb,nCh);
+        lftData(i).ebA = NaN(nt,neb,nCh);
+        lftData(i).sbSigma_r = NaN(nt,nsb,nCh);
+        lftData(i).ebSigma_r = NaN(nt,neb,nCh);
         %lftData(i).RSS = NaN(nt,nf,nCh);
         lftData(i).gapMat_Ia = false(nt,nf);
         for k = 1:nt
