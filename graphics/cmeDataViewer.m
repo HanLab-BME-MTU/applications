@@ -16,6 +16,8 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addOptional('Trajectories', 'all', @(x) isempty(x) || isstruct(x) || any(strcmpi(x, {'all', 'valid'})));
 ip.addParamValue('LoadTracks', true, @islogical);
+ip.addParamValue('LoadFrames', true, @islogical);
+ip.addParamValue('RelativePath', 'Tracking', @ischar);
 ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
@@ -184,38 +186,36 @@ addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callba
 %===============================================================================
 % track panels: 20 spacer, 110 bottom, 20 top
 spacer = 15;
-% if ~isempty(tracks)
-    h_tot = pos(4) - 140;
-    h = min((h_tot-(nCh-1)*spacer)/nCh, 200);
-    
-    opts = {'Parent', hfig, 'Units', 'pixels', 'Box', 'on'};
-    dx = pos(3)-w-30;
-    switch nCh
-        case 1
-            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-        case 2
-            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-        case 3
-            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-            handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-        case 4
-            handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-            handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-            handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-            handles.tAxes(4) = axes(opts{:}, 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
-    end
+h_tot = pos(4) - 140;
+h = min((h_tot-(nCh-1)*spacer)/nCh, 200);
 
-    handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
-        'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
-    
-    handles.trackSlider = uicontrol('Style', 'slider',...
-        'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
-        'Position', [pos(3)-24 120 10 h_tot]);
-    % this definition (instead of regular callback) enable continuous sliding
-    addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
-% end
+opts = {'Parent', hfig, 'Units', 'pixels', 'Box', 'on'};
+dx = pos(3)-w-30;
+switch nCh
+    case 1
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
+    case 2
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
+    case 3
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
+        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
+    case 4
+        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
+        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
+        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
+        handles.tAxes(4) = axes(opts{:}, 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
+end
+
+handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
+    'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
+
+handles.trackSlider = uicontrol('Style', 'slider',...
+    'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
+    'Position', [pos(3)-24 120 10 h_tot]);
+% this definition (instead of regular callback) enable continuous sliding
+addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
 
 
 handles.fAxes = zeros(nCh,3);
@@ -252,32 +252,35 @@ pUnitType = 's';
 % Load movie and associated analysis results
 %===============================================================================
 % readfct = @(path, i) imread(path, i);
-fprintf('Loading frames ... ');
+
 stack = cell(1,nCh);
-if ~iscell(data.framePaths{1})
-    for c = 1:nCh
-        %stack{c} = readtiff(data.framePaths{c});
-        stack{c} = zeros([data.imagesize data.movieLength], 'uint16');
-        for i = 1:data.movieLength
-            stack{c}(:,:,i) = imread(data.framePaths{c}, i);
+if ip.Results.LoadFrames
+    fprintf('Loading frames ... ');
+    if ~iscell(data.framePaths{1})
+        for c = 1:nCh
+            %stack{c} = readtiff(data.framePaths{c});
+            stack{c} = zeros([data.imagesize data.movieLength], 'uint16');
+            for i = 1:data.movieLength
+                stack{c}(:,:,i) = imread(data.framePaths{c}, i);
+            end
+        end
+    else
+        for c = 1:nCh
+            stack{c} = zeros([data.imagesize data.movieLength], 'uint16');
+            for i = 1:data.movieLength
+                stack{c}(:,:,i) = imread(data.framePaths{c}{i});
+            end
         end
     end
-else
-    for c = 1:nCh
-        stack{c} = zeros([data.imagesize data.movieLength], 'uint16');
-        for i = 1:data.movieLength
-            stack{c}(:,:,i) = imread(data.framePaths{c}{i});
-        end
-    end
+    fprintf('done.\n');
 end
-fprintf('done.\n');
 
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-fprintf('Loading detection masks ... ');
 dpath = [data.source 'Detection' filesep 'detection_v2.mat'];
-if exist(dpath, 'file')==2
+if exist(dpath, 'file')==2 && ip.Results.LoadFrames
+    fprintf('Loading detection masks ... ');
     dmask = zeros(ny,nx,nf, 'uint8');
     if ~iscell(data.framePaths{1})
         for i = 1:nf
@@ -288,6 +291,7 @@ if exist(dpath, 'file')==2
             dmask(:,:,i) = imread(data.maskPaths{i});
         end
     end
+    fprintf('done.\n');
 else
     dmask = [];
 end
@@ -298,49 +302,51 @@ else
     cellMask = [];
 end
 
-
-fprintf('done.\n');
 %-------------------------------------------------------------------------------
 % Load detection files
 %-------------------------------------------------------------------------------
-% for c = 1:nCh
-detectionFile = [data.channels{1} 'Detection' filesep 'detection_v2.mat'];
-if (exist(detectionFile, 'file')==2)
-    frameInfo = load(detectionFile);
-    frameInfo = frameInfo.frameInfo;
-else
-    frameInfo = [];
+if ip.Results.LoadFrames
+    % for c = 1:nCh
+    detectionFile = [data.channels{1} 'Detection' filesep 'detection_v2.mat'];
+    if (exist(detectionFile, 'file')==2)
+        frameInfo = load(detectionFile);
+        frameInfo = frameInfo.frameInfo;
+    else
+        frameInfo = [];
+    end
+    % end
 end
-% end
 
 %-------------------------------------------------------------------------------
 % Load tracks
 %-------------------------------------------------------------------------------
-fprintf('Loading tracks ... ');
-tracks = [];
-bgA = [];
-maxA = [];
-% identify track file
-fileList = dir([data.source 'Tracking' filesep 'ProcessedTracks*.mat']);
-fileList = {fileList.name};
-if numel(fileList)>1
-    idx = 0;
-    while ~(idx>=1 && idx<=numel(fileList) && round(idx)==idx)
-        fprintf('Tracking results found for this data set:\n');
-        for i = 1:numel(fileList)
-            fprintf('[%d] %s\n', i, fileList{i});
+if ip.Results.LoadTracks
+    fprintf('Loading tracks ... ');
+    tracks = [];
+    bgA = [];
+    maxA = [];
+    % identify track file
+    fileList = dir([data.source ip.Results.RelativePath filesep 'ProcessedTracks*.mat']);
+    fileList = {fileList.name};
+    if numel(fileList)>1
+        idx = 0;
+        while ~(idx>=1 && idx<=numel(fileList) && round(idx)==idx)
+            fprintf('Tracking results found for this data set:\n');
+            for i = 1:numel(fileList)
+                fprintf('[%d] %s\n', i, fileList{i});
+            end
+            idx = str2double(input('Please enter the number of the set to load: ', 's'));
         end
-        idx = str2double(input('Please enter the number of the set to load: ', 's'));
+        fileName = fileList{idx};
+    elseif numel(fileList)==1
+        fileName = fileList{1};
+    else
+        fileName = [];
     end
-    fileName = fileList{idx};
-elseif numel(fileList)==1
-    fileName = fileList{1};
-else
-    fileName = [];
-end   
+end
 
-if exist([data.source 'Tracking' filesep fileName], 'file')==2 && ip.Results.LoadTracks
-    tmp = load([data.source 'Tracking' filesep fileName]);
+if exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2 && ip.Results.LoadTracks
+    tmp = load([data.source ip.Results.RelativePath filesep fileName]);
     tracks = tmp.tracks;
     if isfield(tmp, 'bgA')
         bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA, 'unif', 0);
@@ -480,6 +486,13 @@ else
     set(hLegend, 'Visible', 'off');
     set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotScaleCheckbox], 'Enable', 'off');
 end
+
+if ~ip.Results.LoadFrames
+    set(handles.fAxes, 'Visible', 'off');
+    set(hLegend, 'Visible', 'off');
+    set(handles.frameSlider, 'Visible', 'off');
+end
+
 if isempty(cellMask)
     set(maskCheckbox, 'Enable', 'off');
 end
@@ -491,73 +504,73 @@ end
 %===============================================================================
 % populate with data, plotting functions are called only here, afterwards change data
 %===============================================================================
-x = round(nx/2);
-y = round(ny/2);
-hxy = zeros(1,nCh);
-hyz = zeros(1,nCh);
-hxz = zeros(1,nCh);
-hl = zeros(nCh,4);
-for c = 1:nCh
-    % x,y view
-    hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
-    hold(handles.fAxes(c,1), 'on');
-    set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
-    hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
-    hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+if ip.Results.LoadFrames
+    x = round(nx/2);
+    y = round(ny/2);
+    hxy = zeros(1,nCh);
+    hyz = zeros(1,nCh);
+    hxz = zeros(1,nCh);
+    hl = zeros(nCh,4);
+    for c = 1:nCh
+        % x,y view
+        hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
+        hold(handles.fAxes(c,1), 'on');
+        set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
+        hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+        hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+        
+        % y,z view
+        hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
+        hold(handles.fAxes(c,2), 'on');
+        % line in y,z view
+        hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
+        hold(handles.fAxes(c,2), 'off');
+        
+        % x,z view
+        hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
+        hold(handles.fAxes(c,3), 'on');
+        % line in x,z view
+        hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
+        hold(handles.fAxes(c,3), 'off');
+        
+        arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
+    end
+    set(handles.fAxes, 'XTick', [], 'YTick', []);
+    axis(handles.fAxes(:,1), 'equal');
+    % this fixes a bug with axis 'equal' that allows panning beyond boundaries
+    set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
     
-    % y,z view
-    hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
-    hold(handles.fAxes(c,2), 'on');
-    % line in y,z view
-    hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
-    hold(handles.fAxes(c,2), 'off');
+    set(handles.fAxes, 'ButtonDownFcn', @click_Callback);
     
-    % x,z view
-    hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
-    hold(handles.fAxes(c,3), 'on');
-    % line in x,z view
-    hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
-    hold(handles.fAxes(c,3), 'off');
-    
-    arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
-end
-set(handles.fAxes, 'XTick', [], 'YTick', []);
-axis(handles.fAxes(:,1), 'equal');
-% this fixes a bug with axis 'equal' that allows panning beyond boundaries
-set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
-
-set(handles.fAxes, 'ButtonDownFcn', @click_Callback);
-
-dx = 0.03;
-hChLabel = zeros(1,nCh);
-for c = 1:nCh
-    hChLabel(c) = text(1-dx*ny/nx, dx, data.markers{c},...
-        'Color', rgbColors{c}, 'Units', 'normalized',...
-        'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
-        'Parent', handles.fAxes(c,1), 'HitTest', 'off');
-end
-if nCh <= 2
-    set(hChLabel, 'Visible', 'off');
+    dx = 0.03;
+    hChLabel = zeros(1,nCh);
+    for c = 1:nCh
+        hChLabel(c) = text(1-dx*ny/nx, dx, data.markers{c},...
+            'Color', rgbColors{c}, 'Units', 'normalized',...
+            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
+            'Parent', handles.fAxes(c,1), 'HitTest', 'off');
+    end
+    if nCh <= 2
+        set(hChLabel, 'Visible', 'off');
+    end
 end
 
 if ~isempty(tracks)
-    
-    
-    % plot current frame marker
     hf = zeros(nCh,1);
     hst = zeros(1,nCh);
     for c = 1:nCh
+        % plot current frame marker
         hf(c) = plot(handles.tAxes(c), ([fidx fidx]-1)*data.framerate,...
             get(handles.tAxes(c), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
+
+        % plot current track marker
         hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==tcur),...
-                    Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+            Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
     end
-    
     updateTrack();
 end
 
 % if ~isempty(ip.Results.Trajectories)
-% 
 %     % load tracks
 %     if ischar(ip.Results.Trajectories)
 %         if strcmpi(ip.Results.Trajectories, 'valid');
@@ -1154,14 +1167,17 @@ set(hz, 'ActionPostCallback', @czoom);
             eapCheckVal = cell2mat(get(eapCheck, 'Value'))==1;
             maxIntT = str2double(get(mitText, 'String'));
             
-            S = [tracks.significantSlave];
-            M = [tracks.significantMaster];
             % EAP: indep: M(2,:)==1; M/S M(2,:)==0 & S(2,:)==1; n.s. S(2,:)==0
             selIndex = ismember([tracks.catIdx], find(catCheckVal)) & ...
-                minVal<=[tracks.lifetime_s] & [tracks.lifetime_s]<=maxVal & ...
-                ((eapCheckVal(1) & M(2,:)==1) | ...
-                (eapCheckVal(2) & M(2,:)==0 & S(2,:)==1) | ...
-                (eapCheckVal(3) & S(2,:)==0)) & maxA(1,:)>=maxIntT;
+                minVal<=[tracks.lifetime_s] & [tracks.lifetime_s]<=maxVal & maxA(1,:)>=maxIntT;
+            if isfield(tracks, 'significantSlave')
+                S = [tracks.significantSlave];
+                M = [tracks.significantMaster];
+                selIndex = selIndex & ...
+                    ((eapCheckVal(1) & M(2,:)==1) | ...
+                    (eapCheckVal(2) & M(2,:)==0 & S(2,:)==1) | ...
+                    (eapCheckVal(3) & S(2,:)==0));
+            end
             
             % update track selection
             tcur = find(selIndex, 1, 'first');
