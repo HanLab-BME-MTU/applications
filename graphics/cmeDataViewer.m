@@ -18,6 +18,7 @@ ip.addOptional('Trajectories', 'all', @(x) isempty(x) || isstruct(x) || any(strc
 ip.addParamValue('LoadTracks', true, @islogical);
 ip.addParamValue('LoadFrames', true, @islogical);
 ip.addParamValue('RelativePath', 'Tracking', @ischar);
+ip.addParamValue('Cutoff_f', 3);
 ip.parse(data, varargin{:});
 
 % Handles/settings are stored in 'appdata' of the figure handle
@@ -353,8 +354,7 @@ if exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2 && i
         bgA = [bgA{:}];
     end
     clear tmp;
-    cutoff_f = 3; % by default; this is adjustable in the GUI
-    tracks = tracks([tracks.lifetime_s] >= data.framerate*cutoff_f);
+    tracks = tracks([tracks.lifetime_s] >= data.framerate*ip.Results.Cutoff_f);
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
     tracks = tracks(sortIdx);
     
@@ -429,11 +429,11 @@ if exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2 && i
     % min/max track intensities
     maxA = arrayfun(@(t) max(t.A, [], 2), tracks, 'unif', 0);
     maxA = [maxA{:}];
-    maxVal = prctile(maxA, 99, 2);
-    da = floor(log10(maxVal));
+    maxInt = prctile(maxA, 99, 2);
+    da = floor(log10(maxInt));
     % y-axis unit
-    yunit = round(maxVal ./ 10.^da) .* 10.^(da-1);
-    maxVal = ceil(maxVal./yunit) .* yunit;
+    yunit = round(maxInt ./ 10.^da) .* 10.^(da-1);
+    maxInt = ceil(maxInt./yunit) .* yunit;
 end
 fprintf('done.\n');
 
@@ -455,9 +455,9 @@ end
 % dynamic range for each channel
 dRange = cell(1,nCh);
 for c = 1:nCh
-    dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
+    %dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
+    dRange{c} = prctile(double(stack{c}(:)), [0.001 99.99]);
 end
-% dRange{1} = prctile(double(stack{c}(:)), [1 99]);
 
 hues = getFluorophoreHues(data.markers);
 rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), hues, 'unif', 0);
@@ -935,7 +935,7 @@ set(hz, 'ActionPostCallback', @czoom);
             end
             topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
             if get(tplotScaleCheckbox, 'Value')
-                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxVal(ci)]; %#ok<AGROW>
+                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxInt(ci)]; %#ok<AGROW>
             end
             
             if ~isempty(bgA) && itrack.catIdx<5
@@ -1187,7 +1187,9 @@ set(hz, 'ActionPostCallback', @czoom);
             set(handles.trackSlider, 'SliderStep', [1 1]/(sum(selIndex)-1));
             set(handles.trackSlider, 'Value', 1);
             
-            updateSlice();
+            if ip.Results.LoadFrames
+                updateSlice();
+            end
             %updateTrack();
             close(pht);
             fprintf('# tracks selected: %d\n', sum(selIndex));
@@ -1607,7 +1609,7 @@ switch nCh
         set(handles.tAxes(3), 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
         set(handles.tAxes(4), 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
 end
-set(handles.trackLabel, 'Position', [pos(3)-70 pos(4)-20 100 15]);
+set(handles.trackLabel, 'Position', [pos(3)-90 pos(4)-20 100 15]);
 set(handles.trackSlider, 'Position', [pos(3)-24 120 18 h_tot]);
 
 end
