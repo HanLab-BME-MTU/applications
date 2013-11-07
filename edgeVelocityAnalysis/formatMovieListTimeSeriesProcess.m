@@ -55,7 +55,7 @@ nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
 ip.addParamValue('includeWin',cell(1,nCell), @iscell);
-ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
+ip.addParamValue('interval',cell(1,nCell), @iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
@@ -67,7 +67,7 @@ ip.addParamValue('fileName','edgeVelocity',@isstr);
 
 ip.parse(movieObj,processType,varargin{:});
 includeWin  = ip.Results.includeWin;
-winInterval = ip.Results.winInterval;
+interval    = ip.Results.interval;
 outLevel    = ip.Results.outLevel;
 minLen      = ip.Results.minLength;
 trend       = ip.Results.trendType;
@@ -87,10 +87,11 @@ for iCell = 1:nCell
     
     timeSeriesOperations{iCell} = {'outLevel',outLevel(iCell),'minLength',minLen(iCell),'trendType',trend(iCell),'gapSize',gapSize(iCell)};
     
-    inp1 = isempty(cellData{iCell});
-    inp3 = false;
+    hasNotBeenProc = isempty(cellData{iCell});
+    intervalEmpty  = all(cellfun(@(x) isempty(x),interval{iCell}));
+    windowsEmpty   = isempty(includeWin{iCell});
     
-    if inp1
+    if hasNotBeenProc % If data has not been processed
        
         currMD     = ML.movies_{iCell};
         timeSeries = readingTimeSeries(currMD,formattableProc,processType,channel);
@@ -101,109 +102,55 @@ for iCell = 1:nCell
         else
             cellData{iCell}.data.rawTimeSeries = timeSeries;
         end
-
+        
     else
+        % Comparing the input TS operations with the previous TS processing 
+        sameTSoperat = isequal(cellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
         
-        inp3 = isequal(cellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
-        inp2 = true;
-        inp5 = false;
-        if ~isempty(winInterval{iCell}{1})
-            
-            if numel(cellData{iCell}.data.winInterval) == numel(winInterval{iCell})%Same number of intervals
-              
-                inp2 = sum( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.winInterval(:),winInterval{iCell}(:)) ) == numel(winInterval{iCell});
-                
+        %Comparing the intervals
+        sameInterval = false;
+        if ~intervalEmpty
+            if numel(cellData{iCell}.data.interval) == numel(interval{iCell})
+                sameInterval = all( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.interval(:),interval{iCell}(:)) );
             end
-            
         end
-        
-        if ~isempty(includeWin{iCell})
-        
-            inp5 = isequal(cellData{iCell}.data.includedWin{1},includeWin{iCell});
-        
-        end
-        
-        if isfield(cellData{iCell}.data,'rawEdgeMotion')
-            
-            cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawEdgeMotion;
-            cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procEdgeMotion;
-            
-            if ~(inp3 && inp2 && inp5) && isfield(cellData{iCell},'protrusionAnalysis')
-                cellData{iCell} = rmfield(cellData{iCell},{'protrusionAnalysis','retractionAnalysis'});
-            end
-            
-        elseif isfield(cellData{iCell}.data,'rawSignal')
-            
-            cellData{iCell}.data.rawTimeSeries  = cellData{iCell}.data.rawSignal;
-            cellData{iCell}.data.procTimeSeries = cellData{iCell}.data.procSignal;
-            
-            if ~( inp3 && inp2 && inp5)
-                cellData{iCell} = rmfield(cellData{iCell},{'intensityOverTime','intensityOverTimeSpace'});
-            end
-            
-        end
-        
     end
     
-    
+    %%  If TS operations are different, process data with new settings
     [nWin,nObs,nLayer] = size(cellData{iCell}.data.rawTimeSeries);
     excludeVar         = cell(1,nLayer);
-    %%  If TS operations are different, process data with new settings
-    if inp1 || ~inp3
+    
+    if intervalEmpty
+        cellData{iCell}.data.interval = {1:nObs};
+    else
+        cellData{iCell}.data.interval = interval{iCell};
+    end
+    
+    if windowsEmpty
+        cellData{iCell}.data.includedWin = {1:nWin};
+    else
+        cellData{iCell}.data.includedWin{1} = includeWin{iCell};
+    end
+        
+    cellData{iCell}.data.processedLastRun = hasNotBeenProc || ~sameTSoperat || ~sameInterval;
+    
+    
+    if cellData{iCell}.data.processedLastRun
         
         %Applying Time Series Operations
         cellData{iCell}.data.timeSeriesOperations = timeSeriesOperations{iCell};
+        preProcessingInput                        = [timeSeriesOperations{iCell} {'interval',cellData{iCell}.data.interval}];
         
         for iLayer = 1:nLayer
             
-            [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer)),timeSeriesOperations{iCell}{:});
+            [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer)),preProcessingInput{:});
+            cellData{iCell}.data.excludedWin{iLayer}                             = unique([setdiff(1:nWin,cellData{iCell}.data.includedWin{1}) excludeVar{iLayer}]);
+            cellData{iCell}.data.includedWin{iLayer}                             = setdiff(cellData{iCell}.data.includedWin{iLayer},excludeVar{iLayer});
             
         end
         
     end
     
-    
-    if isempty(includeWin{iCell})%If includeWin is [], include all windows
-        
-        includeWin{iCell} = 1:nWin;
-        
-    end
-    
-    
-    
-    
-    for iLayer = 1:nLayer
-        
-        cellData{iCell}.data.excludedWin{iLayer} = unique([setdiff(1:size(cellData{iCell}.data.rawTimeSeries,1),includeWin{iCell}) excludeVar{iLayer}]);
-        cellData{iCell}.data.includedWin{iLayer} = setdiff(includeWin{iCell},excludeVar{iLayer});
-        nWin                                     = numel(cellData{iCell}.data.includedWin{iLayer});
-        
-        if isempty(winInterval{iCell}{1})%If winInterval is [], include all time points for all windows
-            
-            cellData{iCell}.data.winInterval = num2cell(repmat(1:nObs,nWin,1),2);
-            
-        else
-            
-            if sum(cellfun(@(x,y) numel(x)-numel(y),winInterval,includeWin)) ~= 0
-                error('Number of windows does not match number of intervals')
-            end
-            
-            cellData{iCell}.data.winInterval = winInterval{iCell};
-            
-        end
-        
-        if numel(cellData{iCell}.data.includedWin{iLayer}) ~= numel(cellData{iCell}.data.winInterval)
-            
-            cellData{iCell}.data.procExcTimeSeries{iLayer} = {[]};
-            
-        else
-            
-            cellData{iCell}.data.procExcTimeSeries{iLayer} = cellfun(@(win,time) cellData{iCell}.data.procTimeSeries(win,time,iLayer),...
-                                                             num2cell(cellData{iCell}.data.includedWin{iLayer}(:)),cellData{iCell}.data.winInterval(:),'Unif',0);
-        end
-        
-        
-    end
     
 end
 
