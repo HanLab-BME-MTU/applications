@@ -309,7 +309,7 @@ for a = 1:na
                 AMat = vertcat(AMat{:});
                 % # of tracks from each data set in this cohort
                 ntCoSel = arrayfun(@(x) sum(x.sigComb{a,c}), res);
-                A{ch,c} = nanmedian(AMat,1);
+                A{ch,c} = nanmean(AMat,1);
                 SEM = nanstd(AMat,[],1)/sqrt(nd);
                 Amin = A{ch,c} - SEM;
                 Aplus = A{ch,c} + SEM;
@@ -332,10 +332,10 @@ for a = 1:na
                         'LineWidth', 1);
                 end
             end
-            cohorts.t{c} = cT{c};
-            cohorts.Amin{ch,c} = Amin;
-            cohorts.Aplus{ch,c} = Aplus;
-            cohorts.A{ch,c} = A{ch,c};
+            cohorts(a).t{c} = cT{c};
+            cohorts(a).Amin{ch,c} = Amin;
+            cohorts(a).Aplus{ch,c} = Aplus;
+            cohorts(a).A{ch,c} = A{ch,c};
         end
     end
     
@@ -352,13 +352,13 @@ for a = 1:na
             % Background level: median of all detections
             if nd>1
                 % median background level per cohort for each data set
-                medM = arrayfun(@(i) cellfun(@(x) nanmedian(x(:)), i.interpSigLevel(ch,:)) , res, 'unif', 0);
+                medM = arrayfun(@(i) cellfun(@(x) nanmean(x(:)), i.interpSigLevel(ch,:)) , res, 'unif', 0);
                 medM = vertcat(medM{:});
                 plot(ha(a), [-10 120], sf(ch)*nanmean(medM(:))*[1 1], 'k--', 'LineWidth', 1);
             else
                 % median background level per cohort
-                medC = cellfun(@(x) median(x(:)), res.interpSigLevel(ch,:));
-                plot(ha(a), [-10 120], mean(medC)*[1 1], 'k--', 'LineWidth', 1);
+                medC = cellfun(@(x) nanmean(x(:)), res.interpSigLevel(ch,:));
+                plot(ha(a), [-10 120], nanmean(medC)*[1 1], 'k--', 'LineWidth', 1);
             end
         end
     end
