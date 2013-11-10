@@ -1,4 +1,4 @@
-function success=analyzeLMdataTrackingPar(dataDirectory,wavelength,varargin)
+function success=analyzeLMdataTrackingParSplit(dataDirectory,wavelength,varargin)
 %ANALYZELMDATATrackingPar analyzes localization microscopy data from DeltaVision files
 %   using pointSourceDetection followed by trackCloseGapsKalmanSparse and
 %   saves the results. Uses Parfor
