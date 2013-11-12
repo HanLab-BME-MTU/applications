@@ -17,7 +17,7 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 %       alpha         - alpha used to generate the bootstrap confidence intervals
 %                       (default value 0.05)
 %
-%       includeWin - 
+%       includeWin -
 %
 %       scale         - convert velocity from pixel/frame into nm/sec.Default:false
 %
@@ -111,8 +111,10 @@ ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('scale',     false,@islogical);
 ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
-ip.addParamValue('fileName','edgeVelocity',@isstr);
+ip.addParamValue('fileName','EdgeMotion',@isstr);
 ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParamValue('lwPerc',2.5,@isscalar);
+ip.addParamValue('upPerc',97.5,@isscalar);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -130,134 +132,116 @@ minLen      = ip.Results.minLength;
 trend       = ip.Results.trendType;
 gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
+upPerc      = ip.Results.upPerc;
+lwPerc      = ip.Results.lwPerc;
 
 if numel(interval) == 1
-   interval = repmat(interval,1,nCell);
+    interval = repmat(interval,1,nCell);
 end
 
 %% Formatting Time Series
-operations = {'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
+operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
-scaling    = 1;
+
 
 for iCell = 1:nCell
     
+    sameWinInterval = false;
+    sameIncludedWin = false;
     
-    currMD  = ML.movies_{iCell};
-     
-    if ~isfield(cellData{iCell}.data,'scaling')
-        cellData{iCell}.data.scaling = false;
+    %% Setting up includedWin input if it's []
+    
+    
+    if isempty( includeWin{iCell} )
+       nWin              = size(cellData{iCell}.data.rawTimeSeries,1);
+       includeWin{iCell} =  {1:nWin};
+    else
+        nWin = numel(includeWin{iCell});
     end
+    
+    %% Setting up the winInterval input if it's [] for each cell
+    
+    if isempty(winInterval{iCell}{1})%If winInterval is []
         
+        winInterval{iCell} = num2cell(repmat(1:cellData{iCell}.data.nFrames,nWin,1),2);
         
-    if xor(scale,cellData{iCell}.data.scaling)
+    else
         
-        if scale
+        if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
             
-            if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
-                error(['Movie ' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
-            end
-            
-            scaling = (currMD.pixelSize_/currMD.timeInterval_);
-        
-        else
-            
-            scaling = (currMD.timeInterval_/currMD.pixelSize_);
+            winInterval{iCell} = repmat(winInterval{iCell},1,nWin);
             
         end
         
     end
     
-    cellData{iCell}.data.scaling           = scale;
-    cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
-    cellData{iCell}.data.frameRate         = currMD.timeInterval_;
-    cellData{iCell}.data.nFrames           = currMD.nFrames_;
-    cellData{iCell}.data.rawEdgeMotion     = cellData{iCell}.data.rawTimeSeries;
-    cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
-    cellData{iCell}.data.procExcEdgeMotion = cellfun(@(x) x*scaling, cellData{iCell}.data.procExcTimeSeries{1},'Unif',0);% 1 means first layer
+    %% Checking if the winInterval is the same as previously set
     
-    if ~isfield(cellData{iCell}.data,'interval')
+    if isfield(cellData{iCell}.data,'winInterval');
         
-        cellData{iCell}.data.interval = {[]};
+        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
+        
+        if ~sameWinInterval
+            cellData{iCell}.data.winInterval = winInterval{iCell};
+        end
+    else
+        
+        cellData{iCell}.data.winInterval = winInterval{iCell};
         
     end
     
-    if isfield(cellData{iCell}.data,'rawTimeSeries')
+    %% Checking if the included windows are the same
+    
+    currWin = setdiff(includeWin{iCell}{1},cellData{iCell}.data.excludedWin{1});
+    if isfield(cellData{iCell}.data,'includedWin');
         
-        cellData{iCell}.data = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
         
+        sameIncludedWin = isequaln(cellData{iCell}.data.includedWin{1},currWin);
+        
+        if ~sameIncludedWin
+            cellData{iCell}.data.includedWin{1} = currWin;
+        end
+    else
+        
+        cellData{iCell}.data.includedWin{1} = currWin;
+        
+    end
+    
+    
+    cellData{iCell}.data.analyzedLastRun = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
+    
+    %% If a different processing or different winInterval, then 
+    if cellData{iCell}.data.analyzedLastRun
+                
+        scaling = 1;
+        if scale
+           scaling = ( cellData{iCell}.data.pixelSize/ cellData{iCell}.data.timeInterval);
+        end
+                
+        cellData{iCell}.data.scaling           = scaling;
+        cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
+        cellData{iCell}.data.procExcEdgeMotion = cellfun(@(win,time) cellData{iCell}.data.procEdgeMotion(win,time),...
+                                                 num2cell(cellData{iCell}.data.includedWin{1}(:)),cellData{iCell}.data.winInterval(cellData{iCell}.data.includedWin{1}(:)),'Unif',0);
+    
     end
     
 end
-
 
 %% Getting Average Velocities and Persistence Time per Cell
 
-%indexes for non-processed cells
-flag1 = cellfun(@(x) isfield(x,'protrusionAnalysis'),cellData);
+runEdgeAnalysis = cellfun(@(x) x.data.analyzedLastRun,cellData);
+commonGround    = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
 
-caseFlag = true;
-if isempty(winInterval{1}{1})
+if sum(runEdgeAnalysis) ~= 0
     
-    %If the interval is empty
-    empInterval           = cell2mat( cellfun(@(x) isempty(x{1}),interval,'Unif',0) );
-    interval(empInterval) = cellfun(@(x) {1:x.data.nFrames},cellData(empInterval),'Unif',0);
-  
-    %If number of the interval is different
-    diffInter             = true(1,nCell);
-    diffInter(flag1)      = cell2mat(cellfun(@(x,y) abs(numel(x.data.interval)-numel(y)),cellData(flag1),interval(flag1),'Unif',0)) ~= 0;
-    %Same number of interval but the interval is different
-    dWinInter             = true(1,nCell);
-    dWinInter(~diffInter) = cell2mat(cellfun(@(x,y)  all(cell2mat(cellfun(@(w,z) isequaln(w,z),x.data.interval,y,'Unif',0))),cellData(~diffInter),interval(~diffInter),'Unif',0));
-    flag2                 = diffInter | ~dWinInter;
-    finalIdx              = ~flag1 | flag2;
-    caseFlag              = false;
+    %cellData(runEdgeAnalysis) = cellfun(@(x) rmfield(x,{'protrusionAnalysis','retractionAnalysis'}),cellData(runEdgeAnalysis),'Unif',0);
+    firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
+    secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
-else
-    
-    finalIdx = ~flag1;
-    
-end
+    [protrusion,retraction] ...
+        = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
 
-
-commonGround = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
-protrusion   = [];
-retraction   = [];
-
-if sum(finalIdx) ~= 0
-    
-    
-    if caseFlag
-        
-        [protrusion,retraction] ...
-                   = cellfun(@(x,y) commonGround(x.data.procExcEdgeMotion,x.data.frameRate,y),cellData(finalIdx),winInterval(finalIdx),'Unif',0);
-        protrusion = num2cell(protrusion);
-        retraction = num2cell(retraction);
-        
-    else
-        mIdx           = flag1 & flag2;
-        cellData(mIdx) = cellfun(@(x) rmfield(x,{'protrusionAnalysis','retractionAnalysis'}),cellData(mIdx),'Unif',0);
-        firstLevel     = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
-        secondLevel    = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
-        
-        [protrusion,retraction] ...
-                    = cellfun(@(x,y) secondLevel(y,x.data.procExcEdgeMotion,x.data.frameRate),cellData(finalIdx),interval(finalIdx),'Unif',0);
-        
-    end
-    
-end
-
-
-[cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,finalIdx);
-
-for iCell = find(finalIdx)
-    
-    if isempty(interval{1})
-        cellData{iCell}.data.interval = {1:cellData{iCell}.data.nFrames};
-    else
-        cellData{iCell}.data.interval =interval{iCell};
-    end
-    
+    [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis);    
 end
 
 %% Saving results
@@ -267,7 +251,7 @@ savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
 end%End of main function
 
-function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,alpha,nBoot,idx)
+function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,idx)
 %This function pull all the data from individual cells and calculates the dataSet mean value and CI
 %It also formats the data structure for plotting
 %Input:
@@ -284,13 +268,13 @@ cc    = 1;
 
 for iCell = find(idx)
     
-            
-        for iiInt = 1:numel(interval{iCell})
-            cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
-            cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
-        end
-        cc = cc + 1;
-        
+    
+    for iiInt = 1:numel(interval{iCell})
+        cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
+        cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
+    end
+    cc = cc + 1;
+    
 end
 
 dataSet = [];
@@ -318,8 +302,9 @@ if sum(rem(nInter,nInter(1))) == 0
             
         end
         
-        [dataSet.CI.interval(iInt),dataSet.meanValue.interval(iInt)] = structfun(@(x) bootStrapMean(x,alpha,nBoot),total,'Unif',0);
-        dataSet.total.interval(iInt) = total;
+        dataSet.CI.interval(iInt  )        = structfun(@(x) prctile(x,[lwPerc upPerc]),total,'Unif',0);
+        dataSet.medianValue.interval(iInt) = structfun(@(x) nanmedian(x),total,'Unif',0);
+        dataSet.total.interval(iInt)       = total;
         
     end
     

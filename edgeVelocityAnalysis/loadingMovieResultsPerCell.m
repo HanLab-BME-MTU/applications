@@ -28,7 +28,7 @@ for iCell = 1:nCell
     if exist(filePath,'file')
         
         aux         = load(filePath);
-        if sum(isfield(aux.analysisResults.data,{'processedLastRun'})) == 4
+        if isfield(aux.analysisResults.data,{'processedLastRun'})
             out{iCell}     = aux.analysisResults;
         end
         

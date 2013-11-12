@@ -54,19 +54,17 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
-ip.addParamValue('includeWin',cell(1,nCell), @iscell);
 ip.addParamValue('interval',cell(1,nCell), @iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('saveOn',    false,@islogical);
-ip.addParamValue('outputPath','edgeVelocityQuantification',@isstr);
-ip.addParamValue('fileName','edgeVelocity',@isstr);
+ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
+ip.addParamValue('fileName','EdgeMotion',@isstr);
 
 
 ip.parse(movieObj,processType,varargin{:});
-includeWin  = ip.Results.includeWin;
 interval    = ip.Results.interval;
 outLevel    = ip.Results.outLevel;
 minLen      = ip.Results.minLength;
@@ -84,12 +82,16 @@ cellData                      = loadingMovieResultsPerCell(ML,outputPath,fileNam
 
 for iCell = 1:nCell
     
-    
+    %Building interval input in case it's []
     timeSeriesOperations{iCell} = {'outLevel',outLevel(iCell),'minLength',minLen(iCell),'trendType',trend(iCell),'gapSize',gapSize(iCell)};
     
+    %Logical check variables
     hasNotBeenProc = isempty(cellData{iCell});
-    intervalEmpty  = all(cellfun(@(x) isempty(x),interval{iCell}));
-    windowsEmpty   = isempty(includeWin{iCell});
+    sameTSoperat   = false;
+    sameInterval   = false;
+    
+    %Checking interval input
+    intervalEmpty  = all(cellfun(@(x) isempty(x),interval{iCell}));    
     
     if hasNotBeenProc % If data has not been processed
        
@@ -102,50 +104,62 @@ for iCell = 1:nCell
         else
             cellData{iCell}.data.rawTimeSeries = timeSeries;
         end
+        if isempty(currMD.pixelSize_) || isempty(currMD.timeInterval_)
+            error(['Movie ' num2str(iCell) 'does not have the pixel size and/or time interval setup'])
+        end
+        
+        cellData{iCell}.data.nFrames           = currMD.nFrames_;
+        cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
+        cellData{iCell}.data.timeInterval      = currMD.timeInterval_;
+        
+        
+        [~,nObs,nLayer] = size(cellData{iCell}.data.rawTimeSeries);
+        
+        %Building interval input in case it's []
+        if intervalEmpty
+            cellData{iCell}.data.interval = {1:nObs};
+        else
+            cellData{iCell}.data.interval = interval{iCell};
+        end
         
     else
+        
+        [~,nObs,nLayer] = size(cellData{iCell}.data.(['proc' fileName]));
         % Comparing the input TS operations with the previous TS processing 
         sameTSoperat = isequal(cellData{iCell}.data.timeSeriesOperations,timeSeriesOperations{iCell});
         
+        %Building interval input in case it's []
+        if intervalEmpty
+            interval{iCell} = {1:nObs};
+        end
+        
         %Comparing the intervals
-        sameInterval = false;
-        if ~intervalEmpty
-            if numel(cellData{iCell}.data.interval) == numel(interval{iCell})
-                sameInterval = all( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.interval(:),interval{iCell}(:)) );
+        if numel(cellData{iCell}.data.interval) == numel(interval{iCell})
+            sameInterval = all( cellfun(@(x,y) isequaln(x,y),cellData{iCell}.data.interval(:),interval{iCell}(:)) );
+            if ~sameInterval
+                cellData{iCell}.data.interval = interval{iCell};
             end
         end
+        
     end
     
     %%  If TS operations are different, process data with new settings
-    [nWin,nObs,nLayer] = size(cellData{iCell}.data.rawTimeSeries);
-    excludeVar         = cell(1,nLayer);
     
-    if intervalEmpty
-        cellData{iCell}.data.interval = {1:nObs};
-    else
-        cellData{iCell}.data.interval = interval{iCell};
-    end
-    
-    if windowsEmpty
-        cellData{iCell}.data.includedWin = {1:nWin};
-    else
-        cellData{iCell}.data.includedWin{1} = includeWin{iCell};
-    end
-        
+    excludeVar = cell(1,nLayer);
+      
     cellData{iCell}.data.processedLastRun = hasNotBeenProc || ~sameTSoperat || ~sameInterval;
     
     
     if cellData{iCell}.data.processedLastRun
         
-        %Applying Time Series Operations
+        %Applying Time Series Operations - applied for each interval
         cellData{iCell}.data.timeSeriesOperations = timeSeriesOperations{iCell};
         preProcessingInput                        = [timeSeriesOperations{iCell} {'interval',cellData{iCell}.data.interval}];
         
         for iLayer = 1:nLayer
             
             [cellData{iCell}.data.procTimeSeries(:,:,iLayer),excludeVar{iLayer}] = timeSeriesPreProcessing(squeeze(cellData{iCell}.data.rawTimeSeries(:,:,iLayer)),preProcessingInput{:});
-            cellData{iCell}.data.excludedWin{iLayer}                             = unique([setdiff(1:nWin,cellData{iCell}.data.includedWin{1}) excludeVar{iLayer}]);
-            cellData{iCell}.data.includedWin{iLayer}                             = setdiff(cellData{iCell}.data.includedWin{iLayer},excludeVar{iLayer});
+            cellData{iCell}.data.excludedWin{iLayer}                             = excludeVar{iLayer};
             
         end
         
