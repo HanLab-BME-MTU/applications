@@ -154,7 +154,7 @@ for iCell = 1:nCell
     
     if isempty( includeWin{iCell} )
        nWin              = size(cellData{iCell}.data.rawTimeSeries,1);
-       includeWin{iCell} =  {1:nWin};
+       includeWin{iCell} =  1:nWin;
     else
         nWin = numel(includeWin{iCell});
     end
@@ -192,7 +192,7 @@ for iCell = 1:nCell
     
     %% Checking if the included windows are the same
     
-    currWin = setdiff(includeWin{iCell}{1},cellData{iCell}.data.excludedWin{1});
+    currWin = setdiff(includeWin{iCell},cellData{iCell}.data.excludedWin{1});
     if isfield(cellData{iCell}.data,'includedWin');
         
         
