@@ -192,7 +192,8 @@ for iCell = 1:nCell
     
     %% Checking if the included windows are the same
     
-    currWin = setdiff(includeWin{iCell},cellData{iCell}.data.excludedWin{1});
+    [currWin,winIdx] = setdiff(includeWin{iCell},cellData{iCell}.data.excludedWin{1});
+    
     if isfield(cellData{iCell}.data,'includedWin');
         
         
@@ -221,7 +222,7 @@ for iCell = 1:nCell
         cellData{iCell}.data.scaling           = scaling;
         cellData{iCell}.data.procEdgeMotion    = cellData{iCell}.data.procTimeSeries.*scaling;
         cellData{iCell}.data.procExcEdgeMotion = cellfun(@(win,time) cellData{iCell}.data.procEdgeMotion(win,time),...
-                                                 num2cell(cellData{iCell}.data.includedWin{1}(:)),cellData{iCell}.data.winInterval(cellData{iCell}.data.includedWin{1}(:)),'Unif',0);
+                                                 num2cell(cellData{iCell}.data.includedWin{1}(:)),cellData{iCell}.data.winInterval(winIdx),'Unif',0);
     
     end
     
