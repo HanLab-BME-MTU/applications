@@ -27,8 +27,9 @@ for iCell = 1:nCell
     
     if exist(filePath,'file')
         
-        aux         = load(filePath);
-        if isfield(aux.analysisResults.data,{'processedLastRun'})
+        fileInfo = dir(filePath);
+        aux      = load(filePath);
+        if fileInfo.datenum > datenum('19-Nov-2013 12:30')
             out{iCell}     = aux.analysisResults;
         end
         

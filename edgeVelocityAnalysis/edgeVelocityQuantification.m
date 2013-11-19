@@ -115,6 +115,7 @@ ip.addParamValue('fileName','EdgeMotion',@isstr);
 ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('lwPerc',2.5,@isscalar);
 ip.addParamValue('upPerc',97.5,@isscalar);
+ip.addParamValue('selectMotion',{[]},@iscell);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -134,6 +135,7 @@ gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
 upPerc      = ip.Results.upPerc;
 lwPerc      = ip.Results.lwPerc;
+selection   = ip.Results.selectMotion;
 
 if numel(interval) == 1
     interval = repmat(interval,1,nCell);
@@ -231,7 +233,7 @@ end
 %% Getting Average Velocities and Persistence Time per Cell
 
 runEdgeAnalysis = cellfun(@(x) x.data.analyzedLastRun,cellData);
-commonGround    = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y);
+commonGround    = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',z,'winInterval',y,'selection',selection);
 
 if sum(runEdgeAnalysis) ~= 0
     
@@ -243,12 +245,12 @@ if sum(runEdgeAnalysis) ~= 0
         = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
 
     [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis);    
+    
+    % Saving results
+    savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
+    savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+    
 end
-
-%% Saving results
-
-savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
-savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
 end%End of main function
 

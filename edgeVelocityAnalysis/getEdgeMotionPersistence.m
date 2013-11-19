@@ -1,4 +1,4 @@
-function [Protrusion,Retraction] = getEdgeMotionPersistence(TS,varargin)
+function [outP,outR] = getEdgeMotionPersistence(TS,varargin)
 % This function bootstrap the mean and confidence intervals for the
 % protrusion and retraction persistence time using all time series in input TS
 %THIS FUNCTION HAS NO TIME SERIES PRE-PROCESSING
@@ -26,12 +26,12 @@ function [Protrusion,Retraction] = getEdgeMotionPersistence(TS,varargin)
 %                                   .minVeloc
 %                                   .mednVeloc - median velocity (not sure what for)
 %
-%       Protrusion.CI.same fields as in meanValue
+%       outP.CI.same fields as in meanValue
 %
-%       Protrusion.windows     - structure with all measurements per window (see getPersistenceTime for the measurements)
+%       outP.windows     - structure with all measurements per window (see getPersistenceTime for the measurements)
 %       
 %
-%       Same structure for Retraction    
+%       Same structure for outR    
 %
 %See also: getPersistenceTime, findingProtRetrTime
 %
@@ -46,6 +46,7 @@ ip.addParamValue('deltaT',1,@isscalar);
 ip.addParamValue('cluster',false,@islogical);
 ip.addParamValue('nCluster',2,@isscalar);
 ip.addParamValue('winInterval',{[]},@iscell);
+ip.addParamValue('selection',{[]},@iscell);
 
 ip.parse(TS,varargin{:});
 
@@ -55,6 +56,7 @@ deltaT      = ip.Results.deltaT;
 cluster     = ip.Results.cluster;
 nCluster    = ip.Results.nCluster;
 winInterval = ip.Results.winInterval;
+selection   = ip.Results.selection;
 %**************************************************************************
 nWin = length(TS);
 
@@ -74,52 +76,86 @@ newInt      = cellfun(@(x) x-firstP+1,winInterval,'Unif',0);
 
 %%
 
-Retraction  = setupEdgeVelocityStructure(nWin);        
-Protrusion  = setupEdgeVelocityStructure(nWin);
+outR  = setupEdgeVelocityStructure(nWin);        
+outP  = setupEdgeVelocityStructure(nWin);
 
 
-auxP = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
-auxR = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
+protrusion = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
+retraction = struct('persTime',[],'totalTime',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
 
 for iWin = 1:nWin
     
-    [Protrusion.windows(iWin),Retraction.windows(iWin),motionState(newInt{iWin},iWin)] = getPersistenceTime(TS{iWin},deltaT);
+    [outP.windows(iWin),outR.windows(iWin),motionState(newInt{iWin},iWin)] = getPersistenceTime(TS{iWin},deltaT);
     %believe it or not, this is the fastest way to do it
-    auxP.persTime  = [auxP.persTime; Protrusion.windows(iWin).persTime];
-    auxP.totalTime = [auxP.totalTime;nansum(Protrusion.windows(iWin).persTime)];
-    auxP.maxVeloc  = [auxP.maxVeloc; Protrusion.windows(iWin).maxVeloc];
-    auxP.Veloc     = [auxP.Veloc;    Protrusion.windows(iWin).Veloc];
-    auxP.minVeloc  = [auxP.minVeloc; Protrusion.windows(iWin).minVeloc];
-    auxP.mednVeloc = [auxP.mednVeloc;Protrusion.windows(iWin).mednVeloc];
+    protrusion.persTime  = [protrusion.persTime; outP.windows(iWin).persTime];
+    protrusion.totalTime = [protrusion.totalTime;nansum(outP.windows(iWin).persTime)];
+    protrusion.maxVeloc  = [protrusion.maxVeloc; outP.windows(iWin).maxVeloc];
+    protrusion.Veloc     = [protrusion.Veloc;    outP.windows(iWin).Veloc];
+    protrusion.minVeloc  = [protrusion.minVeloc; outP.windows(iWin).minVeloc];
+    protrusion.mednVeloc = [protrusion.mednVeloc;outP.windows(iWin).mednVeloc];
     
-    auxR.persTime  = [auxR.persTime; Retraction.windows(iWin).persTime];
-    auxR.totalTime = [auxR.totalTime;nansum(Retraction.windows(iWin).persTime)];
-    auxR.maxVeloc  = [auxR.maxVeloc; Retraction.windows(iWin).maxVeloc];
-    auxR.Veloc     = [auxR.Veloc;    Retraction.windows(iWin).Veloc];
-    auxR.minVeloc  = [auxR.minVeloc; Retraction.windows(iWin).minVeloc];
-    auxR.mednVeloc = [auxR.mednVeloc;Retraction.windows(iWin).mednVeloc];
+    retraction.persTime  = [retraction.persTime; outR.windows(iWin).persTime];
+    retraction.totalTime = [retraction.totalTime;nansum(outR.windows(iWin).persTime)];
+    retraction.maxVeloc  = [retraction.maxVeloc; outR.windows(iWin).maxVeloc];
+    retraction.Veloc     = [retraction.Veloc;    outR.windows(iWin).Veloc];
+    retraction.minVeloc  = [retraction.minVeloc; outR.windows(iWin).minVeloc];
+    retraction.mednVeloc = [retraction.mednVeloc;outR.windows(iWin).mednVeloc];
     
 end
 
 %*****************************************************************
 
 %Bootstrapping the average and CI
-[Protrusion.CI,Protrusion.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxP,'Unif',0);
-[Retraction.CI,Retraction.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),auxR,'Unif',0);
+[outP.CI,outP.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),protrusion,'Unif',0);
+[outR.CI,outR.meanValue] = structfun(@(x) bootStrapMean(x,alpha,nBoot),retraction,'Unif',0);
 
-Protrusion.total      = auxP;
-Retraction.total      = auxR;
+outP.total      = protrusion;
+outR.total      = retraction;
 
-Protrusion.total.time = nansum(auxP.persTime);
-Retraction.total.time = nansum(auxR.persTime);
+outP.total.time = nansum(protrusion.persTime);
+outR.total.time = nansum(retraction.persTime);
 
-Protrusion.total.percentage = sum( motionState > 0, 2)./sum(isfinite(motionState),2);
-Retraction.total.percentage = sum( motionState < 0, 2)./sum(isfinite(motionState),2);
+outP.total.percentage = sum( motionState > 0, 2)./sum(isfinite(motionState),2);
+outR.total.percentage = sum( motionState < 0, 2)./sum(isfinite(motionState),2);
+
+if ~isempty(selection{1})
+    
+    nSel = numel(selection);
+    pCC = 1;
+    rCC = 1;
+    for iSel = 1:nSel
+        out = find(eval(selection{iSel}));
+        if strcmp(selection{iSel}(1:10),'protrusion')
+        
+            outP.selection(pCC).persTime  = protrusion.persTime(out);
+            outP.selection(pCC).maxVeloc  = protrusion.maxVeloc(out);
+            outP.selection(pCC).Veloc     = protrusion.Veloc(out);
+            outP.selection(pCC).mednVeloc = protrusion.mednVeloc(out);
+        
+            pCC = pCC + 1;
+        elseif strcmp(selection{iSel}(1:10),'retraction')
+            
+            outR.selection(rCC).persTime  = retraction.persTime(out);
+            outR.selection(rCC).maxVeloc  = retraction.maxVeloc(out);
+            outR.selection(rCC).Veloc     = retraction.Veloc(out);
+            outR.selection(rCC).mednVeloc = retraction.mednVeloc(out);
+
+            rCC = rCC + 1;
+        else
+            
+            error('Selection should start with protrusion or retraction')
+            
+        end
+        
+    end
+    
+end
+
 
 if cluster
     
-    [Protrusion.CI.cluster,Protrusion.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),auxP,'Unif',0);
-    [Protrusion.CI.cluster,Protrusion.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),auxP,'Unif',0);
+    [outP.CI.cluster,outP.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),protrusion,'Unif',0);
+    [outP.CI.cluster,outP.meanValue.cluster] = structfun(@(x) clusterWindowsVelocity(x,nBoot,alpha,nCluster),protrusion,'Unif',0);
     
 end
 

@@ -9,6 +9,8 @@ ip.addParamValue('cluster',0,@isscalar);
 ip.addParamValue('nCluster',2,@isscalar);
 ip.addParamValue('deltaT',1,@isscalar);
 ip.addParamValue('winInterval',{[]},@iscell);
+ip.addParamValue('selection',{[]},@iscell);
+
 
 ip.parse(TS,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -17,9 +19,10 @@ cluster     = ip.Results.cluster;
 nCluster    = ip.Results.nCluster;
 deltaT      = ip.Results.deltaT;
 winInterval = ip.Results.winInterval;
+selection   = ip.Results.selection;
 
 %% Module 1 
-[protrusion,retraction] = getEdgeMotionPersistence(TS,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',deltaT,'winInterval',winInterval);
+[protrusion,retraction] = getEdgeMotionPersistence(TS,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot,'deltaT',deltaT,'winInterval',winInterval,'selection',selection);
 %[p1,r1] = getEdgeMotionPersistence(TS,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot);
 %% Module 2
 %[p2,r2] = getEdgeMotionAverageVeloc(TS,'cluster',cluster,'nCluster',nCluster,'alpha',alpha,'nBoot',nBoot);
