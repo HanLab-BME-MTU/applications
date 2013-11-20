@@ -27,6 +27,7 @@ ip.addParamValue('Frequency', '', @(x) strcmpi(x, 'relative'));
 ip.addParamValue('Color', []);
 ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('Control', []);
+ip.addParamValue('XSpace', []);
 ip.parse(lftRes, varargin{:});
 
 fset = loadFigureSettings('print');
@@ -54,27 +55,18 @@ end
 
 % 1) Plot CCP distributions
 if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
-    ha = setupFigure;
+    ha = setupFigure();
     for i = ip.Results.PlotOrder
         hp(i) = plot(lftRes{i}.t, w(i)*lftRes{i}.meanLftHistCCP, '-', 'LineWidth', 1, 'Color', cv(i,:));
     end
     
+    hl = legend(ha(end), hp, cellfun(@(i) [' ' i], ip.Results.legend, 'unif', 0));
+    set(hl, 'Box', 'off', fset.sfont{:}, 'Units', 'centimeters',...
+        'Position', [3.5 5-(N)*0.4 2 N*0.4]);
+    
 else
     na = 2;
     % adapted from plotIntensityCohorts
-    
-%     na = 2;
-%     ah = 1;
-%     sigCombIdx = [1 0]';
-%     
-%     pct = zeros(nd,2);
-%     for i = 1:nd
-%         s =  lftData(i).significantMaster;
-%         idx = lftData(i).maxA(:,1)>ip.Results.MaxIntensityThreshold;
-%         pct(i,:) = sum([s(idx,2) ~s(idx,2)],1)/sum(idx);
-%     end
-%     meanPct = mean(pct,1);
-%     stdPct = std(pct,[],1);
     
     pctS = cellfun(@(i) i.pctSlaveCCP/sum(i.pctSlaveCCP), lftRes, 'unif', 0);
     pctS = vertcat(pctS{:});
@@ -102,11 +94,9 @@ else
             end
     end
     
-    
+   
     ha = setupFigure(1,2, 'SameAxes', true, 'YSpace', [1.5 1 0.75]);
-    
     legendText = cell(1,N);
-    
     if ~isempty(ip.Results.Control)
         plot(ha(1), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
@@ -126,15 +116,10 @@ else
         legendText{i} = [' -' SlaveName{1} ', ' ip.Results.legend{i} ', ' num2str(100*pctS(i,2), '%.1f') '%'];
     end
     hl = legend(ha(2), hp, legendText);
-    get(hl)
     set(hl, 'Box', 'on', fset.sfont{:}, 'Units', 'centimeters',...
         'Position', [9.5 5-(N-1)*0.4 2 N*0.4], 'EdgeColor', 'w');
 end
 
-% pctS
-% hl = legend(ha(end), hp, cellfun(@(i) [' ' i], legendText, 'unif', 0));
-% set(hl, 'Box', 'off', fset.sfont{:}, 'Units', 'centimeters',...
-%     'Position', [3.5 5-(N)*0.4 2 N*0.4]);
 XLim = [0 160];
 YLim = [0 0.03];
 set(ha, 'XLim', XLim, 'YLim', YLim, 'XTick', 0:20:200, 'YTick', 0:0.01:0.1);
@@ -144,12 +129,6 @@ if strcmpi(ip.Results.Frequency, 'relative')
 else
     ylabel(ha(1), 'Frequency', fset.lfont{:});
 end
-
-% for a = 1:na
-%     text(XLim(1), 1.05*YLim(2), atext{a}, fset.sfont{:}, 'Parent', ha(a),...
-%         'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom');
-% end
-
 
 
 % 2) Optional: plot CCS distributions (all objects)
