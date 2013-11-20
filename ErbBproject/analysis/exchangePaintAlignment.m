@@ -87,10 +87,10 @@ MinTrackLen = 1;
 num = numel(list);
 
 PointList = cell([num,1]);
-movieInfo = struct('pnts',[],'drift',[],'dmark',[],'name',[],'shift',[],'com',[]);
+movieStruct = struct('pnts',[],'drift',[],'dmark',[],'name',[],'shift',[],'com',[]);
 
 for j=1:num
-    PointList{j} = movieInfo;
+    PointList{j} = movieStruct;
     PointList{j}.name = list{j};
     load(list{j});
     

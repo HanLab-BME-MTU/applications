@@ -118,8 +118,9 @@ psfSigmaInt=ones(size(wavelength));
 for iFile=1:nFiles
     % load movie data and set output directory
     movieFile=[dataDirectory filesep fileList(iFile).name];
-    outputDir=[dataDirectory filesep fileList(iFile).name(1:end-3) filesep];
+    outputDir=[dataDirectory filesep fileList(iFile).name(1:end-3) filesep];    
     MD=MovieData.load(movieFile,false,'outputDirectory',outputDir);
+    
     % set numerical aperture and magnification manually
     MD.numAperture_=NA;
     MD.magnification_=MAG;
@@ -205,16 +206,19 @@ for iFile=1:nFiles
         mkdir(outputDir);
     end
     outputFile=[MD.movieDataFileName_(1:end-7) '_tracking.mat'];
-    save([outputDir filesep outputFile],'features','GapLen','Radius');
+    save([outputDir filesep outputFile],'features','GapLen','Radius','movieInfo');
     
     
-   
-    [tracksFinal] = trackCloseGapsKalmanSparseSplitLAP(SplitSize,movieInfo,...
-    costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
-
+    if numel(movieInfo) > SplitSize
+        [tracksFinal] = trackCloseGapsKalmanSparseSplitLAP(SplitSize,movieInfo,...
+            costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
+    else
+        [tracksFinal,kalmanInfoLink,errFlag] = trackCloseGapsKalmanSparse(movieInfo,...
+            costMatrices,gapCloseParam,kalmanFunctions,probDim,saveResults,verbose);
+    end
     clear movieInfo;
     
     % save results
-    save([outputDir filesep outputFile],'features','tracksFinal','GapLen','Radius');
+    save([outputDir filesep outputFile],'tracksFinal','-append');
         
 end
