@@ -10,7 +10,7 @@
 
 % Francois Aguet (last modified 04/30/2013)
 
-function [cohorts, res] = plotIntensityCohorts(data, varargin)
+function [cohorts, res, ha] = plotIntensityCohorts(data, varargin)
 
 nCh = numel(data(1).channels);
 
@@ -57,7 +57,7 @@ hues = ip.Results.Hues;
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
     'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale,...
     'Cutoff_f', ip.Results.Cutoff_f, 'ReturnValidOnly', true,...
-    'ExcludeVisitors', ip.Results.ExcludeVisitors);
+    'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Mask', true);
 
 % if no specific channel is selected, all channels are shown
 chVec = ip.Results.ch;
@@ -73,7 +73,7 @@ framerate = data(1).framerate;
 % # data points in cohort (including buffer frames)
 iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
 % time vectors for cohorts
-cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'UniformOutput', false);
+cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'unif', 0);
 
 XLim = [cT{end}(1)-5 cT{end}(end)+5];
 YLim = ip.Results.YLim;
@@ -279,7 +279,7 @@ if ip.Results.ShowPct && nCh>2
     ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.5 3.5],...
         'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
 else
-    ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.75 0.5],...
+    ha = setupFigure(ah, aw, 'YSpace', [2.5 1 1], 'XSpace', [2 0.75 0.5],...
         'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
 end
 
@@ -389,7 +389,7 @@ end
     
    
 %     if ip.Results.ShowLegend
-%         cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'UniformOutput', false);
+%         cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'unif', 0);
 %         hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
 %         set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [6.75+7.65 1.5 1.25 3.5]);
 %     end
