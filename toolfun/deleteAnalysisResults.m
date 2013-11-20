@@ -9,7 +9,7 @@ for i = 1:numel(data)
         if exist(delpath, 'dir')==7
             str = [];
             while ~any(strcmpi(str, {'y','n'}))
-                str = input(['Delete ' getShortPath(data(i)) dirList{d} ' ? [y/n]: '],'s');
+                str = input(['Delete ' getShortPath(data(i)) filesep dirList{d} ' ? [y/n]: '],'s');
             end
             if strcmpi(str, 'y')
                 rmdir(delpath, 's');
