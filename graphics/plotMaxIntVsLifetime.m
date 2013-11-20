@@ -31,6 +31,7 @@ ip.addParamValue('LifetimeData', 'LifetimeData.mat');
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat');
 ip.addParamValue('PlotIndividual', false, @islogical);
 ip.addParamValue('NormX', false, @islogical);
+ip.addParamValue('FontSize', 10);
 ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
 lftData = ip.Results.lftData;
@@ -113,7 +114,8 @@ for k = 1:nd
         %lv = lv(ch,:);
         
         densityplot(lv, av, xl, xa, 'Handle', ha(k), 'DisplayFunction', ip.Results.DisplayFunction, 'NormX', ip.Results.NormX);
-        text(xl(end)/2, xa(end), legendText{k}, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'center', 'Parent', ha(k));
+        text(xl(end)/2, xa(end), legendText{k}, 'VerticalAlignment', 'bottom',...
+            'HorizontalAlignment', 'center', 'Parent', ha(k), 'FontSize', ip.Results.FontSize);
     end
 end
 formatTickLabels(ha);
