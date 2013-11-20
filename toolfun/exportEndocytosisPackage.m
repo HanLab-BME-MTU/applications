@@ -125,7 +125,7 @@ copyfile([svnRoot 'endocytosis/doc/CME Analysis Package Manual.pdf'], '.');
 
 system('mv PointSourceDetection cmeAnalysisPackage/.');
 % system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
-system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage ');
+system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage "CME Analysis Package Manual.pdf"');
 
 % system('cp cmeAnalysisPackage.zip www/doc/.');
 %unzip cmeAnalysisPackage.zip
