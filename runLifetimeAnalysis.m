@@ -43,6 +43,7 @@ ip.addParamValue('SelectIndex', [], @iscell);
 ip.addParamValue('SlaveNames', []);
 ip.addParamValue('Colormap', jet(numel(data)));
 ip.addParamValue('CorrectObservationBias', true, @islogical);
+ip.addParamValue('InitDensity', 'mean', @(x) any(strcmpi(x, {'mean', 'median'})));
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -302,12 +303,18 @@ for i = 1:nd
     startsPerFrameCCP = hist(lftData(i).start(idxMI), 1:minMovieLength);
     startsPerFrameCCP = startsPerFrameCCP(6:end-2);
     lftRes.startsPerFrameAll(i,:) = startsPerFrameAll;
-
+    
     % in µm^-2 min^-1
     dnorm = 60/data(i).framerate/lftRes.cellArea(i);
-    lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]*dnorm;
-    lftRes.initDensityIa(i,:) = [median(startsPerFrameIa); madFactor*mad(startsPerFrameIa, 1)]*dnorm;
-    lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
+    if strcmpi(ip.Results.InitDensity, 'mean')
+        lftRes.initDensityAll(i,:) = [mean(startsPerFrameAll); std(startsPerFrameAll)]*dnorm;
+        lftRes.initDensityIa(i,:) =  [mean(startsPerFrameIa);  std(startsPerFrameIa)]*dnorm;
+        lftRes.initDensityCCP(i,:) = [mean(startsPerFrameCCP); std(startsPerFrameCCP)]*dnorm;
+    else
+        lftRes.initDensityAll(i,:) = [median(startsPerFrameAll); madFactor*mad(startsPerFrameAll, 1)]*dnorm;
+        lftRes.initDensityIa(i,:) =  [median(startsPerFrameIa);  madFactor*mad(startsPerFrameIa, 1)]*dnorm;
+        lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
+    end
 end
 %====================
 % Initiation density
