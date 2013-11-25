@@ -1459,12 +1459,16 @@ set(hz, 'ActionPostCallback', @czoom);
                         % Births
                         bcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackStarts==fi), 'unif', 0);
                         bcoord = vertcat(bcoord{:});
-                        plot(ha, bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+                        if~isempty(bcoord)
+                            plot(ha, bcoord(:,1), bcoord(:,2), '*', 'Color', 'g', 'MarkerSize', 8, 'LineWidth', 1);
+                        end
                         
                         % Deaths
                         dcoord = arrayfun(@(i) [i.x(1,1) i.y(1,1)], tracks(trackEnds==fi), 'unif', 0);
                         dcoord = vertcat(dcoord{:});
-                        plot(ha, dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
+                        if ~isempty(dcoord)
+                            plot(ha, dcoord(:,1), dcoord(:,2), 'x', 'Color', 'r', 'MarkerSize', 8, 'LineWidth', 1);
+                        end
                     end
                     
                 end
