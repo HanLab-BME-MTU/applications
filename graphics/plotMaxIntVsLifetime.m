@@ -30,8 +30,9 @@ ip.addParamValue('Parent', []);
 ip.addParamValue('LifetimeData', 'LifetimeData.mat');
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat');
 ip.addParamValue('PlotIndividual', false, @islogical);
-ip.addParamValue('NormX', false, @islogical);
+ip.addParamValue('NormX', true, @islogical);
 ip.addParamValue('FontSize', 10);
+ip.addParamValue('Width', 4, @isposint);
 ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
 lftData = ip.Results.lftData;
@@ -92,13 +93,13 @@ if isempty(xa)
 end
 xl = ip.Results.xl;
 if isempty(xl)
-    tmp = vertcat(lft{:}); tmp = vertcat(tmp{:});
+    tmp = [lft{:}]; tmp = vertcat(tmp{:});
     xl = linspace(0,max(tmp),40);
 end
 
 ha = ip.Results.Parent;
 if isempty(ha)
-    ha = setupFigure(ceil(nd/4), 4, nd, 'SameAxes', true,...
+    ha = setupFigure(ceil(nd/ip.Results.Width), ip.Results.Width, nd, 'SameAxes', true,...
         'AxesWidth', 3, 'AxesHeight', 3, 'InsetPosition', [],...
         'XSpace', [1.5 0.5 0.5], 'YSpace', [1.5 1 0.5]);
 end
