@@ -3,12 +3,22 @@
 % Inputs:
 %          data : structure returned by loadConditionData()
 %
+% Options:
+%            xl : vector of lifetime bin centers
+%            xa : vector of intensity bin centers
+%
 % Options ('specifier', value):
 %    
 %      'ExcludeVisitors' : true|{false}
 %             'Cutoff_f' : Minimum track length, in frames
 %         'FirstNFrames' : Calculates maximum intensity over the first N frames only.
 %                          If this is a vector, plots for the individual values are generated.
+%      'DisplayFunction' : Intensity scaling for display. Default: @sqrt
+%                          For linear intensities, use @(x) x
+%              'Channel' : Channel number. Default: 1
+%               'Legend' : Cell array of legend strings matching input data
+%                'NormX' : {true}|false. Normalize density as a function of lifetime.
+%                'Width' : Width of the figure grid. Default: 4
 
 % Francois Aguet, 2011 (last modified 06/20/2013)
 
