@@ -1,17 +1,25 @@
-function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr)
-% adopted from Aster et al.
+function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff)
+% mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff)
+% solves L1 regularization problem with forward matrix G, displacement
+% vector d, regularization parameter alpha, semi-norm matrix L.
+% tolx and m_diff are used for convergence criteria
+
 % Default for tolr=1.0e-6
-if (nargin < 7)
+if (nargin < 9)
+  m_diff=400; % unit: Pa. 
+end
+
+if (nargin < 8)
   tolr=1.0e-6;
 end
 
 % Default for tolx=1.0e-4;
-if (nargin < 6)
-  tolx=1.0e-4;
+if (nargin < 7)
+  tolx=1.0e-3;
 end
 
 % Default for maxiter=100
-if (nargin < 5)
+if (nargin < 6)
   maxiter=100;
 end
 
@@ -60,7 +68,7 @@ while (iter < maxiter)
   display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
       num2str(norm(m-mold)/(1+norm(mold)))])
 
-  if (norm(m-mold)/(1+norm(mold)) < tolx)
+  if (norm(m-mold)/(1+norm(mold)) < tolx) || norm(m-mold)<m_diff
     mreg=m;
     return
   end

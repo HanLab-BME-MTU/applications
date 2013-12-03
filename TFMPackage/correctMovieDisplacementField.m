@@ -140,7 +140,7 @@ if nFrames>1
         % build each disp vector history
         curVecX = arrayfun(@(x) x.vec(k,1),displField);
         curVecY = arrayfun(@(x) x.vec(k,2),displField);
-        if any(isnan(curVecX))
+        if any(isnan(curVecX)) && sum(~isnan(curVecX))/nFrames>0.6
             t = 1:length(curVecX);
             t_nn = t(~isnan(curVecX));
             curVecX2 = interp1(t_nn,curVecX(~isnan(curVecX)),t,'linear');

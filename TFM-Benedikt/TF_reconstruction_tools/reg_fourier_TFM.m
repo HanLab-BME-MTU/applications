@@ -4,7 +4,7 @@
 % field.
 %
 % Benedikt Sabass 13-10-2008
-function  [pos,vec,force, fnorm,energie,f] = reg_fourier_TFM(grid_mat,u,E,s, pix_durch_my, cluster_size, i_max, j_max, L)
+function  [pos,vec,force, fnorm,energie,f] = reg_fourier_TFM(grid_mat,u,E,s, pix_durch_my, cluster_size, i_max, j_max, L,Rx,Ry)
 % added by Achim:
 % Input : grid_mat, u, cluster_size have to be in the same units, namely
 %         pixels. If they are given in different units e.g. meters, then a
@@ -18,7 +18,7 @@ function  [pos,vec,force, fnorm,energie,f] = reg_fourier_TFM(grid_mat,u,E,s, pix
 %         spatial derivatives of the displacements, that is du/dx. If u and
 %         dx (essentially cluster_size) are in the same units, then the
 %         resulting force has the same dimension as the input E.
-
+% updated by Sangyoon Han for usage for L1 regularization
     nN_pro_pix_fakt = 1/(10^3*pix_durch_my^2);
     nN_pro_my_fakt = 1/(10^3);
     
@@ -28,7 +28,10 @@ function  [pos,vec,force, fnorm,energie,f] = reg_fourier_TFM(grid_mat,u,E,s, pix
     ky_vec = 2*pi/j_max/cluster_size.*[0:(j_max/2-1) (-j_max/2:-1)];
     kx = repmat(kx_vec',1,j_max);
     ky = repmat(ky_vec,i_max,1);
-    
+    if nargin<10
+        Rx=ones(size(kx));
+        Ry=ones(size(ky));
+    end
 
     kx(1,1) = 1;
     ky(1,1) = 1;
@@ -43,17 +46,17 @@ function  [pos,vec,force, fnorm,energie,f] = reg_fourier_TFM(grid_mat,u,E,s, pix
       -1).*log(X+sqrt(X.^2+Y.^2)))+X.*((-1).*log((-1).*Y+sqrt( ...
       X.^2+Y.^2))+log(Y+sqrt(X.^2+Y.^2))));
     
-    Ginv_xx =(kx.^2+ky.^2).^(-1/2).*V.*(kx.^2.*L+ky.^2.*L+V.^2).^(-1).*(kx.^2.* ...
-              L+ky.^2.*L+((-1)+s).^2.*V.^2).^(-1).*(kx.^4.*(L+(-1).*L.*s)+ ...
-              kx.^2.*((-1).*ky.^2.*L.*((-2)+s)+(-1).*((-1)+s).*V.^2)+ky.^2.*( ...
-              ky.^2.*L+((-1)+s).^2.*V.^2));
-    Ginv_yy = (kx.^2+ky.^2).^(-1/2).*V.*(kx.^2.*L+ky.^2.*L+V.^2).^(-1).*(kx.^2.* ...
-              L+ky.^2.*L+((-1)+s).^2.*V.^2).^(-1).*(kx.^4.*L+(-1).*ky.^2.*((-1)+ ...
-              s).*(ky.^2.*L+V.^2)+kx.^2.*((-1).*ky.^2.*L.*((-2)+s)+((-1)+s).^2.* ...
+    Ginv_xx =(kx.^2+ky.^2).^(-1/2).*V.*(kx.^2.*L.*Rx+ky.^2.*L.*Ry+V.^2).^(-1).*(kx.^2.* ...
+              L.*Rx+ky.^2.*L.*Ry+((-1)+s).^2.*V.^2).^(-1).*(kx.^4.*(L.*Rx+(-1).*L.*s.*Rx)+ ...
+              kx.^2.*((-1).*ky.^2.*L.*Ry.*((-2)+s)+(-1).*((-1)+s).*V.^2)+ky.^2.*( ...
+              ky.^2.*L.*Ry+((-1)+s).^2.*V.^2));
+    Ginv_yy = (kx.^2+ky.^2).^(-1/2).*V.*(kx.^2.*L+ky.^2.*L.*Ry+V.^2).^(-1).*(kx.^2.* ...
+              L.*Rx+ky.^2.*L.*Ry+((-1)+s).^2.*V.^2).^(-1).*(kx.^4.*L+(-1).*ky.^2.*((-1)+ ...
+              s).*(ky.^2.*L.*Rx+V.^2)+kx.^2.*((-1).*ky.^2.*L.*Ry.*((-2)+s)+((-1)+s).^2.* ...
               V.^2));
-    Ginv_xy = (-1).*kx.*ky.*(kx.^2+ky.^2).^(-1/2).*s.*V.*(kx.^2.*L+ky.^2.*L+ ...
-              V.^2).^(-1).*(kx.^2.*L+ky.^2.*L+((-1)+s).*V.^2).*(kx.^2.*L+ky.^2.* ...
-              L+((-1)+s).^2.*V.^2).^(-1);
+    Ginv_xy = (-1).*kx.*ky.*(kx.^2+ky.^2).^(-1/2).*s.*V.*(kx.^2.*L.*Rx+ky.^2.*L.*Ry+ ...
+              V.^2).^(-1).*(kx.^2.*L.*Rx+ky.^2.*L.*Ry+((-1)+s).*V.^2).*(kx.^2.*L.*Rx+ky.^2.* ...
+              L.*Ry+((-1)+s).^2.*V.^2).^(-1);
 
 
     Ginv_xx(1,1) = 1/g0x;

@@ -1,4 +1,4 @@
-function [myMesh]=createMeshAndBasisFromAdhesions(x_vec,y_vec,paxImage,displField,pixelSize)
+function [myMesh]=createMeshAndBasisFromAdhesions(x_vec,y_vec,paxImage,displField,pixelSize,mask)
 % createMeshAndBasisFromAdhesions creates mesh from adhesion information in
 % paxImage. x_vec and y_vec serve as mask for mesh nodes.
 % Sangyoon Han June 2013
@@ -8,9 +8,15 @@ paxImage = double(paxImage);
 pId = paxImage/max(paxImage(:));
 % alpha = graythresh(pId);
 %estimate the intensity level to use for thresholding the image
-level1 = graythresh(pId); %Otsu
-[~, level2] = cutFirstHistMode(pId,0); %Rosin
-alpha = 0.1*level2 + 0.9*level1;
+pIdCrop = pId(any(mask,2),any(mask,1));
+level1 = graythresh(pIdCrop); %Otsu
+[~, level2] = cutFirstHistMode(pIdCrop,0); %Rosin
+alpha1 = 0.1*level2 + 0.9*level1;
+alpha2 = 0.1*level1 + 0.9*level2;
+figure,subplot(2,1,1),imshow(pIdCrop,[]),title('original image');
+subplot(2,2,3),imshow(im2bw(pIdCrop,alpha1)),title(['Otsu-biased, alpha = ' num2str(alpha1) ]);
+subplot(2,2,4),imshow(im2bw(pIdCrop,alpha2)),title(['Rosin-biased, alpha = ' num2str(alpha2)]);
+alpha = input('type desired alpha to threshold the image so that it encompass entire cell membrane: ');
 
 bwPI = im2bw(pId,alpha);
 bwPI2 = bwmorph(bwPI,'clean');
@@ -67,8 +73,17 @@ for k=1:nFA
             margNodesY = [margNodesY; eachMargNodesY];
         end
     end
-    FANodeX = [FANodeX; eachFANodesX; margNodesX];
-    FANodeY = [FANodeY; eachFANodesY; margNodesY];
+    % nodes around FA periphery
+    fatFA = bwmorph(eachMaskFA,'dilate',2);
+    fatFAB=bwboundaries(fatFA,'noholes');
+    fatFA_boundary = fatFAB{1};
+    interval = ceil(500/pixelSize);
+    FAbdNodesX = fatFA_boundary(1:interval:end,2);
+    FAbdNodesY = fatFA_boundary(1:interval:end,1);
+
+    % adding alll nodes regarding this FA
+    FANodeX = [FANodeX; eachFANodesX; margNodesX; FAbdNodesX];
+    FANodeY = [FANodeY; eachFANodesY; margNodesY; FAbdNodesY];
 end
 % Get equi-spaced nodes on the cell boundary
 B=bwboundaries(bwPI4,'noholes');
@@ -90,25 +105,33 @@ band_FA = bandMask & ~maskFA;
 % find nascent adhesions from paxImage
 disp('detecting nascent adhesions ...')
 sigmaPSF_NA = 1.48;
-[pstruct_NA,mask] = pointSourceDetection(paxImage, sigmaPSF_NA,...
+pstruct_NA = pointSourceDetection(paxImage, sigmaPSF_NA,...
     'alpha', 0.05, 'mask', band_FA);
 NANodeX = ceil(pstruct_NA.x');
 NANodeY = ceil(pstruct_NA.y');
-NAs = [NANodeX NANodeY];
-NAs = [NAs; bdNodesX bdNodesY];
-% NAs + boundaryNodes are separated by 5 pixel 
+% Add hexagonal grid in the band region
+spacing = ceil(2000/pixelSize);
+[hexNAX,hexNAY]=createHexGridInMask(round(spacing/4),bandMask);
 
-idx = KDTreeBallQuery(NAs, NAs, 5);
-valid = true(numel(idx),1);
-for i = 1:numel(idx)
-    if ~valid(i), continue; end
-    neighbors_KD = idx{i}(idx{i}~=i);
-    valid(neighbors_KD) = false;
+NAs = [NANodeX NANodeY];
+NAs = [NAs; bdNodesX bdNodesY;hexNAX hexNAY];
+
+% nodes around NA
+nNA = length(NANodeX);
+for k=1:nNA
+%     eachMaskNA = false(size(paxImage));
+%     eachMaskNA(NANodeY(k),NANodeX(k))=1;
+    fatNA = sqrt((x_mat-NANodeX(k)).^2+(y_mat-NANodeY(k)).^2)<6;
+    fatNAB=bwboundaries(fatNA,'noholes');
+    fatNA_boundary = fatNAB{1};
+    interval = ceil(400/pixelSize);
+    NAbdNodesX = fatNA_boundary(1:interval:end,2);
+    NAbdNodesY = fatNA_boundary(1:interval:end,1);
+    NAs = [NAs; NAbdNodesX NAbdNodesY];
 end
-NAs = NAs(valid, :);
+
 NANodeX = NAs(:,1);
 NANodeY = NAs(:,2);
-
 % Get intNodes in interiorMask
 interiorMask = bwPI4 & ~bandMask & ~maskFA;
 [pstruct_intNA] = pointSourceDetection(paxImage, sigmaPSF_NA*1.5,...
@@ -132,9 +155,11 @@ intNANodeY = intNAs(:,2);
 % Get hexagonal nodes with 2000 nm spacing for bgdMask
 bgdMask = ~bwPI4;
 [bgdNodeX,bgdNodeY]=createHexGridInMask(spacing,bgdMask);
+
 % For all nodes, get their undeformed postitions using displField
 allNodesX=[FANodeX; NANodeX; intNANodeX; bgdNodeX];
 allNodesY=[FANodeY; NANodeY; intNANodeY; bgdNodeY];
+
 undNodesX=allNodesX;
 undNodesY=allNodesY;
 
@@ -148,71 +173,77 @@ for ii=1:length(allNodesX)
     undNodesY(ii) = allNodesY(ii) - dispVec(2);
 end
 
-% finally, mask the undNodes with ROImask about which xvec and yvec has
-% information
-% get grid information for entire image
-[entireNodeX,entireNodeY]=createHexGridInMask(spacing,true(size(bgdMask)));
-% filter entireNodeX and Y first
+% filter undNodesX and Y with ROI
 xmin = min(x_vec);
 xmax = max(x_vec);
 ymin = min(y_vec);
 ymax = max(y_vec);
-nEN = length(entireNodeX);
-idxEN = false(nEN,1);
-for ii=1:nEN
-    if entireNodeX(ii)>=xmin && entireNodeX(ii)<=xmax ...
-            && entireNodeY(ii)>=ymin && entireNodeY(ii)<=ymax
-        idxEN(ii) = true;
-    end
-end
-filteredHNX=entireNodeX(idxEN);
-filteredHNY=entireNodeY(idxEN);
 
-nPoints = length(undNodesX);
+nPoints = length(allNodesX);
 idxROI = false(nPoints,1);
-xmin = min(filteredHNX);
-xmax = max(filteredHNX);
-ymin = min(filteredHNY);
-ymax = max(filteredHNY);
 for ii=1:nPoints
-    if undNodesX(ii)>=xmin && undNodesX(ii)<=xmax ...
-            && undNodesY(ii)>=ymin && undNodesY(ii)<=ymax
+    if allNodesX(ii)>=xmin && allNodesX(ii)<=xmax ...
+            && allNodesY(ii)>=ymin && allNodesY(ii)<=ymax
         idxROI(ii) = true;
     end
 end
-
-xvec_d = allNodesX(idxROI);
-yvec_d = allNodesY(idxROI);
-
-% we use deformed (more straight at the boundaries) points for mesh
-% generation to prevent many obtuse triangles.
-%delaunay_mesh=delaunay(x_vec,y_vec);
-disp('constructing mesh ...')
-xyvec = [xvec_d yvec_d];
-xyvec = unique(xyvec,'rows');
-xvec_d = xyvec(:,1);
-yvec_d = xyvec(:,2);
-dt=DelaunayTri(xvec_d,yvec_d);
-delaunay_mesh=dt.Triangulation;
-
-% from dt.X, we get the undeformed position again
-allNodesX = dt.X(:,1);
-allNodesY = dt.X(:,2);
-undNodesX = zeros(size(allNodesX));
-undNodesY = zeros(size(allNodesY));
-for ii=1:length(allNodesX)
+% Out-most nodes for background
+inUndNodesX = undNodesX(idxROI);
+inUndNodesY = undNodesY(idxROI);
+% undeformed position of ROI boundary
+ROINode = [xmin ymin;xmax ymin;xmax ymax;xmin ymax];
+ROINodeX = ROINode(:,1);
+ROINodeY = ROINode(:,2);
+for ii=1:length(ROINodeX)
     distToNode = sqrt(sum(([displField.pos(:,1) displField.pos(:,2)]- ...
-                            ones(length(displField.pos(:,1)),1)*[allNodesX(ii) allNodesY(ii)]).^2,2));
+                            ones(length(displField.pos(:,1)),1)*[ROINodeX(ii) ROINodeY(ii)]).^2,2));
                         
     [~,closest_ind] = min(distToNode);
     dispVec = [displField.vec(closest_ind,1) displField.vec(closest_ind,2)];
-    undNodesX(ii) = allNodesX(ii) - dispVec(1);
-    undNodesY(ii) = allNodesY(ii) - dispVec(2);
+    undROINodeX(ii) = ROINodeX(ii) - dispVec(1);
+    undROINodeY(ii) = ROINodeY(ii) - dispVec(2);
 end
+undXmin = undROINodeX(1);
+undXmax = undROINodeX(2);
+undYmin = undROINodeY(1);
+undYmax = undROINodeY(4);
+% for left edge
+bdUndNodesYleft = [undYmin:round(spacing/2):undYmax]';
+bdUndNodesXleft = undXmin*ones(size(bdUndNodesYleft));
+%for top edge
+bdUndNodesXtop = [undXmin:round(spacing/2):undXmax]';
+bdUndNodesYtop = undYmax*ones(size(bdUndNodesXtop));
+%for right edge
+bdUndNodesYright = [undYmax:-round(spacing/2):undYmin]';
+bdUndNodesXright = undXmax*ones(size(bdUndNodesYright));
+%for bottom edge
+bdUndNodesXbottom = [undXmax:-round(spacing/2):undXmin]';
+bdUndNodesYbottom = undYmin*ones(size(bdUndNodesXbottom));
+
+bdUndNodesX = [bdUndNodesXleft; bdUndNodesXtop; bdUndNodesXright; bdUndNodesXbottom];
+bdUndNodesY = [bdUndNodesYleft; bdUndNodesYtop; bdUndNodesYright; bdUndNodesYbottom];
+
+undNodesX = [inUndNodesX; bdUndNodesX];
+undNodesY = [inUndNodesY; bdUndNodesY];
+
+% undNodes are separated at least by 5 pixel 
+undNodes = [undNodesX undNodesY];
+idx = KDTreeBallQuery(undNodes, undNodes, 5);
+valid = true(numel(idx),1);
+for i = 1:numel(idx)
+    if ~valid(i), continue; end
+    neighbors_KD = idx{i}(idx{i}~=i);
+    valid(neighbors_KD) = false;
+end
+undNodes = undNodes(valid, :);
+undNodesX = undNodes(:,1);
+undNodesY = undNodes(:,2);
 
 xvec=undNodesX;
 yvec=undNodesY;
-% k = convexHull(dt);
+dt=DelaunayTri(xvec,yvec);
+delaunay_mesh=dt.Triangulation;
+
 %for each node find all its neighbors:
 for n=1:length(xvec)
     candidates=[];
@@ -230,38 +261,8 @@ for n=1:length(xvec)
         end
     end
     neighbors(n).cand=sort(candidates);
-    
-    % find the minimal rectangular region around the central node which includes
-    % all neighboring nodes. This will be needed for integration:
-    % store the bounds parameterized so that only triangulated area is
-    % considered for integration
-    % see if the node is on the convexhull
-%     if ismember(n,k)
-%         bounds(n).x=[min(xvec(candidates)) max(xvec(candidates))];
-%         bounds(n).y=[min(yvec(candidates)) max(yvec(candidates))];   
-%         % see if this min max rectangle exceeds the convex hull
-%         if bounds(n).y(1)<yvec(n)
-%             x1 = xvec(n);
-%             y1 = yvec(n);
-%             x2 = xvec(candidates(yvec(candidates)==bounds(n).y(1)));
-%             y2 = yvec(candidates(yvec(candidates)==bounds(n).y(1)));
-%             bounds(n).y(1) = @(x) (y1-y2)/(x1-x2)*x+(x1*y2-x2*y1)/(x1-x2);
-%         end
-%         [xnei,ixnei] = sort(xvec(candidates));
-%         ynei = yvec(ixnei);
-%         x4 = xnei(2); y4=ynei(2);
-%         if x4>xvec(n) && y4>yvec(n)
-%             x1 = xvec(n);
-%             y1 = yvec(n);
-%             bounds(n).x(1) = @(y) (x1-x4)/(y1-y4)*y+(y1*x4-y4*x1)/(y1-y4);
-%         end
-%         if bounds(n).x(2)>xvec(n)
-%             
-%         end
-%     else
     bounds(n).x=[min(xvec(candidates)) max(xvec(candidates))];
     bounds(n).y=[min(yvec(candidates)) max(yvec(candidates))];   
-%     end
 end
 
 myMesh.p=[xvec,yvec];
@@ -269,31 +270,43 @@ myMesh.dt=dt;  % DelaunayTri structure
 myMesh.neighbors=neighbors;
 myMesh.bounds=bounds;
 myMesh.numNodes=length(myMesh.p(:,1));
-
-base = struct('f_disc',zeros(myMesh.numNodes,2));
-base = repmat(base,2*myMesh.numNodes,1);
+bdPtsID= convexHull(dt);
 
 % meshBase = struct('f_intp_x',@(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(1).f_disc(:,1),'linear'),...
 %                                     'f_intp_y',@(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+1).f_disc(:,1),'linear'));
 % myMesh.base = repmat(meshBase, 2*myMesh.numNodes,1);                        
-myMesh.base(2*myMesh.numNodes).f_intp_x = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes).f_disc(:,1),'linear'); 
-myMesh.base(2*myMesh.numNodes).f_intp_y = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes*2).f_disc(:,1),'linear'); 
+allPtsID = 1:myMesh.numNodes;
+intPtsID = setdiff(allPtsID,bdPtsID);
+myMesh.numBasis = length(intPtsID);
+myMesh.baseID(myMesh.numNodes) = 0;
+
+base = struct('f_disc',zeros(myMesh.numNodes,2));
+base = repmat(base,2*myMesh.numBasis,1);
+myMesh.base(2*myMesh.numBasis).f_intp_x = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numBasis).f_disc(:,1),'linear'); 
+myMesh.base(2*myMesh.numBasis).f_intp_y = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numBasis*2).f_disc(:,1),'linear'); 
 %create the basis functions and interpolate them using the Delaunay Triangulation:
-for j=1:myMesh.numNodes
+p=0;
+for j=intPtsID
+    p=p+1;
     old_cputime = cputime;
-    base(j).f_disc(j,1)=1;
-    base(myMesh.numNodes+j).f_disc(j,2)=1;
+    base(p).f_disc(j,1)=1;
+    base(myMesh.numBasis+p).f_disc(j,2)=1;
     
-    disp(['Creating ' num2str(j) 'th force base ... (' num2str(cputime-old_cputime) ' sec passed)'])
+    disp(['Creating ' num2str(p) 'th force base ... (' num2str(cputime-old_cputime) ' sec passed)'])
 end
-for j=1:myMesh.numNodes
+p=0;
+for j=intPtsID
+    p=p+1;
     old_cputime = cputime;
-    myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,1),'linear');
-    myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
-    myMesh.base(j).testNumber = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,2),'linear',j); % only zeros
-    myMesh.base(myMesh.numNodes+j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,1),'linear'); % only zeros
-    myMesh.base(myMesh.numNodes+j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,2),'linear'); 
-    disp(['Creating ' num2str(j) 'th basis function ... (' num2str(cputime-old_cputime) ' sec passed)'])
+    myMesh.base(p).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(p).f_disc(:,1),'linear');
+    myMesh.base(p).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(p).f_disc(:,2),'linear'); % only zeros
+    myMesh.base(p).testNumber = @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(p).f_disc(:,2),'linear',j); % only zeros
+    myMesh.base(myMesh.numBasis+p).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numBasis+p).f_disc(:,1),'linear'); % only zeros
+    myMesh.base(myMesh.numBasis+p).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numBasis+p).f_disc(:,2),'linear'); 
+    myMesh.base(p).nodeID = j;
+    myMesh.baseID(j) = p; %used when calculating Gram matrix
+    myMesh.base(p).node = myMesh.p(j,:);
+    disp(['Creating ' num2str(p) 'th basis function ... (' num2str(cputime-old_cputime) ' sec passed)'])
 end
     function vOut=nan2zeroTriScatteredInterp(x,y,dtIn,vIn,method,j)
         if nargin<6

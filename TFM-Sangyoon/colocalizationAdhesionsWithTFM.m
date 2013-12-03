@@ -146,8 +146,8 @@ iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 % SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
 % minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
-minLifetime = 1;
-
+minLifetime = min(nFrames,3);
+markerSize = 2;
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level
 
@@ -270,7 +270,15 @@ for ii=1:nFrames
     %estimate the intensity level to use for thresholding the image
     level1 = graythresh(pId); %Otsu
 %     [~, level2] = cutFirstHistMode(pId,0); %Rosin
-    alpha = 0.94*level1;
+    if ii==1
+        alpha1 = 0.95*level1;
+        alpha2 = 0.75*level1;
+        figure,subplot(2,1,1),imshow(pId,[]),title('original image');
+        subplot(2,2,3),imshow(im2bw(pId,alpha1)),title(['0.95*level1, alpha = ' num2str(alpha1) ]);
+        subplot(2,2,4),imshow(im2bw(pId,alpha2)),title(['0.75*level1, alpha = ' num2str(alpha2) ]);
+        alpha = input('type desired alpha to threshold the image so that it encompass entire cell membrane: ');
+    end
+        
 %     alpha = 0.82*level1; for after fak
 %     alpha = 0.9*level2 + 0.87*level1;
 %     tempH = figure; subplot(2,1,1), imshow(paxImageCropped,[]), title('original image');
@@ -344,43 +352,11 @@ for ii=1:nFrames
         end
     end
    
-%     % Get all nascent adhesions
-%     if bFirst
-%         pstruct_NA = pointSourceDetection(paxImageCropped, sigmaPSF_NA*1.3, 'alpha', 0.01,'Mask',naMask);
-% 
-%         % Showing for debug
-% %         h0=figure; imshow(paxImageCropped,[])
-% %         hold on;
-% %         plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.25) % cell boundary
-% %         plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
-% %         for k = 1:length(adhBound)
-% %             adhBoundary = adhBound{k};
-% %             plot(adhBoundary(:,2), adhBoundary(:,1), 'w', 'LineWidth', 1) %adhesion boundary
-% %         end
-% 
-% %         % ginput test for not-detected adhesions
-% %         disp('Click nascent adhesions and press Enter when you are done with clicking');
-% %         NA_man_detected = ginput;
-% %         if ~isempty(NA_man_detected)
-% %             plot(NA_man_detected(:,1),NA_man_detected(:,2),'ro')
-% %             nPoints = length(pstruct_NA.A);
-% %             old_pstruct_NA = pstruct_NA;
-% %             pstruct_NA.x(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,1);
-% %             pstruct_NA.y(nPoints+1:nPoints+length(NA_man_detected)) = NA_man_detected(:,2);
-% %             % for amplitude
-% %             for k=1:size(NA_man_detected,1)
-% %                 pstruct_NA.A(nPoints+k) = paxImageCropped(round(NA_man_detected(k,2)),round(NA_man_detected(k,1)));
-% %             end
-% %         end
-%         pstruct_NAcell{ii} = pstruct_NA;
-%     else
-%         pstruct_NA = pstruct_NAcell{ii};
-%     end
     % focal contact (FC) analysis
     Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
-    propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
+%     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
     minFASize = round((2000/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
-    minFCSize = round((800/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
+    minFCSize = round((600/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
 
     fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
     FCs = Adhs(fcIdx);
@@ -526,10 +502,10 @@ for ii=1:nFrames
     %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
     %         for kk=1:nEachFA
     %             adhBoundary = adhBound{kk};
-    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
     %         end
             adhBoundary = adhBound{k};
-            plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
         end
 
         for k = FAIdx'
@@ -546,16 +522,16 @@ for ii=1:nFrames
             if tracksNA(k).presence(ii)
                 if strcmp(tracksNA(k).state{ii} , 'NA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r', 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FC')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'b')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'bo')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k', 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
@@ -573,71 +549,26 @@ for ii=1:nFrames
         hgsave(h1,strcat(figPath,'/forcePeakFig',num2str(ii,iiformat)),'-v7.3')
         print('-depsc2', '-r300', strcat(epsPath,'/forcePeak',num2str(ii,iiformat),'.eps'));
     end    
-%     % Find detectable NAs from pstruct_NA
-%     NAs = [grid_mat(1,1,1)+pstruct_NA.x' grid_mat(1,1,2)+pstruct_NA.y'];
-%     deformedBeads = [displField(ii).pos(:,1)+displField(ii).vec(:,1) displField(ii).pos(:,2)+displField(ii).vec(:,2)];
-%     idx = KDTreeBallQuery(deformedBeads,NAs, 3);
-%     valid = ~cellfun(@isempty, idx);
-% %     valid = (displField.vec(cell2mat(idx),1).^2+displField.vec(cell2mat(idx),2).^2).^0.5;
-%     NAdetec = NAs(valid, :);
-%     NAundetec = NAs(~valid, :);
-
-%     plot(NAdetec(:,1)-grid_mat(1,1,1),NAdetec(:,2)-grid_mat(1,1,2),'ro')
-%     plot(NAundetec(:,1)-grid_mat(1,1,1),NAundetec(:,2)-grid_mat(1,1,2),'ro')
-%     forceNAdetec = zeros(length(NAdetec),1);
-%     for i=1:size(NAdetec,1)
-%         curF_NAdetec = tsMap(round(NAdetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAdetec(i,2))-grid_mat(1,1,2)+neighPix,...
-%             round(NAdetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAdetec(i,1))-grid_mat(1,1,1)+neighPix);
-%         forceNAdetec(i) = max(curF_NAdetec(:));
-%     end
-%     forceNAund = zeros(length(NAundetec),1);
-%     for i=1:size(NAundetec,1)
-%         curF_NAund = tsMap(round(NAundetec(i,2))-grid_mat(1,1,2)-neighPix:round(NAundetec(i,2))-grid_mat(1,1,2)+neighPix,...
-%             round(NAundetec(i,1))-grid_mat(1,1,1)-neighPix:round(NAundetec(i,1))-grid_mat(1,1,1)+neighPix);
-%         forceNAund(i) = max(curF_NAund(:));
-%     end
-%     forceNA = [forceNAdetec; forceNAund];
-%     forceNAdetec = tsMap(round(NAdetec(:,2))-grid_mat(1,1,2),round(NAdetec(:,1))-grid_mat(1,1,1));
-%     plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
-%     plot(NA_man_detected(:,1),NA_man_detected(:,2),'m*')
-        
-    
-%     idxCurTracksNA = arrayfun(@(x) x.seqOfEvents(1,1)<=ii & x.seqOfEvents(2,1)>=ii,tracksNA); % may not need this
-    
-    
-%     % Get magnitude of force and the curvature of the force at each (stored
-%     % in pstruct_NAwithForce.fmag and pstruct_NAwithForce.fcurvature)
-%     pstruct_NAwithForce = findMagCurvature(tsMap,pstruct_NA,5);
-%     
-%     % Plot paxillin intensity with force magnitude
-%     figure, plot(pstruct_NAwithForce.A,pstruct_NAwithForce.fmag,'.')
-%     xlabel('Pax Intensity (A.U.)')
-%     ylabel('Stress magnitude (Pa)')
-%     figure, plot(pstruct_NAwithForce.A,pstruct_NAwithForce.fcurvature,'r.')
-%     % Make a histogram with pstruct_NAwithForce
-%     figure, hist(pstruct_NAwithForce.fmag,250:500:3000)
-
-%     save(strcat(dataPath,'/pstructNAForce',num2str(ii,iiformat)), 'pstruct_NAwithForce');
-%     %---- for FAs, do line integral of force gradient along focal adhesion
-%     distVals=-3:3; %positive =inside
-%     repDist = 2.5:-1:-2.5; % making positive=outside for plotting
-%     [avgFprofile,avgFprofileStd,nPts] = intensityVsDistFromEdge(tsMap,maskAdhesion,distVals);
-%     figure,plot(repDist,avgFprofile)
-%     [~,avgFslope,~] = regression(repDist,avgFprofile);
-% %     plot(repDist,mean(avgFprofile,1),'k','LineWidth',2)
-%     FAstruct.avgFprofile = avgFprofile;
-%     FAstruct.avgFprofileStd = avgFprofileStd;
-%     FAstruct.avgFslope = avgFslope;
-%     FAstruct.Finside = avgFprofile(end);
-%     FAstruct.FinsideErr = avgFprofileStd(end)/sqrt(max(nPts)); %SEM
-%     save(strcat(dataPath,'/FAstruct',num2str(ii,iiformat)),'FAstruct');
     if showAllTracks
         h2=figure;
         set(h2, 'Position', [100 50+round(1.4*imSizeY) (imSizeX+1) imSizeY+1])
 
         %Scale bar 2 um
     %     paxImageCropped(15:16,10:10+round(2000/MD.pixelSize_))=max(max(paxImageCropped));
-        imshow(imcomplement(paxImageCropped),[]), hold on
+        paxImageCroppedInverted = imcomplement(paxImageCropped);
+        minPax = min(paxImageCroppedInverted(:));
+        maxPax = max(paxImageCroppedInverted(:));
+
+        if ii==1
+            minPax1 = 1*minPax;
+            minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
+            hPaxTemp = figure;
+            subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
+            subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
+            minPax = input('type desired minPax for maximum of the image: ');
+            close(hPaxTemp);
+        end        
+        imshow(paxImageCroppedInverted,[minPax maxPax]), hold on
         line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
         
         for kk=1:nBD
@@ -646,23 +577,11 @@ for ii=1:nFrames
         end
     %     plot(pstruct_NA.x,pstruct_NA.y,'ro') % pax peaks in HF
         for k = FCIdx'
-    %         eachFA = maskFAs==k;
-    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
-    %         for kk=1:nEachFA
-    %             adhBoundary = adhBound{kk};
-    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
-    %         end
             adhBoundary = adhBound{k};
-            plot(adhBoundary(:,2), adhBoundary(:,1), 'b', 'LineWidth', 0.5) %adhesion boundary
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
         end
         % for larger adhesions
         for k = FAIdx'
-    %         eachFA = maskFAs==k;
-    %         [adhBound,~,nEachFA] = bwboundaries(eachFA,'noholes');
-    %         for kk=1:nEachFA
-    %             adhBoundary = adhBound{kk};
-    %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
-    %         end
             adhBoundary = adhBound{k};
             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
         end
@@ -670,16 +589,16 @@ for ii=1:nFrames
             if tracksNA(k).presence(ii)
                 if strcmp(tracksNA(k).state{ii} , 'NA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'r', 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ro','MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FC')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'b')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'bo')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k')
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko')
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k', 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
@@ -779,9 +698,9 @@ if plotEachTrack
                 plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
             elseif strcmp(tracksNA(k).state{j} , 'FC')
                 % drawing tracks
-                plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
                 adhBoundary = tracksNA(k).adhBoundary{j};
-                plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
             elseif strcmp(tracksNA(k).state{j} , 'FA')
                 % drawing tracks
                 plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
@@ -804,9 +723,9 @@ if plotEachTrack
                     continue
                 end
                 % drawing tracks
-                plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
                 adhBoundary = tracksNA(k).adhBoundary{j};
-                plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
             elseif strcmp(tracksNA(k).state{j}, 'FA')
                 if j==iSF
                     continue
@@ -879,17 +798,17 @@ if plotEachTrack
                         plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
                     elseif strcmp(tracksNA(k).state{fend} , 'FC')
                         % drawing tracks
-                        plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                        plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
                         adhBoundary = tracksNA(k).adhBoundary{j};
                         if ~isnan(adhBoundary)
-                            plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                            plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
                         end
                     elseif strcmp(tracksNA(k).state{fend} , 'FA')
                         % drawing tracks
                         plot(ha1,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
                         adhBoundary = tracksNA(k).adhBoundary{j};
                         if ~isnan(adhBoundary)
-                            plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                            plot(ha1,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
                         end
                     end
                     ha2 = subplot('position',[0  0  1 0.5]);
@@ -899,17 +818,17 @@ if plotEachTrack
                         plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'r', 'LineWidth', 0.5)
                     elseif strcmp(tracksNA(k).state{fend} , 'FC')
                         % drawing tracks
-                        plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'b', 'LineWidth', 0.5)
+                        plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
                         adhBoundary = tracksNA(k).adhBoundary{j};
                         if ~isnan(adhBoundary)
-                            plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                            plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
                         end
                     elseif strcmp(tracksNA(k).state{fend} , 'FA')
                         % drawing tracks
                         plot(ha2,tracksNA(k).xCoord(1:j)-grid_mat(1,1,1)-xminROI,tracksNA(k).yCoord(1:j)-grid_mat(1,1,2)-yminROI,'k', 'LineWidth', 0.5)
                         adhBoundary = tracksNA(k).adhBoundary{j};
                         if ~isnan(adhBoundary)
-                            plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'b', 'LineWidth', 0.5) %adhesion boundary
+                            plot(ha2,adhBoundary(:,2)-xminROI, adhBoundary(:,1)-yminROI, 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
                         end
                     end
                     curRenderer = get(h2,'Renderer');

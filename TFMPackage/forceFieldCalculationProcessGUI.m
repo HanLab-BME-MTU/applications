@@ -59,8 +59,8 @@ set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
 set(handles.edit_thickness,'String',funParams.thickness/1000);
 
 % Create pop-up menu for force reconstruction method
-solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
-solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
+solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'FTL1';'LaplacianReg';'1NormRegLaplacian'};
+solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'FTL1';'LaplacianReg';'1NormRegLaplacian'};
 solMethodBEMValue = find(strcmp(funParams.solMethodBEM,solMethodBEMData));
 set(handles.popupmenu_solMethodBEM,'String',solMethodBEMString,...
     'UserData',solMethodBEMData,'Value',solMethodBEMValue);

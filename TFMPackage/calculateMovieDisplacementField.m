@@ -116,10 +116,14 @@ tempMask = maskArray(:,:,1);
 firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
-if ~strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
-    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for confocal or widefield
+if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
+    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
+    sigmaPSF = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
+    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
 else
-    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*4/7 scale down for TIRF finer detection SH012913
+    error('image type should be chosen among Widefield, confocla and TIRF!');
 end
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');

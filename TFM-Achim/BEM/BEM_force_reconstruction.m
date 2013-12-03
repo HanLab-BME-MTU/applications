@@ -32,22 +32,28 @@ ip.addRequired('method',@(x)ischar(x)||isempty(x)); % updated in case for BEM
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
+ip.addParamValue('LcurveDataPath','',@ischar);
+ip.addParamValue('LcurveFigPath','',@ischar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
 ip.addOptional('fwdMap',[],@isnumeric);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
+LcurveDataPath=ip.Results.LcurveDataPath;
+LcurveFigPath=ip.Results.LcurveFigPath;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 M = ip.Results.fwdMap;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
+useLcurve = ip.Results.useLcurve;    
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -158,15 +164,16 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % make matrix with paxImage at the basis nodes
         MpM=M'*M;
-%         [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
         if ~isempty(paxImage)
-
             paxWeights = getPaxWeights(forceMesh,paxImage,x_vec,y_vec,ux_vec,uy_vec);
             [Q,R] = qr((MpM+L*eyeWeights.*paxWeights));
             sol_coef=R\(Q'*(M'*u));
             sol_mats.eyeWeights=eyeWeights;
             sol_mats.L=L;
         else
+            if useLcurve
+                [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
+            end
             [Q,R] = qr((MpM+L*eyeWeights));
             sol_coef=R\(Q'*(M'*u));
             sol_mats.Q=Q;
@@ -219,10 +226,12 @@ if nargin >= 10 && strcmp(method,'fast')
         maxIter = 50;
         tolx = 1e-2;
         tolr = 1e-7;
-%         disp('L-curve ...')
-
-%         [~,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
-        sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+        if useLcurve
+            disp('L-curve ...')
+            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM,LcurveDataPath,LcurveFigPath);
+        else
+            sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+        end
 %         sol_mats.nW=normWeights;
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.L=L;
@@ -232,6 +241,39 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.tolx = tolx;
         sol_mats.tolr = tolr;
         sol_mats.tool='1NormReg';
+    elseif strcmpi(solMethodBEM,'FTL1')
+        % L1 regularization using fourier transform
+        disp('L1 regularization using fourier transform...')
+
+%         [eyeWeights,~] =getGramMatrix(forceMesh);
+%         % plot the solution for the corner
+%         MpM=M'*M;
+        maxIter = 50;
+        tolx = 1e-2;
+        tolr = 1e-7;
+%         reg_grid(:,:,1) = reshape(forceMesh.p(:,1),sum(forceMesh.p(:,1)==forceMesh.p(1,1)),sum(forceMesh.p(:,2)==forceMesh.p(1,2)));
+%         reg_grid(:,:,2) = reshape(forceMesh.p(:,2),sum(forceMesh.p(:,1)==forceMesh.p(1,1)),sum(forceMesh.p(:,2)==forceMesh.p(1,2)));
+%         
+%         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid([x,y], [ux,uy],[],reg_grid);
+%         pRatio = 0.5;
+%         pixSize_um = 69/1000; % this doesn't matter
+%         gridSpacing = forceMesh.p(2,2)-forceMesh.p(1,2);
+        
+        if useLcurve
+            disp('L-curve ...')
+            [sol_coef,L] = calculateLfromLcurveSparseFT(grid_mat, iu_mat, E,...
+                pRatio, pixSize_um, gridSpacing,...
+                i_max, j_max, L,maxIter,tolx,tolr); 
+        else
+            sol_coef = FTL1(forceMesh,x,y,ux,uy,E,L,maxIter,tolx,tolr);
+        end
+%         sol_mats.nW=normWeights;
+        sol_mats.L=L;
+        sol_mats.E = E;
+        sol_mats.maxIter = maxIter;
+        sol_mats.tolx = tolx;
+        sol_mats.tolr = tolr;
+        sol_mats.tool='FTL1';
     elseif strcmpi(solMethodBEM,'1NormRegLaplacian')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution with laplacian')
@@ -259,7 +301,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % store it for later use:
         [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
-        [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights);
+        [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
 %         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         % store these matrices for next frames:
         sol_mats.eyeWeights=eyeWeights;
@@ -401,7 +443,7 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights)
+function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath)
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(-9:.125:-4.5);
 rho=zeros(length(alphas),1);
@@ -435,7 +477,9 @@ set(H,'Fontsize',7);
 disp('Printing L-curve...')
 % print -deps2 nameSave
 print(hLcurve,'Lcurve.eps','-depsc')
-save(['LcurveParameters.mat'],'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
+saveas(hLcurve,LcurveFigPath);
+
+save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
 sol_coef = mtik(:,ireg_corner);
 
@@ -469,9 +513,9 @@ sol_coef = mtik(:,ireg_corner);
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave)
+function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave,LcurveDataPath,LcurveFigPath)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2:0.125:log10(L)+1);
+alphas=10.^(log10(L)-2.5:0.125:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
@@ -488,7 +532,7 @@ end
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
-set(hLcurve, 'Position', [100 100 300 300])
+set(hLcurve, 'Position', [100 100 500 500])
 
 loglog(rho,eta,'k-');
 xlabel('Residual Norm ||Gm-d||_{2}');
@@ -504,6 +548,50 @@ set(H,'Fontsize',7);
 disp('Displaying the 1-norm L-curve')
 % print -deps2 nameSave
 print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
-save(['LcurveParameters.mat'],'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
+saveas(hLcurve,LcurveFigPath);
+save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
 
 sol_coef = msparse(:,ireg_corner);
+
+function [sol_coef,reg_corner] = calculateLfromLcurveSparseFT(grid_mat, iu_mat, E,pRatio, pixSize_um, gridSpacing,i_max, j_max, L,maxIter,tolx,tolr)
+%examine a logarithmically spaced range of regularization parameters
+alphas=10.^(log10(L)-2.5:0.125:log10(L)+2);
+rho=zeros(length(alphas),1);
+eta=zeros(length(alphas),1);
+msparse=zeros(size(M,2),length(alphas));
+for i=1:length(alphas);
+    disp(['testing L = ' num2str(alphas(i)) '... '])
+    msparse(:,i)=FTL1(grid_mat, iu_mat, E,...
+                pRatio, pixSize_um, gridSpacing,...
+                i_max, j_max, L,maxIter,tolx,tolr); 
+    rho(i)=norm(M*msparse(:,i)-u);
+    eta(i)=norm(msparse(:,i),1);
+end
+
+% Find the corner of the Tikhonov L-curve
+% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+
+% Plot the sparse deconvolution L-curve.
+hLcurve = figure;
+set(hLcurve, 'Position', [100 100 500 500])
+
+loglog(rho,eta,'k-');
+xlabel('Residual Norm ||Gm-d||_{2}');
+ylabel('Solution Norm ||m||_{1}');
+hold on
+% mark and label the corner
+H=loglog(rho(ireg_corner),eta(ireg_corner),'ro');
+set(H,'markersize',6)
+H=text(rho(ireg_corner),1.1*eta(ireg_corner),...
+    ['    ',num2str(alphas(ireg_corner),'%5.1e')]);
+set(H,'Fontsize',7);
+% axis([1e-2 100 0.001 1e8])
+disp('Displaying the 1-norm L-curve')
+% print -deps2 nameSave
+print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
+saveas(hLcurve,LcurveFigPath);
+save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
+
+sol_coef = msparse(:,ireg_corner);
+

@@ -39,6 +39,8 @@ forceFieldProc = movieData.processes_{iProc};
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.usePaxImg = false;
 p.saveBEMparams = false;
+p.useLcurve = true;
+p.lastToFirst = true;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
 %     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
@@ -86,8 +88,10 @@ forceFieldProc.setInFilePaths(inFilePaths);
 % Set up the output file
 outputFile{1,1} = [p.OutputDirectory filesep 'forceField.mat'];
 outputFile{2,1} = [p.OutputDirectory filesep 'BEMParams.mat'];
-if  ~strcmp(p.solMethodBEM,'QR')
+% if  ~strcmp(p.solMethodBEM,'QR')
+if p.useLcurve
     outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.fig'];
+    outputFile{4,1} = [p.OutputDirectory filesep 'LcurveData.mat'];
 end
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
@@ -155,8 +159,14 @@ logMsg = 'Please wait, calculating force field';
 timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
-
-for i=1:nFrames
+if p.lastToFirst 
+    frameSequence = nFrames:-1:1;
+else
+    frameSequence = 1:nFrames;
+end
+jj = 0;
+for i=frameSequence
+    jj=jj+1;
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
 %     if min(min(maskArray(:,:,1))) == 0 %when ROI was used, make a denser displacement field by interpolation
@@ -200,15 +210,27 @@ for i=1:nFrames
             display(['Done: solution for frame: ',num2str(i)]);
             
         else
-            if i==1
+            if jj==1
 %                 if ishandle(wtBar)
 %                     waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
 %                 end
-                [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-                    reg_FastBEM_TFM(grid_mat, displField, i, ...
-                    p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-                    'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-                    'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),'thickness',p.thickness/movieData.pixelSize_);
+                if p.useLcurve
+                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                        reg_FastBEM_TFM(grid_mat, displField, i, ...
+                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                        'useLcurve',p.useLcurve,'thickness',p.thickness/movieData.pixelSize_,...
+                        'LcurveDataPath',outputFile{4,1},'LcurveFigPath',outputFile{3,1});
+                    p.regParam = sol_mats.L;
+                else
+                    [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
+                        reg_FastBEM_TFM(grid_mat, displField, i, ...
+                        p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
+                        'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
+                        'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
+                        'useLcurve',p.useLcurve,'thickness',p.thickness/movieData.pixelSize_);
+                end
                 %             display('The total time for calculating the FastBEM solution: ')
                 
                 % The following values should/could be stored for the BEM-method.

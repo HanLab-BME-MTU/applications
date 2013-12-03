@@ -1,20 +1,15 @@
-function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,pointTF,tmax )
+function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,tmax )
 %generateHeatmapFromTFMPackage generates heatmap from forcefield stored in
 %movieData.
 % input:    pathForTheMovieDataFile:    path to the movieData file
 %           band:                       band width for cutting border
 %           (default=4)
-%           pointTF:                    true if you want to trace force at
 %           a certain point (default = false)
 % output:   images of heatmap stored in pathForTheMovieDataFile/heatmap
 if nargin < 2
     band = 4;
-    pointTF = false;
     tmax=[];
 elseif nargin <3
-    pointTF = false;
-    tmax=[];
-elseif nargin<4
     tmax=[];
 end
 % Load the MovieData
@@ -39,7 +34,25 @@ iForceFieldProc = 4;
 forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceField=forceFieldProc.loadChannelOutput;
 
-% Load the Paxillin channel
+% filter forcefield temporally
+% for each node
+Nnodes = length(forceField(1).pos);
+for k=1:Nnodes
+    % see the profile
+    curVecX = arrayfun(@(x) x.vec(k,1),forceField);
+    curVecY = arrayfun(@(x) x.vec(k,2),forceField);
+%     figure, plot(1:length(curVecX),curVecX)
+    [~,px] = csaps(1:length(curVecX),curVecX);
+    [~,py] = csaps(1:length(curVecY),curVecY);
+    smVecX2 = csaps(1:length(curVecX),curVecX,px*0.5);
+    smVecY2 = csaps(1:length(curVecY),curVecY,py*0.5);
+    smVecX3 = fnval(smVecX2,1:length(curVecX));
+    smVecY3 = fnval(smVecY2,1:length(curVecY));
+%     hold all, plot(1:length(curVecX),smVecX3)
+    for ii=1:length(curVecX)
+        forceField(ii).vec(k,:) = [smVecX3(ii) smVecY3(ii)];
+    end
+end
 
 % Set up the output file path
 outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
@@ -99,16 +112,7 @@ end
 
 [reg_grid,~,~,spacing]=createRegGridFromDisplField(displField,4); %2=2 times fine interpolation
 
-h1 = figure('color','w');
-%     h2 = figure;
 hold off
-% [indULy,indULx] = ind2sub(size(firstMask),find(firstMask,1,'first'));
-% [indBRy,indBRx] = ind2sub(size(firstMask),find(firstMask,1,'last'));
-% imSizeX = indBRx-indULx-band*spacing;
-% imSizeY = indBRy-indULy-band*spacing;
-
-%     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
-hc = []; %handle for colorbar
 hl = []; %handle for scale bar
 iiformat = ['%.' '3' 'd'];
 TSlevel = zeros(nFrames,1);
@@ -145,11 +149,11 @@ for ii=1:nFrames
 %             'EdgeColor','none', 'FaceLighting','gouraud');%, 'FaceLighting','phong');
 %         zlim([tmin tmax]), view(0,90)
 %     hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
+    h1 = figure('color','w');
     imSizeX = grid_mat(end,end,1)-grid_mat(1,1,1);
     imSizeY = grid_mat(end,end,2)-grid_mat(1,1,2);
-    if ii==1
-        set(h1, 'Position', [100 100 (imSizeX+1)*1.25 imSizeY+1])
-    end
+    set(h1, 'Position', [100 100 (imSizeX+1)*1.25 imSizeY+1])
+    
     subplot(1,1,1)
     subplot('Position',[0 0 0.8 1])
 %     hs = pcolor(grid_mat(:,:,1), grid_mat(:,:,2), tnorm);%,[tmin tmax]);
@@ -192,26 +196,9 @@ for ii=1:nFrames
     % Scale bar 2000nm
     if isempty(hl)
         hold on
-        hl = line([grid_mat(2,2,1),grid_mat(2,2,1)+2000/movieData.pixelSize_],[grid_mat(2,2,2),grid_mat(2,2,2)],'Color','w','Linewidth',2);
-    end
-%         xlim([LeftUpperCorner(1) RightLowerCorner(1)])
-%         ylim([LeftUpperCorner(2) RightLowerCorner(2)])
-    % pick a point
-    if pointTF && ii==1
-        point = ginput(1);
-    end
-    % point = [357.7008  319.1465]
-    % grid_mat's sub for point
-%     spacing = grid_mat(2,1,1)-grid_mat(1,1,1);
-    if pointTF
-        indTS = find(grid_mat(:,:,1)>point(1)-spacing/2 & grid_mat(:,:,1)<=point(1)+spacing/2 ...
-                            & grid_mat(:,:,2)>point(2)-spacing/2 & grid_mat(:,:,2)<=point(2)+spacing/2);
-        [xTS,yTS] = ind2sub(size(tnorm),indTS);
-        TSlevel(ii) = mean(mean(tnorm(xTS-1:xTS+1,yTS-1:yTS+1)));
+        hl = line([10 10+round(2000/movieData.pixelSize_)],[15 15],'LineWidth',2,'Color',[1,1,1]);
     end
     axis off
-
-
     hold on
     subplot('Position',[0.8 0.1 0.1 0.8])
     axis tight
@@ -243,14 +230,11 @@ for ii=1:nFrames
     hold off
 %     delete(hs)
     delete(hq)
-end
-if pointTF
-    t = (0:nFrames-1)*movieData.timeInterval_;
-    figure,[AX,H1,H2] = plotyy(t,TSlevel,t,paxLevel,'plot');
-    set(get(AX(1),'Ylabel'),'String','Traction Stress (Pa)') 
-    set(get(AX(2),'Ylabel'),'String','Paxillin Fluorescence Intensity (A.U)') 
-    xlabel('Time (sec)') 
-    set(H1,'LineStyle','--')
+    delete(hl);
+    delete(hc);
+    hl = []; %handle for scale bar
+    
+    close(h1)
 end
 return;
 % to run the function:

@@ -13,10 +13,13 @@ ip.addRequired('regParam',@isscalar);
 ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
+ip.addParamValue('LcurveDataPath','',@ischar);
+ip.addParamValue('LcurveFigPath','',@ischar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('useLcurve',false,@islogical);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
@@ -24,6 +27,8 @@ ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
+LcurveDataPath=ip.Results.LcurveDataPath;
+LcurveFigPath=ip.Results.LcurveFigPath;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
@@ -31,6 +36,7 @@ thickness = ip.Results.thickness;
 paxImage = ip.Results.paxImg;
 pixelSize = ip.Results.pixelSize;
 forceMesh = ip.Results.forceMesh;
+useLcurve = ip.Results.useLcurve;
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -66,7 +72,8 @@ if isempty(paxImage)
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
-        'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);
+        'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
+        'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));
