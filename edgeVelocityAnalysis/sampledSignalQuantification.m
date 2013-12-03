@@ -5,7 +5,7 @@ function cellData = sampledSignalQuantification(movieObj,channel,varargin)
 %                           cluster velocities and persistence time
 %                           for each window: persistence time;protrusion/retraction block;Upper and lower noise threshold
 %
-% All the above quantifications are done for each cell of the movieObj (movieList or movieData)
+% All the above quantifications are do,1,signalInput{:}ne for each cell of the movieObj (movieList or movieData)
 % If the input 'interval' is set, all the described quantifications are calculated for each time interval
 %
 % IMPORTANT: This function requires to format the time series first. To do that, run the function "formatEdgeVelocity".
@@ -40,7 +40,7 @@ function cellData = sampledSignalQuantification(movieObj,channel,varargin)
 % Output:
 %       cellData - this is a long structure array cellData(for each cell) with the following fields:
 %                .data.excludeWin - indexes of windows that were excluded from analysis . Ex: border windows
-%                     .rawEdgeMotion - raw edge velocity time series. Protrusion map. This is redundant.
+%                     .rawEdgeMotion - ,1,signalInput{:}raw edge velocity time series. Protrusion map. This is redundant.
 %                     .procEdgeMotion - pre-processed edge velocity time series. Ex: trend, mean and NaN removed.
 %
 %                .protrusionAnalysis(for each interval).meanValue.persTime
@@ -58,7 +58,7 @@ function cellData = sampledSignalQuantification(movieObj,channel,varargin)
 %
 %           The structure continues with the confidence interval for each of the measurement above
 %
-%                                                      CI.persTimeCI
+%                                      ,1,signalInput{:}                CI.persTimeCI
 %                                                        .maxVelocCI
 %                                                        .minVelocCI
 %                                                        .meanVelocCI
@@ -91,7 +91,7 @@ ip.addParamValue('nBoot',1e3,@isscalar);
 ip.addParamValue('alpha',.05,@isscalar);
 ip.addParamValue('cluster',false,@isscalar);
 ip.addParamValue('nCluster',2,@isscalar);
-ip.addParamValue('interval',{[]},@iscell);
+
 
 if isa(movieObj,'MovieData')
     
@@ -113,7 +113,8 @@ ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('outputPath','sampledSignalQuantification',@isstr);
-ip.addParamValue('fileName','sampledSignal',@isstr);
+ip.addParamValue('fileName','Signal',@isstr);
+ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 
 ip.parse(movieObj,channel,varargin{:});
 
@@ -127,27 +128,105 @@ gapSize     = ip.Results.gapSize;
 winInterval = ip.Results.winInterval;
 
 %% Formatting Time Series
-operations = {'channel',channel,'includeWin',includeWin,'winInterval',winInterval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
+operations = {'channel',channel,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'WindowSamplingProcess',operations{:});
 
 for iCell = 1:nCell
     
-    currMD                             = ML.movies_{iCell};
-    cellData{iCell}.data.pixelSize     = currMD.pixelSize_;
-    cellData{iCell}.data.frameRate     = currMD.timeInterval_;
-    cellData{iCell}.data.rawSignal     = cellData{iCell}.data.rawTimeSeries;
-    cellData{iCell}.data.procSignal    = cellData{iCell}.data.procTimeSeries;
-    cellData{iCell}.data.procExcSignal = cellData{iCell}.data.procExcTimeSeries;
-    cellData{iCell}.data               = rmfield(cellData{iCell}.data,{'rawTimeSeries','procTimeSeries','procExcTimeSeries'});
     
-    nLayer = size(cellData{iCell}.data.procSignal,3);
-    for iLayer = 1:nLayer
+    sameWinInterval = false;
+    sameIncludedWin = false;
+    
+    %% Setting up includedWin input if it's []
+    
+    
+    if isempty( includeWin{iCell} )
+       nWin              = size(cellData{iCell}.data.rawTimeSeries,1);
+       includeWin{iCell} =  1:nWin;
+    else
+        nWin = numel(includeWin{iCell});
+    end
+    
+    %% Setting up the winInterval input if it's [] for each cell
+    
+    if isempty(winInterval{iCell}{1})%If winInterval is []
         
-        windows = cellData{iCell}.data.includedWin{iLayer};
-        signal  = cellData{iCell}.data.procExcSignal{iLayer};
+        winInterval{iCell} = num2cell(repmat(1:cellData{iCell}.data.nFrames,nWin,1),2);
         
-        cellData{iCell}.intensityOverTime(1:numel(windows),iLayer) = cellfun(@(x) nanmean(x),signal);
-        cellData{iCell}.intensityOverTimeSpace(iLayer)             = nanmean( cellData{iCell}.intensityOverTime(:,iLayer) );
+    else
+        
+        if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
+            
+            winInterval{iCell} = repmat(winInterval{iCell},1,nWin);
+            
+        end
+        
+    end
+    
+    %% Checking if the winInterval is the same as previously set
+    
+    if isfield(cellData{iCell}.data,'winInterval');
+        
+        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
+        
+        if ~sameWinInterval
+            cellData{iCell}.data.winInterval = winInterval{iCell};
+        end
+    else
+        
+        cellData{iCell}.data.winInterval = winInterval{iCell};
+        
+    end
+    
+    
+    
+    cellData{iCell}.data.analyzedLastRun = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
+    
+    
+    if cellData{iCell}.data.analyzedLastRun
+        
+        cellData{iCell}.data.rawSignal     = cellData{iCell}.data.rawTimeSeries;
+        cellData{iCell}.data.procSignal    = cellData{iCell}.data.procTimeSeries;
+        
+       
+        
+        nLayer = size(cellData{iCell}.data.procSignal,3);
+        for iLayer = 1:nLayer
+            
+            [currWin,winIdx] = setdiff(includeWin{iCell},cellData{iCell}.data.excludedWin{iLayer});
+            
+            if isfield(cellData{iCell}.data,'includedWin');
+                
+                pLayer = numel(cellData{iCell}.data.includedWin);
+                
+                if pLayer >= iLayer
+                    
+                    sameIncludedWin = isequaln(cellData{iCell}.data.includedWin{iLayer},currWin);
+                    
+                    if ~sameIncludedWin
+                        cellData{iCell}.data.includedWin{iLayer} = currWin;
+                    end
+                else
+                    cellData{iCell}.data.includedWin{iLayer} = currWin;
+                end
+                
+            else
+                
+                cellData{iCell}.data.includedWin{iLayer} = currWin;
+                
+            end
+            
+            
+            cellData{iCell}.data.procExcSignal{iLayer} = cellfun(@(win,time) cellData{iCell}.data.procSignal(win,time,iLayer),...
+                                                         num2cell(cellData{iCell}.data.includedWin{iLayer}(:)),cellData{iCell}.data.winInterval(winIdx),'Unif',0);
+                                         
+            windows = cellData{iCell}.data.includedWin{iLayer};
+            signal  = cellData{iCell}.data.procExcSignal{iLayer};
+            
+            cellData{iCell}.intensityOverTime(1:numel(windows),iLayer) = cellfun(@(x) nanmean(x),signal);
+            cellData{iCell}.intensityOverTimeSpace(iLayer)             = nanmean( cellData{iCell}.intensityOverTime(:,iLayer) );
+            
+        end
         
     end
     

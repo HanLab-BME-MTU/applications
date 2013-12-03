@@ -29,7 +29,7 @@ for iCell = 1:nCell
         
         fileInfo = dir(filePath);
         aux      = load(filePath);
-        if fileInfo.datenum > datenum('19-Nov-2013 12:30')
+        if fileInfo.datenum > datenum('19-Nov-2013 12:00')
             out{iCell}     = aux.analysisResults;
         end
         

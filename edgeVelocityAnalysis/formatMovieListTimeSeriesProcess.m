@@ -54,7 +54,7 @@ end
 nCell = numel(ML.movies_);
 
 ip.addParamValue('channel',   0,@isscalar);
-ip.addParamValue('interval',cell(1,nCell), @iscell);
+ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
 ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);

@@ -179,7 +179,7 @@ for iCell = 1:nCell
     
     %% Checking if the winInterval is the same as previously set
     
-    if isfield(cellData{iCell}.data,'winInterval');
+    if isfield(cellData{iCell}.data,'winInterval')
         
         sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
         
@@ -211,7 +211,7 @@ for iCell = 1:nCell
     end
     
     
-    cellData{iCell}.data.analyzedLastRun = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
+    cellData{iCell}.data.analyzedLastRun   = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
     
     %% If a different processing or different winInterval, then 
     if cellData{iCell}.data.analyzedLastRun
@@ -244,17 +244,41 @@ if sum(runEdgeAnalysis) ~= 0
     [protrusion,retraction] ...
         = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
 
-    [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis);    
+    [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
     
     % Saving results
     savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
     savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+elseif ~isempty(selection{1})
+    
+    if isfield(cellData{iCell}.data,'selectionCriteria')
+        
+        if ~strcmp(cellData{iCell}.data.selectionCriteria,selection)
+            
+            [cellData,dataSet] = getDataSetAverage(cellData,[],[],interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
+            
+        end
+        
+    else
+        
+        [cellData,dataSet] = getDataSetAverage(cellData,[],[],interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
+    
+    end
+    
+    cellData{iCell}.data.selectionCriteria = selection;
+        % Saving results
+    savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
+    savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+
+else
+       
+    dataSet = loadingMovieListResults(ML,outputPath,fileName);
     
 end
-
+    
 end%End of main function
 
-function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,idx)
+function [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,idx,selectMotion)
 %This function pull all the data from individual cells and calculates the dataSet mean value and CI
 %It also formats the data structure for plotting
 %Input:
@@ -287,7 +311,8 @@ if sum(rem(nInter,nInter(1))) == 0
     
     for iInt = 1:numel(interval{1})
         
-        total = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        total     = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        selection = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
         
         for iCell = 1:nCell
             
@@ -303,11 +328,35 @@ if sum(rem(nInter,nInter(1))) == 0
             total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
             total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
             
+            if ~isempty(selectMotion{1})
+                if strcmp(selectMotion{1}(1:10),'protrusion')
+                    
+                    selection.ProtPersTime    = [selection.ProtPersTime;cellData{iCell}.protrusionAnalysis(iInt).selection.persTime];
+                    selection.ProtMaxVeloc    = [selection.ProtMaxVeloc;cellData{iCell}.protrusionAnalysis(iInt).selection.maxVeloc];
+                    selection.ProtMeanVeloc   = [selection.ProtMeanVeloc;cellData{iCell}.protrusionAnalysis(iInt).selection.Veloc];
+                    selection.ProtMednVeloc   = [selection.ProtMednVeloc;cellData{iCell}.protrusionAnalysis(iInt).selection.mednVeloc];
+                    
+                elseif strcmp(selectMotion{1}(1:10),'retraction')
+                    
+                    selection.RetrPersTime    = [selection.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).selection.persTime];
+                    selection.RetrMaxVeloc    = [selection.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).selection.maxVeloc];
+                    selection.RetrMeanVeloc   = [selection.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).selection.Veloc];
+                    selection.RetrMednVeloc   = [selection.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).selection.mednVeloc];
+                    
+                end
+                
+                dataSet.CI.selection(iInt)          = structfun(@(x) prctile(x,[lwPerc upPerc]),selection,'Unif',0);
+                dataSet.medianValue.selection(iInt) = structfun(@(x) nanmedian(x),selection,'Unif',0);
+                dataSet.selection.interval(iInt)    = selection;
+                
+            end
         end
         
-        dataSet.CI.interval(iInt  )        = structfun(@(x) prctile(x,[lwPerc upPerc]),total,'Unif',0);
+        dataSet.CI.interval(iInt)          = structfun(@(x) prctile(x,[lwPerc upPerc]),total,'Unif',0);
         dataSet.medianValue.interval(iInt) = structfun(@(x) nanmedian(x),total,'Unif',0);
         dataSet.total.interval(iInt)       = total;
+        
+        
         
     end
     
