@@ -183,6 +183,7 @@ for k = 1:nCells
  
         % list directory contents and select TIFFs
         tmp = dir(channels{c});
+        tmp = tmp(cellfun(@(i) ~strcmpi(i(1), '.'), {tmp.name}));
         tmp = {tmp(~[tmp.isdir]).name}';
         tmp = tmp(~cellfun(@isempty, regexpi(tmp, '\.tif|\.stk')));
         % sort files in case leading zeros are missing
