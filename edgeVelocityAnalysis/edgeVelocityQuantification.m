@@ -295,11 +295,18 @@ cc    = 1;
 
 for iCell = find(idx)
     
+    if isfield(cellData{iCell},'protrusionAnalysis')
+        cellData{iCell} = rmfield(cellData{iCell},'protrusionAnalysis');
+        cellData{iCell} = rmfield(cellData{iCell},'retractionAnalysis');
+    end
     
     for iiInt = 1:numel(interval{iCell})
+        
         cellData{iCell}.protrusionAnalysis(iiInt) = protrusion{cc}{iiInt};
         cellData{iCell}.retractionAnalysis(iiInt) = retraction{cc}{iiInt};
+        
     end
+    
     cc = cc + 1;
     
 end

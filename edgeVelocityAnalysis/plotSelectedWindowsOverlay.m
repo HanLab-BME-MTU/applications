@@ -51,7 +51,7 @@ axes('Position',[0 0 1 1])
 hold on
 
 nCluster  = numel(winCluster);
-colorCode = {'b','r'} ;
+colorCode = {[0 0.749 0.749],[1 0.1961 0.5]} ;
 
 if movieOn
     
@@ -72,9 +72,9 @@ end
 for iFrame = frameRange
 
    iWindow = MD.processes_{winIdx}.loadChannelOutput(iFrame,iChan) ;
-    K = imadjust(MD.channels_(iChan).loadImage(iFrame));
-   %imagesc(1:nx,1:ny,MD.channels_(iChan).loadImage(iFrame))
-   imagesc(1:nx,1:ny,K)
+   % K = imadjust(MD.channels_(iChan).loadImage(iFrame));
+   imagesc(1:nx,1:ny,MD.channels_(iChan).loadImage(iFrame))
+   %imagesc(1:nx,1:ny,K)
    %imshow(MD.channels_(iChan).loadImage(iFrame))
    %imagesc(1:nx,1:ny,MD.processes_{8}.loadChannelOutput(2,iFrame))
    axis([1 nx 1 ny])
