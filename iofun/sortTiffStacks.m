@@ -15,11 +15,11 @@ function sortTiffStacks(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addOptional('path', []);%, @(x) ischar(x) || isempty(x) || iscell(x));
+ip.addOptional('spath', [], @(x) ischar(x) || isempty(x) || iscell(x));
 ip.addParamValue('ChannelNames', [], @iscell);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
 ip.parse(varargin{:});
-stkpath = ip.Results.path;
+stkpath = ip.Results.spath;
 chSpec = ip.Results.ChannelNames;
 
 if isempty(stkpath)
