@@ -17,6 +17,7 @@ ip.addRequired('data', @isstruct);
 ip.addOptional('Trajectories', 'all', @(x) isempty(x) || isstruct(x) || any(strcmpi(x, {'all', 'valid'})));
 ip.addParamValue('LoadTracks', true, @islogical);
 ip.addParamValue('LoadFrames', true, @islogical);
+ip.addParamValue('LoadMask', true, @islogical);
 ip.addParamValue('RelativePath', 'Tracking', @ischar);
 ip.addParamValue('Cutoff_f', 3);
 ip.parse(data, varargin{:});
@@ -124,7 +125,9 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
     'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
-    'Position', [5 5 120 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [5 5 80 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Full time',...
+    'Position', [80 5 70 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 handles.tplotPanel = ph;
 
 % Montage panel
@@ -297,7 +300,7 @@ else
     dmask = [];
 end
 
-if exist([data.source 'Detection' filesep 'cellmask.tif'], 'file')==2
+if exist([data.source 'Detection' filesep 'cellmask.tif'], 'file')==2 && ip.Results.LoadMask
     cellMask = imread([data.source 'Detection' filesep 'cellmask.tif']);
 else
     cellMask = [];
@@ -467,9 +470,11 @@ rgbColors = arrayfun(@(x) hsv2rgb([x 1 1]), hues, 'unif', 0);
 % Set visibility for sliders and checkboxes
 %===============================================================================
 if ~isempty(tracks)
-    set(handles.trackSlider, 'Min', 1);
-    set(handles.trackSlider, 'Max', nt);
-    set(handles.trackSlider, 'SliderStep', [1/(nt-1) 0.05]);
+    if nt>1
+        set(handles.trackSlider, 'Min', 1);
+        set(handles.trackSlider, 'Max', nt);
+        set(handles.trackSlider, 'SliderStep', [1/(nt-1) 0.05]);
+    end
     setTrackColormap('Category');
     setColorbar('Category');
 else
@@ -484,7 +489,7 @@ else
     %set(handles.montagePanel, 'Visible', 'off');
     
     set(hLegend, 'Visible', 'off');
-    set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotScaleCheckbox], 'Enable', 'off');
+    set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotScaleCheckbox tplotRangeCheckbox], 'Enable', 'off');
 end
 
 if ~ip.Results.LoadFrames
@@ -783,7 +788,7 @@ set(hz, 'ActionPostCallback', @czoom);
         
         delete(hpd); % clear previous plots
         hpd = [];
-        if get(detectionCheckbox, 'Value') && ~isempty(frameInfo)
+        if get(detectionCheckbox, 'Value') && ~isempty(frameInfo) && ~isempty(frameInfo(fidx).x)
             isPSF = frameInfo(fidx).isPSF(1,:)==1;
             if any(isPSF)
                 hpd(1) = plot(handles.fAxes(1,1), frameInfo(fidx).x(1,isPSF), frameInfo(fidx).y(1,isPSF), 'o', 'Color', [0 0.6 0], 'MarkerSize', 8);
@@ -936,6 +941,9 @@ set(hz, 'ActionPostCallback', @czoom);
             topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
             if get(tplotScaleCheckbox, 'Value')
                 topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxInt(ci)]; %#ok<AGROW>
+            end
+            if get(tplotRangeCheckbox, 'Value')
+                topts = [topts, 'XLim', [-2 data.movieLength+1]*data.framerate]; %#ok<AGROW>
             end
             
             if ~isempty(bgA) && itrack.catIdx<5
