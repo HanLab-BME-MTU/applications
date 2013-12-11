@@ -361,7 +361,7 @@ for iFrame=1:nFrames                                    % Cycle through timepoin
                 speckleArray.deltaICrit(s)   = deltaICrit;
                 speckleArray.sigmaSp(s)      = sigmaMax;
                 speckleArray.sigmaBg(s)      = sigmaMin;
-                if ismember(coords,gapList{iFrame},'rows')
+                if ~isempty(gapList{iFrame}) && ismember(coords,gapList{iFrame},'rows')
                     % This speckle is a closed gap
                     speckleArray.status(s)   = 'g';
                 else
