@@ -87,6 +87,8 @@ for i = 1:nd
             tLength = lftData(i).trackLengths(t) + 2*b;
             np = iLength(cidx(t));
             xi = linspace(1,tLength, np);
+            A(isnan(A)) = min(A);
+            bgr(isnan(bgr)) = min(bgr);
             AInterp(t,1:np,ch) = binterp(A, xi);
             sInterp(t,1:np,ch) = binterp(bgr, xi);
             
