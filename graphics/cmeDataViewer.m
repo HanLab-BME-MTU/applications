@@ -282,8 +282,8 @@ end
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-dpath = [data.source 'Detection' filesep 'detection_v2.mat'];
-if exist(dpath, 'file')==2 && ip.Results.LoadFrames
+dpath = [data.source 'Detection' filesep 'Masks'];
+if exist(dpath, 'dir')==7 && ip.Results.LoadFrames
     fprintf('Loading detection masks ... ');
     dmask = zeros(ny,nx,nf, 'uint8');
     if ~iscell(data.framePaths{1})
