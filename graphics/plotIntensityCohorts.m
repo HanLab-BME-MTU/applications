@@ -116,7 +116,8 @@ for i = 1:nd
                 for t = 1:nt
                     A = [lftData(i).sbA(cidx(t),:,ch) lftData(i).A(cidx(t),1:cLengths(t),ch) lftData(i).ebA(cidx(t),:,ch)];
                     bgr = [lftData(i).sbSigma_r(cidx(t),:,ch) lftData(i).sigma_r(cidx(t),1:cLengths(t),ch) lftData(i).ebSigma_r(cidx(t),:,ch)];
-                    
+                    A(isnan(A)) = nanmin(A);
+                    bgr(isnan(bgr)) = nanmin(bgr);
                     % align to track start
                     %w = min(numel(A),iLength);
                     %interpTracks(t,1:w) = A(1:w);
@@ -223,7 +224,8 @@ switch nCh
         
         pct = zeros(nd,2);
         for i = 1:nd
-            s =  lftData(i).significantMaster;
+            vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
+            s = lftData(i).significantMaster(vidx,:);
             %pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
             idx = lftData(i).maxA(:,1)>ip.Results.MaxIntensityThreshold;
             pct(i,:) = sum([s(idx,2) ~s(idx,2)],1)/sum(idx);
@@ -237,9 +239,8 @@ switch nCh
         
         pct = zeros(nd,4);
         for i = 1:nd
-            s = lftData(i).significantMaster;
             vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
-            s = s(vidx,:);
+            s = lftData(i).significantMaster(vidx,:);
             pct(i,:) = sum([s(:,2)&s(:,3) s(:,2)&~s(:,3) ~s(:,2)&s(:,3) ~s(:,2)&~s(:,3)],1)/size(s,1);
         end
         meanPct = mean(pct,1);
