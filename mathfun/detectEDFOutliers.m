@@ -62,7 +62,7 @@ sigma = 1/norminv(0.75) * median(abs(M-repmat(medEDF,[ns 1])),1);
 
 % smoothen the envelope (somewhat arbitrary)
 xi = linspace(x(1), x(end), 1000);
-si = filterGauss1D(interp1(x, sigma, xi, 'cubic'), 15);
+si = filterGauss1D(interp1(x, sigma, xi, 'pchip'), 15);
 si = interp1(xi, si, x);
 
 % 3*sigma bounds
