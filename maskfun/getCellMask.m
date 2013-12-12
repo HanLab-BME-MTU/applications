@@ -37,19 +37,29 @@ for i = 1:nd
                 aip = zeros(data(i).imagesize);
                 mproj = zeros(data(i).imagesize);
                 
-                parfor f = 1:numel(frameRange)
-                    if iscell(data(i).framePaths{ch}) %#ok<PFBNS>
-                        frame = double(imread(data(i).framePaths{ch}{frameRange(f)}));
+                if iscell(data(i).framePaths{ch})
+                    parfor f = 1:numel(frameRange)
+                        frame = double(imread(data(i).framePaths{ch}{frameRange(f)})); %#ok<PFBNS>
                         dmask = 0~=double(imread(data(i).maskPaths{frameRange(f)}));
-                    else
-                        frame = double(readtiff(data(i).framePaths{ch}, frameRange(f)));
-                        dmask = 0~=double(readtiff(data(i).maskPaths, frameRange(f)));
+                        
+                        dmask = imdilate(dmask, se);
+                        frame(dmask) = 0;
+                        aip = aip + frame;
+                        mproj = mproj + dmask;
                     end
-                    dmask = imdilate(dmask, se);
-                    frame(dmask) = 0;
-                    aip = aip + frame;
-                    mproj = mproj + dmask;
+                else
+                    info = imfinfo(data(i).framePaths{ch});
+                    minfo = imfinfo(data(i).maskPaths);
+                    parfor f = 1:numel(frameRange)
+                        frame = double(readtiff(data(i).framePaths{ch}, frameRange(f), info)); %#ok<PFBNS>
+                        dmask = 0~=double(readtiff(data(i).maskPaths, frameRange(f), minfo));
+                        dmask = imdilate(dmask, se);
+                        frame(dmask) = 0;
+                        aip = aip + frame;
+                        mproj = mproj + dmask;
+                    end
                 end
+                
                 aip = aip./(numel(frameRange)-mproj);
                 % fill to enable filtering
                 aip(isnan(aip)) = prctile(aip(:), 95);
@@ -58,7 +68,7 @@ for i = 1:nd
                 mask{i} = maskFromFirstMode(aip, 'Connect', ip.Results.Connect,...
                     'Display', ip.Results.ShowHistogram, 'ModeRatio', ip.Results.ModeRatio);
                 
-                mask{i} = imfill(mask{i});
+                mask{i} = imfill(mask{i}, 'holes');
                 
                 imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
             case 'density'

@@ -42,8 +42,9 @@ if ~isempty(lmin)
         if ip.Results.Connect
             CC = bwconncomp(mask, 8);
             compsize = cellfun(@(i) numel(i), CC.PixelIdxList);
+            [~,idx] = sort(compsize, 'descend');
             mask = zeros([ny,nx]);
-            mask(CC.PixelIdxList{compsize==max(compsize)}) = 1;
+            mask(vertcat(CC.PixelIdxList{compsize>=compsize(idx(1))})) = 1;
         end
     else
         mask = ones(ny,nx);
