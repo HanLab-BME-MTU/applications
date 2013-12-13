@@ -4,6 +4,9 @@
 
 function [lftData, rmIdx] = getLifetimeData(data, varargin)
 
+nd = numel(data);
+nCh = numel(data(1).channels);
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addParamValue('Overwrite', false, @islogical);
@@ -15,14 +18,12 @@ ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('Scale', false, @islogical);
 ip.addParamValue('DisplayScaling', false, @islogical);
 ip.addParamValue('RemoveOutliers', false, @islogical);
-ip.addParamValue('AmplitudeCorrectionFactor', []);
+ip.addParamValue('AmplitudeCorrectionFactor', [], @(x) isempty(x) || (size(x,1)==nd && size(x,2)==nCh));
 ip.addParamValue('Mask', false, @islogical);
 ip.addParamValue('Colormap', []);
 ip.addParamValue('AnalysisPath', 'Tracking', @ischar);
 ip.parse(varargin{:});
 
-nCh = numel(data(1).channels);
-nd = numel(data);
 rescale = ip.Results.Scale;
 if numel(rescale)==1
     rescale = repmat(rescale, [nCh 1]);
