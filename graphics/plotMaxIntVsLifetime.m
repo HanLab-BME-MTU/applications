@@ -29,7 +29,6 @@ ip.CaseSensitive = false;
 ip.addRequired('data');
 ip.addOptional('xl', []);
 ip.addOptional('xa', []);
-ip.addParamValue('lftData', []); 
 ip.addParamValue('ExcludeVisitors', false, @islogical);
 ip.addParamValue('Cutoff_f', 1, @isscalar);
 ip.addParamValue('FirstNFrames', [], @isvector);
@@ -43,27 +42,27 @@ ip.addParamValue('PlotIndividual', false, @islogical);
 ip.addParamValue('NormX', true, @islogical);
 ip.addParamValue('FontSize', 10);
 ip.addParamValue('Width', 4, @isposint);
+ip.addParamValue('AmplitudeCorrection', []);
 ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
-lftData = ip.Results.lftData;
 
-if ~iscell(data)
-    if ip.Results.PlotIndividual
-        data = arrayfun(@(i) i, data, 'unif', 0);
-    else
+if ip.Results.PlotIndividual
+    lftData = getLifetimeData(data, 'Overwrite', false, 'Mask', true,...
+        'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
+        'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
+    data = arrayfun(@(i) i, data, 'unif', 0);
+    lftData = arrayfun(@(i) i, lftData, 'unif', 0);
+    nd = numel(data);
+else
+    if ~iscell(data)
         data = {data};
     end
-end
-
-nd = numel(data);
-
-% load lifetime data if not provided in input
-if isempty(lftData)
+    nd = numel(data);
     lftData = cell(1,nd);
     for i = 1:nd
         lftData{i} = getLifetimeData(data{i}, 'Overwrite', false, 'Mask', true,...
             'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
-            'ReturnValidOnly', false);
+            'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
     end
 end
 
