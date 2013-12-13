@@ -44,6 +44,7 @@ ip.addParamValue('SlaveNames', []);
 ip.addParamValue('Colormap', jet(numel(data)));
 ip.addParamValue('CorrectObservationBias', true, @islogical);
 ip.addParamValue('InitDensity', 'mean', @(x) any(strcmpi(x, {'mean', 'median'})));
+ip.addParamValue('AmplitudeCorrection', []);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -77,7 +78,8 @@ res = struct([]);
     'ReturnValidOnly', false, 'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Cutoff_f', cutoff_f,...
     'Scale', ip.Results.Rescale, 'DisplayScaling', any(strcmpi(ip.Results.Display, {'on','all'})),...
     'RemoveOutliers', ip.Results.RemoveOutliers, 'Mask', true, 'Colormap', ip.Results.Colormap, ...
-    'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData);
+    'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
+    'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
 if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
 end
