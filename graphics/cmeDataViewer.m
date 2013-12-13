@@ -459,7 +459,8 @@ end
 dRange = cell(1,nCh);
 for c = 1:nCh
     %dRange{c} = double([min(stack{c}(:)) max(stack{c}(:))]);
-    dRange{c} = prctile(double(stack{c}(:)), [0.001 99.99]);
+    tmp = cat(3, stack{c}(:,:,[1 end]));
+    dRange{c} = prctile(double(tmp(:)), [0.001 99.99]);
 end
 
 hues = getFluorophoreHues(data.markers);
