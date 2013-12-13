@@ -47,6 +47,7 @@ ip.addParamValue('ShowPct', true, @islogical);
 ip.addParamValue('ShowStats', false, @islogical);
 ip.addParamValue('AvgFun', @nanmean, @(x) isa(x, 'function_handle'));
 ip.addParamValue('LftDataName', 'lifetimeData.mat');
+ip.addParamValue('AmplitudeCorrection', []);
 % ip.addParamValue('MinTracksPerCohort', 5);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
@@ -57,7 +58,8 @@ hues = ip.Results.Hues;
 lftData = getLifetimeData(data, 'Overwrite', ip.Results.Overwrite,...
     'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale,...
     'Cutoff_f', ip.Results.Cutoff_f, 'ReturnValidOnly', true,...
-    'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Mask', true);
+    'ExcludeVisitors', ip.Results.ExcludeVisitors, 'Mask', true,...
+    'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
 
 % if no specific channel is selected, all channels are shown
 chVec = ip.Results.ch;
@@ -227,7 +229,7 @@ switch nCh
             vidx = max(lftData(i).A(:,:,mCh),[],2) > ip.Results.MaxIntensityThreshold;
             s = lftData(i).significantMaster(vidx,:);
             %pct(i,:) = sum([s(:,2) ~s(:,2)],1)/size(s,1);
-            idx = lftData(i).maxA(:,1)>ip.Results.MaxIntensityThreshold;
+            idx = lftData(i).maxA(vidx,1)>ip.Results.MaxIntensityThreshold;
             pct(i,:) = sum([s(idx,2) ~s(idx,2)],1)/sum(idx);
         end
         meanPct = mean(pct,1);
