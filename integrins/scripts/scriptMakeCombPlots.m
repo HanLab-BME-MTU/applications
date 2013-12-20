@@ -1,7 +1,8 @@
-condName = {'AlphaV','AlphaV717Trunc','AlphaV724Trunc','AlphaVY773A','Beta3','Farn','Talin','Lifeact'};
-condName = {'AlphaVY773A'};
-numMode  = [4 4 4 4 4 4 4 2];
-minNP    = [5 5 5 4 5 5 5 5];
+% condName = {'AlphaV','AlphaV717Trunc','AlphaV724Trunc','Beta3','Farn','Talin','Lifeact'};
+condName = {'AlphaVY773A','AlphaVY773ATmp'};
+% condName = {'AlphaVSim20p5','AlphaVSim22','FarnSim20p5','FarnSim22'};
+numMode  = [4 4 4 4 4 4 2];
+minNP    = [5 4 5 5 5 5 5];
 
 for iCond = 1 : length(condName);
     
@@ -11,17 +12,17 @@ for iCond = 1 : length(condName);
     for iType = 1
         
         %particle density
-        plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).directAll.densityParticles,...
+        plotSptRelToActivityOnsetAdaptiveWindowsV3paper(sptPropInWindow(iType).directAll.densityParticles,...
             windowDistFromEdge(iType),1,minNP(iCond),[condName{iCond} ', Particle density overall, protType ' num2str(iType)],...
             [condName{iCond} ' DensityOverall_protType' num2str(iType) '.fig'],[0.111 10 1/(0.111^2)],...
-            'Molecule density (per um^2)',[-100 150 0 11],1,[condName{iCond} ', Edge & windows, protType ' num2str(iType)],...
+            'Molecule density (per um^2)',[-60 70 0 11],1,[condName{iCond} ', Edge & windows, protType ' num2str(iType)],...
             [condName{iCond} ' EdgeWindows_protType' num2str(iType) '.fig']);
         
         %overall diffusion coefficient
-        plotSptRelToActivityOnsetAdaptiveWindowsV2(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeAll,...
+        plotSptRelToActivityOnsetAdaptiveWindowsV3paper(sptPropInWindow(iType).diffModeAnalysis.diffCoefModeAll,...
             windowDistFromEdge(iType),1,minNP(iCond),[condName{iCond} ', Diffusion coefficient overall, protType ' num2str(iType)],...
             [condName{iCond} ' DiffCoefOverall_protType' num2str(iType) '.fig'],[0.111 10 (0.111^2)/0.025],...
-            'Diffusion coefficient (um^2/s)',[-100 150 0.085 0.22]);
+            'Diffusion coefficient (um^2/s)',[-60 70 0.085 0.22]);
         
         %         %fraction in each diffusion mode
         %         for iMode = 1 : numMode(iCond)

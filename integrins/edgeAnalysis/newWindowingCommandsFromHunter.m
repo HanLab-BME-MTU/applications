@@ -3,11 +3,11 @@
 segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = 'C:\kjData\Galbraiths\data\beta3andCellEdgeP2\130510_Cs2C4_Beta3\analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
-thresholdValue = getSegThreshFromFullMovie(MD,1,0,1);
+thresholdValue = getSegThreshFromFullMovie(MD,1,0.3,1);
 close all
 
 %get cell mask
@@ -24,14 +24,14 @@ refinementParam = struct(...
 MD = refineMovieMasks(MD,refinementParam);
 
 %load detection results
-load ../analysisBeta3/tracks/detectionAll1.mat
+load ../analysisAlphaVY773A/detectionAll1.mat
 
 %make movie of mask on top of particle detections
 movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
 
 %make images from single molecule signal to enhance edge detection
 mkdir imagesSM4Edge
-singleMolSignal4Edges('C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesCellEdge\121128_Cs2C1_Y773A_6minES_0001.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesAlphaVY773A\121128_Cs2C1_CHO_mEos2AvBeta3Y773A_00002.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121128_Cs2C1_Y773A\imagesSM4Edge',400,40);
+singleMolSignal4Edges('C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesCellEdge\131127_Cs3C2_Y773A_6mES_0001.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesAlphaVY773A\131127_Cs3C2_CHO_Y773A_00002.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesSM4Edge',400,40);
 
 %refine masks using gradient information
 threshParamEdge = struct(...
@@ -41,10 +41,10 @@ threshParamEdge = struct(...
 gapCloseParamEdge = struct(...
     'maxEdgePairDist',7,...
     'factorContr',[1 1 1 1]);
-% meanBkg = 115;
-% smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\121121_Cs1C1_Y773A\imagesSM4Edge';
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0); %,meanBkg,smDir);
-save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed'); %,'meanBkg');
+meanBkg = 180;
+smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,meanBkg,smDir);
+save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
 
 imtool close all
 

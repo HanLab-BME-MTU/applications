@@ -187,6 +187,12 @@ for iFrame = 1 : numFrames
     %plot filtered image
     axes('Position',[0 0 0.495 1]);
     imshow(imageFilteredMinusBackground,[]);
+    %     hold on
+    %     text(10,20,[num2str((iFrame-1)*10) ' s'],'Color','white');
+    %     plot([80 207],[50 50],'y:','LineWidth',0.5)
+    %     plot([80 207],[177 177],'y:','LineWidth',0.5)
+    %     plot([80 80],[50 177],'y:','LineWidth',0.5)
+    %     plot([207 207],[50 177],'y:','LineWidth',0.5)
     
     %plot mask boundaries on top of original image
     axes('Position',[0.505 0 0.495 1]);
@@ -194,6 +200,10 @@ for iFrame = 1 : numFrames
     hold on;
     maskBounds = bwboundaries(mask);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',1)),maskBounds);
+    %     plot([80 207],[50 50],'y:','LineWidth',0.5)
+    %     plot([80 207],[177 177],'y:','LineWidth',0.5)
+    %     plot([80 80],[50 177],'y:','LineWidth',0.5)
+    %     plot([207 207],[50 177],'y:','LineWidth',0.5)
     
     %add frame to movie if movie is saved
     if saveMovie

@@ -1,4 +1,4 @@
-function plotSptRelToActivityOnsetAdaptiveWindowsV2(particleBehavior,...
+function plotSptRelToActivityOnsetAdaptiveWindowsV3paper(particleBehavior,...
     windowDistFromEdge,mode2plot,minNP,figureName,saveLoc,convFact,...
     yAxisLabel,axisLimits,plotWinDist,winFigName,winFigLoc,compArea)
 
@@ -237,105 +237,105 @@ hold on
 
 if ~isnan(yMax)
     
-    %plot 1 - right behind edge, before and after
-    subplot(2,3,1), hold on
+%     %plot 1 - right behind edge, before and after
+%     subplot(2,3,1), hold on
+%     
+%     %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1),'k','Marker','.')
+%     
+%     axis([xMin xMax yMin yMax]);
+%     xlabel('Time from protrusion onset (s)')
+%     ylabel(yAxisLabel)
+%     
+%     %     legend('Right behind cell edge');
+%     %
+%     %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'k--')
+%     %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'k--')
+%     
+%     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'k')
+%     legend('Right behind cell edge');
+%     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'k')
+%     
+%     %line indicating activity onset
+%     plot([0 0],[yMin yMax],'k:')
     
-    %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1),'k','Marker','.')
+%     %plot 2 - at point of protrusion onset, before and after
+%     subplot(2,3,2), hold on
+%     
+%     %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1),'k','Marker','.')
+%     
+%     axis([xMin xMax yMin yMax]);
+%     xlabel('Time from protrusion onset (s)')
+%     ylabel(yAxisLabel)
+%     
+%     %     legend('Band 1 (0-0.67 um at onset)');
+%     %
+%     %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k--')
+%     %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k--')
+%     
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
+%     legend('Band 1 (0-0.67 um at onset)');
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
+%     
+%     %line indicating activity onset
+%     plot([0 0],[yMin yMax],'k:')
     
-    axis([xMin xMax yMin yMax]);
-    xlabel('Time from protrusion onset (s)')
-    ylabel(yAxisLabel)
+%     %plot 3 - at point of protrusion onset and new cell areas, after
+%     subplot(2,3,3), hold on
+%     
+%     %     %point of protruion onset
+%     %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1),'k','Marker','.')
+%     %
+%     %     %new cell areas
+%     %     legendEntries = cell(1,maxIncPlot);
+%     %     for iInc = maxIncPlot : -1 : 1
+%     %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc),'color',incColor(iInc,:),'Marker','.')
+%     %         legendEntries{maxIncPlot-iInc+1} = ['Dynamic after Inc ' num2str(iInc)];
+%     %     end
+%     %
+%     %     %right behind edge
+%     %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1),'b','Marker','.')
+%     
+%     axis([xMin xMax yMin yMax]);
+%     xlabel('Time from protrusion onset (s)')
+%     ylabel(yAxisLabel)
+%     
+%     %     legendEntries = [{'Band 1'} legendEntries {'Right behind cell edge'}];
+%     %     legend(legendEntries);
+%     %
+%     %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)+staticSeriesSem(-minInc+1:end,1),'k--')
+%     %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)-staticSeriesSem(-minInc+1:end,1),'k--')
+%     %
+%     %     for iInc = 1 : maxIncPlot
+%     %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)+dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:),'LineStyle','--')
+%     %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)-dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:),'LineStyle','--')
+%     %     end
+%     %
+%     %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)+edgeSeriesSem(-minInc+1:end,1),'color',[0.5 0.5 0.5],'LineStyle','--')
+%     %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)-edgeSeriesSem(-minInc+1:end,1),'color',[0.5 0.5 0.5],'LineStyle','--')
+%     
+%     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)+staticSeriesSem(-minInc+1:end,1),'k')
+%     legendEntries = cell(1,maxIncPlot);
+%     for iInc = 1 : maxIncPlot
+%         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)+dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:))
+%         %         legendEntries{maxIncPlot-iInc+1} = ['Dynamic after Inc ' num2str(iInc)];
+%         legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
+%     end
+%     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)+edgeSeriesSem(-minInc+1:end,1),'b')
+%     
+%     legendEntries = [{'Band 1'} legendEntries {'Right behind cell edge'}];
+%     legend(legendEntries);
+%     
+%     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)-staticSeriesSem(-minInc+1:end,1),'k')
+%     for iInc = 1 : maxIncPlot
+%         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)-dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:))
+%     end
+%     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)-edgeSeriesSem(-minInc+1:end,1),'b')
+%     
+%     %line indicating activity onset
+%     plot([0 0],[yMin yMax],'k:')
     
-    %     legend('Right behind cell edge');
-    %
-    %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'k--')
-    %     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'k--')
-    
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'k')
-    legend('Right behind cell edge');
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'k')
-    
-    %line indicating activity onset
-    plot([0 0],[yMin yMax],'k:')
-    
-    %plot 2 - at point of protrusion onset, before and after
-    subplot(2,3,2), hold on
-    
-    %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1),'k','Marker','.')
-    
-    axis([xMin xMax yMin yMax]);
-    xlabel('Time from protrusion onset (s)')
-    ylabel(yAxisLabel)
-    
-    %     legend('Band 1 (0-0.67 um at onset)');
-    %
-    %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k--')
-    %     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k--')
-    
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
-    legend('Band 1 (0-0.67 um at onset)');
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
-    
-    %line indicating activity onset
-    plot([0 0],[yMin yMax],'k:')
-    
-    %plot 3 - at point of protrusion onset and new cell areas, after
-    subplot(2,3,3), hold on
-    
-    %     %point of protruion onset
-    %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1),'k','Marker','.')
-    %
-    %     %new cell areas
-    %     legendEntries = cell(1,maxIncPlot);
-    %     for iInc = maxIncPlot : -1 : 1
-    %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc),'color',incColor(iInc,:),'Marker','.')
-    %         legendEntries{maxIncPlot-iInc+1} = ['Dynamic after Inc ' num2str(iInc)];
-    %     end
-    %
-    %     %right behind edge
-    %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1),'b','Marker','.')
-    
-    axis([xMin xMax yMin yMax]);
-    xlabel('Time from protrusion onset (s)')
-    ylabel(yAxisLabel)
-    
-    %     legendEntries = [{'Band 1'} legendEntries {'Right behind cell edge'}];
-    %     legend(legendEntries);
-    %
-    %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)+staticSeriesSem(-minInc+1:end,1),'k--')
-    %     plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)-staticSeriesSem(-minInc+1:end,1),'k--')
-    %
-    %     for iInc = 1 : maxIncPlot
-    %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)+dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:),'LineStyle','--')
-    %         plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)-dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:),'LineStyle','--')
-    %     end
-    %
-    %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)+edgeSeriesSem(-minInc+1:end,1),'color',[0.5 0.5 0.5],'LineStyle','--')
-    %     plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)-edgeSeriesSem(-minInc+1:end,1),'color',[0.5 0.5 0.5],'LineStyle','--')
-    
-    plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)+staticSeriesSem(-minInc+1:end,1),'k')
-    legendEntries = cell(1,maxIncPlot);
-    for iInc = 1 : maxIncPlot
-        plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)+dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:))
-        %         legendEntries{maxIncPlot-iInc+1} = ['Dynamic after Inc ' num2str(iInc)];
-        legendEntries{iInc} = ['Dynamic after Inc ' num2str(iInc)];
-    end
-    plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)+edgeSeriesSem(-minInc+1:end,1),'b')
-    
-    legendEntries = [{'Band 1'} legendEntries {'Right behind cell edge'}];
-    legend(legendEntries);
-    
-    plot((0:maxInc)*convFactTime,staticSeriesMean(-minInc+1:end,1)-staticSeriesSem(-minInc+1:end,1),'k')
-    for iInc = 1 : maxIncPlot
-        plot((minInc:maxInc)*convFactTime,dynamicSeriesAftMean(:,iInc)-dynamicSeriesAftSem(:,iInc),'color',incColor(iInc,:))
-    end
-    plot((0:maxInc)*convFactTime,edgeSeriesMean(-minInc+1:end,1)-edgeSeriesSem(-minInc+1:end,1),'b')
-    
-    %line indicating activity onset
-    plot([0 0],[yMin yMax],'k:')
-    
-    %plot 4 - values in bands
-    subplot(2,3,4), hold on
+    %plot 2 - values in bands
+    subplot(1,2,2), hold on
     
     %     plot((minInc:maxInc)*convFactTime,mean(staticSeriesMean(:,4:end),2),'Color',bandColor(4,:),'Marker','.')
     %     for iBand = 3 : -1 : 1
@@ -370,38 +370,38 @@ if ~isnan(yMax)
     %line indicating activity onset
     plot([0 0],[yMin yMax],'k:')
     
-    %plot 5 - combination of right behind edge and point of protrusion
-    %onset
-    subplot(2,3,5), hold on
+%     %plot 5 - combination of right behind edge and point of protrusion
+%     %onset
+%     subplot(2,3,5), hold on
+%     
+%     axis([xMin xMax yMin yMax]);
+%     xlabel('Time from protrusion onset (s)')
+%     ylabel(yAxisLabel)
+%     
+%     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'b')
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
+%     legend({'Right behind cell edge','Band 1 (0-0.67 um at onset)'});
+%     plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'b')
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
+%     
+%     %line indicating activity onset
+%     plot([0 0],[yMin yMax],'k:')
+    
+    %plot 1 - combination of right behind edge and new cell area aligned & combined
+    subplot(1,2,1), hold on
     
     axis([xMin xMax yMin yMax]);
     xlabel('Time from protrusion onset (s)')
     ylabel(yAxisLabel)
     
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'b')
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
-    legend({'Right behind cell edge','Band 1 (0-0.67 um at onset)'});
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'b')
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
-    
-    %line indicating activity onset
-    plot([0 0],[yMin yMax],'k:')
-    
-    %plot 6 - combination of right behind edge, point of protrusion onset
-    %and new cell area aligned & combined
-    subplot(2,3,6), hold on
-    
-    axis([xMin xMax yMin yMax]);
-    xlabel('Time from protrusion onset (s)')
-    ylabel(yAxisLabel)
-    
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'b')
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
-    plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftMean(:,1)+combDynamicSeriesAftSem(:,1),'g')
-    legend({'Right behind cell edge','Band 1 (0-0.67 um at onset)','New cell area aligned & combined'});
-    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'b')
-    plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
-    plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftMean(:,1)-combDynamicSeriesAftSem(:,1),'g')
+    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)+edgeSeriesSem(:,1),'c')
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)+staticSeriesSem(:,1),'k')
+    plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftMean(:,1)+combDynamicSeriesAftSem(:,1),'r')
+%     legend({'Right behind cell edge','Band 1 (0-0.67 um at onset)','New cell area aligned & combined'});
+    legend({'Right behind cell edge','New cell area aligned & combined'});
+    plot((minInc:maxInc)*convFactTime,edgeSeriesMean(:,1)-edgeSeriesSem(:,1),'c')
+%     plot((minInc:maxInc)*convFactTime,staticSeriesMean(:,1)-staticSeriesSem(:,1),'k')
+    plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftMean(:,1)-combDynamicSeriesAftSem(:,1),'r')
     
     %line indicating activity onset
     plot([0 0],[yMin yMax],'k:')
@@ -425,77 +425,77 @@ if ~isnan(yMax)
         yMin = min(staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1)) - 0.5;
         yMax = max(edgePos) + 0.5;
         
-        %plot 1 - right behind edge, before and after
-        subplot(2,3,1), hold on
+%         %plot 1 - right behind edge, before and after
+%         subplot(2,3,1), hold on
+%         
+%         %         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid,'k','LineStyle','none')
+%         %         myErrorbar((minInc:maxInc)*convFactTime,edgeSeriesDistMid,edgeSeriesDistHR)
+%         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'k')
+%         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'k')
+%         
+%         %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
+%         %             repmat(edgePos',2,1),'r','LineWidth',2)
+%         plot((minInc:maxInc)*convFactTime,edgePos,'r')
+%         
+%         %line indicating activity onset
+%         plot([0 0],[yMin yMax],'k:')
+%         
+%         axis([xMin xMax yMin yMax]);
+%         xlabel('Time from protrusion onset (s)')
+%         ylabel('Edge and window position (um)')
         
-        %         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid,'k','LineStyle','none')
-        %         myErrorbar((minInc:maxInc)*convFactTime,edgeSeriesDistMid,edgeSeriesDistHR)
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'k')
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'k')
+%         %plot 2 - at point of protrusion onset, before and after
+%         subplot(2,3,2), hold on
+%         
+%         %         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1),'k','LineStyle','none')
+%         %         myErrorbar((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1),staticSeriesDistHR(:,1))
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
+%         
+%         %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
+%         %             repmat(edgePos',2,1),'r','LineWidth',2)
+%         plot((minInc:maxInc)*convFactTime,edgePos,'r')
+%         
+%         %line indicating activity onset
+%         plot([0 0],[yMin yMax],'k:')
+%         
+%         axis([xMin xMax yMin yMax]);
+%         xlabel('Time from protrusion onset (s)')
+%         ylabel('Edge and window position (um)')
         
-        %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
-        %             repmat(edgePos',2,1),'r','LineWidth',2)
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
+%         %plot 3 - at point of protrusion onset and new cell areas, after
+%         subplot(2,3,3), hold on
+%         
+%         %         plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1),'k','LineStyle','none')
+%         %         myErrorbar((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1),staticSeriesDistHR(-minInc+1:end,1))
+%         plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1)+staticSeriesDistHR(-minInc+1:end,1),'k')
+%         plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1)-staticSeriesDistHR(-minInc+1:end,1),'k')
+%         
+%         for iInc = maxIncPlot : -1 : 1
+%             %             plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc),'color',incColor(iInc,:),'LineStyle','none')
+%             %             myErrorbar((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc),dynamicSeriesAftDistHR(:,iInc))
+%             plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc)+dynamicSeriesAftDistHR(:,iInc),'color',incColor(iInc,:))
+%             plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc)-dynamicSeriesAftDistHR(:,iInc),'color',incColor(iInc,:))
+%         end
+%         
+%         %         plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end),'b','LineStyle','none')
+%         %         myErrorbar((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end),edgeSeriesDistHR(-minInc+1:end))
+%         plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end)+edgeSeriesDistHR(-minInc+1:end),'b')
+%         plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end)-edgeSeriesDistHR(-minInc+1:end),'b')
+%         
+%         %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
+%         %             repmat(edgePos',2,1),'r','LineWidth',2)
+%         plot((minInc:maxInc)*convFactTime,edgePos,'r')
+%         
+%         %line indicating activity onset
+%         plot([0 0],[yMin yMax],'k:')
+%         
+%         axis([xMin xMax yMin yMax]);
+%         xlabel('Time from protrusion onset (s)')
+%         ylabel('Edge and window position (um)')
         
-        %line indicating activity onset
-        plot([0 0],[yMin yMax],'k:')
-        
-        axis([xMin xMax yMin yMax]);
-        xlabel('Time from protrusion onset (s)')
-        ylabel('Edge and window position (um)')
-        
-        %plot 2 - at point of protrusion onset, before and after
-        subplot(2,3,2), hold on
-        
-        %         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1),'k','LineStyle','none')
-        %         myErrorbar((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1),staticSeriesDistHR(:,1))
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
-        
-        %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
-        %             repmat(edgePos',2,1),'r','LineWidth',2)
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
-        
-        %line indicating activity onset
-        plot([0 0],[yMin yMax],'k:')
-        
-        axis([xMin xMax yMin yMax]);
-        xlabel('Time from protrusion onset (s)')
-        ylabel('Edge and window position (um)')
-        
-        %plot 3 - at point of protrusion onset and new cell areas, after
-        subplot(2,3,3), hold on
-        
-        %         plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1),'k','LineStyle','none')
-        %         myErrorbar((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1),staticSeriesDistHR(-minInc+1:end,1))
-        plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1)+staticSeriesDistHR(-minInc+1:end,1),'k')
-        plot((0:maxInc)*convFactTime,staticSeriesDistMid(-minInc+1:end,1)-staticSeriesDistHR(-minInc+1:end,1),'k')
-        
-        for iInc = maxIncPlot : -1 : 1
-            %             plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc),'color',incColor(iInc,:),'LineStyle','none')
-            %             myErrorbar((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc),dynamicSeriesAftDistHR(:,iInc))
-            plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc)+dynamicSeriesAftDistHR(:,iInc),'color',incColor(iInc,:))
-            plot((minInc:maxInc)*convFactTime,dynamicSeriesAftDistMid(:,iInc)-dynamicSeriesAftDistHR(:,iInc),'color',incColor(iInc,:))
-        end
-        
-        %         plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end),'b','LineStyle','none')
-        %         myErrorbar((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end),edgeSeriesDistHR(-minInc+1:end))
-        plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end)+edgeSeriesDistHR(-minInc+1:end),'b')
-        plot((0:maxInc)*convFactTime,edgeSeriesDistMid(-minInc+1:end)-edgeSeriesDistHR(-minInc+1:end),'b')
-        
-        %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
-        %             repmat(edgePos',2,1),'r','LineWidth',2)
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
-        
-        %line indicating activity onset
-        plot([0 0],[yMin yMax],'k:')
-        
-        axis([xMin xMax yMin yMax]);
-        xlabel('Time from protrusion onset (s)')
-        ylabel('Edge and window position (um)')
-        
-        %plot 4 - values in bands
-        subplot(2,3,4), hold on
+        %plot 2 - values in bands
+        subplot(1,2,2), hold on
         
         %         plot((minInc:maxInc)*convFactTime,staticSeriesBulkDistMid,'Color',bandColor(4,:),'LineStyle','none')
         %         myErrorbar((minInc:maxInc)*convFactTime,staticSeriesBulkDistMid,staticSeriesBulkDistHR);
@@ -510,7 +510,7 @@ if ~isnan(yMax)
         
         %         plot([(minInc-0.5:maxInc-0.5)*convFactTime; (minInc+0.5:maxInc+0.5)*convFactTime],...
         %             repmat(edgePos',2,1),'r','LineWidth',2)
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
+        plot((minInc:maxInc)*convFactTime,edgePos,'Color',[1 0.7 0])
         
         yMin = min(staticSeriesBulkDistMid-staticSeriesBulkDistHR) - 0.5;
         
@@ -521,36 +521,35 @@ if ~isnan(yMax)
         xlabel('Time from protrusion onset (s)')
         ylabel('Edge and window position (um)')
         
-        %plot 5 - combination of right behind edge and point of protrusion
-        %onset
-        subplot(2,3,5), hold on
+%         %plot 5 - combination of right behind edge and point of protrusion
+%         %onset
+%         subplot(2,3,5), hold on
+%         
+%         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'b')
+%         plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'b')
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
+%         
+%         plot((minInc:maxInc)*convFactTime,edgePos,'r')
+%         
+%         %line indicating activity onset
+%         plot([0 0],[yMin yMax],'k:')
+%         
+%         axis([xMin xMax yMin yMax]);
+%         xlabel('Time from protrusion onset (s)')
+%         ylabel('Edge and window position (um)')
         
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'b')
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'b')
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
+        %plot 1 - combination of right behind edge and new cell area aligned & combined
+        subplot(1,2,1), hold on
         
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
+        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'c')
+        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'c')
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
+%         plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
+        plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftDistMid+combDynamicSeriesAftDistHR,'r')
+        plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftDistMid-combDynamicSeriesAftDistHR,'r')
         
-        %line indicating activity onset
-        plot([0 0],[yMin yMax],'k:')
-        
-        axis([xMin xMax yMin yMax]);
-        xlabel('Time from protrusion onset (s)')
-        ylabel('Edge and window position (um)')
-        
-        %plot 6 - combination of right behind edge, point of protrusion onset
-        %and new cell area aligned & combined
-        subplot(2,3,6), hold on
-        
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid+edgeSeriesDistHR,'b')
-        plot((minInc:maxInc)*convFactTime,edgeSeriesDistMid-edgeSeriesDistHR,'b')
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)+staticSeriesDistHR(:,1),'k')
-        plot((minInc:maxInc)*convFactTime,staticSeriesDistMid(:,1)-staticSeriesDistHR(:,1),'k')
-        plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftDistMid+combDynamicSeriesAftDistHR,'g')
-        plot((minInc:maxInc)*convFactTime,combDynamicSeriesAftDistMid-combDynamicSeriesAftDistHR,'g')
-        
-        plot((minInc:maxInc)*convFactTime,edgePos,'r')
+        plot((minInc:maxInc)*convFactTime,edgePos,'Color',[1 0.7 0])
         
         %line indicating activity onset
         plot([0 0],[yMin yMax],'k:')
