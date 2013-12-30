@@ -318,8 +318,9 @@ if sum(rem(nInter,nInter(1))) == 0
     
     for iInt = 1:numel(interval{1})
         
-        total     = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
-        selection = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        total      = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        selection  = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        normalized = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
         
         for iCell = 1:nCell
             
@@ -334,7 +335,24 @@ if sum(rem(nInter,nInter(1))) == 0
             total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
             total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
             total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
+
+            norProtPersTime  = cellData{iCell}.protrusionAnalysis(iInt).total.persTime./median(cellData{iCell}.protrusionAnalysis(1).total.persTime);
+            norProtMaxVeloc  = cellData{iCell}.protrusionAnalysis(iInt).total.maxVeloc./median(cellData{iCell}.protrusionAnalysis(1).total.maxVeloc);
+            norProtMeanVeloc = cellData{iCell}.protrusionAnalysis(iInt).total.Veloc./median(cellData{iCell}.protrusionAnalysis(1).total.Veloc);
+            norProtMednVeloc = cellData{iCell}.protrusionAnalysis(iInt).total.mednVeloc./median(cellData{iCell}.protrusionAnalysis(1).total.mednVeloc);
             
+            normalized.ProtPersTime    = [normalized.ProtPersTime;norProtPersTime];
+            normalized.ProtMaxVeloc    = [normalized.ProtMaxVeloc;norProtMaxVeloc];
+            normalized.ProtMinVeloc    = [normalized.ProtMinVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.minVeloc];
+            normalized.ProtMeanVeloc   = [normalized.ProtMeanVeloc;norProtMeanVeloc];
+            normalized.ProtMednVeloc   = [normalized.ProtMednVeloc;norProtMednVeloc];
+            
+%             total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
+%             total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
+%             total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
+%             total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
+%             total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
+
             if ~isempty(selectMotion{1})
                 if strcmp(selectMotion{1}(1:10),'protrusion')
                     
@@ -362,6 +380,7 @@ if sum(rem(nInter,nInter(1))) == 0
         dataSet.CI.interval(iInt)          = structfun(@(x) prctile(x,[lwPerc upPerc]),total,'Unif',0);
         dataSet.medianValue.interval(iInt) = structfun(@(x) nanmedian(x),total,'Unif',0);
         dataSet.total.interval(iInt)       = total;
+        dataSet.normalized.interval(iInt)  = normalized;
         
         
         
