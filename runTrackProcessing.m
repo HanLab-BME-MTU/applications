@@ -29,6 +29,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Buffer', [5 5], @(x) numel(x)==2);
+ip.addParamValue('BufferAll', false, @islogical);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
@@ -54,7 +55,6 @@ parfor i = 1:length(data)
 end
 
 function [data] = main(data, frameIdx, opts)
-buffer = opts.Buffer;
 preprocess = opts.Preprocess;
 postprocess = opts.Postprocess;
 cohortBounds = opts.CohortBounds_s;
@@ -254,7 +254,7 @@ tracks(1:nTracks) = struct('t', [], 'f', [],...
 % track field names
 idx = structfun(@(i) size(i,2)==size(frameInfo(1).x,2), frameInfo(1));
 mcFieldNames = fieldnames(frameInfo);
-[~,loc] = ismember({'x_init', 'y_init'}, mcFieldNames);
+[~,loc] = ismember({'s', 'x_init', 'y_init', 'xCoord', 'yCoord', 'amp', 'dRange'}, mcFieldNames);
 idx(loc(loc~=0)) = false;
 mcFieldNames = mcFieldNames(idx);
 mcFieldSizes = structfun(@(i) size(i,1), frameInfo(1));
@@ -264,6 +264,8 @@ bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_
 %==============================
 % Loop through tracks
 %==============================
+buffer = repmat(opts.Buffer, [nTracks,1]);
+
 fprintf('Processing tracks (%s) - converting tracker output:     ', getShortPath(data));
 for k = 1:nTracks
     
@@ -318,7 +320,7 @@ for k = 1:nTracks
     tracks(k).seqOfEvents = seqOfEvents;
     tracks(k).tracksFeatIndxCG = tracksFeatIndxCG; % index of the feature in each frame
     
-    if (buffer(1)<tracks(k).start) && (tracks(k).end<=nFrames-buffer(2)) % complete tracks
+    if (buffer(k,1)<tracks(k).start) && (tracks(k).end<=nFrames-buffer(k,2)) % complete tracks
         tracks(k).visibility = 1;
     elseif tracks(k).start==1 && tracks(k).end==nFrames % persistent tracks
         tracks(k).visibility = 3;
@@ -341,15 +343,14 @@ for k = 1:nTracks
     if fieldLength>1
         
         % start buffer size for this track
-        sb = firstIdx - max(1, firstIdx-buffer(1));
-        eb = min(lastIdx+buffer(2), data.movieLength)-lastIdx;
-        
-        if sb>0 && tracks(k).visibility==1
+        sb = firstIdx - max(1, firstIdx-buffer(k,1));
+        eb = min(lastIdx+buffer(k,2), data.movieLength)-lastIdx;
+        if sb>0 && (tracks(k).visibility==1 || opts.BufferAll)
             for f = 1:length(bufferFieldNames)
                 tracks(k).startBuffer.(bufferFieldNames{f}) = NaN(nCh, sb);
             end
         end
-        if eb>0 && tracks(k).visibility==1
+        if eb>0 && (tracks(k).visibility==1 || opts.BufferAll)
             for f = 1:length(bufferFieldNames)
                 tracks(k).endBuffer.(bufferFieldNames{f}) = NaN(nCh, eb);
             end
@@ -395,6 +396,7 @@ maxy = round(arrayfun(@(t) max(t.y(:)), tracks));
 
 idx = minx<=w4 | miny<=w4 | maxx>nx-w4 | maxy>ny-w4;
 tracks(idx) = [];
+buffer(idx,:) = [];
 nTracks = numel(tracks);
 
 %=======================================
@@ -464,7 +466,7 @@ end
 % for buffers:
 trackStarts = [tracks.start];
 trackEnds = [tracks.end];
-fullTracks = [tracks.visibility]==1;
+fullTracks = [tracks.visibility]==1 | (opts.BufferAll & [tracks.visibility]==2);
 
 fprintf('Processing tracks (%s) - gap interpolation, buffer readout:     ', getShortPath(data));
 for f = 1:data.movieLength
@@ -507,7 +509,7 @@ for f = 1:data.movieLength
         % start buffer
         %------------------------
         % tracks with start buffers in this frame
-        cand = max(1, trackStarts-buffer(1))<=f & f<trackStarts;
+        cand = max(1, trackStarts-buffer(:,1)')<=f & f<trackStarts;
         % corresponding tracks, only if status = 1
         currentBufferIdx = find(cand & fullTracks);
         
@@ -515,7 +517,7 @@ for f = 1:data.movieLength
             k = currentBufferIdx(ki);
             
             [t0] = interpTrack(tracks(k).x(ch,1), tracks(k).y(ch,1), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
-            bi = f - max(1, tracks(k).start-buffer(1)) + 1;
+            bi = f - max(1, tracks(k).start-buffer(k,1)) + 1;
             tracks(k).startBuffer = mergeStructs(tracks(k).startBuffer, ch, bi, t0);
         end
         
@@ -523,7 +525,7 @@ for f = 1:data.movieLength
         % end buffer
         %------------------------
         % segments with end buffers in this frame
-        cand = trackEnds<f & f<=min(data.movieLength, trackEnds+buffer(2));
+        cand = trackEnds<f & f<=min(data.movieLength, trackEnds+buffer(:,2)');
         % corresponding tracks
         currentBufferIdx = find(cand & fullTracks);
         
@@ -666,16 +668,18 @@ if postprocess
     for k = 1:numel(idx_Ia)
         i = idx_Ia(k);
         
-        % H0: A = background (p-value >= 0.05)
-        sbin = tracks(i).startBuffer.pval_Ar(mCh,:) < 0.05; % positions with signif. signal
-        ebin = tracks(i).endBuffer.pval_Ar(mCh,:) < 0.05;
-        [sl, sv] = binarySegmentLengths(sbin);
-        [el, ev] = binarySegmentLengths(ebin);
-        if ~any(sl(sv==0)>=Tbuffer) || ~any(el(ev==0)>=Tbuffer) ||...
-                max([tracks(i).startBuffer.A(mCh,:)+tracks(i).startBuffer.c(mCh,:)...
-                tracks(i).endBuffer.A(mCh,:)+tracks(i).endBuffer.c(mCh,:)]) >...
-                max(tracks(i).A(mCh,:)+tracks(i).c(mCh,:))
-            tracks(i).catIdx = 2;
+        if ~isempty(tracks(i).startBuffer) && ~isempty(tracks(i).endBuffer)
+            % H0: A = background (p-value >= 0.05)
+            sbin = tracks(i).startBuffer.pval_Ar(mCh,:) < 0.05; % positions with signif. signal
+            ebin = tracks(i).endBuffer.pval_Ar(mCh,:) < 0.05;
+            [sl, sv] = binarySegmentLengths(sbin);
+            [el, ev] = binarySegmentLengths(ebin);
+            if ~any(sl(sv==0)>=Tbuffer) || ~any(el(ev==0)>=Tbuffer) ||...
+                    max([tracks(i).startBuffer.A(mCh,:)+tracks(i).startBuffer.c(mCh,:)...
+                    tracks(i).endBuffer.A(mCh,:)+tracks(i).endBuffer.c(mCh,:)]) >...
+                    max(tracks(i).A(mCh,:)+tracks(i).c(mCh,:))
+                tracks(i).catIdx = 2;
+            end
         end
     end
     
