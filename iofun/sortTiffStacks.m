@@ -18,6 +18,7 @@ ip.CaseSensitive = false;
 ip.addOptional('spath', [], @(x) ischar(x) || isempty(x) || iscell(x));
 ip.addParamValue('ChannelNames', [], @iscell);
 ip.addParamValue('MovieSelector', 'cell', @ischar);
+ip.addParamValue('UseFileName', true, @islogical);
 ip.parse(varargin{:});
 stkpath = ip.Results.spath;
 chSpec = ip.Results.ChannelNames;
@@ -73,24 +74,27 @@ else % list of stacks
         return
     end
     
-    
-    % stack index/identifier following selector (i.e., 12 for 'Cell12_2s')
-    movieID = str2double(regexpi(stkList, ['(?<=' ip.Results.MovieSelector ')\d+'], 'match', 'once'));
-    
-    % frame rate (if in file name)
-    framerate = str2double(regexpi(stkList, '(?<=_)\d+(?=s)', 'match', 'once'));
-    [movieID,idx] = unique(movieID);
-    framerate = framerate(idx);
-    
     nCh = numel(chSpec);
     
-    N = numel(movieID);
+    %N = numel(movieID);
     for k = N:-1:1
-        if ~isnan(framerate(k))
-            dirName = [ip.Results.MovieSelector num2str(movieID(k)) '_' num2str(framerate(k)) 's'];
+        if ip.Results.UseFileName
+            [~,dirName, ext] = fileparts(stkList{k});
         else
-            dirName = [ip.Results.MovieSelector num2str(movieID(k))];
+%             % stack index/identifier following selector (i.e., 12 for 'Cell12_2s')
+%             movieID = str2double(regexpi(stkList{k}, ['(?<=' ip.Results.MovieSelector ')\d+'], 'match', 'once'));
+%             % frame rate (if in file name)
+%             framerate = str2double(regexpi(stkList{k}, '(?<=_)\d+(?=s)', 'match', 'once'));
+%             [movieID,idx] = unique(movieID);
+%             framerate = framerate(idx);
+%             
+%             if ~isnan(framerate(k))
+%                 dirName = [ip.Results.MovieSelector num2str(movieID(k)) '_' num2str(framerate(k)) 's'];
+%             else
+%                 dirName = [ip.Results.MovieSelector num2str(movieID(k))];
+%             end
         end
+        
         [~,~] = mkdir([stkpath dirName]);
         
         if nCh>0
@@ -102,7 +106,7 @@ else % list of stacks
                     [stkpath dirName filesep chSpec{c}]);
             end
         else
-            movefile([stkpath ip.Results.MovieSelector num2str(movieID(k)) '*.tif*'], [stkpath dirName]);
+            movefile([stkpath dirName ext], [stkpath dirName]);
         end
     end
 end
