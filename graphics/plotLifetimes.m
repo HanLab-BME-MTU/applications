@@ -44,9 +44,7 @@ if isstruct(lftRes)
     % Single-channel data
     %============================================================
     if ~isfield(lftRes, 'lftHistSlaveCCP')
-        h(1) = figure(fset.fOpts{:}, 'Name', 'Lifetime distr.');
-        axes(fset.axOpts{:});
-        hold on;
+        h(1) = setupFigure('DisplayMode', ip.Results.DisplayMode, 'Name', 'Lifetime distr.');
         
         if ip.Results.PlotAll
             if isfield(lftRes, 'meanLftHistVisit')
@@ -78,7 +76,7 @@ if isstruct(lftRes)
             hl = legend(hp, ltext{:});
             set(hl, 'Box', 'off');
             if strcmpi(ip.Results.DisplayMode, 'print')
-                set(hl, 'Position', [4 5-lheight 1.75 lheight]);
+                set(hl, 'Units', 'centimeters', 'Position', [4 5-lheight 1.75 lheight]);
             end
             ylabel('Relative frequency', fset.lfont{:});
         else
