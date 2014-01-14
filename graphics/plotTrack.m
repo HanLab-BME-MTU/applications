@@ -70,17 +70,23 @@ hasEndBuffer = ~isempty(track.endBuffer);
 XLim = ip.Results.XLim;
 
 b0 = 2*data.framerate;
-if hasStartBuffer && hasEndBuffer
-    bf = max(numel(track.startBuffer.t), numel(track.endBuffer.t));
+if hasStartBuffer
+    nbs = numel(track.startBuffer.t);
 else
-    bf = 0;
+    nbs = 0;
 end
+if hasEndBuffer
+    nbe = numel(track.endBuffer.t);
+else
+    nbe = 0;
+end
+
 bt = track.end-track.start; % #frames - 1
 
-w = 2*b0+2*bf+bt;
-u = 10;
+% w = 2*b0+nbs+nbe+bt;
+% u = 10;
 if isempty(XLim)
-    XLim = track.t(1)-dt + [-(bf+b0) bt+bf+b0]*data.framerate;
+    XLim = track.t(1)-dt + [-(nbs+b0) bt+nbe+b0]*data.framerate;
 end
 
 
@@ -88,19 +94,8 @@ end
 if ~isempty(ip.Results.Handle)
     ha = ip.Results.Handle;
 else
-    pos0 = get(0, 'DefaultFigurePosition');
-    screenSize = get(0, 'ScreenSize');
-    aw = min(screenSize(3)-105, w*u); % axes width
-    % tick length: percentage of axes width
-    tickLength = pos0(3)/aw*[0.01 0.025];
-    % left border
-    if isempty(ip.Results.YTick)
-        dleft = floor(log10(max(track.A(ch,:))))*45;
-    else
-        dleft = floor(log10(ip.Results.YTick(end)))*45;
-    end
-    hfig = figure('Visible', ip.Results.Visible, 'Position', [100 378 dleft+aw+20 400], 'PaperPositionMode', 'auto');
-    ha = axes('Units', 'pixels', 'Position', [dleft 70 aw 300], 'TickLength', tickLength);
+    hfig = figure('Visible', ip.Results.Visible, 'PaperPositionMode', 'auto');
+    ha = axes;
 end
 
 % Color definitions
@@ -274,17 +269,13 @@ box off;
 
 % Bigger fonts, line widths etc
 if isempty(ip.Results.Handle)
-    tfont = {'FontName', 'Helvetica', 'FontSize', 20};
-    sfont = {'FontName', 'Helvetica', 'FontSize', 20};
-    lfont = {'FontName', 'Helvetica', 'FontSize', 24};
-    
     if strcmpi(ip.Results.Legend, 'show')
-        set(l, tfont{:});
+        set(l);
     end
     
-    set(gca, 'LineWidth', ip.Results.LineWidth, sfont{:}, 'TickDir', 'out');
-    xlabel('Time (s)', lfont{:})
-    ylabel('Intensity (A.U.)', lfont{:});
+    set(gca, 'LineWidth', ip.Results.LineWidth, 'TickDir', 'out');
+    xlabel('Time (s)')
+    ylabel('Intensity (A.U.)');
 end
 
 if strcmpi(ip.Results.DisplayMode, 'Print')
