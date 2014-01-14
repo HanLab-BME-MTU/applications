@@ -29,7 +29,8 @@ mexNames = arrayfun(@(i) cellfun(@(e) [mexNames{i} e], mexExts, 'unif', 0), 1:nu
 mexNames = vertcat(mexNames{:});
 mexPaths = fpaths(mexIdx);
 % retrieve source files (.c, .h, .cpp & .hpp, but does not include external headers!)
-sourceNames = cellfun(@dir, mexPaths, 'unif', 0);
+searchPaths = cellfun(@(i,j) [i filesep j '*'], mexPaths, fnames(mexIdx), 'unif', 0);
+sourceNames = cellfun(@dir, searchPaths, 'unif', 0);
 sourceNames = cellfun(@(i) {i(~cellfun(@isempty, regexpi({i.name}, '(\.c(pp)?|\.h(pp)?)$'))).name}, sourceNames, 'unif', 0);
 sourcePaths = arrayfun(@(i) repmat(mexPaths(i), [numel(sourceNames{i}) 1]), 1:numel(mexPaths), 'unif', 0);
 sourcePaths = vertcat(sourcePaths{:});
