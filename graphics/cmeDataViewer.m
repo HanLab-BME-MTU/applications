@@ -442,9 +442,10 @@ fprintf('done.\n');
 
 % Settings
 if ~isempty(tracks)
-    minLft = min([tracks.lifetime_s]); % 3 frames. Display tracks >= 5 framesby default
+    minLft = min([tracks.lifetime_s]);
     maxLft = max([tracks.lifetime_s]);
-    minVal = data.framerate*5;%minLft;
+    % slider values; minLft, maxLft are const
+    minVal = max(data.framerate*5, minLft); % Display tracks >= 5 frames by default
     maxVal = maxLft;
     catCheckVal = ones(1,8);
     eapCheckVal = ones(1,3);
