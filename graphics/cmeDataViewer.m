@@ -2,19 +2,22 @@
 %
 % Inputs:    
 %             data : single movie structure returned by loadConditionData.m
-%     Trajectories : optional input for selecting 'all' (default) or
-%                    'valid' CCS trajectories.
-%c
-% Notes: Only tracks with at least 5 frames are loaded and displayed.
+%
+% Options (specifier/value format):
+%     'LoadTracks' : {true}|false specifies whether tracking data is loaded
+%     'LoadFrames' : {true}|false specifies whether the raw movie data is loaded
+%                    This is required for visualization of tracks overlaid on data
+%       'LoadMask' : {true}| false specifies whether the cell outline mask is loaded
+%       'Cutoff_f' : Minimum length of tracks to load, in frames. Default: 3
+%
 
-% Francois Aguet, 2011 (last modified 08/24/2013)
+% Francois Aguet, 2011 (last modified 01/14/2014)
 
 function cmeDataViewer(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addOptional('Trajectories', 'all', @(x) isempty(x) || isstruct(x) || any(strcmpi(x, {'all', 'valid'})));
 ip.addParamValue('LoadTracks', true, @islogical);
 ip.addParamValue('LoadFrames', true, @islogical);
 ip.addParamValue('LoadMask', true, @islogical);
@@ -577,19 +580,6 @@ if ~isempty(tracks)
     updateTrack();
 end
 
-% if ~isempty(ip.Results.Trajectories)
-%     % load tracks
-%     if ischar(ip.Results.Trajectories)
-%         if strcmpi(ip.Results.Trajectories, 'valid');
-%             c = 'Ia';
-%         else
-%             c = 'all';
-%         end
-%         tracks = loadTracks(data, 'Category', c);
-%     else
-%         tracks = ip.Results.Trajectories;
-%     end
-% end
 
 %===============================================================================
 % Set listeners
