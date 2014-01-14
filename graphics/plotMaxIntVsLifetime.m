@@ -123,7 +123,7 @@ for k = 1:nd
         %lv = [maxALft{k}{:}];
         %lv = lv(ch,:);
         
-        densityplot(lv, av, xl, xa, 'Handle', ha(k), 'DisplayFunction', ip.Results.DisplayFunction, 'NormX', ip.Results.NormX);
+        densityplot(lv, av, xl, xa, 'Parent', ha(k), 'DisplayFunction', ip.Results.DisplayFunction, 'NormX', ip.Results.NormX);
         text(xl(end)/2, xa(end), legendText{k}, 'VerticalAlignment', 'bottom',...
             'HorizontalAlignment', 'center', 'Parent', ha(k), 'FontSize', ip.Results.FontSize);
     end
