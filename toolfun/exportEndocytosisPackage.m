@@ -8,13 +8,12 @@ function exportEndocytosisPackage(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
-ip.addOptional('exportDir', '.', @ischar);
-ip.addParamValue('IncludeSources', true, @islogical);
+ip.KeepUnmatched = true;
+ip.addOptional('exportDir', '.');
+ip.addParameter('IncludeSources', true, @islogical);
+ip.addParameter('Compress', false, @islogical);
 ip.parse(varargin{:});
 exportDir = ip.Results.exportDir;
-
-svnRoot = '/home/fa48/Documents/MATLAB/SVN/'; % desktop
-% svnRoot = '/home/fa48/matlab/SVN/'; % orchestra
 
 % list of variable names erroneously detected as functions
 ignoreList = {'consist'; 'knn'};
@@ -23,61 +22,30 @@ ignoreList = {'consist'; 'knn'};
 % externRoot = [getParentDir(mfilename('fullpath'),3) 'extern' filesep];
 % externList = {'kdtree_andrea'};
 % externName = {'kdtree'};
-externList = {};
-externName = {};
 
 %-----------------------------------------------------
-% 1) Export pointSourceDetection.m separately
+% 1) Export pointSourceDetection.m to sub-directory
 %-----------------------------------------------------
-[fctList, toolboxList] = getFunDependencies('pointSourceDetection.m');
-[fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreList] = parseFiles(fctList, ignoreList, externList);
+dest = [exportDir filesep 'cmeAnalysisPackage' filesep];
 
-% copy core functions
-dest = [exportDir filesep 'PointSourceDetection' filesep];
-[~,~] = mkdir(dest);
-for i = 1:numel(fnames)
-    copyfile([fpaths{i} filesep fnames{i}], [dest fnames{i}]);
-end
-
-% copy MEX functions
-mdest = [dest filesep 'mex' filesep];
-[~,~] = mkdir(mdest);
-for i = 1:numel(mexNames)
-    copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
-end
-
-if ip.Results.IncludeSources
-    % copy source files (into MEX directory)
-    for i = 1:numel(sourceNames)
-        copyfile([sourcePaths{i} filesep sourceNames{i}], [mdest sourceNames{i}]);
-    end
-    % for now, include 'stats.h' explicitly
-    copyfile([svnRoot 'common/mex/include/stats.h'], [mdest 'stats.h']);
-end
+fnames = exportCode('PointSourceDetection.m', [dest 'PointSourceDetection' filesep],...
+    'IncludeSources', ip.Results.IncludeSources, 'AddList', {'stats.h', 'KDTree.hpp'},...
+    'IncludeGPL', false, 'Verbose', false);
+ignoreList = [ignoreList; fnames];
 
 % copy external packages
-for i = 1:numel(externList)
-    edest = [dest externName{i}];
-    source = [externRoot externList{i}];
-    %cmd = ['svn export ' source ' ' edest];
-    %system(cmd);
-    % -or-
-    [~,~] = mkdir(edest);
-    copyfile(source, edest);
-end
-
-% set permissions
-cmd = ['chmod -R 777 ' dest];
-system(cmd);
-
-% Copy GPL and package
-% copyfile([svnRoot 'endocytosis/doc/GPL-License.txt'], './PointSourceDetection/.');
-% system('zip -qr PointSourceDetection.zip PointSourceDetection');
-% system('mv PointSourceDetection.zip www/aguet/doc/.');
-
+% for i = 1:numel(externList)
+%     edest = [dest externName{i}];
+%     source = [externRoot externList{i}];
+%     %cmd = ['svn export ' source ' ' edest];
+%     %system(cmd);
+%     % -or-
+%     [~,~] = mkdir(edest);
+%     copyfile(source, edest);
+% end
 
 %-----------------------------------------------------
-% 2) Export Endocytosis project
+% 2) Export cmeAnalysis package
 %-----------------------------------------------------
 ts = loadTrackSettings();
 masterList = {'cmeAnalysis.m', 'cmeDataViewer.m',...
@@ -87,91 +55,31 @@ masterList = {'cmeAnalysis.m', 'cmeDataViewer.m',...
     ts.costMatrices(1).funcName, ts.costMatrices(2).funcName,...
     ts.kalmanFunctions.reserveMem, ts.kalmanFunctions.initialize,...
     ts.kalmanFunctions.calcGain, ts.kalmanFunctions.timeReverse};
-for i = 1:numel(masterList);
-    [fctList{i}, toolboxList{i}] = getFunDependencies(masterList{i});
-end
-fctList = unique(vertcat(fctList{:}));
-toolboxList = unique(vertcat(toolboxList{:}));
-[fnames, fpaths, mexNames, mexPaths, ~, ~, ~] = parseFiles(fctList, ignoreList, externList);
 
-% copy core functions
-dest = [exportDir filesep 'cmeAnalysisPackage' filesep];
-[~,~] = mkdir(dest);
-for i = 1:numel(fnames)
-    copyfile([fpaths{i} filesep fnames{i}], [dest fnames{i}]);
-end
+exportCode(masterList, dest,...
+    'IncludeSources', false, 'AddList', [], 'IgnoreList', ignoreList);
 
 % copy GUIs (temp fix)
-copyfile([svnRoot 'common/iofun/GUI/listSelectGUI.fig'],...
-    './cmeAnalysisPackage/listSelectGUI.fig');
-
-% copy MEX functions
-mdest = [dest filesep 'mex' filesep];
-[~,~] = mkdir(mdest);
-for i = 1:numel(mexNames)
-    copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
-end
+copyfile(which('listSelectGUI.fig'), [dest 'listSelectGUI.fig']);
 
 % set permissions
 cmd = ['chmod -R 777 ' dest];
 system(cmd);
 
-disp('The package uses the following toolboxes:')
-disp(toolboxList);
+% Copy documentation
+docname = 'CME Analysis Package Manual.pdf';
+copyfile(which(docname), [exportDir filesep docname]);
 
-% Copy documentation and GPL
-copyfile([svnRoot 'endocytosis/doc/GPL-License.txt'], './cmeAnalysisPackage/.');
-copyfile([svnRoot 'endocytosis/doc/CME Analysis Package Manual.pdf'], '.');
 
-system('mv PointSourceDetection cmeAnalysisPackage/.');
-% system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage');
-system('zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage "CME Analysis Package Manual.pdf"');
-
-% system('cp cmeAnalysisPackage.zip www/doc/.');
-%unzip cmeAnalysisPackage.zip
-
-% Remove temporary files
-system('rm "CME Analysis Package Manual.pdf"');
-system('rm -r cmeAnalysisPackage');
-
+if ip.Results.Compress
+    system(['zip -qr cmeAnalysisPackage.zip cmeAnalysisPackage "' docname '"']);
+    
+    % system('cp cmeAnalysisPackage.zip www/doc/.');
+    %unzip cmeAnalysisPackage.zip
+    
+    % Remove temporary files
+    system(['rm "' docname '"']);
+    system('rm -r cmeAnalysisPackage');
+end
 
 disp('Export complete.');
-
-
-
-function [fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreList] = parseFiles(fctList, ignoreList, externList)
-
-[fpaths, fnames, fexts] = cellfun(@fileparts, fctList, 'unif', 0);
-% remove unneeded functions
-rmIdx = ismember(fnames, ignoreList);
-if ~isempty(externList)
-    tmp = cellfun(@(i) regexpi(fpaths, i, 'once'), externList, 'unif', 0);
-    tmp = horzcat(tmp{:});
-    rmIdx = rmIdx | any(~cellfun(@(i) isempty(i), tmp),2);
-end
-fpaths(rmIdx) = [];
-fnames(rmIdx) = [];
-fexts(rmIdx) = [];
-
-% Update ignore list for main package
-ignoreList = [ignoreList; fnames];
-
-mexExts = {'.mexmaci64'; '.mexa64'; '.mexw64'};
-mexIdx = find(ismember(fexts, mexExts));
-% Expand MEX list to all platforms
-mexNames = fnames(mexIdx);
-mexNames = arrayfun(@(i) cellfun(@(e) [mexNames{i} e], mexExts, 'unif', 0), 1:numel(mexNames), 'unif', 0);
-mexNames = vertcat(mexNames{:});
-mexPaths = fpaths(mexIdx);
-% retrieve source files (.c, .h, .cpp & .hpp, but does not include external headers!)
-sourceNames = cellfun(@dir, mexPaths, 'unif', 0);
-sourceNames = cellfun(@(i) {i(~cellfun(@isempty, regexpi({i.name}, '(\.c(pp)?|\.h(pp)?)$'))).name}, sourceNames, 'unif', 0);
-sourcePaths = arrayfun(@(i) repmat(mexPaths(i), [numel(sourceNames{i}) 1]), 1:numel(mexPaths), 'unif', 0);
-sourcePaths = vertcat(sourcePaths{:});
-sourceNames = horzcat(sourceNames{:})';
-
-mexPaths = reshape(repmat(mexPaths', [numel(mexExts) 1]), [numel(mexExts)*numel(mexPaths) 1]);
-fpaths(mexIdx) = [];
-fnames(mexIdx) = [];
-fexts(mexIdx) = [];
-fnames = arrayfun(@(i) [fnames{i} fexts{i}], 1:numel(fnames), 'unif', 0)';

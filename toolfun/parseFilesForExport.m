@@ -16,10 +16,10 @@ if ~isempty(ignoreList)
     fpaths(rmIdx) = [];
     fnames(rmIdx) = [];
     fexts(rmIdx) = [];
-    
-    % Update ignore list for main package
-    ignoreList = [ignoreList; fnames];
 end
+
+% Update ignore list for main package
+ignoreList = [ignoreList; fnames];
 
 mexExts = {'.mexmaci64'; '.mexa64'; '.mexw64'};
 mexIdx = find(ismember(fexts, mexExts));
