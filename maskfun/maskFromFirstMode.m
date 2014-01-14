@@ -1,6 +1,6 @@
 % Francois Aguet, 02/17/2012
 
-function mask = maskFromFirstMode(img, varargin)
+function [mask, T] = maskFromFirstMode(img, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -26,9 +26,9 @@ v(v<pct(1) | pct(2)<v) = [];
 lmax = locmax1d(f, 3);
 lmin = locmin1d(f, 3);
 
-% max value
-% [~,hmax] = max(f);
 dxi = xi(2)-xi(1);
+
+T = [];
 
 % identify min after first mode
 if ~isempty(lmin)
