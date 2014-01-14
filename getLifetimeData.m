@@ -35,7 +35,6 @@ lftData(1:nd) = cell2struct(cell(size(fnames)), fnames, 2);
 vnames = fnames(1:4);
 mnames = fnames(5:end);
 
-maxA = cell(nCh,nd);
 parfor i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData]; %#ok<PFBNS>
     if ~(exist(fpath, 'file')==2) || ip.Results.Overwrite
@@ -60,34 +59,36 @@ parfor i = 1:nd
         tracks = tracks(idx_Ia);
         
         nt = numel(tracks);
-        nsb = numel(tracks(1).startBuffer.t);
-        neb = numel(tracks(1).endBuffer.t);
-        
-        % store intensity matrices
-        nf = data(i).movieLength;
-        lftData(i).A = NaN(nt,nf,nCh);
-        lftData(i).A_pstd = NaN(nt,nf,nCh);
-        lftData(i).sigma_r = NaN(nt,nf,nCh);
-        lftData(i).SE_sigma_r = NaN(nt,nf,nCh);
-        
-        lftData(i).sbA = NaN(nt,nsb,nCh);
-        lftData(i).ebA = NaN(nt,neb,nCh);
-        lftData(i).sbSigma_r = NaN(nt,nsb,nCh);
-        lftData(i).ebSigma_r = NaN(nt,neb,nCh);
-        %lftData(i).RSS = NaN(nt,nf,nCh);
-        lftData(i).gapMat_Ia = false(nt,nf);
-        for k = 1:nt
-            range = 1:trackLengths(idx_Ia(k));
-            lftData(i).A(k,range,:) = tracks(k).A';
-            lftData(i).A_pstd(k,range,:) = tracks(k).A_pstd';
-            lftData(i).sigma_r(k,range,:) = tracks(k).sigma_r';
-            lftData(i).SE_sigma_r(k,range,:) = tracks(k).SE_sigma_r';
-            lftData(i).sbA(k,:,:) = tracks(k).startBuffer.A';
-            lftData(i).ebA(k,:,:) = tracks(k).endBuffer.A';
-            lftData(i).sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
-            lftData(i).ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
-            %lftData(i).RSS(k,range,:) = tracks(k).RSS';
-            lftData(i).gapMat_Ia(k,range) = tracks(k).gapVect';
+        if nt>0
+            nsb = numel(tracks(1).startBuffer.t);
+            neb = numel(tracks(1).endBuffer.t);
+            
+            % store intensity matrices
+            nf = data(i).movieLength;
+            lftData(i).A = NaN(nt,nf,nCh);
+            lftData(i).A_pstd = NaN(nt,nf,nCh);
+            lftData(i).sigma_r = NaN(nt,nf,nCh);
+            lftData(i).SE_sigma_r = NaN(nt,nf,nCh);
+            
+            lftData(i).sbA = NaN(nt,nsb,nCh);
+            lftData(i).ebA = NaN(nt,neb,nCh);
+            lftData(i).sbSigma_r = NaN(nt,nsb,nCh);
+            lftData(i).ebSigma_r = NaN(nt,neb,nCh);
+            %lftData(i).RSS = NaN(nt,nf,nCh);
+            lftData(i).gapMat_Ia = false(nt,nf);
+            for k = 1:nt
+                range = 1:trackLengths(idx_Ia(k));
+                lftData(i).A(k,range,:) = tracks(k).A';
+                lftData(i).A_pstd(k,range,:) = tracks(k).A_pstd';
+                lftData(i).sigma_r(k,range,:) = tracks(k).sigma_r';
+                lftData(i).SE_sigma_r(k,range,:) = tracks(k).SE_sigma_r';
+                lftData(i).sbA(k,:,:) = tracks(k).startBuffer.A';
+                lftData(i).ebA(k,:,:) = tracks(k).endBuffer.A';
+                lftData(i).sbSigma_r(k,:,:) = tracks(k).startBuffer.sigma_r';
+                lftData(i).ebSigma_r(k,:,:) = tracks(k).endBuffer.sigma_r';
+                %lftData(i).RSS(k,range,:) = tracks(k).RSS';
+                lftData(i).gapMat_Ia(k,range) = tracks(k).gapVect';
+            end
         end
     else
         tmp = load(fpath);
@@ -141,10 +142,11 @@ if isfield(lftData(1), 'significantMaster')
     vnames = [vnames 'significantMaster' 'significantSlave'];
     fnames = [vnames mnames];
 end
+
+maxA = cell(nCh,nd);
 for i = 1:nd
-    
-    if rescale
-        for c = 1:nCh
+    for c = 1:nCh
+        if rescale(c) && size(lftData(i).A,1) > 0 % in case of empty input
             maxA{c,i} = nanmax(lftData(i).A(:,:,c),[],2);
         end
     end
@@ -175,7 +177,7 @@ for i = 1:nd
     end
     
     % remove visitors
-    if ip.Results.ExcludeVisitors
+    if ip.Results.ExcludeVisitors && size(lftData(i).A,1) > 0
         vidx = getVisitorIndex(lftData(i));
         for f = 1:numel(fnames)
             lftData(i).visitors.(fnames{f}) = lftData(i).(fnames{f})(vidx{1},:,:);
@@ -197,21 +199,13 @@ for c = 1:nCh
         av(c,:) = a;
         movieLength = min([data.movieLength]);
         for i = 1:nd
-            lftData(i).A = lftData(i).A(:,1:movieLength,:);
-            maxA{c,i} = a(i) * maxA{c,i};
-            for f = 1:numel(afields)
-                lftData(i).(afields{f})(:,:,c) = a(i)*lftData(i).(afields{f})(:,:,c);
+            if size(lftData(i).A,1) > 0
+                lftData(i).A = lftData(i).A(:,1:movieLength,:);
+                maxA{c,i} = a(i) * maxA{c,i};
+                for f = 1:numel(afields)
+                    lftData(i).(afields{f})(:,:,c) = a(i)*lftData(i).(afields{f})(:,:,c);
+                end
             end
-            %lftData(i).A(:,:,c) = a(i) * lftData(i).A(:,:,c);
-            %lftData(i).sbA(:,:,c) = a(i) * lftData(i).sbA(:,:,c);
-            %lftData(i).ebA(:,:,c) = a(i) * lftData(i).ebA(:,:,c);
-            
-            % Standard deviations are not scaled
-            %lftData(i).A_pstd
-            %lftData(i).sigma_r(:,:,mCh) = a(i) * lftData(i).sigma_r(:,:,mCh);
-            %lftData(i).SE_sigma_r
-            %lftData(i).sbSigma_r
-            %lftData(i).ebSigma_r
         end
     end
     
