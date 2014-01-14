@@ -126,7 +126,7 @@ tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract
     'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
     'Position', [5 5 80 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
-tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Full time',...
+tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Total time',...
     'Position', [80 5 70 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 handles.tplotPanel = ph;
 
@@ -917,74 +917,75 @@ set(hz, 'ActionPostCallback', @czoom);
 
 
     function updateTrack(varargin)
-        
-        set(handles.trackLabel, 'String', ['Track ' num2str(tcur)]);
-        % update selected track marker position
-        set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
-
-        
-        itrack = tracks(tcur);
-        for ci = 1:nCh
-            %cla(handles.tAxes(ci));
-            hold(handles.tAxes(ci), 'off');
-            if get(tplotBackgroundCheckbox, 'Value')
-                bgMode = 'zero';
-            else
-                bgMode = 'data';
-            end
-            if strcmpi(pUnitType, 'f')
-                itrack.t = itrack.f;
-                if ~isempty(itrack.startBuffer)
-                    itrack.startBuffer.t = itrack.f(1) - (numel(itrack.startBuffer.t):-1:1);
-                    itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
+        if ~isempty(tcur)
+            set(handles.trackLabel, 'String', ['Track ' num2str(tcur)]);
+            % update selected track marker position
+            set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
+            
+            
+            itrack = tracks(tcur);
+            for ci = 1:nCh
+                %cla(handles.tAxes(ci));
+                hold(handles.tAxes(ci), 'off');
+                if get(tplotBackgroundCheckbox, 'Value')
+                    bgMode = 'zero';
+                else
+                    bgMode = 'data';
                 end
-            end
-            topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
-            if get(tplotScaleCheckbox, 'Value')
-                topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxInt(ci)]; %#ok<AGROW>
-            end
-            if get(tplotRangeCheckbox, 'Value')
-                topts = [topts, 'XLim', [-2 data.movieLength+1]*data.framerate]; %#ok<AGROW>
-            end
-            
-            if ~isempty(bgA) && itrack.catIdx<5
-                conf = bgA(ci, itrack.f); 
-               if ~isempty(itrack.startBuffer)
-                   conf = [bgA(ci, itrack.startBuffer.f) conf]; %#ok<AGROW>
-               end
-               if ~isempty(itrack.endBuffer)
-                   conf = [conf bgA(ci, itrack.endBuffer.f)]; %#ok<AGROW>
-               end
-               topts = [topts 'BackgroundConfidence', conf]; %#ok<AGROW>
-            end
-            plotTrack(data, itrack, ci, topts{:});
-            hold(handles.tAxes(ci), 'on');
-            %         dx = 0.03;
-            %         if isfield(sTrack, 'significantSignal')
-            %             s = sTrack.significantSignal;
-            %             if s(ci)==1
-            %                 slabel = 'yes';
-            %                 scolor = [0 0.8 0];
-            %             else
-            %                 slabel = 'no';
-            %                 scolor = [0.8 0 0];
-            %             end
-            %             text(1-dx, 1-dx,...
-            %                 ['Significant: ' slabel],...
-            %                 'Color', scolor, 'Units', 'normalized',...
-            %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-            %                 'Parent', handles.tAxes(ci));
-            %         end
-            
-            hf(ci) = plot(handles.tAxes(ci), ([fidx fidx]-1)*data.framerate,...
-                get(handles.tAxes(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
-            
-            set(handles.tAxes(1:end-1), 'XTickLabel', []);
-            
-            if strcmpi(pUnitType, 's')
-                xlabel(handles.tAxes(end), 'Time (s)');
-            else
-                xlabel(handles.tAxes(end), 'Frames');
+                if strcmpi(pUnitType, 'f')
+                    itrack.t = itrack.f;
+                    if ~isempty(itrack.startBuffer)
+                        itrack.startBuffer.t = itrack.f(1) - (numel(itrack.startBuffer.t):-1:1);
+                        itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
+                    end
+                end
+                topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
+                if get(tplotScaleCheckbox, 'Value')
+                    topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxInt(ci)]; %#ok<AGROW>
+                end
+                if get(tplotRangeCheckbox, 'Value')
+                    topts = [topts, 'XLim', [-2 data.movieLength+1]*data.framerate]; %#ok<AGROW>
+                end
+                
+                if ~isempty(bgA) && itrack.catIdx<5
+                    conf = bgA(ci, itrack.f);
+                    if ~isempty(itrack.startBuffer)
+                        conf = [bgA(ci, itrack.startBuffer.f) conf]; %#ok<AGROW>
+                    end
+                    if ~isempty(itrack.endBuffer)
+                        conf = [conf bgA(ci, itrack.endBuffer.f)]; %#ok<AGROW>
+                    end
+                    topts = [topts 'BackgroundConfidence', conf]; %#ok<AGROW>
+                end
+                plotTrack(data, itrack, ci, topts{:});
+                hold(handles.tAxes(ci), 'on');
+                %         dx = 0.03;
+                %         if isfield(sTrack, 'significantSignal')
+                %             s = sTrack.significantSignal;
+                %             if s(ci)==1
+                %                 slabel = 'yes';
+                %                 scolor = [0 0.8 0];
+                %             else
+                %                 slabel = 'no';
+                %                 scolor = [0.8 0 0];
+                %             end
+                %             text(1-dx, 1-dx,...
+                %                 ['Significant: ' slabel],...
+                %                 'Color', scolor, 'Units', 'normalized',...
+                %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
+                %                 'Parent', handles.tAxes(ci));
+                %         end
+                
+                hf(ci) = plot(handles.tAxes(ci), ([fidx fidx]-1)*data.framerate,...
+                    get(handles.tAxes(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
+                
+                set(handles.tAxes(1:end-1), 'XTickLabel', []);
+                
+                if strcmpi(pUnitType, 's')
+                    xlabel(handles.tAxes(end), 'Time (s)');
+                else
+                    xlabel(handles.tAxes(end), 'Frames');
+                end
             end
         end
     end
@@ -1074,24 +1075,26 @@ set(hz, 'ActionPostCallback', @czoom);
         b  = 155;
         uicontrol(pht, 'Style', 'text', 'String', 'Lifetimes:',...
             'Position', [5 b+35 90 20], 'HorizontalAlignment', 'left');
-        
+
+        if maxLft>minLft
         uicontrol(pht, 'Style', 'text', 'String', 'Min.:',...
             'Position', [5 b+18 30 20], 'HorizontalAlignment', 'left');
-        minLftSlider = uicontrol(pht, 'Style', 'slider',...
-            'Value', minVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-            'Position', [40 b+20 200 18]);
-        addlistener(handle(minLftSlider), 'Value', 'PostSet', @minSlider_Callback);
-        minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minVal) ' s'],...
-            'Position', [240 b+18 30 20], 'HorizontalAlignment', 'left');
-        
-        uicontrol(pht, 'Style', 'text', 'String', 'Max.:',...
-            'Position', [5 b-2 30 20], 'HorizontalAlignment', 'left');
-        maxLftSlider = uicontrol(pht, 'Style', 'slider',...
-            'Value', maxVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-            'Position', [40 b 200 18]);
-        addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
-        maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxLft) ' s'],...
-            'Position', [240 b-2 30 20], 'HorizontalAlignment', 'left');
+            minLftSlider = uicontrol(pht, 'Style', 'slider',...
+                'Value', minVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
+                'Position', [40 b+20 200 18]);
+            addlistener(handle(minLftSlider), 'Value', 'PostSet', @minSlider_Callback);
+            minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minVal) ' s'],...
+                'Position', [240 b+18 30 20], 'HorizontalAlignment', 'left');
+            
+            uicontrol(pht, 'Style', 'text', 'String', 'Max.:',...
+                'Position', [5 b-2 30 20], 'HorizontalAlignment', 'left');
+            maxLftSlider = uicontrol(pht, 'Style', 'slider',...
+                'Value', maxVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
+                'Position', [40 b 200 18]);
+            addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
+            maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxLft) ' s'],...
+                'Position', [240 b-2 30 20], 'HorizontalAlignment', 'left');
+        end
 
         
         % Category selection buttons
@@ -1190,16 +1193,26 @@ set(hz, 'ActionPostCallback', @czoom);
             
             % update track selection
             tcur = find(selIndex, 1, 'first');
-            
-            set(handles.trackSlider, 'Min', 1);
-            set(handles.trackSlider, 'Max', sum(selIndex));
-            set(handles.trackSlider, 'SliderStep', [1 1]/(sum(selIndex)-1));
-            set(handles.trackSlider, 'Value', 1);
+            if sum(selIndex)>1
+                set(handles.trackSlider, 'Visible', 'on');
+                set(handles.trackSlider, 'Min', 1);
+                set(handles.trackSlider, 'Max', sum(selIndex));
+                set(handles.trackSlider, 'SliderStep', [1 1]/(sum(selIndex)-1));
+                set(handles.trackSlider, 'Value', 1);
+            else
+                set(handles.trackSlider, 'Visible', 'off');
+                hc = get(handles.tAxes, 'Children');
+                if iscell(hc)
+                    hc = [hc{:}];
+                end
+                set(hc, 'Visible', 'off');
+                set(handles.trackLabel, 'String', 'Track N/A');
+            end
             
             if ip.Results.LoadFrames
                 updateSlice();
             end
-            %updateTrack();
+            updateTrack();
             close(pht);
             fprintf('# tracks selected: %d\n', sum(selIndex));
         end
