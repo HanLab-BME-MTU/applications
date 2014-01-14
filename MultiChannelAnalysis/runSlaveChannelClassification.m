@@ -305,8 +305,10 @@ idx = [ts.tracks.catIdx]==1 & [ts.tracks.lifetime_s]>=data.framerate*opts.Cutoff
 nPosM = sum([ts.tracks(idx).significantMaster],2);
 nPosS = sum([ts.tracks(idx).significantSlave],2);
 for c = sCh
-    fprintf('Ch. %d positive tracks as master: %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosM(c)/sum(idx), nPosM(c), sum(idx), nt);
-    fprintf('Ch. %d positive tracks as slave:  %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosS(c)/sum(idx), nPosS(c), sum(idx), nt);
+    if ~isempty(nPosM)
+        fprintf('Ch. %d positive tracks as master: %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosM(c)/sum(idx), nPosM(c), sum(idx), nt);
+        fprintf('Ch. %d positive tracks as slave:  %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosS(c)/sum(idx), nPosS(c), sum(idx), nt);
+    end
 end
 
 %=================================================================================
