@@ -115,7 +115,7 @@ statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',
 % Tracks
 %---------------------
 % Track plot panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-220-150-5-160 5 160 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-220-150-5-190 5 190 70]);
 tplotText = uicontrol(ph, 'Style', 'text', 'String', 'Units: ',...
     'Position', [5 35 60 20], 'HorizontalAlignment', 'left');
 
@@ -123,23 +123,23 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Seconds', 'Frames'},...
     'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
-    'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
+    'Position', [5 20 160 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
-    'Position', [5 5 80 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [5 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Total time',...
-    'Position', [80 5 70 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [95 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 handles.tplotPanel = ph;
 
 % Montage panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage plot', 'Position', [pos(3)-220-150 5 220 70]);
 montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
-    'Position', [95 38 115 15], 'HorizontalAlignment', 'left', 'Value', true);
+    'Position', [90 38 115 15], 'HorizontalAlignment', 'left', 'Value', true);
 montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
-    'Position', [95 23 115 15], 'HorizontalAlignment', 'left');
+    'Position', [90 23 115 15], 'HorizontalAlignment', 'left');
 montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
-    'Position', [95 8 115 15], 'HorizontalAlignment', 'left');
+    'Position', [90 8 120 15], 'HorizontalAlignment', 'left');
 montageButton = uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
-    'Units', 'pixels', 'Position', [10 20 80 20],...
+    'Units', 'pixels', 'Position', [5 20 80 20],...
     'Callback', @montageButton_Callback);
 handles.montagePanel = ph;
 
@@ -1078,22 +1078,22 @@ set(hz, 'ActionPostCallback', @czoom);
 
         if maxLft>minLft
         uicontrol(pht, 'Style', 'text', 'String', 'Min.:',...
-            'Position', [5 b+18 30 20], 'HorizontalAlignment', 'left');
+            'Position', [5 b+18 35 20], 'HorizontalAlignment', 'left');
             minLftSlider = uicontrol(pht, 'Style', 'slider',...
                 'Value', minVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-                'Position', [40 b+20 200 18]);
+                'Position', [45 b+20 200 18]);
             addlistener(handle(minLftSlider), 'Value', 'PostSet', @minSlider_Callback);
             minTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(minVal) ' s'],...
-                'Position', [240 b+18 30 20], 'HorizontalAlignment', 'left');
+                'Position', [250 b+18 40 20], 'HorizontalAlignment', 'left');
             
             uicontrol(pht, 'Style', 'text', 'String', 'Max.:',...
-                'Position', [5 b-2 30 20], 'HorizontalAlignment', 'left');
+                'Position', [5 b-2 35 20], 'HorizontalAlignment', 'left');
             maxLftSlider = uicontrol(pht, 'Style', 'slider',...
                 'Value', maxVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
-                'Position', [40 b 200 18]);
+                'Position', [45 b 200 18]);
             addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
             maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxLft) ' s'],...
-                'Position', [240 b-2 30 20], 'HorizontalAlignment', 'left');
+                'Position', [250 b-2 40 20], 'HorizontalAlignment', 'left');
         end
 
         
@@ -1569,7 +1569,7 @@ pos = get(src, 'Position');
 set(handles.frameLabel, 'Position', [20 pos(4)-20, 100 15]);
 
 % tracks
-set(handles.tplotPanel, 'Position', [pos(3)-535 5 160 70]);
+set(handles.tplotPanel, 'Position', [pos(3)-565 5 190 70]);
 set(handles.montagePanel, 'Position', [pos(3)-370 5 220 70]);
 set(handles.outputPanel, 'Position', [pos(3)-145 5 140 70]);
 
