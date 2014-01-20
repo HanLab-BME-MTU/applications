@@ -274,6 +274,10 @@ else
        
     dataSet = loadingMovieListResults(ML,outputPath,fileName);
     
+    if isempty(dataSet)
+        [~,dataSet] = getDataSetAverage(cellData,[],[],interval,lwPerc,upPerc,runEdgeAnalysis,selection);
+    end
+    
 end
     
 end%End of main function
@@ -320,7 +324,7 @@ if sum(rem(nInter,nInter(1))) == 0
         
         total      = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
         selection  = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
-        normalized = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMinVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMinVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
+        normalized = struct('ProtPersTime',[],'ProtMaxVeloc',[],'ProtMeanVeloc',[],'ProtMednVeloc',[],'RetrPersTime',[],'RetrMaxVeloc',[],'RetrMeanVeloc',[],'RetrMednVeloc',[]);
         
         for iCell = 1:nCell
             
@@ -341,11 +345,22 @@ if sum(rem(nInter,nInter(1))) == 0
             norProtMeanVeloc = cellData{iCell}.protrusionAnalysis(iInt).total.Veloc./median(cellData{iCell}.protrusionAnalysis(1).total.Veloc);
             norProtMednVeloc = cellData{iCell}.protrusionAnalysis(iInt).total.mednVeloc./median(cellData{iCell}.protrusionAnalysis(1).total.mednVeloc);
             
+            
+            norRetrPersTime  = cellData{iCell}.retractionAnalysis(iInt).total.persTime./median(cellData{iCell}.retractionAnalysis(1).total.persTime);
+            norRetrMaxVeloc  = cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc./median(cellData{iCell}.retractionAnalysis(1).total.maxVeloc);
+            norRetrMeanVeloc = cellData{iCell}.retractionAnalysis(iInt).total.Veloc./median(cellData{iCell}.retractionAnalysis(1).total.Veloc);
+            norRetrMednVeloc = cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc./median(cellData{iCell}.retractionAnalysis(1).total.mednVeloc);
+            
+            
             normalized.ProtPersTime    = [normalized.ProtPersTime;norProtPersTime];
             normalized.ProtMaxVeloc    = [normalized.ProtMaxVeloc;norProtMaxVeloc];
-            normalized.ProtMinVeloc    = [normalized.ProtMinVeloc;cellData{iCell}.protrusionAnalysis(iInt).total.minVeloc];
             normalized.ProtMeanVeloc   = [normalized.ProtMeanVeloc;norProtMeanVeloc];
             normalized.ProtMednVeloc   = [normalized.ProtMednVeloc;norProtMednVeloc];
+            
+            normalized.RetrPersTime    = [normalized.RetrPersTime;norRetrPersTime];
+            normalized.RetrMaxVeloc    = [normalized.RetrMaxVeloc;norRetrMaxVeloc];
+            normalized.RetrMeanVeloc   = [normalized.RetrMeanVeloc;norRetrMeanVeloc];
+            normalized.RetrMednVeloc   = [normalized.RetrMednVeloc;norRetrMednVeloc];
             
 %             total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
 %             total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
