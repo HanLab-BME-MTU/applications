@@ -1,4 +1,4 @@
-function [PersTime,newBlock,maxVeloc,meanVeloc,minVeloc,mednVeloc] = findingProtRetrTime(block,TS,deltaT)
+function [out] = findingProtRetrTime(block,TS,deltaT)
 %This is the core function to calculate the protrusion/retrection time
 %It is part of a set of function (see below)
 %
@@ -8,12 +8,15 @@ function [PersTime,newBlock,maxVeloc,meanVeloc,minVeloc,mednVeloc] = findingProt
 %        TS     - Time series
 %        deltaT - Time between points (Sampling rate)
 %
-%Output: PersTime  - vector with the persistence time for each block
-%        newBlock  - Two blocks are fused when they are separeted by one point and this point does not cross the x-axis.
+%Output: out - structure with the following fields:
+%        PersTime  - vector with the persistence time for each block
+%        blockOut  - Two blocks are fused when they are separeted by one point and this point does not cross the x-axis.
 %        maxVeloc  - maximum velocity of a block
 %        meanVeloc - mean velocity of a block
 %        minVeloc  - minimum velocity of a block
 %        mednVeloc - median velocity of a block
+%        maxTime   - time point of maximum protrusion
+%
 % See also: getPersistenceTime, getEdgeMotionPersistence
 %
 %Marco Vilela, 2012
@@ -62,7 +65,8 @@ for iB = 1:cc
     end
     
     PersTime(iB)  = (length(newBlock{iB})-1)*deltaT + deltaTl + deltaTr;
-    maxVeloc(iB)  = nanmax(TS(newBlock{iB}));
+    
+    [maxVeloc(iB),maxTime(iB)]  = nanmax(TS(newBlock{iB}));
     minVeloc(iB)  = nanmin(TS(newBlock{iB}));
     meanVeloc(iB) = nanmean(TS(newBlock{iB}));
     mednVeloc(iB) = nanmedian(TS(newBlock{iB}));
@@ -70,11 +74,13 @@ for iB = 1:cc
     clear deltaTl;clear deltaTr;
 end
 
-PersTime  = PersTime(:);
-maxVeloc  = maxVeloc(:);
-meanVeloc = meanVeloc(:);
-minVeloc  = minVeloc(:);
-mednVeloc = mednVeloc(:);
+out.persTime  = PersTime(:);
+out.blockOut  = newBlock;
+out.maxVeloc  = maxVeloc(:);
+out.Veloc     = meanVeloc(:);
+out.minVeloc  = minVeloc(:);
+out.mednVeloc = mednVeloc(:);
+out.maxTime   = maxTime(:);
 
 end%End of main function
 

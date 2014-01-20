@@ -74,6 +74,7 @@ RetrBlock = findBlock(find(isfinite(TSretr)),1 );
 
 Protrusion  = getStuff(Protrusion,ProtBlock,TS,deltaT);
 Retraction  = getStuff(Retraction,RetrBlock,-TS,deltaT);
+
 motionState = sum([TS > Protrusion.limit -(TS < Retraction.limit) ],2);
 
 if plotYes
@@ -99,9 +100,8 @@ function cellData =  getStuff(cellData,block,TS,deltaT)
 
 if ~isempty(block)
     
-    [cellData.persTime,cellData.blockOut,cellData.maxVeloc,cellData.Veloc,cellData.minVeloc,cellData.mednVeloc] ...
-            = findingProtRetrTime(block,TS,deltaT);
-    
+    [aux] = findingProtRetrTime(block,TS,deltaT);
+    cellData = mergestruct(cellData,aux);
 else
     
     cellData.persTime  = NaN;
@@ -110,7 +110,7 @@ else
     cellData.Veloc     = NaN;
     cellData.minVeloc  = NaN;
     cellData.mednVeloc = NaN;
-    
+    cellData.maxTime   = NaN;
 end
 
 end

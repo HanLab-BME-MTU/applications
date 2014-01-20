@@ -185,6 +185,6 @@ outStruc.meanValue        = struct('persTime',[],'maxVeloc',[],'veloc',[],'minVe
 outStruc.CI               = struct('persTime',[],'maxVeloc',[],'veloc',[],'minVeloc',[],'mednVeloc',[],...
                                 'persTimeCluster',[],'maxVelocCluster',[],'velocCluster',[],'minVelocCluster',[],'mednVelocCluster',[]);
                             
-outStruc.windows(1:nWin)  = struct('limit',[],'persTime',[],'blockOut',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[]);
+outStruc.windows(1:nWin)  = struct('limit',[],'persTime',[],'blockOut',[],'maxVeloc',[],'Veloc',[],'minVeloc',[],'mednVeloc',[],'maxTime',[]);
 
 end
