@@ -27,7 +27,7 @@ ip.addParamValue('ShowBackground', false, @islogical);
 ip.addParamValue('Rescale', true, @islogical);
 ip.addParamValue('RescalingReference', 'med', @(x) any(strcmpi(x, {'max', 'med'})));
 ip.addParamValue('ScaleSlaveChannel', true, @islogical);
-ip.addParamValue('ScalingFactor', ones(1,nCh));
+ip.addParamValue('ScalingFactor', [], @(x) numel(x)==nCh);
 ip.addParamValue('MaxIntensityThreshold', 0);
 ip.addParamValue('ExcludeVisitors', true, @islogical);
 ip.addParamValue('SlaveName', [], @iscell);
@@ -48,6 +48,7 @@ ip.addParamValue('ShowStats', false, @islogical);
 ip.addParamValue('AvgFun', @nanmean, @(x) isa(x, 'function_handle'));
 ip.addParamValue('LftDataName', 'lifetimeData.mat');
 ip.addParamValue('AmplitudeCorrection', []);
+ip.addParamValue('Align', 'left', @(x) any(strcmpi(x, {'right', 'left'})));
 % ip.addParamValue('MinTracksPerCohort', 5);
 ip.parse(data, varargin{:});
 cohortBounds = ip.Results.CohortBounds_s;
@@ -74,10 +75,15 @@ framerate = data(1).framerate;
 
 % # data points in cohort (including buffer frames)
 iLength = arrayfun(@(c) floor(mean(cohortBounds([c c+1]))/framerate) + 2*b, 1:nc);
-% time vectors for cohorts
-cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'unif', 0);
 
-XLim = [cT{end}(1)-5 cT{end}(end)+5];
+% time vectors for cohorts
+if strcmpi(ip.Results.Align, 'left')
+    cT = arrayfun(@(i) (-b:i-b-1)*framerate, iLength, 'unif', 0);
+else
+    cT = arrayfun(@(i) (-i+b+1:b)*framerate, iLength, 'unif', 0);
+end
+XLim = [cT{end}(1)-b cT{end}(end)+b];
+
 YLim = ip.Results.YLim;
 if isempty(YLim) && ~isempty(ip.Results.YTick)
     YLim = ip.Results.YTick([1 end]);
@@ -152,8 +158,14 @@ for i = 1:nd
         end
     end
 end
+
 cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) 's'], 1:nc, 'Unif', 0);
 XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
+if strcmpi(ip.Results.Align, 'right')
+    XTick = 0 - XTick(end:-1:1);
+    cohortLabels = cohortLabels(end:-1:1);
+end
+
 
 fset = loadFigureSettings(ip.Results.DisplayMode);
 
@@ -192,19 +204,23 @@ else
 end
 
 % scale slave channels relative to master (for visualization only)
-if ip.Results.ScaleSlaveChannel && nCh>1
-    for ch = 1:nCh
-        iSF = zeros(1,nc);
-        for c = 1:nc
-            % find largest mean of all cohorts
-            M = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'unif', 0);
-            M = mean(vertcat(M{:}), 1);
-            iSF(c) = max(M);
+if isempty(sf) 
+    if ip.Results.ScaleSlaveChannel && nCh>1
+        for ch = 1:nCh
+            iSF = zeros(1,nc);
+            for c = 1:nc
+                % find largest mean of all cohorts
+                M = arrayfun(@(x) mean(x.interpTracks{ch,c},1), res, 'unif', 0);
+                M = mean(vertcat(M{:}), 1);
+                iSF(c) = max(M);
+            end
+            sf(ch) = max(iSF);
         end
-        sf(ch) = max(iSF);
+        sf = sf(mCh)./sf;
+    else
+        sf = 1;
     end
-    sf = sf(mCh)./sf;
-end
+end        
 
 % output
 cohorts.bounds = cohortBounds;
@@ -287,6 +303,11 @@ else
 end
 
 % now plot cohorts for each combination
+if strcmpi(ip.Results.Align, 'left')
+    tOffset = @(c) 0;
+else
+    tOffset = @(c) cT{c}(end)-b*framerate;
+end
 for a = 1:na
 
     % combination for these axes: sigCombIdx(a)
@@ -327,11 +348,11 @@ for a = 1:na
             % plot cohort only if at least half the data sets have tracks in this cohort
             if sum(ntCoSel>0)/numel(ntCoSel) > 0.5
                 if ip.Results.ShowVariation
-                    fill([cT{c} cT{c}(end:-1:1)], sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:),...
+                    fill([cT{c} cT{c}(end:-1:1)]-tOffset(c), sf(ch)*[Amin Aplus(end:-1:1)], cv{ch}(c,:),...
                         'EdgeColor', cmap{ch}(c,:), 'Parent', ha(a));
                 end
                 if ~ip.Results.FrontLayer
-                    plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:),...
+                    plot(ha(a), cT{c}-tOffset(c), sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:),...
                         'LineWidth', 1);
                 end
             end
@@ -346,7 +367,7 @@ for a = 1:na
         % Plot mean/median in front
         if ip.Results.FrontLayer
             for c = nc:-1:1
-                plot(ha(a), cT{c}, sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+                plot(ha(a), cT{c}-tOffset(c), sf(ch)*A{ch,c}, ip.Results.LineStyle, 'Color', cmap{ch}(c,:), 'LineWidth', 1);
             end
         end
         
