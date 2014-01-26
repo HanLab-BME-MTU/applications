@@ -36,20 +36,22 @@ ip.addParamValue('DisplayFunction', @sqrt);
 ip.addParamValue('Channel', 1, @isposint);
 ip.addParamValue('Legend', []);
 ip.addParamValue('Parent', []);
-ip.addParamValue('LifetimeData', 'LifetimeData.mat');
+ip.addParamValue('LifetimeData', 'lifetimeData.mat');
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat');
 ip.addParamValue('PlotIndividual', false, @islogical);
 ip.addParamValue('NormX', true, @islogical);
 ip.addParamValue('FontSize', 10);
 ip.addParamValue('Width', 4, @isposint);
 ip.addParamValue('AmplitudeCorrection', []);
+ip.addParamValue('AnalysisPath', 'Tracking', @ischar);
 ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
 
 if ip.Results.PlotIndividual
     lftData = getLifetimeData(data, 'Overwrite', false, 'Mask', true,...
         'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
-        'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
+        'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection,...
+        'AnalysisPath', ip.Results.AnalysisPath);
     data = arrayfun(@(i) i, data, 'unif', 0);
     lftData = arrayfun(@(i) i, lftData, 'unif', 0);
     nd = numel(data);
