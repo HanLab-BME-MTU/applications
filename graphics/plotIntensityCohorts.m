@@ -218,7 +218,7 @@ if isempty(sf)
         end
         sf = sf(mCh)./sf;
     else
-        sf = 1;
+        sf = ones(1,nCh);
     end
 end        
 
