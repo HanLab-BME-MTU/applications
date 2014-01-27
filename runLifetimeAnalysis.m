@@ -45,6 +45,7 @@ ip.addParamValue('Colormap', jet(numel(data)));
 ip.addParamValue('CorrectObservationBias', true, @islogical);
 ip.addParamValue('InitDensity', 'mean', @(x) any(strcmpi(x, {'mean', 'median'})));
 ip.addParamValue('AmplitudeCorrection', []);
+ip.addParamValue('MaskPath', ['Detection' filesep 'cellmask.tif'], @ischar);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -293,9 +294,12 @@ for i = 1:nd
     %-----------------------------------
     % Cell area
     px = data(i).pixelSize / data(i).M; % pixels size in object space
-    mpath = [data(i).source 'Detection' filesep 'cellmask.tif'];
-    mask = logical(imread(mpath));
-    lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
+    if exist([data(i).source ip.Results.MaskPath], 'file')==2
+        mask = logical(readtiff([data(i).source ip.Results.MaskPath]));
+        lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
+    else
+        lftRes.cellArea(i) = NaN;
+    end
     
     % birth/death statistics
     startsPerFrameAll = hist(lftData(i).start_all, 1:minMovieLength);
