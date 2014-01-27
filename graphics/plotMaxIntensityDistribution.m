@@ -97,34 +97,36 @@ xo = 1.5;
 yo = 1.5;
 sh = ah/3;
 
-% figure('Position', pos, 'Color', [1 1 1], 'PaperPositionMode', 'auto');
-figure('Units', 'centimeters', 'Position', [5 5 8 ny*ah+(ny-1)*sh+2.5], 'Color', [1 1 1], 'PaperPositionMode', 'auto');
-hbg = axes('Units', 'centimeters', 'Position', [0 0 2*xo+aw+2 2*yo+ny*ah+(ny-1)*sh]);
-hold(hbg, 'on');
-axis(hbg, [0 2*xo+aw+2 0 2*yo+ny*ah+(ny-1)*sh]);
+
+ha = setupFigure(nc,1,'AxesHeight', 1.2, 'YSpace', [1.5 0.4 1], 'SameAxes', true);
+% duplicate axes (for grid)
+ha0 = arrayfun(@(i) axes('Position', get(i, 'Position'), 'Color', 'none'), ha);
+
+% place duplicates in background
+ch = get(gcf, 'Children');
+set(gcf, 'Children', [ch(nc+1:end) ch(1:nc)]);
+
+set(ha0, 'XGrid', 'on', 'GridLineStyle', ':', 'LineWidth', 1, 'XTick', xa,...
+    'XTickLabel', [], 'YTickLabel', [], 'TickLength', [0 0]);
+
+yal = [0 arrayfun(@(i) num2str(i, '%.2f'), ya(2:end), 'unif', 0)];
+set(ha, 'XTick', xa, 'YTick', ya, 'Color', 'none',...
+    'YTickLabel', yal, 'XTickLabel', []);
+axis([ha; ha0], [xa(1) xa(end) ya(1) ya(end)]);
+
+% hbg = axes('Units', 'centimeters', 'Position', [0 0 2*xo+aw+2 2*yo+ny*ah+(ny-1)*sh]);
+% hold(hbg, 'on');
+% axis(hbg, [0 2*xo+aw+2 0 2*yo+ny*ah+(ny-1)*sh]);
 for k = 1:nc
-    
-    iPos = [xo yo+(ny-k)*(ah+sh) aw ah];
-    % plot grid below data
-    hi = axes(fset.axOpts{:}, 'Position', iPos,...
-        'XLim', [xa(1) xa(end)], 'XTick', xa, 'XTickLabel', [], 'YLim', [ya(1) ya(end)], 'YTickLabel', [],...
-        'TickLength', [0 0], 'Color', 'none'); %#ok<LAXES>
-    set(hi, 'XGrid', 'on', 'GridLineStyle', ':', 'LineWidth', 1);
-    
-    % data axes
-    hi = axes(fset.axOpts{:}, 'Position', iPos,...
-        'Color', 'none'); %#ok<LAXES>
-    hold on;
-    box off;
-    
+
     if ip.Results.ShowFirstFrame
-        bar(xi, niFirst{k}, 'BarWidth', 1, 'FaceColor', 0.9*[1 1 1], 'EdgeColor', 0.45*[1 1 1], 'LineWidth', 0.75);
+        bar(ha(k), xi, niFirst{k}, 'BarWidth', 1, 'FaceColor', 0.9*[1 1 1], 'EdgeColor', 0.45*[1 1 1], 'LineWidth', 0.75);
     end
-    bar(xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.75);
-    bar(xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.75);
-    stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
+    bar(ha(k), xi, niFirstN{k}, 'BarWidth', 1, 'FaceColor', cf0, 'EdgeColor', ce0, 'LineWidth', 0.75);
+    bar(ha(k), xi, ni{k}, 'BarWidth', 1, 'FaceColor', fset.cfB, 'EdgeColor', fset.ceB, 'LineWidth', 0.75);
+    stairsXT(xi, niFirstN{k}, 'EdgeColor', ce0, 'LineWidth', 0.75, 'Parent', ha(k));
     if ip.Results.ShowFirstFrame
-        stairsXT(xi, niFirst{k}, 'EdgeColor', ce0, 'LineWidth', 0.75);
+        stairsXT(xi, niFirst{k}, 'EdgeColor', ce0, 'LineWidth', 0.75, 'Parent', ha(k));
     end
     
     if ip.Results.ShowGaussians
@@ -133,31 +135,29 @@ for k = 1:nc
         plot(xg, g*dxi, 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
         plot(norminv(0.99, mu_g, sigma_g)*[1 1], [0 0.15], '--', 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
     end
-    axis([xa(1) xa(end) ya(1) ya(end)]);
     
     % cohort label
     if lb(k)==ub(k)
-        text(xa(end), ya(end), ['' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1],...
+        text(xa(end), ya(end), ['' num2str(lb(k)) ' s'], 'BackgroundColor', [1 1 1], 'Parent', ha(k),...
             'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     else
         text(xa(end), ya(end), ['[' num2str(lb(k)) '...' num2str(ub(k)) '] s'],...
             'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:},...
-            'BackgroundColor', [1 1 1]);
+            'BackgroundColor', [1 1 1], 'Parent', ha(k));
     end
     
     if k==1
-        text(xa(end), ya(end)*1.35, 'Lifetime cohort',...
+        text(xa(end), ya(end)*1.35, 'Lifetime cohort', 'Parent', ha(1),...
             'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', fset.sfont{:});
     end
-    yal = [0 arrayfun(@(i) num2str(i, '%.2f'), ya(2:end), 'UniformOutput', false)];
-    set(hi, 'YTick', ya, 'YTickLabel', yal, 'XTick', xa, 'XTickLabel', []);
+  
     
     % plot vertical axis label (once)
     ncol = ceil(numel(lb)/ny);
     if mod(k,ny)==0
-        set(hi, 'TickLength', [0.015 0], 'XTickLabel', xa);
+        set(ha(k), 'TickLength', [0.015 0], 'XTickLabel', xa);
         if floor(k/ny)==floor(ncol/2)+1
-            hx = xlabel('Max. fluo. intensity (A.U.)', fset.lfont{:});
+            hx = xlabel(ha(end), 'Max. fluo. intensity (A.U.)', fset.lfont{:});
             if mod(ncol,2)==0
                 xpos = get(hx, 'Position');
                 xpos(1) = xa(1);
@@ -167,11 +167,11 @@ for k = 1:nc
         end
     end
     if k>ny
-        set(hi, 'YTickLabel', []);
+        set(ha(k), 'YTickLabel', []);
     end
     
     if k==ceil(ny/2)
-        hy = ylabel('Frequency', fset.lfont{:});
+        hy = ylabel(ha(k), 'Frequency', fset.lfont{:});
         ypos = get(hy, 'Position');
         if mod(ny,2)==0
             ypos(2) = 0;
@@ -198,4 +198,4 @@ end
 % bring background axes to front
 % ch = get(gcf, 'Children');
 % set(gcf, 'Children', [hbg; setdiff(ch, hbg)]);
-axis(hbg, 'off');
+% axis(hbg, 'off');
