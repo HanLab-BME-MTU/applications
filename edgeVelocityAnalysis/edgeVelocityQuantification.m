@@ -177,20 +177,6 @@ for iCell = 1:nCell
         
     end
     
-    %% Checking if the winInterval is the same as previously set
-    
-    if isfield(cellData{iCell}.data,'winInterval')
-        
-        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
-        
-        if ~sameWinInterval
-            cellData{iCell}.data.winInterval = winInterval{iCell};
-        end
-    else
-        
-        cellData{iCell}.data.winInterval = winInterval{iCell};
-        
-    end
     
     %% Checking if the included windows are the same
     
@@ -207,6 +193,21 @@ for iCell = 1:nCell
     else
         
         cellData{iCell}.data.includedWin{1} = currWin;
+        
+    end
+
+    %% Checking if the winInterval is the same as previously set
+    
+    if isfield(cellData{iCell}.data,'winInterval') && sameIncludedWin
+        
+        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
+        
+        if ~sameWinInterval
+            cellData{iCell}.data.winInterval = winInterval{iCell};
+        end
+    else
+        
+        cellData{iCell}.data.winInterval = winInterval{iCell};
         
     end
     
