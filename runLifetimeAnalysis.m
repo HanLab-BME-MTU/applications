@@ -258,6 +258,7 @@ for i = 1:nd
     % Raw, unweighted histograms with counts/bin
     lftRes.lftHistCCP_counts(i,:) = [hist(res(i).lftAboveT, t) pad0];
     lftRes.lftHistCS_counts(i,:) = [hist(res(i).lftBelowT, t) pad0];
+    lftRes.histWeight = w;
     
     if ip.Results.ExcludeVisitors
         lftHistVisit = [hist(res(i).lftVisitors, t).*w pad0];
@@ -283,6 +284,9 @@ for i = 1:nd
             lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate;
             lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate;
             lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) / framerate;
+            lftRes.lftHistSlaveAll_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx), t) pad0];
+            lftRes.lftHistSlaveCCP_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & idxMI), t) pad0];
+            lftRes.lftHistSlaveCS_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t) pad0];
             lftRes.pctSlaveCCP(i,s) = sum(idxMI & sIdx)/numel(idxMI);
             lftRes.pctSlaveCS(i,s) = sum(~idxMI & sIdx)/numel(idxMI);
         end
