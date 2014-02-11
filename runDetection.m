@@ -43,7 +43,7 @@ if isempty(sigma)
             % evenly sample all data sets
             sigma = zeros(1,nCh);
             % use ~20 frames distributed accross data sets
-            nf = round(20/nd);
+            nf = round(40/nd);
             for c = 1:nCh
                 frames = cell(nd, nf);
                 for i = 1:nd
@@ -54,7 +54,7 @@ if isempty(sigma)
                         frames(i,:) = arrayfun(@(f) double(readtiff(data(i).framePaths{c}, f)), fidx', 'unif', 0); 
                     end
                 end
-                sigma(c) = getGaussianPSFsigmaFromData(vertcat(frames(:)), 'Display', false);
+                sigma(c) = getGaussianPSFsigmaFromData(vertcat(frames(:)), 'Display', true);
             end
         end
         fprintf('Gaussian PSF s.d. values: ');
