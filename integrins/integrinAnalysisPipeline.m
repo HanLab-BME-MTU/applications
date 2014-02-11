@@ -79,8 +79,12 @@
 %% 6 Single molecule Part D
 
 % 6.1 combine single cell measurements for all cells of same condition
-%     use: scriptSptVsWindowsCombineCells & scriptSptVsWindowsCombineCells2
+%     use: scriptSptVsWindowsCombineCells
+%          & scriptSptVsWindowsCombineCells2 which calls sptRelToActivityMultipleCells
 
 % 6.2 plot collective cell behavior
 %     use: scriptMakeCombPlots which calls plotSptRelToActivityOnsetAdaptiveWindowsV2
+%                                       OR plotSptRelToActivityOnsetAdaptiveWindowsV3paper
 
+% 6.3 test significance of trends
+%     use: scriptTestTrends which calls testTrendSignificanceV3paper
