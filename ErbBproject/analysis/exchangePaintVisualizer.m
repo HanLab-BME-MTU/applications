@@ -4,7 +4,7 @@ function [handle]=exchangePaintVisualizer(PL, varargin)
 %default labels
 labels = {'EGFR','ErbB2','ErbB3','IGF-1R','cMet'};
 
-cmap = {'r','g','b','k','m','y','c'};
+cmap = {'c','g','b','k','m','y','r'};
 
 
 ip=inputParser;
@@ -15,6 +15,7 @@ ip.addRequired('PL',@iscell);
 
 ip.addOptional('labels',labels, @iscell);
 ip.addOptional('cmap',cmap, @iscell);
+ip.addOptional('field','com',@ischar);
 
 ip.parse(PL,varargin{:});
 
@@ -26,7 +27,8 @@ hold;
 
 
 for i=1:numel(PL)
-    temp = PL{i}.com;
+	temp = PL{i}.(field);
+    %temp = PL{i}.pnts;
     scatter(temp(:,1),temp(:,2),[cmap{mod(i-1,7)+1},'.']);   
 end
 

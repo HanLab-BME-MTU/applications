@@ -27,6 +27,8 @@ function path = exchangePaintAlignment(list,name,varargin)
 %               default). Warning if movie is not standard size this must
 %               be corrected for good results
 %
+%  MinTrackLen, to set the minium lenght of a track. The default is 2.
+%
 %Output:
 %       path, returns the fullpath to the saved .mat file
 %
@@ -60,6 +62,7 @@ ip.addOptional('dir',cd(),@ischar);
 ip.addOptional('ImSize',[384,384],@isnumeric);
 ip.addOptional('Wavelenght',672,@isnumeric);
 ip.addOptional('NA',1.49,@isnumeric);
+ip.addOptional('MinTrackLen',2,@isnumeric);
 
 ip.parse(list,name,varargin{:});
 
@@ -69,6 +72,7 @@ dir = ip.Results.dir;
 ImSize = ip.Results.ImSize;
 Wavelength = ip.Results.Wavelenght;
 NA = ip.Results.NA;
+MinTrackLen = ip.Results.MinTrackLen;
 
 %Calculate diffraction limit in pixels
 difLim = (Wavelength/(2*NA))/pixelSize;
@@ -82,7 +86,7 @@ difLim = (Wavelength/(2*NA))/pixelSize;
 
 maxGap =10;
 
-MinTrackLen = 1;
+%MinTrackLen = 1;
 
 num = numel(list);
 
@@ -164,9 +168,9 @@ for j=1:num
         
     %Creates a point list for each channel and shifts the center of the
     %image to [0,0]
-    PointList{j}.pnts = vertcat(track(vertcat(track.num) > MinTrackLen).coord);
+    PointList{j}.pnts = vertcat(track(vertcat(track.num) >= MinTrackLen).coord);
     %PointList{j}.pnts(:,1:2) = PointList{j}.pnts(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.pnts(:,1)),1]);
-    PointList{j}.com = vertcat(track(vertcat(track.num) > MinTrackLen).com);
+    PointList{j}.com = vertcat(track(vertcat(track.num) >= MinTrackLen).com);
     %PointList{j}.com(:,1:2) = PointList{j}.com(:,1:2) - repmat(ImSize/2,[numel(PointList{j}.com(:,1)),1]);
     PointList{j}.drift = drift;
     
