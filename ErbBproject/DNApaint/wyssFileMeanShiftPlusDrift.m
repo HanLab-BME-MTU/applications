@@ -31,7 +31,8 @@ for i = 1:numel(list);
 load(list{i});
 %drift correct using trace
 pnts=trace(:,2:3)-drift(trace(:,1),:);
-dmark = findDriftM(pnts(trace(:,1)==1,:),pnts(trace(:,1)==max(trace(:,1)),:));
+pnts = [pnts,trace(:,10)];
+dmark = findDriftM(pnts(trace(:,1)==1,:),pnts(trace(:,1)==max(trace(:,1)),:),1000);
 if isempty(dmark)
     error(['missing drift marker ',list{i}]);
 end
@@ -92,9 +93,13 @@ save([dir,'_DriftPlus_MeanShiftCluster.mat'],'clusterInfo','clusterMap','TotalPn
 
 end
 
-function dmark=findDriftM(firstF,lastF)
+function dmark=findDriftM(firstF,lastF,minInten)
 %identifies drift markers as any points that appear in both the first and
 %last frame within two pixels. returns the position in the first frame
+
+firstF(firstF(:,3)>minInte,:)=NaN;
+lastF(lastF(:,3)>minInte,:)=NaN;
+
 
 dm = distMat2(lastF,firstF);
 [x,y] = ind2sub(size(dm),find(dm<0.5));
