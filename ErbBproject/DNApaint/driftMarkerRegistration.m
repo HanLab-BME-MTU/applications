@@ -71,7 +71,9 @@ function [shift,transform,A,B] = driftMarkerRegistration(drift,drift_ref, ImSize
     
     %Z = TRANSFORM.b * Y * TRANSFORM.T + TRANSFORM.c.
     [d, Z, transform] = procrustes(A, B,'Reflection',false,'Scaling',false);
-    trans = mean(A-B);
+    %uses media to handle outliers more effectively
+    trans = median(A-B,1);
+    %trans = mean(A-B,1);
     
     transform.trans = trans;
     
