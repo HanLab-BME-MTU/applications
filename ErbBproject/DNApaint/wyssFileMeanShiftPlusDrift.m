@@ -97,8 +97,8 @@ function dmark=findDriftM(firstF,lastF,minInten)
 %identifies drift markers as any points that appear in both the first and
 %last frame within two pixels. returns the position in the first frame
 
-firstF(firstF(:,3)>minInte,:)=NaN;
-lastF(lastF(:,3)>minInte,:)=NaN;
+firstF(firstF(:,3)>minInten,:)=NaN;
+lastF(lastF(:,3)>minInten,:)=NaN;
 
 
 dm = distMat2(lastF,firstF);
