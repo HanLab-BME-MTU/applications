@@ -61,6 +61,7 @@ for j = k
      [shift,transform,A,B] = driftMarkerRegistration(test,ref,Imsize,difLim);
      TotalShift = shift - transform.trans;
      C = test - repmat(TotalShift,[numel(test(:,1)),1]);
+     PointList{j}.shift = struct('transform',transform,'preshift',shift,'A',A,'B',B,'Postshift',C,'TotalShift',TotalShift);
      
      %shifts points to align
      tmp = PointList{j}.pnts(:,1:2)-repmat(TotalShift,[numel(PointList{j}.pnts(:,1)),1]);
