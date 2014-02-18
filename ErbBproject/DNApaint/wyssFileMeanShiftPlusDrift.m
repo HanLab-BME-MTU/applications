@@ -8,6 +8,10 @@ function success = wyssFileMeanShiftPlusDrift(dir)
 % Results are then saved in the parent directory of dir as "dir".mat
 %
 
+%approx parameters for wyss microscope
+Imsize = [256,256];
+difLim = 2.1075;
+
 success = 1;
 cd(dir);
 if strcmp(dir(end),filesep)
@@ -54,7 +58,7 @@ PointList{j_ref}.shift = struct('transform',[],'preshift',[],'A',[],'B',[],'Post
 
 for j = k
      test = PointList{j}.dmark;
-     [shift,transform,A,B] = driftMarkerRegistration(test,ref,ImSize,difLim);
+     [shift,transform,A,B] = driftMarkerRegistration(test,ref,Imsize,difLim);
      TotalShift = shift - transform.trans;
      C = test - repmat(TotalShift,[numel(test(:,1)),1]);
      
