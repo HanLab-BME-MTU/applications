@@ -93,7 +93,7 @@ function dmark=findDriftM(firstF,lastF)
 
 dm = distMat2(lastF,firstF);
 [x,y] = ind2sub(size(dm),find(dm<0.5));
-dmark = first(y,:);
+dmark = firstF(y,:);
 
 end
 
