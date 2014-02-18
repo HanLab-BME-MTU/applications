@@ -38,7 +38,7 @@ end
 %aligns images a la exchangePaintAlignment (copied from). Only
 %translational alignment
 
-k = 1:num;
+k = 1:numel(PointList);
 j_ref = 1;
 for j=k
     if numel(PointList{j}.dmark(:,1)) > numel(PointList{j_ref}.dmark(:,1))
