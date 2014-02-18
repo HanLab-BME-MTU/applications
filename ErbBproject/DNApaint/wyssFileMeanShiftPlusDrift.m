@@ -36,7 +36,7 @@ dmark = findDriftM(pnts(trace(:,1)==1,:),pnts(trace(:,1)==max(trace(:,1)),:),100
 if isempty(dmark)
     error(['missing drift marker ',list{i}]);
 end
-PointList = vertcat(PointList, {struct('pnts',pnts,'name',list{i},'fullData',trace,'drift',drift,'dmark',dmark,'shift',[],'com',[])});
+PointList = vertcat(PointList, {struct('pnts',pnts(:,1:2),'name',list{i},'fullData',trace,'drift',drift,'dmark',dmark,'shift',[],'com',[])});
 
 end
 
@@ -101,9 +101,9 @@ firstF(firstF(:,3)>minInten,:)=NaN;
 lastF(lastF(:,3)>minInten,:)=NaN;
 
 
-dm = distMat2(lastF,firstF);
+dm = distMat2(lastF(:,1:2),firstF(:,1:2));
 [x,y] = ind2sub(size(dm),find(dm<0.5));
-dmark = firstF(y,:);
+dmark = firstF(y,1:2);
 
 end
 
