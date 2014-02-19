@@ -171,7 +171,7 @@ for iCell = 1:nCell
         
         if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
             
-            winInterval{iCell} = repmat(winInterval{iCell},1,nWin);
+            winInterval{iCell} = repmat(winInterval{iCell},nWin,1);
             
         end
         
