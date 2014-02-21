@@ -51,14 +51,14 @@ if all([stkList.isdir])
                 [~,~,ext] = fileparts(stkList{c});
                 destDir = [stkpath dirList{i} filesep chSpec{c} filesep];
                 [~,~] = mkdir(destDir);
-                movefile([stkpath dirList{i} filesep '*' chSpec{c} '*' ext], destDir);
+                [~] = movefile([stkpath dirList{i} filesep '*' chSpec{c} '*' ext], destDir);
             end
         else
             for c = 1:numel(stkList);
                 [~,dname] = fileparts(stkList{c});
                 destDir = [stkpath dirList{i} filesep dname filesep];
                 [~,~] = mkdir(destDir);
-                movefile([stkpath dirList{i} filesep stkList{c}], [destDir stkList{c}]);
+                [~] = movefile([stkpath dirList{i} filesep stkList{c}], [destDir stkList{c}]);
             end
         end
         

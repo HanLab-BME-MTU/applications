@@ -31,6 +31,7 @@ function [data] = loadConditionData(varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
 ip.FunctionName = 'loadConditionData';
 ip.addOptional('condDir', [], @(x) ischar(x) && ~any(strcmpi(x,...
     {'Parameters', 'MovieSelector', 'IgnoreEmptyFolders', 'FrameRate'})));
