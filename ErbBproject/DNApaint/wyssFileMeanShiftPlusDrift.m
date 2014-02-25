@@ -32,7 +32,9 @@ load(list{i});
 %drift correct using trace
 pnts=trace(:,2:3)-drift(trace(:,1),:);
 pnts = [pnts,trace(:,10)];
-dmark = findDriftM(pnts(trace(:,1)==1,:),pnts(trace(:,1)==max(trace(:,1)),:),1000);
+%dmark = findDriftM(pnts(trace(:,1)==1,:),pnts(trace(:,1)==max(trace(:,1)),:),1000);
+%dmark = findDriftM2(pnts(trace(:,1)==1,:),pnts,max(trace(:,1)));
+dmark = findDriftFit(pnts);
 if isempty(dmark)
     error(['missing drift marker ',list{i}]);
 end
@@ -76,7 +78,7 @@ end
  PointList{j_ref}.pnts=tmp(~isnan(tmp(:,1)),:);
  
  
-save([dir,'_DriftPlus_PointList.m'],'PointList');
+save([dir,'_DriftPlus_PointList.mat'],'PointList');
 
 for i=1:numel(list);
    TotalPnts = vertcat(TotalPnts,[PointList{i}.pnts,i*ones(size(PointList{i}.pnts(:,1)))]); 
@@ -107,3 +109,59 @@ dmark = firstF(y,1:2);
 
 end
 
+
+function dmark=findDriftM2(firstF,pnts,nFrames)
+
+
+  img = hist3(pnts(:,1:2),'Edges',{[0:256],[0:256]});
+
+% finds pixels with large localizations nearly equal to the lenght of the movie
+% these should be the drift markers
+
+%sets the requirement to be a drift marker to be 200 less than the max value
+% if max is less than nFrames-500
+
+maxN = max(img(:));
+if maxN < nFrames-500
+nFrames = maxN + 300;
+end
+
+[x,y] = ind2sub(size(img),find(img>=(nFrames-500)));  
+
+ n= numel(x);
+ dmark = zeros(n,2);
+
+% this loop finds the points in the first frame near the identified drift markers
+ for i=1:n
+		 
+		 ind = find(firstF(:,1)>=x-1 & firstF(:,1)<=x+1 & firstF(:,2)>=y-1 & firstF(:,2)<= y+1);
+		 dmark(i,:)=mean(firstF(ind,:),1);
+ end
+
+end
+
+%yet another function for finding drift markers. This one creates an image via histograming and finds the dmarks by fitting to a 2D gaussian
+
+function [dmark] = findDriftFit(pnts)
+
+   img = hist3(pnts(:,1:2),'Edges',{[0:0.1:256],[0:0.1:256]});
+
+%finds maxium and sets cutoff to 0.95*max
+   m =0.9*max(img(:));
+   
+[x,y]=ind2sub(size(img),find(img >= m));
+
+n = numel(x);
+
+if n >20
+  error;
+end
+
+  %There is always at least one
+dmark = zeros([n,2]);
+for i=1:n
+	temp = fitGaussians2D(img(x(i)-6:x(i)+6,y(i)-6:y(i)+6),7,7,m,1,0,'xyAcs');        
+dmark(i,:)=[(x(i)+(temp.x-7))/10,(y(i)+(temp.y-7))/10];
+end
+
+end
