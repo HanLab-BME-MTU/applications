@@ -110,7 +110,7 @@ ip.addParamValue('includeWin', cell(1,nCell),@iscell);
 ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 30*ones(1,nCell),@isvector);
+ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
 ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
 ip.addParamValue('outputPath','sampledSignalQuantification',@isstr);
 ip.addParamValue('fileName','Signal',@isstr);
@@ -147,7 +147,7 @@ for iCell = 1:nCell
         nWin = numel(includeWin{iCell});
     end
     
-    %% Setting up the winInterval input if it's [] for each cell
+       %% Setting up the winInterval input if it's [] for each cell
     
     if isempty(winInterval{iCell}{1})%If winInterval is []
         
@@ -157,31 +157,55 @@ for iCell = 1:nCell
         
         if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
             
-            winInterval{iCell} = repmat(winInterval{iCell},1,nWin);
+            winInterval{iCell} = repmat(winInterval{iCell},nWin,1);
             
         end
         
     end
     
+    
+    %% Checking if the included windows are the same
+    
+    [currWin] = setdiff(includeWin{iCell},cellData{iCell}.data.excludedWin{1});
+    
+    if isfield(cellData{iCell}.data,'includedWin');
+        
+        
+        sameIncludedWin = isequaln(cellData{iCell}.data.includedWin{1},currWin);
+        
+        if ~sameIncludedWin
+            cellData{iCell}.data.includedWin{1} = currWin;
+        end
+    else
+        
+        cellData{iCell}.data.includedWin{1} = currWin;
+        
+    end
+
     %% Checking if the winInterval is the same as previously set
     
-    if isfield(cellData{iCell}.data,'winInterval');
+     if isfield(cellData{iCell}.data,'winInterval') && sameIncludedWin
         
-        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
-        
-        if ~sameWinInterval
+        if numel(winInterval{iCell}) == numel(cellData{iCell}.data.winInterval)
+            
+            sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
+            
+            if ~sameWinInterval
+                cellData{iCell}.data.winInterval = winInterval{iCell};
+            end
+        else
             cellData{iCell}.data.winInterval = winInterval{iCell};
         end
+        
     else
         
         cellData{iCell}.data.winInterval = winInterval{iCell};
         
     end
     
+    cellData{iCell}.data.analyzedLastRun   = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
     
-    
-    cellData{iCell}.data.analyzedLastRun = ~sameIncludedWin || ~sameWinInterval || cellData{iCell}.data.processedLastRun;
-    
+    %%
     
     if cellData{iCell}.data.analyzedLastRun
         

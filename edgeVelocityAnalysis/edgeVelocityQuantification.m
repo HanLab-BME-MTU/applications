@@ -200,11 +200,17 @@ for iCell = 1:nCell
     
     if isfield(cellData{iCell}.data,'winInterval') && sameIncludedWin
         
-        sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
-        
-        if ~sameWinInterval
+        if numel(winInterval{iCell}) == numel(cellData{iCell}.data.winInterval)
+            
+            sameWinInterval = all(cell2mat(cellfun(@(x,y) isequaln(x,y),winInterval{iCell},cellData{iCell}.data.winInterval,'Unif',0)));
+            
+            if ~sameWinInterval
+                cellData{iCell}.data.winInterval = winInterval{iCell};
+            end
+        else
             cellData{iCell}.data.winInterval = winInterval{iCell};
         end
+        
     else
         
         cellData{iCell}.data.winInterval = winInterval{iCell};
