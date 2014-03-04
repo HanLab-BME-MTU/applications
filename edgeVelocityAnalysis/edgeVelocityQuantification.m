@@ -264,6 +264,10 @@ elseif ~isempty(selection{1})
             
             [cellData,dataSet] = getDataSetAverage(cellData,[],[],interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
             
+        else
+            
+            dataSet = loadingMovieListResults(ML,outputPath,fileName);
+            
         end
         
     else
