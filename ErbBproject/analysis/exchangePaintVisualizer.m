@@ -21,6 +21,7 @@ ip.parse(PL,varargin{:});
 
 labels = ip.Results.labels;
 cmap = ip.Results.cmap;
+field = ip.Results.field;
 
 handle = figure;
 hold;
