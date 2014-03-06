@@ -57,24 +57,29 @@ Lr = NaN(numel(r),1);
 lambda = numel(pos(:,1))/(W*L);
 
 %c
-tic
+timeElap = 0;
 for i=1:numel(r)
-
+tic
     %for each r it finds the inPnts that are <r(i) from each query point
     [idx, dist] = KDTreeBallQuery(pos,posA,r(i));
     
     %idx is a cell array with indicies of all posB within r(i) of posA
     % we only need to know the number of points in idx for each point
-    temp = cellfun(@numel,idx);
+    temp = cellfun(@(x) numel(x)-1,idx);
     temp = sqrt(sum(temp)/(lambda*pi*(numel(temp)-1)));
     
     
     %out(i,1)= sum(tempB)/(edge*pi*rB^2);
     %out(i,2)= sum(tempA)/(edge*pi*rA^2);
     Lr(i)= temp;
-    
+t = toc;
+display(['The ',num2str(i),'th r took ',num2str(t),' seconds']);
+timeElap = timeElap+t;    
 end
-toc
+
+timeElap = timeElap/(60*60);
+
+display(['Total time is ',num2str(timeElap),' hours']);
 
 
 end
