@@ -45,7 +45,7 @@ y = posA(:,2)-limY(2);
 
 %ind = find( (x > Rmax) & (x < W -Rmax) & (y > Rmax) & (y < L-Rmax));
 ind = (x > Rmax) & (x < W -Rmax) & (y > Rmax) & (y < L-Rmax);
-clear x y;
+clear x y pos;
 
 %keeps only points that meet this criteria
 posA= posA(ind,:);
@@ -66,7 +66,7 @@ for i=1:numel(r)
     %idx is a cell array with indicies of all posB within r(i) of posA
     % we only need to know the number of points in idx for each point
     temp = cellfun(@numel,idx);
-    temp = sqrt(sum(temp)/(lambda*pi));
+temp = sqrt(sum(temp)/(lambda*pi*numel(temp)));
     
     
     %out(i,1)= sum(tempB)/(edge*pi*rB^2);
