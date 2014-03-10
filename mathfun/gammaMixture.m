@@ -6,7 +6,7 @@
 %
 % Mean: n/k
 
-function [w W J] = gammaMixture(x, prmVect, varargin)
+function [w, W, J] = gammaMixture(x, prmVect, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
