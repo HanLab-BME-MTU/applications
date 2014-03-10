@@ -1,4 +1,6 @@
-%[K] = corrMatFromCov(C) returns the correlation matrix given a covariance matrix
+%[K] = corrMatFromCov(C) returns the correlation matrix for covariance matrix C
+
+% Francois Aguet, 2010
 
 function [K] = corrMatFromCov(C)
 n = size(C,1);
@@ -13,6 +15,6 @@ jj = j+n*(j-1);
 
 K(ij) = C(ij) ./ sqrt(C(ii).*C(jj));
 
-% remaining components are redundant
+% fill lower triangular part, add diagonal
 K = K + K';
 K(sub2ind([n n], 1:n, 1:n)) = 1;
