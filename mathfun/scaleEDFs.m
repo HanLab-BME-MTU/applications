@@ -134,6 +134,7 @@ if ip.Results.Display
     text(0, 1.1, 'Raw distributions', 'HorizontalAlignment', 'left', fset.lfont{:}, 'Parent', ha(1));
     if ~isempty(ip.Results.Legend)
         hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
+        set(hl, 'EdgeColor', 'w');
         legend(hl, 'hide');
     else
         hl = legend(hp(refIdx), ' Median distr.', 'Location', 'SouthEast');
