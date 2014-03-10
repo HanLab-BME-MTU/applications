@@ -14,7 +14,7 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
-ip.addParamValue('SigmaSource', 'model', @(x) any(strcmpi(x, {'data', 'model'})));
+ip.addParamValue('SigmaSource', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('RemoveRedundant', true, @islogical);
 ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('Master', [], @isnumeric);
@@ -30,9 +30,11 @@ if isempty(mCh)
     end
 end
 
+hasDet = arrayfun(@(i) exist([i.channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file')==2, data);
+
 nd = numel(data);
 sigma = ip.Results.Sigma;
-if isempty(sigma)
+if isempty(sigma) && (~all(hasDet) || overwrite)
     % verify that all data sets have same channels
     nCh = unique(arrayfun(@(i) numel(i.channels), data));
     markers = arrayfun(@(c) unique(arrayfun(@(i) i.markers{c}, data, 'unif', 0)), 1:nCh, 'unif', 0);
@@ -70,7 +72,7 @@ if any(sigma<1.1)
 end
 
 for i = 1:nd
-    if ~(exist([data(i).channels{mCh} 'Detection' filesep 'detection_v2.mat'], 'file') == 2) || overwrite
+    if ~hasDet(i) || overwrite
         fprintf('Running detection for %s ...', getShortPath(data(i)));
         main(data(i), sigma, mCh, ip.Results);
         fprintf(' done.\n');
