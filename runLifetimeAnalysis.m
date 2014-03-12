@@ -46,6 +46,7 @@ ip.addParamValue('CorrectObservationBias', true, @islogical);
 ip.addParamValue('InitDensity', 'mean', @(x) any(strcmpi(x, {'mean', 'median'})));
 ip.addParamValue('AmplitudeCorrection', []);
 ip.addParamValue('MaskPath', ['Detection' filesep 'cellmask.tif'], @ischar);
+ip.addParamValue('Binning', 1, @isposint);
 ip.parse(data, varargin{:});
 lb = ip.Results.lb;
 ub = ip.Results.ub;
@@ -63,9 +64,10 @@ cmap = ip.Results.Colormap;
 madFactor = 1/norminv(0.75, 0, 1);
 
 % Extend all to max. movie length, in case of mismatch
-Nmax = max([data.movieLength])-2;
 buffer = ip.Results.Buffer;
 cutoff_f = ip.Results.Cutoff_f;
+
+Nmax = max([data.movieLength])-2*buffer;
 
 % movieLength = min([data.movieLength]);
 framerate = data(1).framerate;
@@ -104,7 +106,9 @@ fprintf('=======================================================================
 fprintf('Lifetime analysis - processing:   0%%');
 nd = numel(lftData);
 
-lftRes.t = (cutoff_f:Nmax)*framerate;
+bf = ip.Results.Binning; % binning factor
+
+lftRes.t = ((cutoff_f+(bf-1)/2):bf:Nmax)*framerate;
 lftRes.cellArea = zeros(nd,1);
 for i = 1:nd
     
@@ -113,10 +117,10 @@ for i = 1:nd
     idx_Ib = [lftData(i).catIdx_all]==2;
     idx_IIa = [lftData(i).catIdx_all]==5;
     
-    % raw histograms
+    % raw histograms, calculated over N usable frames
     N = data(i).movieLength-2*buffer;
-    t = (cutoff_f:N)*framerate;
-
+    t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
+    
     % apply correction
     % relative probabilities:
     % P(obs. lifetime==1) = N
@@ -127,15 +131,18 @@ for i = 1:nd
     else
         w = ones(1,N-cutoff_f+1);
     end
+    if bf>1
+        w = mean(reshape(w(1:floor(numel(w)/bf)*bf), [bf floor(numel(w)/bf)]),1);
+    end    
     pad0 = zeros(1,Nmax-N);
     lftHist_Ia =  [hist(lftData(i).lifetime_s_all(idx_Ia), t).*w  pad0];
     lftHist_Ib =  [hist(lftData(i).lifetime_s_all(idx_Ib), t).*w  pad0];
     lftHist_IIa = [hist(lftData(i).lifetime_s_all(idx_IIa), t).*w pad0];
     
     % Normalization
-    lftRes.lftHist_Ia(i,:) = lftHist_Ia / sum(lftHist_Ia) / framerate;
-    lftRes.lftHist_Ib(i,:) = lftHist_Ib / sum(lftHist_Ib) / framerate;
-    lftRes.lftHist_IIa(i,:) = lftHist_IIa / sum(lftHist_IIa) / framerate;
+    lftRes.lftHist_Ia(i,:) = lftHist_Ia / sum(lftHist_Ia) / framerate / bf;
+    lftRes.lftHist_Ib(i,:) = lftHist_Ib / sum(lftHist_Ib) / framerate / bf;
+    lftRes.lftHist_IIa(i,:) = lftHist_IIa / sum(lftHist_IIa) / framerate / bf;
     lftRes.nSamples_Ia(i) = sum(idx_Ia);
     
     %-------------------------------------------------------------
@@ -236,8 +243,8 @@ for i = 1:nd
     lftRes.pctCS(i) = sum(~idxMI)/nCS;
             
     N = data(i).movieLength-2*buffer;
-    t = (cutoff_f:N)*framerate;
-
+    t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
+    
     % apply correction
     % relative probabilities:
     % P(obs. lifetime==1) = N
@@ -248,12 +255,15 @@ for i = 1:nd
     else
         w = ones(1,N-cutoff_f+1);
     end
+    if bf>1
+        w = mean(reshape(w(1:floor(numel(w)/bf)*bf), [bf floor(numel(w)/bf)]),1);
+    end
     pad0 = zeros(1,Nmax-N);
     lftHistCCP = [hist(res(i).lftAboveT, t).*w pad0];
     lftHistCS = [hist(res(i).lftBelowT, t).*w pad0];
     % Normalization
-    lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) / framerate;
-    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate;    
+    lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) / framerate / bf;
+    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate / bf;    
     
     % Raw, unweighted histograms with counts/bin
     lftRes.lftHistCCP_counts(i,:) = [hist(res(i).lftAboveT, t) pad0];
@@ -262,7 +272,7 @@ for i = 1:nd
     
     if ip.Results.ExcludeVisitors
         lftHistVisit = [hist(res(i).lftVisitors, t).*w pad0];
-        lftRes.lftHistVisit(i,:) = lftHistVisit / sum(lftHistVisit) / framerate;
+        lftRes.lftHistVisit(i,:) = lftHistVisit / sum(lftHistVisit) / framerate / bf;
     end
     
     % Multi-channel data
@@ -281,9 +291,9 @@ for i = 1:nd
             lftHistSlaveAll = [hist(lftData(i).lifetime_s(sIdx), t).*w pad0];
             lftHistSlaveCCP = [hist(lftData(i).lifetime_s(sIdx & idxMI), t).*w pad0];
             lftHistSlaveCS = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t).*w pad0];
-            lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate;
-            lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate;
-            lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) / framerate;
+            lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate / bf;
+            lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate / bf;
+            lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) / framerate / bf;
             lftRes.lftHistSlaveAll_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx), t) pad0];
             lftRes.lftHistSlaveCCP_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & idxMI), t) pad0];
             lftRes.lftHistSlaveCS_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t) pad0];
@@ -442,7 +452,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     hp = zeros(nd,1);
     
     % all structures
-    edf = cumsum(lftRes.lftHist_Ia,2)*framerate;
+    edf = cumsum(lftRes.lftHist_Ia,2)*framerate*bf;
     % plot(ha(1), [0 200], 0.75*[1 1], 'k--');
     for k = 1:nd
         hp(k) = plot(ha(1), lftRes.t, edf(k,:), 'Color', cmap(k,:));
@@ -454,7 +464,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     set(hl, 'Box', 'off');
     
     % CCPs
-    edf = cumsum(lftRes.lftHistCCP,2)*framerate;
+    edf = cumsum(lftRes.lftHistCCP,2)*framerate*bf;
     for k = 1:nd
         hp(k) = plot(ha(2), lftRes.t, edf(k,:), 'Color', cmap(k,:));
         [~,idx] = unique(edf(k,:));
@@ -491,9 +501,9 @@ if any(strcmpi(ip.Results.Display, {'all'}))
     [~,idxa] = sort(a(1,:));
     [~,idxa] = sort(idxa);
     colorV = colorV(idxa,:);
-    
-    figure(fset.fOpts{:}, 'Name', 'Raw lifetime distribution');
-    axes(fset.axOpts{:});
+
+    fset = loadFigureSettings('');
+    setupFigure('DisplayMode', 'screen', 'Name', 'Raw lifetime distribution');
     hold on;
     for i = nd:-1:1
         plot(lftRes.t, lftRes.lftHist_Ia(i,:), '-', 'Color', colorV(i,:), 'LineWidth', 1);
