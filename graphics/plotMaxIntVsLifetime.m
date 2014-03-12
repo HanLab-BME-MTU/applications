@@ -36,6 +36,7 @@ ip.addParamValue('DisplayFunction', @sqrt);
 ip.addParamValue('Channel', 1, @isposint);
 ip.addParamValue('Legend', []);
 ip.addParamValue('Parent', []);
+ip.addParamValue('Scale', true, @islogical);
 ip.addParamValue('LifetimeData', 'lifetimeData.mat');
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat');
 ip.addParamValue('PlotIndividual', false, @islogical);
@@ -48,10 +49,10 @@ ip.parse(data, varargin{:});
 ch = ip.Results.Channel;
 
 if ip.Results.PlotIndividual
-    lftData = getLifetimeData(data, 'Overwrite', false, 'Mask', true,...
+    lftData = getLifetimeData(data, 'Mask', true, 'Scale', ip.Results.Scale,...
         'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
         'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection,...
-        'AnalysisPath', ip.Results.AnalysisPath);
+        'AnalysisPath', ip.Results.AnalysisPath, 'DisplayScaling', true);
     data = arrayfun(@(i) i, data, 'unif', 0);
     lftData = arrayfun(@(i) i, lftData, 'unif', 0);
     nd = numel(data);
@@ -62,16 +63,24 @@ else
     nd = numel(data);
     lftData = cell(1,nd);
     for i = 1:nd
-        lftData{i} = getLifetimeData(data{i}, 'Overwrite', false, 'Mask', true,...
+        lftData{i} = getLifetimeData(data{i}, 'Mask', true,...
+            'Scale', ip.Results.Scale, 'ReturnValidOnly', false,...
             'ProcessedTracks', ip.Results.ProcessedTracks, 'LifetimeData', ip.Results.LifetimeData,...
-            'ReturnValidOnly', false, 'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
+            'AmplitudeCorrectionFactor', ip.Results.AmplitudeCorrection);
     end
 end
 
 legendText = ip.Results.Legend;
 if isempty(legendText)
-    legendText =  cellfun(@(i) getDirFromPath(getExpDir(i)), data, 'unif', 0);
+    if ip.Results.PlotIndividual
+        legendText = cellfun(@(i) getCellDir(i), data, 'unif', 0);
+    else
+        legendText = cellfun(@(i) getDirFromPath(getExpDir(i)), data, 'unif', 0);
+    end
 end
+% if ~ip.Results.PlotIndividual
+%     legendText = arrayfun(@(i) [legendText{i} ' (n=' num2str(numel(data{i})) ')'], 1:numel(data), 'unif', 0);
+% end
 
 maxA = cell(nd,1);
 maxALft = cell(nd,1);
@@ -122,12 +131,19 @@ for k = 1:nd
         av = av(ch,:);
         lv = lft{k};
         lv = vertcat(lv{:});
-        %lv = [maxALft{k}{:}];
-        %lv = lv(ch,:);
         
         densityplot(lv, av, xl, xa, 'Parent', ha(k), 'DisplayFunction', ip.Results.DisplayFunction, 'NormX', ip.Results.NormX);
+
+        %scattercontour(lv, av, 'Parent', ha(k));
+        %set(ha(k), 'XLim', [xl(1) xl(end)], 'YLim', [xa(1), xa(end)]);
+        
+        text(xl(end), xa(end), num2str(numel(lv)), 'VerticalAlignment', 'top',...
+            'HorizontalAlignment', 'right', 'Color', 'w', 'Parent', ha(k),...
+            'Interpreter', 'none', 'FontSize', ip.Results.FontSize);
+        
         text(xl(end)/2, xa(end), legendText{k}, 'VerticalAlignment', 'bottom',...
-            'HorizontalAlignment', 'center', 'Parent', ha(k), 'FontSize', ip.Results.FontSize);
+            'HorizontalAlignment', 'center', 'Parent', ha(k),...
+            'Interpreter', 'none', 'FontSize', ip.Results.FontSize);
     end
 end
 formatTickLabels(ha);
