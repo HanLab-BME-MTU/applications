@@ -34,6 +34,8 @@ ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('LineStyle', '-');
 ip.addParamValue('Hues', []);
+ip.addParamValue('Colormap', []);
+ip.addParamValue('ColormapFill', []);
 ip.addParamValue('DisplayMode', 'screen');
 ip.addParamValue('DisplayAll', false);
 ip.addParamValue('TrackIndex', []);
@@ -41,8 +43,9 @@ ip.addParamValue('Cutoff_f', 5);
 ip.addParamValue('Alpha', 0.05);
 ip.addParamValue('YTick', []);
 ip.addParamValue('YLim', []);
+ip.addParamValue('Parent', []);
 ip.addParamValue('RemoveOutliers', false, @islogical);
-ip.addParamValue('ShowLegend', false, @islogical);
+ip.addParamValue('PlotXLabel', true, @islogical);
 ip.addParamValue('ShowPct', true, @islogical);
 ip.addParamValue('ShowStats', false, @islogical);
 ip.addParamValue('AvgFun', @nanmean, @(x) isa(x, 'function_handle'));
@@ -170,39 +173,38 @@ end
 fset = loadFigureSettings(ip.Results.DisplayMode);
 
 % Set colormap depending on # channels
-cmap = cell(1,nCh);
-cv = cell(1,nCh);
-if nCh==1
-    if isempty(hues)
-        hues = getFluorophoreHues(data(1).markers);
-    end
-    v = mod(hues(1)+linspace(-0.1, 0.1, nc)', 1);
-    cmap{1} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
-    cv{1} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
-    
-    % Jet colormap
-    %cmap{1} = jet(nc);
-    %cv{1} = rgb2hsv(cmap{1});
-    %cv{1}(:,2) = 0.2;
-    %cv{1} = hsv2rgb(cv{1});
-else
-    if isempty(hues)
-        hues = getFluorophoreHues(data(1).markers);
-    end
-    if nCh==2
-        hb = 0.1;
+cmap = ip.Results.Colormap;
+if isempty(cmap)
+    cmap = cell(1,nCh);
+    if nCh==1
+        if isempty(hues)
+            hues = getFluorophoreHues(data(1).markers);
+        end
+        v = mod(hues(1)+linspace(-0.05, 0.05, nc)', 1);
+        cmap{1} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
     else
-        hb = 0.05;
-    end
-    for ch = 1:nCh
-        v = mod(hues(ch)+linspace(-hb, hb, nc)', 1);
-        cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
-        cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
-        %cmap{ch} = repmat(hsv2rgb([hues(ch) 1 0.8]), [nc 1]);
-        %cv{ch} = repmat(hsv2rgb([hues(ch) 0.4 1]), [nc 1]);
+        if isempty(hues)
+            hues = getFluorophoreHues(data(1).markers);
+        end
+        if nCh==2
+            hb = 0.1;
+        else
+            hb = 0.05;
+        end
+        for ch = 1:nCh
+            v = mod(hues(ch)+linspace(-hb, hb, nc)', 1);
+            cmap{ch} = hsv2rgb([v ones(nc,1) 0.9*ones(nc,1)]);
+        end
     end
 end
-
+cv = ip.Results.ColormapFill;
+if isempty(cv)
+    cv = cell(1,nCh);
+    for c = 1:nCh
+        tmp = rgb2hsv(cmap{c});
+        cv{c} = hsv2rgb([tmp(:,1) 0.4*ones(nc,1) ones(nc,1)]);
+    end
+end
 % scale slave channels relative to master (for visualization only)
 if isempty(sf) 
     if ip.Results.ScaleSlaveChannel && nCh>1
@@ -286,20 +288,21 @@ if ~isempty(sigCombIdx)
             end
     end
 end
-if ip.Results.ShowLegend
-    aposy = 1.5;
-else
-    aw = ceil(na/ah);
-    aposy = 2;
-end
+
+aw = ceil(na/ah);
+aposy = 2;
+
 
 A = cell(nCh,nc);
-if ip.Results.ShowPct && nCh>2
-    ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.5 3.5],...
-        'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
-else
-    ha = setupFigure(ah, aw, 'YSpace', [2.5 1 1], 'XSpace', [2 0.75 0.5],...
-        'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
+ha = ip.Results.Parent;
+if isempty(ha)
+    if ip.Results.ShowPct && nCh>2
+        ha = setupFigure(ah, aw, 'YSpace', [3 1 0.5], 'XSpace', [2 0.5 3.5],...
+            'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
+    else
+        ha = setupFigure(ah, aw, 'YSpace', [2.5 1 1], 'XSpace', [2 0.75 0.5],...
+            'SameAxes', true, 'Name', 'Intensity cohorts', 'DisplayMode', ip.Results.DisplayMode);
+    end
 end
 
 % now plot cohorts for each combination
@@ -410,14 +413,7 @@ if ip.Results.ShowPct && nCh>2
         'Parent', hav, 'Font', fset.sfont);
     axis off;
 end
-    
-   
-%     if ip.Results.ShowLegend
-%         cohortLabels = arrayfun(@(i) [' ' num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'unif', 0);
-%         hl = legend(hp, [cohortLabels cohortLabels], 'Location', 'SouthEast');
-%         set(hl, 'Box', 'off', fset.tfont{:}, 'Position', [6.75+7.65 1.5 1.25 3.5]);
-%     end
-    
+        
 %     if ip.Results.ShowPct
 %         axes(fset.axOpts{:}, 'Position', [15.5 2 3 2.5], 'TickLength', fset.TickLength*6/3);
 %         barplot2(mean(M,1)', std(M,[],1)', 'Angle', 0, 'BarWidth', 1, 'GroupDistance', 1,...
@@ -445,9 +441,7 @@ if ~isempty(ip.Results.YTick)
     set(ha, 'YTick', ip.Results.YTick);
 end
 
-if ip.Results.ShowLegend
-    arrayfun(@(x) xlabel(x, 'Time (s)', fset.lfont{:}), ha);
-else
+if ip.Results.PlotXLabel
     idx = ah-ceil((1:na)/2)>0;
     set(ha, 'XTick', XTick, 'XTickLabel', cohortLabels);
     set(ha(idx), 'XTickLabel', []);
@@ -463,24 +457,19 @@ if ip.Results.ShowStats
     
     % plot total tracks in each cohort
     for a = 1:na
+        % events selected/cohort
+        ntCoSel = arrayfun(@(c) arrayfun(@(x) sum(x.sigComb{a,c}), res), 1:nc, 'unif', 0);
+        ntCoSel = cellfun(@sum, ntCoSel);
+        
+        %text(XLim(1), 1.02*YLim(end), '% Events:', 'Parent',  ha(a), fset.sfont{:},...
+        %   'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom');
         for c = 1:nc
-            ntCoSel = arrayfun(@(x) sum(x.sigComb{a,c}), res);
-            if sum(ntCoSel>0)/numel(ntCoSel) > 0.5
+            if sum(ntCoSel{c}>0)/numel(ntCoSel{c}) > 0.5
                 text(XTick(c), YLim(end), num2str(sum(ntCoSel)), 'Parent',  ha(a), fset.sfont{:},...
                     'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+                %text(XTick(c), 1.02*YLim(end), num2str(100*ntCoSel(c)/sum(ntCoSel), '%.1f'), 'Parent',  ha(a), fset.sfont{:},...
+                %    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
             end
         end
     end
 end
-
-% if ip.Results.ShowLegend
-%     %xlabel(ha(1), 'Time (s)', fset.lfont{:});
-%     %xlabel(ha(2), 'Time (s)', fset.lfont{:});
-%     %XTick = 0:20:200;
-% else
-%     set(ha(1), 'XTick', XTick, 'XTickLabel', cohortLabels);
-%     rotateXTickLabels(ha(1), 'AdjustFigure', false);
-%     xlabel(ha(1), 'Lifetime cohort', fset.lfont{:});
-% end
-
-
