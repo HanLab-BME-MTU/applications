@@ -29,11 +29,11 @@ if numel(rescale)==1
     rescale = repmat(rescale, [nCh 1]);
 end
 
-fnames = {'lifetime_s', 'trackLengths', 'start', 'catIdx', 'A', 'A_pstd',...
+fnames = {'lifetime_s', 'trackLengths', 'start', 'catIdx', 'index', 'A', 'A_pstd',...
     'sigma_r', 'SE_sigma_r', 'sbA', 'ebA', 'sbSigma_r', 'ebSigma_r', 'gapMat_Ia'};
 lftData(1:nd) = cell2struct(cell(size(fnames)), fnames, 2);
-vnames = fnames(1:4);
-mnames = fnames(5:end);
+vnames = fnames(1:5);
+mnames = fnames(6:end);
 
 parfor i = 1:nd
     fpath = [data(i).source 'Analysis' filesep ip.Results.LifetimeData]; %#ok<PFBNS>
@@ -49,6 +49,7 @@ parfor i = 1:nd
         lftData(i).trackLengths = trackLengths';
         lftData(i).start = [tracks.start]';
         lftData(i).catIdx = [tracks.catIdx]';
+        lftData(i).index = (1:numel(tracks))';
         if isfield(tracks, 'significantMaster')
             lftData(i).significantMaster = [tracks.significantMaster]';
             lftData(i).significantSlave = [tracks.significantSlave]';
@@ -106,6 +107,10 @@ parfor i = 1:nd
             tmp.significantSlave = NaN(size(tmp2));
             lftData(i).significantMaster = [];
             lftData(i).significantSlave = [];
+        end
+        if ~isfield(tmp, 'index');
+            tmp.index = NaN(size(tmp.catIdx));
+            tmp = orderfields(tmp, fnames);
         end
         lftData(i) = tmp;
     end

@@ -136,10 +136,10 @@ for i = 1:nd
                     
                     % interpolate to mean length
                     xi = linspace(1,cLengths(t)+2*b, iLength(c));
-                    %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
                     interpTracks(t,:) = binterp(A, xi);
-                    %sigma_rMat(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
                     sigma_rMat(t,:) = binterp(bgr, xi);
+                    %interpTracks(t,:) = interp1(1:cLengths(t)+2*b, A, xi, 'cubic');
+                    %sigma_rMat(t,:) = interp1(1:cLengths(t)+2*b, bgr, xi, 'cubic');
                 end
                 
                 res(i).interpTracks{ch,c} = interpTracks;
@@ -153,10 +153,16 @@ for i = 1:nd
                 else
                     res(i).sigIdx{c}(:,ch) = ones(numel(cidx),1);
                 end
+                if ch==1
+                    res(i).trackIdx{c} = lftData(i).index(cidx);
+                end
             else
                 res(i).interpTracks{ch,c} = NaN(1,iLength(c));
                 res(i).interpSigLevel{ch,c} = NaN(1,iLength(c));
                 res(i).sigIdx{c}(:,ch) = NaN;
+                if ch==1
+                    res(i).trackIdx{c} = NaN;
+                end
             end
         end
     end
