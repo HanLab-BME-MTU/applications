@@ -13,7 +13,7 @@ function runDetection(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
-ip.addParamValue('Sigma', [], @(x) numel(x)==length(data(1).channels));
+ip.addParamValue('Sigma', [], @(x) isempty(x) || numel(x)==length(data(1).channels));
 ip.addParamValue('SigmaSource', 'data', @(x) any(strcmpi(x, {'data', 'model'})));
 ip.addParamValue('RemoveRedundant', true, @islogical);
 ip.addParamValue('Overwrite', false, @islogical);
@@ -42,6 +42,7 @@ if isempty(sigma) && (~all(hasDet) || overwrite)
         if strcmpi(ip.Results.SigmaSource, 'model')
             sigma = getGaussianPSFsigma(data(1).NA, data(1).M, data(1).pixelSize, data(1).markers);
         else
+            fprintf('Determining Gaussian PSF parameters from data ... ');
             % evenly sample all data sets
             sigma = zeros(1,nCh);
             % use ~20 frames distributed accross data sets
@@ -58,6 +59,7 @@ if isempty(sigma) && (~all(hasDet) || overwrite)
                 end
                 sigma(c) = getGaussianPSFsigmaFromData(vertcat(frames(:)), 'Display', true);
             end
+            fprintf('done.\n');
         end
         fprintf('Gaussian PSF s.d. values: ');
         fprintf(' %.2f', sigma);
