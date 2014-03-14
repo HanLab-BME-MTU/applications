@@ -1,6 +1,6 @@
-function [dname dpath] = getCellDir(data)
+function [dname, dpath] = getCellDir(data)
 
-chParents = cellfun(@(c) getParentDir(c), data.channels, 'UniformOutput', false);
+chParents = cellfun(@(c) getParentDir(c), data.channels, 'unif', 0);
 sParent = getParentDir(data.source);
 
 v = strcmp(sParent, chParents);
