@@ -33,7 +33,7 @@ cohortBounds = ip.Results.CohortBounds_s;
 lftData = getLifetimeData(data,...
     'LifetimeData', ip.Results.LftDataName, 'Scale', ip.Results.Rescale,...
     'Cutoff_f', ip.Results.Cutoff_f, 'ReturnValidOnly', true,...
-    'ExcludeVisitors', ip.Results.ExcludeVisitors);
+    'ExcludeVisitors', ip.Results.ExcludeVisitors, 'DisplayScaling', false);
 
 % max. amplitude in all channels (for pooled data)
 maxA = arrayfun(@(i) squeeze(max(i.A,[],2)), lftData, 'unif', 0);
@@ -93,7 +93,7 @@ AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2), size(AMat
 hues = getFluorophoreHues(data(1).markers);
 
 
-lt0 = 20; % seconds
+lt0 = 10; % seconds
 at0 = prctile(maxA, 10, 1);
 
 selCh1 = maxA(:,1)>=at0(1) & lftV>=lt0;
@@ -108,7 +108,8 @@ end
 % fpos = get(0, 'DefaultFigurePosition');
 width = 1000;
 height = 450;
-figure('Position', [200 200 width height], 'Color', 'w', 'Name', 'ccpSorter');
+figure('Position', [200 200 width height], 'Color', 'w', 'Name', 'ccpSorter',...
+    'Toolbar', 'figure');
 
 
 %aRange = prctile(maxA, [0.01 99.9], 1)';
@@ -130,9 +131,20 @@ ylabel(ha(1), 'Max. fluorescence intensity (A.U.)', 'FontSize', 12);
 htxt(1) = text(lRange(1)+0.95*diff(lRange), aRange(1,1)+0.95*diff(aRange(1,:)), [num2str(sum(selCh1)) '/' num2str(numel(selCh1))], 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right');
 text(mean(lRange), aRange(1,2), ['Channel 1: ' data(1).markers{1}], 'Parent', ha(1),...
     'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+scattercontour(lftV, maxA(:,1), 'Parent', ha(1));
 
-ha(2) = axes('Position', [0.8/width*height 0.35 0.6/width*height 0.6]);
+
+bf = 1;
+
+buffer = size(lftData(1).sbA,2);
+cutoff_f = ip.Results.Cutoff_f;
+N = data(1).movieLength-2*buffer;
+framerate = data(1).framerate;
+t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
+w = N./(N-cutoff_f+1:-1:1);
+
 if nCh>1
+    ha(2) = axes('Position', [0.8/width*height 0.35 0.6/width*height 0.6]);
     hp2 = zeros(3,1);
     hp2(1) = plot(ha(2), lftV(~selCh2 & selCh1), maxA(~selCh2 & selCh1,2), 'o', 'Color', selColor1, 'HitTest', 'off');
     hold(ha(2), 'on');
@@ -146,8 +158,22 @@ if nCh>1
     htxt(2) = text(lRange(1)+0.95*diff(lRange), aRange(2,1)+0.95*diff(aRange(2,:)), [num2str(sum(selCh1&selCh2)) '/' num2str(sum(selCh1))], 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right');
     text(mean(lRange), aRange(2,2), ['Channel 2: ' data(1).markers{2}], 'Parent', ha(2),...
         'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+    scattercontour(lftV, maxA(:,2), 'Parent', ha(2));
 else
-    set(ha(2), 'Visible', 'off');
+    % Plot lifetime distribution
+    ha(2) = axes('Position', [0.8/width*height 0.6 0.6/width*height 0.35]);
+    
+    histCCPs = hist(lftV(maxA(:,1)>=at0(1)), t).*w;
+    histCCPs = histCCPs / sum(histCCPs) / framerate / bf;
+    hp2(1) = plot(ha(2), t, histCCPs, 'g', 'HitTest', 'off');
+    hold(ha(2), 'on');
+    
+    histCSs = hist(lftV(maxA(:,1)<at0(1)), t).*w;
+    histCSs = histCSs / sum(histCSs) / framerate / bf;
+    hp2(2) = plot(ha(2), t, histCSs, 'Color', hsv2rgb([0.55 1 0.9]), 'HitTest', 'off');
+    
+    axis(ha(2), [0 160 0 0.05]);
+    xlabel(ha(2), 'Lifetime (s)', 'FontSize', 12);
 end
 set(ha(1:2), 'ButtonDownFcn', @click_Callback); % after 'hold on'
 
@@ -311,6 +337,11 @@ set(ha([1 2]), 'XTick', 0:20:200);
         xlabel(ha(4), 'Lifetime cohort', fset.sfont{:});
         %set(ha(3), 'XColor', selColor2, 'YColor', selColor2);
         %set(ha(4), 'XColor', selColor1, 'YColor', selColor1);
+        
+        if nCh==1
+            set(ha(2), 'XTick', 0:20:200, 'Box', 'off', 'TickDir', 'out');
+        end
+        
     end
 
     function click_Callback(varargin)
@@ -371,6 +402,19 @@ set(ha([1 2]), 'XTick', 0:20:200);
             set(htxt(2), 'String', [num2str(sum(selCh1&selCh2)) '/' num2str(sum(selCh1))]);
         
             set(c2Label, 'String', ['Channel 2 threshold: ' num2str(at0(2), '%.0f')]);
+        else
+            hold(ha(2), 'off');
+            
+            histCCPs = hist(lftV(maxA(:,1)>=at0(1)), t).*w;
+            histCCPs = histCCPs / sum(histCCPs) / framerate / bf;
+            hp2(1) = plot(ha(2), t, histCCPs, 'g', 'HitTest', 'off');
+            hold(ha(2), 'on');
+            
+            histCSs = hist(lftV(maxA(:,1)<at0(1)), t).*w;
+            histCSs = histCSs / sum(histCSs) / framerate / bf;
+            hp2(2) = plot(ha(2), t, histCSs, 'Color', hsv2rgb([0.55 1 0.9]), 'HitTest', 'off');
+            axis(ha(2), [0 160 0 0.05]);
+            xlabel(ha(2), 'Lifetime (s)', 'FontSize', 12);
         end
     end
 
