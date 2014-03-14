@@ -48,30 +48,36 @@ chScale = [1 1];%[1 scaleEDFs(maxAall(:,2), maxAall(:,1))];
 cohortBounds = [cohortBounds max(vertcat(lftData.lifetime_s))];
 [res, cTime] = getIntensityCohorts(data, lftData, 'CohortBounds_s', cohortBounds);
 
+nCh = numel(data(1).channels);
+
 % apply selection
-if strcmpi(ip.Results.DetectionMode, 'm')
-    for i = 1:numel(lftData)
-        idx = lftData(i).significantMaster(:,2)==1;
-        res(i).aInterp = res(i).aInterp(idx,:,:);
-        res(i).rInterp = res(i).rInterp(idx,:,:);
-        res(i).cidx = res(i).cidx(idx);
-        maxA{i} = maxA{i}(idx,:);
-        lftV{i} = lftV{i}(idx);
-    end
-elseif strcmpi(ip.Results.DetectionMode, 's')
-    for i = 1:numel(lftData)
-        idx = lftData(i).significantSlave(:,2)==1;
-        res(i).aInterp = res(i).aInterp(idx,:,:);
-        res(i).rInterp = res(i).rInterp(idx,:,:);
-        res(i).cidx = res(i).cidx(idx);
-        maxA{i} = maxA{i}(idx,:);
-        lftV{i} = lftV{i}(idx);
+if nCh>1
+    if strcmpi(ip.Results.DetectionMode, 'm')
+        for i = 1:numel(lftData)
+            idx = lftData(i).significantMaster(:,2)==1;
+            res(i).aInterp = res(i).aInterp(idx,:,:);
+            res(i).rInterp = res(i).rInterp(idx,:,:);
+            res(i).cidx = res(i).cidx(idx);
+            maxA{i} = maxA{i}(idx,:);
+            lftV{i} = lftV{i}(idx);
+        end
+    elseif strcmpi(ip.Results.DetectionMode, 's')
+        for i = 1:numel(lftData)
+            idx = lftData(i).significantSlave(:,2)==1;
+            res(i).aInterp = res(i).aInterp(idx,:,:);
+            res(i).rInterp = res(i).rInterp(idx,:,:);
+            res(i).cidx = res(i).cidx(idx);
+            maxA{i} = maxA{i}(idx,:);
+            lftV{i} = lftV{i}(idx);
+        end
     end
 end
 
 cidx = cat(1, res.cidx);
 AMat = cat(1, res.aInterp); % long->short tracks
-AMat(:,:,2) = chScale(2)*AMat(:,:,2);
+if nCh>1
+    AMat(:,:,2) = chScale(2)*AMat(:,:,2);
+end
 
 % sort from shortest to longest
 lftV = vertcat(lftV{:});
@@ -80,12 +86,18 @@ cidx = cidx(idx);
 AMat = AMat(idx,:,:);
 maxA = vertcat(maxA{:});
 maxA = maxA(idx,:);
-maxA(:,2) = chScale(2)*maxA(:,2);
+if nCh>1
+    maxA(:,2) = chScale(2)*maxA(:,2);
+end
 
 % convert to cohorts
 [tracksPerCohort, uidx] = getMultiplicity(cidx); % increasing order
 nCh = numel(data(1).channels);
-AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2), size(AMat,3));
+if nCh>1
+    AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2), size(AMat,3));
+else
+   AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2)); 
+end
 % remove '0' cohort
 % AMat(uidx==0) = [];
 % tracksPerCohort(uidx==0) = [];
@@ -97,8 +109,9 @@ lt0 = 10; % seconds
 at0 = prctile(maxA, 10, 1);
 
 selCh1 = maxA(:,1)>=at0(1) & lftV>=lt0;
-selCh2 = maxA(:,2)>=at0(2) & lftV>=lt0;
-
+if nCh>1
+    selCh2 = maxA(:,2)>=at0(2) & lftV>=lt0;
+end
 
 selColor1 = hsv2rgb([hues(1) 1 0.8]);
 if nCh>1
@@ -113,7 +126,11 @@ figure('Position', [200 200 width height], 'Color', 'w', 'Name', 'ccpSorter',...
 
 
 %aRange = prctile(maxA, [0.01 99.9], 1)';
-aRange = [0 0; prctile(maxA, 99.9, 1)]';
+if nCh>1
+    aRange = [0 0; prctile(maxA, 99.9, 1)]';
+else
+    aRange = [0 prctile(maxA, 99.9, 1)];
+end
 lRange = [0 prctile(lftV, 99.9, 1)];
 
 ha(1) = axes('Position', [0.12/width*height 0.35 0.6/width*height 0.6]);
@@ -202,7 +219,7 @@ end
 
 
 % cohort plot parameters
-nc = numel(cTime);
+nc = numel(cTime)-1;
 chVec = nCh:-1:1;
 hb = 0.1;
 cmap = cell(1,nCh);
@@ -227,7 +244,9 @@ fset = loadFigureSettings();
 
 % include additional cohort at end
 cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-data(1).framerate) 's'], 1:nc, 'Unif', 0);
-XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-data(1).framerate])/2;
+% XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-data(1).framerate])/2;
+XTick = (cohortBounds(1:end-2) + cohortBounds(2:end-1))/2;
+XTick = [XTick 2*XTick(end)-XTick(end-1)];
 % XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
 
 
@@ -325,13 +344,13 @@ set(ha([1 2]), 'XTick', 0:20:200);
             'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
         text(-12, ymax, '# obj:', 'Parent',  ha(4), fset.ifont{:},...
             'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
-        for c = 1:nc
+        for c = 1:nc+1
             text(XTick(c), ymax, num2str(selTracks(1,c+1)), 'Parent',  ha(3), fset.ifont{:},...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
             text(XTick(c), ymax, num2str(selTracks(2,c+1)), 'Parent',  ha(4), fset.ifont{:},...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
         end        
-        set(ha([3 4]), 'XTick', XTick, 'XTickLabel', [], 'Box', 'off', 'TickDir', 'out');
+        set(ha([3 4]), 'XTick', XTick(1:end-1), 'XTickLabel', [], 'Box', 'off', 'TickDir', 'out');
         set(ha(4), 'XTickLabel', cohortLabels);
         rotateXTickLabels(ha(4), 'AdjustFigure', false);
         xlabel(ha(4), 'Lifetime cohort', fset.sfont{:});
