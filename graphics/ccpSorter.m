@@ -88,6 +88,8 @@ maxA = vertcat(maxA{:});
 maxA = maxA(idx,:);
 if nCh>1
     maxA(:,2) = chScale(2)*maxA(:,2);
+else
+    maxA = maxA(:,1);
 end
 
 % convert to cohorts
@@ -96,7 +98,7 @@ nCh = numel(data(1).channels);
 if nCh>1
     AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2), size(AMat,3));
 else
-   AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2)); 
+   AMat = mat2cell(AMat(~isnan(cidx),:,1), tracksPerCohort, size(AMat,2)); 
 end
 % remove '0' cohort
 % AMat(uidx==0) = [];
@@ -191,6 +193,11 @@ else
     
     axis(ha(2), [0 160 0 0.05]);
     xlabel(ha(2), 'Lifetime (s)', 'FontSize', 12);
+    
+    nCCP = sum(maxA(:,1)>=at0(1));
+    nTotal = numel(maxA(:,1));
+    hl = legend([' CCPs: ' num2str(nCCP/nTotal*100, '%.1f') '%'], [' CSs: ' num2str((nTotal-nCCP)/nTotal*100, '%.1f') '%']);
+    set(hl, 'EdgeColor', 'w');
 end
 set(ha(1:2), 'ButtonDownFcn', @click_Callback); % after 'hold on'
 
@@ -421,19 +428,20 @@ set(ha([1 2]), 'XTick', 0:20:200);
             set(htxt(2), 'String', [num2str(sum(selCh1&selCh2)) '/' num2str(sum(selCh1))]);
         
             set(c2Label, 'String', ['Channel 2 threshold: ' num2str(at0(2), '%.0f')]);
-        else
-            hold(ha(2), 'off');
-            
+        else           
             histCCPs = hist(lftV(maxA(:,1)>=at0(1)), t).*w;
             histCCPs = histCCPs / sum(histCCPs) / framerate / bf;
-            hp2(1) = plot(ha(2), t, histCCPs, 'g', 'HitTest', 'off');
-            hold(ha(2), 'on');
+            set(hp2(1), 'YData', histCCPs);
             
             histCSs = hist(lftV(maxA(:,1)<at0(1)), t).*w;
             histCSs = histCSs / sum(histCSs) / framerate / bf;
-            hp2(2) = plot(ha(2), t, histCSs, 'Color', hsv2rgb([0.55 1 0.9]), 'HitTest', 'off');
-            axis(ha(2), [0 160 0 0.05]);
-            xlabel(ha(2), 'Lifetime (s)', 'FontSize', 12);
+            set(hp2(2), 'YData', histCSs);
+            
+            nCCP = sum(maxA(:,1)>=at0(1));
+            set(hl, 'String', {[' CCPs: ' num2str(nCCP/nTotal*100, '%.1f') '%'], [' CSs: ' num2str((nTotal-nCCP)/nTotal*100, '%.1f') '%']});
+            %nTotal = numel(maxA(:,1));
+            %hl = legend(ha(2), ['CCPs: ' num2str(nCCP/nTotal*100, '%.1f') '%'], ['CSs: ' num2str((nTotal-nCCP)/nTotal*100, '%.1f') '%']);
+            %set(hl, 'EdgeColor', 'w');
         end
     end
 
