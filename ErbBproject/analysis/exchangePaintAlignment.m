@@ -63,6 +63,7 @@ ip.addOptional('ImSize',[384,384],@isnumeric);
 ip.addOptional('Wavelenght',672,@isnumeric);
 ip.addOptional('NA',1.49,@isnumeric);
 ip.addOptional('MinTrackLen',2,@isnumeric);
+ip.addOptional('MinDriftLen',1000,@isnumeric_);
 
 ip.parse(list,name,varargin{:});
 
@@ -73,6 +74,7 @@ ImSize = ip.Results.ImSize;
 Wavelength = ip.Results.Wavelenght;
 NA = ip.Results.NA;
 MinTrackLen = ip.Results.MinTrackLen;
+MinDriftLen = ip.Results.MinDriftLen;
 
 %Calculate diffraction limit in pixels
 difLim = (Wavelength/(2*NA))/pixelSize;
@@ -98,7 +100,7 @@ for j=1:num
     PointList{j}.name = list{j};
     load(list{j});
     
-    track = reformTracksFinal(tracksFinal,1000);
+    track = reformTracksFinal(tracksFinal,MinDriftLen);
     
     
     %Calculates average drift from all the drift markers
