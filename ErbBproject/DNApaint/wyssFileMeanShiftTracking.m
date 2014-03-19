@@ -44,7 +44,7 @@ save(FN,'tracksFinal','features');
 end
 
 trackingList = findFilesInSubDirs(cd(),'tracking');
-fullpath = exchangePaintAlignment(trackingList,[name,'_PointList'],'MinTrackLen',1);
+fullpath = exchangePaintAlignment(trackingList,[name,'_PointListTracking'],'ImSize',[256,256],'MinTrackLen',1,'MinDriftLen',10);
 
 load(fullpath);
 
@@ -65,7 +65,7 @@ TotalPnts=TotalPnts(~isnan(TotalPnts(:,1)),:);
 
 clusterInfo = addToClusterInfo(clusterInfo,TotalPnts,'pixelSize',107);
 
-save([dir,'_MeanShiftCluster.mat'],'clusterInfo','clusterMap','TotalPnts');
+save([dir,'_MeanShiftClusterTracking.mat'],'clusterInfo','clusterMap','TotalPnts');
 
 end
 
