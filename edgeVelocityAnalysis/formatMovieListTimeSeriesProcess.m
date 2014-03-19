@@ -53,7 +53,7 @@ end
 
 nCell = numel(ML.movies_);
 
-ip.addParamValue('channel',   0,@isscalar);
+ip.addParamValue('channel',   1,@isscalar);
 ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
 ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
 ip.addParamValue('trendType',-ones(1,nCell),@isvector);
@@ -93,6 +93,13 @@ for iCell = 1:nCell
     %Checking interval input
     intervalEmpty  = all(cellfun(@(x) isempty(x),interval{iCell}));    
     
+    if ~hasNotBeenProc
+        
+        if cellData{iCell}.data.channel ~= channel
+            hasNotBeenProc = true;
+        end
+    end
+    
     if hasNotBeenProc % If data has not been processed
        
         currMD     = ML.movies_{iCell};
@@ -111,7 +118,7 @@ for iCell = 1:nCell
         cellData{iCell}.data.nFrames           = currMD.nFrames_;
         cellData{iCell}.data.pixelSize         = currMD.pixelSize_;
         cellData{iCell}.data.timeInterval      = currMD.timeInterval_;
-        
+        cellData{iCell}.data.channel           = channel;
         
         [~,nObs,nLayer] = size(cellData{iCell}.data.rawTimeSeries);
         
