@@ -683,13 +683,28 @@ save([dataPath '/LcurveL2-0th.mat'],'forceMesh','rhoL2','etaL2','fErrFGL2','fErr
 load([dataPath '/LcurveL2-0th.mat'],'rho','eta','fErr','reg_corner','ireg_corner','lambda','fCoeff','fminIdx');
 %%  showing force for L2
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2)],3100,true,460,460)
-
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminBGIdxL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2))],3100,true,460,460);
+% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2)],3100,true,460,460)
+nlfh=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2) ' 3100 nonlinear'],3100,true,460,460);
+mycmap = get(nlfh,'Colormap');
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2))],3100,true,460,460);
+% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2))],3100,true,460,460);
+nlfh_FGmin=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2)) ' 3100 nonlinear'],3100,true,460,460);
+set(nlfh_FGmin,'Colormap',mycmap)
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminBGIdxL2),xgrid,ygrid,'new');
+% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2))],3100,true,460,460);
+nlfh_BGmin = generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2)) ' 3100 nonlinear'],3100,true,460,460);
+set(nlfh_BGmin,'Colormap',mycmap)
+
+% showing force for L1 0th with the mycmap
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
+nlfh_L1lcorner = generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_corner) ' 3100 nonlinear'],3100,true,460,460);
+set(nlfh_L1lcorner,'Colormap',mycmap)
+
+%  original forcefield with the mycmap
+nlfh_original = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,['/Original forcefield nonlinear'],3100,false,460,460);
+set(nlfh_original,'Colormap',mycmap)
 %% with lower force max
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2),xgrid,ygrid,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at Lcorner ' num2str(reg_cornerL2)],200,true,460,460)
