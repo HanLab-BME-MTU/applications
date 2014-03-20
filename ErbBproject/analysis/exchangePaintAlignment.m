@@ -63,7 +63,7 @@ ip.addOptional('ImSize',[384,384],@isnumeric);
 ip.addOptional('Wavelenght',672,@isnumeric);
 ip.addOptional('NA',1.49,@isnumeric);
 ip.addOptional('MinTrackLen',2,@isnumeric);
-ip.addOptional('MinDriftLen',1000,@isnumeric_);
+ip.addOptional('MinDriftLen',1000,@isnumeric);
 
 ip.parse(list,name,varargin{:});
 
