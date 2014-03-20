@@ -100,7 +100,7 @@ parfor i = 1:nd
         if isfield(tmp, 'RSS')
             tmp = rmfield(tmp, 'RSS');
         end
-        if isfield(tmp, 'significantSignal')
+        if isfield(tmp, 'significantSignal') % deprecated
             tmp2 = tmp.significantSignal;
             tmp = rmfield(tmp, 'significantSignal');
             tmp.significantMaster = tmp2;
@@ -110,7 +110,11 @@ parfor i = 1:nd
         end
         if ~isfield(tmp, 'index');
             tmp.index = NaN(size(tmp.catIdx));
-            tmp = orderfields(tmp, fnames);
+            if isfield(tmp, 'significantMaster')
+                tmp = orderfields(tmp, [fnames, 'significantMaster', 'significantSlave']);
+            else
+                tmp = orderfields(tmp, fnames);
+            end
         end
         lftData(i) = tmp;
     end
