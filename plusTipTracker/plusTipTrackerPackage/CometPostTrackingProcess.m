@@ -56,11 +56,11 @@ classdef CometPostTrackingProcess < PostTrackingProcess
                     sF=trackData(:,2);
                     [xMat,yMat]=plusTipGetSubtrackCoords(s.projData,[]);
                     
-                    correspFullIdx=fullIdx(~isnan(xMat(:,iFrame)));
-                    if ~isempty(correspFullIdx) && iFrame>1
+                    correspFullIdx=fullIdx(any(~isnan(xMat(:,iFrame)),2));
+                    if ~isempty(correspFullIdx) && max(iFrame)>1
                         subtracks2keep=find(ismember(fullIdx,correspFullIdx));
-                        varargout{1}.x=xMat(subtracks2keep,1:iFrame);
-                        varargout{1}.y=yMat(subtracks2keep,1:iFrame);
+                        varargout{1}.x=xMat(subtracks2keep,1:max(iFrame));
+                        varargout{1}.y=yMat(subtracks2keep,1:max(iFrame));
                         varargout{1}.fullIdx=fullIdx(subtracks2keep);
                         varargout{1}.trackType=trackType(subtracks2keep);
                         varargout{1}.sF=sF(subtracks2keep);
