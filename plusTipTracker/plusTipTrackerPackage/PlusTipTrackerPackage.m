@@ -57,6 +57,11 @@ classdef PlusTipTrackerPackage < TrackingPackage
             funParams.costMatrices(2) = TrackingProcess.getDefaultGapClosingCostMatrices(owner, funParams.gapCloseParam.timeWindow,2);
         end
         
+        function tools = getTools(index)
+            plusTipTools(1).name = '+TIP Group Analysis';
+            plusTipTools(1).funHandle = @plusTipGroupAnalysisGUI;
+            if nargin==0, index=1:numel(plusTipTools); end
+            tools = plusTipTools(index);
+        end
     end
-    
 end
