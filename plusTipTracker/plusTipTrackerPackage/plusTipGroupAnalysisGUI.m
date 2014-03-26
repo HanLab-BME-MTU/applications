@@ -59,7 +59,7 @@ userData.handles_main = guidata(userData.mainFig);
 
 % Get current package and process
 userData_main = get(userData.mainFig, 'UserData');
-userData.ML = userData_main.ML(userData_main.id);
+userData.ML = userData_main.ML;
 
 % Get icon infomation
 userData.questIconData = userData_main.questIconData;
@@ -79,7 +79,7 @@ set(hObject, 'UserData', userData);
 guidata(hObject, handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = plusTipGroupAnalysisGUI_OutputFcn(~, ~, handles) 
+function varargout = plusTipGroupAnalysisGUI_OutputFcn(~, ~, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -89,8 +89,8 @@ function varargout = plusTipGroupAnalysisGUI_OutputFcn(~, ~, handles)
 varargout{1} = handles.output;
 
 userData = get(handles.figure1, 'UserData');
-if isempty(userData.ML) || numel(userData.ML) < 2,
-    warndlg('At least two movie lists are required to perform group analysis.',...
+if isempty(userData.ML)
+    warndlg('At least one movie list is required to perform group analysis.',...
         'Input error', 'modal');
     close(handles.figure1);
     return
@@ -107,7 +107,7 @@ function figure1_DeleteFcn(hObject, ~, handles)
 userData = get(handles.figure1, 'UserData');
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
-   delete(userData.helpFig) 
+    delete(userData.helpFig)
 end
 
 set(handles.figure1, 'UserData', userData);
