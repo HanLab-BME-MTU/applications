@@ -1,4 +1,4 @@
-%ccpSorter(data) displays a GUI for selection of CCPs intensity cohorts based on maximum intensity thresholds
+%ccpSorter(data) displays a GUI for selection of CCP cohorts based on maximum intensity thresholds
 %
 % Inputs:
 %             data : data structure from loadConditionData()
@@ -35,90 +35,87 @@ lftData = getLifetimeData(data,...
     'Cutoff_f', ip.Results.Cutoff_f, 'ReturnValidOnly', true,...
     'ExcludeVisitors', ip.Results.ExcludeVisitors, 'DisplayScaling', false);
 
-% max. amplitude in all channels (for pooled data)
+% For scatter plots (pooled data):
+%  max. amplitude
 maxA = arrayfun(@(i) squeeze(max(i.A,[],2)), lftData, 'unif', 0);
-maxAall = vertcat(maxA{:});
-% lifetime vectors
+%  lifetime
 lftV = arrayfun(@(i) i.lifetime_s, lftData, 'unif', 0);
+
+framerate = data(1).framerate;
 
 % intensity scaling for 2nd channel
 chScale = [1 1];%[1 scaleEDFs(maxAall(:,2), maxAall(:,1))];
 
 % calculate cohorts
-cohortBounds = [cohortBounds max(vertcat(lftData.lifetime_s))];
+% cohortBounds = [cohortBounds max(vertcat(lftData.lifetime_s))];
 [res, cTime] = getIntensityCohorts(data, lftData, 'CohortBounds_s', cohortBounds);
 
 nCh = numel(data(1).channels);
 
 % apply selection
-if nCh>1
-    if strcmpi(ip.Results.DetectionMode, 'm')
-        for i = 1:numel(lftData)
-            idx = lftData(i).significantMaster(:,2)==1;
-            res(i).aInterp = res(i).aInterp(idx,:,:);
-            res(i).rInterp = res(i).rInterp(idx,:,:);
-            res(i).cidx = res(i).cidx(idx);
-            maxA{i} = maxA{i}(idx,:);
-            lftV{i} = lftV{i}(idx);
-        end
-    elseif strcmpi(ip.Results.DetectionMode, 's')
-        for i = 1:numel(lftData)
-            idx = lftData(i).significantSlave(:,2)==1;
-            res(i).aInterp = res(i).aInterp(idx,:,:);
-            res(i).rInterp = res(i).rInterp(idx,:,:);
-            res(i).cidx = res(i).cidx(idx);
-            maxA{i} = maxA{i}(idx,:);
-            lftV{i} = lftV{i}(idx);
-        end
-    end
-end
+% if nCh>1
+%     if strcmpi(ip.Results.DetectionMode, 'm')
+%         for i = 1:numel(lftData)
+%             idx = lftData(i).significantMaster(:,2)==1;
+%             res(i).aInterp = res(i).aInterp(idx,:,:);
+%             res(i).rInterp = res(i).rInterp(idx,:,:);
+%             res(i).cidx = res(i).cidx(idx);
+%             maxA{i} = maxA{i}(idx,:);
+%             lftV{i} = lftV{i}(idx);
+%         end
+%     elseif strcmpi(ip.Results.DetectionMode, 's')
+%         for i = 1:numel(lftData)
+%             idx = lftData(i).significantSlave(:,2)==1;
+%             res(i).aInterp = res(i).aInterp(idx,:,:);
+%             res(i).rInterp = res(i).rInterp(idx,:,:);
+%             res(i).cidx = res(i).cidx(idx);
+%             maxA{i} = maxA{i}(idx,:);
+%             lftV{i} = lftV{i}(idx);
+%         end
+%     end
+% end
 
-cidx = cat(1, res.cidx);
-AMat = cat(1, res.aInterp); % long->short tracks
+
+
+% intensity matrix for cohort plots
+AMat = cat(1, res.aInterp); % order: long->short tracks
 if nCh>1
     AMat(:,:,2) = chScale(2)*AMat(:,:,2);
 end
-
-% sort from shortest to longest
-lftV = vertcat(lftV{:});
-[lftV, idx] = sort(lftV);
-cidx = cidx(idx);
+% sort from shortest to longest cohort
+cidx = cat(1, res.cidx);
+% lftAMat = arrayfun(@(i) lftV{i}(res(i).cidxAll), 1:numel(res), 'unif', 0);
+% lftAMat = vertcat(lftAMat{:});
+lftAMat = cat(1,res.lifetime);
+[cidx, idx] = sort(cidx);
 AMat = AMat(idx,:,:);
+maxAMat = squeeze(max(AMat,[],2));
+lftAMat = lftAMat(idx);
+
+% vectors for scatter plot
+lftV = vertcat(lftV{:});
 maxA = vertcat(maxA{:});
-maxA = maxA(idx,:);
 if nCh>1
     maxA(:,2) = chScale(2)*maxA(:,2);
 else
     maxA = maxA(:,1);
 end
 
-% convert to cohorts
-[tracksPerCohort, uidx] = getMultiplicity(cidx); % increasing order
 nCh = numel(data(1).channels);
-if nCh>1
-    AMat = mat2cell(AMat(~isnan(cidx),:,:), tracksPerCohort, size(AMat,2), size(AMat,3));
-else
-   AMat = mat2cell(AMat(~isnan(cidx),:,1), tracksPerCohort, size(AMat,2)); 
-end
-% remove '0' cohort
-% AMat(uidx==0) = [];
-% tracksPerCohort(uidx==0) = [];
-
 hues = getFluorophoreHues(data(1).markers);
 
-
+% initial thresholds
 lt0 = 10; % seconds
 at0 = prctile(maxA, 10, 1);
 
+% selection indexes for scatter plots
 selCh1 = maxA(:,1)>=at0(1) & lftV>=lt0;
-if nCh>1
-    selCh2 = maxA(:,2)>=at0(2) & lftV>=lt0;
-end
-
 selColor1 = hsv2rgb([hues(1) 1 0.8]);
 if nCh>1
+    selCh2 = maxA(:,2)>=at0(2) & lftV>=lt0;
     selColor2 = hsv2rgb([hues(2) 1 0.8]);
 end
+
 
 % fpos = get(0, 'DefaultFigurePosition');
 width = 1000;
@@ -126,8 +123,6 @@ height = 450;
 figure('Position', [200 200 width height], 'Color', 'w', 'Name', 'ccpSorter',...
     'Toolbar', 'figure');
 
-
-%aRange = prctile(maxA, [0.01 99.9], 1)';
 if nCh>1
     aRange = [0 0; prctile(maxA, 99.9, 1)]';
 else
@@ -135,6 +130,7 @@ else
 end
 lRange = [0 prctile(lftV, 99.9, 1)];
 
+% 1) Scatter plot(s)
 ha(1) = axes('Position', [0.12/width*height 0.35 0.6/width*height 0.6]);
 hp1 = zeros(2,1);
 hp1(1) = plot(ha(1), lftV(~selCh1), maxA(~selCh1,1), 'o', 'Color', 0.6*[1 1 1], 'HitTest', 'off');
@@ -152,13 +148,11 @@ text(mean(lRange), aRange(1,2), ['Channel 1: ' data(1).markers{1}], 'Parent', ha
     'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
 scattercontour(lftV, maxA(:,1), 'Parent', ha(1));
 
-
-bf = 1;
-
+% for lifetime plot
+bf = 1; % binning
 buffer = size(lftData(1).sbA,2);
 cutoff_f = ip.Results.Cutoff_f;
 N = data(1).movieLength-2*buffer;
-framerate = data(1).framerate;
 t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
 w = N./(N-cutoff_f+1:-1:1);
 
@@ -202,7 +196,6 @@ end
 set(ha(1:2), 'ButtonDownFcn', @click_Callback); % after 'hold on'
 
 ha(3) = axes('Position', [1.55/width*height 0.6 0.62/width*height 0.35]);
-% ha(3) = axes('Position', [0.7 0.55 0.25 0.35]);
 ha(4) = axes('Position', [1.55/width*height 0.2 0.62/width*height 0.35]);
 % linkaxes(ha(3:4));
 hold(ha(3), 'on');
@@ -226,7 +219,7 @@ end
 
 
 % cohort plot parameters
-nc = numel(cTime)-1;
+nc = numel(cTime);
 chVec = nCh:-1:1;
 hb = 0.1;
 cmap = cell(1,nCh);
@@ -237,14 +230,10 @@ for ch = 1:nCh
     cv{ch} = hsv2rgb([v 0.4*ones(nc,1) ones(nc,1)]);
 end
 
-
-Apos = cell(nCh,nc);
-Aneg = cell(nCh,nc);
-
 % determine y-scale
 ymax = zeros(1,nc);
 for ci = nc:-1:1
-    ymax(ci) = max(prctile(AMat{ci}(:,1:numel(cTime{ci}),1),90,1));
+    ymax(ci) = max(prctile(AMat(cidx==ci,:,1),90,1));
 end
 ymax = max(ymax);
 fset = loadFigureSettings();
@@ -252,115 +241,74 @@ fset = loadFigureSettings();
 % include additional cohort at end
 cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-data(1).framerate) 's'], 1:nc, 'Unif', 0);
 % XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-data(1).framerate])/2;
-XTick = (cohortBounds(1:end-2) + cohortBounds(2:end-1))/2;
+XTick = (cohortBounds(1:end-1) + cohortBounds(2:end))/2;
 XTick = [XTick 2*XTick(end)-XTick(end-1)];
 % XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
-
 
 updateCohorts();
 
 set(ha([1 2]), 'XTick', 0:20:200);
         
 
-
-% cm = 0.6*ones(numel(lftV),3);
-% cm(selCh1,:) = [1 0 0];
-% set(hap(1), 'CData', cm);
-
-% w = fpos(3); % figure dimensions in pixels
-% h = fpos(4);
-%
-% hfig = figure();
-%
-% tspace = 20;
-% bspace = 100;
-% lspace = 10;
-% rspace = w+30+50;
-% spacer = 10;
-% % create 3 equally spaced panels
-% uiOpts = {'Parent', hfig, 'Units', 'normalized', 'BorderType', 'none'};
-%
-% % handles = setupFrameAxes(hfig, [lspace bspace rspace tspace spacer]);
-% % handles.fPanels(1) =
-% % uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
-%
-% hp(1) = uipanel(uiOpts{:}, 'Position', [0 0 1/3 1], 'BackgroundColor', 'r');
-% hp(2) = uipanel(uiOpts{:}, 'Position', [1/3 0 1/3 1], 'BackgroundColor', 'g');
-% hp(3) = uipanel(uiOpts{:}, 'Position', [2/3 0 1/3 1], 'BackgroundColor', 'b');
-
     function updateCohorts()
         hold(ha(3), 'off');
         hold(ha(4), 'off');
 
-        if nCh>1
-            selIndex1 = mat2cell(maxA(:,1)>=at0(1) & maxA(:,2)>=at0(2) & lftV>=lt0, tracksPerCohort, 1);
-            selIndex2 = mat2cell(maxA(:,1)>=at0(1) & maxA(:,2)<at0(2)  & lftV>=lt0, tracksPerCohort, 1);
-        else
-            selIndex1 = mat2cell(maxA(:,1)>=at0(1) & lftV>=lt0, tracksPerCohort, 1);
-            selIndex2 = mat2cell(maxA(:,1)<at0(1) & lftV>=lt0, tracksPerCohort, 1);
-        end
-        
-        for c = nc:-1:1 %%%%%%%%%%%%%%%%%%%%%%%%%% correct for offset !
-            for ch = chVec
-                Apos{ch,c} = nanmedian(AMat{c+1}(selIndex1{c+1},1:numel(cTime{c}),ch),1);
-                Aneg{ch,c} = nanmedian(AMat{c+1}(selIndex2{c+1},1:numel(cTime{c}),ch),1);
-            end
-        end
-        selTracks = [cellfun(@sum, selIndex1)'; cellfun(@sum, selIndex2)'];
-        
-        % plot cohorts for above-threshold CCPs
-        % for c = nc:-1:1
-        %     for ch = chVec
-        %         % means for each data set
-        %         %AMat = arrayfun(@(i) i.aInterp(:,:,ch), res, 'unif', 0);
-        %         %AMat = arrayfun(@(x) median(x.interpTracks{ch,c},1), res, 'unif', 0);
-        %         %AMat = vertcat(AMat{:});
-        %         % # of tracks from each data set in this cohort
-        %         %res(i).sigComb{a,c} = res(i).sigIdx{c}(:,2)==sigCombIdx(a,1);
-        % %         res.sigComb
-        % %
-        % %         ntCoSel = arrayfun(@(x) sum(x.sigComb{1,c}), res);
-        %         A{ch,c} = nanmedian(AMat(selIndex,:),1);
-        % %         SEM = nanstd(AMat,[],1)/sqrt(nd);
-        % %         Amin = A{ch,c} - SEM;
-        % %         Aplus = A{ch,c} + SEM;
-        %     end
-        % end
-        
+%         if nCh>1
+%             selIndex1 = mat2cell(maxA(:,1)>=at0(1) & maxA(:,2)>=at0(2) & lftV>=lt0, tracksPerCohort, 1);
+%             selIndex2 = mat2cell(maxA(:,1)>=at0(1) & maxA(:,2)<at0(2)  & lftV>=lt0, tracksPerCohort, 1);
+%         else
+%             selIndex1 = mat2cell(maxA(:,1)>=at0(1) & lftV>=lt0, tracksPerCohort, 1);
+%             selIndex2 = mat2cell(maxA(:,1)<at0(1) & lftV>=lt0, tracksPerCohort, 1);
+%         end
         
         % Plot mean/median in front
+        nTracksSel = zeros(nc,2);
         for ch = chVec
             for c = nc:-1:1
-                plot(ha(3), cTime{c}, Apos{ch,c}, '-', 'Color', cmap{ch}(c,:), 'LineWidth', 1);
-                plot(ha(4), cTime{c}, Aneg{ch,c}, '-', 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+                if nCh>1
+                    Apos = AMat(maxAMat(:,1)>=at0(1) & maxAMat(:,2)>=at0(2) & lftAMat>=lt0 & cidx==c,:,ch);
+                    Aneg = AMat(maxAMat(:,1)>=at0(1) & maxAMat(:,2)< at0(2) & lftAMat>=lt0 & cidx==c,:,ch);
+                else % above vs. below intensity threshold
+                    Apos = AMat(maxAMat(:,1)>=at0(1) & lftAMat>=lt0 & cidx==c,:,1);
+                    Aneg = AMat(maxAMat(:,1)<at0(1) & lftAMat>=lt0 & cidx==c,:,1);
+                end
+                plot(ha(3), cTime{c}, median(Apos(:,1:numel(cTime{c})),1), '-', 'Color', cmap{ch}(c,:), 'LineWidth', 1);
+                plot(ha(4), cTime{c}, median(Aneg(:,1:numel(cTime{c})),1), '-', 'Color', cmap{ch}(c,:), 'LineWidth', 1);
                 hold(ha(3), 'on');
                 hold(ha(4), 'on');
+                nTracksSel(c,:) = [size(Apos,1) size(Aneg,1)];
             end
         end
-        
+
         %YTick = get(ha(1), 'YTick');
         %di = YTick(2)-YTick(1);
         %ya = -di:di:ceil(prctile(maxA(:,1),90)/di)*di;
 
-        %set(ha(3:4), 'XLim', [-15 125], 'YLim', [ya(1) ya(end)]);
         set(ha(3:4), 'XLim', [-15 125], 'YLim', [-0.1*ymax ymax]);
-        
 
         % print # tracks/cohort
         text(-12, ymax, '# obj:', 'Parent',  ha(3), fset.ifont{:},...
             'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
         text(-12, ymax, '# obj:', 'Parent',  ha(4), fset.ifont{:},...
             'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
-        for c = 1:nc+1
-            text(XTick(c), ymax, num2str(selTracks(1,c+1)), 'Parent',  ha(3), fset.ifont{:},...
+        for c = 1:nc
+            text(XTick(c), ymax, num2str(nTracksSel(c,1)), 'Parent',  ha(3), fset.ifont{:},...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-            text(XTick(c), ymax, num2str(selTracks(2,c+1)), 'Parent',  ha(4), fset.ifont{:},...
+            text(XTick(c), ymax, num2str(nTracksSel(c,2)), 'Parent',  ha(4), fset.ifont{:},...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-        end        
+        end
+        % indicate # objects > last cohort
+        %text(XTick(end), ymax, num2str(sum(maxA(:,1)>=at0(1) & lftV>=lt0 & lftV>cohortBounds(end))), 'Parent',  ha(3), fset.ifont{:},...
+        %       'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+            
         set(ha([3 4]), 'XTick', XTick(1:end-1), 'XTickLabel', [], 'Box', 'off', 'TickDir', 'out');
         set(ha(4), 'XTickLabel', cohortLabels);
         rotateXTickLabels(ha(4), 'AdjustFigure', false);
         xlabel(ha(4), 'Lifetime cohort', fset.sfont{:});
+        ylabel(ha(3), 'Median intensity (A.U.)', 'FontSize', 12);
+        ylabel(ha(4), 'Median intensity (A.U.)', 'FontSize', 12);
+
         %set(ha(3), 'XColor', selColor2, 'YColor', selColor2);
         %set(ha(4), 'XColor', selColor1, 'YColor', selColor1);
         
