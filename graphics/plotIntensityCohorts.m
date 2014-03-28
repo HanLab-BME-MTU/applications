@@ -168,7 +168,7 @@ for i = 1:nd
     end
 end
 
-cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) 's'], 1:nc, 'Unif', 0);
+cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'Unif', 0);
 XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
 if strcmpi(ip.Results.Align, 'right')
     XTick = 0 - XTick(end:-1:1);
@@ -457,25 +457,31 @@ if ip.Results.PlotXLabel
     end
 end
 
+
 if ip.Results.ShowStats
-    % tracks in each data set
-    % arrayfun(@(i) sum(i.maxA(:,1)>ip.Results.MaxIntensityThreshold), lftData);
-    
+
     % plot total tracks in each cohort
     for a = 1:na
         % events selected/cohort
         ntCoSel = arrayfun(@(c) arrayfun(@(x) sum(x.sigComb{a,c}), res), 1:nc, 'unif', 0);
-        ntCoSel = cellfun(@sum, ntCoSel);
+        ntCoSel = vertcat(ntCoSel{:})';
         
-        %text(XLim(1), 1.02*YLim(end), '% Events:', 'Parent',  ha(a), fset.sfont{:},...
-        %   'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom');
+        %text(XLim(1)*0.95, 1.0*YLim(end), '# CCPs:', 'Parent',  ha(a), fset.sfont{:},...
+        %    'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom');
         for c = 1:nc
-            if sum(ntCoSel{c}>0)/numel(ntCoSel{c}) > 0.5
-                text(XTick(c), YLim(end), num2str(sum(ntCoSel)), 'Parent',  ha(a), fset.sfont{:},...
-                    'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
-                %text(XTick(c), 1.02*YLim(end), num2str(100*ntCoSel(c)/sum(ntCoSel), '%.1f'), 'Parent',  ha(a), fset.sfont{:},...
-                %    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-            end
+            %if sum(ntCoSel{c}>0)/numel(ntCoSel{c}) > 0.5
+                text(XTick(c), YLim(end), num2str(sum(ntCoSel(:,c))), 'Parent',  ha(a), fset.sfont{:},...
+                   'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+            %end
         end
+        
+%         % percentages
+%         pct = ntCoSel./repmat(sum(ntCoSel,2), [1 nc])*100;
+%         text(XLim(1)*0.95, 1.0*YLim(end), '% CCPs:', 'Parent',  ha(a), fset.sfont{:},...
+%             'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom');
+%         for c = 1:nc
+%                 text(XTick(c), 1.0*YLim(end), num2str(mean(pct(:,c),1), '%.0f'), 'Parent',  ha(a), fset.sfont{:},...
+%                    'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+%         end        
     end
 end
