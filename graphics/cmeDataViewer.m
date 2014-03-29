@@ -40,22 +40,27 @@ handles.mCh = find(strcmp(data.source, data.channels));
 
 
 fidx = 1;
-tcur = 1;
-xs = [];
-ys = [];
+tcur = 1; % absolute track index (of all loaded tracks)
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 nf = data.movieLength;
+
+% selected (x,y) position in volume
+xs = round(nx/2);
+ys = round(ny/2);
+
+yshift = 0;
 
 lcolor = hsv2rgb([0.55 0.5 0.8]);
 
 %===============================================================================
 % Setup main GUI window/figure
 %===============================================================================
+bgColor = get(0,'defaultUicontrolBackgroundColor');
 hfig = figure('Units', 'normalized', 'Position', [0.025 0.2 0.95 0.8],...
     'PaperPositionMode', 'auto', 'Toolbar', 'figure',...
-    'Color', get(0,'defaultUicontrolBackgroundColor'),...
+    'Color', bgColor,...
     'DefaultUicontrolUnits', 'pixels', 'Units', 'pixels', 'Name', [getDirFromPath(getExpDir(data)) filesep getCellDir(data)]);
 
 pos = get(hfig, 'Position'); % [pixels]
@@ -63,7 +68,7 @@ pos = get(hfig, 'Position'); % [pixels]
 %-------------------------------------------------------------------------------
 % Control panels at bottom of GUI
 %-------------------------------------------------------------------------------
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', '', 'Position', [5 5 650 70], 'BackgroundColor', bgColor);
 
 uicontrol(ph, 'Style', 'text', 'String', 'Data display: ',...
     'Position', [5 40 90 20], 'HorizontalAlignment', 'left');
@@ -118,7 +123,7 @@ statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',
 % Tracks
 %---------------------
 % Track plot panel
-ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-220-150-5-190 5 190 70]);
+ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Plot options', 'Position', [pos(3)-220-150-5-210 5 210 70]);
 tplotText = uicontrol(ph, 'Style', 'text', 'String', 'Units: ',...
     'Position', [5 35 60 20], 'HorizontalAlignment', 'left');
 
@@ -126,7 +131,9 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Seconds', 'Frames'},...
     'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
-    'Position', [5 20 160 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
+    'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
+tplotOverlayCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Overlay',...
+    'Position', [140 20 60 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
     'Position', [5 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Total time',...
@@ -216,7 +223,7 @@ switch nCh
 end
 
 handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
-    'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
+    'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-18 100 15], 'HorizontalAlignment', 'right');
 
 handles.trackSlider = uicontrol('Style', 'slider',...
     'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
@@ -231,7 +238,21 @@ for c = 1:nCh
     [handles.fAxes(c,:), hLegend(c)] = setupStackViewer(handles.fPanels(c), [nx ny min(nf,  max(nx,ny)/3)], c==1); 
 end
 hLegend = hLegend(1);
-colormap(gray(256));
+
+%-------------------------------------------------------------------------------
+% Menu setup
+%-------------------------------------------------------------------------------
+hmenu = uimenu('Label','Options');
+    uimenu(hmenu,'Label','Annotate','Callback',@annotation_Callback);
+doAnnotate = false;
+
+
+% colormap/contrast settings
+p = 1;
+invertContrast = false;
+cmap = gray(256).^p;
+colormap(cmap);
+
 
 setappdata(hfig, 'handles', handles);
 set(hfig, 'ResizeFcn', @figResize);
@@ -249,11 +270,19 @@ hms = []; % cell mask
 % handles for track plots
 % ht = [];
 
-cmap = [];
+trackColormap = [];
 
 displayType = 'raw';
 pUnitType = 's';
 
+
+%-------------------------------------------------------------------------------
+% Allocate arrays for RGB display
+%-------------------------------------------------------------------------------
+rframe = zeros(ny,nx,3,'uint8');
+tframe = zeros(nf,nx,3,'uint8');
+lframe = zeros(ny,nf,3,'uint8');
+idxRGB = getRGBindex(data.markers);
 
 %===============================================================================
 % Load movie and associated analysis results
@@ -327,11 +356,12 @@ end
 %-------------------------------------------------------------------------------
 % Load tracks
 %-------------------------------------------------------------------------------
+tracks = [];
+bgA = [];
+maxA = [];
 if ip.Results.LoadTracks
     fprintf('Loading tracks ... ');
-    tracks = [];
-    bgA = [];
-    maxA = [];
+    
     % identify track file
     fileList = dir([data.source ip.Results.RelativePath filesep 'ProcessedTracks*.mat']);
     fileList = {fileList.name};
@@ -352,7 +382,7 @@ if ip.Results.LoadTracks
     end
 end
 
-if exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2 && ip.Results.LoadTracks
+if ip.Results.LoadTracks && exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2
     tmp = load([data.source ip.Results.RelativePath filesep fileName]);
     tracks = tmp.tracks;
     if isfield(tmp, 'bgA')
@@ -377,8 +407,16 @@ if exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2 && i
         tracks = tracks(cellMask(idx)==1);
     end
     nt = numel(tracks);
-    selIndex = true(1,nt);
-
+    selIndex = true(1,nt); % index of tracks selected in 'settings'
+    
+    tlFile = [data.source 'Analysis' filesep 'TrackLabels.mat'];
+    if exist(tlFile,'file')==2
+        trackLabel = load(tlFile);
+        trackLabel = trackLabel.trackLabel;
+    else
+        trackLabel = ones(1,nt);
+    end
+    
     nseg = [tracks.nSeg];
     
     np = sum(nseg);
@@ -515,8 +553,6 @@ end
 % populate with data, plotting functions are called only here, afterwards change data
 %===============================================================================
 if ip.Results.LoadFrames
-    x = round(nx/2);
-    y = round(ny/2);
     hxy = zeros(1,nCh);
     hyz = zeros(1,nCh);
     hxz = zeros(1,nCh);
@@ -526,18 +562,18 @@ if ip.Results.LoadFrames
         hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
         hold(handles.fAxes(c,1), 'on');
         set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
-        hl(c,1) = plot(handles.fAxes(c,1), [x x], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
-        hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [y y], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+        hl(c,1) = plot(handles.fAxes(c,1), [xs xs], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+        hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [ys ys], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
         
         % y,z view
-        hyz(c) = imagesc(squeeze(stack{c}(:,x,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
+        hyz(c) = imagesc(squeeze(stack{c}(:,xs,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
         hold(handles.fAxes(c,2), 'on');
         % line in y,z view
         hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
         hold(handles.fAxes(c,2), 'off');
         
         % x,z view
-        hxz(c) = imagesc(squeeze(stack{c}(y,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
+        hxz(c) = imagesc(squeeze(stack{c}(ys,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
         hold(handles.fAxes(c,3), 'on');
         % line in x,z view
         hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
@@ -586,6 +622,7 @@ end
 %===============================================================================
 set(hfig, 'WindowScrollWheelFcn', @scroll_Callback);
 set(hfig, 'KeyPressFcn', @key_Callback);
+set(hfig, 'CloseRequestFcn', @close_Callback);
 
 hpan = pan;
 set(hpan,'ActionPreCallback',@panstart);
@@ -685,11 +722,88 @@ set(hz, 'ActionPostCallback', @czoom);
             case 'uparrow'
                 if tcur < find(selIndex, 1, 'last');
                     set(handles.trackSlider, 'Value', get(handles.trackSlider, 'Value')+1);
-                end                        
+                end
+            case 'comma'
+                if strcmpi(displayType, 'RGB')
+                    yshift = yshift-1;
+                    updateSlice();
+                end
+            case 'period'
+                if strcmpi(displayType, 'RGB')
+                    yshift = yshift+1;
+                    updateSlice();
+                end
+            case 'slash'
+                if strcmpi(displayType, 'RGB')
+                    yshift = 0;
+                    updateSlice();
+                end
+            case 'c'
+                if p==1
+                    p = 0.5;
+                else
+                    p = 1;
+                end
+                setColormap();
+                
+            case 'i'
+                invertContrast = ~invertContrast;
+                setColormap();
+        end
+        if all(isstrprop(eventdata.Key, 'digit')) && doAnnotate
+            nkey = str2double(eventdata.Key);
+            if nkey>0 && nkey<=9
+                trackLabel(tcur) = nkey;
+                set(handles.trackLabel, 'String', ['Track: ' num2str(tcur) ' (Label: ' num2str(trackLabel(tcur)) ')']);
+            end
         end
     end
 
 
+    function setColormap()
+        if ~strcmpi(displayType, 'RGB')
+            if ~invertContrast
+                cmap = gray(256).^p;
+            else
+                cmap = gray(256).^(1/p);
+                cmap = cmap(end:-1:1,:,:);
+            end
+            colormap(cmap);
+        else
+            updateSlice();
+            updateProj();
+        end
+    end
+
+
+    function annotation_Callback(varargin)
+        if strcmp(get(gcbo, 'Checked'),'on')
+            set(gcbo, 'Checked', 'off');
+        else
+            set(gcbo, 'Checked', 'on');
+        end
+        
+        switch get(gcbo, 'Label')
+            case 'Annotate'
+                doAnnotate = strcmp(get(gcbo, 'Checked'),'on');
+                % update track annotation display
+                if doAnnotate
+                    set(handles.trackLabel, 'String', ['Track: ' num2str(tcur) ' (Label: ' num2str(trackLabel(tcur)) ')']);
+                else
+                    set(handles.trackLabel, 'String', ['Track: ' num2str(tcur)]);
+                end
+        end
+    end
+
+    function close_Callback(varargin)
+        % save track labels, if annotation active
+        if doAnnotate
+            save(tlFile, 'trackLabel');
+        end
+        delete(hfig);
+    end
+        
+        
 
     function updateSlice(varargin)       
         switch displayType
@@ -703,10 +817,10 @@ set(hz, 'ActionPostCallback', @czoom);
                     set(hxy(ci), 'CData', stack{ci}(:,:,fidx));
                 end
             case 'RGB'
-                rframe = zeros(ny,nx,3,'uint8');
-                idxRGB = getRGBindex(data.markers);                
-                for ci = 1:nCh
-                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,fidx)), dRange{ci}));
+                rframe(:,:,idxRGB(2)) = uint8(scaleContrast(...
+                    [zeros(max(yshift,0),nx); double(stack{2}(1+max(-yshift,0):end-max(yshift,0),:,fidx)).^p; zeros(max(-yshift,0),nx)], dRange{2}.^p));
+                for ci = setdiff(1:nCh,2)
+                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,fidx)).^p, dRange{ci}.^p));
                 end
                 set(hxy(1), 'CData', rframe);
         end
@@ -742,7 +856,7 @@ set(hz, 'ActionPostCallback', @czoom);
         if ~isempty(tracks) && fidx~=1 && get(trackCheckbox, 'Value') && any(~isnan(X(fidx,:)) & selIndex(tstruct.idx))
             vidx = ~isnan(X(fidx,:)) & selIndex(tstruct.idx);
             delete(hpt);
-            set(handles.fAxes(1,1), 'ColorOrder', cmap(tstruct.idx(vidx),:));
+            set(handles.fAxes(1,1), 'ColorOrder', trackColormap(tstruct.idx(vidx),:));
             hpt = plot(handles.fAxes(1,1), X(1:fidx,vidx), Y(1:fidx,vidx), 'HitTest', 'off');
             if get(gapCheckbox, 'Value')
                 hpg = plot(handles.fAxes(1,1), X(fidx,vidx & G(fidx,:)), Y(fidx,vidx & G(fidx,:)), 'o', 'Color', 'w', 'MarkerSize', 6, 'LineWidth', 1);
@@ -792,7 +906,7 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
-    function updateProj()
+    function updateProj() % (x,y) projections of stack
         % plot lines
         set(hl(:,1), 'XData', xs*[1 1]);
         set(hl(:,2), 'YData', ys*[1 1]);
@@ -801,28 +915,20 @@ set(hz, 'ActionPostCallback', @czoom);
         xi = min(max(xs,1), nx);
         yi = min(max(ys,1), ny);
         
-%         switch displayType
-%             case 'RGB'
-%                 idxRGB = getRGBindex(data.markers);
-%                 tframe = zeros(nf,nx,3,'uint8');
-%                 lframe = zeros(ny,nf,3,'uint8');
-%                 for ci = 1:nCh
-%                     tframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(yi,:,:))'), dRange{ci}));
-%                     lframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(:,xi,:))), dRange{ci}));
-%                 end
-%                 set(hxz(1), 'CData', tframe);
-%                 set(hyz(1), 'CData', lframe);
-%             %case 'mask'
-%             %    set(hxy(1), 'CData', rgbOverlay(stack{1}(:,:,fidx), dmask(:,:,fidx), [1 0 0], dRange{1}));
-%             %    for ci = 2:nCh
-%             %        set(hxy(ci), 'CData', stack{ci}(:,:,fidx));
-%             %    end
-%             otherwise
+        switch displayType
+            case 'RGB'
+                for ci = 1:nCh
+                    tframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(yi,:,:))').^p, dRange{ci}.^p));
+                    lframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(:,xi,:))).^p, dRange{ci}.^p));
+                end
+                set(hxz(1), 'CData', tframe);
+                set(hyz(1), 'CData', lframe);
+            otherwise
                 for ci = 1:nCh
                     set(hyz(ci), 'CData', squeeze(stack{ci}(:,xi,:)));
                     set(hxz(ci), 'CData', squeeze(stack{ci}(yi,:,:))');
                 end
-%         end
+        end
     end
 
 
@@ -837,7 +943,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 displayType = 'mask';
         end
         updateSlice();
-        %updateProj();
+        updateProj();
     end
 
 
@@ -909,7 +1015,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
     function updateTrack(varargin)
         if ~isempty(tcur)
-            set(handles.trackLabel, 'String', ['Track ' num2str(tcur)]);
+            set(handles.trackLabel, 'String', ['Track: ' num2str(tcur) ' (Label: ' num2str(trackLabel(tcur)) ')']);
             % update selected track marker position
             set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
             
@@ -1005,28 +1111,28 @@ set(hz, 'ActionPostCallback', @czoom);
     function setTrackColormap(mode)
         switch mode
             case 'Category'
-                cmap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
-                cmap = cmap([tracks.catIdx],:);
+                trackColormap = [0 1 0; 1 1 0; 1 0.5 0; 1 0 0; 0 1 1; 0 0.5 1; 0 0 1; 0.5 0 1];
+                trackColormap = trackColormap([tracks.catIdx],:);
             case 'Lifetime'
                 lifetimes_f = round([tracks.lifetime_s]/data.framerate);
                 df = data.movieLength-round(120/data.framerate);
                 dcoord = 0.25/df;
-                cmap = [jet(round(120/data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
-                cmap = cmap(lifetimes_f,:);
+                trackColormap = [jet(round(120/data.framerate)); (0.5:-dcoord:0.25+dcoord)' zeros(df,2)];
+                trackColormap = trackColormap(lifetimes_f,:);
             case 'EAP Status'
-                cmap = hsv2rgb([0 0 0.8; 0.55 1 0.9; 0.33 1 0.9]); % ns, slave sig., master sig.
+                trackColormap = hsv2rgb([0 0 0.8; 0.55 1 0.9; 0.33 1 0.9]); % ns, slave sig., master sig.
                 S = [tracks.significantSlave];
                 M = [tracks.significantMaster];
                 eap = ones(1,nt);
                 eap(M(2,:)==1) = 3;
                 eap(S(2,:)==1 & M(2,:)==0) = 2;
-                cmap = cmap(eap,:);                
+                trackColormap = trackColormap(eap,:);                
             case 'Object Type'
                 isCCP = [tracks.isCCP];
-                cmap = [0.8 0 0; 0 0.8 0];
-                cmap = cmap(isCCP+1,:);
+                trackColormap = [0.8 0 0; 0 0.8 0];
+                trackColormap = trackColormap(isCCP+1,:);
             case 'Random'
-                cmap = hsv2rgb([rand(nt,1) ones(nt,2)]);
+                trackColormap = hsv2rgb([rand(nt,1) ones(nt,2)]);
         end
     end
 
@@ -1449,8 +1555,6 @@ set(hz, 'ActionPostCallback', @czoom);
                             imagesc(stack{ci}(:,:,fi), 'Parent', ha);
                         end
                     case 'RGB'
-                        rframe = zeros(ny,nx,3,'uint8');
-                        idxRGB = getRGBindex(data.markers);
                         for c2 = 1:nCh
                             rframe(:,:,idxRGB(c2)) = uint8(scaleContrast(double(stack{c2}(:,:,fi)), dRange{c2}));
                         end
@@ -1462,7 +1566,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 if ~isempty(tracks) && fi~=1 && get(trackCheckbox, 'Value')
                     vidx = ~isnan(X(fi,:));
                     
-                    set(ha, 'ColorOrder', cmap(tstruct.idx(vidx),:));
+                    set(ha, 'ColorOrder', trackColormap(tstruct.idx(vidx),:));
                     
                     plot(ha, X(1:fi,vidx), Y(1:fi,vidx), 'HitTest', 'off');
                     if get(gapCheckbox, 'Value')
@@ -1560,7 +1664,7 @@ pos = get(src, 'Position');
 set(handles.frameLabel, 'Position', [20 pos(4)-20, 100 15]);
 
 % tracks
-set(handles.tplotPanel, 'Position', [pos(3)-565 5 190 70]);
+set(handles.tplotPanel, 'Position', [pos(3)-585 5 210 70]);
 set(handles.montagePanel, 'Position', [pos(3)-370 5 220 70]);
 set(handles.outputPanel, 'Position', [pos(3)-145 5 140 70]);
 
@@ -1626,7 +1730,7 @@ switch nCh
         set(handles.tAxes(3), 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
         set(handles.tAxes(4), 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
 end
-set(handles.trackLabel, 'Position', [pos(3)-90 pos(4)-20 100 15]);
+set(handles.trackLabel, 'Position', [pos(3)-160 pos(4)-18 120 15]);
 set(handles.trackSlider, 'Position', [pos(3)-24 120 18 h_tot]);
 
 end
@@ -1734,6 +1838,7 @@ if addLegend
 else
     hl = NaN;
 end
+%axis(ha, 'off');
 
 set(hf, 'ResizeFcn', @pResize);
 
