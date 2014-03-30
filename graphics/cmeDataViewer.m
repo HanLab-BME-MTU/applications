@@ -75,7 +75,7 @@ uicontrol(ph, 'Style', 'text', 'String', 'Data display: ',...
 
 maskCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Cell mask',...
     'Position', [5 25 100 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 % plot on top
 frameChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Raw', 'Detections', 'RGB'},...
@@ -87,13 +87,13 @@ labelCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Channel labels',..
 
 detectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Detections',...
     'Position', [200 50 100 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 trackCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Tracks:', 'Value', true,...
     'Position', [200 30 80 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 trackChoice = uicontrol('Style', 'popup',...
     'String', {'Category', 'Lifetime', 'EAP Status', 'Object Type', 'Random'},...
-    'Position', [280 33 100 20], 'Callback', @trackChoice_Callback);
+    'Position', [280 33 110 20], 'Callback', @trackChoice_Callback);
 trackRangeButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Settings',...
     'Position', [280 5 80 20], 'HorizontalAlignment', 'left',...
     'Callback', @trackSettings_Callback);
@@ -101,20 +101,20 @@ trackRangeButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Settings',...
 
 gapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Gaps',...
     'Position', [390 45 140 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 trackEventCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Births/Deaths',...
     'Position', [390 25 140 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 eapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'EAP status',...
     'Position', [390 5 140 15], 'HorizontalAlignment', 'left',...
-    'Callback', @updateSlice);
+    'Callback', @frameCheck_Callback);
 
 
 
-trackButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Select track',...
+trackSelectButton = uicontrol(ph, 'Style', 'togglebutton', 'String', 'Select track',...
     'Position', [540 40 100 20], 'HorizontalAlignment', 'left',...
-    'Callback', @trackButton_Callback);
-statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Track statistics',...
+    'Callback', @trackSelectButton_Callback);
+statsButton = uicontrol(ph, 'Style', 'pushbutton', 'String', 'Show statistics',...
     'Position', [540 10 100 20], 'HorizontalAlignment', 'left',...
     'Callback', @statsButton_Callback);
 
@@ -131,23 +131,23 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
     'String', {'Seconds', 'Frames'},...
     'Position', [40 40 100 15], 'Callback', {@unitChoice_Callback, hfig});
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
-    'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @updateTrack);
+    'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @trackCheck_Callback);
 tplotOverlayCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Overlay',...
     'Position', [140 20 60 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
-    'Position', [5 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [5 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @trackCheck_Callback);
 tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Total time',...
-    'Position', [95 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [95 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @trackCheck_Callback);
 handles.tplotPanel = ph;
 
 % Montage panel
 ph = uipanel('Parent', hfig, 'Units', 'pixels', 'Title', 'Montage plot', 'Position', [pos(3)-220-150 5 220 70]);
 montageAlignCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Align to track',...
-    'Position', [90 38 115 15], 'HorizontalAlignment', 'left', 'Value', true);
+    'Position', [90 38 115 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @restoreFocus);
 montageMarkerCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show markers',...
-    'Position', [90 23 115 15], 'HorizontalAlignment', 'left');
+    'Position', [90 23 115 15], 'HorizontalAlignment', 'left', 'Callback', @restoreFocus);
 montageDetectionCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Show detection',...
-    'Position', [90 8 120 15], 'HorizontalAlignment', 'left');
+    'Position', [90 8 120 15], 'HorizontalAlignment', 'left', 'Callback', @restoreFocus);
 montageButton = uicontrol(ph, 'Style', 'pushbutton','String','Generate',...
     'Units', 'pixels', 'Position', [5 20 80 20],...
     'Callback', @montageButton_Callback);
@@ -189,7 +189,7 @@ handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(fidx
 if data.movieLength>1
     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
         'Value', fidx, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
-        'Position', [lspace 77 pos(3)-rspace-lspace 18]);
+        'Position', [lspace 77 pos(3)-rspace-lspace 18], 'Callback', @frameSliderRelease_Callback);
 end
 % this definition (instead of regular callback) enable continuous sliding
 addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callback);
@@ -227,7 +227,7 @@ handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
 
 handles.trackSlider = uicontrol('Style', 'slider',...
     'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
-    'Position', [pos(3)-24 120 10 h_tot]);
+    'Position', [pos(3)-24 120 10 h_tot], 'Callback', @trackSliderRelease_Callback);
 % this definition (instead of regular callback) enable continuous sliding
 addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
 
@@ -243,7 +243,7 @@ hLegend = hLegend(1);
 % Menu setup
 %-------------------------------------------------------------------------------
 hmenu = uimenu('Label','Options');
-    uimenu(hmenu,'Label','Annotate','Callback',@annotation_Callback);
+uimenu(hmenu, 'Label', 'Annotate', 'Callback', @annotation_Callback);
 doAnnotate = false;
 
 
@@ -524,10 +524,10 @@ else
     set(handles.trackSlider, 'Visible', 'off');
     set(handles.trackLabel, 'Visible', 'off');
     set(handles.tAxes, 'Visible', 'off');
-    set(trackButton, 'Enable', 'off');
+    set(trackSelectButton, 'Enable', 'off');
     set(statsButton, 'Enable', 'off');
     set(trackCheckbox, 'Value', false);
-    set([trackCheckbox trackChoice trackRangeButton gapCheckbox trackEventCheckbox], 'Enable', 'off');
+    set([trackCheckbox trackChoice trackRangeButton gapCheckbox trackEventCheckbox eapCheckbox], 'Enable', 'off');
     set([montageAlignCheckbox montageMarkerCheckbox montageDetectionCheckbox montageButton], 'Enable', 'off');
     %set(handles.montagePanel, 'Visible', 'off');
     
@@ -561,7 +561,7 @@ if ip.Results.LoadFrames
         % x,y view
         hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
         hold(handles.fAxes(c,1), 'on');
-        set(handles.fAxes(c,1), 'ButtonDownFcn', @click_Callback);
+        set(handles.fAxes(c,1), 'ButtonDownFcn', @axesClick_Callback);
         hl(c,1) = plot(handles.fAxes(c,1), [xs xs], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
         hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [ys ys], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
         
@@ -586,7 +586,7 @@ if ip.Results.LoadFrames
     % this fixes a bug with axis 'equal' that allows panning beyond boundaries
     set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
     
-    set(handles.fAxes, 'ButtonDownFcn', @click_Callback);
+    set(handles.fAxes, 'ButtonDownFcn', @axesClick_Callback);
     
     dx = 0.03;
     hChLabel = zeros(1,nCh);
@@ -611,7 +611,7 @@ if ~isempty(tracks)
 
         % plot current track marker
         hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==tcur),...
-            Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12);%*nx/diff(get(handles.fAxes(c,1),'XLim')));
+            Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12, 'HitTest', 'off');%*nx/diff(get(handles.fAxes(c,1),'XLim')));
     end
     updateTrack();
 end
@@ -637,26 +637,43 @@ set(hz, 'ActionPostCallback', @czoom);
 %===============================================================================
 % Listener/display functions
 %===============================================================================
-    function click_Callback(varargin)
-        switch gca
-            case num2cell(handles.fAxes(:,1))
-                a = get(gca, 'CurrentPoint');
-                xs = round(a(1,1));
-                ys = round(a(1,2));
-                updateProj(); % required for clicking w/o dragging
-                set(gcf, 'WindowButtonMotionFcn', @dragProj, 'WindowButtonUpFcn', @stopDragging);
-            case num2cell(handles.fAxes(:,2))
-                a = get(gca,'CurrentPoint');
-                fidx = round(a(1,1));
-                updateSlice();
-                set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);
-            case num2cell(handles.fAxes(:,3))
-                a = get(gca,'CurrentPoint');
-                fidx = round(a(1,2));
-                updateSlice();
-                set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);                
+    function axesClick_Callback(varargin)
+        if get(trackSelectButton, 'Value')==0
+            switch gca
+                case num2cell(handles.fAxes(:,1))
+                    a = get(gca, 'CurrentPoint');
+                    xs = round(a(1,1));
+                    ys = round(a(1,2));
+                    updateProj(); % required for clicking w/o dragging
+                    set(gcf, 'WindowButtonMotionFcn', @dragProj, 'WindowButtonUpFcn', @stopDragging);
+                case num2cell(handles.fAxes(:,2))
+                    a = get(gca,'CurrentPoint');
+                    fidx = round(a(1,1));
+                    updateSlice();
+                    set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);
+                case num2cell(handles.fAxes(:,3))
+                    a = get(gca,'CurrentPoint');
+                    fidx = round(a(1,2));
+                    updateSlice();
+                    set(gcf, 'WindowButtonMotionFcn', @dragSlice, 'WindowButtonUpFcn', @stopDragging);
+            end
+        elseif gca==handles.fAxes(1,1) && ~isempty(tracks) && get(trackCheckbox, 'Value')
+            a = get(gca, 'CurrentPoint');
+            x0 = a(1,1);
+            y0 = a(1,2);
+            
+            % track segments visible in current frame
+            cidx = find([tracks.start]<=fidx & fidx<=[tracks.end] & selIndex);
+            if ~isempty(cidx)
+                % distance to mean of tracks
+                d = sqrt((x0-mu_x(cidx)).^2 + (y0-mu_y(cidx)).^2);
+                [~,d] = nanmin(d);
+                tcur = cidx(d);
+                set(handles.trackSlider, 'Value', find(find(selIndex)==tcur)); % calls updateTrack
+            end
         end
     end
+
 
     function dragProj(varargin)
         a = get(gca, 'CurrentPoint');
@@ -664,6 +681,7 @@ set(hz, 'ActionPostCallback', @czoom);
         ys = round(a(1,2));
         updateProj();
     end
+
 
     function dragSlice(varargin)
         a = get(gca, 'CurrentPoint');
@@ -676,6 +694,7 @@ set(hz, 'ActionPostCallback', @czoom);
         set(handles.frameSlider, 'Value', fidx);
         updateSlice();
     end
+
 
     function stopDragging(varargin)
         set(gcf, 'WindowButtonMotionFcn', '');
@@ -795,6 +814,7 @@ set(hz, 'ActionPostCallback', @czoom);
         end
     end
 
+
     function close_Callback(varargin)
         % save track labels, if annotation active
         if doAnnotate
@@ -802,7 +822,6 @@ set(hz, 'ActionPostCallback', @czoom);
         end
         delete(hfig);
     end
-        
         
 
     function updateSlice(varargin)       
@@ -937,15 +956,42 @@ set(hz, 'ActionPostCallback', @czoom);
         switch contents{get(frameChoice,'Value')}
             case 'Raw'
                 displayType = 'raw';
+                %set(handles.fAxes(2:end), 'Visible', 'on');
             case 'RGB'
                 displayType = 'RGB';
+                %set(handles.fAxes(2:end), 'Visible', 'off');
             case 'Detections'
                 displayType = 'mask';
+                %set(handles.fAxes(2:end), 'Visible', 'on');
         end
         updateSlice();
         updateProj();
+        restoreFocus();       
     end
 
+
+    function restoreFocus(varargin)
+        if nargin < 1
+            hi = gcbo;
+        else
+            hi = varargin{1};
+        end
+        set(hi, 'enable', 'off');
+        drawnow;
+        set(hi, 'enable', 'on');
+    end
+
+
+    function frameCheck_Callback(varargin)
+        restoreFocus();
+        updateSlice();
+    end
+
+
+    function trackCheck_Callback(varargin)
+        restoreFocus();
+        updateTrack();
+    end
 
     function czoom(~, eventdata)
         % identify panel
@@ -994,13 +1040,17 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
+    function frameSliderRelease_Callback(varargin)
+        restoreFocus(handles.frameSlider);
+    end
+
+
     function trackSlider_Callback(~, eventdata)
         obj = get(eventdata, 'AffectedObject');
         t0 = round(get(obj, 'Value'));
         tmp = find(selIndex);
         tcur = tmp(t0);
-        updateTrack();
-        
+        updateTrack();        
         % if track not visible, jump to first frame
         % t = handles.tracks{1}(t);
         % if fidx < t.start || fidx > t.end
@@ -1013,9 +1063,19 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
+    function trackSliderRelease_Callback(varargin)
+        restoreFocus(handles.trackSlider);
+    end
+
+
     function updateTrack(varargin)
-        if ~isempty(tcur)
-            set(handles.trackLabel, 'String', ['Track: ' num2str(tcur) ' (Label: ' num2str(trackLabel(tcur)) ')']);
+        if ~isempty(tracks) && ~isempty(tcur)
+            if ~doAnnotate
+                set(handles.trackLabel, 'String', ['Track: ' num2str(tcur)]);
+            else
+                set(handles.trackLabel, 'String', ['Track: ' num2str(tcur) ' (Label: ' num2str(trackLabel(tcur)) ')']);
+            end
+            
             % update selected track marker position
             set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
             
@@ -1093,6 +1153,7 @@ set(hz, 'ActionPostCallback', @czoom);
         setTrackColormap(str);
         setColorbar(str);
         updateSlice();
+        restoreFocus();
     end
 
 
@@ -1105,6 +1166,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 pUnitType = 'f';
         end
         updateTrack();
+        restoreFocus();
     end
 
 
@@ -1143,14 +1205,20 @@ set(hz, 'ActionPostCallback', @czoom);
         else
             set(hChLabel, 'Visible', 'off');
         end
+        restoreFocus();
     end
+
 
     function statsButton_Callback(varargin)
         if ~isempty(tracks)
             plotTrackClasses([tracks.catIdx]);
         end
+        restoreFocus();
     end
 
+    %---------------------------------------------------------------------------
+    % Settings window
+    %---------------------------------------------------------------------------
     function trackSettings_Callback(varargin)
         % open window with settings panel
         tpos = get(hfig, 'Position');
@@ -1240,6 +1308,7 @@ set(hz, 'ActionPostCallback', @czoom);
             'Position', [180 5 100 20], 'HorizontalAlignment', 'left',...
             'Callback', @applyButton_Callback);
         
+        restoreFocus();
         
         function minSlider_Callback(~, eventdata)
             obj = get(eventdata, 'AffectedObject');
@@ -1313,9 +1382,12 @@ set(hz, 'ActionPostCallback', @czoom);
             close(pht);
             fprintf('# tracks selected: %d\n', sum(selIndex));
         end
-        
     end
-
+    %---------------------------------------------------------------------------
+    % End settings window
+    %---------------------------------------------------------------------------
+    
+    
     function setColorbar(mode)        
         lfont = {'FontName', 'Helvetica', 'FontSize', 12};
         sfont = {'FontName', 'Helvetica', 'FontSize', 12, 'FontWeight', 'normal'};
@@ -1377,6 +1449,7 @@ set(hz, 'ActionPostCallback', @czoom);
         else
             fprintf('Cannot create montage: no track selected.\n');
         end
+        restoreFocus();
     end
 
 
@@ -1442,20 +1515,13 @@ set(hz, 'ActionPostCallback', @czoom);
     end
 
 
-    function trackButton_Callback(varargin)
-        [x0,y0] = ginput(1);
-        ci = find(handles.fAxes(:,1)==gca, 1);
-        if ~isempty(ci) && ~isempty(tracks)
-            % track segments visible in current frame
-            cidx = find([tracks.start]<=fidx & fidx<=[tracks.end] & selIndex);
-            if ~isempty(cidx)
-                % distance to mean of tracks
-                d = sqrt((x0-mu_x(cidx)).^2 + (y0-mu_y(cidx)).^2);
-                [~,d] = nanmin(d);
-                tcur = cidx(d);
-                set(handles.trackSlider, 'Value', find(find(selIndex)==tcur)); % calls updateTrack
-            end
+    function trackSelectButton_Callback(varargin)
+        if get(trackSelectButton, 'Value')==1
+            set(hfig, 'Pointer', 'crosshair');
+        else
+            set(hfig, 'Pointer', 'arrow');
         end
+        restoreFocus();
     end
 
 
@@ -1516,6 +1582,7 @@ set(hz, 'ActionPostCallback', @czoom);
         close(f0);
         
         fprintf([' done. Figures saved in ' getShortPath(data) 'Figures.\n']);
+        restoreFocus();
     end
 
 
@@ -1649,6 +1716,7 @@ set(hz, 'ActionPostCallback', @czoom);
         else
             fprintf('A unix system with ffmpeg installed is required to generate movies automatically.\n');
         end
+        restoreFocus();
     end
 
 end
