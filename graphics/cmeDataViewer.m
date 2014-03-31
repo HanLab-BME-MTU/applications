@@ -34,25 +34,21 @@ if nCh>4
     error('Max. 4 channels supported.');
 end
 
-handles.nCh = nCh;
-% master channel index
-handles.mCh = find(strcmp(data.source, data.channels));
+handles.nCh = nCh; % # channels
+handles.mCh = find(strcmp(data.source, data.channels)); % master channel index
 
-
-fidx = 1;
-tcur = 1; % absolute track index (of all loaded tracks)
+fidx = 1; % selected frame
+tcur = 1; % selected track; absolute index (of all detected tracks)
 
 nx = data.imagesize(2);
 ny = data.imagesize(1);
 nf = data.movieLength;
 
-% selected (x,y) position in volume
-xs = round(nx/2);
+xs = round(nx/2); % position of (x,y) cross-section
 ys = round(ny/2);
+yshift = 0; % vertical shift between R,G channels in RGB display
+lcolor = hsv2rgb([0.55 0.5 0.8]); % color of cross-section selector lines
 
-yshift = 0;
-
-lcolor = hsv2rgb([0.55 0.5 0.8]);
 
 %===============================================================================
 % Setup main GUI window/figure
@@ -110,7 +106,6 @@ eapCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'EAP status',...
     'Callback', @frameCheck_Callback);
 
 
-
 trackSelectButton = uicontrol(ph, 'Style', 'togglebutton', 'String', 'Select track',...
     'Position', [540 40 100 20], 'HorizontalAlignment', 'left',...
     'Callback', @trackSelectButton_Callback);
@@ -133,7 +128,7 @@ tplotUnitChoice = uicontrol(ph, 'Style', 'popup',...
 tplotBackgroundCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Subtract background',...
     'Position', [5 20 150 15], 'HorizontalAlignment', 'left', 'Value', true, 'Callback', @trackCheck_Callback);
 tplotOverlayCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Overlay',...
-    'Position', [140 20 60 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @updateTrack);
+    'Position', [140 20 60 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @tplotOverlay_Callback);
 tplotScaleCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Autoscale',...
     'Position', [5 5 90 15], 'HorizontalAlignment', 'left', 'Value', false, 'Callback', @trackCheck_Callback);
 tplotRangeCheckbox = uicontrol(ph, 'Style', 'checkbox', 'String', 'Total time',...
@@ -172,20 +167,15 @@ setappdata(hfig, 'handles', handles); % write 'handles' to hfig
 %===============================================================================
 % Set up frame display
 %===============================================================================
-% fixed width of the track plots, in pixels
-w = 320;
-
-tspace = 20;
-bspace = 100;
-lspace = 10;
-rspace = w+30+50;
-spacer = 10; 
-handles = setupFrameAxes(hfig, [lspace bspace rspace tspace spacer]);
-
 handles.frameLabel = uicontrol('Style', 'text', 'String', ['Frame ' num2str(fidx)], ...
     'Position', [10 pos(4)-20 100 15], 'HorizontalAlignment', 'left');
 
+setupFrameAxes(nCh);
+
 % Frame slider
+w = 320; % fixed width of the track plots, in pixels
+lspace = 10;
+rspace = w+30+50;
 if data.movieLength>1
     handles.frameSlider = uicontrol('Style', 'slider', 'Units', 'pixels',...
         'Value', fidx, 'SliderStep', [1/(nf-1) 0.05], 'Min', 1, 'Max', nf,...
@@ -198,33 +188,13 @@ addlistener(handle(handles.frameSlider), 'Value', 'PostSet', @frameSlider_Callba
 %===============================================================================
 % Set up track display
 %===============================================================================
-% track panels: 20 spacer, 110 bottom, 20 top
-spacer = 15;
-h_tot = pos(4) - 140;
-h = min((h_tot-(nCh-1)*spacer)/nCh, 200);
-
-opts = {'Parent', hfig, 'Units', 'pixels', 'Box', 'on'};
-dx = pos(3)-w-30;
-switch nCh
-    case 1
-        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-    case 2
-        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-    case 3
-        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-    case 4
-        handles.tAxes(1) = axes(opts{:}, 'Position', [dx 120+(h_tot-h) w h]);
-        handles.tAxes(2) = axes(opts{:}, 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-        handles.tAxes(3) = axes(opts{:}, 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-        handles.tAxes(4) = axes(opts{:}, 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
-end
-
 handles.trackLabel = uicontrol('Style', 'text', 'String', 'Track 1',...
     'Units', 'pixels', 'Position', [pos(3)-70 pos(4)-18 100 15], 'HorizontalAlignment', 'right');
 
+setupTrackAxes(nCh);
+
+% Track slider
+h_tot = pos(4) - 140;
 handles.trackSlider = uicontrol('Style', 'slider',...
     'Value', 1, 'SliderStep', [0.01 0.05], 'Min', 1, 'Max', 1000,...
     'Position', [pos(3)-24 120 10 h_tot], 'Callback', @trackSliderRelease_Callback);
@@ -232,16 +202,9 @@ handles.trackSlider = uicontrol('Style', 'slider',...
 addlistener(handle(handles.trackSlider), 'Value', 'PostSet', @trackSlider_Callback);
 
 
-handles.fAxes = zeros(nCh,3);
-hLegend = zeros(1,nCh);
-for c = 1:nCh   
-    [handles.fAxes(c,:), hLegend(c)] = setupStackViewer(handles.fPanels(c), [nx ny min(nf,  max(nx,ny)/3)], c==1); 
-end
-hLegend = hLegend(1);
-
-%-------------------------------------------------------------------------------
-% Menu setup
-%-------------------------------------------------------------------------------
+%===============================================================================
+% Set up menu
+%===============================================================================
 hmenu = uimenu('Label','Options');
 uimenu(hmenu, 'Label', 'Annotate', 'Callback', @annotation_Callback);
 doAnnotate = false;
@@ -257,6 +220,13 @@ colormap(cmap);
 setappdata(hfig, 'handles', handles);
 set(hfig, 'ResizeFcn', @figResize);
 
+isRGB = false;
+
+hxy = [];
+hxz = [];
+hyz = [];
+hl = [];
+
 % handles for track plot objects in frames window
 hpt = []; % tracks
 hpd = []; % detections
@@ -269,6 +239,7 @@ hms = []; % cell mask
 
 % handles for track plots
 % ht = [];
+hChLabel = [];
 
 trackColormap = [];
 
@@ -283,6 +254,12 @@ rframe = zeros(ny,nx,3,'uint8');
 tframe = zeros(nf,nx,3,'uint8');
 lframe = zeros(ny,nf,3,'uint8');
 idxRGB = getRGBindex(data.markers);
+
+% Change background color (looks bad)
+%bgcolor = [1 1 1];
+%set(hfig, 'Color', bgcolor);
+%set(findobj(hfig,'-property', 'BackgroundColor'), 'BackgroundColor', bgcolor);
+
 
 %===============================================================================
 % Load movie and associated analysis results
@@ -357,7 +334,7 @@ end
 % Load tracks
 %-------------------------------------------------------------------------------
 tracks = [];
-bgA = [];
+%bgA = [];
 maxA = [];
 if ip.Results.LoadTracks
     fprintf('Loading tracks ... ');
@@ -385,10 +362,10 @@ end
 if ip.Results.LoadTracks && exist([data.source ip.Results.RelativePath filesep fileName], 'file')==2
     tmp = load([data.source ip.Results.RelativePath filesep fileName]);
     tracks = tmp.tracks;
-    if isfield(tmp, 'bgA')
-        bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA, 'unif', 0);
-        bgA = [bgA{:}];
-    end
+    %if isfield(tmp, 'bgA')
+    %    bgA = cellfun(@(i) prctile(i, 95, 2), tmp.bgA, 'unif', 0);
+    %    bgA = [bgA{:}];
+    %end
     clear tmp;
     tracks = tracks([tracks.lifetime_s] >= data.framerate*ip.Results.Cutoff_f);
     [~, sortIdx] = sort([tracks.lifetime_s], 'descend');
@@ -494,9 +471,6 @@ if ~isempty(tracks)
 end
 
 
-
-
-
 % dynamic range for each channel
 dRange = cell(1,nCh);
 for c = 1:nCh
@@ -532,7 +506,7 @@ else
     %set(handles.montagePanel, 'Visible', 'off');
     
     set(hLegend, 'Visible', 'off');
-    set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotScaleCheckbox tplotRangeCheckbox], 'Enable', 'off');
+    set([tplotText tplotUnitChoice tplotBackgroundCheckbox tplotOverlayCheckbox tplotScaleCheckbox tplotRangeCheckbox], 'Enable', 'off');
 end
 
 if ~ip.Results.LoadFrames
@@ -553,65 +527,16 @@ end
 % populate with data, plotting functions are called only here, afterwards change data
 %===============================================================================
 if ip.Results.LoadFrames
-    hxy = zeros(1,nCh);
-    hyz = zeros(1,nCh);
-    hxz = zeros(1,nCh);
-    hl = zeros(nCh,4);
-    for c = 1:nCh
-        % x,y view
-        hxy(c) = imagesc(stack{c}(:,:,fidx), 'Parent', handles.fAxes(c,1), 'HitTest', 'off');
-        hold(handles.fAxes(c,1), 'on');
-        set(handles.fAxes(c,1), 'ButtonDownFcn', @axesClick_Callback);
-        hl(c,1) = plot(handles.fAxes(c,1), [xs xs], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
-        hl(c,2) = plot(handles.fAxes(c,1), [0.5 nx+0.5], [ys ys], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
-        
-        % y,z view
-        hyz(c) = imagesc(squeeze(stack{c}(:,xs,:)), 'Parent', handles.fAxes(c,2), 'HitTest', 'off');
-        hold(handles.fAxes(c,2), 'on');
-        % line in y,z view
-        hl(c,3) = plot(handles.fAxes(c,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
-        hold(handles.fAxes(c,2), 'off');
-        
-        % x,z view
-        hxz(c) = imagesc(squeeze(stack{c}(ys,:,:))', 'Parent', handles.fAxes(c,3), 'HitTest', 'off');
-        hold(handles.fAxes(c,3), 'on');
-        % line in x,z view
-        hl(c,4) = plot(handles.fAxes(c,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
-        hold(handles.fAxes(c,3), 'off');
-        
-        arrayfun(@(i) caxis(i, dRange{c}), handles.fAxes(c,:), 'unif', 0);
-    end
-    set(handles.fAxes, 'XTick', [], 'YTick', []);
-    axis(handles.fAxes(:,1), 'equal');
-    % this fixes a bug with axis 'equal' that allows panning beyond boundaries
-    set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
-    
-    set(handles.fAxes, 'ButtonDownFcn', @axesClick_Callback);
-    
-    dx = 0.03;
-    hChLabel = zeros(1,nCh);
-    for c = 1:nCh
-        hChLabel(c) = text(1-dx*ny/nx, dx, data.markers{c},...
-            'Color', rgbColors{c}, 'Units', 'normalized',...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
-            'Parent', handles.fAxes(c,1), 'HitTest', 'off');
-    end
-    if nCh <= 2
-        set(hChLabel, 'Visible', 'off');
-    end
+    initStackviewer();
 end
 
+% current frame and track markers
+hf = zeros(nCh,1);
 if ~isempty(tracks)
-    hf = zeros(nCh,1);
-    hst = zeros(1,nCh);
     for c = 1:nCh
         % plot current frame marker
         hf(c) = plot(handles.tAxes(c), ([fidx fidx]-1)*data.framerate,...
             get(handles.tAxes(c), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
-
-        % plot current track marker
-        hst(c) = plot(handles.fAxes(c,1), X(fidx, tstruct.idx==tcur),...
-            Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12, 'HitTest', 'off');%*nx/diff(get(handles.fAxes(c,1),'XLim')));
     end
     updateTrack();
 end
@@ -670,6 +595,9 @@ set(hz, 'ActionPostCallback', @czoom);
                 [~,d] = nanmin(d);
                 tcur = cidx(d);
                 set(handles.trackSlider, 'Value', find(find(selIndex)==tcur)); % calls updateTrack
+                set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
+%                 'nnnh'
+%                 ishandle(hst)
             end
         end
     end
@@ -788,7 +716,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 cmap = cmap(end:-1:1,:,:);
             end
             colormap(cmap);
-        else
+        else % if RGB
             updateSlice();
             updateProj();
         end
@@ -824,6 +752,106 @@ set(hz, 'ActionPostCallback', @czoom);
     end
         
 
+    function initStackviewer()
+        N = numel(handles.fPanels);
+        hxy = zeros(1,N);
+        hyz = zeros(1,N);
+        hxz = zeros(1,N);
+        hl = zeros(N,4); % cross-section selectors
+
+        switch displayType
+            case 'raw'
+                for ci = 1:N
+                    hxy(ci) = imagesc(stack{ci}(:,:,fidx), 'Parent', handles.fAxes(ci,1), 'HitTest', 'off');
+                    hyz(ci) = imagesc(squeeze(stack{ci}(:,xs,:)), 'Parent', handles.fAxes(ci,2), 'HitTest', 'off');
+                    hxz(ci) = imagesc(squeeze(stack{ci}(ys,:,:))', 'Parent', handles.fAxes(ci,3), 'HitTest', 'off');
+                end
+            case 'mask'
+                hxy(1) = imagesc(rgbOverlay(stack{1}(:,:,fidx), dmask(:,:,fidx), [1 0 0], dRange{1}),...
+                    'Parent', handles.fAxes(1,1), 'HitTest', 'off');
+                for ci = 2:nCh
+                    hxy(ci) = imagesc(stack{ci}(:,:,fidx), 'Parent', handles.fAxes(ci,1), 'HitTest', 'off');
+                end
+                % detection mask not shown in side projections
+                for ci = 1:N
+                    hyz(ci) = imagesc(squeeze(stack{ci}(:,xs,:)), 'Parent', handles.fAxes(ci,2), 'HitTest', 'off');
+                    hxz(ci) = imagesc(squeeze(stack{ci}(ys,:,:))', 'Parent', handles.fAxes(ci,3), 'HitTest', 'off');
+                end
+            case 'RGB'
+                % single panel
+                rframe(:,:,idxRGB(2)) = uint8(scaleContrast(...
+                    [zeros(max(yshift,0),nx); double(stack{2}(1+max(-yshift,0):end-max(yshift,0),:,fidx)).^p; zeros(max(-yshift,0),nx)], dRange{2}.^p));
+                for ci = setdiff(1:nCh,2)
+                    rframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(stack{ci}(:,:,fidx)).^p, dRange{ci}.^p));
+                end
+                hxy(1) = imagesc(rframe, 'Parent', handles.fAxes(1,1), 'HitTest', 'off');
+                for ci = 1:nCh
+                    tframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(ys,:,:))').^p, dRange{ci}.^p));
+                    lframe(:,:,idxRGB(ci)) = uint8(scaleContrast(double(squeeze(stack{ci}(:,xs,:))).^p, dRange{ci}.^p));
+                end
+                hyz(1) = imagesc(lframe, 'Parent', handles.fAxes(1,2), 'HitTest', 'off');
+                hxz(1) = imagesc(tframe, 'Parent', handles.fAxes(1,3), 'HitTest', 'off');
+        end
+        
+        for ci = 1:N
+            % x,y view
+            hold(handles.fAxes(ci,1), 'on');
+            set(handles.fAxes(ci,1), 'ButtonDownFcn', @axesClick_Callback);
+            hl(ci,1) = plot(handles.fAxes(ci,1), [xs xs], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+            hl(ci,2) = plot(handles.fAxes(ci,1), [0.5 nx+0.5], [ys ys], 'Color', lcolor, 'HitTest', 'off', 'DisplayName', 'FrameMarker');
+            
+            % y,z view
+            hold(handles.fAxes(ci,2), 'on');
+            % line in y,z view
+            hl(ci,3) = plot(handles.fAxes(ci,2), fidx*[1 1], [0.5 ny+0.5], 'Color', lcolor, 'HitTest', 'off');
+            hold(handles.fAxes(ci,2), 'off');
+            
+            % x,z view
+            hold(handles.fAxes(ci,3), 'on');
+            % line in x,z view
+            hl(ci,4) = plot(handles.fAxes(ci,3), [0.5 nx+0.5], fidx*[1 1], 'Color', lcolor, 'HitTest', 'off');
+            hold(handles.fAxes(ci,3), 'off');
+            
+            arrayfun(@(i) caxis(i, dRange{ci}), handles.fAxes(ci,:), 'unif', 0);
+        end
+        
+        set(handles.fAxes, 'XTick', [], 'YTick', []);
+        axis(handles.fAxes(:,1), 'equal');
+        % this fixes a bug with axis 'equal' that allows panning beyond boundaries
+        set(handles.fAxes(:,1), 'XLim', [0.5 nx+0.5], 'YLim', [0.5 ny+0.5]);
+        
+        set(handles.fAxes, 'ButtonDownFcn', @axesClick_Callback);
+        
+        % plot current track marker
+        if ~isempty(tracks)
+            hst = zeros(1,N);
+            for ci = 1:N
+                hst(ci) = plot(handles.fAxes(ci,1), X(fidx, tstruct.idx==tcur),...
+                    Y(fidx, tstruct.idx==tcur), 'ws', 'DisplayName', 'TrackMarker', 'MarkerSize', 12, 'HitTest', 'off');
+                %*nx/diff(get(handles.fAxes(c,1),'XLim')));
+            end
+        end
+        
+        
+        if ~isRGB
+            set(labelCheckbox, 'Enable', 'on');
+            dx = 0.03;
+            hChLabel = zeros(1,nCh);
+            for ci = 1:nCh
+                hChLabel(ci) = text(1-dx*ny/nx, dx, data.markers{ci},...
+                    'Color', rgbColors{ci}, 'Units', 'normalized',...
+                    'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom',...
+                    'Parent', handles.fAxes(ci,1), 'HitTest', 'off');
+            end
+            if nCh<=2 && ~get(labelCheckbox, 'Value')
+                set(hChLabel, 'Visible', 'off');
+            end
+        else
+            set(labelCheckbox, 'Enable', 'off');
+        end
+    end
+
+
     function updateSlice(varargin)       
         switch displayType
             case 'raw'                
@@ -848,26 +876,33 @@ set(hz, 'ActionPostCallback', @czoom);
         set(hl(:,4), 'YData', fidx*[1 1]);        
         set(handles.frameLabel, 'String', ['Frame ' num2str(fidx)]);
         
-        delete(hms);
+        if all(ishandle(hms))
+            delete(hms);
+        end
         hms = [];
         if ~isempty(cellMask) && get(maskCheckbox, 'Value')
             B = bwboundaries(cellMask);
-            for ci = 1:nCh
+            for ci = 1:numel(handles.fPanels);
                 hms = [hms; cellfun(@(i) plot(handles.fAxes(ci,1), i(:,2), i(:,1), 'Color', 'r', 'LineWidth', 1), B)]; %#ok<AGROW>
             end
         end
         
         if ~isempty(tracks)
             % update current frame marker in track plots
-            for ci = 1:nCh
+            for ci = 1:max(1, nCh*~get(tplotOverlayCheckbox, 'Value'))
                 set(hf(ci), 'XData', ([fidx fidx]-1)*data.framerate,...
                     'YData', get(handles.tAxes(ci), 'YLim'));
             end
         end
-        
-        delete(hpt);
-        delete(hpg);
-        delete(hps);
+        if all(ishandle(hpt))
+            delete(hpt);
+        end
+        if all(ishandle(hpg))
+            delete(hpg);
+        end
+        if all(ishandle(hps))
+            delete(hps);
+        end
         hpt = [];
         hpg = [];
         hps = [];
@@ -899,7 +934,8 @@ set(hz, 'ActionPostCallback', @czoom);
         else
             set(hst, 'Visible', 'off');
         end
-        if ~isempty(tracks) && get(eapCheckbox, 'Value')
+        
+        if ~isempty(tracks) && get(eapCheckbox, 'Value') && numel(handles.fPanels)>1
             for ci = 2:nCh
                 sel = fvec==fidx & mvec(ci,:)==1;
                 hp1 = plot(handles.fAxes(ci,1), xvec(ci,sel), yvec(ci,sel) , 'o', 'Color', hsv2rgb([1/3 1 0.9]), 'MarkerSize', 8);
@@ -911,7 +947,9 @@ set(hz, 'ActionPostCallback', @czoom);
             end
         end
         
-        delete(hpd); % clear previous plots
+        if all(ishandle(hpd))
+            delete(hpd); % clear previous plots
+        end
         hpd = [];
         if get(detectionCheckbox, 'Value') && ~isempty(frameInfo) && ~isempty(frameInfo(fidx).x)
             isPSF = frameInfo(fidx).isPSF(1,:)==1;
@@ -953,19 +991,42 @@ set(hz, 'ActionPostCallback', @czoom);
 
     function frameChoice_Callback(varargin)
         contents = cellstr(get(frameChoice,'String'));
+        newAxes = false;
+        isRGB = false;
         switch contents{get(frameChoice,'Value')}
             case 'Raw'
                 displayType = 'raw';
-                %set(handles.fAxes(2:end), 'Visible', 'on');
+                if numel(handles.fPanels)~=nCh
+                    setupFrameAxes(nCh);
+                    newAxes = true;
+                end
             case 'RGB'
                 displayType = 'RGB';
-                %set(handles.fAxes(2:end), 'Visible', 'off');
+                if numel(handles.fPanels)>1
+                    setupFrameAxes(1);
+                    newAxes = true;
+                end
+                isRGB = true;
             case 'Detections'
                 displayType = 'mask';
-                %set(handles.fAxes(2:end), 'Visible', 'on');
+                if numel(handles.fPanels)~=nCh
+                    setupFrameAxes(nCh);
+                    newAxes = true;
+                end
         end
-        updateSlice();
-        updateProj();
+        if newAxes
+            initStackviewer(); % re-populate axes with data
+            if isempty(tracks) || ~ip.Results.LoadFrames
+                set(hLegend, 'Visible', 'off');
+            end
+            updateSlice();
+        else
+            updateSlice();
+            updateProj();
+        end
+        str = cellstr(get(trackChoice, 'String'));
+        str = str{get(trackChoice,'Value')};
+        setColorbar(str);        
         restoreFocus();       
     end
 
@@ -992,6 +1053,18 @@ set(hz, 'ActionPostCallback', @czoom);
         restoreFocus();
         updateTrack();
     end
+
+
+    function tplotOverlay_Callback(varargin)
+        if get(tplotOverlayCheckbox, 'Value');
+            setupTrackAxes(1);
+        else
+            setupTrackAxes(nCh);
+        end
+        updateTrack();
+        restoreFocus();
+    end
+
 
     function czoom(~, eventdata)
         % identify panel
@@ -1070,6 +1143,7 @@ set(hz, 'ActionPostCallback', @czoom);
 
     function updateTrack(varargin)
         if ~isempty(tracks) && ~isempty(tcur)
+            % update label
             if ~doAnnotate
                 set(handles.trackLabel, 'String', ['Track: ' num2str(tcur)]);
             else
@@ -1081,68 +1155,72 @@ set(hz, 'ActionPostCallback', @czoom);
             
             
             itrack = tracks(tcur);
-            for ci = 1:nCh
-                %cla(handles.tAxes(ci));
-                hold(handles.tAxes(ci), 'off');
-                if get(tplotBackgroundCheckbox, 'Value')
-                    bgMode = 'zero';
-                else
-                    bgMode = 'data';
+            if get(tplotBackgroundCheckbox, 'Value')
+                bgMode = 'zero';
+            else
+                bgMode = 'data';
+            end
+            if strcmpi(pUnitType, 'f')
+                itrack.t = itrack.f;
+                if ~isempty(itrack.startBuffer)
+                    itrack.startBuffer.t = itrack.f(1) - (numel(itrack.startBuffer.t):-1:1);
+                    itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
                 end
-                if strcmpi(pUnitType, 'f')
-                    itrack.t = itrack.f;
-                    if ~isempty(itrack.startBuffer)
-                        itrack.startBuffer.t = itrack.f(1) - (numel(itrack.startBuffer.t):-1:1);
-                        itrack.endBuffer.t = itrack.f(end) + (1:numel(itrack.startBuffer.t));
-                    end
-                end
-                topts = {'Handle', handles.tAxes(ci), 'Time', 'Movie', 'BackgroundValue', bgMode};
+            end
+            
+            % plot options
+            topts0 = {'Time', 'Movie', 'BackgroundValue', bgMode};
+            if get(tplotRangeCheckbox, 'Value')
+                topts0 = [topts0, 'XLim', [-2 data.movieLength+1]*data.framerate];
+            end
+            
+            % axes handles
+            if ~get(tplotOverlayCheckbox, 'Value')
+                ha = handles.tAxes(1:nCh);
+            else
+                ha = handles.tAxes(1)+zeros(1,nCh);
+                % overlay-specific options
+                topts0 = [topts0, 'Background', 'off'];
                 if get(tplotScaleCheckbox, 'Value')
+                    [~,k] = max(maxInt);
+                    topts0 = [topts0, 'YTick', -yunit(k):yunit(k):maxInt(k)];
+                end
+            end
+            
+            arrayfun(@(i) hold(i, 'off'), ha); % reset contents
+            for ci = 1:nCh
+                topts = [topts0, 'Handle', ha(ci)];
+                if get(tplotScaleCheckbox, 'Value') && ~get(tplotOverlayCheckbox, 'Value')
                     topts = [topts, 'YTick', -yunit(ci):yunit(ci):maxInt(ci)]; %#ok<AGROW>
                 end
-                if get(tplotRangeCheckbox, 'Value')
-                    topts = [topts, 'XLim', [-2 data.movieLength+1]*data.framerate]; %#ok<AGROW>
-                end
                 
-                if ~isempty(bgA) && itrack.catIdx<5
-                    conf = bgA(ci, itrack.f);
-                    if ~isempty(itrack.startBuffer)
-                        conf = [bgA(ci, itrack.startBuffer.f) conf]; %#ok<AGROW>
-                    end
-                    if ~isempty(itrack.endBuffer)
-                        conf = [conf bgA(ci, itrack.endBuffer.f)]; %#ok<AGROW>
-                    end
-                    topts = [topts 'BackgroundConfidence', conf]; %#ok<AGROW>
-                end
+                % plot background confidence level (based on secondary channel)
+                %if ~isempty(bgA) && itrack.catIdx<5
+                %   conf = bgA(ci, itrack.f);
+                %    if ~isempty(itrack.startBuffer)
+                %        conf = [bgA(ci, itrack.startBuffer.f) conf]; %#ok<AGROW>
+                %    end
+                %    if ~isempty(itrack.endBuffer)
+                %        conf = [conf bgA(ci, itrack.endBuffer.f)]; %#ok<AGROW>
+                %    end
+                %    topts = [topts 'BackgroundConfidence', conf]; %#ok<AGROW>
+                %end
+                
                 plotTrack(data, itrack, ci, topts{:});
-                hold(handles.tAxes(ci), 'on');
-                %         dx = 0.03;
-                %         if isfield(sTrack, 'significantSignal')
-                %             s = sTrack.significantSignal;
-                %             if s(ci)==1
-                %                 slabel = 'yes';
-                %                 scolor = [0 0.8 0];
-                %             else
-                %                 slabel = 'no';
-                %                 scolor = [0.8 0 0];
-                %             end
-                %             text(1-dx, 1-dx,...
-                %                 ['Significant: ' slabel],...
-                %                 'Color', scolor, 'Units', 'normalized',...
-                %                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top',...
-                %                 'Parent', handles.tAxes(ci));
-                %         end
                 
-                hf(ci) = plot(handles.tAxes(ci), ([fidx fidx]-1)*data.framerate,...
-                    get(handles.tAxes(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
-                
-                set(handles.tAxes(1:end-1), 'XTickLabel', []);
-                
-                if strcmpi(pUnitType, 's')
-                    xlabel(handles.tAxes(end), 'Time (s)');
-                else
-                    xlabel(handles.tAxes(end), 'Frames');
+                % plot current frame indicator
+                if ci==1 || ~get(tplotOverlayCheckbox, 'Value')
+                    hf(ci) = plot(ha(ci), ([fidx fidx]-1)*data.framerate,...
+                        get(ha(ci), 'YLim'), '--', 'Color', 0.7*[1 1 1]);
                 end
+                set(ha(ci), 'Box', 'on');
+            end
+            set(handles.tAxes(1:end-1), 'XTickLabel', []);
+            
+            if strcmpi(pUnitType, 's')
+                xlabel(handles.tAxes(end), 'Time (s)');
+            else
+                xlabel(handles.tAxes(end), 'Frames');
             end
         end
     end
@@ -1719,6 +1797,45 @@ set(hz, 'ActionPostCallback', @czoom);
         restoreFocus();
     end
 
+
+    function setupTrackAxes(nAxes)
+        opts = {'Parent', hfig, 'Units', 'pixels', 'Box', 'on'};
+        axPos = getTrackAxesPositions(hfig, nAxes);
+        if isfield(handles, 'tAxes') && ~isempty(handles.tAxes)
+            delete(handles.tAxes);
+        end
+        handles.tAxes = zeros(1,nAxes);
+        for k = 1:nAxes
+            handles.tAxes(k) = axes(opts{:}, 'Position', axPos{k});
+        end
+        setappdata(hfig, 'handles', handles);
+    end
+
+
+    function setupFrameAxes(nPanels)
+        if nargin<1
+            nPanels = nCh;
+        end        
+        opts = {'Parent', hfig, 'Units', 'pixels', 'BorderType', 'none'};
+        axPos = getFrameAxesPositions(hfig, nPanels);
+        if isfield(handles, 'fAxes') && ~isempty(handles.fAxes)
+            delete(handles.fAxes);
+        end
+        if isfield(handles, 'fPanels')
+            delete(handles.fPanels);
+        end
+        handles.fPanels = zeros(1,nPanels);
+        handles.fAxes = zeros(nPanels,3);
+        hLegend = zeros(1,nPanels);
+
+        for k = 1:nPanels
+            handles.fPanels(k) = uipanel(opts{:}, 'Position', axPos{k});
+            % add stackviewer
+            [handles.fAxes(k,:), hLegend(k)] = setupStackViewer(handles.fPanels(k), [nx ny min(nf,  max(nx,ny)/3)], k==1);
+        end
+        hLegend = hLegend(1);
+        setappdata(hfig, 'handles', handles);
+    end
 end
 
 
@@ -1728,13 +1845,58 @@ handles = getappdata(src, 'handles');
 
 pos = get(src, 'Position');
 
-
 set(handles.frameLabel, 'Position', [20 pos(4)-20, 100 15]);
 
 % tracks
 set(handles.tplotPanel, 'Position', [pos(3)-585 5 210 70]);
 set(handles.montagePanel, 'Position', [pos(3)-370 5 220 70]);
 set(handles.outputPanel, 'Position', [pos(3)-145 5 140 70]);
+
+% spacers:
+lspace = 10;
+rspace = 400;
+
+set(handles.frameSlider, 'Position', [lspace 77 pos(3)-rspace-lspace 18]);
+
+nPanels = numel(handles.fPanels);
+axPos = getFrameAxesPositions(src, nPanels);
+for i = 1:nPanels
+    set(handles.fPanels(i), 'Position', axPos{i});
+end
+
+nAxes = numel(handles.tAxes);
+h_tot = pos(4) - 140;
+axPos = getTrackAxesPositions(src, nAxes);
+for i = 1:nAxes
+    set(handles.tAxes(i), 'Position', axPos{i});
+end
+set(handles.trackLabel, 'Position', [pos(3)-160 pos(4)-18 120 15]);
+set(handles.trackSlider, 'Position', [pos(3)-24 120 18 h_tot]);
+
+end
+
+
+
+function pos = getTrackAxesPositions(hfig, nAxes)
+pos = get(hfig, 'Position');
+
+spacer = 15;
+w = 320;
+h_tot = pos(4) - 140;
+h = min((h_tot-(nAxes-1)*spacer)/nAxes, 200);
+dx = pos(3)-w-30;
+
+pos = cell(1,nAxes);
+pos{1} = [dx 120+(h_tot-h) w h];
+for i = 2:nAxes
+    pos{i} = [dx 120+(h_tot-i*h-(i-1)*spacer) w h];
+end
+end
+
+
+
+function pos = getFrameAxesPositions(hfig, nPanels)
+pos = get(hfig, 'Position');
 
 % spacers:
 tspace = 20;
@@ -1746,118 +1908,28 @@ spacer = 10; % space between panels
 width = pos(3) - rspace - lspace;
 height = pos(4) - bspace - tspace;
 
-set(handles.frameSlider, 'Position', [lspace 77 pos(3)-rspace-lspace 18]);
-
-switch numel(handles.fPanels)
+pos = cell(1,nPanels);
+switch nPanels
     case 1
-        set(handles.fPanels(1), 'Position', [lspace bspace width height]);
+        pos{1} = [lspace bspace width height];
     case 2
-        %if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
-            width = (width-spacer)/2;
-            set(handles.fPanels(1), 'Position', [lspace bspace width height]);
-            set(handles.fPanels(2), 'Position', [lspace+width+spacer bspace width height]);
-%         else % vertical
-%             height = (height-spacer)/2;
-%             set(handles.fPanels(1), 'Position', [lspace bspace+spacer+height width height]);
-%             set(handles.fPanels(2), 'Position', [lspace bspace width height]);
-%         end
+        width = (width-spacer)/2;
+        pos{1} = [lspace bspace width height];
+        pos{2} = [lspace+width+spacer bspace width height];
     case 3
         width = (width-spacer)/2;
         height = (height-spacer)/2;
-        set(handles.fPanels(1), 'Position', [lspace bspace+spacer+height width height]); % top left
-        set(handles.fPanels(2), 'Position', [lspace+width+spacer bspace+height+spacer width height]); % top right
-        set(handles.fPanels(3), 'Position', [lspace bspace width height]); % bottom left
+        pos{1} = [lspace bspace+spacer+height width height]; % top left
+        pos{2} = [lspace+width+spacer bspace+height+spacer width height]; % top right
+        pos{3} = [lspace bspace width height]; % bottom left
     case 4
         width = (width-spacer)/2;
         height = (height-spacer)/2;
-        set(handles.fPanels(1), 'Position', [lspace bspace+spacer+height width height]); % top left
-        set(handles.fPanels(2), 'Position', [lspace+width+spacer bspace+height+spacer width height]); % top right
-        set(handles.fPanels(3), 'Position', [lspace bspace width height]); % bottom left
-        set(handles.fPanels(4), 'Position', [lspace+width+spacer bspace width height]); % bottom right
+        pos{1} = [lspace bspace+spacer+height width height]; % top left
+        pos{2} = [lspace+width+spacer bspace+height+spacer width height]; % top right
+        pos{3} = [lspace bspace width height]; % bottom left
+        pos{4} = [lspace+width+spacer bspace width height]; % bottom right
 end
-
-spacer = 15;
-w = 320;
-nCh = numel(handles.tAxes);
-h_tot = pos(4) - 140;
-h = min((h_tot-(nCh-1)*spacer)/nCh, 200);
-dx = pos(3)-w-30;
-switch nCh
-    case 1
-        set(handles.tAxes(1), 'Position', [dx 120+(h_tot-h) w h]);
-    case 2
-        set(handles.tAxes(1), 'Position', [dx 120+(h_tot-h) w h]);
-        set(handles.tAxes(2), 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-    case 3
-        set(handles.tAxes(1), 'Position', [dx 120+(h_tot-h) w h]);
-        set(handles.tAxes(2), 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-        set(handles.tAxes(3), 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-    case 4
-        set(handles.tAxes(1), 'Position', [dx 120+(h_tot-h) w h]);
-        set(handles.tAxes(2), 'Position', [dx 120+(h_tot-2*h-spacer) w h]);
-        set(handles.tAxes(3), 'Position', [dx 120+(h_tot-3*h-2*spacer) w h]);
-        set(handles.tAxes(4), 'Position', [dx 120+(h_tot-4*h-3*spacer) w h]);
-end
-set(handles.trackLabel, 'Position', [pos(3)-160 pos(4)-18 120 15]);
-set(handles.trackSlider, 'Position', [pos(3)-24 120 18 h_tot]);
-
-end
-
-
-
-function handles = setupFrameAxes(hfig, spos, N)
-
-handles = getappdata(hfig, 'handles');
-if nargin<3
-    N = handles.nCh;
-end
-
-pos = get(gcf, 'Position'); % [pixels]
-
-% spacers: 
-lspace = spos(1);
-bspace = spos(2);
-rspace = spos(3);
-tspace = spos(4);
-spacer = spos(5); % space between panels
-
-width = pos(3) - rspace - lspace;
-height = pos(4) - bspace - tspace;
-
-% reset axes etc.
-if isfield(handles, 'fPanels') && ~isempty(handles.fPanels)
-    delete(handles.fPanels);
-end
-handles.fPanels = zeros(1,N);
-uiOpts = {'Parent', hfig, 'Units', 'pixels', 'BorderType', 'none'};
-switch N
-    case 1
-        handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
-    case 2
-        %if handles.data.imagesize(1) > handles.data.imagesize(2) % horiz.
-            width = (width-spacer)/2;
-            handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
-            handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace+width+spacer bspace width height]);
-%         else % vertical
-%            height = (height-spacer)/2;
-%            handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace+spacer+height width height]);
-%            handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]);
-%         end
-    case 3
-        width = (width-spacer)/2;
-        height = (height-spacer)/2;
-        handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace+spacer+height width height]); % top left
-        handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace+width+spacer bspace+height+spacer width height]); % top right
-        handles.fPanels(3) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]); % bottom left
-    case 4
-        width = (width-spacer)/2;
-        height = (height-spacer)/2;
-        handles.fPanels(1) = uipanel(uiOpts{:}, 'Position', [lspace bspace+spacer+height width height]); % top left
-        handles.fPanels(2) = uipanel(uiOpts{:}, 'Position', [lspace+width+spacer bspace+height+spacer width height]); % top right
-        handles.fPanels(3) = uipanel(uiOpts{:}, 'Position', [lspace bspace width height]); % bottom left
-        handles.fPanels(4) = uipanel(uiOpts{:}, 'Position', [lspace+width+spacer bspace width height]); % bottom right
-end
-setappdata(hfig, 'handles', handles);
 end
 
 
