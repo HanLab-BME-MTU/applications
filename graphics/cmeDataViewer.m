@@ -596,8 +596,6 @@ set(hz, 'ActionPostCallback', @czoom);
                 tcur = cidx(d);
                 set(handles.trackSlider, 'Value', find(find(selIndex)==tcur)); % calls updateTrack
                 set(hst, 'XData', X(fidx, tstruct.idx==tcur), 'YData', Y(fidx, tstruct.idx==tcur));
-%                 'nnnh'
-%                 ishandle(hst)
             end
         end
     end
