@@ -13,13 +13,13 @@ ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
 
 
-%Get the indices of any previous tracking processes from this function                                                                              
+%Get the indices of any previous tracking processes from this function
 iProc = movieData.getProcessIndex('CometPostTrackingProcess',1,0);
 
 %If the process doesn't exist, create it
 if isempty(iProc)
     iProc = numel(movieData.processes_)+1;
-    movieData.addProcess(CometPostTrackingProcess(movieData));                                                                                                 
+    movieData.addProcess(CometPostTrackingProcess(movieData));
 end
 postProc = movieData.processes_{iProc};
 
@@ -49,8 +49,8 @@ detProc=movieData.processes_{iDetProc};
 
 assert(all(detProc.checkChannelOutput(p.ChannelIndex)),...
     ['Missing detection output ! Please apply detection before ' ...
-        'running post-processing!']);
-    
+    'running post-processing!']);
+
 % Set up the input directories (input images)
 inFilePaths = cell(2,numel(movieData.channels_));
 for i = p.ChannelIndex
@@ -58,7 +58,7 @@ for i = p.ChannelIndex
     inFilePaths{2,i} = detProc.outFilePaths_{1,i};
 end
 postProc.setInFilePaths(inFilePaths);
-    
+
 % Set up the output file
 outFilePaths = cell(2,numel(movieData.channels_));
 for i = p.ChannelIndex
@@ -68,7 +68,7 @@ end
 mkClrDir(p.OutputDirectory);
 postProc.setOutFilePaths(outFilePaths);
 
-%% --------------- Displacement field calculation ---------------%%% 
+%% --------------- Displacement field calculation ---------------%%%
 
 disp('Starting post-processing...')
 
@@ -78,7 +78,7 @@ for i = p.ChannelIndex
     
     projData.secPerFrame = movieData.timeInterval_;
     projData.pixSizeNm = movieData.pixelSize_;
-
+    
     % figure out which frames were used in detection
     detExists=find(arrayfun(@(x) ~isempty(x.xCoord),movieInfo));
     sF=min(detExists); eF=max(detExists);
@@ -95,7 +95,7 @@ for i = p.ChannelIndex
     projData.trackingParameters.maxBackwardAngle=costMatrices(1,2).parameters.maxBAngle;
     projData.trackingParameters.backVelMultFactor=costMatrices(1,2).parameters.backVelMultFactor;
     projData.trackingParameters.fluctRadius=costMatrices(1,2).parameters.fluctRad;
-
+    
     % Call main post-processing function
     [projData,M]=postProcessMTTracks(projData, tracksFinal, movieInfo,...
         [1 movieData.nFrames_],p.remBegEnd,...
@@ -120,10 +120,45 @@ for i = p.ChannelIndex
     fclose(fid);
     
     if p.makeHist==1
-        plusTipMakeHistograms(M,[p.OutputDirectory filesep 'histograms'])
-%         plusTipPlotTrackAngles(runInfo,[p.OutputDirectory filesep 'histograms']);
+        histogramDir = fullfile(p.OutputDirectory, 'histograms');
+        plusTipMakeHistograms(M, histogramDir);
+        if movieData.isOmero() && movieData.canUpload()
+            uploadHistograms(movieData, histogramDir)
+        end
+        
     end
 end
 
+disp('Finished post-processing comet tracks!')
 
-disp('Finished post-processing comets!')
+function uploadHistograms(movieData, directory)
+
+disp('Uploading histograms to OMERO')
+
+% Retrieve
+files = dir(fullfile(directory, '*.tif'));
+session =  movieData.getOmeroSession();
+id = movieData.getOmeroId();
+namespace = [getLCCBOmeroNamespace() '.tracking'];
+
+for i = 1 : numel(files),
+    [~, filename] = fileparts(files(i).name);
+    ns = [namespace '.' filename];
+    fas = getImageFileAnnotations(session, id, 'include', ns);
+    
+    if ~isempty(fas)
+        % Read file of first found file annotation
+        fa = fas(1);
+        updateFileAnnotation(session, fa,...
+            fullfile(directory, files(i).name));
+        fprintf(1, 'Updating file annotation: %d\n', fa.getId().getValue());
+    else
+        fa = writeFileAnnotation(session,...
+            fullfile(directory, files(i).name),...
+            'description', 'Detection results', 'namespace', ns);
+        linkAnnotation(session, fa, 'image', id);
+        msg = 'Created file annotation %g and linked it to image %d\n';
+        fprintf(1, msg, fa.getId().getValue(), id);
+    end
+end
+
