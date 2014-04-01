@@ -155,7 +155,7 @@ for i = 1 : numel(files),
     else
         fa = writeFileAnnotation(session,...
             fullfile(directory, files(i).name),...
-            'description', 'Detection results', 'namespace', ns);
+            'description', 'Comet post-processing results', 'namespace', ns);
         linkAnnotation(session, fa, 'image', id);
         msg = 'Created file annotation %g and linked it to image %d\n';
         fprintf(1, msg, fa.getId().getValue(), id);
