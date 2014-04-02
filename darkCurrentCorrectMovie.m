@@ -219,7 +219,7 @@ for iChan = 1:nChanCorr
         end
         
         %Average the images together
-        darkIm{iChan} = darkIm{iChan} + double(currIm) ./ nImages;                
+        darkIm{iChan} = darkIm{iChan} + double(currIm) ./ nDarkIm;                
                
         
     end
