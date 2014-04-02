@@ -96,7 +96,7 @@ setappdata(push,'data',pushB);
 
 setappdata(b,'data',struct('s',s));
 
-setappdata(savePL,'data',struct('s',s,'f',f));
+setappdata(savePL,'data',struct('s',s,'f',f,'name',name));
 
 %creates output structure;
 handles = struct('figure', f,'axes',a,'slider',s, 'text',t);
@@ -179,7 +179,9 @@ for i=1:n
     %fit is reach
     sigma = sigma + 1;
     if sigma >10
-        temp.A =1
+         temp.A =1;
+         display(['failed to fit ', num2str(i),'th mark: see red x\'s']);
+         hold; scatter(x(i),y(i),'rx');hold;  
     end
     end
 %dmark(i,:)=[(x(i)+(temp.x-(hw+1)))/5,(y(i)+(temp.y-(hw+1)))/5];
@@ -201,12 +203,14 @@ function savePntList(hObject,eventData,handles)
     data = getappdata(hObject,'data');
     slider = getappdata(data.s,'slider');
     fig = getappdata(data.f,'data');
+
+    name = data.name;
     
     PointList = fig.PL;
     dmarks = slider.dmark;
     
     for i = numel(PointList)
-        PointList(i).dmark = dmarks{i};
+      PointList{i}.dmark = dmarks{i};
     end
     
 %aligns images a la exchangePaintAlignment (copied from). Only

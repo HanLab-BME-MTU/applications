@@ -164,4 +164,7 @@ for i=1:n
 dmark(i,:)=[(x(i)+(temp.x-7))/10,(y(i)+(temp.y-7))/10];
 end
 
+%remove nans if present
+dmark(isnan(dmark(:,1)),:)=[];
+
 end
