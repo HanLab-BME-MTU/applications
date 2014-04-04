@@ -15,7 +15,7 @@ difLim = 2.1075;
 
 success = 1;
 
-for i=1:numel(list);
+for i=1:numel(PointList);
    TotalPnts = vertcat(TotalPnts,[PointList{i}.pnts,i*ones(size(PointList{i}.pnts(:,1)))]); 
 end
 
