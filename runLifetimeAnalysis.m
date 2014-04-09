@@ -172,7 +172,25 @@ fprintf('\n');
 %====================
 % Threshold
 %====================
-if isempty(ip.Results.MaxIntensityThreshold)
+% Check whether saved and whether equal
+hasThreshold = false(1,nd);
+tvec = NaN(1,nd);
+for i = 1:nd
+    prmFile = [data(i).source 'Analysis' filesep 'Parameters.mat'];
+    if exist(prmFile, 'file')==2
+        hasThreshold(i) = true;
+        prm = load(prmFile);
+        tvec(i) = prm.MaxIntensityThreshold;
+    end
+end
+
+if numel(unique(tvec))==1
+    T = tvec(1);
+    fprintf('Max. intensity threshold on first %d frames: %.2f\n', prm.nFramesThreshold, T);
+elseif ~isempty(ip.Results.MaxIntensityThreshold)
+    T = ip.Results.MaxIntensityThreshold;
+else
+
     A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'unif', 0);
     A = vertcat(A{:});
     lft = vertcat(lftData.lifetime_s);
@@ -200,13 +218,23 @@ if isempty(ip.Results.MaxIntensityThreshold)
     %[mu_g sigma_g] = fitGaussianModeToPDF(M);
     T = norminv(0.99, mu_g, sigma_g);
 
+    % save threshold value
+    prm.MaxIntensityThreshold = T;
+    prm.nFramesThreshold = FirstNFrames;
+    for i = 1:nd
+        if isfield(lftData(i), 'a')
+            prm.a = lftData(i).a;
+        else
+            prm.a = ones(numel(data(i).channels),1);
+        end
+        save([data(i).source 'Analysis' filesep 'Parameters.mat'], '-struct', 'prm');
+    end
+    
     % 95th percentile of first frame intensity distribution
     T95 = prctile(A(:,1,mCh), 95);
     
     fprintf('Max. intensity threshold on first %d frames: %.2f\n', FirstNFrames, T);
     fprintf('95th percentile of 1st frame distribution: %.2f\n', T95);
-else
-    T = ip.Results.MaxIntensityThreshold;
 end
 lftRes.MaxIntensityThreshold = T;
 
