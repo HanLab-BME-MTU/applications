@@ -16,16 +16,20 @@ ip.addParamValue('DisplayMode', '');
 ip.addParamValue('ShowExpFits', false, @islogical);
 ip.addParamValue('ShowStatistics', false, @islogical);
 ip.addParamValue('ShowCargoDependent', true, @islogical);
-ip.addParamValue('SlaveNames', []);
+ip.addParamValue('SlaveNames', '');
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('Hues', []);
 ip.addParamValue('XTick', 0:20:120);
 ip.addParamValue('YTick', 0:0.01:0.04);
+ip.addParamValue('SingleChannel', false);
 ip.parse(varargin{:});
 ya = ip.Results.YTick;
 lw = 0.75;
 h = [];
 chNames = ip.Results.SlaveNames;
+if isempty(chNames)
+    chNames = '';
+end
 if ~iscell(chNames)
     chNames = {chNames};
 end
@@ -43,7 +47,7 @@ if isstruct(lftRes)
     %============================================================
     % Single-channel data
     %============================================================
-    if ~isfield(lftRes, 'lftHistSlaveCCP')
+    if ~isfield(lftRes, 'lftHistSlaveCCP') || ip.Results.SingleChannel
         h(1) = setupFigure('DisplayMode', ip.Results.DisplayMode, 'Name', 'Lifetime distr.');
         
         if ip.Results.PlotAll
@@ -106,7 +110,7 @@ if isstruct(lftRes)
     %============================================================
     % Multi-channel data
     %============================================================
-    if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHistSlaveCCP')
+    if ip.Results.ShowCargoDependent && isfield(lftRes, 'lftHistSlaveCCP') && ~ip.Results.SingleChannel
         
         % 1) plot all combinations
         %framerate = lftRes.t(2)-lftRes.t(1);

@@ -128,8 +128,8 @@ for s = 1:track.nSeg
     if strcmpi(ip.Results.Background, 'on')
         lh(1) = fill([t t(end:-1:1)], [c c(end:-1:1)+kLevel*sigma_r(end:-1:1)],...
             fillDark, 'EdgeColor', 'none', 'Parent', ha);
+        hold(ha, 'on');
     end
-    hold(ha, 'on');
     
     gapIdx = find(track.gapVect~=0);
     
@@ -139,6 +139,7 @@ for s = 1:track.nSeg
     rev = c+A-sigma_a;
     lh(2) = fill([t t(end:-1:1)], [c+A+sigma_a rev(end:-1:1)],...
         fillLight, 'EdgeColor', 'none', 'Parent', ha);
+    hold(ha, 'on'); % in case background was not plotted
     
     % plot track
     ampl = A+c;

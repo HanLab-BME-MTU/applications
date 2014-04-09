@@ -145,7 +145,7 @@ for i = 1:nd
                 res(i).interpTracks{ch,c} = interpTracks;
                 res(i).interpSigLevel{ch,c} = kLevel*sigma_rMat;
                 % split as a function of slave channel signal
-                if isfield(lftData(i), 'significantMaster')
+                if isfield(lftData(i), 'significantMaster') && nCh>1
                     sigIdx = lftData(i).significantMaster(:,ch)==1;
                     %sigIdx = lftData(i).significantSlave(:,ch)==1;
                     %sigIdx = lftData(i).significantMaster(:,ch)==0 & lftData(i).significantSlave(:,ch)==1;
