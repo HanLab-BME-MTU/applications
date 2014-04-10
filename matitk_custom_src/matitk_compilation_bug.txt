@@ -1,0 +1,77 @@
+
+Finally was able to succeed in building matitk in (Windows 7 64-bit, VS 2005 , ITK 3.20, Cmake 2.8.2, Matlab 2007b 64-bit )
+
+Took me a long while to figure out the error (Dat helped me resolve it - Many Thanks to him) … i was so frustrated and was going to give up — about 9 days of debugging
+
+Though i was able to build and generate the mex file without any problems … whenever i try to use the mex file in matlab it would crash … when i debugged into the mex file using visual studio it would fail in New() method invokation of a filter … In fact calling New() on any ITK filter would lead to a crash with an error as described below …
+
+————————————————————————————————————
+
+Below is precisely the Error I get:
+
+Unhandled exception at 0×08a8561b (parallelDistanceMap.mexw64) in MATLAB.exe: 0xC0000005: Access violation reading location 0×0000000000000000.
+
+Below is the Callstack:
+
+parallelDistanceMap.mexw64!itk::SmartPointer<itk::DataObject>::operator itk::DataObject * __ptr64()  Line 74 + 0xb bytes    C++
+parallelDistanceMap.mexw64!itk::ProcessObject::SetNthOutput(unsigned int idx=0, itk::DataObject * output=0×0000000037485050)  Line 336 + 0×56 bytes    C++
+parallelDistanceMap.mexw64!itk::ImageToImageFilter<itk::Image<bool,3>,itk::Image<float,3> >::ImageToImageFilter<itk::Image<bool,3>,itk::Image<float,3> >()  Line 34 + 0×95 bytes    C++
+parallelDistanceMap.mexw64!itk::SignedMaurerParallelDistanceMapImageFilter<itk::Image<bool,3>,itk::Image<float,3> >::SignedMaurerParallelDistanceMapImageFilter<itk::Image<bool,3>,itk::Image<float,3> >()  Line 155 + 0×20 bytes    C++
+parallelDistanceMap.mexw64!itk::SignedMaurerParallelDistanceMapImageFilter<itk::Image<bool,3>,itk::Image<float,3> >::New()  Line 74 + 0×4c bytes    C++
+parallelDistanceMap.mexw64!mexFunction(int nlhs=0, mxArray_tag * * plhs=0×0000000000000000, int nrhs=16964768, const mxArray_tag * * prhs=0×000000000000127f)  Line 113 + 0xd bytes    C++
+
+———————————————————————————————–
+
+The beast error was the following
+
+LINK : warning LNK4098: defaultlib “MSCVRTD.lib” conflicts with use of
+other libs; use /NODEFAULTLIB:library
+
+I was ignoring it all the time as its a warning …
+
+Took me a week to find out this was the real problem …
+
+The solution is when you run the mex command (either through cmake as a custom command or in the matlab command line) you should do either ‘mex -g …’ or ‘mex -O …’ but not both … Doing ‘mex -g -O …’ results in a mix up of both debug and non-debug dlls and leads to the above described warning about “MSCVRTD.lib” …
+
+Also switch on the verbose option when you run the mex command ‘mex -v …’ where ‘-v’ is for verbose and then when u build any mex file that calls an ITK filter look at the following line it outputs …
+
+“cl  -IC:\ITK\ITK-3.20.0\Code\Patented -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\vxl\core -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\vxl\vcl -IC:\ITK\ITK-3.20.0\Utilities\vxl\core -IC:\ITK\ITK-3.20.0\Utilities\vxl\vcl -IC:\ITK\ITK-3.20.0\Utilities -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\gdcm -IC:\ITK\ITK-3.20.0\Utilities\nifti\znzlib -IC:\ITK\ITK-3.20.0\Utilities\nifti\niftilib -IC:\ITK\ITK-3.20.0\Utilities\expat -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\expat -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\DICOMParser -IC:\ITK\ITK-3.20.0\Utilities\DICOMParser -IC:\ITK\ITK-3.20.0\Utilities\NrrdIO -IC:\ITK\ITK-3.20.0\Utilities\MetaIO -IC:\ITK\ITK-3.20.0\Code\SpatialObject -IC:\ITK\ITK-3.20.0\Code\Numerics\NeuralNetworks -IC:\ITK\ITK-3.20.0\Code\Numerics\Statistics -IC:\ITK\ITK-3.20.0\Code\Numerics\FEM -IC:\ITK\ITK-3.20.0\Code\IO -IC:\ITK\ITK-3.20.0\Code\Numerics -IC:\ITK\ITK-3.20.0\Code\Common -IC:\ITK\ITK-3.20.0\Code\BasicFilters -IC:\ITK\ITK-3.20.0\Code\Algorithms -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2 -c -Zp8 -GR -W3 -EHs -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_DEPRECATE -D_SECURE_SCL=0 -DMATLAB_MEX_FILE -nologo /bigobj /FoC:\Users\deepak\AppData\Local\Temp\mex_A46F70B4-61AC-4EA6-C2A7-B28910C411AF\matitk.obj -IC:\PROGRA~1\MATLAB\R2007b\extern\include /MDd -Zi -Fd”C:\deepak\MATITK\matitk_custom\matitk.mexw64.pdb” -DMX_COMPAT_32 matitk.cxx”
+
+Pay attention to the part ‘/MDd -Zi -Fd”C:\deepak\MATITK\matitk_custom\matitk.mexw64.pdb’ … this corresponds to ‘mex -g … ‘
+
+if you do ‘mex -O …’ you would get ‘/MD -O2 -Oy- -DNDEBUG’
+
+Also while u rin mex with verbose option ‘mex -v … ‘ you should see something like the following …
+
+-> Default options filename found in C:\Users\deepak\AppData\Roaming\MathWorks\MATLAB\R2007b
+—————————————————————-
+->    Options file           = C:\Users\deepak\AppData\Roaming\MathWorks\MATLAB\R2007b\mexopts.bat
+MATLAB                 = C:\PROGRA~1\MATLAB\R2007b
+->    COMPILER               = cl
+->    Compiler flags:
+COMPFLAGS           = -c -Zp8 -GR -W3 -EHs -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_DEPRECATE -D_SECURE_SCL=0 -DMATLAB_MEX_FILE -nologo /bigobj
+OPTIMFLAGS          = /MD -O2 -Oy- -DNDEBUG
+DEBUGFLAGS          = /MDd -Zi -Fd”C:\deepak\MATITK\matitk_custom\matitk_custom_src\matitk.mexw64.pdb”
+arguments           =  -IC:\ITK\ITK-3.20.0\Code\Patented -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\vxl\core -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\vxl\vcl -IC:\ITK\ITK-3.20.0\Utilities\vxl\core -IC:\ITK\ITK-3.20.0\Utilities\vxl\vcl -IC:\ITK\ITK-3.20.0\Utilities -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\gdcm -IC:\ITK\ITK-3.20.0\Utilities\nifti\znzlib -IC:\ITK\ITK-3.20.0\Utilities\nifti\niftilib -IC:\ITK\ITK-3.20.0\Utilities\expat -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\expat -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2\Utilities\DICOMParser -IC:\ITK\ITK-3.20.0\Utilities\DICOMParser -IC:\ITK\ITK-3.20.0\Utilities\NrrdIO -IC:\ITK\ITK-3.20.0\Utilities\MetaIO -IC:\ITK\ITK-3.20.0\Code\SpatialObject -IC:\ITK\ITK-3.20.0\Code\Numerics\NeuralNetworks -IC:\ITK\ITK-3.20.0\Code\Numerics\Statistics -IC:\ITK\ITK-3.20.0\Code\Numerics\FEM -IC:\ITK\ITK-3.20.0\Code\IO -IC:\ITK\ITK-3.20.0\Code\Numerics -IC:\ITK\ITK-3.20.0\Code\Common -IC:\ITK\ITK-3.20.0\Code\BasicFilters -IC:\ITK\ITK-3.20.0\Code\Algorithms -IC:\ITK\ITK-3.20.0_bin_vs05_cmk2.8.2
+Name switch         = /Fo
+->    Pre-linking commands   =
+->    LINKER                 = link
+->    Link directives:
+LINKFLAGS           = /dll /export:mexFunction /MAP /LIBPATH:”C:\PROGRA~1\MATLAB\R2007b\extern\lib\win64\microsoft” libmx.lib libmex.lib libmat.lib /implib:C:\Users\deepak\AppData\Local\Temp\mex_BE3DCCF2-14C5-4C90-EDAE-757034BC8B07\templib.x /MACHINE:AMD64 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib
+LINKDEBUGFLAGS      = /DEBUG /PDB:”C:\deepak\MATITK\matitk_custom\matitk_custom_src\matitk.mexw64.pdb”
+LINKFLAGSPOST       =
+Name directive      = /out:”C:\deepak\MATITK\matitk_custom\matitk_custom_src\matitk.mexw64?
+File link directive =
+Lib. link directive =
+Rsp file indicator  = @
+->    Resource Compiler      = rc /fo “C:\deepak\MATITK\matitk_custom\matitk_custom_src\mexversion.res”
+->    Resource Linker        =
+—————————————————————-
+
+This shows stuff present it “C:\Users\deepak\AppData\Roaming\MathWorks\MATLAB\R2007b\mexopts.bat” … pay attention to /bigobj option in “Compiler flagds —> COMPFLAGS” .. if this is not present edit the mexopts.bat to add it … This was the solution to the error related to critical sections that i was getting …
+
+Right now everything works …. about 9 days of debugging … i am so relieved …
+
+I have tested calling various filters in matitk and no problem so far …
+
+A similar approach should resolve errors in other win 64 based configurations …

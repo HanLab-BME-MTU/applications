@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# elastixLinux
+#
+# Script to run elastix on linux when the 
+# libANNlib.so cannot be found.
+# 
+# Usage:
+#
+#   elastixLinux ...
+#
+# with ... referring to all arguments you normally
+# would use for elastix.
+#
+
+# extract the path to elastix
+elastixPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# add the path temporarily to the DYLD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=$elastixPath:$DYLD_LIBRARY_PATH
+
+# run elastix with the supplied command-line arguments
+$elastixPath/elastixMacExec $*
+
+# after exitting this script, the DYLD_LIBRARY_PATH is
+# automatically as it was before running this script.
+

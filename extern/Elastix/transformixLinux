@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# transformixLinux
+#
+# Script to run elastix on linux when the 
+# libANNlib.so cannot be found.
+# 
+# Usage:
+#
+#   trasnformixLinux ...
+#
+# with ... referring to all arguments you normally
+# would use for transformix.
+#
+
+
+# extract the path to elastix
+elastixPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# add the path temporarily to the LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$elastixPath:$LD_LIBRARY_PATH
+
+# run transformix with the supplied command-line arguments
+$elastixPath/transformixLinuxExec $*
+
+# after exitting this script, the LD_LIBRARY_PATH is
+# automatically as it was before running this script.
+
