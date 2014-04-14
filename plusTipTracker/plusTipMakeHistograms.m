@@ -138,12 +138,14 @@ for k=1:9
     if nGroups>1, legend(h,strrep(labels,'_',' ')); end
     
     % Save histogram
-    filename = ['histogram_' dataType(i).name '_' eventType(j).name '.tif'];
+    filename = ['histogram_' dataType(i).name '_' eventType(j).name];
     if numel(fullfile(saveDir,filename)) > 128
-        print(saveFig, '-dtiff',filename);
-        movefile(filename, saveDir ,'f');
+%         print(saveFig, '-dtiff', [filename '.tif']);
+        print(saveFig, '-depsc2', [filename '.eps']);
+        movefile([filename '*'], saveDir ,'f');
     else
-        print(saveFig, '-dtiff',fullfile(saveDir,filename))
+%         print(saveFig, '-dtiff', fullfile(saveDir, [filename '.tif']))
+        print(saveFig, '-depsc2', fullfile(saveDir, [filename '.eps']))
     end
      
     close(saveFig)

@@ -64,8 +64,11 @@ outFilePaths = cell(2,numel(movieData.channels_));
 for i = p.ChannelIndex
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
     outFilePaths{2,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.txt'];
+    outFilePaths{3,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_stats.txt'];
+    outFilePaths{4,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '_histograms'];
 end
-mkClrDir(p.OutputDirectory);
+if isdir(p.OutputDirectory), rmdir(p.OutputDirectory, 's'); end
+mkdir(p.OutputDirectory);
 postProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Displacement field calculation ---------------%%%
@@ -110,7 +113,7 @@ for i = p.ChannelIndex
         'precision', 3,'delimiter', '\t','newline', 'pc');
     
     % Write stats results into a text file
-    statsFile = [p.OutputDirectory filesep 'Channel' num2str(i) '_Stats.txt'];
+    statsFile = outFilePaths{3, i};
     statsData= struct2cell(projData.stats);
     statsName = fieldnames(projData.stats);
     fid=fopen(statsFile,'w+');
@@ -118,12 +121,12 @@ for i = p.ChannelIndex
         fprintf(fid,'%s\t%g\n',statsName{j},statsData{j});
     end
     fclose(fid);
+
     
     if p.makeHist==1
-        histogramDir = fullfile(p.OutputDirectory, 'histograms');
-        plusTipMakeHistograms(M, histogramDir);
+        plusTipMakeHistograms(M, outFilePaths{4, i});
         if movieData.isOmero() && movieData.canUpload()
-            uploadHistograms(movieData, histogramDir)
+            uploadHistograms(movieData, outFilePaths{4, i})
         end
         
     end
@@ -136,7 +139,7 @@ function uploadHistograms(movieData, directory)
 disp('Uploading histograms to OMERO')
 
 % Retrieve
-files = dir(fullfile(directory, '*.tif'));
+files = dir(fullfile(directory, '*.eps'));
 session =  movieData.getOmeroSession();
 id = movieData.getOmeroId();
 namespace = [getLCCBOmeroNamespace() '.tracking'];
