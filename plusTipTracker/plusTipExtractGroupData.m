@@ -50,6 +50,7 @@ projGroupName=cellfun(@(x) ['grp_' regexprep(x,'[ -]','_')],...
 btwGrpNames=btwGrpNames(idx);
 groupData.names = btwGrpNames';
 
+movieNames = cell(1,length(btwGrpNames));
 M=cell(1,length(btwGrpNames));
 S=cell(1,length(btwGrpNames));
 Sgroup=cell(1,length(btwGrpNames));
@@ -65,24 +66,25 @@ for iGroup = 1:length(btwGrpNames)
         nProj =length(projIndx);
     else
         nProj = numel(groupList(iGroup).getMovies);
+        movieNames{iGroup} = cell(nProj, 1);
     end
     
     trkCount=1;
     for i = 1:nProj
         
-        
         if isML
-            movie = groupList(iGroup).getMovies{i};
-            
+            movie = groupList(iGroup).getMovie(i);
+            image = movie.getReader().getImage();
+            movieNames{iGroup}{i} = char(image.getName().getValue());
             % Read detection info
             iProc = movie.getProcessIndex('CometDetectionProcess',1,0);
-            detProc = movie.processes_{iProc};
+            detProc = movie.getProcess(iProc);
             iChan = find(detProc.checkChannelOutput,1);
             movieInfo= detProc.loadChannelOutput(iChan);
             
             % Read post-tracking info
             iProc = movie.getProcessIndex('CometPostTrackingProcess',1,0);
-            postProc = movie.processes_{iProc};
+            postProc = movie.getProcess(iProc);
             iChan = find(postProc.checkChannelOutput,1);
             projData= postProc.loadChannelOutput(iChan,'output','projData');
             
@@ -175,5 +177,6 @@ groupData.stats = cellfun(@(x) cellfun(@(y) y.stats,x,'Unif',0),S,'Unif',0);
 groupData.dataMat=dataByProject;
 groupData.M = M;
 groupData.detection = D;
-groupData.dirByProj = dirByProj; 
+groupData.dirByProj = dirByProj;
+groupData.movieNames = movieNames;
 %save('groupData','groupData'); 

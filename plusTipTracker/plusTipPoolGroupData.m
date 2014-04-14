@@ -60,9 +60,13 @@ if doWtn
             'delimiter', '\t','newline', 'pc');
         
         % Names for each movie in iGroup
-        wtnGrpNames = arrayfun(@(x) [groupData.names{iGroup} '_' num2str(x)],...
-            1:numel(groupData.dataMat{iGroup}),'Unif',0);
-        
+        if ~isempty(groupData.movieNames{iGroup})
+            wtnGrpNames = groupData.movieNames{iGroup};
+        else
+            wtnGrpNames = arrayfun(@(x) [groupData.names{iGroup} '_' num2str(x)],...
+                1:numel(groupData.dataMat{iGroup}),'Unif',0);
+        end
+
         % Write stats results into a text file
         statsFile = [wtnDir filesep 'Stats.txt'];
         statsNames = fieldnames(groupData.stats{iGroup}{1});
