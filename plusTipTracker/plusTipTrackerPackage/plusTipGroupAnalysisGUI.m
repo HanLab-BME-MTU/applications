@@ -136,8 +136,8 @@ userData = get(handles.figure1,'UserData');
 
 % Load group data
 remBegEnd = get(handles.checkbox_remBegEnd,'Value');
-userData.groupData  =plusTipExtractGroupData(userData.ML, remBegEnd);
-outputDir = userData.ML.outputDirectory_;
+userData.groupData = plusTipExtractGroupData(userData.ML, remBegEnd);
+
 
 % Read common value for statistical tests
 alpha =str2double(get(handles.edit_alpha, 'String'));
@@ -145,22 +145,29 @@ testValues = get(handles.popupmenu_testID1,'UserData');
 testID1 = testValues(get(handles.popupmenu_testID1,'Value'));
 testID2 = testValues(get(handles.popupmenu_testID2,'Value'));
 
+% Run within group comparison
+if get(handles.checkbox_doWtn,'Value')
+    for i = 1 : numel(userData.ML)
+        outputDir = fullfile(userData.ML(i).outputDirectory_,...
+            'withinGroupComparison');
+        plusTipWithinGroupComparison(userData.groupData, i, outputDir, 1);
+    end
+end
+
 % Run per-cell group analysis
-if get(handles.radiobutton_poolData,'Value')
-    doPlot = 1;
-    doWtn = get(handles.checkbox_doWtn,'Value');
-    plusTipPoolGroupData(userData.groupData,...
-        [outputDir filesep 'pooledData'], doWtn, doPlot);
+if numel(userData.ML) > 1 && get(handles.radiobutton_poolData,'Value')
+    outputDir = fullfile(userData.ML(1).outputDirectory_, 'pooledData');
+    plusTipPoolGroupData(userData.groupData, outputDir, 0, 1);
     
     % Perform statistical tests if more than one list is passed
-    if numel(userData.ML) > 1
-        plusTipTestDistrib(userData.groupData,[outputDir filesep 'pooledData'],...
-            alpha, testID1, testID2);
-    end
+    plusTipTestDistrib(userData.groupData, outputDir,...
+        alpha, testID1, testID2);
 end
 
 % Run pooled group analysis
 if get(handles.radiobutton_perCell,'Value')
-    plusTipGetHits(userData.groupData,[outputDir filesep 'perCell'],...
-        alpha, testID1, testID2);
+    outputDir = fullfile(userData.ML(1).outputDirectory_, 'perCell');
+    plusTipGetHits(userData.groupData, outputDir, alpha, testID1, testID2);
 end
+
+arrayfun(@save, userData.ML)

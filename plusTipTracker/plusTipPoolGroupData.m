@@ -44,71 +44,25 @@ if isempty(saveDir)
     saveDir=uigetdir(pwd,'Select output directory for pooled group data.');
 end
 
-nGroups = numel(groupData.M);
+% Set up output directory
+if isdir(saveDir), rmdir(saveDir,'s'); end
+mkdir(saveDir);
+
 % Within-group comparison
 if doWtn
+    nGroups = numel(groupData.M);
     for iGroup = 1:nGroups
         % Set up output directory
-        wtnDir=[saveDir filesep 'withinGroupComparisons' filesep groupData.names{iGroup}];
-        if isdir(wtnDir), rmdir(wtnDir,'s'); end
+        wtnDir = [saveDir filesep 'withinGroupComparisons' filesep...
+            groupData.names{iGroup}];
+        if isdir(wtnDir), rmdir(wtnDir, 's'); end
         mkdir(wtnDir);
-        
-        % write out speed/lifetime/displacement distributions into a text file
-        stackedM =  vertcat(groupData.M{iGroup}{:});
-        dlmwrite([wtnDir filesep 'gs_fs_bs_gl_fl_bl_gd_fd_bd_' ...
-            groupData.names{iGroup} '.txt'], stackedM, 'precision', 3,...
-            'delimiter', '\t','newline', 'pc');
-        
-        % Names for each movie in iGroup
-        if ~isempty(groupData.movieNames{iGroup})
-            wtnGrpNames = groupData.movieNames{iGroup};
-        else
-            wtnGrpNames = arrayfun(@(x) [groupData.names{iGroup} '_' num2str(x)],...
-                1:numel(groupData.dataMat{iGroup}),'Unif',0);
-        end
-
-        % Write stats results into a text file
-        statsFile = [wtnDir filesep 'Stats.txt'];
-        statsNames = fieldnames(groupData.stats{iGroup}{1});
-        statsData= cellfun(@struct2cell,groupData.stats{iGroup},'Unif',false);
-        statsData =horzcat(statsData{:});
-        
-        pooledStatsNames = fieldnames(groupData.pooledStats{iGroup});
-        pooledStatsData = struct2cell(groupData.pooledStats{iGroup});
-        assert(all(ismember(pooledStatsNames, statsNames)));
-        
-        % Save pooled stats
-        fid=fopen(statsFile,'w+');
-        fprintf(fid,'\t%s',wtnGrpNames{:});
-        fprintf(fid,'\tPooled Data');
-        for i=1:numel(pooledStatsNames)
-            iStat = find(strcmp(pooledStatsNames{i},statsNames),1); 
-            fprintf(fid,'\n%s\t',statsNames{iStat});
-            fprintf(fid,'%g\t',statsData{iStat,:});
-            fprintf(fid,'%g',pooledStatsData{i});
-        end
-        fclose(fid);
-        
-        if doPlot==1
-            % save histograms of pooled distributions from iGroup
-            plusTipMakeHistograms(groupData.M{iGroup},wtnDir);
-            
-            % make within-group boxplots (show each movie in iGroup)
-            plusTipMakeBoxplots(groupData.dataMat{iGroup}',wtnGrpNames',wtnDir);
-            
-            % Plot comets as a function of time (Krek lab request)
-            plotDetectedCometsNumber(groupData.detection{iGroup},wtnDir)
-        end                  
+        plusTipWithinGroupComparison(groupData, iGroup, wtnDir, doPlot)
     end
 end
 
-% Set up output directory
-btwDir=[saveDir filesep 'btwGroupComparisons'];
-if isdir(btwDir), rmdir(btwDir,'s'); end
-mkdir(btwDir);
-
 % Write stats results into a text file
-statsFile = [btwDir filesep 'Stats.txt'];
+statsFile = [saveDir filesep 'Stats.txt'];
 statsNames = fieldnames(groupData.pooledStats{1});
 pooledDataStats = cellfun(@struct2cell,groupData.pooledStats,'Unif',false);
 pooledDataStats =horzcat(pooledDataStats{:});
@@ -122,36 +76,9 @@ fclose(fid);
 
 if doPlot
     % save histograms of pooled distributions from iGroup
-    plusTipMakeHistograms(groupData.M,btwDir,'labels',groupData.names);
+    plusTipMakeHistograms(groupData.M, saveDir, 'labels', groupData.names);
     
     % make between-group boxplots (show pooled data)
     pooledDataMat = cellfun(@(x) vertcat(x{:}),groupData.dataMat,'UniformOutput',false);
-    plusTipMakeBoxplots(pooledDataMat',groupData.names',btwDir);
+    plusTipMakeBoxplots(pooledDataMat',groupData.names',saveDir);
 end
-
-
-function plotDetectedCometsNumber(data,saveDir)
-
-maxFrame=max(cellfun(@numel,data));
-nProjects = numel(data);
-colors=hsv(nProjects);
-
-% define small and large fonts
-sfont = {'FontName', 'Helvetica', 'FontSize', 18};
-lfont = {'FontName', 'Helvetica', 'FontSize', 22};
-
-% plot
-saveFig=figure('PaperPositionMode', 'auto'); % enable resizing
-hold on;
-arrayfun(@(i) plot(data{i},'-','Color',colors(i,:),'LineWidth',2),1:nProjects);
-
-% Set thickness of axes, ticks and assign tick labels
-set(gca, 'LineWidth', 1.5, sfont{:}, 'Layer', 'top','Xlim',[0 maxFrame]);
-xlabel('Frame number', lfont{:});
-ylabel('Comet number', lfont{:});
-
-% remove box around figure
-box off;
-
-saveas(saveFig,[saveDir filesep 'DetectedCometsCount.tif']);
-close(saveFig)
