@@ -22,27 +22,34 @@ function [groupData]=plusTipExtractGroupData(groupList,varargin)
 
 %Input check
 ip = inputParser;
-isML = isa(groupList, 'MovieList');
-ip.addRequired('groupList', @(x) iscell(x) || isML || isempty(x));
+isMovieList = isa(groupList, 'MovieList');
+ip.addRequired('groupList', @(x) iscell(x) || isMovieList || isempty(x));
 ip.addOptional('remBegEnd', 1, @isscalar);
 ip.parse(groupList, varargin{:})
 remBegEnd=ip.Results.remBegEnd;
 if isempty(groupList), groupList=combineGroupListFiles; end
 
-if isML
+if isMovieList
     projGroupName=cell(numel(groupList),1);
     for i=1:numel(groupList)
-        [~,projGroupName{i}] = fileparts(groupList(i).getPath);
+        if groupList(i).isOmero(),
+            dataset = getDatasets(groupList(i).getOmeroSession(),...
+                groupList(i).getOmeroId(), false);
+            projGroupName{i} = char(dataset.getName().getValue());
+        else
+            [~, projGroupName{i}] = fileparts(groupList(i).getPath);
+        end
     end
 else
     projGroupName=groupList(:,1);
     projGroupDir=cellfun(@(x) formatPath(x),groupList(:,2),'UniformOutput',0);
 
+    % fix the names if there are spaces or hyphens and append prefix 'grp'
+    projGroupName=cellfun(@(x) ['grp_' regexprep(x,'[ -]','_')],...
+        projGroupName,'uniformoutput',0);
 end
 
-% fix the names if there are spaces or hyphens and append prefix 'grp'
-projGroupName=cellfun(@(x) ['grp_' regexprep(x,'[ -]','_')],...
-    projGroupName,'uniformoutput',0);
+
 
 % count unique groups and keep them in order of the original list
 [btwGrpNames,m] = unique(projGroupName);
@@ -60,7 +67,7 @@ dataByProject=cell(1,length(btwGrpNames));
 dirByProj = cell(1,length(btwGrpNames));
 
 for iGroup = 1:length(btwGrpNames)
-    if ~isML
+    if ~isMovieList
         % indices of projects in iGroup
         projIndx=find(strcmp(btwGrpNames(iGroup),projGroupName));
         nProj =length(projIndx);
@@ -72,10 +79,12 @@ for iGroup = 1:length(btwGrpNames)
     trkCount=1;
     for i = 1:nProj
         
-        if isML
+        if isMovieList
             movie = groupList(iGroup).getMovie(i);
-            image = movie.getReader().getImage();
-            movieNames{iGroup}{i} = char(image.getName().getValue());
+            if movie.isOmero()
+                image = movie.getReader().getImage();
+                movieNames{iGroup}{i} = char(image.getName().getValue());
+            end
             % Read detection info
             iProc = movie.getProcessIndex('CometDetectionProcess',1,0);
             detProc = movie.getProcess(iProc);
