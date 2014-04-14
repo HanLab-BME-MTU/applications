@@ -22,7 +22,7 @@ function varargout = plusTipGroupAnalysisGUI(varargin)
 
 % Edit the above text to modify the response to help plusTipGroupAnalysisGUI
 
-% Last Modified by GUIDE v2.5 20-Mar-2014 21:02:10
+% Last Modified by GUIDE v2.5 14-Apr-2014 13:02:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,9 +70,15 @@ testList = {'t-test of the means';'Wilcoxon ranksum test';'Kolmogorov-Smirnov te
     'Mean substracted K-S test';'Median substracted K-S test';...
     'Permutation t-test of the means';'Calibrated mean subtracted K-S test'};
 testValues=[1 2 10 11 12 20 21];
-set(handles.popupmenu_testID1, 'String', testList, 'UserData', testValues);
-set(handles.popupmenu_testID2, 'String', testList, 'UserData', testValues);
-uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
+test_handles = [handles.popupmenu_poolData_testID1...
+    handles.popupmenu_poolData_testID2...
+    handles.popupmenu_perCell_testID1...
+    handles.popupmenu_perCell_testID2];
+set(test_handles, 'String', testList, 'UserData', testValues);
+set(handles.popupmenu_poolData_testID1, 'Value', 6);
+set(handles.popupmenu_poolData_testID2, 'Value', 7);
+set(handles.popupmenu_perCell_testID1, 'Value', 1);
+set(handles.popupmenu_perCell_testID2, 'Value', 6);
 
 handles.output = hObject;
 set(hObject, 'UserData', userData);
@@ -113,21 +119,6 @@ end
 set(handles.figure1, 'UserData', userData);
 guidata(hObject,handles);
 
-
-% --- Executes when selected object is changed in uipanel_analysisMode.
-function uipanel_analysisMode_SelectionChangeFcn(hObject, eventdata, handles)
-
-if get(handles.radiobutton_poolData,'Value')
-    set(handles.checkbox_doWtn,'Enable','on');
-    set(handles.popupmenu_testID1,'Value',6);
-    set(handles.popupmenu_testID2,'Value',7);
-else
-    set(handles.checkbox_doWtn,'Enable','off');
-    set(handles.popupmenu_testID1,'Value',1);
-    set(handles.popupmenu_testID2,'Value',6);
-end
-
-
 % --- Executes on button press in pushbutton_run.
 function pushbutton_run_Callback(hObject, eventdata, handles)
 
@@ -136,18 +127,18 @@ userData = get(handles.figure1,'UserData');
 
 % Load group data
 remBegEnd = get(handles.checkbox_remBegEnd,'Value');
+disp('Extracting group data');
 userData.groupData = plusTipExtractGroupData(userData.ML, remBegEnd);
-
 
 % Read common value for statistical tests
 alpha =str2double(get(handles.edit_alpha, 'String'));
-testValues = get(handles.popupmenu_testID1,'UserData');
-testID1 = testValues(get(handles.popupmenu_testID1,'Value'));
-testID2 = testValues(get(handles.popupmenu_testID2,'Value'));
+testValues = get(handles.popupmenu_poolData_testID1,'UserData');
 
 % Run within group comparison
 if get(handles.checkbox_doWtn,'Value')
+    disp('Running within group comparison');
     for i = 1 : numel(userData.ML)
+        fprintf(1, 'Movie %g/%g\n', i, numel(userData.ML));
         outputDir = fullfile(userData.ML(i).outputDirectory_,...
             'withinGroupComparison');
         plusTipWithinGroupComparison(userData.groupData, i, outputDir, 1);
@@ -155,19 +146,44 @@ if get(handles.checkbox_doWtn,'Value')
 end
 
 % Run per-cell group analysis
-if numel(userData.ML) > 1 && get(handles.radiobutton_poolData,'Value')
+if numel(userData.ML) > 1 && get(handles.checkbox_poolData,'Value')
+    disp('Running pooled data analysis');
     outputDir = fullfile(userData.ML(1).outputDirectory_, 'pooledData');
     plusTipPoolGroupData(userData.groupData, outputDir, 0, 1);
     
     % Perform statistical tests if more than one list is passed
+    testID1 = testValues(get(handles.popupmenu_poolData_testID1,'Value'));
+    testID2 = testValues(get(handles.popupmenu_poolData_testID2,'Value'));
     plusTipTestDistrib(userData.groupData, outputDir,...
         alpha, testID1, testID2);
 end
 
 % Run pooled group analysis
-if get(handles.radiobutton_perCell,'Value')
+if get(handles.checkbox_perCell,'Value')
+    disp('Running per cell analysis');
     outputDir = fullfile(userData.ML(1).outputDirectory_, 'perCell');
+    testID1 = testValues(get(handles.popupmenu_perCell_testID1,'Value'));
+    testID2 = testValues(get(handles.popupmenu_perCell_testID2,'Value'));
     plusTipGetHits(userData.groupData, outputDir, alpha, testID1, testID2);
 end
 
 arrayfun(@save, userData.ML)
+
+% --- Executes on button press in checkbox_poolData.
+function checkbox_poolData_Callback(hObject, eventdata, handles)
+
+if get(hObject, 'Value')
+    set(get(handles.uipanel_poolData, 'Children'), 'Enable', 'on');
+else
+    set(get(handles.uipanel_poolData, 'Children'), 'Enable', 'off');
+end
+
+
+% --- Executes on button press in checkbox_perCell.
+function checkbox_perCell_Callback(hObject, eventdata, handles)
+
+if get(hObject, 'Value')
+    set(get(handles.uipanel_perCell, 'Children'), 'Enable', 'on');
+else
+    set(get(handles.uipanel_perCell, 'Children'), 'Enable', 'off');
+end
