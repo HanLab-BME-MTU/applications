@@ -57,7 +57,7 @@ pN = floor(pixNum/2);
 
 %set up the final image assumes that the 2*pixnum padding is already
 %account
-img = zeros([ImgSize,3]);
+img = zeros([ImgSize+2*pixNum*ones(size(ImgSize)),3]);
 tic;
 for i=1:s(1)
  x = pos(i,1);
@@ -88,8 +88,8 @@ end
  %img(:,:,2) = img(:,:,2)*((65535)/(max(max(img(:,:,2))))); %rescales to 16 bit
  %img(:,:,2) = img(:,:,2)*((255)/(max(max(img(:,:,2))))); %rescales to 8 bit
  %img = img(pixNum:ImgSize(1)+pixNum,pixNum:ImgSize(2)+pixNum,:);
- %imwrite(uint8(img),FN,'TIFF');
- %hImage = imshow(img);
+ imwrite(uint16(img),FN,'TIFF');
+% hImage = imshow(img);
     
 end
 

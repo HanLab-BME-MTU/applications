@@ -40,16 +40,20 @@ function img=PointP_Plot2Color(posA,posB,sf,A,FN)
  posB(:,1)=posB(:,1)-Low(1);
  posB(:,2)=posB(:,2)-Low(2);
  
- ImgSize = ImgSize+2*pixNum;
+ ImgSize2 = ImgSize+2*pixNum;
  
- IA = PointP_Plot2(posA,ImgSize,sf,A,FN,pixNum); 
- IB = PointP_Plot2(posB,ImgSize,sf,A,FN,pixNum); 
+ IA = PointP_Plot2(posA,ImgSize2,sf,A,FN,pixNum); 
+ IB = PointP_Plot2(posB,ImgSize2,sf,A,FN,pixNum); 
  
  %removes border
  IA = IA(pixNum:pixNum+Size(1),pixNum:pixNum+Size(2),:);
  IB = IB(pixNum:pixNum+Size(1),pixNum:pixNum+Size(2),:);
  
 
+ %removes buffered edge
+ IA = IA(pixnum:pixnum+ImgSize(1),pixnum:pixnum+ImgSize(2));
+ IB = IB(pixnum:pixnum+ImgSize(1),pixnum:pixnum+ImgSize(2));
+ 
  img = IA;
  img(:,:,1)=IB(:,:,2);
  img(:,:,3)=img(:,:,3)+IB(:,:,3);
