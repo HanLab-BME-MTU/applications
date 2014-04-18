@@ -5,7 +5,8 @@ function [CI] = CellSelector(clusterInfo)
 pnts = vertcat(clusterInfo.pnts);
 img = hist3(pnts(:,1:2),'Edges',{[0:max(pnts(:,1))],[0:max(pnts(:,2))]});
 pnts = vertcat(clusterInfo.ptClusterCenter);
-[BW,xi,yi]= roipoly(img);
+imshow(log(img),[]);
+[BW,xi,yi]= roipoly;
 
 in = inpolygon(pnts(:,1),pnts(:,2),yi,xi);
 

@@ -26,7 +26,7 @@ end
 % since pixelSize of wyss system is ~107 nm this is 32 nm bandwitdh
 [clusterInfo,clusterMap]=MeanShiftClustering(TotalPnts(:,1:2),0.3,'kernel','flat','flagDebug',true);
 
-clusterInfo = addToClusterInfo(clusterInfo,TotalPnts,'pixelSize',107);
+clusterInfo = addToClusterInfo(clusterInfo,TotalPnts,'pixelSize',160.5);
 
 save([dir,'_MeanShiftCluster.mat'],'clusterInfo','clusterMap','TotalPnts');
 
