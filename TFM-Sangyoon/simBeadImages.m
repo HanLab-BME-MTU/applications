@@ -805,6 +805,7 @@ for jj=1:nMethods
     noiseBG(jj) = sum(tempTNBG(:))/sum(tempBGMask(:)); %unit is still Pascal
     noiseBGerr(jj) = std(tempTNBG(:)/sum(tempBGMask(:)));%/sqrt(sum(tempBGMask(:))); %unit is still Pascal
 end
-    
+
+%% save
 save([dataPath '/FatFANA.mat'],'flocMaxFA','flocMaxNA','flocMaxRatioFA','flocMaxRatioNA',...
     'pSR_FA','pSR_NA','pSRerr_FA','pSRerr_NA' ,'flocMaxOrgFA','noiseBG','noiseBGerr','tnormBG','tnormd');

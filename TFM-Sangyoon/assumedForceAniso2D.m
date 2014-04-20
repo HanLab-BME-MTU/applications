@@ -68,14 +68,14 @@ return
 
 % test in 1D
 x = 0:1:20;
-xshift = 7;
-std1d = 2;
-w = 1300;
-fd = w*heaviside(2.1-sqrt((x-xshift).^2)).*...
-    exp(-((x-xshift).^2)/(2*std1d^2));
+xshift = 10;
+std1d = 3.45;
+w = 200;
+fd = w*heaviside(std1d*1.1-sqrt((x-xshift).^2)).*exp(-((x-xshift).^2)/(2*std1d^2));
 % fd = exp(-((x-xshift).^2)/(std^2));
 % fd = x==xshift;
-figure,plot(x,fd)
+x_um = (x-xshift)*0.072;
+figure,plot(x_um,fd)
      
 % test in 2D
 [x,y] = meshgrid(1:30,1:30);

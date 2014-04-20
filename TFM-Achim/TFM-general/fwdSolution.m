@@ -231,8 +231,8 @@ elseif strcmpi(method,'fft')
         
         % find the positions that are within
         
-        iux_fine = interp2(x_grid_fine,y_grid_fine,ux_fine,xgrid_F,ygrid_F,'*cubic');%'*cubic'
-        iuy_fine = interp2(x_grid_fine,y_grid_fine,uy_fine,xgrid_F,ygrid_F,'*cubic');%'*linear'
+        iux_fine = griddata(x_grid_fine,y_grid_fine,ux_fine,xgrid_F,ygrid_F,'linear');%'*cubic'
+        iuy_fine = griddata(x_grid_fine,y_grid_fine,uy_fine,xgrid_F,ygrid_F,'linear');%'*linear'
         
         % those contain a lot of NaNs since most of the points are outside
         % of [xminExp xmaxExp] and [yminExp ymaxExp]. This will give us two
