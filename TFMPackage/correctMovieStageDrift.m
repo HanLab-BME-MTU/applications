@@ -84,11 +84,21 @@ croppedRefFrame = imcrop(refFrame,p.cropROI);
 % Detect beads in reference frame
 disp('Detecting beads in the reference frame...')
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
-psfSigma = beadsChannel.psfSigma_;
+% psfSigma = beadsChannel.psfSigma_;
+if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield')
+    psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
+    psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'TIRF')
+    psfSigma = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+else
+    error('image type should be chosen among Widefield, confocal and TIRF!');
+end
+
 assert(~isempty(psfSigma), ['Channel ' num2str(p.ChannelIndex(1)) ' have no '...
     'estimated PSF standard deviation. Pleae fill in the emission wavelength '...
     'as well as the pixel size and numerical aperture of the movie']);
-pstruct = pointSourceDetection(croppedRefFrame, 1.3, 'alpha', p.alpha);
+pstruct = pointSourceDetection(croppedRefFrame, psfSigma, 'alpha', p.alpha);
 beads = [pstruct.x' pstruct.y'];
 
 % Select only beads  which are minCorLength away from the border of the

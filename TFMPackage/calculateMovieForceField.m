@@ -40,7 +40,7 @@ p = parseProcessParams(forceFieldProc,paramsIn);
 p.usePaxImg = false;
 p.saveBEMparams = false;
 p.useLcurve = true;
-p.lastToFirst = true;
+p.lastToFirst = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
 %     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());

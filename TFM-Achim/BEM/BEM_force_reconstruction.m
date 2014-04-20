@@ -526,7 +526,7 @@ for i=1:length(alphas);
     eta(i)=norm(msparse(:,i),1);
 end
 
-% Find the corner of the Tikhonov L-curve
+% Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 

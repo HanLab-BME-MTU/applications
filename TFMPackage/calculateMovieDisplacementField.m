@@ -123,7 +123,7 @@ elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
 elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
     sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
 else
-    error('image type should be chosen among Widefield, confocla and TIRF!');
+    error('image type should be chosen among Widefield, confocal and TIRF!');
 end
 pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
