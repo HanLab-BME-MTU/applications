@@ -222,11 +222,11 @@ if nargin >= 10 && strcmp(method,'fast')
 
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
-        MpM=M'*M;
-        maxIter = 50;
         tolx =  log(forceMesh.numBasis)*2.5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
+        MpM=M'*M;
+        maxIter = 50;
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
@@ -454,7 +454,7 @@ mtik=zeros(size(M,2),length(alphas));
 for i=1:length(alphas);
   mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
   rho(i)=norm(M*mtik(:,i)-u);
-  eta(i)=norm(mtik(:,i),1);
+  eta(i)=norm(mtik(:,i));
 end
 
 % Find the corner of the Tikhonov L-curve
