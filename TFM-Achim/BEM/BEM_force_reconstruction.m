@@ -224,7 +224,8 @@ if nargin >= 10 && strcmp(method,'fast')
         % plot the solution for the corner
         MpM=M'*M;
         maxIter = 50;
-        tolx = 1e-2;
+        tolx =  log(forceMesh.numBasis)*2.5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
