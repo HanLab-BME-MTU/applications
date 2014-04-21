@@ -226,6 +226,7 @@ if nargin >= 10 && strcmp(method,'fast')
         maxIter = 50;
         tolx =  log(forceMesh.numBasis)*2.5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
+        disp(['tolerance value: ' num2str(tolx)])
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
