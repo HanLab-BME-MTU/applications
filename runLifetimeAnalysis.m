@@ -600,7 +600,8 @@ if any(strcmpi(ip.Results.Display, {'on','all'}))
     %printPath = [getExpDir(data) 'Figures' filesep];
     %[~,~] = mkdir(printPath);
     plotLifetimes(lftRes, 'ShowStatistics', ip.Results.ShowStatistics,...
-        'DisplayMode', ip.Results.DisplayMode, 'PlotAll', true, 'SlaveNames', slaveNames);
+        'DisplayMode', ip.Results.DisplayMode, 'PlotAll', true,...
+        'SlaveNames', slaveNames, 'SingleChannel', numel(data(1).channels)==1);
     %print(h(1), '-depsc2', '-loose', [printPath 'lifetimeDistributions.eps']);
     %if ip.Results.ShowStatistics
     %    print(h(2), '-depsc2', '-loose', [printPath 'lifetimeDistributionsStats.eps']);
