@@ -150,10 +150,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.method = 'FastBEM';
             funParams.meshPtsFwdSol = 4096;
             funParams.regParam=1e-7;
-            funParams.solMethodBEM='QR';
+            funParams.solMethodBEM='1NormReg';
             funParams.basisClassTblPath='';
             funParams.LcurveFactor=10;
             funParams.thickness=32000;
+            funParams.useLcurve=true;
         end
     end
 end

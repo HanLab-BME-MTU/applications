@@ -34,6 +34,7 @@ ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('LcurveDataPath','',@ischar);
 ip.addParamValue('LcurveFigPath','',@ischar);
+ip.addParamValue('LcurveFactor','',@isscalar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
@@ -47,6 +48,7 @@ solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
 LcurveDataPath=ip.Results.LcurveDataPath;
 LcurveFigPath=ip.Results.LcurveFigPath;
+LcurveFactor=ip.Results.LcurveFactor;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
@@ -230,7 +232,7 @@ if nargin >= 10 && strcmp(method,'fast')
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM,LcurveDataPath,LcurveFigPath);
+            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
         end
@@ -515,9 +517,9 @@ sol_coef = mtik(:,ireg_corner);
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave,LcurveDataPath,LcurveFigPath)
+function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,nameSave,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:0.125:log10(L)+2);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));

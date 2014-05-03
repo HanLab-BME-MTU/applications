@@ -39,7 +39,6 @@ forceFieldProc = movieData.processes_{iProc};
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.usePaxImg = false;
 p.saveBEMparams = false;
-p.useLcurve = true;
 p.lastToFirst = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
@@ -220,7 +219,7 @@ for i=frameSequence
                         p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
                         'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                         'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-                        'useLcurve',p.useLcurve,'thickness',p.thickness/movieData.pixelSize_,...
+                        'useLcurve',p.useLcurve, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
                         'LcurveDataPath',outputFile{4,1},'LcurveFigPath',outputFile{3,1});
                     p.regParam = sol_mats.L;
                 else

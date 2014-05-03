@@ -22,7 +22,7 @@ function varargout = forceFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help forceFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 16-Sep-2011 15:57:03
+% Last Modified by GUIDE v2.5 02-May-2014 18:11:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,8 +59,8 @@ set(handles.edit_YoungModulus,'String',funParams.YoungModulus/1000);
 set(handles.edit_thickness,'String',funParams.thickness/1000);
 
 % Create pop-up menu for force reconstruction method
-solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'FTL1';'LaplacianReg';'1NormRegLaplacian'};
-solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'FTL1';'LaplacianReg';'1NormRegLaplacian'};
+solMethodBEMString ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
+solMethodBEMData ={'QR';'svd';'gsvd';'backslash';'1NormReg';'LaplacianReg';'1NormRegLaplacian'};
 solMethodBEMValue = find(strcmp(funParams.solMethodBEM,solMethodBEMData));
 set(handles.popupmenu_solMethodBEM,'String',solMethodBEMString,...
     'UserData',solMethodBEMData,'Value',solMethodBEMValue);
@@ -239,3 +239,41 @@ if ~isequal(file,0) && ~isequal(path,0)
     set(handles.edit_basisClassTblPath,'String',[path file]);
     
 end
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over popupmenu_method.
+function popupmenu_method_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_method (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_method_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_method (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in useLcurve.
+function useLcurve_Callback(hObject, eventdata, handles)
+% hObject    handle to useLcurve (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+useLcurve=get(handles.useLcurve,{'UserData','Value'});
+if useLcurve{2}
+%     set(handles.edit_regParam,'Enable','off');
+    set(handles.edit_LcurveFactor,'Enable','on');
+else
+%     set(handles.edit_regParam,'Enable','on');
+    set(handles.edit_LcurveFactor,'Enable','off');
+end
+
+% Hint: get(hObject,'Value') returns toggle state of useLcurve

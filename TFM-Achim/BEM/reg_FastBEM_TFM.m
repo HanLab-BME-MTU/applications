@@ -20,6 +20,7 @@ ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical);
+ip.addParamValue('LcurveFactor',@isscalar);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
@@ -37,6 +38,7 @@ paxImage = ip.Results.paxImg;
 pixelSize = ip.Results.pixelSize;
 forceMesh = ip.Results.forceMesh;
 useLcurve = ip.Results.useLcurve;
+LcurveFactor = ip.Results.LcurveFactor;
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -73,7 +75,7 @@ if isempty(paxImage)
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
         'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
-        'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath);
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));
