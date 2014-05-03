@@ -185,25 +185,6 @@ if nargin >= 10 && strcmp(method,'fast')
         
 %         sol_mats.eyeWeights=eyeWeights;        
         sol_mats.tool='QR';
-    elseif strcmpi(solMethodBEM,'QRscaled')
-        % accounting for badly scaled linear system - Sangyoon 02/20/13
-        % sol_coef = (M'*M+L*D^2)\(M'*u_sol); where D = scaling matrix
-        % reference: p11 in Neumaier, Solving ill-conditioned and singular
-        % linear systems: a tutorial on regularization
-        [eyeWeights,~] =getGramMatrix(forceMesh);
-        MpM=M'*M;
-        D = diag(sqrt(diag(MpM))); % scaling diagonal matrix
-%         D = D./normest(D);
-        % For L-curve
-%         L = chooseRegParamFromLCurve(M,MpM,u,L,D);
-
-        [Q,R] = qr((MpM+L*D^2));
-        sol_coef=R\(Q'*(M'*u));
-        sol_mats.Q=Q;
-        sol_mats.R=R;
-        sol_mats.L=L;
-        sol_mats.nW=normWeights;        
-        sol_mats.tool='QRscaled';
     elseif strcmpi(solMethodBEM,'LaplacianReg')
         % second order tikhonov regularization (including diagonal)
         % make Lap matrix
@@ -224,11 +205,11 @@ if nargin >= 10 && strcmp(method,'fast')
 
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
-        tolx =  log(forceMesh.numBasis)*2.5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        tolx =  sqrt(forceMesh.numBasis)*1e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         MpM=M'*M;
-        maxIter = 50;
+        maxIter = 10;
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
@@ -456,7 +437,7 @@ mtik=zeros(size(M,2),length(alphas));
 for i=1:length(alphas);
   mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
   rho(i)=norm(M*mtik(:,i)-u);
-  eta(i)=norm(mtik(:,i));
+  eta(i)=norm(mtik(:,i),1);
 end
 
 % Find the corner of the Tikhonov L-curve

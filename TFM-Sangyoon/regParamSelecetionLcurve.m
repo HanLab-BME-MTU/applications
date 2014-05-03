@@ -55,13 +55,25 @@ end
 if length(maxKappaCandIdx)==1
     maxKappaIdx = maxKappaCandIdx(1);
 elseif length(maxKappaCandIdx)>1
-    maxKappaIdx = maxKappaCandIdx(1);% use the first one %max(maxKappaCandIdx);
+    [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
+    maxKappaIdx = maxKappaCandIdx(tempIndex);
 elseif isempty(maxKappaCandIdx)
     error('there is no local maximum in curvature in the input lambda range');
 end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
 % find an index at kappa = 0 before maxKappaIdx
 ireg_corner= numCutPoints+maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+
+% poly-fit version
+p=polyfit(maxKappaIdx-5:maxKappaIdx+5,kappa(maxKappaIdx-5:maxKappaIdx+5)',2);
+if p(1)<0
+    ireg_corner = -p(2)/(2*p(1));
+    q=polyfit(maxKappaIdx-5:maxKappaIdx+5,lambda(maxKappaIdx-5:maxKappaIdx+5),1);
+    reg_corner = polyval(q,ireg_corner);
+else
+    disp('The corner''''s L-corner does not have positive curvature')
+    reg_corner = lambda(ireg_corner);
+end
 
 if manualSelection
     subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
@@ -113,6 +125,7 @@ if manualSelection
 
         poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
     end
+    reg_corner = lambda(ireg_corner);
 end
 % % fit it in 5th order polynomial - fitting with polynomial is dangerous!
 % f = fit(x(numCutPoints+1:end), y(numCutPoints+1:end),  'poly5');
@@ -142,5 +155,4 @@ end
 % find a positive peak in curvature (diff based, discrete)
 
 
-reg_corner = lambda(ireg_corner);
 

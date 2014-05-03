@@ -78,13 +78,6 @@ elseif strcmp(sol_mats.tool,'1NormReg')
     tolx = sol_mats.tolx;
     tolr = sol_mats.tolr;
     sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
-elseif strcmp(sol_mats.tool,'FTL1')
-    E=sol_mats.E;
-    L=sol_mats.L;
-    maxIter = sol_mats.maxIter;
-    tolx = sol_mats.tolx;
-    tolr = sol_mats.tolr;
-    sol_coef = FTL1(forceMesh,x,y,ux,uy,E,L,maxIter,tolx,tolr);
 elseif strcmpi(sol_mats.tool,'1NormRegLaplacian')
     % Now, perform the sparse deconvolution.
     Lap = sol_mats.Lap;
