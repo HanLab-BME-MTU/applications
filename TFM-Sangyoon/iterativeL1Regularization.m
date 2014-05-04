@@ -28,7 +28,7 @@ end
 GTd=G'*d;
 % Start with an initial unweighted solution.
 iter=1;
-display(['L1 Norm regularization (iteration:' num2str(iter) ')'])
+display(['L1 Norm regularization (iteration:' num2str(iter) ')....'])
 tic
 m=(2*GTG+alpha*(L'*L))\(2*G'*d);
 toc
@@ -65,11 +65,11 @@ while (iter < maxiter)
   tic
   m=(2*GTG+alpha*L'*R*L)\(2*GTd);
   toc
-  display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
-      num2str(norm(m-mold)/(1+norm(mold)))])
 
   if (norm(m-mold)/(1+norm(mold)) < tolx) || norm(m-mold)<m_diff
     mreg=m;
+    display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
+      num2str(norm(m-mold)/(1+norm(mold)))])
     return
   end
 end

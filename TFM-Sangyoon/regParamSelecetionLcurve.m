@@ -63,6 +63,8 @@ end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
 % find an index at kappa = 0 before maxKappaIdx
 ireg_corner= numCutPoints+maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+reg_corner = lambda(ireg_corner);
+disp(['Initial L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 
 % poly-fit version
 p=polyfit(maxKappaIdx-5:maxKappaIdx+5,kappa(maxKappaIdx-5:maxKappaIdx+5)',2);
@@ -70,6 +72,7 @@ if p(1)<0
     ireg_corner = -p(2)/(2*p(1));
     q=polyfit(maxKappaIdx-5:maxKappaIdx+5,lambda(maxKappaIdx-5:maxKappaIdx+5),1);
     reg_corner = polyval(q,ireg_corner);
+    disp(['Sub-knot resolution L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 else
     disp('The corner''''s L-corner does not have positive curvature')
     reg_corner = lambda(ireg_corner);

@@ -182,8 +182,6 @@ if nargin >= 10 && strcmp(method,'fast')
             sol_mats.R=R;
             sol_mats.L=L;
         end            
-        
-%         sol_mats.eyeWeights=eyeWeights;        
         sol_mats.tool='QR';
     elseif strcmpi(solMethodBEM,'LaplacianReg')
         % second order tikhonov regularization (including diagonal)
@@ -205,7 +203,7 @@ if nargin >= 10 && strcmp(method,'fast')
 
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
-        tolx =  sqrt(forceMesh.numBasis)*1e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        tolx =  sqrt(forceMesh.numBasis)*5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         MpM=M'*M;
@@ -524,19 +522,31 @@ xlabel('Residual Norm ||Gm-d||_{2}');
 ylabel('Solution Norm ||m||_{1}');
 hold on
 % mark and label the corner
-H=loglog(rho(ireg_corner),eta(ireg_corner),'ro');
+if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+    rho_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
+    eta_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
+else
+    rho_corner = rho(ireg_corner);
+    eta_corner = rho(ireg_corner);
+end    
+H=loglog(rho_corner,eta_corner,'ro');
 set(H,'markersize',6)
-H=text(rho(ireg_corner),1.1*eta(ireg_corner),...
-    ['    ',num2str(alphas(ireg_corner),'%5.1e')]);
+H=text(rho_corner,1.1*eta_corner,...
+    ['    ',num2str(reg_corner,'%5.1e')]);
 set(H,'Fontsize',7);
 % axis([1e-2 100 0.001 1e8])
 disp('Displaying the 1-norm L-curve')
 % print -deps2 nameSave
 print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
 saveas(hLcurve,LcurveFigPath);
-save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
+save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','rho_corner','eta_corner','msparse','-v7.3');
 
-sol_coef = msparse(:,ireg_corner);
+if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+    disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])
+    sol_coef=iterativeL1Regularization(M,MpM,u,eyeWeights,reg_corner,maxIter,tolx,tolr);
+else
+    sol_coef = msparse(:,ireg_corner);
+end
 
 function [sol_coef,reg_corner] = calculateLfromLcurveSparseFT(grid_mat, iu_mat, E,pRatio, pixSize_um, gridSpacing,i_max, j_max, L,maxIter,tolx,tolr)
 %examine a logarithmically spaced range of regularization parameters
