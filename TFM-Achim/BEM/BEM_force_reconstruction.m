@@ -524,7 +524,7 @@ hold on
 % mark and label the corner
 if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     rho_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
-    eta_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
+    eta_corner = eta(floor(ireg_corner))+mod(ireg_corner,1)*(eta(floor(ireg_corner)+1)-eta(floor(ireg_corner)));
 else
     rho_corner = rho(ireg_corner);
     eta_corner = rho(ireg_corner);
