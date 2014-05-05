@@ -105,6 +105,10 @@ for ii=1:nFrames
 
     maskOnlyBand = bandMask & mask;
     paxImageCropped=MD.channels_(1).loadImage(ii); 
+    % size of the region of interest
+    if ii==1
+        [imSizeY,imSizeX] = size(paxImageCropped);
+    end
 
     % filter tracks with naMasks
     disp(['Processing ' num2str(ii) 'th frame out of ' num2str(nFrames) ' total frames...'])
@@ -208,15 +212,15 @@ for ii=1:nFrames
         minPax = min(paxImageCroppedInverted(:));
         maxPax = max(paxImageCroppedInverted(:));
 
-        if ii==1
-            minPax1 = 1*minPax;
-            minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
-            hPaxTemp = figure;
-            subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
-            subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
-            minPax = input('type desired minPax for maximum of the image: ');
-            close(hPaxTemp);
-        end        
+%         if ii==1
+%             minPax1 = 1*minPax;
+%             minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
+%             hPaxTemp = figure;
+%             subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
+%             subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
+%             minPax = input('type desired minPax for maximum of the image: ');
+%             close(hPaxTemp);
+%         end        
         imshow(paxImageCroppedInverted,[minPax maxPax]), hold on
         line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
         
@@ -251,7 +255,6 @@ for ii=1:nFrames
                 end
             end
         end
-        syFigureStyle(h2,gca,2);
 
         print('-depsc2', '-r300', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
         print('-dtiff', '-r300', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));

@@ -27,7 +27,7 @@ function [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion(pathForTheMo
 %         meanLength            mean length of FAs;
 %         medianLength          median length of FAs;
 
-% Example: detectMovieNascentAdhesion('/some path/Nadia/WT',8)
+% Example:  [nascentAdhInfo,focalAdhInfo] = detectMovieNascentAdhesion('/some path/Nadia/WT',8)
 % Sangyoon Han
 % Last updated April 2014
 %% ----------- Input ----------- %%
