@@ -256,8 +256,8 @@ for ii=1:nFrames
             end
         end
 
-        print('-depsc2', '-r300', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
-        print('-dtiff', '-r300', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
+        print(h2, '-depsc2', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
+        print(h2, '-dtiff', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
     %     hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
         close(h2)
