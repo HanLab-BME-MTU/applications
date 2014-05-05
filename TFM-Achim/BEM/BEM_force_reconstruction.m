@@ -224,39 +224,6 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.tolx = tolx;
         sol_mats.tolr = tolr;
         sol_mats.tool='1NormReg';
-    elseif strcmpi(solMethodBEM,'FTL1')
-        % L1 regularization using fourier transform
-        disp('L1 regularization using fourier transform...')
-
-%         [eyeWeights,~] =getGramMatrix(forceMesh);
-%         % plot the solution for the corner
-%         MpM=M'*M;
-        maxIter = 50;
-        tolx = 1e-2;
-        tolr = 1e-7;
-%         reg_grid(:,:,1) = reshape(forceMesh.p(:,1),sum(forceMesh.p(:,1)==forceMesh.p(1,1)),sum(forceMesh.p(:,2)==forceMesh.p(1,2)));
-%         reg_grid(:,:,2) = reshape(forceMesh.p(:,2),sum(forceMesh.p(:,1)==forceMesh.p(1,1)),sum(forceMesh.p(:,2)==forceMesh.p(1,2)));
-%         
-%         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid([x,y], [ux,uy],[],reg_grid);
-%         pRatio = 0.5;
-%         pixSize_um = 69/1000; % this doesn't matter
-%         gridSpacing = forceMesh.p(2,2)-forceMesh.p(1,2);
-        
-        if useLcurve
-            disp('L-curve ...')
-            [sol_coef,L] = calculateLfromLcurveSparseFT(grid_mat, iu_mat, E,...
-                pRatio, pixSize_um, gridSpacing,...
-                i_max, j_max, L,maxIter,tolx,tolr); 
-        else
-            sol_coef = FTL1(forceMesh,x,y,ux,uy,E,L,maxIter,tolx,tolr);
-        end
-%         sol_mats.nW=normWeights;
-        sol_mats.L=L;
-        sol_mats.E = E;
-        sol_mats.maxIter = maxIter;
-        sol_mats.tolx = tolx;
-        sol_mats.tolr = tolr;
-        sol_mats.tool='FTL1';
     elseif strcmpi(solMethodBEM,'1NormRegLaplacian')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution with laplacian')
@@ -451,10 +418,17 @@ xlabel('Residual Norm ||Gm-d||_{2}');
 ylabel('Solution Norm ||Lm||_{2}');
 hold on
 % mark and label the corner
-H=loglog(rho(ireg_corner),eta(ireg_corner),'ro');
+if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+    rho_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
+    eta_corner = eta(floor(ireg_corner))+mod(ireg_corner,1)*(eta(floor(ireg_corner)+1)-eta(floor(ireg_corner)));
+else
+    rho_corner = rho(ireg_corner);
+    eta_corner = eta(ireg_corner);
+end    
+H=loglog(rho_corner,eta_corner,'ro');
 set(H,'markersize',6)
-H=text(rho(ireg_corner),1.1*eta(ireg_corner),...
-    ['    ',num2str(alphas(ireg_corner),'%5.1e')]);
+H=text(rho_corner,1.1*eta_corner,...
+    ['    ',num2str(reg_corner,'%5.1e')]);
 set(H,'Fontsize',7);
 % axis([1e-2 100 0.001 1e8])
 disp('Printing L-curve...')
@@ -464,7 +438,12 @@ saveas(hLcurve,LcurveFigPath);
 
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
-sol_coef = mtik(:,ireg_corner);
+if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+    disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])
+    sol_coef=(MpM+reg_corner*eyeWeights)\(M'*u);
+else
+    sol_coef = mtik(:,ireg_corner);
+end
 
 %old code
 % display('Calculating L-curve ...')
@@ -527,7 +506,7 @@ if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     eta_corner = eta(floor(ireg_corner))+mod(ireg_corner,1)*(eta(floor(ireg_corner)+1)-eta(floor(ireg_corner)));
 else
     rho_corner = rho(ireg_corner);
-    eta_corner = rho(ireg_corner);
+    eta_corner = eta(ireg_corner);
 end    
 H=loglog(rho_corner,eta_corner,'ro');
 set(H,'markersize',6)
@@ -548,45 +527,4 @@ else
     sol_coef = msparse(:,ireg_corner);
 end
 
-function [sol_coef,reg_corner] = calculateLfromLcurveSparseFT(grid_mat, iu_mat, E,pRatio, pixSize_um, gridSpacing,i_max, j_max, L,maxIter,tolx,tolr)
-%examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:0.125:log10(L)+2);
-rho=zeros(length(alphas),1);
-eta=zeros(length(alphas),1);
-msparse=zeros(size(M,2),length(alphas));
-for i=1:length(alphas);
-    disp(['testing L = ' num2str(alphas(i)) '... '])
-    msparse(:,i)=FTL1(grid_mat, iu_mat, E,...
-                pRatio, pixSize_um, gridSpacing,...
-                i_max, j_max, L,maxIter,tolx,tolr); 
-    rho(i)=norm(M*msparse(:,i)-u);
-    eta(i)=norm(msparse(:,i),1);
-end
-
-% Find the corner of the Tikhonov L-curve
-% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
-
-% Plot the sparse deconvolution L-curve.
-hLcurve = figure;
-set(hLcurve, 'Position', [100 100 500 500])
-
-loglog(rho,eta,'k-');
-xlabel('Residual Norm ||Gm-d||_{2}');
-ylabel('Solution Norm ||m||_{1}');
-hold on
-% mark and label the corner
-H=loglog(rho(ireg_corner),eta(ireg_corner),'ro');
-set(H,'markersize',6)
-H=text(rho(ireg_corner),1.1*eta(ireg_corner),...
-    ['    ',num2str(alphas(ireg_corner),'%5.1e')]);
-set(H,'Fontsize',7);
-% axis([1e-2 100 0.001 1e8])
-disp('Displaying the 1-norm L-curve')
-% print -deps2 nameSave
-print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
-saveas(hLcurve,LcurveFigPath);
-save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','msparse','-v7.3');
-
-sol_coef = msparse(:,ireg_corner);
 

@@ -149,7 +149,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.PoissonRatio = .5;
             funParams.method = 'FastBEM';
             funParams.meshPtsFwdSol = 4096;
-            funParams.regParam=1e-7;
+            funParams.regParam=1e-4;
             funParams.solMethodBEM='1NormReg';
             funParams.basisClassTblPath='';
             funParams.LcurveFactor=10;
