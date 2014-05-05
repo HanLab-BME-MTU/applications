@@ -72,14 +72,13 @@ jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
 minSize = round((600/movieData.pixelSize_)*(400/movieData.pixelSize_)); %adhesion limit=1um*.5um
 
-for i = 1:nChan
-    disp(['Please wait, detecting objects for channel ' num2str(i)])
+iPax = 1; %assumed
+    disp(['Paxillin channel was assumed to be in channel ' num2str(iPax) '.'])
     disp('Results will be saved under:')
     disp(outputFilePath);
     
-    progressText(0,'Detecting isotropic Gaussians');
     for j=1:movieData.nFrames_
-        I=double(movieData.channels_(i).loadImage(j));
+        I=double(movieData.channels_(iPax).loadImage(j));
         maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
         mask = maskProc.loadChannelOutput(1,j);
 %         maskProc = movieData.processes_{2};
@@ -139,7 +138,6 @@ for i = 1:nChan
         disp(['detected ' num2str(length(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) 'focal adhesions for ' num2str(j) 'th frame.'])
     end
     save([dataPath filesep 'AdhInfo.mat'],'nascentAdhInfo','focalAdhInfo','-v7.3');
-end
 
 disp('Finished detecting objects...')
 
