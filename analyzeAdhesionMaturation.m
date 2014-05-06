@@ -16,6 +16,14 @@ function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,
 %           lifeTimeNAmaturing,            lifetime of all maturing NAs until their final turn-over
 %           maturingRatio,            ratio of maturing NAs w.r.t. all NA tracks 
 
+% status of each track
+%           BA,          Before Adhesion
+%           NA,          Nascent Adhesion
+%           FC,            Focal Contact
+%           FA,            Focal Adhesion
+%           ANA,           After Nascent Adhesion
+%           Out_of_Band,            Out of band from the cell edge
+
 % Sangyoon Han April 2014
 
 %% Data Set up
@@ -374,7 +382,12 @@ if plotEachTrack
                     sigmaFirst = trNAonly(k).sigma(iSF);
                 end
             end
-            imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1),colormap(ha1,'gray');freezeColors; hold(ha1,'on')
+            if isempty(ha1)
+                imshow(imcomplement(paxImageCropped2),[pmin pmax]),hold on
+                ha1 = get(h2,'CurrentAxes');
+            else
+                imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1);freezeColors; hold(ha1,'on')
+            end
             if strcmp(trNAonly(k).state{j} , 'BA')
                 % drawing tracks
                 plot(ha1,xFirst-xminROI,yFirst-yminROI,'g', 'LineWidth', 0.5)
@@ -449,7 +462,12 @@ if plotEachTrack
                     
                     paxImageCropped2 = paxImageCropped(yminROI:ymaxROI,xminROI:xmaxROI);
                     ha1 = get(h2,'CurrentAxes');%subplot('position',[0  0.5  1  0.5]);
-                    imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1),colormap(ha1,'gray');freezeColors; hold(ha1,'on')
+                    if isempty(ha1)
+                        imshow(imcomplement(paxImageCropped2),[pmin pmax]),hold on
+                        ha1 = get(h2,'CurrentAxes');
+                    else
+                        imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1);freezeColors; hold(ha1,'on')
+                    end
                     if strcmp(trNAonly(k).state{fend} , 'NA')
                         % drawing tracks
                         plot(ha1,trNAonly(k).xCoord(1:j)-xminROI,trNAonly(k).yCoord(1:j)-yminROI,'r', 'LineWidth', 0.5)
