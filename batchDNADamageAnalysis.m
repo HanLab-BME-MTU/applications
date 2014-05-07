@@ -7,62 +7,63 @@ fclose all;
 %                         PARAMETERS
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    projectRootDir = '/home/drc16/intravital/CellCycleAnalysis';
-    projectRootDirScratch = '/hms/scratch1/drc16/intravital/CellCycleAnalysis';
+    projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
+    projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
+
+    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
+    projectRootDirScratch = 'Z:\intravital\DNADamageAnalysis';
     
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
-    % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDirScratch, 'results', 'batchAnalysis_322_M15');
+     % specify where do you want the results to be stored?
+    resultsRootDir = fullfile(projectRootDirScratch, 'results', 'batchAnalysis_M14_to_M17');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
                                        'train_M04_M09_M12', ...
                                        'regionMerging.model' );                                      
-                                   
-    % specify the path to the cell cycle state idenfitification model
-    cellCycleModelFile = fullfile( projectRootDir, 'models', 'cellCycleClassification', ...
-                                   'train_M04_M09_M12', ...
-                                   'G1_S_G2_M.model' );
     
     % specify the path to the inventory file created in microsoft excel
     % each row of this file corresponds to one dataset 
     % it must contain columns containing: 
-    % - path to file (*.oif, *.oib) containing the nuclear marker data
-    % - path to file (*.oif, *.oib) containing the fucci cell cycle reporter
+    % - realtive path to file (*.oif, *.oib) containing the image data
     % - mouse ID
-    % - grid position indicating the locating of the tumor image
+    % - 53BP1 channel index
     %
-    % in addition the inventory file can contain any columns that you want
-    % to be passed on to the result file outputed
-    inventoryFile = fullfile( resultsRootDir, 'analysis_file_for_batch_binned.xlsx' );
-    
-    nuclearMarkerFileColumnName = 'nuclear file'; 
-    fucciFileColumnName = 'fucci file';
-    mouseIDColumnName = 'Mouse';
-    gridLocationColumnName = 'grid position';
-    dataRootPrefix = 'Z:\intravital\data'; % to calculcate the relative path to result dir of each dataset
-    defaultVoxelSpacing = [0.497, 0.497, 2]; % use this if metadata is missing or corrupted
+    % In addition the inventory file can contain any columns that you want
+    % to be passed on to the result files outputed by the analysis scripts
+    inventoryFile = fullfile( resultsRootDir, 'inventory_file.xlsx' );
+
+    colName_RelImageFilePath = 'RelImageFilePath';
+    colName_MouseId = 'MouseId';
+    colName_53BP1ChannelId = '53BP1ChannelId';
+    dataRootPrefix = ''; % to calculcate the relative path to result dir of each dataset
     
     % run mode
     % testSingle - test run the analysis on a single dataset
-    % testDeployAsJobs - test deploying the analysis a small set of data the cluster
-    % deployAsJobs - deploy the analysis onto the cluster
+    % testDeploy - test deploying the analysis a small set of data the cluster
+    % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
-    runModeOptions = {'testSingle', 'testDeployAsJobs', 'deployAsJobs', 'collect'};
-    runMode = 3;
+    runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
+    runMode = 1;
+    
+    % Do you want to save images?
+    flagSaveImages = true;
     
     % specify cluster resource requirements and submission queue
     numCoresRequested = [];
-    memoryAmountInMB = 8 * 2^10; % ~8000 MB 
+    memoryAmountInMB = 8 * 2^10; % ~8000MB
     strSubmissionQueue = 'danuser_12h';
     
     % specify if you want to process specific files that failed earlier
-    % empty recommended. Should have a very good reason to specify this
+    % empty recommended. Should have a very good reason to specify this.
+    % I use this if a small number of nodes of the cluster failed for 
+    % some external reason while running the requested batch job.
     fidRequestedAnalysisList = []; 
     
     flagCollectResultFilesAfterAnalysis = true;
+    resultFileList = {'stackAnalysisInfo.csv', 'cellAnalysisInfo.csv', 'fociAnalysisInfo.csv'};
     
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -76,18 +77,13 @@ inventoryFileHeader = (rawData(1,:));
 
 inventoryFileHeader'
 
-% get the list of histone and fucci files and other columns needed
-nuclearMarkerColumnId = find( strcmpi(inventoryFileHeader, nuclearMarkerFileColumnName) )
-rawData(2:end, nuclearMarkerColumnId) = strtrim( strrep( strrep(rawData(2:end, nuclearMarkerColumnId), dataRootPrefix, ''), '\', '/') );
+% get the list of image data files and other columns needed
+colId_RelImageFilePath = find( strcmpi(inventoryFileHeader, colName_RelImageFilePath) )
+rawData(2:end, colId_RelImageFilePath) = strtrim( strrep( strrep(rawData(2:end, colId_RelImageFilePath), dataRootPrefix, ''), '\', '/') );
+colId_Mouse = find( strcmpi(inventoryFileHeader, colName_MouseId) )
+colId_53BP1ChannelId = find( strcmpi(inventoryFileHeader, colName_53BP1ChannelId) )
 
-fucciColumnId = find( strcmpi(inventoryFileHeader, fucciFileColumnName) )
-rawData(2:end, fucciColumnId) = strtrim( strrep( strrep(rawData(2:end, fucciColumnId), dataRootPrefix, ''), '\', '/' ) );
-
-mouseColumnId = find( strcmpi(inventoryFileHeader, mouseIDColumnName) )
-gridLocationColumnId = find( strcmpi(inventoryFileHeader, gridLocationColumnName) )
-rawData(2:end, gridLocationColumnId) = strtrim( rawData(2:end, gridLocationColumnId) );
-
-metaDataColumnIdList = setdiff(1:size(rawData,2), [nuclearMarkerColumnId, fucciColumnId]);
+metaDataColumnIdList = 1:size(rawData,2);
 metaDataHeader = inventoryFileHeader( metaDataColumnIdList );
 
 rawData = rawData(2:end,:);
@@ -105,34 +101,32 @@ switch strRunMode
         fid = 1;
         curResultsRootDir = fullfile(resultsRootDir, 'testSingle');
         
-        curNuclearMarkerFilePath = fullfile(dataRootDir, rawData{fid, nuclearMarkerColumnId});
-        [pname, curNuclearMarkerFileName, fext] = fileparts( curNuclearMarkerFilePath );
+        curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
+        [pname, curImageFileName, fext] = fileparts( curImageFilePath );
         
-        curFucciFilePath = fullfile(dataRootDir, rawData{fid, fucciColumnId});
-
-        curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, mouseColumnId} );
-        curStrGridLocation = rawData{fid, gridLocationColumnId};
-        curNuclearMarkerFileName
-        curOutDir = fullfile(curResultsRootDir, curStrMouseID, curStrGridLocation, curNuclearMarkerFileName)        
+        curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
+        cur53BP1ChannelId = rawData{fid, colId_53BP1ChannelId};
+        
+        curImageFileName
+        
+        curOutDir = fullfile(curResultsRootDir, curStrMouseID, curImageFileName)        
         
         curMetaInfoStruct.header = metaDataHeader;
         curMetaInfoStruct.data = rawData(fid, metaDataColumnIdList);
         
-        flagSuccess = performCellCycleAnalysis( curNuclearMarkerFilePath, curFucciFilePath, ...
-                                                regionMergingModelFile, cellCycleModelFile, curOutDir, ...
-                                                'defaultVoxelSpacing', defaultVoxelSpacing, ...
-                                                'metaInfoStruct', curMetaInfoStruct, ... 
-                                                'flagSaveImages', true );
+        flagSuccess = performDNADamageAnalysis( curImageFilePath, cur53BP1ChannelId, ...
+                                                regionMergingModelFile, curOutDir, ...
+                                                'metaInfoStruct', curMetaInfoStruct);
 
         if ~flagSuccess
             error( 'Analysis Failed' );
         end
         
-    case { 'testDeployAsJobs', 'deployAsJobs'}        
+    case { 'testDeploy', 'deploy'}        
 
         PrettyPrintStepDescription( 'Deploying jobs onto the cluster' );
         
-        if strcmp(runModeOptions{runMode}, 'testDeployAsJobs')
+        if strcmp(runModeOptions{runMode}, 'testDeploy')
             numFiles = 3;
             curResultsRootDir = fullfile(resultsRootDir, 'testDeploy');            
         else
@@ -148,7 +142,7 @@ switch strRunMode
         end        
         
         % prepare a list of file IDs to be analyzed
-        if strcmp(runModeOptions{runMode}, 'testDeployAsJobs') || isempty( fidRequestedAnalysisList )
+        if strcmp(runModeOptions{runMode}, 'testDeploy') || isempty( fidRequestedAnalysisList )
             fidAnalysisList = 1:numFiles;
         else
             if any( fidRequestedAnalysisList < 1 | fidRequestedAnalysisList > numFiles )
@@ -189,34 +183,32 @@ switch strRunMode
         
         for fid = fidAnalysisList
 
-            curNuclearMarkerFilePath = fullfile(dataRootDir, rawData{fid, nuclearMarkerColumnId});
-            [pname, curNuclearMarkerFileName, fext] = fileparts( curNuclearMarkerFilePath );
+            curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
+            [pname, curImageFileName, fext] = fileparts( curImageFilePath );
 
-            curFucciFilePath = fullfile(dataRootDir, rawData{fid, fucciColumnId});
-
-            curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, mouseColumnId} );
-            curStrGridLocation = rawData{fid, gridLocationColumnId};
-
-            fprintf( '\n%.3d/%.3d: M%.2d -- %s -- %s \n', fid, numFiles, ...
-                     rawData{fid, mouseColumnId}, curStrGridLocation, curNuclearMarkerFileName );            
+            curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
+            cur53BP1ChannelId = rawData{fid, colId_53BP1ChannelId};
             
-            curOutDir = fullfile(curResultsRootDir, curStrMouseID, curStrGridLocation, curNuclearMarkerFileName);
+            fprintf( '\n%.3d/%.3d: M%.2d -- %s \n', fid, numFiles, ...
+                     rawData{fid, colId_Mouse}, curImageFileName );            
+            
+            curOutDir = fullfile(curResultsRootDir, curStrMouseID, curImageFileName);
 
             curMetaInfoStruct.header = metaDataHeader;
             curMetaInfoStruct.data = rawData(fid, metaDataColumnIdList);
 
             curFinishStatusReportFile = fullfile(statusOutDir, num2str(fid));
             
-            funcArgs = { curNuclearMarkerFilePath, curFucciFilePath, ...
-                         regionMergingModelFile, cellCycleModelFile, curOutDir, ...
-                         'defaultVoxelSpacing', defaultVoxelSpacing, ...
+            funcArgs = { curImageFilePath, cur53BP1ChannelId, ...
+                         regionMergingModelFile, curOutDir, ...
                          'metaInfoStruct', curMetaInfoStruct, ... 
                          'finishStatusReportFile', curFinishStatusReportFile, ...
                          'flagSaveImages', true, 'flagParallelize', false };
 
             jobList{fid} = createJob(jm);            
-            taskList{fid} = createTask(jobList{fid}, @performCellCycleAnalysis, 1, funcArgs, 'CaptureCommandWindowOutput', true );
-	    submit(jobList{fid});
+            taskList{fid} = createTask(jobList{fid}, @performDNADamageAnalysis, 1, funcArgs, 'CaptureCommandWindowOutput', true );
+            
+            submit(jobList{fid});
             
         end
 
@@ -252,12 +244,11 @@ switch strRunMode
 
         for fid = fidAnalysisList
 
-            curNuclearMarkerFilePath = fullfile(dataRootDir, rawData{fid, nuclearMarkerColumnId});
-            [pname, curNuclearMarkerFileName, fext] = fileparts( curNuclearMarkerFilePath );
+            curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
+            [pname, curImageFileName, fext] = fileparts( curImageFilePath );
 
-            curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, mouseColumnId} );
-            curStrGridLocation = rawData{fid, gridLocationColumnId};
-            curOutDir = fullfile(curResultsRootDir, curStrMouseID, curStrGridLocation, curNuclearMarkerFileName);
+            curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
+            curOutDir = fullfile(curResultsRootDir, curStrMouseID, curImageFileName);
 
             curTaskOutput = get(taskList{fid}, 'OutputArguments');
 
@@ -267,8 +258,8 @@ switch strRunMode
 
             if ~flagTaskSuccess(fid)
 
-                fprintf( '\n>> Failed to process file %d/%d: %s\n', fid, numFiles, curNuclearMarkerFileName );
-                fprintf( fidFail, '\n>> Failed to process file %d/%d: %s\n', fid, numFiles, curNuclearMarkerFileName );
+                fprintf( '\n>> Failed to process file %d/%d: %s\n', fid, numFiles, curImageFileName );
+                fprintf( fidFail, '\n>> Failed to process file %d/%d: %s\n', fid, numFiles, curImageFileName );
                 
                 if isempty( taskList{fid}.pGetError() )
                     strErrorMessage = sprintf( 'Failed file due to unknown error.' );
@@ -285,7 +276,7 @@ switch strRunMode
                 
             end
             
-            fidLogFile = fopen( fullfile(curOutDir, 'performCellCycleAnalysis.log'), 'w' );
+            fidLogFile = fopen( fullfile(curOutDir, 'performDNADamageAnalysis.log'), 'w' );
             
             if fidLogFile > 0
                 
@@ -347,53 +338,68 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
     
     PrettyPrintStepDescription( 'Collecting result files' );
 
-    curResultsRootDir = fullfile(resultsRootDir, 'analysis');
+    if strcmp(strRunMode, 'collect')
+        curResultsRootDir = fullfile(resultsRootDir, 'analysis');
+    end
+    
     globalStackAnalysisFile = fullfile(curResultsRootDir, 'stackAnalysisInfo.csv');
     globalCellAnalysisFile = fullfile(curResultsRootDir, 'cellAnalysisInfo.csv');
+    globalFociAnalysisFile = fullfile(curResultsRootDir, 'fociAnalysisInfo.csv');
     fidResultCollection = fopen( fullfile(curResultsRootDir, 'resultFileCollection.log'), 'w' );
     
     fidAnalysisFileNotFound = [];
     
     for fid = 1:numFiles
 
-        curNuclearMarkerFilePath = fullfile(dataRootDir, rawData{fid, nuclearMarkerColumnId});
-        [pname, curNuclearMarkerFileName, fext] = fileparts( curNuclearMarkerFilePath );
+        curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
+        [pname, curImageFileName, fext] = fileparts( curImageFilePath );
 
-        fprintf( '\nCollecting analysis file %d/%d: %s\n', fid, numFiles, curNuclearMarkerFileName );
+        fprintf( '\nCollecting analysis file %d/%d: %s\n', fid, numFiles, curImageFileName );
 
-        curFucciFilePath = fullfile(dataRootDir, rawData{fid, fucciColumnId});
+        curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
 
-        curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, mouseColumnId} );
-        curStrGridLocation = rawData{fid, gridLocationColumnId};
+        curOutDir = fullfile(curResultsRootDir, curStrMouseID, curImageFileName);
 
-        curOutDir = fullfile(curResultsRootDir, curStrMouseID, curStrGridLocation, curNuclearMarkerFileName);
-
-        curStackFile = fullfile(curOutDir, 'stackAnalysisInfo.csv');
-        curCellFile = fullfile(curOutDir, 'cellAnalysisInfo.csv'); 
-
-        if ~exist(curStackFile, 'file') || ~exist(curCellFile, 'file')
+        % check if all result files are present
+        flagAllResultFilesFound = true;
+        for afid = 1:numel(resultFileList)
+        
+            curLocalAnalysisFile = fullfile(curOutDir, resultFileList{afid});
+            if ~exist(curLocalAnalysisFile, 'file')
+                fprintf('\n\tCould not find analysis file %s in the result output directory %s\n', ...
+                         resultFileList{afid}, curOutDir);
+                fprintf(fidResultCollection, '\nAnalysis file %s not found for dataset %d/%d: \n%s\n', ...
+                                             resultFileList{afid}, fid, numFiles, curImageFileName );
+                flagAllResultFilesFound = false;
+                fidAnalysisFileNotFound(end+1) = fid;
+                break;
+            end
             
-            fprintf( '\n\tUnable to find cell and stack analysis files\n' );
-            fprintf( fidResultCollection, '\nAnalysis files not found for dataset %d/%d: %s\n', fid, numFiles, curNuclearMarkerFileName );
-            fidAnalysisFileNotFound(end+1) = fid;
+        end
+        
+        if ~flagAllResultFilesFound
             continue;
         end
         
-        if fid == 1
-           copyfile( curStackFile, globalStackAnalysisFile, 'f');
-           copyfile( curCellFile, globalCellAnalysisFile, 'f');
-        else
-
-            AppendTwoFeatureFiles(globalStackAnalysisFile, curStackFile);
-            AppendTwoFeatureFiles(globalCellAnalysisFile, curCellFile);
-
+        % append to global file
+        for afid = 1:numel(resultFileList)
+            
+            curLocalAnalysisFile = fullfile(curOutDir, resultFileList{afid});
+            curGlobalAnalysisFile = fullfile(curResultsRootDir, resultFileList{afid});
+            
+            if fid == 1
+               copyfile(curLocalAnalysisFile, curGlobalAnalysisFile, 'f');
+            else
+                AppendTwoFeatureFiles(curGlobalAnalysisFile, curLocalAnalysisFile);
+            end
+            
         end
-
+        
     end     
     
     if ~isempty(fidAnalysisFileNotFound)
         
-        fprintf( '\nUnable to find cell and stack analysis for the following %d datasets:\n\n[%s]\n', ...
+        fprintf( '\nUnable to find all analysis result files for the following %d datasets:\n\n[%s]\n', ...
                  numel(fidAnalysisFileNotFound) , sprintf(' %d ', fidAnalysisFileNotFound) );
 
         fprintf( fidResultCollection, '\nUnable to find cell and stack analysis for the following %d datasets:\n\n[%s]\n', ...
@@ -408,3 +414,4 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
     fclose(fidResultCollection);
     
 end
+

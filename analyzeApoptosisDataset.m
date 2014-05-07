@@ -254,7 +254,7 @@ surfaceQuality = 0.05;
             
             parfor obid = 1:curDetectionResult.numCells
                 imObjectMask = (curDetectionResult.imLabelCellSeg == obid);
-                curObjectGeometry{obid} = ImarisDataVisualizer.generateSurfaceFromMask(imObjectMask, tid, surfaceQuality);
+                curObjectGeometry{obid} = ImarisDataVisualizer.generateSurfaceFromMask(imObjectMask, 'timepoint', tid, 'surfaceQuality, 'surfaceQuality);
             end
         
             objectGeometry{tid} = curObjectGeometry;

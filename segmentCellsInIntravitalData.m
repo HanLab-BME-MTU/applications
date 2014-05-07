@@ -11,9 +11,10 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     
     p.addParamValue( 'thresholdingAlgorithm', ...
                      'MinErrorPoissonSliceBySliceLocal', ...
-                     @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', 'OtsuSliceBySliceLocal', 'MinErrorPoissonSliceBySliceLocal'}) ));
+                     @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', 'OtsuSliceBySliceLocal', 'MinErrorPoissonSliceBySliceLocal', 'BackgroudRemovalUsingMorphologicalOpening'}) ));
     p.addParamValue( 'localThresholdWindowRadiusPhysp', 30, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue( 'minLocalGlobalThresholdRatio', 0.6, @(x) (isnumeric(x) && isscalar(x)) );
+    p.addParamValue( 'minSignalToBackgroundRatio', 2.5, @(x) (isnumeric(x) && isscalar(x)) );
     
     p.addParamValue( 'seedPointDetectionAlgorithm', ...
                      'AdaptiveMultiscaleLoG', ...
@@ -71,8 +72,6 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     
     totalSegTimer = tic;
 
-    PARAMETERS
-    
     % standardize the image
     imInputStandardized = mat2gray( imInput ) * 4096;    
     
@@ -115,6 +114,13 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                                                                 'flagParallelize', flagParallelize );
 
                                                             
+        case 'BackgroudRemovalUsingMorphologicalOpening'
+            
+            krnlMax = streldisknd( round(0.5 * max(cellDiameterRange) ./ spacing(1:2)) ); 
+            imLocalBackground = imopen(imAdjusted, krnlMax);
+            imSignalToBackgroundRatio = imAdjusted ./ (eps + imLocalBackground);
+            imThresh = double(imSignalToBackgroundRatio >= PARAMETERS.minSignalToBackgroundRatio);
+            
         otherwise
             
             error( 'ERROR: invalid thresholding method' );
@@ -443,7 +449,9 @@ end
 function [imLabelCellSegProcessed] = PerformRegionMerging(imInput, imLabelCellSeg, imCellSeedPoints, wekaModelFile, spacing, flagDebugMode, flagParallelize)
 
     % load weka model file
+    import weka.*;
     import weka.core.*;    
+    import weka.core.SerializationHelper.*;
     wekaModel = weka.core.SerializationHelper.readAll( wekaModelFile );
     
     % compute basic cell properties 

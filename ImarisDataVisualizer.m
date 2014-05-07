@@ -2,67 +2,93 @@ classdef ImarisDataVisualizer
 
     methods (Access = public)
         
-        function this = ImarisDataVisualizer( videoInput, varargin )
+        function this = ImarisDataVisualizer( dataIn, varargin )
 
-            % default color map -- only 6 channels are defined
-            % if more than 6 channels then user should specify the displayColors 
-            cMap(1,:) = [1 0 0];
-            cMap(2,:) = [0 1 0];
-            cMap(3,:) = [0 0 1];
-            cMap(4,:) = [1 0 1];
-            cMap(5,:) = [0 1 1];
-            cMap(6,:) = [1 1 0];
-            
-            % get and validate input video argument
+            % get and validate input arguments
             p = inputParser;
-            p.addRequired( 'videoInput', @(x) (iscell(x) || (isnumeric(x) && ismember(ndims(x), [4,5]))) );
-            p.parse( videoInput );
-
-            if iscell(videoInput)                
-                
-                if isvector(videoInput)
-                    videoInput = cat(5, videoInput{:});
-                else                   
-                    im = cell(size(videoInput, 1), 1);
-                    for i = 1:size(videoInput, 1)
-                        im{i} = cat(4, videoInput{i,:});
-                    end
-                    im = cat(5, im{:});
-                    videoInput = im;
-                    clear im;
-                end
-                
-            end
-            
-            if ndims(videoInput) == 4
-               videoSize = size(videoInput);    
-               videoInput = reshape(videoInput, [videoSize(1:3), 1, videoSize(4)]);
-            end
-
-            videoSize = size(videoInput);
-            numTimePoints = videoSize(5);
-            numChannels = videoSize(4);
-
-            default_displayranges = zeros(numChannels,2);
-            for i = 1:numChannels
-               imCurChannel = videoInput(:,:,:,i,1);
-               default_displayranges(i,:) = double( [ min(imCurChannel(:)) max(imCurChannel(:)) ] );
-            end
-
-            % get and validate other optional input arguments if provided
+            p.CaseSensitive = false;
+            p.addRequired( 'videoInput', @(x) (iscell(x) || (isnumeric(x) && ismember(ndims(x), [3,4,5]))) );
+            p.addParamValue( 'format', '3DC', @(x) (ischar(x) && ismember(x, {'3DC', '3DT'})));
             p.addParamValue( 'spacing', ones(1,3), @(x) (isnumeric(x) && numel(x) == 3) );
             p.addParamValue( 'units', 'um', @(x) (ischar(x)) );
             p.addParamValue( 'voxelType', 'eTypeUInt16', @(x) (ischar(x) && ismember(x, {'eTypeUInt8', 'eTypeUInt16', 'eTypeFloat'})) );
-            p.addParamValue( 'displayColors', cMap(1:numChannels,:), @(x) ( isnumeric(x) && ndims(x) == 2 && size(x,2) == 3 && size(x,1) == numChannels ) );
-            p.addParamValue( 'displayRanges', default_displayranges, @(x) ( isnumeric(x) && ndims(x) == 2 && size(x,2) == 2 && size(x,1) == numChannels ) );
-            p.parse( videoInput, varargin{:} );
+            p.addParamValue( 'displayColors', [], @(x) ( isnumeric(x) && ndims(x) == 2 && size(x,2) == 3) );
+            p.addParamValue( 'displayRanges', [], @(x) ( isnumeric(x) && ndims(x) == 2 && size(x,2) == 2) );
+            p.parse( dataIn, varargin{:} );
+            
+            PARAMETERS = p.Results;
+            
+            if iscell(dataIn)                
+                
+                if isvector(dataIn)
+                    % Input is provided as a cell array. 
+                    % Assumed that each element of cell array corresponds to one time point
+                    dataIn = cat(5, dataIn{:});
+                else                   
+                    % Input is provided as a cell matrix. 
+                    % Assumed that each row of cell array corresponds to one time point
+                    % Assumed that each column corresponds to a channel 
+                    im = cell(size(dataIn, 1), 1);
+                    for i = 1:size(dataIn, 1)
+                        im{i} = cat(4, dataIn{i,:});
+                    end
+                    im = cat(5, im{:});
+                    dataIn = im;
+                    clear im;
+                end
 
-            PARAMETERS = p.Results;            
+                if ndims(dataIn) == 4
+                   videoSize = size(dataIn);    
+                   dataIn = reshape(dataIn, [videoSize(1:3), 1, videoSize(4)]);
+                end
+            else
+                if ndims(dataIn) == 4 && strcmpi(PARAMETERS.format, '3DT')
+                    videoSize = size(dataIn);    
+                    dataIn = reshape(dataIn, [videoSize(1:3), 1, videoSize(4)]);
+                end
+            end
+
+            videoSize = size(dataIn);
+            videoSize(numel(videoSize)+1:5) = 1;
+
+            numTimePoints = videoSize(5);
+            numChannels = videoSize(4);
+
             spacing = PARAMETERS.spacing;
-            displayColors = PARAMETERS.displayColors;
-            displayRanges = PARAMETERS.displayRanges;
             units = PARAMETERS.units;
             voxelType = PARAMETERS.voxelType;
+            
+            if isempty(PARAMETERS.displayRanges)
+                default_displayranges = zeros(numChannels,2);
+                for i = 1:numChannels
+                   imCurChannel = dataIn(:,:,:,i,1);
+                   default_displayranges(i,:) = double( [ min(imCurChannel(:)) max(imCurChannel(:)) ] );
+                end
+                displayRanges = default_displayranges;
+            else
+                displayRanges = PARAMETERS.displayRanges;
+            end
+
+            if isempty(PARAMETERS.displayColors)
+                
+                % default color map -- only 6 channels are defined
+                % if more than 6 channels then rest are assigned randomly
+                cMap(1,:) = [1 0 0];
+                cMap(2,:) = [0 1 0];
+                cMap(3,:) = [0 0 1];
+                cMap(4,:) = [1 0 1];
+                cMap(5,:) = [0 1 1];
+                cMap(6,:) = [1 1 0];
+                
+                if numChannels <= 6
+                    displayColors = cMap(1:numChannels,:);
+                else
+                    displayColors = [cMap; random('Uniform', 0.00001, 1, [numChannels-6, 3])];
+                end
+                
+            else
+                displayColors = PARAMETERS.displayColors;
+            end
             
             % initialization
             this.imarisApp = imarisStartNew(nargout==0);
@@ -86,7 +112,7 @@ classdef ImarisDataVisualizer
             for tid = 1:numTimePoints        
                 for cid = 1:numChannels 
 
-                    volData.SetDataVolume( this.typeCastVolume( permute(flipdim(videoInput(:,:,:,cid,tid), 1), [2,1,3]), voxelType ), cid-1, tid-1);        
+                    volData.SetDataVolume( this.typeCastVolume( permute(flipdim(dataIn(:,:,:,cid,tid), 1), [2,1,3]), voxelType ), cid-1, tid-1);        
                     volData.SetChannelColor( cid-1, displayColors(cid,1), displayColors(cid,2), displayColors(cid,3), 0.8 );
                     volData.SetChannelRange( cid-1, displayRanges(cid,1), displayRanges(cid,2) );
 
@@ -103,7 +129,7 @@ classdef ImarisDataVisualizer
             this.metadata.spacing = spacing;
             this.metadata.numTimePoints = numTimePoints;
             this.metadata.numChannels = numChannels;
-            this.metadata.volSize = size( videoInput(:,:,:,1,1) );
+            this.metadata.volSize = size( dataIn(:,:,:,1,1) );
             
         end
         
@@ -118,34 +144,32 @@ classdef ImarisDataVisualizer
             
         end
         
-        function AddSpots(this, spotLocations, spotTimes, hContainer, varargin )
-            
-            if ~exist( 'hContainer', 'var' )
-                hContainer = this.imarisApp.mSurpassScene;
-            end
-            
-            p = inputParser;
-            p.addRequired( 'spotLocations', @(x) (size(x,2) == 3) );
-            p.parse( spotLocations );
+        function AddSpots(this, spotLocations, spotTimes, varargin )
             
             numSpots = size(spotLocations, 1);
             
+            p = inputParser;
+            p.addRequired( 'spotLocations', @(x) (size(x,2) == 3) );
             p.addRequired( 'spotTimes', @(x) (isscalar(x) | (isvector(x) && numel(x) == numSpots)) );
             p.addParamValue( 'name', [], @ischar );
             p.addParamValue( 'color', random_color(), @(x) (isvector(x) && ismember(numel(x), [3,4])) );
             p.addParamValue( 'radii', 3 * min(this.metadata.spacing), @(x) (isscalar(x) | (isvector(x) && numel(x) == numSpots)) );
             p.addParamValue( 'trackEdges', [], @(x) ( (ischar(x) && stricmpi('consecutive')) && (ismatrix(x) && all(size(x) == [numSpots, 2]) && x(:) >= 1 && x(:) <= numSpots)) );
+            p.addParamValue( 'hContainer', this.imarisApp.mSurpassScene, @(x) ishandle(x));
             p.parse( spotLocations, spotTimes, varargin{:} );
             
             PARAMETERS = p.Results;
+            hContainer = PARAMETERS.hContainer;
             
             spotColor = PARAMETERS.color;
             if numel(spotColor) == 3
                 spotColor(4) = 0;
             end
             
+            spacing = this.metadata.spacing;
+            volSize = this.metadata.volSize;
+            
             % convert spot locations to physical space
-            spotLocations = curSpotObject.locations;
             spotLocations(:,2) = volSize(1) - spotLocations(:,2) + 1; % flip-y
             spotLocationsPhysp = (spotLocations - 1) .* repmat(spacing([2,1,3]), [numSpots, 1] );        
             
@@ -155,10 +179,10 @@ classdef ImarisDataVisualizer
             end
             
             % get spot radii
-            if isscalar(PARAMETERS.spotRadii)
-               spotRadii = repmat(PARAMETERS.spotRadii, numSpots, 1); 
+            if isscalar(PARAMETERS.radii)
+               spotRadii = repmat(PARAMETERS.radii, numSpots, 1); 
             else
-               spotRadii = PARAMETERS.spotRadii; 
+               spotRadii = PARAMETERS.radii; 
             end
             
             % create imaris spot object
@@ -167,7 +191,7 @@ classdef ImarisDataVisualizer
             imarisSpots.Set(spotLocationsPhysp, spotTimes, spotRadii);                
             
             % add track edges
-            if ~isempty(PARAMETERS.tracks)
+            if ~isempty(PARAMETERS.trackEdges)
                 
                if ischar(PARAMETERS.trackEdges)
                   trackEdges = ([0:numSpots-2; 1:numSpots-1])';  
@@ -274,11 +298,15 @@ classdef ImarisDataVisualizer
     
     methods (Static)
     
-        function [surfaceObj] = generateSurfaceFromMask(imObjectMask, timepoint, quality)
+        function [surfaceObj] = generateSurfaceFromMask(imObjectMask, varargin)
 
-            if ~exist( 'quality', 'var' )
-                quality = 1.0;
-            end
+            p = inputParser;
+            p.CaseSensitive = false;
+            p.addParamValue('timepoint', 1.0, @(x) isscalar(x) && isnumeric(x) && x > 0);
+            p.addParamValue('surfaceQuality', 1.0, @(x) isscalar(x) && isnumeric(x) && x > 0.0 && x <= 1.0);
+            p.parse( varargin{:} );
+            
+            PARAMETERS = p.Results;
             
             % crop the mask for better performance 
             pixcoord = ind2submat( size(imObjectMask), find(imObjectMask) );
@@ -293,7 +321,7 @@ classdef ImarisDataVisualizer
             
             % generate isosurface
             imMaskSmoothed = smooth3( padarray(imObjectMaskCropped, ones(1,3), 0) );            
-            surfaceObj = reducepatch( isosurface(imMaskSmoothed, 0.5), quality );
+            surfaceObj = reducepatch( isosurface(imMaskSmoothed, 0.5), PARAMETERS.surfaceQuality );
             surfaceObj.normals = isonormals( imMaskSmoothed, surfaceObj.vertices );
 
             % correct vertex positions by adding offset
@@ -302,9 +330,7 @@ classdef ImarisDataVisualizer
             surfaceObj.vertices(:,3) = cropind{3}(1) - 1 + surfaceObj.vertices(:,3);
             
             % set time point
-            if exist('timepoint', 'var')
-                surfaceObj.timepoint = timepoint;
-            end
+            surfaceObj.timepoint = PARAMETERS.timepoint;
             
         end
         

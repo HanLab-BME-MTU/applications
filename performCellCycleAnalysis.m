@@ -63,7 +63,7 @@ function [flagSuccess] = performCellCycleAnalysis(nuclearMarkerFilePath, fucciFi
     AddWekaClassesToPath();
 
     matlabpath
-    javaclasspath
+    javaclasspath('-dynamic')
     version -java
 
     if ~isempty(PARAMETERS.finishStatusReportFile)
@@ -372,7 +372,6 @@ function [flagSuccess] = performCellCycleAnalysis(nuclearMarkerFilePath, fucciFi
             cellInfoFeatureMatrix = {};
             
             fprintf( '\nProgress: \n' );
-
             last_percent_done = 0;
             numPrint = 0;
             
@@ -614,7 +613,7 @@ function [flagSuccess] = performCellCycleAnalysis(nuclearMarkerFilePath, fucciFi
 
         diaryFlush();
                                  
-        % write stack info
+        % write cell info
         fprintf( '\n>>Writing cell analysis csv file ... \n' );
 
         featureNameList = cat(2, stackFeatureNameList, cellInfoFeatureNameList );
@@ -626,11 +625,6 @@ function [flagSuccess] = performCellCycleAnalysis(nuclearMarkerFilePath, fucciFi
         % save analysis info in a mat file for inspection later
         save( fullfile(resultsDir, 'cellCycleAnalysisInfo.mat'), 'stackInfoStruct', 'cellInfoStruct', 'PARAMETERS', 'segAlgoParameters', 'regionMergingModelFile', 'cellCycleModelFile' );
 
-        if ~isempty(PARAMETERS.finishStatusReportFile)
-            fprintf( fidStatus, 'Analysis Succeeded' );
-            fclose(fidStatus);
-        end
-        
         % save mat file that can be loaded into the CellStateAnalzer tool
         analysisData.dataFilePath = {nuclearMarkerFilePath, fucciFilePath};
         analysisData.metadata = metadata;
@@ -654,11 +648,17 @@ function [flagSuccess] = performCellCycleAnalysis(nuclearMarkerFilePath, fucciFi
         analysisData.cellStats = cellStats;
         
         save( fullfile(resultsDir, 'CellStateAnalyzer.mat'), '-struct', 'analysisData' );
-        
-        % report success
-        flagSuccess = true;
-        fprintf( '\n\n---- Analysis Succeeded ---- \n\n' );
-        diary off;
+
+    % report success
+    flagSuccess = true;
+    fprintf( '\n\n---- Analysis Succeeded ---- \n\n' );
+    
+    if ~isempty(PARAMETERS.finishStatusReportFile)
+        fprintf( fidStatus, 'Analysis Succeeded' );
+        fclose(fidStatus);
+    end
+    
+    diary off;
         
 end
 

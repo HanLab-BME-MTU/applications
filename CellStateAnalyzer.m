@@ -22,7 +22,7 @@ function varargout = CellStateAnalyzer(varargin)
 
 % Edit the above text to modify the response to help CellStateAnalyzer
 
-% Last Modified by GUIDE v2.5 03-Apr-2014 12:49:54
+% Last Modified by GUIDE v2.5 15-Apr-2014 12:12:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -397,7 +397,7 @@ function RunAnalysis(hObject, handles)
 
     % run cell cycle state identification if requested
     if handles.parameters.classification.flagPerformCellCycleStateIdentification
-        PerformCellCycleStateIdentification(hObject, handles)
+        PerformCellCycleStateIdentification(hObject, handles);
     end
     
 % --------------------------------------------------------------------
@@ -2526,3 +2526,72 @@ function File_SetParametets_CellCycleStateIdentification_Callback(hObject, event
 
     % Update handles structure
     guidata(hObject, handles);
+
+
+% --- Executes on mouse press over figure background, over a disabled or
+% --- inactive control, or over an axes background.
+function CellStateAnalyzer_WindowButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to CellStateAnalyzer (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    % first check if data has been loaded
+    if ~handles.flagDataLoaded 
+        return;
+    end
+    
+    imsize = size(handles.data.imageData{1});
+    newCellSliceId = handles.dataDisplay.curCellSliceId;
+    
+    if IsMouseInsideAxes(handles.Axes_Global_XZ)
+        
+        viewId = 1; % y-slice
+        relMousePos = getRelativeMousePos(handles.Axes_Global_XZ);
+        pixelPos = floor(1 + imsize([2,3]) .* relMousePos);
+        newCellSliceId([2, 3]) = pixelPos;
+        
+    elseif IsMouseInsideAxes(handles.Axes_Global_YZ)
+        
+        viewId = 2; % x-slize
+        relMousePos = getRelativeMousePos(handles.Axes_Global_YZ);
+        pixelPos = fliplr(floor( 1 + imsize([3,1]) .* relMousePos ));
+        newCellSliceId([1, 3]) = pixelPos;
+        
+    elseif IsMouseInsideAxes(handles.Axes_Global_XY)
+        
+        viewId = 3; % z-slice
+        relMousePos = getRelativeMousePos(handles.Axes_Global_XY);
+        pixelPos = fliplr(floor( 1 + imsize([2,1]) .* relMousePos ));
+        newCellSliceId([1, 2]) = pixelPos;
+        
+    else
+        return;
+    end
+
+    % get cell id under mouse click
+    indViewSlicer = { ':', ':', ':' };
+    indViewSlicer{viewId} = handles.dataDisplay.curCellSliceId(viewId);
+    imCurLabelCellSeg = squeeze( handles.data.imLabelCellSeg( indViewSlicer{:} ) );
+
+    pixelPos = num2cell( pixelPos );
+    curCellId = imCurLabelCellSeg( pixelPos{:} );
+    handles.dataDisplay.curCellSliceId = newCellSliceId;
+    
+    if curCellId >= 1
+        
+        % set cell id
+        handles.dataDisplay.curCellId = imCurLabelCellSeg( pixelPos{:} );
+
+        % update cell pattern listbox
+        set(handles.ListboxCellPatternSelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
+    
+    end
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);

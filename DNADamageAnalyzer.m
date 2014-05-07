@@ -1,18 +1,18 @@
-function varargout = CellSegmentationQualityAnnotator(varargin)
-%CELLSEGMENTATIONQUALITYANNOTATOR M-file for CellSegmentationQualityAnnotator.fig
-%      CELLSEGMENTATIONQUALITYANNOTATOR, by itself, creates a new CELLSEGMENTATIONQUALITYANNOTATOR or raises the existing
+function varargout = DNADamageAnalyzer(varargin)
+%DNADAMAGEANALYZER M-file for DNADamageAnalyzer.fig
+%      DNADAMAGEANALYZER, by itself, creates a new DNADAMAGEANALYZER or raises the existing
 %      singleton*.
 %
-%      H = CELLSEGMENTATIONQUALITYANNOTATOR returns the handle to a new CELLSEGMENTATIONQUALITYANNOTATOR or the handle to
+%      H = DNADAMAGEANALYZER returns the handle to a new DNADAMAGEANALYZER or the handle to
 %      the existing singleton*.
 %
-%      CELLSEGMENTATIONQUALITYANNOTATOR('Property','Value',...) creates a new CELLSEGMENTATIONQUALITYANNOTATOR using the
+%      DNADAMAGEANALYZER('Property','Value',...) creates a new DNADAMAGEANALYZER using the
 %      given property value pairs. Unrecognized properties are passed via
-%      varargin to CellSegmentationQualityAnnotator_OpeningFcn.  This calling syntax produces a
+%      varargin to DNADamageAnalyzer_OpeningFcn.  This calling syntax produces a
 %      warning when there is an existing singleton*.
 %
-%      CELLSEGMENTATIONQUALITYANNOTATOR('CALLBACK') and CELLSEGMENTATIONQUALITYANNOTATOR('CALLBACK',hObject,...) call the
-%      local function named CALLBACK in CELLSEGMENTATIONQUALITYANNOTATOR.M with the given input
+%      DNADAMAGEANALYZER('CALLBACK') and DNADAMAGEANALYZER('CALLBACK',hObject,...) call the
+%      local function named CALLBACK in DNADAMAGEANALYZER.M with the given input
 %      arguments.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
@@ -20,16 +20,16 @@ function varargout = CellSegmentationQualityAnnotator(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help CellSegmentationQualityAnnotator
+% Edit the above text to modify the response to help DNADamageAnalyzer
 
-% Last Modified by GUIDE v2.5 15-Apr-2014 12:28:05
+% Last Modified by GUIDE v2.5 02-May-2014 16:10:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @CellSegmentationQualityAnnotator_OpeningFcn, ...
-                   'gui_OutputFcn',  @CellSegmentationQualityAnnotator_OutputFcn, ...
+                   'gui_OpeningFcn', @DNADamageAnalyzer_OpeningFcn, ...
+                   'gui_OutputFcn',  @DNADamageAnalyzer_OutputFcn, ...
                    'gui_LayoutFcn',  [], ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -43,8 +43,8 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-% --- Executes just before CellSegmentationQualityAnnotator is made visible.
-function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before DNADamageAnalyzer is made visible.
+function DNADamageAnalyzer_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -59,11 +59,11 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     p.parse( varargin{:} );    
     PARAMETERS = p.Results;
 
-    % Choose default command line output for CellSegmentationQualityAnnotator
+    % Choose default command line output for DNADamageAnalyzer
     handles.output = hObject;
 
     % make sure weka is in the path    
-    AddWekaClassesToPath()
+    AddWekaClassesToPath();
     
     % load history
     [pathstr, name, ext] = fileparts( mfilename( 'fullpath' ) );
@@ -79,12 +79,11 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     
     handles.flagDataLoaded = false;
     handles.flagUseLOG = get(handles.CheckboxGlobalLog, 'Value');
-    handles.flagShowGlobalSegMask = get(handles.CheckboxGlobalSegMask, 'Value');
+    handles.flagShowNucleiSegMask = get(handles.CheckboxNucleiSegMask, 'Value');
+    handles.flagShowNucleiSeedMask = get(handles.CheckboxNucleiSeedMask, 'Value');
+    handles.flagShowFociSegMask = get(handles.CheckboxFociSegMask,'Value');
     handles.flagShowCellBBox = get(handles.CheckboxCellBBox, 'Value');
 
-    handles.defaultCellPatternTypes = cellstr( get(handles.ListboxSegmentationQualitySelector, 'String') );
-    handles.data.cellPatternTypes = cellstr( get(handles.ListboxSegmentationQualitySelector, 'String') );
-    
     handles.imarisAppCellSeg = [];
     handles.imarisAppCellPattern = [];
     handles.imarisAppCellSegCropped = [];
@@ -115,16 +114,16 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     end
     
     % Set callbacks
-    set(handles.CellSegmentationQualityAnnotator, 'WindowScrollWheelFcn', @FnSliceScroll_Callback)
+    set(handles.DNADamageAnalyzer, 'WindowScrollWheelFcn', @FnSliceScroll_Callback)
 
     % Update handles structure
     guidata(hObject, handles);
 
-    % UIWAIT makes CellSegmentationQualityAnnotator wait for user response (see UIRESUME)
-    % uiwait(handles.CellSegmentationQualityAnnotator);
+    % UIWAIT makes DNADamageAnalyzer wait for user response (see UIRESUME)
+    % uiwait(handles.DNADamageAnalyzer);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = CellSegmentationQualityAnnotator_OutputFcn(hObject, eventdata, handles)
+function varargout = DNADamageAnalyzer_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -132,67 +131,6 @@ function varargout = CellSegmentationQualityAnnotator_OutputFcn(hObject, eventda
 
     % Get default command line output from handles structure
     varargout{1} = handles.output;
-
-% --- Executes on selection change in ListboxSegmentationQualitySelector.
-function ListboxSegmentationQualitySelector_Callback(hObject, eventdata, handles)
-% hObject    handle to ListboxSegmentationQualitySelector (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: contents = cellstr(get(hObject,'String')) returns ListboxSegmentationQualitySelector contents as cell array
-    %        contents{get(hObject,'Value')} returns selected item from ListboxSegmentationQualitySelector
-
-    curCellId = handles.dataDisplay.curCellId;
-    curCellStats = handles.data.cellStats( curCellId );
-    
-    % assigned selected pattern type to current cell    
-    selPatternId = get(hObject, 'Value');
-    curCellStats.cellPatternId = selPatternId;
-    curCellStats.cellPatternType = handles.data.cellPatternTypes{selPatternId};
-    
-    handles.data.cellStats(curCellId) = curCellStats;
-    
-    % if pattern type is not equal to 'None' remove it from the list of
-    % unannotated cells, if not add it to the list
-    if ~strcmpi( handles.data.cellPatternTypes{selPatternId}, 'None' )
-        handles.data.unannotatedCellList = setdiff( handles.data.unannotatedCellList, curCellId ); 
-    else
-        handles.data.unannotatedCellList = union( handles.data.unannotatedCellList, curCellId ); 
-    end
-
-    if isempty( handles.data.unannotatedCellList )
-        set( handles.ShowNextUnannotatedCell, 'Enable', 'off' );
-    else
-        set( handles.ShowNextUnannotatedCell, 'Enable', 'on' );
-    end
-    
-    % navigate to next cell automatically
-    handles.dataDisplay.curCellId = min( numel(handles.data.cellStats), handles.dataDisplay.curCellId + 1);
-    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
-
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
-    % Update handles structure
-    guidata(hObject, handles);
-    
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
-    % Update Cell Descriptors
-    UpdateCellDescriptors(handles);
-    
-% --- Executes during object creation, after setting all properties.
-function ListboxSegmentationQualitySelector_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ListboxSegmentationQualitySelector (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-    % Hint: listbox controls usually have a white background on Windows.
-    %       See ISPC and COMPUTER.
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-
 
 function CellCountDisplay_Callback(hObject, eventdata, handles)
 % hObject    handle to CellCountDisplay (see GCBO)
@@ -296,7 +234,7 @@ function File_Open_Callback(hObject, eventdata, handles)
     
     handles.data.metadata.channelColors = ones(1,3);
     
-    set( handles.CellSegmentationQualityAnnotator, 'Name', sprintf( 'Cell Nuclei Segmenter - %s', handles.data.dataFilePath ) );
+    set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', handles.data.dataFilePath ) );
     
     % pre-compute data needed for display
     handles = ComputeDisplayData( handles );
@@ -338,16 +276,17 @@ function RunAnalysis(hObject, handles)
     end
     
     [handles.data.imLabelCellSeg, ...
-     handles.data.imCellSeedPoints] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
-                                                                    handles.data.metadata.voxelSpacing, ...                                                                      
-                                                                    'flagParallelize', handles.parameters.flagParallelize, ...
-                                                                    'flagDebugMode', handles.parameters.flagDebugMode, ...
-                                                                    'cellDiameterRange', handles.parameters.cellDiameterRange, ...
-                                                                    'thresholdingAlgorithm', 'MinErrorPoissonSliceBySliceLocal', ...
-                                                                    'seedPointDetectionAlgorithm', handles.parameters.seedPointDetectionAlgorithm, ...
-                                                                    'minCellVolume', handles.parameters.minCellVolume, ...
-                                                                    'flagIgnoreCellsOnXYBorder', handles.parameters.flagIgnoreXYBorderCells, ...
-                                                                    'regionMergingModelFile', regionMergingModelFile);
+     handles.data.imCellSeedPoints, ...
+     handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
+                                                                      handles.data.metadata.voxelSpacing, ...                                                                      
+                                                                      'flagParallelize', handles.parameters.flagParallelize, ...
+                                                                      'flagDebugMode', handles.parameters.flagDebugMode, ...
+                                                                      'cellDiameterRange', handles.parameters.cellDiameterRange, ...
+                                                                      'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
+                                                                      'seedPointDetectionAlgorithm', handles.parameters.seedPointDetectionAlgorithm, ...
+                                                                      'minCellVolume', handles.parameters.minCellVolume, ...
+                                                                      'flagIgnoreCellsOnXYBorder', handles.parameters.flagIgnoreXYBorderCells, ...
+                                                                      'regionMergingModelFile', regionMergingModelFile);
 
     [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND(handles.data.imLabelCellSeg);
     handles.dataDisplay.imCellSeedPoints = imdilate( handles.data.imCellSeedPoints, ones(3,3,3) );
@@ -356,34 +295,16 @@ function RunAnalysis(hObject, handles)
     % compute properties of each cell
     handles.data.cellStats = ComputeCellProperties( handles );
     
-    % initialize annotation to none
-    for i = 1:numel(handles.data.cellStats)
-        
-        handles.data.cellStats(i).cellPatternId = 1; %Not Annotated
-        handles.data.cellStats(i).cellPatternType = handles.data.cellPatternTypes{1};
-    
-    end
-        
     % set current cell id to first cell
     handles.dataDisplay.curCellId = 1;
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
     
-    % add all cells to unannotated list
-    handles.data.unannotatedCellList = 1:numel(handles.data.cellStats);
-    set( handles.ShowNextUnannotatedCell, 'Enable', 'on' );
+    % Detect foci
+    PerformFociSegmenatation(hObject, handles);
     
     % close progress bar
     closeStatusDialog(hStatusDialog);
     
-    % Update handles structure
-    guidata(hObject, handles);
-   
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
-    % Update Cell Descriptors
-    UpdateCellDescriptors(handles);
-
 % --------------------------------------------------------------------
 function [cellStats] = ComputeCellProperties( handles )
 
@@ -441,6 +362,10 @@ function UpdateCellDisplay(handles)
     curCellBoundingBox = curCellStats.BoundingBox;
     curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
     
+    nucleiMaskAlpha = 0.2;
+    fociMaskAlpha = 0.6;
+    seedMaskAlpha = 0.6;
+    
     % display global cross section images  
     if handles.flagUseLOG               
         imGlobalXY = handles.dataDisplay.imageDataLOG{1}( :, :, curCellSliceId(3) );       
@@ -457,18 +382,43 @@ function UpdateCellDisplay(handles)
     imGlobalXZ = mat2gray(imGlobalXZ', displayrange(1,:) );
     imGlobalYZ = mat2gray(imGlobalYZ, displayrange(1,:) );
 
-    if handles.flagShowGlobalSegMask 
-        
-        imGlobalXYSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask( :, :, curCellSliceId(3), : ) );
-        
-        imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask(curCellSliceId(1), :, :, :) );
-        imGlobalXZSegMaskRGB = permute(imGlobalXZSegMaskRGB, [2,1,3] );
-        
-        imGlobalYZSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask(:, curCellSliceId(2), :, :) );
+    if handles.flagShowNucleiSegMask || handles.flagShowFociSegMask
 
-        imGlobalXYDisplay = genImageRGBMaskOverlay( imGlobalXY, imGlobalXYSegMaskRGB, 0.2 );
-        imGlobalXZDisplay = genImageRGBMaskOverlay( imGlobalXZ, imGlobalXZSegMaskRGB, 0.2 );
-        imGlobalYZDisplay = genImageRGBMaskOverlay( imGlobalYZ, imGlobalYZSegMaskRGB, 0.2 );
+        imGlobalXYMasks = {};
+        imGlobalXZMasks = {};
+        imGlobalYZMasks = {};
+    
+        maskAlphas = [];
+        
+        if handles.flagShowNucleiSegMask
+            
+            imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask( :, :, curCellSliceId(3), : ) );
+
+            imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask(curCellSliceId(1), :, :, :) );
+            imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+
+            imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask(:, curCellSliceId(2), :, :) );
+            
+            maskAlphas(end+1) = nucleiMaskAlpha;
+            
+        end
+        
+        if handles.flagShowFociSegMask && isfield(handles.dataDisplay, 'imFociSegRGBMask')
+
+            imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask( :, :, curCellSliceId(3), : ) );
+
+            imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imFociSegRGBMask(curCellSliceId(1), :, :, :) );
+            imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+
+            imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask(:, curCellSliceId(2), :, :) );
+            
+            maskAlphas(end+1) = fociMaskAlpha;
+            
+        end
+        
+        imGlobalXYDisplay = genImageRGBMaskOverlay( imGlobalXY, imGlobalXYMasks, maskAlphas );
+        imGlobalXZDisplay = genImageRGBMaskOverlay( imGlobalXZ, imGlobalXZMasks, maskAlphas );
+        imGlobalYZDisplay = genImageRGBMaskOverlay( imGlobalYZ, imGlobalYZMasks, maskAlphas );
         
     else
         
@@ -568,18 +518,41 @@ function UpdateCellDisplay(handles)
     else
         imCellCropped = mat2gray( handles.data.imageData{1}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
     end
-    imCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );
-    imCellSegCropped = double( imCellSegCropped == handles.dataDisplay.curCellId );    
+    
+    imLabelCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );    
+    imCellSegCropped = double( imLabelCellSegCropped == handles.dataDisplay.curCellId );    
+    imLabelCellSegCropped(~imCellSegCropped) = 0;
     
     imCellSeedCropped = handles.dataDisplay.imCellSeedPoints( subinds{:} );
     imCellSeedCropped(~imCellSegCropped) = 0;
-    imCellSeedCropped(:, :, :, 2:3) = 0;
-    
+    imCellSeedCropped(:,:,2:3) = 0; 
+
     % display the nuclei channel of the extracted cell image
-    if handles.flagShowGlobalSegMask 
+    if handles.flagShowNucleiSegMask || handles.flagShowFociSegMask
         
-        curCellColor = handles.data.CellSegColorMap( handles.dataDisplay.curCellId, : );
-        imNucleusXYDisplay = genImageMaskOverlay( imCellCropped, {imCellSegCropped, imCellSeedCropped}, [curCellColor; 1 0 0], [0.2, 0.6] );
+        imCroppedCellRGBMasks = {};
+        maskAlphas = [];
+        
+        if handles.flagShowNucleiSegMask
+           imCroppedCellRGBMasks{end+1} = label2rgbND(imLabelCellSegCropped, handles.data.CellSegColorMap); 
+           maskAlphas(end+1) = nucleiMaskAlpha;
+        end
+
+        if handles.flagShowFociSegMask
+
+           imLabelFociSegRGBMaskCropped = squeeze( handles.dataDisplay.imFociSegRGBMask( subinds{:}, : ) );
+           imLabelFociSegRGBMaskCropped( ~repmat(imCellSegCropped, [1,1,3]) ) = 0;
+           imCroppedCellRGBMasks{end+1} = imLabelFociSegRGBMaskCropped; 
+           maskAlphas(end+1) = fociMaskAlpha;
+           
+        end
+
+        if handles.flagShowNucleiSeedMask
+           imCroppedCellRGBMasks{end+1} = imCellSeedCropped; 
+           maskAlphas(end+1) = seedMaskAlpha;
+        end
+        
+        imNucleusXYDisplay = genImageRGBMaskOverlay(imCellCropped, imCroppedCellRGBMasks, maskAlphas );
         
     else
         
@@ -595,8 +568,8 @@ function UpdateCellDisplay(handles)
     subindsMIP = subinds;
     subindsMIP{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
 
-    imCurCellSegMIP = max( double( handles.data.imLabelCellSeg( subindsMIP{:} ) == handles.dataDisplay.curCellId ), [], 3);
-    imCurCellMIP = mat2gray( max( double( handles.data.imageData{1}( subindsMIP{:} ) ), [], 3 ) .* imCurCellSegMIP );
+    imCellSegCropped = handles.data.imLabelCellSeg( subindsMIP{:} ) == handles.dataDisplay.curCellId;
+    imCurCellMIP = mat2gray( max(handles.data.imageData{1}(subindsMIP{:}) .* imCellSegCropped, [], 3 ) );
     imHistoneMIPDisplay = repmat( imCurCellMIP, [1,1,3] );
     
     cla( handles.Axes_Histone_MIP, 'reset' );
@@ -625,8 +598,8 @@ function UpdateCellDescriptors(handles)
     strCellDescription = sprintf( '%s\nVolume (cu um): %.2f', strCellDescription, curCellStats.AreaPhysp );
     strCellDescription = sprintf( '%s\n\nMean-std Intensity: [%.2f, %.2f]', strCellDescription, curCellStats.meanIntensity, curCellStats.stdIntensity );
     strCellDescription = sprintf( '%s\n\nIntensity Range: [%d, %d]', strCellDescription, curCellStats.minIntensity, curCellStats.maxIntensity );
-    strCellDescription = sprintf( '%s\n\nCentroid: [%d, %d, %d]', strCellDescription, curCellCentroid(1), curCellCentroid(2), curCellCentroid(3) );
-
+    strCellDescription = sprintf( '%s\n\nNumber of Puncta: %d', strCellDescription, numel(curCellStats.foci) );
+    
     set(handles.LabelCellDescription, 'String', strCellDescription); 
 
 % --------------------------------------------------------------------    
@@ -648,39 +621,6 @@ function [ imMultichannelOverlay ] = genMultiChannelOverlay( im, displaycolors )
         imMultichannelOverlay( imMultichannelOverlay > 1 ) = 1;
     end
     
-% --------------------------------------------------------------------    
-function [ imMaskOverlay ] = genImageMaskOverlay( im, masks, maskColors, maskAlphas )
-
-    imr = mat2gray( im );
-    img = imr;
-    imb = imr;
-    
-    if ~iscell( masks )
-        masks = { masks };
-    end
-       
-    for i = 1:numel(masks)
-        
-        curMask = logical(masks{i});
-        curMaskColor = maskColors(i,:);
-        curMaskAlpha = maskAlphas(i);
-                
-        imr(curMask) = double( (1 - curMaskAlpha) * imr(curMask) + curMaskAlpha * curMaskColor(1) );
-        img(curMask) = double( (1 - curMaskAlpha) * img(curMask) + curMaskAlpha * curMaskColor(2) );
-        imb(curMask) = double( (1 - curMaskAlpha) * imb(curMask) + curMaskAlpha * curMaskColor(3) );
-        
-    end
-    
-    imMaskOverlay = cat(3, imr, img, imb );
-    imMaskOverlay( imMaskOverlay > 1 ) = 1;
-
-function [ imMaskOverlay ] = genImageRGBMaskOverlay( im, rgbMask, maskAlpha )
-
-    imMaskOverlay = repmat( mat2gray(im), [1,1,3] );
-    blnMask = repmat( max( rgbMask, [], 3 ) > 0, [1, 1, 3] );
-    imMaskOverlay(blnMask) = (1 - maskAlpha) * imMaskOverlay(blnMask) + maskAlpha * rgbMask(blnMask);
-    imMaskOverlay( imMaskOverlay > 1 ) = 1;
-    
 function [ imLog ] = ComputeImageLogTransformForDisplay( im )
 
     imLog = im - min( im(:) );
@@ -690,8 +630,8 @@ function [ imLog ] = ComputeImageLogTransformForDisplay( im )
     imLog = log( imLog );
     
 % --------------------------------------------------------------------
-function File_Load_Annotation_Callback(hObject, eventdata, handles)
-% hObject    handle to File_Load_Annotation (see GCBO)
+function File_Load_Analysis_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Load_Analysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -706,70 +646,82 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
         return;
     end
     
-    hStatusDialog = waitbar(0, 'Loading selected annotation file ...');
+    hStatusDialog = waitbar(0, 'Loading selected analysis file ...');
     
     % load annotation data from file
-    annotationFile = fullfile(pathName, fileName);
-    annotationData = load( annotationFile );
+    analysisFile = fullfile(pathName, fileName);
+    analysisData = load( analysisFile );
     
     % retrieve data needed for this tool
     handles.data = [];
     
         % basic data
-        if iscell(annotationData.dataFilePath)
-            handles.data.dataFilePath = annotationData.dataFilePath{1};
+        if iscell(analysisData.dataFilePath)
+            handles.data.dataFilePath = analysisData.dataFilePath{1};
         else
-            handles.data.dataFilePath = annotationData.dataFilePath;
+            handles.data.dataFilePath = analysisData.dataFilePath;
         end
-        handles.data.metadata = annotationData.metadata;
-        handles.data.imageData = annotationData.imageData;
+        handles.data.metadata = analysisData.metadata;
+        handles.data.imageData = analysisData.imageData;
 
         % basic display data
         handles = ComputeDisplayData(handles);
     
-        % segmentation stuff
-        handles.data.imLabelCellSeg = annotationData.imLabelCellSeg;        
-        handles.data.imCellSeedPoints = annotationData.imCellSeedPoints;        
+        % nuclei segmentation stuff
+        handles.data.imLabelCellSeg = analysisData.imLabelCellSeg;        
+        handles.data.imCellSeedPoints = analysisData.imCellSeedPoints;        
 
-        if ~isfield( annotationData, 'CellSegColorMap' )
+        if ~isfield( analysisData, 'CellSegColorMap' )
             [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND( handles.data.imLabelCellSeg );
         else
-            handles.data.CellSegColorMap = annotationData.CellSegColorMap;        
+            handles.data.CellSegColorMap = analysisData.CellSegColorMap;        
             handles.dataDisplay.imCellSegRGBMask = label2rgbND( handles.data.imLabelCellSeg, handles.data.CellSegColorMap );
         end
         
-        handles.dataDisplay.imCellSeedPoints = imdilate(annotationData.imCellSeedPoints, ones(3,3,3));
+        handles.dataDisplay.imCellSeedPoints = imdilate(analysisData.imCellSeedPoints, ones(3,3,3));
+
+        if isfield(analysisData, 'segAlgoParameters')
+            handles.data.segAlgoParameters = analysisData.segAlgoParameters;
+        end
         
-        % annotated stuff
-        handles.data.unannotatedCellList = annotationData.unannotatedCellList;
+        % cell stats
         handles.data.cellStats = ComputeCellProperties( handles );
-        handles.data.cellPatternTypes = handles.defaultCellPatternTypes;
-
+        
         for i = 1:numel(handles.data.cellStats)
+            handles.data.cellStats(i).foci = analysisData.cellStats(i).foci;
+            handles.data.cellStats(i).fociCount = numel( handles.data.cellStats(i).foci );
+        end
+        
+        % foci 
+        handles.data.imLabelFociSeg = analysisData.imLabelFociSeg;
+        handles.data.imFociSeedPoints = analysisData.imFociSeedPoints;
+        handles.data.fociStats = analysisData.fociStats;
 
-            curCellPatternType = annotationData.cellStats(i).cellPatternType;
-            if ~ismember(curCellPatternType, handles.data.cellPatternTypes)                
-                curCellPatternType = 'Good_Segmentation';
-            end
-            curCellPatternId = find( strcmpi(handles.data.cellPatternTypes, curCellPatternType) );
-            
-            handles.data.cellStats(i).cellPatternType = curCellPatternType;
-            handles.data.cellStats(i).cellPatternId = curCellPatternId; 
-
+        handles.dataDisplay.imFociSeedPoints = imdilate(handles.data.imFociSeedPoints, ones(3,3,3));
+        if ~isfield( analysisData, 'FociSegColorMap' )
+            [handles.dataDisplay.imFociSegRGBMask, handles.data.FociSegColorMap] = label2rgbND( handles.data.imLabelFociSeg );
+        else
+            handles.data.FociSegColorMap = analysisData.FociSegColorMap;        
+            handles.dataDisplay.imFociSegRGBMask = label2rgbND( handles.data.imLabelFociSeg, handles.data.FociSegColorMap );
+        end
+        
+        if isfield(analysisData, 'fociDetectionParameters')
+            handles.data.fociDetectionParameters = analysisData.fociDetectionParameters;
         end
         
     % data ready for display
     handles.flagDataLoaded = true;
     
-    % set cell pattern type list and cell class selector list
-    %set( handles.ListboxSegmentationQualitySelector, 'String', handles.data.cellPatternTypes );
-
     % set current cell id to first cell
     handles.dataDisplay.curCellId = 1;
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
-    
+
     % change window name
-    set( handles.CellSegmentationQualityAnnotator, 'Name', sprintf( 'Cell Nuclei Segmenter - %s', annotationFile ) );
+    set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', analysisFile ) );
+
+    % update foci selector list
+    set( handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
+    set(handles.poplistFociCountSelector, 'value', 1);
     
     % Update handles structure
     guidata(hObject, handles);
@@ -780,12 +732,15 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);
     
+    % Update Foci Count Distribution Plot
+    UpdateFociCountDistributionPlot(handles);
+    
     % close status dialog
     closeStatusDialog(hStatusDialog);    
     
 % --------------------------------------------------------------------
-function File_SaveAnnotation_Callback(~, eventdata, handles)
-% hObject    handle to File_SaveAnnotation (see GCBO)
+function File_SaveAnalysis_Callback(~, eventdata, handles)
+% hObject    handle to File_SaveAnalysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -794,20 +749,6 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
         return;
     end
 
-    % check if there are any cells that have not been annotated - if so
-    % prompt the user that he hasnt finished annotation
-    flagCellPatternAnnotation = ([handles.data.cellStats.cellPatternId] > 1);
-    
-    if any(~flagCellPatternAnnotation)
-        numCellsUnannotated = numel(find(~flagCellPatternAnnotation));
-        strQuestion = sprintf( '%d/%d cells have not been annotated yet.\nDo you still want to save to resume annotation later?', numCellsUnannotated, numel(flagCellPatternAnnotation) );
-        button = questdlg( strQuestion, 'Annotation Incomplete', 'Yes', 'No', 'No' );
-        
-        if strcmp(button, 'No')
-           return; 
-        end
-    end
-    
     % ask user to select the directory in which to save the data    
     if isfield( handles.history, 'lastOutputDir' )
         outputDir = uigetdir( handles.history.lastOutputDir, 'Select annotation output directory');
@@ -832,145 +773,10 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
     data = handles.data;
     
     h = waitbar(0, 'Saving Data ... Please Wait' );
-    save( fullfile(outputDir, 'CellSegmentationQualityAnnotation.mat'), '-struct', 'data' );
+    save( fullfile(outputDir, 'DNADamageAnalysis.mat'), '-struct', 'data' );
     close(h);
     
     clear data;
-
-    % output summary file
-    summary_fid = fopen( fullfile(outputDir, 'annotationSummary.txt'), 'w' );    
-        
-    PrettyPrintStepDescription( 'Segmentation Quality Annotation Summary', summary_fid );
-    
-        % print some information about the dataset
-        fprintf( summary_fid, '\n>> Dataset Description:\n' );
-        
-        fprintf( summary_fid, '\n\tHistone data file -- %s\n', handles.data.dataFilePath );
-        fprintf( summary_fid, '\n\tImage Size - [ %s ]\n', sprintf( ' %d ', handles.data.metadata.volSize) );
-        fprintf( summary_fid, '\n\tImage Spacing - [ %s ]\n', sprintf( ' %.2f ', handles.data.metadata.voxelSpacing) );
-        
-        % print information about the annotation
-        fprintf( summary_fid, '\n>> Annotation Summary:\n' );
-        
-        numTotalCells = numel( handles.data.cellStats );
-        numCellsAnnotated = numel(find(flagCellPatternAnnotation));
-        
-        fprintf( summary_fid, '\n\t%d cells were found by the segmentation algorithm\n', numTotalCells );
-        
-        fprintf( summary_fid, '\n\t%d/%d (%.2f%%) cells have been annotated\n', numCellsAnnotated, numTotalCells, 100*numCellsAnnotated/numTotalCells );
-        
-        for i = 2:numel(handles.data.cellPatternTypes)          
-
-            numCellsInCurClass = numel(find([handles.data.cellStats.cellPatternId] == i));
-            fprintf( summary_fid, '\n\t-- %s -- %d (%.2f%%) cells\n', ...
-                     handles.data.cellPatternTypes{i}, ...
-                     numCellsInCurClass, 100*numCellsInCurClass/numTotalCells );
-
-            if numCellsInCurClass > 2
-                
-                curClassCellStats = handles.data.cellStats([handles.data.cellStats.cellPatternId] == i);
-
-                fprintf( summary_fid, '\n\t\tIntensity Statistics:\n');
-                fprintf( summary_fid, '\n\t\tMin-Max: [%.2f, %.2f]\n', ...
-                                      min( [curClassCellStats.meanIntensity] ), ...
-                                      max( [curClassCellStats.meanIntensity] ) );
-                fprintf( summary_fid, '\n\t\tMean-std: [%.2f, %.2f]\n', ...
-                                      mean( [curClassCellStats.meanIntensity] ), ...
-                                      std( [curClassCellStats.meanIntensity] ) );
-                                      
-                fprintf( summary_fid, '\n\t\tCell Volume (cu um):\n' );
-                fprintf( summary_fid, '\n\t\t\tMin-Max: [%.2f, %.2f]\n', min( [curClassCellStats.AreaPhysp] ), max( [curClassCellStats.AreaPhysp] ) );
-                fprintf( summary_fid, '\n\t\t\tMean-std: [%.2f, %.2f]\n', mean( [curClassCellStats.AreaPhysp] ), std( [curClassCellStats.AreaPhysp] ) );
-
-                fprintf( summary_fid, '\n\t\tFitted Ellipsoid Radii (um):\n' );
-                ellipsoidRadius = cat( 1, curClassCellStats.ellipsoidRadiusPhysp );            
-                fprintf( summary_fid, '\n\t\t\tMin Radii - [ %s ]\n', sprintf( ' %.2f ', min( ellipsoidRadius, [], 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tMax Radii - [ %s ]\n', sprintf( ' %.2f ', max( ellipsoidRadius, [], 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tMean Radii - [ %s ]\n', sprintf( ' %.2f ', mean( ellipsoidRadius, 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tStddev Radii - [ %s ]\n', sprintf( ' %.2f ', std( ellipsoidRadius, 1 ) ) );
-
-                fprintf( summary_fid, '\n\t\tFitted Ellipsoid Mean Radius (um):\n' );            
-                meanEllipsoidRadius = mean( ellipsoidRadius, 2 );
-                fprintf( summary_fid, '\n\t\t\tMin-Max: [%.2f, %.2f]\n', min( meanEllipsoidRadius ), max( meanEllipsoidRadius ) );
-                fprintf( summary_fid, '\n\t\t\tMean-std: [%.2f, %.2f]\n', mean( meanEllipsoidRadius ), std( meanEllipsoidRadius ) );
-                        
-            end
-            
-        end             
-
-    fclose( summary_fid );
-    
-    % ask if the user wants to save annotated cell images
-    strQuestion = 'Do you want save images of the annotated cell patterns?';
-    button = questdlg( strQuestion, 'Save annotated cell images', 'Yes', 'No', 'Yes' );
-    flagSaveImages = strcmp( button, 'Yes' ); 
-    
-    h = waitbar(0, 'Saving Images of Annotated Cell Patterns ... Please Wait' );
-    if flagSaveImages
-        
-        % create sub-directories for each cell class
-        for i = 1:numel(handles.data.cellPatternTypes)
-            if isdir( fullfile(outputDir, handles.data.cellPatternTypes{i}) )
-                rmdir( fullfile(outputDir, handles.data.cellPatternTypes{i}), 's' );                   
-            end
-            mkdir( fullfile(outputDir, handles.data.cellPatternTypes{i}) );
-        end
-
-        for cellId = 1:numel(handles.data.cellStats)
-
-            curCellStats = handles.data.cellStats(cellId);
-            curCellCentroid = curCellStats.Centroid;
-            curCellBoundingBox = curCellStats.BoundingBox;
-            curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-
-            curCellPatternType = handles.data.cellStats(cellId).cellPatternType;
-            curCellOutputDir = fullfile(outputDir, curCellPatternType); 
-
-            subinds = cell(1,3);
-            imsize = size(handles.data.imageData{1});
-            for i = 1:2
-
-                xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
-
-                xi_low = xi;
-                if xi_low < 1 
-                    xi_low = 1;
-                end
-
-                xi_high = xi + curCellDisplaySize - 1;
-                if xi_high > imsize(i)
-                    xi_high = imsize(i);
-                end
-
-                subinds{i} = xi_low:xi_high;
-
-            end    
-            subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
-            
-            % MIP
-            imCurCellCropped = handles.data.imageData{1}(subinds{1:2}, :);
-            imCurCellSegCropped = (handles.data.imLabelCellSeg(subinds{1:2}, :) == cellId);
-            
-            imCurCellMIP = imresize( mat2gray(max(imCurCellCropped .* imCurCellSegCropped, [], 3)), szOutputImage);
-
-            imwrite( imCurCellMIP, fullfile(curCellOutputDir, curCellPatternType, sprintf('CellMIP_%.3d.png', cellId)), 'png' );   
-
-            % Mid slices
-            imCurCellSegMidSliceBndCropped = imresize( bwperim( imCurCellSegCropped(:, :, round(curCellCentroid(3))) ), szOutputImage, 'nearest'); 
-            
-            imCurCellCroppedMidSlice = mat2gray( handles.data.imageData{1}( subinds{1:2}, round(curCellCentroid(3)) ), handles.dataDisplay.imDisplayRange(1,:) );
-            imCurCellCroppedMidSlice = imresize(imCurCellCroppedMidSlice, szOutputImage);
-
-            imwrite( genImageMaskOverlay(imCurCellCroppedMidSlice, imCurCellSegMidSliceBndCropped, [1, 0, 0], 0.5), ...
-                     fullfile(curCellOutputDir, sprintf('CellMidSliceHistone_%.3d.png', cellId)), 'png' );   
-
-            waitbar( cellId/numel(handles.data.cellStats), h);
-            
-        end
-        
-    end
-    
-    closeStatusDialog(h);
     
     % Update handles structure
     guidata(gcbo, handles);
@@ -1035,9 +841,9 @@ function File_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes when user attempts to file_close CellSegmentationQualityAnnotator.
-function CellSegmentationQualityAnnotator_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to CellSegmentationQualityAnnotator (see GCBO)
+% --- Executes when user attempts to file_close DNADamageAnalyzer.
+function DNADamageAnalyzer_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to DNADamageAnalyzer (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1079,9 +885,6 @@ function ShowPreviousCell_Callback(hObject, eventdata, handles)
     handles.dataDisplay.curCellId = max(1, handles.dataDisplay.curCellId - 1);
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
     
-    % update cell pattern listbox
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1105,36 +908,6 @@ function ShowNextCell_Callback(hObject, eventdata, handles)
     % increment cell id
     handles.dataDisplay.curCellId = min( numel(handles.data.cellStats), handles.dataDisplay.curCellId + 1);
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
-    
-    % update cell pattern listbox
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
-    % Update handles structure
-    guidata(hObject, handles);
-    
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
-    % Update Cell Descriptors
-    UpdateCellDescriptors(handles);
-    
-% --- Executes on button press in ShowNextUnannotatedCell.
-function ShowNextUnannotatedCell_Callback(hObject, eventdata, handles)
-% hObject    handle to ShowNextUnannotatedCell (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-    % first check if data has been loaded
-    if ~handles.flagDataLoaded || isempty(handles.data.unannotatedCellList) 
-        return;
-    end
-
-    % set cell id to next unannotated cell
-    handles.dataDisplay.curCellId = handles.data.unannotatedCellList(1);
-    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
-    
-    % update cell pattern listbox
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
     
     % Update handles structure
     guidata(hObject, handles);
@@ -1160,9 +933,6 @@ function ShowLastCell_Callback(hObject, eventdata, handles)
     handles.dataDisplay.curCellId = numel( handles.data.cellStats );
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
     
-    % update cell pattern listbox
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1187,9 +957,6 @@ function ShowFirstCell_Callback(hObject, eventdata, handles)
     handles.dataDisplay.curCellId = 1;
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
 
-    % update cell pattern listbox
-    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1199,16 +966,16 @@ function ShowFirstCell_Callback(hObject, eventdata, handles)
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);
     
-% --- Executes on button press in CheckboxGlobalSegMask.
-function CheckboxGlobalSegMask_Callback(hObject, eventdata, handles)
-% hObject    handle to CheckboxGlobalSegMask (see GCBO)
+% --- Executes on button press in CheckboxNucleiSegMask.
+function CheckboxNucleiSegMask_Callback(hObject, eventdata, handles)
+% hObject    handle to CheckboxNucleiSegMask (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of CheckboxGlobalSegMask
+% Hint: get(hObject,'Value') returns toggle state of CheckboxNucleiSegMask
 
     % change mask use mode
-    handles.flagShowGlobalSegMask = get(hObject,'Value');
+    handles.flagShowNucleiSegMask = get(hObject,'Value');
     
     % Update handles structure
     guidata(hObject, handles);
@@ -1249,8 +1016,8 @@ function File_Set_Parameters_Callback(hObject, eventdata, handles)
     UpdateCellDisplay(handles);
 
 % --- Executes during object deletion, before destroying properties.
-function CellSegmentationQualityAnnotator_DeleteFcn(hObject, eventdata, handles)
-% hObject    handle to CellSegmentationQualityAnnotator (see GCBO)
+function DNADamageAnalyzer_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to DNADamageAnalyzer (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1373,16 +1140,11 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         return;
     end
     
-    if ~isempty(handles.imarisAppCellSegCropped) && isobject(handles.imarisAppCellSegCropped)
-        delete( handles.imarisAppCellSegCropped );
-    end       
-    
     curCellStats = handles.data.cellStats( handles.dataDisplay.curCellId );        
     curCellCentroid = round( curCellStats.Centroid );    
-    
     curCellBoundingBox = curCellStats.BoundingBox;
     curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-
+    
     % create crop indices
     subinds = cell(1,3);
     imsize = size(handles.data.imageData{1});
@@ -1405,51 +1167,57 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end    
     subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
     
-    % crop cell bounding box from whole volume
+    % generate visualization
     imCellCropped = cell( size(handles.data.imageData) );
     for i = 1:numel(handles.data.imageData)
         imCellCropped{i} = handles.data.imageData{i}(subinds{:});
     end
+    
+    imvis = ImarisDataVisualizer(imCellCropped, ...
+                                 'spacing', handles.data.metadata.voxelSpacing);
+                             
+    handles.imarisAppCellSegCropped = imvis;
+    
+    hSegmentation = imvis.AddDataContainer();
 
-    % crop cell segmentation mask
-    imCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );
-    imCellSegCropped = padarray( imCellSegCropped, ones(1,3) );
-    imCellSegCropped = double( imCellSegCropped == handles.dataDisplay.curCellId );    
-    
-    % create isosurface
-    imCellSegSmoothed = smooth3( imCellSegCropped );
-    curCellSurfaceGeometry = isosurface( imCellSegSmoothed, 0.5 );
-    curCellSurfaceGeometry.normals = isonormals( imCellSegSmoothed, curCellSurfaceGeometry.vertices );
-    cellIsoSurface.surfaces = curCellSurfaceGeometry;
-    cellIsoSurface.name = curCellStats.cellPatternType;
-    cellIsoSurface.color = MapCellPatternToColor( curCellStats.cellPatternType );
-    
-    % get seed points
-    imCellSeedCropped = padarray( handles.dataDisplay.imCellSeedPoints( subinds{:} ), ones(1,3), 0 );
-    imCellSeedCropped( ~imCellSegCropped ) = 0;
-    stats = regionprops( bwlabeln( imCellSeedCropped ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
-    
-    % display in imaris
-    curCellDisplayRange = handles.dataDisplay.imDisplayRange;
-    curCellDisplayColor = handles.data.metadata.channelColors;
-    if numel(stats) > 0
+        % compute isosurface geometry for cells in each pattern
+        imCurCellMask = handles.data.imLabelCellSeg(subinds{:}) == handles.dataDisplay.curCellId;
+        surfaceQuality = 1.0;
         
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'spotLocations', cellSeedPointLocations, ...
-                                                                             'spotRadius', 3, ...                                                                      
-                                                                             'surfaceObjects', cellIsoSurface );
-    else
+        curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+
+        imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                          'name', sprintf( 'CellSeg_%d', handles.dataDisplay.curCellId), ...
+                          'color', handles.data.CellSegColorMap(handles.dataDisplay.curCellId, :) );
+
+    
+        % display cell seed points
+        imCellSeedCropped = handles.dataDisplay.imCellSeedPoints(subinds{:});
+        imCellSeedCropped(~imCurCellMask) = 0;
+        stats = regionprops( bwlabeln(imCellSeedCropped), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
+    
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
         
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'surfaceObjects', cellIsoSurface );
-    end
+        % get foci
+        if curCellStats.fociCount > 0
+            
+            curCellFociStats = handles.data.fociStats(curCellStats.foci);
+            fociSeedPointLocations = ind2submat(size(handles.data.imFociSeedPoints), [curCellFociStats.PixelLocationIndex]);
+            
+            for i = 1:3
+               fociSeedPointLocations(:,i) = fociSeedPointLocations(:,i) - min(subinds{i}) + 1;
+            end
+            
+            fociSeedPointLocations = fociSeedPointLocations(:, [2,1,3]); % format as [x, y, z]
+            
+            imvis.AddSpots(fociSeedPointLocations, 0, ...
+                           'radii', [curCellFociStats.Radius], ... 
+                           'name', 'Puncta', 'color', [0, 1, 0]);
+                       
+        end    
     
     % Update handles structure
     guidata(hObject, handles);
@@ -1480,88 +1248,49 @@ function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         return;
     end
 
-    if ~isempty(handles.imarisAppCellSeg) && isobject(handles.imarisAppCellSeg)
-        delete( handles.imarisAppCellSeg );
-    end       
+    % generate visualization
+    imvis = ImarisDataVisualizer( handles.data.imageData, 'spacing', handles.data.metadata.voxelSpacing );
+    handles.imarisAppCellSeg = imvis;
     
-    imageDataPadded = cell( size(handles.data.imageData) );
-    for i = 1:numel(handles.data.imageData)
-        imageDataPadded{i} = padarray( handles.data.imageData{i}, ones(1,3), min(handles.data.imageData{i}(:)) );
-    end
-
-    % compute isosurface geometry for cells in each pattern
-    hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
-    cellSurfaceObjectList = {};
+    hSegmentation = imvis.AddDataContainer();
+        
+        % display cell seed point locations
+        stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
-    for cid = 1:numel(handles.data.cellStats)
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
         
-        waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
-        
-        % name
-        curCellIsoSurface.name = sprintf( 'CellSeg_%d', cid);
-        
-        % color
-        curCellIsoSurface.color = handles.data.CellSegColorMap(cid, :);
-        
-        % compute surface geometry
-        curCellStats = handles.data.cellStats( cid );        
-        curCellCentroid = round( curCellStats.Centroid );    
+        % compute isosurface geometry for cells in each pattern
+        hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
+        surfaceQuality = 1.0;
+        for cid = 1:numel(handles.data.cellStats)
 
-        curCellBoundingBox = curCellStats.BoundingBox;
-        curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-       
-        % create crop indices
-        subinds = cell(1,3);
-        imsize = size(handles.data.imageData{1});
-        for i = 1:2
+            imCurCellMask = handles.data.imLabelCellSeg == cid;
+            curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+            
+            imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                              'name', sprintf( 'CellSeg_%d', cid), ...
+                              'color', handles.data.CellSegColorMap(cid, :) );
+            
+            waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
 
-            xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
+        end
+        closeStatusDialog( hStatusDlg );
 
-            xi_low = xi;
-            if xi_low < 1 
-                xi_low = 1;
-            end
-
-            xi_high = xi + curCellDisplaySize - 1;
-            if xi_high > imsize(i)
-                xi_high = imsize(i);
-            end
-
-            subinds{i} = xi_low:xi_high;
-
+        % get foci
+        if ~isempty(handles.data.fociStats)
+            
+            fociSeedPointLocations = ind2submat(size(handles.data.imFociSeedPoints), [handles.data.fociStats.PixelLocationIndex]);
+            fociSeedPointLocations = fociSeedPointLocations(:, [2, 1, 3]); % format as [x, y, z]
+            
+            imvis.AddSpots(fociSeedPointLocations, 0, ...
+                           'radii', [handles.data.fociStats.Radius], ... 
+                           'name', 'Puncta', 'color', [0, 1, 0]);
+                       
         end    
-        subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
         
-        % crop segmentation mask
-        imCurCellSegCropped = padarray( double(handles.data.imLabelCellSeg(subinds{:}) == cid), ones(1,3), 0 );                                        
-        imCurCellSegSmoothed = smooth3( imCurCellSegCropped );            
-        curCellSurfaceGeometry = isosurface( imCurCellSegSmoothed, 0.5 );
-        curCellSurfaceGeometry.normals = isonormals( imCurCellSegSmoothed, curCellSurfaceGeometry.vertices );
-        
-        % correct vertex positions by adding offset
-        curCellSurfaceGeometry.vertices(:,1) = subinds{2}(1) - 1 + curCellSurfaceGeometry.vertices(:,1);
-        curCellSurfaceGeometry.vertices(:,2) = subinds{1}(1) - 1 + curCellSurfaceGeometry.vertices(:,2);
-        curCellSurfaceGeometry.vertices(:,3) = subinds{3}(1) - 1 + curCellSurfaceGeometry.vertices(:,3);
-        
-        % add cell surface to cell pattern surface object
-        curCellIsoSurface.surfaces = curCellSurfaceGeometry;
-        cellSurfaceObjectList{cid} = curCellIsoSurface;
-        
-    end
-    closeStatusDialog( hStatusDlg );
-    
-    % get cell seed point locations
-    stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
-
-    % Display everything in imaris
-    handles.imarisAppCellSeg = DisplayMultichannel3DDataInImaris( handles.data.imageData, ...
-                                                                  'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                  'spotLocations', cellSeedPointLocations, ...
-                                                                  'spotRadius', 3, ...
-                                                                  'surfaceObjects', cellSurfaceObjectList, ...
-                                                                  'displayRanges', handles.dataDisplay.imDisplayRange, ...
-                                                                  'displayColors', handles.data.metadata.channelColors );
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1582,8 +1311,8 @@ function LabelCellDescription_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
-function CellSegmentationQualityAnnotator_WindowButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to CellSegmentationQualityAnnotator (see GCBO)
+function DNADamageAnalyzer_WindowButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to DNADamageAnalyzer (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1634,9 +1363,6 @@ function CellSegmentationQualityAnnotator_WindowButtonDownFcn(hObject, eventdata
         % set cell id
         handles.dataDisplay.curCellId = imCurLabelCellSeg( pixelPos{:} );
 
-        % update cell pattern listbox
-        set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
-    
     end
         
     % Update handles structure
@@ -1647,3 +1373,284 @@ function CellSegmentationQualityAnnotator_WindowButtonDownFcn(hObject, eventdata
 
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);    
+    
+% -----------------------------------------------------------------
+function PerformFociSegmenatation(hObject, handles)
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    PrettyPrintStepDescription( 'Detecting Foci' );
+    
+    [handles.data.fociStats, ...
+     handles.data.imFociSeedPoints, ...
+     handles.data.imLabelFociSeg, ...
+     handles.data.fociDetectionParameters ] = segmentFociInsideNuclei( handles.data.imageData{1}, ...
+                                                                       min(handles.data.metadata.voxelSpacing) * [3, 7], ...                      
+                                                                       'spacing', handles.data.metadata.voxelSpacing, ...
+                                                                       'roiMask', handles.data.imLabelCellSeg, ...
+                                                                       'minDistanceToROIBoundary', 1.25);
+    
+    [handles.dataDisplay.imFociSegRGBMask, handles.data.FociSegColorMap] = label2rgbND( handles.data.imLabelFociSeg );
+    handles.dataDisplay.imFociSeedPoints = imdilate(handles.data.imFociSeedPoints, ones(3,3,3));
+    
+    for cid = 1:numel(handles.data.cellStats)
+        
+        curCellPixInd = find(handles.data.imLabelCellSeg == cid);
+        curCellFoci = unique(handles.data.imFociSeedPoints(curCellPixInd));
+        curCellFoci = curCellFoci(curCellFoci > 0);
+        handles.data.cellStats(cid).foci = curCellFoci;
+        handles.data.cellStats(cid).fociCount = numel(curCellFoci);
+        
+    end
+
+    % update foci selector list
+    set( handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
+    set(handles.poplistFociCountSelector, 'value', 1);
+    
+    % Update handles structure
+    guidata(hObject, handles);
+   
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+    % Update Foci Count Distribution Plot
+    UpdateFociCountDistributionPlot(handles);
+    
+% --- Executes on button press in CheckboxFociSegMask.
+function CheckboxFociSegMask_Callback(hObject, eventdata, handles)
+% hObject    handle to CheckboxFociSegMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of CheckboxFociSegMask
+
+    % change mask use mode
+    handles.flagShowFociSegMask = get(hObject,'Value');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+% --------------------------------------------------------------------
+function File_Detect_Foci_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Detect_Foci (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    PerformFociSegmenatation(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function View_Puncta_Distribution_Callback(hObject, eventdata, handles)
+% hObject    handle to View_Puncta_Distribution (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    numCells = numel(handles.data.cellStats); 
+    punctaCounts = [handles.data.cellStats.fociCount];
+    
+    figure();
+    [counts, centers] = histogram(punctaCounts, 'discrete');
+    bar(centers, counts/sum(counts), ...
+        'linewidth', 2.0, ...
+        'barwidth', 0.9, ...
+        'EdgeColor', 'k', ...
+        'FaceColor', 0.7 * ones(1,3));
+
+    [~, fname, ~] = fileparts(handles.data.dataFilePath);
+    fname = strrep(fname,'_','\_');
+    text(0.5, 0.95, {fname, sprintf('#cells = %d, #puncta= %d', numCells, sum(punctaCounts))}, ...
+         'units', 'normalized', 'horizontalalignment', 'center');
+    
+    title({'Distribution of Number of Puncta In a Cell'}, ...
+          'FontSize', 12.0, 'FontWeight', 'bold');
+    xlabel('Number of puncta per cell');
+    ylabel('Proportion of cells');
+    ylim([0, 1]);
+    
+    grid on;
+    
+    
+% --------------------------------------------------------------------
+function UpdateFociCountDistributionPlot(handles)
+    
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    prev_axis = gca;
+    
+    % show histograms of individual channels    
+    axes( handles.Axes_FociCount_Distribution );
+    cla reset;    
+
+    numCells = numel(handles.data.cellStats); 
+    punctaCount = zeros(1, numCells);
+    for i = 1:numCells
+        punctaCount(i) = numel(handles.data.cellStats(i).foci);
+    end
+
+    nhist( punctaCount, 'nolegend', 'noerror', 'pdf', 'smooth', 'int', ...
+           'xlabel', 'Number of puncta per cell', ...
+           'ylabel', 'Proportion of cells', ...
+           'minx', 0, 'maxx', 4, ...
+           'fsize', get(handles.Axes_FociCount_Distribution, 'FontSize') );
+       
+    title('Distribution of Number of Puncta In a Cell', 'FontSize', 12.0);
+    grid on;
+    ylim([0, 1]);
+    
+    axes(prev_axis);
+
+
+% --- Executes on button press in btnShowPreviousCellWithSpecifiedFociCount.
+function btnShowPreviousCellWithSpecifiedFociCount_Callback(hObject, eventdata, handles)
+% hObject    handle to btnShowPreviousCellWithSpecifiedFociCount (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    % first check if data has been loaded and some cells are present
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    fociCountList = cellstr(get(handles.poplistFociCountSelector,'String'));    
+    curSelFociCount = str2double(fociCountList{get(handles.poplistFociCountSelector, 'Value')});
+    
+    cellFociCounts = [handles.data.cellStats.fociCount];    
+    cellFociCounts = cellFociCounts(handles.dataDisplay.curCellId-1:-1:1);
+
+    indFirstCellInCurClass = find(cellFociCounts == curSelFociCount);
+
+    if isempty( indFirstCellInCurClass )
+        return;
+    end
+
+    curCellId = handles.dataDisplay.curCellId  - indFirstCellInCurClass(1);
+    
+    % set current cell id
+    handles.dataDisplay.curCellId = curCellId;
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+
+% --- Executes on button press in btnShowNextCellWithSpecifiedFociCount.
+function btnShowNextCellWithSpecifiedFociCount_Callback(hObject, eventdata, handles)
+% hObject    handle to btnShowNextCellWithSpecifiedFociCount (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    % first check if data has been loaded and some cells are present
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    fociCountList = cellstr(get(handles.poplistFociCountSelector,'String'));    
+    curSelFociCount = str2double(fociCountList{get(handles.poplistFociCountSelector, 'Value')});
+    
+    cellFociCounts = [handles.data.cellStats.fociCount];    
+    cellFociCounts = cellFociCounts(handles.dataDisplay.curCellId+1:end);
+
+    indFirstCellInCurClass = find(cellFociCounts == curSelFociCount);
+
+    if isempty( indFirstCellInCurClass )
+        return;
+    end
+
+    curCellId = handles.dataDisplay.curCellId  + indFirstCellInCurClass(1);
+    
+    % set current cell id
+    handles.dataDisplay.curCellId = curCellId;
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+
+% --- Executes on selection change in poplistFociCountSelector.
+function poplistFociCountSelector_Callback(hObject, eventdata, handles)
+% hObject    handle to poplistFociCountSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns poplistFociCountSelector contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from poplistFociCountSelector
+
+    % first check if data has been loaded and some cells are present
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    fociCountList = cellstr(get(handles.poplistFociCountSelector,'String'));    
+    curSelFociCount = str2double(fociCountList{get(handles.poplistFociCountSelector, 'Value')});
+    
+    cellFociCounts = [handles.data.cellStats.fociCount];    
+    indFirstCellInCurClass = find(cellFociCounts == curSelFociCount);
+
+    curCellId = indFirstCellInCurClass(1);
+        
+    % set current cell id
+    handles.dataDisplay.curCellId = curCellId;
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+% --- Executes during object creation, after setting all properties.
+function poplistFociCountSelector_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to poplistFociCountSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in CheckboxNucleiSeedMask.
+function CheckboxNucleiSeedMask_Callback(hObject, eventdata, handles)
+% hObject    handle to CheckboxNucleiSeedMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of CheckboxNucleiSeedMask
+
+    % change mask use mode
+    handles.flagShowNucleiSeedMask = get(hObject,'Value');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
