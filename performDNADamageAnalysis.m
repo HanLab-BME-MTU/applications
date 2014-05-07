@@ -143,10 +143,10 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
         
         % compute and store stack level info
         stackInfoStruct.totalFociCount = numel(fociStats);
-
+        cellFociCounts = [cellStats.fociCount];
+        
         for i = 0:PARAMETERS.maxFociCount
             curField = (sprintf('cellFociCountDistribution_%.2d', i));
-            stackInfoStruct.(curField) = 0;
         end
         
         for i = 1:numel(cellStats)
@@ -157,7 +157,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
                 curField = (sprintf('cellFociCountDistribution_%.2d', cellStats(i).fociCount));
             end
             
-            stackInfoStruct.(curField) = stackInfoStruct.(curField) + (1.0 / (eps + numel(fociStats)));
+            stackInfoStruct.(curField) = stackInfoStruct.(curField) + (1.0 / (eps + numCells));
             
         end
 
