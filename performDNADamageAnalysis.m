@@ -147,6 +147,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
         
         for i = 0:PARAMETERS.maxFociCount
             curField = (sprintf('cellFociCountDistribution_%.2d', i));
+            stackInfoStruct.(curField) = 0;
         end
         
         for i = 1:numel(cellStats)
