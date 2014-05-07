@@ -328,7 +328,9 @@ end
 maturingRatio = p/(p+q);
 tracksNAfailing = trNAonly(indMature);
 tracksNAmaturing = trNAonly(indFail);
+save([dataPath filesep 'allData.mat'])
 
+%% Run this separately with loading allData.mat if something failed 
 if plotEachTrack
     r1 = 50;
     h2=figure;
@@ -386,7 +388,7 @@ if plotEachTrack
                 imshow(imcomplement(paxImageCropped2),[pmin pmax]),hold on
                 ha1 = get(h2,'CurrentAxes');
             else
-                imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1);freezeColors; hold(ha1,'on')
+                imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1); hold(ha1,'on')
             end
             if strcmp(trNAonly(k).state{j} , 'BA')
                 % drawing tracks
@@ -466,7 +468,7 @@ if plotEachTrack
                         imshow(imcomplement(paxImageCropped2),[pmin pmax]),hold on
                         ha1 = get(h2,'CurrentAxes');
                     else
-                        imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1);freezeColors; hold(ha1,'on')
+                        imshow(imcomplement(paxImageCropped2),[pmin pmax],'Parent', ha1); hold(ha1,'on')
                     end
                     if strcmp(trNAonly(k).state{fend} , 'NA')
                         % drawing tracks
