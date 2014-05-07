@@ -290,6 +290,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
         ylabel('Proportion of cells');
         ylim([0, 1]);
         grid on;
+		Maximize(hFociDist);
         SaveFigure(hFociDist , fullfile(resultsDir, 'fociCountDistributionPlot.png') , 'png');
         SaveFigure(hFociDist , fullfile(resultsDir, 'fociCountDistributionPlot.fig') , 'fig');
         close(hFociDist);
