@@ -10,9 +10,6 @@ fclose all;
     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
     projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
 
-    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
-    projectRootDirScratch = 'Z:\intravital\DNADamageAnalysis';
-    
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
