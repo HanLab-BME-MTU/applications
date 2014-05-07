@@ -14,7 +14,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                      @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', 'OtsuSliceBySliceLocal', 'MinErrorPoissonSliceBySliceLocal', 'BackgroudRemovalUsingMorphologicalOpening'}) ));
     p.addParamValue( 'localThresholdWindowRadiusPhysp', 30, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue( 'minLocalGlobalThresholdRatio', 0.6, @(x) (isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minSignalToBackgroundRatio', 2.5, @(x) (isnumeric(x) && isscalar(x)) );
+    p.addParamValue( 'minSignalToBackgroundRatio', 2.0, @(x) (isnumeric(x) && isscalar(x)) );
     
     p.addParamValue( 'seedPointDetectionAlgorithm', ...
                      'AdaptiveMultiscaleLoG', ...
