@@ -485,12 +485,12 @@ function WriteCellSnapshotImages(imageData, imCellMask, cellStats, cellId, fociS
     pixelPos = ind2submat(size(imCurCellMIP), (1:numel(imCurCellMIP))') * diag(spacing(1:2));
     [closestSeedInd, distanceToSeed] = kd.knnsearch(pixelPos);
 
-    blobRadii = [fociStats.Radius];
-    flagIsPixelInSeedVicinity = abs(distanceToSeed - blobRadii(closestSeedInd)) <= min(1.5 * spacing);
+    blobRadii = ([fociStats.Radius])';
+    flagIsPixelInSeedVicinity = abs(distanceToSeed - blobRadii(closestSeedInd)) <= min(spacing(1:2));
     imLabelFociMask( flagIsPixelInSeedVicinity ) = closestSeedInd( flagIsPixelInSeedVicinity );
     imFociRGBMask = label2rgbND(imLabelFociMask);
     
-    imwrite( genImageRGBMaskOverlay(imCurCellMIP, imFociRGBMask, 0.5 ), ...
+    imwrite( imresize(genImageRGBMaskOverlay(imCurCellMIP, imFociRGBMask, 0.5 ), szOutputImage), ...
              fullfile(imageOutputDir, sprintf('Cell53BP1MIPFociOverlay_%.3d.png', cellId)), 'png' );   
 
 end

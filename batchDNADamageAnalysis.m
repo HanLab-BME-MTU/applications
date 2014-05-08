@@ -10,6 +10,9 @@ fclose all;
     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
     projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
     
+%     projectRootDir = 'Z:\intravital\DNADamageAnalysis';
+%     projectRootDirScratch = projectRootDir;
+    
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
@@ -43,7 +46,7 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 2;
+    runMode = 3;
     
     % Do you want to save images?
     flagSaveImages = true;
