@@ -51,7 +51,7 @@ fclose all;
     % deployAsJobs - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeployAsJobs', 'deployAsJobs', 'collect'};
-    runMode = 3;
+    runMode = 2;
     
     % specify cluster resource requirements and submission queue
     numCoresRequested = [];

@@ -317,8 +317,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
                         mkdir( imageOutputDir );
                     end
 
-                    WriteCellSnapshotImages(imageData, imLabelCellSeg == cellId, ...
-                                            cellStats(cellId), cellId, fociStats(cellStats(cellId)), ...
+                    WriteCellSnapshotImages(imageData{channelId53BP1}, imLabelCellSeg == cellId, ...
+                                            cellStats(cellId), cellId, fociStats(cellStats(cellId).foci), ...
                                             metadata.voxelSpacing, imageOutputDir)
 
                 end
@@ -342,8 +342,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
                         mkdir( imageOutputDir );
                     end
 
-                    WriteCellSnapshotImages(imageData, imLabelCellSeg == cellId, ...
-                                            cellStats(cellId), cellId, fociStats(cellStats(cellId)), ...
+                    WriteCellSnapshotImages(imageData{channelId53BP1}, imLabelCellSeg == cellId, ...
+                                            cellStats(cellId), cellId, fociStats(cellStats(cellId).foci), ...
                                             metadata.voxelSpacing, imageOutputDir)
                     
                     percent_done = round(100*cellId/numCells);       
@@ -452,7 +452,7 @@ function WriteCellSnapshotImages(imageData, imCellMask, cellStats, cellId, fociS
 
     % crop images
     subinds = cell(1,3);
-    imsize = size(imageData{1});
+    imsize = size(imageData);
     for i = 1:2
 
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -470,9 +470,9 @@ function WriteCellSnapshotImages(imageData, imCellMask, cellStats, cellId, fociS
         subinds{i} = xi_low:xi_high;
 
     end     
-    subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
+    subinds{3} = round(curCellBoundingBox(3):(curCellBoundingBox(3)+curCellBoundingBox(6)-1));
 
-    imCurCellMIP = mat2gray( max(imageData(subinds{:}) .* imCellMask(subinds{:}), [], 3) );
+    imCurCellMIP = mat2gray( max(double(imageData(subinds{:})) .* double(imCellMask(subinds{:})), [], 3) );
 
     imLabelFociMask = zeros(size(imCurCellMIP));    
     fociSeedPointLoc = ind2submat(size(imCellMask), [fociStats.PixelLocationIndex]);
@@ -480,10 +480,12 @@ function WriteCellSnapshotImages(imageData, imCellMask, cellStats, cellId, fociS
     for i = 1:2
         fociSeedPointLoc(:,i) = fociSeedPointLoc(:,i) - min(subinds{i}) + 1;
     end        
-    seedPos = fociSeedPointLoc * diag(spacing);
+    seedPos = fociSeedPointLoc * diag(spacing(1:2));
     kd = KDTreeSearcher(seedPos);
-    pixelPos = ind2submat(size(imCurCellMIP), (1:numel(imCurCellMIP))') * diag(spacing);
+    pixelPos = ind2submat(size(imCurCellMIP), (1:numel(imCurCellMIP))') * diag(spacing(1:2));
     [closestSeedInd, distanceToSeed] = kd.knnsearch(pixelPos);
+
+    blobRadii = [fociStats.Radius];
     flagIsPixelInSeedVicinity = abs(distanceToSeed - blobRadii(closestSeedInd)) <= min(1.5 * spacing);
     imLabelFociMask( flagIsPixelInSeedVicinity ) = closestSeedInd( flagIsPixelInSeedVicinity );
     imFociRGBMask = label2rgbND(imLabelFociMask);

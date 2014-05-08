@@ -9,15 +9,12 @@ fclose all;
 
     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
     projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
-
-    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
-    projectRootDirScratch = 'Z:\intravital\DNADamageAnalysis';
     
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
      % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDirScratch, 'results', 'batchAnalysis_M14_to_M17');
+    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysis_M14_to_M17');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
@@ -46,7 +43,7 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 1;
+    runMode = 2;
     
     % Do you want to save images?
     flagSaveImages = true;
@@ -116,6 +113,7 @@ switch strRunMode
         
         flagSuccess = performDNADamageAnalysis( curImageFilePath, cur53BP1ChannelId, ...
                                                 regionMergingModelFile, curOutDir, ...
+						'flagSaveImages', flagSaveImages, ...
                                                 'metaInfoStruct', curMetaInfoStruct);
 
         if ~flagSuccess
@@ -203,7 +201,7 @@ switch strRunMode
                          regionMergingModelFile, curOutDir, ...
                          'metaInfoStruct', curMetaInfoStruct, ... 
                          'finishStatusReportFile', curFinishStatusReportFile, ...
-                         'flagSaveImages', true, 'flagParallelize', false };
+                         'flagSaveImages', flagSaveImages, 'flagParallelize', false };
 
             jobList{fid} = createJob(jm);            
             taskList{fid} = createTask(jobList{fid}, @performDNADamageAnalysis, 1, funcArgs, 'CaptureCommandWindowOutput', true );
