@@ -184,7 +184,9 @@ for i = 1:nd
     end
 end
 
-if numel(unique(tvec))==1
+% if all data sets have the same stored threshold value, and no values are given in
+% input, use stored threshold
+if numel(unique(tvec))==1 && isempty(ip.Results.MaxIntensityThreshold) && isempty(FirstNFrames)
     T = tvec(1);
     fprintf('Max. intensity threshold on first %d frames: %.2f\n', prm.nFramesThreshold, T);
 elseif ~isempty(ip.Results.MaxIntensityThreshold)
