@@ -71,6 +71,7 @@ end
 % place it to roiDir.
 %% Apply ROI
 roiMD = MD.addROI([roiDir filesep 'roiMask.tif'],roiDir);
+roiMD.setPath(roiDir);
 roiMD.setFilename('movieData.mat');
 roiMD.save;
 
