@@ -111,9 +111,12 @@ disp('Starting calculating displacement field...')
 % Get the mask
 maskArray = movieData.getROIMask;
 % Use mask of first frame to filter bead detection
-firstMask = false(size(refFrame));
+firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
-firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+% firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+tempMask2 = false(size(refFrame));
+tempMask2(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+firstMask = tempMask2 & firstMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
 if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
