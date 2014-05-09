@@ -410,19 +410,22 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53
                              
     % save mat file that can be loaded into the DNADamageAnalyzer tool
     analysisData.dataFilePath = imageDataFilePath;    
+    for i = 1:numel(imageData)
+        imageData{i} = uint16(imageData{i});
+    end
     analysisData.imageData = imageData;
     analysisData.metadata = metadata;
     analysisData.channelId53BP1 = channelId53BP1;
 
-    analysisData.imLabelCellSeg = imLabelCellSeg;
-    analysisData.imCellSeedPoints = imCellSeedPoints;
+    analysisData.imLabelCellSeg = uint16( imLabelCellSeg );
+    analysisData.imCellSeedPoints = uint16( imCellSeedPoints );
     [imCellSegMaskRGB, analysisData.CellSegColorMap] = label2rgbND(imLabelCellSeg);
     analysisData.segAlgoParameters = segAlgoParameters;
     analysisData.cellStats = cellStats;
     
     analysisData.fociStats = fociStats;
-    analysisData.imFociSeedPoints = imFociSeedPoints;
-    analysisData.imLabelFociSeg = imLabelFociSeg;
+    analysisData.imFociSeedPoints = uint16( imFociSeedPoints );
+    analysisData.imLabelFociSeg = uint16( imLabelFociSeg );
     [imFociSegMaskRGB, analysisData.FociSegColorMap] = label2rgbND(imLabelFociSeg);
     analysisData.fociDetectionParameters = fociDetectionParameters;
     

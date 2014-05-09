@@ -12,7 +12,7 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
     p.addParamValue( 'spacing', ones( 1, ndims(imInput) ), @(x) (isnumeric(x) && numel(x) == ndims(imInput)) );
     
     p.addParamValue( 'numScales', 5, @(x) @(x)(isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minSignalToBackgroundRatio', 1.03, @(x) (isnumeric(x) && isscalar(x) && x >= 1) );
+    p.addParamValue( 'minSignalToBackgroundRatio', 1.3, @(x) (isnumeric(x) && isscalar(x) && x >= 1) );
     p.addParamValue( 'minDoGResponse', 1e-3, @(x) (isnumeric(x) && isscalar(x) && x >= 0) );
     p.addParamValue( 'minHessianEigenRatio21', 0.5, @(x) (isnumeric(x) && isscalar(x) && x >= 0 && x <= 1.0) );
     p.addParamValue( 'minHessianEigenRatio31', 0.0, @(x) (isnumeric(x) && isscalar(x) && x >= 0 && x <= 1.0) );
@@ -52,7 +52,9 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
     fprintf('\n>> Preprocessing ... \n');
 
     imPreprocessed = mat2gray(imInput); % standardize
-    imPreprocessed = matitk('FMEDIAN', [1, 1, zeros(1,imdims-2)], imPreprocessed); % applying in each plane because of intensity attenuation with depth
+    %imPreprocessed = matitk('FMEDIAN', [1, 1, zeros(1,imdims-2)], imPreprocessed); % applying in each plane because of intensity attenuation with depth
+    imPreprocessed = filterGaussND(imInput, 0.5 * min(PARAMETERS.spacing), ...
+                                   'spacing', PARAMETERS.spacing);
     
     if ~isempty(PARAMETERS.roiMask)
         distToROIBoundary = bwdistsc(~PARAMETERS.roiMask, PARAMETERS.spacing);

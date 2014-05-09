@@ -67,11 +67,11 @@ function DNADamageAnalyzer_OpeningFcn(hObject, eventdata, handles, varargin)
     
     % load history
     [pathstr, name, ext] = fileparts( mfilename( 'fullpath' ) );
-    historyFile = fullfile( pathstr, 'CellSegmentationQualityAnnotatorHistory.mat' );
+    historyFile = fullfile( pathstr, 'DNADamageAnalyzerHistory.mat' );
     if exist( historyFile, 'file' )
        handles.history = load( historyFile );
     else
-       handles.history.lastAnalyzedNucleusDir = pathstr;
+       handles.history.lastImageFileDir = pathstr;
     end
 
     % Initialize global variables
@@ -161,7 +161,7 @@ function File_Open_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     % ask the use to select the oif file for the nucleus channel
-    [fileName,pathName] = uigetfile( fullfile( handles.history.lastAnalyzedNucleusDir, '*.oif; *.oib' ), ...
+    [fileName,pathName] = uigetfile( fullfile( handles.history.lastImageFileDir, '*.oif; *.oib' ), ...
                                      'Select the file contaning the nuclear marker channel - histone-2B' );   
     
     if ~fileName 
@@ -169,7 +169,7 @@ function File_Open_Callback(hObject, eventdata, handles)
     end
     
     dataFilePath = fullfile( pathName, fileName );
-    handles.history.lastAnalyzedNucleusDir = pathName;
+    handles.history.lastImageFileDir = pathName;
     
     % load nucleus channel data
     PrettyPrintStepDescription( 'Loading Image Data' );
@@ -209,19 +209,20 @@ function File_Open_Callback(hObject, eventdata, handles)
         options.WindowStyle = 'normal';
         options.Interpreter = 'none';
 
-        histoneChannelId = inputdlg( prompt, 'Histone channel selector', 1, {'1'}, options ); 
+        channelId53BP1 = inputdlg( prompt, 'Histone channel selector', 1, {'1'}, options ); 
         
-        if isempty(histoneChannelId) || isempty( str2num( histoneChannelId{1} ) )
+        if isempty(channelId53BP1) || isempty( str2num( channelId53BP1{1} ) )
             close(hDisp);
             closeStatusDialog(hStatusDialog);
             return;
-        else
-            imageSeries(1).imageData = imageSeries(1).imageData(1, str2num(histoneChannelId{1}) );
-            imageSeries(1).metadata.numChannels = 1;
         end
 
+        channelId53BP1 = str2num(channelId53BP1{1});
+        
         close( hDisp );
         
+    else
+        channelId53BP1 = 1;
     end
     
     % store image data in handles structures    
@@ -231,8 +232,7 @@ function File_Open_Callback(hObject, eventdata, handles)
     handles.data.dataFilePath = dataFilePath;
     handles.data.metadata = imageSeries(1).metadata;
     handles.data.imageData = imageSeries(1).imageData;
-    
-    handles.data.metadata.channelColors = ones(1,3);
+    handles.data.channelId53BP1 = channelId53BP1;
     
     set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', handles.data.dataFilePath ) );
     
@@ -277,7 +277,7 @@ function RunAnalysis(hObject, handles)
     
     [handles.data.imLabelCellSeg, ...
      handles.data.imCellSeedPoints, ...
-     handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
+     handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{handles.data.channelId53BP1}, ...
                                                                       handles.data.metadata.voxelSpacing, ...                                                                      
                                                                       'flagParallelize', handles.parameters.flagParallelize, ...
                                                                       'flagDebugMode', handles.parameters.flagDebugMode, ...
@@ -308,8 +308,6 @@ function RunAnalysis(hObject, handles)
 % --------------------------------------------------------------------
 function [cellStats] = ComputeCellProperties( handles )
 
-    PrettyPrintStepDescription( 'Computing Properties of Segmentated Cells' );    
-    
     hStatusDialog = waitbar(0, 'Computing properties of segmented cells');
     
     cellStats = regionprops( handles.data.imLabelCellSeg, ...
@@ -318,7 +316,7 @@ function [cellStats] = ComputeCellProperties( handles )
     for i = 1:numel(cellStats)
 
         % intensity descriptors
-        cellPixelIntensities = handles.data.imageData{1}( cellStats(i).PixelIdxList );
+        cellPixelIntensities = handles.data.imageData{handles.data.channelId53BP1}( cellStats(i).PixelIdxList );
         cellStats(i).meanIntensity = mean( cellPixelIntensities );
         cellStats(i).stdIntensity = std( double(cellPixelIntensities) );
         cellStats(i).minIntensity = min( cellPixelIntensities );
@@ -368,14 +366,14 @@ function UpdateCellDisplay(handles)
     
     % display global cross section images  
     if handles.flagUseLOG               
-        imGlobalXY = handles.dataDisplay.imageDataLOG{1}( :, :, curCellSliceId(3) );       
-        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( :, :, curCellSliceId(3) );       
+        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imLogDisplayRange;
     else        
-        imGlobalXY = handles.data.imageData{1}( :, :, curCellSliceId(3) );
-        imGlobalXZ = squeeze( handles.data.imageData{1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.data.imageData{1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.data.imageData{handles.data.channelId53BP1}( :, :, curCellSliceId(3) );
+        imGlobalXZ = squeeze( handles.data.imageData{handles.data.channelId53BP1}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.data.imageData{handles.data.channelId53BP1}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imDisplayRange;
     end
     imGlobalXY = mat2gray(imGlobalXY, displayrange(1,:) );
@@ -443,7 +441,7 @@ function UpdateCellDisplay(handles)
     % draw bounding box around each cell
     if handles.flagShowCellBBox
         
-        imsize = size( handles.data.imageData{1} );
+        imsize = size( handles.data.imageData{handles.data.channelId53BP1} );
         hold( handles.Axes_Global_XY, 'on' );
             
             w = curCellDisplaySize([1,1]);
@@ -493,7 +491,7 @@ function UpdateCellDisplay(handles)
         
     % extract image within a bounding box around the cell
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -514,9 +512,9 @@ function UpdateCellDisplay(handles)
     subinds{3} = curCellSliceId(3);    
     
     if handles.flagUseLOG
-        imCellCropped = mat2gray( handles.dataDisplay.imageDataLOG{1}(subinds{:}), handles.dataDisplay.imLogDisplayRange(1,:) );        
+        imCellCropped = mat2gray( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}(subinds{:}), handles.dataDisplay.imLogDisplayRange(1,:) );        
     else
-        imCellCropped = mat2gray( handles.data.imageData{1}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
+        imCellCropped = mat2gray( handles.data.imageData{handles.data.channelId53BP1}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
     end
     
     imLabelCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );    
@@ -569,7 +567,7 @@ function UpdateCellDisplay(handles)
     subindsMIP{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
 
     imCellSegCropped = handles.data.imLabelCellSeg( subindsMIP{:} ) == handles.dataDisplay.curCellId;
-    imCurCellMIP = mat2gray( max(handles.data.imageData{1}(subindsMIP{:}) .* imCellSegCropped, [], 3 ) );
+    imCurCellMIP = mat2gray( max(handles.data.imageData{handles.data.channelId53BP1}(subindsMIP{:}) .* imCellSegCropped, [], 3 ) );
     imHistoneMIPDisplay = repmat( imCurCellMIP, [1,1,3] );
     
     cla( handles.Axes_Histone_MIP, 'reset' );
@@ -636,10 +634,10 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     % get annotation file from user
-    if isfield( handles.history, 'lastOutputDir' )
-        [fileName,pathName] = uigetfile( fullfile( handles.history.lastOutputDir, 'CellSegmentationQualityAnnotation.mat' ), 'Select annotation file' );   
+    if isfield( handles.history, 'lastAnalysisFileDir' )
+        [fileName,pathName] = uigetfile( fullfile(handles.history.lastAnalysisFileDir, 'DNADamageAnalysis.mat'), 'Select analysis file' );   
     else
-        [fileName,pathName] = uigetfile( fullfile( handles.history.lastAnalyzedNucleusDir, 'CellSegmentationQualityAnnotation.mat' ), 'Select annotation file' );   
+        [fileName,pathName] = uigetfile( fullfile(pwd, 'DNADamageAnalysis.mat'), 'Select analysis file' );   
     end
 
     if ~fileName 
@@ -651,6 +649,7 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
     % load annotation data from file
     analysisFile = fullfile(pathName, fileName);
     analysisData = load( analysisFile );
+    handles.history.lastAnalysisFileDir = pathName;
     
     % retrieve data needed for this tool
     handles.data = [];
@@ -663,13 +662,17 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
         end
         handles.data.metadata = analysisData.metadata;
         handles.data.imageData = analysisData.imageData;
-
+        for i = 1:numel(handles.data.imageData)
+            handles.data.imageData{i} = double(handles.data.imageData{i});
+        end
+        handles.data.channelId53BP1 = analysisData.channelId53BP1;
+        
         % basic display data
         handles = ComputeDisplayData(handles);
     
         % nuclei segmentation stuff
-        handles.data.imLabelCellSeg = analysisData.imLabelCellSeg;        
-        handles.data.imCellSeedPoints = analysisData.imCellSeedPoints;        
+        handles.data.imLabelCellSeg = double( analysisData.imLabelCellSeg );        
+        handles.data.imCellSeedPoints = double( analysisData.imCellSeedPoints );        
 
         if ~isfield( analysisData, 'CellSegColorMap' )
             [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND( handles.data.imLabelCellSeg );
@@ -678,7 +681,7 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
             handles.dataDisplay.imCellSegRGBMask = label2rgbND( handles.data.imLabelCellSeg, handles.data.CellSegColorMap );
         end
         
-        handles.dataDisplay.imCellSeedPoints = imdilate(analysisData.imCellSeedPoints, ones(3,3,3));
+        handles.dataDisplay.imCellSeedPoints = imdilate(double(handles.data.imCellSeedPoints), ones(3,3,3));
 
         if isfield(analysisData, 'segAlgoParameters')
             handles.data.segAlgoParameters = analysisData.segAlgoParameters;
@@ -693,8 +696,8 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
         end
         
         % foci 
-        handles.data.imLabelFociSeg = analysisData.imLabelFociSeg;
-        handles.data.imFociSeedPoints = analysisData.imFociSeedPoints;
+        handles.data.imLabelFociSeg = double( analysisData.imLabelFociSeg ); 
+        handles.data.imFociSeedPoints = double( analysisData.imFociSeedPoints );
         handles.data.fociStats = analysisData.fociStats;
 
         handles.dataDisplay.imFociSeedPoints = imdilate(handles.data.imFociSeedPoints, ones(3,3,3));
@@ -750,17 +753,17 @@ function File_SaveAnalysis_Callback(~, eventdata, handles)
     end
 
     % ask user to select the directory in which to save the data    
-    if isfield( handles.history, 'lastOutputDir' )
-        outputDir = uigetdir( handles.history.lastOutputDir, 'Select annotation output directory');
+    if isfield( handles.history, 'lastAnalysisFileDir' )
+        outputDir = uigetdir(handles.history.lastAnalysisFileDir, 'Select annotation output directory');
     else
-        outputDir = uigetdir( handles.history.lastAnalyzedNucleusDir, 'Select annotation output directory');
+        outputDir = uigetdir(pwd, 'Select annotation output directory');
     end
 
     if ~outputDir
         return;
     end
 
-    handles.history.lastOutputDir = outputDir;
+    handles.history.lastAnalysisFileDir = outputDir;
     
     % save data
     [pathstr, name, ext] = fileparts( handles.data.dataFilePath );
@@ -771,6 +774,9 @@ function File_SaveAnalysis_Callback(~, eventdata, handles)
     end
     
     data = handles.data;
+    for i = 1:numel(handles.data.imageData)
+        data.imageData{i} = uint16(data.imageData{i});
+    end
     
     h = waitbar(0, 'Saving Data ... Please Wait' );
     save( fullfile(outputDir, 'DNADamageAnalysis.mat'), '-struct', 'data' );
@@ -1025,7 +1031,7 @@ function DNADamageAnalyzer_DeleteFcn(hObject, eventdata, handles)
     if isfield(handles, 'history')
         history = handles.history;
         [pathstr, name, ext] = fileparts( mfilename( 'fullpath' ) );
-        historyFile = fullfile( pathstr, 'CellSegmentationQualityAnnotatorHistory.mat' );
+        historyFile = fullfile( pathstr, 'DNADamageAnalyzerHistory.mat' );
         save( historyFile, '-struct', 'history' );  
     end
 
@@ -1061,7 +1067,7 @@ function FnSliceScroll_Callback(hSrc, eventdata)
         return;
     end
     
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
 
     if IsMouseInsideAxes(handles.Axes_Global_XZ)
         viewId = 1; % y-slice
@@ -1147,7 +1153,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     
     % create crop indices
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -1173,7 +1179,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         imCellCropped{i} = handles.data.imageData{i}(subinds{:});
     end
     
-    imvis = ImarisDataVisualizer(imCellCropped, ...
+    imvis = ImarisDataVisualizer(cat(4, imCellCropped{:}), ...
                                  'spacing', handles.data.metadata.voxelSpacing);
                              
     handles.imarisAppCellSegCropped = imvis;
@@ -1249,7 +1255,7 @@ function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end
 
     % generate visualization
-    imvis = ImarisDataVisualizer( handles.data.imageData, 'spacing', handles.data.metadata.voxelSpacing );
+    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.voxelSpacing );
     handles.imarisAppCellSeg = imvis;
     
     hSegmentation = imvis.AddDataContainer();
@@ -1321,7 +1327,7 @@ function DNADamageAnalyzer_WindowButtonDownFcn(hObject, eventdata, handles)
         return;
     end
     
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
     newCellSliceId = handles.dataDisplay.curCellSliceId;
     
     if IsMouseInsideAxes(handles.Axes_Global_XZ)
@@ -1386,7 +1392,7 @@ function PerformFociSegmenatation(hObject, handles)
     [handles.data.fociStats, ...
      handles.data.imFociSeedPoints, ...
      handles.data.imLabelFociSeg, ...
-     handles.data.fociDetectionParameters ] = segmentFociInsideNuclei( handles.data.imageData{1}, ...
+     handles.data.fociDetectionParameters ] = segmentFociInsideNuclei( handles.data.imageData{handles.data.channelId53BP1}, ...
                                                                        min(handles.data.metadata.voxelSpacing) * [3, 7], ...                      
                                                                        'spacing', handles.data.metadata.voxelSpacing, ...
                                                                        'roiMask', handles.data.imLabelCellSeg, ...
