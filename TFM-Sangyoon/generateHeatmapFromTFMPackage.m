@@ -14,7 +14,8 @@ elseif nargin <3
 end
 % Load the MovieData
 movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
-% movieData = MovieData.load(movieDataPath);
+% structMD = load(movieDataPath);
+% movieData = structMD.MD;
 movieData = MovieData.load(movieDataPath);
 % Get whole frame number
 nFrames = movieData.nFrames_;

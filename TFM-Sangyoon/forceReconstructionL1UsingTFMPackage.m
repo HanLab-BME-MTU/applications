@@ -74,9 +74,10 @@ roiMD = MD.addROI([roiDir filesep 'roiMask.tif'],roiDir);
 roiMD.setPath(roiDir);
 roiMD.setFilename('movieData.mat');
 roiMD.save;
+MD.save;
 
 %% Create TFM package and retrieve package index
-roiMD.addPackage(TFMPackage(MD));
+roiMD.addPackage(TFMPackage(roiMD));
 iPack=  roiMD.getPackageIndex('TFMPackage');
 
 %% Create first process
@@ -111,6 +112,7 @@ params.maxFlowSpeed = 40;
 params.highRes = true;
 params.mode = 'accurate';
 roiMD.getPackage(iPack).getProcess(2).setPara(params);
+roiMD.save;
 %% Run the displacement field tracking
 roiMD.getPackage(iPack).getProcess(2).run();
 %% Create third process and run
