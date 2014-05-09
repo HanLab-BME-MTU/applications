@@ -175,7 +175,7 @@ end
 badLinkIdx=[badTrackIdx badTrackVecHead];
 badLinkIdx=sortrows(badLinkIdx,1); % sorted indices [trackNumber headPosition]
 
-[trackIdxWithBadLink,nBadLinks,whereIdx] = countEntries(badLinkIdx(:,1));
+[nBadLinks, trackIdxWithBadLink] = getMultiplicity(badLinkIdx(:,1));
 % n links to break creates n+1 segments. but, since we retain the original row
 % for the first segment, we only need to add n rows
 nRows2add = sum(nBadLinks);

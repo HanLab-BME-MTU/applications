@@ -571,8 +571,8 @@ if doPlot==1
     %saveas(gcf,[histDir filesep 'allTracksCostStackedHist.tif'])
 
     % get indices from endsToConsider with only 1 potential start link
-    [u,num]=countEntries(indx1);
-    only1=u(num==1);
+    [num, u] = getMultiplicity(indx1);
+    only1 = u(num==1);
 
     costSingles=cost(cell2mat(arrayfun(@(x) find(indx1==x),only1,'uniformoutput',0)));
     typeSingles=type(cell2mat(arrayfun(@(x) find(indx1==x),only1,'uniformoutput',0)));
@@ -623,8 +623,8 @@ if doPlot==1
     imagesc(.75*zeros(round(max(py(:))),round(max(px(:))))); colormap gray
     hold on
 
-    [u,num]=countEntries(indx1);
-    c=u(num==3);
+    [num, u] = getMultiplicity(indx1);
+    c = u(num==3);
     for j=1:5 %length(c);
         b=find(indx1==c(j));
         [indx1(b) indx2(b) type(b) cost(b)]
