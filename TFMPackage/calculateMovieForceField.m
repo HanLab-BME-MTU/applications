@@ -38,7 +38,7 @@ forceFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(forceFieldProc,paramsIn);
 p.usePaxImg = false;
-p.saveBEMparams = false;
+p.saveBEMparams = true;
 p.lastToFirst = false;
 %% --------------- Initialization ---------------%%
 % if feature('ShowFigureWindows'),
@@ -227,9 +227,9 @@ if strcmpi(p.method,'FastBEM')
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
                 'useLcurve',p.useLcurve, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
                 'LcurveDataPath',outputFile{4,1},'LcurveFigPath',outputFile{3,1});
-            p = parseProcessParams(forceFieldProc,paramsIn);
-            p.regParam = sol_mats.L;
-            forceFieldProc.setPara(p);
+            params = parseProcessParams(forceFieldProc,paramsIn);
+            params.regParam = sol_mats.L;
+            forceFieldProc.setPara(params);
             forceField(i).pos=pos_f;
             forceField(i).vec=force;
 
