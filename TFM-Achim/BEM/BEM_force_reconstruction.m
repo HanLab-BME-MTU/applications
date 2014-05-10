@@ -399,7 +399,10 @@ alphas=10.^(-9:.125:-4.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
-for i=1:length(alphas);
+if matlabpool('size')==0
+    matlabpool open
+end
+parfor i=1:length(alphas);
   mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
   rho(i)=norm(M*mtik(:,i)-u);
   eta(i)=norm(mtik(:,i),1);
