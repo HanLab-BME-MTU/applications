@@ -67,10 +67,12 @@ reg_corner = lambda(ireg_corner);
 disp(['Initial L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 
 % poly-fit version
-p=polyfit(maxKappaIdx-5:maxKappaIdx+5,kappa(maxKappaIdx-5:maxKappaIdx+5)',2);
+firstKIdx = max(1,maxKappaIdx-5);
+lastKIdx = min(length(kappa),maxKappaIdx+5);
+p=polyfit(firstKIdx:lastKIdx,kappa(firstKIdx:lastKIdx)',2);
 if p(1)<0
     ireg_corner = -p(2)/(2*p(1));
-    q=polyfit(maxKappaIdx-5:maxKappaIdx+5,lambda(maxKappaIdx-5:maxKappaIdx+5),1);
+    q=polyfit(firstKIdx:lastKIdx,lambda(firstKIdx:lastKIdx),1);
     reg_corner = polyval(q,ireg_corner);
     disp(['Sub-knot resolution L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 else

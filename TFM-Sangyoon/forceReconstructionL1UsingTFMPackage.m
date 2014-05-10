@@ -130,9 +130,6 @@ params.regParam = 1e-4;
 params.method = 'FastBEM';
 params.solMethodBEM = '1NormReg';
 params.useLcurve = true;
-params.basisClassTblPath = '/project/....mat';
-
-params.solMethodBEM = solMethodBEM;
 params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass90x Kubow.mat';
 
 roiMD.getPackage(iPack).getProcess(4).setPara(params);

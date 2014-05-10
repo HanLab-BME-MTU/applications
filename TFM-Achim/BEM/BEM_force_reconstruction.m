@@ -435,6 +435,7 @@ disp('Printing L-curve...')
 % print -deps2 nameSave
 print(hLcurve,'Lcurve.eps','-depsc')
 saveas(hLcurve,LcurveFigPath);
+close(hLcurve)
 
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
