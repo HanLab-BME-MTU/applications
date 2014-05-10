@@ -485,7 +485,10 @@ alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
-for i=1:length(alphas);
+if matlabpool('size')==0
+    matlabpool open
+end
+parfor i=1:length(alphas);
     disp(['testing L = ' num2str(alphas(i)) '... '])
     msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
     rho(i)=norm(M*msparse(:,i)-u);
