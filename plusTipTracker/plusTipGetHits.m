@@ -180,7 +180,7 @@ for i=1:numel(hitsStatsNames)
     steData= cellfun(@(x) nanstd(x)/sqrt(size(x,1)),rawData);
     f = figure;
     barplot2(plotData,steData,'YLabel',strrep(hitsStatsNames{i},'_',' '),...
-        'XLabels',strrep(groupData.names,'_',' ' ),'Interpreter','none');
+        'XTickLabel',strrep(groupData.names,'_',' ' ),'Interpreter','none');
     print(f,'-dtiff', '-r300',[saveDir filesep 'histogram_' hitsStatsNames{i} '.tif']);
     close(f);
     
