@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,manualSelection)%,dataPath)
+function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,manualSelection)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -17,26 +17,33 @@ function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,
 %   kappa       - the curvature for each reg_param
 
 if nargin<4
+    init_lambda = median(lambda);
+    manualSelection = false;
+elseif nargin<5
     manualSelection = false;
 end
 
 % transform rho and eta into log-log space
 x=log(rho);
 y=log(eta);
-numCutPoints = 0;
 
-% show the l curve and make sure this is fittable with 5th order polynomial
-h=figure; set(h,'Position',[1000,100,400,1000])
-subplot(3,1,1),plot(x,y,'k')
-xlabel('Residual Norm ||Gm-d||_{2}');
-ylabel('Simi-Norm ||Lm||_{2}');
-x_cut = x((numCutPoints+1:end));
-y_cut = y((numCutPoints+1:end));
+% calculating slopes by linear regression
+x_slope = x(3:end-2);
+slope = zeros(size(x_slope));
+for k=1:length(x)-4 
+    [~,slope(k,1),~] = regression(x(k:k+4)',y(k:k+4)');
+end
 
-kappa = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
-subplot(3,1,2), plot(x_cut(1:end-2),kappa), title('curvature')
-kappadiff = diff(kappa);
-subplot(3,1,3), plot(x_cut(1:end-3),diff(kappa)),title('jerk')
+% calculating kappas by linear regression
+x_kappa = x_slope(2:end-1);
+kappa = zeros(size(x_kappa));
+lambda_cut = lambda(4:end-3);
+for k=1:length(x_slope)-2 
+    [~,kappa(k),~] = regression(x_slope(k:k+2)',slope(k:k+2)');
+end
+
+% kappa2 = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
+% kappadiff = diff(kappa);
 
 % find a local maximum with three sections
 nSections = 3;
@@ -55,15 +62,18 @@ end
 if length(maxKappaCandIdx)==1
     maxKappaIdx = maxKappaCandIdx(1);
 elseif length(maxKappaCandIdx)>1
-    [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
-    maxKappaIdx = maxKappaCandIdx(tempIndex);
+    % pick the one which is closer to initial lambda
+    [~,Idx_close] = min(abs(lambda_cut(maxKappaCandIdx)-init_lambda));
+    maxKappaIdx = maxKappaCandIdx(Idx_close);
+%     [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
+%     maxKappaIdx = maxKappaCandIdx(tempIndex);
 elseif isempty(maxKappaCandIdx)
     error('there is no local maximum in curvature in the input lambda range');
 end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
 % find an index at kappa = 0 before maxKappaIdx
-ireg_corner= numCutPoints+maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-reg_corner = lambda(ireg_corner);
+ireg_corner= maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+reg_corner = lambda_cut(ireg_corner);
 disp(['Initial L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 
 % poly-fit version
@@ -72,18 +82,29 @@ lastKIdx = min(length(kappa),maxKappaIdx+5);
 p=polyfit(firstKIdx:lastKIdx,kappa(firstKIdx:lastKIdx)',2);
 if p(1)<0
     ireg_corner = -p(2)/(2*p(1));
-    q=polyfit(firstKIdx:lastKIdx,lambda(firstKIdx:lastKIdx),1);
+    q=polyfit(firstKIdx:lastKIdx,lambda_cut(firstKIdx:lastKIdx),1);
     reg_corner = polyval(q,ireg_corner);
     disp(['Sub-knot resolution L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 else
     disp('The corner''''s L-corner does not have positive curvature')
-    reg_corner = lambda(ireg_corner);
+    reg_corner = lambda_cut(ireg_corner);
 end
 
 if manualSelection
+    numCutPoints = 0;
+
+    % show the l curve and make sure this is fittable with 5th order polynomial
+    x_cut = x((numCutPoints+1:end));
+    
+    h=figure; set(h,'Position',[1000,100,400,800])
+    subplot(3,1,1),plot(x,y,'k')
+    xlabel('Residual Norm ||Gm-d||_{2}');
+    ylabel('Simi-Norm ||Lm||_{2}');
     subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
     text(x(ireg_corner),1.05*y(ireg_corner),...
         ['    ',num2str(lambda(ireg_corner),'%5.3e')]);
+    subplot(3,1,2), plot(x_cut(1:end-2),kappa), title('curvature')
+    subplot(3,1,3), plot(x_cut(1:end-3),diff(kappa)),title('jerk')
 
     subplot(3,1,2), hold on,plot(x_cut(ireg_corner),kappa(ireg_corner),'ro')
     subplot(3,1,3), hold on,plot(x_cut(ireg_corner),kappadiff(ireg_corner),'ro')

@@ -203,7 +203,7 @@ if nargin >= 10 && strcmp(method,'fast')
 
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
-        tolx =  sqrt(forceMesh.numBasis)*5e-3; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         MpM=M'*M;
@@ -484,6 +484,7 @@ function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights
 alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
+eta0=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
 if matlabpool('size')==0
     matlabpool open
@@ -493,17 +494,21 @@ parfor i=1:length(alphas);
     msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
     rho(i)=norm(M*msparse(:,i)-u);
     eta(i)=norm(msparse(:,i),1);
+    eta0(i)=sum(abs(msparse(:,i))>1)
 end
 
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+
+% Also, I can use L0 norm information to choose regularization parameter
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
 set(hLcurve, 'Position', [100 100 500 500])
 
 loglog(rho,eta,'k-');
+ylim([min(eta) max(eta)])
 xlabel('Residual Norm ||Gm-d||_{2}');
 ylabel('Solution Norm ||m||_{1}');
 hold on

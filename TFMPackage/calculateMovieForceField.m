@@ -277,9 +277,8 @@ if strcmpi(p.method,'FastBEM')
     end
 else
     i=frameSequence(1); % For the first frame
-    jj=jj+1;
     [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
-    for i=frameSequence(2:end)
+    for i=frameSequence
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
             p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, p.regParam);
         forceField(i).pos=pos_f;
