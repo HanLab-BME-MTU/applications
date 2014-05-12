@@ -53,7 +53,7 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
 
     imPreprocessed = mat2gray(imInput); % standardize
     %imPreprocessed = matitk('FMEDIAN', [1, 1, zeros(1,imdims-2)], imPreprocessed); % applying in each plane because of intensity attenuation with depth
-    imPreprocessed = filterGaussND(imInput, 0.5 * min(PARAMETERS.spacing), ...
+    imPreprocessed = filterGaussND(imPreprocessed, 0.5 * min(PARAMETERS.spacing), ...
                                    'spacing', PARAMETERS.spacing);
     
     if ~isempty(PARAMETERS.roiMask)
