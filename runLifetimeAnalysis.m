@@ -87,7 +87,7 @@ if ~isempty(selIdx)
     selIdx(outlierIdx) = [];
 end
 cmap(outlierIdx,:) = [];
-
+data(outlierIdx) = [];
 
 if ip.Results.PoolDatasets
     pnames = {'lifetime_s', 'start', 'catIdx', 'A', 'lifetime_s_all', 'start_all', 'catIdx_all'};
