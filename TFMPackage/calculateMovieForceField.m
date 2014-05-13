@@ -250,10 +250,10 @@ if strcmpi(p.method,'FastBEM')
             disp(['saving forward map and force mesh at ' outputFile{2} '...'])
             save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
         end
-        if matlabpool('size')==0
-            matlabpool open
-        end
-        parfor i=frameSequence(2:end)
+%         if matlabpool('size')==0
+%             matlabpool open
+%         end
+        for i=frameSequence(2:end)
                         % since the displ field has been prepared such
                 % that the measurements in different frames are ordered in the
                 % same way, we don't need the position information any
