@@ -163,9 +163,7 @@ if isstruct(lftRes)
         % 1) Lifetimes distributions for all detected objects
         %------------------------------------------------------------
         if ip.Results.PlotAll
-            figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
-            axes(fset.axOpts{:});
-            hold on;
+            setupFigure('Name', 'Lifetime dist.');
             axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
             
             hp = zeros(1+2*ncomb,1);
@@ -188,16 +186,14 @@ if isstruct(lftRes)
             hl = legend(hp, [' All structures' labels(1:2:end) labels(2:2:end)]);
             set(hl, fset.tfont{:}, 'Box', 'off');
             if strcmpi(ip.Results.DisplayMode, 'print');
-                set(hl, 'Position', [3.75 3.25 2 2]);
+                set(hl, 'Units', 'centimeters', 'Position', [3.75 3.25 2 2]);
             end
         end
         
         %------------------------------------------------------------
         % 2) Plot CCP lifetimes only; all combinations
         %------------------------------------------------------------
-        figure(fset.fOpts{:}, 'Name', 'Lifetime dist.');
-        axes(fset.axOpts{:});
-        hold on;
+        setupFigure('Name', 'Lifetime dist.');
         
         hp = zeros(1,ncomb);
         %tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
@@ -218,7 +214,7 @@ if isstruct(lftRes)
         lheight = ncomb+1;%1.5+3.5 = 5 -> 4+1.2
         set(hl, 'Box', 'off');
         if strcmpi(ip.Results.DisplayMode, 'print');
-            set(hl, 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
+            set(hl, fset.sfont{:}, 'Units', 'centimeters', 'Position', [3.2 5.2-lheight*0.35 2.5 lheight*0.35]);
         end
     end
     
