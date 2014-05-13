@@ -163,7 +163,7 @@ if isstruct(lftRes)
         % 1) Lifetimes distributions for all detected objects
         %------------------------------------------------------------
         if ip.Results.PlotAll
-            setupFigure('Name', 'Lifetime dist.');
+            setupFigure('Name', 'Lifetime dist.', 'DisplayMode', ip.Results.DisplayMode);
             axis([0 min(ip.Results.XTick(end), lftRes.t(end)) 0 ya(end)]);
             
             hp = zeros(1+2*ncomb,1);
@@ -193,7 +193,7 @@ if isstruct(lftRes)
         %------------------------------------------------------------
         % 2) Plot CCP lifetimes only; all combinations
         %------------------------------------------------------------
-        setupFigure('Name', 'Lifetime dist.');
+        setupFigure('Name', 'Lifetime dist.', 'DisplayMode', ip.Results.DisplayMode);
         
         hp = zeros(1,ncomb);
         %tmp = arrayfun(@(s) pctCCP(s)/sum(pctCCP)*mean(lftRes.lftHistSlaveCCP{s},1)*framerate, 1:ncomb, 'unif', 0);
