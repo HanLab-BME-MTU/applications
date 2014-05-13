@@ -244,30 +244,18 @@ if p.TransformMasks
         movieData.addProcess(MaskTransformationProcess(movieData,p.OutputDirectory));
     end
     maskTransfProc = movieData.processes_{iMaskTransfProc};
-       
+    
     %Set up the parameters for mask transformation
     maskTransfParams.ChannelIndex = p.ChannelIndex;
-    maskTransfParams.TransformFilePaths = p.TransformFilePaths;    
+    maskTransfParams.TransformFilePaths = p.TransformFilePaths;
     maskTransfParams.SegProcessIndex = p.SegProcessIndex;
     maskTransfParams.BatchMode = p.BatchMode;
     
     
     parseProcessParams(maskTransfProc,maskTransfParams);
     maskTransfProc.run;
-        
+    
 end
-
-
-
-
-
-%% ------ Output and Finalization ----- %%
-
-
-%Store parameters/settings in movieData structure
-
-transfProc.setDateTime;
-movieData.save; %Save the new movieData to disk
 
 disp('Finished!')
 
