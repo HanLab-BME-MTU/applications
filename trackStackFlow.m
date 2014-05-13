@@ -133,7 +133,7 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-if matlabpool('size')<2
+if matlabpool('size')==0
     matlabpool open
 end
 
@@ -239,7 +239,7 @@ parfor k = 1:nPoints
                     % the ambiguity can be resovled. Also by comparing the two
                     % velocities returned from two block sizes, we identify the
                     % optimal block size that gives a coherent flow.
-                    if max(length(vF),length(vP))>80
+                    if max(length(vF),length(vP))>80 && maxCorL==minCorL
                         incRange = [1.75 2.5 3.25 4];
                     else
                         incRange = 1.25;
