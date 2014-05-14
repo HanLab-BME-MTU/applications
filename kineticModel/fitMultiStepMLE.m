@@ -65,7 +65,8 @@ end
 
 % last significant difference:
 % [~,i] = min(BIC(:,1));
-idx = find(hval==1, 1, 'last')+1;
+%idx = find(hval==1, 1, 'last')+1;
+idx = find(hval==0, 1, 'first');
 k = p{idx}(:,1);
 k_pstd = p{idx}(:,2);
 
@@ -85,7 +86,7 @@ if ip.Results.Display
     
     % rates
     he = errorbar(ha(2), k, k_pstd, 'LineStyle', 'none',...
-        'Color', 'r', 'LineWidth', 2);
+        'Color', 0.6*[1 1 1], 'LineWidth', 2);
     setErrorbarStyle(he, 0);
     plot(ha(2), 1:idx, k, 'k.', 'MarkerSize', 12);
     set(ha(2), 'XLim', [0.5 idx+0.5], 'XTick', 1:3);
@@ -96,7 +97,7 @@ if ip.Results.Display
     
     % BIC
     he = errorbar(ha(3), BIC(:,1), BIC(:,2), 'LineStyle', 'none',...
-        'Color', 'r', 'LineWidth', 2);
+        'Color', 0.6*[1 1 1], 'LineWidth', 2);
     setErrorbarStyle(he, 0);
     plot(ha(3), BIC(:,1), 'k.', 'MarkerSize', 12);
     set(ha(3), 'XLim', [0.5 K+0.5], 'XTick', 1:K);
@@ -110,17 +111,19 @@ if ip.Results.Display
             'HorizontalAlignment', 'center', 'Parent', ha(3));
     % indicate n.s. differences
     for i = idx:K-1
-        plot(ha(3), i+[0.05 0.05 0.95 0.95],...
-            max(BIC(i:i+1,1)+BIC(i:i+1,2))+diff(YLim)*[0.04 0.08 0.08 0.04],...
-            'k', 'LineWidth', 1);
-        text(i+0.5, BIC(i,1)+BIC(i,2)+diff(YLim)*0.1, 'n.s.', 'VerticalAlignment', 'bottom',...
-            'HorizontalAlignment', 'center', 'Parent', ha(3));
+        if hval(i)==0
+            plot(ha(3), i+[0.05 0.05 0.95 0.95],...
+                max(BIC(i:i+1,1)+BIC(i:i+1,2))+diff(YLim)*[0.04 0.08 0.08 0.04],...
+                'k', 'LineWidth', 1);
+            text(i+0.5, BIC(i,1)+BIC(i,2)+diff(YLim)*0.1, 'n.s.', 'VerticalAlignment', 'bottom',...
+                'HorizontalAlignment', 'center', 'Parent', ha(3));
+        end
     end
     xlabel(ha(3), 'Model #');
     ylabel(ha(3), 'BIC');
     
-    K = corrMatFromCov(res(idx).C);
-    plotCorrelationMatrix(K, 'TickLabels', arrayfun(@(i) ['k_' num2str(i)], 1:i, 'unif', 0));
+    %K = corrMatFromCov(res(idx).C);
+    %plotCorrelationMatrix(K, 'TickLabels', arrayfun(@(i) ['k_' num2str(i)], 1:i, 'unif', 0));
 
 end
 
