@@ -41,9 +41,12 @@ end
 nf = numel(masterList);
 fctList = cell(1,nf);
 toolboxList = cell(1,nf);
+
+w = warning('off', 'MATLAB:DEPFUN:DeprecatedAPI');
 for i = 1:nf;
     [fctList{i}, toolboxList{i}] = getFunDependencies(masterList{i});
 end
+warning(w);
 fctList = unique(vertcat(fctList{:}));
 toolboxList = unique(vertcat(toolboxList{:}));
 [fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreList] = ...
@@ -61,7 +64,9 @@ if numel(mexNames)>0
     mdest = [destPath 'mex' filesep];
     [~,~] = mkdir(mdest);
     for i = 1:numel(mexNames)
-        copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
+        if exist([mexPaths{i} filesep mexNames{i}], 'file')==2
+            copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
+        end
     end
 end
 
