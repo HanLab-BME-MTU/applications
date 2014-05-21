@@ -50,13 +50,10 @@ MD = MovieData.load(movieDataPath);
 nFrames = MD.nFrames_;
 % Get TFM package
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
-% Get FA package (actually NA package)
-NAPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionPackage'));
 % Get FA segmentation package 
 FASegPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionSegmentationPackage'));
 % Load tracks
-iTracking = 4;
-trackNAProc = NAPackage.processes_{iTracking};
+trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
 
 forceFC = zeros(nFrames,1);
 forceFA = zeros(nFrames,1);
@@ -78,7 +75,12 @@ iForceFieldProc = 4;
 forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceField=forceFieldProc.loadChannelOutput;
 
-% Load the Paxillin channel
+% Load Cell Segmentation
+iMask = MD.getProcessIndex('MaskRefinementProcess');
+if isempty(iMask)
+    iMask = MD.getProcessIndex('ThresholdProcess');
+end
+maskProc = MD.getProcess(iMask);
 
 % Set up the output file path
 outputFilePath = [pathForTheMovieDataFile filesep 'Colocalization' filesep outputPath];
@@ -121,6 +123,7 @@ if isempty(tmax)
         tmax = max(tmax,max(fnorm_vec));
         tmin = min(tmin,min(fnorm_vec));
     end
+    display(['Force maximum = ' num2str(tmax)])
 else
     for ii = 1:nFrames
        %Load the saved body force map.
@@ -144,8 +147,6 @@ hold off
 %     set(h2, 'Position', [100+imSizeX*10/9 100 imSizeX imSizeY])
 iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
-% SegmentationPackage = MD.getPackage(MD.getPackageIndex('SegmentationPackage'));
-% minSize = round((500/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=.5um*.5um
 minLifetime = min(nFrames,3);
 markerSize = 2;
 % tracks
@@ -169,13 +170,43 @@ SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
 isValid = SEL(:,3) >= minLifetime;
 tracksNAorg = tracksNAorg(isValid);
 % end
-detectedNAProc = NAPackage.processes_{3};
+detectedNAProc = MD.getProcess(MD.getProcessIndex('PointSourceDetectionProcess'));
 detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
+% See if there is stage drift correction
+iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+if ~isempty(iSDCProc)
+    SDCProc=MD.processes_{iSDCProc};
+    if ~SDCProc.checkChannelOutput(1)
+        error(['The channel must have been corrected ! ' ...
+            'Please apply stage drift correction to all needed channels before '...
+            'running displacement field calclation tracking!'])
+    end
+    if length(SDCProc.funParams_.ChannelIndex)>1
+        iChan = 2;
+    elseif length(SDCProc.funParams_.ChannelIndex) == 1
+        iChan = SDCProc.funParams_.ChannelIndex;
+    else
+        error('No channel associated with SDC process!')
+    end
+    if iChan==2
+        iBeadChan=1;
+    else
+        iBeadChan = SDCProc.funParams_.ChannelIndex(1);
+    end
+    s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
+    T = s.T;
+end
+
 % re-express tracksNA so that each track has information for every frame
-disp('reformating NA tracks...')
 tic
-tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
+if ~isempty(iSDCProc)
+    disp('reformating NA tracks and applying stage drift correction ...')
+    tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames,T); 
+else
+    disp('reformating NA tracks...')
+    tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
+end
 toc
 
 % Filter out tracks that is out of XI and YI
@@ -250,66 +281,44 @@ for ii=1:nFrames
 
     %%-------------Adhesion detection----------------------
     % loading paxillin image
-    iSDCProc =MD.getProcessIndex('StageDriftCorrectionProcess',1,1);     
     if ~isempty(iSDCProc)
-        SDCProc=MD.processes_{iSDCProc};
-        if ~SDCProc.checkChannelOutput(1)
-            error(['The channel must have been corrected ! ' ...
-                'Please apply stage drift correction to all needed channels before '...
-                'running displacement field calclation tracking!'])
-        end
-        paxImage=(SDCProc.loadChannelOutput(2,ii)); %movieData.channels_(2).loadImage(ii);
+        paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
     else
         paxImage=(MD.channels_(2).loadImage(ii)); 
     end
     paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
 
     % Get Cell mask
-    pId = double(paxImageCropped)/max(double(paxImageCropped(:)));
+%     pId = double(paxImageCropped)/max(double(paxImageCropped(:)));
     % alpha = graythresh(pId);
     %estimate the intensity level to use for thresholding the image
-    level1 = graythresh(pId); %Otsu
-%     [~, level2] = cutFirstHistMode(pId,0); %Rosin
-    if ii==1
-        alpha1 = 0.95*level1;
-        alpha2 = 0.75*level1;
-        figure,subplot(2,1,1),imshow(pId,[]),title('original image');
-        subplot(2,2,3),imshow(im2bw(pId,alpha1)),title(['0.95*level1, alpha = ' num2str(alpha1) ]);
-        subplot(2,2,4),imshow(im2bw(pId,alpha2)),title(['0.75*level1, alpha = ' num2str(alpha2) ]);
-        alpha = input('type desired alpha to threshold the image so that it encompass entire cell membrane: ');
-    end
-        
-%     alpha = 0.82*level1; for after fak
-%     alpha = 0.9*level2 + 0.87*level1;
-%     tempH = figure; subplot(2,1,1), imshow(paxImageCropped,[]), title('original image');
-%     subplot(2,2,3), imshow(im2bw(pId,level1)), title(['Otsu, alpha= ', num2str(level1)]);
-%     subplot(2,2,4), imshow(im2bw(pId,level2)), title(['Rosin, alpha= ', num2str(level2)]);
-%     
-%     alpha = input(['Type desired alpha: (recommended: ' num2str(0.9*level2) ') :']);
-%     close(tempH)
-%     clear tempH
-
-    pId = double(paxImage)/max(double(paxImageCropped(:)));
-    pId2 = filterGauss2D(pId, 3);
-    bwPI4 = im2bw(pId2,alpha);
-%     bwPI = im2bw(pId,alpha);
-%     bwPI2 = bwmorph(bwPI,'clean');
-%     bwPI3 = bwmorph(bwPI2,'erode',5);
-%     bwPI3 = bwmorph(bwPI3,'dilate',4);
-%     bwPI4 = bwmorph(bwPI3,'close',10);
-%     bwPI4 = bwmorph(bwPI4,'dilate',1);
-    % bwPI5 = refineEdgeWithSteerableFilterGM(pId,bwPI4);
-    % In case that there is still islands, pick only the largest chunk
-%     [labelPI,nChunk] = bwlabel(bwPI4);
-%     if nChunk>1
-%         eachArea = zeros(nChunk,1);
-%         for k=1:nChunk
-%             currBWPI = labelPI==k;
-%             eachArea(k) = sum(currBWPI(:));
-%         end
-%         [~,indCellArea] = max(eachArea);
-%         bwPI4 = labelPI == indCellArea;
+%     level1 = graythresh(pId); %Otsu
+%     if ii==1
+%         alpha1 = 0.95*level1;
+%         alpha2 = 0.75*level1;
+%         figure,subplot(2,1,1),imshow(pId,[]),title('original image');
+%         subplot(2,2,3),imshow(im2bw(pId,alpha1)),title(['0.95*level1, alpha = ' num2str(alpha1) ]);
+%         subplot(2,2,4),imshow(im2bw(pId,alpha2)),title(['0.75*level1, alpha = ' num2str(alpha2) ]);
+%         alpha = input('type desired alpha to threshold the image so that it encompass entire cell membrane: ');
 %     end
+%     pId = double(paxImage)/max(double(paxImageCropped(:)));
+%     pId2 = filterGauss2D(pId, 3);
+%     bwPI4 = im2bw(pId2,alpha);
+    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+    
+    % Get the mask for FAs
+%     maskAdhesion = blobSegmentThreshold(paxImageCropped,minSize,false,bandMask & cropMask);
+    maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
+    % Apply stage drift correction
+    % Get limits of transformation array
+    maxX = ceil(max(abs(T(:, 2))));
+    maxY = ceil(max(abs(T(:, 1))));
+    Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+    % Apply subpixel-wise registration to original masks
+    I = padarray(maskFAs, [maxY, maxX]);
+    maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    I = padarray(bwPI4, [maxY, maxX]);
+    bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
     cropMask = bwPI4(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
     [B,~,nBD]  = bwboundaries(cropMask,'noholes');
 
@@ -318,12 +327,14 @@ for ii=1:nFrames
     distFromEdge = bwdist(iMask);
 %     bandwidth_pix = round(bandwidth*1000/MD.pixelSize_);
 %     bandMask = distFromEdge <= bandwidth_pix;
-
-    % Get the mask for FAs
-%     maskAdhesion = blobSegmentThreshold(paxImageCropped,minSize,false,bandMask & cropMask);
-    maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
+    
     maskAdhesion = maskFAs>0;
-    maskAdhesion = maskAdhesion(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+    % erode once and separate some dumbel shaped adhesion into two
+    maskAdhesion2 = bwmorph(maskAdhesion,'hbreak',1);
+    % Somehow  this doesn't work. I need find out better way of showing
+    % adhesions.
+    
+    maskAdhesion = maskAdhesion2(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
     maskFAs = maskFAs(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
 %     maskFAs = maskFAs(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
     
@@ -353,17 +364,19 @@ for ii=1:nFrames
     end
    
     % focal contact (FC) analysis
-    Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
+    conn=4;
+    CC = bwconncomp(maskAdhesion,conn);
+    Adhs = regionprops(CC,'Area','Eccentricity','PixelIdxList','PixelList' );
 %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
-    minFASize = round((2000/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
-    minFCSize = round((600/MD.pixelSize_)*(300/MD.pixelSize_)); %adhesion limit=1um*.5um
+    minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1 um2
+    minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=.24 um2
 
     fcIdx = arrayfun(@(x) x.Area<minFASize & x.Area>minFCSize, Adhs);
     FCs = Adhs(fcIdx);
     FCForce = arrayfun(@(x) tsMap(x.PixelIdxList),FCs,'UniformOutput',false);
     forceFC(ii) = mean(cell2mat(FCForce));
     FCIdx = find(fcIdx);
-    adhBound = bwboundaries(maskAdhesion,'noholes');    
+    adhBound = bwboundaries(maskAdhesion,conn,'noholes');    
     
     % for larger adhesions
     faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
@@ -516,7 +529,7 @@ for ii=1:nFrames
     %             plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
     %         end
             adhBoundary = adhBound{k};
-            plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+            plot(adhBoundary(:,2), adhBoundary(:,1),  'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
         end
         for k=1:numel(tracksNA)
             if tracksNA(k).presence(ii)
@@ -527,11 +540,11 @@ for ii=1:nFrames
                 elseif strcmp(tracksNA(k).state{ii} , 'FC')
                     % drawing tracks
                     plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
+%                     plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k', 'LineWidth', 0.5)
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
+%                     plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
@@ -543,13 +556,13 @@ for ii=1:nFrames
         set(hc,'Fontsize',16)
         hold on;
 
-        syFigureStyle(h1,ax1,2);
-        print('-dtiff', '-r300', strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat),'.tif'));
+        syFigureStyle(h1,ax1,imSizeY+1);
+        print('-dtiff', '-r150', strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat),'.tif'));
     %     hgexport(h1,strcat(forcetifPath,'/forcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/forcePeakFig',num2str(ii,iiformat)),'-v7.3')
-        print('-depsc2', '-r300', strcat(epsPath,'/forcePeak',num2str(ii,iiformat),'.eps'));
+        print('-depsc2', '-r150', strcat(epsPath,'/forcePeak',num2str(ii,iiformat),'.eps'));
     end    
-    if showAllTracks
+    if showAllTracks % for pax image
         h2=figure;
         set(h2, 'Position', [100 50+round(1.4*imSizeY) (imSizeX+1) imSizeY+1])
 
@@ -560,13 +573,14 @@ for ii=1:nFrames
         maxPax = max(paxImageCroppedInverted(:));
 
         if ii==1
-            minPax1 = 1*minPax;
-            minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
-            hPaxTemp = figure;
-            subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
-            subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
-            minPax = input('type desired minPax for maximum of the image: ');
-            close(hPaxTemp);
+%             minPax1 = 1*minPax;
+%             minPax2 = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
+            minPax = uint16(double(minPax)+double(0.25*(maxPax-minPax)));
+%             hPaxTemp = figure;
+%             subplot(1,2,1),imshow(paxImageCroppedInverted,[minPax1 maxPax]),title(['minPax1 = ' num2str(minPax1) ]);
+%             subplot(1,2,2),imshow(paxImageCroppedInverted,[minPax2 maxPax]),title(['minPax2 = ' num2str(minPax2) ]);
+%             minPax = input('type desired minPax for maximum of the image: ');
+%             close(hPaxTemp);
         end        
         imshow(paxImageCroppedInverted,[minPax maxPax]), hold on
         line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
@@ -583,7 +597,7 @@ for ii=1:nFrames
         % for larger adhesions
         for k = FAIdx'
             adhBoundary = adhBound{k};
-            plot(adhBoundary(:,2), adhBoundary(:,1), 'k', 'LineWidth', 0.5) %adhesion boundary
+            plot(adhBoundary(:,2), adhBoundary(:,1), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) %adhesion boundary
         end
         for k=1:numel(tracksNA)
             if tracksNA(k).presence(ii)
@@ -594,18 +608,18 @@ for ii=1:nFrames
                 elseif strcmp(tracksNA(k).state{ii} , 'FC')
                     % drawing tracks
                     plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'Color',[255/255 153/255 51/255], 'LineWidth', 0.5)
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
+%                     plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'o','Color',[255/255 153/255 51/255],'MarkerSize',markerSize, 'LineWidth', 0.5)
                 elseif strcmp(tracksNA(k).state{ii} , 'FA')
                     % drawing tracks
-                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2),'k', 'LineWidth', 0.5)
-                    plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
+                    plot(tracksNA(k).xCoord(1:ii)-grid_mat(1,1,1),tracksNA(k).yCoord(1:ii)-grid_mat(1,1,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5) 
+%                     plot(tracksNA(k).xCoord(ii)-grid_mat(1,1,1),tracksNA(k).yCoord(ii)-grid_mat(1,1,2),'ko','MarkerSize',markerSize, 'LineWidth', 0.5)
                 end
             end
         end
-        syFigureStyle(h2,gca,2);
+        syFigureStyle(h2,gca,imSizeY+1);
 
-        print('-depsc2', '-r300', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
-        print('-dtiff', '-r300', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
+        print('-depsc2', '-r150', strcat(epsPath,'/pax',num2str(ii,iiformat),'.eps'));
+        print('-dtiff', '-r150', strcat(paxtifPath,'/pax',num2str(ii,iiformat),'.tif'));
     %     hgexport(h2,strcat(paxtifPath,'/paxWithForcePeak',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h2,strcat(figPath,'/paxPeakFig',num2str(ii,iiformat)),'-v7.3')
         close(h1)
@@ -868,8 +882,17 @@ if plotEachTrack
 end
 
 end
-function newTracks = formatTracks(tracks,detectedNAs,nFrames)
+
+%% formatTracks functions
+function newTracks = formatTracks(tracks,detectedNAs,nFrames,T)
 % Format tracks structure into tracks with every frame
+if nargin<4
+    T=zeros(nFrames,2); % T is a translation matrix
+end
+% Get limits of transformation array
+maxX = ceil(max(abs(T(:, 2))));
+maxY = ceil(max(abs(T(:, 1))));
+
 
 newTracks(numel(tracks),1) = struct('xCoord', [], 'yCoord', [],'state',[],'iFrame',[],'presence',[],'amp',[],'bkgAmp',[]);
 % BA: before adhesion, NA: nascent adh, FC: focal complex, FA: focal adh,
@@ -898,8 +921,8 @@ for i = 1:numel(tracks)
             end
         elseif j==tracks(i).seqOfEvents(2,1)
             newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,2)+maxX;
+            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,1)+maxY;
             newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
             if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
                 newTracks(i).bkgAmp(j) = NaN;
@@ -914,8 +937,8 @@ for i = 1:numel(tracks)
             end
         else
             newTracks(i).state{j} = 'NA';
-            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)));
-            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)));
+            newTracks(i).xCoord(j) = tracks(i).tracksCoordAmpCG(1,1+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,2)+maxX;
+            newTracks(i).yCoord(j) = tracks(i).tracksCoordAmpCG(1,2+8*(j-tracks(i).seqOfEvents(1,1)))+T(j,1)+maxY;
             newTracks(i).amp(j) = tracks(i).tracksCoordAmpCG(1,4+8*(j-tracks(i).seqOfEvents(1,1)));
             if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
                 newTracks(i).bkgAmp(j) = NaN;
