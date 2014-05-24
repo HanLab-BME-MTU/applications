@@ -83,12 +83,12 @@ pos_u=horzcat(x_vec,y_vec);
 display('2.) Building up forward map:...');
 tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M)
-    if nargin >= 15
-        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
-    else
+    if isempty(imgRows) || isempty(imgCols)
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);
+    else
+        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
@@ -174,7 +174,7 @@ if nargin >= 10 && strcmp(method,'fast')
             sol_mats.L=L;
         else
             if useLcurve
-                [~,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
+                [~,L] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
             end
             [Q,R] = qr((MpM+L*eyeWeights));
             sol_coef=R\(Q'*(M'*u));
@@ -190,6 +190,9 @@ if nargin >= 10 && strcmp(method,'fast')
         MpM=M'*M;
         % For L-curve
 %         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,Lap,solMethodBEM);
+        if useLcurve
+            [~,L] = calculateLfromLcurve(L,M,MpM,u,-Lap,LcurveDataPath,LcurveFigPath,LcurveFactor);
+        end
         sol_coef=(-L*Lap+ MpM)\(M'*u);
         % store these matrices for next frames:
         sol_mats.M=M;
@@ -234,10 +237,17 @@ if nargin >= 10 && strcmp(method,'fast')
         MpM=M'*M;
 
         maxIter = 10;
-        tolx = 2e-2;
+        tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        % the larger tolerance should be, because misfit norm can be larger out of more nodes).
+        disp(['tolerance value: ' num2str(tolx)])
         tolr = 1e-7;
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
-        sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
+        if useLcurve
+            disp('L-curve ...')
+            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,solMethodBEM,LcurveDataPath,LcurveFigPath,LcurveFactor);
+        else
+            sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
+        end
         sol_mats.L=L;
         sol_mats.Lap = Lap;
         sol_mats.M = M;
@@ -393,19 +403,16 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath)
+function [sol_coef,reg_corner] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(-9:.125:-4.5);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
-if matlabpool('size')==0
-    matlabpool open
-end
-parfor i=1:length(alphas);
+for i=1:length(alphas);
   mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
   rho(i)=norm(M*mtik(:,i)-u);
-  eta(i)=norm(mtik(:,i),1);
+  eta(i)=norm(mtik(:,i));
 end
 
 % Find the corner of the Tikhonov L-curve
@@ -494,7 +501,7 @@ for i=1:length(alphas);
     msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
     rho(i)=norm(M*msparse(:,i)-u);
     eta(i)=norm(msparse(:,i),1);
-    eta0(i)=sum(abs(msparse(:,i))>1)
+    eta0(i)=sum(abs(msparse(:,i))>1);
 end
 
 % Find the L-corner

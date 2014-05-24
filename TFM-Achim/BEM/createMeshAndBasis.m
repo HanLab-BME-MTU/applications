@@ -1,4 +1,8 @@
-function [myMesh]=createMeshAndBasis(x_vec,y_vec)
+function [myMesh]=createMeshAndBasis(x_vec,y_vec,plotExample)
+
+if nargin<3
+    plotExample = false;
+end
 
 %delaunay_mesh=delaunay(x_vec,y_vec);
 dt=DelaunayTri(x_vec,y_vec);
@@ -51,25 +55,27 @@ for j=1:myMesh.numNodes
 end
 
 % plot an example to see if it works correctly
-ind=80;
-if length(x_vec)>ind-1
-    xmin=min(x_vec);
-    ymin=min(y_vec);
-    xmax=max(x_vec);
-    ymax=max(y_vec);
-    
-    pointsPerEdge=round(sqrt(length(x_vec)));
-    [x_fine y_fine]=meshgrid(linspace(xmin,xmax,10*pointsPerEdge) , linspace(xmin,xmax,10*pointsPerEdge));
+if plotExample
+    ind=80;
+    if length(x_vec)>ind-1
+        xmin=min(x_vec);
+        ymin=min(y_vec);
+        xmax=max(x_vec);
+        ymax=max(y_vec);
 
-    figure(10)
-    plot(myMesh.p(myMesh.neighbors(ind).cand,1),myMesh.p(myMesh.neighbors(ind).cand,2),'or')
-    hold on
-    plot(myMesh.p(ind,1),myMesh.p(ind,2),'ob')
-    triplot(myMesh.dt);
-    plot([myMesh.bounds(ind).x(1) myMesh.bounds(ind).x(1) myMesh.bounds(ind).x(2) myMesh.bounds(ind).x(2) myMesh.bounds(ind).x(1)],[myMesh.bounds(ind).y(1) myMesh.bounds(ind).y(2) myMesh.bounds(ind).y(2) myMesh.bounds(ind).y(1) myMesh.bounds(ind).y(1)],'k')
-    quiver(x_fine,y_fine,myMesh.base(ind).f_intp_x(x_fine,y_fine),myMesh.base(ind).f_intp_y(x_fine,y_fine),'r')
-    quiver(x_fine,y_fine,myMesh.base(myMesh.numNodes+ind).f_intp_x(x_fine,y_fine),myMesh.base(myMesh.numNodes+ind).f_intp_y(x_fine,y_fine),'g')
-    xlim([xmin xmax])
-    ylim([ymin ymax])
-    hold off
+        pointsPerEdge=round(sqrt(length(x_vec)));
+        [x_fine y_fine]=meshgrid(linspace(xmin,xmax,10*pointsPerEdge) , linspace(xmin,xmax,10*pointsPerEdge));
+
+        figure(10)
+        plot(myMesh.p(myMesh.neighbors(ind).cand,1),myMesh.p(myMesh.neighbors(ind).cand,2),'or')
+        hold on
+        plot(myMesh.p(ind,1),myMesh.p(ind,2),'ob')
+        triplot(myMesh.dt);
+        plot([myMesh.bounds(ind).x(1) myMesh.bounds(ind).x(1) myMesh.bounds(ind).x(2) myMesh.bounds(ind).x(2) myMesh.bounds(ind).x(1)],[myMesh.bounds(ind).y(1) myMesh.bounds(ind).y(2) myMesh.bounds(ind).y(2) myMesh.bounds(ind).y(1) myMesh.bounds(ind).y(1)],'k')
+        quiver(x_fine,y_fine,myMesh.base(ind).f_intp_x(x_fine,y_fine),myMesh.base(ind).f_intp_y(x_fine,y_fine),'r')
+        quiver(x_fine,y_fine,myMesh.base(myMesh.numNodes+ind).f_intp_x(x_fine,y_fine),myMesh.base(myMesh.numNodes+ind).f_intp_y(x_fine,y_fine),'g')
+        xlim([xmin xmax])
+        ylim([ymin ymax])
+        hold off
+    end
 end

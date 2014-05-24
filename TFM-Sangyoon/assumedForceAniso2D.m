@@ -1,5 +1,5 @@
 function force = assumedForceAniso2D(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType)
-% assumedForceAniso2D takes grid x and y and make anisotropic gaussian
+% force = assumedForceAniso2D(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType) takes grid x and y and make anisotropic gaussian
 % distributed force field of which sources are xshift and yshift.
 % input     :   x           grid of x coordinates
 %               y           grid of y coordinates
@@ -7,6 +7,10 @@ function force = assumedForceAniso2D(j,x,y,xshift,yshift,wx,wy,d1,d2,forceType)
 %               yshift      y value of point source of force
 %               wx          x component of force orientation
 %               wy          y component of force orientation
+%               d1          diameter of adhesion in the direction of minor
+%               axis
+%               d2          diameter of adhesion in the direction of major
+%               axis
 %               forceType   type of force
 %               ('pointForce','groupForce', or 'smoothForce')
 %               FAsize      'largeFA' or 'smallFA'

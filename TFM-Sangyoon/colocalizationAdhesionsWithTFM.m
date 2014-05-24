@@ -202,10 +202,10 @@ end
 tic
 if ~isempty(iSDCProc)
     disp('reformating NA tracks and applying stage drift correction ...')
-    tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames,T); 
+    tracksNA = formatNATracks(tracksNAorg,detectedNAs,nFrames,T); 
 else
     disp('reformating NA tracks...')
-    tracksNA = formatTracks(tracksNAorg,detectedNAs,nFrames); 
+    tracksNA = formatNATracks(tracksNAorg,detectedNAs,nFrames); 
 end
 toc
 
@@ -884,7 +884,7 @@ end
 end
 
 %% formatTracks functions
-function newTracks = formatTracks(tracks,detectedNAs,nFrames,T)
+function newTracks = formatNATracks(tracks,detectedNAs,nFrames,T)
 % Format tracks structure into tracks with every frame
 if nargin<4
     T=zeros(nFrames,2); % T is a translation matrix
