@@ -706,7 +706,7 @@ print(figure2,'-dtiff', '-r300',[saveDir filesep 'PercentChangeAdVsNon.tif']);
         outputN.TotalSubTrackExpBgap = [regionTypes numSubtrackExpTot(:,:,3)];
         outputN.TotalSubTrackExpBgap = [names;outputN.TotalSubTrackExpBgap];
         
-        save([statDir filesep 'Colormaps_' expCondDir filesep 'outputN'],'outputN');
+        save([statDir filesep 'ColorMaps_' expCondDir filesep 'outputN'],'outputN');
        end 
          end
             end 
