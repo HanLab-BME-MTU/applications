@@ -9,10 +9,10 @@ h = size(data,2);
 dist = zeros([h,h,500]);
 
 for i=1:500
-    for j=1:h-1
+    for j=1:h
         ind=randperm(n);
         A = data(ind,j);
-        for k = j+1:h
+        for k = j:h
             dist(j,k,i)= mutualInfo(A,data(:,k));
             dist(k,j,i)= dist(j,k,i);
         end
@@ -28,7 +28,7 @@ MI = zeros([h,h]);
 for i=1:h
     for j=1:h
         %calculate MI
-        MI(i,j)= mutualInfo(data(:,1),data(:,j));
+        MI(i,j)= mutualInfo(data(:,i),data(:,j));
         
         %calculate confidence
         s= sort(dist(i,j,:));
@@ -36,7 +36,7 @@ for i=1:h
         confidence(i,j,2) = s(end-sig);
     end
 end
-    MI = corr(data);
+ %   MI = corr(data);
 end
 
 function [MI] =mutualInfo(A,B)
@@ -57,7 +57,10 @@ maxB = s(floor(n*.9));
 rangeB = [0:maxB/50:maxB];
 
 [joint,bin]= hist3([A,B],'Edges',{rangeA,rangeB});
+joint=joint/sum(joint(:));
 
-MI = sum(sum(joint.*log2(joint)));
+MI = joint.*log2(joint./(sum(joint,2)*sum(joint,1)));
+MI(isnan(MI))=0;
+MI = sum(sum(MI));
 
 end
