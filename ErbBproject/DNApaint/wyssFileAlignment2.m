@@ -80,12 +80,12 @@ hp1 = uipanel(f,'Position',[0,0,1,0.8]);
 hp2 = uipanel(f,'Position',[0,0.8,1,0.2]);
 a = axes('Parent',hp1,'DataAspectRatio',[1,1,1]);
 a = get(hp1,'Children');
-xslide = uicontrol(hp1,'Style','slider','Min',-20,'Max',20, ...
+xslide = uicontrol(hp1,'Style','slider','Min',-100,'Max',100, ...
               'Value',0,'Position',[10,50,30,200], ...
               'Callback',{@shiftadjust}, 'SliderStep',[0.005,0.05]);
-yslide = uicontrol(hp1,'Style','slider','Min',-20,'Max',20, ...
+yslide = uicontrol(hp1,'Style','slider','Min',-100,'Max',100, ...
               'Value',0,'Position',[10,10,200,30], ...
-              'Callback',{@shiftadjust}, 'SliderStep',[0.002,0.05]);
+              'Callback',{@shiftadjust}, 'SliderStep',[0.005,0.05]);
 textX = uicontrol(hp1,'Style','text','String','x = ', ...
                  'Position',[10,400,20,30]);
 editX = uicontrol(hp1,'Style','edit','String','0.00',...
@@ -196,11 +196,11 @@ function slideradjust(hObject, eventData, handles)
     %get data stored in slider
     st = getappdata(hObject,'slider');    
     imgArr = st.data;
-    st.i = fix(get(hObject,'Value'));
+    st.i = fix(get(hObject,'value'));
     axes(st.a);
     shift =st.shift{st.i}.adj*10;
-    set(st.xs,'Value',shift(1));
-    set(st.ys,'Value',shift(2));
+    set(st.xs,'value',shift(1)*5);
+    set(st.ys,'value',shift(2)*5);
     z = axis;
     set(st.ylim(1),'String',num2str(z(3)/10))
     set(st.ylim(2),'String',num2str(z(4)/10))
@@ -245,9 +245,10 @@ x=fix(get(st.xs,'value'))
 y=fix(get(st.ys,'value'))
 slider = getappdata(st.s,'slider');
 i = slider.i;
-slider.shift{i}.adj = [x,y]/10;
+slider.shift{i}.adj = [x,y]/50;
 slider.shift{i}.total = slider.shift{i}.calc+slider.shift{i}.adj;
-set(st.text,'String',['x = ',num2str(x/10,'%4.2f'),' y = ',num2str(y/10,'%4.2f')]);
+set(st.text(1),'String',[num2str(x/50,'%4.2f')]);
+set(st.text(2),'String',[num2str(y/50,'%4.2f')]);
 setappdata(st.s,'slider',slider);
 slideradjust(st.s, eventData, st.s);
 
