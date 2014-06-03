@@ -1,4 +1,4 @@
-function [maskComb,imageMinusBackground] = detectThreshLocMax(image,...
+function [maskComb,imageMinusBackground,detectedFeatures,h,postWS] = detectThreshLocMax(image,...
     thresholdMethod,methodValue,filterNoise,filterBackground,minSize,...
     alphaLocMax,plotRes,mask)
 %detectThreshLocMax combines blob segmentation with local maxima detection
@@ -203,6 +203,9 @@ idx = find([stats.Area] > minSize);
 %output final blob mask from thresholding
 maskBlobs = ismember(labels, idx);
 
+%Select centroids instead of local maxima for position 
+%stats = regionprops(maskBlobs, 'Centroid');
+
 %% Local maxima
 
 % %estimate local background and noise statistics
@@ -242,6 +245,7 @@ pValue = 1 - normcdf(localMaxAmp,bgMean,bgStd);
 % indxKeep = pValue < alphaLocMax;
 indxKeep = localMaxAmp > threshLocMax;
 localMax1DIndx = localMax1DIndx(indxKeep);
+localMaxAmp = localMaxAmp(indxKeep);
 localMaxPosX = localMaxPosX(indxKeep);
 localMaxPosY = localMaxPosY(indxKeep);
 
@@ -255,40 +259,219 @@ maskLocMax = imdilate(maskLocMax,SE);
 
 maskComb = maskBlobs | maskLocMax;
 
+%% Work Space---------------------------------------------------
+
+
+%First determines connected components found by segmentation
+[labels,nLabels] = bwlabel(maskBlobs,4); %This will be the threshold image
+s = regionprops(labels, image, {'Centroid','PixelValues','BoundingBox',...
+    'Eccentricity','Area','PixelList'});
+
+%Create binary mask where true values represent coordinates of an ROI
+N = length(localMaxPosY);
+locmaxMap = false(size(labels));
+for i =1:N
+locmaxMap(localMaxPosX(i,1),localMaxPosY(i,1)) = true; 
+end
+% % figure;
+% imshowpair(locmaxMap,maskBlobs);
+% % hold on
+%first test: Is there one or more LM in a single object?
+
+for k =1:nLabels
+    
+    cell = (labels == k); %Loop through objects
+    matches = locmaxMap(cell); %Are there LM's in that object?
+    matchNum = sum(matches); %How many?
+    
+    if  matchNum > 1
+    s(k).StandardDev = std(double(s(k).PixelValues));
+% %     text(s(k).Centroid(1),s(k).Centroid(2), ...
+% %         sprintf('%2.1f', s(k).Eccentricity), ...
+% %         'EdgeColor','b','Color','r');
+% % if s(k).Eccentricity >= 0.9
+% %     s(k).StandardDev = 0;
+% %     test = ismember([localMaxPosY localMaxPosX],s(k).PixelList,'rows');
+% %     row = find(test);
+% %     localMaxPosX(row) = [];
+% %     localMaxPosY(row) = [];
+% % end
+
+    else
+      s(k).StandardDev = 0;
+     [~, edgePixel] = min(s(k).PixelValues);
+      x = [round(s(k).Centroid(1)) s(k).PixelList(edgePixel,1)];
+      y = [round(s(k).Centroid(2)) s(k).PixelList(edgePixel,2)];
+      c = improfile(image, x,y);
+      s(k).Spread = max(c)/min(c);
+    end                
+    
+end
+
+spreadThreshold = mean(vertcat(s.Spread));%-std(vertcat(s.Spread));
+listVar =vertcat(s.StandardDev);
+indxVar = find(listVar);        
+testArray(:,2) = localMaxPosX;
+testArray(:,1) = localMaxPosY;
+% discardPile = [];
+%Remove maxima that are too close
+for i = 1:length(indxVar)
+    
+    [r(:,2),r(:,1)] = find(labels == indxVar(i)); % all points in object, verify x and y
+    lia1 = ismember(testArray,r,'rows');
+    lmPos = find(lia1);
+    pathMeasure = zeros(((length(lmPos)*(length(lmPos)-1))/2),1);
+    point = zeros(length(lmPos),2);
+    count = 1;
+    %lmPoints = [testArray(lmPos,:);round(s(indxVar(i)).Centroid)];
+    for j = 1:(length(lmPos)-1)
+        for k = (j+1):length(lmPos)
+            x = [testArray(lmPos(j),1) testArray(lmPos(k),1)];
+            %x = [lmPoints(j,1) lmPoints(k,1)];
+            y = [testArray(lmPos(j),2) testArray(lmPos(k),2)];
+            %y = [lmPoints(j,2) lmPoints(k,2)];
+            c = improfile(image, x,y);
+
+             pathMeasure(count,1) = (max(c))/(min(c));   
+            
+            % hold on; improfile(image, x,y), grid on; 
+            point(j,count+1)= pathMeasure(count,1);
+            point(j,1)= image(testArray(lmPos(j),1),testArray(lmPos(j),2));
+            point(k,count+1) = pathMeasure(count,1);
+            point(k,1) = image(testArray(lmPos(k),1),testArray(lmPos(k),2));
+            count = count+1;
+        end
+    end
+    % Good var - bad var = #number of points we want
+    
+    checkList = pathMeasure <= spreadThreshold;
+    checkList = checkList.*pathMeasure;
+    [~,~,badPath] = find(checkList);
+    if length(badPath) ==length(pathMeasure)
+        testArray(lmPos,:) = testArray(lmPos,:).*zeros(length(lmPos),2);
+        testArray(lmPos(1),:) = round(s(indxVar(i)).Centroid);
+    else
+        for m = 1:length(badPath)
+          testA = ismember(point,badPath(m));
+          [row, ~,~] = find(testA);
+          if isempty(row) ==1
+              continue
+          end
+          [dismiss,~,~] = find(point == min(point(row,1)));
+          cleanUp = find(point(dismiss,:));
+          point(:,cleanUp(2:end)) = 0;
+          testArray(lmPos(dismiss),:) = testArray(dismiss,:).*zeros(length(dismiss),2);
+          clear dismiss
+        end
+    end
+    
+    
+% %     numMolecules = length(find(pathMeasure > 1.25));
+% %     if numMolecules == 0
+% %         numMolecules = 1;
+% %         sortedPoint = sort(point(:,2));
+% %         keepMolecules = sortedPoint(end-(numMolecules-1):end);
+% %         filterMolecules = ismember(point(:,2),keepMolecules);
+% %         discard  = find(filterMolecules == 0);
+% %         %testArray(lmPos(discard),:) = [];
+% %         keep  = find(filterMolecules == 1);
+% %         if length(keep) >1
+% %         testArray(lmPos(keep(1)),:) = round(s(indxVar(i)).Centroid);
+% %         testArray(lmPos([keep(2:end); discard]),:) = [];
+% %         else
+% %         testArray(lmPos(keep),:) = round(s(indxVar(i)).Centroid);
+% %         testArray(lmPos(discard),:) = [];
+% %         end
+% %         
+% %        
+% %     else
+% %     gbRatio = numMolecules-(length(pathMeasure)-numMolecules);
+% %     if gbRatio <= 0
+% %         numMolecules = 2;
+% %     else
+% %     numMolecules = round(sqrt(numMolecules*2));
+% %     end
+% %     sortedPoint = sort(point(:,1));
+% %     keepMolecules = sortedPoint(end-(numMolecules-1):end);
+% %     filterMolecules = ismember(point(:,1),keepMolecules);
+% %     discard  = find(filterMolecules == 0);
+% %     testArray(lmPos(discard),:) = []; 
+% %     end
+    clear r pathVariance 
+    %hold off;
+end
+% testArray(lmPos(discard),:) = []; 
+fixedTestArray = [testArray];%round(newPos)];%round(newPosB)]; %Add centroid locations
+fixedTestArray( ~any(fixedTestArray,2), : ) = [];
+%Implement Watershed segmentation to correct/center positions
+imageQ = imcomplement(image);
+markers = zeros(512,512);
+for q = 1: length(fixedTestArray)
+    markers(fixedTestArray(q,2),fixedTestArray(q,1)) = 1;
+end
+markers = logical(markers);
+maskComb = bwdist(maskComb)<=1;
+wsInput = imimposemin(imageQ, ~maskComb | markers);
+wsOutput = watershed(wsInput);
+postWS = regionprops(wsOutput, image, {'Centroid','Area','Eccentricity','PixelIdxList'});
+postWS(1) = [];
+test = vertcat(postWS.Eccentricity);
+discard = find(test>0.9);
+postWS(discard) = [];
+
+clear fixedTestArray
+fixedTestArray = round(vertcat(postWS.Centroid));
+localMaxPosZ = zeros(length(fixedTestArray),1); %Find better way to ignore axis
+varPosX = 0.5*ones(length(fixedTestArray),1);
+varPosY = 0.5*ones(length(fixedTestArray),1);
+varAmp = zeros(length(fixedTestArray),1);
 %% Plotting
 
 if plotRes
     
-    %figure 1: the different analysis steps
-    figure
-
-    %subplot 1: original image
-    subplot(2,2,1)
-    imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
-    
-    %subplot 2: background image
-    subplot(2,2,2)
-    imshow(imageBackground,[prctile(imageBackground(:),1) prctile(imageBackground(:),99)]);
-    
-    %subplot 3: bandpass-filtered image
-    subplot(2,2,3)
-    imshow(imageMinusBackgroundFiltered,[prctile(imageMinusBackgroundFiltered(:),1) prctile(imageMinusBackgroundFiltered(:),99)])
-    
-    %subplot 4: blob edges + local maxima
-    subplot(2,2,4)
-    imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
-    hold on
-    maskBounds = bwboundaries(maskBlobs);
-    cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
-    plot(localMaxPosY,localMaxPosX,'go')
+%     %figure 1: the different analysis steps
+%     figure
+% 
+%     %subplot 1: original image
+%     subplot(2,2,1)
+%     imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
+%     
+%     %subplot 2: background image
+%     subplot(2,2,2)
+%     imshow(imageBackground,[prctile(imageBackground(:),1) prctile(imageBackground(:),99)]);
+%     
+%     %subplot 3: bandpass-filtered image
+%     subplot(2,2,3)
+%     imshow(imageMinusBackgroundFiltered,[prctile(imageMinusBackgroundFiltered(:),1) prctile(imageMinusBackgroundFiltered(:),99)])
+%     
+%     %subplot 4: blob edges + local maxima
+%     subplot(2,2,4)
+%     imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
+%     hold on
+%     maskBounds = bwboundaries(maskBlobs);
+%     cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
+%     plot(localMaxPosY,localMaxPosX,'go')
     
     %figure 2: final mask
-    figure
+    h = figure;
     imshow(image,[prctile(image(:),1) prctile(image(:),99)]);
     hold on
     maskBounds = bwboundaries(maskComb);
     cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
+    %scatter(localMaxPosY, localMaxPosX);
+    scatter(fixedTestArray(:,1), fixedTestArray(:,2));
+    %Record x, y positions
+    %positions = regionprops(maskComb,'Centroid');
+    detectedFeatures.xCoord = [fixedTestArray(:,1) varPosX];
+    detectedFeatures.yCoord = [fixedTestArray(:,2) varPosY];%Understand this!
+    detectedFeatures.zCoord = [localMaxPosZ localMaxPosZ];
+%     detectedFeatures.amp = [localMaxAmp varAmp];
+    detectedFeatures.amp = [vertcat(postWS.Area) varAmp];
+    %[positions(:).Centroid(2)];
     
+
+
+%%-------------------------------------------------------------------------
 end
 
 %% ~~~ the end ~~~
