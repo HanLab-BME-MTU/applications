@@ -376,12 +376,12 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     fset = loadFigureSettings('');
     set(ha, 'FontSize', 12);
     XTickLabel = arrayfun(@getMovieName, data, 'unif', 0);
-    hb = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1)],...
-        [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2)], [],[],...
+    hb = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1) lftRes.initDensityCCP(:,1)],...
+        [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2) lftRes.initDensityCCP(:,2)], [],[],...
         'XTickLabel', XTickLabel, 'Interpreter', 'none',...
-        'FaceColor', [0.6 0.6 0.6; 0.2 0.2 0.2], 'Handle', ha(1), 'AdjustFigure', false);
+        'FaceColor', hsv2rgb([0 0 0.5; 0.33 0.5 0.5; 0.33 0.8 1]), 'Handle', ha(1), 'AdjustFigure', false);
     ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
-    hl = legend(ha(1), hb, ' All tracks', ' Valid tracks');
+    hl = legend(ha(1), hb, ' All tracks', ' Valid tracks', 'CCPs');
     set(hl, fset.tfont{:});
     
     % Cell area
@@ -414,10 +414,11 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
     formatTickLabels(ha(1:2));
-    fprintf('Initiation density, average of all tracks  : %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
-    fprintf('Initiation density, average of valid tracks: %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
-    fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
+    fprintf('Initiation density, all detected tracks:                  %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
+    fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
+    fprintf('Initiation density, CCPs:                                 %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
+    fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     % gap statistics
     ha = setupFigure(1,2, 'SameAxes', false, 'AxesWidth', 10, 'AxesHeight', 7.5,...
