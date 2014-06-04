@@ -267,12 +267,24 @@ for iChan = 1:nChanSeg
 end
 
 %Store the maximum number of objects in the process class
-adSegProc.setMaxIndex(cc.NumObjects);
+if cc.NumObjects > 0
+    adSegProc.setMaxIndex(cc.NumObjects);
+else
+    adSegProc.setMaxIndex(1);    
+end
 
 
 if ishandle(wtBar)
     close(wtBar)
 end
+
+
+%% --- Stupid dependency section... --- %%
+
+%Just a stupid workaround to make sure that these functions and their
+%dependent functions are included in the export.
+dummyHandle = @calcMovieFocalAdhesionStats;
+dummyHandle = @calcMovieFocalAdhesionEnrichment;
 
 
 

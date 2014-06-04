@@ -134,7 +134,7 @@ classdef FocalAdhesionSegmentationPackage < Package
                  0 0 2 0 0 0 0 ; %4 - background masks
                  0 2 0 2 0 0 0 ; %5 - background subtraction
                  0 0 0 0 0 0 0 ; %6 - adhesion seg
-                 0 0 0 0 2 0 0 ];%7 - seg sampling
+                 0 0 0 0 0 1 0 ];%7 - seg sampling
 
             if nargin<2, j=1:size(m,2); end
             if nargin<1, i=1:size(m,1); end
