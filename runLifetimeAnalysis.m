@@ -337,8 +337,8 @@ for i = 1:nd
     % Initiation density
     %-----------------------------------
     % Cell area
-    px = data(i).pixelSize / data(i).M; % pixels size in object space
     if exist([data(i).source ip.Results.MaskPath], 'file')==2
+        px = data(i).pixelSize / data(i).M; % pixels size in object space
         mask = logical(readtiff([data(i).source ip.Results.MaskPath]));
         lftRes.cellArea(i) = sum(mask(:)) * px^2 * 1e12; % in µm^2
     else
