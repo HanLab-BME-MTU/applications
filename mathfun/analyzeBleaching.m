@@ -1,6 +1,9 @@
+%analyzeBleaching(data) generates plots of mean intensity values over time 
+% to characterize bleaching
+
 % Francois Aguet, 08/31/2011
 
-function res = analyzeBleaching(data)
+function analyzeBleaching(data)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -8,7 +11,7 @@ ip.addRequired('data', @isstruct);
 ip.parse(data);
 
 nd = length(data);
-res(1:nd) = struct('x', [], 'intensity', [], 'model', [], 'k', [], 'a', [], 'd', []);
+% res(1:nd) = struct('t', [], 'intensity', [], 'model', [], 'k', [], 'a', [], 'd', []);
 for i = 1:nd
 
     % load data (much faster than loading frames individually)
@@ -66,11 +69,11 @@ for i = 1:nd
     end
     set(hl, 'EdgeColor', 'w');
     
-    res.t = t;
-    res.model = expModel(k,a,d,t);
-    res.k = k;
-    res.a = a;
-    res.d = d;
+    %res.t = t;
+    %res.model = expModel(k,a,d,t);
+    %res.k = k;
+    %res.a = a;
+    %res.d = d;
 end
     
 
