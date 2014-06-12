@@ -8,13 +8,14 @@ function [ignoreList] = exportCode(masterList, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('masterList');
-ip.addOptional('destPath', [], @ischar);
+ip.addOptional('destPath', []);
 ip.addParamValue('IncludeSources', false, @islogical);
 ip.addParamValue('AddList', []); % path to sources, header files etc.
 ip.addParamValue('IgnoreList', []);
 ip.addParamValue('ExternList', []);
 ip.addParamValue('IncludeGPL', true, @islogical);
 ip.addParamValue('Verbose', true, @islogical);
+ip.addParamValue('ParseOnly', false, @islogical);
 ip.parse(masterList, varargin{:});
 destPath = ip.Results.destPath;
 
@@ -52,6 +53,10 @@ toolboxList = unique(vertcat(toolboxList{:}));
 [fnames, fpaths, mexNames, mexPaths, sourceNames, sourcePaths, ignoreList] = ...
     parseFilesForExport(fctList, ip.Results.IgnoreList, ip.Results.ExternList);
 
+if ip.Results.ParseOnly
+    return
+end
+
 [~,~] = mkdir(destPath);
 
 % copy core functions
@@ -64,7 +69,8 @@ if numel(mexNames)>0
     mdest = [destPath 'mex' filesep];
     [~,~] = mkdir(mdest);
     for i = 1:numel(mexNames)
-        if exist([mexPaths{i} filesep mexNames{i}], 'file')==2
+        tmp = exist([mexPaths{i} filesep mexNames{i}], 'file');
+        if tmp==2 || tmp==3
             copyfile([mexPaths{i} filesep mexNames{i}], [mdest mexNames{i}]);
         end
     end
