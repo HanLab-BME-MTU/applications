@@ -222,8 +222,9 @@ hasMasks = movieData.processes_{iSegProc}.checkChannelOutput(p.ChannelIndex);
 if ~all(hasMasks)
     error('The movie could not be windowed, because some of the channels which were selected to use masks from did not have valid masks!');
 end
+usesProt = false;
 
-if strcmp(p.MethodName,'PDEBased') || strcmp(p.MethodName,'ProtrusionBased') || p.StartPointPropag
+if ( strcmp(p.MethodName,'PDEBased') || strcmp(p.MethodName,'ProtrusionBased') || p.StartPointPropag ) && (movieData.nFrames_ > 1)
     usesProt = true;
     %These methods need protrusion vectors - make sure that the protrusion
     %vectors are available and load them    
@@ -232,8 +233,6 @@ if strcmp(p.MethodName,'PDEBased') || strcmp(p.MethodName,'ProtrusionBased') || 
         error(['The method ' p.MethodName ...
             ' requires protrusion vectors, but the input movie does not have valid protrusion vectors!'])               
     end    
-else
-    usesProt = false;
 end
 
 
@@ -441,6 +440,7 @@ for iFrame = 1:nFrames
                 startingPoint = windows{1}{1}{end}(:,1)';
             else
                 
+                    
                 startingPoint = startPointPropagation(startingPoint,iFrame,protrusion,smoothedEdge);
                 windows       = getMaskWindows(maskArray(:,:,iFrame),p.PerpSize,...
                                 [],'StartPoint',p.StartPoint,'StartContour',p.StartContour,...
