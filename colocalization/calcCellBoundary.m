@@ -1,15 +1,23 @@
-function [maskList,mask] = calcCellBoundary(image)
+function [maskList,mask] = calcCellBoundary(image,doPlot)
 %CALCCELLBOUNDARY applies mutli-otsu threshold to determine cell boundary
 % Mask is best suited for images in which cell is large relative to image
 % dimensions
 % Synopsis: [maskList,mask] = calcCellBoundary(image)
 % Input:
 %   image - 
+%   doPlot: 1 to show result, 0 otherwise. Default: 0.
 %
 % Output:
 %   maskList- n x 2 list of all pixels within cellBoundary
 %
 %   mask - binary
+
+if nargin < 2 || isempty(doPlot)
+    doPlot = 0;
+end
+
+%keep original image for plotting
+image0 = image;
 
 % Apply wide gaussian filter
  gaussF = fspecial('gaussian',[20 20],10); 
@@ -43,6 +51,12 @@ end
 maskList(:,1) = i;
 maskList(:,2) = j;
 
-
+if doPlot
+    figure
+    imshow(image0,[]);
+    hold on;
+    maskBounds = bwboundaries(mask);
+    cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',1)),maskBounds);
+end
 
 end
