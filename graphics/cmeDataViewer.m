@@ -727,7 +727,7 @@ set(hz, 'ActionPostCallback', @czoom);
         end
         if all(isstrprop(eventdata.Key, 'digit')) && doAnnotate
             nkey = str2double(eventdata.Key);
-            if nkey>0 && nkey<=9
+            if nkey>=0 && nkey<=9
                 trackIndex.label(trackIndex.loaded(trackIndex.current)) = nkey;
                 set(handles.trackIndex.label, 'String', ['Track: ' num2str(trackIndex.loaded(trackIndex.current))...
                     ' (Label: ' num2str(trackIndex.label(trackIndex.loaded(trackIndex.current))) ')']);
