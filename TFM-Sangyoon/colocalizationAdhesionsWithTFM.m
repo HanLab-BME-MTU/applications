@@ -880,7 +880,8 @@ if plotEachTrack
         hold off
     end
 end
-
+save(strcat(dataPath,'/cropInfo.mat'),'grid_mat','imSizeX','imSizeY');
+save(strcat(dataPath,'/tracks.mat'),'tracksNA');
 end
 
 %% formatTracks functions
