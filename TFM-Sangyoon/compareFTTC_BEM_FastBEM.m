@@ -295,9 +295,9 @@ mkdir(lcurvePath);
     'LcurveFigPath', [lcurvePath filesep 'lcurve.fig'],'LcurveFactor',10, 'imgRows',49,'imgCols',49);
 toc
 
-rec_force_L1_0th(:,:,1)=fx_L1_0th;
-rec_force_L1_0th(:,:,2)=fy_L1_0th;
-generateHeatmapFromGridData(x_out,y_out,rec_force_L1_0th(:,:,1),rec_force_L1_0th(:,:,2),pathL1_0th,1270);
+rec_force_L1_2nd(:,:,1)=fx_L1_0th;
+rec_force_L1_2nd(:,:,2)=fy_L1_0th;
+generateHeatmapFromGridData(x_out,y_out,rec_force_L1_2nd(:,:,1),rec_force_L1_0th(:,:,2),pathL1_2nd,1270);
 %% save current
 save;
 %% Peak underestimation
