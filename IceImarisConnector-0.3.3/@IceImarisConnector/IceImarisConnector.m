@@ -242,6 +242,9 @@ classdef IceImarisConnector < handle
         % createAndSetSpots
         newSpots = createAndSetSpots(this, coords, timeIndices, radii, ...
             name, color, container)
+
+        % add surfaces to a scene
+        newSurf = createAndSetSurfaces(this,surfaces,normals,timeIndices,name,color)      
         
         % close Imaris
         success = closeImaris(this, varargin)
