@@ -17,8 +17,7 @@ function [lftRes, res] = runLifetimeAnalysis(data, varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('data', @(x) isstruct(x) && numel(unique([data.framerate]))==1);
-ip.addOptional('lb', [1  11 16 21 41 61]);
-ip.addOptional('ub', [10 15 20 40 60 120]);
+ip.addOptional('CohortBounds', [5 10 15 20 40 60 120]); % pairs: (5 10], (10 15],...
 ip.addParamValue('Display', 'on', @(x) any(strcmpi(x, {'on', 'off', 'all'})));
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.addParamValue('ProcessedTracks', 'ProcessedTracks.mat', @ischar);
@@ -48,9 +47,8 @@ ip.addParamValue('AmplitudeCorrection', []);
 ip.addParamValue('MaskPath', ['Detection' filesep 'cellmask.tif'], @ischar);
 ip.addParamValue('Binning', 1, @isposint);
 ip.parse(data, varargin{:});
-lb = ip.Results.lb;
-ub = ip.Results.ub;
-nc = numel(lb); % # cohorts
+cb = ip.Results.CohortBounds;
+nc = numel(cb)-1; % # cohorts
 mCh = find(strcmp(data(1).source, data(1).channels));
 FirstNFrames = ip.Results.FirstNFrames;
 selIdx = ip.Results.SelectIndex;
@@ -148,10 +146,9 @@ for i = 1:nd
     %-------------------------------------------------------------
     % Max. intensity distribution for cat. Ia CCP tracks
     %-------------------------------------------------------------
-    
     for k = 1:nc
         % indexes within cohorts
-        cidx = lb(k)<=lftData(i).lifetime_s & lftData(i).lifetime_s<=ub(k);
+        cidx = cb(k)<lftData(i).lifetime_s & lftData(i).lifetime_s<=cb(k+1);
         res(i).maxA{k} = nanmax(lftData(i).A(cidx,:,mCh),[],2);
         
         % lifetimes for given cohort
@@ -173,23 +170,25 @@ fprintf('\n');
 % Threshold
 %====================
 % Check whether saved and whether equal
-hasThreshold = false(1,nd);
-tvec = NaN(1,nd);
-for i = 1:nd
-    prmFile = [data(i).source 'Analysis' filesep 'Parameters.mat'];
-    if exist(prmFile, 'file')==2
-        hasThreshold(i) = true;
-        prm = load(prmFile);
-        tvec(i) = prm.MaxIntensityThreshold;
-    end
-end
+% hasThreshold = false(1,nd);
+% tvec = NaN(1,nd);
+% for i = 1:nd
+%     prmFile = [data(i).source 'Analysis' filesep 'Parameters.mat'];
+%     if exist(prmFile, 'file')==2
+%         hasThreshold(i) = true;
+%         prm = load(prmFile);
+%         tvec(i) = prm.MaxIntensityThreshold;
+%     end
+% end
+% tvec = unique(tvec);
 
 % if all data sets have the same stored threshold value, and no values are given in
 % input, use stored threshold
-if numel(unique(tvec))==1 && isempty(ip.Results.MaxIntensityThreshold) && isempty(FirstNFrames)
-    T = tvec(1);
-    fprintf('Max. intensity threshold on first %d frames: %.2f\n', prm.nFramesThreshold, T);
-elseif ~isempty(ip.Results.MaxIntensityThreshold)
+% if numel(tvec)==1 && ~isnan(tvec) && isempty(ip.Results.MaxIntensityThreshold) && isempty(FirstNFrames)
+%     T = tvec(1);
+%     fprintf('Max. intensity threshold on first %d frames: %.2f\n', prm.nFramesThreshold, T);
+% else
+if ~isempty(ip.Results.MaxIntensityThreshold)
     T = ip.Results.MaxIntensityThreshold;
 else
 
@@ -197,6 +196,16 @@ else
     A = vertcat(A{:});
     lft = vertcat(lftData.lifetime_s);
    
+    % check whether all cohorts contain tracks
+    ntc = arrayfun(@(c) sum(cb(c)<lft & lft<=cb(c+1)), 1:nc);
+    if any(ntc<5)
+        warning('At least one lifetime cohorts contains less than 5 tracks.');
+        fprintf('Calculating cohort bounds based on lifetime distribution percentiles\n.');
+        cb = prctile(lft, linspace(0,100,7));
+        %cb = linspace(min(lft), max(lft), nc+1);
+        cb(1) = cb(1)-framerate;
+    end
+    
     if isempty(FirstNFrames)
         frameRange = 3:12;
         hval = zeros(1,frameRange(end));
@@ -206,7 +215,7 @@ else
             muC = zeros(1,nc);
             sC = zeros(1,nc);
             for c = 1:nc
-                cidx = lb(c)<=lft & lft<=ub(c);
+                cidx = cb(c)<lft & lft<=cb(c+1);
                 [muC(c), sC(c)] = fitGaussianModeToCDF(M(cidx,:));
             end
             hval(frameRange(ni)) = adtest1(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
@@ -376,23 +385,27 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     fset = loadFigureSettings('');
     set(ha, 'FontSize', 12);
     XTickLabel = arrayfun(@getMovieName, data, 'unif', 0);
-    hb = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1) lftRes.initDensityCCP(:,1)],...
-        [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2) lftRes.initDensityCCP(:,2)], [],[],...
-        'XTickLabel', XTickLabel, 'Interpreter', 'none',...
-        'FaceColor', hsv2rgb([0 0 0.5; 0.33 0.5 0.5; 0.33 0.8 1]), 'Handle', ha(1), 'AdjustFigure', false);
-    ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
-    hl = legend(ha(1), hb, ' All tracks', ' Valid tracks', 'CCPs');
-    set(hl, fset.tfont{:});
+    % 1) Density
+    if ~isnan(lftRes.cellArea)
+        hb = barplot2([lftRes.initDensityAll(:,1) lftRes.initDensityIa(:,1) lftRes.initDensityCCP(:,1)],...
+            [lftRes.initDensityAll(:,2) lftRes.initDensityIa(:,2) lftRes.initDensityCCP(:,2)], [],[],...
+            'XTickLabel', XTickLabel, 'Interpreter', 'none',...
+            'FaceColor', hsv2rgb([0 0 0.5; 0.33 0.5 0.5; 0.33 0.8 1]), 'Handle', ha(1), 'AdjustFigure', false);
+        ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
+        hl = legend(ha(1), hb, ' All tracks', ' Valid tracks', 'CCPs');
+        set(hl, fset.tfont{:});
     
-    % Cell area
-    colormap(cmap);
-    %scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
-    scatter(ha(2), 1:nd, lftRes.cellArea, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
-    ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
-    YLim = get(ha(2), 'YLim');
-    YLim(1) = 0;
-    set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
-    rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+        % 2) Cell area
+        colormap(cmap);
+        %scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
+        scatter(ha(2), 1:nd, lftRes.cellArea, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
+        ylabel(ha(2), ['Cell area (' char(181) 'm^2)'], fset.lfont{:});
+        YLim = get(ha(2), 'YLim');
+        YLim(1) = 0;
+        set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
+        rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
+    end
+
     
     % # valid tracks
     scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
