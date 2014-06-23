@@ -208,15 +208,10 @@ status = 1;
             
             % Is it the newest yet?
             if version > newestVersion
-                
                 newestVersionDir = allDirs(i).name;
                 newestVersion = version;
             end
         end
-        
-        
-
-        
 
     end
 end
