@@ -72,6 +72,7 @@ ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('FirstNFrames', [], @isposint);
+ip.addParamValue('CompareHighLowSNR', false, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 data = ip.Results.data;
@@ -94,7 +95,7 @@ opts = {'Overwrite', ip.Results.Overwrite};
 %-------------------------------------------------------------------------------
 runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
     'Sigma', ip.Results.Sigma, opts{:});
-cmap = plotPSNRDistribution(data, 'Pool', false);
+[cmap, psnr] = plotPSNRDistribution(data, 'Pool', false);
 
 %-------------------------------------------------------------------------------
 % 2) Tracking
@@ -133,8 +134,25 @@ else
 end
 
 % Graphical output
-plotLifetimes(res.lftRes, 'DisplayMode', ip.Results.DisplayMode, 'PlotAll', false,...
-    'SlaveNames', chNames(2:end), 'SingleChannel', numel(data(1).channels)==1);
+if ~ip.Results.CompareHighLowSNR
+    plotLifetimes(res.lftRes, 'DisplayMode', ip.Results.DisplayMode, 'PlotAll', false,...
+        'SlaveNames', chNames(2:end), 'SingleChannel', numel(data(1).channels)==1);
+else  
+%     nd = numel(data);
+%     [~,idx] = sort(cellfun(@median, psnr), 'ascend');
+%     id = idx(floor(nd/2)+1:end);
+%     lftRes = runLifetimeAnalysis(data(id), lopts{:},...
+%         'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold, 'Colormap', cmap(id,:));
+%     plotLifetimes(lftRes, 'DisplayMode', ip.Results.DisplayMode, 'PlotAll', false,...
+%         'SlaveNames', chNames(2:end), 'SingleChannel', numel(data(1).channels)==1);
+%     
+%     id = idx(1:floor(nd/2));
+%     lftRes = runLifetimeAnalysis(data(id), lopts{:},...
+%         'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold, 'Colormap', cmap(id,:));
+%     plotLifetimes(lftRes, 'DisplayMode', ip.Results.DisplayMode, 'PlotAll', false,...
+%         'SlaveNames', chNames(2:end), 'SingleChannel', numel(data(1).channels)==1);
+end
+    
 
 res.cohorts = plotIntensityCohorts(data, 'MaxIntensityThreshold', res.lftRes.MaxIntensityThreshold,...
     'ShowBackground', false, 'DisplayMode', 'screen', 'ScaleSlaveChannel', false,...
