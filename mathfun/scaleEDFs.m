@@ -161,11 +161,17 @@ if ip.Results.Display
     axPos = get(ha(2), 'Position');
     axes(fset.axOpts{:}, 'Units', 'normalized', 'Position', [axPos(1)+0.85*axPos(3) 1.5*axPos(2) axPos(3)/8 axPos(4)*0.5], 'Layer', 'bottom');
     hold on;
+    
+    hp(refIdx) = plot(0, 1, 'o', 'Color', colorV(refIdx,:), 'LineWidth', 1, 'MarkerSize', 6);
+    for i = nd:-1:1
+        hp(plotIdx(i)) = plot(0, a(i), 'o', 'Color', colorV(plotIdx(i),:), 'LineWidth', 1, 'MarkerSize', 6);
+    end
+    
     av = [a 1];
-    plot(0, av, 'o', 'Color', 0.4*[1 1 1], 'LineWidth', 1, 'MarkerSize', 5);
-    he = errorbar(0, mean(av), std(av), 'Color', 'k', 'LineWidth', 1);
-    plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 'k', 'LineWidth', 1);
+    he = errorbar(0, mean(av), std(av), 'Color', 0.4*[1 1 1], 'LineWidth', 1);
+    plot(0.1*[-1 1], mean(av)*[1 1], 'Color', 0.4*[1 1 1], 'LineWidth', 1);
     setErrorbarStyle(he, 0.15);
+    
     ylim = max(ceil([1-min(av) max(av)-1]/0.2));
     ylim = 1+[-ylim ylim]*0.2;
     axis([-0.5 0.5 ylim]);
@@ -175,6 +181,10 @@ if ip.Results.Display
     ylabel('Relative scale', fset.sfont{:});
     if ~isempty(ip.Results.XTick)
         set(ha, 'XTick', ip.Results.XTick);
+    end
+    if ~isempty(ip.Results.Legend)
+        hl = legend(hp, ip.Results.Legend, 'Location', 'SouthEast', 'Interpreter', 'none');
+        legend(hl, 'hide');
     end
 end
 

@@ -9,14 +9,21 @@
 
 % Francois Aguet
 
-function ha = plotInitiationDensity(lftRes, xlabels, cv, cf, varargin)
+function ha = plotInitiationDensity(lftRes, xlabels, varargin)
 
+nd = numel(lftRes);
 ip = inputParser;
 ip.CaseSensitive = false;
+ip.addRequired('lftRes', @iscell);
+ip.addRequired('xlabels', @iscell);
+ip.addOptional('cv', [(0:1/nd:1-1/nd)' ones(nd,2)], @(x) size(x,1)==nd & size(x,2)==3);
+ip.addOptional('cf', [(0:1/nd:1-1/nd)' ones(nd,1) 0.4*ones(nd,1)], @(x) size(x,1)==nd & size(x,2)==3);
 ip.addOptional('SigLink', cell(1,2), @iscell)
 ip.addParamValue('YLim', {[0 0.65], [0 0.325]});
 ip.addParamValue('YTick', {0:0.1:0.6, 0:0.05:0.3});
-ip.parse(varargin{:});
+ip.parse(lftRes, xlabels, varargin{:});
+cv = ip.Results.cv;
+cf = ip.Results.cf;
 YLim = ip.Results.YLim;
 YTick = ip.Results.YTick;
 
