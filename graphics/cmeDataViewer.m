@@ -272,11 +272,7 @@ if ip.Results.LoadFrames
     fprintf('Loading frames ... ');
     if ~iscell(data.framePaths{1})
         for c = 1:nCh
-            %stack{c} = readtiff(data.framePaths{c});
-            stack{c} = zeros([data.imagesize data.movieLength], 'uint16');
-            for i = 1:data.movieLength
-                stack{c}(:,:,i) = imread(data.framePaths{c}, i);
-            end
+            stack{c} = readtiff(data.framePaths{c});
         end
     else
         for c = 1:nCh
