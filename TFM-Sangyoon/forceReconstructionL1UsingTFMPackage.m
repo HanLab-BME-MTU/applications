@@ -90,7 +90,7 @@ params.referenceFramePath = refImgPath;
 % h=imrect;
 % refROI = wait(h);
 params.cropROI = refROI;
-params.ChannelIndex=1;
+params.ChannelIndex=[1 2];
 params.minCorLength=21;
 params.maxFlowSpeed=5;
 params.doPreReg=true;
@@ -105,7 +105,7 @@ params = roiMD.getPackage(iPack).getProcess(2).funParams_;
 %% Parameters in displacement field tracking
 
 params.referenceFramePath = refImgPath;
-params.maxFlowSpeed = 40;
+params.maxFlowSpeed = 20;
 params.alpha = 0.05;
 params.minCorLength = 15;
 params.maxFlowSpeed = 40;
@@ -126,9 +126,10 @@ roiMD.getPackage(iPack).createDefaultProcess(4)
 params = roiMD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 3500;
-params.regParam = 1e-4;
+params.regParam = 5e-4;
 params.method = 'FastBEM';
-params.solMethodBEM = '1NormReg';
+% params.solMethodBEM = '1NormReg';
+params.solMethodBEM = '1NormRegLaplacian';
 params.useLcurve = true;
 params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass90x Kubow.mat';
 

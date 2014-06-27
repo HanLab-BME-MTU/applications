@@ -51,9 +51,75 @@ nFrames = MD.nFrames_;
 % Get TFM package
 TFMPackage = MD.getPackage(MD.getPackageIndex('TFMPackage'));
 % Get FA segmentation package 
-FASegPackage = MD.getPackage(MD.getPackageIndex('FocalAdhesionSegmentationPackage'));
+iFASegPackage = MD.getPackageIndex('FocalAdhesionSegmentationPackage');
+% If not run, run the package
+iFASeg = 6;
+if isempty(iFASegPackage)
+    MD.addPackage(FocalAdhesionSegmentationPackage(MD));
+    iPack =  MD.getPackageIndex('FocalAdhesionSegmentationPackage');
+    MD.getPackage(iPack).createDefaultProcess(iFASeg)
+    params = MD.getPackage(iPack).getProcess(iFASeg).funParams_;
+    params.ChannelIndex = 2; %paxillin
+    params.SteerableFilterSigma = 72; % in nm
+    params.OpeningRadiusXY = 0; % in nm
+    params.MinVolTime = 1; %um2*s
+    params.OpeningHeightT = 10; % sec
+    MD.getPackage(iPack).getProcess(iFASeg).setPara(params);
+    MD.getPackage(iPack).getProcess(iFASeg).run();
+    MD.save;
+    iFASegPackage = iPack;
+end
+FASegPackage=MD.getPackage(iFASegPackage);
 % Load tracks
-trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+iUTrack = MD.getPackageIndex('UTrackPackage');
+% If not run, run the package
+iFASeg = 6;
+if isempty(iUTrack)
+    MD.addPackage(UTrackPackage(MD));
+    iUTrack =  MD.getPackageIndex('UTrackPackage');
+    MD.getPackage(iUTrack).createDefaultProcess(1)
+    params = MD.getPackage(iUTrack).getProcess(1).funParams_;
+    params.ChannelIndex = 2; %paxillin
+    params.RedundancyRadius(2) = 0.1; % in px
+    params.filterSigma(2) = 1.1; % in nm
+    MD.getPackage(iUTrack).getProcess(1).setPara(params);
+    MD.getPackage(iUTrack).getProcess(1).run();
+    MD.save;
+    
+    MD.getPackage(iUTrack).createDefaultProcess(2)
+    params = MD.getPackage(iUTrack).getProcess(2).funParams_;
+    params.ChannelIndex = 2; %paxillin
+    params.probDim = 0.1; % in px
+    params.gapCloseParam.timeWindow = 7;
+    params.gapCloseParam.minTrackLen = 4;
+    params.gapCloseParam.diagnostics = 0;
+    params.gapCloseParam.mergeSplit = 0;
+    params.costMatrices(1).parameters.minSearchRadius = 2;
+    params.costMatrices(2).parameters.minSearchRadius = 2;
+    
+    MD.getPackage(iUTrack).getProcess(2).setPara(params);
+    MD.getPackage(iUTrack).getProcess(2).run();
+    MD.save;
+    trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+elseif isempty(MD.getPackage(iUTrack).getProcess(2))
+    MD.getPackage(iUTrack).createDefaultProcess(2)
+    params = MD.getPackage(iUTrack).getProcess(2).funParams_;
+    params.ChannelIndex = 2; %paxillin
+    params.probDim = 2; % in px
+    params.gapCloseParam.timeWindow = 5;
+    params.gapCloseParam.minTrackLen = 4;
+    params.gapCloseParam.diagnostics = 0;
+    params.gapCloseParam.mergeSplit = 0;
+    params.costMatrices(1).parameters.minSearchRadius = 2;
+    params.costMatrices(2).parameters.minSearchRadius = 2;
+    
+    MD.getPackage(iUTrack).getProcess(2).setPara(params);
+    MD.getPackage(iUTrack).getProcess(2).run();
+    MD.save;
+    trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+else
+    trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+end
 
 forceFC = zeros(nFrames,1);
 forceFA = zeros(nFrames,1);
@@ -151,7 +217,9 @@ minLifetime = min(nFrames,3);
 markerSize = 2;
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level
-
+if ~trackNAProc.checkChannelOutput(iPaxChannel)
+    iPaxChannel = 1;
+end
 % filter out tracks that have lifetime less than 2 frames
 
 % Build the interpolated TFM matrix first and then go through each track
@@ -170,7 +238,7 @@ SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
 isValid = SEL(:,3) >= minLifetime;
 tracksNAorg = tracksNAorg(isValid);
 % end
-detectedNAProc = MD.getProcess(MD.getProcessIndex('PointSourceDetectionProcess'));
+detectedNAProc = MD.getProcess(MD.getProcessIndex('PointSourceDetectionProcess'));%MD.getPackage(iUTrack).getProcess(1);%
 detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
 % See if there is stage drift correction
@@ -237,7 +305,6 @@ tracksNA=tracksNA(idxTracks);
 trackIdx = true(numel(tracksNA),1);
 
 % disp('loading segmented FAs...')
-iFASeg = 6;
 FASegProc = FASegPackage.processes_{iFASeg};
 regSpacing = (reg_grid(2,1,1)-reg_grid(1,1,1));
 for ii=1:nFrames
@@ -629,6 +696,10 @@ for ii=1:nFrames
     end
     imwrite(uint16(round(tsMap*2^15/3500)),strcat(forcemapPath,'/force',num2str(ii,iiformat),'max',num2str(tmax),'.tif'));
     imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
+    if ii==1
+        cropPosition = [grid_mat(1,1,1) grid_mat(1,1,2) imSizeX imSizeY];
+        save(strcat(dataPath,'/cropInfo.mat'),'cropPosition');
+    end
 end
 % get rid of tracks that have out of rois...
 tracksNA = tracksNA(trackIdx);

@@ -63,7 +63,7 @@ if length(maxKappaCandIdx)==1
     maxKappaIdx = maxKappaCandIdx(1);
 elseif length(maxKappaCandIdx)>1
     % pick the one which is closer to initial lambda
-    [~,Idx_close] = min(abs(lambda_cut(maxKappaCandIdx)-init_lambda));
+    [~,Idx_close] = min(abs(log(lambda_cut(maxKappaCandIdx))-log(init_lambda)));
     maxKappaIdx = maxKappaCandIdx(Idx_close);
 %     [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
 %     maxKappaIdx = maxKappaCandIdx(tempIndex);
