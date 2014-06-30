@@ -288,18 +288,15 @@ end
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-dpath = [data.source 'Detection' filesep 'Masks'];
-if exist(dpath, 'dir')==7 && ip.Results.LoadFrames
+if (exist(data.framePaths{1}, 'file')==2) && ip.Results.LoadFrames
+    fprintf('Loading detection masks ... ');
+    dmask = readtiff(data.maskPaths);
+    fprintf('done.\n');
+elseif exist([data.source 'Detection' filesep 'Masks'], 'dir')==7 && ip.Results.LoadFrames
     fprintf('Loading detection masks ... ');
     dmask = zeros(ny,nx,nf, 'uint8');
-    if ~iscell(data.framePaths{1})
-        for i = 1:nf
-            dmask(:,:,i) = imread(data.maskPaths, i);
-        end
-    else
-        for i = 1:data.movieLength
-            dmask(:,:,i) = imread(data.maskPaths{i});
-        end
+    for i = 1:data.movieLength
+        dmask(:,:,i) = imread(data.maskPaths{i});
     end
     fprintf('done.\n');
 else
