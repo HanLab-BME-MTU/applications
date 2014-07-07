@@ -28,9 +28,10 @@ ip.addParamValue('Color', []);
 ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('Control', []);
 ip.addParamValue('XSpace', []);
+ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(lftRes, varargin{:});
 
-fset = loadFigureSettings('print');
+fset = loadFigureSettings(ip.Results.DisplayMode);
 
 % normalization
 if strcmpi(ip.Results.Frequency, 'relative')
@@ -55,7 +56,7 @@ end
 
 % 1) Plot CCP distributions
 if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
-    ha = setupFigure();
+    ha = setupFigure('DisplayMode', ip.Results.DisplayMode);
     for i = ip.Results.PlotOrder
         hp(i) = plot(lftRes{i}.t, w(i)*lftRes{i}.meanLftHistCCP, '-', 'LineWidth', 1, 'Color', cv(i,:));
     end
@@ -67,8 +68,7 @@ if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
 else
     na = 2;
     % adapted from plotIntensityCohorts
-    
-    pctS = cellfun(@(i) i.pctSlaveCCP/sum(i.pctSlaveCCP), lftRes, 'unif', 0);
+    pctS = cellfun(@(i) mean(i.pctSlaveCCP,1), lftRes, 'unif', 0);
     pctS = vertcat(pctS{:});
     meanPct = mean(pctS,1);
     stdPct = std(pctS,[],1);
@@ -95,29 +95,33 @@ else
     end
     
    
-    ha = setupFigure(1,2, 'SameAxes', true, 'YSpace', [1.5 1 0.75]);
+    ha = setupFigure(1,2, 'DisplayMode', ip.Results.DisplayMode, 'SameAxes', true, 'YSpace', [1.5 1 0.75]);
     legendText = cell(1,N);
     if ~isempty(ip.Results.Control)
         plot(ha(1), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
     for i = ip.Results.PlotOrder
-        hp(i) = plot(ha(1), lftRes{i}.t, w(i)*lftRes{i}.lftHistSlaveCCP{1}, '-', 'LineWidth', 1, 'Color', cv(i,:));
+        hp(i) = plot(ha(1), lftRes{i}.t, w(i)*mean(lftRes{i}.lftHistSlaveCCP{1},1), '-', 'LineWidth', 1, 'Color', cv(i,:));
         legendText{i} = [' +' SlaveName{1} ', ' ip.Results.legend{i} ', ' num2str(100*pctS(i,1), '%.1f') '%'];
     end
-    hl = legend(ha(1), hp, legendText);
-    set(hl, 'Box', 'off', fset.sfont{:}, 'Units', 'centimeters',...
-        'Position', [2.5 5-(N-1)*0.4 2 N*0.4]);
+    hl = legend(ha(1), hp, legendText, 'EdgeColor', 'w');
+    if strcmpi(ip.Results.DisplayMode, 'print')
+        set(hl, fset.sfont{:}, 'Units', 'centimeters',...
+            'Position', [2.5 5-(N-1)*0.4 2 N*0.4]);
+    end
     
     if ~isempty(ip.Results.Control)
         plot(ha(2), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
     for i = ip.Results.PlotOrder
-        hp(i) = plot(ha(2), lftRes{i}.t, w(i)*lftRes{i}.lftHistSlaveCCP{2}, '-', 'LineWidth', 1, 'Color', cv(i,:));
+        hp(i) = plot(ha(2), lftRes{i}.t, w(i)*mean(lftRes{i}.lftHistSlaveCCP{2},1), '-', 'LineWidth', 1, 'Color', cv(i,:));
         legendText{i} = [' -' SlaveName{1} ', ' ip.Results.legend{i} ', ' num2str(100*pctS(i,2), '%.1f') '%'];
     end
-    hl = legend(ha(2), hp, legendText);
-    set(hl, 'Box', 'on', fset.sfont{:}, 'Units', 'centimeters',...
-        'Position', [9.5 5-(N-1)*0.4 2 N*0.4], 'EdgeColor', 'w');
+    hl = legend(ha(2), hp, legendText, 'EdgeColor', 'w');
+    if strcmpi(ip.Results.DisplayMode, 'print')
+        set(hl, fset.sfont{:}, 'Units', 'centimeters',...
+            'Position', [9.5 5-(N-1)*0.4 2 N*0.4], 'EdgeColor', 'w');
+    end
 end
 
 XLim = [0 160];
@@ -133,7 +137,7 @@ end
 
 % 2) Optional: plot CCS distributions (all objects)
 if ip.Results.PlotAll
-    setupFigure;
+    setupFigure('DisplayMode', ip.Results.DisplayMode);
     hold on;
     for i = ip.Results.PlotOrder
         hp(i) = plot(lftRes{i}.t, nanmean(lftRes{i}.lftHist_Ia,1), '-', 'LineWidth', 1, 'Color', cv(i,:));
