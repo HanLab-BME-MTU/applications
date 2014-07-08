@@ -149,8 +149,9 @@ for k = 1:nc
     if ip.Results.ShowGaussians
         [mu_g,sigma_g,xg,g] = fitGaussianModeToHist(xi, niFirstN{k}/dxi);
         %[mu_g,sigma_g,xg,g] = fitGaussianModeToCDF(maxAcohortFirstN{k});
-        plot(xg, g*dxi, 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
-        plot(norminv(0.99, mu_g, sigma_g)*[1 1], [0 0.15], '--', 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
+        plot(xg, g*dxi, 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1, 'Parent', ha(k));
+        plot(norminv(0.99, mu_g, sigma_g)*[1 1], [0 0.15], '--', 'Parent', ha(k),...
+            'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
     end
     
     % cohort label
