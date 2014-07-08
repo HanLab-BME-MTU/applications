@@ -61,10 +61,11 @@ if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
         hp(i) = plot(lftRes{i}.t, w(i)*lftRes{i}.meanLftHistCCP, '-', 'LineWidth', 1, 'Color', cv(i,:));
     end
     
-    hl = legend(ha(end), hp, cellfun(@(i) [' ' i], ip.Results.legend, 'unif', 0));
-    set(hl, 'Box', 'off', fset.sfont{:}, 'Units', 'centimeters',...
-        'Position', [3.5 5-(N)*0.4 2 N*0.4]);
-    
+    hl = legend(ha(end), hp, cellfun(@(i) [' ' i], ip.Results.legend, 'unif', 0), 'EdgeColor', 'w');
+    if strcmpi(ip.Results.DisplayMode, 'print')
+        set(hl, fset.sfont{:}, 'Units', 'centimeters',...
+            'Position', [3.5 5-(N)*0.4 2 N*0.4]);
+    end   
 else
     na = 2;
     % adapted from plotIntensityCohorts
