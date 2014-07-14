@@ -36,16 +36,20 @@ if nargin==1
 end
 
 % Load the MovieData
-movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
-movieData = MovieData.load(movieDataPath,false);
+if isa(pathForTheMovieDataFile, 'MovieData')
+    movieData = pathForTheMovieDataFile;
+else
+    movieDataPath = [pathForTheMovieDataFile '/movieData.mat'];
+    movieData = MovieData.load(movieDataPath,false);
+end
 
 %% --------------- Initialization ---------------%%
 nChan=numel(movieData.channels_);
-psfSigma = 2; %hard coded for nascent adhesion
+psfSigma = 1.2; %hard coded for nascent adhesion
 % psfSigma = getGaussianPSFsigma(movieData.numAperture_, 1, movieData.pixelSize_*1e-9, movieData.getChannel(1).emissionWavelength_*1e-9);
 
 % Set up the output directories
-outputFilePath = [pathForTheMovieDataFile filesep 'Adhesion Quantification'];
+outputFilePath = [movieData.outputDirectory_ filesep 'Adhesion Quantification'];
 imgPath = [outputFilePath filesep 'imgs'];
 dataPath = [outputFilePath filesep 'data'];
 tifPath = [imgPath filesep 'tifs'];
@@ -63,14 +67,16 @@ disp('Starting detecting isotropic Gaussians...')
 
 roiMask = movieData.getROIMask;
 nascentAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
-    'amp',[],'area',[],'NAperArea',[],'bandMask',[],'numberNA',[],'bandArea',[]);
+    'amp',[],'area',[],'NAdensity',[],'bandMask',[],'numberNA',[],'bandArea',[]);
 focalAdhInfo(movieData.nFrames_,1)=struct('xCoord',[],'yCoord',[],...
     'amp',[],'area',[],'length',[],'meanFAarea',[],'medianFAarea',[]...
-    ,'meanLength',[],'medianLength',[],'numberFA',[]);
+    ,'meanLength',[],'medianLength',[],'numberFA',[],'FAdensity',[]);
 h1=figure;
 jformat = ['%.' '3' 'd'];
 % Changed it for isometric detection for nascent adhesion detection
-minSize = round((600/movieData.pixelSize_)*(400/movieData.pixelSize_)); %adhesion limit=1um*.5um
+pixSize = movieData.pixelSize_;
+minSize = round((1000/pixSize)*(500/pixSize)); %adhesion limit=1um2
+minEcc = 0.7;
 
 iPax = 1; %assumed
     disp(['Paxillin channel was assumed to be in channel ' num2str(iPax) '.'])
@@ -80,7 +86,7 @@ iPax = 1; %assumed
     for j=1:movieData.nFrames_
         I=double(movieData.channels_(iPax).loadImage(j));
         maskProc = movieData.getProcess(movieData.getProcessIndex('MaskRefinementProcess'));
-        mask = maskProc.loadChannelOutput(1,j);
+        mask = maskProc.loadChannelOutput(iPax,j);
 %         maskProc = movieData.processes_{2};
 %         mask = maskProc.loadChannelOutput(1,j);
         maskAdhesion = blobSegmentThreshold(I,minSize,0,mask);
@@ -89,7 +95,7 @@ iPax = 1; %assumed
         % mask for band from edge
         iMask = imcomplement(mask);
         distFromEdge = bwdist(iMask);
-        bandwidth_pix = round(bandwidth*1000/movieData.pixelSize_);
+        bandwidth_pix = round(bandwidth*1000/pixSize);
         bandMask = distFromEdge <= bandwidth_pix;
         
         ultimateMask = bandMask & roiMask(:,:,j) & maskAdhesionC & mask & maskAdhesionFine;
@@ -100,16 +106,16 @@ iPax = 1; %assumed
         nascentAdhInfo(j).amp = [pstruct.A', pstruct.A_pstd'];
         nascentAdhInfo(j).bandMask = bandMask;
         nascentAdhInfo(j).numberNA = length(pstruct.x);
-        nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(movieData.pixelSize_/1000)^2; % in um^2
-        nascentAdhInfo(j).NAperArea = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea;
+        nascentAdhInfo(j).bandArea = sum(sum(bandMask))*(pixSize/1000)^2; % in um^2
+        nascentAdhInfo(j).NAdensity = nascentAdhInfo(j).numberNA/nascentAdhInfo(j).bandArea; % number per um2
         
         % FA info
         % focal contact (FC) analysis
         Adhs = regionprops(maskAdhesion,'Centroid','Area','Eccentricity','PixelIdxList','MajorAxisLength');
 %         minFASize = round((2000/MD.pixelSize_)*(500/MD.pixelSize_)); %adhesion limit=1um*.5um
 
-%         adhIdx = arrayfun(@(x) x.Area<minFASize & x.Eccentricity<0.95, Adhs);
-%         FCs = Adhs(adhIdx);
+        adhIdx = arrayfun(@(x) x.Eccentricity>minEcc, Adhs);
+        Adhs = Adhs(adhIdx);
 %         FCIdx = find(adhIdx);
         numAdhs = length(Adhs);
         for k=1:numAdhs
@@ -124,6 +130,8 @@ iPax = 1; %assumed
         focalAdhInfo(j).medianFAarea = median(focalAdhInfo(j).area);
         focalAdhInfo(j).meanLength = mean(focalAdhInfo(j).length);
         focalAdhInfo(j).medianLength = median(focalAdhInfo(j).length);
+        focalAdhInfo(j).cellArea = sum(mask(:))*(pixSize/1000)^2; % in um^2
+        focalAdhInfo(j).FAdensity = numAdhs/focalAdhInfo(j).cellArea; % number per um2
 
         % plotting detected adhesions
         dI = double(I)/max(max(I));
@@ -135,7 +143,8 @@ iPax = 1; %assumed
         hgexport(h1,strcat(tifPath,'/imgNAFA',num2str(j,jformat)),hgexport('factorystyle'),'Format','tiff')
         hgsave(h1,strcat(figPath,'/imgNAFA',num2str(j,jformat)),'-v7.3')
         hold off
-        disp(['detected ' num2str(length(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) 'focal adhesions for ' num2str(j) 'th frame.'])
+        disp(['detected ' num2str(length(pstruct.x)) ' nascent adhesions and ' num2str(numAdhs) ' focal adhesions for ' num2str(j) 'th frame.'])
+        close(h1)
     end
     save([dataPath filesep 'AdhInfo.mat'],'nascentAdhInfo','focalAdhInfo','-v7.3');
 
