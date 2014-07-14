@@ -75,6 +75,8 @@ tmin = 100000;
 % band width for cutting border
 %     band=4;
 if isempty(tmax)
+    display('Estimating maximum force magnitude ...')
+    tic
     tmax = 0;
     for ii = 1:nFrames
        %Load the saved body force map.
@@ -90,6 +92,8 @@ if isempty(tmax)
         tmax = max(tmax,max(fnorm_vec));
         tmin = min(tmin,min(fnorm_vec));
     end
+    display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
+    toc
 else
     for ii = 1:nFrames
        %Load the saved body force map.
@@ -105,6 +109,7 @@ else
         tmin = min(tmin,min(fnorm_vec));
     end
 end    
+toc
 %     tmax = 2590;
 %     tmin = tmin-0.1;
 %     tmax=tmax/5;

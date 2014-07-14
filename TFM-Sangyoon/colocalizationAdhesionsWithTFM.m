@@ -214,7 +214,7 @@ hold off
 iiformat = ['%.' '3' 'd'];
 %     paxLevel = zeros(nFrames,1);
 minLifetime = min(nFrames,3);
-markerSize = 2;
+markerSize = 3;
 % tracks
 iPaxChannel = 2; % this should be intentionally done in the analysis level
 if ~trackNAProc.checkChannelOutput(iPaxChannel)
@@ -375,7 +375,13 @@ for ii=1:nFrames
     
     % Get the mask for FAs
 %     maskAdhesion = blobSegmentThreshold(paxImageCropped,minSize,false,bandMask & cropMask);
-    maskFAs = FASegProc.loadChannelOutput(iPaxChannel,ii);
+    if FASegProc.checkChannelOutput(1) && FASegProc.checkChannelOutput(2)
+        iPaxChannel_adh=2;
+    else 
+        iPaxChannel_adh=iPaxChannel;
+    end
+
+    maskFAs = FASegProc.loadChannelOutput(iPaxChannel_adh,ii);
     % Apply stage drift correction
     % Get limits of transformation array
     maxX = ceil(max(abs(T(:, 2))));
@@ -413,6 +419,10 @@ for ii=1:nFrames
     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
     bandMask = distFromEdge <= bandwidthNA_pix;
 
+    bandwidthFA = 1.5; %um before FAKi
+    bandwidthFA_pix = round(bandwidthFA*1000/MD.pixelSize_);
+    bandMaskFA = distFromEdge <= bandwidthFA_pix;
+    
 %     naMask = bandMask & cropMask & ~maskAdhesion;
     maskOnlyBand = bandMask & cropMask;
     
@@ -433,7 +443,20 @@ for ii=1:nFrames
     % focal contact (FC) analysis
     conn=4;
     CC = bwconncomp(maskAdhesion,conn);
-    Adhs = regionprops(CC,'Area','Eccentricity','PixelIdxList','PixelList' );
+    Adhs = regionprops(CC,'Area','Eccentricity','PixelIdxList','PixelList','Centroid' );
+    
+    %filter out adhesions that are in 1 um band along the edge: they might
+    %be connected nascent adhesions - SH 20140708
+    indAdh = true(numel(Adhs),1);
+    for k=1:numel(Adhs)
+%         plot(Adhs(k).Centroid(1),Adhs(k).Centroid(2),'mo')
+        if bandMaskFA(round(Adhs(k).Centroid(2)),round(Adhs(k).Centroid(1)))
+            indAdh(k,1) = false;
+            maskAdhesion(Adhs(k).PixelIdxList) = false;
+        end
+    end
+    Adhs = Adhs(indAdh);
+
 %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
     minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1 um2
     minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=.24 um2

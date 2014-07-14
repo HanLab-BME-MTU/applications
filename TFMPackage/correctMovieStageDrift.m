@@ -108,7 +108,7 @@ erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
-assert(size(beads,1)>=50, ['Insufficient number of detected beads (less than 50): current number: ' num2str(length(beads)) '.']);
+assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 50): current number: ' num2str(length(beads)) '.']);
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
@@ -196,6 +196,7 @@ tic;
 % Perform sub-pixel registration
 if ishandle(wtBar), waitbar(0,wtBar,sprintf(logMsg)); end
 flow=cell(nFrames,1);
+% cropROI = p.cropROI; % it should consider maxFlowSpeed)
 for j= 1:nFrames
     % Stack reference frame and current frame and track beads displacement
     corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));

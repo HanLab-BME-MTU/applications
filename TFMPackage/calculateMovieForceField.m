@@ -92,6 +92,20 @@ if p.useLcurve
     outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.fig'];
     outputFile{4,1} = [p.OutputDirectory filesep 'LcurveData.mat'];
 end
+
+% Backup the original vectors to backup folder
+display('Backing up the original data')
+backupFolder = [p.OutputDirectory ' Backup']; % name]);
+if exist(p.OutputDirectory,'dir')
+    ii = 1;
+    while exist(backupFolder,'dir')
+        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+        ii=ii+1;
+    end
+    mkdir(backupFolder);
+    copyfile(p.OutputDirectory, backupFolder)
+end
+
 mkClrDir(p.OutputDirectory);
 forceFieldProc.setOutFilePaths(outputFile);
 
@@ -240,6 +254,8 @@ if strcmpi(p.method,'FastBEM')
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
                 'useLcurve',p.useLcurve,'thickness',p.thickness/movieData.pixelSize_);
+            forceField(i).pos=pos_f;
+            forceField(i).vec=force;
         end
         %             display('The total time for calculating the FastBEM solution: ')
 
@@ -268,7 +284,7 @@ if strcmpi(p.method,'FastBEM')
                         displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], paxImage);
                 else
                     [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[]);
+                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
                 end
                 forceField(i).pos=pos_f;
                 forceField(i).vec=force;

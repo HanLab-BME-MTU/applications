@@ -1,6 +1,6 @@
 % U2OSstack4.m is a script for Kris's 2014-04-09/DsRed Dual-cube 561stack3
 % typical L1 force reconstruction
-function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgPath,NA,pixelSize,timeInterval,refROI)
+function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgPath,NA,pixelSize,timeInterval,refROI,useLcurve,solMethodBEM)
 % forceReconstructionL1UsingTFMPackage runs TFM package all the way to
 % force reconsturction without any stopping using L1 reconstruction and
 % using L-curve.
@@ -23,6 +23,14 @@ function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgP
 % forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgPath,NA,pixelSize,timeInterval,refROI)
 
 %% Now force reconstruction via movieData (non-GUI mode)
+if nargin<8
+    solMethodBEM='1NormReg';
+    useLcurve = true;
+end
+if nargin<9
+    solMethodBEM='1NormReg';
+end
+
 % Retrieve current location
 %% Channel creation
 % Create a channels object
@@ -105,10 +113,9 @@ params = roiMD.getPackage(iPack).getProcess(2).funParams_;
 %% Parameters in displacement field tracking
 
 params.referenceFramePath = refImgPath;
-params.maxFlowSpeed = 20;
 params.alpha = 0.05;
 params.minCorLength = 15;
-params.maxFlowSpeed = 40;
+params.maxFlowSpeed = 20;
 params.highRes = true;
 params.mode = 'accurate';
 roiMD.getPackage(iPack).getProcess(2).setPara(params);
@@ -126,11 +133,11 @@ roiMD.getPackage(iPack).createDefaultProcess(4)
 params = roiMD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 3500;
-params.regParam = 5e-4;
+params.regParam = 4e-4;
 params.method = 'FastBEM';
 % params.solMethodBEM = '1NormReg';
-params.solMethodBEM = '1NormRegLaplacian';
-params.useLcurve = true;
+params.solMethodBEM = solMethodBEM;%'1NormRegLaplacian';
+params.useLcurve = useLcurve;
 params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass90x Kubow.mat';
 
 roiMD.getPackage(iPack).getProcess(4).setPara(params);

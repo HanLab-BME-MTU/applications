@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,manualSelection)%,dataPath)
+function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,verbose)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -90,68 +90,68 @@ else
     reg_corner = lambda_cut(ireg_corner);
 end
 
-if manualSelection
+if verbose
     numCutPoints = 0;
 
     % show the l curve and make sure this is fittable with 5th order polynomial
     x_cut = x((numCutPoints+1:end));
     
-    h=figure; set(h,'Position',[1000,100,400,800])
-    subplot(3,1,1),plot(x,y,'k')
+    h=figure; set(h,'Position',[1000,100,350,600])
+    subplot(2,1,1),plot(x,y,'k')
     xlabel('Residual Norm ||Gm-d||_{2}');
     ylabel('Simi-Norm ||Lm||_{2}');
-    subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
-    text(x(ireg_corner),1.05*y(ireg_corner),...
-        ['    ',num2str(lambda(ireg_corner),'%5.3e')]);
-    subplot(3,1,2), plot(x_cut(1:end-2),kappa), title('curvature')
-    subplot(3,1,3), plot(x_cut(1:end-3),diff(kappa)),title('jerk')
+    subplot(2,1,1), hold on,plot(x(maxKappaIdx+2),y(maxKappaIdx+2),'ro')
+    text(x(maxKappaIdx+2),1.01*y(maxKappaIdx+2),...
+        ['    ',num2str(reg_corner,'%5.3e')]);
+    subplot(2,1,2), plot(x_kappa,kappa), title('curvature')
+%     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
 
-    subplot(3,1,2), hold on,plot(x_cut(ireg_corner),kappa(ireg_corner),'ro')
-    subplot(3,1,3), hold on,plot(x_cut(ireg_corner),kappadiff(ireg_corner),'ro')
+    subplot(2,1,2), hold on,plot(x_kappa(maxKappaIdx),kappa(maxKappaIdx),'ro')
+%     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
-    poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
-    while poly5ivity == 'n'
-        numCutPoints = input('how many entry points do you want to eliminate from the beginning?');
-        subplot(3,1,1),plot(x(numCutPoints+1:end),y(numCutPoints+1:end),'k')
-        x_cut = x((numCutPoints+1:end));
-        y_cut = y((numCutPoints+1:end));
-
-        kappa = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
-        subplot(3,1,2), plot(x_cut(1:end-2),kappa)
-        kappadiff = diff(kappa);
-        subplot(3,1,3), plot(x_cut(1:end-3),diff(kappa))
-
-        p=0;
-        maxKappaCandIdx = [];
-        nPoints = length(kappa);
-        for ii=1:nSections
-            [~, maxKappaIdx] = max(kappa(floor((ii-1)*nPoints/nSections)+1:floor(ii*nPoints/nSections))); % this is right at the L-corner which is usually over-smoothing
-            maxKappaIdx = maxKappaIdx + floor((ii-1)*nPoints/nSections);
-            % check if this is truly local maximum
-            if maxKappaIdx>1 && maxKappaIdx<nPoints && (kappa(maxKappaIdx)>kappa(maxKappaIdx-1) && kappa(maxKappaIdx)>kappa(maxKappaIdx+1))
-                p=p+1;
-                maxKappaCandIdx(p) = maxKappaIdx;
-            end
-        end
-        if length(maxKappaCandIdx)==1
-            maxKappaIdx = maxKappaCandIdx(1);
-        elseif length(maxKappaCandIdx)>1
-            maxKappaIdx = max(maxKappaCandIdx);
-        elseif isempty(maxKappaCandIdx)
-            error('there is no local maximum in curvature in the input lambda range');
-        end
-    %     [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
-        % find an index at kappa = 0 before maxKappaIdx
-        ireg_corner= numCutPoints+maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-        subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
-        text(x(ireg_corner),1.1*y(ireg_corner), ['    ',num2str(lambda(ireg_corner),'%5.3e')]);
-
-        subplot(3,1,2), hold on,plot(x_cut(ireg_corner-numCutPoints),kappa(ireg_corner-numCutPoints),'ro')
-        subplot(3,1,3), hold on,plot(x_cut(ireg_corner-numCutPoints),kappadiff(ireg_corner-numCutPoints),'ro')
-
-        poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
-    end
-    reg_corner = lambda(ireg_corner);
+%     poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
+%     while poly5ivity == 'n'
+%         numCutPoints = input('how many entry points do you want to eliminate from the beginning?');
+%         subplot(3,1,1),plot(x(numCutPoints+1:end),y(numCutPoints+1:end),'k')
+%         x_cut = x((numCutPoints+1:end));
+%         y_cut = y((numCutPoints+1:end));
+% 
+%         kappa = diff(diff(y_cut)./diff(x_cut))./diff(x_cut(1:end-1));
+%         subplot(3,1,2), plot(x_cut(1:end-2),kappa)
+%         kappadiff = diff(kappa);
+%         subplot(3,1,3), plot(x_cut(1:end-3),diff(kappa))
+% 
+%         p=0;
+%         maxKappaCandIdx = [];
+%         nPoints = length(kappa);
+%         for ii=1:nSections
+%             [~, maxKappaIdx] = max(kappa(floor((ii-1)*nPoints/nSections)+1:floor(ii*nPoints/nSections))); % this is right at the L-corner which is usually over-smoothing
+%             maxKappaIdx = maxKappaIdx + floor((ii-1)*nPoints/nSections);
+%             % check if this is truly local maximum
+%             if maxKappaIdx>1 && maxKappaIdx<nPoints && (kappa(maxKappaIdx)>kappa(maxKappaIdx-1) && kappa(maxKappaIdx)>kappa(maxKappaIdx+1))
+%                 p=p+1;
+%                 maxKappaCandIdx(p) = maxKappaIdx;
+%             end
+%         end
+%         if length(maxKappaCandIdx)==1
+%             maxKappaIdx = maxKappaCandIdx(1);
+%         elseif length(maxKappaCandIdx)>1
+%             maxKappaIdx = max(maxKappaCandIdx);
+%         elseif isempty(maxKappaCandIdx)
+%             error('there is no local maximum in curvature in the input lambda range');
+%         end
+%     %     [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
+%         % find an index at kappa = 0 before maxKappaIdx
+%         ireg_corner= numCutPoints+maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+%         subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
+%         text(x(ireg_corner),1.1*y(ireg_corner), ['    ',num2str(lambda(ireg_corner),'%5.3e')]);
+% 
+%         subplot(3,1,2), hold on,plot(x_cut(ireg_corner-numCutPoints),kappa(ireg_corner-numCutPoints),'ro')
+%         subplot(3,1,3), hold on,plot(x_cut(ireg_corner-numCutPoints),kappadiff(ireg_corner-numCutPoints),'ro')
+% 
+%         poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');
+%     end
+%     reg_corner = lambda(ireg_corner);
 end
 % % fit it in 5th order polynomial - fitting with polynomial is dangerous!
 % f = fit(x(numCutPoints+1:end), y(numCutPoints+1:end),  'poly5');

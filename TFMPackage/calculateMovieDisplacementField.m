@@ -95,6 +95,19 @@ if exist(outputFile{1},'file');
 end
 
 if firstFrame == 1, 
+    % Backup the original vectors to backup folder
+    display('Backing up the original data')
+    backupFolder = [p.OutputDirectory ' Backup']; % name]);
+    if exist(p.OutputDirectory,'dir')
+        ii = 1;
+        while exist(backupFolder,'dir')
+            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+            ii=ii+1;
+        end
+        mkdir(backupFolder);
+        copyfile(p.OutputDirectory, backupFolder)
+    end
+
     % Clean output file and initialize displacement field structure
     mkClrDir(p.OutputDirectory); 
     displField(nFrames)=struct('pos',[],'vec',[]);
@@ -115,7 +128,10 @@ firstMask = refFrame>0; %false(size(refFrame));
 tempMask = maskArray(:,:,1);
 % firstMask(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
 tempMask2 = false(size(refFrame));
-tempMask2(1:size(tempMask,1),1:size(tempMask,2)) = tempMask;
+y_shift = find(any(firstMask,2),1);
+x_shift = find(any(firstMask,1),1);
+
+tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1) = tempMask;
 firstMask = tempMask2 & firstMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
