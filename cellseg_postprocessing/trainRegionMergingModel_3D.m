@@ -12,7 +12,7 @@
         defaultDataRootDir = 'Z:\intravital\data';    
         defaultOutputDir = 'Z:\intravital\data';    
 
-        PARAMETERS.flagParallelize = false;
+        PARAMETERS.flagParallelize = true;
         
         % less-critical parameters (leave defaults)
         PARAMETERS.threshNeighOverlap = 5;
@@ -109,7 +109,7 @@
        imLabelCellSeg = annotationData.imLabelCellSeg;
        imCellSeedPoints = annotationData.imCellSeedPoints;
        numCells = numel(annotationData.cellStats)       
-       spacing = annotationData.metadata.voxelSpacing;
+       spacing = annotationData.metadata.pixelSize;
        
        % pre-processing
 
@@ -328,7 +328,7 @@
    closeStatusDialog(hStatusDialog);
    diary off;
    
-    if flagParallelize && ~flagPoolOpenedAlready
+    if PARAMETERS.flagParallelize && ~flagPoolOpenedAlready
         matlabpool close;
     end    
    

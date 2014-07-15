@@ -46,7 +46,7 @@ function [mergedImageData, imRegValidMask, varargout] = CorrectTwoPhotonConfocal
             
             % setup fixed and moving image data
             dataFixed = struct;
-            dataFixed.im = confocalImageData{1,i};
+            dataFixed.im = double( confocalImageData{1,i} );
             dataFixed.Spacing = confocalPixelSpacing;   
 
             dataMoving = struct;
@@ -93,7 +93,7 @@ function [mergedImageData, imRegValidMask, varargout] = CorrectTwoPhotonConfocal
             curRegTimer = tic;
             
             % setup fixed and moving image data
-            dataFixed.im = confocalImageData{1,i};
+            dataFixed.im = double( confocalImageData{1,i} );
             dataFixed.Spacing = confocalPixelSpacing;   
 
             dataMoving.im = imTwoPhoton;
@@ -190,7 +190,7 @@ end
 function [ imPreprocessed ] = PreprocessData( imInput )
 
     % standardize the intensity range
-    ImageIntensityRange = ComputeImageDynamicRange( imInput, 98.0 );
+    ImageIntensityRange = ComputeImageDynamicRange(double(imInput), 98.0);
     imPreprocessed = mat2gray(imInput, ImageIntensityRange) * 4096;
     
 %     % denoise it

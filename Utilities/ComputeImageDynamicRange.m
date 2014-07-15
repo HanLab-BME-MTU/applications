@@ -1,7 +1,7 @@
 function [ intensityRange ] = ComputeImageDynamicRange( im, cover_percent )
 
     alpha = 0.5 * (1 - 0.01 * cover_percent);
-    intensityRange = quantile(im(:), [alpha, 1 - alpha]);
+    intensityRange = quantile(double(im(:)), [alpha, 1 - alpha]);
 
 %     [p,x] = hist( double(im), 255 );   
 %     p = p / sum(p);

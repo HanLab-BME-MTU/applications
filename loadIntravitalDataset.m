@@ -1,5 +1,11 @@
 function [ imageSeries ] = loadIntravitalDataset( dataFilePath )   
     
+    if ~exist( 'dataFilePath', 'var' )
+        status = bfCheckJavaPath(1);
+        [fileName,pathName] = uigetfile( fullfile( dataFileDir, bfGetFileExtensions), 'Select the data file' );   
+        dataFilePath = fullfile( pathName, fileName )
+    end
+
     data_bfopen = bfopen( dataFilePath );    
     
     if ndims( data_bfopen ) ~= 2 || size(data_bfopen,2) ~= 4
@@ -12,6 +18,8 @@ function [ imageSeries ] = loadIntravitalDataset( dataFilePath )
         metadata_bfopen = data_bfopen{sid,4};
         
         % get the metadata information needed
+        metadata.numSeries = size(data_bfopen,1);
+        metadata.seriesId = sid;
         metadata.numChannels = metadata_bfopen.getPixelsSizeC(0).getValue;
         metadata.numTimePoints = metadata_bfopen.getPixelsSizeT(0).getValue;
         metadata.volSize = [ metadata_bfopen.getPixelsSizeX(0).getValue, metadata_bfopen.getPixelsSizeY(0).getValue metadata_bfopen.getPixelsSizeZ(0).getValue ];
@@ -20,7 +28,7 @@ function [ imageSeries ] = loadIntravitalDataset( dataFilePath )
         metadata.channelNames = cell(1,metadata.numChannels);
         metadata.channelExcitationWavelength = [];
         for c = 1:metadata.numChannels 
-            metadata.channelNames{c} = (metadata_bfopen.getChannelID(sid-1,c-1).toCharArray)';
+            metadata.channelNames{c} = char( metadata_bfopen.getChannelName(sid-1, c-1) );
             if ismethod(metadata_bfopen, 'getChannelExcitationWavelength') && ~isempty( metadata_bfopen.getChannelExcitationWavelength(0,c-1) )
                 metadata.channelExcitationWavelength = [metadata.channelExcitationWavelength, metadata_bfopen.getChannelExcitationWavelength(0,c-1).getValue()];
             end
@@ -29,8 +37,7 @@ function [ imageSeries ] = loadIntravitalDataset( dataFilePath )
         if numel( metadata.channelExcitationWavelength ) < metadata.numChannels
             metadata.channelExcitationWavelength = [];
         end        
-        % extract and store data in a conveniently accessible form -- cell
-        % array of image stacks
+        % extract and store data in a conveniently accessible form -- cell array of image stacks
         imageData = cell( metadata.numTimePoints, metadata.numChannels );  
         for t = 1:metadata.numTimePoints         
             for c = 1:metadata.numChannels 

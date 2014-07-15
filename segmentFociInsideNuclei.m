@@ -11,14 +11,15 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
     p.addRequired( 'blobDiameterRange', @(x) (numel(x) == 2) );  
     p.addParamValue( 'spacing', ones( 1, ndims(imInput) ), @(x) (isnumeric(x) && numel(x) == ndims(imInput)) );
     
-    p.addParamValue( 'numScales', 5, @(x) @(x)(isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minSignalToBackgroundRatio', 1.3, @(x) (isnumeric(x) && isscalar(x) && x >= 1) );
-    p.addParamValue( 'minDoGResponse', 1e-3, @(x) (isnumeric(x) && isscalar(x) && x >= 0) );
-    p.addParamValue( 'minHessianEigenRatio21', 0.5, @(x) (isnumeric(x) && isscalar(x) && x >= 0 && x <= 1.0) );
+    p.addParamValue( 'sigmaLogDelta', 0.2447, @(x) @(x)(isnumeric(x) && isscalar(x)) );
+    p.addParamValue( 'minSignalToBackgroundRatio', 1.0, @(x) (isnumeric(x) && isscalar(x) && x >= 1) );
+    p.addParamValue( 'minDoGResponse', eps, @(x) (isnumeric(x) && isscalar(x) && x >= 0) );
+    p.addParamValue( 'minHessianEigenRatio21', 0.0, @(x) (isnumeric(x) && isscalar(x) && x >= 0 && x <= 1.0) );
     p.addParamValue( 'minHessianEigenRatio31', 0.0, @(x) (isnumeric(x) && isscalar(x) && x >= 0 && x <= 1.0) );
     
     p.addParamValue( 'roiMask', [], @(x) ( (isnumeric(x) || islogical(x)) && ndims(x) == ndims(imInput) && all(size(x) == size(imInput)) ) );    
-    p.addParamValue( 'minDistanceToROIBoundary', 0.0, @(x)(isnumeric(x) && isscalar(x) && x >= 1.0) );
+    p.addParamValue( 'minDistanceToROIBoundary', 1.0, @(x)(isnumeric(x) && isscalar(x) && x >= 1.0) );
+    p.addParamValue( 'fociDetectionModelFile', [], @(x) (isempty(x) || (ischar(x) && exist(x, 'file'))) );
     p.parse(imInput, blobDiameterRange, varargin{:});
     
     PARAMETERS = p.Results;
@@ -37,11 +38,11 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
 %     blobDiameterRange = min(PARAMETERS.spacing) * [3, 7];
 %     PARAMETERS.numScales = 5;
 %     PARAMETERS.minDoGResponse = 1e-3;
-%     PARAMETERS.minSignalToBackgroundRatio = 1.3;
+%     PARAMETERS.minSignalToBackgroundRatio = 1.5;
 %     % maxHessianEigenRatio12 - med = 1.44, mad = 2, sigma = 0.7420 -> s1 = 2.15, s2 = 2.85, s3 = 3.55, s4 = 4.41, s5 = 5.15
 %     PARAMETERS.minHessianEigenRatio21 = 0.5; 
-%     PARAMETERS.minHessianEigenRatio31 = 0.0;
-%     PARAMETERS.minDistanceToROIBoundary = 1.25;
+%     PARAMETERS.minHessianEigenRatio31 = 0.00;
+%     PARAMETERS.minDistanceToROIBoundary = 1.0;
 %
 %%
 
@@ -52,14 +53,14 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
     fprintf('\n>> Preprocessing ... \n');
 
     imPreprocessed = mat2gray(imInput); % standardize
-    %imPreprocessed = matitk('FMEDIAN', [1, 1, zeros(1,imdims-2)], imPreprocessed); % applying in each plane because of intensity attenuation with depth
+%     imPreprocessed = matitk('FMEDIAN', [1, 1, zeros(1,imdims-2)], imPreprocessed); % applying in each plane because of intensity attenuation with depth
     imPreprocessed = filterGaussND(imPreprocessed, 0.5 * min(PARAMETERS.spacing), ...
                                    'spacing', PARAMETERS.spacing);
     
     if ~isempty(PARAMETERS.roiMask)
         distToROIBoundary = bwdistsc(~PARAMETERS.roiMask, PARAMETERS.spacing);
     end
-
+        
     % Enhance foci usint a tophat filter
     fprintf('\n>> Estimating local background to compute the contrast of blobs against background ... \n');
 
@@ -74,19 +75,18 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
     blobRadii = [];
     blobEigenH = [];
     blobLoGResponse = [];
-    blobEigenRatio12 = [];
-    blobEigenRatio31 = [];
 
+    sigmaLogDelta = PARAMETERS.sigmaLogDelta;
     sigmaLogRange = log2( (0.5 * sort(blobDiameterRange) / sqrt(imdims)) );
-    sigmaDelta = (sigmaLogRange(2) - sigmaLogRange(1)) / PARAMETERS.numScales;
-    sigmaInit = 2^(sigmaLogRange(1)-sigmaDelta);
-    sigmaFunc = @(s) (2.^(s*sigmaDelta) * sigmaInit );
-    c = sqrt( 2^(2*sigmaDelta) - 1 );
+    numScales = ceil( (sigmaLogRange(2) - sigmaLogRange(1)) / sigmaLogDelta );
+    sigmaInit = 2^(sigmaLogRange(1)-sigmaLogDelta);
+    sigmaFunc = @(s) (2.^(s*sigmaLogDelta) * sigmaInit );
+    c = sqrt( 2^(2*sigmaLogDelta) - 1 );
 
     imG_prev = filterGaussND(imPreprocessed, sigmaInit, 'spacing', PARAMETERS.spacing); 
     dogScaleWindow = cell(1,2);
 
-    for s = 1:(PARAMETERS.numScales+2)
+    for s = 1:(numScales+2)
 
         curSigmaStep = c * sigmaFunc(s-1); 
         imG = filterGaussND(imG_prev, curSigmaStep, 'spacing', PARAMETERS.spacing);
@@ -114,55 +114,29 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
             end
             imLocalMax(imLocalMax ~= -dogScaleWindow{2}) = 0;
 
-            % prune stuff
             curBlobLocIndices = find(imLocalMax > 0);
+            
+            % prune blobs outside a specified roi mask
+            if ~isempty(PARAMETERS.roiMask)
+                curBlobLocIndices(~PARAMETERS.roiMask(curBlobLocIndices)) = [];
+            end
+            
+            % compute eigen values of the hessian matrix
+            if ~isempty(curBlobLocIndices)
 
-                % prune blobs outside a specified roi mask
-                if ~isempty(PARAMETERS.roiMask)
-                    curBlobLocIndices(~PARAMETERS.roiMask(curBlobLocIndices)) = [];
+                % compute hessian
+                imCur = padarrayXT(imG_prev - dogScaleWindow{2}, 2 * ones(1, imdims), 'symmetric');
+                x = 2 + ind2submat(size(imLocalMax), curBlobLocIndices);
+                H = hessianAt(imCur, x, PARAMETERS.spacing);
+
+                % compute eigen values of the hessian
+                numPoints = numel(curBlobLocIndices);                        
+                curBlobEigenH = zeros(numPoints, imdims);
+                for i = 1:numPoints
+                    curBlobEigenH(i, :) = eig( H(:,:,i) );
                 end
 
-                % prune blobs where input signal is below a specified cutoff
-                curBlobLocIndices(imSignalToBackgroundRatio(curBlobLocIndices) < PARAMETERS.minSignalToBackgroundRatio) = [];
-
-                % prune blobs with LoG response below a specified cutoff
-                curBlobLocIndices(imLocalMax(curBlobLocIndices) < PARAMETERS.minDoGResponse) = [];
-
-                % prune blobs too close to roi boundary
-                % This gets rid of quite a few edge responses but it
-                % assumes that the roi boundary coincides with edges in the image
-                if ~isempty(PARAMETERS.roiMask) && PARAMETERS.minDistanceToROIBoundary > 0
-                    curBlobLocIndices(distToROIBoundary(curBlobLocIndices) < PARAMETERS.minDistanceToROIBoundary * rBlob) = [];
-                end
-
-                % prune edge responses by analyzing the eigen-values of the hessian matrix
-                curBlobEigenH = [];
-
-                if ~isempty(curBlobLocIndices)
-
-                    % compute hessian
-                    imCur = padarrayXT(imG_prev - dogScaleWindow{2}, 2 * ones(1, imdims), 'symmetric');
-                    x = 2 + ind2submat(size(imLocalMax), curBlobLocIndices);
-                    H = hessianAt(imCur, x, PARAMETERS.spacing);
-
-                    % compute eigen values of the hessian
-                    numPoints = numel(curBlobLocIndices);                        
-                    curBlobEigenH = zeros(numPoints, imdims);
-                    for i = 1:numPoints
-                        curBlobEigenH(i, :) = eig( H(:,:,i) );
-                    end
-
-                    % prune blobs with high eigen ratios
-                    curBlobEigenRatio21 = curBlobEigenH(:,2) ./ (eps + curBlobEigenH(:,1));
-                    curBlobEigenRatio31 = curBlobEigenH(:,3) ./ (eps + curBlobEigenH(:,1));
-                    flagValidBlobs = (sum(sign(curBlobEigenH), 2) == -3 & ...
-                                      curBlobEigenRatio21 > PARAMETERS.minHessianEigenRatio21 & ...
-                                      curBlobEigenRatio31 > PARAMETERS.minHessianEigenRatio31); 
-                    curBlobEigenH(~flagValidBlobs, :) = [];
-                    curBlobLocIndices(~flagValidBlobs) = [];
-                    curBlobEigenRatio21(~flagValidBlobs) = [];
-                    curBlobEigenRatio31(~flagValidBlobs) = [];
-                end
+            end            
 
             % update blob list
             if numel(curBlobLocIndices) > 0
@@ -170,11 +144,9 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
                 blobLocIndices = cat(1, blobLocIndices, curBlobLocIndices);
                 blobRadii = cat(1, blobRadii, curBlobRadii);
                 blobEigenH = cat(1, blobEigenH, curBlobEigenH);
-                blobEigenRatio12 = cat(1, blobEigenRatio12, curBlobEigenRatio21);
-                blobEigenRatio31 = cat(1, blobEigenRatio31, curBlobEigenRatio31);
                 blobLoGResponse = cat(1, blobLoGResponse, imLocalMax(curBlobLocIndices));
             end
-
+            
             % update DoG scale window
             dogScaleWindow(1) = [];
 
@@ -207,6 +179,89 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
 
     end
 
+    % prune blobs based on various criterion
+    if ~isempty(blobLocIndices)
+
+        flagValidBlobs = true(size(blobLocIndices));
+        
+        % Apply cutoffs
+        fprintf('\n>> Pruning invalid foci using the specified cutoffs ... \n');
+
+        % prune blobs where input signal is below a specified cutoff
+        flagValidBlobs(imSignalToBackgroundRatio(blobLocIndices) < PARAMETERS.minSignalToBackgroundRatio) = false;
+
+        % prune blobs with LoG response below a specified cutoff
+        flagValidBlobs(blobLoGResponse < PARAMETERS.minDoGResponse) = false;
+
+        % prune edge responses by analyzing the eigen-values of the hessian matrix
+        blobEigenRatio21 = blobEigenH(:,2) ./ (eps + blobEigenH(:,1));
+        blobEigenRatio31 = blobEigenH(:,3) ./ (eps + blobEigenH(:,1));
+        flagValidBlobs(sum(sign(blobEigenH), 2) ~= -3 | ...
+                       blobEigenRatio21 <= PARAMETERS.minHessianEigenRatio21 | ...
+                       blobEigenRatio31 <= PARAMETERS.minHessianEigenRatio31) = false; 
+        
+        % prune blobs too close to roi boundary
+        % This gets rid of quite a few edge responses but it
+        % assumes that the roi boundary coincides with edges in the image
+        if ~isempty(PARAMETERS.roiMask) && PARAMETERS.minDistanceToROIBoundary > 0
+            flagValidBlobs(distToROIBoundary(blobLocIndices) < PARAMETERS.minDistanceToROIBoundary * blobRadii) = false;
+        end
+                   
+        % prune
+        blobStats(~flagValidBlobs) = [];
+        blobLocIndices(~flagValidBlobs) = [];
+        
+    end
+    
+    % apply foci detection model if provided
+    if ~isempty(PARAMETERS.fociDetectionModelFile)
+
+       fprintf('\n>> Pruning invalid foci using the specified learning model ... \n');
+
+       flagValidBlobs = true(size(blobLocIndices));
+       
+       % weka imports
+       import weka.core.*;    
+       import weka.core.SerializationHelper.*;
+
+       wekaModel = weka.core.SerializationHelper.readAll( PARAMETERS.fociDetectionModelFile );
+
+       fprintf( '\nProgress: \n' );
+
+       last_percent_done = 0;
+       numPrint = 0;
+
+        for bid = 1:numel(blobStats)
+
+            featureStruct = ComputeFociDetectionFeatures(imInput, blobStats, bid, ...
+                                                         'spacing', PARAMETERS.spacing);                                                         
+            [featureVec , featureNameList] = ConvertFeatureStructToFeatureVec( featureStruct );                                                 
+
+            predictedLabel = wekaPredictInstance(wekaModel, featureVec, featureNameList);
+
+            if strcmpi(predictedLabel, 'Bad_Detection')
+                flagValidBlobs(bid) = false;
+            end 
+
+            percent_done = round(100 * bid / numel(blobStats));       
+
+            if percent_done > last_percent_done
+                fprintf( '%.2d%%  ', percent_done );
+                last_percent_done = percent_done;
+                numPrint = numPrint + 1;
+                if mod( numPrint, 10 ) == 0
+                   fprintf( '\n' ); 
+                end
+            end        
+
+        end
+            
+        % prune
+        blobStats(~flagValidBlobs) = [];
+        blobLocIndices(~flagValidBlobs) = [];
+        
+    end
+    
     % Build blob seed mask
     if nargout > 1
         imBlobSeedMask  = zeros( size(imInput) );
@@ -229,6 +284,8 @@ function [blobStats, imBlobSeedMask, imBlobSegMask, PARAMETERS] = segmentFociIns
 
     % Done
     fprintf('\nblob detection took a total of %.2f seconds\n', toc(fociDetectionTimer) );
+    
+    fprintf('\nA total of %d blobs were detected\n', numel(blobStats));
         
 end
 

@@ -22,7 +22,7 @@ function varargout = CellPatternAnnotator(varargin)
 
 % Edit the above text to modify the response to help CellPatternAnnotator
 
-% Last Modified by GUIDE v2.5 15-Apr-2014 12:14:06
+% Last Modified by GUIDE v2.5 11-Jul-2014 17:17:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -224,176 +224,49 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     end
 
 % --------------------------------------------------------------------
-function File_Open_Callback(hObject, eventdata, handles)
-% hObject    handle to File_Open (see GCBO)
+function File_Load_Image_Data_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Load_Image_Data (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    % ask the use to select the oif file for the nucleus channel
-    [fileName,pathName] = uigetfile( fullfile( handles.history.lastAnalyzedNucleusDir, '*.oif; *.oib' ), ...
-                                               'Select the data file containing Histone-2B CFP' );   
+    % ask user to select data
+    PrettyPrintStepDescription( 'Loading Data' );
     
-    if ~fileName 
-        return;
-    end
+    cellCycleData = CellCycleStateIdentificationDataSelectionGUI();
     
-    dataFilePath{1} = fullfile( pathName, fileName );
-    handles.history.lastAnalyzedNucleusDir = pathName;
-    handles.history.lastAnalyzedRedGreenDir = pathName;
-    
-    % ask the use to select the oif file for the red/green channel
-    [fileName,pathName] = uigetfile( fullfile( handles.history.lastAnalyzedRedGreenDir, '*.oif; *.oib' ), ...
-                                               'Select the data file containing the FUCCI Cell Cycle Reporter' );   
-        
-    if ~fileName 
-        return;
-    end
-    
-    dataFilePath{2} = fullfile( pathName, fileName );        
-    handles.history.lastAnalyzedRedGreenDir = pathName;
-    
-    % load nucleus channel data
-    PrettyPrintStepDescription( 'Loading Histone Channel Data' );
-    
-    hStatusDialog = waitbar(0, 'Loading Histone Channel Data');
-    try        
-        imageSeriesNucleus = loadIntravitalDataset( dataFilePath{1}  );    
-        if (imageSeriesNucleus(1).metadata.voxelSpacing(1)/ imageSeriesNucleus(1).metadata.voxelSpacing(3)) >= 1
-            imageSeriesNucleus(1).metadata.voxelSpacing = [0.5, 0.5, 2]; % incorrect spacing in metadata - use something meaningful
-        end        
-        imageSeriesNucleus(1).metadata.channelColors = [ 0 , 0 , 1 ];
-    catch err
-        err
-        err.message
-        fprintf( 'ERROR: could not load nucleus channel data from file %s', dataFilePath{1} );
-        errordlg( sprintf( 'Could not load nucleus channel data from file %s\n\n%s', dataFilePath{1}, err.message) ); 
-        closeStatusDialog( hStatusDialog );
-        return;
-    end
-    
-    metadata_NucleusChannel = imageSeriesNucleus(1).metadata
-    
-    % load red/green channel data
-    PrettyPrintStepDescription( 'Loading Red/Green Channel Data' );
-
-    waitbar(0, hStatusDialog, 'Loading Red/Green Channel Data');
-    try
-
-        imageSeriesFUCCI = loadIntravitalDataset( dataFilePath{2}  );    
-
-        if imageSeriesFUCCI(1).metadata.channelExcitationWavelength(1) > imageSeriesFUCCI(1).metadata.channelExcitationWavelength(2)
-
-            % first channel is not green so swap it 
-            warning( 'GFP was not the first channel in confocal data. It will be swapped to the first place');
-            imageSeriesFUCCI(1).imageData = imageSeriesFUCCI(1).imageData(:,[2,1]);
-            imageSeriesFUCCI(1).metadata.channelExcitationWavelength = imageSeriesFUCCI(1).metadata.channelExcitationWavelength([2,1]);
-
-        end
-
-        imageSeriesFUCCI(1).metadata.channelColors = [ 0 1 0; 1 0 0 ];
-
-        metadata_FUCCI = imageSeriesFUCCI(1).metadata
-
-    catch err
-
-        err
-        err.message
-        fprintf( 'ERROR: could not load red-green channel data from file %s', dataFilePath{2} );
-        errordlg( sprintf( 'Could not load red-green channel data from file %s\n\n%s', dataFilePath{2}, err.message ) ); 
-        closeStatusDialog( hStatusDialog );
+    if isempty(cellCycleData)
         return;
     end
 
-    if any( imageSeriesFUCCI(1).metadata.numChannels ~= 2  )
-        errordlg( sprintf( 'Red-Green channel data is expected to contain 2 channels. The file selected by you contains %d channels', imageSeriesFUCCI(1).metadata.numChannels ) );
-        return;
-    end
-
-    if any( imageSeriesFUCCI(1).metadata.volSize ~= imageSeriesNucleus(1).metadata.volSize )
-        errordlg( sprintf( 'Volume Size of Nucleus data doesnt match with red-green channel data' ) );
-        closeStatusDialog( hStatusDialog );
-        return;
-    end
-
-    if (imageSeriesFUCCI(1).metadata.voxelSpacing(1)/ imageSeriesFUCCI(1).metadata.voxelSpacing(3)) >= 1
-        imageSeriesFUCCI(1).metadata.voxelSpacing = imageSeriesNucleus(1).metadata.voxelSpacing; % incorrect spacing in metadata - use something meaningful
-    end
-
-    if any( imageSeriesFUCCI(1).metadata.voxelSpacing ~= imageSeriesNucleus(1).metadata.voxelSpacing )
-        
-        strError = sprintf( '\nPixel spacing of nuclear marker data doesnt match with FUCCI data.\n\n\tSpacing of Histone data - [ %s ]\n\tSpacing of FUCCI data  - [ %s ]', ...
-                               sprintf( ' %f ', imageSeriesNucleus(1).metadata.voxelSpacing ), ...
-                               sprintf( ' %f ', imageSeriesFUCCI(1).metadata.voxelSpacing ) );
-                           
-        errordlg( strError, 'Incompatible voxel size accross channels');
-        closeStatusDialog( hStatusDialog );
-        return;
-    end
-    
-    % check if the user wants to process only a substack    
-    PrettyPrintStepDescription( 'Selected Range of Slices:' );
-    
-    imseriesshow( imageSeriesNucleus(1).imageData{1,1} );
-    set(gcf, 'Name', 'Histone data before slice cropping');
-    
-    numSlices = metadata_NucleusChannel.volSize(3);
-    strSliceRange = sprintf( '(1 - %d)', numSlices );
-    dlgOptions.Resize = 'on';
-    dlgOptions.WindowStyle = 'normal';
-    selectedSliceRange = inputdlg( { sprintf('Start Slice %s:', strSliceRange), sprintf('End Slice %s:', strSliceRange)}, ...
-                              'Select slice range of interest', 1, ...
-                              { '1', num2str(numSlices) }, dlgOptions );
-                          
-    try
-        
-      selectedSliceRange = [ str2num(selectedSliceRange{1}), str2num(selectedSliceRange{2}) ];    
-      assert( ~any( (selectedSliceRange - floor(selectedSliceRange)) > 0 ) ); % must be integers
-      assert( all( selectedSliceRange >= 1 ) && all( selectedSliceRange <= numSlices ) );
-      assert( selectedSliceRange(1) < selectedSliceRange(2) ); % start slice should be less than end slice
-      
-    catch        
-        
-        errordlg( sprintf( 'Invalid start/end slice. Must be integers between 1 - %d', numSlices ) );
-        closeStatusDialog( hStatusDialog );
-        return;
-        
-    end
-    
-    selectedSliceRange
-    
-    imageSeriesNucleus(1).imageData{1} = imageSeriesNucleus(1).imageData{1}(:, :, selectedSliceRange(1):selectedSliceRange(2));
-    for i = 1:2
-        imageSeriesFUCCI(1).imageData{1,i} = imageSeriesFUCCI(1).imageData{1,i}(:, :, selectedSliceRange(1):selectedSliceRange(2));
-    end
-    
-    imageSeriesNucleus(1).metadata.volSize = size( imageSeriesNucleus(1).imageData{1} );
-    
-    % store image data in handles structures    
     handles.flagDataLoaded = true;
     handles.data = [];
     handles.data.cellPatternTypes = handles.defaultCellPatternTypes;
-    handles.data.dataFilePath = dataFilePath;
-    handles.data.metadata = imageSeriesNucleus(1).metadata;
+    handles.metadata.dataFilePath = cellCycleData.metadata.dataFilePath;
+    handles.data.metadata = cellCycleData.metadata;
+    handles.data.metadata.channelColors = [0 0 1; 0 1 0; 1 0 0];
     
-    set( handles.CellPatternAnnotator, 'Name', sprintf( 'Cell Pattern Annotator - %s', handles.data.dataFilePath{1} ) );
-    
-    handles.data.metadata.channelExcitationWavelength = [ imageSeriesNucleus(1).metadata.channelExcitationWavelength, ...
-                                                          imageSeriesFUCCI(1).metadata.channelExcitationWavelength ];
-
-    handles.data.metadata.channelColors = cat( 1 , imageSeriesNucleus(1).metadata.channelColors, ...
-                                                   imageSeriesFUCCI(1).metadata.channelColors );             
+    set( handles.CellPatternAnnotator, 'Name', sprintf( 'Cell Pattern Annotator - %s', handles.metadata.dataFilePath{1} ) );
 
     metadata = handles.data.metadata
     
     % correct stage-shift        
-    PrettyPrintStepDescription( 'Correcting shift between confocal and two-photon data' );
+    if cellCycleData.flagAlignFucciDataToNuclearMarker
+    
+        PrettyPrintStepDescription( 'Aligning Fucci Cell Cycle Reporters to Nuclear Marker' );
 
-    waitbar(0, hStatusDialog, 'Correcting shift between confocal and two-photon data');
-    [handles.data.imageData, ...
-     handles.data.imRegValidMask] = CorrectTwoPhotonConfocalStageShift( imageSeriesNucleus(1).imageData, imageSeriesNucleus(1).metadata.voxelSpacing, ...
-                                                                        imageSeriesFUCCI(1).imageData, imageSeriesFUCCI(1).metadata.voxelSpacing, ...
-                                                                        'flagParallelize', handles.parameters.flagParallelize, ...
-                                                                        'flagDebugMode', false);
+        waitbar(0, hStatusDialog, 'Aligning Fucci Cell Cycle Reporters to Nuclear Marker');
+        [handles.data.imageData, ...
+         handles.data.imRegValidMask] = CorrectTwoPhotonConfocalStageShift( cellCycleData.imageData{1}, cellCycleData.metadata.pixelSize, ...
+                                                                            cellCycleData.imageData(2,:), cellCycleData.metadata.pixelSize, ...
+                                                                            'flagParallelize', handles.parameters.flagParallelize, ...
+                                                                            'flagDebugMode', false);
+                                                                        
+    else
+        
+        handles.data.imageData = cellCycleData.imageData;
+        handles.data.imRegValidMask = ones(size(handles.data.imageData{1}));
+        
+    end
                                                                     
     % pre-compute data needed for display
     handles = ComputeDisplayData( handles );
@@ -436,7 +309,7 @@ function RunAnalysis(hObject, handles)
     [handles.data.imLabelCellSeg, ...
      handles.data.imCellSeedPoints, ...
      handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
-                                                                      handles.data.metadata.voxelSpacing, ...                                                                      
+                                                                      handles.data.metadata.imageSize, ...                                                                      
                                                                       'flagParallelize', handles.parameters.flagParallelize, ...
                                                                       'flagDebugMode', handles.parameters.flagDebugMode, ...
                                                                       'cellDiameterRange', handles.parameters.segmentation.cellDiameterRange, ...
@@ -505,11 +378,11 @@ function [cellStats] = ComputeCellProperties( handles )
         cellStats(i).maxIntensity = max( cellPixelIntensities );
         
         % volume
-        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.voxelSpacing );
+        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.imageSize );
         
         % fit ellipsoid and store its radii
         [yind, xind, zind] = ind2sub( size(handles.data.imageData{1}), cellStats(i).PixelIdxList ); 
-        ptCell = [xind, yind, zind] .* repmat( handles.data.metadata.voxelSpacing, [numel(xind), 1] );
+        ptCell = [xind, yind, zind] .* repmat( handles.data.metadata.imageSize, [numel(xind), 1] );
         ptCell = ptCell - repmat( mean(ptCell), [size(ptCell,1), 1] );
         [U, S, V] = svd( (ptCell' * ptCell) / size(ptCell,1) );
         
@@ -967,14 +840,43 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
     handles.data = [];
 
         % basic data
-        handles.data.dataFilePath = annotationData.dataFilePath;
-        handles.data.metadata = annotationData.metadata;
         handles.data.imageData = annotationData.imageData;
         handles.data.imRegValidMask = annotationData.imRegValidMask;
 
-        if ~isfield( handles.data.metadata, 'channelColors' )
-            handles.data.metadata.channelColors = [ 0 0 1; 0 1 0; 1 0 0 ];
+        % metadata
+        if ~isfield(annotationData.metadata, 'pixelSize') % check if old metadata struct
+        
+            metadata.version = '2.0.0';
+            metadata.dataFilePath = analysisData.metadata.dataFilePath([1, 2, 2]);
+            metadata.format = repmat({'Olympus'}, 1, 3);
+            
+            metadata.numSeries = ones(1,3);
+            metadata.seriesId = ones(1,3);
+            
+            metadata.numTimePoints = 1;
+            metadata.timePointId = 1;
+            
+            metadata.numChannels = 3;
+            metadata.channelId = [1, 1, 2];
+            metadata.channelNames = {'Nuclei', 'FUCCI Geminin', 'FUCCI Cdt1'};
+            
+            metadata.imageSize = annotationData.volSize;
+            metadata.pixelSize = annotationData.voxelSpacing;
+            
+            metadata.pixelType = 'uint16';
+            metadata.bitsPerPixel = 12;
+            
+            handles.data.metadata = metadata;
+            
+        else
+            handles.data.metadata = annotationData.metadata;
         end
+
+        if ~isfield(handles.data.metadata, 'channelColors')
+            handles.data.metadata.channelColors = [0 0 1; 0 1 0; 1 0 0];
+        end
+        
+        % compute display data
         handles = ComputeDisplayData(handles);
         
         % segmentation stuff
@@ -1084,7 +986,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
     handles.history.lastOutputDir = outputDir;
     
     % save data
-    [pathstr, name, ext] = fileparts( handles.data.dataFilePath{1} );
+    [pathstr, name, ext] = fileparts( handles.metadata.dataFilePath{1} );
     outputDir = strtrim( fullfile(outputDir, name) );
 
     if ~isdir( outputDir )
@@ -1113,12 +1015,12 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
         % print some information about the dataset
         fprintf( summary_fid, '\n>> Dataset Description:\n' );
         
-        fprintf( summary_fid, '\n\tTwo-photon data file -- %s\n', handles.data.dataFilePath{1} );
+        fprintf( summary_fid, '\n\tTwo-photon data file -- %s\n', handles.metadata.dataFilePath{1} );
     
-        fprintf( summary_fid, '\n\tConfocal data file -- %s\n', handles.data.dataFilePath{2} );
+        fprintf( summary_fid, '\n\tConfocal data file -- %s\n', handles.metadata.dataFilePath{2} );
         
-        fprintf( summary_fid, '\n\tImage Size - [ %s ]\n', sprintf( ' %d ', handles.data.metadata.volSize) );
-        fprintf( summary_fid, '\n\tImage Spacing - [ %s ]\n', sprintf( ' %.2f ', handles.data.metadata.voxelSpacing) );
+        fprintf( summary_fid, '\n\tImage Size - [ %s ]\n', sprintf( ' %d ', handles.data.metadata.imageSize) );
+        fprintf( summary_fid, '\n\tImage Spacing - [ %s ]\n', sprintf( ' %.2f ', handles.data.metadata.imageSize) );
     
         % print information about the annotation
         fprintf( summary_fid, '\n>> Annotation Summary:\n' );
@@ -1199,7 +1101,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
         
         cellPatternStats(end,1:3) = { 'GoodSegmentation', numWellSegmentedCells, numWellSegmentedCells * 100.0 / numTotalCells };
         cellPatternStats(end+1,1:2) = { 'TotalCellsDetected', numTotalCells };
-        cellPatternStats(end+2,1:2) = { 'Dataset', handles.data.dataFilePath{1} };
+        cellPatternStats(end+2,1:2) = { 'Dataset', handles.metadata.dataFilePath{1} };
         
     fclose( summary_fid );
     
@@ -1980,7 +1882,7 @@ function Inspection_View_Full_Seg_In_Imaris_Callback(hObject, eventdata, handles
 
     % Display everything in imaris
     handles.imarisApp = DisplayMultichannel3DDataInImaris( handles.data.imageData, ...
-                                                           'spacing', handles.data.metadata.voxelSpacing, ...
+                                                           'spacing', handles.data.metadata.imageSize, ...
                                                            'spotLocations', cellSeedPointLocations, ...
                                                            'spotRadius', 3, ...
                                                            'surfaceObjects', cellSurfaceObjectList, ...
@@ -2087,7 +1989,7 @@ function Inspection_View_Cell_Seg_In_Imaris_Callback(hObject, eventdata, handles
     if numel(stats) > 0
         
         handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
+                                                                             'spacing', handles.data.metadata.imageSize, ...
                                                                              'displaycolors', curCellDisplayColor, ...
                                                                              'displayranges', curCellDisplayRange, ...
                                                                              'spotLocations', cellSeedPointLocations, ...
@@ -2096,7 +1998,7 @@ function Inspection_View_Cell_Seg_In_Imaris_Callback(hObject, eventdata, handles
     else
         
         handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
+                                                                             'spacing', handles.data.metadata.imageSize, ...
                                                                              'displaycolors', curCellDisplayColor, ...
                                                                              'displayranges', curCellDisplayRange, ...
                                                                              'surfaceObjects', cellIsoSurface );
@@ -2159,7 +2061,7 @@ function Inspect_Check_Seed_Detection_Callback(hObject, eventdata, handles)
     
     BlobDetectionGUI( imCellCropped, cellDiameterRange, ...
                       'foregroundMask', double( imCellSegCropped > 0 ), ...  
-                      'spacing', handles.data.metadata.voxelSpacing );
+                      'spacing', handles.data.metadata.imageSize );
     
 
 % --------------------------------------------------------------------
@@ -2320,7 +2222,7 @@ function Inspect_View_Cell_Patterns_In_Imaris_Callback(hObject, eventdata, handl
     
     % display cell pattern distribution in imaris
     handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imageDataPadded, ...
-                                                                         'spacing', handles.data.metadata.voxelSpacing, ...
+                                                                         'spacing', handles.data.metadata.imageSize, ...
                                                                          'surfaceObjects', cellPatternSurfaceObjectList, ...
                                                                          'displayRanges', handles.dataDisplay.imDisplayRange, ...
                                                                          'displayColors', handles.data.metadata.channelColors );

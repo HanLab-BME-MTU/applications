@@ -39,7 +39,6 @@ function experiment_global_thresholding_per_slice( imInput, metadata )
         imThreshKittlerMinerr(:,:,sliceId) = callMatitkFilter( 'FKittlerMinimumErrorThreshold', { numHistogramBins } , imSlice );    
         imThreshOtsu(:,:,sliceId) = callMatitkFilter( 'FOtsuThreshold', { numHistogramBins } , imSlice );    
         imThreshIsoData(:,:,sliceId) = callMatitkFilter( 'FIsoDataThreshold', { numHistogramBins } , imSlice );    
-        imThreshPrewittIntermodes(:,:,sliceId) = callMatitkFilter( 'FPrewittIntermodesThreshold', { numHistogramBins } , imSlice );        
 
         imThreshKapurEntropy(:,:,sliceId) = callMatitkFilter( 'FKapurMaximumEntropyThreshold', { numHistogramBins } , imSlice );    
         imThreshRenyiEntropy(:,:,sliceId) = callMatitkFilter( 'FRenyiEntropyThreshold', { numHistogramBins } , imSlice );    
@@ -54,8 +53,8 @@ function experiment_global_thresholding_per_slice( imInput, metadata )
         
     end
     
-    imseriesmaskshow( imInput, {imThreshKittlerMinerr, imThreshOtsu, imThreshIsoData, imThreshPrewittIntermodes } );
-    set( gcf, 'Name', 'Clustering: MinError - Otsu - IsoData - Intermodes' );
+    imseriesmaskshow( imInput, {imThreshKittlerMinerr, imThreshOtsu, imThreshIsoData } );
+    set( gcf, 'Name', 'Clustering: MinError - Otsu - IsoData' );
     
     imseriesmaskshow( imInput, {imThreshKapurEntropy, imThreshRenyiEntropy, imThreshLiEntropy, imThreshShanbhagEntropy, imThreshYenEntropy } );    
     set( gcf, 'Name', 'Entropy: Kapur - Renyi - Li - Shanbhag - Yen' );

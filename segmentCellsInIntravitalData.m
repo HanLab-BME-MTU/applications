@@ -10,11 +10,14 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     p.addRequired( 'spacing', @(x) (numel(x) == imdims) );   
     
     p.addParamValue( 'thresholdingAlgorithm', ...
-                     'MinErrorPoissonSliceBySliceLocal', ...
-                     @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', 'OtsuSliceBySliceLocal', 'MinErrorPoissonSliceBySliceLocal', 'BackgroudRemovalUsingMorphologicalOpening'}) ));
+                     'BackgroudRemovalUsingMorphologicalOpening', ...
+                     @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', ...
+                                                     'OtsuSliceBySliceLocal', ...
+                                                     'MinErrorPoissonSliceBySliceLocal', ...
+                                                     'BackgroudRemovalUsingMorphologicalOpening'}) ));
     p.addParamValue( 'localThresholdWindowRadiusPhysp', 30, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue( 'minLocalGlobalThresholdRatio', 0.6, @(x) (isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minSignalToBackgroundRatio', 2.5, @(x) (isnumeric(x) && isscalar(x)) );
+    p.addParamValue( 'minSignalToBackgroundRatio', 2.0, @(x) (isnumeric(x) && isscalar(x)) );
     
     p.addParamValue( 'seedPointDetectionAlgorithm', ...
                      'AdaptiveMultiscaleLoG', ...
@@ -23,7 +26,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                  
     p.addParamValue( 'cellDiameterRange', [12, 20], @(x) (isnumeric(x) && numel(x) == 2) );
     p.addParamValue( 'minCellVolume', [], @(x) (isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minCellBBoxSizePhysp', [3.5 3.5 8], @(x) (isnumeric(x) && numel(x) == 3));
+    p.addParamValue( 'minCellBBoxSizePhysp', [7 7 3] .* spacing, @(x) (isnumeric(x) && numel(x) == 3));
     
     p.addParamValue( 'regionMergingModelFile', [], @(x) (isempty(x) || (ischar(x) && exist(x, 'file'))) );
     
@@ -116,10 +119,8 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                                                             
         case 'BackgroudRemovalUsingMorphologicalOpening'
             
-            krnlMax = streldisknd( round(0.5 * max(cellDiameterRange) ./ spacing(1:2)) ); 
-            imLocalBackground = imopen(imAdjusted, krnlMax);
-            imSignalToBackgroundRatio = imAdjusted ./ (eps + imLocalBackground);
-            imThresh = double(imSignalToBackgroundRatio >= PARAMETERS.minSignalToBackgroundRatio);
+            imThresh = thresholdSBR(imAdjusted, max(cellDiameterRange), PARAMETERS.minSignalToBackgroundRatio, ...
+                                    'spacing', spacing, 'kernelDimensions', 2);
             
         otherwise
             
@@ -127,8 +128,12 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
         
     end
 
-    imThresh = imfill( imThresh ); 
+    imThresh = imfill( double(imThresh) ); 
     imThresh = imclose(imThresh, streldisknd(2*ones(1,ndims(imInput))) );
+    
+    minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
+    cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
+    imThresh = imopen(imThresh, cleanStrel);       
     
     % remove regions with small and invalid/unusual sizes
     threshL = bwlabeln( imThresh );
@@ -294,11 +299,11 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
 %         set( gcf, 'Name', 'Minima Imposed at Seed Points' );
 %     end
     
-    minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
-    cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
-    imCellMask = imopen(L > 0, cleanStrel);       
-    L = bwlabeln( imCellMask );
-    
+%     minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
+%     cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
+%     imCellMask = imopen(L > 0, cleanStrel);       
+%     L = bwlabeln( imCellMask );
+
     regLabelWithSeed = unique( L( imCellSeedPoints > 0 ) );
     L( ~ismember(L, regLabelWithSeed) ) = 0; 
     L = bwlabeln(L > 0);

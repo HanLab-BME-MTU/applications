@@ -213,24 +213,19 @@ classdef ImarisDataVisualizer
             
         end
         
-        function AddSurfaces(this, surfaceList, hContainer, varargin )
-            
-            if ~exist( 'hContainer', 'var' )
-                hContainer = this.imarisApp.mSurpassScene;
-            end
+        function AddSurfaces(this, surfaceList, varargin )
             
             p = inputParser;
-            p.addRequired( 'surfaces', @(x) (isstruct(x) && sum(isfield(x, {'vertices', 'faces', 'normals', 'timepoint'})) == 4) );
-            p.parse( surfaceList );
-            
-            numSurfaces = numel( surfaceList );
-            
-            p.addParamValue( 'name', [], @ischar );
-            p.addParamValue( 'color', random_color(), @(x) (isvector(x) && ismember(numel(x), [3,4])) );
-            p.addParamValue( 'tracks', [], @(x) ( (ischar(x) && stricmpi('consecutive')) || (ismatrix(x) && size(x,2) == 2 && all(x(:) >= 1) && all(x(:) <= numSurfaces))) );
+            p.addRequired( 'surfaceList', @(x) (isstruct(x) && sum(isfield(x, {'vertices', 'faces', 'normals', 'timepoint'})) == 4) );
+            p.addOptional('hContainer', this.imarisApp.mSurpassScene);
+            p.addParamValue('name', [], @ischar );
+            p.addParamValue('color', random_color(), @(x) (isvector(x) && ismember(numel(x), [3,4])) );
+            p.addParamValue('tracks', [], @(x) ( (ischar(x) && stricmpi('consecutive')) || (ismatrix(x) && size(x,2) == 2 && all(x(:) >= 1) && all(x(:) <= numel(surfaceList)))) );
             p.parse( surfaceList, varargin{:} );
             
             PARAMETERS = p.Results;
+            numSurfaces = numel( surfaceList );
+            hContainer = PARAMETERS.hContainer;
             
             spotColor = PARAMETERS.color;
             if numel(spotColor) == 3

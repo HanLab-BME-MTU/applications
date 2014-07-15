@@ -16,7 +16,7 @@ function [ imMaskOverlay ] = genImageRGBMaskOverlay( im, rgbMask, maskAlpha )
     
     for i = 1:numel(rgbMask)
         
-        blnMask = repmat( max( rgbMask{i}, [], 3 ) > 0, [1, 1, 3] );
+        blnMask = repmat( max( rgbMask{i}, [], 3 ) > 0, [ones(1,ndims(im)), 3] );
         imMaskOverlay(blnMask) = (1 - maskAlpha(i)) * imMaskOverlay(blnMask) + maskAlpha(i) * rgbMask{i}(blnMask);
         imMaskOverlay( imMaskOverlay > 1 ) = 1;
         

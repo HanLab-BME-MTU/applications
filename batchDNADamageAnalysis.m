@@ -7,29 +7,36 @@ fclose all;
 %                         PARAMETERS
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
-    projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
+%     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
+%     projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
     
-%     projectRootDir = 'Z:\intravital\DNADamageAnalysis';
-%     projectRootDirScratch = projectRootDir;
+    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
+    projectRootDirScratch = projectRootDir;
     
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
      % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysis_M14_to_M17');
+    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColocTest_M14_to_M17');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
-                                       'train_M04_M09_M12', ...
+                                       'train_M04_M09_M12', 'with_size', ...
                                        'regionMerging.model' );                                      
-    
+
+    % specify the path to the foci detection model file
+    fociDetectionModelFile = fullfile( projectRootDir, 'models', 'fociDetection', ...
+                                       'train_M16_pre_3to5h_24h', ...
+                                       'fociDetection.model' );                                      
+                                   
     % specify the path to the inventory file created in microsoft excel
     % each row of this file corresponds to one dataset 
     % it must contain columns containing: 
     % - realtive path to file (*.oif, *.oib) containing the image data
     % - mouse ID
     % - 53BP1 channel index
+    % - Drug channel index
+    % - Macrophage channel index
     %
     % In addition the inventory file can contain any columns that you want
     % to be passed on to the result files outputed by the analysis scripts
@@ -37,7 +44,11 @@ fclose all;
 
     colName_RelImageFilePath = 'RelImageFilePath';
     colName_MouseId = 'MouseId';
-    colName_53BP1ChannelId = '53BP1ChannelId';
+    colName_TimePoint = 'TimePoint';
+    
+    colName_ChannelId_Drug = 'ChannelId_Drug';
+    colName_ChannelId_53BP1 = 'ChannelId_53BP1';
+    colName_ChannelId_Macrophage = 'ChannelId_Macrophage';
     dataRootPrefix = ''; % to calculcate the relative path to result dir of each dataset
     
     % run mode
@@ -46,10 +57,10 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 3;
+    runMode = 1;
     
     % Do you want to save images?
-    flagSaveImages = true;
+    flagSaveImages = false;
     
     % specify cluster resource requirements and submission queue
     numCoresRequested = [];
@@ -63,7 +74,6 @@ fclose all;
     fidRequestedAnalysisList = []; 
     
     flagCollectResultFilesAfterAnalysis = true;
-    resultFileList = {'stackAnalysisInfo.csv', 'cellAnalysisInfo.csv', 'fociAnalysisInfo.csv'};
     
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -81,7 +91,11 @@ inventoryFileHeader'
 colId_RelImageFilePath = find( strcmpi(inventoryFileHeader, colName_RelImageFilePath) )
 rawData(2:end, colId_RelImageFilePath) = strtrim( strrep( strrep(rawData(2:end, colId_RelImageFilePath), dataRootPrefix, ''), '\', '/') );
 colId_Mouse = find( strcmpi(inventoryFileHeader, colName_MouseId) )
-colId_53BP1ChannelId = find( strcmpi(inventoryFileHeader, colName_53BP1ChannelId) )
+colId_TimePoint = find( strcmpi(inventoryFileHeader, colName_TimePoint) )
+
+colId_ChannelId_Drug = find( strcmpi(inventoryFileHeader, colName_ChannelId_Drug) )
+colId_ChannelId_53BP1 = find( strcmpi(inventoryFileHeader, colName_ChannelId_53BP1) )
+colId_ChannelId_Macrophage = find( strcmpi(inventoryFileHeader, colName_ChannelId_Macrophage) )
 
 metaDataColumnIdList = 1:size(rawData,2);
 metaDataHeader = inventoryFileHeader( metaDataColumnIdList );
@@ -98,14 +112,13 @@ switch strRunMode
 
         PrettyPrintStepDescription( 'Testing batch analysis script' );
         
-        fid = 1;
+        fid = 5;
         curResultsRootDir = fullfile(resultsRootDir, 'testSingle');
         
         curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
         [pname, curImageFileName, fext] = fileparts( curImageFilePath );
         
         curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
-        cur53BP1ChannelId = rawData{fid, colId_53BP1ChannelId};
         
         curImageFileName
         
@@ -114,9 +127,13 @@ switch strRunMode
         curMetaInfoStruct.header = metaDataHeader;
         curMetaInfoStruct.data = rawData(fid, metaDataColumnIdList);
         
-        flagSuccess = performDNADamageAnalysis( curImageFilePath, cur53BP1ChannelId, ...
-                                                regionMergingModelFile, curOutDir, ...
-						'flagSaveImages', flagSaveImages, ...
+        flagSuccess = performDNADamageAnalysis( curImageFilePath, curOutDir, ...
+                                                'channelId53BP1', rawData{fid, colId_ChannelId_53BP1}, ...
+                                                'channelIdDrug', rawData{fid, colId_ChannelId_Drug}, ...
+                                                'channelIdMacrophage', rawData{fid, colId_ChannelId_Macrophage}, ...
+                                                'regionMergingModelFile', regionMergingModelFile, ...
+                                                'fociDetectionModelFile', fociDetectionModelFile, ...
+                                                'flagSaveImages', flagSaveImages, ...
                                                 'metaInfoStruct', curMetaInfoStruct);
 
         if ~flagSuccess
@@ -200,8 +217,12 @@ switch strRunMode
 
             curFinishStatusReportFile = fullfile(statusOutDir, num2str(fid));
             
-            funcArgs = { curImageFilePath, cur53BP1ChannelId, ...
-                         regionMergingModelFile, curOutDir, ...
+            funcArgs = { curImageFilePath, curOutDir, ...
+                         'channelId53BP1', rawData{fid, colId_ChannelId_53BP1}, ...
+                         'channelIdDrug', rawData{fid, colId_ChannelId_Drug}, ...
+                         'channelIdMacrophage', rawData{fid, colId_ChannelId_Macrophage}, ...
+                         'regionMergingModelFile', regionMergingModelFile, ...
+                         'fociDetectionModelFile', fociDetectionModelFile, ...
                          'metaInfoStruct', curMetaInfoStruct, ... 
                          'finishStatusReportFile', curFinishStatusReportFile, ...
                          'flagSaveImages', flagSaveImages, 'flagParallelize', false };
@@ -343,9 +364,13 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
         curResultsRootDir = fullfile(resultsRootDir, 'analysis');
     end
     
+    resultFileList = {'stackAnalysisInfo.csv', 'cellAnalysisInfo.csv', 'fociAnalysisInfo.csv'};
     globalStackAnalysisFile = fullfile(curResultsRootDir, 'stackAnalysisInfo.csv');
     globalCellAnalysisFile = fullfile(curResultsRootDir, 'cellAnalysisInfo.csv');
     globalFociAnalysisFile = fullfile(curResultsRootDir, 'fociAnalysisInfo.csv');
+
+    globalCellColocAnalysisFile = fullfile(curResultsRootDir, 'cellColocalizationAnalysisInfo.csv');
+
     fidResultCollection = fopen( fullfile(curResultsRootDir, 'resultFileCollection.log'), 'w' );
     
     fidAnalysisFileNotFound = [];
@@ -374,7 +399,24 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
                 flagAllResultFilesFound = false;
                 fidAnalysisFileNotFound(end+1) = fid;
                 break;
+            end            
+        end
+    
+        if ~strcmpi(rawData{fid, colId_TimePoint}, 'pre')
+            curCellColocAnalysisFile = fullfile(curOutDir, 'cellColocalizationAnalysisInfo.csv');
+            if ~exist(curCellColocAnalysisFile, 'file')
+                fprintf('\n\tCould not find analysis file cellColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+                fprintf(fidResultCollection, '\nAnalysis file cellColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                             fid, numFiles, curImageFileName );
+                flagAllResultFilesFound = false;
+                fidAnalysisFileNotFound(end+1) = fid;
             end
+            
+            curResultFileList = [resultFileList, 'cellColocalizationAnalysisInfo.csv'];
+            
+        else
+            
+            curResultFileList = resultFileList;
             
         end
         
@@ -388,7 +430,7 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
             curLocalAnalysisFile = fullfile(curOutDir, resultFileList{afid});
             curGlobalAnalysisFile = fullfile(curResultsRootDir, resultFileList{afid});
             
-            if fid == 1
+            if ~exist(curGlobalAnalysisFile, 'file')
                copyfile(curLocalAnalysisFile, curGlobalAnalysisFile, 'f');
             else
                 AppendTwoFeatureFiles(curGlobalAnalysisFile, curLocalAnalysisFile);

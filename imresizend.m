@@ -18,6 +18,6 @@ function [ imResized ] = imresizend( imInput, resizeFactor, varargin )
     linearImageResampler = makeresampler( interpolationMethod , 'replicate' );
     imResized = tformarray( imInput, scalingTransform, linearImageResampler, ...
                             1:ndims(imInput), 1:ndims(imInput), ...
-                            round( size(imInput) .* resizeFactor ) , [] , [] );
+                            round(size(imInput) .* resizeFactor), [] , [] );
     
 end

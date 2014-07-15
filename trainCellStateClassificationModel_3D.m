@@ -20,7 +20,7 @@
     
     % specify list of models to build
     %PARAMETERS.classificationTask = { 'G1_S_G2_M', 'G1_SG2M', 'S_G2_M', 'G1_S_G2M', 'G2_M', 'G1SG2_M'};
-    PARAMETERS.classificationTask = { 'G1_S_G2_M', 'Interphase_Mitotic', 'G1_SG2M' };
+    PARAMETERS.classificationTask = { 'G1_S_G2_M', 'G1S_G2_M', 'Interphase_Mitotic', 'G1_SG2M' };
     
     % ignore invalid cells?
     PARAMETERS.flagIgnoreBadlyDetectedCells = false;

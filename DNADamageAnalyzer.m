@@ -22,7 +22,7 @@ function varargout = DNADamageAnalyzer(varargin)
 
 % Edit the above text to modify the response to help DNADamageAnalyzer
 
-% Last Modified by GUIDE v2.5 02-May-2014 16:10:55
+% Last Modified by GUIDE v2.5 14-Jul-2014 16:07:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,33 +83,35 @@ function DNADamageAnalyzer_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.flagShowNucleiSeedMask = get(handles.CheckboxNucleiSeedMask, 'Value');
     handles.flagShowFociSegMask = get(handles.CheckboxFociSegMask,'Value');
     handles.flagShowCellBBox = get(handles.CheckboxCellBBox, 'Value');
-
+    handles.flagShowDrugMask = get(handles.CheckboxDrugMask, 'Value');
+    handles.flagShowMacrophageMask = get(handles.CheckboxMacrophageMask, 'Value');
+    
     handles.imarisAppCellSeg = [];
     handles.imarisAppCellPattern = [];
     handles.imarisAppCellSegCropped = [];
+
+    handles.flagParallelize = PARAMETERS.flagParallelize;
+    handles.flagDebugMode = PARAMETERS.flagDebugMode;
+    
+    handles.drugMaskColor = [0, 1, 0];
+    handles.macrophageMaskColor = [1, 0, 0];
     
     % default parameters
-    if strcmp(PARAMETERS.mode, 'analysis')
-        f = rdir( fullfile(fileparts(mfilename('fullpath')), '**', 'regionMerging.model') );
-        if ~isempty(f)
-            handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultWithRegionMerging' );
-            handles.defaultParameters.flagPerformRegionMerging = true;
-            handles.defaultParameters.regionMergingModelFile = f(1).name;
-        else
-            handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultWithoutRegionMerging' );
-        end
+    f = rdir( fullfile(fileparts(mfilename('fullpath')), '**', 'regionMerging.model') );
+    if ~isempty(f)
+        handles.defaultParameters.segmentation = NucleiSegmentationParametersGUI( 'defaultWithRegionMerging' );
+        handles.defaultParameters.segmentation.flagPerformRegionMerging = true;
+        handles.defaultParameters.segmentation.regionMergingModelFile = f(1).name;
     else
-        handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultRegionMergingTraining' );
+        handles.defaultParameters.segmentation = NucleiSegmentationParametersGUI( 'defaultWithoutRegionMerging' );
     end
     
-    handles.defaultParameters.flagParallelize = PARAMETERS.flagParallelize;
-    handles.defaultParameters.flagDebugMode = PARAMETERS.flagDebugMode;
-    
+    handles.defaultParameters.fociDetection = FociDetectionParametersGUI('default');
     handles.parameters = handles.defaultParameters;
     
     % open matlab pool for parallel processing    
-    handles.parameters.flagPoolOpenedAlready = matlabpool( 'size' ) > 0;        
-    if handles.parameters.flagParallelize && ~handles.parameters.flagPoolOpenedAlready 
+    handles.flagPoolOpenedAlready = matlabpool( 'size' ) > 0;        
+    if handles.flagParallelize && ~handles.flagPoolOpenedAlready 
         matlabpool open;
     end
     
@@ -155,14 +157,16 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     end
 
 % --------------------------------------------------------------------
-function File_Open_Callback(hObject, eventdata, handles)
-% hObject    handle to File_Open (see GCBO)
+function File_Load_Image_Data_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Load_Image_Data (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
     % ask the use to select the oif file for the nucleus channel
-    [fileName,pathName] = uigetfile( fullfile( handles.history.lastImageFileDir, '*.oif; *.oib' ), ...
-                                     'Select the file contaning the nuclear marker channel - histone-2B' );   
+    status = bfCheckJavaPath(1);
+    [fileName,pathName] = uigetfile(bfGetFileExtensions, ...
+                                    'Select the data file', ...
+                                    handles.history.lastImageFileDir);
     
     if ~fileName 
         return;
@@ -171,82 +175,110 @@ function File_Open_Callback(hObject, eventdata, handles)
     dataFilePath = fullfile( pathName, fileName );
     handles.history.lastImageFileDir = pathName;
     
-    % load nucleus channel data
+    % load image data
     PrettyPrintStepDescription( 'Loading Image Data' );
     
-    hStatusDialog = waitbar(0, 'Loading Image Data');
-    try        
-        imageSeries = loadIntravitalDataset( dataFilePath  );    
-        
-        if (imageSeries.metadata.voxelSpacing(1)/ imageSeries.metadata.voxelSpacing(3)) >= 1
-            imageSeries.metadata.voxelSpacing = [0.5, 0.5, 2]; % incorrect spacing in metadata - use something meaningful
-        end      
-        
-    catch err
-        fprintf( 'ERROR: could not load image data data from file %s', dataFilePath );
-        errordlg( 'Error loading image data from file' );
-        closeStatusDialog(hStatusDialog);        
-        return;
-    end
-
-    if numel(imageSeries(1).metadata.volSize) < 3 || ...
-       imageSeries(1).metadata.volSize(3) < 2
-   
-        errordlg( 'Dataset is not 3D' );
-        closeStatusDialog(hStatusDialog);        
-        return;
-        
-    end
-
-    if imageSeries(1).metadata.numChannels > 1
-
-        hDisp = imseriesshow_multichannel( imageSeries(1).imageData(1,:), ...
-                                           'spacing', imageSeries(1).metadata.voxelSpacing );  
-        
-        prompt = sprintf('data contains %d channels.\nEnter histone channel id:', imageSeries(1).metadata.numChannels );
-        
-        options.Resize = 'on';
-        options.WindowStyle = 'normal';
-        options.Interpreter = 'none';
-
-        channelId53BP1 = inputdlg( prompt, 'Histone channel selector', 1, {'1'}, options ); 
-        
-        if isempty(channelId53BP1) || isempty( str2num( channelId53BP1{1} ) )
-            close(hDisp);
-            closeStatusDialog(hStatusDialog);
+        % initialize bio image reader
+        try 
+            br = BioImageReader(dataFilePath);    
+        catch err
+            fprintf( 'ERROR: could not load image data data from file %s', dataFilePath );
+            err
+            errordlg(err.message, 'Error loading image data from file');
             return;
         end
-
-        channelId53BP1 = str2num(channelId53BP1{1});
-        
-        close( hDisp );
-        
-    else
-        channelId53BP1 = 1;
-    end
     
+        % ask user to select a series
+        if br.getSeriesCount() > 1
+            [usel, bsel] = settingsdlg('Description', 'Select series', ...
+                                       'seriesId', num2cell(1:br.getSeriesCount()));
+            if ~strcmpi(bsel, 'ok')
+                return;
+            end
+            seriesId = usel.seriesId;
+        else
+            seriesId = 1;
+        end
+        
+        % get series metadata
+        metadata = br.getMetadata(seriesId);
+        
+        % make sure that the dataset is 3D
+        if numel(metadata.imageSize) ~= 3 || metadata.imageSize(3) < 2
+            errordlg( 'Dataset is not 3D' );
+            return;
+        end
+        
+        % ask user to set the image properties
+        switch metadata.numChannels
+
+            case 1
+
+                [imageData, metadata] = uiGetBioImageData(dataFilePath, 'seriesId', seriesId);
+
+                if isempty(imageData)
+                    return;
+                end
+                
+                metadata.channelId53BP1 = 1;
+                metadata.channelIdDrug = [];
+                metadata.channelIdMacrophage = [];
+                metadata.channelNames = {'53BP1'};
+
+            case 3
+
+                [imageData, metadata] = uiGetBioImageData(dataFilePath, ...
+                                                          'seriesId', seriesId, ...  
+                                                          'channelDescriptionsAndNamesList', ...  
+                                                          {{'Drug Channel', 'channelIdDrug'}, ...
+                                                           {'53BP1 Channel', 'channelId53BP1'}, ...
+                                                           {'Macrophage Channel', 'channelIdMacrophage'}});
+                
+                if isempty(imageData)
+                    return;
+                end
+                
+                if numel( unique([metadata.channelId53BP1, metadata.channelIdDrug, metadata.channelIdMacrophage]) ) ~= 3
+                    errordlg('Drug, 53BP1, and Macrophage channels should be distinct');
+                    return;
+                end
+
+                metadata.channelNames{metadata.channelId53BP1} = '53BP1';
+                metadata.channelNames{metadata.channelIdDrug} = 'Drug';
+                metadata.channelNames{metadata.channelIdMacrophage} = 'Macrophage';
+
+            otherwise
+
+                errordlg('Invalid Dataset selected. It must contain three channels - Drug, 53BP1, Macrophages');
+                return;
+        end        
+        
     % store image data in handles structures    
     clear handles.data;
     
     handles.flagDataLoaded = true;
-    handles.data.dataFilePath = dataFilePath;
-    handles.data.metadata = imageSeries(1).metadata;
-    handles.data.imageData = imageSeries(1).imageData;
-    handles.data.channelId53BP1 = channelId53BP1;
+    handles.metadata.dataFilePath = dataFilePath;
+    handles.data.metadata = metadata;
+    handles.data.imageData = imageData;
     
-    set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', handles.data.dataFilePath ) );
+    % update controls    
+    set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', handles.metadata.dataFilePath ) );
+    set( handles.popupChannelSelector, 'String', handles.data.metadata.channelNames);
     
     % pre-compute data needed for display
     handles = ComputeDisplayData( handles );
     
-    % close progress bar
-    close( hStatusDialog );
-
-    % Update handles structure
-    guidata(hObject, handles);
-
     % Run analysis
-    RunAnalysis(hObject, handles);
+    handles = RunAnalysis(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+    % Update Foci Count Distribution Plot
+    UpdateFociCountDistributionPlot(handles);
 
 % --------------------------------------------------------------------    
 function [ handles ] = ComputeDisplayData(handles)
@@ -259,7 +291,7 @@ function [ handles ] = ComputeDisplayData(handles)
     end
     
 % --------------------------------------------------------------------    
-function RunAnalysis(hObject, handles)
+function handles = RunAnalysis(hObject, handles)
 
     % first check if data has been loaded
     if ~handles.flagDataLoaded 
@@ -267,71 +299,187 @@ function RunAnalysis(hObject, handles)
     end    
 
     % segment cells
-    PrettyPrintStepDescription( 'Running Cell Sementation Algorithm' );    
-    hStatusDialog = waitbar(0, 'Segmentating Cells');
+    PrettyPrintStepDescription( 'Running Nuclei Sementation Algorithm' );    
+    hStatusDialog = waitbar(0, 'Segmentating Nuclei');
    
     regionMergingModelFile = [];
-    if handles.parameters.flagPerformRegionMerging
-        regionMergingModelFile = handles.parameters.regionMergingModelFile;
+    if handles.parameters.segmentation.flagPerformRegionMerging
+        regionMergingModelFile = handles.parameters.segmentation.regionMergingModelFile;
     end
     
     [handles.data.imLabelCellSeg, ...
      handles.data.imCellSeedPoints, ...
-     handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{handles.data.channelId53BP1}, ...
-                                                                      handles.data.metadata.voxelSpacing, ...                                                                      
-                                                                      'flagParallelize', handles.parameters.flagParallelize, ...
-                                                                      'flagDebugMode', handles.parameters.flagDebugMode, ...
-                                                                      'cellDiameterRange', handles.parameters.cellDiameterRange, ...
+     handles.data.segAlgoParameters ] = segmentCellsInIntravitalData( handles.data.imageData{handles.data.metadata.channelId53BP1}, ...
+                                                                      handles.data.metadata.pixelSize, ...                                                                      
+                                                                      'flagParallelize', handles.flagParallelize, ...
+                                                                      'flagDebugMode', handles.flagDebugMode, ...
+                                                                      'cellDiameterRange', handles.parameters.segmentation.cellDiameterRange, ...
                                                                       'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
-                                                                      'seedPointDetectionAlgorithm', handles.parameters.seedPointDetectionAlgorithm, ...
-                                                                      'minCellVolume', handles.parameters.minCellVolume, ...
-                                                                      'flagIgnoreCellsOnXYBorder', handles.parameters.flagIgnoreXYBorderCells, ...
+                                                                      'minSignalToBackgroundRatio', 2.5, ...
+                                                                      'seedPointDetectionAlgorithm', handles.parameters.segmentation.seedPointDetectionAlgorithm, ...
+                                                                      'minCellVolume', handles.parameters.segmentation.minCellVolume, ...
+                                                                      'flagIgnoreCellsOnXYBorder', handles.parameters.segmentation.flagIgnoreXYBorderCells, ...
                                                                       'regionMergingModelFile', regionMergingModelFile);
 
     [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND(handles.data.imLabelCellSeg);
     handles.dataDisplay.imCellSeedPoints = imdilate( handles.data.imCellSeedPoints, ones(3,3,3) );
-    closeStatusDialog(hStatusDialog);
     
     % compute properties of each cell
     handles.data.cellStats = ComputeCellProperties( handles );
-    
+
     % set current cell id to first cell
     handles.dataDisplay.curCellId = 1;
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+    handles.dataDisplay.curChannelId = handles.data.metadata.channelId53BP1;
+
+    % update ui controls
+    set(handles.popupChannelSelector, 'Value', handles.dataDisplay.curChannelId);
     
     % Detect foci
-    PerformFociSegmenatation(hObject, handles);
+    waitbar(1/3, hStatusDialog, 'Detecting puncta');
+    handles = PerformFociSegmenatation(hObject, handles);
+    
+    % measure colocalization with other channels
+    waitbar(1/3, hStatusDialog, 'Computing Colocalization Measures');
+    
+    handles = PerformColocalizationAnalysis(hObject, handles);
     
     % close progress bar
     closeStatusDialog(hStatusDialog);
+
+% -----------------------------------------------------------------
+function handles = PerformFociSegmenatation(hObject, handles)
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    PrettyPrintStepDescription( 'Detecting Foci' );
+
+    modelFile = fullfile('Z:\intravital\DNADamageAnalysis\models\fociDetection', ...
+                         'train_M16_pre_3to5h_24h', 'fociDetectionFeatures.model');
+                     
+    [handles.data.fociStats, ...
+     handles.data.imFociSeedPoints, ...
+     handles.data.imLabelFociSeg, ...
+     handles.data.fociDetectionParameters ] = segmentFociInsideNuclei(handles.data.imageData{handles.data.metadata.channelId53BP1}, ...
+                                                                      handles.parameters.fociDetection.fociDiameterRange, ...
+                                                                      'spacing', handles.data.metadata.pixelSize, ...
+                                                                      'roiMask', handles.data.imLabelCellSeg, ...
+                                                                      'minSignalToBackgroundRatio', handles.parameters.fociDetection.minSignalToBackgroundRatio, ...
+                                                                      'minDogResponse', handles.parameters.fociDetection.minDoGResponse, ...
+                                                                      'minHessianEigenRatio21', handles.parameters.fociDetection.minHessianEigenRatio21, ...
+                                                                      'minHessianEigenRatio31', handles.parameters.fociDetection.minHessianEigenRatio31, ...
+                                                                      'minDistanceToROIBoundary', handles.parameters.fociDetection.minDistanceToROIBoundary, ...
+                                                                      'fociDetectionModelFile', handles.parameters.fociDetection.fociDetectionModelFile);
+                                                                    
+   [handles.dataDisplay.imFociSegRGBMask, handles.data.FociSegColorMap] = label2rgbND( handles.data.imLabelFociSeg );
+    handles.dataDisplay.imFociSeedPoints = imdilate(handles.data.imFociSeedPoints, ones(3,3,3));
+    
+    for cid = 1:numel(handles.data.cellStats)
+        
+        curCellPixInd = find(handles.data.imLabelCellSeg == cid);
+        curCellFoci = unique(handles.data.imFociSeedPoints(curCellPixInd));
+        curCellFoci = curCellFoci(curCellFoci > 0);
+        handles.data.cellStats(cid).foci = curCellFoci;
+        handles.data.cellStats(cid).fociCount = numel(curCellFoci);
+        
+    end
+
+    % update foci selector list
+    set(handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
+    set(handles.poplistFociCountSelector, 'value', 1);
+    
+    % Update handles structure
+    guidata(hObject, handles);
+   
+% -----------------------------------------------------------------
+function handles = PerformColocalizationAnalysis(hObject, handles)
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    if handles.data.metadata.numChannels ~= 3
+        return;
+    end
+    
+    PrettyPrintStepDescription( 'Computing Colocalization Measures' );
+
+    maxObjectRadius = 30;
+    minObjectRadius = 2.0;
+    sbrCutoff = 2.5;
+    kernelDimensions = 2;
+    
+    colocTime = tic;
+    
+    % segment drug channel
+    fprintf('\n>> Segmenting drug channel ... \n');
+    
+    drugSegTime = tic;
+    
+    imDrug = handles.data.imageData{handles.data.metadata.channelIdDrug};
+    handles.data.imDrugSeg = segmentDrugCisplatin(imDrug);
+    handles.dataDisplay.imDrugSegRGB = convertBinaryMaskToRGBMask(handles.data.imDrugSeg, handles.drugMaskColor);
+    
+    fprintf('\ntook %f seconds\n', toc(drugSegTime));
+    
+    % segment macrophage channel
+    fprintf('\n>> Segmenting macrophage channel ... \n');
+    
+    macrophageSegTime = tic;
+
+    imMacrophage = handles.data.imageData{handles.data.metadata.channelIdMacrophage};
+    handles.data.imMacrophageSeg = segmentMacrophages(imMacrophage);
+    handles.dataDisplay.imMacrophageSegRGB = convertBinaryMaskToRGBMask(handles.data.imMacrophageSeg, handles.macrophageMaskColor);
+    
+%     handles.data.imMacrophageSeg = segmentCellsInIntravitalData(handles.data.imageData{handles.data.metadata.channelIdMacrophage}, ...
+%                                                                 handles.data.metadata.pixelSize, ...
+%                                                                 'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
+%                                                                 'seedPointDetectionAlgorithm', 'AdaptiveMultiscaleLoG', ...
+%                                                                 'cellDiameterRange', [4, 20] );
+%                                                                 
+%     handles.dataDisplay.imMacrophageSegRGB = label2rgbND(handles.data.imMacrophageSeg);
+    
+    %imseriesmaskshow(handles.data.imageData{handles.data.metadata.channelIdMacrophage}, handles.data.imMacrophageSeg);
+    
+    fprintf('\ntook %f seconds\n', toc(macrophageSegTime));
+    
+    % compute colocalization measures 
+    fprintf('\n>> Computing colocalization measures ... \n');
+    
+    [cellColocStats] = ComputeDNADamageColocalizationMeasures(handles.data.imageData{handles.data.metadata.channelIdDrug}, ...
+                                                              handles.data.imageData{handles.data.metadata.channelId53BP1}, ...   
+                                                              handles.data.imageData{handles.data.metadata.channelIdMacrophage}, ...
+                                                              handles.data.metadata.pixelSize, ...
+                                                              handles.data.imLabelCellSeg, handles.data.cellStats, ...
+                                                              handles.data.imDrugSeg, handles.data.imMacrophageSeg);
+                                                               
+    % Update handles structure
+    guidata(hObject, handles);
+
+    fprintf('\ncolocalization analysis took a total of %f seconds\n', toc(colocTime));
     
 % --------------------------------------------------------------------
 function [cellStats] = ComputeCellProperties( handles )
 
-    hStatusDialog = waitbar(0, 'Computing properties of segmented cells');
-    
     cellStats = regionprops( handles.data.imLabelCellSeg, ...
                              'Centroid', 'BoundingBox', 'Area', 'PixelIdxList' );
     
     for i = 1:numel(cellStats)
 
         % intensity descriptors
-        cellPixelIntensities = handles.data.imageData{handles.data.channelId53BP1}( cellStats(i).PixelIdxList );
+        cellPixelIntensities = handles.data.imageData{handles.data.metadata.channelId53BP1}( cellStats(i).PixelIdxList );
         cellStats(i).meanIntensity = mean( cellPixelIntensities );
         cellStats(i).stdIntensity = std( double(cellPixelIntensities) );
         cellStats(i).minIntensity = min( cellPixelIntensities );
         cellStats(i).maxIntensity = max( cellPixelIntensities );
         
         % volume
-        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.voxelSpacing );
+        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.pixelSize );
         
-        % update progress
-        hStatusDialog = waitbar(i/numel(cellStats), hStatusDialog, 'Computing properties of segmented cells');    
-
     end
     
-    closeStatusDialog(hStatusDialog);    
-
 % --------------------------------------------------------------------
 function File_Run_Analysis_Callback(hObject, eventdata, handles)
 % hObject    handle to File_Run_Analysis (see GCBO)
@@ -343,7 +491,16 @@ function File_Run_Analysis_Callback(hObject, eventdata, handles)
         return;
     end    
 
-    RunAnalysis(hObject, handles);
+    handles = RunAnalysis(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+    % Update Foci Count Distribution Plot
+    UpdateFociCountDistributionPlot(handles);
 
 % --------------------------------------------------------------------
 function UpdateCellDisplay(handles)
@@ -356,63 +513,90 @@ function UpdateCellDisplay(handles)
     curCellStats = handles.data.cellStats( handles.dataDisplay.curCellId );        
     curCellSliceId = handles.dataDisplay.curCellSliceId;
     curCellCentroid = round( curCellStats.Centroid );    
+    curChannelId = handles.dataDisplay.curChannelId;
     
     curCellBoundingBox = curCellStats.BoundingBox;
     curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
     
-    nucleiMaskAlpha = 0.2;
-    fociMaskAlpha = 0.6;
-    seedMaskAlpha = 0.6;
-    
     % display global cross section images  
     if handles.flagUseLOG               
-        imGlobalXY = handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( :, :, curCellSliceId(3) );       
-        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.dataDisplay.imageDataLOG{curChannelId}( :, :, curCellSliceId(3) );       
+        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{curChannelId}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{curChannelId}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imLogDisplayRange;
     else        
-        imGlobalXY = handles.data.imageData{handles.data.channelId53BP1}( :, :, curCellSliceId(3) );
-        imGlobalXZ = squeeze( handles.data.imageData{handles.data.channelId53BP1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.data.imageData{handles.data.channelId53BP1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.data.imageData{curChannelId}( :, :, curCellSliceId(3) );
+        imGlobalXZ = squeeze( handles.data.imageData{curChannelId}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.data.imageData{curChannelId}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imDisplayRange;
     end
     imGlobalXY = mat2gray(imGlobalXY, displayrange(1,:) );
     imGlobalXZ = mat2gray(imGlobalXZ', displayrange(1,:) );
     imGlobalYZ = mat2gray(imGlobalYZ, displayrange(1,:) );
 
-    if handles.flagShowNucleiSegMask || handles.flagShowFociSegMask
+    % display mask overlays on global cross section images
+    imGlobalXYMasks = {};
+    imGlobalXZMasks = {};
+    imGlobalYZMasks = {};
+    maskAlphas = [];
 
-        imGlobalXYMasks = {};
-        imGlobalXZMasks = {};
-        imGlobalYZMasks = {};
+    nucleiMaskAlpha = 0.2;
+    fociMaskAlpha = 0.6;
+    seedMaskAlpha = 0.6;
     
-        maskAlphas = [];
+    if handles.flagShowNucleiSegMask
+
+        imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask( :, :, curCellSliceId(3), : ) );
+
+        imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask(curCellSliceId(1), :, :, :) );
+        imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+
+        imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask(:, curCellSliceId(2), :, :) );
+
+        maskAlphas(end+1) = nucleiMaskAlpha;
+
+    end
+
+    if handles.flagShowFociSegMask && isfield(handles.dataDisplay, 'imFociSegRGBMask')
+
+        imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask( :, :, curCellSliceId(3), : ) );
+
+        imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imFociSegRGBMask(curCellSliceId(1), :, :, :) );
+        imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+
+        imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask(:, curCellSliceId(2), :, :) );
+
+        maskAlphas(end+1) = fociMaskAlpha;
+
+    end
+    
+    if ~isempty(handles.data.metadata.channelIdDrug) && handles.flagShowDrugMask && isfield(handles.dataDisplay, 'imDrugSegRGB')
         
-        if handles.flagShowNucleiSegMask
-            
-            imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask( :, :, curCellSliceId(3), : ) );
+        imGlobalXYMasks{end+1} = squeeze(handles.dataDisplay.imDrugSegRGB(:, :, curCellSliceId(3), :));
 
-            imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imCellSegRGBMask(curCellSliceId(1), :, :, :) );
-            imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+        imGlobalXZSegMaskRGB = squeeze(handles.dataDisplay.imDrugSegRGB(curCellSliceId(1), :, :, :));
+        imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
 
-            imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imCellSegRGBMask(:, curCellSliceId(2), :, :) );
-            
-            maskAlphas(end+1) = nucleiMaskAlpha;
-            
-        end
+        imGlobalYZMasks{end+1} = squeeze(handles.dataDisplay.imDrugSegRGB(:, curCellSliceId(2), :, :));
+
+        maskAlphas(end+1) = 0.5;
         
-        if handles.flagShowFociSegMask && isfield(handles.dataDisplay, 'imFociSegRGBMask')
+    end
 
-            imGlobalXYMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask( :, :, curCellSliceId(3), : ) );
+    if ~isempty(handles.data.metadata.channelIdMacrophage) && handles.flagShowMacrophageMask && isfield(handles.dataDisplay, 'imMacrophageSegRGB')
+        
+        imGlobalXYMasks{end+1} = squeeze(handles.dataDisplay.imMacrophageSegRGB(:, :, curCellSliceId(3), :));
 
-            imGlobalXZSegMaskRGB = squeeze( handles.dataDisplay.imFociSegRGBMask(curCellSliceId(1), :, :, :) );
-            imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
+        imGlobalXZSegMaskRGB = squeeze(handles.dataDisplay.imMacrophageSegRGB(curCellSliceId(1), :, :, :));
+        imGlobalXZMasks{end+1} = permute(imGlobalXZSegMaskRGB, [2,1,3] );
 
-            imGlobalYZMasks{end+1} = squeeze( handles.dataDisplay.imFociSegRGBMask(:, curCellSliceId(2), :, :) );
-            
-            maskAlphas(end+1) = fociMaskAlpha;
-            
-        end
+        imGlobalYZMasks{end+1} = squeeze(handles.dataDisplay.imMacrophageSegRGB(:, curCellSliceId(2), :, :));
+
+        maskAlphas(end+1) = 0.5;
+        
+    end
+    
+    if ~isempty(imGlobalXYMasks)
         
         imGlobalXYDisplay = genImageRGBMaskOverlay( imGlobalXY, imGlobalXYMasks, maskAlphas );
         imGlobalXZDisplay = genImageRGBMaskOverlay( imGlobalXZ, imGlobalXZMasks, maskAlphas );
@@ -441,7 +625,7 @@ function UpdateCellDisplay(handles)
     % draw bounding box around each cell
     if handles.flagShowCellBBox
         
-        imsize = size( handles.data.imageData{handles.data.channelId53BP1} );
+        imsize = size( handles.data.imageData{handles.data.metadata.channelId53BP1} );
         hold( handles.Axes_Global_XY, 'on' );
             
             w = curCellDisplaySize([1,1]);
@@ -491,7 +675,7 @@ function UpdateCellDisplay(handles)
         
     % extract image within a bounding box around the cell
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelId53BP1});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -512,9 +696,9 @@ function UpdateCellDisplay(handles)
     subinds{3} = curCellSliceId(3);    
     
     if handles.flagUseLOG
-        imCellCropped = mat2gray( handles.dataDisplay.imageDataLOG{handles.data.channelId53BP1}(subinds{:}), handles.dataDisplay.imLogDisplayRange(1,:) );        
+        imCellCropped = mat2gray( handles.dataDisplay.imageDataLOG{curChannelId}(subinds{:}), handles.dataDisplay.imLogDisplayRange(1,:) );        
     else
-        imCellCropped = mat2gray( handles.data.imageData{handles.data.channelId53BP1}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
+        imCellCropped = mat2gray( handles.data.imageData{curChannelId}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
     end
     
     imLabelCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );    
@@ -536,7 +720,7 @@ function UpdateCellDisplay(handles)
            maskAlphas(end+1) = nucleiMaskAlpha;
         end
 
-        if handles.flagShowFociSegMask
+        if handles.flagShowFociSegMask && isfield(handles.dataDisplay, 'imFociSegRGBMask')
 
            imLabelFociSegRGBMaskCropped = squeeze( handles.dataDisplay.imFociSegRGBMask( subinds{:}, : ) );
            imLabelFociSegRGBMaskCropped( ~repmat(imCellSegCropped, [1,1,3]) ) = 0;
@@ -567,7 +751,7 @@ function UpdateCellDisplay(handles)
     subindsMIP{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
 
     imCellSegCropped = handles.data.imLabelCellSeg( subindsMIP{:} ) == handles.dataDisplay.curCellId;
-    imCurCellMIP = mat2gray( max(handles.data.imageData{handles.data.channelId53BP1}(subindsMIP{:}) .* imCellSegCropped, [], 3 ) );
+    imCurCellMIP = mat2gray( max(handles.data.imageData{curChannelId}(subindsMIP{:}) .* imCellSegCropped, [], 3 ) );
     imHistoneMIPDisplay = repmat( imCurCellMIP, [1,1,3] );
     
     cla( handles.Axes_Histone_MIP, 'reset' );
@@ -656,16 +840,15 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
     
         % basic data
         if iscell(analysisData.dataFilePath)
-            handles.data.dataFilePath = analysisData.dataFilePath{1};
+            handles.metadata.dataFilePath = analysisData.dataFilePath{1};
         else
-            handles.data.dataFilePath = analysisData.dataFilePath;
+            handles.metadata.dataFilePath = analysisData.dataFilePath;
         end
         handles.data.metadata = analysisData.metadata;
         handles.data.imageData = analysisData.imageData;
         for i = 1:numel(handles.data.imageData)
             handles.data.imageData{i} = double(handles.data.imageData{i});
         end
-        handles.data.channelId53BP1 = analysisData.channelId53BP1;
         
         % basic display data
         handles = ComputeDisplayData(handles);
@@ -712,20 +895,40 @@ function File_Load_Analysis_Callback(hObject, eventdata, handles)
             handles.data.fociDetectionParameters = analysisData.fociDetectionParameters;
         end
         
+        % drug 
+        if handles.data.metadata.numChannels == 3
+           
+            handles.data.imDrugSeg = analysisData.imDrugSeg;
+            handles.dataDisplay.imDrugSegRGB = convertBinaryMaskToRGBMask(handles.data.imDrugSeg, handles.drugMaskColor);
+            
+            handles.data.imMacrophageSeg = analysisData.imMacrophageSeg;
+            handles.dataDisplay.imMacrophageSegRGB = convertBinaryMaskToRGBMask(handles.data.imMacrophageSeg, handles.macrophageMaskColor);
+           
+            handles.data.cellColocStats = analysisData.cellColocStats;
+            
+        end
+        
     % data ready for display
     handles.flagDataLoaded = true;
     
     % set current cell id to first cell
     handles.dataDisplay.curCellId = 1;
     handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
-
-    % change window name
-    set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', analysisFile ) );
-
-    % update foci selector list
-    set( handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
-    set(handles.poplistFociCountSelector, 'value', 1);
+    handles.dataDisplay.curChannelId = handles.data.metadata.channelId53BP1;
     
+    % update ui controls
+    
+        % change window name
+        set( handles.DNADamageAnalyzer, 'Name', sprintf( 'DNA Damage Analysis - %s', analysisFile ) );
+
+        % update foci selector list
+        set( handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
+        set(handles.poplistFociCountSelector, 'value', 1);
+
+        % update channel selector popup
+        set( handles.popupChannelSelector, 'String', handles.data.metadata.channelNames);            
+        set(handles.popupChannelSelector, 'Value', handles.dataDisplay.curChannelId);        
+        
     % Update handles structure
     guidata(hObject, handles);
     
@@ -766,7 +969,7 @@ function File_SaveAnalysis_Callback(~, eventdata, handles)
     handles.history.lastAnalysisFileDir = outputDir;
     
     % save data
-    [pathstr, name, ext] = fileparts( handles.data.dataFilePath );
+    [pathstr, name, ext] = fileparts( handles.metadata.dataFilePath );
     outputDir = fullfile(outputDir, name);
 
     if ~isdir( outputDir )
@@ -1013,14 +1216,6 @@ function File_Set_Parameters_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    handles.parameters = NucleiSegmentationParametersGUI( handles.parameters );
-
-    % Update handles structure
-    guidata(hObject, handles);
-    
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
 % --- Executes during object deletion, before destroying properties.
 function DNADamageAnalyzer_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to DNADamageAnalyzer (see GCBO)
@@ -1036,7 +1231,7 @@ function DNADamageAnalyzer_DeleteFcn(hObject, eventdata, handles)
     end
 
     % close matlab pool
-    if ~handles.parameters.flagPoolOpenedAlready && matlabpool( 'size' ) > 0
+    if ~handles.flagPoolOpenedAlready && matlabpool( 'size' ) > 0
         matlabpool close;
     end
 
@@ -1067,7 +1262,7 @@ function FnSliceScroll_Callback(hSrc, eventdata)
         return;
     end
     
-    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelId53BP1});
 
     if IsMouseInsideAxes(handles.Axes_Global_XZ)
         viewId = 1; % y-slice
@@ -1121,8 +1316,8 @@ end
 
 
 % --------------------------------------------------------------------
-function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
-% hObject    handle to View_Cell_Segmentation_In_Imaris (see GCBO)
+function View_Cell_Analysis_In_Imaris_Callback(hObject, eventdata, handles)
+% hObject    handle to View_Cell_Analysis_In_Imaris (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1153,7 +1348,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     
     % create crop indices
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelId53BP1});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -1180,7 +1375,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end
     
     imvis = ImarisDataVisualizer(cat(4, imCellCropped{:}), ...
-                                 'spacing', handles.data.metadata.voxelSpacing);
+                                 'spacing', handles.data.metadata.pixelSize);
                              
     handles.imarisAppCellSegCropped = imvis;
     
@@ -1229,8 +1424,8 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     guidata(hObject, handles);
     
 % --------------------------------------------------------------------
-function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
-% hObject    handle to View_Full_Segmentation_In_Imaris (see GCBO)
+function View_Full_Analysis_In_Imaris_Callback(hObject, eventdata, handles)
+% hObject    handle to View_Full_Analysis_In_Imaris (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1255,7 +1450,7 @@ function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end
 
     % generate visualization
-    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.voxelSpacing );
+    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.pixelSize );
     handles.imarisAppCellSeg = imvis;
     
     hSegmentation = imvis.AddDataContainer();
@@ -1297,6 +1492,26 @@ function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
                        
         end    
         
+        % drug mask
+        if isfield(handles.data, 'imDrugSeg')
+
+            drugGeometry = ImarisDataVisualizer.generateSurfaceFromMask(handles.data.imDrugSeg, 'surfaceQuality', surfaceQuality);
+            imvis.AddSurfaces(drugGeometry, ...
+                              'name', 'Drug', ...
+                              'color', [0, 1, 0]);
+            
+        end
+        
+        % macrophage mask
+        if isfield(handles.data, 'imMacrophageSeg')
+            
+            macrophageGeometry = ImarisDataVisualizer.generateSurfaceFromMask(handles.data.imMacrophageSeg, 'surfaceQuality', surfaceQuality);
+            imvis.AddSurfaces(macrophageGeometry, ...
+                              'name', 'Macrophages', ...
+                              'color', [1, 0, 0]);
+            
+        end
+        
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1327,7 +1542,7 @@ function DNADamageAnalyzer_WindowButtonDownFcn(hObject, eventdata, handles)
         return;
     end
     
-    imsize = size(handles.data.imageData{handles.data.channelId53BP1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelId53BP1});
     newCellSliceId = handles.dataDisplay.curCellSliceId;
     
     if IsMouseInsideAxes(handles.Axes_Global_XZ)
@@ -1380,53 +1595,7 @@ function DNADamageAnalyzer_WindowButtonDownFcn(hObject, eventdata, handles)
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);    
     
-% -----------------------------------------------------------------
-function PerformFociSegmenatation(hObject, handles)
 
-    if ~handles.flagDataLoaded
-        return;
-    end
-
-    PrettyPrintStepDescription( 'Detecting Foci' );
-    
-    [handles.data.fociStats, ...
-     handles.data.imFociSeedPoints, ...
-     handles.data.imLabelFociSeg, ...
-     handles.data.fociDetectionParameters ] = segmentFociInsideNuclei( handles.data.imageData{handles.data.channelId53BP1}, ...
-                                                                       min(handles.data.metadata.voxelSpacing) * [3, 7], ...                      
-                                                                       'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                       'roiMask', handles.data.imLabelCellSeg, ...
-                                                                       'minDistanceToROIBoundary', 1.25);
-    
-    [handles.dataDisplay.imFociSegRGBMask, handles.data.FociSegColorMap] = label2rgbND( handles.data.imLabelFociSeg );
-    handles.dataDisplay.imFociSeedPoints = imdilate(handles.data.imFociSeedPoints, ones(3,3,3));
-    
-    for cid = 1:numel(handles.data.cellStats)
-        
-        curCellPixInd = find(handles.data.imLabelCellSeg == cid);
-        curCellFoci = unique(handles.data.imFociSeedPoints(curCellPixInd));
-        curCellFoci = curCellFoci(curCellFoci > 0);
-        handles.data.cellStats(cid).foci = curCellFoci;
-        handles.data.cellStats(cid).fociCount = numel(curCellFoci);
-        
-    end
-
-    % update foci selector list
-    set( handles.poplistFociCountSelector, 'String', num2cell(unique([handles.data.cellStats.fociCount])) );
-    set(handles.poplistFociCountSelector, 'value', 1);
-    
-    % Update handles structure
-    guidata(hObject, handles);
-   
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
-    % Update Cell Descriptors
-    UpdateCellDescriptors(handles);
-    
-    % Update Foci Count Distribution Plot
-    UpdateFociCountDistributionPlot(handles);
-    
 % --- Executes on button press in CheckboxFociSegMask.
 function CheckboxFociSegMask_Callback(hObject, eventdata, handles)
 % hObject    handle to CheckboxFociSegMask (see GCBO)
@@ -1454,9 +1623,17 @@ function File_Detect_Foci_Callback(hObject, eventdata, handles)
         return;
     end
 
-    PerformFociSegmenatation(hObject, handles);
+    handles = PerformFociSegmenatation(hObject, handles);
 
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
 
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+    % Update Foci Count Distribution Plot
+    UpdateFociCountDistributionPlot(handles);
+    
 % --------------------------------------------------------------------
 function View_Puncta_Distribution_Callback(hObject, eventdata, handles)
 % hObject    handle to View_Puncta_Distribution (see GCBO)
@@ -1474,7 +1651,7 @@ function View_Puncta_Distribution_Callback(hObject, eventdata, handles)
         'EdgeColor', 'k', ...
         'FaceColor', 0.7 * ones(1,3));
 
-    [~, fname, ~] = fileparts(handles.data.dataFilePath);
+    [~, fname, ~] = fileparts(handles.metadata.dataFilePath);
     fname = strrep(fname,'_','\_');
     text(0.5, 0.95, {fname, sprintf('#cells = %d, #puncta= %d', numCells, sum(punctaCounts))}, ...
          'units', 'normalized', 'horizontalalignment', 'center');
@@ -1660,3 +1837,112 @@ function CheckboxNucleiSeedMask_Callback(hObject, eventdata, handles)
     
     % Update Cell Visualization
     UpdateCellDisplay(handles);
+
+
+% --------------------------------------------------------------------
+function File_SetParameters_NucleiSegmentation_Callback(hObject, eventdata, handles)
+% hObject    handle to File_SetParameters_NucleiSegmentation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    handles.parameters.segmentation = NucleiSegmentationParametersGUI( handles.parameters.segmentation );
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+% --------------------------------------------------------------------
+function File_SetParameters_FociDetection_Callback(hObject, eventdata, handles)
+% hObject    handle to File_SetParameters_FociDetection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    handles.parameters.fociDetection = FociDetectionParametersGUI( handles.parameters.fociDetection );
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+% --- Executes on selection change in popupChannelSelector.
+function popupChannelSelector_Callback(hObject, eventdata, handles)
+% hObject    handle to popupChannelSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupChannelSelector contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupChannelSelector
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    handles.dataDisplay.curChannelId = get(handles.popupChannelSelector,'Value');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+% --- Executes during object creation, after setting all properties.
+function popupChannelSelector_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupChannelSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in CheckboxMacrophageMask.
+function CheckboxMacrophageMask_Callback(hObject, eventdata, handles)
+% hObject    handle to CheckboxMacrophageMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of CheckboxMacrophageMask
+
+    % change mask use mode
+    handles.flagShowMacrophageMask = get(hObject,'Value');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+% --- Executes on button press in CheckboxDrugMask.
+function CheckboxDrugMask_Callback(hObject, eventdata, handles)
+% hObject    handle to CheckboxDrugMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of CheckboxDrugMask
+
+    % change mask use mode
+    handles.flagShowDrugMask = get(hObject,'Value');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+% --------------------------------------------------------------------
+function File_PerformColocalizationAnalysis_Callback(hObject, eventdata, handles)
+% hObject    handle to File_PerformColocalizationAnalysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    handles = PerformColocalizationAnalysis(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+    
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);

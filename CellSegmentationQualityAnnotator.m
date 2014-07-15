@@ -55,7 +55,7 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     p = inputParser;
     p.addParamValue('mode', 'analysis', @(x) (ischar(x) && ismember(x, {'training', 'analysis'})) );
     p.addParamValue('flagParallelize', false, @isscalar);
-    p.addParamValue('flagDebugMode', false, @isscalar);
+    p.addParamValue('flagDebugMode', true, @isscalar);
     p.parse( varargin{:} );    
     PARAMETERS = p.Results;
 
@@ -90,21 +90,21 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     handles.imarisAppCellSegCropped = [];
     
     % default parameters
+    handles.defaultParameters.flagParallelize = PARAMETERS.flagParallelize;
+    handles.defaultParameters.flagDebugMode = PARAMETERS.flagDebugMode;
+    
     if strcmp(PARAMETERS.mode, 'analysis')
         f = rdir( fullfile(fileparts(mfilename('fullpath')), '**', 'regionMerging.model') );
         if ~isempty(f)
-            handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultWithRegionMerging' );
-            handles.defaultParameters.flagPerformRegionMerging = true;
-            handles.defaultParameters.regionMergingModelFile = f(1).name;
+            handles.defaultParameters.nucleiSegmentation = NucleiSegmentationParametersGUI( 'defaultWithRegionMerging' );
+            handles.defaultParameters.nucleiSegmentation.flagPerformRegionMerging = true;
+            handles.defaultParameters.nucleiSegmentation.regionMergingModelFile = f(1).name;
         else
-            handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultWithoutRegionMerging' );
+            handles.defaultParameters.nucleiSegmentation = NucleiSegmentationParametersGUI( 'defaultWithoutRegionMerging' );
         end
     else
-        handles.defaultParameters = NucleiSegmentationParametersGUI( 'defaultRegionMergingTraining' );
+        handles.defaultParameters.nucleiSegmentation = NucleiSegmentationParametersGUI( 'defaultRegionMergingTraining' );
     end
-    
-    handles.defaultParameters.flagParallelize = PARAMETERS.flagParallelize;
-    handles.defaultParameters.flagDebugMode = PARAMETERS.flagDebugMode;
     
     handles.parameters = handles.defaultParameters;
     
@@ -217,14 +217,16 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     end
 
 % --------------------------------------------------------------------
-function File_Open_Callback(hObject, eventdata, handles)
+ function File_Open_Callback(hObject, eventdata, handles)
 % hObject    handle to File_Open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    % ask the use to select the oif file for the nucleus channel
-    [fileName,pathName] = uigetfile( fullfile( handles.history.lastAnalyzedNucleusDir, '*.oif; *.oib' ), ...
-                                     'Select the file contaning the nuclear marker channel - histone-2B' );   
+    % ask the user to select the oif file for the nucleus channel
+    status = bfCheckJavaPath(1);
+    [fileName,pathName] = uigetfile(bfGetFileExtensions, ...
+                                    'Select the file contaning the nuclear marker channel - histone-2B', ...
+                                    handles.history.lastAnalyzedNucleusDir);
     
     if ~fileName 
         return;
@@ -232,67 +234,25 @@ function File_Open_Callback(hObject, eventdata, handles)
     
     dataFilePath = fullfile( pathName, fileName );
     handles.history.lastAnalyzedNucleusDir = pathName;
-    
-    % load nucleus channel data
+
+    % load image data
     PrettyPrintStepDescription( 'Loading Image Data' );
+
+    [imageData, metadata] = uiGetBioImageData(dataFilePath, {{'Nuclear Marker Channel', 'channelIdNuclei'}});
     
-    hStatusDialog = waitbar(0, 'Loading Image Data');
-    try        
-        imageSeries = loadIntravitalDataset( dataFilePath  );    
-        
-        if (imageSeries.metadata.voxelSpacing(1)/ imageSeries.metadata.voxelSpacing(3)) >= 1
-            imageSeries.metadata.voxelSpacing = [0.5, 0.5, 2]; % incorrect spacing in metadata - use something meaningful
-        end      
-        
-    catch err
-        fprintf( 'ERROR: could not load image data data from file %s', dataFilePath );
-        errordlg( 'Error loading image data from file' );
-        closeStatusDialog(hStatusDialog);        
+    if isempty(imageData)
         return;
     end
-
-    if numel(imageSeries(1).metadata.volSize) < 3 || ...
-       imageSeries(1).metadata.volSize(3) < 2
-   
-        errordlg( 'Dataset is not 3D' );
-        closeStatusDialog(hStatusDialog);        
-        return;
-        
-    end
-
-    if imageSeries(1).metadata.numChannels > 1
-
-        hDisp = imseriesshow_multichannel( imageSeries(1).imageData(1,:), ...
-                                           'spacing', imageSeries(1).metadata.voxelSpacing );  
-        
-        prompt = sprintf('data contains %d channels.\nEnter histone channel id:', imageSeries(1).metadata.numChannels );
-        
-        options.Resize = 'on';
-        options.WindowStyle = 'normal';
-        options.Interpreter = 'none';
-
-        histoneChannelId = inputdlg( prompt, 'Histone channel selector', 1, {'1'}, options ); 
-        
-        if isempty(histoneChannelId) || isempty( str2num( histoneChannelId{1} ) )
-            close(hDisp);
-            closeStatusDialog(hStatusDialog);
-            return;
-        else
-            imageSeries(1).imageData = imageSeries(1).imageData(1, str2num(histoneChannelId{1}) );
-            imageSeries(1).metadata.numChannels = 1;
-        end
-
-        close( hDisp );
-        
-    end
     
+    metadata
+        
     % store image data in handles structures    
     clear handles.data;
     
     handles.flagDataLoaded = true;
     handles.data.dataFilePath = dataFilePath;
-    handles.data.metadata = imageSeries(1).metadata;
-    handles.data.imageData = imageSeries(1).imageData;
+    handles.data.metadata = metadata;
+    handles.data.imageData = imageData;
     
     handles.data.metadata.channelColors = ones(1,3);
     
@@ -333,20 +293,21 @@ function RunAnalysis(hObject, handles)
     hStatusDialog = waitbar(0, 'Segmentating Cells');
    
     regionMergingModelFile = [];
-    if handles.parameters.flagPerformRegionMerging
-        regionMergingModelFile = handles.parameters.regionMergingModelFile;
+    if handles.parameters.nucleiSegmentation.flagPerformRegionMerging
+        regionMergingModelFile = handles.parameters.nucleiSegmentation.regionMergingModelFile;
     end
     
     [handles.data.imLabelCellSeg, ...
      handles.data.imCellSeedPoints] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
-                                                                    handles.data.metadata.voxelSpacing, ...                                                                      
+                                                                    handles.data.metadata.pixelSize, ...                                                                      
                                                                     'flagParallelize', handles.parameters.flagParallelize, ...
                                                                     'flagDebugMode', handles.parameters.flagDebugMode, ...
-                                                                    'cellDiameterRange', handles.parameters.cellDiameterRange, ...
-                                                                    'thresholdingAlgorithm', 'MinErrorPoissonSliceBySliceLocal', ...
-                                                                    'seedPointDetectionAlgorithm', handles.parameters.seedPointDetectionAlgorithm, ...
-                                                                    'minCellVolume', handles.parameters.minCellVolume, ...
-                                                                    'flagIgnoreCellsOnXYBorder', handles.parameters.flagIgnoreXYBorderCells, ...
+                                                                    'cellDiameterRange', handles.parameters.nucleiSegmentation.cellDiameterRange, ...
+                                                                    'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
+                                                                    'minSignalToBackgroundRatio', 1.5, ...
+                                                                    'seedPointDetectionAlgorithm', handles.parameters.nucleiSegmentation.seedPointDetectionAlgorithm, ...
+                                                                    'minCellVolume', handles.parameters.nucleiSegmentation.minCellVolume, ...
+                                                                    'flagIgnoreCellsOnXYBorder', handles.parameters.nucleiSegmentation.flagIgnoreXYBorderCells, ...
                                                                     'regionMergingModelFile', regionMergingModelFile);
 
     [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND(handles.data.imLabelCellSeg);
@@ -404,7 +365,7 @@ function [cellStats] = ComputeCellProperties( handles )
         cellStats(i).maxIntensity = max( cellPixelIntensities );
         
         % volume
-        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.voxelSpacing );
+        cellStats(i).AreaPhysp = cellStats(i).Area * prod( handles.data.metadata.pixelSize );
         
         % update progress
         hStatusDialog = waitbar(i/numel(cellStats), hStatusDialog, 'Computing properties of segmented cells');    
@@ -846,8 +807,8 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
         fprintf( summary_fid, '\n>> Dataset Description:\n' );
         
         fprintf( summary_fid, '\n\tHistone data file -- %s\n', handles.data.dataFilePath );
-        fprintf( summary_fid, '\n\tImage Size - [ %s ]\n', sprintf( ' %d ', handles.data.metadata.volSize) );
-        fprintf( summary_fid, '\n\tImage Spacing - [ %s ]\n', sprintf( ' %.2f ', handles.data.metadata.voxelSpacing) );
+        fprintf( summary_fid, '\n\tImage Size - [ %s ]\n', sprintf( ' %d ', handles.data.metadata.imageSize) );
+        fprintf( summary_fid, '\n\tImage Spacing - [ %s ]\n', sprintf( ' %.2f ', handles.data.metadata.pixelSize) );
         
         % print information about the annotation
         fprintf( summary_fid, '\n>> Annotation Summary:\n' );
@@ -882,18 +843,6 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
                 fprintf( summary_fid, '\n\t\t\tMin-Max: [%.2f, %.2f]\n', min( [curClassCellStats.AreaPhysp] ), max( [curClassCellStats.AreaPhysp] ) );
                 fprintf( summary_fid, '\n\t\t\tMean-std: [%.2f, %.2f]\n', mean( [curClassCellStats.AreaPhysp] ), std( [curClassCellStats.AreaPhysp] ) );
 
-                fprintf( summary_fid, '\n\t\tFitted Ellipsoid Radii (um):\n' );
-                ellipsoidRadius = cat( 1, curClassCellStats.ellipsoidRadiusPhysp );            
-                fprintf( summary_fid, '\n\t\t\tMin Radii - [ %s ]\n', sprintf( ' %.2f ', min( ellipsoidRadius, [], 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tMax Radii - [ %s ]\n', sprintf( ' %.2f ', max( ellipsoidRadius, [], 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tMean Radii - [ %s ]\n', sprintf( ' %.2f ', mean( ellipsoidRadius, 1 ) ) );
-                fprintf( summary_fid, '\n\t\t\tStddev Radii - [ %s ]\n', sprintf( ' %.2f ', std( ellipsoidRadius, 1 ) ) );
-
-                fprintf( summary_fid, '\n\t\tFitted Ellipsoid Mean Radius (um):\n' );            
-                meanEllipsoidRadius = mean( ellipsoidRadius, 2 );
-                fprintf( summary_fid, '\n\t\t\tMin-Max: [%.2f, %.2f]\n', min( meanEllipsoidRadius ), max( meanEllipsoidRadius ) );
-                fprintf( summary_fid, '\n\t\t\tMean-std: [%.2f, %.2f]\n', mean( meanEllipsoidRadius ), std( meanEllipsoidRadius ) );
-                        
             end
             
         end             
@@ -904,6 +853,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
     strQuestion = 'Do you want save images of the annotated cell patterns?';
     button = questdlg( strQuestion, 'Save annotated cell images', 'Yes', 'No', 'Yes' );
     flagSaveImages = strcmp( button, 'Yes' ); 
+    szOutputImage = [100, 100];
     
     h = waitbar(0, 'Saving Images of Annotated Cell Patterns ... Please Wait' );
     if flagSaveImages
@@ -953,7 +903,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
             
             imCurCellMIP = imresize( mat2gray(max(imCurCellCropped .* imCurCellSegCropped, [], 3)), szOutputImage);
 
-            imwrite( imCurCellMIP, fullfile(curCellOutputDir, curCellPatternType, sprintf('CellMIP_%.3d.png', cellId)), 'png' );   
+            imwrite( imCurCellMIP, fullfile(curCellOutputDir, sprintf('CellMIP_%.3d.png', cellId)), 'png' );   
 
             % Mid slices
             imCurCellSegMidSliceBndCropped = imresize( bwperim( imCurCellSegCropped(:, :, round(curCellCentroid(3))) ), szOutputImage, 'nearest'); 
@@ -1240,7 +1190,7 @@ function File_Set_Parameters_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    handles.parameters = NucleiSegmentationParametersGUI( handles.parameters );
+    handles.parameters.nucleiSegmentation = NucleiSegmentationParametersGUI( handles.parameters.nucleiSegmentation );
 
     % Update handles structure
     guidata(hObject, handles);
@@ -1377,7 +1327,8 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         delete( handles.imarisAppCellSegCropped );
     end       
     
-    curCellStats = handles.data.cellStats( handles.dataDisplay.curCellId );        
+    curCellId = handles.dataDisplay.curCellId;
+    curCellStats = handles.data.cellStats( curCellId );        
     curCellCentroid = round( curCellStats.Centroid );    
     
     curCellBoundingBox = curCellStats.BoundingBox;
@@ -1405,52 +1356,39 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end    
     subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
     
-    % crop cell bounding box from whole volume
+    % generate visualization
     imCellCropped = cell( size(handles.data.imageData) );
     for i = 1:numel(handles.data.imageData)
         imCellCropped{i} = handles.data.imageData{i}(subinds{:});
     end
 
-    % crop cell segmentation mask
-    imCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );
-    imCellSegCropped = padarray( imCellSegCropped, ones(1,3) );
-    imCellSegCropped = double( imCellSegCropped == handles.dataDisplay.curCellId );    
+    imvis = ImarisDataVisualizer(cat(4, imCellCropped{:}), ...
+                                 'spacing', handles.data.metadata.voxelSpacing);
     
-    % create isosurface
-    imCellSegSmoothed = smooth3( imCellSegCropped );
-    curCellSurfaceGeometry = isosurface( imCellSegSmoothed, 0.5 );
-    curCellSurfaceGeometry.normals = isonormals( imCellSegSmoothed, curCellSurfaceGeometry.vertices );
-    cellIsoSurface.surfaces = curCellSurfaceGeometry;
-    cellIsoSurface.name = curCellStats.cellPatternType;
-    cellIsoSurface.color = MapCellPatternToColor( curCellStats.cellPatternType );
-    
-    % get seed points
-    imCellSeedCropped = padarray( handles.dataDisplay.imCellSeedPoints( subinds{:} ), ones(1,3), 0 );
-    imCellSeedCropped( ~imCellSegCropped ) = 0;
-    stats = regionprops( bwlabeln( imCellSeedCropped ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
-    
-    % display in imaris
-    curCellDisplayRange = handles.dataDisplay.imDisplayRange;
-    curCellDisplayColor = handles.data.metadata.channelColors;
-    if numel(stats) > 0
+    handles.imarisAppCellSegCropped = imvis;
+    hSegmentation = imvis.AddDataContainer();
+
+        % compute isosurface geometry for cells in each pattern
+        imCurCellMask = handles.data.imLabelCellSeg(subinds{:}) == handles.dataDisplay.curCellId;
+        surfaceQuality = 1.0;
         
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'spotLocations', cellSeedPointLocations, ...
-                                                                             'spotRadius', 3, ...                                                                      
-                                                                             'surfaceObjects', cellIsoSurface );
-    else
-        
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'surfaceObjects', cellIsoSurface );
-    end
+        curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+
+        imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                          'name', sprintf( 'CellSeg_%d', handles.dataDisplay.curCellId), ...
+                          'color', handles.data.CellSegColorMap(handles.dataDisplay.curCellId, :) );
+
+        % display cell seed points
+        imCellSeedCropped = handles.dataDisplay.imCellSeedPoints(subinds{:});
+        imCellSeedCropped(~imCurCellMask) = 0;
+        stats = regionprops( bwlabeln(imCellSeedCropped), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
+    
+                      
     % Update handles structure
     guidata(hObject, handles);
     
@@ -1480,88 +1418,38 @@ function View_Full_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         return;
     end
 
-    if ~isempty(handles.imarisAppCellSeg) && isobject(handles.imarisAppCellSeg)
-        delete( handles.imarisAppCellSeg );
-    end       
+    % generate visualization
+    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.pixelSize );
+    handles.imarisAppCellSeg = imvis;
     
-    imageDataPadded = cell( size(handles.data.imageData) );
-    for i = 1:numel(handles.data.imageData)
-        imageDataPadded{i} = padarray( handles.data.imageData{i}, ones(1,3), min(handles.data.imageData{i}(:)) );
-    end
+    hSegmentation = imvis.AddDataContainer();
 
-    % compute isosurface geometry for cells in each pattern
-    hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
-    cellSurfaceObjectList = {};
+        % display cell seed point locations
+        stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
-    for cid = 1:numel(handles.data.cellStats)
-        
-        waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
-        
-        % name
-        curCellIsoSurface.name = sprintf( 'CellSeg_%d', cid);
-        
-        % color
-        curCellIsoSurface.color = handles.data.CellSegColorMap(cid, :);
-        
-        % compute surface geometry
-        curCellStats = handles.data.cellStats( cid );        
-        curCellCentroid = round( curCellStats.Centroid );    
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
 
-        curCellBoundingBox = curCellStats.BoundingBox;
-        curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-       
-        % create crop indices
-        subinds = cell(1,3);
-        imsize = size(handles.data.imageData{1});
-        for i = 1:2
-
-            xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
-
-            xi_low = xi;
-            if xi_low < 1 
-                xi_low = 1;
-            end
-
-            xi_high = xi + curCellDisplaySize - 1;
-            if xi_high > imsize(i)
-                xi_high = imsize(i);
-            end
-
-            subinds{i} = xi_low:xi_high;
-
-        end    
-        subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
-        
-        % crop segmentation mask
-        imCurCellSegCropped = padarray( double(handles.data.imLabelCellSeg(subinds{:}) == cid), ones(1,3), 0 );                                        
-        imCurCellSegSmoothed = smooth3( imCurCellSegCropped );            
-        curCellSurfaceGeometry = isosurface( imCurCellSegSmoothed, 0.5 );
-        curCellSurfaceGeometry.normals = isonormals( imCurCellSegSmoothed, curCellSurfaceGeometry.vertices );
-        
-        % correct vertex positions by adding offset
-        curCellSurfaceGeometry.vertices(:,1) = subinds{2}(1) - 1 + curCellSurfaceGeometry.vertices(:,1);
-        curCellSurfaceGeometry.vertices(:,2) = subinds{1}(1) - 1 + curCellSurfaceGeometry.vertices(:,2);
-        curCellSurfaceGeometry.vertices(:,3) = subinds{3}(1) - 1 + curCellSurfaceGeometry.vertices(:,3);
-        
-        % add cell surface to cell pattern surface object
-        curCellIsoSurface.surfaces = curCellSurfaceGeometry;
-        cellSurfaceObjectList{cid} = curCellIsoSurface;
-        
-    end
-    closeStatusDialog( hStatusDlg );
     
-    % get cell seed point locations
-    stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
+        % compute isosurface geometry for cells in each pattern
+        hStatusDlg = waitbar( 0, 'computing surface geometry of cells' );
+        surfaceQuality = 1.0;
+        for cid = 1:numel(handles.data.cellStats)
 
-    % Display everything in imaris
-    handles.imarisAppCellSeg = DisplayMultichannel3DDataInImaris( handles.data.imageData, ...
-                                                                  'spacing', handles.data.metadata.voxelSpacing, ...
-                                                                  'spotLocations', cellSeedPointLocations, ...
-                                                                  'spotRadius', 3, ...
-                                                                  'surfaceObjects', cellSurfaceObjectList, ...
-                                                                  'displayRanges', handles.dataDisplay.imDisplayRange, ...
-                                                                  'displayColors', handles.data.metadata.channelColors );
+            imCurCellMask = handles.data.imLabelCellSeg == cid;
+            curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+            
+            imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                              'name', sprintf( 'CellSeg_%d', cid), ...
+                              'color', handles.data.CellSegColorMap(cid, :) );
+            
+            waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
+
+        end
+        closeStatusDialog( hStatusDlg );
+                   
     % Update handles structure
     guidata(hObject, handles);
     

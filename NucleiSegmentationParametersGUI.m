@@ -22,7 +22,7 @@ function [varargout] = NucleiSegmentationParametersGUI( varargin )
 
 % Edit the above text to modify the response to help NucleiSegmentationParametersGUI
 
-% Last Modified by GUIDE v2.5 01-Apr-2014 17:24:15
+% Last Modified by GUIDE v2.5 09-Jun-2014 11:48:12
 
 % default parameters
 defaultParameters.cellDiameterRange = [12, 20];
@@ -111,7 +111,7 @@ updateUIControls( handles );
 guidata(hObject, handles);
 
 % UIWAIT makes NucleiSegmentationParametersGUI wait for user response (see UIRESUME)
-uiwait(handles.figCellPatternAnnotatorParametersGUI);
+uiwait(handles.figNucleiSegmentationParametersGUI);
 
 function updateUIControls( handles )
 
@@ -311,9 +311,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes when user attempts to close figCellPatternAnnotatorParametersGUI.
-function figCellPatternAnnotatorParametersGUI_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to figCellPatternAnnotatorParametersGUI (see GCBO)
+% --- Executes when user attempts to close figNucleiSegmentationParametersGUI.
+function figNucleiSegmentationParametersGUI_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figNucleiSegmentationParametersGUI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -343,7 +343,7 @@ function btnApplyParameters_Callback(hObject, eventdata, handles)
     guidata(hObject, handles);
 
     % close set parameters dialog
-    close(handles.figCellPatternAnnotatorParametersGUI);
+    close(handles.figNucleiSegmentationParametersGUI);
     
 % --- Executes on button press in btnCancel.
 function btnCancel_Callback(hObject, eventdata, handles)
@@ -352,7 +352,7 @@ function btnCancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     % close set parameters dialog
-    close(handles.figCellPatternAnnotatorParametersGUI);
+    close(handles.figNucleiSegmentationParametersGUI);
 
 function editRegionMergingModelFilePath_Callback(hObject, eventdata, handles)
 % hObject    handle to editRegionMergingModelFilePath (see GCBO)

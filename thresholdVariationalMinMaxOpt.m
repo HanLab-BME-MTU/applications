@@ -89,7 +89,7 @@ function [ imThresholdSurface, varargout ] = thresholdVariationalMinMaxOpt( imIn
     
     p.addOptional('spacing', ones(1,numDims), @(x) (numel(x) == numDims));    
     p.addParamValue('q', 1.0, @isscalar); % same as q in paper
-    p.addParamValue('tolerance', 1e-10, @isscalar );
+    p.addParamValue('tolerance', 1e-5, @isscalar );
     p.addParamValue('maxIterations', 1000, @isscalar);        
     p.addParamValue('debugMode', true, @islogical);    
     p.parse(imInput, varargin{:} );

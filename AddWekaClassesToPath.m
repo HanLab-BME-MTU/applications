@@ -1,9 +1,9 @@
 function AddWekaClassesToPath( wekaPackageList )
     
     if ~exist( 'wekaPackageList', 'var' )
-        wekaPackageList = { 'weka' };
+        wekaPackageList = { 'weka', 'libsvm' };
     else
-        wekaPackageList = [ {'weka'}, wekaPackageList ];
+        wekaPackageList = [ {'weka', 'libsvm'}, wekaPackageList ];
     end
     
     % add classes
