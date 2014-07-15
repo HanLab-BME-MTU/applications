@@ -11,7 +11,7 @@ function [imMacrophageSeg] = segmentMacrophages(imMacrophage, varargin)
     
     PARAMETERS = p.Results;
     
-    imMacrophageAdjusted = matitk('FMEDIAN', round(2 * min(PARAMETERS.spacing) ./ PARAMETERS.spacing), imMacrophage);
+    imMacrophageAdjusted = matitk('FMEDIAN', round(2 * min(PARAMETERS.spacing) ./ PARAMETERS.spacing), double(imMacrophage));
     
     imMacrophageSeg = thresholdSBR(imMacrophageAdjusted, ...
                                    PARAMETERS.maxObjectRadius, PARAMETERS.minSignalToBackgroundRatio, ...
