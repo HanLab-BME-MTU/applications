@@ -7,17 +7,17 @@ fclose all;
 %                         PARAMETERS
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
+     projectRootDir = '/home/drc16/intravital/DNADamageAnalysis';
 %     projectRootDirScratch = '/hms/scratch1/drc16/intravital/DNADamageAnalysis';
     
-    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
+%    projectRootDir = 'Z:\intravital\DNADamageAnalysis';
     projectRootDirScratch = projectRootDir;
     
     % specify where the image data stored?
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
      % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColocTest_M14_to_M17');
+    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColoc_M14_to_M17');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
@@ -57,10 +57,10 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 1;
+    runMode = 3;
     
     % Do you want to save images?
-    flagSaveImages = false;
+    flagSaveImages = true;
     
     % specify cluster resource requirements and submission queue
     numCoresRequested = [];
@@ -205,7 +205,7 @@ switch strRunMode
             [pname, curImageFileName, fext] = fileparts( curImageFilePath );
 
             curStrMouseID = sprintf('Mouse_%.2d', rawData{fid, colId_Mouse} );
-            cur53BP1ChannelId = rawData{fid, colId_53BP1ChannelId};
+
             
             fprintf( '\n%.3d/%.3d: M%.2d -- %s \n', fid, numFiles, ...
                      rawData{fid, colId_Mouse}, curImageFileName );            
@@ -402,7 +402,7 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
             end            
         end
     
-        if ~strcmpi(rawData{fid, colId_TimePoint}, 'pre')
+        if flagAllResultFilesFound && ~strcmpi(rawData{fid, colId_TimePoint}, 'pre')
             curCellColocAnalysisFile = fullfile(curOutDir, 'cellColocalizationAnalysisInfo.csv');
             if ~exist(curCellColocAnalysisFile, 'file')
                 fprintf('\n\tCould not find analysis file cellColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
