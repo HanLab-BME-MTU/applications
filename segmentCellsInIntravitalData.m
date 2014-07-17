@@ -131,10 +131,6 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     imThresh = imfill( double(imThresh) ); 
     imThresh = imclose(imThresh, streldisknd(2*ones(1,ndims(imInput))) );
     
-    minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
-    cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
-    imThresh = imopen(imThresh, cleanStrel);       
-    
     % remove regions with small and invalid/unusual sizes
     threshL = bwlabeln( imThresh );
     thRegStats = regionprops( threshL, {'Area', 'BoundingBox'} );
@@ -299,10 +295,10 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
 %         set( gcf, 'Name', 'Minima Imposed at Seed Points' );
 %     end
     
-%     minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
-%     cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
-%     imCellMask = imopen(L > 0, cleanStrel);       
-%     L = bwlabeln( imCellMask );
+    minObjDiameterImsp = min(cellDiameterRange(1) ./ spacing(1:2));    
+    cleanStrel = strel('disk', round(0.25 * minObjDiameterImsp));
+    imCellMask = imopen(L > 0, cleanStrel);       
+    L = bwlabeln( imCellMask );
 
     regLabelWithSeed = unique( L( imCellSeedPoints > 0 ) );
     L( ~ismember(L, regLabelWithSeed) ) = 0; 
