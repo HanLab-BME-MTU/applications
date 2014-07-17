@@ -22,20 +22,8 @@
     end
 
     % load data using bfopen from the Bioformats toolbox
-    imageSeries = loadIntravitalDataset( dataFilePath );
+    [imageData, metadata] = uiGetBioImageData(dataFilePath);
     
-    metadata = imageSeries(1).metadata;
-    imageData = imageSeries(1).imageData;
-    
-    % generate MIP video stacks for each channel    
-    imageDataMIP = cell( 1, metadata.numChannels );    
-    for c = 1:metadata.numChannels 
-        imageDataMIP{c} = zeros( [metadata.volSize(1:2), metadata.numTimePoints ] );
-        for t = 1:metadata.numTimePoints
-            imageDataMIP{c}(:,:,t) = max( imageData{t,c}, [], 3 );            
-        end
-    end         
-      
     %% segment cells using watershed with seed points detected as local intensity maxima   
     %[ imLabelCellSeg ] = segmentCellsInIntravitalData( imageData{1,2}, metadata.voxelSpacing, 'flagDisplayResultsInImaris', true, 'flagParallelize', true);
 %     [L, imSegRGBMask] = experiment_watershed_segmentation( imageData{1,1}, metadata, true );
@@ -53,19 +41,19 @@
     % experiment_gradient_weighted_watershed( imageData{1,1}, metadata, true );    
     
     %% compare various global thresholding methods
-    chid = 3;    
     %experiment_global_thresholding( double(imageData{chid}), metadata );    
 
+    chid = 1;
     imPreprocessed = matitk( 'FMEDIAN', 2 * [1, 1, 0], double(imageData{chid}) );
-    %imPreprocessed = filterGaussND(double(imageData{chid}), min(metadata.voxelSpacing), 'spacing', metadata.voxelSpacing);
+    imMask = thresholdSBR(imPreprocessed, 20, 1.1, ...
+                          'spacing', metadata.pixelSize, ...
+                          'kernelDimensions', 2, ...
+                          'flagDebugMode', true);
 
 %     [ imThresholdSurface, imMask ] = thresholdVariationalMinMaxOpt( imPreprocessed );
 %     imseriesmaskshow(imageData{chid}, imMask);
     
-    krnlMax = streldisknd( round(0.5 * 40 ./ metadata.voxelSpacing(1:2)) );
-    imLocalBackground = imopen(imPreprocessed, krnlMax);
-    imSignalToBackgroundRatio = imPreprocessed ./ (eps + imLocalBackground);
-    imseriesmaskshow(imageData{chid}, imSignalToBackgroundRatio > 2.0);    
+    imseriesmaskshow(imageData{chid}, imMask);    
     
     %% apply global thresholding algorithms in each slice separately
     %experiment_global_thresholding_per_slice( double(imageData{1,1}), metadata );

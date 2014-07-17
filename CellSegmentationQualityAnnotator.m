@@ -22,7 +22,7 @@ function varargout = CellSegmentationQualityAnnotator(varargin)
 
 % Edit the above text to modify the response to help CellSegmentationQualityAnnotator
 
-% Last Modified by GUIDE v2.5 15-Apr-2014 12:28:05
+% Last Modified by GUIDE v2.5 17-Jul-2014 14:35:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -217,8 +217,8 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     end
 
 % --------------------------------------------------------------------
- function File_Open_Callback(hObject, eventdata, handles)
-% hObject    handle to File_Open (see GCBO)
+function File_Load_Image_Data_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Load_Image_Data (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -238,7 +238,7 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     % load image data
     PrettyPrintStepDescription( 'Loading Image Data' );
 
-    [imageData, metadata] = uiGetBioImageData(dataFilePath, {{'Nuclear Marker Channel', 'channelIdNuclei'}});
+    [imageData, metadata] = uiGetBioImageData(dataFilePath, 'channelDescriptionsAndNamesList', {{'Nuclear Marker Channel', 'channelIdNuclei'}});
     
     if isempty(imageData)
         return;
@@ -261,9 +261,6 @@ function CellCountDisplay_CreateFcn(hObject, eventdata, handles)
     % pre-compute data needed for display
     handles = ComputeDisplayData( handles );
     
-    % close progress bar
-    close( hStatusDialog );
-
     % Update handles structure
     guidata(hObject, handles);
 
@@ -1195,9 +1192,6 @@ function File_Set_Parameters_Callback(hObject, eventdata, handles)
     % Update handles structure
     guidata(hObject, handles);
     
-    % Update Cell Visualization
-    UpdateCellDisplay(handles);
-
 % --- Executes during object deletion, before destroying properties.
 function CellSegmentationQualityAnnotator_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to CellSegmentationQualityAnnotator (see GCBO)

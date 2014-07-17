@@ -143,7 +143,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         
         [imLabelCellSeg, imCellSeedPoints, ...
          segAlgoPARAMETERS ] = segmentCellsInIntravitalData( imageData{PARAMETERS.channelId53BP1}, ...
-                                                             metadata.pixelSize, ...                                                                                                                        'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
+                                                             metadata.pixelSize, ...      
+                                                             'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
                                                              'minSignalToBackgroundRatio', 2.5, ...
                                                              'seedPointDetectionAlgorithm', 'AdaptiveMultiscaleLoG', ...
                                                              'cellDiameterRange', PARAMETERS.cellDiameterRange, ...
@@ -191,6 +192,15 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         fprintf( '\nThe foci detection algorithm found %d foci\n', numel(fociStats));
         tabulate( [cellStats.fociCount] )
         
+        if PARAMETERS.flagSaveImages
+
+            imFociDetectionSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelId53BP1}, imLabelFociSeg > 0, [1, 0, 0], 0.5, ...
+                                                            'spacing', metadata.pixelSize);            
+                
+            imwrite(imFociDetectionSummary, fullfile(resultsDir, 'images', 'fociDetectionSummary.png'), 'png');
+
+        end
+        
         % perform colocalization analysis
         if metadata.numChannels == 3
           
@@ -222,7 +232,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
             compInfo.macrophageSegTime = toc(macSegTimer);
             
             % compute colocalization measures
-	    PrettyPrintStepDescription( 'Computing Colocalization Measures' );
+            PrettyPrintStepDescription( 'Computing Colocalization Measures' );
 
             colocTimer = tic; 
 
@@ -234,13 +244,23 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
                                                                       imDrugSeg, imMacrophageSeg);
             compInfo.colocMeasurementTime = toc(colocTimer);
 
-
             compInfo.totalColocAnalysisTime = toc(colocAnalysisTimer);  
+            
+            if PARAMETERS.flagSaveImages
+
+                imDrugSegSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelIdDrug}, imDrugSeg, [1, 0, 0], 0.2, ...
+                                                          'spacing', metadata.pixelSize);            
+                imwrite(imDrugSegSummary, fullfile(resultsDir, 'images', 'drugSegSummary.png'), 'png');
+
+                imMacrophageSegSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelIdMacrophage}, imMacrophageSeg, [1, 0, 0], 0.2, ...
+                                                          'spacing', metadata.pixelSize);            
+                imwrite(imMacrophageSegSummary, fullfile(resultsDir, 'images', 'macrophageSegSummary.png'), 'png');
+                
+            end
             
         else
 
-	  
-	    compInfo.drugSegTime = 0; 
+            compInfo.drugSegTime = 0; 
             compInfo.MacrophageSegTime = 0;
             compInfo.colocMeasurmentTime = 0;
             compInfo.totalColocAnalysisTime = 0;
@@ -484,6 +504,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
 
             end
 
+            
+            
             compInfo.imageSaveTime = toc(imageSaveTimer);
 
         end        
@@ -590,7 +612,7 @@ end
 
 function WriteFociDetectionSummary(imageData, imFociSeedPoints, fociStats, spacing, imageOutputDir)
 
-
+    
 
 end
 

@@ -8,6 +8,7 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     p.addParamValue('kernelDimensions', ndims(imInput), @(x) (isnumeric(x) && isscalar(x) && x >= 1 && x <= ndims(imInput)));
     p.addParamValue('minObjectRadius', [], @(x) (isempty(x) || (isnumeric(x) && isscalar(x))));
     p.addParamValue('downsamplingFactor', 1.0, @(x) (isnumeric(x) && isscalar(x) && x > 0 && x <= 1));
+    p.addParamValue('flagDebugMode', false, @(x) (islogical(x) && isscalar(x)));
     p.parse(imInput, maxObjectRadius, sbrCutOff, varargin{:});
     
     PARAMETERS = p.Results;
@@ -15,11 +16,13 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     % estimate local background using morphological opening
     if PARAMETERS.downsamplingFactor < 1
         imResized = imresizend(imInput, [PARAMETERS.downsamplingFactor * ones(1, PARAMETERS.kernelDimensions), ones(1, ndims(imInput) - PARAMETERS.kernelDimensions)] );
-        krnlMax = streldisknd( round(maxObjectRadius * PARAMETERS.downsamplingFactor ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) );
+        %krnlMax = streldisknd( round(maxObjectRadius * PARAMETERS.downsamplingFactor ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) );
+        krnlMax = ones( 2 * round(maxObjectRadius * PARAMETERS.downsamplingFactor ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) + 1 ); % flat kernel is much more faster
         imLocalBackground = imopen(imResized, krnlMax);
         imLocalBackground = imresizetotarget(imLocalBackground, size(imInput));
     else
-        krnlMax = streldisknd( round(maxObjectRadius ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) );
+        % krnlMax = streldisknd( round(maxObjectRadius ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) );
+        krnlMax = ones( 2 * round(maxObjectRadius ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) + 1 ); % flat kernel is much more faster
         imLocalBackground = imopen(imInput, krnlMax);
     end
     
@@ -35,6 +38,11 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
         imMask = imopen(imMask, krnlMin);
     end
     
+    % display stuff    
+    if PARAMETERS.flagDebugMode
+       imseriesmaskshow(imSignalToBackgroundRatio, imMask);
+       set(gcf, 'Name', 'Foreground mask overlayed with signal to background ratio image');
+    end
 end
 
 

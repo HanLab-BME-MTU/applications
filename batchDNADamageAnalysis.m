@@ -17,7 +17,7 @@ fclose all;
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
      % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColoc_M14_to_M17');
+    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColocTest_M14_to_M17');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
@@ -57,7 +57,7 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 3;
+    runMode = 1;
     
     % Do you want to save images?
     flagSaveImages = true;
@@ -112,7 +112,7 @@ switch strRunMode
 
         PrettyPrintStepDescription( 'Testing batch analysis script' );
         
-        fid = 5;
+        fid = 38;
         curResultsRootDir = fullfile(resultsRootDir, 'testSingle');
         
         curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
