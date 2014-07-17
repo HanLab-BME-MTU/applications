@@ -425,10 +425,10 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
         end
         
         % append to global file
-        for afid = 1:numel(resultFileList)
+        for afid = 1:numel(curResultFileList)
             
-            curLocalAnalysisFile = fullfile(curOutDir, resultFileList{afid});
-            curGlobalAnalysisFile = fullfile(curResultsRootDir, resultFileList{afid});
+            curLocalAnalysisFile = fullfile(curOutDir, curResultFileList{afid});
+            curGlobalAnalysisFile = fullfile(curResultsRootDir, curResultFileList{afid});
             
             if ~exist(curGlobalAnalysisFile, 'file')
                copyfile(curLocalAnalysisFile, curGlobalAnalysisFile, 'f');

@@ -193,7 +193,9 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         
         % perform colocalization analysis
         if metadata.numChannels == 3
-           
+          
+ 	    colocAnalysisTimer = tic;
+ 
             % segment drug channel
             PrettyPrintStepDescription( 'Segmenting Drug Channel' );
 
@@ -220,13 +222,29 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
             compInfo.macrophageSegTime = toc(macSegTimer);
             
             % compute colocalization measures
+	    PrettyPrintStepDescription( 'Computing Colocalization Measures' );
+
+            colocTimer = tic; 
+
             [cellColocStats] = ComputeDNADamageColocalizationMeasures(imageData{metadata.channelIdDrug}, ...
                                                                       imageData{metadata.channelId53BP1}, ...
                                                                       imageData{metadata.channelIdMacrophage}, ...
                                                                       metadata.pixelSize, ...
                                                                       imLabelCellSeg, cellStats, ...
                                                                       imDrugSeg, imMacrophageSeg);
-                                                                  
+            compInfo.colocMeasurementTime = toc(colocTimer);
+
+
+            compInfo.totalColocAnalysisTime = toc(colocAnalysisTimer);  
+            
+        else
+
+	  
+	    compInfo.drugSegTime = 0; 
+            compInfo.MacrophageSegTime = 0;
+            compInfo.colocMeasurmentTime = 0;
+            compInfo.totalColocAnalysisTime = 0;
+         
         end
         
         % compute and store stack level info
