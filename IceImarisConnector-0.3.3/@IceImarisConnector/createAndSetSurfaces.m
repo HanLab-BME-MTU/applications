@@ -9,7 +9,7 @@ newSurf.SetColorRGBA(this.mapRgbaVectorToScalar(color));
 
 if isempty(normals) && isfield(surfaces,'normals')
     normals = arrayfun(@(x)(x.normals),surfaces,'Unif',false);
-else
+elseif isempty(normals) || nargin < 3
     error('You must input surface normals!')
 end
 
