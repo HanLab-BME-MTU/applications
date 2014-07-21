@@ -195,7 +195,7 @@ if strcmp(processType,forProc{1})
     
 elseif strcmp(processType,forProc{2})
     
-    samples = currMD.processes_{procIdx}.loadChannelOutput(1,channel).avg;
+    samples = currMD.processes_{procIdx}.loadChannelOutput(channel,1).avg;
     
 end
 
