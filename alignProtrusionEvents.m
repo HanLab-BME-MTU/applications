@@ -1,6 +1,17 @@
 function alignments = alignProtrusionEvents(velocity,activity,dThreshold)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%alignProtrusionEvents detects retraction onsets, protrusion onsets, and
+%maximal protrusion velocity from protrusion velocity map, and align
+%velocity and activity with respect to retraction onsets, protrusion onsets, and
+%maximal protrusion velocity
+
+%  Inputs
+%  velocity: protrusion velocity map
+%  activity: activity map
+%  dThreshold: distance fluctuation less than dThreshld is ignored.
+%  (Default: 10)
+
+
+
 warning off;
 
 %check number of input arguments
