@@ -1,6 +1,6 @@
 function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
-    intensityLocalInd,intensityRatioInd] = colocalMeasurePt2Cnt(radius,percent,...
-    randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,channelCnt,channelPt)
+    intensityLocalInd,intensityRatioInd,ratioFit,randRatioFit ] = colocalMeasurePt2Cnt(radius,percent,...
+    randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,channelCnt,channelPt,maskingFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
 % Synopsis[intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
@@ -42,10 +42,18 @@ function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
 %   randRatioAve: vector of ratio of average intensity of random detections
 %   within cell to background intensity for each image
 %
-%   intensityLocalInd: 
+%   intensityLocalInd: cell array containing intensity values of each
+%   indiviual local environment (first column: Continuum channel, second column: Punctate Channel)
 %
-%   intensityRatioInd:
-
+%   intensityRatioInd:cell array containing intensity ratios of each
+%   indiviual local environment to corresponding background (first column: Continuum channel, second column: Punctate Channel)
+%
+%   ratioFit: slope and intercept of a linear fit where x values are
+%   individual ratio values in the punctate channel and y values are individual
+%   ratio values in the continuum channel
+%
+%   randRatioFit: slope and intercept of a linear fit where x values are
+%   
 
 %% Input
 
@@ -91,10 +99,10 @@ end
 %% Analysis
 
 load(detectionFile)
-
+load(maskingFile)
 %initialize output variables
 [intensityLocalAve,intensityBgAve,intensityRatioAve] = deal(zeros(numFiles,2));
-
+randRatioAve = zeros(numFiles,randomRuns);
 %go over all images
 for a = 1:numFiles
     
@@ -107,15 +115,14 @@ for a = 1:numFiles
     IPt = double(imread(imagePt,channelPt));
     
     %Index points from punctate image
+% %     %CHANGE THIS BACK ONCE DONE! a=>numFile or which ever has greatest
+% exposure in cd36 channel
     xIndex = movieInfo(a).xCoord(:,1);
     yIndex = movieInfo(a).yCoord(:,1);
     QP = [yIndex xIndex];
     
-    %Calculate Cell Mask - MOVE TO OUTSIDE OF FUNCTION
-    [maskList,mask] = calcCellBoundary(ICnt);
-    
     %Find detections in QP that lie inside maskList
-    lia1 = ismember(round(QP),maskList,'rows');
+    lia1 = ismember(round(QP),maskList{a},'rows');
     
     %Multipling lia (binary vector) by QP will replace coord outside
     %boundary with zero, last line removes all zeros from vector
@@ -130,7 +137,7 @@ for a = 1:numFiles
     localMask(indexQP) = 1;
     
     % Filter Higher Intensity Detections
-    %     filterImage = immultiply(localMask, refImage);
+    %     filterImage = immultiply(localMask, imagePt);
     %     [row,col,flocIntensities] = find(filterImage);
     %     top = prctile(flocIntensities,percent);
     %     topIntensities = flocIntensities >= top;
@@ -145,9 +152,9 @@ for a = 1:numFiles
     
     % Dilate to create local environment
     localMaskTest = bwdist(localMask)<=radius;
-    
+%     localMaskTest = localMask;
     % Everything in cell not detected
-    cellBgMask = immultiply(~localMaskTest,mask);
+    cellBgMask = immultiply(~localMaskTest,mask(:,:,a));
     cellBgCnt = immultiply(cellBgMask,ICnt); %Intensity of rest of cell in continuum channel
     cellBgPt = immultiply(cellBgMask,IPt); %Intensity of rest of cell in punctate channel
     
@@ -171,51 +178,93 @@ for a = 1:numFiles
     intensityLocalAve(a,:) = [intensityLocalInd{a,1}'*localWeights intensityLocalInd{a,2}'*localWeights];
     intensityRatioAve(a,:) = [intensityRatioInd{a,1}'*localWeights intensityRatioInd{a,2}'*localWeights];
     
-    %     % Determine intensity variance of image
-    %     testVariance = immultiply(mask,I); %Whole cell, no BG
-    %     [~,~,totalIntensity] =find(testVariance);
-    %     cellVariance(a,1) = var(totalIntensity);
+
+    
+        %Sample random positions to get intensities 
+        %NOTE: Currently we will just try one run per image
+        for j =1:randomRuns
+    
+            cellBg = datasample(maskList{a}, length(roundedQP),'Replace',false);
+            bgMask = zeros(size(ICnt,1),size(ICnt,2));
+            indexBg = sub2ind(size(bgMask),cellBg(:,1),cellBg(:,2));
+            bgMask(indexBg) = 1;
+    
+            %Determine avg intensity of random detection
+            bgMask = bwdist(bgMask)<=radius;
+            bgCellArea = immultiply(~bgMask,mask(:,:,a));
+            bgCellAreaCnt = immultiply(bgCellArea,ICnt); %Use this to get bgCnt
+            bgCellAreaPt = immultiply(bgCellArea,IPt); %Use this to get bgPt
+            randIntensityBgAve(a,:) = [mean(bgCellAreaCnt(bgCellAreaCnt~=0)) mean(bgCellAreaPt(bgCellAreaPt~=0))];
+            
+            tmp = regionprops(bgMask,ICnt,'MeanIntensity','Area'); %CT
+            randIntensityInd{a,1} = vertcat(tmp.MeanIntensity);
+
+            tmp = regionprops(bgMask,IPt,'MeanIntensity','Area'); %PT
+            randIntensityInd{a,2} = vertcat(tmp.MeanIntensity);
+            
+            randIntensityRatioInd{a,1} = randIntensityInd{a,1}/randIntensityBgAve(a,1);
+            randIntensityRatioInd{a,2} = randIntensityInd{a,2}/randIntensityBgAve(a,2);
+            
+% %             randBgArea = immultiply(~bgMask,mask(:,:,a));
+% %             randBgArea = immultiply(randBgArea,ICnt);
+% %             [~,~,randBgIntensities]= find(randBgArea);%%
+% %             randBg =mean(randBgIntensities);
+% %             randRatioAve(a,j) = mean(intensities)/randBg; %Comparison to random sample
     
     
-    %JUST A PLACE-HOLDER FOR NOW
-    randRatioAve = NaN;
-    
-    %     %Sample random positions to get intensities
-    %     for j =1:randomRuns
-    %
-    %         cellBg = datasample(maskList, length(roundedQP),'Replace',false);
-    %         bgMask = zeros(size(I,1),size(I,2));
-    %         indexBg = sub2ind(size(bgMask),cellBg(:,1),cellBg(:,2));
-    %         bgMask(indexBg) = 1;
-    %
-    %         %Determine avg intensity of random detection
-    %         bgMask = bwdist(bgMask)<=radius;
-    %         bgMask = immultiply(bgMask,I);
-    %         [~,~,intensities] = find(bgMask);
-    %         randBgArea = immultiply(~bgMask,mask);
-    %         randBgArea = immultiply(randBgArea,I);
-    %         [~,~,randBgIntensities]= find(randBgArea);
-    %         randBg =mean(randBgIntensities);
-    %         randRatioAve(j,1) = mean(intensities);
-    %         randRatioAve(j,1) = randRatioAve(j,1)/randBg; %Comparison to random sample
-    %
-    %
-    %     end
-    
-    %             minInt = min(refImage(:));
-    %             maxInt = max(refImage(:));
-    %             lim = [minInt maxInt];
-    %             displayDet = immultiply(~localMaskTest,I);
-    %             displayDetT = immultiply(~binImage,I);
-    %             Fig2=figure;
-    %             subplot(3,2,1); imagesc(refImage); title('Original CD36');
-    %             subplot(3,2,2); imagesc(I); title('Original Fyn');
-    %             subplot(3,2,3); imagesc(displayDet,lim); title('CD36 Detection');
-    %             subplot(3,2,4); imagesc(mask); title('Cell Segmentation');
-    %             subplot(3,2,5); imagesc(displayDetT,lim); title('Nicolas CD36 Detection');
-    %             subplot(3,2,6); imagesc(mask2);  title('Nicolas Cell Segmenation');
+        end
     
     
+end
+
+%% Fitting Data
+%test = cell2mat(intensityRatioInd);
+%%TEMP: Remove image 13 from no TSP
+% intensityRatioInd(13,:) = [];
+% figure;
+s=length(intensityRatioInd);
+c= linspace(1,s,s);
+% Remove outliers------------------------------------------------------
+    test = cell2mat(intensityRatioInd(:,:));
+    intensityRatioIndNew = cell(length(intensityRatioInd),2);
+
+    %Discard outliers
+    [~, D]= knnsearch(test,test,'K',5);
+    allDist = D(:,2:end);
+    avgDist = mean(allDist,2);
+    [row,~,~] = find(avgDist>prctile(avgDist,95));
+    test(row,:) = NaN;
+    
+    for i = 1: length(intensityRatioInd)
+        intensityRatioIndNew{i,1}=test(1:length(intensityRatioInd{i,1}),1); 
+        intensityRatioIndNew{i,2}= test(1:length(intensityRatioInd{i,1}),2);
+        bgIntensityCell{i,1} = intensityBgAve(i,1)*ones(length(intensityRatioIndNew{i,1}),1);
+        bgIntensityCell{i,2}=test(1:length(intensityRatioInd{i,1}),1);
+        test(1:length(intensityRatioInd{i,1}),:)=[];
+    end
+
+
+    test = cell2mat(intensityRatioIndNew(:,:));
+    %Get rid of Nans
+    keepInd = find(isnan(test(:,1)));
+    test(keepInd,:)=[];
+    sTest = sortrows(test,2);
+    [Err, P] = fit_2D_data(sTest(:,2), sTest(:,1), 'yes');
+    xInt = roots(P);
+    f = polyval(P,0:0.1:3);
+    hold on
+    plot(0:0.1:3,f,'-');
+%     title(strcat(fname,'Ratio Comparison    Slope:',num2str(p(1)), '   Intercept: ',num2str(p(2))))
+    title(strcat('Corrected Exposure WithTSP     Fit:',num2str(P(1)),'x +',num2str(P(2)),'    X-Intercept: ',num2str(xInt(1))))
+    ylabel('Fyn Ratio')
+    xlabel( 'CD36 Ratio')
+    axis([0 2.5 0 2.5])
+
+
+    ratioFit(:,:) = [P(1) P(2)];
+    randRatioFit(:,:) = [NaN NaN];
+% end
+
 end
 
 
