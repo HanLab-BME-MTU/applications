@@ -1,4 +1,4 @@
-function [maskComb,imageMinusBackground,detectedFeatures,h,postWS] = detectThreshLocMax(image,...
+function [maskComb,imageMinusBackground,detectedFeatures,h,pixelPos] = detectThreshLocMax(image,...
     thresholdMethod,methodValue,filterNoise,filterBackground,minSize,...
     alphaLocMax,plotRes,mask)
 %detectThreshLocMax combines blob segmentation with local maxima detection
@@ -291,10 +291,7 @@ for k =1:nLabels
 % %         'EdgeColor','b','Color','r');
 % % if s(k).Eccentricity >= 0.9
 % %     s(k).StandardDev = 0;
-% %     test = ismember([localMaxPosY localMaxPosX],s(k).PixelList,'rows');
-% %     row = find(test);
-% %     localMaxPosX(row) = [];
-% %     localMaxPosY(row) = [];
+
 % % end
 
     else
@@ -428,7 +425,7 @@ varAmp = zeros(length(fixedTestArray),1);
 %% Plotting
 
 if plotRes
-    
+
 %     %figure 1: the different analysis steps
 %     figure
 % 
@@ -466,7 +463,9 @@ if plotRes
     detectedFeatures.yCoord = [fixedTestArray(:,2) varPosY];%Understand this!
     detectedFeatures.zCoord = [localMaxPosZ localMaxPosZ];
 %     detectedFeatures.amp = [localMaxAmp varAmp];
+    pixelPos(:,1) = {postWS.PixelIdxList};
     detectedFeatures.amp = [vertcat(postWS.Area) varAmp];
+    
     %[positions(:).Centroid(2)];
     
 
