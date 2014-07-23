@@ -172,7 +172,18 @@ for i=1:numel(p.ChannelIndex)
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
     [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow,p.corrLength,...
         'noise',p.noise,'error',p.error);
-    
+
+    % Filter vectors for outliers
+    outlierThreshold = 10;
+    for j=1:nFrames
+        mdMag = ((Md{j}(:,3)-Md{j}(:,1)).^2+(Md{j}(:,4)-Md{j}(:,2)).^2).^0.5;
+        outlierIndex = detectOutliers(mdMag,outlierThreshold);
+        Md{j}(outlierIndex,:)=[];
+        Ms{j}(outlierIndex,:)=[];
+        E{j}(outlierIndex,:)=[];
+        S{j}(outlierIndex,:)=[];
+    end
+
     % Create speed maps
     if ishandle(wtBar), waitbar(.5,wtBar,['Generating speed maps for channel ' num2str(iChan)']); end
     speedMap = createSpeedMaps(flow,p.timeWindow,p.corrLength,movieData.timeInterval_,...
@@ -202,6 +213,7 @@ for i=1:numel(p.ChannelIndex)
     speedMapLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
     
     allFlow = vertcat(Md{:});
+    
     flowLimits{iChan}=[min(allMaps(:)) max(allMaps(:))];
     flowMagnitude = (diff(allFlow(:,[1 3]),1,2).^2+diff(allFlow(:,[2 4]),1,2).^2).^.5;
     flowLimits{iChan}=[min(flowMagnitude(:)) max(flowMagnitude(:))];
