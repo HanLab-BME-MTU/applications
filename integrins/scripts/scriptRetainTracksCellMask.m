@@ -1,7 +1,7 @@
 clear all
 close all
 
-firstMaskFile = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\refined_mask_131127_Cs3C2_Y773A_6mES_0001.tif';
+firstMaskFile = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140226_Cs3C2_Y773A\analysisCellEdgeSmall\SegmentationPackage\refined_masks\refined_masks_for_channel_1\refined_mask_140226_Cs3C2_Y773A_6mES_0001.tif';
 
 cd ../../../../analysisAlphaVY773A/tracks/
 load tracks1AllFrames.mat

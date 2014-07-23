@@ -10,7 +10,7 @@ function smDensity = particleDensityFromTracksInMask(tracksFinal,firstMaskFile,l
 %                      analysis.
 %                      Optional. Default: [5 99].
 %
-%OUTPUT smDensity: Average single molecule density per celle edge frame
+%OUTPUT smDensity: Average single molecule density per cell edge frame
 %
 %Khuloud Jaqaman, October 2013
 

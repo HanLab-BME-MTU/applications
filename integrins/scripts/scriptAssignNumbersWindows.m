@@ -1,7 +1,7 @@
 
 lengthMinMax = [5 99];
 
-for i = 1 : length(movieStructAlphaVY773A)
+for i = 12 : length(movieStructAlphaVY773A)
     
     disp(num2str(i))
     

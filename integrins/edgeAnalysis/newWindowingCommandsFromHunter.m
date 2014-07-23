@@ -3,12 +3,14 @@
 segmentationPackageGUI;
 
 %load movieData object
-movieDataPath = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\analysisCellEdgeSmall';
+movieDataPath = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140221_Cs1C1_Y773A\analysisCellEdgeSmall';
 MD = MovieData.load(fullfile(movieDataPath,'movieData.mat'));
 
 %determine threshold
-thresholdValue = getSegThreshFromFullMovie(MD,1,0.3,1);
+thresholdValue = getSegThreshFromFullMovie(MD,1,0,1);
 close all
+
+% thresholdValue = 400;
 
 %get cell mask
 threshParam = struct(...
@@ -31,7 +33,7 @@ movieMasksParticles(MD,movieInfo,400,1,'movieMasksParticlesThresh',[],1);
 
 %make images from single molecule signal to enhance edge detection
 mkdir imagesSM4Edge
-singleMolSignal4Edges('C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesCellEdge\131127_Cs3C2_Y773A_6mES_0001.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesAlphaVY773A\131127_Cs3C2_CHO_Y773A_00002.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesSM4Edge',400,40);
+singleMolSignal4Edges('C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140221_Cs1C1_Y773A\imagesCellEdge\140221_Cs1C1_Y773A_6mES_0001.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140221_Cs1C1_Y773A\imagesAlphaVY773A\140221_Cs1C1_mEos2AvBeta3Y773A_00002.tif','C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140221_Cs1C1_Y773A\imagesSM4Edge',400,40);
 
 %refine masks using gradient information
 threshParamEdge = struct(...
@@ -41,9 +43,9 @@ threshParamEdge = struct(...
 gapCloseParamEdge = struct(...
     'maxEdgePairDist',7,...
     'factorContr',[1 1 1 1]);
-meanBkg = 180;
-smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\131127\imagesSM4Edge';
-prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,meanBkg,smDir);
+meanBkg = 155;
+smDir = 'C:\kjData\Galbraiths\data\alphaVY773AandCellEdge\140221_Cs1C1_Y773A\imagesSM4Edge';
+prctileUsed = refineMovieEdgeWithSteerableFilter(MD,threshParamEdge,gapCloseParamEdge,0,meanBkg); %,smDir);
 save('paramSteerableFilter','threshParamEdge','gapCloseParamEdge','prctileUsed','meanBkg');
 
 imtool close all

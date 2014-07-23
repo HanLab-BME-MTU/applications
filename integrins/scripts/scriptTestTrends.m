@@ -1,8 +1,8 @@
-condName = {'Lifeact'}; %,'AlphaV717Trunc','AlphaV724Trunc','Beta3','Farn','Talin','Lifeact'};
+% condName = {'AlphaV'}; %,'AlphaV717Trunc','AlphaV724Trunc','Beta3','Farn','Talin','Lifeact'};
 % condName = {'AlphaVY773A','AlphaVY773ATmp'};
-% condName = {'AlphaVSim20p5','AlphaVSim22','FarnSim20p5','FarnSim22'};
+condName = {'AlphaVY773A'}; %'AlphaVSim20p5','AlphaVSim22','FarnSim20p5','FarnSim22'};
 numMode  = [4 4 4 4 4 4 2];
-minNP    = [5 5 5 5 5 5 5];
+minNP    = [4 5 5 5 5 5 5];
 
 for iCond = 1 : length(condName);
     
