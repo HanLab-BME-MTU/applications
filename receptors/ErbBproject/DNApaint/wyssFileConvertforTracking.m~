@@ -1,0 +1,28 @@
+function movieInfo = wyssFileConvertforTracking(fulldata)
+% takes a PointList.fulldata from wyssFileImport and converts it into a movieInfo
+% type cell array for using rackCloseGapsKalmanSparse
+%
+%
+
+
+n = max(fulldata(:,1));
+frames = fulldata(:,1);
+movieInfo = repmat(struct('xCoord',[],'yCoord',[],'amp',[]),[n,1]);
+
+
+for i = 1:n;
+
+    ind = find(frames==i);
+    movieInfo(i).xCoord = [fulldata(ind,2:
+end
+
+save([dir,'_PointList.m'],'PointList');
+
+% since pixelSize of wyss system is ~107 nm this is 32 nm bandwitdh
+[clusterInfo,clusterMap]=MeanShiftClustering(TotalPnts(:,1:2),0.3,'kernel','flat');
+
+clusterInfo = addToClusterInfo(clusterInfo,TotalPnts,'pixelSize',107);
+
+save([dir,'_MeanShiftCluster.mat'],'clusterInfo','clusterMap','TotalPnts');
+
+end
