@@ -1,0 +1,32 @@
+Data and Analysis Tansfer of Tropomyosin project
+Sylvain Berlemont, 03/2010
+
+A. Update DATA from Scripps -> Orchestra
+
+1.$ ssh sb234@orchestra.med.harvard.edu
+2.$ cd /groups/lccb-interfil/Tropo/Data_for_paper
+3.$ rsync -rtvz sylvain@lccbfs001.scripps.edu:/data/projects/Tropomyosin/Analysis/Data_for_paper/ .
+
+A. Update DATA from Orchestra -> Local Machine
+
+1.$ cd ~/Projects/Tropo/Data_for_paper
+2.$ rsync -rtvz sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/Data_for_paper/ .
+
+B. Update SVN
+
+1.$ cd ~/Documents/MATLAB/projects
+2.$ svn update *
+
+C. Start Matlab
+
+1.>> addpath(genpath('/home/sb234/Documents/MATLAB'))
+2.>> dataDirectory = '/home/sb234/Projects/Tropo/Data_for_paper'
+3.>> analysisDirectory = '/home/sb234/Projects/Tropo/Analysis_for_paper'
+4.>> fsmUpdateProjDir(dataDirectory)
+5.>> relocateMovieData(analysisDirectory, false)
+6.>> batchMakeFigures(dataDirectory, analysisDirectory, [], 1)
+
+D. Transfer ANALYSIS from Local Machine -> Orchestra
+
+1.$ cd ~/Projects/Tropo/Analysis_for_paper/
+2. rsync -rtvz * sb234@orchestra.med.harvard.edu:/groups/lccb-interfil/Tropo/Analysis_for_paper/
