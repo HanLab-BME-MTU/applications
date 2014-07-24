@@ -1,0 +1,68 @@
+//ImageTypes
+(FixedInternalImagePixelType "float")
+(FixedImageDimension 3)
+(MovingInternalImagePixelType "float")
+(MovingImageDimension 3)
+
+//Components
+(Registration "MultiResolutionRegistration")
+(FixedImagePyramid "FixedSmoothingImagePyramid")
+(MovingImagePyramid "MovingSmoothingImagePyramid")
+(Interpolator "BSplineInterpolator")
+(Metric "AdvancedMattesMutualInformation")
+(Optimizer "AdaptiveStochasticGradientDescent")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+(Transform "TranslationTransform")
+
+// ********** Transform
+
+(AutomaticTransformInitialization "false")
+(AutomaticScalesEstimation "true")
+(HowToCombineTransforms "Compose")
+
+// ********** Metric
+
+//Number of grey level bins in each resolution level:
+(NumberOfHistogramBins 256)
+
+// Option supported in elastix 4.1:
+(UseFastAndLowMemoryVersion "true")
+
+// ********** Pyramid
+
+// Total number of resolutions
+(NumberOfResolutions 3)
+//(ImagePyramidSchedule 8 8 2 4 4 1 1 1 1)
+
+// ********** Optimizer
+
+// Maximum number of iterations in each resolution level:
+(MaximumNumberOfIterations 50 50 50)
+
+// ********** Several
+
+(WriteTransformParametersEachIteration "false")
+(WriteTransformParametersEachResolution "false")
+(WriteResultImage "false")
+(ShowExactMetricValue "false")
+(UseDifferentiableOverlap "false")
+
+
+// ********** ImageSampler
+
+//Number of spatial samples used to compute the mutual information in each resolution level:
+(ImageSampler "RandomCoordinate")
+(NumberOfSpatialSamples 3000)
+(NewSamplesEveryIteration "true")
+
+// ********** Interpolator and Resampler
+
+//Order of B-Spline interpolation used in each resolution level:
+(BSplineInterpolationOrder 1)
+
+//Order of B-Spline interpolation used for applying the final deformation:
+(FinalBSplineInterpolationOrder 3)
+
+//Default pixel value for pixels that come from outside the picture:
+(DefaultPixelValue 0)
