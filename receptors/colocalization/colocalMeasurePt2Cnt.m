@@ -259,8 +259,22 @@ c= linspace(1,s,s);
     ylabel('Fyn Ratio')
     xlabel( 'CD36 Ratio')
     axis([0 2.5 0 2.5])
-
-
+    
+% %     %Alternative Fit
+% %     xTest(:,1) =sTest(:,2);
+% %     xTest(:,2) =sTest(:,1);
+% %     [coeff,score,root] = pca(xTest);
+% %     [n,p] = size(xTest);
+% %     meanX = mean(xTest,1);
+% %     Xfit1 = repmat(meanX,n,1) + score(:,1)*coeff(:,1)';
+% %     dirVect = coeff(:,1);
+% %     t = [min(score(:,1))-.2, max(score(:,1))+.2];
+% %     endpts = [meanX + t(1)*dirVect'; meanX + t(2)*dirVect'];
+% %     figure;
+% %     plot(xTest(:,1),xTest(:,2),'bo');
+% %     axis([0 2.5 0 2.5])
+% %     hold on; plot(endpts(:,1),endpts(:,2),'k-');
+    %-------------------------------------------------------------------
     ratioFit(:,:) = [P(1) P(2)];
     randRatioFit(:,:) = [NaN NaN];
 % end
