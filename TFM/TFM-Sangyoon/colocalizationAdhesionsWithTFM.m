@@ -141,6 +141,9 @@ iForceFieldProc = 4;
 forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceField=forceFieldProc.loadChannelOutput;
 
+%filter out force temporal noise 
+forceField=filterForceShortPeaks(forceField,60);
+
 % Load Cell Segmentation
 iMask = MD.getProcessIndex('MaskRefinementProcess');
 if isempty(iMask)
@@ -307,10 +310,17 @@ trackIdx = true(numel(tracksNA),1);
 % disp('loading segmented FAs...')
 FASegProc = FASegPackage.processes_{iFASeg};
 regSpacing = (reg_grid(2,1,1)-reg_grid(1,1,1));
+
+% this is temporary remedy for SDC. They were addressed in displacement
+% calculation. Thus, for next new TFM analysis the code with %*** should be
+% removed. - SH 072514
+residualT = T-round(T); %***
 for ii=1:nFrames
     [XI,YI]=meshgrid(reg_grid(1,1,1):reg_grid(end,end,1),reg_grid(1,1,2):reg_grid(end,end,2));
     reg_gridFine(:,:,1) = XI;
     reg_gridFine(:,:,2) = YI;
+    displField(ii).vec(:,1) = displField(ii).vec(:,1) - residualT(ii,1) + residualT(ii,2); %***
+    displField(ii).vec(:,2) = displField(ii).vec(:,2) - residualT(ii,2) + residualT(ii,1); %***
     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_gridFine);
     [grid_mat,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_gridFine);
 
