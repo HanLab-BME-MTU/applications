@@ -120,7 +120,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
         case 'BackgroudRemovalUsingMorphologicalOpening'
             
             imThresh = thresholdSBR(imAdjusted, max(cellDiameterRange), PARAMETERS.minSignalToBackgroundRatio, ...
-                                    'spacing', spacing, 'kernelDimensions', 2);
+                                    'spacing', spacing, 'kernelDimensions', 2, 'downSamplingFactor', 0.5);
             
         otherwise
             
@@ -397,7 +397,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
         % ignore cells lying completely outside the roiMask
         if ~isempty(roiMask)           
             
-            insideRoiLabels = unique( L( roiMask ) );
+            insideRoiLabels = unique( L( roiMask > 0 ) );
             L( ~ismember(L, insideRoiLabels) ) = 0;
             
         end

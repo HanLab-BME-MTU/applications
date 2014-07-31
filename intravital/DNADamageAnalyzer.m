@@ -406,11 +406,6 @@ function handles = PerformColocalizationAnalysis(hObject, handles)
     
     PrettyPrintStepDescription( 'Computing Colocalization Measures' );
 
-    maxObjectRadius = 30;
-    minObjectRadius = 2.0;
-    sbrCutoff = 2.5;
-    kernelDimensions = 2;
-    
     colocTime = tic;
     
     % segment drug channel
@@ -433,16 +428,6 @@ function handles = PerformColocalizationAnalysis(hObject, handles)
     handles.data.imMacrophageSeg = segmentMacrophages(imMacrophage);
     handles.dataDisplay.imMacrophageSegRGB = convertBinaryMaskToRGBMask(handles.data.imMacrophageSeg, handles.macrophageMaskColor);
     
-%     handles.data.imMacrophageSeg = segmentCellsInIntravitalData(handles.data.imageData{handles.data.metadata.channelIdMacrophage}, ...
-%                                                                 handles.data.metadata.pixelSize, ...
-%                                                                 'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
-%                                                                 'seedPointDetectionAlgorithm', 'AdaptiveMultiscaleLoG', ...
-%                                                                 'cellDiameterRange', [4, 20] );
-%                                                                 
-%     handles.dataDisplay.imMacrophageSegRGB = label2rgbND(handles.data.imMacrophageSeg);
-    
-    %imseriesmaskshow(handles.data.imageData{handles.data.metadata.channelIdMacrophage}, handles.data.imMacrophageSeg);
-    
     fprintf('\ntook %f seconds\n', toc(macrophageSegTime));
     
     % compute colocalization measures 
@@ -454,12 +439,14 @@ function handles = PerformColocalizationAnalysis(hObject, handles)
                                                               handles.data.metadata.pixelSize, ...
                                                               handles.data.imLabelCellSeg, handles.data.cellStats, ...
                                                               handles.data.imDrugSeg, handles.data.imMacrophageSeg);
-                                                               
+                        
+    handles.data.cellColocStats = cellColocStats;
+    
+    fprintf('\ncolocalization analysis took a total of %f seconds\n', toc(colocTime));
+
     % Update handles structure
     guidata(hObject, handles);
 
-    fprintf('\ncolocalization analysis took a total of %f seconds\n', toc(colocTime));
-    
 % --------------------------------------------------------------------
 function [cellStats] = ComputeCellProperties( handles )
 
