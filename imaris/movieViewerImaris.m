@@ -71,7 +71,7 @@ end
 
 dispMin = Inf(1,nChan);
 dispMax = zeros(1,nChan);
-%Set the name so we can check which dataset is loaded
+%Set the name so we can check which dataset is loaded from within imaris
 dataSet.SetParameter('Image','Name',[MD.outputDirectory_ filesep MD.movieDataFileName_]);
 
 %% ------ Image Loading / Passing ----- %%
@@ -105,12 +105,10 @@ end
 
 %% -------- Display Configuration ------ %%
 
-for iChan = 1:nChan
-    
-   dataSet.SetChannelRange(iChan-1,dispMin(iChan),dispMax(iChan)); 
-    
+%Set the minimum and maximum display ranges from the data
+for iChan = 1:nChan    
+   dataSet.SetChannelRange(iChan-1,dispMin(iChan),dispMax(iChan));     
 end
-
 
 %% ------- Process Output Display ------ %%
 
