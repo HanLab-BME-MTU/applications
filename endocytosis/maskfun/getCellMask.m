@@ -1,10 +1,10 @@
 %[mask] = getCellMask(data, varargin)
 %
-% Notes: independent of the masking strategy, the detection must be run before
+% Notes: for the 'bgproj' method, the detection must be run before
 
 % Francois Aguet, 02/17/2012
 
-function [mask] = getCellMask(data, varargin)
+function [mask, proj] = getCellMask(data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
@@ -15,23 +15,43 @@ ip.addParamValue('Connect', true, @islogical);
 ip.addParamValue('Display', false, @islogical);
 ip.addParamValue('ShowHistogram', false, @islogical);
 ip.addParamValue('ModeRatio', 0.8, @isscalar);
-ip.addParamValue('Mode', 'intensity', @(x) any(strcmpi(x, {'intensity', 'density'})));
+ip.addParamValue('Mode', 'maxproj', @(x) any(strcmpi(x, {'maxproj', 'bgproj', 'density'})));
+ip.addParamValue('Validate', false, @islogical);
 ip.parse(data, varargin{:});
 
 nd = numel(data);
+
 mask = cell(1,nd);
+proj = cell(1,nd);
+
 ch = ip.Results.Channel;
 
 se = strel('disk', 5);
 
+hasStoredMask = true(1,nd);
 for i = 1:nd
     maskPath = [data(i).source 'Detection' filesep 'cellmask.tif'];
-    aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
+    projPath = [data(i).source 'Detection' filesep 'maxproj.tif'];
     
-    if ~(exist(maskPath, 'file')==2) || ip.Results.Overwrite
+    if ~(exist(maskPath, 'file')==2) || ~(exist(projPath, 'file')==2) || ip.Results.Overwrite
+        hasStoredMask(i) = false;
         
         switch ip.Results.Mode
-            case 'intensity'
+            case 'maxproj'                
+                if ~iscell(data(i).framePaths{ch})
+                    stack = readtiff(data(i).framePaths{ch});
+                else
+                    stack = zeros([data(i).imagesize data(i).movieLength], 'uint16');
+                    for f = 1:data(i).movieLength
+                        stack(:,:,f) = imread(data(i).framePaths{ch}{f});
+                    end
+                end
+                
+                proj{i} = max(stack, [], 3);
+                mask{i} = maskFromFirstMode(double(proj{i}), 'Connect', ip.Results.Connect,...
+                    'Display', ip.Results.ShowHistogram, 'ModeRatio', ip.Results.ModeRatio);
+                
+            case 'bgproj'
                 % load max. 100 frames
                 frameRange = unique(round(linspace(1, data(i).movieLength, 100)));
                 aip = zeros(data(i).imagesize);
@@ -62,23 +82,42 @@ for i = 1:nd
                 
                 aip = aip./(numel(frameRange)-mproj);
                 % fill to enable filtering
-                aip(isnan(aip)) = prctile(aip(:), 95);
-                save(aipPath, 'aip');
+                aip(isnan(aip)) = prctile(aip(:), 95);                  
                 
                 mask{i} = maskFromFirstMode(aip, 'Connect', ip.Results.Connect,...
                     'Display', ip.Results.ShowHistogram, 'ModeRatio', ip.Results.ModeRatio);
                 
-                mask{i} = imfill(mask{i}, 'holes');
+                proj{i} = aip;
                 
-                imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
             case 'density'
-                
+                error('Density-based mode not implemented.');
     
-        end    
+        end
+        mask{i} = imfill(mask{i}, 'holes');
     else
         mask{i} = double(imread(maskPath));
+        proj{i} = double(imread(projPath));
     end
 end
+
+% Ask user to inspect and potentially manually adjust masks
+if ip.Results.Validate && any(~hasStoredMask)
+    vmask = manualSegmentationTweakGUI(cellfun(@double, proj(~hasStoredMask), 'unif', 0), mask(~hasStoredMask));
+    mask(~hasStoredMask) = vmask;
+end
+
+% save masks
+for i = 1:numel(data)
+    if ~hasStoredMask(i)
+        [~,~] = mkdir([data(i).source 'Detection']);
+        maskPath = [data(i).source 'Detection' filesep 'cellmask.tif'];
+        imwrite(uint8(mask{i}), maskPath, 'tif', 'compression' , 'lzw');
+        
+        projPath = [data(i).source 'Detection' filesep 'maxproj.tif'];
+        imwrite(proj{i}, projPath, 'tif', 'compression' , 'lzw');
+    end
+end
+
 
 if ip.Results.Display
     for i = 1:nd
@@ -91,18 +130,18 @@ if ip.Results.Display
             bmask(B) = 1;
             bmask = bwmorph(bmask, 'dilate');
             
-            aipPath = [data(i).source 'Detection' filesep 'avgProj.mat'];
-            load(aipPath);
-            aip = scaleContrast(aip);
-            aip(bmask==1) = 0;
-            overlay = aip;
+            iproj = imread([data(i).source 'Detection' filesep 'maxproj.tif']);
+            iproj = scaleContrast(log(double(iproj)));            
+            iproj(bmask==1) = 0;
+            overlay = iproj;
             overlay(bmask==1) = 255;
-            overlay = uint8(cat(3, overlay, aip, aip));
-            figure; imagesc(overlay); axis image; colormap(gray(256)); colorbar;
+            overlay = uint8(cat(3, overlay, iproj, iproj));
+            figure; imagesc(overlay); axis image;
         end
     end
 end
 
 if nd==1
     mask = mask{1};
+    proj = proj{1};
 end

@@ -7,7 +7,7 @@
 %          'Buffer' : Length of buffer readout before/after each track. Default: [5 5]
 %       'Overwrite' : true|{false}. Overwrite previous processing result.
 %          'Frames' : Index array of frames if runTracking was called on a subset of frames.
-%      'Preprocess' : Perform preprocessing: discar single-frame tracks and decouple
+%      'Preprocess' : Perform preprocessing: discard single-frame tracks and decouple
 %                       simple compound tracks. Default: true
 %     'Postprocess' : Perform postprocessing: validation of tracks based on gap and
 %                       buffer intensities; splitting of erroneously linked trajectories.
@@ -34,11 +34,12 @@ ip.addParamValue('Overwrite', false, @islogical);
 ip.addParamValue('TrackerOutput', 'trackedFeatures.mat', @ischar);
 ip.addParamValue('FileName', 'ProcessedTracks.mat', @ischar);
 ip.addParamValue('DetectionFile', 'detection_v2.mat', @ischar);
-ip.addParamValue('Frames', arrayfun(@(x) 1:x.movieLength, data, 'UniformOutput', false), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
+ip.addParamValue('Frames', arrayfun(@(x) 1:x.movieLength, data, 'unif', 0), @(x) numel(unique(diff(x)))==1); %check that frame rate is constant
 ip.addParamValue('Preprocess', true, @islogical);
 ip.addParamValue('Postprocess', true, @islogical);
 ip.addParamValue('CohortBounds_s', [10 20 40 60 80 100 125 150]); % used in post-proc
-ip.addParamValue('ForceDiffractionLimited', true, @islogical);
+ip.addParamValue('Cutoff_f', 5, @isscalar);
+ip.addParamValue('ForceDiffractionLimited', false, @islogical);
 ip.parse(data, varargin{:});
 overwrite = ip.Results.Overwrite;
 frameIdx = ip.Results.Frames;
@@ -60,8 +61,7 @@ postprocess = opts.Postprocess;
 cohortBounds = opts.CohortBounds_s;
 
 
-cutoff_f = 2; % ignore single-frame tracks
-minLft = cutoff_f*data.framerate;
+minLft = 2*data.framerate; % ignore single-frame tracks
 cohortBounds(cohortBounds<=minLft) = [];
 cohortBounds = [minLft cohortBounds data.movieLength*data.framerate];
 
@@ -89,23 +89,8 @@ kLevel = norminv(1-alpha/2.0, 0, 1); % ~2 std above background
 nCh = length(data.channels);
 mCh = strcmp(data.source, data.channels);
 
-% for k = 1:nCh
-%     data.framePaths{k} = data.framePaths{k}(frameIdx);
-% end
-% 
-% data.maskPaths = data.maskPaths(frameIdx);
-% data.framerate = data.framerate*(frameIdx(2)-frameIdx(1));
-% data.movieLength = length(data.framePaths{1});
-
 sigma = sigmaV(mCh);
-% w2 = ceil(2*sigma);
-w3 = ceil(3*sigma);
 w4 = ceil(4*sigma);
-
-[x,y] = meshgrid(-w4:w4);
-r = sqrt(x.^2+y.^2);
-annularMask = zeros(size(r));
-annularMask(r<=w4 & r>=w3) = 1;
 
 %======================================================================
 % Read and convert tracker output
@@ -126,7 +111,7 @@ end
 %======================================================================
 if preprocess
     % Remove single-frame tracks
-    bounds = arrayfun(@(i) i.seqOfEvents([1 end],1), trackinfo, 'UniformOutput', false);
+    bounds = arrayfun(@(i) i.seqOfEvents([1 end],1), trackinfo, 'unif', 0);
     rmIdx = diff(horzcat(bounds{:}), [], 1)==0;
     trackinfo(rmIdx) = [];
     nTracks = size(trackinfo, 1);
@@ -214,7 +199,6 @@ if preprocess
             
             % re-order seqOfEvents
             [~,ridx] = sort(seqOfEvents(:,1));
-            %[~,lidx] = sort(ridx);
             seqOfEvents = seqOfEvents(ridx,:);
             
             % indexes in seqOfEvents must be in order of segment appearance
@@ -259,7 +243,7 @@ idx(loc(loc~=0)) = false;
 mcFieldNames = mcFieldNames(idx);
 mcFieldSizes = structfun(@(i) size(i,1), frameInfo(1));
 mcFieldSizes = mcFieldSizes(idx);
-bufferFieldNames = {'t', 'x', 'y', 'A', 'c', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
+bufferFieldNames = {'t', 'f', 'x', 'y', 'A', 'c', 'A_pstd', 'c_pstd', 'sigma_r', 'SE_sigma_r', 'pval_Ar'};
 
 %==============================
 % Loop through tracks
@@ -344,7 +328,12 @@ for k = 1:nTracks
         
         % start buffer size for this track
         sb = firstIdx - max(1, firstIdx-buffer(k,1));
-        eb = min(lastIdx+buffer(k,2), data.movieLength)-lastIdx;
+        if isinf(buffer(k,2))
+            eb = data.movieLength-lastIdx;
+            buffer(k,2) = eb;
+        else
+            eb = min(lastIdx+buffer(k,2), data.movieLength)-lastIdx;
+        end
         if sb>0 && (tracks(k).visibility==1 || opts.BufferAll)
             for f = 1:length(bufferFieldNames)
                 tracks(k).startBuffer.(bufferFieldNames{f}) = NaN(nCh, sb);
@@ -445,10 +434,12 @@ for k = 1:nTracks
             for c = 1:nCh
                 tracks(k).x(c, gacombIdx) = interp1(borderIdx, tracks(k).x(c, borderIdx), gacombIdx);
                 tracks(k).y(c, gacombIdx) = interp1(borderIdx, tracks(k).y(c, borderIdx), gacombIdx);
+                tracks(k).A(c, gacombIdx) = interp1(borderIdx, tracks(k).A(c, borderIdx), gacombIdx);
+                tracks(k).c(c, gacombIdx) = interp1(borderIdx, tracks(k).c(c, borderIdx), gacombIdx);
             end
         end
         tracks(k).gapStatus = gapStatus;
-        tracks(k).gapIdx = arrayfun(@(i) gapStarts(i):gapEnds(i), 1:nGaps, 'UniformOutput', false);
+        tracks(k).gapIdx = arrayfun(@(i) gapStarts(i):gapEnds(i), 1:nGaps, 'unif', 0);
     end
     fprintf('\b\b\b\b%3d%%', round(100*k/nTracks));
 end
@@ -475,10 +466,7 @@ for f = 1:data.movieLength
     else
         mask = double(readtiff(data.maskPaths, f));
     end
-    
-    % binarize
-    mask(mask~=0) = 1;
-    labels = bwlabel(mask);
+    labels = bwlabel(mask~=0);
     
     for ch = 1:nCh
         if iscell(data.framePaths{mCh})
@@ -497,10 +485,10 @@ for f = 1:data.movieLength
             
             % index in the track structure (.x etc)
             idxList = find(tracks(k).f==f & tracks(k).gapVect==1);
-            
             for l = 1:numel(idxList)
                 idx = idxList(l);
-                [t0] = interpTrack(tracks(k).x(ch,idx), tracks(k).y(ch,idx), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
+                [t0] = interpTrack(tracks(k).x(ch,idx), tracks(k).y(ch,idx), frame, labels,...
+                    tracks(k).A(ch,idx), tracks(k).c(ch,idx), sigmaV(mCh), sigmaV(ch), kLevel);
                 tracks(k) = mergeStructs(tracks(k), ch, idx, t0);
             end
         end
@@ -515,8 +503,8 @@ for f = 1:data.movieLength
         
         for ki = 1:length(currentBufferIdx)
             k = currentBufferIdx(ki);
-            
-            [t0] = interpTrack(tracks(k).x(ch,1), tracks(k).y(ch,1), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
+            [t0] = interpTrack(tracks(k).x(ch,1), tracks(k).y(ch,1), frame, labels,...
+                tracks(k).A(ch,1), tracks(k).c(ch,1), sigmaV(mCh), sigmaV(ch), kLevel);
             bi = f - max(1, tracks(k).start-buffer(k,1)) + 1;
             tracks(k).startBuffer = mergeStructs(tracks(k).startBuffer, ch, bi, t0);
         end
@@ -531,8 +519,8 @@ for f = 1:data.movieLength
         
         for ki = 1:length(currentBufferIdx)
             k = currentBufferIdx(ki);
-            
-            [t0] = interpTrack(tracks(k).x(ch,end), tracks(k).y(ch,end), frame, labels, annularMask, sigma, sigmaV(ch), kLevel);
+            [t0] = interpTrack(tracks(k).x(ch,end), tracks(k).y(ch,end), frame, labels,...
+                tracks(k).A(ch,end), tracks(k).c(ch,end), sigmaV(mCh), sigmaV(ch), kLevel);
             bi = f - tracks(k).end;
             tracks(k).endBuffer = mergeStructs(tracks(k).endBuffer, ch, bi, t0);
         end
@@ -548,10 +536,12 @@ for k = 1:nTracks
     % add buffer time vectors
     if ~isempty(tracks(k).startBuffer)
         b = size(tracks(k).startBuffer.x,2);
+        tracks(k).startBuffer.f = (-b:-1) + tracks(k).start;
         tracks(k).startBuffer.t = ((-b:-1) + tracks(k).start-1) * data.framerate;
     end
     if ~isempty(tracks(k).endBuffer)
         b = size(tracks(k).endBuffer.x,2);
+        tracks(k).endBuffer.f = tracks(k).end + (1:b);
         tracks(k).endBuffer.t = (tracks(k).end + (1:b)-1) * data.framerate;
     end
 end
@@ -668,18 +658,16 @@ if postprocess
     for k = 1:numel(idx_Ia)
         i = idx_Ia(k);
         
-        if ~isempty(tracks(i).startBuffer) && ~isempty(tracks(i).endBuffer)
-            % H0: A = background (p-value >= 0.05)
-            sbin = tracks(i).startBuffer.pval_Ar(mCh,:) < 0.05; % positions with signif. signal
-            ebin = tracks(i).endBuffer.pval_Ar(mCh,:) < 0.05;
-            [sl, sv] = binarySegmentLengths(sbin);
-            [el, ev] = binarySegmentLengths(ebin);
-            if ~any(sl(sv==0)>=Tbuffer) || ~any(el(ev==0)>=Tbuffer) ||...
-                    max([tracks(i).startBuffer.A(mCh,:)+tracks(i).startBuffer.c(mCh,:)...
-                    tracks(i).endBuffer.A(mCh,:)+tracks(i).endBuffer.c(mCh,:)]) >...
-                    max(tracks(i).A(mCh,:)+tracks(i).c(mCh,:))
-                tracks(i).catIdx = 2;
-            end
+        % H0: A = background (p-value >= 0.05)
+        sbin = tracks(i).startBuffer.pval_Ar(mCh,:) < 0.05; % positions with signif. signal
+        ebin = tracks(i).endBuffer.pval_Ar(mCh,:) < 0.05;
+        [sl, sv] = binarySegmentLengths(sbin);
+        [el, ev] = binarySegmentLengths(ebin);
+        if ~any(sl(sv==0)>=Tbuffer) || ~any(el(ev==0)>=Tbuffer) ||...
+                max([tracks(i).startBuffer.A(mCh,:)+tracks(i).startBuffer.c(mCh,:)...
+                tracks(i).endBuffer.A(mCh,:)+tracks(i).endBuffer.c(mCh,:)]) >...
+                max(tracks(i).A(mCh,:)+tracks(i).c(mCh,:))
+            tracks(i).catIdx = 2;
         end
     end
     
@@ -792,9 +780,8 @@ if postprocess
             (tracks(i).y(mCh,2:end) - tracks(i).y(mCh,1:end-1)).^2);
         medianDist(i) = nanmedian(dists{i});
     end
-    p95 = prctile(medianDist, 95);
     for i = 1:nt
-        if sum(dists{i}>p95)>4 && tracks(i).catIdx==1
+        if sum(dists{i}>prctile(medianDist, 95))>4 && tracks(i).catIdx==1
             tracks(i).catIdx = 2;
         end
     end
@@ -831,10 +818,26 @@ if postprocess
     
 end % postprocessing
 
+%===============================================================================
+% Classify slave channel signals
+%===============================================================================
+if nCh>1
+    tracks = runSlaveChannelClassification(data, tracks);
+    
+    idx = [tracks.catIdx]==1 & [tracks.lifetime_s]>=data.framerate*opts.Cutoff_f;
+    nPosM = sum([tracks(idx).significantMaster],2);
+    nPosS = sum([tracks(idx).significantSlave],2);
+    for c = setdiff(1:nCh,mCh)
+        if ~isempty(nPosM)
+            fprintf('Ch. %d positive tracks as master: %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosM(c)/sum(idx), nPosM(c), sum(idx), nt);
+            fprintf('Ch. %d positive tracks as slave:  %.2f %% (%d/%d valid, %d total)\n', c, 100*nPosS(c)/sum(idx), nPosS(c), sum(idx), nt);
+        end
+    end
+end
 
-%==========================================
+%===============================================================================
 % Save results
-%==========================================
+%===============================================================================
 if ~(exist([data.source 'Tracking'], 'dir')==7)
     mkdir([data.source 'Tracking']);
 end
@@ -847,34 +850,30 @@ if isunix
     end
 end
 processingInfo.procFlag = [preprocess postprocess];
-
 save([data.source 'Tracking' filesep opts.FileName], 'tracks', 'processingInfo');
 
 
 
+
 % calculate track fields for gap or buffer position
-function [ps] = interpTrack(x, y, frame, labels, annularMask, sigma, sigmaCh, kLevel)
+function [ps] = interpTrack(x, y, frame, labels, ai, ci, sigma, sigmaCh, kLevel)
 
 xi = round(x);
 yi = round(y);
 
 w2 = ceil(2*sigma);
 w4 = ceil(4*sigma);
-% window/masks (see psfLocalization.m for details)
+
 maskWindow = labels(yi-w4:yi+w4, xi-w4:xi+w4);
 maskWindow(maskWindow==maskWindow(w4+1,w4+1)) = 0;
 
-cmask = annularMask;
-cmask(maskWindow~=0) = 0;
-window = frame(yi-w4:yi+w4, xi-w4:xi+w4);
-
-ci = mean(window(cmask==1));
+window = double(frame(yi-w4:yi+w4, xi-w4:xi+w4));
 window(maskWindow~=0) = NaN;
 
 x0 = x-xi;
 y0 = y-yi;
 npx = sum(isfinite(window(:)));
-[prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaCh ci], 'xyAc');
+[prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 ai sigmaCh ci], 'xyAc');
 dx = prm(1);
 dy = prm(2);
 if (dx > -w2 && dx < w2 && dy > -w2 && dy < w2)
@@ -883,7 +882,7 @@ if (dx > -w2 && dx < w2 && dy > -w2 && dy < w2)
     ps.A_pstd = prmStd(3);
     ps.c_pstd = prmStd(4);
 else
-    [prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 max(window(:))-ci sigmaCh ci], 'Ac');
+    [prm, prmStd, ~, res] = fitGaussian2D(window, [x0 y0 ai sigmaCh ci], 'Ac');
     ps.x = x;
     ps.y = y;
     ps.A_pstd = prmStd(1);
@@ -914,5 +913,3 @@ cn = fieldnames(cs);
 for f = 1:numel(cn)
     ps.(cn{f})(ch,idx) = cs.(cn{f});
 end
-
-

@@ -216,7 +216,7 @@ else
             sC = zeros(1,nc);
             for c = 1:nc
                 cidx = cb(c)<lft & lft<=cb(c+1);
-                [muC(c), sC(c)] = fitGaussianModeToCDF(M(cidx,:));
+                [muC(c), sC(c)] = fitGaussianModeToPDF(M(cidx,:), 'FixMode', true);
             end
             hval(frameRange(ni)) = adtest1(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
         end
@@ -225,10 +225,9 @@ else
     
     M = nanmax(A(:,1:FirstNFrames,mCh),[],2);
     
-    [mu_g, sigma_g] = fitGaussianModeToCDF(M);
-    %[mu_g sigma_g] = fitGaussianModeToPDF(M);
+    [mu_g, sigma_g] = fitGaussianModeToPDF(M, 'FixMode', true, 'Display', false);
     T = norminv(0.99, mu_g, sigma_g);
-
+    
     % save threshold value
     prm.MaxIntensityThreshold = T;
     prm.nFramesThreshold = FirstNFrames;
