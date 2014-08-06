@@ -17,6 +17,10 @@ function iceConn = movieViewerImaris(MD,varargin)
 
 if nargin < 1 || isempty(MD)
     [filePath,fileName] = optionalFileInput('','*.mat','Select the MovieData file to view:');
+    if fileName == 0
+        %if user clicked cancel
+        return
+    end
     MD = MovieData.load([filePath fileName]);        
 elseif ~isa(MD,'MovieData') || ~MD.is3D
     error('First input must be a MovieData object describing a 3D dataset!')
@@ -55,10 +59,14 @@ end
 %Start imaris
 iceConn.startImaris;
 
+%Make sure the viewer is set to surpass so the scene will be setup
+%correctly
+iceConn.mImarisApplication.SetViewer(Imaris.tViewer.eViewerSurpass);    
+
 %Create the dataset
 dataSet = iceConn.createDataset(imClass,imSize(1),imSize(2),imSize(3),nChan,nFrames,...
-                                       pixSize(1),pixSize(2),pixSize(3),tInt);
-
+                                       pixSize(1),pixSize(2),pixSize(3),tInt);                              
+                                   
 %Set image properties. 
 chanCols = jet(nChan);%Default colors
 for iChan = 1:nChan    
@@ -68,6 +76,7 @@ for iChan = 1:nChan
     end
     dataSet.SetChannelColorRGBA(iChan-1,iceConn.mapRgbaVectorToScalar([chanCols(iChan,:) 0]));
 end
+dataSet.SetUnit('um');%Be sure we're in microns
 
 dispMin = Inf(1,nChan);
 dispMax = zeros(1,nChan);
