@@ -38,7 +38,7 @@ function [timeOfCollision,distOfCollision] = calcTimeOfCollision(ptcle1,ptcle2)
     b2y = ptcle2.yi;
     
     %Slopes for both particles in x and y - calculated in units of 1/dT,
-    %hence tf = 1 and ti = 0.
+    %where dt is the time step. Hence tf = 1 and ti = 0.
     m1x = (ptcle1.xf - ptcle1.xi)/1;
     m2x = (ptcle2.xf - ptcle2.xi)/1;
     m1y = (ptcle1.yf - ptcle1.yi)/1;
