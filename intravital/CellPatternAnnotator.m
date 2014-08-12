@@ -847,7 +847,7 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
         if ~isfield(annotationData.metadata, 'pixelSize') % check if old metadata struct
         
             metadata.version = '2.0.0';
-            metadata.dataFilePath = analysisData.metadata.dataFilePath([1, 2, 2]);
+            metadata.dataFilePath = annotationData.dataFilePath([1, 2, 2]);
             metadata.format = repmat({'Olympus'}, 1, 3);
             
             metadata.numSeries = ones(1,3);
@@ -860,8 +860,8 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
             metadata.channelId = [1, 1, 2];
             metadata.channelNames = {'Nuclei', 'FUCCI Geminin', 'FUCCI Cdt1'};
             
-            metadata.imageSize = annotationData.volSize;
-            metadata.pixelSize = annotationData.voxelSpacing;
+            metadata.imageSize = annotationData.metadata.volSize;
+            metadata.pixelSize = annotationData.metadata.voxelSpacing;
             
             metadata.pixelType = 'uint16';
             metadata.bitsPerPixel = 12;

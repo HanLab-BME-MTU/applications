@@ -13,6 +13,9 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     
     PARAMETERS = p.Results;
     
+    %imInput = mat2gray(imInput) + 1;
+    %imInput = imInput - min(imInput(:)) + 1;
+    
     % estimate local background using morphological opening
     if PARAMETERS.downsamplingFactor < 1
         imResized = imresizend(imInput, [PARAMETERS.downsamplingFactor * ones(1, PARAMETERS.kernelDimensions), ones(1, ndims(imInput) - PARAMETERS.kernelDimensions)] );
@@ -27,6 +30,7 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     end
     
     % compute signal to background ration
+    %imSignalToBackgroundRatio = (imInput - imLocalBackground) ./ (eps + imLocalBackground);
     imSignalToBackgroundRatio = imInput ./ (eps + imLocalBackground);
     
     % apply cutoff
@@ -34,7 +38,8 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
 
     % post-processing (optional)
     if ~isempty(PARAMETERS.minObjectRadius)
-        krnlMin = streldisknd( round(PARAMETERS.minObjectRadius ./ PARAMETERS.spacing) );
+        %krnlMin = streldisknd( round(PARAMETERS.minObjectRadius ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) );
+        krnlMin = ones(2 * round(PARAMETERS.minObjectRadius ./ PARAMETERS.spacing(1:PARAMETERS.kernelDimensions)) + 1 ); % flat kernel is much more faster
         imMask = imopen(imMask, krnlMin);
     end
     

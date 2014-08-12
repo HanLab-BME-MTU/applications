@@ -29,7 +29,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     
     % macrophages segmentation
     p.addParamValue('maxMacrophageObjectRadius', 20, @(x) (isnumeric(x) && isscalar(x)));
-    p.addParamValue('minMacrophageObjectRadius', 2.0, @(x) (isnumeric(x) && isscalar(x)));
+    p.addParamValue('minMacrophageObjectRadius', 1.0, @(x) (isnumeric(x) && isscalar(x)));
     p.addParamValue('minMacrophageSignalToBackgroundRatio', 2.5, @(x) (isnumeric(x) && isscalar(x)));
 
     % colocalization
@@ -124,6 +124,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
 
         end
 
+        stackInfoStruct.metadata = metadata;
+        
     compInfo.dataLoadTime = toc(dataLoadTimer);    
     
     if PARAMETERS.flagSaveImages

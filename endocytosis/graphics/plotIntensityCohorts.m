@@ -106,7 +106,6 @@ end
 
 % loop through data sets, generate cohorts for each
 res(1:nd) = struct('interpTracks', [], 'interpSigLevel', []);
-cohortBounds(end) = cohortBounds(end)+framerate;
 for i = 1:nd
     
     % for intensity threshold in master channel
@@ -116,8 +115,14 @@ for i = 1:nd
         % interpolate tracks to mean cohort length
         for c = 1:nc % cohorts
             % tracks in current cohort (above threshold)
-            cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<cohortBounds(c+1) &...
-                maxA > ip.Results.MaxIntensityThreshold);
+            if c<nc
+                cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<cohortBounds(c+1) &...
+                    maxA > ip.Results.MaxIntensityThreshold);
+            else % inclusive upper bound for last cohort
+                cidx = find(cohortBounds(c)<=lftData(i).lifetime_s & lftData(i).lifetime_s<=cohortBounds(c+1) &...
+                    maxA > ip.Results.MaxIntensityThreshold);
+            end
+            
             nt = numel(cidx);
             if nt>0
                 interpTracks = zeros(nt,iLength(c));
@@ -168,7 +173,7 @@ for i = 1:nd
     end
 end
 
-cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)-framerate) ' s'], 1:nc, 'Unif', 0);
+cohortLabels = arrayfun(@(i) [num2str(cohortBounds(i)) '-' num2str(cohortBounds(i+1)) ' s'], 1:nc, 'Unif', 0);
 XTick = (cohortBounds(1:end-1)+[cohortBounds(2:end-1) cohortBounds(end)-framerate])/2;
 if strcmpi(ip.Results.Align, 'right')
     XTick = 0 - XTick(end:-1:1);

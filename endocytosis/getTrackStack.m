@@ -11,15 +11,14 @@ ip.CaseSensitive = false;
 ip.addRequired('data', @isstruct);
 ip.addRequired('track', @isstruct);
 ip.addParamValue('Reference', 'track', @(x) strcmpi(x, 'track') | strcmpi(x, 'frame'));
-ip.addParamValue('WindowWidth', 5, @isscalar);
+ip.addParamValue('WindowWidth', 8, @isscalar);
 ip.addParamValue('Source', 'frame', @(x) any(strcmpi(x, {'frame', 'mask'})));
 ip.parse(data, track, varargin{:});
 
 nc = length(data.channels);
 mCh = strcmp(data(1).source, data(1).channels);
 
-sigma = getGaussianPSFsigma(data.NA, data.M, data.pixelSize, data.markers{mCh});
-w = ceil(ip.Results.WindowWidth*sigma);
+w = ceil(ip.Results.WindowWidth);
 
 % coordinate matrices
 xv = track.x;

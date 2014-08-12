@@ -4,11 +4,6 @@ classdef BioImageReader
         
         function this = BioImageReader(dataFilePath)
             
-            if nargin == 0                
-                [file, path] = uigetfile(bfGetFileExtensions, 'Choose a file to open');
-                dataFilePath = fullfile(path, file);
-            end
-
             this.dataFilePath = dataFilePath;
             this.r = bfGetReader(dataFilePath);    
             this.metadataList = this.extractMetadata();

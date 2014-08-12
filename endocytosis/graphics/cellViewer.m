@@ -37,6 +37,14 @@ else
     wy = 1;
 end
 
+% load/generate mask
+if strcmpi(ip.Results.Mode, 'mask')
+    mask = getCellMask(data);
+    if N==1
+        mask = {mask};
+    end
+end
+
 figure;
 colormap(gray(256));
 for k = 1:N
@@ -51,16 +59,16 @@ for k = 1:N
             frame = imread(data(k).framePaths{ip.Results.Channel}, ip.Results.Frame);
         end
     else
-        tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
-        frame = scaleContrast(tmp.aip);
-        frame = scaleContrast(sqrt(frame));
+        %tmp = load([data(k).source 'Detection' filesep 'avgProj.mat']);
+        %frame = scaleContrast(tmp.aip);
+        %frame = scaleContrast(sqrt(frame));
+        frame = scaleContrast(double(imread([data(k).source 'Detection' filesep 'maxproj.tif'])));
     end
     
     imagesc(frame, 'Parent', ha);
     if strcmpi(ip.Results.Mode, 'mask')
-        mask = double(imread([data(k).source 'Detection' filesep 'cellmask.tif']));
         hold on;
-        B = bwboundaries(mask);
+        B = bwboundaries(mask{k});
         cellfun(@(i) plot(i(:,2),i(:,1), 'r'), B);
     end
     

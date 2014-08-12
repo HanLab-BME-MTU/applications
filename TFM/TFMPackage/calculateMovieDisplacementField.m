@@ -222,7 +222,7 @@ for j= firstFrame:nFrames
     % coordinate system
     validV = ~isinf(v(:,1));
     displField(j).pos=localbeads(validV,:);
-    displField(j).vec=[v(validV,1)+residualT(j,1) v(validV,2)+residualT(j,2)];
+    displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
     
     % Update the waitbar
     if mod(j,5)==1 && ishandle(wtBar)
