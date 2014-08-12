@@ -17,12 +17,22 @@
     % dataFileDir = stefanNewDataDir; 
     
     if ~exist( 'dataFilePath', 'var' )
+        bfCheckJavaPath(1);
         [fileName,pathName] = uigetfile( fullfile( dataFileDir, bfGetFileExtensions), 'Select the data file' );   
+        
+        if ~fileName
+            return;
+        end
+        
         dataFilePath = fullfile( pathName, fileName )
     end
 
     % load data using bfopen from the Bioformats toolbox
     [imageData, metadata] = uiGetBioImageData(dataFilePath);
+    
+    if isempty(imageData)
+        return;
+    end
     
     %% segment cells using watershed with seed points detected as local intensity maxima   
     %[ imLabelCellSeg ] = segmentCellsInIntravitalData( imageData{1,2}, metadata.voxelSpacing, 'flagDisplayResultsInImaris', true, 'flagParallelize', true);
@@ -44,11 +54,14 @@
     %experiment_global_thresholding( double(imageData{chid}), metadata );    
 
     chid = 1;
-    imPreprocessed = matitk( 'FMEDIAN', 2 * [1, 1, 0], double(imageData{chid}) );
-    imMask = thresholdSBR(imPreprocessed, 20, 1.1, ...
+    imPreprocessed = matitk( 'FMEDIAN', round(min(metadata.pixelSize) ./ metadata.pixelSize), double(mat2gray(imageData{chid}) * 4096) );
+    
+    % SBR: 
+    %   DNA Damage - 1.10 for drug and macrophage channel, 1.05 for the nuclei  
+    imMask = thresholdSBR(imPreprocessed, 20, 2.0, ...
                           'spacing', metadata.pixelSize, ...
                           'kernelDimensions', 2, ...
-                          'flagDebugMode', true);
+                          'flagDebugMode', true, 'downsamplingFactor', 0.5);
 
 %     [ imThresholdSurface, imMask ] = thresholdVariationalMinMaxOpt( imPreprocessed );
 %     imseriesmaskshow(imageData{chid}, imMask);

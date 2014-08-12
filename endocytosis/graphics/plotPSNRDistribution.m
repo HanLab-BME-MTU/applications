@@ -60,8 +60,8 @@ ylabel('Frequency', fset.sfont{:});
 formatTickLabels();
 
 if nargout>0
-    varargout{1} = cmap;
+    varargout{1} = psnr;
 end
 if nargout>1
-    varargout{2} = ha;
+    varargout{2} = cmap;
 end

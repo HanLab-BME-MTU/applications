@@ -295,13 +295,13 @@ function RunAnalysis(hObject, handles)
     end
     
     [handles.data.imLabelCellSeg, ...
-     handles.data.imCellSeedPoints] = segmentCellsInIntravitalData( handles.data.imageData{1}, ...
+     handles.data.imCellSeedPoints] = segmentCellsInIntravitalData( handles.data.imageData{handles.data.metadata.channelIdNuclei}, ...
                                                                     handles.data.metadata.pixelSize, ...                                                                      
                                                                     'flagParallelize', handles.parameters.flagParallelize, ...
                                                                     'flagDebugMode', handles.parameters.flagDebugMode, ...
                                                                     'cellDiameterRange', handles.parameters.nucleiSegmentation.cellDiameterRange, ...
                                                                     'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
-                                                                    'minSignalToBackgroundRatio', 1.5, ...
+                                                                    'minSignalToBackgroundRatio', 1.7, ...
                                                                     'seedPointDetectionAlgorithm', handles.parameters.nucleiSegmentation.seedPointDetectionAlgorithm, ...
                                                                     'minCellVolume', handles.parameters.nucleiSegmentation.minCellVolume, ...
                                                                     'flagIgnoreCellsOnXYBorder', handles.parameters.nucleiSegmentation.flagIgnoreXYBorderCells, ...
@@ -355,7 +355,7 @@ function [cellStats] = ComputeCellProperties( handles )
     for i = 1:numel(cellStats)
 
         % intensity descriptors
-        cellPixelIntensities = handles.data.imageData{1}( cellStats(i).PixelIdxList );
+        cellPixelIntensities = handles.data.imageData{handles.data.metadata.channelIdNuclei}( cellStats(i).PixelIdxList );
         cellStats(i).meanIntensity = mean( cellPixelIntensities );
         cellStats(i).stdIntensity = std( double(cellPixelIntensities) );
         cellStats(i).minIntensity = min( cellPixelIntensities );
@@ -394,21 +394,22 @@ function UpdateCellDisplay(handles)
     
     curCellStats = handles.data.cellStats( handles.dataDisplay.curCellId );        
     curCellSliceId = handles.dataDisplay.curCellSliceId;
-    curCellCentroid = round( curCellStats.Centroid );    
+    curCellCentroid = round( curCellStats.Centroid );  
+    curChannelId = handles.data.metadata.channelIdNuclei;
     
     curCellBoundingBox = curCellStats.BoundingBox;
     curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
     
     % display global cross section images  
     if handles.flagUseLOG               
-        imGlobalXY = handles.dataDisplay.imageDataLOG{1}( :, :, curCellSliceId(3) );       
-        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.dataDisplay.imageDataLOG{curChannelId}( :, :, curCellSliceId(3) );       
+        imGlobalXZ = squeeze( handles.dataDisplay.imageDataLOG{curChannelId}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.dataDisplay.imageDataLOG{curChannelId}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imLogDisplayRange;
     else        
-        imGlobalXY = handles.data.imageData{1}( :, :, curCellSliceId(3) );
-        imGlobalXZ = squeeze( handles.data.imageData{1}( curCellSliceId(1), :, : ) );
-        imGlobalYZ = squeeze( handles.data.imageData{1}( :, curCellSliceId(2), : ) );
+        imGlobalXY = handles.data.imageData{curChannelId}( :, :, curCellSliceId(3) );
+        imGlobalXZ = squeeze( handles.data.imageData{curChannelId}( curCellSliceId(1), :, : ) );
+        imGlobalYZ = squeeze( handles.data.imageData{curChannelId}( :, curCellSliceId(2), : ) );
         displayrange = handles.dataDisplay.imDisplayRange;
     end
     imGlobalXY = mat2gray(imGlobalXY, displayrange(1,:) );
@@ -451,7 +452,7 @@ function UpdateCellDisplay(handles)
     % draw bounding box around each cell
     if handles.flagShowCellBBox
         
-        imsize = size( handles.data.imageData{1} );
+        imsize = size( handles.data.imageData{curChannelId} );
         hold( handles.Axes_Global_XY, 'on' );
             
             w = curCellDisplaySize([1,1]);
@@ -501,7 +502,7 @@ function UpdateCellDisplay(handles)
         
     % extract image within a bounding box around the cell
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{curChannelId});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -524,7 +525,7 @@ function UpdateCellDisplay(handles)
     if handles.flagUseLOG
         imCellCropped = mat2gray( handles.dataDisplay.imageDataLOG{1}(subinds{:}), handles.dataDisplay.imLogDisplayRange(1,:) );        
     else
-        imCellCropped = mat2gray( handles.data.imageData{1}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
+        imCellCropped = mat2gray( handles.data.imageData{curChannelId}(subinds{:}), handles.dataDisplay.imDisplayRange(1,:) );        
     end
     imCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );
     imCellSegCropped = double( imCellSegCropped == handles.dataDisplay.curCellId );    
@@ -554,7 +555,7 @@ function UpdateCellDisplay(handles)
     subindsMIP{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
 
     imCurCellSegMIP = max( double( handles.data.imLabelCellSeg( subindsMIP{:} ) == handles.dataDisplay.curCellId ), [], 3);
-    imCurCellMIP = mat2gray( max( double( handles.data.imageData{1}( subindsMIP{:} ) ), [], 3 ) .* imCurCellSegMIP );
+    imCurCellMIP = mat2gray( max( double( handles.data.imageData{curChannelId}( subindsMIP{:} ) ), [], 3 ) .* imCurCellSegMIP );
     imHistoneMIPDisplay = repmat( imCurCellMIP, [1,1,3] );
     
     cla( handles.Axes_Histone_MIP, 'reset' );
@@ -874,7 +875,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
             curCellOutputDir = fullfile(outputDir, curCellPatternType); 
 
             subinds = cell(1,3);
-            imsize = size(handles.data.imageData{1});
+            imsize = size(handles.data.imageData{handles.data.metadata.channelIdNuclei});
             for i = 1:2
 
                 xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -895,7 +896,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
             subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));
             
             % MIP
-            imCurCellCropped = handles.data.imageData{1}(subinds{1:2}, :);
+            imCurCellCropped = handles.data.imageData{handles.data.metadata.channelIdNuclei}(subinds{1:2}, :);
             imCurCellSegCropped = (handles.data.imLabelCellSeg(subinds{1:2}, :) == cellId);
             
             imCurCellMIP = imresize( mat2gray(max(imCurCellCropped .* imCurCellSegCropped, [], 3)), szOutputImage);
@@ -905,7 +906,7 @@ function File_SaveAnnotation_Callback(~, eventdata, handles)
             % Mid slices
             imCurCellSegMidSliceBndCropped = imresize( bwperim( imCurCellSegCropped(:, :, round(curCellCentroid(3))) ), szOutputImage, 'nearest'); 
             
-            imCurCellCroppedMidSlice = mat2gray( handles.data.imageData{1}( subinds{1:2}, round(curCellCentroid(3)) ), handles.dataDisplay.imDisplayRange(1,:) );
+            imCurCellCroppedMidSlice = mat2gray( handles.data.imageData{handles.data.metadata.channelIdNuclei}( subinds{1:2}, round(curCellCentroid(3)) ), handles.dataDisplay.imDisplayRange(1,:) );
             imCurCellCroppedMidSlice = imresize(imCurCellCroppedMidSlice, szOutputImage);
 
             imwrite( genImageMaskOverlay(imCurCellCroppedMidSlice, imCurCellSegMidSliceBndCropped, [1, 0, 0], 0.5), ...
@@ -1238,7 +1239,7 @@ function FnSliceScroll_Callback(hSrc, eventdata)
         return;
     end
     
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelIdNuclei});
 
     if IsMouseInsideAxes(handles.Axes_Global_XZ)
         viewId = 1; % y-slice
@@ -1330,7 +1331,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
 
     % create crop indices
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelIdNuclei});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -1474,7 +1475,7 @@ function CellSegmentationQualityAnnotator_WindowButtonDownFcn(hObject, eventdata
         return;
     end
     
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelIdNuclei});
     newCellSliceId = handles.dataDisplay.curCellSliceId;
     
     if IsMouseInsideAxes(handles.Axes_Global_XZ)

@@ -1,56 +1,72 @@
-%[k, y, BIC] = fitMultiStep(x, f, varargin) implements a multi-step process 
+%[k, y, BIC] = fitMultiStepMLE(x, f, varargin) implements a multi-step process 
 % of the form 
 %
 %    k1     k2      kn
 % S0 --> S1 --> ... --> Sn
 %
-% FFT-based implementation
+% INPUTS
+%         x : histogram bin boundaries
+%      data : histogram counts
+%
+% OPTIONS (Specifier, 'value')
+%     'Display' : true|{false} plots the fitting result
+%       'Noise' : 'Gaussian'|{'Poisson'} selects the noise model
+%
+% OUTPUTS
+%         k : estimated rates
+%    k_pstd : s.d. of rates, obtained by error propagation
+%       res : structure with fields:
+%             .Lmax : maximized log-likelihood value and s.d.
+%             .BIC : Bayesian Information Criterion and s.d.
+%             .AICc : corrected Akaike Information Criterion and s.d.
+%             .model : fitted model. If 'CalculateModelUncertainty' was 'true'
+%                      the second column contains the model s.d.
+%             .C : covariance matrix of the parameters
+%
+% Notes: FFT-based implementation
 
+% Francois Aguet, 2013-2014
 
-% Francois Aguet, 03/12/2013
-
-function [k, k_pstd, y, i, BIC, C] = fitMultiStepMLE(x, data, varargin)
+function [k, k_pstd, res, BIC] = fitMultiStepMLE(x, data, varargin)
 
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('x');
 ip.addRequired('f');
 ip.addOptional('StepRange', 1:5);
-% ip.addParamValue('MaxSteps', 6);
+ip.addParamValue('Noise', 'Poisson', @(x) any(strcmpi(x, {'Gaussian', 'Poisson'})));
 ip.addParamValue('Display', false, @islogical);
+ip.addParamValue('NumInit', 1, @isposint);
+ip.addParamValue('Reference', []);
 ip.parse(x, data, varargin{:});
-% K = ip.Results.MaxSteps;
 stepRange = ip.Results.StepRange;
 
-dx = x(2)-x(1);
-% initial value
-mu = sum(data.*x*dx)/sum(data*dx);
-k0 = 1/mu;
-
 K = numel(stepRange);
-
-n = numel(data);
-RSS = NaN(1,K);
-BIC = NaN(1,K);
-kvec = cell(1,K);
-J = cell(1,K);
-
-kref = [ 0.0347    0.1743    0.2666    0.0376    0.1102 0.1]; % temp fix
-% k0 = kref(1:stepRange(1));
-% res = cell(1,K);
-% res = struct([]);
-% res = [];
 p = cell(1,K);
-for i = 1:K
 
-    %     k0 = 0.15+zeros(i,1);
-    %k0 = kref(1:i);
-    k0 = rand(1,i)*0.05;
-    [p{i}, res(i)] = fitHistMLE(x, data, @stepModelFFT, k0);
-    k = p{i}(:,1);
-   
-    % update initial values
-    k0 = [k; max(k)/2];
+% single-step (exp) fit
+mu = sum(data.*x)/sum(data);
+k0 = 1/mu;
+[p{1}, res(1)] = fitHistMLE(x, data, @stepModelFFT, k0, 'Noise', ip.Results.Noise);
+
+nIter = ip.Results.NumInit;
+for i = 2:K
+    % perform fit multiple times with random intializations
+    pv = cell(1,nIter);
+    resv = cell(1,nIter);
+    for j = 1:nIter
+        % update initial values
+        k = p{i-1}(:,1);
+        k0 = [k; (rand*0.8+0.1)*max(k)];
+        %k0 = rand(1,i)*0.05;
+        [pv{j}, resv{j}] = fitHistMLE(x, data, @stepModelFFT, k0, 'Noise', ip.Results.Noise);
+    end
+    % select best fit
+    resv = vertcat(resv{:});
+    BIC = vertcat(resv.BIC);
+    [~,idx] = min(BIC(:,1));
+    p{i} = pv{idx};
+    res(i) = resv(idx);
 end
 
 % best fit
@@ -66,23 +82,30 @@ end
 % last significant difference:
 % [~,i] = min(BIC(:,1));
 %idx = find(hval==1, 1, 'last')+1;
-idx = find(hval==0, 1, 'first');
+idx = find(hval==0, 1, 'first'); % in case of numerical errors with more complex models
+if isempty(idx)
+    idx = K;
+end
+
+% Output:
 k = p{idx}(:,1);
 k_pstd = p{idx}(:,2);
+res = res(idx);
 
+% chi2 test
+% s = sum((data(:)-res.model(:,1)).^2./res.model(:,1));
+% pchi2 = chi2cdf(s,numel(data)-1);
 
-
-% m = stepModelFFT(k, x);
-% y = stepModelODE(k, x);
-% figure; hold on; plot(x, y, 'r'), plot(x, m, 'g--')
-
-%%
 if ip.Results.Display
     ha = setupFigure(1,3, 'XSpace', [2 2 0.5], 'YSpace', [1.5 0.5 1]);
     plot(ha(1), x, data, 'k', 'LineWidth', 1);
-    plot(ha(1), x, res(idx).model(:,1), 'r', 'LineWidth', 1);
+    plot(ha(1), x, res.model(:,1), 'r', 'LineWidth', 1);
     xlabel(ha(1), 'Lifetime (s)');
     ylabel(ha(1), '# Events');
+    set(ha(1), 'XLim', [0 240], 'XTick', 0:40:240);
+    if ~isempty(ip.Results.Reference)
+        plot(ha(1), x, ip.Results.Reference, 'b--');
+    end
     
     % rates
     he = errorbar(ha(2), k, k_pstd, 'LineStyle', 'none',...
@@ -107,7 +130,7 @@ if ip.Results.Display
     plot(ha(3), i+[0.05 0.05 0.95 0.95],...
         max(BIC(i:i+1,1)+BIC(i:i+1,2))+diff(YLim)*[0.04 0.08 0.08 0.04],...
         'k', 'LineWidth', 1);
-    text(i+0.5, BIC(i,1)+BIC(i,2)+diff(YLim)*0.1, ['p < 10^{' num2str(ceil(log10(pval(2)))) '}'], 'VerticalAlignment', 'bottom',...
+    text(i+0.5, BIC(i,1)+BIC(i,2)+diff(YLim)*0.1, ['p < 10^{' num2str(ceil(log10(pval(i)))) '}'], 'VerticalAlignment', 'bottom',...
             'HorizontalAlignment', 'center', 'Parent', ha(3));
     % indicate n.s. differences
     for i = idx:K-1
@@ -124,44 +147,4 @@ if ip.Results.Display
     
     %K = corrMatFromCov(res(idx).C);
     %plotCorrelationMatrix(K, 'TickLabels', arrayfun(@(i) ['k_' num2str(i)], 1:i, 'unif', 0));
-
 end
-
-
-function v = multistepCost(k, x, f)
-dx = x(2)-x(1);
-xi = 0:dx:x(end);
-mi = stepModelFFT(k,xi);
-% mi = stepModelODE(k,xi);
-m = interp1(xi,mi,x);
-
-v = (m/sum(m) - f/sum(f))/dx;
-
-
-% Models of the form:
-%
-%    k1     k2      kn-1
-% S1 --> S2 --> ... --> Sn
-
-% FFT-based implementation
-function m = stepModelFFT(k, x)
-N = numel(x);
-dx = x(2)-x(1);
-w = ((0:N-1)-floor(N/2))/dx/N*2*pi;
-F = ones(size(x));%/dx;
-for i = 1:numel(k)
-    F = F.*k(i)./(k(i)+1j*w);
-end
-m = abs(ifft(ifftshift(F)));
-
-% ODE solver-based implementation
-function m = stepModelODE(k, x)
-S0 = [1 zeros(1,numel(k))];
-sol = ode45(@(t,y) ksteps(t, y, k), [0 x(end)], S0);
-Y = deval(sol, x);
-m = Y(end-1,:);
-m = m/sum(m);%/(x(2)-x(1));
-
-function dy = ksteps(~, y, k)
-S = -diag([k 0]) + diag(k,-1);
-dy = S*y;

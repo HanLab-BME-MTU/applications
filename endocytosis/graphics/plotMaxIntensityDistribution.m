@@ -146,9 +146,8 @@ for k = 1:nc
         stairsXT(xi, niFirst{k}, 'EdgeColor', ce0, 'LineWidth', 0.75, 'Parent', ha(k));
     end
     
-    if ip.Results.ShowGaussians
-        [mu_g,sigma_g,xg,g] = fitGaussianModeToHist(xi, niFirstN{k}/dxi);
-        %[mu_g,sigma_g,xg,g] = fitGaussianModeToCDF(maxAcohortFirstN{k});
+    if ip.Results.ShowGaussians && numel(maxAcohortFirstN{k})>10
+        [mu_g,sigma_g,xg,g] = fitGaussianModeToPDF(maxAcohortFirstN{k}, 'Display', false, 'FixMode', true);
         plot(xg, g*dxi, 'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1, 'Parent', ha(k));
         plot(norminv(0.99, mu_g, sigma_g)*[1 1], [0 0.15], '--', 'Parent', ha(k),...
             'Color', hsv2rgb([0 1 0.9]), 'LineWidth', 1);
