@@ -93,26 +93,23 @@ opts = {'Overwrite', ip.Results.Overwrite};
 %-------------------------------------------------------------------------------
 % 1) Detection
 %-------------------------------------------------------------------------------
+% Calculate cell masks and ask for user validation
+getCellMask(data, 'Overwrite', ip.Results.Overwrite, 'Validate', true);
+
 runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
     'Sigma', ip.Results.Sigma, opts{:});
-[cmap, psnr] = plotPSNRDistribution(data, 'Pool', false);
+[psnr, cmap] = plotPSNRDistribution(data, 'Pool', false);
 
 %-------------------------------------------------------------------------------
-% 2) Tracking
+% 2) Tracking & track processing
 %-------------------------------------------------------------------------------
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
 runTracking(data, settings, opts{:});
 
-%-------------------------------------------------------------------------------
-% 3) Track processing
-%-------------------------------------------------------------------------------
 runTrackProcessing(data, opts{:});
-if numel(data(1).channels)>1
-    runSlaveChannelClassification(data, opts{:}, 'np', 5000);
-end
 
 %-------------------------------------------------------------------------------
-% 4) Lifetime analysis
+% 3) Analysis
 %-------------------------------------------------------------------------------
 chNames = ip.Results.ChannelNames;
 if isempty(chNames)
