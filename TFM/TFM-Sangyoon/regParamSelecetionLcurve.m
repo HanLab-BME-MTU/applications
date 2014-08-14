@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,verbose)%,dataPath)
+function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,manualSelection)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -90,7 +90,7 @@ else
     reg_corner = lambda_cut(ireg_corner);
 end
 
-if verbose
+if manualSelection
     numCutPoints = 0;
 
     % show the l curve and make sure this is fittable with 5th order polynomial
