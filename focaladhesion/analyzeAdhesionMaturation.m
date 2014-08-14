@@ -343,7 +343,7 @@ end
 maturingRatio = p/(p+q);
 tracksNAfailing = trNAonly(indMature);
 tracksNAmaturing = trNAonly(indFail);
-save([dataPath filesep 'allData.mat'], 'tracksNAfailing','tracksNAmaturing','maturingRaio','lifeTimeNAfailing','lifeTimeNAmaturing')
+save([dataPath filesep 'allData.mat'], 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
 
 %% Run this separately with loading allData.mat if something failed 
 if plotEachTrack

@@ -33,11 +33,16 @@ for k=1:numel(tracksNA)
     iEnd = tracksNA(k).endingFrame;
     for ii=iStart:iEnd
         % Get the intensity value from tracks
-        if ~tracksNA(k).presence(ii)
+        if ~tracksNA(k).presence(ii) && iStart >= tracksNA(k).startingFrame
             continue
         end
-        curX = tracksNA(k).xCoord(ii);
-        curY = tracksNA(k).yCoord(ii);
+        if ii<tracksNA(k).startingFrame
+            p = tracksNA(k).startingFrame;
+        else
+            p = ii;
+        end
+        curX = tracksNA(k).xCoord(p);
+        curY = tracksNA(k).yCoord(p);
         tracksNA(k).ampChan(ii) = ichanImg(round(curY),round(curX),ii);
     end
 end
