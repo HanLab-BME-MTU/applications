@@ -14,7 +14,8 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                      @(x) (ischar(x) && ismember(x, {'OtsuGlobalSliceBySliceHybrid', ...
                                                      'OtsuSliceBySliceLocal', ...
                                                      'MinErrorPoissonSliceBySliceLocal', ...
-                                                     'BackgroudRemovalUsingMorphologicalOpening'}) ));
+                                                     'BackgroudRemovalUsingMorphologicalOpening', ...
+                                                     'blobnessCutoff'}) ));
     p.addParamValue( 'localThresholdWindowRadiusPhysp', 30, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue( 'minLocalGlobalThresholdRatio', 0.6, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue( 'minSignalToBackgroundRatio', 2.0, @(x) (isnumeric(x) && isscalar(x)) );
@@ -26,7 +27,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                  
     p.addParamValue( 'cellDiameterRange', [12, 20], @(x) (isnumeric(x) && numel(x) == 2) );
     p.addParamValue( 'minCellVolume', [], @(x) (isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minCellBBoxSizePhysp', [7 7 3] .* spacing, @(x) (isnumeric(x) && numel(x) == 3));
+    p.addParamValue( 'minCellBBoxSizePhysp', [7 7 2] .* spacing, @(x) (isnumeric(x) && numel(x) == 3));
     
     p.addParamValue( 'regionMergingModelFile', [], @(x) (isempty(x) || (ischar(x) && exist(x, 'file'))) );
     
@@ -109,7 +110,6 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
 
         case 'MinErrorPoissonSliceBySliceLocal'
             
-                                                        
             imThresh = segmentCellForegroundUsingLocalMinError( imAdjusted, localWindowRadius, ...
                                                                 'model', 'poisson', ...  
                                                                 'localWindowPace', localWindowPace, ...
@@ -120,7 +120,11 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
         case 'BackgroudRemovalUsingMorphologicalOpening'
             
             imThresh = thresholdSBR(imAdjusted, max(cellDiameterRange), PARAMETERS.minSignalToBackgroundRatio, ...
-                                    'spacing', spacing, 'kernelDimensions', 2, 'downSamplingFactor', 0.5);
+                                    'spacing', spacing, 'kernelDimensions', 2);
+            
+        case 'blobnessCutoff'
+            
+            imThresh = thresholdBlobness(imAdjusted, max(cellDiameterRange), 'spacing', spacing);
             
         otherwise
             
@@ -137,7 +141,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     
     flagIsBBoxSizeValid = false(1, numel(thRegStats));
     imsize = size(imInput);
-    minBBox = max( [0.5 * min(cellDiameterRange) ./ spacing; PARAMETERS.minCellBBoxSizeImsp] );
+    minBBox = max( [0.5 * 0.5 * min(cellDiameterRange) ./ spacing; PARAMETERS.minCellBBoxSizeImsp] );
     
     for i = 1:numel( thRegStats )
         
@@ -317,6 +321,8 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
        
     end
 
+    fprintf( '\nA total of %d regions were found after region merging\n', max(L(:)) );
+    
     % Clean up 
     fprintf( '\n\n>> Cleaning up ... \n\n' );
     
@@ -330,12 +336,15 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
             bboxSideLength = objRegProps(i).BoundingBox((ndims(imInput)+1):end);
             flagIsCurBBoxBigEnough = all( bboxSideLength >= minBBox );
             if ~flagIsCurBBoxBigEnough
+                bboxSideLength
                 flagPruneRegion(i) = true;
                 continue;
             end
             
             % prune regions with volume below a certain threshold
-            if objRegProps(i).Area * prod(spacing) < minCellVolume 
+            curRegionVolume = objRegProps(i).Area * prod(spacing);
+            if curRegionVolume < minCellVolume 
+                curRegionVolume
                 flagPruneRegion(i) = true;
                 continue;
             end
@@ -372,6 +381,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
             end
             
         end
+        
         L( ismember(L, find(flagPruneRegion)) ) = 0;
     
         % ignore cells touching the X or Y image border

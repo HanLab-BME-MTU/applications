@@ -127,8 +127,7 @@ switch strRunMode
         curMetaInfoStruct.header = metaDataHeader;
         curMetaInfoStruct.data = rawData(fid, metaDataColumnIdList);
         
-        flagSuccess = performDNADamageAnalysis( curImageFilePath, curOutDir, ...
-                                                'channelId53BP1', rawData{fid, colId_ChannelId_53BP1}, ...
+        flagSuccess = performDNADamageAnalysis( curImageFilePath, rawData{fid, colId_ChannelId_53BP1}, curOutDir, ...
                                                 'channelIdDrug', rawData{fid, colId_ChannelId_Drug}, ...
                                                 'channelIdMacrophage', rawData{fid, colId_ChannelId_Macrophage}, ...
                                                 'regionMergingModelFile', regionMergingModelFile, ...
@@ -217,8 +216,7 @@ switch strRunMode
 
             curFinishStatusReportFile = fullfile(statusOutDir, num2str(fid));
             
-            funcArgs = { curImageFilePath, curOutDir, ...
-                         'channelId53BP1', rawData{fid, colId_ChannelId_53BP1}, ...
+            funcArgs = { curImageFilePath, rawData{fid, colId_ChannelId_53BP1}, curOutDir, ...
                          'channelIdDrug', rawData{fid, colId_ChannelId_Drug}, ...
                          'channelIdMacrophage', rawData{fid, colId_ChannelId_Macrophage}, ...
                          'regionMergingModelFile', regionMergingModelFile, ...
@@ -365,12 +363,6 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
     end
     
     resultFileList = {'stackAnalysisInfo.csv', 'cellAnalysisInfo.csv', 'fociAnalysisInfo.csv'};
-    globalStackAnalysisFile = fullfile(curResultsRootDir, 'stackAnalysisInfo.csv');
-    globalCellAnalysisFile = fullfile(curResultsRootDir, 'cellAnalysisInfo.csv');
-    globalFociAnalysisFile = fullfile(curResultsRootDir, 'fociAnalysisInfo.csv');
-
-    globalCellColocAnalysisFile = fullfile(curResultsRootDir, 'cellColocalizationAnalysisInfo.csv');
-
     fidResultCollection = fopen( fullfile(curResultsRootDir, 'resultFileCollection.log'), 'w' );
     
     fidAnalysisFileNotFound = [];
@@ -386,42 +378,61 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
 
         curOutDir = fullfile(curResultsRootDir, curStrMouseID, curImageFileName);
 
-        % check if all result files are present
-        flagAllResultFilesFound = true;
-        for afid = 1:numel(resultFileList)
+        curResultFileList = {};
         
-            curLocalAnalysisFile = fullfile(curOutDir, resultFileList{afid});
-            if ~exist(curLocalAnalysisFile, 'file')
-                fprintf('\n\tCould not find analysis file %s in the result output directory %s\n', ...
-                         resultFileList{afid}, curOutDir);
-                fprintf(fidResultCollection, '\nAnalysis file %s not found for dataset %d/%d: \n%s\n', ...
-                                             resultFileList{afid}, fid, numFiles, curImageFileName );
-                flagAllResultFilesFound = false;
-                fidAnalysisFileNotFound(end+1) = fid;
-                break;
-            end            
-        end
-    
-        if flagAllResultFilesFound && ~strcmpi(rawData{fid, colId_TimePoint}, 'pre')
-            curCellColocAnalysisFile = fullfile(curOutDir, 'cellColocalizationAnalysisInfo.csv');
-            if ~exist(curCellColocAnalysisFile, 'file')
-                fprintf('\n\tCould not find analysis file cellColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
-                fprintf(fidResultCollection, '\nAnalysis file cellColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
-                                             fid, numFiles, curImageFileName );
-                flagAllResultFilesFound = false;
-                fidAnalysisFileNotFound(end+1) = fid;
-            end
-            
-            curResultFileList = [resultFileList, 'cellColocalizationAnalysisInfo.csv'];
-            
-        else
-            
-            curResultFileList = resultFileList;
-            
-        end
-        
-        if ~flagAllResultFilesFound
+        % check for stack analysis file
+        if ~exist(fullfile(curOutDir, 'stackAnalysisInfo.csv'), 'file')
+            fprintf('\n\tCould not find analysis file stackAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+            fprintf(fidResultCollection, '\nAnalysis file stackAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                         fid, numFiles, curImageFileName );        
+            fidAnalysisFileNotFound(end+1) = fid;                         
             continue;
+        else
+            curResultFileList{end+1} = 'stackAnalysisInfo.csv';
+        end
+
+        % cell analysis file
+        if ~exist(fullfile(curOutDir, 'cellAnalysisInfo.csv'), 'file')
+            fprintf('\n\tCould not find analysis file cellAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+            fprintf(fidResultCollection, '\nAnalysis file cellAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                         fid, numFiles, curImageFileName );        
+            fidAnalysisFileNotFound(end+1) = fid;                         
+            continue;
+        else
+            curResultFileList{end+1} = 'cellAnalysisInfo.csv';
+        end
+
+        % foci analysis file
+        if ~exist(fullfile(curOutDir, 'fociAnalysisInfo.csv'), 'file')
+            fprintf('\n\tCould not find analysis file fociAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+            fprintf(fidResultCollection, '\nAnalysis file fociAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                         fid, numFiles, curImageFileName );        
+            fidAnalysisFileNotFound(end+1) = fid;                         
+            continue;
+        else
+            curResultFileList{end+1} = 'fociAnalysisInfo.csv';
+        end
+        
+        % macrophage colocalization analysis file
+        if ~isempty(rawData{fid, colId_ChannelId_Macrophage}) && ~exist(fullfile(curOutDir, 'cellMacrophageColocalizationAnalysisInfo.csv'), 'file')
+            fprintf('\n\tCould not find analysis file cellMacrophageColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+            fprintf(fidResultCollection, '\nAnalysis file cellMacrophageColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                         fid, numFiles, curImageFileName );        
+            fidAnalysisFileNotFound(end+1) = fid;                         
+            continue;
+        else
+            curResultFileList{end+1} = 'cellMacrophageColocalizationAnalysisInfo.csv'; 
+        end
+        
+        % drug colocalization analysis file
+        if ~isempty(rawData{fid, colId_ChannelId_Drug}) && ~exist(fullfile(curOutDir, 'cellDrugColocalizationAnalysisInfo.csv'), 'file')
+            fprintf('\n\tCould not find analysis file cellDrugColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+            fprintf(fidResultCollection, '\nAnalysis file cellDrugColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                                         fid, numFiles, curImageFileName );        
+            fidAnalysisFileNotFound(end+1) = fid;                         
+            continue;
+        else
+            curResultFileList{end+1} = 'cellDrugColocalizationAnalysisInfo.csv'; 
         end
         
         % append to global file
