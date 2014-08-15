@@ -109,11 +109,12 @@ else
     if ~isempty(ip.Results.Control)
         plot(ha(1), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
+    madFactor = 1/norminv(0.75, 0, 1);
     for i = ip.Results.PlotOrder
         if ip.Results.ShowUncertainty
             t = lftRes{i}.t;
             mu = w(i)*mean(lftRes{i}.lftHistSlaveCCP{1},1);
-            sd = w(i)*mad(lftRes{i}.lftHistSlaveCCP{1},1,1);
+            sd = w(i)*madFactor*mad(lftRes{i}.lftHistSlaveCCP{1},1,1);
             fill([t t(end:-1:1)], [mu+sd mu(end:-1:1)-sd(end:-1:1)], cf(i,:),...
                 'EdgeColor', 'none', 'Parent', ha(1));
         end
@@ -133,7 +134,7 @@ else
         if ip.Results.ShowUncertainty
             t = lftRes{i}.t;
             mu = w(i)*mean(lftRes{i}.lftHistSlaveCCP{2},1);
-            sd = w(i)*mad(lftRes{i}.lftHistSlaveCCP{2},1,1);
+            sd = w(i)*madFactor*mad(lftRes{i}.lftHistSlaveCCP{2},1,1);
             fill([t t(end:-1:1)], [mu+sd mu(end:-1:1)-sd(end:-1:1)], cf(i,:),...
                 'EdgeColor', 'none', 'Parent', ha(2));
         end
