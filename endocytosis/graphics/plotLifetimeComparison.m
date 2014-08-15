@@ -28,6 +28,7 @@ ip.addParamValue('Color', []);
 ip.addParamValue('SlaveName', [], @iscell);
 ip.addParamValue('Control', []);
 ip.addParamValue('XSpace', []);
+ip.addParamValue('ShowUncertainty', false, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(lftRes, varargin{:});
 
@@ -53,6 +54,13 @@ if isempty(cv)
         cv = [0 0 0; jet(N-1)];
     end
 end
+
+cf = rgb2hsv(cv);
+idx = cf(:,3)~=0;
+cf(idx,2) = 0.4;
+cf(~idx,3) = 0.6;
+cf = hsv2rgb(cf);
+
 
 % 1) Plot CCP distributions
 if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
@@ -102,6 +110,13 @@ else
         plot(ha(1), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
     for i = ip.Results.PlotOrder
+        if ip.Results.ShowUncertainty
+            t = lftRes{i}.t;
+            mu = w(i)*mean(lftRes{i}.lftHistSlaveCCP{1},1);
+            sd = w(i)*mad(lftRes{i}.lftHistSlaveCCP{1},1,1);
+            fill([t t(end:-1:1)], [mu+sd mu(end:-1:1)-sd(end:-1:1)], cf(i,:),...
+                'EdgeColor', 'none', 'Parent', ha(1));
+        end
         hp(i) = plot(ha(1), lftRes{i}.t, w(i)*mean(lftRes{i}.lftHistSlaveCCP{1},1), '-', 'LineWidth', 1, 'Color', cv(i,:));
         legendText{i} = [' +' SlaveName{1} ', ' ip.Results.legend{i} ', ' num2str(100*pctS(i,1), '%.1f') '%'];
     end
@@ -115,6 +130,13 @@ else
         plot(ha(2), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
     for i = ip.Results.PlotOrder
+        if ip.Results.ShowUncertainty
+            t = lftRes{i}.t;
+            mu = w(i)*mean(lftRes{i}.lftHistSlaveCCP{2},1);
+            sd = w(i)*mad(lftRes{i}.lftHistSlaveCCP{2},1,1);
+            fill([t t(end:-1:1)], [mu+sd mu(end:-1:1)-sd(end:-1:1)], cf(i,:),...
+                'EdgeColor', 'none', 'Parent', ha(2));
+        end
         hp(i) = plot(ha(2), lftRes{i}.t, w(i)*mean(lftRes{i}.lftHistSlaveCCP{2},1), '-', 'LineWidth', 1, 'Color', cv(i,:));
         legendText{i} = [' -' SlaveName{1} ', ' ip.Results.legend{i} ', ' num2str(100*pctS(i,2), '%.1f') '%'];
     end
@@ -133,6 +155,33 @@ if strcmpi(ip.Results.Frequency, 'relative')
     ylabel(ha(1), 'Relative frequency', fset.lfont{:});
 else
     ylabel(ha(1), 'Frequency', fset.lfont{:});
+end
+
+
+if ip.Results.ShowUncertainty
+    dt = lftRes{1}.t(2) - lftRes{1}.t(1);
+    comb = pcombs(1:N);
+    
+    fprintf('Comparison of CCP lifetime distributions:\n');
+    for i = 1:size(comb,1)
+        % since histograms are already corrected for observation bias
+        % calculate EDFs from histograms
+        d1 = cumsum(lftRes{comb(i,1)}.lftHistCCP,2) * dt;
+        d2 = cumsum(lftRes{comb(i,2)}.lftHistCCP,2) * dt;
+        [hval, pval] = permKSTestMeanEDF(d1, d2, 'CmpFunction', @nanmean);
+        fprintf('Cond. %d vs Cond. %d: H=%d, p = %.4f\n', comb(i,1), comb(i,2), hval, pval);
+    end
+    
+    fprintf('Comparison of CS lifetime distributions:\n');
+    for i = 1:size(comb,1)
+        % since histograms are already corrected for observation bias
+        % calculate EDFs from histograms
+        d1 = cumsum(lftRes{comb(i,1)}.lftHistCS,2) * dt;
+        d2 = cumsum(lftRes{comb(i,2)}.lftHistCS,2) * dt;
+        [hval, pval] = permKSTestMeanEDF(d1, d2, 'CmpFunction', @nanmean);
+        fprintf('Cond. %d vs Cond. %d: H=%d, p = %.4f\n', comb(i,1), comb(i,2), hval, pval);
+    end
+    
 end
 
 
