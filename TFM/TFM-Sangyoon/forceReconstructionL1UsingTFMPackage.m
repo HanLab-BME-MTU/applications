@@ -114,8 +114,8 @@ params = roiMD.getPackage(iPack).getProcess(2).funParams_;
 
 params.referenceFramePath = refImgPath;
 params.alpha = 0.05;
-params.minCorLength = 15;
-params.maxFlowSpeed = 20;
+params.minCorLength = 19;
+params.maxFlowSpeed = 10;
 params.highRes = true;
 params.mode = 'accurate';
 roiMD.getPackage(iPack).getProcess(2).setPara(params);

@@ -98,7 +98,7 @@ if ip.Results.PoolDatasets
     tmp2 = arrayfun(@(i) i.visitors.lifetime_s, lftData, 'unif', 0);
     tmp.visitors.lifetime_s = vertcat(tmp2{:});
     tmp.a = 1;
-    lftData = tmp;    
+    lftData = tmp;
 end
 fprintf('=============================================================================\n');
 fprintf('Lifetime analysis - processing:   0%%');
@@ -131,7 +131,7 @@ for i = 1:nd
     end
     if bf>1
         w = mean(reshape(w(1:floor(numel(w)/bf)*bf), [bf floor(numel(w)/bf)]),1);
-    end    
+    end
     pad0 = zeros(1,Nmax-N);
     lftHist_Ia =  [hist(lftData(i).lifetime_s_all(idx_Ia), t).*w  pad0];
     lftHist_Ib =  [hist(lftData(i).lifetime_s_all(idx_Ib), t).*w  pad0];
@@ -157,11 +157,11 @@ for i = 1:nd
     
     res(i).maxA_all = nanmax(lftData(i).A(:,:,mCh),[],2);
     if isfield(lftData, 'significantMaster')
-       res(i).significantMaster = lftData(i).significantMaster;
+        res(i).significantMaster = lftData(i).significantMaster;
     end
     res(i).firstN = firstN;
-        
-fprintf('\b\b\b\b%3d%%', round(100*i/nd));
+    
+    fprintf('\b\b\b\b%3d%%', round(100*i/nd));
 end
 fprintf('\n');
 
@@ -191,11 +191,11 @@ fprintf('\n');
 if ~isempty(ip.Results.MaxIntensityThreshold)
     T = ip.Results.MaxIntensityThreshold;
 else
-
+    
     A = arrayfun(@(i) i.A(:,:,mCh), lftData, 'unif', 0);
     A = vertcat(A{:});
     lft = vertcat(lftData.lifetime_s);
-   
+    
     % check whether all cohorts contain tracks
     ntc = arrayfun(@(c) sum(cb(c)<lft & lft<=cb(c+1)), 1:nc);
     if any(ntc<5)
@@ -216,7 +216,7 @@ else
             sC = zeros(1,nc);
             for c = 1:nc
                 cidx = cb(c)<lft & lft<=cb(c+1);
-                [muC(c), sC(c)] = fitGaussianModeToCDF(M(cidx,:));
+                [muC(c), sC(c)] = fitGaussianModeToPDF(M(cidx,:), 'FixMode', true);
             end
             hval(frameRange(ni)) = adtest1(muC(2:end), 'mu', muC(1), 'sigma', sC(1)/sqrt(nc));
         end
@@ -225,10 +225,9 @@ else
     
     M = nanmax(A(:,1:FirstNFrames,mCh),[],2);
     
-    [mu_g, sigma_g] = fitGaussianModeToCDF(M);
-    %[mu_g sigma_g] = fitGaussianModeToPDF(M);
+    [mu_g, sigma_g] = fitGaussianModeToPDF(M, 'FixMode', true, 'Display', false);
     T = norminv(0.99, mu_g, sigma_g);
-
+    
     % save threshold value
     prm.MaxIntensityThreshold = T;
     prm.nFramesThreshold = FirstNFrames;
@@ -280,7 +279,7 @@ for i = 1:nd
     %res(i).AaboveT = lftData(i).A(idxMI,:,:);
     lftRes.pctCCP(i) = sum(idxMI)/nCS;
     lftRes.pctCS(i) = sum(~idxMI)/nCS;
-            
+    
     N = data(i).movieLength-2*buffer;
     t = ((cutoff_f+(bf-1)/2):bf:N)*framerate;
     
@@ -302,7 +301,7 @@ for i = 1:nd
     lftHistCS = [hist(res(i).lftBelowT, t).*w pad0];
     % Normalization
     lftRes.lftHistCCP(i,:) = lftHistCCP / sum(lftHistCCP) / framerate / bf;
-    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate / bf;    
+    lftRes.lftHistCS(i,:) = lftHistCS / sum(lftHistCS) / framerate / bf;
     
     % Raw, unweighted histograms with counts/bin
     lftRes.lftHistCCP_counts(i,:) = [hist(res(i).lftAboveT, t) pad0];
@@ -330,8 +329,16 @@ for i = 1:nd
             lftHistSlaveAll = [hist(lftData(i).lifetime_s(sIdx), t).*w pad0];
             lftHistSlaveCCP = [hist(lftData(i).lifetime_s(sIdx & idxMI), t).*w pad0];
             lftHistSlaveCS = [hist(lftData(i).lifetime_s(sIdx & ~idxMI), t).*w pad0];
-            lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate / bf;
-            lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate / bf;
+            if ~(sum(lftHistSlaveAll)==0)
+                lftRes.lftHistSlaveAll{s}(i,:) = lftHistSlaveAll / sum(lftHistSlaveAll) / framerate / bf;
+            else
+                lftRes.lftHistSlaveAll{s}(i,:) = zeros(size(lftHistSlaveAll));
+            end
+            if ~(sum(lftHistSlaveCCP)==0)
+                lftRes.lftHistSlaveCCP{s}(i,:) = lftHistSlaveCCP / sum(lftHistSlaveCCP) / framerate / bf;
+            else
+                lftRes.lftHistSlaveCCP{s}(i,:) = zeros(size(lftHistSlaveCCP));
+            end
             lftRes.lftHistSlaveCS{s}(i,:) = lftHistSlaveCS / sum(sIdx & ~idxMI) / framerate / bf;
             lftRes.lftHistSlaveAll_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx), t) pad0];
             lftRes.lftHistSlaveCCP_counts{s}(i,:) = [hist(lftData(i).lifetime_s(sIdx & idxMI), t) pad0];
@@ -374,6 +381,7 @@ for i = 1:nd
         lftRes.initDensityIa(i,:) =  [median(startsPerFrameIa);  madFactor*mad(startsPerFrameIa, 1)]*dnorm;
         lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
     end
+    lftRes.persistentDensity(i,:) = sum(lftData(i).catIdx_all==4) / lftRes.cellArea(i);
 end
 %====================
 % Initiation density
@@ -394,7 +402,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
         ylabel(ha(1), ['Initiations (' char(181) 'm^{-2} min^{-1})'], fset.lfont{:});
         hl = legend(ha(1), hb, ' All tracks', ' Valid tracks', 'CCPs');
         set(hl, fset.tfont{:});
-    
+        
         % 2) Cell area
         colormap(cmap);
         %scatter(ha(2), 1:nd, lftRes.cellArea, 50, cmap, 'o', 'fill', 'MarkerEdgeColor', 'k');
@@ -405,7 +413,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
         set(ha(2), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
         rotateXTickLabels(ha(2), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     end
-
+    
     
     % # valid tracks
     scatter(ha(3), 1:nd, lftRes.nSamples_Ia, 50, 1:size(cmap,1), 'o', 'fill', 'MarkerEdgeColor', 'k');
@@ -423,7 +431,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     YLim(1) = 0;
     set(ha(4), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
     hl = legend(ha(4), 'Single tracks', 'Compound tracks', 'Location', 'NorthWest');
-    set(hl, 'Box', 'off');
+    set(hl, 'Box', 'on');
     rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
     formatTickLabels(ha(1:2));
@@ -431,6 +439,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     fprintf('Initiation density, all detected tracks:                  %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     fprintf('Initiation density, CCPs:                                 %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
+    fprintf('Density of persistent structures:                         %.3f ± %.3f [µm^-2]\n', mean(lftRes.persistentDensity), std(lftRes.persistentDensity));
     fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     % gap statistics
@@ -472,7 +481,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     set(ha(2), 'XLim', [0.5 maxg+1.5], 'XTick', 1:maxg+1);
     xlabel(ha(2), 'Gap length (frames)', fset.lfont{:});
     ylabel(ha(2), '% of gaps', fset.lfont{:});
-        
+    
     % 3) #gaps as % of track vs. lifetime
     %for k = 1:nd
     %    ngaps{k} = ngaps{k} ./ lftData(k).trackLengths;
@@ -480,9 +489,9 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     %end
     %xi = linspace(min(vertcat(ngaps{:})), max(vertcat(ngaps{:})), 10);
     %for k = 1:nd
-    %    plot(ha(2), xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Color', cmap(k,:));    
+    %    plot(ha(2), xi, hist(ngaps{k}, xi)/numel(ngaps{k}), 'Color', cmap(k,:));
     %end
-
+    
     
     
     % plot cumulative lifetime distributions
@@ -538,13 +547,13 @@ end
 % Raw lifetime distributions + average
 %---------------------------------------
 if any(strcmpi(ip.Results.Display, {'all'}))
-
+    
     a = [lftData.a];
     colorV = hsv(nd);
     [~,idxa] = sort(a(1,:));
     [~,idxa] = sort(idxa);
     colorV = colorV(idxa,:);
-
+    
     fset = loadFigureSettings('');
     setupFigure('DisplayMode', 'screen', 'Name', 'Raw lifetime distribution');
     hold on;

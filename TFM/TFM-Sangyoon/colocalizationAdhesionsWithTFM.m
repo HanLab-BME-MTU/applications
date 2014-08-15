@@ -71,10 +71,11 @@ if isempty(iFASegPackage)
 end
 FASegPackage=MD.getPackage(iFASegPackage);
 % Load tracks
-iUTrack = MD.getPackageIndex('UTrackPackage');
+% iUTrack = MD.getPackageIndex('UTrackPackage');
+iTrackProc = MD.getProcessIndex('TrackingProcess');%MD.getPackageIndex('UTrackPackage');
 % If not run, run the package
 iFASeg = 6;
-if isempty(iUTrack)
+if isempty(iTrackProc)%isempty(iUTrack)
     MD.addPackage(UTrackPackage(MD));
     iUTrack =  MD.getPackageIndex('UTrackPackage');
     MD.getPackage(iUTrack).createDefaultProcess(1)
@@ -101,22 +102,22 @@ if isempty(iUTrack)
     MD.getPackage(iUTrack).getProcess(2).run();
     MD.save;
     trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
-elseif isempty(MD.getPackage(iUTrack).getProcess(2))
-    MD.getPackage(iUTrack).createDefaultProcess(2)
-    params = MD.getPackage(iUTrack).getProcess(2).funParams_;
-    params.ChannelIndex = 2; %paxillin
-    params.probDim = 2; % in px
-    params.gapCloseParam.timeWindow = 5;
-    params.gapCloseParam.minTrackLen = 4;
-    params.gapCloseParam.diagnostics = 0;
-    params.gapCloseParam.mergeSplit = 0;
-    params.costMatrices(1).parameters.minSearchRadius = 2;
-    params.costMatrices(2).parameters.minSearchRadius = 2;
-    
-    MD.getPackage(iUTrack).getProcess(2).setPara(params);
-    MD.getPackage(iUTrack).getProcess(2).run();
-    MD.save;
-    trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
+% elseif isempty(MD.getPackage(iUTrack).getProcess(2))
+%     MD.getPackage(iUTrack).createDefaultProcess(2)
+%     params = MD.getPackage(iUTrack).getProcess(2).funParams_;
+%     params.ChannelIndex = 2; %paxillin
+%     params.probDim = 2; % in px
+%     params.gapCloseParam.timeWindow = 5;
+%     params.gapCloseParam.minTrackLen = 4;
+%     params.gapCloseParam.diagnostics = 0;
+%     params.gapCloseParam.mergeSplit = 0;
+%     params.costMatrices(1).parameters.minSearchRadius = 2;
+%     params.costMatrices(2).parameters.minSearchRadius = 2;
+%     
+%     MD.getPackage(iUTrack).getProcess(2).setPara(params);
+%     MD.getPackage(iUTrack).getProcess(2).run();
+%     MD.save;
+%     trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
 else
     trackNAProc = MD.getProcess(MD.getProcessIndex('TrackingProcess'));
 end
@@ -241,7 +242,13 @@ SEL = getTrackSEL(tracksNAorg); %SEL: StartEndLifetime
 isValid = SEL(:,3) >= minLifetime;
 tracksNAorg = tracksNAorg(isValid);
 % end
-detectedNAProc = MD.getProcess(MD.getProcessIndex('PointSourceDetectionProcess'));%MD.getPackage(iUTrack).getProcess(1);%
+iPSDProc = MD.getProcessIndex('PointSourceDetectionProcess');
+if ~isempty(iPSDProc)
+    detectedNAProc = MD.getProcess(iPSDProc);%MD.getPackage(iUTrack).getProcess(1);%
+else
+    iPSDProc = MD.getProcessIndex('AnisoGaussianDetectionProcess');
+    detectedNAProc = MD.getProcess(iPSDProc);
+end
 detectedNAs = detectedNAProc.loadChannelOutput(iPaxChannel);
 
 % See if there is stage drift correction
@@ -267,6 +274,8 @@ if ~isempty(iSDCProc)
     end
     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
     T = s.T;
+else
+    iChan = 2;
 end
 
 % re-express tracksNA so that each track has information for every frame
@@ -314,13 +323,13 @@ regSpacing = (reg_grid(2,1,1)-reg_grid(1,1,1));
 % this is temporary remedy for SDC. They were addressed in displacement
 % calculation. Thus, for next new TFM analysis the code with %*** should be
 % removed. - SH 072514
-residualT = T-round(T); %***
+% residualT = T-round(T); %***
 for ii=1:nFrames
     [XI,YI]=meshgrid(reg_grid(1,1,1):reg_grid(end,end,1),reg_grid(1,1,2):reg_grid(end,end,2));
     reg_gridFine(:,:,1) = XI;
     reg_gridFine(:,:,2) = YI;
-    displField(ii).vec(:,1) = displField(ii).vec(:,1) - residualT(ii,1) + residualT(ii,2); %***
-    displField(ii).vec(:,2) = displField(ii).vec(:,2) - residualT(ii,2) + residualT(ii,1); %***
+%     displField(ii).vec(:,1) = displField(ii).vec(:,1) - residualT(ii,1) + residualT(ii,2); %***
+%     displField(ii).vec(:,2) = displField(ii).vec(:,2) - residualT(ii,2) + residualT(ii,1); %***
     [~,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_gridFine);
     [grid_mat,if_mat,~,~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_gridFine);
 
@@ -361,7 +370,7 @@ for ii=1:nFrames
     if ~isempty(iSDCProc)
         paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
     else
-        paxImage=(MD.channels_(2).loadImage(ii)); 
+        paxImage=MD.getChannel(iChan).loadImage(ii); 
     end
     paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
 
@@ -394,14 +403,16 @@ for ii=1:nFrames
     maskFAs = FASegProc.loadChannelOutput(iPaxChannel_adh,ii);
     % Apply stage drift correction
     % Get limits of transformation array
-    maxX = ceil(max(abs(T(:, 2))));
-    maxY = ceil(max(abs(T(:, 1))));
-    Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
-    % Apply subpixel-wise registration to original masks
-    I = padarray(maskFAs, [maxY, maxX]);
-    maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
-    I = padarray(bwPI4, [maxY, maxX]);
-    bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    if ~isempty(iSDCProc)
+        maxX = ceil(max(abs(T(:, 2))));
+        maxY = ceil(max(abs(T(:, 1))));
+        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+        % Apply subpixel-wise registration to original masks
+        I = padarray(maskFAs, [maxY, maxX]);
+        maskFAs = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+        I = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    end
     cropMask = bwPI4(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
     [B,~,nBD]  = bwboundaries(cropMask,'noholes');
 

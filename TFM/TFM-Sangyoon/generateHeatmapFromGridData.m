@@ -1,4 +1,4 @@
-function [h2]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,umax,quiverTrue,w,h)
+function [h2]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umax,quiverTrue,w,h)
 imSizeX = x_mat_u(end,end)-x_mat_u(1,1);
 imSizeY = y_mat_u(end,end)-y_mat_u(1,1);
 if nargin<7
@@ -11,18 +11,18 @@ elseif nargin<8
 end
 centerX = ((x_mat_u(end,end)+x_mat_u(1,1))/2);
 centerY = ((y_mat_u(end,end)+y_mat_u(1,1))/2);
-xmin = centerX-w/2;
-xmax = centerX+w/2;
-ymin = centerY-h/2;
-ymax = centerY+h/2;
+xmin = centerX-w/2+band;
+xmax = centerX+w/2-band;
+ymin = centerY-h/2+band;
+ymax = centerY+h/2-band;
 [XI,YI] = meshgrid(xmin:xmax,ymin:ymax);
 
 % [XI,YI]=meshgrid(x_mat_u(1,1):x_mat_u(1,1,1)+imSizeX,y_mat_u(1,1):y_mat_u(1,1)+imSizeY);
 unorm = (ux.^2 + uy.^2).^0.5;
 uMap = griddata(x_mat_u,y_mat_u,unorm,XI,YI,'linear');
-umin = min(min(unorm));
-if nargin<6 || isempty(umax)
-    umax = max(max(unorm));
+umin = min(uMap(:));
+if nargin<7 || isempty(umax)
+    umax = max(uMap(:));
 end
 
 h2=figure('color','w');
@@ -73,7 +73,7 @@ set(hc,'Fontsize',12)
 
 % saving
 % Set up the output file path
-outputFilePath = [dataPath filesep 'displacementField Map'];
+outputFilePath = [dataPath filesep 'heatMap'];
 tifPath = [outputFilePath filesep 'tifs'];
 figPath = [outputFilePath filesep 'figs'];
 epsPath = [outputFilePath filesep 'eps'];
@@ -84,8 +84,8 @@ if ~exist(tifPath,'dir') || ~exist(epsPath,'dir')
 end
 
 I = getframe(h2);
-imwrite(I.cdata, strcat(tifPath,'/displFieldMagTif','.tif'));
-hgsave(h2,strcat(figPath,'/displFieldMagFig.fig'),'-v7.3')
-print(h2,strcat(epsPath,'/displFieldMagEps.eps'),'-depsc2')
+imwrite(I.cdata, strcat(tifPath,'/hMapTif','.tif'));
+hgsave(h2,strcat(figPath,'/hMapFig.fig'),'-v7.3')
+print(h2,strcat(epsPath,'/hMapEps.eps'),'-depsc2')
 end
     

@@ -206,7 +206,7 @@ if nargin >= 10 && strcmp(method,'fast')
 
         [eyeWeights,~] =getGramMatrix(forceMesh);
         % plot the solution for the corner
-        tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         MpM=M'*M;
@@ -491,21 +491,23 @@ function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights
 alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
-eta0=zeros(length(alphas),1);
+% eta0=zeros(length(alphas),1);
 msparse=zeros(size(M,2),length(alphas));
 % if matlabpool('size')==0
 %     matlabpool open
 % end
+tolFactor = 20; % make the L-curve calculation faster with generous tolx with this factor
 for i=1:length(alphas);
     disp(['testing L = ' num2str(alphas(i)) '... '])
-    msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
+    msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx*tolFactor,tolr);
     rho(i)=norm(M*msparse(:,i)-u);
     eta(i)=norm(msparse(:,i),1);
-    eta0(i)=sum(abs(msparse(:,i))>1);
+%     eta0(i)=sum(abs(msparse(:,i))>1);
 end
 
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
+save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
 [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
 
 % Also, I can use L0 norm information to choose regularization parameter
