@@ -75,7 +75,7 @@ function [cellColocStats] = ComputeDNADamageColocalizationMeasures(im53BP1, imCo
         imCurCellMaskCropped = (imLabelCellSeg(curCellBBoxCropInd{:}) == cellId);
         imCurCellDistMap = bwdistsc(imCurCellMaskCropped, spacing);
 
-        binEdges = linspace(0, PARAMETERS.maxNeighDist, PARAMETERS.numMacrophageNeighDistLevels+1);
+        binEdges = linspace(0, PARAMETERS.maxNeighDist, PARAMETERS.numNeighDistLevels+1);
 
         for bid = 1:numel(binEdges)-1
 

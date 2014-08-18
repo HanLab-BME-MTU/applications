@@ -336,7 +336,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
             bboxSideLength = objRegProps(i).BoundingBox((ndims(imInput)+1):end);
             flagIsCurBBoxBigEnough = all( bboxSideLength >= minBBox );
             if ~flagIsCurBBoxBigEnough
-                bboxSideLength
+                %bboxSideLength
                 flagPruneRegion(i) = true;
                 continue;
             end
@@ -344,7 +344,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
             % prune regions with volume below a certain threshold
             curRegionVolume = objRegProps(i).Area * prod(spacing);
             if curRegionVolume < minCellVolume 
-                curRegionVolume
+                %curRegionVolume
                 flagPruneRegion(i) = true;
                 continue;
             end

@@ -17,7 +17,7 @@ fclose all;
     dataRootDir = fullfile(projectRootDir, 'data' );            
     
      % specify where do you want the results to be stored?
-    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColocTest_M14_to_M17');
+    resultsRootDir = fullfile(projectRootDir, 'results', 'batchAnalysisColoc_MIP_0689');
     
     % specify the path to the region merging model file
     regionMergingModelFile = fullfile( projectRootDir, 'models', 'regionMerging', ...
@@ -57,15 +57,16 @@ fclose all;
     % deploy - deploy the analysis onto the cluster
     % collect - assembles per-dataset result files into one global file
     runModeOptions = {'testSingle', 'testDeploy', 'deploy', 'collect'};
-    runMode = 1;
+    runMode = 3;
     
     % Do you want to save images?
     flagSaveImages = true;
     
     % specify cluster resource requirements and submission queue
     numCoresRequested = [];
-    memoryAmountInMB = 8 * 2^10; % ~8000MB
-    strSubmissionQueue = 'danuser_12h';
+    memoryAmountInMB = 8000; % ~8000MB
+	timeLimit = 8;
+    strSubmissionQueue = 'short'; %'danuser_12h';
     
     % specify if you want to process specific files that failed earlier
     % empty recommended. Should have a very good reason to specify this.
@@ -112,7 +113,7 @@ switch strRunMode
 
         PrettyPrintStepDescription( 'Testing batch analysis script' );
         
-        fid = 38;
+        fid = 1;
         curResultsRootDir = fullfile(resultsRootDir, 'testSingle');
         
         curImageFilePath = fullfile(dataRootDir, rawData{fid, colId_RelImageFilePath});
@@ -172,8 +173,8 @@ switch strRunMode
         jm = findResource('scheduler','type','lsf');
         set(jm, 'ClusterMatlabRoot','/opt/matlab');
         
-        strSubmitArguments = sprintf('-R "rusage[mem=%d]" -q %s', ...
-                                      memoryAmountInMB, ...
+        strSubmitArguments = sprintf('-R "rusage[mem=%d]" -W %d:00 -q %s', ...
+                                      memoryAmountInMB, timeLimit, ...
                                       strSubmissionQueue )
                                  
         set(jm, 'SubmitArguments', strSubmitArguments );
@@ -362,7 +363,6 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
         curResultsRootDir = fullfile(resultsRootDir, 'analysis');
     end
     
-    resultFileList = {'stackAnalysisInfo.csv', 'cellAnalysisInfo.csv', 'fociAnalysisInfo.csv'};
     fidResultCollection = fopen( fullfile(curResultsRootDir, 'resultFileCollection.log'), 'w' );
     
     fidAnalysisFileNotFound = [];
@@ -414,26 +414,37 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
         end
         
         % macrophage colocalization analysis file
-        if ~isempty(rawData{fid, colId_ChannelId_Macrophage}) && ~exist(fullfile(curOutDir, 'cellMacrophageColocalizationAnalysisInfo.csv'), 'file')
-            fprintf('\n\tCould not find analysis file cellMacrophageColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
-            fprintf(fidResultCollection, '\nAnalysis file cellMacrophageColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
-                                         fid, numFiles, curImageFileName );        
-            fidAnalysisFileNotFound(end+1) = fid;                         
-            continue;
-        else
-            curResultFileList{end+1} = 'cellMacrophageColocalizationAnalysisInfo.csv'; 
+        if ~isnan(rawData{fid, colId_ChannelId_Macrophage})
+
+			if ~exist(fullfile(curOutDir, 'cellMacrophageColocalizationAnalysisInfo.csv'), 'file')
+				fprintf('\n\tCould not find cellMacrophageColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
+				fprintf(fidResultCollection, ...
+						'\nAnalysis file cellMacrophageColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                        fid, numFiles, curImageFileName );        
+				fidAnalysisFileNotFound(end+1) = fid;                         
+				continue;
+			else
+				curResultFileList{end+1} = 'cellMacrophageColocalizationAnalysisInfo.csv'; 
+			end			
+
         end
         
         % drug colocalization analysis file
-        if ~isempty(rawData{fid, colId_ChannelId_Drug}) && ~exist(fullfile(curOutDir, 'cellDrugColocalizationAnalysisInfo.csv'), 'file')
-            fprintf('\n\tCould not find analysis file cellDrugColocalizationAnalysisInfo.csv in the result output directory %s\n', curOutDir);
-            fprintf(fidResultCollection, '\nAnalysis file cellDrugColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
-                                         fid, numFiles, curImageFileName );        
-            fidAnalysisFileNotFound(end+1) = fid;                         
-            continue;
-        else
-            curResultFileList{end+1} = 'cellDrugColocalizationAnalysisInfo.csv'; 
-        end
+        if ~isnan(rawData{fid, colId_ChannelId_Drug})
+
+			if ~exist(fullfile(curOutDir, 'cellDrugColocalizationAnalysisInfo.csv'), 'file')
+				fprintf('\n\tCould not find cellDrugColocalizationAnalysisInfo.csv in the result output directory %s\n', ...
+						curOutDir);
+				fprintf(fidResultCollection, ...
+						'\nAnalysis file cellDrugColocalizationAnalysisInfo.csv not found for dataset %d/%d: \n%s\n', ...
+                        fid, numFiles, curImageFileName );        
+				fidAnalysisFileNotFound(end+1) = fid;                         
+				continue;
+			else
+				curResultFileList{end+1} = 'cellDrugColocalizationAnalysisInfo.csv'; 
+			end
+
+		end
         
         % append to global file
         for afid = 1:numel(curResultFileList)
@@ -461,7 +472,9 @@ if strcmp(strRunMode, 'collect') || flagCollectResultFilesAfterAnalysis
                                        sprintf(' %d ', fidAnalysisFileNotFound) );            
     else
 
-        fprintf( fidResultCollection, '\nHurraayyy!!!\n\nValid result files were found and merged into the global file for all of the %d datsets\n', numFiles );            
+        fprintf( fidResultCollection, ...
+				'\nHurraayyy!!!\n\nValid result files were found and merged into the global file for all of the %d datsets\n', ...
+				numFiles );            
         
     end
     
