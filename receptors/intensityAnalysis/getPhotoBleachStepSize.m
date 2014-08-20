@@ -59,29 +59,39 @@ stepSize = NaN(numTracks,numStepsRange(2));
 keepTrack = ones(numTracks,1);
 for iTrack = 1 : numTracks
     
-    %fit amplitude time series
-    [stepX,valY] = fitDataWithMultiStepFunc((1:numFrames)',ampMat(:,iTrack),numStepsRange,alpha,0);
-    
-    numStepsTmp = length(stepX);
-    if numStepsTmp > 0
+    %find number of datapoints in track; analyze only if it has more than
+    %10 data points
+    trackLength = length(find(~isnan(ampMat(:,iTrack))));
+    if trackLength < 10
+        keepTrack(iTrack) = 0;
+    else
         
-        %get step size and number of steps
-        numSteps(iTrack) = numStepsTmp;
-        stepSize(iTrack,1:numStepsTmp) = abs(diff(valY))';
-    
-        %check fit if requested
-        if checkFit
-            x = (1:numFrames)';
-            y = ampMat(:,iTrack);
-            indx = find(~isnan(y));
-            x = x(indx);
-            y = y(indx);
-            overlayMultiStepFunc(x,y,stepX,valY)
-            userEntry = input('Step Detection OK? y/n ','s');
-            close
-            if strcmp(userEntry,'n')
-                keepTrack(iTrack) = 0;
+        %fit amplitude time series
+        [stepX,valY] = fitDataWithMultiStepFunc((1:numFrames)',ampMat(:,iTrack),numStepsRange,alpha,0);
+        
+        numStepsTmp = length(stepX);
+        if numStepsTmp > 0
+            
+            %get step size and number of steps
+            numSteps(iTrack) = numStepsTmp;
+            stepSize(iTrack,1:numStepsTmp) = abs(diff(valY))';
+            
+            %check fit if requested
+            if checkFit
+                x = (1:numFrames)';
+                y = ampMat(:,iTrack);
+                indxFirst = find(~isnan(y),1,'first');
+                indxLast = find(~isnan(y),1,'last');
+                x = x(indxFirst:indxLast);
+                y = y(indxFirst:indxLast);
+                overlayMultiStepFunc(x,y,stepX,valY,['Track ' num2str(iTrack)])
+                userEntry = input(['Step Detection for Track ' num2str(iTrack) ' OK? y/n '],'s');
+                close
+                if strcmp(userEntry,'n')
+                    keepTrack(iTrack) = 0;
+                end
             end
+            
         end
         
     end
@@ -90,7 +100,7 @@ end
 
 %keep info for good tracks only
 indxGood = find(keepTrack);
-numSteps = numStepsTmp(indxGood);
+numSteps = numSteps(indxGood);
 stepSize = stepSize(indxGood,:);
 
 %re-format for output
@@ -105,7 +115,7 @@ if doPlot
     
     figure
     subplot(1,2,1)
-    histogram(stepSize)
+    histogram(stepSize,[],0)
     title('Histogram of detected step sizes')
     subplot(1,2,2)
     plot(fracSteps(:,1),fracSteps(:,2))
