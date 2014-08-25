@@ -1,4 +1,4 @@
-function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
+function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -64,7 +64,9 @@ minLifetime = min(nFrames,3);
 markerSize = 2;
 % tracks
 iPaxChannel = 1; % this should be intentionally done in the analysis level
-
+if ~trackNAProc.checkChannelOutput(iPaxChannel)
+    iPaxChannel = 2;
+end
 % filter out tracks that have lifetime less than 2 frames
 disp('loading NA tracks...')
 tic
@@ -90,6 +92,8 @@ trackIdx = true(numel(tracksNA),1);
 % disp('loading segmented FAs...')
 iFASeg = 6;
 FASegProc = FASegPackage.processes_{iFASeg};
+bandArea = zeros(nFrames,1);
+NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
 for ii=1:nFrames
     % Cell Boundary Mask 
     maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
@@ -112,6 +116,7 @@ for ii=1:nFrames
     bandMask = distFromEdge <= bandwidthNA_pix;
 
     maskOnlyBand = bandMask & mask;
+    bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
     paxImageCropped=MD.channels_(1).loadImage(ii); 
     % size of the region of interest
     if ii==1
@@ -275,6 +280,16 @@ for ii=1:nFrames
 end
 % get rid of tracks that have out of bands...
 tracksNA = tracksNA(trackIdx);
+% saving
+save([dataPath filesep 'tracksNA.mat'], 'tracksNA')
+%% NA Density analysis
+numNAs = zeros(nFrames,1);
+for ii=1:nFrames
+    numNAs(ii) = sum(arrayfun(@(x) (x.presence(ii)==true), tracksNA));
+    NADensity(ii) = numNAs(ii)/(bandArea(ii)*MD.pixelSize_^2*1e6);  % unit: number/um2 
+end
+save([dataPath filesep 'NADensity.mat'], 'NADensity')
+
 %% Lifetime analysis
 p=0;
 idx = false(numel(tracksNA),1);
@@ -328,7 +343,7 @@ end
 maturingRatio = p/(p+q);
 tracksNAfailing = trNAonly(indMature);
 tracksNAmaturing = trNAonly(indFail);
-save([dataPath filesep 'allData.mat'])
+save([dataPath filesep 'allData.mat'], 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
 
 %% Run this separately with loading allData.mat if something failed 
 if plotEachTrack

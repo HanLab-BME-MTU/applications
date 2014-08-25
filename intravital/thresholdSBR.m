@@ -15,6 +15,7 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     
     %imInput = mat2gray(imInput) + 1;
     %imInput = imInput - min(imInput(:)) + 1;
+    %imInput = imInput + 1;
     
     % estimate local background using morphological opening
     if PARAMETERS.downsamplingFactor < 1
@@ -30,11 +31,10 @@ function [imMask] = thresholdSBR(imInput, maxObjectRadius, sbrCutOff, varargin)
     end
     
     % compute signal to background ration
-    %imSignalToBackgroundRatio = (imInput - imLocalBackground) ./ (eps + imLocalBackground);
     imSignalToBackgroundRatio = imInput ./ (eps + imLocalBackground);
     
     % apply cutoff
-    imMask = imSignalToBackgroundRatio > PARAMETERS.sbrCutOff;
+    imMask = imInput > PARAMETERS.sbrCutOff * imLocalBackground;
 
     % post-processing (optional)
     if ~isempty(PARAMETERS.minObjectRadius)

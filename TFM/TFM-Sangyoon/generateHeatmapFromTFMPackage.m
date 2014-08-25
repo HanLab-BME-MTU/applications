@@ -37,21 +37,23 @@ forceField=forceFieldProc.loadChannelOutput;
 
 % filter forcefield temporally
 % for each node
-Nnodes = length(forceField(1).pos);
-for k=1:Nnodes
-    % see the profile
-    curVecX = arrayfun(@(x) x.vec(k,1),forceField);
-    curVecY = arrayfun(@(x) x.vec(k,2),forceField);
-%     figure, plot(1:length(curVecX),curVecX)
-    [~,px] = csaps(1:length(curVecX),curVecX);
-    [~,py] = csaps(1:length(curVecY),curVecY);
-    smVecX2 = csaps(1:length(curVecX),curVecX,px*0.5);
-    smVecY2 = csaps(1:length(curVecY),curVecY,py*0.5);
-    smVecX3 = fnval(smVecX2,1:length(curVecX));
-    smVecY3 = fnval(smVecY2,1:length(curVecY));
-%     hold all, plot(1:length(curVecX),smVecX3)
-    for ii=1:length(curVecX)
-        forceField(ii).vec(k,:) = [smVecX3(ii) smVecY3(ii)];
+if nFrames>1
+    Nnodes = length(forceField(1).pos);
+    for k=1:Nnodes
+        % see the profile
+        curVecX = arrayfun(@(x) x.vec(k,1),forceField);
+        curVecY = arrayfun(@(x) x.vec(k,2),forceField);
+    %     figure, plot(1:length(curVecX),curVecX)
+        [~,px] = csaps(1:length(curVecX),curVecX);
+        [~,py] = csaps(1:length(curVecY),curVecY);
+        smVecX2 = csaps(1:length(curVecX),curVecX,px*0.5);
+        smVecY2 = csaps(1:length(curVecY),curVecY,py*0.5);
+        smVecX3 = fnval(smVecX2,1:length(curVecX));
+        smVecY3 = fnval(smVecY2,1:length(curVecY));
+    %     hold all, plot(1:length(curVecX),smVecX3)
+        for ii=1:length(curVecX)
+            forceField(ii).vec(k,:) = [smVecX3(ii) smVecY3(ii)];
+        end
     end
 end
 
@@ -92,6 +94,7 @@ if isempty(tmax)
         tmax = max(tmax,max(fnorm_vec));
         tmin = min(tmin,min(fnorm_vec));
     end
+    tmax = 0.8*tmax;
     display(['Estimated force maximum = ' num2str(tmax) ' Pa.'])
     toc
 else
