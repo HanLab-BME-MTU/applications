@@ -209,16 +209,16 @@ function [featureStruct, varargout] = ComputeRegionMergingFeatures(imInput, imLa
     featureStruct.shape.mergedRegionConvexity = mergedRegionConvexity;
     featureStruct.shape.convexityChange = convexityChange;
     
-    % size
-    featureStruct.size.volumeBeforeMerging = prod( PARAMETERS.spacing ) * sort( [numel(cellStats(c1).PixelIdxList), numel(cellStats(c2).PixelIdxList)] );
-    featureStruct.size.volumeAfterMerging = mergedRegionArea * prod( PARAMETERS.spacing );
-    
-    radii_c1 = ComputeEllipsoidRadii(imLabelCellSegCropped == c1, PARAMETERS.spacing);
-    radii_c2 = ComputeEllipsoidRadii(imLabelCellSegCropped == c2, PARAMETERS.spacing);
-    radii_merged = ComputeEllipsoidRadii(imMergedCellMask, PARAMETERS.spacing);
-    
-    featureStruct.size.majorAxisLengthBeforeMerging = sort( [max(radii_c1), max(radii_c2)] );
-    featureStruct.size.majorAxisLengthAfterMerging = max(radii_merged);
+     % size
+     featureStruct.size.volumeBeforeMerging = prod( PARAMETERS.spacing ) * sort( [numel(cellStats(c1).PixelIdxList), numel(cellStats(c2).PixelIdxList)] );
+     featureStruct.size.volumeAfterMerging = mergedRegionArea * prod( PARAMETERS.spacing );
+     
+     radii_c1 = ComputeEllipsoidRadii(imLabelCellSegCropped == c1, PARAMETERS.spacing);
+     radii_c2 = ComputeEllipsoidRadii(imLabelCellSegCropped == c2, PARAMETERS.spacing);
+     radii_merged = ComputeEllipsoidRadii(imMergedCellMask, PARAMETERS.spacing);
+     
+     featureStruct.size.majorAxisLengthBeforeMerging = sort( [max(radii_c1), max(radii_c2)] );
+     featureStruct.size.majorAxisLengthAfterMerging = max(radii_merged);
     
     if nargout > 1
        varargout{1} = PARAMETERS; 

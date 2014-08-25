@@ -54,19 +54,36 @@
     %experiment_global_thresholding( double(imageData{chid}), metadata );    
 
     chid = 1;
-    imPreprocessed = matitk( 'FMEDIAN', round(min(metadata.pixelSize) ./ metadata.pixelSize), double(mat2gray(imageData{chid}) * 4096) );
-    
+    imPreprocessed = matitk( 'FMEDIAN', round(2 * min(metadata.pixelSize) ./ metadata.pixelSize), double(mat2gray(imageData{chid}) * 4096) );
+    %imPreprocessed = matitk( 'FMEDIAN', round(min(metadata.pixelSize) ./ metadata.pixelSize), double(imageData{chid}) );
+
     % SBR: 
     %   DNA Damage - 1.10 for drug and macrophage channel, 1.05 for the nuclei  
-    imMask = thresholdSBR(imPreprocessed, 20, 2.0, ...
+    imMask = thresholdSBR(imPreprocessed, 20.0, 2.0, ...
                           'spacing', metadata.pixelSize, ...
                           'kernelDimensions', 2, ...
-                          'flagDebugMode', true, 'downsamplingFactor', 0.5);
+                          'flagDebugMode', true);
 
-%     [ imThresholdSurface, imMask ] = thresholdVariationalMinMaxOpt( imPreprocessed );
-%     imseriesmaskshow(imageData{chid}, imMask);
+                      
+    imseriesmaskshow(imageData{chid}, imMask, 'spacing', metadata.pixelSize);  
+ 
+%     % slice by slice local min error
+
+    krnlMax = ones( 2 * round(20 ./ metadata.pixelSize(1:2)) + 1 );
+    imCorreted = imtophat(imPreprocessed, krnlMax);
+%     imCorreted = imPreprocessed;
+
+    imThresh = segmentCellForegroundUsingLocalMinError( imCorreted, 30 / metadata.pixelSize(1), ...
+                                                        'model', 'poisson', ...  
+                                                        'minLocalGlobalThresholdRatio', 0.6, ...
+                                                        'minSliceToStackThresholdRatio', 0.4);
     
-    imseriesmaskshow(imageData{chid}, imMask);    
+    imseriesmaskshow(imageData{chid}, imThresh, 'spacing', metadata.pixelSize);  
+    
+    % threshold blobness
+    imThresh2 = thresholdBlobness(imPreprocessed, 8.0, 'spacing', metadata.pixelSize, 'choice_of_threshold', 'MinimumError');
+    
+    imseriesmaskshow(imageData{chid}, imThresh2, 'spacing', metadata.pixelSize);    
     
     %% apply global thresholding algorithms in each slice separately
     %experiment_global_thresholding_per_slice( double(imageData{1,1}), metadata );
