@@ -15,7 +15,7 @@ classdef LaminsData
         function obj= LaminsData(MD)
             if(nargin > 0)
                 obj.movieData = MD;
-                obj.cellReader = CellReader(CachedReader(MD));
+                obj.cellReader = CellReader(CachedReader(MD.getReader()));
                 obj.params = laminParams(MD);
                 obj.outputDirectory_ =  [MD.outputDirectory_ filesep 'lamins'];
             end
@@ -104,7 +104,7 @@ classdef LaminsData
         % plot the cummulative distribution functions of the whole image,
         % masked, and non-masked areas for comparison
         % if thresh is given, show the cutoffs
-        function plotMaskedCdf(obj,thresh,varargin)
+        function plotMaskedCdf(obj,varargin)
             [mask,maskThresh] = obj.getNuclearMask(varargin{:});
             %I = cat(3,obj.cellReader{varargin{:}});
             I = obj.cellReader{varargin{:}};
