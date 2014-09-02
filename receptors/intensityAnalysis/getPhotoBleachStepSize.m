@@ -95,7 +95,7 @@ for iTrack = indxGood'
         x = x(indxFirst:indxLast);
         y = y(indxFirst:indxLast);
         if trackEndsBeforeLast(iTrack)
-            stepX(end+1) = indxLast-indxFirst+1; %#ok<AGROW>
+            stepX(end+1) = indxLast+1; %#ok<AGROW>
             valY(end+1) = 0; %#ok<AGROW>
         end
         overlayMultiStepFunc(x,y,stepX,valY,['Track ' num2str(iTrack)])
