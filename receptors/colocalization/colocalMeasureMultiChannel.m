@@ -1,6 +1,6 @@
 function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
-    intensityLocalInd,intensityRatioInd,ratioFit,bayInfoCriterion, cellDensity, randIntensityRatioInd ] = colocalMeasurePt2Cnt(radius,percent,...
-    randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,channelCnt,channelPt,maskingFile)
+    intensityLocalInd,intensityRatioInd,ratioFit,bayInfoCriterion, cellDensity ] = colocalMeasureMultiChannel(radius,...
+    randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,firstImageFileSeg,channelCnt,channelPt,channelSeg, maskingFile,segmentFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
 % Synopsis[intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
@@ -10,8 +10,6 @@ function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
 %Input:
 %
 %   radius: radius of local area around detection points to be analysed.
-%
-%   percent: Top percentage of detections to be used.
 %
 %   randomRuns: the number of runs for simulating random detection points.
 %
@@ -25,11 +23,23 @@ function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
 %   firstImageFilePt: Name, including full path, of first punctate image tiff file.
 %    Optional. User will be prompted to choose file if not supplied.
 %
+%   firstImageFileSeg: Name, including full path, of first segmented image tiff file.
+%    Optional. User will be prompted to choose file if not supplied. DEFINE
+%    better later
+%
 %   channelCnt: Position of contiuum image channel in a multi-tiff file.
 %               Use 1 if single-tiff file. Optional. Default" 1.
 %
 %   channelPt: Position of puctate image channel in a multi-tiff file.
 %              Use 1 if single-tiff file. Optional. Default" 1.
+%
+%   channelSeg: Position of segmented image channel in a multi-tiff file.
+%              Use 1 if single-tiff file. Optional. Default" 1.
+%
+%   maskingFile: Full path where cell mask and list of pixels in mask is
+%   found.
+%
+%   segmentFile: Full path where segmented area of third channel is found.
 %
 % Output:
 %   intensityRatioAve: vector of the ratio of intensityLocalAve to intensityBgAve values for each image
@@ -57,7 +67,7 @@ function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
 
 %% Input
 
-if nargin < 5 || isempty(firstImageFileCnt)
+if nargin < 4 || isempty(firstImageFileCnt)
     [fName,dirName] = uigetfile('*.tif','PLEASE SPECIFY FIRST CONTINUUM IMAGE IN STACK');
 else
     if iscell(firstImageFileCnt)
@@ -73,7 +83,7 @@ end
 outFileListCnt = getFileStackNames([dirName,fName]);
 numFiles = length(outFileListCnt);
 
-if nargin < 6 || isempty(firstImageFilePt)
+if nargin < 5 || isempty(firstImageFilePt)
     [fName,dirName] = uigetfile('*.tif','PLEASE SPECIFY FIRST PUNCTATE IMAGE IN STACK');
 else
     if iscell(firstImageFilePt)
@@ -88,6 +98,21 @@ else
 end
 outFileListPt = getFileStackNames([dirName,fName]);
 
+if nargin < 6 || isempty(firstImageFileSeg)
+    [fName,dirName] = uigetfile('*.tif','PLEASE SPECIFY FIRST SEGMENTED IMAGE IN STACK');
+else
+    if iscell(firstImageFileSeg)
+        [fpath,fname,fno,fext]=getFilenameBody(firstImageFileSeg{1});
+        dirName=[fpath,filesep];
+        fName=[fname,fno,fext];
+    elseif ischar(firstImageFileSeg)
+        [fpath,fname,fno,fext]=getFilenameBody(firstImageFileSeg);
+        dirName=[fpath,filesep];
+        fName=[fname,fno,fext];
+    end
+end
+outFileListSeg = getFileStackNames([dirName,fName]);
+
 if nargin < 7 || isempty(channelCnt)
     channelCnt = 1;
 end
@@ -96,10 +121,15 @@ if nargin < 8 || isempty(channelPt)
     channelPt = 1;
 end
 
+if nargin < 9 || isempty(channelSeg)
+    channelSeg = 1;
+end
+
 %% Analysis
 
 load(detectionFile)
 load(maskingFile)
+load(segmentFile)
 %initialize output variables
 [intensityLocalAve,intensityBgAve,intensityRatioAve] = deal(zeros(numFiles,2));
 randRatioAve = zeros(numFiles,randomRuns);
@@ -223,34 +253,32 @@ end
 %test = cell2mat(intensityRatioInd);
 %%TEMP: Remove image 13 from no TSP
 % intensityRatioInd(13,:) = [];
-% randIntensityRatioInd(13,:) = [];
-figure;
+% figure;
 s=length(intensityRatioInd);
 c= linspace(1,s,s);
 model = @(xm,a) a(1)*xm+ a(2);
 % Remove outliers------------------------------------------------------
-% %     test = cell2mat(intensityRatioInd(:,:));
-    intensityRatioIndNew = intensityRatioInd;
-% %     intensityRatioIndNew = cell(length(intensityRatioInd),2);
-% % 
-% %     %Discard outliers
-% %     [~, D]= knnsearch(test,test,'K',5);
-% %     allDist = D(:,2:end);
-% %     avgDist = mean(allDist,2);
-% %     [row,~,~] = find(avgDist>prctile(avgDist,95));
-% %     test(row,:) = NaN;
-% %     
-% %     for i = 1: length(intensityRatioInd)
-% %         intensityRatioIndNew{i,1}=test(1:length(intensityRatioInd{i,1}),1); 
-% %         intensityRatioIndNew{i,2}= test(1:length(intensityRatioInd{i,1}),2);
-% % % %         bgIntensityCell{i,1} = intensityBgAve(i,1)*ones(length(intensityRatioIndNew{i,1}),1);
-% % % %         bgIntensityCell{i,2}=test(1:length(intensityRatioInd{i,1}),1);
-% %         test(1:length(intensityRatioInd{i,1}),:)=[];
-% %     end
-% figure;
-% k=1;
-for k = 1:length(intensityRatioIndNew)
-    test = cell2mat(intensityRatioIndNew(k,:));
+    test = cell2mat(intensityRatioInd(:,:));
+    intensityRatioIndNew = cell(length(intensityRatioInd),2);
+
+    %Discard outliers
+    [~, D]= knnsearch(test,test,'K',5);
+    allDist = D(:,2:end);
+    avgDist = mean(allDist,2);
+    [row,~,~] = find(avgDist>prctile(avgDist,95));
+    test(row,:) = NaN;
+    
+    for i = 1: length(intensityRatioInd)
+        intensityRatioIndNew{i,1}=test(1:length(intensityRatioInd{i,1}),1); 
+        intensityRatioIndNew{i,2}= test(1:length(intensityRatioInd{i,1}),2);
+% %         bgIntensityCell{i,1} = intensityBgAve(i,1)*ones(length(intensityRatioIndNew{i,1}),1);
+% %         bgIntensityCell{i,2}=test(1:length(intensityRatioInd{i,1}),1);
+        test(1:length(intensityRatioInd{i,1}),:)=[];
+    end
+figure;
+k=1;
+% for k = 1:length(intensityRatioIndNew)
+    test = cell2mat(intensityRatioIndNew(:,:));
     %Get rid of Nans
     keepInd = find(isnan(test(:,1)));
     test(keepInd,:)=[];
@@ -265,7 +293,7 @@ for k = 1:length(intensityRatioIndNew)
     f = polyval(P,sTest(:,2));
     f2 = polyval(P,0:0.1:3);
 %     hold on
-% %     plot(0:0.1:3,f2,'r');
+    plot(0:0.1:3,f2,'r');
 % %     title(strcat('CD36-Actin +TSP  Fit:',num2str(P(1)),'x +',num2str(P(2)),'    X-Intercept: ',num2str(xInt(1))))
 % %     ylabel('Actin Ratio')
 % %     xlabel( 'CD36 Ratio')
@@ -291,10 +319,10 @@ for k = 1:length(intensityRatioIndNew)
 % %     hold on; plot(endpts(:,1),endpts(:,2),'k-');
     %-------------------------------------------------------------------
     ratioFit(k,:) = [P(1) P(2)];
-end
+% end
     ylabel('Actin Ratio')
     xlabel( 'CD36 Ratio')
-    axis([0 4 0 4])
+    axis([0 2.5 0 2.5])
 % end
 
 end
