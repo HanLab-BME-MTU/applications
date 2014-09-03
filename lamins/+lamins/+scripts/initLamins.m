@@ -9,5 +9,5 @@ Lamins(2) = LaminsData(ML.getMovie(2));
 cd(currentDir);
 
 %% Generate image classes (quick)
-I{1} = squeeze(Lamins(1).getImages);
-I{2} = squeeze(Lamins(2).getImages);
+images{1} = Lamins(1).getImages;
+images{2} = Lamins(2).getImages;

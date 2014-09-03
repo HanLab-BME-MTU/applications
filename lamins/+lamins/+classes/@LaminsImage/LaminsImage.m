@@ -94,6 +94,7 @@ classdef LaminsImage < hgsetget
 %             res = S.res;
 %         end
         function mask = get.mask(obj)
+            import lamins.functions.*;
             if(isempty(obj.mask))
                 obj.mask = maskFromSteerable(obj.steerable);
             end
@@ -107,6 +108,7 @@ classdef LaminsImage < hgsetget
             skel = obj.nmsSkel;
         end
         function tskel = get.threshSkel(obj)
+            import lamins.functions.*;
             if(isempty(obj.threshSkel))
                 theta_stats = getSegmentOrientationStats(obj.steerable.theta,obj.nmsSkel);
     %             areaThresh = thresholdRosin([theta_stats.rp.Area]);
@@ -118,6 +120,7 @@ classdef LaminsImage < hgsetget
             tskel = obj.threshSkel;
         end
         function eskel = get.extendedSkel(obj)
+            import lamins.functions.*;
             if(isempty(obj.extendedSkel))
                 endpts = bwmorph(obj.threshSkel,'endpoints');
                 vector = getEndPointVector(obj.threshSkel,'local');
@@ -129,12 +132,13 @@ classdef LaminsImage < hgsetget
         end
         function askel = get.auditedSkel(obj)
             if(isempty(obj.auditedSkel))
-                A = auditSkelEdges(obj.extendedSkel);
+                A = lamins.functions.auditSkelEdges(obj.extendedSkel,double(obj));
                 obj.auditedSkel = A.bw;
             end
             askel = obj.auditedSkel;
         end
         function skel = get.skeleton(obj)
+            import lamins.classes.*;
             if(isempty(obj.skeleton))
                 obj.skeleton = Skeleton(obj);
             end
@@ -200,6 +204,46 @@ classdef LaminsImage < hgsetget
                 for z = size(obj,2)
                     obj(c,z).(prop);
                 end
+            end
+        end
+        function [thresh,g,out] = maskThresh(obj,I)
+            if(nargin < 2)
+                I = obj.image;
+            end
+            if(all(~obj.mask(:)))
+                warning('invalid mask');
+                % default to 95th percentile of the image
+                thresh = prctile(I(:),95);
+                g = [];
+                out = [];
+                return;
+            end
+            [maskedFcn.v, maskedFcn.x] = ecdf(I(obj.mask));
+            [nonmaskedFcn.v,nonmaskedFcn.x] = ecdf(I(~obj.mask));
+            maskedFcn.f = @(q) interp1(double(maskedFcn.x(2:end)),maskedFcn.v(2:end),q);
+            nonmaskedFcn.f = @(q) interp1(double(nonmaskedFcn.x(2:end)),nonmaskedFcn.v(2:end),q);
+            g = @(q) nonmaskedFcn.f(q) - maskedFcn.f(q);
+            r = linspace(double(min(I(:))),double(max(I(:))),1000);
+            try
+                [p,pi] = findpeaks(g(r),'sortstr','descend');
+                thresh = r(pi);
+                thresh = thresh(1);
+            catch
+                % get the 95th percentile of the unmasked region if
+                % finding peaks failed
+                thresh = prctile(I(~obj.mask(:)),95);
+                p = NaN;
+                pi = NaN;
+                warning('No peaks found');
+            end
+            if(nargout > 2)
+                out.maskedFcn = maskedFcn;
+                out.nonmaskedFcn = nonmaskedFcn;
+                out.maskedPct = maskedFcn.f(thresh);
+                out.nonmaskedPct = nonmaskedFcn.f(thresh);
+                out.p = p;
+                out.pi = pi;
+                out.r = r;
             end
         end
         function loadSteerable(obj)

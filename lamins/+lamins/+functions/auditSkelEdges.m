@@ -7,7 +7,7 @@ branchpt.idx = find(branchpts);
 endpt.idx = find(endpts);
 
 vertices = branchpts | endpts;
-[edges_cc, vertices_cc, pairs] = bwtrace(skel,vertices);
+[edges_cc, vertices_cc, pairs] = lamins.functions.bwtrace(skel,vertices);
 
 edges_rp = regionprops(edges_cc,I,'MaxIntensity','MeanIntensity','MinIntensity');
 
@@ -25,7 +25,7 @@ vert_neigh = imdilate(vertices,strel('square',3)) & skel;
 bw = labelmatrix(A.fcc) > 0 | vert_neigh;
 bw = bwmorph(bw,'spur',Inf);
 A.bw = bw;
-A.overlay = showSkelOnIntensity(I,bw);
+A.overlay = lamins.functions.showSkelOnIntensity(I,bw);
 
 end
 

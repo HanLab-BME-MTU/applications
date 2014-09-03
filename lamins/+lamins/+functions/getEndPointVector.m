@@ -1,4 +1,5 @@
 function vector = getEndPointVector(skel,method,varargin)
+    import lamins.functions.*;
 
         if(nargin < 2)
             method = 'local';

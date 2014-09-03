@@ -6,13 +6,18 @@ function [ newcc, oldccidx ] = filtercc( cc, filter )
 %        used to select the new connected components. 
 %        This may be a logical index or one selecting specific
 %        components of the connected components structure
+%
+% output:
+%   newcc is a new conneccted component struccture with filtere applied
+%   oldccidx is a vector containing numeric indices of the original
+%     connected component struccture. Useful if logical indexing was used.
 
 newcc = cc;
-newcc.PixelIdxList = cc.PixelIdxList(logicfilter);
+newcc.PixelIdxList = cc.PixelIdxList(filter);
 newcc.NumObjects = length(newcc.PixelIdxList);
 if(nargout > 1)
     idx = 1:cc.NumObjects;
-    oldccidx = idx(logicfilter);
+    oldccidx = idx(filter);
 end
 
 end
