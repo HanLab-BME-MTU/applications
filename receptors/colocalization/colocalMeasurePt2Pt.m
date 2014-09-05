@@ -29,52 +29,25 @@ function [cT, cNull, cCritical,estimatorM, estimatorC] = colocalMeasurePt2Pt(ima
 % yIndex: Information from detection program which reads y position and
 % variance of objects in a single frame
 
-for a = 1:length(imageAInfo)
-    
-    y = imageSet{a,1};%REMEMBER THIS CHANGES
-    image  = strcat('/home2/avega/HMECFyn/Fyn/FynT',y);
-    I = imread(image);
-    
-    [mask, maskList] = calcStateDensity(I);
-    xIndex = imageAInfo(a).xCoord(:,1);
-    %xVar = imageAInfo(a).xCoord(:,2);
-    
-    yIndex = imageAInfo(a).yCoord(:,1);
-    %yVar = imageAInfo(a).yCoord(:,2);
-    
+ load(detectionFile)
+ load(maskingFile)
+for a = 1:length(imageAInfo) %change length
+      
+    %Index points from both image
+    xIndex = movieInfo(a).xCoord(:,1);
+    yIndex = movieInfo(a).yCoord(:,1);
     QP = [yIndex xIndex];
-    %scatter(xIndex, yIndex);
-
-    iIndex = imageBInfo(a).xCoord(:,1);
-    iVar = imageBInfo(a).xCoord(:,2);
     
-    jIndex = imageBInfo(a).yCoord(:,1);
-    jVar = imageBInfo(a).yCoord(:,2);
-    holder = [jIndex iIndex]; 
-    %hold on; scatter(iIndex, jIndex,'b');
-%     DT = delaunayTriangulation(iIndex, jIndex);
+    %Find detections in QP that lie inside maskList
+    lia1 = ismember(round(QP),maskList{a},'rows');
     
- lia1 = ismember(round(QP),maskList,'rows');   
- lia2 = ismember(round(holder),maskList,'rows');
-% Multipling lia (binary vector) by defaultM will take replace coord outside
-% boundary with zero, last line removes all zeros from vector
+    %Multipling lia (binary vector) by QP will replace coord outside
+    %boundary with zero, last line removes all zeros from vector
+    QP(:,1) = lia1.*QP(:,1);
+    QP(:,2) = lia1.*QP(:,2);
+    QP( ~any(QP,2), : ) = [];
 
- QP(:,1) = lia1.*QP(:,1);
- QP(:,2) = lia1.*QP(:,2);
- QP( ~any(QP,2), : ) = [];
-roundedQP = [round(QP(:,1)) round(QP(:,2))]; 
-localMask = zeros(size(I,1),size(I,2));
-for i = 1:length(roundedQP)
-localMask(roundedQP(i,1),roundedQP(i,2)) = 1;
-end
- holder(:,1) = lia2.*holder(:,1);
- holder(:,2) = lia2.*holder(:,2);
- holder( ~any(holder,2), : ) = [];
-DT = delaunayTriangulation(holder(:,1), holder(:,2));
-
-    %Find Nearest Neighbor between original channels
-    [~, d] = nearestNeighbor(DT, QP);
-
+% Other stuff to be changed------------------------------------------------
     % Test NN under threshold
     xi = min(d):0.01:max(d);
     [f] = ksdensity(d,xi);

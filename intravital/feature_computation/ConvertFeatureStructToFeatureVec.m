@@ -30,12 +30,12 @@ function [ feature_vec , feature_labels ] = ConvertFeatureStructToFeatureVec( fe
         
         if isempty( cur_field )
             
-             feature_vec{end+1 , 1} = '';
-             feature_labels{end+1 , 1} = field_name_list{ i };
+             cur_feature_vec = cell(1,1);
+             cur_feature_labels = field_name_list{ i };
             
         elseif isstr( cur_field )
 
-            cur_feature_vec = cur_field;
+            cur_feature_vec = {cur_field};
             cur_feature_labels = field_name_list{ i };
                 
         else
@@ -80,7 +80,7 @@ function [ feature_vec , feature_labels ] = ConvertFeatureStructToFeatureVec( fe
                 else                           
 
                     %cur_feature_vec = num2str( cur_field );
-                    cur_feature_vec = cur_field;
+                    cur_feature_vec = {cur_field};
                     
                     cur_feature_labels = field_name_list{ i };                
 

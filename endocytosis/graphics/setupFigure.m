@@ -32,6 +32,7 @@ ip.addParamValue('YSpace', []);
 ip.addParamValue('DisplayMode', 'print', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.addParamValue('InsetPosition', []);
 ip.addParamValue('Name', '');
+ip.addParamValue('Box', 'off', @(x) any(strcmpi(x, {'on', 'off'})));
 ip.parse(varargin{:});
 nh = ip.Results.nh;
 nw = ip.Results.nw;
@@ -147,12 +148,12 @@ for i = 1:na
     y0(i) = nh-ceil(i/nw);
     x0(i) = mod(i-1,nw);
     pos = [xl+x0(i)*(aw+xc) yb+y0(i)*(ah+yc) aw ah];
-    ha(i) = axes('Position', pos); %#ok<LAXES>
+    ha(i) = axes('Position', pos);
     hold(ha(i), 'on');
     
     if ~isempty(ipos);
         hi(i) = axes('Position', [pos(1)+pos(3)*ipos(3) pos(2)+pos(4)*ipos(4)...
-            ipos(1)*pos(3) ipos(2)*pos(4)]); %#ok<LAXES>
+            ipos(1)*pos(3) ipos(2)*pos(4)]);
         hold(hi(i), 'on');
     end
 end
@@ -164,6 +165,14 @@ end
 
 set(ha, 'TickDir', 'out', 'TickLength', tickLength,...
     'LineWidth', 1, 'Layer', 'top', axesFont{:});
+
+if strcmpi(ip.Results.Box, 'on') % for a closed box w/o ticks, re-plot axes on top
+    for i = 1:na
+        hb = axes('Position', get(ha(i), 'Position'), 'Box', 'on', 'XTick', [],...
+            'YTick', [], 'Color', 'none', 'LineWidth', 1);
+        linkaxes([ha(i) hb]);
+    end
+end
 
 if ~isempty(ipos)
     set(hi, 'TickDir', 'out', 'TickLength', tickLength*max(aw,ah)/max(ipos(1)*pos(3), ipos(2)*pos(4)),...

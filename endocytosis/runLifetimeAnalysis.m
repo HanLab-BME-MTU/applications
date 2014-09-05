@@ -381,6 +381,7 @@ for i = 1:nd
         lftRes.initDensityIa(i,:) =  [median(startsPerFrameIa);  madFactor*mad(startsPerFrameIa, 1)]*dnorm;
         lftRes.initDensityCCP(i,:) = [median(startsPerFrameCCP); madFactor*mad(startsPerFrameCCP,1)]*dnorm;
     end
+    lftRes.persistentDensity(i,:) = sum(lftData(i).catIdx_all==4) / lftRes.cellArea(i);
 end
 %====================
 % Initiation density
@@ -430,7 +431,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     YLim(1) = 0;
     set(ha(4), 'XTick', 1:nd, 'XTickLabel', XTickLabel, 'XLim', [0.5 nd+0.5], 'YLim', YLim);
     hl = legend(ha(4), 'Single tracks', 'Compound tracks', 'Location', 'NorthWest');
-    set(hl, 'Box', 'off');
+    set(hl, 'Box', 'on');
     rotateXTickLabels(ha(4), 'Angle', 45, 'AdjustFigure', false, 'Interpreter', 'none');
     
     formatTickLabels(ha(1:2));
@@ -438,6 +439,7 @@ if any(strcmpi(ip.Results.Display, {'on','all'})) && ~ip.Results.PoolDatasets
     fprintf('Initiation density, all detected tracks:                  %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityAll(:,1)), std(lftRes.initDensityAll(:,1)));
     fprintf('Initiation density, valid tracks (CCPs + CSs + visitors): %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityIa(:,1)), std(lftRes.initDensityIa(:,1)));
     fprintf('Initiation density, CCPs:                                 %.3f ± %.3f [µm^-2 min^-1]\n', mean(lftRes.initDensityCCP(:,1)), std(lftRes.initDensityCCP(:,1)));
+    fprintf('Density of persistent structures:                         %.3f ± %.3f [µm^-2]\n', mean(lftRes.persistentDensity), std(lftRes.persistentDensity));
     fprintf('Valid tracks/cell: %.1f ± %.1f (total valid tracks: %d)\n', mean(lftRes.nSamples_Ia), std(lftRes.nSamples_Ia), sum(lftRes.nSamples_Ia));
     
     % gap statistics
