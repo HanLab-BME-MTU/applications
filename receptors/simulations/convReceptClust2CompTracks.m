@@ -336,8 +336,11 @@ for iClust = 1 : numClustGlobal
     end
     
     %store this compound track's information
-    compTracks(iClust).tracksFeatIndxCG = tracksFeatIndxCG;
-    compTracks(iClust).tracksCoordAmpCG = tracksCoordAmpCG;
+    %082014 - Robel Yirdaw
+    %Saving tracksFeatIndxCG and tracksCoordAmpCG as sparse matrices
+    compTracks(iClust).tracksFeatIndxCG = sparse(tracksFeatIndxCG);
+    tracksCoordAmpCG(isnan(tracksCoordAmpCG)) = 0;
+    compTracks(iClust).tracksCoordAmpCG = sparse(tracksCoordAmpCG);
     compTracks(iClust).seqOfEvents = seqOfEvents;
 
 end %(for iClust = 1 : numClustGlobal)

@@ -1,15 +1,16 @@
-function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir, varargin)
+function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, channelId53BP1, resultsDir, varargin)
 
     flagSuccess = false;
     
     p = inputParser;
 
+    % channels for colocalization measures
+    p.addParamValue('channelIdDrug', [], @(x) (isempty(x) || (isnumeric(x) && isscalar(x))) );
+    p.addParamValue('channelIdMacrophage', [], @(x) (isempty(x) || (isnumeric(x) && isscalar(x))));
+    
     % data selection
     p.addParamValue('seriesId', 1, @(x) (isnumeric(x) && isscalar(x)));
     p.addParamValue('timepointId', 1, @(x) (isnumeric(x) && isscalar(x)));
-    p.addParamValue('channelIdDrug', 1, @(x) (isempty(x) || (isnumeric(x) && isscalar(x))) );
-    p.addParamValue('channelId53BP1', 2, @(x) (isnumeric(x) && isscalar(x)));
-    p.addParamValue('channelIdMacrophage', 3, @(x) (isempty(x) || (isnumeric(x) && isscalar(x))));
     
     % nuclei segmentation
     p.addParamValue('cellDiameterRange', [8, 20], @(x) (isnumeric(x) && numel(x) == 2) );
@@ -21,7 +22,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     p.addParamValue('fociDiameterRange',  0.621 * [3, 7], @(x) (isnumeric(x) && numel(x) == 2) );
     p.addParamValue('minDistanceToROIBoundary', 1.25, @(x) (isnumeric(x) && isscalar(x)) );
     p.addParamValue('fociDetectionModelFile', [], @(x) (isempty(x) || (ischar(x) && exist(x, 'file'))) );
-    p.addParamValue('maxFociCount', 4, @(x) (isnumeric(x) && isscalar(x)));
+    p.addParamValue('maxFociCount', 6, @(x) (isnumeric(x) && isscalar(x)));
     
     % drug segmentation
     p.addParamValue('maxDrugObjectRadius', 20, @(x) (isnumeric(x) && isscalar(x)));
@@ -33,8 +34,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     p.addParamValue('minMacrophageSignalToBackgroundRatio', 2.5, @(x) (isnumeric(x) && isscalar(x)));
 
     % colocalization
-    p.addParamValue('maxDrugNeighDist', 50, @(x) (isscalar(x) && isnumeric(x)));
-    p.addParamValue('numDrugNeighDistLevels', 5, @(x) (isscalar(x) && isnumeric(x)));
+    p.addParamValue('maxNeighDist', 30, @(x) (isscalar(x) && isnumeric(x)));
+    p.addParamValue('numNeighDistLevels', 6, @(x) (isscalar(x) && isnumeric(x)));
     
     % miscelleneous
     p.addParamValue('metaInfoStruct', [], @(x) (isstruct(x) && all(isfield(x, {'header', 'data'}))) );
@@ -77,9 +78,9 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     
     AddWekaClassesToPath();
     
-    matlabpath
-    javaclasspath('-dynamic')
-    version -java
+    %matlabpath
+    %javaclasspath('-dynamic')
+    %version -java
     
     if ~isempty(PARAMETERS.finishStatusReportFile)
         fidStatus = fopen( PARAMETERS.finishStatusReportFile, 'w' );       
@@ -102,39 +103,51 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         imageData = br.getImageData(PARAMETERS.seriesId, 'timepointId', PARAMETERS.timepointId);
         
         % check whether the Drug and Macrophage channels are present
-        switch metadata.numChannels
-
-            case 1
-
-                metadata.channelId53BP1 = 1;
-                metadata.channelIdDrug = [];
-                metadata.channelIdMacrophage = [];
-                metadata.channelNames = {'53BP1'};
-
-            case 3
-
-                metadata.channelId53BP1 = PARAMETERS.channelId53BP1;
-                metadata.channelIdDrug = PARAMETERS.channelIdDrug;
-                metadata.channelIdMacrophage = PARAMETERS.channelIdMacrophage;
-
-                metadata.channelNames = cell(1,3);
-                metadata.channelNames{metadata.channelId53BP1} = '53BP1';
-                metadata.channelNames{metadata.channelIdDrug} = 'Drug';
-                metadata.channelNames{metadata.channelIdMacrophage} = 'Macrophage';
-
+        metadata.channelId53BP1 = channelId53BP1;
+        if isempty(channelId53BP1) || channelId53BP1 < 1 || channelId53BP1 > metadata.numChannels
+            error( 'Invalid 53bp1 channel id.');
         end
-
-        stackInfoStruct.metadata = metadata;
+        metadata.channelNames{metadata.channelId53BP1} = '53BP1';
         
-    compInfo.dataLoadTime = toc(dataLoadTimer);    
-    
-    if PARAMETERS.flagSaveImages
+        if ~isempty(PARAMETERS.channelIdMacrophage) && ~isnan(PARAMETERS.channelIdMacrophage)
+            
+            if PARAMETERS.channelIdMacrophage < 1 || PARAMETERS.channelIdMacrophage > metadata.numChannels
+                error( 'Invalid macrophage channel id.');
+            end
+            
+            metadata.channelIdMacrophage = PARAMETERS.channelIdMacrophage;
+            metadata.channelNames{metadata.channelIdMacrophage} = 'Macrophage';
+            
+        else
+            metadata.channelIdMacrophage = [];
+        end
+        
+        if ~isempty(PARAMETERS.channelIdDrug) && ~isnan(PARAMETERS.channelIdDrug)
+            
+            if PARAMETERS.channelIdDrug < 1 || PARAMETERS.channelIdDrug > metadata.numChannels
+                error( 'Invalid drug channel id.');
+            end
+            
+            metadata.channelIdDrug = PARAMETERS.channelIdDrug;
+            metadata.channelNames{metadata.channelIdDrug} = 'Drug';
+        
+        else
+            metadata.channelIdDrug = [];
+        end
+                
+        stackInfoStruct.metadata = rmfield(metadata, {'dataFilePath', 'channelNames'});
+        
+        compInfo.dataLoadTime = toc(dataLoadTimer);    
 
-        imwrite( generateMultichannelMIPImage(imageData, [], metadata.pixelSize), ...
-                 fullfile(resultsDir, 'images', 'stackMIP.png'), 'png');
+        metadata
 
-    end
-    
+        if PARAMETERS.flagSaveImages
+
+            imwrite( generateMultichannelMIPImage(imageData, [], metadata.pixelSize), ...
+                     fullfile(resultsDir, 'images', 'stackMIP.png'), 'png');
+
+        end   
+
     % analyze data
     analysisTimer = tic;
     
@@ -144,7 +157,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         segTimer = tic;
         
         [imLabelCellSeg, imCellSeedPoints, ...
-         segAlgoPARAMETERS ] = segmentCellsInIntravitalData( imageData{PARAMETERS.channelId53BP1}, ...
+         segAlgoParameters ] = segmentCellsInIntravitalData( imageData{metadata.channelId53BP1}, ...
                                                              metadata.pixelSize, ...      
                                                              'thresholdingAlgorithm', 'BackgroudRemovalUsingMorphologicalOpening', ...
                                                              'minSignalToBackgroundRatio', 2.5, ...
@@ -156,14 +169,16 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
                                                              'flagParallelize', PARAMETERS.flagParallelize, ...
                                                              'flagDebugMode', false);
         
-        segAlgoPARAMETERS
+        segAlgoParameters
 
         numCells = max(imLabelCellSeg(:));       
         cellStats = regionprops( imLabelCellSeg, 'Centroid', 'BoundingBox', 'Area', 'PixelIdxList' );
         
         fprintf( '\nThe segmentation algorithm found %d cells\n', numCells );
         
-        compInfo.segmentationTime = toc(segTimer);        
+        compInfo.segmentationTime = toc(segTimer);      
+		compInfo.totalAlgorithmTime = compInfo.segmentationTime;
+        
         stackInfoStruct.cellCount = numCells;
         stackInfoStruct.cellDensity = sum([cellStats.Area]) / numel(imLabelCellSeg);
         
@@ -173,7 +188,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         fociDetectionTimer = tic;
         
         [fociStats, imFociSeedPoints, imLabelFociSeg, ...
-         fociDetectionPARAMETERS ] = segmentFociInsideNuclei( imageData{PARAMETERS.channelId53BP1}, ...
+         fociDetectionParameters ] = segmentFociInsideNuclei( imageData{metadata.channelId53BP1}, ...
                                                               PARAMETERS.fociDiameterRange, ...                      
                                                               'spacing', metadata.pixelSize, ...
                                                               'roiMask', imLabelCellSeg, ...
@@ -191,35 +206,25 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         end        
 
         compInfo.fociDetectionTime = toc(fociDetectionTimer);        
+		compInfo.totalAlgorithmTime = compInfo.totalAlgorithmTime + compInfo.fociDetectionTime;
+		
         fprintf( '\nThe foci detection algorithm found %d foci\n', numel(fociStats));
         tabulate( [cellStats.fociCount] )
         
         if PARAMETERS.flagSaveImages
 
-            imFociDetectionSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelId53BP1}, imLabelFociSeg > 0, [1, 0, 0], 0.5, ...
+            imFociDetectionSummary = generateMIPMaskOverlay(imageData{metadata.channelId53BP1}, imLabelFociSeg > 0, [1, 0, 0], 0.5, ...
                                                             'spacing', metadata.pixelSize);            
                 
             imwrite(imFociDetectionSummary, fullfile(resultsDir, 'images', 'fociDetectionSummary.png'), 'png');
 
         end
         
-        % perform colocalization analysis
-        if metadata.numChannels == 3
-          
- 	    colocAnalysisTimer = tic;
- 
-            % segment drug channel
-            PrettyPrintStepDescription( 'Segmenting Drug Channel' );
-
-            drugSegTimer = tic;
-
-            imDrugSeg = segmentDrugCisplatin(imageData{metadata.channelIdDrug}, ...
-                                             'maxObjectRadius', PARAMETERS.maxDrugObjectRadius, ...
-                                             'minSignalToBackgroundRatio', PARAMETERS.minDrugSignalToBackgroundRatio, ...
-                                             'spacing', metadata.pixelSize);
-                                         
-            compInfo.drugSegTime = toc(drugSegTimer);
-
+        % perform colocalization analysis with the macrophage channel
+        cellColocStats = [];
+        
+        if ~isempty(metadata.channelIdMacrophage) 
+            
             % segment macrophage channel
             PrettyPrintStepDescription( 'Segmenting Macrophage Channel' );
 
@@ -232,41 +237,104 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
                                                  'minObjectRadius', PARAMETERS.minMacrophageObjectRadius);
             
             compInfo.macrophageSegTime = toc(macSegTimer);
+
+            fprintf('\ntook %f seconds\n', compInfo.macrophageSegTime);
             
-            % compute colocalization measures
-            PrettyPrintStepDescription( 'Computing Colocalization Measures' );
+            % compute colocalization measures with drug channel
+            fprintf('\n>> Computing colocalization measures for the drug channel ... \n');
 
-            colocTimer = tic; 
+            macColocMeasureTime = tic;
 
-            [cellColocStats] = ComputeDNADamageColocalizationMeasures(imageData{metadata.channelIdDrug}, ...
-                                                                      imageData{metadata.channelId53BP1}, ...
-                                                                      imageData{metadata.channelIdMacrophage}, ...
-                                                                      metadata.pixelSize, ...
-                                                                      imLabelCellSeg, cellStats, ...
-                                                                      imDrugSeg, imMacrophageSeg);
-            compInfo.colocMeasurementTime = toc(colocTimer);
+            [macrophageColocStats] = ComputeDNADamageColocalizationMeasures(imageData{metadata.channelId53BP1}, ...   
+                       														imageData{metadata.channelIdMacrophage}, ... 
+                            												metadata.pixelSize, ...
+                                   											imLabelCellSeg, cellStats, ...
+                                          									imMacrophageSeg, ...
+																			'maxObjectRadius', PARAMETERS.maxMacrophageObjectRadius, ...
+																			'maxNeighDist', PARAMETERS.maxNeighDist, ...
+																			'numNeighDistLevels', PARAMETERS.numNeighDistLevels);
 
-            compInfo.totalColocAnalysisTime = toc(colocAnalysisTimer);  
-            
-            if PARAMETERS.flagSaveImages
+            cellColocStats.macrophage = macrophageColocStats;
 
-                imDrugSegSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelIdDrug}, imDrugSeg, [1, 0, 0], 0.2, ...
-                                                          'spacing', metadata.pixelSize);            
-                imwrite(imDrugSegSummary, fullfile(resultsDir, 'images', 'drugSegSummary.png'), 'png');
+            compInfo.macrophageColocMeasureTime = toc(macColocMeasureTime);
+            compInfo.macrophageColocAnalysisTime = compInfo.macrophageSegTime + compInfo.macrophageColocMeasureTime;
+			compInfo.totalAlgorithmTime = compInfo.totalAlgorithmTime + compInfo.macrophageColocAnalysisTime;
 
-                imMacrophageSegSummary = generateMIPMaskOverlay(imageData{PARAMETERS.channelIdMacrophage}, imMacrophageSeg, [1, 0, 0], 0.2, ...
-                                                          'spacing', metadata.pixelSize);            
-                imwrite(imMacrophageSegSummary, fullfile(resultsDir, 'images', 'macrophageSegSummary.png'), 'png');
+            fprintf('\ntook %f seconds\n', compInfo.macrophageColocMeasureTime);
+
+			if PARAMETERS.flagSaveImages
+
+				imMacrophageSegSummary = generateMIPMaskOverlay(imageData{metadata.channelIdMacrophage}, ...
+																imMacrophageSeg, [1, 0, 0], 0.5, ...
+																'spacing', metadata.pixelSize);            
                 
-            end
+				imwrite(imMacrophageSegSummary, fullfile(resultsDir, 'images', 'macrophageSegSummary.png'), 'png');
+
+			end
             
         else
+            
+            compInfo.macrophageSegTime = 0;
+            compInfo.macrophageColocMeasureTime = 0;
+            compInfo.macrophageColocAnalysisTime = 0;
+            
+        end
+        
+        % perform colocalization analysis with the drug channel
+        if ~isempty(metadata.channelIdDrug)
+            
+            % segment drug channel
+            PrettyPrintStepDescription( 'Segmenting Drug Channel' );
 
-            compInfo.drugSegTime = 0; 
-            compInfo.MacrophageSegTime = 0;
-            compInfo.colocMeasurmentTime = 0;
-            compInfo.totalColocAnalysisTime = 0;
-         
+            drugSegTimer = tic;
+
+            imDrugSeg = segmentDrugCisplatin(imageData{metadata.channelIdDrug}, ...
+                                             'maxObjectRadius', PARAMETERS.maxDrugObjectRadius, ...
+                                             'minSignalToBackgroundRatio', PARAMETERS.minDrugSignalToBackgroundRatio, ...
+                                             'spacing', metadata.pixelSize);
+                                         
+            compInfo.drugSegTime = toc(drugSegTimer);
+            
+            fprintf('\ntook %f seconds\n', compInfo.drugSegTime);
+            
+            % compute colocalization measures with drug channel
+            fprintf('\n>> Computing colocalization measures for the drug channel ... \n');
+
+            drugColocMeasureTime = tic;
+
+            [drugColocStats] = ComputeDNADamageColocalizationMeasures(imageData{metadata.channelId53BP1}, ...   
+                                                                      imageData{metadata.channelIdDrug}, ... 
+                                                                      metadata.pixelSize, ...
+                                                                      imLabelCellSeg, cellStats, ...
+                                                                      imDrugSeg, ...
+																	  'maxObjectRadius', PARAMETERS.maxDrugObjectRadius, ...
+																	  'maxNeighDist', PARAMETERS.maxNeighDist, ...
+																	  'numNeighDistLevels', PARAMETERS.numNeighDistLevels);
+
+            cellColocStats.drug = drugColocStats;
+
+            compInfo.drugColocMeasureTime = toc(drugColocMeasureTime);
+            compInfo.drugColocAnalysisTime = compInfo.drugSegTime + compInfo.drugColocMeasureTime;
+			compInfo.totalAlgorithmTime = compInfo.totalAlgorithmTime + compInfo.drugColocAnalysisTime;
+
+            fprintf('\ntook %f seconds\n', compInfo.drugColocMeasureTime);
+            
+			if PARAMETERS.flagSaveImages
+
+				imDrugSegSummary = generateMIPMaskOverlay(imageData{metadata.channelIdDrug}, ...
+						 								  imDrugSeg, [1, 0, 0], 0.5, ...
+														  'spacing', metadata.pixelSize);            
+                
+				imwrite(imDrugSegSummary, fullfile(resultsDir, 'images', 'drugSegSummary.png'), 'png');
+
+			end
+
+        else
+            
+            compInfo.drugSegTime = 0;
+            compInfo.drugColocMeasureTime = 0;
+            compInfo.drugColocAnalysisTime = 0;
+            
         end
         
         % compute and store stack level info
@@ -296,8 +364,11 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         cellInfoStruct = [];
         cellInfoFeatureMatrix = {};
         
-        cellColocInfoStruct = [];
-        cellColocInfoFeatureMatrix = [];
+        cellDrugColocInfoStruct = [];
+        cellDrugColocInfoFeatureMatrix = [];
+
+        cellMacrophageColocInfoStruct = [];
+        cellMacrophageColocInfoFeatureMatrix = [];
         
         fprintf( '\nProgress: \n' );
         last_percent_done = 0;
@@ -305,7 +376,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         
         for cellId = 1:numel(cellStats)
             
-	    curCellStruct = [];
+            curCellStruct = [];
             curCellStruct.cellId = cellId;
             
             % compute region properties
@@ -375,13 +446,25 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
             [featureVec, cellInfoFeatureNameList] = ConvertFeatureStructToFeatureVec(curCellStruct);
             cellInfoFeatureMatrix = cat(1, cellInfoFeatureMatrix, featureVec);
 
-            % add colocalization stats if drug and macrophage channels are present
-            if metadata.numChannels == 3
+            % add colocalization stats with the drug channel if present
+            if ~isempty(metadata.channelIdDrug)
                 
-                curCellStruct.colocprops = cellColocStats(cellId);
-                cellColocInfoStruct = [cellColocInfoStruct; curCellStruct];
-                [featureVec, cellColocInfoFeatureNameList] = ConvertFeatureStructToFeatureVec(curCellStruct);
-                cellColocInfoFeatureMatrix = cat(1, cellColocInfoFeatureMatrix, featureVec);
+                curCellDrugColocStruct = curCellStruct;
+                curCellDrugColocStruct.colocprops = cellColocStats.drug(cellId);
+                cellDrugColocInfoStruct = [cellDrugColocInfoStruct; curCellDrugColocStruct];
+                [featureVec, cellDrugColocInfoFeatureNameList] = ConvertFeatureStructToFeatureVec(curCellDrugColocStruct);
+                cellDrugColocInfoFeatureMatrix = cat(1, cellDrugColocInfoFeatureMatrix, featureVec);
+                
+            end
+
+            % add colocalization stats with the macrophage channel if present
+            if ~isempty(metadata.channelIdMacrophage)
+                
+                curCellMacrophageColocStruct = curCellStruct;
+                curCellMacrophageColocStruct.colocprops = cellColocStats.macrophage(cellId);
+                cellMacrophageColocInfoStruct = [cellMacrophageColocInfoStruct; curCellMacrophageColocStruct];
+                [featureVec, cellMacrophageColocInfoFeatureNameList] = ConvertFeatureStructToFeatureVec(curCellMacrophageColocStruct);
+                cellMacrophageColocInfoFeatureMatrix = cat(1, cellMacrophageColocInfoFeatureMatrix, featureVec);
                 
             end
             
@@ -416,7 +499,8 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         punctaCounts = [cellStats.fociCount];
 
         hFociDist = figure();
-        [counts, centers] = histogram(punctaCounts, 'discrete');
+        centers = 0:max(punctaCounts);
+        [counts, inds] = histc(punctaCounts, centers);
         bar(centers, counts/sum(counts), ...
             'linewidth', 2.0, ...
             'barwidth', 0.9, ...
@@ -434,7 +518,7 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
         ylabel('Proportion of cells');
         ylim([0, 1]);
         grid on;
-        SaveFigure(hFociDist , fullfile(resultsDir, 'fociCountDistributionPlot.png') , 'png');
+        SaveFigure(hFociDist , fullfile(resultsDir, 'fociCountDistributionPlot.jpg') , 'jpg');
         SaveFigure(hFociDist , fullfile(resultsDir, 'fociCountDistributionPlot.fig') , 'fig');
         close(hFociDist);
             
@@ -505,8 +589,6 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
                 end
 
             end
-
-            
             
             compInfo.imageSaveTime = toc(imageSaveTimer);
 
@@ -553,23 +635,36 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     WriteFeatureMatrixToCSVFile( fullfile(resultsDir, 'fociAnalysisInfo.csv' ), ...
                                  featureMatrix, featureNameList );
 
-    % write cell colocalization info
-    if metadata.numChannels > 1
+    % write cell macrophage coloc info
+    if ~isempty(metadata.channelIdDrug)
         
-        fprintf( '\n>>Writing cell colocalization analysis csv file ... \n' );
+        fprintf( '\n>>Writing cell-macrophage colocalization analysis csv file ... \n' );
 
-        featureNameList = cat(2, stackFeatureNameList, cellColocInfoFeatureNameList );
-        featureMatrix = cat(2, repmat(stackFeatureVec, numCells, 1), cellColocInfoFeatureMatrix );
+        featureNameList = cat(2, stackFeatureNameList, cellMacrophageColocInfoFeatureNameList );
+        featureMatrix = cat(2, repmat(stackFeatureVec, numCells, 1), cellMacrophageColocInfoFeatureMatrix );
 
-        WriteFeatureMatrixToCSVFile( fullfile(resultsDir, 'cellColocalizationAnalysisInfo.csv' ), ...
+        WriteFeatureMatrixToCSVFile( fullfile(resultsDir, 'cellMacrophageColocalizationAnalysisInfo.csv' ), ...
                                      featureMatrix, featureNameList );
+
+    end
                              
+    % write cell drug coloc info
+    if ~isempty(metadata.channelIdDrug)
+        
+        fprintf( '\n>>Writing cell-drug colocalization analysis csv file ... \n' );
+
+        featureNameList = cat(2, stackFeatureNameList, cellDrugColocInfoFeatureNameList );
+        featureMatrix = cat(2, repmat(stackFeatureVec, numCells, 1), cellDrugColocInfoFeatureMatrix );
+
+        WriteFeatureMatrixToCSVFile( fullfile(resultsDir, 'cellDrugColocalizationAnalysisInfo.csv' ), ...
+                                     featureMatrix, featureNameList );
+
     end
     
     % save analysis info in a mat file for inspection later
     save( fullfile(resultsDir, 'DNADamageAnalysisInfo.mat'), ...
-          'stackInfoStruct', 'cellInfoStruct', 'cellColocInfoStruct', 'fociInfoStruct', ...
-          'PARAMETERS', 'segAlgoPARAMETERS', 'fociDetectionPARAMETERS');
+          'stackInfoStruct', 'cellInfoStruct', 'cellMacrophageColocInfoStruct', 'cellDrugColocInfoStruct', 'fociInfoStruct', ...
+          'PARAMETERS', 'segAlgoParameters', 'fociDetectionParameters');
     
     % save mat file that can be loaded into the DNADamageAnalyzer tool
     analysisData.dataFilePath = imageDataFilePath;    
@@ -582,21 +677,25 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     analysisData.imLabelCellSeg = uint16( imLabelCellSeg );
     analysisData.imCellSeedPoints = uint16( imCellSeedPoints );
     [imCellSegMaskRGB, analysisData.CellSegColorMap] = label2rgbND(imLabelCellSeg);
-    analysisData.segAlgoPARAMETERS = segAlgoPARAMETERS;
+    analysisData.segAlgoParameters = segAlgoParameters;
     analysisData.cellStats = cellStats;
     
     analysisData.fociStats = fociStats;
     analysisData.imFociSeedPoints = uint16( imFociSeedPoints );
     analysisData.imLabelFociSeg = uint16( imLabelFociSeg );
     [imFociSegMaskRGB, analysisData.FociSegColorMap] = label2rgbND(imLabelFociSeg);
-    analysisData.fociDetectionPARAMETERS = fociDetectionPARAMETERS;
+    analysisData.fociDetectionParameters = fociDetectionParameters;
 
-    if metadata.numChannels == 3
-        analysisData.imDrugSeg = imDrugSeg;
+    if ~isempty(metadata.channelIdMacrophage)
         analysisData.imMacrophageSeg = imMacrophageSeg;
-        analysisData.cellColocStats = cellColocStats;
+    end
+
+    if ~isempty(metadata.channelIdDrug)
+        analysisData.imDrugSeg = imDrugSeg;
     end
     
+    analysisData.cellColocStats = cellColocStats;
+
     save( fullfile(resultsDir, 'DNADamageAnalysis.mat'), '-struct', 'analysisData' );
                              
     % report success
@@ -610,12 +709,6 @@ function [flagSuccess] = performDNADamageAnalysis(imageDataFilePath, resultsDir,
     
     diary off;
     
-end
-
-function WriteFociDetectionSummary(imageData, imFociSeedPoints, fociStats, spacing, imageOutputDir)
-
-    
-
 end
 
 function WriteCellSnapshotImages(imageData, imCellMask, cellStats, cellId, fociStats, spacing, imageOutputDir)

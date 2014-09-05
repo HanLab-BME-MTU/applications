@@ -72,23 +72,27 @@ elseif isempty(maxKappaCandIdx)
 end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
 % find an index at kappa = 0 before maxKappaIdx
-ireg_corner= maxKappaIdx;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-reg_corner = lambda_cut(ireg_corner);
-disp(['Initial L-corner regularization parameter value: ' num2str(reg_corner) '.'])
+ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+reg_corner = lambda_cut(maxKappaIdx);
+disp(['L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 
-% poly-fit version
-firstKIdx = max(1,maxKappaIdx-5);
-lastKIdx = min(length(kappa),maxKappaIdx+5);
-p=polyfit(firstKIdx:lastKIdx,kappa(firstKIdx:lastKIdx)',2);
-if p(1)<0
-    ireg_corner = -p(2)/(2*p(1));
-    q=polyfit(firstKIdx:lastKIdx,lambda_cut(firstKIdx:lastKIdx),1);
-    reg_corner = polyval(q,ireg_corner);
-    disp(['Sub-knot resolution L-corner regularization parameter value: ' num2str(reg_corner) '.'])
-else
-    disp('The corner''''s L-corner does not have positive curvature')
-    reg_corner = lambda_cut(ireg_corner);
-end
+% ireg_corner = corner(rho,eta,false);
+
+% disp(['Initial L-corner regularization parameter value: ' num2str(reg_corner) '.'])
+
+% % poly-fit version
+% firstKIdx = max(1,maxKappaIdx-2);
+% lastKIdx = min(length(kappa),maxKappaIdx+2);
+% p=polyfit(firstKIdx:lastKIdx,kappa(firstKIdx:lastKIdx)',2);
+% if p(1)<0
+%     ireg_corner = -p(2)/(2*p(1));
+%     q=polyfit(firstKIdx:lastKIdx,lambda_cut(firstKIdx:lastKIdx),1);
+%     reg_corner = polyval(q,ireg_corner);
+%     disp(['Sub-knot resolution L-corner regularization parameter value: ' num2str(reg_corner) '.'])
+% else
+%     disp('The corner''''s L-corner does not have positive curvature')
+%     reg_corner = lambda_cut(ireg_corner);
+% end
 
 if manualSelection
     numCutPoints = 0;
@@ -100,8 +104,8 @@ if manualSelection
     subplot(2,1,1),plot(x,y,'k')
     xlabel('Residual Norm ||Gm-d||_{2}');
     ylabel('Simi-Norm ||Lm||_{2}');
-    subplot(2,1,1), hold on,plot(x(maxKappaIdx+2),y(maxKappaIdx+2),'ro')
-    text(x(maxKappaIdx+2),1.01*y(maxKappaIdx+2),...
+    subplot(2,1,1), hold on,plot(x(maxKappaIdx+3),y(maxKappaIdx+3),'ro')
+    text(x(maxKappaIdx+3),1.01*y(maxKappaIdx+3),...
         ['    ',num2str(reg_corner,'%5.3e')]);
     subplot(2,1,2), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')

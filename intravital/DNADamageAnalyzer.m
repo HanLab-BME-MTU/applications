@@ -224,7 +224,28 @@ function File_Load_Image_Data_Callback(hObject, eventdata, handles)
                 metadata.channelIdDrug = [];
                 metadata.channelIdMacrophage = [];
                 metadata.channelNames = {'53BP1'};
+                
+            case 2
 
+                [imageData, metadata] = uiGetBioImageData(dataFilePath, ...
+                                                          'seriesId', seriesId, ...  
+                                                          'channelDescriptionsAndNamesList', ...  
+                                                          {{'53BP1 Channel', 'channelId53BP1'}, ...
+                                                           {'Macrophage Channel', 'channelIdMacrophage'}});
+                
+                if isempty(imageData)
+                    return;
+                end
+                
+                if numel( unique([metadata.channelId53BP1, metadata.channelIdMacrophage]) ) ~= 3
+                    errordlg('Drug, 53BP1, and Macrophage channels should be distinct');
+                    return;
+                end
+
+                metadata.channelIdDrug = [];
+                metadata.channelNames{metadata.channelId53BP1} = '53BP1';
+                metadata.channelNames{metadata.channelIdMacrophage} = 'Macrophage';
+                
             case 3
 
                 [imageData, metadata] = uiGetBioImageData(dataFilePath, ...
@@ -406,44 +427,74 @@ function handles = PerformColocalizationAnalysis(hObject, handles)
     
     PrettyPrintStepDescription( 'Computing Colocalization Measures' );
 
+    handles.data.cellColocStats = [];
+    
     colocTime = tic;
-    
-    % segment drug channel
-    fprintf('\n>> Segmenting drug channel ... \n');
-    
-    drugSegTime = tic;
-    
-    imDrug = handles.data.imageData{handles.data.metadata.channelIdDrug};
-    handles.data.imDrugSeg = segmentDrugCisplatin(imDrug);
-    handles.dataDisplay.imDrugSegRGB = convertBinaryMaskToRGBMask(handles.data.imDrugSeg, handles.drugMaskColor);
-    
-    fprintf('\ntook %f seconds\n', toc(drugSegTime));
-    
-    % segment macrophage channel
-    fprintf('\n>> Segmenting macrophage channel ... \n');
-    
-    macrophageSegTime = tic;
+        
+    % colocalization with the macrophage channel
+    if ~isempty( handles.data.metadata.channelIdMacrophage )
 
-    imMacrophage = handles.data.imageData{handles.data.metadata.channelIdMacrophage};
-    handles.data.imMacrophageSeg = segmentMacrophages(imMacrophage);
-    handles.dataDisplay.imMacrophageSegRGB = convertBinaryMaskToRGBMask(handles.data.imMacrophageSeg, handles.macrophageMaskColor);
-    
-    fprintf('\ntook %f seconds\n', toc(macrophageSegTime));
-    
-    % compute colocalization measures 
-    fprintf('\n>> Computing colocalization measures ... \n');
-    
-    [cellColocStats] = ComputeDNADamageColocalizationMeasures(handles.data.imageData{handles.data.metadata.channelIdDrug}, ...
-                                                              handles.data.imageData{handles.data.metadata.channelId53BP1}, ...   
-                                                              handles.data.imageData{handles.data.metadata.channelIdMacrophage}, ...
-                                                              handles.data.metadata.pixelSize, ...
-                                                              handles.data.imLabelCellSeg, handles.data.cellStats, ...
-                                                              handles.data.imDrugSeg, handles.data.imMacrophageSeg);
-                        
-    handles.data.cellColocStats = cellColocStats;
+        % segment macrophage channel
+        fprintf('\n>> Segmenting macrophage channel ... \n');
+
+        macrophageSegTime = tic;
+
+        imMacrophage = handles.data.imageData{handles.data.metadata.channelIdMacrophage};
+        handles.data.imMacrophageSeg = segmentMacrophages(imMacrophage);
+        handles.dataDisplay.imMacrophageSegRGB = convertBinaryMaskToRGBMask(handles.data.imMacrophageSeg, handles.macrophageMaskColor);
+
+        fprintf('\ntook %f seconds\n', toc(macrophageSegTime));
+
+        % compute colocalization measures 
+        fprintf('\n>> Computing colocalization measures ... \n');
+
+        macrophageColocTime = tic;
+        
+        [cellColocStats] = ComputeDNADamageColocalizationMeasures(handles.data.imageData{handles.data.metadata.channelId53BP1}, ...   
+                                                                  handles.data.imageData{handles.data.metadata.channelIdMacrophage}, ...
+                                                                  handles.data.metadata.pixelSize, ...
+                                                                  handles.data.imLabelCellSeg, handles.data.cellStats, ...
+                                                                  handles.data.imMacrophageSeg);
+
+        handles.data.cellColocStats.macrophage = cellColocStats;
+
+        fprintf('\ntook %f seconds\n', toc(macrophageColocTime));
+        
+    end
+
+    % colocalization with the drug channel
+    if ~isempty( handles.data.metadata.channelIdDrug )
+        
+        % segment drug channel
+        fprintf('\n>> Segmenting drug channel ... \n');
+
+        drugSegTime = tic;
+
+        imDrug = handles.data.imageData{handles.data.metadata.channelIdDrug};
+        handles.data.imDrugSeg = segmentDrugCisplatin(imDrug);
+        handles.dataDisplay.imDrugSegRGB = convertBinaryMaskToRGBMask(handles.data.imDrugSeg, handles.drugMaskColor);
+
+        fprintf('\ntook %f seconds\n', toc(drugSegTime));
+
+        % compute colocalization measures with drug channel
+        fprintf('\n>> Computing colocalization measures for the drug channel ... \n');
+
+        drugColocTime = tic;
+        
+        [cellColocStats] = ComputeDNADamageColocalizationMeasures(handles.data.imageData{handles.data.metadata.channelId53BP1}, ...   
+                                                                  handles.data.imageData{handles.data.metadata.channelIdDrug}, ... 
+                                                                  handles.data.metadata.pixelSize, ...
+                                                                  handles.data.imLabelCellSeg, handles.data.cellStats, ...
+                                                                  handles.data.imDrugSeg);
+
+        handles.data.cellColocStats.drug = cellColocStats;
+        
+        fprintf('\ntook %f seconds\n', toc(drugColocTime));
+        
+    end
     
     fprintf('\ncolocalization analysis took a total of %f seconds\n', toc(colocTime));
-
+    
     % Update handles structure
     guidata(hObject, handles);
 

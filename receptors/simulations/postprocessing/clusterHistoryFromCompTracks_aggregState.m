@@ -1,4 +1,4 @@
-function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksALT)
+function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksALT_defFormatTracks)
 %CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime 
 %of all clusters that formed during a simulation.
 %
@@ -10,8 +10,9 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %   alternativeFormatTracks but seqOfEvents from defaultFormatTracks.     
 %
 %   INPUT:
-%       comTracksALT:  the structure varaiable returned by
-%                      aggregStateFromCompTracks.
+%       comTracksALT.defaultFormatTracks:  
+%                         the structure of track information including 
+%                         aggregState in default format.
 %
 %   OUTPUT:
 %       clustHistoryAll:  a 1D cell with rows = number of tracks in
@@ -27,12 +28,22 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %                         5) Lifetime
 %                         6) Event that ended the cluster 
 %                           (1 = dissociation, 2 = association)
+%                         7) Resulting cluster size
+%                         8) Association flag - 1 indicates the segment
+%                            and its partner are both listed and NaN
+%                            indicates only the current segment is listed,
+%                            i.e. the partner is not listed. 
 %
 %   Robel Yirdaw, 09/19/13
+%       modified, 02/20/14
+%       modified, 04/08/14               
 %
 
     %Determine number of compTracks generated
-    [numCompTracks,~] = size(compTracksALT.defaultFormatTracks);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %040814 - now passing defaultFormatTracks directly for memory reasons.
+    [numCompTracks,~] = size(compTracksALT_defFormatTracks);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      
     %Cluster history from all compTracks will be saved
     clustHistoryAll = cell(numCompTracks,1);
@@ -40,12 +51,17 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
     %For each compTrack
     for compTrackIter=1:numCompTracks  
         %seqOfEvents for current compTrack
-        seqOfEvents = compTracksALT.defaultFormatTracks(compTrackIter,1).seqOfEvents;
-                
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %040814 - now passing defaultFormatTracks directly for memory reasons.        
+        seqOfEvents = compTracksALT_defFormatTracks(compTrackIter,1).seqOfEvents;                
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %091813
         %aggregState will be used to get cluster sizes 
-        aggregState = compTracksALT.defaultFormatTracks(compTrackIter,1).aggregState;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %040814 - now passing defaultFormatTracks directly for memory reasons.        
+        aggregState = compTracksALT_defFormatTracks(compTrackIter,1).aggregState;
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         %Iteration points of first and last events
@@ -55,7 +71,9 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         totClustChngs = (lastEventIter-firstEventIter+1) + ...
             sum(seqOfEvents(firstEventIter:lastEventIter,2)==1)+1;
         %Initialize
-        clustHistoryTemp = NaN(totClustChngs,6);
+        %021714 - added column #7 for size of resulting cluster
+        %021814 - added column #8 for flag for association events
+        clustHistoryTemp = NaN(totClustChngs,8);
         clustHistIndx = 1;
         
         %Process events in seqOfEvents
@@ -99,6 +117,10 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                         clustHistoryTemp(endingTrackIndx,4) - clustHistoryTemp(endingTrackIndx,3);
                     %Type of event ending cluster (1=dissoc., 2=assoc.)
                     clustHistoryTemp(endingTrackIndx,6) = seqOfEvents(eventIndx,2);
+                    
+                    %021714 - added column #7 for size of resulting cluster
+                    clustHistoryTemp(endingTrackIndx,7) = ...
+                        aggregState(seqOfEvents(eventIndx,4),seqOfEvents(eventIndx,1));
                 end
 
             end %If event 1 or 2
@@ -117,6 +139,38 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                     clustHistoryTemp(changingTrackIndx,4) - clustHistoryTemp(changingTrackIndx,3);
                 %Type of event ending cluster (1=dissoc., 2=assoc.)
                 clustHistoryTemp(changingTrackIndx,6) = seqOfEvents(eventIndx,2);
+                
+                %021714 - added column #7 for size of resulting cluster
+                clustHistoryTemp(changingTrackIndx,7) = ...
+                    aggregState(seqOfEvents(eventIndx,4),seqOfEvents(eventIndx,1));
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %02/18/14
+                %Special case for cluster size 1
+                %If this is a dimerization and both monomers are listed,
+                %i.e. the start time for both is known and are now merging,
+                %then set flag (col. 8) for the ending track to 1 to
+                %indicate that this event is listed twice.
+                %{
+                if (~isempty(endingTrackIndx) &&...
+                        (clustHistoryTemp(endingTrackIndx,2) == 1) &&...
+                        (clustHistoryTemp(changingTrackIndx,2) == 1) )
+                    clustHistoryTemp(endingTrackIndx,8) = 1;
+                end
+                %} 
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                
+                %022014
+                %Do the above applied to all cluster sizes - set col.8 to 1 if
+                %endingTrack also exists.  Flag is set for both.  This
+                %allows for picking associations where start and end time
+                %values for both segments are recorded.
+                if ((seqOfEvents(eventIndx,2) == 2) && ~isempty(endingTrackIndx) )
+                    clustHistoryTemp(endingTrackIndx,8) = 1;
+                    clustHistoryTemp(changingTrackIndx,8) = 1;
+                end
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                
+                %} should really use one of the above blocks.
             end
 
             %A dissociation or association has occured invovling the cluster
@@ -139,6 +193,10 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
             clustHistoryTemp(clustHistIndx,3) = seqOfEvents(eventIndx,1);    
             %Increment saved event count
             clustHistIndx = clustHistIndx + 1;
+            
+            %Reset indx variables
+            %changingTrackIndx = []; not needed since set on every iter.
+            endingTrackIndx = [];
 
         end  %For each event in seqOfEvents  
         
@@ -149,7 +207,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         clustHistoryAll{compTrackIter,1} = clustHistoryTemp;
         
         %Reset vars
-        clear clustHistoryTemp tracksCoordAmpCG firstEventIter lastEventIte
+        clear clustHistoryTemp tracksCoordAmpCG firstEventIter lastEventIter
     end %For each compTrack
     
 end %Function

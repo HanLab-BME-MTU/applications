@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 17-Mar-2013 14:46:59
+% Last Modified by GUIDE v2.5 22-Aug-2014 18:20:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -235,3 +235,12 @@ else
     psfSigma = '';
 end
 set(handles.edit_psfSigma, 'String', psfSigma);
+
+
+% --- Executes on button press in checkbox_mode.
+function checkbox_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_mode

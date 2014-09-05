@@ -72,10 +72,16 @@ ip.addParamValue('ControlData', [], @isstruct);
 ip.addParamValue('PlotAll', false, @islogical);
 ip.addParamValue('ChannelNames', []);
 ip.addParamValue('FirstNFrames', [], @isposint);
+ip.addParamValue('MaxIntensityThreshold', [], @isscalar);
 ip.addParamValue('CompareHighLowSNR', false, @islogical);
 ip.addParamValue('DisplayMode', 'screen', @(x) any(strcmpi(x, {'print', 'screen'})));
 ip.parse(varargin{:});
 data = ip.Results.data;
+
+overwrite = ip.Results.Overwrite;
+if numel(overwrite)==1
+    overwrite = repmat(overwrite, [1 4]);
+end
 
 if isempty(data)
     parameters = ip.Results.Parameters;
@@ -88,25 +94,23 @@ if isempty(data)
     data = loadConditionData('Parameters', parameters);
 end
 
-opts = {'Overwrite', ip.Results.Overwrite};
-
 %-------------------------------------------------------------------------------
 % 1) Detection
 %-------------------------------------------------------------------------------
 % Calculate cell masks and ask for user validation
-getCellMask(data, 'Overwrite', ip.Results.Overwrite, 'Validate', true);
+getCellMask(data, 'Overwrite', overwrite(1), 'Validate', true);
 
 runDetection(data, 'SigmaSource', ip.Results.GaussianPSF,...
-    'Sigma', ip.Results.Sigma, opts{:});
+    'Sigma', ip.Results.Sigma, 'Overwrite', overwrite(2));
 [psnr, cmap] = plotPSNRDistribution(data, 'Pool', false);
 
 %-------------------------------------------------------------------------------
 % 2) Tracking & track processing
 %-------------------------------------------------------------------------------
 settings = loadTrackSettings('Radius', ip.Results.TrackingRadius, 'MaxGapLength', ip.Results.TrackingGapLength);
-runTracking(data, settings, opts{:});
+runTracking(data, settings, 'Overwrite', overwrite(3));
 
-runTrackProcessing(data, opts{:});
+runTrackProcessing(data, 'Overwrite', overwrite(4));
 
 %-------------------------------------------------------------------------------
 % 3) Analysis
@@ -122,9 +126,10 @@ else
     display = 'off';
 end
 lopts = {'Display', display, 'RemoveOutliers', true, 'Colormap', cmap, 'DisplayMode', ip.Results.DisplayMode,...
-    'SlaveNames', chNames(2:end), 'FirstNFrames', ip.Results.FirstNFrames, 'Overwrite', ip.Results.Overwrite};
+    'SlaveNames', chNames(2:end), 'FirstNFrames', ip.Results.FirstNFrames, 'Overwrite', any(overwrite)};
 if isempty(ip.Results.ControlData)
-    res.lftRes = runLifetimeAnalysis(data, lopts{:});
+    res.lftRes = runLifetimeAnalysis(data, lopts{:},...
+        'MaxIntensityThreshold', ip.Results.MaxIntensityThreshold);
 else
     res.lftRes = runLifetimeAnalysis(data, lopts{:},...
         'MaxIntensityThreshold', ip.Results.ControlData.lftRes.MaxIntensityThreshold);
