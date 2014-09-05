@@ -1,6 +1,8 @@
-%This Greensfunction is only valid for v=0.5;
-function [G]=boussinesqGreens(i,j,x,y,E)
-v=0.5;
+%This Greensfunction is only valid for v=0.5 if not specified;
+function [G]=boussinesqGreens(i,j,x,y,E,v)
+if nargin <6
+    v=0.5;
+end
 
 r=sqrt(x.^2+y.^2);
 preFactor=(1+v)./(pi.*E.*r.^3);

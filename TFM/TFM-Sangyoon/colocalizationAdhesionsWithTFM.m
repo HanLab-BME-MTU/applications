@@ -747,6 +747,7 @@ for ii=1:nFrames
 end
 % get rid of tracks that have out of rois...
 tracksNA = tracksNA(trackIdx);
+save(strcat(dataPath,filesep,'tracksNA.mat'),'tracksNA');
 if plotEachTrack
     r1 = 50;
     h2=figure;
@@ -995,8 +996,6 @@ if plotEachTrack
         hold off
     end
 end
-save(strcat(dataPath,'/cropInfo.mat'),'grid_mat','imSizeX','imSizeY');
-save(strcat(dataPath,'/tracks.mat'),'tracksNA');
 end
 
 %% formatTracks functions

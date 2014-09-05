@@ -112,7 +112,7 @@ else
         yv = ny*rand(np,1)+0.5;
         % beads separation - beads should be separated by bead diameter physically
         beads = [xv yv];
-        d_pix = d/pixelSize; % bead diameter in pixel
+        d_pix = d/pixelSize * 2; % bead diameter in pixel + repellent distance
         idxSep = KDTreeBallQuery(beads, beads, 2*d_pix);
         valid = true(numel(idxSep),1);
         for i = 1:numel(idxSep)

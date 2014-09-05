@@ -40,6 +40,7 @@ ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
 ip.addOptional('fwdMap',[],@isnumeric);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
@@ -56,6 +57,7 @@ M = ip.Results.fwdMap;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
+v = ip.Results.PoissonRatio;
 
 if nargin < 12 || isempty(solMethodBEM)
     solMethodBEM='QR';
@@ -85,10 +87,10 @@ tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     if isempty(imgRows) || isempty(imgCols)
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar);
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'PoissonRatio',v);
     else
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'PoissonRatio',v);    
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
