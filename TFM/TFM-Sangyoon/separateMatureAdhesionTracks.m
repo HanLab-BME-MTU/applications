@@ -11,15 +11,17 @@ dataPath = [outputFilePath filesep 'data'];
 if ~exist(dataPath,'dir') 
     mkdir(dataPath);
 end
-trackIdx = true(numel(tracksNA),1);
 %% Lifetime analysis
+minLifetime = 5;
+maxLifetime = 61;
 p=0;
 idx = false(numel(tracksNA),1);
 for k=1:numel(tracksNA)
     % look for tracks that had a state of 'BA' and become 'NA'
     firstNAidx = find(strcmp(tracksNA(k).state,'NA'),1,'first');
     % see if the state is 'BA' before 'NA' state
-    if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) || (~isempty(firstNAidx) &&firstNAidx==1)
+%     if (~isempty(firstNAidx) && firstNAidx>1 && strcmp(tracksNA(k).state(firstNAidx-1),'BA')) || (~isempty(firstNAidx) &&firstNAidx==1)
+    if ~isempty(firstNAidx)
         p=p+1;
         idx(k) = true;
         tracksNA(k).emerging = true;
@@ -52,9 +54,9 @@ for k=1:numel(trNAonly)
             lifeTimeNAmaturing(p) = sum(strcmp(trNAonly(k).state(trNAonly(k).emergingFrame:end),'NA'));
             % it might be beneficial to store amplitude time series. But
             % this can be done later from trackNAmature
-        elseif sum(tracksNA(k).presence)<61 && sum(tracksNA(k).presence)>6
+        elseif sum(trNAonly(k).presence)>minLifetime && sum(trNAonly(k).presence)<maxLifetime 
         % failing NAs
-            tracksNA(k).maturing = false;
+            trNAonly(k).maturing = false;
             indFail(k) = true;
             q=q+1;
             % lifetime until FC
@@ -63,8 +65,8 @@ for k=1:numel(trNAonly)
     end
 end
 maturingRatio = p/(p+q);
-tracksNAfailing = trNAonly(indMature);
-tracksNAmaturing = trNAonly(indFail);
+tracksNAmaturing = trNAonly(indMature);
+tracksNAfailing = trNAonly(indFail);
 save([dataPath filesep 'failingMaturingTracks.mat'], 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
 
 end

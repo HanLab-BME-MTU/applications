@@ -1,5 +1,5 @@
 function [intensityRatioAve,intensityLocalAve,intensityBgAve,randRatioAve,...
-    intensityLocalInd,intensityRatioInd,ratioFit,randRatioFit ] = colocalMeasurePt2Cnt(radius,percent,...
+    intensityLocalInd,intensityRatioInd,ratioFit,bayInfoCriterion, cellDensity, randIntensityRatioInd ] = colocalMeasurePt2Cnt(radius,percent,...
     randomRuns,detectionFile,firstImageFileCnt,firstImageFilePt,channelCnt,channelPt,maskingFile)
 % COLOCALMEASUREPT2CNT measures colocalization for two channels where only one is punctate and the other is continuous
 %
@@ -103,6 +103,7 @@ load(maskingFile)
 %initialize output variables
 [intensityLocalAve,intensityBgAve,intensityRatioAve] = deal(zeros(numFiles,2));
 randRatioAve = zeros(numFiles,randomRuns);
+cellDensity = zeros(30,1);
 %go over all images
 for a = 1:numFiles
     
@@ -132,6 +133,7 @@ for a = 1:numFiles
     
     %Create mask of points using QP points
     roundedQP = [round(QP(:,1)) round(QP(:,2))];
+    cellDensity(a) = length(roundedQP)/length(maskList{a}); 
     localMask = zeros(size(ICnt));
     indexQP = sub2ind(size(localMask),roundedQP(:,1),roundedQP(:,2));
     localMask(indexQP) = 1;
@@ -221,45 +223,58 @@ end
 %test = cell2mat(intensityRatioInd);
 %%TEMP: Remove image 13 from no TSP
 % intensityRatioInd(13,:) = [];
-% figure;
+% randIntensityRatioInd(13,:) = [];
+figure;
 s=length(intensityRatioInd);
 c= linspace(1,s,s);
+model = @(xm,a) a(1)*xm+ a(2);
 % Remove outliers------------------------------------------------------
-    test = cell2mat(intensityRatioInd(:,:));
-    intensityRatioIndNew = cell(length(intensityRatioInd),2);
-
-    %Discard outliers
-    [~, D]= knnsearch(test,test,'K',5);
-    allDist = D(:,2:end);
-    avgDist = mean(allDist,2);
-    [row,~,~] = find(avgDist>prctile(avgDist,95));
-    test(row,:) = NaN;
-    
-    for i = 1: length(intensityRatioInd)
-        intensityRatioIndNew{i,1}=test(1:length(intensityRatioInd{i,1}),1); 
-        intensityRatioIndNew{i,2}= test(1:length(intensityRatioInd{i,1}),2);
-        bgIntensityCell{i,1} = intensityBgAve(i,1)*ones(length(intensityRatioIndNew{i,1}),1);
-        bgIntensityCell{i,2}=test(1:length(intensityRatioInd{i,1}),1);
-        test(1:length(intensityRatioInd{i,1}),:)=[];
-    end
-
-
-    test = cell2mat(intensityRatioIndNew(:,:));
+% %     test = cell2mat(intensityRatioInd(:,:));
+    intensityRatioIndNew = intensityRatioInd;
+% %     intensityRatioIndNew = cell(length(intensityRatioInd),2);
+% % 
+% %     %Discard outliers
+% %     [~, D]= knnsearch(test,test,'K',5);
+% %     allDist = D(:,2:end);
+% %     avgDist = mean(allDist,2);
+% %     [row,~,~] = find(avgDist>prctile(avgDist,95));
+% %     test(row,:) = NaN;
+% %     
+% %     for i = 1: length(intensityRatioInd)
+% %         intensityRatioIndNew{i,1}=test(1:length(intensityRatioInd{i,1}),1); 
+% %         intensityRatioIndNew{i,2}= test(1:length(intensityRatioInd{i,1}),2);
+% % % %         bgIntensityCell{i,1} = intensityBgAve(i,1)*ones(length(intensityRatioIndNew{i,1}),1);
+% % % %         bgIntensityCell{i,2}=test(1:length(intensityRatioInd{i,1}),1);
+% %         test(1:length(intensityRatioInd{i,1}),:)=[];
+% %     end
+% figure;
+% k=1;
+for k = 1:length(intensityRatioIndNew)
+    test = cell2mat(intensityRatioIndNew(k,:));
     %Get rid of Nans
     keepInd = find(isnan(test(:,1)));
     test(keepInd,:)=[];
     sTest = sortrows(test,2);
-    [Err, P] = fit_2D_data(sTest(:,2), sTest(:,1), 'yes');
-    xInt = roots(P);
-    f = polyval(P,0:0.1:3);
+    [Err, P] = fit_2D_data(sTest(:,2), sTest(:,1),'no');
+%     scatter(sTest(:,2),sTest(:,1),'*');
+    scatter(sTest(:,2),sTest(:,1),10,c(k)*ones(length(sTest),1));
     hold on
-    plot(0:0.1:3,f,'-');
-%     title(strcat(fname,'Ratio Comparison    Slope:',num2str(p(1)), '   Intercept: ',num2str(p(2))))
-    title(strcat('Corrected Exposure WithTSP     Fit:',num2str(P(1)),'x +',num2str(P(2)),'    X-Intercept: ',num2str(xInt(1))))
-    ylabel('Fyn Ratio')
-    xlabel( 'CD36 Ratio')
-    axis([0 2.5 0 2.5])
-    
+%     [ErrTLS,P] = numerFminS(model,2,[ 0 -10], [ 10 1], sTest(:,2), sTest(:,1));
+%     [ErrTLS,P] = numerFminS(model,3,[-0.4 0.5 -1], [0.4 1.3 1], sTest(:,2), sTest(:,1))
+    xInt = roots(P);
+    f = polyval(P,sTest(:,2));
+    f2 = polyval(P,0:0.1:3);
+%     hold on
+% %     plot(0:0.1:3,f2,'r');
+% %     title(strcat('CD36-Actin +TSP  Fit:',num2str(P(1)),'x +',num2str(P(2)),'    X-Intercept: ',num2str(xInt(1))))
+% %     ylabel('Actin Ratio')
+% %     xlabel( 'CD36 Ratio')
+% %     axis([0 2.5 0 2.5])
+        y = sTest(:,1);
+        res = y-f;
+        sMin = sum(res.^2);
+        D = length(y);
+        bayInfoCriterion(k) = D*log(sMin/D)+ log(D)*2;
 % %     %Alternative Fit
 % %     xTest(:,1) =sTest(:,2);
 % %     xTest(:,2) =sTest(:,1);
@@ -275,8 +290,11 @@ c= linspace(1,s,s);
 % %     axis([0 2.5 0 2.5])
 % %     hold on; plot(endpts(:,1),endpts(:,2),'k-');
     %-------------------------------------------------------------------
-    ratioFit(:,:) = [P(1) P(2)];
-    randRatioFit(:,:) = [NaN NaN];
+    ratioFit(k,:) = [P(1) P(2)];
+end
+    ylabel('Actin Ratio')
+    xlabel( 'CD36 Ratio')
+    axis([0 4 0 4])
 % end
 
 end

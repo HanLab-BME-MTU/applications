@@ -72,6 +72,7 @@ methodValue = find(strcmp(funParams.method,methodData));
 set(handles.popupmenu_method,'String',methodString,...
     'UserData',methodData,'Value',methodValue);
 
+set(handles.useLcurve, 'Value', funParams.useLcurve);
 
 % Update BEM parameter panel
 popupmenu_method_Callback(hObject,eventdata,handles);
@@ -171,6 +172,8 @@ funParams.method=props{1}{props{2}};
 % Read BEM solution method
 props=get(handles.popupmenu_solMethodBEM,{'UserData','Value'});
 funParams.solMethodBEM=props{1}{props{2}};
+
+funParams.useLcurve = get(handles.useLcurve, 'Value');
 
 % Read basis class lookup table path
 funParams.basisClassTblPath=get(handles.edit_basisClassTblPath,'String');

@@ -13,6 +13,7 @@ ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',1024,@isscalar);
 ip.addParamValue('imgCols',1334,@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
+ip.addParamValue('PoissonRatio',0.5,@isscalar); 
 ip.parse(x_vec_u, y_vec_u, forceMesh, E,varargin{:})
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 doPlot=ip.Results.doPlot;
@@ -21,6 +22,7 @@ wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 thickness = ip.Results.thickness;    
+v = ip.Results.PoissonRatio;
 
 % try to load the lookup table:
 try
@@ -138,7 +140,7 @@ for class=1:numClass
             % Here we use finite thickness for calculating Green's function
             [ux_model, uy_model, x_model, y_model]=fwdSolution(xrangeSol,yrangeSol,E,...
                 xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
-                'fft','noIntp',meshPtsFwdSol,thickness); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
+                'fft','noIntp',meshPtsFwdSol,thickness,v); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
             % check if the sampling is fine enough for method 'direct':
             if strcmp(method,'direct')
                 % This works perfectly for all mesh types as long as the

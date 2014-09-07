@@ -55,8 +55,8 @@ end
 if nargin < 4 || isempty(isMultiChannel)
     channel = 1;
 else
-    prompt = 'Which channel is the image found in? ';
-    channel = input(prompt);
+    
+    channel = isMultiChannel;
 end
 
 % Initialize Movie
@@ -73,26 +73,26 @@ for a = 1:numFiles
     image0 = image;
 
     % Apply wide gaussian filter
-     %gaussF = fspecial('gaussian',[10 10],2);
-     image = filterGauss2D(image,2);
-     %image = imfilter(image,gaussF,'same');
+     image = filterGauss2D(image,3);
+%     [image, ~, ~, ~] = steerableDetector(double(image), 2, 2);
+     
      
      
      % Compute the thresholds
-    Nvals = [2:20];
+    Nvals = [1:20];
     metric = zeros(length(Nvals),1);
     for i = 1:length(Nvals)
-        if a == 8 && i == 2
-            metric(i) = metric(i-1);
-            continue
-        end
+%         if a == 14 && i == 2
+%             metric(i) = metric(i-1);
+%             continue
+%         end
         [~, metric(i)] = multithresh(image, Nvals(i) );
 %         disp(['N = ' int2str(Nvals(i)) '  |  metric = ' num2str(metric(i))]);
     end
 
      
     %Apply multi-Otsu threshold on image
-    thresh = multithresh(image,Nvals(find(metric == max(metric))));
+    thresh = multithresh(image,Nvals(find(metric == (max(metric)))));
     %Attempt to find largest gap in thresholds
     diffThresh = zeros(length(thresh)-1,1);
     for i = 1:(length(thresh)-1)
@@ -152,5 +152,5 @@ for a = 1:numFiles
 end
 close(writerObj);
 
-save('/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/140703_exposureTimeTest/analysis/maskingFileFyn_08.mat','mask','maskList','fixedFrames');
+% save('/project/biophysics/jaqaman_lab/vegf_tsp1/touretLab/140723_ActinCD36Fyn/+PAO+TSP/analysis/maskingFileFyn.mat','mask','maskList','fixedFrames');
 end

@@ -143,7 +143,7 @@ forceFieldProc=TFMPackage.processes_{iForceFieldProc};
 forceField=forceFieldProc.loadChannelOutput;
 
 %filter out force temporal noise 
-forceField=filterForceShortPeaks(forceField,60);
+% forceField=filterForceShortPeaks(forceField,60);
 
 % Load Cell Segmentation
 iMask = MD.getProcessIndex('MaskRefinementProcess');
@@ -184,15 +184,15 @@ if isempty(tmax)
         [~,fmat, ~, ~] = interp_vec2grid(forceField(ii).pos, forceField(ii).vec,[],reg_grid1); %1:cluster size
         fnorm = (fmat(:,:,1).^2 + fmat(:,:,2).^2).^0.5;
         % Boundary cutting - I'll take care of this boundary effect later
-        fnorm(end-round(band/2):end,:)=[];
-        fnorm(:,end-round(band/2):end)=[];
-        fnorm(1:1+round(band/2),:)=[];
-        fnorm(:,1:1+round(band/2))=[];
-        fnorm_vec = reshape(fnorm,[],1); 
+        fnorm(end-band:end,:)=[];
+        fnorm(:,end-band:end)=[];
+        fnorm(1:1+band,:)=[];
+        fnorm(:,1:1+band)=[];
 
-        tmax = max(tmax,max(fnorm_vec));
-        tmin = min(tmin,min(fnorm_vec));
+        tmax = max(tmax,max(fnorm(:)));
+        tmin = min(tmin,min(fnorm(:)));
     end
+    tmax = 0.8*tmax;
     display(['Force maximum = ' num2str(tmax)])
 else
     for ii = 1:nFrames
@@ -204,9 +204,8 @@ else
         fnorm(:,end-round(band/2):end)=[];
         fnorm(1:1+round(band/2),:)=[];
         fnorm(:,1:1+round(band/2))=[];
-        fnorm_vec = reshape(fnorm,[],1); 
 
-        tmin = min(tmin,min(fnorm_vec));
+        tmin = min(tmin,min(fnorm(:)));
     end
 end
 
@@ -747,6 +746,7 @@ for ii=1:nFrames
 end
 % get rid of tracks that have out of rois...
 tracksNA = tracksNA(trackIdx);
+save(strcat(dataPath,filesep,'tracksNA.mat'),'tracksNA');
 if plotEachTrack
     r1 = 50;
     h2=figure;
@@ -995,8 +995,6 @@ if plotEachTrack
         hold off
     end
 end
-save(strcat(dataPath,'/cropInfo.mat'),'grid_mat','imSizeX','imSizeY');
-save(strcat(dataPath,'/tracks.mat'),'tracksNA');
 end
 
 %% formatTracks functions
