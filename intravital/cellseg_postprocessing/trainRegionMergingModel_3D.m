@@ -109,7 +109,12 @@
        imLabelCellSeg = annotationData.imLabelCellSeg;
        imCellSeedPoints = annotationData.imCellSeedPoints;
        numCells = numel(annotationData.cellStats)       
-       spacing = annotationData.metadata.pixelSize;
+       
+       if isfield(annotationData.metadata, 'voxelSpacing')
+           spacing = annotationData.metadata.voxelSpacing;
+       else
+           spacing = annotationData.metadata.pixelSize;
+       end
        
        % pre-processing
 

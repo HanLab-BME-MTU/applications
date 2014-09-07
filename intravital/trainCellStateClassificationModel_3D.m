@@ -140,8 +140,35 @@ for fid = 1:numel(annotationFileList)
       continue;
    end
     
-   metadata = annotationData.metadata 
+   if ~isfield(annotationData.metadata, 'pixelSize') % check if old metadata struct
+
+        metadata.version = '2.0.0';
+        metadata.dataFilePath = annotationData.dataFilePath([1, 2, 2]);           
+        metadata.format = repmat({'Olympus'}, 1, 3);
+
+        metadata.numSeries = ones(1,3);
+        metadata.seriesId = ones(1,3);
+
+        metadata.numTimePoints = annotationData.metadata.numTimePoints;
+        metadata.timePointId = 1;
+
+        metadata.numChannels = 3;
+        metadata.channelId = [1, 1, 2];
+        metadata.channelNames = {'Nuclei', 'FUCCI Geminin', 'FUCCI Cdt1'};
+
+        metadata.imageSize = annotationData.metadata.volSize;
+        metadata.pixelSize = annotationData.metadata.voxelSpacing;
+
+        metadata.pixelType = 'uint16';
+        metadata.bitsPerPixel = 12;
+
+        handles.data.metadata = metadata;
+
+    else
+        metadata = annotationData.metadata;
+   end
    
+   % segmentation stuff
    imLabelCellSeg = annotationData.imLabelCellSeg;
    imRegValidMask = annotationData.imRegValidMask;
    

@@ -1811,87 +1811,41 @@ function Inspection_View_Full_Seg_In_Imaris_Callback(hObject, eventdata, handles
         return;
     end
 
-    if ~isempty(handles.imarisApp) && isobject(handles.imarisApp)
-        delete( handles.imarisApp );
-    end       
-
-    % compute isosurface geometry for cells in each pattern
-    hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
-    cellSurfaceObjectList = {};
+    % generate visualization
+    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.pixelSize );
+    handles.imarisAppCellSeg = imvis;
     
-    for cid = 1:numel(handles.data.cellStats)
-        
-        waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
-        
-        % name
-        curCellIsoSurface.name = sprintf( 'CellSeg_%d', cid);
-        
-        % color
-        curCellIsoSurface.color = handles.data.CellSegColorMap(cid, :);
-        
-        % compute surface geometry
-        curCellStats = handles.data.cellStats( cid );        
-        curCellCentroid = round( curCellStats.Centroid );    
+    hSegmentation = imvis.AddDataContainer();
 
-        curCellBoundingBox = curCellStats.BoundingBox;
-        curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-       
-        % create crop indices
-        subinds = cell(1,3);
-        imsize = size(handles.data.imageData{1});
-        for i = 1:2
-
-            xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
-
-            xi_low = xi;
-            if xi_low < 1 
-                xi_low = 1;
-            end
-
-            xi_high = xi + curCellDisplaySize - 1;
-            if xi_high > imsize(i)
-                xi_high = imsize(i);
-            end
-
-            subinds{i} = xi_low:xi_high;
-
-        end    
-        subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
-        
-        % crop segmentation mask
-        imCurCellSegCropped = padarray( double(handles.data.imLabelCellSeg(subinds{:}) == cid), ones(1,3), 0 );                                        
-        imCurCellSegSmoothed = smooth3( imCurCellSegCropped );            
-        curCellSurfaceGeometry = isosurface( imCurCellSegSmoothed, 0.5 );
-        curCellSurfaceGeometry.normals = isonormals( imCurCellSegSmoothed, curCellSurfaceGeometry.vertices );
-        
-        % correct vertex positions by adding offset
-        curCellSurfaceGeometry.vertices(:,1) = subinds{2}(1) - 1 + curCellSurfaceGeometry.vertices(:,1);
-        curCellSurfaceGeometry.vertices(:,2) = subinds{1}(1) - 1 + curCellSurfaceGeometry.vertices(:,2);
-        curCellSurfaceGeometry.vertices(:,3) = subinds{3}(1) - 1 + curCellSurfaceGeometry.vertices(:,3);
-        
-        % add cell surface to cell pattern surface object
-        curCellIsoSurface.surfaces = curCellSurfaceGeometry;
-        cellSurfaceObjectList{cid} = curCellIsoSurface;
-        
-    end
-    closeStatusDialog( hStatusDlg );
+        % display cell seed point locations
+        stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
-    % get cell seed point locations
-    stats = regionprops( bwlabeln( handles.data.imCellSeedPoints ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
 
-    % Display everything in imaris
-    handles.imarisApp = DisplayMultichannel3DDataInImaris( handles.data.imageData, ...
-                                                           'spacing', handles.data.metadata.imageSize, ...
-                                                           'spotLocations', cellSeedPointLocations, ...
-                                                           'spotRadius', 3, ...
-                                                           'surfaceObjects', cellSurfaceObjectList, ...
-                                                           'displayRanges', handles.dataDisplay.imDisplayRange, ...
-                                                           'displayColors', handles.data.metadata.channelColors );
+    
+        % compute isosurface geometry for cells in each pattern
+        hStatusDlg = waitbar( 0, 'computing surface geometry of cells' );
+        surfaceQuality = 1.0;
+        for cid = 1:numel(handles.data.cellStats)
+
+            imCurCellMask = handles.data.imLabelCellSeg == cid;
+            curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+            
+            imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                              'name', sprintf( 'CellSeg_%d', cid), ...
+                              'color', handles.data.CellSegColorMap(cid, :) );
+            
+            waitbar( cid/numel( handles.data.cellStats ), hStatusDlg );
+
+        end
+        closeStatusDialog( hStatusDlg );
+                   
     % Update handles structure
-    guidata(hObject, handles);                                                    
-
-
+    guidata(hObject, handles);
+    
 % --------------------------------------------------------------------
 function Inspection_Callback(hObject, eventdata, handles)
 % hObject    handle to Inspection (see GCBO)
@@ -1925,11 +1879,8 @@ function Inspection_View_Cell_Seg_In_Imaris_Callback(hObject, eventdata, handles
         return;
     end
     
-    if ~isempty(handles.imarisAppCellSegCropped) && isobject(handles.imarisAppCellSegCropped)
-        delete( handles.imarisAppCellSegCropped );
-    end       
-    
-    curCellStats = handles.data.cellStats( handles.dataDisplay.curCellId );        
+    curCellId = handles.dataDisplay.curCellId;
+    curCellStats = handles.data.cellStats( curCellId );        
     curCellCentroid = round( curCellStats.Centroid );    
     
     curCellBoundingBox = curCellStats.BoundingBox;
@@ -1937,7 +1888,7 @@ function Inspection_View_Cell_Seg_In_Imaris_Callback(hObject, eventdata, handles
 
     % create crop indices
     subinds = cell(1,3);
-    imsize = size(handles.data.imageData{1});
+    imsize = size(handles.data.imageData{handles.data.metadata.channelIdNuclei});
     for i = 1:2
         
         xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
@@ -1956,57 +1907,41 @@ function Inspection_View_Cell_Seg_In_Imaris_Callback(hObject, eventdata, handles
         
     end    
     subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
-
-    % crop cell bounding box from whole volume
-    imCellCropped = cell(1,3);
-    for i = 1:3
-        %imCellCropped{i} = handles.data.imageData{i}(subinds{:}) .* (handles.data.imLabelCellSeg( subinds{:} ) == handles.dataDisplay.curCellId);
+    
+    % generate visualization
+    imCellCropped = cell( size(handles.data.imageData) );
+    for i = 1:numel(handles.data.imageData)
         imCellCropped{i} = handles.data.imageData{i}(subinds{:});
     end
 
-    % crop cell segmentation mask
-    imCellSegCropped = handles.data.imLabelCellSeg( subinds{:} );
-    imCellSegCropped = padarray( imCellSegCropped, ones(1,3) );
-    imCellSegCropped = double( imCellSegCropped == handles.dataDisplay.curCellId );    
+    imvis = ImarisDataVisualizer(cat(4, imCellCropped{:}), ...
+                                 'spacing', handles.data.metadata.pixelSize);
     
-    % create isosurface
-    imCellSegSmoothed = smooth3( imCellSegCropped );
-    curCellSurfaceGeometry = isosurface( imCellSegSmoothed, 0.5 );
-    curCellSurfaceGeometry.normals = isonormals( imCellSegSmoothed, curCellSurfaceGeometry.vertices );
-    cellIsoSurface.surfaces = curCellSurfaceGeometry;
-    cellIsoSurface.name = curCellStats.cellPatternType;
-    cellIsoSurface.color = MapCellPatternToColor( curCellStats.cellPatternType );
-    
-    % get seed points
-    imCellSeedCropped = padarray( handles.data.imCellSeedPoints( subinds{:} ), ones(1,3), 0 );
-    imCellSeedCropped( ~imCellSegCropped ) = 0;
-    stats = regionprops( bwlabeln( imCellSeedCropped ), 'Centroid' );
-    cellSeedPointLocations = cat( 1, stats.Centroid );
-    
-    % display in imaris
-    curCellDisplayRange = handles.dataDisplay.imDisplayRange;
-    curCellDisplayColor = handles.data.metadata.channelColors;
-    if numel(stats) > 0
+    handles.imarisAppCellSegCropped = imvis;
+    hSegmentation = imvis.AddDataContainer();
+
+        % compute isosurface geometry for cells in each pattern
+        imCurCellMask = handles.data.imLabelCellSeg(subinds{:}) == handles.dataDisplay.curCellId;
+        surfaceQuality = 1.0;
         
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.imageSize, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'spotLocations', cellSeedPointLocations, ...
-                                                                             'spotRadius', 3, ...                                                                      
-                                                                             'surfaceObjects', cellIsoSurface );
-    else
-        
-        handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imCellCropped, ...
-                                                                             'spacing', handles.data.metadata.imageSize, ...
-                                                                             'displaycolors', curCellDisplayColor, ...
-                                                                             'displayranges', curCellDisplayRange, ...
-                                                                             'surfaceObjects', cellIsoSurface );
-    end
+        curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+
+        imvis.AddSurfaces(curCellGeometry, hSegmentation, ...
+                          'name', sprintf( 'CellSeg_%d', handles.dataDisplay.curCellId), ...
+                          'color', handles.data.CellSegColorMap(handles.dataDisplay.curCellId, :) );
+
+        % display cell seed points
+        imCellSeedCropped = handles.dataDisplay.imCellSeedPoints(subinds{:});
+        imCellSeedCropped(~imCurCellMask) = 0;
+        stats = regionprops( bwlabeln(imCellSeedCropped), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hSegmentation, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);    
+                      
     % Update handles structure
     guidata(hObject, handles);
-
 
 % --------------------------------------------------------------------
 function Inspect_Check_Seed_Detection_Callback(hObject, eventdata, handles)
@@ -2124,113 +2059,43 @@ function Inspect_View_Cell_Patterns_In_Imaris_Callback(hObject, eventdata, handl
         errordlg( 'Unable to connect to imaris. To use this feature, make sure imaris is installed' );
         return;
     end
+    
+    % generate visualization
+    imvis = ImarisDataVisualizer( cat(4, handles.data.imageData{:}), 'spacing', handles.data.metadata.pixelSize );
+    handles.imarisAppCellPattern = imvis;
+    
+    hCellNuclei = imvis.AddDataContainer();
 
-    if ~isempty(handles.imarisApp) && isobject(handles.imarisApp)
-        delete( handles.imarisApp );
-    end           
+        % display cell seed point locations
+        stats = regionprops( bwlabeln( handles.dataDisplay.imCellSeedPoints ), 'Centroid' );
+        cellSeedPointLocations = cat( 1, stats.Centroid );
     
-    imageDataPadded = cell(1,3);
-    for i = 1:3
-        imageDataPadded{i} = padarray( handles.data.imageData{i}, ones(1,3), min(handles.data.imageData{i}(:)) );
-    end
+        imvis.AddSpots(cellSeedPointLocations, 0, ...
+                       'hContainer', hCellNuclei, ...
+                       'name', 'Nuclei Seed Points', 'color', [1, 0, 0]);
+
+        % compute isosurface geometry for cells in each pattern 
+        hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
     
-    % compute isosurface geometry for cells in each pattern
-    hStatusDlg = waitbar( 0, 'computing surface geometry for cells in each pattern' );
-    cellPatternSurfaceObjectList = {};
-    
-    for pid = 1:numel( handles.data.cellPatternTypes )        
-        
-        waitbar( pid/numel( handles.data.cellPatternTypes ), hStatusDlg );
-        
-        % ignore unannotated cells and errors
-        if ismember( handles.data.cellPatternTypes{pid}, { 'None', 'Bad_Detection' } )
-           continue; 
+        for pid = 1:numel( handles.data.cellPatternTypes )        
+
+            curPatternCellIds = find( [handles.data.cellStats.cellPatternId] == pid );        
+            
+            imCurCellMask = ismember(handles.data.imLabelCellSeg, curPatternCellIds);
+            curCellGeometry = ImarisDataVisualizer.generateSurfaceFromMask(imCurCellMask, 'surfaceQuality', surfaceQuality);
+            
+            imvis.AddSurfaces(curCellGeometry, hCellNuclei, ...
+                              'name', handles.data.cellPatternTypes{pid}, ...
+                              'color', MapCellPatternToColor( handles.data.cellPatternTypes{pid} ) );
+
+            waitbar( pid/numel( handles.data.cellPatternTypes ), hStatusDlg );
+
         end
-        
-        % get all the cells with the current pattern id
-        curPatternCellIds = find( [handles.data.cellStats.cellPatternId] == pid );        
-        
-        % check if there any cells in this pattern
-        if isempty( curPatternCellIds )
-           continue; 
-        end
-        
-        % name
-        curPatternIsoSurface.name = handles.data.cellPatternTypes{pid};
-        
-        % color
-        curPatternIsoSurface.color = MapCellPatternToColor( handles.data.cellPatternTypes{pid} );
-        
-        % compute surface geometry of each cell of current pattern        
-        curPatternIsoSurface.surfaces = [];
-        for cid = curPatternCellIds
-            
-            curCellStats = handles.data.cellStats( cid );        
-            curCellCentroid = round( curCellStats.Centroid );    
 
-            curCellBoundingBox = curCellStats.BoundingBox;
-            curCellDisplaySize = max( [curCellBoundingBox(4:5), handles.cellDisplaySize] );
-
-            % check if pattern is same
-            if curCellStats.cellPatternId ~= pid
-                error( 'ERROR - pattern of cell and surface object dont match' );
-            end
-            
-            % create crop indices
-            subinds = cell(1,3);
-            imsize = size(handles.data.imageData{1});
-            for i = 1:2
-
-                xi = round(curCellCentroid(3-i) - 0.5 * curCellDisplaySize);
-
-                xi_low = xi;
-                if xi_low < 1 
-                    xi_low = 1;
-                end
-
-                xi_high = xi + curCellDisplaySize - 1;
-                if xi_high > imsize(i)
-                    xi_high = imsize(i);
-                end
-
-                subinds{i} = xi_low:xi_high;
-
-            end    
-            subinds{3} = round(curCellStats.BoundingBox(3):(curCellStats.BoundingBox(3)+curCellStats.BoundingBox(6)-1));    
-            
-            % crop segmentation mask
-            imCurCellSegCropped = padarray( double(handles.data.imLabelCellSeg(subinds{:}) == cid), ones(1,3), 0 );                                        
-            imCurCellSegSmoothed = smooth3( imCurCellSegCropped );            
-            curCellSurfaceGeometry = isosurface( imCurCellSegSmoothed, 0.5 );
-            curCellSurfaceGeometry.normals = isonormals( imCurCellSegSmoothed, curCellSurfaceGeometry.vertices );
-            
-            % correct vertex positions by adding offset
-            curCellSurfaceGeometry.vertices(:,1) = subinds{2}(1) - 1 + curCellSurfaceGeometry.vertices(:,1);
-            curCellSurfaceGeometry.vertices(:,2) = subinds{1}(1) - 1 + curCellSurfaceGeometry.vertices(:,2);
-            curCellSurfaceGeometry.vertices(:,3) = subinds{3}(1) - 1 + curCellSurfaceGeometry.vertices(:,3);
-            
-            % add cell surface to cell pattern surface object
-            curPatternIsoSurface.surfaces = [ curPatternIsoSurface.surfaces; curCellSurfaceGeometry ];
-            
-        end
-        
-        % add cell pattern surface to the list
-       cellPatternSurfaceObjectList{end+1} = curPatternIsoSurface;
-       
-    end    
-    closeStatusDialog( hStatusDlg );
-    
-    % display cell pattern distribution in imaris
-    handles.imarisAppCellSegCropped = DisplayMultichannel3DDataInImaris( imageDataPadded, ...
-                                                                         'spacing', handles.data.metadata.imageSize, ...
-                                                                         'surfaceObjects', cellPatternSurfaceObjectList, ...
-                                                                         'displayRanges', handles.dataDisplay.imDisplayRange, ...
-                                                                         'displayColors', handles.data.metadata.channelColors );
-    
+        closeStatusDialog( hStatusDlg );
+                   
     % Update handles structure
-    guidata(hObject, handles);
-    
-
+    guidata(hObject, handles);    
 
 % --- Executes on button press in CheckboxInvalidROIMask.
 function CheckboxValidROIMask_Callback(hObject, eventdata, handles)
