@@ -22,7 +22,7 @@ function varargout = DNADamageAnalyzer(varargin)
 
 % Edit the above text to modify the response to help DNADamageAnalyzer
 
-% Last Modified by GUIDE v2.5 14-Jul-2014 16:07:50
+% Last Modified by GUIDE v2.5 18-Aug-2014 13:54:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1984,3 +1984,10 @@ function File_PerformColocalizationAnalysis_Callback(hObject, eventdata, handles
     
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);
+
+
+% --------------------------------------------------------------------
+function File_Colocalization_Analysis_Callback(hObject, eventdata, handles)
+% hObject    handle to File_Colocalization_Analysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

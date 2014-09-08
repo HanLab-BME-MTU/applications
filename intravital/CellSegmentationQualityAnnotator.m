@@ -22,7 +22,7 @@ function varargout = CellSegmentationQualityAnnotator(varargin)
 
 % Edit the above text to modify the response to help CellSegmentationQualityAnnotator
 
-% Last Modified by GUIDE v2.5 17-Jul-2014 14:35:55
+% Last Modified by GUIDE v2.5 06-Sep-2014 01:35:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,7 +83,9 @@ function CellSegmentationQualityAnnotator_OpeningFcn(hObject, eventdata, handles
     handles.flagShowCellBBox = get(handles.CheckboxCellBBox, 'Value');
 
     handles.defaultCellPatternTypes = cellstr( get(handles.ListboxSegmentationQualitySelector, 'String') );
-    handles.data.cellPatternTypes = cellstr( get(handles.ListboxSegmentationQualitySelector, 'String') );
+    
+    set( handles.poplistCellClassSelector, 'String', handles.defaultCellPatternTypes );
+    handles.data.cellPatternTypes = handles.defaultCellPatternTypes;
     
     handles.imarisAppCellSeg = [];
     handles.imarisAppCellPattern = [];
@@ -300,14 +302,15 @@ function RunAnalysis(hObject, handles)
                                                                     'flagParallelize', handles.parameters.flagParallelize, ...
                                                                     'flagDebugMode', handles.parameters.flagDebugMode, ...
                                                                     'cellDiameterRange', handles.parameters.nucleiSegmentation.cellDiameterRange, ...
-                                                                    'thresholdingAlgorithm', 'blobnessCutoff', ...
-                                                                    'minSignalToBackgroundRatio', 1.5, ...
+                                                                    'thresholdingAlgorithm', 'MinErrorPoissonSliceBySliceLocal', ...
+                                                                    'minSignalToBackgroundRatio', 3.0, ...
                                                                     'seedPointDetectionAlgorithm', handles.parameters.nucleiSegmentation.seedPointDetectionAlgorithm, ...
                                                                     'minCellVolume', handles.parameters.nucleiSegmentation.minCellVolume, ...
-                                                                    'minCellBBoxSizePhysp', [7, 7, 1] .* handles.data.metadata.pixelSize, ...
                                                                     'flagIgnoreCellsOnXYBorder', handles.parameters.nucleiSegmentation.flagIgnoreXYBorderCells, ...
                                                                     'regionMergingModelFile', regionMergingModelFile);
 
+%                                                                     'minCellBBoxSizePhysp', [5, 5, 2] .* handles.data.metadata.pixelSize, ...
+                                                                
     [handles.dataDisplay.imCellSegRGBMask, handles.data.CellSegColorMap] = label2rgbND(handles.data.imLabelCellSeg);
     handles.dataDisplay.imCellSeedPoints = imdilate( handles.data.imCellSeedPoints, ones(3,3,3) );
     closeStatusDialog(hStatusDialog);
@@ -681,7 +684,37 @@ function File_Load_Annotation_Callback(hObject, eventdata, handles)
         else
             handles.data.dataFilePath = annotationData.dataFilePath;
         end
-        handles.data.metadata = annotationData.metadata;
+        
+        % metadata
+        if ~isfield(annotationData.metadata, 'pixelSize') % check if old metadata struct
+        
+            metadata.version = '2.0.0';
+            metadata.dataFilePath = annotationData.dataFilePath([1, 2, 2]);
+            metadata.format = repmat({'Olympus'}, 1, 3);
+            
+            metadata.numSeries = ones(1,3);
+            metadata.seriesId = ones(1,3);
+            
+            metadata.numTimePoints = 1;
+            metadata.timePointId = 1;
+            
+            metadata.numChannels = 3;
+            metadata.channelId = [1, 1, 2];
+            metadata.channelNames = {'Nuclei', 'FUCCI Geminin', 'FUCCI Cdt1'};
+            
+            metadata.imageSize = annotationData.metadata.volSize;
+            metadata.pixelSize = annotationData.metadata.voxelSpacing;
+            
+            metadata.pixelType = 'uint16';
+            metadata.bitsPerPixel = 12;
+            
+            handles.data.metadata = metadata;
+            
+        else
+            handles.data.metadata = annotationData.metadata;
+        end
+        
+        % image data
         handles.data.imageData = annotationData.imageData;
 
         % basic display data
@@ -1319,10 +1352,6 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
         return;
     end
     
-    if ~isempty(handles.imarisAppCellSegCropped) && isobject(handles.imarisAppCellSegCropped)
-        delete( handles.imarisAppCellSegCropped );
-    end       
-    
     curCellId = handles.dataDisplay.curCellId;
     curCellStats = handles.data.cellStats( curCellId );        
     curCellCentroid = round( curCellStats.Centroid );    
@@ -1359,7 +1388,7 @@ function View_Cell_Segmentation_In_Imaris_Callback(hObject, eventdata, handles)
     end
 
     imvis = ImarisDataVisualizer(cat(4, imCellCropped{:}), ...
-                                 'spacing', handles.data.metadata.voxelSpacing);
+                                 'spacing', handles.data.metadata.pixelSize);
     
     handles.imarisAppCellSegCropped = imvis;
     hSegmentation = imvis.AddDataContainer();
@@ -1531,3 +1560,128 @@ function CellSegmentationQualityAnnotator_WindowButtonDownFcn(hObject, eventdata
 
     % Update Cell Descriptors
     UpdateCellDescriptors(handles);    
+
+
+% --- Executes on button press in btnShowPreviousCellInSelectedClass.
+function btnShowPreviousCellInSelectedClass_Callback(hObject, eventdata, handles)
+% hObject    handle to btnShowPreviousCellInSelectedClass (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    % first check if data has been loaded
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    cellPatternVec = [handles.data.cellStats.cellPatternId];
+    
+    indPrevCellInCurClass = find( cellPatternVec(handles.dataDisplay.curCellId-1:-1:1) == get(handles.poplistCellClassSelector,'Value') );
+    
+    if isempty( indPrevCellInCurClass )
+        return;
+    end
+    
+    indPrevCellInCurClass = handles.dataDisplay.curCellId - indPrevCellInCurClass;
+    
+    % decrement cell id
+    handles.dataDisplay.curCellId = indPrevCellInCurClass(1);
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % update cell pattern listbox
+    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+% --- Executes on button press in btnShowNextCellInSelectedClass.
+function btnShowNextCellInSelectedClass_Callback(hObject, eventdata, handles)
+% hObject    handle to btnShowNextCellInSelectedClass (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    % first check if data has been loaded
+    if ~handles.flagDataLoaded
+        return;
+    end
+
+    cellPatternVec = [handles.data.cellStats.cellPatternId];
+    
+    indNextCellInCurClass = find( cellPatternVec(handles.dataDisplay.curCellId+1:end) == get(handles.poplistCellClassSelector,'Value') );
+        
+    if isempty( indNextCellInCurClass )
+        return;
+    end
+    
+    indNextCellInCurClass = handles.dataDisplay.curCellId + indNextCellInCurClass;
+    
+    % decrement cell id
+    handles.dataDisplay.curCellId = indNextCellInCurClass(1);
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % update cell pattern listbox
+    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+% --- Executes on selection change in poplistCellClassSelector.
+function poplistCellClassSelector_Callback(hObject, eventdata, handles)
+% hObject    handle to poplistCellClassSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns poplistCellClassSelector contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from poplistCellClassSelector
+
+    % first check if data has been loaded
+    if ~handles.flagDataLoaded
+        return;
+    end
+    
+    cellPatternVec = [handles.data.cellStats.cellPatternId];
+    
+    indFirstCellInCurClass = find( cellPatternVec == get(hObject,'Value') );
+    
+    if isempty( indFirstCellInCurClass )
+        return;
+    end
+    
+    % decrement cell id
+    handles.dataDisplay.curCellId = indFirstCellInCurClass(1);
+    handles.dataDisplay.curCellSliceId = round(handles.data.cellStats(handles.dataDisplay.curCellId).Centroid([2, 1, 3]));
+
+    % update cell pattern listbox
+    set(handles.ListboxSegmentationQualitySelector, 'Value', handles.data.cellStats(handles.dataDisplay.curCellId).cellPatternId);
+
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Update Cell Visualization
+    UpdateCellDisplay(handles);
+
+    % Update Cell Descriptors
+    UpdateCellDescriptors(handles);
+    
+% --- Executes during object creation, after setting all properties.
+function poplistCellClassSelector_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to poplistCellClassSelector (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

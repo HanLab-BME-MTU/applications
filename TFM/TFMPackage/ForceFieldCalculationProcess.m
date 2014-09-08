@@ -153,7 +153,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.solMethodBEM='1NormReg';
             funParams.basisClassTblPath='';
             funParams.LcurveFactor=10;
-            funParams.thickness=32000;
+            funParams.thickness=34000;
             funParams.useLcurve=true;
         end
     end

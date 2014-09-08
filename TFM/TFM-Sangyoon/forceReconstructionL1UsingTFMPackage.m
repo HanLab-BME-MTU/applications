@@ -1,6 +1,6 @@
 % U2OSstack4.m is a script for Kris's 2014-04-09/DsRed Dual-cube 561stack3
 % typical L1 force reconstruction
-function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgPath,NA,pixelSize,timeInterval,refROI,useLcurve,solMethodBEM)
+function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgPath,NA,pixelSize,timeInterval,refROI,useLcurve,solMethodBEM,YoungModulus,regParam)
 % forceReconstructionL1UsingTFMPackage runs TFM package all the way to
 % force reconsturction without any stopping using L1 reconstruction and
 % using L-curve.
@@ -26,9 +26,13 @@ function [] = forceReconstructionL1UsingTFMPackage(beadFolder,cellFolder,refImgP
 if nargin<8
     solMethodBEM='1NormReg';
     useLcurve = true;
+    YoungModulus = 3500;
+    regParam = 4e-4;
 end
 if nargin<9
     solMethodBEM='1NormReg';
+    YoungModulus = 3500;
+    regParam = 4e-4;
 end
 
 % Retrieve current location
@@ -132,8 +136,8 @@ roiMD.getPackage(iPack).getProcess(3).run();
 roiMD.getPackage(iPack).createDefaultProcess(4)
 params = roiMD.getPackage(iPack).getProcess(4).funParams_;
 
-params.YoungModulus = 3500;
-params.regParam = 4e-4;
+params.YoungModulus = YoungModulus;
+params.regParam = regParam;
 params.method = 'FastBEM';
 % params.solMethodBEM = '1NormReg';
 params.solMethodBEM = solMethodBEM;%'1NormRegLaplacian';

@@ -69,7 +69,7 @@ ip.addParamValue('maxSpd',40,@isscalar);
 ip.addParamValue('bgMask',true(size(stack)),@(x) isequal(size(x),size(stack)));
 ip.addParamValue('bgAvgImg', zeros(size(stack)),@isnumeric);
 ip.addParamValue('minFeatureSize',11,@isscalar);
-ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate'}));
+ip.addParamValue('mode','fast',@(x) ismember(x,{'fast','accurate','CCWS','CDWS'}));
 ip.parse(stack,points,minCorL,varargin{:});
 maxCorL=ip.Results.maxCorL;
 maxSpd=ip.Results.maxSpd;
@@ -138,6 +138,7 @@ if matlabpool('size')==0
 end
 
 parfor k = 1:nPoints
+% for k = 1:nPoints
     fprintf(1,[strg ' ...'],k);
     
     sigtVal = [NaN NaN NaN];
@@ -222,8 +223,12 @@ parfor k = 1:nPoints
             % image.
             centerI = [hCWL+1,hCLL+1];
             
-            [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF, ...
-                'bAreaThreshold',bAreaThreshold,'kymMask',kymMask,'kymAvgImg',kymAvgImg);
+            if strcmp(mode,'CDWS')
+                [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF,'CDWS',true);
+            else
+                [score,blockIsTooSmall] = calScore(kym,centerI,corL,vP,vF, ...
+                    'bAreaThreshold',bAreaThreshold,'kymMask',kymMask,'kymAvgImg',kymAvgImg);
+            end
             
             if blockIsTooSmall
                 %Tell the program to increase block size.
@@ -447,18 +452,22 @@ parfor k = 1:nPoints
         maxVmagnified = maxInterpfromScore(maxI3,score3,newvP,newvF);
         
         maxV = maxVmagnified/refineFactor;
-%         refineRange = 1; % in pixel
-%         for k3 = 1:10
-%             oldmaxV = maxV;
-%             maxV = contWindShift(maxV,kym,centerI,corL,refineFactor,refineRange);
-%             if norm(maxV-oldmaxV)<1e-6
-%                 break
-%             else
-%                 prev_refineFactor=refineFactor;
-%                 refineFactor = prev_refineFactor *10;
-%                 refineRange = refineRange/prev_refineFactor; % in pixel
-%             end
-%         end
+    end
+    if pass && strcmp(mode,'CCWS')
+        refineRange = 1; % in pixel
+        maxIterCCWS = 4;
+        oldmaxV = [1e6 1e6];
+        k3 = 0;
+        refineFactor = 10;% by this, the pixel value will be magnified.
+        while norm(maxV-oldmaxV)>1e-6 && k3<maxIterCCWS
+            k3 = k3+1;
+            oldmaxV = maxV;
+            maxV = contWindShift(maxV,kym,centerI,corL,refineFactor,refineRange);
+            
+            prev_refineFactor=refineFactor;
+            refineFactor = prev_refineFactor *10;
+            refineRange = refineRange/prev_refineFactor; % in pixel
+        end
     end
     if ~isnan(maxV(1)) && ~isnan(maxV(2))
         rotv= maxV*[perpDir;bandDir];
@@ -510,6 +519,7 @@ ip =inputParser;
 ip.addParamValue('bAreaThreshold',0.5*corL^2,@isscalar);
 ip.addParamValue('kymMask',[],@islogical)
 ip.addParamValue('Continuous',false,@islogical)
+ip.addParamValue('CDWS',false,@islogical)
 ip.addParamValue('kymAvgImg',zeros(size(kym)),@isnumeric)
 ip.addParamValue('mode','xcorr',@(x) ismember(x,{'xcorr','difference'}));
 ip.parse(varargin{:});
@@ -517,42 +527,13 @@ bAreaThreshold=ip.Results.bAreaThreshold;
 kymMask=ip.Results.kymMask;
 kymAvgImg=ip.Results.kymAvgImg;
 bCont = ip.Results.Continuous;
+bCDWS = ip.Results.CDWS;
 mode = ip.Results.mode;
 
 % score = zeros(length(vP),length(vF));
 bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
 bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
 
-% if bCont && (numFrames==2)
-%     % normalized cross-correlation with continuous window shift (by
-%     % interpolation)
-%     % Here vP and vF are decimal numbers. 
-%     g1 = kym(bI1,bI2,1:numFrames-1);
-%     g1m = mean(g1(:)); % mean g1
-%     g1n = g1-g1m; % normalized g1
-%     for j1 = 1:length(vP)
-%         v1 = vP(j1);
-%         for j2 = 1:length(vF)
-%             v2 = vF(j2);
-%             %integer part of v1 and v2
-%             v1i = floor(v1);
-%             v2i = floor(v2);
-%             % decimal parts of v1 and v2
-%             x = v1-v1i;
-%             y = v2-v2i;
-%             
-%             g2 = (1-x)*(1-y)*kym(bI1+v1i,bI2+v2i,numFrames)...
-%                 + x*(1-y)*kym(bI1+v1i+1,bI2+v2i,numFrames)...
-%                 + y*(1-x)*kym(bI1+v1i,bI2+v2i+1,numFrames)...
-%                 + x*y*kym(bI1+v1i+1,bI2+v2i+1,numFrames);
-%             g2m = mean(g2(:));
-%             g2n = g2 - g2m;
-%             corrM = g1n.* g2n;
-%             %Normalize the correlation coefficients.
-%             score(j1,j2) = sum(corrM(:));
-%         end
-%     end
-%     score = score/max(score(:));
 % elseif isempty(kymMask) && (numFrames==2)
 %     %The index of the correlating image block in the big cropped image.
 %     bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
@@ -586,6 +567,51 @@ if strcmp(mode,'difference')
 
             %Normalize the correlation coefficients.
             score(j1,j2) = sum(corrM(:));
+        end
+    end
+elseif bCont && (numFrames==2)
+    % normalized cross-correlation with continuous window shift (by
+    % interpolation)
+    % Here vP and vF are decimal numbers. 
+    g1 = kym(bI1,bI2,1:numFrames-1);
+    g1m = mean(g1(:)); % mean g1
+    g1n = g1-g1m; % normalized g1
+    for j1 = 1:length(vP)
+        v1 = vP(j1);
+        for j2 = 1:length(vF)
+            v2 = vF(j2);
+            %integer part of v1 and v2
+            v1i = floor(v1);
+            v2i = floor(v2);
+            % decimal parts of v1 and v2
+            x = v1-v1i;
+            y = v2-v2i;
+            
+            g2 = (1-x)*(1-y)*kym(bI1+v1i,bI2+v2i,numFrames)...
+                + x*(1-y)*kym(bI1+v1i+1,bI2+v2i,numFrames)...
+                + y*(1-x)*kym(bI1+v1i,bI2+v2i+1,numFrames)...
+                + x*y*kym(bI1+v1i+1,bI2+v2i+1,numFrames);
+            g2m = mean(g2(:));
+            g2n = g2 - g2m;
+            corrM = g1n.* g2n;
+            %Normalize the correlation coefficients.
+            score(j1,j2) = sum(corrM(:));
+        end
+    end
+    score = score/max(score(:));
+elseif bCDWS && (numFrames==2)
+    for j1 = 1:length(vP)
+        v1 = vP(j1);
+        for j2 = 1:length(vF)
+            v2 = vF(j2);
+            kym1 = kym(bI1,bI2,1);
+            kym2 = kym(bI1+v1,bI2+v2,2);
+            corrM = (kym1-mean(kym1(:))).*(kym2-mean(kym2(:)));
+
+            %Normalize the correlation coefficients.
+            bnormNorm1 = sqrt(sum(sum((kym1-mean(kym1(:))).^2)));
+            bnormNorm2 = sqrt(sum(sum((kym2-mean(kym2(:))).^2)));
+            score(j1,j2) = sum(corrM(:))/(bnormNorm1*bnormNorm2);
         end
     end
 elseif isempty(kymMask)
@@ -1001,7 +1027,7 @@ maxVorg  = [vP(maxI2(1)) vF(maxI2(2))];
 
 bPolyTracked = 0;
 if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
-   && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2)
+   && (maxI2(2)-subv)>=1 && (maxI2(2)+subv)<=size(score,2) %|| strcmp(mode,'CDWS')
     subv = 1; % radius of subgroup for subscore
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
                         max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));
@@ -1064,7 +1090,7 @@ if (maxI2(1)-subv)>=1 && (maxI2(1)+subv)<=size(score,1)...
 %     maxV = [-thetax/wx, -thetay/wy];
 end
 
-if ~bPolyTracked || norm(maxVorg-maxV2,2)>1 %checking for proximity of the fitted point to the original discrete point strcmp(mode, 'accurate') || 
+if (~bPolyTracked || norm(maxVorg-maxV2,2)>1) %&& ~strcmp(mode,'CDWS') %checking for proximity of the fitted point to the original discrete point strcmp(mode, 'accurate') || 
     subv = 4; % expanding region to fit
     sub_score = score(max(1,maxI2(1)-subv):min(size(score,1),maxI2(1)+subv),...
                         max(1,maxI2(2)-subv):min(size(score,2),maxI2(2)+subv));

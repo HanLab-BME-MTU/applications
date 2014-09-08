@@ -66,7 +66,7 @@ while (iter < maxiter)
   m=(2*GTG+alpha*L'*R*L)\(2*GTd);
   toc
 
-  if (norm(m-mold)/(1+norm(mold)) < tolx) || norm(m-mold)<m_diff
+  if (norm(m-mold)/(1+norm(mold)) < tolx) %|| norm(m-mold)<m_diff
     mreg=m;
     display(['norm(m-mold)=' num2str(norm(m-mold)) ', 1+norm(mold)=' num2str(1+norm(mold)) ', norm(m-mold)/(1+norm(mold))=' ...
       num2str(norm(m-mold)/(1+norm(mold)))])

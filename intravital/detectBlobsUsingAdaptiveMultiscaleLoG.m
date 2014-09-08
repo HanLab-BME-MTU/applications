@@ -214,25 +214,21 @@ function [ imBlobSeedPoints, varargout ] = detectBlobsUsingAdaptiveMultiscaleLoG
     
     % locate local intensity maxima in gaussian blurred image   
     if isempty(minBlobDistance)
-        MaximaSuppressionSize = round(  min( blobDiameterRange ) ./ spacing );
+        MaximaSuppressionSize = round(0.5 * min(blobDiameterRange) ./ spacing);
     else
-        MaximaSuppressionSize = round( minBlobDistance ./ spacing );    
+        MaximaSuppressionSize = round(0.5 * minBlobDistance ./ spacing);    
     end
-
-    evenind = (mod( MaximaSuppressionSize, 2 ) == 0);
-    MaximaSuppressionSize( evenind ) = MaximaSuppressionSize( evenind ) + 1;    
-    MaximaSuppressionSize( MaximaSuppressionSize < 3 ) = 3; 
+    MaximaSuppressionSize(MaximaSuppressionSize < 1) = 1;
     
     switch ndims( im ) 
         
         case 2 
             
-            imLocalMax = locmax2d(imMultiscaleLoGResponse, MaximaSuppressionSize, 1);            
+            imLocalMax = locmax2d(imMultiscaleLoGResponse, 2*MaximaSuppressionSize+1, 1);            
             
         case 3
             
-            imLocalMax = locmax3d( imMultiscaleLoGResponse, MaximaSuppressionSize, ...
-                                   'ClearBorder', false);          
+            imLocalMax = locmaxnd(imMultiscaleLoGResponse, MaximaSuppressionSize);          
             
     end
     

@@ -51,7 +51,7 @@ if(show)
         show = @jet;
     end
     figure;
-    showPropMatrix(matrix);
+    lamins.functions.showPropMatrix(matrix);
     
 %     u = unique(prop);
 %     nUnique = length(u);

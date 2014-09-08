@@ -27,7 +27,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
                  
     p.addParamValue( 'cellDiameterRange', [12, 20], @(x) (isnumeric(x) && numel(x) == 2) );
     p.addParamValue( 'minCellVolume', [], @(x) (isnumeric(x) && isscalar(x)) );
-    p.addParamValue( 'minCellBBoxSizePhysp', [7 7 2] .* spacing, @(x) (isnumeric(x) && numel(x) == 3));
+    p.addParamValue( 'minCellBBoxSizePhysp', [], @(x) (isnumeric(x) && numel(x) == 3));
     
     p.addParamValue( 'regionMergingModelFile', [], @(x) (isempty(x) || (ischar(x) && exist(x, 'file'))) );
     
@@ -44,10 +44,6 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     PARAMETERS = p.Results;
     
     cellDiameterRange = PARAMETERS.cellDiameterRange;
-    minCellVolume = PARAMETERS.minCellVolume;
-    if isempty( PARAMETERS.minCellVolume )
-        minCellVolume = 0.75 * (4/3) * pi * (0.5 * PARAMETERS.cellDiameterRange(1))^3;    
-    end
     
     thresholdingAlgorithm = PARAMETERS.thresholdingAlgorithm;
     localThresholdWindowRadiusPhysp = PARAMETERS.localThresholdWindowRadiusPhysp;
@@ -55,15 +51,25 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
 
     seedPointDetectionAlgorithm = PARAMETERS.seedPointDetectionAlgorithm;
     seedDetectorResponseCutoff = PARAMETERS.seedDetectorResponseCutoff;
-    
+
+    regionMergingModelFile = PARAMETERS.regionMergingModelFile;
+
     roiMask = PARAMETERS.roiMask;    
+
     minCellROIOverlap = PARAMETERS.minCellROIOverlap;
     flagIgnoreCellsOnXYBorder = PARAMETERS.flagIgnoreCellsOnXYBorder;
     
-    regionMergingModelFile = PARAMETERS.regionMergingModelFile;
+    minCellVolume = PARAMETERS.minCellVolume;
+    if isempty( PARAMETERS.minCellVolume )
+        minCellVolume = 0.75 * (4/3) * pi * (0.5 * PARAMETERS.cellDiameterRange(1))^3;    
+    end
     
-    PARAMETERS.minCellBBoxSizeImsp = max( [ PARAMETERS.minCellBBoxSizePhysp ./ spacing; 3 * ones(1,3) ] );
-    
+    if isempty(PARAMETERS.minCellBBoxSizePhysp)
+        minCellBBox = max( [0.25 * min(cellDiameterRange) ./ spacing; [7,7,2]] );
+    else
+        minCellBBox = max( [ PARAMETERS.minCellBBoxSizePhysp ./ spacing; [3,3,2] ] );
+    end
+
     flagDebugMode = PARAMETERS.flagDebugMode;
     flagDisplayResultsInImaris = PARAMETERS.flagDisplayResultsInImaris;
     flagParallelize = PARAMETERS.flagParallelize;
@@ -141,12 +147,11 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     
     flagIsBBoxSizeValid = false(1, numel(thRegStats));
     imsize = size(imInput);
-    minBBox = max( [0.5 * 0.5 * min(cellDiameterRange) ./ spacing; PARAMETERS.minCellBBoxSizeImsp] );
     
     for i = 1:numel( thRegStats )
         
         bboxSideLength = thRegStats(i).BoundingBox((ndims(imInput)+1):end);
-        flagIsCurBBoxBigEnough = all( bboxSideLength >= minBBox );
+        flagIsCurBBoxBigEnough = all( bboxSideLength >= minCellBBox );
         if ~flagIsCurBBoxBigEnough
             continue;
         end
@@ -321,22 +326,22 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
        
     end
 
-    fprintf( '\nA total of %d regions were found after region merging\n', max(L(:)) );
-    
     % Clean up 
     fprintf( '\n\n>> Cleaning up ... \n\n' );
     
     objRegProps = regionprops(L, 'Area', 'PixelIdxList', 'BoundingBox' );
-
+    
+    fprintf('\nTotal number of regions before sanity checks - %d\n', numel(objRegProps));
+    
         % perform sanity checks
         flagPruneRegion = false( numel(objRegProps), 1 );
         for i = 1:numel(objRegProps)
 
             % prune regions whose bounding box is below a threshold
             bboxSideLength = objRegProps(i).BoundingBox((ndims(imInput)+1):end);
-            flagIsCurBBoxBigEnough = all( bboxSideLength >= minBBox );
+            flagIsCurBBoxBigEnough = all( bboxSideLength >= minCellBBox );
             if ~flagIsCurBBoxBigEnough
-                %bboxSideLength
+                bboxSideLength
                 flagPruneRegion(i) = true;
                 continue;
             end
@@ -344,7 +349,7 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
             % prune regions with volume below a certain threshold
             curRegionVolume = objRegProps(i).Area * prod(spacing);
             if curRegionVolume < minCellVolume 
-                %curRegionVolume
+                curRegionVolume
                 flagPruneRegion(i) = true;
                 continue;
             end
@@ -417,10 +422,12 @@ function [ imLabelCellSeg, varargout ] = segmentCellsInIntravitalData( imInput, 
     
     imLabelCellSeg = bwlabeln( L > 0 );
     
+    fprintf('\nA total of %d nuclei were found\n', max(imLabelCellSeg(:)));
+    
     [segMaskRGB, cellSegColorMap] = label2rgbND( imLabelCellSeg );
     seedMaskRGB = seedMask;
     seedMaskRGB(:,:,:,2:3) = 0;
-    
+
     if flagDebugMode        
         imWatershedSurface = bwperim(imLabelCellSeg > 0);
         imWatershedSurface(:,:,:,2:3) = 0;
@@ -782,7 +789,8 @@ function [imLabelCellSegProcessed] = PerformRegionMerging(imInput, imLabelCellSe
             
         end
 
-        imLabelCellSegProcessed = bwlabeln(imopen(imLabelCellSegProcessed > 0, ones(3*ones(1,ndims(imInput))) ));
+        %imLabelCellSegProcessed = bwlabeln(imopen(imLabelCellSegProcessed > 0, ones(3*ones(1,ndims(imInput))) ));
+        imLabelCellSegProcessed = bwlabeln(imLabelCellSegProcessed > 0);
         
 end
 

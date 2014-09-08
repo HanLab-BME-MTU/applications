@@ -1,11 +1,19 @@
-function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h)
-% This forward solution is only valid for a Poisson's ratio v=0.5!
+function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h,v,refine)
+% This forward solution is only valid for a Poisson's ratio v=0.5 if not
+% specified.
 % Input: No matter what the dimension of x0 and y0 is (pix, or um), the
 %        dimension of the surface stresses (force_x, force_y) must have the
 %        same dimension as the elastic modulus E, usually Pa.
 
 % Output: The calculated ux and uy have the same dimension as the input
 %         x0, y0.
+% Achim Besser 2012
+% Updated with allowing Poisson's ratio other than 0.5.
+% Sangyoon Han, August 2014
+if nargin <14
+    v=0.5;
+    refine = true;
+end
 
 if strcmpi(method,'conv_free')
     tic;
@@ -15,8 +23,8 @@ if strcmpi(method,'conv_free')
     ux = zeros(nRow,1);
     uy = zeros(nRow,1);
     for i=1:nRow
-        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
-        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E).*force_y(x,y);
+        integrandx = @(x,y) boussinesqGreens(1,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
+        integrandy = @(x,y) boussinesqGreens(2,1,x0(i)-x,y0(i)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i)-x,y0(i)-y,E,v).*force_y(x,y);
 
         ux(i) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
         uy(i) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^5,'AbsTol',5e-6);% RelTol sucks! 'RelTol',5e-13);
@@ -29,8 +37,8 @@ elseif nargin<10 || strcmpi(method,'conv')
 
     for i=1:nRow
         for j=1:nCol  
-            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,j)-x,y0(i,j)-y,E).*force_x(x,y) + boussinesqGreens(1,2,x0(i,j)-x,y0(i,j)-y,E).*force_y(x,y);
-            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,j)-x,y0(i,j)-y,E).*force_x(x,y) + boussinesqGreens(2,2,x0(i,j)-x,y0(i,j)-y,E).*force_y(x,y);
+            integrandx = @(x,y) boussinesqGreens(1,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(1,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
+            integrandy = @(x,y) boussinesqGreens(2,1,x0(i,j)-x,y0(i,j)-y,E,v).*force_x(x,y) + boussinesqGreens(2,2,x0(i,j)-x,y0(i,j)-y,E,v).*force_y(x,y);
 
             ux(i,j) = quad2d(integrandx,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
             uy(i,j) = quad2d(integrandy,xmin,xmax,ymin,ymax,'MaxFunEvals',10^10,'AbsTol',5e-10);% RelTol sucks! 'RelTol',5e-13);
@@ -117,10 +125,10 @@ elseif strcmpi(method,'fft')
     % be improved since the Greensfunction never change for a given grid
     % size. When the Basis functions are calculated this has to be done
     % only once (as well as the FFT for these fields!!!):
-    discrete_boussinesqGreens11=boussinesqGreens(1,1,xgrid_G,ygrid_G,E);
-    discrete_boussinesqGreens12=boussinesqGreens(1,2,xgrid_G,ygrid_G,E);
+    discrete_boussinesqGreens11=boussinesqGreens(1,1,xgrid_G,ygrid_G,E,v);
+    discrete_boussinesqGreens12=boussinesqGreens(1,2,xgrid_G,ygrid_G,E,v);
    %discrete_boussinesqGreens21=discrete_boussinesqGreens12;
-    discrete_boussinesqGreens22=boussinesqGreens(2,2,xgrid_G,ygrid_G,E);
+    discrete_boussinesqGreens22=boussinesqGreens(2,2,xgrid_G,ygrid_G,E,v);
     
     % Pad the calculated fields with zero to the next power larger than 
     % (2*N-1), see above. For this setup, the FFT is fastest.
@@ -204,7 +212,7 @@ elseif strcmpi(method,'fft')
     
     
     % Recursive call to fwdSolution:   
-    refine =true;
+%     refine =true;
     if ~isempty(xmin) && ~isempty(xmax) && ~isempty(ymin) && ~isempty(ymax) && refine
         % and the support of the force is much small than ROI for the
         % displacement, this check should be included otherwise one calculate

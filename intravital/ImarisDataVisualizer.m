@@ -10,6 +10,7 @@ classdef ImarisDataVisualizer
             p.addRequired( 'videoInput', @(x) (iscell(x) || (isnumeric(x) && ismember(ndims(x), [3,4,5]))) );
             p.addParamValue( 'format', '3DC', @(x) (ischar(x) && ismember(x, {'3DC', '3DT'})));
             p.addParamValue( 'spacing', ones(1,3), @(x) (isnumeric(x) && numel(x) == 3) );
+            p.addParamValue( 'timeStep', 1, @(x) (isscalar(x)) );
             p.addParamValue( 'units', 'um', @(x) (ischar(x)) );
             p.addParamValue( 'voxelType', 'eTypeUInt16', @(x) (ischar(x) && ismember(x, {'eTypeUInt8', 'eTypeUInt16', 'eTypeFloat'})) );
             p.addParamValue( 'displayColors', [], @(x) ( isnumeric(x) && ndims(x) == 2 && size(x,2) == 3) );
@@ -57,6 +58,7 @@ classdef ImarisDataVisualizer
             spacing = PARAMETERS.spacing;
             units = PARAMETERS.units;
             voxelType = PARAMETERS.voxelType;
+            timeStep = PARAMETERS.timeStep;
             
             if isempty(PARAMETERS.displayRanges)
                 default_displayranges = zeros(numChannels,2);
@@ -91,39 +93,29 @@ classdef ImarisDataVisualizer
             end
             
             % initialization
-            this.imarisApp = imarisStartNew(nargout==0);
-            imarisScene = this.imarisApp.mFactory.CreateDataContainer;
-            this.imarisApp.mSurpassScene = imarisScene;
-            imarisScene.AddChild(this.imarisApp.mFactory.CreateLightSource); %add the light to the scene
-            imarisScene.AddChild(this.imarisApp.mFactory.CreateFrame); %add the frame to the scene    
+            this.imarisConn  = IceImarisConnector();
+            this.imarisConn.startImaris();
+            this.imarisApp = this.imarisConn.mImarisApplication;
             
             % create a dataset for the multichannel 3D video
-            volData = this.imarisApp.mFactory.CreateDataSet;
-            volData.Create(voxelType, videoSize(2), videoSize(1),  videoSize(3), numChannels, numTimePoints);
-
-            volData.mExtendMinX = 0;
-            volData.mExtendMinY = 0;
-            volData.mExtendMinZ = 0;
-            volData.mExtendMaxX = volData.mSizeX * spacing(2);
-            volData.mExtendMaxY = volData.mSizeY * spacing(1);
-            volData.mExtendMaxZ = volData.mSizeZ * spacing(3);
-            volData.mUnit = units;    
+            this.imarisConn.createDataset(voxelType, ...
+                                          videoSize(2), videoSize(1),  videoSize(3), ...
+                                          numChannels, numTimePoints, ...
+                                          spacing(2), spacing(1), spacing(3), timeStep);
+            volData = this.imarisApp.GetDataSet;
+            volData.SetUnit( units );    
 
             for tid = 1:numTimePoints        
                 for cid = 1:numChannels 
 
-                    volData.SetDataVolume( this.typeCastVolume( permute(flipdim(dataIn(:,:,:,cid,tid), 1), [2,1,3]), voxelType ), cid-1, tid-1);        
-                    volData.SetChannelColor( cid-1, displayColors(cid,1), displayColors(cid,2), displayColors(cid,3), 0.8 );
+                    this.imarisConn.setDataVolume(this.typeCastVolume( permute(flipdim(dataIn(:,:,:,cid,tid), 1), [2,1,3]), voxelType ), cid-1, tid-1);
+                    volData.SetChannelColorRGBA( cid-1, this.imarisConn.mapRgbaVectorToScalar([displayColors(cid,:), 0.8]) );
                     volData.SetChannelRange( cid-1, displayRanges(cid,1), displayRanges(cid,2) );
 
                 end        
             end
 
-            this.imarisApp.mDataSet = volData;
-
-            % Display the dataset in the newly created scene.
-            this.imarisApp.mSurpassCamera.Fit;
-            imarisScene.AddChild(this.imarisApp.mFactory.CreateVolume);                
+            this.imarisApp.GetSurpassCamera.Fit;
             
             % store
             this.metadata.spacing = spacing;
@@ -133,14 +125,18 @@ classdef ImarisDataVisualizer
             
         end
         
+        function delete(this)
+            this.imarisConn.closeImaris();
+        end
+        
         function hContainer = AddDataContainer(this, hParent )
             
-            if ~exist( 'hContainer', 'var' )
-                hParent = this.imarisApp.mSurpassScene;
+            if ~exist( 'hParent', 'var' )
+                hParent = this.imarisApp.GetSurpassScene;
             end
             
-            hContainer = this.imarisApp.mFactory.CreateDataContainer;
-            hParent.AddChild(hContainer);
+            hContainer = this.imarisApp.GetFactory.CreateDataContainer;
+            hParent.AddChild(hContainer, -1);
             
         end
         
@@ -155,7 +151,7 @@ classdef ImarisDataVisualizer
             p.addParamValue( 'color', random_color(), @(x) (isvector(x) && ismember(numel(x), [3,4])) );
             p.addParamValue( 'radii', 3 * min(this.metadata.spacing), @(x) (isscalar(x) | (isvector(x) && numel(x) == numSpots)) );
             p.addParamValue( 'trackEdges', [], @(x) ( (ischar(x) && stricmpi('consecutive')) && (ismatrix(x) && all(size(x) == [numSpots, 2]) && x(:) >= 1 && x(:) <= numSpots)) );
-            p.addParamValue( 'hContainer', this.imarisApp.mSurpassScene, @(x) ishandle(x));
+            p.addParamValue( 'hContainer', this.imarisApp.GetSurpassScene, @(x) ishandle(x));
             p.parse( spotLocations, spotTimes, varargin{:} );
             
             PARAMETERS = p.Results;
@@ -186,8 +182,8 @@ classdef ImarisDataVisualizer
             end
             
             % create imaris spot object
-            imarisSpots = this.imarisApp.mFactory.CreateSpots;
-            imarisSpots.SetColor(spotColor(1), spotColor(2), spotColor(3), spotColor(4));
+            imarisSpots = this.imarisApp.GetFactory.CreateSpots;
+            imarisSpots.SetColorRGBA(this.imarisConn.mapRgbaVectorToScalar(spotColor));
             imarisSpots.Set(spotLocationsPhysp, spotTimes, spotRadii);                
             
             % add track edges
@@ -205,7 +201,7 @@ classdef ImarisDataVisualizer
             
             % name
             if ~isempty(PARAMETERS.name)
-                imarisSpots.mName = PARAMETERS.name;
+                imarisSpots.SetName( PARAMETERS.name );
             end
             
             % add to container
@@ -217,7 +213,7 @@ classdef ImarisDataVisualizer
             
             p = inputParser;
             p.addRequired( 'surfaceList', @(x) (isstruct(x) && sum(isfield(x, {'vertices', 'faces', 'normals', 'timepoint'})) == 4) );
-            p.addOptional('hContainer', this.imarisApp.mSurpassScene);
+            p.addOptional('hContainer', this.imarisApp.GetSurpassScene);
             p.addParamValue('name', [], @ischar );
             p.addParamValue('color', random_color(), @(x) (isvector(x) && ismember(numel(x), [3,4])) );
             p.addParamValue('tracks', [], @(x) ( (ischar(x) && stricmpi('consecutive')) || (ismatrix(x) && size(x,2) == 2 && all(x(:) >= 1) && all(x(:) <= numel(surfaceList)))) );
@@ -233,15 +229,15 @@ classdef ImarisDataVisualizer
             end
             
             % create imaris surface object
-            imarisSurfaceObject = this.imarisApp.mFactory.CreateSurfaces;
+            imarisSurfaceObject = this.imarisApp.GetFactory.CreateSurfaces;
             
             % name
             if ~isempty(PARAMETERS.name)
-                imarisSurfaceObject.mName = PARAMETERS.name;
+                imarisSurfaceObject.SetName( PARAMETERS.name );
             end
             
             % color
-            imarisSurfaceObject.SetColor(spotColor(1), spotColor(2), spotColor(3), spotColor(4) );
+            imarisSurfaceObject.SetColorRGBA( this.imarisConn.mapRgbaVectorToScalar(spotColor) );
             
             % add surfaces
             spacing = this.metadata.spacing;
@@ -285,7 +281,7 @@ classdef ImarisDataVisualizer
             end
             
             % add to container
-            hContainer.AddChild(imarisSurfaceObject);
+            hContainer.AddChild(imarisSurfaceObject, -1);
             
         end
         
@@ -357,6 +353,7 @@ classdef ImarisDataVisualizer
        
         metadata
         imarisApp
+        imarisConn
         
     end
         

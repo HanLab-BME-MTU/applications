@@ -67,23 +67,23 @@
                       
     imseriesmaskshow(imageData{chid}, imMask, 'spacing', metadata.pixelSize);  
  
-%     % slice by slice local min error
-
-    krnlMax = ones( 2 * round(20 ./ metadata.pixelSize(1:2)) + 1 );
-    imCorreted = imtophat(imPreprocessed, krnlMax);
-%     imCorreted = imPreprocessed;
-
-    imThresh = segmentCellForegroundUsingLocalMinError( imCorreted, 30 / metadata.pixelSize(1), ...
-                                                        'model', 'poisson', ...  
-                                                        'minLocalGlobalThresholdRatio', 0.6, ...
-                                                        'minSliceToStackThresholdRatio', 0.4);
-    
-    imseriesmaskshow(imageData{chid}, imThresh, 'spacing', metadata.pixelSize);  
-    
-    % threshold blobness
-    imThresh2 = thresholdBlobness(imPreprocessed, 8.0, 'spacing', metadata.pixelSize, 'choice_of_threshold', 'MinimumError');
-    
-    imseriesmaskshow(imageData{chid}, imThresh2, 'spacing', metadata.pixelSize);    
+% %     % slice by slice local min error
+% 
+%     krnlMax = ones( 2 * round(20 ./ metadata.pixelSize(1:2)) + 1 );
+%     imCorreted = imtophat(imPreprocessed, krnlMax);
+% %     imCorreted = imPreprocessed;
+% 
+%     imThresh = segmentCellForegroundUsingLocalMinError( imCorreted, 30 / metadata.pixelSize(1), ...
+%                                                         'model', 'poisson', ...  
+%                                                         'minLocalGlobalThresholdRatio', 0.6, ...
+%                                                         'minSliceToStackThresholdRatio', 0.4);
+%     
+%     imseriesmaskshow(imageData{chid}, imThresh, 'spacing', metadata.pixelSize);  
+%     
+%     % threshold blobness
+%     imThresh2 = thresholdBlobness(imPreprocessed, 8.0, 'spacing', metadata.pixelSize, 'choice_of_threshold', 'Otsu');
+%     
+%     imseriesmaskshow(imageData{chid}, imThresh2, 'spacing', metadata.pixelSize);    
     
     %% apply global thresholding algorithms in each slice separately
     %experiment_global_thresholding_per_slice( double(imageData{1,1}), metadata );
