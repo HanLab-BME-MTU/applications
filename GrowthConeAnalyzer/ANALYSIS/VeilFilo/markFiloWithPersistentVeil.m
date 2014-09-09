@@ -18,8 +18,8 @@ idxWind = arrayfun(@(x) ~isempty(filoInfo(x).windowIdx),1:length(filoInfo));
 idxNotWind = find(~idxWind);
 % not sure how to assign all the data to structure 
 for iNot = 1:length(idxNotWind)
-    filoInfo(idxNotWind(iNot)).rectractionPersVeil = 0; 
-    filoInfo(idxNotWind(iNot)).protrusionPersVeil = 0; 
+    filoInfo(idxNotWind(iNot)).retractionpersVeil = 0; 
+    filoInfo(idxNotWind(iNot)).protrusionpersVeil = 0; 
     
 end 
 
