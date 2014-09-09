@@ -133,7 +133,7 @@ for iCh = 1:nChan
      end 
          
   %reWrite the analInfo 
-analInfo(iFrame) = filoInfo;    
+analInfo(iFrame).filoInfo = filoInfo;    
           
      
  end % iFrame
