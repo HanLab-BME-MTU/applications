@@ -132,5 +132,8 @@ classdef Skeleton < hgsetget
             end
             imshow(rgb);
         end
+        function imshow(obj)
+            showGraph(obj);
+        end
     end
 end
