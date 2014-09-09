@@ -30,10 +30,15 @@ ny =  imageSize(1);
  nx = imageSize(2); 
 % %% START 
 distTrans = frontPixelInfo(:,2); 
+useThickestPoint =0; 
+if useThickestPoint == 1;
 thickestPt = max(frontPixelInfo(:,2)); 
+
 idxPt =find(distTrans == thickestPt);
+else 
+    idxPt = length(distTrans);
 %[yCenter,xCenter] = ind2sub(imageSize,idxPt); 
- 
+end % thickestPoint
 
 % get the indices surrounding the vector: length of this is user defined
 idx = idxPt-vectLength:idxPt+vectLength;

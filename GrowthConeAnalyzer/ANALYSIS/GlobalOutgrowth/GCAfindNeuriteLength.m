@@ -113,7 +113,7 @@ if nargin<5
     paramsIn.longPathTifs = 1;
     paramsIn.firstLastFrameOnly = 0;
     paramsIn.makeMovieFiles = 1;
-    paramsIn.distCutOffForBody = 20;  % currently in um
+    paramsIn.distCutOffForBody = 15;  % currently in um
     paramsIn.mkPlotsBodyMeasure = 1;
     paramsIn.subRegions =1; % flag to make frontMask subRegions
     paramsIn.plotFrontMask = 1; % flag to plot the frontMask 
@@ -441,7 +441,7 @@ end
        distTrans = bwdist(~mask); 
        distVals = distTrans(pixForBodyEst); 
        subRoiInfo = [pixForBodyEst distVals];
-      [subRois,xVect,yVect] =   GCAgetGrowthConeSubRegions(subRoiInfo,45,[ny,nx],4,mask); 
+      [subRois,xVect,yVect] =   GCAgetGrowthConeSubRegions(subRoiInfo,90,[ny,nx],4,mask); 
      % save in a mask file for later use: Think about best place for
      % substructure to remain in line with movie data 
      
@@ -583,8 +583,14 @@ if ~isempty(p.distCutOffForBody);
    
     
     valuesBody= distTrans(pixForBodyEst); 
- % Begin to get the thickest part of the GC for potential regional metrics 
+    findMaxDist  = 0; 
+ % Begin to get the thickest part of the GC for potential regional metrics
+ if findMaxDist == 1
    [yCenter,xCenter] =  ind2sub([ny,nx],pixForBodyEst(valuesBody==max(valuesBody))); 
+ else
+     [yCenter,xCenter] = ind2sub([ny,nx],pixForBodyEst(end)); 
+     
+ end 
     bodyShape{iFrame} = valuesBody; 
      if p.mkPlotsBodyMeasure == 1 
         visBodyEstDir = [p.OutputDirectoryBodyShape filesep 'Visuals']; 
