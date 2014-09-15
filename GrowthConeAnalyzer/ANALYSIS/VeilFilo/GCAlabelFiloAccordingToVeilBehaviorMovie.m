@@ -89,7 +89,7 @@ for iCh = 1:nChan
     
      filoInfo = analInfo(iFrame).filoInfo; 
      
-     filoInfo = markFiloWithPersistentVeil(output,filoInfo,iFrame);
+     [filoInfo] = markFiloWithPersistentVeil(output,filoInfo,iFrame);
       %% make a small matrix of the windows marked by persistent retraction
       % want to make an idx matrix so can mark which ones have high persistence 
      % for each window test if pers retract if yes 1 if no 0 
@@ -103,30 +103,38 @@ for iCh = 1:nChan
    % currentFrame= sum(frameNumPers==iFrame) ;
      
    %%
-     if p.labelMovie ==1 
+     if p.labelMovie ==1
+         
+         %plotfilosIntAndExt(filoInfo,[ny,nx],1,1,'y',0); 
          % plot the windows and the filoAssociated with persistent
          % protrusion/retraction   
          persType{1} = 'protrusion' ;
          persType{2} = 'retraction'; 
-         c = ['g','c']; 
+         c = ['r','b']; 
          
-         for i = 1:2 
-         filoPlotC = filoInfo(logical(vertcat(filoInfo(:).([persType{i} 'persVeil']))));
+         %for i = 1:2 
+         %filoPlotC = filoInfo(logical(vertcat(filoInfo(:).([persType{i} 'persVeil']))));
              
-         plotfilosIntAndExt(filoPlotC,[ny,nx],1,1,c(i),0);     
+         %plotfilosIntAndExt(filoPlotC,[ny,nx],1,1,c(i),0);     
          
-         end
-          plotWindows(windows,{'g','FaceAlpha',0},'bandMax',1)
+         %end
+         
+         %filoPlotCTS = filoInfo(logical(vertcat(filoInfo(:).floatingFilo)));
+        % plotfilosIntAndExt(filoPlotCTS,[ny,nx],1,1,'g',0);
+         
+         
+         
+          plotWindows(windows,{'g','FaceAlpha',0},'bandMax',1,'ShowNum',10)
           nWinds = length(output.retractionAnalysis.windows);
           idxPerRetract =  arrayfun(@(x) sum(vertcat(output.retractionAnalysis.windows(x).blockOut{:})==iFrame),1:nWinds); 
           plotWindows(windows(logical(idxPerRetract)),{'b','FaceAlpha',0.5},'bandMax',1); 
           
           idxPerProt  = arrayfun(@(x) sum(vertcat(output.protrusionAnalysis.windows(x).blockOut{:})==iFrame),1:nWinds); 
-          
+          hold on 
           plotWindows(windows(logical(idxPerProt)),{'r','FaceAlpha',0.5},'bandMax',1); 
           
-        roiYX=  bwboundaries(analInfo(iFrame).masks.neuriteEdge);
-        cellfun(@(x) plot(x(:,2),x(:,1),'Color','y'),roiYX);  
+     %   roiYX=  bwboundaries(analInfo(iFrame).masks.neuriteEdge);
+      %  cellfun(@(x) plot(x(:,2),x(:,1),'Color','y'),roiYX);  
          saveas(gcf,[movieDir filesep num2str(iFrame, '%03d') '.png']);
      saveas(gcf,[movieDir filesep num2str(iFrame, '%03d') '.fig']); 
      close gcf

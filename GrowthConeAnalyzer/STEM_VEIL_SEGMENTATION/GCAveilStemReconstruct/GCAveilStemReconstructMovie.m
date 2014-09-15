@@ -109,8 +109,8 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 30; 
-    paramsIn.startFrame = 31;  %default = 1 
+    paramsIn.patchSize = 35; 
+    paramsIn.startFrame = 95;  %default = 1 
     paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
@@ -1234,7 +1234,7 @@ notBody = bwmorph(notBody,'thin','inf');
            % think the max response is defaulting to max scale tested due
            % to either potential bug or something have to actually work
            % out. 
-           scaleMap = backboneInfo.scaleMapLarge ;
+           scaleMap = backboneInfo(iFrame).scaleMapLarge ;
            scaleScore =  cellfun(@(x) mean(scaleMap(x)),CCEdges.PixelIdxList);
            scaleScore = scaleScore./max(scaleScore); % make between 0 and 1 
       

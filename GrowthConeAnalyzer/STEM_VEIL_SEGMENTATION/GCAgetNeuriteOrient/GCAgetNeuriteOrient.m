@@ -190,7 +190,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         cleanedRidgeLabelsPreLink = labelmatrix(CCRidgeBonePreLink);
         
         %%% Get endpoints  %%%
-        EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img)),CCRidgeBonePreLink.PixelIdxList,'uniformoutput',0);
+        EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCRidgeBonePreLink.PixelIdxList,'uniformoutput',0);
         backboneInfo.beforeConnect= cleanedRidge;
         
         
@@ -213,7 +213,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             end
         %% Connect Linear Structures % NOTE to SELF as of 2014-01-30 : this part needs to be optimized
         
-        [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructures20140829(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
+        [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructuresAttemptToFixCost(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
         cleanedRidge = bwmorph(cleanedRidge,'thin');  % after do this type of connect always need to thin!
         %%
         nn = padarrayXT(double(cleanedRidge~=0), [1 1]);
