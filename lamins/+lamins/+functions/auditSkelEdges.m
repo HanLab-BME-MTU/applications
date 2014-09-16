@@ -25,7 +25,7 @@ vert_neigh = imdilate(vertices,strel('square',3)) & skel;
 bw = labelmatrix(A.fcc) > 0 | vert_neigh;
 bw = bwmorph(bw,'spur',Inf);
 A.bw = bw;
-A.overlay = lamins.functions.showSkelOnIntensity(I,bw);
+%A.overlay = lamins.functions.showSkelOnIntensity(I,bw);
 
 end
 
