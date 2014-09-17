@@ -4,14 +4,15 @@
 % reference image (300x200)
 xmax=500;
 ymax=500;
-nPoints = 25000;
+nPoints = 14000; % was 25000
 bead_r = 50; % nm
 pixSize = 72; % nm/pix 90x
-sigma = 1.6;
+sigma = 1.73; % was 1.6 before
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
         'npoints', nPoints, 'Border', 'truncated','A',0.3+rand(1,nPoints));
-%% Noise addition (5%)
-refimg = refimg+0.05*rand(ymax,xmax)*max(refimg(:));
+figure, imshow(refimg,[])
+%% Noise addition (10%) % it was 5%
+refimg = refimg+0.1*rand(ymax,xmax)*max(refimg(:));
 
 % bead images
 %% displacement field
@@ -198,10 +199,11 @@ end
 
 % pixelSize = 0.108; % assuming 60x objective um/pixel
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
-%% Noise addition (5%)
-beadimg = beadimg+0.05*rand(ymax,xmax)*max(beadimg(:));
+%% Noise addition (10%) % it was 5% before
+beadimg = beadimg+0.1*rand(ymax,xmax)*max(beadimg(:));
 %% saving
-dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
+% dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
+dataPath='//project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiForceTesting_10Noise';
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 if ~exist(refPath,'dir')
