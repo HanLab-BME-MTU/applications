@@ -149,6 +149,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.tool='svd';
     elseif strcmpi(solMethodBEM,'svd') || strcmpi(solMethodBEM,'gsvd')
         % gSVD takes about twice as long as SVD
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         [U,sm,X,~] = cgsvd(M,eyeWeights);
         [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
         % store these matrices for next frames:

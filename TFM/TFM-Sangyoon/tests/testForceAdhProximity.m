@@ -1,3 +1,4 @@
+% testForceAdhProximity is a script that tests 
 %% Preparing synthetic bead images
 
 % reference image (500x500)
@@ -327,11 +328,13 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
 % 
 %% display calculated force field
 % load displacement field
-forcePath =  [dataPath filesep 'TFMPackage/forceField_L2_2nd Lcurve lambda'];
-forceFile = [dataPath filesep 'TFMPackage/forceField/forceField.mat'];
+forcePath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads/TFMPackage/forceField_L2_2nd Lcurve lambda';
+forceFile ='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads/TFMPackage/forceField/forceField.mat';
 load(forceFile)
 generateHeatmapFromField(forceField,forcePath,3100);
 
+%% L-curve for L1 0th
+MpM=M'*M;
 %% Masks for BG and FG
 % points at the BG
 posBG = [   42.0000  423.0000
@@ -406,8 +409,6 @@ fErrBGL2=zeros(length(lambda),1);
 fErrFGL2=zeros(length(lambda),1);
 fCoeff=zeros(size(M,2),length(lambda));
 [eyeWeights,~] =getGramMatrix(forceMesh);
-%% L-curve for L1 0th
-MpM=M'*M;
 %% L2 0th L curve calculation - actual calculation
 for i=1:length(lambda);
     fCoeff(:,i)=(MpM+lambda(i)*eyeWeights)\(M'*u);

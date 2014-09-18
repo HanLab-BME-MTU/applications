@@ -12,7 +12,9 @@ function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,
 % Sangyoon Han, August 2014
 if nargin <14
     v=0.5;
-    refine = true;
+    refine = false;
+elseif nargin <15
+    refine = false;
 end
 
 if strcmpi(method,'conv_free')

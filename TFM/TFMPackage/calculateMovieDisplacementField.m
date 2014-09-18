@@ -180,7 +180,7 @@ beads(indx,:)=[];
 
 if p.useGrid && p.highRes
     tempDisplField.pos = beads;
-    [~,xvec,yvec,~]=createRegGridFromDisplField(tempDisplField,1.5);
+    [~,xvec,yvec,~]=createRegGridFromDisplField(tempDisplField,2,0);
     beads = [xvec yvec];
 end
 
