@@ -480,8 +480,8 @@ generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fBGmin'  
 generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fFGmin'  num2str(lambda(fminFGIdxL2))],200,true,460,460);
 %% initialization for l curve
 maxIter = 30;
-tolx = 0.01;
-tolr = 1e-7;
+tolx = 0.02;
+tolr = 10;
 disp('L-curve ...')
 %         [~,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
 alphas=10.^(-6:.125:-1);
@@ -534,23 +534,23 @@ for i=1:length(alphas);
     fErrFG(i)=sum(fErrFGmatTemp(:));
     disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
 end
-%% new force error criterion
-
-%% new force error calculation
-for i=1:length(alphas)
-    [fx,fy,~,~]=calcForcesFromCoef(forceMesh,msparse(:,i),x_mat_u,y_mat_u,'new');
-    fErr(i)=sum(sqrt((diag(force_x(locMaxI_NA(:,1),locMaxI_NA(:,2)))-...
-        diag(fx(locMaxI_NA(:,1),locMaxI_NA(:,2)))).^2+...
-        (diag(force_y(locMaxI_NA(:,1),locMaxI_NA(:,2)))-...
-        diag(fy(locMaxI_NA(:,1),locMaxI_NA(:,2)))).^2));
-    fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
-    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
-    fErrBGmat(:,:,i) = fErrBGmatTemp;
-    
-    fErrBG(i)=sum(fErrBGmatTemp(:));
-    fErrFG(i)=sum(fErrFGmatTemp(:));
-    disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
-end
+% %% new force error criterion
+% 
+% %% new force error calculation
+% for i=1:length(alphas)
+%     [fx,fy,~,~]=calcForcesFromCoef(forceMesh,msparse(:,i),x_mat_u,y_mat_u,'new');
+%     fErr(i)=sum(sqrt((diag(force_x(locMaxI_NA(:,1),locMaxI_NA(:,2)))-...
+%         diag(fx(locMaxI_NA(:,1),locMaxI_NA(:,2)))).^2+...
+%         (diag(force_y(locMaxI_NA(:,1),locMaxI_NA(:,2)))-...
+%         diag(fy(locMaxI_NA(:,1),locMaxI_NA(:,2)))).^2));
+%     fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
+%     fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
+%     fErrBGmat(:,:,i) = fErrBGmatTemp;
+%     
+%     fErrBG(i)=sum(fErrBGmatTemp(:));
+%     fErrFG(i)=sum(fErrFGmatTemp(:));
+%     disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
+% end
 
 %% Find the corner of the Tikhonov L-curve for L1 0th
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
