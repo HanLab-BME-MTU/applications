@@ -1,20 +1,22 @@
-function [detected,fm1,fm2,tImg] = testForceAdhProximity(d,f1,f2,r1,r2,method,dataPath)
+function [detected,fm1,fm2,fMap] = testForceAdhProximity(d,f1,f2,r1,r2,method,dataPath)
 % testForceAdhProximity is a function that tests how  forces from two close
 % adhesions are identified independently.
 % input: 
-%               d:              distance between adhesions
+%               d:              distance between adhesions (preferably even
+%                                number)
 %               f1:             force mag in adhesion 1 at left
 %               f2:             force mag in adhesion 2 at right
 %               r1:             adhesion radius in adhesion 1 at left
 %               r2:             adhesion radius in adhesion 2 at right
-%               method:   'L1' or 'L2'
-%               dataPath:  data path to store all the results
+%               method:     'L1' or 'L2'
+%               dataPath:   data path to store all the results
 % output: 
 %               detected:  true if the two adhesion forces are identified
-%                                 properly
+%                                 properly (two local maxima with close
+%                                 proximity)
 %               fm1:          force mag in adhesion 1 within the mesh element
 %               fm2:          force mag in adhesion 2 within the mesh element
-%               tImg:         traction Image
+%               fMap:        traction Image
 %% Preparing synthetic bead images
 % reference image (200x200)
 xmax=200;
@@ -51,9 +53,9 @@ posNA = [101-d/2 101;
 
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
     @(x,y) assumedForceAniso2D(1,x,y,101-d/2,101,f1,0,r1,r1,forceType)+...
-    assumedForceAniso2D(1,x,y,101+d/2,101,f1,0,r2,r2,forceType),...
+    assumedForceAniso2D(1,x,y,101+d/2,101,f2,0,r2,r2,forceType),...
     @(x,y) assumedForceAniso2D(2,x,y,101-d/2,101,f1,0,r1,r1,forceType)+...
-    assumedForceAniso2D(2,x,y,101+d/2,101,f1,0,r2,r2,forceType),'fft',[],meshPtsFwdSol);
+    assumedForceAniso2D(2,x,y,101+d/2,101,f2,0,r2,r2,forceType),'fft',[],meshPtsFwdSol);
 
 %% finding displacement at bead location
 nPoints = length(bead_x);
@@ -152,6 +154,8 @@ params.referenceFramePath = refFullPath;
 params.maxFlowSpeed = 10;
 params.alpha = 0.05;
 params.minCorLength = 17;
+params.highRes = true;
+params.useGrid = true;
 MD.getPackage(iPack).getProcess(2).setPara(params);
 %% Run the displacement field tracking
 MD.getPackage(iPack).getProcess(2).run();
@@ -177,7 +181,7 @@ else
     params.solMethodBEM = 'QR';
 end
 params.method = 'FastBEM';
-params.useLcurve = false;
+params.useLcurve = true;
 params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass8kPaSimul.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
@@ -190,50 +194,48 @@ MD.save;
 disp('Detecting local maxima in reconstructed force ... ')
 % Load the forcefield
 forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
-
+% forceMap
 % force peak ratio
 % maskForce = ((x_mat_u-100).^2+(y_mat_u-100).^2).^0.5<=d/2;
 % forceForceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
 % make  a an interpolated TF image and get the peak force because force
 % mesh is sparse
 [fMap,XI,YI]=generateHeatmapFromField(forceField);
+% local maxima quantification
+x1=posNA(1,1);
+x2=posNA(2,1);
+y1=posNA(1,2);
+y2=posNA(2,2);
+neighPix = 6;
+ynmin = round(y1)-YI(1,1,2)-neighPix;
+ynmax = round(y1)-YI(1,1,2)+neighPix;
+xnmin = round(x1)-XI(1,1,1)-neighPix;
+xnmax = round(x1)-XI(1,1,1)+neighPix;
+forceNeigh = fMap(ynmin:ynmax,xnmin:xnmax);
+fm1 = max(forceNeigh(:));    
+ynmin = round(y2)-YI(1,1,2)-neighPix;
+ynmax = round(y2)-YI(1,1,2)+neighPix;
+xnmin = round(x2)-XI(1,1,1)-neighPix;
+xnmax = round(x2)-XI(1,1,1)+neighPix;
+forceNeigh = fMap(ynmin:ynmax,xnmin:xnmax);
+fm2 = max(forceNeigh(:));    
+
 %new mask with XI and YI
-maskForceXIYI = ((XI-100).^2+(YI-150).^2).^0.5<=d/2;
+% maskForceXIYI = ((XI-x1).^2+(YI-y1).^2).^0.5<=10 | ((XI-x2).^2+(YI-y2).^2).^0.5<=10;
 
-% if isempty(forceForceIdx)
-%     peakForceRatio = 0;
-% else
-x_vec = reshape(x_mat_u,[],1);
-y_vec = reshape(y_mat_u,[],1);
-force_x_vec = reshape(force_x,[],1);
-force_y_vec = reshape(force_y,[],1);
-%     forceFieldForce = forceField(1).vec(forceForceIdx,:);
-%     forceFieldMag = (forceFieldForce(:,1).^2+forceFieldForce(:,2).^2).^0.5;
-fMapFiltered = fMap.*maskForceXIYI;
-forceFieldMag = fMapFiltered(fMapFiltered>0);
-orgFieldForceIdx = maskVectors(x_vec,y_vec,maskForce);
-orgFieldForceMag = (force_x_vec(orgFieldForceIdx).^2+force_y_vec(orgFieldForceIdx).^2).^0.5;
-
-backgroundIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),~bwmorph(maskForce,'dilate',10));
-forceFieldBgd = forceField(1).vec(backgroundIdx,:);
-forceFieldBgdMag = (forceFieldBgd(:,1).^2+forceFieldBgd(:,2).^2).^0.5;
-if isempty(forceFieldMag)
-    peakForceRatio = 0;
-    forceDetec = 0;
+fImg = locmax2d(fMap,[d+20 20]);
+if sum(fImg(:))==2
+    locmaxIdx = find(fImg);
+    x1m = XI(locmaxIdx(1));
+    y1m = YI(locmaxIdx(1));
+    x2m = XI(locmaxIdx(2));
+    y2m = XI(locmaxIdx(2));
+    if ((x1-x1m)^2+(y1-y1m)^2)^0.5<7 && ((x2-x2m)^2+(y2-y2m)^2)^0.5<7
+        detected = true;
+    else
+        detected = false;
+    end
 else
-    peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
-    forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
-end
-%% errors in force field
-forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);
-meanForceErrorAdh=nansum(((org_fx(forceIdx)-forceField(1).vec(forceIdx,1)).^2+(org_fy(forceIdx)-forceField(1).vec(forceIdx,2)).^2).^.5)/sum(~isnan((forceField(1).vec(forceIdx,2))));
-meanForceErrorBG=nansum(((org_fx(backgroundIdx)-forceField(1).vec(backgroundIdx,1)).^2+(org_fy(backgroundIdx)-forceField(1).vec(backgroundIdx,2)).^2).^.5)/sum(~isnan((forceField(1).vec(backgroundIdx,2))));
-%% beadsOnAdh
-beadIdx = maskVectors(displField(1).pos(:,1),displField(1).pos(:,2),maskForce);
-if sum(beadIdx)
-    beadsOnAdh = true;
-else
-    beadsOnAdh = false;
+    detected = false;
 end
 return
