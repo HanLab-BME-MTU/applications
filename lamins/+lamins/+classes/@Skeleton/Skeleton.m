@@ -20,6 +20,11 @@ classdef Skeleton < hgsetget
             end
         end
         function e = get.edges(obj)
+            if(isempty(obj.edges))
+                n8 = obj.countNeighbors;
+                % edges only have 2 8-connected neighbors
+                obj.edges = bwconncomp(n8 == 2);
+            end
             e = obj.edges;
         end
         function set.edges(obj,e)
@@ -37,9 +42,51 @@ classdef Skeleton < hgsetget
                 I = cellfun(@(x) sortrows([geo(x) x]),I,'UniformOutput',false);
                 I = cellfun(@(x) x(:,2),I,'UniformOutput',false);
                 obj.edges.PixelIdxList = I;
+                obj.edges.SortedPixels = true;
             end
         end
+        function deleteEdges(obj,e)
+            import connectedComponents.*;
+            bw = obj.bw;
+            for i = 1:length(e)
+                bw(obj.edges.PixelIdxList{e(i)}) = 0;
+            end
+            obj.bw = bw;
+            
+            filter = true(1,length(obj.edges.PixelIdxList));
+            filter(e) = false;
+            obj.edges = ccFilter(obj.edges,filter);
+        end
+        function addEdgeBetweenPoints(obj,p1,p2)
+            import connectedComponents.*;
+            if(isscalar(p1))
+                [p1(1),p1(2)] = ind2sub(obj.edges.ImageSize,p1);
+            end
+            if(isscalar(p2))
+                [p2(1),p2(2)] = ind2sub(obj.edges.ImageSize,p2);
+            end
+            P = bresenham(p1,p2,8);
+            obj.edges = ccAppend(obj.edges,single(P));
+        end
+        function simplifyLoops(obj)
+            import connectedComponents.*;
+            import lamins.functions.*;
+            faceEdges = obj.faceEdges;
+            faceLoops = cellfun(@length,faceEdges) == 2;
+            faceEdges = faceEdges(faceLoops);
+            for fl = 1 : length(faceEdges)
+                endpts = getEdgeEndpoints(ccFilter(obj.edges,faceEdges{fl}));
+                endpts = unique(endpts);
+                obj.addEdgeBetweenPoints(endpts(1),endpts(2));
+            end
+            obj.deleteEdges(unique([faceEdges{:}]));
+        end
         function v = get.vertices(obj)
+            if(isempty(obj.vertices))
+                n8 = obj.countNeighbors;
+                % vertices have more than 2 8-connected neighbors
+                obj.vertices = bwconncomp(n8 > 2);
+            end
             v = obj.vertices;
         end
         function set.vertices(obj,v)
@@ -47,15 +94,8 @@ classdef Skeleton < hgsetget
             obj.vertices.lm = labelmatrix(v);
         end
         function set.bw(obj,bw)
-            obj.bw = bw;
             % check skeletonization
-            obj.bw = bwmorph(obj.bw,'skel',Inf);
-            n8 = obj.countNeighbors;
-            % edges only have 2 8-connected neighbors
-            obj.edges = bwconncomp(n8 == 2);
-            % vertices have more than 2 8-connected neighbors
-            obj.vertices = bwconncomp(n8 > 2);
-            disp('set.bw');
+            obj.bw = bwmorph(bw,'skel',Inf);
         end
         function faces =get.faces(obj)
             if(isempty(obj.faces))
@@ -69,35 +109,45 @@ classdef Skeleton < hgsetget
             end
             faces = obj.faces;
         end
-        function [e, endpts] = faceEdges(obj,f)
+        function [edgeIndices] = faceEdges(obj,f)
             import connectedComponents.*;
-            faces = obj.faces;
+            import lamins.functions.*;
+            
+            dilatedFaces = obj.faces;
             if(nargin > 1)
-                faces = ccFilter(faces,f);
+                dilatedFaces = ccFilter(dilatedFaces,f);
             end
-            faces = ccDilate(faces,strel('square',5));
+            dilatedFaces = ccDilate(dilatedFaces,strel('square',5));
+            
+            
             lm = obj.edges.lm;
-            % remove the vertices since edges may overlap there
-%             vertices = ccDilate(obj.vertices,strel('disk',2));
             lm([obj.vertices.PixelIdxList{:}]) = 0;
-            % identify edges which overlap the dilated face
-            e = cellfun(@(x) unique(nonzeros(lm(x))),faces.PixelIdxList,'UniformOutput',false);
+            % identify edges indices which overlap the dilated face
+            edgeIndices = cellfun(@(x) unique(nonzeros(lm(x))),dilatedFaces.PixelIdxList,'UniformOutput',false);
+            
             % obtain the linear index of the endpoints of the overlapping edges
-            midpoints = cellfun(@(x) [ x(ceil(end/2)) ],obj.edges.PixelIdxList(e{1}));
-            endpts = cellfun(@(x) [ x(1) x(end) ],obj.edges.PixelIdxList(e{1}),'UniformOutput',false);
-            endpts = vertcat(endpts{:});
-            % each endpoint should be repeated exactly twice
-            [mult , uniq] = getMultiplicityInt(endpts);
-            map = sparse(1,double(uniq),mult);
-            % remove hanging endpoints that do not intersect the other
-            % edges
-            e = e{1}(~any(map(endpts) == 1,2),:);
-            midpoints = midpoints(~any(map(endpts) == 1,2));
-            endpts = endpts(~any(map(endpts) == 1,2),:);
-            % ensure all endpoints are adjacent to the face
-            faces.lm = labelmatrix(faces);
-            e = e(faces.lm(midpoints) ~= 0,:);
-            endpts = endpts(faces.lm(midpoints) ~= 0,:);
+            for faceIdx = 1:dilatedFaces.NumObjects
+                edgeCandidates = ccFilter(obj.edges,edgeIndices{faceIdx});
+                
+                endpts = getEdgeEndpoints(edgeCandidates);
+                
+                % each endpoint should be repeated exactly twice
+                [mult , uniq] = getMultiplicityInt(endpts);
+                map = sparse(1,double(uniq),mult);
+                % remove hanging endpoints that do not intersect the other
+                % edges
+                goodEdges = ~any(map(endpts) == 1,2);
+                
+                % only consider remaining good edges
+                edgeIndices{faceIdx} = edgeIndices{faceIdx}(goodEdges,:);
+                edgeCandidates = ccFilter(edgeCandidates,goodEdges);
+                
+                midpoints = getEdgeMidpoints(edgeCandidates);
+                goodEdges = ismember( midpoints,  dilatedFaces.PixelIdxList{faceIdx} );
+                
+                edgeIndices{faceIdx} = edgeIndices{faceIdx}(goodEdges,:);
+                endpts = endpts(goodEdges,:);
+            end
 %             1
             % confirm that the endpoints encircle the face in question
         end
@@ -143,13 +193,13 @@ classdef Skeleton < hgsetget
             
             [varargout{1:nargout}] = arrayfun(@(s) ind2sub(obj.vertices.ImageSize,s.PixelIdxList(s.PixelValues > 0)),e(v),'UniformOutput',false);
         end
-        function S = deleteEdges(obj,e)
-            bw = obj.bw;
-            for i = 1:length(e)
-                bw(obj.edges.PixelIdxList{e(i)}) = 0;
-            end
-            S = Skeleton(bw);
-        end
+%         function S = deleteEdges(obj,e)
+%             bw = obj.bw;
+%             for i = 1:length(e)
+%                 bw(obj.edges.PixelIdxList{e(i)}) = 0;
+%             end
+%             S = Skeleton(bw);
+%         end
         function E = edgeIntensities(obj,I)
             rp = regionprops(obj.edges,I,'PixelValues');
             E = { rp.PixelValues };
@@ -227,10 +277,10 @@ classdef Skeleton < hgsetget
             obj.vertices = V;
         end
         function drawLines(obj,e,edgeColor)
-            if(nargin < 2)
+            if(nargin < 2 || isempty(e))
                 e = 1:obj.edges.NumObjects;
             end
-            if(nargin < 3)
+            if(nargin < 3 || isempty(edgeColor))
                 edgeColor = 'r';
             end
             rp = regionprops(obj.vertices,'Centroid');
@@ -249,6 +299,19 @@ classdef Skeleton < hgsetget
 %                     line([rp(i).Centroid(1) C{i}(j)], [rp(i).Centroid(2) R{i}(j)],'Color',vertexColor);
 %                 end
 %             end
+        end
+        function drawEdgesAsLines(obj,e,edgeColor)
+            % Draw just the edges (not the vertices as above)
+            if(nargin < 2 || isempty(e))
+                e = 1:obj.edges.NumObjects;
+            end
+            if(nargin < 3 || isempty(edgeColor))
+                edgeColor = 'r';
+            end
+            for i=e(:)'
+                [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i});
+                line(c,r,'Color',edgeColor);
+            end
         end
         function imshow(obj)
             showGraph(obj);

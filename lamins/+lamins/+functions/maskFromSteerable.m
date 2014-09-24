@@ -1,7 +1,14 @@
 function mask = maskFromSteerable(steerable)
-    thresh = thresholdRosin(steerable.res(:));
-    threshOtsu = thresholdOtsu(steerable.nms( steerable.nms ~= 0));
-    threshNms = thresholdRosin(steerable.nms( steerable.nms ~= 0));
+    if(~isstruct(steerable))
+        % if not a steerable output structure, assume an image was given
+        % and run the steerable detector
+        I = steerable;
+        clear steerable;
+        [steerable.res, steerable.theta, steerable.nms] = steerableDetector(double(I),4,5);
+    end
+%     thresh = thresholdRosin(steerable.res(:));
+%     threshOtsu = thresholdOtsu(steerable.nms( steerable.nms ~= 0));
+%     threshNms = thresholdRosin(steerable.nms( steerable.nms ~= 0));
     justNms = steerable.nms( steerable.nms ~= 0);
 %    mask = steerable.res > thresh;
 %    mask = mask | steerable.nms > thresh/2;
