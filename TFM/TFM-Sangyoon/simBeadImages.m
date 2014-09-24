@@ -479,7 +479,7 @@ generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fBGmin'  
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fFGmin'  num2str(lambda(fminFGIdxL2))],200,true,460,460);
 %% initialization for l curve
-maxIter = 30;
+maxIter = 10;
 tolx = 0.02;
 tolr = 10;
 disp('L-curve ...')

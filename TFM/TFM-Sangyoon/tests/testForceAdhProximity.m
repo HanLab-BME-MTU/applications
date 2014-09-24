@@ -1,4 +1,4 @@
-function [detected,fm1,fm2,fMap] = testForceAdhProximity(d,f1,f2,r1,r2,method,dataPath)
+function [detected,nDetected,fm1,fm2,fMap,cropInfo,bead_x, bead_y, Av] = testForceAdhProximity(d,f1,f2,r1,r2,method,dataPath, bead_x, bead_y, Av)
 % testForceAdhProximity is a function that tests how  forces from two close
 % adhesions are identified independently.
 % input: 
@@ -12,27 +12,37 @@ function [detected,fm1,fm2,fMap] = testForceAdhProximity(d,f1,f2,r1,r2,method,da
 %               dataPath:   data path to store all the results
 % output: 
 %               detected:  true if the two adhesion forces are identified
-%                                 properly (two local maxima with close
-%                                 proximity)
+%                                 properly (adhesions close enough to force local maxima)
 %               fm1:          force mag in adhesion 1 within the mesh element
 %               fm2:          force mag in adhesion 2 within the mesh element
 %               fMap:        traction Image
+
 %% Preparing synthetic bead images
 % reference image (200x200)
-xmax=200;
-ymax=200;
-nPoints = 4000; % was 25000
-bead_r = 40; % nm
+xmax=100;
+ymax=100;
+nPoints = 3000; % was 7000
+% bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
 sigma = 1.68; % after getGaussianPSFsigma(NA,M,pixSize,lambda); 
-Aorg = [300+100*randn(1,nPoints*4/5) 300+600*randn(1,nPoints*1/5)];
-Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
-[refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
+if nargin<8
+    bead_x=[];
+end
+if ~isempty(bead_x)
+        refimg = simGaussianBeads(xmax,ymax, sigma, ...
+        'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
+else
+    Aorg = [300+100*randn(1,nPoints*4/5) 300+600*randn(1,nPoints*1/5)];
+    Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
+
+    [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
+end
+
 %% Noise addition (10%) % it was 5%
-noiseLevel = 0.1;
-refimg2 = 700+700*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
-figure, imshow(refimg2,[])
+noiseLevel = 0.05;
+refimg2 = 700+100*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+% figure, imshow(refimg2,[])
 
 % bead images
 %% displacement field
@@ -46,17 +56,22 @@ ymin = gridSpacing;
 
 [x_mat_u, y_mat_u]=meshgrid(xmin:gridSpacing:xmax,ymin:gridSpacing:ymax);
 
-%% temporary - get the coordinates
-posNA = [101-d/2 101;
-                  101+d/2 101];
 %% displacement field
+midx=ceil(xmax/2);
+midy=ceil(ymax/2);
+posNA = [midx-d/2 midy;
+                  midx+d/2 midy];
 
 [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-    @(x,y) assumedForceAniso2D(1,x,y,101-d/2,101,f1,0,r1,r1,forceType)+...
-    assumedForceAniso2D(1,x,y,101+d/2,101,f2,0,r2,r2,forceType),...
-    @(x,y) assumedForceAniso2D(2,x,y,101-d/2,101,f1,0,r1,r1,forceType)+...
-    assumedForceAniso2D(2,x,y,101+d/2,101,f2,0,r2,r2,forceType),'fft',[],meshPtsFwdSol);
+    @(x,y) assumedForceAniso2D(1,x,y,midx-d/2,midy,f1,0,r1,r1,forceType)+...
+    assumedForceAniso2D(1,x,y,midx+d/2,midy,f2,0,r2,r2,forceType),...
+    @(x,y) assumedForceAniso2D(2,x,y,midx-d/2,midy,f1,0,r1,r1,forceType)+...
+    assumedForceAniso2D(2,x,y,midx+d/2,midy,f2,0,r2,r2,forceType),'fft',[],meshPtsFwdSol);
 
+force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,midx-d/2,midy,f1,0,r1,r1,forceType)+...
+    assumedForceAniso2D(1,x_mat_u,y_mat_u,midx+d/2,midy,f2,0,r2,r2,forceType);
+force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,midx-d/2,midy,f1,0,r1,r1,forceType)+...
+    assumedForceAniso2D(2,x_mat_u,y_mat_u,midx+d/2,midy,f2,0,r2,r2,forceType);
 %% finding displacement at bead location
 nPoints = length(bead_x);
 bead_ux = zeros(size(bead_x));
@@ -86,7 +101,7 @@ end
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
 %% Noise addition (10%) % it was 5% before
 % beadimg = beadimg+0.1*rand(ymax,xmax)*max(beadimg(:));
-beadimg = 700+700*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+beadimg = 700+100*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 %% saving
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
@@ -98,9 +113,9 @@ if ~exist(refPath,'dir') || ~exist(orgPath,'dir')
     mkdir(orgPath);
 end
 %% saving original displacement field and force field
-save([orgPath filesep 'data.mat'],'ux','uy','x_mat_u','y_mat_u','bead_x','bead_ux','bead_y','bead_uy','force_x','force_y');
+save([orgPath filesep 'data.mat']);
 %% save images
-imwrite(uint16(refimg*2^16/max(max(refimg))),[refPath filesep 'img1ref.tif'],'tif')
+imwrite(uint16(refimg2*2^16/max(max(refimg2))),[refPath filesep 'img1ref.tif'],'tif')
 imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep 'img2bead.tif'],'tif')
 %% Now force reconstruction via movieData (non-GUI mode)
 % Retrieve current location
@@ -155,7 +170,8 @@ params.maxFlowSpeed = 10;
 params.alpha = 0.05;
 params.minCorLength = 17;
 params.highRes = true;
-params.useGrid = true;
+params.useGrid = false;
+params.mode = 'accurate';
 MD.getPackage(iPack).getProcess(2).setPara(params);
 %% Run the displacement field tracking
 MD.getPackage(iPack).getProcess(2).run();
@@ -172,22 +188,21 @@ params = MD.getPackage(iPack).getProcess(4).funParams_;
 params.YoungModulus = 8000;
 if strcmp(method,'L1')
     params.solMethodBEM = '1NormReg';
-    params.regParam = 1e-4;
+    params.regParam = 1.8e-5;
 elseif strcmp(method,'L2')
     params.solMethodBEM = 'QR';
-    params.regParam = 1e-7;
+    params.regParam = 2.4e-7;
 else
     display('The method should be either L1 or L2. The input does not belong to any of those. We use L2 as a default.')
     params.solMethodBEM = 'QR';
 end
 params.method = 'FastBEM';
-params.useLcurve = true;
+params.useLcurve = false;
 params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass8kPaSimul.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 
 MD.save;
-
 %% Postprocessing - saving and analyzing force field
 % Loading displacement field and force field
 % Load the displField
@@ -206,36 +221,74 @@ x1=posNA(1,1);
 x2=posNA(2,1);
 y1=posNA(1,2);
 y2=posNA(2,2);
-neighPix = 6;
-ynmin = round(y1)-YI(1,1,2)-neighPix;
-ynmax = round(y1)-YI(1,1,2)+neighPix;
-xnmin = round(x1)-XI(1,1,1)-neighPix;
-xnmax = round(x1)-XI(1,1,1)+neighPix;
+distThres = forceField.pos(2,2)-forceField.pos(2,1);
+ynmin = round(y1)-YI(1,1)-distThres+1;
+ynmax = round(y1)-YI(1,1)+distThres+1;
+xnmin = round(x1)-XI(1,1)-distThres+1;
+xnmax = round(x1)-XI(1,1)+distThres+1;
 forceNeigh = fMap(ynmin:ynmax,xnmin:xnmax);
 fm1 = max(forceNeigh(:));    
-ynmin = round(y2)-YI(1,1,2)-neighPix;
-ynmax = round(y2)-YI(1,1,2)+neighPix;
-xnmin = round(x2)-XI(1,1,1)-neighPix;
-xnmax = round(x2)-XI(1,1,1)+neighPix;
+ynmin = round(y2)-YI(1,1)-distThres+1;
+ynmax = round(y2)-YI(1,1)+distThres+1;
+xnmin = round(x2)-XI(1,1)-distThres+1;
+xnmax = round(x2)-XI(1,1)+distThres+1;
 forceNeigh = fMap(ynmin:ynmax,xnmin:xnmax);
 fm2 = max(forceNeigh(:));    
+cropInfo = [XI(1,1), YI(1,1)];
 
-%new mask with XI and YI
-% maskForceXIYI = ((XI-x1).^2+(YI-y1).^2).^0.5<=10 | ((XI-x2).^2+(YI-y2).^2).^0.5<=10;
-
-fImg = locmax2d(fMap,[d+20 20]);
-if sum(fImg(:))==2
-    locmaxIdx = find(fImg);
-    x1m = XI(locmaxIdx(1));
-    y1m = YI(locmaxIdx(1));
-    x2m = XI(locmaxIdx(2));
-    y2m = XI(locmaxIdx(2));
-    if ((x1-x1m)^2+(y1-y1m)^2)^0.5<7 && ((x2-x2m)^2+(y2-y2m)^2)^0.5<7
-        detected = true;
+% %new mask with XI and YI
+% maskForceXIYI = ((XI-x1).^2+(YI-y1).^2).^0.5<=20 | ((XI-x2).^2+(YI-y2).^2).^0.5<=20;
+% fImg = locmax2d(fMap,[d+20 20]);
+%     % Identify adhesion location ([x1, y1], [x2, y2])
+%     % See if they are close to force loc max
+%     % if sum(sum((fImg>0).*maskForceXIYI))==2
+% fImgCrop=(fImg>0).*maskForceXIYI;
+% locmaxIdx = find(fImgCrop);
+% if ~isempty(locmaxIdx)
+%     xm = XI(locmaxIdx);
+%     ym = YI(locmaxIdx);
+%     [~,dist1] = KDTreeClosestPoint([xm ym], [x1 y1]);
+%     [~,dist2] = KDTreeClosestPoint([xm ym], [x2 y2]);
+% 
+%     if dist1<7 && dist2<7
+%         detected = 1;
+%     elseif dist1<7 || dist2<7
+%         detected = 0.5;
+%     else
+%         detected = 0;
+%     end
+% else
+%     detected = 0;
+% end
+maskForceXIYI = ((XI-x1).^2+(YI-y1).^2).^0.5<=distThres | ((XI-x2).^2+(YI-y2).^2).^0.5<=distThres;
+pstruct = pointSourceDetection(fMap,1.1,'mask',maskForceXIYI);
+if ~isempty(pstruct)
+    fMaxima = [pstruct.x'+cropInfo(1)-1 pstruct.y'+cropInfo(2)-1];
+    nDetected = length(pstruct.x);
+    [~,dist1] = KDTreeClosestPoint(fMaxima, [midx-d/2 midy]);
+    [~,dist2] = KDTreeClosestPoint(fMaxima, [midx+d/2 midy]);
+    if dist1<distThres && dist2<distThres
+        detected = 1;
+    elseif dist1<distThres || dist2<distThres
+        detected = 0.5;
     else
-        detected = false;
+        detected = 0;
     end
 else
-    detected = false;
+    detected = 0;
+    nDetected = 0;
 end
+
+%% display original forcefield
+h2 = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,400,false,size(XI,2),size(YI,1));
+close(h2)
+
+% if ((x1-x1m)^2+(y1-y1m)^2)^0.5<7 && ((x2-x2m)^2+(y2-y2m)^2)^0.5<7
+%     detected = true;
+% else
+%     detected = false;
+% end
+% % else
+% detected = false;
+% end
 return
