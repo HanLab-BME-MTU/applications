@@ -144,7 +144,7 @@ elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
 else
     error('image type should be chosen among Widefield, confocal and TIRF!');
 end
-pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
+pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
 assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
 beads = [ceil(pstruct.x') ceil(pstruct.y')];
 

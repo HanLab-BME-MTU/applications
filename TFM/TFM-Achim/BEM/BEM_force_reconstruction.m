@@ -417,10 +417,10 @@ for i=1:length(alphas);
   rho(i)=norm(M*mtik(:,i)-u);
   eta(i)=norm(mtik(:,i));
 end
-
+ireg_corner=[];
 % Find the corner of the Tikhonov L-curve
-% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+[reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+% [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
 
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
@@ -431,12 +431,15 @@ xlabel('Residual Norm ||Gm-d||_{2}');
 ylabel('Solution Norm ||Lm||_{2}');
 hold on
 % mark and label the corner
-if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+if ~isempty(ireg_corner) && mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     rho_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
     eta_corner = eta(floor(ireg_corner))+mod(ireg_corner,1)*(eta(floor(ireg_corner)+1)-eta(floor(ireg_corner)));
-else
+elseif ~isempty(ireg_corner) 
     rho_corner = rho(ireg_corner);
     eta_corner = eta(ireg_corner);
+else
+    rho_corner = rhoC;
+    eta_corner = etaC;
 end    
 H=loglog(rho_corner,eta_corner,'ro');
 set(H,'markersize',6)
@@ -452,7 +455,7 @@ close(hLcurve)
 
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
-if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+if isempty(ireg_corner) || mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])
     sol_coef=(MpM+reg_corner*eyeWeights)\(M'*u);
 else
