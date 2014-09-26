@@ -21,14 +21,13 @@ function [CC, flag] = cncvCorner(BW, tol)
 
     tthresh = pi/2 + tol;
     k = m+1; % find a starting point
-    stop = nB + m; % limit for k
     past = 1;
     present = 1;
     temp = zeros(2); % 2 vectors describing 3 points for each test
     % This loop finds start pixel of the first corner
     while past == present || present == 0
         
-        if k == stop
+        if k == nB
             flag = 1;
             return;
         end
@@ -65,7 +64,10 @@ function [CC, flag] = cncvCorner(BW, tol)
         end
         past = present;
     end
-
+    % Add the last component 
+    num = num + 1;
+    CC.PixelIdxList{num} = Blin(startIdx:j);
     CC.NumObjects = num;
+    
     flag = 0;
 end

@@ -31,5 +31,5 @@ function BW = nucleusSeg(I)
     end
     
     BW = bwconvhull(BW);
-    figure; imshow(BW, [], 'InitialMagnification', 'fit')
+    %figure; imshow(BW, [], 'InitialMagnification', 'fit')
 end
