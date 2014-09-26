@@ -61,11 +61,19 @@ cf(idx,2) = 0.4;
 cf(~idx,3) = 0.6;
 cf = hsv2rgb(cf);
 
+madFactor = 1/norminv(0.75, 0, 1); % MAD -> S.D.
 
 % 1) Plot CCP distributions
 if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
     ha = setupFigure('DisplayMode', ip.Results.DisplayMode);
     for i = ip.Results.PlotOrder
+        if ip.Results.ShowUncertainty
+            t = lftRes{i}.t;
+            mu = w(i)*mean(lftRes{i}.lftHistCCP,1);
+            sd = w(i)*madFactor*mad(lftRes{i}.lftHistCCP,1,1);
+            fill([t t(end:-1:1)], [mu+sd mu(end:-1:1)-sd(end:-1:1)], cf(i,:),...
+                'EdgeColor', 'none');
+        end
         hp(i) = plot(lftRes{i}.t, w(i)*lftRes{i}.meanLftHistCCP, '-', 'LineWidth', 1, 'Color', cv(i,:));
     end
     
@@ -73,7 +81,7 @@ if ~all(cellfun(@(i) isfield(i, 'lftHistSlaveCCP'), lftRes))
     if strcmpi(ip.Results.DisplayMode, 'print')
         set(hl, fset.sfont{:}, 'Units', 'centimeters',...
             'Position', [3.5 5-(N)*0.4 2 N*0.4]);
-    end   
+    end
 else
     na = 2;
     % adapted from plotIntensityCohorts
@@ -102,14 +110,12 @@ else
                     num2str(meanPct(a)*100, '%.1f') '±' num2str(stdPct(a)*100, '%.1f') '%'];
             end
     end
-    
    
     ha = setupFigure(1,2, 'DisplayMode', ip.Results.DisplayMode, 'SameAxes', true, 'YSpace', [1.5 1 0.75]);
     legendText = cell(1,N);
     if ~isempty(ip.Results.Control)
         plot(ha(1), ip.Results.Control.t, ip.Results.Control.meanLftHistCCP, 'k', 'LineWidth', 1);
     end
-    madFactor = 1/norminv(0.75, 0, 1);
     for i = ip.Results.PlotOrder
         if ip.Results.ShowUncertainty
             t = lftRes{i}.t;
