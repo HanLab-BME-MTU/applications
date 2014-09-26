@@ -43,6 +43,7 @@ classdef Skeleton < hgsetget
                 I = cellfun(@(x) x(:,2),I,'UniformOutput',false);
                 obj.edges.PixelIdxList = I;
                 obj.edges.SortedPixels = true;
+                obj.assumeOrdered = true;
             end
         end
         function deleteEdges(obj,e)
@@ -150,6 +151,18 @@ classdef Skeleton < hgsetget
             end
 %             1
             % confirm that the endpoints encircle the face in question
+        end
+        function rp = getEdgeProperties(obj,I,e)
+            import connectedComponents.*;
+            if(nargin < 3)
+                e = 1:obj.edges.NumObjects;
+                edges = obj.edges;
+            else
+                edges = ccFilter(obj.edges, e);
+            end
+            rp = regionprops(edges,I,'MinIntensity','MaxIntensity','MeanIntensity','Orientation','PixelValues','Area','WeightedCentroid');
+            mid = cellfun(@(x) I( x(ceil(end/2)) ), obj.edges.PixelIdxList, 'UniformOutput', false);
+            [rp.MiddleIntensity] = mid{:};
         end
         function v = connectedVertices(obj,e)
             if(nargin < 2)
@@ -279,6 +292,9 @@ classdef Skeleton < hgsetget
         function drawLines(obj,e,edgeColor)
             if(nargin < 2 || isempty(e))
                 e = 1:obj.edges.NumObjects;
+            end
+            if(islogical(e))
+                e = find(e);
             end
             if(nargin < 3 || isempty(edgeColor))
                 edgeColor = 'r';
