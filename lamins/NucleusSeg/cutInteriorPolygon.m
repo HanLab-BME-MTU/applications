@@ -1,10 +1,10 @@
-function BL = cutInteriorPolygon(CC, tRad, tol)
+function BL = cutInteriorPolygon(CC, distMax, tol)
 % This function cuts from corner to corner, looking for lumps
 % characterized by a large difference in euclidean versus geodesic distance 
 % between corners.
 %
 %   CC = connected component structure with corners as the odd CC's
-%   tRad = radius of lumps (threshold on distance transform)
+%   tRad = radius of lumps 
 %   tol = tolerance for difference in distance
 %   BL = a label matrix with 1 is non-corner, 
 
@@ -44,7 +44,6 @@ function BL = cutInteriorPolygon(CC, tRad, tol)
         BL(CC.PixelIdxList{j}) = mod(j,2)+1;
     end
     
-    distMax = 8*tRad;
     NN = 12; % number of neighbors *in front* to consider
     temp = zeros(NN,2);
     for j = 1:nC
@@ -53,7 +52,7 @@ function BL = cutInteriorPolygon(CC, tRad, tol)
             temp(k,1) = norm(epC(j,:)-stC(mod(NNIdx(end),nC)+1,:));
             temp(k,2) = sum(geod(NNIdx));
         end
-        temp = temp(temp(:,1)<distMax,:); % truncate past a certain euclidian distance
+        temp = temp(temp(:,2)<distMax,:); % truncate past a certain euclidian distance
         
         if ~isempty(temp)
             % threshold the ratio of geodesic to euclidian distance
@@ -62,7 +61,7 @@ function BL = cutInteriorPolygon(CC, tRad, tol)
             if maxRatio > tol*.5*pi
                 p0 = epC(j,:);
                 p1 = stC(mod(j+cornerIdx-1,nC)+1,:);
-                p = bresenham(p0, p1);
+                p = bresenham(p0, p1); % draws a line between p0 and p1
                 BL(sub2ind(dim,p(:,1),p(:,2))) = 3;
             end
         end
