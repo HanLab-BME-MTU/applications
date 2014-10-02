@@ -76,6 +76,11 @@ end
 iDisplFieldCalProc =movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);     
 displFieldCalProc=movieData.processes_{iDisplFieldCalProc};
 pDisp = parseProcessParams(displFieldCalProc);
+try
+    pDisp.useGrid;
+catch
+    pDisp.useGrid = false;
+end
 if pDisp.useGrid
     p.highRes = false;
 else
