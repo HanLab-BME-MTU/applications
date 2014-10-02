@@ -1,4 +1,5 @@
 classdef Skeleton < hgsetget
+    % Class to contain vertices, edges, and faces of a skeleton meshwork
     properties ( Transient )
         edges
         vertices
@@ -81,6 +82,7 @@ classdef Skeleton < hgsetget
                 obj.addEdgeBetweenPoints(endpts(1),endpts(2));
             end
             obj.deleteEdges(unique([faceEdges{:}]));
+            obj.bw = [];
         end
         function v = get.vertices(obj)
             if(isempty(obj.vertices))
@@ -96,7 +98,19 @@ classdef Skeleton < hgsetget
         end
         function set.bw(obj,bw)
             % check skeletonization
-            obj.bw = bwmorph(bw,'skel',Inf);
+            if(isempty(bw))
+                obj.bw = bw;
+            else
+                obj.bw = bwmorph(bw,'skel',Inf);
+            end
+        end
+        function bw = get.bw(obj)
+            if(isempty(obj.bw))
+                % if empty, generate bw from edge
+                obj.bw = zeros(1024);
+                obj.bw(vertcat(obj.edges.PixelIdxList{:})) = 1;
+            end
+            bw = obj.bw;
         end
         function faces =get.faces(obj)
             if(isempty(obj.faces))
@@ -160,9 +174,54 @@ classdef Skeleton < hgsetget
             else
                 edges = ccFilter(obj.edges, e);
             end
-            rp = regionprops(edges,I,'MinIntensity','MaxIntensity','MeanIntensity','Orientation','PixelValues','Area','WeightedCentroid');
+            rp = regionprops(edges,I,'MinIntensity','MaxIntensity','MeanIntensity','Orientation','Area','WeightedCentroid');
             mid = cellfun(@(x) I( x(ceil(end/2)) ), obj.edges.PixelIdxList, 'UniformOutput', false);
             [rp.MiddleIntensity] = mid{:};
+            firstQuartile = cellfun(@(x) prctile( I(x) ,25), obj.edges.PixelIdxList, 'UniformOutput' , false);
+            medianIntensity = cellfun(@(x) prctile( I(x) ,50), obj.edges.PixelIdxList, 'UniformOutput' , false);
+            thirdQuartile = cellfun(@(x) prctile( I(x) ,75), obj.edges.PixelIdxList, 'UniformOutput' , false);
+            [rp.FirstQuartileIntensity]  = firstQuartile{:};
+            [rp.MedianIntensity] = medianIntensity{:};
+            [rp.ThirdQuartileIntensity] = thirdQuartile{:};
+        end
+        function rp = getFaceProperties(obj,I,f)
+            import connectedComponents.*;
+            if(nargin < 3)
+                f = 1:obj.faces.NumObjects;
+                faces = obj.faces;
+            else
+                faces = ccFilter(obj.faces, f);
+            end
+            I = double(I);
+            rp = regionprops(faces,I,'MinIntensity','MaxIntensity','MeanIntensity','Area','Centroid','WeightedCentroid');
+            D = bwdist(obj.bw);
+            distances = cellfun(@(x) D(x) , faces.PixelIdxList, 'UniformOutput', false);
+            [rp.Distances] = distances{:};
+            
+            [uniqueDistances, ~ , UtoIn] = cellfun(@(x) unique(x), {rp.Distances}, 'UniformOutput', false);
+            [rp.UniqueDistances] = uniqueDistances{:};
+            
+            nDistance = cellfun(@(uidx) accumarray(uidx,1), UtoIn, 'UniformOutput', false);
+            [rp.N_vs_Distance] = nDistance{:};
+            
+            meanIntensityDistance = cellfun(@(idx,uidx) accumarray(uidx,I(idx),[],@mean),faces.PixelIdxList,UtoIn , 'UniformOutput', false);
+            [rp.MeanIntensity_vs_Distance] = meanIntensityDistance{:};
+            
+            stdIntensityDistance = cellfun(@(idx,uidx) accumarray(uidx,I(idx),[],@std),faces.PixelIdxList,UtoIn , 'UniformOutput', false);
+            [rp.StdIntensity_vs_Distance] = stdIntensityDistance{:};
+            
+            distanceWeightedIntensity = cellfun(@(x) mean(D(x).*I(x)), faces.PixelIdxList , 'UniformOutput', false);
+            [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
+        end
+        function plotFaceProperties(obj,I,fidx)
+            % f should be scalar
+            rp = getFaceProperties(obj,I,fidx);
+            for f=1:length(fidx)
+                plot(rp(f).UniqueDistances,rp(f).MeanIntensity_vs_Distance);
+                errorbar(rp(f).UniqueDistances,rp(f).MeanIntensity_vs_Distance,rp(f).StdIntensity_vs_Distance./rp(f).N_vs_Distance);
+                hold on;
+            end
+            hold off;
         end
         function v = connectedVertices(obj,e)
             if(nargin < 2)

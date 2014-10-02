@@ -246,6 +246,10 @@ classdef LaminsImage < hgsetget
                 out.r = r;
             end
         end
+        function X = flattenIntensity(obj)
+            kernel = fspecial('gaussian',20,10);
+            X = double(obj)./imfilter(double(obj),kernel);
+        end
         function loadSteerable(obj)
             S = load(['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat']);
             [obj.steerable] = S.steerable{:};
