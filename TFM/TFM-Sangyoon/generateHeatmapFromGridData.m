@@ -1,4 +1,4 @@
-function [h2]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umax,quiverTrue,w,h)
+function [h2,uMap]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umax,quiverTrue,w,h)
 imSizeX = x_mat_u(end,end)-x_mat_u(1,1);
 imSizeY = y_mat_u(end,end)-y_mat_u(1,1);
 if nargin<8
