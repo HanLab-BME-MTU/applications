@@ -12,4 +12,5 @@ function BW = getForeground(BL, conn)
     [dummy, maxIdx] = max(cellfun('length',CC.PixelIdxList));
     BW = zeros(dim); % create new mask
     BW(CC.PixelIdxList{maxIdx}) = 1; % only include biggest component
+    BW = logical(BW);
 end
