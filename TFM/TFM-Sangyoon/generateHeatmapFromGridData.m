@@ -1,7 +1,13 @@
 function [h2,uMap]=generateHeatmapFromGridData(x_mat_u,y_mat_u,ux,uy,dataPath,band,umax,quiverTrue,w,h)
 imSizeX = x_mat_u(end,end)-x_mat_u(1,1);
 imSizeY = y_mat_u(end,end)-y_mat_u(1,1);
-if nargin<8
+if nargin<5
+    dataPath=[];
+    band=0;
+    quiverTrue=true;
+    w = imSizeX;
+    h = imSizeY;
+elseif nargin<8
     quiverTrue=true;
     w = imSizeX;
     h = imSizeY;
@@ -73,19 +79,21 @@ set(hc,'Fontsize',12)
 
 % saving
 % Set up the output file path
-outputFilePath = [dataPath filesep 'heatMap'];
-tifPath = [outputFilePath filesep 'tifs'];
-figPath = [outputFilePath filesep 'figs'];
-epsPath = [outputFilePath filesep 'eps'];
-if ~exist(tifPath,'dir') || ~exist(epsPath,'dir')
-    mkdir(tifPath);
-    mkdir(figPath);
-    mkdir(epsPath);
-end
+if ~isempty(dataPath)
+    outputFilePath = [dataPath filesep 'heatMap'];
+    tifPath = [outputFilePath filesep 'tifs'];
+    figPath = [outputFilePath filesep 'figs'];
+    epsPath = [outputFilePath filesep 'eps'];
+    if ~exist(tifPath,'dir') || ~exist(epsPath,'dir')
+        mkdir(tifPath);
+        mkdir(figPath);
+        mkdir(epsPath);
+    end
 
-I = getframe(h2);
-imwrite(I.cdata, strcat(tifPath,'/hMapTif','.tif'));
-hgsave(h2,strcat(figPath,'/hMapFig.fig'),'-v7.3')
-print(h2,strcat(epsPath,'/hMapEps.eps'),'-depsc2')
+    I = getframe(h2);
+    imwrite(I.cdata, strcat(tifPath,'/hMapTif','.tif'));
+    hgsave(h2,strcat(figPath,'/hMapFig.fig'),'-v7.3')
+    print(h2,strcat(epsPath,'/hMapEps.eps'),'-depsc2')
+end
 end
     

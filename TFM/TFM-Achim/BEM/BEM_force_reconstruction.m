@@ -465,7 +465,7 @@ toc
 
 function [sol_coef,reg_corner] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
@@ -474,11 +474,14 @@ for i=1:length(alphas);
   rho(i)=norm(M*mtik(:,i)-u);
   eta(i)=norm(mtik(:,i));
 end
-% ireg_corner=[];
 % Find the corner of the Tikhonov L-curve
-% [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
-
+try
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+catch
+    ireg_corner=[];
+    [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+end
+    
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
 set(hLcurve, 'Position', [50 300 200 200])
@@ -551,7 +554,7 @@ end
 
 function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 % eta0=zeros(length(alphas),1);
@@ -559,7 +562,7 @@ msparse=zeros(size(M,2),length(alphas));
 % if matlabpool('size')==0
 %     matlabpool open
 % end
-% tolFactor = 1; % make the L-curve calculation faster with generous tolx with this factor
+tolFactor = 1; % make the L-curve calculation faster with generous tolx with this factor
 for i=1:length(alphas);
     disp(['testing L = ' num2str(alphas(i)) '... '])
     msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx*tolFactor,tolr);
@@ -604,6 +607,7 @@ disp('Displaying the 1-norm L-curve')
 % print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
 saveas(hLcurve,LcurveFigPath);
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','rho_corner','eta_corner','msparse','-v7.3');
+close(hLcurve)
 
 if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])

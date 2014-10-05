@@ -112,8 +112,8 @@ else
         yv = ny*rand(np,1)+0.5;
         % beads separation - beads should be separated by bead diameter physically
         beads = [xv yv];
-        d_pix = d/pixelSize + 100/pixelSize; % bead diameter in pixel + repellent distance
-        idxSep = KDTreeBallQuery(beads, beads, 2*d_pix);
+        r_pix = d/pixelSize + 2*d/pixelSize; % bead radius in pixel *2 + repellent distance
+        idxSep = KDTreeBallQuery(beads, beads, r_pix);
         valid = true(numel(idxSep),1);
         for i = 1:numel(idxSep)
             if ~valid(i), continue; end
@@ -201,6 +201,9 @@ switch ip.Results.Border
         for k = 1:length(xi)
             wx = (lbx(k):ubx(k)) - xi(k);
             wy = (lby(k):uby(k)) - yi(k);
+            if isempty(wx) || isempty(wy)
+                continue
+            end
             [xg,yg] = meshgrid(wx,wy);
             g = exp(-((xg-dx(k)).^2+(yg-dy(k)).^2) / (2*sv(k)^2));
             if strcmpi(ip.Results.Normalization, 'sum')

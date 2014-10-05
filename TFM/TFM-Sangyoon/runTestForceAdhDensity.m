@@ -3,17 +3,20 @@
 xmax=200;
 ymax=200;
 nExp = 1;
-f = 400; % Pa
-r = 3; % radius in pixel
+% f = 400; % Pa
+% r = 3; % radius in pixel
 
-posx_min = 4*r; posx_max = xmax-4*r;
-posy_min = 4*r; posy_max = ymax-4*r;
-posx_vec = posx_min:4*r:posx_max;
-posy_vec = posy_min:4*r:posy_max;
-nstep = 3;
-Nmax = length(posx_vec)*length(posy_vec); % max number of adhesion in the space
-NmaxCount = ceil(Nmax/nstep);
-expName = ['dia' num2str(2*r)];
+% posx_min = 4*r; posx_max = xmax-4*r;
+% posy_min = 4*r; posy_max = ymax-4*r;
+% posx_vec = posx_min:4*r:posx_max;
+% posy_vec = posy_min:4*r:posy_max;
+% nstep = 3;
+% Nmax = length(posx_vec)*length(posy_vec); % max number of adhesion in the space
+% NmaxCount = ceil(Nmax/nstep);
+% expName = ['dia' num2str(2*r)];
+nRange = [5 20 40]; % the numbers of adhesions in 200x200 image
+NmaxCount = length(nRange);
+expName = 'randomDistr3' ;
 rmsErrorL2 = zeros(nExp,NmaxCount);
 rmsErrorL1 = zeros(nExp,NmaxCount);
 EOA_L2 = zeros(nExp,NmaxCount);
@@ -32,30 +35,33 @@ cropInfoL1 = cell(nExp,NmaxCount);
 %% Simulations - simple enough simulation - only d
 for epm=1:nExp
     ii=0;
-    for n=1:nstep:Nmax % distance between adhesions
+    for n=nRange % the number of adhesions
         ii=ii+1;
         if ii==1
             method = 'L2';
-            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/exp' num2str(epm) 'f' num2str(f) 'n' num2str(n) method];
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/n' num2str(n) method];
             [rmsErrorL2(epm,ii),EOA_L2(epm,ii),lcurvePathL2{epm,ii},fMapL2{epm,ii},cropInfoL2{epm,ii},oMapL2{epm,ii},bead_x{epm}, bead_y{epm}, Av{epm}] = ...
-                testForceAdhDensity(d,f,r,n,method,dataPath);
+                testForceAdhDensity(n,method,dataPath);
             method = 'L1';
             oldDataPath = dataPath;
-            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/exp' num2str(epm) 'f' num2str(f) 'n' num2str(n) method];
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/n' num2str(n) method];
             [rmsErrorL1(epm,ii),EOA_L1(epm,ii),lcurvePathL1{epm,ii},fMapL1{epm,ii},cropInfoL1{epm,ii},oMapL1{epm,ii}] = ...
-                testForceAdhDensity(d,f,r,n,method,dataPath,oldDataPath);
+                testForceAdhDensity(n,method,dataPath,oldDataPath);
         else
             method = 'L2';
-            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/exp' num2str(epm) 'f' num2str(f) 'n' num2str(n) method];
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/n' num2str(n) method];
             [rmsErrorL2(epm,ii),EOA_L2(epm,ii),lcurvePathL2{epm,ii},fMapL2{epm,ii},cropInfoL2{epm,ii},oMapL2{epm,ii}] = ...
-                testForceAdhDensity(d,f,r,n,method,dataPath,[],bead_x{epm}, bead_y{epm}, Av{epm});
+                testForceAdhDensity(n,method,dataPath,[],bead_x{epm}, bead_y{epm}, Av{epm});
             oldDataPath = dataPath;
             method = 'L1';
-            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/exp' num2str(epm) 'f' num2str(f) 'n' num2str(n) method];
+            dataPath=['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/n' num2str(n) method];
             [rmsErrorL1(epm,ii),EOA_L1(epm,ii),lcurvePathL1{epm,ii},fMapL1{epm,ii},cropInfoL1{epm,ii},oMapL1{epm,ii}] = ...
-                testForceAdhDensity(d,f,r,n,method,dataPath,oldDataPath);
+                testForceAdhDensity(n,method,dataPath,oldDataPath);
         end
     end
 end
 
-%% Plotting
+%% save
+save
+save(['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/allData.mat'])
+
