@@ -144,24 +144,41 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         junctionMask = nn1>2;
         ridgeCand(junctionMask) =0;
         
+        
+        
+        %Consider and ridges along the border likely edge effects - Make
+        %sure to take care of before 
+        ridgeCand(:,1:3) =  0;
+        ridgeCand(:,end-2:end) = 0;
+        ridgeCand(1:3,:) = 0;
+        ridgeCand(end-2:end,:) = 0;
+        
+        
+        
         % STEP II: Clean Pieces Less than X pixels
         % Clean small pieces less than X pixels: again this might lead you to lose info- might want to reduce to singletons
-        X = 10; 
+        X = 3; % with singletons it is hard to tell a direction for linking could include but currently better 
+        % I think to exclude. 
         CCRidgeBone = bwconncomp(ridgeCand);
         % filter out noise (defined here simply as CCs less than 5 pixels
         % (arbitrary assignment)
         csizeRidgeFirst = cellfun(@(x) length(x),CCRidgeBone.PixelIdxList);
         CCRidgeBone.PixelIdxList(csizeRidgeFirst < X) = [];
-        CCRidgeBone.NumObjects = CCRidgeBone.NumObjects - sum(csizeRidgeFirst<10);
+        CCRidgeBone.NumObjects = CCRidgeBone.NumObjects - sum(csizeRidgeFirst<X);
         cleanedRidgeLabels = labelmatrix(CCRidgeBone);
         cleanedRidge = cleanedRidgeLabels>0;
+        
+       
+        
         
       %% Bridge Option:  here but this can introduce some new junctions here: likely advantageous to try to bridge these pieces more cleanly in my own
         % I was using this bridge option here as a quick fix: However, it likely
         % can be done more elegantly in one step: need to consider the
         % advantage/disadvantages.
         % connect linear structures function below- need to assess where there are pros and cons
-       
+       % essentially I now have this small bridge feature in the connect
+       % linear structures - small distances the cost less relies on
+       % geometry... 
 %         if iFrame == 12  % this is cheating I know for now ARP2/3 inhibition 281 has a problem in that it has only one frame that can % benefit 
 %             % from this... try to revisit this algorithm and retest on this
 %             % movie!! 
@@ -179,17 +196,17 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             
         %% Set-up to Perform "Linear" Links-  MaxWeighted GraphMatch
         
-        %       % consider these pixels as likely edge effects)
-        cleanedRidge(:,1:3) =  0;
-        cleanedRidge(:,end-2:end) = 0;
-        cleanedRidge(1:3,:) = 0;
-        cleanedRidge(end-2:end,:) = 0;
+        
+        
+        
+        
         
         
         CCRidgeBonePreLink = bwconncomp(cleanedRidge);
         cleanedRidgeLabelsPreLink = labelmatrix(CCRidgeBonePreLink);
         
-        %%% Get endpoints  %%%
+        %%% Get endpoints  %%%- note singletons filtered here above so no
+        %%% need to check for them.  20140922 - fix this for final
         EPCandidateSort = cellfun(@(x) getEndpoints(x,size(img),0,1),CCRidgeBonePreLink.PixelIdxList,'uniformoutput',0);
         backboneInfo.beforeConnect= cleanedRidge;
         
@@ -213,7 +230,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             end
         %% Connect Linear Structures % NOTE to SELF as of 2014-01-30 : this part needs to be optimized
         
-        [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructuresAttemptToFixCost(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
+        [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructuresAttemptToFixCostFinal(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
         cleanedRidge = bwmorph(cleanedRidge,'thin');  % after do this type of connect always need to thin!
         %%
         nn = padarrayXT(double(cleanedRidge~=0), [1 1]);
@@ -238,7 +255,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             if madeLinks == 1
                 spy(linkMask,'r');
             end
-            scatter(test(:,1),test(:,2),'y','filled'); % scatter end points
+            scatter(test(:,1),test(:,2),5,'y','filled'); % scatter end points
             saveas(figConnect,[figDir2 filesep num2str(iFrame,'%03d') '.tif']);
             
         %% Find the Ridge components that are near the boundary of the cell: choose the most likely candidate
