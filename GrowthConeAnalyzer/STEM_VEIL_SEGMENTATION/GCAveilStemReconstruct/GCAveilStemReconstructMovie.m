@@ -109,8 +109,8 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 35; 
-    paramsIn.startFrame = 95;  %default = 1 
+    paramsIn.patchSize = 75; 
+    paramsIn.startFrame = 105;  %default = 1 
     paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
@@ -1173,14 +1173,47 @@ notBody = bwmorph(notBody,'thin','inf');
            labelsBody = bwlabel(newBodyMask);
            % get body nodes
            nodeNum = unique(labelsBody(labelsBody~=0));
-           
+           % Problem 20141009 becomes that dilation of 4 is can cross the 
+           % small body pieces resulting in a merging of the two paths
+           % quick solution is use a smaller dilation for the label making 
+           % In the end we want to get a better estimate for the redilation
+           % of the paths anywa
+           %dilBBForLabels =  imdilate(backbone2Dil,strel('disk',2));
            labelsC = bwlabel(dilBB);
+           
+           
            % for each label get the pixels that overlap body labels%
            CCEdges = bwconncomp(labelsC);
            edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
            % dilate each piece and give
            %conForLabel = imdilate(dilBB,strel('disk',3));
            edges =  cellfun(@(x) x(x~=0)',edges,'uniformoutput',0);
+           
+           % test for problems in the dilation 
+           numVertices = cellfun(@(x) length(x) ,edges); 
+           stopFlagLowerDil = sum(numVertices>2);% initiate stop flag
+           countDilDec = 1; % initiate count
+           %if sum(numVertices > 2) ~=0 % test for problem cases where the dilation of 4 was too large
+               % and spanned the body the small node... 
+               while stopFlagLowerDil >0 
+                    dilBB = imdilate(backbone2Dil,strel('disk',4-countDilDec)); 
+                    labelsC = bwlabel(dilBB);
+                     CCEdges = bwconncomp(labelsC);
+           edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
+           % dilate each piece and give
+           %conForLabel = imdilate(dilBB,strel('disk',3));
+           edges =  cellfun(@(x) x(x~=0)',edges,'uniformoutput',0);
+                     
+                    
+                    numVertices = cellfun(@(x) length(x),edges);
+                    stopFlagLowerDil = sum(numVertices>2);
+                    countDilDec = 1 + countDilDec; 
+               end % while 
+       
+                  
+               
+        
+           
            
            %% start calculating scores for the edges. : think these will be parameter input 
            
@@ -1365,7 +1398,19 @@ notBody = bwmorph(notBody,'thin','inf');
            %Try to test again
            
            fullMask = imfill(prefill,'holes');
-           if ~isequal(fullMask,prefill);
+           diffMask= fullMask-prefill;
+           numBodyNodes = cellfun(@(x) length(x),edges); % as I don't treat 
+           % the surrounding frame pixels as a body "node" sometimes these 
+           % an path can connect to only 1 body piece this will cause the 
+           % following steps to crash - therefore select for only those
+           % paths that connect two well-defined body pieces) 
+           edges = edges(numBodyNodes ==2) ; 
+           finalScore= finalScore(numBodyNodes==2);
+           CCEdges.PixelIdxList = CCEdges.PixelIdxList(numBodyNodes==2); 
+           CCEdges.NumObjects = CCEdges.NumObjects - sum(numBodyNodes==2) ;
+           
+           
+           if (~isequal(fullMask,prefill) && sum(diffMask(:))>2);
                cycleFlag = 2; % non-parallel cycles 
                % perform minspanning tree..
                display('cylces NOT due to parallel paths: performing minspantree');
