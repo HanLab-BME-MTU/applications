@@ -62,6 +62,32 @@ for epm=1:nExp
 end
 
 %% save
-save
 save(['/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/AdhDensity/' expName '/allData.mat'])
-
+%% plot
+figure,
+subplot(2,3,1), imshow(oMapL2{1},[0 1050])
+subplot(2,3,2), imshow(oMapL2{2},[0 1050])
+subplot(2,3,3), imshow(oMapL2{3},[0 1050])
+subplot(2,3,4), imshow(fMapL1{1},[0 1050])
+subplot(2,3,5), imshow(fMapL1{2},[0 1050])
+subplot(2,3,6), imshow(fMapL1{3},[0 1050])
+colormap jet
+%% plot - l2
+figure,
+subplot(2,3,1), imshow(oMapL2{1},[0 1050])
+subplot(2,3,2), imshow(oMapL2{2},[0 1050])
+subplot(2,3,3), imshow(oMapL2{3},[0 1050])
+subplot(2,3,4), imshow(fMapL2{1},[0 1050])
+subplot(2,3,5), imshow(fMapL2{2},[0 1050])
+subplot(2,3,6), imshow(fMapL2{3},[0 1050])
+colormap jet
+%% RMS error plot
+figure,
+plot(nRange,real(rmsErrorL1))
+hold all
+plot(nRange,real(rmsErrorL2))
+%% Error on Adhesion  plot
+figure,
+plot(nRange,real(EOA_L1))
+hold all
+plot(nRange,real(EOA_L2))
