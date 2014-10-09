@@ -110,7 +110,7 @@ if nargin < 2
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
     paramsIn.patchSize = 75; 
-    paramsIn.startFrame = 105;  %default = 1 
+    paramsIn.startFrame = 1;  %default = 1 
     paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
@@ -479,9 +479,25 @@ while stopFlagBodyReconstruct ==0
    % first test if need to break 
    
             if sum(floatingBodyIdxCC)==0; % all potential body pieces were assigned to neurite
-               % stopFlagBodyReconstruct = 1 ; % stop Fat Body Reconstruct proceed to backbone erosion
-               
+               % ADDED 20141009 - previously we didn't want to introduce
+               % competing paths because we had no mechanism to fix them. 
+               % now we would like to keep these competing paths just in 
+               % EVEN in the case when the estimated backbone picks up 
+               % ALL body pieces- as there ware several cases where this 
+               % is not necessarily the optimal path
+                 pixBodySave = find(newBodyMask==1); 
+            CCRidgeBone = bwconncomp(cleanedRidge); 
+                % stopFlagBodyReconstruct = 1 ; % stop Fat Body Reconstruct proceed to backbone erosion
+              idxNoIntersectRidgeCC = cellfun(@(x) isempty(intersect(pixBodySave,x)),CCRidgeBone.PixelIdxList);
+              
+              CCRidgeBone.PixelIdxList(idxNoIntersectRidgeCC) = []; 
+              CCRidgeBone.NumObjects = CCRidgeBone.NumObjects - sum(idxNoIntersectRidgeCC); 
+              backbone(vertcat(CCRidgeBone.PixelIdxList{:}))=1;
                break
+               
+               
+               
+               
             end % if sum % note eventually might want to look at scale information 
         
    
