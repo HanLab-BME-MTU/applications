@@ -41,14 +41,22 @@ else
     [ye,xe] = find(endpoints~=0);
     
     
+        
+        
+        
+    % need to remove 
     if getVector == 1
+        if ~isempty(ye) % sometimes there are weird structure with out end points in the NMS give these a vect of NaN
         for iPoint = 1:2
             dist = bwdistgeodesic(logical(maskC),xe(iPoint),ye(iPoint));
             % get the index of the 3rd pixel from the end point
             [y3Back,x3Back] = ind2sub(size,find(dist == 3));
             % calculate the vector in the direction toward the endpoint.
-            
-            
+            if isempty(y3Back) % quick fix for now is to use a smaller piece back 
+                [y3Back,x3Back] = ind2sub(size,find(dist==2)); % two pixels back
+                
+            end 
+           
             vectX = (xe(iPoint)-x3Back);
             vectY = (ye(iPoint)-y3Back);
             
@@ -56,7 +64,11 @@ else
              vect(iPoint,1) = vectX/distC; % make it a unit vector 
             vect(iPoint,2) = vectY/distC;
         end
-       
+        else 
+            vect = [NaN,NaN;NaN NaN];
+            xe = [NaN ; NaN] ;
+            ye = [NaN ;NaN] ;
+        end % if ~isempty(ye)
     end  
     
     sanityCheck = 0; 
