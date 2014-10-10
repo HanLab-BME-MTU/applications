@@ -49,7 +49,7 @@ umat_vecx = reshape(ux(cfactor-round(cfactor/2):cfactor:xmax,cfactor-round(cfact
 umat_vecy = reshape(uy(cfactor-round(cfactor/2):cfactor:xmax,cfactor-round(cfactor/2):cfactor:ymax),[],1);
 pos_vecx = reshape(grid_mat_coarse(:,:,1),[],1);
 pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
-dispScale=0.1*max(sqrt(umat_vecx.^2+umat_vecy.^2));
+dispScale=0.04*umax;%max(sqrt(umat_vecx.^2+umat_vecy.^2));
 
 xmin = centerX-w/2;
 xmax = centerX+w/2;

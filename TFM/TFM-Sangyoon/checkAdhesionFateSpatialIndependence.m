@@ -28,20 +28,20 @@ function [popStat,failNeiStat,matureNeiStat] = checkAdhesionFateSpatialIndepende
 % Sangyoon Han October 2014
 
 %% Set up the output file path
-dataPath = [outputFilePath filesep 'adhesionFateAnalysis'];
+dataPath = [outputPath filesep 'adhesionFateAnalysis'];
 if ~exist(dataPath,'dir') 
     mkdir(dataPath);
 end
 %% Statistics about population
-matureID = arrayfun(@(x) (x.maturing==true),tracksNA);
-failID = arrayfun(@(x) (x.maturing==false),tracksNA);
+matureID = arrayfun(@(x) (x.maturing==1),tracksNA);
+failID = arrayfun(@(x) (x.maturing==0),tracksNA);
 popStat.nMature = sum(matureID);
 popStat.nFail = sum(failID);
 popStat.mRatio = popStat.nMature/(popStat.nMature+popStat.nFail);
-%% Neighbor sample statistics
+%% Neighbor sample stati
 % for failing adhesions
 p = 0;
-for ii = find(failID)
+for ii = find(failID)'
     p = p+1;
     failNeiStat.id(p) = ii;
     % emerging frame
@@ -57,7 +57,7 @@ for ii = find(failID)
         nNei = length(idx{1});
         presentIDind = find(presentID);
         neiMatureID = presentIDind(idx{1});
-        nMature = sum(arrayfun(@(x) x(neiMatureID).maturing,tracksNA));
+        nMature = sum(arrayfun(@(x) x.maturing>1,tracksNA(neiMatureID)));
         nFail = nNei - nMature;
         failNeiStat.neiIDs{p} = neiMatureID;
         failNeiStat.neiDist{p} = dist{1};
@@ -73,9 +73,9 @@ for ii = find(failID)
         failNeiStat.mRatio(p) = NaN;
     end
 end
-% for failing adhesions
+% for matruing adhesions
 p = 0;
-for ii = find(matureID)
+for ii = find(matureID)'
     p = p+1;
     matureNeiStat.id(p) = ii;
     % emerging frame
@@ -91,7 +91,7 @@ for ii = find(matureID)
         nNei = length(idx{1});
         presentIDind = find(presentID);
         neiMatureID = presentIDind(idx{1});
-        nMature = sum(arrayfun(@(x) x(neiMatureID).maturing,tracksNA));
+        nMature = sum(arrayfun(@(x) x.maturing>1,tracksNA(neiMatureID)));
         nFail = nNei - nMature;
         matureNeiStat.neiIDs{p} = neiMatureID;
         matureNeiStat.neiDist{p} = dist{1};
@@ -108,6 +108,6 @@ for ii = find(matureID)
     end
 end
 
-save([dataPath filesep 'failingMaturingTracks.mat'], 'trNAonly', 'tracksNAfailing','tracksNAmaturing','maturingRatio','lifeTimeNAfailing','lifeTimeNAmaturing')
+save([dataPath filesep 'stats.mat'], 'tracksNA', 'matureNeiStat','failNeiStat','popStat')
 
 end

@@ -112,7 +112,6 @@ else
         tmin = min(tmin,min(fnorm_vec));
     end
 end    
-toc
 %     tmax = 2590;
 %     tmin = tmin-0.1;
 %     tmax=tmax/5;
@@ -198,7 +197,7 @@ for ii=1:nFrames
     tmat_vecy = reshape(tmat_coarse(:,:,2),[],1);
     pos_vecx = reshape(grid_mat_coarse(:,:,1),[],1);
     pos_vecy = reshape(grid_mat_coarse(:,:,2),[],1);
-    forceScale=0.25*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
+    forceScale=0.1*max(sqrt(tmat_vecx.^2+tmat_vecy.^2));
 %     hq = quiver(pos_vecx,pos_vecy, tmat_vecx./forceScale,tmat_vecy./forceScale,0,'k');
     hq = quiver(pos_vecx-grid_mat(1,1,1),pos_vecy-grid_mat(1,1,2), tmat_vecx./forceScale,tmat_vecy./forceScale,0,'Color',[75/255 0/255 130/255]);
 

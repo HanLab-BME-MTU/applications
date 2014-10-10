@@ -201,7 +201,7 @@ for j= 1:nFrames
     % Stack reference frame and current frame and track beads displacement
     corrStack =cat(3,imcrop(refFrame,p.cropROI),imcrop(stack(:,:,j),p.cropROI));
     delta = trackStackFlow(corrStack,beads,...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed);
+        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,'mode','accurate');
     
     %The transformation has the same form as the registration method from
     %Sylvain. Here we take simply the median of the determined flow
