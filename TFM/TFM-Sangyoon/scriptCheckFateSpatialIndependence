@@ -1,9 +1,0 @@
-% scriptCheckFateSpatialIndependce
-load('movieData.mat')
-load('/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI/Colocalization/Region1_gc5/data/tracksNA.mat')
-%% separateMatureAdhesionTracks
-outputPath = 'trackSeparation';
-tracksNA = separateMatureAdhesionTracks(tracksNA, MD, outputPath);
-%% checkAdhesionFateSpatialIndependence
-r=15;
-[popStat,failNeiStat,matureNeiStat] = checkAdhesionFateSpatialIndependence(tracksNA, r, outputPath);
