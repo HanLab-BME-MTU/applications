@@ -5,9 +5,10 @@ colocalizationAdhesionsWithTFM('/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvar
 
 %%
 pathForTheMovieDataFile = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130429_cell11_100f/ROI';
-outputPath = '141009Denser';
+outputPath = 'tracksSeparation';
 band = 16;
-showAllTracks = true;
-tmaxEach = false;
+showAllTracks = false;
+plotEachTrack = false;
+tmaxEach = [];
 tmax=1600;
 [tracksNA,forceFC,forceFA,forceBGband,forceBG] = colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,showAllTracks,plotEachTrack,tmaxEach);

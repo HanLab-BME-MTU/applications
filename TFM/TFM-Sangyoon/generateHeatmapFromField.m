@@ -79,7 +79,7 @@ for k=1:numel(displField)
         end
         %quiver plot
         hold on
-        dispScale=0.01*ummax; %max(sqrt(displField.vec(:,1).^2+displField.vec(:,2).^2));
+        dispScale=0.05*ummax; %max(sqrt(displField.vec(:,1).^2+displField.vec(:,2).^2));
 
         Npoints = length(displField(k).pos(:,1));
         inIdx = false(Npoints,1);

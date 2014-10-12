@@ -1,13 +1,11 @@
-function [tracksNA,tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = separateMatureAdhesionTracks(tracksNA, MD, outputPath)
+function [tracksNA,tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio] = separateMatureAdhesionTracks(tracksNA, outputPath)
 % [tracksNA,lifeTimeNA] = separateMatureAdhesionTracks
 % separates failing and maturing NA tracks from existing tracksNA, obtain life time of each NA tracks
 
 % Sangyoon Han April 2014
 
 % Set up the output file path
-pathForTheMovieDataFile = MD.getPath;
-outputFilePath = [pathForTheMovieDataFile filesep outputPath];
-dataPath = [outputFilePath filesep 'data'];
+dataPath = [outputPath filesep 'data'];
 if ~exist(dataPath,'dir') 
     mkdir(dataPath);
 end
