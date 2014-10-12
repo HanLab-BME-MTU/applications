@@ -33,11 +33,21 @@ if ~exist(dataPath,'dir')
     mkdir(dataPath);
 end
 %% Statistics about population
+% get the statistics from each time point
+nFrames = tracksNA(1).iFrame(end);
 matureID = arrayfun(@(x) (x.maturing==1),tracksNA);
 failID = arrayfun(@(x) (x.maturing==0),tracksNA);
-popStat.nMature = sum(matureID);
-popStat.nFail = sum(failID);
-popStat.mRatio = popStat.nMature/(popStat.nMature+popStat.nFail);
+for ii = 1:nFrames
+    % maturing adhesion at ii-th point
+    nMature = sum(arrayfun(@(x) (x.presence(ii)==true),tracksNA(matureID)));
+    nFail = sum(arrayfun(@(x) (x.presence(ii)==true),tracksNA(failID)));
+    popStat.nMature(ii) = nMature;
+    popStat.nFail(ii) = nFail;
+    popStat.mRatio(ii) = nMature/(nMature+nFail);
+end
+% popStat.nMature = sum(matureID);
+% popStat.nFail = sum(failID);
+% popStat.mRatio = popStat.nMature/(popStat.nMature+popStat.nFail);
 %% Neighbor sample stati
 % for failing adhesions
 p = 0;
@@ -57,7 +67,7 @@ for ii = find(failID)'
         nNei = length(idx{1});
         presentIDind = find(presentID);
         neiMatureID = presentIDind(idx{1});
-        nMature = sum(arrayfun(@(x) x.maturing>1,tracksNA(neiMatureID)));
+        nMature = sum(arrayfun(@(x) x.maturing==1,tracksNA(neiMatureID)));
         nFail = nNei - nMature;
         failNeiStat.neiIDs{p} = neiMatureID;
         failNeiStat.neiDist{p} = dist{1};
@@ -91,7 +101,7 @@ for ii = find(matureID)'
         nNei = length(idx{1});
         presentIDind = find(presentID);
         neiMatureID = presentIDind(idx{1});
-        nMature = sum(arrayfun(@(x) x.maturing>1,tracksNA(neiMatureID)));
+        nMature = sum(arrayfun(@(x) x.maturing==1,tracksNA(neiMatureID)));
         nFail = nNei - nMature;
         matureNeiStat.neiIDs{p} = neiMatureID;
         matureNeiStat.neiDist{p} = dist{1};
