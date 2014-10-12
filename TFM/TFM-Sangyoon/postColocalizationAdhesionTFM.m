@@ -88,6 +88,21 @@ for k=1:numel(tracksNA)
         end
     end
 end
+%% force array from separateMatureAdhesionTracks
+outputPath = 'Separation';
+[tracksNA1, tracksNAfailing1, tracksNAmaturing1] = separateMatureAdhesionTracks(tracksNA, MD, outputPath);
+% load('/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130511 Cell2 beforeFAKi/ROItop/Region1again/data/failingMaturingTracks.mat')
+% tracksNAfailing1 = tracksNAfailing;
+% tracksNAmaturing1 = tracksNAmaturing;
+load('/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130429_cell11_100f/ROI/Colocalization/trackSeparation/data/failingMaturingTracks.mat')
+tracksNAfailing2 = tracksNAfailing;
+tracksNAmaturing2 = tracksNAmaturing;
+tracksNAfailing = [tracksNAfailing1; tracksNAfailing2];
+tracksNAmaturing = [tracksNAmaturing1; tracksNAmaturing2];
+% force from these tracks
+[forceMaturing,slopeMaturing] = getForceFromTracks(tracksNAmaturing);
+[forceFailing,slopeFailing] = getForceFromTracks(tracksNAfailing);
+
 %% Plotting
 figure, notBoxPlot(slopeMaturing,1)
 notBoxPlot(slopeFailing,2)
@@ -117,4 +132,9 @@ maturingFstd = nanstd(forceMaturingArray,1)';
 failingFstd = nanstd(forceFailingArray,1)';
 forceFailingArray = forceFailingArray';
 forceMaturingArray = forceMaturingArray';
-%% Analysis of NAs that becomes FAs with their area and force
+%% plotting
+figure, plot(1:nSampleFrames,forceMaturingArray','b')
+hold on
+plot(1:nSampleFrames,forceFailingArray','r')
+plot(1:nSampleFrames,failingFavg','r','LineWidth',2)
+plot(1:nSampleFrames,maturingFavg','LineWidth',2)
