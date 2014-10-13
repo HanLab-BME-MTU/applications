@@ -4,13 +4,10 @@ function BW = shadowSeg(I)
 %
 %   I = uint16 intensity matrix
 %   BW = binary segmentation
-    
-    % scale pixel intensities to avoid loss of precision
-    Isc = imadjust(I, stretchlim(I,0), []);
-    Dsc = im2double(Isc);
-    
+  
+    D = im2double(I);
     % First threshold using Rosin
-    [N, X] = histogram(Dsc(:));
+    [N, X] = histogram(D(:));
     Ni = flipud(N); % Invert the histogram
     Xi = flipud(1-X);
     [cutoffIndex, cutoffValue] = cutFirstHistMode(Ni, Xi, 0);
@@ -19,5 +16,5 @@ function BW = shadowSeg(I)
     [dummy, mindiffIdx] = min(diff(Ni));
     t1 = Xi(mindiffIdx);
     t2 = cutoffValue;
-    BW = hysteresisThreshold(1-Dsc, t1, t2);
+    BW = hysteresisThreshold(1-D, t1, t2);
 end
