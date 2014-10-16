@@ -108,9 +108,7 @@ allMovieInfo(nFrames,nChan) = struct('xCoord', [], 'yCoord', [], 'amp', [],...
 for iChan= p.ChannelIndex
 
     % Create temporary directory for storing filtered images
-    if ~exist(filteredImagesDirectory, 'dir') == 7,
-        mkdir(filteredImagesDirectory);
-    end
+    if ~isdir(filteredImagesDirectory), mkdir(filteredImagesDirectory); end
     if ishandle(wtBar), waitbar(0,wtBar,'Loading image stack'); end    
     
     % get difference of Gaussians image for each frame and standard deviation
