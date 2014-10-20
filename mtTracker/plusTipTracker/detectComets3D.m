@@ -1,4 +1,4 @@
-function [movieInfo,label] = detectComets3D(I,stepSize,thresh,pxlscale)
+function [movieInfo,featMapFinal] = detectComets3D(I,stepSize,thresh,pxlscale)
 % Detect plusTip comets in a prefiltered image using a watershed method
 %
 % Synopsis: movieInfo = detectComets(I,stepSize,thresh)
@@ -35,16 +35,15 @@ function [movieInfo,label] = detectComets3D(I,stepSize,thresh,pxlscale)
 % 
 
 
-% Kathryn Applegate, 2010
-% Sebastien Besson, March 2012
-% Partitioned from plusTipCometDetector.m
+% Wes Legant 2014
+% Ported from an initial 2D version by Kathryn Applegate, 2010 and Sebastien Besson, March 2012
 
 
 % we assume each step size down the intensity profile should be on
 % the order of the size of the background std; here we find how many
 % steps we need and what their spacing should be. we also assume peaks
 % should be taller than 3*std
-nSteps = round((nanmax(I(:))-thresh)/(stepSize));
+nSteps = round((nanmax(I(:))-thresh)/double(stepSize));
 threshList = linspace(nanmax(I(:)),thresh,nSteps);
 
 movieInfo=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
@@ -86,7 +85,6 @@ for j = 1:length(threshList)-1
     
 end
 
-label=bwlabeln(slice2);
 
 % label slice2 again and get region properties
 featProp2 = regionprops(logical(slice2),'PixelIdxList','Area');
