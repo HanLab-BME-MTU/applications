@@ -208,8 +208,9 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
 
             end
         %% Connect Linear Structures % NOTE to SELF as of 2014-01-30 : this part needs to be optimized
+        % main problems fixed 20141021 
         
-        [cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearStructures(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,10);%NEED to make a variable!
+        [cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearRidges(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,10);%NEED to make a variable!
         cleanedRidge = bwmorph(cleanedRidge,'thin');  % after do this type of connect always need to thin!
         %% I believe this is the main problem 20141006 Need to not break connections junctions after the 
         % linear connection. 
