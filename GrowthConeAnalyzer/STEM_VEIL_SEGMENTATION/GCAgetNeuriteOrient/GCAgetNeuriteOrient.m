@@ -181,12 +181,6 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             
         %% Set-up to Perform "Linear" Links-  MaxWeighted GraphMatch
         
-        
-        
-        
-        
-        
-        
         CCRidgeBonePreLink = bwconncomp(cleanedRidge);
         cleanedRidgeLabelsPreLink = labelmatrix(CCRidgeBonePreLink);
         
@@ -215,7 +209,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
             end
         %% Connect Linear Structures % NOTE to SELF as of 2014-01-30 : this part needs to be optimized
         
-        [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructuresAttemptToFixCostFinal(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
+        [cleanedRidge,linkMask,~,~,madeLinks] = gcaConnectLinearStructures(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,10);%NEED to make a variable!
         cleanedRidge = bwmorph(cleanedRidge,'thin');  % after do this type of connect always need to thin!
         %% I believe this is the main problem 20141006 Need to not break connections junctions after the 
         % linear connection. 
@@ -250,12 +244,6 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         cleanedRidgeLinkedLabelMat = labelmatrix(CCRidgeBoneLinked);
         cleanedRidgeLinked = cleanedRidgeLinkedLabelMat>0;
         
-        %       % STEP II: set values at the boundaries to zero ( do NOT want to
-        %       % consider these pixels as likely edge effects)
-        %         cleanedRidgeLinked(:,1:3) =  0;
-        %         cleanedRidgeLinked(:,end-2:end) = 0;
-        %         cleanedRidgeLinked(1:3,:) = 0;
-        %         cleanedRidgeLinked(end-2:end,:) = 0;
         
         
         backboneInfo.bodyReconstruct.AfterConnect = cleanedRidgeLinked;
@@ -443,9 +431,6 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         backboneInfo.timeStamp = clock;
         
         
-      %  save([saveDir filesep 'backboneInfo.mat'],'backboneInfo'); % update the analysis
-       % save([saveDir filesep 'paramsIn.mat'],'paramsIn'); % for now also save the params here until you 
-        % design a movieData process 
-
+      
 end
 
