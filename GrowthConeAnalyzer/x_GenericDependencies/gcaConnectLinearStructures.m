@@ -1,14 +1,19 @@
-function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatFill,status] = gcaConnectLinearStructures(EPCandidateSort,maxTh,candidateMask,labelMat,linearityThresh,~)
-%connectLinearStructure: small function to connect the ends of ridges that
-%fall within a certain distance/certain linearity criteria. Used for
-%connecting backbone (large scale ridges of neurite) or as a preclustering
-%step to connect smaller segments of filopodia for further reconstruction 
-% RENAMED from connectLinearStructuresAttemptToFixCostFinal on 20141006
+function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatFill,status] = gcaConnectLinearStructures(EPCandidateSort,maxTh,candidateMask,labelMat,radius)
+% gcaConnectLinearStructures: small dependency function used to connect 
+% the endpoints of two ridges that fall within a certain distance and linearity criteria. 
+% Used for connecting backbone (large scale ridges of neurite) or as a preclustering
+% step to connect smaller segments of small scale filopodia ridges for further reconstruction 
+
+% NOTE: Used to be connectLinearStructureAttemptToFixFinalCost until 20141021
+
+% INPUT: 
+% 
+
+%
+% radius: radius in pixels for the KD tree endpoint search. 
 
 % INPUT:
-% linearityThresh : a vector of values for the colinearity threshold. 1)
-% between candidate1 and path , 2) between candidate2 and path, and 3) between the two candidates. Default (0.5,0.5,0.5)   
-% 
+
 [ny,nx] = size(maxTh);
 imSize = [ny,nx]; 
 maxTh = maxTh + pi/2; 
@@ -45,7 +50,7 @@ end
     
 %% Find all enpoints within x radius of one another- note there will be some 
 % redundancy that one has to filter and each query point will find itself. 
-[idx,d] = KDTreeBallQuery(endPoints, endPoints, 10); % originally 5 
+[idx,d] = KDTreeBallQuery(endPoints, endPoints, radius); % originally 5 
 
 
 
