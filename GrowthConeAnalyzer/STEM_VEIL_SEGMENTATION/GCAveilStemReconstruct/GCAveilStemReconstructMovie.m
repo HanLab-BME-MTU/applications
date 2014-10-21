@@ -131,21 +131,6 @@ mkClrDir(p.OutputDirectory)
  
 for iCh = 1:nChan 
     
-%% load backbone 
-    
-% if restart ==1;
-% %  numFinished = numel(analInfo);
-% %    
-% % 
-%  startFrame = find(arrayfun(@(x) isempty(x.masks),analInfo),1)-1; 
-%  
-% elseif restart == 2; % tell it to restart at a specific frame 
-%         startFrame = startFrameIn; 
-%         
-% %startFrame = 59; 
-% else startFrame = 1; 
-% end 
-
     if p.ProcessIndex == 0 
         imgDir =  movieData.channels_(p.ChannelIndex).channelPath_; % currently mainly needed if you do the local thresholding/ otherwise just overlay
     else 
@@ -198,46 +183,7 @@ for iCh = 1:nChan
       'neurite_orientation_estimation_fixes' filesep  'Neurite_Backbone_Seed_Channel_' num2str(iCh)...
        filesep 'backboneInfoFix.mat']); 
     
-    
-% if sortOn ==1 % FIX to automatically check for padding!! 
-% 
-%  for iFrame =  1:nImTot;
-%         imageName = [char(listOfImages(iFrame,2)) filesep char(listOfImages(iFrame,1))];
-%         
-%         %Call "getFilenameBody" from common dir to split filename into path,
-%         %body, no, and ext. Put path, body and ext into appropriate cell/number vector for that
-%         %frame
-%         [path body no ext ] = getFilenameBody(imageName);
-%         
-%         
-%         pathCell(iFrame) = cellstr(path);
-%         bodyCell(iFrame) = cellstr(body);
-%         extCell(iFrame) = cellstr(ext);
-%         
-%         % output "no" is a string so convert to number to sort
-%         num(iFrame)  = str2double(no);
-%         
-%   end
-%     %Sort number vector numerically
-%     sortednum = sort(num);
-%     
-%     %Convert number vector to cell
-%     sortednum_cell = num2cell(sortednum);
-%     
-%     %Create Sorted Image List
-%     sortedImages = [pathCell', bodyCell', sortednum_cell', extCell'];
-%     if restart ==1; 
-%         sortedImages = sortedImages(startFrame:end,:);
-%     end 
-%end
-
-% if restart ==1;
-%    
-%     listOfImages = listOfImages(numFinished:end,:); 
-%    
-% end 
    
-
 %% Start Loop         
     for iFrame = startFrame:nFrames
        
@@ -248,36 +194,6 @@ for iCh = 1:nChan
 
         img = double(imread(fileName)); 
       
-        
-  
-%% Background Fluorescence Filter (3*first mode)
-% perform an initial thresholding first to get out main components 
-% [maskBack,backMu,backSig] = estimateBackgroundArea(img); 
-%imgToThresh = img.*~maskBack; % note doing this is not so awesome for 
-% for the local thresholding as if you input this the local threshold will
-% then begin picking up on these gradients  Note 12-15 changed
-
-   
-%%
-% if localThresh ==0
-%     maskForErod = firstMinAfterFirstMaxSeg(img); 
-%      
-% elseif localThresh ==1
-% 
-%   % extract detection params 
-%   patchSize  = detectionParams.localThresh.patchSize;
-%   
-%      [~,maskForErod] = thresholdOtsu_local(img,patchSize,3); 
-%      yxvalues = bwboundaries(maskForErod);
-%      
-%      analInfo(iFrame).bodyEst.beforeErod = yxvalues; 
-%      clear yxvalues
-% elseif localThresh == 2
-%     maskForContour = firstMinAfterFirstMaxSeg(img); 
-%     maskForErod = activecontour(img,maskForContour); 
-%     
-% end
-%%
     if strcmpi(p.MaskToErod,'gradient') 
     maskForErod = logical(imread([listOfMasks{iFrame,2} filesep listOfMasks{iFrame,1}])); 
     else 
@@ -285,10 +201,9 @@ for iCh = 1:nChan
            [~,maskForErod] = thresholdOtsu_local(img, p.patchSize,3); 
     end 
    
-%analInfo(iFrame).masks.beforeErosion = maskForErod; 
 
     % erod out filopodia like structures and ridges
-    
+ 
     % erodForBody = imopen(maskForErod,strel('disk',p.DiskSizeForErod,0));
     [ erodForBody,saveMask]  =   findBreakageCCsFromErosion(maskForErod,6); 
     
@@ -299,7 +214,8 @@ for iCh = 1:nChan
      yxvalues = bwboundaries(erodForBody); 
      % might not keep this in the output
      analInfo(iFrame).bodyEst.erodForBody = yxvalues; 
-     thinnedBodyAll = bwmorph(erodForBody,'thin','inf'); 
+     %thinnedBodyAll = bwmorph(erodForBody,'thin','inf'); 
+     thinnedBodyAll = bwmorph(erodForBody,'skel','inf');
      analInfo(iFrame).bodyEst.thinnedBodyAll = thinnedBodyAll; 
      clear yxvalues
      %%%%%
@@ -310,7 +226,7 @@ for iCh = 1:nChan
 %%    
     
     
-     % 20140822 : might in the future need to change this option but for
+    % 20140822 : might in the future need to change this option but for
     % now. delete all the body pieces that are located along the edge of
     % the frame that are NOT overlapping with the main entrance BB. 
      
@@ -335,30 +251,17 @@ for iCh = 1:nChan
             boundaryBodyPixelIdx = CCBodyPieces.PixelIdxList(boundIdxCC & floatingBodyIdxCC);
             erodForBody = zeros([ny,nx]); 
             erodForBody(vertcat(CCBodyPieces.PixelIdxList{toKeep}))=1;   % a little redundant here with below clean up later
-        
-%% Added 20140614  : quick fix to take out low intensity ridges for reconstruct  
-% some small attempts at fixing nothing worked horribly well.. typically 
-% actually from crossed filo so the intensity signal is actually pretty strong.
-% Will break up pieces but then you can also start losing body parts... 
-% really just  need a path competition to avoid cycles.. 
-%  values = img(erodForBody.*backbone==1);  
-% [mu,sigma] = fitGaussianModeToPDF(-values);% use negative to make first mode 
-% thresh = mu+6*sigma; % get the cut off for the tail. 
-% thresh = -thresh; % switch it back
- %thresh = prctile(img(:),25);    
+          
 %%     
     xyEnterNeurite = backboneInfo(iFrame).coordsEnterNeurite; 
 %     maxNMSLarge = analInfo(iFrame).bodyEst.maxNMSLarge; % note should maybe put these all into 
 %     cutoff = analInfo(iFrame).bodyEst.cutoff; % 
-%     
+    
     idxEnterNeurite = sub2ind(size(img),xyEnterNeurite(:,2), xyEnterNeurite(:,1));
     cleanedRidge = backboneInfo(iFrame).bodyReconstruct.AfterConnect; 
     cleanedRidge(backbone==1) = 0; 
     % added 20140307 
     cleanedRidge =  bwmorph(cleanedRidge,'spur'); 
-    %% added 20140614 : didn't work 
-    % intensity based threshold 
-%     cleanedRidge = (img.*cleanedRidge)>thresh;
    %%
     if paramsIn.makeMovie == 1;
         imgLarge = [ img ;img];
@@ -394,10 +297,6 @@ for iCh = 1:nChan
         
     end
     
-%% test for junctions in cleaned ridge 
- 
-
-
 %% use backbone to save erosions
 
 stopFlagBodyReconstruct =0; 
@@ -406,7 +305,8 @@ stopFlagBodyReconstruct =0;
   iter = 1; 
   % get the connected components corresponding to "fat body"
          CCAllBody = bwconncomp(erodfilo); %  
-      countAdded = 0; 
+     
+      
 while stopFlagBodyReconstruct ==0 
 
     pixBB = find(backbone==1);
@@ -415,7 +315,7 @@ while stopFlagBodyReconstruct ==0
         % find the pieces that do not intersect with the putative backbone
         floatingBodyIdxCC = cellfun(@(x) isempty(intersect(pixBB,x)),CCAllBody.PixelIdxList);    
         
-        countAdded = countAdded + sum(~floatingBodyIdxCC); 
+        
         
         %%
         % Make the new mask of only ridge connected body parts (ie take out
@@ -430,7 +330,11 @@ while stopFlagBodyReconstruct ==0
            saveas(gcf,[saveDirMov filesep '02.png']); 
         end 
         
-        
+       %% Here we (non-elegantly) use some previous temporal information to find the correct path of the neurite  
+       % if there is evidence that we have a severely truncated
+       % segmentation for a given frame - the algorithm currently
+       % progresses forward so the first frame does not benefit from the
+       % temporal information 
         if iter == 1 && sum(newBodyMask(:))==0 % you didn't add anything backbone might just be truncated
             % check to see if frame 1
             if iFrame ~=1
@@ -493,6 +397,7 @@ while stopFlagBodyReconstruct ==0
               CCRidgeBone.PixelIdxList(idxNoIntersectRidgeCC) = []; 
               CCRidgeBone.NumObjects = CCRidgeBone.NumObjects - sum(idxNoIntersectRidgeCC); 
               backbone(vertcat(CCRidgeBone.PixelIdxList{:}))=1;
+              analInfo(iFrame).bodyEst.rmHiIntPieces = []; 
                break
                
                
@@ -712,8 +617,10 @@ while stopFlagBodyReconstruct ==0
        
             if sum(floatingBodyIdxCC)==0; % all potential body pieces were assigned to neurite
                % stopFlagBodyReconstruct = 1 ; % stop Fat Body Reconstruct proceed to backbone erosion
-               
+               analInfo(iFrame).bodyEst.rmHiIntPieces = [];
                break
+               
+               
             end % if sum
         
 
@@ -750,10 +657,33 @@ while stopFlagBodyReconstruct ==0
         newToKeep = testBodyCC(idxIntersectBody2); 
           newBodyMask(vertcat(newToKeep{:})) = 1; % add pixels to mask
           backbone(vertcat(CCRidgeBoneConnect.PixelIdxList{idxRidgesFatBodyConnect})) =1; % add pixles to backbone
-        if (sum(idxIntersectBody2)/length(idxIntersectBody2) ==1 || sum(idxIntersectBody2) == 0 )% all body parts have been assigned or couldn't assign any. 08-03-2013 this is a weird stop flag? check again 
-         stopFlagBodyReconstruct =1;  
-        
-        end 
+          % If all body parts have been confirmed OR could not assign any of the remaining based
+          % on geometry/ridge path arguments then stop the iterations and record any floating body pieces 
+          % remaining- if the frame is marked a neurite length outlier- these pieces will be reconsidered for reattachment.
+          % if piece attached and one still remaining 
+          % re-iterate. 
+          if (sum(idxIntersectBody2)/length(idxIntersectBody2) ==1 || sum(idxIntersectBody2) == 0 )% all body parts have been assigned or couldn't assign any. 08-03-2013 this is a weird stop flag? check again
+              %  
+              if sum(idxIntersectBody2)==0
+                 
+                  % save as a mask- though might want to reconsider what is the most 
+                  % effective method of saving
+                  rmHiIntPieces = zeros(ny,nx); 
+                  rmHiIntPieces(vertcat(testBodyCC{:}))=1; 
+                  
+                  analInfo(iFrame).bodyEst.rmHiIntPieces = rmHiIntPieces;
+                  
+              else
+                  
+                  analInfo(iFrame).bodyEst.rmHiIntPieces = [];
+              end
+              
+              
+              
+              
+              stopFlagBodyReconstruct =1;
+              
+          end % if sum
           iter = iter +1; 
           if iter>100
               error('FiloTracker:NeuriteBodyEst:FailureToTerminate','Too Many Iterations Check Code'); 
@@ -955,107 +885,10 @@ notBody = bwmorph(notBody,'thin','inf');
         %analInfo(iFrame).bodyEst.area = area; 
         thickBodyMask = newBodyMask; % save here in case you want to put into the protrusion software. 
 
-        
-        
        
-
-  
-  
-
-   
-        %end
-        %% 
-    % NOTE 20140819 not appropriate to test for holes here as the neurite 
-    % as the newBodyMask is only comprised of thick body pieces. 
-%         erodfilo = newBodyMask; 
-%         % test for holes
-%         erodfiloTest= imfill(erodfilo,'holes'); % here might just want to use to test for cycles... 
-%         if ~ isequal(erodfiloTest,erodfilo)  
-%             
-%             
-%         % Try again  break junctions and erode 
-% %   nn = padarrayXT(double(notBody~=0), [1 1]);
-% %   sumKernel = [1 1 1];
-% %   nn = conv2(sumKernel, sumKernel', nn, 'valid');
-% %   nn1 = (nn-1) .* (runBodyEstnotBody~=0);
-% %   junctionMask = nn1>2;
-%  
-%  
-% %   backbone(junctionMask) = 0 ; 
-%  
-%   
-% 
-%    notBody = double(backbone).*~double(bodyMask);
-% 
-% 
-% 
-% 
-%       
-%         test = notBody|bodyNoFill;% get the backbone pieces and the no fill body for erosion 
-%         test2 = bwmorph(test,'thin',inf); 
-%         backbone(test & ~test2) = 0 ; % not  sure what I was doing here 
-%         %get rid of singletons : this might not be necessary if don't break
-%         %junctions inrunBodyEst the first step 
-%         CCTest2 = bwconncomp(test2); 
-%         csize = cellfun(@(x) length(x),CCTest2.PixelIdxList); 
-%         backbone(vertcat(CCTest2.PixelIdxList{csize==1})) = 0; % set these = to zero   
-%         CCTest2.PixelIdxList(csize==1) = []; 
-%         CCTest2.NumObjects = CCTest2.NumObjects - sum(csize==1);
-%         test2= labelmatrix(CCTest2);
-%         test2 = test2>0;
-%         [EPs,~,coords] = skel2graph2D(test2);
-%         backbonePreErosion = backbone; 
-%         
-%         %% plot option 
-%         % plot the scale overlaid on the backbone pre-erosion 
-% %         scales = backboneInfo(iFrame).scaleMapLarge; 
-% %         scalesBackbonePreErode = backbone.*scales; 
-%         
-%         if p.plot == 1
-%             setFigure(ny,nx,'off')
-%          imagesc(scalesBackboneErode); 
-%         
-%         end 
-%         
-%         % 
-%       
-%         analInfo(iFrame).bodyEst.backbone = backbone;     
-%             
-%           if ~isempty(vertcat(coords{:}))
-%             indEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
-%          
-%            
-%         
-%             
-%             %idxSave = find(indEP == idxEnterNeurite); %% note sometimes bug here... should make so reiterate if this fails...
-%             %instead of doing find use intersect
-%             overlap = intersect(idxEnterNeurite,indEP); 
-%             % save the entering neurite pieces from erosion
-%             if ~isempty(overlap)
-%                  % maybe add to take it up or down a scale...but for now
-%                  % just leave it
-%             idxSave = arrayfun(@(x) find(indEP == overlap(x)),1:length(overlap)); 
-%             idxSave = idxSave'; 
-%            
-%                 EPs(idxSave,:) = [];
-%                 coords(idxSave) = [];
-%             end
-%             
-%             
-%             
-%             if ~isempty(vertcat(coords{:}));
-%                 coordBBOver = vertcat(coords{:});
-%                 idxBBOver = sub2ind(size(img),coordBBOver(:,1),coordBBOver(:,2));
-%                 idxEP = sub2ind(size(img),EPs(:,1),EPs(:,2));
-%                 backbone([idxBBOver ; idxEP]) = 0;
-%             end
-%         end   
-%             
-%         end % if iequal
   %%      
         backbone2Dil = backbone;
         backbone2Dil(backbone==1 & newBodyMask==1) = 0; 
-        % thought about looking at the intersection
         % for now the dilation might be the best 
         
   
@@ -1083,13 +916,13 @@ notBody = bwmorph(notBody,'thin','inf');
  bodyLabels =  labelmatrix(CCBody);
 %  
   for iCC = 1:numel(CCNotBody.PixelIdxList)
-  % find the endpoints and test there labels 
+  % find the endpoints and test their labels 
   % check if singleton 
     if length(CCNotBody.PixelIdxList{iCC}) ==1 
       idx = CCNotBody.PixelIdxList{iCC};
     else 
   
-      xy = getEndpoints(CCNotBody.PixelIdxList{iCC},size(notBody));
+      xy = getEndpoints(CCNotBody.PixelIdxList{iCC},size(notBody),0,0,4);
    
       idx = sub2ind(size(notBody),xy(:,2),xy(:,1)); 
     end 
@@ -1109,14 +942,6 @@ notBody = bwmorph(notBody,'thin','inf');
        
    end 
    
-%    % get rid of singletons % need to fix this this was a problem in Control
-%    % 05 08-07 data 
-%    % though not always helpful... 
-%    % in weird case where have a singleton here...
-%    if isempty(labelsOverlap)
-%        backbone2Dil(CCNotBody.PixelIdxList{iCC}) = 0; 
-%    end 
-%        
  end 
     %%    
      if paramsIn.makeMovie ==1
@@ -1137,7 +962,7 @@ notBody = bwmorph(notBody,'thin','inf');
          
      end 
 
-       %if countAdded ~=1
+       
             %%% FOR NOW JUST ARBITRARILY RE-DILATE
             dilBB = imdilate(backbone2Dil,strel('disk',4));
             %          else
@@ -1171,9 +996,7 @@ notBody = bwmorph(notBody,'thin','inf');
             pixIndThickBody = []; 
         end 
         
-       %if countAdded ~= 1% originally was going to not redilate if only
-       %added on body piece but need to redilate the pieces connected to
-       %the edg e
+       
         fullMask = dilBB | newBodyMask;
         
        % take largest cc and fill holes 
@@ -1566,17 +1389,17 @@ end
 end % for iCh
 end % the END
 
-function [coords] = getEndpoints(pixIdx,size)
-
-endpoints = zeros(size);
-endpoints(pixIdx)=1;
-sumKernel = [1 1 1];
-% find endpoints of the floating candidates to attach (note in the 
-% future might want to prune so that the closest end to the 
-% body is the only one to be re-attatched: this will avoid double connections)
-endpoints = double((endpoints.* (conv2(sumKernel, sumKernel', padarrayXT(endpoints, [1 1]), 'valid')-1))==1); 
-[ye,xe] = find(endpoints~=0); 
-coords(:,1) = xe; 
-coords(:,2) = ye; 
-end 
+% function [coords] = getEndpoints(pixIdx,size)
+% 
+% endpoints = zeros(size);
+% endpoints(pixIdx)=1;
+% sumKernel = [1 1 1];
+% % find endpoints of the floating candidates to attach (note in the 
+% % future might want to prune so that the closest end to the 
+% % body is the only one to be re-attatched: this will avoid double connections)
+% endpoints = double((endpoints.* (conv2(sumKernel, sumKernel', padarrayXT(endpoints, [1 1]), 'valid')-1))==1); 
+% [ye,xe] = find(endpoints~=0); 
+% coords(:,1) = xe; 
+% coords(:,2) = ye; 
+% end 
 

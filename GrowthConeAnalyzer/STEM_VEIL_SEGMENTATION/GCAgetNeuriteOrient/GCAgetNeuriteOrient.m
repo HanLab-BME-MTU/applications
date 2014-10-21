@@ -170,22 +170,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         
        
         
-        
-      %% Bridge Option:  here but this can introduce some new junctions here: likely advantageous to try to bridge these pieces more cleanly in my own
-        % I was using this bridge option here as a quick fix: However, it likely
-        % can be done more elegantly in one step: need to consider the
-        % advantage/disadvantages.
-        % connect linear structures function below- need to assess where there are pros and cons
-       % essentially I now have this small bridge feature in the connect
-       % linear structures - small distances the cost less relies on
-       % geometry... 
-%         if iFrame == 12  % this is cheating I know for now ARP2/3 inhibition 281 has a problem in that it has only one frame that can % benefit 
-%             % from this... try to revisit this algorithm and retest on this
-%             % movie!! 
-%             cleanedRidge = bwmorph(cleanedRidge,'bridge'); % this can introduce some junctions here... 08-06-2013 that are problematic for examples like srGAP2_KD 113
-%                cleanedRidge = bwmorph(cleanedRidge,'thin','inf');
-%         end 
-%         
+       
       %%  Finish Optional TroubleShoot Plot I: RidgeCand Before After Clean
             if p.plots == 1
                 spy(cleanedRidge,'g');
@@ -232,13 +217,14 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         
         [cleanedRidge,linkMask,~,~,madeLinks] = connectLinearStructuresAttemptToFixCostFinal(EPCandidateSort,maxThLarge,cleanedRidge,cleanedRidgeLabelsPreLink,[0.5,0.5,0.5],10);%NEED to make a variable!
         cleanedRidge = bwmorph(cleanedRidge,'thin');  % after do this type of connect always need to thin!
-        %%
-        nn = padarrayXT(double(cleanedRidge~=0), [1 1]);
-        sumKernel = [1 1 1];
-        nn = conv2(sumKernel, sumKernel', nn, 'valid');
-        nn1 = (nn-1) .* (ridgeCand~=0);
-        junctionMask = nn1>2;
-        cleanedRidge(junctionMask) =0;
+        %% I believe this is the main problem 20141006 Need to not break connections junctions after the 
+        % linear connection. 
+%         nn = padarrayXT(double(cleanedRidge~=0), [1 1]);
+%         sumKernel = [1 1 1];
+%         nn = conv2(sumKernel, sumKernel', nn, 'valid');
+%         nn1 = (nn-1) .* (ridgeCand~=0);
+%         junctionMask = nn1>2;
+%         cleanedRidge(junctionMask) =0;
         
         % STEP II: Clean Pieces Less than 5 pixels
         % Clean small pieces less than 5 pixels: again this might lead you to lose info- might want to reduce to singletons
