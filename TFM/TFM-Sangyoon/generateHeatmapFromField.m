@@ -116,7 +116,7 @@ for k=1:numel(displField)
         I = getframe(h3);
         imwrite(I.cdata, strcat(tifPath,'/displFieldMagTif',num2str(k),'.tif'));
         hgsave(h3,strcat(figPath,'/displFieldMagFig',num2str(k)),'-v7.3')
-        print(h3,strcat(epsPath,'/displFieldMagEps.eps',num2str(k)),'-depsc2')
+        print(h3,strcat(epsPath,'/displFieldMagEps',num2str(k),'.eps'),'-depsc2')
         close(h3)
     end
 end

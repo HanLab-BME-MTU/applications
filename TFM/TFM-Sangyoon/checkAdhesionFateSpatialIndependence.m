@@ -58,6 +58,7 @@ for ii = find(failID)'
     emergingFrame = tracksNA(ii).emergingFrame;
     % find the adhesions that are present
     presentID = arrayfun(@(x) (x.presence(emergingFrame)==true),tracksNA);
+    presentID(ii) = false;
     % find the neighbors in r
     [idx, dist] = KDTreeBallQuery([arrayfun(@(x) x.xCoord(emergingFrame),tracksNA(presentID)),...
         arrayfun(@(x) x.yCoord(emergingFrame),tracksNA(presentID))],...
@@ -92,6 +93,7 @@ for ii = find(matureID)'
     emergingFrame = tracksNA(ii).emergingFrame;
     % find the adhesions that are present
     presentID = arrayfun(@(x) (x.presence(emergingFrame)==true),tracksNA);
+    presentID(ii) = false;
     % find the neighbors in r
     [idx, dist] = KDTreeBallQuery([arrayfun(@(x) x.xCoord(emergingFrame),tracksNA(presentID)),...
         arrayfun(@(x) x.yCoord(emergingFrame),tracksNA(presentID))],...

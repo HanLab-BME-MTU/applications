@@ -62,7 +62,7 @@ for k=1:numel(tracksNA)
             % lifetime until FC
             lifeTimeNAfailing(q) = sum(strcmp(tracksNA(k).state(tracksNA(k).emergingFrame:end),'NA'));
         else
-             tracksNA(k).maturing = 2; % it didn't mature for a long time as a NA
+            tracksNA(k).maturing = 2; % it didn't mature for a long time as a NA
         end
     else % this means they are already FC or FA, 
         tracksNA(k).maturing = 3; % already matured at the starting of the movie

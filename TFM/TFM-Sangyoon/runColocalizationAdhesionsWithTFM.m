@@ -12,3 +12,33 @@ plotEachTrack = false;
 tmaxEach = [];
 tmax=1600;
 [tracksNA,forceFC,forceFA,forceBGband,forceBG] = colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,showAllTracks,plotEachTrack,tmaxEach);
+%% with L2optimal - 1e-7
+pathForTheMovieDataFile = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130429_cell11_100f/ROI';
+outputPath = 'L2optimal';
+band = 16;
+showAllTracks = true;
+plotEachTrack = false;
+tmaxEach = [];
+tmax=1600;
+[tracksNAL2opt,forceFCL2opt,forceFAL2opt,forceBGbandL2opt,forceBGL2opt] = ...
+    colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,showAllTracks,plotEachTrack,tmaxEach);
+%% for L1 again - to be consistent with tracks in L2
+outputPath = 'L1l';
+band = 16;
+showAllTracks = true;
+plotEachTrack = false;
+tmaxEach = [];
+tmax=1600;
+[tracksNAL1,forceFCL1,forceFAL1,forceBGbandL1,forceBGL1] = ...
+    colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,outputPath,band,tmax,showAllTracks,plotEachTrack,tmaxEach);
+[tracksNAL1, tracksNAfailingL1,tracksNAmaturingL1] = ...
+    separateMatureAdhesionTracks(tracksNAL1,'/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130429_cell11_100f/ROI/Colocalization/L1l');
+mean(arrayfun(@(x) x.forceMag(x.emergingFrame),tracksNAL1(arrayfun(@(x) x.emerging, tracksNAL1))))
+mean(arrayfun(@(x) x.mean,forceBGL1))
+mean(arrayfun(@(x) x.mean,forceBGbandL1))
+mean(forceFCL1)
+mean(forceFAL1)
+outputPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130429_cell11_100f/ROI/Colocalization/L1l/data';
+[slopeMaturingMeanL1,slopeFailingMeanL1,InitForceMaturingMeanL1,InitForceFailingMeanL1] = ...
+    postColocalizationAdhesionTFM(tracksNAmaturingL1, tracksNAfailingL1, outputPath);
+
