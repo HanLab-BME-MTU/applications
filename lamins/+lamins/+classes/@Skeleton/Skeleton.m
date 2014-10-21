@@ -1,4 +1,4 @@
-classdef Skeleton < hgsetget
+classdef Skeleton < hgsetget &  matlab.mixin.Copyable
     % Class to contain vertices, edges, and faces of a skeleton meshwork
     properties ( Transient )
         edges
@@ -59,6 +59,24 @@ classdef Skeleton < hgsetget
             filter(e) = false;
             obj.edges = ccFilter(obj.edges,filter);
         end
+        function deleteEdgeLoops(obj)
+            % an edge loop is an edge that starts and ends at the same
+            % place
+            edgeLoops = cellfun(@(x) x(1) == x(end),S.edges.PixelIdxList);
+            obj.deleteEdges(edgeLoops);
+        end
+        function deleteFaces(obj,f)
+            import connectedComponents.*;
+            bw = obj.bw;
+            for i = 1:length(f)
+                bw(obj.faces.PixelIdxList{f(i)}) = 1;
+            end
+            obj.bw = bw;
+            
+            filter = true(1,length(obj.faces.PixelIdxList));
+            filter(f) = false;
+            obj.faces = ccFilter(obj.faces,filter);
+        end
         function addEdgeBetweenPoints(obj,p1,p2)
             import connectedComponents.*;
             if(isscalar(p1))
@@ -83,6 +101,7 @@ classdef Skeleton < hgsetget
             end
             obj.deleteEdges(unique([faceEdges{:}]));
             obj.bw = [];
+            obj.faces = [];
         end
         function v = get.vertices(obj)
             if(isempty(obj.vertices))
@@ -124,7 +143,7 @@ classdef Skeleton < hgsetget
             end
             faces = obj.faces;
         end
-        function [edgeIndices] = faceEdges(obj,f)
+        function [edgeIndices,faceIndices] = faceEdges(obj,f)
             import connectedComponents.*;
             import lamins.functions.*;
             
@@ -163,8 +182,37 @@ classdef Skeleton < hgsetget
                 edgeIndices{faceIdx} = edgeIndices{faceIdx}(goodEdges,:);
                 endpts = endpts(goodEdges,:);
             end
-%             1
-            % confirm that the endpoints encircle the face in question
+            if(nargout > 1)
+                % calculate a map from edges to faces
+                edgeIdx = vertcat( edgeIndices{:} );
+                steps =  cumsum(cellfun(@length,edgeIndices))+1;
+                % get multiplicity in case a face has no edges
+                [r,u] = getMultiplicityInt([1 steps(1:end-1)]);
+                runs = zeros(size(edgeIdx));
+                runs(u) = r;
+                faceIdx = cumsum(runs);
+                faceIndices = accumarray(edgeIdx,faceIdx,[],@(x) {x});
+            end
+        end
+        function A = getEdgeAdjacency(obj)
+            % get edge adjacency matrix where adjacency occurs when edges
+            % share a face
+            FE = obj.faceEdges;
+            A = false(obj.edges.NumObjects);
+            for i=1:length(FE)
+                A(FE{i},FE{i}) = 1;
+            end
+            A = A & ~eye(size(A));
+        end
+        function A = getFaceAdjacency(obj)
+            % get face adjacency matrix where adjacency occurs when faces
+            % share an edge
+            [FE,EF] = obj.faceEdges;
+            A = false(obj.faces.NumObjects);
+            for i=1:length(EF)
+                A(EF{i},EF{i}) = 1;
+            end
+            A = A & ~eye(size(A));
         end
         function rp = getEdgeProperties(obj,I,e)
             import connectedComponents.*;
@@ -210,14 +258,14 @@ classdef Skeleton < hgsetget
             stdIntensityDistance = cellfun(@(idx,uidx) accumarray(uidx,I(idx),[],@std),faces.PixelIdxList,UtoIn , 'UniformOutput', false);
             [rp.StdIntensity_vs_Distance] = stdIntensityDistance{:};
             
-            distanceWeightedIntensity = cellfun(@(x) mean(D(x).*I(x)), faces.PixelIdxList , 'UniformOutput', false);
+            distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
             [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
         end
-        function plotFaceProperties(obj,I,fidx)
+        function plotFaceProperties(obj,I,fidx,varargin)
             % f should be scalar
             rp = getFaceProperties(obj,I,fidx);
             for f=1:length(fidx)
-                plot(rp(f).UniqueDistances,rp(f).MeanIntensity_vs_Distance);
+                plot(rp(f).UniqueDistances,rp(f).MeanIntensity_vs_Distance,varargin{:});
                 errorbar(rp(f).UniqueDistances,rp(f).MeanIntensity_vs_Distance,rp(f).StdIntensity_vs_Distance./rp(f).N_vs_Distance);
                 hold on;
             end
@@ -390,6 +438,25 @@ classdef Skeleton < hgsetget
         end
         function imshow(obj)
             showGraph(obj);
+        end
+        function [e,f] = cleanup(obj)
+            % Cleans up the edges and faces of the skeleton
+            % 1. Removes edges that have no faces
+            % 2. Removes faces that have no edges
+            % Future considerations: Remove small faces
+            [~,EF] = obj.faceEdges;
+            e = find(cellfun(@length,EF) == 0);
+            e = [ e ; (length(EF)+1:obj.edges.NumObjects)'];
+            obj.deleteEdges(e);
+            FE = obj.faceEdges;
+            f = find(cellfun(@length,FE) == 0);
+            obj.deleteFaces(f);
+        end
+        function score = getEdgeScore(obj,e)
+        end
+        function score = getFaceScore(obj,f)
+        end
+        function score = getVertexScore(obj,v)
         end
     end
 end
