@@ -53,7 +53,7 @@ if p.GroupType.Persistence.flag == 1 % eventually make protrusion and retraction
     
     
     % load edge velocity data
-    load([ movieData.outputDirectory_ filesep 'edgeVelocityAnalysis' filesep 'EdgeMotion.mat']);
+    load([ movieData.outputDirectory_ filesep 'EdgeVelocityQuantification' filesep 'EdgeMotion.mat']);
     
     output = getWindowsWithHighPersistence(analysisResults,p.GroupType.Persistence.cutoff); % time series so whole movie
    
@@ -80,7 +80,7 @@ for iCh = 1:nChan
     if p.labelMovie ==1 
         img = double(imread([ movieData.channels_(iCh).channelPath_ filesep imgNames{1}{iFrame}]));
         % load the windows 
-        load([movieData.outputDirectory_ filesep 'windows' filesep 'windows_frame__frame_' num2str(iFrame,'%02d') '.mat']); 
+        load([movieData.outputDirectory_ filesep 'windows' filesep 'windows_frame__frame_' num2str(iFrame,'%03d') '.mat']); 
         setFigure(nx,ny,'on'); 
         imshow(-img,[]); 
         hold on 

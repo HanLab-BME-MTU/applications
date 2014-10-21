@@ -161,7 +161,7 @@ for iCh = 1:numel(paramsIn.ChannelIndex)
         mkClrDir(pSpecific.OutputDirectory)
         end 
         
-        filoInfo = fitLinescansNewDistFinal(filoInfo,img,pSpecific) ; 
+        filoInfo = GCAfitFilopodia(filoInfo,img,pSpecific) ; 
         % rewrite the filoInfo with the extra filo Info fields. 
         analInfo(iFrame).filoInfo = filoInfo;
         display(['Finished Fitting Filopodia for  Channel ' num2str(p.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]); 

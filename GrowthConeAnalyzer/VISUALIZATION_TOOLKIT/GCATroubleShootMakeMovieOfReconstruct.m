@@ -447,7 +447,7 @@ close gcf
  
  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
  filoInfoSingle = filoInfo(type==0); 
- plotfilosIntAndExt(filoInfoSingle,imgSize,1,1,'g'); 
+ plotfilosIntAndExt(filoInfoSingle,imgSize,1,1,'g',0); 
  
  text(nx/10,10,'High Confidence Single Filopodia Attached to Neurite Body', 'color',textColor);
  pixels = round(10/pixSizeMic); 
@@ -486,7 +486,7 @@ close gcf
  
  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
  filoInfoBranchStem = filoInfo(type==1); 
- plotfilosIntAndExt(filoInfoBranchStem,imgSize,1,1,'y'); 
+ plotfilosIntAndExt(filoInfoBranchStem,imgSize,1,1,'y',1); 
  
  text(nx/10,10,'High Confidence Branch Stem Attached to Neurite Body', 'color',textColor);
  pixels = round(10/pixSizeMic);         
@@ -522,7 +522,7 @@ h  = setFigure(nx,ny);
  
  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
  filoInfoHigherOrder = filoInfo(type==2); 
- plotfilosIntAndExt(filoInfoHigherOrder,imgSize,1,1,'m'); 
+ plotfilosIntAndExt(filoInfoHigherOrder,imgSize,1,1,'m',1); 
  
  text(nx/10,10,'High Confidence 1st Order Branches', 'color',textColor);
  pixels = round(10/pixSizeMic); 

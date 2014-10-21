@@ -83,7 +83,7 @@ if nargin < 2
     paramsIn.ChannelIndex = 1;
     paramsIn.ProcessIndex = 0; % use raw images
     paramsIn.startFrame = 1;   %default = 1 
-    paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
+    paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
                                      % one a warning will come up but it
@@ -122,7 +122,7 @@ nx = imSize(2);
           
  if  exist(orientFile,'file')==2;
      load(orientFile)
-     display('Loading Previously Run Orieintation Estimations');
+     display('Loading Previously Run Orientation Estimations');
      if strcmpi(p.startChoice,'auto')
          startFrame = numel(backboneInfo)-1;
          display(['Auto Start: Starting Neurite Body Reconstruction at Frame ' num2str(startFrame)]);
@@ -152,7 +152,7 @@ for iCh = 1:nChan
    
     % make final output dir where backboneInfo will be saved 
     saveDir =  [p.OutputDirectory filesep 'Neurite_Backbone_Seed_Channel_' num2str(iCh)]; 
-    mkClrDir(saveDir)
+    mkClrDir(saveDir); 
     
     % get the list of image filenames
     if p.ProcessIndex == 0
@@ -185,12 +185,14 @@ for iCh = 1:nChan
     for iFrame = startFrame:nFrames
         % Load image
         img = double(imread( [listOfImages{iFrame,2} filesep listOfImages{iFrame,1}] ));
-        [backboneFrame] = GCAgetNeuriteOrient(img,p,iFrame); % quick fix for the plots is to just make the frame number an input for not 20140812
+        pInNeurite = p; 
+        pInNeurite.OutputDirectory = saveDir ;
+        [backboneFrame] = GCAgetNeuriteOrient(img,pInNeurite,iFrame); % quick fix for the plots is to just make the frame number an input for not 20140812
         backboneInfo(iFrame) = backboneFrame; 
-         
+        save( [saveDir filesep 'backboneInfo.mat'],'backboneInfo');  
         
     end % iFrame
-    save( [paramsIn.OutputDirectory filesep 'backboneInfo.mat'],'backboneInfo'); 
+    
     % choose correct orientation
     % collect all the indexes dilate this mask...
     % get CC

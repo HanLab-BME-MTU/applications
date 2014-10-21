@@ -37,7 +37,7 @@ label2 = arrayfun(@(i) labelMat(sub2ind(size(maxTh),endPoints(E(i,2),2),endPoint
 E = E(label1~=label2,:); 
 d = d(label1~=label2); 
 
-sanityCheck = 1; 
+sanityCheck = 0; 
 if sanityCheck == 1
     figure;
     % plot edge labels

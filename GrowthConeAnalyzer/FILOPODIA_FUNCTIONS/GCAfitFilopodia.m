@@ -169,7 +169,10 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         % need to change now that do the distance calc... 
       %  pixIdx = round(params(2)); % here rounding the pix indices not very precise calculation should fix
         % guess this is still decent other option is to have an idx 
-         delt = abs(distFilo-params(2)); % find the pixIdx (as measured along filo: 0  = the base of the filo so can get a quick xy coord for plotting. 
+         delt = abs(distFiloFit-params(2)); % find the pixIdx (as measured along filo: 0  = the base of the filo so can get a quick xy coord for plotting. 
+        % changed above from distFilo to distFiloFit = 20141017 think this
+        % is why the indexing was off 
+        
          pixIdx = find(delt==min(delt)); 
         
         
@@ -184,7 +187,7 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
             
         else
             
-            
+           % pixIndices = flip(pixIndices); % NOTE 20141017 try flipping pixIndices
             filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix']) = pixIndices(pixIdx);% for graphing 
             [ny,nx] = size(img); 
             [y,x] = ind2sub([ny,nx],filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix'])); 

@@ -332,8 +332,9 @@ end
 
  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
      [saveDir filesep 'frame_' num2str(iFrame, fmt) ext])
+ saveas(h,[saveDir filesep 'frame_' num2str(iFrame,fmt) '.fig']); 
  % save a frame 
- if iFrame == 30
+ if iFrame == 101
     saveas(h,[saveDir filesep 'frame_' num2str(iFrame,fmt) '.eps'],'psc2'); 
   end
   close(gcf)
@@ -377,7 +378,7 @@ if lengthPlots ==1
 %  set(h,'DefaultPatchLineSmoothing','on');
 % 
 % Configure axes 
-h = figure('Visible','off'); 
+h = figure('Visible','on'); 
 fmt = ['%0' num2str(ceil(log10(nImTot))) 'd'];
 
     
@@ -385,9 +386,9 @@ fmt = ['%0' num2str(ceil(log10(nImTot))) 'd'];
 axes1 = axes('Parent',h,'FontWeight','bold','FontSize',14,...
     'FontName','Arial');
 hold(axes1,'all');
-lengths = lengths.*pixSize_um; 
+%lengths = lengths.*pixSize_um; 
 y = 0:length(lengths)-1; 
-    y = 10.*y/60; 
+    y = 5.*y/60; 
 % Create plot
 plot(y,lengths,'Parent',axes1,'MarkerFaceColor','g','Marker','o','MarkerSize',5,'Color','b');
 
@@ -396,20 +397,24 @@ xlabel({'Time (Min)'},'FontWeight','bold','FontSize',14,...
     'FontName','Arial');
 
 % Create ylabel
-ylabel({'Length','um'},'FontWeight','bold','FontSize',14,...
+%ylabel({'Length','um'},'FontWeight','bold','FontSize',14,...
+ %   'FontName','Arial');
+ ylabel({'Veil Velocity','nm/sec'},'FontWeight','bold','FontSize',14,...
     'FontName','Arial');
 
 % Create title
-title({'Time Series: Filopodia Length (um)';['Track' num2str(trackID(iTrack))]},'FontWeight','bold','FontSize',14,...
-    'FontName','Arial');
+%title({'Time Series: Filopodia Length (um)';['Track' num2str(trackID(iTrack))]},'FontWeight','bold','FontSize',14,...
+    %'FontName','Arial');
   
+title({'Time Series: Veil Velocity (nm/sec)';['Track' num2str(trackID(iTrack))]},'FontWeight','bold','FontSize',14,...
+    'FontName','Arial');
 
 %      print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
 %      [saveDir filesep 'timeSeries' filesep 'lengths' filesep 'track_' num2str(iTrack, fmt) ext])
 
 %saveas(h,[saveDir filesep 'timeSeries' filesep 'lengths' filesep 'track_' num2str(trackID(iTrack), fmt) '.eps'],'psc2'); 
+%saveas(h,[saveDir filesep 'timeSeries' filesep 'lengths' filesep 'track_' num2str(trackID(iTrack), fmt) '.fig'])
 saveas(h,[saveDir filesep 'timeSeries' filesep 'lengths' filesep 'track_' num2str(trackID(iTrack), fmt) '.fig'])
-
 close(gcf) 
 end % if length
 %% 

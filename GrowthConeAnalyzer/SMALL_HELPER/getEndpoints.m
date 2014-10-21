@@ -1,10 +1,15 @@
 
-function [coords,vect] = getEndpoints(pixIdx,size,checkSingletons,getVector)
+function [coords,vect] = getEndpoints(pixIdx,size,checkSingletons,getVector,endPointType)
 % checkSingletons input added for maintaining functionality with
 % skel2Graph4OutGrowthMetric - here need to just get coordinates of
 %
 % getVector: logical 1 or 0 if 1 this will get the local vector from
-% towards the endpoint: need to determine if 
+%           towards the endpoint: need to determine if 
+%
+% endPointType: scalar 4 or 8 (CC)
+%           An endpoint can be defined as pixels with only 1 neighboring CC 
+%           in a neighborhood of either 4 or 8 local pixels. 
+
 if nargin<3 
     checkSingletons = 0; 
 end 
@@ -13,6 +18,10 @@ if nargin<4
     getVector = 0; 
 end 
      
+if nargin<5 
+    endPointType = 8; 
+end 
+
 singleFlag = 0 ;
 
 if checkSingletons == 1
@@ -30,18 +39,22 @@ if singleFlag == 1
     vect = [nan nan]; 
 else
     
-    %
+    
     maskC = zeros(size);
     maskC(pixIdx)=1;
+    if endPointType == 8 
     sumKernel = [1 1 1];
     % find endpoints of the floating candidates to attach (note in the
     % future might want to prune so that the closest end to the
     % body is the only one to be re-attatched: this will avoid double connections)
     endpoints = double((maskC.* (conv2(sumKernel, sumKernel', padarrayXT(maskC, [1 1]), 'valid')-1))==1);
-    [ye,xe] = find(endpoints~=0);
     
+    else 
+        endpoints =     bwmorph(maskC,'endpoints'); 
+    end 
+       
     
-        
+        [ye,xe] = find(endpoints~=0);
         
         
     % need to remove 

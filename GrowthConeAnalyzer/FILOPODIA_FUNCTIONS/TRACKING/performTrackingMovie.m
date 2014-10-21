@@ -11,7 +11,7 @@ costMatParams.predict = 0 ;
 % load from 
 
   load([movieData.outputDirectory_ filesep 'filopodia_reconstruct' filesep ... 
-      'Filopodia_Reconstruct_Channel_1' filesep 'analInfoTestSave.mat']);
+      'Filopodia_Reconstruct_Channel_1' filesep 'analInfoWithLocalVeilnmPerSec.mat']);
   
    imDir = movieData.channels_(1).channelPath_;
   

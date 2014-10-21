@@ -83,7 +83,7 @@ for iCh = 1:nChan
     end
 %% %%%% Start Frame Loop %%%%
     for iFrame = 1:nFrames
-       load([movieData.outputDirectory_ filesep 'windows' filesep 'windows_frame__frame_' num2str(iFrame,'%02d') '.mat'])  ;    
+       load([movieData.outputDirectory_ filesep 'WindowingPackage' filesep 'windows' filesep  'windows_frame__frame_' num2str(iFrame,'%03d') '.mat'])  ;    
        filoInfoC = analInfo(iFrame).filoInfo; 
        filoInfo = GCAassociateVeilWindowsToFilo(filoInfoC,windows,0); 
        analInfo(iFrame).filoInfo = filoInfo; % replace 

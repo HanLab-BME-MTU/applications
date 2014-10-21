@@ -115,8 +115,8 @@ if nargin<5
     paramsIn.makeMovieFiles = 1;
     paramsIn.distCutOffForBody = 15;  % currently in um
     paramsIn.mkPlotsBodyMeasure = 1;
-    paramsIn.subRegions =1; % flag to make frontMask subRegions
-    paramsIn.plotFrontMask = 1; % flag to plot the frontMask 
+    paramsIn.subRegions =0; % flag to make frontMask subRegions
+    paramsIn.plotFrontMask = 0; % flag to plot the frontMask 
 end
 p = paramsIn; 
 %% Make all output files 

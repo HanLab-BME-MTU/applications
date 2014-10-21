@@ -71,13 +71,24 @@ xyCoords= vertcat(filoInfoFilt(:).Ext_endpointCoordFitXY); % be careful do I eve
 % % could put the base coords in here instead... but want some orientation
 % % information to be built into the cost function so not necessarily
 % % straight forward could maybe have that information here... 
-% 
 
+% added 20140928
+idxNaN = find(arrayfun(@(x) isempty(filoInfoFilt(x).windowIdx),1:length(filoInfoFilt)));
+if ~isempty(idxNaN)
+% for now fix empty with NaN
+for i=1:length(idxNaN); 
+    filoInfoFilt(idxNaN(i)).windowIdx = NaN; 
+
+end 
+end 
+%windowNum =arrayfun(@(x) filoInfoFilt(x).windowIdx(1),1:length(filoInfoFilt)); 
+localVeil = arrayfun(@(x) filoInfoFilt(x).localVeil,1:length(filoInfoFilt));  
 add = 0.5*ones(length(xyCoords),1); 
 movieInfo(iFrame).xCoord = [xyCoords(:,1) add]; 
 movieInfo(iFrame).yCoord = [xyCoords(:,2) add]; 
-movieInfo(iFrame).amp = [lengths std]; % remind me why I need movieInfo format again... should try to eradicate 
-
+%movieInfo(iFrame).amp = [lengths std]; % remind me why I need movieInfo format again... should try to eradicate 
+%movieInfo(iFrame).amp = [windowNum' std];
+movieInfo(iFrame).amp = [localVeil' std]; 
  analInfoFilt(iFrame).filoInfo = filoInfoFilt; 
 
 
