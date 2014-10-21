@@ -75,7 +75,12 @@ classdef LaminsImage < hgsetget
                     obj.steerable = matobj.steerable(obj.coordinates{[1 3]});
                     obj.steerable = obj.steerable{1};
                 else
-                    [s.res, s.theta, s.nms] = steerableDetector(double(obj),4,5);
+                    sigma = 5;
+                    if(~isempty(obj.parent) && isa(obj.parent,'lamins.classes.LaminsData'))
+                        sigma = obj.parent.params.steerable.sigma;
+                    end
+                    disp(sigma);
+                    [s.res, s.theta, s.nms] = steerableDetector(double(obj),4,sigma);
                     obj.steerable = s;
                 end
             end
@@ -247,8 +252,12 @@ classdef LaminsImage < hgsetget
             end
         end
         function X = flattenIntensity(obj)
-            kernel = fspecial('gaussian',20,10);
-            X = double(obj)./imfilter(double(obj),kernel);
+            if(isscalar(obj))
+                kernel = fspecial('gaussian',50,10);
+                X = double(obj)./imfilter(double(obj),kernel);
+            else
+                X = arrayfun(@flattenIntensity,obj,'UniformOutput',false);
+            end
         end
         function loadSteerable(obj)
             S = load(['~/matlab/lamins/work/steerable_' num2str(obj(1).parent.params.movieNum)  '.mat']);
