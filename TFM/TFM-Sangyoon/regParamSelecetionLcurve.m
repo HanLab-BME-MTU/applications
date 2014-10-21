@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda,manualSelection)%,dataPath)
+function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -16,12 +16,20 @@ function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,
 %   ireg_corner - the index of the value in reg_param with maximum curvature
 %   kappa       - the curvature for each reg_param
 
-if nargin<4
-    init_lambda = median(lambda);
-    manualSelection = false;
-elseif nargin<5
-    manualSelection = false;
-end
+ip = inputParser;
+ip.addRequired('rho',@isnumeric);
+ip.addRequired('eta',@isnumeric);
+ip.addRequired('lambda',@isnumeric);
+ip.addOptional('init_lambda',median(lambda),@isnumeric);
+ip.addParameter('inflection',false,@islogical);
+ip.addParameter('manualSelection',false,@islogical);
+ip.parse(rho,eta,lambda,init_lambda, varargin{:});
+rho=ip.Results.rho;
+eta=ip.Results.eta;
+lambda=ip.Results.lambda;
+init_lambda=ip.Results.init_lambda;
+manualSelection=ip.Results.manualSelection;
+inflection=ip.Results.inflection;
 
 % transform rho and eta into log-log space
 x=log(rho);
@@ -70,11 +78,18 @@ elseif length(maxKappaCandIdx)>1
 elseif isempty(maxKappaCandIdx)
     error('there is no local maximum in curvature in the input lambda range');
 end
+if inflection % if inflection point is to be chosen instead of L-corner
+    inflectionIdx = find(kappa<0 & (1:nPoints)'>maxKappaIdx,1,'first');
+    ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    reg_corner = lambda_cut(inflectionIdx);
+    disp(['L-inflection value: ' num2str(reg_corner)])
+else
+    ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    reg_corner = lambda_cut(maxKappaIdx);
+    disp(['L-corner regularization parameter value: ' num2str(reg_corner)])
+end
 % [~, maxKappaDiffIdx] = max(kappadiff(1:maxKappaIdx)); %  this is steepest point right before L-corner. This is usually too small.
 % find an index at kappa = 0 before maxKappaIdx
-ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
-reg_corner = lambda_cut(maxKappaIdx);
-disp(['L-corner regularization parameter value: ' num2str(reg_corner) '.'])
 
 % ireg_corner = corner(rho,eta,false);
 

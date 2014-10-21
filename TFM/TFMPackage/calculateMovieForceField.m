@@ -14,6 +14,7 @@ function calculateMovieForceField(movieData,varargin)
 %
 
 % Sebastien Besson, Sep 2011
+% Last updated by Sangyoon Han, Oct 2014
 
 %% Input
 %Check input

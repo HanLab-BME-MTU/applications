@@ -12,7 +12,6 @@ function [fx, fy, x_out, y_out, M, pos_u, u, sol_coef, sol_mats] = ...
 %         spatial derivatives of the displacements, that is du/dx. If u and
 %         dx (essentially cluster_size) are in the same units, then the
 %         resulting force has the same dimension as the input E.
-
 %         u: is the measured displacement! (not the model u!)
 % Achim Besser 2011
 % Sangyoon Han 2013
@@ -270,14 +269,25 @@ if nargin >= 10 && strcmp(method,'fast')
         else
             sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         end
-        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
-        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./backslash',0)
+        sol_mats.eyeWeights=eyeWeights;
+        sol_mats.MpM=MpM;
+        sol_mats.L=L;
+        sol_mats.tool='backslash';
+
+        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,[],[],'new');
+        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./backslash',0,1600)
 %         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         % store these matrices for next frames:
+    elseif strcmpi(solMethodBEM,'fourier')
         % Test Fourier-based solution
         % pad M to 2*(N-1,O-1) points to avoid wrap-around effects
         % beta_alpha = (M'*M+L*K^2)^(-1)*M'*D
-        
+        y_out = forceMesh.p(:,2);
+        x_out = forceMesh.p(:,1);
+        x_vec = pos_u(:,1);
+        y_vec = pos_u(:,2);
+        ux_vec = u(1:length(x_vec),1);
+        uy_vec = u(length(x_vec)+1:end,1);
         colsOut = sum(y_out==y_out(1));
         reg_grid(:,:,1) = reshape(x_out,[],colsOut);
         reg_grid(:,:,2) = reshape(y_out,[],colsOut);
@@ -286,48 +296,37 @@ if nargin >= 10 && strcmp(method,'fast')
 
         % I am trying to invert M in frequency domain.
         % generate spectra
-        uspec = fft(iuvec);
         rowsOut = size(grid_mat,1);
         
-%         gridSpacing = grid_mat(1,2,1)-grid_mat(1,1,1);
-%         kx_vec = (-i_max/2:(i_max/2-1))*gridSpacing;
-%         ky_vec = (-j_max/2:(j_max/2-1))*gridSpacing;
-%         [grid0centeredx,grid0centeredy] = meshgrid(kx_vec,ky_vec);
         Mgrid = calcFwdMapFastBEM(grid_mat(:,:,1),grid_mat(:,:,2), forceMesh, E, meshPtsFwdSol,'basisClassTblPath',basisClassTblPath,'PoissonRatio',v);
-        MgridMid = Mgrid(:,colsOut/2*rowsOut+rowsOut/2);
-        Mspec = fft(MgridMid);
+        Mgridfirst = Mgrid(:,1); % this might need to be shifted back some how.
+        % scaling (by grid spacing) and shifting (grid spacing) should be fixed
+%         MgridfirstMax = max(abs(Mgridfirst));
+        gridSpacing = grid_mat(1,2,1) - grid_mat(1,1,1);
+        MgridfirstNor = Mgridfirst*gridSpacing;%/MgridfirstMax;
+%         MgridMid = Mgrid(:,colsOut/2*rowsOut+rowsOut/2);
+        % zero padding to avoid wrap-around effect of circular convolution
+        Nu = length(iuvec);
+        N_G=2*Nu;
+        % These might not be a power of 2, make sure that they are:
+        N_pad=pow2(nextpow2(N_G));
+        
+        iuvecPadded=padarray(iuvec,N_pad-Nu,0,'post');
+        MgridfirstPadded  = padarray(MgridfirstNor,N_pad-Nu,0,'post');
+        
+        uspec = fft(iuvecPadded);
+        Mspec = fft(MgridfirstPadded);
         % regularization
         Fspec = conj(Mspec)./(conj(Mspec).*Mspec+L*ones(size(Mspec))).*uspec;
-        sol_coef_fft = ifft(Fspec,'symmetric');
-        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef_fft,x_out,y_out,'new');
-        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./fft',0);
-        
-        MgridMid = Mgrid(:,5);
-        Mspec = fft(MgridMid);
-        % regularization
-        Fspec = conj(Mspec)./(conj(Mspec).*Mspec+L*ones(size(Mspec))).*uspec;
-        sol_coef_fft = ifft(Fspec);
-        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef_fft,x_out,y_out,'new');
-        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./fft',0,120);
-        
-
-        
-        Ftf(:,:,1) = Ginv_xx.*Ftu(:,:,1) + Ginv_xy.*Ftu(:,:,2);
-        Ftf(:,:,2) = Ginv_yy.*Ftu(:,:,2) + Ginv_xy.*Ftu(:,:,1);
-
-        f(:,:,1) = ifft2(Ftf(:,:,1),'symmetric');
-        f(:,:,2) = ifft2(Ftf(:,:,2),'symmetric');
-        
-        sol_coef_fft = [reshape(f(:,:,1),[],1); reshape(f(:,:,2),[],1)];
-        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef_fft,x_out,y_out,'new');
-        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./fft',0);
-
-
+        sol_coef_fftPadded = ifft(Fspec,'symmetric');
+        sol_coef_fft = sol_coef_fftPadded(1:Nu);
+        [fxFT,fyFT,x_outFT,y_outFT]=calcForcesFromCoef(forceMesh,sol_coef_fft,x_out,y_out,'new');
+        generateHeatmapFromGridData(x_outFT,y_outFT,fxFT,fyFT,'./fft',0,1600);
         
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;
         sol_mats.L=L;
-        sol_mats.tool='backslash';
+        sol_mats.tool='fourier';
     else
         error(['I don''t understand the input for the solution method: ',solMethodBEM])
     end
