@@ -354,6 +354,7 @@ for iCh = 1:nChan
             % save new neurite entrance and the new backboneSeed
             backboneInfo(frames2Fix(iFrame)).backboneSeedMask= backboneSeed;
             backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite = [xEnter,yEnter];
+            backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
             % document in a folder
             close gcf
             %% Troubleshoot Plots
@@ -380,6 +381,7 @@ for iCh = 1:nChan
         
         
     end
+      
         save([saveDir filesep 'backboneInfoFix.mat'],'backboneInfo');
         save([saveDir filesep 'framesFixed.mat'],'frames2Fix');
         save([saveDir filesep 'paramsIn.mat'],'paramsIn');

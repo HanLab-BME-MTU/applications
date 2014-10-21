@@ -440,7 +440,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         %% Save the information
         backboneInfo.backboneSeedMask = backboneSeed;
         backboneInfo.coordsEnterNeurite = [xEnter,yEnter]; % save this to test for consistency
-      
+        backboneInfo.timeStamp = clock;
         
         
       %  save([saveDir filesep 'backboneInfo.mat'],'backboneInfo'); % update the analysis

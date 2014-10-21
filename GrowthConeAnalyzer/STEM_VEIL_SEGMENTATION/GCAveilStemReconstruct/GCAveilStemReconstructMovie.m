@@ -1350,7 +1350,7 @@ analInfo(iFrame).masks.neuriteEdge = fullMask;
  analInfo(iFrame).bodyEst.pixIndThickBody = pixIndThickBody; 
         analInfo(iFrame).bodyEst.pixIndThinBody = pixIndThinBody; % think about how you want to store this. 
     analInfo(iFrame).cycleFlag = cycleFlag; 
-     
+   analInfo(iFrame).timeStamp = clock;
      
  %save([outDir filesep 'analInfo.mat'],'analInfo'); 
  save([outDirChan filesep 'analInfoTestSave.mat'],'analInfo','-v7.3'); 
