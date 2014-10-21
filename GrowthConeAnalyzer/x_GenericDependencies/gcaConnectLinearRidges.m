@@ -1,5 +1,5 @@
-function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatFill,status] = gcaConnectLinearStructures(EPCandidateSort,maxTh,candidateMask,labelMat,radius)
-% gcaConnectLinearStructures: small dependency function used to connect 
+function [ candidateMaskNew,linkMask,EPCandidateSort, labelMatFill,status] = gcaConnectLinearRidges(EPCandidateSort,maxTh,candidateMask,labelMat,radius)
+% gcaConnectLinearRidges: small dependency function used to connect 
 % the endpoints of two ridges that fall within a certain distance and linearity criteria. 
 % Used for connecting backbone (large scale ridges of neurite) or as a preclustering
 % step to connect smaller segments of small scale filopodia ridges for further reconstruction 
