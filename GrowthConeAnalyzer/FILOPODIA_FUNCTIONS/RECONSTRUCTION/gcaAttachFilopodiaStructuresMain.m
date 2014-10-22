@@ -1,4 +1,4 @@
-function [reconstruct,filoInfo] = gcaAttachFilopodiaStructures(img, skelIn,bodyMask,scaleMap,maxRes,maxTh,nImTot,analInfoC,normalC,smoothedEdgeC,iFrame,framesPath)
+function [reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img, skelIn,bodyMask,scaleMap,maxRes,maxTh,nImTot,analInfoC,normalC,smoothedEdgeC,iFrame,framesPath)
 % gcaAttachFilopodiaStructures: was
 % cleanMaskWithBackEst_withInternalFiloClean until 20141022
 % Cleans the steerable filter ridge response based on the neurite body
@@ -650,7 +650,7 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
    CCFiloObjs.PixelIdxList(csizeTest<3) = [];
      CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3); 
  
-    [ filoInfo ] = gcaRecordFilopodiaInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!! 
+    [ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!! 
  
 %% Reconstruct the external filopodia network from the initial seed  
 
@@ -811,7 +811,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
    % have a gate that is set to 10 pixels so far (things beyond that distance will
    % not be considered)
     
-    [outputMasks,filoInfo,status] = gcaConnectFilopodia(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
+    [outputMasks,filoInfo,status] = gcaConnectExternalFilopodia(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
     if status == 1 ;
         %           % note filoInfo will be updated and this will be used to remake the seed
         reconstruct.output{reconIter} = outputMasks;
