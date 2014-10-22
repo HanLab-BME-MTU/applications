@@ -476,7 +476,7 @@ if preConnInt == 1
         % run through
         % maskpostconnect1 should have all the CC filos after first connection
         % between in and out
-        [maskPostConnect1,linkMask1,status]  = connectInternalFilo(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,10,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
+        [maskPostConnect1,linkMask1,status]  = gcaConnectInternalFilopodia(internalFilo1EPsFinal,seedFilo1EPsFinal,maxTh,filoExtSeedForInt,10,labelMatCandInt1,vectInt,vectSeed,dInt,dSeed);
         % need to get the internal Filoconnect
         
         
@@ -651,8 +651,7 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
      CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3); 
  
     [ filoInfo ] = gcaRecordFilopodiaInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!! 
- % [ trackObj,filoInfo] = getFiloCoordsAdvanced(CCFiloObjs ,img ,maxTh,maxRes,[],iFrame,nImTot,bodyMask);
-%end 
+ 
 %% Reconstruct the external filopodia network from the initial seed  
 
 %%%% INITIATE THE ITERATIVE WHILE LOOP %%%%    
@@ -812,7 +811,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
    % have a gate that is set to 10 pixels so far (things beyond that distance will
    % not be considered)
     
-    [outputMasks,filoInfo,status] = connectFilo(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
+    [outputMasks,filoInfo,status] = gcaConnectFilopodia(xySeed,EPCandidateSort,10,labelMatCanFilo,labelMatSeedFilo,filoSkelPreConnectFiltered,filoInfo,maxRes,maxTh,img,normalC,smoothedEdgeC);
     if status == 1 ;
         %           % note filoInfo will be updated and this will be used to remake the seed
         reconstruct.output{reconIter} = outputMasks;
