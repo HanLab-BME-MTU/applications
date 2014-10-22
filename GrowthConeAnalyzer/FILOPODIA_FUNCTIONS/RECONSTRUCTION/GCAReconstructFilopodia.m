@@ -216,7 +216,7 @@ else
 end 
 %cd(framesPath);
 % Main Function (should rename) that performs the reconstructions
-[reconstruct,filoInfo] = cleanMaskWithBackEst_withInternalFiloClean(img,skelIn,erodfilo,scaleMap,maxRes,maxTh,nImTot,input,normalC,smoothedEdgeC,iFrame,framesPath);
+[reconstruct,filoInfo] = gcaAttachFilopodiaStructures(img,skelIn,erodfilo,scaleMap,maxRes,maxTh,nImTot,input,normalC,smoothedEdgeC,iFrame,framesPath);
 
 analInfo(iFrame).filoInfo = filoInfo; % will already be filtered for short filo
 
