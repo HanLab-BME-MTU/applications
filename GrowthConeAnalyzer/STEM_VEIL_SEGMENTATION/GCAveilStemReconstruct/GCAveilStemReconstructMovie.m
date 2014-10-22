@@ -109,7 +109,7 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 75; 
+    paramsIn.patchSize = 25; 
     paramsIn.startFrame = 1;  %default = 1 
     paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
@@ -374,6 +374,11 @@ while stopFlagBodyReconstruct ==0
                 %
                 idxEnterNeurite = sub2ind(size(img),xyEnterNeurite(:,2), xyEnterNeurite(:,1));
                 backboneInfo(iFrame).coordsEnterNeurite = xyEnterNeurite; 
+                cleanedRidge = backboneInfo(iFrame-1).bodyReconstruct.AfterConnect; 
+                backboneInfo(iFrame).bodyReconstruct.AfterConnect = cleanedRidge;
+    cleanedRidge(backbone==1) = 0; 
+    % added 20140307 
+    cleanedRidge =  bwmorph(cleanedRidge,'spur'); 
             end
             
             
