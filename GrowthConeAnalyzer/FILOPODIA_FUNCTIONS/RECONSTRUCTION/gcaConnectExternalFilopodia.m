@@ -1,4 +1,4 @@
-function [outputMasks, filoInfo,status] = gcaConnectFilopodia(inputPoints, candFiloEPs, radius,  labelCandidates, labelMatSeedFilo,cellBoundary,filoInfo, maxRes,maxTh,img,normalsC,smoothedEdgeC)
+function [outputMasks, filoInfo,status] = gcaConnectExternalFilopodia(inputPoints, candFiloEPs, radius,  labelCandidates, labelMatSeedFilo,cellBoundary,filoInfo, maxRes,maxTh,img,normalsC,smoothedEdgeC)
 % gcaConnectFilopodia: used to be connectFilo until 20141022
 % someday should consolidate some of these input parameters into structures
 % I think right now it's annoying 
@@ -154,9 +154,9 @@ dotCandAndSeed = zeros(length(labelsSeed),1);
 % want a link that 1) have a similar orientation to the filo,
 % 2) have a high amount of image intensity, and 3) is a relatively short 
 % distance (though this maybe should be slightly less emphasized) 
- figure('Visible','off'); 
+ figure('Visible','on'); 
 %img = img./((2^16)-1); % ask ludo the bitdepth of the camera should do in beginning
-plotPaths =0 ; 
+plotPaths =1; 
 c = colormap(lines(size(E,1))); 
 if plotPaths ==1 
     imshow(img,[]) 
@@ -445,7 +445,7 @@ if ~isempty(idxBodyAttach)
             x.localVectFilo = []; 
             
         end
-        x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+       % x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
       
         idxBodyAttachFiloInfo = numel(filoInfo) +1;
         
@@ -568,7 +568,7 @@ if ~isempty(idxFiloAttach)
                 x.conXYCoords= [];
             end
             % refit
-            x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+            %x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
             % make sure to take off the flag that doesn't allow you to re-do
             
             % keep any old field the same (ie internal filo etc)
@@ -682,7 +682,7 @@ if ~isempty(idxFiloAttach)
         
         testMask(pixGoodConnect{idxFiloAttach(iFilo)})=1;
         testMask = logical(testMask);
-       
+        testMask = bwmorph(testMask,'thin','inf'); 
         transform = bwdistgeodesic(testMask,xEP,yEP);
         % now need to get pixels and do fit on the branch
         pixIdxBack = nan(50,1); % overinitialize to make happy
@@ -737,7 +737,7 @@ if ~isempty(idxFiloAttach)
         x.orientation = orientBranch; % in degrees. 
         x.localVectFilo = vectBranch; 
         x.localVectAttach = vectSeedFiloLocBranchReg; 
-        x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
+%         x = fitLinescansNew(x,dims,0,11,0,0); % add the new filo fit
         fieldsx = fieldnames(x); 
         fieldsFiloInfo = fieldnames(filoInfo); 
         fieldsAddtoX = setdiff(fieldsFiloInfo,fieldsx); 
