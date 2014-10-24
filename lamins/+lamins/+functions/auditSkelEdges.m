@@ -1,6 +1,8 @@
 function [ A ] = auditSkelEdges( skel, I )
 %auditSkelEdges Check to see if skeleton edges are reasonable
 
+import connectedComponents.*;
+
 endpts = bwmorph(skel,'endpoints');
 branchpts = bwmorph(skel,'branchpoints');
 branchpt.idx = find(branchpts);
@@ -17,7 +19,7 @@ A.width = ([A.rp.MaxIntensity]-[A.rp.MinIntensity])./[A.rp.MeanIntensity];
 
 thresh = thresholdRosin(A.width);
 filter = (A.width < thresh | [A.rp.MeanIntensity] > 0.5) & [A.rp.MinIntensity] > 0.2;
-A.fcc = filtercc(A.cc,filter);
+A.fcc = ccFilter(A.cc,filter);
 A.frp = regionprops(A.fcc,I,'MaxIntensity','MeanIntensity','MinIntensity','Area');
 
 vert_neigh = imdilate(vertices,strel('square',3)) & skel;
