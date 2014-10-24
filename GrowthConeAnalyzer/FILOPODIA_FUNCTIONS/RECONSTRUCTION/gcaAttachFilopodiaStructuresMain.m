@@ -658,6 +658,7 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
 
 numViableCand =1; % flag to continue with reconstruction interations as there are viable candidates to attach
 filoSkelPreConnect = double(filoSkelPreConnectExt); % initial skeleton before linking : includes all candidates
+filoSkelPreConnect = bwmorph(filoSkelPreConnect,'spur');
 links = zeros(size(img)); % initiate link matrix
 reconIter = 1; % initiate recording reconstruction iterations
 linksPre = zeros(size(img)); 
