@@ -35,6 +35,8 @@ for ifilo = 1:numFilo2Fit
    
     % convert to distance along filo in pixels: think about a prettier way to do this.  
     xyFilo = filoInfo(idxCurrent).([toAdd 'coordsXY']);
+    if ~isnan(xyFilo); 
+        
     xFilo = xyFilo(:,1);
     yFilo = xyFilo(:,2); 
     deltX = diff(xFilo); 
@@ -56,12 +58,19 @@ for ifilo = 1:numFilo2Fit
    
  
 if strcmpi(paramsIn.ValuesForFit,'Intensity')
-   maskIndices = filoInfo(idxCurrent).Ext_maskIndices; 
-   yData = imgFilt(maskIndices(:,1)); % just take the center line check to see the order of the data row 1 = base I think wherease end = tip 
+   maskIndices = filoInfo(idxCurrent).([toAdd 'maskIndices']); 
+   % quick fix 20141023 
+
+   if length(distFilo) ~= length(maskIndices(:,1))
+       display(['Maria you need to make sure to truncate internal maskIndices too that span body for Filo' num2str(ifilo) '!'])
+       maskIndices = maskIndices(1:length(distFilo),:); 
+
+   end 
+       yData = imgFilt(maskIndices(:,1)); % just take the center line check to see the order of the data row 1 = base I think wherease end = tip 
    if p.SavePlots  == 1 
        if sum(isnan(maskIndices(:)))==0; 
            
-       subplot(2,2,(1:2)); 
+       subplot(3,2,(1:2)); 
        % I saved these originally with the first column the center line and
        % the perpendicular pixels outward... might want to save in this
        % form to avoid future confusion (might have decided not to change
@@ -134,9 +143,10 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         if p.SavePlots ==1
             
        %     figure('visible','on');
-        subplot(2,2,3:4)     
+        subplot(3,2,3:4)     
             
             linescan = scatter(distFilo,yData);
+            xlabel('Distance Along Filopodia um');
             hold on
         end
        % line([measEnd,measEnd],[max(yData),min(yData)],'color','g');% 
@@ -150,10 +160,10 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         
         % OLD STARTS: PRE 2014_01_31 
         % CHECK these starts (20140517)
-        starts = [max(yDataFit)-min(yDataFit), filoInfo(idxCurrent).([toAdd 'endpointCoord']),5,...
+        starts = [max(yDataFit)-min(yDataFit),length( filoInfo(idxCurrent).([toAdd 'pixIndicesBack'])),5,...
              min(yDataFit)];
-         upb = [(max(yDataFit)-min(yDataFit)), length(distFiloFit),20,max(yDataFit)];
-         lwb = [upb(1)/2, 0, 1, min(yDataFit)];
+         upb = [max(yData); max(distFiloFit);20 ; max(yData)];
+         lwb = [0;min(distFiloFit); 1; min(yData)];
         
         % calculate lb and ub
         
@@ -224,9 +234,9 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
             title(['Length = ' num2str(params(2).*0.216,3) ' um']) 
         
         end 
+        %yFit = params(1)*distFilo+params(2);
         
-        
-        yFit = params(1)*(1-0.5*(1+erf((distFilo-params(2))/(params(3)*sqrt(2)))))+params(4);
+       yFit = params(1)*(1-0.5*(1+erf((distFilo-params(2))/(params(3)*sqrt(2)))))+params(4);
         hold on
         if p.SavePlots ==1
             plot(distFilo,yFit,'r')
@@ -243,8 +253,15 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
 %                 currentSaveDir = badFitSaveDir; 
 %                 maskBadFit(filoInfo(idxCurrent).([toAdd 'pixIndices']))=1; 
 %             end 
-%                 
-            saveas(linescan, [ p.OutputDirectory filesep filename]);
+
+ subplot(3,2,5:6); 
+  imshow(-img,[]) ; 
+  hold on
+  filoInfoC = filoInfo(idxCurrent);
+  GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,2,[],0); 
+  
+
+            saveas(gcf, [ p.OutputDirectory filesep filename]);
             close all
 %             test = zeros(imgSize(1),imgSize(2)); 
 %             idx = filoInfo(idxCurrent).([toAdd 'pixIndices']); 
@@ -281,13 +298,22 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         % new field added 05/17/2014 
         filoInfo(idxCurrent).([toAdd 'distFilo']) = NaN; % 
     end
-    
-  
+    else 
+    filoInfo(idxCurrent).([toAdd 'params']) = NaN;
+        filoInfo(idxCurrent).([toAdd 'endpointCoordFitXY']) =[ NaN,NaN];
+        filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix']) = NaN; 
+        filoInfo(idxCurrent).([toAdd 'exitFlag']) = NaN;
+        filoInfo(idxCurrent).([toAdd 'resnorm']) = NaN;
+        filoInfo(idxCurrent).([toAdd 'length']) = NaN; 
+        filoInfo(idxCurrent).([toAdd 'std']) = NaN; 
+        % new field added 05/17/2014 
+        filoInfo(idxCurrent).([toAdd 'distFilo']) = NaN; % 
+ 
     
    
-
+end % if isnan
     
-end
+end % ifilo
  
 % collect pixels for all bad fits
 
@@ -296,6 +322,7 @@ end
 
 end
 function F= testfun(p,xData)
+%F = p(1).*xData + p(2);
 F = p(1)*(1-0.5*(1+erf((xData-p(2))/(p(3)*sqrt(2)))))+p(4);
 end
 

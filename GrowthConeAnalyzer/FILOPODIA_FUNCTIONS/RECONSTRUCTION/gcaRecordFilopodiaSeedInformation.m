@@ -396,21 +396,21 @@ end
 %  filoInfo = fitLinescansNew(filoInfo,[ny,nx],0,11,0,0); %for now don't plot
   
   % calculate filopodia info into out;
-  for iFilo = 1: numel(filoInfo)
-      
-      if ~isnan(filoInfo(iFilo).Int_length) 
-      filoInfo(iFilo).totalLength = filoInfo(iFilo).Int_length + filoInfo(iFilo).Ext_length; 
-      filoInfo(iFilo).percentInternal = filoInfo(iFilo).Int_length./filoInfo(iFilo).totalLength; 
-      else 
-          filoInfo(iFilo).totalLength = filoInfo(iFilo).Ext_length;
-          if ~isnan(filoInfo(iFilo).Ext_length)
-          filoInfo(iFilo).percentInternal = 0; 
-          else 
-              filoInfo(iFilo).percentInternal = NaN; 
-          end 
-      end 
-      
-  end 
+%   for iFilo = 1: numel(filoInfo)
+%       
+%       if ~isnan(filoInfo(iFilo).Int_length) 
+%       filoInfo(iFilo).totalLength = filoInfo(iFilo).Int_length + filoInfo(iFilo).Ext_length; 
+%       filoInfo(iFilo).percentInternal = filoInfo(iFilo).Int_length./filoInfo(iFilo).totalLength; 
+%       else 
+%           filoInfo(iFilo).totalLength = filoInfo(iFilo).Ext_length;
+%           if ~isnan(filoInfo(iFilo).Ext_length)
+%           filoInfo(iFilo).percentInternal = 0; 
+%           else 
+%               filoInfo(iFilo).percentInternal = NaN; 
+%           end 
+%       end 
+%       
+%   end 
   
   
   

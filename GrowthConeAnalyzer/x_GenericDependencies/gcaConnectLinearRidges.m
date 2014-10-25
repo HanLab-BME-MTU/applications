@@ -152,7 +152,7 @@ end
 
 %% get other costs of these edges 
 % DELTA SCALE - would need to input the scale map
-
+if ~isempty(E)
 % GEOMETRIC - 
 % get the local vectors of the tangent at the endpoint
 vect = vertcat(EPCandidateSort{:});
@@ -228,7 +228,8 @@ end
 E(idxFilt,:) = []; 
 d(idxFilt) = []; 
 dotProd21(idxFilt) = []; 
-dotProd12(idxFilt) = []; 
+dotProd12(idxFilt) = [];
+end % isempty E 
 %%
 if ~isempty(E) %check if there are reasonable edges 
 % make sure to make d so that minimum d are favored

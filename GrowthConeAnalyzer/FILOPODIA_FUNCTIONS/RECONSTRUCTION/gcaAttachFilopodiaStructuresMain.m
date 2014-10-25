@@ -149,6 +149,8 @@ if preConnInt == 1
     seedFilo1EPs = cellfun(@(x) getEndpoints(x,size(img)),CCFiloExtSeedForInt.PixelIdxList,'uniformoutput',0);
     
     
+    
+    
     % filter out those CCs with no or more than 2 end points
     weirdSeed = cellfun(@(x) size(x,1)~=2,seedFilo1EPs);
     seedFilo1EPs = seedFilo1EPs(~weirdSeed);
@@ -649,6 +651,9 @@ CCFiloObjs = bwconncomp(maskPostConnect1);
      csizeTest = cellfun(@(x) length(x),CCFiloObjs.PixelIdxList);
    CCFiloObjs.PixelIdxList(csizeTest<3) = [];
      CCFiloObjs.NumObjects = CCFiloObjs.NumObjects - sum(csizeTest<3); 
+     
+     % 20141024 Check for filo attached twice 
+     
  
     [ filoInfo ] = gcaRecordFilopodiaSeedInformation( CCFiloObjs,img,maxRes,maxTh,edgeMask,bodyMask,analInfoC,normalC,smoothedEdgeC); %% NOTE fix input here!! 
  

@@ -324,20 +324,20 @@ close gcf
 %  connIdx = arrayfun(@(x) ~isempty(x.conIdx),filoInfo);
 %  branches = filoInfo(connIdx); 
  type = arrayfun(@(x) x.type,filoInfo); 
-% % filoInfoBranch = filoInfo(type==1); 
-%  
-% %  sums = arrayfun(@(x) sum(c(x,:)),1:length(c(:,1))); 
-% %  idxBlack = find(sums(:)==.75); 
-% %   x = repmat([0.5 0 0.5],length(idxBlack),1); 
-% % c(idxBlack,:) = x; 
-% 
+% filoInfoBranch = filoInfo(type==1); 
+ 
+%  sums = arrayfun(@(x) sum(c(x,:)),1:length(c(:,1))); 
+%  idxBlack = find(sums(:)==.75); 
+%   x = repmat([0.5 0 0.5],length(idxBlack),1); 
+% c(idxBlack,:) = x; 
+
 % filoInfoBranch = filoInfo(type ~=0); 
 % groupIDAll =vertcat(filoInfoBranch(:).groupCount); 
 % groupID = unique(groupIDAll); 
 %  c = colormap(lines(length(groupID)));
 % c = ['r' 'b' 'g' 'y' 'c' 'm' 'k','r']; 
 % c = c'; 
-% h  = setFigure(nx,ny); 
+% h  = setFigure(nx,ny,'on'); 
 % 
 %  imshow(-img,[]); 
 %  hold on 

@@ -1,4 +1,4 @@
-function [ filoInfo] = fitLinescansMovie( movieData,paramsIn)
+function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
 %fitLinescansMovie: performs automated fitting of filopodia detections 
 
 % INPUT:
@@ -97,10 +97,10 @@ if nargin < 2
     outputDirectory = [movieData.outputDirectory_ filesep 'filopodia_fits'];
     paramsIn.OutputDirectory = outputDirectory ;
     paramsIn.ChannelIndex = 1  ;
-    paramsIn.InternalFiloOn = 0;
+    paramsIn.InternalFiloOn = 0; 
     paramsIn.NumPixForFitBack = 10; % should maybe eventually make this distance?
     paramsIn.ValuesForFit = 'Intensity'; % default is the intensity;
-    paramsIn.SavePlots = 1; 
+    paramsIn.SavePlots = 0; 
 end
 p = paramsIn ; 
 %Get the indices of any previous mask refinement processes from this function
@@ -155,6 +155,10 @@ for iCh = 1:numel(paramsIn.ChannelIndex)
         % make a specific output directory for the plotting for each frame 
         pSpecific = p; 
         pSpecific.sigma = movieData.channels_.psfSigma_; 
+        if isempty(pSpecific.sigma) 
+            display(['Using sigma 0.5']); 
+            pSpecific.sigma = 0.5;
+        end 
         if pSpecific.SavePlots == 1 
             
         pSpecific.OutputDirectory = [outPutDirC filesep 'Linescans' filesep 'Frame ' num2str(iFrame,'%03d')];

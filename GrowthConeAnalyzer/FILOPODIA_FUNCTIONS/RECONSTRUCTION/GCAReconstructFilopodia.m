@@ -216,7 +216,7 @@ else
 end 
 %cd(framesPath);
 % Main Function (should rename) that performs the reconstructions
-[reconstruct,filoInfo] = gcaAttachFilopodiaStructures(img,skelIn,erodfilo,scaleMap,maxRes,maxTh,nImTot,input,normalC,smoothedEdgeC,iFrame,framesPath);
+[reconstruct,filoInfo] = gcaAttachFilopodiaStructuresMain(img,skelIn,erodfilo,scaleMap,maxRes,maxTh,nImTot,input,normalC,smoothedEdgeC,iFrame,framesPath);
 
 analInfo(iFrame).filoInfo = filoInfo; % will already be filtered for short filo
 
@@ -229,7 +229,7 @@ save([framesPath filesep 'analInfoTestSave.mat'],'analInfo','-v7.3');
 toc
 saveTimeVect(iFrame) = toc; 
 
-makePlots =1;
+makePlots =0;
 
 %% Plot the Fits  
 if makePlots == 1
@@ -263,7 +263,7 @@ if makePlots == 1
          plotOrientFlag =1; % 
      end
     % plotOrientFlag = 1; 
-     plotfilosIntAndExt(filoInfo,[ny,nx],1,justExtFlag,[],plotOrientFlag); % Note small bug here if don't filter 
+    GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,justExtFlag,[],plotOrientFlag); % Note small bug here if don't filter 
      % by fit Dimensions of matrices being concatenated are not consistent.
      % line 39 try to fix later!! 2013_07_14
      secPerFrame = 5; 

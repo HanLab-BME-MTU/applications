@@ -154,9 +154,9 @@ dotCandAndSeed = zeros(length(labelsSeed),1);
 % want a link that 1) have a similar orientation to the filo,
 % 2) have a high amount of image intensity, and 3) is a relatively short 
 % distance (though this maybe should be slightly less emphasized) 
- figure('Visible','on'); 
+ figure('Visible','off'); 
 %img = img./((2^16)-1); % ask ludo the bitdepth of the camera should do in beginning
-plotPaths =1; 
+plotPaths =0; 
 c = colormap(lines(size(E,1))); 
 if plotPaths ==1 
     imshow(img,[]) 
