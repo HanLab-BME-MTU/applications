@@ -223,11 +223,11 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 edges = ccFilter(obj.edges, e);
             end
             rp = regionprops(edges,I,'MinIntensity','MaxIntensity','MeanIntensity','Orientation','Area','WeightedCentroid');
-            mid = cellfun(@(x) I( x(ceil(end/2)) ), obj.edges.PixelIdxList, 'UniformOutput', false);
+            mid = cellfun(@(x) I( x(ceil(end/2)) ), edges.PixelIdxList, 'UniformOutput', false);
             [rp.MiddleIntensity] = mid{:};
-            firstQuartile = cellfun(@(x) prctile( I(x) ,25), obj.edges.PixelIdxList, 'UniformOutput' , false);
-            medianIntensity = cellfun(@(x) prctile( I(x) ,50), obj.edges.PixelIdxList, 'UniformOutput' , false);
-            thirdQuartile = cellfun(@(x) prctile( I(x) ,75), obj.edges.PixelIdxList, 'UniformOutput' , false);
+            firstQuartile = cellfun(@(x) prctile( I(x) ,25), edges.PixelIdxList, 'UniformOutput' , false);
+            medianIntensity = cellfun(@(x) prctile( I(x) ,50), edges.PixelIdxList, 'UniformOutput' , false);
+            thirdQuartile = cellfun(@(x) prctile( I(x) ,75), edges.PixelIdxList, 'UniformOutput' , false);
             [rp.FirstQuartileIntensity]  = firstQuartile{:};
             [rp.MedianIntensity] = medianIntensity{:};
             [rp.ThirdQuartileIntensity] = thirdQuartile{:};
