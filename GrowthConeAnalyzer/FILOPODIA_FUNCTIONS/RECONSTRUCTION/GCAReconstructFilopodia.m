@@ -172,7 +172,8 @@ analInfo(iFrame).scaleMap = scaleMap;
     n1 = hist(valuesFilter,100);
     
         if troubleshoot ==1 % plot the histogram with cut-off overlay so can see what losing 
-        ridgeDiagDir = [framesPath filesep 'candidateRidges'];
+        figure('visible','off')
+            ridgeDiagDir = [framesPath filesep 'candidateRidges'];
         if ~isdir(ridgeDiagDir)
          mkdir(ridgeDiagDir)
         end 
@@ -181,7 +182,8 @@ analInfo(iFrame).scaleMap = scaleMap;
         hold on ed
         line([cutoffTrueResponse cutoffTrueResponse],[0,max(n1)],'color','r','Linewidth',2); 
         title('Red line 3*std of first mode'); 
-        saveas(gcf,[ridgeDiagDir filesep 'maxNMSResFirstModeCut' num2str(iFrame,fmt) '.eps'],'psc2');
+        saveas(gcf,[ridgeDiagDir filesep 'maxNMSResFirstModeCut' num2str(iFrame,fmt) '.fig']);
+        saveas(gcf,[ridgeDiagDir filesep 'maxNMSResFirstModeCut' num2str(iFrame,fmt) '.png']);
         close gcf
         end
         

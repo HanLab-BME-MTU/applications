@@ -361,7 +361,7 @@ if ~isempty(idxBodyAttach)
         testMask(labelMatSeedFilo==1|labelMatSeedFilo==2) = 1; % get neuriteBodyAll
         testMask(labelCandidates == labelCandCon(idxBodyAttach(iFilo)))=1;
         testMask(pixGoodConnect{idxBodyAttach(iFilo)}) = 1;
-        
+       % testMask = bwmorph(testMask,'thin','inf'); % added 20141026
         testMask = logical(testMask);
         transform = bwdistgeodesic(testMask,xEP,yEP);
         % now need to get pixels and do fit on the branch
@@ -682,7 +682,15 @@ if ~isempty(idxFiloAttach)
         
         testMask(pixGoodConnect{idxFiloAttach(iFilo)})=1;
         testMask = logical(testMask);
-        testMask = bwmorph(testMask,'thin','inf'); 
+        testMask = bwmorph(testMask,'thin','inf'); % thin to avoid junctions that might be made upon the linkage
+        % MARIA COME BACKE TO THIS! sometimes here still have small junctions that are
+        % introduced by the linker ... One way to avoid this is to perform
+        % a spur operation if have more than one junction introduced. 
+        % though that is not very elegant :( - the problem is simply I 
+        % record pixels back until the junction point. If there are two
+        % junctions it will truncate the recording prematurely. - 
+        % other thing you can do is test for junctions in the linker - filo
+        % combo.. again not elegant. 
         transform = bwdistgeodesic(testMask,xEP,yEP);
         % now need to get pixels and do fit on the branch
         pixIdxBack = nan(50,1); % overinitialize to make happy
