@@ -5,11 +5,22 @@ function [ filoInfo] = GCAfitFilopodia( filoInfo,img,paramsIn)
 % was fitLinescansNewDistFinal until 20140529
 p = paramsIn; 
 
+toAddCell{1} = 'Ext_'; 
+toAddCell{2} = 'Int_'; 
+
 % for now int will just be the flag for internal versus external 
-if p.InternalFiloOn ==1; 
-    toAdd = 'Int_'; 
-else toAdd = 'Ext_'; 
+switch p.InternalFiloOn
+    case 1 
+       typeEnd =1; 
+        typeStart =1; 
+    case 2 
+        typeEnd = 2;
+        typeStart = 2;
+    case 3 
+        typeStart  = 1; 
+        typeEnd = 2; 
 end 
+
 
 
 
@@ -27,6 +38,9 @@ numFilo2Fit = length(idx2fill);
 H = fspecial('gaussian',3,p.sigma); 
 imgFilt = imfilter(img,H); % for weighted averaging 
 
+
+for iType = typeStart:typeEnd
+    toAdd = toAddCell{iType};
 for ifilo = 1:numFilo2Fit
    idxCurrent = idx2fill(ifilo);
    
@@ -35,7 +49,16 @@ for ifilo = 1:numFilo2Fit
    
     % convert to distance along filo in pixels: think about a prettier way to do this.  
     xyFilo = filoInfo(idxCurrent).([toAdd 'coordsXY']);
-    if ~isnan(xyFilo); 
+    % sometimes if the filopodia is at the border I will pad with NaN - old
+    % prompt would skip these. 
+    toRemove = isnan(xyFilo); 
+    toRemove = toRemove(:,1); 
+    xyFilo = xyFilo(~toRemove,:); 
+    
+    
+    if ~isempty(xyFilo); % NOTE needed to change as sometimes have NaN padded on here 
+        % an example of this is Filo 44 FRAME 08 CDC42KD
+        
         
     xFilo = xyFilo(:,1);
     yFilo = xyFilo(:,2); 
@@ -242,8 +265,8 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
             plot(distFilo,yFit,'r')
             scatter(distFiloFit,yDataFit,'b','filled'); % color in the data specifically used for the fitting. 
 %             title({['Filo' num2str(idxCurrent)];'Green Line: Endpoint Skel'; 'Blue Line: Endpoint Fit'});
-         filename = ['Filopodia_' num2str(idxCurrent,'%03d') '.fig' ];
-%             
+         filename{1} = ['Filopodia_' toAdd num2str(idxCurrent,'%03d') '.fig' ];
+         filename{2} = ['Filopodia_' toAdd num2str(idxCurrent,'%03d') '.png'];         
             
 %             if (exitFlag >= 1 && ~isnan(filoInfo(idxCurrent).endpointCoordFitXY(1,1))) 
 %                 currentSaveDir = goodFitSaveDir; 
@@ -258,10 +281,11 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
   imshow(-img,[]) ; 
   hold on
   filoInfoC = filoInfo(idxCurrent);
-  GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,2,[],0); 
+  GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,iType,[],0); 
   
-
-            saveas(gcf, [ p.OutputDirectory filesep filename]);
+for i = 1:2
+            saveas(gcf, [ p.OutputDirectory filesep filename{i}]);
+end 
             close all
 %             test = zeros(imgSize(1),imgSize(2)); 
 %             idx = filoInfo(idxCurrent).([toAdd 'pixIndices']); 
@@ -317,7 +341,7 @@ end % ifilo
  
 % collect pixels for all bad fits
 
-
+end % end iType
  
 
 end
