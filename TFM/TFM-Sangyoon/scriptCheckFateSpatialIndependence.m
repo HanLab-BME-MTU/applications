@@ -12,11 +12,11 @@ hold all
 for r_um = [1,2,4,8,16]
     r=r_um*1000/pixSize;
     [popStat,failNeiStat,matureNeiStat] = checkAdhesionFateSpatialIndependence(tracksNA, r, outputPath);
-    errorbar([mean(popStat.mRatio),mean(failNeiStat.mRatio),mean(matureNeiStat.mRatio)],...
-                                [std(popStat.mRatio)/sqrt(length(popStat.mRatio)),std(failNeiStat.mRatio)/sqrt(length(failNeiStat.mRatio)),...
-                                std(matureNeiStat.mRatio)/sqrt(length(matureNeiStat.mRatio))])
+    errorbar([nanmean(popStat.mRatio),nanmean(failNeiStat.mRatio),nanmean(matureNeiStat.mRatio)],...
+                                [nanstd(popStat.mRatio)/sqrt(length(popStat.mRatio)),nanstd(failNeiStat.mRatio)/sqrt(length(failNeiStat.mRatio)),...
+                                nanstd(matureNeiStat.mRatio)/sqrt(length(matureNeiStat.mRatio))])
 end
-ylim([0 0.75])                        
+ylim([0 0.45])                        
 r_um = [1,2,4,8,16];
 ylabel('ratio of maturing NAs over all NAs at the emerging time')
 legend(num2str(r_um(1)), num2str(r_um(2)),num2str(r_um(3)),num2str(r_um(4)),num2str(r_um(5)))

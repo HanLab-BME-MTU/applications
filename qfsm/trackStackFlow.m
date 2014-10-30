@@ -133,8 +133,8 @@ backSpc =repmat('\b',1,L);
 startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
-if matlabpool('size')==0
-    matlabpool open
+if isempty(gcp('nocreate'))
+    parpool open
 end
 
 parfor k = 1:nPoints
@@ -531,8 +531,8 @@ bCDWS = ip.Results.CDWS;
 mode = ip.Results.mode;
 
 % score = zeros(length(vP),length(vF));
-bI1 = centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2;
-bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
+bI1 = round(centerI(1)-(corL-1)/2:centerI(1)+(corL-1)/2);
+bI2 = round(centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2);
 
 % elseif isempty(kymMask) && (numFrames==2)
 %     %The index of the correlating image block in the big cropped image.
@@ -541,8 +541,8 @@ bI2 = centerI(2)-(corL-1)/2:centerI(2)+(corL-1)/2;
 %     % fft-based cross-correlation. This can reduce computation time 
 %     % especially for large velocity range - Sangyoon
 % =======
-bI1e = centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end);
-bI2e = centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end);
+bI1e = round(centerI(1)-(corL-1)/2+vP(1):centerI(1)+(corL-1)/2+vP(end));
+bI2e = round(centerI(2)-(corL-1)/2+vF(1):centerI(2)+(corL-1)/2+vF(end));
 % m = length(bI1e);%length(vP);
 % n = length(bI2e);%length(vF);
 % mi = length(vP);

@@ -95,7 +95,6 @@ for i = p.ChannelIndex;
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
 end
 filteredImagesDirectory = [p.OutputDirectory filesep 'filtered_images'];
-mkClrDir(filteredImagesDirectory);
 cometDetProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Comet detection ---------------%%% 
@@ -106,7 +105,10 @@ roiMask = movieData.getROIMask;
 allMovieInfo(nFrames,nChan) = struct('xCoord', [], 'yCoord', [], 'amp', [],...
         'int',[],'ecc',[]);
     
-for iChan= p.ChannelIndex    
+for iChan= p.ChannelIndex
+
+    % Create temporary directory for storing filtered images
+    if ~isdir(filteredImagesDirectory), mkdir(filteredImagesDirectory); end
     if ishandle(wtBar), waitbar(0,wtBar,'Loading image stack'); end    
     
     % get difference of Gaussians image for each frame and standard deviation

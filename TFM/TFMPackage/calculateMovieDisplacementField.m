@@ -213,16 +213,27 @@ for j= firstFrame:nFrames
     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
     localbeads = beads(indx,:);
 
-    % Track beads displacement in the xy coordinate system
-    v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-        'mode',p.mode);
-    
-    % Extract finite displacement and prepare displField structure in the xy
-    % coordinate system
-    validV = ~isinf(v(:,1));
-    displField(j).pos=localbeads(validV,:);
-    displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    if ~p.useGrid
+        % Track beads displacement in the xy coordinate system
+        v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
+            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
+            'mode',p.mode);
+
+        % Extract finite displacement and prepare displField structure in the xy
+        % coordinate system
+        validV = ~isinf(v(:,1));
+        displField(j).pos=localbeads(validV,:);
+        displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    else
+        pivPar = [];      % variable for settings
+        pivData = [];     % variable for storing results
+
+        [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+
+        [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
+        displField(j).pos=[pivData.X(:), pivData.Y(:)];
+        displField(j).vec=[pivData.U(:)+residualT(j,2), pivData.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    end
     
     % Update the waitbar
     if mod(j,5)==1 && ishandle(wtBar)
