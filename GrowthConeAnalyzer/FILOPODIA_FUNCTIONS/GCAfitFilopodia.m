@@ -55,6 +55,11 @@ for ifilo = 1:numFilo2Fit
     toRemove = toRemove(:,1); 
     xyFilo = xyFilo(~toRemove,:); 
     
+    % first test to make sure that don't have the walk forward error noted
+    % 20141029 (few filopodia have this - will check why to see if we can
+    % avoid however the best solution is likely simply to filter it). 
+    if isempty(intersect(filoInfo(idxCurrent).Ext_pixIndicesFor,filoInfo(idxCurrent).Ext_pixIndicesBack)); 
+        
     
     if ~isempty(xyFilo); % NOTE needed to change as sometimes have NaN padded on here 
         % an example of this is Filo 44 FRAME 08 CDC42KD
@@ -169,7 +174,7 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         subplot(3,2,3:4)     
             
             linescan = scatter(distFilo,yData);
-            xlabel('Distance Along Filopodia um');
+            xlabel('Distance Along Filopodia Pixels');
             hold on
         end
        % line([measEnd,measEnd],[max(yData),min(yData)],'color','g');% 
@@ -192,6 +197,22 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         
          
         [params, resnorm,~,exitFlag] = lsqcurvefit(@testfun,starts,distFiloFit,yDataFit,lwb,upb);
+        
+        % test if u = min(distFiloFit)
+        if (abs(params(2)-distFiloFit(1))<1 && params(2)> 1)
+            
+            distFiloFit = distFilo;
+           
+            yDataFit = yData;
+             starts = [max(yDataFit)-min(yDataFit),length( filoInfo(idxCurrent).([toAdd 'pixIndicesBack'])),5,...
+             min(yDataFit)];
+         
+            upb = [max(yData); max(distFiloFit);20 ; max(yData)];
+         lwb = [0;min(distFiloFit); 1; min(yData)];
+            % try again using whole values 
+            [params,resnorm,~,exitFlag] = lsqcurvefit(@testfun,starts,distFiloFit,yDataFit,lwb,upb); 
+        end 
+        
         if p.SavePlots
         line([params(2),params(2)],[max(yData),min(yData)]);
         %text(params(2),(max(yDataFit)-min(yDataFit)./2)+min(yDataFit),['mean = ' num2str(params(2),3)]); 
@@ -265,8 +286,8 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
             plot(distFilo,yFit,'r')
             scatter(distFiloFit,yDataFit,'b','filled'); % color in the data specifically used for the fitting. 
 %             title({['Filo' num2str(idxCurrent)];'Green Line: Endpoint Skel'; 'Blue Line: Endpoint Fit'});
-         filename{1} = ['Filopodia_' toAdd num2str(idxCurrent,'%03d') '.fig' ];
-         filename{2} = ['Filopodia_' toAdd num2str(idxCurrent,'%03d') '.png'];         
+         filename{1} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.fig' ];
+         filename{2} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.png'];         
             
 %             if (exitFlag >= 1 && ~isnan(filoInfo(idxCurrent).endpointCoordFitXY(1,1))) 
 %                 currentSaveDir = goodFitSaveDir; 
@@ -281,7 +302,13 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
   imshow(-img,[]) ; 
   hold on
   filoInfoC = filoInfo(idxCurrent);
-  GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,iType,[],0); 
+  %GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,iType,[],0); Ex
+  pixelsF = zeros(size(img)); 
+  pixelsF(filoInfoC.Ext_pixIndicesFor)=1; 
+  pixelsB = zeros(size(img)); 
+  pixelsB(filoInfoC.Ext_pixIndicesBack)=1; 
+  spy(pixelsF,'g',10); 
+  spy(pixelsB,'r'); 
   
 for i = 1:2
             saveas(gcf, [ p.OutputDirectory filesep filename{i}]);
@@ -336,6 +363,17 @@ end
     
    
 end % if isnan
+    else 
+        filoInfo(idxCurrent).([toAdd 'params']) = NaN;
+        filoInfo(idxCurrent).([toAdd 'endpointCoordFitXY']) =[ NaN,NaN];
+        filoInfo(idxCurrent).([toAdd 'endpointCoordFitPix']) = NaN; 
+        filoInfo(idxCurrent).([toAdd 'exitFlag']) = -20; % make a new error exit flag ... 
+        filoInfo(idxCurrent).([toAdd 'resnorm']) = NaN;
+        filoInfo(idxCurrent).([toAdd 'length']) = NaN; 
+        filoInfo(idxCurrent).([toAdd 'std']) = NaN; 
+        % new field added 05/17/2014 
+        filoInfo(idxCurrent).([toAdd 'distFilo']) = NaN; % 
+    end % is empty
     
 end % ifilo
  
