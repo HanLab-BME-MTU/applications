@@ -49,12 +49,17 @@ for ifilo = 1:numFilo2Fit
    
     % convert to distance along filo in pixels: think about a prettier way to do this.  
     xyFilo = filoInfo(idxCurrent).([toAdd 'coordsXY']);
+    
+    % sometimes particularly in int filo structure have [] 
+    
+    if ~isempty(xyFilo); 
+    
     % sometimes if the filopodia is at the border I will pad with NaN - old
     % prompt would skip these. 
     toRemove = isnan(xyFilo); 
     toRemove = toRemove(:,1); 
     xyFilo = xyFilo(~toRemove,:); 
-    
+    end 
     % first test to make sure that don't have the walk forward error noted
     % 20141029 (few filopodia have this - will check why to see if we can
     % avoid however the best solution is likely simply to filter it). 
@@ -97,7 +102,7 @@ if strcmpi(paramsIn.ValuesForFit,'Intensity')
        yData = imgFilt(maskIndices(:,1)); % just take the center line check to see the order of the data row 1 = base I think wherease end = tip 
    if p.SavePlots  == 1 
        if sum(isnan(maskIndices(:)))==0; 
-           
+           figure('visible','off')
        subplot(3,2,(1:2)); 
        % I saved these originally with the first column the center line and
        % the perpendicular pixels outward... might want to save in this
@@ -304,7 +309,9 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
   filoInfoC = filoInfo(idxCurrent);
   %GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,iType,[],0); Ex
   pixelsF = zeros(size(img)); 
-  pixelsF(filoInfoC.Ext_pixIndicesFor)=1; 
+  pixF= filoInfoC.Ext_pixIndicesFor;
+  pixF = pixF(~isnan(pixF));
+  pixelsF(pixF)=1; 
   pixelsB = zeros(size(img)); 
   pixelsB(filoInfoC.Ext_pixIndicesBack)=1; 
   spy(pixelsF,'g',10); 
