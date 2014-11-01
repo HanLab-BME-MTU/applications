@@ -307,9 +307,7 @@ end   % isempty
 out = double(out | cellBoundary);  
 outputMasks.finalReconstruct = out; 
 
-%% start documenting data if appropriate
-documentInfo =1; 
-if documentInfo == 1; 
+%% start documenting data 
 labelInputCon = zeros(length(E(:,1)),1); 
 % get the filoIdx of those filo to which attachments have been made 
 for iMatch = 1:length(E(:,1))
@@ -361,7 +359,7 @@ if ~isempty(idxBodyAttach)
         testMask(labelMatSeedFilo==1|labelMatSeedFilo==2) = 1; % get neuriteBodyAll
         testMask(labelCandidates == labelCandCon(idxBodyAttach(iFilo)))=1;
         testMask(pixGoodConnect{idxBodyAttach(iFilo)}) = 1;
-       % testMask = bwmorph(testMask,'thin','inf'); % added 20141026
+        testMask = bwmorph(testMask,'thin','inf'); % added 20141026 NEED TO THIN 
         testMask = logical(testMask);
         transform = bwdistgeodesic(testMask,xEP,yEP);
         % now need to get pixels and do fit on the branch
@@ -522,6 +520,9 @@ if ~isempty(idxFiloAttach)
         % pixIndicesBack should techically be sufficient. 
         % if this connection introduces points of intersection it is
         % not cool
+        
+        close gcf
+        
         nn = padarrayXT(double(testMask~=0), [1 1]);
         sumKernel = [1 1 1];
         nn = conv2(sumKernel, sumKernel', nn, 'valid');
@@ -594,6 +595,9 @@ if ~isempty(idxFiloAttach)
             % remove from links
             links(pixGoodConnect{idxEndOnAttach(iEndon)}) =0;
             subtractEndOn = subtractEndOn+1;  
+            % updata output masks 
+            outputMasks.links = links;
+            
         end
         else %  
         end % if labelCon (label Problem fix)
@@ -783,16 +787,19 @@ end % isempty
  outputMasks.candFiloAdded.Body = attachMask2; 
  outputMasks.candFiloAdded.Branch = attachMask1; 
  outputMasks.candFiloAdded.EndOn = attachMask3; 
-     status = 1;
+ 
+     
      clear out links
-else % if don't document info these are not applicable 
-    outputMasks.candFiloAdded.Body = zeros(size(img)); 
-    outputMasks.candFiloAdded.Branch = zeros(size(img)); 
-    outputMasks.candFiloAdded.EndOn = zeros(size(img)); 
-    
-    status =1; % however you still had matches
-    clear out links
-end % documentInfo
+
+
+% check status 
+ if  sum(sum([outputMasks.candFiloAdded.Body(:)  ...
+         outputMasks.candFiloAdded.Branch(:)   ...
+         outputMasks.candFiloAdded.EndOn(:)])) == 0 
+     status = 0; 
+ else 
+     status = 1; 
+ end 
 else % no candidates were within the distance so exit and record zeros for output
     outputMasks.finalReconstruct = zeros(size(img));
     outputMasks.candFiloAdded.Body = zeros(size(img)); 

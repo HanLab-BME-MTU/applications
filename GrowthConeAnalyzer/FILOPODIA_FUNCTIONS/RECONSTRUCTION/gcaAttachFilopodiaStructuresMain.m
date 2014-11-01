@@ -807,7 +807,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
     end % if status
     
      reconIter = reconIter+1; % always go and save new "seed" from data structure even if reconstruction ended
-     
+     display(num2str(reconIter))
     
     
 end % while
