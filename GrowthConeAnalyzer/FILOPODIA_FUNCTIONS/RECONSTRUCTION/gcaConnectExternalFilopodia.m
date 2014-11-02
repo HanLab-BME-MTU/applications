@@ -593,7 +593,25 @@ if ~isempty(idxFiloAttach)
             clear x edgePathCoord xBack yBack
         else % if % likely garbage don't include
             % remove from links
+            
+            pixIndicesToRemove = pixGoodConnect{idxEndOnAttach(iEndon)}; 
+            pixGoodConnectTest = pixGoodConnect; 
+            pixGoodConnectTest(idxEndOnAttach(iEndon)) = []; 
+          
+            % check for attachment 
+            savePix = cellfun(@(x) intersect(x,pixIndicesToRemove),pixGoodConnectTest,'uniformoutput',0);
+           
+            
             links(pixGoodConnect{idxEndOnAttach(iEndon)}) =0;
+          
+            if ~isempty(savePix)
+            % find those pixel that are in more than one link and save.  
+            savePix = vertcat(savePix{:}); 
+            links(savePix) = 1;
+            display('saving pixels')
+            end 
+            
+            
             subtractEndOn = subtractEndOn+1;  
             % updata output masks 
             outputMasks.links = links;
