@@ -89,12 +89,14 @@ cometDetProc.setInFilePaths(inFilePaths);
     
 % Set up the output directories
 outFilePaths = cell(1,nChan);
-mkClrDir(p.OutputDirectory);
+
 for i = p.ChannelIndex;    
     %Create string for current directory
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
 end
 filteredImagesDirectory = [p.OutputDirectory filesep 'filtered_images'];
+if ~isdir(filteredImagesDirectory), rmdir(filteredImagesDirectory, 's'); end
+mkClrDir(p.OutputDirectory);
 cometDetProc.setOutFilePaths(outFilePaths);
 
 %% --------------- Comet detection ---------------%%% 
