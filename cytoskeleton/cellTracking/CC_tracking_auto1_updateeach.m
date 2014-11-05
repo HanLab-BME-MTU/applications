@@ -96,7 +96,7 @@ std_muler=0.3;
 level1 = thresholdOtsu(for_first_threshold_img(for_first_threshold_img>mean2(for_first_threshold_img)+std_muler*std2(for_first_threshold_img)));
 
 % threshold out the bright nucleas part
-Mask  = currentImg>max_99_percent_int;
+Mask  = currentImg>max_97_percent_int;
 
 [inda,indb] = find(Mask>0);
 
@@ -353,7 +353,7 @@ for iFrame = 1 : nFrame;
                     
                     for_display_XY{iFrame,iCell_tracking} = cluster_xy_s_from_clustering{iFrame,iCell_clustering};
                     center_tracking = tracking_position(1:2)+(tracking_position(3:4)+1)/2;
-                    size_new = cluster_sigma_s_from_clustering{iFrame,iCell_clustering}(1:2)
+                    size_new = cluster_sigma_s_from_clustering{iFrame,iCell_clustering}(1:2);
                     
                     cell_width_new = 2*round(size_new(1)*2.5)+1;
                     cell_height_new = 2*round(size_new(2)*2.5)+1;
@@ -383,6 +383,7 @@ for iFrame = 1 : nFrame;
         
         if  clustered_cell_taken(iCell_clustering)==0 && mean(size_new) > bandwidth/2 && mean_intensity_from_clustering(iFrame,iCell_clustering)>  max_80_percent_int
             
+            
             cell_width_new = 2*round(size_new(1)*2.5)+1;
             cell_height_new = 2*round(size_new(2)*2.5)+1;
             
@@ -390,13 +391,45 @@ for iFrame = 1 : nFrame;
             position_updated(2) = round(center_tracking(2)  - round(size_new(2)*2.5));
             position_updated(3) = cell_width_new;
             position_updated(4) = cell_height_new;
+           
             
-            nCell = nCell + 1;
-            position_array{iFrame}(nCell,1:4) = position_updated;
-            for_display_XY{iFrame,nCell} = cluster_xy_s_from_clustering{iFrame,iCell_clustering};
-            tracked_cell_taken(nCell)=1;
-            present_cells{iFrame}(nCell)=1;
-            mean_intensity_start(nCell) = mean_intensity_from_clustering(iFrame,iCell_clustering);
+            
+            new_cell_in_this_new_cluster = zeros(1,nCell);
+            
+            for iCell_tracking = 1 : nCell
+                if present_cells{iFrame}(iCell_tracking)>0
+                    blank_img = currentImg*0;                    
+                    blank_img(...
+                        max(1,round(position_updated(2))):...
+                        min(round(position_updated(2)+position_updated(4)),size(currentImg,1)), ...
+                        max(1,round(position_updated(1))):...
+                        min(round(position_updated(1)+position_updated(3)),size(currentImg,2))...
+                        )=1;
+                    dispXY = for_display_XY{iFrame,iCell_tracking};
+                    try
+                    disp_xy = sub2ind(size(currentImg),dispXY(:,2),dispXY(:,1));
+                    ind = find(blank_img(disp_xy)>0);
+                    if(ind/size(disp_xy,1)>0.6)
+                        new_cell_in_this_new_cluster(iCell_tracking) = 0;
+                   else
+                        new_cell_in_this_new_cluster(iCell_tracking) = 1;
+                    end
+                    catch
+                         new_cell_in_this_new_cluster(iCell_tracking) = 0;
+                    end
+                end
+            end
+            
+            
+            if(min(new_cell_in_this_new_cluster)==1)
+                
+                nCell = nCell + 1;
+                position_array{iFrame}(nCell,1:4) = position_updated;
+                for_display_XY{iFrame,nCell} = cluster_xy_s_from_clustering{iFrame,iCell_clustering};
+                tracked_cell_taken(nCell)=1;
+                present_cells{iFrame}(nCell)=1;
+                mean_intensity_start(nCell) = mean_intensity_from_clustering(iFrame,iCell_clustering);
+            end
         end
         
     end
@@ -465,7 +498,7 @@ end
 
 
 save([MD.outputDirectory_,'/CC_tracking/cc_tracking_results.mat'], ...
-    'position_array','present_cells','mean_intensity_matrix','VIF_intensity');
+    'position_array','present_cells','mean_intensity_matrix','VIF_intensity','for_display_XY','MD');
 
 currentImg = double(MD.channels_(1).loadImage(1));
 currentVIFImg = double(MD.channels_(VIF_iChannel).loadImage(iFrame));
@@ -481,7 +514,13 @@ for iFrame = 1 : 1: nFrame
         current_position = position_array{iFrame}(iCell,1:4);
         tracked_pos = current_position(1:2)+(current_position(3:4)+1)/2;
         
-        dots_XY = for_display_XY(iFrame,nCell);
+        dots_XY = for_display_XY{iFrame,nCell};
+        
+        
+        h3 = figure(3);hold off; imagescc(currentImg);hold on;
+        
+        h13 = figure(13);hold off; imagescc(currentVIFImg);hold on;
+
         
         h3 = figure(3);
         plot(tracked_pos(1),tracked_pos(2),'.','color',color_array(iCell,:));
@@ -504,10 +543,22 @@ for iFrame = 1 : 1: nFrame
         h13 = figure(13);       title(['Tracking Frame ',num2str(iFrame)]);
         plot(X,Y,'color',color_array(iCell,:));
         h3 = figure(3);         title(['Tracking Frame ',num2str(iFrame)]);
-        plot(dots_XY(:,1),dots_XY(:,2),'.','color',color_array(iCell,:));
+%         plot(dots_XY(:,1),dots_XY(:,2),'.','color',color_array(iCell,:));
         
-        print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/tracking_',num2str(iFrame),'.tif']);
-        print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/clustered_tracking_',num2str(iFrame),'.tif']);
+        TX = dots_XY(1:10:end,1);
+        TY = dots_XY(1:10:end,2);
+        width=1;
+        height=1;
+        
+        for i =1:length(TX)
+            p=patch([TX(i) TX(i) TX(i)-width TX(i)-width],[TY(i) TY(i)+height TY(i)+height TY(i)], color_array(iCell,:));
+            set(p,'FaceAlpha',0.5, 'EdgeColor', 'none');
+        end
+        
+
+        
+        print(h13,'-dtiff',[MD.outputDirectory_,'/CC_tracking/final_tracking_',num2str(iFrame),'.tif']);
+        print(h3,'-dtiff',[MD.outputDirectory_,'/CC_tracking/patch_clustered_tracking_',num2str(iFrame),'.tif']);
         
         
         %         if iFrame >1

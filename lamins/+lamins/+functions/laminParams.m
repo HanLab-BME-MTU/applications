@@ -1,6 +1,12 @@
 function p = laminParams(MD)
+    filename = MD.getFilename();
+    % translate equivalent images to original filenames
+    switch(filename)
+        case 'ag_080712wt_Z15_C3.mat'
+            filename = 'ag_080712wt_Reconstructed 3.mat';
+    end
     p.channels.labels = {'DAPI', 'Lamin A','Lamin B1','anti-Lamin B1, B2'};
-    switch(MD.getFilename())
+    switch(filename)
         case 'ag_072612_wt_Reconstructed 2.mat'
             %p.channelOrder = [3 1 2 4];
             p.channels.DAPI = 3;

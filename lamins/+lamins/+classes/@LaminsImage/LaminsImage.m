@@ -48,12 +48,12 @@ classdef LaminsImage < hgsetget
             end
         end
         function I = get.image(obj)
-            %if(isempty(obj.image))
+            if(isempty(obj.image))
                 R = obj.reader;
                 I = R{obj.coordinates{:}};
-            %    obj.image = R{obj.coordinates{:}};
-            %end
-            %I = obj.image;
+               obj.image = R{obj.coordinates{:}};
+            end
+            I = obj.image;
         end
         function A = get.adjusted(obj)
             if(isempty(obj.adjusted))

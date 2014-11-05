@@ -114,16 +114,13 @@ pixel_number_per_filament_pool = ...
 length_per_filament_pool = ...
     length_per_filament_pool(length_per_filament_pool>=min_length);
 
-% Organize the orientation between 0~pi, with correction of the pi/2
+% Organize the orientation between -pi/2 ~ pi/2, with the corretion of pi/2
 
 orientation_pixel_pool_display = orientation_pixel_pool;
-orientation_pixel_pool_display = orientation_pixel_pool_display + pi/2;
-orientation_pixel_pool_display(orientation_pixel_pool_display>=pi) = orientation_pixel_pool_display(orientation_pixel_pool_display>=pi)-pi;
-orientation_pixel_pool_display(orientation_pixel_pool_display>=pi) = orientation_pixel_pool_display(orientation_pixel_pool_display>=pi)-pi;
-orientation_pixel_pool_display(orientation_pixel_pool_display>=pi) = orientation_pixel_pool_display(orientation_pixel_pool_display>=pi)-pi;
-orientation_pixel_pool_display(orientation_pixel_pool_display<0) = orientation_pixel_pool_display(orientation_pixel_pool_display<0)+pi;
-orientation_pixel_pool_display(orientation_pixel_pool_display<0) = orientation_pixel_pool_display(orientation_pixel_pool_display<0)+pi;
-orientation_pixel_pool_display(orientation_pixel_pool_display<0) = orientation_pixel_pool_display(orientation_pixel_pool_display<0)+pi;
+orientation_pixel_pool_display = orientation_pixel_pool_display +pi/2;
+orientation_pixel_pool_display = mod(orientation_pixel_pool_display, pi);
+orientation_pixel_pool_display(orientation_pixel_pool_display>=pi/2) = orientation_pixel_pool_display(orientation_pixel_pool_display>=pi/2)-pi;
+
 figure_flag=1;
 if(figure_flag>0)
     h3 =  figure(3);
@@ -138,12 +135,12 @@ if(figure_flag>0)
     % the orientation in histogram
     h6 =  figure(6);
     
-    [h,b] = hist(orientation_pixel_pool_display,0:pi/18:pi);
-    h=h(1:end-1);
+    [h,b] = hist(orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
+    h=h(1:end);
     h = h/length(orientation_pixel_pool_display);
-    bin = (0:pi/18:pi-pi/18) +pi/36;
+    bin = (-pi/2:pi/18:pi/2) +pi/36;
     bar(bin,h);
-    axis([0-pi/36 pi+pi/36 0 0.3]);
+    axis([-pi/2-pi/36 pi/2+pi/36 0 0.3]);
     
     title([im_name_title,' Orientation of Filaments']);
     
@@ -151,12 +148,52 @@ if(figure_flag>0)
     saveas(h6, [outdir,filesep,'network_orientationhist_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
     saveas(h6, [outdir,filesep,'network_orientationhist_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.tif']);
     
+    
+% center the histogram at the mode    
+    ind_max_h = find(h==max(h));
+ind_max_h = ind_max_h(1);
+mode_bin = b(ind_max_h)-pi/36;
+    mode_bin = mod(mode_bin,pi);
+    
+orientation_pixel_pool_display_center = orientation_pixel_pool_display-mode_bin;
+orientation_pixel_pool_display_center = mod(orientation_pixel_pool_display_center,pi);
+orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2) = orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2)-pi;
+
+orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + mode_bin;
+
+
+ h13 =  figure(13);
+    rose(orientation_pixel_pool_display_center);
+    title([im_name_title,' Orientation of Filaments']);
+    
+    saveas(h13, [outdir,filesep,'network_orientationrose_centered_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
+    saveas(h13, [outdir,filesep,'network_orientationrose_centered_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
+   
+    
+    % the orientation in histogram
+    h16 =  figure(16);
+    
+    [h,b] = hist(orientation_pixel_pool_display_center,-pi/2+mode_bin:pi/18:pi/2+mode_bin);
+    h=h(1:end);
+    h = h/length(orientation_pixel_pool_display_center);
+    bin = (-pi/2:pi/18:pi/2)+mode_bin+pi/36;
+    bar(bin,h);
+    axis([-pi/2-pi/36+mode_bin pi/2+pi/36+mode_bin 0 0.3]);
+    
+    title([im_name_title,' Orientation of Filaments']);
+    
+    saveas(h16, [outdir,filesep,'network_orientationhist_centered_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
+    saveas(h16, [outdir,filesep,'network_orientationhist_centered_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
+   
+
+
 end
 
 % put the output into the feature structure
 output_feature=[];
 
 output_feature.orientation_pixel_pool_display=orientation_pixel_pool_display;
+output_feature.orientation_pixel_pool_display_center=orientation_pixel_pool_display_center;
 output_feature.intensity_per_filament_pool = intensity_per_filament_pool;
 output_feature.mean_intensity_per_filament_pool = mean_intensity_per_filament_pool;
 output_feature.intensity_per_fat_filament_pool = intensity_per_fat_filament_pool;
