@@ -173,6 +173,7 @@ else
 end
 
 forceField(nFrames)=struct('pos','','vec','','par','');
+tMap = cell(nFrames);
 
 disp('Calculating force field...')
 % logMsg = 'Please wait, calculating force field';
@@ -360,7 +361,7 @@ if strcmpi(p.method,'FastBEM')
                 display(['Done: solution for frame: ',num2str(i)]);
         end
     end
-else
+else % FTTC
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
@@ -368,13 +369,19 @@ else
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
     end
-end   
+end
+% For calculation of traction map
+% starts with original size of beads
+tMap{i} = zeros(size(firstMask));
+% The drift-corrected frames should have independent channel
+% ->StageDriftCorrectionProcess
+% Insert traction map in forceField.pos 
+
     
-    
-    % Fill in the values to be stored:
-    clear grid_mat;
-    clear iu;
-    clear iu_mat;
+% Fill in the values to be stored:
+clear grid_mat;
+clear iu;
+clear iu_mat;
     
     % Update the waitbar
 %     if mod(i,5)==1 && ishandle(wtBar)

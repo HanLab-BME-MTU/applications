@@ -24,11 +24,15 @@ TFMPackage = movieData.getPackage(movieData.getPackageIndex('TFMPackage'));
 % Load the displField
 iDispFieldProc = 3;
 displFieldProc=TFMPackage.processes_{iDispFieldProc};
-maskArray = movieData.getROIMask;
 % Use mask of first frame to filter displacementfield
-firstMask = maskArray(:,:,1);
-displFieldOriginal=displFieldProc.loadChannelOutput;
-displField = filterDisplacementField(displFieldOriginal,firstMask);
+if ~isempty(movieData.rois_)
+    maskArray = movieData.getROIMask;
+    firstMask = maskArray(:,:,1);
+    displFieldOriginal=displFieldProc.loadChannelOutput;
+    displField = filterDisplacementField(displFieldOriginal,firstMask);
+else
+    displField=displFieldProc.loadChannelOutput;
+end
 
 % Load the forcefield
 iForceFieldProc = 4;
@@ -59,19 +63,21 @@ end
 
 % Set up the output file path
 outputFilePath = [pathForTheMovieDataFile filesep 'Heatmaps'];
-paxPath = [pathForTheMovieDataFile filesep 'pax'];
+paxPath = [outputFilePath filesep 'pax'];
 tifPath = [outputFilePath filesep 'tifs'];
 figPath = [outputFilePath filesep 'figs'];
+forcemapPath = [outputFilePath filesep 'fMap'];
 epsPath = [outputFilePath filesep 'eps'];
-if ~exist(tifPath,'dir') || ~exist(paxPath,'dir') || ~exist(epsPath,'dir')
+if ~exist(tifPath,'dir') || ~exist(paxPath,'dir') || ~exist(epsPath,'dir') || ~exist(forcemapPath,'dir')
     mkdir(paxPath);
     mkdir(tifPath);
     mkdir(figPath);
+    mkdir(forcemapPath);
     mkdir(epsPath);
 end
 
 %Find the maximum force.
-tmin = 100000;
+tmin = 100000000;
 [reg_grid1,~,~,~]=createRegGridFromDisplField(displField,1); %2=2 times fine interpolation
 
 % band width for cutting border
@@ -125,6 +131,34 @@ hl = []; %handle for scale bar
 iiformat = ['%.' '3' 'd'];
 TSlevel = zeros(nFrames,1);
 %     paxLevel = zeros(nFrames,1);
+
+% See if there is stage drift correction
+iSDCProc =movieData.getProcessIndex('StageDriftCorrectionProcess',1,1);     
+if ~isempty(iSDCProc)
+    SDCProc=movieData.processes_{iSDCProc};
+    if ~SDCProc.checkChannelOutput(1)
+        error(['The channel must have been corrected ! ' ...
+            'Please apply stage drift correction to all needed channels before '...
+            'running displacement field calclation tracking!'])
+    end
+    if length(SDCProc.funParams_.ChannelIndex)>1
+        iChan = 2;
+    elseif length(SDCProc.funParams_.ChannelIndex) == 1
+        iChan = SDCProc.funParams_.ChannelIndex;
+    else
+        error('No channel associated with SDC process!')
+    end
+    if iChan==2
+        iBeadChan=1;
+    else
+        iBeadChan = SDCProc.funParams_.ChannelIndex(1);
+    end
+%     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
+%     T = s.T;
+else
+    iChan = 2;
+end
+
 
 for ii=1:nFrames
     [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
@@ -215,19 +249,80 @@ for ii=1:nFrames
     hc = colorbar('West');
     set(hc,'Fontsize',18)
 %     end
-
-    if length(movieData.channels_)>1
-        paxImage=movieData.channels_(2).loadImage(ii);
+    nChannels  = length(movieData.channels_);
+    if nChannels==2
+        % loading paxillin image
+        if ~isempty(iSDCProc)
+            paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
+        else
+            paxImage=movieData.getChannel(iChan).loadImage(ii); 
+        end
     %     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
         paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped));
+        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped)); % this is 2 um
         imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+        % composite for both channels
+        compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
+        doublePaxImg = double(paxImageCropped)/double(max(paxImageCropped(:)));
+        if ~isempty(iSDCProc)
+            paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
+            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(paxImageCropped(:)));
+            minPax= min(doublePaxImgUnshifted(:));
+        else
+            minPax= min(doublePaxImg(:));
+        end
+        
+        compImage(:,:,2) = imadjust(doublePaxImg,[minPax,max(doublePaxImg(:))],[]);
+        compImage(:,:,3) = imadjust(tsMap/tmax,[],[]);
+        imwrite(compImage, strcat(paxPath,'/CombPaxForceTif',num2str(ii,iiformat),'.tif'));
+%         figure, imshow(compImage,[])
+    elseif nChannels==3
+        % loading paxillin image
+        if ~isempty(iSDCProc)
+            paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
+            thirdImage=(SDCProc.loadChannelOutput(iChan+1,ii)); %movieData.channels_(2).loadImage(ii);
+        else
+            paxImage=movieData.getChannel(iChan).loadImage(ii); 
+            thirdImage=movieData.getChannel(iChan+1).loadImage(ii); 
+        end
+        paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        thirdImageCropped = thirdImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        %Scale bar
+        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped)); % this is 2 um
+        thirdPath = [outputFilePath filesep 'thirdChannel'];
+        if ~exist(thirdPath,'dir') 
+            mkdir(thirdPath);
+        end
+        thirdImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(thirdImageCropped)); % this is 2 um
+        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+        imwrite(thirdImageCropped, strcat(thirdPath,'/thirdCroppedTif',num2str(ii,iiformat),'.tif'));
+        % composite for both channels
+        compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
+        doublePaxImg = double(paxImageCropped)/double(max(paxImageCropped(:)));
+        doubleThirdImg = double(thirdImageCropped)/double(max(thirdImageCropped(:)));
+        if ~isempty(iSDCProc)
+            paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
+            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(paxImageCropped(:)));
+            minPax= min(doublePaxImgUnshifted(:));
+            thirdImageUnshifted=movieData.getChannel(iChan+1).loadImage(ii); 
+            doubleThirdImageUnshifted = double(thirdImageUnshifted)/double(max(thirdImageUnshifted(:)));
+            minThird= min(doubleThirdImageUnshifted(:));
+        else
+            minPax= min(doublePaxImg(:));
+            minThird= min(doubleThirdImg(:));
+        end
+        
+        compImage(:,:,3) = imadjust(doublePaxImg,[minPax,max(doublePaxImg(:))],[]);
+        compImage(:,:,2) = imadjust(doubleThirdImg,[minThird,max(doubleThirdImg(:))],[]);
+        imwrite(compImage, strcat(paxPath,'/CombPaxForceTif',num2str(ii,iiformat),'.tif'));
+%         figure, imshow(compImage,[])
     end
 
     % saving
     I = getframe(h1);
     imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
+    imwrite(uint16(round(tsMap*2^3)),strcat(forcemapPath,'/force',num2str(ii,iiformat),' divide by 4 for correct mag','.tif'));
 
 %         hgexport(h1,strcat(tifPath,'/stressMagTif',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
     hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')

@@ -41,29 +41,51 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField'};
+            outputList = {'forceField','tMap'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
-            ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
-                @(x) ismember(x,1:obj.owner_.nFrames_));
-            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
+%             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
+%             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
             
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{1},output{:});
+%             s = load(obj.outFilePaths_{1},output{:});
+
+            % Read file name
+            outFileNames = arrayfun(@(x) x.name,...
+                dir([obj.outFilePaths_{1} filesep '*.mat']),'Unif',false);
+            for j=1:numel(output)
+                varargout{j} = cell(size(iFrame));
+            end
             
-            if numel(iFrame)>1,
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i});
-                end
-            else
-                for i=1:numel(output),
-                    varargout{i}=s.(output{i})(iFrame);
+            for i=1:numel(iFrame)
+                kineticMapFile= [obj.outFilePaths_{1,iChan}...
+                    filesep outFileNames{iFrame(i)}(1:end-4) '.mat'];
+                s = load(kineticMapFile,output{:});
+                for j=1:numel(output)
+                    varargout{j}{i} = s.(output{j});
                 end
             end
+            if numel(iFrame)==1,
+                for j=1:numel(output)
+                    varargout{j} = varargout{j}{1};
+                end
+            end
+            
+%             if numel(iFrame)>1,
+%                 for i=1:numel(output),
+%                     varargout{i}=s.(output{i});
+%                 end
+%             else
+%                 for i=1:numel(output),
+%                     varargout{i}=s.(output{i})(iFrame);
+%                 end
+%             end
         end
         
         function h=draw(obj,varargin)
@@ -114,15 +136,24 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         function output = getDrawableOutput(obj)
             output(1).name='Force  field';
             output(1).var='forceField';
-            output(1).formatData=@(x) [x.pos x.vec];
+            output(1).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
             output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+%             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[75/255 0/255 130/255]);
+            
+            colors = hsv(numel(obj.owner_.channels_));
+            output(2).name='Traction map';
+            output(2).var='tMap';
+            output(2).formatData=[];
+            output(2).type='image';
+            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.speedMapLimits_{x});
             if ~strcmp(obj.funParams_.solMethodBEM,'QR')
-                output(2).name='Lcurve';
-                output(2).var='lcurve';
-                output(2).formatData=[];
-                output(2).type='movieGraph';
-                output(2).defaultDisplayMethod=@FigFileDisplay;
+                output(3).name='Lcurve';
+                output(3).var='lcurve';
+                output(3).formatData=[];
+                output(3).type='movieGraph';
+                output(3).defaultDisplayMethod=@FigFileDisplay;
             end
         end
         
