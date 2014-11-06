@@ -701,10 +701,28 @@ if ~isempty(idxFiloAttach)
         % put the pixindices of the filo in the mask
         testMask(filoInfo(idxSeedFilo).Ext_pixIndicesBack)=1;
         testMask(labelCandidates == labelCandCon(idxFiloAttach(iFilo))) = 1;
+         
+        
         
         testMask(pixGoodConnect{idxFiloAttach(iFilo)})=1;
         testMask = logical(testMask);
         testMask = bwmorph(testMask,'thin','inf'); % thin to avoid junctions that might be made upon the linkage
+        
+        % attempt to fix  20141105 -test for more than one junction if more
+        % than one spur
+         nn = padarrayXT(double(testMask~=0), [1 1]);
+         sumKernel = [1 1 1];
+         nn = conv2(sumKernel, sumKernel', nn, 'valid');
+         nn1 = (nn-1) .* (testMask~=0);
+         junctTest = nn1>2; 
+         CCJunct = bwconncomp(junctTest); 
+         if CCJunct.NumObjects >1
+         testMask = bwmorph(testMask,'spur'); 
+         % add back the end point 
+         testMask(yEP,xEP) = 1;  
+        
+         end
+        
         % MARIA COME BACKE TO THIS! sometimes here still have small junctions that are
         % introduced by the linker ... One way to avoid this is to perform
         % a spur operation if have more than one junction introduced. 
@@ -712,7 +730,9 @@ if ~isempty(idxFiloAttach)
         % record pixels back until the junction point. If there are two
         % junctions it will truncate the recording prematurely. - 
         % other thing you can do is test for junctions in the linker - filo
-        % combo.. again not elegant. 
+        % combo.. again not elegant. -- above is one solution 20141105- it
+        % worked for RhoA 01 20130827 cell 01 filopodia 40 where this was a
+        % problem 
         transform = bwdistgeodesic(testMask,xEP,yEP);
         % now need to get pixels and do fit on the branch
         pixIdxBack = nan(50,1); % overinitialize to make happy
