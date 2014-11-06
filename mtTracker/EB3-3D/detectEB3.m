@@ -1,8 +1,10 @@
 function [movieInfo,labels] = detectEB3(MD,varargin)
-% SUMMARY: Wrap multiple detection function with standardized input and output for 
-%  - easier switching between multiple detector type in a given work flow
-%  - systematic comparison
+% SUMMARY: Wrap multiple detection function with standardized input and output. Why not using Virtual class ? B/c:
+%  - basic and readable switching between multiple detector type in an anylisis process
+%  - help systematic comparison
+%  - easy detection function inventory
 % Philippe Roudot 2014  
+
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched=true;
@@ -16,7 +18,6 @@ ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
 ip.addParamValue('type', 'watershedApplegate',  @ischar);
 ip.parse(MD, varargin{:});
-
 
 processFrames=[];
 if isempty(ip.Results.processFrames)
@@ -32,31 +33,25 @@ else
 end 
 
 labels=cell(1,numel(processFrames));
-movieInfo=cell(1,numel(processFrames));
+movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 
-
-parfor frameIdx=1:numel(processFrames)
+for frameIdx=1:numel(processFrames)
     timePoint=processFrames(frameIdx);
     disp(['Processing time point ' num2str(timePoint,'%04.f')])
     vol=double(MD.getChannel(ip.Results.channel).loadStack(timePoint));
-
     switch ip.Results.type
       case 'watershedApplegate'
-        [movieInfo,labels{frameIdx}]=detectComets3D(vol,ip.Results.waterStep,ip.Results.waterThresh,[1 1 1]);
+        [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(vol,ip.Results.waterStep,ip.Results.waterThresh,[1 1 1]);
       case 'watershedMatlab'
-        movieInfo{frameIdx}=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
         label=watershed(-vol); label(vol<ip.Results.waterThresh)=0;[dummy,nFeats]=bwlabeln(label);
-        featProp = regionprops(dummy,vol,'WeightedCentroid'); %'Extrema'
-        temp = vertcat(featProp.WeightedCentroid);
-        movieInfo.yCoord = 0.5*ones(nFeats,3); movieInfo.xCoord = 0.5*ones(nFeats,3); movieInfo.zCoord = 0.5*ones(nFeats,3);
-        movieInfo.zCoord(:,1) = temp(:,3); movieInfo.yCoord(:,1) = temp(:,2); movieInfo.xCoord(:,1) = temp(:,1);
         labels{frameIdx}=label;
+        movieInfo(frameIdx)=labelToMovieInfo(label,vol);
       case 'markedWatershed'
-        [movieInfo,labels{frameIdx}]=markedWatershed(vol,scales,ip.Results.waterThresh);
+        [movieInfo(frameIdx),labels{frameIdx}]=markedWatershed(vol,scales,ip.Results.waterThresh);
       case {'pointSource','pointSourceAutoSigma'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
-        labels{frameIdx}=double(mask);
-        movieInfo{frameIdx}=pstruct;
+        labels{frameIdx}=double(mask); % adjust label
+        movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol)
       otherwise 
         disp('Unsupported detection method.');
         disp('Supported method:');
@@ -65,14 +60,25 @@ parfor frameIdx=1:numel(processFrames)
     
     if ip.Results.showAll
         figure()
-        stackShow(vol,'overlay',label);
+        stackShow(vol,'overlay',labels{frameIdx});
         figure()
-        imseriesmaskshow(vol,label);
+        imseriesmaskshow(vol,labels{frameIdx});
     end
 end 
 
-% $$$ for frameIndex=ip.Results.processFrames 
-% $$$ 
-% $$$ if ~strcmp(ip.Results.type,'watershed')
-% $$$     [movieInfo,label]=detectComets3D(vol,10,120,[1 1 1]);
-% $$$ end {
+
+function movieInfo= labelToMovieInfo(label,vol)
+[feats,nFeats] = bwlabeln(label);
+featsProp = regionprops(feats,vol,'Area','WeightedCentroid','MeanIntensity','MaxIntensity','PixelValues');
+
+% centroid coordinates with 0.5 uncertainties
+tmp = vertcat(featsProp.WeightedCentroid);
+xCoord = [tmp(:,1) 0.5*ones(nFeats,1)]; yCoord = [tmp(:,2) 0.5*ones(nFeats,1)]; zCoord = [tmp(:,3) 0.5*ones(nFeats,1)];
+amp=[vertcat(featsProp.MaxIntensity) 0.5*ones(nFeats,1)];
+
+% u-track formating
+movieInfo=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
+movieInfo.xCoord= xCoord;movieInfo.yCoord=yCoord;movieInfo.zCoord=zCoord;
+movieInfo.amp=amp;
+movieInfo.int=amp;
+
