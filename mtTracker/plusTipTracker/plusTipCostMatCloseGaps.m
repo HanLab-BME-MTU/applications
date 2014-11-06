@@ -742,7 +742,11 @@ segYXorig=segYX;
 % endTrackStartPxyVxy is not the whole matrix - only for this particular end
 % track
 endMag=sqrt(sum(endTrackStartPxyVxy(1,3:4).^2));
-nRepPhantom=ceil(max(maxCutoff)/endMag);
+if (endMag~=0)
+    nRepPhantom=ceil(max(maxCutoff)/endMag);
+else
+    nRepPhantom=0;
+end 
 
 % create the phantom points extending back from end track's first pt,
 % pointing towards it with the end track's starting velocity
