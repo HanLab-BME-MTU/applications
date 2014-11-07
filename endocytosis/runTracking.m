@@ -58,7 +58,7 @@ end
 
 % Run tracker on each data set
 parfor i = 1:length(data)
-    if ~(exist([data(i).source 'Tracking'], 'dir')==7) || overwrite
+    if ~(exist([data(i).source 'Tracking' filesep 'trackedFeatures.mat'], 'file')==2) || overwrite  % Tracking is performed on master (in data.source) only
         fprintf('Running tracker on %s\n', getShortPath(data(i)));
         main(data(i), settings, fileName, detectionFile, frames);
     else
