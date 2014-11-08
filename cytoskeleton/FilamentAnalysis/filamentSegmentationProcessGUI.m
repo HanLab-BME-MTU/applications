@@ -127,6 +127,13 @@ if(length(funParams.StPace_Size)==1)
     funParams.CannyLowerThreshold = funParams.CannyLowerThreshold*ones_array;
 end
     
+
+if(length(funParams.CannyHigherThreshold)==1)
+    ones_array = ones(1,numel(userData.MD.channels_));   
+    funParams.CannyHigherThreshold = funParams.CannyHigherThreshold*ones_array;
+    funParams.CannyLowerThreshold = funParams.CannyLowerThreshold*ones_array;
+end
+
 % with the previous lines of expansion of single value to an array of all
 % possible channels, display the first selected channel
 set(handles.edit_StPaceSize,'String',funParams.StPace_Size(current_ch_ind));
