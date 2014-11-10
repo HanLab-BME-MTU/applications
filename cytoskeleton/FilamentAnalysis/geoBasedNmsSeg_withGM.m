@@ -96,7 +96,7 @@ T_otsu_start=0.4;
 
 MaskCell_nohole = MaskCell;
 MaskCell_nohole = bwmorph(MaskCell,'fill');
-MaskCell_nohole(140:170,140:170)=1;
+% MaskCell_nohole(140:170,140:170)=1;
 
 imageNMS_nohole = imageNMS.*MaskCell_nohole;
 imageInt_nohole = imageInt.*MaskCell_nohole;
