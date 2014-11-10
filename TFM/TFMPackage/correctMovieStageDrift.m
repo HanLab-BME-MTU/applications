@@ -85,7 +85,7 @@ croppedRefFrame = imcrop(refFrame,p.cropROI);
 disp('Detecting beads in the reference frame...')
 beadsChannel = movieData.channels_(p.ChannelIndex(1));
 % psfSigma = beadsChannel.psfSigma_;
-if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield')
+if strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Widefield') || movieData.pixelSize_>130
     psfSigma = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
 elseif strcmp(movieData.getChannel(p.ChannelIndex(1)).imageType_,'Confocal')
     psfSigma = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
@@ -125,12 +125,14 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     tic;
     
     % Create crop of reference frame for autocorrelation
-    [rows, cols] = size(croppedRefFrame);
-    rect=[floor(cols/4) floor(rows/4) floor(cols/2)-1 floor(rows/2)-1] ;
-    preRegTemplate = imcrop(croppedRefFrame,rect);
+%     [rows, cols] = size(croppedRefFrame);
+%     rect=[floor(cols/4) floor(rows/4) floor(cols/2)-1 floor(rows/2)-1] ;
+%     preRegTemplate = imcrop(croppedRefFrame,rect);
     
     % Caclulate autocorrelation of the reference frame
-    selfCorr = normxcorr2(preRegTemplate,croppedRefFrame);
+    
+    selfCorr = normxcorr2(croppedRefFrame,refFrame);
+%     selfCorr = normxcorr2(preRegTemplate,croppedRefFrame);
     [~ , imax] = max(abs(selfCorr(:)));
     [rowPosInRef, colPosInRef] = ind2sub(size(selfCorr),imax(1));
 
@@ -138,7 +140,8 @@ if p.doPreReg % Perform pixel-wise registration by auto-correlation
     for j= 1:nFrames       
         % Find the maximum of the cross correlation between the template and
         % the current image:
-        xCorr  = normxcorr2(preRegTemplate,imcrop(stack(:,:,j),p.cropROI));
+        xCorr  = normxcorr2(croppedRefFrame,stack(:,:,j));%imcrop(stack(:,:,j),p.cropROI));
+%         xCorr  = normxcorr2(preRegTemplate,imcrop(stack(:,:,j),p.cropROI));
         [~ , imax] = max(abs(xCorr(:)));
         [rowPosInCurr, colPosInCurr] = ind2sub(size(xCorr),imax(1));
         

@@ -93,12 +93,14 @@ forceFieldProc.setInFilePaths(inFilePaths);
 
 % Set up the output file
 outputFile{1,1} = [p.OutputDirectory filesep 'forceField.mat'];
-outputFile{2,1} = [p.OutputDirectory filesep 'BEMParams.mat'];
+outputFile{2,1} = [p.OutputDirectory filesep 'tractionMaps.mat'];
+outputFile{3,1} = [p.OutputDirectory filesep 'BEMParams.mat'];
 % if  ~strcmp(p.solMethodBEM,'QR')
 if p.useLcurve
-    outputFile{3,1} = [p.OutputDirectory filesep 'Lcurve.fig'];
-    outputFile{4,1} = [p.OutputDirectory filesep 'LcurveData.mat'];
+    outputFile{4,1} = [p.OutputDirectory filesep 'Lcurve.fig'];
+    outputFile{5,1} = [p.OutputDirectory filesep 'LcurveData.mat'];
 end
+
 
 % Backup the original vectors to backup folder
 display('Backing up the original data')
@@ -173,6 +175,7 @@ else
 end
 
 forceField(nFrames)=struct('pos','','vec','','par','');
+tMap = cell(1,nFrames);
 
 disp('Calculating force field...')
 % logMsg = 'Please wait, calculating force field';
@@ -190,56 +193,8 @@ if strcmpi(p.method,'FastBEM')
     % and then use parfor for the rest of the frames to calculate forces -
     % SH
     i=frameSequence(1); % For the first frame
-    jj=jj+1;
     [grid_mat,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
     
-%     if min(min(maskArray(:,:,1))) == 0 %when ROI was used, make a denser displacement field by interpolation
-%         % vectorized position
-%         posx=reshape(grid_mat(:,:,1),[],1);
-%         posy=reshape(grid_mat(:,:,2),[],1);
-% 
-%         dispMat = [displField(i).pos(:,2:-1:1) displField(i).pos(:,2:-1:1)+displField(i).vec(:,2:-1:1)];
-%         intDisp = vectorFieldSparseInterp(dispMat,[posy posx],20,20,[]);
-%         displField(i).vec = intDisp(:,4:-1:3) - intDisp(:,2:-1:1);
-%         displField(i).pos = [posx posy];
-%         
-% %         vecx=reshape(iu_mat(:,:,1),[],1);
-% %         vecy=reshape(iu_mat(:,:,2),[],1);
-% %         displField(i).vec =  [vecx vecy];
-%     end
-
-%     posx=reshape(grid_mat(:,:,1),[],1);
-%     posy=reshape(grid_mat(:,:,2),[],1);
-%     displField(i).pos = [posx posy];
-%     vecx=reshape(iu_mat(:,:,1),[],1);
-%     vecy=reshape(iu_mat(:,:,2),[],1);
-%     displField(i).vec =  [vecx vecy];
-    % finding the place where middle displacement is
-    
-%     if p.useLcurve
-%         curDispMag = (displField(i).vec(:,1).^2+displField(i).vec(:,2).^2).^0.5;
-%         % 150 x 150
-%         y_first = find(any(firstMask,2),1);
-%         x_first = find(any(firstMask,1),1);
-%         y_last = find(any(firstMask,2),1,'last');
-%         x_last = find(any(firstMask,1),1,'last');
-%         [~, IDmagSorted] = sort(curDispMag);
-%         idMid = floor(length(curDispMag)*0.7);
-%         curMidPos = displField(i).pos(IDmagSorted(idMid),:);
-%         jjj = 0;
-%         while (curMidPos(1)-x_first)<75 || (x_last-curMidPos(1))<75 || (curMidPos(2)-y_first)<75 || (y_last-curMidPos(2))<75
-%             jjj = jjj+1;
-%             [~, IDmagSorted] = sort(curDispMag);
-%             curMidPos = displField(i).pos(IDmagSorted(idMid+jjj),:);
-%         end
-%         lcurveMask = false(size(firstMask));
-%         lcurveMask(curMidPos(2)-75:curMidPos(2)+75,curMidPos(1)-75:curMidPos(1)+75) = true;
-% 
-%         displFieldSmall = filterDisplacementField(displField,lcurveMask);
-%         reg_gridSmall=createRegGridFromDisplField(displFieldSmall,1.5,0);
-%         [grid_matSmall,~, ~,~] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_gridSmall);
-%     end
-
     % If grid_mat=[], then an optimal hexagonal force mesh is created
     % given the bead locations defined in displField:
     if p.usePaxImg && length(movieData.channels_)>1
@@ -262,30 +217,9 @@ if strcmpi(p.method,'FastBEM')
             forceField(i).vec=force;
         end
     else
-%                 if ishandle(wtBar)
-%                     waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
-%                 end
-%         if p.useLcurve
-%             [~, ~, ~, ~,~,~,~, sol_matsLcurve]=...
-%                 reg_FastBEM_TFM(grid_matSmall, displField, i, ...
-%                 p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-%                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-%                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-%                 'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
-%                 'LcurveDataPath',outputFile{4,1},'LcurveFigPath',outputFile{3,1});
-%             params = parseProcessParams(forceFieldProc,paramsIn);
-%             params.regParam = sol_matsLcurve.L;
-%             p.regParam = sol_matsLcurve.L;
-%             forceFieldProc.setPara(params);
-%         end
-%         [pos_f, force, forceMesh, M, pos_u, u, sol_coef, sol_mats]=...
-%             reg_FastBEM_TFM(grid_mat, displField, i, ...
-%             p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-%             'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-%             'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-%             'thickness',p.thickness/movieData.pixelSize_);
-%         forceField(i).pos=pos_f;
-%         forceField(i).vec=force;
+        if ishandle(wtBar)
+            waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+        end
         if p.useLcurve
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
@@ -293,7 +227,7 @@ if strcmpi(p.method,'FastBEM')
                 'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
                 'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
                 'useLcurve',p.useLcurve>0, 'LcurveFactor',p.LcurveFactor,'thickness',p.thickness/movieData.pixelSize_,...
-                'LcurveDataPath',outputFile{4,1},'LcurveFigPath',outputFile{3,1});
+                'LcurveDataPath',outputFile{5,1},'LcurveFigPath',outputFile{4,1});
             params = parseProcessParams(forceFieldProc,paramsIn);
             params.regParam = sol_mats.L;
             p.regParam = sol_mats.L;
@@ -316,42 +250,20 @@ if strcmpi(p.method,'FastBEM')
         % In most cases, except the sol_coef this has to be stored only
         % once for all frames!
         if p.saveBEMparams
-            disp(['saving forward map and force mesh at ' outputFile{2} '...'])
-            save(outputFile{2},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
+            disp(['saving forward map and force mesh at ' outputFile{3} '...'])
+            save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
         end
-%         if matlabpool('size')==0
-%             matlabpool open
-%         end
         for i=frameSequence(2:end)
                         % since the displ field has been prepared such
                 % that the measurements in different frames are ordered in the
                 % same way, we don't need the position information any
                 % more. The displ. measurements are enough.
                 display('5.) Re-evaluate the solution:... ')
-                %             % pull the new u-vector:
-                %             u=vertcat(displField(i).vec(:,1),displField(i).vec(:,2));
-                % recalculate the solution for the new displacement vec:
-%                 outputFileLcurve = [p.OutputDirectory filesep 'LcurveFrame' num2str(i) '.fig'];
-%                 outputFileLcurveData = [p.OutputDirectory filesep 'LcurveDataFrame' num2str(i) '.mat'];
                 if p.usePaxImg && length(movieData.channels_)>1
                     paxImage=movieData.channels_(2).loadImage(i);
                     [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
                         displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
                 else
-%                     if p.useLcurve
-%                         [~, ~, ~, ~,~,~,~, sol_matsLcurve]=...
-%                             reg_FastBEM_TFM(grid_matSmall, displField, i, ...
-%                             p.YoungModulus, p.PoissonRatio, p.regParam, p.meshPtsFwdSol,p.solMethodBEM,...
-%                             'basisClassTblPath',p.basisClassTblPath,wtBarArgs{:},...
-%                             'imgRows',movieData.imSize_(1),'imgCols',movieData.imSize_(2),...
-%                             'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_,...
-%                              'LcurveFactor',p.LcurveFactor, 'LcurveDataPath',outputFileLcurveData,'LcurveFigPath',outputFileLcurve);
-%                         sol_mats.L = sol_matsLcurve.L;
-%                     end
-%                     
-%                     [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-%                         displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
-   
                     [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
                         displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
                 end
@@ -360,7 +272,7 @@ if strcmpi(p.method,'FastBEM')
                 display(['Done: solution for frame: ',num2str(i)]);
         end
     end
-else
+else % FTTC
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
         [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
@@ -368,21 +280,35 @@ else
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
     end
-end   
+end
+% For calculation of traction map
+% The drift-corrected frames should have independent channel
+% ->StageDriftCorrectionProcess
+[tMapIn, tmax, tmin, cropInfo] = generateHeatmapShifted(forceField,displField,0);
+% Insert traction map in forceField.pos 
+disp('Generating traction maps ...')
+for ii=frameSequence
+    % starts with original size of beads
+    cur_tMap = zeros(size(firstMask));
+    cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
+    tMap{ii} = cur_tMap;
+end
+
+% Fill in the values to be stored:
+clear grid_mat;
+clear iu;
+clear iu_mat;
     
-    
-    % Fill in the values to be stored:
-    clear grid_mat;
-    clear iu;
-    clear iu_mat;
-    
-    % Update the waitbar
+% Update the waitbar
 %     if mod(i,5)==1 && ishandle(wtBar)
 %         ti=toc;
 %         waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
 %     end
             
+disp('Saving ...')
 save(outputFile{1},'forceField');
+save(outputFile{2},'tMap'); % need to be updated for faster loading. SH 20141106
+forceFieldProc.setTractionMapLimits([tmin tmax])
 
 % Close waitbar
 % if feature('ShowFigureWindows'), close(wtBar); end

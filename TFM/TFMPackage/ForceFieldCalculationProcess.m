@@ -2,6 +2,9 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
     % Concrete process for calculating a force field
     %
     % Sebastien Besson, Aug 2011
+    properties (SetAccess = protected)  
+        tMapLimits_
+    end
     
     methods
         function obj = ForceFieldCalculationProcess(owner,varargin)
@@ -41,19 +44,22 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
         
         function varargout = loadChannelOutput(obj,varargin)
             
-            outputList = {'forceField'};
+            outputList = {'forceField','tMap'};
             ip =inputParser;
             ip.addRequired('obj',@(x) isa(x,'ForceFieldCalculationProcess'));
-            ip.addOptional('iFrame',1:obj.owner_.nFrames_,...
-                @(x) ismember(x,1:obj.owner_.nFrames_));
-            ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) all(obj.checkFrameNum(x)));
+            ip.addOptional('iOut',@isnumeric);
+%             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
+%             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
+            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
+            iOut = ip.Results.iOut;
             
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{1},output{:});
+            s = load(obj.outFilePaths_{iOut},output{:});
             
             if numel(iFrame)>1,
                 for i=1:numel(output),
@@ -65,22 +71,35 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 end
             end
         end
-        
+                
         function h=draw(obj,varargin)
             % Function to draw process output
             
             outputList = obj.getDrawableOutput();
             drawLcurve = any(strcmpi('lcurve',varargin));
-            
-            if drawLcurve
+            rendertMap = any(strcmpi('tMap',varargin));
+            if drawLcurve %Lcurve
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
                 ip.addParamValue('output',outputList(1).var,...
                     @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
                 ip.KeepUnmatched = true;
                 ip.parse(obj,varargin{:})
-                data=obj.outFilePaths_{3,1};
-            else
+                data=obj.outFilePaths_{4,1};
+            elseif rendertMap % forceMap
+                % Input parser
+                ip = inputParser;
+                ip.addRequired('obj',@(x) isa(x,'Process'));
+                ip.addRequired('iChan',@isnumeric);
+                ip.addRequired('iFrame',@isnumeric);
+                ip.addParamValue('output',outputList(2).var,...
+                    @(x) any(cellfun(@(y) isequal(x,y),{outputList.var})));
+                ip.KeepUnmatched = true;
+                ip.parse(obj,varargin{1:end})
+                iFrame=ip.Results.iFrame;
+                data=obj.loadChannelOutput(iFrame,2,'output',ip.Results.output);
+                if iscell(data), data = data{1}; end
+            else % forcefield
                 % Input parser
                 ip = inputParser;
                 ip.addRequired('obj',@(x) isa(x,'Process'));
@@ -91,16 +110,16 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
                 ip.parse(obj,varargin{1},varargin{2:end})
                 iFrame=ip.Results.iFrame;
                 
-                data=obj.loadChannelOutput(iFrame,'output',ip.Results.output);
+                data=obj.loadChannelOutput(iFrame,1,'output',ip.Results.output);
             end
             iOutput= find(cellfun(@(y) isequal(ip.Results.output,y),{outputList.var}));
             if ~isempty(outputList(iOutput).formatData),
                 data=outputList(iOutput).formatData(data);
             end
             try
-                assert(~isempty(obj.displayMethod_{iOutput}));
+                assert(~isempty(obj.displayMethod_{iOutput,1}));
             catch ME
-                obj.displayMethod_{iOutput}=...
+                obj.displayMethod_{iOutput,1}=...
                     outputList(iOutput).defaultDisplayMethod();
             end
             
@@ -111,18 +130,30 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             h=obj.displayMethod_{iOutput}.draw(data,tag,drawArgs{:});
         end
         
+        function setTractionMapLimits(obj,tMapLimits)
+            obj.tMapLimits_ = tMapLimits;
+        end
+        
         function output = getDrawableOutput(obj)
             output(1).name='Force  field';
             output(1).var='forceField';
-            output(1).formatData=@(x) [x.pos x.vec];
+            output(1).formatData=@(x) [x.pos x.vec(:,1)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5) x.vec(:,2)/mean((x.vec(:,1).^2+x.vec(:,2).^2).^0.5)];
             output(1).type='movieOverlay';
-            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+%             output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color','r');
+            output(1).defaultDisplayMethod=@(x) VectorFieldDisplay('Color',[75/255 0/255 130/255]);
+            
+            output(2).name='Traction map';
+            output(2).var='tMap';
+            output(2).formatData=[];
+            output(2).type='image';
+            output(2).defaultDisplayMethod=@(x)ImageDisplay('Colormap','jet',...
+                'Colorbar','on','Units',obj.getUnits,'CLim',obj.tMapLimits_);
             if ~strcmp(obj.funParams_.solMethodBEM,'QR')
-                output(2).name='Lcurve';
-                output(2).var='lcurve';
-                output(2).formatData=[];
-                output(2).type='movieGraph';
-                output(2).defaultDisplayMethod=@FigFileDisplay;
+                output(3).name='Lcurve';
+                output(3).var='lcurve';
+                output(3).formatData=[];
+                output(3).type='movieGraph';
+                output(3).defaultDisplayMethod=@FigFileDisplay;
             end
         end
         
@@ -145,7 +176,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             
             % Set default parameters
             funParams.OutputDirectory = [outputDir  filesep 'forceField'];
-            funParams.YoungModulus = 10000;
+            funParams.YoungModulus = 8000;
             funParams.PoissonRatio = .5;
             funParams.method = 'FastBEM';
             funParams.meshPtsFwdSol = 4096;
@@ -155,6 +186,9 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+        end
+        function units = getUnits(varargin)
+            units = 'Traction (Pa)';
         end
     end
 end

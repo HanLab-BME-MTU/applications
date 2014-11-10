@@ -95,7 +95,7 @@ for i = p.ChannelIndex;
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i) '.mat'];
 end
 filteredImagesDirectory = [p.OutputDirectory filesep 'filtered_images'];
-if ~isdir(filteredImagesDirectory), rmdir(filteredImagesDirectory, 's'); end
+if isdir(filteredImagesDirectory), rmdir(filteredImagesDirectory, 's'); end
 mkClrDir(p.OutputDirectory);
 cometDetProc.setOutFilePaths(outFilePaths);
 
