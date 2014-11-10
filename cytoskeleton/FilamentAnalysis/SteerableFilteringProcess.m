@@ -151,7 +151,7 @@ classdef SteerableFilteringProcess < ImageProcessingProcess
             ip.addRequired('iChan',@obj.checkChanNum);
             ip.addRequired('iFrame',@obj.checkFrameNum);
             
-            outputList = {'MAX_st_res','nms','orienation_map','scaleMap'};
+            outputList = {'MAX_st_res','nms','orienation_map','scaleMap',''};
             ip.addParamValue('output',{},@(x) all(ismember(x,outputList)));
             
             ip.parse(iChan,iFrame,varargin{:})
@@ -259,15 +259,30 @@ classdef SteerableFilteringProcess < ImageProcessingProcess
             h= @steerableFilteringProcessGUI;
         end
         
-        function output = getDrawableOutput()
-            output = ImageProcessingProcess.getDrawableOutput();
-            %             output(2).name='Steerable Filtering images';
-            %             output(2).var='SteerableFilteringImage';
-            %             output(2).formatData=[];
-            %             output(2).type='graph';
-            %             output(2).defaultDisplayMethod=@(x)LineDisplay('Color',[0 0 0],...
-            %                 'LineStyle','-','LineWidth',2,...
-            %                 'XLabel','Frame Number','YLabel','SteerableFiltering');
+        function output = getDrawableOutput()            
+            output(1).name='Steerable Filter Response';
+            output(1).var='MAX_st_res';
+            output(1).formatData=@mat2gray;
+            output(1).type='image';
+            output(1).defaultDisplayMethod=@ImageDisplay;
+            
+            output(2).name='Non-Maximum Suppressed';
+            output(2).var='nms';
+            output(2).formatData=@mat2gray;
+            output(2).type='image';
+            output(2).defaultDisplayMethod=@ImageDisplay;
+            
+            output(3).name='Orientation Map';
+            output(3).var='orienation_map';
+            output(3).formatData=@mat2gray;
+            output(3).type='image';
+            output(3).defaultDisplayMethod=@ImageDisplay;
+            
+            output(4).name='Scale Map';
+            output(4).var='scaleMap';
+            output(4).formatData=@mat2gray;
+            output(4).type='image';
+            output(4).defaultDisplayMethod=@ImageDisplay;
         end
         
         function funParams = getDefaultParams(owner,varargin)
