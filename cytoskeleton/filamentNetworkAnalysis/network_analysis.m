@@ -124,6 +124,11 @@ end
 if(feature_flag(7)>0)
     
     % center the histogram at the mode
+    
+    [h,b] = hist(orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
+    h=h(1:end);
+    h = h/length(orientation_pixel_pool_display);
+    
     ind_max_h = find(h==max(h));
     ind_max_h = ind_max_h(1);
     mode_bin = b(ind_max_h)-pi/36;

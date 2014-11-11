@@ -67,6 +67,7 @@ end
 movie_Dir = MD.outputDirectory_;
 
 % find all the index of different processes
+display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
@@ -163,14 +164,14 @@ for iChannel = 1 :  length(MD.channels_)
         
         % get network feature that is related to intensity or st image
          output_image_features = perfilament_analysis(VIF_ROI_model, VIF_ROI_orientation_model,...
-                 VIF_current_seg, scale_map,current_img, MAX_st_res, feature_flag);
+                 VIF_current_seg, scaleMap,current_img, MAX_st_res, feature_flag);
         
         % putting the network features together
         output_feature =  cat_struct(output_network_features,output_image_features);
         
         % plot the network features in hists
-        network_features_plotting(output_feature, figure_flag, save_everything_flag);
-                    
+        network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
+                im_name, outdir,iChannel,iFrame)
 %         close all;
 
         % add one last component, the cell_mask

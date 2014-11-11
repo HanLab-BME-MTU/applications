@@ -1,4 +1,4 @@
-function network_features_plotting(output_feature, figure_flag, save_everything_flag,...
+function network_features_plotting(output_feature, figure_flag, save_everything_flag,feature_flag,...
     im_name, outdir,iChannel,iFrame)
 % function to plot network features
 % Input: output_feature:   network feautre
@@ -39,8 +39,8 @@ if(figure_flag>0)
     if(feature_flag(2)>0)
         
         h2 =  figure(2);
-        [h,bin] = hist(length_per_filament_pool,0:20:1000);
-        h = h/length(length_per_filament_pool);
+        [h,bin] = hist(output_feature.length_per_filament_pool,0:20:1000);
+        h = h/length(output_feature.length_per_filament_pool);
         
         bar(bin,h);
         axis([-10 310 0 0.3]);
@@ -89,7 +89,7 @@ if(figure_flag>0)
         
         
         h6 =  figure(6);
-        rose(orientation_pixel_pool_display);
+        rose(output_feature.orientation_pixel_pool_display);
         title([im_name_title,' Orientation of Filaments']);
         if(save_everything_flag>0)
             saveas(h6, [outdir,filesep,'network_orientationrose_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
@@ -99,9 +99,9 @@ if(figure_flag>0)
         % the orientation in histogram
         h16 =  figure(16);
         
-        [h,b] = hist(orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
+        [h,b] = hist(output_feature.orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
         h=h(1:end);
-        h = h/length(orientation_pixel_pool_display);
+        h = h/length(output_feature.orientation_pixel_pool_display);
         bin = (-pi/2:pi/18:pi/2) +pi/36;
         bar(bin,h);
         axis([-pi/2-pi/36 pi/2+pi/36 0 0.3]);
@@ -117,7 +117,7 @@ if(figure_flag>0)
         
         
         h7 =  figure(7);
-        rose(orientation_pixel_pool_display_center);
+        rose(output_feature.orientation_pixel_pool_display_center);
         title([im_name_title,' Orientation of Filaments']);
         
         if(save_everything_flag>0)
@@ -128,9 +128,19 @@ if(figure_flag>0)
         % the orientation in histogram
         h17 =  figure(17);
         
-        [h,b] = hist(orientation_pixel_pool_display_center,-pi/2+mode_bin:pi/18:pi/2+mode_bin);
+        
+        [h,b] = hist(output_feature.orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
         h=h(1:end);
-        h = h/length(orientation_pixel_pool_display_center);
+        h = h/length(output_feature.orientation_pixel_pool_display);
+        
+        ind_max_h = find(h==max(h));
+        ind_max_h = ind_max_h(1);
+        mode_bin = b(ind_max_h)-pi/36;
+        mode_bin = mod(mode_bin,pi);        
+        
+       [h,b] = hist(output_feature.orientation_pixel_pool_display_center,-pi/2+mode_bin:pi/18:pi/2+mode_bin);
+        h=h(1:end);
+        h = h/length(output_feature.orientation_pixel_pool_display_center);
         bin = (-pi/2:pi/18:pi/2)+mode_bin+pi/36;
         bar(bin,h);
         axis([-pi/2-pi/36+mode_bin pi/2+pi/36+mode_bin 0 0.3]);
