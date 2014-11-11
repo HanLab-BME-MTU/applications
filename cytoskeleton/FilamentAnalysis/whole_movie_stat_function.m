@@ -118,7 +118,7 @@ for i = 1 : nProcesses
     end
 end
 
-if indexCellSegProcess == 0 && Cell_Mask_ind == 1
+if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
