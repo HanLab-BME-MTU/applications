@@ -175,8 +175,11 @@ for iChannel = 1 :  length(MD.channels_)
 %         close all;
 
         % add one last component, the cell_mask
-        Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
-          
+        if(indexCellRefineProcess>0)
+            Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
+        else
+            Cell_Mask = ROI;
+        end
         output_feature.Cell_Mask = Cell_Mask;
         
         % save output feature for single image(single channel, single frame)
