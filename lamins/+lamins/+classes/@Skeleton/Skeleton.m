@@ -158,16 +158,21 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             lm([obj.vertices.PixelIdxList{:}]) = 0;
             % identify edges indices which overlap the dilated face
             edgeIndices = cellfun(@(x) unique(nonzeros(lm(x))),dilatedFaces.PixelIdxList,'UniformOutput',false);
+            map = zeros(1,prod(obj.edges.ImageSize));
+            edges = obj.edges;
             
             % obtain the linear index of the endpoints of the overlapping edges
             for faceIdx = 1:dilatedFaces.NumObjects
-                edgeCandidates = ccFilter(obj.edges,edgeIndices{faceIdx});
+                edgeCandidates = ccFilter(edges,edgeIndices{faceIdx});
                 
                 endpts = getEdgeEndpoints(edgeCandidates);
                 
                 % each endpoint should be repeated exactly twice
                 [mult , uniq] = getMultiplicityInt(endpts);
-                map = sparse(1,double(uniq),mult);
+%                 map = sparse(1,double(uniq),mult);
+%                 map = zeros(1,max(uniq));
+                map(uniq) = mult;
+%                 map = accumarray(endpts(:),1)';
                 % remove hanging endpoints that do not intersect the other
                 % edges
                 goodEdges = ~any(map(endpts) == 1,2);
@@ -180,7 +185,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 goodEdges = ismember( midpoints,  dilatedFaces.PixelIdxList{faceIdx} );
                 
                 edgeIndices{faceIdx} = edgeIndices{faceIdx}(goodEdges,:);
-                endpts = endpts(goodEdges,:);
+%                 endpts = endpts(goodEdges,:);
             end
             if(nargout > 1)
                 % calculate a map from edges to faces
@@ -191,6 +196,8 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 runs = zeros(size(edgeIdx));
                 runs(u) = r;
                 faceIdx = cumsum(runs);
+                % in case the last face has no edges
+                faceIdx = faceIdx(1:length(edgeIdx));
                 faceIndices = accumarray(edgeIdx,faceIdx,[],@(x) {x});
             end
         end
@@ -285,8 +292,9 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
 %             cc{1} = ccDilate(cc{1},se);
 %             cc{2} = ccDilate(cc{2},se);
             dilated = imdilate(obj.vertices.lm,se);
+            E = obj.edges;
             for i=1:length(e)
-                v(i,:) = dilated(obj.edges.PixelIdxList{e(i)}([1 end]));
+                v(i,:) = dilated(E.PixelIdxList{e(i)}([1 end]));
             end
         end
         function e = connectedEdges(obj,v)
@@ -381,13 +389,13 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             v = obj.connectedVertices;
             E = obj.edges;
             V = obj.vertices;
-            for i=1:obj.edges.NumObjects
+            for i=1:E.NumObjects
                 if(all(v(i,:) ~= 0))
                     [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i}([1 end]));
                     pre  = bresenham( centroids(v(i,1), [2 1]) , [r(1) c(1)]);
                     post = bresenham([r(2) c(2)], centroids(v(i,2),[2 1]) );
-                    pre = sub2ind(obj.edges.ImageSize,pre(:,1),pre(:,2));
-                    post = sub2ind(obj.edges.ImageSize,post(:,1),post(:,2));
+                    pre = sub2ind(E.ImageSize,pre(:,1),pre(:,2));
+                    post = sub2ind(E.ImageSize,post(:,1),post(:,2));
                     E.PixelIdxList{i} = [ pre(1:end-1); obj.edges.PixelIdxList{i}; post(2:end) ];
                 end
             end
@@ -440,6 +448,8 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             showGraph(obj);
         end
         function [e,f] = cleanup(obj)
+            obj.convertShortEdgesToVertices(2);
+            obj.reduceVerticesToPoints;
             % Cleans up the edges and faces of the skeleton
             % 1. Removes edges that have no faces
             % 2. Removes faces that have no edges
