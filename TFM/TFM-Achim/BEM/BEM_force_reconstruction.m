@@ -12,7 +12,6 @@ function [fx, fy, x_out, y_out, M, pos_u, u, sol_coef, sol_mats] = ...
 %         spatial derivatives of the displacements, that is du/dx. If u and
 %         dx (essentially cluster_size) are in the same units, then the
 %         resulting force has the same dimension as the input E.
-
 %         u: is the measured displacement! (not the model u!)
 % Achim Besser 2011
 % Sangyoon Han 2013
@@ -149,6 +148,7 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.tool='svd';
     elseif strcmpi(solMethodBEM,'svd') || strcmpi(solMethodBEM,'gsvd')
         % gSVD takes about twice as long as SVD
+        [eyeWeights,~] =getGramMatrix(forceMesh);
         [U,sm,X,~] = cgsvd(M,eyeWeights);
         [sol_coef,~,~] = tikhonov(U,sm,X,u,sqrt(L));
         % store these matrices for next frames:
@@ -212,13 +212,14 @@ if nargin >= 10 && strcmp(method,'fast')
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         MpM=M'*M;
-        maxIter = 10;
+        maxIter = 20;
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
             [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+%             sol_coef = l1_ls(M,u,L,tolx); 
         end
 %         sol_mats.nW=normWeights;
         sol_mats.eyeWeights=eyeWeights;
@@ -263,13 +264,69 @@ if nargin >= 10 && strcmp(method,'fast')
         % store it for later use:
         [eyeWeights,~] =getGramMatrix(forceMesh);
         MpM=M'*M;
-        [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
-%         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
-        % store these matrices for next frames:
+        if useLcurve
+            [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
+        else
+            sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+        end
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;
         sol_mats.L=L;
         sol_mats.tool='backslash';
+
+        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,[],[],'new');
+        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./backslash',0,1600)
+%         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+        % store these matrices for next frames:
+    elseif strcmpi(solMethodBEM,'fourier')
+        % Test Fourier-based solution
+        % pad M to 2*(N-1,O-1) points to avoid wrap-around effects
+        % beta_alpha = (M'*M+L*K^2)^(-1)*M'*D
+        y_out = forceMesh.p(:,2);
+        x_out = forceMesh.p(:,1);
+        x_vec = pos_u(:,1);
+        y_vec = pos_u(:,2);
+        ux_vec = u(1:length(x_vec),1);
+        uy_vec = u(length(x_vec)+1:end,1);
+        colsOut = sum(y_out==y_out(1));
+        reg_grid(:,:,1) = reshape(x_out,[],colsOut);
+        reg_grid(:,:,2) = reshape(y_out,[],colsOut);
+        [grid_mat,iu_mat, i_max, j_max] = interp_vec2grid([x_vec, y_vec], [ux_vec, uy_vec],[],reg_grid);
+        iuvec = iu_mat(:); % make it 1D
+
+        % I am trying to invert M in frequency domain.
+        % generate spectra
+        rowsOut = size(grid_mat,1);
+        
+        Mgrid = calcFwdMapFastBEM(grid_mat(:,:,1),grid_mat(:,:,2), forceMesh, E, meshPtsFwdSol,'basisClassTblPath',basisClassTblPath,'PoissonRatio',v);
+        Mgridfirst = Mgrid(:,1); % this might need to be shifted back some how.
+        % scaling (by grid spacing) and shifting (grid spacing) should be fixed
+%         MgridfirstMax = max(abs(Mgridfirst));
+        gridSpacing = grid_mat(1,2,1) - grid_mat(1,1,1);
+        MgridfirstNor = Mgridfirst*gridSpacing;%/MgridfirstMax;
+%         MgridMid = Mgrid(:,colsOut/2*rowsOut+rowsOut/2);
+        % zero padding to avoid wrap-around effect of circular convolution
+        Nu = length(iuvec);
+        N_G=2*Nu;
+        % These might not be a power of 2, make sure that they are:
+        N_pad=pow2(nextpow2(N_G));
+        
+        iuvecPadded=padarray(iuvec,N_pad-Nu,0,'post');
+        MgridfirstPadded  = padarray(MgridfirstNor,N_pad-Nu,0,'post');
+        
+        uspec = fft(iuvecPadded);
+        Mspec = fft(MgridfirstPadded);
+        % regularization
+        Fspec = conj(Mspec)./(conj(Mspec).*Mspec+L*ones(size(Mspec))).*uspec;
+        sol_coef_fftPadded = ifft(Fspec,'symmetric');
+        sol_coef_fft = sol_coef_fftPadded(1:Nu);
+        [fxFT,fyFT,x_outFT,y_outFT]=calcForcesFromCoef(forceMesh,sol_coef_fft,x_out,y_out,'new');
+        generateHeatmapFromGridData(x_outFT,y_outFT,fxFT,fyFT,'./fft',0,1600);
+        
+        sol_mats.eyeWeights=eyeWeights;
+        sol_mats.MpM=MpM;
+        sol_mats.L=L;
+        sol_mats.tool='fourier';
     else
         error(['I don''t understand the input for the solution method: ',solMethodBEM])
     end
@@ -407,7 +464,7 @@ toc
 
 function [sol_coef,reg_corner] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
@@ -416,11 +473,14 @@ for i=1:length(alphas);
   rho(i)=norm(M*mtik(:,i)-u);
   eta(i)=norm(mtik(:,i));
 end
-
 % Find the corner of the Tikhonov L-curve
-% [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
-
+try
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+catch
+    ireg_corner=[];
+    [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+end
+    
 % Plot the sparse deconvolution L-curve.
 hLcurve = figure;
 set(hLcurve, 'Position', [50 300 200 200])
@@ -430,12 +490,15 @@ xlabel('Residual Norm ||Gm-d||_{2}');
 ylabel('Solution Norm ||Lm||_{2}');
 hold on
 % mark and label the corner
-if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+if ~isempty(ireg_corner) && mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     rho_corner = rho(floor(ireg_corner))+mod(ireg_corner,1)*(rho(floor(ireg_corner)+1)-rho(floor(ireg_corner)));
     eta_corner = eta(floor(ireg_corner))+mod(ireg_corner,1)*(eta(floor(ireg_corner)+1)-eta(floor(ireg_corner)));
-else
+elseif ~isempty(ireg_corner) 
     rho_corner = rho(ireg_corner);
     eta_corner = eta(ireg_corner);
+else
+    rho_corner = rhoC;
+    eta_corner = etaC;
 end    
 H=loglog(rho_corner,eta_corner,'ro');
 set(H,'markersize',6)
@@ -451,7 +514,7 @@ close(hLcurve)
 
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
 
-if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
+if isempty(ireg_corner) || mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])
     sol_coef=(MpM+reg_corner*eyeWeights)\(M'*u);
 else
@@ -490,7 +553,7 @@ end
 
 function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2);
+alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 % eta0=zeros(length(alphas),1);
@@ -498,10 +561,11 @@ msparse=zeros(size(M,2),length(alphas));
 % if matlabpool('size')==0
 %     matlabpool open
 % end
-tolFactor = 20; % make the L-curve calculation faster with generous tolx with this factor
+tolFactor = 1; % make the L-curve calculation faster with generous tolx with this factor
 for i=1:length(alphas);
     disp(['testing L = ' num2str(alphas(i)) '... '])
     msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx*tolFactor,tolr);
+%     msparse(:,i) = l1_ls(M,u,alphas(i),tolx);
     rho(i)=norm(M*msparse(:,i)-u);
     eta(i)=norm(msparse(:,i),1);
 %     eta0(i)=sum(abs(msparse(:,i))>1);
@@ -542,6 +606,7 @@ disp('Displaying the 1-norm L-curve')
 % print(hLcurve,strcat(nameSave,'.eps'),'-depsc')
 saveas(hLcurve,LcurveFigPath);
 save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','rho_corner','eta_corner','msparse','-v7.3');
+close(hLcurve)
 
 if mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])

@@ -12,7 +12,9 @@ function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,
 % Sangyoon Han, August 2014
 if nargin <14
     v=0.5;
-    refine = true;
+    refine = false;
+elseif nargin <15
+    refine = false;
 end
 
 if strcmpi(method,'conv_free')
@@ -62,7 +64,7 @@ elseif strcmpi(method,'fft')
     % sampling, the force field doesn't very strongly over one gridsize.
     % Assuming it to be constant around x=0, allows to integrate the
     % Greensfunction around a domain x=+-r and y=+-r. This yields a
-    % correction term which is of particular cimportance for sparce
+    % correction term which is of particular importance for sparse
     % sampling, meaning that Nx_F is small. This alogorithm performs very
     % well and has been cross-validated with the results obtained using the
     % 'conv' option. If you want to repeat the test, use the few lines of
@@ -396,29 +398,6 @@ elseif strcmpi(method,'fft_finite')
 
 %     figure
 %     imshow(ux_grid,[])
-
-%!!! This could be improved by using the analytical solution for the Fourie
-%!!! Transform of the Greensfunction!
-    % Add the solution for G(0,0). This is a correction term which becomes
-    % irrelevant for very dense sampling. But for small Nx_F it is REALLY
-    % essential!
-    % Set the Poisson's ratio to 0.5:
-    v=0.5;
-    dx=abs(xvec_G(2)-xvec_G(1));
-    dy=abs(yvec_G(2)-yvec_G(1));
-    
-    int_x2_over_r3=2*dy*log((dy^2+2*dx*(dx+sqrt(dx^2+dy^2)))/(dy^2));    
-    int_y2_over_r3=2*dx*log((dx^2+2*dy*(dy+sqrt(dx^2+dy^2)))/(dx^2));    
-    int_1_over_r  =int_x2_over_r3 + int_y2_over_r3;
-        
-    corrTerm_11=(1+v)/(pi*E)*((1-v)*int_1_over_r+v*int_x2_over_r3);
-    corrTerm_22=(1+v)/(pi*E)*((1-v)*int_1_over_r+v*int_y2_over_r3);
-    
-    ux_grid=ux_grid+discrete_Force_x_unPadded*corrTerm_11;
-    clear discrete_Force_x_unPadded;
-    uy_grid=uy_grid+discrete_Force_y_unPadded*corrTerm_22;
-    clear discrete_Force_y_unPadded;
-    
     % scale the solution appropriately!
     ux_grid=scalingFactor*ux_grid;
     uy_grid=scalingFactor*uy_grid;

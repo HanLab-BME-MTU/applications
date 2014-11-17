@@ -1,4 +1,4 @@
-function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
+function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,maturingRatio,NADensity,FADensity] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % [tracksNA,lifeTimeNA] = analyzeAdhesionMaturation(pathForTheMovieDataFile,outputPath,showAllTracks,plotEachTrack)
 % filter out NA tracks, obtain life time of each NA tracks
 
@@ -15,6 +15,8 @@ function [tracksNAfailing,tracksNAmaturing,lifeTimeNAfailing,lifeTimeNAmaturing,
 %           lifeTimeNAfailing,            lifetime of all NAs that turn over 
 %           lifeTimeNAmaturing,            lifetime of all maturing NAs until their final turn-over
 %           maturingRatio,            ratio of maturing NAs w.r.t. all NA tracks 
+%           NADensity                   density of nascent adhesions, unit: number/um2
+%           FADensity                   density of focal adhesions , unit: number/um2
 
 % status of each track
 %           BA,          Before Adhesion
@@ -94,6 +96,8 @@ iFASeg = 6;
 FASegProc = FASegPackage.processes_{iFASeg};
 bandArea = zeros(nFrames,1);
 NADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+FADensity = zeros(nFrames,1); % unit: number/um2 = numel(tracksNA)/(bandArea*MD.pixelSize^2*1e6);
+numFAs = zeros(nFrames,1);
 for ii=1:nFrames
     % Cell Boundary Mask 
     maskProc = MD.getProcess(MD.getProcessIndex('MaskRefinementProcess'));
@@ -144,6 +148,7 @@ for ii=1:nFrames
     % focal contact (FC) analysis
     Adhs = regionprops(maskAdhesion,'Area','Eccentricity','PixelIdxList','PixelList' );
 %     propFAs = regionprops(maskFAs,'Area','Eccentricity','PixelIdxList','PixelList' );
+    numFAs(ii) = numel(Adhs);
     minFASize = round((1000/MD.pixelSize_)*(1000/MD.pixelSize_)); %adhesion limit=1um*1um
     minFCSize = round((600/MD.pixelSize_)*(400/MD.pixelSize_)); %adhesion limit=0.6um*0.4um
 
@@ -155,6 +160,7 @@ for ii=1:nFrames
     faIdx = arrayfun(@(x) x.Area>=minFASize, Adhs);
     FAIdx =  find(faIdx);
     neighPix = 2;
+
 
     % Deciding each adhesion maturation status
     for k=1:numel(tracksNA)
@@ -282,13 +288,14 @@ end
 tracksNA = tracksNA(trackIdx);
 % saving
 save([dataPath filesep 'tracksNA.mat'], 'tracksNA')
-%% NA Density analysis
+%% NA FA Density analysis
 numNAs = zeros(nFrames,1);
 for ii=1:nFrames
     numNAs(ii) = sum(arrayfun(@(x) (x.presence(ii)==true), tracksNA));
     NADensity(ii) = numNAs(ii)/(bandArea(ii)*MD.pixelSize_^2*1e6);  % unit: number/um2 
+    FADensity(ii) = numFAs(ii)/(bandArea(ii)*MD.pixelSize_^2*1e6);  % unit: number/um2 
 end
-save([dataPath filesep 'NADensity.mat'], 'NADensity')
+save([dataPath filesep 'NAFADensity.mat'], 'NADensity','FADesity')
 
 %% Lifetime analysis
 p=0;

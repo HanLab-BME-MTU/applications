@@ -22,7 +22,7 @@ A = vertcat(lftData.A);
 lft = vertcat(lftData.lifetime_s);
 
 ivec = linspace(0, prctile(max(A,[],2), 95), 40); % intensity range
-tvec = (0:10)*data.framerate; % time vector
+tvec = (0:10)*data(1).framerate; % time vector
 di = ivec(2)-ivec(1);
 
 fset = loadFigureSettings('print');
@@ -65,7 +65,7 @@ for c = 1:6
             'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', fset.tfont{:}, 'Parent', ha(c))
     end
 end
-set(ha, 'XLim', [tvec(1)-data.framerate/2 tvec(end)+data.framerate/2],...
+set(ha, 'XLim', [tvec(1)-data(1).framerate/2 tvec(end)+data(1).framerate/2],...
         'YLim', [ivec(1)-di/2 ivec(end)+di/2], 'FontSize', 8);
 
 yp = ylabel(ha(4), 'Fluo. intensity (A.U.)', fset.lfont{:});
@@ -78,7 +78,7 @@ if ip.Results.ShowPct
     pos = get(ha(1), 'Position');
     pos(2) = 0.1;
     pos(4) = pos(4)/2; 
-    axes('Position', pos, 'XLim', [tvec(1)-data.framerate/2 tvec(end)+data.framerate/2],...
+    axes('Position', pos, 'XLim', [tvec(1)-data(1).framerate/2 tvec(end)+data(1).framerate/2],...
         'FontSize', 8, 'TickDir', 'out', 'TickLength', get(ha(1), 'TickLength'));
     for c = 1:nc
             stairsXT(tvec, prctile(M{c},50,1), 'bounds', 'open', 'EdgeColor', cv(c,:));

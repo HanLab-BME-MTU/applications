@@ -131,6 +131,21 @@ end
 % to prevent sudden, wrong force field change.
 if nFrames>1
     disp('Performing displacement vector gap closing ...')
+    % Depending on stage drift correction, some beads can be missed in certain
+    % frames. Now it's time to make the same positions for all frames
+    % go through each frame and filter points to the common ones in
+    % iMinPointFrame - this needs to be improved by checking intersection
+    % of all frames to find truly common beads, once there is error here.
+    mostCommonPos = displField(1).pos;
+    for ii= 2:nFrames
+        commonPos=intersect(displField(ii).pos,mostCommonPos,'rows');
+        mostCommonPos = commonPos;
+    end
+    for ii= 1:nFrames
+        [commonPos,ia,~]=intersect(displField(ii).pos,mostCommonPos,'rows');
+        displField(ii).pos = commonPos;
+        displField(ii).vec = displField(ii).vec(ia,:);
+    end
     % going through each point, see if there is NaN at each displacment
     % history and fill the gap
     logMsg = 'Performing displacement vector gap closing ...';

@@ -137,15 +137,16 @@ for k=1:9
     set(gca,'YLim',[0 yLim(2)]);
     if nGroups>1, legend(h,strrep(labels,'_',' ')); end
     
-    % Save histogram
+    % Save histograms under EPS format
     filename = ['histogram_' dataType(i).name '_' eventType(j).name];
-    if numel(fullfile(saveDir,filename)) > 128
-%         print(saveFig, '-dtiff', [filename '.tif']);
-        print(saveFig, '-depsc2', [filename '.eps']);
-        movefile([filename '*'], saveDir ,'f');
+    epsfilename = [filename '.eps'];
+    if numel(fullfile(saveDir, filename)) > 128
+        % User home directory should be writeable
+        homeDir = char(java.lang.System.getProperty('user.home'));
+        print(saveFig, '-depsc2', fullfile(homeDir, epsfilename));
+        movefile(fullfile(homeDir, epsfilename), saveDir ,'f');
     else
-%         print(saveFig, '-dtiff', fullfile(saveDir, [filename '.tif']))
-        print(saveFig, '-depsc2', fullfile(saveDir, [filename '.eps']))
+        print(saveFig, '-depsc2', fullfile(saveDir, epsfilename));
     end
      
     close(saveFig)

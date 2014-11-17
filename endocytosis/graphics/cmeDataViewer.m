@@ -288,7 +288,7 @@ end
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-if (exist(data.framePaths{1}, 'file')==2) && ip.Results.LoadFrames
+if (exist(data.maskPaths, 'file')==2) && ip.Results.LoadFrames
     fprintf('Loading detection masks ... ');
     dmask = readtiff(data.maskPaths);
     fprintf('done.\n');
@@ -1353,7 +1353,7 @@ set(hz, 'ActionPostCallback', @czoom);
                 'Value', maxVal, 'SliderStep', data.framerate/(maxLft-minLft-data.framerate)*[1 5], 'Min', minLft, 'Max', maxLft,...
                 'Position', [45 b 200 18]);
             addlistener(handle(maxLftSlider), 'Value', 'PostSet', @maxSlider_Callback);
-            maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxLft) ' s'],...
+            maxTxt = uicontrol(pht, 'Style', 'text', 'String', [num2str(maxVal) ' s'],...
                 'Position', [250 b-2 40 20], 'HorizontalAlignment', 'left');
         end
         

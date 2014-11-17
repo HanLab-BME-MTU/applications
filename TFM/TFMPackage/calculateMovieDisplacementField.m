@@ -135,54 +135,57 @@ tempMask2(y_shift:y_shift+size(tempMask,1)-1,x_shift:x_shift+size(tempMask,2)-1)
 firstMask = tempMask2 & firstMask;
 % Detect beads in reference frame 
 disp('Detecting beads in the reference frame...')
-if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
-    sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
-elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
-    sigmaPSF = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
-elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
-    sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
-else
-    error('image type should be chosen among Widefield, confocal and TIRF!');
-end
-pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask);
-assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
-beads = [ceil(pstruct.x') ceil(pstruct.y')];
+% if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield')
+if ~p.useGrid
+    if strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Widefield') || movieData.pixelSize_>130
+        sigmaPSF = movieData.channels_(1).psfSigma_*2; %*2 scale up for widefield
+    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'Confocal')
+        sigmaPSF = movieData.channels_(1).psfSigma_*0.79; %*4/7 scale down for  Confocal finer detection SH012913
+    elseif strcmp(movieData.getChannel(p.ChannelIndex).imageType_,'TIRF')
+        sigmaPSF = movieData.channels_(1).psfSigma_*3/7; %*3/7 scale down for TIRF finer detection SH012913
+    else
+        error('image type should be chosen among Widefield, confocal and TIRF!');
+    end
+    pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
+    assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
+    beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
-% Subsample detected beads ensuring beads are separated by at least half of
-% the correlation length - commented out to get more beads
-if ~p.highRes
-    disp('Subsampling detected beads (normal resolution)...')
-    max_beads_distance = floor(p.minCorLength/2);
-else
-    % To get high-resolution information, subsample detected beads ensuring 
-    % beads are separated by 0.1 um the correlation length 
-    disp('Subsampling detected beads (high resolution)...')
-    max_beads_distance = floor(100/movieData.pixelSize_);
+    % Subsample detected beads ensuring beads are separated by at least half of
+    % the correlation length - commented out to get more beads
+    if ~p.highRes
+        disp('Subsampling detected beads (normal resolution)...')
+        max_beads_distance = floor(p.minCorLength/2);
+    else
+        % To get high-resolution information, subsample detected beads ensuring 
+        % beads are separated by 0.1 um the correlation length 
+        disp('Subsampling detected beads (high resolution)...')
+        max_beads_distance = floor(100/movieData.pixelSize_);
+    end
+
+    idx = KDTreeBallQuery(beads, beads, max_beads_distance);
+    valid = true(numel(idx),1);
+    for i = 1 : numel(idx)
+        if ~valid(i), continue; end
+        neighbors = idx{i}(idx{i} ~= i);
+        valid(neighbors) = false;
+    end
+    beads = beads(valid, :);
+
+    % Select only beads which are min correlation length away from the border of the
+    % reference frame 
+    beadsMask = true(size(refFrame));
+    erosionDist=p.minCorLength;
+    % erosionDist=p.minCorLength+1;
+    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+    beads(indx,:)=[];
 end
 
-idx = KDTreeBallQuery(beads, beads, max_beads_distance);
-valid = true(numel(idx),1);
-for i = 1 : numel(idx)
-    if ~valid(i), continue; end
-    neighbors = idx{i}(idx{i} ~= i);
-    valid(neighbors) = false;
-end
-beads = beads(valid, :);
-
-% Select only beads which are min correlation length away from the border of the
-% reference frame 
-beadsMask = true(size(refFrame));
-erosionDist=p.minCorLength;
-% erosionDist=p.minCorLength+1;
-beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-beads(indx,:)=[];
-
-if p.useGrid && p.highRes
-    tempDisplField.pos = beads;
-    [~,xvec,yvec,~]=createRegGridFromDisplField(tempDisplField,1.5);
-    beads = [xvec yvec];
-end
+% if p.useGrid && p.highRes
+%     tempDisplField.pos = beads;
+%     [~,xvec,yvec,~]=createRegGridFromDisplField(tempDisplField,2,0);
+%     beads = [xvec yvec];
+% end
 
 disp('Calculating displacement field...')
 logMsg = 'Please wait, calculating displacement field';
@@ -199,30 +202,45 @@ for j= firstFrame:nFrames
     else
         currImage = double(movieData.channels_(p.ChannelIndex(1)).loadImage(j));
     end
-    % Exclude all beads which are less  than half the correlation length 
-    % away from the padded border. By default, no centered template should 
-    % include any NaN's for correlation
-    % Create beads mask with zero intensity points as false
-    beadsMask = true(size(refFrame));
-    beadsMask(currImage==0)=false;
-    % Remove false regions non-adjacent to the image border
-    beadsMask = beadsMask | imclearborder(~beadsMask);
-    % Erode the mask with half the correlation length and filter beads
-    erosionDist=round((p.minCorLength+1)/2);
-    beadsMask=imerode(beadsMask,strel('square',erosionDist));
-    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
-    localbeads = beads(indx,:);
+    if ~p.useGrid
+        % Exclude all beads which are less  than half the correlation length 
+        % away from the padded border. By default, no centered template should 
+        % include any NaN's for correlation
+        % Create beads mask with zero intensity points as false
+        beadsMask = true(size(refFrame));
+        beadsMask(currImage==0)=false;
+        % Remove false regions non-adjacent to the image border
+        beadsMask = beadsMask | imclearborder(~beadsMask);
+        % Erode the mask with half the correlation length and filter beads
+        erosionDist=round((p.minCorLength+1)/2);
+        beadsMask=imerode(beadsMask,strel('square',erosionDist));
+        indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
+        localbeads = beads(indx,:);
 
-    % Track beads displacement in the xy coordinate system
-    v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
-        p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
-        'mode',p.mode);
-    
-    % Extract finite displacement and prepare displField structure in the xy
-    % coordinate system
-    validV = ~isinf(v(:,1));
-    displField(j).pos=localbeads(validV,:);
-    displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+        % Track beads displacement in the xy coordinate system
+        v = trackStackFlow(cat(3,refFrame,currImage),localbeads,...
+            p.minCorLength,p.minCorLength,'maxSpd',p.maxFlowSpeed,...
+            'mode',p.mode);
+
+        % Extract finite displacement and prepare displField structure in the xy
+        % coordinate system
+        validV = ~isinf(v(:,1));
+        displField(j).pos=localbeads(validV,:);
+        displField(j).vec=[v(validV,1)+residualT(j,2) v(validV,2)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    else
+        pivPar = [];      % variable for settings
+        pivData = [];     % variable for storing results
+
+        [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
+        % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
+        pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
+        pivPar.iaStepX = [32 16  8  4];     % grid spacing of velocity vectors in X
+        pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
+
+        [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
+        displField(j).pos=[pivData.X(:), pivData.Y(:)];
+        displField(j).vec=[pivData.U(:)+residualT(j,2), pivData.V(:)+residualT(j,1)]; % residual should be added with oppiste order! -SH 072514
+    end
     
     % Update the waitbar
     if mod(j,5)==1 && ishandle(wtBar)
