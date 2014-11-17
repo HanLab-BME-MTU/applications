@@ -49,15 +49,19 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
         end
         function deleteEdges(obj,e)
             import connectedComponents.*;
-            bw = obj.bw;
-            for i = 1:length(e)
-                bw(obj.edges.PixelIdxList{e(i)}) = 0;
-            end
-            obj.bw = bw;
+            % this is buggy
+%             bw = obj.bw;
+%             for i = 1:length(e)
+%                 bw(obj.edges.PixelIdxList{e(i)}) = 0;
+%             end
+%             obj.bw = bw;
             
             filter = true(1,length(obj.edges.PixelIdxList));
             filter(e) = false;
             obj.edges = ccFilter(obj.edges,filter);
+            % recalculate bw and faces next time on demand
+            obj.bw = [];
+            obj.faces = [];
         end
         function deleteEdgeLoops(obj)
             % an edge loop is an edge that starts and ends at the same
@@ -268,6 +272,21 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
             [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
         end
+        function rp = getDistanceWeightedIntensity(obj,I,f)
+            import connectedComponents.*;
+            if(nargin < 3)
+                f = 1:obj.faces.NumObjects;
+                faces = obj.faces;
+            else
+                faces = ccFilter(obj.faces, f);
+            end
+            I = double(I);
+            D = bwdist(obj.bw);
+            disp(faces);
+            rp(faces.NumObjects) = struct('DistanceWeightedIntensity',[]);
+            distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
+            [rp.DistanceWeightedIntensity] = distanceWeightedIntensity{:};
+        end
         function plotFaceProperties(obj,I,fidx,varargin)
             % f should be scalar
             rp = getFaceProperties(obj,I,fidx);
@@ -439,8 +458,9 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             if(nargin < 3 || isempty(edgeColor))
                 edgeColor = 'r';
             end
-            for i=e(:)'
-                [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i});
+            E = obj.edges.PixelIdxList(e(:));
+            for i=1:length(E);
+                [r,c] = ind2sub([1024 1024],E{i});
                 line(c,r,'Color',edgeColor);
             end
         end
