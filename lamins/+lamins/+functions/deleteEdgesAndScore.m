@@ -1,16 +1,19 @@
 function score = deleteEdgesAndScore(S,I,e)
+% deleteEdgesAndScore Delete edges and score them
     import connectedComponents.*;
     import lamins.functions.*;
     S.faces = [];
     S2 = S.copy;
     S2.deleteEdges(e);
-    S2.bw = [];
-    S2.faces = [];
+%     S2.bw = [];
+%     S2.faces = [];
     faceStack = cat(3,S.faces.lm,S2.faces.lm);
     uFaceStack = unique(reshape(faceStack,[],2),'rows');
     uFaceStack = uFaceStack(uFaceStack(:,1) & uFaceStack(:,2),:);
-    F1 = S.getFaceProperties(I);
-    F2 = S2.getFaceProperties(I);
+%     F1 = S.getFaceProperties(I);
+%     F2 = S2.getFaceProperties(I);
+    F1 = S.getDistanceWeightedIntensity(I);
+    F2 = S2.getDistanceWeightedIntensity(I);
 %             distanceWeightedIntensity = cellfun(@(x) sum(D(x).*I(x))./sum(D(x)), faces.PixelIdxList , 'UniformOutput', false);
 
     
