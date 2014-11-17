@@ -1,6 +1,8 @@
 function [ score ] = scoreEdges( S,I )
 %scoreEdges Scores the edges using distance weighted intensity metrics
 
+import lamins.functions.*;
+
 [FE, EF] = S.faceEdges;
 edgeFilter = cellfun('length',EF) == 2;
 twoFaceEdges = find(edgeFilter);
@@ -12,7 +14,7 @@ better = cell(1,length(sets));
 for s=1:length(sets)
     better{s} = twoFaceEdges(sets{s});
 end
-parfor s=1:length(sets)
+for s=1:length(sets)
     s
 %     score(twoFaceEdges(sets{s})) = deleteEdgesAndScore(S,I, twoFaceEdges(sets{s}));
 
