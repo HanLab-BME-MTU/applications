@@ -203,6 +203,8 @@ outputDir=uigetdir(dirStart,'Please select output directory for group analyis');
 if isequal(outputDir,0), return; end
 
 userData = get(handles.figure1,'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
+
 set(handles.edit_outputDir,'String',outputDir);
 set(handles.figure1,'UserData',userData);
 
@@ -218,6 +220,8 @@ set(handles.figure1,'UserData',userData);
 function pushbutton_analyzeGroups_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1,'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
+
 saveDir = get(handles.edit_outputDir,'String');
 % Test the group setup (groupList and output directory)
 if isempty(userData.groupList) || isempty(saveDir)
@@ -332,6 +336,7 @@ function quadScatterPlotPush_Callback(hObject, eventdata, handles)
 
 % Read groupList and output directory
 userData = get(handles.figure1,'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 saveDir=get(handles.edit_outputDir,'String');
 if isempty(userData.groupList) || isempty(saveDir)
     warndlg('Select a group and an output directory first');

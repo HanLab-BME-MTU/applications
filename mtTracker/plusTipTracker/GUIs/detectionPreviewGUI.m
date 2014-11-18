@@ -58,6 +58,8 @@ function detectionPreviewGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
+
 % Choose default command line output for segmentationProcessGUI
 handles.output = hObject;
 
@@ -187,6 +189,7 @@ set(handles.slider_1_3, 'Value', value);
 
 % Recalculate
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 scales = userData.default_scales;
 plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
 
@@ -217,6 +220,7 @@ set(handles.edit_1_3, 'String', num2str(value))
 
 % Recalculate
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 scales = userData.default_scales;
 plusTipTroubleShootDetect(userData.projData, scales, userData.bitDepth, userData.useLastImg, value, 0, 0, handles.figure1, handles.axes_1_2);
 
@@ -239,7 +243,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 userData = get(handles.figure1, 'UserData');
-
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 
 set(userData.handles_main.slider_1, 'Value', get(handles.slider_2_1, 'Value'))
 set(userData.handles_main.slider_2, 'Value', get(handles.slider_2_2, 'Value'))
@@ -265,6 +269,7 @@ delete(handles.figure1)
 function edit_2_1_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = str2double(get(hObject, 'String'));
 
 if isnan(value) || value < get(handles.slider_2_1, 'Min') || value > get(handles.slider_2_1, 'Max')
@@ -310,6 +315,7 @@ end
 function edit_2_2_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = str2double(get(hObject, 'String'));
 
 if isnan(value) || value < get(handles.slider_2_2, 'Min') || value > get(handles.slider_2_2, 'Max')
@@ -355,6 +361,7 @@ end
 function edit_2_3_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = str2double(get(hObject, 'String'));
 
 if isnan(value) || value < get(handles.slider_2_3, 'Min') || value > get(handles.slider_2_3, 'Max')
@@ -392,6 +399,7 @@ end
 function slider_2_1_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = get(hObject, 'Value');
 
 if value == str2double( get(handles.edit_2_1, 'String') )
@@ -431,6 +439,7 @@ end
 function slider_2_2_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = get(hObject, 'Value');
 
 if value == str2double( get(handles.edit_2_2, 'String') )
@@ -469,6 +478,7 @@ end
 function slider_2_3_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 value = get(hObject, 'Value');
 
 if value == str2double( get(handles.edit_2_3, 'String') )
@@ -508,6 +518,7 @@ function uipanel_3_SelectionChangeFcn(hObject, eventdata)
 % Call back function of ration button group uipanel_1
 handles = guidata(hObject);
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 
 if isequal(userData.useLastImg, get(handles.radiobutton_1, 'Value'))
     
