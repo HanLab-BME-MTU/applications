@@ -74,7 +74,7 @@ else
 end
 % Load the forcefield
 % forceField=MD.getPackage(iPack).getProcess(4).loadChannelOutput;
-load([storagePath filesep 'TFMPackage/forceField/forcefield.mat'], 'forceField')
+load([storagePath filesep 'TFMPackage/forceField/forceField.mat'], 'forceField')
 
 % finding force at mesh location
 org_fx = zeros(size(forceField(1).pos(:,1)));
@@ -135,7 +135,8 @@ if isempty(forceFieldMag)
 else
     peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
     forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+%     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+    forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 %% errors in force field
 forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);

@@ -235,7 +235,10 @@ for j= firstFrame:nFrames
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
         pivPar.iaStepX = [32 16  8  4];     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in Y 
+        pivPar.iaStepY = [32 16  8  4];     % grid spacing of velocity vectors in Y
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
+        pivPar.smMethod = 'none';
 
         [pivData] = pivAnalyzeImagePair(refFrame,currImage,pivData,pivPar);
         displField(j).pos=[pivData.X(:), pivData.Y(:)];
