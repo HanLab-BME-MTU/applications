@@ -50,6 +50,7 @@ function outputRatioProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 % Set up available input channels
@@ -120,7 +121,7 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
-
+if isempty(userData), userData = struct(); end
 % -------- Check user input --------
 channelIndex = get (handles.edit_dir, 'Userdata');
 outputDir = get(handles.edit_path, 'String');
@@ -172,6 +173,7 @@ processGUI_ApplyFcn(hObject, eventdata, handles,funParams);
 function pushbutton_output_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 pathname = uigetdir(userData.MD.outputDirectory_);
 if isequal(pathname,0) ,return; end
 set(handles.edit_path, 'String', pathname);

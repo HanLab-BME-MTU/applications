@@ -59,7 +59,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{iOut},output{:});
+            s = load(obj.outFilePaths_{iOut},output{1});
             
             if numel(iFrame)>1,
                 for i=1:numel(output),

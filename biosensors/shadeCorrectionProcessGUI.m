@@ -51,6 +51,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
 % Parameter setup
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 if ~all(cellfun(@isempty,userData.crtProc.inFilePaths_(2,:)));
@@ -111,6 +112,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Call back function of 'Apply' button
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 channelProps = get (handles.listbox_selectedChannels, {'Userdata','String'});
 channelIndex=channelProps{1};
@@ -211,6 +213,7 @@ guidata(hObject, handles);
 function pushbutton_add_Callback(hObject, eventdata, handles)
 % Call back of 'add' button
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 set(handles.listbox_shadeChannels, 'Value',1)
 
@@ -291,6 +294,7 @@ set(handles.listbox_shadeChannels, 'value', id+1);
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
