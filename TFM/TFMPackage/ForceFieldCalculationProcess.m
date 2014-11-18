@@ -51,7 +51,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             ip.addOptional('iOut',@isnumeric);
 %             ip.addOptional('iFrame',1:obj.owner_.nFrames_,@(x) ismember(x,1:obj.owner_.nFrames_));
 %             ip.addParamValue('output',outputList{1},@(x) all(ismember(x,outputList)));
-            ip.addParamValue('output',outputList,@(x) all(ismember(x,outputList)));
+            ip.addParameter('output',outputList,@(x) all(ismember(x,outputList)));
             ip.parse(obj,varargin{:})
             iFrame = ip.Results.iFrame;
             iOut = ip.Results.iOut;
@@ -59,7 +59,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             % Data loading
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = load(obj.outFilePaths_{iOut},output{:});
+            s = load(obj.outFilePaths_{iOut},output{1});
             
             if numel(iFrame)>1,
                 for i=1:numel(output),
