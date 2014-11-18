@@ -62,6 +62,7 @@ function transformCreationGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 set(handles.text_copyright, 'String', getLCCBCopyright());
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 % Choose default command line output for transformCreationGUI
 handles.output = hObject;
 
@@ -120,7 +121,8 @@ delete(handles.figure1);
 function pushbutton_done_Callback(hObject, eventdata, handles)
 
 userData = get(handles.figure1,'UserData');
-    
+if isempty(userData), userData = struct(); end
+
 [saveName,saveDir] = uiputfile('*.mat','Save your transform:');      
 if ~isequal(saveDir,0) && ~isequal(saveName,0)
     save([saveDir saveName],'-struct','userData','xForm');
@@ -133,6 +135,7 @@ end
 function figure1_DeleteFcn(hObject, eventdata, handles)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 % Delete help window if loaded
 if isfield(userData, 'iconHelpFig') && ishandle(userData.iconHelpFig)
@@ -147,6 +150,7 @@ function pushbutton_select_image_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 % Determine the type of image for the pushbutton tag
 pushbuttonTag=get(hObject,'Tag');
@@ -191,6 +195,7 @@ function pushbutton_select_initXform_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 [filename,pathname] = uigetfile({'*.mat'},...
                            'Select the initial transformation file:',userData.defaultPath);
@@ -239,6 +244,7 @@ function edit_beadRad_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of edit_beadRad as text
 %        str2double(get(hObject,'String')) returns contents of edit_beadRad as a double
 userData = get(handles.figure1,'UserData');
+if isempty(userData), userData = struct(); end
 beadRad=str2double(get(hObject,'String'));
 if isnan(beadRad) || beadRad < 1
     errordlg('Invalid bead radius! Need bead radius to perform detection!');
@@ -277,6 +283,7 @@ function update_buttons(hObject, handles)
 
 %% Load all the button/popup-menu states and store them in userData
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 userData.doInit = get(handles.radiobutton_doInit,'Value');
 userData.useInitXform = get(handles.radiobutton_initXform,'Value');
 userData.doRefine = get(handles.checkbox_doRefine,'Value');
@@ -333,6 +340,7 @@ function pushbutton_calculate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 
 %% ------------- Initial Transformation ----------- %%
     
