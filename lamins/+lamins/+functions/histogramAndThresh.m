@@ -1,7 +1,7 @@
 function [ N,X,sp, rosin, otsu ] = histogramAndThresh( varargin )
 %histogramAndThresh Run histogram and plot thresholds
 
-histogram(varargin{:});
+optimalHistogram(varargin{:});
 
 rosin = thresholdRosin(varargin{1});
 otsu = thresholdOtsu(varargin{1});

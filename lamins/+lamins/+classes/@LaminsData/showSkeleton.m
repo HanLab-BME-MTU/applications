@@ -14,6 +14,6 @@ function showSkeleton(obj,varargin)
     [r,c] = ind2sub(vertices_cc.ImageSize,[vertices_cc.PixelIdxList{:}]);
     scatter(c,r);
     figure;
-    histogram(edges_cc.lengths);
+    optimalHistogram(edges_cc.lengths);
 end
 

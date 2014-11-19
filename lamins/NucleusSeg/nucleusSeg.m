@@ -15,7 +15,7 @@ function BW = nucleusSeg(I)
     
     
     backI = double(Isc(~BW1f(:))); % background intensities of filled image
-    [N, X] = histogram(backI);
+    [N, X] = optimalHistogram(backI);
     [dummy, ti] = cutFirstHistMode(N, X, 0); % find the right hand tail
     lol = (mean(backI(backI>ti)) - ti)/65535; % look for bright pixels
     

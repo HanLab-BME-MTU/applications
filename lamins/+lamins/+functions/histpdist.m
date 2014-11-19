@@ -6,6 +6,6 @@ function [ pairdist, r, c ] = histpdist( nms , thresh )
     bps = bwmorph(bwmorph(nms > thresh,'skel'),'branchpoints');
     [r,c] = find(bps);
     pairdist = pdist([r c]);
-    histogram(pairdist);
+    optimalHistogram(pairdist);
 end
 
