@@ -50,6 +50,7 @@ function plusTipGroupAnalysisGUI_OpeningFcn(hObject, eventdata, handles, varargi
 set(handles.text_copyright, 'String', getLCCBCopyright())
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 % Get main figure handle and process id
 ip = inputParser;
 ip.addParamValue('mainFig', [], @isscalar)
@@ -95,6 +96,7 @@ function varargout = plusTipGroupAnalysisGUI_OutputFcn(~, ~, handles)
 varargout{1} = handles.output;
 
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 if isempty(userData.ML)
     warndlg('At least one movie list is required to perform group analysis.',...
         'Input error', 'modal');
@@ -111,6 +113,7 @@ delete(handles.figure1);
 function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
     delete(userData.helpFig)
@@ -124,6 +127,7 @@ function pushbutton_run_Callback(hObject, eventdata, handles)
 
 
 userData = get(handles.figure1,'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 
 % Load group data
 remBegEnd = get(handles.checkbox_remBegEnd,'Value');

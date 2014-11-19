@@ -52,6 +52,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},...
 
 % Set process parameters
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 funParams = userData.crtProc.funParams_;
 
 segProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
@@ -98,7 +99,7 @@ delete(handles.figure1);
 function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
-
+if isempty(userData), userData = struct(); end
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
 end
@@ -126,6 +127,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 
 % Check user input
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 if isempty(get(handles.listbox_selectedChannels, 'String'))
     errordlg('Please select at least one input channel from ''Available Channels''.','Setting Error','modal')
     return;
@@ -178,6 +180,7 @@ procID = props{1}{props{2}};
 
 % Read process and check available channels
 userData = get(handles.figure1, 'UserData');
+if isempty(userData), userData = struct(); end
 if isempty(procID)
     allChannelIndex=1:numel(userData.MD.channels_);
 else
