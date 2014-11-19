@@ -159,7 +159,7 @@ function [ imCellSeedPoints, varargout ] = detect_cell_seeds_adaptive_multiscale
                 hold off;
                 
                 
-                figure, histogram( pixelScaleMap(seedInd) );
+                figure, optimalHistogram( pixelScaleMap(seedInd) );
                 title( 'Histogram of the cell scales (diameter) found in the image' );
                 
             end

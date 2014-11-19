@@ -118,14 +118,14 @@ end
 
 % %get threshold based on product of intensity and area
 % prodAreaInt = nuclearInt .* cellArea;
-% figure, histogram(prodAreaInt(prodAreaInt~=0),[],0);
+% figure, optimalHistogram(prodAreaInt(prodAreaInt~=0),[],0);
 % [~, cutoffValue] = cutFirstHistMode(prodAreaInt(prodAreaInt~=0));
 % indxGood = find(prodAreaInt>=cutoffValue);
 % indxBad = find(prodAreaInt<cutoffValue);
 % 
 % %get threshold based on intensity and area
 % indxGood = find(nuclearInt>0);
-% figure, histogram(cellArea(indxGood),[],0);
+% figure, optimalHistogram(cellArea(indxGood),[],0);
 % [~, cutoffValue] = cutFirstHistMode(cellArea(indxGood));
 % indxGoodGood = find(cellArea(indxGood)>cutoffValue);
 % indxGood = indxGood(indxGoodGood);

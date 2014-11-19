@@ -1,4 +1,4 @@
-function output_feature = filament_bw_meshsize_histogram(VIF_current_seg, Cell_Mask, radius,pace,range)
+function output_feature = filament_bw_meshsize_optimalHistogram(VIF_current_seg, Cell_Mask, radius,pace,range)
 % function to do network analysis with input MD
 
 % input:    VIF_current_seg:    network segmentation

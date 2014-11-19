@@ -206,7 +206,7 @@ if any(strmatch('spbCenDistance',varargin))
 
         % display overall stats and histogram
         figure('Name','SPB-CEN distances')
-        histogram(allDist(:,4),1,0);
+        optimalHistogram(allDist(:,4),1,0);
 
         [rm,rs,ii,oo] = robustMean(allDist(:,4));
         oo = length(oo);ii = length(ii);

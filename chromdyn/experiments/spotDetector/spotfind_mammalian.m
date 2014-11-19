@@ -172,9 +172,9 @@ while ~done
         mnp2(ct:end,:) = [];
 
         %figure,plot(squeeze(mnp2(1:ct-1,t,1)),squeeze(mnp2(1:ct-1,t,2)),'.')
-        %     figure,subplot(2,2,1),histogram(mnp2(1:ct-1,t,1),'smooth')
-        %     subplot(2,2,2),histogram(prod(mnp2(1:ct-1,t,:),3),'smooth');
-        %     subplot(2,2,3),histogram(mnp(1:ct-1,t),'smooth');
+        %     figure,subplot(2,2,1),optimalHistogram(mnp2(1:ct-1,t,1),'smooth')
+        %     subplot(2,2,2),optimalHistogram(prod(mnp2(1:ct-1,t,:),3),'smooth');
+        %     subplot(2,2,3),optimalHistogram(mnp(1:ct-1,t),'smooth');
         %     subplot(2,2,4),plot(squeeze(mnp2(1:ct-1,t,1)),mnp(1:ct-1,t),'.');
         currentData = mnp2(:,1);
         if any(loadStruct.loadedFrames(t)==plotTime)
@@ -331,7 +331,7 @@ spots = rmfield(spots,{'coordinateList','intensityList'});
 allInt = catStruct(1,'spots.sp.mnint');
 figure('Name',dataProperties.name)
 ah=subplot(2,1,1);
-histogram(ah,allInt);
+optimalHistogram(ah,allInt);
 subplot(2,1,2);
 plot(1:length(spots),nSpots,'.');
 

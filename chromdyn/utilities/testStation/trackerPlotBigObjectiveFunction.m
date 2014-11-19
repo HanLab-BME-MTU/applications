@@ -113,7 +113,7 @@ for iO = 1:nObjectiveFunctions
         
         % plot fRatios
 %         figure('Name',sprintf('fRatios %s',objectiveNumber));
-%         histogram(fRatio(:,:,:,iTag));
+%         optimalHistogram(fRatio(:,:,:,iTag));
         
     end % loop tags
    

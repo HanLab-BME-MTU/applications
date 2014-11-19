@@ -592,7 +592,7 @@ switch plotOpt
 %         for iSNR = 1:nSNR
 %             subplot(2,3,iSNR)
 %             dse2NormI = dse2Norm(:,iSNR);
-%             histogram(dse2NormI(find(dse2NormI)));
+%             optimalHistogram(dse2NormI(find(dse2NormI)));
 %         end
         
         % histogram of delta along dimensions
@@ -600,19 +600,19 @@ switch plotOpt
         for iSNR = 1:nSNR
             subplot(2,3,iSNR)
             dse2Ixy = reshape(abs(dse2(:,1:2,iSNR)),[],1);
-            histogram(dse2Ixy(find(dse2Ixy)));
+            optimalHistogram(dse2Ixy(find(dse2Ixy)));
         end
         figure('Name','absolute deviations in pixels z')
         for iSNR = 1:nSNR
             subplot(2,3,iSNR)
             dse2Iz = reshape(abs(dse2(:,3,iSNR)),[],1);
-            histogram(dse2Iz(find(dse2Iz)));
+            optimalHistogram(dse2Iz(find(dse2Iz)));
         end
         figure('Name','absolute deviations in pixels all')
         for iSNR = 1:nSNR
             subplot(2,3,iSNR)
             dse2I = reshape(abs(dse2(:,:,iSNR)),[],1);
-            histogram(dse2I(find(dse2I)));
+            optimalHistogram(dse2I(find(dse2I)));
         end
         
       

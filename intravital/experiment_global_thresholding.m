@@ -6,7 +6,7 @@ function experiment_global_thresholding( imInput, metadata )
     imAdjusted = mat2gray( log( 1 + imAdjusted ) ) * range( ImageIntensityRange );
     imAdjusted = matitk( 'FMEDIAN', [2,2,2], imAdjusted );
     numHistogramBins = round( range(ImageIntensityRange)/5 );
-    figure, histogram( imAdjusted );
+    figure, optimalHistogram( imAdjusted );
     
     imThreshKittlerMinerr = callMatitkFilter( 'FKittlerMinimumErrorThreshold', { numHistogramBins } , imAdjusted );    
     imThreshOtsu = callMatitkFilter( 'FOtsuThreshold', { numHistogramBins } , imAdjusted );    

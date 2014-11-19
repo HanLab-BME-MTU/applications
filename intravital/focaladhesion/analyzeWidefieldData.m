@@ -17,6 +17,6 @@ end
 
 im = double( imread( dataFilePath ) );
 imseriesshow( im );
-figure, histogram( im( im > 0 ) );
+figure, optimalHistogram( im( im > 0 ) );
 
 imseriesmaskshow( im, im > 19 );
