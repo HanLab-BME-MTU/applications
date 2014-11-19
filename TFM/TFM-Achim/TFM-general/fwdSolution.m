@@ -1,4 +1,4 @@
-function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h,v,refine)
+function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,ymax,force_x,force_y,method,opt,meshPtsFwdSol,h,v,refine,useSameSampling)
 % This forward solution is only valid for a Poisson's ratio v=0.5 if not
 % specified.
 % Input: No matter what the dimension of x0 and y0 is (pix, or um), the
@@ -13,8 +13,12 @@ function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,
 if nargin <14
     v=0.5;
     refine = false;
+    useSameSampling = false;
 elseif nargin <15
     refine = false;
+    useSameSampling = false;
+elseif nargin <16
+    useSameSampling = false;
 end
 
 if strcmpi(method,'conv_free')
@@ -120,9 +124,13 @@ elseif strcmpi(method,'fft')
     [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
       
     %calculate the force values at the grid_F positions:
-    discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
-    discrete_Force_y_unPadded=force_y(xgrid_F,ygrid_F);
-
+    if useSameSampling
+        discrete_Force_x_unPadded=force_x; %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
+        discrete_Force_y_unPadded=force_y;
+    else
+        discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
+        discrete_Force_y_unPadded=force_y(xgrid_F,ygrid_F);
+    end
     % Calculate the Greens-function values at the grid_G positions. This can
     % be improved since the Greensfunction never change for a given grid
     % size. When the Basis functions are calculated this has to be done

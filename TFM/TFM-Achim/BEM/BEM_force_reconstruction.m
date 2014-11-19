@@ -166,8 +166,18 @@ if nargin >= 10 && strcmp(method,'fast')
         % reference: p11 in Neumaier, Solving ill-conditioned and singular
         % linear systems: a tutorial on regularization
         [eyeWeights,~] =getGramMatrix(forceMesh);
+        
+        %Check for nan in u
+        idxNonan = ~isnan(u);
+        if any(~idxNonan)
+            u = u(idxNonan);
+            M = M(idxNonan,:);
+            MpM = M'*M;
+        else
+            MpM=M'*M;
+        end
+        
         % make matrix with paxImage at the basis nodes
-        MpM=M'*M;
         if ~isempty(paxImage)
             paxWeights = getPaxWeights(forceMesh,paxImage,x_vec,y_vec,ux_vec,uy_vec);
             [Q,R] = qr((MpM+L*eyeWeights.*paxWeights));
@@ -176,7 +186,7 @@ if nargin >= 10 && strcmp(method,'fast')
             sol_mats.L=L;
         else
             if useLcurve
-                [~,L] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
+                [~,L] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
             end
             [Q,R] = qr((MpM+L*eyeWeights));
             sol_coef=R\(Q'*(M'*u));
@@ -193,7 +203,7 @@ if nargin >= 10 && strcmp(method,'fast')
         % For L-curve
 %         [sol_coef,L] = calculateLfromLcurve(M,MpM,u,Lap,solMethodBEM);
         if useLcurve
-            [~,L] = calculateLfromLcurve(L,M,MpM,u,-Lap,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [~,L] = calculateLcurve(L,M,MpM,u,-Lap,LcurveDataPath,LcurveFigPath,LcurveFactor);
         end
         sol_coef=(-L*Lap+ MpM)\(M'*u);
         % store these matrices for next frames:
@@ -211,12 +221,20 @@ if nargin >= 10 && strcmp(method,'fast')
         tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
-        MpM=M'*M;
+        %Check for nan in u
+        idxNonan = ~isnan(u);
+        if any(~idxNonan)
+            u = u(idxNonan);
+            M = M(idxNonan,:);
+            MpM = M'*M;
+        else
+            MpM=M'*M;
+        end
         maxIter = 20;
         tolr = 1e-7;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %             sol_coef = l1_ls(M,u,L,tolx); 
@@ -237,7 +255,15 @@ if nargin >= 10 && strcmp(method,'fast')
         disp('Building laplacian operator')
         Lap = buildLaplacian(forceMesh);
         % plot the solution for the corner
-        MpM=M'*M;
+        %Check for nan in u
+        idxNonan = ~isnan(u);
+        if any(~idxNonan)
+            u = u(idxNonan);
+            M = M(idxNonan,:);
+            MpM = M'*M;
+        else
+            MpM=M'*M;
+        end
 
         maxIter = 10;
         tolx =  forceMesh.numBasis*3e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
@@ -247,7 +273,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLfromLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
         end
@@ -263,9 +289,17 @@ if nargin >= 10 && strcmp(method,'fast')
         % This matrix multiplication takes most of the time. Therefore we
         % store it for later use:
         [eyeWeights,~] =getGramMatrix(forceMesh);
-        MpM=M'*M;
+        %Check for nan in u
+        idxNonan = ~isnan(u);
+        if any(~idxNonan)
+            u = u(idxNonan);
+            M = M(idxNonan,:);
+            MpM = M'*M;
+        else
+            MpM=M'*M;
+        end
         if useLcurve
-            [sol_coef,L] = calculateLfromLcurve(M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath);
+            [sol_coef,L] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         end
@@ -274,8 +308,8 @@ if nargin >= 10 && strcmp(method,'fast')
         sol_mats.L=L;
         sol_mats.tool='backslash';
 
-        [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,[],[],'new');
-        generateHeatmapFromGridData(x_out,y_out,fx,fy,'./backslash',0,1600)
+%         [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,[],[],'new');
+%         generateHeatmapFromGridData(x_out,y_out,fx,fy,'./backslash',0,1600)
 %         sol_coef=(L*eyeWeights+ MpM)\(M'*u);
         % store these matrices for next frames:
     elseif strcmpi(solMethodBEM,'fourier')
@@ -462,20 +496,21 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLfromLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
-alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
+alphas=10.^(log10(L)-4.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
 eta=zeros(length(alphas),1);
 mtik=zeros(size(M,2),length(alphas));
+
 for i=1:length(alphas);
-  mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
-  rho(i)=norm(M*mtik(:,i)-u);
-  eta(i)=norm(mtik(:,i));
+    mtik(:,i)=(MpM+alphas(i)*eyeWeights)\(M'*u);
+    rho(i)=norm(M*mtik(:,i)-u);
+    eta(i)=norm(mtik(:,i));
 end
 % Find the corner of the Tikhonov L-curve
 try
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -508,11 +543,11 @@ set(H,'Fontsize',7);
 % axis([1e-2 100 0.001 1e8])
 disp('Printing L-curve...')
 % print -deps2 nameSave
-print(hLcurve,'Lcurve.eps','-depsc')
+% print(hLcurve,'Lcurve.eps','-depsc')
 saveas(hLcurve,LcurveFigPath);
 close(hLcurve)
 
-save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','-v7.3');
+save(LcurveDataPath,'rho','eta','reg_corner','ireg_corner','alphas','mtik','eyeWeights','-v7.3');
 
 if isempty(ireg_corner) || mod(ireg_corner,1)>0 % if ireg_corner is interpolated
     disp(['L-corner regularization parmater L = ' num2str(reg_corner) '... final solution calculation ...'])
@@ -551,7 +586,7 @@ end
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLfromLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);

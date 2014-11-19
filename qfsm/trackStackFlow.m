@@ -134,7 +134,11 @@ startTime = cputime;
 fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
 if isempty(gcp('nocreate'))
-    parpool local
+    try
+        parpool local
+    catch
+        matlabpool
+    end
 end
 
 parfor k = 1:nPoints

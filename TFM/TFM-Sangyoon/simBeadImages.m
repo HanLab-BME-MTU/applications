@@ -2,25 +2,29 @@
 
 % reference image (500x500)
 % reference image (300x200)
-xmax=500;
-ymax=500;
-nPoints = 17000; % was 25000
+meshPtsFwdSol=2^9;
+xmax=meshPtsFwdSol;
+ymax=meshPtsFwdSol;
+nPoints = 25000; % was 25000
 bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
 sigma = 1.73; % was 1.6 before
 Aorg = [300+100*randn(1,nPoints*4/5) 300+600*randn(1,nPoints*1/5)];
 Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
-[refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
-        'npoints', nPoints, 'Border', 'truncated','A',Aorg);
+% [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
+%         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
+refimg = simGaussianBeads(xmax,ymax, sigma, ...
+        'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
+
 %% Noise addition (10%) % it was 5%
 noiseLevel = 0.1;
-refimg2 = 700+700*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+% refimg2 = 700+700*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+refimg2 = .5*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 figure, imshow(refimg2,[])
 
 % bead images
 %% displacement field
 E=8000;  %Young's modulus, unit: Pa
-meshPtsFwdSol=2^10;
 forceType = 'groupForce';
 
 gridSpacing = 1;
@@ -101,124 +105,6 @@ posFA = [   42.0000  323.0000
   383.0000  337.0000
   423.0000  352.0000
   432.0000  363.0000];
-%% displacement field
-
-[ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-    @(x,y) assumedForceAniso2D(1,x,y,139,267,150,420,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,156,232,110/2,450/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,184,212,60,500,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,217,200,20,520,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,246,195,0,550/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,272,199,-30/2,510/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,297,211,-75,495,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,323,231,-100/2,440/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,346,266,-140,400,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x,y,42,323,480,1600,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,54,319,400,1660,500/108,2100/108,forceType)+...
-    assumedForceAniso2D(1,x,y,96,298,320,1720,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,139,288,240,1780,500/108,2300/108,forceType)+...
-    assumedForceAniso2D(1,x,y,180,280,160,1840,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,225,276,80,1900,500/108,2400/108,forceType)+...
-    assumedForceAniso2D(1,x,y,263,273,0,2000,550/108,2300/108,forceType)+...
-    assumedForceAniso2D(1,x,y,301,275,-80,1900,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(1,x,y,331,281,-160,1840,500/108,2200/108,forceType)+...
-    assumedForceAniso2D(1,x,y,347,279,-240,1780,400/108,2000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,381,290,-320,1720,600/108,2700/108,forceType)+...
-    assumedForceAniso2D(1,x,y,417,303,-400,1660,500/108,2300/108,forceType)+...
-    assumedForceAniso2D(1,x,y,455,317,-480,1600,450/108,2100/108,forceType)+...
-    assumedForceAniso2D(1,x,y,69,359,600,2500,700/108,3000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,91,349,500,2600,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(1,x,y,115,337,400,2700,700/108,3500/108,forceType)+...
-    assumedForceAniso2D(1,x,y,129,338,300,2800,700/108,3000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,168,327,200,2900,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(1,x,y,186,321,100,3000,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,270,318,0,3100,650/108,3500/108,forceType)+...
-    assumedForceAniso2D(1,x,y,288,320,-100,3000,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(1,x,y,312,323,-200,2900,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,361,330,-300,2800,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(1,x,y,383,337,-400,2700,600/108,3500/108,forceType)+...
-    assumedForceAniso2D(1,x,y,423,352,-500,2600,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(1,x,y,432,363,-600,2500,600/108,2600/108,forceType),...
-    @(x,y) assumedForceAniso2D(2,x,y,139,267,150,420,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,156,232,110/2,450/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,184,212,60,500,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,217,200,20,520,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,246,195,0,550/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,272,199,-30/2,510/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,297,211,-75,495,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,323,231,-100/2,440/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,346,266,-140,400,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x,y,42,323,480,1600,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,54,319,400,1660,500/108,2100/108,forceType)+...
-    assumedForceAniso2D(2,x,y,96,298,320,1720,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,139,288,240,1780,500/108,2300/108,forceType)+...
-    assumedForceAniso2D(2,x,y,180,280,160,1840,500/108,2000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,225,276,80,1900,500/108,2400/108,forceType)+...
-    assumedForceAniso2D(2,x,y,263,273,0,2000,550/108,2300/108,forceType)+...
-    assumedForceAniso2D(2,x,y,301,275,-80,1900,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(2,x,y,331,281,-160,1840,500/108,2200/108,forceType)+...
-    assumedForceAniso2D(2,x,y,347,279,-240,1780,400/108,2000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,381,290,-320,1720,600/108,2700/108,forceType)+...
-    assumedForceAniso2D(2,x,y,417,303,-400,1660,500/108,2300/108,forceType)+...
-    assumedForceAniso2D(2,x,y,455,317,-480,1600,450/108,2100/108,forceType)+...
-    assumedForceAniso2D(2,x,y,69,359,600,2500,700/108,3000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,91,349,500,2600,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(2,x,y,115,337,400,2700,700/108,3500/108,forceType)+...
-    assumedForceAniso2D(2,x,y,129,338,300,2800,700/108,3000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,168,327,200,2900,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(2,x,y,186,321,100,3000,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,270,318,0,3100,650/108,3500/108,forceType)+...
-    assumedForceAniso2D(2,x,y,288,320,-100,3000,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(2,x,y,312,323,-200,2900,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,361,330,-300,2800,600/108,2600/108,forceType)+...
-    assumedForceAniso2D(2,x,y,383,337,-400,2700,600/108,3500/108,forceType)+...
-    assumedForceAniso2D(2,x,y,423,352,-500,2600,600/108,3000/108,forceType)+...
-    assumedForceAniso2D(2,x,y,432,363,-600,2500,600/108,2600/108,forceType),'fft',[],meshPtsFwdSol); %,'conv',[],meshPtsFwdSol);
-
-%% finding displacement at bead location
-nPoints = length(bead_x);
-bead_ux = zeros(size(bead_x));
-bead_uy = zeros(size(bead_y));
-for k=1:nPoints
-    [~,indcol_closest_x] = min(abs(x_mat_u(1,:)-bead_x(k)),[],2);
-    [~,indrow_closest_y] = min(abs(y_mat_u(:,1)-bead_y(k)),[],1);
-    row_bottom = max(1,indrow_closest_y-2);
-    row_top = min(size(x_mat_u,2),indrow_closest_y+2);
-    col_bottom = max(1,indcol_closest_x-2);
-    col_top = min(size(y_mat_u,1),indcol_closest_x+2);
-    loc_xmat = x_mat_u(row_bottom:row_top,col_bottom:col_top);
-    loc_ymat = y_mat_u(row_bottom:row_top,col_bottom:col_top);
-    loc_ux = ux(row_bottom:row_top,col_bottom:col_top);
-    loc_uy = uy(row_bottom:row_top,col_bottom:col_top);
-    bead_ux(k) = interp2(loc_xmat,loc_ymat,loc_ux,bead_x(k),bead_y(k));
-    if isnan(bead_ux(k))
-        bead_ux(k) = ux(indrow_closest_y,indcol_closest_x);
-    end
-    bead_uy(k) = interp2(loc_xmat,loc_ymat,loc_uy,bead_x(k),bead_y(k));
-    if isnan(bead_uy(k))
-        bead_uy(k) = uy(indrow_closest_y,indcol_closest_x);
-    end
-end
-
-% pixelSize = 0.108; % assuming 60x objective um/pixel
-beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
-%% Noise addition (10%) % it was 5% before
-% beadimg = beadimg+0.1*rand(ymax,xmax)*max(beadimg(:));
-beadimg = 700+700*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
-%% saving
-% dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
-% dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads';
-dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_10noise';
-imgPath=[dataPath filesep 'Beads'];
-refPath=[dataPath filesep 'Reference'];
-if ~exist(refPath,'dir')
-    mkdir(imgPath);
-    mkdir(refPath);
-end
-
-imwrite(uint16(refimg2*2^16/max(max(refimg2))),[refPath filesep 'img1ref.tif'],'tif')
-imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep 'img2bead.tif'],'tif')
-
 %%  ------------------------ original force
 
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,139,267,150,420,400/72,500/72,forceType)+...
@@ -291,7 +177,133 @@ force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,139,267,150,420,400/72,500/72,fo
     assumedForceAniso2D(2,x_mat_u,y_mat_u,383,337,-400,2700,600/108,3500/108,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,423,352,-500,2600,600/108,3000/108,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,432,363,-600,2500,600/108,2600/108,forceType);
-%-------------------------------------------
+%% force noise
+force_x = 100*rand(ymax,xmax) + force_x;
+force_y = 100*rand(ymax,xmax) + force_y;
+fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
+figure, imshow(fnorm_org,[]), colormap jet
+%% displacement field
+[ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+    force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false,true); %,'conv',[],meshPtsFwdSol);
+
+% [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+%     @(x,y) assumedForceAniso2D(1,x,y,139,267,150,420,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,156,232,110/2,450/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,184,212,60,500,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,217,200,20,520,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,246,195,0,550/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,272,199,-30/2,510/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,297,211,-75,495,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,323,231,-100/2,440/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,346,266,-140,400,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(1,x,y,42,323,480,1600,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,54,319,400,1660,500/108,2100/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,96,298,320,1720,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,139,288,240,1780,500/108,2300/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,180,280,160,1840,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,225,276,80,1900,500/108,2400/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,263,273,0,2000,550/108,2300/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,301,275,-80,1900,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,331,281,-160,1840,500/108,2200/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,347,279,-240,1780,400/108,2000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,381,290,-320,1720,600/108,2700/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,417,303,-400,1660,500/108,2300/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,455,317,-480,1600,450/108,2100/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,69,359,600,2500,700/108,3000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,91,349,500,2600,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,115,337,400,2700,700/108,3500/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,129,338,300,2800,700/108,3000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,168,327,200,2900,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,186,321,100,3000,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,270,318,0,3100,650/108,3500/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,288,320,-100,3000,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,312,323,-200,2900,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,361,330,-300,2800,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,383,337,-400,2700,600/108,3500/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,423,352,-500,2600,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(1,x,y,432,363,-600,2500,600/108,2600/108,forceType),...
+%     @(x,y) assumedForceAniso2D(2,x,y,139,267,150,420,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,156,232,110/2,450/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,184,212,60,500,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,217,200,20,520,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,246,195,0,550/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,272,199,-30/2,510/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,297,211,-75,495,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,323,231,-100/2,440/2,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,346,266,-140,400,400/72,500/72,forceType)+...
+%     assumedForceAniso2D(2,x,y,42,323,480,1600,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,54,319,400,1660,500/108,2100/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,96,298,320,1720,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,139,288,240,1780,500/108,2300/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,180,280,160,1840,500/108,2000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,225,276,80,1900,500/108,2400/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,263,273,0,2000,550/108,2300/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,301,275,-80,1900,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,331,281,-160,1840,500/108,2200/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,347,279,-240,1780,400/108,2000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,381,290,-320,1720,600/108,2700/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,417,303,-400,1660,500/108,2300/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,455,317,-480,1600,450/108,2100/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,69,359,600,2500,700/108,3000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,91,349,500,2600,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,115,337,400,2700,700/108,3500/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,129,338,300,2800,700/108,3000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,168,327,200,2900,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,186,321,100,3000,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,270,318,0,3100,650/108,3500/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,288,320,-100,3000,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,312,323,-200,2900,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,361,330,-300,2800,600/108,2600/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,383,337,-400,2700,600/108,3500/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,423,352,-500,2600,600/108,3000/108,forceType)+...
+%     assumedForceAniso2D(2,x,y,432,363,-600,2500,600/108,2600/108,forceType),'fft',[],meshPtsFwdSol); %,'conv',[],meshPtsFwdSol);
+
+%% finding displacement at bead location
+nPoints = length(bead_x);
+bead_ux = zeros(size(bead_x));
+bead_uy = zeros(size(bead_y));
+for k=1:nPoints
+    [~,indcol_closest_x] = min(abs(x_mat_u(1,:)-bead_x(k)),[],2);
+    [~,indrow_closest_y] = min(abs(y_mat_u(:,1)-bead_y(k)),[],1);
+    row_bottom = max(1,indrow_closest_y-2);
+    row_top = min(size(x_mat_u,2),indrow_closest_y+2);
+    col_bottom = max(1,indcol_closest_x-2);
+    col_top = min(size(y_mat_u,1),indcol_closest_x+2);
+    loc_xmat = x_mat_u(row_bottom:row_top,col_bottom:col_top);
+    loc_ymat = y_mat_u(row_bottom:row_top,col_bottom:col_top);
+    loc_ux = ux(row_bottom:row_top,col_bottom:col_top);
+    loc_uy = uy(row_bottom:row_top,col_bottom:col_top);
+    bead_ux(k) = interp2(loc_xmat,loc_ymat,loc_ux,bead_x(k),bead_y(k));
+    if isnan(bead_ux(k))
+        bead_ux(k) = ux(indrow_closest_y,indcol_closest_x);
+    end
+    bead_uy(k) = interp2(loc_xmat,loc_ymat,loc_uy,bead_x(k),bead_y(k));
+    if isnan(bead_uy(k))
+        bead_uy(k) = uy(indrow_closest_y,indcol_closest_x);
+    end
+end
+
+% pixelSize = 0.108; % assuming 60x objective um/pixel
+beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
+%% Noise addition (10%) % it was 5% before
+beadimg = beadimg+0.5*0.1*rand(ymax,xmax)*max(beadimg(:));
+% beadimg = 700+700*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+%% saving
+% dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
+% dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads';
+% dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_10noise';
+dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_forceNoise';
+imgPath=[dataPath filesep 'Beads'];
+refPath=[dataPath filesep 'Reference'];
+if ~exist(refPath,'dir')
+    mkdir(imgPath);
+    mkdir(refPath);
+end
+
+imwrite(uint16(refimg2*2^16/max(max(refimg2))),[refPath filesep 'img1ref.tif'],'tif')
+imwrite(uint16(beadimg*2^16/max(max(beadimg))),[imgPath filesep 'img2bead.tif'],'tif')
+
+%% -------------------------------------------
 
 % run the TFM Package and obtain displacement field and force field
 
@@ -316,7 +328,7 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
     displPath = [dataPath filesep 'TFMPackage/correctedDisplacementField'];
     displFile =[dataPath filesep 'TFMPackage/correctedDisplacementField/displField.mat'];
     load(displFile)
-    generateHeatmapFromField(displField,displPath,9.6,[],460,460,false);
+    generateHeatmapFromField(displField,displPath,0,[],[],460,460,false);
 
 %     %% display measured displacement field
 %     % load displacement field
@@ -330,7 +342,7 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
 forcePath =  [dataPath filesep 'TFMPackage/forceField_L2_2nd Lcurve lambda'];
 forceFile = [dataPath filesep 'TFMPackage/forceField/forceField.mat'];
 load(forceFile)
-generateHeatmapFromField(forceField,forcePath,3100);
+generateHeatmapFromField(forceField,forcePath,0,3100,[],[],[],false);
 
 %% Masks for BG and FG
 % points at the BG
@@ -395,18 +407,18 @@ posBG = [   42.0000  423.0000
   383+10.0000  337.0000
   423.0000  352+10.0000
   432+10.0000  363+10.0000];
-fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
-forground = fnorm_org>0;
-backgroundMaskfine = ~bwmorph(forground,'dilate',5);
+% foreground = fnorm_org>0;
+foreground = fnorm_org>150;
+backgroundMaskfine = ~bwmorph(foreground,'dilate',5);
 %% L2 0th L curve calculation - settup
-lambda=10.^(-10:0.125:-3);
+lambda=10.^(-20:0.125:-2);%10.^(-10:0.125:-3);
 rhoL2=zeros(length(lambda),1);
 etaL2=zeros(length(lambda),1);
 fErrBGL2=zeros(length(lambda),1);
 fErrFGL2=zeros(length(lambda),1);
 fCoeff=zeros(size(M,2),length(lambda));
 [eyeWeights,~] =getGramMatrix(forceMesh);
-%% L-curve for L1 0th
+%% MpM
 MpM=M'*M;
 %% L2 0th L curve calculation - actual calculation
 for i=1:length(lambda);
@@ -417,7 +429,7 @@ for i=1:length(lambda);
 %   fErr(i)=norm(fCoeff(:,i)-force_0);
     [fx,fy,~,~]=calcForcesFromCoef(forceMesh,fCoeff(:,i),x_mat_u,y_mat_u,'new');
     fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
-    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
+    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*foreground;
 %     fErrBGmat(:,:,i) = fErrBGmatTemp;
     
     fErrBGL2(i)=sum(fErrBGmatTemp(:));
@@ -427,13 +439,16 @@ for i=1:length(lambda);
 %   etaL2(i)=norm(eyeWeights*fCoeff(:,i)); % semi norm
 end
 %% Find the corner of the Tikhonov L-curve
-[reg_cornerL2,ireg_cornerL2,kappaL2]=regParamSelecetionLcurve(rhoL2,etaL2,lambda);
+[reg_cornerL2,ireg_cornerL2,kappaL2]=regParamSelecetionLcurve(rhoL2,etaL2,lambda,1e-13);
+[reg_cornerL2s,ireg_cornerL2s,~]=regParamSelecetionLcurve(rhoL2,etaL2,lambda,1e-7,'manualSelection',true);
 % [~,fminIdxL2]=min(fErr);
 % [reg_cornerL2,ireg_cornerL2,kappaL2]=l_curve_corner(rhoL2,etaL2,lambda);
 [~,fminFGIdxL2]=min(fErrFGL2);          
-[~,fminBGIdxL2]=min(fErrBGL2(1:40));
+fminBGIdxL2=locmin1d(fErrBGL2,15);
+fminBGIdxL2 = fminBGIdxL2(end);
 
-save([dataPath '/LcurveL2-0th.mat'],'forceMesh','rhoL2','etaL2','fErrFGL2','fErrBGL2','reg_cornerL2','ireg_cornerL2','lambda','fCoeff','fminFGIdxL2','fminBGIdxL2','-v7.3');
+% save(['./LcurveL2-0thNew.mat'],'forceMesh','rhoL2','etaL2','fErrFGL2','fErrBGL2','reg_cornerL2','ireg_cornerL2','lambda','fCoeff','fminFGIdxL2','fminBGIdxL2','-v7.3');
+save(['./LcurveL2-0thNoise.mat'],'forceMesh','rhoL2','etaL2','fErrFGL2','fErrBGL2','reg_cornerL2','ireg_cornerL2','lambda','fCoeff','fminFGIdxL2','fminBGIdxL2','-v7.3');
 
 %% showing force for L2 - loading
 load([dataPath '/LcurveL2-0th.mat'],'rho','eta','fErr','reg_corner','ireg_corner','lambda','fCoeff','fminIdx');
@@ -447,22 +462,24 @@ ymaxf = forceMesh.basis(end).node(2);
 
 [xgrid,ygrid]=meshgrid(xminf:gridSpacingf:xmaxf,yminf:gridSpacingf:ymaxf);
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2),xgrid,ygrid,'new');
-% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2)],3100,true,460,460)
-nlfh=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2) ' 3100 nonlinear'],0,3100,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2)],0,3100,false,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2s),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at lower Lcorner ' num2str(reg_cornerL2s)],0,3100,false,460,460)
+% nlfh=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2) ' 3100 nonlinear'],0,3100,true,460,460);
 mycmap = get(nlfh,'Colormap');
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
-% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2))],3100,true,460,460);
-nlfh_FGmin=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2)) ' 3100 nonlinear'],0,3100,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2))],0,3100,false,460,460);
+% nlfh_FGmin=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fFGmin'  num2str(lambda(fminFGIdxL2)) ' 3100 nonlinear'],0,3100,true,460,460);
 set(nlfh_FGmin,'Colormap',mycmap)
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminBGIdxL2),xgrid,ygrid,'new');
-% generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2))],3100,true,460,460);
-nlfh_BGmin = generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2)) ' 3100 nonlinear'],0,3100,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2))],0,3100,false,460,460);
+% nlfh_BGmin = generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at fBGmin'  num2str(lambda(fminBGIdxL2)) ' 3100 nonlinear'],0,3100,true,460,460);
 set(nlfh_BGmin,'Colormap',mycmap)
 
 % showing force for L1 0th with the mycmap
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_cornerL1),xgrid,ygrid,'new');
 nlfh_L1lcorner = generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_corner) ' 3100 nonlinear'],3100,true,460,460);
 set(nlfh_L1lcorner,'Colormap',mycmap)
 
@@ -471,24 +488,26 @@ nlfh_original = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,'Ori
 set(nlfh_original,'Colormap',mycmap)
 %% with lower force max
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at Lcorner ' num2str(reg_cornerL2)],200,true,460,460)
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at Lcorner ' num2str(reg_cornerL2)],0,500,false,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2s),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at lower Lcorner ' num2str(reg_cornerL2s)],0,500,false,460,460)
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminBGIdxL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fBGmin'  num2str(lambda(fminBGIdxL2))],200,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at fBGmin'  num2str(lambda(fminBGIdxL2))],0,500,false,460,460);
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 200 at fFGmin'  num2str(lambda(fminFGIdxL2))],200,true,460,460);
-%% initialization for l curve
-maxIter = 10;
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at fFGmin'  num2str(lambda(fminFGIdxL2))],0,500,false,460,460);
+%% initialization for L1 l curve
+maxIter = 20;
 tolx = 0.02;
-tolr = 10;
+tolr = 100;
 disp('L-curve ...')
 %         [~,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
-alphas=10.^(-6:.125:-1);
-rho=zeros(length(alphas),1);
-eta=zeros(length(alphas),1);
-msparse=zeros(size(M,2),length(alphas));
-fErr=zeros(length(alphas),1);
+alphasL1=10.^(-6:.125:-1);
+rhoL1=zeros(length(alphasL1),1);
+etaL1=zeros(length(alphasL1),1);
+msparse=zeros(size(M,2),length(alphasL1));
+fErr=zeros(length(alphasL1),1);
 [eyeWeights,~] =getGramMatrix(forceMesh);
 
 % original force at force base nodes
@@ -507,19 +526,19 @@ force_0=vertcat(force_x_vec_f,force_y_vec_f);
 
 %% L-curve L1 0th with conventianal force error criterion
 % tnormBG(:,:,jj) = tnormd(:,:,jj).*backgroundMaskfine(ygrid(1,1):ygrid(end,end),xgrid(1,1):xgrid(end,end));
-fErrBG=zeros(length(alphas),1);
-fErrFG=zeros(length(alphas),1);
-fErrBGmat = zeros(size(force_x,1),size(force_x,2),length(alphas));
+fErrBGL1=zeros(length(alphasL1),1);
+fErrFGL1=zeros(length(alphasL1),1);
+fErrBGmat = zeros(size(force_x,1),size(force_x,2),length(alphasL1));
 [xgrid,ygrid]=meshgrid(xminf:gridSpacingf:xmaxf,yminf:gridSpacingf:ymaxf);
 
 locMaxI_FA = posFA(:,2:-1:1);
 locMaxI_NA = posNA(:,2:-1:1);
 locMaxI_BG = posBG(:,2:-1:1);
 locMaxI_tot = [locMaxI_FA; locMaxI_NA; locMaxI_BG];
-for i=1:length(alphas);
-    msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphas(i),maxIter,tolx,tolr);
-    rho(i)=norm(M*msparse(:,i)-u);
-    eta(i)=norm(eyeWeights*msparse(:,i),1);
+for i=1:length(alphasL1);
+    msparse(:,i)=iterativeL1Regularization(M,MpM,u,eyeWeights,alphasL1(i),maxIter,tolx,tolr);
+    rhoL1(i)=norm(M*msparse(:,i)-u);
+    etaL1(i)=norm(eyeWeights*msparse(:,i),1);
   % force error
     [fx,fy,~,~]=calcForcesFromCoef(forceMesh,msparse(:,i),x_mat_u,y_mat_u,'new');
 %     fErr(i)=sum(sqrt((diag(force_x(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
@@ -527,12 +546,12 @@ for i=1:length(alphas);
 %         (diag(force_y(locMaxI_tot(:,1),locMaxI_tot(:,2)))-...
 %         diag(fy(locMaxI_tot(:,1),locMaxI_tot(:,2)))).^2));
     fErrBGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*backgroundMaskfine;
-    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*forground;
+    fErrFGmatTemp = sqrt((force_x-fx).^2+(force_y-fy).^2).*foreground;
     fErrBGmat(:,:,i) = fErrBGmatTemp;
     
-    fErrBG(i)=sum(fErrBGmatTemp(:));
-    fErrFG(i)=sum(fErrFGmatTemp(:));
-    disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
+    fErrBGL1(i)=sum(fErrBGmatTemp(:));
+    fErrFGL1(i)=sum(fErrFGmatTemp(:));
+    disp([num2str(i) '     ' num2str(alphasL1(i)) '      ' num2str(fErrFGL1(i)) '      ' num2str(fErrBGL1(i))]);
 end
 % %% new force error criterion
 % 
@@ -551,55 +570,87 @@ end
 %     fErrFG(i)=sum(fErrFGmatTemp(:));
 %     disp([num2str(i) '     ' num2str(alphas(i)) '      ' num2str(fErrFG(i)) '      ' num2str(fErrBG(i))]);
 % end
-
 %% Find the corner of the Tikhonov L-curve for L1 0th
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
+[reg_cornerL1,ireg_cornerL1,~]=regParamSelecetionLcurve(rhoL1,etaL1,alphasL1,1e-4);
+[reg_inflectionL1,ireg_inflectionL1,~]=regParamSelecetionLcurve(rhoL1,etaL1,alphasL1,1e-4,'inflection',true,'manualselection',true);
 % [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas);
-[~,fminFGIdx]=min(fErrFG);
-[~,fminBGIdx]=min(fErrBG);
+[~,fminFGIdx]=min(fErrFGL1);
+[~,fminBGIdx]=min(fErrBGL1);
 % [~,fminIdx]=min(fErr3);
 % save([dataPath '/LcurveL1-0th.mat'],'rho','eta','rho2','eta2','rho3','eta3','fErr3','reg_corner','ireg_corner','alphas','msparse','fminIdx','-v7.3');
-save('LcurveL1-0th FerrFG FerrBG.mat');
+% save('LcurveL1-0th FerrFG FerrBG.mat');
+save('./LcurveL1 Noise.mat','rhoL1','etaL1','alphasL1','reg_cornerL1','ireg_cornerL1','fErrFGL1','fErrBGL1',...
+    'fminFGIdx','fminBGIdx','forceMesh','msparse');
 % save([dataPath '/LcurveL1-0th FerrFG FerrBG.mat'],'forceMesh','rho','eta','fErrBG','reg_corner','ireg_corner',...
 %     'alphas','msparse','fminFGIdx','fminBGIdx','-v7.3');
+%% Some recalculation
+msparse_BGmin=iterativeL1Regularization(M,MpM,u,eyeWeights,alphasL1(fminBGIdx),maxIter,tolx,tolr);
+msparse_Inflection=iterativeL1Regularization(M,MpM,u,eyeWeights,alphasL1(ireg_inflectionL1),maxIter,tolx,tolr);
+msparse_Lcorner=iterativeL1Regularization(M,MpM,u,eyeWeights,alphasL1(ireg_cornerL1),maxIter,tolx,tolr);
 %% showing force for L1 0th
 % load([dataPath '/LcurveL1-0th.mat']);
 
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_corner)],3100,true,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_cornerL1),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_cornerL1)],0,3100,false,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_Lcorner,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Lcorner ' num2str(reg_cornerL1) ' lowerTol'],0,3100,false,460,460)
 
 % [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ceil((fminIdx+ireg_corner)/2)),xgrid,ygrid,'new');
 % generateHeatmapFromGridData(x_out,y_out,fx,fy,[dataPath filesep 'L1-0th forcemap at fErr minimum'],3100,false,460,460);
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminBGIdx),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fBGmin'  num2str(alphas(fminBGIdx))],3100,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fBGmin'  num2str(alphasL1(fminBGIdx))],0,3100,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_BGmin,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fBGmin'  num2str(alphasL1(fminBGIdx)) ' lowerTol'],0,3100,false,460,460);
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminFGIdx),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fFGmin'  num2str(alphas(fminFGIdx))],3100,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at fFGmin'  num2str(alphasL1(fminFGIdx))],0,3100,false,460,460);
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_inflectionL1),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Linflection'  num2str(alphasL1(ireg_inflectionL1))],0,3100,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_Inflection,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap at Linflection'  num2str(alphasL1(ireg_inflectionL1)) ' lowerTol'],0,3100,false,460,460);
+
+
 %% showing force with lower force max
 % load([dataPath '/LcurveL1-0th.mat']);
 
-[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 200 at Lcorner ' num2str(reg_corner)],200,true,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_cornerL1),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at Lcorner ' num2str(reg_corner)],0,500,false,460,460)
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_Lcorner,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at Lcorner ' num2str(reg_cornerL1) ' lowerTol'],0,500,false,460,460)
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminBGIdx),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 200 at fBGmin'  num2str(alphas(fminBGIdx))],200,true,460,460);
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at fBGmin'  num2str(alphasL1(fminBGIdx))],0,500,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_BGmin,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at fBGmin'  num2str(alphasL1(fminBGIdx)) ' lowerTol'],0,500,false,460,460);
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,fminFGIdx),xgrid,ygrid,'new');
-generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 200 at fFGmin'  num2str(alphas(fminFGIdx))],200,true,460,460);
- %% L-curve for L1 2nd
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at fFGmin'  num2str(alphasL1(fminFGIdx))],0,500,false,460,460);
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse(:,ireg_inflectionL1),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at Linflection'  num2str(alphasL1(ireg_inflectionL1))],0,500,false,460,460);
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,msparse_Inflection,xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L1-0th forcemap 500 at Linflection'  num2str(alphasL1(ireg_inflectionL1)) ' lowerTol'],0,500,false,460,460);
+
+%% save
+save(['./LcurveL2-1thNoise.mat'],'rhoL1','etaL1','reg_cornerL1','ireg_cornerL1',...
+    'reg_inflectionL1','ireg_inflectionL1','alphas','msparse','fminFGIdx','fminBGIdx',...
+    'msparse_BGmin','msparse_Inflection','msparse_Lcorner','-v7.3');
+
+%% L-curve for L1 2nd
 MpM=M'*M;
 maxIter = 10;
 tolx = 2e-2;
 tolr = 1e-7;
 disp('L-curve ...')
 %         [~,L] = calculateLfromLcurveSparse(M,MpM,u,eyeWeights,maxIter,tolx,tolr,solMethodBEM);
-alphas=10.^(-7:.125:-2);
-rho=zeros(length(alphas),1);
-eta=zeros(length(alphas),1);
-msparse=zeros(size(M,2),length(alphas));
-fErr=zeros(length(alphas),1);
+alphasL1=10.^(-7:.125:-2);
+rhoL1=zeros(length(alphasL1),1);
+etaL1=zeros(length(alphasL1),1);
+msparse=zeros(size(M,2),length(alphasL1));
+fErr=zeros(length(alphasL1),1);
 % Laplacian
 nBasis = forceMesh.numBasis;
 basisx=zeros(nBasis,1);
@@ -774,8 +825,8 @@ fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 flocMaxOrgFA = diag(fnorm_org(locMaxI_FA(:,1),locMaxI_FA(:,2)));
 flocMaxOrgNA = diag(fnorm_org(locMaxI_NA(:,1),locMaxI_NA(:,2)));
 % r = 1.1; %
-forground = fnorm_org>0;
-backgroundMaskfine = ~bwmorph(forground,'dilate',5);
+foreground = fnorm_org>0;
+backgroundMaskfine = ~bwmorph(foreground,'dilate',5);
 [xgrid_fine,ygrid_fine] = meshgrid(xgrid(1,1):xgrid(end,end),ygrid(1,1):ygrid(end,end));
 %% force picking
 % for L2 Lcorner
@@ -789,13 +840,26 @@ fmag =  (fx.^2 + fy.^2).^0.5;
 tnormd(:,:,2) = griddata(xgrid,ygrid,fmag,xgrid_fine,ygrid_fine,'linear');
 % for L1 Lcorner
 load('LcurveL1-0th.mat')
-[fx,fy]=calcForcesFromCoef(forceMesh,msparse(:,ireg_corner),xgrid,ygrid,'new');
+[fx,fy]=calcForcesFromCoef(forceMesh,msparse(:,ireg_cornerL1),xgrid,ygrid,'new');
 fmag =  (fx.^2 + fy.^2).^0.5; 
 tnormd(:,:,3) = griddata(xgrid,ygrid,fmag,xgrid_fine,ygrid_fine,'linear');
 
+%original force store for debugging
+tnormd(:,:,4) = fnorm_org(ygrid(1,1):ygrid(end,end),xgrid(1,1):xgrid(end,end));
+
 %% actual calculation for forces at adhesions and noise
+foregroundLabel = bwlabel(foreground,4);
 for jj=1:nMethods 
     for k=1:nPeaks_FA
+        % find the indices of segment of locMaxI_FA
+        curLabel = foregroundLabel(locMaxI_FA(k,1),locMaxI_FA(k,2));
+        regionCurLabel = regionprops(foregroundLabel==curLabel,'PixelList');
+        curPixelList = regionCurLabel.PixelList;
+        curPixelListCrop = [curPixelList(:,1)-xgrid(1,1)+1,curPixelList(:,2)-ygrid(1,1)+1];
+        curTnormd = tnormd(:,:,jj);
+        curPixelIndices = sub2ind(size(curTnormd),curPixelListCrop(:,1),curPixelListCrop(:,2));
+        curFAtraction = curTnormd(curPixelIndices);
+        flocMaxFA(k,jj) = max(curFAtraction(:));
         flocMaxFA(k,jj) = tnormd(locMaxI_FA(k,1)-ygrid(1,1)+1,locMaxI_FA(k,2)-xgrid(1,1)+1,jj);
         flocMaxRatioFA(k,jj) = flocMaxFA(k,jj)/fnorm_org(locMaxI_FA(k,1),locMaxI_FA(k,2)); % ratio based on original force norm (0~1)
     end
@@ -817,5 +881,5 @@ for jj=1:nMethods
 end
 
 %% save
-save([dataPath '/FatFANA.mat'],'flocMaxFA','flocMaxNA','flocMaxRatioFA','flocMaxRatioNA',...
+save(['./FatFANA_New.mat'],'flocMaxFA','flocMaxNA','flocMaxRatioFA','flocMaxRatioNA',...
     'pSR_FA','pSR_NA','pSRerr_FA','pSRerr_NA' ,'flocMaxOrgFA','noiseBG','noiseBGerr','tnormBG','tnormd');
