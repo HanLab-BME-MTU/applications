@@ -110,22 +110,24 @@ end
 % end
 
 if manualSelection
-    numCutPoints = 0;
+%     numCutPoints = 0;
 
     % show the l curve and make sure this is fittable with 5th order polynomial
-    x_cut = x((numCutPoints+1:end));
+%     x_cut = x((numCutPoints+1:end));
     
     h=figure; set(h,'Position',[1000,100,350,600])
-    subplot(2,1,1),plot(x,y,'k')
+    subplot(3,1,1),plot(x,y,'k')
     xlabel('Residual Norm ||Gm-d||_{2}');
     ylabel('Simi-Norm ||Lm||_{2}');
-    subplot(2,1,1), hold on,plot(x(maxKappaIdx+3),y(maxKappaIdx+3),'ro')
-    text(x(maxKappaIdx+3),1.01*y(maxKappaIdx+3),...
+    subplot(3,1,1), hold on,plot(x(ireg_corner),y(ireg_corner),'ro')
+    text(x(ireg_corner),1.01*y(ireg_corner),...
         ['    ',num2str(reg_corner,'%5.3e')]);
-    subplot(2,1,2), plot(x_kappa,kappa), title('curvature')
+    subplot(3,1,2), plot(x_slope,slope), title('slope')
+    subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    subplot(3,1,3), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
 
-    subplot(2,1,2), hold on,plot(x_kappa(maxKappaIdx),kappa(maxKappaIdx),'ro')
+    subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
 %     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
 %     poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');

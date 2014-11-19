@@ -3,8 +3,10 @@ function [meanDispErrorAdh,meanDispErrorBG,dispDetec,meanForceErrorAdh,meanForce
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.addOptional('solMethodBEM','QR', @ischar);
+ip.addParameter('regParam',1e-6,@isnumeric);
 ip.parse(varargin{:});
 solMethodBEM = ip.Results.solMethodBEM;    
+regParam = ip.Results.regParam;    
 
 %% single force experiment
 % input parameters to be replaced with function inputs
@@ -164,6 +166,7 @@ params.referenceFramePath = refFullPath;
 params.maxFlowSpeed = 40;
 params.alpha = 0.05;
 params.minCorLength = minCorLength;
+params.mode = 'accurate';
 MD.getPackage(iPack).getProcess(2).setPara(params);
 %% Run the displacement field tracking
 MD.getPackage(iPack).getProcess(2).run();
@@ -178,10 +181,12 @@ MD.getPackage(iPack).createDefaultProcess(4)
 params = MD.getPackage(iPack).getProcess(4).funParams_;
 
 params.YoungModulus = 8000;
-params.regParam = 1e-6;
+params.regParam = regParam;
 params.solMethodBEM = solMethodBEM;
+params.useLcurve = false;
 % params.basisClassTblPath = '/files/.retain-snapshots.d7d-w0d/LCCB/fsm/harvard/analysis/Sangyoon/TFM Basis Function SFT.mat';
-params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+% params.basisClassTblPath = '/hms/scratch1/sh268/TFM Basis Function/TFM Basis Function SFT.mat';
+params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/TFM Basis Function SFT.mat';
 MD.getPackage(iPack).getProcess(4).setPara(params);
 MD.getPackage(iPack).getProcess(4).run();
 
@@ -304,7 +309,8 @@ if isempty(forceFieldMag)
 else
     peakForceRatio = mean(forceFieldMag)/mean(orgFieldForceMag);
     forceFieldBgdMag = sort(forceFieldBgdMag,'descend');
-    forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+%     forceDetec = mean(forceFieldMag)/mean(forceFieldBgdMag(1:round(length(forceFieldMag)/2)));
+    forceDetec = max(forceFieldMag)/max(forceFieldBgdMag(1:length(forceFieldMag)));
 end
 %% errors in force field
 forceIdx = maskVectors(forceField(1).pos(:,1),forceField(1).pos(:,2),maskForce);

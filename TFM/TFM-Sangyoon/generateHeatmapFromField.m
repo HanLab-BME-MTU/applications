@@ -6,8 +6,8 @@ if nargin <8
     plotQuiver = true;
 end
 ummin = 1e20;
-if nargin <4
-    ummax = 0;
+if nargin <4 || isempty(ummax)
+    temp_ummax = 0;
 end
 if nargin <3
     band = 0;
@@ -15,9 +15,12 @@ end
 for k=1:numel(displField)
     maxMag = (displField(k).vec(:,1).^2+displField(k).vec(:,2).^2).^0.5;
     ummin = min(ummin,min(maxMag));
-    if nargin <4
-        ummax = max(ummax, max(maxMag));
+    if nargin < 4 || isempty(ummax)
+        temp_ummax = max(temp_ummax, max(maxMag));
     end
+end
+if nargin < 4 || isempty(ummax)
+    ummax = temp_ummax;
 end
 
 % account for if displField contains more than one frame
@@ -28,7 +31,7 @@ for k=1:numel(displField)
     grid_spacingY = grid_mat(2,1,2)-grid_mat(1,1,2);
     imSizeX = grid_mat(end,end,1)-grid_mat(1,1,1)+grid_spacingX;
     imSizeY = grid_mat(end,end,2)-grid_mat(1,1,2)+grid_spacingY;
-    if nargin<6
+    if nargin<6 || isempty(w) || isempty(h)
         w = imSizeX;
         h = imSizeY;
     end

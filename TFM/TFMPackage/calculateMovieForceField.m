@@ -153,11 +153,12 @@ else
      firstMask = maskArray(:,:,1);
 end
    
-% Prepare displacement field for BEM
-if strcmpi(p.method,'fastBEM')
-    displField(end).par=0; % for compatibility with Achim parameter saving
-    displField=prepDisplForBEM(displField,'linear');
-end
+% % Prepare displacement field for BEM
+% if strcmpi(p.method,'fastBEM')
+%     displField(end).par=0; % for compatibility with Achim parameter saving
+%     displField=prepDisplForBEM(displField,'linear');
+% end
+% I don't think this is necessary anymore. - SH
 
 % For Benedikt's software to work, the displacement field has to be
 % interpolated on a rectangular grid, with an even number of grid points
@@ -217,9 +218,9 @@ if strcmpi(p.method,'FastBEM')
             forceField(i).vec=force;
         end
     else
-        if ishandle(wtBar)
-            waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
-        end
+%         if ishandle(wtBar)
+%             waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
+%         end
         if p.useLcurve
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
