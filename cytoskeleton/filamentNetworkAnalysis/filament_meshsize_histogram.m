@@ -1,4 +1,4 @@
-function [network_feature_channel_frame, network_feature_channel] = filament_meshsize_optimalHistogram(MD, ROI, radius,pace,range)
+function [network_feature_channel_frame, network_feature_channel] = filament_meshsize_histogram(MD, ROI, radius,pace,range)
 % function to do network analysis with input MD
 
 % input:    MD:    the loaded movieData object.
@@ -84,7 +84,7 @@ for iChannel = 1 :  length(MD.channels_)
                 Cell_Mask = ROI;
             end
         end
-        output_feature = filament_bw_meshsize_optimalHistogram(VIF_current_seg, Cell_Mask, radius,pace,range);
+        output_feature = filament_bw_meshsize_histogram(VIF_current_seg, Cell_Mask, radius,pace,range);
         
         network_feature_channel_frame{iChannel,iFrame} = output_feature;
         
