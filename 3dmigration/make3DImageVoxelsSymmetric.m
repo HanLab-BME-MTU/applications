@@ -62,11 +62,12 @@ scFact = pixZ/pixXY;
 
 %Set up the interpolation points
 [M,N,P] = size(image);
-[X,Y,Z] = meshgrid(1:N,1:M,1:P);
+%[X,Y,Z] = meshgrid(1:N,1:M,1:P);
 [Xi,Yi,Zi] = meshgrid(1:N,1:M,linspace(1,P,P*scFact));
 
 %Interpolate the image.
-image = interp3(X,Y,Z,image,Xi,Yi,Zi);
+%image = interp3(X,Y,Z,image,Xi,Yi,Zi);
+image = interp3(image,Xi,Yi,Zi);
 
 if ~strcmp(ogClass,'logical')    
     %Restore the original class if it has changed

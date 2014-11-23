@@ -1,7 +1,8 @@
 %% ---- Parameters --- %%
 
 %outDir = 'A:\Papers\3d bio paper\Figure Panels';
-outDir = 'W:\Hunter\orchestra_files_and_backup_merged\nih\Figures\Figure Panels New';
+%outDir = 'W:\Hunter\orchestra_files_and_backup_merged\nih\Figures\Figure Panels New';
+outDir = 'W:\Hunter\orchestra_files_and_backup_merged\nih\Figures\Figure Panels for Revision';
 
 
 figExpProps = {'DPI',600};
@@ -32,7 +33,7 @@ movPaths = {'W:\Hunter\orchestra_files_and_backup_merged\nih\data_2_2011_fast_an
 movNames = {'Control','Blebbistatin'};
 
 views = [-106.5 30;
-          95.5 40];
+          95.5 90];
 
 curvToMake = {'LAcurv','LAgauss','LAmean'};
 curvNames = {'Maximum Absolute PC','Gaussian','Mean'};
@@ -43,7 +44,7 @@ nMov = numel(movPaths);
 
 for iMov = 1:nMov
 
-    %% --- Load mask for these figures -- - %
+    % --- Load mask for these figures -- - %
 
     iChan =1;
     iFrame = 1;
@@ -61,7 +62,7 @@ for iMov = 1:nMov
     mask{iMov} = make3DImageVoxelsSymmetric(mask{iMov},pixXY,pixZ);
 
 
-    %% --- Get curvature data for these figures -- - %
+    % --- Get curvature data for these figures -- - %
 
     %Just-re run this here so we get the locally-averaged curvature
     %values.(these cells were analyzed before these were saved to disk)
@@ -79,7 +80,7 @@ for iMov = 1:nMov
 
 
 
-    %% --------- Curvature overlay figures ------- %%
+    % --------- Curvature overlay figures ------- %%
 
     
     for j = 1:nCurv
@@ -214,7 +215,9 @@ if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
 
 % ---------- Setup the categories and colors ----- %
 
-
+makeMov = true;
+movDir = 'W:\Hunter\orchestra_files_and_backup_merged\nih\Supplemental Movies';
+useMov = true;
 
 for iMov = 1:nMov
 
@@ -309,7 +312,7 @@ for iMov = 1:nMov
     figName=  [outDir filesep 'curvature categories histogram ' movNames{iMov}];
     if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
     
-    %% ----- Make 2D histogram figures ---- %%
+    % ----- Make 2D histogram figures ---- %%
     
     currFig = figure;
     nBins = 100;
@@ -363,7 +366,7 @@ for iMov = 1:nMov
      figName=  [outDir filesep 'mean vs gaussian curvature 2D histogram ' movNames{iMov} ' with categories'];
     if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
     
-    %% ----- Make the geometry overlay figures ----- %
+    % ----- Make the geometry overlay figures ----- %
     
     currFig = fsFigure(.75);
     patchHan = patch(maskProp{iMov}.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',perPointColsAvg,'VertexNormals',maskProp{iMov}.SurfaceNorms(:,[2 1 3]));
@@ -371,11 +374,11 @@ for iMov = 1:nMov
 
     axHan = get(currFig,'CurrentAxes');
     allChild = get(axHan,'Children');
-    lh1 = allChild(strcmp('light',get(allChild,'type')));
+    
+    lh1 = light;%allChild(strcmp('light',get(allChild,'type')));
     lh2 = light;
     set(lh2,'Position',[-1 1 1])
-    lighting phong
-
+    lighting phong    
 
     view(views(iMov,1),views(iMov,2))
 
@@ -386,20 +389,86 @@ for iMov = 1:nMov
 
 
     figName=  [outDir filesep 'curvature categories surface overlay whole cell ' movNames{iMov}];
+    
+    % ----- Make curvature category overlay rotation movie ---- %
+    
+    
+    if makeMov
+        aStart = views(1,1);
+        eStart = views(1,2);
+        
+        nMovFrame = 100;
+        degRot = 360;
+        azKey = [aStart aStart+degRot];
+        aAll = interp1(azKey,linspace(1,numel(azKey),nMovFrame));
+        eAll = repmat(eStart,[1 nMovFrame]);
+                
+        movFile = [movDir filesep 'curvature categories surface overlay whole cell rotation ' movNames{iMov}];
+        
+        frameRate = 20;
+        qual = 99;
+        
+        if useMov
+            MakeQTMovie('start',[movFile '.mov']);
+            MakeQTMovie('quality',qual/100);
+            MakeQTMovie('framerate',frameRate);
+        else
+            writerObj = VideoWriter([movFile '.avi']);    
+            writerObj.FrameRate= frameRate;
+            writerObj.Quality = qual;
+            open(writerObj)
+        end
+
+        axis vis3d
+        currAx = get(currFig,'CurrentAxes');
+        set(currAx,'Projection','perspective')
+        set(currAx,'CameraViewAngle',5)
+        
+        for j = 1:nMovFrame
+        
+            view([aAll(j) eAll(j)])
+            
+            if useMov
+                MakeQTMovie('addfigure')
+            else
+                currFrame = getframe(currFig);
+                writeVideo(writerObj,currFrame);
+            end
+   
+        end
+        if useMov
+            MakeQTMovie('finish')
+        else
+            close(writerObj)
+        end
+        
+        
+    end
+    
     if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
 
-    %% ---- And the closeups ----- %
+    % ---- And the closeups ----- %
 
-    closeCamPos = 1e3*[-1.3188 2.3699 1.138;
-                      -1.3741    2.4513    1.1232];
-    closeCamAng = [.9406;
-                    1.7915];
+    if iMov == 1
+    
+        closeCamPos = 1e3*[-1.3188 2.3699 1.138;
+                          -1.3741    2.4513    1.1232];
+        closeCamAng = [.9406;
+                        1.7915];
 
-    closeCamTarg = [ 271.8201  140.7660   33.6317;
-                    125.0513  291.1307   20.2313];
+        closeCamTarg = [ 271.8201  140.7660   33.6317;
+                        125.0513  291.1307   20.2313];
 
 
-    nClose = size(closeCamPos,1);
+        nClose = size(closeCamPos,1);
+    else
+        closeCamPos = [-55.9854 -68.3621 2566.96;
+                        -1055.08 1115.09 2125.5];
+        closeCamTarg = [121.013 238.208 48.1441;
+                        103.018 160.423 59.7387];
+        closeCamAng = [2.4752, 1.7904];
+        nClose = size(closeCamPos,1);
+    end
 
     for iClose = 1:nClose
 
@@ -501,6 +570,95 @@ title({'Curvature category comparison',['WT n=' num2str(nMovPer(1)) ' Bleb n=' n
 figName=  [outDir filesep 'curvature category histogram comparison WT and Bleb'];
 if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
 
+%% ---------- Curvature Category Histograms Using Bobs Coloring And Ordering  -------- %%
+
+%Get limits and indices for curvature categories.
+[curvCatKLims,curvCatHLims,curvCatNames,curvCatColors] = getCurvCategories;
+nCurvCat = numel(curvCatNames);
+
+ppFile = 'combined stats and hists all movies.mat';
+ppDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\Post Processing Myo Inhib and WT\Mask Geometry\WT',...
+          'W:\Hunter\orchestra_files_and_backup_merged\nih\Post Processing Myo Inhib and WT\Mask Geometry\Blebbistatin';};
+conNames = {'Untreated','Blebbistatin'};      
+nCon = numel(conNames);
+conColors = [ 125 205 223 ; 241 152 42];%Just took these from bob's illustrator doc
+conColors = conColors / 255;
+%conStyles = {'-','-'};
+catField = 'meanFracPerMov';
+nMovPer = nan(nCon,1);
+isNorm = nan(nCon,nCurvCat);
+
+testAlpha = .05;
+
+for j = 1:nCon
+    mgPP(j) = load([ppDirs{j} filesep ppFile]);
+    nMovPer(j) = size(mgPP(j).(catField),1);    
+    
+    for k = 1:nCurvCat
+        %Test for normality
+        [isNorm(j,k),adPval(j,k)] = adtest(mgPP(j).(catField)(:,k));                
+    end
+    meanPer(j,:) = mean(mgPP(j).(catField),1);
+    stdPer(j,:) = std(mgPP(j).(catField),[],1);
+    semPer(j,:) = stdPer(j,:) ./ sqrt(nMovPer(j));
+end
+
+for k = 1:nCurvCat
+    
+    [pMW(k),hMW(k)] = ranksum(mgPP(1).(catField)(:,k),mgPP(2).(catField)(:,k),'Alpha',testAlpha);
+
+end
+isNorm = ~isNorm;
+
+currFig = fsFigure(.5);
+hold on
+currAx = get(currFig,'CurrentAxes');
+
+xEq = @(j,k)(j-1/6+(k-1)/3);
+
+iBobOrder = [2 3 4 1];
+
+for j = 1:nCurvCat
+    
+    for k = 1:nCon
+        currX = xEq(j,k);
+        bHan = bar(currX,meanPer(k,iBobOrder(j)),.30);
+        
+        if j == 1 && k == nCon            
+            legend(conNames)
+        end
+        set(bHan,'FaceColor',conColors(k,:));
+        %set(bHan,'LineStyle',conStyles{k})        
+        set(bHan,'LineWidth',3);
+    end        
+    
+end
+for j = 1:nCurvCat
+    for k = 1:nCon
+        currX = xEq(j,k);
+        eHan = errorbar(currX,meanPer(k,iBobOrder(j)),semPer(k,iBobOrder(j)),'k','LineWidth',3);                
+    end
+    
+    if hMW(k)
+        starStr = '*';        
+    else
+        starStr = '';
+    end    
+    text(xEq(j,1),max(meanPer(:,iBobOrder(j)))+.1,[starStr ' p=' num2str(pMW(iBobOrder(j)),2)],'FontSize',14)        
+end
+
+set(currAx,'XTick',1:nCurvCat);
+set(currAx,axProps{:})
+xlim([.5 4.5])
+ylim([0 1])
+
+xlabel('Category #',labProps{:})
+ylabel('Fraction of Cell Surface',labProps{:})
+
+title({'Curvature category comparison',['WT n=' num2str(nMovPer(1)) ' Bleb n=' num2str(nMovPer(2))],'P Values from Mann-Whitney rank sum test','Error bars are +/- SEM'})
+
+figName=  [outDir filesep 'curvature category histogram comparison WT and Bleb bob order and color'];
+if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
 
 %% ------------- Branch Varation around a mean figures ------ %%
 
@@ -1002,19 +1160,20 @@ if saveFigs,mfFigureExport(currFig,figName,figExpProps{:});end
 
 figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\myoIIA60X_2103_02\PostProcessing\Whole-Images First Frame Only\',...
            'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\WT\',...
-            'W:\Hunter\orchestra_files_and_backup_merged\nih\act-mem_2013_01\Post Processing\Masked Intensity\'};
+           'W:\Hunter\orchestra_files_and_backup_merged\nih\act-mem_2013_01\Post Processing\Masked Intensity\'};
 condNames = {'MIIA','MIIB','Actin'};
 nCond = numel(condNames);
 
 %figNameEnd = ' versus Mean Intensity channel 1 average of per-cell curv correlations plot by percentile.fig';
-figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
-
+%figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
+figNameEnd = ' versus Mean Intensity channel 1 plot by percentile subsampled bootstrap.fig';
 curvTypes = {'Mean Curvature','Gaussian Curvature','Max Absolute Curvature'};
 nCurvTypes = numel(curvTypes);
 
 condCols = [0 0 1 ;
             0 1 0 ;
             1 0 0 ];
+
 x = cell(nCond,1);
 y = cell(nCond,1);
 ciH = cell(nCond,1);
@@ -1031,7 +1190,7 @@ for iCurv = 1:nCurvTypes
         %the figures
         figFile = [curvTypes{iCurv} figNameEnd];
         
-        figHan = open([figDirs{iCond} filesep figFile]);
+        figHan = open([figDirs{iCond} figFile]);
         axHan = get(figHan,'CurrentAxes');
         datHan = get(axHan,'Children');
         iChild = 4;%The first thing plotted is the last child, which is the data itself
@@ -1042,24 +1201,85 @@ for iCurv = 1:nCurvTypes
         close(figHan);
         
         figure(currFig)
-        plot(x{iCond},y{iCond},'color',condCols(iCond,:))
-        xlabel('Fluorescence Intensity Percentile')
-        ylabel([curvTypes{iCurv} ', 1/microns'])
-       
-        
+        plot(x{iCond},y{iCond},'color',condCols(iCond,:),plotPars{:})
+        xlabel('Fluorescence Intensity Percentile',labProps{:})
+        ylabel([curvTypes{iCurv} ', 1/microns'],labProps{:})
+        set(gca,axProps{:})
+        xlim([10 95])
     end
     legend(condNames)
     %Do CIs last so legend works
     for iCond = 1:nCond
-        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.2)
+        %patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.15)
+        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'FaceColor','none','EdgeColor',condCols(iCond,:),'LineStyle','--')
         
     end
     
-    figName = [curvTypes{iCurv} ' vs  intensity all labels overlay per sample CI'];
+    figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency sub sampled bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per cell bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per sample bootstrap CI'];
     if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
     
 end
     
+
+%% ------------ Curv Vs. Intensity Individual 2D Hists Panel ----------- %%
+
+figLoadName = 'Mean Curvature versus Mean Intensity channel 1 2D Histogram subsampled CI.fig';
+curvType = 'Mean Curvature';
+exPct = .1;%Show the middle XX percent of the data, so outliers don't set the axis range
+
+for iCond = 1:nCond
+    
+    currFig = open([figDirs{iCond}  figLoadName]);
+    currAx = get(currFig,'CurrentAxes');
+    [xDat,yDat,histDat] = getimage(currAx);
+    histDat = 10 .^ histDat;
+    xCDF = cumsum(nansum(histDat,1));xCDF = xCDF ./ xCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-xCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-xCDF));
+    xlim(xDat(iLim))
+    
+    yCDF = cumsum(nansum(histDat,2));yCDF = yCDF ./ yCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-yCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-yCDF));
+    ylim(yDat(iLim))
+  
+    
+    title('')
+    
+    set(currAx,axProps{:})
+    set(currFig,'Position',[209   476   737   565])
+    
+    
+    aChild = get(currAx,'Children');
+    for j = 1:4
+        set(aChild(j),'LineWidth',3)
+        
+    end
+    legend('off')    
+    xlabel('')
+    ylabel('')
+    figName = [condNames{iCond} ' vs ' curvType ' 2D Hist grayscale'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+        
+    %--- Save with Jet Colormap as well --- %
+    
+    %saturateImageColormap([],1)
+    cMap = jet(250);    
+    cMap = vertcat([0 0 0],cMap);
+    colormap(cMap);
+    for j = 2:4    
+        set(aChild(j),'Color','w')
+    end
+    figName = [condNames{iCond} ' vs ' curvType ' 2D Hist jet'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% -------------- Spider Curvature Figure   ---------------------- %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1071,7 +1291,7 @@ iFrame = 1;
 intAn = MD.processes_{MD.getProcessIndex('MaskedIntensity3DProcess',1,0)}.loadChannelOutput(1);
 maskGeo = MD.processes_{MD.getProcessIndex('MaskGeometry3DProcess',1,0)}.loadChannelOutput(1,iFrame);
 
-%%
+
 
 
 useMicrons = true;
@@ -1083,7 +1303,7 @@ curvUnits = {'1/microns','1/microns'};
 curvConv = 1e3/MD.pixelSize_ * [-1 1];
 
 iCurvShow = [2 5];
-cAxisPer = [-.2 0.2;
+cAxisPer = [-.25 0.25;
             0.33 2];
 nCurvShow = numel(iCurvShow);
 iIntShow = 1;
@@ -1098,7 +1318,7 @@ viewName = {'Top view','bottom view'};
 
 lPos = [-1 -1 1;
         -1 -1 -1];
-for j = 1%:nCurvShow
+for j = 1:nCurvShow
     
     currFig = fsFigure(.75);
     
@@ -1113,25 +1333,90 @@ for j = 1%:nCurvShow
     lh2 = light;
     
     
-    for k= 1%:nPos
+    for k= 1:nPos
         set(gca,'CameraPosition',camPos(k,:));
         set(gca,'CameraTarget',camTarg(k,:));
         set(gca,'CameraViewAngle',camAng(k));
         set(lh2,'Position',lPos(k,:))
         
-        figName = ['Spider figure ' curvNames{j} ' ' viewName{k} 'jet'];
+        figName = ['Spider figure ' curvNames{j} ' ' viewName{k} ' jet'];
         if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
         
-        colormap(curvColormap(256))
-        
-        figName = ['Spider figure ' curvNames{j} ' ' viewName{k} 'curvmap'];
-        if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
-        
+        if j == 1
+            %for mean we also use a colormap which emphasizes values near
+            %zero.
+            colormap(curvColormap(256))
+
+            figName = ['Spider figure ' curvNames{j} ' ' viewName{k} ' curvmap'];
+            if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
+        end
         
     end
     
     
 end
+
+%% ------------ Spider Curv Vs. Intensity 2D Hists Panel ----------- %%
+
+figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\Spiders\Post Processing\Masked Intensity'};
+condNames = {'MIIA'};
+nCond =1;
+figLoadName = 'Mean Curvature versus Mean Intensity channel 1 2D Histogram subsampled CI.fig';
+
+curvType = 'Mean Curvature';
+
+exPct = .1;%Show the middle XX percent of the data, so outliers don't set the axis range
+
+
+for iCond = 1:nCond
+    
+    currFig = open([figDirs{iCond}  figLoadName]);
+    currAx = get(currFig,'CurrentAxes');
+    [xDat,yDat,histDat] = getimage(currAx);
+    histDat = 10 .^ histDat;
+    xCDF = cumsum(nansum(histDat,1));xCDF = xCDF ./ xCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-xCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-xCDF));
+    xlim(xDat(iLim))
+    
+    yCDF = cumsum(nansum(histDat,2));yCDF = yCDF ./ yCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-yCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-yCDF));
+    ylim(yDat(iLim))
+  
+    
+    title('')
+    
+    set(currAx,axProps{:})
+    set(currFig,'Position',[209   476   737   565])
+    
+    
+    aChild = get(currAx,'Children');
+    for j = 1:4
+        set(aChild(j),'LineWidth',3)
+        
+    end
+    legend('off')    
+    xlabel('')
+    ylabel('')
+    figName = ['Spider ' condNames{iCond} ' vs ' curvType ' 2D Hist grayscale'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+        
+    %--- Save with Jet Colormap as well --- %
+    
+    %saturateImageColormap([],1)
+    cMap = jet(250);    
+    cMap = vertcat([0 0 0],cMap);
+    colormap(cMap);
+    for j = 2:4    
+        set(aChild(j),'Color','w')
+    end
+    figName = ['Spider ' condNames{iCond} ' vs ' curvType ' 2D Hist jet'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% -------------- Example MII ROI Time Series -------------------- %%
@@ -1144,7 +1429,6 @@ outDir = 'W:\Hunter\orchestra_files_and_backup_merged\nih\figs for bob\9_3_2013\
 load('W:\Hunter\orchestra_files_and_backup_merged\nih\myoIIA60X_2103_02\movieListAllROIs and indices for processing.mat')
 ML = MovieList.load('W:\Hunter\orchestra_files_and_backup_merged\nih\myoIIA60X_2103_02\movieListAllROIs.mat',0);
 
-%%
 
 iShow = find(isGood)';
 nShow = numel(iShow);
@@ -1176,10 +1460,303 @@ for j = iShow
     
 end
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% ------------ Branch Angle Curvature Overlay Example ---------- %%
+
+movPath = 'W:\Hunter\orchestra_files_and_backup_merged\nih\myoIIA60X_2103_02\set8\movieData.mat';
+MD = MovieData.load(movPath,0);
+
+iFrame = 1;
+intAn = MD.processes_{MD.getProcessIndex('MaskedIntensity3DProcess',1,0)}.loadChannelOutput(1);
+maskProp = MD.processes_{MD.getProcessIndex('MaskGeometry3DProcess',1,0)}.loadChannelOutput(1,iFrame);
+
+nSurfFaces = size(maskProp.SmoothedSurface.faces,1);
+%Get face centers for ROIs below
+faceCenters = zeros(nSurfFaces,3);
+for j = 1:nSurfFaces
+    faceCenters(j,:) = mean(maskProp.SmoothedSurface.vertices(maskProp.SmoothedSurface.faces(j,:),:),1);
+end
+
+
+%%
+
+useMicrons = true;
+%[curvTypes,curvNames,curvUnits,curvConv] = getCurveTypeFields(MD.pixelSize_,useMicrons);
+%[intTypes,intNames] = getIntTypeFields;
+curvTypes = {'LAmean','LAcurv'};
+curvNames = {'Mean Curvature','Maximum Absolute Curvature Component'};
+curvUnits = {'1/microns','1/microns'};
+curvConv = 1e3/MD.pixelSize_ * [-1 1];
+
+iCurvShow = [2 5];
+cAxisPer = [-.25 0.25;
+            0.33 2];
+nCurvShow = numel(iCurvShow);
+iIntShow = 1;
+
+camPos = [2021.26 1118.2 2974.37;
+          200.915 1051.24 3399.48;
+          178.872 275.692 3501.34];
+camTarg = [425.413 229.36 71.9053;
+           280.434 225.399 71.9053;
+           178.872 275.692 71.9053];
+camAng =[ 0.721429 7.46911 1.12251];
+nPos = numel(camAng);
+viewName = {'out of plane view actute angle','whole cell view' ,'orthogonal view right angle'};
+
+lPos = [-1 1 1;
+        -1 1 1;
+        -1 -1 1];
+for j = 1:nCurvShow
+    
+    currFig = fsFigure(.75);
+    
+    pHan = showMaskSurfaceProp(maskGeo,curvTypes{j});
+    set(pHan,'FaceVertexCData',get(pHan,'FaceVertexCData') * curvConv(j))
+    colormap(jet(1024))
+    caxis(cAxisPer(j,:))
+    box off
+    axis off
+    axis ij    
+    set(currFig,'color','w')
+    lh2 = light;
+    
+    
+    for k= 1:nPos
+        set(gca,'CameraPosition',camPos(k,:));
+        set(gca,'CameraTarget',camTarg(k,:));
+        set(gca,'CameraViewAngle',camAng(k));
+        set(lh2,'Position',lPos(k,:))
+        %set(lh2,'Position',[-1 -1 1])
+        
+        figName = ['Branch angle figure ' curvNames{j} ' ' viewName{k} ' jet'];
+        if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
+        
+        if j == 1
+            %for mean we also use a colormap which emphasizes values near
+            %zero.
+            colormap(curvColormap(256))
+
+            figName = ['Branch angle figure ' curvNames{j} ' ' viewName{k} ' curvmap'];
+            if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
+        end
+        
+    end
+    
+    
+end
+
+
+%% ----------- Branch Angle and Curvature Example Quantification --------- %%
+
+%Because even though it's a hand fucking picked example they want to
+%quantify it. Because that will prove our point, right!!?!?!!?!? 
+
+image = stackRead([MD.channels_(1).channelPath_  filesep MD.channels_(1).getImageFileNames{iFrame}]);
+maskFiles = MD.processes_{1}.getOutMaskFileNames(1);
+mask = tif3Dread([MD.processes_{1}.outFilePaths_{1} filesep maskFiles{1}{iFrame}]);
+
+useMicrons = true;
+roiNames = {'Outside Obtuse','Inside" Acute'};
+pixXY = MD.pixelSize_;
+pixZ = MD.zSpacing_;
+[curvTypes,curvNames,curvUnits,curvConv] = getCurveTypeFields(pixXY,useMicrons);
+iCurv = 2;
+
+cropX = [220 230;
+         211 220];
+cropY = [391 410;
+         401 410];
+cropZ = [18 35;
+         18 35];
+    
+roiCols = [0 0 1 ;
+           1 1 0];
+       
+nROI = size(cropX,1);
+%We use the ROI info but the processing from the full image, since with
+%ROIs this small the edge effects in the mesh smoothing and local averaging
+%become a big problem.
+meanCurvPerROI = nan(nROI,1);
+sumIntPerROI = nan(nROI,1);
+stdCurvPerROI = nan(nROI,1);
+meanIntPerROI = nan(nROI,1);
+stdIntPerROI = nan(nROI,1);
+curvDat = cell(nROI,1);
+
+ptile = 95;
+for j = 1:nROI
+
+%     roiInf{j} = load(ML.movies_{j}.roiMaskPath_);    
+%     %Adjust the roi info to match the symmetric voxels. We use
+%     %floor/ceil to be on the safe side
+%     roiInf{j}.cropZ = roiInf{j}.cropZ * pixZ/pixXY;
+%     roiInf{j}.cropZ = [ceil(roiInf{j}.cropZ(1)) floor(roiInf{j}.cropZ(2))];
+%     roiInf{j}.origZ = floor(roiInf{j}.cropZ * pixZ/pixXY);        
+%     roiInf{j}.origZ = [ceil(roiInf{j}.origZ(1)) floor(roiInf{j}.origZ(2))];    
+%     faceInd{j} = faceCenters(:,2) >= roiInf{j}.cropX(1) &  faceCenters(:,2) <= roiInf{j}.cropX(2) & ...
+%                  faceCenters(:,1) >= roiInf{j}.cropY(1) &  faceCenters(:,1) <= roiInf{j}.cropY(2) & ...
+%                  faceCenters(:,3) >= roiInf{j}.cropZ(1) &  faceCenters(:,3) <= roiInf{j}.cropZ(2);
+    faceInd{j} = faceCenters(:,2) >= cropX(j,1) &  faceCenters(:,2) <= cropX(j,2) & ...
+                 faceCenters(:,1) >= cropY(j,1) &  faceCenters(:,1) <= cropY(j,2) & ...
+                 faceCenters(:,3) >= cropZ(j,1) &  faceCenters(:,3) <= cropZ(j,2);
+
+    curvDat{j} = maskProp.MeanCurvature(faceInd{j}) / pixXY * 1e3 * -1;%Flip sign, convert to 1/microns
+    meanCurvPerROI(j) = nanmean(curvDat{j});
+    stdCurvPerROI(j) = nanstd(curvDat{j});
+    semCurvPerROI(j) = stdCurvPerROI(j) / sqrt(numel(curvDat{j}));
+    isNormCurv(j) = ~adtest(curvDat{j});
+             
+  
+    roiMask{j} = false(size(image));
+    %roiMask(cropY(j,1):cropY(j,2),cropX(j,1):cropX(j,2),cropZ(j,1):cropZ(j,2)) = true;
+    roiMask{j}(cropX(j,1):cropX(j,2),cropY(j,1):cropY(j,2),:) = true;
+    roiMask{j} = roiMask{j} & mask;
+    
+    intDat{j} = double(image(roiMask{j}(:)));
+    meanIntPerROI(j) = mean(intDat{j});
+    stdIntPerROI(j) = std(intDat{j});
+    semIntPerROI(j) = stdIntPerROI(j) / sqrt(numel(intDat{j}));
+    
+    isNormInt(j) = ~adtest(intDat{j});
+    
+    sumIntPerROI(j) = sum(intDat{j});    
+    sumSamps = bootstrp(1e4,@sum,intDat{j});
+    sumIntCIPerROI(j,:) = prctile(sumSamps,[100-ptile ptile]);
+end
+
+[pValCurv,H0Curv]= ranksum(curvDat{1},curvDat{2});
+[pValInt,H0Int]= ranksum(intDat{1},intDat{2});
+
+
+
+
+%% ----------- Branch Angle and Curvature Example Figure Showing Regioins & Quant --------- %%
+
+currFig = figure;
+showCurv = true;
+
+if ~showCurv
+    pHan = patch(maskProp.SmoothedSurface,'FaceColor',.5*[1 1 1],'EdgeColor','none','FaceAlpha',.2);
+    hold on
+    axis equal
+    light
+    lighting phong
+    k =1 ;
+    colorbar off
+else
+    pHan = showMaskSurfaceProp(maskProp,'LAmean');
+    colormap(curvColormap(256))
+    set(pHan,'FaceVertexCData',get(pHan,'FaceVertexCData') * curvConv(j))        
+    caxis(cAxisPer(1,:))
+
+end
+box off
+axis ij    
+set(currFig,'color','w')
+lh2 = light;
+set(gca,'CameraPosition',camPos(k,:));
+set(gca,'CameraTarget',camTarg(k,:));
+set(gca,'CameraViewAngle',camAng(k));
+set(lh2,'Position',[-1 -1 -1]);
+
+for j = 1:nROI
+
+  %plot3(faceCenters(faceInd{j},1),faceCenters(faceInd{j},2),faceCenters(faceInd{j},3),'.','color',roiCols(j,:))
+    currPatch.faces = maskProp.SmoothedSurface.faces(faceInd{j},:);
+    currPatch.vertices = maskProp.SmoothedSurface.vertices;
+    if ~showCurv
+        pHan2 = patch(currPatch,'FaceColor',roiCols(j,:));
+        set(pHan2,'EdgeColor','none')
+        lighting gouraud
+    else
+        pHan2 = patch(currPatch,'FaceColor','none','EdgeColor',roiCols(j,:));
+        set(pHan2,'EdgeAlpha',.3)
+    end        
+    
+end
+% 
+% title({['Blue Mean Mean Curv = ' num2str(meanCurvPerROI(1)) '+/-' num2str(stdCurvPerROI(1)) 'STD, mean Intensity= ' num2str(meanIntPerROI(1)) ,'+/-' num2str(stdIntPerROI(1)) 'STD'],...
+%        ['Yellow Mean Mean Curv = ' num2str(meanCurvPerROI(2)) '+/-' num2str(stdCurvPerROI(2)) 'STD, mean Intensity= ' num2str(meanIntPerROI(2)) ,'+/-' num2str(stdIntPerROI(2)) 'STD'],...
+%        ['Curvature rank sum pValue = ' num2str(pValCurv)],...
+%        ['Intensity rank sum pValue = ' num2str(pValInt)]})
+
+if showCurv
+    curvStr = ' with curvature overlay';
+else
+    curvStr = '';
+end
+figName = ['Branch angle figure ' curvNames{j} ' showing quantified regions' curvStr];
+if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
+
+%% ----------- Branch Angle and Curvature Example Sum Quantification Plot  --------- %%
+
+currFig = fsFigure(.5);
+
+subplot(1,2,1);
+hold on
+bHan = bar(meanCurvPerROI);
+eHan = errorbar(meanCurvPerROI,semCurvPerROI);
+xlabel('ROI #')
+ylabel('Mean of Mean Curvature, 1/microns')
+title({['Blue Mean Mean Curv = ' num2str(meanCurvPerROI(1)) '+/-' num2str(semCurvPerROI(1)) 'sem'],...
+       ['Yellow Mean Mean Curv = ' num2str(meanCurvPerROI(2)) '+/-' num2str(semCurvPerROI(2)) 'sem'],...
+       ['Curvature rank sum pValue = ' num2str(pValCurv)],...
+       ['Blue n = ' num2str(numel(curvDat{1})) 'faces, yellow n= ' num2str(numel(curvDat{2}))]})
+
+subplot(1,2,2);
+hold on
+bHan = bar(sumIntPerROI);
+eHan = errorbar(1:2,sumIntPerROI,sumIntCIPerROI(:,1)-sumIntPerROI,sumIntCIPerROI(:,2)-sumIntPerROI);
+xlabel('ROI #')
+ylabel('Sum Intensity, a.u.')
+
+title({['Blue Sum Intensity = ' num2str(sumIntPerROI(1)) '+/-' num2str(sumIntCIPerROI(1)) 'sem'],...
+       ['Yellow Sum Intensity = ' num2str(sumIntPerROI(2)) '+/-' num2str(sumIntCIPerROI(2)) 'sem'],...       
+       ['Blue n = ' num2str(numel(intDat{1})) 'voxels, yellow n= ' num2str(numel(intDat{2}))]})
+
+
+figName = ['Branch angle figure ' curvNames{j} ' sum quantification bar graph and statistical tests'];
+if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
+%% ----------- Branch Angle and Curvature Example Mean Quantification Plot  --------- %%
+
+currFig = fsFigure(.5);
+
+subplot(1,2,1);
+hold on
+bHan = bar(meanCurvPerROI);
+eHan = errorbar(meanCurvPerROI,semCurvPerROI);
+xlabel('ROI #')
+ylabel('Mean of Mean Curvature, 1/microns')
+title({['Blue Mean Mean Curv = ' num2str(meanCurvPerROI(1)) '+/-' num2str(semCurvPerROI(1)) 'sem'],...
+       ['Yellow Mean Mean Curv = ' num2str(meanCurvPerROI(2)) '+/-' num2str(semCurvPerROI(2)) 'sem'],...
+       ['Curvature rank sum pValue = ' num2str(pValCurv)],...
+       ['Blue n = ' num2str(numel(curvDat{1})) 'faces, yellow n= ' num2str(numel(curvDat{2}))]})
+
+subplot(1,2,2);
+hold on
+bHan = bar(meanIntPerROI);
+eHan = errorbar(meanIntPerROI,semIntPerROI);
+xlabel('ROI #')
+ylabel('Sum Intensity, a.u.')
+
+title({['Blue Mean Intensity = ' num2str(meanIntPerROI(1)) '+/-' num2str(semIntPerROI(1)) 'sem'],...
+       ['Yellow Mean Intensity = ' num2str(meanIntPerROI(2)) '+/-' num2str(semIntPerROI(2)) 'sem'],...       
+       ['Blue n = ' num2str(numel(intDat{1})) 'voxels, yellow n= ' num2str(numel(intDat{2}))]})
+
+
+figName = ['Branch angle figure ' curvNames{j} ' sum quantification bar graph and statistical tests'];
+if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end   
+%% ----------- Branch Angle Example imaris fluorescence rendering ----- %%
+
+
+imarisShowArray(cat(5,image,mask,roiMask{1},roiMask{2}),[],[.218 .218 .400])
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%% SUPPLMEMENTAL FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% %%%%%%%%%%%%%%% SUPPLMEMENTAL FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%%% 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1563,8 +2140,9 @@ nCurvTypes = numel(curvTypes);
 condNames = {'MIIA','MIIB','Actin'};
 nCond = numel(condNames);
 
-figNameEnd = ' average of per-cell curv correlations plot by percentile.fig';
+%figNameEnd = ' average of per-cell curv correlations plot by percentile.fig';
 %figNameEnd = ' plot by percentile.fig';
+figNameEnd = ' plot by percentile subsampled bootstrap.fig';
 
 for iCond = 1:numel(figDirs);
 
@@ -1595,20 +2173,27 @@ for iCond = 1:numel(figDirs);
         ciDNL = get(datHan(3),'YData');
         close(figHan);
 
-        %%
+        % - Make Comparison Figure
 
         currFig = figure;
         hold on
-        plot(xRaw,yRaw,'b')
-        plot(xDN,yDN,'r')
-        legend('Raw Fluorescence','Depth Normalized Fluorescence')
-        xlabel([condNames{iCond} ' Fluorescence Intensity Percentile'])
-        ylabel(curvTypes{iCurv})
-        patch([xRaw xRaw(end:-1:1)],[ciRawH ciRawL(end:-1:1)],'b','EdgeColor','none','FaceAlpha',.2)
-        patch([xDN xDN(end:-1:1)],[ciDNH ciDNL(end:-1:1)],'r','EdgeColor','none','FaceAlpha',.2)
-        xlim([0.5 99.5])
+        plot(xRaw,yRaw,'b','LineWidth',3)
+        plot(xDN,yDN,'r','LineWidth',3)
+        %legend('Raw Fluorescence','Depth Normalized Fluorescence')
+        %xlabel([condNames{iCond} ' Fluorescence Intensity Percentile'],labProps{:},'FontSize',20)
+        xlabel('Fluorescence Intensity Percentile',labProps{:},'FontSize',20)
+        %ylabel(curvTypes{iCurv},labProps{:},'FontSize',20)
+        ylabel('Curvature, 1/microns','FontSize',20)
+        patch([xRaw xRaw(end:-1:1)],[ciRawH ciRawL(end:-1:1)],'b','EdgeColor','b','FaceColor','none','LineStyle','--','LineWidth',3)
+        %patch([xDN xDN(end:-1:1)],[ciDNH ciDNL(end:-1:1)],'r','EdgeColor','none','FaceAlpha',.2)
+        patch([xDN xDN(end:-1:1)],[ciDNH ciDNL(end:-1:1)],'r','EdgeColor','r','FaceColor','none','LineStyle','--','LineWidth',3)
+        
+        xlim([2.5 97.5])
+        set(gca,axProps{:},'FontSize',20)
 
-        figName = [curvTypes{iCurv} ' vs ' condNames{iCond} ' intensity depth normalization overlay per cell CI'];
+        figName = [curvTypes{iCurv} ' vs ' condNames{iCond} ' intensity depth normalization overlay sub sampled bootstrap CI'];        
+        %figName = [curvTypes{iCurv} ' vs ' condNames{iCond} ' intensity depth normalization overlay per cell bootstrap CI'];        
+        %figName = [curvTypes{iCurv} ' vs ' condNames{iCond} ' intensity depth normalization overlay per sample bootstrap CI'];        
         if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end        
     end
 end
@@ -2396,6 +2981,373 @@ plot([0 0],ylim,'k',plotPars{:})
 figName = ['intensity vs distance from segmented boundary example'];
 if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end    
 
+%% %%%%%%%%%%%%%%% BEADS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% -------- Bead Surface Curv Overlay Figures ------ %%
+
+% load('U:\nih\beads\Beads lower SN set for hunter\stk files\movieListAll and indices.mat')
+% ML = MovieList.load('U:\nih\beads\Beads lower SN set for hunter\stk files\movieListAll.mat',0);
+% MA = [ML.movies_{hasROI}];
+% outDir = 'U:\nih\beads\Beads lower SN set for hunter\stk files\Post Processing\Curvature Figures';
+
+ML = MovieList.load('U:\nih\beads\Beads lower SN set for hunter\stk files\movieListAllROIs.mat',0);
+MA = [ML.movies_{:}];
+outDir = 'U:\nih\beads\Beads lower SN set for hunter\stk files\Post Processing\Curvature Figures ROIs';
+
+
+saveFigs = true;
+
+
+pixXY = MA(1).pixelSize_/1e3;%Pixel size is same for all data.
+
+nMov = numel(MA);
+
+curvShow= {'LAmean','LAcurv','LAgauss'};
+curvName={'Mean','MaxAbs','Gaussian'};
+curvConv = [ 1/ pixXY, 1/pixXY, 1/pixXY^2];
+curvFields = {'LocMeanMeanCurvature','LocMeanMaxAbsCurvature','LocMeanGaussianCurvature'};
+nCurv = numel(curvFields);
+
+%%
+
+for iMov = 1:nMov
+
+    mg = ML.movies_{iMov}.processes_{ML.movies_{iMov}.getProcessIndex('MaskGeometry3DProcess',1,0)}.loadChannelOutput(1,1);
+    for iCurv = 1:nCurv
+        currFig = fsFigure(.5);
+        mg.locAvgCurv.(curvFields{iCurv})= mg.locAvgCurv.(curvFields{iCurv}) * curvConv(iCurv);
+        showMaskSurfaceProp(mg,curvShow{iCurv});
+        %figName = [MA(iMov).outputDirectory_(max(strfind(MA(iMov).outputDirectory_,filesep))+1:end) '_' curvName{iCurv}];
+        figName = [MA(iMov).outputDirectory_(max(strfind(MA(iMov).outputDirectory_(1:end-6),filesep))+1:end-6) '_' curvName{iCurv}];
+        if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end    
+    end
+end
+
+
+%% %%%%%%%%%%%%%%%%%%% Revision Figs %%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ------ Curv Vs. Intensity bleb comparison Panel ------------- %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\WT\',...
+           'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\Bleb_4_19_2014\'};
+condNames = {'MIIB Untreated','MIIB Blebbistatin'};
+nCond = numel(condNames);
+
+%figNameEnd = ' versus Mean Intensity channel 1 average of per-cell curv correlations plot by percentile.fig';
+%figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
+figNameEnd = ' versus Mean Intensity channel 1 plot by percentile subsampled bootstrap.fig';
+curvTypes = {'Mean Curvature','Gaussian Curvature','Max Absolute Curvature'};
+nCurvTypes = numel(curvTypes);
+
+condCols = [0 0 1 ;
+            0 1 0 ;
+            1 0 0 ];
+
+x = cell(nCond,1);
+y = cell(nCond,1);
+ciH = cell(nCond,1);
+ciL = cell(nCond,1);
+
+for iCurv = 1:nCurvTypes
+    
+    currFig = figure;
+    hold on
+    
+    for iCond = 1:nCond
+    
+        %Didn't save the combined data to .mat so we just extract it from
+        %the figures
+        figFile = [curvTypes{iCurv} figNameEnd];
+        
+        figHan = open([figDirs{iCond} figFile]);
+        axHan = get(figHan,'CurrentAxes');
+        datHan = get(axHan,'Children');
+        iChild = 4;%The first thing plotted is the last child, which is the data itself
+        x{iCond} = get(datHan(iChild),'XData');
+        y{iCond} = get(datHan(iChild),'YData');
+        ciH{iCond} = get(datHan(2),'YData');
+        ciL{iCond} = get(datHan(3),'YData');
+        close(figHan);
+        
+        figure(currFig)
+        plot(x{iCond},y{iCond},'color',condCols(iCond,:),plotPars{:})
+        xlabel('Fluorescence Intensity Percentile',labProps{:})
+        ylabel([curvTypes{iCurv} ', 1/microns'],labProps{:})
+        set(gca,axProps{:})
+        xlim([10 95])
+    end
+    legend(condNames)
+    %Do CIs last so legend works
+    for iCond = 1:nCond
+        %patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.15)
+        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'FaceColor','none','EdgeColor',condCols(iCond,:),'LineStyle','--')
+        
+    end
+    
+    figName = [curvTypes{iCurv} ' vs  intensity MIIB untreated and bleb overlay no transparency sub sampled bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per cell bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per sample bootstrap CI'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+
+%% ------------ Curv Vs. Intensity Individual 2D Hists Panel ----------- %%
+
+figLoadName = 'Mean Curvature versus Mean Intensity channel 1 2D Histogram subsampled CI.fig';
+curvType = 'Mean Curvature';
+exPct = .1;%Show the middle XX percent of the data, so outliers don't set the axis range
+
+for iCond = 1:nCond
+    
+    currFig = open([figDirs{iCond}  figLoadName]);
+    currAx = get(currFig,'CurrentAxes');
+    [xDat,yDat,histDat] = getimage(currAx);
+    histDat = 10 .^ histDat;
+    xCDF = cumsum(nansum(histDat,1));xCDF = xCDF ./ xCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-xCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-xCDF));
+    xlim(xDat(iLim))
+    
+    yCDF = cumsum(nansum(histDat,2));yCDF = yCDF ./ yCDF(end);
+    [~,iLim(1)] = min(abs(exPct/200-yCDF));
+    [~,iLim(2)] = min(abs(1-(exPct/200)-yCDF));
+    ylim(yDat(iLim))
+  
+    
+    title('')
+    
+    set(currAx,axProps{:})
+    set(currFig,'Position',[209   476   737   565])
+    
+    
+    aChild = get(currAx,'Children');
+    for j = 1:4
+        set(aChild(j),'LineWidth',3)
+        
+    end
+    legend('off')    
+    xlabel('')
+    ylabel('')
+    figName = [condNames{iCond} ' vs ' curvType ' 2D Hist grayscale'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+        
+    %--- Save with Jet Colormap as well --- %
+    
+    %saturateImageColormap([],1)
+    cMap = jet(250);    
+    cMap = vertcat([0 0 0],cMap);
+    colormap(cMap);
+    for j = 2:4    
+        set(aChild(j),'Color','w')
+    end
+    figName = [condNames{iCond} ' vs ' curvType ' 2D Hist jet'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ------ Curv Vs. Intensity ML7 comparison Panel ------------- %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\WT\',...
+           'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\ML7_4_19_2014\'};
+condNames = {'MIIB Untreated','MIIB ML7'};
+nCond = numel(condNames);
+
+%figNameEnd = ' versus Mean Intensity channel 1 average of per-cell curv correlations plot by percentile.fig';
+%figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
+figNameEnd = ' versus Mean Intensity channel 1 plot by percentile subsampled bootstrap.fig';
+curvTypes = {'Mean Curvature','Gaussian Curvature','Max Absolute Curvature'};
+nCurvTypes = numel(curvTypes);
+
+condCols = [0 0 1 ;
+            0 1 0 ;
+            1 0 0 ];
+
+x = cell(nCond,1);
+y = cell(nCond,1);
+ciH = cell(nCond,1);
+ciL = cell(nCond,1);
+
+for iCurv = 1:nCurvTypes
+    
+    currFig = figure;
+    hold on
+    
+    for iCond = 1:nCond
+    
+        %Didn't save the combined data to .mat so we just extract it from
+        %the figures
+        figFile = [curvTypes{iCurv} figNameEnd];
+        
+        figHan = open([figDirs{iCond} figFile]);
+        axHan = get(figHan,'CurrentAxes');
+        datHan = get(axHan,'Children');
+        iChild = 4;%The first thing plotted is the last child, which is the data itself
+        x{iCond} = get(datHan(iChild),'XData');
+        y{iCond} = get(datHan(iChild),'YData');
+        ciH{iCond} = get(datHan(2),'YData');
+        ciL{iCond} = get(datHan(3),'YData');
+        close(figHan);
+        
+        figure(currFig)
+        plot(x{iCond},y{iCond},'color',condCols(iCond,:),plotPars{:})
+        xlabel('Fluorescence Intensity Percentile',labProps{:})
+        ylabel([curvTypes{iCurv} ', 1/microns'],labProps{:})
+        set(gca,axProps{:})
+        xlim([10 95])
+    end
+    legend(condNames)
+    %Do CIs last so legend works
+    for iCond = 1:nCond
+        %patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.15)
+        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'FaceColor','none','EdgeColor',condCols(iCond,:),'LineStyle','--')
+        
+    end
+    
+    figName = [curvTypes{iCurv} ' vs  intensity MIIB untreated and ML7 overlay no transparency sub sampled bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per cell bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per sample bootstrap CI'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+    
+%% ------ Curv Vs. Intensity ROCK comparison Panel ------------- %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\WT\',...
+           'W:\Hunter\orchestra_files_and_backup_merged\nih\4D gfpMIIB fix and stain\Intensity Analysis\ROCK_4_19_2014\'};
+condNames = {'MIIB Untreated','MIIB ROCK'};
+nCond = numel(condNames);
+
+%figNameEnd = ' versus Mean Intensity channel 1 average of per-cell curv correlations plot by percentile.fig';
+%figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
+figNameEnd = ' versus Mean Intensity channel 1 plot by percentile subsampled bootstrap.fig';
+curvTypes = {'Mean Curvature','Gaussian Curvature','Max Absolute Curvature'};
+nCurvTypes = numel(curvTypes);
+
+condCols = [0 0 1 ;
+            0 1 0 ;
+            1 0 0 ];
+
+x = cell(nCond,1);
+y = cell(nCond,1);
+ciH = cell(nCond,1);
+ciL = cell(nCond,1);
+
+for iCurv = 1:nCurvTypes
+    
+    currFig = figure;
+    hold on
+    
+    for iCond = 1:nCond
+    
+        %Didn't save the combined data to .mat so we just extract it from
+        %the figures
+        figFile = [curvTypes{iCurv} figNameEnd];
+        
+        figHan = open([figDirs{iCond} figFile]);
+        axHan = get(figHan,'CurrentAxes');
+        datHan = get(axHan,'Children');
+        iChild = 4;%The first thing plotted is the last child, which is the data itself
+        x{iCond} = get(datHan(iChild),'XData');
+        y{iCond} = get(datHan(iChild),'YData');
+        ciH{iCond} = get(datHan(2),'YData');
+        ciL{iCond} = get(datHan(3),'YData');
+        close(figHan);
+        
+        figure(currFig)
+        plot(x{iCond},y{iCond},'color',condCols(iCond,:),plotPars{:})
+        xlabel('Fluorescence Intensity Percentile',labProps{:})
+        ylabel([curvTypes{iCurv} ', 1/microns'],labProps{:})
+        set(gca,axProps{:})
+        xlim([10 95])
+    end
+    legend(condNames)
+    %Do CIs last so legend works
+    for iCond = 1:nCond
+        %patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.15)
+        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'FaceColor','none','EdgeColor',condCols(iCond,:),'LineStyle','--')
+        
+    end
+    
+    figName = [curvTypes{iCurv} ' vs  intensity MIIB untreated and ROCK overlay no transparency sub sampled bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per cell bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per sample bootstrap CI'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
+    
+%% ------ Curv Vs. Intensity R207C comparison Panel ------------- %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figDirs = {'W:\Hunter\orchestra_files_and_backup_merged\nih\myoIIA60X_2103_02\PostProcessing\Whole-Images First Frame Only\',...
+           'Y:\nih\Revision_Post_Processing\Masked_Intensity\R702C\'};
+condNames = {'MIIA WT','MIIA R702C'};
+nCond = numel(condNames);
+
+%figNameEnd = ' versus Mean Intensity channel 1 average of per-cell curv correlations plot by percentile.fig';
+%figNameEnd = ' versus Mean Intensity channel 1 plot by percentile.fig';
+figNameEnd = ' versus Mean Intensity channel 1 plot by percentile subsampled bootstrap.fig';
+curvTypes = {'Mean Curvature','Gaussian Curvature','Max Absolute Curvature'};
+nCurvTypes = numel(curvTypes);
+
+condCols = [0 0 1 ;
+            0 1 0 ;
+            1 0 0 ];
+
+x = cell(nCond,1);
+y = cell(nCond,1);
+ciH = cell(nCond,1);
+ciL = cell(nCond,1);
+
+for iCurv = 1:nCurvTypes
+    
+    currFig = figure;
+    hold on
+    
+    for iCond = 1:nCond
+    
+        %Didn't save the combined data to .mat so we just extract it from
+        %the figures
+        figFile = [curvTypes{iCurv} figNameEnd];
+        
+        figHan = open([figDirs{iCond} figFile]);
+        axHan = get(figHan,'CurrentAxes');
+        datHan = get(axHan,'Children');
+        iChild = 4;%The first thing plotted is the last child, which is the data itself
+        x{iCond} = get(datHan(iChild),'XData');
+        y{iCond} = get(datHan(iChild),'YData');
+        ciH{iCond} = get(datHan(2),'YData');
+        ciL{iCond} = get(datHan(3),'YData');
+        close(figHan);
+        
+        figure(currFig)
+        plot(x{iCond},y{iCond},'color',condCols(iCond,:),plotPars{:})
+        xlabel('Fluorescence Intensity Percentile',labProps{:})
+        ylabel([curvTypes{iCurv} ', 1/microns'],labProps{:})
+        set(gca,axProps{:})
+        xlim([10 95])
+    end
+    legend(condNames)
+    %Do CIs last so legend works
+    for iCond = 1:nCond
+        %patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'EdgeColor','none','FaceAlpha',.15)
+        patch([x{iCond} x{iCond}(end:-1:1)],[ciH{iCond} ciL{iCond}(end:-1:1)],condCols(iCond,:),'FaceColor','none','EdgeColor',condCols(iCond,:),'LineStyle','--')
+        
+    end
+    
+    figName = [curvTypes{iCurv} ' vs  intensity MIIA WT and R702C overlay no transparency sub sampled bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per cell bootstrap CI'];
+    %figName = [curvTypes{iCurv} ' vs  intensity all labels overlay no transparency per sample bootstrap CI'];
+    if saveFigs,mfFigureExport(currFig,[outDir filesep figName]);end     
+    
+end
 
 
 

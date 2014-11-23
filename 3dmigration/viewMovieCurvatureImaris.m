@@ -21,12 +21,12 @@ nBins = 100;%Number of bins in histogram for correlation exploration
 
 nChan = numel(movieData.channels_);
 chanNames = movieData.getChannelNames;
-
+nFrames = movieData.nFrames_;
 ip = inputParser;
 ip.addParamValue('ChannelIndex',1:nChan,@(x)(numel(x) >= 1 && all(isposint(x))));%Raw fluorescence to show
-ip.addParamValue('FramesShow',1:movieData.nFrames_,@(x)(numel(x) == 1 && all(isposint(x))));%max # frames to show
 ip.addParamValue('CurveTypeIndex',[],@(x)(all(isposint(x))));%Curvature types to show as channel
 ip.addParamValue('SampleChannelIndex',[],@(x)(all(isposint(x))));%Cortical samples to show
+ip.addParamValue('ShowFrames',1:nFrames,@(x)(all(isposint(x))));%Time points to show
 ip.addParamValue('SampleTypeIndex',[],@(x)(numel(x) <= 1 && all(isposint(x))));%Intensity sample type to show as channel
 ip.addParamValue('ExploreCorrelation',true,@(x)(numel(x) == 1 &&  islogical(x)));%Intensity sample type to show as channel
 ip.parse(varargin{:});
@@ -34,6 +34,8 @@ p = ip.Results;
 
 pixXY = movieData.pixelSize_;
 pixZ = movieData.zSpacing_;           
+
+nFrames = numel(p.ShowFrames);
 
 %Possible curvature/ intensity measure fields
 [curvTypes,curvNames,curvUnits,curvConv] = getCurveTypeFields(pixXY,true);%Use microns because imaris doesn't handle displaying very small numbers well
@@ -79,15 +81,10 @@ imarisApp = iceConn.mImarisApplication;
 imarisScene = imarisApp.GetFactory.CreateDataContainer;
 imarisApp.SetSurpassScene(imarisScene)
 
-%Add lighting and frame objects to scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
-
-
 iMI = movieData.getProcessIndex('MaskedIntensity3DProcess',1,1);
 
 
-nFrames = min(movieData.nFrames_,p.FramesShow);
+
 
 iMG = movieData.getProcessIndex('MaskGeometry3DProcess',1,1);
 
@@ -133,7 +130,7 @@ for iFrame = 1:nFrames
     
     for iChan = 1:nChanShow
             
-        currIm = stackRead([imDirs{iChan} filesep imNames{iChan}{iFrame}]);        
+        currIm = stackRead([imDirs{iChan} filesep imNames{iChan}{p.ShowFrames(iFrame)}]);        
         
         currIm = make3DImageVoxelsSymmetric(currIm,pixXY,pixZ);
         
@@ -172,7 +169,7 @@ for iFrame = 1:nFrames
     
     for j = 1:nSampShow
         sampIm = zeros(imSize);
-        sampIm(intAna.branchProfiles(iFrame).surfPixInd) =  intAna.branchProfiles(iFrame).(sampTypeToShow)(:,p.SampleChannelIndex(j));
+        sampIm(intAna.branchProfiles(p.ShowFrames(iFrame)).surfPixInd) =  intAna.branchProfiles(p.ShowFrames(iFrame)).(sampTypeToShow)(:,p.SampleChannelIndex(j));
 
         volData.SetDataVolumeAs1DArrayFloats(single(sampIm(:)),nChanShow+j-1,iFrame-1);        
         volData.SetChannelColorRGBA(nChanShow+j-1,iceConn.mapRgbaVectorToScalar([chanCols(nChanShow+j,1) chanCols(nChanShow+j,2) chanCols(nChanShow+j,3) 0]))            
@@ -186,8 +183,8 @@ for iFrame = 1:nFrames
     
     %Create the synthetic images showing the various curvatures
     for j = 1:nCurvType
-        curvIm = ones(imSize) * (min(real(intAna.branchProfiles(iFrame).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j)))-1);%So we can easily remove these from the display
-        curvIm(intAna.branchProfiles(iFrame).surfPixInd) = real(intAna.branchProfiles(iFrame).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j));
+        curvIm = ones(imSize) * (min(real(intAna.branchProfiles(p.ShowFrames(iFrame)).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j)))-1);%So we can easily remove these from the display
+        curvIm(intAna.branchProfiles(p.ShowFrames(iFrame)).surfPixInd) = real(intAna.branchProfiles(p.ShowFrames(iFrame)).(curvTypeToShow{j})) .* curvConv(p.CurveTypeIndex(j));
         
         
         volData.SetDataVolumeAs1DArrayFloats(single(curvIm(:)),nChanShow+nSampShow+j-1,iFrame-1);
@@ -203,7 +200,7 @@ for iFrame = 1:nFrames
         secString = '00:00:00';        
     else    
         %Use datestr to convert to hr:min:sec
-        secString = datestr(1+(iFrame-1)*oneFrame);
+        secString = datestr(1+(p.ShowFrames(iFrame)-1)*oneFrame);
         secString = secString(13:end);
     end
     tString = [yearString secString msString];
@@ -215,6 +212,10 @@ volOb = imarisApp.GetFactory.CreateVolume;
 imarisApp.GetSurpassScene.AddChild(volOb,-1)
 imarisApp.GetSurpassCamera.Fit;
 
+%Add lighting and frame objects to scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
+
 
 %% ----------- Correlation Exploration -------- %%
 %NOTE: Only supports one curvature type and intensity type at a time.
@@ -223,8 +224,8 @@ if p.ExploreCorrelation
     
     % ----- Figure Display, Range Selection ----- %%
     for iFrame = 1:nFrames
-        allInt{iFrame} = intAna.branchProfiles(iFrame).(sampTypeToShow)(:,p.SampleChannelIndex);
-        allCurv{iFrame} = real(intAna.branchProfiles(iFrame).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex);
+        allInt{iFrame} = intAna.branchProfiles(p.ShowFrames(iFrame)).(sampTypeToShow)(:,p.SampleChannelIndex);
+        allCurv{iFrame} = real(intAna.branchProfiles(p.ShowFrames(iFrame)).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex);
     end
     allInt = vertcat(allInt{:});
     allCurv = vertcat(allCurv{:});    
@@ -264,11 +265,11 @@ if p.ExploreCorrelation
         
         for iFrame = 1:nFrames
             currSelect = zeros(imSize);
-            isSelected = intAna.branchProfiles(iFrame).(sampTypeToShow)(:,p.SampleChannelIndex) >= currRect(1) & ...
-                         intAna.branchProfiles(iFrame).(sampTypeToShow)(:,p.SampleChannelIndex) <= currRect(1) + currRect(3) & ...
-                         real(intAna.branchProfiles(iFrame).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex) >= currRect(2) & ...
-                         real(intAna.branchProfiles(iFrame).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex) <= currRect(2) + currRect(4);                     
-            currSelect(intAna.branchProfiles(iFrame).surfPixInd(isSelected)) = 1;
+            isSelected = intAna.branchProfiles(p.ShowFrames(iFrame)).(sampTypeToShow)(:,p.SampleChannelIndex) >= currRect(1) & ...
+                         intAna.branchProfiles(p.ShowFrames(iFrame)).(sampTypeToShow)(:,p.SampleChannelIndex) <= currRect(1) + currRect(3) & ...
+                         real(intAna.branchProfiles(p.ShowFrames(iFrame)).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex) >= currRect(2) & ...
+                         real(intAna.branchProfiles(p.ShowFrames(iFrame)).(curvTypeToShow{1})) .* curvConv(p.CurveTypeIndex) <= currRect(2) + currRect(4);                     
+            currSelect(intAna.branchProfiles(p.ShowFrames(iFrame)).surfPixInd(isSelected)) = 1;
             
             
             volData.SetDataVolumeAs1DArrayFloats(single(currSelect(:)),nChanShow+nSampShow+nCurvType,iFrame-1);

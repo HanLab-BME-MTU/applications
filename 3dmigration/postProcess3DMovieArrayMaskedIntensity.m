@@ -27,6 +27,11 @@ if ~isfield(p,'NormalizeIntensities')
     p.NormalizeIntensities = true;
 end
 
+if ~isfield(p,'CloseFigs')
+    p.CloseFigs = true;
+end
+
+
 
 %If we want to restrict analysis to first n frame to avoid differential
 %bleaching effects and give fair comparision with fixed cell data
@@ -45,6 +50,7 @@ iIntUse = [1 4 5 8];%Don't show all the intensities to keep things simple
 
 nCurvCat = numel(curvCatNames);
 
+minPercentile = 10;%Minimum intensity percentile to include in correlation calcs / plots (for excluding low intensities with artifact).
 
 
 %% ------------- Per-Movie Loading and Processing --------------- %%
@@ -327,15 +333,21 @@ for k = iIntUse
     end
 end
 
+if p.CloseFigs;close all;end
+
 %% ----------- Combined Intensity vs. Curvature Figures --------- %%
 %Combines at the level of samples. Gives higher n, but will effectively
 %weight cells by cortical area. Then again, if you're studying cortical
 %structure... But cell-cell variability is higher??
 
-nIntBins = 100;
+nIntBins = 20;
+
+
 
 allCurv = real(vertcat(allCurvPerMov{:}));
 allInt = vertcat(allIntPerMov{:});
+
+
 
 iGaussType = 1;
 iMeanType = 2;
@@ -360,6 +372,8 @@ curvSubSampCI= nan(nChan,nCurvTypes,numel(iIntUse),nIntBins,2);
 for l = 1:nChan    
     
     for j = iIntUse 
+        
+        minIntForCorr = prctile(allInt(:,j),minPercentile);
 
         for k = 1:nCurvTypes
             
@@ -439,9 +453,10 @@ for l = 1:nChan
             xlabel(['Percentile of ' intNames{j} ' in channel ' num2str(l) ', a.u.'])
             ylabel([curvNames{k} ', ' curvUnits{k}])
             figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' plot by percentile subsampled bootstrap'];
+            mfFigureExport(currFig,figName)
             
                         
-            % -------------- 2D Histogram ----------- %
+            % -------------- 2D Histogram Per-Sample CI ----------- %
             
             currFig = figure;                        
             [N,C] = hist3([allInt(:,j,l),allCurv(:,k)],[200 200]);
@@ -462,9 +477,50 @@ for l = 1:nChan
             useRange = [ 0 log10(prctile(N(isfinite(N(:)) & N(:) > 0),99))];
             
             caxis(useRange)
-            colormap gray
+            cMap = gray;
+            cMap = cMap(end:-1:1,:);
+            colormap(cMap)
+            
             figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' 2D Histogram'];
             mfFigureExport(currFig,figName)
+            
+            % --------------- Corr Coef Calc ----------- %%
+            
+            %For the correlation calculations we exclude the lowest
+            %intensities, as we know these are subject to artifact.            
+            pointsUse = allInt(:,j,l) > minIntForCorr;
+            
+            %[tau,pValKendall] = corr(allInt(pointsUse,j,l),allCurv(pointsUse,k),'type','Kendall');
+            [rho,pValSpearman] = corr(allInt(pointsUse,j,l),allCurv(pointsUse,k),'type','Spearman');
+            
+             % -------------- 2D Histogram Sub-Sampled CI ----------- %
+            
+            currFig = figure;                        
+            [N,C] = hist3([allInt(:,j,l),allCurv(:,k)],[200 200]);
+            imagesc(C{1},C{2},log10(N')),axis xy
+            hold on
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvMean(l,k,j,:)))
+            hold on
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvSubSampCI(l,k,j,:,1)),'--')
+            legend('Mean','95% C.I.')
+            plot(squeeze(intCent(j,1:end-1)),squeeze(curvSubSampCI(l,k,j,:,2)),'--')
+            xlabel([intNames{j} ' in channel ' num2str(l) ', a.u.'])
+            ylabel([curvNames{k} ', ' curvUnits{k}])
+            plot(xlim,[0 0],'--r')
+            colorbar
+            title({'Curvature vs. intensity 2D Histogram',...
+                    'Color indicates log10 of sample count',...
+                    ['Spearman''s Rho=' num2str(rho) ', p=',num2str(pValSpearman)],...
+                    ['n=' num2str(nMov) ' cells, ' num2str(sum(nFramesPerMov)) ' time points, ' num2str(size(allInt,1)) ' samples']})                            
+            useRange = [ 0 log10(prctile(N(isfinite(N(:)) & N(:) > 0),99))];
+            
+            caxis(useRange)
+            cMap = gray;
+            cMap = cMap(end:-1:1,:);
+            colormap(cMap)
+            figName = [p.OutputDirectory filesep curvNames{k} ' versus ' intNames{j} ' channel ' num2str(l) ' 2D Histogram subsampled CI'];
+            mfFigureExport(currFig,figName)
+            
             
         end
         
@@ -540,8 +596,8 @@ for l = 1:nChan
         xlim([min(ptCent(j,:)),max(ptCent(j,1:end-1))])
         figName = [p.OutputDirectory filesep 'Curvature Category Versus ' intNames{j} ' Channel ' num2str(l) ' sample fraction percentile'];
         mfFigureExport(currFig,figName)    
-
-        
+    
+        if p.CloseFigs;close all;end
     end
 end
 
@@ -665,9 +721,9 @@ if nMov > 1
                 mfFigureExport(currFig,figName)
 
             end
-
+            if p.CloseFigs;close all;end
         end
-
+        
     end
 else
     curvMeanOfPerCell = nan;
