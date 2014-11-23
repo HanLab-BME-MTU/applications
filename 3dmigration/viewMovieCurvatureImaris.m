@@ -24,6 +24,7 @@ chanNames = movieData.getChannelNames;
 
 ip = inputParser;
 ip.addParamValue('ChannelIndex',1:nChan,@(x)(numel(x) >= 1 && all(isposint(x))));%Raw fluorescence to show
+ip.addParamValue('FramesShow',1:movieData.nFrames_,@(x)(numel(x) == 1 && all(isposint(x))));%max # frames to show
 ip.addParamValue('CurveTypeIndex',[],@(x)(all(isposint(x))));%Curvature types to show as channel
 ip.addParamValue('SampleChannelIndex',[],@(x)(all(isposint(x))));%Cortical samples to show
 ip.addParamValue('SampleTypeIndex',[],@(x)(numel(x) <= 1 && all(isposint(x))));%Intensity sample type to show as channel
@@ -78,10 +79,15 @@ imarisApp = iceConn.mImarisApplication;
 imarisScene = imarisApp.GetFactory.CreateDataContainer;
 imarisApp.SetSurpassScene(imarisScene)
 
+%Add lighting and frame objects to scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
+imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
+
+
 iMI = movieData.getProcessIndex('MaskedIntensity3DProcess',1,1);
 
 
-nFrames = movieData.nFrames_;
+nFrames = min(movieData.nFrames_,p.FramesShow);
 
 iMG = movieData.getProcessIndex('MaskGeometry3DProcess',1,1);
 
@@ -208,10 +214,6 @@ imarisApp.SetDataSet(volData)
 volOb = imarisApp.GetFactory.CreateVolume;
 imarisApp.GetSurpassScene.AddChild(volOb,-1)
 imarisApp.GetSurpassCamera.Fit;
-
-%Add lighting and frame objects to scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateLightSource,0); %add the light to the scene
-imarisScene.AddChild(imarisApp.GetFactory.CreateFrame,0); %add the frame to the scene
 
 
 %% ----------- Correlation Exploration -------- %%
