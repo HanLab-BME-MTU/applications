@@ -1,4 +1,4 @@
-function imarisApp = viewMovieCurvatureImaris(movieData,varargin)
+function iceConn = viewMovieCurvatureImaris(movieData,varargin)
 
 %Uses imaris to visualize the surface curvature, fluorescence, and cortical
 %fluorescence samples simultaneously.
@@ -29,6 +29,7 @@ ip.addParamValue('SampleChannelIndex',[],@(x)(all(isposint(x))));%Cortical sampl
 ip.addParamValue('ShowFrames',1:nFrames,@(x)(all(isposint(x))));%Time points to show
 ip.addParamValue('SampleTypeIndex',[],@(x)(numel(x) <= 1 && all(isposint(x))));%Intensity sample type to show as channel
 ip.addParamValue('ExploreCorrelation',true,@(x)(numel(x) == 1 &&  islogical(x)));%Intensity sample type to show as channel
+ip.addParamValue('IceConnector',[],@(x)(isa(x,'IceImarisConnector')));%Optionally input a connector to an existing imaris instance
 ip.parse(varargin{:});
 p = ip.Results;
 
@@ -73,8 +74,13 @@ end
 imNames = movieData.getImageFileNames(p.ChannelIndex);
 imDirs = movieData.getChannelPaths(p.ChannelIndex);
 
-iceConn = IceImarisConnector;
-iceConn.startImaris;
+if isempty(p.IceConnector)
+    
+    iceConn = IceImarisConnector;
+    iceConn.startImaris;
+else
+    iceConn= p.IceConnector;
+end
 imarisApp = iceConn.mImarisApplication;
 
 %Create a blank scene

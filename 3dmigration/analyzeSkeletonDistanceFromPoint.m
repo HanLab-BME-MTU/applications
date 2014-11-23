@@ -116,10 +116,15 @@ for j = 1:nVert
             %Depending on the direction of the edge path and the vertex we hit,
             %we sum either the first or last section of the query edge as our
             %offset
-            if hitsStart*edgeDirs(closestPt(1)) > 0 
-                geOffset = sum(edgePtSpacing{closestPt(1)}(1:min(closestPt(2),end)));
+            if size(edgePaths(closestPt(1)),1) > 1
+                if hitsStart*edgeDirs(closestPt(1)) > 0 
+                    geOffset = sum(edgePtSpacing{closestPt(1)}(1:min(closestPt(2),end)));
+                else
+                    geOffset = sum(edgePtSpacing{closestPt(1)}(min(closestPt(2),end):end));
+                end
             else
-                geOffset = sum(edgePtSpacing{closestPt(1)}(min(closestPt(2),end):end));
+                %For one-point edges we have no offset.
+                geOffset = 0;
             end
 
 
