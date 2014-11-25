@@ -8,11 +8,12 @@ end
 
        % scatter((0:length(neuriteIn)-1).*timeInterval,neuriteIn,50,color,'filled'); 
         hold on
-        scatter((0:length(neuriteIn)-1).*timeInterval,neuriteIn,50,color,'filled'); 
+        scatter((0:length(neuriteIn)-1).*timeInterval,neuriteIn,100,color,'filled'); 
         plot((0:length(neuriteIn)-1).*timeInterval, neuriteIn,'color',color,'Linewidth',2); 
-        xlabel('Time (s)','FontName','Arial','FontSize',12); 
-        ylabel({'Net Neurite Outgrowth'; 'Normalized To First Frame'} ,'FontName','Arial','FontSize',12); 
-        axis([0 (length(neuriteIn)-1)*timeInterval, min(neuriteIn(:)),max(neuriteIn(:))]); 
+        xlabel('Time (s)','FontName','Arial','FontSize',20); 
+        ylabel({'Net Neurite Outgrowth (um) '} ,'FontName','Arial','FontSize',20); 
+        set(gca,'FontName','Arial','FontSize',18); 
+        axis([0 (length(neuriteIn)-1)*timeInterval,-10,20]); 
         saveas(gcf,[saveDir filesep 'NetOutgrowth' '.eps'],'psc2'); 
         saveas(gcf,[saveDir filesep 'NetOutgrowth' '.fig']); 
         close gcf 

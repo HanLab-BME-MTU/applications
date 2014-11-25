@@ -42,6 +42,8 @@ imgFilt = imfilter(img,H); % for weighted averaging
 for iType = typeStart:typeEnd
     toAdd = toAddCell{iType};
 for ifilo = 1:numFilo2Fit
+  
+   
    idxCurrent = idx2fill(ifilo);
    
    numBack = length(filoInfo(idxCurrent).([toAdd 'pixIndicesBack']));
@@ -205,18 +207,27 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         
         % test if u = min(distFiloFit)
         if (abs(params(2)-distFiloFit(1))<1 && params(2)> 1)
-            
+            distFiloFitOld = distFiloFit;
+            yDataFitOld = yDataFit; 
             distFiloFit = distFilo;
            
             yDataFit = yData;
+            
              starts = [max(yDataFit)-min(yDataFit),length( filoInfo(idxCurrent).([toAdd 'pixIndicesBack'])),5,...
              min(yDataFit)];
          
             upb = [max(yData); max(distFiloFit);20 ; max(yData)];
          lwb = [0;min(distFiloFit); 1; min(yData)];
+         
+         
             % try again using whole values 
             [params,resnorm,~,exitFlag] = lsqcurvefit(@testfun,starts,distFiloFit,yDataFit,lwb,upb); 
-        end 
+            % reset the pix indices to use the whole thing
+            pixIndices = filoInfo(idxCurrent).([toAdd 'pixIndices']); 
+             filoInfo(idxCurrent).([toAdd 'pixIndicesUsedForFit']) = pixIndices;
+             
+            
+        end % abs params(2)
         
         if p.SavePlots
         line([params(2),params(2)],[max(yData),min(yData)]);
@@ -277,19 +288,26 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
         
         filoInfo(idxCurrent).([toAdd 'exitFlag']) = exitFlag; % always include exit flag
         
-        filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm/distFilo(end); % divide by the number of points
+        filoInfo(idxCurrent).([toAdd 'resnorm']) = resnorm/length(distFiloFit); % divide by the number of points
         
         if exitFlag>1 && p.SavePlots == 1
-            title(['Length = ' num2str(params(2).*0.216,3) ' um']) 
+            title({['Length = ' num2str(params(2).*0.216,3) ' um'] , ['p1 = ' num2str(params(1,1))] , ['ExitFlag = ' num2str(exitFlag)]}) 
         
         end 
         %yFit = params(1)*distFilo+params(2);
         
        yFit = params(1)*(1-0.5*(1+erf((distFilo-params(2))/(params(3)*sqrt(2)))))+params(4);
+       
+         
         hold on
         if p.SavePlots ==1
             plot(distFilo,yFit,'r')
             scatter(distFiloFit,yDataFit,'b','filled'); % color in the data specifically used for the fitting. 
+            if exist('distFiloFitOld','var')
+                scatter(distFiloFitOld,yDataFitOld,'g'); 
+                clear distFiloFitOld yDataFitOld
+                
+            end 
 %             title({['Filo' num2str(idxCurrent)];'Green Line: Endpoint Skel'; 'Blue Line: Endpoint Fit'});
          filename{1} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.fig' ];
          filename{2} = ['Filopodia_' num2str(idxCurrent,'%03d') toAdd '.png'];         
@@ -309,11 +327,11 @@ yData = yData(~isnan(yData)); % sometimes I had to pad with NaNs
   filoInfoC = filoInfo(idxCurrent);
   %GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,iType,[],0); Ex
   pixelsF = zeros(size(img)); 
-  pixF= filoInfoC.Ext_pixIndicesFor;
+  pixF= filoInfoC.([toAdd 'pixIndicesFor']);
   pixF = pixF(~isnan(pixF));
   pixelsF(pixF)=1; 
   pixelsB = zeros(size(img)); 
-  pixelsB(filoInfoC.Ext_pixIndicesBack)=1; 
+  pixelsB(filoInfoC.([toAdd 'pixIndicesBack']))=1; 
   spy(pixelsF,'g',10); 
   spy(pixelsB,'r'); 
   

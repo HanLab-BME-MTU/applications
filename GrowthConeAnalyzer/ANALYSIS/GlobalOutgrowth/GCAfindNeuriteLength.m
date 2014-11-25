@@ -91,7 +91,7 @@ function [neuriteLength,error,pathMasksFinal] = GCAfindNeuriteLength( analInfo ,
 %% Check/Set Parameters  
 
 if nargin < 4 % switch after
-    paramsIn.plotPathColor ='g' ;
+    paramsIn.plotPathColor ='b' ; %PUT INTO PARAMETERS! 
 else 
     paramsIn.plotPathColor = plotPathColor; % quick fix 20140216- now can 
     % the usefuness of the 'params' as you can quickly change 1 think and

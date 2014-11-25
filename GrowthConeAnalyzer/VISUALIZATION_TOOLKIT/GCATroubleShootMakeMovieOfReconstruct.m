@@ -10,7 +10,7 @@ function [ output_args ] = makeMovieOfReconstruct( analInfo,frame,pixSizeMic,sav
     filename = [char(listOfImages(frame,2)) filesep char(listOfImages(frame,1))];
     textColor = [ 0  0 0 ]; 
 % end 
- 
+ fontText =  {'FontName','Arial','FontSize',14,'FontName','Arial','color',textColor};
 %%%% START %%%%     
 img = double(imread(filename)); 
 % img = [img img]; 
@@ -22,12 +22,13 @@ zoom = 1;
 h=setFigure(nx,ny); 
 imshow(-img,[]) ; 
 hold on 
-text(nx/10, 10,'Original Image', 'color',textColor);
+text(nx/10, 10,'Original Image ', fontText{:});
 pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie00.png']); 
+%print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+           % [saveDir filesep 'ReconstructMovie00.png']); 
+           saveas(h,[saveDir filesep 'ReconstructMovie00.png']); 
        
 saveas(h,[saveDir filesep 'ReconstructMovie00.eps'],'psc2')
  close gcf
@@ -56,13 +57,13 @@ imshow(-img,[])
 hold on 
   erosion =analInfo(frame).bodyEst.erodForBody; 
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),erosion)
-text(nx/10, 10,'Step 02: Erosion', 'color',textColor);
-pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+text(nx/10, 20,{'Estimate Larger-Scale'; 'Veil/Stem Pieces'}, fontText{:});
+%pixels = round(10/pixSizeMic); 
+  %  plotScaleBar(pixels,pixels/20,'Color',textColor);
      
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie02.png']); 
-          saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2'); 
+ %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie02.png']); 
+          saveas(h,[saveDir filesep 'ReconstructMovie02.png']); 
         
         close gcf
       
@@ -75,13 +76,13 @@ backbone =  analInfo(frame).bodyEst.backbone;
 % backbone = [backbone extra]; 
 spy(backbone,'r')
 cellfun(@(x) plot(x(:,2),x(:,1),'--b'),erosion)
-text(nx/10, 10,'Step 03: Backbone Estimate', 'color',textColor);
+text(nx/10, 20,{'Estimate Backbone:' ; 'Large Scale Ridges'}, fontText{:});
 pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+     %plotScaleBar(pixels,pixels/20,'Color',textColor);
      
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie03.png']); 
-        saveas(h,[saveDir filesep 'ReconstructMovie03.eps'],'psc2'); 
+  % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+   %         [saveDir filesep 'ReconstructMovie03.png']); 
+        saveas(h,[saveDir filesep 'ReconstructMovie03.png']); 
 close gcf 
 %% 04 Final Body Mask %%%% 
   h = setFigure(nx,ny); 
@@ -90,13 +91,13 @@ close gcf
   bodyFinal = analInfo(frame).masks.neuriteEdge; 
   edgeYX = bwboundaries(bodyFinal); 
   cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX); 
-  text(nx/10, 10,'Step 04: Final Mask', 'color',textColor);
+  text(nx/10, 10,'Veil/Stem Estimation Complete', fontText{:});
     pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie04.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie04.eps'],'psc2'); 
+   %saveas(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+           % [saveDir filesep 'ReconstructMovie04.png']);
+        saveas(h,[saveDir filesep 'ReconstructMovie04.png']); 
  close gcf 
 %% 05 Overlay Ridges %%%% 
  h = setFigure(nx,ny); 
@@ -105,12 +106,13 @@ close gcf
   candRidges = analInfo(frame).filterInfo.ThreshNMS;
   spy(candRidges ,'m');
   cellfun(@(x) plot(x(:,2),x(:,1),'b'),edgeYX); 
-   text(nx/10, 10,'Step 05: Ridges!', 'color',textColor);
+   text(nx/10, 10,'Detect Small Scale Ridges', fontText{:});
     pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie05.png']);
-          saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2'); 
+   %  plotScaleBar(pixels,pixels/20,'Color',textColor);
+  % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+   %         [saveDir filesep 'ReconstructMovie05.png']);
+   saveas(h,[saveDir filesep 'ReconstructMovie05.png'] ); 
+   saveas(h,[saveDir filesep 'ReconstructMovie05.eps'],'psc2'); 
         
  close gcf
   
@@ -120,65 +122,65 @@ close gcf
   hold on 
  
   
-  text(nx/10, 10,'Step 06: Get Seed', 'color',textColor);
+  text(nx/10, 10,'Get Seed For Reconstruction', fontText{:});
   seedMask = analInfo(frame).reconstructInfo.seedMask{1}; 
   spy(seedMask,'b',5); 
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie06.png']);
-            saveas(h,[saveDir filesep 'ReconstructMovie06.eps'],'psc2'); 
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie06.png']);
+            saveas(h,[saveDir filesep 'ReconstructMovie06.png']); 
   close gcf 
   %% 07 Show Candidates
   h = setFigure(nx,ny) ;
   imshow(-img,[]) 
   hold on 
-  text(nx/10, 10,'Step 07: Get Candidates', 'color',textColor);
+  text(nx/10, 10,'Get Candidates', fontText{:});
   spy(seedMask,'b'); 
   preClust = analInfo(frame).reconstructInfo.CandMaskPreCluster; 
   
   spy(preClust,'m',5); 
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie07.png']);
-            saveas(h,[saveDir filesep 'ReconstructMovie07.eps'],'psc2'); 
-        saveas(h,[saveDir filesep 'ReconstructMovie07.eps'],'psc2'); 
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie07.png']);
+           % saveas(h,[saveDir filesep 'ReconstructMovie07.eps'],'psc2'); 
+        saveas(h,[saveDir filesep 'ReconstructMovie07.png']); 
         
 %% 08 Show Clustering 
 h = setFigure(nx,ny) ;
 imshow(-img,[]) 
   hold on 
     spy(seedMask,'b'); 
-  text(nx/10, 10,'Step 08: Cluster Linear Candidates', 'color',textColor);
+  text(nx/10, 10,'Cluster Linear Candidates', fontText{:});
   clusterLinks = analInfo(frame).reconstructInfo.clusterlinks; 
   
   preClust = analInfo(frame).reconstructInfo.CandMaskPreCluster; 
   spy(preClust,'m'); 
   spy(clusterLinks,'y'); 
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+     %plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie08.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie08.eps'],'psc2'); 
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie08.png']);
+        saveas(h,[saveDir filesep 'ReconstructMovie08.png']); 
 close gcf
 %% 09 Candidates Post Clustering 
 h = setFigure(nx,ny) ;
 imshow(-img,[]) 
   hold on 
-  text(nx/10, 10,' Linear Candidates Clustered', 'color',textColor);
+  text(nx/10, 10,' Linear Candidates Clustered', fontText{:});
    spy(seedMask,'b'); 
   postClust= analInfo(frame).reconstructInfo.CandMaskPostCluster; 
   spy(postClust,'m'); 
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+     %plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie09.png']);
-          saveas(h,[saveDir filesep 'ReconstructMovie09.eps'],'psc2'); 
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie09.png']);
+          saveas(h,[saveDir filesep 'ReconstructMovie09.png']); 
 close gcf
 %% Iterate over reconstruction 
 imageNum = 10; 
@@ -187,18 +189,18 @@ for iReconst = 1:numel(analInfo(frame).reconstructInfo.output)
 h = setFigure(nx,ny) ;
 imshow(-img,[]) 
   hold on 
-  text(nx/10, 10,'Step 09: Link Candidates', 'color',textColor);
+ text(nx/10, 10,'Link Candidates', fontText{:});
  spy(postClust,'m'); 
   spy(seedMask,'b'); 
  
  links= analInfo(frame).reconstructInfo.output{iReconst}.links; 
   spy(links,'y',5); 
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-          saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2'); 
+  %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+   %         [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+          saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum,'%02d') '.png']); 
         imageNum = imageNum +1; 
 close gcf
 
@@ -211,14 +213,15 @@ imshow(-img,[])
   spy(seedMask,'b'); 
  
   spy(links,'b'); 
-  text(nx/10, 10,'Add to Body', 'color',textColor);
+  text(nx/10, 10,'Add to Body', fontText{:});
   bodyAdd =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.Body ; 
   spy(bodyAdd,'g',5)
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
- print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+% print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+ %           [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+ saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum,'%02d') '.png']); 
         imageNum = imageNum+1; 
 %%
 imshow(-img,[]) 
@@ -228,15 +231,17 @@ imshow(-img,[])
  
   spy(links,'b'); 
   spy(bodyAdd,'b')
-  text(nx/10, 10,'Add Branch', 'color',textColor);
+ text(nx/10, 10,'Add Branch', fontText{:});
  branchAdd =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.Branch ; 
   spy(branchAdd,'g',5)
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+   %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
- print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);  
-        imageNum = imageNum+1; 
+% print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+ %           [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);  
+ saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
+ 
+ imageNum = imageNum+1; 
 %%        
   imshow(-img,[]) 
   hold on 
@@ -246,15 +251,15 @@ imshow(-img,[])
   spy(links,'b');
    spy(bodyAdd,'b')
    spy(branchAdd,'b'); 
-  text(nx/10, 10,'End On Attachment', 'color',textColor);
+  text(nx/10, 10,'Add End-On Attachment', fontText{:});
   endOn =  analInfo(frame).reconstructInfo.output{iReconst}.candFiloAdded.EndOn ; 
   spy(endOn,'g',5)
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+    % plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
- print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);  
-          saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .eps'],'psc2');  
+ %print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);  
+          saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);  
   imageNum = imageNum+1; 
   close gcf
 %%
@@ -268,16 +273,16 @@ end
 h = setFigure(nx,ny) ;
 imshow(-img,[]) 
   hold on 
-  text(nx/10, 10,title, 'color',textColor);
+  text(nx/10, 10,title, fontText{:});
   seedMask =  analInfo(frame).reconstructInfo.seedMask{iReconst+1} ; 
   spy(seedMask,'b')
  
   pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+   %  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
      
-  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .eps'],'psc2');
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']);
+        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) ' .png']);
         imageNum = imageNum+1; 
        
        close gcf
@@ -285,45 +290,45 @@ end % iReconst
 %% sanity check show crosses 
 
 
-h  = setFigure(nx,ny); 
- filoInfo = analInfo(frame).filoInfo; 
-  filoInfo = replaceBadFitsWithOriginalLength(filoInfo,imgSize);
-filoInfo = addFiloFitCoords(filoInfo); 
+% h  = setFigure(nx,ny); 
+%  filoInfo = analInfo(frame).filoInfo; 
+%   filoInfo = replaceBadFitsWithOriginalLength(filoInfo,imgSize);
+% filoInfo = addFiloFitCoords(filoInfo); 
 %c = ['r' 'b' 'g' 'y' 'c' 'm' 'k','r']; 
 %c = c'; 
- c = colormap(lines(numel(filoInfo)));
+%  c = colormap(lines(numel(filoInfo)));
 %  sums = arrayfun(@(x) sum(c(x,:)),1:length(c(:,1))); 
 %  idxBad = find(sums(:)==0.75); % take out black
 %  x = repmat([0.5 0 0.5],length(idxBad),1); 
 % c(idxBad,:) = x; 
- imshow(-img,[]); 
- hold on 
-   
-    for i = 1:numel(filoInfo)
-%      pixIndices = filoInfo(i).Ext_pixIndices;
-%             idxEnd = find(pixIndices == filoInfo(i).Ext_pixIndicesendpointCoordFitPix;
-%             pixIndicesPlot = pixIndices(1:idxEnd);   
-%         ind2sub(imgSize)
-    plot(filoInfo(i).Ext_toPlotXY(:,1),filoInfo(i).Ext_toPlotXY(:,2),'color',c(i,:))
-  %  scatter(filoInfo(i).Ext_endpointCoordFitXY(:,1),filoInfo(i).Ext_endpointCoordFitXY(:,2),50,c(i,:),'filled'); 
-    end 
+%  imshow(-img,[]); 
+%  hold on 
+%    
+%     for i = 1:numel(filoInfo)
+% %      pixIndices = filoInfo(i).Ext_pixIndices;
+% %             idxEnd = find(pixIndices == filoInfo(i).Ext_pixIndicesendpointCoordFitPix;
+% %             pixIndicesPlot = pixIndices(1:idxEnd);   
+% %         ind2sub(imgSize)
+%     plot(filoInfo(i).Ext_toPlotXY(:,1),filoInfo(i).Ext_toPlotXY(:,2),'color',c(i,:))
+%   %  scatter(filoInfo(i).Ext_endpointCoordFitXY(:,1),filoInfo(i).Ext_endpointCoordFitXY(:,2),50,c(i,:),'filled'); 
+%     end 
 
-pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-     
-text(nx/10,10,'Color-Coded by Filopodia Number','color',textColor); 
- print(h, '-depsc', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps']);
-imageNum = imageNum+1; 
-
-close gcf
+% pixels = round(10/pixSizeMic); 
+%      plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+%      
+% text(nx/10,10,'Color-Coded by Filopodia Number','color',textColor); 
+%  print(h, '-depsc', '-loose', ['-r' num2str(zoom*72)], ...
+%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps']);
+% imageNum = imageNum+1; 
+% 
+% close gcf
 %% show BranchGroups
 
  
 
 %  connIdx = arrayfun(@(x) ~isempty(x.conIdx),filoInfo);
 %  branches = filoInfo(connIdx); 
- type = arrayfun(@(x) x.type,filoInfo); 
+%  type = arrayfun(@(x) x.type,filoInfo); 
 % filoInfoBranch = filoInfo(type==1); 
  
 %  sums = arrayfun(@(x) sum(c(x,:)),1:length(c(:,1))); 
@@ -421,137 +426,195 @@ close gcf
 %         imageNum = imageNum+1;
 %        close gcf 
  %% plot fits 
- h  = setFigure(nx,ny); 
-
- imshow(-img,[]); 
- hold on
- text(nx/10,10,'Higher Confidence Length Measurements', 'color',textColor);
- pixels = round(10/pixSizeMic); 
-     plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
-     
-  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
-  hold on 
-    plotfilosIntAndExt(filoInfo,[ny,nx],1,1,[]);
-    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
-            saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2'); 
-        imageNum = imageNum+1; 
-        close gcf
-%% plot fits 1st, 2nd, and higher order branches         
- 
-  h  = setFigure(nx,ny); 
-%figure; 
-
- imshow(-img,[]);   
- hold on 
- 
- cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
- filoInfoSingle = filoInfo(type==0); 
- plotfilosIntAndExt(filoInfoSingle,imgSize,1,1,'g',0); 
- 
- text(nx/10,10,'High Confidence Single Filopodia Attached to Neurite Body', 'color',textColor);
- pixels = round(10/pixSizeMic); 
-   plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
- 
- 
- 
-    
-   
-        test = vertcat(filoInfoSingle(:).Ext_exitFlag);
-        %c(iType) = c;
-        idx = test>=1;
-        
-        filoInfoFilt = filoInfo(idx);
-        
-        % filter out any that might have passed the exitflag criteria but NOT
-        % gave a number for the fit ==0  % maybe flag above later...
-        test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-        idx2 = ~isnan(test2);
-        filoInfoFilt = filoInfoFilt(idx2);
-   value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
-    
-  
-  text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);     
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])  
- clear filoInfoFilt
-        imageNum = imageNum+1; 
-        close gcf
+%  h  = setFigure(nx,ny); 
+% 
+%  imshow(-img,[]); 
+%  hold on
+%  text(nx/10,10,'Higher Confidence Length Measurements', 'color',textColor);
+%  pixels = round(10/pixSizeMic); 
+%      plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+%      
+%   cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+%   hold on 
+%     plotfilosIntAndExt(filoInfo,[ny,nx],1,1,[]);
+%     print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%             saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2'); 
+%         imageNum = imageNum+1; 
+%         close gcf
+% %% plot fits 1st, 2nd, and higher order branches         
+%  
+%   h  = setFigure(nx,ny); 
+% %figure; 
+% 
+%  imshow(-img,[]);   
+%  hold on 
+%  
+%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+%  filoInfoSingle = filoInfo(type==0); 
+%  plotfilosIntAndExt(filoInfoSingle,imgSize,1,1,'g',0); 
+%  
+%  text(nx/10,10,'High Confidence Single Filopodia Attached to Neurite Body', 'color',textColor);
+%  pixels = round(10/pixSizeMic); 
+%    plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+%  
+%  
+%  
+%     
+%    
+%         test = vertcat(filoInfoSingle(:).Ext_exitFlag);
+%         %c(iType) = c;
+%         idx = test>=1;
+%         
+%         filoInfoFilt = filoInfo(idx);
+%         
+%         % filter out any that might have passed the exitflag criteria but NOT
+%         % gave a number for the fit ==0  % maybe flag above later...
+%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
+%         idx2 = ~isnan(test2);
+%         filoInfoFilt = filoInfoFilt(idx2);
+%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
+%     
+%   
+%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);     
+%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])  
+%  clear filoInfoFilt
+%         imageNum = imageNum+1; 
+%         close gcf
  %%       
+%  h  = setFigure(nx,ny); 
+% %figure; 
+% 
+%  imshow(-img,[]);   
+%  hold on 
+%  
+%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+%  filoInfoBranchStem = filoInfo(type==1); 
+%  plotfilosIntAndExt(filoInfoBranchStem,imgSize,1,1,'y',1); 
+%  
+%  text(nx/10,10,'High Confidence Branch Stem Attached to Neurite Body', 'color',textColor);
+%  pixels = round(10/pixSizeMic);         
+%   plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+%  
+%    test = vertcat(filoInfoBranchStem(:).Ext_exitFlag);
+%         %c(iType) = c;
+%         idx = test>=1;
+%         
+%         filoInfoFilt = filoInfoBranchStem(idx);
+%         
+%         % filter out any that might have passed the exitflag criteria but NOT
+%         % gave a number for the fit ==0  % maybe flag above later...
+%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
+%         idx2 = ~isnan(test2);
+%         filoInfoFilt = filoInfoFilt(idx2);
+%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
+%     valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
+%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);     
+%    text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor); 
+%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
+%         
+%         close gcf 
+%         imageNum = imageNum+1; 
+%         clear filoInfoFilt
+ %% 
+% h  = setFigure(nx,ny); 
+% %figure; 
+% 
+%  imshow(-img,[]);   
+%  hold on 
+%  
+%  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+%  filoInfoHigherOrder = filoInfo(type==2); 
+%  plotfilosIntAndExt(filoInfoHigherOrder,imgSize,1,1,'m',1); 
+%  
+%  text(nx/10,10,'High Confidence 1st Order Branches', 'color',textColor);
+%  pixels = round(10/pixSizeMic); 
+%    plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+%  test = vertcat(filoInfoHigherOrder(:).Ext_exitFlag);
+%         %c(iType) = c;
+%         idx = test>=1;
+%         
+%         filoInfoFilt = filoInfoHigherOrder(idx);
+%         
+%         % filter out any that might have passed the exitflag criteria but NOT
+%         % gave a number for the fit ==0  % maybe flag above later...
+%         test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
+%         idx2 = ~isnan(test2);
+%         filoInfoFilt = filoInfoFilt(idx2);
+%    value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
+%     valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
+%   text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);   
+%   text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor); 
+%    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+%             [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png'])
+%         close gcf
+ 
+filoInfo = analInfo(frame).filoInfo; 
+%% Filopodia Fits 
+ imageNum = imageNum +1; 
+ h = setFigure(nx,ny); 
+ imshow(-img,[]); 
+ hold on 
+  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX);  
+ GCAVisualsMakeOverlaysFilopodia(filoInfo,[ny,nx],1,1,[],0); 
+ text(nx/10,10,'Filopodia Fits', fontText{:})
+ % print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
+  saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
+   close gcf
+ %%   Filopodia By Branch Group 
+ imageNum = imageNum +1;
  h  = setFigure(nx,ny); 
 %figure; 
 
  imshow(-img,[]);   
  hold on 
+  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+ GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,[ny,nx]); 
  
- cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
- filoInfoBranchStem = filoInfo(type==1); 
- plotfilosIntAndExt(filoInfoBranchStem,imgSize,1,1,'y',1); 
+text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
+  
+  %   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+   %         [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
+   saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
  
- text(nx/10,10,'High Confidence Branch Stem Attached to Neurite Body', 'color',textColor);
- pixels = round(10/pixSizeMic);         
-  plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
+ close gcf
  
-   test = vertcat(filoInfoBranchStem(:).Ext_exitFlag);
-        %c(iType) = c;
-        idx = test>=1;
-        
-        filoInfoFilt = filoInfoBranchStem(idx);
-        
-        % filter out any that might have passed the exitflag criteria but NOT
-        % gave a number for the fit ==0  % maybe flag above later...
-        test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-        idx2 = ~isnan(test2);
-        filoInfoFilt = filoInfoFilt(idx2);
-   value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
-    valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
-  text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);     
-   text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor); 
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
-        
-        close gcf 
-        imageNum = imageNum+1; 
-        clear filoInfoFilt
- %% 
-h  = setFigure(nx,ny); 
+ %% Plot Individual 
+        imageNum = imageNum +1;
+ h  = setFigure(nx,ny); 
 %figure; 
 
  imshow(-img,[]);   
- hold on 
- 
+ hold on
  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
- filoInfoHigherOrder = filoInfo(type==2); 
- plotfilosIntAndExt(filoInfoHigherOrder,imgSize,1,1,'m',1); 
+ %type = vertcat(filoInfo(:).type); 
+ %idxBlack = (type == 0 | type ==1); 
+ %filoInfoBlack  = filoInfo(idxBlack); 
+ %GCAVisualsMakeOverlaysFilopodia(filoInfoBlack,[ny,nx],1,1,'k',0); 
+ %filoInfoBranch = filoInfo(type>1); 
  
- text(nx/10,10,'High Confidence 1st Order Branches', 'color',textColor);
- pixels = round(10/pixSizeMic); 
-   plotScaleBar(pixels,pixels/10,'Label','10um','Color',textColor);
- test = vertcat(filoInfoHigherOrder(:).Ext_exitFlag);
-        %c(iType) = c;
-        idx = test>=1;
-        
-        filoInfoFilt = filoInfoHigherOrder(idx);
-        
-        % filter out any that might have passed the exitflag criteria but NOT
-        % gave a number for the fit ==0  % maybe flag above later...
-        test2 = vertcat(filoInfoFilt(:).Ext_endpointCoordFitPix);
-        idx2 = ~isnan(test2);
-        filoInfoFilt = filoInfoFilt(idx2);
-   value =  nanmean(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
-    valueMax = nanmax(vertcat(filoInfoFilt(:).Ext_length)).*pixSizeMic; 
-  text(nx/10,30,['Mean Length ' num2str(value,2) ' um'], 'color',textColor);   
-  text(nx/10,50,['Max Length ' num2str(valueMax,2) ' um'],'color',textColor); 
-   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
-            [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
- 
- 
-    
-   
+     n = length(filoInfo); 
+c = linspecer(n); 
+ idxRand = randperm(n); 
+ c = c(idxRand,:);
   
+  for ifilo = 1:length(filoInfo)
+       filoInfoC = filoInfo(ifilo); 
+      GCAVisualsMakeOverlaysFilopodia(filoInfoC,[ny,nx],1,1,c(ifilo,:),0); 
+      clear filoInfoC
+  end 
+ 
+ 
+ text(nx/10,10,'Color-Coded Individual Segment', fontText{:});
+  
+ %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
+  %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
+        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
         
- 
- 
+        
  
    cd(saveDir)
  execute = 'mencoder mf://*.png -mf w=800:h=600:fps=0.5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';

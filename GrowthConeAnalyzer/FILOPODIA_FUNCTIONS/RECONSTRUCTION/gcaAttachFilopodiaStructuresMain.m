@@ -678,7 +678,7 @@ while numViableCand >0  % stop the reconstruction process when no more candidate
       % get the response of the high confidence seeds 
 % % %       scatter(sizeCand,meanRespValuesCand,10,'r','filled'); 
 % % %       figure
-    cutoff = prctile(meanRespValuesSeed,5);
+    cutoff = prctile(meanRespValuesSeed,5); % SEE if it is this filtering step here. for frame 120
 % % %       
 % % %      
 % % %       

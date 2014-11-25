@@ -97,10 +97,11 @@ if nargin < 2
     outputDirectory = [movieData.outputDirectory_ filesep 'filopodia_fits'];
     paramsIn.OutputDirectory = outputDirectory ;
     paramsIn.ChannelIndex = 1  ;
-    paramsIn.InternalFiloOn = 0; 
+    paramsIn.InternalFiloOn = 3; % types 1, 2, or 3.  
     paramsIn.NumPixForFitBack = 10; % should maybe eventually make this distance?
     paramsIn.ValuesForFit = 'Intensity'; % default is the intensity;
-    paramsIn.SavePlots = 0; 
+    paramsIn.SavePlots = 1; 
+    paramsIn.Restart = 0;
 end
 p = paramsIn ; 
 %Get the indices of any previous mask refinement processes from this function
@@ -140,14 +141,26 @@ for iCh = 1:numel(paramsIn.ChannelIndex)
         mkClrDir(outPutDirC) 
         
         filoInfoDir  = [movieData.outputDirectory_ filesep  'filopodia_reconstruct' filesep 'Filopodia_Reconstruct_Channel_' num2str(iCh)];
+      % filoInfoDir =  [movieData.outputDirectory_ filesep  'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)];
      % load reconstruction data including filoInfo per frame 
     load([filoInfoDir filesep 'analInfoTestSave.mat']) ; %
     
-
+if p.Restart ==1; 
+    startFrame = find(arrayfun(@(x) ~isfield(analInfo(x).filoInfo, 'Ext_exitFlag')...
+        ,1:length(analInfo)),1,'first');
+    startFrame  = startFrame-1; 
+    display(['Resuming Filopodia Fitting at ' num2str(startFrame) ])
+elseif p.Restart == 2 
     
+     startFrame = 55;    
+     display(['Resuming Filopodia Fitting at ' num2str(startFrame)]); 
+    else 
+        
+    startFrame = 1; 
+end    
     
   % GET FRAME INFORMATION - this function wraps per frame 
-    for iFrame = 1:length(analInfo)
+    for iFrame = startFrame:length(analInfo)-1
         % get the filoInfo for the current frame
         filoInfo = analInfo(iFrame).filoInfo;
         imgPath = [movieData.getChannelPaths{p.ChannelIndex(iCh)} filesep movieData.getImageFileNames{p.ChannelIndex(iCh)}{iFrame}];
@@ -156,8 +169,8 @@ for iCh = 1:numel(paramsIn.ChannelIndex)
         pSpecific = p; 
         pSpecific.sigma = movieData.channels_.psfSigma_; 
         if isempty(pSpecific.sigma) 
-            display(['Using sigma 0.5']); 
-            pSpecific.sigma = 0.5;
+            display(['Using sigma 0.43']); 
+            pSpecific.sigma = 0.43;
         end 
         if pSpecific.SavePlots == 1 
             
