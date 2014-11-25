@@ -27,6 +27,7 @@ ip.FunctionName = mfilename;
 ip.addRequired('MA',@(x)(isa(x,'MovieData3D')));
 ip.addParamValue('BatchMode',false,(@(x)(numel(x)==1)));
 ip.addParamValue('UseTimeInterval',[],(@(x)(numel(x)==1 && x > 0)));
+ip.addParamValue('BranchAngleDisplacementThresh',.5e4,(@(x)(numel(x)==1 && x > 0)));%Displacement threshold (in nm) for getting branch angles only of cells that actually  move
 ip.addParamValue('OutputDirectory',[],@ischar);%Directory will be created if it doesn't exist
 ip.parse(MA,varargin{:});
 
@@ -59,6 +60,8 @@ hasMG = false(nMovies,1);
 objTracks = cell(nMovies,1);
 objDispPerFrame = cell(nMovies,1);
 objDispStartEnd = nan(nMovies,1);
+objDispVecStartEnd = nan(nMovies,3);
+objDispVecStartEndUnit = nan(nMovies,3);
 objDispPerFrameSum = nan(nMovies,1);
 objVelPerFrame = cell(nMovies,1);
 objVelPerFrameMean = nan(nMovies,1);
@@ -70,11 +73,12 @@ else
     figArgs = {};
 end
 
-nAngBins = 10;%Number of bins for angle histograms
+nAngBins = 20;%Number of bins for angle histograms
 degHistBins = [1 3 4 5 6 7];%Skip two - think about it.
 nDegHistBins = numel(degHistBins);
 phiBins = linspace(-pi/2,pi/2,nAngBins);
 thetaBins = linspace(-pi,pi,nAngBins);
+angBins = linspace(0,pi,nAngBins);%And bins for relative angles
 tipPathBinSz = 5;
 
 nTips = cell(nMovies,1);
@@ -124,7 +128,12 @@ for iMov = 1:nMovies
         objDispPerFrameSum(iMov) = sum(objDispPerFrame{iMov});
         %And total start-to-end striaght-line distance traveled
         objDispStartEnd(iMov) = sqrt(sum(diff(objTracks{iMov}([1 end],:),1,1) .^2,2));
-        %And frame-to-frame velocities in nm/s
+        %And associated vector and unit vecor
+        objDispVecStartEnd(iMov,:) = diff(objTracks{iMov}([1 end],:),1,1);
+        objDispVecStartEndUnit(iMov,:) = objDispVecStartEnd(iMov,:) ./ norm(objDispVecStartEnd(iMov,:));
+        [objDispVecStartEndAngle(iMov,1),objDispVecStartEndAngle(iMov,2)] = cart2sph(objDispVecStartEndUnit(iMov,1),objDispVecStartEndUnit(iMov,2),objDispVecStartEndUnit(iMov,3));
+        %And frame-to-frame velocities in nm/s (yeah I know it's actually
+        %speeed not velocity)
         objVelPerFrame{iMov} = objDispPerFrame{iMov} / timeInt(iMov);
         objVelPerFrameMean(iMov) = mean(objVelPerFrame{iMov});
         %And the effective velocity from start-to-end
@@ -202,8 +211,8 @@ for iMov = 1:nMovies
         hasPS(iMov) = true;
         nTips{iMov} = nan(nFramesPerMov(iMov),1);
         iTips{iMov} = cell(nFramesPerMov(iMov),1);
-        branchDir{iMov} = cell(nFramesPerMov(iMov),1);
-        branchAng{iMov} = cell(nFramesPerMov(iMov),1);
+        branchTipDir{iMov} = cell(nFramesPerMov(iMov),1);
+        branchTipAng{iMov} = cell(nFramesPerMov(iMov),1);
         tipPathLen{iMov} = cell(nFramesPerMov(iMov),1);
         tipPathN{iMov} = cell(nFramesPerMov(iMov),1);
         branchRad{iMov} = cell(nFramesPerMov(iMov),1);
@@ -236,8 +245,7 @@ for iMov = 1:nMovies
             vertBranchPointMean{iMov}(iFrame) = mean(skelStats.vertexDegree(skelStats.vertexDegree>2));
             vertBranchPointTotal{iMov}(iFrame) = sum(skelStats.vertexDegree(skelStats.vertexDegree>2));
 
-            
-            
+                        
             isBranch = currSkel.edgeLabels == 1;
             
             meanRadPerSkelementPerFrame{iMov}{iFrame} = cellfun(@mean,branchRad{iMov}{iFrame});
@@ -255,17 +263,34 @@ for iMov = 1:nMovies
             totalMeanTipRadPerFrameBranchWeighted{iMov}(iFrame) = sum(meanRadPerSkelementPerFrame{iMov}{iFrame}(iTipEdges{iMov}{iFrame}));%Averages the radius with each branch contributing equally
             totalMeanTipRadPerFramePointWeighted{iMov}(iFrame) = sum(vertcat(branchRad{iMov}{iFrame}{(iTipEdges{iMov}{iFrame})}));%Averages the radius with each POINT contributing equally, so that longer branches contribute more
             
-            % ----- Branch Direction Analysis ----- %
-            
-            [branchDir{iMov}{iFrame},branchAng{iMov}{iFrame}] = calcBranchTipDirections(currSkel.edges,currSkel.edgePaths,size(currSkel.vertices,1));
-            
-            
             % ----- Tip Path Length Analysis ---- %
                         
             [tmp1,tmp2] = analyzeSkeletonTipPaths(currSkel.vertices,currSkel.edges,currSkel.edgePaths,currSkel.edgeLabels);
             tipPathLen{iMov}{iFrame} = tmp1(~isnan(tmp1) & ~isinf(tmp1)) .* MA(iMov).pixelSize_ / 1e3;
             tipPathN{iMov}{iFrame} = cellfun(@numel,tmp2(~isnan(tmp1) & ~isinf(tmp1)));                        
+            %Also get distances to centermost point 
             
+            
+            % ----- Branch Direction Analysis ----- %
+            
+            %Get Tip absolute and relative directions
+            [branchTipDir{iMov}{iFrame},branchTipAng{iMov}{iFrame}] = calcBranchTipDirections(currSkel.edges,currSkel.edgePaths,size(currSkel.vertices,1));
+            %And branch angles relative to net displacement vector
+            branchTipAngToDisp{iMov}{iFrame} = acos(sum(branchTipDir{iMov}{iFrame} .* repmat(objDispVecStartEndUnit(iMov,:),[nTips{iMov}(iFrame) 1]),2));%Minimum angle 
+            branchTipAngToDispFull{iMov}{iFrame} = branchTipAng{iMov}{iFrame} - repmat(objDispVecStartEndAngle(iMov,:),[nTips{iMov}(iFrame) 1]);%Full four-quadrant angle
+            %Wrap the angles to the expected range.
+            branchTipAngToDispFull{iMov}{iFrame}(:,1) = wrapToPi(branchTipAngToDispFull{iMov}{iFrame}(:,1));
+            branchTipAngToDispFull{iMov}{iFrame}(:,2) = wrapToPi(branchTipAngToDispFull{iMov}{iFrame}(:,2)*2) / 2;%These go from -pi/2 to pi/2 so we scale before and after wrapping                                    
+            
+            %And get all branch absolute and relative directions
+            
+            %First we need to orient edges relative to cell center so we
+            %use the distance from this point
+            [edgeDistances,closestPt,dToClosest] = analyzeSkeletonDistanceFromPoint(currSkel.vertices,currSkel.edges,currSkel.edgePaths,objTracks{iMov}(iFrame,[2 1 3]) ./ MA(iMov).pixelSize_ );
+            [branchDir{iMov}{iFrame},branchAng{iMov}{iFrame}] = calcBranchDirections(currSkel.edges,currSkel.edgePaths,size(currSkel.vertices,1),edgeDistances);
+            branchAngToDispFull{iMov}{iFrame} = branchAng{iMov}{iFrame} - repmat(objDispVecStartEndAngle(iMov,:),[numel(currSkel.edgePaths) 1]);%Full four-quadrant angle
+            branchAngToDispFull{iMov}{iFrame}(:,1) = wrapToPi(branchAngToDispFull{iMov}{iFrame}(:,1));
+            branchAngToDispFull{iMov}{iFrame}(:,2) = wrapToPi(branchAngToDispFull{iMov}{iFrame}(:,2)*2) / 2;%These go from -pi/2 to pi/2 so we scale before and after wrapping                                    
         end        
                                 
         meanRadPerMovBranchWeighted(iMov) = mean(meanRadPerFrameBranchWeighted{iMov});
@@ -335,12 +360,20 @@ for iMov = 1:nMovies
         %angle!!!!!!!! Need better way to average, or get mask body main axis
         %and compare to that!!
         
-        allBranchDir{iMov} = vertcat(branchDir{iMov}{:});
-        avgDir(iMov,:) = nanmean(allBranchDir{iMov},1);
+        allBranchTipDir{iMov} = vertcat(branchTipDir{iMov}{:});
+        avgDir(iMov,:) = nanmean(allBranchTipDir{iMov},1);
         [avgAng(iMov,1),avgAng(iMov,2)] = cart2sph(avgDir(iMov,1),avgDir(iMov,2),avgDir(iMov,3));
-        allBranchAng{iMov} = vertcat(branchAng{iMov}{:});
-        branchAngHist{iMov}(:,2) = histc(vertcat(allBranchAng{iMov}(:,2)),phiBins);
-        branchAngHist{iMov}(:,1) = histc(vertcat(allBranchAng{iMov}(:,1)),thetaBins);
+        allBranchTipAng{iMov} = vertcat(branchTipAng{iMov}{:});
+        allBranchTipAngToDispFull{iMov} = vertcat(branchTipAngToDispFull{iMov}{:});
+        allBranchAngToDispFull{iMov} = vertcat(branchAngToDispFull{iMov}{:});
+        branchTipAngHist{iMov}(:,2) = histc(vertcat(allBranchTipAng{iMov}(:,2)),phiBins);
+        branchTipAngHist{iMov}(:,1) = histc(vertcat(allBranchTipAng{iMov}(:,1)),thetaBins);
+        branchTipAngToDispHist{iMov} = histc(vertcat(branchTipAngToDisp{iMov}{:}),angBins);
+        branchTipAngToDispFreq{iMov} = branchTipAngToDispHist{iMov} ./ sum(branchTipAngToDispHist{iMov});%And frequency for averaging
+        branchTipAngToDispFullHist{iMov}(:,1) = histc(allBranchTipAngToDispFull{iMov}(:,1),thetaBins);
+        branchTipAngToDispFullHist{iMov}(:,2) = histc(allBranchTipAngToDispFull{iMov}(:,2),phiBins);
+        branchTipAngToDispFullFreq{iMov} = branchTipAngToDispFullHist{iMov} ./ sum(branchTipAngToDispFullHist{iMov}(:,1));
+        
         
         %Branch-tip paths
         allTipPathLen{iMov} = vertcat(tipPathLen{iMov}{:});
@@ -353,6 +386,41 @@ for iMov = 1:nMovies
         tipNMed(iMov) = median(allTipPathN{iMov});
         tipLenMean(iMov) = mean(allTipPathLen{iMov});
         tipLenMed(iMov) = median(allTipPathLen{iMov});
+        
+        % ------- Branch Angle / Direction Figures ----- %
+        
+        %tip only relative angle (minimum angle) histogram figure
+        currFig = figure(figArgs{:});
+        h = rose(vertcat(branchTipAngToDisp{iMov}{:}),angBins);
+        title('Branch tip minimum angle relative to net displacement, all frames');
+        figName = [currOutDir filesep 'branch tip minimum angle relative to displacement'];
+        mfFigureExport(currFig,figName);
+        
+        %tip only full four-quadrant angle centered by displacement vector
+        currFig = fsFigure(.5);
+        subplot(1,2,1);
+        h = rose(allBranchTipAngToDispFull{iMov}(:,1),numel(thetaBins));
+        title('Branch tip theta relative to net displacement, all frames');
+        subplot(1,2,2);
+        h = rose(allBranchTipAngToDispFull{iMov}(:,2),numel(phiBins));
+        title('Branch phi relative to net displacement, all frames');
+        figName = [currOutDir filesep 'branch tip full angle relative to displacement'];
+        mfFigureExport(currFig,figName);
+        
+        
+        %All branch full four-quadrant angle centered by displacement vector
+        currFig = fsFigure(.5);
+        subplot(1,2,1);
+        h = rose(allBranchAngToDispFull{iMov}(:,1),numel(thetaBins));
+        title('Branch tip theta relative to net displacement, all frames');
+        subplot(1,2,2);
+        h = rose(allBranchAngToDispFull{iMov}(:,2),numel(phiBins));
+        title('Branch phi relative to net displacement, all frames');
+        figName = [currOutDir filesep 'branch tip full angle relative to displacement'];
+        mfFigureExport(currFig,figName);
+        
+        
+        % ------- Velocity and Branch # time series plots ----- %
         
         if nFramesPerMov(iMov) > 1
         
@@ -572,6 +640,66 @@ figName = [p.OutputDirectory filesep 'velocity histograms'];
 print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
+
+%% --------- Branch Angle vs. Motion Combined Distributions -------- %%
+
+%--Tip-only full four-quadrant angle centered by displacement vector ---%%
+combBranchTipAngToDispFull = vertcat(allBranchTipAngToDispFull{:});
+currFig = fsFigure(.5);
+subplot(1,2,1);
+h = rose(combBranchTipAngToDispFull(:,1),numel(thetaBins));
+title({'Branch tip theta relative to net displacement',['n=' num2str(nMovies) ' cells, m= ' num2str(sum(nFramesPerMov)) ' frames']});
+subplot(1,2,2);
+h = rose(combBranchTipAngToDispFull(:,2),numel(phiBins));
+title('Branch tip phi relative to net displacement, all frames, all movies');
+figName = [p.OutputDirectory filesep 'branch tip full angle relative to displacement'];
+mfFigureExport(currFig,figName);
+
+%--All-branch four-quadrant angle centered by displacement vector ---%%
+combBranchAngToDispFull = vertcat(allBranchAngToDispFull{:});
+currFig = fsFigure(.5);
+subplot(1,2,1);
+h = rose(combBranchAngToDispFull(:,1),numel(thetaBins));
+title({'Branch theta relative to net displacement',['n=' num2str(nMovies) ' cells, m= ' num2str(sum(nFramesPerMov)) ' frames']});
+subplot(1,2,2);
+h = rose(combBranchAngToDispFull(:,2),numel(phiBins));
+title('Branch phi relative to net displacement, all frames, all movies');
+figName = [p.OutputDirectory filesep 'branch full angle relative to displacement'];
+mfFigureExport(currFig,figName);
+
+if ~isempty(p.BranchAngleDisplacementThresh)
+    
+    actuallyMoves = objDispStartEnd >= p.BranchAngleDisplacementThresh;    
+    
+    if nnz(actuallyMoves) > 0 
+        combBranchAngToDispFullMoving = vertcat(allBranchAngToDispFull{actuallyMoves});
+
+        currFig = fsFigure(.5);
+        subplot(1,2,1);
+        h = rose(combBranchAngToDispFullMoving(:,1),numel(thetaBins));
+        title({'Branch theta relative to net displacement',['n=' num2str(nnz(actuallyMoves)) ' cells, m= ' num2str(sum(nFramesPerMov(actuallyMoves))) ' frames']});
+        subplot(1,2,2);
+        h = rose(combBranchAngToDispFullMoving(:,2),numel(phiBins));
+        title({'Branch phi relative to net displacement, all frames, all movies',['(Both panels use cells with minimum displacement of ' num2str(p.BranchAngleDisplacementThresh/1e3) ' microns)']});
+        figName = [p.OutputDirectory filesep 'branch full angle relative to displacement moving cells only'];
+        mfFigureExport(currFig,figName);
+        
+    end
+end
+%--full four-quadrant angle centered by displacement vector ---%%
+
+% meanBranchTipAngToDispFullFreq = mean(cat(3,branchTipAngToDispFullFreq{:}),3);
+% 
+%  
+% currFig = fsFigure(.5);
+% subplot(1,2,1);
+% h = roseModTmp(meanBranchTipAngToDispFullFreq(:,1),numel(thetaBins));
+% title({'Branch tip theta relative to net displacement',['n=' num2str(nMovies) ' cells, m= ' num2str(sum(nFramesPerMov)) ' frames']});
+% subplot(1,2,2);
+% h = roseModTmp(meanBranchTipAngToDispFullFreq(:,2),numel(phiBins));
+% title('Branch tip phi relative to net displacement, all frames, all movies');
+% figName = [currOutDir filesep 'branch tip full angle relative to displacement'];
+% mfFigureExport(currFig,figName);
 
 
 
@@ -1039,5 +1167,8 @@ print(pOpt{:},[figName '.eps']);
 print(pOptTIFF{:},[figName '.tif']);
 hgsave([figName '.fig'])    
 
+%% ---- Output ----- %%
 
+%too lazy to list all the relevant variables so just dump it all...
+save([p.OutputDirectory filesep 'combined analysis.mat'])
 

@@ -10,7 +10,8 @@ if nargin < 2 || isempty(type)
 end
 
 if nargin < 3 || isempty(colors)
-    colors = [1 1 0 ; 0 0 1; 1 0 0 ];
+    %Colormap for emphasizing zero-ish values
+    colors = [.4 .4 .4; 1 0 0 ; .4 .4 .2];
 end
 nPer = nCol/2;
 %quick and dirty way to have a common colormap accross functions
@@ -34,8 +35,10 @@ switch type
         cMap = cat(1,a,b);
         
     case '3col'
-        
-        cMap = interp1(colors,linspace(1,size(colors,1),nCol)); 
+        x = linspace(-2,2,nCol);
+        y = x ./ sqrt(1+ x .^2);%If it's linear the majority of the scale is taken up by red.
+        %plot(x,y)
+        cMap = interp1([min(y) 0 max(y)]',colors,y); 
         
         
 end
