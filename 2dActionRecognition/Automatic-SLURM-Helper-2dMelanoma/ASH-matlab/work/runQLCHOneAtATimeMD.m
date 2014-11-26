@@ -9,7 +9,10 @@ addpath(genpath('../../../../../extern'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/algs/'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/utils/'));
-addpath(genpath('../../../../monolayer'));
+addpath(genpath('../../../../monolayer/utils'));
+addpath(genpath('../../../../monolayer/algs'));
+addpath('../../../../monolayer/timeLapseAnalysis/whLocalMotionEstimationMD.m');
+
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils'));
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs'));
 addpath(genpath('../../../../2dActionRecognition'));% probably same as just '../../'
