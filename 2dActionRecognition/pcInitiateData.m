@@ -26,7 +26,7 @@ for i = 1 : njobs
     if exist([analysisDirname name],'dir')
         continue; % the MovieData file was created in corresponding analysis folder
     end
-    MDs = MovieData([dataDirname name '.nd2'],'outputDirectory', [analysisDirname name]); % job1_task1, job1_task2... (for job1/task1, task2... use [analysisDirname name filesep curFname]
+    MDs = MovieData([dataDirname name '.nd2'],'outputDirectory', [analysisDirname name filesep curFname]); % job1_task1, job1_task2... (for job1/task1, task2... use [analysisDirname name filesep curFname]
     %     MDs = MovieData([dataDirname name '.nd2'],'outputDirectory', [analysisDirname name],'reuseReader',true);
     %     MDs = MovieData([dataDirname curFname '.nd2'],'outputDirectory', [analysisDirname curFname '/' curFname]);
 end
