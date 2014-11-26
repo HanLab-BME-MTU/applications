@@ -11,7 +11,7 @@ addpath(genpath('../../../../../extern'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/utils/'));
 addpath(genpath('../../../../monolayer/utils'));
 addpath(genpath('../../../../monolayer/algs'));
-addpath('../../../../monolayer/timeLapseAnalysis/whLocalMotionEstimationMD.m');
+addpath(genpath('../../../../monolayer/timeLapseAnalysis'));
 
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils'));
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs'));
