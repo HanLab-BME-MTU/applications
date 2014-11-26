@@ -441,6 +441,7 @@ end
 %% Find the corner of the Tikhonov L-curve
 [reg_cornerL2,ireg_cornerL2,kappaL2]=regParamSelecetionLcurve(rhoL2,etaL2,lambda,1e-13);
 [reg_cornerL2s,ireg_cornerL2s,~]=regParamSelecetionLcurve(rhoL2,etaL2,lambda,1e-7,'manualSelection',true);
+[reg_inflectionL2,ireg_inflectionL2]=regParamSelecetionLcurve(rhoL2,etaL2,lambda,1e-7,'inflection',2,'manualSelection',true);
 % [~,fminIdxL2]=min(fErr);
 % [reg_cornerL2,ireg_cornerL2,kappaL2]=l_curve_corner(rhoL2,etaL2,lambda);
 [~,fminFGIdxL2]=min(fErrFGL2);          
@@ -466,6 +467,9 @@ generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_cornerL2s),xgrid,ygrid,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at lower Lcorner ' num2str(reg_cornerL2s)],0,3100,false,460,460)
 % nlfh=generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at Lcorner ' num2str(reg_cornerL2) ' 3100 nonlinear'],0,3100,true,460,460);
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_inflectionL2),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap at inflection ' num2str(reg_inflectionL2)],0,3100,false,460,460)
 mycmap = get(nlfh,'Colormap');
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
@@ -497,6 +501,9 @@ generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at fBGmin'  
 
 [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,fminFGIdxL2),xgrid,ygrid,'new');
 generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at fFGmin'  num2str(lambda(fminFGIdxL2))],0,500,false,460,460);
+
+[fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,fCoeff(:,ireg_inflectionL2),xgrid,ygrid,'new');
+generateHeatmapFromGridData(x_out,y_out,fx,fy,['L2-0th forcemap 500 at inflection ' num2str(reg_inflectionL2)],0,500,false,460,460)
 %% initialization for L1 l curve
 maxIter = 20;
 tolx = 0.02;
