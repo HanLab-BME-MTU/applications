@@ -109,9 +109,9 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 35; 
+    paramsIn.patchSize = 50; 
     paramsIn.startFrame = 1;  %default = 1 
-    paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
+    paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
                                      % one a warning will come up but it
@@ -1189,8 +1189,10 @@ notBody = bwmorph(notBody,'thin','inf');
                display('Parallel Connections To Same Node Found: Fixing'); 
                
                uiR = unique(iR); % get the indexes of the potential repeats
-              for iPotRepeat = 1:length(uiR)
-               repeatTest = sum(iR == uiR(iPotRepeat));
+               idxDiscard = cell(length(uiR),1);
+              for iPotRepeat = 1:length(uiR) 
+                  
+               repeatTest = sum(iR == uiR(iPotRepeat)); % problem if there are two repeats. 
                if repeatTest > 1; % parallel edge
                    % get the score for each edge and choose the max % or
                    % could possibly just
@@ -1198,9 +1200,12 @@ notBody = bwmorph(notBody,'thin','inf');
                    % getScores or repeats
                    scoresRepeats = finalScore(iR==uiR(iPotRepeat));
                    maxScoreInGroup = max(scoresRepeats);
-                   idxDiscard = idxTest(scoresRepeats~=maxScoreInGroup);
+                   idxDiscard{iPotRepeat} = idxTest(scoresRepeats~=maxScoreInGroup);
+               end  % repeat test
+              end % 
+               idxDiscard = horzcat(idxDiscard{:}); 
                    % if check
-                   check = 1;
+                    check = 1;
                    if check == 1
                        imshow(img,[]);
                        hold on
@@ -1210,6 +1215,7 @@ notBody = bwmorph(notBody,'thin','inf');
                        edgeMask(vertcat(CCEdges.PixelIdxList{idxDiscard}))= 0 ;
                        spy(edgeMask,'r');
                    end
+                  
                    % discard that edge
                    edges(idxDiscard) = [];
                    dilBB(vertcat(CCEdges.PixelIdxList{idxDiscard}))=0;
@@ -1217,8 +1223,8 @@ notBody = bwmorph(notBody,'thin','inf');
                    CCEdges.NumObjects = CCEdges.NumObjects - length(idxDiscard);
                    finalScore(idxDiscard) = [] ; 
                    % CCEdges.NumObjects = CCEdges.
-               end % repeat test 
-              end % iPotRepeat
+               %end % repeat test 
+             % end % iPotRepeat
                % for iRepeat = 1:length(uiR)
                % end
                %if length(iRepeat
