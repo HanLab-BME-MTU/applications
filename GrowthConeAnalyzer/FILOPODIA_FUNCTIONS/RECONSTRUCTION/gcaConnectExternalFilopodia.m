@@ -667,6 +667,11 @@ if ~isempty(idxFiloAttach)
         % get the local orientation of the seed filo (note could also get
         % this from the maxTh info..
         testPoints = filoInfo(idxSeedFilo).Ext_coordsXY;
+        testPoints = testPoints(~isnan(testPoints(:,1)),:); % make sure no NaNs added 20141201 for instance at the border...  
+        % NaNs make the KDTree not work correctly all the time (check out
+        % why - but I noticed at smaller radii it will not find the points
+        % you are searching for... better to just avoid. 
+        
         [idxBranchRegion,dist]= KDTreeBallQuery(testPoints,[branchPointX,branchPointY],3); 
         if ~isempty(vertcat(idxBranchRegion{:})) &&  length(vertcat(idxBranchRegion{:}))>2 % added if statement 08-25-2013 and 09-01 
         idxBranchRegion = idxBranchRegion{:}(end-1:end,:); % 09-01-2013 why not using more points here for vector? 
@@ -677,6 +682,8 @@ if ~isempty(idxFiloAttach)
         magSeedVect = sqrt(vectSeedFiloLocBranchReg(1)^2+vectSeedFiloLocBranchReg(2)^2);
         else 
             magSeedVect = NaN; 
+            vectSeedFiloLocBranchReg = [NaN NaN]; % added 201411201
+            
         end 
         
         
