@@ -22,7 +22,7 @@ function varargout = imageFlattenProcessGUI(varargin)
 
 % Edit the above text to modify the response to help imageFlattenProcessGUI
 
-% Last Modified by GUIDE v2.5 07-Sep-2012 11:20:28
+% Last Modified by GUIDE v2.5 17-Nov-2014 11:22:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,6 +88,10 @@ set(handles.edit_subsample_number,'String',funParams.Sub_Sample_Num);
 
 set(handles.popupmenu_flatten_method,'String',{'Log','Sqrt','Power 2/3','Nothing'});
 set(handles.popupmenu_flatten_method,'Value',funParams.method_ind);
+
+
+set(handles.popupmenu_imageflattening_mode,'String',{'Live cell movie','A collection of single time images'});
+set(handles.popupmenu_imageflattening_mode,'Value',funParams.imageflattening_mode);
 
 set(handles.edit_timefilter_sigma,'String',funParams.TimeFilterSigma);
 
@@ -198,6 +202,8 @@ end
 funParams.GaussFilterSigma=gaussFilterSigma;
 
 funParams.method_ind = get(handles.popupmenu_flatten_method,'Value');
+
+funParams.imageflattening_mode = get(handles.popupmenu_imageflattening_mode,'Value');
 
 TimeFilterSigma = str2double(get(handles.edit_timefilter_sigma, 'String'));
 if isnan(TimeFilterSigma) || TimeFilterSigma < 0
@@ -345,3 +351,30 @@ function edit_subsample_number_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on selection change in popupmenu_imageflattening_mode.
+function popupmenu_imageflattening_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_imageflattening_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_imageflattening_mode contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_imageflattening_mode
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_imageflattening_mode_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_imageflattening_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+ set(hObject,'String',{'Live cell movie','A collection of single time images'});
+ set(hObject,'Value',2);
+  

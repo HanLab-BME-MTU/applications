@@ -151,6 +151,45 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             
             
         end
+        
+        
+        
+         function out_data = loadChannelOutput(obj,iChan,iFrame,varargin)
+            % Input check
+            ip =inputParser;
+            ip.addRequired('iChan',@obj.checkChanNum);
+            ip.addRequired('iFrame',@obj.checkFrameNum);
+            
+            outputList = {'flattened_image',''};
+            ip.addParamValue('output',{},@(x) all(ismember(x,outputList)));
+            
+            ip.parse(iChan,iFrame,varargin{:})
+            
+            ImageFlattenChannelOutputDir = obj.outFilePaths_{iChan};
+    
+            Channel_FilesNames = obj.getInImageFileNames(iChan);
+            filename_short_strs = uncommon_str_takeout(Channel_FilesNames{1});
+            
+            % this line in commandation for shortest version of filename
+            filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
+    
+            
+          
+            currentImg=[];
+            
+           try
+               currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                        filename_short_strs{iFrame},'.tif']);
+           catch
+               currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                        filename_shortshort_strs{iFrame},'.tif']);
+           end
+           
+             out_data = currentImg;
+             
+        end
+               
+        
         function h = draw(obj,iChan,varargin)
             
             outputList = obj.getDrawableOutput();
@@ -227,8 +266,9 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
             funParams.method_ind = 3;
+            funParams.imageflattening_mode = 2;
             funParams.GaussFilterSigma = 0.2;                        
-            funParams.TimeFilterSigma = 1;    
+            funParams.TimeFilterSigma = 0;    
             
             funParams.stat.low_005_percentile = 0;
             funParams.stat.high_995_percentile = 2^16-1;
