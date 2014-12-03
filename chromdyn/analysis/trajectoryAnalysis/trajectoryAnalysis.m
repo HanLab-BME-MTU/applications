@@ -179,7 +179,7 @@ fileList = [];
 writeShortFileList = 1; %writes everything on one line.
 standardTags = {'spb1';'cen1'};
 
-
+% constants.TESTPROBABILITY = 0.9; USE FOR INTEGRIN PROJECT TREND TESTING (KJ)
 constants.TESTPROBABILITY = 0.95;
 constants.PROB2SIDES = 1-(1-constants.TESTPROBABILITY)/2; % testprob for 2-sided test
 constants.PROBOUTLIER = 0.75; % probability for ouliers. if lower, less fits get accepted
