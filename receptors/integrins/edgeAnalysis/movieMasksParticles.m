@@ -1,9 +1,9 @@
 function movieMasksParticles(MD,movieInfo,numFramesSPT,saveMovie,movieName,...
-    movieType,plotFullScreen)
+    movieType,plotFullScreen,onlyInMask)
 %MOVIEMASKSPARTICLES makes a movie of cell masks and detected particles
 %
 %SYNPOSIS movieMasksParticles(MD,movieInfo,numFramesSPT,saveMovie,movieName,...
-%    movieType,plotFullScreen)
+%    movieType,plotFullScreen,onlyInMask)
 %
 %INPUT  MD          : movieData with cell mask.
 %       movieInfo   : Output of detectSubResFeatures2D_StandAlone.
@@ -19,8 +19,12 @@ function movieMasksParticles(MD,movieInfo,numFramesSPT,saveMovie,movieName,...
 %                     only under linux or mac.
 %                     Optional. Default: 'mov'.
 %       plotFullScreen: 1 the figure will be sized to cover the whole
-%                       screen. In this way the movie will be of highest
-%                       possible quality. default is 0.
+%                     screen. In this way the movie will be of highest
+%                     possible quality. 
+%                     Optional. Default is 0.
+%       onlyInMask  : 1 to plot only particles contained within cell mask,
+%                     0 to plot all particles.
+%                     Optional. Default: 0.
 %
 %OUTPUT the movie.
 %
@@ -52,6 +56,11 @@ end
 %check whether to use full screen for plotting
 if nargin < 7 || isempty(plotFullScreen)
     plotFullScreen = 0;
+end
+
+%check whether to plot only particles in mask
+if nargin < 8 || isempty(onlyInMask)
+    onlyInMask = 0;
 end
 
 %% preamble
@@ -98,14 +107,15 @@ if plotFullScreen
 else
     figure
 end
-for iFrame = 1 : numFramesMovie
+for iFrame = 1 : numFramesMovie-1
     
     clf;
     
     %read image + mask
     imageStack = imread(fullfile(imageDir,imageFileListing(iFrame).name));
     maskStack1 = imread(fullfile(maskDir,maskFileListing(iFrame).name));
-    
+    maskStack2 = imread(fullfile(maskDir,maskFileListing(iFrame+1).name));
+
     %plot cell image + mask
     axes('Position',[0 0 0.495 1]);
     imshow(imageStack,[prctile(imageStack(:),5) prctile(imageStack(:),95)]);
@@ -113,11 +123,19 @@ for iFrame = 1 : numFramesMovie
     hold on;
     maskBounds = bwboundaries(maskStack1);
     cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
+        maskBounds = bwboundaries(maskStack2);
+    cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',2)),maskBounds);
+    maskBounds = bwboundaries(maskStack1);
+    cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
+
     textDeltaCoord = min(diff(imageRange,[],2))/20;
-    text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
-        textDeltaCoord,num2str(iFrame),'Color','white');
-    %     text(imageRange(1,1)+textDeltaCoord-1,imageRange(2,1)+...
-    %         textDeltaCoord+2,[num2str((iFrame-1)*10) ' s'],'Color','white','FontSize',30);
+    %     text(imageRange(1,1)+textDeltaCoord,imageRange(2,1)+...
+    %         textDeltaCoord,num2str(iFrame),'Color','white');
+    text(imageRange(1,1)+textDeltaCoord-1,imageRange(2,1)+...
+        textDeltaCoord+2,[num2str((iFrame-1)*10) ' s'],'Color','white'); %,'FontSize',30);
+    
+    legend1 = legend('Current frame','Next frame');
+    set(legend1,'TextColor',[1 1 1],'Box','Off','Fontsize',8,'Location','Southwest');
     
     %make space for plotting particles + mask
     axes('Position',[0.505 0 0.495 1]);
@@ -133,9 +151,19 @@ for iFrame = 1 : numFramesMovie
         xCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).xCoord);
         yCoordRange = vertcat(movieInfo((iFrame-1)*numFramesSPT+1:iFrame*numFramesSPT).yCoord);
         
+        %if requested, keep only particles within mask
+        if onlyInMask
+            maskComb = maskStack1 | maskStack2;
+            coordLin = sub2ind([isx isy],round(yCoordRange(:,1)),round(xCoordRange(:,1)));
+            keepFlag = maskComb(coordLin);
+            xCoordRange = xCoordRange(keepFlag);
+            yCoordRange= yCoordRange(keepFlag);
+        end
+        
         %plot particles
         if ~isempty(xCoordRange)
-            plot(xCoordRange(:,1),yCoordRange(:,1),'.');
+            %             plot(xCoordRange(:,1),yCoordRange(:,1),'.');
+            plot(xCoordRange(:,1),yCoordRange(:,1),'o','Color','b','LineWidth',2,'MarkerSize',1.5);
         end
         
         %overlay masks
@@ -143,9 +171,14 @@ for iFrame = 1 : numFramesMovie
         cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
         maskBounds = bwboundaries(maskStack2);
         cellfun(@(x)(plot(x(:,2),x(:,1),'r','LineWidth',2)),maskBounds);
+        maskBounds = bwboundaries(maskStack1);
+        cellfun(@(x)(plot(x(:,2),x(:,1),'g','LineWidth',2)),maskBounds);
+        
+        legend1 = legend('Detected molecules');
+        set(legend1,'Box','Off','Fontsize',8,'Location','Southwest');
         
     end
-        
+    
     %add frame to movie if movie is saved
     if saveMovie
         movieVar = movieInfrastructure('addFrame',movieType,dir2saveMovie,...

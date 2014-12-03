@@ -1,4 +1,4 @@
-function testTrendSignificanceV3paper(particleBehavior,...
+function testSpatialTrendSignificanceV3paper(particleBehavior,...
     windowDistFromEdge,mode2plot,minNP,figureName,saveLoc,convFact,...
     yAxisLabel,axisLimits,plotWinDist,winFigName,winFigLoc,compArea)
 
@@ -200,30 +200,47 @@ combDynamicSeriesAftSem = combDynamicSeriesAftStd./sqrt(combDynamicSeriesAftNP);
 edgeSeriesSem = edgeSeriesStd./sqrt(edgeSeriesNP);
 
 
-%bands
-for iBand = 1 : 3
-    inputDataTmp.observations = [staticSeriesMean(:,iBand) staticSeriesSem(:,iBand)];
-    inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
-    inputData = convertTrajectoryData(inputDataTmp);
-    trajectoryAnalysis(inputData,struct('saveTxt',0));
+% %bands
+% for iBand = 1 : 3
+%     inputDataTmp.observations = [staticSeriesMean(:,iBand) staticSeriesSem(:,iBand)];
+%     inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
+%     inputData = convertTrajectoryData(inputDataTmp);
+%     trajectoryAnalysis(inputData,struct('saveTxt',0));
+% end
+% inputDataTmp.observations = [mean(staticSeriesMean(:,4:end),2) mean(staticSeriesSem(:,4:end),2)];
+% inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
+% inputData = convertTrajectoryData(inputDataTmp);
+% trajectoryAnalysis(inputData,struct('saveTxt',0));
+
+%spatial trend over bands
+iCount = 0;
+numFrames = size(staticSeriesMean,1);
+for iFrame = 1 : numFrames
+    tmp = [staticSeriesMean(iFrame,:)' staticSeriesSem(iFrame,:)'];
+    if length(find(~isnan(diff(tmp(:,1))))) > 1
+        iCount = iCount + 1;
+        disp([num2str(iCount) '   ' num2str(minInc+iFrame-1)]);
+        inputDataTmp.observations = [tmp(1:3,:); nanmean(tmp(4:end,:))];
+        inputDataTmp.time = [(1:4)' zeros(4,1)];
+        inputData = convertTrajectoryData(inputDataTmp);
+        try
+            trajectoryAnalysis(inputData,struct('saveTxt',0));
+        catch
+        end
+    end
 end
-inputDataTmp.observations = [mean(staticSeriesMean(:,4:end),2) mean(staticSeriesSem(:,4:end),2)];
-inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
-inputData = convertTrajectoryData(inputDataTmp);
-trajectoryAnalysis(inputData,struct('saveTxt',0));
 
-
-%right behind edge
-inputDataTmp.observations = [edgeSeriesMean(:,1) edgeSeriesSem(:,1)];
-inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
-inputData = convertTrajectoryData(inputDataTmp);
-trajectoryAnalysis(inputData,struct('saveTxt',0));
-
-%new cell area aligned & combined
-inputDataTmp.observations = [combDynamicSeriesAftMean(:,1) combDynamicSeriesAftSem(:,1)];
-inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
-inputData = convertTrajectoryData(inputDataTmp);
-trajectoryAnalysis(inputData,struct('saveTxt',0));
+% %right behind edge
+% inputDataTmp.observations = [edgeSeriesMean(:,1) edgeSeriesSem(:,1)];
+% inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
+% inputData = convertTrajectoryData(inputDataTmp);
+% trajectoryAnalysis(inputData,struct('saveTxt',0));
+% 
+% %new cell area aligned & combined
+% inputDataTmp.observations = [combDynamicSeriesAftMean(:,1) combDynamicSeriesAftSem(:,1)];
+% inputDataTmp.time = [(minInc:maxInc)'*convFactTime zeros(maxInc-minInc+1,1)];
+% inputData = convertTrajectoryData(inputDataTmp);
+% trajectoryAnalysis(inputData,struct('saveTxt',0));
 
 
 
