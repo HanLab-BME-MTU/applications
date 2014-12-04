@@ -278,6 +278,7 @@ for iCh = 1:nChan
                     idxEPs = sub2ind([ySize,xSize],EPCoordsBodyMask(:,2),EPCoordsBodyMask(:,1));
                     enterCoords = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
                     enterIdx  = sub2ind([ySize,xSize],enterCoords(:,2),enterCoords(:,1));
+                    
                     idxEPs(idxEPs ==enterIdx) = [];
                     pixBackboneNew = find(origBBMask==1) ;
                     useOtherSide =1 ;
@@ -304,8 +305,7 @@ for iCh = 1:nChan
             
             backboneSeed(pixBackboneNew)=1;
             
-            
-            
+           
             
             
             dims = [ySize,xSize];
@@ -313,8 +313,13 @@ for iCh = 1:nChan
             boundaryMask(1:dims(1),dims(2))=1;
             boundaryMask(1,1:dims(2))= 1;
             boundaryMask(dims(1),1:dims(2)) =1;
+            if useOtherSide == 1 
+                backboneSeed(enterIdx) = 0; % make sure to take out the old seed point 
+            else 
+            end 
             idxEnterNeurite = find(backboneSeed ==1 & boundaryMask ==1);
             [yEnter,xEnter] = ind2sub([ySize,xSize],idxEnterNeurite);
+        
             if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
                 % interpolate between to nearest point on boundary
                 % find endpoint of backboneSeed
@@ -322,7 +327,7 @@ for iCh = 1:nChan
                 EPsBackbone = getEndpoints(pixBackboneNew,[ySize,xSize]);
                 if useOtherSide == 1; % flag to not use old endpoint
                     idxEPs = sub2ind([ySize,xSize],EPsBackbone(:,2),EPsBackbone(:,1));
-                    enterCoords = backboneInfo(frames2Fix(iFrame)).bodyReconstruct.coordsEnterNeurite;
+                    enterCoords = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
                     enterIdx  = sub2ind([ySize,xSize],enterCoords(:,2),enterCoords(:,1));
                     idxEPs(idxEPs ==enterIdx) = [];
                     [EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
@@ -373,6 +378,10 @@ for iCh = 1:nChan
                 spy(origBBMask,'g')
                 hold on
                 spy(backboneSeed,'r');
+                if useOtherSide == 1
+                 scatter(xEnter,yEnter,'m'); 
+                 text(10,10,'Switched Entry Point', 'Color','y'); 
+                end 
                 saveas(gcf,[fixDir filesep 'OldVsNew' num2str(frames2Fix(iFrame),'%03d') '.tif']);
             end
             close gcf
