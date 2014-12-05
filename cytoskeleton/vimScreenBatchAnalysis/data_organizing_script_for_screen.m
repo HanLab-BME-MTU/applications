@@ -66,8 +66,8 @@ for iD = 1 : data_folder_number
         
     end
     
-    if(~exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'],'dir'))
-        mkdir([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images']);
+    if(~exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DAPI_Images'],'dir'))
+        mkdir([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DAPI_Images']);
     end
     
     % already added 0 padding, so always 2:3
@@ -90,7 +90,7 @@ for iD = 1 : data_folder_number
                     [Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'MT_Images',filesep,'mt_',Row_Name(iD,1),'_',Column_Name,'_s',Site_Name,'.tif']);
                 
                 copyfile([Data_Dir, filesep,data_folder_list(iD).name, filesep,'img_000000000_Dapi_000.tif'], ...
-                    [Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images',filesep,'dic_',Row_Name(iD,1),'_',Column_Name,'_s',Site_Name,'.tif']);
+                    [Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DAPI_Images',filesep,'dapi_',Row_Name(iD,1),'_',Column_Name,'_s',Site_Name,'.tif']);
             end
         end
     end
@@ -120,7 +120,7 @@ for iMovie = 1 : Movie_number
     channels_obj_one.sanityCheck();
     channels_obj_all = [channels_obj_all channels_obj_one];
     
-    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis',filesep,'DIC_Images']);
+    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis',filesep,'DAPI_Images']);
     channels_obj_one.getImageFileNames();
     channels_obj_one.sanityCheck();
     channels_obj_all = [channels_obj_all channels_obj_one];
