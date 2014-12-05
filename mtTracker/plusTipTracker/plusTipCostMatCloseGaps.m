@@ -98,6 +98,7 @@ function [costMat,nonlinkMarker,indxMerge,numMerge,indxSplit,numSplit,...
 %REMARKS
 %
 %Kathryn Applegate, 2009
+%Philippe Roudot 2014: 3D support
 %Adapted from costMatCloseGaps.m by Khuloud Jaqaman, April 2007
 
 %% Output
@@ -145,33 +146,42 @@ end
 % extract feature positions and velocity components
 px=trackedFeatInfo(:,1:8:end);
 py=trackedFeatInfo(:,2:8:end);
+pz=trackedFeatInfo(:,3:8:end);
+
 vx=diff(px,1,2);
 vy=diff(py,1,2);
+vz=diff(pz,1,2);
 
 % all the instantaneous velocities from all tracks in one vector
-velInst=sqrt(vx.^2+vy.^2);
+velInst=sqrt(vx.^2+vy.^2+vz.^2);
 velInst=velInst(:);
 velInst(isnan(velInst))=[];
 
 % TRACK STARTS
-trackStartPxyVxy = zeros(nTracks,4);
+trackStartPxyzVxyz = zeros(nTracks,6);
 % x and y coordinates of the track's first point
-trackStartPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
-trackStartPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,3)=cell2mat(arrayfun(@(i) pz(i,find(~isnan(pz(i,:)),1,'first')),[1:nTracks]','UniformOutput',0));
+
 % average of first three velocity vectors (made from last 4 points
 % on track, if that many exist), x and y components
-trackStartPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
-trackStartPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,4)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,5)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
+trackStartPxyzVxyz(:,6)=cell2mat(arrayfun(@(i) mean(vz(i,find(~isnan(vz(i,:)),3,'first'))),[1:nTracks]','UniformOutput',0));
 
 % TRACK ENDS
-trackEndPxyVxy = zeros(nTracks,4);
+trackEndPxyzVxyz = zeros(nTracks,6);
 % x and y coordinates of the track's last point
-trackEndPxyVxy(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
-trackEndPxyVxy(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,1)=cell2mat(arrayfun(@(i) px(i,find(~isnan(px(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,2)=cell2mat(arrayfun(@(i) py(i,find(~isnan(py(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,3)=cell2mat(arrayfun(@(i) pz(i,find(~isnan(pz(i,:)),1,'last')),[1:nTracks]','UniformOutput',0));
+
 % average of last three velocity vectors (made from last 4 points
 % on track, if that many exist), x and y components
-trackEndPxyVxy(:,3)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
-trackEndPxyVxy(:,4)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,4)=cell2mat(arrayfun(@(i) mean(vx(i,find(~isnan(vx(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,5)=cell2mat(arrayfun(@(i) mean(vy(i,find(~isnan(vy(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
+trackEndPxyzVxyz(:,6)=cell2mat(arrayfun(@(i) mean(vz(i,find(~isnan(vz(i,:)),3,'last'))),[1:nTracks]','UniformOutput',0));
 
 % get velocity components for each track from kalman filter (very similar to trackEndVxy)
 xyzVel=cell2mat(arrayfun(@(iTrack) kalmanFilterInfo(trackEndTime(iTrack))...
@@ -247,13 +257,15 @@ for iFrame = 1:nFrames-1
     nEnds = length(endsToConsider);
 
     % end track last pt
-    epX=repmat(trackEndPxyVxy(endsToConsider,1),[1 nStarts]);
-    epY=repmat(trackEndPxyVxy(endsToConsider,2),[1 nStarts]);
+    epX=repmat(trackEndPxyzVxyz(endsToConsider,1),[1 nStarts]);
+    epY=repmat(trackEndPxyzVxyz(endsToConsider,2),[1 nStarts]);
+    epZ=repmat(trackEndPxyzVxyz(endsToConsider,3),[1 nStarts]);
     % start track first pt
-    spX=repmat(trackStartPxyVxy(startsToConsider,1)',[nEnds 1]);
-    spY=repmat(trackStartPxyVxy(startsToConsider,2)',[nEnds 1]);
+    spX=repmat(trackStartPxyzVxyz(startsToConsider,1)',[nEnds 1]);
+    spY=repmat(trackStartPxyzVxyz(startsToConsider,2)',[nEnds 1]);
+    spZ=repmat(trackStartPxyzVxyz(startsToConsider,3)',[nEnds 1]);
     % nEnds x nStarts distance matrix containing displacement vector magnitude
-    dispMag=sqrt((epX-spX).^2+(epY-spY).^2);
+    dispMag=sqrt((epX-spX).^2+(epY-spY).^2+(epZ-spZ).^2);
 
     % we will only consider end/start pairs where the distance from end to start is less than
     % the max(forwardCutoff,backwardCutoff)
@@ -264,11 +276,13 @@ for iFrame = 1:nFrames-1
     dPara=zeros(nStarts*nEnds,1); % distance from the dPerp point on end track lattice to end track's last point
     evYc=zeros(nStarts*nEnds,1);  % x component of end track's instantaneous velocity at dPerp point
     evXc=zeros(nStarts*nEnds,1);  % y component of end track's instantaneous velocity at dPerp point
+    evZc=zeros(nStarts*nEnds,1);  % y component of end track's instantaneous velocity at dPerp poi
     endLinkIdx=zeros(nStarts*nEnds,1);   % end track's index for candidate pair
     startLinkIdx=zeros(nStarts*nEnds,1); % start track's index for candidate pair
     sAll=zeros(nStarts*nEnds,1);         % local start index that feeds into startCandidateIdx
     sXall=zeros(nStarts*nEnds,1);        % x-coordinates of all start tracks
     sYall=zeros(nStarts*nEnds,1);        % y-coordinates of all start tracks
+    sZall=zeros(nStarts*nEnds,1);        % y-coordinates of all start tracks
     endCounter=zeros(nStarts*nEnds,1);   % keep track of the current iEnd loop index
 
     if doTest==1
@@ -288,8 +302,9 @@ for iFrame = 1:nFrames-1
         end
 
         % coordinates of the first point in each startsToConsider track
-        sX=trackStartPxyVxy(startsToConsider(startCandidateIdx),1);
-        sY=trackStartPxyVxy(startsToConsider(startCandidateIdx),2);
+        sX=trackStartPxyzVxyz(startsToConsider(startCandidateIdx),1);
+        sY=trackStartPxyzVxyz(startsToConsider(startCandidateIdx),2);
+        sZ=trackStartPxyzVxyz(startsToConsider(startCandidateIdx),3);
 
         if doTest==1
             % re-assign points to be the current end track
@@ -297,6 +312,8 @@ for iFrame = 1:nFrames-1
             xtemp(isnan(xtemp))=[];
             ytemp=py(endsToConsider(iEnd),:)';
             ytemp(isnan(ytemp))=[];
+            ztemp=pz(endsToConsider(iEnd),:)';
+            ztemp(isnan(ztemp))=[];
 
             % here only look at the end tracks >=10 frames long
             if length(xtemp)<25
@@ -306,19 +323,26 @@ for iFrame = 1:nFrames-1
             % store track for later
             xTemp{iEnd,1}=xtemp;
             yTemp{iEnd,1}=ytemp;
+            zTemp{iEnd,1}=ztemp;
 
             % add fake points around the end track's last point at each
             % pixel center +/- halfWidth pixels from this point
             halfWidth=round(max([max(cutoffDistFwd); max(cutoffDistBwd)]));
-            [sX sY]= meshgrid([round(xtemp(end))-halfWidth:round(xtemp(end))+halfWidth],[round(ytemp(end))-halfWidth:round(ytemp(end))+halfWidth]);
+            [sX sY sZ]= meshgrid([round(xtemp(end))-halfWidth:round(xtemp(end))+halfWidth],...
+                [round(ytemp(end))-halfWidth:round(ytemp(end))+halfWidth],...
+                [round(ztemp(end))-halfWidth:round(ztemp(end))+halfWidth]);
             sX=sX(:);
             sY=sY(:);
-            negIdx=find(sX<=0 | sY<=0);
+            sZ=sZ(:);
+            negIdx=find(sX<=0 | sY<=0 | sZ<=0 );
             sX(negIdx)=[];
             sY(negIdx)=[];
+            sZ(negIdx)=[];
 
             sXall(count:count+length(sX)-1)=sX;
-            sYall(count:count+length(sX)-1)=sY;
+            sYall(count:count+length(sY)-1)=sY;
+            sZall(count:count+length(sZ)-1)=sZ;
+
 
             % assume all fake points are within the fwd and bwd cutoff distances
             cutFwdPerVec(count:count+length(sX)-1)=max(cutoffDistFwd);
@@ -327,15 +351,17 @@ for iFrame = 1:nFrames-1
         end
         sXall(count:count+length(sX)-1)=sX;
         sYall(count:count+length(sX)-1)=sY;
+        sZall(count:count+length(sZ)-1)=sZ;
         endCounter(count:count+length(sX)-1)=iEnd;
 
         % call subfunction to calculate magnitude of the components of
         % the vector pointing from end to start, as well as the components
         % of the local velocity along the end track at its closest point to
         % the start track
-        [dPerpTemp,dParaTemp,evYcTemp,evXcTemp]=pt2segDist...
-            ([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)'],...
-            trackStartPxyVxy(endsToConsider(iEnd),:),[sY,sX],cutoffDistBwd,0);
+
+        [dPerpTemp,dParaTemp,evYcTemp,evXcTemp,evZcTemp]=pt2segDist...
+            ([py(endsToConsider(iEnd),:)',px(endsToConsider(iEnd),:)',pz(endsToConsider(iEnd),:)'],...
+            trackStartPxyzVxyz(endsToConsider(iEnd),:),[sZ, sY,sX],cutoffDistBwd,0);
 
         % dPerp is the component perpendicular to the end track
         dPerp(count:count+length(sX)-1)=dPerpTemp;
@@ -346,8 +372,7 @@ for iFrame = 1:nFrames-1
         % the point closest (c) each startsToConsider track starts
         evXc(count:count+length(sX)-1)=evXcTemp;
         evYc(count:count+length(sX)-1)=evYcTemp;
-
-
+        evZc(count:count+length(sX)-1)=evZcTemp;
 
         if doTest==1
             % redefine these based on test points
@@ -376,6 +401,7 @@ for iFrame = 1:nFrames-1
     dPara(count:end)=[];
     evYc(count:end)=[];
     evXc(count:end)=[];
+    evZc(count:end)=[];
     endLinkIdx(count:end)=[];
     startLinkIdx(count:end)=[];
     sAll(count:end)=[];
@@ -385,37 +411,44 @@ for iFrame = 1:nFrames-1
         % for test, assume they all point in same direction as end track's last pt
         svX = evXc; %trackEndPxyVxy(endLinkIdx,3);
         svY = evYc; %trackEndPxyVxy(endLinkIdx,4);
+        svZ = evZc; %trackEndPxyVxy(endLinkIdx,4);
+
     else
-        svX = trackStartPxyVxy(startLinkIdx,3);
-        svY = trackStartPxyVxy(startLinkIdx,4);
+        svX = trackStartPxyzVxyz(startLinkIdx,4);
+        svY = trackStartPxyzVxyz(startLinkIdx,5);
+        svZ = trackStartPxyzVxyz(startLinkIdx,6);
     end
-    svMag = sqrt(svX.^2 + svY.^2);
+    svMag = sqrt(svX.^2 + svY.^2 + svZ.^2);
 
     % cos of angle between start track beginning and direction of end
     % track at closest point to start
-    evMagC=sqrt(evXc.^2+evYc.^2);
-    cosTheta = (evXc.*svX + evYc.*svY)./(evMagC.*svMag);
+    evMagC=sqrt(evXc.^2+evYc.^2+evZc.^2);
+    cosTheta = (evXc.*svX + evYc.*svY+ evZc.*svZ)./(evMagC.*svMag);
 
     % velocity at final point (f) of endsToConsider tracks
-    evXf = trackEndPxyVxy(endLinkIdx,3);
-    evYf = trackEndPxyVxy(endLinkIdx,4);
-    evMagF = sqrt(evXf.^2 + evYf.^2);
+    evXf = trackEndPxyzVxyz(endLinkIdx,4);
+    evYf = trackEndPxyzVxyz(endLinkIdx,5);
+    evZf = trackEndPxyzVxyz(endLinkIdx,6);
+
+    evMagF = sqrt(evXf.^2 + evYf.^2 +  evZf.^2);
 
     % displacement vector (start minus end)
     if doTest==1
-        dispX = sXall-trackEndPxyVxy(endLinkIdx,1);
-        dispY = sYall-trackEndPxyVxy(endLinkIdx,2);
+        dispX = sXall-trackEndPxyzVxyz(endLinkIdx,1);
+        dispY = sYall-trackEndPxyzVxyz(endLinkIdx,2);
+        dispZ = sZall-trackEndPxyzVxyz(endLinkIdx,3);
     else
-        dispX = trackStartPxyVxy(startLinkIdx,1)-trackEndPxyVxy(endLinkIdx,1);
-        dispY = trackStartPxyVxy(startLinkIdx,2)-trackEndPxyVxy(endLinkIdx,2);
+        dispX = trackStartPxyzVxyz(startLinkIdx,1)-trackEndPxyzVxyz(endLinkIdx,1);
+        dispY = trackStartPxyzVxyz(startLinkIdx,2)-trackEndPxyzVxyz(endLinkIdx,2);
+        dispZ = trackStartPxyzVxyz(startLinkIdx,3)-trackEndPxyzVxyz(endLinkIdx,3);
     end
-    dispMag = sqrt(dispX.^2 + dispY.^2);
+    dispMag = sqrt(dispX.^2 + dispY.^2 + dispZ.^2);
 
     % cos angle between end track's end and start track's start
-    cosEF_SF = (evXf.*svX + evYf.*svY)./(evMagF.*svMag); % cos(alpha)
+    cosEF_SF = (evXf.*svX + evYf.*svY+evZf.*svZ)./(evMagF.*svMag); % cos(alpha)
 
     % cos angle between end track's end and displacement vector
-    cosEF_D  = (evXf.*dispX + evYf.*dispY)./(evMagF.*dispMag); % cos(beta)
+    cosEF_D  = (evXf.*dispX + evYf.*dispY+ evZf.*dispZ)./(evMagF.*dispMag); % cos(beta)
 
     % criteria for backward linking:
     % perp dist (dPerp) must be smaller than user-set fluctRad
@@ -461,9 +494,6 @@ for iFrame = 1:nFrames-1
     fwdIdx=[fwdIdx1; fwdIdx2];
     
     if ~isempty(fwdIdx)
-        
-        
-
         % record indices and parts of cost for forward links
         indx1(linkCount:linkCount+length(fwdIdx)-1) = endLinkIdx(fwdIdx);
         indx2(linkCount:linkCount+length(fwdIdx)-1) = startLinkIdx(fwdIdx);
@@ -493,9 +523,9 @@ for iFrame = 1:nFrames-1
                 if isempty(intersect(idxTemp,fwdIdx)) && isempty(intersect(idxTemp,bwdIdx))
                     continue
                 end
-                img=zeros(max(sYall(idxTemp)),max(sXall(idxTemp)));
-                img(sub2ind(size(img),sYall(intersect(idxTemp,fwdIdx)),sXall(intersect(idxTemp,fwdIdx))))=1;
-                img(sub2ind(size(img),sYall(intersect(idxTemp,bwdIdx)),sXall(intersect(idxTemp,bwdIdx))))=2;
+                img=zeros(max(sYall(idxTemp)),max(sXall(idxTemp)),max(sZall(idxTemp)));
+                img(sub2ind(size(img),sYall(intersect(idxTemp,fwdIdx)),sXall(intersect(idxTemp,fwdIdx)),sZall(intersect(idxTemp,fwdIdx))))=1;
+                img(sub2ind(size(img),sYall(intersect(idxTemp,bwdIdx)),sXall(intersect(idxTemp,bwdIdx)),sZall(intersect(idxTemp,fwdIdx))))=2;
 
 
                 figure
@@ -662,10 +692,10 @@ if doPlot==1
 
             % end track end vectors
             %quiver(currentTrackE(end,1),currentTrackE(end,2),xyzVel(indx1(iEnd),1),xyzVel(indx1(iEnd),2),'r')
-            quiver(trackEndPxyVxy(indx1(idx),1),trackEndPxyVxy(indx1(idx),2),trackEndPxyVxy(indx1(idx),3),trackEndPxyVxy(indx1(idx),4),'b')
+            quiver(trackEndPxyzVxyz(indx1(idx),1),trackEndPxyzVxyz(indx1(idx),2),trackEndPxyzVxyz(indx1(idx),3),trackEndPxyzVxyz(indx1(idx),4),'b')
             % start track end vectors
             %quiver(currentTrackS(end,1),currentTrackS(end,2),xyzVel(indx2(iStart),1),xyzVel(indx2(iStart),2),'r')
-            quiver(trackEndPxyVxy(indx2(idx),1),trackEndPxyVxy(indx2(idx),2),trackEndPxyVxy(indx2(idx),3),trackEndPxyVxy(indx2(idx),4),'b')
+            quiver(trackEndPxyzVxyz(indx2(idx),1),trackEndPxyzVxyz(indx2(idx),2),trackEndPxyzVxyz(indx2(idx),3),trackEndPxyzVxyz(indx2(idx),4),'b')
 
         end
 
@@ -710,7 +740,7 @@ nonlinkMarker = min(floor(full(min(min(costMat))))-5,-5);
 %% ~~~ the end ~~~
 
 
-function [dPerp,dPara,evY,evX]=pt2segDist(segYX,endTrackStartPxyVxy,ptYX,maxCutoff,doPlot)
+function [dPerp,dPara,evY,evX,evZ]=pt2segDist(segZYX,endTrackStartPxyVxy,ptZYX,maxCutoff,doPlot)
 % find nearest point on the directed segment B-C to point P
 % see http://www.geometrictools.com/Documentation/DistancePointLine.pdf for
 % inspiration
@@ -736,12 +766,12 @@ if doPlot==1
     figure
 end
 
-segYXorig=segYX;
+segYXZorig=segZYX;
 
 % find how many phantom pts are needed to extend bwd vector past max bwd cutoff
 % endTrackStartPxyVxy is not the whole matrix - only for this particular end
 % track
-endMag=sqrt(sum(endTrackStartPxyVxy(1,3:4).^2));
+endMag=sqrt(sum(endTrackStartPxyVxy(1,4:6).^2));
 if (endMag~=0)
     nRepPhantom=ceil(max(maxCutoff)/endMag);
 else
@@ -750,55 +780,56 @@ end
 
 % create the phantom points extending back from end track's first pt,
 % pointing towards it with the end track's starting velocity
-phantomYX=repmat(endTrackStartPxyVxy(1,2:-1:1),[nRepPhantom,1])-...
-    repmat([nRepPhantom:-1:1]',[1,2]).*repmat(endTrackStartPxyVxy(1,4:-1:3),[nRepPhantom,1]);
-segYX=[phantomYX; segYX];
+phantomZYX=repmat(endTrackStartPxyVxy(1,3:-1:1),[nRepPhantom,1])-...
+    repmat([nRepPhantom:-1:1]',[1,3]).*repmat(endTrackStartPxyVxy(1,6:-1:4),[nRepPhantom,1]);
+segZYX=[phantomZYX; segZYX];
 
 % treat every consecutive pair of points in segYX as a line segment BC
-bYX=segYX(1:end-1,:); % here's a vector containing the first pt of each line segment (B)
-bcYX=diff(segYX); % velocity components
-BC=sqrt(sum(bcYX.^2,2)); % BC length
+bZYX=segZYX(1:end-1,:); % here's a vector containing the first pt of each line segment (B)
+bcZYX=diff(segZYX); % velocity components
+BC=sqrt(sum(bcZYX.^2,2)); % BC length
 
 % keep track of which entries don't exist
-nanEntries=double(isnan(bcYX(:,1)));
+nanEntries=double(isnan(bcZYX(:,1)));
 nanEntries=swapMaskValues(nanEntries,[0,1],[1,nan]);
-nPts=size(ptYX,1);
+nPts=size(ptZYX,1);
 dPerp=zeros(nPts,1);
 dPara=zeros(nPts,1);
+evZ=zeros(nPts,1);
 evY=zeros(nPts,1);
 evX=zeros(nPts,1);
-for i=1:size(ptYX,1)
+for i=1:size(ptZYX,1)
     % velocity components for vectors from all points on seg BC to P
-    temp=repmat(ptYX(i,:),[size(segYX,1),1])-segYX;
+    temp=repmat(ptZYX(i,:),[size(segZYX,1),1])-segZYX;
 
-    bpYX=temp(1:end-1,:); % velocity components for P-B
-    BP=sqrt(sum(bpYX.^2,2)); % distance from P to B
+    bpZYX=temp(1:end-1,:); % velocity components for P-B
+    BP=sqrt(sum(bpZYX.^2,2)); % distance from P to B
 
-    cpYX=temp(2:end,:); % velocity components for P-C
-    CP=sqrt(sum(cpYX.^2,2)); % distance from P to C
+    cpZYX=temp(2:end,:); % velocity components for P-C
+    CP=sqrt(sum(cpZYX.^2,2)); % distance from P to C
 
     % get fraction mag(vector from B to point on line closest to P)/mag(BC)
     % if t0<0, closest to b; if t0>0 then closet to c
-    t0=(bcYX(:,1).*bpYX(:,1)+bcYX(:,2).*bpYX(:,2))./(BC.^2);
+    t0=(bcZYX(:,1).*bpZYX(:,1)+bcZYX(:,2).*bpZYX(:,2)+bcZYX(:,3).*bpZYX(:,3))./(BC.^2);
 
     D=zeros(length(t0),1);
-    extraPt=zeros(length(t0),2);
+    extraPt=zeros(length(t0),3);
 
     % P falls outside segment and is closest to B
     idx=find(t0<=0);
     D(idx)=BP(idx);
-    extraPt(idx,:)=segYX(idx,:); % just duplicate the first point
+    extraPt(idx,:)=segZYX(idx,:); % just duplicate the first point
 
     % P falls outside segment and is closest to C
     idx=find(t0>=1);
     D(idx)=CP(idx);
-    extraPt(idx,:)=segYX(idx+1,:); % duplicate the last point
+    extraPt(idx,:)=segZYX(idx+1,:); % duplicate the last point
 
     % P falls within BC segment
     idx=find(t0>0 & t0<1);
-    pYX=repmat(ptYX(i,:),[length(idx),1]);
-    b_plus_t0M=bYX(idx,:)+repmat(t0(idx),[1 2]).*bcYX(idx,:); % location of perp point along segment
-    nearVec=pYX-b_plus_t0M;
+    pZYX=repmat(ptZYX(i,:),[length(idx),1]);
+    b_plus_t0M=bZYX(idx,:)+repmat(t0(idx),[1 3]).*bcZYX(idx,:); % location of perp point along segment
+    nearVec=pZYX-b_plus_t0M;
     D(idx)=sqrt(sum(nearVec.^2,2));
     extraPt(idx,:)=b_plus_t0M; % we'll have to insert this point into the list of pts in segYX
 
@@ -811,7 +842,7 @@ for i=1:size(ptYX,1)
 
     % add in the extra point corresponding to where the dPerp vector falls on
     % the BC line
-    temp=[segYX; 0 0];
+    temp=[segZYX; 0 0 0];
     temp(d1Idx+2:end,:)=temp(d1Idx+1:end-1,:);
     temp(d1Idx+1,:)=extraPt(d1Idx,:);
 
@@ -825,9 +856,10 @@ for i=1:size(ptYX,1)
     % local estimate of the instantaneous velocity
     pts2getLocalVel = temp(max(1,d1Idx-1):min(size(temp,1),d1Idx+3),:);
     pts2getLocalVel(isnan(pts2getLocalVel(:,1)),:)=[];
-    velYX=sum(diff(pts2getLocalVel))./(size(pts2getLocalVel,1)-2);
-    evY(i)=velYX(1);
-    evX(i)=velYX(2);
+    velZYX=sum(diff(pts2getLocalVel))./(size(pts2getLocalVel,1)-2);
+    evZ(i)=velZYX(1);
+    evY(i)=velZYX(2);
+    evX(i)=velZYX(3);
 
     % calculate pt-to-pt displacements towards the track end and sum them
     % this is the total shrinkage distance
@@ -837,26 +869,26 @@ for i=1:size(ptYX,1)
 
     if doPlot==1
         % show all the pts to check as blue dot
-        scatter(ptYX(:,2),ptYX(:,1),'.')
+        scatter(ptZYX(:,2),ptZYX(:,1),'.')
 
         % plot end track as a blue line
-        plot(segYX(:,2),segYX(:,1))
-        plot(segYXorig(:,2),segYXorig(:,1),'LineWidth',2)
+        plot(segZYX(:,2),segZYX(:,1))
+        plot(segYXZorig(:,2),segYXZorig(:,1),'LineWidth',2)
         hold on;
         % add blue dots for detection events
         scatter(temp(:,2),temp(:,1),'b.')
         % add magenta line showing start velocity vector
         quiver(endTrackStartPxyVxy(1),endTrackStartPxyVxy(2),endTrackStartPxyVxy(3),endTrackStartPxyVxy(4),0,'m')
         % plot candidate start point in red
-        scatter(ptYX(i,2),ptYX(i,1),'r.')
+        scatter(ptZYX(i,2),ptZYX(i,1),'r.')
         % show dPerp,dPara distances next to point
-        text(ptYX(i,2),ptYX(i,1),['\leftarrow ' sprintf('%3.2f',dPerp(i)) ', ' sprintf('%3.2f',dPara(i))])
+        text(ptZYX(i,2),ptZYX(i,1),['\leftarrow ' sprintf('%3.2f',dPerp(i)) ', ' sprintf('%3.2f',dPara(i))])
         % show newly-created extra pt as green circle
         scatter(extraPt(d1Idx,2),extraPt(d1Idx,1),'g')
         % show end-track calculated instantaneous velocity at new pt
-        quiver(extraPt(d1Idx,2),extraPt(d1Idx,1),velYX(2)+.1,velYX(1)+.1,0,'r')
+        quiver(extraPt(d1Idx,2),extraPt(d1Idx,1),velZYX(2)+.1,velZYX(1)+.1,0,'r')
         % connect new pt to candidate start pt with green line
-        plot([ptYX(i,2); extraPt(d1Idx,2)],[ptYX(i,1); extraPt(d1Idx,1)],'g')
+        plot([ptZYX(i,2); extraPt(d1Idx,2)],[ptZYX(i,1); extraPt(d1Idx,1)],'g')
         axis equal
     end
 end

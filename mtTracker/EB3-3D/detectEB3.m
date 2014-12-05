@@ -26,7 +26,7 @@ else
     processFrames=ip.Results.processFrames;
 end
 
-if strcmp(ip.Results.type,'pointSourceAutoSigma')
+if strcmp(ip.Results.type,'pointSourceAutoSigma')||strcmp(ip.Results.type,'pointSourceAutoSigmaFit')
     scales=getGaussianPSFsigmaFrom3DData(double(MD.getChannel(ip.Results.channel).loadStack(1)));
 else
     scales=ip.Results.scales;
@@ -35,7 +35,7 @@ end
 labels=cell(1,numel(processFrames));
 movieInfo(numel(processFrames),1) = struct('xCoord', [], 'yCoord',[],'zCoord', [], 'amp', [], 'int',[]);
 
-for frameIdx=1:numel(processFrames)
+parfor frameIdx=1:numel(processFrames)
     timePoint=processFrames(frameIdx);
     disp(['Processing time point ' num2str(timePoint,'%04.f')])
     vol=double(MD.getChannel(ip.Results.channel).loadStack(timePoint));
@@ -52,6 +52,10 @@ for frameIdx=1:numel(processFrames)
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         labels{frameIdx}=double(mask); % adjust label
         movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol)
+      case {'pointSourceFit','pointSourceAutoSigmaFit'}
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+        movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
+        labels{frameIdx}=double(mask); % adjust label
       otherwise 
         disp('Unsupported detection method.');
         disp('Supported method:');
@@ -64,8 +68,7 @@ for frameIdx=1:numel(processFrames)
         figure()
         imseriesmaskshow(vol,labels{frameIdx});
     end
-end 
-
+end  
 
 function movieInfo= labelToMovieInfo(label,vol)
 [feats,nFeats] = bwlabeln(label);
@@ -81,4 +84,13 @@ movieInfo=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
 movieInfo.xCoord= xCoord;movieInfo.yCoord=yCoord;movieInfo.zCoord=zCoord;
 movieInfo.amp=amp;
 movieInfo.int=amp;
+
+
+function movieInfo= pstructToMovieInfo(pstruct)
+movieInfo.xCoord = [pstruct.x' pstruct.x_pstd'];
+movieInfo.yCoord = [pstruct.y' pstruct.y_pstd'];
+movieInfo.zCoord = [pstruct.z' pstruct.z_pstd'];
+movieInfo.amp = [pstruct.A' pstruct.A_pstd'];
+movieInfo.int= [pstruct.A' pstruct.A_pstd'];
+
 
