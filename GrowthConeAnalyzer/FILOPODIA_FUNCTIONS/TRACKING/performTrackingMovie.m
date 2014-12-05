@@ -10,8 +10,8 @@ costMatParams.predict = 0 ;
 
 % load from 
 
-  load([movieData.outputDirectory_ filesep 'filopodia_reconstruct' filesep ... 
-      'Filopodia_Reconstruct_Channel_1' filesep 'analInfoWithLocalVeilnmPerSec.mat']);
+  load([movieData.outputDirectory_ filesep 'filopodia_fits' filesep ... 
+      'Filopodia_Fits_Channel_1' filesep 'analInfoWithWindInfo.mat']);
   
    imDir = movieData.channels_(1).channelPath_;
   

@@ -81,14 +81,14 @@ for i=1:length(idxNaN);
 
 end 
 end 
-%windowNum =arrayfun(@(x) filoInfoFilt(x).windowIdx(1),1:length(filoInfoFilt)); 
-localVeil = arrayfun(@(x) filoInfoFilt(x).localVeil,1:length(filoInfoFilt));  
+windowNum =arrayfun(@(x) filoInfoFilt(x).windowIdx(1),1:length(filoInfoFilt)); 
+%localVeil = arrayfun(@(x) filoInfoFilt(x).localVeil,1:length(filoInfoFilt));  
 add = 0.5*ones(length(xyCoords),1); 
 movieInfo(iFrame).xCoord = [xyCoords(:,1) add]; 
 movieInfo(iFrame).yCoord = [xyCoords(:,2) add]; 
 %movieInfo(iFrame).amp = [lengths std]; % remind me why I need movieInfo format again... should try to eradicate 
-%movieInfo(iFrame).amp = [windowNum' std];
-movieInfo(iFrame).amp = [localVeil' std]; 
+movieInfo(iFrame).amp = [windowNum' std];
+%movieInfo(iFrame).amp = [localVeil' std]; 
  analInfoFilt(iFrame).filoInfo = filoInfoFilt; 
 
 

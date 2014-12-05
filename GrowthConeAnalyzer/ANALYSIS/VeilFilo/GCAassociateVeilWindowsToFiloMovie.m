@@ -38,7 +38,7 @@ end
 
 if nargin < 2
     % Generic
-    paramsIn.OutputDirectory = [movieData.outputDirectory_ filesep 'filopodia_reconstruct'];
+    paramsIn.OutputDirectory = [movieData.outputDirectory_ filesep 'filopodia_fits'];
     paramsIn.ChannelIndex = 1;
     paramsIn.ProcessIndex = 0; % use raw images
 end 
@@ -54,19 +54,20 @@ nx = imSize(2);
 for iCh = 1:nChan
   % INSERT CHECKS TO MAKE SURE THE FILO RECONSTRUCT WAS RUN  
   % load analInfo this contains the filoInfo for each frame    
-  load([p.OutputDirectory filesep ... 
-      'Filopodia_Reconstruct_Channel_' num2str(iCh)' filesep 'analInfoTestSave.mat']); 
+  %load([p.OutputDirectory filesep ... 
+   %   'Filopodia_Reconstruct_Channel_' num2str(iCh)' filesep 'analInfoTestSave.mat']); 
  % INSERT CHECKS TO MAKE SURE THE WINDOWING WAS RUN- Likely a nice way to
  % do this with  movieData to get all files associated with the windowing
  % step- for now
-  
+  load([p.OutputDirectory filesep ... 
+      'Filopodia_Fits_Channel_' num2str(iCh) filesep 'analInfoTestSave.mat']); 
   
     display(['Assigning Veil Windows To Filopodia for Channel' num2str(iCh)]); 
  
    
     % make final output dir where Assignment Info will be saved 
     saveDir =  [p.OutputDirectory  filesep ...
-        'Filopodia_Reconstruct_Channel_' num2str(iCh)]; % I think just save back 
+        'Filopodia_Fits_Channel_'  num2str(iCh)]; % I think just save back 
     % into the same directory for now. 
     %mkClrDir(saveDir)
     
@@ -83,7 +84,7 @@ for iCh = 1:nChan
     end
 %% %%%% Start Frame Loop %%%%
     for iFrame = 1:nFrames
-       load([movieData.outputDirectory_ filesep 'WindowingPackage' filesep 'windows' filesep  'windows_frame__frame_' num2str(iFrame,'%03d') '.mat'])  ;    
+       load([movieData.outputDirectory_ filesep 'windows' filesep  'windows_frame__frame_' num2str(iFrame,'%03d') '.mat'])  ;    
        filoInfoC = analInfo(iFrame).filoInfo; 
        filoInfo = GCAassociateVeilWindowsToFilo(filoInfoC,windows,0); 
        analInfo(iFrame).filoInfo = filoInfo; % replace 

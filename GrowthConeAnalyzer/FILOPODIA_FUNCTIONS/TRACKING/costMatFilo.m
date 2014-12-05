@@ -304,7 +304,8 @@ for ifilo = 1:n % for all filo in current frame
     %y1 = movieInfo(1).yCoord(ifilo,2);
     
     fit = round(movieInfo(1).filoInfo(ifilo).Ext_length); % get the fit Length (in pixels)
-    if ~isempty(fit)
+   % if ~isempty(fit)
+   if fit ~=0; % added 20141129 think changed the output of a zero length from [] to 0 
     % divide the fit length by two to get the length value of the filo 'base'
     % to be used for angle calculation. calc the delta y/delta x and mag
     % describing the filo vector
@@ -343,7 +344,8 @@ for ifilo = 1:n % for all filo in current frame
         % divide the fit length by two to get the length value of the filo 'base'
         % to be used for angle calculation. calc the delta y/delta x and mag
         % describing the filo vector in the 2nd frame
-        if ~isempty(fit)
+      %  if ~isempty(fit) 
+         if fit~=0 % changed 20141129
            
             deltaXBaseNext =  movieInfo(2).filoInfo(idxCan).Ext_coordsXY(round(fit/2),1) - movieInfo(2).filoInfo(idxCan).Ext_coordsXY(1,1);
             deltaYBaseNext = movieInfo(2).filoInfo(idxCan).Ext_coordsXY(round(fit/2),2)- movieInfo(2).filoInfo(idxCan).Ext_coordsXY(1,2) ;

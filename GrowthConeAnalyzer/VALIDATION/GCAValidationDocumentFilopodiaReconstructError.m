@@ -243,6 +243,11 @@ for iFrame = 1:movieData.nFrames_ -1
        
     end % while
 
+% save record from frame
+    filoValidation(iFrame).coordsFP = coordsFP;
+    
+    
+    
  reply4 = questdlg('Move To Next Frame?') ;
     if strcmpi(reply4,'yes');
       close gcf  
@@ -250,13 +255,11 @@ for iFrame = 1:movieData.nFrames_ -1
         close gcf
         break
     end
-    
-
+     
 end % iframe
 
 
-  % save every frame
-    filoValidation(iFrame).coordsFP = coordsFP;
+ 
 %%
 %% Document Misconnections 
 for iFrame = 1:movieData.nFrames_ -1
@@ -369,12 +372,12 @@ for iFrame = 1:movieData.nFrames_ -1
         close gcf
         break
     end
-    
+    %Record Misconnections in a structure 
+    filoValidation(iFrame).coordsMis = coordsMis;
 
 end % iframe
 
-%Record Misconnections in a structure 
-    filoValidation(iFrame).coordsMis = coordsMis;
+
 
 save([movieData.outputDirectory_ filesep 'filoValidation'],'filoValidation');
 
