@@ -109,7 +109,7 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 50; 
+    paramsIn.patchSize = 60; 
     paramsIn.startFrame = 1;  %default = 1 
     paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
@@ -1192,7 +1192,7 @@ notBody = bwmorph(notBody,'thin','inf');
                idxDiscard = cell(length(uiR),1);
               for iPotRepeat = 1:length(uiR) 
                   
-               repeatTest = sum(iR == uiR(iPotRepeat)); % problem if there are two repeats. 
+               repeatTest = sum(iR == uiR(iPotRepeat)); % problem if there are two repeats Fixed 20141129. 
                if repeatTest > 1; % parallel edge
                    % get the score for each edge and choose the max % or
                    % could possibly just
