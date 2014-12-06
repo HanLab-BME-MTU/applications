@@ -109,7 +109,7 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 60; 
+    paramsIn.patchSize = 40; 
     paramsIn.startFrame = 1;  %default = 1 
     paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
