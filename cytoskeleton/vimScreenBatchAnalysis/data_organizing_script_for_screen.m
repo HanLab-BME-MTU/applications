@@ -66,7 +66,7 @@ for iD = 1 : data_folder_number
         
     end
     
-     if(~exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'],'dir'))
+     if(exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'],'dir'))
         rmdir([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'], 's');                   
     end
     
