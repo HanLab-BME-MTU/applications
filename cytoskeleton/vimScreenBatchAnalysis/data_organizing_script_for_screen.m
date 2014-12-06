@@ -66,6 +66,10 @@ for iD = 1 : data_folder_number
         
     end
     
+     if(~exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'],'dir'))
+        rmdir([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DIC_Images'], 's');                   
+    end
+    
     if(~exist([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DAPI_Images'],'dir'))
         mkdir([Analysis_Dir,filesep,Row_Name(iD,1),'_Row_Analysis',filesep,'DAPI_Images']);
     end
@@ -110,17 +114,17 @@ for iMovie = 1 : Movie_number
     %% Add the three channels
     channels_obj_all=[];
     
-    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis',filesep,'Vim_Images']);
+    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iMovie),'_Row_Analysis',filesep,'Vim_Images']);
     channels_obj_one.getImageFileNames();
     channels_obj_one.sanityCheck();
     channels_obj_all = [channels_obj_all channels_obj_one];
     
-    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis',filesep,'MT_Images']);
+    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iMovie),'_Row_Analysis',filesep,'MT_Images']);
     channels_obj_one.getImageFileNames();
     channels_obj_one.sanityCheck();
     channels_obj_all = [channels_obj_all channels_obj_one];
     
-    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis',filesep,'DAPI_Images']);
+    channels_obj_one = Channel([Analysis_Dir,filesep,all_rows(iMovie),'_Row_Analysis',filesep,'DAPI_Images']);
     channels_obj_one.getImageFileNames();
     channels_obj_one.sanityCheck();
     channels_obj_all = [channels_obj_all channels_obj_one];
@@ -128,7 +132,7 @@ for iMovie = 1 : Movie_number
     %% build MD
     
     % where to save it
-    outputDirectory = [Analysis_Dir,filesep,all_rows(iM),'_Row_Analysis'];
+    outputDirectory = [Analysis_Dir,filesep,all_rows(iMovie),'_Row_Analysis'];
     
     MD = MovieData(channels_obj_all,outputDirectory);
     MD.setPath(outputDirectory);
