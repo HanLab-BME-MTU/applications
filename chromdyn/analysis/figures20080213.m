@@ -118,13 +118,13 @@ switch figureId
         xlabel('distance spb-cen')
         ylabel('ratio cenInt:spbInt')
 
-        figure,histogram(unique(s1c1int(:,6)),1,0)
+        figure,optimalHistogram(unique(s1c1int(:,6)),1,0)
 
         % plot fitted int
         figure('Name','relative fitted intensities')
         plot(s1c1intF(:,2),s1c1intF(:,5),'.');
 
-        figure,histogram(s1c1intF(:,5),1,0)
+        figure,optimalHistogram(s1c1intF(:,5),1,0)
 
         varargout{1} = s1c1int;
         varargout{2} = s1c1intF;
@@ -212,7 +212,7 @@ switch figureId
         s1c1dist = [cat(1,idlistList.i),cat(1,idlistList.t),cat(1,idlistList.distList)];
 
         figure('Name',sprintf('distance ratio for %i movies (%i tp)',nIdlists,size(s1c1dist,1))),
-        histogram(s1c1dist(:,5),1,0)
+        optimalHistogram(s1c1dist(:,5),1,0)
         ylabel('tp counts'),xlabel('s1c1:s1s2/s1s2 w/ flip')
 
 

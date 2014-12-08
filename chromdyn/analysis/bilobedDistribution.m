@@ -128,7 +128,7 @@ for iIdlist = 1:nIdlists
 
         % histogram: cumulated positions
         ah = subplot(2,2,3);
-        histogram(ah,cenPosNorm);
+        optimalHistogram(ah,cenPosNorm);
         xlim(ah,[0,1])
         title('cumulated positions')
 
@@ -136,7 +136,7 @@ for iIdlist = 1:nIdlists
         ah = subplot(2,2,4);
         % flip 50% cenPosNorm - it's already stored
         cenPosNorm(2:2:end,:) = 1-cenPosNorm(2:2:end,:);
-        histogram(ah,cenPosNorm);
+        optimalHistogram(ah,cenPosNorm);
         xlim(ah,[0,1])
         title('cumulated positions - 50% flipped')
     end % if plotIndividual
@@ -264,12 +264,12 @@ plotStruct = bilobePlot(plotData);
 %     cenPos = bilobeDataSpindleLength(i).cenPosition;
 % 
 %     ah = subplot(1,2,1);
-%     histogram(ah,cenPos);
+%     optimalHistogram(ah,cenPos);
 %     xlim(ah,[0,1])
 %     title(sprintf('%i normalized cen positions',numel(cenPos)));
 %     cenPos(2:2:end,:) = 1-cenPos(2:2:end,:);
 %     ah = subplot(1,2,2);
-%     histogram(ah,cenPos);
+%     optimalHistogram(ah,cenPos);
 %     xlim(ah,[0,1])
 %     title('normalized cen positions - 50% flipped')
 % end
@@ -279,11 +279,11 @@ plotStruct = bilobePlot(plotData);
 % % allCenPos = cat(1,bilobeDataIdlist.cenPosition);
 % figure('Name',sprintf('%i movies cumulated',nIdlists))
 % ah = subplot(1,2,1);
-% histogram(ah,allCenPos);
+% optimalHistogram(ah,allCenPos);
 % xlim(ah,[0,1])
 % title('cumulated positions')
 % allCenPos(2:2:end,:) = 1-allCenPos(2:2:end,:);
 % ah = subplot(1,2,2);
-% histogram(ah,allCenPos);
+% optimalHistogram(ah,allCenPos);
 % xlim(ah,[0,1])
 % title('cumulated positions - 50% flipped')
