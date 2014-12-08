@@ -124,8 +124,8 @@ for iChannel = selected_channels
     img_pixel_pool = double(img_pixel_pool(:));
     nonzero_img_pixel_pool= img_pixel_pool(img_pixel_pool>0);
     
-    % if not found the loop use 3 times min
-    low_005_percentile =  3*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100;
+    % if not found the loop use 1 times min
+    low_005_percentile =  1*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100;
     for intensity_i = min(img_pixel_pool) : (max(img_pixel_pool)-min(img_pixel_pool))/100 : 3*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100
         if length(find(img_pixel_pool<=intensity_i))/length(img_pixel_pool)>0.005
             low_005_percentile = intensity_i;
@@ -141,13 +141,13 @@ for iChannel = selected_channels
             end
         end
         if(low_005_percentile==0)
-            low_005_percentile = 3*min(nonzero_img_pixel_pool);
+            low_005_percentile = 1*min(nonzero_img_pixel_pool);
         end
     end
     
     
-    % if not found the loop use half max
-    high_995_percentile = max(img_pixel_pool)/2;
+    % if not found the loop use 1 max
+    high_995_percentile = max(img_pixel_pool)/1;
     for intensity_i = max(img_pixel_pool) : -(max(img_pixel_pool)-min(img_pixel_pool))/100 : max(img_pixel_pool)/2
         if length(find(img_pixel_pool<intensity_i))/length(img_pixel_pool)<0.9995
             high_995_percentile = intensity_i;

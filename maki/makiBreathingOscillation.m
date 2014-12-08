@@ -1687,7 +1687,7 @@ if verbose
 
                 subplot(6,9,(iState-1)*3+1)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.All.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1695,7 +1695,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+2)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.Same.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1704,7 +1704,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+3)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.Opp.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1713,7 +1713,7 @@ if verbose
                 
                 subplot(6,9,(iState-1)*3+10)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.BothRight.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1721,7 +1721,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+11)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.BothLeft.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1729,7 +1729,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+12)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.Approach.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1738,7 +1738,7 @@ if verbose
                 
                 subplot(6,9,(iState-1)*3+19)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.Separate.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1746,7 +1746,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+20)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.Tumble.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1754,7 +1754,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+21)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.after.NoTumble.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1763,7 +1763,7 @@ if verbose
                 
                 subplot(6,9,(iState-1)*3+28)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.All.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1771,7 +1771,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+29)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.Same.distribution(:,iColumn),[],0)'])
                 catch
                 end    
@@ -1780,7 +1780,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+30)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.Opp.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1789,7 +1789,7 @@ if verbose
                 
                 subplot(6,9,(iState-1)*3+37)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.BothRight.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1797,7 +1797,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+38)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.BothLeft.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1805,7 +1805,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+39)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.Approach.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1814,7 +1814,7 @@ if verbose
                 
                 subplot(6,9,(iState-1)*3+46)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.Separate.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1822,7 +1822,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+47)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.Tumble.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -1830,7 +1830,7 @@ if verbose
                 h = gca; set(h,'Fontsize',6);
                 subplot(6,9,(iState-1)*3+48)
                 try
-                    eval(['histogram(' pointState{iState} 'PointChar' ...
+                    eval(['optimalHistogram(' pointState{iState} 'PointChar' ...
                         label{iLabel,1} '.before.NoTumble.distribution(:,iColumn),[],0)'])
                 catch
                 end
@@ -2588,37 +2588,37 @@ figure
 % 
 %             %subplot 1: non-center, non-transition points, +ve movement
 %             subplot(2,3,1);
-%             histogram(var2plot(7).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(7).observations(:,1),[],[],0);
 %             xlabel('+ve, general');
 %             ylabel('Counts');
 % 
 %             %subplot 2: center points, +ve movement
 %             subplot(2,3,2);
-%             histogram(var2plot(6).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(6).observations(:,1),[],[],0);
 %             xlabel('+ve, center');
 %             ylabel('Counts');
 % 
 %             %subplot 3: +ve to -ve transition points
 %             subplot(2,3,3);
-%             histogram(var2plot(5).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(5).observations(:,1),[],[],0);
 %             xlabel('+ve to -ve transition');
 %             ylabel('Counts');
 % 
 %             %subplot 4: non-center, non-transition points, -ve movement
 %             subplot(2,3,4);
-%             histogram(var2plot(1).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(1).observations(:,1),[],[],0);
 %             xlabel('-ve, general');
 %             ylabel('Counts');
 % 
 %             %subplot 5: center points, -ve movement
 %             subplot(2,3,5);
-%             histogram(var2plot(2).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(2).observations(:,1),[],[],0);
 %             xlabel('-ve, center');
 %             ylabel('Counts');
 % 
 %             %subplot 6: -ve to +ve transition points
 %             subplot(2,3,6);
-%             histogram(var2plot(3).observations(:,1),[],[],0);
+%             optimalHistogram(var2plot(3).observations(:,1),[],[],0);
 %             xlabel('-ve to +ve transition');
 %             ylabel('Counts');
 %             

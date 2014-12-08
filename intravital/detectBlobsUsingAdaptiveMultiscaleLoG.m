@@ -266,7 +266,7 @@ function [ imBlobSeedPoints, varargout ] = detectBlobsUsingAdaptiveMultiscaleLoG
                     line(X', Y', 'Color', 'g', 'LineWidth', 1.5);                
                 hold off;
 
-                figure, histogram( pixelScaleMap(seedInd) );
+                figure, optimalHistogram( pixelScaleMap(seedInd) );
                 title( 'Histogram of the cell scales (diameter) found in the image' );
 
             case 3

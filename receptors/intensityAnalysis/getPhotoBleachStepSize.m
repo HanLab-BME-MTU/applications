@@ -128,7 +128,7 @@ if doPlot
     
     figure
     subplot(1,2,1)
-    histogram(stepSize,[],0)
+    optimalHistogram(stepSize,[],0)
     title('Histogram of detected step sizes')
     subplot(1,2,2)
     plot(fracSteps(:,1),fracSteps(:,2))

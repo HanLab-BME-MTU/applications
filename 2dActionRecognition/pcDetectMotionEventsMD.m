@@ -38,7 +38,7 @@ for t = 2 : params.nTime - params.frameJump - 1
     %     scoresLowResFilter(isnan(scoresLowResFilter)) = 2;%3;
     keepFlat = 1;
     socresLocalMaxima = locmax2d(2-scoresLowResFilter, maskLocalMax, keepFlat);%3
-    socresLocalMaxima(dilate(isnan(scoresLowResFilter),3)) = nan;
+    socresLocalMaxima(dilateAssaf(isnan(scoresLowResFilter),3)) = nan;
     socresLocalMaxima(~maskLowRes) = nan;
     [X,Y] = meshgrid(1:size(socresLocalMaxima,2),1:size(socresLocalMaxima,1));
     detectionsLowRes.xs = X(socresLocalMaxima > 0);
@@ -49,7 +49,7 @@ for t = 2 : params.nTime - params.frameJump - 1
     
     %     I = imread([dirs.images pad(t,3) '.tif']);
     I = MD.getChannel(1).loadImage(t);
-    I(dilate(bwperim(mask),5)) = max(255,max(I(:)));
+    I(dilateAssaf(bwperim(mask),5)) = max(255,max(I(:)));
     h = figure('visible','off');
     imagesc(I); colormap(gray);    
     hold on;
@@ -66,7 +66,7 @@ for t = 2 : params.nTime - params.frameJump - 1
     
     h = figure('visible','off');    
     combinedScoresDisplay = combinedScores;    
-    combinedScoresDisplay(dilate(bwperim(mask),5)) = nan;    
+    combinedScoresDisplay(dilateAssaf(bwperim(mask),5)) = nan;    
     %     imagescnan(combinedScoresDisplay);
     imagesc(combinedScoresDisplay);
     caxis([1.999,max(prctile(combinedScores(~isnan(combinedScores)),1.9991),90)]);    

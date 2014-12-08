@@ -1,17 +1,21 @@
 % job - the experiment (one per node), task - index with in experiment (thread)
 function [] = runQLCHOneAtATimeMD(job,task)
-% Assumes the current directory is at /home2/azaritsky/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/
+% Assumes the current directory is at 
+workdir = '/home2/azaritsky/code/applications/2dActionRecognition/Automatic-SLURM-Helper-2dMelanoma/ASH-matlab/work';
+cd(workdir);
 
-
-addpath(genpath('../../../../common'));
-addpath(genpath('../../../../extern'));
+addpath(genpath('../../../../../common'));
+addpath(genpath('../../../../../extern'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/MET/woundHealing/utils'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/algs/'));
 % addpath(genpath('/project/cellbiology/gdanuser/collab/assaf/TAU/UTSW/code/utils/'));
-addpath(genpath('../../../monolayer'));
+addpath(genpath('../../../../monolayer/utils'));
+addpath(genpath('../../../../monolayer/algs'));
+addpath(genpath('../../../../monolayer/timeLapseAnalysis'));
+
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/utils'));
 % addpath(genpath('/work/gdanuser/azaritsky/UTSW/code/algs'));
-addpath(genpath('../../'));
+addpath(genpath('../../../../2dActionRecognition'));% probably same as just '../../'
 
 warning('off','all');
 
@@ -36,7 +40,7 @@ fname = jobs.fnames{job};
 fprintf(sprintf('\nStarting to process %s_s%s\n',fname,pad(task,2)));
 
 %% make sure pcInitiateData was run earlier
-MD =  MovieData.load([analysisDirname fname '/' fname '_s' pad(task,2) '/' fname '_s' pad(task,2) '.mat']);
+MD =  MovieData.load([analysisDirname jobs.source{job} filesep fname filesep fname '_s' pad(task,2) filesep fname '_s' pad(task,2) '.mat']);
 
 flags = -1;
 pcProcessTimeLapseMD(MD, timePerFrame, flags);

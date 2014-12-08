@@ -1688,8 +1688,8 @@ if verbose
         
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Sister separation (\mum)');
@@ -1713,8 +1713,8 @@ if verbose
         
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Frame-to-frame sister separation change (\mum)');
@@ -1832,8 +1832,8 @@ if verbose
 
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Sister center normal position (\mum)');
@@ -1857,8 +1857,8 @@ if verbose
         
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Frame-to-frame sister center normal displacement (\mum)');
@@ -1980,8 +1980,8 @@ if verbose
 
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Kinetochore normal position (\mum)');
@@ -2005,8 +2005,8 @@ if verbose
         
         if ~isempty(tmpVar)
 
-            n = histogram(tmpVar,[],0);
-            histogram(tmpVar,[],0);
+            n = optimalHistogram(tmpVar,[],0);
+            optimalHistogram(tmpVar,[],0);
 
             %write axes labels
             xlabel('Frame-to-frame kinetochore normal displacement (\mum)');

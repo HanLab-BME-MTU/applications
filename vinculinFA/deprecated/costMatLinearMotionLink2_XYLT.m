@@ -351,7 +351,7 @@ if currentFrame ~= 1 && any(diagnostics == currentFrame)
     %plot histogram
     figure('Name',['frame # ' num2str(currentFrame)],'NumberTitle','off');
     try
-        histogram(linkingDistances,[],0);
+        optimalHistogram(linkingDistances,[],0);
         xlabel('Linking distance');
         ylabel('Counts');
     catch
