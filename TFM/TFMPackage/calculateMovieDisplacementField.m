@@ -171,14 +171,14 @@ if ~p.useGrid
     end
     beads = beads(valid, :);
 
-    % Select only beads which are min correlation length away from the border of the
-    % reference frame 
-    beadsMask = true(size(refFrame));
-    erosionDist=p.minCorLength;
-    % erosionDist=p.minCorLength+1;
-    beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
-    indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
-    beads(indx,:)=[];
+%     % Select only beads which are min correlation length away from the border of the
+%     % reference frame 
+%     beadsMask = true(size(refFrame));
+%     erosionDist=p.minCorLength;
+%     % erosionDist=p.minCorLength+1;
+%     beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
+%     indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
+%     beads(indx,:)=[];
 end
 
 % if p.useGrid && p.highRes
@@ -211,9 +211,13 @@ for j= firstFrame:nFrames
         beadsMask(currImage==0)=false;
         % Remove false regions non-adjacent to the image border
         beadsMask = beadsMask | imclearborder(~beadsMask);
-        % Erode the mask with half the correlation length and filter beads
-        erosionDist=round((p.minCorLength+1)/2);
-        beadsMask=imerode(beadsMask,strel('square',erosionDist));
+%         % Erode the mask with half the correlation length and filter beads
+%         erosionDist=round((p.minCorLength+1)/2);
+        % Erode the mask with the correlation length + half maxFlowSpeed
+        % and filter beads to minimize error
+        erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/2);
+        beadsMask=bwmorph(beadsMask,'erode',erosionDist);
+%         beadsMask=imerode(beadsMask,strel('square',erosionDist));
         indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
         localbeads = beads(indx,:);
 
@@ -233,10 +237,12 @@ for j= firstFrame:nFrames
 
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
-        pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        pivPar.iaStepX = [32 16  8  4];     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in Y 
-        pivPar.iaStepY = [32 16  8  4];     % grid spacing of velocity vectors in Y
+%         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
+        pivPar.iaSizeX = [64 32 16 16];     % size of interrogation area in X 
+%         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
+        pivPar.iaStepX = [32 16  8 8];     % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = [64 32 16 16];     % size of interrogation area in Y 
+        pivPar.iaStepY = [32 16  8 8];     % grid spacing of velocity vectors in Y
         pivPar.ccWindow = 'Gauss2';   % This filter is relatively narrow and will 
         pivPar.smMethod = 'none';
 

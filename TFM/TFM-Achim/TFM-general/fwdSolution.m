@@ -20,7 +20,16 @@ elseif nargin <15
 elseif nargin <16
     useSameSampling = false;
 end
-
+% Make force_x and force_y a function handle if it is a matrix
+if ismatrix(force_x) && ismatrix(force_y)
+    [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
+    xvec=xmat(:);
+    yvec=ymat(:);
+    force_x_vec=force_x(:);
+    force_y_vec=force_y(:);
+    force_x = scatteredInterpolant(xvec,yvec,force_x_vec);
+    force_y = scatteredInterpolant(xvec,yvec,force_y_vec);
+end
 if strcmpi(method,'conv_free')
     tic;
     display('Calulate the convolution explicitely in free triangulated mesh')

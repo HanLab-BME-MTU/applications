@@ -108,7 +108,7 @@ erosionDist=p.minCorLength+1;
 beadsMask(erosionDist:end-erosionDist,erosionDist:end-erosionDist)=false;
 indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)),ceil(beads(:,1))));
 beads(indx,:)=[];
-assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 50): current number: ' num2str(length(beads)) '.']);
+assert(size(beads,1)>=30, ['Insufficient number of detected beads (less than 30): current number: ' num2str(length(beads)) '.']);
 
 stack = zeros([movieData.imSize_ nFrames]);
 disp('Loading stack...');
