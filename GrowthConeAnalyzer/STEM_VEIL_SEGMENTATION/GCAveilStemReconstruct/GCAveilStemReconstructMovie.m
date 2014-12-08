@@ -109,7 +109,21 @@ if nargin < 2
     paramsIn.DiskSizeForErod = 6; 
     paramsIn.plots = 1;
     paramsIn.makeMovie = 0; 
-    paramsIn.patchSize = 40; 
+    % collect from 'LocalThreshPatchSize' 
+    patchSizeFilename = [movieData.outputDirectory_ filesep ...
+        'neurite_body_masks' filesep 'LocalThreshPatchSizeTest' filesep 'manualPatchSizeSelect.mat']; 
+    if exist(patchSizeFilename,'file')==2
+    
+    load(patchSizeFilename); 
+   
+        
+    paramsIn.patchSize = str2double(patchSize);
+    else % set patch size 
+        paramsIn.patchSize = 40; % Default
+    end 
+        
+    
+   
     paramsIn.startFrame = 1;  %default = 1 
     paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
@@ -1203,7 +1217,7 @@ notBody = bwmorph(notBody,'thin','inf');
                    idxDiscard{iPotRepeat} = idxTest(scoresRepeats~=maxScoreInGroup);
                end  % repeat test
               end % 
-               idxDiscard = horzcat(idxDiscard{:}); 
+               idxDiscard = vertcat(idxDiscard{:}); % changed from horzcat... 20141207
                    % if check
                     check = 1;
                    if check == 1
@@ -1260,7 +1274,13 @@ notBody = bwmorph(notBody,'thin','inf');
            CCEdges.NumObjects = CCEdges.NumObjects - sum(numBodyNodes==2) ;
            
            
-           if (~isequal(fullMask,prefill) && sum(diffMask(:))>2);
+           if (~isequal(fullMask,prefill) && sum(diffMask(:))>2 && ~isempty(edges)); % make the size 
+               % slightly larger as cycle test currently based on simple 
+               % fill criterion therefore not that stable. see if can make
+               % more stable. 
+              % if ~isempty(edges) % again simply check if it is a viable cycle- 
+                   % again this is a weakness in the way I implemented
+                   % this.. 
                cycleFlag = 2; % non-parallel cycles 
                % perform minspanning tree..
                display('cylces NOT due to parallel paths: performing minspantree');
@@ -1317,7 +1337,7 @@ notBody = bwmorph(notBody,'thin','inf');
                    cycleFlag= 3; 
                end
                
-               
+          
            end % second check for cycles (before minSpanTree)
            
            
