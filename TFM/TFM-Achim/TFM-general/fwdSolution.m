@@ -20,16 +20,6 @@ elseif nargin <15
 elseif nargin <16
     useSameSampling = false;
 end
-% Make force_x and force_y a function handle if it is a matrix
-if ismatrix(force_x) && ismatrix(force_y)
-    [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
-    xvec=xmat(:);
-    yvec=ymat(:);
-    force_x_vec=force_x(:);
-    force_y_vec=force_y(:);
-    force_x = scatteredInterpolant(xvec,yvec,force_x_vec);
-    force_y = scatteredInterpolant(xvec,yvec,force_y_vec);
-end
 if strcmpi(method,'conv_free')
     tic;
     display('Calulate the convolution explicitely in free triangulated mesh')
@@ -86,13 +76,31 @@ elseif strcmpi(method,'fft')
     %tic;
     
     % This determines the sampling of the force field:
-    if nargin < 12 || isempty(meshPtsFwdSol)
+    if (nargin < 12 || isempty(meshPtsFwdSol)) && ~useSameSampling
         display('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
         meshPtsFwdSol=2^10;
     end
-        
-    Nx_F=meshPtsFwdSol; % 2^10 is the densest sampling possible.
-    Ny_F=Nx_F;
+
+%     % Make force_x and force_y a function handle if it is a matrix
+%     if ismatrix(force_x) && ismatrix(force_y)
+%     %     [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
+%     %     xvec=xmat(:);
+%     %     yvec=ymat(:);
+%         xvec=x0(:);
+%         yvec=y0(:);
+%         force_x_vec=force_x(:);
+%         force_y_vec=force_y(:);
+%         force_x = scatteredInterpolant(xvec,yvec,force_x_vec);
+%         force_y = scatteredInterpolant(xvec,yvec,force_y_vec);
+%     end
+    
+    if useSameSampling
+        Nx_F=size(x0,1); % 2^10 is the densest sampling possible.
+        Ny_F=size(y0,2);
+    else
+        Nx_F=meshPtsFwdSol; % 2^10 is the densest sampling possible.
+        Ny_F=Nx_F;
+    end
     
     % To account for dx*dy in the convolution integral one has to finally
     % rescale the result by the following scaling factor:
@@ -130,7 +138,8 @@ elseif strcmpi(method,'fft')
     xvec_G=linspace(-xRange,xRange,Nx_G);
     yvec_G=linspace(-yRange,yRange,Ny_G);
     
-    [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
+    [xgrid_G,ygrid_G]=meshgrid(yvec_G,xvec_G);
+%     [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
       
     %calculate the force values at the grid_F positions:
     if useSameSampling
