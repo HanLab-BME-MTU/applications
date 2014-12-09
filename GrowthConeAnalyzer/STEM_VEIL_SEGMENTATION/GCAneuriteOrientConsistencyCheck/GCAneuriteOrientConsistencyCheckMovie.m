@@ -151,7 +151,7 @@ for iCh = 1:nChan
     dilateMask = zeros([ySize,xSize]);
     dilateMask(vertcat(coordInPix{:}))=1;
     
-    dilateMask = imdilate(dilateMask,strel('disk',10)); % changed to 10
+    dilateMask = imdilate(dilateMask,strel('disk',p.SizeOfConsistencyRestraint)); % changed to 10
     
     
     CCDil  = bwconncomp(dilateMask);
