@@ -238,7 +238,9 @@ for ii=1:nFrames
     % Scale bar 2000nm
     if isempty(hl)
         hold on
-        hl = line([10 10+round(2000/movieData.pixelSize_)],[15 15],'LineWidth',2,'Color',[1,1,1]);
+        scale = 2; %micron
+        hl = line([10 10+round(scale*1000/movieData.pixelSize_)],[15 15],'LineWidth',2,'Color',[1,1,1]);
+        disp(['Scale bar: ', num2str(scale), ' um.'])
     end
     axis off
     hold on
