@@ -124,8 +124,8 @@ if nargin < 2
         
     
    
-    paramsIn.startFrame = 1;  %default = 1 
-    paramsIn.startChoice =  'auto' ; % auto, manual % auto will look for analInfo and redo the last frame 
+    paramsIn.startFrame = 88;  %default = 1 
+    paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
                                      % one a warning will come up but it
@@ -1037,9 +1037,28 @@ notBody = bwmorph(notBody,'thin','inf');
            % In the end we want to get a better estimate for the redilation
            % of the paths anywa
            %dilBBForLabels =  imdilate(backbone2Dil,strel('disk',2));
+          
+           
+                  
+             %% Small test to mask sure dilation does not merge edge paths 
+             % the idea here is want to dilate for the intensity
+             % integration reponse metrics but don't want this to be -
+             % think about reworks in this coding for the final release as
+             % it is a bit rough. 
+             
+               CCPreDil = bwconncomp(backbone2Dil);
+               CCEdges = bwconncomp(dilBB); 
+               stopFlagLowerDil = CCPreDil.NumObjects  > CCEdges.NumObjects;
+               countDilDec = 1; 
+               while stopFlagLowerDil >0
+                   dilBB = imdilate(backbone2Dil,strel('disk',4-countDilDec));
+                   CCEdges = bwconncomp(dilBB);
+                   stopFlagLowerDil = CCPreDil.NumObjects  > CCEdges.NumObjects;                  
+                   countDilDec = 1 + countDilDec;
+               end % while
+               % END TEST 1 
+          %% 2nd Test for problems in the case dilation was too large. 
            labelsC = bwlabel(dilBB);
-           
-           
            % for each label get the pixels that overlap body labels%
            CCEdges = bwconncomp(labelsC);
            edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
@@ -1050,27 +1069,28 @@ notBody = bwmorph(notBody,'thin','inf');
            % test for problems in the dilation 
            numVertices = cellfun(@(x) length(x) ,edges); 
            stopFlagLowerDil = sum(numVertices>2);% initiate stop flag
+           % Also check to make sure that CC before dilation remains
+           % consistent 
+          
            countDilDec = 1; % initiate count
            %if sum(numVertices > 2) ~=0 % test for problem cases where the dilation of 4 was too large
-               % and spanned the body the small node... 
-               while stopFlagLowerDil >0 
-                    dilBB = imdilate(backbone2Dil,strel('disk',4-countDilDec)); 
-                    labelsC = bwlabel(dilBB);
-                     CCEdges = bwconncomp(labelsC);
-           edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
-           % dilate each piece and give
-           %conForLabel = imdilate(dilBB,strel('disk',3));
-           edges =  cellfun(@(x) x(x~=0)',edges,'uniformoutput',0);
-                     
-                    
-                    numVertices = cellfun(@(x) length(x),edges);
-                    stopFlagLowerDil = sum(numVertices>2);
-                    countDilDec = 1 + countDilDec; 
-               end % while 
-       
-                  
+           % and spanned the body the small node...
+           while stopFlagLowerDil >0
+               dilBB = imdilate(backbone2Dil,strel('disk',4-countDilDec));
+               labelsC = bwlabel(dilBB);
+               CCEdges = bwconncomp(labelsC);
+               edges = cellfun(@(x) unique(labelsBody(x)),CCEdges.PixelIdxList,'uniformoutput',0);
+               % dilate each piece and give
+               %conForLabel = imdilate(dilBB,strel('disk',3));
+               edges =  cellfun(@(x) x(x~=0)',edges,'uniformoutput',0);
                
-        
+               
+               numVertices = cellfun(@(x) length(x),edges);
+               stopFlagLowerDil = sum(numVertices>2);
+               countDilDec = 1 + countDilDec;
+           end % while
+         
+           
            
            
            %% start calculating scores for the edges. : think these will be parameter input 
