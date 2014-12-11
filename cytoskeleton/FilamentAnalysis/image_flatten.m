@@ -80,7 +80,7 @@ if (~exist(ImageFlattenProcessOutputDir,'dir'))
 end
 
 for iChannel = selected_channels
-    ImageFlattenChannelOutputDir = [ImageFlattenProcessOutputDir,'/Channel',num2str(iChannel)];
+    ImageFlattenChannelOutputDir = [ImageFlattenProcessOutputDir,filesep,'Channel',num2str(iChannel)];
     if (~exist(ImageFlattenChannelOutputDir,'dir'))
         mkdir(ImageFlattenChannelOutputDir);
     end
