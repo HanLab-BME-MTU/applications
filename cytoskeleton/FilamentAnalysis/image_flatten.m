@@ -56,15 +56,22 @@ nFrame = movieData.nFrames_;
 % default image flateen output dir
 ImageFlattenProcessOutputDir = [movieData.outputDirectory_, filesep 'ImageFlatten'];
 
-% if there is filamentanalysispackage
-if (indexFilamentPackage>0)
-    % and a directory is defined for this package
-    if (~isempty(movieData.packages_{indexFilamentPackage}.outputDirectory_))
-        % and this directory exists
-        if (~exist(movieData.packages_{indexFilamentPackage}.outputDirectory_,'dir'))
-            mkdir(movieData.packages_{indexFilamentPackage}.outputDirectory_);
+if(~isempty(funParams.outputDir))
+    % if there is a user defined folder as output folder
+    % definitely follow that
+    ImageFlattenProcessOutputDir = funParams.outputDir;
+else
+    % if there is no user defined, but there is a filamentanalysispackage
+    % and there is a defined folder for the package, append for that.
+    if (indexFilamentPackage>0)
+        % and a directory is defined for this package
+        if (~isempty(movieData.packages_{indexFilamentPackage}.outputDirectory_))
+            % and this directory exists
+            if (~exist(movieData.packages_{indexFilamentPackage}.outputDirectory_,'dir'))
+                mkdir(movieData.packages_{indexFilamentPackage}.outputDirectory_);
+            end
+            ImageFlattenProcessOutputDir  = [movieData.packages_{indexFilamentPackage}.outputDirectory_, filesep 'ImageFlatten'];
         end
-        ImageFlattenProcessOutputDir  = [movieData.packages_{indexFilamentPackage}.outputDirectory_, filesep 'ImageFlatten'];        
     end
 end
 

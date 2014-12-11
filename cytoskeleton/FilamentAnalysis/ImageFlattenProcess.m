@@ -265,6 +265,7 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             
             % Set default parameters
             funParams.ChannelIndex = 1:numel(owner.channels_);
+            funParams.outputDir = outputDir;
             funParams.method_ind = 3;
             funParams.imageflattening_mode = 2;
             funParams.GaussFilterSigma = 0.2;                        

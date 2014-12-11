@@ -562,8 +562,6 @@ if(graph_matching_flag==1)
             = graph_matching_linking_once(current_model, current_all_seg_bw, confidency_interval,imageInt, ...
             Good_ind,ind_long, model_ind,feature_all,labelMask,master_flassier,iIteration,funParams,final_set_rescue, final_set_connection, connect_count,Original_set_Good_ind);
         
-        imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
-     
         if(SaveFigures==1)
             imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
             imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
