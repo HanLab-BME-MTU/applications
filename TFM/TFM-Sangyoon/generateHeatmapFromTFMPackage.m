@@ -1,11 +1,25 @@
-function [] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,tmax )
+function [strainEnergy,totalIntSelecChan,pixelTraction,pixelIntSelecChan] = generateHeatmapFromTFMPackage( pathForTheMovieDataFile,band,tmax,varargin )
 %generateHeatmapFromTFMPackage generates heatmap from forcefield stored in
 %movieData.
 % input:    pathForTheMovieDataFile:    path to the movieData file
 %           band:                       band width for cutting border
 %           (default=4)
 %           a certain point (default = false)
-% output:   images of heatmap stored in pathForTheMovieDataFile/heatmap
+% output:   
+%           strainEnergy: 1/2*integral(traction*u) in femtoJ (10^-15 Joule)
+%           images of heatmap stored in pathForTheMovieDataFile/heatmap
+ip =inputParser;
+% ip.addRequired('pathForTheMovieDataFile',@ischar);%@(x)isscalar(x)||isempty(x));
+% ip.addOptional('band',0,@isscalar);
+% ip.addOptional('tmax',[],@isscalar);
+ip.addParamValue('chanIntensity',@isnumeric); % channel to quantify intensity (2 or 3)
+% ip.parse('pathForTheMovieDataFile','band','tmax',varargin{:});
+ip.parse(varargin{:});
+% pathForTheMovieDataFile=ip.Results.pathForTheMovieDataFile;
+% band = ip.Results.band;
+% tmax = ip.Results.tmax;
+selectedChannel=ip.Results.chanIntensity;
+
 if nargin < 2
     band = 4;
     tmax=[];
@@ -153,13 +167,42 @@ if ~isempty(iSDCProc)
     else
         iBeadChan = SDCProc.funParams_.ChannelIndex(1);
     end
-%     s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
-%     T = s.T;
+    s = load(SDCProc.outFilePaths_{3,iBeadChan},'T');    
+    T = s.T;
 else
     iChan = 2;
 end
 
+% Load Cell Segmentation
+iMask = movieData.getProcessIndex('MaskRefinementProcess');
+if ~isempty(iMask)
+    maskProc = movieData.getProcess(iMask);
+    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+    if ~isempty(iSDCProc)
+        maxX = ceil(max(abs(T(:, 2))));
+        maxY = ceil(max(abs(T(:, 1))));
+        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+        I = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    end
+end
+strainEnergy = zeros(nFrames,1);
+% Boundary cutting - I'll take care of this boundary effect later
+if band>0
+    reg_grid(1:band,:,:)=[];
+    reg_grid(:,1:band,:)=[];
+    reg_grid(end-band+1:end,:,:)=[];
+    reg_grid(:,end-band+1:end,:)=[];
+end
 
+maskCrop = bwPI4(reg_grid(1,1,2):reg_grid(end,end,2),reg_grid(1,1,1):reg_grid(end,end,1));
+nSegPixel = sum(maskCrop(:));
+
+pixelTraction = zeros(nSegPixel,nFrames);
+if ~isempty(selectedChannel)
+    totalIntSelecChan = zeros(nFrames,1);
+    pixelIntSelecChan = zeros(nSegPixel,nFrames);
+end
 for ii=1:nFrames
     [grid_mat,iu_mat,~,~] = interp_vec2grid(displField(ii).pos, displField(ii).vec,[],reg_grid);
     pos = [reshape(grid_mat(:,:,1),[],1) reshape(grid_mat(:,:,2),[],1)]; %dense
@@ -169,20 +212,6 @@ for ii=1:nFrames
 
     [~,tmat, ~, ~] = interp_vec2grid(pos+disp_vec, force_vec,[],grid_mat); %1:cluster size
     tnorm = (tmat(:,:,1).^2 + tmat(:,:,2).^2).^0.5;
-
-    % Boundary cutting - I'll take care of this boundary effect later
-    tnorm(end-band:end,:)=[];
-    tnorm(:,end-band:end)=[];
-    tnorm(1:1+band,:)=[];
-    tnorm(:,1:1+band)=[];
-%     tmat(end-band-2:end,:,:)=[];
-%     tmat(:,end-band-2:end,:)=[];
-%     tmat(1:1+band+2,:,:)=[];
-%     tmat(:,1:1+band+2,:)=[];
-    grid_mat(end-band:end,:,:)=[];
-    grid_mat(:,end-band:end,:)=[];
-    grid_mat(1:1+band,:,:)=[];
-    grid_mat(:,1:1+band,:)=[];
 
     grid_mat_quiver=grid_mat(3:end-2,3:end-2,:);
     
@@ -205,7 +234,16 @@ for ii=1:nFrames
 %     set(gca, 'DataAspectRatio', [1,1,1],'Ydir','reverse');
     [XI,YI]=meshgrid(grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX,grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY);
     tsMap = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tnorm,XI,YI,'cubic');
+    tsMapX = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tmat(:,:,1),XI,YI,'cubic');
+    tsMapY = griddata(grid_mat(:,:,1),grid_mat(:,:,2),tmat(:,:,2),XI,YI,'cubic');
+    uMapX = griddata(grid_mat(:,:,1),grid_mat(:,:,2),iu_mat(:,:,1),XI,YI,'cubic');
+    uMapY = griddata(grid_mat(:,:,1),grid_mat(:,:,2),iu_mat(:,:,1),XI,YI,'cubic');
     imshow(tsMap,[tmin tmax]), colormap jet;
+    % strain energy calculation
+    curStrainEnergy = 1/2*maskCrop.*(tsMapX.*uMapX+tsMapY.*uMapY)...
+                                        *(movieData.pixelSize_*1e-9)^3/1e-15; %femto Joule
+    strainEnergy(ii)= sum(curStrainEnergy(:)); % fJ
+    pixelTraction(:,ii) = tsMap(maskCrop(:));
 
     % unit vector plot
     hold on
@@ -255,21 +293,21 @@ for ii=1:nFrames
     if nChannels==2
         % loading paxillin image
         if ~isempty(iSDCProc)
-            paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
+            secondImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
         else
-            paxImage=movieData.getChannel(iChan).loadImage(ii); 
+            secondImage=movieData.getChannel(iChan).loadImage(ii); 
         end
     %     paxImageCropped = paxImage(indULy+spacing*band:indBRy-spacing*band,indULx+spacing*band:indBRx-spacing*band);
-        paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         %Scale bar
-        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped)); % this is 2 um
-        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
+        imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
-        doublePaxImg = double(paxImageCropped)/double(max(paxImageCropped(:)));
+        doublePaxImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
         if ~isempty(iSDCProc)
             paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
-            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(paxImageCropped(:)));
+            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(secondImageCropped(:)));
             minPax= min(doublePaxImgUnshifted(:));
         else
             minPax= min(doublePaxImg(:));
@@ -282,30 +320,40 @@ for ii=1:nFrames
     elseif nChannels==3
         % loading paxillin image
         if ~isempty(iSDCProc)
-            paxImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
+            secondImage=(SDCProc.loadChannelOutput(iChan,ii)); %movieData.channels_(2).loadImage(ii);
             thirdImage=(SDCProc.loadChannelOutput(iChan+1,ii)); %movieData.channels_(2).loadImage(ii);
         else
-            paxImage=movieData.getChannel(iChan).loadImage(ii); 
+            secondImage=movieData.getChannel(iChan).loadImage(ii); 
             thirdImage=movieData.getChannel(iChan+1).loadImage(ii); 
         end
-        paxImageCropped = paxImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         thirdImageCropped = thirdImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
+        % average intensity quantification on selected image
+        if selectedChannel==2
+            curIntSelecChan = 1/2*double(bwPI4).*double(secondImage); %AU
+            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % AU
+            pixelIntSelecChan(:,ii) = secondImage(maskCrop(:));
+        elseif selectedChannel==3
+            curIntSelecChan = 1/2*double(bwPI4).*double(thirdImage); %AU
+            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % fJ
+            pixelIntSelecChan(:,ii) = thirdImageCropped(maskCrop(:));
+        end        
         %Scale bar
-        paxImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(paxImageCropped)); % this is 2 um
+        secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         thirdPath = [outputFilePath filesep 'thirdChannel'];
         if ~exist(thirdPath,'dir') 
             mkdir(thirdPath);
         end
         thirdImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(thirdImageCropped)); % this is 2 um
-        imwrite(paxImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+        imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
         imwrite(thirdImageCropped, strcat(thirdPath,'/thirdCroppedTif',num2str(ii,iiformat),'.tif'));
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
-        doublePaxImg = double(paxImageCropped)/double(max(paxImageCropped(:)));
+        doublePaxImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
         doubleThirdImg = double(thirdImageCropped)/double(max(thirdImageCropped(:)));
         if ~isempty(iSDCProc)
             paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
-            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(paxImageCropped(:)));
+            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(secondImageCropped(:)));
             minPax= min(doublePaxImgUnshifted(:));
             thirdImageUnshifted=movieData.getChannel(iChan+1).loadImage(ii); 
             doubleThirdImageUnshifted = double(thirdImageUnshifted)/double(max(thirdImageUnshifted(:)));

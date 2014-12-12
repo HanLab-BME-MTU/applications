@@ -277,11 +277,18 @@ else % FTTC
     for i=frameSequence
         [grid_mat,iu_mat, i_max,j_max] = interp_vec2grid(displField(i).pos, displField(i).vec,[],reg_grid);
         if p.useLcurve
-            [rho,eta,reg_corner,ireg_corner] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
+            [rho,eta,reg_corner,alphas] = calculateLcurveFTTC(grid_mat, iu_mat, p.YoungModulus,...
                 p.PoissonRatio, gridSpacing, i_max, j_max, p.regParam,p.LcurveFactor);
+            [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
+                p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, reg_corner);
+            [reg_corner,ireg_corner,~,hLcurve]=regParamSelecetionLcurve(rho,eta,alphas,reg_corner,'manualSelection',true);
+            save(outputFile{5,1},'rho','eta','reg_corner','ireg_corner');
+            saveas(hLcurve,outputFile{4,1});
+            close(hLcurve)
+        else
+            [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
+                p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, p.regParam);
         end
-        [pos_f,~,force,~,~,~] = reg_fourier_TFM(grid_mat, iu_mat, p.YoungModulus,...
-            p.PoissonRatio, movieData.pixelSize_/1000, gridSpacing, i_max, j_max, p.regParam);
         forceField(i).pos=pos_f;
         forceField(i).vec=force;
     end

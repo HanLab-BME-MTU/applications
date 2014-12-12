@@ -80,23 +80,10 @@ elseif strcmpi(method,'fft')
         display('Use meshPtsFwdSol=2^10. This value should be given with the function call!!!');
         meshPtsFwdSol=2^10;
     end
-
-%     % Make force_x and force_y a function handle if it is a matrix
-%     if ismatrix(force_x) && ismatrix(force_y)
-%     %     [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
-%     %     xvec=xmat(:);
-%     %     yvec=ymat(:);
-%         xvec=x0(:);
-%         yvec=y0(:);
-%         force_x_vec=force_x(:);
-%         force_y_vec=force_y(:);
-%         force_x = scatteredInterpolant(xvec,yvec,force_x_vec);
-%         force_y = scatteredInterpolant(xvec,yvec,force_y_vec);
-%     end
     
     if useSameSampling
-        Nx_F=size(x0,1); % 2^10 is the densest sampling possible.
-        Ny_F=size(y0,2);
+        Nx_F=size(x0,2); % 2^10 is the densest sampling possible.
+        Ny_F=size(y0,1);
     else
         Nx_F=meshPtsFwdSol; % 2^10 is the densest sampling possible.
         Ny_F=Nx_F;
@@ -106,7 +93,8 @@ elseif strcmpi(method,'fft')
     % rescale the result by the following scaling factor:
     xRange=(max(max(x0))-min(min(x0)));
     yRange=(max(max(y0))-min(min(y0)));
-    scalingFactor=(xRange*yRange)/(Nx_F*Ny_F);
+%     scalingFactor=(xRange*yRange)/(Nx_F*Ny_F);
+    scalingFactor=1;
     
     % To cover the whole support of the force field, the domain over which
     % the Greensfunctions have to be calculated need to be at least of size:
@@ -138,14 +126,26 @@ elseif strcmpi(method,'fft')
     xvec_G=linspace(-xRange,xRange,Nx_G);
     yvec_G=linspace(-yRange,yRange,Ny_G);
     
-    [xgrid_G,ygrid_G]=meshgrid(yvec_G,xvec_G);
-%     [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
+%     [xgrid_G,ygrid_G]=meshgrid(yvec_G,xvec_G);
+    [xgrid_G,ygrid_G]=meshgrid(xvec_G,yvec_G);
       
     %calculate the force values at the grid_F positions:
     if useSameSampling
         discrete_Force_x_unPadded=force_x; %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
         discrete_Force_y_unPadded=force_y;
     else
+    % Make force_x and force_y a function handle if it is a matrix
+        if ismatrix(force_x) && ismatrix(force_y)
+        %     [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
+        %     xvec=xmat(:);
+        %     yvec=ymat(:);
+            xvec=x0(:);
+            yvec=y0(:);
+            force_x_vec=force_x(:);
+            force_y_vec=force_y(:);
+            force_x = scatteredInterpolant(xvec,yvec,force_x_vec);
+            force_y = scatteredInterpolant(xvec,yvec,force_y_vec);
+        end
         discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
         discrete_Force_y_unPadded=force_y(xgrid_F,ygrid_F);
     end
@@ -160,13 +160,19 @@ elseif strcmpi(method,'fft')
     
     % Pad the calculated fields with zero to the next power larger than 
     % (2*N-1), see above. For this setup, the FFT is fastest.
-    discrete_Force_x=padarray(discrete_Force_x_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');%'symmetric','post');
-    discrete_Force_y=padarray(discrete_Force_y_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');
+%     discrete_Force_x=padarray(discrete_Force_x_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');%'symmetric','post');
+%     discrete_Force_y=padarray(discrete_Force_y_unPadded,[Nx_pad-Nx_F Ny_pad-Ny_F],0,'post');
+    discrete_Force_x=padarray(discrete_Force_x_unPadded,[Ny_pad-Ny_F Nx_pad-Nx_F],0,'post');%'symmetric','post');
+    discrete_Force_y=padarray(discrete_Force_y_unPadded,[Ny_pad-Ny_F Nx_pad-Nx_F],0,'post');
     
-    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
-    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
-   %discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post'); 
-    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+%     discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+%     discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+%    %discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post'); 
+%     discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Nx_pad-Nx_G Ny_pad-Ny_G],0,'post');
+    
+    discrete_boussinesqGreens11=padarray(discrete_boussinesqGreens11,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
+    discrete_boussinesqGreens12=padarray(discrete_boussinesqGreens12,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
+    discrete_boussinesqGreens22=padarray(discrete_boussinesqGreens22,[Ny_pad-Ny_G Nx_pad-Nx_G],0,'post');
     
     % Now calculate the fourier transforms:
     dFT_Force_x=fft2(discrete_Force_x);
@@ -208,8 +214,10 @@ elseif strcmpi(method,'fft')
     
 
     % Remove imaginary part caused by round off errors:
-    ux_grid=real(ux_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
-    uy_grid=real(uy_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
+%     ux_grid=real(ux_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
+%     uy_grid=real(uy_grid(startIndex_x:endIndex_x,startIndex_y:endIndex_y));
+    ux_grid=real(ux_grid(startIndex_y:endIndex_y,startIndex_x:endIndex_x));
+    uy_grid=real(uy_grid(startIndex_y:endIndex_y,startIndex_x:endIndex_x));
 
 %!!! This could be improved by using the analytical solution for the Fourie
 %!!! Transform of the Greensfunction!
