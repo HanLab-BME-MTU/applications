@@ -21,6 +21,7 @@ ip.addRequired('rho',@isnumeric);
 ip.addRequired('eta',@isnumeric);
 ip.addRequired('lambda',@isnumeric);
 ip.addOptional('init_lambda',median(lambda),@isnumeric);
+<<<<<<< HEAD
 try 
     ip.addParameter('inflection',false,@islogical)
     ip.addParameter('manualSelection',false,@islogical);
@@ -28,6 +29,10 @@ catch
     ip.addParamValue('inflection',false,@islogical)
     ip.addParamValue('manualSelection',false,@islogical);
 end
+=======
+ip.addParameter('inflection',0,@isnumeric);
+ip.addParameter('manualSelection',false,@islogical);
+>>>>>>> 6bb628a41a46aa60ecd3ef70263237e6f90743be
 ip.parse(rho,eta,lambda,init_lambda, varargin{:});
 rho=ip.Results.rho;
 eta=ip.Results.eta;
@@ -83,11 +88,16 @@ elseif length(maxKappaCandIdx)>1
 elseif isempty(maxKappaCandIdx)
     error('there is no local maximum in curvature in the input lambda range');
 end
-if inflection % if inflection point is to be chosen instead of L-corner
+if inflection==1 % if inflection point larger than lcorner is to be chosen.
     inflectionIdx = find(kappa<0 & (1:nPoints)'>maxKappaIdx,1,'first');
     ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
     reg_corner = lambda_cut(inflectionIdx);
-    disp(['L-inflection value: ' num2str(reg_corner)])
+    disp(['L-inflection value (larger than L-corner): ' num2str(reg_corner)])
+elseif inflection==2 % if inflection point smaller than lcorner is to be chosen.
+    inflectionIdx = find(kappa<0 & (1:nPoints)'<maxKappaIdx,1,'last');
+    ireg_corner= inflectionIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
+    reg_corner = lambda_cut(inflectionIdx);
+    disp(['L-inflection value (smaller than L-corner): ' num2str(reg_corner)])
 else
     ireg_corner= maxKappaIdx+3;%round((maxKappaIdx+maxKappaDiffIdx)/2); % thus we choose the mean of those two points.
     reg_corner = lambda_cut(maxKappaIdx);

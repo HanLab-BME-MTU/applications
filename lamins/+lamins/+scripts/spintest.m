@@ -28,7 +28,7 @@ thetaC = ceil(thetaC);
 % imwrite(thetaC,[ [0 0 0]; hsv(180) ],'Fig_04_Unrotated_theta.png')
 
 figure;
-histogram(theta/pi*180);
+optimalHistogram(theta/pi*180);
 
 figure;
 plot(angles,bins(maxima)/8*180,'-g');

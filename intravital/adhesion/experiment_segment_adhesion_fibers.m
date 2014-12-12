@@ -5,7 +5,7 @@ function experiment_segment_adhesion_fibers( imInput, metadata )
 
     % apply median filter to remove any spotty noise
     imAdjusted = matitk( 'FMEDIAN', [1,1,1], imAdjusted );    
-    figure, histogram( imAdjusted );
+    figure, optimalHistogram( imAdjusted );
     
     % use thresholding to suppress background structures
     imThresh = zeros( size( imAdjusted ) );

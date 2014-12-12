@@ -35,8 +35,9 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
             refimg = simGaussianBeads(xmax,ymax, sigma, ...
             'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
     else
-        Aorg = [300+100*randn(1,nPoints*3/5) 300+600*rand(1,nPoints*2/5)];
-        Aorg(Aorg<300)=300+400*rand(1,sum(Aorg<300));
+%         Aorg = [300+100*randn(1,nPoints*3/5) 300+600*rand(1,nPoints*2/5)];
+%         Aorg(Aorg<300)=300+400*rand(1,sum(Aorg<300));
+        Aorg = [300+600*rand(1,nPoints)];
 
         [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
             'npoints', nPoints, 'Border', 'truncated','A',Aorg);

@@ -1056,7 +1056,7 @@ switch test
         % plot distance matrix
         fuzzyGroupArma_visualize(data,[],1,[], [],5e-2,[],2);
         
-        figure,histogram(dm(end,1:end-1))
+        figure,optimalHistogram(dm(end,1:end-1))
 
 
 

@@ -231,7 +231,7 @@ if nargin >= 10 && strcmp(method,'fast')
             MpM=M'*M;
         end
         maxIter = 20;
-        tolr = 1e-7;
+        tolr = 10;
         if useLcurve
             disp('L-curve ...')
             [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);

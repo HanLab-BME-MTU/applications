@@ -89,6 +89,7 @@ for iChannel = 1 :  length(MD.channels_)
     % for each frame
     for iFrame = 1 : nFrame
         display(['iChannel: ', num2str(iChannel),', iFrame:', num2str(iFrame)]);
+        tic
         %% % Load the data
        
         % load scale map
@@ -160,20 +161,26 @@ for iChannel = 1 :  length(MD.channels_)
         % get network feature that is only related to the network
         [output_network_features, VIF_ROI_model, VIF_ROI_orientation_model] ...
             = network_analysis(VIF_current_model,...
-                VIF_current_seg, ROI, radius,feature_flag);
+            VIF_current_seg, ROI, radius,feature_flag);
         
+        display(' --- network features');
+        tic
         % get network feature that is related to intensity or st image
-         output_image_features = perfilament_analysis(VIF_ROI_model, VIF_ROI_orientation_model,...
-                 VIF_current_seg, scaleMap,current_img, MAX_st_res, feature_flag);
+        output_image_features = perfilament_analysis(VIF_ROI_model, VIF_ROI_orientation_model,...
+            VIF_current_seg, scaleMap,current_img, MAX_st_res, feature_flag);
+        toc
         
         % putting the network features together
         output_feature =  cat_struct(output_network_features,output_image_features);
         
+        display(' --- intensity, scale, steerable-response features');        
+        tic
         % plot the network features in hists
         network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
                 im_name, outdir,iChannel,iFrame)
 %         close all;
-
+        toc
+        
         % add one last component, the cell_mask
         if(indexCellRefineProcess>0)
             Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
@@ -189,6 +196,8 @@ for iChannel = 1 :  length(MD.channels_)
         % put output feature to cell for all channels, all frames
         network_feature{iChannel,iFrame} = output_feature;
         
+       display(' this frame totaling: ');        
+       toc
     end
     
     % save output feature for all channels, all frames)       

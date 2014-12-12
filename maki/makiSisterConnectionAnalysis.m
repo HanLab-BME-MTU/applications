@@ -1204,7 +1204,7 @@ if verbose
         hold on
         
         %get number of necessary bins
-        eval(['[n,x] = histogram(sisterDistDistr' label{iLabel,1} ');']);
+        eval(['[n,x] = optimalHistogram(sisterDistDistr' label{iLabel,1} ');']);
         eval(['hist(sisterDistDistr' label{iLabel,1} ',length(n));']);
 
         %write axes labels
@@ -1218,7 +1218,7 @@ if verbose
         hold on
         
         %get number of necessary bins
-        eval(['[n,x] = histogram(sisterVelDistr' label{iLabel,1} ');']);
+        eval(['[n,x] = optimalHistogram(sisterVelDistr' label{iLabel,1} ');']);
         eval(['hist(sisterVelDistr' label{iLabel,1} ',length(n));']);
 
         %write axes labels
@@ -1233,7 +1233,7 @@ if verbose
         
         %get number of necessary bins
         if eval(['~isempty(angleNormalDistr' label{iLabel,1} ')'])
-            eval(['[n,x] = histogram(angleNormalDistr' label{iLabel,1} ');']);
+            eval(['[n,x] = optimalHistogram(angleNormalDistr' label{iLabel,1} ');']);
             eval(['hist(angleNormalDistr' label{iLabel,1} ',length(n));']);
         end
 
@@ -1248,7 +1248,7 @@ if verbose
         hold on
         
         %get number of necessary bins
-        eval(['[n,x] = histogram(angularVelDistr' label{iLabel,1} ');']);
+        eval(['[n,x] = optimalHistogram(angularVelDistr' label{iLabel,1} ');']);
         eval(['hist(angularVelDistr' label{iLabel,1} ',length(n));']);
 
         %write axes labels
@@ -1363,7 +1363,7 @@ end
     %         %plot histogram of distance temporal trend
     %         eval(['trend2plot = sisterDistTrend' label{iLabel,1} ';']);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot(:,1));
+    %             [x] = optimalHistogram(trend2plot(:,1));
     %             hist(trend2plot(:,1),length(x));
     %         end
     %
@@ -1381,7 +1381,7 @@ end
     %         %plot histogram of significant trends only
     %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot);
+    %             [x] = optimalHistogram(trend2plot);
     %             hist(trend2plot,length(x));
     %         end
     %
@@ -1399,7 +1399,7 @@ end
     %         %plot histogram of velocity temporal trend
     %         eval(['trend2plot = sisterVelTrend' label{iLabel,1} ';']);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot(:,1));
+    %             [x] = optimalHistogram(trend2plot(:,1));
     %             hist(trend2plot(:,1),length(x));
     %         end
     %
@@ -1417,7 +1417,7 @@ end
     %         %plot histogram of significant trends only
     %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot);
+    %             [x] = optimalHistogram(trend2plot);
     %             hist(trend2plot,length(x));
     %         end
     %
@@ -1435,7 +1435,7 @@ end
     %         %plot histogram of angle with normal temporal trend
     %         eval(['trend2plot = angleNormalTrend' label{iLabel,1} ';']);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot(:,1));
+    %             [x] = optimalHistogram(trend2plot(:,1));
     %             hist(trend2plot(:,1),length(x));
     %         end
     %
@@ -1453,7 +1453,7 @@ end
     %         %plot histogram of significant trends only
     %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot);
+    %             [x] = optimalHistogram(trend2plot);
     %             hist(trend2plot,length(x));
     %         end
     %
@@ -1471,7 +1471,7 @@ end
     %         %plot histogram of angular velocity temporal trend
     %         eval(['trend2plot = angularVelTrend' label{iLabel,1} ';']);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot(:,1));
+    %             [x] = optimalHistogram(trend2plot(:,1));
     %             hist(trend2plot(:,1),length(x));
     %         end
     %
@@ -1489,7 +1489,7 @@ end
     %         %plot histogram of angular velocity temporal trend
     %         trend2plot = trend2plot(trend2plot(:,3)<0.05,1);
     %         if ~isempty(trend2plot)
-    %             [x] = histogram(trend2plot);
+    %             [x] = optimalHistogram(trend2plot);
     %             hist(trend2plot,length(x));
     %         end
     %

@@ -51,6 +51,7 @@ processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:},'initChannel',1);
 
 % ---------------------- Channel Setup -------------------------
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 funParams = userData.crtProc.funParams_;
 
 maskProc =  cellfun(@(x) isa(x,'MaskProcess'),userData.MD.processes_);
@@ -93,6 +94,7 @@ delete(handles.figure1);
 function figure1_DeleteFcn(hObject, ~, handles)
 % Notify the package GUI that the setting panel is closed
 userData = get(handles.figure1, 'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 
 if isfield(userData, 'helpFig') && ishandle(userData.helpFig)
    delete(userData.helpFig) 
@@ -132,6 +134,7 @@ funParams.ChannelIndex = get(handles.listbox_selectedChannels, 'Userdata');
 
 % Get frame range
 userData=get(handles.figure1,'UserData');
+if(isempty(userData)), userData = struct(); end; % 2014b Hackaton-fix PR
 firstFrame = str2double(get(handles.edit_firstFrame,'String'));
 if ~userData.crtProc.checkFrameNum(firstFrame)
     errordlg(['Please enter a valid ' get(handles.text_frameRange,'String') '.'],...

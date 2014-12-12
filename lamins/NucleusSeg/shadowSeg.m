@@ -7,7 +7,7 @@ function BW = shadowSeg(I)
   
     D = im2double(I);
     % First threshold using Rosin
-    [N, X] = histogram(D(:));
+    [N, X] = optimalHistogram(D(:));
     Ni = flipud(N); % Invert the histogram
     Xi = flipud(1-X);
     [cutoffIndex, cutoffValue] = cutFirstHistMode(Ni, Xi, 0);

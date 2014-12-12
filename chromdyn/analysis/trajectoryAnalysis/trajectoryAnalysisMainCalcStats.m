@@ -412,7 +412,7 @@ timeVector = dataListG(goodIntervalIdx,7)./intervalLength;
 timeMean = mean(timeVector);
 timeStd  = std(timeVector);
 if any(verbose == 5)
-    figure('Name',fileName),histogram(timeVector)
+    figure('Name',fileName),optimalHistogram(timeVector)
 end
 % FRAP
 % - here is where it would be -

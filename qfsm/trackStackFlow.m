@@ -135,7 +135,7 @@ fprintf(1,['   Start tracking (total: ' strg ' points): '],nPoints);
 
 if isempty(gcp('nocreate'))
     try
-        parpool open
+        parpool local
     catch
         matlabpool
     end
