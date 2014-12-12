@@ -18,6 +18,9 @@ function compTracks = convReceptClust2CompTracks(clust2recept,recept2clust,...
 %                     output by trackCloseGapsKalman.
 
 %Khuloud Jaqaman, January 2009
+%
+%Modified 08/20/14, Robel Yirdaw
+%
 
 %% Input
 

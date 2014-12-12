@@ -1,6 +1,6 @@
-function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksALT_defFormatTracks)
-%CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE determines the size and lifetime 
-%of all clusters that formed during a simulation.
+function clustHistoryAll = clusterHistoryFromCompTracks_aggregState_endIter(compTracksALT_defFormatTracks,startEndIter)
+%CLUSTERHISTORYFROMCOMPTRACKS_AGGREGSTATE_ENDITER determines the size and 
+%lifetime of all clusters that formed during a simulation.
 %
 %   The function uses the information conatined in seqOfEvents and
 %   aggregState, two fields from the output of aggregStateFromCompTracks,
@@ -13,6 +13,10 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %       comTracksALT.defaultFormatTracks:  
 %                         the structure of track information including 
 %                         aggregState in default format.
+%       startEndIter:     a 1 or 2 element array giving the starting and
+%                         ending iterations for processing sequence of
+%                         events. If only one value given, it will be taken
+%                         as an ending iteration point.
 %
 %   OUTPUT:
 %       clustHistoryAll:  a 1D cell with rows = number of tracks in
@@ -34,12 +38,31 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
 %                            indicates only the current segment is listed,
 %                            i.e. the partner is not listed. 
 %
-%   Robel Yirdaw, 09/19/13
-%       modified, 02/20/14
-%       modified, 04/08/14               
-%       modified, 11/18/14
+%   Note: this is a temporary modified version of
+%   clusterHistoryFromCompTracks_aggregState, for the purposes of current
+%   intermediat statistics related analysis. Initially (100714), the
+%   modification allowed an arbitrary ending iteration point for
+%   determining cluster history. This has been further modified to also
+%   allow an arbitrary starting iteration point. No signature change
+%   between 100714 and 102814.  startEndIter is now a vector and if only
+%   one value present, it will be used as an ending iteration. This
+%   function is for temporary use only and should be merged with 
+%   clusterHistoryFromCompTracks_aggregState.
+%
+%
+%   Robel Yirdaw, 10/07/14
+%       modified, 10/28/14
+%       modified, 11/25/14
 %
 
+    if (length(startEndIter) == 1)
+        startIter = 1;
+        endIter = startEndIter;
+    elseif (length(startEndIter) == 2)
+        startIter = startEndIter(1);
+        endIter = startEndIter(2);
+    end
+    
     %Determine number of compTracks generated
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %040814 - now passing defaultFormatTracks directly for memory reasons.
@@ -53,11 +76,17 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
     for compTrackIter=1:numCompTracks  
         %seqOfEvents for current compTrack
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %040814 - now passing defaultFormatTracks directly for memory reasons.        
+        %040814 - now passing defaultFormatTracks directly for memory reasons.   
         seqOfEvents = compTracksALT_defFormatTracks(compTrackIter,1).seqOfEvents;                
+        %100714 - modified to allow analysis of only a specific number of
+        %iterations ending at endIter.   
+        %100814 - further modified for arbitrary starting iteration
+        seqOfEvents = seqOfEvents(seqOfEvents(:,1) >= startIter &...
+            seqOfEvents(:,1) <= endIter,:);
         
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %111814
+        %112514
         %For experimental data, the first iteration (frame) in seqOfEvents
         %can be some value other than 1.  This is occurs becuase an object
         %can appear or disappear at any time while in simulation, all of
@@ -66,14 +95,21 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
         %column in aggregState. So, need to shift frame numbers in
         %seqOfEvents, if necessary, when accessing aggregState. The very
         %first frame # is the shift amount.
-        frameShift = seqOfEvents(1,1);
+        frameShift = seqOfEvents(1,1);        
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %091813
         %aggregState will be used to get cluster sizes 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %040814 - now passing defaultFormatTracks directly for memory reasons.        
-        aggregState = compTracksALT_defFormatTracks(compTrackIter,1).aggregState;
+        %040814 - now passing defaultFormatTracks directly for memory reasons.
+        %100714 - modified to allow analysis of only a specific number of
+        %iterations ending at endIter.   
+        %100814 - starting iteration should not be applied to aggregState
+        %since it is used to pick out sizes by using the column #. Using
+        %endIter is okay - values after endIter won't be used.
+        %
+        aggregState =...
+            compTracksALT_defFormatTracks(compTrackIter,1).aggregState(:,1:endIter);
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -107,12 +143,12 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                 %number as the row and the current iteration value (column
                 %1 in seqOfEvents of the same row) as the column to
                 %get the size of the cluster that split
-                %
+                
                 %Modified 111814 to accomodate seqOfEvents that start at
                 %frames > 1
                 clustHistoryTemp(clustHistIndx,2) = ...
                     aggregState(seqOfEvents(eventIndx,3),...
-                    seqOfEvents(eventIndx,1) - frameShift + 1);
+                    seqOfEvents(eventIndx,1) - frameShift + 1);                
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
                 %Starting iteration point of this cluster
@@ -135,7 +171,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                     %Type of event ending cluster (1=dissoc., 2=assoc.)
                     clustHistoryTemp(endingTrackIndx,6) = seqOfEvents(eventIndx,2);
                     
-                    %021714 - added column #7 for size of resulting cluster
+                    %021714 - added column #7 for size of resulting cluster                    
                     %Modified 111814 to accomodate seqOfEvents from
                     %experimental data which can have NaN entries for
                     %column #4 corresponding to segments appearing or
@@ -144,7 +180,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                     if (~isnan(seqOfEvents(eventIndx,4)))
                         clustHistoryTemp(endingTrackIndx,7) = ...
                             aggregState(seqOfEvents(eventIndx,4),...
-                            seqOfEvents(eventIndx,1) - frameShift + 1);
+                            seqOfEvents(eventIndx,1) - frameShift + 1);     
                     end
                 end
 
@@ -169,8 +205,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
                 %Modified 111814
                 clustHistoryTemp(changingTrackIndx,7) = ...
                     aggregState(seqOfEvents(eventIndx,4),...
-                    seqOfEvents(eventIndx,1) - frameShift + 1);
-                
+                    seqOfEvents(eventIndx,1) - frameShift + 1);                
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %02/18/14
                 %Special case for cluster size 1
@@ -209,7 +244,7 @@ function clustHistoryAll = clusterHistoryFromCompTracks_aggregState(compTracksAL
             %segments appearing or disappearing. The segment in column #4 
             %is unknown if NaN. So in this case, a new cluster can not be
             %started.
-            if (~isnan(seqOfEvents(eventIndx,4)))                      
+            if (~isnan(seqOfEvents(eventIndx,4)))
                 %The receptor's (cluster's) track number
                 clustHistoryTemp(clustHistIndx,1) = seqOfEvents(eventIndx,4);
 
