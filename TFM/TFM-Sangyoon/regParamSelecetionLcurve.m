@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
+function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
