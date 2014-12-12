@@ -1,18 +1,22 @@
 function [merge2splitTimes,numRecepAgg,numRecepDiss] = getMerge2SplitTimes(recept2clustAssign)
-%GETMERGE2SPLITTIMES Calculate receptor merge-to-split times from 
-%           recept2clustAssign.
+%GETMERGE2SPLITTIMES calculates receptor merge-to-split times from 
+%recept2clustAssign.
 %
 %   INPUT:  recept2clustAssign: A 2D array output by
 %           receptorAggregationSimple as a struct field for either
 %           receptorInfoAll and receptorInfoLabeled.
 %
-%   OUTPUT: merge2splitTimes: a 2D array of with the following column 
+%   OUTPUT: 
+%           merge2splitTimes: a 2D array of with the following column 
 %           values
 %              Col 1: Receptor ID
 %              Col 2: Merge time
 %              Col 3: Split time
 %              Col 4: Merge-to-split time
 %              Col 5: Cluster size (number of receptors) at dissociation
+%
+%           numRecepAgg:    number of receptors undergoing association
+%           numRecepDiss:   number of receptors undergoing dissociation
 %
 %   Robel Yirdaw, 07/09/13
 %
@@ -97,6 +101,8 @@ function [merge2splitTimes,numRecepAgg,numRecepDiss] = getMerge2SplitTimes(recep
     end %For each iteration
     
     merge2splitTimes(m2sTimeCounter:end,:) = [];
+    
+end %function
     
     
                     
