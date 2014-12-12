@@ -197,13 +197,13 @@ force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,139,267,150,620,400/72,500/72,fo
     assumedForceAniso2D(2,x_mat_u,y_mat_u,377,419,-200,2900,1000/108,5600/108,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,438,447,-300,2800,1000/108,5600/108,forceType);
 %% force noise
-maxFnoixe = 100;
+maxFnoise = 100;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 foreground = fnorm_org>120;
 background = ~foreground;
 
-force_x = (2*maxFnoixe*rand(ymax,xmax)-maxFnoixe).*background + force_x;
-force_y = (2*maxFnoixe*rand(ymax,xmax)-maxFnoixe).*background + force_y;
+force_x = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_x;
+force_y = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 figure, imshow(fnorm_org,[0 500]), colormap jet
 %% displacement field

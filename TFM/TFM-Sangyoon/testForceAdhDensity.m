@@ -17,8 +17,8 @@ function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = tes
 
 %% Preparing synthetic bead images
 % reference image (200x200)
-xmax=200;
-ymax=200;
+xmax=300;
+ymax=300;
 nPoints = 12000; % was 7000
 % bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
@@ -45,7 +45,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 
     %% Noise addition (10%) % it was 5%
     noiseLevel = 0.1;
-    refimg2 = 700+100*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+    refimg2 = 300+100*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
     % figure, imshow(refimg2,[])
 
     % bead images
@@ -77,7 +77,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 %     figure, hist(rx,20)
 %     figure, hist(ry,20)
     % magnitude 
-    fmin = 100; % Pa
+    fmin = 200; % Pa
     fmax= 1600;
 %     f = [fmin+2*fmin*rand(1,round(n*1/3)), (fmax)*rand(1,round(n*2/3))];
     f = fmin+(fmax-fmin)*rand(1,n);
@@ -146,26 +146,37 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     force_x = zeros(size(x_mat_u));
     force_y = zeros(size(x_mat_u));
     % filtering misplaced adhesions
-   n = n - length(posDiscard);
-   posx(posDiscard) = [];
-   posy(posDiscard) = [];
-   rx(posDiscard) = [];
-   ry(posDiscard) = [];
-   f(posDiscard) = [];
-    
-    for ii=1:n
-        [ux_cur, uy_cur]= fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
-        @(x,y) assumedForceAniso2D(1,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),...
-        @(x,y) assumedForceAniso2D(2,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),'fft',[],meshPtsFwdSol);
-        ux = ux + ux_cur;
-        uy = uy + uy_cur;
+    n = n - length(posDiscard);
+    posx(posDiscard) = [];
+    posy(posDiscard) = [];
+    rx(posDiscard) = [];
+    ry(posDiscard) = [];
+    f(posDiscard) = [];
 
+    for ii=1:n
         force_x_cur = assumedForceAniso2D(1,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
         force_y_cur = assumedForceAniso2D(2,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
         force_x = force_x + force_x_cur;
         force_y = force_y + force_y_cur;
     end
-    %% finding displacement at bead location
+    %% force noise
+    maxFnoixe = 100;
+    fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
+    foreground = fnorm_org>100;
+    background = ~foreground;
+    
+    force_x = (maxFnoixe*rand(ymax,xmax)).*background + force_x;
+    force_y = (maxFnoixe*rand(ymax,xmax)).*background + force_y;
+%% displacement calculation
+%     [ux_cur, uy_cur]= fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+%     @(x,y) assumedForceAniso2D(1,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),...
+%     @(x,y) assumedForceAniso2D(2,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),'fft',[],meshPtsFwdSol);
+%     ux = ux + ux_cur;
+%     uy = uy + uy_cur;
+    [ux, uy]=fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
+        force_x,force_y,'fft',[],meshPtsFwdSol,50000,0.5,false,true); %,'conv',[],meshPtsFwdSol);
+
+%% finding displacement at bead location
     nPoints = length(bead_x);
     bead_ux = zeros(size(bead_x));
     bead_uy = zeros(size(bead_y));
@@ -194,7 +205,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
     %% Noise addition (10%) % it was 5% before
     % beadimg = beadimg+0.1*rand(ymax,xmax)*max(beadimg(:));
-    beadimg = 700+100*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+    beadimg = 300+100*noiseLevel*rand(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
     %% saving
     imgPath=[dataPath filesep 'Beads'];
     refPath=[dataPath filesep 'Reference'];
