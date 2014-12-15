@@ -1,4 +1,4 @@
-function [reg_corner,ireg_corner,kappa]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
+function [reg_corner,ireg_corner,kappa,h]=regParamSelecetionLcurve(rho,eta,lambda,init_lambda, varargin)%,dataPath)
 % [reg_corner,ireg_corner,kappa]=l_curve_corner(rho,eta,reg_param)
 % returns l curve corner estimated using a maximum curvature (kappa) estimation 
 % in log-log space
@@ -21,8 +21,18 @@ ip.addRequired('rho',@isnumeric);
 ip.addRequired('eta',@isnumeric);
 ip.addRequired('lambda',@isnumeric);
 ip.addOptional('init_lambda',median(lambda),@isnumeric);
+<<<<<<< HEAD
+try 
+    ip.addParameter('inflection',false,@islogical)
+    ip.addParameter('manualSelection',false,@islogical);
+catch
+    ip.addParamValue('inflection',false,@islogical)
+    ip.addParamValue('manualSelection',false,@islogical);
+end
+=======
 ip.addParameter('inflection',0,@isnumeric);
 ip.addParameter('manualSelection',false,@islogical);
+>>>>>>> 6bb628a41a46aa60ecd3ef70263237e6f90743be
 ip.parse(rho,eta,lambda,init_lambda, varargin{:});
 rho=ip.Results.rho;
 eta=ip.Results.eta;

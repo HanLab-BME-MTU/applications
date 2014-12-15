@@ -109,21 +109,23 @@ for k=1:numel(displField)
 
         % saving
         % Set up the output file path
-        outputFilePath = [dataPath filesep 'heatMap'];
-        tifPath = [outputFilePath filesep 'tifs'];
-        figPath = [outputFilePath filesep 'figs'];
-        epsPath = [outputFilePath filesep 'eps'];
-        if ~exist(tifPath,'dir') || ~exist(epsPath,'dir')
-            mkdir(tifPath);
-            mkdir(figPath);
-            mkdir(epsPath);
-        end
+        if ~isempty(dataPath)
+            outputFilePath = [dataPath filesep 'heatMap'];
+            tifPath = [outputFilePath filesep 'tifs'];
+            figPath = [outputFilePath filesep 'figs'];
+            epsPath = [outputFilePath filesep 'eps'];
+            if ~exist(tifPath,'dir') || ~exist(epsPath,'dir')
+                mkdir(tifPath);
+                mkdir(figPath);
+                mkdir(epsPath);
+            end
 
-        I = getframe(h3);
-        imwrite(I.cdata, strcat(tifPath,'/displFieldMagTif',num2str(k),'.tif'));
-        hgsave(h3,strcat(figPath,'/displFieldMagFig',num2str(k)),'-v7.3')
-        print(h3,strcat(epsPath,'/displFieldMagEps',num2str(k),'.eps'),'-depsc2')
-        close(h3)
+            I = getframe(h3);
+            imwrite(I.cdata, strcat(tifPath,'/displFieldMagTif',num2str(k),'.tif'));
+            hgsave(h3,strcat(figPath,'/displFieldMagFig',num2str(k)),'-v7.3')
+            print(h3,strcat(epsPath,'/displFieldMagEps',num2str(k),'.eps'),'-depsc2')
+            close(h3)
+        end
     end
 end
 end
