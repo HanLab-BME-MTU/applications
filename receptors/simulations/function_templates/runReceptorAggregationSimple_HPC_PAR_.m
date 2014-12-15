@@ -41,7 +41,7 @@ function runReceptorAggregationSimple_HPC_PAR_(runIndex)
     fprintf('\n====#1=====\n');
     
     [compTracksALT,segmentStat] = ...
-           aggregStateFromCompTracks_new0814(receptorInfoLabeled.compTracks,modelParam.intensityQuantum);  
+           aggregStateFromCompTracks_new(receptorInfoLabeled.compTracks,modelParam.intensityQuantum);  
        
     %clear compTracks
     
