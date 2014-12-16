@@ -1,9 +1,9 @@
 function load_MD_run_filament_analysis_package(this_MD, Parameter_MD, varargin)
-% Function of single image filament segmentation with input MD from other
-%               successfully segmented movie for the parameters in MD
+% Function of single image filament segmentation with input this_MD from other
+%               successfully segmented movie for the parameters in this_MD
 
 % Input:      this_MD:              the movieData for data to be segmented
-%             Parameter_MD:    a loaded MD with good segmentation parameters
+%             Parameter_MD:    a loaded this_MD with good segmentation parameters
 %                              if none, put [], so a default setting will be used
 %                              with (1) Otsu with smoothing 1 (2) mask
 %                              refine with 1 object, (3) image flatten with
@@ -25,7 +25,7 @@ ip.addOptional('whole_movie_filename', ' ', @ischar);
 ip.parse(this_MD,Parameter_MD,varargin{:});
 whole_movie_filename= ip.Results.whole_movie_filename;
 
-%% get the image dir and make a MD just for this image
+%% get the image dir and make a this_MD just for this image
 ROOT_DIR = this_MD.outputDirectory_;
 
 nChannel = numel(this_MD.channels_);
@@ -114,7 +114,7 @@ else
     %%     % check if there is each of the process
     indexCellSegProcess = 0;
     for i = 1 : nProcess
-        if(strcmp(MD.processes_{i}.getName,'Thresholding')==1)
+        if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
             indexCellSegProcess = i;
             break;
         end
@@ -122,7 +122,7 @@ else
     
     indexCellRefineProcess = 0;
     for i = 1 : nProcess
-        if(strcmp(MD.processes_{i}.getName,'Mask Refinement')==1)
+        if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
             indexCellRefineProcess = i;
             break;
         end
@@ -130,7 +130,7 @@ else
     
     indexFlattenProcess = 0;
     for i = 1 : nProcess
-        if(strcmp(MD.processes_{i}.getName,'Image Flatten')==1)
+        if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
             indexFlattenProcess = i;
             break;
         end
@@ -138,7 +138,7 @@ else
     
     indexSteerabeleProcess = 0;
     for i = 1 : nProcess
-        if(strcmp(MD.processes_{i}.getName,'Steerable filtering')==1)
+        if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
             indexSteerabeleProcess = i;
             break;
         end
@@ -146,7 +146,7 @@ else
     
     indexFilamentSegmentationProcess = 0;
     for i = 1 : nProcess
-        if(strcmp(MD.processes_{i}.getName,'Filament Segmentation')==1)
+        if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
             indexFilamentSegmentationProcess = i;
             break;
         end
@@ -154,7 +154,7 @@ else
     
     %%  % 1 threshold
     
-    %%   % when there is no input MD, and no existing processes
+    %%   % when there is no input this_MD, and no existing processes
     % use the default for all of the processes
         
     default_Params=[];
