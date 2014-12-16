@@ -113,7 +113,7 @@ if(~isempty(Parameter_MD))
 else
     %%     % check if there is each of the process
     indexCellSegProcess = 0;
-    for i = 1 : nProcesses
+    for i = 1 : nProcess
         if(strcmp(MD.processes_{i}.getName,'Thresholding')==1)
             indexCellSegProcess = i;
             break;
@@ -121,7 +121,7 @@ else
     end
     
     indexCellRefineProcess = 0;
-    for i = 1 : nProcesses
+    for i = 1 : nProcess
         if(strcmp(MD.processes_{i}.getName,'Mask Refinement')==1)
             indexCellRefineProcess = i;
             break;
@@ -129,7 +129,7 @@ else
     end
     
     indexFlattenProcess = 0;
-    for i = 1 : nProcesses
+    for i = 1 : nProcess
         if(strcmp(MD.processes_{i}.getName,'Image Flatten')==1)
             indexFlattenProcess = i;
             break;
@@ -137,7 +137,7 @@ else
     end
     
     indexSteerabeleProcess = 0;
-    for i = 1 : nProcesses
+    for i = 1 : nProcess
         if(strcmp(MD.processes_{i}.getName,'Steerable filtering')==1)
             indexSteerabeleProcess = i;
             break;
@@ -145,7 +145,7 @@ else
     end
     
     indexFilamentSegmentationProcess = 0;
-    for i = 1 : nProcesses
+    for i = 1 : nProcess
         if(strcmp(MD.processes_{i}.getName,'Filament Segmentation')==1)
             indexFilamentSegmentationProcess = i;
             break;
