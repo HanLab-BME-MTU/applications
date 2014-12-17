@@ -11,7 +11,7 @@ function [cluster2receptor,receptor2cluster,clusterSize,receptPositions] = ...
 %
 %   This was the first form of maxWeightedMatching based association
 %   function and its name initially did not have _CollProb. This was added
-%   to distinguish it from the newer versions of this functions (sure
+%   to distinguish it from the newer versions of this function (sure
 %   collision and potential collision).
 %
 %   After the initial implementation of maxWeightedMatching, improvements
