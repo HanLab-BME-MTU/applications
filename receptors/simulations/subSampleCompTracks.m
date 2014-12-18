@@ -12,7 +12,8 @@ function tracksSub = subSampleCompTracks(tracks0,timeStep0,timeStepSub)
 %
 %OUTPUT tracksSub    : Same as input tracks, just sub-sampled in time.
 %
-%REMARKS NOT FULLY TESTED. DOES NOT FULLY WORK. BUT CHECKING IN SO AS NOT TO LOSE.
+%REMARKS Code still needs to handle case when a compound track gets broken
+%        into multiple non-interacting tracks.
 %
 %Khuloud Jaqaman, February 2013
 
@@ -48,6 +49,7 @@ numTracks = length(tracks0);
 
 %go over all tracks and sub-sample
 tracksSub = tracks0;
+tracksSub = rmfield(tracksSub,'aggregState');
 for iTrack = 1 : numTracks
     
     %convert the current track's information to matrix format
