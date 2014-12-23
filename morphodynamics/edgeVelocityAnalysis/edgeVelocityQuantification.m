@@ -85,10 +85,10 @@ function [cellData,dataSet] = edgeVelocityQuantification(movieObj,varargin)
 
 ip = inputParser;
 ip.addRequired('movieObj',@(x) isa(x,'MovieList') || isa(x,'MovieData'));
-ip.addParamValue('nBoot',1e3,@isscalar);
-ip.addParamValue('alpha',.05,@isscalar);
-ip.addParamValue('cluster',false,@isscalar);
-ip.addParamValue('nCluster',2,@isscalar);
+ip.addParameter('nBoot',1e3,@isscalar);
+ip.addParameter('alpha',.05,@isscalar);
+ip.addParameter('cluster',false,@isscalar);
+ip.addParameter('nCluster',2,@isscalar);
 
 if isa(movieObj,'MovieData')
     
@@ -103,19 +103,19 @@ end
 nCell = numel(ML.movies_);
 
 %% Time Series Pre-Processing operations
-ip.addParamValue('includeWin',cell(1,nCell),@iscell);
-ip.addParamValue('winInterval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('outLevel',  zeros(1,nCell),@isvector);
-ip.addParamValue('trendType',-ones(1,nCell),@isvector);
-ip.addParamValue('minLength', 10*ones(1,nCell),@isvector);
-ip.addParamValue('gapSize',   zeros(1,nCell),@isvector);
-ip.addParamValue('scale',     false,@islogical);
-ip.addParamValue('outputPath','EdgeVelocityQuantification',@isstr);
-ip.addParamValue('fileName','EdgeMotion',@isstr);
-ip.addParamValue('interval',num2cell(cell(1,nCell)),@iscell);
-ip.addParamValue('lwPerc',2.5,@isscalar);
-ip.addParamValue('upPerc',97.5,@isscalar);
-ip.addParamValue('selectMotion',{[]},@iscell);
+ip.addParameter('includeWin',cell(1,nCell),@iscell);
+ip.addParameter('winInterval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('outLevel',  zeros(1,nCell),@isvector);
+ip.addParameter('trendType',-ones(1,nCell),@isvector);
+ip.addParameter('minLength', 10*ones(1,nCell),@isvector);
+ip.addParameter('gapSize',   zeros(1,nCell),@isvector);
+ip.addParameter('scale',     false,@islogical);
+ip.addParameter('outputPath','EdgeVelocityQuantification',@isstr);
+ip.addParameter('fileName','EdgeMotion',@isstr);
+ip.addParameter('interval',num2cell(cell(1,nCell)),@iscell);
+ip.addParameter('lwPerc',2.5,@isscalar);
+ip.addParameter('upPerc',97.5,@isscalar);
+ip.addParameter('selectMotion',{[]},@iscell);
 
 ip.parse(movieObj,varargin{:});
 nBoot       = ip.Results.nBoot;
@@ -140,6 +140,15 @@ selection   = ip.Results.selectMotion;
 if numel(interval) == 1
     interval = repmat(interval,1,nCell);
 end
+
+if numel(includeWin) == 1
+    includeWin = repmat(includeWin,1,nCell);
+end
+
+if numel(winInterval) == 1
+    winInterval = repmat(winInterval,1,nCell);
+end
+
 
 %% Formatting Time Series
 operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
@@ -252,9 +261,9 @@ if sum(runEdgeAnalysis) ~= 0
     if winFlag
         
         [protrusion,retraction] = cellfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.timeInterval,x.data.winInterval),cellData(runEdgeAnalysis),'Unif',0);
-        protrusion = {protrusion};
-        retraction = {retraction};
-        
+        %Creating interval layer
+        protrusion = cellfun(@(x) {{x}},protrusion);
+        retraction = cellfun(@(x) {{x}},retraction);
     else
         
         [protrusion,retraction] ...
