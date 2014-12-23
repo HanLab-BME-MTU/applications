@@ -13,8 +13,8 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
         function obj = Skeleton(bw)
             if(nargin > 0)
                 if(isa(bw,'lamins.classes.LaminsImage'))
-                    obj.bw = bw.auditedSkel;
-%                     obj.bw = bw.extendedSkel;
+%                     obj.bw = bw.auditedSkel;
+                    obj.bw = bw.extendedSkel;
                 else
                     obj.bw = bw;
                 end

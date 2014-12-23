@@ -1,16 +1,19 @@
-function tracksFR = cropCompTracksFR(tracks0,frameRange)
-%cropCompTracksFR crops compound tracks to a certain frame range
+function tracksCrop = cropCompTracksFR(tracks0,frameRange)
+%cropCompTracksFR crops tracks to a particular time range
 %
-%SYNOPSIS tracksFR = cropCompTracksFR(tracks0,frameRange)
+%SYNOPSIS tracksCrop = cropCompTracksFR(tracks0,frameRange)
 %
 %INPUT  tracks0      : Original tracks, in form of output of
 %                      trackCloseGapsKalman.
-%       frameRange   : Row vector with minimum and maximum frame to retain.
+%       frameRange   : Row vector with two entries indicating time range to
+%                      retain.
 %
-%OUTPUT tracksSub    : Same as input tracks, but only within requested
-%                      frame range.
+%OUTPUT tracksCrop   : Same as input tracks, just cropped in time.
 %
-%Khuloud Jaqaman, February 2013
+%REMARKS Code still needs to handle case when a compound track gets broken
+%        into multiple non-interacting tracks.
+%
+%Khuloud Jaqaman, December 2014
 
 %% Input
 
@@ -18,94 +21,100 @@ if nargin < 2
     error('cropCompTracksFR: Incorrect number of input arguments!')
 end
 
+%determine which frames to keep
+tpKeep = frameRange(1) : frameRange(2);
+
+%thus determine which columns to keep in tracksCoordAmpCG
+colKeep = (repmat(tpKeep,8,1)-1)*8 + repmat((1:8)',1,length(tpKeep));
+colKeep = colKeep(:);
+
+%check if tracks are in sparse form
+sparseForm = issparse(tracks0(1).tracksFeatIndxCG);
+
 %% Cropping
 
-%get number of compount tracks
+%get number of tracks
 numTracks = length(tracks0);
 
-%copy input tracks to output tracks0
-tracksFR = tracks0;
-
-%go over all compound tracks
+%go over all tracks and sub-sample
+tracksCrop = tracks0;
 for iTrack = 1 : numTracks
     
-    %get this track's information
-    tracksFeatIndx = tracks0(iTrack).tracksFeatIndxCG;
-    tracksCoordAmp = tracks0(iTrack).tracksCoordAmpCG;
+    %convert the current track's information to matrix format
+    [trackedFeatureInfo,trackedFeatureIndx] = convStruct2MatIgnoreMS(tracks0(iTrack));
+    
+    %keep only the time points of interest
+    trackedFeatureIndx = trackedFeatureIndx(:,tpKeep);
+    trackedFeatureInfo = trackedFeatureInfo(:,colKeep);
+
+    %convert zeros to NaNs if original tracks were sparse
+    if sparseForm
+        trackedFeatureInfo(trackedFeatureInfo==0) = NaN;
+    end
+    
+    %get each track segment's new start, end and life time
+    segSEL = getTrackSEL(trackedFeatureInfo);
+    numSeg = size(segSEL,1);
+    
+    %find segments that survive the cropping and those that do not
+    indxStay = find(~isnan(segSEL(:,3)));
+    indxGone = setdiff((1:numSeg)',indxStay);
+    if isempty(indxGone)
+        indxGone  = [];
+    end
+    
+    %get the track's sequence of events
     seqOfEvents = tracks0(iTrack).seqOfEvents;
     
-    %calculate difference between track start frame and first frame of
-    %interest
-    frameStartDiff = frameRange(1) - seqOfEvents(1,1) + 1;
+    %"delete" merges and splits happening outside of the frame range
+    tmp = ~isnan(seqOfEvents(:,4)) & ( seqOfEvents(:,1)<frameRange(1) | seqOfEvents(:,1)>frameRange(2) );
+    seqOfEvents(tmp,4) = NaN;
     
-    %if track starts before first frame of interest ... 
-    if frameStartDiff > 1
-        
-        %remove part before first frame
-        tracksFeatIndx = tracksFeatIndx(:,frameStartDiff:end);
-        tracksCoordAmp = tracksCoordAmp(:,(frameStartDiff-1)*8+1:end);
-        
-        %modify the sequence of events
-        
-        %starts - shift them in time
-        indx = find( seqOfEvents(:,1) < frameRange(1) & seqOfEvents(:,2) == 1 & isnan(seqOfEvents(:,4)) );
-        seqOfEvents(indx,1) = frameRange(1); %#ok<FNDSB>
-        
-        %splits - convert them to starts and shift them in time
-        indx = find( seqOfEvents(:,1) < frameRange(1) & seqOfEvents(:,2) == 1 & ~isnan(seqOfEvents(:,4)) );
-        seqOfEvents(indx,1) = frameRange(1);
-        seqOfEvents(indx,4) = NaN;
-        
-        %ends and merges - remove segment completely
-        indx = find( (seqOfEvents(:,1) < frameRange(1) & seqOfEvents(:,2) == 2) | ...
-            (seqOfEvents(:,1) <= frameRange(1) & seqOfEvents(:,2) == 2 & ~isnan(seqOfEvents(:,4))) );
-        segIndx = seqOfEvents(indx,3);
-        seqOfEvents(indx,:) = [];
-        for iSeg = 1 : length(segIndx)
-            seqOfEvents(seqOfEvents(:,3)==segIndx(iSeg),:) = [];
-        end
-        
+    %assign new start and end times - merges will need an addition of one,
+    %done two steps down
+    for iSeg = 1 : numSeg
+        rowsSeg = find(seqOfEvents(:,3)==iSeg);
+        seqOfEvents(rowsSeg(1),1) = segSEL(iSeg,1);
+        seqOfEvents(rowsSeg(2),1) = segSEL(iSeg,2);
     end
     
-    %calculate difference between track end frame and last frame of
-    %interest
-    frameEndDiff = seqOfEvents(end,1) - frameRange(2) + 1;
-    
-    %if track ends after last frame of itnerest ...
-    if frameEndDiff > 1
-        
-        %remove part after last frame
-        numFramesTmp = frameRange(2) - seqOfEvents(1,1) + 1;
-        tracksFeatIndx = tracksFeatIndx(:,1:numFramesTmp);
-        tracksCoordAmp = tracksCoordAmp(:,1:numFramesTmp*8);
-        
-        %modify sequence of events
-        
-        %ends - shift them in time
-        indx = find( seqOfEvents(:,1) > frameRange(2) & seqOfEvents(:,2) == 2 & isnan(seqOfEvents(:,4)) );
-        seqOfEvents(indx,1) = frameRange(2); %#ok<FNDSB>
-        
-        %merges - convert them to ends and shift them in time
-        indx = find( seqOfEvents(:,1) > frameRange(2) & seqOfEvents(:,2) == 2 & ~isnan(seqOfEvents(:,4)) );
-        seqOfEvents(indx,1) = frameRange(2);
-        seqOfEvents(indx,4) = NaN;
-        
-        %starts and splits - remove segment completely
-        indx = find( seqOfEvents(:,1) > frameRange(2) & seqOfEvents(:,2) == 1 );
-        segIndx = seqOfEvents(indx,3);
-        seqOfEvents(indx,:) = [];
-        for iSeg = 1 : length(segIndx)
-            seqOfEvents(seqOfEvents(:,3)==segIndx(iSeg),:) = [];
-        end
-        
+    %replace segments that did not survive the cropping with NaN in both
+    %the 3rd and 4th column
+    for iSeg = indxGone'
+        seqOfEvents(seqOfEvents(:,3)==iSeg,3) = NaN;
+        seqOfEvents(seqOfEvents(:,4)==iSeg,4) = NaN;
     end
     
-    %put track information back in structure array
-    tracksFR(iTrack).tracksFeatIndxCG = tracksFeatIndx;
-    tracksFR(iTrack).tracksCoordAmpCG = tracksCoordAmp;
-    tracksFR(iTrack).seqOfEvents = seqOfEvents;
-        
+    %for surviving merges, add one to end time to follow convention
+    rowsSeg = find(seqOfEvents(:,2)==2 & ~isnan(seqOfEvents(:,4)));
+    seqOfEvents(rowsSeg,1) = seqOfEvents(rowsSeg,1) + 1;
+    
+    %keep only rows that belong to surviving segments
+    seqOfEvents = seqOfEvents(~isnan(seqOfEvents(:,3)),:);
+    trackedFeatureInfo = trackedFeatureInfo(indxStay,:);
+    trackedFeatureIndx = trackedFeatureIndx(indxStay,:);
+    
+    %renumber segments to reflect new trackedFeatureInfo and
+    %trackedFeatureIndx
+    for iStay = 1 : length(indxStay)
+        iSeg = indxStay(iStay);
+        seqOfEvents(seqOfEvents(:,3)==iSeg,3) = iStay;
+        seqOfEvents(seqOfEvents(:,4)==iSeg,4) = iStay;
+    end
+    
+    %convert to sparse if input was sparse
+    if sparseForm
+        trackedFeatureIndx = sparse(trackedFeatureIndx);
+        trackedFeatureInfo(isnan(trackedFeatureInfo)) = 0;
+        trackedFeatureInfo = sparse(trackedFeatureInfo);
+    end
+    
+    %store the cropped compound track
+    tracksCrop(iTrack).tracksFeatIndxCG = trackedFeatureIndx;
+    tracksCrop(iTrack).tracksCoordAmpCG = trackedFeatureInfo;
+    tracksCrop(iTrack).seqOfEvents = seqOfEvents;
+    
 end
 
-
+%% ~~~ the end ~~~
 

@@ -1,7 +1,7 @@
 % runTestForceAdhProximity runs testForceAdhProximity
 %% Simulations - simple enough simulation - only d
-xmax=200;
-ymax=200;
+xmax=300;
+ymax=300;
 nExp = 1;
 % f = 400; % Pa
 % r = 3; % radius in pixel
@@ -16,7 +16,7 @@ nExp = 1;
 % expName = ['dia' num2str(2*r)];
 nRange = [5 20 40]; % the numbers of adhesions in 300x300 image
 NmaxCount = length(nRange);
-expName = 'randomDistr3' ;
+expName = 'randomDistr4' ;
 rmsErrorL2 = zeros(nExp,NmaxCount);
 rmsErrorL1 = zeros(nExp,NmaxCount);
 EOA_L2 = zeros(nExp,NmaxCount);

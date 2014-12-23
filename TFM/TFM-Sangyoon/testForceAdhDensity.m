@@ -95,8 +95,8 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     bandWith = 10;
     posDiscard = [];
     for ii=1:n
-        posx_min = bandWith+rx(ii); posx_max = xmax-(bandWith+rx(ii));
-        posy_min = bandWith+ry(ii); posy_max = ymax-(bandWith+ry(ii));
+        posx_min = bandWith+2*rx(ii); posx_max = xmax-(bandWith+2*rx(ii));
+        posy_min = bandWith+2*ry(ii); posy_max = ymax-(bandWith+2*ry(ii));
         if ii==1
             posx(ii) = posx_min+(posx_max-posx_min)*rand();
             posy(ii) = posy_min+(posy_max-posy_min)*rand();
@@ -357,7 +357,7 @@ cropInfo = [XI(1,1), YI(1,1)];
 % RMS error
 % get x-component and y-component of forceField
 beta = [forceField.vec(:,1); forceField.vec(:,2)];
-load(MD.getPackage(iPack).getProcess(4).outFilePaths_{2},'forceMesh')
+load(MD.getPackage(iPack).getProcess(4).outFilePaths_{3},'forceMesh')
 [fx,fy]=calcForcesFromCoef(forceMesh,beta,XI,YI,'new');
 % compare fx, fy with force_x and force_y 
 force_x_crop = force_x(cropInfo(2):cropInfo(2)+size(YI,1)-1,cropInfo(1):cropInfo(1)+size(XI,2)-1);
@@ -379,7 +379,7 @@ EOA = sum(EOA(:))/floor(pi*distThres^2/4)/n; % error per adhesion
 %% L-curve scrutinization - regularization parameter, convexness?
 lcurvePath = MD.getPackage(iPack).getProcess(4).outFilePaths_{3};
 %% save original forcefield
-[h2,orgMap] = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,fmax,false,size(XI,2),size(YI,1));
+[h2,orgMap] = generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original forcefield'],0,0,fmax,false,size(XI,2),size(YI,1));
 close(h2)
 
 % if ((x1-x1m)^2+(y1-y1m)^2)^0.5<7 && ((x2-x2m)^2+(y2-y2m)^2)^0.5<7

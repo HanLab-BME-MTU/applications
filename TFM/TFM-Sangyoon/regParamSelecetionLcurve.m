@@ -21,18 +21,8 @@ ip.addRequired('rho',@isnumeric);
 ip.addRequired('eta',@isnumeric);
 ip.addRequired('lambda',@isnumeric);
 ip.addOptional('init_lambda',median(lambda),@isnumeric);
-<<<<<<< HEAD
-try 
-    ip.addParameter('inflection',false,@islogical)
-    ip.addParameter('manualSelection',false,@islogical);
-catch
-    ip.addParamValue('inflection',false,@islogical)
-    ip.addParamValue('manualSelection',false,@islogical);
-end
-=======
-ip.addParameter('inflection',0,@isnumeric);
-ip.addParameter('manualSelection',false,@islogical);
->>>>>>> 6bb628a41a46aa60ecd3ef70263237e6f90743be
+ip.addParamValue('inflection',0,@isnumeric);
+ip.addParamValue('manualSelection',false,@islogical);
 ip.parse(rho,eta,lambda,init_lambda, varargin{:});
 rho=ip.Results.rho;
 eta=ip.Results.eta;

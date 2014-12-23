@@ -12,7 +12,8 @@ function tracksSub = subSampleCompTracks(tracks0,timeStep0,timeStepSub)
 %
 %OUTPUT tracksSub    : Same as input tracks, just sub-sampled in time.
 %
-%REMARKS NOT FULLY TESTED. DOES NOT FULLY WORK. BUT CHECKING IN SO AS NOT TO LOSE.
+%REMARKS Code still needs to handle case when a compound track gets broken
+%        into multiple non-interacting tracks.
 %
 %Khuloud Jaqaman, February 2013
 
@@ -38,6 +39,9 @@ tpKeep = 1 : subSampFact : numTP0;
 colKeep = (repmat(tpKeep,8,1)-1)*8 + repmat((1:8)',1,length(tpKeep));
 colKeep = colKeep(:);
 
+%check if tracks are in sparse form
+sparseForm = issparse(tracks0(1).tracksFeatIndxCG);
+
 %% Sub-sampling
 
 %get number of tracks
@@ -45,6 +49,7 @@ numTracks = length(tracks0);
 
 %go over all tracks and sub-sample
 tracksSub = tracks0;
+tracksSub = rmfield(tracksSub,'aggregState');
 for iTrack = 1 : numTracks
     
     %convert the current track's information to matrix format
@@ -53,6 +58,11 @@ for iTrack = 1 : numTracks
     %keep only the time points of interest
     trackedFeatureIndx = trackedFeatureIndx(:,tpKeep);
     trackedFeatureInfo = trackedFeatureInfo(:,colKeep);
+
+    %convert zeros to NaNs if original tracks were sparse
+    if sparseForm
+        trackedFeatureInfo(trackedFeatureInfo==0) = NaN;
+    end
     
     %get each track segment's new start, end and life time
     segSEL = getTrackSEL(trackedFeatureInfo);
@@ -61,6 +71,9 @@ for iTrack = 1 : numTracks
     %find segments that survive the subsampling and those that do not
     indxStay = find(~isnan(segSEL(:,3)));
     indxGone = setdiff((1:numSeg)',indxStay);
+    if isempty(indxGone)
+        indxGone  = [];
+    end
     
     %get the track's sequence of events
     seqOfEvents = tracks0(iTrack).seqOfEvents;
@@ -96,6 +109,13 @@ for iTrack = 1 : numTracks
         iSeg = indxStay(iStay);
         seqOfEvents(seqOfEvents(:,3)==iSeg,3) = iStay;
         seqOfEvents(seqOfEvents(:,4)==iSeg,4) = iStay;
+    end
+    
+    %convert to sparse if input was sparse
+    if sparseForm
+        trackedFeatureIndx = sparse(trackedFeatureIndx);
+        trackedFeatureInfo(isnan(trackedFeatureInfo)) = 0;
+        trackedFeatureInfo = sparse(trackedFeatureInfo);
     end
     
     %store the sub-sampled compound track
