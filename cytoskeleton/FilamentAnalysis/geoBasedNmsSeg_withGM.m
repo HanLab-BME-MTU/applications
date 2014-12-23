@@ -458,14 +458,22 @@ if(graph_matching_flag==1)
     Matched_ind_cell{1} = Matched_ind;
     UnMatched_ind_cell{1} = setdiff(ind_long,Matched_ind);
     
-     imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
-     
+     if(isempty(bw_whitergb_three_color)==0)        
+        imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+     end
     
     if(SaveFigures==1)
-        imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
-        imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
-        imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
-       h1=figure(1);set(h1,'Visible',set_visible);
+        if(isempty(current_all_seg_bw)==0)
+            imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
+        end
+        
+        if(isempty(current_matching_bw)==0)
+            imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
+        end
+        if(isempty(bw_rgb_three_color)==0)
+            imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+        end
+        h1=figure(1);set(h1,'Visible',set_visible);
         saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);
         saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.fig']);
         print(h1,'-depsc',[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.eps']);
@@ -500,11 +508,14 @@ if(graph_matching_flag==1)
         
         h13 = figure(13);set(h13,'Visible',set_visible);
         RGB_seg_orient_heat_map = heat_display_filament_from_model(imageInt, current_model);
+        
         imshow(RGB_seg_orient_heat_map);
         title(['Heat display for Segmentation after round ',num2str(iIteration)]);
-        imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
-        imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
         
+        if(isempty(RGB_seg_orient_heat_map)==0)
+            imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
+        imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
+        end
     end
     
     
@@ -542,9 +553,15 @@ if(graph_matching_flag==1)
         end
         
         if(SaveFigures==1)
-            imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round2_begin.tif']);
-            imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
-            h12 = figure(12);set(h12,'Visible',set_visible);hold off;
+            if(isempty(current_all_seg_bw)==0)                
+                imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round2_begin.tif']);
+            end
+            
+            if(isempty(bw_rgb_three_color)==0)
+                imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+            end
+              
+              h12 = figure(12);set(h12,'Visible',set_visible);hold off;
             plot(feature_Length(Bad_ind),feature_MeanNMS(Bad_ind),'r.');hold on;
             plot(feature_Length(Good_ind),feature_MeanNMS(Good_ind),'b.');
             
@@ -562,10 +579,18 @@ if(graph_matching_flag==1)
             = graph_matching_linking_once(current_model, current_all_seg_bw, confidency_interval,imageInt, ...
             Good_ind,ind_long, model_ind,feature_all,labelMask,master_flassier,iIteration,funParams,final_set_rescue, final_set_connection, connect_count,Original_set_Good_ind);
         
+        % moved the bw_whitergb_three_color saving into the if save
+        % reconfirmed this, Liya 2014 12 18
         if(SaveFigures==1)
-            imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
-            imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
-            imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+            if(isempty(current_matching_bw)==0)
+                imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
+            end
+            if(isempty(bw_rgb_three_color)==0)
+                imwrite(double(bw_rgb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_threecolor_pixel.tif']);
+            end
+            if(isempty(bw_whitergb_three_color)==0)
+                imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+            end
             h1=figure(1);set(h1,'Visible',set_visible);
             saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.tif']);
             saveas(h1,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_match_color.fig']);
@@ -622,10 +647,12 @@ if(graph_matching_flag==1)
             RGB_seg_orient_heat_map = heat_display_filament_from_model(imageInt, current_model);
             imshow(RGB_seg_orient_heat_map);
             title(['Heat display for Segmentation after round ',num2str(iIteration)]);
-            imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
-            imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
-            
-            
+            if(isempty(RGB_seg_orient_heat_map)==0)
+                
+                imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
+                imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
+                
+            end
             
         end
         

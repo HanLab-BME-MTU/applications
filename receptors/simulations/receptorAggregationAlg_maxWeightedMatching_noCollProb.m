@@ -3,11 +3,11 @@ function [cluster2receptor,receptor2cluster,clusterSize,receptPositions] = ...
     aggregationDist,aggregationProbVec,aggregationProb,receptor2clusterPrev,...
     cluster2receptorPrev,clusterSizePrev)
 %RECEPTAGGREGATIONALG_MAXWEIGHTEDMATCHING_NOCOLLPROB performs receptor-to-receptor
-%   and receptor-to-cluster associations.  This function replaces
-    %receptorAggregationAlg in the simulation.  The function
-%   maxWeightedMatching is used to perform associations, limiting all
-%   receptors/clusters to associate with only one other receptor.
-%   Cluster-to-cluster associations are not allowed.
+%  and receptor-to-cluster associations.  This function replaces
+%  receptorAggregationAlg in the simulation.  The function
+%  maxWeightedMatching is used to perform associations, limiting all
+%  receptors/clusters to associate with only one other receptor.
+%  Cluster-to-cluster associations are not allowed.
 %
 %   INPUT:
 %       receptPositonsPrev:     2D array of current receptor positions

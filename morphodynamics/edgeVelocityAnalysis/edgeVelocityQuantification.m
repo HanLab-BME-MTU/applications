@@ -144,7 +144,7 @@ end
 %% Formatting Time Series
 operations = {'interval',interval,'outLevel',outLevel,'minLength',minLen,'trendType',trend,'gapSize',gapSize,'saveOn',false,'outputPath',outputPath,'fileName',fileName};
 cellData   = formatMovieListTimeSeriesProcess(ML,'ProtrusionSamplingProcess',operations{:});
-
+winFlag    = false;
 
 for iCell = 1:nCell
     
@@ -168,7 +168,7 @@ for iCell = 1:nCell
         winInterval{iCell} = num2cell(repmat(1:cellData{iCell}.data.nFrames,nWin,1),2);
         
     else
-        
+        winFlag            = true;
         if numel(winInterval{iCell}) == 1 %If it's just one cell, repeat for all windows
             
             winInterval{iCell} = repmat(winInterval{iCell},nWin,1);
@@ -244,18 +244,30 @@ commonGround    = @(x,z,y) mergingEdgeResults(x,'cluster',cluster,'nCluster',nCl
 
 if sum(runEdgeAnalysis) ~= 0
     
-    %cellData(runEdgeAnalysis) = cellfun(@(x) rmfield(x,{'protrusionAnalysis','retractionAnalysis'}),cellData(runEdgeAnalysis),'Unif',0);
+    %For each window(y), call commonGround for the x interval
     firstLevel  = @(x,y,z) commonGround( cellfun(@(w) w(x),y,'Unif',0), z, {[]});
+    %For each interval(x), all windows(y) and with time Interval(z)
     secondLevel = @(x,y,z) cellfun(@(w) firstLevel(w,y,z),x,'Unif',0);
     
-    [protrusion,retraction] ...
-        = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
-
+    if winFlag
+        
+        [protrusion,retraction] = cellfun(@(x) commonGround(x.data.procExcEdgeMotion,x.data.timeInterval,x.data.winInterval),cellData(runEdgeAnalysis),'Unif',0);
+        protrusion = {protrusion};
+        retraction = {retraction};
+        
+    else
+        
+        [protrusion,retraction] ...
+            = cellfun(@(x) secondLevel(x.data.interval,x.data.procExcEdgeMotion,x.data.timeInterval),cellData(runEdgeAnalysis),'Unif',0);
+        
+    end
+    
     [cellData,dataSet] = getDataSetAverage(cellData,protrusion,retraction,interval,lwPerc,upPerc,runEdgeAnalysis,selection);    
     
     % Saving results
     savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
     savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
+    
 elseif ~isempty(selection{1})
     
     if isfield(cellData{iCell}.data,'selectionCriteria')
@@ -277,7 +289,8 @@ elseif ~isempty(selection{1})
     end
     
     cellData{iCell}.data.selectionCriteria = selection;
-        % Saving results
+    
+    % Saving results
     savingMovieResultsPerCell(ML,cellData,outputPath,fileName)
     savingMovieDataSetResults(ML,dataSet,outputPath,fileName)
 
@@ -373,11 +386,6 @@ if sum(rem(nInter,nInter(1))) == 0
             normalized.RetrMeanVeloc   = [normalized.RetrMeanVeloc;norRetrMeanVeloc];
             normalized.RetrMednVeloc   = [normalized.RetrMednVeloc;norRetrMednVeloc];
             
-%             total.RetrPersTime    = [total.RetrPersTime;cellData{iCell}.retractionAnalysis(iInt).total.persTime];
-%             total.RetrMaxVeloc    = [total.RetrMaxVeloc;cellData{iCell}.retractionAnalysis(iInt).total.maxVeloc];
-%             total.RetrMinVeloc    = [total.RetrMinVeloc;cellData{iCell}.retractionAnalysis(iInt).total.minVeloc];
-%             total.RetrMeanVeloc   = [total.RetrMeanVeloc;cellData{iCell}.retractionAnalysis(iInt).total.Veloc];
-%             total.RetrMednVeloc   = [total.RetrMednVeloc;cellData{iCell}.retractionAnalysis(iInt).total.mednVeloc];
 
             if ~isempty(selectMotion{1})
                 if strcmp(selectMotion{1}(1:10),'protrusion')

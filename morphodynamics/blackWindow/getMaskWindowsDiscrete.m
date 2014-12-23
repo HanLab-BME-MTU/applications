@@ -1,19 +1,26 @@
-function winMat = getMaskWindowsPixelLevel(mask,perpSize,paraSize,varargin)
-%Wrting the windowing the way I should have years ago... God damnit I can't
-%believe I didn't do it this way before ARRRRRGGGGG!!!
+function winMat = getMaskWindowsDiscrete(mask,perpSize,paraSize,varargin)
+%GETMASKWINDOWSDISCRETE sub-divides the input 2D mask into "edge-centric" polygonal sampling windows in discrete pixel space
+%
+% winMat = getMaskWindowsDiscrete(mask,perpSize,paraSize)
+% winMat = getMaskWindowsDiscrete(...,'OptionName1',optionValue1,'OptionName2',optionValue2,...
+%
+% The discrete-space version of getMaskWindows. Faster and more robust.
+% More documentation coming soon, see getMaskWindows.m in meantime.
+%
+% Hunter Elliott
+% Sometime in 2011?
 
-%TEMP!
-%FINISH DOCUMENTATION
+
 
 %% ---------------------- Input ------------------------------ %%
 
 ip = inputParser;
 ip.FunctionName = mfilename;
 ip.KeepUnmatched = true;%Keep unmatched parameters so we can warn the user
-ip.addRequired('mask',@(x)(islogical(x) && ndims(x) == 2));
+ip.addRequired('mask',@(x)(islogical(x) && ismatrix(x)));
 ip.addRequired('perpSize',@(x)(numel(x) == 1 && isfinite(x) && x >= 1));
 ip.addOptional('paraSize',[],@(x)(numel(x) == 1 && isfinite(x)));
-ip.addParamValue('StartPoint',[],@(x)(ndims(x) == 2 && size(x,2)  == 2))
+ip.addParamValue('StartPoint',[],@(x)(ismatrix(x) && size(x,2)  == 2))
 %ip.addParamValue('StartContour',1,@(x)(numel(x) == 1 && isposint(x)));
 
 %TEMP - is this what we want to do? This creates a field in p which has the
@@ -28,8 +35,7 @@ end
 
 showPlots = false;
 
-%ADDITIONAL INPUT CHECKING!!??!
-%need to check image size and switch to bwdist_old if it's too big...
+
 
 %% ------------------------ Init ----------------------------- %%
 
@@ -77,8 +83,7 @@ if showPlots
     
 end
 
-%TEMP - adjust class depending on nWinMax...
-winMat = zeros(size(mask),'uint16');
+winMat = zeros(size(mask),minIntClass(nSlices*nBands));
 
 for j = 2:nSlices
     

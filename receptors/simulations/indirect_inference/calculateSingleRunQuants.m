@@ -41,7 +41,7 @@ function calculateSingleRunQuants(fullPathToRuns,runIndex)
     
     %Get ALT compTracks     
     [compTracksALT,segmentStat] = ...
-           aggregStateFromCompTracks_new0814(compTracks,[1 0.3]);   
+           aggregStateFromCompTracks_new(compTracks,[1 0.3]);   
        
     clear compTracks
     

@@ -1,9 +1,9 @@
 function load_MD_run_filament_analysis_package(this_MD, Parameter_MD, varargin)
-% Function of single image filament segmentation with input MD from other
-%               successfully segmented movie for the parameters in MD
+% Function of single image filament segmentation with input this_MD from other
+%               successfully segmented movie for the parameters in this_MD
 
 % Input:      this_MD:              the movieData for data to be segmented
-%             Parameter_MD:    a loaded MD with good segmentation parameters
+%             Parameter_MD:    a loaded this_MD with good segmentation parameters
 %                              if none, put [], so a default setting will be used
 %                              with (1) Otsu with smoothing 1 (2) mask
 %                              refine with 1 object, (3) image flatten with
@@ -25,7 +25,7 @@ ip.addOptional('whole_movie_filename', ' ', @ischar);
 ip.parse(this_MD,Parameter_MD,varargin{:});
 whole_movie_filename= ip.Results.whole_movie_filename;
 
-%% get the image dir and make a MD just for this image
+%% get the image dir and make a this_MD just for this image
 ROOT_DIR = this_MD.outputDirectory_;
 
 nChannel = numel(this_MD.channels_);
@@ -41,6 +41,9 @@ for i = 1 : nPackage
         break;
     end
 end
+
+nProcess = numel(this_MD.processes_);
+nPackage = length(this_MD.packages_);
 
 % if there is no filament analysis package,
 % add filament analysis package
@@ -108,153 +111,133 @@ if(~isempty(Parameter_MD))
         end
     end
 else
+    %%     % check if there is each of the process
+    indexCellSegProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
+            indexCellSegProcess = i;
+            break;
+        end
+    end
     
-    if(nProcess==0)
-        %%
-        % when there is no input MD, and no existing processes
-        % use the default for all of the processes
+    indexCellRefineProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
+            indexCellRefineProcess = i;
+            break;
+        end
+    end
+    
+    indexFlattenProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
+            indexFlattenProcess = i;
+            break;
+        end
+    end
+    
+    indexSteerabeleProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
+            indexSteerabeleProcess = i;
+            break;
+        end
+    end
+    
+    indexFilamentSegmentationProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
+            indexFilamentSegmentationProcess = i;
+            break;
+        end
+    end
+    
+    %%  % 1 threshold
+    
+    %%   % when there is no input this_MD, and no existing processes
+    % use the default for all of the processes
         
-        % 1 threshold
-        
-        %         this_MD.addProcess(ThresholdProcess(this_MD));
-        
-        default_Params=[];
-        
-        default_Params.ChannelIndex = 1:numel(this_MD.channels_);
-        default_Params.GaussFilterSigma=1;
-        default_Params.ThresholdValue=[];
-        default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'thres'];
-        default_Params.MethodIndx=3;
-        default_Params.ProcessIndex=[];
-        default_Params.MaxJump=10;
-        default_Params.BatchMode=0;
-        
+    default_Params=[];
+    
+    default_Params.ChannelIndex = 1:numel(this_MD.channels_);
+    default_Params.GaussFilterSigma=1;
+    default_Params.ThresholdValue=[];
+    default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'thres'];
+    default_Params.MethodIndx=3;
+    default_Params.ProcessIndex=[];
+    default_Params.MaxJump=10;
+    default_Params.BatchMode=0;
+    
+    if(indexCellSegProcess==0)
         this_MD.addProcess(ThresholdProcess(this_MD,'FilamentAnalysisPackage',default_Params));
-        
-        this_MD = thresholdMovie(this_MD);
-        
-        % 2 mask refine
-        % with the default of mask refinement
-        
-        default_Params.ChannelIndex = 1:numel(this_MD.channels_);
-        default_Params.SegProcessIndex = []; %No default.
-        default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks'];
-        default_Params.MaskCleanUp = true;
-        default_Params.MinimumSize = 10;
-        default_Params.ClosureRadius = 3;
-        default_Params.OpeningRadius = 0;
-        default_Params.ObjectNumber = 20; %only 1 object per mask
-        default_Params.FillHoles = true;
-        default_Params.SuppressBorder = true;
-        default_Params.EdgeRefinement = false; %This off by default because it sort of sucks, and is slow.
-        default_Params.MaxEdgeAdjust = []; %Use refineMaskEdges.m function defaults for these settings
-        default_Params.MaxEdgeGap = [];
-        default_Params.PreEdgeGrow = [];
-        default_Params.BatchMode = false;
-        
+    end
+    
+    this_MD = thresholdMovie(this_MD,default_Params);
+    
+    %%  % 2 mask refine
+    % with the default of mask refinement
+    
+    default_Params.ChannelIndex = 1:numel(this_MD.channels_);
+    default_Params.SegProcessIndex = []; %No default.
+    default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks'];
+    default_Params.MaskCleanUp = true;
+    default_Params.MinimumSize = 10;
+    default_Params.ClosureRadius = 3;
+    default_Params.OpeningRadius = 0;
+    default_Params.ObjectNumber = 20; %only 1 object per mask
+    default_Params.FillHoles = true;
+    default_Params.SuppressBorder = true;
+    default_Params.EdgeRefinement = false; %This off by default because it sort of sucks, and is slow.
+    default_Params.MaxEdgeAdjust = []; %Use refineMaskEdges.m function defaults for these settings
+    default_Params.MaxEdgeGap = [];
+    default_Params.PreEdgeGrow = [];
+    default_Params.BatchMode = false;
+    
+    if(indexCellRefineProcess==0)
         this_MD.addProcess(MaskRefinementProcess(this_MD,'FilamentAnalysisPackage',default_Params));
-        %         this_MD.addProcess(MaskRefinementProcess(this_MD));
-        this_MD = refineMovieMasks(this_MD);
+    end
+    
+    this_MD = refineMovieMasks(this_MD,default_Params);
+    
+    %%   % 3 image flatten
+    if(indexFlattenProcess==0)
         
-        % 3 image flatten
-        %         this_MD.addProcess(ImageFlattenProcess(this_MD,['FilamentAnalysisPackage', filesep,'ImageFlatten']));
+       % this_MD.addProcess(ImageFlattenProcess(this_MD,['FilamentAnalysisPackage', filesep,'ImageFlatten']));
         this_MD.addProcess(ImageFlattenProcess(this_MD));
-        this_MD = image_flatten(this_MD);
+    end
+    
+    this_MD = image_flatten(this_MD);
+    
+    %% % 4 steerable filter
+    if(indexSteerabeleProcess==0)
         
-        % 4 steerable filter
         %         this_MD.addProcess(SteerableFilteringProcess(this_MD,['FilamentAnalysisPackage', filesep,'SteerableFiltering']));
         this_MD.addProcess(SteerableFilteringProcess(this_MD));
-        this_MD = steerable_filter_forprocess(this_MD);
-        
+    end
+    
+    this_MD = steerable_filter_forprocess(this_MD);
+    
+    %%
+    if(indexFilamentSegmentationProcess==0)
         % 5 filament segmentation
         %         this_MD.addProcess(FilamentSegmentationProcess(this_MD,['FilamentAnalysisPackage', filesep,'FilamentSegmentation']));
         this_MD.addProcess(FilamentSegmentationProcess(this_MD));
+    end
+    
+    default_Params = filament_segmentation_process_default_param(this_MD);
+    default_Params.Cell_Mask_ind = 5;
+    default_Params.CoefAlpha = 1.8;
+    default_Params.ChannelIndex = 1:2;
         
-        default_Params = filament_segmentation_process_default_param(this_MD);
-        default_Params.Cell_Mask_ind = 5;
-        default_Params.CoefAlpha = 1.8;
-        default_Params.ChannelIndex = 1:2;
-        
-        this_MD = filament_segmentation(this_MD, default_Params);
-        
+    % if user give the whole movie stat, use this
+    if(~ismember('whole_movie_filename',ip.UsingDefaults))
+        this_MD = filament_segmentation(this_MD,default_Params,whole_movie_filename);
     else
-        %% or, just run it with its existing processes;
-        
-        for iPro =  1 : numel(this_MD.processes_)
-            % 1 threshold
-            
-            if(strcmp(this_MD.processes_{iPro}.getName, 'Thresholding'))
-                
-                default_Params=[];
-                
-                default_Params.ChannelIndex = 1:numel(this_MD.channels_);
-                default_Params.GaussFilterSigma=1;
-                default_Params.ThresholdValue=[];
-                default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'masks'];
-                default_Params.MethodIndx=3;
-                default_Params.ProcessIndex=[];
-                default_Params.MaxJump=10;
-                default_Params.BatchMode=0;
-                
-                this_MD = thresholdMovie(this_MD,default_Params);
-            else
-                % 2 mask refine
-                if(strcmp(this_MD.processes_{iPro}.getName, 'Mask Refinement'))
-                    
-                    default_Params.ChannelIndex = 1:numel(this_MD.channels_);
-                    default_Params.SegProcessIndex = []; %No default.
-                    default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks'];
-                    default_Params.MaskCleanUp = true;
-                    default_Params.MinimumSize = 10;
-                    default_Params.ClosureRadius = 3;
-                    default_Params.OpeningRadius = 0;
-                    default_Params.ObjectNumber = 20; %only 1 object per mask
-                    default_Params.FillHoles = true;
-                    default_Params.SuppressBorder = true;
-                    default_Params.EdgeRefinement = false; %This off by default because it sort of sucks, and is slow.
-                    default_Params.MaxEdgeAdjust = []; %Use refineMaskEdges.m function defaults for these settings
-                    default_Params.MaxEdgeGap = [];
-                    default_Params.PreEdgeGrow = [];
-                    default_Params.BatchMode = false;
-                    
-                    this_MD = refineMovieMasks(this_MD,default_Params);
-                    
-                else
-                    % 3 image flatten
-                    if(strcmp(this_MD.processes_{iPro}.getName, 'Image Flatten'))
-                        this_MD = image_flatten(this_MD);
-                        
-                    else
-                        % 4 steerable filter
-                        if(strcmp(this_MD.processes_{iPro}.getName, 'Steerable filtering'))
-                            this_MD = steerable_filter_forprocess(this_MD);
-                            
-                        else
-                            % 5 filament segmentation
-                            if(strcmp(this_MD.processes_{iPro}.getName, 'Filament Segmentation'))
-                                
-                                default_Params = filament_segmentation_process_default_param(this_MD);
-                                default_Params.Cell_Mask_ind = 5;
-                                default_Params.CoefAlpha = 1.8;
-                                default_Params.ChannelIndex = 1:2;
-                                
-                                % if user give the whole movie stat, use this
-                                if(~ismember('whole_movie_filename',ip.UsingDefaults))
-                                    this_MD = filament_segmentation(this_MD,default_Params,whole_movie_filename);
-                                else
-                                    this_MD = filament_segmentation(this_MD,default_Params);
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        %%
-        
+        this_MD = filament_segmentation(this_MD,default_Params);
     end
     
 end
+
 
 
 

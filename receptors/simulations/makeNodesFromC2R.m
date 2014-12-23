@@ -10,7 +10,14 @@ function nodesList = makeNodesFromC2R(cluster2receptor,receptPositions,receptAss
 %           receptAssocFlag:  flag indicating whether a given receptor can
 %                             undergo associaton.
 %   
-%OUTPUT:    nodesList:  a struct array of nodes.
+%OUTPUT:    nodesList:  a struct array of nodes where a node is a struct 
+%                       with the following fields:
+%                       1) members:     receptors belonging to the node
+%                       2) size:        number of receptors
+%                       3) xPos:        x coordinate (in microns)
+%                       4) yPos:        y coordinate (in microns)
+%                       5) assocFlag:   a boolean indicating whether this
+%                                       node can undergo association
 %
 %   Robel Yirdaw, 06/24/14
 %
