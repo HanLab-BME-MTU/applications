@@ -304,16 +304,16 @@ for ii=1:nFrames
         imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
-        doublePaxImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
+        doubleSecondImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
         if ~isempty(iSDCProc)
-            paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
-            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(secondImageCropped(:)));
-            minPax= min(doublePaxImgUnshifted(:));
+            secondImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
+            doubleSecondImgUnshifted = double(secondImageUnshifted)/double(max(secondImageCropped(:)));
+            minPax= min(doubleSecondImgUnshifted(:));
         else
-            minPax= min(doublePaxImg(:));
+            minPax= min(doubleSecondImg(:));
         end
         
-        compImage(:,:,2) = imadjust(doublePaxImg,[minPax,max(doublePaxImg(:))],[]);
+        compImage(:,:,2) = imadjust(doubleSecondImg,[minPax,max(doubleSecondImg(:))],[]);
         compImage(:,:,3) = imadjust(tsMap/tmax,[],[]);
         imwrite(compImage, strcat(paxPath,'/CombPaxForceTif',num2str(ii,iiformat),'.tif'));
 %         figure, imshow(compImage,[])
@@ -328,16 +328,6 @@ for ii=1:nFrames
         end
         secondImageCropped = secondImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
         thirdImageCropped = thirdImage(grid_mat(1,1,2):grid_mat(1,1,2)+imSizeY,grid_mat(1,1,1):grid_mat(1,1,1)+imSizeX);
-        % average intensity quantification on selected image
-        if selectedChannel==2
-            curIntSelecChan = 1/2*double(bwPI4).*double(secondImage); %AU
-            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % AU
-            pixelIntSelecChan(:,ii) = secondImage(maskCrop(:));
-        elseif selectedChannel==3
-            curIntSelecChan = 1/2*double(bwPI4).*double(thirdImage); %AU
-            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % fJ
-            pixelIntSelecChan(:,ii) = thirdImageCropped(maskCrop(:));
-        end        
         %Scale bar
         secondImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(secondImageCropped)); % this is 2 um
         thirdPath = [outputFilePath filesep 'thirdChannel'];
@@ -345,25 +335,94 @@ for ii=1:nFrames
             mkdir(thirdPath);
         end
         thirdImageCropped(15:16,10:10+round(2000/movieData.pixelSize_))=max(max(thirdImageCropped)); % this is 2 um
-        imwrite(secondImageCropped, strcat(paxPath,'/paxCroppedTif',num2str(ii,iiformat),'.tif'));
+        imwrite(secondImageCropped, strcat(paxPath,'/secondCroppedTif',num2str(ii,iiformat),'.tif'));
         imwrite(thirdImageCropped, strcat(thirdPath,'/thirdCroppedTif',num2str(ii,iiformat),'.tif'));
+        % average intensity quantification on selected image
+        if selectedChannel==2
+            curIntSelecChan = 1/2*double(bwPI4).*double(secondImage); %AU
+            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % AU
+            pixelIntSelecChan(:,ii) = secondImage(maskCrop(:));
+            pixelID = find(maskCrop); %pixel id
+        elseif selectedChannel==3
+            curIntSelecChan = 1/2*double(bwPI4).*double(thirdImage); %AU
+            totalIntSelecChan(ii)= sum(curIntSelecChan(:)); % fJ
+            pixelIntSelecChan(:,ii) = thirdImageCropped(maskCrop(:));
+            pixelID = find(maskCrop); %pixel id
+            % Showing plot between pixelTraction and pixelIntSelecChan
+            hScatter = figure; plot(pixelIntSelecChan,pixelTraction,'.')
+            % Ask limit for high traction and high vim
+            highTraction = input('Limit for high traction above which you want to plot? :');
+            highVim = input('Limit for high vimentin level above which you want to plot? :');
+            % Showing these regions by boundaries
+            indHighTraction = pixelTraction>highTraction;
+            indHighVim = pixelIntSelecChan>highVim;
+            hold on
+            plot(pixelIntSelecChan(indHighTraction),pixelTraction(indHighTraction),'r.')
+            plot(pixelIntSelecChan(indHighVim),pixelTraction(indHighVim),'g.')
+            close(hScatter);
+            %Showing them in 2D histogram)
+            xBins = min(pixelIntSelecChan):1:max(pixelIntSelecChan);
+            yBins = min(pixelTraction):100:max(pixelTraction);
+            hHist2D = figure; hold on
+            densityplot(pixelIntSelecChan, pixelTraction, xBins, yBins,'DisplayFunction', @log);
+            ylabel('Traction (Pa)')
+            xlabel('Vimentin Intensity (A.U.)')
+            % rectacgle
+            rectangle('Position',[min(pixelIntSelecChan(indHighTraction)) highTraction ...
+                max(pixelIntSelecChan(indHighTraction))-min(pixelIntSelecChan(indHighTraction)) ...
+                max(pixelTraction(indHighTraction))-highTraction],'EdgeColor','r')
+            rectangle('Position',[highVim min(pixelTraction(indHighVim)) ...
+                max(pixelIntSelecChan(indHighVim))-highVim ...
+                max(pixelTraction(indHighVim))-min(pixelTraction(indHighVim))],'EdgeColor','g')
+            % save
+            print('-depsc2', '-r150', strcat(epsPath,'/Hist2DbtwVimAndTraction',num2str(ii,iiformat),'.eps'));
+            close(hHist2D)
+            
+%             map = getScatterQuantification(pixelIntSelecChan,pixelTraction,xBins,yBins);
+%             figure, imshow(map,[0 0.0002]), colormap jet
+
+            % by making mask
+            highTracMask = false(size(maskCrop));
+            highTracMask(pixelID(indHighTraction)) = true;
+            highVimMask = false(size(maskCrop));
+            highVimMask(pixelID(indHighVim)) = true;
+            % and by making it boundaries
+            [tB,~,nTBD]  = bwboundaries(highTracMask,'noholes');
+            hVim=figure; imshow(thirdImageCropped,[]), hold on
+            for kk=1:nTBD
+                boundary = tB{kk};
+                plot(boundary(:,2), boundary(:,1), 'r', 'LineWidth', 0.5) % cell boundary
+            end
+            print('-depsc2', '-r150', strcat(epsPath,'/thridImageWithHighTraction',num2str(ii,iiformat),'.eps'));
+            close(hVim)
+
+            [vB,~,nVBD]  = bwboundaries(highVimMask,'noholes');
+            hT=figure; imshow(tsMap,[tmin tmax]), colormap jet, hold on
+            for kk=1:nVBD
+                boundary = vB{kk};
+                plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
+            end
+            print('-depsc2', '-r150', strcat(epsPath,'/tractionImageWithHighVim',num2str(ii,iiformat),'.eps'));
+            close(hT)
+            
+        end        
         % composite for both channels
         compImage(:,:,1) = imadjust(tsMap/tmax,[],[]);
-        doublePaxImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
+        doubleSecondImg = double(secondImageCropped)/double(max(secondImageCropped(:)));
         doubleThirdImg = double(thirdImageCropped)/double(max(thirdImageCropped(:)));
         if ~isempty(iSDCProc)
-            paxImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
-            doublePaxImgUnshifted = double(paxImageUnshifted)/double(max(secondImageCropped(:)));
-            minPax= min(doublePaxImgUnshifted(:));
+            secondImageUnshifted=movieData.getChannel(iChan).loadImage(ii); 
+            doubleSecondImgUnshifted = double(secondImageUnshifted)/double(max(secondImageCropped(:)));
+            minPax= min(doubleSecondImgUnshifted(:));
             thirdImageUnshifted=movieData.getChannel(iChan+1).loadImage(ii); 
             doubleThirdImageUnshifted = double(thirdImageUnshifted)/double(max(thirdImageUnshifted(:)));
             minThird= min(doubleThirdImageUnshifted(:));
         else
-            minPax= min(doublePaxImg(:));
+            minPax= min(doubleSecondImg(:));
             minThird= min(doubleThirdImg(:));
         end
         
-        compImage(:,:,3) = imadjust(doublePaxImg,[minPax,max(doublePaxImg(:))],[]);
+        compImage(:,:,3) = imadjust(doubleSecondImg,[minPax,max(doubleSecondImg(:))],[]);
         compImage(:,:,2) = imadjust(doubleThirdImg,[minThird,max(doubleThirdImg(:))],[]);
         imwrite(compImage, strcat(paxPath,'/CombPaxForceTif',num2str(ii,iiformat),'.tif'));
 %         figure, imshow(compImage,[])
