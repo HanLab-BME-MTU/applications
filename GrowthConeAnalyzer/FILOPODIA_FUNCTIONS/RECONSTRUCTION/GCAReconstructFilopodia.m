@@ -44,6 +44,9 @@ if ~isempty(protrusion)
 % load([protrusion filesep 'protrusion_vectors.mat']); 
  normals = protrusion.normals; % need to load the normal input from the smoothed edges in order  to calculation the filopodia body orientation
  smoothedEdge = protrusion.smoothedEdge; 
+else 
+    display(['No Protrusion Vectors Found: No Orientation Calculations of Filopodia Relative to' ... 
+        'Veil will be Performed']);
 end
 
 %% load movie and prepare output movie options 
@@ -53,7 +56,7 @@ if restart ==1;
 %    
 % 
  
-startFrame = find(arrayfun(@(x) isempty(x.filoInfo),analInfo),1,'first')-1; 
+startFrame = find(arrayfun(@(x) isempty(x.filoInfo),analInfo),1,'first'); 
 display(['Restarting at Frame ' num2str(startFrame)]); 
 % startFrame = startFrame-1;
 %startFrame = 81;
@@ -284,11 +287,11 @@ end % if makeplots
     
 end %end iframe 
 
-for iDir = 1:2
- cd(subDir{iDir})
- execute = 'mencoder mf://*.png -mf w=800:h=600:fps=5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
- system(execute); 
-end 
+% for iDir = 1:2
+%  cd(subDir{iDir})
+%  execute = 'mencoder mf://*.png -mf w=800:h=600:fps=5:type=png -ovc lavc -lavcopts vcodec=mpeg4:mbd=2:trell -oac copy -o movie.wmv';
+%  system(execute); 
+% end 
 
 
 

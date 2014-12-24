@@ -150,9 +150,24 @@ for iCh = 1:nChan
     % put into a mask
     dilateMask = zeros([ySize,xSize]);
     dilateMask(vertcat(coordInPix{:}))=1;
-    
+    originalPoints = dilateMask; 
+        
+    makePlotsSpatialClusters  = 1; 
     dilateMask = imdilate(dilateMask,strel('disk',p.SizeOfConsistencyRestraint)); % changed to 10
-    
+    if makePlotsSpatialClusters == 1 
+        figure;
+       
+        img = double(imread([movieData.getChannelPaths{1} filesep movieData.getImageFileNames{1}{1}]));
+        imshow(-img,[]); 
+        %imshow(dilateMask
+        hold on 
+        roiYX = bwboundaries(dilateMask);
+        cellfun(@(x) plot(x(:,2),x(:,1),'color','r','Linewidth',3),roiYX);
+        
+        hold on 
+        spy(originalPoints,'g',10); 
+        
+    end 
     
     CCDil  = bwconncomp(dilateMask);
     frames2Fix = [];
@@ -162,12 +177,56 @@ for iCh = 1:nChan
         for iCluster = 1:numel(idxPixelsInClust)
             current = idxPixelsInClust{iCluster};
             numTimesInClust(iCluster) =  sum(arrayfun(@(i) sum(allPixels==i),current)) ;
+           if makePlotsSpatialClusters == 1
+            [yPlot,xPlot] = ind2sub([ySize,xSize],current(1));
+            
+            text(xPlot,yPlot,num2str(numTimesInClust(iCluster)),'color','k');
+               saveas(gcf,[saveDir filesep 'BackboneInputPoints.fig']);
+           end
         end
+        
+         
+            
+         
+        
+        
+        
+        
         % count per frame
         % numPixInClust = cellfun(@(x) length(intersect(allPixels,x)),CCDil.PixelIdxList);
         % pixelsClustLarge = CCDil.PixelIdxList{numPixInClust==max(numPixInClust)};
         pixelsClustLarge = vertcat(idxPixelsInClust{numTimesInClust==max(numTimesInClust)});
         pixelsNOClust = vertcat(idxPixelsInClust{numTimesInClust~=max(numTimesInClust)});
+        
+           checkOrient = 1;
+            if checkOrient == 1
+                    test = zeros(ySize,xSize); 
+                    test(pixelsClustLarge)=1;
+                    spy(test,'r'); 
+                   % roiYX  = bwboundaries(test);
+                   % cellfun(@(x) plot(x(:,2),x(:,1),'Linewidth',5,'color','b'),roiYX);  
+                [reply]   =  questdlg('Is the Neurite Orientation Chosen Correct?');
+                if strcmpi(reply,'no');
+                    
+                    
+                     
+                    h=impoint;
+                    position = wait(h);
+                  %  CC = bwconncomp(dilateMask); 
+                    idx = sub2ind([ySize,xSize],round(position(2)),round(position(1)));
+                    idxNewClust = cellfun(@(x) (~isempty(intersect(idx,x))), CCDil.PixelIdxList);
+                    newClust = zeros(ySize,xSize); 
+                    newClust(CCDil.PixelIdxList{idxNewClust})=1;
+                    roiYX = bwboundaries(newClust); 
+                    cellfun(@(x) plot(x(:,2),x(:,1),'color','m','Linewidth',5), roiYX); 
+                    
+                    pixelsClustLarge = idxPixelsInClust{idxNewClust};
+                    pixelsNOClust = vertcat(idxPixelsInClust{~idxNewClust});
+                    
+                end
+            end % check orient
+        
+        
         
         test = mat2cell(pixelsNOClust,ones(length(pixelsNOClust),1));
         frames2Fix =  cellfun(@(x) find(allPixels==x),test,'uniformoutput',0);
@@ -255,7 +314,7 @@ for iCh = 1:nChan
             % find pixels in structure that were more in more than 5 frames (to remove
             % outliers)
             sumBB(sumBB<=5) =0;
-            sumBB(sumBB>0) = 1;
+            sumBB(sumBB>0) = 1;% make a logical mask
             pixMajBB = find(sumBB==1) ;
             % find max overlap between cand ridge and
             overlap = cellfun(@(x) length(intersect(pixMajBB,x)),CCNMS.PixelIdxList(candLabels));
@@ -345,7 +404,9 @@ for iCh = 1:nChan
                 % find the minimum distance
                 toSave = find(distAll ==min(distAll));
                 if length(toSave) > 1
-                    toSave = toSave(1);
+                    EPDistFromMClust = distTransFromMClust(idxEPs(toSave));
+                    toSave = toSave(EPDistFromMClust==min(EPDistFromMClust)); 
+                    %toSave = toSave(1);
                 end
                 E = arrayfun(@(i) [repmat(i, [numel(idxBoundaryClose{i}) 1]) idxBoundaryClose{i}], 1:length(EPsBackbone(:,1)), 'UniformOutput', false);
                 E = vertcat(E{:});
