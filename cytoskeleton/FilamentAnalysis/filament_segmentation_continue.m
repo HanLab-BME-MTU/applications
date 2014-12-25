@@ -1,5 +1,5 @@
-function movieData = filament_segmentation(movieData, paramsIn, wholemovie_input_filename, varargin)
-% Main function for the segmentation/reconstruction step in filament analysis
+function movieData = filament_segmentation_continue(movieData, paramsIn, wholemovie_input_filename, varargin)
+% Continueing filament segmentation, main function for the segmentation/reconstruction step in filament analysis
 
 % Input:     movieData:  movieData object, with the parameters
 %            funParams:  the parameters to use, if given, overlay
@@ -351,8 +351,28 @@ for iChannel = selected_channels
     %     indexFlattenProcess=1;
     for iFrame_index = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_index);
+         disp(['Frame: ',num2str(iFrame)]);
+       tic
+        %%  %  Check if the current frame has finished
+        if(exist([DataOutputDir,filesep,'steerable_vote_', ...
+                filename_short_strs{iFrame},'.mat'], 'file'))
+            try
+                load([DataOutputDir,filesep,'steerable_vote_', ...
+                    filename_short_strs{iFrame},'.mat'], 'current_seg');
+                if(~isempty(current_seg))
+                    if(sum(sum(current_seg))>0)
+                        disp(['Frame ',num2str(iFrame),' has been run previously. Skipped.']);                        
+                        toc
+                        continue;                        
+                    end
+                end
+            end
+        end
         
-        disp(['Frame: ',num2str(iFrame)]);
+        t_nodisplay = toc;
+        
+        %%
+        
         
         % Read in the intensity image.
         if indexFlattenProcess > 0 && ImageFlattenFlag==2

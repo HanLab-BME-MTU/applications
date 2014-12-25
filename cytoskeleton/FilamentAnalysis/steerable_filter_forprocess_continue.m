@@ -1,4 +1,4 @@
-function movieData = steerable_filter_forprocess(movieData, paramsIn, varargin)
+function movieData = steerable_filter_forprocess_continue(movieData, paramsIn, varargin)
 % Created 07 2012 by Liya Ding, Matlab R2011b
 
 % Find the package of Filament Analysis
@@ -78,14 +78,16 @@ for iChannel = selected_channels
     
     output_dir_content = dir(fullfile([ImageSteerableFilterChannelOutputDir,filesep,'*.*']));
     
-    %if there are files in this dir, clear them
-    if(length(output_dir_content)>2)
-        delete([ImageSteerableFilterChannelOutputDir,filesep,'*.*']);
-        if(exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
-            rmdir([ImageSteerableFilterChannelOutputDir,filesep,'NMS'], 's');
-        end
-    end
-    
+    %% This part was commented out since we want to keep what ever is outthere
+%         
+%     %if there are files in this dir, clear them
+%     if(length(output_dir_content)>2)
+%         if(exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
+%             rmdir([ImageSteerableFilterChannelOutputDir,filesep,'NMS'], 's');
+%         end
+%         delete([ImageSteerableFilterChannelOutputDir,filesep,'*.*']);        
+%     end
+%     
     movieData.processes_{indexSteerabeleProcess}.setOutImagePath(iChannel,ImageSteerableFilterChannelOutputDir);
 end
 
@@ -141,7 +143,24 @@ for iChannel = selected_channels
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
+            
         tic
+        %%  %  Check if the current frame has finished
+        if(exist([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'], 'file'))
+            try
+                load([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'], 'nms');
+                if(~isempty(nms))
+                    if(sum(sum(nms))>0)
+                        disp(['Frame ',num2str(iFrame),' has been run previously. Skipped.']);                        
+                        toc
+                        continue;                        
+                    end
+                end
+            end
+        end
+        
+        %%         
+        
         % Read in the intensity image.
         if indexFlattenProcess > 0
             currentImg = imread([movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel}, filesep, 'flatten_',filename_short_strs{iFrame},'.tif']);
@@ -172,6 +191,6 @@ for iChannel = selected_channels
         save([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'],...
             'orienation_map', 'MAX_st_res','nms','scaleMap');
         
-        toc        
+        toc
     end
 end
