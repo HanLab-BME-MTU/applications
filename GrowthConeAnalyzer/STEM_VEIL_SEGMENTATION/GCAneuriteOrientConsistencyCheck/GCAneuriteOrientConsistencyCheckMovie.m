@@ -329,7 +329,7 @@ for iCh = 1:nChan
                 
                 
                 
-                
+                % Need to make it such that 
                 
                 if ~isempty(overlapOrig)
                     % get other endpoint
@@ -376,37 +376,44 @@ for iCh = 1:nChan
                 backboneSeed(enterIdx) = 0; % make sure to take out the old seed point 
             else 
             end 
-            idxEnterNeurite = find(backboneSeed ==1 & boundaryMask ==1);
-            [yEnter,xEnter] = ind2sub([ySize,xSize],idxEnterNeurite);
+           % idxEnterNeurite = find(backboneSeed ==1 & boundaryMask ==1);
+           % [yEnter,xEnter] = ind2sub([ySize,xSize],idxEnterNeurite);
         
-            if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
+            %if isempty(idxEnterNeurite) % need to interpolate to make sure closed contour
                 % interpolate between to nearest point on boundary
                 % find endpoint of backboneSeed
-                
+                % filter by the closest distance to the original cluster
+               
                 EPsBackbone = getEndpoints(pixBackboneNew,[ySize,xSize]);
+                 idxEPs = sub2ind([ySize,xSize],EPsBackbone(:,2),EPsBackbone(:,1));
                 if useOtherSide == 1; % flag to not use old endpoint
-                    idxEPs = sub2ind([ySize,xSize],EPsBackbone(:,2),EPsBackbone(:,1));
+                    %idxEPs = sub2ind([ySize,xSize],EPsBackbone(:,2),EPsBackbone(:,1));
                     enterCoords = backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite;
                     enterIdx  = sub2ind([ySize,xSize],enterCoords(:,2),enterCoords(:,1));
+                    % Take Out the old entrance point 
                     idxEPs(idxEPs ==enterIdx) = [];
-                    [EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
-                    EPsBackbone = [EPX, EPY];
+                    %[EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
+                    %EPsBackbone = [EPX, EPY];
                 end
                 
+                EPsDistFromMClust = distTransFromMClust(idxEPs);
+                idxEPs = idxEPs(EPsDistFromMClust == min(EPsDistFromMClust)); 
+                [EPY,EPX] = ind2sub([ySize,xSize],idxEPs);
+                EPsBackbone = [EPX, EPY];
                 [yBoundary,xBoundary] = find(boundaryMask==1);
                 [idxBoundaryClose,dist] = KDTreeBallQuery([xBoundary,yBoundary] ,EPsBackbone,20);
-                % quick fix
+                % find the distances from the boundary 
                 if isempty(idxBoundaryClose{1})
                     [idxBoundaryClose,dist] = KDTreeBallQuery([xBoundary,yBoundary],EPsBackbone,100);
                 end
                 distAll =  vertcat(dist{:});
                 
-                % find the minimum distance
+                % find the minimum distance from boundary 
                 toSave = find(distAll ==min(distAll));
                 if length(toSave) > 1
                     EPDistFromMClust = distTransFromMClust(idxEPs(toSave));
                     toSave = toSave(EPDistFromMClust==min(EPDistFromMClust)); 
-                    %toSave = toSave(1);
+                    %toSave = toSave(1);% used to just take the first 
                 end
                 E = arrayfun(@(i) [repmat(i, [numel(idxBoundaryClose{i}) 1]) idxBoundaryClose{i}], 1:length(EPsBackbone(:,1)), 'UniformOutput', false);
                 E = vertcat(E{:});
@@ -416,7 +423,7 @@ for iCh = 1:nChan
                 xEnter = xBoundary(E(toSave,2));
                 yEnter = yBoundary(E(toSave,2));
                 clear linkedCoords E
-            end    % need to close contour
+           % end    % need to close contour
             % save new neurite entrance and the new backboneSeed
             backboneInfo(frames2Fix(iFrame)).backboneSeedMask= backboneSeed;
             backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite = [xEnter,yEnter];
