@@ -164,7 +164,7 @@ for iChannel = selected_channels
     end
     
     if exist('img_pixel_pool','var')
-        delete 'img_pixel_pool';
+        clearvars img_pixel_pool;
     end
     
     %    low_005_percentile=0;
@@ -216,6 +216,8 @@ for iChannel = selected_channels
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
+        
+        tic
         
         % Read in the intensity image.
         currentImg = movieData.channels_(iChannel).loadImage(iFrame);
@@ -270,16 +272,22 @@ for iChannel = selected_channels
                      currentImg = currentImg*(2^8-1);
                      currentImg = uint8(currentImg);
                      
-                     imwrite(currentImg,[ImageFlattenChannelOutputDir,'/flatten_', ...
+                     imwrite(currentImg,[ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                          filename_short_strs{iFrame + sub_i-1},'.tif']);
                  end
              end
          end
+         
+         toc
+         
     end
     
     %% if temporal filtering is needed
     
     if(TimeFilterSigma > 0)
+        disp('Image Flattening in temporal filtering:');
+            
+        tic
         
         % Initialize the after filtering cell
         after_temporal_filtering = cell(1);
@@ -330,7 +338,8 @@ for iChannel = selected_channels
         % save the filtered to hard disk
         for iFrame_subsample = 1 : length(Frames_to_Seg)
             iFrame = Frames_to_Seg(iFrame_subsample);
-            disp(['Frame: ',num2str(iFrame)]);
+            disp(['Image Flattening in temporal filtering, Frame: ',num2str(iFrame)]);
+            
             currentImg = after_temporal_filtering{iFrame_subsample};
             currentImg(currentImg<0)=0;
             currentImg(currentImg>1)=1;
@@ -342,20 +351,26 @@ for iChannel = selected_channels
                 if iFrame + sub_i-1 <= nFrame
                     disp(['Frame: ',num2str(iFrame + sub_i-1)]);
                     
-                    imwrite(currentImg,[ImageFlattenChannelOutputDir,'/flatten_', ...
+                    imwrite(currentImg,[ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                         filename_short_strs{iFrame + sub_i-1},'.tif']);
                 end
             end
         end
+        disp('Total time in Image Flattening in filtering:');
+        
+        toc
     end
     
     %% if background removal is needed
     if background_removal_flag==1
+        disp('Image Flattening in background removal:');
+            
+        tic
         % Background substraction for uneven illumination
         for iFrame_subsample = 1 : length(Frames_to_Seg)
             iFrame = Frames_to_Seg(iFrame_subsample);
-            disp(['Frame: ',num2str(iFrame)]);
-            currentImg =  imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+            disp(['Image Flattening in back ground removal, Frame: ',num2str(iFrame)]);
+            currentImg =  imread([ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                 filename_short_strs{iFrame + sub_i-1},'.tif']);
             
             I = double(currentImg);
@@ -381,11 +396,16 @@ for iChannel = selected_channels
                 if iFrame + sub_i-1 <= nFrame
                     disp(['Frame: ',num2str(iFrame + sub_i-1)]);
                     
-                    imwrite(currentImg,[ImageFlattenChannelOutputDir,'/flatten_', ...
+                    imwrite(currentImg,[ImageFlattenChannelOutputDir,filesep,'flatten_', ...
                         filename_short_strs{iFrame + sub_i-1},'.tif']);
                 end
             end
+            
         end
+        
+        disp('Total time in Image Flattening in background removal:');
+        
+        toc
     end
     
     %% 
