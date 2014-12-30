@@ -112,7 +112,7 @@ if nargin<5
     paramsIn.neuriteBodyColor =  'y';
     paramsIn.longPathTifs = 1;
     paramsIn.firstLastFrameOnly = 0;
-    paramsIn.makeMovieFiles = 1;
+    paramsIn.makeMovieFiles = 0;
     paramsIn.distCutOffForBody = 15;  % currently in um
     paramsIn.mkPlotsBodyMeasure = 1;
     paramsIn.subRegions =0; % flag to make frontMask subRegions
@@ -197,7 +197,7 @@ end
 
 for i = 1:length(frames)
     iFrame = frames(i);
-    
+    display(['Calculating Longest Distance Path for Frame' num2str(iFrame)]); 
     mask = analInfo(iFrame).masks.neuriteEdge;
     [ny,nx] = size(mask); 
     roiYX  = bwboundaries(mask);
@@ -741,7 +741,7 @@ end
  
 %% MAKE SCATTER MOVIE (Optional) 
 if p.makeScatterMovie
-    plotNeuriteOutgrowthInTime(neuriteLength,p.plotPathColor,1,timeInterval,1,scatterDir)   
+    plotNeuriteOutgrowthInTime(neuriteLength,p.plotPathColor,1,timeInterval,0,scatterDir,'single')   
 end 
 %% FINISH MAKING MOVIE FILES (OPTIONAL)   
 if p.makeMovieFiles == 1

@@ -10,8 +10,9 @@ function [ output_args ] = makeNeuriteMask( analInfo ,maskDir)
 %  end 
  % move the old files 
 %  copyfile(maskDir,maskDirBody); 
+if isdir(maskDir)
  rmdir(maskDir,'s'); 
-  
+end 
  mkdir(maskDir)
 
 

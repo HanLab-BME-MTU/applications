@@ -13,7 +13,7 @@ end
     filesep 'Neurite_Body_Masks_Channel_1' filesep 'analInfoTestSave.mat']); 
 
 framesList = 1:length(analInfo);
-GCAVeilStemRefineScaleActiveContour(imDir,refineDir,analInfo,framesList); 
+GCAveilStemRefineScaleActiveContour(imDir,refineDir,analInfo,framesList); 
 
 
 

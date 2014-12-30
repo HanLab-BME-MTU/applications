@@ -119,12 +119,12 @@ if nargin < 2
         
     paramsIn.patchSize = str2double(patchSize);
     else % set patch size 
-        paramsIn.patchSize = 40; % Default
+        paramsIn.patchSize = 35; % Default
     end 
         
     
    
-    paramsIn.startFrame = 88;  %default = 1 
+    paramsIn.startFrame = 71;  %default = 1 
     paramsIn.startChoice =  'manual' ; % auto, manual % auto will look for analInfo and redo the last frame 
                                      % manual will require a startFrame
                                      % number if the user does not enter
@@ -925,8 +925,8 @@ notBody = bwmorph(notBody,'thin','inf');
 % the same or different 
 % if they are the same it means the CC body piece is spanning one body 
   %% quick fix made 12-08-13 
-  backbone2Dil = bwmorph(backbone2Dil,'bridge'); 
-  backbone2Dil = bwmorph(backbone2Dil,'thin',inf);
+ % backbone2Dil = bwmorph(backbone2Dil,'bridge'); 
+ % backbone2Dil = bwmorph(backbone2Dil,'thin',inf);
   
   
         CCNotBody = bwconncomp(backbone2Dil); 
@@ -934,34 +934,34 @@ notBody = bwmorph(notBody,'thin','inf');
   CCBody = bwconncomp(newBodyMask);
  bodyLabels =  labelmatrix(CCBody);
 %  
-  for iCC = 1:numel(CCNotBody.PixelIdxList)
-  % find the endpoints and test their labels 
-  % check if singleton 
-    if length(CCNotBody.PixelIdxList{iCC}) ==1 
-      idx = CCNotBody.PixelIdxList{iCC};
-    else 
-  
-      xy = getEndpoints(CCNotBody.PixelIdxList{iCC},size(notBody),0,0,4);
-   
-      idx = sub2ind(size(notBody),xy(:,2),xy(:,1)); 
-    end 
-     test = zeros(size(notBody)); 
-    test(idx) = 1; 
- test = imdilate(test,strel('disk',2));
-  labelsOverlap = bodyLabels(test==1);   
-  % test also if the piece entering the frame (ie overlapping with the
-  % neurite body) 
-  overlapEnter = intersect(idxEnterNeurite,idx);
-  
- % get rid of non overlapping labels
-  labelsOverlap = labelsOverlap(labelsOverlap~=0) ; 
-   if (length(unique(labelsOverlap))==1 && isempty(overlapEnter)) ;
-       % get rid of the body part 
-       backbone2Dil(CCNotBody.PixelIdxList{iCC})= 0; 
-       
-   end 
-   
- end 
+for iCC = 1:numel(CCNotBody.PixelIdxList)
+    % find the endpoints and test their labels
+    % check if singleton
+    if length(CCNotBody.PixelIdxList{iCC}) ==1
+        idx = CCNotBody.PixelIdxList{iCC};
+    else
+        
+        xy = getEndpoints(CCNotBody.PixelIdxList{iCC},size(notBody),0,0,4);
+        
+        idx = sub2ind(size(notBody),xy(:,2),xy(:,1));
+    end
+    test = zeros(size(notBody));
+    test(idx) = 1;
+    test = imdilate(test,strel('disk',2));
+    labelsOverlap = bodyLabels(test==1);
+    % test also if the piece entering the frame (ie overlapping with the
+    % neurite body)
+    overlapEnter = intersect(idxEnterNeurite,idx);
+    
+    % get rid of non overlapping labels
+    labelsOverlap = labelsOverlap(labelsOverlap~=0) ;
+    if (length(unique(labelsOverlap))==1 && isempty(overlapEnter)) ;
+        % get rid of the body part
+        backbone2Dil(CCNotBody.PixelIdxList{iCC})= 0;
+        
+    end
+    
+end
     %%    
      if paramsIn.makeMovie ==1
          close gcf 

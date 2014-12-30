@@ -171,7 +171,7 @@ analInfo(iFrame).scaleMap = scaleMap;
     % by pixel basis. 
     
     [respNMSMean,respNMSSTD]   = fitGaussianModeToPDF(valuesFilter); 
-    cutoffTrueResponse = respNMSMean+3*respNMSSTD; 
+    cutoffTrueResponse = respNMSMean+3*respNMSSTD; % can make this a variable 
     n1 = hist(valuesFilter,100);
     
         if troubleshoot ==1 % plot the histogram with cut-off overlay so can see what losing 

@@ -71,7 +71,7 @@ if nargin < 2
     paramsIn.OutputDirectory = [movieData.outputDirectory_ filesep 'neurite_orientation_estimation_fixes'];
     paramsIn.ChannelIndex = 1;
     paramsIn.ProcessIndex = 0; % use raw images
-    paramsIn.SizeOfConsistencyRestraint = 10;% default 10 
+    paramsIn.SizeOfConsistencyRestraint = 5;% default 10 
     paramsIn.plots = 1;
 end
 

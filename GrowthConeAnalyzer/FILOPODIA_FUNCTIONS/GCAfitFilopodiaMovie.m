@@ -48,7 +48,7 @@ function [ filoInfo] = GCAfitFilopodiaMovie( movieData,paramsIn)
 %
 %
 % ('ValuesForFit' -> character 'Intensity','Response','Both') Optional
-% Default = 'Both'
+% Default = 'Intensity'
 %         The values to use the fitting: 
 %         Intensity: The values corresponding to the intensity will be fit
 %         to a sigmoid
@@ -138,11 +138,14 @@ for iCh = 1:numel(paramsIn.ChannelIndex)
         outPutDirC = [p.OutputDirectory filesep 'Filopodia_Fits_Channel_' num2str(p.ChannelIndex(iCh))]; 
     
         
-        mkClrDir(outPutDirC) 
-        
+        %mkClrDir(outPutDirC) 
+      if p.Restart ==0  
+          
         filoInfoDir  = [movieData.outputDirectory_ filesep  'filopodia_reconstruct' filesep 'Filopodia_Reconstruct_Channel_' num2str(iCh)];
-      % filoInfoDir =  [movieData.outputDirectory_ filesep  'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)];
-     % load reconstruction data including filoInfo per frame 
+      else 
+        filoInfoDir =  [movieData.outputDirectory_ filesep  'filopodia_fits' filesep 'Filopodia_Fits_Channel_' num2str(iCh)];
+      end 
+        % load reconstruction data including filoInfo per frame 
     load([filoInfoDir filesep 'analInfoTestSave.mat']) ; %
     
 if p.Restart ==1; 
@@ -152,7 +155,7 @@ if p.Restart ==1;
     display(['Resuming Filopodia Fitting at ' num2str(startFrame) ])
 elseif p.Restart == 2 
     
-     startFrame = 55;    
+     startFrame = 74;    
      display(['Resuming Filopodia Fitting at ' num2str(startFrame)]); 
     else 
         
