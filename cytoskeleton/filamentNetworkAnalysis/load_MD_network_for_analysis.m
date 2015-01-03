@@ -71,8 +71,15 @@ display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
-% for each channel do analysis
-for iChannel = 1 :  length(MD.channels_)
+% for each channel that did filament segmentation, do analysis
+validChannels = MD.processes_{indexFilamentSegmentationProcess}.funParams_.ChannelIndex;
+% into row vector
+validChannels = validChannels(:);
+validChannels = validChannels'; % into row vector
+
+for iChannel = validChannels
+    
+    MD.processes_{indexFilamentSegmentationProcess}.
     
     outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
      
