@@ -79,8 +79,6 @@ validChannels = validChannels'; % into row vector
 
 for iChannel = validChannels
     
-    MD.processes_{indexFilamentSegmentationProcess}.
-    
     outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
      
     SteerableChannelOutputDir = MD.processes_{indexSteerabeleProcess}.outFilePaths_{iChannel};
