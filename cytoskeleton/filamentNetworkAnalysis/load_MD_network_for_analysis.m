@@ -1,4 +1,4 @@
-function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_flag, save_everything_flag,feature_flag)
+function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag)
 % function to do network analysis with input MD
 
 % input:    MD:    the loaded movieData object.
@@ -62,6 +62,13 @@ end
 if(nargin<6)
     feature_flag = ones(1,16);
 end
+
+% if no input as if it is vim screen, set to no
+if(nargin<7)
+    vimscreen_flag = 0;
+end
+
+
 %% Get movie data ready
 
 movie_Dir = MD.outputDirectory_;
@@ -70,6 +77,15 @@ movie_Dir = MD.outputDirectory_;
 display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
+
+if(indexFilamentSegmentationProcess==0)
+    if(vimscreen_flag>0)
+     MD = vimscreen_forceMDAddProcessSave(MD);
+    else
+         display('No filament network segmentation. Stopped.');
+         return;
+    end
+end
 
 % for each channel that did filament segmentation, do analysis
 validChannels = MD.processes_{indexFilamentSegmentationProcess}.funParams_.ChannelIndex;
