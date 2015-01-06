@@ -198,8 +198,86 @@ end
     
     if(indexFilamentSegmentationProcess==0)
         this_MD.addProcess(FilamentSegmentationProcess(this_MD,'funParams',default_Params));
-    end  
+    end
+    
+        
 
 
+    %% after adding processes, set the paths
+        %%     % check if there is each of the process
+    indexCellSegProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
+            indexCellSegProcess = i;
+            break;
+        end
+    end
+    
+    indexCellRefineProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
+            indexCellRefineProcess = i;
+            break;
+        end
+    end
+    
+    indexFlattenProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
+            indexFlattenProcess = i;
+            break;
+        end
+    end
+    
+    indexSteerabeleProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
+            indexSteerabeleProcess = i;
+            break;
+        end
+    end
+    
+    indexFilamentSegmentationProcess = 0;
+    for i = 1 : nProcess
+        if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
+            indexFilamentSegmentationProcess = i;
+            break;
+        end
+    end
+    
+     if(isempty(this_MD.processes_{indexCellSegProcess}.outFilePaths_{1}))
+        this_MD.processes_{indexCellSegProcess}.setOutFilePaths({[this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'masks',filesep,'Channel1'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'masks',filesep,'Channel2'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'masks',filesep,'Channel3']});
+     end
+     
+     if(isempty(this_MD.processes_{indexCellRefineProcess}.outFilePaths_{1}))
+        this_MD.processes_{indexCellRefineProcess}.setOutFilePaths({[this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks',filesep,'Channel1'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks',filesep,'Channel2'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'refined_masks',filesep,'Channel3']});
+    end
+    
+    
+     
+    if(isempty(this_MD.processes_{indexFlattenProcess}.outFilePaths_{1}))
+        this_MD.processes_{indexFlattenProcess}.setOutFilePaths({[this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'ImageFlatten',filesep,'Channel1'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'ImageFlatten',filesep,'Channel2'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'ImageFlatten',filesep,'Channel3']});
+    end
+    
+    if(isempty(this_MD.processes_{indexSteerabeleProcess}.outFilePaths_{1}))
+        this_MD.processes_{indexSteerabeleProcess}.setOutFilePaths({[this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel1'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel2'],...
+        ''});
+    end
+    
+     
+    if(isempty(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1}))
+        this_MD.processes_{indexFilamentSegmentationProcess}.setOutFilePaths({[this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel1'],...
+        [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel2'],...
+        ''});
+    end
+    
+    
     this_MD.save();
     

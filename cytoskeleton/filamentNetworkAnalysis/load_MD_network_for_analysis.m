@@ -78,14 +78,13 @@ display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
-if(indexFilamentSegmentationProcess==0)
     if(vimscreen_flag>0)
      MD = vimscreen_forceMDAddProcessSave(MD);
     else
          display('No filament network segmentation. Stopped.');
          return;
     end
-end
+
 
 % for each channel that did filament segmentation, do analysis
 validChannels = MD.processes_{indexFilamentSegmentationProcess}.funParams_.ChannelIndex;
