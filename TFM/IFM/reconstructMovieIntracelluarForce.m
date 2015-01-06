@@ -1,6 +1,9 @@
 function reconstructMovieIntracelluarForce(movieData,varargin)
-% a code for intracellular force reconstruction
-% 
+% reconstructMovieIntracelluarForce reconstructs intracellular forces out
+% of speckle flow. Adaped from Ji, Lin's code in contMechModel2. This
+% function this time tries to use Matlab's PDE toolbox instead of using
+% comsol 3.5 functions, which changed after version 4.0 significantly
+% Sangyoon Han Jan 2015
 %% ----------- Input ----------- %%
 
 %Check input
@@ -89,7 +92,14 @@ flowProc = movieData.processes_{iFlowProc};
 %         'running flow analysis!'])
 % end
 % this input part should be updated once the algorithm is completed.
-
+% imgIndexForm  = sprintf('%%.%dd',length(num2str(no)));
+%% Output folder setup
+outputDir = [movieData.outputDirectory_ filesep 'IFMPackage'];
+mkClrDir(outputDir)
+femModelDir = [outputDir filesep 'femModel'];
+mkClrDir(femModelDir)
+iDispFieldDir = [outputDir filesep 'iDispField'];
+mkClrDir(iDispFieldDir)
 %% Import the flow data per each frame - the flow should've been calculated
 % between only the two adjacent frames
 %% --------------- Kinetic analysi ---------------%%% 
@@ -105,10 +115,7 @@ numStr = @(frame) num2str(frame,fString);
 logMsg = @(chan) ['Please wait, analyzing flow for channel ' num2str(chan)];
 outFile=@(chan,frame) [outputDir{chan} filesep 'intraForces_' numStr(frame) '.mat'];
 
-speedMapLimits=cell(1,nChan);
-flowLimits=cell(1,nChan);
-channelLog=cell(1,numel(p.ChannelIndex));
-
+numSubDoms = 1; % this should be designated in the dialog box.
 for i=1:numel(p.ChannelIndex)
     iChan = p.ChannelIndex(i);
     % Log display
@@ -140,7 +147,7 @@ for i=1:numel(p.ChannelIndex)
 
     % Interpolate field
     if ishandle(wtBar), waitbar(.25,wtBar,['Interpolating flow for channel ' num2str(iChan)']); end
-    [Md,Ms,E,S,stats] =  analyzeFlow(flow,p.timeWindow+1,p.maxCorLength,...
+    [Md,~,~,~,~] =  analyzeFlow(flow,p.timeWindow+1,p.maxCorLength,...
         'noise',1,'error',1);
     
    %% Geometry detemination for meshing (decsg and initmesh)
@@ -152,141 +159,15 @@ for i=1:numel(p.ChannelIndex)
     for jj = 1:nFrames
         % Adjust mask boundaries with speckle boundaries
         curFlow = flow{jj};
-        LeftUpperCorner(1:2) = [min(curFlow(:,2)), min(curFlow(:,1))];
-        RightLowerCorner(1:2) = [max(curFlow(:,2)), max(curFlow(:,1))];
-        
-        mask(RightLowerCorner(2)+1:end,:,jj) = 0; % for bottom
-        mask(:,RightLowerCorner(1)+1:end,jj) = 0; % for right
-        mask(1:LeftUpperCorner(2)-1,:,jj) = 0; % for top
-        mask(:,1:LeftUpperCorner(1)-1,jj) = 0; % for left
  
 %         B{1}(ymaxIdx,1) = RightLowerCorner(2); % for bottom
 %         B{1}(xmaxIdx,2) = RightLowerCorner(1); % for right
 %         B{1}(yminIdx,1) = LeftUpperCorner(2); % for top
 %         B{1}(xminIdx,2) = LeftUpperCorner(1); % for left
-        %% geometry
-        % get the image boundaries
-        B = bwboundaries(mask(:,:,jj));
-        % Build a Geometry Description Matrix - I'll use curve (polygon
-        % solid)
-        % find the straight lines first
-        xmin = min(B{1}(:,2));
-        xmax = max(B{1}(:,2));
-        ymin = min(B{1}(:,1));
-        ymax = max(B{1}(:,1));
+        %% geometry and mesh
         minImgSize = 5; % edge length should be more than 5 pixel.
-        nFreeEdge = 0; % the id number of free edge (1: left, 2:top, 3:right, 4:bottom)
-        
-        % rotating from left, top, right to bottom, check the straightness
-        % (if the line is inner boundary vs. free boundary (curved))
-        % for left edge
-        xminIdx = B{1}(:,2)==xmin; % logical index
-        if sum(xminIdx) > max(minImgSize, 0.1*(ymax-ymin)) && ...
-            (sum(diff(sort(B{1}(xminIdx,1)))==1) == sum(xminIdx)-1  || ...
-            sum(diff(sort(B{1}(xminIdx,1)))==1) == sum(xminIdx)-2) % see if they are consecutive
-            curveL = [xmin max(B{1}(xminIdx,1)) xmin min(B{1}(xminIdx,1))]; % from bottom to top
-            [~,curveLIdx1] = max(B{1}(xminIdx,1));
-            [~,curveLIdx2] = min(B{1}(xminIdx,1));
-            curveLIdxIdx = find(xminIdx);
-            curveLIdx = curveLIdxIdx([curveLIdx1;curveLIdx2]);
-        else
-            curveL = [];
-            xminIdx = false(size(xminIdx));
-            nFreeEdge = 1;
-        end
-        % for top edge
-        yminIdx = B{1}(:,1)==ymin; % logical index
-        if sum(yminIdx) > max(minImgSize, 0.1*(xmax-xmin)) && ...
-            (sum(diff(sort(B{1}(yminIdx,2)))==1) == sum(yminIdx)-1  || ...
-            sum(diff(sort(B{1}(yminIdx,2)))==1) == sum(yminIdx)-2) % see if they are consecutive
-            curveT = [min(B{1}(yminIdx,2)) ymin max(B{1}(yminIdx,2)) ymin]; % from left to right
-            [~,curveTIdx1] = min(B{1}(yminIdx,2));
-            [~,curveTIdx2] = max(B{1}(yminIdx,2));
-            curveTIdxIdx = find(yminIdx);
-            curveTIdx = curveTIdxIdx([curveTIdx1;curveTIdx2]);
-        else
-            % curve approximation with ...
-            curveT = [];
-            yminIdx = false(size(yminIdx));
-            nFreeEdge = 2;
-        end
-        % for right edge
-        xmaxIdx = B{1}(:,2)==xmax; % logical index
-        if sum(xmaxIdx) > max(minImgSize, 0.1*(ymax-ymin)) && ...
-            (sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-1  || ...
-            sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-2) % see if they are consecutive
-            curveR = [xmax min(B{1}(xmaxIdx,1)) xmax max(B{1}(xmaxIdx,1))]; % from top to bottom
-            [~,curveRIdx1] = min(B{1}(xmaxIdx,1));
-            [~,curveRIdx2] = max(B{1}(xmaxIdx,1));
-            curveRIdxIdx = find(xmaxIdx);
-            curveRIdx = curveRIdxIdx([curveRIdx1;curveRIdx2]);
-        else
-            curveR = [];
-            xmaxIdx = false(size(xmaxIdx));
-            nFreeEdge = 3;
-        end
-        % for bottom edge
-        ymaxIdx = B{1}(:,1)==ymax; % logical index
-        if sum(ymaxIdx) > max(minImgSize, 0.1*(xmax-xmin)) && ...
-            (sum(diff(sort(B{1}(ymaxIdx,2)))==1) == sum(ymaxIdx)-1  || ...
-            sum(diff(sort(B{1}(ymaxIdx,2)))==1) == sum(ymaxIdx)-2) % see if they are consecutive
-            curveB = [max(B{1}(ymaxIdx,2)) ymax min(B{1}(ymaxIdx,2)) ymax]; % from bottom to top
-            [~,curveBIdx1] = max(B{1}(ymaxIdx,2));
-            [~,curveBIdx2] = min(B{1}(ymaxIdx,2));
-            curveBIdxIdx = find(ymaxIdx);
-            curveBIdx = curveBIdxIdx([curveBIdx1;curveBIdx2]);
-        else
-            curveB = [];
-            ymaxIdx = false(size(ymaxIdx));
-            nFreeEdge = 4;
-        end
-        % curve approximation with ...
-        freeIdx = ~(xminIdx | yminIdx | xmaxIdx | ymaxIdx);% index for free edge
-        freeIdx(max(find(freeIdx,1)-1,1)) = true;
-        freeIdx(min(find(freeIdx,1,'last')+1,end)) = true;
-        
-        % determine distance between nodes based on speckle density
-        numSpeckles=length(flow);
-        areaImg=prod(RightLowerCorner-LeftUpperCorner);
-        interSpecDist=ceil(sqrt(areaImg/numSpeckles));  % the number of skipping points for equi-spatial sampling of curves
+        [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms);
 
-        freeIdxIdx = find(freeIdx,1):interSpecDist:find(freeIdx,1,'last');
-        if freeIdxIdx(end) ~= find(freeIdx,1,'last')
-            freeIdxIdx(end) = find(freeIdx,1,'last');
-        end
-        
-%         freeIdxS = false(size(freeIdx));
-%         freeIdxS(freeIdxIdx) = true;
-        
-        switch nFreeEdge
-            case 1
-                curveLIdx = freeIdxIdx;
-             case 2
-                curveTIdx = freeIdxIdx;
-            case 3
-                curveRIdx = freeIdxIdx;
-            case 4
-                curveBIdx = freeIdxIdx;
-            case 0
-                disp('Something is wrong. There is no free edge. Check your boundary condition.')
-        end
-        
-%         allEdgeIdx = xminIdx | yminIdx | xmaxIdx | ymaxIdx | freeIdxS;
-        np = length(curveLIdx)+length(curveTIdx)+length(curveRIdx)+length(curveBIdx)-4; % the number of polygon segments
-        gd = zeros(2+2*np,1); % initialization of geometry description matrix
-        gd(1) = 2; % represents polygon solid
-        gd(2) = np;
-        gd(3:2+np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],2); % x-coordinates
-        gd(3+np:2+2*np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],1); % y-coordinates
-        dl = decsg(gd); % decompose constructive solid geometry into minimal regions
-        %% mesh
-        [p,e,t]=initmesh(dl,'hmax',2*interSpecDist); 
-        curActin = movieData.getChannel(1).loadImage(jj);
-        figure, imshow(curActin,[])
-        hold on
-        plot(curFlow(:,2),curFlow(:,1),'y.')
-        quiver(curFlow(:,2),curFlow(:,1),3*(curFlow(:,4)-curFlow(:,2)),3*(curFlow(:,3)-curFlow(:,1)),0,'y')
-        pdemesh(p,e,t)
         %% PDE definition for continuum mechanics, plane stress
         % Now I have a mesh information, with which I can solve for forward
         % solution for each basis function
@@ -308,23 +189,173 @@ for i=1:numel(p.ChannelIndex)
         c = c2d(:); % vectorized c
         a = 0; %a=0 for structural mechanics
         f = [0 0]';
+        % I have to do something like this: fem = elModelAssemble([],msh,options,fn,fp,ind,bndInd);
+        % where fn and fp contains boundary conditions etc.. 
+
         %% Boundary condition definition
+        [fn,fp,BCTypes,bndInd] = initializeCMBoundaryCondition(numEdges,borderE,borderSeg);
+        options = elOptionsSet('EPType','YModulPRatio','BCType', BCTypes);
+%         fem = elModelAssemble([],msh,options,fn,fp,ind,bndInd);
+        fem = elModelAssemblePDE([],msh,options,fn,fp,ind,bndInd);
+
+        %% function space creation for domain force.
+        fs = constructFunctionSpace(msh,numSubDoms);
+        %% Four boundary edges
+        % The geometry and mesh, 'msh' created by 'getMeshFromMask' has four boundary edges
+        % parameterized by arclength. So, first identify the four edges from msh.e.
+        % We use a structure named 'edge' to store all these mesh structure info and
+        % displacement. It has the following fields:
+        % 'vertEI' : Index into 'msh.e(3,:)' whose arclength is 0. It identifies the
+        %            vertex of the edge.
+        % 'I'      : Index into 'msh.p' to get the real coordinates of boundary points.
+        % 'bndEI'  : The index of boundary elements that belong to one edge.
+        % 'endI    : The index of the boundary element that is at the end of one
+        %            edge.
+        % 'arcLen' : The arclength of each edge.
+        % 'bndP'   : The coordinates of boundary points on each edge.
+        % 'bndS'   : The arclength parameters of the boundary points on each edge.
+        % 'ppX'    : The pp-form of the spline interpolation of X-coordinate of 'bndP'.
+        % 'ppY'    : The pp-form of the spline interpolation of Y-coordinate of 'bndP'.
+        % 'dispV'  : The coordinates of the base and the point end of the displacement
+        %            vectors on each edge in the formate [x0 y0 x1 y1].
+        % 'U1'     : The first and 
+        % 'U2'     : the second components of the displacement vectors on each edge.
+        % 'UC1'    : For debugging. Has the same structure as 'edgeU1'.
+        % 'UC2'    : For debugging. Has the same structure as 'edgeU2'.
+        % 'ppU1'   : The pp-form of the spline interpolation of 'U1'.
+        % 'ppU2'   : The pp-form of the spline interpolation of 'U2'.
+        edge = edgeFromMsh(msh,numEdges);
+
+        % saving all these into one struct variable femModel
+        femModel.fem      = fem;
+        femModel.fs       = fs;
+        femModel.options  = options;
+        femModel.fn       = fn;
+        femModel.fp       = fp;
+%         femModel.curvL    = curvL;
+%         femModel.curvT    = curvT;
+%         femModel.curvR    = curvR;
+%         femModel.curvB    = curvB;
+        femModel.BCTypes  = BCTypes;
+        femModel.geom     = msh;
+        femModel.ind      = ind;
+        femModel.bndInd   = bndInd;
+        femModel.numEdges = numEdges;
+        femModel.edge     = edge;
+        femModel.edgeMsh   = msh; %Mesh used for identifying boundary edges.
+
+        femModelFile = [femModelDir filesep 'femModel' num2str(jj) '.mat'];
+        save(femModelFile,'femModel');
+
+%         % Using speckle postions for mesh generation
+%         dt=delaunayTriangulation(flow(:,2),flow(:,1));
+%         triplot(dt)
+        
+        
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %Get preprocessed experimental data such as calculating boundary displacement. 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+       localStartTime = cputime;
+       fprintf(1,'   Time Step: %d ... ',jj);
+
+%        imgIndex = imgIndexOfDTimePts(jj);
+       % Load the raw field
+       rawDispField = flow{jj};
+
+       %Load the interpolated displacement field.
+       iDispField = Md{jj};
+
+%        [is,pe] = postinterp(fem,iDispField.p.');
+%        [is,pe] = pdeintrp(msh.p,msh.t,iDispField.p.');
+%        iDispField.iOutMesh    = pe; % 'pe': index of points outside 'msh'.
+%        iDispField.iInMesh     = 1:size(iDispField.p,1);
+%        iDispField.iInMesh(pe) = [];
+%        iDispField.numDP       = length(iDispField.iInMesh); % I don't
+%        think saving these parameters matters too much
+
+       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       %Calculate the displacements of the boundary edges given by 'msh'. See
+       % 'doc initmesh' for information about the MESH structure.
+      edgCorLen = p.maxCorLength;
+      for k = 1:numEdges
+%          rawDispV = [rawDispField.p(:,2:-1:1) rawDispField.p(:,2:-1:1)+rawDispField.v(:,2:-1:1)];
+         rawDispV = rawDispField; 
+         edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
+            edge(k).bndP(2:-1:1,:).',2*edgCorLen,edgCorLen,[]); % I need to check if this is more exact than interpolating vec.
+         edgD(k).U1 = edgD(k).dispV(:,4) - edgD(k).dispV(:,2);
+         edgD(k).U2 = edgD(k).dispV(:,3) - edgD(k).dispV(:,1);
+
+         %Create spline interpolation of the edge displacement using arclength
+         % parameter stored in 'msh.e(3:4,:)'.
+         numInd = find(~isnan(edgD(k).U1));
+         edgD(k).s = edge(k).bndS(numInd);
+         bndSKnt = augknt(edge(k).bndS(numInd),2);
+         edgD(k).ppU1 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U1(numInd).');
+         %edgD(k).ppU1 = spline(edge(k).bndS(numInd), edgD(k).U1(numInd).');
+         numInd = find(~isnan(edgD(k).U2));
+         bndSKnt = augknt(edge(k).bndS(numInd),2);
+         edgD(k).ppU2 = spapi(bndSKnt,edge(k).bndS(numInd), edgD(k).U2(numInd).');
+         %edgD(k).ppU2 = spline(edge(k).bndS(numInd), edgD(k).U2(numInd).');
+      end
+
+       %Save the edge mesh information and displacements data.
+       iDispField_pos = iDispField(2:-1:1,:);
+       iDispField_vec = iDispField(4:-1:3,:)-iDispField(2:-1:1,:);
+       clear iDispField
+       iDispField.p = iDispField_pos;
+       iDispField.v = iDispField_vec;
+       iDispField.edgD = edgD;
+       iDispFieldFile = [iDispFieldDir filesep 'iDispField' num2str(jj)];
+       save(iDispFieldFile,'iDispField');
+
+       fprintf(1,'Done in %5.3f sec.\n', cputime-localStartTime);
+    end
+
+    %% calFwdOpBF - compatible section
+    % calFwdOpBF computes the matrix approximation to the forward linear
+    % operator for the body force.
+    % but now we are calculating these using PDE toolbox instead of FEMLAB
+    fprintf(1,'Calculating the forward operator for the Body Force :\n');
+    %Step 1: Construct the matrix approximation to the forward operator.
+    %We use each basis function as the body force to solve our
+    % continuum mechanics system. The solution gives us each column of the matrix.
+    dimFS     = length(p);
+%     dimBF     = fs.dimBF;
+%     indDomDOF = fs.indDomDOF;
+%     coefFS    = zeros(dimFS,1);
+%     solFileIndexForm = sprintf('%%.%dd',length(num2str(2*dimBF)));
+%     if rem(2*dimBF,numBSolsPerFile) == 0
+%      numSolFiles = 2*dimBF/numBSolsPerFile;
+%     else
+%      numSolFiles = ceil(2*dimBF/numBSolsPerFile);
+%     end
+
+     %'k' is the index of 'coefFS' whose corresponding basis function is zero
+     % on the boundary.
+%      k = indDomDOF(j);
+     for k=1:dimFS
+         coefFS = zeros(dimFS,1);
+         coefFS(k) = 1;
+         fp.BodyFx = {{'x' 'y'} {fs.fem coefFS}};
+         fp.BodyFy = {{'x' 'y'} {[] 0}};
+         fem = elModelUpdatePDE(fem,'fp',fp);
+         fem = elasticSolve(fem,[]);
+         sol{ll+1} = fem.sol;
+
+         fp.BodyFx = {{'x' 'y'} {[] 0}};
+         fp.BodyFy = {{'x' 'y'} {fs.fem coefFS}};
+         fem = elModelUpdate(fem,'fp',fp);
+         fem = elasticSolve(fem,[]);
+         sol{ll+2} = fem.sol;
+     end
+    
+    
         nPDE = 2; % two dependent variables, ux and uy
         pb = pde(nPDE);
         % Create a geometry entity
         pg = pdeGeometryFromEdges(dl);
         % Set Diri
-%         % Using speckle postions for mesh generation
-%         dt=delaunayTriangulation(flow(:,2),flow(:,1));
-%         triplot(dt)
-        
-        % Boundary condition (Free edge and Inner boundary edge)
-        % Define the boundary condition vector, b, 
-        % for the boundary condition u=x^2-y^2.
-        % For each boundary segment, the boundary 
-        
-    end
-    
     
     
     % 
