@@ -202,11 +202,13 @@ for iChannel = validChannels
         toc
         
         % add one last component, the cell_mask
-        if(indexCellRefineProcess>0)
-            Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
-        else
-            Cell_Mask = ROI;
+        Cell_Mask = ROI;
+        if(indexCellRefineProcess>0 || vimscreen_flag == 0)
+            try
+                Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
+            end            
         end
+        
         output_feature.Cell_Mask = Cell_Mask;
         
         % save output feature for single image(single channel, single frame)
