@@ -203,7 +203,7 @@ for iChannel = validChannels
         
         % add one last component, the cell_mask
         Cell_Mask = ROI;
-        if(indexCellRefineProcess>0 || vimscreen_flag == 0)
+        if(indexCellRefineProcess>0 && vimscreen_flag == 0)
             try
                 Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
             end            
