@@ -95,6 +95,7 @@ function [analInfo] = GCAveilStemReconstructMovie(movieData,paramsIn)
 %  
 
 %% Check Input% NOTE TO SELF FIX INPUT 
+load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
 
 
 if nargin < 1 || ~isa(movieData,'MovieData')
@@ -1402,6 +1403,7 @@ analInfo(iFrame).masks.neuriteEdge = fullMask;
         analInfo(iFrame).bodyEst.pixIndThinBody = pixIndThinBody; % think about how you want to store this. 
     analInfo(iFrame).cycleFlag = cycleFlag; 
    analInfo(iFrame).timeStamp = clock;
+   analInfo(iFrame).hashTag = hashTag; 
      
  %save([outDir filesep 'analInfo.mat'],'analInfo'); 
  save([outDirChan filesep 'analInfoTestSave.mat'],'analInfo','-v7.3'); 
