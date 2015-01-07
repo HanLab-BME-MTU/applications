@@ -62,6 +62,7 @@ function [ backboneInfo,frames2Fix] = GCAneuriteOrientConsistencyCheckMovie(movi
 %
 
 %%
+load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
 
 if nargin < 1 || ~isa(movieData,'MovieData')
     error('The first input must be a valid MovieData object!')
@@ -428,6 +429,7 @@ for iCh = 1:nChan
             backboneInfo(frames2Fix(iFrame)).backboneSeedMask= backboneSeed;
             backboneInfo(frames2Fix(iFrame)).coordsEnterNeurite = [xEnter,yEnter];
             backboneInfo(frames2Fix(iFrame)).timeStamp = clock;
+            backboneInfo(frames2Fix(iFrame)).hashTag = hashTag; 
             % document in a folder
             close gcf
             %% Troubleshoot Plots

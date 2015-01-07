@@ -44,6 +44,7 @@ function [ backboneInfo] = GCAgetNeuriteOrient(img,p,iFrame)
 % majority voting can be used to facilitate the candidate seed selection
 % the next step. 
 
+load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
 
 %% CHECK INPUT 
 if nargin<2 
@@ -430,7 +431,7 @@ linked =0 ; % initiate small flag for plotting links in the colinear link step
         backboneInfo.backboneSeedMask = backboneSeed;
         backboneInfo.coordsEnterNeurite = [xEnter,yEnter]; % save this to test for consistency
         backboneInfo.timeStamp = clock;
-        
+        backboneInfo.hashTag = hashTag; 
         
       
 end
