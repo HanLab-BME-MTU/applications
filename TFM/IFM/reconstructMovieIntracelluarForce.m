@@ -193,7 +193,7 @@ for i=1:numel(p.ChannelIndex)
         % where fn and fp contains boundary conditions etc.. 
 
         %% Boundary condition definition
-        [fn,fp,BCTypes,bndInd] = initializeCMBoundaryCondition(numEdges,borderE,borderSeg);
+        [fn,fp,BCTypes,bndInd] = initializeCMBoundaryCondition(numEdges,borderE,borderSeg,bndInd);
         options = elOptionsSet('EPType','YModulPRatio','BCType', BCTypes);
 %         fem = elModelAssemble([],msh,options,fn,fp,ind,bndInd);
         fem = elModelAssemblePDE([],msh,options,fn,fp,ind,bndInd);
@@ -282,7 +282,7 @@ for i=1:numel(p.ChannelIndex)
 %          rawDispV = [rawDispField.p(:,2:-1:1) rawDispField.p(:,2:-1:1)+rawDispField.v(:,2:-1:1)];
          rawDispV = rawDispField; 
          edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
-            edge(k).bndP(2:-1:1,:).',2*edgCorLen,edgCorLen,[]); % I need to check if this is more exact than interpolating vec.
+            edge(k).bndP(2:-1:1,:).',3*edgCorLen,edgCorLen,[]); % I need to check if this is more exact than interpolating vec.
          edgD(k).U1 = edgD(k).dispV(:,4) - edgD(k).dispV(:,2);
          edgD(k).U2 = edgD(k).dispV(:,3) - edgD(k).dispV(:,1);
 
@@ -320,7 +320,7 @@ for i=1:numel(p.ChannelIndex)
     %Step 1: Construct the matrix approximation to the forward operator.
     %We use each basis function as the body force to solve our
     % continuum mechanics system. The solution gives us each column of the matrix.
-    dimFS     = length(p);
+    dimFS     = length(msh.p);
 %     dimBF     = fs.dimBF;
 %     indDomDOF = fs.indDomDOF;
 %     coefFS    = zeros(dimFS,1);
@@ -345,8 +345,8 @@ for i=1:numel(p.ChannelIndex)
 
          fp.BodyFx = {{'x' 'y'} {[] 0}};
          fp.BodyFy = {{'x' 'y'} {fs.fem coefFS}};
-         fem = elModelUpdate(fem,'fp',fp);
-         fem = elasticSolve(fem,[]);
+         fem = elModelUpdatePDE(fem,'fp',fp);
+         fem = elasticSolvePDE(fem,[]);
          sol{ll+2} = fem.sol;
      end
     
