@@ -1,4 +1,4 @@
-function [fn,fp,BCTypes,bndInd] = initializeCMBoundaryCondition(numEdges,borderE,borderSeg)
+function [fn,fp,BCTypes,bndInd] = initializeCMBoundaryCondition(numEdges,borderE,borderSeg,bndInd)
 
       %Specify the boundary traction force.
       fn.BndDispx  = cell(1,numEdges);

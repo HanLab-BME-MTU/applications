@@ -33,9 +33,9 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
             curveL = [xmin max(B{1}(xminIdx,1)) xmin min(B{1}(xminIdx,1))]; % from bottom to top
             [~,curveLIdx1] = max(B{1}(xminIdx,1));
             [~,curveLIdx2] = min(B{1}(xminIdx,1));
-            curveLIdxIdx = find(xminIdx);
-            curveLIdx = curveLIdxIdx([curveLIdx1;curveLIdx2]);
-            curveIdx{1} = curveLIdxIdx([curveLIdx1;curveLIdx2]);
+            curveLIdxIdx = find(xminIdx');
+            curveLIdx = curveLIdxIdx([curveLIdx1,curveLIdx2]);
+            curveIdx{1} = curveLIdxIdx([curveLIdx1,curveLIdx2]);
         else
             curveL = [];
             curveIdx{1} = [];
@@ -50,9 +50,9 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
             curveT = [min(B{1}(yminIdx,2)) ymin max(B{1}(yminIdx,2)) ymin]; % from left to right
             [~,curveTIdx1] = min(B{1}(yminIdx,2));
             [~,curveTIdx2] = max(B{1}(yminIdx,2));
-            curveTIdxIdx = find(yminIdx);
-            curveTIdx = curveTIdxIdx([curveTIdx1;curveTIdx2]);
-            curveIdx{2} = curveTIdxIdx([curveTIdx1;curveTIdx2]);
+            curveTIdxIdx = find(yminIdx');
+            curveTIdx = curveTIdxIdx([curveTIdx1,curveTIdx2]);
+            curveIdx{2} = curveTIdxIdx([curveTIdx1,curveTIdx2]);
         else
             % curve approximation with ...
             curveT = [];
@@ -68,9 +68,9 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
             curveR = [xmax min(B{1}(xmaxIdx,1)) xmax max(B{1}(xmaxIdx,1))]; % from top to bottom
             [~,curveRIdx1] = min(B{1}(xmaxIdx,1));
             [~,curveRIdx2] = max(B{1}(xmaxIdx,1));
-            curveRIdxIdx = find(xmaxIdx);
-            curveRIdx = curveRIdxIdx([curveRIdx1;curveRIdx2]);
-            curveIdx{3} = curveRIdxIdx([curveRIdx1;curveRIdx2]);
+            curveRIdxIdx = find(xmaxIdx');
+            curveRIdx = curveRIdxIdx([curveRIdx1,curveRIdx2]);
+            curveIdx{3} = curveRIdxIdx([curveRIdx1,curveRIdx2]);
         else
             curveR = [];
             curveIdx{3} = [];
@@ -85,9 +85,9 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
             curveB = [max(B{1}(ymaxIdx,2)) ymax min(B{1}(ymaxIdx,2)) ymax]; % from bottom to top
             [~,curveBIdx1] = max(B{1}(ymaxIdx,2));
             [~,curveBIdx2] = min(B{1}(ymaxIdx,2));
-            curveBIdxIdx = find(ymaxIdx);
-            curveBIdx = curveBIdxIdx([curveBIdx1;curveBIdx2]);
-            curveIdx{4} = curveBIdxIdx([curveBIdx1;curveBIdx2]);
+            curveBIdxIdx = find(ymaxIdx');
+            curveBIdx = curveBIdxIdx([curveBIdx1,curveBIdx2]);
+            curveIdx{4} = curveBIdxIdx([curveBIdx1,curveBIdx2]);
         else
             curveB = [];
             curveIdx{4} = [];
@@ -133,60 +133,85 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
                 % look at speckle density near each curve
                 [idxCurveSeg, distCurveSeg]=KDTreeBallQuery(curFlow(:,2:-1:1),B{1}(curveIdx{iCurFreeEdge},2:-1:1),distSpecDensity);
                 numCurveSeg=cellfun(@length,idxCurveSeg);
-                minDistToClosestSpeck=cellfun(@min,distCurveSeg);
+%                 minDistToClosestSpeck=cellfun(@min,distCurveSeg);
+                sortDistToClosestSpeck=cellfun(@sort,distCurveSeg,'UniformOutput',false);
+                meanMinDistToClosestSpeck=cellfun(@(x) mean(x(2:min(length(x),5))),sortDistToClosestSpeck);
+                speckDen = mean(numCurveSeg);
+                meanMinDist = mean(meanMinDistToClosestSpeck);
+                % determine total mesh segment in the curve
+%                 numMeshSegCurve = round(length(curveIdx{iCurFreeEdge})/meanMinDist+1);
+                % place knots depending on minDist
+                curIdx=1;
+                while curIdx(end) < length(curveIdx{iCurFreeEdge})
+                    curIdx = [curIdx curIdx(end)+max(8,round(meanMinDistToClosestSpeck(curIdx(end))))];
+                    if curIdx(end) > length(curveIdx{iCurFreeEdge})
+                        curIdx(end) = length(curveIdx{iCurFreeEdge});
+                    end
+                end
+                curveIdx{iCurFreeEdge} = curveIdx{iCurFreeEdge}(curIdx);
+            end
+        elseif length(iStrEdge)>1 && sum(diff(iStrEdge)==1) == length(iStrEdge)-1 %if straight edges are consecutively arranged,
+            % I need to work on this part later.. SH 01052014
+            straightEdgeIdx = curveIdx{iStrEdge};
+            freeIdx = ~(xminIdx | yminIdx | xmaxIdx | ymaxIdx);% index for free edge
+            % get index for free curved edges
+            nFreeIdx = sum(freeIdx);
+            % assign evenly divided freeIdx to each curveIdx
+            iPrevIdx = straightEdgeIdx(end);
+            for k=1:numFreeEdges
+                iCurFreeEdge = mod(iStrEdge+k,4); % we starts to fill indices for edge after iStrEdge
+                if iCurFreeEdge==0
+                    iCurFreeEdge = 4;
+                end
+                % accounting for continuity from end to the first index
+                if (iPrevIdx+round(nFreeIdx/3))>length(freeIdx)
+                    curveIdx{iCurFreeEdge} = [iPrevIdx:length(freeIdx) 1:mod(iPrevIdx+round(nFreeIdx/3)-1,length(freeIdx))];
+                elseif k==numFreeEdges
+                    iPrevFreeEdge = mod(iStrEdge+k-1,4); % we starts to fill indices for edge after iStrEdge
+                    if iPrevFreeEdge==0
+                        iPrevFreeEdge = 4;
+                    end
+                    if curveIdx{iPrevFreeEdge}(end)<straightEdgeIdx(1)
+                        curveIdx{iCurFreeEdge} = curveIdx{iPrevFreeEdge}(end):straightEdgeIdx(1);
+                    else
+                        curveIdx{iCurFreeEdge} = [curveIdx{iPrevFreeEdge}(end):length(freeIdx) 1:straightEdgeIdx(1)];
+                    end
+                else
+                    curveIdx{iCurFreeEdge} = iPrevIdx:iPrevIdx+round(nFreeIdx/3);
+                end
+                iPrevIdx =  curveIdx{iCurFreeEdge}(end);
+                % look at speckle density near each curve
+                [idxCurveSeg, distCurveSeg]=KDTreeBallQuery(curFlow(:,2:-1:1),B{1}(curveIdx{iCurFreeEdge},2:-1:1),distSpecDensity);
+                numCurveSeg=cellfun(@length,idxCurveSeg);
+%                 minDistToClosestSpeck=cellfun(@min,distCurveSeg);
+                sortDistToClosestSpeck=cellfun(@sort,distCurveSeg,'UniformOutput',false);
+                meanMinDistToClosestSpeck=cellfun(@(x) mean(x(2:min(length(x),5))),sortDistToClosestSpeck);
                 speckDen = mean(numCurveSeg);
                 meanMinDist = mean(minDistToClosestSpeck);
                 % determine total mesh segment in the curve
                 numMeshSegCurve = round(length(curveIdx{iCurFreeEdge})/meanMinDist+1);
-                for kk = 1:numMeshSegCurve
-                        a
+                % place knots depending on minDist
+                curIdx=1;
+                while curIdx(end) < length(curveIdx{iCurFreeEdge})
+                    curIdx = [curIdx curIdx(end)+max(8,round(meanMinDistToClosestSpeck(curIdx(end))))];
+                    if curIdx(end) > length(curveIdx{iCurFreeEdge})
+                        curIdx(end) = length(curveIdx{iCurFreeEdge});
+                    end
                 end
-                curveIdx{iCurFreeEdge} = curveIdx{iCurFreeEdge}(1):
+                curveIdx{iCurFreeEdge} = curveIdx{iCurFreeEdge}(curIdx);
             end
-        elseif (length(iStrEdge)>1 && sum(diff(iStrEdge)==1) == length(iStrEdge)-1) %if straight edges are consecutively arranged,
-            % I need to work on this part later.. SH 01052014
         end
-%         % curve approximation with ...
-%         freeIdx = ~(xminIdx | yminIdx | xmaxIdx | ymaxIdx);% index for free edge
-%         freeIdx(max(find(freeIdx,1)-1,1)) = true;
-%         freeIdx(min(find(freeIdx,1,'last')+1,end)) = true;
-%         
-%         % determine distance between nodes based on speckle density
-%         numSpeckles=length(flow);
-%         areaImg=prod(RightLowerCorner-LeftUpperCorner);
-%         interSpecDist=ceil(sqrt(areaImg/numSpeckles));  % the number of skipping points for equi-spatial sampling of curves
-% 
-%         freeIdxIdx = find(freeIdx,1):interSpecDist:find(freeIdx,1,'last');
-%         if freeIdxIdx(end) ~= find(freeIdx,1,'last')
-%             freeIdxIdx(end) = find(freeIdx,1,'last');
-%         end
-%         
-% %         freeIdxS = false(size(freeIdx));
-% %         freeIdxS(freeIdxIdx) = true;
-%         
-%         switch nFreeEdge
-%             case 1
-%                 curveLIdx = freeIdxIdx;
-%              case 2
-%                 curveTIdx = freeIdxIdx;
-%             case 3
-%                 curveRIdx = freeIdxIdx;
-%             case 4
-%                 curveBIdx = freeIdxIdx;
-%             case 0
-%                 disp('Something is wrong. There is no free edge. Check your boundary condition.')
-%         end
-        
-%         allEdgeIdx = xminIdx | yminIdx | xmaxIdx | ymaxIdx | freeIdxS;
-        np = length(curveLIdx)+length(curveTIdx)+length(curveRIdx)+length(curveBIdx)-4; % the number of polygon segments
+        np = length(curveIdx{1})+length(curveIdx{2})+length(curveIdx{3})+length(curveIdx{4})-4; % the number of polygon segments
         gd = zeros(2+2*np,1); % initialization of geometry description matrix
         gd(1) = 2; % represents polygon solid
         gd(2) = np;
-        gd(3:2+np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],2); % x-coordinates
-        gd(3+np:2+2*np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],1); % y-coordinates
+%         gd(3:2+np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],2); % x-coordinates
+%         gd(3+np:2+2*np) = B{1}([curveLIdx(1:end-1); curveTIdx(1:end-1)'; curveRIdx(1:end-1); curveBIdx(1:end-1)],1); % y-coordinates
+        gd(3:2+np) = B{1}([curveIdx{1}(1:end-1)'; curveIdx{2}(1:end-1)'; curveIdx{3}(1:end-1)'; curveIdx{4}(1:end-1)'],2); % x-coordinates
+        gd(3+np:2+2*np) = B{1}([curveIdx{1}(1:end-1)'; curveIdx{2}(1:end-1)'; curveIdx{3}(1:end-1)'; curveIdx{4}(1:end-1)'],1); % y-coordinates
         dl = decsg(gd); % decompose constructive solid geometry into minimal regions
         %% mesh
-        [msh.p,msh.e,msh.t]=initmesh(dl,'hmax',2*interSpecDist); 
+        [msh.p,msh.e,msh.t]=initmesh(dl,'hmax',1.4*meanMinDist,'Hgrad',1.5); 
         iActinChannel = 3;
         curActin = movieData.getChannel(iActinChannel).loadImage(jj);
         figure, imshow(curActin,[])
@@ -203,8 +228,8 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
         %Group subdomains and boundaries.
 %         numSubDoms = 1;
         ind    = ones(1,numSubDoms);
-        bndInd = {};
+        bndInd = cell(numEdges,1);
         for k = 1:numEdges
-         bndInd{k} = exBndSeg(k);
+            bndInd{k} = exBndSeg(k);
         end
-
+end
