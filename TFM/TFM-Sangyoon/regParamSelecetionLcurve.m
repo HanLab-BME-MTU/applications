@@ -76,7 +76,8 @@ elseif length(maxKappaCandIdx)>1
 %     [~,tempIndex] = max(kappa(maxKappaCandIdx));% use the first one %max(maxKappaCandIdx);
 %     maxKappaIdx = maxKappaCandIdx(tempIndex);
 elseif isempty(maxKappaCandIdx)
-    error('there is no local maximum in curvature in the input lambda range');
+    disp('There is no local maximum in curvature in the input lambda range.Using global maximum instead ...');
+    [~, maxKappaIdx] = max(kappa);
 end
 if inflection==1 % if inflection point larger than lcorner is to be chosen.
     inflectionIdx = find(kappa<0 & (1:nPoints)'>maxKappaIdx,1,'first');
