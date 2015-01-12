@@ -200,7 +200,9 @@ end
         this_MD.addProcess(FilamentSegmentationProcess(this_MD,'funParams',default_Params));
     end
     
-        
+    
+    nProcess = numel(this_MD.processes_);
+    nPackage = length(this_MD.packages_);
 
 
     %% after adding processes, set the paths
