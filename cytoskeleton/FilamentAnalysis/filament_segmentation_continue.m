@@ -376,7 +376,8 @@ for iChannel = selected_channels
     for iFrame_index = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_index);
          disp(['Frame: ',num2str(iFrame)]);
-       tic
+         TIC_IC_IF = tic;
+        
         %%  %  Check if the current frame has finished
         if(exist([DataOutputDir,filesep,'steerable_vote_', ...
                 filename_short_strs{iFrame},'.mat'], 'file'))
@@ -385,19 +386,16 @@ for iChannel = selected_channels
                     filename_short_strs{iFrame},'.mat'], 'current_seg');
                 if(~isempty(current_seg))
                     if(sum(sum(current_seg))>0)
-                        disp(['Frame ',num2str(iFrame),' has been run previously. Skipped.']);                        
-                        toc
+                        disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);                        
+                        Time_cost = toc(TIC_IC_IF);
+                        disp(['Frame ', num2str(iFrame), ' costed ',num2str(Time_cost,'%.2f'),'s.']);                                                         
+ 
                         continue;                        
                     end
                 end
             end
         end
-        
-        t_nodisplay = toc;
-        
-        %%
-        
-        
+                    
         % Read in the intensity image.
         if indexFlattenProcess > 0 && ImageFlattenFlag==2
             currentImg = imread([movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel}, filesep, 'flatten_',filename_short_strs{iFrame},'.tif']);
@@ -570,7 +568,7 @@ for iChannel = selected_channels
                 % Liya: test for the running of the comparison
                 current_seg_canny_cell=cell(1,1);
                 display('Canny Test:');
-                tic
+                TIC_CannyTest = tic;                
                 %                 for PercentOfPixelsNotEdges = 0.8: 0.1: 0.95
                 %                     for ThresholdRatio = 0.8 : 0.1: 0.95
                 for iP = 1 : 5
@@ -588,7 +586,7 @@ for iChannel = selected_channels
                         
                     end
                 end
-                toc
+                toc(TIC_CannyTest);
                 
                 % Assume no training is done for the classifier, so use the
                 % linear plane classifier with the input parameters.
@@ -600,11 +598,13 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_GM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+               
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -618,11 +618,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based NO-GM, Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_noGM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withoutGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+                Time_cost = toc(TIC_geoBased_noGM);
+%                 disp(['Frame: ', num2str(iFrame), ' geoBased_noGM costed ',num2str(Time_cost),'s.']);                        
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -641,12 +642,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
-                [level2, NMS_Segment,current_model ] = ...
+                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
-                
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
+                  
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
                 SteerabelRes_Segment = current_seg;
@@ -689,10 +690,10 @@ for iChannel = selected_channels
                 HigherThresdhold = funParams.CannyHigherThreshold(iChannel)/100;
                 LowerThresdhold = funParams.CannyLowerThreshold(iChannel)/100;
                 
-                tic
+%                 tic
                 [lowThresh, highThresh, current_seg]...
                     = proximityBasedNmsSeg(MAX_st_res,orienation_map,funParams,HigherThresdhold,LowerThresdhold);
-                toc
+%                 toc
                 
                 level2 = highThresh;
                 Intensity_Segment = current_seg;
@@ -978,6 +979,10 @@ for iChannel = selected_channels
         %
         %         end
         %%
+        
+        Time_cost = toc(TIC_IC_IF);
+        disp(['Frame ', num2str(iFrame), ' filament seg costed ',num2str(Time_cost,'%.2f'),'s.']);
+        
     end
     %% For Gelfand Lab, save results as tif stack file
     if( save_tif_flag==1)

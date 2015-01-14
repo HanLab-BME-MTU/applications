@@ -9,7 +9,12 @@ default_parameter_set=cell(1,5);
 
 default_Params=[];
 
-default_Params.ChannelIndex = 3;
+% set to empty so that nothing is to be run at this thresholding process
+default_Params.ChannelIndex = [];
+
+% if want to add back, change to [3]
+% default_Params.ChannelIndex = [3];
+
 default_Params.GaussFilterSigma=2;
 default_Params.ThresholdValue=[];
 default_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'thres'];
@@ -25,7 +30,12 @@ default_parameter_set{1} = default_Params;
 
 default_Params=[];
 
-default_Params.ChannelIndex = 3;
+% set to empty so that nothing is to be run at this mask refinement process
+default_Params.ChannelIndex = [];
+
+% if want to add back, change to [3]
+% default_Params.ChannelIndex = [3];
+
 default_Params.MaskCleanUp = true;
 default_Params.MinimumSize = 10;
 default_Params.ClosureRadius = 3;
@@ -46,7 +56,12 @@ default_parameter_set{2} = default_Params;
 %% Process 3 image flattening
 default_Params=[];
 
-default_Params.ChannelIndex= [1 2];
+% run only channel 1(Vim)
+default_Params.ChannelIndex= [1];
+
+% if want to add back MT, change to [ 1 2]
+% default_Params.ChannelIndex= [1 2];
+
 default_Params.GaussFilterSigma= 0.2000;
 default_Params.method_ind= 3;
 default_Params.imageflattening_mode= 2;
@@ -64,7 +79,12 @@ default_parameter_set{3} = default_Params;
 
 default_Params=[];
 
-default_Params.ChannelIndex= [1 2];
+% run only channel 1(Vim)
+default_Params.ChannelIndex= [1];
+    
+% if want to add back MT, change to [ 1 2]
+% default_Params.ChannelIndex= [1 2];
+
 default_Params.BaseSteerableFilterSigma= 1;
 default_Params.Levelsofsteerablefilters= 2;
 default_Params.Sub_Sample_Num= 1;
@@ -77,7 +97,12 @@ default_parameter_set{4} = default_Params;
 
 default_Params=[];
 
-default_Params.ChannelIndex = [1 2];
+% run only channel 1(Vim)
+default_Params.ChannelIndex = [1];
+
+% if want to add back MT, change to [ 1 2]
+% default_Params.ChannelIndex= [1 2];
+
 default_Params.StPace_Size = [3 3 3];
 default_Params.StPatch_Size = [21 21 21];
 default_Params.st_lowerbound_localthresholding = [90 90 90];

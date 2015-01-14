@@ -233,7 +233,10 @@ else % else for if there is a input parameter MD
         
     end
     
+    % when default parameter say no channel to run, skip this step    
+    if(~isempty(default_Params.ChannelIndex))
      this_MD = thresholdMovie(this_MD,default_Params);
+    end
     
     %%  % 2 mask refine
     % with the default of mask refinement
@@ -250,7 +253,10 @@ else % else for if there is a input parameter MD
         end
     end
     
+    % when default parameter say no channel to run, skip this step    
+    if(~isempty(default_Params.ChannelIndex))    
      this_MD = refineMovieMasks(this_MD,default_Params);
+    end
     
     %%   % 3 image flatten
      default_Params = set_parameter_cell{3};
@@ -266,7 +272,7 @@ else % else for if there is a input parameter MD
         end
     end
     
-    this_MD = image_flatten(this_MD,default_Params);
+    this_MD = image_flatten_norepeating(this_MD,default_Params);
     
     %% % 4 steerable filter
     

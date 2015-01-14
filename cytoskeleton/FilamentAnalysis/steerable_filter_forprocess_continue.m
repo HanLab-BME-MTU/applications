@@ -144,15 +144,16 @@ for iChannel = selected_channels
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
             
-        tic
+        TIC_IC_IF = tic;
         %%  %  Check if the current frame has finished
         if(exist([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'], 'file'))
             try
                 load([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'], 'nms');
                 if(~isempty(nms))
                     if(sum(sum(nms))>0)
-                        disp(['Frame ',num2str(iFrame),' has been run previously. Skipped.']);                        
-                        toc
+                        disp(['Frame ',num2str(iFrame),' ST filter has been run previously. Skipped.']);                        
+                         Time_cost = toc(TIC_IC_IF);
+                         disp(['Frame ', num2str(iFrame), ' costed ',num2str(Time_cost,'%.2f'),'s.']);                                                         
                         continue;                        
                     end
                 end
@@ -191,6 +192,8 @@ for iChannel = selected_channels
         save([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'],...
             'orienation_map', 'MAX_st_res','nms','scaleMap');
         
-        toc
+        Time_cost = toc(TIC_IC_IF);
+        disp(['Frame ', num2str(iFrame), ' ST filter costed ',num2str(Time_cost,'%.2f'),'s.']);                        
+              
     end
 end
