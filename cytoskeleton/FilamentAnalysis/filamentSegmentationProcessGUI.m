@@ -825,8 +825,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 set(hObject,'String',{'Cell Segmentation in this same channel','Input ROI', ...
     'Cell Segmentation combined from two channels', ...
-    'Direct sum of Cell Segmentation channel 1&2','No limitation'});
-set(hObject,'Value',4);
+    'Direct sum of Cell Segmentation channel 1&2','No limitation','Sum of all marked cells'});
+set(hObject,'Value',5);
 
 
 

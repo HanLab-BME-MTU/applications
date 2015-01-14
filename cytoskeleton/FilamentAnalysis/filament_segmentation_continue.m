@@ -235,6 +235,30 @@ if(exist([movieData.outputDirectory_,filesep,'MD_ROI.tif'],'file'))
     user_input_mask = imread([movieData.outputDirectory_,filesep,'MD_ROI.tif']);
 end
 
+
+
+if(ismember(6,Cell_Mask_ind))
+   combineChannelCellMaskCell = combineChannelMarkedCellAreaMask(MD);
+   totalEmpty = 1;
+   for iFrame = 1 : nFrame 
+       % if there is a cell mask, set the flag to 0
+        if (~isempty(combineChannelCellMaskCell{iFrame}))
+            totalEmpty = 0;
+        end
+   end
+   
+   %if there is no marked cell at all, don't do anything.   
+   if totalEmpty == 1       
+       display('User wants to use marked cell masks, but there is none. So no filament segmentation is done for this movie.');
+       return;
+   end
+else
+   combineChannelCellMaskCell=[];
+end
+
+
+
+
 %% cones related is not in use
 % %% Prepare the cone masks
 % cone_size = 15;
@@ -417,34 +441,43 @@ for iChannel = selected_channels
             else
                 if Cell_Mask_ind == 5 % No limit
                     MaskCell = ones(size(currentImg,1),size(currentImg,2));
+                    
                 else
-                    if Cell_Mask_ind == 4 % Combine from both channel directly
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        MaskCell = MaskVIFCell | MaskMTCell;
+                    if Cell_Mask_ind == 6 % For marked cells
+                        MaskCell = combineChannelCellMaskCell{iFrame};
+                        
                         
                     else
-                        % Combine from both channel
-                        % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        
-                        H_close_cell = fspecial('disk',5);
-                        H_close_cell = H_close_cell>0;
-                        
-                        MaskMTCell = imerode(MaskMTCell,H_close_cell);
-                        TightMask = MaskVIFCell.*MaskMTCell;
-                        
-                        % Make the mask bigger in order to include all
-                        MaskCell = imdilate(TightMask, ones(15,15),'same');
-                        
-                        clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        if Cell_Mask_ind == 4 % Combine from both channel directly
+                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskCell = MaskVIFCell | MaskMTCell;
+                            
+                        else
+                            % Combine from both channel
+                            % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
+                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            
+                            H_close_cell = fspecial('disk',5);
+                            H_close_cell = H_close_cell>0;
+                            
+                            MaskMTCell = imerode(MaskMTCell,H_close_cell);
+                            TightMask = MaskVIFCell.*MaskMTCell;
+                            
+                            % Make the mask bigger in order to include all
+                            MaskCell = imdilate(TightMask, ones(15,15),'same');
+                            
+                            clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        end
                     end
                 end
             end
         end
         
-        
+         if(isempty(MaskCell))
+            continue;
+        end
         
         %%
         % Correcting the nms ending semicircle due to the aritifact of

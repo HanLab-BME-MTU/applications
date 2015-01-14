@@ -22,7 +22,7 @@ function varargout = imageFlattenProcessGUI(varargin)
 
 % Edit the above text to modify the response to help imageFlattenProcessGUI
 
-% Last Modified by GUIDE v2.5 17-Nov-2014 11:22:38
+% Last Modified by GUIDE v2.5 13-Jan-2015 15:58:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
