@@ -75,11 +75,9 @@ for iChannel = selected_channels
         mkdir(ImageSteerableFilterChannelOutputDir);
     end
     
-    
     output_dir_content = dir(fullfile([ImageSteerableFilterChannelOutputDir,filesep,'*.*']));
     
     %% This part was commented out since we want to keep what ever is outthere
-%         
 %     %if there are files in this dir, clear them
 %     if(length(output_dir_content)>2)
 %         if(exist([ImageSteerableFilterChannelOutputDir,filesep,'NMS'],'dir'))
@@ -143,7 +141,7 @@ for iChannel = selected_channels
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
-            
+
         TIC_IC_IF = tic;
         %%  %  Check if the current frame has finished
         if(exist([ImageSteerableFilterChannelOutputDir,filesep,'steerable_',filename_short_strs{iFrame},'.mat'], 'file'))
@@ -194,6 +192,6 @@ for iChannel = selected_channels
         
         Time_cost = toc(TIC_IC_IF);
         disp(['Frame ', num2str(iFrame), ' ST filter costed ',num2str(Time_cost,'%.2f'),'s.']);                        
-              
+
     end
 end
