@@ -1,4 +1,4 @@
-function movieData = filament_segmentation(movieData, paramsIn, wholemovie_input_filename, varargin)
+function movieData = filament_segmentation_forcannytest(movieData, paramsIn, wholemovie_input_filename, varargin)
 % Created 07 2012 by Liya Ding, Matlab R2011b
 
 % input movieData object, with the parameters

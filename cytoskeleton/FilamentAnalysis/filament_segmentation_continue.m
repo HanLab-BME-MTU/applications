@@ -380,17 +380,31 @@ for iChannel = selected_channels
         
         %%  %  Check if the current frame has finished
         if(exist([DataOutputDir,filesep,'steerable_vote_', ...
+                filename_short_strs{iFrame},'.mat'], 'file') || ...
+                exist([DataOutputDir,filesep,'filament_seg_', ...
                 filename_short_strs{iFrame},'.mat'], 'file'))
             try
                 load([DataOutputDir,filesep,'steerable_vote_', ...
                     filename_short_strs{iFrame},'.mat'], 'current_seg');
                 if(~isempty(current_seg))
                     if(sum(sum(current_seg))>0)
-                        disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);                        
+                        disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);
                         Time_cost = toc(TIC_IC_IF);
-                        disp(['Frame ', num2str(iFrame), ' costed ',num2str(Time_cost,'%.2f'),'s.']);                                                         
- 
-                        continue;                        
+                        disp(['Frame ', num2str(iFrame), ' costed ',num2str(Time_cost,'%.2f'),'s.']);
+                        continue;
+                    end
+                end
+            catch
+                try
+                    load([DataOutputDir,filesep,'filament_seg_', ...
+                        filename_short_strs{iFrame},'.mat'], 'current_seg');
+                    if(~isempty(current_seg))
+                        if(sum(sum(current_seg))>0)
+                            disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);
+                            Time_cost = toc(TIC_IC_IF);
+                            disp(['Frame ', num2str(iFrame), ' costed ',num2str(Time_cost,'%.2f'),'s.']);
+                            continue;
+                        end
                     end
                 end
             end

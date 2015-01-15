@@ -22,7 +22,7 @@ function varargout = filamentSegmentationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help filamentSegmentationProcessGUI
 
-% Last Modified by GUIDE v2.5 10-Aug-2014 21:29:33
+% Last Modified by GUIDE v2.5 15-Jan-2015 12:49:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -86,6 +86,7 @@ set(handles.checkbox_rerunwholemovie,'value',funParams.Rerun_WholeMovie);
 set(handles.checkbox_nofiguredisruption,'value',funParams.nofiguredisruption);
 set(handles.checkbox_savefigures,'value',funParams.savestepfigures);
 set(handles.checkbox_showdetailmessage,'value',funParams.showdetailmessages);
+set(handles.checkbox_saveallresults,'value',funParams.saveallresults);
 
 set(handles.listbox_selectedChannels,'String',channelString,...
     'UserData',channelIndex);
@@ -470,6 +471,9 @@ funParams.savestepfigures = savestepfigures;
 
 showdetailmessages = get(handles.checkbox_showdetailmessage,'value');
 funParams.showdetailmessages = showdetailmessages;
+
+saveallresults = get(handles.checkbox_saveallresults,'value');
+funParams.saveallresults = saveallresults;
 
 Sub_Sample_Num  = str2double(get(handles.edit_subsample_number, 'String'));
 if isnan(Sub_Sample_Num) || Sub_Sample_Num < 0
@@ -1433,6 +1437,9 @@ funParams.savestepfigures = savestepfigures;
 showdetailmessages = get(handles.checkbox_showdetailmessage,'value');
 funParams.showdetailmessages = showdetailmessages;
 
+saveallresults = get(handles.checkbox_saveallresults,'value');
+funParams.saveallresults = saveallresults;
+
 Sub_Sample_Num  = str2double(get(handles.edit_subsample_number, 'String'));
 if isnan(Sub_Sample_Num) || Sub_Sample_Num < 0
     errordlg(['Please provide a valid input for '''...
@@ -1611,6 +1618,9 @@ funParams.savestepfigures = savestepfigures;
 showdetailmessages = get(handles.checkbox_showdetailmessage,'value');
 funParams.showdetailmessages = showdetailmessages;
 
+saveallresults = get(handles.checkbox_saveallresults,'value');
+funParams.saveallresults = saveallresults;
+
 Sub_Sample_Num  = str2double(get(handles.edit_subsample_number, 'String'));
 if isnan(Sub_Sample_Num) || Sub_Sample_Num < 0
     errordlg(['Please provide a valid input for '''...
@@ -1673,6 +1683,8 @@ set(handles.checkbox_rerunwholemovie,'value',funParams.Rerun_WholeMovie);
 set(handles.checkbox_nofiguredisruption,'value',funParams.nofiguredisruption);
 set(handles.checkbox_savefigures,'value',funParams.savestepfigures);
 set(handles.checkbox_showdetailmessage,'value',funParams.showdetailmessages);
+set(handles.checkbox_saveallresults,'value',funParams.saveallresults);
+
 
 current_ch_ind = currentChannelIndex(1);
 
@@ -2043,3 +2055,12 @@ function edit35_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in checkbox_saveallresults.
+function checkbox_saveallresults_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_saveallresults (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_saveallresults

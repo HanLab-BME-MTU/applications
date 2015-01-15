@@ -94,6 +94,9 @@ Rerun_WholeMovie =  funParams.Rerun_WholeMovie;
 SaveFigures_movie = funParams.savestepfigures;
 ShowDetailMessages_movie = funParams.savestepfigures;
 
+saveallresults_movie = funParams.savestepfigures;
+
+
 CoefAlpha_movie = funParams.CoefAlpha;
 LengthThreshold_movie = funParams.LengthThreshold;
 IternationNumber_movie = funParams.IternationNumber;
@@ -876,11 +879,13 @@ for iChannel = selected_channels
         RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
         RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
         
-        for sub_i = 1 : Sub_Sample_Num
-            if iFrame + sub_i-1 <= nFrame
-                imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,filesep,'white_segment_heat_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);
+        if(SaveFigures_movie==1)
+            for sub_i = 1 : Sub_Sample_Num
+                if iFrame + sub_i-1 <= nFrame
+                    imwrite(RGB_seg_orient_heat_map, ...
+                        [HeatEnhOutputDir,filesep,'white_segment_heat_',...
+                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         
@@ -901,14 +906,16 @@ for iChannel = selected_channels
             RGB_seg_orient_heat_map_nms(:,:,2 ) = enhanced_im_g;
             RGB_seg_orient_heat_map_nms(:,:,3 ) = enhanced_im_b;
             
-            
-            for sub_i = 1 : Sub_Sample_Num
-                if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map_nms, ...
-                        [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
-                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+            if(SaveFigures_movie==1)
+                for sub_i = 1 : Sub_Sample_Num
+                    if iFrame + sub_i-1 <= nFrame
+                        imwrite(RGB_seg_orient_heat_map_nms, ...
+                            [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
+                            filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                    end
                 end
-            end            
+            end
+            
             RGB_seg_orient_heat_map = RGB_seg_orient_heat_map_nms;
         end
         
@@ -932,13 +939,22 @@ for iChannel = selected_channels
         %% Save segmentation results
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                save([DataOutputDir,filesep,'steerable_vote_', ...
+                % if user want it, save everything, if not, save only the
+                % loadable results
+                if(saveallresults_movie==1)
+                save([DataOutputDir,filesep,'filament_seg_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
                     'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation','tip_orientation',...
                     'tip_int','tip_NMS',...
                     'current_seg_canny_cell');
+                else
+                    save([DataOutputDir,filesep,'filament_seg_', ...
+                    filename_short_strs{iFrame+ sub_i-1},'.mat'],...
+                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation',...
+                     'tip_orientation', 'tip_int','tip_NMS');
+                end
                 
             end
         end
