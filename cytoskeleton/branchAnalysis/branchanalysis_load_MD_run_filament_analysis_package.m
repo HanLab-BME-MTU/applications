@@ -56,11 +56,11 @@ ROOT_DIR = this_MD.outputDirectory_;
 nChannel = numel(this_MD.channels_);
 nProcess = numel(this_MD.processes_);
 nFrame = this_MD.nFrames_;
-nPackage = length(this_MD.packages_);
+nPackage = numel(this_MD.packages_);
 
 % look for exisitng filament package
 indexSegmentPackage = 0;
-for i = 1 : nPackage
+for i = 1 : numel(this_MD.packages_)
     if(strcmp(this_MD.packages_{i}.getName,'Segmentation')==1)
         indexSegmentPackage = i;
         break;
@@ -70,7 +70,7 @@ end
 
 % look for exisitng filament package
 indexFilamentPackage = 0;
-for i = 1 : nPackage
+for i = 1 : numel(this_MD.packages_)
     if(strcmp(this_MD.packages_{i}.getName,'FilamentAnalysis')==1)
         indexFilamentPackage = i;
         break;
@@ -78,7 +78,7 @@ for i = 1 : nPackage
 end
 
 nProcess = numel(this_MD.processes_);
-nPackage = length(this_MD.packages_);
+nPackage = numel(this_MD.packages_);
 
 
 % if there is no segment package,
@@ -86,6 +86,14 @@ nPackage = length(this_MD.packages_);
 if(indexSegmentPackage == 0)
     this_MD.addPackage(SegmentationPackage(this_MD));
     mkdir([this_MD.outputDirectory_,filesep,'SegmentationPackage']);
+    
+    for i = 1 : numel(this_MD.packages_)
+        if(strcmp(this_MD.packages_{i}.getName,'Segmentation')==1)
+            indexSegmentPackage = i;
+            break;
+        end
+    end
+    
 end
 
 % if there is no filament analysis package,
@@ -93,9 +101,59 @@ end
 if(indexFilamentPackage == 0)
     this_MD.addPackage(FilamentAnalysisPackage(this_MD));
     mkdir([this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage']);
+    
+    for i = 1 : numel(this_MD.packages_)
+        if(strcmp(this_MD.packages_{i}.getName,'FilamentAnalysis')==1)
+            indexFilamentPackage = i;
+            break;
+        end
+    end
+    
 end
 
 % start process by process
+
+%%     % check if there is each of the process
+indexCellSegProcess = 0;
+for i = 1 : numel(this_MD.processes_)
+    if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
+        indexCellSegProcess = i;
+        break;
+    end
+end
+
+indexCellRefineProcess = 0;
+for i = 1 : numel(this_MD.processes_)
+    if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
+        indexCellRefineProcess = i;
+        break;
+    end
+end
+
+indexFlattenProcess = 0;
+for i = 1 : numel(this_MD.processes_)
+    if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
+        indexFlattenProcess = i;
+        break;
+    end
+end
+
+indexSteerabeleProcess = 0;
+for i = 1 : numel(this_MD.processes_)
+    if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
+        indexSteerabeleProcess = i;
+        break;
+    end
+end
+
+indexFilamentSegmentationProcess = 0;
+for i = 1 : numel(this_MD.processes_)
+    if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
+        indexFilamentSegmentationProcess = i;
+        break;
+    end
+end
+
 
 if(~isempty(Parameter_MD))
     %% % if there is input Parameter_MD
@@ -106,8 +164,15 @@ if(~isempty(Parameter_MD))
         if(strcmp(Parameter_MD.processes_{iPro}.getName, 'Thresholding'))
             given_Params = Parameter_MD.processes_{iPro}.funParams_;
             given_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'thres'];
-            
-            this_MD.addProcess(ThresholdProcess(this_MD,'default_Params',given_Params));
+            if(indexCellSegProcess ==0 )
+                this_MD.addProcess(ThresholdProcess(this_MD,'default_Params',given_Params));
+                for i = 1 : numel(this_MD.processes_)
+                    if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
+                        indexCellSegProcess = i;
+                        break;
+                    end
+                end
+            end
             this_MD = thresholdMovie(this_MD,this_MD.processes_{iPro}.funParams_);
             
         else
@@ -115,31 +180,67 @@ if(~isempty(Parameter_MD))
             if(strcmp(Parameter_MD.processes_{iPro}.getName, 'Mask Refinement'))
                 given_Params = Parameter_MD.processes_{iPro}.funParams_;
                 given_Params.OutputDirectory = [this_MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'maskrefine'];
-                
-                this_MD.addProcess(MaskRefinementProcess(this_MD,'default_Params',given_Params));
+                if( indexCellRefineProcess ==0 )
+                    this_MD.addProcess(MaskRefinementProcess(this_MD,'default_Params',given_Params));
+                    for i = 1 : numel(this_MD.processes_)
+                        if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
+                            indexCellRefineProcess = i;
+                            break;
+                        end
+                    end
+                end
                 this_MD = refineMovieMasks(this_MD,this_MD.processes_{iPro}.funParams_);
-%                 
+                %
                 
             else
                 % 3 image flatten
                 if(strcmp(Parameter_MD.processes_{iPro}.getName, 'Image Flatten'))
                     given_Params = Parameter_MD.processes_{iPro}.funParams_;
                     
-                    this_MD.addProcess(ImageFlattenProcess(this_MD));
+                    if( indexFlattenProcess ==0 )
+                        this_MD.addProcess(ImageFlattenProcess(this_MD));
+                        
+                        for i = 1 : numel(this_MD.processes_)
+                            if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
+                                indexFlattenProcess = i;
+                                break;
+                            end
+                        end                           
+                    end
+                    
                     this_MD = image_flatten(this_MD,given_Params);
                     
                 else
                     % 4 steerable filter
                     if(strcmp(Parameter_MD.processes_{iPro}.getName, 'Steerable filtering'))
                         given_Params = Parameter_MD.processes_{iPro}.funParams_;
-                        this_MD.addProcess(SteerableFilteringProcess(this_MD,'default_Params',given_Params));
+                        
+                        if( indexSteerabeleProcess ==0 )
+                            this_MD.addProcess(SteerableFilteringProcess(this_MD,'default_Params',given_Params));
+                            
+                            for i = 1 : numel(this_MD.processes_)
+                                if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
+                                    indexSteerabeleProcess = i;
+                                    break;
+                                end
+                            end                            
+                        end
                         this_MD = steerable_filter_forprocess(this_MD,given_Params);
                         
                     else
                         % 5 filament segmentation
                         if(strcmp(Parameter_MD.processes_{iPro}.getName, 'Filament Segmentation'))
                             given_Params = Parameter_MD.processes_{iPro}.funParams_;
-                            this_MD.addProcess(FilamentSegmentationProcess(this_MD,'default_Params',given_Params));
+                            if( indexFilamentSegmentationProcess ==0 )
+                                this_MD.addProcess(FilamentSegmentationProcess(this_MD,'default_Params',given_Params));
+                                
+                                for i = 1 : numel(this_MD.processes_)
+                                    if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
+                                        indexFilamentSegmentationProcess = i;
+                                        break;
+                                    end
+                                end                                
+                            end
                             
                             % if user give the whole movie stat, use this
                             if(~ismember('whole_movie_filename',ip.UsingDefaults))
@@ -154,47 +255,7 @@ if(~isempty(Parameter_MD))
         end
     end
 else
-    %%     % check if there is each of the process
-    indexCellSegProcess = 0;
-    for i = 1 : nProcess
-        if(strcmp(this_MD.processes_{i}.getName,'Thresholding')==1)
-            indexCellSegProcess = i;
-            break;
-        end
-    end
-    
-    indexCellRefineProcess = 0;
-    for i = 1 : nProcess
-        if(strcmp(this_MD.processes_{i}.getName,'Mask Refinement')==1)
-            indexCellRefineProcess = i;
-            break;
-        end
-    end
-    
-    indexFlattenProcess = 0;
-    for i = 1 : nProcess
-        if(strcmp(this_MD.processes_{i}.getName,'Image Flatten')==1)
-            indexFlattenProcess = i;
-            break;
-        end
-    end
-    
-    indexSteerabeleProcess = 0;
-    for i = 1 : nProcess
-        if(strcmp(this_MD.processes_{i}.getName,'Steerable filtering')==1)
-            indexSteerabeleProcess = i;
-            break;
-        end
-    end
-    
-    indexFilamentSegmentationProcess = 0;
-    for i = 1 : nProcess
-        if(strcmp(this_MD.processes_{i}.getName,'Filament Segmentation')==1)
-            indexFilamentSegmentationProcess = i;
-            break;
-        end
-    end
-    
+  
     
         %%  % 1 threshold
     
@@ -202,8 +263,6 @@ else
     % use the default for all of the processes
     
     default_Params=default_parameter_cell{1};
-    
-    
       
     
     if(indexCellSegProcess==0)
@@ -223,8 +282,7 @@ else
     
     %%  % 2 mask refine
     % with the default of mask refinement
-     default_Params=default_parameter_cell{2};
- 
+     default_Params=default_parameter_cell{2}; 
     
 
     if(indexCellRefineProcess==0)
@@ -291,8 +349,7 @@ else
                 break;
             end
         end
-    end
-    
+     end    
     
         %%
     
