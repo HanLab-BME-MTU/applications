@@ -93,6 +93,7 @@ Rerun_WholeMovie =  funParams.Rerun_WholeMovie;
 
 SaveFigures_movie = funParams.savestepfigures;
 ShowDetailMessages_movie = funParams.savestepfigures;
+saveallresults_movie = funParams.savestepfigures;
 
 CoefAlpha_movie = funParams.CoefAlpha;
 LengthThreshold_movie = funParams.LengthThreshold;
@@ -201,7 +202,7 @@ for i = 1 : nProcesses
     end
 end
 
-if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4)
+if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 || Cell_Mask_ind(1) == 4 || Cell_Mask_ind(1) == 6)
     msgbox('Please run segmentation and refinement first.')
     return;
 end
@@ -234,6 +235,26 @@ nFrame = movieData.nFrames_;
 if(exist([movieData.outputDirectory_,filesep,'MD_ROI.tif'],'file'))
     user_input_mask = imread([movieData.outputDirectory_,filesep,'MD_ROI.tif']);
 end
+
+if(ismember(6,Cell_Mask_ind))
+   combineChannelCellMaskCell = combineChannelMarkedCellAreaMask(movieData);
+   totalEmpty = 1;
+   for iFrame = 1 : nFrame 
+       % if there is a cell mask, set the flag to 0
+        if (~isempty(combineChannelCellMaskCell{iFrame}))
+            totalEmpty = 0;
+        end
+   end
+   
+   %if there is no marked cell at all, don't do anything.   
+   if totalEmpty == 1       
+       display('User wants to use marked cell masks, but there is none. So no filament segmentation is done for this movie.');
+       return;
+   end
+else
+   combineChannelCellMaskCell=[];
+end
+
 
 %% cones related is not in use
 % %% Prepare the cone masks
@@ -351,8 +372,8 @@ for iChannel = selected_channels
     %     indexFlattenProcess=1;
     for iFrame_index = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_index);
-        
         disp(['Frame: ',num2str(iFrame)]);
+        TIC_IC_IF = tic;
         
         % Read in the intensity image.
         if indexFlattenProcess > 0 && ImageFlattenFlag==2
@@ -398,33 +419,41 @@ for iChannel = selected_channels
                 if Cell_Mask_ind == 5 % No limit
                     MaskCell = ones(size(currentImg,1),size(currentImg,2));
                 else
-                    if Cell_Mask_ind == 4 % Combine from both channel directly
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        MaskCell = MaskVIFCell | MaskMTCell;
+                    if Cell_Mask_ind == 6 % For marked cells
+                        MaskCell = combineChannelCellMaskCell{iFrame};
+                        
                         
                     else
-                        % Combine from both channel
-                        % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
-                        MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
-                        MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
-                        
-                        H_close_cell = fspecial('disk',5);
-                        H_close_cell = H_close_cell>0;
-                        
-                        MaskMTCell = imerode(MaskMTCell,H_close_cell);
-                        TightMask = MaskVIFCell.*MaskMTCell;
-                        
-                        % Make the mask bigger in order to include all
-                        MaskCell = imdilate(TightMask, ones(15,15),'same');
-                        
-                        clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        if Cell_Mask_ind == 4 % Combine from both channel directly
+                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            MaskCell = MaskVIFCell | MaskMTCell;
+                            
+                        else
+                            % Combine from both channel
+                            % In this option, the channel need to be 1. MT or Membrame, 2. VIF or Actin
+                            MaskVIFCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(2,iFrame);
+                            MaskMTCell = movieData.processes_{indexCellSegProcess}.loadChannelOutput(1,iFrame);
+                            
+                            H_close_cell = fspecial('disk',5);
+                            H_close_cell = H_close_cell>0;
+                            
+                            MaskMTCell = imerode(MaskMTCell,H_close_cell);
+                            TightMask = MaskVIFCell.*MaskMTCell;
+                            
+                            % Make the mask bigger in order to include all
+                            MaskCell = imdilate(TightMask, ones(15,15),'same');
+                            
+                            clearvars MaskVIFCell MaskMTCell TightMask H_close_cell;
+                        end
                     end
                 end
             end
         end
         
-        
+        if(isempty(MaskCell))
+            continue;
+        end
         
         %%
         % Correcting the nms ending semicircle due to the aritifact of
@@ -517,7 +546,7 @@ for iChannel = selected_channels
                 % Liya: test for the running of the comparison
                 current_seg_canny_cell=cell(1,1);
                 display('Canny Test:');
-                tic
+                TIC_CannyTest = tic;                
                 %                 for PercentOfPixelsNotEdges = 0.8: 0.1: 0.95
                 %                     for ThresholdRatio = 0.8 : 0.1: 0.95
                 for iP = 1 : 5
@@ -535,7 +564,7 @@ for iChannel = selected_channels
                         
                     end
                 end
-                toc
+                toc(TIC_CannyTest);
                 
                 % Assume no training is done for the classifier, so use the
                 % linear plane classifier with the input parameters.
@@ -547,11 +576,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_GM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -565,11 +595,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based NO-GM, Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_noGM = tic;
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withoutGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
+                Time_cost = toc(TIC_geoBased_noGM);
+%                 disp(['Frame: ', num2str(iFrame), ' geoBased_noGM costed ',num2str(Time_cost),'s.']);                        
                 
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
@@ -588,12 +619,12 @@ for iChannel = selected_channels
                 %                 end
                 
                 display(['Geo based GM Frame',num2str(iFrame),':']);
-                tic
+                TIC_geoBased_GM = tic;               
                 [level2, NMS_Segment,current_model ] = ...
                     geoBasedNmsSeg_withGM(nms,currentImg, F_classifer_train_this_channel,1,...
                     MaskCell,iFrame,FilamentSegmentationChannelOutputDir,funParams,iChannel);
-                toc
-                
+                Time_cost = toc(TIC_geoBased_GM);
+%                 disp(['Frame ', num2str(iFrame), ' geoBased_GM costed ',num2str(Time_cost,'%.2f'),'s.']);
                 current_seg = NMS_Segment;
                 Intensity_Segment = current_seg;
                 SteerabelRes_Segment = current_seg;
@@ -636,10 +667,10 @@ for iChannel = selected_channels
                 HigherThresdhold = funParams.CannyHigherThreshold(iChannel)/100;
                 LowerThresdhold = funParams.CannyLowerThreshold(iChannel)/100;
                 
-                tic
+%                 tic
                 [lowThresh, highThresh, current_seg]...
                     = proximityBasedNmsSeg(MAX_st_res,orienation_map,funParams,HigherThresdhold,LowerThresdhold);
-                toc
+%                 toc
                 
                 level2 = highThresh;
                 Intensity_Segment = current_seg;
@@ -847,11 +878,13 @@ for iChannel = selected_channels
         RGB_seg_orient_heat_map(:,:,2 ) = enhanced_im_g;
         RGB_seg_orient_heat_map(:,:,3 ) = enhanced_im_b;
         
-        for sub_i = 1 : Sub_Sample_Num
-            if iFrame + sub_i-1 <= nFrame
-                imwrite(RGB_seg_orient_heat_map, ...
-                    [HeatEnhOutputDir,filesep,'white_segment_heat_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);
+        if(SaveFigures_movie==1)
+            for sub_i = 1 : Sub_Sample_Num
+                if iFrame + sub_i-1 <= nFrame
+                    imwrite(RGB_seg_orient_heat_map, ...
+                        [HeatEnhOutputDir,filesep,'white_segment_heat_',...
+                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         
@@ -872,14 +905,16 @@ for iChannel = selected_channels
             RGB_seg_orient_heat_map_nms(:,:,2 ) = enhanced_im_g;
             RGB_seg_orient_heat_map_nms(:,:,3 ) = enhanced_im_b;
             
-            
-            for sub_i = 1 : Sub_Sample_Num
-                if iFrame + sub_i-1 <= nFrame
-                    imwrite(RGB_seg_orient_heat_map_nms, ...
-                        [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
-                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+            if(SaveFigures_movie==1)
+                for sub_i = 1 : Sub_Sample_Num
+                    if iFrame + sub_i-1 <= nFrame
+                        imwrite(RGB_seg_orient_heat_map_nms, ...
+                            [HeatEnhOutputDir,filesep,'NMS_Segment_heat_',...
+                            filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                    end
                 end
-            end            
+            end
+
             RGB_seg_orient_heat_map = RGB_seg_orient_heat_map_nms;
         end
         
@@ -903,17 +938,26 @@ for iChannel = selected_channels
         %% Save segmentation results
         for sub_i = 1 : Sub_Sample_Num
             if iFrame + sub_i-1 <= nFrame
-                save([DataOutputDir,filesep,'steerable_vote_', ...
+                % if user want it, save everything, if not, save only the
+                % loadable results
+                if(saveallresults_movie==1)
+                save([DataOutputDir,filesep,'filament_seg_', ...
                     filename_short_strs{iFrame+ sub_i-1},'.mat'],...
                     'currentImg','orienation_map_filtered','OrientationVoted','orienation_map','RGB_seg_orient_heat_map','RGB_seg_orient_heat_map_nms', ...
                     'MAX_st_res', 'current_seg','Intensity_Segment','SteerabelRes_Segment','NMS_Segment', ...
                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation','tip_orientation',...
                     'tip_int','tip_NMS',...
                     'current_seg_canny_cell');
+                else
+                    save([DataOutputDir,filesep,'filament_seg_', ...
+                    filename_short_strs{iFrame+ sub_i-1},'.mat'],...
+                     'current_model', 'RGB_seg_orient_heat_map','current_seg_orientation',...
+                     'tip_orientation', 'tip_int','tip_NMS');
+                end
                 
             end
         end
-        
+
         
         %% %tif stack cost too much memory, comment these
         %         if( save_tif_flag==1)
@@ -925,6 +969,10 @@ for iChannel = selected_channels
         %
         %         end
         %%
+
+        Time_cost = toc(TIC_IC_IF);
+        disp(['Frame ', num2str(iFrame), ' filament seg costed ',num2str(Time_cost,'%.2f'),'s.']);
+
     end
     %% For Gelfand Lab, save results as tif stack file
     if( save_tif_flag==1)

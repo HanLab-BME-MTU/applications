@@ -149,10 +149,15 @@ for iFrame = CompletedFrame
     current_seg=[];
     orienation_map_filtered=[];
 
-    % if filament stat is available and requested 
-    if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
-        load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
-        filename_short_strs{iFrame},'.mat']),'current_seg','orienation_map_filtered');
+    % if filament stat is available and requested
+    if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
+        load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',...
+            filename_short_strs{iFrame},'.mat']),'current_seg','orienation_map_filtered');
+    else
+        if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
+            load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
+                filename_short_strs{iFrame},'.mat']),'current_seg','orienation_map_filtered');
+        end
     end
      
      current_seg_cell{1,iCompleteFrame} = current_seg;

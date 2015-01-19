@@ -21,7 +21,7 @@ else
 end
 
 % save figures or not, show messages or not
-SaveFigures = funParams.savestepfigures;
+SaveStepFigures = funParams.savestepfigures;
 ShowDetailMessages = funParams.savestepfigures;
 
 CoefAlpha = funParams.CoefAlpha;
@@ -168,7 +168,7 @@ for iiii = ind_long'
     %     obCentroid(1,iiii)
     text(obCentroid(1,iiii),obCentroid(2,iiii),num2str(iiii),'color','r');
 end
-if(SaveFigures==1)
+if(SaveStepFigures==1)
     
     if(  ~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
         mkdir([FilamentSegmentationChannelOutputDir,'/GEO']);
@@ -350,7 +350,7 @@ changed_ind_good_K = find(F_classifer(feature_MeanNMS, feature_Length,feature_Cu
 changed_ind_good_I = find(F_classifer(feature_MeanNMS, feature_Length,feature_Curvature,feature_MeanInt)>0 ...
     & feature_MeanInt <= IntThreshold*5/5 & feature_Length>LengthThreshold);
 
-if(SaveFigures==1)
+if(SaveStepFigures==1)
     plot_detailed_high_low_confidence_fragments;    
 end
 
@@ -368,7 +368,7 @@ plot(feature_Length(Original_set_Good_ind),feature_MeanNMS(Original_set_Good_ind
 for iiii = ind_long'
     text(feature_Length(iiii),feature_MeanNMS(iiii),num2str(iiii));
 end
-if(SaveFigures==1)
+if(SaveStepFigures==1)
     saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/number_feature_all_', ...
         num2str(iFrame),'.fig']);
     saveas(h12,[FilamentSegmentationChannelOutputDir,'/GEO/number_feature_all_', ...
@@ -434,7 +434,7 @@ if(graph_matching_flag==1)
         mkdir(FilamentSegmentationChannelOutputDir,'GEO');
     end
     
-    if(SaveFigures==1)
+    if(SaveStepFigures==1)
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.tif']);
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.fig']);
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.eps']);
@@ -458,12 +458,13 @@ if(graph_matching_flag==1)
     Matched_ind_cell{1} = Matched_ind;
     UnMatched_ind_cell{1} = setdiff(ind_long,Matched_ind);
     
-     if(isempty(bw_whitergb_three_color)==0)        
-        imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
-     end
-    
-    if(SaveFigures==1)
-        if(isempty(current_all_seg_bw)==0)
+     if(SaveStepFigures==1)
+         
+         if(isempty(bw_whitergb_three_color)==0)
+             imwrite(double(bw_whitergb_three_color),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_whitethreecolor_pixel.tif']);
+         end
+         
+         if(isempty(current_all_seg_bw)==0)
             imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_begin.tif']);
         end
         
@@ -514,11 +515,9 @@ if(graph_matching_flag==1)
         
         if(isempty(RGB_seg_orient_heat_map)==0)
             imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
-        imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
+            imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
         end
     end
-    
-    
     
     if(IternationNumber>1)
         retrain_flag = 1;
@@ -534,7 +533,7 @@ if(graph_matching_flag==1)
         Bad_ind_cell{2} = Bad_ind;
         
         
-        if(SaveFigures==1)
+        if(SaveStepFigures==1)
             h12 =  figure(12); set(h12,'Visible',set_visible);hold off;
             plot(feature_Length(Good_ind),feature_MeanNMS(Good_ind),'b.'); hold on;
             plot(feature_Length(Bad_ind),feature_MeanNMS(Bad_ind),'r.');
@@ -552,7 +551,7 @@ if(graph_matching_flag==1)
             current_all_seg_bw = or(current_all_seg_bw, current_good_bw);
         end
         
-        if(SaveFigures==1)
+        if(SaveStepFigures==1)
             if(isempty(current_all_seg_bw)==0)                
                 imwrite(double(current_all_seg_bw*3/4),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round2_begin.tif']);
             end
@@ -581,7 +580,7 @@ if(graph_matching_flag==1)
         
         % moved the bw_whitergb_three_color saving into the if save
         % reconfirmed this, Liya 2014 12 18
-        if(SaveFigures==1)
+        if(SaveStepFigures==1)
             if(isempty(current_matching_bw)==0)
                 imwrite(double(current_matching_bw/2),[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round',num2str(iIteration),'_end.tif']);
             end
@@ -621,7 +620,7 @@ if(graph_matching_flag==1)
         
         original_Matched_ind = Matched_ind_cell{1};
         
-        if(SaveFigures==1)
+        if(SaveStepFigures==1)
             
             h12 = figure(12);set(h12,'Visible',set_visible);hold off;
             plot(feature_Length(Original_set_Bad_ind),feature_MeanNMS(Original_set_Bad_ind),'r.');hold on;
