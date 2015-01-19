@@ -1,5 +1,6 @@
 %% ---- Settings --- %%
 %Figures made for paper under matlab r2011b with ubuntu 12.04 LTS
+%1/2015 - Updated to matlab r2014a
 
 saveFigs = true;
 
@@ -12,7 +13,7 @@ saveFigs = true;
 % ---- Fig Output ---- %
 
 %Parent directory for all panels
-figParentDir = '/home/he19/orchestra/home/Papers/windowing methods paper/Figures/Panels';
+figParentDir = '/home/he19/.gvfs/idac on nucleus/Hunter/orhcestra_home_june30_and_backup_merged/home/Papers/windowing methods paper/Figures/Panels';
 fdName = 'Figure';
 
 %Printing options
@@ -37,7 +38,7 @@ iDAPIChan = 4;
 plotPars = {'LineWidth',3,'MarkerSize',10};%Parameters for line plots
 axLabPars = {'FontSize',16,'FontName','Arial'};%Parameters for axes labels
 axPars = {'FontSize',14,'FontName','Arial'};%Parameters for axes 
-cBarPars = {'FontSize',12,'FontName','Arial'};
+cBarPars = {'FontSize',14,'FontName','Arial'};
 scBarPars = {'FontName','Arial','FontSize',14};
 legPars = {};%Param for legends
 
