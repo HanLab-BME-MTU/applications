@@ -81,8 +81,8 @@ switch dispType
         
      case 'LAmean'
         
-        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',maskProp.locAvgCurv.LocMeanMeanCurvature);
-        caxis([prctile(maskProp.locAvgCurv.LocMeanMeanCurvature,5) prctile(maskProp.locAvgCurv.LocMeanMeanCurvature,95)]) 
+        pHan = patch(maskProp.SmoothedSurface,'FaceColor','flat','EdgeColor','none','FaceVertexCData',-maskProp.locAvgCurv.LocMeanMeanCurvature);
+        caxis([prctile(-maskProp.locAvgCurv.LocMeanMeanCurvature,5) prctile(-maskProp.locAvgCurv.LocMeanMeanCurvature,95)]) 
         
     otherwise
         error(['"' dispType '" is not a supported display type!'])
