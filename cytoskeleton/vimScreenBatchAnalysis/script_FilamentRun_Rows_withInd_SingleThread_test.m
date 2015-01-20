@@ -7,7 +7,7 @@ addpath(genpath(matlabDir),'-end');
 
 % Set the root folder, as input
 if(isempty(rootDataFolder))
- rootDataFolder ='/project/cellbiology/gdanuser/vimentin/tonyzhang/live cell nikon data/well plate screening/screen_20141204/raw data_analysis3/';
+ rootDataFolder ='/project/cellbiology/gdanuser/vimentin/tonyzhang/live cell nikon data/well plate screening/screen_20141204/raw data_analysis3';
 end
 % set the data folder according to the row index
 % 1 for row A, 2 for B, and so on
