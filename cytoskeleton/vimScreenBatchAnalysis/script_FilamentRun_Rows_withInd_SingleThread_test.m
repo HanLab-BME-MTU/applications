@@ -15,7 +15,7 @@ rowName = char('A' + rowInd - 1);
 rowFolderName = [ rowName,'_Row_Analysis'];
 
 % load the MD file
-MD = MovieData.load([rootDataFolder,filesep,rowFolderName,'movieData.mat']);
+MD = MovieData.load([rootDataFolder,filesep,rowFolderName,filesep,'movieData.mat']);
 
 % run the filament analysis package
 vimscreen_load_MD_run_filament_analysis_package(MD,[],'run_with_new_param',1,'save_old_data_tag','time'); 

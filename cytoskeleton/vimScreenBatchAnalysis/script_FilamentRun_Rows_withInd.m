@@ -7,7 +7,7 @@ addpath(genpath(matlabDir),'-end');
 
 % Set the root folder, as input
 if(isempty(rootDataFolder))
- rootDataFolder ='/project/cellbiology/gdanuser/vimentin/tonyzhang/live cell nikon data/well plate screening/screen_20141204/raw data_analysis/';
+ rootDataFolder ='/project/cellbiology/gdanuser/vimentin/tonyzhang/live cell nikon data/well plate screening/screen_20141204/raw data_analysis';
 end
 % set the data folder according to the row index
 % 1 for row A, 2 for B, and so on
@@ -15,7 +15,7 @@ rowName = char('A' + rowInd - 1);
 rowFolderName = [ rowName,'_Row_Analysis'];
 
 % load the MD file
-MD = MovieData.load([rootDataFolder,filesep,rowFolderName,'movieData.mat']);
+MD = MovieData.load([rootDataFolder,filesep,rowFolderName,filesep,'movieData.mat']);
 
 % run the filament analysis package
 vimscreen_load_MD_run_filament_analysis_package(MD,[]); 
