@@ -168,21 +168,16 @@ for iiii = ind_long'
     %     obCentroid(1,iiii)
     text(obCentroid(1,iiii),obCentroid(2,iiii),num2str(iiii),'color','r');
 end
-if(SaveStepFigures==1)
-    
+
+if(SaveStepFigures==1)    
     if(  ~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
         mkdir([FilamentSegmentationChannelOutputDir,'/GEO']);
     end
-    
-    
+        
     saveas(h14,[FilamentSegmentationChannelOutputDir,'/GEO/numbers_filament_f',num2str(iFrame),'.fig']);
     saveas(h14,[FilamentSegmentationChannelOutputDir,'/GEO/numbers_filament_f',num2str(iFrame),'.tif']);
     saveas(h14,[FilamentSegmentationChannelOutputDir,'/GEO/numbers_filament_f',num2str(iFrame),'.eps']);
 end
-
-
-
-
 
 
 % get the mean intensity of the curves
@@ -430,11 +425,12 @@ if(graph_matching_flag==1)
     [y,x]=find(current_all_seg_bw>0);
     plot(x,y,'.','MarkerSize',3);
     
-    if(~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
-        mkdir(FilamentSegmentationChannelOutputDir,'GEO');
-    end
-    
     if(SaveStepFigures==1)
+        
+        if(~exist([FilamentSegmentationChannelOutputDir,'/GEO'],'dir'))
+            mkdir(FilamentSegmentationChannelOutputDir,'GEO');
+        end
+        
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.tif']);
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.fig']);
         saveas(h3,[FilamentSegmentationChannelOutputDir,'/GEO/frame_',num2str(iFrame),'_round0_all_match_bw.eps']);
@@ -646,8 +642,7 @@ if(graph_matching_flag==1)
             RGB_seg_orient_heat_map = heat_display_filament_from_model(imageInt, current_model);
             imshow(RGB_seg_orient_heat_map);
             title(['Heat display for Segmentation after round ',num2str(iIteration)]);
-            if(isempty(RGB_seg_orient_heat_map)==0)
-                
+            if(isempty(RGB_seg_orient_heat_map)==0)                
                 imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.tif']);
                 imwrite(RGB_seg_orient_heat_map,[FilamentSegmentationChannelOutputDir,'/GEO/heat_frame_',num2str(iFrame),'_afterround',num2str(iIteration),'.bmp']);
                 
