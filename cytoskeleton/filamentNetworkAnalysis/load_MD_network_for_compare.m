@@ -1,4 +1,4 @@
-function similarity_scoremap_cell=load_MD_network_for_compare(MD,radius,save_everything_flag)
+function similarity_scoremap_cell=load_MD_network_for_compare(MD,radius,show_save_everything_flag)
 % function to compare two networks
 % Input:   MD: movieData object loaded
 %                       this movie should be two channel movie

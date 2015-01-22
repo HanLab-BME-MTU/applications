@@ -78,12 +78,10 @@ display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
-    if(vimscreen_flag>0)
-     MD = vimscreen_forceMDAddProcessSave(MD);
-    else
-         display('No filament network segmentation. Stopped.');
-         return;
-    end
+if(vimscreen_flag>0)
+    MD = vimscreen_forceMDAddProcessSave(MD);
+    package_process_ind_script;
+end
 
 
 % for each channel that did filament segmentation, do analysis
@@ -116,6 +114,7 @@ for iChannel = validChannels
          % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
             
+               
         try
             load([SteerableChannelOutputDir, filesep, 'steerable_',...
                 filename_short_strs{iFrame},'.mat']);            

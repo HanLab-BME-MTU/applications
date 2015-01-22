@@ -1,5 +1,6 @@
 %% ---- Settings --- %%
 %Figures made for paper under matlab r2011b with ubuntu 12.04 LTS
+%1/2015 - Updated to matlab r2014a
 
 saveFigs = true;
 
@@ -12,7 +13,8 @@ saveFigs = true;
 % ---- Fig Output ---- %
 
 %Parent directory for all panels
-figParentDir = '/home/he19/orchestra/home/Papers/windowing methods paper/Figures/Panels';
+%figParentDir = '/home/he19/.gvfs/idac on nucleus/Hunter/orhcestra_home_june30_and_backup_merged/home/Papers/windowing methods paper/Figures/Panels';%from Ubuntu desktop, but has export problems.
+figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
 fdName = 'Figure';
 
 %Printing options
@@ -37,11 +39,11 @@ iDAPIChan = 4;
 plotPars = {'LineWidth',3,'MarkerSize',10};%Parameters for line plots
 axLabPars = {'FontSize',16,'FontName','Arial'};%Parameters for axes labels
 axPars = {'FontSize',14,'FontName','Arial'};%Parameters for axes 
-cBarPars = {'FontSize',12,'FontName','Arial'};
+cBarPars = {'FontSize',14,'FontName','Arial'};
 scBarPars = {'FontName','Arial','FontSize',14};
-legPars = {};%Param for legends
+legPars = {'FontSize',16};%Param for legends
 
-
+cBarFigPars  = {'PaperPositionMode','auto'};%colorbar figure props. Prevents font resizing on EPS export
 
 
 fpOff = .001;
@@ -56,7 +58,8 @@ roiStrFunY = @(x)(clipboard('copy',['roi' num2str(x) 'Y = [' num2str(ylim) '];']
 %Protrusion calculation illustration stuff
 
 %Use example Arp2/3 cell per G's request
-arpList = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/movieListHaloOnly.mat';
+%arpList = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/movieListHaloOnly.mat';%From ubuntu desktop
+arpList = 'P:\gtpases\Hunter\methods_paper_data\Kwonmoo_Arp3\movieListHaloOnly.mat';%From windows desktop
 if ~exist('MLarp','var')
     MLarp = MovieList.load(arpList,0);
 end
@@ -102,7 +105,7 @@ end
 
 panelName = 'Arp23 example image and edge motion colorbar';
 panelFile = [figParentDir filesep panelName];
-panelFig = figure;
+panelFig = figure(cBarFigPars{:});
 
 cBarAx = colorbar(cBarPars{:});
 axis off
@@ -119,7 +122,9 @@ end
 %This part still uses old example movie because it doesn't matter and who
 %gives a shit
 
-exampMovProt = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_GFP_w_Shutter_stack2_timeCropped';
+%exampMovProt = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_GFP_w_Shutter_stack2_timeCropped';%Ubuntu desktop
+exampMovProt = 'P:\gtpases\Hunter\methods_paper_data\Kwonmoo_Arp3\Arp3_GFP_w_Shutter_stack2_timeCropped';%Windows desktop
+
 if ~exist('MDprot','var')
     MDprot = MovieData.load([exampMovProt filesep 'movieData.mat'],0);
 end
@@ -170,13 +175,14 @@ plot(protVecs.smoothedEdge{iFrame}(:,1),protVecs.smoothedEdge{iFrame}(:,2),'r',p
 plot(protVecs.smoothedEdge{iFrame+1}(:,1),protVecs.smoothedEdge{iFrame+1}(:,2),'g',plotPars{:})
 quiver(protVecs.smoothedEdge{iFrame}(:,1),protVecs.smoothedEdge{iFrame}(:,2),...
         protVecs.protrusion{iFrame}(:,1),protVecs.protrusion{iFrame}(:,2),0,plotPars{:});
-plot(ix,iy,'yo',plotPars{:});
+plot(ix,iy,'mo',plotPars{:},'MarkerSize',15);
 plotScaleBar(scBarSz / MDprot.pixelSize_,panelAxes);
 xlim(roiX);
 ylim(roiY);
 
 
-legend('Cell Edge t','Cell Edge t+1','Edge displacement vectors','Edge Intersections')
+lh = legend('cell edge \itt','cell edge \itt+1','edge mapping vectors','edge intersections');
+set(lh,legPars{:},'FontName','Arial')
 
 set(panelAxes,axPars{:})
 
@@ -233,7 +239,7 @@ end
 
 panelName = 'edge temporal correspondence example colorbar1';
 panelFile = [figParentDir filesep panelName];
-panelFig = figure;
+panelFig = figure(cBarFigPars{:});
 
 colormap(edgeCols)
 cBarAx = colorbar(cBarPars{:});
@@ -356,7 +362,7 @@ saturateImageColormap(panelAxes,satPct*2);
 
 
 
-winHan = plotWindows(windowsTP,[{'r','FaceAlpha',0,'EdgeColor','r','FaceColor','none'},'LineWidth',12]);
+winHan = plotWindows(windowsTP,[{'r','FaceAlpha',0,'EdgeColor','r','FaceColor','none'},'LineWidth',9]);
 axis ij
 set(panelAxes,'XDir','reverse');
 set(gca,'XTick',[])
@@ -379,8 +385,8 @@ uistack(scBarHan,'top')
 
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+    %print(panelFig,panelFile,pOptTIFF{:});
+    %print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
     
     export_fig(panelFile,expFigOps{:})
@@ -401,7 +407,7 @@ saturateImageColormap(panelAxes,satPct*2);
 
 
 
-winHan = plotWindows(windowsTP,[{'r','FaceAlpha',0,'EdgeColor','r','FaceColor','none'} ,'LineWidth',12]);
+winHan = plotWindows(windowsTP,[{'r','FaceAlpha',0,'EdgeColor','r','FaceColor','none'} ,'LineWidth',9]);
 axis ij
 set(panelAxes,'XDir','reverse');
 set(gca,'XTick',[])
@@ -424,8 +430,8 @@ uistack(scBarHan,'top')
 
 
 if saveFigs
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
+    %print(panelFig,panelFile,pOptTIFF{:});
+    %print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
     
     export_fig(panelFile,expFigOps{:})
