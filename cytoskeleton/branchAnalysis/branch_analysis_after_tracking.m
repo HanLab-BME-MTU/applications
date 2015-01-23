@@ -14,10 +14,24 @@ cell_vif_pool = [];
 
 cell_size_pool = [];
 cell_vimtotal_pool = [];
+
+cell_vif_seg_pool = [];
+cell_vif_nms_pool = [];
+  cell_vif_seg_total_pool=[];
+  cell_vif_nms_total_pool=[];
+  
 % initialize empty pools
 fila_branch_orientation_pool=[];
 fila_trajectory_orientation_pool=[];
 branch_trajectory_orientation_pool=[];
+
+branch_filament_totallength_matrix=[];
+branch_filament_meandensity_matrix=[];
+
+branch_filament_totalnms_matrix=[];
+branch_filament_meannms_matrix=[];
+
+
 
 for iCompleteFrame = 1 :nCompleteFrame
     %     current_seg = current_seg_cell{1,iFrame};
@@ -38,6 +52,11 @@ for iCompleteFrame = 1 :nCompleteFrame
     cell_vif_pool = [cell_vif_pool; current_VIF_image(smoothed_current_mask>0)];
     cell_size_pool = [cell_size_pool; sum(sum(smoothed_current_mask>0))];
     cell_vimtotal_pool = [cell_vimtotal_pool; sum(current_VIF_image(smoothed_current_mask>0))];
+    
+    cell_vif_seg_total_pool = [cell_vif_seg_total_pool; sum(sum(current_seg(smoothed_current_mask>0)))];
+    cell_vif_nms_total_pool = [cell_vif_nms_total_pool; sum(sum(nms_map(smoothed_current_mask>0)))];
+    
+        
     
     if iCompleteFrame>1
         RG_framem1(:,:,2) = smoothed_mask_cell{1,iCompleteFrame-1};
@@ -124,6 +143,9 @@ for iCompleteFrame = 1 :nCompleteFrame
     if(~isempty(current_seg_cell{1,iCompleteFrame}) && filament_stat_flag>0)
         current_seg = current_seg_cell{1,iCompleteFrame};
         orienation_map_filtered = orienation_map_filtered_cell{1,iCompleteFrame};
+        nms_map = nms_cell{1,iCompleteFrame};
+        nms_map = nms_map.*current_seg;
+        
         AA = (pi/2-orienation_map_filtered.*current_seg);
         % wrap around in -pi/2 to pi/2
         AA(AA<-pi/2)=AA(AA<-pi/2)+pi;
@@ -186,8 +208,18 @@ for iCompleteFrame = 1 :nCompleteFrame
     for iL = 1 : trackedBranches
         vif_pixel_values = current_VIF_image(find(labelMask==iL));
         vif_mean_matrix(iCompleteFrame,iL) = mean(vif_pixel_values);
-        branch_size_matrix(iCompleteFrame,iL) = length(find(labelMask==iL));
+        
+        vif_pixel_seg = current_seg(find(labelMask==iL));        
+        branch_filament_totallength_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg);
+        branch_filament_meandensity_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg)./(numel(find(labelMask==iL)));
+        
+        vif_pixel_nms = nms_map(find(labelMask==iL));
+        branch_filament_totalnms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms);
+        branch_filament_meannms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms)./(numel(find(labelMask==iL)));
+        
+        branch_size_matrix(iCompleteFrame,iL) = numel(find(labelMask==iL));
     end
+        
     
     if(figure_flag>0)
         title('Branches','FontSize',15);
@@ -284,6 +316,21 @@ end
 
 BA_output.branch_vif_mean_intensity  = nanmean(vif_mean_matrix);
 
+%%
+
+branch_filament_totallength_matrix(branch_filament_totallength_matrix==0)=nan;
+branch_filament_totalnms_matrix(branch_filament_totalnms_matrix==0)=nan;
+
+
+BA_output.branch_seg_total = nanmean(branch_filament_totallength_matrix);
+BA_output.branch_seg_mean = nanmean(branch_filament_meandensity_matrix);
+BA_output.branch_nms_total = nanmean(branch_filament_totalnms_matrix);
+BA_output.branch_nms_mean = nanmean(branch_filament_meannms_matrix);
+
+%%
+
+
+
 BA_output.branch_mean_size  = nanmean(branch_size_matrix);
 
 BA_output.protrusion_vif_mean_intensity =  mean(red_vif_t_pool);
@@ -291,6 +338,16 @@ BA_output.protrusion_vif_mean_intensity =  mean(red_vif_t_pool);
 BA_output.retraction_vif_mean_intensity =  mean(green_vif_tm1_pool);
 
 BA_output.whole_cell_vif_mean_intensity =  mean(cell_vif_pool);
+
+%%
+
+BA_output.whole_cell_vim_seg_total = nanmean(cell_vif_seg_total_pool);
+BA_output.whole_cell_vim_seg_mean = nanmean(cell_vif_seg_total_pool./cell_size_pool);
+
+BA_output.whole_cell_vim_nms_total = nanmean(cell_vif_nms_total_pool);
+BA_output.whole_cell_vim_nms_mean = nanmean(cell_vif_nms_total_pool./cell_size_pool);
+
+%%
 
 %get a random sampling from all the vif_pool, by a fixed number of frames
 %to be considered
