@@ -121,11 +121,11 @@ for iChannel = validChannels
         catch
             % in the case of only having the short-old version
             if nFrame>1
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs{iFrame},'.mat']);            
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs{iFrame},'.mat']);
             else
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs,'.mat']);            
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs,'.mat']);
             end
         end
         

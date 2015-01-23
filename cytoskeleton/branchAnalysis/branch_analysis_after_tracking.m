@@ -52,11 +52,7 @@ for iCompleteFrame = 1 :nCompleteFrame
     cell_vif_pool = [cell_vif_pool; current_VIF_image(smoothed_current_mask>0)];
     cell_size_pool = [cell_size_pool; sum(sum(smoothed_current_mask>0))];
     cell_vimtotal_pool = [cell_vimtotal_pool; sum(current_VIF_image(smoothed_current_mask>0))];
-    
-    cell_vif_seg_total_pool = [cell_vif_seg_total_pool; sum(sum(current_seg(smoothed_current_mask>0)))];
-    cell_vif_nms_total_pool = [cell_vif_nms_total_pool; sum(sum(nms_map(smoothed_current_mask>0)))];
-    
-        
+         
     
     if iCompleteFrame>1
         RG_framem1(:,:,2) = smoothed_mask_cell{1,iCompleteFrame-1};
@@ -145,6 +141,11 @@ for iCompleteFrame = 1 :nCompleteFrame
         orienation_map_filtered = orienation_map_filtered_cell{1,iCompleteFrame};
         nms_map = nms_cell{1,iCompleteFrame};
         nms_map = nms_map.*current_seg;
+        
+        cell_vif_seg_total_pool = [cell_vif_seg_total_pool;...
+            sum(sum(current_seg(smoothed_current_mask>0)))];
+        cell_vif_nms_total_pool = [cell_vif_nms_total_pool; ...
+            sum(sum(nms_map(smoothed_current_mask>0)))];
         
         AA = (pi/2-orienation_map_filtered.*current_seg);
         % wrap around in -pi/2 to pi/2
