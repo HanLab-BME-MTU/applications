@@ -21,7 +21,7 @@ end
 
 
 % Find the process of segmentation mask refinement.
-nProcesses = length(movieData.processes_);
+nProcesses = numel(movieData.processes_);
 
 indexFlattenProcess = 0;
 for i = 1 : nProcesses
@@ -86,18 +86,20 @@ for iChannel = selected_channels
     if (~exist(ImageFlattenChannelOutputDir,'dir'))
         mkdir(ImageFlattenChannelOutputDir);
     end
-    
+    movieData.processes_{indexFlattenProcess}.setOutImagePath(iChannel,ImageFlattenChannelOutputDir);
+
     output_dir_content = dir(fullfile([ImageFlattenChannelOutputDir,filesep,'*.*']));
     
     %if there are files in this dir, clear them
     if(length(output_dir_content)>2)
         delete([ImageFlattenChannelOutputDir,filesep,'*.*']);
-    end
-    
-    movieData.processes_{indexFlattenProcess}.setOutImagePath(iChannel,ImageFlattenChannelOutputDir);
+    end    
 end
 
 for iChannel = selected_channels
+    display('======================================');
+    display(['Current movie: as in ',movieData.outputDirectory_]);
+
     for_temporal_filtering = cell(1);
     
     ImageFlattenProcessOutputDir = movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel};
@@ -247,9 +249,6 @@ for iChannel = selected_channels
        
     end
     
-    display('======================================');
-    display(['Current movie: as in ',movieData.outputDirectory_]);
-   
     display(['Time for statistics of image intensity in Channel ',num2str(iChannel)]);
    
     toc
@@ -265,8 +264,7 @@ for iChannel = selected_channels
     
     %%
     display('======================================');
-    display(['Start image flattening in Channel ',num2str(iChannel)]);
-    
+   
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
