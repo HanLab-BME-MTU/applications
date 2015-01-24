@@ -1,4 +1,4 @@
-function [pstruct,label]=markedWatershed(vol,scales,thresh,varargin)
+function [label]=markedWatershed(vol,scales,thresh,varargin)
 ip = inputParser;
 ip.CaseSensitive = false;
 ip.KeepUnmatched = true;

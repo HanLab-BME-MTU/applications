@@ -13,6 +13,8 @@ ip.addParamValue('channel',1,@isnumeric);
 ip.addParamValue('processFrames',[], @isnumeric);
 ip.addParamValue('waterThresh', 120, @isnumeric);
 ip.addParamValue('waterStep',10, @isnumeric);
+ip.addParamValue('lowFreq',3, @isnumeric);
+ip.addParamValue('highFreq',1, @isnumeric);
 ip.addParamValue('scales',1.5, @isnumeric);
 ip.addParamValue('Alpha',0.05, @isnumeric);
 ip.addParamValue('showAll', false, @islogical);
@@ -26,8 +28,16 @@ else
     processFrames=ip.Results.processFrames;
 end
 
-if strcmp(ip.Results.type,'pointSourceAutoSigma')||strcmp(ip.Results.type,'pointSourceAutoSigmaFit')
-    scales=getGaussianPSFsigmaFrom3DData(double(MD.getChannel(ip.Results.channel).loadStack(1)));
+if (strcmp(ip.Results.type,'pointSourceAutoSigma') ...
+    ||strcmp(ip.Results.type,'pointSourceAutoSigmaFit') ...
+    ||strcmp(ip.Results.type,'pSAutoSigmaMarkedWatershed') ...
+    ||strcmp(ip.Results.type,'pSAutoSigmaWatershed'))
+    volList=[];
+    for i=1:5
+        volList=[volList double(MD.getChannel(ip.Results.channel).loadStack(i))];
+    end
+    scales=getGaussianPSFsigmaFrom3DData(volList);
+    disp(['Estimed scales: ' num2str(scales)]);
 else
     scales=ip.Results.scales;
 end 
@@ -41,17 +51,37 @@ parfor frameIdx=1:numel(processFrames)
     vol=double(MD.getChannel(ip.Results.channel).loadStack(timePoint));
     switch ip.Results.type
       case 'watershedApplegate'
-        [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(vol,ip.Results.waterStep,ip.Results.waterThresh,[1 1 1]);
+            filterVol=filterGauss3D(vol,ip.Results.highFreq)-filterGauss3D(vol,ip.Results.lowFreq);
+            [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(filterVol,ip.Results.waterStep,ip.Results.waterThresh,[1 1 1]);
+      case 'watershedApplegateAuto'
+            filterVol=filterGauss3D(vol,ip.Results.highFreq)-filterGauss3D(vol,ip.Results.lowFreq);
+            thresh=QDApplegateThesh(filterVol,ip.Results.showAll);
+            [movieInfo(frameIdx),labels{frameIdx}]=detectComets3D(filterVol,ip.Results.waterStep,thresh,[1 1 1]);
+      case 'bandPassWatershed'
+        filterVol=filterGauss3D(vol,ip.Results.highFreq)-filterGauss3D(vol,ip.Results.lowFreq);
+        label=watershed(-filterVol); label(filterVol<ip.Results.waterThresh)=0;labels{frameIdx}=label;
+        movieInfo(frameIdx)=labelToMovieInfo(label,filterVol);
       case 'watershedMatlab'
         label=watershed(-vol); label(vol<ip.Results.waterThresh)=0;[dummy,nFeats]=bwlabeln(label);
         labels{frameIdx}=label;
         movieInfo(frameIdx)=labelToMovieInfo(label,vol);
       case 'markedWatershed'
-        [movieInfo(frameIdx),labels{frameIdx}]=markedWatershed(vol,scales,ip.Results.waterThresh);
+        [labels{frameIdx}]=markedWatershed(vol,scales,ip.Results.waterThresh);
+        movieInfo(frameIdx)=labelToMovieInfo(labels{frameIdx},vol);
       case {'pointSource','pointSourceAutoSigma'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         labels{frameIdx}=double(mask); % adjust label
-        movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol)
+        movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol);
+      case 'pSAutoSigmaMarkedWatershed'
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+        wat=markedWatershed(vol,scales,0);wat(mask==0)=0;       
+        labels{frameIdx}=double(wat); % adjust label
+        movieInfo(frameIdx)=labelToMovieInfo(double(wat),vol);
+      case 'pSAutoSigmaWatershed'
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+        wat=watershed(-vol.*mask);wat(mask==0)=0;
+        labels{frameIdx}=double(wat); % adjust label
+        movieInfo(frameIdx)=labelToMovieInfo(double(wat),vol);
       case {'pointSourceFit','pointSourceAutoSigmaFit'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
@@ -64,10 +94,11 @@ parfor frameIdx=1:numel(processFrames)
     
     if ip.Results.showAll
         figure()
-        stackShow(vol,'overlay',labels{frameIdx});
-        figure()
         imseriesmaskshow(vol,labels{frameIdx});
+        figure()
+        stackShow(vol,'overlay',labels{frameIdx});
     end
+    
 end  
 
 function movieInfo= labelToMovieInfo(label,vol)
@@ -93,4 +124,14 @@ movieInfo.zCoord = [pstruct.z' pstruct.z_pstd'];
 movieInfo.amp = [pstruct.A' pstruct.A_pstd'];
 movieInfo.int= [pstruct.A' pstruct.A_pstd'];
 
+function threshNoise= QDApplegateThesh(filterDiff,show)
+        % Perform maximum filter and mask out significant pixels
+        thFilterDiff = locmax3d(filterDiff,1);
+        threshold = thresholdOtsu(thFilterDiff)/3 + ...
+            thresholdRosin(thFilterDiff)*2/3;
+        std=nanstd(filterDiff(thFilterDiff<threshold));
+        threshNoise= 3*std;
 
+        if(show)
+            figure();hist(thFilterDiff,100),vline([threshNoise, threshold],['-b','-r']);
+        end 
