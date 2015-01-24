@@ -1,5 +1,7 @@
 function tracks=convertTrackFormat(trackInfo,movieInfo)
 % A more readable structures for tracks 
+% Philippe Roudot 2014. After F. Aguet 
+
 preprocess=0;
 nTracks=length(trackInfo);
 
