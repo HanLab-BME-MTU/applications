@@ -394,8 +394,9 @@ for iChannel = selected_channels
             catch
                 try
                     load([DataOutputDir,filesep,'filament_seg_', ...
-                        filename_short_strs{iFrame},'.mat'], 'current_seg');
-                    if(~isempty(current_seg))
+                        filename_short_strs{iFrame},'.mat'], 'current_seg_orientation');
+                    if(~isempty(current_seg_orientation))
+                        current_seg = 1-isnan(current_seg_orientation);
                         if(sum(sum(current_seg))>0)
                             disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);
                             Time_cost = toc(TIC_IC_IF);
