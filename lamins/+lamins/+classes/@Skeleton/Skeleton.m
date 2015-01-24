@@ -459,10 +459,15 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
                 edgeColor = 'r';
             end
             E = obj.edges.PixelIdxList(e(:));
+            X = [];
+            Y = [];
             for i=1:length(E);
                 [r,c] = ind2sub([1024 1024],E{i});
-                line(c,r,'Color',edgeColor);
+                X = [X ; c ; NaN ];
+                Y = [Y ; r ; NaN ];
+%                 line(c,r,'Color',edgeColor);
             end
+            line(X,Y,'Color',edgeColor);
         end
         function imshow(obj)
             showGraph(obj);
@@ -481,6 +486,26 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             FE = obj.faceEdges;
             f = find(cellfun(@length,FE) == 0);
             obj.deleteFaces(f);
+        end
+        function filter = auditEdges(obj,I,widthThresh,meanThresh,minThresh)
+            % from LaminsImage.auditSkelEdges
+%             edges_rp = regionprops(edges_cc,I,'MaxIntensity','MeanIntensity','MinIntensity');
+
+%             A.rp = edges_rp;
+%             A.cc = edges_cc;
+            rp = regionprops(obj.edges,I,'MaxIntensity','MeanIntensity','MinIntensity');
+            width = ([rp.MaxIntensity]-[rp.MinIntensity])./[rp.MeanIntensity];
+            if(nargin < 3 || isempty(widthThresh))
+                widthThresh = thresholdRosin(width);
+            end
+            if(nargin < 4)
+                meanThresh = 0.5;
+            end
+            if(nargin < 5)
+                minThresh = 0.2;
+            end
+            filter = (width < widthThresh | [rp.MeanIntensity] > meanThresh) & [rp.MinIntensity] > minThresh;
+            obj.deleteEdges(~filter);
         end
         function score = getEdgeScore(obj,e)
         end
