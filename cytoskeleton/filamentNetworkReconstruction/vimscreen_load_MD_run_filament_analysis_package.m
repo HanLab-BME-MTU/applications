@@ -23,10 +23,9 @@ ip.addRequired('this_MD', @(x) isa(x,'MovieData'));
 ip.addRequired('Parameter_MD',@(x) isa(x,'MovieData') | isempty(x));
 
 ip.addOptional('run_with_new_param',  0, @isnumeric);
-ip.addOptional('input_parameter_set', [], @iscell);
-ip.addOptional('save_old_data_tag',  [], @ischar);
-ip.addOptional('whole_movie_filename', [], @ischar);
-
+ip.addOptional('input_parameter_set', [], @(x) iscell(x) | isempty(x));
+ip.addOptional('save_old_data_tag',  [], @(x) ischar(x) | isempty(x));
+ip.addOptional('whole_movie_filename', [], @(x) ischar(x) | isempty(x));
 
 ip.parse(this_MD,Parameter_MD,varargin{:});
 whole_movie_filename= ip.Results.whole_movie_filename;
