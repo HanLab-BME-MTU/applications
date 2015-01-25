@@ -120,6 +120,15 @@ Group_Pool_fila_branch_orientation_pool_fast=[];
 Group_Pool_fila_trajectory_orientation_pool_fast=[];
 Group_Pool_pool_vif_intensity=[];
 Group_Pool_CompletedFrame_last=[];
+Group_Pool_whole_cell_vim_seg_total = [];
+Group_Pool_whole_cell_vim_seg_mean  = [];
+Group_Pool_whole_cell_vim_nms_total = [];
+Group_Pool_whole_cell_vim_nms_mean  = [];
+Group_Pool_branch_seg_total = [];
+Group_Pool_branch_seg_mean  = [];
+Group_Pool_branch_nms_total = [];
+Group_Pool_branch_nms_mean  = [];
+
 
 Identifier_cell = [];
 
@@ -168,7 +177,15 @@ for iML = 1 : nList
     ML_Pool_fila_trajectory_orientation_pool_fast=[];
     ML_Pool_CompletedFrame_last = [];
     ML_Pool_pool_vif_intensity=[];
-    
+    ML_Pool_whole_cell_vim_seg_total = [];
+    ML_Pool_whole_cell_vim_seg_mean = [];
+    ML_Pool_whole_cell_vim_nms_total = [];
+    ML_Pool_whole_cell_vim_nms_mean = [];
+    ML_Pool_branch_seg_total = [];
+    ML_Pool_branch_seg_mean = [];
+    ML_Pool_branch_nms_total = [];
+    ML_Pool_branch_nms_mean = [];
+   
     % the number of movies
     movieNumber =  20;
     
@@ -214,6 +231,19 @@ for iML = 1 : nList
                     ML_Pool_whole_cell_vif_mean_intensity= [ML_Pool_whole_cell_vif_mean_intensity BA_output.whole_cell_vif_mean_intensity];
                     
                     ML_Pool_pool_vif_intensity= [ML_Pool_pool_vif_intensity; BA_output.pool_all_vif_intensity];
+                    
+                    
+                    
+  ML_Pool_whole_cell_vim_seg_total= [ML_Pool_whole_cell_vim_seg_total; BA_output.whole_cell_vim_seg_total];
+  ML_Pool_whole_cell_vim_seg_mean= [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
+  ML_Pool_whole_cell_vim_nms_total= [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
+  ML_Pool_whole_cell_vim_nms_mean= [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
+   ML_Pool_branch_seg_total= [ML_Pool_branch_seg_total; BA_output.branch_seg_total];
+   ML_Pool_branch_seg_mean= [ML_Pool_branch_seg_mean; BA_output.branch_seg_mean];
+   ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total; BA_output.branch_nms_total];
+   ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean; BA_output.branch_nms_mean];
+   
+                    
                     
                     % some old analysis doens't have orient std,
                     % but as space holder, add nan
@@ -332,6 +362,19 @@ for iML = 1 : nList
     Group_Pool_fila_branch_orientation_pool_fast=[Group_Pool_fila_branch_orientation_pool_fast; ML_Pool_fila_branch_orientation_pool_fast];
     Group_Pool_fila_trajectory_orientation_pool_fast=[Group_Pool_fila_trajectory_orientation_pool_fast; ML_Pool_fila_trajectory_orientation_pool_fast];
     Group_Pool_CompletedFrame_last =[Group_Pool_CompletedFrame_last ML_Pool_CompletedFrame_last];
+    
+    
+    Group_Pool_whole_cell_vim_seg_total = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_seg_total];
+    Group_Pool_whole_cell_vim_seg_mean  = [Group_Pool_whole_cell_vim_seg_mean;  ML_Pool_whole_cell_vim_seg_mean ];
+    Group_Pool_whole_cell_vim_nms_total = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_nms_total];
+    Group_Pool_whole_cell_vim_nms_mean  = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_nms_mena ];
+    Group_Pool_branch_seg_total = [Group_Pool_branch_seg_total;ML_Pool_branch_seg_total];
+    Group_Pool_branch_seg_mean  = [Group_Pool_branch_seg_mean; ML_Pool_branch_seg_mean ];
+    Group_Pool_branch_nms_total = [Group_Pool_branch_nms_total;ML_Pool_branch_nms_total];
+    Group_Pool_branch_nms_mean  = [Group_Pool_branch_nms_mean; ML_Pool_branch_nms_mean ];
+    
+   
+    
 end
 
 %% Plotting for all MLs
@@ -757,6 +800,9 @@ saveas(h58,[Group_ROOT_DIR,'\Speed_vs_Vim_moreframes.tif']);
 print(h58,'-depsc',[Group_ROOT_DIR,'\Speed_vs_Vim_moreframes.eps']);
 
 
+%%
+branch_analysis_plotting_VimNms;
+%%
 %
 h9 = figure(9);
 plot(Group_Pool_branch_number_mean_pat, Group_Pool_branch_vif_mean_intensity,'.');
@@ -768,7 +814,6 @@ set(gca,'fontsize',13);
 saveas(h9,[Group_ROOT_DIR,'\Branchness_vs_BranchVim.fig']);
 saveas(h9,[Group_ROOT_DIR,'\Branchness_vs_BranchVim.tif']);
 print(h9,'-depsc',[Group_ROOT_DIR,'\Branchness_vs_BranchVim.eps']);
-
 
 
 h10 = figure(10);hold off;

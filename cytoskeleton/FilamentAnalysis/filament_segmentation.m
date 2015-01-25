@@ -343,12 +343,12 @@ for iChannel = selected_channels
     
     
     OrientationOutputDir = [FilamentSegmentationChannelOutputDir,filesep,'OrientImage'];
-    
-    if (~exist(OrientationOutputDir,'dir'))
-        mkdir(OrientationOutputDir);
+    if(SaveFigures_movie==1)
+        if (~exist(OrientationOutputDir,'dir'))
+            mkdir(OrientationOutputDir);
+        end
     end
-    
-    
+        
     % If steerable filter process is run
     if indexSteerabeleProcess>0
         SteerableChannelOutputDir = movieData.processes_{indexSteerabeleProcess}.outFilePaths_{iChannel};
@@ -808,9 +808,11 @@ for iChannel = selected_channels
                 imwrite(current_seg, ...
                     [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
-                imwrite(orienation_map_filtered.*double(current_seg), ...
-                    [OrientationOutputDir,filesep,'segment_orientation_',...
-                    filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                if(SaveFigures_movie==1)                    
+                    imwrite(orienation_map_filtered.*double(current_seg), ...
+                        [OrientationOutputDir,filesep,'segment_orientation_',...
+                        filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         

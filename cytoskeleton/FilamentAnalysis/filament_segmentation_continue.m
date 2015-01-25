@@ -394,8 +394,9 @@ for iChannel = selected_channels
             catch
                 try
                     load([DataOutputDir,filesep,'filament_seg_', ...
-                        filename_short_strs{iFrame},'.mat'], 'current_seg');
-                    if(~isempty(current_seg))
+                        filename_short_strs{iFrame},'.mat'], 'current_seg_orientation');
+                    if(~isempty(current_seg_orientation))
+                        current_seg = 1-isnan(current_seg_orientation);
                         if(sum(sum(current_seg))>0)
                             disp(['Frame ',num2str(iFrame),' filament seg has been run previously. Skipped.']);
                             Time_cost = toc(TIC_IC_IF);
@@ -840,9 +841,11 @@ for iChannel = selected_channels
                 imwrite(current_seg, ...
                     [FilamentSegmentationChannelOutputDir,filesep,'segment_binary_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                if(SaveFigures_movie==1)    
                 imwrite(orienation_map_filtered.*double(current_seg), ...
                     [OrientationOutputDir,filesep,'segment_orientation_',...
                     filename_short_strs{iFrame+ sub_i-1},'.tif']);
+                end
             end
         end
         

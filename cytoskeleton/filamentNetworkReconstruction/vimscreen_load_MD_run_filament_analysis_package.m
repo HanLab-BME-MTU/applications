@@ -23,10 +23,9 @@ ip.addRequired('this_MD', @(x) isa(x,'MovieData'));
 ip.addRequired('Parameter_MD',@(x) isa(x,'MovieData') | isempty(x));
 
 ip.addOptional('run_with_new_param',  0, @isnumeric);
-ip.addOptional('input_parameter_set', [], @iscell);
-ip.addOptional('save_old_data_tag',  [], @ischar);
-ip.addOptional('whole_movie_filename', [], @ischar);
-
+ip.addOptional('input_parameter_set', [], @(x) iscell(x) | isempty(x));
+ip.addOptional('save_old_data_tag',  [], @(x) ischar(x) | isempty(x));
+ip.addOptional('whole_movie_filename', [], @(x) ischar(x) | isempty(x));
 
 ip.parse(this_MD,Parameter_MD,varargin{:});
 whole_movie_filename= ip.Results.whole_movie_filename;
@@ -337,11 +336,11 @@ else % else for if there is a input parameter MD
                                 current_time = clock;
                                 time_tag = [num2str(current_time(1)) '_' num2str(current_time(2),'%02d') '_' num2str(current_time(3)) '_' num2str(current_time(4),'%02d') '_' num2str(current_time(5),'%02d') '_' num2str(round(current_time(6)),'%02d')];
                                 target_folder_name_timed = [this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1}, '_copied_at_',time_tag];
-                                % copy existing folder to target folder(timed)
-                                copyfile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},target_folder_name_timed);
+                                % rename existing folder to target folder(timed)
+                                movefile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},target_folder_name_timed);
                             else
-                                % copy existing folder to target folder
-                                copyfile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},target_folder_name);
+                                % rename existing folder to target folder
+                                movefile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},target_folder_name);
                             end
                             
                         end
@@ -357,9 +356,9 @@ else % else for if there is a input parameter MD
                             current_time = clock;
                                 time_tag = [num2str(current_time(1)) '_' num2str(current_time(2),'%02d') '_' num2str(current_time(3)) '_' num2str(current_time(4),'%02d') '_' num2str(current_time(5),'%02d') '_' num2str(round(current_time(6)),'%02d')];
                                 target_folder_name_timed = [this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{2}, '_copied_at_',time_tag];
-                                copyfile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{2},target_folder_name_timed);
+                                movefile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{2},target_folder_name_timed);
                             else
-                                copyfile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{2},target_folder_name);
+                                movefile(this_MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{2},target_folder_name);
                             end
                             
                         end

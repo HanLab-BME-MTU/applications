@@ -1,12 +1,12 @@
-function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFromMask(movieData,jj,curFlow, mask,minImgSize,numSubDoms)
+function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getMeshFromMask(movieData,jj,curFlow, mask,minImgSize,numSubDoms)
         % get the image boundaries
-        LeftUpperCorner(1:2) = [min(curFlow(:,2)), min(curFlow(:,1))];
-        RightLowerCorner(1:2) = [max(curFlow(:,2)), max(curFlow(:,1))];
-        
-        mask(RightLowerCorner(2)+1:end,:,jj) = 0; % for bottom
-        mask(:,RightLowerCorner(1)+1:end,jj) = 0; % for right
-        mask(1:LeftUpperCorner(2)-1,:,jj) = 0; % for top
-        mask(:,1:LeftUpperCorner(1)-1,jj) = 0; % for left
+%         LeftUpperCorner(1:2) = [min(curFlow(:,2)), min(curFlow(:,1))];
+%         RightLowerCorner(1:2) = [max(curFlow(:,2)), max(curFlow(:,1))];
+%         
+%         mask(RightLowerCorner(2)+1:end,:) = 0; % for bottom
+%         mask(:,RightLowerCorner(1)+1:end) = 0; % for right
+%         mask(1:LeftUpperCorner(2)-1,:) = 0; % for top
+%         mask(:,1:LeftUpperCorner(1)-1) = 0; % for left
 
         B = bwboundaries(mask);
         % Build a Geometry Description Matrix - I'll use curve (polygon
@@ -62,9 +62,9 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
         end
         % for right edge
         xmaxIdx = B{1}(:,2)==xmax; % logical index
-        if sum(xmaxIdx) > max(minImgSize, imgBoundaryRatio*(ymax-ymin)) && ...
-            (sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-1  || ...
-            sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-2) % see if they are consecutive
+        if sum(xmaxIdx) > max(minImgSize, imgBoundaryRatio*(ymax-ymin)) % ...
+%             && (sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-1  || ...
+%             sum(diff(sort(B{1}(xmaxIdx,1)))==1) == sum(xmaxIdx)-2) % see if they are consecutive
             curveR = [xmax min(B{1}(xmaxIdx,1)) xmax max(B{1}(xmaxIdx,1))]; % from top to bottom
             [~,curveRIdx1] = min(B{1}(xmaxIdx,1));
             [~,curveRIdx2] = max(B{1}(xmaxIdx,1));
@@ -214,7 +214,7 @@ function [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFr
         [msh.p,msh.e,msh.t]=initmesh(dl,'hmax',1.4*meanMinDist,'Hgrad',1.5); 
         iActinChannel = 3;
         curActin = movieData.getChannel(iActinChannel).loadImage(jj);
-        figure, imshow(curActin,[])
+        hFig = figure; imshow(curActin,[])
         hold on
         plot(curFlow(:,2),curFlow(:,1),'y.')
         quiver(curFlow(:,2),curFlow(:,1),3*(curFlow(:,4)-curFlow(:,2)),3*(curFlow(:,3)-curFlow(:,1)),0,'y')

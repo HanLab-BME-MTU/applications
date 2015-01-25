@@ -107,7 +107,7 @@ end
 
 if(show_save_everything_flag==1)
     % similarity_scoremap(similarity_scoremap<0.2)=0.2;
-    h6=figure(6); imagesc_nan_neg(difference_map.similarity_scoremap,0);
+    h6=figure(6); imagesc_nan_neg(similarity_scoremap,0);
     axis equal;axis off;
     title(['Similarity Score for frame ',num2str(iFrame)]);
     saveas(h6,[outdir,filesep,'VIFMT_sm_score_frame_',num2str(iFrame),'.tif']);

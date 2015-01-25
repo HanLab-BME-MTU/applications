@@ -100,6 +100,8 @@ femModelDir = [outputDir filesep 'femModel'];
 mkClrDir(femModelDir)
 iDispFieldDir = [outputDir filesep 'iDispField'];
 mkClrDir(iDispFieldDir)
+meshTifPath = [outputDir filesep 'meshTif'];
+mkClrDir(meshTifPath)
 %% Import the flow data per each frame - the flow should've been calculated
 % between only the two adjacent frames
 %% --------------- Kinetic analysi ---------------%%% 
@@ -156,7 +158,9 @@ for i=1:numel(p.ChannelIndex)
     % by looking at its straightness
     % Take the binary image into geometry with 4 edges (3 inner + 1 free)
     % mask is mask(:,:,j)
-    for jj = 1:nFrames
+    saveOnlyMesh = 1; %intermediate step...
+    iiformat = ['%.' '3' 'd'];
+    for jj = 1:nFrames-1
         % Adjust mask boundaries with speckle boundaries
         curFlow = flow{jj};
  
@@ -166,8 +170,13 @@ for i=1:numel(p.ChannelIndex)
 %         B{1}(xminIdx,2) = LeftUpperCorner(1); % for left
         %% geometry and mesh
         minImgSize = 5; % edge length should be more than 5 pixel.
-        [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms);
-
+        [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms);
+        if saveOnlyMesh
+            I = getframe(hFig);
+            imwrite(I.cdata, strcat(meshTifPath,'/meshTif',num2str(jj,iiformat),'.tif'));
+            close(hFig)
+            continue
+        end
         %% PDE definition for continuum mechanics, plane stress
         % Now I have a mesh information, with which I can solve for forward
         % solution for each basis function

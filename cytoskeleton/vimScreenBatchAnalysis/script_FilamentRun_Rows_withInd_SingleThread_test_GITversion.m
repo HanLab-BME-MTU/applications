@@ -1,13 +1,13 @@
-function script_FilamentRun_Rows_withInd(rowInd,rootDataFolder)
+function script_FilamentRun_Rows_withInd_SingleThread_test(rowInd,rootDataFolder)
 % run the filament analysis package for vim screen plates
 
 % take care of Matlab path
-matlabDir = '/home2/zzhang/GitMatlabCode'; 
+matlabDir = '/home2/lding/Ding/GitMatlab'; 
 addpath(genpath(matlabDir),'-end'); 
 
 % Set the root folder, as input
 if(isempty(rootDataFolder))
- rootDataFolder ='/project/cellbiology/gdanuser/vimentin/tonyzhang/live cell nikon data/well plate screening/screen_20141204/raw data_analysis';
+ rootDataFolder ='/project/cellbiology/gdanuser/vimentin/LiyaD/fromTony/raw_data_analysis3';
 end
 % set the data folder according to the row index
 % 1 for row A, 2 for B, and so on
@@ -18,7 +18,7 @@ rowFolderName = [ rowName,'_Row_Analysis'];
 MD = MovieData.load([rootDataFolder,filesep,rowFolderName,filesep,'movieData.mat']);
 
 % run the filament analysis package
-vimscreen_load_MD_run_filament_analysis_package(MD,[]); 
+vimscreen_load_MD_run_filament_analysis_package(MD,[],'run_with_new_param',1,'save_old_data_tag','time'); 
 
 % Mark the Completion of the network analysis
 
@@ -27,7 +27,7 @@ disp(['Finished filament segmentation for row ',rowName]);
 disp('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&');
 
 % run network analysis
-load_MD_network_for_analysis(MD,[],30, 1,1, [ones(6,1); zeros(10,1)],1);
+load_MD_network_for_analysis(MD,[],30, 1,1, ones(16,1),1);
 
 % Mark the Completion of the network analysis
 
