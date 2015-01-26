@@ -271,7 +271,11 @@ else % else for if there is a input parameter MD
         end
     end
     
-    this_MD = image_flatten_norepeating(this_MD,default_Params);
+    if(run_with_new_param ==1)
+        this_MD = image_flatten(this_MD,default_Params);
+    else
+        this_MD = image_flatten_norepeating(this_MD,default_Params);
+    end
     
     %% % 4 steerable filter
     
@@ -289,8 +293,12 @@ else % else for if there is a input parameter MD
          
     end
     
-    this_MD = steerable_filter_forprocess_continue(this_MD,default_Params);
-    
+    if(run_with_new_param ==1)
+        this_MD = steerable_filter_forprocess(this_MD,default_Params);
+    else
+        this_MD = steerable_filter_forprocess_continue(this_MD,default_Params);
+    end
+        
     %%
     % 5 filament segmentation
     default_Params = set_parameter_cell{5};
@@ -389,7 +397,4 @@ else % else for if there is a input parameter MD
         end
     end    
 end
-
-
-
 

@@ -192,7 +192,8 @@ if isempty(get(handles.listbox_selectedChannels, 'String'))
 end
 channelIndex = get (handles.listbox_selectedChannels, 'Userdata');
 funParams.ChannelIndex = channelIndex;
- 
+funParams.outputDir = [userData.MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'ImageFlatten'];
+
 gaussFilterSigma = str2double(get(handles.edit_GaussFilterSigma, 'String'));
 if isnan(gaussFilterSigma) || gaussFilterSigma < 0
     errordlg(['Please provide a valid input for '''...
@@ -221,9 +222,6 @@ if isnan(Sub_Sample_Num) || Sub_Sample_Num < 0
 end
 
 funParams.Sub_Sample_Num  = Sub_Sample_Num;
-
-          
-
 
 
 % -------- Process Sanity check --------
