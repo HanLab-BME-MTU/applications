@@ -172,6 +172,8 @@ end
 %%
 nFrame = movieData.nFrames_;
 
+Whole_movie_stat_cell = Existing_Whole_movie_stat_cell;
+
 for iChannel = selected_channels
     if(flag_complete(iChannel)==1)
         Whole_movie_stat_cell{iChannel} = Existing_Whole_movie_stat_cell{iChannel};
