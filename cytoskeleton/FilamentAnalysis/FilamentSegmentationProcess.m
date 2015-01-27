@@ -176,26 +176,29 @@ classdef FilamentSegmentationProcess < ImageProcessingProcess
              % these loads are for old version of the naming system
              try
                  out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/filament_seg_',filename_short_strs{iFrame},'.mat'], ...
-                     'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                     'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
              catch
                  
                  try
-                     out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_',filename_short_strs{iFrame},'.mat'], ...
-                         'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                     out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat'], ...
+                         'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
                  catch
                      try
-                         out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_',filename_shortshort_strs{iFrame},'.mat'], ...
-                             'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                         out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_',filename_shortshort_strs{iFrame},'.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
                      catch
                          % when only on channel, one image, it will be last
                          % character of the image, so 'f'
-                         out_data_all = load([obj.outFilePaths_{1,iChan},'/DataOutput/steerable_vote_','f','.mat'], ...
-                             'current_seg','current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
+                         out_data_all = load([obj.outFilePaths_{1,iChan},filesep,'DataOutput',filesep,'steerable_vote_','f','.mat'], ...
+                             'current_seg_orientation','tip_orientation','tip_int','tip_NMS','current_model','RGB_seg_orient_heat_map');
                          
                      end
                  end
              end
              
+             try
+             current_seg = ~isnan(current_seg_orientation);
+             end
             
             % if there is no output parameter
             if( isempty(ip.Results.output))

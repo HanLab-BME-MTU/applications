@@ -219,7 +219,33 @@ else
     if(exist([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'file')>0 ...
             && Rerun_WholeMovie==0)
         load([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
+        
+        % check if the existing whole movie file include the currently
+        % selected channel
+        flag_complete = ones(numel(movieData.channels_),1);
+        for iChannel = selected_channels
+            if(numel(Whole_movie_stat_cell)<iChannel)
+                flag_complete(iChannel)=0;
+            else
+                if(isempty(Whole_movie_stat_cell{iChannel}))
+                    flag_complete(iChannel)=0;
+                end
+            end
+        end
+        
+        %if some channels are missing, rerun the whole_movie_stat
+        if(min(flag_complete)==0)        
+            % this version of "addon" whole_movie_stat_function
+            % accept what ever was in the mat file
+            % and do for the missing channel(this previous channels will be
+            % kept even if it is not selected in current setting
+            Whole_movie_stat_cell = whole_movie_stat_function_addon(movieData);
+            save([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
+        end
     else
+        % this version of whole_movie_stat_function calculate for
+        % currently selected channels, disregarding whether any thing
+        % already existed
         Whole_movie_stat_cell = whole_movie_stat_function(movieData);
         save([FilamentSegmentationProcessOutputDir, filesep, 'whole_movie_stat.mat'],'Whole_movie_stat_cell');
     end
