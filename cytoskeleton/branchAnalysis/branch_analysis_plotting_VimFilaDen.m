@@ -21,9 +21,9 @@ title(['Branch number vs Vim mean filament density, correlation: ',...
     num2str(corr(Group_Pool_branch_number_mean(~isnan(Group_Pool_branch_number_mean)&~isnan(Group_Pool_whole_cell_vim_seg_mean))', ...
     Group_Pool_whole_cell_vim_seg_mean(~isnan(Group_Pool_branch_number_mean)&~isnan(Group_Pool_whole_cell_vim_seg_mean))'),'%1.2f') ],'Fontsize',13);
 set(gca,'fontsize',13);
-saveas(h108,[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen.fig']);
-saveas(h108,[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen.tif']);
-print(h108,'-depsc',[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen.eps']);
+saveas(h108,[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen.fig']);
+saveas(h108,[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen.tif']);
+print(h108,'-depsc',[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen.eps']);
 
 
 h108_axis = axis;
@@ -46,9 +46,9 @@ title({['Branch number vs Vim mean filament density, for branches larger than ',
     ['Correlation:',num2str(corr_b_v_v(1,2))]},'Fontsize',13);
 axis(h108_axis);
 set(gca,'fontsize',13);
-saveas(h118,[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen_Thresholded.fig']);
-saveas(h118,[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen_Thresholded.tif']);
-print(h118,'-depsc',[Group_ROOT_DIR,'\Branchness_vs_VimFilaDen_Thresholded.eps']);
+saveas(h118,[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen_Thresholded.fig']);
+saveas(h118,[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen_Thresholded.tif']);
+print(h118,'-depsc',[Group_ROOT_DIR,filesep,'Branchness_vs_VimFilaDen_Thresholded.eps']);
 
 %%
 h128 = figure(128);hold off;
@@ -69,9 +69,9 @@ title({'Branch Orientation Scatterness vs Vim mean filament density',...
     Group_Pool_whole_cell_vim_seg_mean(~isnan(Group_Pool_branch_cellmovement_std)&~isnan(Group_Pool_whole_cell_vim_seg_mean))'),'%1.2f') ,...
     ', Sample Size:',num2str(numel(Group_Pool_whole_cell_vif_mean_intensity(~isnan(Group_Pool_branch_cellmovement_std)&~isnan(Group_Pool_whole_cell_vim_seg_mean))))]},'Fontsize',13);
 set(gca,'fontsize',13);
-saveas(h128,[Group_ROOT_DIR,'\BranchOrient_vs_VimFilaDen.fig']);
-saveas(h128,[Group_ROOT_DIR,'\BranchOrient_vs_VimFilaDen.tif']);
-print(h128,'-depsc',[Group_ROOT_DIR,'\BranchOrient_vs_VimFilaDen.eps']);
+saveas(h128,[Group_ROOT_DIR,filesep,'BranchOrient_vs_VimFilaDen.fig']);
+saveas(h128,[Group_ROOT_DIR,filesep,'BranchOrient_vs_VimFilaDen.tif']);
+print(h128,'-depsc',[Group_ROOT_DIR,filesep,'BranchOrient_vs_VimFilaDen.eps']);
 
 %%
 h148 = figure(148);hold off;
@@ -92,9 +92,9 @@ title({'Cell Speed vs Vim mean filament density',...
     Group_Pool_whole_cell_vim_seg_mean(~isnan(Group_Pool_Travel_Speed)&~isnan(Group_Pool_whole_cell_vim_seg_mean))'),'%1.2f'),...
     ', Sample Size:',num2str(numel(Group_Pool_Travel_Speed))]},'Fontsize',13);
 set(gca,'fontsize',13);
-saveas(h148,[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_color.fig']);
-saveas(h148,[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_color.tif']);
-print(h148,'-depsc',[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_color.eps']);
+saveas(h148,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_color.fig']);
+saveas(h148,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_color.tif']);
+print(h148,'-depsc',[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_color.eps']);
 
 h158 = figure(158);hold off;
 
@@ -119,6 +119,6 @@ title({'Cell Speed vs Vim mean filament density (cell with more frames, with lat
     Y(~isnan(X)&~isnan(Y))'),'%1.2f'),...
     ', Sample Size:',num2str(numel(Group_Pool_Travel_Speed(Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60)))]},'Fontsize',13);
 set(gca,'fontsize',13);
-saveas(h158,[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_moreframes.fig']);
-saveas(h158,[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_moreframes.tif']);
-print(h158,'-depsc',[Group_ROOT_DIR,'\Speed_vs_VimFilaDen_moreframes.eps']);
+saveas(h158,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.fig']);
+saveas(h158,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.tif']);
+print(h158,'-depsc',[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.eps']);
