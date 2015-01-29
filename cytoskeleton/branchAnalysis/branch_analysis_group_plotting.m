@@ -238,10 +238,11 @@ for iML = 1 : nList
   ML_Pool_whole_cell_vim_seg_mean= [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
   ML_Pool_whole_cell_vim_nms_total= [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
   ML_Pool_whole_cell_vim_nms_mean= [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
-   ML_Pool_branch_seg_total= [ML_Pool_branch_seg_total; BA_output.branch_seg_total];
-   ML_Pool_branch_seg_mean= [ML_Pool_branch_seg_mean; BA_output.branch_seg_mean];
-   ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total; BA_output.branch_nms_total];
-   ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean; BA_output.branch_nms_mean];
+
+  ML_Pool_branch_seg_total= [ML_Pool_branch_seg_total BA_output.branch_seg_total];
+   ML_Pool_branch_seg_mean= [ML_Pool_branch_seg_mean BA_output.branch_seg_mean];
+   ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total BA_output.branch_nms_total];
+   ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
    
                     
                     
@@ -366,8 +367,8 @@ for iML = 1 : nList
     
     Group_Pool_whole_cell_vim_seg_total = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_seg_total];
     Group_Pool_whole_cell_vim_seg_mean  = [Group_Pool_whole_cell_vim_seg_mean;  ML_Pool_whole_cell_vim_seg_mean ];
-    Group_Pool_whole_cell_vim_nms_total = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_nms_total];
-    Group_Pool_whole_cell_vim_nms_mean  = [Group_Pool_whole_cell_vim_seg_total; ML_Pool_whole_cell_vim_nms_mean ];
+    Group_Pool_whole_cell_vim_nms_total = [Group_Pool_whole_cell_vim_nms_total; ML_Pool_whole_cell_vim_nms_total];
+    Group_Pool_whole_cell_vim_nms_mean  = [Group_Pool_whole_cell_vim_nms_mean; ML_Pool_whole_cell_vim_nms_mean ];
     Group_Pool_branch_seg_total = [Group_Pool_branch_seg_total;ML_Pool_branch_seg_total];
     Group_Pool_branch_seg_mean  = [Group_Pool_branch_seg_mean; ML_Pool_branch_seg_mean ];
     Group_Pool_branch_nms_total = [Group_Pool_branch_nms_total;ML_Pool_branch_nms_total];
@@ -800,8 +801,7 @@ saveas(h58,[Group_ROOT_DIR,'\Speed_vs_Vim_moreframes.tif']);
 print(h58,'-depsc',[Group_ROOT_DIR,'\Speed_vs_Vim_moreframes.eps']);
 
 
-%%
-branch_analysis_plotting_VimNms;
+
 %%
 %
 h9 = figure(9);
@@ -910,3 +910,12 @@ saveas(h13,[Group_ROOT_DIR,'\EachBranch_Duration_vs_Vim_with_Thres.tif']);
 print(h13,'-depsc',[Group_ROOT_DIR,'\EachBranch_Duration_vs_Vim_with_Thres.eps']);
 
 save([Group_ROOT_DIR,'\branch_analysis_group_results.mat']);
+
+
+%%
+branch_analysis_plotting_VimNms;
+branch_analysis_plotting_VimTotalNms;
+branch_analysis_plotting_VimFilaDen;
+branch_analysis_plotting_VimFilaTotal;
+
+
