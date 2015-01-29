@@ -103,7 +103,7 @@ end
 
 isCompleted = isCompleted_longest;
 
-if(sum(isCompleted)<10)
+if(sum(isCompleted)<9)
     return;
 end
 
@@ -154,15 +154,21 @@ for iFrame = CompletedFrame
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'filament_seg_',...
-            filename_short_strs{iFrame},'.mat']),'current_seg','orienation_map_filtered');
+            filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+        current_seg = ~isnan(current_seg_orientation);
+        orienation_map_filtered = current_seg_orientation;
+        
     else
         if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
             load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(VIF_channel),filesep,'DataOutput',filesep,'steerable_vote_',...
-                filename_short_strs{iFrame},'.mat']),'current_seg','orienation_map_filtered');
+                filename_short_strs{iFrame},'.mat']),'current_seg_orientation');
+            current_seg = ~isnan(current_seg_orientation);
+            orienation_map_filtered = current_seg_orientation;
+            
         end
     end
     
-    
+   
     % if filament stat is available and requested
     if(exist(GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',filename_short_strs{iFrame},'.mat']),'file') && filament_stat_flag>0)
         load( GetFullPath([ROOT_DIR,filesep,'FilamentAnalysisPackage',filesep,'SteerableFiltering',filesep,'Channel',num2str(VIF_channel),filesep,'steerable_',...

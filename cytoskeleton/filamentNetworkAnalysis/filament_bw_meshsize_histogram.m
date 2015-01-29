@@ -1,4 +1,4 @@
-function output_feature = filament_bw_meshsize_histogram(VIF_current_seg, Cell_Mask, radius,pace,range)
+function [output_feature, meshsize_map] = filament_bw_meshsize_histogram(VIF_current_seg, Cell_Mask, radius,pace,range)
 % function to do network analysis with input MD
 
 % input:    VIF_current_seg:    network segmentation
@@ -30,7 +30,7 @@ if(nargin<=3)
 end
 
 if(nargin<=4)
-    range=36;
+    range=48;
 end
 
 %% % do mesh size statistics
@@ -39,13 +39,18 @@ VIF_current_seg = imresize(VIF_current_seg, 1);
 Cell_Mask = imresize(Cell_Mask, 1)>0;
 
 dist_map = bwdist(VIF_current_seg);
-
+dist_map = dist_map*0.5;
+%for um
 %         toc
 
-meshsize_map = 2*dist_map;
+
+dist_map_smoothed = imfilter(dist_map,fspecial('gaussian',21,3),'same','replicate');
+
+meshsize_map_smoothed = double(2*dist_map_smoothed);
+meshsize_map = double(2*dist_map);
 
 
-[cent, varargout]=FastPeakFind(meshsize_map.*imdilate(Cell_Mask, ones(5,5)),2);
+[cent, varargout]=FastPeakFind(meshsize_map_smoothed.*imdilate(Cell_Mask, ones(5,5)),2);
 
 
 maximum_x= cent(1:2:end);
@@ -60,7 +65,8 @@ h3=figure(3);
 imagesc(meshsize_map.*Cell_Mask);
 axis image; axis off;
 hold on; plot(maximum_x,maximum_y,'m.');
-
+iChannel=1;iFrame=1;
+caxis([0 range+pace]);
 title(['Distmap, Channel:',num2str(iChannel),', Frame:',num2str(iFrame)]);
 
 meshsize_local_maximum_pool = meshsize_map(sub2ind(size(meshsize_map),cent(2:2:end),cent(1:2:end)));
@@ -93,10 +99,8 @@ plot([mean_bin mean_bin],[0 real_axis(4)],'m');
 text(mean_bin, real_axis(4)-1.5, ['Mean: ',num2str(mean_bin)]);
 
 title(['Meshsize Measurement, Channel:',num2str(iChannel),', Frame:',num2str(iFrame)]);
-xlabel('distance to filament (unit: pixel)');
+xlabel('Mesh size (unit: um)');
 ylabel('Percentage(%)');
-
-saveas(h1,[outdir, filesep, 'dist_hist_ch',num2str(iChannel),'_frame_',num2str(iFrame),'.tif']);
 
 % save the results
 output_feature = [];

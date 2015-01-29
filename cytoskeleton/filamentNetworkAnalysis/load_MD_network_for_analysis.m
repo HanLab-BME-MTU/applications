@@ -31,7 +31,10 @@ function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_fla
 %           13:   output_feature.st_per_filament_pool 
 %           14:   output_feature.mean_st_per_filament_pool 
 %           15:   output_feature.st_per_fat_filament_pool
-%           16:   output_feature.mean_st_per_fat_filament_pool 
+%           16:   output_feature.mean_st_per_fat_filament_pool
+
+%           17:   output_feature.filament_mean_curvature
+%           18:   output_feature.curvature_per_pixel_pool 
 
 % output:   network_feature, a cell structure for each channel, each frame.
 %           Each struct with field of the 16 features as above
@@ -60,7 +63,11 @@ end
 
 % if no input as which feature to calculate, do for all features
 if(nargin<6)
-    feature_flag = ones(1,16);
+    feature_flag = ones(1,18);
+end
+
+if(numel(feature_flag)<18)
+    feature_flag = [feature_flag(:); zeros(18-numel(feature_flag),1)];
 end
 
 % if no input as if it is vim screen, set to no

@@ -210,13 +210,15 @@ for iCompleteFrame = 1 :nCompleteFrame
         vif_pixel_values = current_VIF_image(find(labelMask==iL));
         vif_mean_matrix(iCompleteFrame,iL) = mean(vif_pixel_values);
         
-        vif_pixel_seg = current_seg(find(labelMask==iL));        
-        branch_filament_totallength_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg);
-        branch_filament_meandensity_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg)./(numel(find(labelMask==iL)));
-        
-        vif_pixel_nms = nms_map(find(labelMask==iL));
-        branch_filament_totalnms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms);
-        branch_filament_meannms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms)./(numel(find(labelMask==iL)));
+        if(sum(sum(current_seg))>0  && filament_stat_flag>0)
+            vif_pixel_seg = current_seg(find(labelMask==iL));
+            branch_filament_totallength_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg);
+            branch_filament_meandensity_matrix(iCompleteFrame,iL) = sum(vif_pixel_seg)./(numel(find(labelMask==iL)));
+            
+            vif_pixel_nms = nms_map(find(labelMask==iL));
+            branch_filament_totalnms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms);
+            branch_filament_meannms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms)./(numel(find(labelMask==iL)));
+        end
         
         branch_size_matrix(iCompleteFrame,iL) = numel(find(labelMask==iL));
     end
@@ -319,14 +321,21 @@ BA_output.branch_vif_mean_intensity  = nanmean(vif_mean_matrix);
 
 %%
 
-branch_filament_totallength_matrix(branch_filament_totallength_matrix==0)=nan;
-branch_filament_totalnms_matrix(branch_filament_totalnms_matrix==0)=nan;
-
-
-BA_output.branch_seg_total = nanmean(branch_filament_totallength_matrix);
-BA_output.branch_seg_mean = nanmean(branch_filament_meandensity_matrix);
-BA_output.branch_nms_total = nanmean(branch_filament_totalnms_matrix);
-BA_output.branch_nms_mean = nanmean(branch_filament_meannms_matrix);
+if(sum(sum(current_seg))>0  && filament_stat_flag>0)
+    
+    branch_filament_totallength_matrix(branch_filament_totallength_matrix==0)=nan;
+    branch_filament_totalnms_matrix(branch_filament_totalnms_matrix==0)=nan;
+    
+    BA_output.branch_seg_total = nanmean(branch_filament_totallength_matrix);
+    BA_output.branch_seg_mean = nanmean(branch_filament_meandensity_matrix);
+    BA_output.branch_nms_total = nanmean(branch_filament_totalnms_matrix);
+    BA_output.branch_nms_mean = nanmean(branch_filament_meannms_matrix);
+else
+    BA_output.branch_seg_total = nan;
+    BA_output.branch_seg_mean = nan;
+    BA_output.branch_nms_total = nan;
+    BA_output.branch_nms_mean = nan;    
+end
 
 %%
 
@@ -341,20 +350,29 @@ BA_output.retraction_vif_mean_intensity =  mean(green_vif_tm1_pool);
 BA_output.whole_cell_vif_mean_intensity =  mean(cell_vif_pool);
 
 %%
-
-BA_output.whole_cell_vim_seg_total = nanmean(cell_vif_seg_total_pool);
-BA_output.whole_cell_vim_seg_mean = nanmean(cell_vif_seg_total_pool./cell_size_pool);
-
-BA_output.whole_cell_vim_nms_total = nanmean(cell_vif_nms_total_pool);
-BA_output.whole_cell_vim_nms_mean = nanmean(cell_vif_nms_total_pool./cell_size_pool);
-
+if(sum(sum(current_seg))>0  && filament_stat_flag>0)
+    
+    BA_output.whole_cell_vim_seg_total = nanmean(cell_vif_seg_total_pool);
+    BA_output.whole_cell_vim_seg_mean = nanmean(cell_vif_seg_total_pool./cell_size_pool);
+    
+    BA_output.whole_cell_vim_nms_total = nanmean(cell_vif_nms_total_pool);
+    BA_output.whole_cell_vim_nms_mean = nanmean(cell_vif_nms_total_pool./cell_size_pool);
+    
+else
+    BA_output.whole_cell_vim_seg_total =nan;
+    BA_output.whole_cell_vim_seg_mean = nan;
+    
+    BA_output.whole_cell_vim_nms_total = nan;
+    BA_output.whole_cell_vim_nms_mean = nan;
+    
+end
 %%
 
 %get a random sampling from all the vif_pool, by a fixed number of frames
 %to be considered
 BA_output.pool_all_vif_intensity = ...
     cell_vif_pool(randsample(numel(cell_vif_pool),...
-    round(numel(cell_vif_pool)/(BA_output.cell_marked_frame_number/10))));
+    round(numel(cell_vif_pool)/max(1,(BA_output.cell_marked_frame_number/10)))));
 
 BA_output.whole_cell_vim_totalamount_mean  = mean(cell_vimtotal_pool);
 
