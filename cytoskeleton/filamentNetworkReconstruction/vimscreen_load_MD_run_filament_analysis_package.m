@@ -203,8 +203,14 @@ if(~isempty(Parameter_MD))
                             else
                                 this_MD = filament_segmentation(this_MD,given_Params);
                             end
+                            %save MD to disk
+                            this_MD.save();
                         end
+                        %save MD to disk
+                        this_MD.save();
                     end
+                    %save MD to disk
+                    this_MD.save();
                 end
             end
         end
@@ -276,6 +282,8 @@ else % else for if there is a input parameter MD
     else
         this_MD = image_flatten_norepeating(this_MD,default_Params);
     end
+    %save MD to disk
+    this_MD.save();
     
     %% % 4 steerable filter
     
@@ -298,6 +306,9 @@ else % else for if there is a input parameter MD
     else
         this_MD = steerable_filter_forprocess_continue(this_MD,default_Params);
     end
+    
+    %save MD to disk
+    this_MD.save();
         
     %%
     % 5 filament segmentation
@@ -396,5 +407,11 @@ else % else for if there is a input parameter MD
             this_MD = filament_segmentation_continue(this_MD,default_Params);
         end
     end    
+    
+    %save MD to disk
+    this_MD.save();
 end
 
+
+%Finally, save MD to disk
+this_MD.save();
