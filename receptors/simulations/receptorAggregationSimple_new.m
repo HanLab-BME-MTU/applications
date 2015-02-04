@@ -183,7 +183,7 @@ end
 
 %some must be positive
 %09/05/14 - modified to accomodate a vector labelRatio
-if any([receptorDensity aggregationDist (labelRatio') intensityQuantum] <= 0)
+if any([receptorDensity aggregationDist (labelRatio') intensityQuantum(1)] <= 0)
     disp('--receptorAggregationSimple: Receptor density, aggregation distance, labeling ratio and intensity quantum should be positive');
     errFlag = 1;
     return
@@ -192,7 +192,7 @@ end
 
 %and some must be non-negative
 %03/25/14 - modified to accomodate a vector aggregationProb
-if any([diffCoef (aggregationProb') dissociationRate] < 0)
+if any([diffCoef (aggregationProb') dissociationRate intensityQuantum(2)] < 0)
     disp('--receptorAggregationSimple: Diffusion coefficient, aggregation probability and dissociation rate should be non-negative');
     errFlag = 1;
     return
