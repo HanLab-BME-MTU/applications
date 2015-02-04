@@ -23,12 +23,72 @@ end
 imDir1 = [infoDir filesep 'w2491' filesep 'images' ]; 
 imDir2 = [infoDir filesep 'w3561']; 
 
-subRoiDir = [infoDir filesep 'w2491' filesep 'roi_1' filesep 'subRoisCortical' filesep 'sub_1']; 
 
+subRoiDir = [infoDir filesep 'w2491' filesep 'roi_1' filesep 'subRoisCortical' filesep 'sub_1']; 
+maskDir = [subRoiDir filesep 'masks']; 
 load([subRoiDir filesep 'dwellMasks']);
 load([subRoiDir filesep 'meta' filesep 'projData.mat']);
 dataMat = projData.nTrack_sF_eF_vMicPerMin_trackType_lifetime_totalDispPix; % load to find which tracks end in term,pause, or shrinkage 
 dataMat = dataMat(dataMat(:,9) ~= 0,:); % filter the dataMat to get rid of pause, shrinkage, and undefined gaps. 
+xMat = projData.xCoordDwell;
+yMat = projData.yCoordDwell;
+xMatOut = projData.xCoordDwellOutAllTracks;
+yMatOut = projData.yCoordDwellOutAllTracks; 
+
+%% 
+filterCorticalClass = 0; 
+%FILTER BY CORTICAL : ADDED 20150201 
+if filterCorticalClass == 1; 
+
+dwells = projData.dwellAllTracks; 
+disp = vertcat(projData.dispByFrame{:}); 
+
+load([subRoiDir filesep 'meta' filesep 'CorticalInfo' filesep 'corticalData.mat' ]);
+idxLatLog = corticalData.params3_60_0pt7_0pt3.idxLatLogical;
+% get the indices for each class (indices are for dataMat filtered)
+%idxEndTerm = dataMat(:,9) == 1; % collect the terminal growth events 
+%idxEndPause = dataMat(:,9) == 2; 
+%idxEndShrink = dataMat(:,9) == 3; % collect
+  
+%percentPause = sum(idxEndPause)./length(idxEndPause)*100;
+
+dispDiscar = 0.3; 
+% filter by displacement 
+%dwells = dwells(disp>dispDiscard & ~isnan(disp)); 
+% ok I know this is a bit weird here but filter by these when I do the
+% classifications 
+%idxEndTerm = idxEndTerm(disp>dispDiscard & ~isnan(disp)); 
+%idxEndPause = idxEndPause(disp>dispDiscard & ~isnan(disp)); 
+%idxEndShrink = idxEndShrink(disp>dispDiscard & ~isnan(disp)); 
+
+% filter dataMat by displacement filter 
+dataMat = dataMat(disp>dispDiscar & ~isnan(disp),:); 
+% filter dwellmasks by displacement filter
+dwellMasks = dwellMasks(:,:,disp>dispDiscar & ~isnan(disp)); 
+xMat = xMat(disp>dispDiscar & ~isnan(disp),:); 
+yMat = yMat(disp>dispDiscar & ~isnan(disp),:); 
+
+xMatOut = xMatOut(disp>dispDiscar & ~isnan(disp),:);
+yMatOut = yMatOut(disp>dispDiscar& ~isnan(disp),:);
+dwells = dwells(disp>dispDiscar& ~isnan(disp)); 
+framesDwell = framesDwell(disp>dispDiscar&~isnan(disp)); 
+% get only end on dwells
+%dwellsEndOnP = dwells(~idxLatLog & idxEndPause); 
+%dwellsEndOnST = dwells(~idxLatLog & (idxEndTerm | idxEndShrink)); 
+
+%filter out lateral transition tracks for both the dataMat and the dwellMasks 
+dataMat = dataMat(~idxLatLog,:); 
+dwellMasks = dwellMasks(:,:,~idxLatLog); 
+xMat = xMat(~idxLatLog,:); 
+yMat = yMat(~idxLatLog,:); 
+xMatOut = xMatOut(~idxLatLog,:); 
+yMatOut = yMatOut(~idxLatLog,:); 
+dwells = dwells(~idxLatLog); 
+framesDwell = framesDwell(~idxLatLog); 
+
+end
+
+
 % idxEndTerm = dataMat(:,9) == 1; % collect the terminal growth events 
 % idxEndPause = dataMat(:,9) == 2; 
 % idxEndShrink = dataMat(:,9) == 3; % collect the growth events ending in shrinkage 
@@ -58,23 +118,61 @@ end
 
     
 
-xMat = projData.xCoordDwell;
-yMat = projData.yCoordDwell;
-xMatOut = projData.xCoordDwellOutAllTracks;
-yMatOut = projData.yCoordDwellOutAllTracks; 
+
 
 listOfImages = searchFiles('.tif',[],imDir1,0); 
 listOfImages2 = searchFiles('.tif',[],imDir2,0); 
 [sortedList,sortNum] = sortUnpaddedList(listOfImages);
 [sortedList2,sortNum2] = sortUnpaddedList(listOfImages2); 
-for iFrame = 1:length(listOfImages)
+
+if exist(maskDir)~=0
+listOfMasks = searchFiles('.tif',[],maskDir,0,'all',1);
+multMask = 1; 
+else 
+    
+    roiMask = logical(imread([subRoiDir filesep 'roiMask.tif'])); 
+    multMask = 0;
+end
+
+for iFrame = 1:size(listOfImages,1)
  % just load all now so don't have to keep reloading them 
  img1(:,:,iFrame) =  double(imread([char(sortedList(iFrame,1)) filesep char(sortedList(iFrame,2)),...;
         num2str(sortNum(iFrame)) char(sortedList(iFrame,4))]));
  img2(:,:,iFrame) = double(imread( [char(sortedList2(iFrame,1)) filesep char(sortedList2(iFrame,2)),...;
         num2str(sortNum2(iFrame)) char(sortedList2(iFrame,4))]));
+  if multMask == 1; 
+    roiMask = logical(imread(char(listOfMasks(iFrame,1))));
+  end 
+    maskImg = roiMask.*img2(:,:,iFrame);
+    values = maskImg(maskImg~=0); 
+   [x,noise]  = fitGaussianModeToPDF(values); 
+   meansChannel2(iFrame) =x; 
+   stdChannel2(iFrame) = noise;  
 end 
-trunc = 1;
+
+% estimate std for each frame 
+
+
+check =1;
+[ny,nx] = size(img1(:,:,1));
+setFigure(nx,ny,'on'); 
+
+if check == 1
+    hold on
+    
+  imshow(-img1(:,:,1),[]); 
+  hold on 
+    
+    arrayfun(@(i) plot(xMat(i,:),yMat(i,:),'color','r'),1:size(xMat,1)); 
+    arrayfun(@(i) plot(xMatOut(i,:),yMatOut(i,:),'color','k'),1:size(xMatOut,1)); 
+    timeFlags = ~isnan(xMat);
+    starts =  arrayfun(@(i) find(timeFlags(i,:),1,'first'),1:size(xMat,1)); 
+    
+     arrayfun(@(i) text(xMat(i,starts(i)),yMat(i,starts(i)),num2str(i)),1:size(xMat,1)); % the ID
+   % arrayfun(@(i) text(xMat(i,starts(i)),yMat(i,starts(i)),num2str(dwells(i,1),3)),1:size(xMat,1)); 
+   saveas(gcf,[saveDir filesep 'testID.fig']); 
+end 
+trunc = 0;
 
 
 
@@ -89,7 +187,7 @@ if trunc == 1
     
 % truncate by long dwell times (more than 5 frames) 
 time = cellfun(@(x) length(x),framesDwell); % framesDwell should be saved in the dwell masks .mat file 
-idxToPlot = find(time>=4); 
+idxToPlot = find(time>=2); 
 %dataMat = dataMat(time>=4,:); % dataMat should now correspond to only those tracks that are in the dwell window for greater than 
 % 4 frames 
 %endType = dataMat(:,9); % get the identifiers for the termination type. 
@@ -107,6 +205,10 @@ for i= 1:length(idxToPlot)
    
     framesToPlot = [frameC(1)-5:frameC(1)-1, frameC, frameC(end)+1: frameC(end)+5];
    framesToPlot =  framesToPlot(framesToPlot>0 & framesToPlot<101);
+   
+   % get the estimated variance of the image intensities for the current
+    % frames 
+   stdC =  mean(stdChannel2(framesToPlot)); 
     %if makeMovie ==1 
     % get the index  
      
@@ -150,7 +252,7 @@ for i= 1:length(idxToPlot)
         [~,~,~,imgToPlot(:,:,1)] = cropImageBasedOnMask(dwellMask,5,img2CN); % 
         imgToPlot(:,:,3) = zeros(size(imgToPlot(:,:,1))); 
         [ny,nx,~] = size(img1); 
-        setFigure(nx,ny,'on'); 
+        setFigure(nx,ny,'off'); 
         image(imgToPlot)
         hold on 
         roiYX =  bwboundaries(maskCrop); 
@@ -174,14 +276,19 @@ for i= 1:length(idxToPlot)
     
     close gcf
     
+    
+    
+    
+    
+    
         end 
     end 
     
-    figure('Visible','on')
+    figure('Visible','off')
  %% MODIFIED 20141107
- dwellInt.channel1.values{endType}{i} = values1; % currently index by the number 
- dwellInt.channel2.values{endType}{i} = values2; 
- 
+ dwellInt(i).channel1.values = values1; % currently index by the number 
+ dwellInt(i).channel2.values = values2; 
+ dwellInt(i).channel2.stdNoise = stdC; 
  % find the max of the series 
 idxMaxSeries = find(values1 == max(values1));
 
@@ -196,16 +303,24 @@ idxMaxSeries = find(values1 == max(values1));
  %Find range 
  range1 = max(values1) - min(values1); 
  range2 = max(values2)- min(values2); 
- dwellInt.channel1.range1{endType}{i} = range1; 
- dwellInt.channel2.range2{endType}{i} = range2; 
+ enoughSig = range2>2*stdC;
+ dynamicRange1 = max(values1)/min(values1); 
+ dynamicRange2 = max(values2)/min(values2); 
  
+ dwellInt(i).channel1.range1 = range1; 
+ dwellInt(i).channel2.range2 = range2; 
+ dwellInt(i).channel1.dynamicRange = dynamicRange1; 
+ dwellInt(i).channel2.dynamicRange = dynamicRange2; 
+ 
+ dwellInt(i).endType = endType; 
+ dwellInt(i).enoughSig = enoughSig; 
  
  % test if the max in the dwell window is the max of the entire series 
  % if it isn't discard 
     if idxMaxSeries == idxMaxDwell 
-        dwellInt.channel1.maxInWind{endType}{i} =  1;
+        dwellInt(i).channel1.maxInWind =  1;
     else 
-        dwellInt.channel1.maxInWind{endType}{i} = 0; 
+        dwellInt(i).channel1.maxInWind = 0; 
     end  
     
          
@@ -224,6 +339,9 @@ subplot(2,1,1);
  line([frameC(end) frameC(end)],[min(values1)-100 max(values1)+100],'color','k','Linewidth',2); 
  ylabel('Raw Intensity Values (AU) in Dwell Window'); 
  xlabel('Frames (0.85 sec intervals)')
+ if length(idxMaxDwell)>1
+     idxMaxDwell = idxMaxDwell(1); 
+ end 
  % plot max value within well in the first channel 
  line([framesToPlot(idxMaxDwell),framesToPlot(idxMaxDwell)],[min(values1)-100 max(values1)+100],'color','r','Linewidth',2); 
  % plot values decay 
@@ -232,8 +350,8 @@ subplot(2,1,1);
   scatter(framesDecay,valuesDecay1,100','k'); % outline the values used for decay in black 
   slopeValues1 = diff(valuesDecay1);
   meanSlopeValues1 = mean(slopeValues1); 
- dwellInt.channel1.slopeValues{endType}{i} = slopeValues1; 
- dwellInt.channel1.meanSlope{endType}{i} = meanSlopeValues1; 
+ dwellInt(i).channel1.slopeValues = slopeValues1; 
+ dwellInt(i).channel1.meanSlope = meanSlopeValues1; 
  
   
   text(framesToPlot(idxMaxDwell),values1(idxMaxDwell),['m = ' num2str(meanSlopeValues1,3)]); 
@@ -256,14 +374,14 @@ hold on
   scatter(framesDecay,valuesDecay2,100','k'); % outline the values used for decay in black 
   slopeValues2 = diff(valuesDecay2);
   meanSlopeValues2 = mean(slopeValues2); 
- dwellInt.channel2.slopeValues{endType}{i} = slopeValues2; 
- dwellInt.channel2.meanSlope{endType}{i} = meanSlopeValues2; 
+ dwellInt(i).channel2.slopeValues = slopeValues2; 
+ dwellInt(i).channel2.meanSlope = meanSlopeValues2; 
  
   line([framesToPlot(idxMaxDwell),framesToPlot(idxMaxDwell)],[min(values2)-100 max(values2)+100],'color','r','Linewidth',2); 
   text(framesToPlot(idxMaxDwell),values2(idxMaxDwell),['m = ' num2str(meanSlopeValues2,3)]); 
  
  test = (meanSlopeValues1<0 & meanSlopeValues2<0); 
- dwellInt.consistencyTest{endType}{i} = test; 
+ dwellInt(i).consistencyTest = test; 
  if test == 1 
  title('Potential Consistent Decay'); 
  end

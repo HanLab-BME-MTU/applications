@@ -120,7 +120,7 @@ if nargin < 2
         
     paramsIn.patchSize = str2double(patchSize);
     else % set patch size 
-        paramsIn.patchSize = 35; % Default
+        paramsIn.patchSize = 50; % Default
     end 
         
     

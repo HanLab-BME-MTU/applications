@@ -12,7 +12,8 @@ end
  load([movieData.outputDirectory_ filesep 'neurite_body_masks'...
     filesep 'Neurite_Body_Masks_Channel_1' filesep 'analInfoTestSave.mat']); 
 
-framesList = 1:length(analInfo);
+%framesList = 1:length(analInfo);
+framesList = 33; 
 GCAveilStemRefineScaleActiveContour(imDir,refineDir,analInfo,framesList); 
 
 

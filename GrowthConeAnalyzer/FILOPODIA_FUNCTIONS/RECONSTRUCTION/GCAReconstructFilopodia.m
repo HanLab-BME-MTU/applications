@@ -1,5 +1,11 @@
 function [analInfo,saveTimeVect ] = GCAReconstructFilopodia(imDir,framesPath,troubleshoot,sortOn,restart,analInfo,startFrameIn,protrusion)
 
+% quick fix to load GIT hash tag can do it automatically from the teriminal
+% from linux box but was having trouble on windows.. hence I just make sure
+% to update his manually everytime I make a change (can technically get
+% from the time stamp as well but this will likely be be bit easier to pull
+% up code directly). 
+load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
 
  
 %% GCAReconstructFilopodia - changed from reconstructFilopodia 20141022
@@ -51,6 +57,11 @@ end
 
 %% load movie and prepare output movie options 
 
+% collect images and initiate
+[listOfImages] = searchFiles('.tif',[],imDir,0);
+nImTot = size(listOfImages,1);
+
+
 if restart ==1;
   %numFinished = numel(analInfo);
 %    
@@ -58,19 +69,23 @@ if restart ==1;
  
 startFrame = find(arrayfun(@(x) isempty(x.filoInfo),analInfo),1,'first'); 
 display(['Restarting at Frame ' num2str(startFrame)]); 
+endFrame = nImTot-1; 
 % startFrame = startFrame-1;
 %startFrame = 81;
   %  startFrame = numFinished; 
   elseif restart ==2
       startFrame = startFrameIn; 
-
-else startFrame = 1; 
+      endFrame  = nImTot-1;
+elseif restart == 3 
+    startFrame = startFrameIn; 
+    endFrame = startFrameIn; % re-run 1 frame 
+      
+else startFrame = 1;
+    endFrame = nImTot-1;
 end 
 
 
-% collect images and initiate
-[listOfImages] = searchFiles('.tif',[],imDir,0);
-nImTot = size(listOfImages,1);
+
 
 if sortOn ==1 % reminder make it check for padding automatically! 
 
@@ -127,7 +142,7 @@ end
         [numFrames ~ ] = size(listOfImages);
         
 %% Start Loop         
-for iFrame = startFrame:nImTot-1
+for iFrame = startFrame:endFrame
   %try
         %diary([framesPath filesep 'Bug_Frame' num2str(iFrame) '.txt'])
         
@@ -228,6 +243,7 @@ analInfo(iFrame).filoInfo = filoInfo; % will already be filtered for short filo
 analInfo(iFrame).reconstructInfo = reconstruct;
 
 analInfo(iFrame).reconstructInfo.createTime = clock; 
+analInfo(iFrame).reconstructInfo.hashTag = hashTag; 
 
 tic 
 save([framesPath filesep 'analInfoTestSave.mat'],'analInfo','-v7.3'); 

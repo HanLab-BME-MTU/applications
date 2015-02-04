@@ -113,10 +113,10 @@ if nargin<5
     paramsIn.longPathTifs = 1;
     paramsIn.firstLastFrameOnly = 0;
     paramsIn.makeMovieFiles = 0;
-    paramsIn.distCutOffForBody = 15;  % currently in um
+    paramsIn.distCutOffForBody = 30;  % currently in um
     paramsIn.mkPlotsBodyMeasure = 1;
-    paramsIn.subRegions =0; % flag to make frontMask subRegions
-    paramsIn.plotFrontMask = 0; % flag to plot the frontMask 
+    paramsIn.subRegions =1; % flag to make frontMask subRegions
+    paramsIn.plotFrontMask = 1; % flag to plot the frontMask 
 end
 p = paramsIn; 
 %% Make all output files 
@@ -441,7 +441,7 @@ end
        distTrans = bwdist(~mask); 
        distVals = distTrans(pixForBodyEst); 
        subRoiInfo = [pixForBodyEst distVals];
-      [subRois,xVect,yVect] =   GCAgetGrowthConeSubRegions(subRoiInfo,90,[ny,nx],4,mask); 
+      [subRois,xVect,yVect] =   GCAgetGrowthConeSubRegions(subRoiInfo,45,[ny,nx],4,mask); 
      % save in a mask file for later use: Think about best place for
      % substructure to remain in line with movie data 
      

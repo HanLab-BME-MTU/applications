@@ -47,7 +47,7 @@ for iFrame = 1:length(frameList)
     end
     %
     saveas(gcf,[saveDir filesep 'Frames_Scales' filesep  num2str(frameList(iFrame),'%03d') '.tif']);
-    
+    saveas(gcf,[saveDir filesep 'Frames_Scales' filesep num2str(frameList(iFrame),'%03d') '.fig']); 
     % close gcf
     
     setFigure(nx,ny,'off');
@@ -55,16 +55,46 @@ for iFrame = 1:length(frameList)
     imshow(-img,[]);
     hold on
     ridgeCandLow = ridgeCand;
-    ridgeCandHi = ridgeCand ;
-    ridgeCandHi(scaleMapLarge<=4)=0; % filter out low scales
+    ridgeCandHiBD = ridgeCand ;
+    ridgeCandHiBD(scaleMapLarge<=4)=0; % filter out low scales
     ridgeCandLow(scaleMapLarge>4) = 0 ; % filter out high scales
     % dilate ridgeCandLow
     % ridgeCandHiDil = imdilate(ridgeCandHi,strel('disk',2));
-    ridgeCandHi(cMask==1)=0 ;
-    ridgeCandHi = imdilate(ridgeCandHi,strel('disk',4)); % try also with a dilation step
+    % Remove the current mask - assume it was accurate - combine in next
+    % step. 
+    ridgeCandHiBD(cMask==1)=0 ; 
+    
+    % Dilate the veil stem ridge detected
+    ridgeCandHi = imdilate(ridgeCandHiBD,strel('disk',4)); % 
+    
+    
+        
+    % use an active contour method with a large smoothing factor- initiate
+    % with the estimated dilated larger scale ridge region. 
     expand = activecontour(img,ridgeCandHi,100,'Chan-Vese',1);
     backbone=  analInfo(frameList(iFrame)).bodyEst.backbone;
     veilStem = (expand|cMask);
+    makePlot =1 ; 
+    if makePlot == 1
+        imshow(-img,[]) 
+        hold on 
+        spy(ridgeCandHiBD,'r')
+        roiYXC = bwboundaries(cMask); 
+        cellfun(@(x) plot(x(:,2),x(:,1),'r'),roiYXC);
+        roiYXInitiate = bwboundaries(ridgeCandHi); 
+        cellfun(@(x) plot(x(:,2),x(:,1),'g'),roiYXInitiate); 
+        roiYXContour = bwboundaries(expand); 
+        cellfun(@(x) plot(x(:,2),x(:,1),'k'),roiYXContour); 
+         if ~isdir([saveDir filesep 'Overlay']);
+        mkdir([saveDir filesep 'Overlay']);
+    end
+        
+        saveas(gcf,[saveDir filesep 'Overlay' filesep num2str(iFrame,'%03d') '.fig']); 
+    end
+    
+    
+    
+    
     notBody = backbone.*~veilStem;
     
     %toErode = (ridgeCandHiDil | cMask | ridgeCandLow) ;

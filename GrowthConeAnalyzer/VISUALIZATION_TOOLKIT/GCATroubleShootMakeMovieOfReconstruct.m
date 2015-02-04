@@ -8,7 +8,7 @@ function [ output_args ] = makeMovieOfReconstruct( analInfo,frame,pixSizeMic,sav
 % else 
     listOfImages = searchFiles('.tif',[],imDir); 
     filename = [char(listOfImages(frame,2)) filesep char(listOfImages(frame,1))];
-    textColor = [ 0  0 0 ]; 
+    textColor = [ 0 0 0 ]; 
 % end 
  fontText =  {'FontName','Arial','FontSize',14,'FontName','Arial','color',textColor};
 %%%% START %%%%     
@@ -58,12 +58,14 @@ hold on
   erosion =analInfo(frame).bodyEst.erodForBody; 
 cellfun(@(x) plot(x(:,2),x(:,1),'b'),erosion)
 text(nx/10, 20,{'Estimate Larger-Scale'; 'Veil/Stem Pieces'}, fontText{:});
-%pixels = round(10/pixSizeMic); 
-  %  plotScaleBar(pixels,pixels/20,'Color',textColor);
+pixels = round(10/pixSizeMic); 
+    plotScaleBar(pixels,pixels/20,'Color',textColor);
      
  %  print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
   %          [saveDir filesep 'ReconstructMovie02.png']); 
           saveas(h,[saveDir filesep 'ReconstructMovie02.png']); 
+          saveas(h,[saveDir filesep 'ReconstructMovie02.eps'],'psc2'); 
+          saveas(h,[saveDir filesep 'ReconstructMovie02.fig']); 
         
         close gcf
       
@@ -97,7 +99,8 @@ close gcf
      
    %saveas(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
            % [saveDir filesep 'ReconstructMovie04.png']);
-        saveas(h,[saveDir filesep 'ReconstructMovie04.png']); 
+        saveas(h,[saveDir filesep 'ReconstructMovie04.png']);
+        saveas(h,[saveDir filesep 'ReconstructMovie04.eps'],'psc2');
  close gcf 
 %% 05 Overlay Ridges %%%% 
  h = setFigure(nx,ny); 
@@ -571,15 +574,17 @@ filoInfo = analInfo(frame).filoInfo;
 
  imshow(-img,[]);   
  hold on 
-  cellfun(@(x) plot(x(:,2),x(:,1),'y'),edgeYX); 
+ 
  GCAVisualsPlotFilopodiaPerBranchGroup(filoInfo,[ny,nx]); 
+  cellfun(@(x) plot(x(:,2),x(:,1),'k'),edgeYX); 
  
 text(nx/10,10,'Color-Coded By Branch Group', fontText{:});
-  
+ 
   %   print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
    %         [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
    saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
- 
+   saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2');
+   saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.fig']); 
  close gcf
  
  %% Plot Individual 
@@ -613,7 +618,7 @@ c = linspecer(n);
  %    print(h, '-dpng', '-loose', ['-r' num2str(zoom*72)], ...
   %          [saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']) 
         saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.png']); 
-        
+        saveas(h,[saveDir filesep 'ReconstructMovie' num2str(imageNum) '.eps'],'psc2'); 
         
  
    cd(saveDir)

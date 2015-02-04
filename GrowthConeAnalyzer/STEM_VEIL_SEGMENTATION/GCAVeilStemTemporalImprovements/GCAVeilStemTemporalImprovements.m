@@ -1,10 +1,13 @@
-function [ output_args ] = GCAVeilStemTemporalImprovements(analInfo,MD,plots)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
- 
-
- 
-        
+function [ analInfo ] = GCAVeilStemTemporalImprovements(analInfo)
+%GCAVeilStemTemporalImprovments: Currently a simple function that attempts
+%to avoid truncations in the segmentation by identfying outliers in the
+%neurite length time series.  If this frame likewise has an unused body
+%segment it is highly probable that this body part should be connected. 
+% the easiest way to reconnect is to simply use the reconstructed backbone
+% from the surrounding frames- as this backbone tends to change little
+% within small intervals. This is kept as a second step as movies with
+% low time resolution or undergoing more dramatic dynamic behavior may not
+% be able to use this prior to aid in segmentation. 
 
 % check for the field to flag outliers 
 if ~isfield(analInfo,'flagOutlier')
@@ -23,7 +26,7 @@ else
     frames2Fix= frames2Fix(frames2Fix ~= 1 | frames2Fix ~=length(analInfo)) ;
     
 for iFrame = 1:length(frames2Fix)
-    
+    display(['Fixing Frame ' num2str(frames2Fix(iFrame))]); 
    frameC = frames2Fix(iFrame);
 
 % load necessary pieces
@@ -31,13 +34,25 @@ floatingPieceC = analInfo(frameC).bodyEst.rmHiIntPieces;
 veilStemC = analInfo(frameC).masks.neuriteEdge; 
 idxEnterNeurite = analInfo(frameC).idxEnterNeurite;
 [ny,nx] = size(veilStemC);
+framesForAndBack = frameC-5:frameC+5; % need a flag for early/late  guys 
+backbones = arrayfun(@(x) analInfo(x).bodyEst.backbone,framesForAndBack,'uniformoutput',0);
+            sumBB = zeros(ny,nx);
+            
+            for iBB = 1:numel(backbones)
+                sumBB = sumBB+backbones{iBB}; % likely better way than a loop for this but quick fix
+            end
+            % find pixels in structure that were more in more than 5 frames (to remove
+            % outliers)
+           % sumBB(sumBB<=5) =0;
+            sumBB(sumBB>0) = 1;% make a logical mask
+            backbone = bwmorph(sumBB,'thin'); 
 
-backboneMinus = analInfo(frameC-1).bodyEst.backbone;
+%backboneMinus = analInfo(frameC).bodyEst.backbone;
 
 %backbonePlus = analInfo(frameC+1).bodyEst.backbone;
 
 %backbone = (backboneMinus | backbonePlus); 
-backbone = bwmorph(backboneMinus,'thin'); 
+%backbone = bwmorph(backboneMinus,'thin'); 
 
 putTogether = (floatingPieceC | veilStemC | backbone); 
 
@@ -122,43 +137,38 @@ newBodyXY = bwboundaries(newBodyMask);
             %          else
   
  fullMask = dilBB | newBodyMask;
+ figure; 
+ imshow(fullMask,[]) ; 
  
  CCFullMask = bwconncomp(fullMask); 
- % decide later if really want to put plots here. 
- if plots == 1 
-       setFigure(nx,ny,'on')
-       
-      imgPath = MD.getChannelPaths{1}; 
-      imgPath = [imgPath filesep  MD.getImageFileNames{1}{frameC}]; % REMEMBER THEY SET THIS UP SO IN CELLS
-      img  = double(imread(imgPath)); 
-      
-      
-       imshow(-img,[])
-       hold on 
-       
-       roiYXMaskOld = bwboundaries(veilStemC); 
-       roiYXMaskNew  = bwboundaries(fullMask);
-      
-     
-       cellfun(@(x) plot(x(:,2),x(:,1),'g','Linewidth',2),roiYXMaskNew);    
-        cellfun(@(x) plot(x(:,2),x(:,1),'b','Linewidth',2),roiYXMaskOld);
-       
-       
-       saveas(gcf,['FixFrame' num2str(frameC,'%03d') '.fig'])
-       close gcf
-       
-end 
+   %% added 20140104
+  roiYXAll = bwboundaries(fullMask);
+    pixIndicesAll = sub2ind(size(fullMask),roiYXAll{1}(:,1),roiYXAll{1}(:,2));
+    
+    
+
+    % load the old thin body pixels
+    pixIndicesThinBody =  analInfo(frameC).bodyEst.pixIndThinBody;
+    % anything for now that is not thin body is new thick body
+    pixIndicesThickBodyNew = setdiff(pixIndicesAll,pixIndicesThinBody);
+    
+    thickBodyMask = zeros(size(fullMask));
+    thickBodyMask(pixIndicesThickBodyNew)=1;
+    thickBodyMask = logical(thickBodyMask);
+    % record
+    analInfo(frameC).masks.thickBodyMask = thickBodyMask;
+    analInfo(frameC).bodyEst.pixIndThickBody = pixIndicesThickBodyNew;
+    
+%% 
  
  
  
-   
  if CCFullMask.NumObjects == 1
-     
      analInfo(frameC).masks.neuriteEdge = fullMask; 
-     analInfo(frameC).fixVeilStem = 1;
-   
+     
+     analInfo(frameC).outlierFixFlag = 1; 
  else 
-     analInfo(frameC).fixVeilStem =0 ; 
+     analInfo(frameC).outlierFixFlag =0 ; 
  end 
      
        
@@ -167,7 +177,10 @@ end
 
 end
  
+ % in the future make a new folder and save 
  save('analInfoTruncFix.mat','analInfo'); 
+ 
+ 
  
 
 end 

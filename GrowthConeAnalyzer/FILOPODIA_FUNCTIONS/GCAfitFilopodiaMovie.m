@@ -101,7 +101,7 @@ if nargin < 2
     paramsIn.NumPixForFitBack = 10; % should maybe eventually make this distance?
     paramsIn.ValuesForFit = 'Intensity'; % default is the intensity;
     paramsIn.SavePlots = 1; 
-    paramsIn.Restart = 0;
+    paramsIn.Restart = 2;
 end
 p = paramsIn ; 
 %Get the indices of any previous mask refinement processes from this function
@@ -122,6 +122,7 @@ p = paramsIn ;
 
 
 %% Start Wrapper
+load('C:\Users\Maria\matlab\REPOSITORY_GIT\sandbox\GrowthConeAnalyzer\hashTag.mat'); 
 
         
 
@@ -155,7 +156,7 @@ if p.Restart ==1;
     display(['Resuming Filopodia Fitting at ' num2str(startFrame) ])
 elseif p.Restart == 2 
     
-     startFrame = 74;    
+     startFrame = 23;    
      display(['Resuming Filopodia Fitting at ' num2str(startFrame)]); 
     else 
         
@@ -185,6 +186,8 @@ end
         % rewrite the filoInfo with the extra filo Info fields. 
         analInfo(iFrame).filoInfo = filoInfo;
         display(['Finished Fitting Filopodia for  Channel ' num2str(p.ChannelIndex(iCh)) 'Frame ' num2str(iFrame)]); 
+        analInfo(iFrame).reconstructInfo.createTimeFiloFit = clock;
+        analInfo(iFrame).reconstructInfo.hashTagFiloFit = hashTag; 
        
         save([outPutDirC filesep 'analInfoTestSave.mat'],'analInfo','-v7.3')
         

@@ -1,5 +1,5 @@
 
-function [dist,pixIdxTrunc] = calculateDistance(pixIdx,size,mkPlot,varargin)
+function [dist,pixIdxTrunc,deltC] = calculateDistance(pixIdx,size,mkPlot,varargin)
 % small function to calcuale the distance along a line of pixels (have to
 % do this quite frequently so it was easier to make a small helper function ) 
 % INPUT 
@@ -46,12 +46,14 @@ pixelSize = ip.Results.pixelSize;
     
     
     delt =  arrayfun(@(i) sqrt(deltX(i)^2+deltY(i)^2),1:length(deltX));
-    
-    if ~isempty(distCutOff)
-        
     deltC = cumsum(delt); 
     deltCMic = deltC.*pixelSize; 
+    if ~isempty(distCutOff)
+        
+    
     pixIdxTrunc= pixIdx(deltCMic<distCutOff); 
+    else 
+        pixIdxTrunc = [];
     
     end 
     if ~isempty(delt) % ie not a singleton 

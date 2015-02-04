@@ -7,9 +7,11 @@ function [ analInfo ] = performMedianFiltering(analInfo,neuriteLengthInfoMovie,k
 % analInfoC: with the body information  
 % neuriteLengthInfoMovie: scalar 1 if need to calculate 
 % 
+% reset the outlier flag 
 
+%analInfo = rmfield(analInfo,'flagOutlier'); 
 % 
-[outgrowthFilt , outlierIdx] = findOutliersFromMedFilt(neuriteLengthInfoMovie,6,k);
+[outgrowthFilt , outlierIdx] = findOutliersFromMedFilt(neuriteLengthInfoMovie,10,k);
 if ~isempty(outlierIdx)
 % for each outlier put flag 
 for i = 1:length(outlierIdx)

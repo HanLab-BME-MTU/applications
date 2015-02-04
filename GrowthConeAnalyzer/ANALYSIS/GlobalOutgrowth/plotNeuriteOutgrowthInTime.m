@@ -1,8 +1,15 @@
-function [ h ] = plotNeuriteOutgrowthInTime( neuriteIn ,color,norm,timeInterval,makeMovie,saveDir,plotType,smoothedOnly,linewidth)
+function [ h ] = plotNeuriteOutgrowthInTime( neuriteIn ,color,norm,timeInterval,makeMovie,saveDir,plotType,smoothedOnly,linewidth,dataType)
 %Overview
 %% 
 % Notes regarding the Cell: Cell is bad
 %% 
+
+%% quick fix for now 
+if nargin < 10; 
+    dataType = 'dist'; 
+end 
+%%
+
 if strcmpi(plotType,'subplot') 
     fSizeLabels = 20;
     fSizeAxis = 10;
@@ -28,33 +35,43 @@ end
         hold on 
         end 
        [outgrowthFilt , outlierIdx] = findOutliersFromMedFilt(neuriteIn,6,6);
+       if strcmpi(dataType,'dist');
+           h=  plot((0:length(outgrowthFilt)-1).*timeInterval,outgrowthFilt,'color',color,'Linewidth',linewidth);
+           % plot((0:length(neuriteIn)-1).*timeInterval, neuriteIn,'color',color,'Linewidth',2);
+           xlabel('Time (s)','FontName','Arial','FontSize',fSizeLabels);
+           ylabel({'Neurite' ; 'Outgrowth (um)'} ,'FontName','Arial','FontSize',fSizeLabels);
+           set(gca,'FontName','Arial','FontSize',fSizeAxis);
+           axis([0 (length(neuriteIn)-1)*timeInterval,-10,25]);
+           if ~isempty(saveDir)
+               saveas(gcf,[saveDir filesep 'NetOutgrowth' '.eps'],'psc2');
+               saveas(gcf,[saveDir filesep 'NetOutgrowth' '.fig']);
+               % else just output handle
+           end
+       end
        
-     h=  plot((0:length(outgrowthFilt)-1).*timeInterval,outgrowthFilt,'color',color,'Linewidth',linewidth); 
-       % plot((0:length(neuriteIn)-1).*timeInterval, neuriteIn,'color',color,'Linewidth',2); 
-        xlabel('Time (s)','FontName','Arial','FontSize',fSizeLabels); 
-        ylabel({'Neurite' ; 'Outgrowth (um)'} ,'FontName','Arial','FontSize',fSizeLabels); 
-        set(gca,'FontName','Arial','FontSize',fSizeAxis); 
-        axis([0 (length(neuriteIn)-1)*timeInterval,-10,25]); 
-        if ~isempty(saveDir)
-        saveas(gcf,[saveDir filesep 'NetOutgrowth' '.eps'],'psc2'); 
-        saveas(gcf,[saveDir filesep 'NetOutgrowth' '.fig']); 
-        % else just output handle 
-        end 
-       % close gcf 
-        plotVel =0 ; 
-       if plotVel == 1
-        figure('Visible','off')    
-        vel = diff(outgrowthFilt)*1000/5; % should be um/sec
-        
-        
-        plot((0:length(vel)-1).*timeInterval,vel,'color','b','Linewidth',2); 
-        ylabel('Velocity (nm/sec)','FontName','Arial','FontSize',20); 
-        xlabel('Time (s)', 'FontName','Arial','FontSize',20); 
-        if ~isempty(saveDir)
-        saveas(gcf,[saveDir filesep 'Outgrowth_Velocity' '.eps'],'psc2'); 
-        saveas(gcf,[saveDir filesep 'Outgrowth_Velociyt' '.fig']); 
-        end       
-        end 
+       if strcmpi(dataType,'vel');
+           % close gcf
+           sampleSize = 5; 
+           downSample = outgrowthFilt(1:sampleSize:end); 
+           
+           figure; 
+           vel = diff(downSample).*(60/timeInterval); % should be um/min
+           % plot both the outgrowth values and the velocity 
+           plot(1:length(outgrowthFilt),outgrowthFilt); 
+           hold on 
+           
+           scatter(1:5:length(outgrowthFilt)-1,vel); 
+           hold on 
+           scatter(1:5:length(outgrowthFilt),downSample); 
+           
+           plot((0:length(vel)-1).*timeInterval*sampleSize,vel,'color',color,'Linewidth',linewidth);
+           ylabel('Velocity (um/min)','FontName','Arial','FontSize',20);
+           xlabel('Time (s)', 'FontName','Arial','FontSize',20);
+           if ~isempty(saveDir)
+               saveas(gcf,[saveDir filesep 'Outgrowth_Velocity' '.eps'],'psc2');
+               saveas(gcf,[saveDir filesep 'Outgrowth_Velociyt' '.fig']);
+           end
+       end
 if makeMovie== 1
     
     for iFrame = 1:length(neuriteIn) 
@@ -78,5 +95,5 @@ end
     
     
     
-
+end 
 

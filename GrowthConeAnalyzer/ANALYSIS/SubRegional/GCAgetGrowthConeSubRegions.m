@@ -30,7 +30,7 @@ ny =  imageSize(1);
  nx = imageSize(2); 
 % %% START 
 distTrans = frontPixelInfo(:,2); 
-useThickestPoint =0; 
+useThickestPoint =1; 
 if useThickestPoint == 1;
 thickestPt = max(frontPixelInfo(:,2)); 
 
@@ -39,7 +39,34 @@ else
     idxPt = length(distTrans);
 %[yCenter,xCenter] = ind2sub(imageSize,idxPt); 
 end % thickestPoint
-
+% added 20150121 for example for DAC 
+makePlot = 1; 
+if makePlot == 1
+   
+    [~,~,distToPlot] = calculateDistance(frontPixelInfo(:,1),[ny,nx],0);
+    
+    figure; 
+    setAxis
+    distTransInMic = distTrans.*0.216;
+      distTransInMic = distTransInMic(1:end-1)';
+      distToPlotInMic = distToPlot.*0.216;
+    scatter(distToPlotInMic,distTransInMic,'k','filled'); 
+    % mark thickest point 
+    scatter(distToPlot(idxPt).*0.216,distTrans(idxPt)*0.216,'r','filled');
+   % n = length(distTrans); 
+    %distTransInMic = distTrans.*0.216; 
+    % for now just find the first radius where the value is equal to 2
+    % after the max. 
+   
+    idxLow =  find(distTransInMic<2 & distToPlot>distToPlot(idxPt),1,'first');     
+    line([distToPlot(idxLow).*0.216,distToPlot(idxLow).*0.216],[0,6]); 
+   line([0 30],[2,2],'color','k')
+    ylabel({'Shortest Distance' ; 'to Veil/ Stem Edge' ; '(um)'});
+     xlabel({'Distance Along Neurite Length Path' ;' From Tip of Leading Protrusion ';'(um)'});
+    close gcf
+ %  sd_spline= csaps(linspace(1,n,n),distTrans,0.01);
+%sd=ppval(sd_spline,linspace(1,nTime,nTime));
+end     
 % get the indices surrounding the vector: length of this is user defined
 idx = idxPt-vectLength:idxPt+vectLength;
 % make sure to filter out pieces that extend beyond the frontPixelInfo
