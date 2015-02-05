@@ -15,8 +15,8 @@
 %     Group_ROOT_DIR=[];
 % end
 ML_name_cell=[];
-ML_name_cell{1} = '/project/cellbiology/gdanuser/vimentin/ding/fromTony/screen_20141204_3column_test/threecolumn_movieList/movieList.mat';
-feature_index=ones(18,1);
+ML_name_cell{1} = '/project/cellbiology/gdanuser/vimentin/ding/fromTony/half_plate_screen5/plate_movieList/movieList.mat';
+feature_index=ones(16,1);
 Group_ROOT_DIR=[];
 
 
@@ -81,6 +81,7 @@ for iML = 1 : nList
                 
                 for iChannel = 1 : nChannel
                     display(['Checking: iMD:', num2str(iMD), ', iChannel:', num2str(iChannel)]);
+                    CFMP_feature_thisMD
                     outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
                     
                     Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
@@ -124,6 +125,10 @@ for iML = 1 : nList
                     
                     ChMP_feature_thisMD{iChannel} = extract_mean_percentiles_cell(NA_feature_thisMD,iChannel, feature_index);
                     
+                    for iW = 1 : nFrame/4
+                        ChMP_feature_perwell_thisMD{iChannel,iW} = extract_mean_percentiles_perwell_cell(NA_feature_thisMD,iChannel,iW, feature_index);
+                    end
+                    
                     % remove it after use, since it is too big                    
                     for iFrame = 1 : nFrame
                         NA_feature_thisMD{iChannel, iFrame}=[];
@@ -132,7 +137,8 @@ for iML = 1 : nList
                     CFMP_feature_ordered_thisMD{iChannel} = nan(18,8,nFrame);
                     ALL_cat = cat(1,CFMP_feature_thisMD{:});
                     
-                    for iF = 1 :18
+%                     for iF = 1 :18
+                    for iF = 1 :16
                         for iP = 1 :8
                            CFMP_feature_ordered_thisMD{iChannel}(iF,iP,1:nFrame) = ALL_cat(iF:18:end,iP);
                         end
@@ -151,7 +157,8 @@ for iML = 1 : nList
                     'Identifier_thisMD',...
                     'CFMP_feature_ordered_thisMD',...
                     'CFMP_feature_thisMD',...
-                    'ChMP_feature_thisMD');
+                    'ChMP_feature_thisMD',...
+                    'ChMP_feature_perwell_thisMD');
 
             end % end of if previous gathering exists for MD
             
@@ -159,14 +166,15 @@ for iML = 1 : nList
             CFMP_feature_thisML{1,iMD} = CFMP_feature_thisMD;
             ChMP_feature_thisML{1,iMD} = ChMP_feature_thisMD;
             CFMP_feature_ordered_thisML{1,iMD} =CFMP_feature_ordered_thisMD;        
+            ChMP_feature_perwell_thisML{1,iMD} =ChMP_feature_perwell_thisMD;        
             
         end  % end of a MD        
         
-         save([MD_ROOT_DIR,filesep,'movieList_NA_results_gathered.mat'],...
+         save([ML_ROOT_DIR,filesep,'movieList_NA_results_gathered.mat'],...
                     'Identifier_thisML',...
                     'CFMP_feature_ordered_thisML',...
                     'CFMP_feature_thisML',...
-                    'ChMP_feature_thisML');
+                    'ChMP_feature_thisML','ChMP_feature_perwell_thisML');
     end     % end of if previous gathering exists FOR a ML    
     
     
@@ -174,7 +182,7 @@ for iML = 1 : nList
     plate_network_feature_plotting(Identifier_thisML,...
                     CFMP_feature_ordered_thisML,...
                     CFMP_feature_thisML,...
-                    ChMP_feature_thisML);
+                    ChMP_feature_thisML,ChMP_feature_perwell_thisML);
     
     
     
