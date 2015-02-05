@@ -217,10 +217,14 @@ for iChannel = validChannels
         
         output_feature.Cell_Mask = Cell_Mask;
         
-        % save output feature for single image(single channel, single frame)
-        save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
+%         % save output feature for single image(single channel, single frame)
+%         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
+%             'output_feature');
+%         
+        % new name save output feature for single image(single channel, single frame)
+        save([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
             'output_feature');
-     
+        
         % put output feature to cell for all channels, all frames
         network_feature{iChannel,iFrame} = output_feature;
         
@@ -228,10 +232,11 @@ for iChannel = validChannels
        toc
     end
     
-    % save output feature for all channels, all frames)       
+    % save output feature for all channels(till this), all frames)       
     save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_allframe.mat'],...
             'network_feature');
 end
 
- 
-        
+% save output feature for all channels, all frames)
+save([movie_Dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
+    'network_feature');
