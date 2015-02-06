@@ -288,7 +288,7 @@ end
 %-------------------------------------------------------------------------------
 % Load detection masks
 %-------------------------------------------------------------------------------
-if (exist(data.maskPaths, 'file')==2) && ip.Results.LoadFrames
+if ip.Results.LoadFrames && exist(data.maskPaths, 'file')==2
     fprintf('Loading detection masks ... ');
     dmask = readtiff(data.maskPaths);
     fprintf('done.\n');
