@@ -225,18 +225,19 @@ if nargin >= 10 && strcmp(method,'fast')
         idxNonan = ~isnan(u);
         if any(~idxNonan)
             u = u(idxNonan);
-            M = M(idxNonan,:);
-            MpM = M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         else
             MpM=M'*M;
+            Mreal = M;
         end
         maxIter = 20;
         tolr = 10;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
-            sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+            sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %             sol_coef = l1_ls(M,u,L,tolx); 
         end
 %         sol_mats.nW=normWeights;
@@ -510,7 +511,8 @@ for i=1:length(alphas);
 end
 % Find the corner of the Tikhonov L-curve
 try
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+    disp('Inflection point smaller than L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -609,7 +611,8 @@ end
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+disp('Inflection point larger than L-corner will be chosen')
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
 
 % Also, I can use L0 norm information to choose regularization parameter
 
