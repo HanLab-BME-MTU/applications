@@ -85,7 +85,8 @@ display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
-if(vimscreen_flag>0)
+if(vimscreen_flag>0 && (indexFilamentSegmentationProcess==0 ||indexFlattenProcess==0 ...
+        ||indexSteerabeleProcess==0 || indexFilamentPackage==0) )
     MD = vimscreen_forceMDAddProcessSave(MD);
     package_process_ind_script;
 end

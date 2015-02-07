@@ -16,7 +16,7 @@
 % end
 ML_name_cell=[];
 ML_name_cell{1} = '/project/cellbiology/gdanuser/vimentin/ding/fromTony/half_plate_screen5/plate_movieList/movieList.mat';
-feature_index=ones(16,1);
+feature_index=ones(18,1);
 Group_ROOT_DIR=[];
 
 
@@ -81,9 +81,9 @@ for iML = 1 : nList
                 
                 for iChannel = 1 : nChannel
                     display(['Checking: iMD:', num2str(iMD), ', iChannel:', num2str(iChannel)]);
-                    CFMP_feature_thisMD
-                    outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
+%                     outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
                     
+                    outdir = [MD.outputDirectory_,filesep,'FilamentAnalysisPackage',filesep,'FilamentSegmentation',filesep,'Channel',num2str(iChannel),filesep,'analysis_results'];
                     Channel_FilesNames = MD.channels_(iChannel).getImageFileNames(1:MD.nFrames_);
                     filename_short_strs = uncommon_str_takeout(Channel_FilesNames);
                     
@@ -135,10 +135,10 @@ for iML = 1 : nList
                     end
                     
                     CFMP_feature_ordered_thisMD{iChannel} = nan(18,8,nFrame);
+                    
                     ALL_cat = cat(1,CFMP_feature_thisMD{:});
                     
-%                     for iF = 1 :18
-                    for iF = 1 :16
+                   for iF = 1 :18
                         for iP = 1 :8
                            CFMP_feature_ordered_thisMD{iChannel}(iF,iP,1:nFrame) = ALL_cat(iF:18:end,iP);
                         end
