@@ -1,9 +1,10 @@
-function trk = imarisReadTrackCSV(positionFile,timeFile)
+function [trk,frameTimes] = imarisReadTrackCSV(positionFile,timeFile)
 %%IMARISREADTRACKCSV reads tracking data from CSV files exported from imaris
 %
 % tracks = imarisReadTrackCSV
-% tracks = imarisReadTrackCSV(positionFile)
-% tracks = imarisReadTrackCSV(positionFile,timeFile)
+% [tracks,frameTimes] = imarisReadTrackCSV
+% ... = imarisReadTrackCSV(positionFile)
+% ... = imarisReadTrackCSV(positionFile,timeFile)
 %
 %
 %Hunter Elliott
