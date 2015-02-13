@@ -1,12 +1,10 @@
 classdef Skeleton < hgsetget &  matlab.mixin.Copyable
     % Class to contain vertices, edges, and faces of a skeleton meshwork
-    properties ( Transient )
+    properties
         edges
         vertices
         assumeOrdered = false;
         faces
-    end
-    properties
         bw
     end
     methods
@@ -66,7 +64,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
         function deleteEdgeLoops(obj)
             % an edge loop is an edge that starts and ends at the same
             % place
-            edgeLoops = cellfun(@(x) x(1) == x(end),S.edges.PixelIdxList);
+            edgeLoops = cellfun(@(x) x(1) == x(end),obj.edges.PixelIdxList);
             obj.deleteEdges(edgeLoops);
         end
         function deleteFaces(obj,f)
@@ -435,14 +433,19 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             end
             rp = regionprops(obj.vertices,'Centroid');
             v = obj.connectedVertices;
+            X = [];
+            Y = [];
             for i=e(:)'
                 [r,c] = ind2sub([1024 1024],obj.edges.PixelIdxList{i});
                 if(all(v(i,:) ~= 0))
                     r = [rp(v(i,1)).Centroid(2) ; r ;  rp(v(i,2)).Centroid(2)];
                     c = [rp(v(i,1)).Centroid(1) ; c ;  rp(v(i,2)).Centroid(1)];
                 end
-                line(c,r,'Color',edgeColor);
+%                 line(c,r,'Color',edgeColor);
+                X = [X; c ; NaN];
+                Y = [Y; r ; NaN];
             end
+            line(X,Y,'Color',edgeColor);
 %             [R,C] = obj.connectedEndPoints;
 %             for i=1:obj.vertices.NumObjects
 %                 for j = 1:length(R{i})
@@ -473,7 +476,7 @@ classdef Skeleton < hgsetget &  matlab.mixin.Copyable
             showGraph(obj);
         end
         function [e,f] = cleanup(obj)
-            obj.convertShortEdgesToVertices(2);
+%             obj.convertShortEdgesToVertices(2);
             obj.reduceVerticesToPoints;
             % Cleans up the edges and faces of the skeleton
             % 1. Removes edges that have no faces

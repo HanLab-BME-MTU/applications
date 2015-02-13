@@ -49,7 +49,9 @@ numTracks = length(tracks0);
 
 %go over all tracks and sub-sample
 tracksSub = tracks0;
-tracksSub = rmfield(tracksSub,'aggregState');
+if isfield(tracksSub,'aggregState')
+    tracksSub = rmfield(tracksSub,'aggregState');
+end
 for iTrack = 1 : numTracks
     
     %convert the current track's information to matrix format
@@ -87,8 +89,8 @@ for iTrack = 1 : numTracks
     end
     
     %replace segments that did not survive the subsampling with NaN in both
-    %the 3rd and 4th column - this means that some merges/splits might not
-    %survive the subsampling
+    %the 3rd and 4th column - this means that some splits followed by a
+    %merge might not survive the subsampling
     for iSeg = indxGone'
         seqOfEvents(seqOfEvents(:,3)==iSeg,3) = NaN;
         seqOfEvents(seqOfEvents(:,4)==iSeg,4) = NaN;
@@ -97,6 +99,63 @@ for iTrack = 1 : numTracks
     %for surviving merges, add one to end time to follow convention
     rowsSeg = find(seqOfEvents(:,2)==2 & ~isnan(seqOfEvents(:,4)));
     seqOfEvents(rowsSeg,1) = seqOfEvents(rowsSeg,1) + 1;
+    
+    %find merges and splits that involve the same track segment and happen at the exact same time
+    %these result from associations that last shorter than the sub-sampling time
+    timeSegmentSplit = seqOfEvents(seqOfEvents(:,2)==1&~isnan(seqOfEvents(:,4)),[1 4]);
+    timeSegmentMerge = seqOfEvents(seqOfEvents(:,2)==2&~isnan(seqOfEvents(:,4)),[1 4]);
+    timeSegmentCommon = intersect(timeSegmentSplit,timeSegmentMerge,'rows');
+    
+    %go over these merges and splits and cancel them, as basically the
+    %merge and split cancel each other out
+    %add splitting segment to list of segments not surviving
+    for iMS = 1 : size(timeSegmentCommon,1)
+        
+        %get the merging and splitting segments to be stitched back
+        %together
+        timeMS = timeSegmentCommon(iMS,1);
+        segMS  = timeSegmentCommon(iMS,2);
+        segMerge = seqOfEvents( (seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS & seqOfEvents(:,2)==2) , 3 );
+        segSplit = seqOfEvents( (seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS & seqOfEvents(:,2)==1) , 3 );
+        
+        %stitch them back together and cancel the merge and split
+        trackedFeatureIndx(segMerge,timeMS:end) = trackedFeatureIndx(segSplit,timeMS:end);
+        trackedFeatureIndx(segSplit,:) = 0;
+        trackedFeatureInfo(segMerge,8*(timeMS-1)+1:end) = trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end);
+        trackedFeatureInfo(segSplit,8*(timeMS-1)+1:end) = NaN;
+        seqOfEvents(seqOfEvents(:,1)==timeMS & seqOfEvents(:,4)==segMS,3:4) = NaN;
+        
+        %update segment numbers in sequence of events
+        seqOfEvents(seqOfEvents(:,3)==segSplit,3) = segMerge;
+        seqOfEvents(seqOfEvents(:,4)==segSplit,4) = segMerge;
+        
+        %add splitting segment to list of those not surviving
+        indxGone = [indxGone; segSplit]; %#ok<AGROW>
+        indxStay = setdiff(indxStay,segSplit);
+        
+    end
+    
+    %if a first segment merges with a second segment, which itself merges
+    %with a third segment at the same time, replace the second segment with
+    %the third
+    timeSegmentEndMerge = seqOfEvents(seqOfEvents(:,2)==2&~isnan(seqOfEvents(:,4)),[1 3 4]);
+    timeSegmentCommon = intersect(timeSegmentEndMerge(:,[1 3]),timeSegmentEndMerge(:,[1 2]),'rows');
+    for iM = 1 : size(timeSegmentCommon,1)
+        segmentEnd = timeSegmentCommon(iM,2);
+        segmentReplace = seqOfEvents(seqOfEvents(:,2)==2&seqOfEvents(:,3)==segmentEnd,4);
+        seqOfEvents(seqOfEvents(:,2)==2&seqOfEvents(:,4)==segmentEnd,4) = segmentReplace;
+    end
+    
+    %if a first segment splits from a second segment, which itself splits
+    %from a third segment at the same time, replace the second segment with
+    %the third
+    timeSegmentStartSplit = seqOfEvents(seqOfEvents(:,2)==1&~isnan(seqOfEvents(:,4)),[1 3 4]);
+    timeSegmentCommon = intersect(timeSegmentStartSplit(:,[1 3]),timeSegmentStartSplit(:,[1 2]),'rows');
+    for iS = 1 : size(timeSegmentCommon,1)
+        segmentStart = timeSegmentCommon(iS,2);
+        segmentReplace = seqOfEvents(seqOfEvents(:,2)==1&seqOfEvents(:,3)==segmentStart,4);
+        seqOfEvents(seqOfEvents(:,2)==1&seqOfEvents(:,4)==segmentStart,4) = segmentReplace;
+    end
     
     %keep only rows that belong to surviving segments
     seqOfEvents = seqOfEvents(~isnan(seqOfEvents(:,3)),:);
@@ -110,7 +169,7 @@ for iTrack = 1 : numTracks
         seqOfEvents(seqOfEvents(:,3)==iSeg,3) = iStay;
         seqOfEvents(seqOfEvents(:,4)==iSeg,4) = iStay;
     end
-    
+        
     %convert to sparse if input was sparse
     if sparseForm
         trackedFeatureIndx = sparse(trackedFeatureIndx);

@@ -14,6 +14,9 @@ nProcess = numel(this_MD.processes_);
 nFrame = this_MD.nFrames_;
 nPackage = length(this_MD.packages_);
 
+default_parameter_cell= vimscreen_default_parameters(this_MD);
+set_parameter_cell = default_parameter_cell;
+
 % look for exisitng filament package
 indexFilamentPackage = 0;
 for i = 1 : nPackage
