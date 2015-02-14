@@ -135,7 +135,7 @@ elseif strcmpi(method,'fft')
         discrete_Force_y_unPadded=force_y;
     else
     % Make force_x and force_y a function handle if it is a matrix
-        if ismatrix(force_x) && ismatrix(force_y)
+        if ismatrix(force_x) && ismatrix(force_y) && ~isa(force_x,'TriScatteredInterp')
         %     [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
         %     xvec=xmat(:);
         %     yvec=ymat(:);
