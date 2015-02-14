@@ -59,9 +59,19 @@ end
 
 display('1.) Creating mesh & basis [~5sec]:...');
 tic;
-keepBDPts=true;
+keepBDPts=true; %this might lead to unmatching forward map that lead to
+% diagonalized traction map
+% keepBDPts=false;
 doPlot=0;
-if isempty(paxImage)
+strictBEM = false;
+if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
+    strictBEM = true;
+end
+if strictBEM
+    xvec = displField(frame).pos(:,1);
+    yvec = displField(frame).pos(:,2);
+    forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
+elseif isempty(paxImage)
     forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 elseif isempty(forceMesh)
     forceMesh=createMeshAndBasisFromAdhesions(xvec,yvec,paxImage,displField(frame),pixelSize);

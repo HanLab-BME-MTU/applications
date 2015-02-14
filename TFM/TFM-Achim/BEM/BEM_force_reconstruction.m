@@ -216,7 +216,11 @@ if nargin >= 10 && strcmp(method,'fast')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution; adoped from Aster et. al.')
 
-        [eyeWeights,~] =getGramMatrix(forceMesh);
+        [eyeWeights,~] =getGramMatrix(forceMesh); % possibly this is a
+%         culprit that makes diagonalized force map. Now switching to
+%         Achim's approach.
+%         [normWeights]=getNormWeights(forceMesh);
+%         eyeWeights =diag(normWeights);    
         % plot the solution for the corner
         tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
@@ -238,6 +242,7 @@ if nargin >= 10 && strcmp(method,'fast')
             [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+%             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr,1,forceMesh); 
 %             sol_coef = l1_ls(M,u,L,tolx); 
         end
 %         sol_mats.nW=normWeights;
