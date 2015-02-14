@@ -42,6 +42,7 @@ ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm
 ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
+ip.addParamValue('strictBEM',false,@islogical); 
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -56,6 +57,7 @@ M = ip.Results.fwdMap;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
+strictBEM = ip.Results.strictBEM;    
 v = ip.Results.PoissonRatio;
 
 if nargin < 12 || isempty(solMethodBEM)
@@ -83,7 +85,7 @@ pos_u=horzcat(x_vec,y_vec);
 
 display('2.) Building up forward map:...');
 tic;
-if nargin >= 10 && strcmp(method,'fast') && isempty(M)
+if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
     if isempty(imgRows) || isempty(imgCols)
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'PoissonRatio',v);
@@ -93,7 +95,7 @@ if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol,'conv_free');
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^5,'fast');
 else
     display('Using input Forward Map');
 end
@@ -216,13 +218,18 @@ if nargin >= 10 && strcmp(method,'fast')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution; adoped from Aster et. al.')
 
-        [eyeWeights,~] =getGramMatrix(forceMesh); % possibly this is a
+        if strictBEM
+            eyeWeights = eye(numel(forceMesh.base));
+            tolx =  numel(forceMesh.base)*2.5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        else
+            [eyeWeights,~] =getGramMatrix(forceMesh); % possibly this is a
 %         culprit that makes diagonalized force map. Now switching to
 %         Achim's approach.
 %         [normWeights]=getNormWeights(forceMesh);
 %         eyeWeights =diag(normWeights);    
+            tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        end
         % plot the solution for the corner
-        tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         %Check for nan in u

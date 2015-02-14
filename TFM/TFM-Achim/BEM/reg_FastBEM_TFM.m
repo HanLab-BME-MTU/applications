@@ -70,7 +70,11 @@ end
 if strictBEM
     xvec = displField(frame).pos(:,1);
     yvec = displField(frame).pos(:,2);
-    forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
+    idxNonan = ~isnan(displField(frame).vec(:,1));
+    xvec = xvec(idxNonan);
+    yvec = yvec(idxNonan);
+
+    forceMesh=createMeshAndBasis(xvec,yvec,doPlot);
 elseif isempty(paxImage)
     forceMesh=createMeshAndBasisFastBEM(xvec,yvec,keepBDPts,[],doPlot);
 elseif isempty(forceMesh)
@@ -79,7 +83,14 @@ end
 toc;
 display('Done: mesh & basis!');
 
-if isempty(paxImage)
+if strictBEM
+    [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
+        BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
+        displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
+        [],[],'fast',meshPtsFwdSol,solMethodBEM,'wtBar',wtBar,'thickness',thickness,'useLcurve',useLcurve,...
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,...
+        'strictBEM',strictBEM);    
+elseif isempty(paxImage)
     [fx,fy,x_out,y_out,M,pos_u,u,sol_coef,sol_mats] = ...
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
