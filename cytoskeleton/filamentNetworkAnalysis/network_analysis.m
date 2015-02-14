@@ -10,6 +10,7 @@ function [output_feature, VIF_ROI_model, VIF_ROI_orientation_model] = ...
 output_feature=[];
 
 output_feature.straightness_per_filament_pool=[];
+output_feature.curvature_per_pixel_pool=[];
 output_feature.length_per_filament_pool=[];
 output_feature.pixel_number_per_filament_pool=[];
 output_feature.density_filament=[];
@@ -42,10 +43,12 @@ orientation_pixel_pool = [];
 pixel_number_per_filament_pool = [];
 length_per_filament_pool = [];
 straightness_per_filament_pool = [];
+filament_mean_curvature = [];
+curvature_per_pixel_pool =[];
 
 %since these are calcuated fast and in same loop, calculate together
 
-if(sum(feature_flag(1:3)>0) || feature_flag(6)>0)    
+if(sum(feature_flag(1:3)>0) || feature_flag(6)>0 || feature_flag(17)>0 || feature_flag(18)>0 ) 
     % for each filament, calculate the length, orientation, and straightness
     % and put them into the pool.
     for iF = 1 : length(VIF_ROI_model)
@@ -59,6 +62,23 @@ if(sum(feature_flag(1:3)>0) || feature_flag(6)>0)
             pixel_number_per_filament_pool(iF) = length(x);
             length_per_filament_pool(iF) = filament_detailed_length;
             straightness_per_filament_pool(iF) = filament_start_end_distance/filament_detailed_length;
+            
+            
+            if(feature_flag(17)>0 || feature_flag(18)>0)              
+                
+                line_smooth_H = fspecial('gaussian',5,1.5);
+                
+                line_i_x = (imfilter(x, line_smooth_H, 'replicate', 'same'));
+                line_i_y = (imfilter(y, line_smooth_H, 'replicate', 'same'));
+                
+                Vertices = [line_i_x line_i_y];
+                Lines=[(1:size(Vertices,1)-1)' (2:size(Vertices,1))'];
+                k=LineCurvature2D(Vertices,Lines);
+                
+                filament_mean_curvature(iF) = mean(abs(k));
+                curvature_per_pixel_pool = [curvature_per_pixel_pool; k];
+                
+            end
             
             
             if(feature_flag(6)>0)
@@ -150,3 +170,13 @@ end
 if(feature_flag(7)>0)
 output_feature.orientation_pixel_pool_display_center=orientation_pixel_pool_display_center;
 end
+
+if(feature_flag(17)>0)
+    output_feature.filament_mean_curvature =  filament_mean_curvature;   
+end
+
+if(feature_flag(18)>0)
+    output_feature.curvature_per_pixel_pool = curvature_per_pixel_pool;
+end
+
+

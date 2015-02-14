@@ -172,23 +172,20 @@ classdef ImageFlattenProcess < ImageProcessingProcess
             
             % this line in commandation for shortest version of filename
             filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
-    
             
-          
             currentImg=[];
             
-           try
-               currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
-                        filename_short_strs{iFrame},'.tif']);
-           catch
-               currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
-                        filename_shortshort_strs{iFrame},'.tif']);
-           end
-           
-             out_data = currentImg;
-             
-        end
-               
+            try
+                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                    filename_short_strs{iFrame},'.tif']);
+            catch
+                currentImg = imread([ImageFlattenChannelOutputDir,'/flatten_', ...
+                    filename_shortshort_strs{iFrame},'.tif']);
+            end
+            
+            out_data = currentImg;
+            
+         end         
         
         function h = draw(obj,iChan,varargin)
             

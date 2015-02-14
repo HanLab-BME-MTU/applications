@@ -23,10 +23,9 @@ ip.addRequired('this_MD', @(x) isa(x,'MovieData'));
 ip.addRequired('Parameter_MD',@(x) isa(x,'MovieData') | isempty(x));
 
 ip.addOptional('run_with_new_param',  0, @isnumeric);
-ip.addOptional('input_parameter_set', [], @iscell);
-ip.addOptional('save_old_data_tag',  [], @ischar);
-ip.addOptional('whole_movie_filename', [], @ischar);
-
+ip.addOptional('input_parameter_set', [], @(x) iscell(x) | isempty(x));
+ip.addOptional('save_old_data_tag',  [], @(x) ischar(x) | isempty(x));
+ip.addOptional('whole_movie_filename', [], @(x) ischar(x) | isempty(x));
 
 ip.parse(this_MD,Parameter_MD,varargin{:});
 whole_movie_filename= ip.Results.whole_movie_filename;
@@ -204,8 +203,14 @@ if(~isempty(Parameter_MD))
                             else
                                 this_MD = filament_segmentation(this_MD,given_Params);
                             end
+                            %save MD to disk
+                            this_MD.save();
                         end
+                        %save MD to disk
+                        this_MD.save();
                     end
+                    %save MD to disk
+                    this_MD.save();
                 end
             end
         end
@@ -272,7 +277,13 @@ else % else for if there is a input parameter MD
         end
     end
     
-    this_MD = image_flatten_norepeating(this_MD,default_Params);
+    if(run_with_new_param ==1)
+        this_MD = image_flatten(this_MD,default_Params);
+    else
+        this_MD = image_flatten_norepeating(this_MD,default_Params);
+    end
+    %save MD to disk
+    this_MD.save();
     
     %% % 4 steerable filter
     
@@ -290,8 +301,15 @@ else % else for if there is a input parameter MD
          
     end
     
-    this_MD = steerable_filter_forprocess_continue(this_MD,default_Params);
+    if(run_with_new_param ==1)
+        this_MD = steerable_filter_forprocess(this_MD,default_Params);
+    else
+        this_MD = steerable_filter_forprocess_continue(this_MD,default_Params);
+    end
     
+    %save MD to disk
+    this_MD.save();
+        
     %%
     % 5 filament segmentation
     default_Params = set_parameter_cell{5};
@@ -389,8 +407,11 @@ else % else for if there is a input parameter MD
             this_MD = filament_segmentation_continue(this_MD,default_Params);
         end
     end    
+    
+    %save MD to disk
+    this_MD.save();
 end
 
 
-
-
+%Finally, save MD to disk
+this_MD.save();

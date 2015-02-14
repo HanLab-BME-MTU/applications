@@ -76,7 +76,7 @@ classdef LaminsImage < hgsetget
                     obj.steerable = matobj.steerable(obj.coordinates{[1 3]});
                     obj.steerable = obj.steerable{1};
                 else
-                    sigma = 5;
+                    sigma = 2;
                     if(~isempty(obj.parent) && isa(obj.parent,'lamins.classes.LaminsData'))
                         sigma = obj.parent.params.steerable.sigma;
                     end

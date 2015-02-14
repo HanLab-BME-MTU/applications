@@ -10,7 +10,7 @@ default_parameter_set=cell(1,5);
 default_Params=[];
 
 % set to empty so that nothing is to be run at this thresholding process
-default_Params.ChannelIndex = [];
+default_Params.ChannelIndex = [3];
 
 % if want to add back, change to [3]
 % default_Params.ChannelIndex = [3];
@@ -31,7 +31,7 @@ default_parameter_set{1} = default_Params;
 default_Params=[];
 
 % set to empty so that nothing is to be run at this mask refinement process
-default_Params.ChannelIndex = [];
+default_Params.ChannelIndex = [3];
 
 % if want to add back, change to [3]
 % default_Params.ChannelIndex = [3];
@@ -109,9 +109,9 @@ default_Params.st_lowerbound_localthresholding = [90 90 90];
 default_Params.IntPace_Size = [3 3 3];
 default_Params.IntPatch_Size = [21 21 21];
 default_Params.int_lowerbound_localthresholding = [90 90 90];
-default_Params.Combine_Way{1} = 'geo_based_no_GM';
-default_Params.Combine_Way{2} = 'geo_based_no_GM';
-default_Params.Combine_Way{3} = 'geo_based_no_GM';
+default_Params.Combine_Way{1} = 'geo_based_GM';
+default_Params.Combine_Way{2} = 'geo_based_GM';
+default_Params.Combine_Way{3} = 'geo_based_GM';
 default_Params.Cell_Mask_ind = [5 5 1];
 default_Params.Whole_movie_ind = [1 1 2];
 default_Params.Whole_movie_stat_cell{1} = [];
@@ -127,8 +127,8 @@ default_Params.Classifier_Type_ind = [1 1 1];
 default_Params.training_sample_number = [30 30 30];
 default_Params.LengthThreshold = [4 4 4];
 default_Params.CurvatureThreshold = [0.1 0.1 0.1];
-default_Params.CoefAlpha = [1.6 1.6 1.6];
-default_Params.IternationNumber = [0 0 2];
+default_Params.CoefAlpha = [1.2 1.2 1.6];
+default_Params.IternationNumber = [1 1 2];
 default_Params.CannyHigherThreshold = [80 80 80];
 default_Params.CannyLowerThreshold = [80 80 80];
 default_Params.nofiguredisruption = 1;

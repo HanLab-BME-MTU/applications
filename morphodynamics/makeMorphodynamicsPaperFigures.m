@@ -321,7 +321,7 @@ winAlph = 1;
 
 plotWindows(windowsTP,[{'b','FaceAlpha',winAlph} plotPars{:}],'bandMin',iBandHi,'bandMax',iBandHi);
 plotWindows(windowsTP{iStripHi},[{'g','FaceAlpha',winAlph} plotPars{:}]);
-plotWindows(windowsTP{iStripHi},[{'y','FaceAlpha',1} plotPars{:}],'bandMin',iBandHi,'bandMax',iBandHi);
+plotWindows(windowsTP{iStripHi}{iBandHi},[{'y','FaceAlpha',1} plotPars{:}]);
 
 roi1X = [535.0331      785.0331];
 roi1Y = [420.6424      640.5651];
@@ -487,13 +487,17 @@ end
 
 %Use same cell as 1 & 2 used to use pre-G's suggested change. Doesn't
 %matter for illustration
-exampMovWin = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_GFP_w_Shutter_stack2_timeCropped';
+%exampMovWin =
+%'/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Kwonmoo_Arp3/Arp3_GFP_w_Shutter_stack2_timeCropped';%Ubuntu desktop
+exampMovWin = 'P:\gtpases\Hunter\methods_paper_data\Kwonmoo_Arp3\Arp3_GFP_w_Shutter_stack2_timeCropped';%Windows desktop
 mdWin = MovieData.load([exampMovWin filesep 'movieData.mat']);
 
 winDir = [exampMovWin filesep 'windows_' num2str(winSize) 'nm_' winType ];
 winFiles = dir([winDir filesep '*.mat']);
 windows = load([winDir filesep winFiles(iFrame).name]);
 windows = windows.windows;
+
+protVecs = load([exampMovWin filesep 'protrusion' filesep 'protrusion_vectors.mat']);
 
 scBarSz = 5e3; %Scale bar size in nm
 
@@ -517,6 +521,8 @@ windows = load([winDir filesep winFiles(iFrame).name]);
 windows = windows.windows;
 windowst2 = load([winDir filesep winFiles(iFrame+1).name]);
 windowst2 = windowst2.windows;
+
+
 
 %iWin = [205 1];
 iWin = [177 1];
@@ -727,7 +733,7 @@ for j = 1:nBands
     if j == 1
         %Only show on first band
         xlabel('Time, Seconds',axLabPars{:})
-        ylabel({'Along Cell Edge','(Slice #)'},axLabPars{:});
+        ylabel('Along Cell Edge, Slice #',axLabPars{:});
     else
         set(imHan,'AlphaData',~isnan(smMap))
         set(gca,'color','none')
@@ -752,9 +758,13 @@ for j = 1:nBands
 %     set(gca,'YColor',bandCols(j,:))
 %     
     if saveFigs
-        print(panelFig,panelFile,pOptTIFF{:});
-        print(panelFig,panelFile,pOptEPS{:});
-        hgsave(panelFig,panelFile);
+        if j == 1
+            print(panelFig,panelFile,pOptTIFF{:});
+            print(panelFig,panelFile,pOptEPS{:});
+        else
+            export_fig(panelFile,expFigOps{:})
+            hgsave(panelFig,panelFile);
+        end
     end
     
     % ---- Colorbar for each map
@@ -874,7 +884,7 @@ saturateImageColormap(panelFig,satPct);
 caxis(max(caxis) * [-1 1])
 currCa = caxis;
 xlabel('Time, Seconds',axLabPars{:})
-ylabel('Along Edge, Strip #',axLabPars{:})
+ylabel('Along Cell Edge, Slice #',axLabPars{:})
 set(gca,axPars{:});
 set(gca,'YDir','normal');
 set(gcf,'PaperPositionMode', 'auto');

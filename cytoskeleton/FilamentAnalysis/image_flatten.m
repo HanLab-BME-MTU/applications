@@ -21,7 +21,7 @@ end
 
 
 % Find the process of segmentation mask refinement.
-nProcesses = length(movieData.processes_);
+nProcesses = numel(movieData.processes_);
 
 indexFlattenProcess = 0;
 for i = 1 : nProcesses
@@ -41,7 +41,7 @@ if nargin < 2
     paramsIn = [];
     funParams = movieData.processes_{indexFlattenProcess}.funParams_;
 else
-    funParams = paramsIn;    
+    funParams = paramsIn;
 end
 
 selected_channels = funParams.ChannelIndex;
@@ -50,6 +50,8 @@ Gaussian_sigma = funParams.GaussFilterSigma;
 
 TimeFilterSigma = funParams.TimeFilterSigma;
 Sub_Sample_Num  = funParams.Sub_Sample_Num;
+
+imageflattening_mode = funParams.imageflattening_mode;
 
 nFrame = movieData.nFrames_;
 
@@ -84,18 +86,20 @@ for iChannel = selected_channels
     if (~exist(ImageFlattenChannelOutputDir,'dir'))
         mkdir(ImageFlattenChannelOutputDir);
     end
-    
+    movieData.processes_{indexFlattenProcess}.setOutImagePath(iChannel,ImageFlattenChannelOutputDir);
+
     output_dir_content = dir(fullfile([ImageFlattenChannelOutputDir,filesep,'*.*']));
     
     %if there are files in this dir, clear them
     if(length(output_dir_content)>2)
-         delete([ImageFlattenChannelOutputDir,filesep,'*.*']);
-    end
-    
-    movieData.processes_{indexFlattenProcess}.setOutImagePath(iChannel,ImageFlattenChannelOutputDir);
+        delete([ImageFlattenChannelOutputDir,filesep,'*.*']);
+    end    
 end
 
 for iChannel = selected_channels
+    display('======================================');
+    display(['Current movie: as in ',movieData.outputDirectory_]);
+
     for_temporal_filtering = cell(1);
     
     ImageFlattenProcessOutputDir = movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel};
@@ -110,109 +114,157 @@ for iChannel = selected_channels
     Frames_results_correspondence = im2col(repmat(Frames_to_Seg, [Sub_Sample_Num,1]),[1 1]);
     Frames_results_correspondence = Frames_results_correspondence(1:nFrame);
     
-    img_pixel_pool = [];
-    for iFrame_subsample = 1 : length(Frames_to_Seg)
-        iFrame = Frames_to_Seg(iFrame_subsample);
-        currentImg = movieData.channels_(iChannel).loadImage(iFrame);
+    tic
+    if(imageflattening_mode==2)
+        %under mode 2, normalization is done without outlier-elimination
+        % under mode 1, outliers are eliminated first
         
-        if(size(currentImg,1)>100 || length(Frames_to_Seg)>20)
-            smaller_currentImg = imresize(currentImg,[100 NaN]);
-            if length(Frames_to_Seg)>50
-                smaller_currentImg = imresize(currentImg,[50 NaN]);
-            end
-        else
-            smaller_currentImg = currentImg;
-        end
+        % in mode 2( a collection of different images)
         
-        img_pixel_pool = [img_pixel_pool smaller_currentImg(:)];
-    end
-    [hist_all_frame, hist_bin] = hist(double(img_pixel_pool),100);
-    
-    img_pixel_pool = double(img_pixel_pool(:));
-    nonzero_img_pixel_pool= img_pixel_pool(img_pixel_pool>0);
-    
-    % if not found the loop use 1 times min
-    low_005_percentile =  1*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100;
-    for intensity_i = min(img_pixel_pool) : (max(img_pixel_pool)-min(img_pixel_pool))/100 : 3*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100
-        if length(find(img_pixel_pool<=intensity_i))/length(img_pixel_pool)>0.005
-            low_005_percentile = intensity_i;
-            break;
-        end
-    end
-    
-    if(low_005_percentile==0 && flatten_method_ind==1)
-        for intensity_i = min(img_pixel_pool) : (max(img_pixel_pool)-min(img_pixel_pool))/100 : 3*min(img_pixel_pool)+3*(max(img_pixel_pool)-min(img_pixel_pool))/100;
-            if length(find(img_pixel_pool<=intensity_i))/length(img_pixel_pool)>0.01
-                low_005_percentile = intensity_i;
-                break;
-            end
-        end
-        if(low_005_percentile==0)
-            low_005_percentile = 1*min(nonzero_img_pixel_pool);
-        end
-    end
-    
-    
-    % if not found the loop use 1 max
-    high_995_percentile = max(img_pixel_pool)/1;
-    for intensity_i = max(img_pixel_pool) : -(max(img_pixel_pool)-min(img_pixel_pool))/100 : max(img_pixel_pool)/2
-        if length(find(img_pixel_pool<intensity_i))/length(img_pixel_pool)<0.9995
-            high_995_percentile = intensity_i;
-            find_flag = 1;
-            break;
-        end
-    end
-    
-    if exist('img_pixel_pool','var')
-        clearvars img_pixel_pool;
-    end
-    
-    %    low_005_percentile=0;
-    %    high_995_percentile= 2^8-1;
-    
-    img_min=low_005_percentile;
-    img_max=high_995_percentile;
-    
+        % load one image to check the bit depth
+        currentImg = movieData.channels_(iChannel).loadImage(1);
        
-    currentImg_cell = cell(1,1);
-    
-    for iFrame_subsample = 1 : length(Frames_to_Seg)
-        hist_this_frame = hist_all_frame(:,iFrame_subsample);
-        ind = find(hist_this_frame==max(hist_this_frame));
-        center_value(iFrame_subsample) = hist_bin(ind(1));
-        if(ind(1)>1)
-            center_value_m1(iFrame_subsample) = hist_bin(ind(1)-1);
-        else
-            center_value_m1(iFrame_subsample)= center_value(iFrame_subsample);
+        % if input is double, use min 0(0.0000000001 for the log), 
+        % max of uint8 if max is bigger then 1; else just set as 1
+        
+        if(isa(currentImg,'double'))
+            if( flatten_method_ind==1)
+                low_005_percentile = 0.0000000001;
+            else
+                low_005_percentile = 0;
+            end
+            
+            if(max(max(currentImg))>1)
+                high_995_percentile= 2^8-1;
+            else
+                high_995_percentile= 1;
+            end
         end
-        %       center_value(iFrame_subsample) = 1;
+          
+        % set the max as the possible max, min as possible min 
+        if( isa(currentImg,'uint16'))
+            if( flatten_method_ind==1)
+                low_005_percentile = 1;
+            else
+                low_005_percentile = 0;
+            end
+            % the reason for using 14 is 16bit images are usually dim if
+            % opened in image viewer, since not 16 bits arefully used.
+            if(max(max(currentImg))>2^14-1)                
+                high_995_percentile= 2^16-1;
+            else
+                high_995_percentile= 2^14-1;
+            end
+        end
+        
+        if( isa(currentImg,'uint8'))
+            if( flatten_method_ind==1)
+                low_005_percentile = 1;
+            else
+                low_005_percentile = 0;
+            end
+            high_995_percentile= 2^8-1;            
+        end
+        
+        center_value=ones(movieData.nFrames_,1);        
+        center_value_int=0;
+        img_min=low_005_percentile;
+        img_max=high_995_percentile;
+        
+    else
+        % 0.5 percdentile and 99.5 percentile are used to eliminate the
+        % outliers(extremely bright or dim spots)
+        img_pixel_pool = [];
+        for iFrame_subsample = 1 : length(Frames_to_Seg)
+            iFrame = Frames_to_Seg(iFrame_subsample);
+            currentImg = movieData.channels_(iChannel).loadImage(iFrame);
+            
+            if(size(currentImg,1)>100 || length(Frames_to_Seg)>20)
+                smaller_currentImg = imresize(currentImg,[100 NaN]);
+                if length(Frames_to_Seg)>50
+                    smaller_currentImg = imresize(currentImg,[50 NaN]);
+                end
+            else
+                smaller_currentImg = currentImg;
+            end
+            
+            img_pixel_pool = [img_pixel_pool smaller_currentImg(:)];
+        end
+        [hist_all_frame, hist_bin] = hist(double(img_pixel_pool),100);
+        
+        img_pixel_pool = double(img_pixel_pool(:));
+        nonzero_img_pixel_pool= img_pixel_pool(img_pixel_pool>0);
+        
+        low_005_percentile = prctile(img_pixel_pool,0.5);
+        
+        % for log mode, need to find a min bigger than 0
+        if(low_005_percentile==0 && flatten_method_ind==1)
+            low_005_percentile = prctile(img_pixel_pool,1);            
+            if(low_005_percentile==0)
+                low_005_percentile = 1*min(nonzero_img_pixel_pool);
+            end
+        end        
+        
+        % if not found the loop use 1 max
+        high_995_percentile = prctile(img_pixel_pool,99.5);
+        
+        if exist('img_pixel_pool','var')
+            clearvars img_pixel_pool;
+        end
+        
+        img_min=low_005_percentile;
+        img_max=high_995_percentile;
+        
+        currentImg_cell = cell(1,1);
+        
+        for iFrame_subsample = 1 : length(Frames_to_Seg)
+            hist_this_frame = hist_all_frame(:,iFrame_subsample);
+            ind = find(hist_this_frame==max(hist_this_frame));
+            center_value(iFrame_subsample) = hist_bin(ind(1));
+            if(ind(1)>1)
+                center_value_m1(iFrame_subsample) = hist_bin(ind(1)-1);
+            else
+                center_value_m1(iFrame_subsample)= center_value(iFrame_subsample);
+            end
+            %       center_value(iFrame_subsample) = 1;
+        end
+        center_value_int = mean((center_value_m1+center_value)/2);
+        
+        % record the stat numbers
+        funParams.stat.low_005_percentile = low_005_percentile;
+        funParams.stat.high_995_percentile = high_995_percentile;
+        funParams.stat.center_value_int = center_value_int;
+        
+        center_value = center_value/max(center_value);
+        center_value = sqrt(center_value);
+        center_value = imfilter(center_value,[1 2 3 9 3 2 1]/21,'replicate','same');
+        center_value = center_value/max(center_value);
+        
+        %     center_value(:)=1;
+%         img_min=0;
+%         img_max=high_995_percentile- center_value_int;
+%         
+        img_min=low_005_percentile;
+        img_max=high_995_percentile;
+       
     end
-    center_value_int = mean((center_value_m1+center_value)/2);
     
-    % record the stat numbers
-    funParams.stat.low_005_percentile = low_005_percentile;
-    funParams.stat.high_995_percentile = high_995_percentile;
-    funParams.stat.center_value_int = center_value_int;
+    display(['Time for statistics of image intensity in Channel ',num2str(iChannel)]);
+   
+    toc
     
-    
-    center_value = center_value/max(center_value);
-    center_value = sqrt(center_value);
-    center_value = imfilter(center_value,[1 2 3 9 3 2 1]/21,'replicate','same');
-    center_value = center_value/max(center_value);
-    %     center_value(:)=1;
-    img_min=0;
-    img_max=high_995_percentile- center_value_int;
-    
+    %%
+        
     % Make output directory for the flattened images
     ImageFlattenChannelOutputDir = movieData.processes_{indexFlattenProcess}.outFilePaths_{iChannel};
     if (~exist(ImageFlattenChannelOutputDir,'dir'))
         mkdir(ImageFlattenChannelOutputDir);
     end
     
-    display('======================================');
-    display(['Current movie: as in ',movieData.outputDirectory_]);
-    display(['Start image flattening in Channel ',num2str(iChannel)]);
     
+    %%
+    display('======================================');
+   
     for iFrame_subsample = 1 : length(Frames_to_Seg)
         iFrame = Frames_to_Seg(iFrame_subsample);
         disp(['Frame: ',num2str(iFrame)]);
@@ -223,10 +275,11 @@ for iChannel = selected_channels
         currentImg = movieData.channels_(iChannel).loadImage(iFrame);
         currentImg = double(currentImg);
         
-        currentImg = currentImg - center_value_int;
+%         currentImg = currentImg - center_value_int;
         
         % Get rid of extreme noises
-        currentImg(find(currentImg>high_995_percentile- center_value_int))=high_995_percentile- center_value_int;
+%         currentImg(find(currentImg>high_995_percentile- center_value_int))=high_995_percentile- center_value_int;
+        currentImg(find(currentImg>high_995_percentile))= high_995_percentile;
         currentImg(find(currentImg<=0.00000001))=0.00000001;
         
         % based on the given method index, do log or sqrt to flatten the image
@@ -256,37 +309,37 @@ for iChannel = selected_channels
         if Gaussian_sigma > 0
             currentImg = imfilter(currentImg, fspecial('gaussian',round(5*Gaussian_sigma), Gaussian_sigma),'replicate','same');
         end
-       
+        
         currentImg_cell{iFrame}=currentImg;
         
-         %% %tif stack cost too much memory, geta cell instead
-         if(TimeFilterSigma > 0)
-             for_temporal_filtering{iFrame_subsample} = currentImg;
-         else
-             % if no need for time filtering, save to disk
-             for sub_i = 1 : Sub_Sample_Num
-                 if iFrame + sub_i-1 <= nFrame
-                     
-                     currentImg(currentImg<0)=0;
-                     currentImg(currentImg>1)=1;                     
-                     currentImg = currentImg*(2^8-1);
-                     currentImg = uint8(currentImg);
-                     
-                     imwrite(currentImg,[ImageFlattenChannelOutputDir,filesep,'flatten_', ...
-                         filename_short_strs{iFrame + sub_i-1},'.tif']);
-                 end
-             end
-         end
-         
-         toc
-         
+        %% %tif stack cost too much memory, geta cell instead
+        if(TimeFilterSigma > 0)
+            for_temporal_filtering{iFrame_subsample} = currentImg;
+        else
+            % if no need for time filtering, save to disk
+            for sub_i = 1 : Sub_Sample_Num
+                if iFrame + sub_i-1 <= nFrame
+                    
+                    currentImg(currentImg<0)=0;
+                    currentImg(currentImg>1)=1;
+                    currentImg = currentImg*(2^8-1);
+                    currentImg = uint8(currentImg);
+                    
+                    imwrite(currentImg,[ImageFlattenChannelOutputDir,filesep,'flatten_', ...
+                        filename_short_strs{iFrame + sub_i-1},'.tif']);
+                end
+            end
+        end
+        
+        toc
+        
     end
     
     %% if temporal filtering is needed
     
-    if(TimeFilterSigma > 0)
+    if(TimeFilterSigma > 0 && imageflattening_mode ==1)
         disp('Image Flattening in temporal filtering:');
-            
+        
         tic
         
         % Initialize the after filtering cell
@@ -344,7 +397,7 @@ for iChannel = selected_channels
             currentImg(currentImg<0)=0;
             currentImg(currentImg>1)=1;
             
-            currentImg = currentImg*(2^8-1);           
+            currentImg = currentImg*(2^8-1);
             currentImg = uint8(currentImg);
             
             for sub_i = 1 : Sub_Sample_Num
@@ -364,7 +417,7 @@ for iChannel = selected_channels
     %% if background removal is needed
     if background_removal_flag==1
         disp('Image Flattening in background removal:');
-            
+        
         tic
         % Background substraction for uneven illumination
         for iFrame_subsample = 1 : length(Frames_to_Seg)
@@ -388,7 +441,7 @@ for iChannel = selected_channels
             currentImg(currentImg<0)=0;
             currentImg(currentImg>1)=1;
             
-            currentImg = currentImg*(2^8-1);          
+            currentImg = currentImg*(2^8-1);
             currentImg = uint8(currentImg);
             
             % Save to disk
@@ -408,6 +461,6 @@ for iChannel = selected_channels
         toc
     end
     
-    %% 
-    % this the end of "for" of each channel    
+    %%
+    % this the end of "for" of each channel
 end

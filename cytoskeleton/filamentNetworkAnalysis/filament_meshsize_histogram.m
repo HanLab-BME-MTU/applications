@@ -39,6 +39,7 @@ end
 movie_Dir = MD.outputDirectory_;
 
 % find all the index of different processes
+display_msg_flag=1;
 package_process_ind_script;
 network_feature_channel_frame=cell(length(MD.channels_),nFrame);
 network_feature_channel=cell(length(MD.channels_),1);
@@ -86,6 +87,16 @@ for iChannel = 1 :  length(MD.channels_)
         end
         output_feature = filament_bw_meshsize_histogram(VIF_current_seg, Cell_Mask, radius,pace,range);
         
+        h1 = figure(1);
+        h3 = figure(3); colorbar;
+        
+saveas(h1,[outdir, filesep, 'dist_hist_ch',num2str(iChannel),'_frame_',num2str(iFrame),'.tif']);
+saveas(h3,[outdir, filesep, 'distmap_ch',num2str(iChannel),'_frame_',num2str(iFrame),'.tif']);
+saveas(h1,[outdir, filesep, 'dist_hist_ch',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
+saveas(h3,[outdir, filesep, 'distmap_ch',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
+
+
+        
         network_feature_channel_frame{iChannel,iFrame} = output_feature;
         
         % stack for the all the frames in this movie
@@ -121,7 +132,8 @@ for iChannel = 1 :  length(MD.channels_)
     text(mean_bin, real_axis(4)-1.5, ['Mean: ',num2str(mean_bin)]);
     
     title(['Meshsize Measurement, Channel:',num2str(iChannel),', all Frames']);
-    xlabel('distance to filament (unit: pixel)');
+%     xlabel('distance to filament (unit: pixel)');
+    xlabel('Mesh size (unit: um)');
     ylabel('Percentage(%)');
     
     saveas(h4,[outdir, filesep, 'dist_hist_ch',num2str(iChannel),'_allframe.tif']);

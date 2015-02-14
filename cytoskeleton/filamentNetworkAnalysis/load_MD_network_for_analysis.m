@@ -31,7 +31,10 @@ function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_fla
 %           13:   output_feature.st_per_filament_pool 
 %           14:   output_feature.mean_st_per_filament_pool 
 %           15:   output_feature.st_per_fat_filament_pool
-%           16:   output_feature.mean_st_per_fat_filament_pool 
+%           16:   output_feature.mean_st_per_fat_filament_pool
+
+%           17:   output_feature.filament_mean_curvature
+%           18:   output_feature.curvature_per_pixel_pool 
 
 % output:   network_feature, a cell structure for each channel, each frame.
 %           Each struct with field of the 16 features as above
@@ -60,7 +63,11 @@ end
 
 % if no input as which feature to calculate, do for all features
 if(nargin<6)
-    feature_flag = ones(1,16);
+    feature_flag = ones(1,18);
+end
+
+if(numel(feature_flag)<18)
+    feature_flag = [feature_flag(:); zeros(18-numel(feature_flag),1)];
 end
 
 % if no input as if it is vim screen, set to no
@@ -78,7 +85,8 @@ display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
 
-if(vimscreen_flag>0)
+if(vimscreen_flag>0 && (indexFilamentSegmentationProcess==0 ||indexFlattenProcess==0 ...
+        ||indexSteerabeleProcess==0 || indexFilamentPackage==0) )
     MD = vimscreen_forceMDAddProcessSave(MD);
     package_process_ind_script;
 end
@@ -121,11 +129,11 @@ for iChannel = validChannels
         catch
             % in the case of only having the short-old version
             if nFrame>1
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs{iFrame},'.mat']);            
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs{iFrame},'.mat']);
             else
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_shortshort_strs,'.mat']);            
+                load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                    filename_shortshort_strs,'.mat']);
             end
         end
         
@@ -210,10 +218,14 @@ for iChannel = validChannels
         
         output_feature.Cell_Mask = Cell_Mask;
         
-        % save output feature for single image(single channel, single frame)
-        save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
+%         % save output feature for single image(single channel, single frame)
+%         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
+%             'output_feature');
+%         
+        % new name save output feature for single image(single channel, single frame)
+        save([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
             'output_feature');
-     
+        
         % put output feature to cell for all channels, all frames
         network_feature{iChannel,iFrame} = output_feature;
         
@@ -221,10 +233,11 @@ for iChannel = validChannels
        toc
     end
     
-    % save output feature for all channels, all frames)       
+    % save output feature for all channels(till this), all frames)       
     save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_allframe.mat'],...
             'network_feature');
 end
 
- 
-        
+% save output feature for all channels, all frames)
+save([movie_Dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
+    'network_feature');
