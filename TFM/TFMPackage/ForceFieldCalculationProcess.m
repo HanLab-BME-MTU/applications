@@ -61,11 +61,11 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             if ischar(output), output = {output}; end
             s = load(obj.outFilePaths_{iOut},output{1});
             
-            if numel(iFrame)>1,
-                varargout{1}=s.(output{1})(iFrame);
-            else
-                varargout{1}=s.(output{1});
-            end
+%             if numel(iFrame)>1,
+            varargout{1}=s.(output{1})(iFrame);
+%             else
+%                 varargout{1}=s.(output{1});
+%             end
         end
                 
         function h=draw(obj,varargin)

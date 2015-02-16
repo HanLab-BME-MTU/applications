@@ -43,13 +43,13 @@ p.saveBEMparams = true;
 p.lastToFirst = false;
 p.LcurveFactor = 10;
 %% --------------- Initialization ---------------%%
-% if feature('ShowFigureWindows'),
-%     wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
-%     wtBarArgs={'wtBar',wtBar};
-% else
-%     wtBar=-1;
+if feature('ShowFigureWindows'),
+    wtBar = waitbar(0,'Initializing...','Name',forceFieldProc.getName());
+    wtBarArgs={'wtBar',wtBar};
+else
+    wtBar=-1;
     wtBarArgs={};
-% end
+end
 
 % Reading various constants
 nFrames = movieData.nFrames_;
@@ -101,21 +101,50 @@ if p.useLcurve
     outputFile{5,1} = [p.OutputDirectory filesep 'LcurveData.mat'];
 end
 
-
-% Backup the original vectors to backup folder
-display('Backing up the original data')
-backupFolder = [p.OutputDirectory ' Backup']; % name]);
-if exist(p.OutputDirectory,'dir')
-    ii = 1;
-    while exist(backupFolder,'dir')
-        backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
-        ii=ii+1;
+% Add a recovery mechanism if process has been stopped in the middle of the
+% computation to re-use previous results
+firstFrame =1; % Set the strating fram eto 1 by default
+if exist(outputFile{1},'file');
+    % Check analyzed frames
+    s=load(outputFile{1},'forceField');
+    frameForceField=~arrayfun(@(x)isempty(x.pos),s.forceField);
+    
+    if ~all(frameForceField) && ~all(~frameForceField)
+        % Look at the first non-analyzed frame
+        firstFrame = find(~frameForceField,1);
+        % Ask the user if display mode is active
+        if ishandle(wtBar),
+            recoverRun = questdlg(...
+                ['A force field output has been dectected with ' ...
+                num2str(firstFrame-1) ' analyzed frames. Do you' ...
+                ' want to use these results and continue the analysis'],...
+                'Recover previous run','Yes','No','Yes');
+            if ~strcmpi(recoverRun,'Yes'), firstFrame=1; end
+        end
     end
-    mkdir(backupFolder);
-    copyfile(p.OutputDirectory, backupFolder,'f')
 end
 
-mkClrDir(p.OutputDirectory);
+
+% Backup the original vectors to backup folder
+if firstFrame==1
+    display('Backing up the original data')
+    backupFolder = [p.OutputDirectory ' Backup']; % name]);
+    if exist(p.OutputDirectory,'dir')
+        ii = 1;
+        while exist(backupFolder,'dir')
+            backupFolder = [p.OutputDirectory ' Backup ' num2str(ii)];
+            ii=ii+1;
+        end
+        mkdir(backupFolder);
+        copyfile(p.OutputDirectory, backupFolder,'f')
+    end
+    forceField(nFrames)=struct('pos','','vec','','par','');
+    mkClrDir(p.OutputDirectory);
+else
+    % Load old displacement field structure 
+    forceField=s.forceField;
+end
+
 forceFieldProc.setOutFilePaths(outputFile);
 
 %% --------------- Force field calculation ---------------%%% 
@@ -174,19 +203,17 @@ if ~p.highRes
 else
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5,0); %denser force mesh for ROI
 end
-
-forceField(nFrames)=struct('pos','','vec','','par','');
 tMap = cell(1,nFrames);
 
 disp('Calculating force field...')
-% logMsg = 'Please wait, calculating force field';
-% timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
+logMsg = 'Please wait, calculating force field';
+timeMsg = @(t) ['\nEstimated time remaining: ' num2str(round(t/60)) 'min'];
 tic;
 
 if p.lastToFirst 
-    frameSequence = nFrames:-1:1;
+    frameSequence = nFrames:-1:firstFrame;
 else
-    frameSequence = 1:nFrames;
+    frameSequence = firstFrame:nFrames;
 end
 jj = 0;
 if strcmpi(p.method,'FastBEM')
@@ -216,9 +243,33 @@ if strcmpi(p.method,'FastBEM')
             % Fill in the values to be stored:
             forceField(i).pos=pos_f;
             forceField(i).vec=force;
+            save(outputFile{1},'forceField');
+        end
+    elseif i>1
+        display('Loading BEM parameters... ')
+        load(outputFile{3},'forceMesh','M','sol_mats');
+        for i=frameSequence
+            if p.usePaxImg && length(movieData.channels_)>1
+                paxImage=movieData.channels_(2).loadImage(i);
+                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
+            else
+                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+            end
+            forceField(i).pos=pos_f;
+            forceField(i).vec=force;
+            % Save each iteration (for recovery of unfinished processes)
+            save(outputFile{1},'forceField');
+            display(['Done: solution for frame: ',num2str(i)]);
+            %Update the waitbar
+            if mod(i,5)==1 && ishandle(wtBar)
+                ti=toc;
+                waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
+            end
         end
     else
-%         if ishandle(wtBar)
+                %         if ishandle(wtBar)
 %             waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
 %         end
         if p.useLcurve
@@ -235,6 +286,7 @@ if strcmpi(p.method,'FastBEM')
             forceFieldProc.setPara(params);
             forceField(i).pos=pos_f;
             forceField(i).vec=force;
+            save(outputFile{1},'forceField');
         else
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...
@@ -244,6 +296,7 @@ if strcmpi(p.method,'FastBEM')
                 'useLcurve',p.useLcurve>0, 'thickness',p.thickness/movieData.pixelSize_);
             forceField(i).pos=pos_f;
             forceField(i).vec=force;
+            save(outputFile{1},'forceField');
         end
         %             display('The total time for calculating the FastBEM solution: ')
 
@@ -255,22 +308,29 @@ if strcmpi(p.method,'FastBEM')
             save(outputFile{3},'forceMesh','M','sol_mats','pos_u','u','-v7.3');
         end
         for i=frameSequence(2:end)
-                        % since the displ field has been prepared such
-                % that the measurements in different frames are ordered in the
-                % same way, we don't need the position information any
-                % more. The displ. measurements are enough.
-                display('5.) Re-evaluate the solution:... ')
-                if p.usePaxImg && length(movieData.channels_)>1
-                    paxImage=movieData.channels_(2).loadImage(i);
-                    [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
-                else
-                    [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
-                        displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
-                end
-                forceField(i).pos=pos_f;
-                forceField(i).vec=force;
-                display(['Done: solution for frame: ',num2str(i)]);
+            % since the displ field has been prepared such
+            % that the measurements in different frames are ordered in the
+            % same way, we don't need the position information any
+            % more. The displ. measurements are enough.
+            display('5.) Re-evaluate the solution:... ')
+            if p.usePaxImg && length(movieData.channels_)>1
+                paxImage=movieData.channels_(2).loadImage(i);
+                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,p.regParam,[],[], 'paxImg', paxImage, 'useLcurve', p.useLcurve);
+            else
+                [pos_f,force,~]=calcSolFromSolMatsFastBEM(M,sol_mats,displField(i).pos(:,1),displField(i).pos(:,2),...
+                    displField(i).vec(:,1),displField(i).vec(:,2),forceMesh,sol_mats.L,[],[]);
+            end
+            forceField(i).pos=pos_f;
+            forceField(i).vec=force;
+            % Save each iteration (for recovery of unfinished processes)
+            save(outputFile{1},'forceField');
+            display(['Done: solution for frame: ',num2str(i)]);
+            %Update the waitbar
+            if mod(i,5)==1 && ishandle(wtBar)
+                ti=toc;
+                waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
+            end
         end
     end
 else % FTTC
@@ -310,13 +370,7 @@ end
 clear grid_mat;
 clear iu;
 clear iu_mat;
-    
-% Update the waitbar
-%     if mod(i,5)==1 && ishandle(wtBar)
-%         ti=toc;
-%         waitbar(i/nFrames,wtBar,sprintf([logMsg timeMsg(ti*nFrames/i-ti)]));
-%     end
-            
+                
 disp('Saving ...')
 save(outputFile{1},'forceField');
 save(outputFile{2},'tMap'); % need to be updated for faster loading. SH 20141106

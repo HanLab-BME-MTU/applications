@@ -1,4 +1,4 @@
-function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = testForceAdhDensity(n,method,dataPath,baseDataPath, bead_x, bead_y, Av)
+function [rmsError,EOA,lcurvePath,fMap,cropInfo,orgMap,bead_x, bead_y, Av] = testForceAdhDensity(n,method,dataPath,baseDataPath, bead_x, bead_y, Av, theta)
 % testForceAdhProximity is a function that tests how  forces from two close
 % adhesions are identified independently.
 % input: 
@@ -104,7 +104,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
 %             distEE=0;
 %             p=0;
             maxDistEE = 0;
-            for p=1:iMax
+            for p=1:iMax %Place this adhesion without any overlapping
                 posx(ii) = posx_min+(posx_max-posx_min)*rand();
                 posy(ii) = posy_min+(posy_max-posy_min)*rand();
                 [idx, distCC]= KDTreeBallQuery([posx(1:ii-1),posy(1:ii-1)],[posx(ii),posy(ii)],distMin+5*rmax*2);
@@ -114,6 +114,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
                 distCC = distCC{1};
                 if isempty(idx)
                     break
+%                     continue
                 else
                     angle = atan2(posy(ii)-posy(idx),posx(ii)-posx(idx));
                     % in elipse, (x,y) = (a cos(theta), b sin(theta)) where a
@@ -123,6 +124,7 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
                     [minDistEE,~]=min(distEE);
                     if minDistEE>distMin
                         break
+%                         continue
                     else
                         if minDistEE>maxDistEE
                             oldPosx = posx(ii);
@@ -152,10 +154,10 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     rx(posDiscard) = [];
     ry(posDiscard) = [];
     f(posDiscard) = [];
-
+    theta = theta/180*pi; % this is an angle from +y axis. it controls uniform direction of elongated adhesions
     for ii=1:n
-        force_x_cur = assumedForceAniso2D(1,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
-        force_y_cur = assumedForceAniso2D(2,x_mat_u,y_mat_u,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType);
+        force_x_cur = assumedForceAniso2D(1,x_mat_u,y_mat_u,posx(ii),posy(ii),f(ii)*sin(theta),f(ii)*cos(theta),rx(ii),ry(ii),forceType);
+        force_y_cur = assumedForceAniso2D(2,x_mat_u,y_mat_u,posx(ii),posy(ii),f(ii)*sin(theta),f(ii)*cos(theta),rx(ii),ry(ii),forceType);
         force_x = force_x + force_x_cur;
         force_y = force_y + force_y_cur;
     end
@@ -165,8 +167,8 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
     foreground = fnorm_org>100;
     background = ~foreground;
     
-    force_x = (maxFnoixe*rand(ymax,xmax)).*background + force_x;
-    force_y = (maxFnoixe*rand(ymax,xmax)).*background + force_y;
+    force_x = (maxFnoixe*randn(ymax,xmax)).*background + force_x;
+    force_y = (maxFnoixe*randn(ymax,xmax)).*background + force_y;
 %% displacement calculation
 %     [ux_cur, uy_cur]= fwdSolution(x_mat_u,y_mat_u,E,xmin,xmax,ymin,ymax,...
 %     @(x,y) assumedForceAniso2D(1,x,y,posx(ii),posy(ii),0,f(ii),rx(ii),ry(ii),forceType),...
@@ -295,13 +297,14 @@ if isempty(baseDataPath) % in case you build images and reconstruct forces out o
         params.regParam = 2.4e-4;
     elseif strcmp(method,'L2')
         params.solMethodBEM = 'QR';
-        params.regParam = 1e-7;
+%         params.regParam = 1e-7;
+        params.regParam = 1e-8;
     else
         display('The method should be either L1 or L2. The input does not belong to any of those. We use L2 as a default.')
         params.solMethodBEM = 'QR';
     end
     params.method = 'FastBEM';
-    params.useLcurve = true;
+    params.useLcurve = false;
     params.basisClassTblPath = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM basis functions/basisClass8kPaSimul.mat';
     MD.getPackage(iPack).getProcess(4).setPara(params);
     MD.getPackage(iPack).getProcess(4).run();
