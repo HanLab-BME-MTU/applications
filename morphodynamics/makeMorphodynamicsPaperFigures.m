@@ -14,7 +14,9 @@ saveFigs = true;
 
 %Parent directory for all panels
 %figParentDir = '/home/he19/.gvfs/idac on nucleus/Hunter/orhcestra_home_june30_and_backup_merged/home/Papers/windowing methods paper/Figures/Panels';%from Ubuntu desktop, but has export problems.
-figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+%figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+figParentDir = '/home/he19/Desktop/TEMP/temp_figpanel_writing';%On ubuntu desktop as workaround for export problems 
+ 
 fdName = 'Figure';
 
 %Printing options
@@ -1229,8 +1231,8 @@ set(gca,axPars{:})
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Whole-cell pattern extraction 
 
-%wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
-wcExampMov = 'P:\gtpases\Hunter\methods_paper_data\rac1_cell_actuallyMoves_from_marco'; %Windows PC
+wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco'; %Ubuntu desktop
+%wcExampMov = 'P:\gtpases\Hunter\methods_paper_data\rac1_cell_actuallyMoves_from_marco'; %Windows PC
 
 %Use highly motile rac1 cell from marco for time illustration
 if ~exist('MDwc','var')
@@ -1324,8 +1326,8 @@ end
 
 %% ---- Erk Whole-cell Image, circle map and windowing comparison  -----
 
-%exList = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
-exList = 'P:\gtpases\Hunter\methods_paper_data\Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat'; %Windows PC
+exList ='/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
+%exList = 'P:\gtpases\Hunter\methods_paper_data\Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat'; %Windows PC
 
 if ~exist('MLerk','var')
     MLerk = MovieList.load(exList,0);
@@ -1345,7 +1347,7 @@ nShow = 20;
 intSize = [200,80];
 intSamps = nan([intSize, nEx]);
 
-for j = 1%:nEx
+for j = 1:nEx
     
     panelName = 'Erk circle mapping';
                 
@@ -1383,9 +1385,9 @@ for j = 1%:nEx
     set(gca,'Color','w')
     
     if saveFigs
-        %print(panelFig,panelFile,pOptTIFF{:});
-        %print(panelFig,panelFile,pOptEPS{:});
-        export_fig(panelFile,expFigOps{:})
+        print(panelFig,panelFile,pOptTIFF{:});
+        print(panelFig,panelFile,pOptEPS{:});
+        %export_fig(panelFile,expFigOps{:})
         hgsave(panelFig,panelFile);
     end
 
