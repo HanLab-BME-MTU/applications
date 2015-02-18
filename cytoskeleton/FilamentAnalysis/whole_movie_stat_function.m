@@ -386,10 +386,14 @@ for iChannel = selected_channels
     Whole_movie_stat.rosin_Length = thresholdRosin(Length_pool);
     Whole_movie_stat.rosin_mode_Length = thresholdRosin(Length_pool(find(Length_pool>mode_Length)));
     
-    
     NMS_pool = [];
     
     Whole_movie_stat_cell{iChannel} = Whole_movie_stat;
     
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'Length_pool','NMS_pool','ST_pool','INT_pool');
+    
 end
 
+  

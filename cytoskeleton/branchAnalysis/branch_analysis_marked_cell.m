@@ -103,7 +103,7 @@ end
 
 isCompleted = isCompleted_longest;
 
-if(sum(isCompleted)<9)
+if(sum(isCompleted)<3)
     return;
 end
 
@@ -264,6 +264,25 @@ for iCompleteFrame = 1 : nCompleteFrame
         C_xy = regionprops(smoothed_current_mask,'Centroid');
         center_x(iCompleteFrame) = C_xy.Centroid(1);
         center_y(iCompleteFrame) = C_xy.Centroid(2);
+        
+        
+%         % change the way of determine the cell center as the Hunter's idea
+%         % in his paper, but briefly in 2D
+%              
+%         % invert
+%         inverted_Distmap = (bwdist(1-smoothed_current_mask));
+%         % get the maximum points
+%         max_invertdist = inverted_Distmap==max(max(inverted_Distmap));
+%         
+%         % in case there are more than one of these max centers
+%         max_invertdist = keep_largest_area(max_invertdist);
+%         
+%         % in each maximum, there could be more than one point, to make the
+%         % code easier for its own flow
+%         C_xy = regionprops(max_invertdist,'Centroid');
+%         center_x(iCompleteFrame) = C_xy.Centroid(1);
+%         center_y(iCompleteFrame) = C_xy.Centroid(2);
+%         
     catch
         disp('error in cell mask centroid');
         break;
@@ -393,12 +412,44 @@ h11=figure(11);hold off;
 plot(center_x,center_y,'r');
 hold on;
 plot(smooth_center_x,smooth_center_y);
+plot(smooth_center_x,smooth_center_y,'.');
+
+plot(center_x,center_y,'r.');
+plot(smooth_center_x(1),smooth_center_y(1),'*');
+plot(center_x(1),center_y(1),'r*');
+plot(smooth_center_x(end),smooth_center_y(end),'o');
+plot(center_x(end),center_y(end),'ro');
+
 % take the atan2, negative y due to the y axis is top small bottom big in
 % image matrix
 trajectory_angle = atan2(-(smooth_center_y(2:end)-smooth_center_y(1:end-1)),smooth_center_x(2:end)-smooth_center_x(1:end-1));
 
 saveas(h11,[outputPath,filesep,'path_smoothed.tif']);
 
+
+
+for iCompleteFrame = 1 : nCompleteFrame
+    h111 = figure(111);hold off;
+    imagesc(smoothed_mask_cell{1,iCompleteFrame});
+    colormap(gray); axis image; axis off;
+    
+    hold on;
+    plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'r');
+    hold on;
+    plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame));
+    plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame),'.');
+    
+    plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'r.');
+    
+    plot(smooth_center_x(1),smooth_center_y(1),'*');
+    plot(center_x(1),center_y(1),'r*');
+    plot(smooth_center_x(iCompleteFrame),smooth_center_y(iCompleteFrame),'o');
+    plot(center_x(iCompleteFrame),center_y(iCompleteFrame),'ro');
+        axis([min_x max_x min_y max_y]);
+    saveas(h111,[outputPath,filesep,'mask_smoothed_center_path',num2str(iCompleteFrame),'.tif']);
+    
+    
+end
 
 %%
 for iCompleteFrame = 1 : nCompleteFrame
