@@ -6,14 +6,15 @@ function [cellData,dataSet] = getMovieListAverageCorrelation(movieObj,varargin)
 %       [cellData,dataSet] = getMovieListAverageCorrelation(movieObj,varargin)
 %
 %Input:
-%       movieObj      - movie list or movie data object
-%       includeWin    - cell array with indexes of the windows to be included for the analysis. Each element of the array corresponds to a cell from the movie list
-%       outLevel      - scalar for outlier detection(see detectOutlier)
-%       trendType     - scalar - algorihtm used to detrend the data(See getTimeSeriesTrend)
-%       minLength     - scalar - mininum time serie length
-%       maxLag        - scalar - maximum cross/auto-correlation lag
-%       layer         - scalar - layer for the sampled signal
-%       signalChannel - scalar
+%       movieObj        - movie list or movie data object
+%       includeWin      - cell array with indexes of the windows to be included for the analysis. Each element of the array corresponds to a cell from the movie list
+%       signalOutLevel  - scalar for sampled signal outlier detection(see detectOutlier)
+%       edgeOutLevel    - scalar for edge motion outlier detection(see detectOutlier)
+%       trendType       - scalar - algorihtm used to detrend the data(See getTimeSeriesTrend)
+%       minLength       - scalar - mininum time serie length
+%       maxLag          - scalar - maximum cross/auto-correlation lag
+%       layer           - scalar - layer for the sampled signal
+%       signalChannel   - scalar
 %
 %Output:
 %       cellData - structure array with all parameters for each cell
