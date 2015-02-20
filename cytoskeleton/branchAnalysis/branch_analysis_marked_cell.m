@@ -684,5 +684,5 @@ set(lbh,'HorizontalAlignment','left');
 
 set(lbh,'string',strings);
 
-save([outputPath,filesep,'branch_analysis_results.mat'],'BA_output');
+save([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
 

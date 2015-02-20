@@ -57,14 +57,14 @@ for iM  = 1 :movieNumber
             display(['Checking: iM:', num2str(iM), ', iChannel:', num2str(iChannel),', iCell:', num2str(iCell)]);
             
             % the folder name if there is marking
-            outputPath = [ROOT_DIR,'\BranchAnalysisChannel',num2str(iChannel),'Cell',num2str(iCell)];
+            outputPath = [ROOT_DIR,filesep,'BranchAnalysisChannel',num2str(iChannel),'Cell',num2str(iCell)];
             
             % check if this folder exist
             if(exist(outputPath,'dir'))
                 % if it exist, try to do the branch analysis
                 try
-                    if(exist([outputPath,'\branch_analysis_results.mat'],'file'))
-                        load([outputPath,'\branch_analysis_results.mat'],'BA_output');
+                    if(exist([outputPath,filesep,'branch_analysis_results_balloon.mat'],'file'))
+                        load([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
                     else
                         continue;
                     end
@@ -158,5 +158,5 @@ end
 
 Group_Pool_tracked_branch_d_frames = Group_Pool_branch_number_tracked./Group_Pool_Cell_Marked_Frame_Number;
 
-save([Group_ROOT_DIR,'\movieList_BA_results_gathered.mat']);
+save([Group_ROOT_DIR,'\movieList_BA_results_gathered_ balloon.mat']);
 
