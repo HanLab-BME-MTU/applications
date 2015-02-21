@@ -1,4 +1,4 @@
-function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,accSparsity)
+function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,doPlot,forceMesh)
 % mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,m_diff)
 % solves L1 regularization problem with forward matrix G, displacement
 % vector d, regularization parameter alpha, semi-norm matrix L.
@@ -6,7 +6,7 @@ function mreg=iterativeL1Regularization(G,GTG,d,L,alpha,maxiter,tolx,tolr,accSpa
 
 % Default for tolr=1.0e-6
 if (nargin < 9)
-  accSparsity=false; % unit: Pa. 
+  doPlot=false; % plot all iterations
 end
 
 if (nargin < 8)
@@ -40,8 +40,13 @@ while (iter < maxiter)
 
   % get get the magnitude of Lm, but don't let any element be less than tolr
   absLm=abs(L*m);
-  if accSparsity
-      sparFac = sparFac*accFac;
+  if doPlot
+      height = sum(forceMesh.p(:,1)==forceMesh.p(1,1));
+      figure, imshow(reshape(m,height,[]),[])
+      colorbar
+      colormap jet
+      title(['iteration number=' num2str(iter-1)])
+%       sparFac = sparFac*accFac;
   end
   absLm(absLm<tolr)=tolr*sparFac;
   

@@ -14,7 +14,9 @@ saveFigs = true;
 
 %Parent directory for all panels
 %figParentDir = '/home/he19/.gvfs/idac on nucleus/Hunter/orhcestra_home_june30_and_backup_merged/home/Papers/windowing methods paper/Figures/Panels';%from Ubuntu desktop, but has export problems.
-figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+%figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+figParentDir = '/home/he19/Desktop/TEMP/temp_figpanel_writing';%On ubuntu desktop as workaround for export problems 
+ 
 fdName = 'Figure';
 
 %Printing options
@@ -678,7 +680,6 @@ if saveFigs
 end
 
 
-
 %% ------ Activity Map Illustration ------ %%
 %Shows assembly of samples into matrix
 %(Mostly made in illustrator, but some from here)
@@ -787,7 +788,6 @@ for j = 1:nBands
 end
 
 
-
 %% ----- Window Images for Illustration ----- %%
 %Use bigger windows so we can see them,
 %switch back to the arp example so the images are familiar
@@ -853,10 +853,6 @@ if saveFigs
     print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
 end
-
-
-
-
 
 
 %% ----- Protrusion Map for Matrix creation Illustration
@@ -996,9 +992,6 @@ if saveFigs
     print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
 end
-
-
-
 
 
 %% ---------- Windowing Propagation Comparison -------- %%
@@ -1173,8 +1166,6 @@ if saveFigs
 end
 
 
-
-
 %% ----- Whole-Cell activity map for prop comparison - constant number
 
 panelName = 'whole cell activity map for prop comparison protrusion based';
@@ -1240,7 +1231,9 @@ set(gca,axPars{:})
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Whole-cell pattern extraction 
 
-wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
+wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco'; %Ubuntu desktop
+%wcExampMov = 'P:\gtpases\Hunter\methods_paper_data\rac1_cell_actuallyMoves_from_marco'; %Windows PC
+
 %Use highly motile rac1 cell from marco for time illustration
 if ~exist('MDwc','var')
     MDwc = MovieData.load([wcExampMov filesep 'movieData.mat']);
@@ -1251,6 +1244,151 @@ winSize = 1.6e3;%Arbitratily selected for visualization. Gives 5x5 pixel windows
 
 scBarSz = 5e3; %Scale bar size in nm
 
+%% ----- Whole-cell windowing overlay for Circle mapping methods ------ %%
+
+% Load the windows
+iFrame = 10;
+
+winType = 'constant_number';
+winDir = [wcExampMov filesep 'windows_' num2str(winSize) 'nm_' winType ];
+allWin = dir([winDir filesep '*.mat']);
+
+win = load([winDir filesep allWin(iFrame).name]);
+win = win.windows;
+
+
+%make the overlay
+panelName = 'Circle mapping methods window overlay example';
+panelFile = [figParentDir filesep panelName];
+panelFig = figure;
+panelAxes = gca;
+imWinEx = MDwc.channels_(1).loadImage(iFrame);
+imHan = imshow(imWinEx,[],'InitialMagnification',250);
+hold on
+colormap(jet)
+saturateImageColormap(panelAxes,satPct*2);
+%plotScaleBar(scBarSz / pixSize,'Handle',panelAxes,'Location','SouthWest');
+tmpMask = imfill(imWinEx > 0,'holes');
+tmpMask = bwareaopen(tmpMask,100);
+set(imHan,'AlphaData',tmpMask)  
+
+plotWindows(win,[{'b','FaceColor','none'} plotPars{:}]);
+
+set(gcf, 'InvertHardcopy', 'off');
+set(gcf,'DefaultLineLineSmoothing','on');
+set(gcf,'DefaultPatchLineSmoothing','on');
+set(gcf,'color','w')
+axis off,axis tight
+axis ij
+%set(panelAxes,'XDir','reverse')
+%xlim(xl);ylim(yl);
+
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+
+
+
+
+%% ----- Activity matrix for circle-mapping method illustration ---- %%
+
+panelName = 'whole cell activity matrix for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+
+panelFig = figure('Position',[397         490        1878         588]);
+
+winType = 'constant_number';
+
+iSnapUse = iFrame;%Number of snapshot to use activity matrix from
+
+sampDir = [wcExampMov filesep 'window_samples_' num2str(winSize) 'nm_' winType ];
+sampFiles = dir([sampDir filesep '*.mat']);
+samps = load([sampDir filesep sampFiles.name]);
+samps = samps.samples;
+
+sampShow = samps.avg(:,:,iSnapUse(1))';
+
+pHan = pcolor(sampShow);
+
+
+%tmpMask = ~isnan(sampShow);
+%imHan = imagesc(sampShow);
+%set(imHan,'AlphaData',tmpMask)
+
+
+panelAxes = get(panelFig,'CurrentAxes');
+set(panelAxes,axPars{:});
+axis image
+set(panelAxes,'YDir','normal')
+set(panelAxes,'YTick',[])
+set(panelAxes,'XTick',[])
+
+%xlabel('Along cell edge, Slice #',axLabPars{:})
+%ylabel('Away from cell edge, Band #',axLabPars{:})
+
+
+ if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ------ Circle map with grid for circle mapping methods illustration ----- %%
+
+panelFig = figure;
+
+panelName = 'circle map with grid for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+tmpSamp = sampShow([1 1:7],:);%repeat first row because it somehow doesn't get plotted otherwise...
+
+%polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{size(tmpSamp,1), size(tmpSamp,2)});
+polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{1 1});
+hold on
+polarplot3d(ones(size(tmpSamp))*nanmax(tmpSamp(:))+.1,'PlotType','wire','TickSpacing',0,'PolarGrid',{size(tmpSamp,1)-1, size(tmpSamp,2)-1});
+view(2)
+axis equal
+axis off
+set(panelFig,'color','w')
+if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ------ Circle map interpolated for circle mapping methods illustration ----- %%
+
+panelFig = figure;
+
+panelName = 'circle map interpolated for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+tmpSamp = sampShow(1:8,:);
+tmpSamp = smoothActivityMap(tmpSamp,'FillNaN',true);        
+%polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{size(tmpSamp,1), size(tmpSamp,2)});
+polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{1 1});
+hold on
+%polarplot3d(ones(size(tmpSamp))*nanmax(tmpSamp(:))+.1,'PlotType','wire','TickSpacing',0,'PolarGrid',{size(tmpSamp,1)-1, size(tmpSamp,2)-1});
+view(2)
+axis equal
+axis off
+set(panelFig,'color','w')
+if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
 
 
 %% ------ Rac1 Cell Spatial pattern circle mapping Timepoint Comparison ----
@@ -1292,48 +1430,12 @@ for j = 1:nSnap
 
 end
 
-%% ----- Activity matrix for circle-mapping method illustration
-
-panelName = 'whole cell activity matrix for circle mapping illustration';
-panelFile = [figParentDir filesep panelName];
-
-panelFig = figure('Position',[397         490        1878         588]);
-
-winType = 'constant_number';
-
-iSnapUse = 1;%Number of snapshot to use activity matrix from
-
-sampDir = [wcExampMov filesep 'window_samples_' num2str(winSize) 'nm_' winType ];
-sampFiles = dir([sampDir filesep '*.mat']);
-samps = load([sampDir filesep sampFiles.name]);
-samps = samps.samples;
-
-sampShow = samps.avg(:,:,iSnapUse(1))';
-tmpMask = ~isnan(sampShow);
-imHan = imagesc(sampShow);
-set(imHan,'AlphaData',tmpMask)
-panelAxes = get(panelFig,'CurrentAxes');
-set(panelAxes,axPars{:});
-axis image
-set(panelAxes,'YDir','normal')
-xlabel('Along cell edge, Slice #',axLabPars{:})
-ylabel('Away from cell edge, Band #',axLabPars{:})
-
-
- if saveFigs
-    
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
-
-     %export_fig(panelFile,expFigOps{:});
-    hgsave(panelFig,panelFile);
-end
-
-
 
 %% ---- Erk Whole-cell Image, circle map and windowing comparison  -----
 
-exList = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
+exList ='/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
+%exList = 'P:\gtpases\Hunter\methods_paper_data\Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat'; %Windows PC
+
 if ~exist('MLerk','var')
     MLerk = MovieList.load(exList,0);
 end
@@ -1392,6 +1494,7 @@ for j = 1:nEx
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
         print(panelFig,panelFile,pOptEPS{:});
+        %export_fig(panelFile,expFigOps{:})
         hgsave(panelFig,panelFile);
     end
 

@@ -43,7 +43,7 @@ for iM  = 1:movieNumber
 end
 
  ML_ROOT_DIR = ML.outputDirectory_;
- save([ML_ROOT_DIR,'\movieList_BA_output.mat'],'BA_output_ML_cell');
+ save([ML_ROOT_DIR,filesep,'movieList_BA_output_balloon.mat'],'BA_output_ML_cell');
 
  branch_analysis_moiveList_results_gather(ML);
  

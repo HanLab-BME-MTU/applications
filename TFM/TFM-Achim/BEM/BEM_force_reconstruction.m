@@ -42,6 +42,7 @@ ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm
 ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
+ip.addParamValue('strictBEM',false,@islogical); 
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -56,6 +57,7 @@ M = ip.Results.fwdMap;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
+strictBEM = ip.Results.strictBEM;    
 v = ip.Results.PoissonRatio;
 
 if nargin < 12 || isempty(solMethodBEM)
@@ -83,7 +85,7 @@ pos_u=horzcat(x_vec,y_vec);
 
 display('2.) Building up forward map:...');
 tic;
-if nargin >= 10 && strcmp(method,'fast') && isempty(M)
+if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
     if isempty(imgRows) || isempty(imgCols)
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'PoissonRatio',v);
@@ -93,7 +95,7 @@ if nargin >= 10 && strcmp(method,'fast') && isempty(M)
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol,'conv_free');
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^5,'fast');
 else
     display('Using input Forward Map');
 end
@@ -216,27 +218,38 @@ if nargin >= 10 && strcmp(method,'fast')
         % Now, perform the sparse deconvolution.
         disp('Performing sparse deconvolution; adoped from Aster et. al.')
 
-        [eyeWeights,~] =getGramMatrix(forceMesh);
+        if strictBEM
+            eyeWeights = eye(numel(forceMesh.base));
+            tolx =  numel(forceMesh.base)*2.5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        else
+            [eyeWeights,~] =getGramMatrix(forceMesh); % possibly this is a
+%         culprit that makes diagonalized force map. Now switching to
+%         Achim's approach.
+%         [normWeights]=getNormWeights(forceMesh);
+%         eyeWeights =diag(normWeights);    
+            tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
+        end
         % plot the solution for the corner
-        tolx =  forceMesh.numBasis*5e-6; % This will make tolx sensitive to overall number of nodes. (rationale: the more nodes are, 
         % the larger tolerance should be, because misfit norm can be larger out of more nodes).
         disp(['tolerance value: ' num2str(tolx)])
         %Check for nan in u
         idxNonan = ~isnan(u);
         if any(~idxNonan)
             u = u(idxNonan);
-            M = M(idxNonan,:);
-            MpM = M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         else
             MpM=M'*M;
+            Mreal = M;
         end
         maxIter = 20;
         tolr = 10;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
-            sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+            sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+%             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr,1,forceMesh); 
 %             sol_coef = l1_ls(M,u,L,tolx); 
         end
 %         sol_mats.nW=normWeights;
@@ -510,7 +523,8 @@ for i=1:length(alphas);
 end
 % Find the corner of the Tikhonov L-curve
 try
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+    disp('Inflection point smaller than L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -609,7 +623,8 @@ end
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L);
+disp('Inflection point larger than L-corner will be chosen')
+[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
 
 % Also, I can use L0 norm information to choose regularization parameter
 

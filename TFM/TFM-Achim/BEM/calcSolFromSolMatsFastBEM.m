@@ -58,7 +58,7 @@ else
     uy_vec=uy;
     u=vertcat(ux_vec,uy_vec);
 end
-
+    
 % See BEM_force_reconstruction for a nice explanation of the next
 % steps:
 if strcmp(sol_mats.tool,'svd')
@@ -97,13 +97,24 @@ elseif strcmp(sol_mats.tool,'QR')
     end
 elseif strcmp(sol_mats.tool,'1NormReg')
     eyeWeights =sol_mats.eyeWeights;
-    MpM=sol_mats.MpM;
+%     MpM=sol_mats.MpM;
     M=sol_mats.M;
     L=sol_mats.L;
     maxIter = sol_mats.maxIter;
     tolx = sol_mats.tolx;
     tolr = sol_mats.tolr;
-    sol_coef = iterativeL1Regularization(M,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
+    idxNonan = ~isnan(u);
+    if any(~idxNonan)
+        u = u(idxNonan);
+        Mreal = M(idxNonan,:);
+        MpM = Mreal'*Mreal;
+    else
+        MpM=M'*M;
+        Mreal = M;
+        clear M
+    end
+
+    sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 elseif strcmpi(sol_mats.tool,'1NormRegLaplacian')
     % Now, perform the sparse deconvolution.
     Lap = sol_mats.Lap;

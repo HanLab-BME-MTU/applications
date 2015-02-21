@@ -200,13 +200,39 @@ for iChannel = validChannels
         % putting the network features together
         output_feature =  cat_struct(output_network_features,output_image_features);
         
-        display(' --- intensity, scale, steerable-response features');        
+        display(' --- intensity, scale, steerable-response features');   
+        
+        %% for vim screen the third channel is nucleus, count the number of cells
+        if(vimscreen_flag>0 && indexCellRefineProcess >0)
+           
+            % load the nucleus channel segmentation
+            nucleus_mask = (MD.processes_{indexCellRefineProcess}.loadChannelOutput(3,iFrame))>0;
+            
+            % label the nucleus segmentation image and get the number of
+            % cells(nucleus)
+           [labelMaskNucleus, numNucleus] = bwlabel(nucleus_mask);
+           output_feature.number_of_nucleus = numNucleus;
+           
+           % With the nucleus locations, get the vim properties in each
+           % devided region of each cell
+           vim_output_feature = vim_screen_network_features(labelMaskNucleus,...
+               VIF_current_seg,current_img, nms);           
+           
+           % put these into the final struct
+           output_feature =  cat_struct(output_feature,vim_output_feature);
+        
+        end   
         tic
         % plot the network features in hists
         network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
                 im_name, outdir,iChannel,iFrame)
 %         close all;
         toc
+        
+        
+       
+
+        
         
         % add one last component, the cell_mask
         Cell_Mask = ROI;
@@ -217,6 +243,11 @@ for iChannel = validChannels
         end
         
         output_feature.Cell_Mask = Cell_Mask;
+        
+        
+        
+        
+        
         
 %         % save output feature for single image(single channel, single frame)
 %         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...

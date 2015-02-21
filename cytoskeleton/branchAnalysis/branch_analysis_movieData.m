@@ -69,5 +69,5 @@ for iChannel = 1 : nChannel
 end
 
 
-save([ROOT_DIR,filesep,'movieData_BA_output.mat'],'BA_output_cell');
+save([ROOT_DIR,filesep,'movieData_BA_output_balloon.mat'],'BA_output_cell');
 
