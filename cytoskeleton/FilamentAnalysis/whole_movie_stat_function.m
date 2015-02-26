@@ -234,6 +234,13 @@ for iChannel = selected_channels
     Whole_movie_stat.otsu_INT = thresholdOtsu(INT_pool);
     Whole_movie_stat.otsu_mode_INT = thresholdOtsu(INT_pool(find(INT_pool>mode_INT)));
     
+    
+    
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'INT_pool');
+    
+    
     INT_pool = [];
     
     
@@ -283,6 +290,11 @@ for iChannel = selected_channels
     catch
         Whole_movie_stat.rosin_mode_ST = Whole_movie_stat.otsu_mode_ST;
     end
+    
+    
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'ST_pool','-append');
     
     
     ST_pool = [];
@@ -386,14 +398,15 @@ for iChannel = selected_channels
     Whole_movie_stat.rosin_Length = thresholdRosin(Length_pool);
     Whole_movie_stat.rosin_mode_Length = thresholdRosin(Length_pool(find(Length_pool>mode_Length)));
     
+    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
+        num2str(iChannel),'.mat'],...
+        'Length_pool','NMS_pool','-append');
+    
     NMS_pool = [];
     
     Whole_movie_stat_cell{iChannel} = Whole_movie_stat;
     
-    save([FilamentSegmentationChannelOutputDir, filesep, 'pool_whole_movie_stat_channel',...
-        num2str(iChannel),'.mat'],...
-        'Length_pool','NMS_pool','ST_pool','INT_pool');
-    
+   
 end
 
   
