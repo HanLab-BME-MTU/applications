@@ -86,12 +86,13 @@ for  iR = 1 : NoRegion
     profileCell{1,iR}.profilePixels = profilePixels;
     
     %% Define centripetal-ness
-    VIF_ROI_model
-    
+        
     for iF = 1 : length(VIF_ROI_model)
         try
             x = VIF_ROI_model{iF}(:,1);
             y = VIF_ROI_model{iF}(:,2);
+        end
+    end
     
     
 end
