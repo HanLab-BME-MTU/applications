@@ -386,6 +386,7 @@ movieInfo =[];
 BA_output.cell_travel_length = ...
     sum(sqrt((center_x(2:end)-center_x(1:end-1)).^2 + (center_y(2:end)-center_y(1:end-1)).^2 ));
 
+
 BA_output.cell_travel_distance = ...
     (sqrt((center_x(end)-center_x(1)).^2 + (center_y(end)-center_y(1)).^2 ));
 
@@ -407,6 +408,16 @@ H = H./(sum(H));
 
 smooth_center_x =  imfilter(center_x,H','replicate','same');
 smooth_center_y =  imfilter(center_y,H','replicate','same');
+
+%%
+BA_output.center_x = center_x;
+BA_output.center_y = center_y;
+BA_output.smooth_center_x = smooth_center_x;
+BA_output.smooth_center_y = smooth_center_y;
+BA_output.speed_marked_frames = sqrt((center_x(2:end)-center_x(1:end-1)).^2 + (center_y(2:end)-center_y(1:end-1)).^2 );
+BA_output.smoothed_speed_marked_frames = sqrt((smooth_center_x(2:end)-smooth_center_x(1:end-1)).^2 + (smooth_center_y(2:end)-smooth_center_y(1:end-1)).^2 );
+
+%%
 
 h11=figure(11);hold off;
 plot(center_x,center_y,'r');
