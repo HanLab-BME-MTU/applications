@@ -1469,28 +1469,35 @@ for j = 1:nEx
     iMaskProc = MLerk.movies_{iEx(j)}.getProcessIndex('MaskRefinementProcess',1,0);
     currMask = MLerk.movies_{iEx(j)}.processes_{iMaskProc}.loadChannelOutput(iActChan,1);
     
-    sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    if j == 1
+        sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    end
     satSamps = samps(j).avg;
     satSamps(satSamps>sampRng(2)) = sampRng(2);
     satSamps(satSamps<sampRng(1)) = sampRng(1);        
     
-    cMap = hot;
     
     panelFile = [figParentDir filesep panelName ' image cell ' num2str(j)];
-    panelFig = figure('Position',[810         262        1021         861]);
-    hold on            
+    panelFig = figure;%('Position',[810         262        1021         861]);
+             
     %imageViewer(MLerk.movies_{iEx(j)},'ChannelIndex',iErkChan,'Saturate',satPct/100,'AxesHandle',gca);colormap(cMap)    
-    imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    %imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    im = MLerk.movies_{iEx(j)}.channels_(iErkChan).loadImage(1);
+    imHan = imshow(im,[]);
+    cMap = hot;
     set(imHan,'AlphaData',currMask);
     colormap(cMap)
-    saturateImageColormap(imHan,satPct);
+    %saturateImageColormap(imHan,satPct);
+    caxis(sampRng)
+    hold on   
     plotScaleBar(scBarSz / MLerk.movies_{iEx(j)}.pixelSize_,'Location',scBarLoc,'Color',scBarCol);
     axis xy
     axis on
+    box off
     set(gca,'XTick',[])
     set(gca,'YTick',[])
     set(gca,'Color','w')
-    
+    set(panelFig,'color','w')
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
         print(panelFig,panelFile,pOptEPS{:});
@@ -1534,17 +1541,15 @@ for j = 1:nEx
         print(panelFig,panelFile,pOptEPS{:});
         hgsave(panelFig,panelFile);
     end    
-    
-    panelName = [panelName ' colorbar'];
-    panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+        
+    panelFile = [figParentDir filesep panelName ' colorbar'];
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
     axis off
     caxis(sampRng);
-    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})
-
+    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})    
     
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
@@ -1620,7 +1625,7 @@ end
 
 panelName = [panelName ' colorbar'];
 panelFile = [figParentDir filesep panelName];
-panelFig = figure;
+panelFig = figure(cBarFigPars{:});
 
 colormap(rawErkCmap);
 cBarAx = colorbar(cBarPars{:});
@@ -1859,7 +1864,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -1878,7 +1883,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -1997,7 +2002,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -2016,7 +2021,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -2095,7 +2100,7 @@ for j = 1:nChan
     % --- Colorbar for above figure
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -2133,6 +2138,8 @@ panelFile = [figParentDir filesep panelName];
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average interp both directions all channels.fig']);
 
+set(panelFig,'PaperPositionMode','auto')
+
 % chanCols = jet(nChan);
 % 
 % sampLamMean = nanmean(sampLamIntBothAvg,3);
@@ -2145,10 +2152,11 @@ panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average 
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 legend('hide')%turn legends off on these, we'll have one legend for all panels
@@ -2165,16 +2173,19 @@ end
 
 panelName = 'Erk line scan non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
@@ -2191,18 +2202,18 @@ end
 
 panelName = 'Erk line scan across lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
-
 panelFig = open([cellAvgFigDir filesep 'along edge profile lamellar average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
@@ -2219,17 +2230,18 @@ end
 
 panelName = 'Erk line scan across non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 
@@ -2246,12 +2258,14 @@ end
 
 panelName = 'Erk line scan legend';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
+
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 set(panelAxes,axPars{:})
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);%Set plot params so legend shows up correctly
 arrayfun(@(x)(delete(x)),lineHans);%Remove all the plot crap
