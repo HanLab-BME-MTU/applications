@@ -19,6 +19,8 @@ if(nargin<4)
     Group_ROOT_DIR=[];
 end
 
+T_speed=4;
+
 close all;
 
 for iML = 1 : nList
@@ -93,6 +95,7 @@ end
 Group_Pool_Travel_Length = [];
 Group_Pool_Travel_Distance = [];
 Group_Pool_Travel_Speed = [];
+Group_Pool_Travel_Speed_without_pausing = [];
 Group_Pool_Cell_Marked_Frame_Number = [];
 Group_Pool_branch_number_tracked = [];
 Group_Pool_branch_number_max = [];
@@ -185,6 +188,7 @@ for iML = 1 : nList
     ML_Pool_branch_seg_mean = [];
     ML_Pool_branch_nms_total = [];
     ML_Pool_branch_nms_mean = [];
+    ML_Pool_Travel_Speed_without_pausing = [];
    
     % the number of movies
     movieNumber =  20;
@@ -244,6 +248,10 @@ for iML = 1 : nList
    ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total BA_output.branch_nms_total];
    ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
    
+   if isfield(BA_output,'speed_marked_frames')
+       S = BA_output.speed_marked_frames;       
+      ML_Pool_Travel_Speed_without_pausing = [ML_Pool_Travel_Speed_without_pausing mean(S(S>T_speed))];
+   end
                     
                     
                     % some old analysis doens't have orient std,
@@ -337,6 +345,7 @@ for iML = 1 : nList
     Group_Pool_Travel_Length = [Group_Pool_Travel_Length ML_Pool_Travel_Length];
     Group_Pool_Travel_Distance = [Group_Pool_Travel_Distance ML_Pool_Travel_Distance];
     Group_Pool_Travel_Speed = [Group_Pool_Travel_Speed ML_Pool_Travel_Speed];
+    Group_Pool_Travel_Speed_without_pausing = [Group_Pool_Travel_Speed_without_pausing ML_Pool_Travel_Speed_without_pausing];
     Group_Pool_Cell_Marked_Frame_Number = [Group_Pool_Cell_Marked_Frame_Number ML_Pool_Cell_Marked_Frame_Number];
     Group_Pool_branch_number_tracked = [Group_Pool_branch_number_tracked ML_Pool_branch_number_tracked];
     Group_Pool_branch_number_max = [Group_Pool_branch_number_max ML_Pool_branch_number_max];
@@ -911,7 +920,6 @@ saveas(h13,[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.fig'])
 saveas(h13,[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.tif']);
 print(h13,'-depsc',[Group_ROOT_DIR,filesep,'EachBranch_Duration_vs_Vim_with_Thres.eps']);
 
-save([Group_ROOT_DIR,filesep,'branch_analysis_group_results.mat']);
 
 
 %%
@@ -920,4 +928,5 @@ branch_analysis_plotting_VimTotalNms;
 branch_analysis_plotting_VimFilaDen;
 branch_analysis_plotting_VimFilaTotal;
 
+save([Group_ROOT_DIR,filesep,'branch_analysis_group_results.mat']);
 

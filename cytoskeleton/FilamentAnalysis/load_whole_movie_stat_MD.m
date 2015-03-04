@@ -10,7 +10,7 @@ INT_pool = [];
 
 % Output Directories
 % default filament segmention process output dir
-FilamentSegmentationProcessOutputDir = [movieData.outputDirectory_, filesep 'FilamentSegmentation'];
+FilamentSegmentationProcessOutputDir = [movieData.outputDirectory_, filesep, 'FilamentAnalysisPackage',filesep 'FilamentSegmentation'];
 
 if (~exist(FilamentSegmentationProcessOutputDir,'dir'))
     display('No previous stat done for whole movie');

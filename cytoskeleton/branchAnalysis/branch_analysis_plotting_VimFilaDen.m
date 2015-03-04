@@ -78,7 +78,7 @@ h148 = figure(148);hold off;
 % plot(Group_Pool_branch_cellmovement_std, Group_Pool_whole_cell_vif_mean_intensity,'.');
 for i = 1 : numel(Group_Pool_whole_cell_vif_mean_intensity)
     text(Group_Pool_Travel_Speed(i)-0.02, ...
-        Group_Pool_whole_cell_vim_seg_mean(i)+0.002, ...
+        Group_Pool_whole_cell_vim_seg_mean(i)+0.001, ...
         Identifier_cell{i}, 'color',colorarray(i,:));
     hold on;
     %     plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vif_mean_intensity(i), '.', 'color',colorarray(i,:),'MarkerSize',16);
@@ -122,3 +122,94 @@ set(gca,'fontsize',13);
 saveas(h158,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.fig']);
 saveas(h158,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.tif']);
 print(h158,'-depsc',[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes.eps']);
+
+
+h168 = figure(168);hold off;
+
+% plot(Group_Pool_branch_cellmovement_std, Group_Pool_whole_cell_vif_mean_intensity,'.');
+for i = 1 : length(Group_Pool_whole_cell_vim_seg_mean)
+    text(Group_Pool_Travel_Speed_without_pausing(i)-0.02, Group_Pool_whole_cell_vim_seg_mean(i)+0.001, Identifier_cell{i}, 'color',colorarray(i,:));  
+    if(Group_Pool_Travel_Speed_without_pausing(i)>0 && Group_Pool_Cell_Marked_Frame_Number(i)>15 && Group_Pool_CompletedFrame_last(i)>60)
+    hold on;
+    plot(Group_Pool_Travel_Speed_without_pausing(i), Group_Pool_whole_cell_vim_seg_mean(i), '.', 'color',colorarray(i,:),'MarkerSize',16);
+    else
+     plot(Group_Pool_Travel_Speed_without_pausing(i), Group_Pool_whole_cell_vim_seg_mean(i), 'bo','linewidth',2,'markersize',7);
+    end
+end
+xlabel('Cell Speed without Pausing','Fontsize',13);
+ylabel('Vim Filament Density(more frames) ','Fontsize',13);
+
+X = Group_Pool_Travel_Speed_without_pausing(Group_Pool_Travel_Speed_without_pausing>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+Y = Group_Pool_whole_cell_vim_seg_mean(Group_Pool_Travel_Speed_without_pausing>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+
+title({'Cell Speed(without Pausing) vs Vim mean filament density (cell with more frames, with late hours)',...
+    ['Correlation: ',...
+    num2str(corr(X(~isnan(X)&~isnan(Y))', ...
+    Y(~isnan(X)&~isnan(Y))'),'%1.2f'),...
+    ', Sample Size:',num2str(numel(Group_Pool_Travel_Speed_without_pausing(i)>0 & Group_Pool_Travel_Speed(Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60)))]},'Fontsize',13);
+set(gca,'fontsize',13);
+saveas(h168,[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_color.fig']);
+saveas(h168,[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_color.tif']);
+print(h168,'-depsc',[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_color.eps']);
+
+h168 = figure(168);hold off;
+
+% plot(Group_Pool_branch_cellmovement_std, Group_Pool_whole_cell_vif_mean_intensity,'.');
+for i = 1 : length(Group_Pool_whole_cell_vim_seg_mean)
+     if(Group_Pool_Travel_Speed_without_pausing(i)>0 && Group_Pool_Cell_Marked_Frame_Number(i)>15 && Group_Pool_CompletedFrame_last(i)>60)
+        plot(Group_Pool_Travel_Speed_without_pausing(i), Group_Pool_whole_cell_vim_seg_mean(i), 'bo','linewidth',2,'markersize',7);
+        hold on;
+    end
+end
+xlabel('Cell Speed without Pausing','Fontsize',13);
+ylabel('Vim Filament Density(more frames) ','Fontsize',13);
+
+X = Group_Pool_Travel_Speed_without_pausing(Group_Pool_Travel_Speed_without_pausing>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+Y = Group_Pool_whole_cell_vim_seg_mean(Group_Pool_Travel_Speed_without_pausing>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+X=X(:)';
+Y=Y(:)';
+
+title({'Cell Speed(without Pausing) vs Vim mean filament density (cell with more frames, with late hours)',...
+    ['Correlation: ',...
+    num2str(corr(X(~isnan(X)&~isnan(Y))', ...
+    Y(~isnan(X)&~isnan(Y))'),'%1.2f'),...
+    ', Sample Size:',num2str(numel(Group_Pool_Travel_Speed_without_pausing(i)>0 & Group_Pool_Travel_Speed(Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60)))]},'Fontsize',13);
+set(gca,'fontsize',13);
+saveas(h168,[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_blue.fig']);
+saveas(h168,[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_blue.tif']);
+print(h168,'-depsc',[Group_ROOT_DIR,filesep,'SpeedNoPausing_vs_VimFilaDen_moreframes_blue.eps']);
+
+
+
+h1681 = figure(1681);hold off;
+
+% plot(Group_Pool_branch_cellmovement_std, Group_Pool_whole_cell_vif_mean_intensity,'.');
+for i = 1 : length(Group_Pool_whole_cell_vim_seg_mean)
+    text(Group_Pool_Travel_Speed(i)-0.02, Group_Pool_whole_cell_vim_seg_mean(i)+0.001, Identifier_cell{i}, 'color',colorarray(i,:));  
+    if(Group_Pool_Travel_Speed(i)>0 && Group_Pool_Cell_Marked_Frame_Number(i)>15 && Group_Pool_CompletedFrame_last(i)>60)
+    hold on;
+    plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vim_seg_mean(i), '.', 'color',colorarray(i,:),'MarkerSize',16);
+    else
+     plot(Group_Pool_Travel_Speed(i), Group_Pool_whole_cell_vim_seg_mean(i), 'bo','linewidth',2,'markersize',7);
+    end
+end
+xlabel('Cell Speed without Pausing','Fontsize',13);
+ylabel('Vim Filament Density(more frames) ','Fontsize',13);
+
+X = Group_Pool_Travel_Speed(Group_Pool_Travel_Speed>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+Y = Group_Pool_whole_cell_vim_seg_mean(Group_Pool_Travel_Speed>0 & Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60);
+X=X(:)';
+Y=Y(:)';
+
+title({'Cell Speed vs Vim mean filament density (cell with more frames, with late hours)',...
+    ['Correlation: ',...
+    num2str(corr(X(~isnan(X)&~isnan(Y))', ...
+    Y(~isnan(X)&~isnan(Y))'),'%1.2f'),...
+    ', Sample Size:',num2str(numel(Group_Pool_Travel_Speed(i)>0 & Group_Pool_Travel_Speed(Group_Pool_Cell_Marked_Frame_Number>15 & Group_Pool_CompletedFrame_last>60)))]},'Fontsize',13);
+set(gca,'fontsize',13);
+saveas(h1681,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes_color.fig']);
+saveas(h1681,[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes_color.tif']);
+print(h1681,'-depsc',[Group_ROOT_DIR,filesep,'Speed_vs_VimFilaDen_moreframes_color.eps']);
+
+
+

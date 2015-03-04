@@ -206,7 +206,7 @@ if indexCellSegProcess == 0 && (Cell_Mask_ind(1) == 1 || Cell_Mask_ind(1) == 3 |
     msgbox('Please run segmentation and refinement first.')
     return;
 end
-
+Rerun_WholeMovie = 1;
 % if user want to use an input whole movie stat result, use it
 if nargin >=3
     load(wholemovie_input_filename);
@@ -222,7 +222,7 @@ else
         
         % check if the existing whole movie file include the currently
         % selected channel
-        flag_complete = ones(numel(movieData.channels_),1);
+        flag_complete = zeros(numel(movieData.channels_),1);
         for iChannel = selected_channels
             if(numel(Whole_movie_stat_cell)<iChannel)
                 flag_complete(iChannel)=0;
