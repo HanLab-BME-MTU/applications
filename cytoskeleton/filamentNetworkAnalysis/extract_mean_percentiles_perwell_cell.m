@@ -6,8 +6,7 @@ if(~isempty(NA_feature_thisMD{1}))
     for iF = 1:18
         this_feature=[];
         if(feature_index(iF)>0)
-            for iFrame = (iW-1)*4+1 : (iW)*4
-                
+            for iFrame = (iW-1)*4+1 : (iW)*4                
                 switch iF
                     case 1
                         this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.straightness_per_filament_pool];
@@ -42,22 +41,32 @@ if(~isempty(NA_feature_thisMD{1}))
                     case 16
                         this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.mean_st_per_fat_filament_pool];
                     case 17
-                        this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.filament_mean_curvature];
+                        try
+                            this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.filament_mean_curvature];
+                        end
                     case 18
-                        this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.curvature_per_pixel_pool'];
+                        try
+                            this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.curvature_per_pixel_pool'];
+                        end
                     otherwise
                         this_feature = [ this_feature NA_feature_thisMD{iChannel,iFrame}.straightness_per_filament_pool];
                 end
-                MP = mean_percentiles(this_feature);
-                ChMP_feature(iF,1:8)=  MP(:);
                 
+                MP = mean_percentiles(this_feature);
+                ChMP_feature(iF,1:8)=  MP(:);                
             end
         end
     end
     
 end
 function MP = mean_percentiles(this_feature)
-MP=nan(1,8);
+this_feature = this_feature(:);
+MP = nan(1,8);
+% if there is nothing to get percentile, return nan
+if( isempty(this_feature) || sum(isnan(this_feature))== numel(this_feature))
+    return;
+end
+
 MP(1) = nanmean(this_feature(:));
 MP(2) = prctile(this_feature(:),0);
 MP(3) = prctile(this_feature(:),2);
@@ -66,5 +75,4 @@ MP(5) = prctile(this_feature(:),50);
 MP(6) = prctile(this_feature(:),75);
 MP(7) = prctile(this_feature(:),98);
 MP(8) = prctile(this_feature(:),100);
-
 

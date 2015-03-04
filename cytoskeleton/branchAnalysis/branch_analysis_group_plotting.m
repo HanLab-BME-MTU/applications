@@ -34,8 +34,8 @@ for iML = 1 : nList
     
     % if the batch results exist, load it
     if 0
-%         (exist([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered.mat'], 'file'))
-        load([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered.mat'],'BA_output_ML_cell');
+%         (exist([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered_balloon.mat'], 'file'))
+%         load([ML_ROOT_DIR,filesep,'movieList_BA_results_gathered_balloon.mat'],'BA_output_ML_cell');
     else
         % otherwise load one by one
         BA_output_ML_cell= cell(1,1,1);
@@ -65,8 +65,8 @@ for iML = 1 : nList
                     if(exist(outputPath,'dir'))
                         % if it exist, try to do the branch analysis
                         try
-                            if(exist([outputPath,filesep,'branch_analysis_results.mat'],'file'))
-                                load([outputPath,filesep,'branch_analysis_results.mat'],'BA_output');
+                            if(exist([outputPath,filesep,'branch_analysis_results_balloon.mat'],'file'))
+                                load([outputPath,filesep,'branch_analysis_results_balloon.mat'],'BA_output');
                             else
                                 continue;
                             end

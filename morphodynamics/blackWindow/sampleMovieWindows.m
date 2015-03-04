@@ -129,13 +129,21 @@ for j = 1:nFields
     [allSamples.(sampledFields{j})] = deal(nan(winProc.nSliceMax_,winProc.nBandMax_,nFrames));
 end
 
-%Get the mask information from the windowing process
-iSegProc = movieData.processes_{iWinProc}.funParams_.SegProcessIndex;
-assert(isa(movieData.processes_{iSegProc},'MaskProcess'),'The segmentation process specified by the windowing process is invalid! Please check settings and re-run windowing!')
+if isempty(p.SegProcessIndex)
+    %Get the mask information from the windowing process
+    iSegProc = movieData.processes_{iWinProc}.funParams_.SegProcessIndex;    
+    p.MaskChannelIndex = movieData.processes_{iWinProc}.funParams_.ChannelIndex;
+else
+    iSegProc = p.SegProcessIndex;    
+    if isempty(p.MaskChannelIndex)
+        p.MaskChannelIndex = find(movieData.processes_{iSegProc}.checkChannelOutput);        
+    end
+end
 
+assert(isa(movieData.processes_{iSegProc},'MaskProcess'),'The segmentation process specified by the windowing process is invalid! Please check settings and re-run windowing!')
+assert(~isempty(p.MaskChannelIndex),'The specified segmentation process does not have valid masks for the specified channels!')
 %Store these in the parameter structure.
 p.SegProcessIndex = iSegProc;
-p.MaskChannelIndex = movieData.processes_{iWinProc}.funParams_.ChannelIndex;
 
 
 
