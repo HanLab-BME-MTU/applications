@@ -24,6 +24,7 @@ ip.addParamValue('LcurveFactor',@isscalar);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
+ip.addParamValue('strictBEM',false,@islogical);
 ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -39,6 +40,7 @@ pixelSize = ip.Results.pixelSize;
 forceMesh = ip.Results.forceMesh;
 useLcurve = ip.Results.useLcurve;
 LcurveFactor = ip.Results.LcurveFactor;
+strictBEM = ip.Results.strictBEM;
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -63,10 +65,10 @@ keepBDPts=true; %this might lead to unmatching forward map that lead to
 % diagonalized traction map
 % keepBDPts=false;
 doPlot=0;
-strictBEM = false;
-if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
-    strictBEM = true;
-end
+% strictBEM = false;
+% if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
+%     strictBEM = true;
+% end
 if strictBEM
     xvec = displField(frame).pos(:,1);
     yvec = displField(frame).pos(:,2);

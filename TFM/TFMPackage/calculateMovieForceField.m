@@ -201,7 +201,7 @@ end
 if ~p.highRes
     [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1,0);
 else
-    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.5,0); %denser force mesh for ROI
+    [reg_grid,~,~,gridSpacing]=createRegGridFromDisplField(displField,1.0,0); %no dense mesh in any case. It causes aliasing issue!
 end
 tMap = cell(1,nFrames);
 

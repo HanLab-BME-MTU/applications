@@ -94,7 +94,7 @@ for j= 1:nFrames
     displField(j).vec=dispMat(:,3:4);
 
     if ~isempty(p.outlierThreshold)
-        outlierIndex = detectVectorFieldOutliers(dispMat,p.outlierThreshold,1);
+        outlierIndex = detectVectorFieldOutliersTFM(dispMat,p.outlierThreshold,1);
         %displField(j).pos(outlierIndex,:)=[];
         %displField(j).vec(outlierIndex,:)=[];
         dispMat(outlierIndex,3:4)=NaN;

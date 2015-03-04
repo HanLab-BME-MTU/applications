@@ -185,7 +185,18 @@ if ~isempty(iMask)
         I = padarray(bwPI4, [maxY, maxX]);
         bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
     end
-end
+else
+    iMask = movieData.getProcessIndex('ThresholdProcess');
+    maskProc = movieData.getProcess(iMask);
+    bwPI4 = maskProc.loadChannelOutput(iChan,ii);
+    if ~isempty(iSDCProc)
+        maxX = ceil(max(abs(T(:, 2))));
+        maxY = ceil(max(abs(T(:, 1))));
+        Tr = maketform('affine', [1 0 0; 0 1 0; fliplr(T(ii, :)) 1]);
+        I = padarray(bwPI4, [maxY, maxX]);
+        bwPI4 = imtransform(I, Tr, 'XData',[1 size(I, 2)],'YData', [1 size(I, 1)]);
+    end
+end    
 strainEnergy = zeros(nFrames,1);
 % Boundary cutting - I'll take care of this boundary effect later
 if band>0

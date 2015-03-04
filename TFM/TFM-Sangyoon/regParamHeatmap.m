@@ -11,6 +11,6 @@ for ii=1:length(alphas);
     disp(['Drawing L = ' num2str(alphas(ii)) '... '])
     sol_coef = msparse(:,ii);
     [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
-    h = generateHeatmapFromGridData(x_out,y_out,fx,fy,[outputPath filesep 'Map' num2str(alphas(ii),formatSpec)],16,fmax);
+    h = generateHeatmapFromGridData(x_out,y_out,fx,fy,[outputPath filesep 'Map' num2str(alphas(ii),formatSpec)],0,0,fmax);
     close(h)
 end

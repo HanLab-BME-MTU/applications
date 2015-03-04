@@ -142,7 +142,7 @@ for class=1:numClass
                 xbd_min,xbd_max,ybd_min,ybd_max,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_x,forceMesh.basisClass(class).basisFunc(oneORtwo).f_intp_y,...
                 'fft','noIntp',meshPtsFwdSol,thickness,v); %'fft_finite','noIntp',meshPtsFwdSol,thickness);
             % check if the sampling is fine enough for method 'direct':
-            if strcmp(method,'direct')
+            if strcmp(method,'direct') || strcmp(method,'*cubic')
                 % This works perfectly for all mesh types as long as the
                 % displacment and force nodes are defined at integer positions!
                 x_spacing=x_model(2,2)-x_model(1,1);
@@ -223,6 +223,16 @@ for class=1:numClass
 %                         M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, '*nearest');  %This is uy(:,j+numBasis)
 %                     end
 %                 end
+            elseif strcmp(method,'*cubic') && ~isempty(idBestMatch)
+                if oneORtwo==1
+                    % Then the interpolants of the first function are:
+                    M(1:numPts    ,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j)
+                    M(numPts+1:end,basisID)          = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j)
+                elseif oneORtwo==2
+                    % Then the interpolants of the second function are:  (:,j+numBasis)
+                    M(1:numPts    ,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, ux_model_pix, x_vec_u, y_vec_u, method);  %This is ux(:,j+numBasis)
+                    M(numPts+1:end,basisID+numBasis) = interp2(x_model_pix+xShift, y_model_pix+yShift, uy_model_pix, x_vec_u, y_vec_u, method);  %This is uy(:,j+numBasis)
+                end
             else
                 if oneORtwo==1
                     % Then the interpolants of the first function are:
@@ -248,7 +258,7 @@ for class=1:numClass
             close(wtBar); 
         end
         
-        if isempty(idBestMatch) && strcmp(method,'direct')
+        if isempty(idBestMatch) %&& strcmp(method,'direct')
             % Then we have either calculated a previously unknown basis
             % Solution, or we have improved one (by increasing the range or
             % by increasing the meshPtsFwdSol). Enter a new entry only if

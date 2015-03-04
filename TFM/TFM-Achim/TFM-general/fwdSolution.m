@@ -135,7 +135,7 @@ elseif strcmpi(method,'fft')
         discrete_Force_y_unPadded=force_y;
     else
     % Make force_x and force_y a function handle if it is a matrix
-        if ismatrix(force_x) && ismatrix(force_y) && ~isa(force_x,'TriScatteredInterp')
+        if ismatrix(force_x) && ismatrix(force_y) && ~isa(force_x,'TriScatteredInterp') && ~isa(force_x,'function_handle')
         %     [xmat,ymat]=meshgrid(xmin:xmax,ymin:ymax);
         %     xvec=xmat(:);
         %     yvec=ymat(:);
@@ -148,6 +148,11 @@ elseif strcmpi(method,'fft')
         end
         discrete_Force_x_unPadded=force_x(xgrid_F,ygrid_F); %this has only to be calculated over the support xmin,xmax,ymin,ymax rest is zero
         discrete_Force_y_unPadded=force_y(xgrid_F,ygrid_F);
+        % taking care of nans
+        checkVec=isnan(discrete_Force_x_unPadded);
+        discrete_Force_x_unPadded(checkVec)=0;
+        checkVec=isnan(discrete_Force_y_unPadded);
+        discrete_Force_y_unPadded(checkVec)=0;
     end
     % Calculate the Greens-function values at the grid_G positions. This can
     % be improved since the Greensfunction never change for a given grid

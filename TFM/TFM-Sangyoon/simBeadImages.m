@@ -5,21 +5,22 @@
 meshPtsFwdSol=2^9;
 xmax=meshPtsFwdSol;
 ymax=meshPtsFwdSol;
-nPoints = 25000; % was 25000
+nPoints = 50000; % was 25000
 bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
 sigma = 1.73; % was 1.6 before
-Aorg = [300+100*randn(1,nPoints*4/5) 300+600*randn(1,nPoints*1/5)];
+Aorg = [300+100*rand(1,nPoints*1/5) 300+600*randn(1,nPoints*4/5)];
 Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
-% [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
-%         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
-refimg = simGaussianBeads(xmax,ymax, sigma, ...
-        'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
+[refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
+        'npoints', nPoints, 'Border', 'truncated','A',Aorg);
+% refimg = simGaussianBeads(xmax,ymax, sigma, ...
+%         'x',bead_x,'y',bead_y,'A',Av, 'Border', 'truncated');
 
 %% Noise addition (10%) % it was 5%
 noiseLevel = 0.1;
 % refimg2 = 700+700*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
-refimg2 = .5*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+% refimg2 = .5*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+refimg2 = .5*noiseLevel*rand(ymax,xmax)*max(refimg(:)) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 figure, imshow(refimg2,[])
 
 % bead images
@@ -116,7 +117,7 @@ posBigFA = [ 79   434
 
 force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,139,267,150,620,400/72,500/72,forceType)+...
     assumedForceAniso2D(1,x_mat_u,y_mat_u,156,232,110/2,650/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(1,x_mat_u,y_mat_u,184,212,60,700,400/72,500/72,forceType)+...
+    assumedForceAniso2D(1,x_mat_u,y_mat_u,184,212,60/2,700/2,400/72,500/72,forceType)+...
     assumedForceAniso2D(1,x_mat_u,y_mat_u,217,200,20,720,400/72,500/72,forceType)+...
     assumedForceAniso2D(1,x_mat_u,y_mat_u,246,195,0,750/2,400/72,500/72,forceType)+...
     assumedForceAniso2D(1,x_mat_u,y_mat_u,272,199,-30/2,710/2,400/72,500/72,forceType)+...
@@ -157,7 +158,7 @@ force_x = assumedForceAniso2D(1,x_mat_u,y_mat_u,139,267,150,620,400/72,500/72,fo
     assumedForceAniso2D(1,x_mat_u,y_mat_u,438,447,-300,2800,1000/108,5600/108,forceType);
 force_y = assumedForceAniso2D(2,x_mat_u,y_mat_u,139,267,150,620,400/72,500/72,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,156,232,110/2,650/2,400/72,500/72,forceType)+...
-    assumedForceAniso2D(2,x_mat_u,y_mat_u,184,212,60,700,400/72,500/72,forceType)+...
+    assumedForceAniso2D(2,x_mat_u,y_mat_u,184,212,60/2,700/2,400/72,500/72,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,217,200,20,720,400/72,500/72,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,246,195,0,750/2,400/72,500/72,forceType)+...
     assumedForceAniso2D(2,x_mat_u,y_mat_u,272,199,-30/2,710/2,400/72,500/72,forceType)+...
@@ -202,8 +203,10 @@ fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 foreground = fnorm_org>120;
 background = ~foreground;
 
-force_x = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_x;
-force_y = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_y;
+% force_x = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_x;
+% force_y = (2*maxFnoise*rand(ymax,xmax)-maxFnoise).*background + force_y;
+force_x = (maxFnoise*rand(ymax,xmax)).*background + force_x;
+force_y = (maxFnoise*rand(ymax,xmax)).*background + force_y;
 fnorm_org = (force_x.^2 + force_y.^2).^0.5; %this should be fine mesh
 figure, imshow(fnorm_org,[0 500]), colormap jet
 %% displacement field
@@ -321,7 +324,7 @@ beadimg = beadimg+0.5*0.1*rand(ymax,xmax)*max(beadimg(:));
 % dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
 % dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads';
 % dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_10noise';
-dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_forceNoise';
+dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_forceNoise2';
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 if ~exist(refPath,'dir')
@@ -351,13 +354,13 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
     displPath = [dataPath filesep 'TFMPackage/displacementField'];
     displFile =[dataPath filesep 'TFMPackage/displacementField/displField.mat'];
     load(displFile)
-    generateHeatmapFromField(displField,displPath,0,14,[],460,460);
+    generateHeatmapFromField(displField,displPath,0,16,'jet',460,460,false);
     %% display corrected displacement field
     % load displacement field
     displPath = [dataPath filesep 'TFMPackage/correctedDisplacementField'];
     displFile =[dataPath filesep 'TFMPackage/correctedDisplacementField/displField.mat'];
     load(displFile)
-    generateHeatmapFromField(displField,displPath,0,14,[],460,460,false);
+    generateHeatmapFromField(displField,displPath,0,16,[],460,460,false);
 
 %     %% display measured displacement field
 %     % load displacement field
@@ -368,10 +371,10 @@ generateHeatmapFromGridData(x_mat_u,y_mat_u,force_x,force_y,[dataPath '/Original
 % 
 %% display calculated force field
 % load displacement field
-forcePath =  [dataPath filesep 'TFMPackage/forceField_L2_2nd Lcurve lambda'];
-forceFile = [dataPath filesep 'TFMPackage/forceField/forceField.mat'];
+forcePath =  [dataPath filesep 'TFMPackage/forceField L2 optimal 3.2e-10'];
+forceFile = [dataPath filesep 'TFMPackage/forceField L2 optimal 3.2e-10/forceField.mat'];
 load(forceFile)
-generateHeatmapFromField(forceField,forcePath,0,3100,[],[],[],false);
+generateHeatmapFromField(forceField,forcePath,0,3100,[],460,460,false);
 
 %% Masks for BG and FG
 % points at the BG

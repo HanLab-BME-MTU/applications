@@ -38,33 +38,35 @@ myMesh.dt=dt;  % DelaunayTri structure
 myMesh.neighbors=neighbors;
 myMesh.bounds=bounds;
 myMesh.numNodes=length(myMesh.p(:,1));
-% base(2*myMesh.numNodes) = struct('f_disc',zeros(myMesh.numNodes,2));
-f_disc = zeros(myMesh.numNodes,2,2*myMesh.numNodes);
+base(2*myMesh.numNodes) = struct('f_disc',zeros(myMesh.numNodes,2));
+% f_disc = zeros(myMesh.numNodes,2,2*myMesh.numNodes);
 myMesh.base(2*myMesh.numNodes) = struct('f_intp_x',[],'f_intp_y',[]);
 
 %create the basis functions and interpolate them using the Delaunay Triangulation:
 for j=1:myMesh.numNodes
-%     base(j).f_disc=zeros(myMesh.numNodes,2);
-%     base(j).f_disc(j,1)=1;
+    base(j).f_disc=zeros(myMesh.numNodes,2);
+    base(j).f_disc(j,1)=1;
+    curTime = cputime;
     f_disc(j,1,j)=1;
     
-%     myMesh.base(j).f_intp_x= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,1),'linear');
-%     myMesh.base(j).f_intp_y= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
+    myMesh.base(j).f_intp_x= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,1),'linear');
+    myMesh.base(j).f_intp_y= TriScatteredInterp(myMesh.dt,base(j).f_disc(:,2),'linear'); % only zeros
 %     myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,1),'linear');
 %     myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(j).f_disc(:,2),'linear');
-    myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,1,j),'linear');
-    myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,2,j),'linear');
+%     myMesh.base(j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,1,j),'linear');
+%     myMesh.base(j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,2,j),'linear');
     
-%     base(myMesh.numNodes+j).f_disc=zeros(myMesh.numNodes,2);
-%     base(myMesh.numNodes+j).f_disc(j,2)=1;
-    f_disc(j,2,myMesh.numNodes+j)=1;
+    base(myMesh.numNodes+j).f_disc=zeros(myMesh.numNodes,2);
+    base(myMesh.numNodes+j).f_disc(j,2)=1;
+%     f_disc(j,2,myMesh.numNodes+j)=1;
     
-%     myMesh.base(myMesh.numNodes+j).f_intp_x= TriScatteredInterp(myMesh.dt,base(myMesh.numNodes+j).f_disc(:,1),'linear'); % only zeros
-%     myMesh.base(myMesh.numNodes+j).f_intp_y= TriScatteredInterp(myMesh.dt,base(myMesh.numNodes+j).f_disc(:,2),'linear'); 
+    myMesh.base(myMesh.numNodes+j).f_intp_x= TriScatteredInterp(myMesh.dt,base(myMesh.numNodes+j).f_disc(:,1),'linear'); % only zeros
+    myMesh.base(myMesh.numNodes+j).f_intp_y= TriScatteredInterp(myMesh.dt,base(myMesh.numNodes+j).f_disc(:,2),'linear'); 
 %     myMesh.base(myMesh.numNodes+j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,1),'linear');
 %     myMesh.base(myMesh.numNodes+j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,base(myMesh.numNodes+j).f_disc(:,2),'linear');
-    myMesh.base(myMesh.numNodes+j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,1,myMesh.numNodes+j),'linear');
-    myMesh.base(myMesh.numNodes+j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,2,myMesh.numNodes+j),'linear');
+%     myMesh.base(myMesh.numNodes+j).f_intp_x= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,1,myMesh.numNodes+j),'linear');
+%     myMesh.base(myMesh.numNodes+j).f_intp_y= @(x,y) nan2zeroTriScatteredInterp(x,y,myMesh.dt,f_disc(:,2,myMesh.numNodes+j),'linear');
+%     display(['Time passed for ' num2str(j) 'th basis function : ' num2str(cputime-curTime)])
 end
 
 % plot an example to see if it works correctly

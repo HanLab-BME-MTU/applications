@@ -95,7 +95,7 @@ if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
-    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^5,'fast');
+    M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^3,'fast');
 else
     display('Using input Forward Map');
 end
@@ -242,7 +242,7 @@ if nargin >= 10 && strcmp(method,'fast')
             MpM=M'*M;
             Mreal = M;
         end
-        maxIter = 20;
+        maxIter = 50;
         tolr = 10;
         if useLcurve
             disp('L-curve ...')
@@ -398,22 +398,37 @@ display('Done: coefficients!');
 
 %if no points of interests are specified, i.e x_out, y_out, then forces are 
 %calculated on the nodes of the force mesh:                                                      
-if nargin<9 || isempty(x_out)
+if nargin<9 || isempty(x_out) && ~strictBEM
     x_out=forceMesh.p(:,1);
     y_out=forceMesh.p(:,2);
+else
+    x_min=min(forceMesh.p(:,1));
+    x_max=max(forceMesh.p(:,1));
+    y_min=min(forceMesh.p(:,2));
+    y_max=max(forceMesh.p(:,2));
+    x_out_vec = x_min:x_max;
+    y_out_vec = y_min:y_max;
+    [x_out,y_out] = meshgrid(x_out_vec,y_out_vec);
+    x_out = x_out(:);
+    y_out = y_out(:);
 end
 
 %Evaluation of the solution:
 display('4.) Evaluate solution:... ')
 tic;
-if nargin >= 10 && strcmp(method,'fast')
+if nargin >= 10 && strcmp(method,'fast') && ~strictBEM
     [fx,fy,x_out,y_out]=calcForcesFromCoef(forceMesh,sol_coef,x_out,y_out,'new');
 else
     fx = zeros(size(x_out));
     fy = zeros(size(y_out));
+    t=cputime;
     for j=1:2*forceMesh.numNodes
         fx = fx+sol_coef(j)*forceMesh.base(j).f_intp_x(x_out,y_out);
         fy = fy+sol_coef(j)*forceMesh.base(j).f_intp_y(x_out,y_out);
+        if mod(j,20)==0
+            display([num2str(j) 'th basis function was processed so far ... time passed: ' num2str(cputime-t)])
+            t=cputime;
+        end
     end
 end
 toc;
@@ -525,6 +540,12 @@ end
 try
     disp('Inflection point smaller than L-corner will be chosen')
     [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
+    if isempty(reg_corner)
+        disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+    %     ireg_corner=[];
+    %     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+    end       
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -625,7 +646,12 @@ end
 save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
 disp('Inflection point larger than L-corner will be chosen')
 [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
-
+if isempty(reg_corner)
+    disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+%     ireg_corner=[];
+%     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+end    
 % Also, I can use L0 norm information to choose regularization parameter
 
 % Plot the sparse deconvolution L-curve.
