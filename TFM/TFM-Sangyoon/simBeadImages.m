@@ -9,8 +9,9 @@ nPoints = 50000; % was 25000
 bead_r = 40; % nm
 pixSize = 72; % nm/pix 90x
 sigma = 1.73; % was 1.6 before
-Aorg = [300+100*rand(1,nPoints*1/5) 300+600*randn(1,nPoints*4/5)];
-Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
+% Aorg = [300+100*rand(1,nPoints*1/5) 300+600*randn(1,nPoints*4/5)];
+% Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
+Aorg = 300+1000*randn(1,nPoints);
 [refimg,bead_x, bead_y, ~, Av] = simGaussianBeads(xmax,ymax, sigma, ...
         'npoints', nPoints, 'Border', 'truncated','A',Aorg);
 % refimg = simGaussianBeads(xmax,ymax, sigma, ...
@@ -20,7 +21,7 @@ Aorg(Aorg<0)=-Aorg(Aorg<0)+50;
 noiseLevel = 0.1;
 % refimg2 = 700+700*noiseLevel*randn(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 % refimg2 = .5*noiseLevel*rand(ymax,xmax) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
-refimg2 = .5*noiseLevel*rand(ymax,xmax)*max(refimg(:)) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
+refimg2 = .5*noiseLevel*rand(ymax,xmax)*mean(refimg(:)) + refimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 figure, imshow(refimg2,[])
 
 % bead images
@@ -318,13 +319,13 @@ end
 % pixelSize = 0.108; % assuming 60x objective um/pixel
 beadimg = simGaussianBeads(xmax,ymax, sigma,'x',bead_x+bead_ux,'y',bead_y+bead_uy,'A',Av, 'Border', 'truncated');
 %% Noise addition (10%) % it was 5% before
-beadimg = beadimg+0.5*0.1*rand(ymax,xmax)*max(beadimg(:));
+beadimg = beadimg+0.5*noiseLevel*rand(ymax,xmax)*mean(beadimg(:));
 % beadimg = 700+700*noiseLevel*randn(ymax,xmax) + beadimg;% + 0.05*imgRange*(0.5-rand(ymax,xmax))*max(refimg(:));
 %% saving
 % dataPath='/hms/scratch1/sh268/multiForceTesting_lowerNAforce';
 % dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_lowIntBeads';
 % dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_10noise';
-dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_forceNoise2';
+dataPath='/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM simulations/multiFT_forceNoise3';
 imgPath=[dataPath filesep 'Beads'];
 refPath=[dataPath filesep 'Reference'];
 if ~exist(refPath,'dir')

@@ -37,7 +37,7 @@ ip.addParamValue('LcurveFactor','',@isscalar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
 ip.addParamValue('imgCols',[],@isscalar);
-ip.addOptional('fwdMap',[],@isnumeric);
+ip.addParamValue('fwdMap',[],@isnumeric);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
@@ -84,6 +84,7 @@ pos_u=horzcat(x_vec,y_vec);
 %construction of forward map, this takes a long time!
 
 display('2.) Building up forward map:...');
+inputFwdMap = false;
 tic;
 if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
     if isempty(imgRows) || isempty(imgCols)
@@ -98,6 +99,7 @@ elseif isempty(M)
     M=calcFwdMap(x_vec, y_vec, forceMesh, E, span, meshPtsFwdSol/2^3,'fast');
 else
     display('Using input Forward Map');
+    inputFwdMap = true;
 end
 toc;
 display('Done: forward map!');
@@ -304,10 +306,13 @@ if nargin >= 10 && strcmp(method,'fast')
         [eyeWeights,~] =getGramMatrix(forceMesh);
         %Check for nan in u
         idxNonan = ~isnan(u);
-        if any(~idxNonan)
+        if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
             M = M(idxNonan,:);
             MpM = M'*M;
+        elseif inputFwdMap
+            u = u(idxNonan);
+            MpM=M'*M;
         else
             MpM=M'*M;
         end
