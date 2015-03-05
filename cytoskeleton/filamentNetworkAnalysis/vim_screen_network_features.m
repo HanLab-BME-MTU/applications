@@ -1,4 +1,4 @@
-function output_feature = vim_screen_network_features(labelMaskNucleus,VIF_current_seg,current_img, nms)
+function output_feature = vim_screen_network_features(labelMaskNucleus,VIF_current_seg,current_img, nms,T_dis_perp)
 % function to calculate network features specifically for vim screen where
 % the nucleus segmentation is present
 % input:
@@ -9,7 +9,12 @@ function output_feature = vim_screen_network_features(labelMaskNucleus,VIF_curre
 %                       normalization)
 % MAX_st_res         the  steerable filtering results
 % nms                the nms version of ST
-% 
+% T_dis_perp         the division of perphery and center, default 40 pixels
+
+% default
+if(nargin<5)
+    T_dis_perp = 40;
+end
 
 [LabelMask,NoRegion] = bwlabel(labelMaskNucleus);
 
@@ -19,18 +24,23 @@ for iR = 1 :NoRegion
     NewLabelMask(LabelMask==iR) = NewLabel(iR);
 end
 
+Mask = labelMaskNucleus;
+
 [DistMask,IDX] = bwdist(Mask);
 RegionMask = NewLabelMask;
 RegionMask(:) = NewLabelMask(IDX);
 
 profileCell = cell(1,NoRegion);
 
+display_regions_sections = NewLabelMask;
+    
 for  iR = 1 : NoRegion
     region_thisCell = RegionMask==iR;
     nucleus_thisCell = NewLabelMask==iR;
-    
+    distMap_thisCell = DistMask;
+
     % to include the boundary of the nucleus
-    shrinked_nucleus_thisCell = imerode(nucleus_thisCell);
+    shrinked_nucleus_thisCell = imerode(nucleus_thisCell,[ 0 1 0; 1 1 1; 0 1 0]);
     
      inverted_Distmap = (bwdist(1-shrinked_nucleus_thisCell));
         % get the maximum points
@@ -70,6 +80,10 @@ for  iR = 1 : NoRegion
             ind_this_section  = find(round(distMap_thisCell)==DistanceT & ...
                 angle_to_nucleus_center>=Angle_bottom & angle_to_nucleus_center<=Angle_top);
             
+            display_regions_sections(...
+               sub2ind(size(NewLabelMask),indy(ind_this_section),indx(ind_this_section)))...
+                =iR-0.5+iAngle/7;
+            
             profileIntSum(iAngle, iDistance) = ...
                 sum(current_img_thisCell(ind_this_section));
             profileFilaSum(iAngle, iDistance) = ...
@@ -84,17 +98,76 @@ for  iR = 1 : NoRegion
     profileCell{1,iR}.profileFilaSum = profileFilaSum;
     profileCell{1,iR}.profileStnmsSum = profileStnmsSum;
     profileCell{1,iR}.profilePixels = profilePixels;
+    profileCell{1,iR}.profileIntMean = profileIntSum./profilePixels;
+    profileCell{1,iR}.profileFilaMean = profileFilaSum./profilePixels;
+    profileCell{1,iR}.profileStnmsMean = profileStnmsSum./profilePixels;
+    
+    profileCell{1,iR}.profileIntSumPerpCenterRatio = ...
+        sum(profileIntSum(1:6,T_dis_perp:end),2)./sum(profileIntSum(1:6,1:T_dis_perp+1),2);
+    
+    profileCell{1,iR}.profileIntMeanPerpCenterRatio = ...
+      (sum(profileIntSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+      ./(sum(profileIntSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        
+  profileCell{1,iR}.profileFilaSumPerpCenterRatio = ...
+      sum(profileFilaSum(1:6,T_dis_perp+1:end),2)...
+      ./sum(profileFilaSum(1:6,1:T_dis_perp),2);
+        
+  profileCell{1,iR}.profileFilaMeanPerpCenterRatio = ...
+      (sum(profileFilaSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+      ./(sum(profileFilaSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        
+  profileCell{1,iR}.profileStnmsSumPerpCenterRatio = ...
+      sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)...
+      ./sum(profileStnmsSum(1:6,1:T_dis_perp),2);
+        
+  profileCell{1,iR}.profileStnmsMeanPerpCenterRatio = ...
+      (sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+      ./(sum(profileStnmsSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        
     
     %% Define centripetal-ness
         
-    for iF = 1 : length(VIF_ROI_model)
-        try
-            x = VIF_ROI_model{iF}(:,1);
-            y = VIF_ROI_model{iF}(:,2);
-        end
-    end
+%     for iF = 1 : length(VIF_ROI_model)
+%         try
+%             x = VIF_ROI_model{iF}(:,1);
+%             y = VIF_ROI_model{iF}(:,2);
+%         end
+%     end
     
     
 end
 
-output_feature.profileCell = profileCell;    
+profileCell_intsum_pool = [];
+profileCell_intmean_pool = [];
+profileCell_filasum_pool = [];
+profileCell_filamean_pool = [];
+profileCell_nmssum_pool = [];
+profileCell_nmsmean_pool = [];
+
+for  iR = 1 : NoRegion
+    profileCell_nmssum_pool = [profileCell_nmssum_pool profileCell{1,iR}.profileStnmsSumPerpCenterRatio];
+    profileCell_nmsmean_pool = [profileCell_nmsmean_pool profileCell{1,iR}.profileStnmsMeanPerpCenterRatio];    
+    profileCell_intsum_pool = [profileCell_intsum_pool profileCell{1,iR}.profileIntSumPerpCenterRatio];
+    profileCell_intmean_pool = [profileCell_intmean_pool profileCell{1,iR}.profileIntMeanPerpCenterRatio];
+    profileCell_filasum_pool = [profileCell_filasum_pool profileCell{1,iR}.profileFilaSumPerpCenterRatio];
+    profileCell_filamean_pool = [profileCell_filamean_pool profileCell{1,iR}.profileFilaMeanPerpCenterRatio];    
+end
+
+profileAllCell.MedStnmsSumPerpCenterRatio  = nanmedian(profileCell_nmssum_pool(:));
+profileAllCell.MedStnmsMeanPerpCenterRatio = nanmedian(profileCell_nmsmean_pool(:));
+profileAllCell.MedIntSumPerpCenterRatio    = nanmedian(profileCell_intsum_pool(:));
+profileAllCell.MedIntMeanPerpCenterRatio   = nanmedian(profileCell_intmean_pool(:));
+profileAllCell.MedFilaSumPerpCenterRatio   = nanmedian(profileCell_filasum_pool(:));
+profileAllCell.MedFilaMeanPerpCenterRatio  = nanmedian(profileCell_filamean_pool(:));
+
+profileAllCell.MeanStnmsSumPerpCenterRatio  = nanmean(profileCell_nmssum_pool(:));
+profileAllCell.MeanStnmsMeanPerpCenterRatio = nanmean(profileCell_nmsmean_pool(:));
+profileAllCell.MeanIntSumPerpCenterRatio    = nanmean(profileCell_intsum_pool(:));
+profileAllCell.MeanIntMeanPerpCenterRatio   = nanmean(profileCell_intmean_pool(:));
+profileAllCell.MeanFilaSumPerpCenterRatio   = nanmean(profileCell_filasum_pool(:));
+profileAllCell.MeanFilaMeanPerpCenterRatio  = nanmean(profileCell_filamean_pool(:));
+
+ 
+output_feature.profileCell = profileCell;   
+output_feature.profileAllCell = profileAllCell;   
