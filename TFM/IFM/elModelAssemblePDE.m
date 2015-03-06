@@ -1,4 +1,5 @@
 function fem = elModelAssemblePDE(geom,mesh,options,fn,fp,ind,bndInd)
+function femModel = elModelAssemble(femModel,geom,mesh)
 %ELMODELASSEMBLEPDE  Assemble information of the elastic equations into the FEM
 %                 structure of PDEtoolbox in matlab. This function is
 %                 adopted from ELMODELASSEMBLE but uses functions in matlab
@@ -15,11 +16,9 @@ function fem = elModelAssemblePDE(geom,mesh,options,fn,fp,ind,bndInd)
 %       mesh as geometry concept in FEMLAB, i.e.
 %                fem.geom = mesh;
 %    mesh: A cell array of meshing parameters that can be passed directly to
-%       the 'meshinit' function in FEMLAB, or a completely defined MESH 
-%       structure in FEMLAB. It can also be the empty matrix, []. In this
+%       the 'initmesh' function in PDEtoolbox. It can also be the empty matrix, []. In this
 %       case, however, 'geom' can not be empty and a default meshing will be 
 %       used on the input 'geom'.
-%       See FEMLAB.
 %    -------------------------------------------------------------------------
 %    options: A structure whose fields define some properties of the PDE 
 %       system or provide options for solving the system.
@@ -249,10 +248,25 @@ fx         = cell(1,fem.numSubDoms);
 fy         = cell(1,fem.numSubDoms);
 for k = 1:fem.numSubDoms
    %Set the coefficient, 'c'.
-   fem.equ.c{k} = { {[lambda{k} '+2*' mu{k}] 0; 0 mu{k}} ...
-                    {0 lambda{k}; mu{k} 0}; ...
-                    {0 mu{k}; lambda{k} 0} ...
-                    {mu{k} 0; 0 [lambda{k} '+2*' mu{k}]} };
+%    c11 = [2*G+mu 0; 0 G];
+%    c12 = [0 G; mu 0];
+%    c21=[0 G;mu 0];
+%    c22 = [G 0; 0 2*G+mu];
+%    c2d = [c11 c12;c21 c22]; % 2Nx2N flattened coefficient c
+%    fem.equ.c{k} = [ [[lambda{k} '+2*' mu{k}] 0; 0 mu{k}] ...
+%                     [0 lambda{k}; mu{k} 0]; ...
+%                     [0 mu{k}; lambda{k} 0] ...
+%                     [mu{k} 0; 0 [lambda{k} '+2*' mu{k}]] ];
+   if strcmp(options.EPType,'YModulPRatio')
+       lambda{k} = (fn.YModul*fn.PRatio)/((1+fn.PRatio)*(1-2*fn.PRatio));
+       mu{k} = fn.YModul/(2*(1+fn.PRatio));
+   end
+   
+   fem.equ.c{k} = [ [lambda{k}+2*mu{k} 0; 0 mu{k}] ...
+                    [0 lambda{k}; mu{k} 0]; ...
+                    [0 mu{k}; lambda{k} 0] ...
+                    [mu{k} 0; 0 lambda{k}+2*mu{k}] ];
+
 
    %Set the coefficient, 'a' which is determined by the viscosity coefficient,
    % 'fn.VDragCoef' and the time step, 'fn.TimeStep' over which the actin
@@ -263,18 +277,18 @@ for k = 1:fem.numSubDoms
             '''fn.VDragCoef'' defined.']);
       end
 
-      fem.equ.a{k} = { [VDragCoef{k} './' TimeStep{k}] 0; ...
-                       0 [VDragCoef{k} './' TimeStep{k}] };
+      fem.equ.a{k} = [ [VDragCoef{k} './' TimeStep{k}] 0; ...
+                       0 [VDragCoef{k} './' TimeStep{k}] ];
    else
-      fem.equ.a{k} = { 0 0; 0 0 };
+      fem.equ.a{k} = [ 0 0; 0 0 ];
    end
 
    %By FEMLAB default, all the other coefficients, 'al', 'ga' and 'be' might
    % be zero. But to make sure, we set them to be zero explicitly here.
-   fem.equ.al{k} = { {0; 0} {0; 0}; {0; 0} {0; 0} };
-   fem.equ.ga{k} = { {0; 0}; {0; 0} };
-   fem.equ.be{k} = { {0; 0} {0; 0}; {0; 0} {0; 0} };
-
+   fem.equ.al{k} = [ [0; 0] [0; 0]; [0; 0] [0; 0] ];
+   fem.equ.ga{k} = [ [0; 0]; [0; 0] ];
+   fem.equ.be{k} = [ [0; 0] [0; 0]; [0; 0] [0; 0] ];
+   
    %Set the force term, 'f'.
    fx{k} = '0';
    fy{k} = '0';
@@ -307,16 +321,16 @@ fem.bnd.g = cell(1,fem.numBnds);
 fem.bnd.q = cell(1,fem.numBnds);
 for k = 1:fem.numBnds
    if strcmp(fem.options.BCType{k},'Dirichlet') == 1
-      fem.bnd.h{k} = {1 0; 0 1};
-      fem.bnd.r{k} = {BndDispx{k}; BndDispy{k}};
+      fem.bnd.h{k} = [1 0; 0 1];
+      fem.bnd.r{k} = [BndDispx{k}; BndDispy{k}];
 
       %Set 'q' to be zero although it might be zero by FEMLAB default.
       %fem.bnd.g{k} = {0; 0};
       %fem.bnd.q{k} = {0 0; 0 0};
    elseif strcmp(fem.options.BCType{k},'Neumann') == 1
-      fem.bnd.h{k} = {0 0; 0 0};
-      fem.bnd.r{k} = {0; 0};
-      fem.bnd.g{k} = {BndTracFx{k}; BndTracFy{k}};
+      fem.bnd.h{k} = [0 0; 0 0];
+      fem.bnd.r{k} = [0; 0];
+      fem.bnd.g{k} = [BndTracFx{k}; BndTracFy{k}];
 
       %Set 'q' to be zero although it might be zero by FEMLAB default.
       fem.bnd.q{k} = {0 0; 0 0};
@@ -344,6 +358,7 @@ else
    fem.geom = geom;
    fem.mesh = initmesh(fem,mesh{:}); %needs to be updated
 end
+femModel.fem = fem;
 
 % %Extending the mesh.
 % fem.xmesh = meshextend(fem); % this is not supported 

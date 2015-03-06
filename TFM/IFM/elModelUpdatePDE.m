@@ -216,6 +216,9 @@ if strcmp(fpChanged,'yes') == 1
    fem = inputsCheck(fem,options,fn,fp,ind,bndInd);
    %fem.varNames = varNameDefine(fem);
    fem = varDefine(fem);
-   fem = constDefine(fem);
+   fem = constDefine(fem); % I don't like this function cause it stores variables in base space with very cryptic way.
+   % It is time to assign actual value of fp.BodyFx{2}{2} to fem.equ.f
+   fem = elModelAssemblePDE([],mesh,options,fn,fp,ind,bndInd);
+%    fem.fp.BodyFx{2}{2}
 %    fem.xmesh = meshextend(fem);
 end
