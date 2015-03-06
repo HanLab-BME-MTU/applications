@@ -1,4 +1,4 @@
-function getImageStackFromTracksDirect(tracksSim)
+function getImageStackFromTracksDirect(tracksSim,saveDir)
 
 %load('target_rD10_ap0p5_lR0p3/out1/compTracksALT1.mat');
 % loadStruct = load([pathToTrackMAT,'/out',int2str(runIndx),'/compTracksALT',int2str(runIndx),'.mat']);
@@ -18,6 +18,13 @@ function getImageStackFromTracksDirect(tracksSim)
 % [trackedFeatureInfo,trackedFeatureIndx,trackStartRow,numSegments,aggregStateMat] =...
 %     convStruct2MatIgnoreMS(compTracksALTdef_sparse,0);
 
+
+%check directory for saving
+if nargin < 2 || isempty(saveDir)
+    saveDir = [];
+end
+
+%convert tracks structure to matrix
 [trackedFeatureInfo,trackedFeatureIndx,trackStartRow,numSegments,aggregStateMat] =...
     convStruct2MatIgnoreMS(tracksSim,0);
 
@@ -73,7 +80,7 @@ rad = 3;
 saveVar = 1;
 % saveFolder = ['outB',int2str(runIndx)];
 
-makeAiryImageFromMPM(trackInfo,bgav,bgnoise,sigma,imsize,rad,saveVar); %,saveFolder);
+makeAiryImageFromMPM(trackInfo,bgav,bgnoise,sigma,imsize,rad,saveVar,[],saveDir);
 
 end
 

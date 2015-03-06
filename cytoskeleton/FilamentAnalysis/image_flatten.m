@@ -148,12 +148,14 @@ for iChannel = selected_channels
             else
                 low_005_percentile = 0;
             end
-            % the reason for using 14 is 16bit images are usually dim if
-            % opened in image viewer, since not 16 bits arefully used.
-            if(max(max(currentImg))>2^14-1)                
+            % the reason for using 12 is 16bit images are usually dim if
+            % opened in image viewer, since not 16 bits are fully used.
+            % Checked again, should be a microscope issue, the image is 12
+            % bits.
+            if(max(max(currentImg))>2^12-1)
                 high_995_percentile= 2^16-1;
-            else
-                high_995_percentile= 2^14-1;
+            else                
+                high_995_percentile= 2^12-1;                
             end
         end
         

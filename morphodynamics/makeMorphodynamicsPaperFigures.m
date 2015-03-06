@@ -14,7 +14,9 @@ saveFigs = true;
 
 %Parent directory for all panels
 %figParentDir = '/home/he19/.gvfs/idac on nucleus/Hunter/orhcestra_home_june30_and_backup_merged/home/Papers/windowing methods paper/Figures/Panels';%from Ubuntu desktop, but has export problems.
-figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+%figParentDir = 'W:\Hunter\orhcestra_home_june30_and_backup_merged\home\Papers\windowing methods paper\Figures\Panels';%From windows PC
+figParentDir = '/home/he19/Desktop/TEMP/temp_figpanel_writing';%On ubuntu desktop as workaround for export problems 
+ 
 fdName = 'Figure';
 
 %Printing options
@@ -678,7 +680,6 @@ if saveFigs
 end
 
 
-
 %% ------ Activity Map Illustration ------ %%
 %Shows assembly of samples into matrix
 %(Mostly made in illustrator, but some from here)
@@ -787,7 +788,6 @@ for j = 1:nBands
 end
 
 
-
 %% ----- Window Images for Illustration ----- %%
 %Use bigger windows so we can see them,
 %switch back to the arp example so the images are familiar
@@ -853,10 +853,6 @@ if saveFigs
     print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
 end
-
-
-
-
 
 
 %% ----- Protrusion Map for Matrix creation Illustration
@@ -996,9 +992,6 @@ if saveFigs
     print(panelFig,panelFile,pOptEPS{:});
     hgsave(panelFig,panelFile);
 end
-
-
-
 
 
 %% ---------- Windowing Propagation Comparison -------- %%
@@ -1173,8 +1166,6 @@ if saveFigs
 end
 
 
-
-
 %% ----- Whole-Cell activity map for prop comparison - constant number
 
 panelName = 'whole cell activity map for prop comparison protrusion based';
@@ -1240,7 +1231,9 @@ set(gca,axPars{:})
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Whole-cell pattern extraction 
 
-wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco';
+wcExampMov = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/rac1_cell_actuallyMoves_from_marco'; %Ubuntu desktop
+%wcExampMov = 'P:\gtpases\Hunter\methods_paper_data\rac1_cell_actuallyMoves_from_marco'; %Windows PC
+
 %Use highly motile rac1 cell from marco for time illustration
 if ~exist('MDwc','var')
     MDwc = MovieData.load([wcExampMov filesep 'movieData.mat']);
@@ -1251,6 +1244,151 @@ winSize = 1.6e3;%Arbitratily selected for visualization. Gives 5x5 pixel windows
 
 scBarSz = 5e3; %Scale bar size in nm
 
+%% ----- Whole-cell windowing overlay for Circle mapping methods ------ %%
+
+% Load the windows
+iFrame = 10;
+
+winType = 'constant_number';
+winDir = [wcExampMov filesep 'windows_' num2str(winSize) 'nm_' winType ];
+allWin = dir([winDir filesep '*.mat']);
+
+win = load([winDir filesep allWin(iFrame).name]);
+win = win.windows;
+
+
+%make the overlay
+panelName = 'Circle mapping methods window overlay example';
+panelFile = [figParentDir filesep panelName];
+panelFig = figure;
+panelAxes = gca;
+imWinEx = MDwc.channels_(1).loadImage(iFrame);
+imHan = imshow(imWinEx,[],'InitialMagnification',250);
+hold on
+colormap(jet)
+saturateImageColormap(panelAxes,satPct*2);
+%plotScaleBar(scBarSz / pixSize,'Handle',panelAxes,'Location','SouthWest');
+tmpMask = imfill(imWinEx > 0,'holes');
+tmpMask = bwareaopen(tmpMask,100);
+set(imHan,'AlphaData',tmpMask)  
+
+plotWindows(win,[{'b','FaceColor','none'} plotPars{:}]);
+
+set(gcf, 'InvertHardcopy', 'off');
+set(gcf,'DefaultLineLineSmoothing','on');
+set(gcf,'DefaultPatchLineSmoothing','on');
+set(gcf,'color','w')
+axis off,axis tight
+axis ij
+%set(panelAxes,'XDir','reverse')
+%xlim(xl);ylim(yl);
+
+
+if saveFigs
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+    hgsave(panelFig,panelFile);
+end
+
+
+
+
+
+%% ----- Activity matrix for circle-mapping method illustration ---- %%
+
+panelName = 'whole cell activity matrix for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+
+panelFig = figure('Position',[397         490        1878         588]);
+
+winType = 'constant_number';
+
+iSnapUse = iFrame;%Number of snapshot to use activity matrix from
+
+sampDir = [wcExampMov filesep 'window_samples_' num2str(winSize) 'nm_' winType ];
+sampFiles = dir([sampDir filesep '*.mat']);
+samps = load([sampDir filesep sampFiles.name]);
+samps = samps.samples;
+
+sampShow = samps.avg(:,:,iSnapUse(1))';
+
+pHan = pcolor(sampShow);
+
+
+%tmpMask = ~isnan(sampShow);
+%imHan = imagesc(sampShow);
+%set(imHan,'AlphaData',tmpMask)
+
+
+panelAxes = get(panelFig,'CurrentAxes');
+set(panelAxes,axPars{:});
+axis image
+set(panelAxes,'YDir','normal')
+set(panelAxes,'YTick',[])
+set(panelAxes,'XTick',[])
+
+%xlabel('Along cell edge, Slice #',axLabPars{:})
+%ylabel('Away from cell edge, Band #',axLabPars{:})
+
+
+ if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ------ Circle map with grid for circle mapping methods illustration ----- %%
+
+panelFig = figure;
+
+panelName = 'circle map with grid for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+tmpSamp = sampShow([1 1:7],:);%repeat first row because it somehow doesn't get plotted otherwise...
+
+%polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{size(tmpSamp,1), size(tmpSamp,2)});
+polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{1 1});
+hold on
+polarplot3d(ones(size(tmpSamp))*nanmax(tmpSamp(:))+.1,'PlotType','wire','TickSpacing',0,'PolarGrid',{size(tmpSamp,1)-1, size(tmpSamp,2)-1});
+view(2)
+axis equal
+axis off
+set(panelFig,'color','w')
+if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
+
+%% ------ Circle map interpolated for circle mapping methods illustration ----- %%
+
+panelFig = figure;
+
+panelName = 'circle map interpolated for circle mapping illustration';
+panelFile = [figParentDir filesep panelName];
+tmpSamp = sampShow(1:8,:);
+tmpSamp = smoothActivityMap(tmpSamp,'FillNaN',true);        
+%polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{size(tmpSamp,1), size(tmpSamp,2)});
+polarplot3d(tmpSamp(end:-1:1,:),'TickSpacing',0,'PolarGrid',{1 1});
+hold on
+%polarplot3d(ones(size(tmpSamp))*nanmax(tmpSamp(:))+.1,'PlotType','wire','TickSpacing',0,'PolarGrid',{size(tmpSamp,1)-1, size(tmpSamp,2)-1});
+view(2)
+axis equal
+axis off
+set(panelFig,'color','w')
+if saveFigs
+    
+    print(panelFig,panelFile,pOptTIFF{:});
+    print(panelFig,panelFile,pOptEPS{:});
+
+     %export_fig(panelFile,expFigOps{:});
+    hgsave(panelFig,panelFile);
+end
 
 
 %% ------ Rac1 Cell Spatial pattern circle mapping Timepoint Comparison ----
@@ -1292,48 +1430,12 @@ for j = 1:nSnap
 
 end
 
-%% ----- Activity matrix for circle-mapping method illustration
-
-panelName = 'whole cell activity matrix for circle mapping illustration';
-panelFile = [figParentDir filesep panelName];
-
-panelFig = figure('Position',[397         490        1878         588]);
-
-winType = 'constant_number';
-
-iSnapUse = 1;%Number of snapshot to use activity matrix from
-
-sampDir = [wcExampMov filesep 'window_samples_' num2str(winSize) 'nm_' winType ];
-sampFiles = dir([sampDir filesep '*.mat']);
-samps = load([sampDir filesep sampFiles.name]);
-samps = samps.samples;
-
-sampShow = samps.avg(:,:,iSnapUse(1))';
-tmpMask = ~isnan(sampShow);
-imHan = imagesc(sampShow);
-set(imHan,'AlphaData',tmpMask)
-panelAxes = get(panelFig,'CurrentAxes');
-set(panelAxes,axPars{:});
-axis image
-set(panelAxes,'YDir','normal')
-xlabel('Along cell edge, Slice #',axLabPars{:})
-ylabel('Away from cell edge, Band #',axLabPars{:})
-
-
- if saveFigs
-    
-    print(panelFig,panelFile,pOptTIFF{:});
-    print(panelFig,panelFile,pOptEPS{:});
-
-     %export_fig(panelFile,expFigOps{:});
-    hgsave(panelFig,panelFile);
-end
-
-
 
 %% ---- Erk Whole-cell Image, circle map and windowing comparison  -----
 
-exList = '/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
+exList ='/home/he19/files/LCCB/gtpases/Hunter/methods_paper_data/Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat';
+%exList = 'P:\gtpases\Hunter\methods_paper_data\Michelle_IF_Erk_Wave_converted/movieListUseHMEC.mat'; %Windows PC
+
 if ~exist('MLerk','var')
     MLerk = MovieList.load(exList,0);
 end
@@ -1367,31 +1469,39 @@ for j = 1:nEx
     iMaskProc = MLerk.movies_{iEx(j)}.getProcessIndex('MaskRefinementProcess',1,0);
     currMask = MLerk.movies_{iEx(j)}.processes_{iMaskProc}.loadChannelOutput(iActChan,1);
     
-    sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    if j == 1
+        sampRng = prctile(samps(j).avg(:),[satPct/2 (100-satPct/2)]);
+    end
     satSamps = samps(j).avg;
     satSamps(satSamps>sampRng(2)) = sampRng(2);
     satSamps(satSamps<sampRng(1)) = sampRng(1);        
     
-    cMap = hot;
     
     panelFile = [figParentDir filesep panelName ' image cell ' num2str(j)];
-    panelFig = figure('Position',[810         262        1021         861]);
-    hold on            
+    panelFig = figure;%('Position',[810         262        1021         861]);
+             
     %imageViewer(MLerk.movies_{iEx(j)},'ChannelIndex',iErkChan,'Saturate',satPct/100,'AxesHandle',gca);colormap(cMap)    
-    imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    %imHan = MLerk.movies_{iEx(j)}.channels_(iErkChan).draw(1);
+    im = MLerk.movies_{iEx(j)}.channels_(iErkChan).loadImage(1);
+    imHan = imshow(im,[]);
+    cMap = hot;
     set(imHan,'AlphaData',currMask);
     colormap(cMap)
-    saturateImageColormap(imHan,satPct);
+    %saturateImageColormap(imHan,satPct);
+    caxis(sampRng)
+    hold on   
     plotScaleBar(scBarSz / MLerk.movies_{iEx(j)}.pixelSize_,'Location',scBarLoc,'Color',scBarCol);
     axis xy
     axis on
+    box off
     set(gca,'XTick',[])
     set(gca,'YTick',[])
     set(gca,'Color','w')
-    
+    set(panelFig,'color','w')
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
         print(panelFig,panelFile,pOptEPS{:});
+        %export_fig(panelFile,expFigOps{:})
         hgsave(panelFig,panelFile);
     end
 
@@ -1431,17 +1541,15 @@ for j = 1:nEx
         print(panelFig,panelFile,pOptEPS{:});
         hgsave(panelFig,panelFile);
     end    
-    
-    panelName = [panelName ' colorbar'];
-    panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+        
+    panelFile = [figParentDir filesep panelName ' colorbar'];
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
     axis off
     caxis(sampRng);
-    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})
-
+    set(get(cBarAx,'YLabel'),'String','p-Erk Fluorescence, a.u.',cBarPars{:})    
     
     if saveFigs
         print(panelFig,panelFile,pOptTIFF{:});
@@ -1517,7 +1625,7 @@ end
 
 panelName = [panelName ' colorbar'];
 panelFile = [figParentDir filesep panelName];
-panelFig = figure;
+panelFig = figure(cBarFigPars{:});
 
 colormap(rawErkCmap);
 cBarAx = colorbar(cBarPars{:});
@@ -1756,7 +1864,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -1775,7 +1883,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -1894,7 +2002,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -1913,7 +2021,7 @@ for j = 1:nChan
 
     panelName = [panelNameBase chanNames{j} ' fluorescence colormap colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMapFluor);
     cBarAx = colorbar(cBarPars{:});
@@ -1992,7 +2100,7 @@ for j = 1:nChan
     % --- Colorbar for above figure
     panelName = [panelNameBase chanNames{j} ' colorbar'];
     panelFile = [figParentDir filesep panelName];
-    panelFig = figure;
+    panelFig = figure(cBarFigPars{:});
 
     colormap(cMap);
     cBarAx = colorbar(cBarPars{:});
@@ -2030,6 +2138,8 @@ panelFile = [figParentDir filesep panelName];
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average interp both directions all channels.fig']);
 
+set(panelFig,'PaperPositionMode','auto')
+
 % chanCols = jet(nChan);
 % 
 % sampLamMean = nanmean(sampLamIntBothAvg,3);
@@ -2042,10 +2152,11 @@ panelFig = open([cellAvgFigDir filesep 'away from edge profile lamellar average 
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 legend('hide')%turn legends off on these, we'll have one legend for all panels
@@ -2062,16 +2173,19 @@ end
 
 panelName = 'Erk line scan non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'away from edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
+
+
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
-xlabel('Distance From Cell Edge, Band #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance From Cell Edge, Band #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
@@ -2088,18 +2202,18 @@ end
 
 panelName = 'Erk line scan across lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
-
 panelFig = open([cellAvgFigDir filesep 'along edge profile lamellar average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(gca,axPars{:});
 
@@ -2116,17 +2230,18 @@ end
 
 panelName = 'Erk line scan across non-lamellar';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);
 
 
-xlabel('Distance Along Cell Edge, Strip #',axLabPars{:})
-ylabel('Mean Fluorescence Intensity, a.u.',axLabPars{:})
+xlabel('Distance Along Cell Edge, Strip #',axLabPars{:},'FontSize',20)
+ylabel('Mean Fluorescence, a.u.',axLabPars{:},'FontSize',20)
 title('');
 set(panelAxes,axPars{:});
 
@@ -2143,12 +2258,14 @@ end
 
 panelName = 'Erk line scan legend';
 panelFile = [figParentDir filesep panelName];
-%panelFig = fsFigure(.75);
+
 
 panelFig = open([cellAvgFigDir filesep 'along edge profile oth average interp both directions all channels.fig']);
+set(panelFig,'PaperPositionMode','auto')
 %Set the line styles
 panelAxes = get(panelFig,'CurrentAxes');
 lineHans = get(panelAxes,'Children');
+lineHans = lineHans(strcmp(get(lineHans,'Type'),'line'));
 set(panelAxes,axPars{:})
 arrayfun(@(x)(set(x,plotPars{:})),lineHans);%Set plot params so legend shows up correctly
 arrayfun(@(x)(delete(x)),lineHans);%Remove all the plot crap

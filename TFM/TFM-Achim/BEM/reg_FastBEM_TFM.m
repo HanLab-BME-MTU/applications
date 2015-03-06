@@ -24,6 +24,8 @@ ip.addParamValue('LcurveFactor',@isscalar);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
 ip.addParamValue('pixelSize',@isscalar);
+ip.addParamValue('strictBEM',false,@islogical);
+ip.addParamValue('fwdMap',[],@ismatrix);
 ip.parse(grid_mat, displField, frame, yModu_Pa, pRatio, regParam, varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -39,6 +41,8 @@ pixelSize = ip.Results.pixelSize;
 forceMesh = ip.Results.forceMesh;
 useLcurve = ip.Results.useLcurve;
 LcurveFactor = ip.Results.LcurveFactor;
+strictBEM = ip.Results.strictBEM;
+M = ip.Results.fwdMap;
 
 if isempty(grid_mat)
     % If no mesh is specified for the forces, we create a hexagonal mesh
@@ -63,10 +67,10 @@ keepBDPts=true; %this might lead to unmatching forward map that lead to
 % diagonalized traction map
 % keepBDPts=false;
 doPlot=0;
-strictBEM = false;
-if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
-    strictBEM = true;
-end
+% strictBEM = false;
+% if strcmp(solMethodBEM,'1NormReg') || strcmp(solMethodBEM,'1NormRegLaplacian')
+%     strictBEM = true;
+% end
 if strictBEM
     xvec = displField(frame).pos(:,1);
     yvec = displField(frame).pos(:,2);
@@ -96,7 +100,7 @@ elseif isempty(paxImage)
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
         'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
-        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath);
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,'fwdMap',M);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));
@@ -111,7 +115,7 @@ else
         BEM_force_reconstruction(displField(frame).pos(:,1),displField(frame).pos(:,2),...
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         x_out,y_out,'slow',meshPtsFwdSol,solMethodBEM,'wtBar',wtBar,'imgRows',imgRows,...
-        'imgCols',imgCols,'thickness',thickness,'paxImg',paxImage);
+        'imgCols',imgCols,'thickness',thickness,'paxImg',paxImage,'fwdMap',M);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 end
 

@@ -47,7 +47,13 @@ function samples = sampleStackWindows(windows,stack,mask)
 %
 
 
-
+% NOTE: The note below is old :). Now we allow different sets of mask - one
+% for defining the cell outline, and another which may be based on e.g SNR
+% in the FRET signal. Using two pairs allows us to track morphodynamics
+% with an accurate mask (potentially from another image channel) while
+% still excluding cell regions with SNR lowe enough to have unreliable FRET
+% ratios / fluorescence signals. When this isn't the case, see the note
+% below!
 % NOTE: We need to use the masks again here during sampling for several
 % reasons. One, neither inpolygon.m nor poly2mask.m produce results which
 % agree completely with the output of contourc.m or bwboundaries.m. That

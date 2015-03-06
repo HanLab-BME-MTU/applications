@@ -159,7 +159,7 @@ if ~p.useGrid
         % To get high-resolution information, subsample detected beads ensuring 
         % beads are separated by 0.1 um the correlation length 
         disp('Subsampling detected beads (high resolution)...')
-        max_beads_distance = floor(100/movieData.pixelSize_);
+        max_beads_distance = (100/movieData.pixelSize_);
     end
 
     idx = KDTreeBallQuery(beads, beads, max_beads_distance);
@@ -170,6 +170,48 @@ if ~p.useGrid
         valid(neighbors) = false;
     end
     beads = beads(valid, :);
+    % It doesn't critically require local maximal pixel to start
+    % x-correlation-based tracking. Thus, to increase spatial resolution,
+    % we add additional points in the mid points of pstruct
+    % We first randomly distribute point, and if it is not too close to
+    % existing points and the intensity of the point is above a half of the
+    % existing points, include the point into the point set
+    disp('Finding additional non-local-maximal points with high intensity ...')
+    distance=zeros(length(beads),1);
+    for i=1:length(beads)
+        neiBeads = beads;
+        neiBeads(i,:)=[];
+        [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
+    end
+    avg_beads_distance = quantile(distance,0.5);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+    notSaturated = true;
+    xmin = min(pstruct.x);
+    xmax = max(pstruct.x);
+    ymin = min(pstruct.y);
+    ymax = max(pstruct.y);
+%     avgAmp = mean(pstruct.A);
+%     avgBgd = mean(pstruct.c);
+%     thresInten = avgBgd+0.02*avgAmp;
+    thresInten = quantile(pstruct.c,0.1);
+    maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
+    numNotDetected = 0;
+    numPrevBeads = size(beads,1);
+    while notSaturated
+        x_new = xmin + (xmax-xmin)*rand();
+        y_new = ymin + (ymax-ymin)*rand();
+        [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+        inten_new = refFrame(round(y_new),round(x_new));
+        if distToPoints>avg_beads_distance && inten_new>thresInten
+            beads = [beads; x_new, y_new];
+            numNotDetected = 0;
+        else
+            numNotDetected=numNotDetected+1;
+        end
+        if numNotDetected>maxNumNotDetected
+            notSaturated = false; % this means now we have all points to start tracking from the image
+        end
+    end
+    disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking.'])
 
 %     % Select only beads which are min correlation length away from the border of the
 %     % reference frame 
