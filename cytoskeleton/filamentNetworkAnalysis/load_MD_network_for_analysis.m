@@ -36,6 +36,12 @@ function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_fla
 %           17:   output_feature.filament_mean_curvature
 %           18:   output_feature.curvature_per_pixel_pool 
 
+%           19:   output_feature.profileAllCell
+%           20:   output_feature.profileAllCell
+
+%           21:   output_feature.Centripetal_fila 
+%           22:   output_feature.Centripetal_pixel 
+
 % output:   network_feature, a cell structure for each channel, each frame.
 %           Each struct with field of the 16 features as above
             
@@ -115,7 +121,7 @@ for iChannel = validChannels
     % for each frame
     for iFrame = 1 : nFrame
         display(['iChannel: ', num2str(iChannel),', iFrame:', num2str(iFrame)]);
-        tic
+        frame_tic = tic;
         %% % Load the data
        
         % load scale map
@@ -186,11 +192,14 @@ for iChannel = validChannels
         current_img =  MD.channels_(iChannel).loadImage(iFrame);
                 
         % get network feature that is only related to the network
+        display(' --- network features');
+        tic
         [output_network_features, VIF_ROI_model, VIF_ROI_orientation_model] ...
             = network_analysis(VIF_current_model,...
             VIF_current_seg, ROI, radius,feature_flag);
+        toc
         
-        display(' --- network features');
+        display(' --- intensity, scale, steerable-response features');   
         tic
         % get network feature that is related to intensity or st image
         output_image_features = perfilament_analysis(VIF_ROI_model, VIF_ROI_orientation_model,...
@@ -200,11 +209,11 @@ for iChannel = validChannels
         % putting the network features together
         output_feature =  cat_struct(output_network_features,output_image_features);
         
-        display(' --- intensity, scale, steerable-response features');   
         
         %% for vim screen the third channel is nucleus, count the number of cells
         if(vimscreen_flag>0 && indexCellRefineProcess >0)
-           
+           display(' --- Vim Screen - Structure Features');   
+        
             % load the nucleus channel segmentation
             nucleus_mask = (MD.processes_{indexCellRefineProcess}.loadChannelOutput(3,iFrame))>0;
             
@@ -215,24 +224,13 @@ for iChannel = validChannels
            
            % With the nucleus locations, get the vim properties in each
            % devided region of each cell
+           tic
            vim_output_feature = vim_screen_network_features(labelMaskNucleus,...
-               VIF_current_seg,current_img, nms);           
-           
+               VIF_current_seg,VIF_ROI_model,current_img, nms,feature_flag,40);           
+           toc
            % put these into the final struct
-           output_feature =  cat_struct(output_feature,vim_output_feature);
-        
-        end   
-        tic
-        % plot the network features in hists
-        network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
-                im_name, outdir,iChannel,iFrame)
-%         close all;
-        toc
-        
-        
-       
-
-        
+           output_feature =  cat_struct(output_feature,vim_output_feature);        
+        end           
         
         % add one last component, the cell_mask
         Cell_Mask = ROI;
@@ -244,11 +242,6 @@ for iChannel = validChannels
         
         output_feature.Cell_Mask = Cell_Mask;
         
-        
-        
-        
-        
-        
 %         % save output feature for single image(single channel, single frame)
 %         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
 %             'output_feature');
@@ -257,11 +250,19 @@ for iChannel = validChannels
         save([outdir,filesep,'network_feature_ch_',num2str(iChannel),'_',filename_short_strs{iFrame},'.mat'],...
             'output_feature');
         
+        
+        tic
+        % plot the network features in hists
+        network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
+                im_name, outdir,iChannel,iFrame)
+%         close all;
+        toc
+        
         % put output feature to cell for all channels, all frames
         network_feature{iChannel,iFrame} = output_feature;
         
        display(' this frame totaling: ');        
-       toc
+       toc(frame_tic)
     end
     
     % save output feature for all channels(till this), all frames)       
