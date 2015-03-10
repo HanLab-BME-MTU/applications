@@ -36,7 +36,7 @@ function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_fla
 %           17:   output_feature.filament_mean_curvature
 %           18:   output_feature.curvature_per_pixel_pool 
 
-%           19:   output_feature.profileAllCell
+%           19:   output_feature.profileCell
 %           20:   output_feature.profileAllCell
 
 %           21:   output_feature.Centripetal_fila 

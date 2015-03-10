@@ -34,7 +34,7 @@ branch_filament_meannms_matrix=[];
 
 
 for iCompleteFrame = 1 :nCompleteFrame
-    %     current_seg = current_seg_cell{1,iFrame};
+    current_seg = current_seg_cell{1,iFrame};
     iFrame = iCompleteFrame+FirstFrame-1;
     
     smoothed_current_mask = smoothed_mask_cell{1,iCompleteFrame};
@@ -172,19 +172,67 @@ for iCompleteFrame = 1 :nCompleteFrame
     
     if(figure_flag>0)
         
-        [seg_ind_y,seg_ind_x] = find(current_seg>0);
+        [seg_ind_y,seg_ind_x] = find(current_seg>0 & labelMask > 0);
         
-        h5 = figure(5);
+        h5 = figure(5); hold off;
         
-        subplot(121); imagesc(RG_framem1);axis image; axis off;
-        title('Difference','FontSize',15);
+        subplot(221); hold off; imagesc(RG_framem1);axis image; axis off;
+        hold on;
         axis([min_x max_x min_y max_y]);
         
-        subplot(122); imagesc((region_branch_label_RGB));
+        
+        hold on;
+        plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'r');
+        hold on;
+        plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame));
+        plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame),'.');
+        
+        plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'m.');
+        
+        plot(smooth_center_x(1),smooth_center_y(1),'*');
+        plot(center_x(1),center_y(1),'m*');
+        plot(smooth_center_x(iCompleteFrame),smooth_center_y(iCompleteFrame),'o');
+        plot(center_x(iCompleteFrame),center_y(iCompleteFrame),'mo');
+        
+        try
+        title({['Cell center speed: ', num2str(BA_output.speed_marked_frames(iCompleteFrame),'%.2f'), ' pixel/frame'], ...
+            ['Smoothed speed: ', num2str(BA_output.smoothed_speed_marked_frames(iCompleteFrame),'%.2f'), ' pixel/frame'],...
+           },'FontSize',15);
+        end
+        
+         h105 = figure(105); hold off;
+        
+        hold off; imagesc(RG_framem1);axis image; axis off;
+        hold on;
+        axis([min_x max_x min_y max_y]);
+                
+        hold on;
+        plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'r');
+        hold on;
+        plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame));
+        plot(smooth_center_x(1:iCompleteFrame),smooth_center_y(1:iCompleteFrame),'.');
+        
+        plot(center_x(1:iCompleteFrame),center_y(1:iCompleteFrame),'m.');
+        
+        plot(smooth_center_x(1),smooth_center_y(1),'*');
+        plot(center_x(1),center_y(1),'m*');
+        plot(smooth_center_x(iCompleteFrame),smooth_center_y(iCompleteFrame),'o');
+        plot(center_x(iCompleteFrame),center_y(iCompleteFrame),'mo');
+        
+        try
+        title({['Cell center speed: ', num2str(BA_output.speed_marked_frames(iCompleteFrame),'%.2f'), ' pixel/frame'], ...
+            ['Smoothed speed: ', num2str(BA_output.smoothed_speed_marked_frames(iCompleteFrame),'%.2f'), ' pixel/frame'],...
+            ['Branch number: ', num2str(numel(unique(labelMask(:)))-1,'%.0f')]},'FontSize',15);
+        end
+        
+        saveas(h105,[outputPath,filesep,'titled_tracked_region_',num2str(iFrame),'.tif']);
+   
+        h5=figure(5);
+        
+        subplot(222); imagesc((region_branch_label_RGB));
         axis image;axis off;
         hold on;
-        
-        
+                
         for iL = 1 : trackedBranches
             
             [indy,indx]= find(new_label_skel_cell{iCompleteFrame}==iL);
@@ -197,13 +245,15 @@ for iCompleteFrame = 1 :nCompleteFrame
                 plot( indx,indy,'.','color',color_array(iL,1:3)');
             end
         end
-        hold on; plot(seg_ind_x,seg_ind_y,'b.','MarkerSize',1);
+        hold on; plot(seg_ind_x,seg_ind_y,'b.','MarkerSize',1);    
+        title({['Branch number: ', num2str(numel(unique(labelMask(:)))-1,'%.0f')]},'FontSize',15);       
+        axis([min_x max_x min_y max_y]);
         
     end
     
-    % delete to release some memory
-    current_seg_cell{1,iCompleteFrame}=[];
-    orienation_map_filtered_cell{1,iCompleteFrame}=[];
+%     % delete to release some memory
+%     current_seg_cell{1,iCompleteFrame}=[];
+%     orienation_map_filtered_cell{1,iCompleteFrame}=[];
     
     % find the vif intensity information
     for iL = 1 : trackedBranches
@@ -219,15 +269,67 @@ for iCompleteFrame = 1 :nCompleteFrame
             branch_filament_totalnms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms);
             branch_filament_meannms_matrix(iCompleteFrame,iL) = sum(vif_pixel_nms)./(numel(find(labelMask==iL)));
         end
-        
         branch_size_matrix(iCompleteFrame,iL) = numel(find(labelMask==iL));
     end
-        
     
-    if(figure_flag>0)
-        title('Branches','FontSize',15);
-        axis([min_x max_x min_y max_y]);
-        saveas(h5,[outputPath,'\tracked_skel_region_',num2str(iFrame),'.tif']);
+    if(figure_flag>0)    
+        
+        subplot(223);
+        orient_display = branch_orienation;
+               
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        
+        rose(orient_display);
+        title('Branch orientations','FontSize',15);
+        
+              
+        h5 = figure(5); hold off;
+        subplot(224);
+       
+        orient_display = filament_orientation;
+               
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        
+        rose(orient_display);        
+        title('Filament Orientations','FontSize',15);
+        saveas(h5,[outputPath,filesep,'tracked_skel_region_',num2str(iFrame),'.tif']);
+        
+        
+         h205 = figure(205); hold off;        
+       
+        orient_display = filament_orientation - branch_orienation;
+               
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        orient_display(orient_display>pi/2)=...
+            orient_display(orient_display>pi/2)-pi;
+        orient_display(orient_display<-pi/2)=...
+            orient_display(orient_display<-pi/2)+pi;
+        
+        rose(orient_display);        
+        title(['Filament Orientations wrt Branch Orientation, std: ', num2str(std(orient_display),'%.2f')],'FontSize',15);
+        saveas(h205,[outputPath,filesep,'tracked_skel_region_',num2str(iFrame),'.tif']);
+  
     end
     
 end
@@ -245,7 +347,6 @@ if(~isempty(fila_branch_orientation_pool) && filament_stat_flag>0)
         fila_branch_orientation_pool(fila_branch_orientation_pool<-pi/2)+1*pi;
     
     
-    
     if(figure_flag>0)
         % filament vs cellmovement
         [h,bin]= hist(fila_branch_orientation_pool,-pi/2+pi/36:pi/(18):pi/2-pi/36);
@@ -258,7 +359,9 @@ if(~isempty(fila_branch_orientation_pool) && filament_stat_flag>0)
         title('Orientation difference between filament and branch');
         xlabel('Orientation Difference (unit: rad)');
         ylabel('Percentage(%)');
-        saveas(h12,[outputPath,'\fila_vs_branch_stat.tif']);
+        saveas(h12,[outputPath,filesep,'fila_vs_branch_stat.tif']);
+        
+       
     end
 end
 
@@ -284,7 +387,7 @@ if(~isempty(fila_trajectory_orientation_pool) && filament_stat_flag>0)
         title('Orientation difference between filament and cell movement');
         xlabel('Orientation Difference (unit: rad)');
         ylabel('Percentage(%)');
-        saveas(h13,[outputPath,'\fila_vs_cellmove_stat.tif']);
+        saveas(h13,[outputPath,filesep,'fila_vs_cellmove_stat.tif']);
     end
 end
 
@@ -313,7 +416,7 @@ if(~isempty(branch_trajectory_orientation_pool) && filament_stat_flag>0)
         title('Orientation difference between branch orientation and cell movement');
         xlabel('Orientation Difference (unit: rad)');
         ylabel('Percentage(%)');
-        saveas(h14,[outputPath,'\branch_vs_cellmove_stat.tif']);
+        saveas(h14,[outputPath,filesep,'branch_vs_cellmove_stat.tif']);
     end
 end
 
