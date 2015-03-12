@@ -34,7 +34,7 @@ branch_filament_meannms_matrix=[];
 
 
 for iCompleteFrame = 1 :nCompleteFrame
-    current_seg = current_seg_cell{1,iFrame};
+%     current_seg = current_seg_cell{1,iCompleteFrame};
     iFrame = iCompleteFrame+FirstFrame-1;
     
     smoothed_current_mask = smoothed_mask_cell{1,iCompleteFrame};
@@ -170,7 +170,7 @@ for iCompleteFrame = 1 :nCompleteFrame
         end
     end
     
-    if(figure_flag>0)
+    if(figure_flag>0 && ~isempty(current_seg_cell{1,iCompleteFrame}) )
         
         [seg_ind_y,seg_ind_x] = find(current_seg>0 & labelMask > 0);
         
@@ -229,7 +229,8 @@ for iCompleteFrame = 1 :nCompleteFrame
    
         h5=figure(5);
         
-        subplot(222); imagesc((region_branch_label_RGB));
+        subplot(222); hold off;
+        imagesc((region_branch_label_RGB));
         axis image;axis off;
         hold on;
                 
@@ -272,9 +273,9 @@ for iCompleteFrame = 1 :nCompleteFrame
         branch_size_matrix(iCompleteFrame,iL) = numel(find(labelMask==iL));
     end
     
-    if(figure_flag>0)    
+    if(figure_flag>0 && ~isempty(current_seg_cell{1,iCompleteFrame}) && filament_stat_flag>0)    
         
-        subplot(223);
+        subplot(223); hold off;
         orient_display = branch_orienation;
                
         orient_display(orient_display>pi/2)=...
@@ -294,8 +295,8 @@ for iCompleteFrame = 1 :nCompleteFrame
         title('Branch orientations','FontSize',15);
         
               
-        h5 = figure(5); hold off;
-        subplot(224);
+        h5 = figure(5); 
+        subplot(224); hold off;
        
         orient_display = filament_orientation;
                
@@ -328,7 +329,7 @@ for iCompleteFrame = 1 :nCompleteFrame
         
         rose(orient_display);        
         title(['Filament Orientations wrt Branch Orientation, std: ', num2str(std(orient_display),'%.2f')],'FontSize',15);
-        saveas(h205,[outputPath,filesep,'tracked_skel_region_',num2str(iFrame),'.tif']);
+        saveas(h205,[outputPath,filesep,'fila_orient_wrt_branch_',num2str(iFrame),'.tif']);
   
     end
     
