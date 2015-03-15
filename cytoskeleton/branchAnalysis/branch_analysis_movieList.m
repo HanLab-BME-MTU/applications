@@ -26,7 +26,7 @@ end
 movieNumber =  length(ML.movieDataFile_);
 BA_output_ML_cell= cell(1,1);
 
-for iM  = 1:movieNumber
+for iM  = 3:movieNumber
     
     clearvars -except 'movieNumber' 'BA_output_ML_cell' 'iM' 'ML' 'figure_flag' 'half_size' 'min_branch_size_Threshold' 'filament_stat_flag'
     
