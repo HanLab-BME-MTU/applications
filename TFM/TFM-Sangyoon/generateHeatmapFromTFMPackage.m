@@ -372,10 +372,27 @@ for ii=1:nFrames
             plot(pixelIntSelecChan(indHighVim),pixelTraction(indHighVim),'g.')
             close(hScatter);
             %Showing them in 2D histogram)
-            xBins = min(pixelIntSelecChan):1:max(pixelIntSelecChan);
-            yBins = min(pixelTraction):100:max(pixelTraction);
+            if max(pixelTraction)<100
+                yBins = round(min(pixelTraction)):round(max(pixelTraction));
+                xBins = min(pixelIntSelecChan):1:max(pixelIntSelecChan);
+            else
+                yBins = linspace(round(min(pixelTraction)),round(max(pixelTraction)),100);
+                xBins = linspace(min(pixelIntSelecChan),max(pixelIntSelecChan),100);
+            end
+%             yBins = round(min(pixelTraction)):100:round(max(pixelTraction));
             hHist2D = figure; hold on
             densityplot(pixelIntSelecChan, pixelTraction, xBins, yBins,'DisplayFunction', @log);
+            h_cb=colorbar;
+            h_cb.Label.String = 'Occurence, 10 ^';
+            ax = gca;
+            axpos = ax.Position;
+            cpos = h_cb.Position;
+            cpos(3) = 0.5*cpos(3);
+            cpos(2) = cpos(2)+0.05*cpos(4);
+            cpos(4) = 0.9*cpos(4);
+            h_cb.Position = cpos;
+            ax.Position = axpos;
+
             ylabel('Traction (Pa)')
             xlabel('Vimentin Intensity (A.U.)')
             % rectacgle

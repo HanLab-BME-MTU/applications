@@ -245,8 +245,10 @@ if nargin >= 10 && strcmp(method,'fast')
             MpM = Mreal'*Mreal;
         elseif inputFwdMap
             u = u(idxNonan);
-            MpM=M'*M;
-            Mreal = M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
+%             MpM=M'*M;
+%             Mreal = M;
         else
             MpM=M'*M;
             Mreal = M;
@@ -260,7 +262,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %             Mreal = M;
 %         end
         maxIter = 50;
-        tolr = 120;
+        tolr = 10;
         if useLcurve
             disp('L-curve ...')
             [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
@@ -323,18 +325,20 @@ if nargin >= 10 && strcmp(method,'fast')
         idxNonan = ~isnan(u);
         if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
-            M = M(idxNonan,:);
-            MpM = M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         elseif inputFwdMap
             u = u(idxNonan);
-            MpM=M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         else
             MpM=M'*M;
+            Mreal = M;
         end
         if useLcurve
-            [sol_coef,L] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurve(L,Mreal,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
-            sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+            sol_coef=(L*eyeWeights+ MpM)\(Mreal'*u);
         end
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;

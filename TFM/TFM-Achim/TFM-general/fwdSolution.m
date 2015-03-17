@@ -12,10 +12,10 @@ function [ux,uy,x_grid,y_grid,meshPtsFwdSol]=fwdSolution(x0,y0,E,xmin,xmax,ymin,
 % Sangyoon Han, August 2014
 if nargin <14
     v=0.5;
-    refine = false;
+    refine = true;
     useSameSampling = false;
 elseif nargin <15
-    refine = false;
+    refine = true;
     useSameSampling = false;
 elseif nargin <16
     useSameSampling = false;
@@ -93,8 +93,8 @@ elseif strcmpi(method,'fft')
     % rescale the result by the following scaling factor:
     xRange=(max(max(x0))-min(min(x0)));
     yRange=(max(max(y0))-min(min(y0)));
-%     scalingFactor=(xRange*yRange)/(Nx_F*Ny_F);
-    scalingFactor=1;
+    scalingFactor=(xRange*yRange)/(Nx_F*Ny_F);
+%     scalingFactor=1;
     
     % To cover the whole support of the force field, the domain over which
     % the Greensfunctions have to be calculated need to be at least of size:
