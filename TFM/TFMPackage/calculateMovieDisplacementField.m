@@ -24,6 +24,7 @@ ip.addRequired('movieData', @(x) isa(x,'MovieData'));
 ip.addOptional('paramsIn',[], @isstruct);
 ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
+addNonLocMaxBeads = false;
 
 %Get the indices of any previous stage drift processes                                                                     
 iProc = movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
@@ -148,7 +149,23 @@ if ~p.useGrid
     end
     pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
     assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
-    beads = [ceil(pstruct.x') ceil(pstruct.y')];
+    % filtering out points in saturated image based on pstruct.c
+    hist(pstruct.c,100)
+    [N,edges]= histcounts(pstruct.c);
+    % starting with median, find a edge disconnected with two consequtive
+    % zeros.
+    medC = median(pstruct.c);
+    idxAfterMedC=find(edges>medC);
+    qq=idxAfterMedC(1);
+    while N(qq)>0 || N(qq+1)>0
+        qq=qq+1;
+        if qq>=length(edges)-1
+            break
+        end
+    end
+    idx = pstruct.c<edges(qq);
+    beads = [ceil(pstruct.x(idx)') ceil(pstruct.y(idx)')];
+%     beads = [ceil(pstruct.x') ceil(pstruct.y')];
 
     % Subsample detected beads ensuring beads are separated by at least half of
     % the correlation length - commented out to get more beads
@@ -176,43 +193,44 @@ if ~p.useGrid
     % We first randomly distribute point, and if it is not too close to
     % existing points and the intensity of the point is above a half of the
     % existing points, include the point into the point set
-    disp('Finding additional non-local-maximal points with high intensity ...')
-    distance=zeros(length(beads),1);
-    for i=1:length(beads)
-        neiBeads = beads;
-        neiBeads(i,:)=[];
-        [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
-    end
-    avg_beads_distance = quantile(distance,0.5);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
-    notSaturated = true;
-    xmin = min(pstruct.x);
-    xmax = max(pstruct.x);
-    ymin = min(pstruct.y);
-    ymax = max(pstruct.y);
-%     avgAmp = mean(pstruct.A);
-%     avgBgd = mean(pstruct.c);
-%     thresInten = avgBgd+0.02*avgAmp;
-    thresInten = quantile(pstruct.c,0.1);
-    maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
-    numNotDetected = 0;
-    numPrevBeads = size(beads,1);
-    while notSaturated
-        x_new = xmin + (xmax-xmin)*rand();
-        y_new = ymin + (ymax-ymin)*rand();
-        [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
-        inten_new = refFrame(round(y_new),round(x_new));
-        if distToPoints>avg_beads_distance && inten_new>thresInten
-            beads = [beads; x_new, y_new];
-            numNotDetected = 0;
-        else
-            numNotDetected=numNotDetected+1;
+    if addNonLocMaxBeads
+        disp('Finding additional non-local-maximal points with high intensity ...')
+        distance=zeros(length(beads),1);
+        for i=1:length(beads)
+            neiBeads = beads;
+            neiBeads(i,:)=[];
+            [~,distance(i)] = KDTreeClosestPoint(neiBeads,beads(i,:));
         end
-        if numNotDetected>maxNumNotDetected
-            notSaturated = false; % this means now we have all points to start tracking from the image
+        avg_beads_distance = quantile(distance,0.4);%mean(distance);%size(refFrame,1)*size(refFrame,2)/length(beads);
+        notSaturated = true;
+        xmin = min(pstruct.x);
+        xmax = max(pstruct.x);
+        ymin = min(pstruct.y);
+        ymax = max(pstruct.y);
+    %     avgAmp = mean(pstruct.A);
+    %     avgBgd = mean(pstruct.c);
+    %     thresInten = avgBgd+0.02*avgAmp;
+        thresInten = quantile(pstruct.c,0.1);
+        maxNumNotDetected = 100; % the number of maximum trial without detecting possible point
+        numNotDetected = 0;
+        numPrevBeads = size(beads,1);
+        while notSaturated
+            x_new = xmin + (xmax-xmin)*rand();
+            y_new = ymin + (ymax-ymin)*rand();
+            [~,distToPoints] = KDTreeClosestPoint(beads,[x_new,y_new]);
+            inten_new = refFrame(round(y_new),round(x_new));
+            if distToPoints>avg_beads_distance && inten_new>thresInten
+                beads = [beads; x_new, y_new];
+                numNotDetected = 0;
+            else
+                numNotDetected=numNotDetected+1;
+            end
+            if numNotDetected>maxNumNotDetected
+                notSaturated = false; % this means now we have all points to start tracking from the image
+            end
         end
+        disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking.'])
     end
-    disp([num2str(size(beads,1)-numPrevBeads) ' points were additionally detected for fine tracking.'])
-
 %     % Select only beads which are min correlation length away from the border of the
 %     % reference frame 
 %     beadsMask = true(size(refFrame));

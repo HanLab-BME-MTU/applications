@@ -66,7 +66,10 @@ for i = p.ChannelIndex;
     outFilePaths{1,i} = [p.OutputDirectory filesep 'channel_' num2str(i)];
     mkClrDir(outFilePaths{1,i});
 end
-[~,refName,refExt]=fileparts(movieData.processes_{1}.funParams_.referenceFramePath);
+iTFM = movieData.getPackageIndex('TFMPackage');
+TFMpackage = movieData.getPackage(iTFM);
+SDCProcess = TFMpackage.getProcess(1);
+[~,refName,refExt]=fileparts(SDCProcess.funParams_.referenceFramePath);
 outFilePaths{2,p.ChannelIndex(1)} = [p.OutputDirectory filesep refName refExt];
 outFilePaths{3,p.ChannelIndex(1)} = [p.OutputDirectory filesep 'transformationParameters.mat'];
 displFieldProc.setOutFilePaths(outFilePaths);

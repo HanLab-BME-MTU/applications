@@ -11,8 +11,9 @@ ip = inputParser;
 ip.CaseSensitive = false;
 ip.addRequired('movieData', @(x) isa(x,'MovieData'));
 ip.addOptional('paramsIn',[], @isstruct);
+ip.addParameter('saveOnlyMesh',false,@islogical);
 ip.parse(movieData,varargin{:});
-paramsIn=ip.Results.paramsIn;
+saveOnlyMesh=ip.Results.saveOnlyMesh;
 
 %Get the indices of any previous flow tracking processes                                                                     
 iFlowProc = movieData.getProcessIndex('FlowTrackingProcess',1,0);
@@ -152,14 +153,15 @@ for i=1:numel(p.ChannelIndex)
     [Md,~,~,~,~] =  analyzeFlow(flow,p.timeWindow+1,p.maxCorLength,...
         'noise',1,'error',1);
     
-   %% Geometry detemination for meshing (decsg and initmesh)
+   %% Mesh generation (decsg and initmesh)
     % It might be good to use the mask from mask process
     % and determine free boundary vs. inner boundary
     % by looking at its straightness
     % Take the binary image into geometry with 4 edges (3 inner + 1 free)
     % mask is mask(:,:,j)
-    saveOnlyMesh = 1; %intermediate step...
+%     saveOnlyMesh = 1; %intermediate step...
     iiformat = ['%.' '3' 'd'];
+    display('Meshing and calculating the displacements on boundary edges...')
     for jj = 1:nFrames-1
         % Adjust mask boundaries with speckle boundaries
         curFlow = flow{jj};
@@ -170,13 +172,15 @@ for i=1:numel(p.ChannelIndex)
 %         B{1}(xminIdx,2) = LeftUpperCorner(1); % for left
         %% geometry and mesh
         minImgSize = 5; % edge length should be more than 5 pixel.
-        [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms);
         if saveOnlyMesh
+            [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind,hFig] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms,1);
             I = getframe(hFig);
             imwrite(I.cdata, strcat(meshTifPath,'/meshTif',num2str(jj,iiformat),'.tif'));
             close(hFig)
             continue
-        end
+        else
+            [msh,borderE,borderSeg,exBndE,exBndSeg,numEdges,bndInd,ind] = getMeshFromMask(movieData,jj,curFlow, mask(:,:,jj),minImgSize,numSubDoms);
+        end            
         %% PDE definition for continuum mechanics, plane stress
         % Now I have a mesh information, with which I can solve for forward
         % solution for each basis function
@@ -292,6 +296,12 @@ for i=1:numel(p.ChannelIndex)
          rawDispV = rawDispField; 
          edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
             edge(k).bndP(2:-1:1,:).',3*edgCorLen,edgCorLen,[]); % I need to check if this is more exact than interpolating vec.
+         jj = 3;
+         while sum(~isnan(edgD(k).dispV(:,4)))<2
+             jj = jj+2;
+             edgD(k).dispV  = vectorFieldSparseInterp(rawDispV, ...
+                edge(k).bndP(2:-1:1,:).',jj*edgCorLen,edgCorLen,[]); % I need to check if this is more exact than interpolating vec.
+         end
          edgD(k).U1 = edgD(k).dispV(:,4) - edgD(k).dispV(:,2);
          edgD(k).U2 = edgD(k).dispV(:,3) - edgD(k).dispV(:,1);
 
@@ -349,7 +359,7 @@ for i=1:numel(p.ChannelIndex)
          fp.BodyFx = {{'x' 'y'} {fs.fem coefFS}};
          fp.BodyFy = {{'x' 'y'} {[] 0}};
          fem = elModelUpdatePDE(fem,'fp',fp);
-         fem = elasticSolve(fem,[]);
+         fem = elasticSolvePDE(fem,[]);
          sol{ll+1} = fem.sol;
 
          fp.BodyFx = {{'x' 'y'} {[] 0}};

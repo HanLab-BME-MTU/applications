@@ -32,7 +32,7 @@ ip.addOptional('meshPtsFwdSol',[],@(x)isscalar(x) ||isempty(x));
 ip.addOptional('solMethodBEM','QR',@ischar);
 ip.addParamValue('basisClassTblPath','',@ischar);
 ip.addParamValue('LcurveDataPath','',@ischar);
-ip.addParamValue('LcurveFigPath','',@ischar);
+ip.addParameter('LcurveFigPath','',@ischar);
 ip.addParamValue('LcurveFactor','',@isscalar);
 ip.addParamValue('wtBar',-1,@isscalar);
 ip.addParamValue('imgRows',[],@isscalar);
@@ -91,8 +91,11 @@ if nargin >= 10 && strcmp(method,'fast') && isempty(M) && ~strictBEM
         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'PoissonRatio',v);
     else
-        M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
-            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'PoissonRatio',v);    
+%         M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+%             'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'PoissonRatio',v);    
+            % for old calcFwdMapFastBEM
+            M=calcFwdMapFastBEM(x_vec, y_vec, forceMesh, E, meshPtsFwdSol,...
+            'basisClassTblPath',basisClassTblPath,'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness);    
     end
 elseif isempty(M)
     span = 1:length(forceMesh.bounds);
@@ -236,14 +239,28 @@ if nargin >= 10 && strcmp(method,'fast')
         disp(['tolerance value: ' num2str(tolx)])
         %Check for nan in u
         idxNonan = ~isnan(u);
-        if any(~idxNonan)
+        if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
             Mreal = M(idxNonan,:);
             MpM = Mreal'*Mreal;
+        elseif inputFwdMap
+            u = u(idxNonan);
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
+%             MpM=M'*M;
+%             Mreal = M;
         else
             MpM=M'*M;
             Mreal = M;
-        end
+       end
+%         if any(~idxNonan)
+%             u = u(idxNonan);
+%             Mreal = M(idxNonan,:);
+%             MpM = Mreal'*Mreal;
+%         else
+%             MpM=M'*M;
+%             Mreal = M;
+%         end
         maxIter = 50;
         tolr = 10;
         if useLcurve
@@ -308,18 +325,20 @@ if nargin >= 10 && strcmp(method,'fast')
         idxNonan = ~isnan(u);
         if any(~idxNonan) && ~inputFwdMap
             u = u(idxNonan);
-            M = M(idxNonan,:);
-            MpM = M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         elseif inputFwdMap
             u = u(idxNonan);
-            MpM=M'*M;
+            Mreal = M(idxNonan,:);
+            MpM = Mreal'*Mreal;
         else
             MpM=M'*M;
+            Mreal = M;
         end
         if useLcurve
-            [sol_coef,L] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurve(L,Mreal,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
         else
-            sol_coef=(L*eyeWeights+ MpM)\(M'*u);
+            sol_coef=(L*eyeWeights+ MpM)\(Mreal'*u);
         end
         sol_mats.eyeWeights=eyeWeights;
         sol_mats.MpM=MpM;

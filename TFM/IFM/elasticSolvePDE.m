@@ -41,7 +41,9 @@ end
 % Evaluate initial condition
 %fem.sol = femlin(fem,'Context','main');
 % fem.sol = femlin(fem);
-msh = fem.msh;
+msh = fem.mesh;
 equ = fem.equ;
-fem.sol = assempde(msh.p,msh.e,msh.t,equ.c,equ.a,equ.f);
+% for fem.bnd, work with pdeBoundaryConditions(e1,'r',@myrfun);
+% for c,a,f, flatten them into 2D matrix with real values
+fem.sol = assempde(fem.bnd,msh.p,msh.e,msh.t,equ.c{1},equ.a{1},equ.f{1});
 
