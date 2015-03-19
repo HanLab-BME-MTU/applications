@@ -388,6 +388,10 @@ similarity_scoremap_2to1 = exp(-(score_maps_distance_2_1*2+0).^2/(((radius*1.5)/
     .*exp(-(abs(score_maps_angle_2_1/2*2)+abs(0/2)).^2/(1.5*(pi/3)^2));
 
 
+difference_map.similarity_scoremap_proximity = exp(-(score_maps_distance_2_1+score_maps_distance_1_2).^2/(((radius*1.5)/2*sqrt(2))^2));
+difference_map.similarity_scoremap_alignment = exp(-(abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2/2)).^2/(1.5*(pi/3)^2));
+difference_map.similarity_scoremap_combined = similarity_scoremap;
+
 difference_map.similarity_scoremap_1to2 = similarity_scoremap_1to2;
 difference_map.similarity_scoremap_2to1 = similarity_scoremap_2to1;
 difference_map.distance_map_1_2 = distance_map_1_2;
