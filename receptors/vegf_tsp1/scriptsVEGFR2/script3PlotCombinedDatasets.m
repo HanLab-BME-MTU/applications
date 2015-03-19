@@ -113,3 +113,16 @@ yaxisUnits = '(arbitrary units)';
 
 plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
+%% rates of merging and splitting
+
+tmp{1} = resSummaryCombMM.rateMS.msn;
+tmp{2} = resSummaryCombMP.rateMS.msn;
+tmp{3} = resSummaryCombPM.rateMS.msn;
+tmp{4} = resSummaryCombPP.rateMS.msn;
+
+figNameList = {'rateMerge','rateSplit'};
+
+yaxisUnits = '(per frame)';
+
+plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+

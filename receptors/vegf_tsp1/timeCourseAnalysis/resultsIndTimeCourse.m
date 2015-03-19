@@ -52,7 +52,8 @@ numCases = length(caseParam);
 
 %reserve memory for individual movie results
 resSummary = struct('diffSummary',[],'diffCoefMeanPerClass',[],...
-    'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampMeanFL20',[]);
+    'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampMeanFL20',[],...
+    'statsMS',[]);
 resSummary = repmat(resSummary,numMovies,1);
 
 %define directory for saving results
@@ -104,12 +105,16 @@ for iM = 1 : numMovies
     tmp2 = ampMat(:,end-19:end);
     ampMeanFL20 = [nanmean(tmp1(:)) nanmean(tmp2(:))];
     
+    %merge and split statistics
+    statsMS = calcStatsMS_noMotionInfo(tracks,5,1,1);
+    
     %results for output
     resSummary(iM).diffSummary = diffSummary;
     resSummary(iM).diffCoefMeanPerClass = diffCoefMeanPerClass;
     resSummary(iM).confRadMeanPerClass = confRadMeanPerClass;
     resSummary(iM).ampMeanPerClass = ampMeanPerClass;
     resSummary(iM).ampMeanFL20 = ampMeanFL20;
+    resSummary(iM).statsMS = statsMS;
     
 end
 

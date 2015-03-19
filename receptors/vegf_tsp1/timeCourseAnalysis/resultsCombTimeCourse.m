@@ -15,7 +15,7 @@ function [resSummaryComb,resSummaryInd] = resultsCombTimeCourse(dsName,dsResFile
 %                     results file of each dataset.
 %                     Optional. Default: 'abs'.
 %    
-%OUTPUT resSummaryComb: Structure array with results summary for combined
+%OUTPUT resSummaryComb: Structure with results summary for combined
 %                       timecourse. Contains the fields: 
 %           .numAbsClass: Absolute number of particles in the various
 %                         motion classes.
@@ -45,11 +45,15 @@ function [resSummaryComb,resSummaryInd] = resultsCombTimeCourse(dsName,dsResFile
 %                         frames.
 %                         Rows as above.
 %                         Columns = first 20 frames, last 20 frames.
+%           .rateMS     : Rate of merging and rate of splitting per
+%                         feature. Columns: merging, splitting.
 %           .timeList   : List of time points in combined time course. Same
 %                         as input timeListComb.
 %           .timeAbsOrRel:'abs' or 'rel' to indicate, respectively, whether
 %                         absolute or relative time was used to align and
 %                         combine datasets.
+%       resSummaryInd : Structure array equivalent to resSummaryComb but
+%                       for individual timecourses.
 %
 %Khuloud Jaqaman, March 2015
 
@@ -76,8 +80,8 @@ numDS = length(dsName);
 
 %reserve memory
 [dsSummary,timeList,numAbsClassInd,numNorm0ClassInd,probClassInd,...
-    diffCoefClassInd,confRadClassInd,ampClassInd,ampFL20Ind] = ...
-    deal(cell(numDS,1));
+    diffCoefClassInd,confRadClassInd,ampClassInd,ampFL20Ind,rateMSInd] ...
+    = deal(cell(numDS,1));
 
 %load all results and store in cell array
 for iDS = 1 : numDS
@@ -129,6 +133,10 @@ for iDS = 1 : numDS
     %columns are: 1 first 20 frames, 2 last 20 frames
     ampFL20Ind{iDS} = vertcat(dsSummary{iDS}.ampMeanFL20);
     
+    %rate of merging and rate of splitting
+    tmp = vertcat(dsSummary{iDS}.statsMS);
+    rateMSInd{iDS} = tmp(:,6:7);
+    
 end
 
 %% Combine dataset results
@@ -141,6 +149,7 @@ end
 [confRadClassComb.msn,confRadClassComb.sample] = combineWithTimeAlign(confRadClassInd,timeList,timeListComb,timeIndxComb);
 [ampClassComb.msn,ampClassComb.sample] = combineWithTimeAlign(ampClassInd,timeList,timeListComb,timeIndxComb);
 [ampFL20Comb.msn,ampFL20Comb.sample] = combineWithTimeAlign(ampFL20Ind,timeList,timeListComb,timeIndxComb);
+[rateMSComb.msn,rateMSComb.sample] = combineWithTimeAlign(rateMSInd,timeList,timeListComb,timeIndxComb);
 
 %for normalized number of particles, normalize by mean value at time 0 for
 %combined datasets
@@ -156,12 +165,12 @@ numNorm0ClassComb.msn(:,:,2) = nanstd(tmp,[],3);
 resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0ClassInd,...
     'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,...
     'confRadClass',confRadClassInd,'ampClass',ampClassInd,'ampFL20',ampFL20Ind,...
-    'timeList',timeList);
+    'rateMS',rateMSInd,'timeList',timeList);
 
 resSummaryComb = struct('numAbsClass',numAbsClassComb,'numNorm0Class',numNorm0ClassComb,...
     'probClass',probClassComb,'diffCoefClass',diffCoefClassComb,...
     'confRadClass',confRadClassComb,'ampClass',ampClassComb,'ampFL20',ampFL20Comb,...
-    'timeList',timeListComb,'timeAbsOrRel',timeAbsOrRel);
+    'rateMS',rateMSComb,'timeList',timeListComb,'timeAbsOrRel',timeAbsOrRel);
 
 
 %% ~~~ the end ~~~
