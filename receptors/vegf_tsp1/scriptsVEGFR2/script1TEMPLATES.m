@@ -3,6 +3,8 @@
 
 %see 141030 and 141031 datasets as examples
 
+%MAKE A DIRECTORY IN TOP DORECTORY CALLED analysisKJ
+
 clear all
 
 %first load new movieList
@@ -41,10 +43,12 @@ resultsIndTimeCourse(ML,caseParam);
 
 %see 150302 and 150303 as examples
 
+%MAKE A DIRECTORY IN TOP DORECTORY CALLED analysisKJ
+
 clear all
 
 %first load one movieList
-movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/....mat';
+movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/2015/20150307_HMVECp6/!0307VEGFmovieList.mat';
 ML = MovieList.load(movieListFile);
 
 %then run the below line in order to get the movie order in movie list
@@ -58,13 +62,13 @@ for iM = 1 : length(ML.movieDataFile_), disp([num2str(iM) '  ' ML.movieDataFile_
 
 clear all
 
-movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/....mat';
+movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/2015/20150307_HMVECp6/!0307VEGFmovieList.mat';
 ML = MovieList.load(movieListFile);
 
-caseParam(1).name = ''; %see comments above
-caseParam(1).timeList = []';
-caseParam(1).indx = ();
-caseParam(1).indx0min = ;
+caseParam(1).name = 'pVEGF_mAAL_HMVEC_150307'; %see comments above
+caseParam(1).timeList = [0 15 20 2 30 40 51 5 70 8]';
+caseParam(1).indx = (1:10);
+caseParam(1).indx0min = 10;
 
 resultsIndTimeCourse(ML,caseParam);
 

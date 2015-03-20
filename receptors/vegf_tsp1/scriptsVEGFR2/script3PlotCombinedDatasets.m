@@ -18,7 +18,7 @@ condColor = {'k','b','r','g'};
 shiftNegTime = 1;
 
 %directory for saving figures
-dir2save = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/analysisCombinedDatasets/150317_analysis_pmVEGF_pmAAL/figsComb';
+dir2save = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/analysisCombinedDatasets/150320_analysis/figures';
 
 %% Absolute number of molecules in various motion classes
 

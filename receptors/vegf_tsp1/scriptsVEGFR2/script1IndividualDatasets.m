@@ -199,3 +199,34 @@ caseParam(1).indx0min = 2;
 
 resultsIndTimeCourse(ML,caseParam);
 
+%% 150307
+
+clear all
+
+movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/2015/20150307_HMVECp6/!0307NoVEGFmovieList.mat';
+ML = MovieList.load(movieListFile);
+
+caseParam(1).name = 'mVEGF_mAAL_HMVEC_150307'; %see comments above
+caseParam(1).timeList = [0 10 15 20 30 3 40 50 5 70]';
+caseParam(1).indx = (1:10);
+caseParam(1).indx0min = 1;
+
+resultsIndTimeCourse(ML,caseParam);
+
+clear all
+
+movieListFile = '/project/biophysics/jaqaman_lab/vegf_tsp1/slee/VEGFR2/2015/20150307_HMVECp6/!0307VEGFmovieList.mat';
+ML = MovieList.load(movieListFile);
+
+caseParam(1).name = 'pVEGF_mAAL_HMVEC_150307'; %see comments above
+caseParam(1).timeList = [0 15 20 2 30 40 51 5 70 8]';
+caseParam(1).indx = (1:10);
+caseParam(1).indx0min = 10;
+
+resultsIndTimeCourse(ML,caseParam);
+
+%% 150310
+
+%% 1503..
+
+%% 1503..
