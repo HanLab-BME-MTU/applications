@@ -32,7 +32,7 @@ figNameList = {'numAbsImm','numAbsConf','numAbsFree','numAbsDir',...
 
 yaxisUnits = '(molecules)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% Normalized number of molecules in various motion classes
 
@@ -46,7 +46,7 @@ figNameList = {'numNorm0Imm','numNorm0Conf','numNorm0Free','numNorm0Dir',...
 
 yaxisUnits = '(unitless)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% Probability of various motion classes
 
@@ -59,7 +59,7 @@ figNameList = {'probImm','probConf','probFree','probDir','probDet'};
 
 yaxisUnits = '(unitless)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% Diffusion coefficient in various motion classes
 
@@ -72,7 +72,7 @@ figNameList = {'diffCoefImm','diffCoefConf','diffCoefFree','diffCoefDir','diffCo
 
 yaxisUnits = '(pixels^2/frame)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% Confinement radius in various motion classes
 
@@ -85,7 +85,7 @@ figNameList = {'confRadImm','confRadConf','confRadFree','confRadDir','confRadUnd
 
 yaxisUnits = '(pixels)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% amplitude in various motion classes
 
@@ -98,7 +98,7 @@ figNameList = {'ampImm','ampConf','ampFree','ampDir','ampUndet'};
 
 yaxisUnits = '(arbitrary units)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% amplitude in first and last 20 frames
 
@@ -111,7 +111,7 @@ figNameList = {'ampF20','ampL20'};
 
 yaxisUnits = '(arbitrary units)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 
 %% rates of merging and splitting
 
@@ -124,5 +124,5 @@ figNameList = {'rateMerge','rateSplit'};
 
 yaxisUnits = '(per frame)';
 
-plotResCombinedDataset(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
+plotResMultipleDatasets(tmp,timeList,condName,condColor,figNameList,dir2save,yaxisUnits,shiftNegTime);
 

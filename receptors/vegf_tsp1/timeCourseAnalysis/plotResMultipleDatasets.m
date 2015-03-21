@@ -1,5 +1,15 @@
-function plotResCombinedDataset(varPerCond,timePerCond,namePerCond,...
+function plotResMultipleDatasets(varPerCond,timePerCond,namePerCond,...
     colorPerCond,figNameList,dir2save,yaxisUnits,shiftNegTime)
+%PLOTRESMULTIPLEDATASETS generates time course plots with multiple datasets
+%
+%SYNPOSIS plotResMultipleDatasets(varPerCond,timePerCond,namePerCond,...
+%    colorPerCond,figNameList,dir2save,yaxisUnits,shiftNegTime)
+%
+%INPUT
+%
+%OUTPUT the plot(s) saved in specificied directory
+%
+%Khuloud Jaqaman, 21 March 2015
 
 %% Input
 
@@ -44,7 +54,7 @@ for iVar = 1 : numFig
         
     end
     
-    legend(namePerCond)
+    legend(namePerCond,'Interpreter','none')
     
     %indicate original 0 if time was shifted
     if shiftNegTime
