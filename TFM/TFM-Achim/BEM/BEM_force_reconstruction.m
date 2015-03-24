@@ -43,6 +43,7 @@ ip.addParamValue('PoissonRatio',0.5,@isscalar); % default assuming 34 um with 72
 ip.addParamValue('useLcurve',false,@islogical); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('strictBEM',false,@islogical); 
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
 ip.parse(x,y,ux,uy,forceMesh,E,L,x_out,y_out,method,varargin{:});
 meshPtsFwdSol=ip.Results.meshPtsFwdSol;
 solMethodBEM=ip.Results.solMethodBEM;
@@ -54,6 +55,7 @@ wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
 M = ip.Results.fwdMap;
+lcornerOptimal = ip.Results.lcornerOptimal;
 thickness = ip.Results.thickness;    
 paxImage = ip.Results.paxImg;
 useLcurve = ip.Results.useLcurve;    
@@ -265,7 +267,7 @@ if nargin >= 10 && strcmp(method,'fast')
         tolr = 10;
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,Mreal,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr); 
 %             sol_coef = iterativeL1Regularization(Mreal,MpM,u,eyeWeights,L,maxIter,tolx,tolr,1,forceMesh); 
@@ -305,7 +307,7 @@ if nargin >= 10 && strcmp(method,'fast')
 %         [sol_coef,L] = calculateLfromLcurveSparse(M,MpM,u,Lap,maxIter,tolx,tolr,solMethodBEM);
         if useLcurve
             disp('L-curve ...')
-            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurveSparse(L,M,MpM,u,-Lap,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
             sol_coef = iterativeL1Regularization(M,MpM,u,L,-Lap,maxIter,tolx,tolr); %400=maximum iteration number
         end
@@ -336,7 +338,7 @@ if nargin >= 10 && strcmp(method,'fast')
             Mreal = M;
         end
         if useLcurve
-            [sol_coef,L] = calculateLcurve(L,Mreal,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor);
+            [sol_coef,L] = calculateLcurve(L,Mreal,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor,'lcornerOptimal',lcornerOptimal);
         else
             sol_coef=(L*eyeWeights+ MpM)\(Mreal'*u);
         end
@@ -548,7 +550,13 @@ for ii=1:nBasisx
 end
 toc
 
-function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurve(L,M,MpM,u,eyeWeights,LcurveDataPath,LcurveFigPath,LcurveFactor,varargin)
+% Input check
+ip =inputParser;
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
+ip.parse(varargin{:});
+lcornerOptimal = ip.Results.lcornerOptimal;
+
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(log10(L)-4.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
@@ -562,14 +570,19 @@ for i=1:length(alphas);
 end
 % Find the corner of the Tikhonov L-curve
 try
-    disp('Inflection point smaller than L-corner will be chosen')
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
-    if isempty(reg_corner)
-        disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+    if strcmp(lcornerOptimal,'optimal')
+        disp('Inflection point smaller than L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',2);
+        if isempty(reg_corner)
+            disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+            [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+        end
+    elseif strcmp(lcornerOptimal,'lcorner')
+        disp('L-corner will be chosen')
         [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+    end
     %     ireg_corner=[];
     %     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
-    end       
 catch
     ireg_corner=[];
     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
@@ -645,7 +658,12 @@ end
 % answer = inputdlg('Please identify the corner:','Input for corner',1,{num2str(L)},options);
 % Lout = str2double(answer{1});
 
-function [sol_coef,reg_corner] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor)
+function [sol_coef,reg_corner] = calculateLcurveSparse(L,M,MpM,u,eyeWeights,maxIter,tolx,tolr,LcurveDataPath,LcurveFigPath,LcurveFactor,varargin)
+% Input check
+ip =inputParser;
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
+ip.parse(varargin{:});
+lcornerOptimal = ip.Results.lcornerOptimal;
 %examine a logarithmically spaced range of regularization parameters
 alphas=10.^(log10(L)-2.5:1.25/LcurveFactor:log10(L)+2.5);
 rho=zeros(length(alphas),1);
@@ -668,14 +686,19 @@ end
 % Find the L-corner
 % [reg_corner,ireg_corner,~]=l_curve_corner(rho,eta,alphas);
 save(LcurveDataPath,'rho','eta','alphas','L','msparse','-v7.3'); % saving before selection.
-disp('Inflection point larger than L-corner will be chosen')
-[reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
-if isempty(reg_corner)
+if strcmp(lcornerOptimal,'optimal')
+    disp('Inflection point larger than L-corner will be chosen')
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',1); %inflection point larger than l-corner
+    if isempty(reg_corner)
+        disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
+        [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
+    %     ireg_corner=[];
+    %     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
+    end    
+elseif strcmp(lcornerOptimal,'lcorner')
     disp('Inflection point larger than L-corner was not identified. L-corner will be chosen')
-    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner
-%     ireg_corner=[];
-%     [reg_corner,rhoC,etaC]=l_corner(rho,eta,alphas);
-end    
+    [reg_corner,ireg_corner,~]=regParamSelecetionLcurve(rho,eta,alphas,L,'inflection',0); %L-corner    
+end
 % Also, I can use L0 norm information to choose regularization parameter
 
 % Plot the sparse deconvolution L-curve.

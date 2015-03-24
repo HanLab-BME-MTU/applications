@@ -182,6 +182,7 @@ classdef ForceFieldCalculationProcess < DataProcessingProcess
             funParams.LcurveFactor=10;
             funParams.thickness=34000;
             funParams.useLcurve=true;
+            funParams.lcornerOptimal='optimal';
         end
         function units = getUnits(varargin)
             units = 'Traction (Pa)';

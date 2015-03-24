@@ -24,7 +24,6 @@ ip.addRequired('movieData', @(x) isa(x,'MovieData'));
 ip.addOptional('paramsIn',[], @isstruct);
 ip.parse(movieData,varargin{:});
 paramsIn=ip.Results.paramsIn;
-addNonLocMaxBeads = false;
 
 %Get the indices of any previous stage drift processes                                                                     
 iProc = movieData.getProcessIndex('DisplacementFieldCalculationProcess',1,0);
@@ -38,6 +37,7 @@ end
 displFieldProc = movieData.processes_{iProc};
 %Parse input, store in parameter structure
 p = parseProcessParams(displFieldProc,paramsIn);
+addNonLocMaxBeads = p.addNonLocMaxBeads;
 %% --------------- Initialization ---------------%%
 if feature('ShowFigureWindows')
     wtBar = waitbar(0,'Initializing...','Name',displFieldProc.getName());
@@ -150,7 +150,6 @@ if ~p.useGrid
     pstruct = pointSourceDetection(refFrame, sigmaPSF, 'alpha', p.alpha,'Mask',firstMask,'FitMixtures',true);
     assert(~isempty(pstruct), 'Could not detect any bead in the reference frame');
     % filtering out points in saturated image based on pstruct.c
-    hist(pstruct.c,100)
     [N,edges]= histcounts(pstruct.c);
     % starting with median, find a edge disconnected with two consequtive
     % zeros.
