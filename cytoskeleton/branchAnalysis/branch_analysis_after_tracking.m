@@ -25,13 +25,19 @@ fila_branch_orientation_pool=[];
 fila_trajectory_orientation_pool=[];
 branch_trajectory_orientation_pool=[];
 
+
 branch_filament_totallength_matrix=[];
 branch_filament_meandensity_matrix=[];
 
 branch_filament_totalnms_matrix=[];
 branch_filament_meannms_matrix=[];
 
+branch_orienation_perframe_allbranch = cell(1,1);
 
+cell_vif_seg_total_array = [];
+cell_vif_nms_total_array = [];
+
+        
 
 for iCompleteFrame = 1 :nCompleteFrame
 %     current_seg = current_seg_cell{1,iCompleteFrame};
@@ -146,6 +152,10 @@ for iCompleteFrame = 1 :nCompleteFrame
             sum(sum(current_seg(smoothed_current_mask>0)))];
         cell_vif_nms_total_pool = [cell_vif_nms_total_pool; ...
             sum(sum(nms_map(smoothed_current_mask>0)))];
+        cell_vif_seg_total_array(iCompleteFrame) = ...
+            sum(sum(current_seg(smoothed_current_mask>0)));
+        cell_vif_nms_total_array(iCompleteFrame) = ...
+            sum(sum(nms_map(smoothed_current_mask>0)));
         
         AA = (pi/2-orienation_map_filtered.*current_seg);
         % wrap around in -pi/2 to pi/2
@@ -158,6 +168,9 @@ for iCompleteFrame = 1 :nCompleteFrame
         
         filament_orientation = AA(current_seg>0);
         branch_orienation = region_orientation(current_seg>0);
+        
+        
+        branch_orienation_perframe_allbranch{iCompleteFrame} = branch_orienation;
         
         fila_branch_orientation_pool = ...
             [fila_branch_orientation_pool; ...
@@ -441,8 +454,22 @@ else
     BA_output.branch_nms_mean = nan;    
 end
 
+
 %%
 
+BA_output.branch_filament_totallength_matrix = branch_filament_totallength_matrix;
+BA_output.branch_filament_meandensity_matrix = branch_filament_meandensity_matrix;
+BA_output.branch_filament_totalnms_matrix = branch_filament_totalnms_matrix;
+BA_output.branch_filament_meannms_matrix = branch_filament_meannms_matrix;
+BA_output.branch_vif_mean_matrix = vif_mean_matrix;
+BA_output.branch_size_matrix = branch_size_matrix;
+
+BA_output.cell_size_array = cell_size_pool;
+BA_output.cell_vif_seg_total_array = cell_vif_seg_total_array;
+BA_output.cell_vif_nms_total_array = cell_vif_nms_total_array;
+BA_output.cell_vimtotal_pool = cell_vimtotal_pool;
+BA_output.branch_orienation_perframe_allbranch = branch_orienation_perframe_allbranch;
+%%
 
 
 BA_output.branch_mean_size  = nanmean(branch_size_matrix);
