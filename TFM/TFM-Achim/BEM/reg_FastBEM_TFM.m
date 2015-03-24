@@ -20,6 +20,7 @@ ip.addParamValue('imgRows',@isscalar);
 ip.addParamValue('imgCols',@isscalar);
 ip.addParamValue('thickness',472,@isscalar); % default assuming 34 um with 72 nm/pix resolution
 ip.addParamValue('useLcurve',false,@islogical);
+ip.addParamValue('lcornerOptimal','optimal',@ischar);
 ip.addParamValue('LcurveFactor',@isscalar);
 ip.addParamValue('paxImg',[],@ismatrix);
 ip.addParamValue('forceMesh',[],@isstruct);
@@ -32,6 +33,7 @@ solMethodBEM=ip.Results.solMethodBEM;
 basisClassTblPath=ip.Results.basisClassTblPath;
 LcurveDataPath=ip.Results.LcurveDataPath;
 LcurveFigPath=ip.Results.LcurveFigPath;
+lcornerOptimal=ip.Results.lcornerOptimal;
 wtBar=ip.Results.wtBar;
 imgRows = ip.Results.imgRows;
 imgCols = ip.Results.imgCols;
@@ -100,7 +102,8 @@ elseif isempty(paxImage)
         displField(frame).vec(:,1),displField(frame).vec(:,2),forceMesh,yModu_Pa,regParam,...
         [],[],'fast',meshPtsFwdSol,solMethodBEM,'basisClassTblPath',basisClassTblPath,...
         'wtBar',wtBar,'imgRows',imgRows,'imgCols',imgCols,'thickness',thickness,'useLcurve',useLcurve,...
-        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,'fwdMap',M);
+        'LcurveFactor',LcurveFactor,'LcurveDataPath',LcurveDataPath, 'LcurveFigPath',LcurveFigPath,'fwdMap',M,...
+        'lcornerOptimal',lcornerOptimal);
     % The units of fx and fy are the same as the input E, that is ususally Pa!
 else
     xmin = min(forceMesh.p(:,1));

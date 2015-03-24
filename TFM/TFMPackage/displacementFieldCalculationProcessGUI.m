@@ -22,7 +22,7 @@ function varargout = displacementFieldCalculationProcessGUI(varargin)
 
 % Edit the above text to modify the response to help displacementFieldCalculationProcessGUI
 
-% Last Modified by GUIDE v2.5 22-Aug-2014 18:20:07
+% Last Modified by GUIDE v2.5 23-Mar-2015 15:05:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -172,6 +172,7 @@ end
 
 funParams.highRes = get(handles.checkbox_highRes, 'Value');
 funParams.useGrid = get(handles.checkbox_useGrid, 'Value');
+funParams.addNonLocMaxBeads = get(handles.checkbox_addNonLocMaxBeads, 'Value');
 if get(handles.checkbox_mode, 'Value'),
     funParams.mode = 'accurate';
 else
@@ -244,3 +245,28 @@ function checkbox_mode_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_mode
+
+
+% --- Executes on button press in checkbox_addNonLocMaxBeads.
+function checkbox_addNonLocMaxBeads_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_addNonLocMaxBeads (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_addNonLocMaxBeads
+
+
+% --- Executes on button press in checkbox_highRes.
+function checkbox_highRes_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_highRes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+hiResSampling=get(handles.checkbox_highRes,{'Value'});
+if hiResSampling{1}
+    set(handles.checkbox_addNonLocMaxBeads,'Enable','on');
+    set(handles.checkbox_useGrid,'Enable','off');
+else
+    set(handles.checkbox_addNonLocMaxBeads,'Enable','off');
+    set(handles.checkbox_useGrid,'Enable','on');
+end
+% Hint: get(hObject,'Value') returns toggle state of checkbox_highRes
