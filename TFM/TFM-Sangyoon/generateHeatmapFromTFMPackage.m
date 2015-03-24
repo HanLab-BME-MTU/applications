@@ -360,28 +360,28 @@ for ii=1:nFrames
             pixelIntSelecChan(:,ii) = thirdImageCropped(maskCrop(:));
             pixelID = find(maskCrop); %pixel id
             % Showing plot between pixelTraction and pixelIntSelecChan
-            hScatter = figure; plot(pixelIntSelecChan,pixelTraction,'.')
+            hScatter = figure; plot(pixelIntSelecChan(:,ii),pixelTraction(:,ii),'.')
             % Ask limit for high traction and high vim
             highTraction = input('Limit for high traction above which you want to plot? :');
             highVim = input('Limit for high vimentin level above which you want to plot? :');
             % Showing these regions by boundaries
-            indHighTraction = pixelTraction>highTraction;
-            indHighVim = pixelIntSelecChan>highVim;
+            indHighTraction = pixelTraction(:,ii)>highTraction;
+            indHighVim = pixelIntSelecChan(:,ii)>highVim;
             hold on
-            plot(pixelIntSelecChan(indHighTraction),pixelTraction(indHighTraction),'r.')
-            plot(pixelIntSelecChan(indHighVim),pixelTraction(indHighVim),'g.')
+            plot(pixelIntSelecChan(indHighTraction,ii),pixelTraction(indHighTraction,ii),'r.')
+            plot(pixelIntSelecChan(indHighVim,ii),pixelTraction(indHighVim,ii),'g.')
             close(hScatter);
             %Showing them in 2D histogram)
-            if max(pixelTraction)<100
-                yBins = round(min(pixelTraction)):round(max(pixelTraction));
-                xBins = min(pixelIntSelecChan):1:max(pixelIntSelecChan);
+            if max(pixelTraction(:,ii))<100
+                yBins = round(min(pixelTraction(:,ii))):round(max(pixelTraction(:,ii)));
+                xBins = min(pixelIntSelecChan(:,ii)):1:max(pixelIntSelecChan(:,ii));
             else
-                yBins = linspace(round(min(pixelTraction)),round(max(pixelTraction)),100);
-                xBins = linspace(min(pixelIntSelecChan),max(pixelIntSelecChan),100);
+                yBins = linspace(round(min(pixelTraction(:,ii))),round(max(pixelTraction(:,ii))),100);
+                xBins = linspace(min(pixelIntSelecChan(:,ii)),max(pixelIntSelecChan(:,ii)),100);
             end
 %             yBins = round(min(pixelTraction)):100:round(max(pixelTraction));
             hHist2D = figure; hold on
-            densityplot(pixelIntSelecChan, pixelTraction, xBins, yBins,'DisplayFunction', @log);
+            densityplot(pixelIntSelecChan(:,ii), pixelTraction(:,ii), xBins, yBins,'DisplayFunction', @log);
             h_cb=colorbar;
             h_cb.Label.String = 'Occurence, 10 ^';
             ax = gca;
@@ -396,12 +396,16 @@ for ii=1:nFrames
             ylabel('Traction (Pa)')
             xlabel('Vimentin Intensity (A.U.)')
             % rectacgle
-            rectangle('Position',[min(pixelIntSelecChan(indHighTraction)) highTraction ...
-                max(pixelIntSelecChan(indHighTraction))-min(pixelIntSelecChan(indHighTraction)) ...
-                max(pixelTraction(indHighTraction))-highTraction],'EdgeColor','r')
-            rectangle('Position',[highVim min(pixelTraction(indHighVim)) ...
-                max(pixelIntSelecChan(indHighVim))-highVim ...
-                max(pixelTraction(indHighVim))-min(pixelTraction(indHighVim))],'EdgeColor','g')
+            if sum(indHighTraction)>5
+                rectangle('Position',[min(pixelIntSelecChan(indHighTraction,ii)) highTraction ...
+                    max(pixelIntSelecChan(indHighTraction,ii))-min(pixelIntSelecChan(indHighTraction,ii)) ...
+                    max(pixelTraction(indHighTraction,ii))-highTraction],'EdgeColor','r')
+            end
+            if sum(indHighVim)>5
+                rectangle('Position',[highVim min(pixelTraction(indHighVim,ii)) ...
+                    max(pixelIntSelecChan(indHighVim,ii))-highVim ...
+                    max(pixelTraction(indHighVim,ii))-min(pixelTraction(indHighVim,ii))],'EdgeColor','g')
+            end
             % save
             print('-depsc2', '-r150', strcat(epsPath,'/Hist2DbtwVimAndTraction',num2str(ii,iiformat),'.eps'));
             close(hHist2D)
@@ -419,7 +423,13 @@ for ii=1:nFrames
             hVim=figure; imshow(thirdImageCropped,[]), hold on
             for kk=1:nTBD
                 boundary = tB{kk};
-                plot(boundary(:,2), boundary(:,1), 'r', 'LineWidth', 0.5) % cell boundary
+                plot(boundary(:,2), boundary(:,1), 'r', 'LineWidth', 0.5) % high traction boundary
+            end
+            % cell mask
+            [cB,~,nCBD]  = bwboundaries(maskCrop,'noholes');
+            for kk=1:nCBD
+                boundary = cB{kk};
+                plot(boundary(:,2), boundary(:,1), 'g', 'LineWidth', 0.5) % cell boundary
             end
             print('-depsc2', '-r150', strcat(epsPath,'/thridImageWithHighTraction',num2str(ii,iiformat),'.eps'));
             close(hVim)
@@ -429,6 +439,10 @@ for ii=1:nFrames
             for kk=1:nVBD
                 boundary = vB{kk};
                 plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 0.5) % cell boundary
+            end
+            for kk=1:nCBD
+                boundary = cB{kk};
+                plot(boundary(:,2), boundary(:,1), 'g', 'LineWidth', 0.5) % cell boundary
             end
             print('-depsc2', '-r150', strcat(epsPath,'/tractionImageWithHighVim',num2str(ii,iiformat),'.eps'));
             close(hT)
@@ -459,7 +473,7 @@ for ii=1:nFrames
     % saving
     I = getframe(h1);
     imwrite(I.cdata, strcat(tifPath,'/stressMagTif',num2str(ii,iiformat),'.tif'));
-    imwrite(uint16(round(tsMap*2^3)),strcat(forcemapPath,'/force',num2str(ii,iiformat),' divide by 4 for correct mag','.tif'));
+    imwrite(uint16(round(tsMap*2^3)),strcat(forcemapPath,'/force',num2str(ii,iiformat),' divide by 8 for correct mag','.tif'));
 
 %         hgexport(h1,strcat(tifPath,'/stressMagTif',num2str(ii,iiformat)),hgexport('factorystyle'),'Format','tiff')
     hgsave(h1,strcat(figPath,'/stressMagFig',num2str(ii,iiformat)),'-v7.3')
