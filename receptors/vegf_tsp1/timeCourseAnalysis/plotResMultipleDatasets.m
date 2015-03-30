@@ -23,6 +23,11 @@ else
     stdFlag = 1;
 end
 
+%expand yaxisUnits if necessary
+if length(yaxisUnits) == 1
+    yaxisUnits = repmat(yaxisUnits,1,numFig);
+end
+
 %% Plot
 
 %plot each variable separately
@@ -62,7 +67,7 @@ for iVar = 1 : numFig
     end
     
     xlabel('Time (min)')
-    ylabel([figNameList{iVar} ' ' yaxisUnits])
+    ylabel([figNameList{iVar} ' ' yaxisUnits{iVar}])
     
     savefig(h,fullfile(dir2save,figNameList{iVar}));
     
