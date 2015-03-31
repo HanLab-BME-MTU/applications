@@ -167,11 +167,10 @@ for iM = 1 : numMovies
         iProc=numel(MD.processes_)+1;
         MD.addProcess(IntModalAnalysisProcess(MD));
     end
-    if ~isempty(iProc)
-        MD.deleteProcess(iProc);
-        MD.addProcess(IntModalAnalysisProcess(MD));
-    end
-        
+    %     if ~isempty(iProc)
+    %         MD.deleteProcess(iProc);
+    %         MD.addProcess(IntModalAnalysisProcess(MD));
+    %     end
     
     %define function parameters
     
