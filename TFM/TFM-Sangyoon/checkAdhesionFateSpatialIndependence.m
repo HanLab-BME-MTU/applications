@@ -138,7 +138,7 @@ for ii = find(failID)'
     NAFrames = setdiff(intersect(commonFrames,NAFrames),usedFrames);
     for jj=NAFrames
 %         presentID = arrayfun(@(x) (x.presence(NAFrames)),tracksNA);
-        presentID = arrayfun(@(x) (x.presence(jj)),tracksNA);
+        presentID = arrayfun(@(x) (logical(x.presence(jj))),tracksNA);
     %     presentID(ii) = false; % exclude the self
         % find the neighbors in r
         [idx, dist] = KDTreeBallQuery([arrayfun(@(x) x.xCoord(jj),tracksNA(presentID)),...
@@ -191,7 +191,7 @@ for ii = find(matureID)'
     NAFrames = setdiff(intersect(commonFrames,NAFrames),usedFrames);
     for jj=NAFrames
 %         presentID = arrayfun(@(x) (x.presence(NAFrames)),tracksNA);
-        presentID = arrayfun(@(x) (x.presence(jj)),tracksNA);
+        presentID = arrayfun(@(x) logical(x.presence(jj)),tracksNA);
     %     presentID(ii) = false; % exclude the self
         % find the neighbors in r
         [idx, dist] = KDTreeBallQuery([arrayfun(@(x) x.xCoord(jj),tracksNA(presentID)),...

@@ -141,11 +141,14 @@ if manualSelection
     text(x(ireg_corner),1.01*y(ireg_corner),...
         ['    ',num2str(reg_corner,'%5.3e')]);
     subplot(3,1,2), plot(x_slope,slope), title('slope')
-    subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    if ireg_corner-2>0
+        subplot(3,1,2), hold on,plot(x_slope(ireg_corner-2),slope(ireg_corner-2),'ro')
+    end
     subplot(3,1,3), plot(x_kappa,kappa), title('curvature')
 %     subplot(3,1,3), plot(x_cut(3:end-5),diff(kappa)),title('jerk')
-
-    subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+    if ireg_corner-3>0
+        subplot(3,1,3), hold on,plot(x_kappa(ireg_corner-3),kappa(ireg_corner-3),'ro')
+    end
 %     subplot(3,1,3), hold on,plot(x_cut(maxKappaIdx),kappadiff(maxKappaIdx),'ro')
 
 %     poly5ivity = input('Is the curve going down with two concaveness (y/n)?','s');

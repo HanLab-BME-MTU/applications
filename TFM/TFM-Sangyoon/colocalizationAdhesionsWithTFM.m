@@ -230,7 +230,7 @@ for ii=1:nFrames
     cur_tMap(cropInfo(2):cropInfo(4),cropInfo(1):cropInfo(3)) = tMapIn{ii};
     tMap(:,:,ii) = cur_tMap;
 end
-save(forcemapPath,'tMap');
+save([forcemapPath filesep 'tMap.mat'],'tMap');
 %% Filter out tracks that is out of traction field
 idxTracks = true(numel(tracksNA),1);
 disp('filtering with TFM boundary...')
@@ -254,7 +254,7 @@ for ii=1:nFrames
     end
     paxImgStack(:,:,ii) = paxImage;
 end
-save(paxPath,'paxImgStack');
+save([paxPath filesep 'paxImgStack.mat'],'paxImgStack');
 
 % disp('loading segmented FAs...')
 FASegProc = FASegPackage.processes_{iFASeg};
@@ -545,10 +545,11 @@ for ii=1:nFrames
 
         %Scale bar 2 um
     %     paxImageCropped(15:16,10:10+round(2000/MD.pixelSize_))=max(max(paxImageCropped));
+        darkeningFactor=0.5;
         paxImageCroppedInverted = imcomplement(paxImageCropped);
         minPax = min(paxImageCroppedInverted(:));
         maxPax = max(paxImageCroppedInverted(:));
-        minPax = double(minPax)+double(0.4*(maxPax-minPax));
+        minPax = double(minPax)+double(darkeningFactor*(maxPax-minPax));
         imshow(paxImageCroppedInverted,[minPax maxPax]), hold on
         line([10 10+round(2000/MD.pixelSize_)],[15 15],'LineWidth',2,'Color',[0,0,0])
         
@@ -599,8 +600,8 @@ for ii=1:nFrames
         close(h2)
         clear h2
     end
-    imwrite(uint16(round(tsMap*2^15/3500)),strcat(forcemapPath,'/force',num2str(ii,iiformat),'max',num2str(tmax),'.tif'));
-    imwrite(paxImageCropped,strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
+%     imwrite(uint16(round(tsMap*2^15/3500)),strcat(forcemapPath,'/force',num2str(ii,iiformat),'max',num2str(tmax),'.tif'));
+    imwrite(uint16(paxImageCropped),strcat(paxPath,'/pax',num2str(ii,iiformat),'.tif'));
     if ii==1
         cropPosition = [cropInfo(1) cropInfo(2) cropInfo(3)-cropInfo(1) cropInfo(4)-cropInfo(2)];
         save(strcat(dataPath,'/cropInfo.mat'),'cropPosition');
@@ -653,6 +654,19 @@ for k=1:numel(tracksNA)
     else
         tracksNA(k).edgeVel = 0;
     end
+    % lifetime information
+    tracksNA(k).lifeTime = tracksNA(k).endingFrame-tracksNA(k).startingFrame+1;    
+    % Inital intensity slope for one min
+    timeInterval = deltaT/60; % in min
+    earlyPeriod = floor(1/timeInterval); % frames per minute
+    lastFrame = min(length(tracksNA(k).amp),tracksNA(k).startingFrame+earlyPeriod-1);
+    lastFrameFromOne = lastFrame - tracksNA(k).startingFrame+1;
+    [curR,curM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).amp(tracksNA(k).startingFrame:lastFrame));
+    tracksNA(k).ampSlope = curM; % in a.u./min
+    tracksNA(k).ampSlopeR = curR; % Pearson's correlation coefficient
+    [curForceR,curForceM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).forceMag(tracksNA(k).startingFrame:lastFrame));
+    tracksNA(k).forceSlope = curForceM; % in Pa/min
+    tracksNA(k).forceSlopeR = curForceR; % Pearson's correlation coefficient
 end
 save(strcat(dataPath,filesep,'tracksNA.mat'),'tracksNA');
 if plotEachTrack

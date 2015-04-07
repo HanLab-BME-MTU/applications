@@ -157,39 +157,40 @@ if onlyEdge
         end
     end    
 else
-    disp(['Entire adhesion tracks are considered'])
+    disp('Entire adhesion tracks are considered.')
     trackIdx = true(numel(tracksNA),1);
-    bandwidthNA = 5; %um 
-    bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
-    for ii=1:nFrames
-        % Cell Boundary Mask 
-        mask = maskProc.loadChannelOutput(iChan,ii);
-        % mask for band from edge
-        iMask = imcomplement(mask);
-        distFromEdge = bwdist(iMask);
-        bandMask = distFromEdge <= bandwidthNA_pix;
-
-        maskOnlyBand = bandMask & mask;
-        bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
-        % filter tracks with naMasks
-        % only deal with presence and status
-        % Tracks in its emerging state ever overlap with bandMask are
-        % considered.
-        for k=1:numel(tracksNA)
-            if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
-                    ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
-                    round(tracksNA(k).xCoord(ii)) < 1 || ...
-                    round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
-                    round(tracksNA(k).yCoord(ii)) < 1) || ...
-                    ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
-                tracksNA(k).state{ii} = 'Out_of_Band';
-                tracksNA(k).presence(ii) = false;
-                if trackIdx(k)
-                    trackIdx(k) = false;
-                end
-            end
-        end
-    end
+    mask = maskProc.loadChannelOutput(iChan,1);
+%     bandwidthNA = 5; %um 
+%     bandwidthNA_pix = round(bandwidthNA*1000/MD.pixelSize_);
+%     for ii=1:nFrames
+%         % Cell Boundary Mask 
+%         mask = maskProc.loadChannelOutput(iChan,ii);
+%         % mask for band from edge
+%         iMask = imcomplement(mask);
+%         distFromEdge = bwdist(iMask);
+%         bandMask = distFromEdge <= bandwidthNA_pix;
+% 
+%         maskOnlyBand = bandMask & mask;
+%         bandArea(ii) = sum(maskOnlyBand(:)); % in pixel
+%         % filter tracks with naMasks
+%         % only deal with presence and status
+%         % Tracks in its emerging state ever overlap with bandMask are
+%         % considered.
+%         for k=1:numel(tracksNA)
+%             if tracksNA(k).presence(ii) && ~isnan(tracksNA(k).yCoord(ii)) && ...
+%                     ((round(tracksNA(k).xCoord(ii)) > size(maskOnlyBand,2) || ...
+%                     round(tracksNA(k).xCoord(ii)) < 1 || ...
+%                     round(tracksNA(k).yCoord(ii)) > size(maskOnlyBand,1) || ...
+%                     round(tracksNA(k).yCoord(ii)) < 1) || ...
+%                     ~maskOnlyBand(round(tracksNA(k).yCoord(ii)),round(tracksNA(k).xCoord(ii))))
+%                 tracksNA(k).state{ii} = 'Out_of_Band';
+%                 tracksNA(k).presence(ii) = false;
+%                 if trackIdx(k)
+%                     trackIdx(k) = false;
+%                 end
+%             end
+%         end
+%     end
 end
 % get rid of tracks that have out of bands...
 tracksNA = tracksNA(trackIdx);

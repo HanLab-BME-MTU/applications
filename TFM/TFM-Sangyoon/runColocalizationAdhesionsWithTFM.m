@@ -41,4 +41,13 @@ mean(forceFAL1)
 outputPath = '/Users/joshua2/Documents/PostdocResearch/Traction Force/Manuscript/Draft1.2/Data/130429_cell11_100f/ROI/Colocalization/L1l/data';
 [slopeMaturingMeanL1,slopeFailingMeanL1,InitForceMaturingMeanL1,InitForceFailingMeanL1] = ...
     postColocalizationAdhesionTFM(tracksNAmaturingL1, tracksNAfailingL1, outputPath);
+%% for beforeFAKi
+pathForTheMovieDataFile = '/project/cellbiology/gdanuser/adhesion/Sangyoon/TFM/130511 Cell2 beforeFAKi/ROItop';
+outputPath = 'tracksSeparation';
+band = 16;
+showAllTracks = false;
+plotEachTrack = false;
+tmaxEach = [];
+tmax=4500;
+[tracksNA,forceFC,forceFA,forceBGband,forceBG] = colocalizationAdhesionsWithTFM( pathForTheMovieDataFile,band,tmax,showAllTracks,plotEachTrack,tmaxEach,'outputPath',outputPath);
 
