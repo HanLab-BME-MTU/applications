@@ -79,7 +79,40 @@ for iM = 1 : numMovies
     %read in raw results
     %     disp([num2str(iM) '  ' ML.movieDataFile_{iM}]);
     MD = MovieData.load(ML.movieDataFile_{iM}); 
-    load(MD.processes_{3}.outFilePaths_{1}); %diffusion analysis and tracks
+    iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks
+    load(MD.processes_{iProcDiff}.outFilePaths_{1});
+    iProcMask = MD.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
+    if ~isempty(iProcMask)
+        mask = imread(fullfile(MD.processes_{iProcMask}.funParams_.OutputDirectory,'cellMask_channel_1.tif'));
+    else
+        mask = [];
+    end
+    
+    %limit analysis to tracks in mask if supplied
+    if ~isempty(mask) && any(mask(:)==0)
+        %keep only tracks in mask
+        numTracks = length(tracks);
+        keepTrack = ones(numTracks,1);
+        for iTrack = 1 : numTracks
+            xCoord = tracks(iTrack).tracksCoordAmpCG(:,1:8:end);
+            yCoord = tracks(iTrack).tracksCoordAmpCG(:,2:8:end);
+            meanPosX = round(nanmean(xCoord(:)));
+            meanPosY = round(nanmean(yCoord(:)));
+            keepTrack(iTrack) = mask(meanPosY,meanPosX);
+        end
+        indxKeep = find(keepTrack);
+        tracks = tracks(indxKeep);
+        diffAnalysisRes = diffAnalysisRes(indxKeep);
+        %redo diffusion analysis summary
+        if length(indxKeep) < numTracks
+            minTrackLen = 5;
+            probDim = 2;
+            extractType = 1;
+            [probMotionType,motionChar] = summarizeDiffAnRes(tracks,minTrackLen,probDim,diffAnalysisRes,extractType);
+            diffAnalysisRes(1).summary.probMotionType = probMotionType;
+            diffAnalysisRes(1).summary.motionChar = motionChar;
+        end
+    end
     
     %diffusion analysis summary
     diffSummary = diffAnalysisRes(1).summary;
