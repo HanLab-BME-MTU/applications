@@ -33,10 +33,22 @@ function [caseTimeList,caseResSummary] = resultsIndTimeCourse(ML,caseParam)
 %                                  directed, undetermined.
 %           .confRadMeanPerClass : Mean confinement radius per motion
 %                                  class. Same order as above.
-%           .ampMeamPerClass     : Mean particle amplitude per motion
-%                                  class. Same order as above.
-%           .ampMeanFL20         : Mean particle amplitude in first and
-%                                  last 20 frame of each movie.
+%           .ampMeanPerClass     : Mean particle amplitude per motion
+%                                  class. Rows in same order as above.
+%                                  Columns: first for "absolute" amplitude,
+%                                  second for amplitude normalized by
+%                                  monomer amplitude, as derived from modal
+%                                  analysis of particles in last 20 frames
+%                                  of each movie.
+%           .ampStatsF20         : Amplitude statistics in first 20
+%                                  frame of each movie. 
+%                                  Order: mean amplitude, first mode
+%                                  mean, first mode std, first mode
+%                                  fraction, number of modes, mean
+%                                  normalized by monomer amplitude (see
+%                                  ampMeanPerClass for details).
+%           .ampStatsL20         : Same as ampStatsF20, but for last 20
+%                                  frames of movie.
 %
 %Khuloud Jaqaman, March 2015
 
@@ -52,8 +64,8 @@ numCases = length(caseParam);
 
 %reserve memory for individual movie results
 resSummary = struct('diffSummary',[],'diffCoefMeanPerClass',[],...
-    'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampMeanFL20',[],...
-    'statsMS',[]);
+    'confRadMeanPerClass',[],'ampMeanPerClass',[],'ampStatsF20',[],...
+    'ampStatsL20',[],'statsMS',[]);
 resSummary = repmat(resSummary,numMovies,1);
 
 %define directory for saving results
@@ -67,7 +79,40 @@ for iM = 1 : numMovies
     %read in raw results
     %     disp([num2str(iM) '  ' ML.movieDataFile_{iM}]);
     MD = MovieData.load(ML.movieDataFile_{iM}); 
-    load(MD.processes_{3}.outFilePaths_{1});
+    iProcDiff = MD.getProcessIndex('MotionAnalysisProcess',1,0); %diffusion analysis and tracks
+    load(MD.processes_{iProcDiff}.outFilePaths_{1});
+    iProcMask = MD.getProcessIndex('ImportCellMaskProcess',1,0); %cell mask
+    if ~isempty(iProcMask)
+        mask = imread(fullfile(MD.processes_{iProcMask}.funParams_.OutputDirectory,'cellMask_channel_1.tif'));
+    else
+        mask = [];
+    end
+    
+    %limit analysis to tracks in mask if supplied
+    if ~isempty(mask) && any(mask(:)==0)
+        %keep only tracks in mask
+        numTracks = length(tracks);
+        keepTrack = ones(numTracks,1);
+        for iTrack = 1 : numTracks
+            xCoord = tracks(iTrack).tracksCoordAmpCG(:,1:8:end);
+            yCoord = tracks(iTrack).tracksCoordAmpCG(:,2:8:end);
+            meanPosX = round(nanmean(xCoord(:)));
+            meanPosY = round(nanmean(yCoord(:)));
+            keepTrack(iTrack) = mask(meanPosY,meanPosX);
+        end
+        indxKeep = find(keepTrack);
+        tracks = tracks(indxKeep);
+        diffAnalysisRes = diffAnalysisRes(indxKeep);
+        %redo diffusion analysis summary
+        if length(indxKeep) < numTracks
+            minTrackLen = 5;
+            probDim = 2;
+            extractType = 1;
+            [probMotionType,motionChar] = summarizeDiffAnRes(tracks,minTrackLen,probDim,diffAnalysisRes,extractType);
+            diffAnalysisRes(1).summary.probMotionType = probMotionType;
+            diffAnalysisRes(1).summary.motionChar = motionChar;
+        end
+    end
     
     %diffusion analysis summary
     diffSummary = diffAnalysisRes(1).summary;
@@ -100,11 +145,35 @@ for iM = 1 : numMovies
     end
     ampMeanPerClass(5) = mean(ampMeanPerTraj(isnan(trajClass)));
     
-    %average amplitude in first and last 20 frames
-    tmp1 = ampMat(:,1:20);
-    tmp2 = ampMat(:,end-19:end);
-    ampMeanFL20 = [nanmean(tmp1(:)) nanmean(tmp2(:))];
+    %amplitude statistics in first 20 frames
+    ampVec = ampMat(:,1:20);
+    ampVec = ampVec(~isnan(ampVec));
+    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,2,0,[],2,[],1);
+    numMode = size(modeParam,1);
+    modeParamMean = modeParam(1,1);
+    modeParamStd  = modeParam(1,2);
+    ampMode1Mean = exp( modeParamMean + modeParamStd.^2/2 );
+    ampMode1Std  = sqrt( exp( modeParamStd.^2 + 2*modeParamMean ) .* ( exp( modeParamStd.^2 )-1 ) );
+    ampMode1Frac = modeParam(1,4)/sum(modeParam(:,4));
+    ampStatsF20 = [mean(ampVec) ampMode1Mean ampMode1Std ampMode1Frac numMode];
+            
+    %amplitude statistics in last 20 frames
+    ampVec = ampMat(:,end-19:end);
+    ampVec = ampVec(~isnan(ampVec));
+    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,2,0,[],2,[],1);
+    numMode = size(modeParam,1);
+    modeParamMean = modeParam(1,1);
+    modeParamStd  = modeParam(1,2);
+    ampMode1Mean = exp( modeParamMean + modeParamStd.^2/2 );
+    ampMode1Std  = sqrt( exp( modeParamStd.^2 + 2*modeParamMean ) .* ( exp( modeParamStd.^2 )-1 ) );
+    ampMode1Frac = modeParam(1,4)/sum(modeParam(:,4));
+    ampStatsL20 = [mean(ampVec) ampMode1Mean ampMode1Std ampMode1Frac numMode];
     
+    %normalize mean amplitudes by first mode mean from last 20 frames
+    ampMeanPerClass = [ampMeanPerClass ampMeanPerClass/ampStatsL20(2)]; %#ok<AGROW>
+    ampStatsF20 = [ampStatsF20 ampStatsF20(1)/ampStatsL20(2)]; %#ok<AGROW>
+    ampStatsL20 = [ampStatsL20 ampStatsL20(1)/ampStatsL20(2)]; %#ok<AGROW>
+
     %merge and split statistics
     statsMS = calcStatsMS_noMotionInfo(tracks,5,1,1);
     
@@ -113,7 +182,8 @@ for iM = 1 : numMovies
     resSummary(iM).diffCoefMeanPerClass = diffCoefMeanPerClass;
     resSummary(iM).confRadMeanPerClass = confRadMeanPerClass;
     resSummary(iM).ampMeanPerClass = ampMeanPerClass;
-    resSummary(iM).ampMeanFL20 = ampMeanFL20;
+    resSummary(iM).ampStatsF20 = ampStatsF20;
+    resSummary(iM).ampStatsL20 = ampStatsL20;
     resSummary(iM).statsMS = statsMS;
     
 end

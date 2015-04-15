@@ -41,10 +41,18 @@ function [resSummaryComb,resSummaryInd] = resultsCombTimeCourse(dsName,dsResFile
 %           .ampClass   : Mean amplitude of particles in the various motion
 %                         classes.
 %                         Rows and columns as above.
-%           .ampFL20    : Mean amplitude of particles in first and last 20
+%           .ampNormClass:Mean normalized amplitude of particles in the
+%                         various motion classes.
+%                         Rows and columns as above.
+%           .ampStatsF20: Amplitude statistics for particles in first 20
 %                         frames.
 %                         Rows as above.
-%                         Columns = first 20 frames, last 20 frames.
+%                         Columns = mean, first mode mean, first mode std,
+%                         first mode fraction, number of modes, normalized
+%                         mean.
+%           .ampStatsL20: Amplitude statistics for particles in last 20
+%                         frames.
+%                         Rows and columns as above.
 %           .rateMS     : Rate of merging and rate of splitting per
 %                         feature. Columns: merging, splitting.
 %           .timeList   : List of time points in combined time course. Same
@@ -80,8 +88,8 @@ numDS = length(dsName);
 
 %reserve memory
 [dsSummary,timeList,numAbsClassInd,numNorm0ClassInd,probClassInd,...
-    diffCoefClassInd,confRadClassInd,ampClassInd,ampFL20Ind,rateMSInd] ...
-    = deal(cell(numDS,1));
+    diffCoefClassInd,confRadClassInd,ampClassInd,ampNormClassInd,...
+    ampStatsF20Ind,ampStatsL20Ind,rateMSInd] = deal(cell(numDS,1));
 
 %load all results and store in cell array
 for iDS = 1 : numDS
@@ -127,11 +135,17 @@ for iDS = 1 : numDS
 
     %amplitude in various motion classes
     %columns are: 1 imm, 2 conf, 3 free, 4 dir, 5 undet
-    ampClassInd{iDS} = (horzcat(dsSummary{iDS}.ampMeanPerClass))';
+    tmpCollect = (horzcat(dsSummary{iDS}.ampMeanPerClass))';
+    ampClassInd{iDS} = tmpCollect(1:2:end,:);
+    ampNormClassInd{iDS} = tmpCollect(2:2:end,:);
 
-    %amplitude in first and last 20 frames
-    %columns are: 1 first 20 frames, 2 last 20 frames
-    ampFL20Ind{iDS} = vertcat(dsSummary{iDS}.ampMeanFL20);
+    %amplitude statistics in first 20 frames
+    %columns are: 1 mean, 2 first mode mean, 3 first mode std, 4 first mode fraction, 5 number of modes
+    ampStatsF20Ind{iDS} = vertcat(dsSummary{iDS}.ampStatsF20);
+    
+    %amplitude statistics in last 20 frames
+    %columns are: 1 mean, 2 first mode mean, 3 first mode std, 4 first mode fraction, 5 number of modes
+    ampStatsL20Ind{iDS} = vertcat(dsSummary{iDS}.ampStatsL20);
     
     %rate of merging and rate of splitting
     tmp = vertcat(dsSummary{iDS}.statsMS);
@@ -148,7 +162,9 @@ end
 [diffCoefClassComb.msn,diffCoefClassComb.sample] = combineWithTimeAlign(diffCoefClassInd,timeList,timeListComb,timeIndxComb);
 [confRadClassComb.msn,confRadClassComb.sample] = combineWithTimeAlign(confRadClassInd,timeList,timeListComb,timeIndxComb);
 [ampClassComb.msn,ampClassComb.sample] = combineWithTimeAlign(ampClassInd,timeList,timeListComb,timeIndxComb);
-[ampFL20Comb.msn,ampFL20Comb.sample] = combineWithTimeAlign(ampFL20Ind,timeList,timeListComb,timeIndxComb);
+[ampNormClassComb.msn,ampNormClassComb.sample] = combineWithTimeAlign(ampNormClassInd,timeList,timeListComb,timeIndxComb);
+[ampStatsF20Comb.msn,ampStatsF20Comb.sample] = combineWithTimeAlign(ampStatsF20Ind,timeList,timeListComb,timeIndxComb);
+[ampStatsL20Comb.msn,ampStatsL20Comb.sample] = combineWithTimeAlign(ampStatsL20Ind,timeList,timeListComb,timeIndxComb);
 [rateMSComb.msn,rateMSComb.sample] = combineWithTimeAlign(rateMSInd,timeList,timeListComb,timeIndxComb);
 
 %for normalized number of particles, normalize by mean value at time 0 for
@@ -164,12 +180,14 @@ numNorm0ClassComb.msn(:,:,2) = nanstd(tmp,[],3);
 
 resSummaryInd = struct('numAbsClass',numAbsClassInd,'numNorm0Class',numNorm0ClassInd,...
     'probClass',probClassInd,'diffCoefClass',diffCoefClassInd,...
-    'confRadClass',confRadClassInd,'ampClass',ampClassInd,'ampFL20',ampFL20Ind,...
-    'rateMS',rateMSInd,'timeList',timeList);
+    'confRadClass',confRadClassInd,'ampClass',ampClassInd,'ampNormClass',ampNormClassInd,...
+    'ampStatsF20',ampStatsF20Ind,'ampStatsL20',ampStatsL20Ind,'rateMS',...
+    rateMSInd,'timeList',timeList);
 
 resSummaryComb = struct('numAbsClass',numAbsClassComb,'numNorm0Class',numNorm0ClassComb,...
     'probClass',probClassComb,'diffCoefClass',diffCoefClassComb,...
-    'confRadClass',confRadClassComb,'ampClass',ampClassComb,'ampFL20',ampFL20Comb,...
+    'confRadClass',confRadClassComb,'ampClass',ampClassComb,'ampNormClass',ampNormClassComb,...
+    'ampStatsF20',ampStatsF20Comb,'ampStatsL20',ampStatsL20Comb,...
     'rateMS',rateMSComb,'timeList',timeListComb,'timeAbsOrRel',timeAbsOrRel);
 
 
