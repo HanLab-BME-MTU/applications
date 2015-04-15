@@ -659,7 +659,7 @@ for k=1:numel(tracksNA)
     % Inital intensity slope for one min
     timeInterval = deltaT/60; % in min
     earlyPeriod = floor(1/timeInterval); % frames per minute
-    lastFrame = min(length(tracksNA(k).amp),tracksNA(k).startingFrame+earlyPeriod-1);
+    lastFrame = min(sum(~isnan(tracksNA(k).amp)),tracksNA(k).startingFrame+earlyPeriod-1);
     lastFrameFromOne = lastFrame - tracksNA(k).startingFrame+1;
     [curR,curM] = regression(timeInterval*(1:lastFrameFromOne),tracksNA(k).amp(tracksNA(k).startingFrame:lastFrame));
     tracksNA(k).ampSlope = curM; % in a.u./min

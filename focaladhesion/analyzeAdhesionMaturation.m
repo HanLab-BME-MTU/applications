@@ -667,8 +667,9 @@ for i = 1:numel(tracks)
             if tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1)==0
                 newTracks(i).bkgAmp(j) = NaN;
             else
-                newTracks(i).bkgAmp(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).bkg(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
-                newTracks(i).sigma(j) = detectedNAs(j-tracks(i).seqOfEvents(1,1)+1).sigmaX(tracks(i).tracksFeatIndxCG(j-tracks(i).seqOfEvents(1,1)+1));
+                jFromBirth=j-tracks(i).seqOfEvents(1,1)+1;
+                newTracks(i).bkgAmp(j) = detectedNAs(j).bkg(tracks(i).tracksFeatIndxCG(jFromBirth));
+                newTracks(i).sigma(j) = detectedNAs(j).sigmaX(tracks(i).tracksFeatIndxCG(jFromBirth));
             end
             newTracks(i).presence(j) = true;
             if startNA
