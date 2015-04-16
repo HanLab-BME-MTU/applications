@@ -99,7 +99,12 @@ end
 
 
 % for each channel that did filament segmentation, do analysis
-validChannels = MD.processes_{indexFilamentSegmentationProcess}.funParams_.ChannelIndex;
+try
+    validChannels = MD.processes_{indexFilamentSegmentationProcess}.funParams_.ChannelIndex;
+catch
+    validChannels = 1 : numel(MD.channels_);
+end
+
 % into row vector
 validChannels = validChannels(:);
 validChannels = validChannels'; % into row vector
@@ -237,11 +242,24 @@ for iChannel = validChannels
         if(indexCellRefineProcess>0 && vimscreen_flag == 0)
             try
                 Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
+              Cell_Mask(Cell_Mask==0)=nan;
+      
             end            
         end
         
+        
         output_feature.Cell_Mask = Cell_Mask;
         
+        if(~isempty(Cell_Mask))
+            
+            output_feature.density_filament =  (output_feature.density_filament).*(output_feature.Cell_Mask);
+            output_feature.scrabled_density_filament =  (output_feature.scrabled_density_filament).*(output_feature.Cell_Mask);
+        end
+        
+        output_feature.filament_density_mean = nanmean(output_feature.density_filament(:));
+        output_feature.scrabled_density_filament = nanmean(output_feature.scrabled_density_filament(:));
+        
+         
 %         % save output feature for single image(single channel, single frame)
 %         save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.mat'],...
 %             'output_feature');
@@ -253,7 +271,7 @@ for iChannel = validChannels
         
         tic
         % plot the network features in hists
-        network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,...
+        network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
                 im_name, outdir,iChannel,iFrame)
 %         close all;
         toc

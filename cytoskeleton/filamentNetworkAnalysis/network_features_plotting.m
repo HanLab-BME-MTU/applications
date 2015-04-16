@@ -1,4 +1,4 @@
-function network_features_plotting(output_feature, figure_flag, save_everything_flag,feature_flag,...
+function network_features_plotting(output_feature, figure_flag, save_everything_flag,feature_flag,vimscreen_flag,...
     im_name, outdir,iChannel,iFrame)
 % function to plot network features
 % Input: output_feature:   network feautre
@@ -324,7 +324,7 @@ if(figure_flag>0)
     %% 
 %     profileCell.nmsmean_pool 
     
-    if(feature_flag(20)>0)      
+    if(feature_flag(20)>0 && vimscreen_flag>0)      
         
         h20 =  figure(20);    
         [h,bin] = hist((output_feature.profileAllCell.nmsmean_pool(:) ));
@@ -349,7 +349,7 @@ if(figure_flag>0)
     end
     
     %%
-     if(feature_flag(21)>0)      
+     if(feature_flag(21)>0&& vimscreen_flag>0)      
         %Centripetal_distribution
         h21 =  figure(21);  
         [h,bin] = histc(output_feature.Centripetal_fila, 0:pi/24:pi/2);
@@ -366,7 +366,7 @@ if(figure_flag>0)
         end               
      end
     
-     if(feature_flag(22)>0)      
+     if(feature_flag(22)>0&&vimscreen_flag>0)      
         %Centripetal_pixel_distribution
         h22 =  figure(22);  
         [h,bin] = histc(output_feature.Centripetal_pixel, 0:pi/24:pi/2);

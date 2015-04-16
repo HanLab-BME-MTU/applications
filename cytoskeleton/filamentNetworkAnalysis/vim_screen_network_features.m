@@ -82,6 +82,12 @@ if(feature_flag(19)>0 || feature_flag(20)>0)
         
         angle_to_nucleus_center = atan2((indy-center_y),(indx-center_x));
         
+        profileIntSum = nan(6,max(distMap_thisCell)+1);
+        profileFilaSum = nan(6,max(distMap_thisCell)+1);        
+        profileStnmsSum = nan(6,max(distMap_thisCell)+1);         
+        profilePixels = nan(6,max(distMap_thisCell)+1);        
+        profileIntOverST = nan(6,max(distMap_thisCell)+1);       
+
         for iDistance = 1: max(distMap_thisCell)+1;
             DistanceT = iDistance-1;
             for iAngle =  1 : 6
@@ -102,7 +108,28 @@ if(feature_flag(19)>0 || feature_flag(20)>0)
                 profileStnmsSum(iAngle, iDistance) =  ...
                     sum(stnms_thisCell(ind_this_section));
                 profilePixels(iAngle, iDistance) = numel(ind_this_section);
+                
+                
             end
+            
+        end
+        
+        DistancePeriCenter = nan(1,6);
+        
+        for iAngle =  1 : 6
+            
+            profileIntAve_array = profileIntSum(iAngle, :)./profilePixels(iAngle, :);
+            profileSTAve_array = profileStnmsSum(iAngle, :)./profilePixels(iAngle, :);
+            
+            profileIntAve_array_smooth = imfilter(profileIntAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
+            profileSTAve_array_smooth = imfilter(profileSTAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
+            
+            STOverInt_array = profileSTAve_array_smooth./profileIntAve_array_smooth;            
+            STOverInt_array_smooth = imfilter(STOverInt_array, fspecial('gaussian', 11, 4), 'replicate','same');
+            STOverInt_array_grad = STOverInt_array_smooth(2:end)-STOverInt_array_smooth(1:end-1);
+            
+            ind_d = find(STOverInt_array_grad == max(STOverInt_array_grad));
+            DistancePeriCenter(iAngle) = ind_d;
         end
         
         profileCell{1,iR}.profileIntSum = profileIntSum;
