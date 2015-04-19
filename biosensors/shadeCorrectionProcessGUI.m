@@ -150,18 +150,18 @@ oldShadeChannels = userData.crtProc.inFilePaths_(2,:);
 
 % Apply new channel index and new shade images for sanity check
 funParams.ChannelIndex = channelIndex; 
-parseProcessParams(userData.crtProc,funParams);
-userData.crtProc.setCorrectionImagePath(channelIndex, shadeChannels);
+parseProcessParams(userData.crtProc, funParams);
 
 %  Process Sanity check ( only check underlying data )
 try
-    userData.crtProc.sanityCheck;
+    userData.crtProc.setCorrectionImagePath(channelIndex, shadeChannels);
+    userData.crtProc.sanityCheck();
 catch ME
     errordlg(ME.message,'Setting Error','modal');
     if ~isempty(oldShadeChannels)
         userData.crtProc.setCorrectionImagePath(1:numel(oldShadeChannels), oldShadeChannels)
     end 
-    userData.crtProc.setPara(oldFunParams);
+    userData.crtProc.setParameters(oldFunParams);
     return;
 end
 
