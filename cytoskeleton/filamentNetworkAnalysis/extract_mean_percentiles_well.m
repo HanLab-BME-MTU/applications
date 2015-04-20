@@ -1,9 +1,9 @@
 function ChMP_feature = extract_mean_percentiles_well(NA_feature_thisMD, iChannel, feature_index)
 
-ChMP_feature = nan(32,8);
+ChMP_feature = nan(33,8);
 
 if(~isempty(NA_feature_thisMD{iChannel}))
-    for iF = 1:32
+    for iF = 1:33
         this_feature=[];
         if(feature_index(iF)>0)
               switch iF
@@ -105,12 +105,22 @@ if(~isempty(NA_feature_thisMD{iChannel}))
                         try
                             this_feature = [ this_feature; NA_feature_thisMD{iChannel}.Centripetal_pixel];
                         end                    
+                  case 33
+                      try
+                          this_feature = [ this_feature; NA_feature_thisMD{iChannel}.number_of_nucleus];
+                      end
                         
                     otherwise
                         this_feature = [ this_feature; NA_feature_thisMD{iChannel}.straightness_per_filament_pool];
-                end
+              end
+                
+              if(iF==33)
+                  ChMP_feature(iF,1:numel(this_feature)) = this_feature(:);
+                  ChMP_feature(iF,5) = nansum(this_feature(:));                  
+              else                  
                 MP = mean_percentiles(this_feature);
-                ChMP_feature(iF,1:8)=  MP(:);                            
+                ChMP_feature(iF,1:8)=  MP(:);   
+              end
         end
     end
     

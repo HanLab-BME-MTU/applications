@@ -1,4 +1,4 @@
-% function NA_feature_whole_thisMD = put_frame_pool_into_MD_pool(NA_feature_whole_thisMD, NA_feature_thisMD,iChannel)
+% function NA_feature_whole_thisMD = put_pool_together(NA_feature_whole_thisMD, NA_feature_thisMD,iChannel)
 % not a function, is a script
 
 if(isempty(NA_feature_whole_thisMD))
@@ -48,81 +48,81 @@ if(isempty(NA_feature_whole_thisMD{iChannel}))
     NA_feature_whole_thisMD{iChannel}.Centripetal_fila  = [];
     NA_feature_whole_thisMD{iChannel}.Centripetal_pixel  = [];
     NA_feature_whole_thisMD{iChannel}.number_of_nucleus  = [];
-    
-else
+end
+
+
     
     
     NA_feature_whole_thisMD{iChannel}.straightness_per_filament_pool  = [ NA_feature_whole_thisMD{iChannel}.straightness_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.straightness_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.straightness_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.length_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.length_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.length_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.length_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.pixel_number_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.pixel_number_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.pixel_number_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.pixel_number_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.density_filament    = [ NA_feature_whole_thisMD{iChannel}.density_filament;  ...
-        NA_feature_thisMD{iChannel}.density_filament];
+        NA_feature_thisMD{iChannel, iFrame}.density_filament];
     NA_feature_whole_thisMD{iChannel}.scrabled_density_filament     = [ NA_feature_whole_thisMD{iChannel}.scrabled_density_filament;  ...
-        NA_feature_thisMD{iChannel}.scrabled_density_filament];
+        NA_feature_thisMD{iChannel, iFrame}.scrabled_density_filament];
     NA_feature_whole_thisMD{iChannel}.orientation_pixel_pool_display    = [ NA_feature_whole_thisMD{iChannel}.orientation_pixel_pool_display;  ...
-        NA_feature_thisMD{iChannel}.orientation_pixel_pool_display];
+        NA_feature_thisMD{iChannel, iFrame}.orientation_pixel_pool_display];
     NA_feature_whole_thisMD{iChannel}.orientation_pixel_pool_display_center    = [ NA_feature_whole_thisMD{iChannel}.orientation_pixel_pool_display_center;  ...
-        NA_feature_thisMD{iChannel}.orientation_pixel_pool_display_center];
+        NA_feature_thisMD{iChannel, iFrame}.orientation_pixel_pool_display_center];
     NA_feature_whole_thisMD{iChannel}.intensity_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.intensity_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.intensity_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.intensity_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.mean_intensity_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.mean_intensity_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.mean_intensity_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.mean_intensity_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.intensity_per_fat_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.intensity_per_fat_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.intensity_per_fat_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.intensity_per_fat_filament_pool];
     NA_feature_whole_thisMD{iChannel}.mean_intensity_per_fat_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.mean_intensity_per_fat_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.mean_intensity_per_fat_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.mean_intensity_per_fat_filament_pool];
     NA_feature_whole_thisMD{iChannel}.scale_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.scale_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.scale_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.scale_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.st_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.st_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.st_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.st_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.mean_st_per_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.mean_st_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.mean_st_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.mean_st_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.st_per_fat_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.st_per_fat_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.st_per_fat_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.st_per_fat_filament_pool];
     NA_feature_whole_thisMD{iChannel}.mean_st_per_fat_filament_pool    = [ NA_feature_whole_thisMD{iChannel}.mean_st_per_fat_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.mean_st_per_fat_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.mean_st_per_fat_filament_pool];
     NA_feature_whole_thisMD{iChannel}.curvature_per_pixel_pool    = [ NA_feature_whole_thisMD{iChannel}.curvature_per_pixel_pool;  ...
-        NA_feature_thisMD{iChannel}.curvature_per_pixel_pool];
+        NA_feature_thisMD{iChannel, iFrame}.curvature_per_pixel_pool];
     NA_feature_whole_thisMD{iChannel}.filament_mean_curvature    = [ NA_feature_whole_thisMD{iChannel}.filament_mean_curvature;  ...
-        NA_feature_thisMD{iChannel}.filament_mean_curvature];
+        NA_feature_thisMD{iChannel, iFrame}.filament_mean_curvature];
     NA_feature_whole_thisMD{iChannel}.nmssum_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.nmssum_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.nmssum_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.nmssum_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.nmsmean_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.nmsmean_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.nmsmean_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.nmsmean_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.intsum_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.intsum_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.intsum_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.intsum_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.intmean_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.intmean_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.intmean_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.intmean_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.filasum_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.filasum_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.filasum_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.filasum_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.filamean_ratio_pool    = [ NA_feature_whole_thisMD{iChannel}.filamean_ratio_pool;  ...
-        NA_feature_thisMD{iChannel}.filamean_ratio_pool];
+        NA_feature_thisMD{iChannel, iFrame}.filamean_ratio_pool];
     NA_feature_whole_thisMD{iChannel}.nmssum_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.nmssum_ratio_pool_autoDpc;  ...
-        NA_feature_thisMD{iChannel}.nmssum_ratio_pool_autoDpc];
+        NA_feature_thisMD{iChannel, iFrame}.nmssum_ratio_pool_autoDpc];
     NA_feature_whole_thisMD{iChannel}.nmsmean_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.straightness_per_filament_pool;  ...
-        NA_feature_thisMD{iChannel}.straightness_per_filament_pool];
+        NA_feature_thisMD{iChannel, iFrame}.straightness_per_filament_pool];
     NA_feature_whole_thisMD{iChannel}.intsum_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.intsum_ratio_pool_autoDpc;  ...
-        NA_feature_thisMD{iChannel}.intsum_ratio_pool_autoDpc];
+        NA_feature_thisMD{iChannel, iFrame}.intsum_ratio_pool_autoDpc];
     NA_feature_whole_thisMD{iChannel}.intmean_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.intmean_ratio_pool_autoDpc;  ...
-        NA_feature_thisMD{iChannel}.intmean_ratio_pool_autoDpc];
+        NA_feature_thisMD{iChannel, iFrame}.intmean_ratio_pool_autoDpc];
     
     NA_feature_whole_thisMD{iChannel}.filasum_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.filasum_ratio_pool_autoDpc;  ...
-        NA_feature_thisMD{iChannel}.filasum_ratio_pool_autoDpc];
+        NA_feature_thisMD{iChannel, iFrame}.filasum_ratio_pool_autoDpc];
     
     NA_feature_whole_thisMD{iChannel}.filamean_ratio_pool_autoDpc    = [ NA_feature_whole_thisMD{iChannel}.filamean_ratio_pool_autoDpc;  ...
-        NA_feature_thisMD{iChannel}.filamean_ratio_pool_autoDpc];
+        NA_feature_thisMD{iChannel, iFrame}.filamean_ratio_pool_autoDpc];
     NA_feature_whole_thisMD{iChannel}.Centripetal_fila    = [ NA_feature_whole_thisMD{iChannel}.Centripetal_fila;  ...
-        NA_feature_thisMD{iChannel}.Centripetal_fila];
+        NA_feature_thisMD{iChannel, iFrame}.Centripetal_fila];
     NA_feature_whole_thisMD{iChannel}.Centripetal_pixel    = [ NA_feature_whole_thisMD{iChannel}.Centripetal_pixel;  ...
-        NA_feature_thisMD{iChannel}.Centripetal_pixel];
-    NA_feature_whole_thisMD{iChannel}.number_of_nucleus    =  NA_feature_whole_thisMD{iChannel}.number_of_nucleus +  ...
-        NA_feature_thisMD{iChannel}.number_of_nucleus;
+        NA_feature_thisMD{iChannel, iFrame}.Centripetal_pixel];
+    NA_feature_whole_thisMD{iChannel}.number_of_nucleus    =  [NA_feature_whole_thisMD{iChannel}.number_of_nucleus;  ...
+        NA_feature_thisMD{iChannel, iFrame}.number_of_nucleus];
     
                                                        
-end
 
 
 

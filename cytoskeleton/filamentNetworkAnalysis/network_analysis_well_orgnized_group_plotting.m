@@ -32,7 +32,7 @@ close all;
 
 nList = length(ML_name_cell);
 
-for iML = 1 : nList
+for iML = 2 : nList
     
    try
        load(ML_name_cell{iML});
@@ -59,7 +59,7 @@ for iML = 1 : nList
 %         load([ML_ROOT_DIR,filesep,'movieList_NA_results_gathered.mat'],...
 %             'NA_feature_thisML','Identifier_thisML');
     else
-        for iMD  = 1 : movieNumber
+        for iMD  = 231 : movieNumber
             
                       
             % otherwise load one by one
@@ -84,6 +84,8 @@ for iML = 1 : nList
                 %check index
                 display_msg_flag=0;
                 package_process_ind_script;
+                
+                MD_ROOT_DIR = MD.outputDirectory_;
                 
                 nChannel = numel(MD.channels_);
                 nFrame = MD.nFrames_;
@@ -183,7 +185,7 @@ for iML = 1 : nList
 
         end  % end of a MD        
         
-         save([ML_ROOT_DIR,filesep,'movieList_plate_NA_results_gathered.mat'],...
+         save([ML_ROOT_DIR,filesep,'m240ovieList_plate_NA_results_gathered.mat'],...
                     'Identifier_thisML',...
                     'ChMP_feature_thisML');
     end     % end of if previous gathering exists FOR a ML    
