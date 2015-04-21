@@ -31,6 +31,9 @@ end
 if (strcmp(ip.Results.type,'pointSourceAutoSigma') ...
     ||strcmp(ip.Results.type,'pointSourceAutoSigmaFit') ...
     ||strcmp(ip.Results.type,'pSAutoSigmaMarkedWatershed') ...
+    ||strcmp(ip.Results.type,'pointSourceAutoSigmaMixture') ... 
+    ||strcmp(ip.Results.type,'pointSourceAutoSigmaLM') ...     
+    ||strcmp(ip.Results.type,'pointSourceAutoSigmaFitSig') ... 
     ||strcmp(ip.Results.type,'pSAutoSigmaWatershed'))
     volList=[];
     for i=1:5
@@ -72,6 +75,10 @@ parfor frameIdx=1:numel(processFrames)
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         labels{frameIdx}=double(mask); % adjust label
         movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol);
+      case {'pointSourceAutoSigmaLM'}
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+        labels{frameIdx}=double(mask); % adjust label
+        movieInfo(frameIdx)=pointCloudToMovieInfo(imgLM,vol);  
       case 'pSAutoSigmaMarkedWatershed'
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         wat=markedWatershed(vol,scales,0);wat(mask==0)=0;       
@@ -84,6 +91,14 @@ parfor frameIdx=1:numel(processFrames)
         movieInfo(frameIdx)=labelToMovieInfo(double(wat),vol);
       case {'pointSourceFit','pointSourceAutoSigmaFit'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
+        movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
+        labels{frameIdx}=double(mask); % adjust label
+      case {'pointSourceAutoSigmaMixture'}
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'FitMixtures', true, varargin{:});
+        movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
+        labels{frameIdx}=double(mask); % adjust label
+      case {'pointSourceAutoSigmaFitSig'}
+        [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,'Mode','xyzAcsr',varargin{:});
         movieInfo(frameIdx)= pstructToMovieInfo(pstruct);
         labels{frameIdx}=double(mask); % adjust label
       otherwise 
@@ -106,7 +121,7 @@ function movieInfo= labelToMovieInfo(label,vol)
 featsProp = regionprops(feats,vol,'Area','WeightedCentroid','MeanIntensity','MaxIntensity','PixelValues');
 
 % centroid coordinates with 0.5 uncertainties
-tmp = vertcat(featsProp.WeightedCentroid);
+tmp = vertcat(featsProp.WeightedCentroid)-1;
 xCoord = [tmp(:,1) 0.5*ones(nFeats,1)]; yCoord = [tmp(:,2) 0.5*ones(nFeats,1)]; zCoord = [tmp(:,3) 0.5*ones(nFeats,1)];
 amp=[vertcat(featsProp.MaxIntensity) 0.5*ones(nFeats,1)];
 
@@ -116,11 +131,26 @@ movieInfo.xCoord= xCoord;movieInfo.yCoord=yCoord;movieInfo.zCoord=zCoord;
 movieInfo.amp=amp;
 movieInfo.int=amp;
 
+function movieInfo= pointCloudToMovieInfo(imgLM,vol)
+    lmIdx = find(imgLM~=0);
+    [lmy,lmx,lmz] = ind2sub(size(vol), lmIdx);
+    N=length(lmy)
+    % centroid coordinates with 0.5 uncertainties
+    xCoord = [lmx-1 0.5*ones(N,1)]; yCoord = [lmy-1 0.5*ones(N,1)]; zCoord = [lmz-1 0.5*ones(N,1)];
+    amp=[vol(lmIdx) 0.5*ones(N,1)];
+
+    % u-track formating
+    movieInfo=struct('xCoord',[],'yCoord',[],'zCoord',[],'amp',[],'int',[]);
+    movieInfo.xCoord= xCoord;movieInfo.yCoord=yCoord;movieInfo.zCoord=zCoord;
+    movieInfo.amp=amp;
+    movieInfo.int=amp;
+
+
 
 function movieInfo= pstructToMovieInfo(pstruct)
-movieInfo.xCoord = [pstruct.x' pstruct.x_pstd'];
-movieInfo.yCoord = [pstruct.y' pstruct.y_pstd'];
-movieInfo.zCoord = [pstruct.z' pstruct.z_pstd'];
+movieInfo.xCoord = [pstruct.x'-1 pstruct.x_pstd'];
+movieInfo.yCoord = [pstruct.y'-1 pstruct.y_pstd'];
+movieInfo.zCoord = [pstruct.z'-1 pstruct.z_pstd'];
 movieInfo.amp = [pstruct.A' pstruct.A_pstd'];
 movieInfo.int= [pstruct.A' pstruct.A_pstd'];
 

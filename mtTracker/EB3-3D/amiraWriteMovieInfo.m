@@ -1,5 +1,11 @@
-function amiraWriteMovieInfo(filename, movieInfo)
+function amiraWriteMovieInfo(filename, movieInfo,varargin)
 % Write an Amira Mesh file with name [<filename>_%04d.am] representing vertex. 
+ip=inputParser();
+ip.CaseSensitive = false;
+ip.KeepUnmatched = true;
+ip.addParamValue('scales', [1 1 1], @isnumeric);
+ip.parse( varargin{:});
+p=ip.Results;
 
 [pathstr,name,ext] = fileparts(filename); 
 basename=[pathstr name];
@@ -13,7 +19,7 @@ parfor fIdx=1:length(movieInfo)
     fprintf(fid,['# HyperSurface 0.1 ASCII\n\n Vertices ',num2str(numVertices),'\n']);
     fprintf(fid,['\n']);
     fclose(fid);
-    dlmwrite(frameFilename, [fMI.xCoord(:,1) fMI.yCoord(:,1) fMI.zCoord(:,1)], '-append', 'delimiter',' ');
+    dlmwrite(frameFilename, [fMI.xCoord(:,1)*p.scales(1) fMI.yCoord(:,1)*p.scales(2) fMI.zCoord(:,1)*p.scales(3)], '-append', 'delimiter',' ');
 end 
     
     
