@@ -4,8 +4,7 @@ function network_feature_MD_thisCh_wholepool = network_feature_pool_MD_gather(ne
 
 network_feature_MD_thisCh_wholepool = [];
 
-for iFrame = size(network_feature,2)
-    
+for iFrame = 1 : size(network_feature,2)
     
     if(isempty(network_feature_MD_thisCh_wholepool))
         network_feature_MD_thisCh_wholepool.straightness_per_filament_pool  = [];
@@ -50,150 +49,156 @@ for iFrame = size(network_feature,2)
         network_feature_MD_thisCh_wholepool.Centripetal_fila  = [];
         network_feature_MD_thisCh_wholepool.Centripetal_pixel  = [];
         network_feature_MD_thisCh_wholepool.number_of_nucleus  = [];
+        network_feature_MD_thisCh_wholepool.filament_density_mean = [];
+        network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean = [];
+               
     end
     
-    if(feature_flag(1)==1)
-        network_feature_MD_thisCh_wholepool.straightness_per_filament_pool  = [ network_feature_MD_thisCh_wholepool.straightness_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.straightness_per_filament_pool];
-    end
-    if(feature_flag(2)==1)
-        network_feature_MD_thisCh_wholepool.length_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.length_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.length_per_filament_pool];
-    end
-    if(feature_flag(3)==1)
-        network_feature_MD_thisCh_wholepool.pixel_number_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.pixel_number_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.pixel_number_per_filament_pool];
-    end
-    if(feature_flag(4)==1)
-        network_feature_MD_thisCh_wholepool.density_filament    = [ network_feature_MD_thisCh_wholepool.density_filament;  ...
-            network_feature{iChannel, iFrame}.density_filament];
-    end
-    if(feature_flag(5)==1)
-        network_feature_MD_thisCh_wholepool.scrabled_density_filament     = [ network_feature_MD_thisCh_wholepool.scrabled_density_filament;  ...
-            network_feature{iChannel, iFrame}.scrabled_density_filament];
-    end
-    if(feature_flag(6)==1)
-        network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display    = [ network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display;  ...
-            network_feature{iChannel, iFrame}.orientation_pixel_pool_display];
-    end
-    if(feature_flag(7)==1)
-        network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display_center    = [ network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display_center;  ...
-            network_feature{iChannel, iFrame}.orientation_pixel_pool_display_center];
-    end
-    if(feature_flag(8)==1)
-        network_feature_MD_thisCh_wholepool.intensity_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.intensity_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.intensity_per_filament_pool];
-    end
-    if(feature_flag(9)==1)
-        network_feature_MD_thisCh_wholepool.mean_intensity_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_intensity_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.mean_intensity_per_filament_pool];
-    end
-    if(feature_flag(10)==1)
-        network_feature_MD_thisCh_wholepool.intensity_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.intensity_per_fat_filament_pool;  ...
-            network_feature{iChannel, iFrame}.intensity_per_fat_filament_pool];
-    end
-    if(feature_flag(11)==1)
-        network_feature_MD_thisCh_wholepool.mean_intensity_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_intensity_per_fat_filament_pool;  ...
-            network_feature{iChannel, iFrame}.mean_intensity_per_fat_filament_pool];
-    end
-    if(feature_flag(12)==1)
-        network_feature_MD_thisCh_wholepool.scale_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.scale_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.scale_per_filament_pool];
-    end
-    if(feature_flag(13)==1)
-        network_feature_MD_thisCh_wholepool.st_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.st_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.st_per_filament_pool];
-    end
-    if(feature_flag(14)==1)
-        network_feature_MD_thisCh_wholepool.mean_st_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_st_per_filament_pool;  ...
-            network_feature{iChannel, iFrame}.mean_st_per_filament_pool];
-    end
-    if(feature_flag(15)==1)
-        network_feature_MD_thisCh_wholepool.st_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.st_per_fat_filament_pool;  ...
-            network_feature{iChannel, iFrame}.st_per_fat_filament_pool];
-    end
-    if(feature_flag(16)==1)
-        network_feature_MD_thisCh_wholepool.mean_st_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_st_per_fat_filament_pool;  ...
-            network_feature{iChannel, iFrame}.mean_st_per_fat_filament_pool];
-    end
-    if(feature_flag(17)==1)
-        network_feature_MD_thisCh_wholepool.curvature_per_pixel_pool    = [ network_feature_MD_thisCh_wholepool.curvature_per_pixel_pool;  ...
-            network_feature{iChannel, iFrame}.curvature_per_pixel_pool];
-    end
-    if(feature_flag(18)==1)
-        network_feature_MD_thisCh_wholepool.filament_mean_curvature    = [ network_feature_MD_thisCh_wholepool.filament_mean_curvature;  ...
-            network_feature{iChannel, iFrame}.filament_mean_curvature];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.nmssum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.nmssum_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.nmssum_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.nmsmean_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.intsum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.intsum_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.intsum_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.intmean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.intmean_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.intmean_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.filasum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.filasum_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.filasum_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.filamean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.filamean_ratio_pool;  ...
-        %         network_feature{iChannel, iFrame}.filamean_ratio_pool];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.nmssum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.nmssum_ratio_pool_autoDpc;  ...
-        %         network_feature{iChannel, iFrame}.nmssum_ratio_pool_autoDpc];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.straightness_per_filament_pool;  ...
-        %         network_feature{iChannel, iFrame}.straightness_per_filament_pool];
-        %  end
-        % if(feature_flag(1)==1)
-        %    network_feature_MD_thisCh_wholepool.intsum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.intsum_ratio_pool_autoDpc;  ...
-        %         network_feature{iChannel, iFrame}.intsum_ratio_pool_autoDpc];
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.intmean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.intmean_ratio_pool_autoDpc;  ...
-        %         network_feature{iChannel, iFrame}.intmean_ratio_pool_autoDpc];
-        %
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.filasum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.filasum_ratio_pool_autoDpc;  ...
-        %         network_feature{iChannel, iFrame}.filasum_ratio_pool_autoDpc];
-        %
-        % end
-        % if(feature_flag(1)==1)
-        %     network_feature_MD_thisCh_wholepool.filamean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.filamean_ratio_pool_autoDpc;  ...
-        %         network_feature{iChannel, iFrame}.filamean_ratio_pool_autoDpc];
-        % end
-        if(feature_flag(21)==1)
-            network_feature_MD_thisCh_wholepool.Centripetal_fila    = [ network_feature_MD_thisCh_wholepool.Centripetal_fila;  ...
-                network_feature{iChannel, iFrame}.Centripetal_fila];
+    if(~isempty(network_feature{iChannel, iFrame}))
+        if(feature_flag(1)==1)
+            network_feature_MD_thisCh_wholepool.straightness_per_filament_pool  = [ network_feature_MD_thisCh_wholepool.straightness_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.straightness_per_filament_pool(:)];
         end
-        if(feature_flag(22)==1)
-            network_feature_MD_thisCh_wholepool.Centripetal_pixel    = [ network_feature_MD_thisCh_wholepool.Centripetal_pixel;  ...
-                network_feature{iChannel, iFrame}.Centripetal_pixel];
+        if(feature_flag(2)==1)
+            network_feature_MD_thisCh_wholepool.length_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.length_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.length_per_filament_pool(:)];
         end
-        if(feature_flag(23)==1)
-            network_feature_MD_thisCh_wholepool.number_of_nucleus    =  [network_feature_MD_thisCh_wholepool.number_of_nucleus;  ...
-                network_feature{iChannel, iFrame}.number_of_nucleus];
+        if(feature_flag(3)==1)
+            network_feature_MD_thisCh_wholepool.pixel_number_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.pixel_number_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.pixel_number_per_filament_pool(:)];
+        end
+        if(feature_flag(4)==1)
             
+            network_feature_MD_thisCh_wholepool.density_filament    = [ network_feature_MD_thisCh_wholepool.density_filament;  ...
+                network_feature{iChannel, iFrame}.density_filament(~isnan(network_feature{iChannel, iFrame}.density_filament))];
         end
-        if(feature_flag(24)==1)
-            network_feature_MD_thisCh_wholepool.filament_density_mean    =  [network_feature_MD_thisCh_wholepool.filament_density_mean;  ...
-                network_feature{iChannel, iFrame}.filament_density_mean];
+        if(feature_flag(5)==1)
+            network_feature_MD_thisCh_wholepool.scrabled_density_filament     = [ network_feature_MD_thisCh_wholepool.scrabled_density_filament;  ...
+                network_feature{iChannel, iFrame}.scrabled_density_filament(~isnan(network_feature{iChannel, iFrame}.scrabled_density_filament))];
         end
-        if(feature_flag(25)==1)
-            network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean    =  [network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean;  ...
-                network_feature{iChannel, iFrame}.scrabled_density_filament_mean];
+        if(feature_flag(6)==1)
+            network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display    = [ network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display;  ...
+                network_feature{iChannel, iFrame}.orientation_pixel_pool_display(:)];
+        end
+        if(feature_flag(7)==1)
+            network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display_center    = [ network_feature_MD_thisCh_wholepool.orientation_pixel_pool_display_center;  ...
+                network_feature{iChannel, iFrame}.orientation_pixel_pool_display_center(:)];
+        end
+        if(feature_flag(8)==1)
+            network_feature_MD_thisCh_wholepool.intensity_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.intensity_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.intensity_per_filament_pool(:)];
+        end
+        if(feature_flag(9)==1)
+            network_feature_MD_thisCh_wholepool.mean_intensity_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_intensity_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.mean_intensity_per_filament_pool(:)];
+        end
+        if(feature_flag(10)==1)
+            network_feature_MD_thisCh_wholepool.intensity_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.intensity_per_fat_filament_pool;  ...
+                network_feature{iChannel, iFrame}.intensity_per_fat_filament_pool(:)];
+        end
+        if(feature_flag(11)==1)
+            network_feature_MD_thisCh_wholepool.mean_intensity_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_intensity_per_fat_filament_pool;  ...
+                network_feature{iChannel, iFrame}.mean_intensity_per_fat_filament_pool(:)];
+        end
+        if(feature_flag(12)==1)
+            network_feature_MD_thisCh_wholepool.scale_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.scale_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.scale_per_filament_pool(:)];
+        end
+        if(feature_flag(13)==1)
+            network_feature_MD_thisCh_wholepool.st_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.st_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.st_per_filament_pool(:)];
+        end
+        if(feature_flag(14)==1)
+            network_feature_MD_thisCh_wholepool.mean_st_per_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_st_per_filament_pool;  ...
+                network_feature{iChannel, iFrame}.mean_st_per_filament_pool(:)];
+        end
+        if(feature_flag(15)==1)
+            network_feature_MD_thisCh_wholepool.st_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.st_per_fat_filament_pool;  ...
+                network_feature{iChannel, iFrame}.st_per_fat_filament_pool(:)];
+        end
+        if(feature_flag(16)==1)
+            network_feature_MD_thisCh_wholepool.mean_st_per_fat_filament_pool    = [ network_feature_MD_thisCh_wholepool.mean_st_per_fat_filament_pool;  ...
+                network_feature{iChannel, iFrame}.mean_st_per_fat_filament_pool(:)];
+        end
+        if(feature_flag(17)==1)
+            network_feature_MD_thisCh_wholepool.curvature_per_pixel_pool    = [ network_feature_MD_thisCh_wholepool.curvature_per_pixel_pool;  ...
+                network_feature{iChannel, iFrame}.curvature_per_pixel_pool(:)];
+        end
+        if(feature_flag(18)==1)
+            network_feature_MD_thisCh_wholepool.filament_mean_curvature    = [ network_feature_MD_thisCh_wholepool.filament_mean_curvature;  ...
+                network_feature{iChannel, iFrame}.filament_mean_curvature(:)];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.nmssum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.nmssum_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.nmssum_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.nmsmean_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.intsum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.intsum_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.intsum_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.intmean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.intmean_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.intmean_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.filasum_ratio_pool    = [ network_feature_MD_thisCh_wholepool.filasum_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.filasum_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.filamean_ratio_pool    = [ network_feature_MD_thisCh_wholepool.filamean_ratio_pool;  ...
+            %         network_feature{iChannel, iFrame}.filamean_ratio_pool];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.nmssum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.nmssum_ratio_pool_autoDpc;  ...
+            %         network_feature{iChannel, iFrame}.nmssum_ratio_pool_autoDpc];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.nmsmean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.straightness_per_filament_pool;  ...
+            %         network_feature{iChannel, iFrame}.straightness_per_filament_pool];
+            %  end
+            % if(feature_flag(1)==1)
+            %    network_feature_MD_thisCh_wholepool.intsum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.intsum_ratio_pool_autoDpc;  ...
+            %         network_feature{iChannel, iFrame}.intsum_ratio_pool_autoDpc];
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.intmean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.intmean_ratio_pool_autoDpc;  ...
+            %         network_feature{iChannel, iFrame}.intmean_ratio_pool_autoDpc];
+            %
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.filasum_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.filasum_ratio_pool_autoDpc;  ...
+            %         network_feature{iChannel, iFrame}.filasum_ratio_pool_autoDpc];
+            %
+            % end
+            % if(feature_flag(1)==1)
+            %     network_feature_MD_thisCh_wholepool.filamean_ratio_pool_autoDpc    = [ network_feature_MD_thisCh_wholepool.filamean_ratio_pool_autoDpc;  ...
+            %         network_feature{iChannel, iFrame}.filamean_ratio_pool_autoDpc];
+            % end
+            if(feature_flag(21)==1)
+                network_feature_MD_thisCh_wholepool.Centripetal_fila    = [ network_feature_MD_thisCh_wholepool.Centripetal_fila;  ...
+                    network_feature{iChannel, iFrame}.Centripetal_fila(:)];
+            end
+            if(feature_flag(22)==1)
+                network_feature_MD_thisCh_wholepool.Centripetal_pixel    = [ network_feature_MD_thisCh_wholepool.Centripetal_pixel;  ...
+                    network_feature{iChannel, iFrame}.Centripetal_pixel(:)];
+            end
+            if(feature_flag(23)==1)
+                network_feature_MD_thisCh_wholepool.number_of_nucleus    =  [network_feature_MD_thisCh_wholepool.number_of_nucleus;  ...
+                    network_feature{iChannel, iFrame}.number_of_nucleus(:)];
+                
+            end
+            if(feature_flag(24)==1)
+                network_feature_MD_thisCh_wholepool.filament_density_mean    =  [network_feature_MD_thisCh_wholepool.filament_density_mean;  ...
+                    network_feature{iChannel, iFrame}.filament_density_mean(:)];
+            end
+            if(feature_flag(25)==1)
+                network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean    =  [network_feature_MD_thisCh_wholepool.scrabled_density_filament_mean;  ...
+                    network_feature{iChannel, iFrame}.scrabled_density_filament_mean(:)];
+            end
         end
     end
 end

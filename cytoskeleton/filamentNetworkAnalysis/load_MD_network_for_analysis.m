@@ -1,4 +1,6 @@
-function [network_feature,network_feature_MD_allCh_wholepool_cell] = load_MD_network_for_analysis(MD,CellROI,radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag)
+function [network_feature,network_feature_MD_allCh_wholepool_cell] =...
+    load_MD_network_for_analysis(MD,CellROI,radius,...
+    figure_flag, save_everything_flag,feature_flag,vimscreen_flag,set_visible)
 % function to do network analysis with input MD
 
 % input:    MD:    the loaded movieData object.
@@ -110,6 +112,10 @@ if(nargin<7)
     vimscreen_flag = 0;
 end
 
+% if no input as if display figure or not, display them
+if(nargin<8)
+    set_visible = 1;
+end
 
 %% Get movie data ready
 
@@ -124,6 +130,7 @@ end
 display_msg_flag = 0; % display warning or not
 package_process_ind_script;
 network_feature=cell(length(MD.channels_),nFrame);
+network_feature_MD_allCh_wholepool_cell=cell(1,length(MD.channels_));
 
 if(vimscreen_flag>0 && (indexFilamentSegmentationProcess==0 ||indexFlattenProcess==0 ...
         ||indexSteerabeleProcess==0 || indexFilamentPackage==0) )
@@ -145,8 +152,13 @@ validChannels = validChannels'; % into row vector
 
 for iChannel = validChannels
     
+    try
     outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{iChannel},filesep,'analysis_results'];
      
+    catch
+        continue;
+    end
+    
     SteerableChannelOutputDir = MD.processes_{indexSteerabeleProcess}.outFilePaths_{iChannel};
     
     % make out put directory if not existing
@@ -162,32 +174,44 @@ for iChannel = validChannels
         display(['iChannel: ', num2str(iChannel),', iFrame:', num2str(iFrame)]);
         frame_tic = tic;
         %% % Load the data
-       
+                   
+        try
+            % load the filament segmentation results
+            VIF_tip_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','tip_orientation');
+            VIF_RGB_seg_orient_heat_map = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','RGB_seg_orient_heat_map');
+            
+            VIF_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','current_seg_orientation');
+            VIF_current_model = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','current_model');
+        catch
+            % if there is no segmentation
+            continue;
+        end
+        
+         
         % load scale map
          % this line in commandation for shortest version of filename
         filename_shortshort_strs = all_uncommon_str_takeout(Channel_FilesNames{1});
-            
-               
-        try
-            load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                filename_short_strs{iFrame},'.mat']);            
-        catch
-            % in the case of only having the short-old version
-            if nFrame>1
+       
+        try            
+            try
                 load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                    filename_shortshort_strs{iFrame},'.mat']);
-            else
-                load([SteerableChannelOutputDir, filesep, 'steerable_',...
-                    filename_shortshort_strs,'.mat']);
+                    filename_short_strs{iFrame},'.mat']);
+            catch
+                % in the case of only having the short-old version
+                if nFrame>1
+                    load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                        filename_shortshort_strs{iFrame},'.mat']);
+                else
+                    load([SteerableChannelOutputDir, filesep, 'steerable_',...
+                        filename_shortshort_strs,'.mat']);
+                end
             end
+        catch
+            % if there is just steerable filter results at all
+            continue;
         end
         
-        % load the filament segmentation results       
-        VIF_tip_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','tip_orientation');
-        VIF_RGB_seg_orient_heat_map = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','RGB_seg_orient_heat_map');
-        
-        VIF_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','current_seg_orientation');
-        VIF_current_model = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(iChannel,iFrame+0,'output','current_model');
+    
         
 %         %% % this part is for tip analysis, not ready, just ignore this part
 %         % find the tip location
@@ -224,13 +248,12 @@ for iChannel = validChannels
         Cell_Mask = CellROI;
         try
             Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);                       
-        end
-        
+        end        
  
         min_length = MD.processes_{indexFilamentSegmentationProcess}.funParams_.LengthThreshold;
 
         if(numel(min_length)>1)
-        min_length = min_length(iChannel);
+            min_length = min_length(iChannel);
         end
         
         %% % do analysis
@@ -291,10 +314,11 @@ for iChannel = validChannels
         
         output_feature.Cell_Mask = Cell_Mask;
         
-        if(~isempty(Cell_Mask))
-            
+        if(~isempty(Cell_Mask) && feature_flag(4)==1 && feature_flag(5)==1)            
             output_feature.density_filament =  (output_feature.density_filament).*(output_feature.Cell_Mask);
+            output_feature.density_filament(~Cell_Mask)=nan;
             output_feature.scrabled_density_filament =  (output_feature.scrabled_density_filament).*(output_feature.Cell_Mask);
+            output_feature.scrabled_density_filament(~Cell_Mask)=nan;
         end
         
         output_feature.filament_density_mean = nanmean(output_feature.density_filament(:));
@@ -313,7 +337,7 @@ for iChannel = validChannels
         tic
         % plot the network features in hists
         network_features_plotting(output_feature, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
-                im_name, outdir,iChannel,iFrame)
+                im_name, outdir,iChannel,iFrame,set_visible)
 %         close all;
         toc
         
@@ -327,14 +351,16 @@ for iChannel = validChannels
     network_feature_MD_thisCh_wholepool = network_feature_pool_MD_gather(network_feature, iChannel, feature_flag);
     network_feature_MD_allCh_wholepool_cell{iChannel} = network_feature_MD_thisCh_wholepool;
     
-    network_features_plotting(network_feature_MD_allCh_wholepool_cell, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
-        im_name, wholemovie_output_dir, iChannel);
+    network_features_plotting(network_feature_MD_thisCh_wholepool, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
+        '_wholeMD_', wholemovie_output_dir, iChannel,1,set_visible);
         
     % save output feature for all channels(till this), all frames)       
     save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_allframe.mat'],...
             'network_feature','network_feature_MD_thisCh_wholepool');
 end
    
+try
 % save output feature for all channels, all frames)
 save([wholemovie_output_dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
     'network_feature','network_feature_MD_allCh_wholepool_cell');
+end

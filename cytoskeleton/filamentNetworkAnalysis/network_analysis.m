@@ -158,7 +158,9 @@ if(feature_flag(7)>0)
     orientation_pixel_pool_display_center = mod(orientation_pixel_pool_display_center,pi);
     orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2) = orientation_pixel_pool_display_center(orientation_pixel_pool_display_center>=pi/2)-pi;
     
-    orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + mode_bin;
+    % center the orientation at 0
+%     orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + mode_bin;
+    orientation_pixel_pool_display_center = orientation_pixel_pool_display_center + 0;
 else
     orientation_pixel_pool_display_center=[];
 end

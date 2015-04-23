@@ -1,5 +1,6 @@
-function network_feature_ML_cell = load_ML_network_analysis(ML,radius,figure_flag, save_everything_flag,...
-    feature_flag, vimscreen_flag, wholeML_flag)
+function network_feature_ML_cell = load_ML_network_analysis(ML,radius,...
+    figure_flag, save_everything_flag,...
+    feature_flag, vimscreen_flag, wholeML_flag,set_visible)
 % function to do network analysis for a whole movielist
 % Liya Ding, June, 2014
 %
@@ -40,10 +41,27 @@ if(~exist('wholeML_flag','var'))
     wholeML_flag = 0;
 end
 
+% if no input as if display figure or not, display them
+if(~exist('set_visible','var'))
+    set_visible = 'on';
+end
 
-feature_index = feature_index(:);  
-if(numel(feature_index)<25)
-    feature_index = [feature_index; zeros(25-numel(feature_index), 1)];
+
+
+ML_ROOT_DIR = ML.outputDirectory_;
+
+feature_flag = feature_flag(:);  
+if(numel(feature_flag)<25)
+    feature_flag = [feature_flag; zeros(25-numel(feature_flag), 1)];
+end
+
+
+if(feature_flag(4)==0)
+    feature_flag(24)=0;
+end
+
+if(feature_flag(5)==0)
+    feature_flag(25)=0;
 end
 
 %%
@@ -57,7 +75,8 @@ for iM  = 1 :movieNumber
         'network_feature_ML_wholepool_cell'...
         'iM' 'ML' 'figure_flag' 'radius'...
         'save_everything_flag'...
-        'vimscreen_flag' 'wholeML_flag'
+        'vimscreen_flag' 'wholeML_flag'...
+        'feature_flag' 'set_visible' 'ML_ROOT_DIR'
 
     close all;
     
@@ -70,24 +89,38 @@ for iM  = 1 :movieNumber
     % if want to keep everything together into a cell, get the output
     if(wholeML_flag==1)
        [network_feature_MD_cell,network_feature_MD_wholepool_cell] = load_MD_network_for_analysis...
-        (MD,[],radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag);
+        (MD,[],radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag,set_visible);
     else
         % if just want to run every movie, run without bring back
         % output(everything is saved to harddisk already)
         load_MD_network_for_analysis...
-        (MD,[],radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag);
+        (MD,[],radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag,set_visible);
     end
     
     if(wholeML_flag==1)
         network_feature_ML_cell{1, iM} = network_feature_MD_cell;
-        network_feature_ML_wholepool_cell{1, iM} = network_feature_MD_wholepool_cell;
+        network_feature_ML_wholepool_cell{1, iM} = network_feature_MD_wholepool_cell;       
     end
 end
 
 if(wholeML_flag==1)
-    ML_ROOT_DIR = ML.outputDirectory_;
+    
+    network_feature_ML_allCh_wholepool = ...
+        network_feature_pool_ML_gather(network_feature_ML_wholepool_cell, feature_flag);
+    for iChannel = 1 : numel(network_feature_ML_wholepool_cell{1})
+        if(~isempty(network_feature_ML_allCh_wholepool{iChannel}))
+            if(isfield(network_feature_ML_allCh_wholepool{iChannel},'length_per_filament_pool'))
+                if(~isempty(network_feature_ML_allCh_wholepool{iChannel}.length_per_filament_pool))
+                    
+                    network_features_plotting(network_feature_ML_allCh_wholepool{iChannel}, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
+                        '_wholeML_', ML_ROOT_DIR, iChannel,1,set_visible);
+                end
+            end
+        end
+    end
+    
     save([ML_ROOT_DIR, filesep,'movieList_netwrok_analysis_output','(radius',num2str(radius),').mat'],...
-        'network_feature_ML_cell','network_feature_ML_wholepool_cell');
+        'network_feature_ML_cell','network_feature_ML_wholepool_cell','network_feature_ML_allCh_wholepool');
     
 end
     
