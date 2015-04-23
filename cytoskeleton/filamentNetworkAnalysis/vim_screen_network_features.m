@@ -86,7 +86,7 @@ if(feature_flag(19)>0 || feature_flag(20)>0)
         profileFilaSum = nan(6,max(distMap_thisCell)+1);        
         profileStnmsSum = nan(6,max(distMap_thisCell)+1);         
         profilePixels = nan(6,max(distMap_thisCell)+1);        
-        profileIntOverST = nan(6,max(distMap_thisCell)+1);       
+%         profileIntOverST = nan(6,max(distMap_thisCell)+1);       
 
         for iDistance = 1: max(distMap_thisCell)+1;
             DistanceT = iDistance-1;
@@ -114,23 +114,23 @@ if(feature_flag(19)>0 || feature_flag(20)>0)
             
         end
         
-        DistancePeriCenter = nan(1,6);
-        
-        for iAngle =  1 : 6
-            
-            profileIntAve_array = profileIntSum(iAngle, :)./profilePixels(iAngle, :);
-            profileSTAve_array = profileStnmsSum(iAngle, :)./profilePixels(iAngle, :);
-            
-            profileIntAve_array_smooth = imfilter(profileIntAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
-            profileSTAve_array_smooth = imfilter(profileSTAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
-            
-            STOverInt_array = profileSTAve_array_smooth./profileIntAve_array_smooth;            
-            STOverInt_array_smooth = imfilter(STOverInt_array, fspecial('gaussian', 11, 4), 'replicate','same');
-            STOverInt_array_grad = STOverInt_array_smooth(2:end)-STOverInt_array_smooth(1:end-1);
-            
-            ind_d = find(STOverInt_array_grad == max(STOverInt_array_grad));
-            DistancePeriCenter(iAngle) = ind_d;
-        end
+%         DistancePeriCenter = nan(1,6);
+%         
+%         for iAngle =  1 : 6
+%             
+%             profileIntAve_array = profileIntSum(iAngle, :)./profilePixels(iAngle, :);
+%             profileSTAve_array = profileStnmsSum(iAngle, :)./profilePixels(iAngle, :);
+%             
+%             profileIntAve_array_smooth = imfilter(profileIntAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
+%             profileSTAve_array_smooth = imfilter(profileSTAve_array, fspecial('gaussian', 11, 4), 'replicate','same');
+%             
+%             STOverInt_array = profileSTAve_array_smooth./profileIntAve_array_smooth;            
+%             STOverInt_array_smooth = imfilter(STOverInt_array, fspecial('gaussian', 11, 4), 'replicate','same');
+%             STOverInt_array_grad = STOverInt_array_smooth(2:end)-STOverInt_array_smooth(1:end-1);
+%             
+%             ind_d = find(STOverInt_array_grad == max(STOverInt_array_grad));
+%             DistancePeriCenter(iAngle) = ind_d;
+%         end
         
         profileCell{1,iR}.profileIntSum = profileIntSum;
         profileCell{1,iR}.profileFilaSum = profileFilaSum;
@@ -140,29 +140,52 @@ if(feature_flag(19)>0 || feature_flag(20)>0)
         profileCell{1,iR}.profileFilaMean = profileFilaSum./profilePixels;
         profileCell{1,iR}.profileStnmsMean = profileStnmsSum./profilePixels;
         
-        profileCell{1,iR}.profileIntSumPerpCenterRatio = ...
-            sum(profileIntSum(1:6,T_dis_perp:end),2)./sum(profileIntSum(1:6,1:T_dis_perp+1),2);
+        try
+            profileCell{1,iR}.profileIntSumPerpCenterRatio = ...
+                sum(profileIntSum(1:6,T_dis_perp:end),2)./sum(profileIntSum(1:6,1:T_dis_perp+1),2);
+        catch
+            profileCell{1,iR}.profileIntSumPerpCenterRatio = nan;
+        end
         
-        profileCell{1,iR}.profileIntMeanPerpCenterRatio = ...
-            (sum(profileIntSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
-            ./(sum(profileIntSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        try
+            profileCell{1,iR}.profileIntMeanPerpCenterRatio = ...
+                (sum(profileIntSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+                ./(sum(profileIntSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        catch
+            profileCell{1,iR}.profileIntMeanPerpCenterRatio = nan;
+        end
         
-        profileCell{1,iR}.profileFilaSumPerpCenterRatio = ...
-            sum(profileFilaSum(1:6,T_dis_perp+1:end),2)...
-            ./sum(profileFilaSum(1:6,1:T_dis_perp),2);
+        try            
+            profileCell{1,iR}.profileFilaSumPerpCenterRatio = ...
+                sum(profileFilaSum(1:6,T_dis_perp+1:end),2)...
+                ./sum(profileFilaSum(1:6,1:T_dis_perp),2);
+        catch
+            profileCell{1,iR}.profileFilaSumPerpCenterRatio = nan;
+        end
         
-        profileCell{1,iR}.profileFilaMeanPerpCenterRatio = ...
-            (sum(profileFilaSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
-            ./(sum(profileFilaSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        try            
+            profileCell{1,iR}.profileFilaMeanPerpCenterRatio = ...
+                (sum(profileFilaSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+                ./(sum(profileFilaSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        catch
+            profileCell{1,iR}.profileFilaMeanPerpCenterRatio = nan;
+        end
         
-        profileCell{1,iR}.profileStnmsSumPerpCenterRatio = ...
-            sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)...
-            ./sum(profileStnmsSum(1:6,1:T_dis_perp),2);
+        try            
+            profileCell{1,iR}.profileStnmsSumPerpCenterRatio = ...
+                sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)...
+                ./sum(profileStnmsSum(1:6,1:T_dis_perp),2);
+        catch
+            profileCell{1,iR}.profileStnmsSumPerpCenterRatio = nan;
+        end
         
-        profileCell{1,iR}.profileStnmsMeanPerpCenterRatio = ...
-            (sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
-            ./(sum(profileStnmsSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
-        
+        try            
+            profileCell{1,iR}.profileStnmsMeanPerpCenterRatio = ...
+                (sum(profileStnmsSum(1:6,T_dis_perp+1:end),2)./sum(profilePixels(1:6,T_dis_perp+1:end),2))...
+                ./(sum(profileStnmsSum(1:6,1:T_dis_perp),2)./sum(profilePixels(1:6,1:T_dis_perp),2));
+        catch
+            profileCell{1,iR}.profileStnmsMeanPerpCenterRatio = nan;
+        end
     end
     
     intsum_pool = [];

@@ -1,4 +1,5 @@
-function [similarity_scoremap, difference_map] = network_similarity_scoremap(VIF_current_model,MT_current_model,img_size, radius)
+function [similarity_scoremap, difference_map] = network_similarity_scoremap(VIF_current_model,MT_current_model,img_size, radius,...
+    longest_radius,sigma_d, sigma_theta,sigma_gaussian)
 % core unction for calculation the similarity of two networks
 % Liya Ding 06.2013.
 
@@ -347,7 +348,7 @@ angle_map_2_1_pad(radius+1:end-radius,radius+1:end-radius) = angle_map_2_1;
 % end
 % 
 % 
-Weight_mask = fspecial('gaussian',2*radius+1,(radius*1.3)/(2)/2);
+Weight_mask = fspecial('gaussian',2*radius+1,sigma_gaussian);
 Weight_mask = Weight_mask(sub2ind([2*radius+1,2*radius+1,],cy,cx));
 
 % for all these points, get local support
@@ -379,30 +380,42 @@ end
 % score_maps_angle_1_2(isnan(score_maps_angle_1_2))=pi/2;
 
 % calculation of similarity score.
-similarity_scoremap = exp(-(score_maps_distance_2_1+score_maps_distance_1_2).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2/2)).^2/(1.5*(pi/3)^2));
+
+% the two final combined features
+D = (score_maps_distance_2_1 +score_maps_distance_1_2)/2;
+
+A = abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2)/2;
+
+% similarity scoremaps
+similarity_scoremap = exp(-(D.^2)./(2*(sigma_d^2)))...
+    .*exp(-(A.^2)./(2*(sigma_theta^2)));
 
 % calculation of similarity score only consider 1->2.
-similarity_scoremap_1to2 = exp(-(0+score_maps_distance_1_2*2).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(0/2)+abs(score_maps_angle_1_2/2*2)).^2/(1.5*(pi/3)^2));
+
+similarity_scoremap_1to2 = exp(-(((score_maps_distance_1_2)/2).^2)./(2*(sigma_d^2)))...
+    .*exp(-((abs(score_maps_angle_1_2)).^2)./(2*(sigma_theta^2)));
 
 % calculation of similarity score only consider 2->1.
-similarity_scoremap_2to1 = exp(-(score_maps_distance_2_1*2+0).^2/(((radius*1.5)/2*sqrt(2))^2))...
-    .*exp(-(abs(score_maps_angle_2_1/2*2)+abs(0/2)).^2/(1.5*(pi/3)^2));
+similarity_scoremap_2to1 = exp(-(((score_maps_distance_2_1)/2).^2)./(2*(sigma_d^2)))...
+    .*exp(-((abs(score_maps_angle_2_1)).^2)./(2*(sigma_theta^2)));
 
+% decompose the two score maps: proximity and alignment
+difference_map.similarity_scoremap_proximity = exp(-(D.^2)./(2*(sigma_d^2)));
 
-difference_map.similarity_scoremap_proximity = exp(-(score_maps_distance_2_1+score_maps_distance_1_2).^2/(((radius*1.5)/2*sqrt(2))^2));
-difference_map.similarity_scoremap_alignment = exp(-(abs(score_maps_angle_2_1/2)+abs(score_maps_angle_1_2/2)).^2/(1.5*(pi/3)^2));
+difference_map.similarity_scoremap_alignment = exp(-(A.^2)./(2*(sigma_theta^2)));
+
 difference_map.similarity_scoremap_combined = similarity_scoremap;
 
 difference_map.similarity_scoremap_1to2 = similarity_scoremap_1to2;
 difference_map.similarity_scoremap_2to1 = similarity_scoremap_2to1;
+
 difference_map.distance_map_1_2 = distance_map_1_2;
 difference_map.distance_map_2_1 = distance_map_2_1;
 difference_map.angle_map_1_2 = angle_map_1_2;
 difference_map.angle_map_2_1 = angle_map_2_1;
 difference_map.orient_map_1_2 = orient_map_1_2;
 difference_map.orient_map_2_1 = orient_map_2_1;
+
 difference_map.score_maps_distance_1_2 = score_maps_distance_1_2;
 difference_map.score_maps_distance_2_1 = score_maps_distance_2_1;
 difference_map.score_maps_angle_1_2 = score_maps_angle_1_2;

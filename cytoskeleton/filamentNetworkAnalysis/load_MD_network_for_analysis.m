@@ -1,8 +1,8 @@
-function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag)
+function [network_feature,network_feature_MD_allCh_wholepool_cell] = load_MD_network_for_analysis(MD,CellROI,radius,figure_flag, save_everything_flag,feature_flag,vimscreen_flag)
 % function to do network analysis with input MD
 
 % input:    MD:    the loaded movieData object.
-%           ROI:   the user input ROI, if not defined [], will use the whole
+%           CellROI:   the user input CellROI, if not defined [], will use the whole
 %                  image area
 %           radius: the definition of neighborhood
 %           figure_flag: 1 to plot histgrams, 0 not to
@@ -42,14 +42,43 @@ function network_feature = load_MD_network_for_analysis(MD,ROI,radius,figure_fla
 %           21:   output_feature.Centripetal_fila 
 %           22:   output_feature.Centripetal_pixel 
 
+
+% 
+% textcell = {'Straightness of filament (for each filament)',... % 1
+%     'Length (for each filament)',...                           % 2
+%     'Pixel number of segmentation (for each filament)',...     % 3
+%     'Filament density (for each valid pixel)',...                   % 4
+%     'Scrabled filament density (for each valid pixel)',...          % 5
+%     'Filament orientation (for each pixel)',...                % 6
+%     'Filament orientation (for each pixel,centered)',...       % 7
+%     'Filamet intensity (integrated for each filament)',...           % 8
+%     'Filamet intensity (average for each filament)',...              % 9
+%     'Filamet intensity (integrated for each dilated filament)',...   % 10
+%     'Filamet intensity (average for each dilated filament)',...      % 11
+%     'Scale of detected filaments (for each pixel)',...                   % 12
+%     'ST Responce (integrated for each filament)',...            % 13
+%     'ST Responce (average for each filament)',...               % 14
+%     'ST Responce (integrated for each dilated filament)',...    % 15
+%     'ST Responce (average for each dilated filament)',...       % 16
+%     'Filament curvature (average for each filament)',...     % 17
+%     'Filament curvature (for each pixel on filaments)',...   % 18
+%     'Filament Profiles for each cell (for vim screen only)',... %19   
+%     'Filament Profiles for all cells (for vim screen only)',... %20
+%     'Filament Centripetal angle for each filament (for vim screen only)',... %21 
+%     'Filament Centripetal angle for each pixel on filament (for vim screen only)',... %22
+%     'Cell Mask',... % 23
+%     'Number of Nucleus'... %24
+%     }
+
+
 % output:   network_feature, a cell structure for each channel, each frame.
 %           Each struct with field of the 16 features as above
             
 % Liya Ding 2013
 
-% if no input, ROI is full image
+% if no input, CellROI is full image
 if(nargin<2)
-    ROI = [];
+    CellROI = [];
 end
 
 % if no input for radius, set it as default 20
@@ -85,6 +114,11 @@ end
 %% Get movie data ready
 
 movie_Dir = MD.outputDirectory_;
+wholemovie_output_dir = [MD.outputDirectory_,filesep,'whole_movie_network_analysis'];
+ 
+if(~exist(wholemovie_output_dir,'dir'))
+    mkdir(wholemovie_output_dir);
+end
 
 % find all the index of different processes
 display_msg_flag = 0; % display warning or not
@@ -174,17 +208,24 @@ for iChannel = validChannels
 %         plot(CellBoundary(:,2),CellBoundary(:,1),'r.');
 %         plot(vim_tip_x,vim_tip_y,'*');
         
-        %% % transfer into digital representation and define ROI
+        %% % transfer into digital representation and define CellROI
         
         [Vif_digital_model,Vif_orientation_model,VIF_XX,VIF_YY,VIF_OO] ...
             = filament_model_to_digital_with_orientation(VIF_current_model);
         
         VIF_current_seg = (isnan(VIF_orientation)==0);
         
-        % if the input ROI is [], then use the whole area
-        if(isempty(ROI))
-            ROI = ones(size(VIF_current_seg));
+        % if the input CellROI is [], then use the whole area
+        if(isempty(CellROI))
+            CellROI = ones(size(VIF_current_seg));
         end
+                
+        % see if there is cell segmentation to rule out noisy background
+        Cell_Mask = CellROI;
+        try
+            Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);                       
+        end
+        
  
         min_length = MD.processes_{indexFilamentSegmentationProcess}.funParams_.LengthThreshold;
 
@@ -201,7 +242,7 @@ for iChannel = validChannels
         tic
         [output_network_features, VIF_ROI_model, VIF_ROI_orientation_model] ...
             = network_analysis(VIF_current_model,...
-            VIF_current_seg, ROI, radius,feature_flag);
+            VIF_current_seg, Cell_Mask, radius,feature_flag);
         toc
         
         display(' --- intensity, scale, steerable-response features');   
@@ -238,10 +279,10 @@ for iChannel = validChannels
         end           
         
         % add one last component, the cell_mask
-        Cell_Mask = ROI;
+        Cell_Mask = CellROI;
         if(indexCellRefineProcess>0 && vimscreen_flag == 0)
             try
-                Cell_Mask = ROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
+                Cell_Mask = CellROI.*((MD.processes_{indexCellRefineProcess}.loadChannelOutput(iChannel,iFrame))>0);
               Cell_Mask(Cell_Mask==0)=nan;
       
             end            
@@ -257,7 +298,7 @@ for iChannel = validChannels
         end
         
         output_feature.filament_density_mean = nanmean(output_feature.density_filament(:));
-        output_feature.scrabled_density_filament = nanmean(output_feature.scrabled_density_filament(:));
+        output_feature.scrabled_density_filament_mean = nanmean(output_feature.scrabled_density_filament(:));
         
          
 %         % save output feature for single image(single channel, single frame)
@@ -283,11 +324,17 @@ for iChannel = validChannels
        toc(frame_tic)
     end
     
+    network_feature_MD_thisCh_wholepool = network_feature_pool_MD_gather(network_feature, iChannel, feature_flag);
+    network_feature_MD_allCh_wholepool_cell{iChannel} = network_feature_MD_thisCh_wholepool;
+    
+    network_features_plotting(network_feature_MD_allCh_wholepool_cell, figure_flag, save_everything_flag, feature_flag,vimscreen_flag,...
+        im_name, wholemovie_output_dir, iChannel);
+        
     % save output feature for all channels(till this), all frames)       
     save([outdir,filesep,'network_analysis_feature_ch_',num2str(iChannel),'_allframe.mat'],...
-            'network_feature');
+            'network_feature','network_feature_MD_thisCh_wholepool');
 end
-
+   
 % save output feature for all channels, all frames)
-save([movie_Dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
-    'network_feature');
+save([wholemovie_output_dir,filesep,'network_analysis_feature_allch_allframe.mat'],...
+    'network_feature','network_feature_MD_allCh_wholepool_cell');

@@ -85,6 +85,8 @@ for iML = 1 : nList
                 display_msg_flag=0;
                 package_process_ind_script;
                 
+                MD_ROOT_DIR = MD.outputDirectory_;
+                
                 nChannel = numel(MD.channels_);
                 nFrame = MD.nFrames_;
                 
