@@ -1,13 +1,13 @@
 function [fitResults,numModes,allModeMean,allModeStd,allModeFrac,...
     numFeatures,errFlag] = analyzeIntensityModes(movieInfo,movieName,...
     startFrame,endFrame,alpha,variableMean,variableStd,numModeMinMax,...
-    plotResults,logData,modeParamIn,ampOrInt,saveFullFileName)
+    plotResults,logData,modeParamIn,ampOrInt,saveFullFileName,ratioTol)
 %analyzeIntensityModes does a modal analysis of particle intensity distribution for each frame of a movie
 %
 %SYNOPSIS  [fitResults,numModes,allModeMean,allModeStd,allModeFrac,...
 %    numFeatures,errFlag] = analyzeIntensityModes(movieInfo,movieName,...
 %    startFrame,endFrame,alpha,variableMean,variableStd,numModeMinMax,...
-%    plotResults,logData,modeParamIn,ampOrInt,saveFullFileName)
+%    plotResults,logData,modeParamIn,ampOrInt,saveFullFileName,ratioTol)
 %
 %INPUT  
 %   Mandatory
@@ -87,6 +87,10 @@ function [fitResults,numModes,allModeMean,allModeStd,allModeFrac,...
 %       saveFullFileName: The name, including full path, where figure is to
 %                      be saved (if plotted).
 %                      Default: [], in which case figure is not saved.
+%       ratioTol     : Tolerance for ratio between mean/std of 1st Gaussian
+%                      and mean/std of subsequent Gaussians.
+%                      See fitHistWithGaussians for details.
+%                      Default: 0.
 %
 %OUTPUT fitResults       : Array of structures with field modeParam as outputed by
 %                          fitHistWithGaussians for each analyzed frame.
@@ -113,7 +117,7 @@ function [fitResults,numModes,allModeMean,allModeStd,allModeFrac,...
 %REMARKS Interconversion between log-normal parameters M and S, and mean and
 %and standard deviation of distribution mu and sigma:
 %
-% mu = exp(M+S^2/2) & standard deviation: sigma^2 = exp(S^2+2M)*(exp(S^2)-1)
+% mu = exp(M+S^2/2) & standard deviation: sigma^2 = exp(S^2+2*M)*(exp(S^2)-1)
 %
 % Inverse: 
 % M = ln(mu^2/sqrt(sigma^2+mu^2)) & S^2 = ln(sigma^2/mu^2+1)
@@ -152,6 +156,7 @@ logData_def = 0;
 modeParamIn_def = [];
 ampOrInt_def = 1;
 saveFullFileName_def = [];
+ratioTol_def = 0;
 
 %check movieName
 if nargin < 2 || isempty(movieName)
@@ -203,8 +208,8 @@ end
 if nargin < 7 || isempty(variableStd)
     variableStd = variableStd_def;
 else
-    if ~any(variableStd == [0,1,2])
-        disp('--analyzeIntensityModes: "variableStd" should be 0, 1 or 2!');
+    if ~any(variableStd == [0,1,2,3])
+        disp('--analyzeIntensityModes: "variableStd" should be 0, 1, 2 or 3!');
         errFlag = 1;
     end
 end
@@ -265,6 +270,11 @@ if nargin < 13 || isempty(saveFullFileName) || plotResults == 0
     saveFullFileName = saveFullFileName_def;
 end
 
+%check ratioTol
+if nargin < 14 || isempty(ratioTol)
+    ratioTol = ratioTol_def;
+end
+
 %exit if there are problem in input variables
 if errFlag
     fitResults = [];
@@ -296,7 +306,7 @@ for i = startFrame : endFrame
         %             case 1
         [~,~,modeParam,errFlag] = ...
             fitHistWithGaussians(movieInfo(i).amp(:,1),alpha,variableMean,...
-            variableStd,0,numModeMinMax,2,[],logData,modeParamIn);
+            variableStd,0,numModeMinMax,2,[],logData,modeParamIn,ratioTol);
         fitResults(i).modeParam = modeParam;
         %             case 2
         %                 [~,~,modeParam,errFlag] = ...

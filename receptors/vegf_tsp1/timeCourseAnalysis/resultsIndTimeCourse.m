@@ -148,7 +148,7 @@ for iM = 1 : numMovies
     %amplitude statistics in first 20 frames
     ampVec = ampMat(:,1:20);
     ampVec = ampVec(~isnan(ampVec));
-    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,2,0,[],2,[],1);
+    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
     numMode = size(modeParam,1);
     modeParamMean = modeParam(1,1);
     modeParamStd  = modeParam(1,2);
@@ -160,7 +160,7 @@ for iM = 1 : numMovies
     %amplitude statistics in last 20 frames
     ampVec = ampMat(:,end-19:end);
     ampVec = ampVec(~isnan(ampVec));
-    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,2,0,[],2,[],1);
+    [~,~,modeParam] = fitHistWithGaussians(ampVec,0.05,0,3,0,[],2,[],1,[],0);
     numMode = size(modeParam,1);
     modeParamMean = modeParam(1,1);
     modeParamStd  = modeParam(1,2);

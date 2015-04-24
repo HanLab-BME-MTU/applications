@@ -1,9 +1,9 @@
 function analyzeIntensityModesMLMD(MLMD,alpha,variableMean,variableStd,numModeMinMax,...
-    plotResults,logData,modeParamIn,ampOrInt)
+    plotResults,logData,modeParamIn,ampOrInt,ratioTol)
 %analyzeIntensityModesMLMD does a modal analysis of particle intensity distributions in a list of movies
 %
 %SYNOPSIS  analyzeIntensityModesMLMD(MLMD,alpha,variableMean,variableStd,numModeMinMax,...
-%    plotResults,logData,modeParamIn,ampOrInt)
+%    plotResults,logData,modeParamIn,ampOrInt,ratioTol)
 %
 %INPUT 
 %   Mandatory
@@ -56,6 +56,22 @@ function analyzeIntensityModesMLMD(MLMD,alpha,variableMean,variableStd,numModeMi
 %                      intensities. If 2, the field intRawMinusBg must be
 %                      present.
 %                      Default: 1.
+%       ratioTol     : Tolerance for ratio between mean/std of 1st Gaussian
+%                      and mean/std of subsequent Gaussians.
+%                      If 0, ratio is taken strictly.
+%                      If > 0, ratio is allowed to wiggle by ratioTol about
+%                      the theoretial ratio.
+%                      If one entry, same value is used for both mean and
+%                      std. If two entries, then first is for mean and
+%                      second is for std.
+%                      Example: If ratioTol = 0.1, then mean of 2nd Gaussian
+%                      can vary between 1.9 and 2.1 of mean of 1st Gaussian
+%                      (instead of exactly 2). Same holds for std.
+%                      If ratioTol = [0.1 0.2], then mean can vary by 0.1
+%                      and std by 0.2.
+%                      Default: 0.
+%                      Option currently implemented only for 3 cases:
+%                      variableMean ~= 1 and variableStd = 1, 2 or 3.
 %
 %OUPUT Output is saved in directory IntModalAnalysis belonging to each
 %      analyzed movie. See analyzeIntensityModes for detailed description
@@ -80,6 +96,7 @@ plotResults_def = 1;
 logData_def = 0;
 modeParamIn_def = [];
 ampOrInt_def = 1;
+ratioTol_def = 0;
 
 %check alpha
 if nargin < 2 || isempty(alpha)
@@ -124,6 +141,11 @@ end
 %check what to analyze - amplitudes or intensities
 if nargin < 9 || isempty(ampOrInt)
     ampOrInt = ampOrInt_def;
+end
+
+%check ratioTol
+if nargin < 14 || isempty(ratioTol)
+    ratioTol = ratioTol_def;
 end
 
 %% Analysis
@@ -189,6 +211,7 @@ for iM = 1 : numMovies
     funParams.logData = logData;
     funParams.modeParamIn = modeParamIn;
     funParams.ampOrInt = ampOrInt;
+    funParams.ratioTol = ratioTol;
     
     %general again
     parseProcessParams(MD.getProcess(iProc),funParams);
