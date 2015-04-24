@@ -1,5 +1,5 @@
-function network_features_plotting(output_feature, figure_flag, save_everything_flag,feature_flag,vimscreen_flag,...
-    im_name, outdir,iChannel,iFrame,set_visible)
+function network_features_whole_movie_plotting(output_feature, figure_flag, save_everything_flag,feature_flag,vimscreen_flag,...
+    im_name, outdir)
 % function to plot network features
 % Input: output_feature:   network feautre
 %        figure_flag:      to plot to not
@@ -9,8 +9,8 @@ function network_features_plotting(output_feature, figure_flag, save_everything_
 % Plot only if the user requested
 
 if(figure_flag>0)
-    display(' --- Feature plotting');
-    
+    display(' --- Feature plotting');   
+        
     if(iscell(im_name))
         im_name = im_name{1};
     end
@@ -22,8 +22,7 @@ if(figure_flag>0)
     
     if(feature_flag(3)>0)
         % length distribution, by how many pixels
-        
-        h3 = figure(3); set(h3,'Visible',set_visible); hold off;
+        h3 =  figure(3);
         
         [h,bin] = hist(output_feature.pixel_number_per_filament_pool,0:20:1000);
         h = h/length(output_feature.pixel_number_per_filament_pool);
@@ -40,9 +39,7 @@ if(figure_flag>0)
     
     if(feature_flag(2)>0)
         
-        
-        h2 = figure(2); set(h2,'Visible',set_visible); hold off;
-        
+        h2 =  figure(2);
         [h,bin] = hist(output_feature.length_per_filament_pool,0:20:1000);
         h = h/length(output_feature.length_per_filament_pool);
         
@@ -60,9 +57,7 @@ if(figure_flag>0)
     if(feature_flag(1)>0)
         
         % the straightness distribution
-        
-        h1 = figure(1); set(h1,'Visible',set_visible); hold off;
-        
+        h1 =  figure(1);
         [h,bin] = hist(output_feature.straightness_per_filament_pool,0:0.02:1);
         h = h/length(output_feature.straightness_per_filament_pool);
         bar(bin,h);
@@ -75,14 +70,9 @@ if(figure_flag>0)
             saveas(h1, [outdir,filesep,'network_straight_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.tif']);
         end
         
-        
-        h5 = figure(5); set(h5,'Visible',set_visible); hold off;
-        
-        h = boxplot(output_feature.straightness_per_filament_pool);        
-        try
-            set(h(7,:),'Visible','off');
-        end
-        
+        h5 =  figure(5);
+        h = boxplot(output_feature.straightness_per_filament_pool);
+        set(h(7,:),'Visible','off');
         axis([0 2 0.6 1.01]);
         
         title([im_name_title,' Straightness']);
@@ -95,9 +85,7 @@ if(figure_flag>0)
     
     if(feature_flag(6)>0)
         
-        
-        h6 = figure(6); set(h6,'Visible',set_visible); hold off;
-        
+        h6 =  figure(6);
         rose(output_feature.orientation_pixel_pool_display);
         title([im_name_title,' Orientation of Filaments']);
         if(save_everything_flag>0)
@@ -106,7 +94,7 @@ if(figure_flag>0)
         end
         
         % the orientation in histogram
-        h106 = figure(106); set(h106,'Visible',set_visible); hold off;
+        h106 =  figure(106);
         
         [h,b] = hist(output_feature.orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
         h=h(1:end);
@@ -124,9 +112,7 @@ if(figure_flag>0)
     
     if(feature_flag(7)>0)
         
-        
-        h7 = figure(7); set(h7,'Visible',set_visible); hold off;
-        
+        h7 =  figure(7);
         rose(output_feature.orientation_pixel_pool_display_center);
         title([im_name_title,' Orientation of Filaments']);
         
@@ -136,8 +122,7 @@ if(figure_flag>0)
         end
         
         % the orientation in histogram
-        
-        h107 = figure(107); set(h107,'Visible',set_visible); hold off;
+        h107 =  figure(107);
         
         [h,b] = hist(output_feature.orientation_pixel_pool_display,-pi/2:pi/18:pi/2);
         h=h(1:end);
@@ -165,9 +150,7 @@ if(figure_flag>0)
     if(feature_flag(8)>0)
         %intensity_per_filament_pool
         
-        
-        h8 = figure(8); set(h8,'Visible',set_visible); hold off;
-        
+        h8 =  figure(8);
         [h,b] = hist(output_feature.intensity_per_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.intensity_per_filament_pool);
@@ -184,9 +167,7 @@ if(figure_flag>0)
     if(feature_flag(9)>0)
         %mean_intensity_per_filament_pool
         
-        
-        h9 = figure(9); set(h9,'Visible',set_visible); hold off;
-        
+        h9 =  figure(9);
         [h,b] = hist(output_feature.mean_intensity_per_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.mean_intensity_per_filament_pool);
@@ -203,9 +184,7 @@ if(figure_flag>0)
     if(feature_flag(10)>0)
         %intensity_per_fat_filament_pool
         
-        
-        h10 = figure(10); set(h10,'Visible',set_visible); hold off;
-        
+        h10 =  figure(10);
         [h,b] = hist(output_feature.intensity_per_fat_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.intensity_per_fat_filament_pool);
@@ -221,9 +200,7 @@ if(figure_flag>0)
     if(feature_flag(11)>0)
         %mean_intensity_per_fat_filament_pool
         
-        
-        h11 = figure(11); set(h11,'Visible',set_visible); hold off;
-        
+        h11 =  figure(11);
         [h,b] = hist(output_feature.mean_intensity_per_fat_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.mean_intensity_per_fat_filament_pool);
@@ -239,9 +216,7 @@ if(figure_flag>0)
     if(feature_flag(12)>0)
         %scale_per_filament_pool
         
-        
-        h12 = figure(12); set(h12,'Visible',set_visible); hold off;
-        
+        h12 =  figure(12);
         [h,b] = hist(output_feature.scale_per_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.scale_per_filament_pool);
@@ -253,14 +228,12 @@ if(figure_flag>0)
             saveas(h12, [outdir,filesep,'mean_scale_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
         end
     end
-    
+   
     %%
-    if(feature_flag(13)>0)
+        if(feature_flag(13)>0)
         %st_per_filament_pool
         
-        
-        h13 = figure(13); set(h13,'Visible',set_visible); hold off;
-        
+        h13 =  figure(13);
         [h,b] = hist(output_feature.st_per_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.st_per_filament_pool);
@@ -271,14 +244,12 @@ if(figure_flag>0)
             saveas(h13, [outdir,filesep,'sum_ST_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h13, [outdir,filesep,'sum_ST_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
         end
-    end
-    
-    if(feature_flag(14)>0)
+        end
+        
+         if(feature_flag(14)>0)
         %st_per_filament_pool
         
-        
-        h14 = figure(14); set(h14,'Visible',set_visible); hold off;
-        
+        h14 =  figure(14);
         [h,b] = hist(output_feature.mean_st_per_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.mean_st_per_filament_pool);
@@ -290,12 +261,10 @@ if(figure_flag>0)
             saveas(h14, [outdir,filesep,'mean_ST_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
         end
     end
-    if(feature_flag(15)>0)
+ if(feature_flag(15)>0)
         %st_per_fat_filament_pool
         
-        
-        h15 = figure(15); set(h15,'Visible',set_visible); hold off;
-        
+        h15 =  figure(15);
         [h,b] = hist(output_feature.st_per_fat_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.st_per_fat_filament_pool);
@@ -306,14 +275,12 @@ if(figure_flag>0)
             saveas(h15, [outdir,filesep,'sum_ST_fatfila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h15, [outdir,filesep,'sum_ST_fatfila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
         end
-    end
-    
-    if(feature_flag(16)>0)
+        end
+        
+         if(feature_flag(16)>0)
         %mean_st_per_fat_filament_pool
         
-        
-        h16 = figure(16); set(h16,'Visible',set_visible); hold off;
-        
+        h16 =  figure(16);
         [h,b] = hist(output_feature.mean_st_per_fat_filament_pool);
         h=h(1:end);
         h = h/numel(output_feature.mean_st_per_fat_filament_pool);
@@ -324,45 +291,42 @@ if(figure_flag>0)
             saveas(h16, [outdir,filesep,'mean_ST_fatfila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h16, [outdir,filesep,'mean_ST_fatfila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
         end
-    end
+         end
     %%
-    if(feature_flag(17)>0)
+    if(feature_flag(17)>0)      
         %filament_mean_curvature
-        h17 = figure(17); set(h17,'Visible',set_visible); hold off;
-        
+        h17 =  figure(17);  
         [h,bin] = hist(output_feature.filament_mean_curvature);
         h = h/length(output_feature.filament_mean_curvature);
         bar(bin,h);
-        
+       
         title([im_name_title,' Ave Curvature per fila']);
         if(save_everything_flag>0)
             saveas(h17, [outdir,filesep,'ave_curvature_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h17, [outdir,filesep,'ave_curvature_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
+        end               
     end
-    
-    if(feature_flag(18)>0)
-        %curvature_per_pixel_pool
-        h18 = figure(18); set(h18,'Visible',set_visible); hold off;
         
+    if(feature_flag(18)>0)      
+        %curvature_per_pixel_pool
+        h18 =  figure(18);  
         [h,bin] = hist(abs(output_feature.curvature_per_pixel_pool),100);
         h = h/length(output_feature.curvature_per_pixel_pool);
         bar(bin,h);
-        
+       
         title([im_name_title,' Curvature per pixel']);
         if(save_everything_flag>0)
             saveas(h18, [outdir,filesep,'ave_curvature_pixel_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h18, [outdir,filesep,'ave_curvature_pixel_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
+        end               
     end
-    
-    %%
-    %     profileCell.nmsmean_pool
-    
-    if(feature_flag(20)>0 && vimscreen_flag>0)
         
-        h20 = figure(20); set(h20,'Visible',set_visible); hold off;
+    %% 
+%     profileCell.nmsmean_pool 
+    
+    if(feature_flag(20)>0 && vimscreen_flag>0)      
         
+        h20 =  figure(20);    
         [h,bin] = hist((output_feature.profileAllCell.nmsmean_pool(:) ));
         h = h/length(output_feature.profileAllCell.nmsmean_pool(:) );
         bar(bin,h);
@@ -370,12 +334,10 @@ if(figure_flag>0)
         if(save_everything_flag>0)
             saveas(h20, [outdir,filesep,'mean_st_ratio_perp_center_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h20, [outdir,filesep,'mean_st_ratio_perp_center_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
+        end  
         
-        
-        
-        h120 = figure(120); set(h120,'Visible',set_visible); hold off;
-        
+           
+        h120 =  figure(120);    
         [h,bin] = hist((output_feature.profileAllCell.filamean_pool(:) ));
         h = h/length(output_feature.profileAllCell.filamean_pool(:) );
         bar(bin,h);
@@ -383,89 +345,41 @@ if(figure_flag>0)
         if(save_everything_flag>0)
             saveas(h120, [outdir,filesep,'mean_st_ratio_perp_center_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h120, [outdir,filesep,'mean_st_ratio_perp_center_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
+        end 
     end
     
     %%
-    if(feature_flag(21)>0&& vimscreen_flag>0)
+     if(feature_flag(21)>0&& vimscreen_flag>0)      
         %Centripetal_distribution
-        
-        h21 = figure(21); set(h21,'Visible',set_visible); hold off;
-        
+        h21 =  figure(21);  
         [h,bin] = histc(output_feature.Centripetal_fila, 0:pi/24:pi/2);
         h(end-1) = h(end-1) +h(end);
         h = h(1:end-1);
         
         h = h/length(output_feature.Centripetal_fila);
         bar(pi/48:pi/24:pi/2-pi/48,h);
-        
+       
         title([im_name_title,' Centripetal per fila']);
         if(save_everything_flag>0)
             saveas(h21, [outdir,filesep,'centripetal_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h21, [outdir,filesep,'centripetal_fila_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
-    end
+        end               
+     end
     
-    if(feature_flag(22)>0&&vimscreen_flag>0)
+     if(feature_flag(22)>0&&vimscreen_flag>0)      
         %Centripetal_pixel_distribution
-        
-        h22 = figure(22); set(h22,'Visible',set_visible); hold off;
-        
+        h22 =  figure(22);  
         [h,bin] = histc(output_feature.Centripetal_pixel, 0:pi/24:pi/2);
         h(end-1) = h(end-1) +h(end);
         h = h(1:end-1);
         h = h/length(output_feature.Centripetal_pixel);
         bar(pi/48:pi/24:pi/2-pi/48,h);
-        
+       
         title([im_name_title,' Centripetal per pixel']);
         if(save_everything_flag>0)
             saveas(h22, [outdir,filesep,'centripetal_pixel_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
             saveas(h22, [outdir,filesep,'centripetal_pixel_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
+        end               
     end
-    
-    if(feature_flag(23)>0&&vimscreen_flag>0)
-        %Centripetal_pixel_distribution
-        
-        h23 = figure(23); set(h23,'Visible',set_visible); hold off;
-        
-        hist(output_feature.number_of_nucleus);
-        
-        title([im_name_title,' Number of Cells']);
-        if(save_everything_flag>0)
-            saveas(h23, [outdir,filesep,'nucleus_number_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
-            saveas(h23, [outdir,filesep,'nucleus_number_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
-    end
-    
-    if(feature_flag(24)>0&&vimscreen_flag>0)
-        %Centripetal_pixel_distribution
-        
-        h24 = figure(24); set(h24,'Visible',set_visible); hold off;
-        
-        hist(output_feature.filament_density_mean);
-        
-        title([im_name_title,' filament density mean']);
-        
-        if(save_everything_flag>0)
-            saveas(h24, [outdir,filesep,'filament_density_mean_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
-            saveas(h24, [outdir,filesep,'filament_density_mean_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
-    end
-    
-    if(feature_flag(25)>0&&vimscreen_flag>0)
-        %Centripetal_pixel_distribution
-        
-        h25 = figure(25); set(h25,'Visible',set_visible); hold off;
-        
-        hist(output_feature.scrabled_density_filament_mean);
-        
-        title([im_name_title,'scrabled filament density mean']);
-        
-        if(save_everything_flag>0)
-            saveas(h25, [outdir,filesep,'scrabled_filament_density_mean_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.fig']);
-            saveas(h25, [outdir,filesep,'scrabled_filament_density_mean_ch_',num2str(iChannel),'_frame_',num2str(iFrame),'.jpg']);
-        end
-    end
-    
+         
 end
