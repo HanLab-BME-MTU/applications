@@ -75,7 +75,7 @@ parfor frameIdx=1:numel(processFrames)
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         labels{frameIdx}=double(mask); % adjust label
         movieInfo(frameIdx)=labelToMovieInfo(double(mask),vol);
-      case {'pointSourceAutoSigmaLM'}
+      case {'pointSourceLM','pointSourceAutoSigmaLM'}
         [pstruct,mask,imgLM,imgLoG]=pointSourceDetection3D(vol,scales,varargin{:});
         labels{frameIdx}=double(mask); % adjust label
         movieInfo(frameIdx)=pointCloudToMovieInfo(imgLM,vol);  
