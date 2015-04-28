@@ -285,6 +285,17 @@ if strcmpi(p.method,'FastBEM')
                 %         if ishandle(wtBar)
 %             waitbar(0,wtBar,sprintf([logMsg ' for first frame']));
 %         end
+        expectedName = ['basisClass' num2str(p.YoungModulus/1000) 'kPa' num2str(gridSpacing) 'pix'];
+        % match basisClassTblPath name to include gridSpacing
+        basisFunctionFolderPath = fileparts(p.basisClassTblPath);
+        expectedPath = [basisFunctionFolderPath filesep expectedName '.mat'];
+        if ~strcmp(expectedPath,p.basisClassTblPath)
+            p.basisClassTblPath = expectedPath;
+            disp(['basisClassTblPath has different name for estimated mesh grid spacing (' num2str(gridSpacing) '). ']);
+            disp('Now the path is automatically changed to :')
+            disp([expectedPath '.'])
+        end
+            
         if p.useLcurve
             [pos_f, force, forceMesh, M, pos_u, u, sol_coef,  sol_mats]=...
                 reg_FastBEM_TFM(grid_mat, displField, i, ...

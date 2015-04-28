@@ -1,4 +1,4 @@
-function [selectedID]=showAdhesionTracks(pathForColocalization,idList,varargin)
+function [IDs]=showAdhesionTracks(pathForColocalization,idList,varargin)
 % this function reads from Colocalization folder and shows the specified
 % tracks on selected Channel interactively.
 %% input reading
@@ -6,16 +6,20 @@ ip =inputParser;
 ip.addRequired('pathForColocalization',@ischar)
 ip.addOptional('idList','all',@(x)islogical(x)||ischar(x)||isempty(x))
 ip.addParamValue('numChan',2,@isscalar); % selcted track ids
+ip.addParamValue('tracksNA',[],@isstruct); % selcted track ids
 ip.parse(pathForColocalization,idList,varargin{:});
 pathForColocalization=ip.Results.pathForColocalization;
 idList=ip.Results.idList;
+tracksNA=ip.Results.tracksNA;
 numChan=ip.Results.numChan;
 
 %% Load processed data
 disp('Loading raw files ...')
 tic
-tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
-tracksNA = tracksNA.tracksNA;
+if isempty(tracksNA)
+    tracksNA = load([pathForColocalization filesep 'data' filesep 'tracksNA.mat'],'tracksNA');
+    tracksNA = tracksNA.tracksNA;
+end
 if numChan==1
     imgMap = load([pathForColocalization filesep 'fMap' filesep 'tMap.mat'],'tMap');
     imgMap = imgMap.tMap;
@@ -33,9 +37,14 @@ numFrames = size(imgMap,3);
 if ischar(idList) && strcmp(idList,'all')
     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA)));
     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA)));
+    idxIDList = 1:numel(tracksNA);
 else
-    startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA(idList))));
-    endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA(idList))));
+    tracksNA=tracksNA(idList);
+    idxIDList = find(idList);
+    startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA)));
+    endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA)));
+%     startFrame = max(1, min(arrayfun(@(x) x.startingFrame,tracksNA(idList))));
+%     endFrame = min(numFrames, max(arrayfun(@(x) x.endingFrame,tracksNA(idList))));
 end
 % movieData to find out pixel size
 coloPath = fileparts(pathForColocalization);
@@ -71,6 +80,11 @@ setappdata(hFig,'tracksNA',tracksNA);
 %// Display 1st frame
 imshow(imgMap(:,:,startFrame),[]), hold on
 plot(arrayfun(@(x) x.xCoord(startFrame),tracksNA),arrayfun(@(x) x.yCoord(startFrame),tracksNA),'ro')
+idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{startFrame}),tracksNA(idAdhLogic));
+idAdh = find(idAdhLogic);
+idAdhCur = idAdh(idAdhCur);
+arrayfun(@(x) plot(x.adhBoundary{startFrame}(:,1),x.adhBoundary{startFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
 xmat = cell2mat(arrayfun(@(x) x.xCoord(1:startFrame),tracksNA,'UniformOutput',false));
 ymat = cell2mat(arrayfun(@(x) x.yCoord(1:startFrame),tracksNA,'UniformOutput',false));
 if size(xmat,2)==1
@@ -84,14 +98,15 @@ dcm_obj = datacursormode(hFig);
 set(dcm_obj,'UpdateFcn',@myupdateDC)
 imgWidth = size(imgMap,2);
 imgHeight = size(imgMap,1);
-
+selectedID = [];
+IDs=[];
 %// IMPORTANT. Update handles structure.
 guidata(hFig,handles);
 waitfor(hFig)
-if isempty(selectedID)
+if isempty(IDs)
     disp('No track was selected by data cursor. No ID is returend...')
 else
-    disp(['Selected track is ' num2str(selectedID) '.'])
+    disp(['Selected track is ' num2str(IDs) '.'])
 end
 function pushInspectAdhesion(~,~)
     IDtoInspect=get(handles.Edit2,'String');
@@ -99,6 +114,7 @@ function pushInspectAdhesion(~,~)
     % show intensity profile and ask user to pick the starting frame and
     % ending frame
     % read first: 
+    IDs=[IDs idxIDList(IDtoInspect)];
     curTrack = readIntensityFromTracks(tracksNA(IDtoInspect),imgMap,1,'extraLength',350);
     curTrack = readIntensityFromTracks(curTrack,tMap,2,'extraLength',350);
     % then use startingFrameExtra and endingFrameExtra to plot intensity
@@ -332,6 +348,8 @@ function pushInspectAdhesion(~,~)
     end
     print(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.eps'),'-depsc2')
     savefig(h2,strcat(gPath,'/track',num2str(IDtoInspect),'.fig'))
+    save([outputPath filesep 'selectedIDs.mat'], 'IDs')
+    setappdata(hFig,'IDs',IDs);
     close(h2)
     axes(handles.axes1)
 end
@@ -346,7 +364,11 @@ function txt=myupdateDC(~,event_obj)
     set(handles.Edit2,'String',num2str(selectedID));
     
     setappdata(hFig,'selPointID',selectedID); 
-    txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))]};
+    try
+        txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))],['Advance: ' num2str(tracksNA(selectedID).advanceDist)]};
+    catch
+        txt = {['ID: ', num2str(selectedID)],['Amp: ' num2str(tracksNA(selectedID).amp(CurrentFrame))]};
+    end
 end
 function XListenerCallBack
 
@@ -370,6 +392,17 @@ function XListenerCallBack
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+
+    try
+        idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
+        idAdh = find(idAdhLogic);
+        idAdhCur = idAdh(idAdhCur);
+        arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+    catch
+        disp(' ')
+    end
+    
+%     arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idCurrent))
     xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
     ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
     if size(xmat,2)==1
@@ -401,6 +434,17 @@ function XSliderCallback(~,~)
     hold on
     idCurrent = arrayfun(@(x) logical(x.presence(CurrentFrame)),tracksNA);
     plot(arrayfun(@(x) x.xCoord(CurrentFrame),tracksNA(idCurrent)),arrayfun(@(x) x.yCoord(CurrentFrame),tracksNA(idCurrent)),'ro')
+    
+    idAdhLogic = arrayfun(@(x) ~isempty(x.adhBoundary),tracksNA);
+    try
+        idAdhCur = arrayfun(@(x) ~isempty(x.adhBoundary{CurrentFrame}),tracksNA(idAdhLogic));
+        idAdh = find(idAdhLogic);
+        idAdhCur = idAdh(idAdhCur);
+        arrayfun(@(x) plot(x.adhBoundary{CurrentFrame}(:,1),x.adhBoundary{CurrentFrame}(:,2), 'Color',[255/255 153/255 51/255], 'LineWidth', 0.5),tracksNA(idAdhCur))
+    catch
+        disp(' ')
+    end
+        
     xmat = cell2mat(arrayfun(@(x) x.xCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
     ymat = cell2mat(arrayfun(@(x) x.yCoord(1:CurrentFrame),tracksNA(idCurrent),'UniformOutput',false));
     if size(xmat,2)==1
@@ -413,8 +457,8 @@ function XSliderCallback(~,~)
     guidata(hFig,handles);
 end
 function windlowClose(~,~)
-    selectedID=getappdata(hFig,'selPointID'); 
-    if isempty(selectedID)
+    IDs=getappdata(hFig,'IDs'); 
+    if isempty(IDs)
         disp('No track was selected by data cursor. No ID is returend...')
     end
 end

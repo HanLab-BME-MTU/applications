@@ -274,7 +274,11 @@ for j= firstFrame:nFrames
 %         erosionDist=round((p.minCorLength+1)/2);
         % Erode the mask with the correlation length + half maxFlowSpeed
         % and filter beads to minimize error
-        erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/2);
+        if p.noFlowOutwardOnBorder
+            erosionDist=(p.minCorLength+1)/2;
+        else
+            erosionDist=p.minCorLength+1+round(p.maxFlowSpeed/2);
+        end            
         beadsMask=bwmorph(beadsMask,'erode',erosionDist);
 %         beadsMask=imerode(beadsMask,strel('square',erosionDist));
         indx=beadsMask(sub2ind(size(beadsMask),ceil(beads(:,2)), ceil(beads(:,1))));
