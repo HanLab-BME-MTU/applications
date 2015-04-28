@@ -1,4 +1,4 @@
-function BA_Group = branch_analysis_group_plotting(ML_name_cell, T_branchsize, T_branchduration, Group_ROOT_DIR)
+function BA_Group = branch_analysis_group_plotting(ML_name_cell, T_branchsize, T_branchduration, Group_ROOT_DIR, branch_percent_threshold, short_time_frames, speed_percent_threshold,branch_orientation_p_threshold)
 % function to do branch analysis for a whole movielist
 % Liya Ding, March, 2014
 %
@@ -17,6 +17,18 @@ if(nargin<3)
 end
 if(nargin<4)
     Group_ROOT_DIR=[];
+end
+if(nargin<5)
+    branch_percent_threshold = 1; % anything larger than 1% of cell size
+end
+if(nargin<6)
+    short_time_frames = 1; % check things on each period of time  1 frame
+end
+if(nargin<7)
+    speed_percent_threshold = 1; % the speed to be considered as valid, not reorienting, 1% of cell demension( sqrt of cell pixels) is very low
+end
+if(nargin<8)
+    branch_orientation_p_threshold = 0.999; %  the threshold to consider branch orientation as different 0.99 means they can be really similar to each other
 end
 
 T_speed=4;
@@ -131,7 +143,12 @@ Group_Pool_branch_seg_total = [];
 Group_Pool_branch_seg_mean  = [];
 Group_Pool_branch_nms_total = [];
 Group_Pool_branch_nms_mean  = [];
-
+Group_Pool_branch_number_weighted = cell(1,numel(branch_percent_threshold));
+Group_Pool_Travel_Speed_short_time = cell{1, numel(short_time_frames)};
+Group_Pool_reorienting_status_short_time = cell{numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold)};
+Group_Pool_vim_fila_shorttime = cell{1, numel(short_time_frames)};
+Group_Pool_vim_nms_shorttime = cell{1, numel(short_time_frames)};
+Group_Pool_vim_int_shorttime = cell{1, numel(short_time_frames)};
 
 Identifier_cell = [];
 
@@ -189,12 +206,37 @@ for iML = 1 : nList
     ML_Pool_branch_nms_total = [];
     ML_Pool_branch_nms_mean = [];
     ML_Pool_Travel_Speed_without_pausing = [];
-   
-    % the number of movies
-    movieNumber =  20;
     
+    ML_Pool_branch_number_weighted = cell(1,numel(branch_percent_threshold));
+    ML_Pool_Travel_Speed_short_time = cell{1, numel(short_time_frames)};
+    ML_Pool_reorienting_status_short_time = cell{numel(short_time_frames),numel(speed_percent_threshold),numel(branch_orientation_p_threshold)};
+    ML_Pool_vim_fila_shorttime = cell{1, numel(short_time_frames)};
+    ML_Pool_vim_nms_shorttime = cell{1, numel(short_time_frames)};
+    ML_Pool_vim_int_shorttime = cell{1, numel(short_time_frames)};
+    
+    for iB = 1 : numel(branch_percent_threshold)
+        
+        percent_threshold = branch_percent_threshold(iB);
+        
+        branch_size_matrix = BA_output.branch_size_matrix;
+        cell_size_pool = BA_output.cell_size_array;
+        
+        cell_size_matrix = repmat(cell_size_pool, 1,size(branch_size_matrix,2));
+        
+        
+        branch_size_percent_matrix = branch_size_matrix./cell_size_matrix*100;
+        
+        branch_size_percent_thresholded_matrix  = branch_size_percent_matrix/percent_threshold;
+        branch_size_percent_thresholded_matrix(branch_size_percent_thresholded_matrix>1)=1;
+        
+        ML_Pool_branch_number_weighted{iB} = [ ML_Pool_branch_number_weighted{iB}; nanmean(branch_size_percent_thresholded_matrix,1)];
+        
+    end
+       
+   movieNumber =  length(ML.movieDataFile_);
+        
     for iM  = 1 : movieNumber
-        nChannel=2;
+        nChannel = 2;
         for iChannel = 1 : nChannel
             for iCell = 1 :  10
                 try
@@ -204,13 +246,11 @@ for iML = 1 : nList
                 end
                 
                 if(~isempty(BA_output))
-                    ML_Pool_CompletedFrame_last=[ML_Pool_CompletedFrame_last BA_output.CompletedFrame(end)];
-    
+                    ML_Pool_CompletedFrame_last=[ML_Pool_CompletedFrame_last BA_output.CompletedFrame(end)];    
                     ML_Pool_branch_size_mean = [ML_Pool_branch_size_mean BA_output.branch_mean_size];
                     ML_Pool_whole_cell_size_mean= [ML_Pool_whole_cell_size_mean BA_output.whole_cell_size_mean];
                     ML_Pool_branch_number_mean_pat = [ML_Pool_branch_number_mean_pat repmat(BA_output.branch_number_mean, [1, length(BA_output.branch_vif_mean_intensity)])];
                     Identifier_cell{1,numel(Identifier_cell)+1} = BA_output.Identifier;
-                    
                     
                     Thresholded_branch_number_mean = sum(BA_output.branch_duration_array(find(BA_output.branch_mean_size>T_branchsize & BA_output.branch_duration_array>T_branchduration)))...
                         ./ BA_output.cell_marked_frame_number;
@@ -237,20 +277,81 @@ for iML = 1 : nList
                     ML_Pool_pool_vif_intensity= [ML_Pool_pool_vif_intensity; BA_output.pool_all_vif_intensity];
                     
                     
+                    ML_Pool_whole_cell_vim_seg_total = [ML_Pool_whole_cell_vim_seg_total; BA_output.whole_cell_vim_seg_total];
+                    ML_Pool_whole_cell_vim_seg_mean = [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
+                    ML_Pool_whole_cell_vim_nms_total = [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
+                    ML_Pool_whole_cell_vim_nms_mean = [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
                     
-  ML_Pool_whole_cell_vim_seg_total= [ML_Pool_whole_cell_vim_seg_total; BA_output.whole_cell_vim_seg_total];
-  ML_Pool_whole_cell_vim_seg_mean= [ML_Pool_whole_cell_vim_seg_mean; BA_output.whole_cell_vim_seg_mean];
-  ML_Pool_whole_cell_vim_nms_total= [ML_Pool_whole_cell_vim_nms_total; BA_output.whole_cell_vim_nms_total];
-  ML_Pool_whole_cell_vim_nms_mean= [ML_Pool_whole_cell_vim_nms_mean; BA_output.whole_cell_vim_nms_mean];
-
-  ML_Pool_branch_seg_total= [ML_Pool_branch_seg_total BA_output.branch_seg_total];
-   ML_Pool_branch_seg_mean= [ML_Pool_branch_seg_mean BA_output.branch_seg_mean];
-   ML_Pool_branch_nms_total= [ML_Pool_branch_nms_total BA_output.branch_nms_total];
-   ML_Pool_branch_nms_mean= [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
-   
-   if isfield(BA_output,'speed_marked_frames')
-       S = BA_output.speed_marked_frames;       
-      ML_Pool_Travel_Speed_without_pausing = [ML_Pool_Travel_Speed_without_pausing mean(S(S>T_speed))];
+                    ML_Pool_branch_seg_total = [ML_Pool_branch_seg_total BA_output.branch_seg_total];
+                    ML_Pool_branch_seg_mean = [ML_Pool_branch_seg_mean BA_output.branch_seg_mean];
+                    ML_Pool_branch_nms_total = [ML_Pool_branch_nms_total BA_output.branch_nms_total];
+                    ML_Pool_branch_nms_mean = [ML_Pool_branch_nms_mean BA_output.branch_nms_mean];
+                    
+                    if isfield(BA_output,'speed_marked_frames')
+                        S = BA_output.speed_marked_frames;
+                        ML_Pool_Travel_Speed_without_pausing = [ML_Pool_Travel_Speed_without_pausing mean(S(S>T_speed))];
+                        smoothed_speed_marked_frames = BA_output.smoothed_speed_marked_frames;
+                        center_x = BA_output.center_x;
+                        center_y = BA_output.center_y;
+                        center_x = center_x(:);
+                        center_y = center_y(:);
+                        % assume the last frame is moving in the same speed
+                        % as the end-1 to end
+                        smoothed_speed_marked_frames(numel(smooth_center_x)) = smoothed_speed_marked_frames(numel(smooth_center_x)-1);
+                        smoothed_speed_marked_frames = smoothed_speed_marked_frames(:);
+      
+      
+                        %%  speed with shorttime definition
+                        for iShorttime = 1 : numel(short_time_frames)
+                            ShortTimeFrames = short_time_frames(iShorttime);
+%                             give_up_frame = floor(ShortTimeFrames/2);
+                            give_up_frame = 1;
+                            H = ones(ShortTimeFrames,1)/ShortTimeFrames;
+                            
+                            smoothed_speed_marked_frames_shorttime = imfilter(smoothed_speed_marked_frames,H,'same','replicate');
+                            
+                            vif_fila_mean = BA_output.cell_vif_seg_total_array ./(BA_output.cell_size_array);
+                            vif_nms_mean = BA_output.cell_vif_nms_total_array ./(BA_output.cell_size_array);
+                            vif_int_mean = BA_output.cell_vimtotal_pool ./(BA_output.cell_size_array);
+                            
+                            vif_fila_mean = vif_fila_mean(:);
+                            vif_nms_mean  = vif_nms_mean(:);
+                            vif_int_mean  = vif_int_mean(:);
+                            
+                            vif_fila_mean_shorttime = imfilter(vif_fila_mean,H,'same','replicate');
+                            vif_nms_mean_shorttime = imfilter(vif_nms_mean,H,'same','replicate');
+                            vif_int_mean_shorttime = imfilter(vif_int_mean,H,'same','replicate');
+                            
+                            ML_Pool_Travel_Speed_short_time{iShorttime} = [ML_Pool_Travel_Speed_short_time{iShorttime}; smoothed_speed_marked_frames_shorttime(give_up_frame:end-give_up_frame+1,1)] ;
+                            ML_Pool_vim_fila_shorttime{iShorttime} = [ML_Pool_vim_fila_shorttime{iShorttime}; vif_fila_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];
+                            ML_Pool_vim_nms_shorttime{iShorttime} = [ML_Pool_vim_nms_shorttime{iShorttime}; vif_nms_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];
+                            ML_Pool_vim_int_shorttime{iShorttime} = [ML_Pool_vim_int_shorttime{iShorttime}; vif_int_mean_shorttime(give_up_frame:end-give_up_frame+1,1)];                            
+                        end
+                        
+                        %% branch number with weight
+                        for iB = 1 : numel(branch_percent_threshold)
+                            branch_size_percent = BA_output.branch_size_matrix./(repmat(BA_output.cell_size_array, 1, size(BA_output.branch_size_matrix,2)))*100;
+                            branch_size_percent(branch_size_percent> branch_percent_threshold(iB)) = branch_percent_threshold(iB);
+                            branch_size_percent = branch_size_percent/branch_size_percent(iB);
+                            branch_number_afterweight = sum(branch_size_percent,2);
+                            ML_Pool_branch_number_weighted{iB} = [ ML_Pool_branch_number_weighted{iB}; branch_number_afterweight];
+                        end
+                        %%
+    
+      for iSpeed = 1 : numel(speed_percent_threshold)
+          for iPvalue = 1 : numel(speed_percent_threshold)
+              for iShorttime = 1 : numel(short_time_frames)
+                  ShortTimeFrames = short_time_frames(iShorttime);
+                 
+%%
+        
+              end
+          end
+      end
+      
+      
+      
+      
    end
                     
                     
@@ -339,6 +440,11 @@ for iML = 1 : nList
     ML_Pool_whole_cell_vif_mean_intensity = ML_Pool_whole_cell_vif_mean_intensity/vim_max;
     ML_Pool_whole_cell_vif_mean_intensity_pat = ML_Pool_whole_cell_vif_mean_intensity_pat/vim_max;
     ML_Pool_whole_cell_vim_totalamount_mean = ML_Pool_whole_cell_vim_totalamount_mean/vim_max;
+    
+    
+    for shorttime also need this normalization
+        """""""""""""""""""""""""""""""
+   
     
     %% in the end put data from this ML to the pool of all MLs
         

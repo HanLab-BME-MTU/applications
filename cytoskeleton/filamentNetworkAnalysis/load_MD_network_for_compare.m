@@ -1,4 +1,5 @@
-function similarity_scoremap_cell=load_MD_network_for_compare(MD,radius,show_save_everything_flag)
+function [similarity_scoremap_cell,difference_map_cell]=load_MD_network_for_compare(MD,radius,show_save_everything_flag,...
+    longest_radius,sigma_gaussian, sigma_d, sigma_theta)
 % function to compare two networks
 % Input:   MD: movieData object loaded
 %                       this movie should be two channel movie
@@ -6,10 +7,46 @@ function similarity_scoremap_cell=load_MD_network_for_compare(MD,radius,show_sav
 %          save_everything_flag:
 %                       whether to save all the figure during detailed process
 %                       usually set to 0, to keep only the useful ones
+%          longest_radius: the longest distance to be considered, here put a big number so that later process could be done
+%          sigma_d, sigma_theta: if not the default set here
 % output:  similarity_scoremap_cell:
 %          a cell structure with each frames similarity scoremap
 %          every figure is saved to disc
 %          at the end of the function the output dir is opened
+
+
+% if no input for longest radius, set it as default 100
+if(nargin<4)
+    longest_radius = 100;
+end
+
+flag_default = 0;
+
+if(nargin<5)
+    sigma_gaussian = 3*radius/8;
+    flag_default = 1;
+end
+if(nargin<6)
+    sigma_d = sqrt(3)*radius/4;
+end
+
+if(nargin<7)
+    sigma_theta = pi/(2*sqrt(3));
+end
+
+if(isempty(sigma_gaussian))
+     sigma_gaussian = 3*radius/8;
+end
+
+if(isempty(sigma_d))
+     sigma_d = sqrt(3)*radius/4;
+end
+
+if(isempty(sigma_theta))
+     sigma_theta = pi/(2*sqrt(3));
+end
+
+
 
 package_process_ind_script;
 
@@ -22,8 +59,21 @@ MT_model = cell(1,nFrame);
 % flatten_dir{1} = MD.processes_{3}.outFilePaths_{1};
 % flatten_dir{2} = MD.processes_{3}.outFilePaths_{2};
 outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,'similarity_results'];
+if(flag_default==1)
+    customized_outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,...
+        'similarity_results_r',num2str(radius),'_s_default'];
+else
+    customized_outdir = [MD.processes_{indexFilamentSegmentationProcess}.outFilePaths_{1},filesep,...
+        'similarity_results_r',num2str(radius),'_sg',num2str(sigma_gaussian,'%.1f'),...
+        '_sd',num2str(sigma_d,'%.1f'),...
+        '_sa',num2str(sigma_theta,'%.1f')];
+end
+
 if(~exist(outdir,'dir'))
     mkdir(outdir);
+end
+if(~exist(customized_outdir,'dir'))
+    mkdir(customized_outdir);
 end
 
 dist_pool_for_crossing=[];
@@ -32,6 +82,7 @@ ang_pool_for_crossing=[];
 
 %initialize output
 similarity_scoremap_cell = cell(1,nFrame);
+difference_map_cell = cell(1,nFrame);
 
 intensity_pool_VIF = [];
 intensity_pool_MT = [];
@@ -49,8 +100,6 @@ for iFrame = 1 : nFrame
     
     %     MT_img =  MD.processes_{indexFlattenProcess}.loadChannelOutput(1,iFrame);
     MT_img =  MD.channels_(1).loadImage(iFrame);
-    
-    
     
     VIF_orientation = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(2,iFrame+0,'output','current_seg_orientation');
     VIF_current_model = MD.processes_{indexFilamentSegmentationProcess}.loadChannelOutput(2,iFrame+0,'output','current_model');
@@ -121,18 +170,22 @@ for iFrame = 1 : nFrame
     img_size = size(MT_img);
     
     % core function of the comparison
-    [similarity_scoremap, difference_map]= network_similarity_scoremap(MT_current_model,VIF_current_model,img_size, radius);
+    [similarity_scoremap, difference_map]= network_similarity_scoremap(MT_current_model,VIF_current_model,img_size, radius,...
+        longest_radius,sigma_d, sigma_theta,sigma_gaussian);
     
     % save the output to disk
     
     save([outdir,filesep,'VIFMT_sm_maps_frame_',num2str(iFrame),'.mat'], ...
         'difference_map', 'similarity_scoremap');
+   save([customized_outdir,filesep,'VIFMT_sm_maps_frame_',num2str(iFrame),'.mat'], ...
+        'difference_map', 'similarity_scoremap');
     
     % plot the detailed results if requested.
-    plot_differnce_map_wrapper(difference_map,outdir,iFrame,radius,show_save_everything_flag);
+    plot_differnce_map_wrapper(difference_map,outdir,customized_outdir,iFrame,radius,show_save_everything_flag);
     
     % put results for all the frames together
     similarity_scoremap_cell{1, iFrame} = similarity_scoremap;
+    difference_map_cell{1, iFrame} = difference_map;
         
     %       close all;
 end

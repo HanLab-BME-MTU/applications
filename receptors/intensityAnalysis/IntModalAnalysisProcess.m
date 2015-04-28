@@ -62,6 +62,7 @@ classdef IntModalAnalysisProcess < DataProcessingProcess
             funParams.modeParamIn = [];
             funParams.ampOrInt = 1;
             funParams.saveFullFileName = [];
+            funParams.ratioTol = 0;
             
         end
         

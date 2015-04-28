@@ -125,10 +125,10 @@ for frame=toDoList
         end
         
         % segment the image:
-        % maskBlobs =blobSegmentThresholdGeneral(Gc,'rosin',1,1,minSize,doPlot,pwd,'my');
-        % maskBlobs =blobSegmentThresholdGeneral(Gc,'minmax',1,1,minSize,doPlot,pwd,'my');
-        % maskBlobs =blobSegmentThresholdGeneral(gradmag,'minmax',1,1,minSize,doPlot,pwd,'my');
-        maskBlobs =blobSegmentThresholdGeneral(Gc,'rosin',1,1,minSize,doPlot,pwd,'my');
+        % maskBlobs =blobSegmentThresholdGeneral(Gc,'rosin',1,1,minSize,doPlot,'my');
+        % maskBlobs =blobSegmentThresholdGeneral(Gc,'minmax',1,1,minSize,doPlot,'my');
+        % maskBlobs =blobSegmentThresholdGeneral(gradmag,'minmax',1,1,minSize,doPlot,'my');
+        maskBlobs =blobSegmentThresholdGeneral(Gc,'rosin',1,1,minSize,doPlot,'my');
         
         
         % Now we have the candidate clusters. Some of which will contain

@@ -572,6 +572,7 @@ new_region_branch_label_cell = region_branch_label_cell;
 for iCompleteFrame = 1 : nCompleteFrame
     new_label_skel_cell{iCompleteFrame} = new_label_skel_cell{iCompleteFrame}*0;
     new_region_branch_label_cell{iCompleteFrame} = new_region_branch_label_cell{iCompleteFrame}*0;
+    
 end
 
 % final output of the number of branches tracked
@@ -582,6 +583,9 @@ BA_output.branch_number_max = max(branch_number_per_frame);
 
 % the mean number branches among all frames
 BA_output.branch_number_mean = mean(branch_number_per_frame);
+
+% the number branches among each frame
+BA_output.branch_number_per_frame = (branch_number_per_frame);
 
 
 for iT = 1 : length(tracksFinal)
